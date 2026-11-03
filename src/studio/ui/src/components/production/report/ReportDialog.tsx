@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import type { ProductionReportExport, ProductionReportInclude, ProductionReportPreview } from '../../../api/contracts/production';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { overlay } from '../../../overlay/overlayService';
@@ -15,6 +15,11 @@ const FORMATS = [
   { value: 'html', label: 'HTML' },
   { value: 'json', label: 'JSON' },
 ] as const;
+
+/** A held Enter or Space repeats keydown, and each repeat would press the button again as soon as it is free: only the first press counts. */
+const ignoreKeyRepeat = (event: KeyboardEvent<HTMLButtonElement>) => {
+  if (event.repeat && (event.key === 'Enter' || event.key === ' ')) event.preventDefault();
+};
 
 export type ReportDialogProps = {
   projectName: string;
@@ -143,12 +148,12 @@ export function ReportDialog({ projectName, asOf, onClose }: ReportDialogProps) 
           {written && (
             <div aria-live="polite" className="text-sm">
               {/* The sentence and the folder button share a line, as the Delivery built list does. */}
-              <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
-                <p>
+              <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
+                <p className="min-w-0 [overflow-wrap:anywhere]">
                   Wrote <span className="font-medium [overflow-wrap:anywhere]">{written.htmlFile}</span> and{' '}
                   <span className="font-medium [overflow-wrap:anywhere]">{written.jsonFile}</span> to {written.folder}.
                 </p>
-                <IconButton action="openFolder" onClick={openFolder} pending={opening} />
+                <IconButton action="openFolder" onClick={openFolder} onKeyDown={ignoreKeyRepeat} pending={opening} />
               </div>
               <p className="mt-1" style={MUTED}>
                 {written.contractedAmountIncluded
