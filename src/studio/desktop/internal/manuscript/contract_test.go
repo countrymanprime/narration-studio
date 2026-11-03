@@ -61,7 +61,7 @@ func TestContractImportJobsAndReaderPayloads(t *testing.T) {
 		t.Fatal(err)
 	}
 	pin(t, "manuscript-paragraphs", paragraphs)
-	hits, err := service.Search("paragraph")
+	hits, err := service.Search("re")
 	if err != nil {
 		t.Fatal(err)
 	}

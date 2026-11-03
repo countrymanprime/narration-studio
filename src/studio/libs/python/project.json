@@ -17,6 +17,12 @@
       "options": {
         "command": "node scripts/ci/coverage-gate.mjs pytest src/studio/libs/python src/studio/libs/python/tests"
       }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node scripts/ci/pyright-ratchet.mjs"
+      }
     }
   }
 }

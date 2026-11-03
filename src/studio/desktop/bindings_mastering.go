@@ -31,13 +31,15 @@ type MasteringProvidersState struct {
 
 // MasteringProvider is one row of masteringport.Rows on the wire. Support is the DAW port's Support shape (supportPayload).
 type MasteringProvider struct {
-	Name          string         `json:"name"`
-	Label         string         `json:"label"`
-	Default       bool           `json:"default"`
-	Modes         []string       `json:"modes"`
-	NeedsApproval bool           `json:"needsApproval"`
-	Needs         []string       `json:"needs"`
-	Support       map[string]any `json:"support"`
+	Name          string   `json:"name"`
+	Label         string   `json:"label"`
+	Default       bool     `json:"default"`
+	Modes         []string `json:"modes"`
+	NeedsApproval bool     `json:"needsApproval"`
+	// NeedsMacro: the narrator names their own effect macro when they approve each render (the Audacity row).
+	NeedsMacro bool           `json:"needsMacro"`
+	Needs      []string       `json:"needs"`
+	Support    map[string]any `json:"support"`
 	// Chain is the row's own fixed chain, for Master & QC to draw before anything is mastered; empty when the chain is not the
 	// app's (the DAW row).
 	Chain []MasteringStep `json:"chain"`
@@ -91,7 +93,7 @@ func masteringProvidersPayload(rows *port.Registry[masteringport.Mastering], pla
 		}
 		state.Providers = append(state.Providers, MasteringProvider{
 			Name: entry.Name, Label: entry.Descriptor.Label, Default: entry.Name == fallback.Name, Modes: nonNil(entry.Descriptor.Modes),
-			NeedsApproval: caps.NeedsApproval, Needs: needs, Support: supportPayload(masteringport.Support(entry, platform)), Chain: chain,
+			NeedsApproval: caps.NeedsApproval, NeedsMacro: caps.NeedsMacro, Needs: needs, Support: supportPayload(masteringport.Support(entry, platform)), Chain: chain,
 		})
 	}
 	if choice == "" {

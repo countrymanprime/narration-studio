@@ -23,3 +23,4 @@ Storybook title: `Primitives/ChapterStepper`. Source: `src/components/primitives
 - `src/components/masterqc/page/MasterPage.tsx`
 - `src/components/pickups/list/PickupsTable.tsx`
 - `src/components/proof/ProofPage.tsx`
+- `src/components/proof/useProofPageCommands.ts`

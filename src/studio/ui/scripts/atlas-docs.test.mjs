@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, describe, test } from 'node:test';
-import { atlasDocs } from './atlas-docs.mjs';
+import { atlasDocs, checkAtlasDocs } from './atlas-docs.mjs';
 
 const roots = [];
 
@@ -151,5 +151,46 @@ describe('atlasDocs', () => {
     assert.equal(components[0].name, 'FeatureGrid');
     assert.equal(components[0].tier, 'composite');
     assert.equal(existsSync(join(out(dir), 'atlas', 'FeatureGrid.md')), true);
+  });
+});
+
+describe('checkAtlasDocs', () => {
+  const button = { id: 'b--p', type: 'story', title: 'Primitives/Button', name: 'Primary', importPath: './src/components/primitives/Button.stories.tsx' };
+
+  test('is empty right after a generation, with or without an image line', async () => {
+    const dir = fixture();
+    indexWith(dir, { 'b--p': button });
+    await run(dir);
+    assert.deepEqual(await checkAtlasDocs(dir, out(dir)), []);
+    const page = join(out(dir), 'atlas', 'Button.md');
+    writeFileSync(page, readFileSync(page, 'utf8').replace('## Stories', '![Button, Primary, light theme](../images/button.webp)\n\n## Stories'));
+    assert.deepEqual(await checkAtlasDocs(dir, out(dir)), []);
+  });
+
+  test('names a hand-edited page, a missing page, a stale page and a changed inventory', async () => {
+    const dir = fixture();
+    indexWith(dir, { 'b--p': button });
+    await run(dir);
+    writeFileSync(join(out(dir), 'atlas', 'Button.md'), '# Button\n\nedited by hand\n');
+    writeFileSync(join(out(dir), 'atlas', 'Gone.md'), '# Gone\n');
+    rmSync(join(out(dir), 'atlas', 'index.md'));
+    const inventory = JSON.parse(readFileSync(join(out(dir), 'inventory.json'), 'utf8'));
+    inventory.components[0].stories = ['Other'];
+    writeFileSync(join(out(dir), 'inventory.json'), JSON.stringify(inventory, null, 2) + '\n');
+    const diffs = await checkAtlasDocs(dir, out(dir));
+    assert.deepEqual(
+      diffs.map((d) => d.split(':')[0]),
+      ['atlas/Button.md', 'atlas/Gone.md', 'atlas/index.md', 'inventory.json'],
+    );
+  });
+
+  test('keeps the hand-written inventory fields', async () => {
+    const dir = fixture();
+    indexWith(dir, { 'b--p': button });
+    await run(dir);
+    const inventory = JSON.parse(readFileSync(join(out(dir), 'inventory.json'), 'utf8'));
+    inventory.components[0].tier = 'primitive';
+    writeFileSync(join(out(dir), 'inventory.json'), JSON.stringify(inventory, null, 2) + '\n');
+    assert.deepEqual(await checkAtlasDocs(dir, out(dir)), []);
   });
 });

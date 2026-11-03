@@ -1,15 +1,17 @@
-// The Script page's search sources for the jump menu: text in the manuscript, the narrator's marks and flagged words. Each is a pure
-// builder over what the page has loaded and answers from memory; the registry sets the minimum term length, and choosing a hit calls a
-// handler the page passes. The manuscript is searched with the search the page always used (`searchManuscript`), so a match is the same
-// match, and choosing one marks every match in the reader and scrolls to it. The Story Bible entries and the mark types are page items
-// (`useScriptRegistry`), not hits, so a name is listed once. Nothing here names a mark type or a Story Bible kind.
+// The Script page's search sources for the jump menu: text in the whole book, the narrator's marks and flagged words. The registry sets
+// the minimum term length, and choosing a hit calls a handler the page passes. The book is searched on the host (`bookSource`, #2775),
+// and Find reads the same answer, so the menu's row n is Find's match n and choosing it marks every match in the reader and scrolls to
+// that one. The marks and words answer from memory. The Booth's chapter search (`manuscriptSource`) searches the lines it is given.
+// The Story Bible entries and the mark types are page items (`useScriptRegistry`), not hits, so a name is listed once. Nothing here
+// names a mark type or a Story Bible kind.
 
 import type { Mark, MarkType } from '../../../../api/contracts/marks';
 import type { ScriptWord } from '../../../../api/contracts/scriptPrep';
-import type { SearchHit, SearchSource } from '../../../../registries/search';
-import { searchManuscript, type FindMatch } from '../tools/find/searchManuscript';
+import type { ManuscriptSearchResult } from '../../../../api/contracts/manuscript';
+import type { AsyncSearchSource, SearchHit, SearchSource } from '../../../../registries/search';
+import { bookMatches, searchManuscript, type FindMatch } from '../tools/find/searchManuscript';
 
-const MANUSCRIPT_GROUP = 'In the script';
+export const MANUSCRIPT_GROUP = 'In the script';
 const MARKS_GROUP = 'My marks';
 const WORDS_GROUP = 'My words';
 
@@ -24,7 +26,7 @@ export type ManuscriptLine = { chapterId: string; id: string; index: number; tex
 const has = (text: string, needle: string): boolean => text.toLowerCase().includes(needle);
 
 export type ManuscriptSourceOptions = {
-  /** The lines of every chapter read so far. */
+  /** The lines to search. */
   lines: () => readonly ManuscriptLine[];
   /** Where a match is, for its muted line ("Chapter 3 · ¶ 12"). */
   locationOf: (match: Pick<FindMatch, 'chapterId' | 'paragraphId'>) => string;
@@ -35,25 +37,50 @@ export type ManuscriptSourceOptions = {
   showIn?: string;
 };
 
-/** The first matches with their place and the matched part marked, then a row for the rest. */
-export function manuscriptSource({ lines, locationOf, onFind, group = MANUSCRIPT_GROUP, showIn = 'the script' }: ManuscriptSourceOptions): SearchSource {
+type MatchRows = Omit<ManuscriptSourceOptions, 'lines'>;
+
+/** One row per match, the first MANUSCRIPT_SHOWN of `found` (in Find's order), then one row for the rest of `total`. Row n opens Find at match n. */
+function matchRows(
+  found: readonly FindMatch[],
+  total: number,
+  term: string,
+  { locationOf, onFind, group = MANUSCRIPT_GROUP, showIn = 'the script' }: MatchRows,
+): SearchHit[] {
+  const hits: SearchHit[] = found.slice(0, MANUSCRIPT_SHOWN).map((match, index) => ({
+    group,
+    title: `${match.snippet.pre}${match.snippet.hit}${match.snippet.post}`,
+    sub: locationOf(match),
+    snippet: match.snippet,
+    run: () => onFind(term, index),
+  }));
+  if (total > MANUSCRIPT_SHOWN) {
+    const more = total - MANUSCRIPT_SHOWN;
+    hits.push({ group, title: `${more} more ${more === 1 ? 'match' : 'matches'}. Show them in ${showIn}.`, run: () => onFind(term, MANUSCRIPT_SHOWN) });
+  }
+  return hits;
+}
+
+/** The first matches in the lines given, with their place and the matched part marked, then a row for the rest (the Booth's chapter). */
+export function manuscriptSource({ lines, ...rows }: ManuscriptSourceOptions): SearchSource {
   return (term) => {
     const found = searchManuscript(lines(), term);
-    const hits: SearchHit[] = found.slice(0, MANUSCRIPT_SHOWN).map((match, index) => ({
-      group,
-      title: `${match.snippet.pre}${match.snippet.hit}${match.snippet.post}`,
-      sub: locationOf(match),
-      snippet: match.snippet,
-      run: () => onFind(term, index),
-    }));
-    if (found.length > MANUSCRIPT_SHOWN) {
-      hits.push({
-        group,
-        title: `${found.length - MANUSCRIPT_SHOWN} more matches. Show them in ${showIn}.`,
-        run: () => onFind(term, MANUSCRIPT_SHOWN),
-      });
-    }
-    return hits;
+    return matchRows(found, found.length, term, rows);
+  };
+}
+
+export type BookSourceOptions = MatchRows & {
+  /** The host's whole-book search for a term (`manuscriptSearch`, cached per term). */
+  search: (term: string, signal?: AbortSignal) => Promise<ManuscriptSearchResult>;
+};
+
+/**
+ * The Script page's search of the whole book, on the host: one row per match in book order (`bookMatches`), the first ones with their
+ * place, then a row for the rest. The host counts every match, so "N more" is exact even when it sent fewer than it found.
+ */
+export function bookSource({ search, ...rows }: BookSourceOptions): AsyncSearchSource {
+  return async (term, signal) => {
+    const result = await search(term, signal);
+    return matchRows(bookMatches(result), result.total, term, rows);
   };
 }
 
