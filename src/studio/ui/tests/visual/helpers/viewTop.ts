@@ -8,12 +8,15 @@ import type { Page } from '@playwright/test';
 export async function showChapterTop(page: Page): Promise<void> {
   await page.locator('[data-booth-text]').hover();
   await page.mouse.wheel(0, -200_000);
-  const first = page.locator('[data-booth-text] [data-paragraph]').first();
+  const first = page.locator('[data-booth-text] [data-paragraph]:not([data-heading])').first();
   const height = page.viewportSize()?.height ?? 800;
-  await first.waitFor();
-  for (let tries = 0; tries < 40; tries++) {
+  await first.waitFor({ state: 'attached' });
+  // The column starts 30vh below the top of the view's range, so on a tall narrow window the first paragraph sits below the fold until the
+  // view is moved down a little; it is nudged until the paragraph is well inside the window.
+  for (let tries = 0; tries < 60; tries++) {
     const box = await first.boundingBox();
-    if (box && box.y > 0 && box.y < height) return;
+    if (box && box.y > 0 && box.y < height * 0.7) return;
+    if (box && box.y >= height * 0.7) await page.mouse.wheel(0, 120);
     await page.waitForTimeout(100);
   }
 }
