@@ -13,7 +13,7 @@ import { createMockApi } from './api/mockApi';
 import { installMockAudioOutputs, MOCK_AUDIO_OUTPUT_MODES } from './api/mockHost/audioOutputs';
 import { scenarioFromToday } from './api/productionMock';
 import { MOCK_FIDELITY, mockFidelityFrom } from './api/mockHost/mockFidelity';
-import { WIRE_CHAPTERS, WIRE_FINDINGS, WIRE_TRACKS_PROJECT, editingCandidateFor, takeReviewPickupFor } from './api/mockFixtures';
+import { WIRE_CHAPTERS, WIRE_FINDINGS, WIRE_TICKED_CHAPTER_LINKS, WIRE_TRACKS_PROJECT, editingCandidateFor, takeReviewPickupFor } from './api/mockFixtures';
 import { COVERAGE_REFUSAL_REASONS } from './api/schemas/coverage';
 import { EDITING_REFUSAL_REASONS } from './api/schemas/editing';
 import type { StageUnknownCause } from './api/contracts/stages';
@@ -272,7 +272,7 @@ const mockImportPreview = (['markdown', 'repaired', 'text'] as const).find((kind
 // state of a chapter whose stage says recorded but whose track was never linked: Editing says there is no audio to edit, Proof no recording to
 // check); `missing` confirms a track GUID that is not in the mock REAPER project (the audio engine panel's "Track missing" state);
 // `ambiguous` confirms it to two tracks at once; `confirmed` links it to its own suggested "Chapter 1" track outright, without a Change/Confirm
-// click. Unset is `confirmed` (see `chapterLink` below): the mock project has a track for Chapter 1 and its stages call that chapter recorded, so
+// click, and every other chapter whose Record stage is ticked to its own track the same way. Unset is `confirmed` (see `chapterLink` below): the mock project has a track for Chapter 1 and its stages call that chapter recorded, so
 // the assembled mock agrees with itself (Production, Editing and Proof all say Chapter 1 is recorded) and Editing opens on a take.
 const mockChapterLinkSeed = (['none', 'missing', 'ambiguous', 'confirmed'] as const).find((seed) => seed === mockParams.get('mockChapterLink'));
 // `?mockLineIdentity=success|conflict|error` boots the audio engine panel's "Link chapters" dialog with LineIdentityState already at that
@@ -565,18 +565,7 @@ const mockInitial = {
         ],
       }
     : {}),
-  ...(chapterLink === 'confirmed'
-    ? {
-        chapterTrackMappings: [
-          {
-            trackGuid: WIRE_TRACKS_PROJECT.tracks[0].guid,
-            chapterId: WIRE_CHAPTERS[0].id,
-            chapterTitle: WIRE_CHAPTERS[0].title,
-            confirmedAt: '2026-09-01T12:00:00Z',
-          },
-        ],
-      }
-    : {}),
+  ...(chapterLink === 'confirmed' ? { chapterTrackMappings: WIRE_TICKED_CHAPTER_LINKS } : {}),
   ...(mockLineIdentity ? { lineIdentity: mockLineIdentity } : {}),
   ...(mockPickups ? { pickups: mockPickups } : {}),
   ...(mockRenderConfig ? { renderConfig: mockRenderConfig } : {}),

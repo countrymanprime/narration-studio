@@ -27,9 +27,11 @@ import type {
   SeriesVoiceBibleClip,
   TeleprompterDevice,
   TextSpan,
+  TrackMapping,
   TracksProject,
   TranscriptState,
 } from '../types';
+import { reached } from '../chapterStatus';
 
 export const aliceChapterSeeds = [
   {
@@ -1086,8 +1088,49 @@ export const WIRE_TRACKS_PROJECT: TracksProject = {
         },
       ],
     },
+    // The other chapters whose Record stage is ticked (3 and 7-10) have a track each, so the Production Rec. column measures them (#2634).
+    ...[
+      { chapter: 3, length: 587.2 },
+      { chapter: 7, length: 653.8 },
+      { chapter: 8, length: 701.5 },
+      { chapter: 9, length: 566.1 },
+      { chapter: 10, length: 618.7 },
+    ].map(({ chapter, length }, offset) => ({
+      guid: `{5C0A7E10-0000-4D1E-9A00-${String(chapter).padStart(12, '0')}}`,
+      index: 3 + offset,
+      name: `Chapter ${chapter}`,
+      color: '',
+      muted: false,
+      soloed: false,
+      depth: 0,
+      isFolder: false,
+      items: [
+        {
+          guid: `{5C0A7E11-0000-4D1E-9A00-${String(chapter).padStart(12, '0')}}`,
+          position: 0,
+          length,
+          name: `ch${chapter}_take1.wav`,
+          sourceKind: 'WAVE',
+          sourceFile: `C:/Projects/Alice-in-Wonderland/media/ch${chapter}_take1.wav`,
+          sourceAvailable: true,
+          supported: true,
+          takeGuid: `{E1A2B3C4-${String(chapter).padStart(4, '0')}-4A5B-8C6D-7E8F90A1B2C3}`,
+          sourceStart: 0,
+          playRate: 1,
+        },
+      ],
+    })),
   ],
 };
+
+/**
+ * The confirmed links the mock boots with: Chapter 1 to its own track, and every other chapter whose Record stage is ticked (at or past Editing)
+ * to the track of the same name, so each shows a measured length and not "No track".
+ */
+export const WIRE_TICKED_CHAPTER_LINKS: TrackMapping[] = WIRE_CHAPTERS.filter((chapter) => reached(chapter.status, 'editing')).flatMap((chapter) => {
+  const track = WIRE_TRACKS_PROJECT.tracks.find((candidate) => candidate.name === chapter.title);
+  return track ? [{ trackGuid: track.guid, chapterId: chapter.id, chapterTitle: chapter.title, confirmedAt: '2026-09-01T12:00:00Z' }] : [];
+});
 
 const idleLineIdentityStamp: LineIdentityState['stamp'] = { applied: 0, unchanged: 0, missingCount: 0, conflictsCount: 0, missing: [], conflicts: [] };
 

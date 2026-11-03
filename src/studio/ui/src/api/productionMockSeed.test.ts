@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { reached } from '../chapterStatus';
 import { createMockApi } from './mockApi';
+import { WIRE_TICKED_CHAPTER_LINKS } from './mockFixtures';
 import { PRODUCTION_SCENARIOS, scenarioFromToday } from './productionMock';
 
 // The `?mockProduction=` scenarios are dated against the mock's day (2026-09-26). `scenarioFromToday` moves them to the real day so the
@@ -43,5 +45,20 @@ describe('the linked scenario', () => {
     expect(byId.get('chapter-12')).toMatchObject({ recordedSeconds: null, recordedUnavailable: 'no_project' });
     expect(totals.recordedSeconds).toBe(790 + 725 + 640 + 512 + 311 + 45);
     expect(totals.measuredChapters).toBe(8);
+  });
+});
+
+describe('the default mock project', () => {
+  it('gives every chapter whose Record stage is ticked a linked track and a measured length (#2634)', async () => {
+    const api = createMockApi({}, { chapterTrackMappings: WIRE_TICKED_CHAPTER_LINKS });
+    const { chapters } = await api.productionOverview();
+    const ticked = chapters.filter((chapter) => reached(chapter.status, 'editing'));
+    expect(ticked.map((chapter) => chapter.id)).toEqual(['chapter-1', 'chapter-2', 'chapter-3', 'chapter-7', 'chapter-8', 'chapter-9', 'chapter-10']);
+    for (const chapter of ticked) {
+      expect(chapter.recordedUnavailable, chapter.id).toBeUndefined();
+      expect(chapter.recordedSeconds, chapter.id).toBeGreaterThan(60);
+    }
+    const unticked = chapters.filter((chapter) => !reached(chapter.status, 'editing'));
+    expect(unticked.every((chapter) => chapter.recordedUnavailable === 'unlinked')).toBe(true);
   });
 });
