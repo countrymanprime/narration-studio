@@ -102,6 +102,17 @@ const OVERLAYS: Overlay[] = [
     },
   },
   {
+    name: 'voice list (a chapter linked to a folder of voices)',
+    // Enter on a voice chooses it and closes the list, as a menu closes on the item it chose.
+    menu: true,
+    query: '?mockVoiceFolders=1',
+    open: async (page) => {
+      const opener = page.getByRole('button', { name: /^Voice:.*Narrator/ });
+      await opener.click();
+      return { popup: page.getByRole('dialog', { name: 'Voices' }), opener };
+    },
+  },
+  {
     name: 'speaker popover (a named speaker)',
     typesSpace: true,
     open: async (page) => {

@@ -6,6 +6,7 @@ import { showChapterTop } from './helpers/viewTop';
 import { pastStartGuard } from './helpers/startGuard';
 import { settlePage } from './helpers/settle';
 import { goToPage } from './drivers/shared';
+import { assertOverlayIsTopmost } from './helpers/overlayGuard';
 
 const record = (page: Page) => page.getByRole('button', { name: /^Record$/ });
 const stop = (page: Page) => page.getByRole('button', { name: /^Stop$/ });
@@ -172,6 +173,32 @@ test.describe('with a take running', () => {
       expect(result.right).toBeLessThanOrEqual(result.vw + 1);
       expect(result.bottom).toBeLessThanOrEqual(result.vh + 1);
       await page.keyboard.press('Escape');
+      await expect(popup).toBeHidden();
+      expect(errors).toEqual([]);
+    });
+  }
+
+  // The voice list opens upward from the record bar, beside Cold read, and lists every voice of the chapter's folder (phase 4b, #2251).
+  for (const size of [
+    { width: 1440, height: 900 },
+    { width: 400, height: 700 },
+    { width: 360, height: 500 },
+    { width: 320, height: 300 },
+  ]) {
+    test(`the voice list is the topmost layer and fully on screen at ${size.width}x${size.height}`, async ({ page }) => {
+      const errors = watch(page);
+      await page.setViewportSize(size);
+      await openBooth(page, '?mockVoiceFolders=1');
+      const opener = page.getByRole('button', { name: /^Voice:.*Narrator/ });
+      const popup = page.getByRole('dialog', { name: 'Voices' });
+      await assertOverlayIsTopmost(
+        page,
+        async () => {
+          await opener.click();
+          await expect(popup.getByRole('button', { name: /Extras/ })).toBeVisible();
+        },
+        { root: popup, label: 'the voice list' },
+      );
       await expect(popup).toBeHidden();
       expect(errors).toEqual([]);
     });
