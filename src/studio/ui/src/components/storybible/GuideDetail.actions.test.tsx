@@ -399,8 +399,7 @@ describe('needs-review-show-menu', () => {
     expect([flag, mark].map((spy) => spy.mock.calls.length)).toEqual([0, 0]);
   });
 
-  // The title is cited by docs/research/studio-next-parity-script-and-bible.md (scripts/ci/studio-next-parity.mjs checks it); the category tabs
-  // are now the Filter menu's kinds, so the test checks that an entry in the Needs Review category lists with no kind ticked and under no kind.
+  // The category tabs are now the Filter menu's kinds, so the test checks that an entry in the Needs Review category lists with no kind ticked and under no kind.
   it('needs-review-category-tab-still-works: the category tab filters by category, not by the flags', async () => {
     await renderBible(flagHatter);
     expect(await kindChoices()).not.toContain('Needs Review');

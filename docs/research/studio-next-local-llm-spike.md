@@ -7,7 +7,7 @@
 ## Method and what was run
 
 - **Desk research on 2026-10-12.** Model cards, file sizes and file digests were read from the Hugging Face API (`huggingface.co/api/models/<repo>?blobs=true`) through the session proxy. No model file was downloaded, so none was hashed here. The digests below are the SHA-256 values the host publishes for each file (the Git LFS object id).
-- **Earlier measurements.** Speed, memory, quote and attribution figures are from the hands-on trial of 2026-10-10 in [`local-llm-research.md`](mockups/studio-next/research/local-llm-research.md) section 9: Qwen3 1.7B, 4B and 8B with `llama-cpp-python` on a 4-vCPU, 15 GB CPU-only VM, on *Alice's Adventures in Wonderland* chapters V to VIII (quote attribution on chapter VI, 61 hand-labelled quotes). *Alice* is public domain and in every model's training data, so those figures are optimistic, and they are provisional until the same run is made on the owner's manuscript (D70). They are quoted here, not re-measured. The trial's scripts are not in the repo.
+- **Earlier measurements.** Speed, memory, quote and attribution figures are from the hands-on trial of 2026-10-10 in `local-llm-research.md` section 9: Qwen3 1.7B, 4B and 8B with `llama-cpp-python` on a 4-vCPU, 15 GB CPU-only VM, on *Alice's Adventures in Wonderland* chapters V to VIII (quote attribution on chapter VI, 61 hand-labelled quotes). *Alice* is public domain and in every model's training data, so those figures are optimistic, and they are provisional until the same run is made on the owner's manuscript (D70). They are quoted here, not re-measured. The trial's scripts are not in the repo.
 - **Not run in this session:** any model. This session has 4 vCPU and 15 GB RAM (the same as the trial), and the repo's calibration harness cannot score a source without its gold set, which does not exist yet ([calibration note](studio-next-extraction-calibration.md)). Everything not covered by the trial is marked `not run`.
 
 ## 1. Candidates
@@ -23,7 +23,7 @@ All three are Apache-2.0 and fit 16 GB. Pinned values were read on 2026-10-12; a
 Reasons for the choice:
 
 - Qwen3 8B and 4B are the two sizes the trial measured, so the quality figures below belong to them. They are the 2025-05 releases; the later Qwen3 2507 refresh and Qwen3.5 were not examined.
-- Gemma 4 E4B is the one candidate from another family with a first-party GGUF under Apache 2.0 (earlier Gemma versions used Google's own terms, [`local-llm-research.md`](mockups/studio-next/research/local-llm-research.md) section 1.1). Nothing about its quality on this task was measured or found.
+- Gemma 4 E4B is the one candidate from another family with a first-party GGUF under Apache 2.0 (earlier Gemma versions used Google's own terms, `local-llm-research.md` section 1.1). Nothing about its quality on this task was measured or found.
 - Llama 3.x (community licence with an acceptable-use policy) and Phi-4 (short context) were left out for the reasons in that section.
 
 A GGUF is loaded by a runtime (`llama.cpp`, or `llama-cpp-python` as in the trial). Registering a model as a tool would also need the runtime pinned and its loading confined to the install folder, as [CI and releases](../operations/ci-and-releases.md) requires of the other tools. This spike pins no runtime.
@@ -38,7 +38,7 @@ A GGUF is loaded by a runtime (`llama.cpp`, or `llama-cpp-python` as in the tria
 | Qwen3 8B Q4_K_M | 3.2 to 3.4 tokens/s | 567 to 594 s | 10.8 GB | about 11 h |
 | Gemma 4 E4B QAT Q4_0 | `not run` | `not run` | `not run` | `not run` |
 
-The book projections multiply the chapter times by about 40 chapters ([`local-llm-research.md`](mockups/studio-next/research/local-llm-research.md) section 9.2) and are estimates, not runs. For comparison, the GLiNER small model took 2.0 to 2.4 s per chapter in the same trial. An 8B model at 10.8 GB leaves little room beside the app on 16 GB.
+The book projections multiply the chapter times by about 40 chapters (`local-llm-research.md` section 9.2) and are estimates, not runs. For comparison, the GLiNER small model took 2.0 to 2.4 s per chapter in the same trial. An 8B model at 10.8 GB leaves little room beside the app on 16 GB.
 
 **Command for the owner's machine** (pending, owner step, D65), with a build of `llama.cpp` for Windows and a candidate's `.gguf`:
 
@@ -92,7 +92,7 @@ Reading: on explicit speech tags a small model adds nothing a rule does not alre
 
 ## 5. Recommendation
 
-**Keep unavailable.** The catalogue row `local-llm` in [`components.ts`](mockups/studio-next/src/fixtures/components.ts) keeps its text, "A model small enough for this computer takes many hours per book. It will be offered once that is practical." The row's size and RAM there (5,030 MB, 11 GB) are the Qwen3 8B figures; the licence line, "Licence to be confirmed before it is offered", can now say Apache 2.0 for the Qwen3 files. No default, threshold or setting changes. Nothing in this note drops the tier: offering it is a later decision once the following hold.
+**Keep unavailable.** The catalogue row `local-llm` in `components.ts` keeps its text, "A model small enough for this computer takes many hours per book. It will be offered once that is practical." The row's size and RAM there (5,030 MB, 11 GB) are the Qwen3 8B figures; the licence line, "Licence to be confirmed before it is offered", can now say Apache 2.0 for the Qwen3 files. No default, threshold or setting changes. Nothing in this note drops the tier: offering it is a later decision once the following hold.
 
 `unavailable` is lifted when all of these are recorded in a dated note:
 

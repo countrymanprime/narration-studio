@@ -36,7 +36,7 @@ No PRD, guide, mock or UI file uses "mark fine", "sounded right" or "not an erro
 
 1. **Proof can't play: specified, not drift.** The PRD dropped the mock's Play ±3 s and marked it "owner unclear". The owner's report answers that question: supersede PRD line 50.
 2. **Pickups can't show context or mark fine: specified.** The mock's Pickups page has neither. Its "Go to the note in Proof" is not built: drift.
-3. **Editing's accept and keep never reach the finding: drift.** The mock writes the Proof note; the code writes only `accepted.json`. The parity note left it open ([parity Q1](studio-next-parity-proof-and-pickups.md)). As a result, a word accepted in Editing stays open on Proof, and its pickup has no `findingId`.
+3. **Editing's accept and keep never reach the finding: drift.** The mock writes the Proof note; the code writes only `accepted.json`. The parity note left it open (parity Q1). As a result, a word accepted in Editing stays open on Proof, and its pickup has no `findingId`.
 4. **Editing's cleanup list counts `accepted` as done** (`ui/editing/cleanup/cleanupRows.ts:63`). This contradicts the contract, where `accepted` is still open: a bug.
 5. **Pickup and edit are not stored apart.** The code stores `accepted` and derives the fix from the category (`proof/resolution.ts`, ruling D85 #7). That is a recorded ruling, not drift.
 
