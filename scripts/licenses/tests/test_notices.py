@@ -180,6 +180,44 @@ class TestReviewFindings:
             notices.render_report(version="0.1.0", components=bare, program_license="AGPL", catalogs=[])
         assert "bare 1.0" in notices.render_report(version="0.1.0", components=bare, program_license="AGPL", catalogs=[], no_text_ok={"bare"})
 
+    def test_an_upstream_text_copied_into_texts_fills_a_component_whose_package_ships_none(self, tmp_path):
+        bare = notices.Component("npm", "@scope/bin", "1.2.3", "MIT", "", (), "src/studio/ui")
+        (tmp_path / notices.supplied_text_name("npm", "@scope/bin", "1.2.3")).write_text("MIT License\n\nCopyright (c) Someone\n", encoding="utf-8")
+
+        [filled] = notices.apply_supplied_texts([bare], tmp_path)
+
+        assert filled.texts == ("MIT License\n\nCopyright (c) Someone",)
+        assert "Copyright (c) Someone" in notices.render_report(version="0.1.0", components=[filled], program_license="AGPL", catalogs=[])
+
+    def test_a_bumped_version_is_bare_again_until_its_text_is_read(self, tmp_path):
+        (tmp_path / notices.supplied_text_name("python", "lib", "1.0")).write_text("old text", encoding="utf-8")
+        bumped = notices.Component("python", "lib", "1.1", "MIT", "", (), "manuscript-guide")
+
+        [still_bare] = notices.apply_supplied_texts([bumped], tmp_path)
+
+        assert still_bare.texts == ()
+        with pytest.raises(notices.NoticeError, match="lib"):
+            notices.render_report(version="0.1.0", components=[still_bare], program_license="AGPL", catalogs=[])
+
+    def test_a_copied_text_beside_a_package_that_ships_its_own_is_an_error(self, tmp_path):
+        (tmp_path / notices.supplied_text_name("python", "lib", "1.0")).write_text("copy", encoding="utf-8")
+        shipped = notices.Component("python", "lib", "1.0", "MIT", "", ("the package's own text",), "manuscript-guide")
+
+        with pytest.raises(notices.NoticeError, match="duplicates"):
+            notices.apply_supplied_texts([shipped], tmp_path)
+
+    def test_every_committed_text_names_its_component_and_the_upstream_tag_it_was_copied_from(self):
+        folder = REPO_ROOT / "scripts/licenses/texts"
+        files = sorted(folder.glob("*.txt"))
+        assert len(files) >= 4
+        for path in files:
+            ecosystem, name, version = path.stem.split("--")
+            text = path.read_text(encoding="utf-8")
+            assert ecosystem in {"python", "npm"} and version
+            assert f"(tag v{version}," in text.splitlines()[0], path.name
+            assert "Permission is hereby granted" in text or "Apache License" in text, path.name
+            assert (REPO_ROOT / "scripts/licenses/reviewed.json").read_text(encoding="utf-8").count(f'"{name.replace("__", "/")}"') == 0, "its noText entry must go"
+
     def test_source_files_named_licence_are_not_licence_files(self):
         for name in ("LICENSE", "LICENSE.txt", "LICENSE.md", "LICENSE-MIT", "COPYING", "COPYING.LESSER", "NOTICE", "LICENCE"):
             assert notices.LICENSE_FILE.match(name) and not notices.is_source_name(name), name
