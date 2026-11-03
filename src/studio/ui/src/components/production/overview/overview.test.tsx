@@ -273,7 +273,7 @@ describe('ProgressChart', () => {
     else expect([label.getAttribute('text-anchor'), x > cx, y > cy]).toEqual(['start', true, true]);
   });
 
-  it('chart-today-label-leaves-the-dot-when-the-due-line-is-close: a due date a day away puts the label left of the dot', () => {
+  it('chart-today-label-leaves-the-dot-when-the-due-line-is-close: a due date a day away puts no part of the label on the due line', () => {
     const o = overviewFor(MID_BOOK, undefined, undefined);
     const dayAfter = new Date(STORY_TODAY.getTime() + 24 * 3600 * 1000);
     view(
@@ -288,7 +288,11 @@ describe('ProgressChart', () => {
         clearTodayLabel
       />,
     );
-    expect(screen.getByText('today').getAttribute('text-anchor')).toBe('end');
+    const label = screen.getByText('today');
+    const dueX = Number(document.querySelector('[data-line="due"]')!.getAttribute('x1'));
+    const x = Number(label.getAttribute('x'));
+    const [x1, x2] = label.getAttribute('text-anchor') === 'end' ? [x - 32, x] : [x, x + 32];
+    expect(dueX < x1 || dueX > x2).toBe(true);
   });
 
   it('chart keeps the label centred above the dot unless asked, as Production draws it', () => {

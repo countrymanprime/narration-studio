@@ -31,8 +31,8 @@ the finished hours, editing 2.1× and proofing 0.94×, a pickup takes 0.06 hours
 pace, done** is today plus the work left divided by that pace.
 
 The chart, **Recorded audio vs plan**, draws the plan as a dashed line to the due date, the recorded days as a solid line when
-the app can read them (otherwise a line under the chart says why it cannot), today (its label sits beside the dot, on the side away from the plan, estimate and due lines), and the
-estimated finish as a dotted line. With no due date there is no plan or due line, and the chart's **?** says **Set a due date to see the plan line.**
+the app can read them (otherwise a line under the chart says why it cannot), today and the
+estimated finish as a dotted line. Each label (**due**, **today**, **done … (est.)**) sits beside its point on a side no line or other label crosses, and the last date on the axis ends at the card's edge instead of being cut off. With no due date there is no plan or due line, and the chart's **?** says **Set a due date to see the plan line.**
 
 ## Contract
 
