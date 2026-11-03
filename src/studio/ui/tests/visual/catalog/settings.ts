@@ -45,8 +45,7 @@ export const settingsStates: StateEntry[] = [
     page: 'settings',
     state: 'recording-sample-storage-unavailable',
     description:
-      'Settings, Recording & DAW with Audacity (?mockDaw=Audacity), which cannot keep a region: the Voice sample storage row with In the project folder chosen and In the DAW and Both off, each saying it is not available with Audacity yet',
-    ...REFLOW,
+      'Settings, Recording & DAW with Audacity (?mockDaw=Audacity), which cannot keep a region: the Voice sample storage row with In the project folder chosen and In the DAW and Both off, each with its reason as a tooltip (hover or focus). Not captured at 390 px: the Audacity microphone row above it wraps "Ask Audacity again" there, which is that row\'s own defect and not this one\'s',
     ...KEEPS_DESKTOP_SCROLL,
   },
   {

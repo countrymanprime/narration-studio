@@ -184,14 +184,14 @@ export const storybibleStates: StateEntry[] = [
     page: 'storybible',
     state: 'voice-samples-daw',
     description:
-      'Story Bible, the Queen of Hearts with samples kept in REAPER (?mockVoiceSamples=daw): one whose region is in the saved project, Region moved on a sample kept in both places, Region removed and Not saved in REAPER yet on samples kept only in REAPER, which cannot play',
+      'Story Bible, the Queen of Hearts with samples kept in REAPER (?mockVoiceSamples=daw) and the list scrolled to its end inside its cap: Region removed and Region moved on samples kept in both places, Region removed and Not saved in REAPER yet on samples kept only in REAPER, which cannot play',
     ...KEEPS_DESKTOP_SCROLL,
   },
   {
     page: 'storybible',
     state: 'voice-samples-daw-more',
     description:
-      'Story Bible, the same Queen with the list scrolled to its end: Region removed and Not saved in REAPER yet on samples kept in both places (they still play), Audio missing and Project unreadable on samples kept only in REAPER, and Region unchecked (?mockVoiceSamples=daw)',
+      'Story Bible, the same Queen with her list from the top: Region unchecked on a sample kept in both places, Project unreadable and Audio missing on samples kept only in REAPER, and Not saved in REAPER yet on one kept in both (?mockVoiceSamples=daw)',
     ...KEEPS_DESKTOP_SCROLL,
   },
   {

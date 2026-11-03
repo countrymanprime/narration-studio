@@ -293,6 +293,8 @@ export const storybibleDrivers: Record<string, Driver> = {
     await section.getByText('Region removed').first().waitFor();
     await section.getByText('Not saved in REAPER yet').first().waitFor();
     await section.getByText('Region moved').first().waitFor();
+    // The list is newest first and scrolls inside its cap: this picture is its end, with the sample kept in both places and a moved region.
+    await section.locator('[data-voice-samples-list]').evaluate((element) => element.scrollTo({ top: element.scrollHeight }));
     await section.scrollIntoViewIfNeeded();
   },
   'voice-samples-daw-more': async (page) => {
@@ -301,7 +303,6 @@ export const storybibleDrivers: Record<string, Driver> = {
     const section = samplesSection(page);
     const list = section.locator('[data-voice-samples-list]');
     await list.waitFor();
-    await list.evaluate((element) => element.scrollTo({ top: element.scrollHeight }));
     await section.getByText('Audio missing').first().waitFor();
     await section.getByText('Project unreadable').first().waitFor();
     await section.getByText('Region unchecked').first().waitFor();
