@@ -1715,7 +1715,8 @@ export function GuidePronounceUser(id: string, aliasIndex: number | null, ipa: s
  * GuidePronunciationRestore writes the entity's name's (aliasIndex null) or one alias's whole pronunciation object exactly as given, a
  * key the value lacks removed: the undo of a pronunciation edit. It returns the object as written. A locked entry, an unknown id and an
  * alias out of range are refused as the other pronunciation edits refuse them; an IPA or note over its limit, or a source that is not
- * a registered one, manual, "not generated" or none, is refused before the file is read.
+ * a registered one, the keyed online one, a user dictionary one (a picked candidate), manual, "not generated" or none, is refused before
+ * the file is read.
  */
 export function GuidePronunciationRestore(id: string, aliasIndex: number | null, value: $models.GuidePronunciationValue): $CancellablePromise<string> {
     return $Call.ByID(747697347, id, aliasIndex, value);
@@ -2446,6 +2447,16 @@ export function PronunciationCandidate(word: string, source: string): $Cancellab
 }
 
 /**
+ * PronunciationCandidates is every way the project's sources say word, each with its source: every available lookup or generated
+ * source that needs no network, in the order PronunciationSources lists them, asked as PronunciationCandidate asks one, then one
+ * candidate for each of the word's user dictionary records. The keyed online source is never asked here: a word goes to it only when
+ * the narrator picks it for that word (PronunciationCandidate). A source with nothing is a miss with its reason, never an error.
+ */
+export function PronunciationCandidates(word: string): $CancellablePromise<string> {
+    return $Call.ByID(2896736701, word);
+}
+
+/**
  * PronunciationCommonsAudioOpen opens the Wikimedia Commons recording that Wiktextract's own offline pronunciation
  * data (#782) names for word, in the narrator's default browser or media player: the same
  * "open externally" host path PronunciationLookupOpen and PronunciationOnlineSignUpOpen already use, never
@@ -2511,8 +2522,16 @@ export function PronunciationOnlineSignUpOpen(): $CancellablePromise<string> {
 }
 
 /**
+ * PronunciationPreview speaks text said as ipa in the preview voice, changing nothing: a candidate heard before the narrator picks it.
+ * It answers as GuidePreview does: {status:"ready", audioBase64, mimeType}, or asset_required while the preview voice is not installed.
+ */
+export function PronunciationPreview(text: string, ipa: string): $CancellablePromise<string> {
+    return $Call.ByID(4029042333, text, ipa);
+}
+
+/**
  * PronunciationSources lists the sources and the default. The default is the narrator's setting when that source is available,
- * otherwise the first available source in registry order; never an unavailable one, and never manual.
+ * otherwise the first available source in registry order; never an unavailable one, never manual and never the user dictionary's.
  */
 export function PronunciationSources(): $CancellablePromise<string> {
     return $Call.ByID(3097763591);
@@ -3244,6 +3263,30 @@ export function UpdateShowDownload(): $CancellablePromise<string> {
  */
 export function UpdateStatus(): $CancellablePromise<string> {
     return $Call.ByID(2410778633);
+}
+
+/**
+ * UserDictionaryList is every word in the project's user dictionary with its records: {"words":[{"word","records":[{"say","source",
+ * "addedAt"}]}]}.
+ */
+export function UserDictionaryList(): $CancellablePromise<string> {
+    return $Call.ByID(291809957);
+}
+
+/**
+ * UserDictionaryRemove removes the word's one record with this source (user_dictionary or script_imported) and say-value, and returns
+ * the word's entry; its records are empty when that was its last.
+ */
+export function UserDictionaryRemove(word: string, source: string, say: string): $CancellablePromise<string> {
+    return $Call.ByID(3375096809, word, source, say);
+}
+
+/**
+ * UserDictionarySave sets the narrator's own value for word (source user_dictionary), replacing an earlier one, and returns the word's
+ * entry. A Script value the migration imported is kept beside it.
+ */
+export function UserDictionarySave(word: string, say: string): $CancellablePromise<string> {
+    return $Call.ByID(3939784812, word, say);
 }
 
 /**

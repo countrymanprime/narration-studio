@@ -2,6 +2,7 @@ package main
 
 import (
 	"desktop/internal/guide"
+	"desktop/internal/userdictionary"
 )
 
 // GuidePronunciationAlternate is a pronunciation's kept alternate as GuidePronunciationRestore takes it: ipa, source and, when it has one,
@@ -26,7 +27,8 @@ type GuidePronunciationValue struct {
 // GuidePronunciationRestore writes the entity's name's (aliasIndex null) or one alias's whole pronunciation object exactly as given, a
 // key the value lacks removed: the undo of a pronunciation edit. It returns the object as written. A locked entry, an unknown id and an
 // alias out of range are refused as the other pronunciation edits refuse them; an IPA or note over its limit, or a source that is not
-// a registered one, manual, "not generated" or none, is refused before the file is read.
+// a registered one, the keyed online one, a user dictionary one (a picked candidate), manual, "not generated" or none, is refused before
+// the file is read.
 func (h *Host) GuidePronunciationRestore(id string, aliasIndex *int, value GuidePronunciationValue) (string, error) {
 	service := h.services().guide
 	if service == nil {
@@ -37,7 +39,8 @@ func (h *Host) GuidePronunciationRestore(id string, aliasIndex *int, value Guide
 		alternate := guide.PronunciationCore(*value.Alternate)
 		restored.Alternate = &alternate
 	}
-	if err := service.RestorePronunciation(id, aliasIndex, restored, h.onlinePronunciationSources()); err != nil {
+	sources := append(h.onlinePronunciationSources(), userdictionary.SourceUser, userdictionary.SourceScript)
+	if err := service.RestorePronunciation(id, aliasIndex, restored, sources); err != nil {
 		return "", err
 	}
 	return encodeBinding(value, nil)
