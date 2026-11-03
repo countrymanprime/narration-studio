@@ -15,6 +15,7 @@
   - button "Close"
   - region "Whose audio":
     - combobox "Other narrator"
+    - button "Remove Eric Leach"
     - combobox "Their file"
     - button "Add a file of theirs…"
     - textbox "Name another narrator"

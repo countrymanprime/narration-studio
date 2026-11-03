@@ -319,7 +319,7 @@
     "state": "resume",
     "viewport": "desktop",
     "docName": "booth-waiting",
-    "caption": "Booth - Resume at ¶ 14 chosen: the reading position moved to where the recording ends"
+    "caption": "Booth - looked elsewhere in the chapter: Resume at ¶ 14 offers the way back to where the recording ends"
   },
   {
     "page": "booth",
@@ -523,6 +523,13 @@
     "viewport": "desktop",
     "docName": "settings-models",
     "caption": "Settings - Models & downloads: the disk used and each download with its state, size, what uses it and its actions"
+  },
+  {
+    "page": "settings",
+    "state": "models-checking",
+    "viewport": "desktop",
+    "docName": "settings-models-checking",
+    "caption": "Settings - Models & downloads checking the files of the Whisper model: Checking the files in its row and the check icon spinning"
   },
   {
     "page": "settings",

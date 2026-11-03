@@ -236,6 +236,10 @@ const mockAssets = (['missing', 'downloading', 'verifying', 'download-fails', 'i
 );
 // `?mockAssetsList=loading|fails` makes the list of downloads never answer, or fail to read, so Settings > Models & downloads shows its loading rows or its error.
 const mockAssetsList = (['loading', 'fails'] as const).find((seed) => seed === mockParams.get('mockAssetsList'));
+// `?mockAssetsVerify=damaged|absent|fails|silent|hangs` sets what Settings > Models & downloads' Check the files answers: the asset damaged,
+// gone, a refusal in the host's words, a refusal with no words, or no answer. `?mockAssetNames=long` gives the Whisper model a long name.
+const mockAssetsVerify = (['damaged', 'absent', 'fails', 'silent', 'hangs'] as const).find((seed) => seed === mockParams.get('mockAssetsVerify'));
+const mockAssetNames = mockParams.get('mockAssetNames') === 'long' ? ('long' as const) : undefined;
 // `?mockHold=overview,entities` makes those reads never answer, so Production and the Story Bible show their loading skeleton.
 const mockHold = (mockParams.get('mockHold') ?? '').split(',').filter((name): name is 'overview' | 'entities' => name === 'overview' || name === 'entities');
 // `?mockPlan=loading|fails` makes the Schedule's read of the production plan never answer, or fail, so it shows its loading skeleton or its error.
@@ -457,6 +461,8 @@ const mockInitial = {
   ...(mockImportPreview ? { importPreview: mockImportPreview } : {}),
   ...(mockAssets ? { assets: mockAssets } : {}),
   ...(mockAssetsList ? { assetsList: mockAssetsList } : {}),
+  ...(mockAssetsVerify ? { assetsVerify: mockAssetsVerify } : {}),
+  ...(mockAssetNames ? { assetNames: mockAssetNames } : {}),
   ...(mockChapters ? { chaptersRead: mockChapters } : {}),
   ...(mockChapterRead ? { chapterRead: mockChapterRead } : {}),
   ...(mockProfileRead ? { profileRead: mockProfileRead } : {}),

@@ -1,6 +1,6 @@
 # Booth voices: draft mock
 
-**Status:** draft, 2026-11-02, pending the owner's review. Not approved, so nothing builds to it yet. Refs #2251. The plan it serves is the [Booth Voice Tracks PRD](../../../prds/booth-voice-tracks.prd.md); the REAPER evidence and the owner's answers are in [the design note](../../2026-10-30-booth-sub-track-recording.md).
+**Status:** approved by the owner on 2026-11-03 ([#2251 comment](https://github.com/countrymanprime/narration-studio/issues/2251#issuecomment-6594214485)). The build follows the PRD's phases. Refs #2251. The plan it serves is the [Booth Voice Tracks PRD](../../../prds/booth-voice-tracks.prd.md); the REAPER evidence and the owner's answers are in [the design note](../../2026-10-30-booth-sub-track-recording.md).
 
 The Studio Next mock stays the spec for the Booth and the Engine panel and is not edited ([Which mocks are the spec](../../../design/design-system.md#which-mocks-are-the-spec)). This draft adds controls the Studio Next mock lacks, to the Booth as built (`components/booth/frame/BoothFooter.tsx`, `components/booth/side/VoicesNearby.tsx`) and to the Engine panel as built (`components/engine/EnginePanel.tsx`, `components/mapping/TrackSelect.tsx`).
 
@@ -32,13 +32,9 @@ The Studio Next mock stays the spec for the Booth and the Engine panel and is no
 | Key strip | `KeyHints` |
 | Arm and record marks | `StatusBadge` or a new dot in `KindMark`; to settle in the build |
 
-## Decisions for the owner
+## Decisions
 
-1. The voice control on the record bar, beside Cold read (recommended), or a strip of one icon button per voice.
-2. Opening a chapter whose characters have no track: a press on each rail row's add button (drawn), or make the tracks with no press.
-3. A number key with no track while recording: refuse with a toast (drawn), or open the voice list.
-4. The Voices card on the Engine panel (drawn), or the same table inside each Chapter links row.
-5. The live switch leaves about 64 ms unrecorded at a 1024-frame buffer ([phase 0, row 7](../../2026-10-30-booth-sub-track-recording.md#6a-phase-0-results)): accept it, since the key is pressed between lines (recommended), or arm first and trim the overlap after the stop (row 8).
+Answered on 2026-11-03, each as drawn or recommended here; they are decisions A to G in [section 8 of the design note](../../2026-10-30-booth-sub-track-recording.md#8-owner-decisions).
 
 ## Lifecycle
 

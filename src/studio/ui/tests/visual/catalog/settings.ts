@@ -193,6 +193,24 @@ export const settingsStates: StateEntry[] = [
   },
   {
     page: 'settings',
+    state: 'models-checking',
+    description:
+      'Settings, Models & downloads after Check the files on the Whisper model, with a host that has not answered yet (?mockAssetsVerify=hangs): Checking the files in its row and the check button spinning, Remove hidden until it ends',
+    // Driven per viewport so the scrolled-to row is in frame at each width.
+    reloadPerViewport: true,
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
+    state: 'models-long-name',
+    description:
+      'Settings, Models & downloads with a Whisper model whose name is long (?mockAssetNames=long): the name wraps in its cell and Check the files and Remove stay on the name line, inside the row at 390 px',
+    // Driven per viewport so the scrolled-to row is in frame at each width.
+    reloadPerViewport: true,
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
     state: 'models-remove-confirm',
     description: 'Settings, Models & downloads: the danger confirm before a model is removed, with the settings that use it and what it frees',
     ...REFLOW,

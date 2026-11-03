@@ -103,6 +103,13 @@ export type MockApiSeed = {
   assets?: MockAssetSeed;
   /** `?mockAssetsList=`: the list of downloads never answers (`loading`) or fails to read (`fails`), so Models & downloads shows its loading rows or its error. */
   assetsList?: 'loading' | 'fails';
+  /**
+   * `?mockAssetsVerify=`: what Check the files answers. `damaged` and `absent` find the asset damaged or gone (and the list then says so),
+   * `fails` refuses with the host's sentence, `silent` refuses with no words, `hangs` never answers. Unset, a check finds the files whole.
+   */
+  assetsVerify?: 'damaged' | 'absent' | 'fails' | 'silent' | 'hangs';
+  /** `?mockAssetNames=long`: the Whisper model's name is a long one, to see a row hold its actions at 390 px. */
+  assetNames?: 'long';
   /** `?mockHold=`: the reads named here never answer, so the page that makes them stays on its loading skeleton: the Production overview, the Story Bible's entries. */
   held?: readonly ('overview' | 'entities')[];
   /** `?mockPlan=`: the read of the production plan (the Schedule's) never answers (`loading`) or fails (`fails`), so the Schedule shows its loading skeleton or its error. */
