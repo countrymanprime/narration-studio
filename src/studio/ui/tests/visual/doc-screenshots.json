@@ -932,6 +932,13 @@
   },
   {
     "page": "master",
+    "state": "text-column",
+    "viewport": "desktop",
+    "docName": "master-text-column",
+    "caption": "Master & QC - the Text column: 100% from a current recording check, a red cross on a share under the check's thresholds, and Not checked where the chapter has no current check"
+  },
+  {
+    "page": "master",
     "state": "file-rules",
     "viewport": "desktop",
     "docName": "master-file-rules",

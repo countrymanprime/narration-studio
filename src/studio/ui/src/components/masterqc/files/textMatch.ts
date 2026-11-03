@@ -4,7 +4,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { usePort } from '../../../ports/usePort';
 import { isNarrationChapter } from '../../../chapterKinds';
-import type { CoverageResult, ManuscriptChapter } from '../../../types';
+import type { CoverageResult, ManuscriptChapter, MeasureFileResult } from '../../../types';
+import { chapterOfFile } from '../../master/chapterFile';
 import type { TextMatch } from './rows';
 
 /** The Text figure of one stored check, or undefined when it is not a current one with a report and a judgement. */
@@ -15,30 +16,50 @@ export function textMatchOf(result: Pick<CoverageResult, 'state' | 'result' | 'j
   return { percent, met: judgement.state === 'met' };
 }
 
+/** How many stored checks are read at once: a long book's files must not become thousands of host calls in one go. */
+const READ_AT_ONCE = 8;
+
 /**
- * Each narration chapter's Text figure by chapter id, read from the stored Recording Checks (`coverageResult`), again whenever `refreshKey`
- * changes. A chapter whose read fails has no entry, so its file says "Not checked"; nothing is guessed.
+ * The Text figure by chapter id of each chapter a measured file belongs to (`chapterOfFile`, the page's one pairing rule), read from the
+ * stored Recording Checks (`coverageResult`), again whenever `files` changes. A chapter with no file is not read at all, and one whose
+ * read fails has no entry, so its file says "Not checked"; nothing is guessed.
  */
-export function useTextMatches(chapters: readonly ManuscriptChapter[], refreshKey: unknown): Readonly<Record<string, TextMatch>> {
+export function useTextMatches(chapters: readonly ManuscriptChapter[], files: readonly MeasureFileResult[]): Readonly<Record<string, TextMatch>> {
   const coverage = usePort('coverage');
   const [matches, setMatches] = useState<Readonly<Record<string, TextMatch>>>({});
-  const ids = useMemo(() => chapters.filter(isNarrationChapter).map((chapter) => chapter.id), [chapters]);
+  // Keyed by the ids themselves, so a caller that builds `files` anew each render does not read (and re-render) forever.
+  const key = useMemo(() => {
+    const narration = chapters.filter(isNarrationChapter);
+    const found = new Set<string>();
+    for (const file of files) {
+      if (file.status !== 'measured') continue;
+      const chapter = chapterOfFile(file, narration);
+      if (chapter) found.add(chapter.id);
+    }
+    return JSON.stringify([...found]);
+  }, [chapters, files]);
   useEffect(() => {
+    const ids = JSON.parse(key) as string[];
     let live = true;
-    void Promise.all(
-      ids.map(async (id) => {
-        try {
-          return [id, textMatchOf(await coverage.coverageResult(id))] as const;
-        } catch {
-          return [id, undefined] as const; // `silent`: a check that cannot be read is "Not checked", which the cell already says
-        }
-      }),
-    ).then((read) => {
-      if (live) setMatches(Object.fromEntries(read.filter((entry): entry is readonly [string, TextMatch] => entry[1] !== undefined)));
-    });
+    void (async () => {
+      const read: [string, TextMatch][] = [];
+      for (let start = 0; start < ids.length && live; start += READ_AT_ONCE) {
+        const batch = await Promise.all(
+          ids.slice(start, start + READ_AT_ONCE).map(async (id) => {
+            try {
+              return [id, textMatchOf(await coverage.coverageResult(id))] as const;
+            } catch {
+              return [id, undefined] as const; // `silent`: a check that cannot be read is "Not checked", which the cell already says
+            }
+          }),
+        );
+        for (const [id, match] of batch) if (match) read.push([id, match]);
+      }
+      if (live) setMatches(Object.fromEntries(read));
+    })();
     return () => {
       live = false;
     };
-  }, [coverage, ids, refreshKey]);
+  }, [coverage, key]);
   return matches;
 }

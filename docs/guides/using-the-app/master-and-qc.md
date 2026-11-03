@@ -61,6 +61,8 @@ selects one. Right-click a row for the same actions as the buttons below it.
 
 ![Three files checked against ACX: a 48 kHz render selected with why it fails](../../images/ui/master-measured.webp)
 
+![The Text column: 100%, a red 65% under the recording check's thresholds, and Not checked](../../images/ui/master-text-column.webp)
+
 ### Why it fails
 
 Below the table, the selected file shows **Why it fails** (or **Checks** when it passes, **Not mastered**

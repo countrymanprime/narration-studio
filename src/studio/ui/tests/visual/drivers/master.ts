@@ -72,6 +72,13 @@ export const masterDrivers: Record<string, Driver> = {
     await consistency.waitFor();
     await scrollToTop(page, consistency);
   },
+  'text-column': async (page) => {
+    await openMaster(page, '?mockDelivery=ready');
+    await masterFileRows(page).first().waitFor();
+    const table = page.getByRole('grid', { name: 'Per-file checks' });
+    await table.getByText('Not checked').first().waitFor();
+    await scrollToTop(page, table);
+  },
   'custom-profile': async (page) => {
     await measureOnMaster(page, '?mockDeliveryProfile=custom');
     await measurementEnded(page, MEASURED);
