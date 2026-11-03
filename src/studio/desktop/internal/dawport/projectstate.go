@@ -26,7 +26,7 @@ const (
 	PlayRecording = "recording"
 )
 
-// savedAtLayout is the mock's local date-time to the minute (src/fixtures/daw.ts of the Studio Next mock, deleted from the tree).
+// savedAtLayout is the mock's local date-time to the minute (docs/research/mockups/studio-next/src/fixtures/daw.ts).
 const savedAtLayout = "2006-01-02T15:04"
 
 // ProjectStateInput is what NewProjectState reads. The caller gathers it from the heartbeat, a stat of the saved file and

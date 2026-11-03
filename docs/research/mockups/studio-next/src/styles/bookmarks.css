@@ -1,0 +1,30 @@
+/* Bookmarks: a ribbon in the margin of the reader and of the Booth, the editor popover, and the list in the side panel. */
+.bmk{position:absolute;width:20px;height:26px;padding:0;border:0;background:none;color:var(--copper);display:flex;align-items:flex-start;justify-content:center;cursor:pointer;border-radius:4px;z-index:1}
+.bmk svg{font-size:15px;filter:drop-shadow(0 1px 0 color-mix(in srgb,var(--ink) 18%,transparent))}
+.bmk:hover,.bmk:focus-visible,.bmk[aria-expanded="true"]{color:var(--copper-text)}
+.bmk:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+.bmk.has-note svg{color:var(--copper)}
+.bmk.flash svg{animation:bmkpulse 1.4s var(--ease) 1}
+@keyframes bmkpulse{0%,100%{transform:scale(1)}30%{transform:scale(1.5)}}
+.para{position:relative}
+.para .bmk-gutter{position:absolute;left:-19px;top:0;width:16px;height:100%;pointer-events:none}
+.para .bmk-gutter .bmk{left:0;width:16px;pointer-events:auto}
+.para.bm-flash{animation:bmflash 1.6s var(--ease) 1;border-radius:6px}
+@keyframes bmflash{0%,60%{background:var(--copper-soft)}100%{background:transparent}}
+.btext{position:relative}
+.btext .bmk-margin{position:absolute;left:100%;top:0;width:24px;height:0;margin-left:4px}
+.btext .bmk-margin .bmk{left:0;width:22px;height:28px}
+.btext .bmk-margin .bmk svg{font-size:18px}
+.bmpop{width:min(320px,calc(100vw - 32px));max-width:320px}
+.bmpop .snip{font:italic 13px var(--f-serif);color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bmlist{display:flex;flex-direction:column;gap:2px}
+.bmlist .bmgroup{padding:10px 4px 4px}
+.bmrow{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:4px;border:1px solid var(--line);border-radius:8px;background:var(--raised);padding:4px 4px 4px 0}
+.bmrow.cur{border-color:var(--copper);background:var(--copper-soft)}
+.bmrow .bmgo{all:unset;box-sizing:border-box;display:flex;flex-direction:column;gap:2px;min-width:0;padding:6px 10px;cursor:pointer;border-radius:6px}
+.bmrow .bmgo:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}
+.bmrow .bmt{font:600 14px var(--f-body);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bmrow .bmn{font-size:13px;color:var(--ink);overflow-wrap:anywhere}
+.bmrow .bms{font:italic 13px var(--f-serif);color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bmrow .bmtools{display:flex;gap:2px}
+.bmrow .bmtools .ibtn{width:28px;height:28px;min-width:0}

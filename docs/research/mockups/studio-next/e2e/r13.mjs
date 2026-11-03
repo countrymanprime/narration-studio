@@ -1,0 +1,11 @@
+import { launch, open, nav } from './lib.mjs'
+const b = await launch()
+const p = await open(b, 'app', { w: 1250, h: 800 })
+await nav(p, 'Script'); await p.mouse.move(800,500); await p.waitForTimeout(400); await p.screenshot({ path: 'e2e/r13-script.png' })
+await p.click('[data-drawer="rail"]'); await p.waitForTimeout(400); await p.screenshot({ path: 'e2e/r13-script-drawer.png' })
+await p.keyboard.press('Escape')
+await nav(p, 'Schedule'); await p.mouse.move(800,500); await p.waitForTimeout(300); await p.screenshot({ path: 'e2e/r13-schedule.png', fullPage: false })
+await nav(p, 'Production'); await p.mouse.move(800,500); await p.waitForTimeout(300); await p.screenshot({ path: 'e2e/r13-prod.png' })
+await p.click('#mockbtn'); await p.waitForTimeout(300); await p.check('input[value="pill"]', {force:true}).catch(()=>{}); await p.screenshot({ path: 'e2e/r13-mock.png' })
+console.log(p.errors.filter(e=>!/ERR_CERT/.test(e)))
+await b.close()

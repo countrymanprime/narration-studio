@@ -4,7 +4,7 @@
 
 ## Deviations from the Studio Next mock
 
-The dialog is built to the mock's import flow (`src/pages/production/ImportFlow.tsx` of the Studio Next mock, deleted from the tree). The mock is a frozen reference ([which mocks are the spec](../prds/studio-next-rebuild.prd.md#which-mocks-are-the-spec)), so where the app differs, the difference and its reason are here. Step 2 is below the step 1 table.
+The dialog is built to the mock's import flow (`docs/research/mockups/studio-next/src/pages/production/ImportFlow.tsx`). The mock is a frozen reference ([which mocks are the spec](../prds/studio-next-rebuild.prd.md#which-mocks-are-the-spec)), so where the app differs, the difference and its reason are here. Step 2 is below the step 1 table.
 
 **Step 1, "Choose your manuscript" (built to the mock).**
 

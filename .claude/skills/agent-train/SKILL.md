@@ -182,7 +182,7 @@ When a phase is otherwise ready (`Depends` complete, no file collision) but bloc
 - **Launch a mockup-drafting session instead**, as its own lane entry, not a phase worker: `create_session` with `tags: ["agent-train", "mockup-design"]`, a model picked like any other lane (Opus for a screen with real interaction states — a recorder, conflict or error messaging, anything with more than static layout; Sonnet for a mostly-static screen), and a prompt that:
   - names the exact states the PRD's Phase Details and Visual Spec section describe;
   - points it at `docs/design/design-system.md` and the real tokens/primitives, never a generic style;
-  - points it at the Studio Next mock in git history ([Reading the deleted mock](../../../docs/operations/verification-tooling.md#reading-the-deleted-studio-next-mock)) for tone and format precedent ([D98](#which-mocks-are-the-spec));
+  - points it at the Studio Next mock in `docs/research/mockups/studio-next/` for tone and format precedent ([D98](#which-mocks-are-the-spec));
   - says explicitly: **drafts only**, no product code for the gated phase, and the PRD's Visual Spec section is updated to list the new files as drafts pending the owner's approval — the session never marks its own work owner-approved;
   - tells it to open its own tracking issue and a normal PR, same as any worker, and never merge itself.
 - **Record it on #989** as its own lane entry. It counts toward `TARGET` like any running session, but is tracked separately from the phase queue until the owner approves it.
@@ -191,7 +191,7 @@ When a phase is otherwise ready (`Depends` complete, no file collision) but bloc
 
 ## Which mocks are the spec
 
-The Studio Next mock was the only spec for every page it covers (D98). It is deleted from the tree and read from git history ([Reading the deleted mock](../../../docs/operations/verification-tooling.md#reading-the-deleted-studio-next-mock)). The rules are in the rebuild PRD's [Which mocks are the spec](../../../docs/prds/studio-next-rebuild.prd.md#which-mocks-are-the-spec) and, for primitives and the theme, in [the design system](../../../docs/design/design-system.md#which-mocks-are-the-spec).
+The Studio Next mock (`docs/research/mockups/studio-next/`) is the only spec for every page it covers (D98). The rules are in the rebuild PRD's [Which mocks are the spec](../../../docs/prds/studio-next-rebuild.prd.md#which-mocks-are-the-spec) and, for primitives and the theme, in [the design system](../../../docs/design/design-system.md#which-mocks-are-the-spec).
 
 ## UI PRs update the how-to guide
 
@@ -321,5 +321,5 @@ The waves that ordered the earlier PRDs (the DAW port, the studio UI primitives,
 **Rules for PRD writers:**
 - Use the template in `docs/prds/README.md`.
 - Add a **Ports used** column to the phase table, naming the capabilities and roles of the DAW port, the provider ports and the UI primitives each phase needs. That column is how the coordinator knows when a phase is unblocked.
-- Name the Studio Next mock page the PRD builds to by its path in history; don't copy it into the PRD (D98). A PRD never asks for something the mock lacks.
+- Link the Studio Next mock page the PRD builds to from `docs/research/mockups/studio-next/src/pages/`; don't copy it into the PRD (D98). A PRD never asks for something the mock lacks.
 - Give every open question a recommendation.

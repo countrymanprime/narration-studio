@@ -1,0 +1,12 @@
+import { launch, open, nav } from './lib.mjs'
+const b = await launch()
+const p = await open(b, 'app', { w: 1280, h: 800 })
+await nav(p, 'Production'); await p.mouse.move(900,500); await p.waitForTimeout(300); await p.evaluate(()=>document.getElementById('main').scrollTo(0,520)); await p.waitForTimeout(200); await p.screenshot({ path: 'e2e/r14-prod.png' })
+await nav(p, 'Schedule'); await p.mouse.move(900,500); await p.waitForTimeout(300); await p.evaluate(()=>document.getElementById('main').scrollTo(0,500)); await p.waitForTimeout(200); await p.screenshot({ path: 'e2e/r14-sched.png' })
+await nav(p, 'Story Bible'); await p.mouse.move(900,500); await p.waitForTimeout(300); await p.screenshot({ path: 'e2e/r14-bible.png' })
+await p.keyboard.press('Control+k'); await p.waitForTimeout(300); await p.screenshot({ path: 'e2e/r14-pal.png' })
+await p.keyboard.press('Escape')
+await p.hover('.rail .nav[aria-label="Proof"]'); await p.waitForTimeout(500)
+console.log('rail scrollbar visible:', await p.evaluate(()=>{const r=document.querySelector('.rail-in');return r.offsetWidth-r.clientWidth}))
+console.log(p.errors.filter(e=>!/ERR_CERT/.test(e)))
+await b.close()

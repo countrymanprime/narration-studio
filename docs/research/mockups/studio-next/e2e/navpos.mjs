@@ -1,0 +1,12 @@
+import { launch, open } from './lib.mjs'
+const b = await launch(); const p = await open(b, 'app', { w: 1300, h: 800 })
+await p.mouse.move(700, 400); await p.waitForTimeout(300)
+const pos = () => p.evaluate(() => [...document.querySelectorAll('.rail .nav .ic, .rail .brand .logo')].map(e => { const r = e.getBoundingClientRect(); return Math.round(r.left + r.width / 2) + ',' + Math.round(r.top + r.height / 2) }))
+const a = await pos()
+await p.hover('.rail .nav[aria-label="Proof"]'); await p.waitForTimeout(500)
+const c = await pos()
+console.log(JSON.stringify(a) === JSON.stringify(c) ? 'icons do not move' : 'MOVED', '\ncollapsed', a.join(' '), '\nexpanded ', c.join(' '))
+await p.screenshot({ path: 'e2e/nav-exp.png', clip: { x: 0, y: 0, width: 400, height: 800 } })
+await p.mouse.move(700, 400); await p.waitForTimeout(500)
+await p.screenshot({ path: 'e2e/nav-col.png', clip: { x: 0, y: 0, width: 400, height: 800 } })
+await b.close()

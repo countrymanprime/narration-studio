@@ -1,0 +1,21 @@
+import { launch, open, nav, mockState } from './lib.mjs'
+const b = await launch()
+for (const t of ['mock', 'app']) {
+  const p = await open(b, t, { w: 1440, h: 900, theme: 'light' })
+  await nav(p, 'Production')
+  await p.click('#repl'); await p.click('#choose'); await p.waitForTimeout(150)
+  await p.screenshot({ path: `shots-prod/D-review-${t}.png` })
+  await p.click('[data-next]'); await p.waitForTimeout(150)
+  await p.screenshot({ path: `shots-prod/D-changes-${t}.png` })
+  await p.click('[data-apply]'); await p.waitForTimeout(150)
+  await p.click('[data-flag]'); await p.waitForTimeout(150)
+  await p.screenshot({ path: `shots-prod/D-flags-${t}.png` })
+  await p.keyboard.press('Escape')
+  await p.click('#projbtn'); await p.waitForTimeout(150)
+  await p.click('#jl'); await p.waitForTimeout(150)
+  await p.screenshot({ path: `shots-prod/D-picker-${t}.png` })
+  const n = await p.$$eval('[data-jo]', e => e.length)
+  console.log(t, 'jump items', n, p.errors.filter(e => !/CERT|ERR_/.test(e)))
+  await p.context().close()
+}
+await b.close()

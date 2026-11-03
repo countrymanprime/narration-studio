@@ -6,6 +6,9 @@
   // The scripts are entries (nothing imports them), and an entry's exports are normally never reported.
   // Reporting them keeps a helper exported by habit from outliving its last importer.
   "includeEntryExports": true,
+  // The studio-next mock is a self-contained Vite app with its own package.json and lockfile (deleted when the rebuild
+  // lands); its tests import its own devDependencies, not the root's.
+  "ignore": ["docs/research/mockups/studio-next/**"],
   "workspaces": {
     ".": {
       // Plain Node scripts run by hand, by package.json scripts, by workflows and by Nx targets, and their

@@ -1,4 +1,4 @@
-// The widths the Studio Next mock lays out at, as data (`src/app/layout.ts` of the Studio Next mock, deleted from the tree; docs/design/design-system.md#layout-rules
+// The widths the Studio Next mock lays out at, as data (`docs/research/mockups/studio-next/src/app/layout.ts`; docs/design/design-system.md#layout-rules
 // decision 1). Tailwind cannot read a constant inside a class name, so a page writes the width variants out
 // (`min-[1360px]`, `max-[1360px]`, ...) and `layoutQueries.test.ts` scans the source to hold those to this vocabulary. Tailwind 4's
 // `max-[N]` is `width < N` and `min-[N]` is `width >= N`, so a boundary is written with the same N on both sides (`max-[1281px]` is 1280 and
