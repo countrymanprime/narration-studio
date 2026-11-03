@@ -17,10 +17,9 @@ import { useSearchSource } from '../../../../registries/search';
 import { chapterName, type ChapterNameInput } from '../../../../chapterName';
 import type { ScriptViewState } from '../data/scriptView';
 import { useChapters, useEntries, useMarks, useScriptCommands, useScriptPrep, useScriptView } from '../data/useScriptData';
-import { wordNames } from '../data/script.selectors';
 import { closeFind, escapeClosesFind, stepFind } from '../tools/find/findState';
 import { scriptContextProvider, type MenuHandlers } from './contextProvider';
-import { manuscriptSource, marksSource, wordsSource, type ManuscriptLine } from './searchSources';
+import { manuscriptSource, marksSource, type ManuscriptLine } from './searchSources';
 
 export type ScriptRegistryOptions = MenuHandlers & {
   /** The lines of every chapter read so far, for the manuscript source. */
@@ -82,8 +81,6 @@ export function useScriptRegistry(options: ScriptRegistryOptions): void {
 
   useSearchSource(useMemo(() => manuscriptSource({ lines, locationOf, onFind: stable.openFind }), [lines, locationOf, stable]));
   useSearchSource(useMemo(() => marksSource(() => marksSnapshot, stable.showMark), [marksSnapshot, stable]));
-  const words = useMemo(() => wordNames(entries.entries), [entries.entries]);
-  useSearchSource(useMemo(() => wordsSource(() => words, stable.showWord), [words, stable]));
 
   useContextProvider(
     useMemo(

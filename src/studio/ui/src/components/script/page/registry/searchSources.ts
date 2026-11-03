@@ -5,13 +5,11 @@
 // (`useScriptRegistry`), not hits, so a name is listed once. Nothing here names a mark type or a Story Bible kind.
 
 import type { Mark, MarkType } from '../../../../api/contracts/marks';
-import type { ChapterWord } from '../data/script.selectors';
 import type { SearchHit, SearchSource } from '../../../../registries/search';
 import { searchManuscript, type FindMatch } from '../tools/find/searchManuscript';
 
 const MANUSCRIPT_GROUP = 'In the script';
 const MARKS_GROUP = 'My marks';
-const WORDS_GROUP = 'My words';
 
 /** Matches the menu lists before one row says how many more there are. */
 const MANUSCRIPT_SHOWN = 50;
@@ -70,21 +68,6 @@ export function marksSource(marks: () => { types: readonly MarkType[]; marks: re
         title: mark.quote + (mark.text ? ` · ${mark.text.slice(0, NOTE_SHOWN)}` : ''),
         sub: types.find((row) => row.key === mark.type)?.name ?? mark.type,
         run: () => onShow(mark),
-      }));
-  };
-}
-
-/** The narrator's words (Story Bible entries of the type Word, #2595) whose text or pronunciation holds the term. */
-export function wordsSource(words: () => readonly ChapterWord[], onShow: (key: string) => void): SearchSource {
-  return (term) => {
-    const needle = term.toLowerCase();
-    return words()
-      .filter((row) => has(row.name, needle) || has(row.pronunciation.ipa, needle))
-      .map((row) => ({
-        group: WORDS_GROUP,
-        title: row.name,
-        sub: row.pronunciation.ipa ? `Say: ${row.pronunciation.ipa}` : undefined,
-        run: () => onShow(row.key),
       }));
   };
 }

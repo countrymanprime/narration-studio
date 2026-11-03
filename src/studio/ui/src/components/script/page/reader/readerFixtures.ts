@@ -23,7 +23,6 @@ export const GUIDE_TYPES: readonly GuideType[] = [
   { name: 'Lore', colour: 'amber', speaks: false },
   { name: 'Item', colour: 'teal', speaks: false },
   { name: 'Event', colour: 'rose', speaks: false },
-  { name: 'Word', colour: 'teal', speaks: false },
 ];
 
 type Span = { start: number; end: number };
@@ -96,10 +95,4 @@ export const mark = (id: string, paragraphId: string, span: Span, type: string, 
   createdAt: '2026-10-11T00:00:00Z',
   stale: false,
   ...extra,
-});
-
-/** A plain word the narrator added (#2595): a Story Bible entry of the type Word, with how it is said when `say` is given. */
-export const wordEntry = (word: string, say = ''): GuideEntity => ({
-  ...entry(`w-${word.toLowerCase()}`, word, 'Word'),
-  pronunciation: { ipa: say, source: say ? 'manual' : '', confidence: say ? 'narrator' : '', chosen: Boolean(say) },
 });

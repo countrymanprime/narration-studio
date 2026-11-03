@@ -64,4 +64,19 @@ describe('one pronunciation store (#2595)', () => {
     expect(keys.length).toBeGreaterThan(0);
     expect(keys.filter((key) => !/: (entities|cues|types)$/.test(key))).toEqual([]);
   });
+
+  it('the Story Bible holds story elements only: no Word type and no list of my words anywhere (#2595)', () => {
+    const offenders = outsideApi
+      .filter(({ text }) => /['"]Word['"]\s*,\s*\[\]|WORD_TYPE|Add to my words|Remove from my words|\bmy words\b/i.test(text))
+      .map(({ path }) => path);
+    expect(offenders, 'a word that is no story element goes to the user dictionary, never the Story Bible').toEqual([]);
+  });
+
+  it('only the shared command changes the user dictionary', () => {
+    const offenders = outsideApi
+      .filter(({ path }) => path !== 'studio/commands/userDictionary.ts')
+      .filter(({ text }) => /\.userDictionary(Save|Remove)\(/.test(text))
+      .map(({ path }) => path);
+    expect(offenders, 'save through studio/commands/userDictionary.ts, so it is one undoable entry').toEqual([]);
+  });
 });

@@ -284,46 +284,34 @@ describe('prep-state-is-journalled-and-announced', () => {
   });
 });
 
-describe('a-word-is-a-story-bible-name (#2595)', () => {
-  it("Add to my words makes a Word entry once; its pronunciation is the entry's, changed through the shared command and undone", async () => {
-    const create = vi.spyOn(api, 'guideCreate');
+describe('a-pronunciation-is-the-story-bible-names (#2595)', () => {
+  it('a change made through the shared command is what the Script reads, with no job event, and Undo puts it back', async () => {
     const hook = setup();
     await ready(hook);
-    // "Alice was beginning…": "was" is no name, so it becomes an entry of the type Word.
-    const r = { ...(await range(0, 9)), start: 6, quote: 'was' };
-    let key: string | null = null;
-    await act(async () => void (key = await hook.result.current.commands.addWord(r)));
-    expect(key).toBe('was');
-    expect(create).toHaveBeenCalledWith('was', 'Word', []);
-    await act(async () => void (await hook.result.current.commands.addWord(r)));
-    expect(create).toHaveBeenCalledTimes(1);
-    await waitFor(() => expect(hook.result.current.entries.nameByKey('was')).toMatchObject({ category: 'Word', status: 'not_set' }));
-
-    // A change made through the one command (the Story Bible's row and the Words card both use it) is what the Script reads, with no job event.
-    const name = hook.result.current.entries.nameByKey('was')!;
+    await waitFor(() => expect(hook.result.current.entries.nameByKey('alice')).toBeTruthy());
+    const name = hook.result.current.entries.nameByKey('alice')!;
     const target = { entryId: name.entryId, name: name.name, prior: name.pronunciation };
-    await act(async () => void (await pronounceOwn(hook.result.current.journal, api, target, 'WUZ')));
-    await waitFor(() => expect(hook.result.current.entries.nameByKey('was')).toMatchObject({ status: 'set', pronunciation: { ipa: 'WUZ' } }));
+    await act(async () => void (await pronounceOwn(hook.result.current.journal, api, target, 'AL-iss')));
+    await waitFor(() => expect(hook.result.current.entries.nameByKey('alice')).toMatchObject({ status: 'set', pronunciation: { ipa: 'AL-iss' } }));
     await undoLast(hook);
-    await waitFor(() => expect(hook.result.current.entries.nameByKey('was')?.status).toBe('not_set'));
-    // Undo of Add removes the entry again.
-    await undoLast(hook);
-    await waitFor(() => expect(hook.result.current.entries.nameByKey('was')).toBeUndefined());
+    await waitFor(() => expect(hook.result.current.entries.nameByKey('alice')?.pronunciation.ipa).toBe(name.pronunciation.ipa));
   });
 });
 
-describe('add-a-word-once', () => {
-  it('two quick adds of one word make one entry, and the second says it is in the Story Bible already, never an error', async () => {
+describe('save-to-my-dictionary', () => {
+  it('saves a word no dictionary has to the user dictionary, never the Story Bible; Undo removes it', async () => {
     const create = vi.spyOn(api, 'guideCreate');
+    const save = vi.spyOn(api, 'userDictionarySave');
     const hook = setup();
     await ready(hook);
-    let keys: (string | null)[] = [];
-    await act(async () => {
-      keys = await Promise.all([hook.result.current.commands.addWord({ quote: 'Dinah' }), hook.result.current.commands.addWord({ quote: 'dinah ' })]);
-    });
-    expect(create).toHaveBeenCalledTimes(1);
-    expect(keys).toEqual(['dinah', 'dinah']);
-    expect(toast.mock.calls.some(([, options]) => (options as { tone?: string } | undefined)?.tone === 'error')).toBe(false);
+    let saved = false;
+    await act(async () => void (saved = await hook.result.current.commands.saveToMyDictionary('quorlen', 'KWOR-len')));
+    expect(saved).toBe(true);
+    expect(save).toHaveBeenCalledWith('quorlen', 'KWOR-len');
+    expect(create).not.toHaveBeenCalled();
+    expect((await api.userDictionaryList()).words).toEqual([expect.objectContaining({ word: 'quorlen' })]);
+    await undoLast(hook);
+    expect((await api.userDictionaryList()).words).toEqual([]);
   });
 });
 
@@ -454,15 +442,15 @@ describe('contract-kit', () => {
 
   it('every command refusing is a toast and an empty journal', async () => {
     const no = refusing('No.');
-    api = host({ marksAdd: no, scriptPrepSetChapter: no, guideCreate: no, guideCorrectCue: no });
+    api = host({ marksAdd: no, scriptPrepSetChapter: no, guideCorrectCue: no, userDictionarySave: no });
     const hook = setup();
     await ready(hook);
     const c = hook.result.current.commands;
     await act(async () => {
       expect(await c.addMark(await range(), 'stress', '')).toBeNull();
       expect(await c.setPrep(hook.result.current.chapters.value![0]!, 'prepped')).toBe(false);
-      expect(await c.addWord({ ...(await range(0, 9)), start: 6, quote: 'was' })).toBeNull();
       expect(await c.confirmSpeaker('cue-1', 'alice')).toBe(false);
+      expect(await c.saveToMyDictionary('quorlen', 'x')).toBe(false);
     });
     expect(toast.mock.calls.filter(([text]) => text === 'No.')).toHaveLength(4);
     expect(announce).not.toHaveBeenCalled();

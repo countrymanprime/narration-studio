@@ -16,8 +16,6 @@ import {
   mentionsIn,
   phrasesOf,
   nameByKey,
-  wordNames,
-  WORD_TYPE,
   speakerCandidates,
   unattributed,
   wordKey,
@@ -57,7 +55,7 @@ const entity = (id: string, name: string, category: string, aliases: string[] = 
 
 /** An entry with no pronunciation (or `say`), found once in each of `chapters` (the host's evidence). */
 const unsaid = (name: string, chapters: string[], say = ''): GuideEntity => ({
-  ...entity(name, name, 'Word'),
+  ...entity(name, name, 'Item'),
   pronunciation: { ipa: say, source: say ? 'manual' : '', confidence: '' },
   occurrences: chapters.map((chapterId, paragraph) => ({ chapter: chapterId, chapterId, paragraph, excerpt: name })),
 });
@@ -136,13 +134,9 @@ describe('a-name-is-the-story-bible-entrys', () => {
   it('finds a name by its key, ignoring case and padding, with Set or Not set from its own pronunciation', () => {
     expect(wordKey('  Knave ')).toBe('knave');
     expect(nameByKey([knave, queen], wordKey('Queen'))).toMatchObject({ name: 'Queen', entryId: 'queen', status: 'set', category: 'Character' });
-    expect(nameByKey([knave, queen], 'knave')).toMatchObject({ status: 'not_set', category: WORD_TYPE });
+    expect(nameByKey([knave, queen], 'knave')).toMatchObject({ status: 'not_set', category: 'Item' });
     expect(nameByKey([knave, queen], 'her majesty')).toMatchObject({ entryId: 'queen', aliasIndex: 0, status: 'not_set' });
     expect(nameByKey([knave, queen], 'dormouse')).toBeUndefined();
-  });
-
-  it("the narrator's words are the names of entries of the type Word only", () => {
-    expect(wordNames([knave, queen]).map((row) => row.name)).toEqual(['knave']);
   });
 });
 
@@ -293,7 +287,7 @@ describe('the-words-tab-lists-the-story-bible-names-in-the-text', () => {
     expect(chapterWords([said], text)).toEqual([expect.objectContaining({ key: 'knave', status: 'set', pronunciation: said.pronunciation })]);
   });
   it('a name never matches inside a longer word, a combining accent included (café is not cafe)', () => {
-    const cafe = entity('cafe', 'cafe', 'Word');
+    const cafe = entity('cafe', 'cafe', 'Place');
     expect(mentionsIn([cafe], 'a cafe\u0301 by the sea')).toEqual([]);
     expect(mentionsIn([cafe], 'a café by the sea')).toEqual([]);
     expect(mentionsIn([cafe], 'the cafe, at noon')).toHaveLength(1);

@@ -77,12 +77,6 @@ function wrap(layer: Layer, node: ReactNode, activeMarkId: string | null | undef
           {node}
         </span>
       );
-    case 'word':
-      return (
-        <span data-w={layer.key} data-status={layer.status} className="rounded-sm" style={kindMarkStyle('pron')}>
-          {node}
-        </span>
-      );
     case 'mark':
       return (
         <span

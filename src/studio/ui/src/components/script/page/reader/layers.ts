@@ -1,5 +1,4 @@
-// The layers a paragraph draws over its own text: the narrator's marks, Story Bible names (a plain word of the type Word drawn as a
-// word, with whether it has a pronunciation), the speaker of each
+// The layers a paragraph draws over its own text: the narrator's marks, Story Bible names, the speaker of each
 // quoted phrase and the matches of Find. They only wrap pieces of the text, so the paragraph's text is the same with or
 // without them. The pieces come from one interval compositor in the style of the old reader's `manuscript/annotations.ts`
 // (a layer boundary splits a piece, the shorter layer is the inner one and owns the click); that file is the Booth's until its swap
@@ -11,7 +10,7 @@ import type { GuideDialogueCue, GuideEntity } from '../../../../api/contracts/st
 import { entryColour, speakerColour, type EntityColour } from '../../../../kinds/entityColour';
 import type { GuideType } from '../../../../types';
 import { cueSpeakerEntries } from '../../../manuscript/dialogueCues.selectors';
-import { mentionsIn, nameByKey, phrasesOf, WORD_TYPE, wordKey, type NameStatus, type Phrase } from '../data/script.selectors';
+import { mentionsIn, phrasesOf, type Phrase } from '../data/script.selectors';
 
 type Span = { start: number; end: number };
 
@@ -26,8 +25,6 @@ type MarkLayer = Span & {
   note: boolean;
   name: string;
 };
-/** A Story Bible entry of the type Word in the text, and whether that name has a pronunciation (#2595). */
-type WordLayer = Span & { kind: 'word'; key: string; entryId: string; status: NameStatus };
 /** A Story Bible name in the text; `colour` is its entry type's (`entryColour`), the same on every page. */
 type NameLayer = Span & { kind: 'name'; entryId: string; entryKind: string; colour: EntityColour };
 type FindLayer = Span & { kind: 'find'; current: boolean };
@@ -41,20 +38,18 @@ export type PhraseLayer = Span & {
   label: string;
   state: Phrase['state'];
 };
-export type Layer = MarkLayer | WordLayer | NameLayer | FindLayer | PhraseLayer;
+export type Layer = MarkLayer | NameLayer | FindLayer | PhraseLayer;
 
 /** A piece of the paragraph's text, the layers that cover it from the outermost to the innermost, and the phrase it opens. */
 export type LayerPiece = { start: number; text: string; layers: Layer[]; chipFor?: PhraseLayer };
 
 /** Phrases are outermost, so a click on a mark or a name inside a quote reaches the mark; find matches are innermost. */
-const RANK: Record<Layer['kind'], number> = { phrase: 0, name: 1, word: 2, mark: 3, find: 4 };
+const RANK: Record<Layer['kind'], number> = { phrase: 0, name: 1, mark: 2, find: 3 };
 
 const layerId = (layer: Layer): string => {
   switch (layer.kind) {
     case 'mark':
       return layer.id;
-    case 'word':
-      return `${layer.entryId}:${layer.start}`;
     case 'name':
       return layer.entryId;
     case 'phrase':
@@ -146,12 +141,8 @@ export function paragraphLayers(index: LayerIndex, paragraph: Pick<ManuscriptPar
   const entryKind = new Map(entries.map((entry) => [entry.id, entry.category]));
   return [
     ...(index.marksBy.get(paragraph.id) ?? []).map((mark) => markLayer(markTypes, mark)),
-    ...mentionsIn(entries, paragraph.text).map((m): NameLayer | WordLayer => {
+    ...mentionsIn(entries, paragraph.text).map((m): NameLayer => {
       const kind = entryKind.get(m.entryId) ?? '';
-      if (kind === WORD_TYPE) {
-        const key = wordKey(m.text);
-        return { kind: 'word', key, entryId: m.entryId, status: nameByKey(entries, key)?.status ?? 'not_set', start: m.start, end: m.end };
-      }
       return { kind: 'name', entryId: m.entryId, entryKind: kind, colour: entryColour(types, kind), start: m.start, end: m.end };
     }),
     ...phrasesOf(cues, cueSpeakerEntries(entries, types), paragraph).map((phrase) => phraseLayer(types, phrase)),

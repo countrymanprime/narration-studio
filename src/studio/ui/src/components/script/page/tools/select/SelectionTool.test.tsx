@@ -153,26 +153,14 @@ describe('the Mark menu', () => {
 });
 
 describe('pronunciation-word-from-a-selection', () => {
-  const pronounce = async (from: number, to: number) => {
+  it('opens the word on the Words tab with what the dictionaries say, and creates nothing (#2595)', async () => {
+    const create = vi.spyOn(api, 'guideCreate');
     const m = mount();
-    m.rerender(inside(from, to));
+    m.rerender(inside(10, 19));
     await userEvent.click(within(tool()).getByRole('button', { name: 'Mark' }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Pronunciation (a word)' }));
-  };
-
-  it('makes a plain word a Story Bible entry of the type Word and shows it in the Words tab (#2595)', async () => {
-    const create = vi.spyOn(api, 'guideCreate');
-    await pronounce(10, 19);
-    await waitFor(() => expect(create).toHaveBeenCalledWith('beginning', 'Word', []));
     await waitFor(() => expect(view.tab).toBe('pron'));
     expect(view.word).toBe('beginning');
-  });
-
-  it('a name the Story Bible has already is shown, never added a second time', async () => {
-    const create = vi.spyOn(api, 'guideCreate');
-    await pronounce(0, 5);
-    await waitFor(() => expect(view.tab).toBe('pron'));
-    expect(view.word).toBe('alice');
     expect(create).not.toHaveBeenCalled();
   });
 });
@@ -184,7 +172,7 @@ describe('add-to-the-story-bible-as-a-kind', () => {
     m.rerender(inside(10, 19));
     await userEvent.click(within(tool()).getByRole('button', { name: 'Story Bible' }));
     const kinds = (await screen.findAllByRole('menuitem')).map((item) => item.textContent);
-    expect(kinds).toEqual(['Character', 'Place', 'Organization', 'Lore', 'Item', 'Event', 'Word']);
+    expect(kinds).toEqual(['Character', 'Place', 'Organization', 'Lore', 'Item', 'Event']);
     await userEvent.click(screen.getByRole('menuitem', { name: 'Place' }));
     await waitFor(() => expect(create).toHaveBeenCalledWith('beginning', 'Place', []));
     await waitFor(() => expect(view.tab).toBe('bible'));

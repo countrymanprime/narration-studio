@@ -4,7 +4,14 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { GuidePronunciation } from '../../api/contracts/storyBible';
 import { createJournal } from '../journal/createJournal';
-import { pronounceFromSource, pronounceOwn, pronounceUseAlternate, subscribePronunciationChanged, type PronounceApi } from './pronounce';
+import {
+  pronounceFromCandidate,
+  pronounceFromSource,
+  pronounceOwn,
+  pronounceUseAlternate,
+  subscribePronunciationChanged,
+  type PronounceApi,
+} from './pronounce';
 
 const journal = () => createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'this' });
 const prior: GuidePronunciation = { ipa: '/ˈæl.ɪs/', source: 'cmu', confidence: 'medium', chosen: true };
@@ -117,5 +124,22 @@ describe('pronounce commands', () => {
     const j = journal();
     await pronounceOwn(j, fakeApi(), { entryId: 'e1', name: 'Alice', prior }, 'a');
     expect((await j.entries())[0]!.touches.every((key) => key.startsWith('storyBible/entities/e1'))).toBe(true);
+  });
+
+  it('a picked dictionary candidate: a registry source asks the host for it, a user-dictionary record is written as it is; Undo restores', async () => {
+    const api = fakeApi();
+    const j = journal();
+    await pronounceFromCandidate(j, api, { entryId: 'e1', name: 'Alice', prior }, { sourceId: 'cmu', label: 'CMU dictionary', say: 'AE1 L AH0 S' });
+    expect(api.guidePronounce).toHaveBeenLastCalledWith('e1', 'cmu');
+    await pronounceFromCandidate(
+      j,
+      api,
+      { entryId: 'e1', aliasIndex: 0, name: 'Al', prior },
+      { sourceId: 'script_imported', label: 'Script (imported)', say: 'AL' },
+    );
+    expect(api.guidePronunciationRestore).toHaveBeenLastCalledWith('e1', { ipa: 'AL', source: 'script_imported', confidence: 'narrator', chosen: true }, 0);
+    expect((await j.entries()).map((row) => row.label)).toEqual(['Pronunciation from Script (imported)', 'Pronunciation from CMU dictionary']);
+    await j.undoLast();
+    expect(api.guidePronunciationRestore).toHaveBeenLastCalledWith('e1', prior, 0);
   });
 });

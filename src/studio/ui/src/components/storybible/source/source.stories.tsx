@@ -107,6 +107,24 @@ export const NameRowUnderAHeading: Story = {
   },
 };
 
+// The dictionaries' candidates for a name, opened: each local source's value with its source, Hear and Use (#2595).
+export const NameRowDictionaryCandidates: Story = {
+  decorators: [
+    (Story) => (
+      <ApiProvider api={createMockApi()}>
+        <Story />
+      </ApiProvider>
+    ),
+  ],
+  render: () => <NameRow editing />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(await canvas.findByRole('button', { name: 'From the dictionaries' }));
+    const list = await canvas.findByRole('list', { name: 'Dictionary candidates for Croquet' });
+    await expect(within(list).getAllByRole('listitem')).toHaveLength(3);
+  },
+};
+
 export const NameRowReadOnly: Story = {
   decorators: [
     (Story) => (

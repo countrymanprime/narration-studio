@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, fn, within } from 'storybook/test';
 import type { ManuscriptParagraph } from '../../../../api/contracts/manuscript';
 import { Reader } from './Reader';
-import { chapter, cue, entry, wordEntry, GUIDE_TYPES, mark, paragraph, TYPES } from './readerFixtures';
+import { chapter, cue, entry, GUIDE_TYPES, mark, paragraph, TYPES } from './readerFixtures';
 
 // The Studio Next mock's continuous reader (`pages/script/Reader.tsx`): all chapters in one scroll under a sticky header that
 // names the chapter in view and the paragraph. It takes its data as props; the page that assembles it reads the host.
@@ -16,7 +16,7 @@ const paragraphs: Record<string, ManuscriptParagraph[]> = { c1: body('c1', 4), c
 const sources = {
   markTypes: TYPES,
   marks: [mark('m1', 'c1-p0', at('left'), 'note'), mark('m2', 'c1-p1', at('harbour'), 'ask')],
-  entries: [entry('e1', 'Mina', 'Character', 3), wordEntry('harbour')],
+  entries: [entry('e1', 'Mina', 'Character', 3)],
   types: GUIDE_TYPES,
   cues: [
     cue('q1', 'c1-p0', 'c1', at('"Come along,"'), 'e1', 'correction'),
@@ -48,7 +48,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-// The key state: marks, speaker chips (confirmed, suggested, unknown), a word, a name and a find match in one reader.
+// The key state: marks, speaker chips (confirmed, suggested, unknown), a name and a find match in one reader.
 export const MarksChipsAndAFindMatch: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);

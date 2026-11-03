@@ -132,7 +132,7 @@ export function SelectionTool({ selection, zoom = 1, onDismiss, onCompose, onDef
             }}
             onFlagWord={() => {
               onDismiss();
-              void commands.addWord(place).then((key) => key && updateView({ tab: 'pron', word: key }));
+              updateView({ tab: 'pron', word: place.quote.trim() });
             }}
             onDefine={() => {
               onDismiss();

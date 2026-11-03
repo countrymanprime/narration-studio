@@ -67,7 +67,7 @@ function Seeded({ words, say = false, show = 'first', source = 'web', local, off
       for (const line of lines.slice(0, words)) {
         const match = /\p{L}+/u.exec(line.text)!;
         // A word the narrator adds is a Story Bible entry of the type Word (#2595); its pronunciation is that entry's.
-        const id = await api.guideCreate(match[0], 'Word', []);
+        const id = await api.guideCreate(match[0], 'Item', []);
         first ??= match[0].toLowerCase();
         if (say && match[0].toLowerCase() === first) await api.guidePronounceUser(id, 'for example');
       }
@@ -138,7 +138,7 @@ export const NoWordsMarked: Story = {
   },
 };
 
-// The word card for each status: Set, Not set, Not flagged (with the plus button).
+// The word card for each status: a Story Bible name Set or Not set, and a word that is no story element (its dictionary candidates).
 export const CardSet: Story = { args: { say: true, show: 'first' } };
 export const CardNotSet: Story = { args: { show: 'first' } };
 export const CardNotFlagged: Story = { args: { show: 'unflagged' } };

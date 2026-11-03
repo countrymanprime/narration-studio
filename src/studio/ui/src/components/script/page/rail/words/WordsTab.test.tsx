@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 // The Words tab over the browser mock host (`createMockApi`) and a fake `WordsHost`: the table, the word card, the source tag, the
-// definitions for each source, "Use", the fixed web links, "Add to my words" and the wording the mock leaves out. Every row is a Story Bible
+// definitions for each source, "Use", the fixed web links, the dictionaries' candidates and "Save to my dictionary" for a word no
+// dictionary has, and the wording the mock leaves out. Every row is a Story Bible
 // name and every value is that entry's (#2595): a word the narrator adds is an entry of the type Word.
 import { useEffect } from 'react';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
@@ -49,7 +50,7 @@ const WORDS = ['beginning', 'considering'];
 let ids: Record<string, string>;
 async function addTwo() {
   ids = {};
-  for (const word of WORDS) ids[word] = await api.guideCreate(word, 'Word', []);
+  for (const word of WORDS) ids[word] = await api.guideCreate(word, 'Item', []);
   return WORDS;
 }
 
@@ -315,20 +316,11 @@ describe('web-links-open-the-fixed-templates', () => {
   });
 });
 
-describe('add-to-my-words', () => {
-  /** Shows a word no Story Bible entry names, as the reader's look-up does. */
+describe('a-word-that-is-no-story-element (#2595)', () => {
   function ShowWord({ word }: { word: string }) {
     const [, update] = useScriptView(() => null);
     useEffect(() => update({ word }), [update, word]);
     return null;
-  }
-  async function unflaggedSelection() {
-    const line = (await api.manuscriptParagraphs(CHAPTER))[0]!;
-    const match = /\btired\b/u.exec(line.text)!;
-    return {
-      word: match[0],
-      range: { chapterId: CHAPTER, paragraphId: line.id, start: match.index, end: match.index + match[0].length, quote: match[0] },
-    };
   }
   function mountWithWord(word: string) {
     return render(
@@ -343,28 +335,29 @@ describe('add-to-my-words', () => {
     );
   }
 
-  it('a word no entry names shows the button, which makes it a Story Bible entry of the type Word; the card then edits that entry', async () => {
-    const { word } = await unflaggedSelection();
-    const create = vi.spyOn(api, 'guideCreate');
-    mountWithWord(word);
-    await userEvent.click(await screen.findByRole('button', { name: 'Add to my words' }));
-    expect(create).toHaveBeenCalledWith(word, 'Word', []);
-    await waitFor(() => expect(screen.queryByRole('button', { name: 'Add to my words' })).toBeNull());
-    expect(await screen.findByLabelText(`How I say ${word}`)).toBeTruthy();
-    expect(hear(row(word))).toBeNull();
+  it('shows what each dictionary says, with its source and Hear, and offers no save while one has it', async () => {
+    const preview = vi.spyOn(api, 'pronunciationPreview');
+    mountWithWord('croquet');
+    const list = await screen.findByRole('list', { name: 'Dictionary candidates for croquet' });
+    const rows = within(list).getAllByRole('listitem');
+    expect(rows.map((row) => row.getAttribute('data-source'))).toEqual(['cmu', 'wiktextract', 'espeak']);
+    expect(within(rows[0]!).getByText('CMU dictionary')).toBeTruthy();
+    await userEvent.click(within(rows[1]!).getByRole('button', { name: /^Hear Wiktionary/ }));
+    await waitFor(() => expect(preview).toHaveBeenCalledWith('croquet', '/ˈkɹoʊkeɪ/'));
+    expect(screen.queryByRole('button', { name: 'Save to my dictionary' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Add to my words/ })).toBeNull();
   });
 
-  it('a word the Story Bible has has no button', async () => {
-    mountWithWord(words[0]!);
-    await screen.findByLabelText('How I will say it');
-    expect(screen.queryByRole('button', { name: 'Add to my words' })).toBeNull();
-  });
-
-  it('adds the word the card shows: the card takes no selection, so a later selection of other text cannot be added instead', async () => {
+  it('a word no dictionary has is saved to my dictionary, never the Story Bible, and then reads as a My dictionary candidate', async () => {
     const create = vi.spyOn(api, 'guideCreate');
     mountWithWord('Dinah');
-    await userEvent.click(await screen.findByRole('button', { name: 'Add to my words' }));
-    await waitFor(() => expect(create).toHaveBeenCalledWith('Dinah', 'Word', []));
+    const field = await screen.findByLabelText('Pronunciation of Dinah for my dictionary');
+    await userEvent.type(field, 'DY-nuh{Enter}');
+    const list = await screen.findByRole('list', { name: 'Dictionary candidates for Dinah' });
+    await waitFor(() => expect(within(list).getByText('My dictionary')).toBeTruthy());
+    expect(within(list).getByText('DY-nuh')).toBeTruthy();
+    expect(create).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: 'Save to my dictionary' })).toBeNull();
   });
 });
 
@@ -378,10 +371,10 @@ describe('card-states', () => {
     expect((within(card).getByLabelText(`How I say ${words[0]}`) as HTMLInputElement).disabled).toBe(true);
   });
 
-  it('a word not added yet has no Record, and its Hear says why it is off', async () => {
+  it('a word that is no story element has no Record and no name Hear: its candidates carry their own Hear', async () => {
     function ShowWord() {
       const [, update] = useScriptView(() => null);
-      useEffect(() => update({ word: 'Dinah' }), [update]);
+      useEffect(() => update({ word: 'croquet' }), [update]);
       return null;
     }
     render(
@@ -394,9 +387,10 @@ describe('card-states', () => {
         </StudioProvider>
       </ApiProvider>,
     );
-    const card = await screen.findByRole('group', { name: 'Word: Dinah' });
+    const card = await screen.findByRole('group', { name: 'Word: croquet' });
     expect(within(card).queryByRole('button', { name: /record/i })).toBeNull();
-    expect(within(card).getByRole('button', { name: 'Hear Dinah' }).getAttribute('aria-disabled')).toBe('true');
+    expect(within(card).queryByRole('button', { name: 'Hear croquet' })).toBeNull();
+    expect(await within(card).findAllByRole('button', { name: /^Hear .*: / })).not.toHaveLength(0);
   });
 });
 

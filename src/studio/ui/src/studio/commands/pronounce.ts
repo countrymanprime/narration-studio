@@ -1,5 +1,6 @@
 import { apiErrorMessage } from '../../api/errorMessage';
 import type { GuidePronunciation, StoryBibleApi } from '../../api/contracts/storyBible';
+import { SCRIPT_IMPORTED_SOURCE, USER_DICTIONARY_SOURCE, type PronunciationCandidateRow } from '../../api/contracts/pronunciationSources';
 import type { Command, Journal, Result } from '../journal/createJournal';
 
 /** The host calls that change a name's pronunciation. No other UI file calls them (`pronunciationSingleStore.test.ts`). */
@@ -84,3 +85,23 @@ export const pronounceFromSource = (journal: Journalling, api: PronounceApi, tar
 
 export const pronounceUseAlternate = (journal: Journalling, api: PronounceApi, target: PronounceTarget) =>
   journal.act<null>(command(api, target, 'Switched pronunciation', () => api.guidePronunciationUseAlternate(target.entryId, ...alias(target))));
+
+/** The user dictionary's sources: the host cannot ask them by id, so their record is written onto the name as it is. */
+const USER_LAYERS: readonly string[] = [USER_DICTIONARY_SOURCE, SCRIPT_IMPORTED_SOURCE];
+
+/**
+ * Uses one of the dictionaries' candidates for a name (#2595): a registry source is asked for it by the host, as choosing it on the source
+ * tag does; a record of the narrator's dictionary is written as it is, marked chosen. One journal entry, which Undo reverses.
+ */
+export const pronounceFromCandidate = (journal: Journalling, api: PronounceApi, target: PronounceTarget, candidate: PronunciationCandidateRow) =>
+  USER_LAYERS.includes(candidate.sourceId)
+    ? journal.act<null>(
+        command(api, target, `Pronunciation from ${candidate.label}`, () =>
+          api.guidePronunciationRestore(
+            target.entryId,
+            { ipa: candidate.say, source: candidate.sourceId, confidence: 'narrator', chosen: true },
+            ...alias(target),
+          ),
+        ),
+      )
+    : pronounceFromSource(journal, api, target, { id: candidate.sourceId, label: candidate.label });

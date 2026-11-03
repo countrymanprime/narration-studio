@@ -40,7 +40,6 @@ function build(handlers: Partial<MenuHandlers> = {}, marks: Mark[] = [], entries
     setMarkType: vi.fn(async () => null),
     removeMark: vi.fn(async () => null),
     setStatus: vi.fn(async () => null),
-    addWord: vi.fn(async () => 'hatter'),
     createEntryFrom: vi.fn(async () => null),
     setPrep: vi.fn(async () => null),
   };
@@ -202,8 +201,8 @@ describe('menu-items-run-the-hooks-commands', () => {
     expect(mine.commands.setMarkType).toHaveBeenCalledWith('m1', 'tone');
     expect(mine.commands.removeMark).toHaveBeenCalledWith('m1');
     expect(mine.handlers.composeMark).toHaveBeenCalledWith('tone', selection);
-    expect(mine.commands.addWord).toHaveBeenCalledWith(selection);
-    await vi.waitFor(() => expect(mine.handlers.showWord).toHaveBeenCalledWith('hatter'));
+    // How the words are said opens their card on the Words tab; nothing is created (#2595).
+    expect(mine.handlers.showWord).toHaveBeenCalledWith('Hatter');
     expect(mine.commands.createEntryFrom).toHaveBeenCalledWith('Place', 'Hatter');
     expect(mine.handlers.lookUp).toHaveBeenCalledWith('Hatter', selection);
     expect(mine.handlers.openFind).toHaveBeenCalledWith('Hatter');

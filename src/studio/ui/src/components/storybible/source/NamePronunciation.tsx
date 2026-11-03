@@ -12,7 +12,9 @@ import { PronSourceTag } from './PronSourceTag';
 import type { NameRow } from './pronunciationRows';
 import type { PronunciationSources } from './usePronunciationSources';
 import { useErrorToast } from '../../../hooks/useErrorToast';
-import { pronounceFromSource, pronounceOwn, pronounceUseAlternate } from '../../../studio/commands/pronounce';
+import { pronounceFromCandidate, pronounceFromSource, pronounceOwn, pronounceUseAlternate } from '../../../studio/commands/pronounce';
+import type { PronunciationCandidateRow } from '../../../api/contracts/pronunciationSources';
+import { PronunciationCandidateList, usePronunciationCandidates } from './PronunciationCandidates';
 import { useJournalOrOwn } from '../../../studio/StudioProvider';
 import type { Result } from '../../../studio/journal/createJournal';
 
@@ -92,6 +94,9 @@ export function NamePronunciation({
   const [text, setText] = useState(pronunciation.ipa);
   const [shown, setShown] = useState(pronunciation.ipa);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [candidatesOpen, setCandidatesOpen] = useState(false);
+  // Each source is a sidecar run: the dictionaries are asked only once the narrator opens their list.
+  const candidates = usePronunciationCandidates(name, editing && candidatesOpen);
   // The host's value changed under the field (a source was applied, the alternate came back): show it.
   if (pronunciation.ipa !== shown) {
     setShown(pronunciation.ipa);
@@ -138,6 +143,12 @@ export function NamePronunciation({
           : await pronounceFromSource(journal, api, target, { id, label: source.label });
       await done(result, `Pronunciation from ${source.label}.`);
     });
+
+  const pickCandidate = (candidate: PronunciationCandidateRow) =>
+    mutation.run(
+      `${key}-candidate`,
+      async () => void (await done(await pronounceFromCandidate(journal, api, target, candidate), `Pronunciation from ${candidate.label}.`)),
+    );
 
   const switchToAlternate = () =>
     mutation.run(`${key}-alternate`, async () => void (await done(await pronounceUseAlternate(journal, api, target), 'Pronunciation switched.')));
@@ -187,6 +198,23 @@ export function NamePronunciation({
         {badge}
       </div>
       {note && <div className={BELOW}>{note}</div>}
+      {editing && (
+        <Disclosure title="From the dictionaries" open={candidatesOpen} onOpenChange={setCandidatesOpen} className={BELOW}>
+          <div className="pt-1">
+            {candidates.status === 'ready' && candidates.answer.candidates.length === 0 ? (
+              <p className="m-0 text-xs text-[var(--text-muted)]">No dictionary has “{name}”.</p>
+            ) : (
+              <PronunciationCandidateList
+                word={name}
+                candidates={candidates.answer.candidates}
+                inUse={pronunciation.ipa}
+                onUse={(candidate) => void pickCandidate(candidate)}
+                disabled={locked || busy}
+              />
+            )}
+          </div>
+        </Disclosure>
+      )}
       {editing && (
         <Disclosure title="Look up elsewhere" open={detailsOpen} onOpenChange={setDetailsOpen} className={BELOW}>
           <div className="space-y-2 pt-1">

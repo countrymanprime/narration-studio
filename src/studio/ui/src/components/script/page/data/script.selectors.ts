@@ -45,9 +45,6 @@ export type ChapterWord = {
   status: NameStatus;
 };
 
-/** The Story Bible type of a word that is no character, place or other kind: what Script's "Add to my words" creates (#2595). */
-export const WORD_TYPE = 'Word';
-
 /** Each name of an entry as a row, its own first. */
 function namesWithPronunciation(entry: GuideEntity): Omit<ChapterWord, 'status'>[] {
   const own = {
@@ -69,13 +66,6 @@ function namesWithPronunciation(entry: GuideEntity): Omit<ChapterWord, 'status'>
 }
 
 const statusOf = (pronunciation: GuidePronunciation): NameStatus => (pronunciation.ipa.trim() ? 'set' : 'not_set');
-
-/** Every name of the Story Bible's entries of the type Word: the narrator's words, for search's "My words". */
-export const wordNames = (entries: readonly GuideEntity[]): ChapterWord[] =>
-  entries
-    .filter((entry) => entry.category === WORD_TYPE)
-    .flatMap(namesWithPronunciation)
-    .map((row) => ({ ...row, status: statusOf(row.pronunciation) }));
 
 /** The name of the Story Bible that has this key: what the Words card shows for the selected word. */
 export function nameByKey(entries: readonly GuideEntity[], key: string): ChapterWord | undefined {

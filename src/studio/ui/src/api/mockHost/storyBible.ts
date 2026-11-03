@@ -24,7 +24,7 @@ function parseMockProperties(text: string): GuideProperty[] {
  * A real, silent 22.05 kHz mono WAV (a 44-byte header and 200 bytes of samples). The Story Bible preview hook
  * rejects an empty payload (the host never sends one), so the mock must send audio.
  */
-const MOCK_PREVIEW_WAV_BASE64 =
+export const MOCK_PREVIEW_WAV_BASE64 =
   'UklGRuwAAABXQVZFZm10IBAAAAABAAEAIlYAAESsAAACABAAZGF0YcgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==';
 
 // A pronunciation the narrator typed: `manual`, or `user` in a file written before it.
@@ -47,7 +47,6 @@ const MOCK_DEFAULT_TYPES: GuideType[] = [
   { name: 'Lore', colour: 'amber', speaks: false },
   { name: 'Item', colour: 'teal', speaks: false },
   { name: 'Event', colour: 'rose', speaks: false },
-  { name: 'Word', colour: 'teal', speaks: false },
 ];
 
 /** The sidecar's check of a type's name (manuscript_guide.py _type_name and _refuse_taken). */

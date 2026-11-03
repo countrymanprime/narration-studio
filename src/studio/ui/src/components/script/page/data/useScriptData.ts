@@ -16,6 +16,7 @@ import { usePort } from '../../../../ports/usePort';
 import { canSpeak } from '../../../../storyBibleTypes';
 import { useJournal } from '../../../../studio/StudioProvider';
 import { pronounceOwn, subscribePronunciationChanged } from '../../../../studio/commands/pronounce';
+import { saveToMyDictionary } from '../../../../studio/commands/userDictionary';
 import type { Result } from '../../../../studio/journal/createJournal';
 import * as commands from './scriptCommands';
 import type { LineRange, ScriptCommandEnv } from './scriptCommands';
@@ -267,13 +268,13 @@ export function useScriptCommands() {
   const marks = usePort('marks');
   const scriptPrep = usePort('scriptPrep');
   const storyBible = usePort('storyBible');
+  const pronunciationSources = usePort('pronunciationSources');
   const env = useMemo<ScriptCommandEnv>(
     () => ({ journal, marks, scriptPrep, storyBible, data, announce: (text) => overlay.announce(text) }),
     [journal, marks, scriptPrep, storyBible, data],
   );
 
   return useMemo(() => {
-    const adding = new Map<string, Promise<string | null>>();
     const undoOffer = (text: string, entryId: number | null) => {
       if (entryId === null) return;
       overlay.toastUndo(
@@ -315,9 +316,18 @@ export function useScriptCommands() {
       setPrep: async (chapter: ChapterNameInput & { id: string }, state: PrepState) => said(await commands.setPrep(env, chapter, state)) !== null,
       stepPrep: async (chapter: ChapterNameInput & { id: string }, delta: number) => said(await commands.stepPrep(env, chapter, delta)) !== null,
       /**
-       * "Add to my words" (#2595): the selected text's Story Bible name, or a new entry of the type Word made from it, so its pronunciation
-       * has the one home every page reads. Answers the name's key for the Words card, or null when nothing was added.
+       * Saves how the narrator says a word no dictionary has, in their own dictionary (#2595): never the Story Bible. `prior` is their earlier
+       * record of it, which Undo puts back. Answers whether it was saved.
        */
+      async saveToMyDictionary(word: string, say: string, prior?: string) {
+        const done = await saveToMyDictionary(journal, pronunciationSources, word, say, prior);
+        if (!done.ok) {
+          overlay.toast(done.refusal.reason, { tone: 'error' });
+          return false;
+        }
+        undoOffer(`Saved “${word.trim()}” to your dictionary.`, done.value.id);
+        return true;
+      },
       /** Says a Story Bible name the narrator's own way (the definition source's "Use"), through the one pronunciation command (#2595). */
       async pronounceName(name: Pick<select.ChapterWord, 'entryId' | 'aliasIndex' | 'name' | 'pronunciation'>, say: string) {
         const done = await pronounceOwn(
@@ -328,27 +338,6 @@ export function useScriptCommands() {
         );
         overlay.toast(done.ok ? 'Your pronunciation is in use.' : done.refusal.reason, done.ok ? undefined : { tone: 'error' });
         return done.ok;
-      },
-      addWord(target: LineRange | { quote: string }): Promise<string | null> {
-        // The words given; a range without them is read from the line the page has loaded.
-        const range = 'chapterId' in target ? target : undefined;
-        const line = range && data.getState().paragraphs[range.chapterId]?.value?.find((row) => row.id === range.paragraphId);
-        const given = 'quote' in target && typeof target.quote === 'string' ? target.quote : undefined;
-        const text = (given ?? (line && range ? line.text.slice(range.start, range.end) : '')).trim();
-        // A second add of the same word while the first is still with the host waits for it, so the word is made once (a double click,
-        // a click and Enter, the menu and the toolbar at once).
-        const key = select.wordKey(text);
-        const running = adding.get(key);
-        if (running) return running;
-        const added = (async () => {
-          const done = said(await commands.createEntryFrom(env, select.WORD_TYPE, text));
-          if (!done) return null;
-          overlay.toast(done.created ? `Added “${text}” to the Story Bible as a word.` : `“${text}” is in the Story Bible already.`);
-          return select.wordKey(text);
-        })();
-        adding.set(key, added);
-        void added.finally(() => adding.delete(key));
-        return added;
       },
       /** Finds who speaks the quoted lines and says what moved, with Undo when something did. Answers whether the run finished. */
       async attributeSpeakers() {
@@ -374,5 +363,5 @@ export function useScriptCommands() {
         return done.value;
       },
     };
-  }, [env, journal, data]);
+  }, [env, journal, data, pronunciationSources]);
 }

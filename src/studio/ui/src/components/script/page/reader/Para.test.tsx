@@ -5,7 +5,7 @@ import type { MarkColour, MarkStyle } from '../../../../api/contracts/marks';
 import { buildLayerIndex, paragraphLayers, type Layer } from './layers';
 import { HIT_AREA } from '../../../primitives/hitArea';
 import { Para } from './Para';
-import { cue, entry, wordEntry, GUIDE_TYPES, mark, paragraph, TYPES } from './readerFixtures';
+import { cue, entry, GUIDE_TYPES, mark, paragraph, TYPES } from './readerFixtures';
 
 afterEach(cleanup);
 
@@ -23,7 +23,7 @@ describe('Para', () => {
     const layers = layersOf({
       ...base,
       marks: [mark('m1', 'p1', at('said, "Come'), 'note')],
-      entries: [entry('e1', 'Mina', 'Character'), wordEntry('harbour')],
+      entries: [entry('e1', 'Mina', 'Character')],
       cues: [cue('q1', 'p1', 'c1', QUOTE, 'e1', 'correction')],
     });
     const { container } = render(<Para paragraph={para} layers={layers} find={[at('along')]} findCurrent={0} />);
@@ -56,10 +56,10 @@ describe('Para', () => {
     expect(container.querySelector<HTMLElement>('[data-a="m2"]')!.style.boxShadow).toContain('inset');
   });
 
-  it('carries data-w on a word (a Story Bible entry of the type Word) and data-ent on any other Story Bible name', () => {
-    const layers = layersOf({ ...base, entries: [entry('e1', 'Mina', 'Character'), wordEntry('harbour')] });
+  it('carries data-ent on a Story Bible name and marks no other word: the reader marks story elements only (#2595)', () => {
+    const layers = layersOf({ ...base, entries: [entry('e1', 'Mina', 'Character')] });
     const { container } = render(<Para paragraph={para} layers={layers} />);
-    expect(container.querySelector('[data-w="harbour"]')?.textContent).toBe('harbour');
+    expect(container.querySelector('[data-w]')).toBeNull();
     expect(container.querySelector('[data-ent="e1"]')?.textContent).toBe('Mina');
   });
 
@@ -92,19 +92,6 @@ describe('Para', () => {
       expect(mina.style.boxShadow).toBe('inset 0 -2px 0 var(--character)');
       expect(mina.style.background).toBe('color-mix(in srgb, var(--character) 20%, transparent)');
       expect(container.querySelector<HTMLElement>('[data-ent="e2"]')!.style.boxShadow).toBe('inset 0 -2px 0 var(--warn)');
-    });
-
-    it('draws a word as a pronunciation mark whether or not its pronunciation is set, with that status', () => {
-      for (const [say, status] of [
-        ['', 'not_set'],
-        ['HAR-ber', 'set'],
-      ] as const) {
-        const layers = layersOf({ ...base, entries: [wordEntry('harbour', say)] });
-        const { container } = render(<Para paragraph={para} layers={layers} />);
-        const word = container.querySelector<HTMLElement>('[data-w]')!;
-        expect(word.style.textDecoration).toContain('dotted');
-        expect(word.dataset.status).toBe(status);
-      }
     });
 
     it('draws a Find hit with the search hue and rings the current one', () => {

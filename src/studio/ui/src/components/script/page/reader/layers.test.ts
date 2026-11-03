@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Mark, MarkType } from '../../../../api/contracts/marks';
 import type { GuideDialogueCue, GuideEntity } from '../../../../api/contracts/storyBible';
 import { buildLayerIndex, composeLayers, paragraphLayers, type Layer } from './layers';
-import { cue, entry, wordEntry, GUIDE_TYPES, mark, paragraph, TYPES } from './readerFixtures';
+import { cue, entry, GUIDE_TYPES, mark, paragraph, TYPES } from './readerFixtures';
 
 const text = 'Mina said, "Come along," and left the harbour.';
 const range = (needle: string): { start: number; end: number } => ({ start: text.indexOf(needle), end: text.indexOf(needle) + needle.length });
@@ -80,12 +80,11 @@ describe('paragraphLayers', () => {
     cue('q2', 'p9', 'c1', { start: 0, end: 3 }, null, 'tag'),
   ];
   const marks: Mark[] = [mark('m1', 'p1', range('left'), 'ask'), mark('m2', 'p1', range('Mina'), 'note', { stale: true })];
-  // A plain word the narrator added is a Story Bible entry of the type Word (#2595): drawn as a word, found in the text like any name.
-  const index = buildLayerIndex({ marks, markTypes: TYPES as MarkType[], entries: [...entries, wordEntry('along')], cues, types: GUIDE_TYPES });
+  const index = buildLayerIndex({ marks, markTypes: TYPES as MarkType[], entries, cues, types: GUIDE_TYPES });
 
   it('turns each source into a layer of this paragraph only', () => {
     const kinds = paragraphLayers(index, para).map((layer) => layer.kind);
-    expect(kinds.sort()).toEqual(['mark', 'name', 'name', 'phrase', 'word']);
+    expect(kinds.sort()).toEqual(['mark', 'name', 'name', 'phrase']);
   });
 
   it('skips a stale mark: its offsets may no longer fit the words', () => {
