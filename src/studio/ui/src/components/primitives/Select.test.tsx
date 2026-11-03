@@ -182,3 +182,31 @@ describe('Select with a long name (issue 2898)', () => {
     expect(screen.getByRole('combobox', { name: 'Chapter status' }).getAttribute('title')).toBe('Choose one');
   });
 });
+
+describe('Select keeps a caller’s own width limits (issue 2898, found by the QA pass)', () => {
+  const classes = (extra?: string) => {
+    render(<Select label="x" value="a" options={OPTIONS} onChange={() => undefined} {...(extra ? { className: extra } : {})} />);
+    return screen.getByLabelText('x').className;
+  };
+  afterEach(cleanup);
+
+  it('adds its own max-w-full and min-w-0 only when the caller sets no limit of that kind (the stylesheet puts max-w-full after max-w-80 and max-w-[260px], so both would fight)', () => {
+    const own = classes();
+    expect(own).toMatch(/(^|\s)max-w-full(\s|$)/);
+    expect(own).toMatch(/(^|\s)min-w-0(\s|$)/);
+    cleanup();
+    const capped = classes('max-w-[260px]');
+    expect(capped).toContain('max-w-[260px]');
+    expect(capped).not.toMatch(/(^|\s)max-w-full(\s|$)/);
+    cleanup();
+    expect(classes('w-full max-w-80')).not.toMatch(/(^|\s)max-w-full(\s|$)/);
+    cleanup();
+    const floored = classes('min-w-[8rem]');
+    expect(floored).toContain('min-w-[8rem]');
+    expect(floored).not.toMatch(/(^|\s)min-w-0(\s|$)/);
+  });
+
+  it('takes a caller that already says max-w-full as its own, once', () => {
+    expect(classes('max-w-full').match(/max-w-full/g)).toHaveLength(1);
+  });
+});

@@ -22,6 +22,16 @@ type Props = Omit<ComponentPropsWithRef<'select'>, 'aria-label' | 'id' | 'value'
 const SELECT_CLASSES =
   'box-border h-[var(--control-height)] appearance-none rounded-[var(--control-radius)] border border-[var(--line-strong)] bg-[var(--surface)] bg-no-repeat py-0 pr-8 pl-3 text-[0.88rem] leading-[1.35] text-[var(--text)] [background-image:linear-gradient(45deg,transparent_50%,var(--text-muted)_50%),linear-gradient(135deg,var(--text-muted)_50%,transparent_50%)] [background-position:calc(100%-1rem)_50%,calc(100%-0.6875rem)_50%] [background-size:0.3125rem_0.3125rem,0.3125rem_0.3125rem]';
 
+/**
+ * The width limits Select adds when its caller sets none: it stays inside its container (`max-w-full`) and may shrink in a flex row (`min-w-0`), so a very long name
+ * ends in an ellipsis instead of widening the box. A caller's own `max-w-*` or `min-w-*` replaces it: the stylesheet orders `max-w-full` after `max-w-80` and
+ * `max-w-[260px]`, so adding it beside theirs would override the limit they asked for.
+ */
+function limits(className: string): string {
+  const own = (kind: 'max' | 'min') => new RegExp(`(^|\\s)${kind}-w-`).test(className);
+  return `${own('max') ? '' : 'max-w-full'} ${own('min') ? '' : 'min-w-0'}`.trim();
+}
+
 const PLACEHOLDER_VALUE = '\u0000placeholder';
 
 const SelectOptionRow = ({ option }: { option: SelectOption }) => <option value={option.value}>{option.label}</option>;
@@ -52,7 +62,7 @@ export function Select({ label, value, onChange, options, fullWidth = false, pla
       onChange={(event) => event.target.value !== PLACEHOLDER_VALUE && onChange(event.target.value)}
       // A fixed height, not a minimum: a native <select> doesn't resolve `leading-[1.35]` the way an <input> or a styled
       // div does, so pinning the height is what makes it match TextField and Button (`--control-height`, 36px).
-      className={`${SELECT_CLASSES} max-w-full truncate ${fullWidth ? 'w-full' : ''} ${className}`}
+      className={`${SELECT_CLASSES} truncate ${limits(className)} ${fullWidth ? 'w-full' : ''} ${className}`}
       title={shown}
     >
       {showPlaceholder && (

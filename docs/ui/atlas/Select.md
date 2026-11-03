@@ -10,6 +10,8 @@ Storybook title: `Primitives/Select`. Source: `src/components/primitives/Select.
 - Full Width
 - Grouped
 - Long Name
+- Long Name In Flex Row
+- Long Name With Own Max Width
 - Disabled
 - With Placeholder Option
 - With Placeholder

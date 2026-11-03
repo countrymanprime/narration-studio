@@ -2660,6 +2660,8 @@
         "Full Width",
         "Grouped",
         "Long Name",
+        "Long Name In Flex Row",
+        "Long Name With Own Max Width",
         "Disabled",
         "With Placeholder Option",
         "With Placeholder",
