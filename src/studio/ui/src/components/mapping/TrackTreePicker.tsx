@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useVoiceLayout } from '../engine/voiceLayout';
 import { TreeSelect, type TreeSelectRow, type TreeSelectSection } from '../primitives/TreeSelect';
 import { TrackMark } from '../tracks/TreeRowParts';
 import { buildTrackTree, SMALL_PROJECT, trackLabel, type TreeNode, type TreeTrack } from '../tracks/trackTree';
@@ -68,6 +69,7 @@ export function TrackTreePicker({
     return new Set(folderIds.filter((id) => !wanted.has(id)));
   }, [nodes, value, best?.guid, folderIds]);
   const shut = closed ?? defaultClosed;
+  const layout = useVoiceLayout();
 
   const searching = query.trim() !== '';
   const needle = query.trim().toLowerCase();
@@ -77,7 +79,8 @@ export function TrackTreePicker({
     place: Pick<TreeSelectRow, 'key' | 'level' | 'posInSet' | 'setSize'> & Partial<TreeSelectRow>,
   ): TreeSelectRow => {
     const entry = node.track.choice;
-    const blocked = node.track.isFolder && entry.hasAudio === false;
+    // With folders of voices a chapter links to its folder, whose audio is on its children (useVoiceLayout).
+    const blocked = node.track.isFolder && entry.hasAudio === false && layout !== 'folders';
     const path = place.key.startsWith('t-') ? '' : pathOf(nodes, at);
     return {
       id: node.id,
