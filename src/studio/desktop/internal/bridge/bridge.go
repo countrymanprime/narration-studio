@@ -61,8 +61,12 @@ type Client struct {
 }
 
 func New(sessionDir string) (*Client, error) {
-	if err := os.MkdirAll(filepath.Join(sessionDir, "commands"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(sessionDir, "commands"), 0o700); err != nil {
 		return nil, fmt.Errorf("could not create bridge command directory: %w", err)
+	}
+	// 0o600 on the files means nothing on Windows, so the folder itself is locked to the current user (issue #240).
+	if err := restrictToCurrentUser(sessionDir); err != nil {
+		return nil, fmt.Errorf("could not secure the bridge folder: %w", err)
 	}
 	return &Client{sessionDir: sessionDir}, nil
 }
