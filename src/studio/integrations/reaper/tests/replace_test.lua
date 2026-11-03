@@ -88,6 +88,16 @@ end
 
 -- 1. replace-moves-mine-to-cuts-and-lays-theirs -------------------------------------------------------------------
 
+H.test('the Cuts track goes at the top level even when the project ends inside an open folder, and no track changes folder', function()
+  local s, p = project()
+  p.chapter.folder_depth = 1 -- their track is Chapter 1's child and the folder is left open at the end
+  local before = H.parents(s)
+  replace(s, p)
+  H.eq(#s:events(), 1)
+  local after = H.same_parents(before, s)
+  H.eq(after.Cuts, '')
+end)
+
 H.test('replace-moves-mine-to-cuts-and-lays-theirs: the narrator piece is parked on Cuts and their stretch plays in its place', function()
   local s, p = project()
   replace(s, p)
