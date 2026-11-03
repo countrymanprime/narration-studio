@@ -2,7 +2,7 @@
 // It opens on Chapter 1 (the mock's last chapter read) unless a state picks otherwise. The Companion rows open `/companion`.
 import type { Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
-import { showChapterTop } from '../helpers/viewTop';
+import { boothChapterReady, readFromTop, showChapterTop } from '../helpers/viewTop';
 import { type Driver, chooseMicrophone, openCheckingLink, chooseTheme, clickNav, goToPage, openBooth, selectReaderWord, openWithoutManuscript } from './shared';
 
 // Where the page clock stops once Record is pressed, so the timer reads 00:00 at every viewport.
@@ -24,7 +24,7 @@ const UNLINKED = '?mockReaperState=no_link';
 async function readyToRecord(page: Page, query = ''): Promise<void> {
   // Always a fresh load: a spec that calls a driver on a blank page has no app to navigate in until one is loaded.
   await openBooth(page, query || '?');
-  await page.getByRole('group', { name: /^Recorded through/ }).waitFor();
+  await boothChapterReady(page);
   await record(page).and(page.locator(':enabled:not([aria-disabled="true"])')).waitFor();
 }
 
@@ -429,7 +429,8 @@ export const boothDrivers: Record<string, Driver> = {
     // The Script's "Marked …" toast would otherwise sit over the Booth's footer.
     await page.getByRole('button', { name: 'Dismiss message' }).click();
     await goToPage(page, 'Booth');
-    await page.getByRole('group', { name: /^Recorded through/ }).waitFor();
+    await boothChapterReady(page);
+    await showChapterTop(page);
     await page.locator('[data-booth-text] [data-word][title]', { hasText: 'tired' }).click();
     await page.locator('#booth-reference').getByText('Lean on it: she is bored, not sleepy.').waitFor();
   },
@@ -446,6 +447,8 @@ export const boothDrivers: Record<string, Driver> = {
   // menu's Read to here marks the stopping place there (a chequered-flag ribbon beside the line).
   'page-break-stop': async (page) => {
     await readyToRecord(page);
+    // Chapter 1 opens at ¶ 14, past the Page 2 break: the reading goes back to the first paragraph to step down to it.
+    await readFromTop(page);
     const label = page.locator('[data-page-breaks] [data-page-break="2"]');
     const height = page.viewportSize()?.height ?? 800;
     for (let step = 0; step < 80; step++) {
@@ -500,7 +503,7 @@ export const boothDrivers: Record<string, Driver> = {
     await settlePage(page);
     await chooseTheme(page, 'Dark');
     await goToPage(page, 'Booth');
-    await page.getByRole('group', { name: /^Recorded through/ }).waitFor();
+    await boothChapterReady(page);
     await record(page).and(page.locator(':enabled:not([aria-disabled="true"])')).waitFor();
   },
   'companion-default': async (page) => {

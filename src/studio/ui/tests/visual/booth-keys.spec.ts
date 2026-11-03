@@ -5,7 +5,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { pastStartGuard } from './helpers/startGuard';
 import { settlePage } from './helpers/settle';
-import { showChapterTop } from './helpers/viewTop';
+import { boothChapterReady, showChapterTop } from './helpers/viewTop';
 import { goToPage } from './drivers/shared';
 
 const record = (page: Page) => page.getByRole('button', { name: /^Record$/ });
@@ -14,7 +14,7 @@ async function openBooth(page: Page, query = '', recordReady = true): Promise<vo
   await page.goto(`/${query}`);
   await settlePage(page);
   await goToPage(page, 'Booth');
-  await page.getByRole('group', { name: /^Recorded through/ }).waitFor();
+  await boothChapterReady(page);
   if (recordReady) await expect(record(page)).toBeEnabled();
 }
 
@@ -320,6 +320,7 @@ test.describe('a pedal Space with a popup open, by the control that has focus', 
     await openBooth(page);
     await record(page).click();
     await page.getByRole('button', { name: /^Stop$/ }).waitFor();
+    await showChapterTop(page);
     await page.locator('[data-word]').nth(40).click({ button: 'right' });
     const menu = page.getByRole('menu').last();
     await expect(menu).toBeVisible();

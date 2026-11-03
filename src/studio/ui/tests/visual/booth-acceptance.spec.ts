@@ -130,6 +130,7 @@ test('row 10: the arrow keys move a phrase and a word', async ({ page }) => {
 
 test('row 11: a click on a word moves the reading position to it', async ({ page }) => {
   await open(page);
+  await showChapterTop(page);
   await page.locator('[data-booth-text] [data-word]').nth(60).click();
   await expect(cursorWord(page)).toHaveText(await page.locator('[data-booth-text] [data-word]').nth(60).innerText());
 });
@@ -206,6 +207,7 @@ test('row 16: suspected flags show while reading and Dismiss removes one', async
 
 test('row 17: a Story Bible name shows its reference in the side panel', async ({ page }) => {
   await open(page);
+  await showChapterTop(page);
   await page.locator('[data-booth-text] [data-word]', { hasText: 'Alice' }).first().click();
   await expect(page.locator('#booth-reference')).toContainText('Alice');
 });
@@ -361,6 +363,7 @@ test('row 30: F11 asks for full screen', async ({ page }) => {
 
 test('row 31: right-click offers Start from here, Bookmark here, roll, text size and Exit Booth', async ({ page }) => {
   await open(page);
+  await showChapterTop(page);
   await page.locator('[data-booth-text] [data-word]').nth(40).click({ button: 'right' });
   const menu = page.getByRole('menu').last();
   for (const item of [/Start from here/, /Bookmark here/, /Exit/]) await expect(menu.getByRole('menuitem', { name: item }).first()).toBeVisible();
@@ -369,6 +372,7 @@ test('row 31: right-click offers Start from here, Bookmark here, roll, text size
 // Punch has no switch since #2251: with REAPER linked and answering, Start from here sets the next roll at once.
 test('row 31: Start from here sets the next roll at once, and Space records', async ({ page }) => {
   await open(page);
+  await showChapterTop(page);
   await page.locator('[data-booth-text] [data-word]').nth(40).click({ button: 'right' });
   await page
     .getByRole('menuitem', { name: /Start from here/ })
