@@ -1,11 +1,15 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
+	"desktop/internal/audacitybridge"
+	"desktop/internal/contractfile"
 	"desktop/internal/masteringport"
 	"desktop/internal/masteringport/masteringporttest"
 	"desktop/internal/packager"
@@ -153,4 +157,116 @@ func TestAnApprovedDAWMasterWithNoDAWFailsTheFileWithTheReason(t *testing.T) {
 	if job.Phase != "error" || job.Files[0].Error != masteringport.ErrNoDAW.Error() {
 		t.Fatalf("job %+v", job)
 	}
+}
+
+// A chapter title of spaces is no title: refused by the plan and the start before a job starts, never sent as a DAW region of
+// spaces (qa B1, B2 on #2879).
+func TestAWhitespaceChapterTitleIsRefusedBeforeAnythingRuns(t *testing.T) {
+	source := filepath.Join(t.TempDir(), "ch1.wav")
+	writeFixtureFile(t, source, "wav")
+	host := masteringExportHost(t, masteringport.DAW, source)
+	for _, title := range []string{"", "   ", "\t"} {
+		req := ExportRequest{Master: true, Items: []ExportItem{{Kind: string(packager.KindChapter), Title: title, Path: source}}, Approval: &MasteringApproval{Provider: masteringport.DAW}}
+		if _, err := host.exportPlan(req); err == nil || !strings.Contains(err.Error(), "no chapter title") {
+			t.Fatalf("plan with title %q: err = %v", title, err)
+		}
+		if _, err := host.startExport(req); err == nil || !strings.Contains(err.Error(), "no chapter title") {
+			t.Fatalf("start with title %q: err = %v", title, err)
+		}
+	}
+	if state := host.exportState(); state.Phase != "idle" {
+		t.Fatalf("a refused export left a job: %+v", state)
+	}
+}
+
+// A row that needs a macro but not approval, asked with no approval at all, is refused for want of a macro; it does not
+// dereference the missing approval (qa G2 on #2879).
+func TestAMacroRowWithNoApprovalIsRefusedNotPanicking(t *testing.T) {
+	source := filepath.Join(t.TempDir(), "ch1.wav")
+	writeFixtureFile(t, source, "wav")
+	row, _ := recordingRow(t, "macro-only")
+	row.caps = masteringport.Capabilities{Level: port.Experimental, NeedsMacro: true}
+	host := masteringExportHost(t, "", source)
+	host.masteringRows = masterRows(row)
+	if _, err := host.startExport(ExportRequest{Master: true, Items: oneChapter(source)}); !errors.Is(err, masteringport.ErrNoMacro) {
+		t.Fatalf("err = %v, want ErrNoMacro", err)
+	}
+}
+
+// ExportPlan answers the row, what it needs, and each item as the host will export it (the title trimmed, the DAW region it
+// renders from), and changes nothing: no job, and no approval is asked of it.
+func TestExportPlanAnswersTheRowAndEachItemsRegion(t *testing.T) {
+	dir := t.TempDir()
+	chapter, opening := filepath.Join(dir, "ch1.wav"), filepath.Join(dir, "open.wav")
+	writeFixtureFile(t, chapter, "wav")
+	writeFixtureFile(t, opening, "wav")
+	host := masteringExportHost(t, masteringport.DAW, chapter, opening)
+	plan, err := host.exportPlan(ExportRequest{Master: true, Items: []ExportItem{
+		{Kind: string(packager.KindCreditsOpening), Path: opening},
+		{Kind: string(packager.KindChapter), Title: " Chapter 1 ", Path: chapter},
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := ExportPlan{Master: true, Provider: masteringport.DAW, Label: "Your DAW's FX chain", NeedsApproval: true, Items: []ExportPlanItem{
+		{Kind: string(packager.KindCreditsOpening), Path: opening, Region: "Opening credits"},
+		{Kind: string(packager.KindChapter), Title: "Chapter 1", Path: chapter, Region: "Chapter 1"},
+	}}
+	if !reflect.DeepEqual(plan, want) {
+		t.Fatalf("plan = %+v\nwant %+v", plan, want)
+	}
+	if state := host.exportState(); state.Phase != "idle" {
+		t.Fatalf("a plan started a job: %+v", state)
+	}
+	plain, err := host.exportPlan(ExportRequest{Items: []ExportItem{{Kind: string(packager.KindChapter), Title: "Chapter 1", Path: chapter}}})
+	if err != nil || plain.Master || plain.Provider != "" || plain.Items[0].Region != "" {
+		t.Fatalf("encode-only plan = %+v, %v", plain, err)
+	}
+}
+
+// TestExportPlanGoldenIsCurrent pins ExportPlan's answer for the DAW row and the Audacity row. UPDATE_CONTRACTS=1 rewrites
+// tests/fixtures/contracts/export-plan-*.json.
+func TestExportPlanGoldenIsCurrent(t *testing.T) {
+	items := []ExportItem{
+		{Kind: string(packager.KindCreditsOpening), Path: "C:/Renders/00 Opening credits.wav"},
+		{Kind: string(packager.KindChapter), Title: "Chapter 1", Path: "C:/Renders/Chapter 01.wav"},
+	}
+	for name, choice := range map[string]string{"export-plan-daw": masteringport.DAW, "export-plan-audacity": masteringport.Audacity} {
+		t.Run(name, func(t *testing.T) {
+			entry, err := masteringport.Rows.Lookup(choice)
+			if err != nil {
+				t.Fatal(err)
+			}
+			plan := exportPlanned{master: true, items: items, regions: make([]string, len(items)), row: entry, caps: entry.New().Capabilities()}
+			if !entry.Descriptor.Supports(masteringport.ModeWAV) {
+				for i, item := range items {
+					plan.regions[i] = exportRegion(item)
+				}
+			}
+			raw, err := encodeBinding(exportPlanPayload(plan), nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var decoded map[string]any
+			if err := json.Unmarshal([]byte(raw), &decoded); err != nil {
+				t.Fatal(err)
+			}
+			contractfile.Check(t, name, decoded)
+		})
+	}
+}
+
+// TestMacroNameRuleGoldenIsCurrent pins audacitybridge.CheckMacroName's verdict on names a narrator might type, so the approval
+// dialog's own check of a macro name (src/studio/ui/src/api/macroName.ts) is tested against the host's rule rather than a copy of
+// it. UPDATE_CONTRACTS=1 rewrites tests/fixtures/contracts/macro-names.json.
+func TestMacroNameRuleGoldenIsCurrent(t *testing.T) {
+	names := []string{
+		"Book loudness", "ACX_Master-2", "  spaced  ", "a", strings.Repeat("x", 64), strings.Repeat("x", 65), strings.Repeat("x ", 64),
+		"", "   ", "ACX \u2013 Master", "\u00dcn\u00efcode", "\u0645\u0631\u062d\u0628\u0627", "loud \U0001F50A", `../../evil"; rm -rf /`, "back\\slash", "dot.name", "tab\tname",
+	}
+	verdicts := make([]any, 0, len(names))
+	for _, name := range names {
+		verdicts = append(verdicts, map[string]any{"name": name, "ok": audacitybridge.CheckMacroName(name) == nil})
+	}
+	contractfile.Check(t, "macro-names", map[string]any{"names": verdicts})
 }

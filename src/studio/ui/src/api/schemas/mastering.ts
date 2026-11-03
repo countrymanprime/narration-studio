@@ -17,6 +17,9 @@ const masteringProviderSchema = z.object({
   chain: listFromNull(masteringStepSchema),
 }) satisfies z.ZodType<MasteringProvider>;
 
+/** tests/fixtures/contracts/macro-names.json: the host's verdict on macro names (macroName.ts is tested against it). */
+export const macroNameVerdictsSchema = z.object({ names: z.array(z.object({ name: z.string(), ok: z.boolean() })) });
+
 export const masteringProvidersSchema = z.object({
   hasProject: z.boolean(),
   choice: z.string().nullable(),

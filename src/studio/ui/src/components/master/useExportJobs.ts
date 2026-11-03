@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useApi } from '../../api/ApiContext';
 import { apiErrorMessage } from '../../api/errorMessage';
-import type { DeliveryProfile, ExportItem, ExportJob, MasteringApproval, MultiPackageJob, PackageItem, PackageJob } from '../../types';
+import type { DeliveryProfile, ExportItem, ExportJob, ExportPlan, MasteringApproval, MultiPackageJob, PackageItem, PackageJob } from '../../types';
 import { startExportRequest, useExportStarting } from './masterRequests';
 import { kindFromFileName } from './packageKind';
 
@@ -10,6 +10,9 @@ export type ExportStartOutcome = 'started' | 'refused' | 'no-answer' | 'busy';
 
 /** The toast for a start the host did not answer in time. */
 export const EXPORT_START_NO_ANSWER = 'The app did not answer when asked to start the export. What it is doing was read again.';
+
+/** The toast for a plan the host did not answer in time. */
+export const EXPORT_PLAN_NO_ANSWER = 'The app did not answer when asked what the export would do. Nothing was started.';
 
 /** How often a running export or package job is read. */
 const POLL_MS = 500;
@@ -157,7 +160,31 @@ export function useExportJobs() {
         },
         late: rereadExport,
       });
+
       if (!sent) resolve('busy');
+    });
+
+  /**
+   * Asks the host what Master & encode would do (ExportPlan), starting nothing: the row it masters with, whether it needs the
+   * narrator's approval or a macro, and the items as the host will export them. Held with the start (`startExportRequest`), so a
+   * press while either waits sends nothing. A refusal is a toast in the host's words, as a start's is; so is no answer in time.
+   */
+  const planExport = (): Promise<{ outcome: ExportStartOutcome; plan?: ExportPlan }> =>
+    new Promise((resolve) => {
+      setProblem(undefined);
+      const sent = startExportRequest(() => api.exportPlan({ items, master, format: 'mp3', approval: null }), {
+        answered: (plan) => resolve({ outcome: 'started', plan }),
+        refused: (error) => {
+          setProblem(apiErrorMessage(error));
+          resolve({ outcome: 'refused' });
+        },
+        timedOut: () => {
+          setProblem(EXPORT_PLAN_NO_ANSWER);
+          resolve({ outcome: 'no-answer' });
+        },
+        late: () => undefined,
+      });
+      if (!sent) resolve({ outcome: 'busy' });
     });
   const cancelExport = () => void api.exportCancel().then(setExportJob, (error) => setProblem(apiErrorMessage(error)));
 
@@ -203,6 +230,7 @@ export function useExportJobs() {
     updateItem,
     removeItem,
     startExport,
+    planExport,
     cancelExport,
     doneFiles,
     packageJob,

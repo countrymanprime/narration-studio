@@ -246,7 +246,8 @@ export class LineIdentityStampRow {
 /**
  * MasteringApproval is the narrator's approval of one export's masters: the row they approved, by name, and, for a row that
  * needs one (MasteringProvider.NeedsMacro), the effect macro they named. It holds for the one ExportStart call that carries it:
- * the host checks it against the row it would master with now, hands it to that job only, and never stores it.
+ * the host checks it against the row it would master with now, hands it to that job only, and never stores it. It is the page's
+ * word that the narrator approved: the host cannot tell that a dialog was shown (threat model row 14f).
  */
 export class MasteringApproval {
     "provider": string;

@@ -8,13 +8,10 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"sync"
 	"time"
 
-	"desktop/internal/audacitybridge"
-	"desktop/internal/creditsid"
 	"desktop/internal/deliveryprofile"
 	"desktop/internal/encodeport"
 	"desktop/internal/mastering"
@@ -69,14 +66,6 @@ type ExportRequest struct {
 	Master   bool               `json:"master"`
 	Format   string             `json:"format"`
 	Approval *MasteringApproval `json:"approval"`
-}
-
-// MasteringApproval is the narrator's approval of one export's masters: the row they approved, by name, and, for a row that
-// needs one (MasteringProvider.NeedsMacro), the effect macro they named. It holds for the one ExportStart call that carries it:
-// the host checks it against the row it would master with now, hands it to that job only, and never stores it.
-type MasteringApproval struct {
-	Provider string `json:"provider"`
-	Macro    string `json:"macro"`
 }
 
 // MasteringSummary is the built-in chain's own report (mastering.Result), narrowed to what the Master & QC page
@@ -269,7 +258,7 @@ type encodeFileFunc func(ctx context.Context, wav, dst string, spec encodeport.S
 
 // exportPaths checks what ExportStart was sent: at least one item, each picked in this session (docs/architecture/threat-model.md's own
 // discipline, applied to the export flow's own picker), each once, every kind but "chapter" at most once, and every
-// chapter with a title (packager.Assemble needs one to name its file).
+// chapter with a title that is more than spaces (packager.Assemble needs one to name its file). Titles come back trimmed.
 func (h *Host) exportPaths(items []ExportItem) ([]ExportItem, error) {
 	if len(items) == 0 {
 		return nil, errors.New("choose at least one file to export")
@@ -288,7 +277,9 @@ func (h *Host) exportPaths(items []ExportItem) ([]ExportItem, error) {
 			item.Kind != string(packager.KindCreditsClosing) && item.Kind != string(packager.KindRetailSample) {
 			return nil, fmt.Errorf("%q is not a package item kind", item.Kind)
 		}
-		if item.Kind == string(packager.KindChapter) && item.Title == "" {
+		// A title is a file name in the package and the DAW region a chapter renders from: one of spaces is none.
+		title := strings.TrimSpace(item.Title)
+		if item.Kind == string(packager.KindChapter) && title == "" {
 			return nil, fmt.Errorf("%q has no chapter title", item.Path)
 		}
 		if item.Kind != string(packager.KindChapter) && seenKind[item.Kind] {
@@ -298,33 +289,28 @@ func (h *Host) exportPaths(items []ExportItem) ([]ExportItem, error) {
 			continue
 		}
 		seenPath[clean], seenKind[item.Kind] = true, true
-		out = append(out, ExportItem{Kind: item.Kind, Title: item.Title, Path: clean})
+		out = append(out, ExportItem{Kind: item.Kind, Title: title, Path: clean})
 	}
 	return out, nil
 }
 
 // startExport masters (if requested) and encodes every item in the background; only one export runs at once.
 func (h *Host) startExport(req ExportRequest) (ExportJob, error) {
-	items, err := h.exportPaths(req.Items)
+	svc := h.services()
+	plan, err := h.planExport(svc, req)
 	if err != nil {
 		return ExportJob{}, err
 	}
+	approval, err := h.approvalFor(plan, req.Approval)
+	if err != nil {
+		return ExportJob{}, err
+	}
+	items, row := plan.items, plan.row
 	format := req.Format
 	if format == "" {
 		format = "mp3"
 	}
-	svc := h.services()
-	if svc.config.projectFolder == "" {
-		return ExportJob{}, errors.New("open a project before exporting")
-	}
 	profile, _, _ := h.selectedDeliveryProfile(svc)
-	var row port.Entry[masteringport.Mastering]
-	var approval masteringApproved
-	if req.Master {
-		if row, approval, err = h.exportMasteringRow(svc, req.Approval); err != nil {
-			return ExportJob{}, err
-		}
-	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	id := fmt.Sprintf("export-%d", time.Now().UnixNano())
@@ -358,7 +344,7 @@ func (h *Host) startExport(req ExportRequest) (ExportJob, error) {
 	if encodeFile == nil {
 		encodeFile = encodeFor(format)
 	}
-	go h.runExport(ctx, job, items, svc.config.projectFolder, profile, req.Master, row, approval, format, encodeFile)
+	go h.runExport(ctx, job, items, plan.regions, svc.config.projectFolder, profile, req.Master, row, approval, format, encodeFile)
 	return job.snapshot(), nil
 }
 
@@ -377,7 +363,7 @@ func encodeFor(format string) encodeFileFunc {
 // runExport masters (if asked) then encodes each item in turn. A panic ends the job as an error rather than taking
 // the app down, matching runMeasure.
 func (h *Host) runExport(
-	ctx context.Context, job *exportJob, items []ExportItem, projectFolder string, profile deliveryprofile.Profile,
+	ctx context.Context, job *exportJob, items []ExportItem, regions []string, projectFolder string, profile deliveryprofile.Profile,
 	master bool, row port.Entry[masteringport.Mastering], approval masteringApproved, format string, encodeFile encodeFileFunc,
 ) {
 	defer job.cancel()
@@ -411,11 +397,7 @@ func (h *Host) runExport(
 				job.fail(index, err)
 				continue
 			}
-			region := exportRegion(item)
-			if region == "" && !row.Descriptor.Supports(masteringport.ModeWAV) {
-				job.fail(index, fmt.Errorf("%s masters a chapter or credits region your DAW renders, and a retail sample has none", row.Descriptor.Label))
-				continue
-			}
+			region := regions[index]
 			masteredPath = filepath.Join(masteredDir, fmt.Sprintf("%02d-%s.wav", index+1, string(item.Kind)))
 			_ = os.Remove(masteredPath) // a rerun's earlier scratch file is never the narrator's own data
 			mastered, err := chain.Master(ctx, masteringport.Request{
@@ -456,73 +438,6 @@ func (h *Host) runExport(
 		}
 		job.completeStage(index, weightRemaining(master))
 		job.succeed(index, masteredPath, result, encodedPath)
-	}
-}
-
-// masteringApproved is what an export's approval allows its masters: Approved and Macro of each masteringport.Request.
-type masteringApproved struct {
-	approved bool
-	macro    string
-}
-
-// errStaleApproval is an approval of a row the project no longer masters with.
-var errStaleApproval = errors.New("approve the render again")
-
-// exportMasteringRow is the row the export masters with: the project's effective row (effectiveMasteringRow), the one
-// MasteringProviders reports, over h.masteringRows (a seam for tests; nil means masteringport.Rows), and what the narrator's
-// approval allows. An approval holds only for the row it names: one for another row is refused as stale, whether or not the
-// row the project masters with now needs one. A row that needs approval is refused without one, and a row that needs a macro
-// without its name. Every refusal comes before the job starts, so nothing is mastered or encoded.
-func (h *Host) exportMasteringRow(svc hostServices, approval *MasteringApproval) (port.Entry[masteringport.Mastering], masteringApproved, error) {
-	none := port.Entry[masteringport.Mastering]{}
-	rows := h.masteringRows
-	if rows == nil {
-		rows = masteringport.Rows
-	}
-	choice := ""
-	if svc.settings != nil {
-		choice = svc.settings.Project(masteringSettingsTool)[masteringProviderKey]
-	}
-	row, _, ok := effectiveMasteringRow(rows, runtime.GOOS, choice)
-	if !ok {
-		return none, masteringApproved{}, errors.New("this version has no mastering chain")
-	}
-	caps := row.New().Capabilities()
-	if approval != nil && approval.Provider != row.Name {
-		approved := approval.Provider
-		if entry, err := rows.Lookup(approval.Provider); err == nil {
-			approved = entry.Descriptor.Label
-		}
-		return none, masteringApproved{}, fmt.Errorf("you approved %s, but this project now masters with %s: %w", approved, row.Descriptor.Label, errStaleApproval)
-	}
-	if caps.NeedsApproval && approval == nil {
-		return none, masteringApproved{}, fmt.Errorf("%s runs only after you approve this render: %w", row.Descriptor.Label, masteringport.ErrNotApproved)
-	}
-	allowed := masteringApproved{approved: approval != nil}
-	if caps.NeedsMacro {
-		allowed.macro = strings.TrimSpace(approval.Macro)
-		if allowed.macro == "" {
-			return none, masteringApproved{}, fmt.Errorf("%s: %w", row.Descriptor.Label, masteringport.ErrNoMacro)
-		}
-		if err := audacitybridge.CheckMacroName(allowed.macro); err != nil {
-			return none, masteringApproved{}, err
-		}
-	}
-	return row, allowed, nil
-}
-
-// exportRegion is the DAW region an item masters from with a row that renders one (masteringport.ModeDAWRegion), by the name
-// the chapter regions step gives it (chapterregions.go): a chapter's title, or the credits' own title. A retail sample has none.
-func exportRegion(item ExportItem) string {
-	switch packager.Kind(item.Kind) {
-	case packager.KindChapter:
-		return item.Title
-	case packager.KindCreditsOpening:
-		return creditsid.Title(creditsid.Opening)
-	case packager.KindCreditsClosing:
-		return creditsid.Title(creditsid.Closing)
-	default:
-		return ""
 	}
 }
 

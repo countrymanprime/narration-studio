@@ -127,15 +127,33 @@ export const masterStates: StateEntry[] = [
     page: 'master',
     state: 'to-spec-approve-daw',
     description:
-      "Master & QC, Master & encode pressed with the project mastering with its DAW's FX chain (?mockMastering=daw) - the approval dialog naming the row and the regions it renders, with Cancel and Approve and master",
+      "Master & QC, Master & encode pressed with the project mastering with its DAW's FX chain (?mockMastering=daw), the retail sample removed - Approve this render?, the row named in its sentence, and the host's plan as a table of each file and the region it renders, focus on Cancel",
     ...KEEPS_DESKTOP_SCROLL,
+    ...REFLOW,
   },
   {
     page: 'master',
     state: 'to-spec-approve-macro',
     description:
-      "Master & QC, Master & encode pressed with the project mastering with Audacity's effect macro (?mockMastering=audacity) - the approval dialog naming the files and asking which macro, after Approve was pressed with none",
+      "Master & QC, Master & encode pressed with the project mastering with Audacity's effect macro (?mockMastering=audacity) - the files to master, and the Macro field with its hint, after Approve was pressed with a name the host cannot run",
     ...KEEPS_DESKTOP_SCROLL,
+    ...REFLOW,
+  },
+  {
+    page: 'master',
+    state: 'to-spec-approve-many',
+    description:
+      'Master & QC, the approval dialog over a 40-chapter book (?mockMastering=daw&mockExportPick=many) - the table of files and regions capped to its own scroll, the question and the actions in view',
+    ...KEEPS_DESKTOP_SCROLL,
+    ...REFLOW,
+  },
+  {
+    page: 'master',
+    state: 'to-spec-approve-long-names',
+    description:
+      'Master & QC, the approval dialog over files with very long names (?mockMastering=daw&mockExportPick=long) - each name and region wrapping in its cell, nothing past the dialog',
+    ...KEEPS_DESKTOP_SCROLL,
+    ...REFLOW,
   },
   {
     page: 'master',

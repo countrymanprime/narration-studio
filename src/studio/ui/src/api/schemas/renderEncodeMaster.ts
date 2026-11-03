@@ -2,6 +2,8 @@ import { z } from 'zod';
 import type {
   ExportFileResult,
   ExportJob,
+  ExportPlan,
+  ExportPlanItem,
   MasteringSummary,
   MultiPackageJob,
   MultiPackageResult,
@@ -37,6 +39,22 @@ const exportFileResultSchema = z.object({
   mastering: masteringSummarySchema.optional(),
   error: z.string().optional(),
 }) satisfies z.ZodType<ExportFileResult>;
+
+const exportPlanItemSchema = z.object({
+  kind: packageItemKindSchema,
+  title: z.string(),
+  path: z.string(),
+  region: z.string(),
+}) satisfies z.ZodType<ExportPlanItem>;
+
+export const exportPlanSchema = z.object({
+  master: z.boolean(),
+  provider: z.string(),
+  label: z.string(),
+  needsApproval: z.boolean(),
+  needsMacro: z.boolean(),
+  items: listFromNull(exportPlanItemSchema),
+}) satisfies z.ZodType<ExportPlan>;
 
 export const exportJobSchema = z.object({
   id: z.string().nullable(),

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { MasteringProvider } from '../../api/contracts/mastering';
-import type { ExportJob, PackageItemKind } from '../../types';
+import type { ExportJob, ExportPlan, MasteringApproval, PackageItemKind } from '../../types';
 import { useErrorToast } from '../../hooks/useErrorToast';
 import { Button } from '../primitives/Button';
 import { IconButton } from '../primitives/IconButton';
@@ -73,8 +73,8 @@ export function MasterToSpecPanel({
 }) {
   const { items, exportJob, exportRunning, problem } = jobs;
   const chainLabel = chain?.label;
-  // The row the open approval dialog names; the row read when it opened, so a later read cannot change what the narrator approves.
-  const [approving, setApproving] = useState<MasteringProvider>();
+  // The plan the open approval dialog shows: the host's answer when it opened, so a later read cannot change what the narrator approves.
+  const [approving, setApproving] = useState<ExportPlan>();
   const started = !!exportJob?.files.length;
   const hasFiles = items.length > 0 || started;
   // A start or pick that failed is a toast; the panel is not opened just to draw it (rule 7, #2632), so it does not appear with nothing in it.
@@ -95,17 +95,28 @@ export function MasterToSpecPanel({
   }, [shown]);
   // Starting removes Master & encode (the table shows the job instead): focus goes to the files, never to the page's <body>.
   const focusFiles = () => revealRef.current;
-  const start = (approval: { row: MasteringProvider; macro: string } | null) => {
-    void jobs.startExport(approval && { provider: approval.row.name, macro: approval.macro }).then((outcome) => {
-      if (outcome === 'busy') return;
+  // Answers whether the export started, so the dialog keeps a macro name only once the host took it.
+  const start = (approval: MasteringApproval | null): Promise<boolean> =>
+    jobs.startExport(approval).then((outcome) => {
+      if (outcome === 'busy') return false;
       setApproving(undefined);
       if (outcome === 'refused') onStartRefused?.();
       if (outcome === 'started' && (document.activeElement === null || document.activeElement === document.body)) focusFiles()?.focus();
+      return outcome === 'started';
     });
-  };
+  // With mastering on, the host says first what it would do (ExportPlan): a request it would refuse is refused here, before any
+  // dialog, and a row that needs the narrator's approval opens the dialog over exactly the plan the host answered.
   const masterAndEncode = () => {
-    if (jobs.master && chain?.needsApproval) setApproving(chain);
-    else start(null);
+    if (!jobs.master) {
+      void start(null);
+      return;
+    }
+    void jobs.planExport().then(({ outcome, plan }) => {
+      if (outcome === 'refused') onStartRefused?.();
+      if (outcome !== 'started' || !plan) return;
+      if (plan.needsApproval) setApproving(plan);
+      else void start(null);
+    });
   };
   if (!shown) return null;
   return (
@@ -239,10 +250,9 @@ export function MasterToSpecPanel({
       )}
       {approving && (
         <MasteringApprovalDialog
-          row={approving}
-          items={items}
+          plan={approving}
           pending={jobs.starting}
-          onApprove={(macro) => start({ row: approving, macro })}
+          onApprove={(macro) => start({ provider: approving.provider, macro })}
           onCancel={() => setApproving(undefined)}
           returnFocus={focusFiles}
         />

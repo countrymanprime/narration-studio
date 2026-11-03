@@ -1,14 +1,14 @@
 import { useSyncExternalStore } from 'react';
 
 /**
- * How long a Master & QC request to the host (starting the export, saving the mastering chain) waits before it is freed and says
+ * How long a Master & QC request to the host (planning and starting the export, saving the mastering chain) waits before it is freed and says
  * the host did not answer. Each only checks and records (the export's work runs after the answer), so a real host answers well
  * inside it; the same bound as the log-folder button's wait (`LOG_FOLDER_WAIT_MS`).
  */
 export const MASTER_REQUEST_WAIT_MS = 15_000;
 
 /** What became of one request. */
-export type HostRequestHandlers<T> = {
+type HostRequestHandlers<T> = {
   /** The host answered. */
   answered: (value: T) => void;
   /** The host refused: its words are the failure. */
@@ -25,7 +25,7 @@ export type HostRequestHandlers<T> = {
  * `send` sends unless one waits, and says which happened. Each request carries its own number, so an answer that arrives after its
  * wait ran out goes to `late`, never to `answered` or `refused`.
  */
-export function createHostRequest() {
+function createHostRequest() {
   let waiting = false;
   let current = 0;
   const listeners = new Set<() => void>();
@@ -70,13 +70,13 @@ export function createHostRequest() {
   };
 }
 
-// Starting the export: Master & encode, and the approval dialog's Approve.
+// Starting the export: Master & encode's read of the plan, and the approval dialog's Approve.
 const exportStart = createHostRequest();
 
-/** Whether a request to start the export is waiting for the host. */
+/** Whether a request to plan or start the export is waiting for the host. */
 export const useExportStarting = exportStart.useWaiting;
 
-/** Sends a request to start the export unless one waits (`createHostRequest`). */
+/** Sends a request to plan or start the export unless one waits (`createHostRequest`). */
 export const startExportRequest = exportStart.send;
 
 // Saving the project's mastering chain from the chain card.

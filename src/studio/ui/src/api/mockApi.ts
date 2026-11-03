@@ -25,7 +25,7 @@ import { createFindingsMock } from './findingsMock';
 import { createWorkspaceTakesMock } from './workspaceTakesMock';
 import { createTakeEvidenceMock } from './takeEvidenceMock';
 import { createMeasureMock } from './measureMock';
-import { createRenderEncodeMasterMock } from './renderEncodeMasterMock';
+import { MOCK_EXPORT_LONG_PATHS, MOCK_EXPORT_MANY_PATHS, MOCK_EXPORT_PATHS, createRenderEncodeMasterMock } from './renderEncodeMasterMock';
 import { DELIVERY_REVIEW_ANALYZER, mockDeliveryReviewFindings, resavingAfterProfileChange } from './deliveryReviewMock';
 import { createDeliveryProfilesMock } from './deliveryProfilesMock';
 import { createDiagnosticsMock } from './diagnosticsMock';
@@ -370,6 +370,7 @@ export function createMockApi(
     deliveryProfilesAll,
     initial.renderPackageMulti,
     mastering.masteringProviders,
+    initial.renderExportPick === 'many' ? MOCK_EXPORT_MANY_PATHS : initial.renderExportPick === 'long' ? MOCK_EXPORT_LONG_PATHS : MOCK_EXPORT_PATHS,
   );
   const system = createSystemMock(s, initial, {
     version: update.version,
