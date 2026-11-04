@@ -791,3 +791,210 @@ func TestEachPassCountsAgainstTheRealTotal(t *testing.T) {
 		t.Fatalf("copy ended at %d, check began at %d and ended at %d (total %d)", copyEnd.Done, checkStart.Done, checkEnd.Done, want)
 	}
 }
+
+// The permission cases need a user the disk can refuse; they run as an ordinary user (CI) and skip for root, who is never refused.
+func notRoot(t *testing.T) {
+	t.Helper()
+	if runtime.GOOS == "windows" || os.Geteuid() == 0 {
+		t.Skip("permissions are not enforced for this user")
+	}
+}
+
+func lock(t *testing.T, path string, mode os.FileMode) {
+	t.Helper()
+	if err := os.Chmod(path, mode); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(path, 0o755) })
+}
+
+func TestMoveStopsOnASourceFileItCannotRead(t *testing.T) {
+	notRoot(t)
+	source, target := filepath.Join(t.TempDir(), "old"), filepath.Join(t.TempDir(), "new")
+	files := seed(t, source)
+	lock(t, filepath.Join(source, "tts", "voice.json"), 0o000)
+	if err := Move(context.Background(), Plan{Source: source, Target: target, Dirs: kinds}, nil); err == nil {
+		t.Fatal("want an error")
+	}
+	lock(t, filepath.Join(source, "tts", "voice.json"), 0o644)
+	assertIntact(t, source, files)
+	if _, err := os.Stat(target); err == nil {
+		t.Fatal("target left behind")
+	}
+}
+
+func TestMoveStopsOnASourceFolderItCannotList(t *testing.T) {
+	notRoot(t)
+	source, target := filepath.Join(t.TempDir(), "old"), filepath.Join(t.TempDir(), "new")
+	seed(t, source)
+	lock(t, filepath.Join(source, "whisper"), 0o000)
+	if err := Move(context.Background(), Plan{Source: source, Target: target, Dirs: kinds}, nil); err == nil {
+		t.Fatal("want an error")
+	}
+	if err := Covered(source, filepath.Join(t.TempDir(), "x"), kinds); err == nil {
+		t.Fatal("Covered read a folder it cannot list")
+	}
+}
+
+func TestMoveStopsWhenAFileTheCopyJustWroteCannotBeReadBack(t *testing.T) {
+	notRoot(t)
+	source, target := filepath.Join(t.TempDir(), "old"), filepath.Join(t.TempDir(), "new")
+	seed(t, source)
+	afterCopy = func(dst string) error {
+		if filepath.Base(dst) == "voice.json" {
+			return os.Chmod(dst, 0o000)
+		}
+		return nil
+	}
+	t.Cleanup(func() { afterCopy = func(string) error { return nil } })
+	if err := Move(context.Background(), Plan{Source: source, Target: target, Dirs: kinds}, nil); err == nil {
+		t.Fatal("want an error")
+	}
+	if _, err := os.Stat(target); err == nil {
+		t.Fatal("target left behind")
+	}
+}
+
+func TestMoveStopsWhenTheTargetCannotTakeTheMarkerOrTheFolders(t *testing.T) {
+	notRoot(t)
+	source, target := filepath.Join(t.TempDir(), "old"), t.TempDir()
+	files := seed(t, source)
+	afterCopy = func(dst string) error {
+		if filepath.Base(dst) == "voice.json" {
+			return os.Chmod(target, 0o555)
+		}
+		return nil
+	}
+	t.Cleanup(func() { afterCopy = func(string) error { return nil }; _ = os.Chmod(target, 0o755) })
+	if err := Move(context.Background(), Plan{Source: source, Target: target, Dirs: kinds}, nil); err == nil {
+		t.Fatal("want an error")
+	}
+	lock(t, target, 0o755)
+	assertIntact(t, source, files)
+	// The folder could not be written, so the staging folder could not be removed either: it is ours (marker and generated name), nothing
+	// else is there, and the next try clears it.
+	for _, name := range listing(t, target) {
+		if !strings.HasPrefix(name, movingPrefix) || strings.Contains(name, "/") && !strings.HasPrefix(name, movingPrefix) {
+			t.Fatalf("something that is not the move's own was left: %s", name)
+		}
+	}
+	afterCopy = func(string) error { return nil }
+	if err := Move(context.Background(), Plan{Source: source, Target: target, Dirs: kinds}, nil); err != nil {
+		t.Fatalf("the retry was blocked by the leftover: %v", err)
+	}
+}
+
+func TestCheckAndMoveRefuseATargetTheyCannotListOrMakeInside(t *testing.T) {
+	notRoot(t)
+	source, parent := filepath.Join(t.TempDir(), "old"), t.TempDir()
+	seed(t, source)
+	closed := filepath.Join(parent, "closed")
+	if err := os.MkdirAll(filepath.Join(closed, "inner"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	lock(t, closed, 0o000)
+	if err := Check(Plan{Source: source, Target: filepath.Join(closed, "inner"), Dirs: kinds}); err == nil {
+		t.Fatal("a target behind a closed folder was accepted")
+	}
+	lock(t, closed, 0o755)
+	listed := filepath.Join(parent, "unlisted")
+	if err := os.MkdirAll(listed, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	lock(t, listed, 0o300)
+	if err := Check(Plan{Source: source, Target: listed, Dirs: kinds}); err == nil {
+		t.Fatal("a target that cannot be listed was accepted")
+	}
+}
+
+func TestRemoveOldReportsAFolderItCannotFullyDelete(t *testing.T) {
+	notRoot(t)
+	root := filepath.Join(t.TempDir(), "old")
+	seed(t, root)
+	lock(t, filepath.Join(root, "tts"), 0o555)
+	if err := RemoveKinds(root, kinds); err == nil {
+		t.Fatal("want an error")
+	}
+	if err := RemoveOld(root, kinds); err == nil {
+		t.Fatal("want an error")
+	}
+}
+
+func TestFinishReportsAMarkerItCannotRemove(t *testing.T) {
+	notRoot(t)
+	target := filepath.Join(t.TempDir(), "t")
+	if err := os.MkdirAll(target, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(target, journalName), []byte("{}"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	lock(t, target, 0o555)
+	if err := Finish(target); err == nil {
+		t.Fatal("want an error")
+	}
+}
+
+func TestSizesAndCoveredReadAFolderWithAnUnlistableChild(t *testing.T) {
+	notRoot(t)
+	root := filepath.Join(t.TempDir(), "n")
+	if err := os.MkdirAll(filepath.Join(root, "tts", "deep"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	lock(t, filepath.Join(root, "tts", "deep"), 0o000)
+	if _, err := measure(root, kinds); err == nil {
+		t.Fatal("measure read through a closed folder")
+	}
+}
+
+func TestACorruptMarkerNamesNothing(t *testing.T) {
+	target := t.TempDir()
+	if err := os.WriteFile(filepath.Join(target, journalName), []byte("not json"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got := journalDirs(target, kinds); len(got) != 0 {
+		t.Fatalf("got %v", got)
+	}
+	if err := Check(Plan{Source: filepath.Join(t.TempDir(), "x"), Target: target, Dirs: kinds}); err != nil {
+		t.Fatalf("a corrupt marker is the move's own file: %v", err)
+	}
+}
+
+func TestMoveRefusesAFlushThatFailsOnTheMarker(t *testing.T) {
+	source, target := filepath.Join(t.TempDir(), "old"), filepath.Join(t.TempDir(), "new")
+	seed(t, source)
+	calls := 0
+	boom := errors.New("flush failed")
+	// The files are flushed first; the marker is the last flush.
+	syncFile = func(f *os.File) error {
+		if calls++; calls > len(kinds)+2 {
+			return boom
+		}
+		return f.Sync()
+	}
+	t.Cleanup(func() { syncFile = func(f *os.File) error { return f.Sync() } })
+	if err := Move(context.Background(), Plan{Source: source, Target: target, Dirs: kinds}, nil); !errors.Is(err, boom) {
+		t.Fatalf("want the flush error, got %v", err)
+	}
+	if _, err := os.Stat(target); err == nil {
+		t.Fatal("target left behind")
+	}
+}
+
+func TestMoveStopsWhenTheContextEndsBetweenTheCheckAndTheRename(t *testing.T) {
+	source, target := filepath.Join(t.TempDir(), "old"), filepath.Join(t.TempDir(), "new")
+	files := seed(t, source)
+	ctx, cancel := context.WithCancel(context.Background())
+	err := Move(ctx, Plan{Source: source, Target: target, Dirs: kinds}, func(p Progress) {
+		if p.Phase == PhaseVerifying && p.Done == p.Total && p.Total > 0 {
+			cancel()
+		}
+	})
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("want context.Canceled, got %v", err)
+	}
+	assertIntact(t, source, files)
+	if _, statErr := os.Stat(target); statErr == nil {
+		t.Fatal("target left behind")
+	}
+}

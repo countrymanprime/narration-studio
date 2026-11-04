@@ -54,8 +54,8 @@ var (
 // recognise them as its own leftovers. Finish removes it once the folder is in use.
 const journalName = movingPrefix + "journal"
 
-// stagingMarker is the file a move writes first into its staging folder. Only a folder named like a generated one that holds it is
-// treated as ours: a folder of the narrator's that happens to start with movingPrefix is neither removed nor ignored.
+// stagingMarker is the file a move writes first into its staging folder. Only a folder named like a generated one that holds it (or is
+// empty) is treated as ours: a folder of the narrator's that happens to start with movingPrefix is neither removed nor ignored.
 const stagingMarker = ".narration-move"
 
 var stagingName = regexp.MustCompile(`^` + regexp.QuoteMeta(movingPrefix) + `[0-9]+$`)
@@ -65,8 +65,12 @@ func isStaging(dir, name string) bool {
 	if !stagingName.MatchString(name) {
 		return false
 	}
-	info, err := os.Lstat(filepath.Join(dir, name, stagingMarker))
-	return err == nil && info.Mode().IsRegular()
+	if info, err := os.Lstat(filepath.Join(dir, name, stagingMarker)); err == nil {
+		return info.Mode().IsRegular()
+	}
+	// A staging folder whose cleanup was cut short (a target that turned read-only) can be left empty, marker included: nothing is in it.
+	entries, err := os.ReadDir(filepath.Join(dir, name))
+	return err == nil && len(entries) == 0
 }
 
 // syncFile is a seam for tests: every copied file is flushed through it before it is checked.
