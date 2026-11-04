@@ -94,8 +94,11 @@ export function MasterToSpecPanel({
       revealRef.current?.scrollIntoView?.({ block: 'nearest' });
       revealRef.current?.focus();
     }
+    // Lost means anywhere but this card: <body>, a node that went with the table, or the page a second click landed on (qa on #2988).
     const active = document.activeElement;
-    if (!hasFiles && hadFiles.current && (active === null || active === document.body)) chooseRef.current?.focus();
+    const card = chooseRef.current?.closest('section');
+    const lost = active === null || !active.isConnected || !card?.contains(active);
+    if (!hasFiles && hadFiles.current && lost) chooseRef.current?.focus();
     hadFiles.current = hasFiles;
   }, [hasFiles]);
   // Starting removes Master & encode (the table shows the job instead): focus goes to the files, never to the page's <body>.

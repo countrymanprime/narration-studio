@@ -52,6 +52,18 @@ describe('MasterToSpecPanel: showing up', () => {
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Choose files to master…' }));
   });
 
+  // qa on #2988: a double click on the last Remove lands its second click on the page, so focus was on <main>, not <body>.
+  it('removing the last file takes the keyboard back from wherever outside the card it fell, not only from the body', () => {
+    const outside = document.createElement('main');
+    outside.tabIndex = -1;
+    document.body.appendChild(outside);
+    const { rerender } = render(<MasterToSpecPanel jobs={jobs({ master: true, items: [item] } as never)} />);
+    outside.focus();
+    rerender(<MasterToSpecPanel jobs={jobs({ master: true, items: [] } as never)} />);
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Choose files to master…' }));
+    outside.remove();
+  });
+
   it('scrolls to its files and puts the keyboard on them when picking first shows it', () => {
     const scrollIntoView = vi.fn();
     Element.prototype.scrollIntoView = scrollIntoView;

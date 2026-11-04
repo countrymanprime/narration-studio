@@ -355,6 +355,27 @@ describe('Master & QC page body', () => {
     expect(await screen.findByRole('tooltip')).toBeTruthy();
   });
 
+  // ux walkthrough on #2988 (F2): the header's two icons carry their names as tooltips on hover and on keyboard focus alike.
+  it.each(['Master all to spec…', 'Check files…'])('%s shows its name as a tooltip on hover and on focus', async (name) => {
+    mount([]);
+    const button = await screen.findByRole('button', { name });
+    await userEvent.hover(button);
+    expect((await screen.findByRole('tooltip')).textContent).toContain(name.replace('…', ''));
+    await userEvent.unhover(button);
+    await waitFor(() => expect(screen.queryByRole('tooltip')).toBeNull());
+    act(() => button.focus());
+    expect((await screen.findByRole('tooltip')).textContent).toContain(name.replace('…', ''));
+  });
+
+  // qa on #2988: a picker answer with no paths at all is a cancel, not a crash.
+  it('a picker answer with no paths is a cancel: no error, no rows', async () => {
+    mount([], acx, { exportPickFiles: async () => ({}) as never });
+    await userEvent.click(await screen.findByRole('button', { name: 'Choose files to master…' }));
+    await act(async () => undefined);
+    expect(toastTexts()).toEqual([]);
+    expect(screen.queryByRole('table', { name: 'Files to export' })).toBeNull();
+  });
+
   it('a-measured-book-offers-Re-check-and-Choose-other-files-as-icon-buttons', async () => {
     mount(ALL_PASS);
     for (const name of [/^Re-check \d+ files?$/, 'Choose other files…']) {

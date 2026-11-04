@@ -114,11 +114,12 @@ export function useExportJobs() {
     setPicking(true);
     setProblem(undefined);
     try {
-      const picked = await api.exportPickFiles();
-      if (picked.paths.length === 0) return;
+      // An answer with no paths at all is a cancel, as an empty list is (qa on #2988).
+      const paths = (await api.exportPickFiles())?.paths ?? [];
+      if (paths.length === 0) return;
       setItems((current) => {
         const existing = new Set(current.map((item) => item.path));
-        const added = picked.paths
+        const added = paths
           .filter((path) => !existing.has(path))
           .map((path): ExportItem => ({ kind: kindFromFileName(fileName(path)), title: titleFromPath(path), path }));
         return [...current, ...added];
