@@ -132,6 +132,7 @@ Storybook title: `Primitives/IconButton`. Source: `src/components/primitives/Ico
 - `src/components/storybible/PropertiesSection.tsx`
 - `src/components/storybible/Relationships.tsx`
 - `src/components/storybible/SortMenu.tsx`
+- `src/components/storybible/source/PronunciationCandidates.tsx`
 - `src/components/storybible/suggested/import/ImportDialog.tsx`
 - `src/components/storybible/suggested/row/SuggestionRow.tsx`
 - `src/components/storybible/voicesamples/VoiceSampleRow.tsx`
