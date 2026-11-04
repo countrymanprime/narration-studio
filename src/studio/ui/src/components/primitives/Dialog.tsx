@@ -141,6 +141,13 @@ export function Dialog({
   // they keep the same gutter, so Close, the body's controls and the last action share one right edge (alignment audit XSC-36).
   const edgeGutter = bodyScroll ? 'overflow-hidden [scrollbar-gutter:stable]' : '';
   const finalFocus = () => {
+    // An opener that is not in the Tab order (the page's <main tabindex=-1>, focused when a page-wide key opened the dialog): Base UI moves a
+    // return to such an element on to the nearest tabbable control, which put focus on a page's first button (the Booth's Previous chapter,
+    // so the next Enter changed chapter, #2839). It is focused here instead, and Base UI is told to leave focus alone.
+    if (opener?.isConnected && opener !== document.body && opener.tabIndex < 0) {
+      window.setTimeout(() => opener.isConnected && opener.focus({ preventScroll: true }), 0);
+      return false;
+    }
     if (opener?.isConnected && opener !== document.body) return opener;
     if (stayOnBody && (!opener || opener === document.body)) return false;
     // The opener is gone (the click removed it, or one dialog replaced another): where the opener says, then the landmark.

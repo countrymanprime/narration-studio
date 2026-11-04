@@ -44,7 +44,7 @@ import type { WordFxRequest } from './contracts/wordFx';
 import type { ExportRequest } from './contracts/renderEncodeMaster';
 import { WIRE_CHAPTERS, WIRE_FINDINGS, WIRE_ONE_WORD_MISREAD, WIRE_TAKE_REVIEW_FINDINGS, WIRE_TRACKS_PROJECT, WIRE_TRANSCRIPT } from './mockFixtures';
 import { bookmarkSchema as spotBookmarkSchema, bookmarksSchema } from './schemas/bookmarks';
-import { boothVoiceSchema, voiceTracksStateSchema } from './schemas/voiceTracks';
+import { boothVoiceAddedSchema, boothVoiceSchema, voiceTracksStateSchema } from './schemas/voiceTracks';
 import { createVoiceTracksMock } from './voiceTracksMock';
 import { voiceSampleAnswerSchema, voiceSamplesChangedSchema, voiceSamplesRemovedSchema, voiceSamplesSchema } from './schemas/voiceSamples';
 import { VOICE_SAMPLE_SENTENCES, type VoiceSampleMarkRequest } from './contracts/voiceSamples';
@@ -4271,6 +4271,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'voiceTracksSetNarrator',
       'boothVoiceSet',
       'boothVoiceGet',
+      'boothVoiceAdd',
       'voiceSamplesList',
       'voiceSampleMark',
       'voiceSampleUpdate',
@@ -6209,6 +6210,26 @@ describe('the voice tracks bindings', () => {
     await api.boothVoiceSet(first, '{V01CE-EXTRAS}');
     expect(await api.boothVoiceGet(first)).toEqual({ outcome: 'selected', trackGuid: '{V01CE-EXTRAS}' });
     expect((await api.boothVoiceGet(second)).trackGuid).not.toBe('{V01CE-EXTRAS}');
+  });
+
+  it("the Booth's voice add: a child of the chapter's folder, listed as added until saved, chosen, refused as the host refuses, each through the schema", async () => {
+    const [first] = WIRE_CHAPTERS.map((chapter) => chapter.id);
+    const unlinked = await createMockApi().boothVoiceAdd(first, 'Extras', []);
+    expectMatches(boothVoiceAddedSchema, unlinked, 'mock booth voice add (unlinked)');
+    expect(unlinked.reason).toBe('unlinked');
+    const api = createMockApi({}, { voiceFolders: true });
+    expect((await api.boothVoiceAdd(first, ' \n ', [])).reason).toBe('no_name');
+    expect((await api.boothVoiceAdd(first, ' extras ', [])).reason).toBe('name_taken');
+    expect((await api.boothVoiceAdd(first, 'x'.repeat(121), [])).reason).toBe('invalid');
+    const added = await api.boothVoiceAdd(first, '  King  of Hearts ', ['king-of-hearts']);
+    expectMatches(boothVoiceAddedSchema, added, 'mock booth voice add');
+    expect(added).toMatchObject({ outcome: 'added', name: 'King of Hearts' });
+    const read = await api.boothVoiceGet(first);
+    expectMatches(boothVoiceSchema, read, 'mock booth voice read (added)');
+    expect(read).toEqual({ outcome: 'selected', trackGuid: added.trackGuid, added: [{ guid: added.trackGuid, name: 'King of Hearts' }] });
+    expect((await api.voiceTracksGet()).tracks.find((entry) => entry.track === 'King of Hearts')?.characters).toEqual(['king-of-hearts']);
+    await api.readAloudRecordStart(first);
+    expect((await api.boothVoiceAdd(first, 'Crowd', [])).reason).toBe('recording');
   });
 
   it('the schema refuses an unknown layout and an empty assignment', () => {
