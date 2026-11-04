@@ -79,5 +79,5 @@ Ten persisted preferences have no Settings equivalent (gaps below); gap 1 is fix
 ## Fix plan
 
 1. This note.
-2. `daw.layout` and the guard `settingsParity.test.ts`. The guard lists host bindings, window keys and `saveSettings` callers, each covered by a row or exempt with a reason. Gaps 2 to 8 and 10 are the guard's entries marked `GAP` (the guard's name scan does not see bindings that start with `set`, so the Schedule basis binding, `setProductionRateBasis`, is held by its own check in the guard; issue 2970 tracks the blind spot); each leaves the list in the pull request that adds its row, and the list's caps only go down.
+2. `daw.layout` and the guard `settingsParity.test.ts`. The guard lists host bindings, window keys and `saveSettings` callers, each covered by a row or exempt with a reason. Gaps 2 to 10 now each have a row, and no exemption is marked `GAP` any more: the guard fails on one, and each exempt list's cap equals its length, so an exemption can only be added with the owner and a removal lowers the cap. The guard's name scan does not see bindings that start with `set`, so the Schedule basis binding, `setProductionRateBasis`, is held by its own check; issue 2970 tracks the blind spot.
 3. Engine panel (gaps 2 to 4), Booth (5), Editing (6, 7), Story Bible (8), Production (9), App (10); the last pull request closes #2815.
