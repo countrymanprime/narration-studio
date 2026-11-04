@@ -80,9 +80,16 @@ var eventSpecs = map[string]eventSpec{
 	"RANGE_FX_REMOVED": {required: []fieldSpec{text("run"), text("item"), text("chain"), count("undoPoints")}},
 	// stack_takes and unstack_takes (narration_takes.lua, docs/reference/daw/capabilities.md): the groups and takes moved, the seconds the audio
 	// after them moved (negative for a stack), and the undo points the command added (1).
-	"TAKES_STACKED":         {required: []fieldSpec{text("run"), count("groups"), count("takes"), number("shift"), count("undoPoints")}},
-	"TAKES_UNSTACKED":       {required: []fieldSpec{text("run"), count("groups"), count("takes"), number("shift"), count("undoPoints")}},
-	"REGIONS_CREATED":       {required: []fieldSpec{text("run"), count("created"), count("existing"), count("invalid")}, optional: []fieldSpec{count("updated"), count("ambiguous"), count("failed")}},
+	"TAKES_STACKED":   {required: []fieldSpec{text("run"), count("groups"), count("takes"), number("shift"), count("undoPoints")}},
+	"TAKES_UNSTACKED": {required: []fieldSpec{text("run"), count("groups"), count("takes"), number("shift"), count("undoPoints")}},
+	"REGIONS_CREATED": {required: []fieldSpec{text("run"), count("created"), count("existing"), count("invalid")}, optional: []fieldSpec{count("updated"), count("ambiguous"), count("failed")}},
+	// keep_voice_sample and read_voice_samples (narration_voice_sample_region.lua): the region's number and what was done (created,
+	// existing, moved or unchanged), a number the project no longer has as a voice sample region, and the regions read back (name last)
+	// with the count and REAPER's change count.
+	"VOICE_SAMPLE_KEPT":     {required: []fieldSpec{text("run"), count("number"), text("outcome")}},
+	"VOICE_SAMPLE_STALE":    {required: []fieldSpec{text("run"), count("number")}},
+	"VOICE_SAMPLE_REGION":   {required: []fieldSpec{text("run"), count("number"), number("start"), number("end"), text("name")}},
+	"VOICE_SAMPLES_READ":    {required: []fieldSpec{text("run"), count("count"), count("changeCount")}},
 	"PICKUPS_IMPORTED":      {required: []fieldSpec{text("run"), count("added"), count("existing"), count("invalid")}},
 	"PICKUPS_EXPORTED":      {required: []fieldSpec{text("run"), text("path"), count("count")}},
 	"PICKUPS_COUNTED":       {required: []fieldSpec{text("run"), count("remaining"), count("total")}},

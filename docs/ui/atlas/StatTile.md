@@ -15,11 +15,13 @@ Storybook title: `Primitives/StatTile`. Source: `src/components/primitives/StatT
 - Warning
 - Danger
 - Info
-- Experimental
 - Long Label Wraps
+- With Icon
+- Compact
 
 ## Used by
 
+- `src/components/primitives/ActivityPanel.tsx`
 - `src/components/primitives/StatStrip.tsx`
 - `src/components/production/RecordingCheckReport.tsx`
 - `src/components/production/overview/KpiRow.tsx`

@@ -49,7 +49,11 @@ updates:
         update-types: [minor, patch]
   - package-ecosystem: github-actions
     labels: [dependencies]
-    directory: /
+    # `/` scans .github/workflows; the composite actions under .github/actions pin their own action versions and need
+    # their own directories (#233). The glob matches one directory per composite action.
+    directories:
+      - /
+      - /.github/actions/*
     schedule:
       interval: weekly
     # A pinned action SHA is only as safe as the tag it came from, so wait a week before proposing a new one; security updates ignore the cooldown.

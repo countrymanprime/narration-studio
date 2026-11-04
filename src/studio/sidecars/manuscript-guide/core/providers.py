@@ -19,7 +19,7 @@ import wave
 from pathlib import Path
 from typing import Any, NoReturn
 
-from narration_common.ports.pronunciation import BROWSE, PRONOUNCE, SOURCES, PronunciationDescriptor
+from narration_common.ports.pronunciation import BROWSE, PRONOUNCE, SOURCES, Pronunciation, PronunciationDescriptor
 from narration_common.ports.tts import ENGINES, TtsDescriptor
 
 # --- pronunciation: CMU and eSpeak -------------------------------------------------------------------------------------------
@@ -81,7 +81,7 @@ class CmuSource:
     # What the build-time fallback logs when this source fails on a name, before it tries the next one.
     unavailable_log = "CMU pronunciation unavailable"
 
-    def pronounce(self, name: str) -> dict[str, str]:
+    def pronounce(self, name: str) -> Pronunciation:
         import pronouncing
 
         words = re.findall(r"[A-Za-z]+", name)
@@ -127,7 +127,7 @@ class WiktextractSource:
             self._cache_path = self.index_path
         return self._cache
 
-    def pronounce(self, name: str) -> dict[str, str]:
+    def pronounce(self, name: str) -> Pronunciation:
         index = self._index()
         words = re.findall(r"[A-Za-z']+", name)
         entries = [index[word.lower()] for word in words if word.lower() in index]
@@ -154,15 +154,40 @@ class EspeakSource:
     def __init__(self) -> None:
         # Set by pronounce_source() from the sidecar's --espeak-library flag before each call; None uses phonemizer's own.
         self.espeak_library: str | None = None
+        self._piper: Any = None
 
-    def pronounce(self, name: str) -> dict[str, str]:
+    def _through_phonemizer(self, name: str) -> str:
         from phonemizer import phonemize
+        from phonemizer.backend.espeak.wrapper import EspeakWrapper
 
-        if self.espeak_library:
-            from phonemizer.backend.espeak.wrapper import EspeakWrapper
+        EspeakWrapper.set_library(self.espeak_library)
+        return phonemize(name, language="en-us", backend="espeak", strip=True, with_stress=True)
 
-            EspeakWrapper.set_library(self.espeak_library)
-        ipa = phonemize(name, language="en-us", backend="espeak", strip=True, with_stress=True)
+    def _through_piper(self, name: str) -> str:
+        if self._piper is None:
+            from piper.phonemize_espeak import ESPEAK_DATA_DIR, EspeakPhonemizer
+
+            self._piper = EspeakPhonemizer(Path(ESPEAK_DATA_DIR))
+        sentences = self._piper.phonemize("en-us", name)
+        return "".join("".join(sentence) for sentence in sentences).strip()
+
+    def pronounce(self, name: str) -> Pronunciation:
+        """Guesses the IPA of a name from its spelling.
+
+        An explicit ``--espeak-library`` goes through the ``phonemizer`` package. Without one (every shipped build: the host
+        never passes it) Piper's own espeak-ng answers, from the data every build carries (the ``guide:espeak`` self-check), so
+        a name the dictionaries lack still gets an IPA guess without a system ``libespeak-ng`` (#232).
+
+        Args:
+            name: The name to phonemize.
+
+        Returns:
+            The ``ipa``, the guess label as ``source`` and ``low`` ``confidence``.
+
+        Raises:
+            ValueError: eSpeak produced no phonemes for the name.
+        """
+        ipa = self._through_phonemizer(name) if self.espeak_library else self._through_piper(name)
         if not ipa:
             raise ValueError(f'eSpeak produced no pronunciation for "{name}".')
         return {"ipa": ipa, "source": self.guess_label, "confidence": "low"}

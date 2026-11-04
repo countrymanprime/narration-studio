@@ -9,10 +9,13 @@ Storybook title: `Editing/Ribbon`. Source: `src/components/editing/ribbon/Ribbon
 - Default
 - Selection
 - Playing
+- Playing At Several Positions
+- Flagged And Cut While Playing
 - Flagged
+- Swell While Playing
+- Reading The Waveform
 - No Audio
 
 ## Used by
 
-- `src/components/editing/page/EditingBody.tsx`
-- `src/components/editing/strip/TimelineStrip.tsx`
+- `src/components/editing/ribbon/WaveDock.tsx`

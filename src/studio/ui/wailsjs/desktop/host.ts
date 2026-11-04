@@ -1371,8 +1371,18 @@ export function ExportPickFiles(): $CancellablePromise<string> {
 }
 
 /**
- * ExportStart masters (when req.master is true) and encodes the picked files as a job and answers it; it refuses a
- * path that was not picked, a request with no items, or a second export while one runs.
+ * ExportPlan answers what ExportStart would do with req, starting nothing: the mastering row it masters with, whether that row
+ * needs the narrator's approval or a macro, and each item as the host checked it, with the DAW region it renders from. It refuses
+ * what ExportStart refuses before a job starts, except a missing or stale approval, which it is asked so the narrator can give one.
+ */
+export function ExportPlan(req: $models.ExportRequest): $CancellablePromise<string> {
+    return $Call.ByID(3315413487, req);
+}
+
+/**
+ * ExportStart masters (when req.master is true) with the project's mastering row and encodes the picked files as a job and
+ * answers it. It refuses what ExportPlan refuses, a second export while one runs, and an approval that does not hold for the row
+ * it would master with (export_plan.go's approvalFor).
  */
 export function ExportStart(req: $models.ExportRequest): $CancellablePromise<string> {
     return $Call.ByID(2735024176, req);
