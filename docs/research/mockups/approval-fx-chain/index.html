@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Approval FX chain draft mock</title>
+<style>
+/* Tokens copied from docs/research/mockups/studio-next/src/styles/app.css so the draft reads like the spec mock. System fonts only: nothing loads from the network. */
+:root{
+  --bg:#EFEDE7; --surface:#FBFAF7; --raised:#F4F2EC; --line:#DCD7CB; --line-strong:#BDB6A6; --btn-line:#2B2723;
+  --ink:#23201B; --muted:#5C564B; --copper:#B04F17; --copper-ink:#FFFFFF;
+  --f-display:'Barlow Condensed','Arial Narrow',sans-serif; --f-body:'IBM Plex Sans',system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#14120E; --surface:#1D1A15; --raised:#26221C; --line:#38332A; --line-strong:#51493C; --btn-line:#7A7060;
+  --ink:#EDE8DE; --muted:#B0A797; --copper:#D9803F; --copper-ink:#1A0F05; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#14120E; --surface:#1D1A15; --raised:#26221C; --line:#38332A; --line-strong:#51493C; --btn-line:#7A7060;
+  --ink:#EDE8DE; --muted:#B0A797; --copper:#D9803F; --copper-ink:#1A0F05; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 var(--f-body);margin:0;padding:16px}
+h1,h2{font-family:var(--f-display);font-weight:600;margin:0 0 6px}
+.sub{color:var(--muted);font-size:13px;max-width:80ch}
+.note{font-size:13px;color:var(--muted);margin:4px 0 24px;max-width:80ch}
+.dialog{background:var(--surface);border:1px solid var(--line);border-radius:10px;max-width:560px;padding:20px;margin:10px 0}
+.dialog h2{font-size:22px}
+.box{border:1px solid var(--line);border-radius:8px;overflow:auto;margin-top:8px}
+.files{max-height:14rem}.chain{max-height:10rem}
+table{width:100%;border-collapse:collapse}
+th{font:600 12px var(--f-display);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:6px 10px;text-align:center;position:sticky;top:0;background:var(--surface)}
+td{border-top:1px solid var(--line);padding:6px 10px}
+.off{color:var(--muted)}
+.actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+.btn{font:600 12px var(--f-display);letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--btn-line);border-radius:6px;height:36px;padding:0 12px;background:var(--surface)}
+.btn.primary{background:var(--copper);color:var(--copper-ink);border-color:transparent}
+</style>
+</head>
+<body>
+<h1>Approve this render: the DAW chain (draft)</h1>
+<p class="sub">Draft for <a href="https://github.com/countrymanprime/narration-studio/issues/2932">#2932</a> (threat model row 5o). The approval dialog listed the files and their regions but not the FX that will process them. The Studio Next mock has no approval dialog (kept as built).</p>
+
+<h2>1. A short chain</h2>
+<div class="dialog">
+  <h2>Approve this render?</h2>
+  <p>Your DAW's FX chain masters 4 files for this export only.</p>
+  <div class="box files"><table><thead><tr><th>File</th><th>Region</th></tr></thead><tbody>
+    <tr><td>00 Opening credits.wav</td><td>Opening credits</td></tr><tr><td>Chapter 01.wav</td><td>Chapter 01</td></tr>
+  </tbody></table></div>
+  <div class="box chain"><table aria-label="FX chain this render runs"><thead><tr><th>Track</th><th>Effect</th></tr></thead><tbody>
+    <tr><td>Voice</td><td>VST: ReaEQ (Cockos)</td></tr>
+    <tr><td>Master</td><td>VST: ReaLimit (Cockos)</td></tr>
+  </tbody></table></div>
+  <div class="actions"><button class="btn">Cancel</button><button class="btn primary">Approve and master</button></div>
+</div>
+<p class="note">A second capped list under the files: each plug-in in chain order, every track with FX, then the master, named as the DAW names it. The host reads it when the dialog is asked for; a chain it cannot read whole refuses the export with a message, and no dialog opens.</p>
+
+<h2>2. A long chain (21 plug-ins), one switched off</h2>
+<div class="dialog">
+  <h2>Approve this render?</h2>
+  <p>Your DAW's FX chain masters 4 files for this export only.</p>
+  <div class="box files"><table><thead><tr><th>File</th><th>Region</th></tr></thead><tbody><tr><td>Chapter 01.wav</td><td>Chapter 01</td></tr></tbody></table></div>
+  <div class="box chain"><table><thead><tr><th>Track</th><th>Effect</th></tr></thead><tbody>
+    <tr><td>Narration</td><td>VST3: Pro-Q 3 (FabFilter)</td></tr><tr><td>Narration</td><td>VST: ReaComp (Cockos)</td></tr>
+    <tr><td>Narration</td><td>JS: De-esser</td></tr><tr><td>Alice</td><td>VST3: Pro-Q 3 (FabFilter)</td></tr>
+    <tr><td>Alice</td><td class="off">JS: De-esser (off)</td></tr><tr><td>The Queen of Hearts</td><td>VST: ReaGate (Cockos)</td></tr>
+    <tr><td>Master</td><td>VST: ReaComp (Cockos)</td></tr>
+  </tbody></table></div>
+  <div class="actions"><button class="btn">Cancel</button><button class="btn primary">Approve and master</button></div>
+</div>
+<p class="note">The list scrolls in its own box (10 rem), so the question and the buttons stay in view. A plug-in that is switched off says "(off)" in words, and is dimmed.</p>
+
+<h2>3. No FX anywhere</h2>
+<div class="dialog">
+  <div class="box chain"><table><thead><tr><th>Track</th><th>Effect</th></tr></thead><tbody><tr><td>All tracks and the master</td><td>No FX</td></tr></tbody></table></div>
+</div>
+<p class="note">One row says so, rather than an empty box.</p>
+</body>
+</html>
