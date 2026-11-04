@@ -166,3 +166,28 @@ it('closes on a choice in a section that asks to', async () => {
   expect(pick).toHaveBeenCalledTimes(1);
   await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
 });
+
+describe('Menu: an item with a reason it is off', () => {
+  it('keeps the item in the menu, off, with its reason as the description, and a press does nothing and leaves the menu open', async () => {
+    const user = userEvent.setup();
+    const onSelect = vi.fn();
+    render(<Menu items={[{ key: 'a', label: 'Create regions', disabledReason: 'REAPER is not connected.', onSelect }]}>Tools</Menu>);
+    await user.click(screen.getByRole('button', { name: 'Tools' }));
+    const item = await screen.findByRole('menuitem', { name: /Create regions/ });
+    expect(item.getAttribute('aria-disabled')).toBe('true');
+    expect(item.getAttribute('aria-describedby')).toBeTruthy();
+    expect(screen.getByText('REAPER is not connected.')).toBeTruthy();
+    await user.click(item);
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(screen.queryByRole('menuitem', { name: /Create regions/ })).toBeTruthy();
+  });
+
+  it('can still be reached with the arrow keys', async () => {
+    const user = userEvent.setup();
+    render(<Menu items={[{ key: 'a', label: 'Off', disabledReason: 'Why not.', onSelect: vi.fn() }]}>Tools</Menu>);
+    await user.click(screen.getByRole('button', { name: 'Tools' }));
+    await screen.findByRole('menuitem', { name: /Off/ });
+    await user.keyboard('{ArrowDown}');
+    expect(document.activeElement?.getAttribute('aria-disabled')).toBe('true');
+  });
+});

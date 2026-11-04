@@ -2,7 +2,7 @@
 // Master page (SN-M5): the per-file checks, the selected file's checks, the book consistency and the delivery package beside them,
 // then the panels the mock has no equivalent of, kept as built. Building the package is Delivery's (catalog/delivery.ts).
 import type { StateEntry } from '../lib/types';
-import { KEEPS_DESKTOP_SCROLL, REFLOW, wholePage } from './shared';
+import { KEEPS_DESKTOP_SCROLL, POPUP_ANCHORED_AT_FIRST_WIDTH, REFLOW, wholePage } from './shared';
 import { brand } from '../../../src/brand.gen';
 
 export const masterStates: StateEntry[] = [
@@ -12,6 +12,13 @@ export const masterStates: StateEntry[] = [
     description:
       'Master & QC, nothing measured yet - the ACX profile pill and Check files…, "Nothing measured yet", the book consistency with no measurements, the built-in chain as three steps, and the delivery package aside with what it waits on',
     ...REFLOW,
+  },
+  {
+    page: 'master',
+    state: 'daw-tools-menu',
+    description:
+      'Master & QC with nothing measured, the DAW tools menu beside Check files opened - both entries off, each saying no chapter is linked to a REAPER track yet',
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
   },
   {
     page: 'master',

@@ -1,5 +1,5 @@
 import { Menu as BaseMenu } from '@base-ui/react/menu';
-import type { CSSProperties, ReactElement, ReactNode } from 'react';
+import { useId, type CSSProperties, type ReactElement, type ReactNode } from 'react';
 import { POPUP_MOTION_CLASSES } from './overlayMotion';
 
 export type MenuItem = {
@@ -11,6 +11,9 @@ export type MenuItem = {
   trailing?: ReactNode;
   // In a section that chooses, whether this item is chosen.
   checked?: boolean;
+  // Why the item cannot be chosen now. The item stays in the menu, off (`aria-disabled`, still reachable by keyboard), with this sentence
+  // under its label; a press does nothing and the menu stays open. Only for a plain item (a section that chooses has none).
+  disabledReason?: string;
   onSelect: () => void;
 };
 
@@ -55,6 +58,32 @@ function ItemBody({ item, mark }: { item: MenuItem; mark?: 'box' | 'round' }) {
   );
 }
 
+// A plain item. With a `disabledReason` it is drawn muted and answers a press with nothing, and the reason is its description.
+function PlainItem({ item }: { item: MenuItem }) {
+  const reasonId = useId();
+  if (item.disabledReason === undefined)
+    return (
+      <BaseMenu.Item onClick={item.onSelect} className={ITEM_CLASS}>
+        <ItemBody item={item} />
+      </BaseMenu.Item>
+    );
+  return (
+    <BaseMenu.Item
+      closeOnClick={false}
+      disabled
+      aria-describedby={reasonId}
+      className={`${ITEM_CLASS} cursor-default flex-col items-stretch gap-0.5 text-[var(--text-muted)]`}
+    >
+      <span className="flex w-full items-center gap-2">
+        <ItemBody item={item} />
+      </span>
+      <span id={reasonId} className="text-[0.74rem] leading-snug whitespace-normal">
+        {item.disabledReason}
+      </span>
+    </BaseMenu.Item>
+  );
+}
+
 function Section({ section, first }: { section: MenuSection; first: boolean }) {
   const heading = section.label && (
     <BaseMenu.GroupLabel className="px-[0.55rem] pt-[0.35rem] pb-[0.2rem] text-[0.7rem] font-semibold tracking-[0.06em] text-[var(--text-muted)] uppercase">
@@ -96,9 +125,7 @@ function Section({ section, first }: { section: MenuSection; first: boolean }) {
               <ItemBody item={item} mark="box" />
             </BaseMenu.CheckboxItem>
           ) : (
-            <BaseMenu.Item key={item.key} onClick={item.onSelect} className={ITEM_CLASS}>
-              <ItemBody item={item} />
-            </BaseMenu.Item>
+            <PlainItem key={item.key} item={item} />
           ),
         )}
       </BaseMenu.Group>
@@ -145,12 +172,16 @@ export function Menu({
           <BaseMenu.Popup
             className={`max-h-[var(--available-height)] ${sections ? 'w-60' : 'w-44'} overflow-y-auto rounded-[0.4rem] border border-[var(--line-strong)] bg-[var(--surface)] p-[0.35rem] shadow-[var(--shadow-lg)] outline-none ${POPUP_MOTION_CLASSES}`}
           >
-            {items.map((item) => (
-              <BaseMenu.Item key={item.key} onClick={item.onSelect} className={ITEM_CLASS}>
-                {item.leading}
-                {item.label}
-              </BaseMenu.Item>
-            ))}
+            {items.map((item) =>
+              item.disabledReason !== undefined ? (
+                <PlainItem key={item.key} item={item} />
+              ) : (
+                <BaseMenu.Item key={item.key} onClick={item.onSelect} className={ITEM_CLASS}>
+                  {item.leading}
+                  {item.label}
+                </BaseMenu.Item>
+              ),
+            )}
             {sections?.map((section, index) => (
               <Section key={section.key} section={section} first={index === 0 && items.length === 0} />
             ))}

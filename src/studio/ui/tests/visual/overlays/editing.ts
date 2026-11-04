@@ -21,6 +21,8 @@ export const editingCases: OverlayCase[] = [
   },
   fromState('editing', 'output-popover', 'popover'),
   fromState('editing', 'fx-menu', 'menu'),
+  fromState('editing', 'daw-tools-menu', 'menu'),
+  fromState('editing', 'daw-tools-menu-audacity', 'menu'),
   fromState('editing', 'word-menu-fx', 'menu'),
   fromState('editing', 'wave-menu', 'menu'),
   fromState('editing', 'fx-dialog'),

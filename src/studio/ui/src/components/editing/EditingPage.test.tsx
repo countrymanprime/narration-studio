@@ -113,6 +113,19 @@ describe('EditingPage', () => {
     expect(document.querySelector('#timeline')).toBeNull();
   });
 
+  // #2820: the DAW tools menu is in the header, where a chapter is finished: its structure entries open the same dialogs as the Engine panel.
+  it('offers the DAW tools in the header, with the structure entries', async () => {
+    const user = userEvent.setup();
+    mount();
+    await script();
+    const header = screen.getByRole('heading', { level: 1, name: 'Editing' }).closest('header')!;
+    await user.click(within(header as HTMLElement).getByRole('button', { name: 'DAW tools' }));
+    const menu = await screen.findByRole('menu');
+    expect(within(menu).getByText('Structure')).toBeTruthy();
+    expect(within(menu).getByRole('menuitem', { name: /Create chapter regions/ })).toBeTruthy();
+    expect(within(menu).getByRole('menuitem', { name: /Prepare chapter render/ })).toBeTruthy();
+  });
+
   // #2251 item 35: the key hints are the shell's page footer, full width under the page, not a row inside the page's card.
   it('the key hints are drawn in the shell page footer', async () => {
     const footer = document.body.appendChild(document.createElement('div'));

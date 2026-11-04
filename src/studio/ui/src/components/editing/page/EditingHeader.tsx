@@ -2,6 +2,7 @@ import type { KeyboardEventHandler, ReactNode } from 'react';
 import { Heading } from '../../primitives/Heading';
 import { IconButton } from '../../primitives/IconButton';
 import { TooltipTarget } from '../../primitives/Tooltip';
+import { DawToolsButton } from '../../engine/DawToolsButton';
 import { StripToggle } from '../strip/TimelineStrip';
 
 export interface EditingHeaderProps {
@@ -22,7 +23,7 @@ export interface EditingHeaderProps {
 
 /**
  * The page's header (the Studio Next mock's `.ph.sx-ph`): the title, the chapter step, the legend, and the two header buttons, the timeline
- * strip (S) where it fits and the clean-up and effects drawer (Ctrl+Shift+C).
+ * strip (S) where it fits and the clean-up and effects drawer (Ctrl+Shift+C), then the DAW tools menu.
  */
 export function EditingHeader({ stepper, legend, status, strip, stripFits, drawerOpen, onDrawer, onDrawerKeyDown }: EditingHeaderProps) {
   return (
@@ -44,6 +45,8 @@ export function EditingHeader({ stepper, legend, status, strip, stripFits, drawe
             onKeyDown={onDrawerKeyDown}
           />
         </TooltipTarget>
+        {/* #2820: the DAW's structure tools (chapter regions, render prep) where a chapter is finished; the same menu as the Engine panel's tools. */}
+        <DawToolsButton groups={['structure']} />
       </div>
     </header>
   );
