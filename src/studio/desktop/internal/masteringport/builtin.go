@@ -52,8 +52,9 @@ func (builtinChain) Master(ctx context.Context, req Request) (Result, error) {
 			{Name: "Limiter", Detail: fmt.Sprintf("Peaks held at %.1f dBFS", res.Targets.Ceiling)},
 			{Name: "Gain", Detail: fmt.Sprintf("%+.1f dB, toward %.1f dBFS RMS", res.GainDB, res.Targets.RMS)},
 		},
-		Before:    &before,
-		After:     res.After,
-		Judgement: res.Judgement,
+		Before:        &before,
+		After:         res.After,
+		Judgement:     res.Judgement,
+		BuiltinReport: &res,
 	}, nil
 }

@@ -220,7 +220,9 @@ describe('only-the-toggle-a-take-or-leaving-ends-it', () => {
     await waitFor(() => expect(screen.getByText('REC')).toBeTruthy());
     expect(screen.queryByText('Mic on · cold read')).toBeNull();
     expect(toggle().getAttribute('aria-disabled')).toBe('true');
-    expect(toggle().getAttribute('title')).toBe('Not while recording. Stop the take first.');
+    // The reason is the switch's hint: it opens on keyboard focus.
+    act(() => toggle().focus());
+    expect((await screen.findAllByText('Not while recording. Stop the take first.')).length).toBeGreaterThan(0);
   });
 
   it('Escape leaves without a question and ends it', async () => {

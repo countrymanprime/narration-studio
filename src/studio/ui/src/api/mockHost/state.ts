@@ -222,6 +222,9 @@ export type MockApiSeed = {
    * separately from `renderExport` (which would also hold the export job itself
    * mid-run, leaving no completed files to build packages from). */
   renderPackageMulti?: MockExportSeed;
+  /** What Master & QC's export picker chooses: `many` is a 40-chapter book, `long` gives the files very long names (the approval
+   * dialog's capped list); the five usual files otherwise. */
+  renderExportPick?: 'many' | 'long';
   /** Holds a started diagnostics check part way through, or breaks it. */
   diagnostics?: MockDiagnosticsSeed;
   /** Seeds the editing-readiness check mock (a refusal, a held-running state, or seeded candidates), see `EditingSeed`. */

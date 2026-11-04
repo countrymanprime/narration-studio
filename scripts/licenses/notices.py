@@ -32,7 +32,7 @@ import re
 import shutil
 import subprocess
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from importlib import metadata
 from pathlib import Path
 
@@ -479,7 +479,7 @@ def render_report(
     bare = sorted(f"{c.ecosystem}:{c.name}" for c in components if not c.texts and c.name not in no_text_ok)
     if bare:
         raise NoticeError(
-            "these components ship no licence text (MIT, BSD and Apache require it to travel); add the text or list the name under noText in reviewed.json: "
+            "these components ship no licence text (MIT, BSD and Apache require it to travel); copy the upstream text at this version into scripts/licenses/texts/ (see supplied_text_name) or list the name under noText in reviewed.json: "
             + ", ".join(bare)
         )
 
@@ -560,6 +560,28 @@ def manual_components(path: Path) -> list[Component]:
     return [Component("manual", e["name"], e.get("version", ""), e["license"], e.get("homepage", ""), (e["note"],), e.get("source", "")) for e in entries]
 
 
+def supplied_text_name(ecosystem: str, name: str, version: str) -> str:
+    """File name under scripts/licenses/texts/ for a component whose package ships no licence file: ecosystem, name ('/' as '__') and version."""
+    return f"{ecosystem}--{name.replace('/', '__')}--{version}.txt"
+
+
+def apply_supplied_texts(components: list[Component], folder: Path) -> list[Component]:
+    """Give a component whose package ships no licence file the upstream text a person copied into `folder` at the pinned version.
+
+    The version is part of the file name, so a bumped dependency is bare again until its new text is read. A text beside a component that
+    already ships one is an error, so a copied text cannot go stale or shadow the package's own."""
+    result: list[Component] = []
+    for component in components:
+        path = folder / supplied_text_name(component.ecosystem, component.name, component.version)
+        if not path.is_file():
+            result.append(component)
+            continue
+        if component.texts:
+            raise NoticeError(f"{path.name} duplicates the licence text {component.name} {component.version} already ships; delete it")
+        result.append(replace(component, texts=(path.read_text(encoding="utf-8").strip(),)))
+    return result
+
+
 def read_reviewed(path: Path) -> tuple[dict[str, str], set[str], frozenset[str]]:
     """The decisions a person recorded: licences of components whose own metadata names none, components that ship no text (each with its
     reason), modules that are ours."""
@@ -583,6 +605,7 @@ def build(root: Path, version: str, release_build: Path, tag: str | None = None,
         *go_components(root / "src/studio/desktop"),
         *manual_components(Path(__file__).parent / "manual.json"),
     ]
+    components = apply_supplied_texts(components, Path(__file__).parent / "texts")
     check_vendored(vendored, components)
     problems = {
         "python": missing_direct("python", components, set(SHIPPED_PYTHON_DIRECT)),
