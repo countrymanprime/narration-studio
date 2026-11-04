@@ -8,8 +8,6 @@
 - status
 - alert
 - status
-- alert
-- status
 - dialog "Set up the credits":
   - heading "Set up the credits" [level=2]
   - button "Close"

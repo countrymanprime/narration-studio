@@ -1,8 +1,11 @@
 // The interaction feedback rows for Master & QC's call sites (formerly the Delivery page's) (see interactionFeedback.catalog.ts for what a row says).
-import { type FeedbackRow, row } from './row';
+import { type FeedbackRow, row, subscription } from './row';
 
 // prettier-ignore
 export const masterFeedback: Record<string, FeedbackRow> = {
+  // Master & QC's Text column
+  'src/components/masterqc/files/textMatch.ts::subscribeCoverage#1': subscription('The recording check state: when a check ends or stops, the Text column reads the stored checks again, so a re-run figure replaces the old one.'),
+  'src/components/masterqc/files/textMatch.ts::coverageResult#1': row('effect', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'Reads each narration chapter\'s stored Recording Check (never runs one) for the files table\'s Text column, again when a measurement ends; a check that cannot be read leaves that file\'s cell on "Not checked", which is its own state in the table.'),
   // Master & QC's mastering chain (the mastering port)
   'src/components/master/MasteringChain.tsx::masteringProviders#1': row('mount', 'instant', 'na', 'na', 'ui', 'toast', 'na', 'ok', 'On opening Master & QC: the mastering chain the project masters with, drawn as its steps; a failed read is an error toast, and nothing else on the page depends on it.'),
   'src/components/master/MasteringChain.tsx::masteringChooseProvider#1': row('click', 'instant', 'disabled', 'disabled', 'ui', 'toast', 'yes', 'ok', 'A row of the chain card\'s Master with choice saves the project\'s mastering row. The choice stays on the row the host says the project masters with until the host answers, every row is held while the save waits (one at a time, held outside the card in masterRequests.ts) and while an export runs or starts, and a row this computer cannot master with is off with the host\'s reason as its tooltip. The answer moves the choice and is announced; a refusal, or no answer in 15 s, is a toast and the rows are read again. An answer older than one already shown is dropped.'),

@@ -140,6 +140,31 @@ describe('Dialog is a real modal', () => {
     await waitFor(() => expect(document.querySelector('main')?.contains(document.activeElement)).toBe(true));
   });
 
+  it("a dialog a page-wide key opened from the main landmark gives focus back to the landmark, not to the page's first button (#2839)", async () => {
+    const user = userEvent.setup();
+    function KeyOpened() {
+      const [open, setOpen] = useState(false);
+      return (
+        <main tabIndex={-1} onKeyDown={(event) => event.key === 'n' && setOpen(true)}>
+          <button type="button">Previous chapter</button>
+          {open && (
+            <Dialog dismissOnOutsidePress={false} title="Who is in Num 7?" onClose={() => setOpen(false)} actions={null}>
+              <input aria-label="Track name" autoFocus />
+            </Dialog>
+          )}
+        </main>
+      );
+    }
+    render(<KeyOpened />);
+    const main = document.querySelector('main') as HTMLElement;
+    main.focus();
+    await user.keyboard('n');
+    await screen.findByRole('dialog', { name: 'Who is in Num 7?' });
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(document.activeElement).toBe(main));
+    expect(document.activeElement).not.toBe(screen.getByRole('button', { name: 'Previous chapter' }));
+  });
+
   it('ignores Escape when the dialog has no way to be dismissed', async () => {
     const user = userEvent.setup();
     render(<Harness dismissible={false} />);

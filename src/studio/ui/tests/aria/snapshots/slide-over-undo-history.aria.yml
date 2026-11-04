@@ -3,8 +3,6 @@
 - status
 - alert
 - status
-- alert
-- status
 - dialog "Undo history":
   - heading "Undo history" [level=3]
   - button "Close"

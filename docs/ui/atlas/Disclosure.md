@@ -11,6 +11,7 @@ Storybook title: `Primitives/Disclosure`. Source: `src/components/primitives/Dis
 - With Info Icon
 - Scroll Cue
 - Opens And Closes With The Keyboard
+- Keeps Its Panel While Closed
 
 ## Used by
 

@@ -105,6 +105,7 @@ H.test('the bridge registers exactly the commands the host and the docs know abo
     'stop_play',
     'switch_voice',
     'track_create',
+    'tracks_read',
     'undo_last',
     'unstack_takes',
     'watch_transport',

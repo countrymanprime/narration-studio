@@ -44,7 +44,7 @@ import type { WordFxRequest } from './contracts/wordFx';
 import type { ExportRequest } from './contracts/renderEncodeMaster';
 import { WIRE_CHAPTERS, WIRE_FINDINGS, WIRE_ONE_WORD_MISREAD, WIRE_TAKE_REVIEW_FINDINGS, WIRE_TRACKS_PROJECT, WIRE_TRANSCRIPT } from './mockFixtures';
 import { bookmarkSchema as spotBookmarkSchema, bookmarksSchema } from './schemas/bookmarks';
-import { boothVoiceSchema, voiceTracksStateSchema } from './schemas/voiceTracks';
+import { boothVoiceAddedSchema, boothVoiceSchema, voiceTracksStateSchema } from './schemas/voiceTracks';
 import { createVoiceTracksMock } from './voiceTracksMock';
 import { voiceSampleAnswerSchema, voiceSamplesChangedSchema, voiceSamplesRemovedSchema, voiceSamplesSchema } from './schemas/voiceSamples';
 import { VOICE_SAMPLE_SENTENCES, type VoiceSampleMarkRequest } from './contracts/voiceSamples';
@@ -134,13 +134,14 @@ import {
   productionOverviewSchema,
   productionPlanSchema,
   productionReportExportSchema,
+  reportsFolderResultSchema,
   productionReportPreviewSchema,
   productionStartResultSchema,
   productionStopResultSchema,
 } from './schemas/production';
 import { PRODUCTION_SCENARIOS } from './productionMock';
 import { findingMarkerSchema, findingNavigationSchema, findingSchema, findingsPageSchema, findingsSummarySchema } from './schemas/findings';
-import { tracksDiscoverySchema, tracksProjectSchema } from './schemas/tracks';
+import { tracksDiscoverySchema, tracksLiveSchema, tracksProjectSchema } from './schemas/tracks';
 import {
   chapterRegionPlanSchema,
   chapterRegionsCreatedSchema,
@@ -1541,8 +1542,10 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const api = createMockApi();
     expectMatches(tracksDiscoverySchema, await api.tracksDiscover(), 'mock tracks discovery');
     expectMatches(tracksProjectSchema, await api.tracksList(), 'mock tracks project');
+    expectMatches(tracksLiveSchema, await api.tracksLive(), 'mock live tracks');
     const folders = createMockApi({}, { trackFolders: true });
     expectMatches(tracksProjectSchema, await folders.tracksList(), 'mock tracks project in folders');
+    expectMatches(tracksLiveSchema, await folders.tracksLive(), 'mock live tracks in folders');
     expectMatches(chapterTrackLinksSchema, await folders.chapterTrackLinks(), 'mock chapter links in folders');
     expectMatches(chapterTrackMatchSchema, await folders.chapterTrackMatch((await ownChapters(folders))[0].id), 'mock chapter match in folders');
     const several = createMockApi({}, { tracksCandidates: ['C:/A/A.rpp', 'C:/A/B.rpp'] });
@@ -4271,6 +4274,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'voiceTracksSetNarrator',
       'boothVoiceSet',
       'boothVoiceGet',
+      'boothVoiceAdd',
       'voiceSamplesList',
       'voiceSampleMark',
       'voiceSampleUpdate',
@@ -4387,6 +4391,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'tracksDiscover',
       'tracksSelect',
       'tracksList',
+      'tracksLive',
       'chapterTrackMapList',
       'chapterTrackMapConfirm',
       'chapterTrackSet',
@@ -4497,6 +4502,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'productionStartTimer',
       'productionStopTimer',
       'productionStatusReport',
+      'productionOpenReportsFolder',
       'productionStatusReportPreview',
       'measurePickFiles',
       'measureAnalyze',
@@ -4730,6 +4736,13 @@ describe('the production tracking mock', () => {
 
   it('the status report export follows the ticked sections, leaves out the money unless asked, and never repeats a file name', async () => {
     const pinned = productionReportExportSchema.parse(readGolden('production-status-report.json'));
+    const folder = reportsFolderResultSchema.parse(readGolden('production-open-reports-folder.json'));
+    const fresh = createMockApi();
+    await expect(fresh.productionOpenReportsFolder()).rejects.toThrow(/export a report first/);
+    await fresh.productionStatusReport(pinned.include);
+    expect(await fresh.productionOpenReportsFolder()).toEqual(folder);
+    expect(reportsFolderResultSchema.safeParse({ folder: '' }).success).toBe(false);
+    expect(reportsFolderResultSchema.safeParse({ folder: 'a', path: 'b' }).success).toBe(false);
     expect(() => productionReportExportSchema.parse({ ...pinned, include: { ...pinned.include, extra: true } })).toThrow();
     const api = createMockApi();
     const left = await api.productionStatusReport(pinned.include);
@@ -6209,6 +6222,26 @@ describe('the voice tracks bindings', () => {
     await api.boothVoiceSet(first, '{V01CE-EXTRAS}');
     expect(await api.boothVoiceGet(first)).toEqual({ outcome: 'selected', trackGuid: '{V01CE-EXTRAS}' });
     expect((await api.boothVoiceGet(second)).trackGuid).not.toBe('{V01CE-EXTRAS}');
+  });
+
+  it("the Booth's voice add: a child of the chapter's folder, listed as added until saved, chosen, refused as the host refuses, each through the schema", async () => {
+    const [first] = WIRE_CHAPTERS.map((chapter) => chapter.id);
+    const unlinked = await createMockApi().boothVoiceAdd(first, 'Extras', []);
+    expectMatches(boothVoiceAddedSchema, unlinked, 'mock booth voice add (unlinked)');
+    expect(unlinked.reason).toBe('unlinked');
+    const api = createMockApi({}, { voiceFolders: true });
+    expect((await api.boothVoiceAdd(first, ' \n ', [])).reason).toBe('no_name');
+    expect((await api.boothVoiceAdd(first, ' extras ', [])).reason).toBe('name_taken');
+    expect((await api.boothVoiceAdd(first, 'x'.repeat(121), [])).reason).toBe('invalid');
+    const added = await api.boothVoiceAdd(first, '  King  of Hearts ', ['king-of-hearts']);
+    expectMatches(boothVoiceAddedSchema, added, 'mock booth voice add');
+    expect(added).toMatchObject({ outcome: 'added', name: 'King of Hearts' });
+    const read = await api.boothVoiceGet(first);
+    expectMatches(boothVoiceSchema, read, 'mock booth voice read (added)');
+    expect(read).toEqual({ outcome: 'selected', trackGuid: added.trackGuid, added: [{ guid: added.trackGuid, name: 'King of Hearts' }] });
+    expect((await api.voiceTracksGet()).tracks.find((entry) => entry.track === 'King of Hearts')?.characters).toEqual(['king-of-hearts']);
+    await api.readAloudRecordStart(first);
+    expect((await api.boothVoiceAdd(first, 'Crowd', [])).reason).toBe('recording');
   });
 
   it('the schema refuses an unknown layout and an empty assignment', () => {

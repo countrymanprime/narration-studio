@@ -76,7 +76,7 @@ import {
 } from './schemas/storyBible';
 import { approvedCharacterReferencesSchema, characterRegionsSchema, characterReferenceSchema } from './schemas/character';
 import { settingsForScopeSchema } from './schemas/settings';
-import { tracksDiscoverySchema, tracksProjectSchema } from './schemas/tracks';
+import { tracksDiscoverySchema, tracksLiveSchema, tracksProjectSchema } from './schemas/tracks';
 import {
   chapterRegionPlanSchema,
   chapterRegionsCreatedSchema,
@@ -116,6 +116,7 @@ import {
   productionOverviewSchema,
   productionPlanSchema,
   productionReportExportSchema,
+  reportsFolderResultSchema,
   productionReportPreviewSchema,
   productionStartResultSchema,
   productionStopResultSchema,
@@ -158,7 +159,7 @@ import { renderConfigStartResultSchema, renderConfigStateSchema, renderConfigSug
 import { chapterTagsEmbedResultSchema, chapterTagsPreviewSchema } from './schemas/chaptertags';
 import { cleanupToolsStartResultSchema, cleanupToolsStateSchema } from './schemas/cleanuptools';
 import { bookmarkSchema as spotBookmarkSchema, bookmarksSchema } from './schemas/bookmarks';
-import { boothVoiceSchema, voiceTracksStateSchema } from './schemas/voiceTracks';
+import { boothVoiceAddedSchema, boothVoiceSchema, voiceTracksStateSchema } from './schemas/voiceTracks';
 import { voiceSampleAnswerSchema, voiceSamplesChangedSchema, voiceSamplesRemovedSchema, voiceSamplesSchema } from './schemas/voiceSamples';
 import { passageMapSchema } from './schemas/passageMap';
 import { acceptedWordsChangeSchema, acceptedWordsSchema } from './schemas/editLog';
@@ -453,6 +454,7 @@ export const wailsClient: NarrationApi = {
   voiceTracksSetNarrator: (characterId) => decode(voiceTracksStateSchema, 'VoiceTracksSetNarrator', host.VoiceTracksSetNarrator(characterId)),
   boothVoiceSet: (chapterId, trackGuid) => decode(boothVoiceSchema, 'BoothVoiceSet', host.BoothVoiceSet(chapterId, trackGuid)),
   boothVoiceGet: (chapterId) => decode(boothVoiceSchema, 'BoothVoiceGet', host.BoothVoiceGet(chapterId)),
+  boothVoiceAdd: (chapterId, name, characterIds) => decode(boothVoiceAddedSchema, 'BoothVoiceAdd', host.BoothVoiceAdd(chapterId, name, characterIds)),
   voiceSamplesList: () => decode(voiceSamplesSchema, 'VoiceSamplesList', host.VoiceSamplesList()),
   voiceSampleMark: (request) => decode(voiceSampleAnswerSchema, 'VoiceSampleMark', host.VoiceSampleMark(request)),
   voiceSampleUpdate: (id, change) => decode(voiceSampleAnswerSchema, 'VoiceSampleUpdate', host.VoiceSampleUpdate(id, change)),
@@ -541,6 +543,7 @@ export const wailsClient: NarrationApi = {
   productionOverview: () => decode(productionOverviewSchema, 'ProductionOverview', host.ProductionOverview()),
   productionStartTimer: (chapterId, stage) => decode(productionStartResultSchema, 'ProductionStartTimer', host.ProductionStartTimer(chapterId, stage)),
   productionStopTimer: () => decode(productionStopResultSchema, 'ProductionStopTimer', host.ProductionStopTimer()),
+  productionOpenReportsFolder: () => decode(reportsFolderResultSchema, 'ProductionOpenReportsFolder', host.ProductionOpenReportsFolder()),
   productionStatusReport: (include) => decode(productionReportExportSchema, 'ProductionStatusReport', host.ProductionStatusReport(include)),
   productionStatusReportPreview: (include) =>
     decode(productionReportPreviewSchema, 'ProductionStatusReportPreview', host.ProductionStatusReportPreview(include)),
@@ -755,6 +758,7 @@ export const wailsClient: NarrationApi = {
   tracksDiscover: () => decode(tracksDiscoverySchema, 'TracksDiscover', host.TracksDiscover()),
   tracksSelect: (path) => decode(tracksDiscoverySchema, 'TracksSelect', host.TracksSelect(path)),
   tracksList: () => decode(tracksProjectSchema, 'TracksList', host.TracksList()),
+  tracksLive: () => decode(tracksLiveSchema, 'TracksLive', host.TracksLive()),
   chapterTrackMapList: () => decode(chapterTrackMappingSchema, 'ChapterTrackMapList', host.ChapterTrackMapList()),
   chapterTrackMapConfirm: (trackGuid, chapterId) => decode(trackMappingSchema, 'ChapterTrackMapConfirm', host.ChapterTrackMapConfirm(trackGuid, chapterId)),
   chapterTrackSet: (chapterId, trackGuid) => decode(chapterTrackSetSchema, 'ChapterTrackSet', host.ChapterTrackSet(chapterId, trackGuid)),

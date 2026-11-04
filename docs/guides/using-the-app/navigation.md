@@ -219,7 +219,8 @@ REAPER starts when it opens; nothing is written until you press the dialog's act
 bridge in REAPER and connects to it without you running anything in REAPER.
 
 **Link chapters…** (shown once a manuscript is imported) stamps each chapter's identity onto the REAPER
-items that hold its recording. It opens with the links the **Chapter links** list shows, the opening and
+items that hold its recording. It reads REAPER's tracks again when it opens, and has its own **Refresh**, so a track you
+have just added in REAPER can be picked. It opens with the links the **Chapter links** list shows, the opening and
 closing credits included, and the two stay in step: choosing a track here links the chapter, **Not linked**
 clears the link, and either shows in the other at once. **To stamp** shows how many of that track's items will
 carry the chapter's identity, and **Stamp N items** writes it. The credits are linked here but not stamped. What the stamp did, or why it failed, shows at the top
@@ -314,6 +315,22 @@ missing** until it's relinked or cleared. The list starts with **Opening credits
 change the REAPER project.
 
 ![The audio engine panel's chapter links list with one chapter confirmed to a track](../../images/ui/engine-panel-chapter-links.webp)
+
+The tracks here are REAPER's own, saved or not, while REAPER has the linked project open: a track or folder you add in REAPER shows
+without saving. Chapter links' header says in one line whose tracks they are and when they were read (**REAPER now · read 3 s ago**);
+point at it for the whole sentence. The panel reads them again when it opens, after **Check again**, when you come back to the window
+and every few seconds while it is in front; the **Refresh** button beside the header (also in the Link chapters dialog) reads them at
+once. While REAPER is closed, not answering or has another project open, the header reads **Saved project** and the tracks are as of
+the project's last save; its sentence says why. Save the project in REAPER after adding a track: Chapter links sees it at once, but
+other pages, such as Editing and Proof, read the saved project and see it only once it is saved.
+
+![Chapter links when REAPER is not answering: the header says the tracks are the saved project's](../../images/ui/engine-panel-live-tracks-saved.webp)
+
+If REAPER stops answering after a good read, the header reads **REAPER did not answer** with when the tracks were last read, the
+tracks stay as they were, and a message with **Retry** says why, once. To try again, press **Retry** in the message or **Refresh**
+in the header. If the first read fails, the card shows only that header, with **Refresh**, until a read answers.
+
+![Chapter links after REAPER stopped answering: the header says when the tracks were last read, and a message offers Retry](../../images/ui/engine-panel-live-tracks-stale.webp)
 
 ![A chapter's track picker open on a project with folders: the tree, with a search box](../../images/ui/engine-panel-folder-picker.webp)
 

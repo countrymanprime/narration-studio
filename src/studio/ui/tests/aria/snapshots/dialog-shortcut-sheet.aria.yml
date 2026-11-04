@@ -7,8 +7,6 @@
 - status
 - alert
 - status
-- alert
-- status
 - dialog "Keyboard shortcuts":
   - heading "Keyboard shortcuts" [level=2]
   - button "Close"
