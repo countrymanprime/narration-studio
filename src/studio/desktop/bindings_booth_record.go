@@ -55,16 +55,20 @@ func builtinResolver(adapter dawport.Adapter) *dawport.Resolver {
 }
 
 // builtinMicrophone is the microphone a take records on, or the refusal that says what to do: the one the Booth's Levels menu
-// chose, else the one the project last recorded with, else the only one listed. Several listed and none chosen is a refusal,
-// never a guess.
+// chose, else the one the project last recorded with while it is still listed, else the only one listed. Several listed and none
+// chosen is a refusal, never a guess.
 func (h *Host) builtinMicrophone(ctx context.Context, svc hostServices) (string, *ReadAloudRecording) {
 	if device, _ := svc.settings.Effective(teleprompterSettingsTool, inputDeviceKey, ""); strings.TrimSpace(device) != "" {
 		return strings.TrimSpace(device), nil
 	}
-	if device := strings.TrimSpace(svc.settings.Project(recordingSettingsTool)[recordingDeviceKey]); device != "" {
-		return device, nil
-	}
+	last := strings.TrimSpace(svc.settings.Project(recordingSettingsTool)[recordingDeviceKey])
 	devices, message, err := svc.recorder.Devices(ctx)
+	// The last microphone is only a fallback while it is still listed: one that was unplugged is not opened, the list decides.
+	for _, d := range devices {
+		if err == nil && last != "" && d.Name == last {
+			return last, nil
+		}
+	}
 	switch {
 	case err != nil:
 		refused := readAloudRefused(refusedFailed, "The built-in recorder could not list the microphones: "+err.Error())
