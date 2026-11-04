@@ -277,6 +277,7 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/settings/analysis/ToolRow.tsx#1': no(RC),
   'src/components/settings/controls/AppearanceBodies.tsx#1': yes('The window zoom save sets and saves the same level again (new in this change).'),
   'src/components/settings/controls/AppearanceBodies.tsx#2': no(BT),
+  'src/components/settings/controls/AppearanceBodies.tsx#3': no(BT),
   'src/components/settings/controls/EngineBody.tsx#1': no(RC),
   'src/components/settings/controls/EngineBody.tsx#2': no(RC),
   'src/components/settings/models/AssetRow.tsx#1': no(RC),

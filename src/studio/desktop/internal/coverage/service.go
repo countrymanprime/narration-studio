@@ -222,6 +222,8 @@ type Service struct {
 	// jobs are the runs in progress by run id. A job's own state is read and written with mu held.
 	// +checklocks:mu
 	jobs map[string]*job
+	// watchers counts the watch goroutines, which outlive their job's entry in jobs: finish removes the job, then reports its end.
+	watchers sync.WaitGroup
 	// preparing are the chapters whose run is being prepared, between the limit check and the sidecar launching.
 	// +checklocks:mu
 	preparing map[string]bool
@@ -278,19 +280,9 @@ func (s *Service) Busy() bool {
 	return len(s.jobs)+len(s.preparing) > 0
 }
 
-// Wait blocks until the runs in progress, if any, have finished and written their
-// ledger records.
-func (s *Service) Wait() {
-	s.mu.Lock()
-	waiting := make([]*job, 0, len(s.jobs))
-	for _, running := range s.jobs {
-		waiting = append(waiting, running)
-	}
-	s.mu.Unlock()
-	for _, running := range waiting {
-		<-running.done
-	}
-}
+// Wait blocks until the runs in progress, if any, have finished, written their
+// ledger records and reported their end to the state callback.
+func (s *Service) Wait() { s.watchers.Wait() }
 
 // Start prepares a run from the saved project and starts the sidecar. It
 // returns an UnknownError, having run and written nothing, when the chapter
@@ -327,7 +319,11 @@ func (s *Service) Start(request Request) (State, error) {
 	state := s.state
 	s.mu.Unlock()
 	s.notify(state)
-	go s.watch(running)
+	s.watchers.Add(1)
+	go func() {
+		defer s.watchers.Done()
+		s.watch(running)
+	}()
 	return state, nil
 }
 

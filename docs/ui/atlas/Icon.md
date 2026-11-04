@@ -24,6 +24,7 @@ Storybook title: `Primitives/Icon`. Source: `src/components/primitives/Icon.tsx`
 - `src/components/editing/takes/TakeChip.tsx`
 - `src/components/editing/voicesample/SampleMark.tsx`
 - `src/components/editing/voicesample/VoiceSampleDialog.tsx`
+- `src/components/engine/AudacityLinkCard.tsx`
 - `src/components/engine/TrackList.tsx`
 - `src/components/layout/Brand.tsx`
 - `src/components/layout/JumpMenu.tsx`

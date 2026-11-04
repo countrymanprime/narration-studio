@@ -8,6 +8,7 @@ import { MW_KEY_CHANGED } from '../controls/mwKeyStatus';
 import { MODELS_FOLDER_CHANGED } from '../models/AssetsStore';
 import { useChapterSync } from '../../../hooks/useChapterSync';
 import type { VoiceTracksState } from '../../../api/contracts/voiceTracks';
+import { useTips } from '../../../tips/useFirstUseTip';
 import { useVoiceSetup } from '../../engine/voiceLayout';
 import { onEngineChanged } from './engineSignal';
 import { BROWSER_CHANGED } from './browserValues';
@@ -54,6 +55,8 @@ export type LiveContext = {
   voiceSetup: VoiceTracksState;
   /** Chapter sync's consent as the host last said it, or undefined before the first answer. */
   syncConsent: string | undefined;
+  /** The first-use tips dismissed, or null before the host has said. */
+  tipsSeen: ReadonlySet<string> | null;
 };
 
 /** Rows whose value the app holds live (`LiveContext`): whether each differs from its default. */
@@ -63,6 +66,8 @@ export const LIVE_CHANGED: Readonly<Record<string, (context: LiveContext) => boo
   // This project: the narrator turned Chapter sync off (on is what the app recommends, and what the first question offers).
   'daw.sync': ({ syncConsent }) => syncConsent === 'off',
   // This project: a character is chosen for the Narrator or assigned to a voice track.
+  // This computer: some first-use tip was dismissed.
+  'app.tips': ({ tipsSeen }) => (tipsSeen?.size ?? 0) > 0,
   'daw.voices': ({ voiceSetup }) => voiceSetup.narratorCharacter !== '' || voiceSetup.tracks.length > 0,
 };
 
@@ -122,6 +127,7 @@ export function useCustomChanged(settings: ReadSettings): ReadonlySet<string> {
   const { setup: voiceSetup } = useVoiceSetup();
   const chapterSync = usePort('chapterSync');
   const syncConsent = useChapterSync(chapterSync)?.consent;
+  const tipsSeen = useTips().seen;
   const version = useBrowserSettingsVersion();
   const [again, setAgain] = useState(0);
   const [changed, setChanged] = useState<ReadonlySet<string>>(new Set());
@@ -160,8 +166,8 @@ export function useCustomChanged(settings: ReadSettings): ReadonlySet<string> {
   }, [api, settings, version, again]);
 
   const live = useMemo(
-    () => new Set(Object.entries(LIVE_CHANGED).flatMap(([id, differs]) => (differs({ voiceSetup, syncConsent }) ? [id] : []))),
-    [voiceSetup, syncConsent],
+    () => new Set(Object.entries(LIVE_CHANGED).flatMap(([id, differs]) => (differs({ voiceSetup, syncConsent, tipsSeen }) ? [id] : []))),
+    [voiceSetup, syncConsent, tipsSeen],
   );
   return useMemo(() => (live.size === 0 ? changed : new Set([...changed, ...live])), [changed, live]);
 }
