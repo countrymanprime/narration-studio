@@ -40,6 +40,7 @@ import (
 	"desktop/internal/layout"
 	"desktop/internal/lineidentity"
 	"desktop/internal/manuscript"
+	"desktop/internal/masteringport"
 	"desktop/internal/persist"
 	"desktop/internal/pickups"
 	"desktop/internal/port"
@@ -73,7 +74,7 @@ import (
 // Keep this in lockstep with src/studio/ui/src/hostApi.ts.  The frontend rejects
 // an older host before bootstrapping so a partial update cannot run against a
 // binding contract it does not understand.
-const hostAPIVersion = 151
+const hostAPIVersion = 154
 
 // Host is the Wails binding boundary. The frontend invokes only this bound
 // object; it never receives a loopback port or an HTTP capability.
@@ -350,10 +351,10 @@ type Host struct {
 	// diagnoseFile is the same seam for the diagnostics job: nil means measure.DiagnoseFile.
 	// +checklocks:mu
 	diagnoseFile diagnoseFileFunc
-	// masterFile and encodeFile are seams for tests (export_job.go): nil means mastering.Master and the real
+	// masteringRows and encodeFile are seams for tests (export_job.go): nil means masteringport.Rows and the real
 	// encodeport.Encoders registry. pickPackageFolder is the same seam for package_job.go: nil means the operating
 	// system's folder picker.
-	masterFile        masterFileFunc
+	masteringRows     *port.Registry[masteringport.Mastering]
 	encodeFile        encodeFileFunc
 	assemblePackage   assembleFunc
 	pickPackageFolder func() (string, error)
@@ -616,6 +617,7 @@ func (h *Host) ServiceStartup(ctx context.Context, _ application.ServiceOptions)
 	go h.chapterSyncWatchLoop(runtimeContext)
 	go h.backgroundCheckLoop(runtimeContext)
 	go h.punchAnchorLoop(runtimeContext)
+	masteringport.UseSession(h.masteringSession)
 	h.dawAutoEnabled.Store(true)
 	go h.autoConnectLoop(runtimeContext)
 	go h.startupUpdateCheck(runtimeContext, delay)
@@ -680,6 +682,8 @@ func (h *Host) configureLocked(next config) {
 	h.guide.SetFindings(h.findings)
 	// Asked when a lookup starts, not now: h.mu is held here, and an install made after the project opens counts.
 	h.guide.SetWiktextractIndex(h.wiktextractIndexPath)
+	// An older project's Script page words move to their Story Bible names before anything reads either file (scriptwords_migrate.go).
+	migrateScriptWordsOnOpen(h.config.projectFolder, h.manuscript, h.guide, h.persist, h.log)
 	// The session directory is REAPER's file bridge (the launcher script makes it). An Audacity launch never opens it,
 	// even when one is passed, so nothing on that launch writes REAPER bridge commands.
 	// The project's DAW (projectdaw.go): the launch's --daw, else the project's own choice or what its folder holds.
@@ -1920,15 +1924,6 @@ var fieldSchemas = map[string][]fieldSchema{
 	// generic Settings fields form: KeyboardPanel reads and writes it. saveSettings caps its size and keeps it
 	// global-only.
 	"Keymap": {{"overrides", "Keyboard shortcut overrides", "text", nil}},
-	// ReadAloud.record_in_reaper and record_confirmed are the Record-in-REAPER toggle's own memory: whether the narrator turned recording
-	// on for this project, and whether they have already seen the first-time confirm naming the track and what Play
-	// and Stop do. Project scope only (saveSettings below), because a global memory
-	// would carry the choice into a project with no REAPER link. Like Keymap, no Settings category names this tool,
-	// so it stays off the generic Settings page; the read-aloud control bar's own toggle is where a narrator sets it.
-	"ReadAloud": {
-		{"record_in_reaper", "Record in REAPER", "bool", nil},
-		{"record_confirmed", "Seen the Record in REAPER confirm", "bool", nil},
-	},
 	// Cleanup is the silence cleanup analyzer's own thresholds: measure.CleanupOptions field for field, read by cleanupSettings
 	// (cleanup_settings.go) and passed to measure.DiagnosticInput.Cleanup when a diagnostics check runs. Every key has
 	// a config/defaults.json entry mirroring measure.DefaultCleanupOptions, so an untouched store already answers the
@@ -2030,9 +2025,6 @@ func (h *Host) saveSettings(tool, scope string, values map[string]*string) error
 	}
 	if tool == "Keymap" && scope != "global" {
 		return fmt.Errorf("keymap overrides are global: a narrator's pedal belongs to the booth, not the project")
-	}
-	if tool == "ReadAloud" && scope != "project" {
-		return fmt.Errorf("record in REAPER is a per-project choice: open a project to change it")
 	}
 	if tool == "General" && scope != "global" {
 		if _, ok := values["debug_logging"]; ok {

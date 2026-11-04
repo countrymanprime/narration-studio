@@ -2,14 +2,14 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, fn, userEvent, within } from 'storybook/test';
 import { buildLayerIndex, paragraphLayers, type LayerSources } from './layers';
 import { Para } from './Para';
-import { cue, entry, flaggedWord, GUIDE_TYPES, mark, paragraph, TYPES } from './readerFixtures';
+import { cue, entry, GUIDE_TYPES, mark, paragraph, TYPES } from './readerFixtures';
 
-// The Studio Next mock's paragraph (`pages/script/Para.tsx`): the paragraph's own text with marks, flagged words, Story Bible names,
+// The Studio Next mock's paragraph (`pages/script/Para.tsx`): the paragraph's own text with marks, Story Bible names,
 // speaker chips and Find matches drawn over it. The text never changes; each layer only wraps part of it.
 const TEXT = 'Mina said, "Come along," and left the harbour. Wren asked, "Where to?" Nobody answered the third voice, "Not yet."';
 const at = (needle: string) => ({ start: TEXT.indexOf(needle), end: TEXT.indexOf(needle) + needle.length });
 const para = paragraph('p1', 'c1', TEXT);
-const empty: LayerSources = { marks: [], markTypes: TYPES, words: [], entries: [], cues: [], types: GUIDE_TYPES };
+const empty: LayerSources = { marks: [], markTypes: TYPES, entries: [], cues: [], types: GUIDE_TYPES };
 const layers = (sources: Partial<LayerSources>) => paragraphLayers(buildLayerIndex({ ...empty, ...sources }), para);
 
 const people = [entry('e1', 'Mina', 'Character', 4), entry('e2', 'Wren', 'Character'), entry('e3', 'harbour', 'Place')];
@@ -50,10 +50,6 @@ export const OverlappingMarks: Story = {
   args: { layers: layers({ marks: [mark('long', 'p1', at('said, "Come along,"'), 'note'), mark('short', 'p1', at('Come'), 'stress')] }) },
 };
 
-export const FlaggedWords: Story = {
-  args: { layers: layers({ words: [flaggedWord('harbour', 'p1', at('harbour')), flaggedWord('wren', 'p1', at('Wren'), 'set')] }) },
-};
-
 export const NameMentions: Story = { args: { layers: layers({ entries: people }) } };
 
 export const SpeakerChips: Story = {
@@ -84,7 +80,6 @@ export const AllLayers: Story = {
     layers: layers({
       entries: people,
       marks: [mark('m1', 'p1', at('said, "Come'), 'note')],
-      words: [flaggedWord('harbour', 'p1', at('harbour'))],
       cues: [cue('q1', 'p1', 'c1', at('"Come along,"'), 'e1', 'correction')],
     }),
     find: [at('along')],

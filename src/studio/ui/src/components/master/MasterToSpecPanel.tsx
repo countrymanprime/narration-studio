@@ -1,5 +1,6 @@
-import { useEffect, useRef } from 'react';
-import type { ExportJob, PackageItemKind } from '../../types';
+import { useEffect, useRef, useState } from 'react';
+import type { MasteringProvider } from '../../api/contracts/mastering';
+import type { ExportJob, ExportPlan, MasteringApproval, PackageItemKind } from '../../types';
 import { useErrorToast } from '../../hooks/useErrorToast';
 import { Button } from '../primitives/Button';
 import { IconButton } from '../primitives/IconButton';
@@ -14,8 +15,12 @@ import { TextField } from '../primitives/TextField';
 import { statusTone, type StatusId } from '../../kinds/statusTone';
 import { type ExportJobs, fileName } from './useExportJobs';
 import { ARRIVE_CLASSES } from '../primitives/changeHighlight';
+import { MasteringApprovalDialog } from './MasteringApprovalDialog';
 
 const MUTED = { color: 'var(--text-muted)' };
+
+/** Whether the keyboard has fallen to the page: what a control that takes itself away must not leave behind. */
+const onBody = (): boolean => document.activeElement === null || document.activeElement === document.body;
 const DANGER = { color: 'var(--danger-text)' };
 
 const KIND_OPTIONS: { value: PackageItemKind; label: string }[] = [
@@ -54,12 +59,40 @@ const TABLE_FLOOR = 'min-w-[44rem]';
 /**
  * The files "Master all to spec…" picked: each
  * with its role in the package and, for a chapter, its title, then Master & encode as one job with real progress and Cancel. It
- * appears once files are picked or a job exists; before that the page's header action is the way in.
+ * appears once files are picked or a job runs; before that the page's header action is the way in. `chain` is the mastering row
+ * the host says the project masters with: when it makes the DAW render (`needsApproval`), Master & encode first asks the narrator's
+ * approval for this one export. A refusal of the start may mean the row changed, so `onStartRefused` reads the rows again.
+ * `onEmptied` takes the keyboard when Remove takes the last row away and the panel with it.
  */
-export function MasterToSpecPanel({ jobs, chainLabel, onCheckFiles }: { jobs: ExportJobs; chainLabel?: string; onCheckFiles?: () => void }) {
+export function MasterToSpecPanel({
+  jobs,
+  chain,
+  onStartRefused,
+  onCheckFiles,
+  onEmptied,
+}: {
+  jobs: ExportJobs;
+  chain?: MasteringProvider;
+  onStartRefused?: () => void;
+  onCheckFiles?: () => void;
+  onEmptied?: () => void;
+}) {
   const { items, exportJob, exportRunning, problem } = jobs;
-  const started = !!exportJob?.files.length;
-  const hasFiles = items.length > 0 || started;
+  const chainLabel = chain?.label;
+  // The plan the open approval dialog shows: the host's answer when it opened, so a later read cannot change what the narrator approves.
+  const [approving, setApproving] = useState<ExportPlan>();
+  // While a job runs the table is its own files, read-only. Once it ends, finished, cancelled or failed, the picked files are editable
+  // again with Add files…, the checkbox and Master & encode (#2935); the job the page opened on gives its files to an empty list
+  // (useExportJobs), so a last run is dismissed by removing its rows.
+  const showsJob = exportRunning && !!exportJob?.files.length;
+  // From the press of Master & encode until the host answers, the rows are locked too: the job runs on the files as they were then.
+  const locked = showsJob || jobs.starting;
+  const hasFiles = items.length > 0 || showsJob;
+  const masterRef = useRef<HTMLButtonElement>(null);
+  const addRef = useRef<HTMLButtonElement>(null);
+  const removeRefs = useRef(new Map<string, HTMLButtonElement>());
+  // What gets the keyboard after the render that follows a Remove: the next row's Remove, or the one before, or the way back in.
+  const afterRemove = useRef<string | 'emptied'>(undefined);
   // A start or pick that failed is a toast; the panel is not opened just to draw it (rule 7, #2632), so it does not appear with nothing in it.
   useErrorToast(problem);
   // A job that ended in error is a toast too, not a red line under the table (rule 7, #2632).
@@ -76,24 +109,74 @@ export function MasterToSpecPanel({ jobs, chainLabel, onCheckFiles }: { jobs: Ex
     }
     wasShown.current = shown;
   }, [shown]);
+  // A run that ends takes Cancel away with it, whether it was pressed or the run finished: the keyboard goes to Master & encode (or Add
+  // files… when nothing is picked), never to the page's <body> (#2935 review).
+  const wasRunning = useRef(exportRunning);
+  useEffect(() => {
+    const ended = wasRunning.current && !exportRunning;
+    wasRunning.current = exportRunning;
+    if (ended && onBody()) (masterRef.current ?? addRef.current)?.focus();
+  }, [exportRunning]);
+  useEffect(() => {
+    const target = afterRemove.current;
+    if (target === undefined) return;
+    afterRemove.current = undefined;
+    if (target === 'emptied') onEmptied?.();
+    else removeRefs.current.get(target)?.focus();
+  });
+  const remove = (path: string, rows: readonly { path: string }[]) => {
+    const at = rows.findIndex((row) => row.path === path);
+    afterRemove.current = rows[at + 1]?.path ?? rows[at - 1]?.path ?? 'emptied';
+    jobs.removeItem(path);
+  };
+  // Starting removes Master & encode (the table shows the job instead): focus goes to the files, never to the page's <body>.
+  const focusFiles = () => revealRef.current;
+  // Answers whether the export started, so the dialog keeps a macro name only once the host took it.
+  const start = (approval: MasteringApproval | null): Promise<boolean> =>
+    jobs.startExport(approval).then((outcome) => {
+      if (outcome === 'busy') return false;
+      setApproving(undefined);
+      if (outcome === 'refused') onStartRefused?.();
+      if (outcome === 'started' && onBody()) focusFiles()?.focus();
+      return outcome === 'started';
+    });
+  // With mastering on, the host says first what it would do (ExportPlan): a request it would refuse is refused here, before any
+  // dialog, and a row that needs the narrator's approval opens the dialog over exactly the plan the host answered.
+  const masterAndEncode = () => {
+    if (!jobs.master) {
+      void start(null);
+      return;
+    }
+    void jobs.planExport().then(({ outcome, plan }) => {
+      if (outcome === 'refused') onStartRefused?.();
+      if (outcome !== 'started' || !plan) return;
+      if (plan.needsApproval) setApproving(plan);
+      else void start(null);
+    });
+  };
   if (!shown) return null;
+  const rows = showsJob && exportJob ? exportJob.files : items;
   return (
     <Panel
       title="Master to spec"
       actions={
         // The panel's action sits in its header beside Add files…, where it stays at every width; it used to follow the checkbox's
         // sentence or drop under it as the window changed (R3MS-12).
-        !started && (
+        !showsJob && (
           <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" onClick={() => void jobs.pick()} pending={jobs.picking} disabled={exportRunning}>
+            <Button ref={addRef} variant="secondary" onClick={() => void jobs.pick()} pending={jobs.picking} disabled={jobs.starting}>
               Add files…
             </Button>
-            {items.length > 0 && <Button onClick={() => void jobs.startExport()}>{jobs.master ? 'Master & encode' : 'Encode'}</Button>}
+            {items.length > 0 && (
+              <Button ref={masterRef} onClick={masterAndEncode} pending={jobs.starting && !approving}>
+                {jobs.master ? 'Master & encode' : 'Encode'}
+              </Button>
+            )}
           </div>
         )
       }
     >
-      {(items.length > 0 || started) && (
+      {hasFiles && (
         <div
           ref={revealRef}
           tabIndex={0}
@@ -111,14 +194,15 @@ export function MasterToSpecPanel({ jobs, chainLabel, onCheckFiles }: { jobs: Ex
               </TableRow>
             </TableHead>
             <TableBody>
-              {(started && exportJob ? exportJob.files : items).map((item) => {
-                const result = exportJob?.files.find((file) => file.path === item.path);
+              {rows.map((item) => {
+                // A running job's row is its own result; otherwise the last job's, unless the row was removed or is starting again.
+                const result = showsJob ? exportJob?.files.find((file) => file.path === item.path) : jobs.resultFor(item.path);
                 const status = exportRowStatus(result);
                 return (
                   <TableRow key={item.path}>
                     <TableCell className="break-words">{fileName(item.path)}</TableCell>
                     <TableCell>
-                      {started ? (
+                      {locked ? (
                         KIND_OPTIONS.find((option) => option.value === item.kind)?.label
                       ) : (
                         <Select
@@ -136,7 +220,7 @@ export function MasterToSpecPanel({ jobs, chainLabel, onCheckFiles }: { jobs: Ex
                           <span aria-hidden="true">—</span>
                           <span className="sr-only">No title for this role</span>
                         </span>
-                      ) : started ? (
+                      ) : locked ? (
                         item.title
                       ) : (
                         <TextField
@@ -149,14 +233,22 @@ export function MasterToSpecPanel({ jobs, chainLabel, onCheckFiles }: { jobs: Ex
                     <TableCell className="whitespace-nowrap">
                       <StatusBadge tone={statusTone(status.status)} label={status.label} />
                       {result?.status === 'failed' && (
-                        <span className="mt-1 block text-[0.75rem] whitespace-normal" style={DANGER}>
+                        // A reason with no spaces (a long path) breaks anywhere rather than run past the column (#2935 review).
+                        <span className="mt-1 block text-[0.75rem] [overflow-wrap:anywhere] whitespace-normal" style={DANGER}>
                           {result.error ?? 'unknown reason'}
                         </span>
                       )}
                     </TableCell>
                     <TableCell align="right">
-                      {!started && (
-                        <Button variant="secondary" onClick={() => jobs.removeItem(item.path)}>
+                      {!locked && (
+                        <Button
+                          ref={(button) => {
+                            if (button) removeRefs.current.set(item.path, button);
+                            else removeRefs.current.delete(item.path);
+                          }}
+                          variant="secondary"
+                          onClick={() => remove(item.path, rows)}
+                        >
                           Remove
                         </Button>
                       )}
@@ -168,10 +260,11 @@ export function MasterToSpecPanel({ jobs, chainLabel, onCheckFiles }: { jobs: Ex
           </Table>
         </div>
       )}
-      {items.length > 0 && !started && (
+      {items.length > 0 && !showsJob && (
         <div className="mt-3 flex items-center gap-2">
-          <Checkbox checked={jobs.master} onChange={jobs.setMaster}>
-            Master before encoding{chainLabel ? ` with the ${chainLabel.charAt(0).toLowerCase()}${chainLabel.slice(1)}` : ''}
+          <Checkbox checked={jobs.master} onChange={jobs.setMaster} disabled={jobs.starting}>
+            {/* The row's own label, as the host words it: lowercasing it made "the your DAW's FX chain" (#2879's review). */}
+            Master before encoding{chainLabel ? `: ${chainLabel}` : ''}
           </Checkbox>
           <HelpButton label="About mastering before encoding">
             Mastering brings each file to the platform&apos;s RMS window and peak limit before it is encoded.
@@ -185,7 +278,7 @@ export function MasterToSpecPanel({ jobs, chainLabel, onCheckFiles }: { jobs: Ex
             <p aria-live="polite" className="text-sm">
               {exportJob.message}
             </p>
-            <Button variant="secondary" onClick={jobs.cancelExport}>
+            <Button variant="secondary" onClick={jobs.cancelExport} pending={jobs.cancelling}>
               Cancel
             </Button>
           </div>
@@ -201,6 +294,15 @@ export function MasterToSpecPanel({ jobs, chainLabel, onCheckFiles }: { jobs: Ex
             <IconButton action="checkPreparedFiles" onClick={onCheckFiles} />
           )}
         </div>
+      )}
+      {approving && (
+        <MasteringApprovalDialog
+          plan={approving}
+          pending={jobs.starting}
+          onApprove={(macro) => start({ provider: approving.provider, macro })}
+          onCancel={() => setApproving(undefined)}
+          returnFocus={focusFiles}
+        />
       )}
     </Panel>
   );

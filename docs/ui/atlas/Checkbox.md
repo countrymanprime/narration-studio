@@ -17,9 +17,9 @@ Storybook title: `Primitives/Checkbox`. Source: `src/components/primitives/Check
 
 ## Used by
 
+- `src/components/booth/voices/WhoIsInDialog.tsx`
 - `src/components/credits/CreditsSetupDialog.tsx`
 - `src/components/devtools/MockStatesPanel.tsx`
-- `src/components/editing/backups/BackupsInspector.tsx`
 - `src/components/editing/cleanup/CleanupList.tsx`
 - `src/components/editing/effects/EffectSettings.tsx`
 - `src/components/editing/range/cut/CutDialog.tsx`
@@ -27,11 +27,13 @@ Storybook title: `Primitives/Checkbox`. Source: `src/components/primitives/Check
 - `src/components/engine/ChapterTagsDialog.tsx`
 - `src/components/engine/CreateChapterRegionsDialog.tsx`
 - `src/components/engine/LinkChaptersDialog.tsx`
+- `src/components/engine/VoicesCard.tsx`
 - `src/components/master/MasterToSpecPanel.tsx`
 - `src/components/master/MultiPlatformExportPanel.tsx`
 - `src/components/master/ReportExportPanel.tsx`
 - `src/components/pickups/list/PickupsTable.tsx`
 - `src/components/production/ImportReview.tsx`
+- `src/components/production/ManuscriptImport.tsx`
 - `src/components/production/report/ReportDialog.tsx`
 - `src/components/recordingcheck/CheckRecordingsDialog.tsx`
 - `src/components/recordingcheck/RunOptions.tsx`

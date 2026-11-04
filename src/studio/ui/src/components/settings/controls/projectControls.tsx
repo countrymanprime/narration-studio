@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react';
 import {
+  BoothTextSizeBody,
   MotionRowBody,
   ReaderFontBody,
   ReaderSizeBody,
@@ -27,6 +28,7 @@ export const PROJECT_CONTROLS: Record<string, ComponentType> = {
   'look.readerSize': ReaderSizeBody,
   'look.readerSpacing': ReaderSpacingBody,
   'look.readerWidth': ReaderWidthBody,
+  'look.boothSize': BoothTextSizeBody,
   'look.waveScrollStep': WaveScrollStepBody,
   'look.zoom': ZoomRowBody,
   'keys.map': ShortcutsRowBody,

@@ -49,6 +49,17 @@ describe('Master & QC page body', () => {
   };
   const bar = () => screen.getByRole('button', { name: /^Chapter: / });
 
+  // #2820: the next step after Proof is to render the chapters in REAPER, so the structure tools sit beside Check files until there are files.
+  it('offers the DAW tools beside Check files while no file has been measured, and not once there are files', async () => {
+    mount([]);
+    expect(await screen.findByRole('button', { name: 'Check files…' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'DAW tools' })).toBeTruthy();
+    cleanup();
+    mount(ALL_PASS);
+    expect(await screen.findByRole('button', { name: /Re-check/ })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'DAW tools' })).toBeNull();
+  });
+
   it('selecting a file moves the shared chapter and the chapter bar follows', async () => {
     window.localStorage.clear();
     const user = userEvent.setup();
@@ -353,6 +364,16 @@ describe('Master & QC page body', () => {
     }
     await userEvent.hover(screen.getByRole('button', { name: 'Check files…' }));
     expect(await screen.findByRole('tooltip')).toBeTruthy();
+  });
+
+  it('removing the last file to master puts the keyboard back on Master all to spec…, not the page (#2935 review)', async () => {
+    mount([]);
+    const entry = await screen.findByRole('button', { name: 'Master all to spec…' });
+    await userEvent.click(entry);
+    const table = await screen.findByRole('table', { name: 'Files to export' });
+    for (const remove of within(table).getAllByRole('button', { name: 'Remove' })) await userEvent.click(remove);
+    expect(screen.queryByRole('table', { name: 'Files to export' })).toBeNull();
+    expect(document.activeElement).toBe(entry);
   });
 
   it('a-measured-book-offers-Re-check-and-Choose-other-files-as-icon-buttons', async () => {

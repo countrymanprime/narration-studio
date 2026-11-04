@@ -12,6 +12,8 @@ Storybook title: `Primitives/ContextMenu`. Source: `src/components/primitives/Co
 - Keyboard Chooses An Item
 - Escape Closes
 - Grouped
+- Submenu
+- Checked Rows And Key Hints
 
 ## Used by
 
@@ -23,8 +25,11 @@ Storybook title: `Primitives/ContextMenu`. Source: `src/components/primitives/Co
 - `src/components/editing/menu/playAndCopySections.ts`
 - `src/components/editing/menu/useEditingWordMenu.ts`
 - `src/components/editing/menu/wordMenuRegistry.ts`
+- `src/components/editing/range/cut/useCutWords.tsx`
 - `src/components/editing/range/fx/fxMenu.ts`
 - `src/components/editing/range/fx/useFxWords.tsx`
+- `src/components/editing/ribbon/Ribbon.tsx`
+- `src/components/editing/ribbon/WaveDock.tsx`
 - `src/components/editing/takes/takesMenuSection.ts`
 - `src/components/layout/AppShell.tsx`
 - `src/components/layout/ContextMenuHost.tsx`

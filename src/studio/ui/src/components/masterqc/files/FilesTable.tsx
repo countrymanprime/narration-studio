@@ -25,7 +25,7 @@ const MUTED = { color: 'var(--text-muted)' };
  * The table's own floor (`TABLE_FLOOR`) keeps File at least about 10rem: under it the table scrolls in its box rather than breaking a
  * chapter name a letter a line (XMS-1).
  */
-const COLUMNS = ['auto', '4rem', '4.25rem', '4.25rem', '5.75rem', '6.25rem', '5.75rem', '7rem'] as const;
+const COLUMNS = ['auto', '3.75rem', '4rem', '4rem', '5.75rem', '6.25rem', '5.75rem', '6.75rem'] as const;
 const TABLE_FLOOR = 'min-w-[44rem]';
 /**
  * Under the floor (a card narrower than 44 rem: the tablet width and the 390 reflow) a row is a block, not a clipped table row (#2635): the

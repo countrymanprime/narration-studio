@@ -7,12 +7,14 @@ Storybook title: `Primitives/Tooltip`. Source: `src/components/primitives/Toolti
 ## Stories
 
 - Info Icon
+- Info Icon Has 24 Px Hit Area
 - Info Icon Shows Tooltip On Keyboard Focus
 - Info Icon Keeps Open On Enter After Focus
 - Info Icon Lets Tab Move On
 - Info Icon Toggles On Press
 - Info Icon Popup Takes Pointer Events
 - On Button
+- Short Hover Delay
 - Shows Tooltip On Focus
 - Escape Hides Tooltip
 - Hides Tooltip On Blur
@@ -28,25 +30,38 @@ Storybook title: `Primitives/Tooltip`. Source: `src/components/primitives/Toolti
 - `src/components/booth/bookmarks/BookmarkRibbons.tsx`
 - `src/components/booth/page/CreditsWarning.tsx`
 - `src/components/booth/record/SetupChip.tsx`
+- `src/components/booth/resume/RecordedThroughChip.tsx`
 - `src/components/booth/resume/ResumeOffer.tsx`
+- `src/components/booth/voices/VoiceControl.tsx`
 - `src/components/editing/bar/SelectionActionButton.tsx`
 - `src/components/editing/page/EditingHeader.tsx`
-- `src/components/editing/range/cut/CutButtons.tsx`
+- `src/components/editing/ribbon/RibbonControls.tsx`
 - `src/components/editing/stack/RetryBar.tsx`
 - `src/components/editing/stack/StackControls.tsx`
+- `src/components/editing/strip/TimelineStrip.tsx`
 - `src/components/editing/takes/prep/PrepControls.tsx`
 - `src/components/editing/takes/split/SplitButton.tsx`
+- `src/components/engine/AudacityLinkCard.tsx`
+- `src/components/engine/LiveTracksStatus.tsx`
+- `src/components/engine/VoicesCard.tsx`
 - `src/components/layout/AppShell.tsx`
 - `src/components/layout/EngineChip.tsx`
+- `src/components/master/DiagnosticsSection.tsx`
+- `src/components/master/MasteringChain.tsx`
+- `src/components/primitives/ActivityPanel.tsx`
 - `src/components/primitives/CapabilityGate.tsx`
 - `src/components/primitives/ChapterStepper.tsx`
+- `src/components/primitives/ContextMenu.tsx`
 - `src/components/primitives/IconButton.tsx`
 - `src/components/primitives/NavButton.tsx`
 - `src/components/primitives/Pill.tsx`
 - `src/components/primitives/SearchField.tsx`
+- `src/components/primitives/SplitButton.tsx`
 - `src/components/primitives/Table.tsx`
 - `src/components/primitives/TagInput.tsx`
 - `src/components/primitives/TitleSubtitle.tsx`
+- `src/components/primitives/TreeCaret.tsx`
+- `src/components/primitives/TreeSelect.tsx`
 - `src/components/production/ImportReview.tsx`
 - `src/components/production/ManuscriptImport.tsx`
 - `src/components/production/overview/CheckCountsCard.tsx`
@@ -54,7 +69,6 @@ Storybook title: `Primitives/Tooltip`. Source: `src/components/primitives/Toolti
 - `src/components/production/pipeline/PageHeader.tsx`
 - `src/components/production/pipeline/PipelineTable.tsx`
 - `src/components/production/readiness/ReadinessChip.tsx`
-- `src/components/project/ProjectPicker.tsx`
 - `src/components/proof/CompareRun.tsx`
 - `src/components/proof/PreviewPanel.tsx`
 - `src/components/proof/frame/WaveformWindow.tsx`
@@ -63,13 +77,14 @@ Storybook title: `Primitives/Tooltip`. Source: `src/components/primitives/Toolti
 - `src/components/script/bookmarks/ui/BookmarkRibbon.tsx`
 - `src/components/script/page/tools/select/KindMenu.tsx`
 - `src/components/script/page/tools/select/MarkMenu.tsx`
-- `src/components/script/page/tools/select/SelectionTool.tsx`
 - `src/components/script/page/tools/select/harness.tsx`
 - `src/components/settings/ScopedSetting.tsx`
 - `src/components/settings/page/StoryBibleTypesPanel.tsx`
-- `src/components/storybible/Guide.tsx`
+- `src/components/stages/StageEvidence.tsx`
 - `src/components/storybible/GuideDetail.tsx`
 - `src/components/storybible/PropertiesSection.tsx`
-- `src/components/storybible/suggested/panel/ScanButton.tsx`
+- `src/components/storybible/Relationships.tsx`
+- `src/components/storybible/suggested/panel/ScanStatus.tsx`
 - `src/components/storybible/suggested/row/ConfidenceChip.tsx`
 - `src/components/storybible/suggested/row/Quotes.tsx`
+- `src/components/storybible/voicesamples/VoiceSamplesBody.tsx`

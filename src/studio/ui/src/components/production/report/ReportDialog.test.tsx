@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
@@ -126,6 +126,70 @@ describe('ReportDialog', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Done' }));
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(write).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens the reports folder once the report is written, and a refusal is a toast with Retry, never a line in the dialog (#2884)', async () => {
+    let refuse = true;
+    const open = vi.fn(async () => {
+      if (refuse) throw new Error('export a report first; there is no reports folder to open yet');
+      return { folder: `${brand.identity.projectFolder}/production/reports` };
+    });
+    const toast = vi.spyOn(overlay, 'toast').mockImplementation(() => undefined as never);
+    mount({ productionOpenReportsFolder: open });
+    await screen.findByTitle('Preview of the report');
+    // Nothing to open before the export: the button is not offered.
+    expect(screen.queryByRole('button', { name: /open the folder/i })).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Export' }));
+    await userEvent.click(await screen.findByRole('button', { name: /open the folder/i }));
+    expect(open).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(toast).toHaveBeenCalledTimes(1));
+    const [text, options] = toast.mock.calls[0] as [string, { tone: string; action: { label: string; onAction: () => void } }];
+    expect(text).toContain('there is no reports folder to open yet');
+    expect(options.tone).toBe('error');
+    expect(options.action.label).toBe('Retry');
+    expect(screen.queryByRole('alert')).toBeNull();
+    refuse = false;
+    options.action.onAction();
+    await waitFor(() => expect(open).toHaveBeenCalledTimes(2));
+    expect(toast).toHaveBeenCalledTimes(1);
+    toast.mockRestore();
+  });
+
+  it('the open-folder button stays on the first line of a long written sentence', async () => {
+    mount({
+      productionStatusReport: async (include: ProductionReportInclude) => ({
+        folder: `${brand.identity.projectFolder}/production/reports`,
+        htmlFile: `${'x'.repeat(400)}.html`,
+        jsonFile: `${'y'.repeat(400)}.json`,
+        contractedAmountIncluded: include.money,
+        include,
+      }),
+    });
+    await screen.findByTitle('Preview of the report');
+    await userEvent.click(screen.getByRole('button', { name: 'Export' }));
+    const button = await screen.findByRole('button', { name: /open the folder/i });
+    // Beside the first line of the sentence, not centred against however many lines it breaks into; the sentence breaks anywhere and may shrink.
+    const line = button.closest('.grid') as HTMLElement;
+    expect(line.className).toMatch(/(^|\s)items-start(\s|$)/);
+    expect(line.className).not.toMatch(/items-center/);
+    const sentence = line.querySelector('p') as HTMLElement;
+    expect(sentence.className).toContain('min-w-0');
+    expect(sentence.className).toContain('[overflow-wrap:anywhere]');
+  });
+
+  it('a held Enter on Open the folder asks the host once per press, not once per key repeat', async () => {
+    const open = vi.fn(async () => ({ folder: `${brand.identity.projectFolder}/production/reports` }));
+    mount({ productionOpenReportsFolder: open });
+    await screen.findByTitle('Preview of the report');
+    await userEvent.click(screen.getByRole('button', { name: 'Export' }));
+    const button = await screen.findByRole('button', { name: /open the folder/i });
+    // A repeat of a held key is not another press: it is stopped before the button's own activation.
+    expect(fireEvent.keyDown(button, { key: 'Enter', repeat: true })).toBe(false);
+    expect(fireEvent.keyDown(button, { key: ' ', repeat: true })).toBe(false);
+    expect(fireEvent.keyDown(button, { key: 'Enter' })).toBe(true);
+    button.focus();
+    await userEvent.keyboard('{Enter}');
+    await waitFor(() => expect(open).toHaveBeenCalledTimes(1));
   });
 
   it('export-failure is an alert in the host words and the dialog stays open', async () => {

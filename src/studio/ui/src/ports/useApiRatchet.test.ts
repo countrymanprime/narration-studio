@@ -19,7 +19,6 @@ const CEILING: Record<string, number> = {
   'src/components/booth/ResumePrompt.tsx': 1,
   'src/components/booth/companion/CompanionHost.tsx': 1,
   'src/components/booth/companion/CompanionPage.tsx': 1,
-  'src/components/booth/useRecordInReaper.ts': 1,
   'src/components/booth/useRecorder.ts': 1,
   'src/components/booth/useResumeLocate.ts': 1,
   'src/components/booth/useTeleprompterSession.ts': 1,

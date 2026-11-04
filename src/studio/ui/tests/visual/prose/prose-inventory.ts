@@ -182,7 +182,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   },
   {
     file: 'components/engine/ChapterSyncConsentDialog.tsx',
-    text: 'You can turn chapter sync on or off later in the audio engine panel (the … chip at the top of the window).',
+    text: 'You can turn chapter sync on or off later in Settings, or in the audio engine panel (the … chip at the top of the window).',
     class: 'overlay',
   },
   {
@@ -284,7 +284,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   },
   {
     file: 'components/master/MasteringChain.tsx',
-    text: "One chain for the book: …, the same for every platform, with each platform's own RMS window and peak limit.",
+    text: "One chain masters the whole book, for every platform. Master with chooses it: the built-in chain brings each file to the platform's RMS window and peak limit; your DAW's FX chain or an Audacity macro runs your own steps, and asks your approval before each export.",
     class: 'overlay',
   },
   {

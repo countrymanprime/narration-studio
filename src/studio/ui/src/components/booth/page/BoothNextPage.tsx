@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { FLAT_VOICE_KEYS, useBoothVoices } from '../voices/useBoothVoices';
 import { VoiceControl } from '../voices/VoiceControl';
+import { WhoIsInDialog, type WhoAsk } from '../voices/WhoIsInDialog';
+import { castOf } from '../voices/whoIsIn';
 import type { PickupItem } from '../../../api/contracts/pickups';
 import { useSearchParams } from 'react-router-dom';
 import { headingName } from '../../../chapterHeading';
@@ -19,6 +21,7 @@ import { usePort } from '../../../ports/usePort';
 import { recordsInApp } from '../../../studio/dawNames';
 import { dawShortName, useJournal } from '../../../studio/StudioProvider';
 import { ContextMenuHost } from '../../layout/ContextMenuHost';
+import type { ToastAction } from '../../primitives/Toast';
 import type { ContextMenuItem } from '../../primitives/ContextMenu';
 import { ChapterStepper } from '../../primitives/ChapterStepper';
 import { NeedManuscript } from '../../layout/NeedManuscript';
@@ -52,7 +55,7 @@ import { offerAwayFrom, saveNote } from '../resume/resumeOfferModel';
 import { useSuspectedPickups } from '../suspected/useSuspectedPickups';
 import { BoothSidePanel, useBoothSideOpen } from '../side/BoothSidePanel';
 import { boothDecorations, markAtWord } from '../side/decorations';
-import { comingUpWords } from '../side/nearby';
+import { comingUpWords, linesInChapter } from '../side/nearby';
 import { useBoothMarks } from '../side/useBoothMarks';
 import { referenceOf } from '../side/referenceOf';
 import { useBoothReference } from '../side/useBoothReference';
@@ -478,9 +481,50 @@ function BoothSession({
 
   // The chapter's voices in a Voice folders project (docs/prds/booth-voice-tracks.prd.md): Num 0 to Num 9 choose one, Num + and Num −
   // step through them, Num . opens the list; during a take the choice switches the recording live.
-  const voiceToast = useCallback((text: string, tone?: 'error' | 'info') => overlay.toast(text, tone === 'error' ? { tone } : undefined), [overlay]);
-  const voices = useBoothVoices({ chapterId: recordId, recording: control.recording, notify: voiceToast });
+  const voiceToast = useCallback(
+    (text: string, tone?: 'error' | 'info', action?: ToastAction) => overlay.toast(text, tone === 'error' ? { tone, action } : undefined),
+    [overlay],
+  );
+  // "Who is in Num N?" (phase 5, #2839): a key with no track behind it asks, after stopping a take this app runs as Stop does.
+  const [whoAsk, setWhoAsk] = useState<WhoAsk | null>(null);
+  const voices = useBoothVoices({
+    chapterId: recordId,
+    recording: control.recording,
+    notify: voiceToast,
+    stopTake: page.stopTake,
+    onNoTrack: (key) => setWhoAsk({ kind: 'key', key }),
+    asking: whoAsk !== null,
+  });
   const [voiceListOpen, setVoiceListOpen] = useState(false);
+  const lines = useMemo(() => linesInChapter(units, entities), [units, entities]);
+  const cast = useMemo(
+    () =>
+      castOf({
+        inThisChapter: inThisChapter.map((voice) => ({ id: voice.id, name: voice.name })),
+        characters: characters.map((entity) => ({ id: entity.id, name: entity.canonical_name })),
+        lines,
+        voices: voices.voices,
+      }),
+    [inThisChapter, characters, lines, voices.voices],
+  );
+  // Another chapter is another folder: a question about this one's voices goes.
+  useEffect(() => setWhoAsk(null), [recordId]);
+  const askFor = useCallback(
+    (characterId: string, choice?: 'new' | 'existing') => {
+      const character = [...cast.inChapter, ...cast.elsewhere].find((each) => each.id === characterId);
+      if (character) setWhoAsk({ kind: 'character', character, choice });
+    },
+    [cast],
+  );
+  const voiceKeys =
+    voices.voices.length > 0
+      ? {
+          keyOf: (id: string) => cast.inChapter.find((character) => character.id === id)?.key,
+          speaks: (id: string) => (lines.get(id) ?? 0) > 0,
+          add: (id: string) => askFor(id, 'new'),
+          addWhy: control.recording ? 'Not while recording. Stop the take first.' : undefined,
+        }
+      : undefined;
   useCommand('booth.voice.0', () => voices.byKey(0));
   useCommand('booth.voice.1', () => voices.byKey(1));
   useCommand('booth.voice.2', () => voices.byKey(2));
@@ -757,6 +801,7 @@ function BoothSession({
                     numbers: page.numbers,
                     flags: page.flags,
                     onOpenEntry: (id) => void page.goTo(`${BOOTH_LINKS.storyBible}#${encodeURIComponent(id)}`),
+                    voiceKeys,
                   }}
                 />
               </PickupSessionProvider>
@@ -817,9 +862,30 @@ function BoothSession({
                   if (next) voices.reload();
                   setVoiceListOpen(next);
                 }}
+                noTrack={cast.noTrack}
+                // A character with no track: while stopped, who records it; during a take the Narrator voice does at once (decision 5).
+                onPickCharacter={(character) => (control.recording ? voices.standInFor(character) : setWhoAsk({ kind: 'character', character }))}
+                standIn={voices.standIn}
+                recording={control.recording}
+                onAddFor={(character) => setWhoAsk({ kind: 'character', character, choice: 'new' })}
+                onUseFor={(character) => setWhoAsk({ kind: 'character', character, choice: 'existing' })}
               />
             }
           />
+          {whoAsk && voices.voices.length > 0 ? (
+            <WhoIsInDialog
+              ask={whoAsk}
+              voices={voices.voices}
+              cast={cast}
+              onAdd={voices.add}
+              onUse={voices.use}
+              onNarrator={(narrator) => {
+                voices.choose(narrator);
+                setWhoAsk(null);
+              }}
+              onClose={() => setWhoAsk(null)}
+            />
+          ) : null}
         </div>
         <ListeningModelPrompt session={session} />
       </ContextMenuHost>

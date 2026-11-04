@@ -166,3 +166,65 @@ it('closes on a choice in a section that asks to', async () => {
   expect(pick).toHaveBeenCalledTimes(1);
   await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
 });
+
+describe('Menu: an item with a reason it is off', () => {
+  it('keeps the item in the menu, off, with its reason as the description, and a press does nothing and leaves the menu open', async () => {
+    const user = userEvent.setup();
+    const onSelect = vi.fn();
+    render(<Menu items={[{ key: 'a', label: 'Create regions', disabledReason: 'REAPER is not connected.', onSelect }]}>Tools</Menu>);
+    await user.click(screen.getByRole('button', { name: 'Tools' }));
+    const item = await screen.findByRole('menuitem', { name: /Create regions/ });
+    expect(item.getAttribute('aria-disabled')).toBe('true');
+    expect(item.getAttribute('aria-describedby')).toBeTruthy();
+    expect(screen.getByText('REAPER is not connected.')).toBeTruthy();
+    await user.click(item);
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(screen.queryByRole('menuitem', { name: /Create regions/ })).toBeTruthy();
+  });
+
+  it('can still be reached with the arrow keys', async () => {
+    const user = userEvent.setup();
+    render(<Menu items={[{ key: 'a', label: 'Off', disabledReason: 'Why not.', onSelect: vi.fn() }]}>Tools</Menu>);
+    await user.click(screen.getByRole('button', { name: 'Tools' }));
+    await screen.findByRole('menuitem', { name: /Off/ });
+    await user.keyboard('{ArrowDown}');
+    expect(document.activeElement?.getAttribute('aria-disabled')).toBe('true');
+  });
+});
+
+describe('Menu: a long reason', () => {
+  it('wraps a reason with no break in it inside the popup instead of running out of it', async () => {
+    const user = userEvent.setup();
+    const reason = `The REAPER project could not be read: C:\\${'Projects\\'.repeat(40)}Book.rpp`;
+    render(<Menu items={[{ key: 'a', label: 'Off', disabledReason: reason, onSelect: vi.fn() }]}>Tools</Menu>);
+    await user.click(screen.getByRole('button', { name: 'Tools' }));
+    const text = await screen.findByText(reason);
+    expect(text.className).toMatch(/overflow-wrap:anywhere/);
+  });
+});
+
+describe('Menu: pageMenu', () => {
+  it('draws its popup inside the page main, where the default menu draws it in the body', async () => {
+    const user = userEvent.setup();
+    render(
+      <main>
+        <Menu pageMenu items={[{ key: 'a', label: 'One', onSelect: vi.fn() }]}>
+          Page tools
+        </Menu>
+      </main>,
+    );
+    await user.click(screen.getByRole('button', { name: 'Page tools' }));
+    expect((await screen.findByRole('menu')).closest('main')).toBeTruthy();
+  });
+
+  it('draws its popup outside any main by default', async () => {
+    const user = userEvent.setup();
+    render(
+      <main>
+        <Menu items={[{ key: 'a', label: 'One', onSelect: vi.fn() }]}>Tools</Menu>
+      </main>,
+    );
+    await user.click(screen.getByRole('button', { name: 'Tools' }));
+    expect((await screen.findByRole('menu')).closest('main')).toBeNull();
+  });
+});

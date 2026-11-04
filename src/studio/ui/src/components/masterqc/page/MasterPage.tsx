@@ -1,6 +1,6 @@
 import { isNarrationChapter } from '../../../chapterKinds';
 import { headingName } from '../../../chapterHeading';
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { useErrorToast } from '../../../hooks/useErrorToast';
 import { usePort } from '../../../ports/usePort';
@@ -34,6 +34,7 @@ import { profileName } from './packageItems';
 import { saveSharedChapter } from './sharedChapter';
 import { PAGE_COLUMN_CLASS } from '../../primitives/pageColumn';
 import { useFileActions } from './useFileActions';
+import { DawToolsButton } from '../../engine/DawToolsButton';
 
 const MUTED = { color: 'var(--text-muted)' };
 
@@ -99,6 +100,8 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
   const run = useMeasureRun();
   useMeasureErrors(run);
   const jobs = useExportJobs();
+  // The header's way into Master to spec: it takes the keyboard when Remove empties the panel and the panel goes (#2935 review).
+  const toSpecEntry = useRef<HTMLButtonElement>(null);
   const mastering = useMasteringProviders();
   const [all, setAll] = useState<DeliveryProfile[]>([]);
   const [chosen, setChosen] = useState<DeliveryProfile>();
@@ -253,6 +256,7 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
               <>
                 {/* Opens Master to spec below (no mock equivalent, kept as built). */}
                 <IconButton
+                  ref={toSpecEntry}
                   action="masterAllToSpec"
                   label="Master all to spec…"
                   onClick={() => void jobs.pick()}
@@ -260,6 +264,8 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
                   disabledReason={jobs.exportRunning ? 'An export is running' : undefined}
                 />
                 <MeasureControls run={run} />
+                {/* #2820: with nothing measured the next step is to render the chapters in the DAW, so its structure tools sit beside Check files. */}
+                {run.files.length === 0 && <DawToolsButton groups={['structure']} />}
               </>
             );
             // What the card says under its controls, at its own inset: what could not be read with Retry at the card's right edge, a
@@ -308,8 +314,22 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
             <Panel title="Book consistency" subtitle={profile ? `RMS by file against ${rangeOf(profile)}` : undefined}>
               <Consistency files={run.files} profile={profile} />
             </Panel>
-            <MasterToSpecPanel jobs={jobs} chainLabel={chain?.label} onCheckFiles={() => void run.chooseOther()} />
-            <MasteringChain providers={mastering.providers} problem={mastering.problem} />
+            <MasterToSpecPanel
+              jobs={jobs}
+              chain={chain}
+              onStartRefused={mastering.reload}
+              onCheckFiles={() => void run.chooseOther()}
+              onEmptied={() => toSpecEntry.current?.focus()}
+            />
+            <MasteringChain
+              providers={mastering.providers}
+              problem={mastering.problem}
+              saveProblem={mastering.saveProblem}
+              saving={mastering.saving}
+              locked={jobs.exportRunning || jobs.starting}
+              onChoose={mastering.choose}
+              retry={mastering.reload}
+            />
             <DiagnosticsSection measuredPaths={run.paths} openSettings={openSettings} />
             <ReportExportPanel busy={run.running} measured={run.files.length > 0} />
           </div>

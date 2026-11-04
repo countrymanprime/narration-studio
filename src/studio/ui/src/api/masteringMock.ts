@@ -15,6 +15,7 @@ const ROWS: MockRow[] = [
     label: 'Built-in chain (EQ, limiter, gain)',
     modes: ['wav'],
     needsApproval: false,
+    needsMacro: false,
     needs: [],
     support: { level: 'supported', available: true },
     chain: [
@@ -28,6 +29,7 @@ const ROWS: MockRow[] = [
     label: "Your DAW's FX chain",
     modes: ['daw_region'],
     needsApproval: true,
+    needsMacro: false,
     needs: ['render_with_fx', 'master_chain_read'],
     support: { level: 'experimental', available: true },
     chain: [],
@@ -37,6 +39,7 @@ const ROWS: MockRow[] = [
     label: "Audacity's effect macro",
     modes: ['wav'],
     needsApproval: true,
+    needsMacro: true,
     needs: ['macro_render'],
     support: { level: 'experimental', available: true },
     chain: [],
@@ -48,18 +51,20 @@ export type MasteringMockSeed = {
   hasProject?: boolean;
   /** The project's stored choice; defaults to none (it masters with the default row). */
   choice?: string;
+  /** Rows not available on this computer, by name, with the sentence the host refuses them with. */
+  unavailable?: Record<string, string>;
 };
 
-function currentProviders(hasProject: boolean, choice: string | null): MasteringProviders {
-  const fallback = ROWS[0];
+function currentProviders(rows: MockRow[], hasProject: boolean, choice: string | null): MasteringProviders {
+  const fallback = rows[0];
   const state: MasteringProviders = {
     hasProject,
     choice,
     effective: fallback.name,
-    providers: ROWS.map((row) => ({ ...row, default: row.name === fallback.name })),
+    providers: rows.map((row) => ({ ...row, default: row.name === fallback.name })),
   };
   if (choice === null) return state;
-  const row = ROWS.find((candidate) => candidate.name === choice);
+  const row = rows.find((candidate) => candidate.name === choice);
   if (!row) {
     state.notice = `This project chose a mastering chain this version does not have ("${choice}"). It masters with the default, ${fallback.label}.`;
   } else if (!row.support.available) {
@@ -73,17 +78,21 @@ function currentProviders(hasProject: boolean, choice: string | null): Mastering
 export function createMasteringMock(seed: MasteringMockSeed = {}): MasteringApi {
   const hasProject = seed.hasProject ?? true;
   let choice: string | null = hasProject ? (seed.choice ?? null) : null;
+  const rows = ROWS.map((row): MockRow => {
+    const message = seed.unavailable?.[row.name];
+    return message === undefined ? row : { ...row, support: { level: 'unsupported', available: false, reason: 'unsupported', message } };
+  });
   return {
-    masteringProviders: async () => wireClone(currentProviders(hasProject, choice)),
+    masteringProviders: async () => wireClone(currentProviders(rows, hasProject, choice)),
     masteringChooseProvider: async (name) => {
       if (!hasProject) throw new Error('open a project before choosing how it is mastered');
       if (name !== '') {
-        const row = ROWS.find((candidate) => candidate.name === name);
+        const row = rows.find((candidate) => candidate.name === name);
         if (!row) throw new Error(`There is no mastering chain called "${name}".`);
         if (!row.support.available) throw new Error(row.support.message);
       }
       choice = name === '' ? null : name;
-      return wireClone(currentProviders(hasProject, choice));
+      return wireClone(currentProviders(rows, hasProject, choice));
     },
   };
 }

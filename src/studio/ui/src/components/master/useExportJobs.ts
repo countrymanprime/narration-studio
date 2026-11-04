@@ -1,8 +1,19 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useApi } from '../../api/ApiContext';
 import { apiErrorMessage } from '../../api/errorMessage';
-import type { DeliveryProfile, ExportItem, ExportJob, MultiPackageJob, PackageItem, PackageJob } from '../../types';
+import { overlay } from '../../overlay/overlayService';
+import type { DeliveryProfile, ExportItem, ExportJob, ExportPlan, MasteringApproval, MultiPackageJob, PackageItem, PackageJob } from '../../types';
+import { startExportRequest, useExportStarting } from './masterRequests';
 import { kindFromFileName } from './packageKind';
+
+/** How a request to start the export ended for the panel that sent it. */
+export type ExportStartOutcome = 'started' | 'refused' | 'no-answer' | 'busy';
+
+/** The toast for a start the host did not answer in time. */
+export const EXPORT_START_NO_ANSWER = 'The app did not answer when asked to start the export. What it is doing was read again.';
+
+/** The toast for a plan the host did not answer in time. */
+export const EXPORT_PLAN_NO_ANSWER = 'The app did not answer when asked what the export would do. Nothing was started.';
 
 /** How often a running export or package job is read. */
 const POLL_MS = 500;
@@ -26,18 +37,32 @@ export function useExportJobs() {
   const [items, setItems] = useState<ExportItem[]>([]);
   const [master, setMaster] = useState(true);
   const [exportJob, setExportJob] = useState<ExportJob>();
+  // A pick, start or cancel the host refused, and a read of the job that failed: the read's goes once a read answers again.
   const [problem, setProblem] = useState<string>();
+  const [readProblem, setReadProblem] = useState<string>();
   const [packageJob, setPackageJob] = useState<PackageJob>();
   const [packageProblem, setPackageProblem] = useState<string>();
   const [multiPackageJob, setMultiPackageJob] = useState<MultiPackageJob>();
   const [multiPackageProblem, setMultiPackageProblem] = useState<string>();
+  // Each poll below re-arms on its job's next answer; a failed read changes no job, so it bumps its counter instead, or one failed
+  // read would stop the poll for good with the job still drawn as running (#2935 review).
+  const [exportRetry, setExportRetry] = useState(0);
+  const [packageRetry, setPackageRetry] = useState(0);
+  const [multiPackageRetry, setMultiPackageRetry] = useState(0);
+  const [cancelling, setCancelling] = useState(false);
+  const cancelSent = useRef(false);
+  // Picked files whose row no longer shows the last job's result: removed since that job, or about to be exported again.
+  const [cleared, setCleared] = useState<ReadonlySet<string>>(() => new Set());
+  // Whether the job the page opened on, once it has ended, still gives its files to an empty list: once, so removing them dismisses it.
+  const adoptOpeningJob = useRef(true);
+  const starting = useExportStarting();
 
   useEffect(() => {
     let active = true;
     api
       .exportState()
       .then((state) => active && setExportJob(state))
-      .catch((error) => active && setProblem(apiErrorMessage(error)));
+      .catch((error) => active && setReadProblem(apiErrorMessage(error)));
     api
       .packageState()
       .then((state) => active && setPackageJob(state))
@@ -56,16 +81,33 @@ export function useExportJobs() {
     if (!exportRunning) return;
     let active = true;
     const timer = setTimeout(() => {
-      api
-        .exportState()
-        .then((state) => active && setExportJob(state))
-        .catch((error) => active && setProblem(apiErrorMessage(error)));
+      api.exportState().then(
+        (state) => {
+          if (!active) return;
+          setReadProblem(undefined);
+          setExportJob(state);
+        },
+        (error) => {
+          if (!active) return;
+          setReadProblem(apiErrorMessage(error));
+          setExportRetry((count) => count + 1);
+        },
+      );
     }, POLL_MS);
     return () => {
       active = false;
       clearTimeout(timer);
     };
-  }, [api, exportRunning, exportJob]);
+  }, [api, exportRunning, exportJob, exportRetry]);
+
+  // The job the page opened on, once it is not running: its files become the picked files when none are picked, so the last run's rows
+  // can be changed, removed or run again like any others (#2935 review). Only once: removing them all dismisses the last run.
+  useEffect(() => {
+    if (!adoptOpeningJob.current || !exportJob || exportJob.phase === 'running') return;
+    adoptOpeningJob.current = false;
+    if (exportJob.files.length === 0) return;
+    setItems((current) => (current.length > 0 ? current : exportJob.files.map(({ kind, title, path }) => ({ kind, title, path }))));
+  }, [exportJob]);
 
   const packageRunning = packageJob?.phase === 'running';
   useEffect(() => {
@@ -75,13 +117,17 @@ export function useExportJobs() {
       api
         .packageState()
         .then((state) => active && setPackageJob(state))
-        .catch((error) => active && setPackageProblem(apiErrorMessage(error)));
+        .catch((error) => {
+          if (!active) return;
+          setPackageProblem(apiErrorMessage(error));
+          setPackageRetry((count) => count + 1);
+        });
     }, POLL_MS);
     return () => {
       active = false;
       clearTimeout(timer);
     };
-  }, [api, packageRunning, packageJob]);
+  }, [api, packageRunning, packageJob, packageRetry]);
 
   const multiPackageRunning = multiPackageJob?.phase === 'running';
   useEffect(() => {
@@ -91,13 +137,17 @@ export function useExportJobs() {
       api
         .packageMultiState()
         .then((state) => active && setMultiPackageJob(state))
-        .catch((error) => active && setMultiPackageProblem(apiErrorMessage(error)));
+        .catch((error) => {
+          if (!active) return;
+          setMultiPackageProblem(apiErrorMessage(error));
+          setMultiPackageRetry((count) => count + 1);
+        });
     }, POLL_MS);
     return () => {
       active = false;
       clearTimeout(timer);
     };
-  }, [api, multiPackageRunning, multiPackageJob]);
+  }, [api, multiPackageRunning, multiPackageJob, multiPackageRetry]);
 
   const pick = async () => {
     setPicking(true);
@@ -105,13 +155,19 @@ export function useExportJobs() {
     try {
       const picked = await api.exportPickFiles();
       if (picked.paths.length === 0) return;
+      // A path picked twice in one batch is one row; one already listed adds none, and the narrator is told so, once per pick.
+      const batch = [...new Set(picked.paths)];
+      const listed = new Set(items.map((item) => item.path));
+      const repeats = batch.filter((path) => listed.has(path));
       setItems((current) => {
         const existing = new Set(current.map((item) => item.path));
-        const added = picked.paths
+        const added = batch
           .filter((path) => !existing.has(path))
           .map((path): ExportItem => ({ kind: kindFromFileName(fileName(path)), title: titleFromPath(path), path }));
         return [...current, ...added];
       });
+      if (repeats.length === 1) overlay.toast(`${fileName(repeats[0] ?? '')} is already in the list.`);
+      else if (repeats.length > 1) overlay.toast(`${repeats.length} files are already in the list.`);
     } catch (error) {
       setProblem(apiErrorMessage(error));
     } finally {
@@ -121,17 +177,86 @@ export function useExportJobs() {
 
   const updateItem = (path: string, patch: Partial<ExportItem>) =>
     setItems((current) => current.map((item) => (item.path === path ? { ...item, ...patch } : item)));
-  const removeItem = (path: string) => setItems((current) => current.filter((item) => item.path !== path));
-
-  const startExport = async () => {
-    setProblem(undefined);
-    try {
-      setExportJob(await api.exportStart({ items, master, format: 'mp3' }));
-    } catch (error) {
-      setProblem(apiErrorMessage(error));
-    }
+  // A removed row's result goes with it: picked again, it is a new file to this list, not the last run's.
+  const removeItem = (path: string) => {
+    setItems((current) => current.filter((item) => item.path !== path));
+    setCleared((current) => new Set(current).add(path));
   };
-  const cancelExport = () => void api.exportCancel().then(setExportJob, (error) => setProblem(apiErrorMessage(error)));
+  /** The last job's result for a picked file, or none when the row was removed since or is being exported again. */
+  const resultFor = (path: string) => (cleared.has(path) ? undefined : exportJob?.files.find((file) => file.path === path));
+
+  const rereadExport = () => void api.exportState().then(setExportJob, (error) => setProblem(apiErrorMessage(error)));
+
+  /**
+   * Starts Master & encode with `approval`, the narrator's yes from the approval dialog (null without one). One start at a time
+   * (`startExportRequest`): a second press while one waits sends nothing and answers 'busy'. A refusal is a toast in the host's
+   * words; no answer within the bound is a toast too, and the job is read again, as it is when that late answer comes.
+   */
+  const startExport = (approval: MasteringApproval | null = null): Promise<ExportStartOutcome> =>
+    new Promise((resolve) => {
+      setProblem(undefined);
+      // While the start waits, no row shows the last run's result; a start that does not happen gives them back.
+      const before = cleared;
+      const sent = startExportRequest(() => api.exportStart({ items, master, format: 'mp3', approval }), {
+        answered: (job) => {
+          adoptOpeningJob.current = false;
+          setCleared(new Set());
+          setExportJob(job);
+          resolve('started');
+        },
+        refused: (error) => {
+          setCleared(before);
+          setProblem(apiErrorMessage(error));
+          resolve('refused');
+        },
+        timedOut: () => {
+          setCleared(before);
+          setProblem(EXPORT_START_NO_ANSWER);
+          rereadExport();
+          resolve('no-answer');
+        },
+        late: rereadExport,
+      });
+
+      if (!sent) resolve('busy');
+      else setCleared(new Set([...before, ...items.map((item) => item.path)]));
+    });
+
+  /**
+   * Asks the host what Master & encode would do (ExportPlan), starting nothing: the row it masters with, whether it needs the
+   * narrator's approval or a macro, and the items as the host will export them. Held with the start (`startExportRequest`), so a
+   * press while either waits sends nothing. A refusal is a toast in the host's words, as a start's is; so is no answer in time.
+   */
+  const planExport = (): Promise<{ outcome: ExportStartOutcome; plan?: ExportPlan }> =>
+    new Promise((resolve) => {
+      setProblem(undefined);
+      const sent = startExportRequest(() => api.exportPlan({ items, master, format: 'mp3', approval: null }), {
+        answered: (plan) => resolve({ outcome: 'started', plan }),
+        refused: (error) => {
+          setProblem(apiErrorMessage(error));
+          resolve({ outcome: 'refused' });
+        },
+        timedOut: () => {
+          setProblem(EXPORT_PLAN_NO_ANSWER);
+          resolve({ outcome: 'no-answer' });
+        },
+        late: () => undefined,
+      });
+      if (!sent) resolve({ outcome: 'busy' });
+    });
+  // One cancel at a time: Cancel is busy while its request is out, and a second press sends nothing (#2935 review).
+  const cancelExport = () => {
+    if (cancelSent.current) return;
+    cancelSent.current = true;
+    setCancelling(true);
+    void api
+      .exportCancel()
+      .then(setExportJob, (error) => setProblem(apiErrorMessage(error)))
+      .finally(() => {
+        cancelSent.current = false;
+        setCancelling(false);
+      });
+  };
 
   const doneFiles = exportJob?.files.filter((file) => file.status === 'done' && file.encodedPath) ?? [];
 
@@ -169,12 +294,16 @@ export function useExportJobs() {
     setMaster,
     exportJob,
     exportRunning,
-    problem,
+    starting,
+    problem: problem ?? readProblem,
     pick,
     updateItem,
     removeItem,
+    resultFor,
     startExport,
+    planExport,
     cancelExport,
+    cancelling,
     doneFiles,
     packageJob,
     packageRunning,

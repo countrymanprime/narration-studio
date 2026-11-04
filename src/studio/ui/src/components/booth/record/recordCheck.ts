@@ -1,5 +1,5 @@
 import type { DawCapabilities } from '../../../api/contracts/daw';
-import { recorderName, recorderNameCapital } from '../../../studio/dawNames';
+import { recorderName, recorderNameCapital, wrongProjectReason } from '../../../studio/dawNames';
 
 /** What the host says of the chapter's track (`readAloudReaperState`): how many it has, and its own sentence for the ones that stop a take. */
 export type ChapterRecordState = {
@@ -28,11 +28,7 @@ export function recordCheck(capabilities: DawCapabilities, chapter: ChapterRecor
   }
   // A take goes into the project the DAW has open: if that is not the linked one it would land in the wrong project, so say so before it does.
   if (openProject === 'different') {
-    const name = recorderNameCapital(capabilities.daw);
-    return {
-      code: 'wrong_project',
-      reason: `${name} has a different project open than the one linked here. Open the linked project in ${name}, or link the open one in Settings.`,
-    };
+    return { code: 'wrong_project', reason: wrongProjectReason(capabilities.daw) };
   }
   if (chapter.elsewhere) {
     const name = recorderNameCapital(capabilities.daw);

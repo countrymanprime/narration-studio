@@ -52,6 +52,9 @@ var declares = map[dawport.Capability]dawport.Level{
 	// track_create is track_create's (narration_track_create.lua): Experimental until the owner sees one Undo take the new track back
 	// and REAPER answer its GUID and index.
 	dawport.CapTrackCreate: dawport.Experimental,
+	// tracks_read is tracks_read's (narration_tracks_read.lua): read-only. Experimental until the owner sees a track and a folder added in
+	// REAPER, unsaved, listed in Chapter links (the real-REAPER scenario tracks_read keeps the run's evidence).
+	dawport.CapTracksRead: dawport.Experimental,
 	// follow_position is read_place's and go_to's (narration_track_select.lua): Experimental until the owner sees the Booth open on the track REAPER is on.
 	dawport.CapFollowPosition: dawport.Experimental,
 	// transport_sync is set_cursor's, play_from's, stop_play's and watch_transport's (narration_transport.lua): Experimental until the owner hears the
@@ -103,6 +106,9 @@ var declares = map[dawport.Capability]dawport.Level{
 	dawport.CapDawMeters:    dawport.Supported,
 	// replace_range is replace_range's and restore_replacement's (narration_replace.lua). Experimental until the owner's pass.
 	dawport.CapReplaceRange: dawport.Experimental,
+	// voice_sample_region is keep_voice_sample's and read_voice_samples' (narration_voice_sample_region.lua). Experimental until the
+	// in-REAPER check (docs/research/reaper-voice-sample-region-check.md) has run.
+	dawport.CapVoiceSampleRegion: dawport.Experimental,
 }
 
 // commandCapability is the capability each of bridge.Actions' commands belongs to. Actions asks its gate about a command by name, and
@@ -112,6 +118,7 @@ var commandCapability = map[string]dawport.Capability{
 	"chapter_track_state": dawport.CapTrackState,
 	"select_track":        dawport.CapTrackSelect,
 	"track_create":        dawport.CapTrackCreate,
+	"tracks_read":         dawport.CapTracksRead,
 	"read_place":          dawport.CapFollowPosition,
 	"go_to":               dawport.CapFollowPosition,
 	"set_cursor":          dawport.CapTransportSync,
@@ -158,6 +165,8 @@ var commandCapability = map[string]dawport.Capability{
 	"replace_range":       dawport.CapReplaceRange,
 	"restore_replacement": dawport.CapReplaceRange,
 	"import_audio_track":  dawport.CapReplaceRange,
+	"keep_voice_sample":   dawport.CapVoiceSampleRegion,
+	"read_voice_samples":  dawport.CapVoiceSampleRegion,
 }
 
 // Gate is bridge.Actions' gate over allowed (the resolver's Allowed): a command is sent only when its capability is allowed. A nil
@@ -242,42 +251,44 @@ func New(client *bridge.Client, allowed func(dawport.Capability) error) (*Adapte
 	return &Adapter{
 		heartbeat: heartbeat,
 		roles: map[dawport.Capability]any{
-			dawport.CapReview:          review{client: client},
-			dawport.CapNavigate:        navigator,
-			dawport.CapMarkers:         navigator,
-			dawport.CapPickups:         pickupList{commands},
-			dawport.CapLineIdentity:    lineStamper{commands},
-			dawport.CapRenderConfig:    renderConfigurer{commands},
-			dawport.CapCleanupTools:    cleanupLauncher{commands},
-			dawport.CapRetakeLanes:     retakeLanePicker{commands},
-			dawport.CapProjectState:    projectStateReader{commands},
-			dawport.CapHeartbeat:       heartbeat,
-			dawport.CapProjectRead:     ProjectReader{},
-			dawport.CapTrackState:      actions,
-			dawport.CapTrackSelect:     actions,
-			dawport.CapTrackCreate:     actions,
-			dawport.CapFollowPosition:  placeFollower{actions, allowed},
-			dawport.CapTransportSync:   transportSyncer{actions, allowed, positions},
-			dawport.CapRecord:          actions,
-			dawport.CapPunch:           puncher{actions, allowed},
-			dawport.CapRegions:         actions,
-			dawport.CapTakes:           takeSelector{actions, allowed},
-			dawport.CapFXChains:        actions,
-			dawport.CapItemGain:        bridge.NewLevelMatchClient(client),
-			dawport.CapRenderWithFX:    fxRenderer{commands},
-			dawport.CapMasterChainRead: masterChainReader{actions},
-			dawport.CapCutRange:        rangeCutter{actions, allowed},
-			dawport.CapFXRange:         rangeFXApplier{actions, allowed, &appliedPieces{}},
-			dawport.CapStackTakes:      takeStacker{actions, allowed},
-			dawport.CapFilePreview:     actions,
-			dawport.CapFileReveal:      actions,
-			dawport.CapRangeGain:       rangeGainReducer{actions, allowed},
-			dawport.CapClickRepair:     clickRepairer{actions, allowed},
-			dawport.CapUndoLast:        lastActionUndoer{actions, allowed},
-			dawport.CapMonitorLevel:    monitorLeveler{actions, allowed},
-			dawport.CapPunchPreroll:    prerollReader{actions, allowed},
-			dawport.CapDawMeters:       meterReader{actions, allowed},
-			dawport.CapReplaceRange:    rangeReplacer{actions, allowed},
+			dawport.CapReview:            review{client: client},
+			dawport.CapNavigate:          navigator,
+			dawport.CapMarkers:           navigator,
+			dawport.CapPickups:           pickupList{commands},
+			dawport.CapLineIdentity:      lineStamper{commands},
+			dawport.CapRenderConfig:      renderConfigurer{commands},
+			dawport.CapCleanupTools:      cleanupLauncher{commands},
+			dawport.CapRetakeLanes:       retakeLanePicker{commands},
+			dawport.CapProjectState:      projectStateReader{commands},
+			dawport.CapHeartbeat:         heartbeat,
+			dawport.CapProjectRead:       ProjectReader{},
+			dawport.CapTrackState:        actions,
+			dawport.CapTrackSelect:       actions,
+			dawport.CapTrackCreate:       actions,
+			dawport.CapTracksRead:        actions,
+			dawport.CapFollowPosition:    placeFollower{actions, allowed},
+			dawport.CapTransportSync:     transportSyncer{actions, allowed, positions},
+			dawport.CapRecord:            actions,
+			dawport.CapPunch:             puncher{actions, allowed},
+			dawport.CapRegions:           actions,
+			dawport.CapTakes:             takeSelector{actions, allowed},
+			dawport.CapFXChains:          actions,
+			dawport.CapItemGain:          bridge.NewLevelMatchClient(client),
+			dawport.CapRenderWithFX:      fxRenderer{commands},
+			dawport.CapMasterChainRead:   masterChainReader{actions},
+			dawport.CapCutRange:          rangeCutter{actions, allowed},
+			dawport.CapFXRange:           rangeFXApplier{actions, allowed, &appliedPieces{}},
+			dawport.CapStackTakes:        takeStacker{actions, allowed},
+			dawport.CapFilePreview:       actions,
+			dawport.CapFileReveal:        actions,
+			dawport.CapRangeGain:         rangeGainReducer{actions, allowed},
+			dawport.CapClickRepair:       clickRepairer{actions, allowed},
+			dawport.CapUndoLast:          lastActionUndoer{actions, allowed},
+			dawport.CapMonitorLevel:      monitorLeveler{actions, allowed},
+			dawport.CapPunchPreroll:      prerollReader{actions, allowed},
+			dawport.CapDawMeters:         meterReader{actions, allowed},
+			dawport.CapReplaceRange:      rangeReplacer{actions, allowed},
+			dawport.CapVoiceSampleRegion: actions,
 		},
 	}, nil
 }

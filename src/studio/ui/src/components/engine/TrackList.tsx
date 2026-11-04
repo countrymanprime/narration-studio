@@ -109,7 +109,9 @@ export function TrackList({ tracks, mappings }: { tracks: Track[]; mappings: Tra
                       <span className="flex min-w-0 items-center gap-1.5" style={{ marginLeft: `calc(var(--g) * ${hasFolders ? node.level - 1 : 0})` }}>
                         {hasFolders && <TreeCaret folderName={track.isFolder ? name : undefined} open={isOpen} onToggle={() => toggle(node.id, !isOpen)} />}
                         <TrackMark color={track.color} folder={track.isFolder} open={isOpen} />
-                        <span className={`min-w-0 [overflow-wrap:anywhere] ${track.isFolder ? 'font-semibold' : 'font-medium'}`}>{name}</span>
+                        <span className={`min-w-0 [overflow-wrap:anywhere] ${track.isFolder ? 'font-semibold' : 'font-medium'}`}>
+                          <bdi>{name}</bdi>
+                        </span>
                         {track.isFolder && (
                           <span className="@max-[40rem]:hidden">
                             <StatusBadge tone="neutral" label={node.childCount === 0 ? 'Empty' : tracksWord(node.childCount)} />

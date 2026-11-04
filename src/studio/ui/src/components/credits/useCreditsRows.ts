@@ -48,7 +48,7 @@ export type CreditsRow = {
  */
 export function useCreditsRows(
   refreshKey: string | undefined,
-  onError: (error: unknown) => void,
+  onError: (error: unknown, retry: () => void) => void,
 ): {
   rows?: Record<CreditsKind, CreditsRow>;
   /** Why the rows could not be read, when they could not; a page that must not guess without them (Delivery) says so. */
@@ -102,12 +102,13 @@ export function useCreditsRows(
       active = false;
     };
   }, [credits, system, refreshKey]);
-  const setStatus = async (kind: CreditsKind, status: ChapterStatus) => {
+  const setStatus = async (kind: CreditsKind, status: ChapterStatus): Promise<void> => {
     try {
       await credits.setCreditsStatus(kind, status);
       setRows((current) => (current ? { ...current, [kind]: { ...current[kind], status } } : current));
     } catch (error) {
-      onError(error);
+      // Setting the same status again writes the same value, so the failure's toast can offer Retry (issue #2919).
+      onError(error, () => void setStatus(kind, status));
     }
   };
   return { rows, failure, setStatus };
