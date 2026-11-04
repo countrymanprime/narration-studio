@@ -164,6 +164,15 @@ export function BookmarksUpdate(id: string, label: string, note: string): $Cance
 }
 
 /**
+ * BoothVoiceAdd adds a voice track named name inside chapterID's linked folder, after its last child, assigns characterIDs (Story
+ * Bible ids) to it and chooses it for the next take. Sent only from the Booth's "Who is in Num N?" dialog, while no take of this app
+ * runs. The DAW's undo takes the track back; the project is not saved.
+ */
+export function BoothVoiceAdd(chapterID: string, name: string, characterIDs: string[]): $CancellablePromise<string> {
+    return $Call.ByID(310487139, chapterID, name, characterIDs);
+}
+
+/**
  * BoothVoiceGet is the voice the Booth records chapterID on, as the host holds it: the page shows this, never a voice it assumed,
  * so a choice made before the Booth was left, or one a refused switch kept, is what the record bar says.
  */
@@ -2163,6 +2172,15 @@ export function PreviewPinClear(): $CancellablePromise<string> {
  */
 export function PreviewPinSet(chapterID: string, paragraphIDs: string[]): $CancellablePromise<string> {
     return $Call.ByID(3856724439, chapterID, paragraphIDs);
+}
+
+/**
+ * ProductionOpenReportsFolder shows the project's status-report folder in the file manager, through the same openFolder the
+ * log and package folders use. It takes no path: the folder is always <app>/production/reports of the open project, never one
+ * the UI names. It is refused with a sentence when no project is open or no report has been exported yet.
+ */
+export function ProductionOpenReportsFolder(): $CancellablePromise<string> {
+    return $Call.ByID(414894616);
 }
 
 /**

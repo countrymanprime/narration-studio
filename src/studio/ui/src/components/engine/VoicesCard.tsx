@@ -159,11 +159,22 @@ function VoiceCharacters({ voice }: { voice: Voice }) {
 }
 
 /** Flat or Voice folders, with what each means behind its help button: Chapter sync's Layout row, or the Voices card's header. */
-export function LayoutToggle({ layout, onLayout }: { layout: VoiceTracksLayout; onLayout: (layout: VoiceTracksLayout) => void }) {
+export function LayoutToggle({
+  layout,
+  onLayout,
+  help = true,
+}: {
+  layout: VoiceTracksLayout;
+  onLayout: (layout: VoiceTracksLayout) => void;
+  /** False where the row carries its own ? popover (the Settings row). */
+  help?: boolean;
+}) {
   return (
     <div className="flex items-center gap-2">
       <ToggleGroup label="Chapter layout" look="segmented" value={layout} onChange={(value) => onLayout(value as VoiceTracksLayout)} options={LAYOUTS} />
-      <HelpButton label="What the layouts mean">Flat: a chapter is one track. Voice folders: a chapter is a folder, one child track per voice.</HelpButton>
+      {help && (
+        <HelpButton label="What the layouts mean">Flat: a chapter is one track. Voice folders: a chapter is a folder, one child track per voice.</HelpButton>
+      )}
     </div>
   );
 }

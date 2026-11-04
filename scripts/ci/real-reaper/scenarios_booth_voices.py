@@ -697,3 +697,45 @@ def track_create_in_folder(env: Env) -> str:
     stale = env.send("track_create", "Ghost", "{00000000-0000-4000-8000-0000000000DE}", until={"TRACK_CREATED", "TRACK_STALE"})
     assert stale[-1][0] == "TRACK_STALE" and len(structure(env)) == count + 1, f"stale parent answered {stale}"
     return f"created at index {created[3]}, undo {undo!r}; after save and reload {[(r['name'], r['delta']) for r in rows]}; ISBUS {isbus_lines(env)}; Veyra input {veyra['input']}; a gone parent answered TRACK_STALE and added nothing"
+
+
+@scenario(
+    "booth_voices",
+    "record_stop, track_create",
+    "voices phase 5 (#2839): a key with no track during a take. track_create is refused while REAPER records; the Booth stops the take with "
+    "record_stop (the take is kept as an item on its voice) and only then adds the voice as the folder's last child, a second undo point: "
+    "undoing it takes the new track and leaves the take",
+    needs_audio=True,
+)
+def voice_added_after_stop(env: Env) -> str:
+    g = folder_book(env)
+    env.lua("reaper.SetEditCurPos(2, false, false) return true")
+    env.ok("arm_only", g["Narrator"], until="ARMED")
+    env.ok("record_start", g["Narrator"], until="RECORD_STARTED")
+    env.wait_for(lambda: position(env) > 3.2, timeout=8, what="the take to run over a second")
+    count = len(structure(env))
+    refused = env.refused("track_create", "King of Hearts", g["Chapter 3"], until="TRACK_CREATED")
+    assert "recording" in refused[2].lower() and len(structure(env)) == count, f"an add during the take answered {refused}"
+    env.ok("record_stop", until="RECORD_STOPPED")
+    env.wait_for(lambda: play_state(env) == 0, what="REAPER to stop")
+    taken = per_track(settled_items(env, 1))
+    assert list(taken) == ["Narrator"] and len(taken["Narrator"]) == 1, f"items per track after the stop {taken}"
+    created = env.ok("track_create", "King of Hearts", g["Chapter 3"], until="TRACK_CREATED")
+    assert created[3:5] == ["4", "King of Hearts"], f"created {created}"
+    shape = [(r["name"], r["delta"], r["parent"]) for r in structure(env)]
+    assert shape == [
+        ("Chapter 3", 1, ""),
+        ("Narrator", 0, "Chapter 3"),
+        ("Veyra", 0, "Chapter 3"),
+        ("Drone", 0, "Chapter 3"),
+        ("King of Hearts", -1, "Chapter 3"),
+        ("Chapter 4", 0, ""),
+    ], shape
+    assert per_track(env.snapshot()["items"]) == taken, "adding the voice moved or dropped the take"
+    undo = env.lua("return reaper.Undo_CanUndo2(0) or ''")
+    env.lua("reaper.Undo_DoUndo2(0) return true")
+    after_undo = [r["name"] for r in structure(env)]
+    assert after_undo == ["Chapter 3", "Narrator", "Veyra", "Drone", "Chapter 4"], after_undo
+    kept = per_track(env.snapshot()["items"])
+    assert kept == taken, f"undoing the add took the take too: {kept}"
+    return f"refused during the take {refused[2]!r}; take {taken}; added {shape}; undo {undo!r} left {after_undo} and the take {kept}"

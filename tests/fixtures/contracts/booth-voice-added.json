@@ -1,0 +1,22 @@
+{
+  "added": {
+    "outcome": "added",
+    "trackGuid": "{AAAAAAAA-0000-4000-8000-0000000000A1}",
+    "name": "Extras"
+  },
+  "get_added": {
+    "outcome": "selected",
+    "trackGuid": "{AAAAAAAA-0000-4000-8000-0000000000A1}",
+    "added": [
+      {
+        "guid": "{AAAAAAAA-0000-4000-8000-0000000000A1}",
+        "name": "Extras"
+      }
+    ]
+  },
+  "name_taken": {
+    "outcome": "refused",
+    "reason": "name_taken",
+    "message": "This chapter already has a track named “Queen”. Choose it, or give the new track another name."
+  }
+}

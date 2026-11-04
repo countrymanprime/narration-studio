@@ -1,56 +1,21 @@
 import { logUi } from '../api/uiLog';
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import type { Notify, ToastAction, ToastMessage, ToastTone } from '../components/primitives/Toast';
-
-/** How many messages are on screen at once; the oldest information message goes first, then the oldest error. */
-export const TOAST_VISIBLE_LIMIT = 4;
+import { useCallback } from 'react';
+import { overlay as appOverlay, type OverlayService } from '../overlay/overlayService';
+import type { Notify, ToastAction, ToastTone } from '../components/primitives/Toast';
 
 /**
- * Adds a message to the queue. The same text and tone that is already showing is replaced by the new one, so it starts its time again
- * and looks new (a second press of the same action still gives a signal) without stacking a copy. Beyond the limit the oldest
- * information message is dropped before any error is, and never the message just added.
+ * The app's `notify`: a message goes to the overlay service, whose host draws the one toast region, so no second region draws it.
+ * `notify` keeps its identity for the life of the app, so a page effect that lists it never re-runs.
  */
-export function pushToast(current: readonly ToastMessage[], next: ToastMessage): ToastMessage[] {
-  const queue = [...current.filter((message) => !(message.text === next.text && message.tone === next.tone)), next];
-  while (queue.length > TOAST_VISIBLE_LIMIT) {
-    // The message just added is never the one dropped: a narrator who pressed something must see its result.
-    const older = queue.slice(0, -1);
-    const info = older.findIndex((message) => message.tone === 'info');
-    queue.splice(info >= 0 ? info : 0, 1);
-  }
-  return queue;
-}
-
-const inPlaceListeners = new Set<(text: string) => void>();
-
-/**
- * A page now shows this failure in place (a load-error panel): an error toast in the app's queue that says the same sentence goes, so the
- * sentence is not said twice, for example Production's toast of a failed read left over Proof's card (alignment audit R3PF-4).
- */
-export function sayInPlace(text: string): void {
-  for (const listener of inPlaceListeners) listener(text);
-}
-
-/** The app's message queue: `notify` shows a message, `dismiss` removes one. Both keep their identity for the life of the app. */
-export function useToasts(): { messages: ToastMessage[]; notify: Notify; dismiss: (id: number) => void } {
-  const [messages, setMessages] = useState<ToastMessage[]>([]);
-  const lastId = useRef(0);
-  const notify = useCallback((text: string, tone: ToastTone = 'info', action?: ToastAction, icon?: IconDefinition, durationMs?: number) => {
-    if (!text) return;
-    logUi(`ui.toast.${tone}`, text);
-    lastId.current += 1;
-    const message = { id: lastId.current, text, tone, action, icon, durationMs };
-    setMessages((current) => pushToast(current, message));
-  }, []);
-  const dismiss = useCallback((id: number) => setMessages((current) => current.filter((message) => message.id !== id)), []);
-  useEffect(() => {
-    const listener = (text: string) =>
-      setMessages((current) =>
-        current.some((m) => m.tone === 'error' && m.text === text) ? current.filter((m) => !(m.tone === 'error' && m.text === text)) : current,
-      );
-    inPlaceListeners.add(listener);
-    return () => void inPlaceListeners.delete(listener);
-  }, []);
-  return { messages, notify, dismiss };
+export function useToasts(service: OverlayService = appOverlay): { notify: Notify } {
+  const notify = useCallback(
+    (text: string, tone: ToastTone = 'info', action?: ToastAction, icon?: IconDefinition, durationMs?: number) => {
+      if (!text) return;
+      logUi(`ui.toast.${tone}`, text);
+      service.toast(text, { tone, action, icon, durationMs });
+    },
+    [service],
+  );
+  return { notify };
 }

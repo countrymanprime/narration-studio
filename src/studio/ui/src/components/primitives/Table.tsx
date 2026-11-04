@@ -1,4 +1,4 @@
-import type { CSSProperties, FocusEvent, KeyboardEvent, MouseEvent, ReactNode } from 'react';
+import type { CSSProperties, FocusEvent, KeyboardEvent, MouseEvent, ReactNode, Ref } from 'react';
 import { TABLE_CELL_CLASS, TABLE_EDGES, TABLE_FLUSH_EDGES, TABLE_HEADER_CLASS, TABLE_TEXT_CLASS, TABLE_TEXT_EDGES } from './tableStyles';
 import { Tooltip } from './Tooltip';
 
@@ -74,9 +74,14 @@ export function TableBody({
   navigable = false,
   onKeyDown,
   onFocus,
+  onBlur,
+  bodyRef,
   children,
 }: {
   navigable?: boolean;
+  /** The `tbody` element, for a caller that measures it (a windowed list). */
+  bodyRef?: Ref<HTMLTableSectionElement>;
+  onBlur?: (event: FocusEvent<HTMLTableSectionElement>) => void;
   onKeyDown?: (event: KeyboardEvent<HTMLTableSectionElement>) => void;
   /** Hears the focus of any row or control in the body (focus bubbles), to follow which row it rests on. */
   onFocus?: (event: FocusEvent<HTMLTableSectionElement>) => void;
@@ -95,7 +100,7 @@ export function TableBody({
     rows[to]?.focus();
   };
   return (
-    <tbody onKeyDown={navigable || onKeyDown ? onKey : undefined} onFocus={onFocus}>
+    <tbody ref={bodyRef} onKeyDown={navigable || onKeyDown ? onKey : undefined} onFocus={onFocus} onBlur={onBlur}>
       {children}
     </tbody>
   );

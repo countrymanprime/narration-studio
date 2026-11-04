@@ -141,6 +141,13 @@
   },
   {
     "page": "production",
+    "state": "report-written",
+    "viewport": "desktop",
+    "docName": "production-report-written",
+    "caption": "Production - Export status report after Export: the written files, their folder and the open-folder button"
+  },
+  {
+    "page": "production",
     "state": "recording-check-rules",
     "viewport": "desktop",
     "docName": "production-recording-check-rules",
@@ -295,6 +302,13 @@
   },
   {
     "page": "booth",
+    "state": "voices-who-is-in",
+    "viewport": "desktop",
+    "docName": "booth-voices-who-is-in",
+    "caption": "The Booth - Who is in Num 7?: the chapter's characters to tick, a new track's name and key, an existing track or the Narrator"
+  },
+  {
+    "page": "booth",
     "state": "setup",
     "viewport": "desktop",
     "docName": "booth-setup",
@@ -418,6 +432,13 @@
     "viewport": "desktop",
     "docName": "settings-sync-activity",
     "caption": "Settings - Recording & DAW, Advanced: the Sync activity log, with Undo on a link sync made"
+  },
+  {
+    "page": "settings",
+    "state": "recording-chapter-layout",
+    "viewport": "desktop",
+    "docName": "settings-chapter-layout",
+    "caption": "Settings - Recording & DAW: Chapter layout under Chapter sync, with Flat and Voice folders"
   },
   {
     "page": "engine",
@@ -978,6 +999,13 @@
     "viewport": "desktop",
     "docName": "master-to-spec-approve",
     "caption": "Master & QC - Master & encode asking approval to master with the DAW's FX chain, naming the regions it renders"
+  },
+  {
+    "page": "master",
+    "state": "chain-choice",
+    "viewport": "desktop",
+    "docName": "master-chain-choice",
+    "caption": "Master & QC - the Mastering chain card's Master with choice: the built-in chain chosen, the DAW's FX chain and Audacity's effect macro beside it"
   },
   {
     "page": "delivery",

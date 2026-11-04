@@ -61,7 +61,7 @@ describe('ChapterSyncPanel', () => {
       } else {
         await screen.findByText('the switch');
         expect(screen.getByText('Layout')).toBeTruthy();
-        // onLayoutShown is reported from an effect after the render, so wait for it.
+        // The report is an effect after the commit that draws the row, so wait for it.
         await waitFor(() => expect(shown).toHaveBeenLastCalledWith(true));
       }
       cleanup();
