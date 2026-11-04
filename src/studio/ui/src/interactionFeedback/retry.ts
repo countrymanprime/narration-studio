@@ -167,6 +167,9 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/engine/ChapterSyncPanel.tsx#2': no(ED),
   'src/components/engine/ChapterSyncPanel.tsx#3': no(ED),
   'src/components/engine/SyncActivityLog.tsx#1': no(DS),
+  'src/components/engine/useChapterFolders.ts#1': no(
+    'Moves tracks out of folders in REAPER (a DAW edit): a blind repeat could apply a move that half-happened again, and the folders are checked again after the failure, so Move them out is offered afresh from what REAPER holds now.',
+  ),
   'src/components/engine/useVoiceTracks.ts#1': yes("The project's voice setup read changes nothing; Retry reads it again."),
   'src/components/engine/useVoiceTracks.ts#2': yes('The Story Bible characters read for the voice setup changes nothing; Retry reads it again.'),
   'src/components/engine/useVoiceTracks.ts#3': no(AU),
