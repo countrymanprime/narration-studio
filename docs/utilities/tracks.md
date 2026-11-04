@@ -14,7 +14,6 @@ Open a project folder and click the header's engine chip. The audio engine panel
 
 - stamp each chapter's identity onto the REAPER items that hold it, and read back what is stamped (**Link chapters…**);
 - configure REAPER's render for one file per chapter region, without rendering (**Prepare chapter render…**);
-- write ID3 chapter tags into a new copy of an already-rendered combined-book MP3 (**Embed chapter tags…**);
 - open REAPER's own Repair Pops/Clicks dialog, or the narrator's installed Magnolius DeClick script, on the selected items (**Cleanup tools…**);
 - choose which retake of a line plays when its retakes sit on REAPER's fixed item lanes (**Retakes on lanes…**).
 
@@ -47,7 +46,7 @@ The track list, playback and the chapter links list are read-only: they never ed
 - **Cleanup tools…** opens an allow-listed repair dialog in REAPER on the items selected there ([narration_cleanup.lua](../../src/studio/integrations/reaper/narration_cleanup.lua)). It changes nothing itself: the narrator applies or cancels the repair in that dialog, as their own undoable edit. Magnolius DeClick is launched only if the narrator installed it; the app never installs, bundles or downloads it.
 - **Retakes on lanes…** sets one value, the chosen retake's track lane play state (`C_LANEPLAYS:<lane>` to 1), in one undo block. A retake is named by its line id and item GUID; the app never turns lanes on or off, converts takes and lanes, moves an item or builds a comp, and refuses a track that is not in fixed-lane mode.
 
-**Embed chapter tags…** does not talk to REAPER: it reads the last chapter render's files and writes a new, tagged copy of the MP3 the narrator names, never changing that file. Track-to-chapter *matching* lives in `internal/chaptermatch` (see [How it works](#how-it-works)); this page and the mapping store only record and show the narrator's own confirmation of a link, never a computed guess. Measured recorded duration is on the chapter list: `recordedSeconds` is the union of the unmuted items on playing lanes of the chapter's one confirmed track in the saved `.rpp` (`tracks.Track.RecordedSeconds`), and `recordedUnavailable` says why a chapter has none (unlinked, several tracks, track missing, no project); the Production board's **Recorded** column shows it, real time or a dash with the reason. A transcript or waveform view of a track is not built; either can build on this parser instead of a new bridge action.
+**Embed chapter tags…** is not an engine panel tool: it sits beside the package build on Delivery's Output panel (#2829). It does not talk to REAPER: it reads the last chapter render's files and writes a new, tagged copy of the MP3 the narrator names, never changing that file. Track-to-chapter *matching* lives in `internal/chaptermatch` (see [How it works](#how-it-works)); this page and the mapping store only record and show the narrator's own confirmation of a link, never a computed guess. Measured recorded duration is on the chapter list: `recordedSeconds` is the union of the unmuted items on playing lanes of the chapter's one confirmed track in the saved `.rpp` (`tracks.Track.RecordedSeconds`), and `recordedUnavailable` says why a chapter has none (unlinked, several tracks, track missing, no project); the Production board's **Recorded** column shows it, real time or a dash with the reason. A transcript or waveform view of a track is not built; either can build on this parser instead of a new bridge action.
 
 ## Known limits
 
@@ -65,7 +64,6 @@ Covered by `src/studio/desktop/internal/tracks`, `chaptermatch` (held to the fro
 - chapter links: chapter-link-confirmed, chapter-link-missing, editing-check-unmapped;
 - Link chapters: link-chapters-preview, link-chapters-success, link-chapters-conflict, link-chapters-error;
 - Prepare chapter render: render-config-prefilled, render-config-success, render-config-no-regions, render-config-error;
-- Embed chapter tags: chapter-tags-idle, chapter-tags-ready, chapter-tags-not-rendered, chapter-tags-success, chapter-tags-error;
 - Cleanup tools: cleanup-tools-idle, cleanup-tools-launched, cleanup-tools-error;
 - Retakes on lanes: retake-lanes-list, retake-lanes-picked, retake-lanes-none, retake-lanes-error.
 

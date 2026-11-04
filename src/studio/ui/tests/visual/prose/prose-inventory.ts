@@ -197,7 +197,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   },
   {
     file: 'components/engine/ChapterTagsDialog.tsx',
-    text: 'No chapter render is configured yet. Use &ldquo;Prepare chapter render…&rdquo; first.',
+    text: 'No chapter render is configured yet. Use &ldquo;Prepare chapter render…&rdquo; in DAW tools on Editing, Proof or Master first.',
     class: 'overlay',
   },
   {
