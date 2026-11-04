@@ -35,6 +35,13 @@ const SE = 'Runs inside a dialog that has already closed and moved on to the sca
 
 /** Judged error toasts. `yes` must carry a Retry (or an equal action) in the call; `no` and `n/a` say why in a sentence. */
 export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
+  'src/components/booth/voices/useBoothVoices.ts#5': no(ED),
+  'src/components/booth/voices/useBoothVoices.ts#6': no(RF),
+  'src/components/booth/voices/useBoothVoices.ts#7': yes('Reading the voice setup back after a track was added changes nothing; Retry reads it again.'),
+  'src/components/booth/voices/useBoothVoices.ts#8': no(ED),
+  'src/components/booth/voices/useBoothVoices.ts#9': no(ED),
+  'src/components/booth/voices/useBoothVoices.ts#10': no(RF),
+  'src/components/master/MasteringChain.tsx#2': no(BT),
   'src/components/layout/JumpMenu.tsx#1': no(
     'A search run as the narrator types: the next change of the query runs it again, and one toast per group replaces the last, so a Retry button would add nothing.',
   ),
@@ -143,8 +150,10 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/engine/SyncActivityLog.tsx#1': no(DS),
   'src/components/engine/useVoiceTracks.ts#1': yes("The project's voice setup read changes nothing; Retry reads it again."),
   'src/components/engine/useVoiceTracks.ts#2': yes('The Story Bible characters read for the voice setup changes nothing; Retry reads it again.'),
-  'src/components/engine/useVoiceTracks.ts#3': yes('The voice setup re-read after a refused save changes nothing; Retry reads it again.'),
-  'src/components/engine/useVoiceTracks.ts#4': no(AU),
+  'src/components/engine/useVoiceTracks.ts#3': no(AU),
+  'src/components/engine/useVoiceTracks.ts#4': no(
+    'The re-read after a refused save failed, and the setup was put back to what it was before the save: the screen already shows the last saved value, so a repeat has nothing to restore.',
+  ),
   'src/components/layout/LoadError.tsx#1': na(NA),
   'src/components/master/DiagnosticsSection.tsx#1': yes('The diagnostics state read changes nothing; Retry reads it again.'),
   'src/components/master/DiagnosticsSection.tsx#2': no(MX),
