@@ -165,7 +165,7 @@ Answered 2026-11-02.
 
 - **Stopped, a character chosen** (from the list, or the next or previous voice) with no child by name, alias or assignment: the Booth asks who records them, with three answers: make a track named for the character (the default), assign the character to an existing child (an "Extras" track among them), or record on the Narrator child. The first two store the match; the third arms the Narrator child and shows the notice on the record control while that voice is chosen.
 - **Recording, the same choice:** no question mid-take. The Narrator child is armed live and the notice shows; after the stop, the notice offers the first two answers. What was recorded stays on the Narrator child.
-- **A number key with no child behind it, while stopped:** "Who is in it?" lists the chapter's characters, those with lines in this chapter first. One character makes a track named for them; several make one track, named "Extras" unless the narrator types another name, holding them all. The new track is the next child, so it takes the next free number. While recording, the key is refused with a toast and the take goes on.
+- **A number key with no child behind it, while stopped:** "Who is in it?" lists the chapter's characters, those with lines in this chapter first. One character makes a track named for them; several make one track, named "Extras" unless the narrator types another name, holding them all. The new track is the next child, so it takes the next free number. While recording, the take is stopped first and then the same question is asked (decision C as changed on 2026-11-03, below).
 - **Opening a chapter in the Booth** whose folder lacks children for characters with lines in it: each such character's row in the side list shows an add-track button in place of its key. Nothing is made without a press (decision B below).
 - **A flat chapter:** the voice keys are off and say why in their tooltip.
 
@@ -173,7 +173,7 @@ Answered 2026-11-02.
 
 - **A.** One voice control on the record bar, beside Cold read, opening the voice list.
 - **B.** A character in the chapter with no track shows an add-track button in its side-list row; nothing is made without a press.
-- **C.** A number key with no track while recording changes nothing and shows a brief "No track on Num 7" message; while stopped it asks "Who is in it?".
+- **C.** A number key with no track asks "Who is in Num N?", stopped or recording. While recording, the Booth first stops the take as its Stop press does (the take is kept on the voice it recorded on), then asks. The dialog also offers an existing track and the Narrator, this time. There is no "No track on Num N" message. Changed by the owner on 2026-11-03 ([#2839](https://github.com/countrymanprime/narration-studio/issues/2839)); it replaces "while recording, the key changes nothing and shows a brief message".
 - **D.** Tracks are matched to characters on a Voices card on the Engine panel.
 - **E.** The live switch arms the new child and disarms the old one together, leaving about 64 ms unrecorded at a 1024-frame buffer (section 6a, row 7).
 - **F.** Voice keys follow the child order in the REAPER folder; the Narrator child is always 0.
