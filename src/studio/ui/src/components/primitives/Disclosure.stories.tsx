@@ -86,3 +86,27 @@ export const OpensAndClosesWithTheKeyboard: Story = {
     await expect(canvas.queryByText('Glossary')).toBeNull();
   },
 };
+
+// A group that keeps its panel while closed: what was typed in it is still there when it opens again.
+export const KeepsItsPanelWhileClosed: Story = {
+  render: () => {
+    function Typing() {
+      const [open, setOpen] = useState(true);
+      return (
+        <Disclosure title="Reference material" open={open} onOpenChange={setOpen} keepMounted className="w-80">
+          <input aria-label="Note" defaultValue="" className="mb-2 w-full rounded-md border border-[var(--border)] px-2 py-1 text-sm" />
+        </Disclosure>
+      );
+    }
+    return <Typing />;
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.type(canvas.getByLabelText('Note'), 'kept');
+    const button = canvas.getByRole('button', { name: 'Reference material' });
+    await userEvent.click(button);
+    await expect(button).toHaveAttribute('aria-expanded', 'false');
+    await userEvent.click(button);
+    await expect(canvas.getByLabelText('Note')).toHaveValue('kept');
+  },
+};

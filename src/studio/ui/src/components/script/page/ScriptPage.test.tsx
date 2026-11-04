@@ -225,29 +225,28 @@ describe('right-click-menus-reach-what-the-page-draws', () => {
   const labels = (target: Element | null) =>
     target ? (contextItemsFor(target) ?? []).flatMap((item) => (item.submenu ? item.submenu.map((sub) => `${item.label}: ${sub.label}`) : [item.label])) : [];
 
-  it('a mark, a flagged word, a chapter row, a chapter card and a Words row each get their menu', async () => {
+  it('a mark, a chapter row, a chapter card and a Words row each get their menu', async () => {
     const api = createMockApi({ manuscriptChapters: noCreditsList });
     const [chapter] = withoutCredits(await api.manuscriptChapters());
     const [line] = await api.manuscriptParagraphs(chapter!.id);
     const types = await api.marksList();
     await api.marksAdd(chapter!.id, line!.id, 0, 5, types.types[0]!.key, 'Check this');
-    const found = /\p{L}{6,}/u.exec(line!.text)!;
-    await api.scriptWordFlag(chapter!.id, line!.id, found.index, found.index + found[0].length);
     mount({ api });
     await firstHeading();
     await waitFor(() => expect(document.querySelector('[data-pid] [data-st]')).not.toBeNull());
     expect(labels(document.querySelector('[data-pid] [data-st]'))).toContain('Delete mark');
-    await waitFor(() => expect(document.querySelector('[data-pid] [data-w]')).not.toBeNull());
-    expect(labels(document.querySelector('[data-pid] [data-w]'))).toContain('Show in Words');
+    // The reader marks story elements only: no word of the text carries a word target (#2595).
+    expect(document.querySelector('[data-pid] [data-w]')).toBeNull();
     const row = within(panel('chapters')).getAllByRole('button')[0]!;
     expect(labels(row)).toContain('Go to this chapter');
     expect(labels(document.querySelector('[data-reader] [data-bound] h2'))).toContain('My prep: Prepped');
     const wordRow = await waitFor(() => document.querySelector('#railbody tbody tr')!);
-    expect(labels(wordRow)).toContain('Remove from my words');
+    expect(labels(wordRow).some((label) => label.startsWith('Show “'))).toBe(true);
+    expect(labels(wordRow)).not.toContain('Remove from my words');
   });
 });
 
-describe('record-from-here-and-flagged-words', () => {
+describe('record-from-here-and-words', () => {
   it('Record from here on the selection tool and in the menu opens the Booth at the selection', async () => {
     const { goToBooth } = mount();
     await firstHeading();
@@ -262,9 +261,10 @@ describe('record-from-here-and-flagged-words', () => {
     expect(goToBooth).toHaveBeenCalledTimes(2);
   });
 
-  it('Look up on one word opens its card, and Add to my words flags the word selected', async () => {
+  it('Look up on a word no dictionary has opens its card, which saves it to my dictionary and never to the Story Bible (#2595)', async () => {
     const api = createMockApi({ manuscriptChapters: noCreditsList });
-    const flag = vi.spyOn(api, 'scriptWordFlag');
+    const create = vi.spyOn(api, 'guideCreate');
+    const save = vi.spyOn(api, 'userDictionarySave');
     mount({ api });
     await firstHeading();
     const p = await waitFor(() => document.querySelector<HTMLElement>('p[data-pid="p-2"]')!);
@@ -273,22 +273,11 @@ describe('record-from-here-and-flagged-words', () => {
     fireEvent.mouseUp(document.getElementById('reader')!);
     fireEvent.click(await screen.findByRole('button', { name: 'Look up in the dictionary or the Story Bible' }));
     await waitFor(() => expect(view.tab).toBe('pron'));
-    fireEvent.click(await screen.findByRole('button', { name: 'Add to my words' }));
-    await waitFor(() => expect(flag).toHaveBeenCalledWith('chapter-1', 'p-2', found.index, found.index + found[0].length));
-  });
-
-  it('a click on a flagged word opens it in the Words tab', async () => {
-    const api = createMockApi({ manuscriptChapters: noCreditsList });
-    const [chapter] = withoutCredits(await api.manuscriptChapters());
-    const [line] = await api.manuscriptParagraphs(chapter!.id);
-    const found = /\p{L}{6,}/u.exec(line!.text)!;
-    await api.scriptWordFlag(chapter!.id, line!.id, found.index, found.index + found[0].length);
-    mount({ api });
-    await firstHeading();
-    const word = await waitFor(() => document.querySelector<HTMLElement>('[data-pid] [data-w]')!);
-    fireEvent.click(word);
-    await waitFor(() => expect(view.tab).toBe('pron'));
-    expect(view.word).toBe(word.dataset.w);
+    const field = await screen.findByLabelText(`Pronunciation of ${found[0]} for my dictionary`);
+    fireEvent.change(field, { target: { value: 'SAY-it' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save to my dictionary' }));
+    await waitFor(() => expect(save).toHaveBeenCalledWith(found[0], 'SAY-it'));
+    expect(create).not.toHaveBeenCalled();
   });
 });
 
@@ -621,16 +610,15 @@ describe('dictionary-download-in-place', () => {
     // No credits, so the section at the top of the reader is a chapter, whose words the tab lists.
     const api = createMockApi({ manuscriptChapters: noCreditsList }, { dictionary: 'missing' });
     const install = vi.spyOn(api, 'assetsInstall');
-    // A flagged word in every chapter, so the Words tab has a row to open whichever chapter the reader reports as in view.
+    // A story element named in every chapter, so the Words tab has a row to open whichever chapter the reader reports as in view.
     for (const chapter of withoutCredits(await api.manuscriptChapters())) {
       const [line] = await api.manuscriptParagraphs(chapter.id);
-      const found = /\p{L}+/u.exec(line!.text)!;
-      await api.scriptWordFlag(chapter.id, line!.id, found.index, found.index + found[0].length);
+      await api.guideCreate(/\p{L}{5,}/u.exec(line!.text)![0], 'Item', []);
     }
     mount({ api });
     await firstHeading();
     const body = () => document.getElementById('railbody')!;
-    // A flagged word's row opens its card, which reads the definition from the chosen source.
+    // A word's row opens its card, which reads the definition from the chosen source.
     fireEvent.click((await within(body()).findAllByRole('row', {}, { timeout: 5000 }))[0]!);
     await waitFor(() => expect(within(body()).getByText(/is not installed/)).toBeTruthy(), { timeout: 5000 });
     expect(install).not.toHaveBeenCalled();

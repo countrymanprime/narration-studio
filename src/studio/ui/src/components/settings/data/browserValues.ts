@@ -1,3 +1,4 @@
+import { DEFAULT_BOOTH_SIZE, readBoothSize } from '../../booth/page/boothSize';
 import { readStoredTakeTone } from '../../booth/takeTone';
 import { readScrollStep, SCROLL_STEP_DEFAULT } from '../../editing/ribbon/scrollStep';
 import { DEFAULT_TEXT_PREFS, loadTextPrefs, type TextPrefs } from '../../script/page/tools/text/readerText';
@@ -19,4 +20,5 @@ export const BROWSER_CHANGED: Readonly<Record<string, () => boolean>> = {
   'look.readerSize': readerDiffers('size'),
   'look.readerSpacing': readerDiffers('spacing'),
   'look.readerWidth': readerDiffers('width'),
+  'look.boothSize': () => readBoothSize() !== DEFAULT_BOOTH_SIZE,
 };

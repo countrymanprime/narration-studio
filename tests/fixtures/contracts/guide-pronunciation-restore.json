@@ -1,0 +1,12 @@
+{
+  "alternate": {
+    "confidence": "narrator",
+    "ipa": "AL-fee",
+    "source": "manual"
+  },
+  "chosen": true,
+  "confidence": "medium",
+  "ipa": "ælfi",
+  "note": "Asked the author.",
+  "source": "cmu"
+}

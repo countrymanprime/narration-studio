@@ -121,6 +121,13 @@ export const settingsStates: StateEntry[] = [
   },
   {
     page: 'settings',
+    state: 'recording-chapter-voices',
+    description:
+      'Settings, Recording & DAW (?mockVoiceFolders=1): Sync chapters to tracks and the Voices row with a chapter folder’s voices and their characters',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
     state: 'recording-reaper-path-invalid',
     description:
       'Settings, Recording & DAW, Advanced: a REAPER program path that does not end in reaper.exe is refused in the row with "This is not the path to reaper.exe..." and the old value stays',
@@ -385,6 +392,13 @@ export const settingsStates: StateEntry[] = [
     state: 'reader-text',
     description:
       'Settings, Appearance & keys scrolled to the reader rows: Reader font, Reader text size, Line spacing and Column width, each its own row, with the preview quote under Column width',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
+    state: 'booth-text-size',
+    description: 'Settings, Appearance & keys scrolled to Booth text size: a slider from 24 to 72 px, 40 px by default, with its row in full view',
     ...REFLOW,
     ...KEEPS_DESKTOP_SCROLL,
   },

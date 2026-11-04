@@ -59,7 +59,6 @@ describe('each probe says changed for a changed value and not for the default', 
     api: api as ProbeContext['api'],
     settings: {},
     delivery: profilesOf({}),
-    voiceLayout: 'flat',
     ...extra,
   });
   const run = async (id: string, context: ProbeContext) => CUSTOM_CHANGED[id]!(context);

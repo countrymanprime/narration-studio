@@ -7,7 +7,7 @@ import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
 import type { ManuscriptChapter, ManuscriptParagraph, ManuscriptSearchResult } from '../../../../api/contracts/manuscript';
 import type { DictionaryLookupResult } from '../../../../api/contracts/dictionary';
 import type { Mark, Marks, MarkThreadAuthor, MarkType } from '../../../../api/contracts/marks';
-import type { PrepState, ScriptPrep, ScriptPrepChapter, ScriptWord } from '../../../../api/contracts/scriptPrep';
+import type { PrepState, ScriptPrep, ScriptPrepChapter } from '../../../../api/contracts/scriptPrep';
 import type { GuideDialogueCue, GuideEntity, GuideType } from '../../../../api/contracts/storyBible';
 import { apiErrorMessage } from '../../../../api/errorMessage';
 import type { ChapterNameInput } from '../../../../chapterName';
@@ -15,6 +15,8 @@ import { overlay } from '../../../../overlay/overlayService';
 import { usePort } from '../../../../ports/usePort';
 import { canSpeak } from '../../../../storyBibleTypes';
 import { useJournal } from '../../../../studio/StudioProvider';
+import { pronounceOwn, subscribePronunciationChanged } from '../../../../studio/commands/pronounce';
+import { removeFromMyDictionary, saveToMyDictionary } from '../../../../studio/commands/userDictionary';
 import type { Result } from '../../../../studio/journal/createJournal';
 import * as commands from './scriptCommands';
 import type { LineRange, ScriptCommandEnv } from './scriptCommands';
@@ -46,7 +48,10 @@ function useScriptHost(): ScriptHost {
   const host = useMemo(() => {
     const found = hosts.get(marks);
     if (found) return found;
-    const created = { data: createScriptData({ manuscript, marks, scriptPrep, storyBible, system }), view: createScriptView() };
+    const created = {
+      data: createScriptData({ manuscript, marks, scriptPrep, storyBible, system, pronunciation: { subscribe: subscribePronunciationChanged } }),
+      view: createScriptView(),
+    };
     hosts.set(marks, created);
     return created;
   }, [manuscript, marks, scriptPrep, storyBible, system]);
@@ -86,7 +91,6 @@ export function useParagraphs(chapterId: string): ReadView<ManuscriptParagraph[]
 
 const NO_TYPES: MarkType[] = [];
 const NO_MARKS: Mark[] = [];
-const NO_WORDS: ScriptWord[] = [];
 const NO_PREP: ScriptPrepChapter[] = [];
 const NO_ENTRIES: GuideEntity[] = [];
 const NO_GUIDE_TYPES: GuideType[] = [];
@@ -121,16 +125,10 @@ export function useMarks(): MarksView {
 }
 
 export type PrepView = ReadView<ScriptPrep> & {
-  words: ScriptWord[];
   prepOf: (chapterId: string) => PrepState;
-  wordsInChapter: (chapterId: string) => ScriptWord[];
-  /** The chapter's flagged words and the Story Bible names in its text, for the Words tab (`chapterWords`). */
-  chapterWords: (chapterId: string, entries: readonly GuideEntity[], paragraphs: readonly Pick<ManuscriptParagraph, 'text'>[]) => select.ChapterWord[];
-  pronStatus: (word: string) => ScriptWord['status'];
-  pronOfWord: (word: string) => { say: string; source: string };
 };
 
-/** Each chapter's prep state and the flagged words. */
+/** Each chapter's prep state. */
 export function useScriptPrep(): PrepView {
   const { data } = useScriptHost();
   const loaded = useData(data, (state) => state.prep);
@@ -138,15 +136,9 @@ export function useScriptPrep(): PrepView {
   const retry = useCallback(() => void data.load('prep'), [data]);
   return useMemo(() => {
     const chapters = loaded?.value?.chapters ?? NO_PREP;
-    const words = loaded?.value?.words ?? NO_WORDS;
     return {
       ...view(loaded, retry),
-      words,
       prepOf: (chapterId: string) => chapters.find((row) => row.chapterId === chapterId)?.state ?? 'none',
-      wordsInChapter: (chapterId: string) => select.wordsInChapter(words, chapterId),
-      chapterWords: (chapterId, entries, paragraphs) => select.chapterWords(words, entries, chapterId, paragraphs),
-      pronStatus: (word: string) => select.pronStatus(words, word),
-      pronOfWord: (word: string) => select.pronOfWord(words, word),
     };
   }, [loaded, retry]);
 }
@@ -161,6 +153,10 @@ export type EntriesView = ReadView<GuideEntity[]> & {
   findEntries: (query: string, category: string) => GuideEntity[];
   mentionsIn: (paragraph: Pick<ManuscriptParagraph, 'text'>) => select.Mention[];
   entriesInChapter: (paragraphs: readonly Pick<ManuscriptParagraph, 'text'>[]) => GuideEntity[];
+  /** The Story Bible names in a chapter's text with how each is said, for the Words tab (`chapterWords`). */
+  chapterWords: (paragraphs: readonly Pick<ManuscriptParagraph, 'text'>[]) => select.ChapterWord[];
+  /** The name with this key (trimmed, lower-cased), for the Words card. */
+  nameByKey: (key: string) => select.ChapterWord | undefined;
 };
 
 /** The Story Bible's entries and types, read once and again after each Story Bible change this page makes or a build ends. */
@@ -188,6 +184,8 @@ export function useEntries(): EntriesView {
       findEntries: (query: string, category: string) => select.findEntries(entries, query, category),
       mentionsIn: (paragraph: Pick<ManuscriptParagraph, 'text'>) => select.mentionsIn(entries, paragraph.text),
       entriesInChapter: (paragraphs: readonly Pick<ManuscriptParagraph, 'text'>[]) => select.entriesInChapter(entries, paragraphs),
+      chapterWords: (paragraphs: readonly Pick<ManuscriptParagraph, 'text'>[]) => select.chapterWords(entries, paragraphs),
+      nameByKey: (key: string) => select.nameByKey(entries, key),
     };
   }, [loaded, typesLoaded, retry]);
 }
@@ -222,15 +220,15 @@ export function useSpeakers(): SpeakersView {
   }, [cues, retry, entries.entries, entries.types]);
 }
 
-/** The chapter card's facts line, from the marks, the flagged words and the phrases with no speaker. */
+/** The chapter card's facts line, from the marks, the Story Bible's names and the phrases with no speaker. */
 export function useChapterFacts(): (chapterId: string) => string {
   const marks = useMarks();
-  const prep = useScriptPrep();
+  const entries = useEntries();
   const speakers = useSpeakers();
   return useCallback(
     (chapterId: string) =>
-      select.chapterFacts({ types: marks.types, marks: marks.marks, words: prep.words, unattributed: speakers.unattributed(chapterId) }, chapterId),
-    [marks.types, marks.marks, prep.words, speakers],
+      select.chapterFacts({ types: marks.types, marks: marks.marks, entries: entries.entries, unattributed: speakers.unattributed(chapterId) }, chapterId),
+    [marks.types, marks.marks, entries.entries, speakers],
   );
 }
 
@@ -321,6 +319,7 @@ export function useScriptCommands() {
   const marks = usePort('marks');
   const scriptPrep = usePort('scriptPrep');
   const storyBible = usePort('storyBible');
+  const pronunciationSources = usePort('pronunciationSources');
   const env = useMemo<ScriptCommandEnv>(
     () => ({ journal, marks, scriptPrep, storyBible, data, announce: (text) => overlay.announce(text) }),
     [journal, marks, scriptPrep, storyBible, data],
@@ -367,11 +366,40 @@ export function useScriptCommands() {
       },
       setPrep: async (chapter: ChapterNameInput & { id: string }, state: PrepState) => said(await commands.setPrep(env, chapter, state)) !== null,
       stepPrep: async (chapter: ChapterNameInput & { id: string }, delta: number) => said(await commands.stepPrep(env, chapter, delta)) !== null,
-      flagWord: async (range: LineRange) => said(await commands.flagWord(env, range))?.value ?? null,
-      unflagWord: async (flagId: string) => said(await commands.unflagWord(env, flagId)) !== null,
-      removeWord: async (word: string) => said(await commands.removeWord(env, word)) !== null,
-      /** Saves how a word is said; with no source the narrator typed it. */
-      saveSay: async (word: string, say: string, source?: string) => said(await commands.saveSay(env, word, say, source))?.value ?? null,
+      /**
+       * Saves how the narrator says a word no dictionary has, in their own dictionary (#2595): never the Story Bible. Answers whether it was
+       * saved.
+       */
+      async saveToMyDictionary(word: string, say: string) {
+        const done = await saveToMyDictionary(journal, pronunciationSources, word, say);
+        if (!done.ok) {
+          overlay.toast(done.refusal.reason, { tone: 'error' });
+          return false;
+        }
+        undoOffer(`Saved “${word.trim()}” to your dictionary.`, done.value.id);
+        return true;
+      },
+      /** Removes the narrator's own record of a word from their dictionary, so they can save it again; Undo puts it back. */
+      async removeFromMyDictionary(word: string, say: string) {
+        const done = await removeFromMyDictionary(journal, pronunciationSources, word, say);
+        if (!done.ok) {
+          overlay.toast(done.refusal.reason, { tone: 'error' });
+          return false;
+        }
+        undoOffer(`Removed “${say}” from your dictionary.`, done.value.id);
+        return true;
+      },
+      /** Says a Story Bible name the narrator's own way (the definition source's "Use"), through the one pronunciation command (#2595). */
+      async pronounceName(name: Pick<select.ChapterWord, 'entryId' | 'aliasIndex' | 'name' | 'pronunciation'>, say: string) {
+        const done = await pronounceOwn(
+          journal,
+          env.storyBible,
+          { entryId: name.entryId, aliasIndex: name.aliasIndex, name: name.name, prior: name.pronunciation },
+          say,
+        );
+        overlay.toast(done.ok ? 'Your pronunciation is in use.' : done.refusal.reason, done.ok ? undefined : { tone: 'error' });
+        return done.ok;
+      },
       /** Finds who speaks the quoted lines and says what moved, with Undo when something did. Answers whether the run finished. */
       async attributeSpeakers() {
         const done = said(await commands.attributeSpeakers(env));
@@ -396,5 +424,5 @@ export function useScriptCommands() {
         return done.value;
       },
     };
-  }, [env, journal, data]);
+  }, [env, journal, data, pronunciationSources]);
 }

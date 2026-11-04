@@ -1118,8 +1118,8 @@
   {
     "name": "delete_range: a second Cuts track is added for every cut",
     "file": "narration_range.lua",
-    "find": "  if not track then\n    local index = reaper.CountTracks(0)",
-    "replace": "  if true then\n    local index = reaper.CountTracks(0)"
+    "find": "  if not track then\n    -- At the top level, never inside a folder left open at the end of the project (core.append_track).\n    track = core.append_track()",
+    "replace": "  if true then\n    -- At the top level, never inside a folder left open at the end of the project (core.append_track).\n    track = core.append_track()"
   },
   {
     "name": "delete_range: a missing call is not refused",
@@ -2477,9 +2477,9 @@
   },
   {
     "name": "track_create inserts the track first instead of last",
-    "file": "narration_track_create.lua",
-    "find": "    index = reaper.CountTracks(0)",
-    "replace": "    index = 0"
+    "file": "narration_bridge_core.lua",
+    "find": "  reaper.InsertTrackAtIndex(count, false)\n  return reaper.GetTrack(0, count), count",
+    "replace": "  reaper.InsertTrackAtIndex(0, false)\n  return reaper.GetTrack(0, 0), 0"
   },
   {
     "name": "track_create makes no undo point",
@@ -3030,19 +3030,19 @@
   {
     "name": "a voice added to a folder leaves the old last child's depth change as it was",
     "file": "narration_track_create.lua",
-    "find": "  reaper.SetMediaTrackInfo_Value(last, 'I_FOLDERDEPTH', parent_depth + 1 - last_depth)\n",
+    "find": "  reaper.SetMediaTrackInfo_Value(plan.last, 'I_FOLDERDEPTH', plan.last_delta)\n",
     "replace": ""
   },
   {
     "name": "a voice added to a folder closes nothing",
     "file": "narration_track_create.lua",
-    "find": "  reaper.SetMediaTrackInfo_Value(track, 'I_FOLDERDEPTH', last_delta + last_depth - parent_depth - 1)\n",
+    "find": "  reaper.SetMediaTrackInfo_Value(track, 'I_FOLDERDEPTH', plan.new_delta)\n",
     "replace": ""
   },
   {
     "name": "a voice added to a folder records from its own default input",
     "file": "narration_track_create.lua",
-    "find": "  reaper.SetMediaTrackInfo_Value(track, 'I_RECINPUT', reaper.GetMediaTrackInfo_Value(source, 'I_RECINPUT'))\n",
+    "find": "  reaper.SetMediaTrackInfo_Value(track, 'I_RECINPUT', reaper.GetMediaTrackInfo_Value(plan.source, 'I_RECINPUT'))\n",
     "replace": ""
   },
   {
@@ -3164,6 +3164,102 @@
     "file": "narration_transport.lua",
     "find": "  core.cursor_moved()\n  if play_state % 2 == 1 then\n    reaper.SetEditCurPos(seconds, true, true)",
     "replace": "  if play_state % 2 == 1 then\n    reaper.SetEditCurPos(seconds, true, true)"
+  },
+  {
+    "name": "an appended track leaves a folder open at the end, so it lands inside the last chapter's folder",
+    "file": "narration_bridge_core.lua",
+    "find": "  if count > 0 and open > 0 then\n    local last = reaper.GetTrack(0, count - 1)",
+    "replace": "  if false then\n    local last = reaper.GetTrack(0, count - 1)"
+  },
+  {
+    "name": "an appended track closes only one of the folders left open at the end",
+    "file": "narration_bridge_core.lua",
+    "find": "reaper.GetMediaTrackInfo_Value(last, 'I_FOLDERDEPTH') - open)",
+    "replace": "reaper.GetMediaTrackInfo_Value(last, 'I_FOLDERDEPTH') - 1)"
+  },
+  {
+    "name": "the insert guard never checks the folder the new track lands in",
+    "file": "narration_bridge_core.lua",
+    "find": "  return now[at] == (parent == 0 and 0 or shifted(parent))",
+    "replace": "  return true"
+  },
+  {
+    "name": "the insert guard lets an existing track move into another folder",
+    "file": "narration_bridge_core.lua",
+    "find": "    if now[shifted(position)] ~= (old == 0 and 0 or shifted(old)) then\n      return false",
+    "replace": "    if now[shifted(position)] ~= (old == 0 and 0 or shifted(old)) then\n      local _ = false"
+  },
+  {
+    "name": "track_create with no parent appends inside a folder left open at the end",
+    "file": "narration_track_create.lua",
+    "find": "    local _\n    _, index = core.append_track()",
+    "replace": "    index = reaper.CountTracks(0)\n    reaper.InsertTrackAtIndex(index, false)"
+  },
+  {
+    "name": "delete_range's Cuts track is appended inside a folder left open at the end",
+    "file": "narration_range.lua",
+    "find": "    track = core.append_track()\n    reaper.GetSetMediaTrackInfo_String(track, 'P_NAME', CUTS_NAME, true)",
+    "replace": "    local index = reaper.CountTracks(0)\n    reaper.InsertTrackAtIndex(index, false)\n    track = reaper.GetTrack(0, index)\n    reaper.GetSetMediaTrackInfo_String(track, 'P_NAME', CUTS_NAME, true)"
+  },
+  {
+    "name": "replace_range's Cuts track is appended inside a folder left open at the end",
+    "file": "narration_replace.lua",
+    "find": "    track = core.append_track()\n    reaper.GetSetMediaTrackInfo_String(track, 'P_NAME', CUTS_NAME, true)",
+    "replace": "    local index = reaper.CountTracks(0)\n    reaper.InsertTrackAtIndex(index, false)\n    track = reaper.GetTrack(0, index)\n    reaper.GetSetMediaTrackInfo_String(track, 'P_NAME', CUTS_NAME, true)"
+  },
+  {
+    "name": "stack_takes' Cuts track is appended inside a folder left open at the end",
+    "file": "narration_takes.lua",
+    "find": "    track = core.append_track()\n    reaper.GetSetMediaTrackInfo_String(track, 'P_NAME', CUTS_NAME, true)",
+    "replace": "    local index = reaper.CountTracks(0)\n    reaper.InsertTrackAtIndex(index, false)\n    track = reaper.GetTrack(0, index)\n    reaper.GetSetMediaTrackInfo_String(track, 'P_NAME', CUTS_NAME, true)"
+  },
+  {
+    "name": "import_audio_track's track is appended inside a folder left open at the end",
+    "file": "narration_replace.lua",
+    "find": "  local track = core.append_track()\n  reaper.GetSetMediaTrackInfo_String(track, 'P_NAME', name, true)",
+    "replace": "  local index = reaper.CountTracks(0)\n  reaper.InsertTrackAtIndex(index, false)\n  local track = reaper.GetTrack(0, index)\n  reaper.GetSetMediaTrackInfo_String(track, 'P_NAME', name, true)"
+  },
+  {
+    "name": "the track list limit is lifted",
+    "file": "narration_tracks_read.lua",
+    "find": "local TRACK_LIMIT = 2000",
+    "replace": "local TRACK_LIMIT = 5000"
+  },
+  {
+    "name": "the track read opens an undo point",
+    "file": "narration_tracks_read.lua",
+    "find": "  local total = reaper.CountTracks(0)\n",
+    "replace": "  reaper.Undo_BeginBlock2(0)\n  reaper.Undo_EndBlock2(0, 'read tracks', -1)\n  local total = reaper.CountTracks(0)\n"
+  },
+  {
+    "name": "the track read drops the folder depth change",
+    "file": "narration_tracks_read.lua",
+    "find": "math.floor(reaper.GetMediaTrackInfo_Value(track, 'I_FOLDERDEPTH'))",
+    "replace": "0"
+  },
+  {
+    "name": "the track read answers a GUID as REAPER spells it",
+    "file": "narration_tracks_read.lua",
+    "find": "normalize_guid(reaper.GetTrackGUID(track)),",
+    "replace": "reaper.GetTrackGUID(track),"
+  },
+  {
+    "name": "the track read skips the first track",
+    "file": "narration_tracks_read.lua",
+    "find": "for index = 0, listed - 1 do",
+    "replace": "for index = 1, listed - 1 do"
+  },
+  {
+    "name": "the track read runs on a REAPER without the calls it needs",
+    "file": "narration_tracks_read.lua",
+    "find": "if not reaper.APIExists(name) then",
+    "replace": "if false then"
+  },
+  {
+    "name": "the track read says the project is saved when it is not",
+    "file": "narration_tracks_read.lua",
+    "find": "rpp, rpp == '' and 1 or 0,",
+    "replace": "rpp, 0,"
   },
   {
     "name": "a voice sample region is added again when it already exists",

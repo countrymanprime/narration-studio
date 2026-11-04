@@ -187,6 +187,11 @@ export const settingsDrivers: Record<string, Driver> = {
     const row = await showSettingsRow(page, 'daw.layout');
     await row.getByRole('group', { name: 'Chapter layout' }).waitFor();
   },
+  'recording-chapter-voices': async (page) => {
+    await openSettings(page, 'Recording & DAW', '?mockVoiceFolders=1');
+    const row = await showSettingsRow(page, 'daw.voices');
+    await row.getByRole('table', { name: /^Voices of / }).waitFor();
+  },
   'recording-reaper-path-invalid': async (page) => {
     await openSettings(page, 'Recording & DAW');
     await openAdvanced(page);
@@ -426,6 +431,11 @@ export const settingsDrivers: Record<string, Driver> = {
     await openSettings(page, 'Appearance & keys');
     await showSettingsRow(page, 'look.reader');
     await page.getByRole('slider', { name: 'Column width' }).waitFor();
+  },
+  'booth-text-size': async (page) => {
+    await openSettings(page, 'Appearance & keys');
+    const row = await showSettingsRow(page, 'look.boothSize');
+    await row.getByRole('slider', { name: 'Booth text size' }).waitFor();
   },
   'wave-scroll-step': async (page) => {
     await openSettings(page, 'Appearance & keys');
