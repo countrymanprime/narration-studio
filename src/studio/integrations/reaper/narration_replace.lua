@@ -155,9 +155,8 @@ end
 -- Inside the undo block: the Cuts track found, keyed and muted, or added (narration_range.lua's ensure_cuts).
 local function ensure_cuts(track, keyed)
   if not track then
-    local index = reaper.CountTracks(0)
-    reaper.InsertTrackAtIndex(index, false)
-    track = reaper.GetTrack(0, index)
+    -- At the top level, never inside a folder left open at the end of the project (core.append_track).
+    track = core.append_track()
     reaper.GetSetMediaTrackInfo_String(track, 'P_NAME', CUTS_NAME, true)
   end
   if not keyed then
@@ -536,9 +535,8 @@ local function import_audio_track(session_dir, run_id, name, path, extra)
   end
 
   reaper.Undo_BeginBlock2(0)
-  local index = reaper.CountTracks(0)
-  reaper.InsertTrackAtIndex(index, false)
-  local track = reaper.GetTrack(0, index)
+  -- At the top level, never inside a folder left open at the end of the project (core.append_track).
+  local track = core.append_track()
   reaper.GetSetMediaTrackInfo_String(track, 'P_NAME', name, true)
   reaper.GetSetMediaTrackInfo_String(track, CO_NARRATOR_KEY, '1', true)
   reaper.SetMediaTrackInfo_Value(track, 'B_MUTE', 1)

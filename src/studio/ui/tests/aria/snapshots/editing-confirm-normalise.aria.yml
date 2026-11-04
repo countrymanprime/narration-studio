@@ -8,8 +8,6 @@
 - status
 - alert
 - status
-- alert
-- status
 - alertdialog "Normalise?":
   - heading "Normalise?" [level=2]
   - button "Close"

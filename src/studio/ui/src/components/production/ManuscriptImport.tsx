@@ -10,6 +10,7 @@ import { CreditsSetupBanner } from '../credits/CreditsSetupBanner';
 import { CreditsSetupDialog } from '../credits/CreditsSetupDialog';
 import { NEUTRAL_PROFILE, PLATFORM_PROFILES } from '../schedule/profiles';
 import { Button } from '../primitives/Button';
+import { retryAction } from '../primitives/Toast';
 import { Checkbox } from '../primitives/Checkbox';
 import { ImportChooseDialog, type DroppedManuscript } from './ImportChooseDialog';
 import { ImportReview, importDescription } from './ImportReview';
@@ -102,7 +103,17 @@ export function useManuscriptImport({
   const changeCloseWhenDone = (next: boolean) => {
     closeWhenDoneRef.current = next;
     setCloseWhenDone(next);
-    void api.saveSettings('General', 'global', { close_import_when_done: String(next) }).catch((error) => notify(apiErrorMessage(error), 'error'));
+    // Retry writes the same value again (issue #2919).
+    const save = (): void =>
+      void api.saveSettings('General', 'global', { close_import_when_done: String(next) }).catch((error) =>
+        notify(
+          apiErrorMessage(error),
+          'error',
+          retryAction(() => closeWhenDoneRef.current === next && save()),
+        ),
+      );
+    // A later change of the box has already saved its own value, so a stale Retry must not write the old one over it.
+    save();
   };
   useEffect(() => {
     if (!reviewing || found) return;

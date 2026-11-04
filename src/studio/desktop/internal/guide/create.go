@@ -188,8 +188,8 @@ func (s *Service) createInHost(name, category string, aliases []string, descript
 				return false, err
 			}
 		}
-		id := entityID(name)
-		if slices.ContainsFunc(entities, func(raw any) bool { return idOf(raw) == id }) {
+		id, owner, _ := claimID(entities, name)
+		if owner != nil {
 			return false, errNameTaken
 		}
 		aliasList := aliasNames(strings.Join(aliases, ";"))

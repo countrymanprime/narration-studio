@@ -7,7 +7,7 @@ Storybook title: `Primitives/CapabilityGate`. Source: `src/components/primitives
 ## Stories
 
 - Supported Is Unchanged
-- Experimental Is Enabled With A Badge
+- Built Is Unchanged
 - Not Yet Available Is Disabled With The Message
 - Unsupported Falls Back To The Controls Own Name
 - Unsupported Can Be Hidden Instead
@@ -17,6 +17,8 @@ Storybook title: `Primitives/CapabilityGate`. Source: `src/components/primitives
 
 - `src/components/editing/CleanupAction.tsx`
 - `src/components/engine/CreateChapterRegionsDialog.tsx`
+- `src/components/engine/DawToolsMenu.tsx`
+- `src/components/engine/dawTools.tsx`
 - `src/components/proof/CompareRun.tsx`
 - `src/dawAvailability.ts`
 - `src/useCapability.ts`

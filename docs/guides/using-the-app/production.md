@@ -90,7 +90,7 @@ narration chapters only: a chapter removed from recording, and reference materia
 
 ## Chapter pipeline
 
-The pipeline has one row per narration chapter. In a narrow window the stages scroll sideways under the chapter names, which stay in view, with a shadow on the side that has more. **Rec.** is the audio
+The pipeline has one row per narration chapter. The cells are one stop in the Tab order (the scroll area and the two column-info marks in the header come before them): Tab enters them on the cell you last used, the arrow keys move between cells (Left and Right along a row, Up and Down in a column), Home and End go to the ends of a row, and the next Tab leaves it. A book of more than 150 chapters draws only the rows near the window, one row height each with the name held to two lines (the full name is in its tip), so a book of thousands of chapters opens in seconds; scrolling draws the rest, and the browser's find-in-page only finds rows that are drawn. In a narrow window the stages scroll sideways under the chapter names, which stay in view, with a shadow on the side that has more. **Rec.** is the audio
 on the chapter's confirmed track in the saved project (`1:12`, or `<0:01` for under a minute), and **Est.** beside it (`1:20`) is the
 chapter's finished length estimated from its words. Every column header is centred over its cells. When Rec. has no length, it says why: **None yet** (linked, nothing recorded),
 **No track**, **2+ tracks** (keep one in the track panel), **Track gone** (the linked track is no longer in the project), **No
@@ -294,7 +294,9 @@ ticked: a section you leave out is missing from both the HTML page and the JSON 
 ticked, so a reader can tell a section left out from one that is empty.
 
 **Export** writes the HTML page and the JSON file into this project's <!-- brand:identity.projectFolder -->narration-studio<!-- /brand -->/production/reports folder, under a name built
-from when you exported it, and an export never overwrites an earlier one.
+from when you exported it, and an export never overwrites an earlier one. Once it is written, the open-folder button beside the file names shows that folder in your file manager.
+
+![The Export status report dialog after Export: the written files and the open-folder button beside them](../../images/ui/production-report-written.webp)
 
 The contracted amount and effective rate are left out unless you tick their box: a
 status report is often handed to someone else — a publisher, a collaborator, a rights holder

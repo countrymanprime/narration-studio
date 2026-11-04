@@ -35,7 +35,7 @@ import type { NarrationApi, TeleprompterState } from '../../../types';
 import { TEXT_PREFS_STORAGE_KEY } from '../../script/page/tools/text/readerText';
 import { BoothNextPage } from './BoothNextPage';
 import { EnginePanelProvider } from '../../engine/EnginePanelContext';
-import { BOOTH_SIZE_STORAGE_KEY } from './useTextChoices';
+import { BOOTH_SIZE_STORAGE_KEY } from './boothSize';
 import { BoothHost, creditsChapter, dawFor, LOCATED, newJournal, pageApi } from './testPage';
 import { forgetAppTake, skipStartGuard } from '../record/useRecordControl';
 import { createJournal, type Journal } from '../../../studio/journal/createJournal';

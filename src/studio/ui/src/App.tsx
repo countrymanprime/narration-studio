@@ -22,7 +22,7 @@ import { useTheme } from './theme/ThemeContext';
 import { useUserKeymap } from './input/useUserKeymap';
 import { useNavCounts } from './components/layout/useNavCounts';
 import { StartupScreen, type StartupState } from './components/layout/StartupScreen';
-import { ToastRegion, type ToastTone } from './components/primitives/Toast';
+import type { ToastTone } from './components/primitives/Toast';
 import { useProjectPicker } from './hooks/useProjectPicker';
 import { useToasts } from './hooks/useToasts';
 import { attachRefusalClaimed } from './components/connection/attachRefusal';
@@ -206,7 +206,7 @@ function AppRoutes() {
   const hasManuscript = Boolean(data?.manuscript);
   // One queue for the whole app: messages stack instead of replacing each other, an identical one that is showing starts its time again, and
   // an error stays until it is dismissed. `notify` and `dismiss` keep their identity, so a page effect that lists them never re-runs.
-  const { messages, notify: setNotice, dismiss: dismissMessage } = useToasts();
+  const { notify: setNotice } = useToasts(overlay);
   // Chapter sync's consent: read here, once, so "Sync chapters to
   // tracks?" shows from every link path (the engine panel, an import, an attach) wherever the narrator happens to be.
   const chapterSync = useChapterSync(api);
@@ -771,15 +771,12 @@ function AppRoutes() {
   // A project made from the picker opens on Script, as the mock's New project does; the Script page offers the import when it has no manuscript.
   if (!data.projectFolder || projectPickerOpen)
     return (
-      <>
-        <ProjectPicker
-          notify={setNotice}
-          onCreated={() => navigate('/script')}
-          onBack={data.projectFolder ? () => setProjectPickerOpen(false) : undefined}
-          currentName={data.projectFolder ? data.projectName : undefined}
-        />
-        <ToastRegion messages={messages} dismiss={dismissMessage} />
-      </>
+      <ProjectPicker
+        notify={setNotice}
+        onCreated={() => navigate('/script')}
+        onBack={data.projectFolder ? () => setProjectPickerOpen(false) : undefined}
+        currentName={data.projectFolder ? data.projectName : undefined}
+      />
     );
   transcriptPhaseRef.current = data.transcript.phase;
 
@@ -1026,7 +1023,12 @@ function AppRoutes() {
                     <Route
                       path="/pickups"
                       element={
-                        <PickupsPage hasManuscript={Boolean(data.manuscript)} goTo={guardedNavigate} goToScript={(chapterId) => goToScript(chapterId)} />
+                        <PickupsPage
+                          hasManuscript={Boolean(data.manuscript)}
+                          dawFileLinked={data.dawFileLinked}
+                          goTo={guardedNavigate}
+                          goToScript={(chapterId) => goToScript(chapterId)}
+                        />
                       }
                     />
                     {/* Retired by Proof: old links land, query and hash kept. */}
@@ -1095,7 +1097,6 @@ function AppRoutes() {
                     <Route path="*" element={<NotFoundPage />} />
                   </Routes>
                 </ErrorBoundary>
-                <ToastRegion messages={messages} dismiss={dismissMessage} />
                 <EnginePanel
                   open={enginePanelOpen}
                   onClose={() => setEnginePanelOpen(false)}

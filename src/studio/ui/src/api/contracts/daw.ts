@@ -69,11 +69,13 @@ export type DawCapabilityKey =
   | 'track_state'
   | 'track_select'
   | 'track_create'
+  | 'tracks_read'
   | 'follow_position'
   | 'transport_sync'
   | 'record'
   | 'punch'
   | 'regions'
+  | 'voice_sample_region'
   | 'takes'
   | 'fx_chains'
   | 'item_gain'
@@ -121,11 +123,13 @@ export const DAW_CAPABILITIES: ReadonlyArray<{ key: DawCapabilityKey; label: str
   { key: 'track_state', label: 'Read track arm state' },
   { key: 'track_select', label: 'Select a track in the recording tool' },
   { key: 'track_create', label: 'Add a track for a chapter' },
+  { key: 'tracks_read', label: "Read the open project's tracks" },
   { key: 'follow_position', label: "Follow the narrator's place in the project" },
   { key: 'transport_sync', label: "Play and follow the project's transport" },
   { key: 'record', label: 'Record' },
   { key: 'punch', label: 'Punch and roll' },
   { key: 'regions', label: 'Chapter regions' },
+  { key: 'voice_sample_region', label: 'Keep a voice sample as a region' },
   { key: 'takes', label: 'Choose the active take' },
   { key: 'fx_chains', label: 'FX chains' },
   { key: 'item_gain', label: 'Level matching' },

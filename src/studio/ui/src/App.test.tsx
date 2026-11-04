@@ -9,6 +9,7 @@ import { createMockApi } from './api/mockApi';
 import { PRODUCTION_SCENARIOS } from './api/productionMock';
 import { CommandRouter } from './input/router';
 import { commandsFor } from './input/surfaces';
+import { overlay } from './overlay/overlayService';
 import { createJournal } from './studio/journal/createJournal';
 import { ThemeProvider } from './theme/ThemeContext';
 import { parseWire } from './api/wire/parseWire';
@@ -30,6 +31,8 @@ beforeEach(() => {
   window.history.replaceState(null, '', '/');
   // The title is set by an effect and outlives a test: one test's last page must not read as the next test's first.
   document.title = '';
+  // The overlay service is the app's one module-level store, and the app's toasts go through it: one test's messages must not show in the next.
+  for (const toast of overlay.getSnapshot().toasts) overlay.dismissToast(toast.id);
 });
 afterEach(cleanup);
 
@@ -52,10 +55,8 @@ function renderApp(overrides: Parameters<typeof createMockApi>[0] = {}, initial:
   return api;
 }
 
-// The app's own toast region (`useToasts`) comes first in the document; the overlay host mounted after it draws a second pair for
-// `overlay.toast`, empty until a caller uses it (docs/architecture/studio-shell-and-registries.md#overlay-service moves the call sites over one slice at a time).
 // The toast region's live lists (Toast.tsx), told apart from a page's own status lines by announcing additions only.
-// The toast regions are portalled to <body> (the app's and the overlay host's, in that order of mounting): the one showing messages, else the first.
+// The one toast region (the overlay host's) is portalled to <body>.
 const appToasts = (role: 'status' | 'alert') => {
   const regions = screen.getAllByRole(role).filter((node) => node.getAttribute('aria-relevant') === 'additions');
   return regions.find((node) => node.childElementCount > 0) ?? regions[0]!;
@@ -103,7 +104,7 @@ const linkChapterOne = async () => {
   // Option 0 is the "Choose a track" placeholder; option 1 is the first track.
   fireEvent.change(select, { target: { value: select.options[1].value } });
   fireEvent.click(within(row).getByRole('button', { name: 'Confirm' }));
-  await within(row).findByRole('button', { name: 'Change' });
+  await within(row).findByRole('button', { name: /^Change the track/ });
   return row;
 };
 
@@ -128,6 +129,17 @@ async function openKeptPanel(id: string, region: string) {
 }
 
 describe('App (integration, driven through the mock NarrationApi)', () => {
+  it('mounts one toast region, on every screen that can raise a message (#1765)', async () => {
+    renderApp();
+    await waitFor(() => expect(screen.getByRole('heading', { level: 1, name: 'Production' })).toBeTruthy());
+    expect(document.querySelectorAll('[data-toast-region]')).toHaveLength(1);
+  });
+
+  it('mounts one toast region on the project picker too (#1765)', async () => {
+    renderApp({}, { projectFolder: '' });
+    await waitFor(() => expect(document.querySelectorAll('[data-toast-region]')).toHaveLength(1));
+  });
+
   it('shows the startup screen, then the Production home once bootstrap resolves', async () => {
     renderApp();
     expect(screen.getByText(new RegExp(`Opening ${brand.name}`))).toBeTruthy();
@@ -630,7 +642,9 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
       window.history.replaceState(null, '', `/settings${anchor}`);
       renderApp();
       expect(await screen.findByRole('heading', { level: 2, name: 'Recording & DAW' })).toBeTruthy();
-      expect(await screen.findByRole('combobox', { name: /Microphone/ })).toBeTruthy();
+      // The Microphone row is drawn once the page is open: the picker before the recorder's state is known, the DAW's own input after. A
+      // combobox is only the first of the two, which the test used to catch by timing.
+      await waitFor(() => expect(document.querySelector('[data-row="daw.mic"]')).toBeTruthy());
       cleanup();
     }
   });
@@ -648,7 +662,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     const tracks = await within(panel).findByRole('table', { name: 'Tracks' });
     expect(within(tracks).getByText('Chapter 1')).toBeTruthy();
     expect(within(tracks).getByText('Click Track')).toBeTruthy();
-    expect(within(panel).getByRole('button', { name: 'Change file…' })).toBeTruthy();
+    expect(within(panel).getByRole('button', { name: 'Change the linked file' })).toBeTruthy();
     expect(window.location.pathname).toBe('/');
   });
 
@@ -1260,7 +1274,8 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     renderApp({}, { projectFolder: '' });
     await screen.findByRole('heading', { level: 1, name: 'Choose your project' });
 
-    fireEvent.click(screen.getByRole('button', { name: 'New project' }));
+    // The header's New project is there at once; the empty state adds a second one when the host's project list comes back empty. Either opens the same dialog, so take the first rather than race the list.
+    fireEvent.click((await screen.findAllByRole('button', { name: 'New project' }))[0]);
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Fresh Book' } });
     fireEvent.click(screen.getByRole('button', { name: 'Create' }));
 

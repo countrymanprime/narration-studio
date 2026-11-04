@@ -17,7 +17,9 @@
       "project": ["scripts/**"],
       "ignoreDependencies": [
         // Loaded by `nx release version` (nx.json "release"), not imported anywhere.
-        "@nx/js"
+        "@nx/js",
+        // Run by node_modules/.bin path from scripts/ci/pyright-ratchet.mjs (the `typecheck` target of narration-common), not imported.
+        "pyright"
       ],
       "ignoreBinaries": [
         // Go toolchain and Wails CLI, called from scripts/quality.mjs, package scripts and the desktop project's
@@ -31,7 +33,10 @@
         "playwright"
       ]
     },
-    "src/studio/ui": {},
+    "src/studio/ui": {
+      // The icon-button audit is run by hand (docs/research/2026-11-icon-button-audit.md) and imported by src/iconButtonRule.test.ts only through its library.
+      "entry": ["scripts/icon-button-audit.mjs"]
+    },
     // The public site. Its build scripts are plain Node (the entries below) and the app starts from demo/src/entry.ts. The Vite, Vitest and Playwright
     // configs are found by knip's own plugins. The browser scripts src/web/build/*.mjs read with readFileSync and inline into the pages
     // (common/shell.js, docs/docs.js) are text to knip, not modules, and it already treats them so.

@@ -10,6 +10,7 @@ Storybook title: `Production/ProgressChart`. Source: `src/components/production/
 - Late
 - No Take Log
 - Nothing Recorded
+- No Due Date
 
 ## Used by
 
