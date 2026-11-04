@@ -394,47 +394,6 @@ export const engineDrivers: Record<string, Driver> = {
     await message.waitFor();
     await message.scrollIntoViewIfNeeded();
   },
-  'chapter-tags-idle': async (page) => {
-    await openEnginePanel(page);
-    await clickVisible(page, 'button', 'Embed chapter tags');
-    await page.getByText(/No chapter render is configured yet/).waitFor();
-  },
-  'chapter-tags-ready': async (page) => {
-    await page.goto('/?mockChapterTags=ready');
-    await settlePage(page);
-    await openEnginePanel(page);
-    await clickVisible(page, 'button', 'Embed chapter tags');
-    await page.getByRole('dialog', { name: 'Embed chapter tags' }).getByText('Chapter 2').waitFor();
-  },
-  'chapter-tags-not-rendered': async (page) => {
-    await page.goto('/?mockChapterTags=not-rendered');
-    await settlePage(page);
-    await openEnginePanel(page);
-    await clickVisible(page, 'button', 'Embed chapter tags');
-    await page.getByText('Not rendered yet', { exact: true }).waitFor();
-  },
-  'chapter-tags-success': async (page) => {
-    await page.goto('/?mockChapterTags=ready');
-    await settlePage(page);
-    await openEnginePanel(page);
-    await clickVisible(page, 'button', 'Embed chapter tags');
-    await page.getByLabel('Combined book MP3 to add chapters to').fill('C:\\Books\\Alice\\Alice in Wonderland.mp3');
-    await page.getByRole('checkbox', { name: /I understand this writes a new file/ }).click();
-    await page.getByRole('dialog', { name: 'Embed chapter tags' }).getByRole('button', { name: 'Embed chapter tags', exact: true }).click();
-    await page.getByText(/^Wrote /).waitFor();
-  },
-  'chapter-tags-error': async (page) => {
-    await page.goto('/?mockChapterTags=ready&mockChapterTagsEmbedError=1');
-    await settlePage(page);
-    await openEnginePanel(page);
-    await clickVisible(page, 'button', 'Embed chapter tags');
-    await page.getByLabel('Combined book MP3 to add chapters to').fill('C:\\Books\\Alice\\Alice in Wonderland.mp3');
-    await page.getByRole('checkbox', { name: /I understand this writes a new file/ }).click();
-    await page.getByRole('dialog', { name: 'Embed chapter tags' }).getByRole('button', { name: 'Embed chapter tags', exact: true }).click();
-    const message = page.getByText(/could not write chapter tags/).first();
-    await message.waitFor();
-    await message.scrollIntoViewIfNeeded();
-  },
   'cleanup-tools-idle': async (page) => {
     await openEnginePanel(page);
     await clickVisible(page, 'button', 'Open the cleanup tools');

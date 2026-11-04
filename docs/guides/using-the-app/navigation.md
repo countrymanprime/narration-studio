@@ -256,11 +256,7 @@ happened, naming only the counts that aren't zero ("Sent 3: 2 created, 1 already
 main button. While REAPER is not answering, **Create N regions** stays disabled and says why. The plan's column names stay in view while you scroll a long plan, as they do in
 **Link chapters to tracks**.
 
-**Embed chapter tags** adds ID3 chapter markers to an MP3 of the whole book that you have already
-rendered, timed from the chapter files of your last chapter render. It lists those chapters and marks
-any that are "not rendered yet"; every one must exist first. Enter the path of the combined book MP3 and
-tick the confirmation: the file you name is never changed, and a new, tagged copy is written beside it.
-This one does not talk to REAPER.
+**Embed chapter tags** is not here: it writes into the finished book MP3 and never talks to REAPER, so it sits beside the build on [Delivery](delivery.md#embedding-chapter-tags).
 
 **Open the cleanup tools** opens a repair tool in REAPER on the items you have selected there. Select the items
 in REAPER first, then press **Open** beside the tool. **Repair Pops/Clicks** is REAPER's own dialog

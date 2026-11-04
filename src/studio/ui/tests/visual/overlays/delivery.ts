@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 import { APP_DRIVERS } from '../app.drivers';
-import type { OverlayCase } from '../helpers/overlayGuardFor';
+import { fromState, type OverlayCase } from '../helpers/overlayGuardFor';
 
 /** A hint on an icon button: the button is scrolled into view and the pointer moved off it first, so the hint always re-arms (a pointer already resting there shows nothing new). */
 async function showHint(page: Page, button: string): Promise<void> {
@@ -41,4 +41,5 @@ export const deliveryCases: OverlayCase[] = [
       await showHint(page, 'Open the folder');
     },
   },
+  fromState('delivery', 'chapter-tags-ready'),
 ];

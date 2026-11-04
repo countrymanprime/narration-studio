@@ -53,7 +53,7 @@ describe('EnginePanel', () => {
       within(tools)
         .getAllByRole('button')
         .map((button) => button.getAttribute('aria-label')),
-    ).toEqual(['Link chapters to tracks', 'Prepare the chapter render', 'Create chapter regions', 'Embed chapter tags', 'Open the cleanup tools']);
+    ).toEqual(['Link chapters to tracks', 'Prepare the chapter render', 'Create chapter regions', 'Open the cleanup tools']);
     expect(await within(panel).findByRole('table', { name: 'Chapter links' })).toBeTruthy();
     // No player: a chapter is heard in its Proof chapter view.
     expect(within(panel).queryByRole('button', { name: 'Play' })).toBeNull();

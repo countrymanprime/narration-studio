@@ -275,41 +275,6 @@ export const engineStates: StateEntry[] = [
   },
   {
     page: 'engine',
-    state: 'chapter-tags-idle',
-    description:
-      'The engine panel, "Embed chapter tags" dialog open before any chapter render is configured - "Prepare chapter render first" message, Embed disabled',
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  {
-    page: 'engine',
-    state: 'chapter-tags-ready',
-    description:
-      'The engine panel, "Embed chapter tags" dialog with two rendered chapters known - the chapter list, destination field and confirm checkbox, Embed enabled once both are filled in (reached via the ?mockChapterTags=ready mock seam)',
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  {
-    page: 'engine',
-    state: 'chapter-tags-not-rendered',
-    description:
-      'The engine panel, "Embed chapter tags" dialog with a chapter configured but not yet rendered - a "Not rendered yet" badge and the press-Render-first warning, Embed disabled (reached via the ?mockChapterTags=not-rendered mock seam)',
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  {
-    page: 'engine',
-    state: 'chapter-tags-success',
-    description:
-      'The engine panel, "Embed chapter tags" dialog after a completed embed - the new tagged file\'s path shown, the original file unmentioned as changed',
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  {
-    page: 'engine',
-    state: 'chapter-tags-error',
-    description:
-      'The engine panel, "Embed chapter tags" dialog when the embed fails - inline error message (reached via the ?mockChapterTags=ready&mockChapterTagsEmbedError=1 mock seam)',
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  {
-    page: 'engine',
     state: 'cleanup-tools-idle',
     description: 'The engine panel, "Cleanup tools" dialog open before any launch - Repair Pops/Clicks and Magnolius DeClick, each with its own Open button',
   },
