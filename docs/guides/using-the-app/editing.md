@@ -106,6 +106,14 @@ words it heard show the next time you open the chapter.
 
 ![Editing - a background check in progress at the bottom left, with Pause and Cancel](../../images/ui/background-check-running.webp)
 
+## The DAW tools menu
+
+The wrench icon button at the right end of the header (its tooltip is **DAW tools**) opens a menu headed **Structure** with **Prepare chapter render…** and **Create chapter regions…**. They are the same two dialogs as in the audio engine panel's REAPER tools: create the chapter regions REAPER renders one file per chapter from, then set up the render. When a tool cannot be used it stays in the menu, greyed, with the reason under its name: the DAW is not answering, the REAPER project has no tracks yet, no chapter is linked to a REAPER track yet (link one on [Production](production.md)), or the project records in Audacity, which has neither regions nor render setup to write. The menu reads the project the first time you open it, so for a moment both entries say **Reading the REAPER project…**.
+
+![Editing - the DAW tools menu open on a linked chapter: the Structure heading over Prepare chapter render and Create chapter regions](../../images/ui/editing-daw-tools.webp)
+
+![Editing - the DAW tools menu on a project that records in Audacity: both entries off, each saying what Audacity cannot do](../../images/ui/editing-daw-tools-audacity.webp)
+
 ## Selecting words
 
 Click a word to place the cursor there. Double-click selects the word and triple-click the whole line it is in. Shift+click another, drag across the text or press Shift+← and Shift+→ to

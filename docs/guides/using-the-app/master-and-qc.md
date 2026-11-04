@@ -23,6 +23,10 @@ the column on the right holds the [delivery package](#the-delivery-package) and
 
 ## Checking files
 
+Before any file has been measured, a wrench icon button (**DAW tools**) sits beside **Check files…** with the same **Structure** menu as [Editing's](editing.md#the-daw-tools-menu): **Create chapter regions…** and **Prepare chapter render…** are what come before there are rendered files to check. When a tool cannot be used it stays in the menu, greyed, with the reason under its name: the DAW is not answering, the REAPER project has no tracks yet, no chapter is linked to a REAPER track yet (link one on [Production](production.md)), or the project records in Audacity, which has neither regions nor render setup to write. The menu reads the project the first time you open it, so for a moment both entries say **Reading the REAPER project…**.
+
+![Master & QC with nothing measured: the DAW tools menu beside Check files, both entries off with the reason that no chapter is linked to a REAPER track yet](../../images/ui/master-daw-tools.webp)
+
 Press the **Check files…** icon button and pick one or more rendered chapter files. Only WAV files are measured for now;
 a file in another format, or one that cannot be read, is listed with the reason and does not stop the
 others. The bar, in the table's card under the button, shows how much of the audio has been read so far,

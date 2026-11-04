@@ -1559,5 +1559,33 @@
     "viewport": "desktop",
     "docName": "background-check-running",
     "caption": "Editing - a background check in progress at the bottom left, with Pause and Cancel"
+  },
+  {
+    "page": "editing",
+    "state": "daw-tools-menu",
+    "viewport": "desktop",
+    "docName": "editing-daw-tools",
+    "caption": "Editing - the DAW tools menu open on a linked chapter: the Structure heading over Prepare chapter render and Create chapter regions"
+  },
+  {
+    "page": "editing",
+    "state": "daw-tools-menu-audacity",
+    "viewport": "desktop",
+    "docName": "editing-daw-tools-audacity",
+    "caption": "Editing - the DAW tools menu on a project that records in Audacity: both entries off, each saying what Audacity cannot do"
+  },
+  {
+    "page": "proof",
+    "state": "daw-tools-menu",
+    "viewport": "desktop",
+    "docName": "proof-daw-tools",
+    "caption": "Proof - the DAW tools menu open at the end of the head: the Structure heading over Prepare chapter render and Create chapter regions"
+  },
+  {
+    "page": "master",
+    "state": "daw-tools-menu",
+    "viewport": "desktop",
+    "docName": "master-daw-tools",
+    "caption": "Master & QC with nothing measured: the DAW tools menu beside Check files, both entries off with the reason that no chapter is linked to a REAPER track yet"
   }
 ]
