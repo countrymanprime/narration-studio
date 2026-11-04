@@ -164,6 +164,37 @@ func (s *TemplateStore) Delete(id string) error {
 	return s.writeLocked(file)
 }
 
+// Changed is whether the library differs from the shipped defaults: a shipped template edited or deleted, or one added or
+// duplicated (BuiltIn is informational and not compared; the order is not either). A library with no file yet is the defaults, and
+// asking does not seed it. Settings > Changed reads it.
+func (s *TemplateStore) Changed() (bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	file, found, err := s.readLocked()
+	if err != nil {
+		return false, err
+	}
+	if !found {
+		return false, nil
+	}
+	if len(file.Templates) != len(defaultTemplates) {
+		return true, nil
+	}
+	for _, shipped := range defaultTemplates {
+		same := false
+		for _, have := range file.Templates {
+			if have.ID == shipped.ID && have.Kind == shipped.Kind && have.Name == shipped.Name && have.Body == shipped.Body {
+				same = true
+				break
+			}
+		}
+		if !same {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 func (s *TemplateStore) readLocked() (templatesFile, bool, error) {
 	var loaded templatesFile
 	found := false

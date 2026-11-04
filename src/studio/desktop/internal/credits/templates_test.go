@@ -176,3 +176,55 @@ func containsID(list []Template, id string) bool {
 	}
 	return false
 }
+
+func TestChangedIsFalseUntilTheNarratorEditsAddsOrDeletesAShippedTemplate(t *testing.T) {
+	store := NewTemplateStore(filepath.Join(t.TempDir(), "credit-templates.json"))
+	if changed, err := store.Changed(); err != nil || changed {
+		t.Fatalf("no file yet: %v, %v", changed, err)
+	}
+	if _, err := store.List(); err != nil {
+		t.Fatal(err)
+	}
+	if changed, err := store.Changed(); err != nil || changed {
+		t.Fatalf("seeded and untouched: %v, %v", changed, err)
+	}
+	shipped := defaultTemplates[0]
+	steps := map[string]func() error{
+		"edited": func() error {
+			_, err := store.Save(Template{ID: shipped.ID, Kind: shipped.Kind, Name: shipped.Name, Body: shipped.Body + " Thank you."})
+			return err
+		},
+		"deleted":    func() error { return store.Delete(shipped.ID) },
+		"duplicated": func() error { _, err := store.Duplicate(shipped.ID); return err },
+	}
+	for name, step := range steps {
+		fresh := NewTemplateStore(filepath.Join(t.TempDir(), "credit-templates.json"))
+		if _, err := fresh.List(); err != nil {
+			t.Fatal(err)
+		}
+		store = fresh
+		if err := step(); err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		if changed, err := store.Changed(); err != nil || !changed {
+			t.Errorf("%s: Changed = %v, %v", name, changed, err)
+		}
+	}
+}
+
+func TestEditingAShippedTemplateBackToTheShippedTextIsNotAChange(t *testing.T) {
+	store := NewTemplateStore(filepath.Join(t.TempDir(), "credit-templates.json"))
+	if _, err := store.List(); err != nil {
+		t.Fatal(err)
+	}
+	shipped := defaultTemplates[1]
+	if _, err := store.Save(Template{ID: shipped.ID, Kind: shipped.Kind, Name: shipped.Name, Body: "other"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.Save(Template{ID: shipped.ID, Kind: shipped.Kind, Name: shipped.Name, Body: shipped.Body}); err != nil {
+		t.Fatal(err)
+	}
+	if changed, err := store.Changed(); err != nil || changed {
+		t.Fatalf("restored: %v, %v", changed, err)
+	}
+}

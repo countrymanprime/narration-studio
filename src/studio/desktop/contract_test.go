@@ -705,3 +705,44 @@ func TestContractManuscriptDropped(t *testing.T) {
 	contractfile.Check(t, "manuscript-dropped-begun", map[string]any{"jobId": "import-1", "name": "Alice in Wonderland.docx"})
 	contractfile.Check(t, "manuscript-dropped-refused", NewHost().beginDropped([]string{"/a.txt", "/b.txt"}))
 }
+
+// What CreditsChanged sends: a JSON boolean. False for the shipped library, true once a shipped template is edited, and true for a
+// project that has credits values of its own although the library is untouched.
+func TestContractCreditsChangedIsABooleanForTheLibraryAndTheProjectValues(t *testing.T) {
+	t.Setenv("APPDATA", t.TempDir())
+	folder := t.TempDir()
+	host := newTestHost(t)
+	host.config.projectFolder = folder
+	host.config.projectName = "Alice"
+	host.settings = settings.New(layout.FindRoot("."), folder)
+	asked := func(want string) {
+		t.Helper()
+		got, err := host.CreditsChanged()
+		if err != nil || got != want {
+			t.Fatalf("CreditsChanged = %q, %v; want %s", got, err, want)
+		}
+	}
+	templates, err := host.creditTemplates.List()
+	if err != nil {
+		t.Fatal(err)
+	}
+	asked("false")
+	contractfile.Check(t, "credits-changed-default", false)
+	if _, err := host.CreditsSaveProjectValues("", "", "", "", "", "", "", "", "", "   "); err != nil {
+		t.Fatal(err)
+	}
+	asked("false")
+	if _, err := host.CreditsSaveProjectValues("Alice", "", "", "", "", "", "", "", "", ""); err != nil {
+		t.Fatal(err)
+	}
+	asked("true")
+	if _, err := host.CreditsSaveProjectValues("", "", "", "", "", "", "", "", "", ""); err != nil {
+		t.Fatal(err)
+	}
+	asked("false")
+	if _, err := host.CreditsSaveTemplate(templates[0].ID, templates[0].Kind, templates[0].Name, templates[0].Body+" Thank you."); err != nil {
+		t.Fatal(err)
+	}
+	asked("true")
+	contractfile.Check(t, "credits-changed", true)
+}
