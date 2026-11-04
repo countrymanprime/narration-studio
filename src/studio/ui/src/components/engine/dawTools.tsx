@@ -31,6 +31,8 @@ export type DawTool = {
   group: DawToolGroup;
   /** The button's text, with the trailing ellipsis that says a dialog follows. */
   label: string;
+  /** Why the tool is off for an Audacity project, which has no REAPER to do it in. */
+  audacity: string;
   dialog: ComponentType<DawToolDialogProps>;
 };
 
@@ -40,37 +42,76 @@ export const DAW_TOOLS: readonly DawTool[] = [
     id: 'link-chapters',
     group: 'map',
     label: 'Link chapters…',
+    audacity: 'Chapters are linked to REAPER tracks. This project records in Audacity.',
     dialog: ({ links, live, onClose }) => <LinkChaptersDialog links={links} live={live} onClose={onClose} />,
   },
   {
     id: 'render-config',
     group: 'structure',
     label: 'Prepare chapter render…',
+    audacity: 'Render setup is written in REAPER. This project records in Audacity.',
     dialog: ({ onClose, onOpenTool }) => <RenderConfigDialog onClose={onClose} onCreateRegions={() => onOpenTool('create-regions')} />,
   },
   {
     id: 'create-regions',
     group: 'structure',
     label: 'Create chapter regions…',
+    audacity: 'Chapter regions are written in REAPER. This project records in Audacity.',
     dialog: ({ links, onClose }) => <CreateChapterRegionsDialog tracks={links.tracks} onClose={onClose} />,
   },
-  { id: 'chapter-tags', group: 'export', label: 'Embed chapter tags…', dialog: ({ onClose }) => <ChapterTagsDialog onClose={onClose} /> },
-  { id: 'cleanup-tools', group: 'repair', label: 'Cleanup tools…', dialog: ({ onClose }) => <CleanupToolsDialog onClose={onClose} /> },
-  { id: 'retake-lanes', group: 'takes', label: 'Retakes on lanes…', dialog: ({ onClose }) => <RetakeLanesDialog onClose={onClose} /> },
+  {
+    id: 'chapter-tags',
+    group: 'export',
+    label: 'Embed chapter tags…',
+    audacity: 'Chapter tags are read from a REAPER render. This project records in Audacity.',
+    dialog: ({ onClose }) => <ChapterTagsDialog onClose={onClose} />,
+  },
+  {
+    id: 'cleanup-tools',
+    group: 'repair',
+    label: 'Cleanup tools…',
+    audacity: 'The cleanup tools open in REAPER. This project records in Audacity.',
+    dialog: ({ onClose }) => <CleanupToolsDialog onClose={onClose} />,
+  },
+  {
+    id: 'retake-lanes',
+    group: 'takes',
+    label: 'Retakes on lanes…',
+    audacity: 'Retakes are REAPER fixed lanes. This project records in Audacity.',
+    dialog: ({ onClose }) => <RetakeLanesDialog onClose={onClose} />,
+  },
 ];
 
 export const DAW_TOOL_GROUPS: readonly DawToolGroup[] = ['map', 'structure', 'repair', 'export', 'takes'];
 
-/** What the gate reads: nothing but these three facts, so it is the same wherever a page gets them from. */
-export type DawToolFacts = { forAudacity: boolean; trackCount: number; chapterCount: number };
+/** The heading a menu draws over a group's tools. */
+export const DAW_TOOL_GROUP_LABELS: Record<DawToolGroup, string> = { map: 'Link', structure: 'Structure', repair: 'Repair', export: 'Export', takes: 'Takes' };
+
+/** What the gate reads: nothing but these facts, so it is the same wherever a page gets them from. */
+export type DawToolFacts = {
+  forAudacity: boolean;
+  trackCount: number;
+  chapterCount: number;
+  /** The DAW's own sentence when it is not answering, or null; left out where the caller does not read the connection (the Engine panel, which sits beside its own). */
+  dawOff?: string | null;
+  /** The sentence for a DAW that has a different project open than the linked one, or null: a write would land in the wrong project, so every tool is off. Left out where the caller does not read it (the Engine panel, which draws its own warning for it). */
+  wrongProject?: string | null;
+  /** How many chapters are linked to a track; left out where the caller has the links beside the tool (the Engine panel), so the gate does not ask. */
+  linkedChapterCount?: number;
+};
 
 /**
- * Whether one tool can be used now, and if not why. An Audacity project and a book with nothing to link are `unsupported` (a page may leave
- * the tool out, as the Engine panel does); a REAPER project with no tracks is `not_yet_available` (the tool shows, off, with its reason).
+ * Whether one tool can be used now, and if not why, one reason at a time in this order: the project is Audacity, the DAW is not answering, the DAW has another project open, the project has
+ * no tracks, no chapter is linked (the tools that write chapters into the project), the book has no chapters to link. An Audacity project and a
+ * book with nothing to link are `unsupported` (a page may leave the tool out, as the Engine panel does); the rest are `not_yet_available` (the tool shows, off, with its reason).
  */
 export function dawToolGate(tool: DawTool, facts: DawToolFacts): CapabilityEntry {
-  if (facts.forAudacity) return { level: 'unsupported', available: false, message: 'These tools work on a REAPER project; Audacity has none of them.' };
+  if (facts.forAudacity) return { level: 'unsupported', available: false, message: tool.audacity };
+  if (facts.dawOff) return { level: 'not_yet_available', available: false, message: facts.dawOff };
+  if (facts.wrongProject) return { level: 'not_yet_available', available: false, message: facts.wrongProject };
   if (facts.trackCount === 0) return { level: 'not_yet_available', available: false, message: 'This REAPER project has no tracks yet.' };
+  if (facts.linkedChapterCount === 0 && tool.group === 'structure')
+    return { level: 'not_yet_available', available: false, message: 'No chapter is linked to a REAPER track yet. Link one on Production.' };
   if (tool.id === 'link-chapters' && facts.chapterCount === 0)
     return { level: 'unsupported', available: false, message: 'This book has no chapters to link yet.' };
   return { level: 'supported', available: true };

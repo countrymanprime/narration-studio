@@ -39,6 +39,11 @@ describe('credits section', () => {
     expect(screen.getByRole('heading', { name: 'Closing credits' })).toBeTruthy();
   });
 
+  it('makes its heading focusable by script, not by Tab, so a jump can land on it (#2902)', () => {
+    mount();
+    expect(screen.getByRole('heading', { name: 'Opening credits' }).getAttribute('tabindex')).toBe('-1');
+  });
+
   it('shows the rendered text and the word count for a fully resolved preview', () => {
     mount({ preview: preview('Alice, written by Lewis Carroll, narrated by You.', [], 7) });
     expect(screen.getByText('Alice, written by Lewis Carroll, narrated by You.')).toBeTruthy();
