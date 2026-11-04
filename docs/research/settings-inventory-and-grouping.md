@@ -69,7 +69,7 @@ Scope: **G** global, **P** project, **G+P** global with a project override, **B*
 | Open English WordNet | 10 MB | Script, Story Bible | Local assets; own Download and Remove in the Definitions panel | Models & downloads |
 | FFmpeg MP3 encoder | 31 MB | MP3 export | Local assets only; absent from the guide | Models & downloads |
 | GLiNER, BookNLP small and large, local language model | 747 MB, 287 MB, 1.3 GB, unavailable | Story Bible scan | Story Bible analysis panel | Models & downloads, below the list |
-| Wiktionary pronunciations | none yet (`PENDING-PHASE-0-VERIFICATION`) | Pronunciation fallback | **Not in the registry**, so not in Local assets | Models & downloads, as "Not available yet" until verified |
+| Wiktionary pronunciations | none yet (catalog row unpinned, #1472) | Pronunciation fallback | **Not in the registry**, so not in Local assets | Models & downloads, as "Not available yet" until verified |
 
 ### Delivery
 

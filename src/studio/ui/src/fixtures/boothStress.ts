@@ -5,7 +5,7 @@ import { makeChapters, makeParagraphs } from './chapters';
 // Seeds for the Booth's worst cases (`?mockBooth=`, `?mockMics=`): a book far bigger than anyone has, titles and text in scripts and
 // symbols the layout was not drawn for, and microphones with names no vendor would ship. Pure and deterministic: no clock, no random value.
 
-export const BOOTH_STRESS = ['long-chapter', 'huge-chapter', 'many-chapters', 'emoji', 'rtl', 'odd-titles'] as const;
+export const BOOTH_STRESS = ['long-chapter', 'huge-chapter', 'many-chapters', 'many-unbroken', 'emoji', 'rtl', 'odd-titles'] as const;
 export type BoothStress = (typeof BOOTH_STRESS)[number];
 export const MIC_STRESS = ['0', '1', '50', 'weird', 'long', 'unbroken'] as const;
 export type MicStress = (typeof MIC_STRESS)[number];
@@ -51,6 +51,14 @@ function manyChapters(): Book {
   return { chapters, paragraphs: makeParagraphs(chapters, { perChapter: 3 }) };
 }
 
+/** 200 chapters (a windowed pipeline) whose every fifth and seventh title is 10,000 characters, with no break opportunity and with spaces: the pipeline's name clamp and tip must hold them. */
+function manyUnbroken(): Book {
+  const chapters = makeChapters({ shape: 'titleAndSubtitle', count: 200 }).map((chapter, i) =>
+    i % 5 === 4 ? { ...chapter, title: 'U'.repeat(10_000) } : i % 7 === 6 ? { ...chapter, title: 'long spaced word '.repeat(600).trim() } : chapter,
+  );
+  return { chapters, paragraphs: makeParagraphs(chapters, { perChapter: 3 }) };
+}
+
 const EMOJI_TITLES = ['🎩🐇🕳️', '👩🏽‍❤️‍💋‍👨🏿 and 🏳️‍🌈', '🫖🫖🫖🫖🫖🫖🫖🫖🫖🫖🫖🫖🫖🫖', '🧑‍🧑‍🧒‍🧒', '🇬🇧🇮🇱🇯🇵'];
 const RTL_TITLES = ['פרק ראשון – הארנב הלבן', 'الفصل الثاني: بركة الدموع', 'Chapter ٣ – עברית and English mixed 123', 'שלום‏ (LRM/RLM) ‎Hello', 'فصل 4'];
 const ODD_TITLES = [
@@ -82,6 +90,8 @@ export function boothStressSeed(name: BoothStress): Book {
       return longChapter(1000);
     case 'many-chapters':
       return manyChapters();
+    case 'many-unbroken':
+      return manyUnbroken();
     case 'emoji':
       return titled(EMOJI_TITLES, EMOJI_TEXT);
     case 'rtl':

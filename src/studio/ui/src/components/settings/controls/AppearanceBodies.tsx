@@ -9,10 +9,18 @@ import { useMotionPreference, type MotionPreference } from '../../../motion';
 import { IconButton } from '../../primitives/IconButton';
 import { RadioGroup } from '../../primitives/RadioGroup';
 import { Select } from '../../primitives/Select';
+import { retryAction } from '../../primitives/Toast';
 import { InsetCard } from '../../primitives/InsetCard';
+import { Checkbox } from '../../primitives/Checkbox';
 import { Slider } from '../../primitives/Slider';
+import { ToggleGroup } from '../../primitives/ToggleGroup';
 import { READER_FONTS, READER_SIZES, READER_SPACING, READER_WIDTHS, fontStack, widthName } from '../../script/page/tools/text/readerText';
 import { readScrollStep, SCROLL_STEP_MAX, SCROLL_STEP_MIN, writeScrollStep } from '../../editing/ribbon/scrollStep';
+import { readBoothSize, writeBoothSize } from '../../booth/page/boothSize';
+import { RATES, rateLabel, useOutputPrefs } from '../../engine/outputPrefs';
+import { DeviceRow } from '../../editing/output/OutputControls';
+import { useOutputDevices } from '../../editing/output/useOutputDevices';
+import { TEXT_SIZE, textSizePx } from '../../booth/reading/BoothText';
 import { changeReaderText, useReaderText } from './readerText';
 import { useSettingsHost } from '../row/SettingsHost';
 
@@ -85,6 +93,61 @@ export function WaveScrollStepBody() {
       }}
       className={READER_FIELD}
     />
+  );
+}
+
+/** Booth text size: 24 to 72 px in steps of 4, kept by this browser window and read by the Booth; the Booth's Text settings write the same size. */
+export function BoothTextSizeBody() {
+  const [size, setSize] = useState(readBoothSize);
+  return (
+    <Slider
+      aria-label="Booth text size"
+      valueText={`${size} px`}
+      min={TEXT_SIZE.min}
+      max={TEXT_SIZE.max}
+      step={TEXT_SIZE.step}
+      value={size}
+      onValueChange={(next) => {
+        // Page Up and Page Down step by 10, which is not a size: take the nearest one.
+        const chosen = textSizePx(next);
+        writeBoothSize(chosen);
+        setSize(chosen);
+      }}
+      className={READER_FIELD}
+    />
+  );
+}
+
+/**
+ * Editing playback: the speed, volume, silence and output device of the sound the Editing page plays, the same choices its Output popover makes,
+ * kept by this browser window. The Editing page reads them when it opens.
+ */
+export function PlaybackBody() {
+  const { prefs, change } = useOutputPrefs();
+  const { listing, refresh } = useOutputDevices();
+  return (
+    <div className={`flex flex-col gap-3 ${READER_FIELD}`}>
+      <ToggleGroup
+        label="Playback speed"
+        look="segmented"
+        value={String(prefs.rate)}
+        onChange={(rate) => change({ rate: Number(rate) })}
+        options={RATES.map((rate) => ({ value: String(rate), label: rateLabel(rate) }))}
+      />
+      <Slider
+        aria-label="Playback volume"
+        valueText={`${prefs.volume}%`}
+        min={0}
+        max={100}
+        step={1}
+        value={prefs.volume}
+        onValueChange={(volume) => change({ volume })}
+      />
+      <Checkbox checked={prefs.muted} onChange={(muted) => change({ muted })}>
+        Silence playback
+      </Checkbox>
+      <DeviceRow prefs={prefs} devices={listing} deviceProblem={null} onChange={change} onCheckDevices={refresh} heading={false} />
+    </div>
   );
 }
 
@@ -161,7 +224,8 @@ export function ZoomRowBody() {
     return () => window.removeEventListener('resize', read);
   }, [read]);
 
-  const choose = (next: number) =>
+  // A failed set or save is an error toast with Retry: setting the same level and saving it again writes the same value (issue #2919).
+  const choose = (next: number): void =>
     void system
       .windowSetZoom(next)
       .then(async (result) => {
@@ -169,7 +233,13 @@ export function ZoomRowBody() {
         await system.windowSaveZoom(result.level);
         announceBrowserSettingChange();
       })
-      .catch((failure: unknown) => notify(apiErrorMessage(failure), 'error'));
+      .catch((failure: unknown) =>
+        notify(
+          apiErrorMessage(failure),
+          'error',
+          retryAction(() => choose(next)),
+        ),
+      );
 
   // A level under 100% (Ctrl + wheel) is shown as it is, though it is not one to choose.
   const levels = ZOOM_STEPS.includes(level) ? ZOOM_STEPS : [...ZOOM_STEPS, level].sort((a, b) => a - b);

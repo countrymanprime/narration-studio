@@ -30,6 +30,9 @@ type (
 	TrackItem     = bridge.TrackItem
 	SelectedTrack = bridge.SelectedTrack
 	CreatedTrack  = bridge.CreatedTrack
+	CreatedFolder = bridge.CreatedFolder
+	LiveTracks    = bridge.LiveTracks
+	LiveTrack     = bridge.LiveTrack
 	Armed         = bridge.Armed
 	RecordStarted = bridge.RecordStarted
 	RecordOptions = bridge.RecordOptions
@@ -37,6 +40,8 @@ type (
 	RecordStopped = bridge.RecordStopped
 	RecordEnded   = bridge.RecordEnded
 	VoiceSwitched = bridge.VoiceSwitched
+	FolderMove    = bridge.FolderMove
+	FolderPlan    = bridge.FolderPlan
 	PlayPosition  = bridge.PlayPosition
 	PunchPreroll  = bridge.PunchPreroll
 	DawMeters     = bridge.DawMeters
@@ -44,6 +49,10 @@ type (
 	Region         = bridge.Region
 	RegionsCreated = bridge.RegionsCreated
 	ActiveTakeSet  = bridge.ActiveTakeSet
+
+	VoiceSampleRegionKept = bridge.VoiceSampleRegionKept
+	VoiceSampleRegions    = bridge.VoiceSampleRegions
+	VoiceSampleRegion     = bridge.VoiceSampleRegion
 
 	FXChains       = bridge.FXChains
 	FXChainApplied = bridge.FXChainApplied
@@ -286,10 +295,24 @@ type TrackCreator interface {
 	CreateTrack(ctx context.Context, name string) (CreatedTrack, error)
 }
 
+// TrackLister lists the open project's tracks in order as the engine has them now, saved or not: each track's id (a GUID in
+// REAPER), name and folder depth change, with the open project's file and edit counter. It changes nothing.
+type TrackLister interface {
+	ReadTracks(ctx context.Context) (LiveTracks, error)
+}
+
 // ChildTrackCreator adds a track inside a folder, as a direct child after the folder's last descendant (a voice in a chapter's folder). Only
 // an engine with folder tracks (REAPER) has it. A parent that is gone is a stale error and nothing is added.
 type ChildTrackCreator interface {
 	CreateChildTrack(ctx context.Context, name, parentGUID string) (CreatedTrack, error)
+}
+
+// FolderTrackCreator adds a chapter folder for a Voice folders project (#2840): a folder named name holding one child named childName, after
+// every other track, in one undo point, closing a folder left open at the end first so the new folder is not nested in the chapter before
+// it. Only an engine with folder tracks (REAPER) has it, on the same role as TrackCreator. A zero Child means the engine added Folder as a
+// plain track (a script older than the chapter folder). Like CreateTrack, it changes no other track, never saves and refuses while recording.
+type FolderTrackCreator interface {
+	CreateFolderTrack(ctx context.Context, name, childName string) (CreatedFolder, error)
 }
 
 // Place is where the narrator is in the project, in terms every engine can answer: TrackID is the engine's id for the one selected
@@ -370,6 +393,13 @@ type VoiceSwitcher interface {
 	SwitchVoice(ctx context.Context, trackGUID string) (VoiceSwitched, error)
 }
 
+// FolderRepairer is an optional role of the track_create capability: it moves chapter tracks out of another chapter's folder (#2838),
+// with a preview that writes nothing and an apply that writes only the folder depths the confirmed moves need, in one undo point.
+// chapterGUIDs are the tracks the app links to chapters; expected are the chapters a preview listed and the narrator confirmed.
+type FolderRepairer interface {
+	ChapterFolders(ctx context.Context, apply bool, chapterGUIDs, expected []string) (FolderPlan, error)
+}
+
 // Puncher punches in at a word, reads the play position, and rolls again while recording.
 type Puncher interface {
 	PunchTo(ctx context.Context, wordTime, preRoll float64) (float64, error)
@@ -384,6 +414,22 @@ type Puncher interface {
 // RegionWriter creates (or updates) chapter regions.
 type RegionWriter interface {
 	CreateRegions(ctx context.Context, rows []Region, colour string, update bool) (RegionsCreated, error)
+}
+
+// VoiceSampleRegionPrefix starts every region name the app keeps a voice sample under.
+const VoiceSampleRegionPrefix = bridge.VoiceSampleRegionPrefix
+
+// VoiceSampleRegionKeeper keeps a character voice sample in the engine's project as a region named for the character and label
+// (docs/prds/character-voice-samples.prd.md, phase 6), and reads the regions back. Names start with VoiceSampleRegionPrefix. A
+// region is in project time and does not follow its item, so the host keeps the source range beside it.
+type VoiceSampleRegionKeeper interface {
+	// AddVoiceSampleRegion adds the region in one undo point, or answers "existing" for one with the same name and bounds.
+	AddVoiceSampleRegion(ctx context.Context, start, end float64, name string) (VoiceSampleRegionKept, error)
+	// MoveVoiceSampleRegion moves and renames region number, keeping its number and colour. A number that is not a voice sample
+	// region any more is a stale error (errors.Is ErrStale) and nothing changes.
+	MoveVoiceSampleRegion(ctx context.Context, number int, start, end float64, name string) (VoiceSampleRegionKept, error)
+	// ReadVoiceSampleRegions lists the voice sample regions in the open project and the engine's change count. It changes nothing.
+	ReadVoiceSampleRegions(ctx context.Context) (VoiceSampleRegions, error)
 }
 
 // TakeSelector makes one take of an item the active one, and hides (mutes, never deletes) the item's other takes.

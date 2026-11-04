@@ -4,6 +4,7 @@ import { describeApiError } from '../../api/errorMessage';
 import { useChapterSync } from '../../hooks/useChapterSync';
 import type { ChapterSyncPreview } from '../../api/contracts/chapterSync';
 import type { Notify } from '../primitives/Toast';
+import { retryAction } from '../primitives/Toast';
 import { Button } from '../primitives/Button';
 import { Panel } from '../primitives/Panel';
 import { InsetCard } from '../primitives/InsetCard';
@@ -46,11 +47,16 @@ export function ChapterSyncPanel({
   const [picked, setPicked] = useState<Record<string, string>>({});
   const [linkingChapterId, setLinkingChapterId] = useState('');
 
-  const loadPreview = useCallback(async () => {
+  // Reading the preview changes nothing, so a failed read is an error toast with Retry (issue #2919).
+  const loadPreview = useCallback(async (): Promise<void> => {
     try {
       setPreview(await api.chapterSyncPreview());
     } catch (error) {
-      notify(describeApiError(error), 'error');
+      notify(
+        describeApiError(error),
+        'error',
+        retryAction(() => void loadPreview()),
+      );
     }
   }, [api, notify]);
 

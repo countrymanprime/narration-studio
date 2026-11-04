@@ -32,6 +32,19 @@ export type BoothSideData = {
   flags: readonly SuspectedFlag[];
   /** Open a Story Bible entry in the Story Bible. The panel never edits it. */
   onOpenEntry: (id: string) => void;
+  /** In a chapter linked to a folder of voices: each character's voice key, and an add-track press for a speaker with none (the mock's rail). */
+  voiceKeys?: VoiceKeys;
+};
+
+export type VoiceKeys = {
+  /** The key of the voice that records the character ("" past nine), undefined when none does. */
+  keyOf: (characterId: string) => string | undefined;
+  /** Whether the character speaks in the chapter: only a speaker with no track is offered a track. */
+  speaks: (characterId: string) => boolean;
+  /** Asks who records the character (the page's "Who records …?"). */
+  add: (characterId: string) => void;
+  /** Why the add-track press is off now (a take runs), or undefined. */
+  addWhy?: string;
 };
 
 type Registered = { id: string; component: ComponentType<{ data: BoothSideData }>; order: number };

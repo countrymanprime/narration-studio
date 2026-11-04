@@ -51,6 +51,27 @@ export const IconOnlyTrigger: Story = {
   },
 };
 
+// An item that cannot be chosen now stays in the menu, off, with the reason under its label; a press does nothing and the menu stays open (the DAW tools menu).
+export const ItemWithReason: Story = {
+  args: {
+    items: [
+      { key: 'regions', label: 'Create chapter regions…', onSelect: fn() },
+      { key: 'render', label: 'Prepare chapter render…', disabledReason: 'REAPER is not running. Start it from the chip in the top bar.', onSelect: fn() },
+    ],
+  },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole('button', { name: /Character/ }));
+    const off = await screen.findByRole('menuitem', { name: /Prepare chapter render/ });
+    await expect(off).toHaveAttribute('aria-disabled', 'true');
+    await expect(screen.getByText('REAPER is not running. Start it from the chip in the top bar.')).toBeVisible();
+    await userEvent.click(off);
+    await expect(screen.getByRole('menuitem', { name: /Prepare chapter render/ })).toBeVisible();
+    // Closed again: while a menu shows, Base UI's invisible focus guards trip axe's aria-hidden-focus, and the atlas runs axe after play().
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('menuitem')).toBeNull());
+  },
+};
+
 // A press opens the menu; the button reports it (aria-haspopup, aria-expanded) and the items are menuitems.
 export const OpensOnPress: Story = {
   play: async ({ canvasElement }) => {
