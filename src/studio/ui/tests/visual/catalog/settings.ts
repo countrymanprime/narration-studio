@@ -398,6 +398,14 @@ export const settingsStates: StateEntry[] = [
   },
   {
     page: 'settings',
+    state: 'first-use-tips-dismissed',
+    description:
+      'Settings, App & updates at First-use tips after the Script tip was dismissed: "1 dismissed" and an enabled Show tips again, with its row in full view',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
     state: 'editing-playback',
     description:
       'Settings, Appearance & keys scrolled to Editing playback under Listening: speed, volume, silence and the output device, with the row in full view',

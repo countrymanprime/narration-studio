@@ -317,11 +317,11 @@ replacing the manuscript keeps it; if its lines are gone, the panel says so and 
 
 **Check for updates on startup**, **Update channel**, **Tell me when a long task finishes** (a Windows notification when a long job ends while the app is not in front; on by default) and, under Advanced, **Debug logging**, which writes the reasons behind the app's decisions to the run log: turn it on when asked to send a log. The folder button beside it (**Reveal the log folder in the file manager**) opens the folder the run log is in, so you can attach the log to a bug report. **This version** follows them (see [About and updates](#about-and-updates)).
 
-**First-use tips** (under **Tips**) shows how many of the short tips a page shows once you have dismissed with **Got it**, and **Show tips again** forgets them all, so each shows once more. It is the same list for every project on this computer, and the button is off while none are dismissed.
-
-![Settings - First-use tips under Tips: how many were dismissed, and Show tips again](../../images/ui/settings-first-use-tips.webp)
-
 ![Settings - App & updates, Advanced: Debug logging with the Reveal the log folder in the file manager button beside it](../../images/ui/settings-diagnostics.webp)
+
+**First-use tips** (under **Tips**) shows how many of the short tips a page shows once you have dismissed with **Got it**, and **Show tips again** forgets them all, so each shows once more. It is the same list for every project on this computer, and the button is off while none are dismissed. If the list cannot be read, the row says so and offers **Try again**.
+
+![Settings - First-use tips under Tips after a tip was dismissed: 1 dismissed, and Show tips again](../../images/ui/settings-first-use-tips.webp)
 
 ### About and updates
 

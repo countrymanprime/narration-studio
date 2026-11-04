@@ -31,12 +31,14 @@ export function useFirstUseTip(id: TipId): { visible: boolean; dismiss: () => vo
   return { visible: seen !== null && !seen.has(id), dismiss };
 }
 
-/** The dismissed tips (`null` until the host has said), read live, with a way to show them all again. The Settings row and its Changed mark use it. */
-export function useTips(): { seen: ReadonlySet<string> | null; reset: () => Promise<string | null> } {
+/** The dismissed tips (`null` until the host has said, or when it could not be read: `failed`), read live, with a way to show them all again or read again. The Settings row and its Changed mark use it. */
+export function useTips(): { seen: ReadonlySet<string> | null; failed: boolean; reset: () => Promise<string | null>; retry: () => void } {
   const store = useTipsStore();
   const seen = useSyncExternalStore(store.subscribe, store.snapshot);
+  const failed = useSyncExternalStore(store.subscribe, store.failed);
   useEffect(() => {
     void store.load();
   }, [store]);
-  return { seen, reset: store.reset };
+  const retry = useCallback(() => void store.load(), [store]);
+  return { seen, failed, reset: store.reset, retry };
 }

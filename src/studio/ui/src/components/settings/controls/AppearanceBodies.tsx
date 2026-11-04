@@ -310,7 +310,7 @@ export function EntrySortBody() {
 /** First-use tips: how many were dismissed with Got it, and Show tips again, which forgets them all (the host keeps them in Tips.seen). */
 export function TipsBody() {
   const { notify } = useSettingsHost();
-  const { seen, reset } = useTips();
+  const { seen, failed, reset, retry } = useTips();
   const [busy, setBusy] = useState(false);
   const count = seen?.size ?? 0;
   const showAgain = async () => {
@@ -321,10 +321,16 @@ export function TipsBody() {
   };
   return (
     <div className="flex items-center gap-3">
-      <span className="text-sm">{seen === null ? 'Reading…' : count === 0 ? 'None dismissed' : `${count} dismissed`}</span>
-      <Button variant="secondary" size="sm" disabled={busy || count === 0} onClick={() => void showAgain()}>
-        Show tips again
-      </Button>
+      <span className="text-sm">{seen === null ? (failed ? 'Could not be read' : 'Reading…') : count === 0 ? 'None dismissed' : `${count} dismissed`}</span>
+      {seen === null && failed ? (
+        <Button variant="secondary" size="sm" onClick={retry}>
+          Try again
+        </Button>
+      ) : (
+        <Button variant="secondary" size="sm" disabled={busy || count === 0} onClick={() => void showAgain()}>
+          Show tips again
+        </Button>
+      )}
     </div>
   );
 }

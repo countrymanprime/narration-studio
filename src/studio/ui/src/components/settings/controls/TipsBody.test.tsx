@@ -60,6 +60,18 @@ describe('the first-use tips setting (parity audit)', () => {
     await waitFor(async () => expect(await seen(api)).toBe(''));
   });
 
+  it('says the tips could not be read instead of reading forever, and Try again reads them once more', async () => {
+    const api = createMockApi();
+    const read = vi.spyOn(api, 'settingsForScope').mockRejectedValueOnce(new Error('no read'));
+    const user = userEvent.setup();
+    mount(api);
+    expect(await screen.findByText('Could not be read')).toBeTruthy();
+    expect(screen.queryByText('Reading…')).toBeNull();
+    read.mockRestore();
+    await user.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(await screen.findByText('None dismissed')).toBeTruthy();
+  });
+
   it('keeps the dismissed tips and says so when the host refuses the reset', async () => {
     const api = createMockApi();
     const user = userEvent.setup();

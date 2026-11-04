@@ -659,10 +659,10 @@
   },
   {
     "page": "settings",
-    "state": "first-use-tips",
+    "state": "first-use-tips-dismissed",
     "viewport": "desktop",
     "docName": "settings-first-use-tips",
-    "caption": "Settings - First-use tips under Tips: how many were dismissed, and Show tips again"
+    "caption": "Settings - First-use tips under Tips after a tip was dismissed: 1 dismissed, and Show tips again"
   },
   {
     "page": "settings",

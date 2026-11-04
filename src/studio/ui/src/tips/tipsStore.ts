@@ -14,58 +14,83 @@ export type TipsStore = {
   subscribe(listener: () => void): () => void;
   /** Reads the host's list once; later calls share the first read. */
   load(): Promise<void>;
-  /** Marks a tip dismissed at once and saves the list. Returns the sentence of a failed save, after putting the tip back; null when it saved. */
+  /** Marks a tip dismissed at once and saves the list. Returns the sentence of a failed save, after taking only this change back; null when it saved. */
   dismiss(id: string): Promise<string | null>;
   /** Forgets every dismissed tip at once and saves the empty list, so each tip shows again. Same return as `dismiss`. */
   reset(): Promise<string | null>;
+  /** Whether the host's list could not be read: the snapshot is `null` for that as it is while loading. `load()` tries again. */
+  failed(): boolean;
 };
 
-const parse = (value: string): Set<string> => new Set(value.split(/\s+/).filter(Boolean));
+const parse = (value: unknown): Set<string> => new Set((typeof value === 'string' ? value : '').split(/\s+/).filter(Boolean));
 
-/** One store for each host, so every tip on a page shares one read and writes merge instead of overwriting each other. */
+/** A change not yet confirmed by the host: one tip dismissed, or `null` for every tip forgotten. */
+type Change = { id: string } | null;
+const apply = (base: ReadonlySet<string>, change: Change): Set<string> => (change === null ? new Set() : new Set([...base, change.id]));
+
+/**
+ * One store for each host, so every tip on a page shares one read and writes merge instead of overwriting each other. The list the host
+ * confirmed and the changes still being saved are kept apart: what is shown is the first with the second applied, and a refused save drops
+ * only its own change, so a failed dismiss can neither bring back what a later reset cleared nor lose a dismiss that saved after a failed
+ * reset. Saves go one at a time, each written over the list the host held when it starts.
+ */
 export function createTipsStore(system: SystemPort): TipsStore {
-  let seen: TipsSnapshot = null;
+  let confirmed: ReadonlySet<string> | null = null;
+  let shown: TipsSnapshot = null;
+  let loadFailed = false;
   let loading: Promise<void> | null = null;
+  let queue: Promise<unknown> = Promise.resolve();
+  const pending: Change[] = [];
   const listeners = new Set<() => void>();
-  const set = (next: TipsSnapshot) => {
-    seen = next;
+  const refresh = () => {
+    shown = pending.length === 0 ? confirmed : pending.reduce<ReadonlySet<string>>(apply, confirmed ?? new Set<string>());
     listeners.forEach((listener) => listener());
   };
-  /** Saves the list as it now stands; on a refusal puts `before` back and returns the host's sentence. */
-  const save = async (before: ReadonlySet<string>): Promise<string | null> => {
-    try {
-      await system.saveSettings(TOOL, 'global', { [KEY]: [...(seen ?? [])].join(' ') });
-      return null;
-    } catch (error) {
-      set(before);
-      return error instanceof Error ? error.message : String(error);
-    }
+  const load = (): Promise<void> => {
+    loading ??= system
+      .settingsForScope('global')
+      .then((settings) => {
+        confirmed = parse(settings[TOOL]?.find((field) => field.key === KEY)?.effectiveValue);
+        loadFailed = false;
+        refresh();
+      })
+      .catch(() => {
+        // Tips are help, not the work: a read that fails shows none, and the next page that mounts, or a retry, reads again.
+        loading = null;
+        loadFailed = true;
+        refresh();
+      });
+    return loading;
+  };
+  const change = (next: Change): Promise<string | null> => {
+    pending.push(next);
+    refresh();
+    const job = queue.then(async () => {
+      await load();
+      try {
+        const list = apply(confirmed ?? new Set(), next);
+        await system.saveSettings(TOOL, 'global', { [KEY]: [...list].join(' ') });
+        confirmed = list;
+        return null;
+      } catch (error) {
+        return error instanceof Error ? error.message : String(error);
+      } finally {
+        pending.splice(pending.indexOf(next), 1);
+        refresh();
+      }
+    });
+    queue = job;
+    return job;
   };
   return {
-    snapshot: () => seen,
+    snapshot: () => shown,
+    failed: () => loadFailed,
     subscribe(listener) {
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
-    load() {
-      loading ??= system
-        .settingsForScope('global')
-        .then((settings) => set(parse(settings[TOOL]?.find((field) => field.key === KEY)?.effectiveValue ?? '')))
-        .catch(() => {
-          // Tips are help, not the work: a read that fails shows none, and the next page that mounts reads again.
-          loading = null;
-        });
-      return loading;
-    },
-    async dismiss(id) {
-      const before = seen ?? new Set<string>();
-      set(new Set([...before, id]));
-      return save(before);
-    },
-    async reset() {
-      const before = seen ?? new Set<string>();
-      set(new Set());
-      return save(before);
-    },
+    load,
+    dismiss: (id) => change({ id }),
+    reset: () => change(null),
   };
 }
