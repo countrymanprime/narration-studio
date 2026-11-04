@@ -54,12 +54,16 @@ class PronounceSourceTests(unittest.TestCase):
             guide.pronounce_source("Zzyzxqq", None, "cmu")
 
     def test_espeak_raises_when_it_produces_nothing(self):
-        with patch("phonemizer.phonemize", return_value=""), self.assertRaisesRegex(ValueError, "eSpeak"):
-            guide.pronounce_source("Name", None, "espeak")
+        with (
+            patch("phonemizer.phonemize", return_value=""),
+            patch("phonemizer.backend.espeak.wrapper.EspeakWrapper.set_library"),
+            self.assertRaisesRegex(ValueError, "eSpeak"),
+        ):
+            guide.pronounce_source("Name", "/lib/espeak", "espeak")
 
     def test_espeak_returns_its_pronunciation_when_it_has_one(self):
-        with patch("phonemizer.phonemize", return_value="n eɪ m"):
-            value = guide.pronounce_source("Name", None, "espeak")
+        with patch("phonemizer.phonemize", return_value="n eɪ m"), patch("phonemizer.backend.espeak.wrapper.EspeakWrapper.set_library"):
+            value = guide.pronounce_source("Name", "/lib/espeak", "espeak")
         self.assertEqual({"ipa": "n eɪ m", "source": "espeak", "confidence": "low"}, value)
 
     def test_an_unknown_source_is_refused(self):

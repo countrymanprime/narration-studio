@@ -1,0 +1,21 @@
+{
+  "items": [
+    {
+      "kind": "credits_opening",
+      "path": "C:/Renders/00 Opening credits.wav",
+      "region": "",
+      "title": ""
+    },
+    {
+      "kind": "chapter",
+      "path": "C:/Renders/Chapter 01.wav",
+      "region": "",
+      "title": "Chapter 1"
+    }
+  ],
+  "label": "Audacity's effect macro",
+  "master": true,
+  "needsApproval": true,
+  "needsMacro": true,
+  "provider": "audacity"
+}

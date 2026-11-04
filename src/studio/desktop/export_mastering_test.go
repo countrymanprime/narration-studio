@@ -134,11 +134,10 @@ func TestExportMastersWithTheProjectsChosenRow(t *testing.T) {
 	}
 }
 
-// A row that renders a region from the DAW masters a chapter from the region named for its title and the credits from theirs; a
-// retail sample has no region, so that one file fails with the reason and the rest go on.
+// A row that renders a region from the DAW masters a chapter from the region named for its title and the credits from theirs.
 func TestExportMastersADAWRegionRowFromEachItemsRegion(t *testing.T) {
 	dir := t.TempDir()
-	paths := []string{filepath.Join(dir, "open.wav"), filepath.Join(dir, "ch1.wav"), filepath.Join(dir, "close.wav"), filepath.Join(dir, "sample.wav")}
+	paths := []string{filepath.Join(dir, "open.wav"), filepath.Join(dir, "ch1.wav"), filepath.Join(dir, "close.wav")}
 	for _, path := range paths {
 		writeFixtureFile(t, path, "wav")
 	}
@@ -148,9 +147,8 @@ func TestExportMastersADAWRegionRowFromEachItemsRegion(t *testing.T) {
 
 	items := []ExportItem{
 		{Kind: string(packager.KindCreditsOpening), Path: paths[0]},
-		{Kind: string(packager.KindChapter), Title: "Chapter One", Path: paths[1]},
+		{Kind: string(packager.KindChapter), Title: "  Chapter One ", Path: paths[1]},
 		{Kind: string(packager.KindCreditsClosing), Path: paths[2]},
-		{Kind: string(packager.KindRetailSample), Path: paths[3]},
 	}
 	if _, err := host.startExport(ExportRequest{Master: true, Items: items}); err != nil {
 		t.Fatal(err)
@@ -163,13 +161,41 @@ func TestExportMastersADAWRegionRowFromEachItemsRegion(t *testing.T) {
 	if !reflect.DeepEqual(regions, []string{"Opening credits", "Chapter One", "Closing credits"}) {
 		t.Fatalf("regions = %q", regions)
 	}
-	sample := job.Files[3]
-	if sample.Status != exportFileFailed || !strings.Contains(sample.Error, "a retail sample has none") {
-		t.Fatalf("retail sample = %+v, want failed with the reason", sample)
+	if job.Phase != "success" {
+		t.Fatalf("phase %q (%s)", job.Phase, job.Message)
 	}
-	if job.Phase != "error" || job.Files[1].Status != exportFileDone {
-		t.Fatalf("phase %q, chapter %+v", job.Phase, job.Files[1])
+}
+
+// An item with no region (a retail sample) cannot be mastered by a row that renders regions: the whole export is refused before
+// a job starts, naming it, rather than approved and then failing that file (walkthrough of #2879, finding 2).
+func TestADAWRegionExportWithAnItemThatHasNoRegionIsRefusedUpFront(t *testing.T) {
+	dir := t.TempDir()
+	chapter, sample := filepath.Join(dir, "ch1.wav"), filepath.Join(dir, "Retail sample.wav")
+	writeFixtureFile(t, chapter, "wav")
+	writeFixtureFile(t, sample, "wav")
+	row, asked := recordingRow(t, "region", masteringport.ModeDAWRegion)
+	host := masteringExportHost(t, "", chapter, sample)
+	host.masteringRows = masterRows(row)
+	req := ExportRequest{Master: true, Items: []ExportItem{
+		{Kind: string(packager.KindChapter), Title: "Chapter One", Path: chapter},
+		{Kind: string(packager.KindRetailSample), Path: sample},
+	}}
+	for name, call := range map[string]func() error{
+		"plan":  func() error { _, err := host.exportPlan(req); return err },
+		"start": func() error { _, err := host.startExport(req); return err },
+	} {
+		if err := call(); err == nil || !strings.Contains(err.Error(), "Retail sample.wav has no region") {
+			t.Fatalf("%s: err = %v, want a refusal naming the retail sample", name, err)
+		}
 	}
+	if state := host.exportState(); state.Phase != "idle" || len(asked()) != 0 {
+		t.Fatalf("a refused export left a job or a master: %+v, %d", state, len(asked()))
+	}
+	// Without mastering, the same files encode.
+	if _, err := host.startExport(ExportRequest{Items: req.Items}); err != nil {
+		t.Fatal(err)
+	}
+	waitExport(t, host)
 }
 
 // The DAW and Audacity rows need the narrator's approval for each render, which this request cannot carry: the export refuses

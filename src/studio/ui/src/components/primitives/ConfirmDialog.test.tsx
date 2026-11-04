@@ -116,6 +116,43 @@ describe('ConfirmDialog', () => {
     expect(confirm.className).not.toContain('bg-[var(--accent)]');
   });
 
+  it('puts focus where returnFocus says when the confirmed action removed the button that opened it', async () => {
+    function Host() {
+      const [open, setOpen] = useState(false);
+      const [started, setStarted] = useState(false);
+      return (
+        <>
+          <div tabIndex={-1} data-testid="files">
+            files
+          </div>
+          {!started && (
+            <button type="button" onClick={() => setOpen(true)}>
+              Start
+            </button>
+          )}
+          {open && (
+            <ConfirmDialog
+              title="Start?"
+              body="Sure?"
+              confirmLabel="Start"
+              confirm={() => {
+                setStarted(true);
+                setOpen(false);
+              }}
+              cancel={() => setOpen(false)}
+              returnFocus={() => screen.getByTestId('files')}
+            />
+          )}
+        </>
+      );
+    }
+    const user = userEvent.setup();
+    render(<Host />);
+    await user.click(screen.getByRole('button', { name: 'Start' }));
+    await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Start' }));
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByTestId('files')));
+  });
+
   it('declines on Escape but not on a press of the backdrop', async () => {
     const cancel = vi.fn();
     const confirm = vi.fn();
