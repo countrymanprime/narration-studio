@@ -5,6 +5,19 @@ import { type Driver, chooseTheme, clickNav, clickVisible, goToPage, selectReade
 
 const RAIL = 'Words, Story Bible and marks';
 
+/** Chooses the first match of `term` in the jump menu, then opens Ctrl+F again on its Search group: Find's steps and its count. */
+async function showFindSteps(page: Page, term: string): Promise<void> {
+  await goToPage(page, 'Script');
+  await page.keyboard.press('Control+f');
+  await page.getByRole('combobox', { name: 'Jump menu' }).fill(term);
+  await page.getByRole('option', { name: /¶/ }).first().click();
+  await page.getByRole('combobox', { name: 'Jump menu' }).waitFor({ state: 'detached' });
+  await page.locator('.a-find-cur').waitFor();
+  await page.keyboard.press('Control+f');
+  await page.getByRole('option', { name: /^Search/ }).click();
+  await page.getByRole('option', { name: /^Clear the search/ }).waitFor();
+}
+
 export const scriptDrivers: Record<string, Driver> = {
   // The chapters never answer, so `goToPage` (which waits for the reader) is not used.
   loading: async (page) => {
@@ -103,7 +116,10 @@ export const scriptDrivers: Record<string, Driver> = {
     await page.getByText('Bookmark added.').waitFor();
     // The new bookmark's editor opens by itself; the picture is the toast and the ribbon, so close the editor.
     await page.keyboard.press('Escape');
-    // Focus returns to the ribbon, whose tooltip would be portalled outside the landmarks.
+    // Focus returns to the ribbon after the popover has closed, not with the Escape press, and its tooltip would be portalled outside the
+    // landmarks. Blur only once focus has landed: a blur sent before it finds the body, does nothing, and the focus that follows opens the
+    // tooltip for good (#2849).
+    await page.waitForFunction(() => document.activeElement?.closest('[data-bm]') != null);
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
     // Bounded, and not swallowed: a tooltip that stays fails here and says so, instead of using up the test's time.
     await page.locator('[role="tooltip"]').waitFor({ state: 'detached', timeout: 5_000 });
@@ -115,13 +131,15 @@ export const scriptDrivers: Record<string, Driver> = {
     await page.getByRole('combobox', { name: 'Jump menu' }).waitFor();
     await page.getByRole('option', { name: /^Chapters/ }).waitFor();
   },
-  // Ctrl+F searches the page: the term is typed into the menu and the manuscript's matches come back under "In the script".
+  // Ctrl+F searches the page: the term is typed into the menu and the host's whole-book matches come back under "In the script",
+  // replacing its "Searching…" row; a match row names its chapter and paragraph.
   'search-menu': async (page) => {
     await goToPage(page, 'Script');
     await page.keyboard.press('Control+f');
     await page.getByRole('combobox', { name: 'Jump menu' }).fill('Alice');
-    await page.getByRole('listbox', { name: 'Jump menu results' }).getByRole('option').first().waitFor();
     await page.getByText('In the script', { exact: true }).waitFor();
+    await page.getByRole('option', { name: /¶/ }).first().waitFor();
+    await page.getByRole('option', { name: 'Searching…' }).waitFor({ state: 'detached' });
   },
   'search-shown': async (page) => {
     await goToPage(page, 'Script');
@@ -132,6 +150,37 @@ export const scriptDrivers: Record<string, Driver> = {
     await page.getByRole('option', { name: /¶/ }).first().click();
     await page.getByRole('combobox', { name: 'Jump menu' }).waitFor({ state: 'detached' });
     await page.locator('mark[data-kind="search"]').first().waitFor();
+  },
+  // The current match against the others, with no menu over the reader: the first match chosen, then F3 twice.
+  'search-current': async (page) => {
+    await goToPage(page, 'Script');
+    await page.keyboard.press('Control+f');
+    await page.getByRole('combobox', { name: 'Jump menu' }).fill('Alice');
+    await page.getByRole('option', { name: /¶/ }).first().click();
+    await page.getByRole('combobox', { name: 'Jump menu' }).waitFor({ state: 'detached' });
+    const current = page.locator('.a-find-cur');
+    await current.waitFor();
+    const first = await current.evaluate((mark) => mark.closest('[data-pid]')?.getAttribute('data-pid'));
+    await page.keyboard.press('F3');
+    await page.keyboard.press('F3');
+    // The third match of "Alice" is in the paragraph after the first one's (Chapter 1, ¶ 3).
+    await expect.poll(() => current.evaluate((mark) => mark.closest('[data-pid]')?.getAttribute('data-pid'))).not.toBe(first);
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  },
+  // Find has no bar of its own on the Script page: its steps and count are the jump menu's Search group while a search shows.
+  'search-steps': async (page) => {
+    await showFindSteps(page, 'Alice');
+    await page
+      .getByRole('option', { name: /^Next match/ })
+      .getByText(/^1 of \d+ for “alice”$/)
+      .waitFor();
+  },
+  'search-steps-capped': async (page) => {
+    await showFindSteps(page, 'the');
+    await page
+      .getByRole('option', { name: /^Next match/ })
+      .getByText(/^1 of the first 1000 of \d+ for “the”$/)
+      .waitFor();
   },
   'selection-tools': async (page) => {
     await goToPage(page, 'Script');

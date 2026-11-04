@@ -386,6 +386,24 @@ describe('Find', () => {
     expect(container.querySelectorAll('mark')).toHaveLength(2);
     expect(container.querySelector('.a-find-cur')?.textContent).toBe('line');
   });
+
+  it('choosing the match that is already current scrolls it into view again', () => {
+    // The current match sits 600 px below the reader's top; the reader brings it to a third of its height (0 here).
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
+      const top = this.classList.contains('a-find-cur') ? 600 - (scrolls.get(scroller()) ?? 0) : 0;
+      return { top, left: 0, right: 0, bottom: top, width: 0, height: 0, x: 0, y: top, toJSON: () => ({}) } as DOMRect;
+    });
+    const matches = [{ paragraphId: 'p4', start: 2, end: 6 }];
+    const { rerender } = render(<Reader {...props({ find: { matches, current: 0, request: 1 } })} />);
+    expect(scrolls.get(scroller())).toBe(600);
+    scrollTo(0);
+    // The same match, not chosen again: the narrator's scroll stands.
+    rerender(<Reader {...props({ find: { matches, current: 0, request: 1 } })} />);
+    expect(scrolls.get(scroller())).toBe(0);
+    // Chosen again from the menu: back into view.
+    rerender(<Reader {...props({ find: { matches, current: 0, request: 2 } })} />);
+    expect(scrolls.get(scroller())).toBe(600);
+  });
 });
 
 describe('a long book', () => {

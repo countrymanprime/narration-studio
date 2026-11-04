@@ -5,6 +5,7 @@
   "message": "Choose the files to master and encode.",
   "percent": 0,
   "master": false,
+  "provider": "",
   "format": "",
   "logs": [],
   "elapsed": 3.5,

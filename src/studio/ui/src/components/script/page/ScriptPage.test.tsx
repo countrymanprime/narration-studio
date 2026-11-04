@@ -14,7 +14,7 @@ import { currentPageContext } from '../../../input/pageCommands';
 import { overlay } from '../../../overlay/overlayService';
 import { CommandRouter } from '../../../input/router';
 import { contextItemsFor } from '../../../registries/context';
-import { searchAll } from '../../../registries/search';
+import { searchLater, type SearchHit } from '../../../registries/search';
 import { StudioProvider } from '../../../studio/StudioProvider';
 import type { NarrationApi } from '../../../types';
 import { TooltipProvider } from '../../primitives/Tooltip';
@@ -24,6 +24,9 @@ import { DRAWER_FOCUS_DELAY_MS } from './layout/useDrawerFocus';
 import { ScriptPage, type ScriptPageProps } from './ScriptPage';
 
 let view: ScriptViewState;
+/** What the sources that answer later (the book's, on the host) answer for a term, as the jump menu would ask them. */
+const searchBook = async (term: string): Promise<SearchHit[]> =>
+  (await Promise.all(searchLater(term, new AbortController().signal).map((pending) => pending.answer))).flat();
 function ViewProbe() {
   [view] = useScriptView((state) => state);
   return null;
@@ -208,7 +211,7 @@ describe('registers-and-unregisters', () => {
   it('registers the search sources, the right-click provider, the keys and the bookmark commands once, and removes them on unmount', async () => {
     const { unmount } = mount();
     await firstHeading();
-    await waitFor(() => expect(searchAll('Alice').some((hit) => hit.group === 'In the script')).toBe(true));
+    await waitFor(async () => expect((await searchBook('Alice')).some((hit) => hit.group === 'In the script')).toBe(true));
     const p = document.querySelector('p[data-pid]')!;
     expect(contextItemsFor(p)).not.toBeNull();
     const ours = () => providedCommands().filter((row) => row.id.startsWith('bookmark.menu.'));
@@ -221,7 +224,7 @@ describe('registers-and-unregisters', () => {
 
     unmount();
     expect(currentPageContext()).toBeNull();
-    expect(searchAll('Alice').some((hit) => hit.group === 'In the script')).toBe(false);
+    expect((await searchBook('Alice')).some((hit) => hit.group === 'In the script')).toBe(false);
     expect(contextItemsFor(p)).toBeNull();
     expect(ours()).toEqual([]);
   });
@@ -714,8 +717,8 @@ describe('search-through-the-jump-menu', () => {
   it('a result chosen in the menu marks every match in the reader, makes the chosen one current, and the menu steps them', async () => {
     mount();
     await firstHeading();
-    await waitFor(() => expect(searchAll('the').filter((hit) => hit.group === 'In the script').length).toBeGreaterThan(2));
-    const hits = searchAll('the').filter((hit) => hit.group === 'In the script');
+    await waitFor(async () => expect((await searchBook('the')).filter((hit) => hit.group === 'In the script').length).toBeGreaterThan(2));
+    const hits = (await searchBook('the')).filter((hit) => hit.group === 'In the script');
     expect(hits[0]!.snippet!.hit.toLowerCase()).toBe('the');
     expect(hits[0]!.sub).toMatch(/¶/);
     act(() => hits[2]!.run());
@@ -723,7 +726,7 @@ describe('search-through-the-jump-menu', () => {
     await waitFor(() => expect(document.querySelectorAll('mark[data-kind="search"]').length).toBeGreaterThan(2));
     expect(document.querySelectorAll('.a-find-cur')).toHaveLength(1);
     const items = () => currentPageContext()!.items.filter((row) => row.group === 'Search');
-    expect(items()[0]!.hint).toMatch(/^3 of \d+ for “the”$/);
+    await waitFor(() => expect(items()[0]!.hint).toMatch(/^3 of (the first \d+ of )?\d+ for “the”$/));
     act(() => items()[0]!.run());
     expect(view.find.i).toBe(3);
     press('F3', 'F3', { shiftKey: true });

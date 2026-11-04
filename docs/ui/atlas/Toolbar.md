@@ -17,4 +17,4 @@ Storybook title: `Primitives/Toolbar`. Source: `src/components/primitives/Toolba
 ## Used by
 
 - `src/components/booth/CompanionShell.tsx`
-- `src/components/engine/EnginePanel.tsx`
+- `src/components/engine/DawToolsMenu.tsx`

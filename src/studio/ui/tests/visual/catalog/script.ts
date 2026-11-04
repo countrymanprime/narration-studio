@@ -83,6 +83,24 @@ export const scriptStates: StateEntry[] = [
   },
   {
     page: 'script',
+    state: 'search-current',
+    description:
+      'Script, a search for "Alice" stepped with F3 to its third match, the menu closed: every match lit in the search hue and the current one in its own warn fill and ring, in view',
+  },
+  {
+    page: 'script',
+    state: 'search-steps',
+    description:
+      'Script, Find\'s own controls while "Alice" shows: Ctrl+F, then the Search group: Next match and Previous match with "1 of N for “alice”" (the whole book\'s count from the host), and Clear the search',
+  },
+  {
+    page: 'script',
+    state: 'search-steps-capped',
+    description:
+      'Script, Find\'s count for "the", which the book holds more than 1,000 times: "1 of the first 1000 of N for “the”", the host\'s exact total past the matches it sent',
+  },
+  {
+    page: 'script',
     state: 'selection-tools',
     description: 'Script, the selection toolbar over a selected word: Mark, the Story Bible kinds, Bookmark here, Record here and Look up',
     ...POPUP_ANCHORED_AT_FIRST_WIDTH,
