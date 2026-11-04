@@ -76,6 +76,51 @@ describe('the Parallel processes row (#2251)', () => {
   });
 });
 
+describe('the two chunk length rows (#2980)', () => {
+  const coverage = ROWS.find((candidate) => candidate.id === 'stt.chunk')!;
+  const compare = ROWS.find((candidate) => candidate.id === 'stt.compareChunk')!;
+  it('are named for what each one chunks, not both "Chunk length"', () => {
+    expect(coverage.label).toBe('Coverage chunk length');
+    expect(compare.label).toBe('Compare chunk length');
+    expect(coverage.field).toEqual({ tool: 'RecordingCoverage', key: 'chunk_seconds' });
+    expect(compare.field).toEqual({ tool: 'TranscriptCompare', key: 'chunk_seconds' });
+  });
+  it('each shows its own choices and default', () => {
+    expect(Object.keys(coverage.options ?? {})).toEqual(['0', '60', '120', '300', '600', '900']);
+    expect(Object.keys(compare.options ?? {})).toEqual(['30', '60', '300', '600']);
+    expect(coverage.def).toBe(DEFAULTS.RecordingCoverage!.chunk_seconds);
+    expect(compare.def).toBe(DEFAULTS.TranscriptCompare!.chunk_seconds);
+  });
+  it('each has its own one-line help and its own details', () => {
+    for (const row of [coverage, compare]) expect(row.desc.length, row.id).toBeLessThanOrEqual(60);
+    expect(compare.desc).not.toBe(coverage.desc);
+    expect(compare.more).toBeTruthy();
+    expect(compare.more).not.toBe(coverage.more);
+  });
+  it('are found by their own words', () => {
+    expect(search('compare chunk').map((hit) => hit.row?.id)).toContain('stt.compareChunk');
+    expect(search('compare chunk').map((hit) => hit.row?.id)).not.toContain('stt.chunk');
+    expect(search('coverage chunk').map((hit) => hit.row?.id)).toContain('stt.chunk');
+    expect(search('coverage chunk').map((hit) => hit.row?.id)).not.toContain('stt.compareChunk');
+    expect(search('whole file').map((hit) => hit.row?.id)).toContain('stt.chunk');
+  });
+});
+
+describe('the Preview voice engine row (#2980)', () => {
+  const row = ROWS.find((candidate) => candidate.field?.key === 'tts_provider')!;
+  it('is a read-only fact about Piper that search finds', () => {
+    expect(row).toMatchObject({ cat: 'voice', fact: true, scope: 'computer', def: 'piper' });
+    expect(row.options?.piper?.label).toBe('Piper');
+    expect(row.desc.length).toBeLessThanOrEqual(60);
+    expect(row.more).toBeTruthy();
+    for (const query of ['piper', 'preview voices', 'text to speech engine'])
+      expect(
+        search(query).map((hit) => hit.row?.id),
+        query,
+      ).toContain(row.id);
+  });
+});
+
 describe('app.debug', () => {
   it('is found by the words a narrator uses for the log and its folder (#2730)', () => {
     for (const query of ['logs', 'log folder', 'file manager', 'run.jsonl', 'explorer'])

@@ -203,7 +203,7 @@ export const settingsDrivers: Record<string, Driver> = {
   'speech-advanced': async (page) => {
     await openSettings(page, 'Speech to text');
     await openAdvanced(page);
-    await page.getByLabel('Chunk length (all projects)', { exact: true }).waitFor();
+    await page.getByLabel('Coverage chunk length (all projects)', { exact: true }).waitFor();
   },
   'speech-model-offer': async (page) => {
     // Booted without the downloads installed, so the model the row names is not on this computer and the row offers it.

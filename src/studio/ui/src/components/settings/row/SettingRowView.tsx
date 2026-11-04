@@ -116,7 +116,7 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
       <div className="flex min-w-0 flex-col gap-[3px]">
         {/* The title line is as tall as the Changed badge with or without it, so a switch beside it stays level (XSE1-22, XSE2-34). */}
         <span data-title-line className="flex min-h-6 flex-wrap items-center gap-2">
-          <label htmlFor={hasCustom ? undefined : controlId} id={`${uid}l`} className="text-[0.9375rem] font-semibold">
+          <label htmlFor={hasCustom || row.fact ? undefined : controlId} id={`${uid}l`} className="text-[0.9375rem] font-semibold">
             {row.label}
           </label>
           {row.more && <HelpButton label={`About ${row.label}`}>{row.more}</HelpButton>}
@@ -139,16 +139,22 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
             {/* The row of the control and its Reset takes the column's width, so the control's own `w-full` has a width to resolve against.
                 Saved shows beside Reset, where the change was made (XSE1-22). */}
             <div data-control-line className="flex w-full min-w-0 flex-nowrap items-center gap-1.5">
-              <ValueControl
-                row={row}
-                field={global}
-                id={controlId}
-                value={comp}
-                which={row.scope === 'both' ? 'all projects' : undefined}
-                describedBy={describedBy}
-                invalid={Boolean(error)}
-                onChange={(value) => apply(value, 'global')}
-              />
+              {row.fact ? (
+                <span id={controlId} data-fact={row.id} className="text-[0.9375rem]">
+                  {choiceLabel(row, comp)}
+                </span>
+              ) : (
+                <ValueControl
+                  row={row}
+                  field={global}
+                  id={controlId}
+                  value={comp}
+                  which={row.scope === 'both' ? 'all projects' : undefined}
+                  describedBy={describedBy}
+                  invalid={Boolean(error)}
+                  onChange={(value) => apply(value, 'global')}
+                />
+              )}
               {/* Before Reset, so it does not move when Reset comes and goes. */}
               {row.beside === 'logFolder' && <OpenLogFolderButton />}
               {isChanged(row, global) && (

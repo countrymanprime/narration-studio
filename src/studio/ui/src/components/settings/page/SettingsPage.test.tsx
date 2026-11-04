@@ -315,6 +315,18 @@ describe('Settings: row layout', () => {
     );
   });
 
+  it('shows the voice engine as a fact in words, with no control, no Reset and no Changed (#2980)', async () => {
+    await renderPage();
+    pick('Voice & pronunciation');
+    const fact = await waitForRow('voice.engine');
+    expect(within(fact).getByText('Piper')).toBeTruthy();
+    expect(within(fact).queryByRole('combobox')).toBeNull();
+    expect(within(fact).queryByRole('textbox')).toBeNull();
+    expect(within(fact).queryByRole('button', { name: /^Reset/ })).toBeNull();
+    expect(within(fact).queryByText('Changed')).toBeNull();
+    expect(within(fact).getByRole('button', { name: 'About Preview voices are made by' })).toBeTruthy();
+  });
+
   it('draws a download note as a status line then an action line, naming the voice as the select does (XSE2-14, R3SE2-20)', async () => {
     await renderPage();
     pick('Voice & pronunciation');

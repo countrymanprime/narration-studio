@@ -43,7 +43,10 @@ const TOOLTIP: Record<string, string> = {
   default_pronunciation_source:
     'Which source a new name’s pronunciation tries first, at build time and when you add an alias. Automatic still falls back through the others if the preferred one has nothing for the name. This never changes a pronunciation already generated, and it is separate from Generate/Replace in the Story Bible entry itself, which always lets you pick explicitly.',
   model_size: 'Default Whisper model for new comparisons.',
-  chunk_seconds: 'Default transcription chunk length.',
+  'TranscriptCompare.chunk_seconds':
+    'How long a piece a Proof compare run transcribes at a time. A run starts with this and can change it for itself. The recording check has its own length.',
+  'RecordingCoverage.chunk_seconds':
+    'How long a piece the recording check transcribes at a time; 0 checks each file whole. The Proof compare run has its own length.',
   color_note: 'Color used for narrator note treatment.',
   log_verbosity: 'Controls diagnostic output shown in logs.',
   credits_room_tone_seconds:
@@ -125,7 +128,10 @@ function numberPlaceholder(field: ScopedSettingField, scope: Scope): string {
  * never wraps to a line of its own (XSE2-22); below `md`, where the label sits above its control, the icon is pinned to the row's right edge,
  * so the icons of a stacked list line up in one column (alignment audit A4 at 390 px).
  */
-function LabelWithHint({ field }: { field: ScopedSettingField }) {
+/** A field's hint: the tool's own (two tools can share a key, such as `chunk_seconds`), else the key's. */
+const hintFor = (field: ScopedSettingField, tool?: string): string | undefined => (tool && TOOLTIP[`${tool}.${field.key}`]) || TOOLTIP[field.key];
+
+function LabelWithHint({ field, tool }: { field: ScopedSettingField; tool?: string }) {
   const cut = field.label.lastIndexOf(' ');
   return (
     <span className="relative block pr-8 md:static md:inline md:pr-0">
@@ -133,7 +139,7 @@ function LabelWithHint({ field }: { field: ScopedSettingField }) {
       <span className="md:whitespace-nowrap">
         {cut > 0 ? field.label.slice(cut + 1) : field.label}
         <span className="absolute top-0 right-0 md:static">
-          <Tooltip text={TOOLTIP[field.key] || `Configure ${field.label.toLowerCase()}.`} />
+          <Tooltip text={hintFor(field, tool) || `Configure ${field.label.toLowerCase()}.`} />
         </span>
       </span>
     </span>
@@ -142,6 +148,7 @@ function LabelWithHint({ field }: { field: ScopedSettingField }) {
 
 function NumberSetting({
   field,
+  tool,
   range,
   scope,
   value,
@@ -149,6 +156,7 @@ function NumberSetting({
   resetButton,
 }: {
   field: ScopedSettingField;
+  tool?: string;
   range: NumberSettingRange;
   scope: Scope;
   value: string;
@@ -161,7 +169,7 @@ function NumberSetting({
   return (
     <div className={ROW_CLASSES}>
       <div className="text-[0.82rem] font-medium text-[var(--text-muted)] md:pt-2">
-        <LabelWithHint field={field} />
+        <LabelWithHint field={field} tool={tool} />
       </div>
       <div className={CONTROLS_CLASSES}>
         {/* A number box is one short width, 10rem (room for its "Inherits 0.8" placeholder), with or without a unit after it, so the boxes down a panel line up (alignment audit XSE2-22);
@@ -193,12 +201,15 @@ function NumberSetting({
 
 export function ScopedSetting({
   field,
+  tool,
   scope,
   value,
   change,
   onClearOverride,
 }: {
   field: ScopedSettingField;
+  /** The settings tool the field belongs to, so a key two tools share gets each its own hint. */
+  tool?: string;
   scope: Scope;
   value: string;
   change: (value: string) => void;
@@ -211,7 +222,7 @@ export function ScopedSetting({
     </Button>
   );
   if (field.kind === 'number' && field.number) {
-    return <NumberSetting field={field} range={field.number} scope={scope} value={value} change={change} resetButton={resetButton} />;
+    return <NumberSetting field={field} tool={tool} range={field.number} scope={scope} value={value} change={change} resetButton={resetButton} />;
   }
   if (field.kind === 'bool') {
     // A switch is its own label (the setting's name), so the row is the switch, the hint icon and Reset, not a label column
@@ -221,7 +232,7 @@ export function ScopedSetting({
         <Switch checked={effective === 'true'} onChange={(checked) => change(String(checked))}>
           {field.label}
         </Switch>
-        <Tooltip text={TOOLTIP[field.key] || `Configure ${field.label.toLowerCase()}.`} />
+        <Tooltip text={hintFor(field, tool) || `Configure ${field.label.toLowerCase()}.`} />
         {resetButton}
       </div>
     );
@@ -232,7 +243,7 @@ export function ScopedSetting({
   return (
     <div className={ROW_CLASSES}>
       <div className="text-[0.82rem] font-medium text-[var(--text-muted)] md:pt-2">
-        <LabelWithHint field={field} />
+        <LabelWithHint field={field} tool={tool} />
       </div>
       <div className={CONTROLS_CLASSES}>
         {isTags ? (

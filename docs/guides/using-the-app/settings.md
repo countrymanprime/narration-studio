@@ -154,10 +154,12 @@ The Audacity backups and the favourite effects are listed under [Set on a page](
 [Proof](proof.md), [Pickups](pickups.md) and [Editing](editing.md) all use it. It is for all projects, and a project may override it.
 Changing it asks first. Choosing a model that is not on this computer shows **Not on this computer** in the row, with **Download** and a link to **Models & downloads** on the line under it.
 
+**Compare chunk length** (under Advanced) is how long a piece a [Proof](proof.md) comparison transcribes at a time (30, 60, 300 or 600 seconds; the default is 60). A run starts with it and can change it for itself. It is separate from **Coverage chunk length** below, which the recording check uses.
+
 **Live reading in the Booth** holds the **Live engine** (Whisper, or Moonshine on Windows) and the **Live model** (`tiny`
 or `small`) the [Booth](booth.md) follows your voice with. Under Advanced, **Recording check** holds the **Two-pass check**, its **First-pass model** and
-**Re-check model**, **Run both models together**, **Parallel processes** and **Chunk length** ([how it works](../../utilities/recording-coverage.md#the-model-cascade)).
-**Parallel processes** is how many recordings, or pieces of one long recording, a check transcribes side by side; each holds a copy of the
+**Re-check model**, **Run both models together**, **Parallel processes** and **Coverage chunk length** ([how it works](../../utilities/recording-coverage.md#the-model-cascade)).
+**Coverage chunk length** cuts a long recording into pieces of that many seconds (60 by default; 0 checks each file whole) so they are checked side by side. **Parallel processes** is how many recordings, or pieces of one long recording, a check transcribes side by side; each holds a copy of the
 speech model in memory. 0 is Automatic: half this computer's processors, fewer when the chosen model's copies would not fit in the free memory. The
 line under the box says what the value shown runs on this computer and what set it, for example "Automatic: 4 transcriptions at once, using 8 of
 8 processors for the small model. Set by the processors: half of them, so each transcription has 2 processors." A number you type is kept up to
@@ -175,6 +177,7 @@ for longer.
 ## Voice & pronunciation
 
 - **Preview voice** is the voice that says a name or word when you ask for a [preview](story-bible.md#hearing-a-name). It does not narrate anything. The list holds every approved voice: LJ Speech (US English, the default), Cori (British English), Kristin (US English) and Norman (US English). Choosing one downloads nothing: a voice that is not on this computer shows **Not on this computer** with **Download**, and is also listed under [Models and downloads](#models-and-downloads).
+- **Preview voices are made by** says Piper, the engine that speaks previews. It is the only engine the app has, so it is a fact with nothing to choose, and it is never marked **Changed**. Its **?** says more. It becomes a choice if a second engine is added.
 - **Show definitions from** chooses where the Script page's **Words** tab shows definitions: the web page (the default), the local dictionary or the online
   service. The choice is the same one as the Words tab's **Definitions from** menu. The local dictionary shows **Installed** or **Not installed** with a button to download or remove it; the online service
   shows **Online**, **Offline**, or **No key saved**.

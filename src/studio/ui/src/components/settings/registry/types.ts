@@ -72,6 +72,8 @@ export type SettingMeta = {
   /** Words and downloads for a host choice, by value; a value without an entry shows as the host sent it. */
   options?: Record<string, OptionNote>;
   unit?: string;
+  /** A fact the host reports and nobody can change (the only choice there is): drawn as words, never as a control, with no Reset, never Changed. */
+  fact?: boolean;
   used: readonly UsedPage[];
   /** Other places that write the same value, so a change made here is not a surprise there. */
   also?: string;

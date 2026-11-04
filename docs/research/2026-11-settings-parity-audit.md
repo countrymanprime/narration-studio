@@ -62,7 +62,7 @@ Ten persisted preferences have no Settings equivalent (gaps below); gap 1 is fix
 | Recent-project pin and remove | Project picker | A list of items, not a preference |
 | Monitor level | Booth Levels menu, Editing Output | The DAW's own level, read back from the DAW |
 | Effect parameters, bypass, cut and replace dialogs | Editing | Edits to audio |
-| Mastering provider | none | No control calls `masteringChooseProvider` ([unwired](unwired-host-bindings.md)); a row comes with a control |
+| Mastering provider | none | Kept on purpose, not forgotten (issue 2980): no control calls `masteringChooseProvider` ([unwired](unwired-host-bindings.md)) because the app offers one mastering provider. The binding and `Mastering.provider` stay; the row comes with a second provider |
 | Record, Check recordings, Build package, Export report, Rescan, Import, Start timer, Restore backup, Undo | many | One-off actions |
 | Sort order, filters, search, chip filters, side-panel and drawer toggles, ribbon zoom, chapter steppers, rail tab | many | View state, not kept, or reset on open |
 | Reading place: Booth last place, per-chapter places, Proof and Master & QC last chapter, Script reader position | Booth, Proof, Master & QC, Script | Remembered position, not a choice |

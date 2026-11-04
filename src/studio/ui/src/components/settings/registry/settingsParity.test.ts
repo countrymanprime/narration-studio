@@ -85,7 +85,8 @@ const BINDINGS: Parity = {
     voiceSampleSetPrimary: DATA,
     // Preferences with no Settings row yet. Each leaves this list in the pull request that adds its row (issue 2815).
     chapterSyncSetEnabled: 'GAP, Engine panel: whether sync links chapters to tracks. Row comes in the Engine-panel pull request.',
-    masteringChooseProvider: 'No control calls it (it is on the unwired-bindings list); a row comes with the control, if one is ever drawn.',
+    masteringChooseProvider:
+      'Kept on purpose (owner decision, issue 2980): the app offers one mastering provider, so no control calls it; the row comes with a second provider.',
     voiceTracksSetNarrator: 'GAP, Engine panel: the narrator’s character for voice tracks. Row comes in the Engine-panel pull request.',
     voiceTracksSetCharacters: 'GAP, Engine panel: which characters a voice track records. Row comes in the Engine-panel pull request.',
     editingSetSourceChoice: 'A per-chapter choice recorded with that chapter’s analysis (source-choice.json), not a preference for the project.',

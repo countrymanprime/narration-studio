@@ -145,7 +145,7 @@ export const settingsStates: StateEntry[] = [
     page: 'settings',
     state: 'speech-advanced',
     description:
-      'Settings, Speech to text with Advanced open: the Recording check rows (Two-pass check, First-pass model, Re-check model, Parallel processes, Chunk length)',
+      'Settings, Speech to text with Advanced open: the Recording check rows (Two-pass check, First-pass model, Re-check model, Parallel processes, Coverage chunk length) and, under Transcription, the Compare chunk length',
     ...REFLOW,
     ...KEEPS_DESKTOP_SCROLL,
   },
@@ -160,7 +160,7 @@ export const settingsStates: StateEntry[] = [
     page: 'settings',
     state: 'voice',
     description:
-      'Settings, Voice & pronunciation: the Preview voice row offering Download for the voice that is not installed, then the definitions source radios with the local dictionary and the online service states',
+      'Settings, Voice & pronunciation: the Preview voice row offering Download for the voice that is not installed, the read-only "Preview voices are made by Piper" row (no control, no Reset), then the definitions source radios with the local dictionary and the online service states',
     ...REFLOW,
   },
   {
