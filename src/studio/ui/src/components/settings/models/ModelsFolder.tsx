@@ -45,6 +45,8 @@ export function ModelsFolderControl() {
   const store = useAssetsStore();
   const { catalog, move } = store;
   const [asking, setAsking] = useState<'change' | 'reset'>();
+  // The system's folder dialog is open: another press of Change location waits for it.
+  const [picking, setPicking] = useState(false);
   const [started, setStarted] = useState(() => Date.now());
   const [now, setNow] = useState(() => Date.now());
   const running = move !== undefined && isMoveRunning(move);
@@ -68,13 +70,15 @@ export function ModelsFolderControl() {
       await begin('');
       return;
     }
+    setPicking(true);
     const folder = await store.pickFolder();
+    setPicking(false);
     if (folder !== '') await begin(folder);
   };
 
   return (
     <>
-      <Button variant="secondary" size="sm" className="flex-none" onClick={() => setAsking('change')}>
+      <Button variant="secondary" size="sm" className="flex-none" pending={picking} onClick={() => setAsking('change')}>
         Change location…
       </Button>
       {catalog.custom && (

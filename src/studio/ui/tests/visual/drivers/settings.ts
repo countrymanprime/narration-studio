@@ -297,7 +297,10 @@ export const settingsDrivers: Record<string, Driver> = {
     await startMove(page);
     await page.getByRole('progressbar', { name: 'Moving models and downloads progress' }).waitFor();
     await page.getByText('Copying the models to the new folder…').waitFor();
-    await page.getByText(/\d+(\.\d+)? (MB|GB) of /).waitFor();
+    await page
+      .getByText(/\d+(\.\d+)? (MB|GB) of /)
+      .first()
+      .waitFor();
   },
   'models-moved': async (page) => {
     await openModels(page, '?mockMove=moved');

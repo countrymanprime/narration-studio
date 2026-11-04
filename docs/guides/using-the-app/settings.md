@@ -184,26 +184,8 @@ for longer.
 ## Models and downloads
 
 One list of everything the app can keep on this computer: Whisper models, Moonshine models, the preview voices, the Story Bible language models, the dictionary, the wiktionary pronunciations and the MP3 encoder. Nothing downloads by itself, and
-removing one never touches your projects. Above the list, the disk the installed ones use and the folder they are kept in, with **Open folder** to show it in the file manager. When the list cannot be read, the message offers **Retry** and **Open the folder**.
+removing one never touches your projects. Above the list, the disk the installed ones use and the folder they are kept in, with **Open folder** to show it in the file manager, and under it the **Models folder** row, which [moves them to another folder](#models-folder). When the list cannot be read, the message offers **Retry** and **Open the folder**.
 Which one is *used* is chosen in the category that uses it; here you only get, check and remove them.
-
-### Models folder
-
-Under the disk bar, **Models folder** is where the downloads are kept: the folder in use, **Change location…** and, once you have moved them, a reset button. It is also found by searching for "location" or "folder", and by the **Changed** filter once it is not the default. Its **?** says what a move does.
-
-**Change location…** asks first (the question is below), then opens your computer's folder dialog. Choose an empty folder (make a new one in the dialog if you like; a folder inside the current one, or one that already holds files, is refused). The app copies everything it has downloaded, checks every copied file against the original, and only then uses the new folder, at once and for every kind of download. A bar shows the bytes of both passes and **Cancel** stops the move. A move waits while a download runs, and no download starts during it.
-
-![Settings - Models & downloads: Change location asks before it opens the folder dialog](../../images/ui/settings-models-folder-asking.webp)
-
-![Settings - Models & downloads while the downloads are being moved: a progress bar and Cancel](../../images/ui/settings-models-moving.webp)
-
-If you cancel, or anything fails (the folder is read-only, the disk is full, a disk is unplugged, a copied file does not match), the dialog says why and your models are exactly where they were: nothing is deleted, nothing changes, and a half copy is removed.
-
-When a move has finished, the old copy is still on your disk. The row says so, with **Delete old copy…** and **Keep it**. Deleting asks first and removes only the downloaded models, voices and tools in that folder, never anything else you keep there. It is refused while something that may still read the old copy is running. **Keep it** leaves the folder alone and stops asking. Until you answer, another move is not offered.
-
-![Settings - Models & downloads after a move: the new folder in use and the old copy waiting for an answer](../../images/ui/settings-models-moved.webp)
-
-The reset button next to **Change location…** moves the downloads back to the default folder (the per-user cache folder) the same way: copy, check, switch, then offer to delete the copy you left.
 
 ![Settings - Models & downloads: the disk used and each download with its state, size, what uses it and its actions](../../images/ui/settings-models.webp)
 
@@ -219,6 +201,24 @@ Each row says what it is, its type and size, its **Status**, **Used by** (pages)
 ![Settings - Models & downloads checking the files of the Whisper model: Checking the files in its row and the check icon spinning](../../images/ui/settings-models-checking.webp)
 
 With nothing downloaded, the page (its **?** gives the size, about 600 MB) offers **Download the recommended set** (the Small transcription model and the preview voice). Below the list, **Story Bible analysis tools** lists the optional tools that make the Story Bible scan better (GLiNER, BookNLP small and large), each with what it does, its size, where it downloads from and the memory it needs, and the **Offer better analysis when scanning** box. GLiNER (about 730 MB) finds the names of characters, places and things, including invented ones; BookNLP groups the ways a character is named and works out who speaks each line. **Download** asks first; a Story Bible scan then runs the basic rules and each tool you have (with both BookNLP sizes, the large one). **Remove** deletes a tool, and the scan goes back to the rules and whatever else is installed. A tool whose download failed says why in a message that stays until dismissed, and its row has **Try again** and **Dismiss**; when the files arrived and matched but could not be unpacked or saved, **Details** under the reason names the file and what went wrong, which is what to quote in a report. The download dialog that other pages open shows the same line under **Live activity**.
+
+### Models folder
+
+Under the disk bar, **Models folder** is where the downloads are kept: the folder in use, **Change location…** and, once you have moved them, a reset button. It is also found by searching for "location" or "folder", and by the **Changed** filter once it is not the default. Its **?** says what a move does.
+
+**Change location…** asks first (the question is below), then opens your computer's folder dialog. Choose an empty folder (make a new one in the dialog if you like; a folder inside the current one, or one that already holds files, is refused). The app copies everything it has downloaded, checks every copied file against the original, and only then uses the new folder, at once and for every kind of download. A bar shows the bytes of both passes and **Cancel** stops the move. A move is refused while a download runs, and no download starts during one.
+
+![Settings - Models & downloads: Change location asks before it opens the folder dialog](../../images/ui/settings-models-folder-asking.webp)
+
+![Settings - Models & downloads while the downloads are being moved: a progress bar and Cancel](../../images/ui/settings-models-moving.webp)
+
+If you cancel, or anything fails (the folder is read-only, the disk is full, a disk is unplugged, a copied file does not match), the dialog says why and your models are exactly where they were: nothing is deleted, nothing changes, and a half copy is removed.
+
+When a move has finished, the old copy is still on your disk. The row says so, with **Delete old copy…** and **Keep it**. Deleting asks first and removes only the downloaded models, voices and tools in that folder, never anything else you keep there. It is refused while something that may still read the old copy is running. **Keep it** leaves the folder alone and stops asking. Until you answer, another move is not offered.
+
+![Settings - Models & downloads after a move: the new folder in use and the old copy waiting for an answer](../../images/ui/settings-models-moved.webp)
+
+The reset button next to **Change location…** moves the downloads back to the default folder (the per-user cache folder) the same way: copy, check, switch, then offer to delete the copy you left.
 
 ## Delivery
 
