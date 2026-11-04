@@ -16,8 +16,8 @@ export type SuspectedFlag = {
   scriptEnd: number;
   script: string;
   heard: string;
-  /** A second listen heard it too (`confirmed`); a flag it cleared is never listed. */
-  check?: 'confirmed';
+  /** What the second listen found: it heard the same (`confirmed`), or read the script there (`cleared`, shown as Not confirmed and never kept). */
+  check?: 'confirmed' | 'cleared';
 };
 
 /**
@@ -38,9 +38,12 @@ export function suspectedLines(flags: readonly SuspectedFlag[], readParagraphIds
   });
 }
 
-/** How many are still open: the side panel's badge. */
+/** The lines worth keeping as findings and putting on Pickups: all but the ones the second listen cleared. */
+export const keptLines = (flags: readonly SuspectedFlag[]): SuspectedFlag[] => flags.filter((flag) => flag.check !== 'cleared');
+
+/** How many are still open: the side panel's badge. A line the second listen cleared is not open. */
 export const suspectedCount = (flags: readonly SuspectedFlag[], dismissed: ReadonlySet<string>): number =>
-  flags.filter((flag) => !dismissed.has(suspectedKey(flag))).length;
+  keptLines(flags).filter((flag) => !dismissed.has(suspectedKey(flag))).length;
 
 /** The flag in the shape `TeleprompterSaveFlags` keeps. */
 export const toFlagSave = (flag: SuspectedFlag, dismissed: boolean): TeleprompterFlagSave => ({

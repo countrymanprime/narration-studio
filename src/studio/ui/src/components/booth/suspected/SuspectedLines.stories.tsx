@@ -85,6 +85,22 @@ export const OneDismissed: Story = {
   },
 };
 
+// The second listen has judged the lines: one it heard too, one it did not.
+export const SecondListen: Story = {
+  args: {
+    flags: [
+      { ...skipped, check: 'confirmed' },
+      { ...again, check: 'cleared' },
+    ],
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByText('Confirmed')).toBeTruthy();
+    await expect(canvas.getByText('Not confirmed')).toBeTruthy();
+    await expect(canvas.getByText('Suspected · 1')).toBeTruthy();
+  },
+};
+
 // A take stopped after reading the paragraph of a suspected line: the line joins Pickups and the toast offers Undo.
 function TakeStopped({ flags }: { flags: SuspectedFlag[] }) {
   const { takeStopped } = useSuspectedPickups({ chapterId: 'c8', flags });

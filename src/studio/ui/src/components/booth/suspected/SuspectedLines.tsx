@@ -7,7 +7,7 @@ import { useJournalOrOwn } from '../../../studio/StudioProvider';
 import { IconButton } from '../../primitives/IconButton';
 import { InsetCard } from '../../primitives/InsetCard';
 import { StatusBadge } from '../../primitives/StatusBadge';
-import { KIND_LABELS, suspectedCount, suspectedKey, suspectedLines, toFlagSave, type SuspectedFlag } from './suspectedLinesModel';
+import { KIND_LABELS, keptLines, suspectedCount, suspectedKey, suspectedLines, toFlagSave, type SuspectedFlag } from './suspectedLinesModel';
 
 /**
  * The Booth side panel's "Suspected" section (Studio Next mock `pages/booth/SidePanel.tsx`). The host's live check lists lines it
@@ -16,6 +16,8 @@ import { KIND_LABELS, suspectedCount, suspectedKey, suspectedLines, toFlagSave, 
  */
 export function SuspectedLines({ chapterId, flags: given }: { chapterId: string; flags: readonly SuspectedFlag[] }) {
   const flags = useMemo(() => suspectedLines(given), [given]);
+  // The lines the second listen cleared are shown, as Not confirmed, but never saved: the host would drop them again.
+  const kept = useMemo(() => keptLines(flags), [flags]);
   const teleprompter = usePort('teleprompter');
   const findings = usePort('findings');
   const journal = useJournalOrOwn();
@@ -43,9 +45,9 @@ export function SuspectedLines({ chapterId, flags: given }: { chapterId: string;
 
   // Reading the same place again changes nothing: the host answers each flag with its stored decision.
   useEffect(() => {
-    if (flags.length === 0) return;
-    keep(flags, new Set()).catch((reason) => overlay.toast(apiErrorMessage(reason), { tone: 'error' }));
-  }, [flags, keep]);
+    if (kept.length === 0) return;
+    keep(kept, new Set()).catch((reason) => overlay.toast(apiErrorMessage(reason), { tone: 'error' }));
+  }, [kept, keep]);
 
   const dismiss = async (flag: SuspectedFlag) => {
     const key = suspectedKey(flag);
@@ -56,7 +58,7 @@ export function SuspectedLines({ chapterId, flags: given }: { chapterId: string;
       touches: [`proof/finding/${versions.get(key)?.id ?? key}`],
       run: async () => {
         try {
-          await keep(flags, new Set([...dismissed, key]));
+          await keep(kept, new Set([...dismissed, key]));
           return { ok: true, value: null };
         } catch (reason) {
           return refuse(reason);
@@ -102,17 +104,20 @@ export function SuspectedLines({ chapterId, flags: given }: { chapterId: string;
         {flags.map((flag) => {
           const key = suspectedKey(flag);
           const done = dismissed.has(key);
+          const unconfirmed = flag.check === 'cleared';
           return (
             // The pickup card of the Pickups page and the site: a chip for what was suspected, then the line, then the way to dismiss it.
             <li key={key} data-flag={key}>
               <InsetCard frame="snug" className="flex flex-col gap-1 text-sm">
                 <div className="flex items-center gap-2">
-                  <StatusBadge tone={done ? 'neutral' : 'warning'} label={KIND_LABELS[flag.kind]} />
+                  <StatusBadge tone={done || unconfirmed ? 'neutral' : 'warning'} label={KIND_LABELS[flag.kind]} />
+                  {flag.check === 'confirmed' ? <StatusBadge tone="success" label="Confirmed" /> : null}
+                  {unconfirmed ? <StatusBadge tone="neutral" label="Not confirmed" /> : null}
                   {done ? <span className="text-xs text-[var(--text-muted)]">Dismissed</span> : null}
                   <span className="flex-1" />
-                  {done ? null : <IconButton action="close" label={`Dismiss: ${flag.script}`} size="sm" onClick={() => void dismiss(flag)} />}
+                  {done || unconfirmed ? null : <IconButton action="close" label={`Dismiss: ${flag.script}`} size="sm" onClick={() => void dismiss(flag)} />}
                 </div>
-                <span className={`line-clamp-2 ${done ? 'text-[var(--text-muted)]' : ''}`}>
+                <span className={`line-clamp-2 ${done || unconfirmed ? 'text-[var(--text-muted)]' : ''}`}>
                   {flag.script}
                   {flag.heard ? <span className="text-[var(--text-muted)]"> · heard “{flag.heard}”</span> : null}
                 </span>

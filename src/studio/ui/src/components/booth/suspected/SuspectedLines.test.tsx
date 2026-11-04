@@ -133,6 +133,36 @@ describe('SuspectedLines', () => {
     expect(screen.getAllByText(/down the hole/)).toHaveLength(1);
   });
 
+  // The second listen (the confirmation pass) judged each line a few seconds after it was suspected.
+  it('a line the second listen cleared stays in the list as Not confirmed: dimmed, not counted, nothing to dismiss and never saved', async () => {
+    const { save, view } = host();
+    render(view([skipped, { ...again, check: 'cleared' }]));
+    const cards = await screen.findAllByRole('listitem');
+    expect(within(cards[1]).getByText('Not confirmed')).toBeTruthy();
+    expect(within(cards[1]).queryByRole('button')).toBeNull();
+    expect(screen.getByText('Suspected · 1')).toBeTruthy();
+    await waitFor(() => expect(save).toHaveBeenCalled());
+    const sent = save.mock.calls.flatMap(([, flags]) => flags);
+    expect(sent.map((f) => f.paragraphId)).toEqual(['p9']);
+    expect(sent.some((f) => f.check === 'cleared')).toBe(false);
+  });
+
+  it('a line the second listen heard too says Confirmed and keeps its dismiss control', async () => {
+    const { save, view } = host();
+    render(view([{ ...skipped, check: 'confirmed' }]));
+    const [card] = await screen.findAllByRole('listitem');
+    expect(within(card).getByText('Confirmed')).toBeTruthy();
+    expect(within(card).getByRole('button', { name: 'Dismiss: down the hole' })).toBeTruthy();
+    await waitFor(() => expect(save.mock.calls.flatMap(([, flags]) => flags)[0]).toMatchObject({ check: 'confirmed' }));
+  });
+
+  it('a list of only cleared lines saves nothing and counts none open', async () => {
+    const { save, view } = host();
+    render(view([{ ...skipped, check: 'cleared' }]));
+    expect(await screen.findByText('Suspected · 0')).toBeTruthy();
+    expect(save).not.toHaveBeenCalled();
+  });
+
   it('shows nothing when there are no flags', () => {
     const { view } = host();
     const { container } = render(view([]));
@@ -203,6 +233,17 @@ describe('suspected lines feed Pickups', () => {
     expect(toastUndo).toHaveBeenCalledWith('1 suspected line added to Pickups', expect.any(Function), { entry: expect.any(Number) });
     expect((await toastUndo.mock.calls[0][1]()).ok).toBe(true);
     expect(undoTake).not.toHaveBeenCalled();
+  });
+
+  it('a line the second listen cleared never becomes a pickup', async () => {
+    const { review, wrapper, save } = host();
+    vi.spyOn(overlay, 'toastUndo').mockImplementation(() => undefined);
+    const { result } = renderHook(() => useSuspectedPickups({ chapterId: 'c8', flags: [{ ...skipped, check: 'cleared' }, again] }), { wrapper });
+    await act(async () => {
+      await result.current.takeStopped(read('p9', 'p12'));
+    });
+    expect(save.mock.calls.flatMap(([, flags]) => flags).map((f) => f.paragraphId)).toEqual(['p12']);
+    expect(review).toHaveBeenCalledTimes(1);
   });
 
   it('a take that does not reach a flagged place adds nothing, and the same place read again is added once', async () => {
