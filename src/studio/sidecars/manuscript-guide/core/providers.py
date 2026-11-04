@@ -82,6 +82,17 @@ class CmuSource:
     unavailable_log = "CMU pronunciation unavailable"
 
     def pronounce(self, name: str) -> Pronunciation:
+        """Looks each word of a name up in the CMU dictionary and joins their IPA.
+
+        Args:
+            name: The name to look up.
+
+        Returns:
+            The ``ipa``, ``CMU dictionary`` as ``source`` and ``medium`` ``confidence``.
+
+        Raises:
+            ValueError: A word of the name is not in the dictionary.
+        """
         import pronouncing
 
         words = re.findall(r"[A-Za-z]+", name)
@@ -128,6 +139,17 @@ class WiktextractSource:
         return self._cache
 
     def pronounce(self, name: str) -> Pronunciation:
+        """Looks each word of a name up in the installed Wiktionary index and joins their IPA.
+
+        Args:
+            name: The name to look up.
+
+        Returns:
+            The ``ipa``, the attribution label as ``source`` and ``medium`` ``confidence``.
+
+        Raises:
+            ValueError: The index is not installed, or a word of the name is not in it.
+        """
         index = self._index()
         words = re.findall(r"[A-Za-z']+", name)
         entries = [index[word.lower()] for word in words if word.lower() in index]
