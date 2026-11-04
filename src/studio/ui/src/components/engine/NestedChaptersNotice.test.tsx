@@ -200,6 +200,8 @@ describe("the Chapter links panel's nested-chapters repair (#2838)", () => {
     renderTable(api);
     expect(await screen.findByText('Folders not checked')).toBeTruthy();
     expect(screen.getByText(/The host did not answer/)).toBeTruthy();
+    // The panel checks when it shows and again when its links finish loading (the key changes), so count Check again from after both.
+    await waitFor(() => expect(calls).toBe(2));
     const before = calls;
     await userEvent.click(screen.getByRole('button', { name: 'Check the folders again' }));
     expect(calls).toBe(before + 1);
