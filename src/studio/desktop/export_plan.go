@@ -24,14 +24,19 @@ import (
 // needs one (MasteringProvider.NeedsMacro), the effect macro they named. It holds for the one ExportStart call that carries it:
 // the host checks it against the row it would master with now, hands it to that job only, and never stores it. It is the page's
 // word that the narrator approved: the host cannot tell that a dialog was shown (threat model row 14f).
+//
+// For a row whose steps live in the DAW (masteringport.ChainLister), ChainDigest is ExportPlan's chainDigest of the chain the dialog
+// showed: the approval binds that chain, and each render refuses another (threat model row 5o). Without it such an approval is refused.
 type MasteringApproval struct {
-	Provider string `json:"provider"`
-	Macro    string `json:"macro"`
+	Provider    string `json:"provider"`
+	Macro       string `json:"macro"`
+	ChainDigest string `json:"chainDigest"`
 }
 
 // ExportPlan is ExportPlan's answer: the mastering row the export masters with (empty when it does not master), whether each
 // master needs the narrator's approval or a macro, the items as the host will export them, and, for a row whose steps live in the
-// DAW (masteringport.ChainLister), the chain it would run, read when the plan is asked for (empty for any other row).
+// DAW (masteringport.ChainLister), the chain it would run, read when the plan is asked for, and its masteringport.ChainDigest, which
+// the approval sends back (both empty for any other row).
 type ExportPlan struct {
 	Master        bool              `json:"master"`
 	Provider      string            `json:"provider"`
@@ -40,6 +45,7 @@ type ExportPlan struct {
 	NeedsMacro    bool              `json:"needsMacro"`
 	Items         []ExportPlanItem  `json:"items"`
 	Chain         []ExportPlanTrack `json:"chain"`
+	ChainDigest   string            `json:"chainDigest"`
 }
 
 // ExportPlanTrack is one track's plug-ins in the chain a DAW render runs, in chain order: every track with FX, then the master.
@@ -73,12 +79,15 @@ type exportPlanned struct {
 	row     port.Entry[masteringport.Mastering]
 	caps    masteringport.Capabilities
 	chain   []masteringport.ChainTrack
+	// listed is whether the row lists its chain, so the plan answers the chain's digest (an empty chain has one too).
+	listed bool
 }
 
 // masteringApproved is what an export's approval allows its masters: Approved and Macro of each masteringport.Request.
 type masteringApproved struct {
-	approved bool
-	macro    string
+	approved    bool
+	macro       string
+	chainDigest string
 }
 
 // errStaleApproval is an approval of a row the project no longer masters with.
@@ -152,6 +161,13 @@ func (h *Host) approvalFor(plan exportPlanned, approval *MasteringApproval) (mas
 		return masteringApproved{}, fmt.Errorf("%s runs only after you approve this render: %w", row.Descriptor.Label, masteringport.ErrNotApproved)
 	}
 	allowed := masteringApproved{approved: approval != nil}
+	// Fail closed: an approval of a row whose steps live in the DAW binds the chain the narrator was shown, or nothing.
+	if _, lists := row.New().(masteringport.ChainLister); lists && approval != nil {
+		if approval.ChainDigest == "" {
+			return masteringApproved{}, fmt.Errorf("%s: %w", row.Descriptor.Label, masteringport.ErrNoChainDigest)
+		}
+		allowed.chainDigest = approval.ChainDigest
+	}
 	if caps.NeedsMacro {
 		if approval != nil {
 			allowed.macro = strings.TrimSpace(approval.Macro)
@@ -191,6 +207,9 @@ func exportPlanPayload(plan exportPlanned) ExportPlan {
 	for i, item := range plan.items {
 		out.Items = append(out.Items, ExportPlanItem{Kind: item.Kind, Title: item.Title, Path: item.Path, Region: plan.regions[i]})
 	}
+	if plan.listed {
+		out.ChainDigest = masteringport.ChainDigest(plan.chain)
+	}
 	out.Chain = make([]ExportPlanTrack, 0, len(plan.chain))
 	for _, track := range plan.chain {
 		fx := make([]ExportPlanFX, 0, len(track.FX))
@@ -202,8 +221,8 @@ func exportPlanPayload(plan exportPlanned) ExportPlan {
 	return out
 }
 
-// exportChainWait bounds ExportPlan's read of the DAW's chain, under the page's own 15 s wait for the answer.
-const exportChainWait = 10 * time.Second
+// exportChainWait bounds ExportPlan's read of the DAW's chain, under the page's own 15 s wait for the answer; a var for tests.
+var exportChainWait = 10 * time.Second
 
 // exportPlan is ExportPlan's answer for req. With a row whose steps live in the DAW it reads the chain the render would run, so
 // the approval dialog shows it (threat model row 5o); a chain that cannot be read whole refuses the plan. ExportStart does not read
@@ -219,9 +238,11 @@ func (h *Host) exportPlan(req ExportRequest) (ExportPlan, error) {
 			defer cancel()
 			chain, err := lister.Chain(ctx)
 			if err != nil {
-				return ExportPlan{}, fmt.Errorf("%s: the app could not read the chain to show it to you: %w", plan.row.Descriptor.Label, err)
+				// A toast: what to do next, then the DAW's own reason (#2932's walkthrough).
+				return ExportPlan{}, fmt.Errorf("%s cannot be shown to you before it runs, so it cannot be approved: choose the built-in chain, or untick Master before encoding to encode without mastering (%w)",
+					plan.row.Descriptor.Label, err)
 			}
-			plan.chain = chain
+			plan.chain, plan.listed = chain, true
 		}
 	}
 	return exportPlanPayload(plan), nil

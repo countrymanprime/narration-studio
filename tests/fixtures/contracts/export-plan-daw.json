@@ -25,6 +25,7 @@
       "name": "Master"
     }
   ],
+  "chainDigest": "sha256:838197b9d15711f92a9cb18ebfc1c0ed5853724d35ccbf749de0de83fce9f59d",
   "items": [
     {
       "kind": "credits_opening",

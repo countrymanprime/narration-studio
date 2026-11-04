@@ -90,6 +90,7 @@ import { MOCK_REAPER_INPUT_SEEDS, MOCK_REAPER_SEEDS, mockLastReading } from './t
 import { deliveryQcEvidenceSchema, deliveryReportExportSchema, measureJobSchema, measurePickResultSchema } from './schemas/measure';
 import { exportJobSchema, exportPlanSchema, multiPackageJobSchema, packageFolderResultSchema, packageJobSchema } from './schemas/renderEncodeMaster';
 import { MOCK_EXPORT_ITEMS, MOCK_EXPORT_PATHS, createRenderEncodeMasterMock } from './renderEncodeMasterMock';
+import { mockChainDigest } from './masteringMock';
 import { deliveryProfileSchema, deliveryProfilesStateSchema } from './schemas/deliveryProfiles';
 import { MOCK_ACX, evaluateMockFile, mockCustomProfile } from './deliveryProfilesMock';
 import { diagnosticsJobSchema } from './schemas/diagnostics';
@@ -2361,11 +2362,17 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const cut = createMockApi({}, { mastering: { choice: 'daw', chain: 'unreadable' } });
     await cut.exportPickFiles();
     await expect(cut.exportPlan({ items: withRegions, master: true, format: 'mp3', approval: null })).rejects.toThrow(
-      /could not read the chain to show it to you/,
+      /choose the built-in chain, or untick Master before encoding/,
     );
     const plainRow = createMockApi();
     await plainRow.exportPickFiles();
     expect((await plainRow.exportPlan({ items: withRegions, master: true, format: 'mp3', approval: null })).chain).toEqual([]);
+    // The digest binds the approval to the chain shown (#2932's review): the mock computes masteringport.ChainDigest's lines, pinned
+    // against the Go golden, and its start refuses an approval of the DAW row without one, as approvalFor does.
+    const golden = parseWire(exportPlanSchema, readGolden('export-plan-daw.json'), ctx('export plan golden'));
+    expect(await mockChainDigest(golden.chain)).toBe(golden.chainDigest);
+    expect(plan.chainDigest).toBe(await mockChainDigest(plan.chain));
+    await expect(start(daw, { provider: 'daw', macro: '', chainDigest: '' })).rejects.toThrow(/does not say which FX chain you were shown/);
     expect(plan.items.map((item) => item.region)).toEqual(
       withRegions.map((item) => (item.kind === 'chapter' ? item.title : item.kind === 'credits_opening' ? 'Opening credits' : 'Closing credits')),
     );
@@ -2383,11 +2390,22 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       /you approved Audacity's effect macro, but this project now masters with Your DAW's FX chain/,
     );
     expect((await daw.exportState()).phase).toBe('idle');
-    let job = await start(daw, { provider: 'daw', macro: '' });
+    let job = await start(daw, { provider: 'daw', macro: '', chainDigest: plan.chainDigest });
     expectMatches(exportJobSchema, job, 'mock export, daw row approved');
     expect(job.provider).toBe('daw');
     while (job.phase === 'running') job = await daw.exportState();
     expect(job.files.every((file) => file.mastering === undefined)).toBe(true);
+    // An approval of another chain: the first render refuses it, so the export stops there naming the file, nothing prepared.
+    const other = createMockApi({}, { mastering: { choice: 'daw' } });
+    await other.exportPickFiles();
+    let stale = await start(other, { provider: 'daw', macro: '', chainDigest: `sha256:${'0'.repeat(64)}` });
+    while (stale.phase === 'running') stale = await other.exportState();
+    expectMatches(exportJobSchema, stale, 'mock export, daw row, chain changed since the approval');
+    expect([stale.phase, stale.message]).toEqual([
+      'error',
+      'Stopped at 00 Opening credits.wav: the FX chain in your DAW changed after you approved it: approve the render again. 0 of 4 files were prepared.',
+    ]);
+    expect(stale.files.map((file) => file.status)).toEqual(['failed', 'cancelled', 'cancelled', 'cancelled']);
 
     const audacity = createMockApi({}, { mastering: { choice: 'audacity' } });
     await audacity.exportPickFiles();

@@ -180,6 +180,20 @@ export const masterStates: StateEntry[] = [
   },
   {
     page: 'master',
+    state: 'to-spec-approve-chain-off',
+    description:
+      "Master & QC, the approval dialog's long DAW chain scrolled to its bypassed plug-in (?mockMastering=daw&mockMasterChain=long, #2932) - the row numbered in signal order, its Off badge beside the name",
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'master',
+    state: 'to-spec-approve-no-fx',
+    description:
+      'Master & QC, the approval dialog over a project with no FX on any track or the master (?mockMastering=daw&mockMasterChain=empty, #2932) - "Signal order: no effects" and one "No FX" row, then the files',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'master',
     state: 'to-spec-approve-long-names',
     description:
       'Master & QC, the approval dialog over files with very long names (?mockMastering=daw&mockExportPick=long) - each name and region wrapping in its cell, nothing past the dialog',

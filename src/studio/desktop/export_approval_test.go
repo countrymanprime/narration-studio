@@ -1,14 +1,18 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"desktop/internal/audacitybridge"
+	"desktop/internal/bridge"
 	"desktop/internal/contractfile"
 	"desktop/internal/dawport"
 	"desktop/internal/masteringport"
@@ -31,7 +35,7 @@ func TestAnApprovedExportMastersThroughTheDAWRow(t *testing.T) {
 	daw := masteringporttest.NewFakeDAW(host.config.projectFolder)
 	t.Cleanup(masteringport.UseSession(func() (masteringport.Session, error) { return daw.Session(), nil }))
 
-	job, err := host.startExport(ExportRequest{Master: true, Items: oneChapter(source), Approval: &MasteringApproval{Provider: masteringport.DAW}})
+	job, err := host.startExport(ExportRequest{Master: true, Items: oneChapter(source), Approval: shownApproval(t, host, oneChapter(source))})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -58,7 +62,7 @@ func TestAnApprovalIsNotRememberedForTheNextExport(t *testing.T) {
 	host := masteringExportHost(t, masteringport.DAW, source)
 	daw := masteringporttest.NewFakeDAW(host.config.projectFolder)
 	t.Cleanup(masteringport.UseSession(func() (masteringport.Session, error) { return daw.Session(), nil }))
-	if _, err := host.startExport(ExportRequest{Master: true, Items: oneChapter(source), Approval: &MasteringApproval{Provider: masteringport.DAW}}); err != nil {
+	if _, err := host.startExport(ExportRequest{Master: true, Items: oneChapter(source), Approval: shownApproval(t, host, oneChapter(source))}); err != nil {
 		t.Fatal(err)
 	}
 	waitExport(t, host)
@@ -151,7 +155,7 @@ func TestAnApprovedDAWMasterWithNoDAWFailsTheFileWithTheReason(t *testing.T) {
 	writeFixtureFile(t, source, "wav")
 	host := masteringExportHost(t, masteringport.DAW, source)
 	t.Cleanup(masteringport.UseSession(func() (masteringport.Session, error) { return masteringport.Session{}, masteringport.ErrNoDAW }))
-	if _, err := host.startExport(ExportRequest{Master: true, Items: oneChapter(source), Approval: &MasteringApproval{Provider: masteringport.DAW}}); err != nil {
+	if _, err := host.startExport(ExportRequest{Master: true, Items: oneChapter(source), Approval: &MasteringApproval{Provider: masteringport.DAW, ChainDigest: "sha256:shown"}}); err != nil {
 		t.Fatal(err)
 	}
 	job := waitExportEnded(t, host)
@@ -218,6 +222,8 @@ func TestExportPlanAnswersTheRowAndEachItemsRegion(t *testing.T) {
 		{Name: "Voice", FX: []ExportPlanFX{{Name: "VST: ReaEQ (Cockos)", Enabled: true}}},
 		{Name: "Master", Master: true, FX: []ExportPlanFX{{Name: "VST: ReaLimit (Cockos)", Enabled: true}}},
 	}}
+	// TestExportPlanAnswersTheDigestOfTheChainItLists checks the digest itself.
+	want.ChainDigest = plan.ChainDigest
 	if !reflect.DeepEqual(plan, want) {
 		t.Fatalf("plan = %+v\nwant %+v", plan, want)
 	}
@@ -264,6 +270,7 @@ func TestExportPlanGoldenIsCurrent(t *testing.T) {
 			}
 			plan := exportPlanned{master: true, items: items, regions: make([]string, len(items)), row: entry, caps: entry.New().Capabilities()}
 			if choice == masteringport.DAW {
+				plan.listed = true
 				plan.chain = []masteringport.ChainTrack{
 					{Name: "Voice", FX: []masteringport.ChainFX{{Name: "VST: ReaEQ (Cockos)", Enabled: true}, {Name: "JS: De-esser"}}},
 					{Name: "Master", Master: true, FX: []masteringport.ChainFX{{Name: "VST: ReaLimit (Cockos)", Enabled: true}}},
@@ -322,5 +329,157 @@ func TestATitleWithNoVisibleCharacterIsRefusedNamingTheFile(t *testing.T) {
 	}
 	if _, err := host.exportPlan(ExportRequest{Items: []ExportItem{{Kind: string(packager.KindChapter), Title: "\u200bChapter 1", Path: source}}}); err != nil {
 		t.Fatalf("a title with visible characters was refused: %v", err)
+	}
+}
+
+// shownApproval is the narrator's approval of what ExportPlan showed for items: the row and the digest of the chain listed.
+func shownApproval(t *testing.T, host *Host, items []ExportItem) *MasteringApproval {
+	t.Helper()
+	plan, err := host.exportPlan(ExportRequest{Master: true, Items: items})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if plan.ChainDigest == "" {
+		t.Fatalf("the plan for the %s row carries no chain digest", plan.Provider)
+	}
+	return &MasteringApproval{Provider: plan.Provider, ChainDigest: plan.ChainDigest}
+}
+
+// The plan answers the digest of the chain it lists; the approval sends it back (#2932's review).
+func TestExportPlanAnswersTheDigestOfTheChainItLists(t *testing.T) {
+	chapter := filepath.Join(t.TempDir(), "ch1.wav")
+	writeFixtureFile(t, chapter, "wav")
+	host := masteringExportHost(t, masteringport.DAW, chapter)
+	daw := masteringporttest.NewFakeDAW(host.config.projectFolder)
+	t.Cleanup(masteringport.UseSession(func() (masteringport.Session, error) { return daw.Session(), nil }))
+	plan, err := host.exportPlan(ExportRequest{Master: true, Items: oneChapter(chapter)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	listed, err := masteringport.Rows.Lookup(masteringport.DAW)
+	if err != nil {
+		t.Fatal(err)
+	}
+	chain, err := listed.New().(masteringport.ChainLister).Chain(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if plan.ChainDigest != masteringport.ChainDigest(chain) {
+		t.Fatalf("plan digest %q is not the listed chain's %q", plan.ChainDigest, masteringport.ChainDigest(chain))
+	}
+	plain, err := host.exportPlan(ExportRequest{Items: oneChapter(chapter)})
+	if err != nil || plain.ChainDigest != "" {
+		t.Fatalf("an encode-only plan carries a digest: %+v, %v", plain, err)
+	}
+}
+
+// Fail closed: an approval of the DAW row that does not say which chain was shown is refused before a job starts.
+func TestAnApprovalWithoutTheChainDigestIsRefusedBeforeAnythingRuns(t *testing.T) {
+	chapter := filepath.Join(t.TempDir(), "ch1.wav")
+	writeFixtureFile(t, chapter, "wav")
+	host := masteringExportHost(t, masteringport.DAW, chapter)
+	daw := masteringporttest.NewFakeDAW(host.config.projectFolder)
+	t.Cleanup(masteringport.UseSession(func() (masteringport.Session, error) { return daw.Session(), nil }))
+	_, err := host.startExport(ExportRequest{Master: true, Items: oneChapter(chapter), Approval: &MasteringApproval{Provider: masteringport.DAW}})
+	if !errors.Is(err, masteringport.ErrNoChainDigest) {
+		t.Fatalf("err = %v, want ErrNoChainDigest", err)
+	}
+	if state := host.exportState(); state.Phase != "idle" || len(daw.Renders()) != 0 {
+		t.Fatalf("a refused start ran: %+v, renders %+v", state, daw.Renders())
+	}
+}
+
+// The chain changed in REAPER between the dialog and the start: the first render refuses it, so nothing renders, and the export
+// stops with a message naming the file.
+func TestAChainChangedAfterTheApprovalRendersNothing(t *testing.T) {
+	dir := t.TempDir()
+	one, two := filepath.Join(dir, "ch1.wav"), filepath.Join(dir, "ch2.wav")
+	writeFixtureFile(t, one, "wav")
+	writeFixtureFile(t, two, "wav")
+	host := masteringExportHost(t, masteringport.DAW, one, two)
+	daw := masteringporttest.NewFakeDAW(host.config.projectFolder)
+	t.Cleanup(masteringport.UseSession(func() (masteringport.Session, error) { return daw.Session(), nil }))
+	items := []ExportItem{{Kind: string(packager.KindChapter), Title: "Chapter 1", Path: one}, {Kind: string(packager.KindChapter), Title: "Chapter 2", Path: two}}
+	approval := shownApproval(t, host, items)
+	daw.SetChain(dawport.MasterChain{Master: []dawport.FXSlot{{Name: "VST: ReaLimit (Cockos)", Enabled: false}}}, nil)
+	if _, err := host.startExport(ExportRequest{Master: true, Items: items, Approval: approval}); err != nil {
+		t.Fatal(err)
+	}
+	job := waitExportEnded(t, host)
+	if len(daw.Renders()) != 0 {
+		t.Fatalf("a chain the narrator did not approve rendered: %+v", daw.Renders())
+	}
+	if job.Phase != "error" || !strings.Contains(job.Message, "ch1.wav") || !strings.Contains(job.Message, masteringport.ErrChainChanged.Error()) {
+		t.Fatalf("phase %q, message %q", job.Phase, job.Message)
+	}
+	if job.Files[0].Status != exportFileFailed || job.Files[1].Status != exportFileCancelled {
+		t.Fatalf("files %+v, want the first failed and the rest not started", job.Files)
+	}
+}
+
+// The chain changed part way through: the files already rendered stay, the export stops at the file whose render refused the
+// new chain, naming it, and no later file renders.
+func TestAChainChangedMidExportStopsCleanlyKeepingWhatWasDone(t *testing.T) {
+	dir := t.TempDir()
+	paths := []string{filepath.Join(dir, "ch1.wav"), filepath.Join(dir, "ch2.wav"), filepath.Join(dir, "ch3.wav")}
+	items := make([]ExportItem, 0, len(paths))
+	for i, path := range paths {
+		writeFixtureFile(t, path, "wav")
+		items = append(items, ExportItem{Kind: string(packager.KindChapter), Title: fmt.Sprintf("Chapter %d", i+1), Path: path})
+	}
+	host := masteringExportHost(t, masteringport.DAW, paths...)
+	daw := masteringporttest.NewFakeDAW(host.config.projectFolder)
+	t.Cleanup(masteringport.UseSession(func() (masteringport.Session, error) { return daw.Session(), nil }))
+	approval := shownApproval(t, host, items)
+	daw.SwapChainAfter(1, dawport.MasterChain{Master: []dawport.FXSlot{{Name: "JS: Something else", Enabled: true}}})
+	if _, err := host.startExport(ExportRequest{Master: true, Items: items, Approval: approval}); err != nil {
+		t.Fatal(err)
+	}
+	job := waitExportEnded(t, host)
+	if renders := daw.Renders(); len(renders) != 1 || renders[0].Regions[0] != "Chapter 1" {
+		t.Fatalf("renders %+v, want only the first file's", renders)
+	}
+	if job.Files[0].Status != exportFileDone || job.Files[0].EncodedPath == "" {
+		t.Fatalf("the file rendered before the change was not kept: %+v", job.Files[0])
+	}
+	if job.Files[1].Status != exportFileFailed || job.Files[1].Error != masteringport.ErrChainChanged.Error() || job.Files[2].Status != exportFileCancelled {
+		t.Fatalf("files %+v, want the second refused and the third not started", job.Files)
+	}
+	if job.Phase != "error" || !strings.Contains(job.Message, "ch2.wav") || !strings.Contains(job.Message, "1 of 3 files were prepared") {
+		t.Fatalf("phase %q, message %q", job.Phase, job.Message)
+	}
+}
+
+// A chain the plan cannot read is refused with what to do instead (#2932's walkthrough): the bridge cutting the list short, REAPER
+// not answering, or the read running out of time, each with the DAW's own reason kept.
+func TestExportPlanRefusalsForAnUnreadableChainSayWhatToDo(t *testing.T) {
+	chapter := filepath.Join(t.TempDir(), "ch1.wav")
+	writeFixtureFile(t, chapter, "wav")
+	host := masteringExportHost(t, masteringport.DAW, chapter)
+	short := exportChainWait
+	exportChainWait = 50 * time.Millisecond
+	t.Cleanup(func() { exportChainWait = short })
+	for name, set := range map[string]struct {
+		arrange func(*masteringporttest.FakeDAW)
+		want    error
+	}{
+		"cut short":   {func(d *masteringporttest.FakeDAW) { d.SetChain(dawport.MasterChain{}, bridge.ErrChainTooLong) }, bridge.ErrChainTooLong},
+		"no answer":   {func(d *masteringporttest.FakeDAW) { d.SetChain(dawport.MasterChain{}, bridge.ErrNoAnswer) }, bridge.ErrNoAnswer},
+		"out of time": {func(d *masteringporttest.FakeDAW) { d.ChainNeverAnswers() }, context.DeadlineExceeded},
+	} {
+		t.Run(name, func(t *testing.T) {
+			daw := masteringporttest.NewFakeDAW(host.config.projectFolder)
+			set.arrange(daw)
+			t.Cleanup(masteringport.UseSession(func() (masteringport.Session, error) { return daw.Session(), nil }))
+			_, err := host.exportPlan(ExportRequest{Master: true, Items: oneChapter(chapter)})
+			if !errors.Is(err, set.want) {
+				t.Fatalf("err = %v, want %v", err, set.want)
+			}
+			for _, words := range []string{"choose the built-in chain", "untick Master before encoding"} {
+				if !strings.Contains(err.Error(), words) {
+					t.Errorf("refusal %q does not say %q", err, words)
+				}
+			}
+		})
 	}
 }

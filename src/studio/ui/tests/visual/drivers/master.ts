@@ -211,6 +211,21 @@ export const masterDrivers: Record<string, Driver> = {
     const dialog = await openApproval(page, 'Files and the regions they render');
     await dialog.getByRole('table', { name: 'FX chain this render runs' }).waitFor();
   },
+  'to-spec-approve-chain-off': async (page) => {
+    await openMaster(page, '?mockMastering=daw&mockMasterChain=long');
+    await pickFilesToMaster(page);
+    await removeExportFile(page, 'Retail sample.wav');
+    const dialog = await openApproval(page, 'FX chain this render runs');
+    const off = dialog.getByRole('table', { name: 'FX chain this render runs' }).getByText('Off', { exact: true });
+    await off.scrollIntoViewIfNeeded();
+  },
+  'to-spec-approve-no-fx': async (page) => {
+    await openMaster(page, '?mockMastering=daw&mockMasterChain=empty');
+    await pickFilesToMaster(page);
+    await removeExportFile(page, 'Retail sample.wav');
+    const dialog = await openApproval(page, 'FX chain this render runs');
+    await dialog.getByText('No FX', { exact: true }).waitFor();
+  },
   'to-spec-approve-long-names': async (page) => {
     await openMaster(page, '?mockMastering=daw&mockExportPick=long');
     await page.getByRole('button', { name: 'Master all to spec…' }).click();

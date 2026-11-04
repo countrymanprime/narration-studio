@@ -92,7 +92,10 @@ describe('Master & encode with a row that makes the DAW render (#2739)', () => {
     expect(document.activeElement).toBe(within(dialog()).getByRole('button', { name: 'Cancel' }));
     await pressInDialog('Approve and master');
     await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
-    expect(sent(exportStart)).toEqual([expect.objectContaining({ master: true, approval: { provider: 'daw', macro: '' } })]);
+    // The approval binds the chain the dialog showed: its digest, as the host's plan answered it (#2932's review).
+    const shown = await exportPlan.mock.results[0]!.value;
+    expect(sent(exportStart)).toEqual([expect.objectContaining({ master: true, approval: { provider: 'daw', macro: '', chainDigest: shown.chainDigest } })]);
+    expect(shown.chainDigest).toMatch(/^sha256:[0-9a-f]{64}$/);
     // The button that opened the dialog is gone with the start; focus is on the files, never on <body>.
     await waitFor(() => expect(document.activeElement).not.toBe(document.body));
     expect(screen.queryByRole('button', { name: 'Master & encode' })).toBeNull();
@@ -209,7 +212,8 @@ describe('Master & encode with a row that makes the DAW render (#2739)', () => {
     expect(within(dialog()).queryByRole('textbox', { name: 'Macro' })).toBeNull();
     await pressInDialog('Approve and master');
     await waitFor(() => expect(exportStart).toHaveBeenCalledTimes(1));
-    expect(sent(exportStart)[0]?.approval).toEqual({ provider: 'daw', macro: '' });
+    // No macro; the DAW row's approval carries the digest of the chain it showed (#2932's review).
+    expect(sent(exportStart)[0]?.approval).toEqual({ provider: 'daw', macro: '', chainDigest: expect.stringMatching(/^sha256:/) });
   });
 
   it('a stale approval (the row changed meanwhile) is a toast in the host words, the rows are read again, and nothing runs', async () => {
@@ -313,22 +317,60 @@ describe('the approval shows the DAW chain it approves (#2932)', () => {
       .map((row) =>
         within(row)
           .getAllByRole('cell')
-          .map((cell) => cell.textContent),
+          .map((cell) => {
+            // The text on screen: what a sighted narrator reads, without the screen-reader-only words beside a badge.
+            const shown = cell.cloneNode(true) as HTMLElement;
+            shown.querySelectorAll('.sr-only').forEach((node) => node.remove());
+            return shown.textContent;
+          }),
       );
 
-  it("lists each track's FX in chain order, then the master's, each as the DAW names it", async () => {
+  it("lists each track's FX in chain order, numbered, then the master's, each as the DAW names it", async () => {
     await mount('daw');
     await openDialog();
     expect(rowsOf(chainTable())).toEqual([
-      ['Voice', 'VST: ReaEQ (Cockos)'],
-      ['Master', 'VST: ReaLimit (Cockos)'],
+      ['1', 'Voice', 'VST: ReaEQ (Cockos)'],
+      ['2', 'Master', 'VST: ReaLimit (Cockos)'],
     ]);
   });
 
-  it('marks a plug-in that is switched off, in words, not only in colour', async () => {
+  // #2932's walkthrough: a long list showed three rows of 25 with nothing saying more were there.
+  it('says on screen how many effects it lists and on how many tracks, in signal order', async () => {
+    await mount('daw');
+    await openDialog();
+    expect(within(dialog()).getByText('Signal order: 2 effects on 1 track and the master')).toBeTruthy();
+    cleanup();
     await mount('daw', { chain: 'long' });
     await openDialog();
-    expect(within(chainTable()).getAllByText(/\(off\)$/).length).toBeGreaterThan(0);
+    expect(within(dialog()).getByText('Signal order: 23 effects on 4 tracks and the master')).toBeTruthy();
+  });
+
+  it('marks a plug-in that is switched off with an Off badge, named for a screen reader as bypassed', async () => {
+    await mount('daw', { chain: 'long' });
+    await openDialog();
+    const off = within(chainTable()).getAllByText('Off');
+    expect(off.length).toBe(1);
+    const row = off[0]!.closest('tr, [role="row"]') as HTMLElement;
+    expect(row.textContent).toContain('JS: De-esser');
+    expect(within(row).getByText('Off, bypassed: will not run').className).toContain('sr-only');
+  });
+
+  it('names the master row from its master flag, never from the name the DAW sent', async () => {
+    const api = createMockApi({}, { mastering: { choice: 'daw' } });
+    await api.exportPickFiles();
+    const plan = api.exportPlan.bind(api);
+    await mount(
+      'daw',
+      {},
+      {
+        exportPlan: async (req) => {
+          const answer = await plan(req);
+          return { ...answer, chain: answer.chain.map((track) => (track.master ? { ...track, name: 'Voice' } : track)) };
+        },
+      },
+    );
+    await openDialog();
+    expect(rowsOf(chainTable()).map((row) => row[1])).toEqual(['Voice', 'Master']);
   });
 
   it('caps a long chain to its own scroll, so the question and the actions stay in view', async () => {
@@ -343,15 +385,83 @@ describe('the approval shows the DAW chain it approves (#2932)', () => {
   it('says so when the project has no FX on any track or the master, rather than drawing an empty list', async () => {
     await mount('daw', { chain: 'empty' });
     await openDialog();
-    expect(rowsOf(chainTable())).toEqual([['All tracks and the master', 'No FX']]);
+    expect(rowsOf(chainTable())).toEqual([['', 'All tracks and the master', 'No FX']]);
+    expect(within(dialog()).getByText('Signal order: no effects')).toBeTruthy();
   });
 
   it('a chain the app cannot read whole refuses the plan: a toast, no dialog, nothing starts', async () => {
     const { exportStart } = await mount('daw', { chain: 'unreadable' });
     await press('Master & encode');
-    await findToast('could not read the chain to show it to you');
+    // What to do next, in the host's words (#2932's walkthrough).
+    await findToast('choose the built-in chain, or untick Master before encoding to encode without mastering');
     expect(screen.queryByRole('alertdialog')).toBeNull();
     expect(exportStart).not.toHaveBeenCalled();
+  });
+
+  // qa on #2932: a host that sends a chain of its own making, for what the dialog must survive and show honestly.
+  const withChain = async (chain: unknown) => {
+    const api = createMockApi({}, { mastering: { choice: 'daw' } });
+    await api.exportPickFiles();
+    const plan = api.exportPlan.bind(api);
+    await mount('daw', {}, { exportPlan: async (req) => ({ ...(await plan(req)), chain: chain as never }) });
+    await openDialog();
+  };
+
+  it('FX names with bidi controls or zero-width characters are shown escaped (B2)', async () => {
+    await withChain([
+      {
+        name: 'Narr‮ation',
+        master: false,
+        fx: [
+          { name: 'Secret‮)ffo(', enabled: true },
+          { name: 'Re​EQ', enabled: true },
+        ],
+      },
+    ]);
+    const rows = rowsOf(chainTable());
+    expect(rows[0]).toEqual(['1', 'Narr<U+202E>ation', 'Secret<U+202E>)ffo(']);
+    expect(rows[1]![2]).toBe('Re<U+200B>EQ');
+  });
+
+  it('an FX with no readable name is listed as (unnamed) (B3)', async () => {
+    await withChain([
+      {
+        name: 'Voice',
+        master: false,
+        fx: [
+          { name: '', enabled: true },
+          { name: '​ ⁠', enabled: true },
+        ],
+      },
+    ]);
+    expect(rowsOf(chainTable()).map((row) => row[2])).toEqual(['(unnamed)', '<U+200B> <U+2060>']);
+  });
+
+  it('a track named Master is not drawn like the master track, and an enabled FX named "X (off)" differs from a bypassed X (B4)', async () => {
+    await withChain([
+      { name: 'Master', master: false, fx: [{ name: 'ReaEQ (off)', enabled: true }] },
+      { name: 'Master', master: true, fx: [{ name: 'ReaEQ', enabled: false }] },
+    ]);
+    const [impostor, real] = within(chainTable()).getAllByRole('row').slice(1);
+    expect(within(impostor!).queryByText('Master track')).toBeNull();
+    expect(within(real!).getByText('Master track').className).toContain('sr-only');
+    expect(within(impostor!).queryByText('Off')).toBeNull();
+    expect(within(real!).getByText('Off')).toBeTruthy();
+  });
+
+  it('draws No FX for a chain or a track whose list is missing, and keys two tracks of one name apart (B6)', async () => {
+    const warn = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    await withChain([
+      { name: 'Track', master: false, fx: [{ name: 'A', enabled: true }] },
+      { name: 'Track', master: false, fx: [{ name: 'B', enabled: true }] },
+      { name: 'Empty', master: false, fx: null },
+    ]);
+    expect(rowsOf(chainTable()).map((row) => row[2])).toEqual(['A', 'B']);
+    expect(warn.mock.calls.flat().join(' ')).not.toMatch(/same key/);
+    warn.mockRestore();
+    cleanup();
+    await withChain(null);
+    expect(rowsOf(chainTable())).toEqual([['', 'All tracks and the master', 'No FX']]);
   });
 
   it("Audacity's macro has no DAW chain to show", async () => {

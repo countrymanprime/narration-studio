@@ -4,51 +4,99 @@ import type { ExportPlan } from '../../types';
 import { ConfirmDialog } from '../primitives/ConfirmDialog';
 import { Field } from '../primitives/Field';
 import { Panel } from '../primitives/Panel';
+import { SectionLabel } from '../primitives/SectionLabel';
+import { StatusBadge } from '../primitives/StatusBadge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
 import { fileName } from './useExportJobs';
 
 const CHAIN_LABEL = 'FX chain this render runs';
-const MUTED = { color: 'var(--text-muted)' };
+
+/** "N effects on M tracks and the master": what the list holds, said on screen before it scrolls (#2932's walkthrough). */
+function chainCount(chain: ExportPlan['chain']): string {
+  const effects = chain.reduce((sum, track) => sum + (track.fx ?? []).length, 0);
+  if (effects === 0) return 'Signal order: no effects';
+  const tracks = chain.filter((track) => !track.master && (track.fx ?? []).length > 0).length;
+  const master = chain.some((track) => track.master && (track.fx ?? []).length > 0);
+  const on = [tracks > 0 ? `${tracks} ${tracks === 1 ? 'track' : 'tracks'}` : '', master ? 'the master' : ''].filter(Boolean).join(' and ');
+  return `Signal order: ${effects} ${effects === 1 ? 'effect' : 'effects'} on ${on}`;
+}
 
 /**
- * The DAW chain the render runs, as the host read it for this plan (threat model row 5o, #2932): one row per plug-in in chain order,
- * every track with FX and then the master, named as the DAW names it; a plug-in switched off says so in words. Capped to its own
- * scroll like the files above it; with no FX anywhere one row says so rather than an empty box.
+ * A name from the narrator's project as the dialog draws it: a format or control character (a bidirectional override, a zero-width
+ * space) is shown as its code, so a name cannot reverse or hide what it says (the host drops them too, chain.go's chainName); a name
+ * with nothing readable left is "(unnamed)" (qa on #2932, B2 and B3).
  */
-function ChainList({ chain }: { chain: ExportPlan['chain'] }) {
-  const rows = chain.flatMap((track) => track.fx.map((fx, i) => ({ key: `${track.name}-${track.master}-${i}`, track: track.name, fx })));
+function visibleName(raw: string): string {
+  const shown = raw.replace(/[\p{Cf}\p{Cc}]/gu, (char) => `<U+${char.codePointAt(0)!.toString(16).toUpperCase().padStart(4, '0')}>`);
+  return /[^\s]/u.test(shown) ? shown : '(unnamed)';
+}
+
+/**
+ * The DAW chain the render runs, as the host read it for this plan (threat model row 5o, #2932), first in the dialog: it is what the
+ * narrator approves. A line says how many effects on how many tracks, in signal order; then one numbered row per plug-in, every
+ * track with FX top to bottom and then the master, which carries a Master badge from its flag (a track the narrator named "Master"
+ * is plain text). A bypassed plug-in has an Off badge. Capped to its own scroll; with no FX anywhere one row says so.
+ */
+function ChainList({ chain }: { chain: ExportPlan['chain'] | null | undefined }) {
+  const tracks = chain ?? [];
+  const rows = tracks.flatMap((track) => (track.fx ?? []).map((fx) => ({ master: track.master, track: track.name, fx })));
   return (
-    <Panel flush scroll label={CHAIN_LABEL} className="mt-2 max-h-[10rem]">
-      <Table label={CHAIN_LABEL} columns={['minmax(0,1fr)', 'minmax(0,1.5fr)']}>
-        <TableHead>
-          <TableRow>
-            <TableHeader>Track</TableHeader>
-            <TableHeader>Effect</TableHeader>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {rows.length === 0 ? (
+    <div data-decision-critical="">
+      <SectionLabel as="p" className="mt-2">
+        {chainCount(tracks)}
+      </SectionLabel>
+      <Panel flush scroll label={CHAIN_LABEL} className="mt-1 max-h-[min(20rem,45vh)]">
+        <Table label={CHAIN_LABEL} columns={['3rem', 'minmax(0,1fr)', 'minmax(0,1.5fr)']}>
+          <TableHead>
             <TableRow>
-              <TableCell>All tracks and the master</TableCell>
-              <TableCell>No FX</TableCell>
+              <TableHeader>#</TableHeader>
+              <TableHeader>Track</TableHeader>
+              <TableHeader>Effect</TableHeader>
             </TableRow>
-          ) : (
-            rows.map(({ key, track, fx }) => (
-              <TableRow key={key}>
-                {/* Names come from the narrator's project: each is isolated, so a direction override cannot reorder its neighbour. */}
-                <TableCell className="break-words">
-                  <bdi>{track}</bdi>
-                </TableCell>
-                <TableCell className="break-words" style={fx.enabled ? undefined : MUTED}>
-                  <bdi>{fx.name}</bdi>
-                  {!fx.enabled && ' (off)'}
-                </TableCell>
+          </TableHead>
+          <TableBody>
+            {rows.length === 0 ? (
+              <TableRow>
+                <TableCell>{''}</TableCell>
+                <TableCell>All tracks and the master</TableCell>
+                <TableCell>No FX</TableCell>
               </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
-    </Panel>
+            ) : (
+              rows.map(({ master, track, fx }, index) => (
+                // Keyed by position: two tracks can share a name (every unnamed one is "Track").
+                <TableRow key={index}>
+                  <TableCell className="whitespace-nowrap tabular-nums">{index + 1}</TableCell>
+                  <TableCell className="break-words">
+                    {master ? (
+                      <>
+                        <span aria-hidden="true">
+                          <StatusBadge tone="info" label="Master" />
+                        </span>
+                        <span className="sr-only">Master track</span>
+                      </>
+                    ) : (
+                      <bdi>{visibleName(track)}</bdi>
+                    )}
+                  </TableCell>
+                  <TableCell className="break-words">
+                    <bdi>{visibleName(fx.name)}</bdi>
+                    {!fx.enabled && (
+                      <>
+                        {' '}
+                        <span aria-hidden="true">
+                          <StatusBadge tone="neutral" label="Off" />
+                        </span>
+                        <span className="sr-only">Off, bypassed: will not run</span>
+                      </>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </Panel>
+    </div>
   );
 }
 
@@ -110,6 +158,8 @@ export function MasteringApprovalDialog({
       focusCancel
       returnFocus={returnFocus}
     >
+      {/* The chain first: it is what the narrator approves, so it is in view under the question at 360x500 (qa on #2932, B1). */}
+      {plan.provider === 'daw' && <ChainList chain={plan.chain} />}
       <Panel flush scroll label={listLabel} className="mt-2 max-h-[14rem]">
         <Table label={listLabel} columns={regions ? ['minmax(0,1fr)', 'minmax(0,1fr)'] : ['minmax(0,1fr)']}>
           <TableHead>
@@ -135,7 +185,6 @@ export function MasteringApprovalDialog({
           </TableBody>
         </Table>
       </Panel>
-      {plan.provider === 'daw' && <ChainList chain={plan.chain} />}
       {plan.needsMacro && (
         <div className="mt-3">
           <Field

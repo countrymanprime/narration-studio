@@ -113,6 +113,10 @@ func (dawChain) Master(ctx context.Context, req Request) (Result, error) {
 	if !req.Approved {
 		return Result{}, ErrNotApproved
 	}
+	// The approval binds the chain the narrator was shown (threat model row 5o): without its digest it binds nothing.
+	if req.ChainDigest == "" {
+		return Result{}, ErrNoChainDigest
+	}
 	dest, err := newDestination(req.Source, req.Destination)
 	if err != nil {
 		return Result{}, err
@@ -139,6 +143,10 @@ func (dawChain) Master(ctx context.Context, req Request) (Result, error) {
 	chain, err := reader.ReadMasterChain(ctx)
 	if err != nil {
 		return Result{}, err
+	}
+	// The chain this render runs is read here anyway, for the report: it must be the one approved, or nothing renders.
+	if ChainDigest(listedChain(chain)) != req.ChainDigest {
+		return Result{}, ErrChainChanged
 	}
 
 	runID, err := randomHex(8)
@@ -353,30 +361,7 @@ func (dawChain) Chain(ctx context.Context) ([]ChainTrack, error) {
 	if err != nil {
 		return nil, err
 	}
-	out := make([]ChainTrack, 0, len(chain.Tracks)+1)
-	for _, track := range chain.Tracks {
-		out = append(out, ChainTrack{Name: trackName(track.Name), FX: chainFX(track.FX)})
-	}
-	if len(chain.Master) > 0 {
-		out = append(out, ChainTrack{Name: "Master", Master: true, FX: chainFX(chain.Master)})
-	}
-	return out, nil
-}
-
-// trackName is a track's name as the narrator's report and the approval both say it: an unnamed track is "Track".
-func trackName(name string) string {
-	if name == "" {
-		return "Track"
-	}
-	return name
-}
-
-func chainFX(slots []dawport.FXSlot) []ChainFX {
-	out := make([]ChainFX, 0, len(slots))
-	for _, slot := range slots {
-		out = append(out, ChainFX{Name: slot.Name, Enabled: slot.Enabled})
-	}
-	return out
+	return listedChain(chain), nil
 }
 
 // chainSteps words what ran for the narrator's report: each track's FX, the master's, then the render itself.
@@ -399,9 +384,9 @@ func slotList(slots []dawport.FXSlot) string {
 	names := make([]string, 0, len(slots))
 	for _, slot := range slots {
 		if slot.Enabled {
-			names = append(names, slot.Name)
+			names = append(names, chainName(slot.Name))
 		} else {
-			names = append(names, slot.Name+" (off)")
+			names = append(names, chainName(slot.Name)+" (off)")
 		}
 	}
 	return strings.Join(names, ", ")

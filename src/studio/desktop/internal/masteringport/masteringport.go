@@ -56,6 +56,9 @@ type Request struct {
 	// Approved is the narrator's yes for this one master, given in the UI just before it runs. A row whose Capabilities say
 	// NeedsApproval refuses without it (ErrNotApproved); the host never sets it on its own or remembers it between runs.
 	Approved bool
+	// ChainDigest is ChainDigest of the chain the narrator was shown and approved, for a row that lists its chain (ChainLister):
+	// such a row refuses a request without one (ErrNoChainDigest) and a render whose chain differs from it (ErrChainChanged).
+	ChainDigest string
 	// Progress, when set, hears how far the master has got; done never goes back and reaches total on success.
 	Progress func(done, total int64)
 }

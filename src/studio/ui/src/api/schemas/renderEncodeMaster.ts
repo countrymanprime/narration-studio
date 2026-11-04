@@ -63,6 +63,7 @@ export const exportPlanSchema = z.object({
   needsMacro: z.boolean(),
   items: listFromNull(exportPlanItemSchema),
   chain: listFromNull(exportPlanTrackSchema),
+  chainDigest: z.string(),
 }) satisfies z.ZodType<ExportPlan>;
 
 export const exportJobSchema = z.object({

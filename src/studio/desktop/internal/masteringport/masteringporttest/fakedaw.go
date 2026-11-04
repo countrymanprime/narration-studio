@@ -39,6 +39,27 @@ type FakeDAW struct {
 	chain *dawport.MasterChain
 	// +checklocks:mu
 	chainErr error
+	// +checklocks:mu
+	swapAfter int
+	// +checklocks:mu
+	swapTo *dawport.MasterChain
+	// +checklocks:mu
+	chainWaits bool
+}
+
+// SwapChainAfter makes master_chain_read answer chain once the fake has been asked for renders renders, as a narrator who changes
+// a plug-in in REAPER part way through an export would.
+func (f *FakeDAW) SwapChainAfter(renders int, chain dawport.MasterChain) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.swapAfter, f.swapTo = renders, &chain
+}
+
+// ChainNeverAnswers makes master_chain_read wait for its context to end and answer that context's error, as a DAW that never answers.
+func (f *FakeDAW) ChainNeverAnswers() {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.chainWaits = true
 }
 
 // SetChain sets what master_chain_read answers: chain, or err. Without it the fake answers one voice track's EQ and the master's
@@ -119,10 +140,17 @@ func (f *FakeDAW) Role(c dawport.Capability) any {
 
 type fakeChainReader struct{ f *FakeDAW }
 
-func (r fakeChainReader) ReadMasterChain(context.Context) (dawport.MasterChain, error) {
+func (r fakeChainReader) ReadMasterChain(ctx context.Context) (dawport.MasterChain, error) {
 	r.f.mu.Lock()
-	chain, err := r.f.chain, r.f.chainErr
+	chain, err, waits := r.f.chain, r.f.chainErr, r.f.chainWaits
+	if r.f.swapTo != nil && len(r.f.renders) >= r.f.swapAfter {
+		chain = r.f.swapTo
+	}
 	r.f.mu.Unlock()
+	if waits {
+		<-ctx.Done()
+		return dawport.MasterChain{}, ctx.Err()
+	}
 	if err != nil {
 		return dawport.MasterChain{}, err
 	}

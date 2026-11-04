@@ -59,9 +59,21 @@ export type MasteringMockSeed = {
   chain?: 'default' | 'long' | 'empty' | 'unreadable';
 };
 
-/** The bridge's refusal of a chain it listed only part of (bridge.ErrChainTooLong), as export_plan.go words it for the DAW row. */
+/** The bridge's refusal of a chain it listed only part of (bridge.ErrChainTooLong), as export_plan.go words it for the DAW row:
+ * what to do next, then the DAW's reason. */
 const CHAIN_UNREADABLE =
-  "Your DAW's FX chain: the app could not read the chain to show it to you: this project has more FX than this app can list, so it cannot show you the whole chain before a render";
+  "Your DAW's FX chain cannot be shown to you before it runs, so it cannot be approved: choose the built-in chain, or untick Master before encoding to encode without mastering (this project has more FX than this app can list, so it cannot show you the whole chain before a render)";
+
+/** masteringport.ChainDigest: "sha256:" and the hex of SHA-256 over one tab-separated, newline-ended line per track ("track", its
+ * master flag, its name) and per plug-in ("fx", on or off, its name), in chain order. The export plan golden pins it to the host's. */
+export async function mockChainDigest(chain: readonly ExportPlanTrack[]): Promise<string> {
+  const flag = (on: boolean) => (on ? '1' : '0');
+  const lines = chain
+    .map((track) => `track\t${flag(track.master)}\t${track.name}\n${track.fx.map((fx) => `fx\t${flag(fx.enabled)}\t${fx.name}\n`).join('')}`)
+    .join('');
+  const sum = await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode(lines));
+  return `sha256:${[...new Uint8Array(sum)].map((byte) => byte.toString(16).padStart(2, '0')).join('')}`;
+}
 
 /** A book's chain long enough to scroll: a voice track and two character tracks with several plug-ins each, one off, then the master. */
 function longChain(): ExportPlanTrack[] {
