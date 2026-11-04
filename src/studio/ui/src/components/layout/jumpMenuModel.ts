@@ -1,5 +1,6 @@
 import type { PageContext } from '../../input/pageCommands';
 import type { SearchHit } from '../../registries/search';
+import type { SearchSlot } from './useJumpSearch';
 import type { IconName } from '../../icons.catalog';
 
 // What the jump menu lists, as data: one `Entry` per row from the three places a row comes from, and the pure functions that order
@@ -31,8 +32,13 @@ export type Entry = {
   opens?: GroupRef | 'back';
   /** Why the command cannot run now: it stays listed, off, with this reason. */
   disabledReason?: string;
+  /** A search source's row while its answer is awaited: listed, off, and not counted as a result. */
+  waiting?: true;
   run: () => void;
 };
+
+/** The title of a search source's row while its answer is awaited. */
+const WAITING_TITLE = 'Searching…';
 
 export const PAGE_HEADING = 'On this page';
 export const COMMANDS_HEADING = 'Commands';
@@ -91,18 +97,22 @@ function startsFirst<T extends { title: string }>(rows: readonly T[], term: stri
     .map(({ row }) => row);
 }
 
-/** Search hits as rows. */
-export function hitEntries(hits: readonly SearchHit[]): Entry[] {
-  return hits.map((hit, index) => ({
-    id: `hit-${index}`,
-    group: hit.group,
-    groupName: hit.group,
-    title: hit.title,
-    sub: hit.sub,
-    snippet: hit.snippet,
-    source: 'hit',
-    run: hit.run,
-  }));
+/** Search hits as rows, each source's in its place, and a waiting row for a source that has not answered yet. */
+export function hitEntries(slots: readonly SearchSlot[]): Entry[] {
+  return slots.flatMap((slot): Entry[] =>
+    'waiting' in slot
+      ? [{ id: `hit-${slot.order}-waiting`, group: slot.waiting, groupName: slot.waiting, title: WAITING_TITLE, source: 'hit', waiting: true, run: () => {} }]
+      : slot.hits.map((hit, index) => ({
+          id: `hit-${slot.order}-${index}`,
+          group: hit.group,
+          groupName: hit.group,
+          title: hit.title,
+          sub: hit.sub,
+          snippet: hit.snippet,
+          source: 'hit',
+          run: hit.run,
+        })),
+  );
 }
 
 /**

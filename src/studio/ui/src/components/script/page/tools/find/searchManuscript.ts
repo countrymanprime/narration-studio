@@ -1,7 +1,8 @@
 // Find in the manuscript (SNB-7h): the search over the chapters' paragraph text, ported from the mock's `selectors/search.ts`.
-// Pure: it takes the paragraphs the page has read and returns where a term appears, so a story or a test needs no host.
+// Pure: it takes the paragraphs it is given and returns where a term appears, so a story or a test needs no host. The Booth searches
+// its chapter with it; the Script page searches the whole book on the host and reads the answer with `bookMatches`.
 
-import type { ManuscriptParagraph } from '../../../../../api/contracts/manuscript';
+import type { ManuscriptParagraph, ManuscriptSearchResult } from '../../../../../api/contracts/manuscript';
 
 /** A term shorter than this (after trimming) searches nothing. */
 const MIN_FIND_LENGTH = 2;
@@ -43,4 +44,20 @@ export function searchManuscript(paragraphs: readonly Pick<ManuscriptParagraph, 
     }
     return found;
   });
+}
+
+/**
+ * The host's whole-book answer (`manuscriptSearch`) as Find's matches, in book order: the hits in order, then each hit's matches in
+ * order. The jump menu's rows and Find's steps both come from this list, so the menu's row n is Find's match n.
+ */
+export function bookMatches(result: Pick<ManuscriptSearchResult, 'hits'>): FindMatch[] {
+  return result.hits.flatMap((hit) =>
+    hit.matches.map(({ start, end }) => ({
+      paragraphId: hit.paragraphId,
+      chapterId: hit.chapterId,
+      start,
+      end,
+      snippet: snippetAround(hit.excerpt, start, end),
+    })),
+  );
 }

@@ -18,7 +18,10 @@ Storybook title: `Primitives/HeaderChip`. Source: `src/components/primitives/Hea
 
 - `src/components/booth/page/CreditsWarning.tsx`
 - `src/components/booth/record/SetupChip.tsx`
+- `src/components/booth/resume/RecordedThroughChip.tsx`
 - `src/components/booth/resume/ResumeOffer.tsx`
+- `src/components/connection/ConnectionIndicator.tsx`
+- `src/components/layout/AppShell.tsx`
 - `src/components/layout/EngineChip.tsx`
 - `src/components/layout/TimerChip.tsx`
 - `src/components/masterqc/page/MasterPage.tsx`

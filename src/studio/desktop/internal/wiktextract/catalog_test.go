@@ -152,8 +152,8 @@ func TestAPendingSourceRefusesToInstallOrRepair(t *testing.T) {
 	path := filepath.Join(dir, "wiktextract-assets.json")
 	body, _ := json.Marshal(map[string]any{"catalogVersion": 1, "sources": []map[string]any{{
 		"id": "wiktextract-en-pronunciation", "provider": "wiktextract", "displayName": "Wiktionary pronunciations",
-		"version": Pending,
-		"files":   []map[string]any{{"name": "x.zip", "url": Pending, "sha256": Pending, "size": 0, "extract": "wiktextract"}},
+		"version": "unpinned",
+		"files":   []map[string]any{{"name": "x.zip", "url": "", "sha256": "", "size": 0, "extract": "wiktextract"}},
 	}}})
 	if err := os.WriteFile(path, body, 0o600); err != nil {
 		t.Fatal(err)
