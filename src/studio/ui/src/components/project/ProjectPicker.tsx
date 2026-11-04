@@ -36,13 +36,22 @@ export function ProjectPicker({
   onBack,
   currentName,
   onOpenSettings,
+  focusSettings,
 }: {
   notify: Notify;
   onCreated: () => void;
   onBack?: () => void;
   currentName?: string;
   onOpenSettings?: () => void;
+  /** Focus the Settings button when the picker appears: the narrator is coming back from Settings. */
+  focusSettings?: boolean;
 }) {
+  const settingsButton = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (focusSettings) settingsButton.current?.focus();
+    // Only when the picker appears.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const api = useApi();
   const [recents, setRecents] = useState<RecentProject[]>([]);
   // The recent project the running REAPER has open, when the host knows one; null draws no banner (a failed read draws none either).
@@ -217,7 +226,7 @@ export function ProjectPicker({
             {onOpenSettings && (
               // The hint wraps the button in a span, so the span is the flex item that takes the row's free space.
               <span className="ml-auto flex">
-                <IconButton action="gear" label="Settings" onClick={onOpenSettings} />
+                <IconButton ref={settingsButton} action="gear" label="Settings" onClick={onOpenSettings} />
               </span>
             )}
             {onBack && (

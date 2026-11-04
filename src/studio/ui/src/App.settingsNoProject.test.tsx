@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // Global Settings before a project is open (issue 3024): the picker has a Settings button, the jump menu's Settings rows and Ctrl+, open the
 // same page, Back and the Settings close return to the picker, and downloads and the update check run with no project.
-import { cleanup, configure, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, configure, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
@@ -111,5 +111,54 @@ describe('Settings from the project picker', () => {
     fireEvent.click(within(await screen.findByRole('navigation', { name: 'Settings categories' })).getByRole('button', { name: /^App & updates/ }));
     await userEvent.click(await screen.findByRole('button', { name: 'Check now' }));
     await waitFor(() => expect(check).toHaveBeenCalledTimes(1));
+  });
+
+  it('keeps an unsaved Settings edit and the open category when a project attaches meanwhile', async () => {
+    const api = renderApp();
+    await picker();
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    await settingsHeading();
+    fireEvent.click(within(await screen.findByRole('navigation', { name: 'Settings categories' })).getByRole('button', { name: /^Set on a page/ }));
+    const entry = await waitFor(() => {
+      const found = document.querySelector<HTMLElement>('[data-page-setting="ps.cleanup"]');
+      if (!found) throw new Error('not drawn');
+      return found;
+    });
+    fireEvent.click(within(entry).getByRole('button', { name: /Change it here for now/ }));
+    const box = (await within(entry).findAllByRole('textbox'))[0] as HTMLInputElement;
+    fireEvent.change(box, { target: { value: '0.9' } });
+    await within(entry).findByText('Unsaved changes');
+    // A REAPER launch (or a second instance) attaches a project while Settings is on screen.
+    await act(async () => {
+      await api.switchProject('C:/Projects/Alice-in-Wonderland', 'Alice');
+    });
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Back to Production/ })).toBeTruthy());
+    const same = document.querySelector<HTMLElement>('[data-page-setting="ps.cleanup"]')!;
+    expect(within(same).getByText('Unsaved changes')).toBeTruthy();
+    expect((within(same).getAllByRole('textbox')[0] as HTMLInputElement).value).toBe('0.9');
+    expect(screen.getByRole('button', { name: /^Set on a page/ }).getAttribute('aria-current')).toBe('page');
+  });
+
+  it('moves focus into Settings when it opens from the picker, and back to the Settings button when Back returns', async () => {
+    renderApp();
+    await picker();
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    await settingsHeading();
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('main')));
+    fireEvent.click(screen.getByRole('button', { name: 'Back to project picker' }));
+    await picker();
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Settings' })));
+  });
+
+  it('the install confirm does not mention a project when none is open', async () => {
+    renderApp({ update: 'ready' });
+    await picker();
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    await settingsHeading();
+    fireEvent.click(within(await screen.findByRole('navigation', { name: 'Settings categories' })).getByRole('button', { name: /^App & updates/ }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Install and restart' }));
+    const dialog = await screen.findByRole('alertdialog', { name: /^Install version/ });
+    expect(dialog.textContent).not.toMatch(/same project|REAPER/);
+    expect(dialog.textContent).toContain('project picker');
   });
 });

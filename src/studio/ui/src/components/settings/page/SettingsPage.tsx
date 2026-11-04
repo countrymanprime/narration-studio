@@ -295,7 +295,7 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
               options={[
                 { value: 'all', label: 'All' },
                 { value: 'changed', label: 'Changed' },
-                { value: 'project', label: 'In this project', disabled: !hasProject },
+                { value: 'project', label: 'In this project', disabledReason: hasProject ? undefined : 'Open a project to see what it sets' },
               ]}
             />
           </div>

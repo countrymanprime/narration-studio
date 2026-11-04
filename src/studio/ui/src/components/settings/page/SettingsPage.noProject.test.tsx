@@ -148,7 +148,7 @@ describe('Settings with no project: the page', () => {
   it('turns the "In this project" filter off, with Changed still working', async () => {
     await renderPage();
     const filter = await screen.findByRole('group', { name: 'Show' });
-    expect((within(filter).getByRole('button', { name: 'In this project' }) as HTMLInputElement).disabled).toBe(true);
+    expect(within(filter).getByRole('button', { name: 'In this project' }).getAttribute('aria-disabled')).toBe('true');
     fireEvent.click(within(filter).getByRole('button', { name: 'Changed' }));
     await screen.findByText('Nothing is changed from the defaults');
   });
@@ -198,5 +198,45 @@ describe('Settings with no project: the page', () => {
     pick('Project');
     await waitFor(() => expect(rowEl('project.wordsPerPage')).toBeTruthy());
     expect(screen.queryByText(NEEDS_PROJECT_REASON)).toBeNull();
+  });
+
+  it('gives the disabled "In this project" filter a reason a keyboard user can reach and a screen reader hears', async () => {
+    await renderPage();
+    const filter = await screen.findByRole('button', { name: 'In this project' });
+    expect(filter.hasAttribute('disabled')).toBe(false);
+    expect(filter.getAttribute('aria-disabled')).toBe('true');
+    const reason = document.getElementById(filter.getAttribute('aria-describedby')!)!;
+    expect(reason.textContent).toBe('Open a project to see what it sets');
+    filter.focus();
+    expect(document.activeElement).toBe(filter);
+    fireEvent.click(filter);
+    expect(filter.getAttribute('aria-pressed')).toBe('false');
+  });
+
+  it('ties the reason to the disabled control, so a screen reader announces it', async () => {
+    await renderPage();
+    pick('Project');
+    const row = await waitFor(() => {
+      const found = rowEl('project.wordsPerPage');
+      if (!found) throw new Error('no row');
+      return found;
+    });
+    const control = within(row).getByRole('textbox');
+    const described = control
+      .getAttribute('aria-describedby')!
+      .split(' ')
+      .map((id) => document.getElementById(id)?.textContent);
+    expect(described).toContain(NEEDS_PROJECT_REASON);
+  });
+
+  it('describes a project row without saying "this project" when none is open', async () => {
+    await renderPage();
+    const row = await waitFor(() => {
+      const found = rowEl('daw.engine');
+      if (!found) throw new Error('no row');
+      return found;
+    });
+    expect(row.textContent).not.toContain('Where this project');
+    expect(row.textContent).toContain('Where a project’s recordings live.');
   });
 });

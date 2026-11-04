@@ -253,6 +253,19 @@ function AppRoutes() {
   }, [location.pathname]);
   const settingsActions = useRef<{ save: () => Promise<void>; discard: () => Promise<void> } | undefined>(undefined);
   const hasBootstrap = data !== undefined;
+  // Settings drawn without a project (issue 3024). Once it is open in its own frame it stays in that frame until the narrator leaves `/settings`,
+  // even if a project attaches meanwhile (a REAPER launch): swapping to the shell would remount the page and drop an unsaved edit and the open
+  // category without asking. Back then goes to the shell.
+  const noProject = data !== undefined && !data.projectFolder;
+  const settingsFrameKept = useRef(false);
+  const settingsFrame = location.pathname === '/settings' && (noProject || settingsFrameKept.current);
+  // Back to the picker puts focus on its Settings button, where the narrator came from; the picker's own effect runs first, then this clears it.
+  const cameFromSettings = useRef(false);
+  useEffect(() => {
+    settingsFrameKept.current = settingsFrame;
+    if (settingsFrame) cameFromSettings.current = true;
+    else cameFromSettings.current = false;
+  }, [settingsFrame]);
 
   // Importing changes data that is deliberately held at the application
   // boundary (the active manuscript affects several pages).  Refresh this
@@ -865,7 +878,7 @@ function AppRoutes() {
   // A project made from the picker opens on Script, as the mock's New project does; the Script page offers the import when it has no manuscript.
   // Settings is reachable before a project is open (issue 3024): the picker's Settings button, Ctrl+, and the jump menu's Settings rows all go to
   // /settings, and with no project that route draws the Settings page in the picker's frame instead of the shell. Its Back returns to the picker.
-  const settingsWithoutProject = !data.projectFolder && location.pathname === '/settings';
+  const settingsWithoutProject = settingsFrame;
   const settingsPageProps = {
     data,
     notify: setNotice,
@@ -925,6 +938,7 @@ function AppRoutes() {
         onBack={data.projectFolder ? () => setProjectPickerOpen(false) : undefined}
         currentName={data.projectFolder ? data.projectName : undefined}
         onOpenSettings={data.projectFolder ? undefined : openSettings}
+        focusSettings={cameFromSettings.current}
       />
     );
 

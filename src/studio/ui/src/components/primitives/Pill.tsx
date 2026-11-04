@@ -1,4 +1,5 @@
 import { Toggle } from '@base-ui/react/toggle';
+import { useId } from 'react';
 import { TooltipTarget } from './Tooltip';
 
 /** `filter` is a list filter: 28 px, a round pill in sentence case, the ink fill when pressed (the mock's `.chip`). `chip` is a standalone toggle (the Whisper model, chunk length): 32 px, its own border, the label in capitals. `segmented`
@@ -25,6 +26,7 @@ export function Pill({
   active,
   disabled,
   title,
+  disabledReason,
   look = 'chip',
   onClick,
 }: {
@@ -32,18 +34,33 @@ export function Pill({
   active: boolean;
   disabled?: boolean;
   title?: string;
+  /** Off, with the reason: the chip stays focusable and hoverable (a native `disabled` takes neither), a press does nothing, and the reason is its hint and its description. */
+  disabledReason?: string;
   look?: PillLook;
   onClick?: () => void;
 }) {
+  const reasonId = useId();
+  const gated = Boolean(disabledReason);
   const button = (
     <Toggle
       pressed={active}
       disabled={disabled}
-      onPressedChange={() => onClick?.()}
-      className={`inline-flex items-center justify-center whitespace-nowrap ${look === 'filter' ? 'text-[0.88rem] font-medium' : "font-['Barlow_Condensed',sans-serif] text-[0.85rem] font-semibold tracking-[var(--tracking-button)]"} disabled:opacity-40 ${LOOK_CLASS[look](active)}`}
+      aria-disabled={gated || undefined}
+      aria-describedby={gated ? reasonId : undefined}
+      onPressedChange={() => (gated ? undefined : onClick?.())}
+      className={`inline-flex items-center justify-center whitespace-nowrap ${look === 'filter' ? 'text-[0.88rem] font-medium' : "font-['Barlow_Condensed',sans-serif] text-[0.85rem] font-semibold tracking-[var(--tracking-button)]"} ${gated ? 'cursor-not-allowed opacity-75' : 'disabled:opacity-40'} ${LOOK_CLASS[look](active)}`}
     >
       {label}
     </Toggle>
   );
+  if (gated)
+    return (
+      <>
+        <TooltipTarget text={disabledReason!}>{button}</TooltipTarget>
+        <span id={reasonId} className="sr-only">
+          {disabledReason}
+        </span>
+      </>
+    );
   return title ? <TooltipTarget text={title}>{button}</TooltipTarget> : button;
 }

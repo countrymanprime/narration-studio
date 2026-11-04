@@ -92,7 +92,7 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
   const changed = hasCustom ? isBrowserChanged(row) || store.customChanged.has(row.id) : isAnyChanged(row, global, project, store.customChanged);
   const saved = store.saved?.row === row.id;
   const heavy = hasCustom || !global ? undefined : row.heavy?.(comp);
-  const describedBy = `${uid}d${error ? ` ${uid}e` : ''}`;
+  const describedBy = `${uid}d${waiting ? ` ${uid}p` : ''}${error ? ` ${uid}e` : ''}`;
 
   /** What the host is sent: a value equal to the default clears the setting instead of pinning it, an emptied number is "not set". */
   const toSend = (value: string, scope: 'global' | 'project'): string | null => {
@@ -133,7 +133,7 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
           {changed && <StatusBadge tone="info" label="Changed" />}
         </span>
         <span id={`${uid}d`} className="max-w-[60ch] text-[0.8125rem] text-[var(--text-muted)]">
-          {row.desc}
+          {waiting ? row.desc.replace(/\bthis project(?:’|')s\b/gi, 'a project’s') : row.desc}
         </span>
         <span className="mt-1.5 flex flex-wrap items-center gap-x-3.5 gap-y-0.5 text-[0.78rem] text-[var(--text-muted)]">
           <ScopeBadge row={row} overridden={own !== undefined} />
@@ -142,7 +142,11 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
         </span>
       </div>
       <div className={`flex max-w-full min-w-0 flex-col items-start gap-2 ${wide ? 'col-span-full' : ''}`} data-row-body={wide ? 'wide' : undefined}>
-        {waiting && <span className="text-[0.8125rem] text-[var(--text-muted)]">{NEEDS_PROJECT_REASON}</span>}
+        {waiting && (
+          <span id={`${uid}p`} className="text-[0.8125rem] text-[var(--text-muted)]">
+            {NEEDS_PROJECT_REASON}
+          </span>
+        )}
         {waiting && !hasCustom && global ? (
           <div data-control-line className="flex w-full min-w-0 flex-nowrap items-center gap-1.5">
             <ValueControl row={row} field={global} id={controlId} value={comp} describedBy={describedBy} onChange={() => undefined} disabled />

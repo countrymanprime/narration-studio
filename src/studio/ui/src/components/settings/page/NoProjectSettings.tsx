@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { ExtensionBanner } from '../../../appExtension';
 import { Brand } from '../../layout/Brand';
 
@@ -8,11 +8,14 @@ import { Brand } from '../../layout/Brand';
  * the picker. The page is the same `SettingsPage` the shell shows, told by its data that no project is open.
  */
 export function NoProjectSettings({ children }: { children: ReactNode }) {
+  const main = useRef<HTMLElement>(null);
+  // Opening Settings from the picker moves focus into the page, as a move to a page does in the shell; the press that opened it was on a button that is gone.
+  useEffect(() => main.current?.focus({ preventScroll: true }), []);
   return (
     <div className="flex h-full flex-col overflow-hidden">
       <ExtensionBanner />
       {/* tabIndex -1 like AppShell's <main> and the picker's: a dialog that closes with nothing to give focus back to sends it here. */}
-      <main tabIndex={-1} className="min-h-0 flex-1 overflow-y-auto p-[var(--page-gutter)] pt-6 focus:outline-none">
+      <main ref={main} tabIndex={-1} className="min-h-0 flex-1 overflow-y-auto p-[var(--page-gutter)] pt-6 focus:outline-none">
         <div className="mx-auto flex w-full max-w-[80rem] min-w-0 flex-col gap-5">
           <div className="flex items-center gap-[0.625rem]">
             <Brand />
