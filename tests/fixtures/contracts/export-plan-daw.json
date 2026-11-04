@@ -1,4 +1,30 @@
 {
+  "chain": [
+    {
+      "fx": [
+        {
+          "enabled": true,
+          "name": "VST: ReaEQ (Cockos)"
+        },
+        {
+          "enabled": false,
+          "name": "JS: De-esser"
+        }
+      ],
+      "master": false,
+      "name": "Voice"
+    },
+    {
+      "fx": [
+        {
+          "enabled": true,
+          "name": "VST: ReaLimit (Cockos)"
+        }
+      ],
+      "master": true,
+      "name": "Master"
+    }
+  ],
   "items": [
     {
       "kind": "credits_opening",

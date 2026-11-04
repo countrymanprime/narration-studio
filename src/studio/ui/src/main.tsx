@@ -423,6 +423,9 @@ const mockPackageMultiHold = mockParams.get('mockPackageMulti') === 'running';
 // for the render (#2739) without choosing the row on the chain card first. `no-audacity` boots it with the Audacity row not
 // available on this computer, so the chain card draws a row it cannot choose.
 const mockMastering = (['daw', 'audacity', 'no-audacity'] as const).find((seed) => seed === mockParams.get('mockMastering'));
+// `?mockMasterChain=long|empty|unreadable` (with `?mockMastering=daw`) changes the DAW chain the approval dialog lists (#2932): one
+// long enough to scroll, none, or one the bridge cut short, which refuses the plan.
+const mockMasterChain = (['long', 'empty', 'unreadable'] as const).find((seed) => seed === mockParams.get('mockMasterChain'));
 // `?mockExportPick=many|long` makes Master & QC's export picker choose a 40-chapter book, or files with very long names, so the
 // approval dialog's capped list can be seen full.
 const mockExportPick = (['many', 'long'] as const).find((seed) => seed === mockParams.get('mockExportPick'));
@@ -485,7 +488,7 @@ const mockInitial = {
   ...(mockMastering === 'no-audacity'
     ? { mastering: { unavailable: { audacity: "Audacity's effect macro is not available on this computer." } } }
     : mockMastering
-      ? { mastering: { choice: mockMastering } }
+      ? { mastering: { choice: mockMastering, ...(mockMasterChain ? { chain: mockMasterChain } : {}) } }
       : {}),
   ...(mockExportPick ? { renderExportPick: mockExportPick } : {}),
   ...(mockDeliveryProfile ? { deliveryProfile: mockDeliveryProfile } : {}),

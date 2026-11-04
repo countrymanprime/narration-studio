@@ -336,15 +336,54 @@ func placeNew(file, dest string) error {
 	return err
 }
 
+var _ ChainLister = dawChain{}
+
+// Chain lists the FX a render would run now, through the DAW port's master_chain_read: each track with FX in order, then the
+// master. A chain the DAW cannot list whole, or no DAW, is an error, so the narrator never approves a chain they were not shown.
+func (dawChain) Chain(ctx context.Context) ([]ChainTrack, error) {
+	session, err := dawSession()
+	if err != nil {
+		return nil, err
+	}
+	reader, err := dawport.Role[dawport.MasterChainReader](session.Resolver, dawport.CapMasterChainRead)
+	if err != nil {
+		return nil, err
+	}
+	chain, err := reader.ReadMasterChain(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]ChainTrack, 0, len(chain.Tracks)+1)
+	for _, track := range chain.Tracks {
+		out = append(out, ChainTrack{Name: trackName(track.Name), FX: chainFX(track.FX)})
+	}
+	if len(chain.Master) > 0 {
+		out = append(out, ChainTrack{Name: "Master", Master: true, FX: chainFX(chain.Master)})
+	}
+	return out, nil
+}
+
+// trackName is a track's name as the narrator's report and the approval both say it: an unnamed track is "Track".
+func trackName(name string) string {
+	if name == "" {
+		return "Track"
+	}
+	return name
+}
+
+func chainFX(slots []dawport.FXSlot) []ChainFX {
+	out := make([]ChainFX, 0, len(slots))
+	for _, slot := range slots {
+		out = append(out, ChainFX{Name: slot.Name, Enabled: slot.Enabled})
+	}
+	return out
+}
+
 // chainSteps words what ran for the narrator's report: each track's FX, the master's, then the render itself.
 func chainSteps(chain dawport.MasterChain, region string) []Step {
 	var steps []Step
 	for _, track := range chain.Tracks {
-		name := track.Name
-		if name == "" {
-			name = "Track"
-		}
-		steps = append(steps, Step{Name: name, Detail: slotList(track.FX)})
+		steps = append(steps, Step{Name: trackName(track.Name), Detail: slotList(track.FX)})
 	}
 	if len(chain.Master) > 0 {
 		steps = append(steps, Step{Name: "Master", Detail: slotList(chain.Master)})

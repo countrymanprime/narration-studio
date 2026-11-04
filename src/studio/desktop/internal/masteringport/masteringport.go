@@ -114,6 +114,26 @@ type Mastering interface {
 	Master(ctx context.Context, req Request) (Result, error)
 }
 
+// ChainLister is a row whose steps live outside the app, in the narrator's DAW: Chain reads the plug-ins a master would run now,
+// so the narrator sees them before approving it (threat model row 5o). A row that declares its own steps (the built-in chain) or is
+// named in the approval (Audacity's macro) does not implement it.
+type ChainLister interface {
+	Chain(ctx context.Context) ([]ChainTrack, error)
+}
+
+// ChainTrack is one track's plug-ins in the chain, in chain order: every track that has FX, then the master track's (Master).
+type ChainTrack struct {
+	Name   string
+	Master bool
+	FX     []ChainFX
+}
+
+// ChainFX is one plug-in as the DAW names it, and whether it is switched on.
+type ChainFX struct {
+	Name    string
+	Enabled bool
+}
+
 // The refusals every row shares. The first two are internal/mastering's own, so a caller of either package checks one error.
 var (
 	ErrDestinationExists = mastering.ErrDestinationExists

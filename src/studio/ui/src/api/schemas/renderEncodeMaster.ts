@@ -3,7 +3,9 @@ import type {
   ExportFileResult,
   ExportJob,
   ExportPlan,
+  ExportPlanFX,
   ExportPlanItem,
+  ExportPlanTrack,
   MasteringSummary,
   MultiPackageJob,
   MultiPackageResult,
@@ -47,6 +49,12 @@ const exportPlanItemSchema = z.object({
   region: z.string(),
 }) satisfies z.ZodType<ExportPlanItem>;
 
+const exportPlanTrackSchema = z.object({
+  name: z.string(),
+  master: z.boolean(),
+  fx: listFromNull(z.object({ name: z.string(), enabled: z.boolean() }) satisfies z.ZodType<ExportPlanFX>),
+}) satisfies z.ZodType<ExportPlanTrack>;
+
 export const exportPlanSchema = z.object({
   master: z.boolean(),
   provider: z.string(),
@@ -54,6 +62,7 @@ export const exportPlanSchema = z.object({
   needsApproval: z.boolean(),
   needsMacro: z.boolean(),
   items: listFromNull(exportPlanItemSchema),
+  chain: listFromNull(exportPlanTrackSchema),
 }) satisfies z.ZodType<ExportPlan>;
 
 export const exportJobSchema = z.object({

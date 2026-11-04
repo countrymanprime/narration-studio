@@ -22,7 +22,7 @@ import type {
   RenderEncodeMasterApi,
 } from '../types';
 import type { MasteringProviders } from './contracts/mastering';
-import type { ExportPlan } from './contracts/renderEncodeMaster';
+import type { ExportPlan, ExportPlanTrack } from './contracts/renderEncodeMaster';
 import { macroNameProblem } from './macroName';
 import { MOCK_ACX, deliveryProfileKey } from './deliveryProfilesMock';
 import { wireClone } from './mockFixtures';
@@ -186,6 +186,8 @@ export function createRenderEncodeMasterMock(
   masteringProviders?: () => Promise<MasteringProviders>,
   // What the picker chooses.
   pickPaths: readonly string[] = MOCK_EXPORT_PATHS,
+  // The DAW row's chain, as master_chain_read answers it (masteringMock.ts's mockMasterChain).
+  masterChain: () => Promise<ExportPlanTrack[]> = async () => [],
 ): RenderEncodeMasterApi {
   const delivery = seed === 'ready' || seed === 'building' || seed === 'fails' || seed === 'quiet';
   const hold = seed === 'hold' || seed === 'building' || seed === 'quiet';
@@ -331,6 +333,7 @@ export function createRenderEncodeMasterMock(
       needsApproval: false,
       needsMacro: false,
       items: items.map((item) => ({ ...item, region: '' })),
+      chain: [],
     };
     if (!req.master) return plan;
     const state = masteringProviders ? await masteringProviders() : undefined;
@@ -373,7 +376,12 @@ export function createRenderEncodeMasterMock(
       pickPaths.forEach((path) => picked.add(path));
       return { paths: [...pickPaths] };
     },
-    exportPlan: async (req: ExportRequest): Promise<ExportPlan> => wireClone(await planOf(req)),
+    // export_plan.go's exportPlan: the DAW row (a masteringport.ChainLister) also reads the chain it would run, and a chain it
+    // cannot read whole refuses the plan. ExportStart does not read it.
+    exportPlan: async (req: ExportRequest): Promise<ExportPlan> => {
+      const plan = await planOf(req);
+      return wireClone(plan.master && plan.provider === 'daw' ? { ...plan, chain: await masterChain() } : plan);
+    },
     exportStart: async (req: ExportRequest): Promise<ExportJob> => {
       const plan = await planOf(req);
       await approve(plan, req);

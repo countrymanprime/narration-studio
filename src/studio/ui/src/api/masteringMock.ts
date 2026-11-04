@@ -3,6 +3,7 @@
 // project's choice is kept in memory, and a choice of a row that is unknown or not available yet is refused with the host's
 // sentence, changing nothing.
 import type { MasteringApi, MasteringProvider, MasteringProviders } from './contracts/mastering';
+import type { ExportPlanTrack } from './contracts/renderEncodeMaster';
 import { wireClone } from './mockFixtures';
 
 type MockRow = Omit<MasteringProvider, 'default'>;
@@ -53,7 +54,42 @@ export type MasteringMockSeed = {
   choice?: string;
   /** Rows not available on this computer, by name, with the sentence the host refuses them with. */
   unavailable?: Record<string, string>;
+  /** What the DAW's master_chain_read answers (`?mockMasterChain=`): masteringporttest's FakeDAW chain by default, a long one, none,
+   * or one the bridge cut short. */
+  chain?: 'default' | 'long' | 'empty' | 'unreadable';
 };
+
+/** The bridge's refusal of a chain it listed only part of (bridge.ErrChainTooLong), as export_plan.go words it for the DAW row. */
+const CHAIN_UNREADABLE =
+  "Your DAW's FX chain: the app could not read the chain to show it to you: this project has more FX than this app can list, so it cannot show you the whole chain before a render";
+
+/** A book's chain long enough to scroll: a voice track and two character tracks with several plug-ins each, one off, then the master. */
+function longChain(): ExportPlanTrack[] {
+  const plugins = ['VST3: Pro-Q 3 (FabFilter)', 'VST: ReaComp (Cockos)', 'JS: De-esser', 'VST3: RX 10 Mouth De-click (iZotope)', 'VST: ReaGate (Cockos)'];
+  const tracks = ['Narration', 'Alice', 'The Queen of Hearts', 'Room tone'].map((name, t): ExportPlanTrack => ({
+    name,
+    master: false,
+    fx: plugins.map((plugin, i) => ({ name: plugin, enabled: !(t === 1 && i === 2) })),
+  }));
+  return [...tracks, { name: 'Master', master: true, fx: plugins.slice(0, 3).map((name) => ({ name, enabled: true })) }];
+}
+
+/** The chain the mock DAW row would render through, as dawChain.Chain answers it (internal/masteringport/daw.go). */
+export async function mockMasterChain(seed: MasteringMockSeed['chain'] = 'default'): Promise<ExportPlanTrack[]> {
+  switch (seed) {
+    case 'unreadable':
+      throw new Error(CHAIN_UNREADABLE);
+    case 'empty':
+      return [];
+    case 'long':
+      return longChain();
+    case 'default':
+      return [
+        { name: 'Voice', master: false, fx: [{ name: 'VST: ReaEQ (Cockos)', enabled: true }] },
+        { name: 'Master', master: true, fx: [{ name: 'VST: ReaLimit (Cockos)', enabled: true }] },
+      ];
+  }
+}
 
 function currentProviders(rows: MockRow[], hasProject: boolean, choice: string | null): MasteringProviders {
   const fallback = rows[0];

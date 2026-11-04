@@ -1,11 +1,13 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	"desktop/internal/audacitybridge"
 	"desktop/internal/creditsid"
@@ -28,14 +30,29 @@ type MasteringApproval struct {
 }
 
 // ExportPlan is ExportPlan's answer: the mastering row the export masters with (empty when it does not master), whether each
-// master needs the narrator's approval or a macro, and the items as the host will export them.
+// master needs the narrator's approval or a macro, the items as the host will export them, and, for a row whose steps live in the
+// DAW (masteringport.ChainLister), the chain it would run, read when the plan is asked for (empty for any other row).
 type ExportPlan struct {
-	Master        bool             `json:"master"`
-	Provider      string           `json:"provider"`
-	Label         string           `json:"label"`
-	NeedsApproval bool             `json:"needsApproval"`
-	NeedsMacro    bool             `json:"needsMacro"`
-	Items         []ExportPlanItem `json:"items"`
+	Master        bool              `json:"master"`
+	Provider      string            `json:"provider"`
+	Label         string            `json:"label"`
+	NeedsApproval bool              `json:"needsApproval"`
+	NeedsMacro    bool              `json:"needsMacro"`
+	Items         []ExportPlanItem  `json:"items"`
+	Chain         []ExportPlanTrack `json:"chain"`
+}
+
+// ExportPlanTrack is one track's plug-ins in the chain a DAW render runs, in chain order: every track with FX, then the master.
+type ExportPlanTrack struct {
+	Name   string         `json:"name"`
+	Master bool           `json:"master"`
+	FX     []ExportPlanFX `json:"fx"`
+}
+
+// ExportPlanFX is one plug-in as the DAW names it, and whether it is switched on.
+type ExportPlanFX struct {
+	Name    string `json:"name"`
+	Enabled bool   `json:"enabled"`
 }
 
 // ExportPlanItem is one item as the host will export it: its path cleaned, its title trimmed, and the DAW region it renders from
@@ -55,6 +72,7 @@ type exportPlanned struct {
 	regions []string
 	row     port.Entry[masteringport.Mastering]
 	caps    masteringport.Capabilities
+	chain   []masteringport.ChainTrack
 }
 
 // masteringApproved is what an export's approval allows its masters: Approved and Macro of each masteringport.Request.
@@ -173,14 +191,38 @@ func exportPlanPayload(plan exportPlanned) ExportPlan {
 	for i, item := range plan.items {
 		out.Items = append(out.Items, ExportPlanItem{Kind: item.Kind, Title: item.Title, Path: item.Path, Region: plan.regions[i]})
 	}
+	out.Chain = make([]ExportPlanTrack, 0, len(plan.chain))
+	for _, track := range plan.chain {
+		fx := make([]ExportPlanFX, 0, len(track.FX))
+		for _, slot := range track.FX {
+			fx = append(fx, ExportPlanFX{Name: slot.Name, Enabled: slot.Enabled})
+		}
+		out.Chain = append(out.Chain, ExportPlanTrack{Name: track.Name, Master: track.Master, FX: fx})
+	}
 	return out
 }
 
-// exportPlan is ExportPlan's answer for req.
+// exportChainWait bounds ExportPlan's read of the DAW's chain, under the page's own 15 s wait for the answer.
+const exportChainWait = 10 * time.Second
+
+// exportPlan is ExportPlan's answer for req. With a row whose steps live in the DAW it reads the chain the render would run, so
+// the approval dialog shows it (threat model row 5o); a chain that cannot be read whole refuses the plan. ExportStart does not read
+// it: each render reads it again itself.
 func (h *Host) exportPlan(req ExportRequest) (ExportPlan, error) {
 	plan, err := h.planExport(h.services(), req)
 	if err != nil {
 		return ExportPlan{}, err
+	}
+	if plan.master {
+		if lister, ok := plan.row.New().(masteringport.ChainLister); ok {
+			ctx, cancel := context.WithTimeout(context.Background(), exportChainWait)
+			defer cancel()
+			chain, err := lister.Chain(ctx)
+			if err != nil {
+				return ExportPlan{}, fmt.Errorf("%s: the app could not read the chain to show it to you: %w", plan.row.Descriptor.Label, err)
+			}
+			plan.chain = chain
+		}
 	}
 	return exportPlanPayload(plan), nil
 }

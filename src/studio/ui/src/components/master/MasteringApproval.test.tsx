@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
+import type { MasteringMockSeed } from '../../api/masteringMock';
 import type { ExportRequest, NarrationApi } from '../../types';
 import { clearToasts, findToast, toastTexts } from '../../fixtures/toasts';
 import { MasteringChain, useMasteringProviders } from './MasteringChain';
@@ -35,8 +36,12 @@ function Harness() {
 
 /** The page over the mock API with the project's mastering choice, the files picked and the rows read. The mock's picker gives
  * five files, a retail sample among them; `keepSample` false removes it, as a narrator mastering through the DAW must. */
-async function mount(choice: string | undefined, { keepSample = choice !== 'daw' }: { keepSample?: boolean } = {}, overrides: Partial<NarrationApi> = {}) {
-  const api = createMockApi(overrides, { mastering: { choice } });
+async function mount(
+  choice: string | undefined,
+  { keepSample = choice !== 'daw', chain }: { keepSample?: boolean; chain?: MasteringMockSeed['chain'] } = {},
+  overrides: Partial<NarrationApi> = {},
+) {
+  const api = createMockApi(overrides, { mastering: { choice, chain } });
   const exportStart = vi.spyOn(api, 'exportStart');
   const exportPlan = vi.spyOn(api, 'exportPlan');
   const masteringProviders = vi.spyOn(api, 'masteringProviders');
@@ -295,5 +300,63 @@ describe('Master & encode with a row that makes the DAW render (#2739)', () => {
     await findToast('an export is already running');
     expect(screen.queryByRole('alert')).toBeNull();
     expect(toastTexts()).toHaveLength(1);
+  });
+});
+
+// The approval shows the DAW FX chain the render runs, read through the DAW port when the plan is asked for (threat model row 5o, #2932).
+describe('the approval shows the DAW chain it approves (#2932)', () => {
+  const chainTable = () => within(dialog()).getByRole('table', { name: 'FX chain this render runs' });
+  const rowsOf = (table: HTMLElement) =>
+    within(table)
+      .getAllByRole('row')
+      .slice(1)
+      .map((row) =>
+        within(row)
+          .getAllByRole('cell')
+          .map((cell) => cell.textContent),
+      );
+
+  it("lists each track's FX in chain order, then the master's, each as the DAW names it", async () => {
+    await mount('daw');
+    await openDialog();
+    expect(rowsOf(chainTable())).toEqual([
+      ['Voice', 'VST: ReaEQ (Cockos)'],
+      ['Master', 'VST: ReaLimit (Cockos)'],
+    ]);
+  });
+
+  it('marks a plug-in that is switched off, in words, not only in colour', async () => {
+    await mount('daw', { chain: 'long' });
+    await openDialog();
+    expect(within(chainTable()).getAllByText(/\(off\)$/).length).toBeGreaterThan(0);
+  });
+
+  it('caps a long chain to its own scroll, so the question and the actions stay in view', async () => {
+    await mount('daw', { chain: 'long' });
+    await openDialog();
+    const table = chainTable();
+    expect(rowsOf(table).length).toBeGreaterThan(20);
+    expect(table.closest('section')?.className).toMatch(/max-h-\[/);
+    expect(within(dialog()).getByRole('button', { name: 'Approve and master' })).toBeTruthy();
+  });
+
+  it('says so when the project has no FX on any track or the master, rather than drawing an empty list', async () => {
+    await mount('daw', { chain: 'empty' });
+    await openDialog();
+    expect(rowsOf(chainTable())).toEqual([['All tracks and the master', 'No FX']]);
+  });
+
+  it('a chain the app cannot read whole refuses the plan: a toast, no dialog, nothing starts', async () => {
+    const { exportStart } = await mount('daw', { chain: 'unreadable' });
+    await press('Master & encode');
+    await findToast('could not read the chain to show it to you');
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    expect(exportStart).not.toHaveBeenCalled();
+  });
+
+  it("Audacity's macro has no DAW chain to show", async () => {
+    await mount('audacity');
+    await openDialog();
+    expect(within(dialog()).queryByRole('table', { name: 'FX chain this render runs' })).toBeNull();
   });
 });

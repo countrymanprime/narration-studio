@@ -7,6 +7,51 @@ import { Panel } from '../primitives/Panel';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
 import { fileName } from './useExportJobs';
 
+const CHAIN_LABEL = 'FX chain this render runs';
+const MUTED = { color: 'var(--text-muted)' };
+
+/**
+ * The DAW chain the render runs, as the host read it for this plan (threat model row 5o, #2932): one row per plug-in in chain order,
+ * every track with FX and then the master, named as the DAW names it; a plug-in switched off says so in words. Capped to its own
+ * scroll like the files above it; with no FX anywhere one row says so rather than an empty box.
+ */
+function ChainList({ chain }: { chain: ExportPlan['chain'] }) {
+  const rows = chain.flatMap((track) => track.fx.map((fx, i) => ({ key: `${track.name}-${track.master}-${i}`, track: track.name, fx })));
+  return (
+    <Panel flush scroll label={CHAIN_LABEL} className="mt-2 max-h-[10rem]">
+      <Table label={CHAIN_LABEL} columns={['minmax(0,1fr)', 'minmax(0,1.5fr)']}>
+        <TableHead>
+          <TableRow>
+            <TableHeader>Track</TableHeader>
+            <TableHeader>Effect</TableHeader>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {rows.length === 0 ? (
+            <TableRow>
+              <TableCell>All tracks and the master</TableCell>
+              <TableCell>No FX</TableCell>
+            </TableRow>
+          ) : (
+            rows.map(({ key, track, fx }) => (
+              <TableRow key={key}>
+                {/* Names come from the narrator's project: each is isolated, so a direction override cannot reorder its neighbour. */}
+                <TableCell className="break-words">
+                  <bdi>{track}</bdi>
+                </TableCell>
+                <TableCell className="break-words" style={fx.enabled ? undefined : MUTED}>
+                  <bdi>{fx.name}</bdi>
+                  {!fx.enabled && ' (off)'}
+                </TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
+    </Panel>
+  );
+}
+
 // The macro name of this session's last export the host started with one, offered again the next time a row needs a macro: the
 // host never keeps one (each render's approval is the narrator's own), but retyping it for every export would be a chore. A name
 // the host refused is never kept.
@@ -90,6 +135,7 @@ export function MasteringApprovalDialog({
           </TableBody>
         </Table>
       </Panel>
+      {plan.provider === 'daw' && <ChainList chain={plan.chain} />}
       {plan.needsMacro && (
         <div className="mt-3">
           <Field

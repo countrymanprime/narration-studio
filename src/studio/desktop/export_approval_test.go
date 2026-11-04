@@ -10,6 +10,7 @@ import (
 
 	"desktop/internal/audacitybridge"
 	"desktop/internal/contractfile"
+	"desktop/internal/dawport"
 	"desktop/internal/masteringport"
 	"desktop/internal/masteringport/masteringporttest"
 	"desktop/internal/packager"
@@ -201,6 +202,8 @@ func TestExportPlanAnswersTheRowAndEachItemsRegion(t *testing.T) {
 	writeFixtureFile(t, chapter, "wav")
 	writeFixtureFile(t, opening, "wav")
 	host := masteringExportHost(t, masteringport.DAW, chapter, opening)
+	daw := masteringporttest.NewFakeDAW(host.config.projectFolder)
+	t.Cleanup(masteringport.UseSession(func() (masteringport.Session, error) { return daw.Session(), nil }))
 	plan, err := host.exportPlan(ExportRequest{Master: true, Items: []ExportItem{
 		{Kind: string(packager.KindCreditsOpening), Path: opening},
 		{Kind: string(packager.KindChapter), Title: " Chapter 1 ", Path: chapter},
@@ -211,6 +214,9 @@ func TestExportPlanAnswersTheRowAndEachItemsRegion(t *testing.T) {
 	want := ExportPlan{Master: true, Provider: masteringport.DAW, Label: "Your DAW's FX chain", NeedsApproval: true, Items: []ExportPlanItem{
 		{Kind: string(packager.KindCreditsOpening), Path: opening, Region: "Opening credits"},
 		{Kind: string(packager.KindChapter), Title: "Chapter 1", Path: chapter, Region: "Chapter 1"},
+	}, Chain: []ExportPlanTrack{
+		{Name: "Voice", FX: []ExportPlanFX{{Name: "VST: ReaEQ (Cockos)", Enabled: true}}},
+		{Name: "Master", Master: true, FX: []ExportPlanFX{{Name: "VST: ReaLimit (Cockos)", Enabled: true}}},
 	}}
 	if !reflect.DeepEqual(plan, want) {
 		t.Fatalf("plan = %+v\nwant %+v", plan, want)
@@ -219,8 +225,27 @@ func TestExportPlanAnswersTheRowAndEachItemsRegion(t *testing.T) {
 		t.Fatalf("a plan started a job: %+v", state)
 	}
 	plain, err := host.exportPlan(ExportRequest{Items: []ExportItem{{Kind: string(packager.KindChapter), Title: "Chapter 1", Path: chapter}}})
-	if err != nil || plain.Master || plain.Provider != "" || plain.Items[0].Region != "" {
+	if err != nil || plain.Master || plain.Provider != "" || plain.Items[0].Region != "" || plain.Chain == nil || len(plain.Chain) != 0 {
 		t.Fatalf("encode-only plan = %+v, %v", plain, err)
+	}
+}
+
+// The approval shows the DAW chain the render would run (threat model row 5o, #2932): a chain the DAW cannot list whole, or no DAW,
+// refuses the plan, so the dialog never asks to approve a chain the narrator was not shown.
+func TestExportPlanIsRefusedWhenTheDAWChainCannotBeRead(t *testing.T) {
+	chapter := filepath.Join(t.TempDir(), "ch1.wav")
+	writeFixtureFile(t, chapter, "wav")
+	host := masteringExportHost(t, masteringport.DAW, chapter)
+	daw := masteringporttest.NewFakeDAW(host.config.projectFolder)
+	cut := errors.New("this project has more FX than this app can list")
+	daw.SetChain(dawport.MasterChain{}, cut)
+	t.Cleanup(masteringport.UseSession(func() (masteringport.Session, error) { return daw.Session(), nil }))
+	if _, err := host.exportPlan(ExportRequest{Master: true, Items: oneChapter(chapter)}); !errors.Is(err, cut) {
+		t.Fatalf("err = %v, want the DAW's refusal", err)
+	}
+	t.Cleanup(masteringport.UseSession(func() (masteringport.Session, error) { return masteringport.Session{}, masteringport.ErrNoDAW }))
+	if _, err := host.exportPlan(ExportRequest{Master: true, Items: oneChapter(chapter)}); !errors.Is(err, masteringport.ErrNoDAW) {
+		t.Fatalf("err = %v, want ErrNoDAW", err)
 	}
 }
 
@@ -238,6 +263,12 @@ func TestExportPlanGoldenIsCurrent(t *testing.T) {
 				t.Fatal(err)
 			}
 			plan := exportPlanned{master: true, items: items, regions: make([]string, len(items)), row: entry, caps: entry.New().Capabilities()}
+			if choice == masteringport.DAW {
+				plan.chain = []masteringport.ChainTrack{
+					{Name: "Voice", FX: []masteringport.ChainFX{{Name: "VST: ReaEQ (Cockos)", Enabled: true}, {Name: "JS: De-esser"}}},
+					{Name: "Master", Master: true, FX: []masteringport.ChainFX{{Name: "VST: ReaLimit (Cockos)", Enabled: true}}},
+				}
+			}
 			if !entry.Descriptor.Supports(masteringport.ModeWAV) {
 				for i, item := range items {
 					plan.regions[i] = exportRegion(item)

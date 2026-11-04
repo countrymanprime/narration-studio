@@ -26,10 +26,17 @@ export type ExportRequest = { items: ExportItem[]; master: boolean; format: stri
  * from when the mastering row renders regions; `region` is '' with any other row. */
 export type ExportPlanItem = { kind: PackageItemKind; title: string; path: string; region: string };
 
+/** One plug-in in a DAW chain, as the DAW names it, and whether it is switched on. */
+export type ExportPlanFX = { name: string; enabled: boolean };
+
+/** One track's plug-ins in the chain a DAW render runs, in chain order: every track with FX, then the master (`master`). */
+export type ExportPlanTrack = { name: string; master: boolean; fx: ExportPlanFX[] };
+
 /**
  * What ExportStart would do with a request, answered by ExportPlan without starting anything: the mastering row (`provider` and
  * `label` empty when it does not master), whether each master needs the narrator's approval or a macro, and the items as the host
- * will export them. The approval dialog draws exactly this.
+ * will export them, and for a row whose steps live in the DAW, the chain it would run, read when the plan was asked for (empty for
+ * any other row; a chain the host cannot read whole refuses the plan). The approval dialog draws exactly this.
  */
 export type ExportPlan = {
   master: boolean;
@@ -38,6 +45,7 @@ export type ExportPlan = {
   needsApproval: boolean;
   needsMacro: boolean;
   items: ExportPlanItem[];
+  chain: ExportPlanTrack[];
 };
 
 /** The built-in chain's own report (internal/mastering.Result), narrowed to what the page shows per file; absent for a file another
