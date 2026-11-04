@@ -19,9 +19,10 @@ export type AudacityLinkView = {
 /**
  * The Audacity link state: read once on mount, pushed by the host's audacity_link_changed event, and read again when the window gets focus
  * back. The host asks Audacity every 2 s while the project records with it; nothing here polls. A project that does not record with
- * Audacity answers `chosen: false` and nothing else is read from Audacity.
+ * Audacity answers `chosen: false` and nothing else is read from Audacity. Not `enabled` (a page that reads it only once a menu opens), it reads and
+ * listens to nothing.
  */
-export function useAudacityLink(): AudacityLinkView {
+export function useAudacityLink(enabled = true): AudacityLinkView {
   const port = usePort('audacityLink');
   const [link, setLink] = useState<AudacityLink>();
   const [error, setError] = useState<string>();
@@ -42,6 +43,7 @@ export function useAudacityLink(): AudacityLinkView {
   const check = useCallback(() => port.audacityLinkCheck().then(adopt, fail), [port, adopt, fail]);
 
   useEffect(() => {
+    if (!enabled) return;
     live.current = true;
     void read();
     const unsubscribe = port.subscribeAudacityLink(adopt);
@@ -52,7 +54,7 @@ export function useAudacityLink(): AudacityLinkView {
       unsubscribe();
       window.removeEventListener('focus', onFocus);
     };
-  }, [port, read, adopt]);
+  }, [port, read, adopt, enabled]);
 
   return { link, error, receivedAt, check, adopt };
 }

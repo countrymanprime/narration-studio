@@ -77,8 +77,8 @@ and verifies (`wiktextract.Manager.Installed`, asked through the resolver `app.g
 `guide.Service.SetWiktextractIndex`, each time a lookup starts): to `pronunciation --source wiktextract` and
 `candidate --source wiktextract`, and to every lookup that tries the sources in turn (a build's `entities` or
 `pronunciation --words-file`, and the `pronunciation --word=` of a create or an alias edit). A named source other than Wiktextract
-never gets it. The host never passes `--espeak-library`: no build ships a `libespeak-ng` for it to name, so `phonemizer` looks for the
-system's own ([CI and releases](../operations/ci-and-releases.md), "Known gap"). Pinned by
+never gets it. The host never passes `--espeak-library`: no build ships a `libespeak-ng` for it to name, so the eSpeak source answers
+through Piper's bundled espeak-ng and its `piper/espeak-ng-data` ([CI and releases](../operations/ci-and-releases.md)); `phonemizer` is used only when that flag names a library. Pinned by
 `src/studio/desktop/internal/guide/wiktextract_index_test.go` and `src/studio/desktop/guidepronounce_test.go`.
 
 `candidate --word=<text> --source cmu|espeak|wiktextract` prints one JSON line, `{"ok":true,"say":...}` or `{"ok":false,"reason":...}`, and changes nothing; a word over 80 characters, or with a newline or NUL, is refused. The host calls it through `guide.Service.Candidate`.
@@ -87,11 +87,13 @@ system's own ([CI and releases](../operations/ci-and-releases.md), "Known gap").
 
 A narrator can also keep their own pronunciation: `GuidePronounceUser` sets one with source `manual` (a file written earlier says
 `user`; it reads as `manual`) that never asks a dictionary, and keeps the dictionary's answer beside it as `alternate`;
-`GuidePronunciationUseAlternate` swaps the two back, losslessly and without a lookup. Since
+`GuidePronunciationUseAlternate` swaps the two back, losslessly and without a lookup. `GuidePronunciationRestore` writes a
+name's whole pronunciation object back as the page read it, for undo. Since
 [How you say each name](../guides/using-the-app/story-bible.md#how-you-say-each-name)
 the host's `Entities()` ignores a stored `status` and a rebuild no longer carries it; a note and the alternate are kept, and
 the Story Bible shows an old note read-only. A pronunciation's `source` is the registry name (`cmu`, `wiktextract`,
-`espeak`) or `manual`. The host applies both itself (see who writes the file, below). The sidecar has no command that sets a status (SN-B81 removed `pronunciation-status`).
+`espeak`), `manual`, or a user dictionary source (`user_dictionary`, `script_imported`) when the narrator picked one of
+its values for the name (`GuidePronunciationRestore`) or the old Script page's value filled it. The host applies both itself (see who writes the file, below). The sidecar has no command that sets a status (SN-B81 removed `pronunciation-status`).
 
 ## Rules suggestions
 

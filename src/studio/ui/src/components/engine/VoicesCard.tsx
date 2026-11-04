@@ -39,6 +39,7 @@ export function VoicesCard({
   onTrackCharacters,
   onNarratorCharacter,
   layoutInCard,
+  bare = false,
 }: {
   tracks: readonly Track[];
   chapters: readonly ManuscriptChapter[];
@@ -50,6 +51,8 @@ export function VoicesCard({
   onNarratorCharacter: (id: string) => void;
   /** True while Chapter sync is not drawing its Layout row, so this card carries the switch. */
   layoutInCard: boolean;
+  /** Draws no card of its own (no frame, no title): inside a Settings row, whose label is the title. The chapter picker sits above the table. */
+  bare?: boolean;
 }) {
   const folderLinks = useMemo(() => {
     const folders = new Set(tracks.filter((track) => track.isFolder).map((track) => track.guid));
@@ -62,8 +65,9 @@ export function VoicesCard({
   const current = folderLinks.find((link) => link.chapter.id === picked) ?? folderLinks[0];
   const voices = current ? folderVoices(tracks, current.folder, characters, setup) : [];
 
+  // In the header the picker shrinks beside the layout switch; bare, it sits above the table, where a flex basis would be a height.
   const chapterPicker = setup.layout === 'folders' && folderLinks.length > 0 && (
-    <div className="max-w-[18.75rem] min-w-0 flex-[0_1_18.75rem]">
+    <div className={bare ? 'w-full max-w-[18.75rem] min-w-0' : 'max-w-[18.75rem] min-w-0 flex-[0_1_18.75rem]'}>
       <Select
         label="Chapter"
         value={current?.chapter.id ?? ''}
@@ -76,16 +80,8 @@ export function VoicesCard({
   // The layout switch is Chapter sync's Layout row (the mock); while that card is not drawn, this card carries it so it is never lost.
   if (!layoutInCard && setup.layout === 'flat') return null;
 
-  return (
-    <Panel
-      title="Voices"
-      actions={
-        <div className="flex min-w-0 items-center gap-2">
-          {chapterPicker}
-          {layoutInCard && <LayoutToggle layout={setup.layout} onLayout={onLayout} />}
-        </div>
-      }
-    >
+  const content = (
+    <>
       {setup.layout === 'flat' ? (
         <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
           Each chapter records on one track.
@@ -139,6 +135,27 @@ export function VoicesCard({
           )}
         </div>
       )}
+    </>
+  );
+  if (bare) {
+    return (
+      <section aria-label="Voices" className="flex w-full min-w-0 flex-col gap-3">
+        {chapterPicker}
+        {content}
+      </section>
+    );
+  }
+  return (
+    <Panel
+      title="Voices"
+      actions={
+        <div className="flex min-w-0 items-center gap-2">
+          {chapterPicker}
+          {layoutInCard && <LayoutToggle layout={setup.layout} onLayout={onLayout} />}
+        </div>
+      }
+    >
+      {content}
     </Panel>
   );
 }
@@ -149,7 +166,10 @@ function VoiceCharacters({ voice }: { voice: Voice }) {
     <span className="flex flex-wrap items-center gap-1">
       {voice.narrator && <span style={{ color: 'var(--text-muted)' }}>Narration, and as</span>}
       {voice.characters.map((character) => (
-        <SpeakerTag key={character.id} label={character.name} speakerId={character.id} />
+        // A chip is one unit: at a narrow width the chips wrap onto lines of their own, never in the middle of a name.
+        <span key={character.id} className="whitespace-nowrap">
+          <SpeakerTag label={character.name} speakerId={character.id} />
+        </span>
       ))}
       <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
         {SOURCE[voice.characters[0]?.source ?? 'assigned']}
@@ -159,11 +179,22 @@ function VoiceCharacters({ voice }: { voice: Voice }) {
 }
 
 /** Flat or Voice folders, with what each means behind its help button: Chapter sync's Layout row, or the Voices card's header. */
-export function LayoutToggle({ layout, onLayout }: { layout: VoiceTracksLayout; onLayout: (layout: VoiceTracksLayout) => void }) {
+export function LayoutToggle({
+  layout,
+  onLayout,
+  help = true,
+}: {
+  layout: VoiceTracksLayout;
+  onLayout: (layout: VoiceTracksLayout) => void;
+  /** False where the row carries its own ? popover (the Settings row). */
+  help?: boolean;
+}) {
   return (
     <div className="flex items-center gap-2">
       <ToggleGroup label="Chapter layout" look="segmented" value={layout} onChange={(value) => onLayout(value as VoiceTracksLayout)} options={LAYOUTS} />
-      <HelpButton label="What the layouts mean">Flat: a chapter is one track. Voice folders: a chapter is a folder, one child track per voice.</HelpButton>
+      {help && (
+        <HelpButton label="What the layouts mean">Flat: a chapter is one track. Voice folders: a chapter is a folder, one child track per voice.</HelpButton>
+      )}
     </div>
   );
 }

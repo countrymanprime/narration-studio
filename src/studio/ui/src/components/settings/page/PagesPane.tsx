@@ -15,6 +15,8 @@ import { PaneTitle } from './PaneTitle';
 export function PageSettingList({ items }: { items: readonly PageSetting[] }) {
   const { go } = useSettingsNav();
   const [open, setOpen] = useState<Record<string, boolean>>({});
+  // A panel that was opened stays in the page when it is closed, so an edit not yet saved is not dropped; one never opened is not read at all.
+  const [opened, setOpened] = useState<Record<string, boolean>>({});
   return (
     <Panel flush>
       {items.map((item) => (
@@ -31,7 +33,11 @@ export function PageSettingList({ items }: { items: readonly PageSetting[] }) {
           <Disclosure
             title="Change it here for now"
             open={Boolean(open[item.id])}
-            onOpenChange={(next) => setOpen((current) => ({ ...current, [item.id]: next }))}
+            keepMounted={Boolean(opened[item.id])}
+            onOpenChange={(next) => {
+              setOpen((current) => ({ ...current, [item.id]: next }));
+              if (next) setOpened((current) => ({ ...current, [item.id]: true }));
+            }}
             className="mt-2"
             aside={
               <Button

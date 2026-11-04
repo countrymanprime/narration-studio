@@ -63,7 +63,7 @@ takes it off the list.
 
 Right-click a line for the same actions (**Hear the original in context** too), **Open this chapter in Script**, **Fine, not
 a pickup** and **Go to the note in Proof** for a line that came from a note. Up and Down move between lines. When you come back from the Booth with the browser's Back button after
-opening one line, that line is selected again and has the focus.
+opening one line, that line is selected again and has the focus, on the chapter you were viewing. After **Open N in Booth** the focus is on that button.
 
 A line is recorded once its pickup marker in the DAW says so: the marker is the record of what is done, and marking a
 line recorded renames its marker. While the DAW is not answering, the app keeps the change and the line reads
@@ -92,9 +92,9 @@ while it cannot read, and whenever you return to the window.
 list. It is off when the DAW is not reachable. An off button stays in the Tab order: focus it and the reason appears, and
 a screen reader reads it as the button's description. **Add a pickup by hand** asks for the time in the
 recording (`05:12.0`, or `5:12`; seconds run 00 to 59) and the line to re-record (one line, up to 500 characters), and
-adds it to the chapter in view (with every chapter shown, the last chapter you stepped to, or the first); the form names that
-chapter under its title, and **Close** or Escape leaves it. The time box shows the shape, `mm:ss.s`, in
-grey until you type. A time or line the app cannot use is said once, under its box, which is marked as wrong until you change
+adds it to the chapter in view (with every chapter shown, a **Chapter** list under the title starts on the last chapter you
+stepped to, or the first, and you can pick another); with one chapter in view the form names it, and **Close** or Escape leaves it. The time box shows the shape, `mm:ss.s`, in
+grey until you type, and `5:12` becomes `05:12.0` when you leave the box. A line over 500 characters is refused under its box. A time or line the app cannot use is said once, under its box, which is marked as wrong until you change
 it; the form keeps what you typed. If the app refuses a line that looks right, a short message says why.
 
 ![Pickups - Add a pickup by hand: the time in the recording and the line to re-record](../../images/ui/pickups-add.webp)
@@ -117,7 +117,7 @@ under the list at its own width. From there:
   [A pickup session](booth.md#a-pickup-session)). With no lines in the session it is off (outlined), and the line under the
   buttons says why: there are no pickups yet, every line in view is recorded, or every open line is left out.
 - **Add N as markers in** the DAW, the flag beside it, puts a pickup marker at each line's place and says "Pickup markers for N lines are in
-  REAPER." (or that those markers were already there). It is off, with the reason, when the DAW cannot add markers. With
+  REAPER." (or that those markers were already there). It is off, with the reason, when the DAW cannot add markers, and with REAPER when no project file is linked (its tooltip and a screen reader's description say "Link a REAPER project (.rpp) file to add markers.", the same ask as the top bar's badge). With
   Audacity the markers are labels on a label track named "<!-- brand:identity.audacityLabelTrack -->Narration Studio<!-- /brand -->", written `[nu:pickup open] …` (and
   `[nu:pickup done] …` once resolved): one label per line, with no colour. Audacity must be
   [linked and answering](settings.md#daw-integration). Edit one by hand and the

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { GuideEntity } from '../../../api/contracts/storyBible';
 import { boothUnits, type ReadingParagraph } from '../reading/boothUnits';
 import { entities, garden, guideTypes, paragraphs, queen } from './fixture';
-import { voicesInChapter } from './nearby';
+import { linesInChapter, voicesInChapter } from './nearby';
 
 const units = (list: readonly ReadingParagraph[]) => boothUnits(list);
 
@@ -45,5 +45,28 @@ describe('who is in the chapter (not who speaks near the reading)', () => {
     const text: ReadingParagraph[] = [{ id: 'a', text: 'Dr. (Who)+ arrived. 😀 שלום' }];
     expect(voicesInChapter(text, units(text), [odd], guideTypes).map((voice) => voice.name)).toEqual(['Dr. (Who)+']);
     expect(voicesInChapter([], [], entities, guideTypes)).toEqual([]);
+  });
+});
+
+describe('the lines each character speaks in the chapter', () => {
+  it('counts-each-quotation-once-by-the-character-its-speaker-names', () => {
+    const unit = (key: string, speaker: string, quoted: boolean, cont = false) => ({
+      key,
+      paragraphId: 'a',
+      paragraphIndex: 0,
+      start: 0,
+      end: 1,
+      speaker,
+      quoted,
+      confirmed: true,
+      text: 'x',
+      words: 1,
+      cont,
+    });
+    const lines = linesInChapter(
+      [unit('1', 'Queen', true), unit('2', 'Queen', true, true), unit('3', 'Queen', true), unit('4', '', false), unit('5', 'Nobody', true)],
+      entities,
+    );
+    expect([...lines]).toEqual([[queen.id, 2]]);
   });
 });

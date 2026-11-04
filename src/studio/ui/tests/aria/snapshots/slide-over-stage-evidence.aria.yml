@@ -6,8 +6,6 @@
 - status
 - alert
 - status
-- alert
-- status
 - dialog "Stage readiness":
   - heading "Stage readiness" [level=3]
   - button "Close"
