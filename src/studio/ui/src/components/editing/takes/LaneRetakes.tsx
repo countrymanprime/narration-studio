@@ -20,7 +20,7 @@ export interface LaneRetakesProps {
 export function LaneRetakes({ line, gate, picking, onPick }: LaneRetakesProps) {
   return (
     <section data-lanes={line.lineId} aria-label={`Retakes on lanes of ${line.trackName}`} className="flex flex-col gap-1 pt-1">
-      <SectionLabel as="h3" className="block">
+      <SectionLabel as="p" className="m-0 block">
         Retakes on lanes
       </SectionLabel>
       <ul className="m-0 flex list-none flex-col gap-1 p-0">
