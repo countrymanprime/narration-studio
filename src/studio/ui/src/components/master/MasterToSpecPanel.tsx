@@ -87,11 +87,15 @@ export function MasterToSpecPanel({
   // The table sits far below the header's "Master all to spec…" icon on a 15-file book, so drawing it off screen looks like a dead
   // button; and the card's own "Choose files…" button goes away once files are picked. Either way, bring the table into view and put
   // the keyboard on its files. Not on mount: a page that opens with a job running stays where it is.
+  // The other way, Remove on the last row takes itself and the table away: the card's own button gets the keyboard back, not <body>.
+  const chooseRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     if (hasFiles && !hadFiles.current) {
       revealRef.current?.scrollIntoView?.({ block: 'nearest' });
       revealRef.current?.focus();
     }
+    const active = document.activeElement;
+    if (!hasFiles && hadFiles.current && (active === null || active === document.body)) chooseRef.current?.focus();
     hadFiles.current = hasFiles;
   }, [hasFiles]);
   // Starting removes Master & encode (the table shows the job instead): focus goes to the files, never to the page's <body>.
@@ -137,7 +141,7 @@ export function MasterToSpecPanel({
         // Before any file is picked, the card's primary is a labelled text button that picks them: the owner's rule is primary = text,
         // and the page header's icon stays the secondary way in (#2931). It names what it does, so it is not a second "Master all to spec…".
         !hasFiles ? (
-          <Button onClick={() => void jobs.pick()} pending={jobs.picking}>
+          <Button ref={chooseRef} onClick={() => void jobs.pick()} pending={jobs.picking}>
             {jobs.master ? 'Choose files to master…' : 'Choose files to encode…'}
           </Button>
         ) : (

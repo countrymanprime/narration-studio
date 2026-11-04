@@ -45,6 +45,13 @@ describe('MasterToSpecPanel: showing up', () => {
     expect(screen.getByRole('button', { name: 'Add files…' })).toBeTruthy();
   });
 
+  it('removing the last file puts the keyboard on Choose files to master…, not the page body', () => {
+    const { rerender } = render(<MasterToSpecPanel jobs={jobs({ master: true, items: [item] } as never)} />);
+    screen.getByRole('button', { name: 'Remove' }).focus();
+    rerender(<MasterToSpecPanel jobs={jobs({ master: true, items: [] } as never)} />);
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Choose files to master…' }));
+  });
+
   it('scrolls to its files and puts the keyboard on them when picking first shows it', () => {
     const scrollIntoView = vi.fn();
     Element.prototype.scrollIntoView = scrollIntoView;
