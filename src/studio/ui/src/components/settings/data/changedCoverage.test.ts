@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { CUSTOM } from '../controls/registry';
 import { ROWS } from '../registry/rows';
 import { BROWSER_CHANGED } from './browserValues';
-import { CHANGED_EXEMPT, CUSTOM_CHANGED, changedIsCovered } from './customChanged';
+import { CHANGED_EXEMPT, CUSTOM_CHANGED, LIVE_CHANGED, changedIsCovered } from './customChanged';
 
 // The class guard for issue 2636: the Changed filter must be able to see every row of every scope and kind. A row it cannot see must say why.
 describe('Changed covers every row', () => {
@@ -13,7 +13,13 @@ describe('Changed covers every row', () => {
 
   it('a row is covered one way only', () => {
     for (const row of ROWS) {
-      const ways = [Boolean(row.field && !CUSTOM[row.id]), row.id in BROWSER_CHANGED, row.id in CUSTOM_CHANGED, row.id in CHANGED_EXEMPT];
+      const ways = [
+        Boolean(row.field && !CUSTOM[row.id]),
+        row.id in BROWSER_CHANGED,
+        row.id in CUSTOM_CHANGED,
+        row.id in LIVE_CHANGED,
+        row.id in CHANGED_EXEMPT,
+      ];
       expect(ways.filter(Boolean).length, row.id).toBeLessThanOrEqual(1);
     }
   });
