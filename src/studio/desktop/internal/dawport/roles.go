@@ -30,6 +30,7 @@ type (
 	TrackItem     = bridge.TrackItem
 	SelectedTrack = bridge.SelectedTrack
 	CreatedTrack  = bridge.CreatedTrack
+	CreatedFolder = bridge.CreatedFolder
 	LiveTracks    = bridge.LiveTracks
 	LiveTrack     = bridge.LiveTrack
 	Armed         = bridge.Armed
@@ -304,6 +305,14 @@ type TrackLister interface {
 // an engine with folder tracks (REAPER) has it. A parent that is gone is a stale error and nothing is added.
 type ChildTrackCreator interface {
 	CreateChildTrack(ctx context.Context, name, parentGUID string) (CreatedTrack, error)
+}
+
+// FolderTrackCreator adds a chapter folder for a Voice folders project (#2840): a folder named name holding one child named childName, after
+// every other track, in one undo point, closing a folder left open at the end first so the new folder is not nested in the chapter before
+// it. Only an engine with folder tracks (REAPER) has it, on the same role as TrackCreator. A zero Child means the engine added Folder as a
+// plain track (a script older than the chapter folder). Like CreateTrack, it changes no other track, never saves and refuses while recording.
+type FolderTrackCreator interface {
+	CreateFolderTrack(ctx context.Context, name, childName string) (CreatedFolder, error)
 }
 
 // Place is where the narrator is in the project, in terms every engine can answer: TrackID is the engine's id for the one selected

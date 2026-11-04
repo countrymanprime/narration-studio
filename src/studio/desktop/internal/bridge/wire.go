@@ -153,8 +153,9 @@ var eventSpecs = map[string]eventSpec{
 	// opens no undo block.
 	"TRACK_SELECTED": {required: []fieldSpec{text("run"), text("guid")}},
 	// track_create (narration_track_create.lua): the track added at the end of the track list, its 0-based index and the name it
-	// was given, in one undo point.
-	"TRACK_CREATED": {required: []fieldSpec{text("run"), text("guid"), count("index"), text("name")}},
+	// was given, in one undo point. A chapter folder (#2840) appends its one child: optional, so a plain track's answer, and an older
+	// script's, still reads.
+	"TRACK_CREATED": {required: []fieldSpec{text("run"), text("guid"), count("index"), text("name")}, optional: []fieldSpec{text("childGuid"), count("childIndex"), text("childName")}},
 	// chapter_folders (narration_track_create.lua, #2838): each track whose folder a move of nested chapters out of another chapter's
 	// folder changes (the folders' GUIDs and names, '' for the top level), then the closing line with how many chapters move;
 	// FOLDERS_STALE when the moves are not the ones confirmed, so nothing was written.
