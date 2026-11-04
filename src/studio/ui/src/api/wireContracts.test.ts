@@ -36,6 +36,8 @@ import {
   takesUnstackedAnswer,
 } from '../fixtures/daw';
 import { notLastAnswer, undoneAnswer } from '../fixtures/dawUndo';
+import { DAW_SETUPS } from '../fixtures/daw';
+import { createMockDawClient } from '../ports/daw';
 import { createExtractionMock } from './extractionMock';
 import type { JobEnded, ScopedSettingField } from './contracts/system';
 import type { ProjectStateState } from './contracts/projectstate';
@@ -3814,6 +3816,26 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(await api.dawLastAction('record_take')).toBe('this');
     expect(await api.dawUndoLast('record_take', 1)).toEqual(readGolden('daw-undo-last-take-done.json'));
     expect(await api.dawLastAction('record_take')).toBe('other');
+  });
+
+  // #2945: Keep Take's Undo needs a kind for "use take" (narration_workspace.lua's set_active_take closes its block with it).
+  it('a used take is use_take: it is the last action until the DAW changes again, and the mock undoes it as the host answers', async () => {
+    const client = createMockDawClient(DAW_SETUPS.reaper, { chapterIds: ['5'], candidateIds: ['t-7', 't-8'], findingIds: [] });
+    expect(await client.lastAction('use_take')).toBe('other');
+    expect((await client.useTake('5', 1, 2, 't-8')).undoSteps).toBe(1);
+    expect(await client.lastAction('use_take')).toBe('this');
+    const undone = await client.undoLast('use_take', 1);
+    expectMatches(dawResultSchema, undone, 'mock undo of use_take');
+    expect(undone).toMatchObject({ ok: true, changed: true, message: 'Undid the choice of take in REAPER.' });
+    expect(await client.lastAction('use_take')).toBe('other');
+    // Any later point of the DAW's own makes it refuse with the DAW's sentence, and changes nothing.
+    await client.useTake('5', 1, 2, 't-8');
+    await client.hideTakes('5', 1, 2, 't-8');
+    expect(await client.lastAction('use_take')).toBe('other');
+    expect(await client.undoLast('use_take', 1)).toMatchObject({
+      ok: false,
+      refused: "REAPER's last action is not this one, so it was left alone. Use Edit > Undo in REAPER.",
+    });
   });
 
   it('dawLastAction and dawUndoLast answer a dawLastAction and a dawResult: the host goldens parse, and the mock answers as the host does', async () => {
