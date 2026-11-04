@@ -319,7 +319,7 @@ replacing the manuscript keeps it; if its lines are gone, the panel says so and 
 
 ![Settings - App & updates, Advanced: Debug logging with the Reveal the log folder in the file manager button beside it](../../images/ui/settings-diagnostics.webp)
 
-**First-use tips** (under **Tips**) shows how many of the short tips a page shows once you have dismissed with **Got it**, and **Show tips again** forgets them all, so each shows once more. It is the same list for every project on this computer, and the button is off while none are dismissed. If the list cannot be read, the row says so and offers **Try again**.
+**First-use tips** (under **Tips**) shows how many of the short tips a page shows once you have dismissed with **Got it**, and **Show tips again** forgets them all, so each shows once more. It is the same list for every project on this computer, and the button is off while none are dismissed. If the list cannot be read, the row says so and offers **Retry**.
 
 ![Settings - First-use tips under Tips after a tip was dismissed: 1 dismissed, and Show tips again](../../images/ui/settings-first-use-tips.webp)
 

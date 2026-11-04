@@ -324,7 +324,7 @@ export function TipsBody() {
       <span className="text-sm">{seen === null ? (failed ? 'Could not be read' : 'Reading…') : count === 0 ? 'None dismissed' : `${count} dismissed`}</span>
       {seen === null && failed ? (
         <Button variant="secondary" size="sm" onClick={retry}>
-          Try again
+          Retry
         </Button>
       ) : (
         <Button variant="secondary" size="sm" disabled={busy || count === 0} onClick={() => void showAgain()}>
