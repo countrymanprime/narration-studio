@@ -22,12 +22,17 @@ const LINKED: EngineLinkState = {
   linkingDawFile: false,
 };
 
-function renderPanel(overrides: Partial<NarrationApi> = {}, initial: Parameters<typeof createMockApi>[1] = {}, link: Partial<EngineLinkState> = {}) {
+function renderPanel(
+  overrides: Partial<NarrationApi> = {},
+  initial: Parameters<typeof createMockApi>[1] = {},
+  link: Partial<EngineLinkState> = {},
+  onOpenRecordingSettings: () => void = () => {},
+) {
   const api = createMockApi(overrides, initial);
   render(
     <MemoryRouter>
       <ApiProvider api={api}>
-        <EnginePanel open onClose={() => {}} notify={() => {}} link={{ ...LINKED, ...link }} />
+        <EnginePanel open onClose={() => {}} notify={() => {}} link={{ ...LINKED, ...link }} onOpenRecordingSettings={onOpenRecordingSettings} />
       </ApiProvider>
     </MemoryRouter>,
   );
@@ -47,11 +52,28 @@ describe('EnginePanel', () => {
     expect(
       within(tools)
         .getAllByRole('button')
-        .map((button) => button.textContent),
-    ).toEqual(['Link chapters…', 'Prepare chapter render…', 'Create chapter regions…', 'Embed chapter tags…', 'Cleanup tools…']);
+        .map((button) => button.getAttribute('aria-label')),
+    ).toEqual(['Link chapters to tracks', 'Prepare the chapter render', 'Create chapter regions', 'Embed chapter tags', 'Open the cleanup tools']);
     expect(await within(panel).findByRole('table', { name: 'Chapter links' })).toBeTruthy();
     // No player: a chapter is heard in its Proof chapter view.
     expect(within(panel).queryByRole('button', { name: 'Play' })).toBeNull();
+  });
+
+  it('offers Recording settings, where the engine is chosen, since every DAW chip leads here', async () => {
+    const open = vi.fn();
+    renderPanel({}, {}, {}, open);
+    const panel = await screen.findByRole('dialog', { name: 'Audio engine' });
+    await userEvent.click(within(panel).getByRole('button', { name: 'Recording settings' }));
+    expect(open).toHaveBeenCalledTimes(1);
+  });
+
+  it('says REAPER is not running, with when it last checked and Check again, when the linked DAW is quiet', async () => {
+    const onCheckAgain = vi.fn();
+    renderPanel({}, {}, { dawReachable: false, dawProjectMatches: false, onCheckAgain });
+    const panel = await screen.findByRole('dialog', { name: 'Audio engine' });
+    expect(await within(panel).findByText(/REAPER is not running\./)).toBeTruthy();
+    await userEvent.click(within(panel).getByRole('button', { name: 'Check again' }));
+    expect(onCheckAgain).toHaveBeenCalledTimes(1);
   });
 
   it('lists every track with the chapter it is linked to', async () => {
@@ -92,7 +114,7 @@ describe('EnginePanel', () => {
   it('opens a REAPER tool’s dialog from the toolbar', async () => {
     const user = userEvent.setup();
     renderPanel();
-    await user.click(await screen.findByRole('button', { name: 'Cleanup tools…' }));
+    await user.click(await screen.findByRole('button', { name: 'Open the cleanup tools' }));
     expect(await screen.findByRole('dialog', { name: 'Cleanup tools' })).toBeTruthy();
   });
 
@@ -154,11 +176,11 @@ describe('EnginePanel', () => {
   it('offers the shared DAW-link binding, worded for whether a file is already linked', async () => {
     const onLinkDawFile = vi.fn();
     renderPanel({}, {}, { dawFileLinked: false, onLinkDawFile });
-    (await screen.findByRole('button', { name: 'Link file…' })).click();
+    (await screen.findByRole('button', { name: 'Link a project file' })).click();
     expect(onLinkDawFile).toHaveBeenCalledTimes(1);
     cleanup();
     renderPanel();
-    expect(await screen.findByRole('button', { name: 'Change file…' })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: 'Change the linked file' })).toBeTruthy();
   });
 
   it('says when REAPER has a different project open than the linked one', async () => {
@@ -168,19 +190,22 @@ describe('EnginePanel', () => {
     const notice = await screen.findByText(/REAPER has a different project open than the one linked here/);
     // R3EN2-4: a callout with both ways out as buttons beside the sentence, not coloured body text.
     const callout = notice.closest('div')!;
-    await userEvent.click(within(callout).getByRole('button', { name: 'Link the open project…' }));
+    await userEvent.click(within(callout).getByRole('button', { name: 'Link the open project' }));
     await userEvent.click(within(callout).getByRole('button', { name: 'Check again' }));
     expect(onLinkDawFile).toHaveBeenCalledTimes(1);
     expect(onCheckAgain).toHaveBeenCalledTimes(1);
   });
 
-  // ENX-9: the tools were content-sized buttons wrapping 3 + 3 with ragged edges and a 4 px gap.
-  it('lays the REAPER tools out on an equal grid', async () => {
+  // ENX-9 asked for equal edges; the tools are now equal icon squares (icon-button audit, #2836) that wrap on a 8 px gap.
+  it('draws the REAPER tools as equal icon buttons', async () => {
     renderPanel();
     const tools = await screen.findByRole('toolbar', { name: 'REAPER tools' });
-    expect(tools.className).toMatch(/grid-cols-3/);
+    expect(tools.className).toMatch(/flex-wrap/);
     expect(tools.className).toMatch(/gap-2/);
-    for (const button of within(tools).getAllByRole('button')) expect(button.className).toContain('w-full');
+    for (const button of within(tools).getAllByRole('button')) {
+      expect(button.className).toContain('size-[var(--button-height)]');
+      expect(button.textContent).toBe('');
+    }
   });
 
   it('the wrong-project notice says when it last checked and has a Check again that reads again', async () => {
@@ -205,7 +230,7 @@ describe('EnginePanel', () => {
   it('is not in the page while closed', () => {
     render(
       <ApiProvider api={createMockApi()}>
-        <EnginePanel open={false} onClose={() => {}} notify={() => {}} link={LINKED} />
+        <EnginePanel open={false} onClose={() => {}} notify={() => {}} link={LINKED} onOpenRecordingSettings={() => {}} />
       </ApiProvider>,
     );
     expect(screen.queryByRole('dialog')).toBeNull();
@@ -305,7 +330,7 @@ describe("EnginePanel's live track list", () => {
     expect(within(picker).getByRole('option', { name: named(ADDED.name) })).toBeTruthy();
 
     const calls = tracksLive.mock.calls.length;
-    await user.click(screen.getByRole('button', { name: 'Link chapters…' }));
+    await user.click(screen.getByRole('button', { name: 'Link chapters to tracks' }));
     const dialog = await screen.findByRole('dialog', { name: 'Link chapters to REAPER' });
     await waitFor(() => expect(tracksLive.mock.calls.length).toBe(calls + 1));
     expect(within(dialog).getByText('REAPER’s tracks now, saved or not.')).toBeTruthy();
@@ -328,7 +353,7 @@ describe("EnginePanel's live track list", () => {
     await within(links).findByText('REAPER’s tracks now, saved or not.');
     window.dispatchEvent(new Event('focus'));
     await waitFor(() => expect(tracksLive).toHaveBeenCalledTimes(2));
-    await user.click(screen.getByRole('button', { name: 'Link chapters…' }));
+    await user.click(screen.getByRole('button', { name: 'Link chapters to tracks' }));
     await screen.findByRole('dialog', { name: 'Link chapters to REAPER' });
     expect(tracksLive).toHaveBeenCalledTimes(2);
     hold?.(live(WIRE_TRACKS_PROJECT.tracks));
@@ -355,7 +380,7 @@ describe("EnginePanel's live track list", () => {
     render(
       <MemoryRouter>
         <ApiProvider api={api}>
-          <EnginePanel open onClose={() => {}} notify={notify} link={LINKED} />
+          <EnginePanel open onClose={() => {}} notify={notify} link={LINKED} onOpenRecordingSettings={() => {}} />
         </ApiProvider>
       </MemoryRouter>,
     );
@@ -385,7 +410,7 @@ describe("EnginePanel's live track list", () => {
     render(
       <MemoryRouter>
         <ApiProvider api={api}>
-          <EnginePanel open onClose={() => {}} notify={notify} link={LINKED} />
+          <EnginePanel open onClose={() => {}} notify={notify} link={LINKED} onOpenRecordingSettings={() => {}} />
         </ApiProvider>
       </MemoryRouter>,
     );

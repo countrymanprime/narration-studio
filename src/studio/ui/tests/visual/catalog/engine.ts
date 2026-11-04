@@ -12,7 +12,7 @@ export const engineStates: StateEntry[] = [
     page: 'engine',
     state: 'default',
     description:
-      'The engine panel opened from the header chip over the Production home: the linked Alice.rpp and "Change file…", the six REAPER tools on a three-column grid, Chapter sync (its facts as label and value rows, "Not chapters" among them), the track list with each track\'s chapter and its unplayable items flagged, and Chapter links',
+      'The engine panel opened from the header chip over the Production home: the linked Alice.rpp and a "Change the linked file" icon, the six REAPER tools as icon buttons, Chapter sync (its facts as label and value rows, "Not chapters" among them), the track list with each track\'s chapter and its unplayable items flagged, and Chapter links',
   },
   {
     page: 'engine',
@@ -63,7 +63,7 @@ export const engineStates: StateEntry[] = [
     page: 'engine',
     state: 'no-daw-link',
     description:
-      'The engine panel with no linked REAPER project file (?mockNoDaw=1): the panel’s own DAW-link control reads "Link file…" instead of "Change file…" and the header chip reading REAPER with a quiet dot - the panel stays usable since it reads its .rpp through its own discovery flow',
+      'The engine panel with no linked REAPER project file (?mockNoDaw=1): the panel’s own DAW-link control is a "Link a project file" icon instead of "Change the linked file" and the header chip reading REAPER with a quiet dot - the panel stays usable since it reads its .rpp through its own discovery flow',
   },
   {
     page: 'engine',

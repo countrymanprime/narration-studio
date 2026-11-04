@@ -146,6 +146,7 @@ export const productionStates: StateEntry[] = [
     page: 'production',
     state: 'live-updates-degraded',
     description: 'Production, the notice that live updates from the desktop host could not be read and the page may be out of date',
+    ...TOAST_FADES_OUT,
   },
   {
     page: 'production',

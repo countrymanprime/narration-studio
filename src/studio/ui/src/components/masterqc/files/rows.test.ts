@@ -53,11 +53,12 @@ describe('buildChapterRows: one row per chapter and the retail sample, measured 
     expect(rows[2]!.text).toBeUndefined();
   });
 
-  it('shows a file’s Text figure only on the row of the chapter it was read for: Chapter 10.wav under Chapter 1 says Not checked', () => {
+  it('shows a file’s Text figure only on the row of the chapter it was read for: Chapter 10.wav is not Chapter 1’s file', () => {
     const eleven = makeChapters({ shape: 'titleAndSubtitle', count: 11 });
     const file = passing('Chapter 10.wav');
     const rows = buildChapterRows([file], profile, eleven, undefined, { [file.path]: { percent: 50, met: false, chapterId: 'chapter-10' } });
-    expect(rows[0]!.text).toEqual({ text: 'Not checked', missed: false, unchecked: true });
+    expect(rows[0]!.noFile).toBe(true);
+    expect(rows[0]!.text).toBeUndefined();
     expect(rows[9]!.text).toEqual({ text: '50%', missed: true });
   });
 

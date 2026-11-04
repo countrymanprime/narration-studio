@@ -6,6 +6,7 @@ import type { ChapterSyncPreview } from '../../api/contracts/chapterSync';
 import type { Notify } from '../primitives/Toast';
 import { retryAction } from '../primitives/Toast';
 import { Button } from '../primitives/Button';
+import { IconButton } from '../primitives/IconButton';
 import { Panel } from '../primitives/Panel';
 import { InsetCard } from '../primitives/InsetCard';
 import { SectionLabel } from '../primitives/SectionLabel';
@@ -86,9 +87,12 @@ export function ChapterSyncPanel({
 
   // The on/off button is in the card's header in both states, so it never moves and the card keeps its header (alignment audit ENX-8).
   const toggleButton = (on: boolean) => (
-    <Button variant="secondary" pending={toggling} onClick={() => void toggle(on)}>
-      {on ? 'Turn on' : 'Turn off'}
-    </Button>
+    <IconButton
+      action={on ? 'turnOn' : 'turnOff'}
+      label={on ? 'Turn on chapter sync' : 'Turn off chapter sync'}
+      pending={toggling}
+      onClick={() => void toggle(on)}
+    />
   );
 
   if (state.consent === 'off') {

@@ -715,6 +715,41 @@
   },
   {
     "page": "settings",
+    "state": "story-bible-order",
+    "viewport": "desktop",
+    "docName": "settings-story-bible-order",
+    "caption": "Settings - Story Bible order under Look: a select of eight orders, Name, A to Z by default"
+  },
+  {
+    "page": "settings",
+    "state": "first-use-tips-dismissed",
+    "viewport": "desktop",
+    "docName": "settings-first-use-tips",
+    "caption": "Settings - First-use tips under Tips after a tip was dismissed: 1 dismissed, and Show tips again"
+  },
+  {
+    "page": "settings",
+    "state": "schedule-basis-own",
+    "viewport": "desktop",
+    "docName": "settings-schedule-basis",
+    "caption": "Settings - Schedule basis under Schedule: Standard or Your own pace, with Your own pace chosen"
+  },
+  {
+    "page": "settings",
+    "state": "editing-playback",
+    "viewport": "desktop",
+    "docName": "settings-editing-playback",
+    "caption": "Settings - Editing playback under Listening: speed, volume, silence and output device"
+  },
+  {
+    "page": "settings",
+    "state": "effects-cap",
+    "viewport": "desktop",
+    "docName": "settings-effects-cap",
+    "caption": "Settings - Recording & DAW, Effects: the Effects coverage cap row after Override for this project, with its own project box"
+  },
+  {
+    "page": "settings",
     "state": "wave-scroll-step",
     "viewport": "desktop",
     "docName": "settings-wave-scroll-step",
@@ -1589,6 +1624,13 @@
     "caption": "Schedule - a due date that has passed: how many days overdue, Behind, and when the work would finish at your pace"
   },
   {
+    "page": "schedule",
+    "state": "milestone-statuses",
+    "viewport": "desktop",
+    "docName": "schedule-milestone-statuses",
+    "caption": "Schedule - milestone statuses: a done milestone, a custom one past its date (Past due), a custom one ahead and Final delivery with its estimate"
+  },
+  {
     "page": "pickups",
     "state": "show-where",
     "viewport": "desktop",
@@ -1706,5 +1748,19 @@
     "viewport": "desktop",
     "docName": "master-daw-tools",
     "caption": "Master & QC with nothing measured and REAPER not answering: the DAW tools menu beside Check files, both entries off with REAPER's own sentence under each"
+  },
+  {
+    "page": "editing",
+    "state": "drawer-cleanup-repair",
+    "viewport": "desktop",
+    "docName": "editing-drawer-cleanup-repair",
+    "caption": "Editing - Clicks chosen in Clean up: Repair in REAPER beside Apply, its menu open on Cleanup tools"
+  },
+  {
+    "page": "proof",
+    "state": "inspector-repair-menu",
+    "viewport": "desktop",
+    "docName": "proof-repair-in-reaper",
+    "caption": "Proof - a click note: Repair in REAPER in the Inspector's row, its menu open on Cleanup tools"
   }
 ]

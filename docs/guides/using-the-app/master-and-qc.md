@@ -142,21 +142,34 @@ does the same. The card then lists a row per file; **Add files…** adds more an
 each chapter its **Title** (the other roles take none, shown as a dash), then press **Master & encode**, at the top
 of the panel beside **Add files…**: with **Master before encoding** on (the
 default; its **?** says the file is brought to the platform's RMS window and peak limit) each file is mastered by the [chain](#the-mastering-chain) to the chosen platform's numbers, then
-encoded; turn it off and the button reads **Encode**. When the project masters with your DAW's FX chain or an Audacity effect
-macro, **Master & encode** first asks your approval for this export. **Approve this render?** names the chain and lists the files
-it masters; for your DAW's FX chain, each file is listed with the region it renders from (a chapter's title, **Opening credits** or
-**Closing credits**). A retail sample has no region, so an export through your DAW's FX chain that includes one is refused before
-the dialog opens, naming the file: remove it, or encode it without mastering. A chapter with no title is refused the same way. For
-Audacity, type the macro's name as Audacity's Macro Manager lists it (letters, digits, spaces, hyphens and underscores); a name
-Audacity cannot run is refused in the dialog. **Approve and master** starts the export; **Cancel** sends nothing. The approval
-covers this one export, so the next one asks again. If the project's chain changed after the dialog opened, the export is refused
-with a message saying so, and pressing **Master & encode** again asks about the chain it now uses. The bar shows the files' progress, **Cancel** stops
-it, and each row's **Status** pill says whether it waits, is mastering, is encoding, is ready or failed, with the
-reason under a failure. Every stage writes a new file next to the app's own output: your renders are never changed.
-When it ends, the line under the bar says how many files were prepared. They are new copies, so the chapter table
-and [Delivery](delivery.md) still go by the files you checked: the check icon beside that line (its tooltip reads
-"Check the prepared files so Delivery counts them") opens the file picker to check the copies, and a chapter counts as
-mastered once its file passes.
+encoded; turn it off and the button reads **Encode**.
+
+When the project masters with your DAW's FX chain or an Audacity effect macro, **Master & encode** first asks your approval for
+this export. For your DAW's FX chain, **Approve this render?** lists first the effects that render runs, as your DAW names them:
+a line says how many effects on how many tracks and how many are switched off, then a numbered row per effect in signal order,
+each track's top to bottom and then the master's (marked **Master**). A switched-off effect is dimmed and has an **Off** badge.
+The **i** beside the count says what your approval covers: each effect's name, whether it is on, and the order, not its
+settings, routing or mute. In a small window the effects can be below what the dialog shows; a button beside **Approve and
+master** then says how many are above and brings the first one into view (at the smallest window sizes, about 320x300,
+only a strip of it shows, #2998); it comes and goes as you resize the window. Under the effects, each file is listed with the region it renders
+from (a chapter's title, **Opening credits** or **Closing credits**).
+
+If the app cannot read the chain from your DAW, or your DAW is not connected, the export is refused before the dialog opens,
+with what to do instead. A retail sample has no region, so an export through your DAW's FX chain that includes one is refused
+the same way, naming the file: remove it, or untick **Master before encoding** to encode it without mastering. A chapter with
+no title is refused too. For Audacity, type the macro's name as Audacity's Macro Manager lists it (letters, digits, spaces,
+hyphens and underscores); a name Audacity cannot run is refused in the dialog.
+
+**Approve and master** starts the export; **Cancel** sends nothing. The approval covers this one export and the chain you were
+shown, so the next export asks again. If the chain changes in your DAW after you approve, the export stops at the next file,
+keeps the files already prepared, and a message names the file; if your DAW stops answering, it stops the same way. Press
+**Master & encode** to approve the chain as it is now. If the project's mastering row changed after the dialog opened, the
+export is refused with a message saying so. The bar shows the files' progress, **Cancel** stops it, and each row's **Status**
+pill says whether it waits, is mastering, is encoding, is ready or failed, with the reason under a failure. Every stage writes a
+new file next to the app's own output: your renders are never changed. When it ends, the line under the bar says how many
+files were prepared. They are new copies, so the chapter table and [Delivery](delivery.md) still go by the files you checked:
+the check icon beside that line (its tooltip reads "Check the prepared files so Delivery counts them") opens the file picker to
+check the copies, and a chapter counts as mastered once its file passes.
 
 From the press of **Master & encode** until the export ends, the files, **Add files…** and **Master before encoding**
 are locked, and **Cancel** shows it is busy until the app answers. When the export ends, finished, cancelled or failed,

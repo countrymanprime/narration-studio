@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ZOOM_STEPS } from '../../../hooks/useZoom';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
-import { announceBrowserSettingChange } from '../../../browserSettings';
+import { announceBrowserSettingChange, useBrowserSettingsVersion } from '../../../browserSettings';
 import { useTheme } from '../../../theme/ThemeContext';
 import type { ThemePreference } from '../../../theme/theme';
 import { useMotionPreference, type MotionPreference } from '../../../motion';
@@ -11,13 +11,21 @@ import { RadioGroup } from '../../primitives/RadioGroup';
 import { Select } from '../../primitives/Select';
 import { retryAction } from '../../primitives/Toast';
 import { InsetCard } from '../../primitives/InsetCard';
+import { Button } from '../../primitives/Button';
+import { Checkbox } from '../../primitives/Checkbox';
 import { Slider } from '../../primitives/Slider';
+import { ToggleGroup } from '../../primitives/ToggleGroup';
 import { READER_FONTS, READER_SIZES, READER_SPACING, READER_WIDTHS, fontStack, widthName } from '../../script/page/tools/text/readerText';
 import { readScrollStep, SCROLL_STEP_MAX, SCROLL_STEP_MIN, writeScrollStep } from '../../editing/ribbon/scrollStep';
 import { readBoothSize, writeBoothSize } from '../../booth/page/boothSize';
+import { DEFAULT_SORT, ENTRY_SORT_STORAGE_KEY, loadEntrySort, saveEntrySort, type ColumnKey } from '../../storybible/entryTable';
+import { RATES, rateLabel, useOutputPrefs } from '../../engine/outputPrefs';
+import { DeviceRow } from '../../editing/output/OutputControls';
+import { useOutputDevices } from '../../editing/output/useOutputDevices';
 import { TEXT_SIZE, textSizePx } from '../../booth/reading/BoothText';
 import { changeReaderText, useReaderText } from './readerText';
 import { useSettingsHost } from '../row/SettingsHost';
+import { useTips } from '../../../tips/useFirstUseTip';
 
 const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
   { value: 'system', label: 'Match my system' },
@@ -110,6 +118,39 @@ export function BoothTextSizeBody() {
       }}
       className={READER_FIELD}
     />
+  );
+}
+
+/**
+ * Editing playback: the speed, volume, silence and output device of the sound the Editing page plays, the same choices its Output popover makes,
+ * kept by this browser window. The Editing page reads them when it opens.
+ */
+export function PlaybackBody() {
+  const { prefs, change } = useOutputPrefs();
+  const { listing, refresh } = useOutputDevices();
+  return (
+    <div className={`flex flex-col gap-3 ${READER_FIELD}`}>
+      <ToggleGroup
+        label="Playback speed"
+        look="segmented"
+        value={String(prefs.rate)}
+        onChange={(rate) => change({ rate: Number(rate) })}
+        options={RATES.map((rate) => ({ value: String(rate), label: rateLabel(rate) }))}
+      />
+      <Slider
+        aria-label="Playback volume"
+        valueText={`${prefs.volume}%`}
+        min={0}
+        max={100}
+        step={1}
+        value={prefs.volume}
+        onValueChange={(volume) => change({ volume })}
+      />
+      <Checkbox checked={prefs.muted} onChange={(muted) => change({ muted })}>
+        Silence playback
+      </Checkbox>
+      <DeviceRow prefs={prefs} devices={listing} deviceProblem={null} onChange={change} onCheckDevices={refresh} heading={false} />
+    </div>
   );
 }
 
@@ -216,6 +257,86 @@ export function ZoomRowBody() {
         onChange={(value) => choose(Number(value))}
       />
       {level !== 1 && <IconButton action="undo" label="Reset zoom to 100%" className="border-transparent" onClick={() => choose(1)} />}
+    </div>
+  );
+}
+
+const ENTRY_ORDERS: { value: string; label: string; key: { column: ColumnKey; dir: 'asc' | 'desc' } }[] = [
+  { value: 'name-asc', label: 'Name, A to Z', key: { column: 'name', dir: 'asc' } },
+  { value: 'name-desc', label: 'Name, Z to A', key: { column: 'name', dir: 'desc' } },
+  { value: 'kind-asc', label: 'Kind, first to last', key: { column: 'kind', dir: 'asc' } },
+  { value: 'kind-desc', label: 'Kind, last to first', key: { column: 'kind', dir: 'desc' } },
+  { value: 'book-asc', label: 'Book order', key: { column: 'book', dir: 'asc' } },
+  { value: 'book-desc', label: 'Book order, reversed', key: { column: 'book', dir: 'desc' } },
+  { value: 'mentions-desc', label: 'Most mentioned', key: { column: 'mentions', dir: 'desc' } },
+  { value: 'mentions-asc', label: 'Least mentioned', key: { column: 'mentions', dir: 'asc' } },
+];
+const DEFAULT_ENTRY_ORDER = 'name-asc';
+const entryOrderOf = (sort: readonly { column: ColumnKey; dir: 'asc' | 'desc' }[]): string => {
+  const first = sort[0] ?? DEFAULT_SORT[0]!;
+  return `${first.column}-${first.dir}`;
+};
+
+/**
+ * Story Bible order: the one column the entry table sorts by first, the same sort its headers and Sort menu keep in this browser window. A
+ * choice here replaces the header clicks that broke ties. It reads the stored sort on every change (a header click while this is shown, or
+ * another window's write), so it never shows an order the Story Bible is not using.
+ */
+export function EntrySortBody() {
+  const { notify } = useSettingsHost();
+  useBrowserSettingsVersion();
+  useEffect(() => {
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === null || event.key === ENTRY_SORT_STORAGE_KEY) announceBrowserSettingChange();
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+  const stored = loadEntrySort();
+  const order = entryOrderOf(stored);
+  const changed = JSON.stringify(stored) !== JSON.stringify(DEFAULT_SORT);
+  const choose = (value: string) => {
+    const picked = ENTRY_ORDERS.find((option) => option.value === value);
+    if (picked && !saveEntrySort([picked.key])) notify('Story Bible order was not saved: this browser is not keeping settings.', 'error');
+  };
+  return (
+    <div className="flex items-center gap-2">
+      <Select
+        label="Story Bible order"
+        value={order}
+        onChange={choose}
+        options={ENTRY_ORDERS.map(({ value, label }) => ({ value, label }))}
+        className={READER_FIELD}
+      />
+      {changed && (
+        <IconButton action="undo" label="Reset Story Bible order to Name, A to Z" className="border-transparent" onClick={() => choose(DEFAULT_ENTRY_ORDER)} />
+      )}
+    </div>
+  );
+}
+
+/** First-use tips: how many were dismissed with Got it, and Show tips again, which forgets them all (the host keeps them in Tips.seen). */
+export function TipsBody() {
+  const { notify } = useSettingsHost();
+  const { seen, failed, reset, retry } = useTips();
+  const [busy, setBusy] = useState(false);
+  const count = seen?.size ?? 0;
+  const showAgain = async () => {
+    setBusy(true);
+    const problem = await reset();
+    setBusy(false);
+    if (problem) notify(`The tips could not be shown again: ${problem}`, 'error');
+  };
+  return (
+    <div className="flex items-center gap-3">
+      <span className="text-sm">{seen === null ? (failed ? 'Could not be read' : 'Reading…') : count === 0 ? 'None dismissed' : `${count} dismissed`}</span>
+      {seen === null && failed ? (
+        <IconButton action="retry" size="sm" onClick={retry} />
+      ) : (
+        <Button variant="secondary" size="sm" disabled={busy || count === 0} onClick={() => void showAgain()}>
+          Show tips again
+        </Button>
+      )}
     </div>
   );
 }

@@ -376,6 +376,66 @@ export const settingsStates: StateEntry[] = [
   },
   {
     page: 'settings',
+    state: 'story-bible-order',
+    description:
+      'Settings, Appearance & keys scrolled to Story Bible order under Look: a select of eight orders, Name, A to Z by default, with its row in full view',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
+    state: 'story-bible-order-changed',
+    description: 'Settings, Appearance & keys at Story Bible order after Most mentioned is chosen: the select and its Reset button beside it, in full view',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
+    state: 'first-use-tips',
+    description: 'Settings, App & updates scrolled to First-use tips under Tips: how many are dismissed and Show tips again, with its row in full view',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
+    state: 'first-use-tips-dismissed',
+    description:
+      'Settings, App & updates at First-use tips after the Script tip was dismissed: "1 dismissed" and an enabled Show tips again, with its row in full view',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
+    state: 'schedule-basis',
+    description: 'Settings, Project scrolled to Schedule basis: Standard chosen, Your own pace beside it, with its row in full view',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
+    state: 'schedule-basis-own',
+    description: 'Settings, Project at Schedule basis with Your own pace chosen: the row is marked Changed',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
+    state: 'editing-playback',
+    description:
+      'Settings, Appearance & keys scrolled to Editing playback under Listening: speed, volume, silence and the output device, with the row in full view',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
+    state: 'effects-cap',
+    description:
+      'Settings, Recording & DAW scrolled to Effects coverage cap under Effects: 10 % after Override for this project, with its own project box, the row in full view',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
     state: 'wave-scroll-step',
     description:
       'Settings, Appearance & keys scrolled to the Editing section: Waveform arrow step, a slider from 15 to 30 seconds reading 20 s, with the rows around it',

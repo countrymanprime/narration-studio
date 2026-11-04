@@ -163,9 +163,9 @@ describe('Settings: Models & downloads', () => {
 
   it('keeps Open folder at the end of the disk bar, not wrapped under the path', async () => {
     await renderModels();
-    const open = within(document.querySelector<HTMLElement>('[data-disk]')!).getByRole('button', { name: 'Open folder' });
+    const open = within(document.querySelector<HTMLElement>('[data-disk]')!).getByRole('button', { name: 'Open the folder' });
     expect(open.className).toContain('flex-none');
-    expect(open.parentElement!.getAttribute('data-disk')).not.toBeNull();
+    expect(open.closest('[data-disk]')).not.toBeNull();
     expect(document.querySelector('[data-disk]')!.className).not.toContain('flex-wrap');
   });
 
@@ -332,9 +332,9 @@ describe('Settings: Models & downloads', () => {
     const assetsOpenFolder = vi.fn().mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error('No file manager.'));
     await renderModels({ overrides: { assetsOpenFolder } });
     await ready('whisper/small');
-    fireEvent.click(screen.getByRole('button', { name: 'Open folder' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open the folder' }));
     await waitFor(() => expect(assetsOpenFolder).toHaveBeenCalledTimes(1));
-    fireEvent.click(screen.getByRole('button', { name: 'Open folder' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open the folder' }));
     expect((await screen.findByRole('alert')).textContent).toContain('The folder could not be opened: No file manager.');
   });
 
