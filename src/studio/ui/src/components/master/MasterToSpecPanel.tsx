@@ -18,6 +18,9 @@ import { ARRIVE_CLASSES } from '../primitives/changeHighlight';
 import { MasteringApprovalDialog } from './MasteringApprovalDialog';
 
 const MUTED = { color: 'var(--text-muted)' };
+
+/** Whether the keyboard has fallen to the page: what a control that takes itself away must not leave behind. */
+const onBody = (): boolean => document.activeElement === null || document.activeElement === document.body;
 const DANGER = { color: 'var(--danger-text)' };
 
 const KIND_OPTIONS: { value: PackageItemKind; label: string }[] = [
@@ -76,8 +79,18 @@ export function MasterToSpecPanel({
   const chainLabel = chain?.label;
   // The plan the open approval dialog shows: the host's answer when it opened, so a later read cannot change what the narrator approves.
   const [approving, setApproving] = useState<ExportPlan>();
-  const started = !!exportJob?.files.length;
-  const hasFiles = items.length > 0 || started;
+  // While a job runs the table is its own files, read-only. Once it ends, finished, cancelled or failed, the picked files are editable
+  // again with Add files…, the checkbox and Master & encode (#2935); the job the page opened on gives its files to an empty list
+  // (useExportJobs), so a last run is dismissed by removing its rows, and the card is back to its own "Choose files…" (#2931).
+  const showsJob = exportRunning && !!exportJob?.files.length;
+  // From the press of Master & encode until the host answers, the rows are locked too: the job runs on the files as they were then.
+  const locked = showsJob || jobs.starting;
+  const hasFiles = items.length > 0 || showsJob;
+  const masterRef = useRef<HTMLButtonElement>(null);
+  const addRef = useRef<HTMLButtonElement>(null);
+  const removeRefs = useRef(new Map<string, HTMLButtonElement>());
+  // What gets the keyboard after the render that follows a Remove: the next row's Remove, or the one before, or the card's own button.
+  const afterRemove = useRef<string | 'emptied'>(undefined);
   // A start or pick that failed is a toast, never a line in the card (rule 7, #2632).
   useErrorToast(problem);
   // A job that ended in error is a toast too, not a red line under the table (rule 7, #2632).
@@ -101,6 +114,27 @@ export function MasterToSpecPanel({
     if (!hasFiles && hadFiles.current && lost) chooseRef.current?.focus();
     hadFiles.current = hasFiles;
   }, [hasFiles]);
+  // A run that ends takes Cancel away with it, whether it was pressed or the run finished: the keyboard goes to Master & encode (or Add
+  // files… when nothing is picked), never to the page's <body> (#2935 review).
+  const wasRunning = useRef(exportRunning);
+  useEffect(() => {
+    const ended = wasRunning.current && !exportRunning;
+    wasRunning.current = exportRunning;
+    if (ended && onBody()) (masterRef.current ?? addRef.current ?? chooseRef.current)?.focus();
+  }, [exportRunning]);
+  useEffect(() => {
+    const target = afterRemove.current;
+    if (target === undefined) return;
+    afterRemove.current = undefined;
+    // The last Remove leaves the card with its own "Choose files…" button, which takes the keyboard (#2931; #2935's review).
+    if (target === 'emptied') chooseRef.current?.focus();
+    else removeRefs.current.get(target)?.focus();
+  });
+  const remove = (path: string, rows: readonly { path: string }[]) => {
+    const at = rows.findIndex((row) => row.path === path);
+    afterRemove.current = rows[at + 1]?.path ?? rows[at - 1]?.path ?? 'emptied';
+    jobs.removeItem(path);
+  };
   // Starting removes Master & encode (the table shows the job instead): focus goes to the files, never to the page's <body>.
   const focusFiles = () => revealRef.current;
   // Answers whether the export started, so the dialog keeps a macro name only once the host took it.
@@ -109,7 +143,7 @@ export function MasterToSpecPanel({
       if (outcome === 'busy') return false;
       setApproving(undefined);
       if (outcome === 'refused') onStartRefused?.();
-      if (outcome === 'started' && (document.activeElement === null || document.activeElement === document.body)) focusFiles()?.focus();
+      if (outcome === 'started' && onBody()) focusFiles()?.focus();
       return outcome === 'started';
     });
   // With mastering on, the host says first what it would do (ExportPlan): a request it would refuse is refused here, before any
@@ -128,7 +162,7 @@ export function MasterToSpecPanel({
   };
   const masterCheckbox = (
     <div className={`flex items-center gap-2 ${hasFiles ? 'mt-3' : ''}`}>
-      <Checkbox checked={jobs.master} onChange={jobs.setMaster}>
+      <Checkbox checked={jobs.master} onChange={jobs.setMaster} disabled={jobs.starting}>
         {/* The row's own label, as the host words it: lowercasing it made "the your DAW's FX chain" (#2879's review). */}
         Master before encoding{chainLabel ? `: ${chainLabel}` : ''}
       </Checkbox>
@@ -137,6 +171,7 @@ export function MasterToSpecPanel({
       </HelpButton>
     </div>
   );
+  const rows = showsJob && exportJob ? exportJob.files : items;
   return (
     <Panel
       title="Master to spec"
@@ -150,13 +185,13 @@ export function MasterToSpecPanel({
         ) : (
           // The panel's action sits in its header beside Add files…, where it stays at every width; it used to follow the checkbox's
           // sentence or drop under it as the window changed (R3MS-12).
-          !started && (
+          !showsJob && (
             <div className="flex flex-wrap gap-2">
-              <Button variant="secondary" onClick={() => void jobs.pick()} pending={jobs.picking} disabled={exportRunning}>
+              <Button ref={addRef} variant="secondary" onClick={() => void jobs.pick()} pending={jobs.picking} disabled={jobs.starting}>
                 Add files…
               </Button>
               {items.length > 0 && (
-                <Button onClick={masterAndEncode} pending={jobs.starting && !approving}>
+                <Button ref={masterRef} onClick={masterAndEncode} pending={jobs.starting && !approving}>
                   {jobs.master ? 'Master & encode' : 'Encode'}
                 </Button>
               )}
@@ -165,7 +200,7 @@ export function MasterToSpecPanel({
         )
       }
     >
-      {(items.length > 0 || started) && (
+      {hasFiles && (
         <div
           ref={revealRef}
           tabIndex={0}
@@ -183,14 +218,15 @@ export function MasterToSpecPanel({
               </TableRow>
             </TableHead>
             <TableBody>
-              {(started && exportJob ? exportJob.files : items).map((item) => {
-                const result = exportJob?.files.find((file) => file.path === item.path);
+              {rows.map((item) => {
+                // A running job's row is its own result; otherwise the last job's, unless the row was removed or is starting again.
+                const result = showsJob ? exportJob?.files.find((file) => file.path === item.path) : jobs.resultFor(item.path);
                 const status = exportRowStatus(result);
                 return (
                   <TableRow key={item.path}>
                     <TableCell className="break-words">{fileName(item.path)}</TableCell>
                     <TableCell>
-                      {started ? (
+                      {locked ? (
                         KIND_OPTIONS.find((option) => option.value === item.kind)?.label
                       ) : (
                         <Select
@@ -208,7 +244,7 @@ export function MasterToSpecPanel({
                           <span aria-hidden="true">—</span>
                           <span className="sr-only">No title for this role</span>
                         </span>
-                      ) : started ? (
+                      ) : locked ? (
                         item.title
                       ) : (
                         <TextField
@@ -221,14 +257,22 @@ export function MasterToSpecPanel({
                     <TableCell className="whitespace-nowrap">
                       <StatusBadge tone={statusTone(status.status)} label={status.label} />
                       {result?.status === 'failed' && (
-                        <span className="mt-1 block text-[0.75rem] whitespace-normal" style={DANGER}>
+                        // A reason with no spaces (a long path) breaks anywhere rather than run past the column (#2935 review).
+                        <span className="mt-1 block text-[0.75rem] [overflow-wrap:anywhere] whitespace-normal" style={DANGER}>
                           {result.error ?? 'unknown reason'}
                         </span>
                       )}
                     </TableCell>
                     <TableCell align="right">
-                      {!started && (
-                        <Button variant="secondary" onClick={() => jobs.removeItem(item.path)}>
+                      {!locked && (
+                        <Button
+                          ref={(button) => {
+                            if (button) removeRefs.current.set(item.path, button);
+                            else removeRefs.current.delete(item.path);
+                          }}
+                          variant="secondary"
+                          onClick={() => remove(item.path, rows)}
+                        >
                           Remove
                         </Button>
                       )}
@@ -241,7 +285,7 @@ export function MasterToSpecPanel({
         </div>
       )}
       {/* With nothing picked the checkbox is the card's body: the one choice that applies before picking. */}
-      {(!hasFiles || (items.length > 0 && !started)) && masterCheckbox}
+      {(!hasFiles || (items.length > 0 && !showsJob)) && masterCheckbox}
       {exportJob && exportRunning && (
         <div className="mt-3 flex flex-col gap-2">
           <ProgressBar label="Preparing files" value={exportJob.percent} running valueText={`${exportJob.percent}% prepared`} />
@@ -249,7 +293,7 @@ export function MasterToSpecPanel({
             <p aria-live="polite" className="text-sm">
               {exportJob.message}
             </p>
-            <Button variant="secondary" onClick={jobs.cancelExport}>
+            <Button variant="secondary" onClick={jobs.cancelExport} pending={jobs.cancelling}>
               Cancel
             </Button>
           </div>

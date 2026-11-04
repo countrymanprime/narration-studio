@@ -397,6 +397,17 @@ describe('Master & QC page body', () => {
     expect(screen.queryByRole('table', { name: 'Files to export' })).toBeNull();
   });
 
+  // Ported from #2935's review: the card now stays when its last file goes (#2931), so the keyboard lands on its own button.
+  it("removing the last file to master puts the keyboard on the card's Choose files to master…, not the page (#2935 review)", async () => {
+    mount([]);
+    const entry = await screen.findByRole('button', { name: 'Master all to spec…' });
+    await userEvent.click(entry);
+    const table = await screen.findByRole('table', { name: 'Files to export' });
+    for (const remove of within(table).getAllByRole('button', { name: 'Remove' })) await userEvent.click(remove);
+    expect(screen.queryByRole('table', { name: 'Files to export' })).toBeNull();
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Choose files to master…' }));
+  });
+
   it('a-measured-book-offers-Re-check-and-Choose-other-files-as-icon-buttons', async () => {
     mount(ALL_PASS);
     for (const name of [/^Re-check \d+ files?$/, 'Choose other files…']) {
