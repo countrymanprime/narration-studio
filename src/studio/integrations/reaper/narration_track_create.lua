@@ -2,11 +2,13 @@
 -- to record on. Loaded by narration_ui_bridge.lua, which passes the shared helpers as the chunk argument.
 --
 -- track_create|run|name adds one track at the end of the track list (after every track the narrator has, never between
--- them), names it, and answers TRACK_CREATED|run|guid|index|name: the new track's GUID, its 0-based index and the name
+-- them), at the top level, names it, and answers TRACK_CREATED|run|guid|index|name: the new track's GUID, its 0-based index and the name
 -- it was given, so the host can link the chapter to it. The name is trimmed and a line break or tab inside it becomes a
 -- space (a track name is one line); a name that is empty after that is refused. It refuses while REAPER records, so no
 -- track appears in the middle of a take, and changes nothing else: no other track's selection, arm, mute or name. It is one
--- undo point ("<app name>: add track") and never saves the project. It is not idempotent: each call adds a track.
+-- undo point ("<app name>: add track") and never saves the project. It is not idempotent: each call adds a track. A project
+-- that ends inside a folder left open has that folder closed on its last track first (core.append_track), so the new track
+-- is never the open folder's last child; that is the only change to a track that was there, and no track changes parent.
 --
 -- track_create|run|name|parentGuid adds a voice inside a chapter's folder (docs/prds/booth-voice-tracks.prd.md, phase 3): the new track goes after
 -- the parent's last descendant as a direct child of the parent, and the folder depth changes (I_FOLDERDEPTH) of that last descendant and of
@@ -15,7 +17,13 @@
 -- its child. The new track records from the same input and mode as the folder's first child (the parent's own when it has none). A parent
 -- that is gone answers TRACK_STALE and adds nothing.
 --
--- Events: TRACK_CREATED|run|guid|index|name, TRACK_STALE|run|parentGuid, or ERROR|run|message.
+-- track_create|run|name||childName adds a chapter folder for a Voice folders project (#2840, part 2): a folder named name and, inside it,
+-- one child named childName (the host sends "Narrator"), both after every other track, in the same one undo block. A folder left open at the
+-- end of the project (REAPER accepts a last track whose I_FOLDERDEPTH leaves one open) is first closed on that last track, so the new folder
+-- is never nested inside the chapter before it; that is the only change to a track that was there. It answers
+-- TRACK_CREATED|run|guid|index|name|childGuid|childIndex|childName. A parent and a child name together are refused.
+--
+-- Events: TRACK_CREATED|run|guid|index|name[|childGuid|childIndex|childName], TRACK_STALE|run|parentGuid, or ERROR|run|message.
 
 local core = ...
 local event = core.event
@@ -24,6 +32,7 @@ local UNDO_ADD_TRACK = core.brand.name .. ': add track'
 local RECORDING = 'REAPER is recording. Stop recording first.'
 local STRUCTURE = 'Adding the track there would move other tracks into a different folder, so nothing was added. Check the folders in REAPER.'
 local NO_NAME = 'The new track needs a name.'
+local BOTH = 'A new track goes inside a folder or makes a folder, not both.'
 
 local function recording()
   return math.floor(reaper.GetPlayState() / 4) % 2 == 1
@@ -103,7 +112,25 @@ local function insert_child(plan)
   return plan.index
 end
 
-local function track_create(session_dir, run_id, name_text, parent_text)
+-- Inside the undo block: the folder named name and its one child named child_name, appended after every track. Answers both and their indexes.
+-- The folder is appended at the top level, never inside a folder left open at the end of the project (core.append_track).
+local function append_folder(name, child_name)
+  local folder, index = core.append_track()
+  reaper.InsertTrackAtIndex(index + 1, false)
+  local child = reaper.GetTrack(0, index + 1)
+  reaper.SetMediaTrackInfo_Value(folder, 'I_FOLDERDEPTH', 1)
+  reaper.SetMediaTrackInfo_Value(child, 'I_FOLDERDEPTH', -1)
+  reaper.GetSetMediaTrackInfo_String(folder, 'P_NAME', name, true)
+  reaper.GetSetMediaTrackInfo_String(child, 'P_NAME', child_name, true)
+  return folder, index, child, index + 1
+end
+
+local function stored_name(track)
+  local _, stored = reaper.GetSetMediaTrackInfo_String(track, 'P_NAME', '', false)
+  return stored
+end
+
+local function track_create(session_dir, run_id, name_text, parent_text, child_text)
   local name = clean_name(name_text)
   if name == '' then
     event(session_dir, 'ERROR', run_id, NO_NAME)
@@ -114,6 +141,29 @@ local function track_create(session_dir, run_id, name_text, parent_text)
     return
   end
   local parent_guid = normalize_guid(parent_text)
+  local child_name = clean_name(child_text)
+  if child_name ~= '' then
+    if parent_guid ~= '' then
+      event(session_dir, 'ERROR', run_id, BOTH)
+      return
+    end
+    reaper.Undo_BeginBlock2(0)
+    local folder, index, child, child_index = append_folder(name, child_name)
+    reaper.Undo_EndBlock2(0, UNDO_ADD_TRACK, -1)
+    reaper.UpdateArrange()
+    event(
+      session_dir,
+      'TRACK_CREATED',
+      run_id,
+      reaper.GetTrackGUID(folder),
+      index,
+      stored_name(folder),
+      reaper.GetTrackGUID(child),
+      child_index,
+      stored_name(child)
+    )
+    return
+  end
   local plan
   if parent_guid ~= '' then
     local parent_index, depths = locate(parent_guid)
@@ -316,7 +366,7 @@ end
 
 return function(registry)
   registry.register('track_create', function(ctx, args)
-    track_create(ctx.session_dir, args[1] or '', args[2] or '', args[3] or '')
+    track_create(ctx.session_dir, args[1] or '', args[2] or '', args[3] or '', args[4] or '')
   end)
   registry.register('chapter_folders', function(ctx, args)
     chapter_folders(ctx.session_dir, args[1] or '', args[2] or '', args[3] or '', args[4] or '')

@@ -134,13 +134,15 @@ and the built-in chain is used until it can.
 
 ## Mastering to spec
 
-The **Master all to spec…** icon button, beside **Check files…**, picks the rendered files to master and encode and opens
-**Master to spec** with a row per file; **Add files…** adds more and **Remove** drops one. Give each its **Role** in the
-package (**Chapter**, **Opening credits**, **Closing credits** or **Retail sample**) and each chapter its **Title** (the other
-roles take none, shown as a dash), then press **Master & encode**, at the top of the panel beside **Add files…**. With
-**Master before encoding** on (the default; its **?** says the file is brought to the platform's RMS window and peak limit),
-each file is mastered by the [chain](#the-mastering-chain) to the chosen platform's numbers, then encoded; turn it off and the
-button reads **Encode**.
+The **Master to spec** card is always on the page. Before you pick anything it holds **Choose files to master…** and the
+**Master before encoding** checkbox; with the checkbox off the button reads **Choose files to encode…**. The button picks
+the rendered files to master and encode; the **Master all to spec…** icon beside **Check files…** at the top of the page
+does the same. The card then lists a row per file; **Add files…** adds more and **Remove** drops one. Give each its
+**Role** in the package (**Chapter**, **Opening credits**, **Closing credits** or **Retail sample**) and
+each chapter its **Title** (the other roles take none, shown as a dash), then press **Master & encode**, at the top
+of the panel beside **Add files…**: with **Master before encoding** on (the
+default; its **?** says the file is brought to the platform's RMS window and peak limit) each file is mastered by the [chain](#the-mastering-chain) to the chosen platform's numbers, then
+encoded; turn it off and the button reads **Encode**.
 
 When the project masters with your DAW's FX chain or an Audacity effect macro, **Master & encode** first asks your approval for
 this export. For your DAW's FX chain, **Approve this render?** lists first the effects that render runs, as your DAW names them:
@@ -175,6 +177,8 @@ they unlock: each row keeps its **Status** from that run until you remove it, an
 the titles or the checkbox and press **Master & encode** again. If you come back to Master & QC while the app is still
 open, the last export's files are listed again with their status. Remove them to dismiss that run. Picking a file that
 is already listed adds no row, and a message says so.
+
+![The Master to spec card before any file is picked: Choose files to master… and Master before encoding](../../images/ui/master-to-spec-empty.webp)
 
 ![Master all to spec with five files picked and given a role](../../images/ui/master-to-spec-picked.webp)
 

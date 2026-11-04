@@ -184,6 +184,13 @@ export const masterDrivers: Record<string, Driver> = {
     await page.getByText(/^Check some files first: the report covers the files measured here/).waitFor();
     await scrollToTop(page, page.getByRole('region', { name: 'Report' }));
   },
+  'to-spec-empty': async (page) => {
+    await openMaster(page);
+    const panel = page.getByRole('region', { name: 'Master to spec' });
+    await panel.getByRole('button', { name: 'Choose files to master…' }).waitFor();
+    await panel.getByRole('checkbox', { name: /^Master before encoding: Built-in chain/ }).waitFor();
+    await scrollToTop(page, panel);
+  },
   'to-spec-picked': async (page) => {
     await openMaster(page);
     await pickFilesToMaster(page);

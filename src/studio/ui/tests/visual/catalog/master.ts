@@ -138,6 +138,14 @@ export const masterStates: StateEntry[] = [
   // Master & QC, "Master all to spec…" (no mock equivalent, kept as built)
   {
     page: 'master',
+    state: 'to-spec-empty',
+    description:
+      'Master & QC, the Master to spec card before any file is picked - its labelled primary Choose files to master… and Master before encoding with the built-in chain; the page header keeps its icon as the secondary way in (#2931)',
+    ...KEEPS_DESKTOP_SCROLL,
+    ...REFLOW,
+  },
+  {
+    page: 'master',
     state: 'to-spec-picked',
     description:
       'Master & QC, Master all to spec… with five files picked and given a role - two chapters (their titles editable), opening and closing credits, a retail sample, Master before encoding on with the built-in chain, and Master & encode',
