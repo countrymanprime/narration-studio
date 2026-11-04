@@ -43,6 +43,7 @@ const KIND_LABELS: Readonly<Record<DawActionKind, string>> = {
   record_take: MOCK_DAW_UNDO_LABELS.recordedMedia,
   replace_range: MOCK_DAW_UNDO_LABELS.replace,
   restore_replacement: MOCK_DAW_UNDO_LABELS.restoreReplacement,
+  use_take: MOCK_DAW_UNDO_LABELS.useTake,
 };
 
 /** Each kind worded for the answers, one and several (dawport/reaper's actionNouns). */
@@ -51,6 +52,7 @@ const KIND_NOUNS: Readonly<Record<DawActionKind, readonly [string, string]>> = {
   record_take: ['take', 'recorded passes of the take'],
   replace_range: ['replacement', 'replacements'],
   restore_replacement: ['put-back', 'put-backs'],
+  use_take: ['choice of take', 'choices of take'],
 };
 
 /** dawport/reaper's answer when the DAW's next undo point is not the kind's: nothing was undone. */
