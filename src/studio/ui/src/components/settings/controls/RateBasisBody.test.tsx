@@ -77,4 +77,47 @@ describe('the schedule basis setting (parity audit)', () => {
     const standard = await radio('Standard');
     expect(standard.hasAttribute('data-disabled') || standard.getAttribute('aria-disabled') === 'true').toBe(true);
   });
+
+  it('does not let a plan read that started before a save overwrite it', async () => {
+    const api = createMockApi();
+    let finishSlow: (plan: Awaited<ReturnType<NarrationApi['productionPlan']>>) => void = () => undefined;
+    const read = vi.spyOn(api, 'productionPlan');
+    mount(api);
+    await radio('Standard');
+    read.mockImplementationOnce(() => new Promise((resolve) => (finishSlow = resolve)));
+    act(() => void window.dispatchEvent(new Event('focus')));
+    fireEvent.click(await radio('Your own pace'));
+    await waitFor(async () => expect((await radio('Your own pace')).getAttribute('aria-checked')).toBe('true'));
+    await act(async () => finishSlow({ deadline: null, contractedAmount: null, payment: 'none', rateBasis: 'standard', milestones: [] } as never));
+    expect((await radio('Your own pace')).getAttribute('aria-checked')).toBe('true');
+  });
+
+  it('saves once when the same choice is pressed twice before the host has answered', async () => {
+    const api = createMockApi();
+    let answer: () => void = () => undefined;
+    const save = vi
+      .spyOn(api, 'setProductionRateBasis')
+      .mockImplementation(
+        (basis) =>
+          new Promise(
+            (resolve) => (answer = () => resolve({ deadline: null, contractedAmount: null, payment: 'none', rateBasis: basis, milestones: [] } as never)),
+          ),
+      );
+    mount(api);
+    const own = await radio('Your own pace');
+    fireEvent.click(own);
+    fireEvent.click(own);
+    expect(save).toHaveBeenCalledTimes(1);
+    await act(async () => answer());
+  });
+
+  it('reports a read that fails once, not again on every window focus', async () => {
+    const api = createMockApi();
+    vi.spyOn(api, 'productionPlan').mockRejectedValue(new Error('no project'));
+    notify.mockClear();
+    mount(api);
+    await waitFor(() => expect(notify).toHaveBeenCalledTimes(1));
+    for (let i = 0; i < 3; i += 1) await act(async () => void window.dispatchEvent(new Event('focus')));
+    expect(notify).toHaveBeenCalledTimes(1);
+  });
 });

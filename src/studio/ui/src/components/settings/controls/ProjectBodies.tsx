@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import type { ProductionRateBasis } from '../../../api/contracts/production';
 import { usePort } from '../../../ports/usePort';
@@ -65,36 +65,61 @@ const BASIS_OPTIONS: { value: ProductionRateBasis; label: string }[] = [
 
 /**
  * Schedule basis: whether the hours on Production and Schedule use the standard words per finished hour or this narrator's measured pace, the
- * same choice as the Production target popover's toggle (the plan's `rateBasis`). It follows a choice made there while it is shown.
+ * same choice as the Production target popover's toggle (the plan's `rateBasis`). It follows a choice made there while it is shown. A read
+ * that was started before a save, or that is overtaken by a later read, is dropped, so the row shows what the host last answered; a choice
+ * is sent once until the host has answered; a read that fails is reported once until a read succeeds.
  */
 export function RateBasisBody() {
   const production = usePort('production');
   const { notify } = useSettingsHost();
   const [basis, setBasis] = useState<ProductionRateBasis | null>(null);
+  const [saving, setSaving] = useState(false);
+  const latest = useRef(0);
+  const reported = useRef(false);
   const read = useCallback(() => {
+    const mine = ++latest.current;
     production.productionPlan().then(
-      (plan) => setBasis(plan.rateBasis ?? 'standard'),
-      (failure: unknown) => notify(`The schedule basis could not be read: ${apiErrorMessage(failure)}`, 'error'),
+      (plan) => {
+        if (mine !== latest.current) return;
+        reported.current = false;
+        setBasis(plan.rateBasis ?? 'standard');
+      },
+      (failure: unknown) => {
+        if (mine !== latest.current || reported.current) return;
+        reported.current = true;
+        notify(`The schedule basis could not be read: ${apiErrorMessage(failure)}`, 'error');
+      },
     );
   }, [production, notify]);
   useEffect(() => {
     read();
     window.addEventListener('focus', read);
-    const stop = subscribeRateBasis((next) => setBasis(next ?? 'standard'));
+    const stop = subscribeRateBasis((next) => {
+      latest.current += 1;
+      setBasis(next ?? 'standard');
+    });
     return () => {
       window.removeEventListener('focus', read);
       stop();
     };
   }, [read]);
   const choose = (next: ProductionRateBasis) => {
+    if (saving) return;
+    latest.current += 1;
+    setSaving(true);
     production.setProductionRateBasis(next).then(
       (saved) => {
+        latest.current += 1;
+        setSaving(false);
         setBasis(saved.rateBasis ?? 'standard');
         announceRateBasis(saved.rateBasis);
       },
-      (failure: unknown) => notify(`The schedule basis was not saved: ${apiErrorMessage(failure)}`, 'error'),
+      (failure: unknown) => {
+        setSaving(false);
+        notify(`The schedule basis was not saved: ${apiErrorMessage(failure)}`, 'error');
+      },
     );
   };
-  const options = BASIS_OPTIONS.map((option) => ({ ...option, disabled: basis === null }));
+  const options = BASIS_OPTIONS.map((option) => ({ ...option, disabled: basis === null || saving }));
   return <RadioGroup label="Schedule basis" value={basis ?? 'standard'} onChange={choose} options={options} />;
 }
