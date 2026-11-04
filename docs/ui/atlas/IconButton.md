@@ -121,6 +121,7 @@ Storybook title: `Primitives/IconButton`. Source: `src/components/primitives/Ico
 - `src/components/settings/controls/ChapterLayoutBody.tsx`
 - `src/components/settings/controls/DefinitionsBody.tsx`
 - `src/components/settings/controls/ProjectBodies.tsx`
+- `src/components/settings/controls/SyncEnabledBody.tsx`
 - `src/components/settings/models/AssetRow.tsx`
 - `src/components/settings/page/MarksPanel.tsx`
 - `src/components/settings/page/StoryBibleTypesPanel.tsx`
@@ -135,6 +136,7 @@ Storybook title: `Primitives/IconButton`. Source: `src/components/primitives/Ico
 - `src/components/storybible/PropertiesSection.tsx`
 - `src/components/storybible/Relationships.tsx`
 - `src/components/storybible/SortMenu.tsx`
+- `src/components/storybible/source/PronunciationCandidates.tsx`
 - `src/components/storybible/suggested/import/ImportDialog.tsx`
 - `src/components/storybible/suggested/row/SuggestionRow.tsx`
 - `src/components/storybible/voicesamples/VoiceSampleRow.tsx`

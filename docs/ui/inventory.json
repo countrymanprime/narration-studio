@@ -452,6 +452,7 @@
         "src/components/storybible/VoiceDataPanel.tsx",
         "src/components/storybible/VoiceReferencesSection.tsx",
         "src/components/storybible/source/PronSourceTag.tsx",
+        "src/components/storybible/source/PronunciationCandidates.tsx",
         "src/components/storybible/source/SourceMenu.tsx",
         "src/components/storybible/suggested/import/ImportDialog.tsx",
         "src/components/storybible/suggested/panel/ScanStatus.tsx",
@@ -1519,7 +1520,6 @@
         "src/components/schedule/MilestoneTable.tsx",
         "src/components/script/bookmarks/ui/BookmarkRibbon.tsx",
         "src/components/script/page/rail/words/DefinitionSourceMenu.tsx",
-        "src/components/script/page/rail/words/WordCard.tsx",
         "src/components/script/page/rail/words/WordsTab.tsx",
         "src/components/script/page/tools/select/KindMenu.tsx",
         "src/components/script/page/tools/select/MarkMenu.tsx",
@@ -1660,6 +1660,7 @@
         "src/components/settings/controls/ChapterLayoutBody.tsx",
         "src/components/settings/controls/DefinitionsBody.tsx",
         "src/components/settings/controls/ProjectBodies.tsx",
+        "src/components/settings/controls/SyncEnabledBody.tsx",
         "src/components/settings/models/AssetRow.tsx",
         "src/components/settings/page/MarksPanel.tsx",
         "src/components/settings/page/StoryBibleTypesPanel.tsx",
@@ -1674,6 +1675,7 @@
         "src/components/storybible/PropertiesSection.tsx",
         "src/components/storybible/Relationships.tsx",
         "src/components/storybible/SortMenu.tsx",
+        "src/components/storybible/source/PronunciationCandidates.tsx",
         "src/components/storybible/suggested/import/ImportDialog.tsx",
         "src/components/storybible/suggested/row/SuggestionRow.tsx",
         "src/components/storybible/voicesamples/VoiceSampleRow.tsx",
@@ -2481,7 +2483,6 @@
         "Plain Text",
         "Marks Of Each Style",
         "Overlapping Marks",
-        "Flagged Words",
         "Name Mentions",
         "Speaker Chips",
         "Find Matches",
@@ -2689,11 +2690,12 @@
         "Button",
         "Menu With Unavailable Sources",
         "Name Row Editing",
+        "Name Row Under A Heading",
+        "Name Row Dictionary Candidates",
         "Name Row Read Only"
       ],
       "consumers": [
         "src/components/script/page/rail/bible/EntryCard.tsx",
-        "src/components/script/page/rail/words/WordCard.tsx",
         "src/components/storybible/source/NamePronunciation.tsx"
       ],
       "a11yDebt": false
@@ -2717,6 +2719,7 @@
         "src/components/settings/controls/AppearanceBodies.tsx",
         "src/components/settings/controls/DefinitionsBody.tsx",
         "src/components/settings/controls/EngineBody.tsx",
+        "src/components/settings/controls/SyncEnabledBody.tsx",
         "src/components/settings/controls/TakeToneBody.tsx"
       ],
       "a11yDebt": false
@@ -3677,6 +3680,7 @@
         "src/components/storybible/Relationships.tsx",
         "src/components/storybible/VoiceReferencesSection.tsx",
         "src/components/storybible/source/PronSourceTag.tsx",
+        "src/components/storybible/source/PronunciationCandidates.tsx",
         "src/components/storybible/suggested/import/ImportDialog.tsx",
         "src/components/storybible/suggested/panel/EntryVerifyPill.tsx",
         "src/components/storybible/suggested/panel/LooseSuggestionRows.tsx",
@@ -4104,6 +4108,7 @@
         "src/components/proof/RenderAssociationSection.tsx",
         "src/components/proof/useProofingRender.ts",
         "src/components/script/page/ScriptPage.tsx",
+        "src/components/script/page/rail/words/WordCard.tsx",
         "src/components/settings/CreditsPanel.tsx",
         "src/components/settings/DeliveryProfilesPanel.tsx",
         "src/components/settings/KeyboardPanel.tsx",

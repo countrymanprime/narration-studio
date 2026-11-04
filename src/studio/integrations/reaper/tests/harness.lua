@@ -263,4 +263,28 @@ function Session:pending_commands()
   return host.listdir(H.join(self.dir, 'commands'))
 end
 
+-- The folder each of the fake's tracks sits inside, by track name ('' at the top level), from the running sum of the folder depths: what
+-- REAPER shows as its parent. The guard tests compare it before and after a command that adds a track (#2251).
+function H.parents(s)
+  local out, stack, depth = {}, {}, 0
+  for _, track in ipairs(s.fake.tracks) do
+    out[track.name] = stack[depth] or ''
+    local delta = track.folder_depth or 0
+    if delta > 0 then
+      stack[depth + 1] = track.name
+    end
+    depth = math.max(depth + delta, 0)
+  end
+  return out
+end
+
+-- Asserts that every track named in `before` (H.parents) is still in the same folder.
+function H.same_parents(before, s)
+  local after = H.parents(s)
+  for name, parent in pairs(before) do
+    H.eq(after[name], parent, name .. ' keeps its folder')
+  end
+  return after
+end
+
 return H

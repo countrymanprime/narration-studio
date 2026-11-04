@@ -7,7 +7,7 @@
 -- space (a track name is one line); a name that is empty after that is refused. It refuses while REAPER records, so no
 -- track appears in the middle of a take, and changes nothing else: no other track's selection, arm, mute or name. It is one
 -- undo point ("<app name>: add track") and never saves the project. It is not idempotent: each call adds a track. A project
--- that ends inside a folder left open has that folder closed on its last track first (close_open_folders), so the new track
+-- that ends inside a folder left open has that folder closed on its last track first (core.append_track), so the new track
 -- is never the open folder's last child; that is the only change to a track that was there, and no track changes parent.
 --
 -- track_create|run|name|parentGuid adds a voice inside a chapter's folder (docs/prds/booth-voice-tracks.prd.md, phase 3): the new track goes after
@@ -30,6 +30,7 @@ local event = core.event
 
 local UNDO_ADD_TRACK = core.brand.name .. ': add track'
 local RECORDING = 'REAPER is recording. Stop recording first.'
+local STRUCTURE = 'Adding the track there would move other tracks into a different folder, so nothing was added. Check the folders in REAPER.'
 local NO_NAME = 'The new track needs a name.'
 local BOTH = 'A new track goes inside a folder or makes a folder, not both.'
 
@@ -69,47 +70,54 @@ local function locate(guid)
   return found_index, depths
 end
 
--- Inserts the new track inside `parent_index`'s folder, after its last descendant, and answers the new track's index.
-local function insert_child(parent_index, depths)
+-- Where the new track goes inside `parent_index`'s folder, after its last descendant, and the folder depth changes (I_FOLDERDEPTH) that
+-- keep every folder closing where it did: the last descendant's new change, and the new track's. Answers nil when the planned structure
+-- would move any existing track into another folder (core.insert_keeps_parents), so nothing is written.
+local function plan_child(parent_index, depths)
   local parent = reaper.GetTrack(0, parent_index)
   local members = core.with_descendants(parent)
   local last_index = parent_index + #members - 1
   local last = reaper.GetTrack(0, last_index)
-  local source = members[2] or parent
   local last_delta = reaper.GetMediaTrackInfo_Value(last, 'I_FOLDERDEPTH')
   local parent_depth, last_depth = depths[parent_index], depths[last_index]
-  local index = last_index + 1
-  reaper.InsertTrackAtIndex(index, false)
-  local track = reaper.GetTrack(0, index)
-  reaper.SetMediaTrackInfo_Value(last, 'I_FOLDERDEPTH', parent_depth + 1 - last_depth)
-  reaper.SetMediaTrackInfo_Value(track, 'I_FOLDERDEPTH', last_delta + last_depth - parent_depth - 1)
-  reaper.SetMediaTrackInfo_Value(track, 'I_RECINPUT', reaper.GetMediaTrackInfo_Value(source, 'I_RECINPUT'))
-  reaper.SetMediaTrackInfo_Value(track, 'I_RECMODE', reaper.GetMediaTrackInfo_Value(source, 'I_RECMODE'))
-  return index
+  local plan = {
+    index = last_index + 1,
+    last = last,
+    last_delta = parent_depth + 1 - last_depth,
+    new_delta = last_delta + last_depth - parent_depth - 1,
+    source = members[2] or parent,
+  }
+  local before = core.folder_deltas()
+  local after = {}
+  for position, delta in ipairs(before) do
+    after[#after + 1] = position == last_index + 1 and plan.last_delta or delta
+    if position == last_index + 1 then
+      after[#after + 1] = plan.new_delta
+    end
+  end
+  if not core.insert_keeps_parents(before, after, plan.index + 1, parent_index + 1) then
+    return nil
+  end
+  return plan
 end
 
--- Closes every folder the last track leaves open by lowering its depth change by that many, and answers the index after it. Every
--- append here (a plain track and a chapter folder) calls it inside its undo block. It is the same rule as core.append_track in #2877
--- (not merged when this was written): once that lands, both appends here should call core.append_track and this goes.
-local function close_open_folders()
-  local count = reaper.CountTracks(0)
-  local open = 0
-  for index = 0, count - 1 do
-    open = math.max(open + reaper.GetMediaTrackInfo_Value(reaper.GetTrack(0, index), 'I_FOLDERDEPTH'), 0)
-  end
-  if open > 0 then
-    local last = reaper.GetTrack(0, count - 1)
-    reaper.SetMediaTrackInfo_Value(last, 'I_FOLDERDEPTH', reaper.GetMediaTrackInfo_Value(last, 'I_FOLDERDEPTH') - open)
-  end
-  return count
+-- Inserts the new track as `plan` says and answers its index.
+local function insert_child(plan)
+  reaper.InsertTrackAtIndex(plan.index, false)
+  local track = reaper.GetTrack(0, plan.index)
+  reaper.SetMediaTrackInfo_Value(plan.last, 'I_FOLDERDEPTH', plan.last_delta)
+  reaper.SetMediaTrackInfo_Value(track, 'I_FOLDERDEPTH', plan.new_delta)
+  reaper.SetMediaTrackInfo_Value(track, 'I_RECINPUT', reaper.GetMediaTrackInfo_Value(plan.source, 'I_RECINPUT'))
+  reaper.SetMediaTrackInfo_Value(track, 'I_RECMODE', reaper.GetMediaTrackInfo_Value(plan.source, 'I_RECMODE'))
+  return plan.index
 end
 
 -- Inside the undo block: the folder named name and its one child named child_name, appended after every track. Answers both and their indexes.
+-- The folder is appended at the top level, never inside a folder left open at the end of the project (core.append_track).
 local function append_folder(name, child_name)
-  local index = close_open_folders()
-  reaper.InsertTrackAtIndex(index, false)
+  local folder, index = core.append_track()
   reaper.InsertTrackAtIndex(index + 1, false)
-  local folder, child = reaper.GetTrack(0, index), reaper.GetTrack(0, index + 1)
+  local child = reaper.GetTrack(0, index + 1)
   reaper.SetMediaTrackInfo_Value(folder, 'I_FOLDERDEPTH', 1)
   reaper.SetMediaTrackInfo_Value(child, 'I_FOLDERDEPTH', -1)
   reaper.GetSetMediaTrackInfo_String(folder, 'P_NAME', name, true)
@@ -156,21 +164,27 @@ local function track_create(session_dir, run_id, name_text, parent_text, child_t
     )
     return
   end
-  local parent_index, depths
+  local plan
   if parent_guid ~= '' then
-    parent_index, depths = locate(parent_guid)
+    local parent_index, depths = locate(parent_guid)
     if parent_index == nil then
       event(session_dir, 'TRACK_STALE', run_id, parent_text)
+      return
+    end
+    plan = plan_child(parent_index, depths)
+    if plan == nil then
+      event(session_dir, 'ERROR', run_id, STRUCTURE)
       return
     end
   end
   reaper.Undo_BeginBlock2(0)
   local index
-  if parent_index ~= nil then
-    index = insert_child(parent_index, depths)
+  if plan ~= nil then
+    index = insert_child(plan)
   else
-    index = close_open_folders()
-    reaper.InsertTrackAtIndex(index, false)
+    -- At the top level, never inside a folder left open at the end of the project (core.append_track).
+    local _
+    _, index = core.append_track()
   end
   local track = reaper.GetTrack(0, index)
   reaper.GetSetMediaTrackInfo_String(track, 'P_NAME', name, true)

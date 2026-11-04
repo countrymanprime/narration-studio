@@ -120,6 +120,13 @@
   },
   {
     "page": "script",
+    "state": "rail-words-name",
+    "viewport": "desktop",
+    "docName": "script-word-name",
+    "caption": "Script - a Story Bible name chosen on the Words tab: How I will say it is the entry's own row, the same as in the Story Bible"
+  },
+  {
+    "page": "script",
     "state": "mark-composer",
     "viewport": "desktop",
     "docName": "script-add-note",
@@ -439,6 +446,13 @@
     "viewport": "desktop",
     "docName": "settings-chapter-layout",
     "caption": "Settings - Recording & DAW: Chapter layout under Chapter sync, with Flat and Voice folders"
+  },
+  {
+    "page": "settings",
+    "state": "recording-chapter-voices",
+    "viewport": "desktop",
+    "docName": "settings-chapter-voices",
+    "caption": "Settings - Recording & DAW: Sync chapters to tracks and the Voices of a chapter folder"
   },
   {
     "page": "engine",
@@ -981,6 +995,13 @@
   },
   {
     "page": "master",
+    "state": "text-column",
+    "viewport": "desktop",
+    "docName": "master-text-column",
+    "caption": "Master & QC - the Text column: 100% from a current recording check, a red cross on a share under the check's thresholds, and Not checked where the chapter has no current check"
+  },
+  {
+    "page": "master",
     "state": "file-rules",
     "viewport": "desktop",
     "docName": "master-file-rules",
@@ -1027,6 +1048,13 @@
     "viewport": "desktop",
     "docName": "master-to-spec-approve",
     "caption": "Master & QC - Master & encode asking approval to master with the DAW's FX chain, naming the regions it renders"
+  },
+  {
+    "page": "master",
+    "state": "to-spec-cancelled",
+    "viewport": "desktop",
+    "docName": "master-to-spec-cancelled",
+    "caption": "Master & QC - a cancelled export: each file Cancelled, and the files and Master & encode back to run it again"
   },
   {
     "page": "master",

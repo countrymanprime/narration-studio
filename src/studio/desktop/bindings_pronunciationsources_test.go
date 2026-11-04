@@ -45,7 +45,7 @@ func TestPronunciationSourcesListTheRegisteredSourcesTheKeyedOnlineOneAndManual(
 	host, _, _ := onlineHost(t)
 	withoutWiktextract(host)
 	list := sourcesOf(t, host)
-	if got, want := sourceIDs(list), []string{"cmu", "wiktextract", "espeak", "manual"}; !slices.Equal(got, want) {
+	if got, want := sourceIDs(list), []string{"cmu", "wiktextract", "espeak", "user_dictionary", "script_imported", "manual"}; !slices.Equal(got, want) {
 		t.Fatalf("no key: sources = %v, want %v", got, want)
 	}
 	for _, source := range list.Sources {
@@ -60,13 +60,13 @@ func TestPronunciationSourcesListTheRegisteredSourcesTheKeyedOnlineOneAndManual(
 		t.Fatal(err)
 	}
 	list = sourcesOf(t, host)
-	if got, want := sourceIDs(list), []string{"cmu", "wiktextract", "espeak", "merriam_webster", "manual"}; !slices.Equal(got, want) {
+	if got, want := sourceIDs(list), []string{"cmu", "wiktextract", "espeak", "merriam_webster", "user_dictionary", "script_imported", "manual"}; !slices.Equal(got, want) {
 		t.Fatalf("with a key: sources = %v, want %v", got, want)
 	}
 	if online := list.Sources[3]; online.Kind != "lookup" || online.Needs != "network" || !online.Available {
 		t.Fatalf("online = %+v", online)
 	}
-	if manual := list.Sources[4]; manual.Kind != "manual" || manual.Needs != "" {
+	if manual := list.Sources[6]; manual.Kind != "manual" || manual.Needs != "" {
 		t.Fatalf("manual = %+v", manual)
 	}
 }
@@ -183,12 +183,13 @@ func TestPronunciationCandidateTakesNoPathAndNoBatch(t *testing.T) {
 
 func TestPronunciationBindingsHaveNoBatchForm(t *testing.T) {
 	host := reflect.TypeOf(&Host{})
-	for _, name := range []string{"PronunciationSourcesBatch", "PronunciationCandidateBatch", "PronunciationCandidates"} {
+	// PronunciationCandidates takes one word and asks only the sources that need no network (bindings_userdictionary_test.go).
+	for _, name := range []string{"PronunciationSourcesBatch", "PronunciationCandidateBatch", "PronunciationCandidatesBatch"} {
 		if _, found := host.MethodByName(name); found {
-			t.Errorf("Host has %s: the candidate bindings take one word and one source", name)
+			t.Errorf("Host has %s: the candidate bindings take one word", name)
 		}
 	}
-	for _, name := range []string{"PronunciationSources", "PronunciationCandidate"} {
+	for _, name := range []string{"PronunciationSources", "PronunciationCandidate", "PronunciationCandidates"} {
 		method, found := host.MethodByName(name)
 		if !found {
 			t.Fatalf("Host has no %s", name)
