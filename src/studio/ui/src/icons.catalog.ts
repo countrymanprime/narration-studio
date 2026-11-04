@@ -10,6 +10,7 @@
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import {
   faArrowLeft,
+  faBandage,
   faFilter,
   faRightLeft,
   faArrowDownWideShort,
@@ -345,6 +346,8 @@ export const CATALOG = {
   moreActions: action(faEllipsis, 'more actions', 'Show more actions'),
   // The tools that act on the DAW project (chapter regions, render prep), offered on the pages where a chapter is finished.
   dawTools: action(faWrench, 'DAW tools', 'Show the DAW tools'),
+  // The REAPER repair launchers, beside the defect: they open REAPER's own repair on the items selected there, where Clean up's Apply repairs in the app.
+  repairInReaper: action(faBandage, 'repair in REAPER', 'Open the repair tools in REAPER'),
   // Script: finds who speaks the quoted lines; a line the narrator confirmed is never changed.
   attributeSpeakers: action(faUserTag, 'attribute speakers', 'Find who speaks each line'),
   voiceSample: action(faCommentDots, 'voice sample', 'Mark a voice sample', 'V'),

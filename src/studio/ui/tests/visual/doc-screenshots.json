@@ -1671,5 +1671,19 @@
     "viewport": "desktop",
     "docName": "master-daw-tools",
     "caption": "Master & QC with nothing measured and REAPER not answering: the DAW tools menu beside Check files, both entries off with REAPER's own sentence under each"
+  },
+  {
+    "page": "editing",
+    "state": "drawer-cleanup-repair",
+    "viewport": "desktop",
+    "docName": "editing-drawer-cleanup-repair",
+    "caption": "Editing - Clicks chosen in Clean up: Repair in REAPER beside Apply, its menu open on Cleanup tools"
+  },
+  {
+    "page": "proof",
+    "state": "inspector-repair-menu",
+    "viewport": "desktop",
+    "docName": "proof-repair-in-reaper",
+    "caption": "Proof - a click note: Repair in REAPER in the Inspector's row, its menu open on Cleanup tools"
   }
 ]
