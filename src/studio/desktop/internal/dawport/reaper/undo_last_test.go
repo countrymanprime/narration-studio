@@ -174,9 +174,37 @@ func TestUndoLastRefusesBeforeAnythingIsSent(t *testing.T) {
 
 // Every kind the port knows is one the bridge sends, so a kind added on one side cannot be refused by the other.
 func TestEveryActionKindIsOneTheBridgeSends(t *testing.T) {
-	for _, kind := range []dawport.ActionKind{dawport.ActionCutRange, dawport.ActionRecordTake} {
+	for _, kind := range []dawport.ActionKind{dawport.ActionCutRange, dawport.ActionRecordTake, dawport.ActionUseTake} {
 		if !kind.Valid() || !bridge.UndoKinds[string(kind)] {
 			t.Errorf("%s: valid %v, sent by the bridge %v", kind, kind.Valid(), bridge.UndoKinds[string(kind)])
 		}
+	}
+}
+
+// A used take is its own kind (#2945): the port sends use_take, and the sentences name the choice of take, not a cut.
+func TestUndoLastWordsAUsedTake(t *testing.T) {
+	for _, tc := range []struct {
+		steps, undone int
+		want          dawport.Result
+	}{
+		{1, 1, dawport.OK("Undid the choice of take in REAPER.", true).WithUndoSteps(0)},
+		{1, 0, dawport.Refused("REAPER's last action is not this one, so it was left alone. Use Edit > Undo in REAPER.")},
+	} {
+		undoer := undoerAnswering(t, func(command []string) [][]string {
+			if command[0] != "undo_last" || len(command) != 4 || command[2] != "use_take" {
+				t.Errorf("command = %v", command)
+			}
+			return [][]string{{"UNDONE_LAST", command[1], "use_take", command[3], strconv.Itoa(tc.undone)}}
+		})
+		got, err := undoer.UndoLast(t.Context(), dawport.ActionUseTake, tc.steps)
+		if err != nil || !reflect.DeepEqual(got, tc.want) {
+			t.Errorf("%d of %d: UndoLast = %+v, %v; want %+v", tc.undone, tc.steps, got, err, tc.want)
+		}
+	}
+	undoer := undoerAnswering(t, func(command []string) [][]string {
+		return [][]string{{"LAST_ACTION", command[1], "use_take", "this"}}
+	})
+	if got, err := undoer.LastAction(t.Context(), dawport.ActionUseTake); err != nil || got != dawport.LastActionThis {
+		t.Errorf("LastAction = %q, %v; want this", got, err)
 	}
 }

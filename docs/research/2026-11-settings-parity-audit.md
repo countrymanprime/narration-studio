@@ -22,7 +22,7 @@ Ten persisted preferences have no Settings equivalent (gaps below); gap 1 is fix
 | 6 | Playback speed, volume, mute, output device | Editing, Output popover | `narration-ui-editing-output` | window | none (`daw.sampleOutput` is the voice-sample output) | **Gap.** Editing pull request |
 | 7 | Effects coverage cap (%) | Editing, Effects | `Editing.fx_cap_pct` | project | none (`ps.fx` shows favourites only) | **Gap.** Editing pull request |
 | 8 | Story Bible entry sort | Story Bible, Sort menu and column headers | `narration.storyBible.sort` | window | none | **Gap.** Story Bible pull request; the owner may rule it view state |
-| 9 | Schedule basis (Standard / Your pace) | Production target popover | `plan.rateBasis` in `project.json` via `productionSetRateBasis` | project | none | **Gap.** Production pull request |
+| 9 | Schedule basis (Standard / Your pace) | Production target popover | `plan.rateBasis` in `project.json` via `setProductionRateBasis` | project | `project.rateBasis` | **Covered.** Ruled a setting, not plan data: it is not an undo step, unlike the payment, due date and milestones beside it |
 | 10 | First-use tips already seen | Script and others, "Got it" | `Tips.seen` in `global-settings.json` | computer | none | **Gap.** App pull request (a Reset tips action) |
 
 ## Covered
@@ -74,10 +74,10 @@ Ten persisted preferences have no Settings equivalent (gaps below); gap 1 is fix
 - `look.zoom` is listed as *computer*; the earlier inventories call it a window setting. The host stores it in `global-settings.json`.
 - Whether `ChapterSyncSetEnabled` writes `chapter-sync.json`, `project.json` or both is unsettled in [data files](../reference/data-files.md); the Engine-panel pull request settles it from the Go code.
 - Compare run's log detail and chunk selects were not traced to storage.
-- The Story Bible sort (gap 8) and the Schedule basis (gap 9) may be ruled view state or plan data; the pull request for each asks.
+- The Story Bible sort (gap 8) and the Schedule basis (gap 9) were ruled settings: both persist and change what a page shows, and neither is journalled.
 
 ## Fix plan
 
 1. This note.
-2. `daw.layout` and the guard `settingsParity.test.ts`. The guard lists host bindings, window keys and `saveSettings` callers, each covered by a row or exempt with a reason. Gaps 2 to 8 and 10 are the guard's entries marked `GAP` (the guard's name scan does not see the Schedule basis binding, so gap 9 is held by this note and its pull request); each leaves the list in the pull request that adds its row, and the list's caps only go down.
+2. `daw.layout` and the guard `settingsParity.test.ts`. The guard lists host bindings, window keys and `saveSettings` callers, each covered by a row or exempt with a reason. Gaps 2 to 8 and 10 are the guard's entries marked `GAP` (the guard's name scan does not see bindings that start with `set`, so the Schedule basis binding, `setProductionRateBasis`, is held by its own check in the guard; issue 2970 tracks the blind spot); each leaves the list in the pull request that adds its row, and the list's caps only go down.
 3. Engine panel (gaps 2 to 4), Booth (5), Editing (6, 7), Story Bible (8), Production (9), App (10); the last pull request closes #2815.
