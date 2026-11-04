@@ -9,7 +9,6 @@ Storybook title: `Script/Reader/Para`. Source: `src/components/script/page/reade
 - Plain Text
 - Marks Of Each Style
 - Overlapping Marks
-- Flagged Words
 - Name Mentions
 - Speaker Chips
 - Find Matches

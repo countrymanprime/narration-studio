@@ -86,6 +86,20 @@ for (const name of ['gliner', 'booknlp', 'transformers', 'torch']) {
   });
 }
 
+for (const [sidecar, name] of [['manuscript-guide', 'hypothesis'], ['transcript-compare', 'setuptools'], ['manuscript-teleprompter', 'fastapi'], ['transcript-compare', '_pytest']]) {
+  test(`a frozen ${sidecar} that carries the development tool ${name} fails and names it`, () => {
+    const tree = healthyTree();
+    try {
+      mkdirSync(join(tree.runtime, sidecar, '_internal', name), { recursive: true });
+      const { status, output } = verify(tree.runtime);
+      assert.notEqual(status, 0, `a ${sidecar} freeze carrying ${name} passed`);
+      assert.match(output, new RegExp(`development tools: .*${sidecar}/${name}`));
+    } finally {
+      tree.cleanup();
+    }
+  });
+}
+
 test('a release without an approved asset catalog fails and names it', () => withTree(['config', 'spacy-assets.json'], /spacy-assets\.json/));
 
 test('a release without the Moonshine catalog fails and names it', () => withTree(['config', 'moonshine-assets.json'], /moonshine-assets\.json/));

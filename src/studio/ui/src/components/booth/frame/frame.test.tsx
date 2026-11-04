@@ -7,7 +7,8 @@ import { createMockApi } from '../../../api/mockApi';
 import { defaultKeymap } from '../../../input/keymap';
 import type { NarrationApi, TeleprompterEvent } from '../../../types';
 import { TEXT_PREFS_STORAGE_KEY } from '../../script/page/tools/text/readerText';
-import { BOOTH_SIZE_STORAGE_KEY, useTextChoices } from '../page/useTextChoices';
+import { BOOTH_SIZE_STORAGE_KEY } from '../page/boothSize';
+import { useTextChoices } from '../page/useTextChoices';
 import { BoothFooter } from './BoothFooter';
 import { BoothTop } from './BoothTop';
 import type { ListenProps } from './LevelsMenu';
@@ -402,5 +403,34 @@ describe('the text popover', () => {
   it('is not drawn without the choices', () => {
     top();
     expect(screen.queryByRole('button', { name: 'Text settings' })).toBeNull();
+  });
+});
+
+describe('the record bar is voice, then one split button', () => {
+  it('draws the voice left of a Recording group that holds Record, Cold read and Levels, then the timer', () => {
+    footer(api(), { voice: <button>Voice: Queen</button>, coldRead: { on: false, toggle: vi.fn() } });
+    const voice = screen.getByRole('button', { name: 'Voice: Queen' });
+    const group = screen.getByRole('group', { name: 'Recording' });
+    const parts = within(group)
+      .getAllByRole('button')
+      .map((button) => button.textContent || button.getAttribute('aria-label'));
+    expect(parts).toEqual(['Record', 'Cold read', 'Levels']);
+    const order = [voice, group, document.getElementById('btimer')!];
+    expect(order[0].compareDocumentPosition(order[1]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(order[1].compareDocumentPosition(order[2]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('keeps Cold read pressed state and its reason, and marks Levels when listening has a problem', () => {
+    footer(api(), { coldRead: { on: true, toggle: vi.fn(), disabledReason: 'Not during a take' }, listenWhy: 'No microphone found' });
+    const cold = screen.getByRole('button', { name: 'Cold read' });
+    expect(cold.getAttribute('aria-pressed')).toBe('true');
+    expect(cold.getAttribute('aria-disabled')).toBe('true');
+    expect(screen.getByRole('button', { name: 'Levels' }).querySelector('span[aria-hidden]')).not.toBeNull();
+  });
+
+  it('opens the Levels popover from the caret on the side of Record', async () => {
+    footer(api());
+    await userEvent.click(screen.getByRole('button', { name: 'Levels' }));
+    expect(await screen.findByRole('dialog', { name: 'Levels' })).toBeTruthy();
   });
 });

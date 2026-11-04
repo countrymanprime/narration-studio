@@ -177,8 +177,8 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
       items: (target): ContextMenuItem[] => {
         const { rows: list, go: open_, manuscriptChapter: find, trackLinks: links, setStatus: set, daw: dawTarget, selectTrack: select } = latest.current;
         const tr = target.closest('tr');
-        const index = tr ? Array.from(tr.parentElement?.children ?? []).indexOf(tr) : -1;
-        const row = list[index];
+        // The row is named by the chapter it draws: a windowed list draws only some of its rows, so the place in the body is not the place in the list.
+        const row = list.find((entry) => entry.id === tr?.dataset.chapterId);
         if (!row) return [];
         // The credits are chapters: the same items, and the template's panel besides.
         const credits = creditsCheckKind(row.id);

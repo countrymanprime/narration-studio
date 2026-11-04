@@ -195,13 +195,10 @@ describe('mockApi preview voices (config/tts-assets.json)', () => {
     readFileSync(join(__dirname, '../../../../../config/tts-assets.json'), 'utf8'),
   ).voices;
 
-  it('lists every approved voice, with its download size, in the voice catalog, the downloads list and the Preview voice choices', async () => {
+  it('lists every approved voice, with its download size, in the downloads list and the Preview voice choices', async () => {
     const api = createMockApi();
     const ids = catalog.map((voice) => voice.id);
     const sizes = catalog.map((voice) => voice.files.reduce((sum, file) => sum + file.size, 0));
-    const voices = (await api.ttsCatalog()).voices;
-    expect(voices.map((voice) => voice.id)).toEqual(ids);
-    expect(voices.map((voice) => voice.downloadSize)).toEqual(sizes);
     const listed = (await api.assetsList()).assets.filter((asset) => asset.kind === 'tts');
     expect(listed.map((asset) => [asset.id, asset.downloadSize])).toEqual(ids.map((id, index) => [id, sizes[index]]));
     const piper = (await api.settingsForScope('global')).Piper;

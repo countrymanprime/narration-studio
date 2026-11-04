@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { Mark, MarkType } from '../../../../api/contracts/marks';
-import type { ScriptWord } from '../../../../api/contracts/scriptPrep';
 import type { GuideDialogueCue, GuideEntity } from '../../../../api/contracts/storyBible';
 import { buildLayerIndex, composeLayers, paragraphLayers, type Layer } from './layers';
-import { cue, entry, flaggedWord, GUIDE_TYPES, mark, paragraph, TYPES } from './readerFixtures';
+import { cue, entry, GUIDE_TYPES, mark, paragraph, TYPES } from './readerFixtures';
 
 const text = 'Mina said, "Come along," and left the harbour.';
 const range = (needle: string): { start: number; end: number } => ({ start: text.indexOf(needle), end: text.indexOf(needle) + needle.length });
@@ -81,12 +80,11 @@ describe('paragraphLayers', () => {
     cue('q2', 'p9', 'c1', { start: 0, end: 3 }, null, 'tag'),
   ];
   const marks: Mark[] = [mark('m1', 'p1', range('left'), 'ask'), mark('m2', 'p1', range('Mina'), 'note', { stale: true })];
-  const words: ScriptWord[] = [flaggedWord('harbour', 'p1', range('harbour'))];
-  const index = buildLayerIndex({ marks, markTypes: TYPES as MarkType[], words, entries, cues, types: GUIDE_TYPES });
+  const index = buildLayerIndex({ marks, markTypes: TYPES as MarkType[], entries, cues, types: GUIDE_TYPES });
 
   it('turns each source into a layer of this paragraph only', () => {
     const kinds = paragraphLayers(index, para).map((layer) => layer.kind);
-    expect(kinds.sort()).toEqual(['mark', 'name', 'name', 'phrase', 'word']);
+    expect(kinds.sort()).toEqual(['mark', 'name', 'name', 'phrase']);
   });
 
   it('skips a stale mark: its offsets may no longer fit the words', () => {
@@ -113,7 +111,6 @@ describe('paragraphLayers', () => {
     const idx = buildLayerIndex({
       marks: [],
       markTypes: [],
-      words: [],
       entries,
       types: GUIDE_TYPES,
       cues: [cue('q3', 'p1', 'c1', range('"Come along,"'), null, 'tag')],
@@ -125,7 +122,6 @@ describe('paragraphLayers', () => {
     const idx = buildLayerIndex({
       marks: [],
       markTypes: [],
-      words: [],
       entries,
       types: GUIDE_TYPES,
       cues: [cue('q4', 'p1', 'c1', range('"Come along,"'), 'e1', 'tag')],
@@ -142,7 +138,6 @@ describe('who a phrase chip can name', () => {
       buildLayerIndex({
         marks: [],
         markTypes: [],
-        words: [],
         entries,
         types: GUIDE_TYPES,
         cues: [cue('q', 'p1', 'c1', range('"Come along,"'), speakerId, source)],

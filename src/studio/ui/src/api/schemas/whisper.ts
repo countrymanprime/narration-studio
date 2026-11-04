@@ -1,8 +1,7 @@
 import { z } from 'zod';
-import type { WhisperCatalog, WhisperInstallJob, WhisperInstallState, WhisperModel } from '../contracts/whisper';
+import type { WhisperInstallJob, WhisperInstallState, WhisperModel } from '../contracts/whisper';
 import type { TranscriptStartResult } from '../contracts/transcript';
 import { assetInstallJobShape } from './assets';
-import { listFromNull } from './base';
 
 export const whisperInstallStateSchema = z.enum(['installed', 'not_installed', 'verification_failed']) satisfies z.ZodType<WhisperInstallState>;
 
@@ -21,12 +20,6 @@ const modelIdentityShape = {
 
 /** A model as the host describes it before it is installed: everything but its install state and download size. */
 const whisperModelIdentitySchema = z.object(modelIdentityShape) satisfies z.ZodType<Omit<WhisperModel, 'downloadSize' | 'installState'>>;
-
-export const whisperCatalogSchema = z.object({
-  catalogVersion: z.number(),
-  model: z.object({ id: z.string(), effectiveSource: z.string() }),
-  models: listFromNull(z.object({ ...modelIdentityShape, downloadSize: z.number(), installState: whisperInstallStateSchema })),
-}) satisfies z.ZodType<WhisperCatalog>;
 
 export const whisperInstallJobSchema = z.object({ ...assetInstallJobShape, modelId: z.string() }) satisfies z.ZodType<WhisperInstallJob>;
 

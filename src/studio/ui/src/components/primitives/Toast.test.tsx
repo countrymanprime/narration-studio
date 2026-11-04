@@ -164,4 +164,11 @@ describe('ToastRegion', () => {
     expect(toast.className).toContain('overflow-hidden');
     expect(toast.querySelector('[data-toast-edge]')!.className).toContain('bg-[var(--danger)]');
   });
+
+  it('lets a long unbroken message wrap inside the toast and keeps the toast within the window (#2793)', () => {
+    render(<ToastRegion messages={[info(1, `C:\\${'LongFolder\\'.repeat(40)}`)]} dismiss={vi.fn()} />);
+    const text = screen.getByText(/^C:/);
+    expect(text.className).toContain('[overflow-wrap:anywhere]');
+    expect(text.closest('[data-tone]')?.className).toContain('max-w-full');
+  });
 });

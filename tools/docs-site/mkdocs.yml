@@ -14,6 +14,9 @@ exclude_docs: |
   research/mockups/story-bible-entry-list/
   research/mockups/replace-audio/
   research/mockups/booth-cold-read/
+  research/mockups/booth-voices/
+  research/mockups/master-to-spec-entry/
+  research/mockups/approval-fx-chain/
 site_dir: build/site
 strict: true
 

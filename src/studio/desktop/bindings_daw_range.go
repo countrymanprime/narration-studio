@@ -15,7 +15,7 @@ import (
 )
 
 // deleteRangeTimeout bounds one delete_range request: a single undo block in REAPER, like hide_takes.
-const deleteRangeTimeout = takeReviewCreateTakeTimeout
+const deleteRangeTimeout = takeRequestTimeout
 
 const (
 	// The mode, fade, pad and room-tone sentences are delete_range's own (bridge's badRange), so the page reads the same words whichever side refused.

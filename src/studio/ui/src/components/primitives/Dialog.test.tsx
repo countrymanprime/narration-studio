@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Button } from './Button';
 import { Dialog, DIALOG_WIDTHS } from './Dialog';
@@ -138,6 +138,120 @@ describe('Dialog is a real modal', () => {
     await user.keyboard('{Escape}');
     // The opener was removed while the dialog was open, so focus goes to the landmark (or its first control), not <body>.
     await waitFor(() => expect(document.querySelector('main')?.contains(document.activeElement)).toBe(true));
+  });
+
+  it('focuses <main> itself, not its first control, when the opener is gone (#2902)', async () => {
+    const user = userEvent.setup();
+    render(<Harness keepOpener={false} />);
+    await user.click(screen.getByRole('button', { name: 'Open dialog' }));
+    await screen.findByRole('dialog', { name: 'Add note' });
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(document.activeElement).toBe(document.querySelector('main')));
+  });
+
+  it('leaves focus where the closing action put it, outside the dialog, and does not return to the opener (#2902)', async () => {
+    const user = userEvent.setup();
+    function Moves() {
+      const [open, setOpen] = useState(false);
+      return (
+        <div>
+          <main tabIndex={-1}>
+            <button onClick={() => setOpen(true)}>Open dialog</button>
+            <button id="destination">Destination</button>
+          </main>
+          {open && (
+            <Dialog
+              title="Go"
+              dismissOnOutsidePress={false}
+              actions={null}
+              onClose={() => {
+                setOpen(false);
+                document.getElementById('destination')?.focus();
+              }}
+            >
+              <p>Body</p>
+            </Dialog>
+          )}
+        </div>
+      );
+    }
+    render(<Moves />);
+    await user.click(screen.getByRole('button', { name: 'Open dialog' }));
+    await screen.findByRole('dialog', { name: 'Go' });
+    await user.keyboard('{Escape}');
+    await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 50))));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(document.activeElement?.id).toBe('destination');
+  });
+
+  it('focus moved during close is kept even when the opener is still in the document (#2902)', async () => {
+    const user = userEvent.setup();
+    // The way the Script reader does it: the close action only sets state, and an effect focuses the destination after the commit.
+    function Moves() {
+      const [open, setOpen] = useState(false);
+      const [go, setGo] = useState(0);
+      useEffect(() => {
+        if (go) document.getElementById('destination')?.focus();
+      }, [go]);
+      return (
+        <div>
+          <main tabIndex={-1}>
+            <button onClick={() => setOpen(true)}>Open dialog</button>
+            <button id="destination">Destination</button>
+          </main>
+          {open && (
+            <Dialog
+              title="Go"
+              dismissOnOutsidePress={false}
+              actions={null}
+              onClose={() => {
+                setOpen(false);
+                setGo((n) => n + 1);
+              }}
+            >
+              <p>Body</p>
+            </Dialog>
+          )}
+        </div>
+      );
+    }
+    render(<Moves />);
+    const opener = screen.getByRole('button', { name: 'Open dialog' });
+    for (let round = 0; round < 2; round += 1) {
+      opener.focus();
+      await user.keyboard(' ');
+      await screen.findByRole('dialog', { name: 'Go' });
+      await user.keyboard('{Escape}');
+      await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 50))));
+      expect(screen.queryByRole('dialog')).toBeNull();
+      expect(opener.isConnected).toBe(true);
+      expect(document.activeElement?.id, `round ${round}`).toBe('destination');
+    }
+  });
+
+  it("a dialog a page-wide key opened from the main landmark gives focus back to the landmark, not to the page's first button (#2839)", async () => {
+    const user = userEvent.setup();
+    function KeyOpened() {
+      const [open, setOpen] = useState(false);
+      return (
+        <main tabIndex={-1} onKeyDown={(event) => event.key === 'n' && setOpen(true)}>
+          <button type="button">Previous chapter</button>
+          {open && (
+            <Dialog dismissOnOutsidePress={false} title="Who is in Num 7?" onClose={() => setOpen(false)} actions={null}>
+              <input aria-label="Track name" autoFocus />
+            </Dialog>
+          )}
+        </main>
+      );
+    }
+    render(<KeyOpened />);
+    const main = document.querySelector('main') as HTMLElement;
+    main.focus();
+    await user.keyboard('n');
+    await screen.findByRole('dialog', { name: 'Who is in Num 7?' });
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(document.activeElement).toBe(main));
+    expect(document.activeElement).not.toBe(screen.getByRole('button', { name: 'Previous chapter' }));
   });
 
   it('ignores Escape when the dialog has no way to be dismissed', async () => {

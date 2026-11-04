@@ -135,9 +135,7 @@ describe('KeyboardPanel', () => {
     keydown({ code: 'ArrowRight' });
 
     expect(group.getByRole('status').textContent).toBe('→ already runs "Next word".');
-    expect(group.getByRole('alert').textContent).toBe(
-      'Replace takes it from "Next word", which is then left with no key; you can give it another one afterwards.',
-    );
+    expect(group.getByRole('alert').textContent).toBe('Replace takes it from "Next word", which is then left with no key.');
     expect(group.queryByRole('button', { name: 'Add as another key' })).toBeNull();
     expect(group.queryByRole('button', { name: 'Unbind' })).toBeNull();
     expect(group.getByRole('button', { name: 'Try another key' })).toBeTruthy();
@@ -245,7 +243,28 @@ describe('KeyboardPanel', () => {
     keydown({ code: 'KeyJ' });
     fireEvent.click(group.getByRole('button', { name: 'Replace' }));
 
-    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringContaining('the host refused it'), 'error'));
+    await waitFor(() =>
+      expect(notify).toHaveBeenCalledWith(expect.stringContaining('the host refused it'), 'error', expect.objectContaining({ label: 'Retry' })),
+    );
     expect(screen.getByRole('group', { name: /Change/ })).toBeTruthy();
+  });
+
+  it('offers Retry on a failed save, and Retry saves the same shortcut again (a save sets the same values, so it is safe to repeat)', async () => {
+    let refuse = true;
+    const base = createMockApi();
+    const saveSettings = vi.fn(async (...args: Parameters<NarrationApi['saveSettings']>) => {
+      if (refuse) throw new Error('the host refused it');
+      return base.saveSettings(...args);
+    });
+    const { notify } = renderPanel({ saveSettings });
+    const group = await openRecorderFor('Record or stop');
+    keydown({ code: 'KeyJ' });
+    fireEvent.click(group.getByRole('button', { name: 'Replace' }));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.any(String), 'error', expect.objectContaining({ label: 'Retry' })));
+    refuse = false;
+    const retry = notify.mock.calls.find((call) => call[1] === 'error')![2] as { onAction: () => void };
+    act(() => retry.onAction());
+    await waitFor(() => expect(notify).toHaveBeenCalledWith('Keyboard shortcut saved.'));
+    expect(saveSettings.mock.calls[1]).toEqual(saveSettings.mock.calls[0]);
   });
 });

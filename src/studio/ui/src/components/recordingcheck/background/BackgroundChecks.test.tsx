@@ -107,6 +107,20 @@ describe('BackgroundChecks', () => {
     await waitFor(() => expect(screen.getByRole('region', { name: 'Background recording check' }).textContent).toContain('1 chapter waiting to be checked'));
   });
 
+  it('Pause and Resume also clear a project override, which the host layers over Global, so the corner and the host agree', async () => {
+    const { api, saveSettings } = mount({ backgroundChecks: 'waiting' });
+    await api.saveSettings('RecordingCoverage', 'project', { background_checks: 'true' });
+    const region = () => screen.findByRole('region', { name: 'Background recording check' });
+    fireEvent.click(within(await region()).getByRole('button', { name: 'Pause' }));
+    await waitFor(() => expect(saveSettings).toHaveBeenCalledWith('RecordingCoverage', 'project', { background_checks: null }));
+    const overrideSet = async () => (await api.settingsForScope('project')).RecordingCoverage?.find((f) => f.key === 'background_checks')?.isSet;
+    expect(await overrideSet()).toBe(false);
+    await waitFor(async () => expect((await api.chapterSyncState()).background.enabled).toBe(false));
+    await waitFor(async () => expect((await region()).textContent).toContain('Background checks paused'));
+    fireEvent.click(within(await region()).getByRole('button', { name: 'Resume' }));
+    await waitFor(async () => expect((await api.chapterSyncState()).background.enabled).toBe(true));
+  });
+
   it('says how many chapters wait and why when none can start', async () => {
     mount({ backgroundChecks: 'waiting' });
     const status = await screen.findByRole('region', { name: 'Background recording check' });

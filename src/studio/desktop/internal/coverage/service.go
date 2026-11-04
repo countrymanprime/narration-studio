@@ -3,6 +3,7 @@ package coverage
 import (
 	"context"
 	"desktop/internal/brand"
+	"desktop/internal/creditsid"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -439,7 +440,7 @@ func (s *Service) basisAndText(chapterID string) (basis ChapterBasis, text strin
 	if loadErr != nil {
 		return ChapterBasis{}, "", unknown(ReasonNoManuscript, loadErr.Error())
 	}
-	if kind, ok := CreditsKind(chapterID); ok {
+	if kind, ok := creditsid.Kind(chapterID); ok {
 		documentID, _ := data["documentId"].(string)
 		if documentID == "" {
 			return ChapterBasis{}, "", unknown(ReasonNoManuscript, "import a manuscript before checking a recording")
@@ -493,7 +494,7 @@ func (s *Service) prepareAndLaunch(request Request) (*job, error) {
 		return nil, err
 	}
 	manuscriptPath := s.manuscriptPath()
-	if _, isCredits := CreditsKind(basis.ChapterID); isCredits {
+	if _, isCredits := creditsid.Kind(basis.ChapterID); isCredits {
 		manuscriptPath = creditsManuscriptPath(s.config.Project)
 		if err := writeCreditsManuscript(manuscriptPath, basis, text); err != nil {
 			return nil, fmt.Errorf("could not prepare the credits recording check: %w", err)

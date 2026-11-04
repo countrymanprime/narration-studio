@@ -20,6 +20,7 @@
     "visual:check-run": "playwright test -c playwright.visual-run.config.ts",
     "mock-match": "playwright test -c playwright.mock-match.config.ts",
     "docs:atlas": "node scripts/atlas-docs.mjs",
+    "docs:atlas:check": "pnpm run build-storybook && node scripts/atlas-docs.mjs --check",
     "storybook": "storybook dev --port 6006",
     "build-storybook": "storybook build --output-dir storybook-static",
     "atlas": "pnpm run build-storybook && playwright test -c playwright.atlas.config.ts",
@@ -36,7 +37,7 @@
     "@fortawesome/free-solid-svg-icons": "^7.3.1",
     "@fortawesome/react-fontawesome": "^3.5.0",
     "@vitejs/plugin-react": "^6.1.2",
-    "@wailsio/runtime": "3.0.0-beta.33",
+    "@wailsio/runtime": "3.1.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-router-dom": "^7.18.4",
@@ -45,8 +46,8 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.64.1",
-    "@storybook/addon-a11y": "10.6.2",
-    "@storybook/react-vite": "10.6.2",
+    "@storybook/addon-a11y": "10.6.4",
+    "@storybook/react-vite": "10.6.4",
     "@tailwindcss/vite": "^4.3.3",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.8",
@@ -64,11 +65,11 @@
     "jsdom": "^30.1.3",
     "prettier": "^3.9.10",
     "sharp": "^0.35.5",
-    "storybook": "10.6.2",
+    "storybook": "10.6.4",
     "tailwindcss": "^4.3.3",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
-    "typescript-eslint": "^8.72.0",
-    "vite": "^8.3.4",
+    "typescript-eslint": "^8.72.1",
+    "vite": "^8.3.5",
     "vitest": "^5.0.5"
   }
 }

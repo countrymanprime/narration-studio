@@ -67,8 +67,8 @@ func TestTeleprompterRoomToneReportsAnUnavailableServiceLikeTeleprompterStart(t 
 
 func TestTheRoomToneFileLivesWithTheOtherPerUserFiles(t *testing.T) {
 	t.Setenv("APPDATA", filepath.Join(t.TempDir(), "Roaming"))
-	if got, want := filepath.Dir(roomTonePath()), filepath.Dir(seriesPath()); got != want {
-		t.Fatalf("room-tone.json in %s; want beside series.json in %s", got, want)
+	if got, want := filepath.Dir(roomTonePath()), filepath.Dir(creditTemplatesPath()); got != want {
+		t.Fatalf("room-tone.json in %s; want beside credit-templates.json in %s", got, want)
 	}
 	if filepath.Base(roomTonePath()) != "room-tone.json" {
 		t.Fatalf("roomTonePath = %s", roomTonePath())

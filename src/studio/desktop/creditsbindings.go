@@ -1,6 +1,7 @@
 package main
 
 import (
+	"desktop/internal/creditsid"
 	"fmt"
 	"strings"
 	"time"
@@ -126,16 +127,13 @@ func (h *Host) creditTokens() map[string]string {
 	return values.Resolve(narratorGlobal)
 }
 
-// creditsScriptTitles are the credits kinds the teleprompter reads and the name each is shown under (never read aloud).
-var creditsScriptTitles = map[string]string{"opening": "Opening credits", "closing": "Closing credits"}
-
 // creditsScript is the opening or closing credits as the teleprompter reads them: the first template of
 // that kind in the library (the same one the estimate times and the Manuscript entry shows), rendered with
 // credits.Render exactly as CreditsPreview renders it. An unresolved token stays visible in the text rather than failing:
 // the UI warns about it and Start stays allowed (owner decision 2026-09-23).
 func (h *Host) creditsScript(kind string) (teleprompter.Script, error) {
-	title, ok := creditsScriptTitles[kind]
-	if !ok {
+	title := creditsid.Title(kind)
+	if title == "" {
 		return teleprompter.Script{}, fmt.Errorf("the teleprompter reads opening or closing credits, not %q", kind)
 	}
 	templates, err := h.creditTemplates.List()
@@ -145,7 +143,7 @@ func (h *Host) creditsScript(kind string) (teleprompter.Script, error) {
 	for _, template := range templates {
 		if template.Kind == kind {
 			rendered := credits.Render(template.Body, h.creditTokens())
-			return teleprompter.Script{ID: "credits-" + kind, Title: title, Text: rendered.Text}, nil
+			return teleprompter.Script{ID: creditsid.ID(kind), Title: title, Text: rendered.Text}, nil
 		}
 	}
 	return teleprompter.Script{}, fmt.Errorf("there is no %s template: add one in Settings > Credits", strings.ToLower(title))

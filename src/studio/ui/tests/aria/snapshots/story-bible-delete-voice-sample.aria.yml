@@ -3,8 +3,6 @@
 - status
 - alert
 - status
-- alert
-- status
 - alertdialog "Delete voice sample":
   - heading "Delete voice sample" [level=2]
   - button "Close"

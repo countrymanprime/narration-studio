@@ -1,6 +1,10 @@
 package manuscript
 
-import "testing"
+import (
+	"testing"
+
+	"desktop/internal/creditsid"
+)
 
 func ids(chapters []map[string]any) []string {
 	out := []string{}
@@ -20,11 +24,11 @@ func TestTheCreditsAreChaptersOpeningFirstAndClosingLast(t *testing.T) {
 		return []CreditsChapter{{Kind: "closing", Words: 12, Status: "recording"}, {Kind: "opening", Words: 40}}
 	})
 	service.SetRecordedLengths(func() map[string]RecordedLength {
-		return map[string]RecordedLength{OpeningCreditsID: {Seconds: 31.5}, ClosingCreditsID: {Unavailable: RecordedUnlinked}}
+		return map[string]RecordedLength{creditsid.OpeningID: {Seconds: 31.5}, creditsid.ClosingID: {Unavailable: RecordedUnlinked}}
 	})
 	for _, list := range [][]map[string]any{mustChapters(t, service.Chapters), mustChapters(t, service.ChaptersUnmeasured)} {
 		got := ids(list)
-		if len(got) != len(plain)+2 || got[0] != OpeningCreditsID || got[len(got)-1] != ClosingCreditsID {
+		if len(got) != len(plain)+2 || got[0] != creditsid.OpeningID || got[len(got)-1] != creditsid.ClosingID {
 			t.Fatalf("ids = %v", got)
 		}
 		if !IsCredits(list[0]) || IsCredits(list[1]) || !IsCredits(list[len(list)-1]) {
@@ -39,7 +43,7 @@ func TestTheCreditsAreChaptersOpeningFirstAndClosingLast(t *testing.T) {
 	if closing["status"] != "recording" || closing["recordedUnavailable"] != "unlinked" {
 		t.Fatalf("closing = %#v", closing)
 	}
-	if !IsCreditsID(OpeningCreditsID) || IsCreditsID("c1") {
+	if !creditsid.IsID(creditsid.OpeningID) || creditsid.IsID("c1") {
 		t.Fatal("IsCreditsID")
 	}
 }
@@ -48,7 +52,7 @@ func TestACreditsFileIsListedOnlyWhenTheProviderHasIt(t *testing.T) {
 	service, _, _ := importReaderFixture(t)
 	service.SetCredits(func() []CreditsChapter { return []CreditsChapter{{Kind: "closing"}} })
 	got := ids(mustChapters(t, service.Chapters))
-	if got[len(got)-1] != ClosingCreditsID || got[0] == OpeningCreditsID {
+	if got[len(got)-1] != creditsid.ClosingID || got[0] == creditsid.OpeningID {
 		t.Fatalf("ids = %v", got)
 	}
 }
@@ -79,7 +83,7 @@ func TestTheChapterListWithCreditsIsPinnedForTheUI(t *testing.T) {
 		return []CreditsChapter{{Kind: "opening", Words: 12, Status: "finalized"}, {Kind: "closing", Words: 30}}
 	})
 	service.SetRecordedLengths(func() map[string]RecordedLength {
-		return map[string]RecordedLength{OpeningCreditsID: {Seconds: 31.5}, ClosingCreditsID: {Unavailable: RecordedUnlinked}}
+		return map[string]RecordedLength{creditsid.OpeningID: {Seconds: 31.5}, creditsid.ClosingID: {Unavailable: RecordedUnlinked}}
 	})
 	list, err := service.Chapters()
 	if err != nil {

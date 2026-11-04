@@ -229,3 +229,108 @@ H.test('chapter_track_state answers an empty output device and channel name when
   local state = s:events()[1]
   H.eq({ state[14], state[15] }, { '', '' })
 end)
+
+-- The union read for a chapter linked to a folder of voices (docs/prds/booth-voice-tracks.prd.md, phase 2): with 'children', the folder's own items and
+-- every item on its descendants, in track order, each TRACK_ITEM carrying its track's GUID as a last field. Descendants are the tracks after the folder
+-- until its depth closes, read from I_FOLDERDEPTH.
+local function voices_session()
+  local s = H.session({ project_path = H.join(host.tmpdir(), 'Book.rpp') })
+  local fake = s.fake
+  local before = fake:add_track('Chapter 2')
+  local folder = fake:add_track('Chapter 3')
+  local narrator = fake:add_track('Narrator')
+  local sub = fake:add_track('Crowd')
+  local crowd = fake:add_track('Guard')
+  local veyra = fake:add_track('Veyra')
+  local after = fake:add_track('Chapter 4')
+  folder.folder_depth, sub.folder_depth, crowd.folder_depth, veyra.folder_depth = 1, 1, -1, -1
+  fake:add_item(before, { position = 0, length = 5, source = 'ch2.wav' })
+  fake:add_item(narrator, { position = 0, length = 4, source = 'narrator.wav' })
+  fake:add_item(crowd, { position = 4, length = 1, source = 'guard.wav' })
+  fake:add_item(veyra, { position = 5, length = 2, source = 'veyra.wav' })
+  fake:add_item(after, { position = 0, length = 5, source = 'ch4.wav' })
+  return s, { folder = folder, narrator = narrator, sub = sub, crowd = crowd, veyra = veyra, after = after, before = before }
+end
+
+H.test('chapter_track_state with children lists the items on every descendant of a folder, each with its track, and none after the folder', function()
+  local s, t = voices_session()
+  s:send('chapter_track_state', 't1', t.folder.guid, 'children')
+  local events = s:events()
+  H.eq(events[1][3], t.folder.guid, "the state is the folder's")
+  local rows = {}
+  for _, event in ipairs(events) do
+    if event[1] == 'TRACK_ITEM' then
+      rows[#rows + 1] = { event[9], event[11] }
+    end
+  end
+  H.eq(rows, { { 'narrator.wav', t.narrator.guid }, { 'guard.wav', t.crowd.guid }, { 'veyra.wav', t.veyra.guid } })
+  H.eq(events[#events], { 'TRACK_STATE_END', 't1', '3', '3' })
+end)
+
+H.test("chapter_track_state with children includes the folder's own items first", function()
+  local s, t = voices_session()
+  s.fake:add_item(t.folder, { position = 9, length = 1, source = 'folder.wav' })
+  s:send('chapter_track_state', 't1', t.folder.guid, 'children')
+  local row = s:events()[2]
+  H.eq({ row[1], row[9], row[11] }, { 'TRACK_ITEM', 'folder.wav', t.folder.guid })
+end)
+
+H.test('chapter_track_state with children on a track that is not a folder lists its own items, with its track', function()
+  local s, t = voices_session()
+  s:send('chapter_track_state', 't1', t.before.guid, 'children')
+  local events = s:events()
+  H.eq(#events, 3)
+  H.eq({ events[2][9], events[2][11] }, { 'ch2.wav', t.before.guid })
+end)
+
+H.test('chapter_track_state with children on a child track lists only that child and its own descendants', function()
+  local s, t = voices_session()
+  s:send('chapter_track_state', 't1', t.sub.guid, 'children')
+  local events = s:events()
+  H.eq({ events[2][9], events[2][11], events[3][1] }, { 'guard.wav', t.crowd.guid, 'TRACK_STATE_END' })
+end)
+
+H.test('chapter_track_state without children is unchanged on a folder: its own items only, with no track field', function()
+  local s, t = voices_session()
+  s:send('chapter_track_state', 't1', t.folder.guid)
+  H.eq(s:events()[2], { 'TRACK_STATE_END', 't1', '0', '0' })
+end)
+
+H.test('chapter_track_state refuses an unknown read option and lists nothing', function()
+  local s, t = voices_session()
+  s:send('chapter_track_state', 't1', t.folder.guid, 'everything')
+  H.eq(s:events(), { { 'ERROR', 't1', 'Unknown track read option: everything.' } })
+end)
+
+H.test('chapter_track_state with children counts the limit over the whole folder', function()
+  local s, t = voices_session()
+  for index = 1, 600 do
+    s.fake:add_item(t.narrator, { position = 10 + index, length = 1, source = 'n.wav' })
+    s.fake:add_item(t.veyra, { position = 10 + index, length = 1, source = 'v.wav' })
+  end
+  s:send('chapter_track_state', 't1', t.folder.guid, 'children')
+  local events = s:events()
+  H.eq(events[#events], { 'TRACK_STATE_END', 't1', '1000', '1203' })
+end)
+
+H.test('chapter_track_state with children on a track that is gone answers TRACK_STALE and lists nothing', function()
+  local s = voices_session()
+  s:send('chapter_track_state', 't1', '{00000000-0000-4000-8000-0000000000DE}', 'children')
+  H.eq(s:events(), { { 'TRACK_STALE', 't1', '{00000000-0000-4000-8000-0000000000DE}' } })
+end)
+
+H.test('chapter_track_state with children answers the same twice and changes nothing', function()
+  local s, t = voices_session()
+  s:send('chapter_track_state', 't1', t.folder.guid, 'children')
+  local first = s:events()
+  s:send('chapter_track_state', 't1', t.folder.guid, 'children')
+  H.eq(s:events(), first)
+  H.eq(#s.fake.calls, 0, 'a read set something')
+end)
+
+H.test('chapter_track_state with children and no track answers the transport only', function()
+  local s = voices_session()
+  s:send('chapter_track_state', 't1', '', 'children')
+  local events = s:events()
+  H.eq({ events[1][1], events[1][3], events[2][1], events[2][3], events[2][4] }, { 'TRACK_STATE', '', 'TRACK_STATE_END', '0', '0' })
+end)
