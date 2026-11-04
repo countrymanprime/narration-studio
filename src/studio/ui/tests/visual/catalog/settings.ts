@@ -385,7 +385,8 @@ export const settingsStates: StateEntry[] = [
   {
     page: 'settings',
     state: 'effects-cap',
-    description: 'Settings, Recording & DAW scrolled to Effects coverage cap under Effects: 10 %, with Override for this project, the row in full view',
+    description:
+      'Settings, Recording & DAW scrolled to Effects coverage cap under Effects: 10 % after Override for this project, with its own project box, the row in full view',
     ...REFLOW,
     ...KEEPS_DESKTOP_SCROLL,
   },

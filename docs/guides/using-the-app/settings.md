@@ -102,7 +102,7 @@ the Narrator, the one character it also voices. With the **Flat** layout the row
 
 **Effects coverage cap** (under **Effects**) is how much of a chapter effects may cover before the [Editing](editing.md) Effects tab warns, a whole percent from 1 to 100 (10 until you change it). Set here it is this computer's value; **Override for this project** gives a project its own. The Effects tab's cap box always sets the project's own value, so typing there creates that override; **Use computer setting** removes it. The **?** says more.
 
-![Settings - Recording & DAW, Effects: the Effects coverage cap row, 10 %, with Override for this project](../../images/ui/settings-effects-cap.webp)
+![Settings - Recording & DAW, Effects: the Effects coverage cap row after Override for this project, with its own project box](../../images/ui/settings-effects-cap.webp)
 
 **Start tone** (under **Take cues**) is **Off** or **On**. On, the Booth plays a short beep when you press Record, for recording by foot pedal without looking at the screen, and the take starts when the beep ends, a fraction of a second later, so the beep is not on the recording. Turning it on plays it once. It is kept in this window, as Theme and Motion are, and there is no tone to stop a take.
 
