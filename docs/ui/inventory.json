@@ -1356,10 +1356,10 @@
       ],
       "consumers": [
         "src/components/booth/page/CreditsWarning.tsx",
-        "src/components/booth/record/SetupChip.tsx",
         "src/components/booth/resume/RecordedThroughChip.tsx",
         "src/components/booth/resume/ResumeOffer.tsx",
         "src/components/connection/ConnectionIndicator.tsx",
+        "src/components/engine/EngineChipButton.tsx",
         "src/components/layout/AppShell.tsx",
         "src/components/layout/EngineChip.tsx",
         "src/components/layout/TimerChip.tsx",
@@ -2694,7 +2694,10 @@
         "Late",
         "No Take Log",
         "Nothing Recorded",
-        "No Due Date"
+        "No Due Date",
+        "Due Tomorrow",
+        "Due Today",
+        "Due Year 9999"
       ],
       "consumers": [
         "src/components/production/ProductionPage.tsx",
@@ -2733,6 +2736,7 @@
         "Standalone"
       ],
       "consumers": [
+        "src/components/booth/frame/LevelsMenu.tsx",
         "src/components/booth/voices/WhoIsInDialog.tsx",
         "src/components/devtools/MockStatesPanel.tsx",
         "src/components/editing/range/cut/CutDialog.tsx",
@@ -3473,7 +3477,7 @@
       "source": "src/components/primitives/SplitButton.tsx",
       "stories": [
         "Default",
-        "With Switch",
+        "Cold Read",
         "Stopping"
       ],
       "consumers": [
@@ -4258,7 +4262,6 @@
         "src/components/booth/ReaderText.tsx",
         "src/components/booth/bookmarks/BookmarkRibbons.tsx",
         "src/components/booth/page/CreditsWarning.tsx",
-        "src/components/booth/record/SetupChip.tsx",
         "src/components/booth/resume/RecordedThroughChip.tsx",
         "src/components/booth/resume/ResumeOffer.tsx",
         "src/components/booth/voices/VoiceControl.tsx",
@@ -4271,10 +4274,10 @@
         "src/components/editing/takes/prep/PrepControls.tsx",
         "src/components/editing/takes/split/SplitButton.tsx",
         "src/components/engine/AudacityLinkCard.tsx",
+        "src/components/engine/EngineChipButton.tsx",
         "src/components/engine/LiveTracksStatus.tsx",
         "src/components/engine/VoicesCard.tsx",
         "src/components/layout/AppShell.tsx",
-        "src/components/layout/EngineChip.tsx",
         "src/components/master/DiagnosticsSection.tsx",
         "src/components/master/MasteringApprovalDialog.tsx",
         "src/components/master/MasteringChain.tsx",

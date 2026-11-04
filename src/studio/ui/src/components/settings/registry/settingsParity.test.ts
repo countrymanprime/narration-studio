@@ -38,7 +38,11 @@ function check(found: string[], { covered, exempt, cap }: Parity) {
     'a setting control with no Settings row',
   ).toEqual([]);
   expect(found.length).toBeGreaterThan(0);
-  expect(Object.keys(exempt).length, 'the exempt list grew; add a Settings row instead').toBeLessThanOrEqual(cap);
+  // The cap is the exempt list's length, not a ceiling above it: adding an exemption fails here (add a Settings row instead), and so does
+  // removing one without lowering the cap, which would leave room for one to come back unreviewed.
+  expect(Object.keys(exempt).length, 'the exempt list and its cap differ: a new exemption needs the owner, a removed one lowers the cap').toBe(cap);
+  for (const [name, reason] of Object.entries(exempt))
+    expect(reason, `${name} is still marked GAP: build its Settings row or give the reason`).not.toMatch(/^GAP\b/);
   for (const name of [...Object.keys(covered), ...Object.keys(exempt)]) expect(found, `${name} is listed but no longer exists`).toContain(name);
 }
 
@@ -86,7 +90,6 @@ const BINDINGS: Parity = {
     guideTypeSetColour: 'The Story Bible type colours are edited in Settings’ Entry types row (project.types); this is that row’s own write.',
     guideTypeSetSpeaks: 'The Story Bible type’s Can speak is edited in Settings’ Entry types row (project.types); this is that row’s own write.',
     voiceSampleSetPrimary: DATA,
-    // Preferences with no Settings row yet. Each leaves this list in the pull request that adds its row (issue 2815).
     masteringChooseProvider: 'No control calls it (it is on the unwired-bindings list); a row comes with the control, if one is ever drawn.',
     editingSetSourceChoice: 'A per-chapter choice recorded with that chapter’s analysis (source-choice.json), not a preference for the project.',
   },

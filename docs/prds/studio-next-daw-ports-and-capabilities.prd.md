@@ -1,6 +1,6 @@
 # Studio Next DAW Ports and Capabilities: A Result Object, Capability Depth and the Bridge Commands the Mock Assumes
 
-**Source:** owner request of 2026-10-10 ([Studio Next Rebuild](studio-next-rebuild.prd.md)); the owner's DAW rulings in `studio-next/research/repo-compare-decisions.md` ("DAW state rulings", "Takes, restarts, punch and roll", "Owner follow-up on takes and Audacity", "FX exception"); the mock's `studio-next/src/state/daw.ts`, `studio-next/src/domain/daw.ts`, `studio-next/src/fixtures/daw.ts`, `studio-next/src/selectors/daw.ts`.
+**Source:** owner request of 2026-10-10 (Studio Next Rebuild); the owner's DAW rulings in `studio-next/research/repo-compare-decisions.md` ("DAW state rulings", "Takes, restarts, punch and roll", "Owner follow-up on takes and Audacity", "FX exception"); the mock's `studio-next/src/state/daw.ts`, `studio-next/src/domain/daw.ts`, `studio-next/src/fixtures/daw.ts`, `studio-next/src/selectors/daw.ts`.
 
 **Builds on:** [The DAW port](../architecture/daw-integration.md#the-daw-port) to [Provider ports](../architecture/provider-ports.md) (the DAW port, delivered), [The REAPER bridge and its test harness](../architecture/reaper-bridge.md) and [The REAPER verification pass](../operations/reaper-verification-pass.md) (experimental commands and promotion), [The DAW port](../architecture/daw-integration.md#the-daw-port) to [The DAW port](../architecture/daw-integration.md#the-daw-port) (the harness, registry, event fan-out), [The workspace's take and FX actions (`narration_workspace.lua`)](../architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua), [narration_punch.lua](../../src/studio/integrations/reaper/narration_punch.lua), [The DAW port](../architecture/daw-integration.md#the-daw-port), [Built-in recorder: what the app declares for it](../reference/daw/builtin-recorder.md), Audacity Integration (old PRD `audacity-integration.prd.md`, recoverable from git history), Native Recording Suite (old PRD `native-recording-suite.prd.md`, recoverable from git history), Booth Actions Enablement (old PRD `booth-actions-enablement.prd.md`, recoverable from git history), REAPER Automation Follow-Through (old PRD `reaper-automation-follow-through.prd.md`, recoverable from git history), Edit and Proof Workspace (old PRD `edit-and-proof-workspace.prd.md`, recoverable from git history).
 
@@ -120,7 +120,7 @@ Narrators using REAPER (primary), Audacity 3 (secondary) or the built-in recorde
 
 ### Supersedes / depends on ADRs
 
-On conflict this PRD, and the ADR written when its phase lands, is the source of truth for the rebuild; an old ADR stays in force for code not yet migrated until the superseding ADR is merged ([register](studio-next-adr-register.prd.md)).
+On conflict this PRD, and the ADR written when its phase lands, is the source of truth for the rebuild; an old ADR stays in force for code not yet migrated until the superseding ADR is merged (register).
 
 | ADR | Class | Note |
 | --- | --- | --- |
@@ -141,7 +141,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 **Test plan.** Harness test first for each command (fake REAPER in `src/studio/integrations/reaper/tests/fake_reaper.lua`: stale GUID, recording refusal, unknown chain name, one undo block, no spurious undo point), mutation entries; `dawporttest.Run` extended per new role; Go golden tests for `DawResult` and `DawProjectState` (`UPDATE_CONTRACTS=1`); `wireContracts.test.ts` rows; `DawClient` parity suite; scripted REAPER runs recorded in `docs/research/`; owner steps on #992.
 
-**Rollout.** Every command Experimental; promotion is a one-line declaration change after the verification pass ([The REAPER verification pass](../operations/reaper-verification-pass.md)). Settings shows each capability with its reason, destructive flag and mode ([Master, Delivery and Settings](studio-next-master-delivery-and-settings.prd.md)).
+**Rollout.** Every command Experimental; promotion is a one-line declaration change after the verification pass ([The REAPER verification pass](../operations/reaper-verification-pass.md)). Settings shows each capability with its reason, destructive flag and mode (Master, Delivery and Settings).
 
 **ADRs.** A6 (undo scope), A7 (result object and capability fields; amends [resolver.go](../../src/studio/desktop/internal/dawport/resolver.go)'s wire shapes only), A8 (roll as one command, range cut and range FX, stack; supersedes the roll part of [narration_punch.lua](../../src/studio/integrations/reaper/narration_punch.lua) and the "chain only on tracks" limit of [The workspace's take and FX actions (`narration_workspace.lua`)](../architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua) for ranges).
 
@@ -221,4 +221,4 @@ Read: the mock's DAW files and tests, the owner's rulings, `capability.go`, the 
 
 ## Visual Spec
 
-No page. Settings rows for capabilities are in [Master, Delivery and Settings](studio-next-master-delivery-and-settings.prd.md); the Mock-states DAW group is `studio-next/src/app/mock-states.tsx`.
+No page. Settings rows for capabilities are in Master, Delivery and Settings; the Mock-states DAW group is `studio-next/src/app/mock-states.tsx`.

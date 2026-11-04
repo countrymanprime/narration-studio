@@ -37,3 +37,11 @@ export const NothingRecorded: Story = {
 };
 // No due date: no plan or due line, and a caption under the plot says what draws them (alignment audit XSH-18).
 export const NoDueDate: Story = { args: { due: null } };
+// The due line a day after today, on today, and years away: no label crosses it or the plan line, and the last date stays whole (issue 1942).
+const dueAt = (d: Date) => {
+  const f = overviewFor(MID_BOOK, d);
+  return { k: f.k, due: f.kpi.due };
+};
+export const DueTomorrow: Story = { args: { ...dueAt(new Date(STORY_TODAY.getTime() + 86_400_000)) } };
+export const DueToday: Story = { args: { ...dueAt(STORY_TODAY) } };
+export const DueYear9999: Story = { args: { ...dueAt(new Date(9999, 11, 31)) } };

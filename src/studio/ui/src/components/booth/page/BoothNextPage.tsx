@@ -321,6 +321,7 @@ function BoothSession({
     recordBlocked?: (block: RecordBlock) => void;
   }>({});
   const page = useBoothPage({
+    projectFolder,
     recordId,
     title,
     credits: source.kind === 'credits',
@@ -615,7 +616,10 @@ function BoothSession({
     );
   };
   // The host's sentence for an unlinked chapter points at the audio engine panel; the chip and its dialog are that fix now.
-  const footerWhy = linkProblem ? `${recordName} has no track to record on. Press Record to link one.` : control.reason;
+  // Record's reason is about Record: while the main button reads Cold read (no take runs) the footer does not blame Record for it.
+  const coldMode = page.coldRead.mode && !control.recording;
+  const recordWhy = linkProblem ? `${recordName} has no track to record on. Press Record to link one.` : control.reason;
+  const footerWhy = coldMode ? '' : recordWhy;
   const roomTone = useRoomTone(measurements, session.device);
   // The app's own recorder is what records (the project chose it, or no DAW is linked): the microphone is chosen here, not in a DAW.
   const standalone = capabilities?.daw === 'none' || recordsInApp(capabilities?.daw);
@@ -679,7 +683,6 @@ function BoothSession({
                     project={control.project}
                     choice={dawChoice}
                     otherProject={setupPlan?.kind === 'other-project'}
-                    onClick={() => void page.goTo(`${BOOTH_LINKS.settings}#recording`)}
                   />
                 ) : undefined
               }
@@ -803,7 +806,9 @@ function BoothSession({
           </BoothSamplesProvider>
           <SamplePlayerAnnouncement text={samples.announcement} />
           <BoothFooter
-            record={<RecordControl control={{ ...control, reason: footerWhy, toggle: page.toggleTake }} />}
+            record={
+              <RecordControl control={{ ...control, reason: footerWhy, toggle: page.pressMain }} cold={{ mode: page.coldRead.mode, on: page.coldRead.on }} />
+            }
             seconds={page.seconds}
             recording={control.recording}
             why={footerWhy || undefined}

@@ -79,5 +79,54 @@ Ten persisted preferences have no Settings equivalent (gaps below); gap 1 is fix
 ## Fix plan
 
 1. This note.
-2. `daw.layout` and the guard `settingsParity.test.ts`. The guard lists host bindings, window keys and `saveSettings` callers, each covered by a row or exempt with a reason. Gaps 2 to 8 and 10 are the guard's entries marked `GAP` (the guard's name scan does not see bindings that start with `set`, so the Schedule basis binding, `setProductionRateBasis`, is held by its own check in the guard; issue 2970 tracks the blind spot); each leaves the list in the pull request that adds its row, and the list's caps only go down.
+2. `daw.layout` and the guard `settingsParity.test.ts`. The guard lists host bindings, window keys and `saveSettings` callers, each covered by a row or exempt with a reason. Gaps 2 to 10 now each have a row, and no exemption is marked `GAP` any more: the guard fails on one, and each exempt list's cap equals its length, so an exemption can only be added with the owner and a removal lowers the cap. The guard's name scan does not see bindings that start with `set`, so the Schedule basis binding, `setProductionRateBasis`, is held by its own check; issue 2970 tracks the blind spot.
 3. Engine panel (gaps 2 to 4), Booth (5), Editing (6, 7), Story Bible (8), Production (9), App (10); the last pull request closes #2815.
+
+## Taxonomy: type and group
+
+Owner addition (2026-11-03): classify every control by type and group, and make each Settings group the single home for its settings. A page's control and the Settings row edit one value from one source; a setting may be reachable from several pages and from Settings. A new row goes under the matching existing category; the one new section proposed is named below.
+
+| Type | Settings category › section | Settings in it |
+| - | - | - |
+| Layout and project structure | Recording & DAW › Chapter sync | Chapter layout (`daw.layout`), Chapter sync on or off (`daw.sync`), Narrator's character and characters per voice track (`daw.voices`) |
+| DAW link and setup | Recording & DAW › Recording tool, REAPER | Record with, REAPER program, launcher script, Capabilities, Sync activity |
+| Recording behaviour | Recording & DAW › Take cues, Recording tool | Microphone, Start tone, Voice sample output; Punch pre-roll (`ps.punch`) |
+| Audio processing | Recording & DAW › Effects; Speech to text | Effects coverage cap (`daw.fxCap`), Favourite effects (`ps.fx`), Audacity backups (`ps.backups`); Silence cleanup (`ps.cleanup`); transcription rows under Speech to text |
+| Display and listening | Appearance & keys | Theme, Motion, Zoom, Reader text, Waveform step, Booth text size (`look.boothSize`), Story Bible order (`look.entrySort`), and a Listening section for Editing playback speed, volume and output device (`look.playback`) |
+| Safety and confirmations | App & updates | Background-check consent (`stt.background`), Update checks, Notifications; Tips already seen (`app.tips`, Show tips again) |
+| Plan and delivery | Delivery, Project | Delivery profile, Schedule basis (`project.rateBasis`, Project › Schedule), credits, narrator, Words per page |
+| Language and vocabulary | Voice & pronunciation | Definition source, Pronunciation source, Merriam-Webster key |
+
+The Set on a page entries (`ps.*`) stay: each opens the same keys the page's own control edits.
+
+## Settings by page
+
+● the page has a control that edits the setting; ○ the page reads it. Every setting in the table has a Settings row.
+
+| Setting | Production | Script | Story Bible | Booth | Editing | Proof | Master & QC | Delivery | Engine panel | Settings |
+| - | - | - | - | - | - | - | - | - | - | - |
+| Chapter layout | ○ | | | ○ | ○ | | | | ● | `daw.layout` |
+| Chapter sync on or off | ● consent dialog | | | | | | | | ● | `daw.sync` |
+| Narrator's character, characters per track | | | | ○ | | | | | ● | `daw.voices` |
+| Record with | | | | ○ | ○ | ○ | ○ | | ● link cards | `daw.engine` |
+| Microphone | | | | ● Levels | | | | | | `daw.mic` |
+| Start tone | | | | ○ | | | | | | `daw.startTone` |
+| Punch pre-roll | | | | ● Levels | | | | | | `ps.punch` |
+| Reader text (font, size, spacing, width) | | ● | | ● | | | | | | `look.reader*` |
+| Booth text size | | | | ● | | | | | | `look.boothSize` |
+| Playback speed, volume, mute, device | | | | | ● Output | | | | | `look.playback` |
+| Effects coverage cap | | | | | ● | | | | | `daw.fxCap` |
+| Favourite effects | | | | | ● | | | | | `ps.fx` |
+| Audacity backups | | | | | ● | | | | | `ps.backups` |
+| Waveform arrow step | | | | | ○ | | | | | `look.waveScrollStep` |
+| Story Bible entry sort | | | ● | | | | | | | `look.entrySort` |
+| Definition source | | ● Words | | | | | | | | `voice.dict` |
+| Schedule basis | ● target popover | | | | | | | | | `project.rateBasis` |
+| Delivery profile | ● import | | | | | | ○ | ● | | `delivery.profile` |
+| Recording check rules, Stage suggestions | ● jump menu | | | | | ● | | | | `ps.coverage`, `ps.stages` |
+| Preview and Compare options | | | | | | ● jump menu | | | | `ps.preview`, `ps.compare` |
+| Silence cleanup | | | | | | | ● | | | `ps.cleanup` |
+| Background checks | ● card, any page | | | ● | | | | | | `stt.background` |
+| Close import when done | ● | | | | | | | | | `app.importClose` |
+| Theme, Zoom | ● shell | ● | ● | ● | ● | ● | ● | ● | ● | `look.theme`, `look.zoom` |
+| Tips already seen | | ● | | | | | | | | `app.tips` |

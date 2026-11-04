@@ -38,6 +38,12 @@ var actionNouns = map[dawport.ActionKind][2]string{
 	dawport.ActionRestoreReplacement: {"put-back", "put-backs"},
 	// A used take is a choice of which take plays; the plural only reaches a run of them.
 	dawport.ActionUseTake: {"choice of take", "choices of take"},
+	// A chain edit is one undo point, so the plural only reaches a run of them.
+	dawport.ActionAddRangeFX:    {"effect added", "effects added"},
+	dawport.ActionRemoveRangeFX: {"effect taken off", "effects taken off"},
+	dawport.ActionSetFXParam:    {"change of an effect setting", "changes of an effect setting"},
+	dawport.ActionBypassFX:      {"bypass", "bypasses"},
+	dawport.ActionEnableFX:      {"turning an effect back on", "times an effect was turned back on"},
 }
 
 // LastAction reads whether REAPER's next undo point is kind's. Anything that keeps it from telling (the capability refused, REAPER

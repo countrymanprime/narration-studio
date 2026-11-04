@@ -44,10 +44,18 @@ export const daysText = (daysLeft: number): string => {
   return daysLeft === -1 ? '1 day overdue' : `${num(-daysLeft)} days overdue`;
 };
 
+/** The last year a due date or a milestone date may name: a year past it is a slip of the keyboard, and it would stretch the chart's axis over thousands of years. */
+export const MAX_DATE_YEAR = 2100;
+
+/** The sentence refusing a real date that is too far away, or null. */
+export const farDateProblem = (text: string): string | null =>
+  isIsoDate(text.trim()) && Number(text.trim().slice(0, 4)) > MAX_DATE_YEAR ? `Write a date no later than Dec 31, ${MAX_DATE_YEAR}.` : null;
+
 /** Why a typed due date cannot be sent, or null when it can (an empty one clears the date). */
 export const dueDateProblem = (text: string): string | null => {
   const t = text.trim();
-  if (t === '' || isIsoDate(t)) return null;
+  if (t === '') return null;
+  if (isIsoDate(t)) return farDateProblem(t);
   return /^\d{4}-\d{2}-\d{2}$/.test(t) ? `${t} is not a real date.` : 'Write the due date as YYYY-MM-DD.';
 };
 

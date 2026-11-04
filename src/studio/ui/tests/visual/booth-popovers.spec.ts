@@ -1,5 +1,5 @@
 // The Booth's speaker picker and Levels popover (#2251, alignment audit docs/research/alignment-audit/findings/booth.md): a status
-// column with one right edge, a search box that says what it is for, and one label style and rhythm in Levels.
+// column with one right edge, a search box that says what it is for, and one label style and rhythm in Record options.
 import { expect, test, type Page } from '@playwright/test';
 import { boothDrivers } from './drivers/booth';
 
@@ -65,7 +65,7 @@ for (const size of [
       'levels-menu-builtin-no-mic',
     ]) {
       await drive(page, state, size);
-      const box = await page.getByRole('dialog', { name: 'Levels' }).boundingBox();
+      const box = await page.getByRole('dialog', { name: 'Record options' }).boundingBox();
       heights[state] = Math.round(box!.height);
     }
     expect(new Set(Object.values(heights)).size, JSON.stringify(heights)).toBe(1);

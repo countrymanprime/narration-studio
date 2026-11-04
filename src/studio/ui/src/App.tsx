@@ -820,6 +820,11 @@ function AppRoutes() {
   };
   // The one-argument form is what pages receive as a prop, so a caller that passes it on as a callback never hands it a second argument as state.
   const guardedNavigate = (next: string) => guardedMove(next);
+  // Settings > Recording & DAW, from the engine panel's gear and the Built-in chips: the panel closes behind it.
+  const openRecordingSettings = () => {
+    setEnginePanelOpen(false);
+    guardedNavigate(addressPath({ page: 'settings', anchor: 'recording' }));
+  };
   guardedNavigateRef.current = guardedMove;
   goToScriptRef.current = (chapter) => goToScript(chapter);
 
@@ -869,7 +874,7 @@ function AppRoutes() {
   return (
     <div className="relative h-full overflow-hidden" style={{ background: 'var(--bg)' }}>
       <LinkDawFileContext.Provider value={linkDawFileOutcome}>
-        <EnginePanelProvider value={openEnginePanel}>
+        <EnginePanelProvider value={openEnginePanel} openRecordingSettings={openRecordingSettings}>
           <VoiceSetupProvider projectFolder={data.projectFolder}>
             <TooltipProvider>
               <AppShell
@@ -880,7 +885,6 @@ function AppRoutes() {
                 dawFileLinked={data.dawFileLinked}
                 dawReachable={data.dawReachable}
                 dawProjectMatches={data.dawProjectMatches}
-                onOpenEnginePanel={openEnginePanel}
                 linkingDawFile={dawLink.isBusy}
                 engine={engine}
                 daw={dawKind}
@@ -1097,6 +1101,7 @@ function AppRoutes() {
                   open={enginePanelOpen}
                   onClose={() => setEnginePanelOpen(false)}
                   notify={setNotice}
+                  onOpenRecordingSettings={openRecordingSettings}
                   link={{
                     dawFileLinked: data.dawFileLinked,
                     dawReachable: data.dawReachable,

@@ -5,7 +5,7 @@ import { apiErrorMessage } from '../../../api/errorMessage';
 import { useErrorToast } from '../../../hooks/useErrorToast';
 import { usePort } from '../../../ports/usePort';
 import type { DeliveryProfile, ManuscriptChapter } from '../../../types';
-import { chapterOfFile, fileOf } from '../../master/chapterFile';
+import { chapterForFile, fileOf } from '../../master/chapterFile';
 import { deliveryProfileKey } from '../../master/deliveryProfile';
 import { DiagnosticsSection } from '../../master/DiagnosticsSection';
 import { FileRulesPanel } from '../../master/FileRulesPanel';
@@ -181,7 +181,7 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
   // A link by chapter id lands on that chapter's file once the files are known.
   const selected = useMemo(() => {
     const chapter = chapters.find((candidate) => candidate.id === picked);
-    return (chapter && fileOf(chapter, run.files)?.path) ?? picked;
+    return (chapter && fileOf(chapter, run.files, chapters)?.path) ?? picked;
   }, [picked, chapters, run.files]);
   const current = rows.find((row) => row.id === selected);
   // A link that names neither a file of this check nor a chapter (a stale or mistyped address) is said so, with a way out; it is never
@@ -198,14 +198,14 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
       : undefined;
   const chapterOfSelection = useMemo(() => {
     const file = run.files.find((candidate) => candidate.path === selected);
-    return (file && chapterOfFile(file, chapters)) ?? chapters.find((candidate) => candidate.id === selected);
+    return (file && chapterForFile(file, chapters)) ?? chapters.find((candidate) => candidate.id === selected);
   }, [selected, run.files, chapters]);
   const remember = useCallback((chapter: ManuscriptChapter | undefined) => chapter && saveSharedChapter(projectFolder, chapter.id), [projectFolder]);
   const select = useCallback(
     (id: string) => {
       setPicked(id);
       const file = run.files.find((candidate) => candidate.path === id);
-      remember(file ? chapterOfFile(file, chapters) : chapters.find((candidate) => candidate.id === id));
+      remember(file ? chapterForFile(file, chapters) : chapters.find((candidate) => candidate.id === id));
     },
     [run.files, chapters, remember],
   );
@@ -213,7 +213,7 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
   const goToChapter = (id: string) => {
     const chapter = chapters.find((candidate) => candidate.id === id);
     if (!chapter) return;
-    setPicked(fileOf(chapter, run.files)?.path ?? chapter.id);
+    setPicked(fileOf(chapter, run.files, chapters)?.path ?? chapter.id);
     remember(chapter);
   };
   const stepChapter = (direction: -1 | 1) => {
