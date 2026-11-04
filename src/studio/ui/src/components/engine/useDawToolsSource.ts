@@ -52,7 +52,7 @@ export function useDawToolsSource(opened: number): DawToolsSource {
         setState('read');
       },
       (reason) => {
-        if (active) setState({ failed: `The REAPER project could not be read: ${apiErrorMessage(reason)}` });
+        if (active) setState({ failed: `The REAPER project could not be read: ${apiErrorMessage(reason).slice(0, 200)}` });
       },
     );
     return () => {

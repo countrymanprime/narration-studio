@@ -293,6 +293,16 @@ export const editingDrivers: Record<string, Driver> = {
     await openDrawer(page);
     await page.getByRole('region', { name: 'Clean up findings' }).waitFor();
   },
+  // The Clicks list with Repair in REAPER beside Apply, its menu open (#2821).
+  'drawer-cleanup-repair': async (page) => {
+    await openDrawer(page);
+    await page.getByRole('region', { name: 'Clean up findings' }).waitFor();
+    await page.getByRole('button', { name: /^Clicks/ }).click();
+    await page.getByRole('button', { name: 'Repair in REAPER' }).click();
+    const menu = page.getByRole('menu');
+    await menu.waitFor();
+    await expect(menu.getByText('Reading the REAPER project…')).toHaveCount(0);
+  },
   'drawer-effects': async (page) => {
     await openDrawer(page);
     await page.getByRole('tab', { name: /^Effects/ }).click();
