@@ -22,7 +22,11 @@ import type {
   RenderEncodeMasterApi,
 } from '../types';
 import type { MasteringProviders } from './contracts/mastering';
-import type { ExportPlan } from './contracts/renderEncodeMaster';
+import type { ExportPlan, ExportPlanTrack } from './contracts/renderEncodeMaster';
+import { mockChainDigest, mockCleanChain } from './masteringMock';
+
+/** masteringport.ErrChainChanged's words. */
+const CHAIN_CHANGED = 'the FX chain in your DAW changed after you approved it: approve the render again';
 import { macroNameProblem } from './macroName';
 import { MOCK_ACX, deliveryProfileKey } from './deliveryProfilesMock';
 import { wireClone } from './mockFixtures';
@@ -186,6 +190,8 @@ export function createRenderEncodeMasterMock(
   masteringProviders?: () => Promise<MasteringProviders>,
   // What the picker chooses.
   pickPaths: readonly string[] = MOCK_EXPORT_PATHS,
+  // The DAW row's chain, as master_chain_read answers it (masteringMock.ts's mockMasterChain).
+  masterChain: () => Promise<ExportPlanTrack[]> = async () => [],
 ): RenderEncodeMasterApi {
   const delivery = seed === 'ready' || seed === 'building' || seed === 'fails' || seed === 'quiet';
   const hold = seed === 'hold' || seed === 'building' || seed === 'quiet';
@@ -331,6 +337,8 @@ export function createRenderEncodeMasterMock(
       needsApproval: false,
       needsMacro: false,
       items: items.map((item) => ({ ...item, region: '' })),
+      chain: [],
+      chainDigest: '',
     };
     if (!req.master) return plan;
     const state = masteringProviders ? await masteringProviders() : undefined;
@@ -343,7 +351,7 @@ export function createRenderEncodeMasterMock(
     const none = planned.filter((item) => regionsOnly && item.region === '').map((item) => baseName(item.path));
     if (none.length > 0)
       throw new Error(
-        `${row.label} masters the regions your DAW renders, and ${none.join(', ')} has no region: remove it from this export, or encode it without mastering`,
+        `${row.label} masters the regions your DAW renders, and ${none.join(', ')} has no region: remove it from this export, or untick Master before encoding to encode it without mastering.`,
       );
     return { ...plan, provider: row.name, label: row.label, needsApproval: row.needsApproval, needsMacro: row.needsMacro, items: planned };
   };
@@ -360,6 +368,9 @@ export function createRenderEncodeMasterMock(
     }
     if (plan.needsApproval && !approval)
       throw new Error(`${plan.label} runs only after you approve this render: this mastering chain runs only after you approve it`);
+    // approvalFor: an approval of the DAW row binds the chain shown, or nothing (fail closed).
+    if (plan.provider === 'daw' && approval && !approval.chainDigest)
+      throw new Error(`${plan.label}: this approval does not say which FX chain you were shown: approve the render again`);
     if (plan.needsMacro) {
       const macro = approval?.macro.trim() ?? '';
       if (macro === '') throw new Error(`${plan.label}: choose the macro this master applies`);
@@ -373,7 +384,15 @@ export function createRenderEncodeMasterMock(
       pickPaths.forEach((path) => picked.add(path));
       return { paths: [...pickPaths] };
     },
-    exportPlan: async (req: ExportRequest): Promise<ExportPlan> => wireClone(await planOf(req)),
+    // export_plan.go's exportPlan: the DAW row (a masteringport.ChainLister) also reads the chain it would run, and a chain it
+    // cannot read whole refuses the plan. ExportStart does not read it.
+    exportPlan: async (req: ExportRequest): Promise<ExportPlan> => {
+      const plan = await planOf(req);
+      if (!plan.master || plan.provider !== 'daw') return wireClone(plan);
+      // dawChain.Chain: the names as the host cleans them, and the digest over those (qa round 2, N5).
+      const chain = mockCleanChain(await masterChain());
+      return wireClone({ ...plan, chain, chainDigest: await mockChainDigest(chain) });
+    },
     exportStart: async (req: ExportRequest): Promise<ExportJob> => {
       const plan = await planOf(req);
       await approve(plan, req);
@@ -393,6 +412,16 @@ export function createRenderEncodeMasterMock(
         elapsed: 0,
         files: plan.items.map((item) => ({ kind: item.kind, title: item.title, path: item.path, status: 'pending' })),
       };
+      // dawChain.Master: the first render reads the chain and refuses one the narrator did not approve, so the export stops there.
+      if (plan.provider === 'daw' && req.approval?.chainDigest !== (await mockChainDigest(mockCleanChain(await masterChain())))) {
+        const first = exportJob.files[0];
+        exportJob = {
+          ...exportJob,
+          files: exportJob.files.map((file, i) => (i === 0 ? { ...file, status: 'failed', error: CHAIN_CHANGED } : { ...file, status: 'cancelled' })),
+        };
+        endExport('error', `Stopped at ${baseName(first?.path ?? '')}: ${CHAIN_CHANGED}. 0 of ${exportJob.files.length} files were prepared.`);
+        return wireClone(exportJob);
+      }
       if (hold)
         exportJob = {
           ...exportJob,

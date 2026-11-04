@@ -88,11 +88,13 @@ through Piper's bundled espeak-ng and its `piper/espeak-ng-data` ([CI and releas
 
 A narrator can also keep their own pronunciation: `GuidePronounceUser` sets one with source `manual` (a file written earlier says
 `user`; it reads as `manual`) that never asks a dictionary, and keeps the dictionary's answer beside it as `alternate`;
-`GuidePronunciationUseAlternate` swaps the two back, losslessly and without a lookup. Since
+`GuidePronunciationUseAlternate` swaps the two back, losslessly and without a lookup. `GuidePronunciationRestore` writes a
+name's whole pronunciation object back as the page read it, for undo. Since
 [How you say each name](../guides/using-the-app/story-bible.md#how-you-say-each-name)
 the host's `Entities()` ignores a stored `status` and a rebuild no longer carries it; a note and the alternate are kept, and
 the Story Bible shows an old note read-only. A pronunciation's `source` is the registry name (`cmu`, `wiktextract`,
-`espeak`) or `manual`. The host applies both itself (see who writes the file, below). The sidecar has no command that sets a status (SN-B81 removed `pronunciation-status`).
+`espeak`), `manual`, or a user dictionary source (`user_dictionary`, `script_imported`) when the narrator picked one of
+its values for the name (`GuidePronunciationRestore`) or the old Script page's value filled it. The host applies both itself (see who writes the file, below). The sidecar has no command that sets a status (SN-B81 removed `pronunciation-status`).
 
 ## Rules suggestions
 

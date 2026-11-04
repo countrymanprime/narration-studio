@@ -16,12 +16,12 @@ mkdirSync(out, { recursive: true });
 const page = pathToFileURL(join(here, 'index.html')).href;
 const browser = await chromium.launch(process.env.CHROMIUM ? { executablePath: process.env.CHROMIUM } : {});
 
-const ALL = ['booth', 'list', 'who', 'notice', 'extras', 'engine', 'narrow', 'decide'];
+const ALL = ['booth', 'list', 'who', 'notice', 'extras', 'engine', 'narrow', 'create', 'decide'];
 const PLAN = process.env.ALL
   ? [1440, 1024, 390].map((width) => ({ width, sections: ALL }))
   : [
-      { width: 1440, sections: ['booth', 'list', 'who', 'notice', 'engine'] },
-      { width: 390, sections: ['booth', 'who', 'engine'] },
+      { width: 1440, sections: ['booth', 'list', 'who', 'notice', 'engine', 'create'] },
+      { width: 390, sections: ['booth', 'who', 'engine', 'create'] },
     ];
 
 for (const theme of ['light', 'dark']) {

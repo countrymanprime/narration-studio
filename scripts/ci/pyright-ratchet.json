@@ -1,6 +1,6 @@
 {
   "src/studio/libs/python": 12,
-  "src/studio/sidecars/manuscript-guide/core": 25,
+  "src/studio/sidecars/manuscript-guide/core": 23,
   "src/studio/sidecars/manuscript-teleprompter/core": 20,
   "src/studio/sidecars/transcript-compare/core": 16
 }

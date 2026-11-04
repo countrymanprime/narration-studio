@@ -60,7 +60,7 @@ describe('the first-use tips setting (parity audit)', () => {
     await waitFor(async () => expect(await seen(api)).toBe(''));
   });
 
-  it('says the tips could not be read instead of reading forever, and Try again reads them once more', async () => {
+  it('says the tips could not be read instead of reading forever, and Retry reads them once more', async () => {
     const api = createMockApi();
     const read = vi.spyOn(api, 'settingsForScope').mockRejectedValueOnce(new Error('no read'));
     const user = userEvent.setup();
@@ -68,7 +68,7 @@ describe('the first-use tips setting (parity audit)', () => {
     expect(await screen.findByText('Could not be read')).toBeTruthy();
     expect(screen.queryByText('Reading…')).toBeNull();
     read.mockRestore();
-    await user.click(screen.getByRole('button', { name: 'Try again' }));
+    await user.click(screen.getByRole('button', { name: 'Retry' }));
     expect(await screen.findByText('None dismissed')).toBeTruthy();
   });
 

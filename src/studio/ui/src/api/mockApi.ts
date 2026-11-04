@@ -4,6 +4,7 @@
 //
 // Each feature area's bindings live in their own file under mockHost/ (the state they share is mockHost/state.ts);
 // this file only puts them together, with the per-feature mocks beside it (teleprompterMock.ts, coverageMock.ts, ...).
+import type { GuideDialogueCue } from './contracts/storyBible';
 import type { Finding, ManuscriptParagraph, MeasureFileResult, NarrationApi } from '../types';
 import { WIRE_FINDINGS, WIRE_TELEPROMPTER_DEVICES, WIRE_TRACKS_PROJECT } from './mockFixtures';
 import { mockChapterTrackMatch } from './chapterTrackMatchMock';
@@ -18,7 +19,7 @@ import { createAudacityLinkMock } from './audacityLinkMock';
 import { createDawChoiceMock } from './dawChoiceMock';
 import { createDawMock } from './dawMock';
 import { createProvidersMock } from './providersMock';
-import { createMasteringMock } from './masteringMock';
+import { createMasteringMock, mockMasterChain } from './masteringMock';
 import { createBuiltinBoothRecordMock } from './builtinBoothMock';
 import { createRecordingMock, type RecorderMockControl } from './recordingMock';
 import { createFindingsMock } from './findingsMock';
@@ -172,7 +173,14 @@ export function createMockApi(
     initial.settings,
   );
   const manuscript = createManuscriptMock(s, initial, { withMeasurement: (chapter) => withMeasurement(chapter) });
-  const { manuscriptReady, hasImported: manuscriptImported } = manuscript;
+  const { manuscriptReady: textReady, hasImported: manuscriptImported } = manuscript;
+  // A Voice folders project's Chapter 1 also has a line Alice speaks, and no voice records her: the Booth's "No track" row and the
+  // speaker "Who is in Num N?" ticks (#2839). The cue is placed in the loaded text, so the manuscript is ready only once it is in.
+  const manuscriptReady = initial.voiceFolders
+    ? textReady.then(() => {
+        s.dialogueCues = [...s.dialogueCues, ...aliceSpeaks(s.paragraphs)];
+      })
+    : textReady;
   const credits = createCreditsMock(s, initial, { settings: settings.settings, manuscriptReady });
   // Every read of the chapter list holds the credits (a credits file is a chapter): the Production overview, the pages and the host agree.
   const chaptersWithCredits = async () => credits.withCreditsChapters(await manuscript.bindings.manuscriptChapters());
@@ -185,8 +193,12 @@ export function createMockApi(
     paragraphs: () => s.paragraphs,
     proofNotes: () => proofNotes.read(),
   });
+  const voiceTracks = createVoiceTracksMock(
+    initial.voiceFolders ? { layout: 'folders', tracks: [{ track: 'Extras', characters: ['mad-hatter', 'cheshire-cat'] }] } : undefined,
+  );
   const chapterTracks = createChapterTracksMock(s, initial, {
     manuscriptReady,
+    voiceLayout: async () => (await voiceTracks.voiceTracksGet()).layout,
     chaptersWithCredits: () => credits.withCreditsChapters(s.chapters),
     dawFileLinked: project.dawFileLinked,
     peekCoverage: (chapterId) => peekCoverage(chapterId),
@@ -323,6 +335,17 @@ export function createMockApi(
   // `?mockPlan=loading|fails`: the Schedule's read of the plan never answers, or fails.
   // `?mockHold=overview,entities`: those reads never answer, so Production and the Story Bible stay on their loading skeleton.
   const held = new Set(initial.held ?? []);
+  // The real host opens the file manager, which the page cannot show, so the mock records each ask (window.__NARRATION_MOCK_REPORTS__) and
+  // can refuse it (`?mockOpenFolder=fail`).
+  const openReportsFolder = production.productionOpenReportsFolder;
+  const reportFolder = { folderOpens: 0 };
+  if (typeof window !== 'undefined') window.__NARRATION_MOCK_REPORTS__ = reportFolder;
+  production.productionOpenReportsFolder = async () => {
+    reportFolder.folderOpens += 1;
+    const answer = await openReportsFolder();
+    if (initial.openFolder === 'fail') throw new Error('the file manager could not open the reports folder');
+    return answer;
+  };
   const never = <T>() => new Promise<T>(() => {});
   if (held.has('overview')) production.productionOverview = never;
   if (held.has('entities')) storyBible.bindings.guideEntities = never;
@@ -371,6 +394,7 @@ export function createMockApi(
     initial.renderPackageMulti,
     mastering.masteringProviders,
     initial.renderExportPick === 'many' ? MOCK_EXPORT_MANY_PATHS : initial.renderExportPick === 'long' ? MOCK_EXPORT_LONG_PATHS : MOCK_EXPORT_PATHS,
+    () => mockMasterChain(initial.mastering?.chain),
   );
   const system = createSystemMock(s, initial, {
     version: update.version,
@@ -393,6 +417,14 @@ export function createMockApi(
     boothVoiceGet: (chapterId) => {
       if (!late.boothVoices) throw new Error('the mock is still being built');
       return late.boothVoices.boothVoiceGet(chapterId);
+    },
+    boothPunchTarget: (chapterId, paragraphId, fromWord, toWord) => {
+      if (!late.boothVoices) throw new Error('the mock is still being built');
+      return late.boothVoices.boothPunchTarget(chapterId, paragraphId, fromWord, toWord);
+    },
+    boothVoiceAdd: (chapterId, name, characterIds) => {
+      if (!late.boothVoices) throw new Error('the mock is still being built');
+      return late.boothVoices.boothVoiceAdd(chapterId, name, characterIds);
     },
     ...system.bindings,
     ...manuscript.bindings,
@@ -436,9 +468,7 @@ export function createMockApi(
     // editingCandidateFor in mockFixtures.ts), so Accept/Dismiss/Defer on it go through the real review binding.
     editingCandidates: async (chapterId) => (await findings.findingsList({ analyzer: 'editing', chapterId })).findings,
     ...cleanupAction,
-    ...createVoiceTracksMock(
-      initial.voiceFolders ? { layout: 'folders', tracks: [{ track: 'Extras', characters: ['mad-hatter', 'cheshire-cat'] }] } : undefined,
-    ),
+    ...voiceTracks,
     ...createBookmarksMock(
       manuscriptReady,
       () => s.chapters,
@@ -461,11 +491,7 @@ export function createMockApi(
       () => s.chapters,
       () => s.paragraphs,
     ),
-    ...createScriptPrepMock(
-      manuscriptReady,
-      () => s.chapters,
-      () => s.paragraphs,
-    ),
+    ...createScriptPrepMock(manuscriptReady, () => s.chapters),
     ...extraction,
     // The host refuses the whole entry while a suggestion about it still needs verification (GuideMarkReviewed); one name is not refused.
     guideMarkReviewed: async (id, aliasIndex) => {
@@ -1045,4 +1071,28 @@ function createBackupsMock(daw: DawCapabilitiesApi, hasChapter: (chapterId: stri
     },
     dawBackups: () => Promise.resolve({ schemaVersion: 1, backups: table.list() }),
   };
+}
+
+/** Alice's "and even if my head would go through," in Chapter 1, attributed to her, as a cue the Booth reads as one line. */
+function aliceSpeaks(paragraphs: readonly ManuscriptParagraph[]): GuideDialogueCue[] {
+  const words = 'and even if my head would go through,';
+  const paragraph = paragraphs.find((each) => each.chapterId === 'chapter-1' && each.text.includes(words));
+  if (!paragraph) return [];
+  // The quotation marks around the words, whichever the text uses.
+  const start = paragraph.text.indexOf(words) - 1;
+  const quote = paragraph.text.slice(start, start + words.length + 2);
+  return [
+    {
+      id: 'cue-voices-alice',
+      chapterId: 'chapter-1',
+      paragraphId: paragraph.id,
+      quote_start: start,
+      quote_end: start + quote.length,
+      quote_text: quote,
+      speaker_entity_id: 'alice',
+      speaker_source: 'tag',
+      evidence: { chapterId: 'chapter-1', paragraphId: paragraph.id, excerpt: quote, tag: 'thought poor Alice' },
+      corrected: false,
+    },
+  ];
 }

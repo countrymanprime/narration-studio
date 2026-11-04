@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { DAW_CAPABILITIES, type DawCapabilities, type DawCapabilityLevel, type DawCapabilityMode, type DawCapabilitySupport } from '../../api/contracts/daw';
 import { useDawSession, useDawState } from '../../daw/useDawSession';
-import { Button } from '../primitives/Button';
+import { IconButton } from '../primitives/IconButton';
 import { SectionLabel } from '../primitives/SectionLabel';
 import { statusLabel, statusTone, type StatusId } from '../../kinds/statusTone';
 import { StatusBadge } from '../primitives/StatusBadge';
@@ -95,9 +95,7 @@ export function CapabilitySection() {
           style={{ background: 'var(--review-soft)', color: 'var(--danger-text)' }}
         >
           <span>The DAW's capabilities could not be read: {loadError}.</span>
-          <Button ref={keepFocusOnRemoval} variant="secondary" type="button" onClick={retry}>
-            Retry
-          </Button>
+          <IconButton action="retry" ref={keepFocusOnRemoval} type="button" onClick={retry} />
         </div>
       ) : report ? (
         <CapabilityList report={report} />

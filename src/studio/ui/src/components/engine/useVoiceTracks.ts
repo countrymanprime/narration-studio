@@ -3,6 +3,7 @@ import { describeApiError } from '../../api/errorMessage';
 import type { GuideEntity } from '../../api/contracts/storyBible';
 import type { VoiceTracksLayout, VoiceTracksState } from '../../api/contracts/voiceTracks';
 import type { Notify } from '../primitives/Toast';
+import { retryAction } from '../primitives/Toast';
 import { usePort } from '../../ports/usePort';
 import { useVoiceSetup } from './voiceLayout';
 
@@ -11,13 +12,16 @@ import { useVoiceSetup } from './voiceLayout';
 export function useVoiceTracks(notify: Notify, { characters: wantCharacters = true }: { characters?: boolean } = {}) {
   const voiceTracks = usePort('voiceTracks');
   const storyBible = usePort('storyBible');
-  const { setup, readError, replace, beginSave } = useVoiceSetup();
+  const { setup, readError, replace, reload, beginSave } = useVoiceSetup();
   const [characters, setCharacters] = useState<GuideEntity[]>([]);
 
   useEffect(() => {
-    if (readError) notify(describeApiError(readError), 'error');
-  }, [readError, notify]);
+    // Reading the setup changes nothing, so Retry reads it again (issue #2919).
+    if (readError) notify(describeApiError(readError), 'error', retryAction(reload));
+  }, [readError, notify, reload]);
 
+  // A failed read of the characters is an error toast with Retry, which reads them again (issue #2919).
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     // The Settings row needs only the layout, so it never reads the Story Bible (and never toasts one of its failures).
     if (!wantCharacters) return;
@@ -25,11 +29,19 @@ export function useVoiceTracks(notify: Notify, { characters: wantCharacters = tr
     void storyBible
       .guideEntities()
       .then((entities) => active && setCharacters(entities.filter((entity) => entity.category === 'Character')))
-      .catch((reason) => active && notify(describeApiError(reason), 'error'));
+      .catch(
+        (reason) =>
+          active &&
+          notify(
+            describeApiError(reason),
+            'error',
+            retryAction(() => setAttempt((n) => n + 1)),
+          ),
+      );
     return () => {
       active = false;
     };
-  }, [storyBible, notify, wantCharacters]);
+  }, [storyBible, notify, wantCharacters, attempt]);
 
   // Each change shows at once, built on the last one even before the host answers, so two quick ticks keep both (qa-breaker B3). A host
   // answer is taken only for the newest save on this setup (the provider counts them across every place that saves, and a project switch

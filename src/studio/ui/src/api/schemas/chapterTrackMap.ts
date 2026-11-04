@@ -13,6 +13,7 @@ import type {
   RecordedEnd,
   TrackMapping,
   TrackSelectResult,
+  ChapterFolders,
 } from '../contracts/chapterTrackMap';
 import { listFromNull } from './base';
 
@@ -92,17 +93,44 @@ export const chapterTrackSetSchema = z.object({
   mappings: listFromNull(trackMappingSchema),
 }) satisfies z.ZodType<ChapterTrackSetResult>;
 
+const createdTrackSchema = z.object({ guid: z.string().min(1), name: z.string(), index: z.number().int().min(0) });
+
 export const chapterTrackCreateSchema = z.discriminatedUnion('outcome', [
   chapterTrackSetSchema.extend({
     outcome: z.literal('created'),
-    track: z.object({ guid: z.string().min(1), name: z.string(), index: z.number().int().min(0) }),
+    track: createdTrackSchema,
+    voice: createdTrackSchema.optional(),
   }),
   z.object({
     outcome: z.literal('refused'),
-    reason: z.enum(['standalone', 'not_running', 'recording', 'unsupported', 'failed']),
+    reason: z.enum(['standalone', 'not_running', 'recording', 'unsupported', 'failed', 'already_linked', 'name_taken', 'link_failed']),
     message: z.string().min(1),
   }),
 ]) satisfies z.ZodType<ChapterTrackCreateResult>;
+
+const chapterFolderMoveSchema = z.object({
+  trackGuid: z.string().min(1),
+  trackName: z.string(),
+  chapterId: z.string().min(1).optional(),
+  fromGuid: z.string(),
+  fromName: z.string(),
+  toGuid: z.string(),
+  toName: z.string(),
+});
+
+/** `ChapterFoldersCheck` / `ChapterFoldersRepair` (src/studio/desktop/chapterfolders.go). */
+export const chapterFoldersSchema = z
+  .object({
+    outcome: z.enum(['clean', 'nested', 'repaired', 'stale', 'refused']),
+    reason: z.enum(['standalone', 'not_running', 'recording', 'unsupported', 'failed']).optional(),
+    message: z.string().min(1).optional(),
+    moves: z.array(chapterFolderMoveSchema),
+    expected: z.array(z.string().min(1)),
+  })
+  .refine(
+    (value) => value.outcome !== 'refused' || (value.reason !== undefined && value.message !== undefined),
+    'a refusal says why',
+  ) satisfies z.ZodType<ChapterFolders>;
 
 const chapterTrackSummarySchema = z.object({
   guid: z.string(),

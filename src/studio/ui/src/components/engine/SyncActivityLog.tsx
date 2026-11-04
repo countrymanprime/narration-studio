@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { describeApiError } from '../../api/errorMessage';
 import { useChapterSync } from '../../hooks/useChapterSync';
 import { usePort } from '../../ports/usePort';
-import { Button } from '../primitives/Button';
+import { IconButton } from '../primitives/IconButton';
 import type { Notify } from '../primitives/Toast';
 import { chapterSyncActivityRows, chapterSyncTimeLabel } from './chapterSyncText';
 
@@ -42,15 +42,13 @@ export function SyncActivityLog({ notify }: { notify: Notify }) {
           <span className="text-[var(--text-muted)]">{chapterSyncTimeLabel(row.at)}</span>
           <span className="[overflow-wrap:anywhere]">{row.text}</span>
           {row.undoTrackGuid && stillAuto(row.undoTrackGuid) ? (
-            <Button
-              variant="link"
-              size="sm"
-              disabled={undoingTrackGuid === row.undoTrackGuid}
-              aria-label={`Undo: ${row.text}`}
+            <IconButton
+              action="undo"
+              label={`Undo: ${row.text}`}
+              size="xs"
+              pending={undoingTrackGuid === row.undoTrackGuid}
               onClick={() => void undo(row.undoTrackGuid)}
-            >
-              Undo
-            </Button>
+            />
           ) : (
             <span aria-hidden="true" />
           )}

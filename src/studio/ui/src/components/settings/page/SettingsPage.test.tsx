@@ -167,9 +167,9 @@ describe('Settings: page frame', () => {
   it('Show the whole category is a button at the end of the group header, not a link inside the label', async () => {
     await renderPage();
     fireEvent.change(screen.getByRole('textbox', { name: 'Search settings' }), { target: { value: 'whisper' } });
-    const show = (await screen.findAllByRole('button', { name: 'Show the whole category' }))[0]!;
+    const show = (await screen.findAllByRole('button', { name: /^Show the whole .* category/ }))[0]!;
     expect(show.closest('h3')).toBeNull();
-    expect(show.className).toContain('min-h-[var(--button-height-sm)]');
+    expect(show.className).toContain('size-[var(--button-height-sm)]');
   });
 
   it('says so when nothing matches in a left-aligned card like the rest of the page', async () => {
@@ -472,6 +472,24 @@ describe('Settings: search and filters', () => {
     expect(within(backups!).getByRole('button', { name: 'Change it here for now' })).toBeTruthy();
   });
 
+  it('keeps an unsaved edit in a Set on a page panel when its group is collapsed and opened again', async () => {
+    await renderPage();
+    await userEvent.type(await screen.findByRole('textbox', { name: 'Search settings' }), 'preroll');
+    const punch = document.querySelector<HTMLElement>('[data-page-setting="ps.punch"]')!;
+    const toggle = within(punch).getByRole('button', { name: 'Change it here for now' });
+    await userEvent.click(toggle);
+    const field = await waitFor(() => {
+      const input = punch.querySelector<HTMLInputElement>('input');
+      expect(input).toBeTruthy();
+      return input!;
+    });
+    await userEvent.clear(field);
+    await userEvent.type(field, '2.5');
+    await userEvent.click(toggle);
+    await userEvent.click(toggle);
+    expect(punch.querySelector<HTMLInputElement>('input')!.value).toBe('2.5');
+  });
+
   // Alignment audit (XSE2-21): Open <page> and Change it here for now share one line, the button one width for every page.
   it('puts Open <page> on the line of Change it here for now', async () => {
     await renderPage();
@@ -479,8 +497,9 @@ describe('Settings: search and filters', () => {
     const punch = document.querySelector<HTMLElement>('[data-page-setting="ps.punch"]')!;
     const open = within(punch).getByRole('button', { name: /^Open Booth/ });
     const change = within(punch).getByRole('button', { name: 'Change it here for now' });
-    expect(open.parentElement).toBe(change.parentElement);
-    expect(open.className).toContain('min-w-[9.5rem]');
+    // Both sit in the setting's one entry, the open icon at the right of the disclosure's line.
+    expect(open.closest('[data-page-setting]')).toBe(change.closest('[data-page-setting]'));
+    expect(open.className).toContain('size-[var(--button-height-sm)]');
   });
 
   it('lists the favourite effects with a way to Editing and the panel that edits them here', async () => {

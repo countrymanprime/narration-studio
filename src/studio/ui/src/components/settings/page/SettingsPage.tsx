@@ -4,6 +4,7 @@ import { useBrowserSettingsVersion } from '../../../browserSettings';
 import { useProjectDaw } from '../data/useProjectDaw';
 import type { Bootstrap } from '../../../types';
 import { Button } from '../../primitives/Button';
+import { IconButton } from '../../primitives/IconButton';
 import { InsetCard } from '../../primitives/InsetCard';
 import { Heading } from '../../primitives/Heading';
 import { Icon } from '../../primitives/Icon';
@@ -319,9 +320,7 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
               <InsetCard tone="danger" role="alert" className="flex flex-col items-start gap-1.5 text-[0.875rem]">
                 <b>Your settings could not be read.</b>
                 <span>{store.readError.global}. Nothing can be changed until the file can be read.</span>
-                <Button variant="secondary" size="sm" onClick={() => void store.reload()}>
-                  Retry
-                </Button>
+                <IconButton action="retry" size="sm" onClick={() => void store.reload()} />
               </InsetCard>
             )}
             {content}
