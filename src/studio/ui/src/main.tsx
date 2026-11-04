@@ -406,14 +406,15 @@ const MOCK_STAGES_SEEDS = {
 // `?mockFindings=empty|changed` boots the Review page with no findings at all, or with an analyzer that runs again right after the page
 // lists its findings, so the empty queue and a decision refused on changed evidence can be seen without a host.
 // `misread` adds a one-word misread (Dinah heard as Dina) for "Treat these two words as the same" (#2736); `misread-long` and `misread-rtl`
-// give it a 45-letter word with no place to break, and Hebrew and emoji words, so the button's place can be seen with them.
-const mockFindings = (['empty', 'changed', 'misread', 'misread-long', 'misread-rtl'] as const).find((seed) => seed === mockParams.get('mockFindings'));
+// give it a 45-letter word with no place to break, and Hebrew and emoji words, so the button's place can be seen with them. `click` adds one click
+// note (an audio finding), for the Repair in REAPER button the inspector draws on a click, a breath or a plosive (#2821).
+const mockFindings = (['empty', 'changed', 'misread', 'misread-long', 'misread-rtl', 'click'] as const).find((seed) => seed === mockParams.get('mockFindings'));
 const MISREAD_WORDS = {
   misread: ['Dinah', 'Dina'],
   'misread-long': ['Pneumonoultramicroscopicsilicovolcanoconiosis', 'Pneumonoultramicroscopicsilicovolcanokoniosis'],
   'misread-rtl': ['שָׁלוֹם👋🏽', 'שלם'],
 } as const;
-const misreadWords = mockFindings && mockFindings !== 'empty' && mockFindings !== 'changed' ? MISREAD_WORDS[mockFindings] : undefined;
+const misreadWords = mockFindings && mockFindings in MISREAD_WORDS ? MISREAD_WORDS[mockFindings as keyof typeof MISREAD_WORDS] : undefined;
 // `?mockReaper=standalone|not-running|stale|recording|outdated` sets what the Review page's REAPER does for Go to, Loop and Stop:
 // not there at all, gone quiet, or connected and refusing for that reason. Connected when absent.
 const mockReaper = (['standalone', 'not-running', 'stale', 'recording', 'outdated'] as const).find((seed) => seed === mockParams.get('mockReaper'));
@@ -436,6 +437,9 @@ const mockPackageMultiHold = mockParams.get('mockPackageMulti') === 'running';
 // for the render (#2739) without choosing the row on the chain card first. `no-audacity` boots it with the Audacity row not
 // available on this computer, so the chain card draws a row it cannot choose.
 const mockMastering = (['daw', 'audacity', 'no-audacity'] as const).find((seed) => seed === mockParams.get('mockMastering'));
+// `?mockMasterChain=long|empty|unreadable` (with `?mockMastering=daw`) changes the DAW chain the approval dialog lists (#2932): one
+// long enough to scroll, none, or one the bridge cut short, which refuses the plan.
+const mockMasterChain = (['long', 'empty', 'unreadable'] as const).find((seed) => seed === mockParams.get('mockMasterChain'));
 // `?mockExportPick=many|long` makes Master & QC's export picker choose a 40-chapter book, or files with very long names, so the
 // approval dialog's capped list can be seen full.
 const mockExportPick = (['many', 'long'] as const).find((seed) => seed === mockParams.get('mockExportPick'));
@@ -498,7 +502,7 @@ const mockInitial = {
   ...(mockMastering === 'no-audacity'
     ? { mastering: { unavailable: { audacity: "Audacity's effect macro is not available on this computer." } } }
     : mockMastering
-      ? { mastering: { choice: mockMastering } }
+      ? { mastering: { choice: mockMastering, ...(mockMasterChain ? { chain: mockMasterChain } : {}) } }
       : {}),
   ...(mockExportPick ? { renderExportPick: mockExportPick } : {}),
   ...(mockDeliveryProfile ? { deliveryProfile: mockDeliveryProfile } : {}),
@@ -517,6 +521,21 @@ const mockInitial = {
               expected: misreadWords[0],
               recorded: misreadWords[1],
             },
+          },
+        ],
+      }
+    : {}),
+  ...(mockFindings === 'click'
+    ? {
+        findings: [
+          ...WIRE_FINDINGS,
+          {
+            ...WIRE_ONE_WORD_MISREAD,
+            id: 'mock-click-1',
+            analyzer: 'audio-qa',
+            category: 'audio_quality',
+            evidence: { kind: 'mouth_click' },
+            manuscript: { ...WIRE_ONE_WORD_MISREAD.manuscript, expected: '', recorded: '' },
           },
         ],
       }

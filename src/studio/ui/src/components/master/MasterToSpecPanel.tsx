@@ -58,24 +58,22 @@ const TABLE_FLOOR = 'min-w-[44rem]';
 
 /**
  * The files "Master all to spec…" picked: each
- * with its role in the package and, for a chapter, its title, then Master & encode as one job with real progress and Cancel. It
- * appears once files are picked or a job runs; before that the page's header action is the way in. `chain` is the mastering row
+ * with its role in the package and, for a chapter, its title, then Master & encode as one job with real progress and Cancel. It is
+ * always on the page: before any file is picked its own primary, a labelled text button, picks them (#2931); the page header's icon
+ * is the secondary way in. `chain` is the mastering row
  * the host says the project masters with: when it makes the DAW render (`needsApproval`), Master & encode first asks the narrator's
  * approval for this one export. A refusal of the start may mean the row changed, so `onStartRefused` reads the rows again.
- * `onEmptied` takes the keyboard when Remove takes the last row away and the panel with it.
  */
 export function MasterToSpecPanel({
   jobs,
   chain,
   onStartRefused,
   onCheckFiles,
-  onEmptied,
 }: {
   jobs: ExportJobs;
   chain?: MasteringProvider;
   onStartRefused?: () => void;
   onCheckFiles?: () => void;
-  onEmptied?: () => void;
 }) {
   const { items, exportJob, exportRunning, problem } = jobs;
   const chainLabel = chain?.label;
@@ -83,7 +81,7 @@ export function MasterToSpecPanel({
   const [approving, setApproving] = useState<ExportPlan>();
   // While a job runs the table is its own files, read-only. Once it ends, finished, cancelled or failed, the picked files are editable
   // again with Add files…, the checkbox and Master & encode (#2935); the job the page opened on gives its files to an empty list
-  // (useExportJobs), so a last run is dismissed by removing its rows.
+  // (useExportJobs), so a last run is dismissed by removing its rows, and the card is back to its own "Choose files…" (#2931).
   const showsJob = exportRunning && !!exportJob?.files.length;
   // From the press of Master & encode until the host answers, the rows are locked too: the job runs on the files as they were then.
   const locked = showsJob || jobs.starting;
@@ -91,37 +89,45 @@ export function MasterToSpecPanel({
   const masterRef = useRef<HTMLButtonElement>(null);
   const addRef = useRef<HTMLButtonElement>(null);
   const removeRefs = useRef(new Map<string, HTMLButtonElement>());
-  // What gets the keyboard after the render that follows a Remove: the next row's Remove, or the one before, or the way back in.
+  // What gets the keyboard after the render that follows a Remove: the next row's Remove, or the one before, or the card's own button.
   const afterRemove = useRef<string | 'emptied'>(undefined);
-  // A start or pick that failed is a toast; the panel is not opened just to draw it (rule 7, #2632), so it does not appear with nothing in it.
+  // A start or pick that failed is a toast, never a line in the card (rule 7, #2632).
   useErrorToast(problem);
   // A job that ended in error is a toast too, not a red line under the table (rule 7, #2632).
   useErrorToast(exportJob?.phase === 'error' ? exportJob.message : undefined);
-  const shown = hasFiles;
   const revealRef = useRef<HTMLDivElement>(null);
-  const wasShown = useRef(shown);
-  // The panel sits far below the header's "Master all to spec…" button on a 15-file book, so showing it off screen looks like a dead
-  // button: bring it into view and put the keyboard on its files. Not on mount: a page that opens with a job running stays where it is.
+  const hadFiles = useRef(hasFiles);
+  // The table sits far below the header's "Master all to spec…" icon on a 15-file book, so drawing it off screen looks like a dead
+  // button; and the card's own "Choose files…" button goes away once files are picked. Either way, bring the table into view and put
+  // the keyboard on its files. Not on mount: a page that opens with a job running stays where it is.
+  // The other way, Remove on the last row takes itself and the table away: the card's own button gets the keyboard back, not <body>.
+  const chooseRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
-    if (shown && !wasShown.current) {
+    if (hasFiles && !hadFiles.current) {
       revealRef.current?.scrollIntoView?.({ block: 'nearest' });
       revealRef.current?.focus();
     }
-    wasShown.current = shown;
-  }, [shown]);
+    // Lost means anywhere but this card: <body>, a node that went with the table, or the page a second click landed on (qa on #2988).
+    const active = document.activeElement;
+    const card = chooseRef.current?.closest('section');
+    const lost = active === null || !active.isConnected || !card?.contains(active);
+    if (!hasFiles && hadFiles.current && lost) chooseRef.current?.focus();
+    hadFiles.current = hasFiles;
+  }, [hasFiles]);
   // A run that ends takes Cancel away with it, whether it was pressed or the run finished: the keyboard goes to Master & encode (or Add
   // files… when nothing is picked), never to the page's <body> (#2935 review).
   const wasRunning = useRef(exportRunning);
   useEffect(() => {
     const ended = wasRunning.current && !exportRunning;
     wasRunning.current = exportRunning;
-    if (ended && onBody()) (masterRef.current ?? addRef.current)?.focus();
+    if (ended && onBody()) (masterRef.current ?? addRef.current ?? chooseRef.current)?.focus();
   }, [exportRunning]);
   useEffect(() => {
     const target = afterRemove.current;
     if (target === undefined) return;
     afterRemove.current = undefined;
-    if (target === 'emptied') onEmptied?.();
+    // The last Remove leaves the card with its own "Choose files…" button, which takes the keyboard (#2931; #2935's review).
+    if (target === 'emptied') chooseRef.current?.focus();
     else removeRefs.current.get(target)?.focus();
   });
   const remove = (path: string, rows: readonly { path: string }[]) => {
@@ -154,25 +160,43 @@ export function MasterToSpecPanel({
       else void start(null);
     });
   };
-  if (!shown) return null;
+  const masterCheckbox = (
+    <div className={`flex items-center gap-2 ${hasFiles ? 'mt-3' : ''}`}>
+      <Checkbox checked={jobs.master} onChange={jobs.setMaster} disabled={jobs.starting}>
+        {/* The row's own label, as the host words it: lowercasing it made "the your DAW's FX chain" (#2879's review). */}
+        Master before encoding{chainLabel ? `: ${chainLabel}` : ''}
+      </Checkbox>
+      <HelpButton label="About mastering before encoding">
+        Mastering brings each file to the platform&apos;s RMS window and peak limit before it is encoded.
+      </HelpButton>
+    </div>
+  );
   const rows = showsJob && exportJob ? exportJob.files : items;
   return (
     <Panel
       title="Master to spec"
       actions={
-        // The panel's action sits in its header beside Add files…, where it stays at every width; it used to follow the checkbox's
-        // sentence or drop under it as the window changed (R3MS-12).
-        !showsJob && (
-          <div className="flex flex-wrap gap-2">
-            <Button ref={addRef} variant="secondary" onClick={() => void jobs.pick()} pending={jobs.picking} disabled={jobs.starting}>
-              Add files…
-            </Button>
-            {items.length > 0 && (
-              <Button ref={masterRef} onClick={masterAndEncode} pending={jobs.starting && !approving}>
-                {jobs.master ? 'Master & encode' : 'Encode'}
+        // Before any file is picked, the card's primary is a labelled text button that picks them: the owner's rule is primary = text,
+        // and the page header's icon stays the secondary way in (#2931). It names what it does, so it is not a second "Master all to spec…".
+        !hasFiles ? (
+          <Button ref={chooseRef} onClick={() => void jobs.pick()} pending={jobs.picking}>
+            {jobs.master ? 'Choose files to master…' : 'Choose files to encode…'}
+          </Button>
+        ) : (
+          // The panel's action sits in its header beside Add files…, where it stays at every width; it used to follow the checkbox's
+          // sentence or drop under it as the window changed (R3MS-12).
+          !showsJob && (
+            <div className="flex flex-wrap gap-2">
+              <Button ref={addRef} variant="secondary" onClick={() => void jobs.pick()} pending={jobs.picking} disabled={jobs.starting}>
+                Add files…
               </Button>
-            )}
-          </div>
+              {items.length > 0 && (
+                <Button ref={masterRef} onClick={masterAndEncode} pending={jobs.starting && !approving}>
+                  {jobs.master ? 'Master & encode' : 'Encode'}
+                </Button>
+              )}
+            </div>
+          )
         )
       }
     >
@@ -260,17 +284,8 @@ export function MasterToSpecPanel({
           </Table>
         </div>
       )}
-      {items.length > 0 && !showsJob && (
-        <div className="mt-3 flex items-center gap-2">
-          <Checkbox checked={jobs.master} onChange={jobs.setMaster} disabled={jobs.starting}>
-            {/* The row's own label, as the host words it: lowercasing it made "the your DAW's FX chain" (#2879's review). */}
-            Master before encoding{chainLabel ? `: ${chainLabel}` : ''}
-          </Checkbox>
-          <HelpButton label="About mastering before encoding">
-            Mastering brings each file to the platform&apos;s RMS window and peak limit before it is encoded.
-          </HelpButton>
-        </div>
-      )}
+      {/* With nothing picked the checkbox is the card's body: the one choice that applies before picking. */}
+      {(!hasFiles || (items.length > 0 && !showsJob)) && masterCheckbox}
       {exportJob && exportRunning && (
         <div className="mt-3 flex flex-col gap-2">
           <ProgressBar label="Preparing files" value={exportJob.percent} running valueText={`${exportJob.percent}% prepared`} />
@@ -299,7 +314,8 @@ export function MasterToSpecPanel({
         <MasteringApprovalDialog
           plan={approving}
           pending={jobs.starting}
-          onApprove={(macro) => start({ provider: approving.provider, macro })}
+          // The approval binds the chain the dialog showed: its digest, as the plan answered it (#2932's review).
+          onApprove={(macro) => start({ provider: approving.provider, macro, ...(approving.chainDigest ? { chainDigest: approving.chainDigest } : {}) })}
           onCancel={() => setApproving(undefined)}
           returnFocus={focusFiles}
         />

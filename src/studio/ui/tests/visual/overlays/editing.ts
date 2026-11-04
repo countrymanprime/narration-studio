@@ -1,6 +1,13 @@
 import type { Page } from '@playwright/test';
 import { clickCase, fromState, type OverlayCase } from '../helpers/overlayGuardFor';
 
+/** A repair menu the window was narrowed under, with its button now below the fold: the narrator scrolls to the button and presses it again, which opens the menu at the narrow size. */
+async function reopenRepairMenu(page: Page): Promise<void> {
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Repair in REAPER' }).click();
+  await page.getByRole('menu').waitFor();
+}
+
 const stepper = (page: Page) => page.getByRole('button', { name: /^Chapter: .*Change chapter$/ });
 
 // Editing's overlays: the chapter stepper's menu, the Add FX menu and its dialog, the Voice sample dialog and the popover of a voice-sample dot, the Replace audio dialog and the popover of a narrator's name, the delete and take-step confirms, the context
@@ -22,6 +29,7 @@ export const editingCases: OverlayCase[] = [
   fromState('editing', 'output-popover', 'popover'),
   fromState('editing', 'fx-menu', 'menu'),
   fromState('editing', 'daw-tools-menu', 'menu'),
+  { ...fromState('editing', 'drawer-cleanup-repair', 'menu'), afterNarrowing: reopenRepairMenu },
   fromState('editing', 'daw-tools-menu-audacity', 'menu'),
   fromState('editing', 'word-menu-fx', 'menu'),
   fromState('editing', 'wave-menu', 'menu'),

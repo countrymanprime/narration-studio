@@ -184,6 +184,13 @@ export const masterDrivers: Record<string, Driver> = {
     await page.getByText(/^Check some files first: the report covers the files measured here/).waitFor();
     await scrollToTop(page, page.getByRole('region', { name: 'Report' }));
   },
+  'to-spec-empty': async (page) => {
+    await openMaster(page);
+    const panel = page.getByRole('region', { name: 'Master to spec' });
+    await panel.getByRole('button', { name: 'Choose files to master…' }).waitFor();
+    await panel.getByRole('checkbox', { name: /^Master before encoding: Built-in chain/ }).waitFor();
+    await scrollToTop(page, panel);
+  },
   'to-spec-picked': async (page) => {
     await openMaster(page);
     await pickFilesToMaster(page);
@@ -229,6 +236,28 @@ export const masterDrivers: Record<string, Driver> = {
     await page.getByLabel('Role for 00 Opening credits.wav').selectOption('credits_opening');
     await page.getByLabel('Role for 00 Closing credits.wav').selectOption('credits_closing');
     await openApproval(page, 'Files and the regions they render');
+  },
+  'to-spec-approve-long-chain': async (page) => {
+    await openMaster(page, '?mockMastering=daw&mockMasterChain=long');
+    await pickFilesToMaster(page);
+    await removeExportFile(page, 'Retail sample.wav');
+    const dialog = await openApproval(page, 'Files and the regions they render');
+    await dialog.getByRole('table', { name: 'FX chain this render runs' }).waitFor();
+  },
+  'to-spec-approve-chain-off': async (page) => {
+    await openMaster(page, '?mockMastering=daw&mockMasterChain=long');
+    await pickFilesToMaster(page);
+    await removeExportFile(page, 'Retail sample.wav');
+    const dialog = await openApproval(page, 'FX chain this render runs');
+    const off = dialog.getByRole('table', { name: 'FX chain this render runs' }).getByText('Off', { exact: true });
+    await off.scrollIntoViewIfNeeded();
+  },
+  'to-spec-approve-no-fx': async (page) => {
+    await openMaster(page, '?mockMastering=daw&mockMasterChain=empty');
+    await pickFilesToMaster(page);
+    await removeExportFile(page, 'Retail sample.wav');
+    const dialog = await openApproval(page, 'FX chain this render runs');
+    await dialog.getByText('No FX', { exact: true }).waitFor();
   },
   'to-spec-approve-long-names': async (page) => {
     await openMaster(page, '?mockMastering=daw&mockExportPick=long');

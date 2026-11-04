@@ -20,9 +20,53 @@ function jobs(patch: Partial<ExportJobs> = {}): ExportJobs {
 }
 
 describe('MasterToSpecPanel: showing up', () => {
-  it('draws nothing until files are picked', () => {
-    const { container } = render(<MasterToSpecPanel jobs={jobs()} />);
-    expect(container.firstChild).toBeNull();
+  // #2931: it used to draw nothing until files were picked, so the only way in was the page header's unlabelled icon.
+  it('with nothing picked, draws its card with a labelled primary that picks the files, and the mastering checkbox', () => {
+    const pick = vi.fn(() => Promise.resolve());
+    render(
+      <MasterToSpecPanel jobs={jobs({ master: true, pick } as never)} chain={{ name: 'builtin', label: 'Built-in chain (EQ, limiter, gain)' } as never} />,
+    );
+    expect(screen.getByRole('region', { name: 'Master to spec' })).toBeTruthy();
+    const button = screen.getByRole('button', { name: 'Choose files to master…' });
+    expect(button.textContent).toBe('Choose files to master…');
+    expect(screen.getByRole('checkbox', { name: 'Master before encoding: Built-in chain (EQ, limiter, gain)' })).toBeTruthy();
+    expect(screen.queryByRole('table')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Add files…' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Master & encode' })).toBeNull();
+    fireEvent.click(button);
+    expect(pick).toHaveBeenCalledTimes(1);
+  });
+
+  it('with mastering off, the same button says it chooses files to encode', () => {
+    render(<MasterToSpecPanel jobs={jobs({ master: false })} />);
+    expect(screen.getByRole('button', { name: 'Choose files to encode…' })).toBeTruthy();
+  });
+
+  it('shows the picker open on the button, and takes the button away once files are picked', () => {
+    const { rerender } = render(<MasterToSpecPanel jobs={jobs({ master: true, picking: true } as never)} />);
+    expect(screen.getByRole('button', { name: 'Choose files to master…' }).getAttribute('aria-busy')).toBe('true');
+    rerender(<MasterToSpecPanel jobs={jobs({ master: true, items: [item] } as never)} />);
+    expect(screen.queryByRole('button', { name: 'Choose files to master…' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Add files…' })).toBeTruthy();
+  });
+
+  it('removing the last file puts the keyboard on Choose files to master…, not the page body', () => {
+    const { rerender } = render(<MasterToSpecPanel jobs={jobs({ master: true, items: [item] } as never)} />);
+    screen.getByRole('button', { name: 'Remove' }).focus();
+    rerender(<MasterToSpecPanel jobs={jobs({ master: true, items: [] } as never)} />);
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Choose files to master…' }));
+  });
+
+  // qa on #2988: a double click on the last Remove lands its second click on the page, so focus was on <main>, not <body>.
+  it('removing the last file takes the keyboard back from wherever outside the card it fell, not only from the body', () => {
+    const outside = document.createElement('main');
+    outside.tabIndex = -1;
+    document.body.appendChild(outside);
+    const { rerender } = render(<MasterToSpecPanel jobs={jobs({ master: true, items: [item] } as never)} />);
+    outside.focus();
+    rerender(<MasterToSpecPanel jobs={jobs({ master: true, items: [] } as never)} />);
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Choose files to master…' }));
+    outside.remove();
   });
 
   it('scrolls to its files and puts the keyboard on them when picking first shows it', () => {
@@ -42,11 +86,11 @@ describe('MasterToSpecPanel: showing up', () => {
     expect(scrollIntoView).not.toHaveBeenCalled();
   });
 
-  it('tells a refusal that has no files as a toast and draws no panel for it', () => {
+  it('tells a refusal that has no files as a toast, and draws no text for it in the card', () => {
     const { container, rerender } = render(<MasterToSpecPanel jobs={jobs()} />);
     rerender(<MasterToSpecPanel jobs={jobs({ problem: 'Could not read the folder.' })} />);
     expect(toastTexts()).toEqual(['Could not read the folder.']);
-    expect(container.innerHTML).toBe('');
+    expect(container.textContent).not.toContain('Could not read the folder.');
     expect(screen.queryByRole('alert')).toBeNull();
   });
 
@@ -174,9 +218,12 @@ describe('MasterToSpecPanel: which controls each job phase draws (#2935)', () =>
 
   // The hook now takes an ended job's files as the picked files (useExportJobs.test.tsx), so they are editable and removable; with none
   // picked, an ended job draws no rows of its own that could not be cleared (#2935 review, break 1).
-  it('with an ended job and nothing picked, draws no rows', () => {
-    const { container } = render(<MasterToSpecPanel jobs={jobs({ exportJob: job('success', 'done') })} />);
-    expect(container.innerHTML).toBe('');
+  // Ported for #2931: the card no longer disappears with nothing picked; it draws no rows and offers its own button instead.
+  it('with an ended job and nothing picked, draws no rows, only the card with Choose files to master…', () => {
+    render(<MasterToSpecPanel jobs={jobs({ exportJob: job('success', 'done'), master: true } as never)} />);
+    expect(screen.queryByRole('table')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Remove' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Choose files to master…' })).toBeTruthy();
   });
 
   it('a long unbroken failure reason wraps inside the Status cell instead of running past it', () => {
@@ -212,22 +259,22 @@ describe('MasterToSpecPanel: which controls each job phase draws (#2935)', () =>
 });
 
 describe('MasterToSpecPanel: dismissing the last run (#2935 review)', () => {
-  function Harness({ onEmptied }: { onEmptied?: () => void }) {
+  function Harness() {
     const exportJobs = useExportJobs();
     return (
       <>
         <button type="button" onClick={() => void exportJobs.pick()}>
           Pick
         </button>
-        <MasterToSpecPanel jobs={exportJobs} onEmptied={onEmptied} />
+        <MasterToSpecPanel jobs={exportJobs} />
       </>
     );
   }
 
-  async function cancelled(onEmptied?: () => void) {
+  async function cancelled() {
     render(
       <ApiProvider api={createMockApi({}, { renderExport: 'hold' })}>
-        <Harness onEmptied={onEmptied} />
+        <Harness />
       </ApiProvider>,
     );
     await userEvent.click(screen.getByRole('button', { name: 'Pick' }));
@@ -278,8 +325,8 @@ describe('MasterToSpecPanel: no action leaves the keyboard on the page body', ()
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Master & encode' }));
   });
 
-  it('Remove hands the keyboard to the next row, then the one before, and the last one to the way back in', async () => {
-    const onEmptied = vi.fn(() => document.getElementById('entry')?.focus());
+  // Ported for #2931: the card stays when its last file goes, so the last Remove hands the keyboard to the card's own button.
+  it("Remove hands the keyboard to the next row, then the one before, and the last one to the card's Choose files to master…", async () => {
     const second = { ...item, path: 'C:\\renders\\Chapter 02.wav', title: 'Chapter 02' };
     function Rows() {
       const [items, setItems] = useState<ExportItem[]>([item, second]);
@@ -289,7 +336,7 @@ describe('MasterToSpecPanel: no action leaves the keyboard on the page body', ()
           <button id="entry" type="button">
             Entry
           </button>
-          <MasterToSpecPanel jobs={jobs({ items, removeItem, master: true } as never)} onEmptied={onEmptied} />
+          <MasterToSpecPanel jobs={jobs({ items, removeItem, master: true } as never)} />
         </>
       );
     }
@@ -298,8 +345,7 @@ describe('MasterToSpecPanel: no action leaves the keyboard on the page body', ()
     await userEvent.click(removeOf('Chapter 01.wav'));
     expect(document.activeElement).toBe(removeOf('Chapter 02.wav'));
     await userEvent.click(removeOf('Chapter 02.wav'));
-    expect(onEmptied).toHaveBeenCalledTimes(1);
-    expect(document.activeElement?.id).toBe('entry');
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Choose files to master…' }));
   });
 });
 

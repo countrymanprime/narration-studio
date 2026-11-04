@@ -100,6 +100,10 @@ the Narrator, the one character it also voices. With the **Flat** layout the row
 
 ![Settings - Recording & DAW: Sync chapters to tracks and the Voices of a chapter folder](../../images/ui/settings-chapter-voices.webp)
 
+**Effects coverage cap** (under **Effects**) is how much of a chapter effects may cover before the [Editing](editing.md) Effects tab warns, a whole percent from 1 to 100 (10 until you change it). Set here it is this computer's value; **Override for this project** gives a project its own. The Effects tab's cap box always sets the project's own value, so typing there creates that override; **Use computer setting** removes it. The **?** says more.
+
+![Settings - Recording & DAW, Effects: the Effects coverage cap row after Override for this project, with its own project box](../../images/ui/settings-effects-cap.webp)
+
 **Start tone** (under **Take cues**) is **Off** or **On**. On, the Booth plays a short beep when you press Record, for recording by foot pedal without looking at the screen, and the take starts when the beep ends, a fraction of a second later, so the beep is not on the recording. Turning it on plays it once. It is kept in this window, as Theme and Motion are, and there is no tone to stop a take.
 
 **Voice sample output** chooses where this project's [voice samples](editing.md#marking-a-voice-sample) play, and is saved with the
@@ -305,6 +309,8 @@ replacing the manuscript keeps it; if its lines are gone, the panel says so and 
 - **Motion** is **Follow Windows** or **Reduce**. **Reduce** stops the app's slides, fades and highlights: menus, drawers and messages appear at once, and the Booth's cursor jumps from line to line. **Follow Windows** does that only when Windows' **Animation effects** setting is off. Like Theme, it is kept in this window.
 - **Waveform arrow step** (under **Editing**) is how far an arrow at either end of the [Editing](editing.md) waveform moves it, from 15 to 30 seconds (20 until you change it). A click moves one step; holding scrolls at that many seconds a second. It is kept in this window, as Theme and Motion are.
 - **Reader font**, **Reader text size**, **Line spacing** and **Column width** set how the [Script](script.md) reader draws the text, one row each, with a quote drawn in all four under **Column width**. These are the Script's own text settings, so a change here shows there and the other way round. The Booth uses the font and column width chosen here, and keeps its own text size: **Booth text size** (24 to 72 px in steps of 4, 40 until you change it) sets it, and the Booth's **Text settings** and its larger and smaller text keys change the same size. It is kept in this window, as the reader text is.
+- **Story Bible order** (under **Look**) is which entries the [Story Bible](story-bible.md) lists first: **Name, A to Z** (until you change it), **Name, Z to A**, **Kind**, **Book order**, **Most mentioned**, and the reverse of each. The list's column headers and **Sort** menu keep the same order, so a change in either shows in the other, and a choice here replaces any header clicks that broke ties. It is kept in this window, as the Booth text size is.
+- **Editing playback** (under **Listening**) is the sound the [Editing](editing.md) page plays: the speed (0.75× to 2×, the pitch kept), the volume, **Silence playback**, and the output it plays on. They are the same choices as the Editing page's **Output** controls beside the transport bar, kept in this window as Theme and Motion are; the Editing page reads them when it opens. A saved output that is not connected stays chosen, with a note and **Check again**, and the sound plays on the system default until it is back. With a DAW linked, Editing plays through the DAW and its own level, so these choices are for the sound the app plays itself.
 - **Note colour** is the colour that marks reader notes in the text; a project may override it.
 - **Zoom** scales the whole window (100% to 200%, the steps the jump menu's zoom commands and **Ctrl+plus**, **Ctrl+minus** and **Ctrl+0** use); it follows those and sets the same level.
 - **Shortcuts** lists every command you can run without the mouse, grouped by where it works, with a **Find a shortcut** box; each command's keys and its **Change** button sit at the right of its line, and the list is as long as the card. **Change** opens a recorder under the command: press the key or pedal (a USB footswitch that types a key works like a keyboard), then **Replace**, **Add as another key**, **Unbind** or **Reset to default**. A key another command already uses is named, and **Replace** takes it from that command. A changed command shows **Changed** and its own **Reset**; **Reset all to defaults** undoes every change. Each change saves at once.
@@ -314,6 +320,10 @@ replacing the manuscript keeps it; if its lines are gone, the panel says so and 
 ![Settings - the reader rows: Reader font, Reader text size, Line spacing and Column width, with the preview quote](../../images/ui/settings-reader-text.webp)
 
 ![Settings - Booth text size under Look: a slider from 24 to 72 px, 40 px by default](../../images/ui/settings-booth-text-size.webp)
+
+![Settings - Story Bible order under Look: a select of eight orders, Name, A to Z by default](../../images/ui/settings-story-bible-order.webp)
+
+![Settings - Editing playback under Listening: speed, volume, silence and output device](../../images/ui/settings-editing-playback.webp)
 
 ![Production in the Dark theme](../../images/ui/theme-dark.webp)
 

@@ -181,6 +181,23 @@ describe('DawToolsMenu as a menu (the layout the page headers use)', () => {
     expect(screen.getByText(/Render setup is written in REAPER/)).toBeTruthy();
   });
 
+  // #2821: the same menu over the repair group, with its own button name and icon.
+  it('draws the repair group under its own heading, behind a button named for what it does', async () => {
+    const user = userEvent.setup();
+    renderMenu({ layout: 'menu', groups: ['repair'], label: 'Repair in REAPER', action: 'repairInReaper' });
+    expect(screen.queryByRole('button', { name: 'DAW tools' })).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Repair in REAPER' }));
+    const menu = await screen.findByRole('menu');
+    expect(within(menu).getByText('Repair')).toBeTruthy();
+    expect(
+      within(menu)
+        .getAllByRole('menuitem')
+        .map((item) => item.textContent),
+    ).toEqual(['Cleanup tools…']);
+    await user.click(within(menu).getByRole('menuitem', { name: 'Cleanup tools…' }));
+    expect(await screen.findByRole('dialog', { name: 'Cleanup tools' })).toBeTruthy();
+  });
+
   it('draws nothing for no groups', () => {
     renderMenu({ layout: 'menu', groups: [] });
     expect(screen.queryByRole('button', { name: 'DAW tools' })).toBeNull();

@@ -173,4 +173,13 @@ describe('DawToolsButton, the page header form of the DAW tools', () => {
     await open(user);
     await waitFor(() => expect(screen.getAllByText(/has the linked project open could not be read/)).toHaveLength(2));
   });
+
+  // QA break B7 of #2821: the project read's failure went into the menu whole.
+  it('caps a long failure of the project read, as the other reads do', async () => {
+    const user = userEvent.setup();
+    renderButton({ tracksList: async () => Promise.reject(new Error('x'.repeat(20000))) });
+    await open(user);
+    const found = await screen.findAllByText(/The REAPER project could not be read/);
+    for (const node of found) expect((node.textContent ?? '').length).toBeLessThan(400);
+  });
 });

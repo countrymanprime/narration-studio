@@ -19,7 +19,7 @@ import { createAudacityLinkMock } from './audacityLinkMock';
 import { createDawChoiceMock } from './dawChoiceMock';
 import { createDawMock } from './dawMock';
 import { createProvidersMock } from './providersMock';
-import { createMasteringMock } from './masteringMock';
+import { createMasteringMock, mockMasterChain } from './masteringMock';
 import { createBuiltinBoothRecordMock } from './builtinBoothMock';
 import { createRecordingMock, type RecorderMockControl } from './recordingMock';
 import { createFindingsMock } from './findingsMock';
@@ -394,6 +394,7 @@ export function createMockApi(
     initial.renderPackageMulti,
     mastering.masteringProviders,
     initial.renderExportPick === 'many' ? MOCK_EXPORT_MANY_PATHS : initial.renderExportPick === 'long' ? MOCK_EXPORT_LONG_PATHS : MOCK_EXPORT_PATHS,
+    () => mockMasterChain(initial.mastering?.chain),
   );
   const system = createSystemMock(s, initial, {
     version: update.version,

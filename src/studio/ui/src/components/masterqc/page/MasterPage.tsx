@@ -1,6 +1,6 @@
 import { isNarrationChapter } from '../../../chapterKinds';
 import { headingName } from '../../../chapterHeading';
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { useErrorToast } from '../../../hooks/useErrorToast';
 import { usePort } from '../../../ports/usePort';
@@ -100,8 +100,6 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
   const run = useMeasureRun();
   useMeasureErrors(run);
   const jobs = useExportJobs();
-  // The header's way into Master to spec: it takes the keyboard when Remove empties the panel and the panel goes (#2935 review).
-  const toSpecEntry = useRef<HTMLButtonElement>(null);
   const mastering = useMasteringProviders();
   const [all, setAll] = useState<DeliveryProfile[]>([]);
   const [chosen, setChosen] = useState<DeliveryProfile>();
@@ -254,9 +252,9 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
             );
             const controls = (
               <>
-                {/* Opens Master to spec below (no mock equivalent, kept as built). */}
+                {/* Picks the files for Master to spec below (no mock equivalent, kept as built): the secondary way in, beside Check files…;
+                    the card's own labelled "Choose files to master…" is the primary (#2931). */}
                 <IconButton
-                  ref={toSpecEntry}
                   action="masterAllToSpec"
                   label="Master all to spec…"
                   onClick={() => void jobs.pick()}
@@ -314,13 +312,7 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
             <Panel title="Book consistency" subtitle={profile ? `RMS by file against ${rangeOf(profile)}` : undefined}>
               <Consistency files={run.files} profile={profile} />
             </Panel>
-            <MasterToSpecPanel
-              jobs={jobs}
-              chain={chain}
-              onStartRefused={mastering.reload}
-              onCheckFiles={() => void run.chooseOther()}
-              onEmptied={() => toSpecEntry.current?.focus()}
-            />
+            <MasterToSpecPanel jobs={jobs} chain={chain} onStartRefused={mastering.reload} onCheckFiles={() => void run.chooseOther()} />
             <MasteringChain
               providers={mastering.providers}
               problem={mastering.problem}
