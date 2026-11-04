@@ -2,9 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePort } from '../../ports/usePort';
 import { chapterTrackRows, type ChapterTrackRow } from './chapterTrackRows';
 import type { ManuscriptChapter, Track, TrackMapping } from '../../types';
+import type { ChapterTrackCreateResult } from '../../api/contracts/chapterTrackMap';
 
 export type ChapterLinks = {
-  /** The tracks in the project the links are read against. */
+  /** The tracks in the project the links are read against, with any track `create` added that the track list does not have yet. */
   tracks: Track[];
   /** The chapter list as the host sends it: the opening and closing credits are the first and last of them. */
   chapters: ManuscriptChapter[];
@@ -16,11 +17,43 @@ export type ChapterLinks = {
   error: string;
   /** The chapter whose link is being changed, or empty. */
   busyChapterId: string;
+  /** The chapter whose track `create` is adding, or empty: from any mount, so a panel opened again while a create runs shows it busy. */
+  creatingChapterId: string;
   /** Replaces the chapter's link with this track, then re-reads. */
   set: (chapterId: string, trackGuid: string) => void;
   /** Clears every link the chapter holds, then re-reads. */
   unlink: (chapterId: string) => void;
+  /** Has the DAW add a track named after the chapter (a folder with a Narrator track in Voice folders) and link it (chapterTrackCreate), then
+   * re-reads. Answers the host's result, or undefined when the press is ignored: another change or create is in flight (from this mount or
+   * another), or a create answered less than CREATE_QUIET_MS ago (a fast second click lands on the row that moved under the pointer). A failed
+   * call rejects. */
+  create: (chapterId: string) => Promise<ChapterTrackCreateResult | undefined>;
 };
+
+/** How long after a create answers that a create press is ignored: the rows shift when one is linked, so a fast second click would land on
+ * the next row's button (walkthrough F1, #2958). */
+export const CREATE_QUIET_MS = 600;
+
+/** The one create in flight, for every mount of this hook: the host serialises creates too (chapterTrackCreates), and a panel closed and
+ * opened again while one runs must neither press again nor lose its busy state. */
+const createGuard: { pending: { chapterId: string; done: Promise<unknown> } | null; quietUntil: number } = { pending: null, quietUntil: 0 };
+
+/** Clears the create guard. Only for tests, where one test's create must not hold back the next test's press. */
+export function resetChapterTrackCreateGuard(): void {
+  createGuard.pending = null;
+  createGuard.quietUntil = 0;
+}
+
+/** A track a create answered with, as the track list draws it, and when the answer came. */
+type AddedTrack = { track: Track; answeredAt: number };
+
+/** The tracks a created answer added, as the track list draws them, so the row is Linked before the next read of the DAW's tracks lists them. */
+function createdTracks(result: Extract<ChapterTrackCreateResult, { outcome: 'created' }>, answeredAt: number): AddedTrack[] {
+  const base = { color: '', muted: false, soloed: false, items: [] };
+  const folder: Track = { ...base, ...result.track, depth: 0, isFolder: Boolean(result.voice) };
+  const made = result.voice ? [folder, { ...base, ...result.voice, depth: 1, isFolder: false }] : [folder];
+  return made.map((track) => ({ track, answeredAt }));
+}
 
 /**
  * The one reader of the chapter-to-track mapping in the audio engine panel. The Chapter links section, the Link chapters dialog and the
@@ -28,13 +61,17 @@ export type ChapterLinks = {
  * so no surface keeps a copy that can disagree with another. "Linked" means a confirmed mapping whose track is still in the project
  * (`chapterTrackRows`). `refreshKey` asks for a re-read after a change made elsewhere; `onChanged` tells the panel one was made here; not `enabled`, nothing is read yet.
  */
-export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: () => void, enabled = true): ChapterLinks {
+export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: () => void, tracksReadAt: number | null = null, enabled = true): ChapterLinks {
   const manuscript = usePort('manuscript');
   const chapterTrackMap = usePort('chapterTrackMap');
   const [chapters, setChapters] = useState<ManuscriptChapter[]>([]);
   const [mappings, setMappings] = useState<TrackMapping[]>([]);
   const [error, setError] = useState('');
   const [busyChapterId, setBusyChapterId] = useState('');
+  const [creatingChapterId, setCreatingChapterId] = useState(createGuard.pending?.chapterId ?? '');
+  // Tracks create added that the caller's track list may not have read yet; dropped once it lists them, or once a read answered after the
+  // create leaves them out (`tracksReadAt`, the read's answer time): then the DAW does not have them and the row must say Track missing.
+  const [added, setAdded] = useState<AddedTrack[]>([]);
   // The state above reaches a second press only after a re-render; this one answers at once, so a double click changes the link once.
   const inFlight = useRef(false);
 
@@ -78,8 +115,68 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
   };
   const unlink = (chapterId: string) => change(chapterId, () => chapterTrackMap.chapterTrackUnlink(chapterId));
 
-  // The chapter list holds the credits, so they are rows like any chapter.
-  const rows = useMemo(() => chapterTrackRows(chapters, tracks, mappings), [chapters, tracks, mappings]);
+  // Mounted while a create from an earlier mount runs (the panel closed and opened again): busy until it ends, then read the links again.
+  useEffect(() => {
+    const pending = createGuard.pending;
+    if (!pending) return;
+    let active = true;
+    // Settled either way: the mount that pressed shows the answer or the failure as a toast; this one only reads the links again.
+    const settled = () => {
+      if (!active) return;
+      setCreatingChapterId('');
+      reload().then(onChanged, (reason: unknown) => setError(String(reason)));
+    };
+    pending.done.then(settled, settled);
+    return () => {
+      active = false;
+    };
+    // Once per mount: the create it waits for was pressed before this mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  return { tracks, chapters, mappings, rows, error, busyChapterId, set, unlink };
+  const create = async (chapterId: string): Promise<ChapterTrackCreateResult | undefined> => {
+    if (inFlight.current || createGuard.pending || Date.now() < createGuard.quietUntil) return undefined;
+    inFlight.current = true;
+    setBusyChapterId(chapterId);
+    setCreatingChapterId(chapterId);
+    setError('');
+    const request = chapterTrackMap.chapterTrackCreate(chapterId);
+    createGuard.pending = { chapterId, done: request };
+    try {
+      const result = await request;
+      if (result.outcome === 'created') {
+        setAdded((previous) => [...previous, ...createdTracks(result, Date.now())]);
+        // The track was added and linked: a re-read that fails is the table's error, never a failed create.
+        await reload().then(onChanged, (reason: unknown) => setError(String(reason)));
+      }
+      return result;
+    } finally {
+      if (createGuard.pending?.done === request) createGuard.pending = null;
+      createGuard.quietUntil = Date.now() + CREATE_QUIET_MS;
+      inFlight.current = false;
+      setBusyChapterId('');
+      setCreatingChapterId('');
+    }
+  };
+
+  // A created track the list has read is the list's: a track deleted in the DAW afterwards must show as missing. One a read answered after
+  // the create leaves out is not in the DAW (deleted or undone at once), so it is dropped too (breaker B4, #2958).
+  useEffect(() => {
+    const known = new Set(tracks.map((track) => track.guid));
+    setAdded((previous) => {
+      const next = previous.filter(({ track, answeredAt }) => !known.has(track.guid) && !(tracksReadAt !== null && tracksReadAt > answeredAt));
+      return next.length === previous.length ? previous : next;
+    });
+  }, [tracks, tracksReadAt]);
+
+  const shown = useMemo(() => {
+    const known = new Set(tracks.map((track) => track.guid));
+    const pending = added.map(({ track }) => track).filter((track) => !known.has(track.guid));
+    return pending.length === 0 ? tracks : [...tracks, ...pending];
+  }, [tracks, added]);
+
+  // The chapter list holds the credits, so they are rows like any chapter.
+  const rows = useMemo(() => chapterTrackRows(chapters, shown, mappings), [chapters, shown, mappings]);
+
+  return { tracks: shown, chapters, mappings, rows, error, busyChapterId, creatingChapterId, set, unlink, create };
 }

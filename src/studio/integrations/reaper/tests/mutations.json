@@ -2484,8 +2484,50 @@
   {
     "name": "track_create makes no undo point",
     "file": "narration_track_create.lua",
-    "find": "reaper.Undo_EndBlock2(0, UNDO_ADD_TRACK, -1)",
-    "replace": "reaper.Undo_EndBlock2(0, '', -1)"
+    "find": "\n  reaper.Undo_EndBlock2(0, UNDO_ADD_TRACK, -1)",
+    "replace": "\n  reaper.Undo_EndBlock2(0, '', -1)"
+  },
+  {
+    "name": "a chapter folder is added with no undo point",
+    "file": "narration_track_create.lua",
+    "find": "    reaper.Undo_EndBlock2(0, UNDO_ADD_TRACK, -1)",
+    "replace": "    reaper.Undo_EndBlock2(0, '', -1)"
+  },
+  {
+    "name": "a chapter folder is appended inside a folder left open at the end",
+    "file": "narration_track_create.lua",
+    "find": "  local folder, index = core.append_track()",
+    "replace": "  local index = reaper.CountTracks(0)\n  reaper.InsertTrackAtIndex(index, false)\n  local folder = reaper.GetTrack(0, index)"
+  },
+  {
+    "name": "a chapter folder is not a folder",
+    "file": "narration_track_create.lua",
+    "find": "  reaper.SetMediaTrackInfo_Value(folder, 'I_FOLDERDEPTH', 1)\n",
+    "replace": ""
+  },
+  {
+    "name": "a chapter folder's Narrator child leaves the folder open",
+    "file": "narration_track_create.lua",
+    "find": "  reaper.SetMediaTrackInfo_Value(child, 'I_FOLDERDEPTH', -1)\n",
+    "replace": ""
+  },
+  {
+    "name": "a chapter folder is inserted first instead of last",
+    "file": "narration_track_create.lua",
+    "find": "  local folder, index = core.append_track()",
+    "replace": "  reaper.InsertTrackAtIndex(0, false)\n  local folder, index = reaper.GetTrack(0, 0), 0"
+  },
+  {
+    "name": "a chapter folder's child gets no name",
+    "file": "narration_track_create.lua",
+    "find": "  reaper.GetSetMediaTrackInfo_String(child, 'P_NAME', child_name, true)\n",
+    "replace": ""
+  },
+  {
+    "name": "track_create with a parent and a child name adds a folder anyway",
+    "file": "narration_track_create.lua",
+    "find": "    if parent_guid ~= '' then\n      event(session_dir, 'ERROR', run_id, BOTH)\n      return\n    end\n",
+    "replace": ""
   },
   {
     "name": "track_create leaves a line break in the track name",

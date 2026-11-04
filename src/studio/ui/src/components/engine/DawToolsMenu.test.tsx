@@ -25,8 +25,10 @@ function links(overrides: Partial<ChapterLinks> = {}): ChapterLinks {
     rows: [],
     error: '',
     busyChapterId: '',
+    creatingChapterId: '',
     set: () => {},
     unlink: () => {},
+    create: async () => undefined,
     ...overrides,
   };
 }
