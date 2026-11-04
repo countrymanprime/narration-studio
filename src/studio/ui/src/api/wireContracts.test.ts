@@ -2390,6 +2390,13 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       else mockIgnorable.push([point, point]);
     }
     expect(mockIgnorable).toEqual(names.ignorable);
+    // No default-ignorable character survives inside a name, as none survives in the host's (round 5, B1).
+    for (const [first, last] of names.ignorable) {
+      for (let point = first; point <= last; point++) {
+        const char = String.fromCodePoint(point);
+        expect([mockChainName(`E${char}Q`, 'fx'), mockChainName(`EQ${char}\u0301`, 'fx')], point.toString(16)).toEqual(['EQ', 'EQ\u0301']);
+      }
+    }
     expect(await mockChainDigest([{ name: 'Voice', master: false, fx: null as never }])).toBe(
       await mockChainDigest([{ name: 'Voice', master: false, fx: [] }]),
     );

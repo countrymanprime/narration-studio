@@ -48,6 +48,9 @@ var chainNameCases = []string{
 	// Round 4, N7: default-ignorable and blank characters next to a name, which go, and a combining mark, which stays.
 	"EQ\u17b4", "\u17b4EQ", "EQ\u034f", "EQ\ufe0f", "\ufe0fEQ", "EQ\ue000", "\ue000EQ", "EQ\u180b", "EQ\u2d7f", "EQ\U00016FE4",
 	"EQ\U000E0100", "EQ\u115f", "EQ\u0301", "\u2764\ufe0f Warm",
+	// Round 5, B1: a default-ignorable character inside a name draws nothing either, so it goes there too; a blank-looking symbol
+	// inside one draws a gap and stays.
+	"E\u034fQ", "EQ\u034f\u0301", "E\ufe0fQ", "E\u17b4Q", "E\u180bQ", "E\u3164Q", "E\u2800Q",
 }
 
 // TestChainNameGoldenIsCurrent pins how a track's and a plug-in's name are cleaned, for the mock to match. UPDATE_CONTRACTS=1 rewrites
@@ -113,9 +116,31 @@ func TestEveryDefaultIgnorableIsTrimmedAtEitherEnd(t *testing.T) {
 	}
 }
 
-// The 120-rune cut never ends on a character that draws nothing before its "…" (round 4, N6).
+// A default-ignorable character draws nothing wherever it is, so no cleaned name keeps one: "E"+U+034F+"Q" is "EQ", and one
+// between a name and its combining mark goes too, so the two names that draw alike digest alike (round 5, B1). The Hangul filler
+// U+3164 is default-ignorable and goes with them (behaviour change from round 3, which kept an interior one).
+func TestNoDefaultIgnorableSurvivesInsideAName(t *testing.T) {
+	for _, span := range ignorableRanges() {
+		for r := span[0]; r <= span[1]; r++ {
+			for raw, want := range map[string]string{"E" + string(r) + "Q": "EQ", "EQ" + string(r) + "\u0301": "EQ\u0301"} {
+				got := chainName(raw)
+				if got != want {
+					t.Errorf("U+%04X: %q = %q, want %q", r, raw, got, want)
+				}
+				for _, c := range got {
+					if ignorable(c) {
+						t.Errorf("U+%04X: %q kept U+%04X", r, raw, c)
+					}
+				}
+			}
+		}
+	}
+}
+
+// The 120-rune cut never ends on a character that draws nothing before its "…" (round 4, N6). Ported for round 5 (B1): a
+// default-ignorable character (U+3164, U+034F, U+FE0F) is gone before the cut, so the cases are the blanks that reach it.
 func TestTheCutTrimsBlankCharactersBeforeTheEllipsis(t *testing.T) {
-	for _, blank := range []string{"\u3164", "\u2800", " \u034f", "\ufe0f"} {
+	for _, blank := range []string{"\u2800", "\ufffc", " \u2800", "\U0001D159"} {
 		raw := strings.Repeat("a", 119-len([]rune(blank))) + blank + "XYZ"
 		if got, want := chainName(raw), strings.Repeat("a", 119-len([]rune(blank)))+"…"; got != want {
 			t.Errorf("%q = %q, want %q", raw, got, want)
@@ -139,7 +164,7 @@ func TestABlankLookingNameIsUnnamed(t *testing.T) {
 	}
 	// Blank-looking characters at either end are trimmed, so "EQ" and "EQ" with a filler look and digest alike (round 3, M3).
 	for raw, want := range map[string]string{"e\u0301t\u00e9": "e\u0301t\u00e9", "\U0001F50A Loud": "\U0001F50A Loud", "\u2800x": "x",
-		"EQ\u3164": "EQ", "\u2800EQ": "EQ", "\u3164 EQ \u2800": "EQ", "E\u3164Q": "E\u3164Q"} {
+		"EQ\u3164": "EQ", "\u2800EQ": "EQ", "\u3164 EQ \u2800": "EQ", "E\u2800Q": "E\u2800Q"} {
 		if got := chainFX([]dawport.FXSlot{{Name: raw}})[0].Name; got != want {
 			t.Errorf("plug-in %q = %q, want it kept", raw, got)
 		}

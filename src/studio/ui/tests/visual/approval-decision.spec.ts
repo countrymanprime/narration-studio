@@ -158,6 +158,20 @@ test('Master / the pointer follows a resize with the dialog open / 1100x800 to 4
   await expect(pointer, 'grown: the chain is in view, the pointer goes').toHaveCount(0);
 });
 
+// A pointer with the keyboard that goes on a resize does not drop focus to the page (round 5, B2).
+test('Master / focus stays inside the approval dialog when the pointer goes away / 400x360 to 1100x800', async ({ page }) => {
+  await page.setViewportSize({ width: 400, height: 360 });
+  await page.goto('/');
+  await settlePage(page);
+  await masterDrivers['to-spec-approve-long-chain']!(page);
+  const dialog = page.getByRole('alertdialog', { name: 'Approve this render?' });
+  const pointer = dialog.getByRole('button', { name: POINTER });
+  await pointer.focus();
+  await page.setViewportSize({ width: 1100, height: 800 });
+  await expect(pointer).toHaveCount(0);
+  await expect(dialog.getByRole('group', { name: 'FX chain this render runs' }), 'the keyboard is on the chain the pointer named').toBeFocused();
+});
+
 // A sliver of the first row is not "in view": under half of it showing keeps the pointer (round 4, N4).
 for (const size of [
   { width: 360, height: 400 },

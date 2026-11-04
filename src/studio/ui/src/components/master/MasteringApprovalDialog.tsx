@@ -182,10 +182,21 @@ export function MasteringApprovalDialog({
   // The pointer beside Approve: how many effects are above, and how many of them are off (round 3 walkthrough), or that there are
   // none (round 4, N5). Pressing it brings the first effect itself into view, not the chain's top, which at a short body would show
   // only the count (round 4, N2), and puts the keyboard on the chain's list, which stays when the pointer goes.
+  const chainList = () => chainRef.current?.querySelector<HTMLElement>('[role="group"]');
   const showChain = () => {
     chainRef.current?.querySelector('tbody tr')?.scrollIntoView({ block: 'nearest' });
-    chainRef.current?.querySelector<HTMLElement>('[role="group"]')?.focus({ preventScroll: true });
+    chainList()?.focus({ preventScroll: true });
   };
+  // A pointer that goes while it has the keyboard (the window grew) takes the keyboard out of the dialog with it: it goes to the
+  // chain's list, which the pointer named. Focus anywhere else in the dialog stays where it is (round 5, B2).
+  const wasBelow = useRef(chainBelow);
+  useEffect(() => {
+    const went = wasBelow.current && !chainBelow;
+    wasBelow.current = chainBelow;
+    const dialog = chainRef.current?.closest('[role="alertdialog"]');
+    const active = document.activeElement;
+    if (went && dialog && (active === null || !active.isConnected || !dialog.contains(active))) chainList()?.focus({ preventScroll: true });
+  }, [chainBelow]);
   const pointer: { secondary: () => void; secondaryLabel: string } | { secondary?: undefined; secondaryLabel?: undefined } = chainBelow
     ? {
         secondaryLabel:

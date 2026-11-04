@@ -625,6 +625,36 @@ describe('the approval shows the DAW chain it approves (#2932)', () => {
     }
   });
 
+  it('a focused pointer that goes away hands the keyboard to the chain list, never to the page (round 5, B2)', async () => {
+    const { emit } = observeLive();
+    try {
+      await mount('daw', { chain: 'long' });
+      await openDialog();
+      await emit(0);
+      act(() => pointerOf()!.focus());
+      await emit(39);
+      expect(pointerOf()).toBeNull();
+      expect(document.activeElement).toBe(within(dialog()).getByRole('group', { name: 'FX chain this render runs' }));
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('a pointer that goes away while the keyboard is elsewhere in the dialog leaves it there', async () => {
+    const { emit } = observeLive();
+    try {
+      await mount('daw', { chain: 'long' });
+      await openDialog();
+      await emit(0);
+      const cancel = within(dialog()).getByRole('button', { name: 'Cancel' });
+      act(() => cancel.focus());
+      await emit(39);
+      expect(document.activeElement).toBe(cancel);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('a sliver of the first row is not in view: under half of it shown keeps the pointer (round 4, N4)', async () => {
     const { emit } = observeLive();
     try {

@@ -36,13 +36,16 @@ const maxChainName = 120
 // a zero-width space or joiner, a byte-order mark) is dropped, so a name can neither reverse what it says nor look like another,
 // and the length is bounded with an ellipsis (qa on #2932, B2). The digest is taken over the cleaned names.
 //
-// Characters that draw nothing at either end are trimmed (edgeBlank), so a name cannot differ from another only by them (round 3, M3;
-// round 4, N7), also where the cut lands before its "…" (round 4, N6), and a name with nothing readable is "" before any cut, so a
-// long blank name is not saved by the cut's "…" (round 3). Callers name "" ("Track", "(unnamed)").
+// Default-ignorable characters (ignorable) are dropped anywhere, so two names that draw alike digest alike (round 5, B1).
+// Blank-looking symbols, which draw a gap inside a name, private-use characters and spaces are trimmed at either end (edgeBlank),
+// so a name cannot differ from another only by them (round 3, M3; round 4, N7), also where the cut lands before its "…" (round 4,
+// N6). A name with nothing readable is "" before any cut, so a long blank name is not saved by the cut's "…" (round 3). Callers
+// name "" ("Track", "(unnamed)").
 func chainName(raw string) string {
 	clean := strings.Join(strings.Fields(strings.Map(func(r rune) rune {
 		switch {
-		case unicode.Is(unicode.Cf, r):
+		// A default-ignorable character draws nothing wherever it is, so it goes from inside a name too (round 5, B1).
+		case unicode.Is(unicode.Cf, r) || ignorable(r):
 			return -1
 		case unicode.IsControl(r) || r == utf8.RuneError:
 			return ' '

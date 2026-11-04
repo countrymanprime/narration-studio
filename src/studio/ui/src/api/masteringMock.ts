@@ -80,13 +80,14 @@ const trimEnd = (points: string[]): string[] => {
 };
 
 /**
- * chain.go's chainName, then trackName or chainFX's blank rule: format characters dropped, control characters spaced, spaces
+ * chain.go's chainName, then trackName or chainFX's blank rule: format and default-ignorable characters dropped anywhere, control characters spaced, spaces
  * collapsed, characters that draw nothing trimmed at either end (also where the cut lands), a name with no readable letter, number, punctuation or symbol (judged
  * before any cut) is "Track" for a track and "(unnamed)" for a plug-in, and at most 120 code points (an ellipsis marks a cut). Pinned
  * to the host by chain-names.json.
  */
 export function mockChainName(raw: string | null | undefined, kind: 'track' | 'fx'): string {
-  const spaced = (raw ?? '').replace(/\p{Cf}/gu, '').replace(/[\p{Cc}\uFFFD]/gu, ' ');
+  // A default-ignorable character goes from anywhere in the name, as a format character does (round 5, B1).
+  const spaced = (raw ?? '').replace(/[\p{Cf}\p{Default_Ignorable_Code_Point}]/gu, '').replace(/[\p{Cc}\uFFFD]/gu, ' ');
   const points = [...spaced.split(/\s+/u).filter(Boolean).join(' ')];
   while (points.length > 0 && isEdgeBlank(points[0]!)) points.shift();
   const kept = trimEnd(points);
