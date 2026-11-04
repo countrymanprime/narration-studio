@@ -101,7 +101,7 @@ An `AsyncSearchSource` is `(term, signal) => Promise<SearchHit[]>`, for a search
 
 | Source | Registered in |
 | --- | --- |
-| Manuscript text ("In the script", through `searchManuscript`), marks, prep words | `components/script/page/registry/useScriptRegistry.ts` |
+| The whole book ("In the script", asynchronous: the host's `manuscriptSearch` through `bookSource`), marks, prep words | `components/script/page/registry/useScriptRegistry.ts` |
 | Bookmarks | `components/script/bookmarks/model/useBookmarkCommands.ts` |
 
 Test: `registries/search.test.ts`.
