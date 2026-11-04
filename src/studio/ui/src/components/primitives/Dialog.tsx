@@ -141,12 +141,29 @@ export function Dialog({
   // they keep the same gutter, so Close, the body's controls and the last action share one right edge (alignment audit XSC-36).
   const edgeGutter = bodyScroll ? 'overflow-hidden [scrollbar-gutter:stable]' : '';
   const finalFocus = () => {
-    if (opener?.isConnected && opener !== document.body) return opener;
-    if (stayOnBody && (!opener || opener === document.body)) return false;
-    // The opener is gone (the click removed it, or one dialog replaced another): where the opener says, then the landmark.
-    const target = returnFocus?.();
-    if (target?.isConnected) return target;
-    return document.querySelector<HTMLElement>('main') ?? true;
+    // The action that closed this dialog already moved focus to its destination (a jump menu result focuses what it went to): leave it there.
+    const now = document.activeElement;
+    if (now instanceof HTMLElement && now !== document.body && !popupRef.current?.contains(now) && !now.closest('[data-base-ui-focus-guard]')) return false;
+    let target: HTMLElement | null;
+    if (opener?.isConnected && opener !== document.body) target = opener;
+    else if (stayOnBody && (!opener || opener === document.body)) return false;
+    else {
+      // The opener is gone (the click removed it, or one dialog replaced another): where the opener says, then the landmark. <main> is focusable
+      // (tabIndex -1) but not tabbable, so handed to Base UI it would pick its first tabbable, the header's project button (#2902): focus it here.
+      const named = returnFocus?.();
+      target = named?.isConnected ? named : document.querySelector<HTMLElement>('main');
+    }
+    if (!target) return true;
+    const back = target;
+    // Focus is handed back here, a tick after the popup has gone, not by Base UI at unmount: the action that closed the dialog may move focus
+    // in an effect after that (the Script reader focuses the chapter's heading), and a hand-back that came later would take it away (#2902).
+    // Only focus that is on nothing (the body, or the removed popup) is handed back; focus on anything else, another dialog included, stays.
+    window.setTimeout(() => {
+      const active = document.activeElement;
+      const nowhere = !active || active === document.body || !active.isConnected || popupRef.current?.contains(active);
+      if (nowhere && back.isConnected) back.focus({ preventScroll: true });
+    }, 0);
+    return false;
   };
 
   return (

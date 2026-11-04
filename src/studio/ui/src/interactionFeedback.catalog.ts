@@ -185,7 +185,7 @@ export const SILENT_CATCHES: Record<string, string> = {
     "Remembering the Booth's last chapter and place in localStorage, per project; with storage blocked or full the next visit opens on the DAW's chapter or the first, as it did before the place was kept.",
   'src/components/booth/page/lastPlace.ts#2':
     'Remembering the place in each chapter of the project in localStorage; with storage blocked or full a chapter the narrator comes back to opens where its recording ends, or at its top.',
-  'src/components/booth/page/useTextChoices.ts#1':
+  'src/components/booth/page/boothSize.ts#1':
     "Remembering the Booth's text size in localStorage; with storage blocked or full the size lasts for this visit and the next one opens at 40 px.",
   'src/components/script/page/tools/text/readerText.ts#1':
     'Per-viewer reading choices in localStorage (the booth rail does the same): storage can be blocked or full, and the page then keeps the choice for the session and reads with the defaults.',

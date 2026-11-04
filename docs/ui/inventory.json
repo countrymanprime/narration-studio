@@ -217,8 +217,10 @@
       "consumers": [
         "src/components/booth/frame/BoothTop.tsx",
         "src/components/booth/page/BoothNextPage.tsx",
+        "src/components/booth/page/boothSize.ts",
         "src/components/booth/page/useBoothPage.ts",
-        "src/components/booth/page/useTextChoices.ts"
+        "src/components/booth/page/useTextChoices.ts",
+        "src/components/settings/controls/AppearanceBodies.tsx"
       ],
       "a11yDebt": false
     },
@@ -288,6 +290,7 @@
         "src/components/booth/record/RecordSetup.tsx",
         "src/components/booth/side/VoicesInChapter.tsx",
         "src/components/booth/voices/VoiceControl.tsx",
+        "src/components/booth/voices/WhoIsInDialog.tsx",
         "src/components/connection/ChapterLinkDialog.tsx",
         "src/components/connection/ReaperOffDialog.tsx",
         "src/components/connection/ResolveShell.tsx",
@@ -451,6 +454,7 @@
         "src/components/storybible/VoiceDataPanel.tsx",
         "src/components/storybible/VoiceReferencesSection.tsx",
         "src/components/storybible/source/PronSourceTag.tsx",
+        "src/components/storybible/source/PronunciationCandidates.tsx",
         "src/components/storybible/source/SourceMenu.tsx",
         "src/components/storybible/suggested/import/ImportDialog.tsx",
         "src/components/storybible/suggested/panel/ScanStatus.tsx",
@@ -574,6 +578,7 @@
         "Label Less Indeterminate"
       ],
       "consumers": [
+        "src/components/booth/voices/WhoIsInDialog.tsx",
         "src/components/credits/CreditsSetupDialog.tsx",
         "src/components/devtools/MockStatesPanel.tsx",
         "src/components/editing/cleanup/CleanupList.tsx",
@@ -976,6 +981,7 @@
         "Headerless"
       ],
       "consumers": [
+        "src/components/booth/voices/WhoIsInDialog.tsx",
         "src/components/connection/ResolveShell.tsx",
         "src/components/credits/CreditsSetupDialog.tsx",
         "src/components/engine/ChapterSyncConsentDialog.tsx",
@@ -1014,7 +1020,8 @@
         "Expanded",
         "With Info Icon",
         "Scroll Cue",
-        "Opens And Closes With The Keyboard"
+        "Opens And Closes With The Keyboard",
+        "Keeps Its Panel While Closed"
       ],
       "consumers": [
         "src/components/editing/cleanup/CleanupInspector.tsx",
@@ -1182,6 +1189,7 @@
         "Textarea Compact Hidden Label"
       ],
       "consumers": [
+        "src/components/booth/voices/WhoIsInDialog.tsx",
         "src/components/credits/CreditsSetupDialog.tsx",
         "src/components/delivery/ImportProfileField.tsx",
         "src/components/editing/menu/marks/NoteDialog.tsx",
@@ -1514,7 +1522,6 @@
         "src/components/schedule/MilestoneTable.tsx",
         "src/components/script/bookmarks/ui/BookmarkRibbon.tsx",
         "src/components/script/page/rail/words/DefinitionSourceMenu.tsx",
-        "src/components/script/page/rail/words/WordCard.tsx",
         "src/components/script/page/rail/words/WordsTab.tsx",
         "src/components/script/page/tools/select/KindMenu.tsx",
         "src/components/script/page/tools/select/MarkMenu.tsx",
@@ -1567,6 +1574,7 @@
         "src/components/booth/side/Reference.tsx",
         "src/components/booth/side/VoicesInChapter.tsx",
         "src/components/booth/suspected/SuspectedLines.tsx",
+        "src/components/booth/voices/VoiceControl.tsx",
         "src/components/delivery/page/OutputPanel.tsx",
         "src/components/delivery/page/Preflight.tsx",
         "src/components/editing/backups/BackupsInspector.tsx",
@@ -1589,6 +1597,7 @@
         "src/components/editing/takes/useShowInDaw.tsx",
         "src/components/editing/voicesample/VoiceSampleDialog.tsx",
         "src/components/engine/ChapterLinksTable.tsx",
+        "src/components/engine/LiveTracksStatus.tsx",
         "src/components/engine/TrackList.tsx",
         "src/components/engine/VoicesCard.tsx",
         "src/components/layout/AppShell.tsx",
@@ -1653,6 +1662,7 @@
         "src/components/settings/controls/ChapterLayoutBody.tsx",
         "src/components/settings/controls/DefinitionsBody.tsx",
         "src/components/settings/controls/ProjectBodies.tsx",
+        "src/components/settings/controls/SyncEnabledBody.tsx",
         "src/components/settings/models/AssetRow.tsx",
         "src/components/settings/page/MarksPanel.tsx",
         "src/components/settings/page/StoryBibleTypesPanel.tsx",
@@ -1667,6 +1677,7 @@
         "src/components/storybible/PropertiesSection.tsx",
         "src/components/storybible/Relationships.tsx",
         "src/components/storybible/SortMenu.tsx",
+        "src/components/storybible/source/PronunciationCandidates.tsx",
         "src/components/storybible/suggested/import/ImportDialog.tsx",
         "src/components/storybible/suggested/row/SuggestionRow.tsx",
         "src/components/storybible/voicesamples/VoiceSampleRow.tsx",
@@ -1822,6 +1833,8 @@
       ],
       "consumers": [
         "src/components/booth/CompanionShell.tsx",
+        "src/components/booth/side/VoicesInChapter.tsx",
+        "src/components/booth/voices/WhoIsInDialog.tsx",
         "src/components/engine/RenderConfigDialog.tsx",
         "src/components/primitives/KeyCap.tsx",
         "src/components/primitives/KeyHint.tsx",
@@ -2472,7 +2485,6 @@
         "Plain Text",
         "Marks Of Each Style",
         "Overlapping Marks",
-        "Flagged Words",
         "Name Mentions",
         "Speaker Chips",
         "Find Matches",
@@ -2680,11 +2692,12 @@
         "Button",
         "Menu With Unavailable Sources",
         "Name Row Editing",
+        "Name Row Under A Heading",
+        "Name Row Dictionary Candidates",
         "Name Row Read Only"
       ],
       "consumers": [
         "src/components/script/page/rail/bible/EntryCard.tsx",
-        "src/components/script/page/rail/words/WordCard.tsx",
         "src/components/storybible/source/NamePronunciation.tsx"
       ],
       "a11yDebt": false
@@ -2701,12 +2714,14 @@
         "Standalone"
       ],
       "consumers": [
+        "src/components/booth/voices/WhoIsInDialog.tsx",
         "src/components/devtools/MockStatesPanel.tsx",
         "src/components/editing/range/cut/CutDialog.tsx",
         "src/components/master/MasteringChain.tsx",
         "src/components/settings/controls/AppearanceBodies.tsx",
         "src/components/settings/controls/DefinitionsBody.tsx",
         "src/components/settings/controls/EngineBody.tsx",
+        "src/components/settings/controls/SyncEnabledBody.tsx",
         "src/components/settings/controls/TakeToneBody.tsx"
       ],
       "a11yDebt": false
@@ -3088,6 +3103,7 @@
         "Long Label Wraps"
       ],
       "consumers": [
+        "src/components/booth/voices/WhoIsInDialog.tsx",
         "src/components/delivery/page/OutputPanel.tsx",
         "src/components/delivery/profile/FormatRows.tsx",
         "src/components/delivery/profile/ProfileCard.tsx",
@@ -3173,6 +3189,7 @@
       "consumers": [
         "src/components/booth/frame/BoothTop.tsx",
         "src/components/booth/frame/LevelsMenu.tsx",
+        "src/components/booth/voices/WhoIsInDialog.tsx",
         "src/components/delivery/ImportProfileField.tsx",
         "src/components/delivery/profile/ProfileMenu.tsx",
         "src/components/editing/menu/marks/NoteDialog.tsx",
@@ -3188,6 +3205,7 @@
         "src/components/engine/VoicesCard.tsx",
         "src/components/mapping/TrackSelect.tsx",
         "src/components/master/MasterToSpecPanel.tsx",
+        "src/components/pickups/list/AddPickup.tsx",
         "src/components/production/CreditsRowPanel.tsx",
         "src/components/production/ImportReview.tsx",
         "src/components/proof/NativeTakesPanel.tsx",
@@ -3409,6 +3427,7 @@
       "consumers": [
         "src/components/booth/ReaderText.tsx",
         "src/components/booth/voices/VoiceControl.tsx",
+        "src/components/booth/voices/WhoIsInDialog.tsx",
         "src/components/engine/VoicesCard.tsx"
       ],
       "a11yDebt": false
@@ -3580,6 +3599,8 @@
         "src/components/booth/reading/SpeakerChip.tsx",
         "src/components/booth/side/VoicesInChapter.tsx",
         "src/components/booth/suspected/SuspectedLines.tsx",
+        "src/components/booth/voices/VoiceControl.tsx",
+        "src/components/booth/voices/WhoIsInDialog.tsx",
         "src/components/credits/CreditsSetupBanner.tsx",
         "src/components/delivery/page/OutputPanel.tsx",
         "src/components/delivery/page/Preflight.tsx",
@@ -3663,6 +3684,7 @@
         "src/components/storybible/Relationships.tsx",
         "src/components/storybible/VoiceReferencesSection.tsx",
         "src/components/storybible/source/PronSourceTag.tsx",
+        "src/components/storybible/source/PronunciationCandidates.tsx",
         "src/components/storybible/suggested/import/ImportDialog.tsx",
         "src/components/storybible/suggested/panel/EntryVerifyPill.tsx",
         "src/components/storybible/suggested/panel/LooseSuggestionRows.tsx",
@@ -4072,6 +4094,7 @@
         "src/components/engine/ChapterSyncPanel.tsx",
         "src/components/engine/EnginePanel.tsx",
         "src/components/engine/SyncActivityLog.tsx",
+        "src/components/engine/useLiveTracks.ts",
         "src/components/engine/useVoiceTracks.ts",
         "src/components/primitives/Dialog.tsx",
         "src/components/production/ChapterTrackPanel.tsx",
@@ -4089,6 +4112,7 @@
         "src/components/proof/RenderAssociationSection.tsx",
         "src/components/proof/useProofingRender.ts",
         "src/components/script/page/ScriptPage.tsx",
+        "src/components/script/page/rail/words/WordCard.tsx",
         "src/components/settings/CreditsPanel.tsx",
         "src/components/settings/DeliveryProfilesPanel.tsx",
         "src/components/settings/KeyboardPanel.tsx",
@@ -4201,6 +4225,7 @@
         "src/components/booth/record/SetupChip.tsx",
         "src/components/booth/resume/RecordedThroughChip.tsx",
         "src/components/booth/resume/ResumeOffer.tsx",
+        "src/components/booth/voices/VoiceControl.tsx",
         "src/components/editing/bar/SelectionActionButton.tsx",
         "src/components/editing/page/EditingHeader.tsx",
         "src/components/editing/ribbon/RibbonControls.tsx",
@@ -4210,6 +4235,7 @@
         "src/components/editing/takes/prep/PrepControls.tsx",
         "src/components/editing/takes/split/SplitButton.tsx",
         "src/components/engine/AudacityLinkCard.tsx",
+        "src/components/engine/LiveTracksStatus.tsx",
         "src/components/engine/VoicesCard.tsx",
         "src/components/layout/AppShell.tsx",
         "src/components/layout/EngineChip.tsx",

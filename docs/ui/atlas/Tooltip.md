@@ -32,6 +32,7 @@ Storybook title: `Primitives/Tooltip`. Source: `src/components/primitives/Toolti
 - `src/components/booth/record/SetupChip.tsx`
 - `src/components/booth/resume/RecordedThroughChip.tsx`
 - `src/components/booth/resume/ResumeOffer.tsx`
+- `src/components/booth/voices/VoiceControl.tsx`
 - `src/components/editing/bar/SelectionActionButton.tsx`
 - `src/components/editing/page/EditingHeader.tsx`
 - `src/components/editing/ribbon/RibbonControls.tsx`
@@ -41,6 +42,7 @@ Storybook title: `Primitives/Tooltip`. Source: `src/components/primitives/Toolti
 - `src/components/editing/takes/prep/PrepControls.tsx`
 - `src/components/editing/takes/split/SplitButton.tsx`
 - `src/components/engine/AudacityLinkCard.tsx`
+- `src/components/engine/LiveTracksStatus.tsx`
 - `src/components/engine/VoicesCard.tsx`
 - `src/components/layout/AppShell.tsx`
 - `src/components/layout/EngineChip.tsx`

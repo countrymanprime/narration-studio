@@ -29,6 +29,7 @@ Storybook title: `Primitives/Dialog`. Source: `src/components/primitives/Dialog.
 
 ## Used by
 
+- `src/components/booth/voices/WhoIsInDialog.tsx`
 - `src/components/connection/ResolveShell.tsx`
 - `src/components/credits/CreditsSetupDialog.tsx`
 - `src/components/engine/ChapterSyncConsentDialog.tsx`

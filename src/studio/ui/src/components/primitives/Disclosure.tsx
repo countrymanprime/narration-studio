@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, type ReactNode } from 'react';
 
 // A titled group that opens and closes: the whole title row is the button (a chevron, the title as a letter-spaced uppercase
 // sub-heading, as the mock draws Settings' Advanced, and a short summary of what is inside), and the panel under it is not in the
-// page while collapsed. `Collapsible` is the other shape of the same idea, an icon button that can sit apart from its panel; use
+// page while collapsed (unless `keepMounted`). `Collapsible` is the other shape of the same idea, an icon button that can sit apart from its panel; use
 // this one when the row itself is the control and a count should be readable while it is closed. Base UI supplies `aria-expanded`
 // and links the button to its panel with `aria-controls`.
 //
@@ -20,6 +20,7 @@ export function Disclosure({
   panelClassName = '',
   panelFocusable = false,
   scrollCue = false,
+  keepMounted = false,
   className = '',
   children,
 }: {
@@ -35,6 +36,8 @@ export function Disclosure({
   panelFocusable?: boolean;
   /** For a scrolling panel: while more lies below its bottom edge it fades its last 20 px out, so a card cut by the edge reads as "more below" and not as a clipped card (#2656). Sets `data-more-below`. */
   scrollCue?: boolean;
+  /** Keeps the panel in the page (hidden) while collapsed, so what is typed in it, and what it has read, survives closing the group. */
+  keepMounted?: boolean;
   className?: string;
   children: ReactNode;
 }) {
@@ -84,6 +87,7 @@ export function Disclosure({
           undefined
         }
         tabIndex={panelFocusable ? 0 : undefined}
+        keepMounted={keepMounted}
       >
         {children}
       </BaseCollapsible.Panel>

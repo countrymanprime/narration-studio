@@ -2,30 +2,10 @@
 // and Settings › Reader text write, and the Booth's own text size, 24 to 72 px in steps of 4. Both are conveniences of this browser, kept in `localStorage`; storage can be
 // missing, full or blocked, so every access is guarded and the Booth reads with the defaults when it fails.
 
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { READER_WIDTHS, fontStack, readerColumn, loadTextPrefs, saveTextPrefs } from '../../script/page/tools/text/readerText';
 import { textSizePx } from '../reading/BoothText';
-
-export const BOOTH_SIZE_STORAGE_KEY = 'narration.booth.textSize';
-const DEFAULT_BOOTH_SIZE = 40;
-
-/** The saved Booth size; anything but one of the sizes takes the default. */
-function loadBoothSize(): number {
-  try {
-    const stored = Number(window.localStorage.getItem(BOOTH_SIZE_STORAGE_KEY));
-    return stored === textSizePx(stored) ? stored : DEFAULT_BOOTH_SIZE;
-  } catch {
-    return DEFAULT_BOOTH_SIZE;
-  }
-}
-
-function saveBoothSize(size: number): void {
-  try {
-    window.localStorage.setItem(BOOTH_SIZE_STORAGE_KEY, String(size));
-  } catch {
-    /* storage unavailable: the size lasts for this visit only */
-  }
-}
+import { readBoothSize, writeBoothSize } from './boothSize';
 
 export type TextChoices = {
   /** Px, 24 to 72 in steps of 4. */
@@ -46,15 +26,16 @@ export type TextChoices = {
 
 /** The Booth's saved text size and the reader font: read once, saved on each change. */
 export function useTextChoices(): TextChoices {
-  const [size, setSizeState] = useState(loadBoothSize);
+  const [size, setSizeState] = useState(readBoothSize);
   const [font, setFontState] = useState(() => loadTextPrefs().font);
   const [width, setWidthState] = useState(() => loadTextPrefs().width);
+  // The size is worked out and saved here, not inside the state updater, which React may run twice and which must not write storage.
+  const latest = useRef(size);
   const setSize = useCallback((next: number | ((current: number) => number)) => {
-    setSizeState((current) => {
-      const size = textSizePx(typeof next === 'function' ? next(current) : next);
-      saveBoothSize(size);
-      return size;
-    });
+    const chosen = textSizePx(typeof next === 'function' ? next(latest.current) : next);
+    latest.current = chosen;
+    writeBoothSize(chosen);
+    setSizeState(chosen);
   }, []);
   const setFont = useCallback((next: string) => {
     saveTextPrefs({ ...loadTextPrefs(), font: next });

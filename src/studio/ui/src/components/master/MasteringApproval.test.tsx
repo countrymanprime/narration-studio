@@ -250,7 +250,8 @@ describe('Master & encode with a row that makes the DAW render (#2739)', () => {
     expect(stalePlan).toHaveBeenCalledTimes(2);
     await pressInDialog('Approve and master');
     await waitFor(() => expect(exportStart).toHaveBeenCalledTimes(2));
-    expect(sent(exportStart)[1]?.approval?.chainDigest).toBe((await plan({ items: sent(exportStart)[1]!.items, master: true })).chainDigest);
+    // The second approval binds the chain the DAW runs now.
+    expect(sent(exportStart)[1]?.approval?.chainDigest).toBe((await plan({ ...sent(exportStart)[1]!, approval: null })).chainDigest);
   });
 
   it('a press while the start waits sends nothing more, and every control in the dialog is held', async () => {

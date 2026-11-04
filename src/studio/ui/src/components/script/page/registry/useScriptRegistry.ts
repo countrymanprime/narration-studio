@@ -15,12 +15,13 @@ import { useCommand } from '../../../../input/useCommand';
 import { POPOVER_POPUP_SELECTOR } from '../../../primitives/Popover';
 import { useContextProvider } from '../../../../registries/context';
 import { useAsyncSearchSource, useSearchSource } from '../../../../registries/search';
-import { chapterName, type ChapterNameInput } from '../../../../chapterName';
+import type { ChapterNameInput } from '../../../../chapterName';
+import { headingName } from '../../../../chapterHeading';
 import type { ScriptViewState } from '../data/scriptView';
 import { useChapters, useEntries, useMarks, useScriptCommands, useScriptPrep, useScriptView } from '../data/useScriptData';
 import { closeFind, escapeClosesFind, quoteTerm, stepFind } from '../tools/find/findState';
 import { scriptContextProvider, type MenuHandlers } from './contextProvider';
-import { bookSource, marksSource, MANUSCRIPT_GROUP, wordsSource } from './searchSources';
+import { bookSource, marksSource, MANUSCRIPT_GROUP } from './searchSources';
 
 export type ScriptRegistryOptions = MenuHandlers & {
   /** The host's whole-book search, cached per term (`useManuscriptSearch`), for the manuscript source. */
@@ -95,7 +96,6 @@ export function useScriptRegistry(options: ScriptRegistryOptions): void {
     MANUSCRIPT_GROUP,
   );
   useSearchSource(useMemo(() => marksSource(() => marksSnapshot, stable.showMark), [marksSnapshot, stable]));
-  useSearchSource(useMemo(() => wordsSource(() => prep.words, stable.showWord), [prep.words, stable]));
 
   useContextProvider(
     useMemo(
@@ -134,7 +134,7 @@ export function useScriptRegistry(options: ScriptRegistryOptions): void {
     for (const chapter of stops ?? chapterList) {
       items.push({
         id: `chapter.${chapter.id}`,
-        label: chapterName(chapter, 'full'),
+        label: headingName(chapter),
         group: 'Chapters',
         icon: 'goToChapter',
         run: () => latest.current.goToChapter(chapter.id),

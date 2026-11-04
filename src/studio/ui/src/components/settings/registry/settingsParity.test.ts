@@ -54,6 +54,9 @@ const DATA = 'Edits project content (a record, a link, a status), not a preferen
 const BINDINGS: Parity = {
   covered: {
     voiceTracksSetLayout: 'daw.layout',
+    chapterSyncSetEnabled: 'daw.sync',
+    voiceTracksSetNarrator: 'daw.voices',
+    voiceTracksSetCharacters: 'daw.voices',
     windowSetZoom: 'look.zoom',
     dawChoose: 'daw.engine',
     pronunciationOnlineKeySet: 'voice.mwKey',
@@ -84,13 +87,10 @@ const BINDINGS: Parity = {
     guideTypeSetSpeaks: 'The Story Bible type’s Can speak is edited in Settings’ Entry types row (project.types); this is that row’s own write.',
     voiceSampleSetPrimary: DATA,
     // Preferences with no Settings row yet. Each leaves this list in the pull request that adds its row (issue 2815).
-    chapterSyncSetEnabled: 'GAP, Engine panel: whether sync links chapters to tracks. Row comes in the Engine-panel pull request.',
     masteringChooseProvider: 'No control calls it (it is on the unwired-bindings list); a row comes with the control, if one is ever drawn.',
-    voiceTracksSetNarrator: 'GAP, Engine panel: the narrator’s character for voice tracks. Row comes in the Engine-panel pull request.',
-    voiceTracksSetCharacters: 'GAP, Engine panel: which characters a voice track records. Row comes in the Engine-panel pull request.',
     editingSetSourceChoice: 'A per-chapter choice recorded with that chapter’s analysis (source-choice.json), not a preference for the project.',
   },
-  cap: 29,
+  cap: 26,
 };
 
 // ---- Keys the window keeps in localStorage.
@@ -104,6 +104,7 @@ const STORAGE: Parity = {
     'narration-ui-take-tone': 'daw.startTone',
     'narration-ui-ribbon-scroll-step': 'look.waveScrollStep',
     'narration.script.text': 'look.reader',
+    'narration.booth.textSize': 'look.boothSize',
   },
   exempt: {
     'narration-ui-demo-play-motion': 'A development switch for recorded demos, not offered to a narrator.',
@@ -115,10 +116,9 @@ const STORAGE: Parity = {
     'narration.proof.lastChapter.': 'The chapter Proof and Master & QC were last on: remembered position, not a preference.',
     'narration.readAloud.flags': 'Read only; nothing writes it.',
     'narration.storyBible.sort': 'GAP, Story Bible: the entry table’s sort. Row, or a reason, comes in the Story Bible pull request.',
-    'narration.booth.textSize': 'GAP, Booth: the Booth’s own text size. Row comes in the Booth pull request.',
     'narration-ui-editing-output': 'GAP, Editing: playback speed, volume and output device. Row comes in the Editing pull request.',
   },
-  cap: 11,
+  cap: 10,
 };
 
 // ---- Files that write a host settings field outside the Settings page.

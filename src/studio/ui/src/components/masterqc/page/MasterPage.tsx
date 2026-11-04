@@ -1,6 +1,6 @@
 import { isNarrationChapter } from '../../../chapterKinds';
 import { headingName } from '../../../chapterHeading';
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { useErrorToast } from '../../../hooks/useErrorToast';
 import { usePort } from '../../../ports/usePort';
@@ -26,6 +26,7 @@ import type { FileActions } from '../files/FileActions';
 import { FileChecks } from '../files/FileChecks';
 import { FilesTable } from '../files/FilesTable';
 import { buildChapterRows } from '../files/rows';
+import { useTextMatches } from '../files/textMatch';
 import { Consistency, rangeOf } from './Consistency';
 import { hasMeasureProgress, MeasureControls, MeasureProgress, useMeasureErrors, useMeasureRun } from './MeasureRun';
 import { PackageChecks } from './PackageChecks';
@@ -98,6 +99,8 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
   const run = useMeasureRun();
   useMeasureErrors(run);
   const jobs = useExportJobs();
+  // The header's way into Master to spec: it takes the keyboard when Remove empties the panel and the panel goes (#2935 review).
+  const toSpecEntry = useRef<HTMLButtonElement>(null);
   const mastering = useMasteringProviders();
   const [all, setAll] = useState<DeliveryProfile[]>([]);
   const [chosen, setChosen] = useState<DeliveryProfile>();
@@ -171,7 +174,11 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
     for (const line of openLines) counts[line.chapterId] = (counts[line.chapterId] ?? 0) + 1;
     return counts;
   }, [openLines]);
-  const rows = useMemo(() => (profile ? buildChapterRows(run.files, profile, chapters, openPickups) : []), [run.files, profile, chapters, openPickups]);
+  const texts = useTextMatches(chapters, run.files);
+  const rows = useMemo(
+    () => (profile ? buildChapterRows(run.files, profile, chapters, openPickups, texts) : []),
+    [run.files, profile, chapters, openPickups, texts],
+  );
   // A link by chapter id lands on that chapter's file once the files are known.
   const selected = useMemo(() => {
     const chapter = chapters.find((candidate) => candidate.id === picked);
@@ -248,6 +255,7 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
               <>
                 {/* Opens Master to spec below (no mock equivalent, kept as built). */}
                 <IconButton
+                  ref={toSpecEntry}
                   action="masterAllToSpec"
                   label="Master all to spec…"
                   onClick={() => void jobs.pick()}
@@ -279,6 +287,7 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
                 profile={profile && chaptersRead ? profile : undefined}
                 slots={chapters}
                 openPickups={openPickups}
+                texts={texts}
                 heading={heading}
                 controls={controls}
                 notices={notices}
@@ -302,7 +311,13 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
             <Panel title="Book consistency" subtitle={profile ? `RMS by file against ${rangeOf(profile)}` : undefined}>
               <Consistency files={run.files} profile={profile} />
             </Panel>
-            <MasterToSpecPanel jobs={jobs} chain={chain} onStartRefused={mastering.reload} onCheckFiles={() => void run.chooseOther()} />
+            <MasterToSpecPanel
+              jobs={jobs}
+              chain={chain}
+              onStartRefused={mastering.reload}
+              onCheckFiles={() => void run.chooseOther()}
+              onEmptied={() => toSpecEntry.current?.focus()}
+            />
             <MasteringChain
               providers={mastering.providers}
               problem={mastering.problem}

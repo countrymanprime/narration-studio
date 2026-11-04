@@ -52,6 +52,8 @@ declare global {
     __NARRATION_MOCK_OVERRIDES__?: Parameters<typeof createMockApi>[0];
     __NARRATION_MOCK_DAW__?: DawMockControl;
     /** The mock microphone's side: unplug it mid-session (teleprompterMock.ts). */
+    /** The mock's side of the report dialog's open-folder button: how many times the host was asked (the real host opens the file manager and shows nothing). */
+    __NARRATION_MOCK_REPORTS__?: { folderOpens: number };
     __NARRATION_MOCK_TELEPROMPTER__?: { failListening: (message: string) => void };
   }
 }
@@ -70,6 +72,10 @@ const mockMultipleRpp = mockParams.has('mockMultipleRpp');
 const mockNoRpp = mockParams.has('mockNoRpp');
 // `?mockTrackFolders=1` puts the project's tracks in REAPER folders: the Tracks card and the track pickers draw the tree.
 const mockTrackFolders = mockParams.has('mockTrackFolders');
+// `?mockLiveTracks=saved` has REAPER not answering, so the engine panel's tracks are the saved project's and say why; `failing` answers the
+// first live read and refuses every later one, so Chapter links says it cannot tell and when it last read the tracks.
+const mockLiveTracksParam = mockParams.get('mockLiveTracks');
+const mockLiveTracks: 'saved' | 'failing' | undefined = mockLiveTracksParam === 'saved' || mockLiveTracksParam === 'failing' ? mockLiveTracksParam : undefined;
 // `?mockVoiceFolders=1` is a Voice folders project: Chapter 1 linked to a folder of voice tracks (the Engine panel's Voices card).
 const mockVoiceFolders = mockParams.has('mockVoiceFolders');
 // `?mockNoDaw=1` boots a project with no linked REAPER project (.rpp) file: the header pill reads "No REAPER project
@@ -159,7 +165,7 @@ const mockChapterSync = (['ask', 'off', 'linked', 'unsaved', 'pickups', 'activit
 // has a background check held at 42% with one chapter waiting, `waiting` has two chapters waiting while REAPER records).
 const mockBackgroundChecks = (['confirm', 'running', 'waiting'] as const).find((seed) => seed === mockParams.get('mockBackgroundChecks'));
 // `?mockBooth=huge-chapter|many-chapters|emoji|rtl|odd-titles` replaces the manuscript with the Booth's worst cases (fixtures/boothStress.ts): a
-// 100,000-word chapter, 5000 chapters, all-emoji, right-to-left and hostile titles and text. `?mockMics=0|1|50|weird|long` lists that many microphones,
+// 100,000-word chapter, 5000 chapters (`many-unbroken`: 200 whose titles may be 10,000 characters long), all-emoji, right-to-left and hostile titles and text. `?mockMics=0|1|50|weird|long` lists that many microphones,
 // or ones with quotes, newlines, right-to-left text and emoji in their names, to the teleprompter and the built-in recorder.
 const mockBoothStress = BOOTH_STRESS.find((name) => name === mockParams.get('mockBooth'));
 const mockMicsStress = MIC_STRESS.find((name) => name === mockParams.get('mockMics'));
@@ -232,6 +238,8 @@ const mockInvalidPayload = (['bootstrap', 'manuscript', 'storybible', 'productio
 const mockLiveDegraded = mockParams.has('mockLiveDegraded');
 // `?mockHoldEdits=1` makes every Story Bible edit hang, so the busy Save button can be seen without a host.
 const mockHoldEdits = mockParams.has('mockHoldEdits');
+// `?mockOpenFolder=fail` makes the Export status report dialog's open-folder button fail, so its error toast with Retry can be seen without a host.
+const mockOpenFolder = mockParams.get('mockOpenFolder') === 'fail' ? ('fail' as const) : undefined;
 // `?mockUpdate=available|found|downloading|download-fails|ready|install-blocked|install-refused|failed|current|development` boots the mock host in that update state ("Version 0.2.7 is available", "could not reach
 // GitHub", "up to date", a development build), so the About and updates page can be seen without GitHub. `found` also notifies at once.
 const mockUpdate = (
@@ -521,6 +529,7 @@ const mockInitial = {
   ...(mockProfileRead ? { profileRead: mockProfileRead } : {}),
   ...(mockPlan ? { planRead: mockPlan } : {}),
   ...(mockHold.length > 0 ? { held: mockHold } : {}),
+  ...(mockOpenFolder ? { openFolder: mockOpenFolder } : {}),
   ...(mockSettings ? { settings: mockSettings } : {}),
   ...(mockVoiceSamples ? { voiceSamples: mockVoiceSamples } : {}),
   ...(mockDictionary ? { dictionary: mockDictionary } : {}),
@@ -577,6 +586,7 @@ const mockInitial = {
   ...(mockMultipleRpp ? { tracksCandidates: ['C:/Projects/Alice-in-Wonderland/Alice.rpp', 'C:/Projects/Alice-in-Wonderland/Alice-alt-mix.rpp'] } : {}),
   ...(mockNoRpp ? { tracksCandidates: [] } : {}),
   ...(mockTrackFolders ? { trackFolders: true } : {}),
+  ...(mockLiveTracks ? { liveTracks: mockLiveTracks } : {}),
   ...(mockVoiceFolders ? { voiceFolders: true } : {}),
   ...(mockManuscriptCandidate ? { manuscriptCandidate: { path: 'C:/Projects/Alice-in-Wonderland/manuscript.docx', name: 'manuscript.docx' } } : {}),
   ...(mockManuscriptMixed ? { mockManuscript: 'mixed' as const } : {}),
