@@ -134,6 +134,7 @@ import {
   productionOverviewSchema,
   productionPlanSchema,
   productionReportExportSchema,
+  reportsFolderResultSchema,
   productionReportPreviewSchema,
   productionStartResultSchema,
   productionStopResultSchema,
@@ -4533,6 +4534,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'productionStartTimer',
       'productionStopTimer',
       'productionStatusReport',
+      'productionOpenReportsFolder',
       'productionStatusReportPreview',
       'measurePickFiles',
       'measureAnalyze',
@@ -4766,6 +4768,13 @@ describe('the production tracking mock', () => {
 
   it('the status report export follows the ticked sections, leaves out the money unless asked, and never repeats a file name', async () => {
     const pinned = productionReportExportSchema.parse(readGolden('production-status-report.json'));
+    const folder = reportsFolderResultSchema.parse(readGolden('production-open-reports-folder.json'));
+    const fresh = createMockApi();
+    await expect(fresh.productionOpenReportsFolder()).rejects.toThrow(/export a report first/);
+    await fresh.productionStatusReport(pinned.include);
+    expect(await fresh.productionOpenReportsFolder()).toEqual(folder);
+    expect(reportsFolderResultSchema.safeParse({ folder: '' }).success).toBe(false);
+    expect(reportsFolderResultSchema.safeParse({ folder: 'a', path: 'b' }).success).toBe(false);
     expect(() => productionReportExportSchema.parse({ ...pinned, include: { ...pinned.include, extra: true } })).toThrow();
     const api = createMockApi();
     const left = await api.productionStatusReport(pinned.include);

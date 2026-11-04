@@ -1017,7 +1017,8 @@
         "Expanded",
         "With Info Icon",
         "Scroll Cue",
-        "Opens And Closes With The Keyboard"
+        "Opens And Closes With The Keyboard",
+        "Keeps Its Panel While Closed"
       ],
       "consumers": [
         "src/components/editing/cleanup/CleanupInspector.tsx",
@@ -3198,6 +3199,7 @@
         "src/components/engine/VoicesCard.tsx",
         "src/components/mapping/TrackSelect.tsx",
         "src/components/master/MasterToSpecPanel.tsx",
+        "src/components/pickups/list/AddPickup.tsx",
         "src/components/production/CreditsRowPanel.tsx",
         "src/components/production/ImportReview.tsx",
         "src/components/proof/NativeTakesPanel.tsx",

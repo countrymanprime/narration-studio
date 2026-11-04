@@ -2175,6 +2175,15 @@ export function PreviewPinSet(chapterID: string, paragraphIDs: string[]): $Cance
 }
 
 /**
+ * ProductionOpenReportsFolder shows the project's status-report folder in the file manager, through the same openFolder the
+ * log and package folders use. It takes no path: the folder is always <app>/production/reports of the open project, never one
+ * the UI names. It is refused with a sentence when no project is open or no report has been exported yet.
+ */
+export function ProductionOpenReportsFolder(): $CancellablePromise<string> {
+    return $Call.ByID(414894616);
+}
+
+/**
  * ProductionOverview is the Production page's board, KPI figures and "Next up" list.
  */
 export function ProductionOverview(): $CancellablePromise<string> {

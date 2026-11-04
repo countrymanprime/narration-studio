@@ -117,6 +117,8 @@ export type MockApiSeed = {
   assetNames?: 'long';
   /** `?mockHold=`: the reads named here never answer, so the page that makes them stays on its loading skeleton: the Production overview, the Story Bible's entries. */
   held?: readonly ('overview' | 'entities')[];
+  /** `?mockOpenFolder=fail`: the file manager refuses to open the reports folder, so the dialog's failure toast with Retry can be seen. */
+  openFolder?: 'fail';
   /** `?mockPlan=`: the read of the production plan (the Schedule's) never answers (`loading`) or fails (`fails`), so the Schedule shows its loading skeleton or its error. */
   planRead?: 'loading' | 'fails';
   /** `?mockChapters=`: the read of the manuscript's chapters never answers (`loading`) or fails (`fails`), so a page that reads them shows its loading skeleton or its error.
