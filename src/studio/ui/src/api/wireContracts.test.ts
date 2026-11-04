@@ -238,7 +238,6 @@ import { providerCapabilitiesSchema } from './schemas/providers';
 import { chainNamesSchema, masteringProvidersSchema } from './schemas/mastering';
 import { recorderDevicesResultSchema, recorderLevelSchema, recorderStateSchema } from './schemas/recording';
 import { projectStateChangedSchema, projectStateStartResultSchema, projectStateStateSchema } from './schemas/projectstate';
-import { retakeLanesListSchema, retakeLanesStartResultSchema, retakeLanesStateSchema } from './schemas/retakelanes';
 import { chapterTagsEmbedResultSchema, chapterTagsPreviewSchema } from './schemas/chaptertags';
 import { dictionaryLookupResultSchema } from './schemas/dictionary';
 import { unknownKeys } from './schemas/strictness';
@@ -1865,32 +1864,6 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     for (const seed of ['launched', 'error'] as const) {
       expectMatches(cleanupToolsStateSchema, await createMockApi({}, { cleanupTools: seed }).cleanupToolsState(), `mock cleanup-tools seed ${seed}`);
     }
-  });
-
-  it('the retake-lane list and state through a pick, and their seeded states', async () => {
-    vi.useFakeTimers();
-    const api = createMockApi();
-    const seen: unknown[] = [];
-    api.subscribeRetakeLanes((state) => seen.push(structuredClone(state)));
-    const list = await api.retakeLanesList();
-    expectMatches(retakeLanesListSchema, list, 'mock retake-lanes list');
-    const [line] = list.lines;
-    expectMatches(retakeLanesStartResultSchema, await api.retakeLanesPick(line.lineId, line.retakes[1].itemGuid), 'mock retake-lane pick start');
-    await vi.advanceTimersByTimeAsync(300);
-    expect(seen.length).toBeGreaterThan(2);
-    for (const state of seen) expectMatches(retakeLanesStateSchema, state, 'mock retakelanes:state');
-    expectMatches(retakeLanesStateSchema, await api.retakeLanesState(), 'mock retake-lanes state');
-    for (const seed of ['picked', 'error', 'none'] as const) {
-      const seeded = createMockApi({}, { retakeLanes: seed });
-      expectMatches(retakeLanesStateSchema, await seeded.retakeLanesState(), `mock retake-lanes seed ${seed}`);
-      expectMatches(retakeLanesListSchema, await seeded.retakeLanesList(), `mock retake-lanes list seed ${seed}`);
-    }
-  });
-
-  it('retakeLanesPick refuses a retake the list does not hold, the way the Go service does', async () => {
-    const api = createMockApi();
-    const [line] = (await api.retakeLanesList()).lines;
-    await expect(api.retakeLanesPick('line-000099', line.retakes[0].itemGuid)).rejects.toThrow(/not on a fixed-lane track/);
   });
 
   it('the project-state check against the last comparison baseline', async () => {
@@ -4599,9 +4572,6 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'cleanupToolsState',
       'projectStateCheck',
       'projectStateChangedSince',
-      'retakeLanesList',
-      'retakeLanesPick',
-      'retakeLanesState',
       'chapterTagsPreview',
       'chapterTagsEmbed',
       'coverageStart',
@@ -4816,7 +4786,6 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'subscribeRenderConfig',
       'subscribeCleanupTools',
       'subscribeProjectState',
-      'subscribeRetakeLanes',
       'subscribeDawCapabilities',
       'subscribeDawTransport',
       'subscribeDawPosition',

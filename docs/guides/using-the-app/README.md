@@ -11,7 +11,7 @@ Read them in order the first time, or jump straight to the page you need. They f
 | Page | What it covers |
 | --- | --- |
 | [Getting started](getting-started.md) | The project picker shown before a project is open. |
-| [Navigation](navigation.md) | The sidebar, its icon-only and drawer layouts, and locked entries; the header's engine chip and the audio engine panel it opens: the linked REAPER project, its tracks and chapter links, chapter sync, and the REAPER tools (chapter stamps, chapter render setup, chapter tags, cleanup tools, retakes on lanes). |
+| [Navigation](navigation.md) | The sidebar, its icon-only and drawer layouts, and locked entries; the header's engine chip and the audio engine panel it opens: the linked REAPER project, its tracks and chapter links, chapter sync, and the REAPER tools (chapter stamps, chapter render setup, chapter tags, cleanup tools). |
 | [Production](production.md) | The page a project opens on: importing the manuscript, hours logged by stage, PFH and effective rate from measured audio, the delivery date, which chapters to work on next, and the chapter pipeline whose cells open each chapter's track, recording check, stage suggestion and editing check. |
 | [Schedule](schedule.md) | Will the book be done by its due date: the verdict, the recorded audio against the plan, how the book pays, the work left and how it is worked out, and the milestones. |
 | [Script](script.md) | Prep: the chapter list with each chapter's prep state, the continuous reader with your marks, speakers and bookmarks, and the rail of words, Story Bible entries and notes. Bookmarks are in the jump menu and the right-click menu. |

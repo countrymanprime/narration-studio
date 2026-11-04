@@ -207,7 +207,7 @@ describe('DawToolsMenu as a menu (the layout the page headers use)', () => {
 
 // The registry is the only list of DAW tools: no other file under src/ imports a tool's dialog.
 describe('the registry is the only list of DAW tools', () => {
-  const DIALOGS = ['LinkChaptersDialog', 'RenderConfigDialog', 'CreateChapterRegionsDialog', 'ChapterTagsDialog', 'CleanupToolsDialog', 'RetakeLanesDialog'];
+  const DIALOGS = ['LinkChaptersDialog', 'RenderConfigDialog', 'CreateChapterRegionsDialog', 'ChapterTagsDialog', 'CleanupToolsDialog'];
   function sources(dir: string): string[] {
     return readdirSync(dir).flatMap((name) => {
       const path = join(dir, name);
