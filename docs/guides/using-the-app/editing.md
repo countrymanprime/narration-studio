@@ -106,6 +106,14 @@ words it heard show the next time you open the chapter.
 
 ![Editing - a background check in progress at the bottom left, with Pause and Cancel](../../images/ui/background-check-running.webp)
 
+## The DAW tools menu
+
+The wrench icon button at the right end of the header (its tooltip is **DAW tools**) opens a menu headed **Structure** with **Prepare chapter render…** and **Create chapter regions…**. They are the same two dialogs as in the audio engine panel's REAPER tools: create the chapter regions REAPER renders one file per chapter from, then set up the render. When a tool cannot be used it stays in the menu, greyed, with the reason under its name: the DAW is not answering, the DAW has a different project open than the one linked here, the REAPER project has no tracks yet, no chapter is linked to a REAPER track yet (link one on [Production](production.md)), or the project records in Audacity, which has neither regions nor render setup to write. The menu reads the project the first time you open it, so for a moment both entries say **Reading the REAPER project…**.
+
+![Editing - the DAW tools menu open on a linked chapter: the Structure heading over Prepare chapter render and Create chapter regions](../../images/ui/editing-daw-tools.webp)
+
+![Editing - the DAW tools menu on a project that records in Audacity: both entries off, each saying what Audacity cannot do](../../images/ui/editing-daw-tools-audacity.webp)
+
 ## Selecting words
 
 Click a word to place the cursor there. Double-click selects the word and triple-click the whole line it is in. Shift+click another, drag across the text or press Shift+← and Shift+→ to
@@ -369,6 +377,11 @@ script it read as written, and its pause, level, noise, clarity and breaths. A t
 (Enter) makes it the one that plays, and **Hide others** (H) hides the other takes from the lanes. **Show in the DAW**
 moves the DAW to the line, on a DAW that can move to a place in the project.
 
+Retakes recorded into REAPER's fixed item lanes are listed with the line's other takes, each as **Retake on lane N**, and are chosen the same way. **Keep take**
+on one makes that lane the only one playing on its track; a lane plays across the whole track, so the other lanes go silent for every line of that track. Nothing else
+changes, and one Undo in REAPER puts the previous lane back. The app never turns lanes on, converts takes to lanes or builds a comp: if the track is not in fixed-lane mode,
+or the retake changed since the project was last saved, a message says so and nothing changes. What plays is read from the project as last saved in REAPER.
+
 ![Editing - Normalise from a suggestion's steps: the question says what it will change in the DAW](../../images/ui/editing-suggestion-step.webp)
 
 **How retries are kept** decides, for the line or the whole chapter, whether a line read again later in the chapter is
@@ -395,6 +408,10 @@ on Proof), so a gap is never trimmed twice. A finding decided **Needs pickup** o
 the DAW cannot do is off, with the DAW's reason.
 
 ![Editing - the drawer on Clean up: what was found in the chapter and the findings by kind](../../images/ui/editing-drawer-cleanup.webp)
+
+For clicks, breaths and plosives, **Repair in REAPER** (an icon button after **Apply**) opens a menu headed **Repair** with **Cleanup tools…**, the dialog that is also in the audio engine panel's REAPER tools. It opens REAPER's own Repair Pops/Clicks or Magnolius DeClick on the items selected in REAPER. **Apply** repairs in the app; these open REAPER's own tool, and you apply or cancel the repair there, where one Undo takes it back. The entry is off, with the reason under it, when the project records in Audacity, the DAW is not answering or has another project open, or the project has no tracks. Which item is selected, whether Magnolius DeClick is installed and whether REAPER has the Repair Pops/Clicks dialog (REAPER 7.80 or later) are only known when you press **Open**, so the dialog says so there.
+
+![Editing - Clicks chosen in Clean up: Repair in REAPER beside Apply, its menu open on Cleanup tools](../../images/ui/editing-drawer-cleanup-repair.webp)
 
 ### Effects, Backups and Timeline
 

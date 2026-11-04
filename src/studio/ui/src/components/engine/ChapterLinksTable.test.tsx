@@ -220,9 +220,26 @@ describe('ChapterLinksTable', () => {
     await user.click(within(firstRow).getByRole('button', { name: 'Confirm' }));
     await waitFor(() => expect(within(firstRow).getByText('Linked')).toBeTruthy());
 
-    await user.click(within(firstRow).getByRole('button', { name: 'Clear' }));
+    await user.click(within(firstRow).getByRole('button', { name: /^Clear the link/ }));
 
     await waitFor(() => expect(within(firstRow).getByText('Not linked')).toBeTruthy());
+  });
+
+  // qa-breaker B5 (#2836): ten rows each offered the same "Change the track" and "Clear the link"; the name now says which chapter.
+  it('names the chapter in a linked row’s Change and Clear icons', async () => {
+    const user = userEvent.setup();
+    renderTable();
+    const table = await screen.findByRole('table', { name: 'Chapter links' });
+    const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
+    await user.selectOptions(within(firstRow).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
+    await user.click(within(firstRow).getByRole('button', { name: 'Confirm' }));
+    await waitFor(() => expect(within(firstRow).getByText('Linked')).toBeTruthy());
+    const more = within(firstRow)
+      .getByRole('button', { name: /^More actions for / })
+      .getAttribute('aria-label')!;
+    const chapter = more.replace('More actions for ', '');
+    expect(within(firstRow).getByRole('button', { name: `Change the track for ${chapter}` })).toBeTruthy();
+    expect(within(firstRow).getByRole('button', { name: `Clear the link for ${chapter}` })).toBeTruthy();
   });
 
   it('Change to another track leaves one link, not two', async () => {
@@ -234,7 +251,7 @@ describe('ChapterLinksTable', () => {
     await user.click(within(firstRow).getByRole('button', { name: 'Confirm' }));
     await waitFor(() => expect(within(firstRow).getByText('Linked')).toBeTruthy());
 
-    await user.click(within(firstRow).getByRole('button', { name: 'Change' }));
+    await user.click(within(firstRow).getByRole('button', { name: /^Change the track/ }));
     await user.selectOptions(within(firstRow).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[1].guid);
     await user.click(within(firstRow).getByRole('button', { name: 'Confirm' }));
 
@@ -261,7 +278,7 @@ describe('ChapterLinksTable', () => {
     const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
     await waitFor(() => expect(within(firstRow).getByText('Linked')).toBeTruthy());
 
-    await user.click(within(firstRow).getByRole('button', { name: 'Clear' }));
+    await user.click(within(firstRow).getByRole('button', { name: /^Clear the link/ }));
 
     await waitFor(() => expect(within(firstRow).getByText('Not linked')).toBeTruthy());
     const { mappings } = await api.chapterTrackMapList();

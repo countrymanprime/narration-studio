@@ -234,10 +234,11 @@ export async function scrollToTop(page: Page, region: Locator): Promise<void> {
   await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => resolve(undefined))));
 }
 
-// Picks the mock's five files (opening/closing credits, two chapters, a retail sample) with Master & QC's "Master all to spec…"
-// and assigns the three non-chapter roles the mock picker cannot infer on its own.
+// Picks the mock's five files (opening/closing credits, two chapters, a retail sample) with the Master to spec card's own
+// "Choose files to master…" (#2931; the -many and -long approval drivers use the header's icon), and assigns the three
+// non-chapter roles the mock picker cannot infer on its own.
 export async function pickFilesToMaster(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'Master all to spec…' }).click();
+  await page.getByRole('region', { name: 'Master to spec' }).getByRole('button', { name: 'Choose files to master…' }).click();
   await page.getByRole('table', { name: 'Files to export' }).waitFor();
   await page.getByLabel('Role for 00 Opening credits.wav').selectOption('credits_opening');
   await page.getByLabel('Role for 00 Closing credits.wav').selectOption('credits_closing');
@@ -590,10 +591,10 @@ export async function openCheckingLink(page: Page, path: string): Promise<void> 
 }
 
 // The built-in recorder listens before it records (the Booth starts listening first and a take never begins without it), so a take needs a microphone
-// chosen in Levels, as a narrator does it: the first one the mock lists. In REAPER the DAW chooses it, so this is for the built-in recorder only.
+// chosen in Record options, as a narrator does it: the first one the mock lists. In REAPER the DAW chooses it, so this is for the built-in recorder only.
 export async function chooseMicrophone(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'Levels' }).click();
-  const menu = page.getByRole('dialog', { name: 'Levels' });
+  await page.getByRole('button', { name: 'Record options' }).click();
+  const menu = page.getByRole('dialog', { name: 'Record options' });
   await menu.getByRole('combobox', { name: 'Microphone' }).selectOption({ index: 1 });
   await page.keyboard.press('Escape');
   await menu.waitFor({ state: 'detached' });

@@ -3,7 +3,7 @@ import type { DawCapabilities } from '../../api/contracts/daw';
 import { describeApiError } from '../../api/errorMessage';
 import { usePort } from '../../ports/usePort';
 import type { Scope, ScopedSettingField } from '../../types';
-import { Button } from '../primitives/Button';
+import { IconButton } from '../primitives/IconButton';
 import { SectionLabel } from '../primitives/SectionLabel';
 import { numberProblem } from './numberSetting';
 import { ScopedSetting } from './ScopedSetting';
@@ -73,11 +73,7 @@ export function BackupsView({ daw, reason, loadError, onRetry, rows, drafts, onC
           style={{ background: 'var(--review-soft)', color: 'var(--danger-text)' }}
         >
           <span>The backups settings could not be read: {loadError}.</span>
-          {onRetry && (
-            <Button ref={keepFocusOnRemoval} variant="secondary" type="button" onClick={onRetry}>
-              Retry
-            </Button>
-          )}
+          {onRetry && <IconButton action="retry" ref={keepFocusOnRemoval} type="button" onClick={onRetry} />}
         </div>
       ) : reason ? (
         <p style={{ color: 'var(--text-muted)' }}>{reason}</p>

@@ -21,6 +21,8 @@ import { TooltipProvider } from '../primitives/Tooltip';
 import * as checkRecordings from '../recordingcheck/openCheckRecordings';
 import { ALL_DONE, CHAPTERS, MIXED } from './list/pickupFixtures';
 import { boothSessionPath, PickupsPage } from './PickupsPage';
+import { pickupToReturnTo } from './pickupReturn';
+import { pickup } from './list/pickupFixtures';
 
 beforeEach(() => {
   Element.prototype.scrollIntoView = () => {};
@@ -112,6 +114,21 @@ describe('pickups-page-commands', () => {
     await waitFor(() => expect(byId('session.booth').disabledReason).toBe('No lines in the session.'));
     expect(items('Pickups')).toHaveLength(0);
     expect(byId('session.markers').disabledReason).toBe('No lines in the session.');
+  });
+
+  it('Open-N-in-Booth-from-the-jump-menu-remembers-the-chapter-for-Back, as the button does', async () => {
+    renderPage();
+    await listed();
+    act(() => byId('session.booth').run());
+    expect(pickupToReturnTo()).toMatchObject({ kind: 'session', scope: 'all' });
+  });
+
+  it('the-markers-command-counts-only-lines-with-a-place-and-is-off-when-none-has-one', async () => {
+    renderPage(createMockApi({ pickupsList: () => Promise.resolve(listOf([pickup({ id: 'a', at: 10 }), pickup({ id: 'b', at: null, chapterId: 'c1' })])) }));
+    await waitFor(() => expect(byId('session.markers').label).toBe('Add 1 as markers in REAPER'));
+    cleanup();
+    renderPage(createMockApi({ pickupsList: () => Promise.resolve(listOf([pickup({ id: 'b', at: null })])) }));
+    await waitFor(() => expect(byId('session.markers').disabledReason).toBe('None of these lines has a place in the recording yet.'));
   });
 
   it('check-recordings-opens-with-the-chapters-to-check-and-says-why-when-the-DAW-cannot', async () => {

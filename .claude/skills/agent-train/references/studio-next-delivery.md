@@ -38,7 +38,7 @@ What the train already gives (all cited from the train's procedure, then `docs/o
 Keep the train and add four things: a **slice** (the unit of work), a **groomer** session type that cuts slices just in time, a **decisions register** the agents poll, and a **status issue**. Everything else is the train.
 
 1. **Slices.** Every PRD in the series ends with a "Slices" table (id, scope, depends on, parallel-safe, verification). One slice is one PR by one worker in one lane, small enough to finish in one session. Each slice has one GitHub issue created by the groomer shortly before it becomes ready.
-2. **Lanes and the graph.** Slices carry a lane and dependency list. The overview's graph ([Studio Next Rebuild](../../../../docs/prds/studio-next-rebuild.prd.md)) fixes the serial spine; the rest fans out.
+2. **Lanes and the graph.** Slices carry a lane and dependency list. The overview's graph (Studio Next Rebuild) fixes the serial spine; the rest fans out.
 3. **A coordinator that never idles.** The existing pass (merge, reconcile, launch) plus a groomer launch whenever the ready queue is shallower than twice `TARGET`, and a stall rule.
 4. **Workers that can be replaced mid-slice.** A slice issue carries a `## Handoff` comment the worker updates at every checkpoint, so a fresh session resumes from the repo and the issue alone.
 5. **Decisions by register.** One issue holds each decision: the rulings of 2026-10-11 as decided, and any new question with options, recommendation and default date; agents poll it at checkpoints; a non-ADR question takes its default after seven days.
@@ -70,7 +70,7 @@ If every unit of work is sized for one session, specified in a machine-readable 
 
 ## Decisions
 
-The owner ruled on 2026-10-11 (see [Studio Next Rebuild](../../../../docs/prds/studio-next-rebuild.prd.md#decisions)). The process choices below were accepted as recommended, by the owner's standing instruction to take reasonable defaults. No question is open.
+The owner ruled on 2026-10-11 (see Studio Next Rebuild). The process choices below were accepted as recommended, by the owner's standing instruction to take reasonable defaults. No question is open.
 
 | Id | Decision | Consequence |
 | --- | --- | --- |
@@ -221,7 +221,7 @@ A **decisions register** issue ("Studio Next decisions"), one comment per decisi
 
 ### Supersedes / depends on ADRs
 
-On conflict this PRD, and the ADR written when its phase lands, is the source of truth for the rebuild; an old ADR stays in force for code not yet migrated until the superseding ADR is merged ([register](../../../../docs/prds/studio-next-adr-register.prd.md)).
+On conflict this PRD, and the ADR written when its phase lands, is the source of truth for the rebuild; an old ADR stays in force for code not yet migrated until the superseding ADR is merged (register).
 
 | ADR | Class | Note |
 | --- | --- | --- |

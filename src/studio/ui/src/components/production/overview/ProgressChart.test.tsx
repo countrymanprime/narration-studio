@@ -8,11 +8,9 @@ import { MID_BOOK, NO_TAKE_LOG, STORY_TODAY, overviewFor } from './overviewFixtu
 
 afterEach(cleanup);
 
-const draw = (due: Date | null, noteBelow = false, log?: typeof NO_TAKE_LOG) => {
+const draw = (due: Date | null, _unused = false, log?: typeof NO_TAKE_LOG) => {
   const o = overviewFor(MID_BOOK, undefined, log);
-  return render(
-    <ProgressChart k={o.k} wph={9300} start={o.start} today={STORY_TODAY} due={due} recordedHours={o.recordedHours} series={o.series} noteBelow={noteBelow} />,
-  );
+  return render(<ProgressChart k={o.k} wph={9300} start={o.start} today={STORY_TODAY} due={due} recordedHours={o.recordedHours} series={o.series} />);
 };
 
 describe('ProgressChart', () => {

@@ -6,6 +6,14 @@ import { type Driver, openCheckingLink, clickNav, goToPage, openWithoutManuscrip
 /** Chapter 1 linked to its track, so its words carry their heard times. */
 const LINKED = '?mockChapterLink=confirmed';
 
+// Opens the header's DAW tools menu once the page has read the project: the menu says it is reading until then.
+async function openDawTools(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'DAW tools' }).click();
+  const menu = page.getByRole('menu');
+  await menu.waitFor();
+  await expect(menu.getByText('Reading the REAPER project…')).toHaveCount(0);
+}
+
 export const editingDrivers: Record<string, Driver> = {
   'address-checking': async (page) => {
     await openCheckingLink(page, '/editing/gone');
@@ -285,6 +293,16 @@ export const editingDrivers: Record<string, Driver> = {
     await openDrawer(page);
     await page.getByRole('region', { name: 'Clean up findings' }).waitFor();
   },
+  // The Clicks list with Repair in REAPER beside Apply, its menu open (#2821).
+  'drawer-cleanup-repair': async (page) => {
+    await openDrawer(page);
+    await page.getByRole('region', { name: 'Clean up findings' }).waitFor();
+    await page.getByRole('button', { name: /^Clicks/ }).click();
+    await page.getByRole('button', { name: 'Repair in REAPER' }).click();
+    const menu = page.getByRole('menu');
+    await menu.waitFor();
+    await expect(menu.getByText('Reading the REAPER project…')).toHaveCount(0);
+  },
   'drawer-effects': async (page) => {
     await openDrawer(page);
     await page.getByRole('tab', { name: /^Effects/ }).click();
@@ -369,6 +387,16 @@ export const editingDrivers: Record<string, Driver> = {
     await page.getByRole('button', { name: /Not linked to a track/ }).waitFor();
   },
   // The DAW is not answering: the dialog opens once the app has had its time to connect on its own.
+  // The DAW tools menu in the header (#2820), opened: the structure entries, live for a chapter that is linked.
+  'daw-tools-menu': async (page) => {
+    await openEditing(page, LINKED);
+    await openDawTools(page);
+  },
+  // The same menu for an Audacity project: both entries stay, off, each with what Audacity cannot do.
+  'daw-tools-menu-audacity': async (page) => {
+    await openEditing(page, `${LINKED}&mockDaw=Audacity&mockAudacityLink=linked`);
+    await openDawTools(page);
+  },
   'daw-off': async (page) => {
     await openEditing(page, `${LINKED}&mockDaw=Audacity`);
     await page.getByRole('dialog', { name: /is not connected/ }).waitFor({ timeout: 20_000 });

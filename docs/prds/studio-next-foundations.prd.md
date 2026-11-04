@@ -1,6 +1,6 @@
 # Studio Next Foundations: Tokens, Primitives, Layout Rules, Icon Vocabulary and Key Caps
 
-**Source:** owner request of 2026-10-10 ([Studio Next Rebuild](studio-next-rebuild.prd.md)); the mock's `studio-next/src/ui/`, `studio-next/research/icon-audit.md` and the "no raw controls" standing rule in `studio-next/ARCHITECTURE.md`; the owner's rulings of 2026-10-11 (see Decisions).
+**Source:** owner request of 2026-10-10 (Studio Next Rebuild); the mock's `studio-next/src/ui/`, `studio-next/research/icon-audit.md` and the "no raw controls" standing rule in `studio-next/ARCHITECTURE.md`; the owner's rulings of 2026-10-11 (see Decisions).
 
 **Builds on:** the delivered primitives ([Base UI wrappers](../design/design-system.md#base-ui-wrappers), [Design system reference](../design/design-system.md)), [the design system](../design/design-system.md), the zero-new-global-CSS rule ([Base UI wrappers](../design/design-system.md#base-ui-wrappers), [CSS layering gotcha](../design/design-system.md#css-layering-gotcha)) and the visual-suite viewports ([viewports.ts](../../src/studio/ui/tests/visual/viewports.ts), [Design system reference](../design/design-system.md)).
 
@@ -85,7 +85,7 @@ Text only for primary calls to action, segmented controls, chips and the audit's
 
 ### Supersedes / depends on ADRs
 
-On conflict this PRD, and the ADR written when its phase lands, is the source of truth for the rebuild; an old ADR stays in force for code not yet migrated until the superseding ADR is merged ([register](studio-next-adr-register.prd.md)).
+On conflict this PRD, and the ADR written when its phase lands, is the source of truth for the rebuild; an old ADR stays in force for code not yet migrated until the superseding ADR is merged (register).
 
 | ADR | Class | Note |
 | --- | --- | --- |

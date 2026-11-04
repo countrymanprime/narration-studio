@@ -119,6 +119,12 @@ host reports that the build ended; **Retry** on the quiet message asks for that.
 
 ![Delivery with a host that no longer answers, after Check again and Cancel: each press is answered, and the cancel is marked unconfirmed](../../images/ui/delivery-host-quiet-cancelled.webp)
 
+### Embedding chapter tags
+
+The tags icon button, **Embed chapter tags**, beside **Build**, adds ID3 chapter markers to an MP3 of the whole book that you have already rendered, timed from the chapter files of your last chapter render. It is on whatever the build says, with any DAW or none, because it never talks to REAPER. The dialog lists those chapters and marks any that are "not rendered yet"; every one must exist first. With no chapter render configured it says so and points to **Prepare chapter render…** in **DAW tools** on [Editing](editing.md#the-daw-tools-menu), [Proof](proof.md#the-daw-tools-menu) or [Master & QC](master-and-qc.md). Enter the path of the combined book MP3 and tick the confirmation: the file you name is never changed, and a new, tagged copy is written beside it.
+
+![Delivery - Embed chapter tags ready to embed: the combined book MP3, the chapters from the last render and the confirmation](../../images/ui/delivery-chapter-tags.webp)
+
 ## Profile rules
 
 **Profile rules**, below Output, says where the rules come from and how many of them the app checks, how many

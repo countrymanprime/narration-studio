@@ -14,7 +14,7 @@ import (
 const punchPrerollTimeout = 3 * time.Second
 
 const (
-	punchPrerollNoAnswerSentence = "%s did not answer about its pre-roll within %d seconds. Open the Levels menu again to read it."
+	punchPrerollNoAnswerSentence = "%s did not answer about its pre-roll within %d seconds. Open the Record options menu again to read it."
 	punchPrerollOutdatedSentence = "The app's script in %s is older than this app and cannot read its pre-roll. Import the script again from this app's %s folder."
 	punchPrerollNotReadSentence  = "%s could not read its pre-roll: %s."
 )
