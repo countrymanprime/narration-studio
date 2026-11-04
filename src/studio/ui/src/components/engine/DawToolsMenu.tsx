@@ -29,6 +29,7 @@ export function DawToolsMenu({
   whenUnsupported = 'show',
   dawOff,
   linkedChapterCount,
+  onOpen,
 }: {
   label: string;
   groups: readonly DawToolGroup[];
@@ -38,6 +39,8 @@ export function DawToolsMenu({
   whenUnsupported?: 'show' | 'hide';
   dawOff?: string | null;
   linkedChapterCount?: number;
+  /** The menu layout was opened: a page that reads the project for the menu starts that read now, not when the page opens. */
+  onOpen?: () => void;
 }) {
   const [open, setOpen] = useState<DawToolId>();
   const host = useRef<HTMLDivElement>(null);
@@ -74,6 +77,7 @@ export function DawToolsMenu({
       {shown.length > 0 && layout === 'menu' && (
         <div ref={host} className="inline-flex">
           <Menu
+            onOpenChange={(isOpen) => isOpen && onOpen?.()}
             sections={groups
               .filter((group) => shown.some((tool) => tool.group === group))
               .map((group) => ({

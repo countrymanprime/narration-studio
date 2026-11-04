@@ -2,7 +2,7 @@
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import { WIRE_TICKED_CHAPTER_LINKS } from '../../api/mockFixtures';
@@ -90,5 +90,33 @@ describe('DawToolsButton, the page header form of the DAW tools', () => {
     renderButton({}, { daw: { reachable: false } });
     await open(user);
     await waitFor(() => expect(screen.getAllByText(/not answering/i).length).toBeGreaterThanOrEqual(2));
+  });
+
+  it('makes no host call for the menu until it is first opened, so a page that never opens it pays nothing', async () => {
+    const user = userEvent.setup();
+    const api = renderButton();
+    const tracksList = vi.spyOn(api, 'tracksList');
+    const chapterTrackMapList = vi.spyOn(api, 'chapterTrackMapList');
+    const audacityLink = vi.spyOn(api, 'audacityLink');
+    await screen.findByRole('button', { name: 'DAW tools' });
+    expect(tracksList).not.toHaveBeenCalled();
+    expect(chapterTrackMapList).not.toHaveBeenCalled();
+    expect(audacityLink).not.toHaveBeenCalled();
+    await open(user);
+    await waitFor(() => expect(tracksList).toHaveBeenCalledTimes(1));
+    expect(chapterTrackMapList).toHaveBeenCalled();
+  });
+
+  it('returns focus to the DAW tools button when a dialog it opened is closed', async () => {
+    const user = userEvent.setup();
+    renderButton({ chapterTrackMapList: async () => ({ mappings: WIRE_TICKED_CHAPTER_LINKS }) as never });
+    const menu = await open(user);
+    const item = await within(menu).findByRole('menuitem', { name: /Create chapter regions/ });
+    await waitFor(() => expect(item.getAttribute('aria-disabled')).toBeNull());
+    await user.click(item);
+    await screen.findByRole('dialog');
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('button', { name: 'DAW tools' })));
   });
 });

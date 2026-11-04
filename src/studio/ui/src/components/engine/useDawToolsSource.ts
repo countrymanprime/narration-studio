@@ -23,18 +23,21 @@ export type DawToolsSource = {
  * What a page that offers the DAW tools needs to draw them: the project's tracks, the one reader of the chapter links, whether the project
  * records in Audacity, and why the DAW is not answering when it is not. The Engine panel reads the same things for itself beside the rest of its
  * project; a page header has no such reader, so this is the page's. The tracks are read when the DAW's answer changes, as the Engine panel's
- * are when Audacity answers.
+ * are when Audacity answers. Nothing is read until `enabled` (the menu was opened), so a page that never opens the menu makes no host call for it.
  */
-export function useDawToolsSource(): DawToolsSource {
+export function useDawToolsSource(enabled: boolean): DawToolsSource {
   const tracksPort = usePort('tracks');
-  const audacity = useAudacityLink();
+  const audacity = useAudacityLink(enabled);
   const forAudacity = audacity.link?.chosen === true;
+  // An Audacity project's tracks come from the snapshot taken while Audacity answers, so they are read again each time it does (as the Engine panel's are).
+  const audacityHeard = forAudacity ? audacity.receivedAt : undefined;
   const status = useDawStatus();
   const reachable = useDawState((state) => state.caps?.reachable);
   const [tracks, setTracks] = useState<Track[]>(NO_TRACKS);
   const [state, setState] = useState<'reading' | 'read' | { failed: string }>('reading');
 
   useEffect(() => {
+    if (!enabled) return;
     let active = true;
     tracksPort.tracksList().then(
       (project) => {
@@ -49,9 +52,9 @@ export function useDawToolsSource(): DawToolsSource {
     return () => {
       active = false;
     };
-  }, [tracksPort, reachable, audacity.receivedAt]);
+  }, [tracksPort, enabled, reachable, audacityHeard]);
 
-  const links = useChapterLinks(tracks, 0, noop);
+  const links = useChapterLinks(tracks, 0, noop, enabled);
   const linked = links.rows.filter((row) => row.state === 'linked').length;
   const dawOff = state === 'reading' ? 'Reading the REAPER project…' : typeof state === 'object' ? state.failed : status.off;
   return { links, forAudacity, dawOff: forAudacity ? null : dawOff, linkedChapterCount: links.chapters.length > 0 ? linked : undefined };

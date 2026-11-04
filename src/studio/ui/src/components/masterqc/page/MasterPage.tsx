@@ -256,7 +256,7 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
                   disabledReason={jobs.exportRunning ? 'An export is running' : undefined}
                 />
                 <MeasureControls run={run} />
-                {/* #2820: with nothing measured the next step is to render the chapters in REAPER, so its structure tools sit beside Check files. */}
+                {/* #2820: with nothing measured the next step is to render the chapters in the DAW, so its structure tools sit beside Check files. */}
                 {run.files.length === 0 && <DawToolsButton groups={['structure']} />}
               </>
             );

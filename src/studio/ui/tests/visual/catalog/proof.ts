@@ -22,6 +22,7 @@ export const proofStates: StateEntry[] = [
     state: 'daw-tools-menu',
     description:
       'Proof, the DAW tools icon button at the end of the head opened on a linked chapter - the Structure heading over Prepare chapter render and Create chapter regions',
+    ...REFLOW,
     ...POPUP_ANCHORED_AT_FIRST_WIDTH,
   },
   {

@@ -141,6 +141,7 @@ export function Menu({
   items = [],
   sections,
   disabled,
+  onOpenChange,
   label,
   triggerClassName,
   triggerStyle,
@@ -151,6 +152,8 @@ export function Menu({
   // Headed groups of items, drawn after `items` (a filter menu: one section per thing it filters by). The popup widens to hold them.
   sections?: MenuSection[];
   disabled?: boolean;
+  // Told when the menu opens or closes, for a caller that reads what the menu shows only once it is wanted (the DAW tools menu).
+  onOpenChange?: (open: boolean) => void;
   // An accessible name for the trigger, for an icon-only trigger whose `children` carries no text of its own. Ignored
   // when `render` is given: that element owns its own accessible name (an `IconButton`'s `label`).
   label?: string;
@@ -163,7 +166,7 @@ export function Menu({
 }) {
   return (
     // Not modal: the page behind stays scrollable and clickable, as with the menu this replaced (a press outside closes it).
-    <BaseMenu.Root modal={false}>
+    <BaseMenu.Root modal={false} onOpenChange={onOpenChange}>
       <BaseMenu.Trigger disabled={disabled} {...(render ? { render } : { 'aria-label': label, className: triggerClassName, style: triggerStyle })}>
         {children}
       </BaseMenu.Trigger>

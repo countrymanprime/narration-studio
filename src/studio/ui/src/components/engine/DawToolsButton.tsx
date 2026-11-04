@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { DawToolsMenu } from './DawToolsMenu';
 import type { DawToolGroup } from './dawTools';
 import { useDawToolsSource } from './useDawToolsSource';
@@ -7,7 +8,9 @@ import { useDawToolsSource } from './useDawToolsSource';
  * names the groups it offers (Editing, Proof and Master offer `structure`) and nothing else; the entries, their reasons and their dialogs are the registry's.
  */
 export function DawToolsButton({ groups }: { groups: readonly DawToolGroup[] }) {
-  const source = useDawToolsSource();
+  // Nothing is read for the menu until it is first opened, so a page that never opens it makes no host call for it.
+  const [wanted, setWanted] = useState(false);
+  const source = useDawToolsSource(wanted);
   return (
     <DawToolsMenu
       label="DAW tools"
@@ -17,6 +20,7 @@ export function DawToolsButton({ groups }: { groups: readonly DawToolGroup[] }) 
       forAudacity={source.forAudacity}
       dawOff={source.dawOff}
       linkedChapterCount={source.linkedChapterCount}
+      onOpen={() => setWanted(true)}
     />
   );
 }
