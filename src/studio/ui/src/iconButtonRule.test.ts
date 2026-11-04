@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
 // @ts-expect-error the audit is a plain .mjs script with no declaration file
 import { auditButtons, escapeCell } from '../scripts/iconButtonAudit.mjs';
-import { TOOLTIP_VERBS } from './icons.catalog';
+import { CATALOG, TOOLTIP_VERBS } from './icons.catalog';
 
 // Owner rule (icon-button audit, #2836): a secondary action in a row, a list or a toolbar is an `IconButton` with a catalogue hint, not a text
 // `Button`. This guard finds a text `Button` in a row or toolbar whose label starts with a verb the catalogue already uses for a tooltip
@@ -25,18 +25,22 @@ const EXCEPTIONS: Record<string, string> = {
   'proof/checkcard/FindingRow.tsx|Accept': 'queued: Proof PR (#2836); `accept`',
   'recordingcheck/CheckRecordingsDialog.tsx|Show result': 'queued: Proof PR (#2836); a chapter row',
   'script/page/rail/words/DefinitionBlock.tsx|Use': 'queued: Script PR (#2836); a definition row',
-  'settings/CreditsPanel.tsx|Use suggestion': 'queued: Settings PR (#2836); a suggestion row',
-  'settings/KeyboardPanel.tsx|Change': 'queued: Settings PR (#2836); a shortcut row',
-  'settings/page/PagesPane.tsx|Open {PAGE_LABEL[item.page]}': 'queued: Settings PR (#2836); a page link per row',
-  'settings/page/Results.tsx|Show the whole category': 'queued: Settings PR (#2836); a search result row',
   'storybible/OnlinePronunciationLookup.tsx|Use this': 'queued: Story Bible PR (#2836); a result row',
 };
-const MAX_EXCEPTIONS = 17;
+const MAX_EXCEPTIONS = 13;
 
 const NOT_TEXT_ACTIONS = new Set(['link', 'primary', 'danger-solid', 'native']);
 
+// A verb the catalogue lists as a `text` row (Cancel, Save, Reopen, Reset, Compare, Clear filters, Scan…) has no unambiguous icon (audit rule 6), so a text button that
+// starts with it is the catalogue's own answer, not a miss.
+const TEXT_VERBS = new Set(
+  Object.values(CATALOG)
+    .filter((row) => row.kind === 'text')
+    .map((row) => row.tooltip.split(' ')[0]!),
+);
+
 function violations(): Found[] {
-  const verbs = new Set<string>(TOOLTIP_VERBS);
+  const verbs = new Set<string>([...TOOLTIP_VERBS].filter((verb) => !TEXT_VERBS.has(verb)));
   return (auditButtons() as Found[]).filter(
     (r) =>
       (r.context === 'row' || r.context === 'toolbar') &&

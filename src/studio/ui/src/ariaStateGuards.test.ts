@@ -60,6 +60,8 @@ const NOT_A_TOGGLE: Record<string, string> = {
   'Open in': 'A one-shot navigation to another app or page.',
   'Open this chapter in': 'A one-shot navigation to another page.',
   'Open schedule': 'A one-shot navigation to the Schedule page.',
+  'Show the whole':
+    'Switches Settings to that category from a search result, a one-shot navigation; the category it shows is not a disclosure this button closes.',
   'Open ${': 'A one-shot navigation to a named item ("Open <name> in the manuscript reader").',
 };
 
