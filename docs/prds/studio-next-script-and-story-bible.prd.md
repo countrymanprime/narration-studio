@@ -1,8 +1,8 @@
 # Studio Next Script and Story Bible: Pronunciation Sources, Merge, Review, Appears-In, Speaker Colours and Bookmarks
 
-**Source:** owner request of 2026-10-10 ([Studio Next Rebuild](studio-next-rebuild.prd.md)); the Story Bible and Script rulings and the bookmark ruling in `studio-next/research/repo-compare-decisions.md`; the mock's `studio-next/src/pages/Bible.tsx`, `studio-next/src/pages/bible/`, `studio-next/src/pages/script/`; the owner's rulings of 2026-10-11 (see Decisions).
+**Source:** owner request of 2026-10-10 (Studio Next Rebuild); the Story Bible and Script rulings and the bookmark ruling in `studio-next/research/repo-compare-decisions.md`; the mock's `studio-next/src/pages/Bible.tsx`, `studio-next/src/pages/bible/`, `studio-next/src/pages/script/`; the owner's rulings of 2026-10-11 (see Decisions).
 
-**Builds on:** the delivered Story Bible, pronunciation and prep work ([pronunciation sources](../architecture/pronunciation-provider-selection.md), [What "provider" means here](../architecture/pronunciation-provider-selection.md#what-provider-means-here), [ADR 0002](../adr/0002-local-models-and-tools-come-first-so-the-app-is-free-to-use.md), [Choosing and previewing a pronunciation](../architecture/pronunciation-provider-selection.md#choosing-and-previewing-a-pronunciation), [The default source setting](../architecture/pronunciation-provider-selection.md#the-default-source-setting), [manuscript_guide.py](../../src/studio/sidecars/manuscript-guide/core/manuscript_guide.py), [Per-speaker colours](../design/colour-and-contrast.md#per-speaker-colours)); the Script page ([Design system reference](../design/design-system.md)). Extraction suggestions, import and analysis tools are the separate [Extraction and Analysis Tools](studio-next-extraction-and-analysis-tools.prd.md).
+**Builds on:** the delivered Story Bible, pronunciation and prep work ([pronunciation sources](../architecture/pronunciation-provider-selection.md), [What "provider" means here](../architecture/pronunciation-provider-selection.md#what-provider-means-here), [ADR 0002](../adr/0002-local-models-and-tools-come-first-so-the-app-is-free-to-use.md), [Choosing and previewing a pronunciation](../architecture/pronunciation-provider-selection.md#choosing-and-previewing-a-pronunciation), [The default source setting](../architecture/pronunciation-provider-selection.md#the-default-source-setting), [manuscript_guide.py](../../src/studio/sidecars/manuscript-guide/core/manuscript_guide.py), [Per-speaker colours](../design/colour-and-contrast.md#per-speaker-colours)); the Script page ([Design system reference](../design/design-system.md)). Extraction suggestions, import and analysis tools are the separate Extraction and Analysis Tools.
 
 **Status (2026-10-11):** draft; the owner's rulings of 2026-10-11 are applied. The Studio Next mock is the only spec for Story Bible and Script.
 
@@ -33,7 +33,7 @@ The owner agreed a set of Story Bible and Script behaviours: pronunciation with 
 3. **Needs review.** A filter and a count for imported or extracted items; "Mark reviewed" blocked while any item needs verification (the same flag the extraction suggestions use).
 4. **Appears in.** Chapters only: the count of chapters and a button per chapter that opens it in Script; remove line and mention counts from the Story Bible UI.
 5. **Speaker colours.** Keep the seven-hue scheme; add an optional per-entry colour override that wins over the stable pick.
-6. **Bookmarks.** Host-persisted per project (`bookmarks` sidecar: id, chapter, paragraph and character offset, optional label and note, created time); a Script gutter ribbon, a Bookmarks tab in the side panel, Booth ribbons in [Booth](studio-next-booth.prd.md), jump-menu commands "Bookmark: ..." and next and previous, keys B, `[` and `]`; each add, edit and remove is one journal entry.
+6. **Bookmarks.** Host-persisted per project (`bookmarks` sidecar: id, chapter, paragraph and character offset, optional label and note, created time); a Script gutter ribbon, a Bookmarks tab in the side panel, Booth ribbons in Booth, jump-menu commands "Bookmark: ..." and next and previous, keys B, `[` and `]`; each add, edit and remove is one journal entry.
 7. **Script keeps.** Threaded notes, Ctrl+F, text settings, speaker picker, manual prep state and headers, markup types, context menus, and the custom markup; no stale anchors, no query and confirm, no repo markup.
 8. **Swap.** The mock's Story Bible and Script pages replace the existing ones in one PR (SNB-8), which deletes the old pages and their equivalents. The Series tab has no equivalent in the mock and stays exactly as built (DQ-12).
 
@@ -95,7 +95,7 @@ Narrators prepping a manuscript and returning to hard spots; the Booth uses book
 
 ### Supersedes / depends on ADRs
 
-On conflict this PRD, and the ADR written when its phase lands, is the source of truth; old ADRs stay in force for unmigrated code until then ([register](studio-next-adr-register.prd.md)).
+On conflict this PRD, and the ADR written when its phase lands, is the source of truth; old ADRs stay in force for unmigrated code until then (register).
 
 | ADR | Class | Note |
 | --- | --- | --- |
@@ -111,7 +111,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 ## Technical Approach
 
-**Interfaces.** `PronunciationPort`: `sources()`, `defaultSource()`, `candidate(word, source)` returning `{ ok, say } | { ok: false, reason }` (host adapter wraps the existing pronunciation bindings; the mock keeps the fixture-driven version). `BookmarksApi`: `list()`, `add()`, `update()`, `remove()`. Search source and command provider for bookmarks ([App Shell and Registries](studio-next-app-shell-and-registries.prd.md)).
+**Interfaces.** `PronunciationPort`: `sources()`, `defaultSource()`, `candidate(word, source)` returning `{ ok, say } | { ok: false, reason }` (host adapter wraps the existing pronunciation bindings; the mock keeps the fixture-driven version). `BookmarksApi`: `list()`, `add()`, `update()`, `remove()`. Search source and command provider for bookmarks (App Shell and Registries).
 
 **Contracts.** `bookmarkSchema`, `bookmarksSchema`; golden `bookmarks-list.json` written by a Go test; bindings `BookmarksList/Add/Update/Remove` with a `hostAPIVersion` bump; Zod for pronunciation `source` (additive; old `ipa/source/status/alternate` fields still parse); `wireContracts.test.ts` rows; mocks pass.
 

@@ -118,6 +118,26 @@ func TestRecordStartAtEndSendsTheStartRuleAndNothingWithoutIt(t *testing.T) {
 	}
 }
 
+func TestRecordStartChapterEndSendsTheRuleAndTheFolder(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	var mu sync.Mutex
+	var sent []string
+	startFakeReaper(t, client, dir, func(command []string) [][]string {
+		mu.Lock()
+		defer mu.Unlock()
+		sent = command
+		return [][]string{{"RECORD_STARTED", run(command), testTrack, "9.000000"}}
+	})
+	if _, err := actions.RecordStart(context.Background(), testTrack, RecordOptions{Start: ChapterEnd, Folder: "{F}"}); err != nil {
+		t.Fatal(err)
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if n := len(sent); n < 3 || sent[n-2] != "chapter_end" || sent[n-1] != "{F}" {
+		t.Fatalf("sent = %v, want the rule then the folder as the last two arguments", sent)
+	}
+}
+
 func TestRecordStartRefusesAnAnswerForAnotherTrack(t *testing.T) {
 	actions, client, dir := newActionsSession(t, true)
 	startFakeReaper(t, client, dir, func(command []string) [][]string {

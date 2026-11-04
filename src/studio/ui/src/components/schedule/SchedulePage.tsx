@@ -260,8 +260,6 @@ export function SchedulePage({ journal, today, hasManuscript = true, onImport }:
       <div className={SCHEDULE_GRID}>
         <ProgressChart
           title="Recorded audio vs plan"
-          clearTodayLabel
-          noteBelow
           height={280}
           fill
           k={k}

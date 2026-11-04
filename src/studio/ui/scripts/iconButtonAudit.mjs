@@ -81,6 +81,8 @@ function classify(r) {
   if (r.context === 'dialog' && (DIALOG_FOOTER.test(L) || L.startsWith('{')))
     return ['keep', 'dialog footer decision (the catalogue lists Cancel and Save as text rows)'];
   if (r.tag === 'button') return ['keep', 'native button that is a whole row or a menu item (the label is the choice)'];
+  if (/^Reset( to defaults?| all to defaults)?$/.test(L))
+    return ['keep', 'text row in the catalogue (resetToDefault): no icon says it without also saying undo or retry'];
   if (/^(Reopen|Compare)$/.test(L)) return ['keep', 'text row in the catalogue (reopen, compare): no unambiguous icon'];
   if (/^(Pick a word|Choose a different one|Embed chapter tags|Configure render)/.test(L) || /^\{`?(Use|Ask|Start)/.test(L))
     return ['keep', 'sentence-length action that names its object, not one verb'];
