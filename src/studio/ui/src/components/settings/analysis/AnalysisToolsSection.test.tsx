@@ -125,7 +125,8 @@ describe('AnalysisToolsSection', () => {
     const gliner = await row('gliner');
     await waitFor(() => expect(gliner.getAttribute('data-status')).toBe('failed'), SLOW);
     expect(within(gliner).getByText('Download failed')).toBeTruthy();
-    expect(toast).toHaveBeenCalledWith('Could not reach huggingface.co.', expect.objectContaining({ tone: 'error' }));
+    // The toast comes from useErrorToast's effect, after the render that shows the failed status: wait for it.
+    await waitFor(() => expect(toast).toHaveBeenCalledWith('Could not reach huggingface.co.', expect.objectContaining({ tone: 'error' })));
     expect(gliner.querySelector('[role=alert]'), 'nothing in the row').toBeNull();
     fake.plan('gliner', 'completes');
     fireEvent.click(within(gliner).getByRole('button', { name: 'Try GLiNER again' }));
