@@ -1,4 +1,5 @@
 import { useDawCapabilities } from '../../../hooks/useDawCapabilities';
+import { voiceSampleRegionSupport } from '../../editing/voicesample/regionSupport';
 import { RadioGroup, type RadioOption } from '../../primitives/RadioGroup';
 import { useSettingsStore } from '../data/SettingsStore';
 import { rowOf } from '../registry/rows';
@@ -21,7 +22,7 @@ export function SampleStorageBody() {
   const { caps } = useDawCapabilities();
   const { project } = store.fieldsOf(row);
   const value: Storage = project?.effectiveValue === 'daw' || project?.effectiveValue === 'both' ? project.effectiveValue : 'project';
-  const support = caps?.capabilities.voice_sample_region;
+  const support = voiceSampleRegionSupport(caps);
   // The choice is declared by the tool, not by whether the tool answers right now: an engine that is closed still can, and a mark says so.
   const declared = support !== undefined && support.level !== 'not_yet_available' && support.level !== 'unsupported';
   // The reason is the disabled choice's tooltip and accessible description, not text in the row; what each choice does is the row's "?".
