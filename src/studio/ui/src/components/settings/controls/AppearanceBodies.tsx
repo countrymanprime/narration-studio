@@ -13,6 +13,8 @@ import { InsetCard } from '../../primitives/InsetCard';
 import { Slider } from '../../primitives/Slider';
 import { READER_FONTS, READER_SIZES, READER_SPACING, READER_WIDTHS, fontStack, widthName } from '../../script/page/tools/text/readerText';
 import { readScrollStep, SCROLL_STEP_MAX, SCROLL_STEP_MIN, writeScrollStep } from '../../editing/ribbon/scrollStep';
+import { readBoothSize, writeBoothSize } from '../../booth/page/boothSize';
+import { TEXT_SIZE, textSizePx } from '../../booth/reading/BoothText';
 import { changeReaderText, useReaderText } from './readerText';
 import { useSettingsHost } from '../row/SettingsHost';
 
@@ -82,6 +84,28 @@ export function WaveScrollStepBody() {
       onValueChange={(next) => {
         writeScrollStep(next);
         setSeconds(next);
+      }}
+      className={READER_FIELD}
+    />
+  );
+}
+
+/** Booth text size: 24 to 72 px in steps of 4, kept by this browser window and read by the Booth; the Booth's Text settings write the same size. */
+export function BoothTextSizeBody() {
+  const [size, setSize] = useState(readBoothSize);
+  return (
+    <Slider
+      aria-label="Booth text size"
+      valueText={`${size} px`}
+      min={TEXT_SIZE.min}
+      max={TEXT_SIZE.max}
+      step={TEXT_SIZE.step}
+      value={size}
+      onValueChange={(next) => {
+        // Page Up and Page Down step by 10, which is not a size: take the nearest one.
+        const chosen = textSizePx(next);
+        writeBoothSize(chosen);
+        setSize(chosen);
       }}
       className={READER_FIELD}
     />
