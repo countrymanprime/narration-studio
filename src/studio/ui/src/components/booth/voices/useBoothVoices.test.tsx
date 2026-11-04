@@ -70,7 +70,7 @@ describe("the Booth's voices", () => {
     };
     const { notify, hook } = await mount({}, false, api);
     expect(hook.current.voices.map((voice) => voice.name)).toEqual(['Narrator', 'White Rabbit', 'Extras']);
-    expect(notify).toHaveBeenCalledWith(expect.stringContaining('The host did not answer.'), 'error');
+    expect(notify).toHaveBeenCalledWith(expect.stringContaining('The host did not answer.'), 'error', expect.objectContaining({ label: 'Retry' }));
   });
 
   it('a key with no track, while stopped, asks who is in it and changes nothing else', async () => {
@@ -174,6 +174,41 @@ describe("the Booth's voices", () => {
     await act(async () => hook.current.byKey(1));
     await act(async () => new Promise((r) => setTimeout(r, 10)));
     expect(reads).toHaveBeenCalled();
+  });
+
+  // Issue #2919: reading the voices changes nothing, so a failed read's toast carries Retry, which reads them again.
+  it('Retry on the failed read of the host voice reads the voices again', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    const real = api.boothVoiceGet.bind(api);
+    let reads = 0;
+    api.boothVoiceGet = async (...args: Parameters<typeof real>) => {
+      reads += 1;
+      if (reads === 1) throw new Error('The host did not answer.');
+      return real(...args);
+    };
+    const { notify } = await mount({}, false, api);
+    const failed = notify.mock.calls.find((call) => call[1] === 'error')!;
+    await act(async () => failed[2].onAction());
+    await act(async () => new Promise((r) => setTimeout(r, 10)));
+    expect(reads).toBe(2);
+  });
+
+  it('Retry on the failed read of the tracks reads them again', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    const real = api.tracksList.bind(api);
+    let reads = 0;
+    api.tracksList = async () => {
+      reads += 1;
+      if (reads === 1) throw new Error('The tracks are locked.');
+      return real();
+    };
+    const { notify, hook } = await mount({}, false, api);
+    const failed = notify.mock.calls.find((call) => call[1] === 'error')!;
+    expect(String(failed[0])).toContain('locked');
+    await act(async () => failed[2].onAction());
+    for (let i = 0; i < 10 && hook.current.voices.length === 0; i++) await act(async () => new Promise((r) => setTimeout(r, 5)));
+    expect(reads).toBe(2);
+    expect(hook.current.voices.length).toBeGreaterThan(0);
   });
 
   describe('a key with no track during a take (#2839): stop first, then ask', () => {
@@ -291,6 +326,26 @@ describe("the Booth's voices", () => {
   });
 
   describe('adding and using tracks', () => {
+    // Issue #2919: reading the setup back changes nothing, so the failed read-back's toast carries Retry, which reads it again.
+    it('a failed read-back after adding a track offers Retry, which reads the setup again', async () => {
+      const api = createMockApi({}, { voiceFolders: true });
+      const real = api.voiceTracksGet.bind(api);
+      let reads = 0;
+      api.voiceTracksGet = async () => {
+        reads += 1;
+        if (reads === 2) throw new Error('the setup is locked');
+        return real();
+      };
+      const { notify, hook } = await mount({}, false, api);
+      await act(async () => {
+        await hook.current.add('King of Hearts', ['king-of-hearts']);
+      });
+      const failed = notify.mock.calls.find((call) => String(call[0]).includes('could not be read back'));
+      expect(failed?.[2]).toMatchObject({ label: 'Retry' });
+      await act(async () => failed![2].onAction());
+      expect(reads).toBe(3);
+    });
+
     it('an added track is listed at once with the next free key, chosen, and its characters on it', async () => {
       const { api, hook } = await mount({ voiceFolders: true });
       let ok = false;

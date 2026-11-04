@@ -8,6 +8,7 @@ import type { CreditsRenderResult, CreditsSetupState, CreditTemplate, RetailSamp
 import type { MarkType } from '../../api/contracts/marks';
 import { apiErrorMessage } from '../../api/errorMessage';
 import { overlay } from '../../overlay/overlayService';
+import { retryAction } from '../primitives/Toast';
 import { usePort } from '../../ports/usePort';
 import { definitionSourceOf, definitionSourceSchema } from '../../api/schemas/settings';
 import type { DefinitionSource, WordsHost } from './page/rail/words/wordsHost';
@@ -100,7 +101,7 @@ function forgetLegacyDefinitionSource() {
  * there. It is read on mount and whenever the window comes back into focus. A source this viewer kept in localStorage before is written to
  * the host once, when the host holds none; the key is removed once the host holds a source, so a failed write is tried again next time.
  */
-function useDefinitionSource(): [DefinitionSource, (source: DefinitionSource) => void] {
+export function useDefinitionSource(): [DefinitionSource, (source: DefinitionSource) => void] {
   const system = usePort('system');
   const [source, setSource] = useState<DefinitionSource>('web');
   const shown = useRef<DefinitionSource>('web');
@@ -139,14 +140,18 @@ function useDefinitionSource(): [DefinitionSource, (source: DefinitionSource) =>
     };
   }, [system, show]);
 
+  // Retry chooses the same source again (issue #2919): the menu went back to the old one, so the choice is made afresh.
   const choose = useCallback(
-    (next: DefinitionSource) => {
+    (next: DefinitionSource): void => {
       const before = shown.current;
       const mine = ++turn.current;
       show(next);
       system.saveSettings(DEFINITION_TOOL, 'global', { [DEFINITION_KEY]: next }).catch((error: unknown) => {
         if (mine === turn.current) show(before);
-        overlay.toast(`The definition source could not be saved: ${apiErrorMessage(error)}`, { tone: 'error' });
+        overlay.toast(`The definition source could not be saved: ${apiErrorMessage(error)}`, {
+          tone: 'error',
+          action: retryAction(() => choose(next)),
+        });
       });
     },
     [system, show],

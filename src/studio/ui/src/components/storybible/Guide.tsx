@@ -52,6 +52,7 @@ import { useSamplePlayer } from '../voicesamples/useSamplePlayer';
 import { VoiceDataPanel } from './VoiceDataPanel';
 import { Icon } from '../primitives/Icon';
 import { SearchField } from '../primitives/SearchField';
+import { retryAction } from '../primitives/Toast';
 import type { Notify } from '../primitives/Toast';
 import { useJustChanged } from '../primitives/changeHighlight';
 import { GuideDetailSkeleton, GuideListSkeleton } from './GuideSkeleton';
@@ -136,8 +137,9 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
   // render would silently discard whatever the user just typed.
   const newEntityDraft = useMemo(() => (pendingNewEntity ? emptyGuideEntity(pendingNewEntity.name) : undefined), [pendingNewEntity]);
 
+  // Reading the entries changes nothing, so a failed later read is an error toast with Retry (issue #2919).
   const load = useCallback(
-    async (selectId?: string) => {
+    async (selectId?: string): Promise<void> => {
       try {
         const next = await api.guideEntities();
         loadedOnce.current = true;
@@ -148,7 +150,12 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
         if (selectId !== undefined) setUnknownEntity(next.some((row) => row.id === selectId) ? undefined : selectId);
         setSelectedId((current) => (next.find((row) => row.id === (selectId ?? current)) || next.find((row) => row.category !== 'Draft'))?.id);
       } catch (error) {
-        if (loadedOnce.current) notify(describeApiError(error), 'error');
+        if (loadedOnce.current)
+          notify(
+            describeApiError(error),
+            'error',
+            retryAction(() => void load(selectId)),
+          );
         else setLoadError(describeApiError(error));
       }
     },

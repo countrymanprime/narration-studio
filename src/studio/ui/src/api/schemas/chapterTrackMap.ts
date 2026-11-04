@@ -13,6 +13,7 @@ import type {
   RecordedEnd,
   TrackMapping,
   TrackSelectResult,
+  ChapterFolders,
 } from '../contracts/chapterTrackMap';
 import { listFromNull } from './base';
 
@@ -103,6 +104,30 @@ export const chapterTrackCreateSchema = z.discriminatedUnion('outcome', [
     message: z.string().min(1),
   }),
 ]) satisfies z.ZodType<ChapterTrackCreateResult>;
+
+const chapterFolderMoveSchema = z.object({
+  trackGuid: z.string().min(1),
+  trackName: z.string(),
+  chapterId: z.string().min(1).optional(),
+  fromGuid: z.string(),
+  fromName: z.string(),
+  toGuid: z.string(),
+  toName: z.string(),
+});
+
+/** `ChapterFoldersCheck` / `ChapterFoldersRepair` (src/studio/desktop/chapterfolders.go). */
+export const chapterFoldersSchema = z
+  .object({
+    outcome: z.enum(['clean', 'nested', 'repaired', 'stale', 'refused']),
+    reason: z.enum(['standalone', 'not_running', 'recording', 'unsupported', 'failed']).optional(),
+    message: z.string().min(1).optional(),
+    moves: z.array(chapterFolderMoveSchema),
+    expected: z.array(z.string().min(1)),
+  })
+  .refine(
+    (value) => value.outcome !== 'refused' || (value.reason !== undefined && value.message !== undefined),
+    'a refusal says why',
+  ) satisfies z.ZodType<ChapterFolders>;
 
 const chapterTrackSummarySchema = z.object({
   guid: z.string(),

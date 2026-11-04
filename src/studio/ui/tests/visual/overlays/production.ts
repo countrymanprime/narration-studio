@@ -38,4 +38,6 @@ export const productionCases: OverlayCase[] = [
   engineRowMenu('last'),
   // The engine panel's Voices card: a voice track's character popover, near the foot of the panel.
   fromState('engine', 'voice-folders-picker', 'popover'),
+  // The Chapter links repair's confirmation (#2838): an alert dialog over the engine panel.
+  fromState('engine', 'nested-chapters-confirm'),
 ];

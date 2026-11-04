@@ -78,6 +78,8 @@ const mockLiveTracksParam = mockParams.get('mockLiveTracks');
 const mockLiveTracks: 'saved' | 'failing' | undefined = mockLiveTracksParam === 'saved' || mockLiveTracksParam === 'failing' ? mockLiveTracksParam : undefined;
 // `?mockVoiceFolders=1` is a Voice folders project: Chapter 1 linked to a folder of voice tracks (the Engine panel's Voices card).
 const mockVoiceFolders = mockParams.has('mockVoiceFolders');
+// `?mockNestedChapters=1`: Chapters 2 and 3's tracks sit inside Chapter 1's folder in REAPER (#2838), so the Chapter links panel offers the repair.
+const mockNestedChapters = mockParams.has('mockNestedChapters');
 // `?mockNoDaw=1` boots a project with no linked REAPER project (.rpp) file: the header pill reads "No REAPER project
 // linked", Proofing's nav item/Home card/Start are gated, and
 // Tracks/Settings show their unlinked DAW-link controls. The mock otherwise defaults `dawFileLinked` to true so every
@@ -589,6 +591,7 @@ const mockInitial = {
   ...(mockTrackFolders ? { trackFolders: true } : {}),
   ...(mockLiveTracks ? { liveTracks: mockLiveTracks } : {}),
   ...(mockVoiceFolders ? { voiceFolders: true } : {}),
+  ...(mockNestedChapters ? { nestedChapters: true } : {}),
   ...(mockManuscriptCandidate ? { manuscriptCandidate: { path: 'C:/Projects/Alice-in-Wonderland/manuscript.docx', name: 'manuscript.docx' } } : {}),
   ...(mockManuscriptMixed ? { mockManuscript: 'mixed' as const } : {}),
   ...(chapterLink === 'missing'
