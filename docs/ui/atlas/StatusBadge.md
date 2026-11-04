@@ -119,6 +119,7 @@ Storybook title: `Primitives/StatusBadge`. Source: `src/components/primitives/St
 - `src/components/storybible/Relationships.tsx`
 - `src/components/storybible/VoiceReferencesSection.tsx`
 - `src/components/storybible/source/PronSourceTag.tsx`
+- `src/components/storybible/source/PronunciationCandidates.tsx`
 - `src/components/storybible/suggested/import/ImportDialog.tsx`
 - `src/components/storybible/suggested/panel/EntryVerifyPill.tsx`
 - `src/components/storybible/suggested/panel/LooseSuggestionRows.tsx`

@@ -232,6 +232,20 @@ describe('JumpMenu', () => {
     expect(labels.join('')).not.toContain('—');
   });
 
+  it('focus-after-choosing: a result that moves focus to its destination keeps it there when the menu closes (#2902)', async () => {
+    provide(command('t.dest', 'Go to', 'Go to Destination', () => document.getElementById('destination')?.focus()));
+    const { open } = mount();
+    render(<button id="destination">Destination</button>);
+    screen.getByRole('button', { name: 'Opener' }).focus();
+    act(() => void open());
+    const user = userEvent.setup();
+    await user.type(field(), 'destination');
+    await user.keyboard('{Enter}');
+    await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 50))));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(document.activeElement?.id).toBe('destination');
+  });
+
   it('search-sources-group-and-isolate: hits show under their group with the sub line, a short term asks nobody, a throwing source is skipped', async () => {
     const asked = vi.fn();
     cleanups.push(

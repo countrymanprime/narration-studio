@@ -22,6 +22,9 @@ import (
 // from --word or a --words-file, naming the --source when there is one.
 const fakeGuideCountEnv = "SHELL_FAKE_GUIDE_COUNT"
 
+// fakeGuideCandidatesEnv makes the recording fake answer a candidate command for every word, as a source that knows it.
+const fakeGuideCandidatesEnv = "SHELL_FAKE_GUIDE_CANDIDATES"
+
 func runFakeGuideCount(path string) int {
 	file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
 	if err != nil {
@@ -30,6 +33,21 @@ func runFakeGuideCount(path string) int {
 	defer func() { _ = file.Close() }()
 	line, _ := json.Marshal(os.Args[1:])
 	_, _ = file.Write(append(line, '\n'))
+	if len(os.Args) > 1 && os.Args[1] == "candidate" && os.Getenv(fakeGuideCandidatesEnv) != "" {
+		// A candidate: "say <word> (<source>)" for every word.
+		word, source := "", ""
+		for index, arg := range os.Args[2:] {
+			if value, ok := strings.CutPrefix(arg, "--word="); ok {
+				word = value
+			}
+			if next := 2 + index + 1; next < len(os.Args) && arg == "--source" {
+				source = os.Args[next]
+			}
+		}
+		line, _ := json.Marshal(map[string]any{"ok": true, "say": "say " + word + " (" + source + ")"})
+		_, _ = os.Stdout.Write(append(line, '\n'))
+		return 0
+	}
 	if len(os.Args) > 1 && os.Args[1] == "pronunciation" {
 		source := "cmu"
 		var words []string

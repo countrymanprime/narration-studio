@@ -25,6 +25,7 @@ import {
 } from './pipelineRows';
 import { CHANGE_HIGHLIGHT_CLASSES } from '../../primitives/changeHighlight';
 import { ROW_PX, useRowWindow } from './rowWindow';
+import { useRovingCells } from './useRovingCells';
 
 /** What a cell says, as a registry status: open pickups are a thing still to do (D10); the other open cell is a failed delivery check. */
 const cellStatus = (cell: PipelineCell): StatusId => {
@@ -149,6 +150,7 @@ export function PipelineTable({ rows, recommendations, onGo, notify, onStatus, j
   const [focusedId, setFocusedId] = useState<string>();
   const focusedIndex = focusedId ? rows.findIndex((row) => row.id === focusedId) : -1;
   const { ref, windowed, ranges } = useRowWindow(rows.length, focusedIndex);
+  const roving = useRovingCells(ref);
   // One flat list of rows and the spacers between them, so a row keeps its element (and its focus) as the window moves.
   const items: BodyItem[] = [];
   let next = 0;
@@ -189,7 +191,11 @@ export function PipelineTable({ rows, recommendations, onGo, notify, onStatus, j
         </TableHead>
         <TableBody
           bodyRef={ref}
-          onFocus={windowed ? (event) => setFocusedId((event.target as HTMLElement).closest<HTMLElement>('tr')?.dataset.chapterId) : undefined}
+          onKeyDown={roving.onKeyDown}
+          onFocus={(event) => {
+            roving.onFocus(event);
+            if (windowed) setFocusedId((event.target as HTMLElement).closest<HTMLElement>('tr')?.dataset.chapterId);
+          }}
           onBlur={windowed ? (event) => !event.currentTarget.contains(event.relatedTarget) && setFocusedId(undefined) : undefined}
         >
           {items.map((item) => {
