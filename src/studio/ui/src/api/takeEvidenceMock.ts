@@ -21,10 +21,14 @@ const tenths = (n: number): number => Math.round(n * 10) / 10;
 const value = (n: number): TakeFigure => ({ ok: true, value: n });
 const reason = (why: string): TakeFigure => ({ ok: false, reason: why });
 
-function measured(id: string): TakeEvidenceMeasure {
+/** The level of the item takes the mock offers: the first sits on the target, the second 3 dB under it, so a line's takes always differ by more than the tolerance and its suggestion offers Normalise. */
+const ITEM_TAKE_RMS = [-20.4, -23.5];
+
+function measured(id: string, rank: number | undefined): TakeEvidenceMeasure {
+  const fixed = rank === undefined ? undefined : ITEM_TAKE_RMS[rank];
   return {
     pause: value(Math.round(within(id, 'pause', 0.5, 2) * 20) / 20),
-    rms: value(tenths(within(id, 'rms', -24, -18))),
+    rms: value(tenths(fixed === undefined ? within(id, 'rms', -24, -18) : fixed + within(id, 'rms', -0.3, 0.3))),
     nf: value(tenths(within(id, 'nf', -66, -58))),
     clarity: reason(TAKE_EVIDENCE_REASONS.clarity),
     breaths: value(Math.round(within(id, 'breaths', 0, 4))),
@@ -40,10 +44,13 @@ export function createTakeEvidenceMock(deps: Pick<WorkspaceApi, 'workspaceTakes'
     workspaceTakeEvidence: async (chapterId, firstToken, lastToken) => {
       const view = await deps.workspaceTakes(chapterId, firstToken, lastToken);
       const aligned = view.candidates.find((candidate) => candidate.source === 'item_take')?.id;
+      const itemTakes = view.candidates.filter((candidate) => candidate.source === 'item_take');
       const takes = view.candidates.map((candidate): TakeEvidence => ({
         id: candidate.id,
         matched: candidate.id === aligned ? value(Math.round(within(candidate.id, 'matched', 80, 100))) : reason(TAKE_EVIDENCE_REASONS.notAligned),
-        measure: candidate.usable ? measured(candidate.id) : unmeasured(candidate.reason ?? 'This take cannot be heard, so it was not measured.'),
+        measure: candidate.usable
+          ? measured(candidate.id, itemTakes.indexOf(candidate) < 0 ? undefined : itemTakes.indexOf(candidate))
+          : unmeasured(candidate.reason ?? 'This take cannot be heard, so it was not measured.'),
         via: 'aligned',
       }));
       const { firstParagraph, lastParagraph, message } = view;
