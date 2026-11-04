@@ -77,8 +77,8 @@ test('row 5: during a take the reading position follows the voice', async ({ pag
 
 test('row 6: the listening microphone is named in Levels, with the DAW choosing it', async ({ page }) => {
   await open(page);
-  await page.getByRole('button', { name: 'Levels' }).click();
-  const popup = page.getByRole('dialog', { name: 'Levels' });
+  await page.getByRole('button', { name: 'Record options' }).click();
+  const popup = page.getByRole('dialog', { name: 'Record options' });
   await expect(popup).toContainText('Microphone');
   await expect(popup.getByText(/Same as REAPER|Microphone Array|Headset Microphone/).first()).toBeVisible();
 });
@@ -167,8 +167,8 @@ test('row 13: the text settings apply at once and are the same after a reload', 
 
 test('row 14: the Levels menu has the meter, the microphone and its sliders', async ({ page }) => {
   await open(page);
-  await page.getByRole('button', { name: 'Levels' }).click();
-  const popup = page.getByRole('dialog', { name: 'Levels' });
+  await page.getByRole('button', { name: 'Record options' }).click();
+  const popup = page.getByRole('dialog', { name: 'Record options' });
   await expect(popup.getByText('Input', { exact: true }).first()).toBeVisible();
   await expect(popup.getByText('Microphone', { exact: true }).first()).toBeVisible();
   // The mock draws Input level and Monitor level sliders (docs/operations/booth-acceptance.md "Differences from the mock").

@@ -65,7 +65,7 @@ for (const size of [
       'levels-menu-builtin-no-mic',
     ]) {
       await drive(page, state, size);
-      const box = await page.getByRole('dialog', { name: 'Levels' }).boundingBox();
+      const box = await page.getByRole('dialog', { name: 'Record options' }).boundingBox();
       heights[state] = Math.round(box!.height);
     }
     expect(new Set(Object.values(heights)).size, JSON.stringify(heights)).toBe(1);

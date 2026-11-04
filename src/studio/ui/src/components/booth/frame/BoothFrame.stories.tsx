@@ -81,7 +81,7 @@ export const Refused: Story = {
     </div>
   ),
   play: async ({ canvasElement }) => {
-    await userEvent.click(within(canvasElement).getByRole('button', { name: 'Levels' }));
+    await userEvent.click(within(canvasElement).getByRole('button', { name: 'Record options' }));
     await expect((await within(document.body).findAllByText('REAPER is not running')).length).toBeGreaterThan(1);
   },
 };

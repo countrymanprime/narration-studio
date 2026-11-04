@@ -10,7 +10,7 @@ const drawn = (onMain = vi.fn(), onSide = vi.fn()) =>
   render(
     <SplitButton label="Recording">
       <SplitMain onClick={onMain}>Record</SplitMain>
-      <SplitSide label="Levels" onClick={onSide} />
+      <SplitSide label="Record options" onClick={onSide} />
     </SplitButton>,
   );
 
@@ -20,7 +20,7 @@ describe('SplitButton', () => {
     drawn(main, side);
     expect(screen.getByRole('group', { name: 'Recording' })).toBeTruthy();
     await userEvent.click(screen.getByRole('button', { name: 'Record' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Levels' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Record options' }));
     expect([main.mock.calls.length, side.mock.calls.length]).toEqual([1, 1]);
   });
 
@@ -28,11 +28,11 @@ describe('SplitButton', () => {
     render(
       <SplitButton label="Recording">
         <SplitMain tone="cold">Cold read</SplitMain>
-        <SplitSide label="Levels" tone="cold" />
+        <SplitSide label="Record options" tone="cold" />
       </SplitButton>,
     );
     expect(screen.getByRole('button', { name: 'Cold read' }).className).toContain('border-[var(--info)]');
-    expect(screen.getByRole('button', { name: 'Levels' }).className).toContain('border-[var(--info)]');
+    expect(screen.getByRole('button', { name: 'Record options' }).className).toContain('border-[var(--info)]');
     cleanup();
     drawn();
     expect(screen.getByRole('button', { name: 'Record' }).className).toContain('bg-[var(--accent)]');
@@ -42,10 +42,10 @@ describe('SplitButton', () => {
     render(
       <SplitButton label="Recording">
         <SplitMain>Record</SplitMain>
-        <SplitSide label="Levels" aria-haspopup="dialog" id="side" />
+        <SplitSide label="Record options" aria-haspopup="dialog" id="side" />
       </SplitButton>,
     );
-    const side = screen.getByRole('button', { name: 'Levels' });
+    const side = screen.getByRole('button', { name: 'Record options' });
     expect(side.id).toBe('side');
     expect(side.getAttribute('aria-haspopup')).toBe('dialog');
   });

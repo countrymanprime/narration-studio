@@ -53,6 +53,8 @@ const MENU_GRACE_MS = 1000;
 type Punch = { paragraph: number; seconds: number };
 
 export type BoothPageOptions = {
+  /** The open project's folder; another project puts the main button back on Record. */
+  projectFolder?: string;
   /** The id the take, the passage map and the resume offer use: the chapter's, or `credits-<kind>`. */
   recordId: string;
   title: string;
@@ -94,7 +96,7 @@ export type BoothPageOptions = {
  * line, the keys (`useCommand`, none listened for here), the right-click menu, and every way out through `useBoothLeaveGuard`.
  */
 export function useBoothPage(options: BoothPageOptions) {
-  const { recordId, title, credits, paragraphs, session, daw, guard, overlay, from, navigate, exitTo } = options;
+  const { recordId, title, credits, paragraphs, session, daw, guard, overlay, from, navigate, exitTo, projectFolder = '' } = options;
   const extras = useRef({
     onTakeStopped: options.onTakeStopped,
     menuItems: options.menuItems,
@@ -204,6 +206,8 @@ export function useBoothPage(options: BoothPageOptions) {
 
   // Which job the main button does (record, or a cold read): chosen in the side menu, kept until the narrator picks the other.
   const [coldMode, setColdMode] = useState(false);
+  // Another project is another book: the choice does not follow it, so a lone Space records there.
+  useEffect(() => setColdMode(false), [projectFolder]);
   const latest = useRef({ at, position, units, paragraphs, spans, listening, following, coldRead, coldMode, session, recording, elapsed: takeClock.read });
   latest.current = { at, position, units, paragraphs, spans, listening, following, coldRead, coldMode, session, recording, elapsed: takeClock.read };
 

@@ -18,7 +18,7 @@ export const Default: Story = {
         <Icon name="record" />
         Record
       </SplitMain>
-      <SplitSide label="Levels" aria-haspopup="dialog" />
+      <SplitSide label="Record options" aria-haspopup="dialog" />
     </SplitButton>
   ),
   play: async ({ canvasElement }) => {
@@ -38,14 +38,14 @@ export const ColdRead: Story = {
           <Icon name="microphone" />
           Cold read
         </SplitMain>
-        <SplitSide label="Levels" aria-haspopup="dialog" tone="cold" />
+        <SplitSide label="Record options" aria-haspopup="dialog" tone="cold" />
       </SplitButton>
       <SplitButton label="Recording">
         <SplitMain tone="cold">
           <Icon name="stop" />
           Stop
         </SplitMain>
-        <SplitSide label="Levels" aria-haspopup="dialog" tone="cold" badge />
+        <SplitSide label="Record options" aria-haspopup="dialog" tone="cold" badge />
       </SplitButton>
     </div>
   ),
@@ -65,14 +65,14 @@ export const Stopping: Story = {
           <Icon name="stop" />
           Stop
         </SplitMain>
-        <SplitSide label="Levels" aria-haspopup="dialog" />
+        <SplitSide label="Record options" aria-haspopup="dialog" />
       </SplitButton>
       <SplitButton label="Recording">
         <SplitMain aria-disabled>
           <Icon name="record" />
           Record
         </SplitMain>
-        <SplitSide label="Levels" aria-haspopup="dialog" />
+        <SplitSide label="Record options" aria-haspopup="dialog" />
       </SplitButton>
     </div>
   ),

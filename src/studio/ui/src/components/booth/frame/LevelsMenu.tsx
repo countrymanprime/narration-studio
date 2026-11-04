@@ -525,13 +525,13 @@ export function LevelsMenu({
   const ownMeter = engine === 'builtin' && recorderMeter;
   return (
     <Popover
-      label="Levels"
+      label="Record options"
       side="top"
       // A control in the menu can leave the Booth (Turn on in Settings): a footswitch Enter right after opening must not press it.
       focusPopup
       open={open}
       onOpenChange={onOpenChange}
-      trigger={<SplitSide label="Levels" id="blevels" aria-haspopup="dialog" tone={mainButton?.cold && !recording ? 'cold' : 'primary'} badge={warn} />}
+      trigger={<SplitSide label="Record options" id="blevels" aria-haspopup="dialog" tone={mainButton?.cold && !recording ? 'cold' : 'primary'} badge={warn} />}
     >
       <div className="flex w-max max-w-[min(26rem,calc(100vw-4rem))] min-w-72 flex-col gap-4">
         {mainButton ? (

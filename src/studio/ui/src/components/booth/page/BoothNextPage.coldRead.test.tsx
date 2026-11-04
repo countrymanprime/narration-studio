@@ -84,12 +84,17 @@ function renderPage(setup: Parameters<typeof dawFor>[0] = 'reaper') {
   const recordStart = vi.spyOn(daw, 'recordStart');
   const navigate = vi.fn();
   const overlay = createOverlayService();
-  const view = render(
-    <BoothHost api={pageApi({ passageMapRecordRun: async () => {}, ...host.api } as Partial<NarrationApi>)} daw={daw} journal={newJournal()} overlay={overlay}>
-      <BoothNextPage hasManuscript navigate={navigate} />
-    </BoothHost>,
+  const api = pageApi({ passageMapRecordRun: async () => {}, ...host.api } as Partial<NarrationApi>);
+  const journal = newJournal();
+  const tree = (projectFolder: string) => (
+    <BoothHost api={api} daw={daw} journal={journal} overlay={overlay}>
+      <BoothNextPage hasManuscript navigate={navigate} projectFolder={projectFolder} />
+    </BoothHost>
   );
-  return { ...host, view, recordStart, navigate, overlay };
+  const view = render(tree('/books/one'));
+  // The same Booth, now on another project's folder.
+  const openOtherProject = () => view.rerender(tree('/books/two'));
+  return { ...host, view, recordStart, navigate, overlay, openOtherProject };
 }
 
 const settle = () => act(async () => void (await new Promise((resolve) => setTimeout(resolve, 0))));
@@ -101,7 +106,7 @@ const ready = async () => {
 const main = () => document.getElementById('brec') as HTMLButtonElement;
 const mainName = () => main().textContent;
 const chooseCold = async () => {
-  await act(async () => void fireEvent.click(screen.getByRole('button', { name: 'Levels' })));
+  await act(async () => void fireEvent.click(screen.getByRole('button', { name: 'Record options' })));
   const group = await screen.findByRole('radiogroup', { name: 'Main button' });
   await act(async () => void fireEvent.click(within(group).getByRole('radio', { name: 'Cold read' })));
   await act(async () => void fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape', code: 'Escape' }));
@@ -237,6 +242,24 @@ describe('only-the-toggle-a-take-or-leaving-ends-it', () => {
     expect(mainName()).toBe('Record');
   });
 
+  it('goes back to Record when another project is opened with the Booth on screen', async () => {
+    const page = renderPage();
+    await ready();
+    await chooseCold();
+    expect(mainName()).toBe('Cold read');
+    page.openOtherProject();
+    await waitFor(() => expect(mainName()).toBe('Record'));
+  });
+
+  it('R still starts a real take in Cold read mode: only Space and the button follow the mode', async () => {
+    const page = renderPage();
+    await ready();
+    await chooseCold();
+    skipStartGuard();
+    await act(async () => void fireEvent.keyDown(document.body, { key: 'r', code: 'KeyR' }));
+    await waitFor(() => expect(page.recordStart).toHaveBeenCalledTimes(1));
+  });
+
   it('shows the cold-read mode unmistakably: the cold tone, and a hint that names Space and says nothing is recorded', async () => {
     renderPage();
     await ready();
@@ -277,7 +300,7 @@ describe('only-the-toggle-a-take-or-leaving-ends-it', () => {
   it("Space on a focused Main button choice starts nothing: it is the radio's key, not the pedal's", async () => {
     const page = renderPage();
     await ready();
-    await act(async () => void fireEvent.click(screen.getByRole('button', { name: 'Levels' })));
+    await act(async () => void fireEvent.click(screen.getByRole('button', { name: 'Record options' })));
     const radio = within(await screen.findByRole('radiogroup', { name: 'Main button' })).getByRole('radio', { name: 'Cold read' });
     await act(async () => void radio.focus());
     await act(async () => void fireEvent.keyDown(radio, { key: ' ', code: 'Space' }));
@@ -295,7 +318,7 @@ describe('only-the-toggle-a-take-or-leaving-ends-it', () => {
     await ready();
     await chooseCold();
     await act(async () => void fireEvent.click(main()));
-    await act(async () => void fireEvent.click(screen.getByRole('button', { name: 'Levels' })));
+    await act(async () => void fireEvent.click(screen.getByRole('button', { name: 'Record options' })));
     const group = await screen.findByRole('radiogroup', { name: 'Main button' });
     expect(within(group).getByRole('radio', { name: 'Record' }).getAttribute('aria-disabled')).toBe('true');
     await act(async () => resolveStart({ status: 'started' }));
@@ -305,7 +328,7 @@ describe('only-the-toggle-a-take-or-leaving-ends-it', () => {
     const page = renderPage();
     await ready();
     await chooseCold();
-    await act(async () => void fireEvent.click(screen.getByRole('button', { name: 'Levels' })));
+    await act(async () => void fireEvent.click(screen.getByRole('button', { name: 'Record options' })));
     const group = await screen.findByRole('radiogroup', { name: 'Main button' });
     await act(async () => void fireEvent.click(within(group).getByRole('radio', { name: 'Record' })));
     await act(async () => void fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape', code: 'Escape' }));
@@ -346,7 +369,7 @@ describe('cold-read-in-the-jump-menu', () => {
     await settle();
     await waitFor(() => expect(item('booth.cold-read')?.label).toBe('Start cold read'));
     // The jump menu left the mode on Cold read: Record is the other choice in the side menu.
-    await act(async () => void fireEvent.click(screen.getByRole('button', { name: 'Levels' })));
+    await act(async () => void fireEvent.click(screen.getByRole('button', { name: 'Record options' })));
     const group = await screen.findByRole('radiogroup', { name: 'Main button' });
     await act(async () => void fireEvent.click(within(group).getByRole('radio', { name: 'Record' })));
     await act(async () => void fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape', code: 'Escape' }));

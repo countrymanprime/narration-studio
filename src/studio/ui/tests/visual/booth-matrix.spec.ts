@@ -108,8 +108,8 @@ test.describe('with a take running', () => {
   test("Levels: Input level is off and says why; Monitor level moves the DAW's level, and a refusal puts it back with the DAW's sentence", async ({ page }) => {
     const errors = watch(page);
     await openBooth(page, ``);
-    await page.getByRole('button', { name: 'Levels' }).click();
-    const popup = page.getByRole('dialog', { name: 'Levels' });
+    await page.getByRole('button', { name: 'Record options' }).click();
+    const popup = page.getByRole('dialog', { name: 'Record options' });
     const input = popup.getByRole('slider', { name: 'Input level' });
     await expect(input).toBeDisabled();
     await expect(popup.getByText(/cannot set an audio interface's input gain/)).toBeVisible();
@@ -142,11 +142,11 @@ test.describe('with a take running', () => {
       const errors = watch(page);
       await page.setViewportSize(size);
       await openBooth(page, ``);
-      await page.getByRole('button', { name: 'Levels' }).click();
-      const popup = page.getByRole('dialog', { name: 'Levels' });
+      await page.getByRole('button', { name: 'Record options' }).click();
+      const popup = page.getByRole('dialog', { name: 'Record options' });
       await expect(popup.getByRole('slider', { name: 'Monitor level (output)' })).toBeVisible();
       const result = await page.evaluate(() => {
-        const el = document.querySelector('[role="dialog"][aria-label="Levels"], [role="dialog"]')!;
+        const el = document.querySelector('[role="dialog"][aria-label="Record options"], [role="dialog"]')!;
         const dialogs = [...document.querySelectorAll<HTMLElement>('[role="dialog"]')].find((d) => d.textContent?.includes('Monitor level'))!;
         const r = (dialogs ?? el).getBoundingClientRect();
         const points = [
@@ -599,8 +599,8 @@ test.describe('the worst inputs', () => {
     test(`${mics} microphone(s) in Levels: listed or explained, inside the window, and the popover closes`, async ({ page }) => {
       const errors = watch(page);
       await openBooth(page, `?mockMics=${mics}`);
-      await page.getByRole('button', { name: 'Levels' }).click();
-      const popup = page.getByRole('dialog', { name: 'Levels' });
+      await page.getByRole('button', { name: 'Record options' }).click();
+      const popup = page.getByRole('dialog', { name: 'Record options' });
       await expect(popup).toBeVisible();
       const box = await popup.boundingBox();
       const viewport = page.viewportSize()!;

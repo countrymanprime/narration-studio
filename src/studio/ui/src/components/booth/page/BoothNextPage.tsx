@@ -321,6 +321,7 @@ function BoothSession({
     recordBlocked?: (block: RecordBlock) => void;
   }>({});
   const page = useBoothPage({
+    projectFolder,
     recordId,
     title,
     credits: source.kind === 'credits',
