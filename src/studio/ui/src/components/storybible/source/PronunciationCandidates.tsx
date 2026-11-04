@@ -124,15 +124,12 @@ export function PronunciationCandidateList({
                   <StatusBadge tone="success" label="In use" />
                 ) : (
                   onUse && (
-                    <Button
-                      variant="secondary"
-                      size="sm"
+                    <IconButton
+                      action="usePronunciation"
+                      label={`Use ${candidate.label}: ${candidate.say}`}
                       disabled={disabled}
-                      aria-label={`Use ${candidate.label}: ${candidate.say}`}
                       onClick={() => onUse(candidate)}
-                    >
-                      Use
-                    </Button>
+                    />
                   )
                 )}
               </span>

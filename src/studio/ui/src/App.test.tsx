@@ -104,7 +104,7 @@ const linkChapterOne = async () => {
   // Option 0 is the "Choose a track" placeholder; option 1 is the first track.
   fireEvent.change(select, { target: { value: select.options[1].value } });
   fireEvent.click(within(row).getByRole('button', { name: 'Confirm' }));
-  await within(row).findByRole('button', { name: 'Change' });
+  await within(row).findByRole('button', { name: /^Change the track/ });
   return row;
 };
 
@@ -662,7 +662,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     const tracks = await within(panel).findByRole('table', { name: 'Tracks' });
     expect(within(tracks).getByText('Chapter 1')).toBeTruthy();
     expect(within(tracks).getByText('Click Track')).toBeTruthy();
-    expect(within(panel).getByRole('button', { name: 'Change file…' })).toBeTruthy();
+    expect(within(panel).getByRole('button', { name: 'Change the linked file' })).toBeTruthy();
     expect(window.location.pathname).toBe('/');
   });
 

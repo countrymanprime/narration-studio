@@ -1,4 +1,5 @@
 import type { ComponentType } from 'react';
+import type { IconName } from '../../icons.catalog';
 import type { CapabilityEntry } from '../primitives/CapabilityGate';
 import { ChapterTagsDialog } from './ChapterTagsDialog';
 import { CleanupToolsDialog } from './CleanupToolsDialog';
@@ -29,8 +30,10 @@ type DawToolDialogProps = { links: ChapterLinks; live?: LiveTracks; onClose: () 
 export type DawTool = {
   id: DawToolId;
   group: DawToolGroup;
-  /** The button's text, with the trailing ellipsis that says a dialog follows. */
+  /** The tool's name in a menu, with the trailing ellipsis that says a dialog follows. */
   label: string;
+  /** The icon and hint of the Engine panel's grid, where each tool is one icon button (icon-button audit, #2836). */
+  action: IconName;
   /** Why the tool is off for an Audacity project, which has no REAPER to do it in. */
   audacity: string;
   dialog: ComponentType<DawToolDialogProps>;
@@ -42,6 +45,7 @@ export const DAW_TOOLS: readonly DawTool[] = [
     id: 'link-chapters',
     group: 'map',
     label: 'Link chapters…',
+    action: 'linkChapters',
     audacity: 'Chapters are linked to REAPER tracks. This project records in Audacity.',
     dialog: ({ links, live, onClose }) => <LinkChaptersDialog links={links} live={live} onClose={onClose} />,
   },
@@ -49,6 +53,7 @@ export const DAW_TOOLS: readonly DawTool[] = [
     id: 'render-config',
     group: 'structure',
     label: 'Prepare chapter render…',
+    action: 'prepareRender',
     audacity: 'Render setup is written in REAPER. This project records in Audacity.',
     dialog: ({ onClose, onOpenTool }) => <RenderConfigDialog onClose={onClose} onCreateRegions={() => onOpenTool('create-regions')} />,
   },
@@ -56,6 +61,7 @@ export const DAW_TOOLS: readonly DawTool[] = [
     id: 'create-regions',
     group: 'structure',
     label: 'Create chapter regions…',
+    action: 'createRegions',
     audacity: 'Chapter regions are written in REAPER. This project records in Audacity.',
     dialog: ({ links, onClose }) => <CreateChapterRegionsDialog tracks={links.tracks} onClose={onClose} />,
   },
@@ -63,6 +69,7 @@ export const DAW_TOOLS: readonly DawTool[] = [
     id: 'chapter-tags',
     group: 'export',
     label: 'Embed chapter tags…',
+    action: 'embedTags',
     audacity: 'Chapter tags are read from a REAPER render. This project records in Audacity.',
     dialog: ({ onClose }) => <ChapterTagsDialog onClose={onClose} />,
   },
@@ -70,6 +77,7 @@ export const DAW_TOOLS: readonly DawTool[] = [
     id: 'cleanup-tools',
     group: 'repair',
     label: 'Cleanup tools…',
+    action: 'cleanupTools',
     audacity: 'The cleanup tools open in REAPER. This project records in Audacity.',
     dialog: ({ onClose }) => <CleanupToolsDialog onClose={onClose} />,
   },
@@ -77,6 +85,7 @@ export const DAW_TOOLS: readonly DawTool[] = [
     id: 'retake-lanes',
     group: 'takes',
     label: 'Retakes on lanes…',
+    action: 'retakeLanes',
     audacity: 'Retakes are REAPER fixed lanes. This project records in Audacity.',
     dialog: ({ onClose }) => <RetakeLanesDialog onClose={onClose} />,
   },
