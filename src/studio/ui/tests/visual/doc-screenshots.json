@@ -141,6 +141,13 @@
   },
   {
     "page": "production",
+    "state": "report-written",
+    "viewport": "desktop",
+    "docName": "production-report-written",
+    "caption": "Production - Export status report after Export: the written files, their folder and the open-folder button"
+  },
+  {
+    "page": "production",
     "state": "recording-check-rules",
     "viewport": "desktop",
     "docName": "production-recording-check-rules",

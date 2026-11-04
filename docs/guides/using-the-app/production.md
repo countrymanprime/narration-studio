@@ -294,7 +294,9 @@ ticked: a section you leave out is missing from both the HTML page and the JSON 
 ticked, so a reader can tell a section left out from one that is empty.
 
 **Export** writes the HTML page and the JSON file into this project's <!-- brand:identity.projectFolder -->narration-studio<!-- /brand -->/production/reports folder, under a name built
-from when you exported it, and an export never overwrites an earlier one.
+from when you exported it, and an export never overwrites an earlier one. Once it is written, the open-folder button beside the file names shows that folder in your file manager.
+
+![The Export status report dialog after Export: the written files and the open-folder button beside them](../../images/ui/production-report-written.webp)
 
 The contracted amount and effective rate are left out unless you tick their box: a
 status report is often handed to someone else — a publisher, a collaborator, a rights holder
