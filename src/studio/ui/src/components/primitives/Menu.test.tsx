@@ -191,3 +191,29 @@ describe('Menu: an item with a reason it is off', () => {
     expect(document.activeElement?.getAttribute('aria-disabled')).toBe('true');
   });
 });
+
+describe('Menu: pageMenu', () => {
+  it('draws its popup inside the page main, where the default menu draws it in the body', async () => {
+    const user = userEvent.setup();
+    render(
+      <main>
+        <Menu pageMenu items={[{ key: 'a', label: 'One', onSelect: vi.fn() }]}>
+          Page tools
+        </Menu>
+      </main>,
+    );
+    await user.click(screen.getByRole('button', { name: 'Page tools' }));
+    expect((await screen.findByRole('menu')).closest('main')).toBeTruthy();
+  });
+
+  it('draws its popup outside any main by default', async () => {
+    const user = userEvent.setup();
+    render(
+      <main>
+        <Menu items={[{ key: 'a', label: 'One', onSelect: vi.fn() }]}>Tools</Menu>
+      </main>,
+    );
+    await user.click(screen.getByRole('button', { name: 'Tools' }));
+    expect((await screen.findByRole('menu')).closest('main')).toBeNull();
+  });
+});

@@ -77,6 +77,7 @@ export function DawToolsMenu({
       {shown.length > 0 && layout === 'menu' && (
         <div ref={host} className="inline-flex">
           <Menu
+            pageMenu
             onOpenChange={(isOpen) => isOpen && onOpen?.()}
             sections={groups
               .filter((group) => shown.some((tool) => tool.group === group))

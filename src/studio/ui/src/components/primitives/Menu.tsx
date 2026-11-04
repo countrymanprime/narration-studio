@@ -1,5 +1,5 @@
 import { Menu as BaseMenu } from '@base-ui/react/menu';
-import { useId, type CSSProperties, type ReactElement, type ReactNode } from 'react';
+import { useId, useState, type CSSProperties, type ReactElement, type ReactNode } from 'react';
 import { POPUP_MOTION_CLASSES } from './overlayMotion';
 
 export type MenuItem = {
@@ -141,6 +141,7 @@ export function Menu({
   items = [],
   sections,
   disabled,
+  pageMenu = false,
   onOpenChange,
   label,
   triggerClassName,
@@ -152,6 +153,9 @@ export function Menu({
   // Headed groups of items, drawn after `items` (a filter menu: one section per thing it filters by). The popup widens to hold them.
   sections?: MenuSection[];
   disabled?: boolean;
+  // A menu opened from a page's own header, not from inside a dialog or a slide-over: it is modal (the page behind is inert while it shows, a press outside closes
+  // it) and its popup sits in the page's `<main>`, so it is inside a landmark, as `ContextMenu`'s is. The default menu is not modal and is portalled to the body.
+  pageMenu?: boolean;
   // Told when the menu opens or closes, for a caller that reads what the menu shows only once it is wanted (the DAW tools menu).
   onOpenChange?: (open: boolean) => void;
   // An accessible name for the trigger, for an icon-only trigger whose `children` carries no text of its own. Ignored
@@ -164,13 +168,21 @@ export function Menu({
   render?: ReactElement;
   children: ReactNode;
 }) {
+  const [main, setMain] = useState<HTMLElement>();
   return (
-    // Not modal: the page behind stays scrollable and clickable, as with the menu this replaced (a press outside closes it).
-    <BaseMenu.Root modal={false} onOpenChange={onOpenChange}>
+    // Not modal unless it is a page menu: the page behind stays scrollable and clickable, as with the menu this replaced (a press outside closes it).
+    <BaseMenu.Root
+      modal={pageMenu}
+      onOpenChange={(isOpen) => {
+        // Looked up as it opens: the page's `<main>` need not be in the document when the menu is first drawn.
+        if (isOpen && pageMenu) setMain(document.querySelector('main') ?? undefined);
+        onOpenChange?.(isOpen);
+      }}
+    >
       <BaseMenu.Trigger disabled={disabled} {...(render ? { render } : { 'aria-label': label, className: triggerClassName, style: triggerStyle })}>
         {children}
       </BaseMenu.Trigger>
-      <BaseMenu.Portal>
+      <BaseMenu.Portal container={pageMenu ? main : undefined}>
         <BaseMenu.Positioner side="bottom" align="start" sideOffset={6} collisionPadding={8} className="z-[var(--z-popover)]">
           <BaseMenu.Popup
             className={`max-h-[var(--available-height)] ${sections ? 'w-60' : 'w-44'} overflow-y-auto rounded-[0.4rem] border border-[var(--line-strong)] bg-[var(--surface)] p-[0.35rem] shadow-[var(--shadow-lg)] outline-none ${POPUP_MOTION_CLASSES}`}
