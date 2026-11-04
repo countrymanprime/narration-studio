@@ -72,6 +72,8 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
   const store = useSettingsStore();
   const uid = useId();
   const [asking, setAsking] = useState<string>();
+  // An Override on a number that is not set yet has no value to copy, so it opens an empty project box and saves nothing until one is typed.
+  const [opening, setOpening] = useState(false);
   const { global, project } = store.fieldsOf(row);
   const controlId = `set-${row.id}`;
   const error = store.rowErrors[row.id];
@@ -167,7 +169,7 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
                 className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[0.8125rem] text-[var(--text-muted)]"
                 data-override={own !== undefined ? row.id : undefined}
               >
-                {own !== undefined ? (
+                {own !== undefined || opening ? (
                   <>
                     <span>This project uses</span>
                     <ValueControl
@@ -183,16 +185,24 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
                       variant="link"
                       size="sm"
                       aria-label={`Use computer setting for ${row.label}`}
-                      onClick={() => void store.write(row, 'project', null)}
+                      onClick={() => {
+                        setOpening(false);
+                        void store.write(row, 'project', null);
+                      }}
                     >
                       Use computer setting
                     </Button>
-                    {global.kind === 'choice' && <AssetNote row={row} value={own} kindOf={kindOf} />}
+                    {global.kind === 'choice' && <AssetNote row={row} value={own ?? comp} kindOf={kindOf} />}
                   </>
                 ) : (
                   <>
                     <span>This project uses the computer setting.</span>
-                    <Button variant="link" size="sm" aria-label={`Override for this project: ${row.label}`} onClick={() => commit(comp, 'project')}>
+                    <Button
+                      variant="link"
+                      size="sm"
+                      aria-label={`Override for this project: ${row.label}`}
+                      onClick={() => (comp === '' && global.kind === 'number' ? setOpening(true) : commit(comp, 'project'))}
+                    >
                       Override for this project
                     </Button>
                   </>
