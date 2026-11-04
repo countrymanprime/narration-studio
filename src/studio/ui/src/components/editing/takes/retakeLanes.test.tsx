@@ -119,6 +119,19 @@ describe('retakes on lanes, in the takes list', () => {
     await waitFor(() => expect(screen.getByRole('region', { name: /Retakes on lanes/ }).querySelector('[data-lane="1"]')?.textContent).toContain('Plays'));
   });
 
+  it('Undo works when the DAW cannot say what its last action was: it picks the lane again, it does not rewind REAPER’s history', async () => {
+    journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'other' });
+    const user = userEvent.setup();
+    const api = renderPage();
+    const pick = vi.spyOn(api, 'retakeLanesPick');
+    await user.click(await screen.findByRole('button', { name: `Play this lane: lane 2 on ${TRACK}` }));
+    await waitFor(() => expect(toastUndo).toHaveBeenCalledTimes(1));
+    const undo = toastUndo.mock.calls[0][1] as () => Promise<{ ok: boolean; refusal?: { reason: string } }>;
+    const undone = await undo();
+    expect(undone.ok).toBe(true);
+    expect(pick).toHaveBeenLastCalledWith(LINE, '{MOCK-ITEM-0001-0000-0000-000000000001}');
+  });
+
   it('shows REAPER’s refusal as a toast in its own words and leaves the lanes as they were', async () => {
     const user = userEvent.setup();
     renderPage({}, { retakeLanes: 'error' });

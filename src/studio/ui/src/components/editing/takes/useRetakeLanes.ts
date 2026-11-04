@@ -121,7 +121,9 @@ export function useRetakeLanes(journal: Pick<Journal, 'act' | 'undo'>, enabled: 
     const command: Command<RetakeLanesState> = {
       label: `Lane ${retake.lane + 1} plays on ${line.trackName}`,
       touches: [`takes/${passage.id}`],
-      daw: true,
+      // Not a DAW entry in the journal's sense: its inverse picks the lane that played before, a new choice in REAPER, not a step back through REAPER's
+      // undo history, so there is no "REAPER's last action" to check. REAPER's own Undo still takes the pick back in one step.
+      daw: false,
       run: () => choose(retake),
       ...(before ? { undo: () => choose(before) } : {}),
       notUndoableReason: 'No lane was playing before, so there is nothing to put back. Undo in REAPER.',
