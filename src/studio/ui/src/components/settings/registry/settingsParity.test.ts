@@ -147,6 +147,16 @@ const WRITERS: Parity = {
   cap: 1,
 };
 
+// The binding scan above reads names that contain Set, Choose, Enable or Disable after a lowercase start; a name that starts with `set` does
+// not match it. The one such binding that is a preference gets its row checked here instead of being added to the scan.
+describe('the schedule basis (issue 2815)', () => {
+  it('is saved by a binding the contracts declare, and has a Settings row', () => {
+    const contracts = readdirSync(join(SRC, 'api/contracts')).map((file) => text(join(SRC, 'api/contracts', file)));
+    expect(contracts.some((source) => /\bsetProductionRateBasis\s*\(/.test(source))).toBe(true);
+    expect(rowIds.has('project.rateBasis')).toBe(true);
+  });
+});
+
 describe('settings parity (issue 2815)', () => {
   it('every host binding that sets or chooses something has a Settings row or a stated reason', () => check(bindings, BINDINGS));
   it('every window-kept key has a Settings row or a stated reason', () => check(storageKeys, STORAGE));

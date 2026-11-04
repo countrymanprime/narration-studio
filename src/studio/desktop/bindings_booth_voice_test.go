@@ -227,6 +227,25 @@ func TestAChapterFolderWithNoVoicesIsRefusedBeforeAnythingIsArmed(t *testing.T) 
 	}
 }
 
+func TestARecordStartInAVoiceFolderContinuesAfterTheWholeFolderNotTheVoice(t *testing.T) {
+	host, ids := newVoiceFolderHost(t, voicetracks.LayoutFolders)
+	fake := &fakeRecorder{}
+	recordStartWithVoice(t, host, fake, ids[0])
+	if fake.startOpts.Start != bridge.ChapterEnd || fake.startOpts.Folder != voiceFolderTrack {
+		t.Fatalf("start options %+v; want the chapter_end rule naming the chapter's folder", fake.startOpts)
+	}
+}
+
+func TestAPlainChapterTrackStillContinuesFromItsOwnEnd(t *testing.T) {
+	host, ids := newVoiceFolderHost(t, voicetracks.LayoutFolders)
+	linkChapter(t, host, ids[1], "{22222222-2222-4222-8222-222222222222}")
+	fake := &fakeRecorder{}
+	recordStartWithVoice(t, host, fake, ids[1])
+	if fake.startOpts.Start != bridge.AtEnd || fake.startOpts.Folder != "" {
+		t.Fatalf("start options %+v; want the plain end rule", fake.startOpts)
+	}
+}
+
 func TestAPlainTrackLinkInAVoiceFoldersProjectRecordsOnThatTrack(t *testing.T) {
 	host, ids := newVoiceFolderHost(t, voicetracks.LayoutFolders)
 	linkChapter(t, host, ids[1], "{22222222-2222-4222-8222-222222222222}")

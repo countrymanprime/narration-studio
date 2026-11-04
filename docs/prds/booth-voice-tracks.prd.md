@@ -85,6 +85,16 @@ No new trust boundary: `voice-tracks.json` is written and read back by the host 
 - **Key conflicts.** `NumpadAdd` and `NumpadSubtract` are text size today; `findConflicts.test.ts` guards the catalog.
 - **Union reads** touch Editing play, live items, word times and the recording check: the largest regression surface.
 
+## Continue-from and punch-and-roll across voices (#3025)
+
+The owner's report (2026-11-04): with several voices in the chapter folder, recording continued from the end of the armed voice's own track, and punch-and-roll started from the last item instead of where the passage was recorded. The rules below are the design; the PR bodies list the choices the owner can overrule.
+
+**Continue-from (time).** A take that continues (no punch chosen) starts at the end of the latest item on the chapter folder and every track inside it, nested folders included: `record_start` with the start rule `chapter_end` and the folder's GUID (`narration_transport.lua`). The cursor stays where the chapter last stopped, on any voice of the folder, as it did for one track. A flat chapter keeps the `end` rule on its own track. An empty folder starts at 0. Muted or hidden tracks and muted items count for the time, since the rule exists so nothing recorded is overwritten. A target that is not inside the folder is refused with nothing moved.
+
+**Continue-from (text).** `recordedThrough` reads the same audio: the Proof result and the Booth's reading file already span all voices, and the DAW-length estimate (`recordedLengthsFor`) and the locate read (`tracks.Project.ChapterRecordedEnd`, the live `ChapterFolderState`) now do too, so the Booth opens after the last character's last line and the time rule agrees.
+
+**Punch target (phase 6b).** The passage's own earlier span comes from the word-times table (`WorkspaceWordTimes`, folder-aware, stamped with the project change count), not from a text-length estimate: the earliest start and latest end of the passage's words, on the track whose item plays them. Recorded on another voice: the take records over it on the original voice's track and says so. Spanning several items on one track: one span. Spanning tracks, never recorded, alignment missing or stale, or a word not in the project: a never-recorded passage is a continue; every other case is refused with a sentence and nothing is guessed.
+
 ## Implementation Phases
 
 | # | Phase | Description | Status | Parallel | Depends |
