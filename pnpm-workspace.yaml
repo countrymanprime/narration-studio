@@ -18,13 +18,12 @@ minimumReleaseAge: 4320
 # Owner-approved and temporary: stable @wailsio/runtime 3.1.0 was published 2026-11-01. Remove this entry once it is three days old.
 minimumReleaseAgeExclude:
   - '@wailsio/runtime@3.1.0'
-# Transitive dev-tool dependencies pinned by their parents below the patched version (#1133): nx pins undici and minimatch,
+# Transitive dev-tool dependencies pinned by their parents below the patched version (#1133): nx pins undici,
 # markdownlint-cli2 pins markdown-it, smol-toml, katex and re2js, mermaid pins dompurify, commitlint's ajv pins fast-uri and storybook's
 # docgen plugin pins glob. Each override is a floor (>=), so a parent that moves past it is not held back; drop an entry when
-# `pnpm audit` is clean without it. None of these ships in the desktop app (`pnpm audit --prod` is clean).
+# `pnpm audit` is clean without it. `minimatch` is deliberately not overridden: minimatch 11 dropped `makeRe`, which nx 23 calls, and an override to 11 broke `nx show projects --projects=...` in CI. None of these ships in the desktop app (`pnpm audit --prod` is clean).
 overrides:
   undici@7: '>=7.30.1'
-  minimatch@<11.0.1: '>=11.0.1'
   dompurify@<3.4.17: '>=3.4.17'
   markdown-it@>=15.0.0 <15.0.3: '>=15.0.3'
   smol-toml@<1.9.0: '>=1.9.0'
