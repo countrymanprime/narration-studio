@@ -598,6 +598,7 @@
         "src/components/schedule/MilestoneDialog.tsx",
         "src/components/script/page/tools/select/MarksDialog.tsx",
         "src/components/settings/analysis/AnalysisToolsSection.tsx",
+        "src/components/settings/controls/AppearanceBodies.tsx",
         "src/components/settings/page/StoryBibleTypesPanel.tsx",
         "src/components/storybible/suggested/scan/AnalysisPrompt.tsx"
       ],
@@ -2314,7 +2315,8 @@
         "Sample Loudness Readout"
       ],
       "consumers": [
-        "src/components/editing/output/EditingOutput.tsx"
+        "src/components/editing/output/EditingOutput.tsx",
+        "src/components/settings/controls/AppearanceBodies.tsx"
       ],
       "a11yDebt": false
     },
@@ -4146,6 +4148,7 @@
         "src/components/proof/inspector/FindingThread.tsx",
         "src/components/script/page/chapters/PrepSegment.tsx",
         "src/components/script/page/rail/threads/NoteCard.tsx",
+        "src/components/settings/controls/AppearanceBodies.tsx",
         "src/components/settings/page/ModelsPane.tsx",
         "src/components/settings/page/ScopedFieldsPanel.tsx",
         "src/components/settings/page/SettingsPage.tsx",
