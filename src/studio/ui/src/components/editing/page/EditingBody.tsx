@@ -74,7 +74,6 @@ import { installBackupSteps, tokensIn } from '../backups/backupBefore';
 import { FxMarkersContext } from '../range/fx/fxMarkers';
 import { registerSelectionAction } from '../bar/selectionActions';
 import { SelectionActionButton } from '../bar/SelectionActionButton';
-import { useRetakeLanes } from '../takes/useRetakeLanes';
 import { useShowInDaw } from '../takes/useShowInDaw';
 import { escapeClosesPanel } from '../../primitives/focusReturn';
 import { IconButton } from '../../primitives/IconButton';
@@ -247,7 +246,6 @@ export function EditingBody(props: EditingBodyProps) {
   const hide = useHideOthers({ journal, kept: keep.kept, current: () => currentRef.current, passageOf });
   const prep = usePrepSteps({ journal, hidden: hide.hiddenIds });
   const lineTakes = useLineTakes(currentLine, keep.keep);
-  const retakeLanes = useRetakeLanes(journal, lines.byId.size > 0);
   const [openLines, setOpenLines] = useState<ReadonlySet<string>>(new Set());
   const isOpen = (id: string): boolean => openLines.has(id) || (id === current && lineTakes.open);
   const setLineOpen = useCallback(
@@ -621,7 +619,6 @@ export function EditingBody(props: EditingBodyProps) {
       {[...underLines].map((pid) => {
         const line = lines.byId.get(pid);
         const shown = line ? view(line) : null;
-        const laneLine = line ? retakeLanes.forLine(line) : null;
         const open = !!line && isOpen(pid);
         return (
           // What sits under a line is UI text (the mock's `.sx-tkw`, 13 px), not the 24 px reading size of the row it is drawn in.
@@ -679,9 +676,6 @@ export function EditingBody(props: EditingBodyProps) {
                 sourceLabel={sourceLabel}
                 duplicateAt={keep.kept[pid] ? null : doubledAt(pid)}
                 gate={gate}
-                lanes={
-                  laneLine ? { line: laneLine, gate, picking: retakeLanes.picking, onPick: (retake) => void retakeLanes.pick(line!, laneLine, retake) } : null
-                }
                 onKeep={(take) => void keep.keep(line!, take)}
                 onPlay={playTake}
               />

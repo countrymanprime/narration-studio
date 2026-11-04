@@ -37,7 +37,6 @@ import {
   faClipboardCheck,
   faCircle,
   faCircleCheck,
-  faCirclePlay,
   faClockRotateLeft,
   faCopy,
   faDownload,
@@ -261,7 +260,6 @@ export const CATALOG = {
 
   // State: outline is off, solid is on (audit rule 3).
   markDone: action(faCircleCheckRegular, 'mark done', 'Mark done'),
-  playLane: action(faCirclePlay, 'play a lane', 'Play this lane'),
   keepTake: action(faCircleCheckRegular, 'mark done', 'Keep this take'),
   markedDone: action(faCircleCheck, 'marked done', 'Mark open again'),
   pin: action(faThumbtack, 'pin', 'Pin'),

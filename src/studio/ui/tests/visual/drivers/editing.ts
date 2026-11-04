@@ -284,24 +284,6 @@ export const editingDrivers: Record<string, Driver> = {
     await openTakes(page, LINKED);
     await expectPanelTextSize(page, 'Suggested take');
   },
-  'takes-lane-picked': async (page) => {
-    // Lane 2 plays: one Undo step, the lane's own badge, and the toast that names the lanes now silent on the track.
-    await openTakes(page, LINKED);
-    await page.getByRole('button', { name: 'Play this lane: lane 2 on Chapter 1' }).click();
-    await page
-      .getByRole('status')
-      .filter({ hasText: /Lane 2 plays on Chapter 1/ })
-      .waitFor();
-  },
-  'takes-lane-refused': async (page) => {
-    // REAPER refuses the pick (the track is not in fixed item lane mode any more): the toast says why and nothing in the lane group changed.
-    await openTakes(page, `${LINKED}&mockRetakeLanes=error`);
-    await page.getByRole('button', { name: 'Play this lane: lane 2 on Chapter 1' }).click();
-    await page
-      .getByText(/not in fixed item lane mode/)
-      .first()
-      .waitFor();
-  },
   'suggestion-step': async (page) => {
     await openTakes(page, LINKED);
     await page.getByRole('button', { name: 'Normalise' }).first().click();

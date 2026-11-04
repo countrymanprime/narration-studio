@@ -49,7 +49,6 @@ Storybook title: `Primitives/StatusBadge`. Source: `src/components/primitives/St
 - `src/components/editing/script/ScriptDoc.tsx`
 - `src/components/editing/stack/RetryBar.tsx`
 - `src/components/editing/strip/TimelineStrip.tsx`
-- `src/components/editing/takes/LaneRetakes.tsx`
 - `src/components/editing/takes/Suggested.tsx`
 - `src/components/editing/takes/TakeChip.tsx`
 - `src/components/editing/takes/TakeLines.tsx`

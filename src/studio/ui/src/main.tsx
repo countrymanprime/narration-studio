@@ -308,8 +308,8 @@ const mockRenderConfig = (['success', 'no-regions', 'error'] as const).find((see
 // `?mockCleanupTools=launched|error` boots the audio engine panel's "Cleanup tools" dialog with CleanupToolsState already at
 // that result (error: Magnolius DeClick not installed), so both can be seen without a real REAPER round trip.
 const mockCleanupTools = (['launched', 'error'] as const).find((seed) => seed === mockParams.get('mockCleanupTools'));
-// `?mockRetakeLanes=picked|error|none` boots the retake-lane state at that result (error also makes every pick fail; none: a project
-// with no fixed-lane track, so no line has a lane group), so Editing's "Retakes on lanes" can be seen without a real REAPER round trip.
+// `?mockRetakeLanes=picked|error|none` boots the retake-lane state at that result (none: a project with no fixed-lane track; error also
+// makes every pick fail), so each can be seen without a real REAPER round trip.
 const mockRetakeLanes = (['picked', 'error', 'none'] as const).find((seed) => seed === mockParams.get('mockRetakeLanes'));
 // `?mockChapterTags=ready|not-rendered` boots the audio engine panel's "Embed chapter tags" dialog with ChapterTagsPreview
 // already at that result, so the ready and not-yet-rendered states can be seen without a real chapter render.

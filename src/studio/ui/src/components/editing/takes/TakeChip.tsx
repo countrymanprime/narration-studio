@@ -37,8 +37,7 @@ export function TakeChip({
   onKeyDown?: KeyboardEventHandler<HTMLButtonElement>;
 }) {
   const n = passage.takes.length;
-  const lanes = passage.laneItems?.length ?? 0;
-  if (n < 1 && lanes < 1) return null;
+  if (n < 1) return null;
   const active = passage.takes.find((t) => t.active);
   return (
     <Button
@@ -53,7 +52,9 @@ export function TakeChip({
       onKeyDown={onKeyDown}
     >
       <Icon name="wave" />
-      <b>{n < 1 ? 'Retakes on lanes' : `${n} ${n === 1 ? 'take' : 'takes'}`}</b>
+      <b>
+        {n} {n === 1 ? 'take' : 'takes'}
+      </b>
       <span aria-hidden="true" className="inline-flex gap-0.5 max-[30rem]:hidden">
         {passage.takes.map((t) => (
           <i

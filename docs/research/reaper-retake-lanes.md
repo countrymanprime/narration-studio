@@ -16,7 +16,7 @@ Reaper automation follow-through PRD (deleted) Phase 25, [Tracks](../utilities/t
 
 - The static reader: lane, lane count and playing lanes for every track of the two S7 fixtures (`go test ./internal/tracks`), and the lines the dialog lists from them (`go test ./internal/retakelanes`).
 - The bridge command `pick_retake_lane` against the fake `reaper` (`src/studio/integrations/reaper/tests/retake_lanes_test.lua`, 12 tests; the fake's lane play semantics are pinned to S7 in `fake_fidelity_test.lua`), and seven mutation checks in `mutations.json`: it sets exactly `C_LANEPLAYS:<lane>=1` on the retake's own track in one undo block, changes no item, take, lane mode, lane count or other track, and refuses a track not in fixed-lane mode, a stale GUID and an item that no longer carries the line.
-- The host and UI: `internal/retakelanes` service tests, the wire contracts (`retake-lanes-list.json`, `retake-lanes-idle.json`, `retake-lanes-picked.json`), `editing/takes/retakeLanes.test.tsx` and the two Editing visual states `takes-lane-picked` and `takes-lane-refused` (the lane group is part of `takes-open`).
+- The host and UI: `internal/retakelanes` service tests, the wire contracts (`retake-lanes-list.json`, `retake-lanes-idle.json`, `retake-lanes-picked.json`), the host's `retakelanes` and `passagetakes` tests (the Editing takes list offers a lane retake as a take, a `lane_retake` candidate).
 
 ## Pending: scripted checks in REAPER (need the owner's approval)
 

@@ -190,20 +190,6 @@ export const editingStates: StateEntry[] = [
   },
   {
     page: 'editing',
-    state: 'takes-lane-picked',
-    description:
-      'Editing, the first line’s takes open and Play this lane pressed on lane 2 - lane 2 reads Plays, lanes 1 and 3 are off, and the Undo toast says lanes 1 and 3 are silent everywhere on the track',
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  {
-    page: 'editing',
-    state: 'takes-lane-refused',
-    description:
-      'Editing, the first line’s takes open and REAPER refusing the lane pick (the track is not in fixed item lane mode) - the toast says so in REAPER’s words, the lane group is as it was (reached via the ?mockRetakeLanes=error mock seam)',
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  {
-    page: 'editing',
     state: 'suggestion-step',
     description: 'Editing, Normalise pressed in the suggestion’s steps - the question lists the takes it would bring to the same level',
   },

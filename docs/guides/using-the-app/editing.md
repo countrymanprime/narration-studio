@@ -377,14 +377,10 @@ script it read as written, and its pause, level, noise, clarity and breaths. A t
 (Enter) makes it the one that plays, and **Hide others** (H) hides the other takes from the lanes. **Show in the DAW**
 moves the DAW to the line, on a DAW that can move to a place in the project.
 
-A line with retakes recorded into REAPER's fixed item lanes shows **Retakes on lanes** under its takes: one row per lane with its
-number, the item's name and length, and **Plays** on the lane that plays in the saved project, which has its button off. Press **Play this lane** beside the retake
-you want and that lane becomes the only one playing on its track; a lane plays across the whole track, so the other lanes go
-silent for every line of that track, and the message says which. Nothing else changes, and **Undo** (on the message, in the History panel or
-in REAPER) puts the previous lane back in one step. The app never turns lanes on, converts takes to lanes or builds a comp: if the track is not in
-fixed-lane mode or REAPER does not answer, a message says so and nothing changes. With REAPER not running the rows stay and their buttons say why they are off. What plays is read from the project as last saved in REAPER.
-
-![Editing - a line's takes opened, the lane group under them with lane 2 playing after Play this lane](../../images/ui/editing-takes-lanes.webp)
+Retakes recorded into REAPER's fixed item lanes are listed with the line's other takes, each as **Retake on lane N**, and are chosen the same way. **Keep take**
+on one makes that lane the only one playing on its track; a lane plays across the whole track, so the other lanes go silent for every line of that track. Nothing else
+changes, and one Undo in REAPER puts the previous lane back. The app never turns lanes on, converts takes to lanes or builds a comp: if the track is not in fixed-lane mode,
+or the retake changed since the project was last saved, a message says so and nothing changes. What plays is read from the project as last saved in REAPER.
 
 ![Editing - Normalise from a suggestion's steps: the question says what it will change in the DAW](../../images/ui/editing-suggestion-step.webp)
 

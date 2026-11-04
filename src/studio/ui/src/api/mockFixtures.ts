@@ -1401,21 +1401,6 @@ export const WIRE_RETAKE_LANES_LIST: RetakeLanesList = {
   ],
 };
 
-/** The retake on lane 2 that the workspace mock's takes for chapter 1's first line offer (`workspaceTakesMock`): the lane list names the same item. */
-export const MOCK_LANE_ITEM = '{MOCK-ITEM-0002-0000-0000-000000000002}';
-
-/** The lane group of that line: its first read on lane 1 (playing), the retake above on lane 2 and a third pass on lane 3, on the chapter's track. */
-export const MOCK_LANE_LINE: RetakeLanesList['lines'][number] = {
-  lineId: 'line-000004',
-  trackGuid: '{0E4D1D7F-D039-674D-87E6-719376DE95EC}',
-  trackName: 'Chapter 1',
-  retakes: [
-    { itemGuid: '{MOCK-ITEM-0001-0000-0000-000000000001}', name: 'chapter-1.wav', lane: 0, plays: true, position: 0, length: 6.2 },
-    { itemGuid: MOCK_LANE_ITEM, name: 'chapter-1-retake.wav', lane: 1, plays: false, position: 0, length: 5.9 },
-    { itemGuid: '{MOCK-ITEM-0003-0000-0000-000000000003}', name: 'chapter-1-pass3.wav', lane: 2, plays: false, position: 0, length: 6.0 },
-  ],
-};
-
 /** A project with no track in fixed-lane mode (the list answer, e.g. tests/fixtures/contracts/basic.rpp's). */
 export const WIRE_RETAKE_LANES_NONE: RetakeLanesList = { laneTracks: 0, lines: [] };
 

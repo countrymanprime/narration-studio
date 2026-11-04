@@ -29,8 +29,6 @@ export interface LinePassage {
   /** The script's words for the line. */
   script: string;
   takes: LineTake[];
-  /** The DAW items of the line's retakes on fixed lanes, which the lane list names (`useRetakeLanes`); they are not takes and are not in `takes`. */
-  laneItems?: readonly string[];
 }
 
 /** Whether the DAW can choose a take now, and the DAW's own sentence when it cannot. */
