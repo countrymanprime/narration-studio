@@ -23,9 +23,10 @@ export type DawToolsSource = {
  * What a page that offers the DAW tools needs to draw them: the project's tracks, the one reader of the chapter links, whether the project
  * records in Audacity, and why the DAW is not answering when it is not. The Engine panel reads the same things for itself beside the rest of its
  * project; a page header has no such reader, so this is the page's. The tracks are read when the DAW's answer changes, as the Engine panel's
- * are when Audacity answers. Nothing is read until `enabled` (the menu was opened), so a page that never opens the menu makes no host call for it.
+ * are when Audacity answers. Nothing is read until the menu has been opened (`opened` counts its openings), so a page that never opens it makes no host call for it, and each opening reads again, so a read that failed is tried once more.
  */
-export function useDawToolsSource(enabled: boolean): DawToolsSource {
+export function useDawToolsSource(opened: number): DawToolsSource {
+  const enabled = opened > 0;
   const tracksPort = usePort('tracks');
   const audacity = useAudacityLink(enabled);
   const forAudacity = audacity.link?.chosen === true;
@@ -52,10 +53,17 @@ export function useDawToolsSource(enabled: boolean): DawToolsSource {
     return () => {
       active = false;
     };
-  }, [tracksPort, enabled, reachable, audacityHeard]);
+  }, [tracksPort, enabled, opened, reachable, audacityHeard]);
 
-  const links = useChapterLinks(tracks, 0, noop, enabled);
+  const links = useChapterLinks(tracks, opened, noop, enabled);
   const linked = links.rows.filter((row) => row.state === 'linked').length;
-  const dawOff = state === 'reading' ? 'Reading the REAPER project…' : typeof state === 'object' ? state.failed : status.off;
+  const dawOff =
+    state === 'reading'
+      ? 'Reading the REAPER project…'
+      : typeof state === 'object'
+        ? state.failed
+        : links.error
+          ? `The chapter links could not be read: ${links.error.slice(0, 200)}`
+          : status.off;
   return { links, forAudacity, dawOff: forAudacity ? null : dawOff, linkedChapterCount: links.chapters.length > 0 ? linked : undefined };
 }

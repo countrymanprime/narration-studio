@@ -119,4 +119,25 @@ describe('DawToolsButton, the page header form of the DAW tools', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('button', { name: 'DAW tools' })));
   });
+
+  // QA break B4 of #2820: links that could not be read said nothing and left the structure entries live.
+  it('says the chapter links could not be read, on both entries, instead of leaving them live', async () => {
+    const user = userEvent.setup();
+    renderButton({ chapterTrackMapList: async () => Promise.reject(new Error('links gone')) });
+    await open(user);
+    await waitFor(() => expect(screen.getAllByText(/chapter links could not be read/i)).toHaveLength(2));
+  });
+
+  // QA break B5 of #2820: a failed read was kept until the DAW answered differently.
+  it('reads the project again each time the menu is opened, so a failed read is retried', async () => {
+    const user = userEvent.setup();
+    const api = renderButton();
+    const tracksList = vi.spyOn(api, 'tracksList');
+    await open(user);
+    await waitFor(() => expect(tracksList).toHaveBeenCalledTimes(1));
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
+    await open(user);
+    await waitFor(() => expect(tracksList).toHaveBeenCalledTimes(2));
+  });
 });

@@ -77,7 +77,7 @@ function PlainItem({ item }: { item: MenuItem }) {
       <span className="flex w-full items-center gap-2">
         <ItemBody item={item} />
       </span>
-      <span id={reasonId} className="text-[0.74rem] leading-snug whitespace-normal">
+      <span id={reasonId} className="text-[0.74rem] leading-snug [overflow-wrap:anywhere] whitespace-normal">
         {item.disabledReason}
       </span>
     </BaseMenu.Item>

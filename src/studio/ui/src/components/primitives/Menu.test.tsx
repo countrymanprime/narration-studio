@@ -192,6 +192,17 @@ describe('Menu: an item with a reason it is off', () => {
   });
 });
 
+describe('Menu: a long reason', () => {
+  it('wraps a reason with no break in it inside the popup instead of running out of it', async () => {
+    const user = userEvent.setup();
+    const reason = `The REAPER project could not be read: C:\\${'Projects\\'.repeat(40)}Book.rpp`;
+    render(<Menu items={[{ key: 'a', label: 'Off', disabledReason: reason, onSelect: vi.fn() }]}>Tools</Menu>);
+    await user.click(screen.getByRole('button', { name: 'Tools' }));
+    const text = await screen.findByText(reason);
+    expect(text.className).toMatch(/overflow-wrap:anywhere/);
+  });
+});
+
 describe('Menu: pageMenu', () => {
   it('draws its popup inside the page main, where the default menu draws it in the body', async () => {
     const user = userEvent.setup();

@@ -1154,6 +1154,14 @@ describe('EditingPage loading state', () => {
     expect(region('Loading the editor')).toBeTruthy();
   });
 
+  // QA break B1 of #2820: the loading header and the loaded header are different trees, so a DAW tools menu opened while the chapters load would be
+  // closed when they arrived. The button is drawn with the loaded page, where it stays.
+  it('does not draw the DAW tools button until the chapters have been read, so a menu is never closed by their arrival', async () => {
+    mount({ api: { manuscriptChapters: never } });
+    await screen.findByRole('heading', { level: 1, name: 'Editing' });
+    expect(screen.queryByRole('button', { name: 'DAW tools' })).toBeNull();
+  });
+
   it('is replaced by the script when the chapters and lines arrive', async () => {
     mount();
     await script();

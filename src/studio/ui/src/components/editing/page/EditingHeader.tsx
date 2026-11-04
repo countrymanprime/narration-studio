@@ -19,13 +19,15 @@ export interface EditingHeaderProps {
   onDrawer: () => void;
   /** Escape on the drawer's toggle while the drawer is open: closes it, focus stays on the toggle. */
   onDrawerKeyDown?: KeyboardEventHandler<HTMLButtonElement>;
+  /** Draws the DAW tools menu. Only the loaded page does: the loading and error headers are other trees, so a menu opened in one would close when the page arrived. */
+  dawTools?: boolean;
 }
 
 /**
  * The page's header (the Studio Next mock's `.ph.sx-ph`): the title, the chapter step, the legend, and the two header buttons, the timeline
  * strip (S) where it fits and the clean-up and effects drawer (Ctrl+Shift+C), then the DAW tools menu.
  */
-export function EditingHeader({ stepper, legend, status, strip, stripFits, drawerOpen, onDrawer, onDrawerKeyDown }: EditingHeaderProps) {
+export function EditingHeader({ stepper, legend, status, strip, stripFits, drawerOpen, onDrawer, onDrawerKeyDown, dawTools = false }: EditingHeaderProps) {
   return (
     <header className="@container/hd flex flex-wrap items-center gap-x-3 gap-y-2 px-4 pt-3 pb-2">
       <Heading title="Editing" />
@@ -46,7 +48,7 @@ export function EditingHeader({ stepper, legend, status, strip, stripFits, drawe
           />
         </TooltipTarget>
         {/* #2820: the DAW's structure tools (chapter regions, render prep) where a chapter is finished; the same menu as the Engine panel's tools. */}
-        <DawToolsButton groups={['structure']} />
+        {dawTools && <DawToolsButton groups={['structure']} />}
       </div>
     </header>
   );

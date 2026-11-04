@@ -8,9 +8,9 @@ import { useDawToolsSource } from './useDawToolsSource';
  * names the groups it offers (Editing, Proof and Master offer `structure`) and nothing else; the entries, their reasons and their dialogs are the registry's.
  */
 export function DawToolsButton({ groups }: { groups: readonly DawToolGroup[] }) {
-  // Nothing is read for the menu until it is first opened, so a page that never opens it makes no host call for it.
-  const [wanted, setWanted] = useState(false);
-  const source = useDawToolsSource(wanted);
+  // Nothing is read for the menu until it is first opened, so a page that never opens it makes no host call for it; each opening reads again.
+  const [opened, setOpened] = useState(0);
+  const source = useDawToolsSource(opened);
   return (
     <DawToolsMenu
       label="DAW tools"
@@ -20,7 +20,7 @@ export function DawToolsButton({ groups }: { groups: readonly DawToolGroup[] }) 
       forAudacity={source.forAudacity}
       dawOff={source.dawOff}
       linkedChapterCount={source.linkedChapterCount}
-      onOpen={() => setWanted(true)}
+      onOpen={() => setOpened((count) => count + 1)}
     />
   );
 }

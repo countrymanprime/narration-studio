@@ -566,6 +566,7 @@ export function EditingBody(props: EditingBodyProps) {
               drawerOpen={drawerOpen}
               onDrawer={panels.drawer.toggle}
               onDrawerKeyDown={drawerOpen ? drawerEscape : undefined}
+              dawTools
             />
             {/* Under the header, so the title stays where it is on every state (XED-7). */}
             <NoAudioBanner audio={read.audio} chapterName={chapterName} daw={dawName} onReread={props.onReread} />
