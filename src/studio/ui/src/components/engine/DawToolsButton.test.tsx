@@ -140,4 +140,37 @@ describe('DawToolsButton, the page header form of the DAW tools', () => {
     await open(user);
     await waitFor(() => expect(tracksList).toHaveBeenCalledTimes(2));
   });
+
+  // QA break B3 of #2820, the owner's call: with another project open in the DAW the entries are off, with the Booth's sentence.
+  it('says another project is open in the DAW, on both entries, as the Booth does', async () => {
+    const user = userEvent.setup();
+    const base = createMockApi();
+    renderButton({ bootstrap: async () => ({ ...(await base.bootstrap()), dawFileLinked: true, dawReachable: true, dawProjectMatches: false }) });
+    await open(user);
+    await waitFor(() => expect(screen.getAllByText(/has a different project open than the one linked here/)).toHaveLength(2));
+  });
+
+  it('leaves the entries live when the open project is the linked one', async () => {
+    const user = userEvent.setup();
+    const base = createMockApi();
+    renderButton({
+      bootstrap: async () => ({ ...(await base.bootstrap()), dawFileLinked: true, dawReachable: true, dawProjectMatches: true }),
+      chapterTrackMapList: async () => ({ mappings: WIRE_TICKED_CHAPTER_LINKS }) as never,
+    });
+    const menu = await open(user);
+    await waitFor(() =>
+      expect(
+        within(menu)
+          .getAllByRole('menuitem')
+          .every((item) => item.getAttribute('aria-disabled') === null),
+      ).toBe(true),
+    );
+  });
+
+  it('says whether the DAW has the linked project open could not be read, rather than leaving the entries live', async () => {
+    const user = userEvent.setup();
+    renderButton({ bootstrap: async () => Promise.reject(new Error('host down')) });
+    await open(user);
+    await waitFor(() => expect(screen.getAllByText(/has the linked project open could not be read/)).toHaveLength(2));
+  });
 });

@@ -46,6 +46,20 @@ describe('dawToolGate', () => {
     }
   });
 
+  // QA break B3 of #2820: a write into another project is the risky direction, so the entries are off, with the Booth's own sentence.
+  it('turns every tool off, with the sentence the Booth uses, when the DAW has a different project open', () => {
+    const wrongProject = 'REAPER has a different project open than the one linked here. Open the linked project in REAPER, or link the open one in Settings.';
+    for (const tool of DAW_TOOLS) {
+      expect(dawToolGate(tool, { ...READY, trackCount: 0, wrongProject })).toEqual({ level: 'not_yet_available', available: false, message: wrongProject });
+    }
+  });
+
+  it('says the DAW is not answering before it says another project is open, and Audacity before both', () => {
+    const tool = DAW_TOOLS[1];
+    expect(dawToolGate(tool, { ...READY, dawOff: 'Not answering.', wrongProject: 'Other project.' }).message).toBe('Not answering.');
+    expect(dawToolGate(tool, { ...READY, forAudacity: true, dawOff: 'Not answering.', wrongProject: 'Other project.' }).message).toMatch(/Audacity/);
+  });
+
   it('turns the structure tools off, with their reason, when no chapter is linked to a track', () => {
     const facts = { ...READY, linkedChapterCount: 0 };
     const off = DAW_TOOLS.filter((tool) => !dawToolGate(tool, facts).available);

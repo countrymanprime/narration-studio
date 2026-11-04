@@ -90,18 +90,21 @@ export type DawToolFacts = {
   chapterCount: number;
   /** The DAW's own sentence when it is not answering, or null; left out where the caller does not read the connection (the Engine panel, which sits beside its own). */
   dawOff?: string | null;
+  /** The sentence for a DAW that has a different project open than the linked one, or null: a write would land in the wrong project, so every tool is off. Left out where the caller does not read it (the Engine panel, which draws its own warning for it). */
+  wrongProject?: string | null;
   /** How many chapters are linked to a track; left out where the caller has the links beside the tool (the Engine panel), so the gate does not ask. */
   linkedChapterCount?: number;
 };
 
 /**
- * Whether one tool can be used now, and if not why, one reason at a time in this order: the project is Audacity, the DAW is not answering, the project has
+ * Whether one tool can be used now, and if not why, one reason at a time in this order: the project is Audacity, the DAW is not answering, the DAW has another project open, the project has
  * no tracks, no chapter is linked (the tools that write chapters into the project), the book has no chapters to link. An Audacity project and a
  * book with nothing to link are `unsupported` (a page may leave the tool out, as the Engine panel does); the rest are `not_yet_available` (the tool shows, off, with its reason).
  */
 export function dawToolGate(tool: DawTool, facts: DawToolFacts): CapabilityEntry {
   if (facts.forAudacity) return { level: 'unsupported', available: false, message: tool.audacity };
   if (facts.dawOff) return { level: 'not_yet_available', available: false, message: facts.dawOff };
+  if (facts.wrongProject) return { level: 'not_yet_available', available: false, message: facts.wrongProject };
   if (facts.trackCount === 0) return { level: 'not_yet_available', available: false, message: 'This REAPER project has no tracks yet.' };
   if (facts.linkedChapterCount === 0 && tool.group === 'structure')
     return { level: 'not_yet_available', available: false, message: 'No chapter is linked to a REAPER track yet. Link one on Production.' };

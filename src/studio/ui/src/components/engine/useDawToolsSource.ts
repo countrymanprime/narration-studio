@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { apiErrorMessage } from '../../api/errorMessage';
 import { usePort } from '../../ports/usePort';
 import { useDawState } from '../../daw/useDawSession';
+import { recorderName, wrongProjectReason } from '../../studio/dawNames';
 import { useDawStatus } from '../editing/page/useDawStatus';
 import type { Track } from '../../types';
 import { useAudacityLink } from './useAudacityLink';
@@ -15,6 +16,8 @@ export type DawToolsSource = {
   forAudacity: boolean;
   /** Why the tools cannot be used for a reason that is about the DAW or the project file, in a sentence; null when there is none. */
   dawOff: string | null;
+  /** The sentence for a DAW that has a different project open than the one linked here; null when it has the linked one, or nothing is linked or heard. */
+  wrongProject: string | null;
   /** How many chapters are linked to a track in the project; undefined until the chapters and the links have been read. */
   linkedChapterCount: number | undefined;
 };
@@ -28,12 +31,14 @@ export type DawToolsSource = {
 export function useDawToolsSource(opened: number): DawToolsSource {
   const enabled = opened > 0;
   const tracksPort = usePort('tracks');
+  const system = usePort('system');
   const audacity = useAudacityLink(enabled);
   const forAudacity = audacity.link?.chosen === true;
   // An Audacity project's tracks come from the snapshot taken while Audacity answers, so they are read again each time it does (as the Engine panel's are).
   const audacityHeard = forAudacity ? audacity.receivedAt : undefined;
   const status = useDawStatus();
   const reachable = useDawState((state) => state.caps?.reachable);
+  const [wrongProject, setWrongProject] = useState<string | null>(null);
   const [tracks, setTracks] = useState<Track[]>(NO_TRACKS);
   const [state, setState] = useState<'reading' | 'read' | { failed: string }>('reading');
 
@@ -55,6 +60,24 @@ export function useDawToolsSource(opened: number): DawToolsSource {
     };
   }, [tracksPort, enabled, opened, reachable, audacityHeard]);
 
+  // Whether the DAW has the linked project open, read as the Booth reads it: only a linked, heard DAW that disagrees counts. A read that fails is said, so no entry is silently live.
+  const dawKind = useDawState((state) => state.caps?.daw);
+  useEffect(() => {
+    if (!enabled) return;
+    let active = true;
+    system.bootstrap().then(
+      (data) => {
+        if (active) setWrongProject(data.dawFileLinked && data.dawReachable && !data.dawProjectMatches ? wrongProjectReason(dawKind) : null);
+      },
+      (reason) => {
+        if (active) setWrongProject(`Whether ${recorderName(dawKind)} has the linked project open could not be read: ${apiErrorMessage(reason).slice(0, 200)}`);
+      },
+    );
+    return () => {
+      active = false;
+    };
+  }, [system, enabled, opened, reachable, dawKind]);
+
   const links = useChapterLinks(tracks, opened, noop, enabled);
   const linked = links.rows.filter((row) => row.state === 'linked').length;
   const dawOff =
@@ -65,5 +88,11 @@ export function useDawToolsSource(opened: number): DawToolsSource {
         : links.error
           ? `The chapter links could not be read: ${links.error.slice(0, 200)}`
           : status.off;
-  return { links, forAudacity, dawOff: forAudacity ? null : dawOff, linkedChapterCount: links.chapters.length > 0 ? linked : undefined };
+  return {
+    links,
+    forAudacity,
+    dawOff: forAudacity ? null : dawOff,
+    wrongProject: forAudacity ? null : wrongProject,
+    linkedChapterCount: links.chapters.length > 0 ? linked : undefined,
+  };
 }

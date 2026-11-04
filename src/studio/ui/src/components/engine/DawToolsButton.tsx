@@ -19,6 +19,7 @@ export function DawToolsButton({ groups }: { groups: readonly DawToolGroup[] }) 
       links={source.links}
       forAudacity={source.forAudacity}
       dawOff={source.dawOff}
+      wrongProject={source.wrongProject}
       linkedChapterCount={source.linkedChapterCount}
       onOpen={() => setOpened((count) => count + 1)}
     />

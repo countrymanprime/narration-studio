@@ -17,8 +17,8 @@ import type { ChapterLinks } from './useChapterLinks';
  *
  * `links` is the one reader of the chapter links (the project's tracks come from it). `whenUnsupported` is what to do with a tool whose
  * gate says `unsupported` (an Audacity project; Link chapters with no chapters): `show` draws it off with the reason, `hide` leaves it out.
- * A tool that is only not yet available (no tracks, the DAW not answering) is always drawn, off, with its reason. `dawOff` and
- * `linkedChapterCount` are the two facts a page reads for itself (see `DawToolFacts`); the Engine panel, which has both beside it, leaves them out.
+ * A tool that is only not yet available (no tracks, the DAW not answering) is always drawn, off, with its reason. `dawOff`, `wrongProject` and
+ * `linkedChapterCount` are the facts a page reads for itself (see `DawToolFacts`); the Engine panel, which has both beside it, leaves them out.
  */
 export function DawToolsMenu({
   label,
@@ -28,6 +28,7 @@ export function DawToolsMenu({
   layout = 'grid',
   whenUnsupported = 'show',
   dawOff,
+  wrongProject,
   linkedChapterCount,
   onOpen,
 }: {
@@ -38,6 +39,7 @@ export function DawToolsMenu({
   layout?: 'grid' | 'menu';
   whenUnsupported?: 'show' | 'hide';
   dawOff?: string | null;
+  wrongProject?: string | null;
   linkedChapterCount?: number;
   /** The menu layout was opened: a page that reads the project for the menu starts that read now, not when the page opens. */
   onOpen?: () => void;
@@ -58,7 +60,7 @@ export function DawToolsMenu({
     setOpen(undefined);
     if (from) setTimeout(() => host.current?.querySelector<HTMLElement>(from)?.focus(), 0);
   };
-  const facts: DawToolFacts = { forAudacity, trackCount: links.tracks.length, chapterCount: links.chapters.length, dawOff, linkedChapterCount };
+  const facts: DawToolFacts = { forAudacity, trackCount: links.tracks.length, chapterCount: links.chapters.length, dawOff, wrongProject, linkedChapterCount };
   const shown = DAW_TOOLS.filter((tool) => groups.includes(tool.group)).filter(
     (tool) => whenUnsupported === 'show' || dawToolGate(tool, facts).level !== 'unsupported',
   );
