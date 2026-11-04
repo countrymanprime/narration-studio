@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
 import { RATES, rateLabel, type OutputPrefs } from '../../engine/outputPrefs';
 import type { MonitorLevelState } from '../../booth/frame/useMonitorLevel';
-import { Button } from '../../primitives/Button';
 import { IconButton } from '../../primitives/IconButton';
 import { Popover } from '../../primitives/Popover';
 import { Select } from '../../primitives/Select';
@@ -71,9 +70,7 @@ export function DeviceRow({
       ) : null}
       {deviceProblem ? <Note alert>{deviceProblem}</Note> : null}
       {missing || (devices.phase === 'ready' && devices.status === 'unavailable') ? (
-        <Button variant="secondary" size="sm" className="self-start" onClick={onCheckDevices}>
-          Check again
-        </Button>
+        <IconButton action="checkAgain" size="sm" className="self-start" onClick={onCheckDevices} />
       ) : null}
     </div>
   );

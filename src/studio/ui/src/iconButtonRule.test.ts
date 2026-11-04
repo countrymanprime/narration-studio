@@ -13,8 +13,6 @@ type Found = { file: string; label: string; variant: string; context: string };
 // SHRINK-ONLY. Each entry is a button that still draws text, with why. Remove an entry when its button becomes an `IconButton`; the test below fails
 // on an entry that no longer matches a button. Never add one without the owner: convert the button instead. `MAX_EXCEPTIONS` only goes down.
 const EXCEPTIONS: Record<string, string> = {
-  'editing/output/OutputControls.tsx|Check again': 'queued: Editing page PR (#2836)',
-  'editing/voicesample/SampleMark.tsx|Open in Story Bible': 'queued: Editing page PR (#2836); a page link, `openInStoryBible`',
   'layout/HistoryPanel.tsx|Undo': 'queued: shell PR (#2836); a row of the undo history, `undo`',
   'master/MasterToSpecPanel.tsx|Remove': 'queued: Master PR (#2836); a file row, `remove`',
   'pickups/list/PickupsTable.tsx|Go to the note in Proof': 'queued: Pickups PR (#2836); a page link',
@@ -27,7 +25,7 @@ const EXCEPTIONS: Record<string, string> = {
   'script/page/rail/words/DefinitionBlock.tsx|Use': 'queued: Script PR (#2836); a definition row',
   'storybible/OnlinePronunciationLookup.tsx|Use this': 'queued: Story Bible PR (#2836); a result row',
 };
-const MAX_EXCEPTIONS = 13;
+const MAX_EXCEPTIONS = 11;
 
 const NOT_TEXT_ACTIONS = new Set(['link', 'primary', 'danger-solid', 'native']);
 

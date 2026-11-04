@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { ChooseState } from '../range/fx/useChooseInDaw';
 import { Button } from '../../primitives/Button';
+import { IconButton } from '../../primitives/IconButton';
 import { HelpButton } from '../../primitives/HelpButton';
 
 /** How long without an answer before the panel says it cannot tell what is chosen, in milliseconds. */
@@ -78,9 +79,7 @@ export function ChooseInDaw({
         <Button size="sm" variant="secondary" disabled={busy} onClick={onCancel}>
           Cancel
         </Button>
-        <Button size="sm" variant="secondary" disabled={busy} onClick={onCheck}>
-          Check again
-        </Button>
+        <IconButton action="checkAgain" size="sm" pending={busy} onClick={onCheck} />
       </div>
     </div>
   );

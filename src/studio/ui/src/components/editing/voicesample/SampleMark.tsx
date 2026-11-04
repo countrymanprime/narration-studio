@@ -1,6 +1,6 @@
 import type { VoiceSample } from '../../../api/contracts/voiceSamples';
 import { NARRATION_CHARACTER_ID } from '../../../api/contracts/character';
-import { Button } from '../../primitives/Button';
+import { IconButton } from '../../primitives/IconButton';
 import { HIT_AREA } from '../../primitives/hitArea';
 import { Icon } from '../../primitives/Icon';
 import { Popover } from '../../primitives/Popover';
@@ -119,9 +119,7 @@ function SampleList({ samples }: { samples: readonly VoiceSample[] }) {
                 </div>
               ) : null}
               {entryThere ? (
-                <Button variant="secondary" size="sm" className="mt-1.5" onClick={() => ctx.onOpenStoryBible?.(sample.characterId)}>
-                  Open in Story Bible
-                </Button>
+                <IconButton action="openInStoryBible" size="sm" className="mt-1.5" onClick={() => ctx.onOpenStoryBible?.(sample.characterId)} />
               ) : null}
             </div>
           </li>

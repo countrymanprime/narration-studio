@@ -1,4 +1,4 @@
-import { Button } from '../../primitives/Button';
+import { IconButton } from '../../primitives/IconButton';
 import type { ChapterAudio } from './chapterSource';
 import { noAudioText } from './noAudioText';
 
@@ -23,9 +23,7 @@ export function NoAudioBanner({ audio, chapterName, daw, onReread }: { audio: Ch
       <span className="min-w-0 flex-[1_1_18rem] [overflow-wrap:anywhere]">
         <b>{text.headline}</b> {text.next}
       </span>
-      <Button variant="secondary" size="sm" onClick={onReread}>
-        Read again
-      </Button>
+      <IconButton action="retry" label="Read again" size="sm" onClick={onReread} />
     </div>
   );
 }

@@ -293,9 +293,12 @@ export function ReplaceDialog({ api, chapterId, firstToken, lastToken, text, wor
           <div className="min-w-[14rem] flex-1" ref={nameBox}>
             <Field label="Name another narrator" value={newName} onChange={setNewName} placeholder="Their name as the credits give it" />
           </div>
-          <Button type="button" variant="secondary" disabled={busy || !newName.trim()} onClick={() => void addNarrator()}>
-            Add
-          </Button>
+          <IconButton
+            action="add"
+            label="Add"
+            disabledReason={busy ? 'Adding the narrator' : !newName.trim() ? 'Type the narrator’s name first' : undefined}
+            onClick={() => void addNarrator()}
+          />
         </div>
         {file && file.state !== 'ok' ? (
           <p className="m-0 rounded-lg bg-[var(--warn-soft)] px-3 py-2.5 text-sm" data-replace-file-state>

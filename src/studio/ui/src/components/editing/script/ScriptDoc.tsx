@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, type MouseEvent } from 'react';
-import { Button } from '../../primitives/Button';
+import { IconButton } from '../../primitives/IconButton';
 import { ReaderColumn } from '../../primitives/ReaderColumn';
 import { DEFAULT_TEXT_PREFS, readerColumnWithGutter } from '../../script/page/tools/text/readerText';
 import { StatusBadge } from '../../primitives/StatusBadge';
@@ -116,11 +116,7 @@ export function ScriptDoc({ reason, explained = false, onCheckRecording, onParag
         <div className="flex flex-wrap items-center gap-3 px-4 py-2" id="notaligned">
           <StatusBadge tone="neutral" label="Not transcribed yet" />
           {reason ? <span className="text-sm text-[var(--text-muted)]">{reason}</span> : null}
-          {onCheckRecording ? (
-            <Button variant="secondary" size="sm" onClick={onCheckRecording}>
-              Check recordings…
-            </Button>
-          ) : null}
+          {onCheckRecording ? <IconButton action="checkRecordings" label="Check recordings…" size="sm" onClick={onCheckRecording} /> : null}
         </div>
       )}
       <div

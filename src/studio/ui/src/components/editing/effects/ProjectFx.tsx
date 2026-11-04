@@ -1,5 +1,5 @@
 import type { ProjectFxSlot } from '../../../api/contracts/workspace';
-import { Button } from '../../primitives/Button';
+import { IconButton } from '../../primitives/IconButton';
 import { HelpButton } from '../../primitives/HelpButton';
 import { SectionLabel } from '../../primitives/SectionLabel';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../primitives/Table';
@@ -38,9 +38,7 @@ export function ProjectFx({ state, dawName }: { state: ProjectFxState; dawName: 
           </SectionLabel>
           <HelpButton label="How to add an effect to words">{howToAdd(dawName)}</HelpButton>
         </span>
-        <Button variant="secondary" size="sm" onClick={checkAgain} disabled={reading}>
-          Check again
-        </Button>
+        <IconButton action="checkAgain" size="sm" pending={reading} onClick={checkAgain} />
       </div>
       {error ? (
         <p role="alert" className="m-0 text-[length:var(--font-size-sm)] text-[var(--danger-text)]">
