@@ -442,6 +442,30 @@ describe('Settings: editing', () => {
   });
 });
 
+describe('Settings: the checks that had no editor now have a row (issue 1867)', () => {
+  it('lists the empty-space limits under Recording & DAW and the render length tolerance under Delivery, each unset until chosen', async () => {
+    await renderPage();
+    pick('Recording & DAW');
+    for (const id of ['editing.maxGap', 'editing.headMax', 'editing.tailMax']) await waitFor(() => expect(row(id)).toBeTruthy());
+    pick('Delivery');
+    await waitFor(() => expect(row('proofing.renderTolerance')).toBeTruthy());
+  });
+
+  it('saves a limit for the computer, marks it Changed, and an emptied box puts it back to not checked', async () => {
+    const api = createMockApi();
+    const save = vi.spyOn(api, 'saveSettings');
+    await renderPage({ api });
+    pick('Recording & DAW');
+    const box = (await waitFor(() => within(row('editing.maxGap')).getByRole('textbox'))) as HTMLInputElement;
+    fireEvent.change(box, { target: { value: '3.5' } });
+    fireEvent.blur(box);
+    await waitFor(() => expect(save).toHaveBeenCalledWith('Editing', 'global', { max_gap_seconds: '3.5' }));
+    await waitFor(() => expect(within(row('editing.maxGap')).getByText('Changed')).toBeTruthy());
+    fireEvent.click(within(row('editing.maxGap')).getByRole('button', { name: /^Reset .* to / }));
+    await waitFor(() => expect(save).toHaveBeenLastCalledWith('Editing', 'global', { max_gap_seconds: null }));
+  });
+});
+
 describe('Settings: search and filters', () => {
   it('finds a setting by a word that is not in its name, across categories', async () => {
     await renderPage();

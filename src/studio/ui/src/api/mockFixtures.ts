@@ -693,6 +693,22 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
   ],
   // Editing.fx_cap_pct unset, so it reads as the default, 10 (tests/fixtures/contracts/settings-fx-cap.json); the Effects tab's cap.
   Editing: [
+    // The empty-space check's three limits are unset by default, and an unset limit is not checked (internal/editing).
+    ...(['max_gap_seconds', 'head_max_seconds', 'tail_max_seconds'] as const).map((key) => ({
+      key,
+      label: {
+        max_gap_seconds: "Maximum gap before it's flagged (empty space)",
+        head_max_seconds: 'Maximum leading silence (head)',
+        tail_max_seconds: 'Maximum trailing silence (tail)',
+      }[key],
+      kind: 'number' as const,
+      choices: [],
+      value: '',
+      isSet: false,
+      effectiveValue: '',
+      effectiveSource: 'hardcoded' as const,
+      number: { min: 0, max: null, step: 0.1, unit: 's' },
+    })),
     {
       key: 'fx_cap_pct',
       label: 'Most of a chapter effects may cover (%)',
@@ -703,6 +719,20 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
       effectiveValue: '10',
       effectiveSource: 'repo_default',
       number: { min: 1, max: 100, step: 1, unit: '%' },
+    },
+  ],
+  // Proofing.render_length_tolerance_seconds unset: the render length check is not required (no default is proposed until real renders are measured).
+  Proofing: [
+    {
+      key: 'render_length_tolerance_seconds',
+      label: 'Render length tolerance',
+      kind: 'number',
+      choices: [],
+      value: '',
+      isSet: false,
+      effectiveValue: '',
+      effectiveSource: 'hardcoded',
+      number: { min: 0, max: null, step: 0.1, unit: 's' },
     },
   ],
   // Booth.words_per_page unset, so it reads as the default, 250 (tests/fixtures/contracts/settings-words-per-page.json); the Booth's page size.
