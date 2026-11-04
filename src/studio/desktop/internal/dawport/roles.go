@@ -841,9 +841,13 @@ const (
 	ActionRestoreReplacement ActionKind = "restore_replacement"
 )
 
+// ActionUseTake is a take made the one that plays (Keep Take, Use this take): set_active_take on an item's takes, or a retake
+// lane picked to play. Both close their undo block with the same label, so one kind reaches either.
+const ActionUseTake ActionKind = "use_take"
+
 // Valid is whether k is a kind this build knows.
 func (k ActionKind) Valid() bool {
-	return k == ActionCutRange || k == ActionRecordTake || k == ActionReplaceRange || k == ActionRestoreReplacement
+	return k == ActionCutRange || k == ActionRecordTake || k == ActionReplaceRange || k == ActionRestoreReplacement || k == ActionUseTake
 }
 
 // ErrActionKind is an ActionKind this build does not know: nothing is read or undone.
