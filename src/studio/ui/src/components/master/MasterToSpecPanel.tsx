@@ -314,7 +314,8 @@ export function MasterToSpecPanel({
         <MasteringApprovalDialog
           plan={approving}
           pending={jobs.starting}
-          onApprove={(macro) => start({ provider: approving.provider, macro })}
+          // The approval binds the chain the dialog showed: its digest, as the plan answered it (#2932's review).
+          onApprove={(macro) => start({ provider: approving.provider, macro, ...(approving.chainDigest ? { chainDigest: approving.chainDigest } : {}) })}
           onCancel={() => setApproving(undefined)}
           returnFocus={focusFiles}
         />

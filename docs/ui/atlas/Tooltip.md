@@ -47,6 +47,7 @@ Storybook title: `Primitives/Tooltip`. Source: `src/components/primitives/Toolti
 - `src/components/layout/AppShell.tsx`
 - `src/components/layout/EngineChip.tsx`
 - `src/components/master/DiagnosticsSection.tsx`
+- `src/components/master/MasteringApprovalDialog.tsx`
 - `src/components/master/MasteringChain.tsx`
 - `src/components/primitives/ActivityPanel.tsx`
 - `src/components/primitives/CapabilityGate.tsx`

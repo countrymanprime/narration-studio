@@ -90,6 +90,7 @@ import { MOCK_REAPER_INPUT_SEEDS, MOCK_REAPER_SEEDS, mockLastReading } from './t
 import { deliveryQcEvidenceSchema, deliveryReportExportSchema, measureJobSchema, measurePickResultSchema } from './schemas/measure';
 import { exportJobSchema, exportPlanSchema, multiPackageJobSchema, packageFolderResultSchema, packageJobSchema } from './schemas/renderEncodeMaster';
 import { MOCK_EXPORT_ITEMS, MOCK_EXPORT_PATHS, createRenderEncodeMasterMock } from './renderEncodeMasterMock';
+import { isIgnorable, mockChainDigest, mockChainName } from './masteringMock';
 import { deliveryProfileSchema, deliveryProfilesStateSchema } from './schemas/deliveryProfiles';
 import { MOCK_ACX, evaluateMockFile, mockCustomProfile } from './deliveryProfilesMock';
 import { diagnosticsJobSchema } from './schemas/diagnostics';
@@ -231,7 +232,7 @@ import {
   audacityLinkSchema,
 } from './schemas/daw';
 import { providerCapabilitiesSchema } from './schemas/providers';
-import { masteringProvidersSchema } from './schemas/mastering';
+import { chainNamesSchema, masteringProvidersSchema } from './schemas/mastering';
 import { recorderDevicesResultSchema, recorderLevelSchema, recorderStateSchema } from './schemas/recording';
 import { projectStateChangedSchema, projectStateStartResultSchema, projectStateStateSchema } from './schemas/projectstate';
 import { retakeLanesListSchema, retakeLanesStartResultSchema, retakeLanesStateSchema } from './schemas/retakelanes';
@@ -2408,6 +2409,57 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const plan = await daw.exportPlan({ items: withRegions, master: true, format: 'mp3', approval: null });
     expectMatches(exportPlanSchema, plan, 'mock export plan, daw row');
     expect([plan.provider, plan.needsApproval, plan.needsMacro]).toEqual(['daw', true, false]);
+    // The chain the render runs, as dawChain.Chain answers it over masteringporttest's FakeDAW (#2932): each track with FX, then the master.
+    expect(plan.chain).toEqual([
+      { name: 'Voice', master: false, fx: [{ name: 'VST: ReaEQ (Cockos)', enabled: true }] },
+      { name: 'Master', master: true, fx: [{ name: 'VST: ReaLimit (Cockos)', enabled: true }] },
+    ]);
+    const cut = createMockApi({}, { mastering: { choice: 'daw', chain: 'unreadable' } });
+    await cut.exportPickFiles();
+    await expect(cut.exportPlan({ items: withRegions, master: true, format: 'mp3', approval: null })).rejects.toThrow(
+      /couldn't be read, so it can't be approved\. Choose the built-in chain, or untick Master before encoding\./,
+    );
+    const plainRow = createMockApi();
+    await plainRow.exportPickFiles();
+    expect((await plainRow.exportPlan({ items: withRegions, master: true, format: 'mp3', approval: null })).chain).toEqual([]);
+    // The digest binds the approval to the chain shown (#2932's review): the mock computes masteringport.ChainDigest's lines, pinned
+    // against the Go golden, and its start refuses an approval of the DAW row without one, as approvalFor does.
+    const golden = parseWire(exportPlanSchema, readGolden('export-plan-daw.json'), ctx('export plan golden'));
+    expect(await mockChainDigest(golden.chain)).toBe(golden.chainDigest);
+    // The mock cleans names exactly as chain.go does, over the host's own cases (qa round 2 on #2932, N5), and digests a chain with a
+    // missing list or name without throwing (N3).
+    const names = chainNamesSchema.parse(readGolden('chain-names.json'));
+    for (const { raw, track, fx } of names.cases) {
+      expect([mockChainName(raw, 'track'), mockChainName(raw, 'fx')], JSON.stringify(raw)).toEqual([track, fx]);
+    }
+    // The mock's \p{Default_Ignorable_Code_Point} is the host's derived set, code point for code point (round 4, N7).
+    const mockIgnorable: [number, number][] = [];
+    for (let point = 0; point <= 0x10ffff; point++) {
+      if (point >= 0xd800 && point <= 0xdfff) continue;
+      if (!isIgnorable(String.fromCodePoint(point))) continue;
+      const last = mockIgnorable.at(-1);
+      if (last && last[1] === point - 1) last[1] = point;
+      else mockIgnorable.push([point, point]);
+    }
+    expect(mockIgnorable).toEqual(names.ignorable);
+    // No default-ignorable character survives inside a name, as none survives in the host's (round 5, B1), except the Hangul
+    // fillers, which a font draws as a blank and are kept inside a name (round 6).
+    const fillers = new Set([0x115f, 0x1160, 0x3164, 0xffa0]);
+    for (const [first, last] of names.ignorable) {
+      for (let point = first; point <= last; point++) {
+        const char = String.fromCodePoint(point);
+        const inside = fillers.has(point) ? `E${char}Q` : 'EQ';
+        expect([mockChainName(`E${char}Q`, 'fx'), mockChainName(`${char}EQ${char}`, 'fx')], point.toString(16)).toEqual([inside, 'EQ']);
+      }
+    }
+    // Every cleaned name is NFC, as the host's are (round 6, qa B3).
+    for (const { raw } of names.cases) expect(mockChainName(raw, 'fx'), JSON.stringify(raw)).toBe(mockChainName(raw, 'fx').normalize('NFC'));
+    expect(await mockChainDigest([{ name: 'Voice', master: false, fx: null as never }])).toBe(
+      await mockChainDigest([{ name: 'Voice', master: false, fx: [] }]),
+    );
+    expect(await mockChainDigest([{ name: null as never, master: false, fx: [{ name: null as never, enabled: true }] }])).toMatch(/^sha256:/);
+    expect(plan.chainDigest).toBe(await mockChainDigest(plan.chain));
+    await expect(start(daw, { provider: 'daw', macro: '', chainDigest: '' })).rejects.toThrow(/does not say which FX chain you were shown/);
     expect(plan.items.map((item) => item.region)).toEqual(
       withRegions.map((item) => (item.kind === 'chapter' ? item.title : item.kind === 'credits_opening' ? 'Opening credits' : 'Closing credits')),
     );
@@ -2425,11 +2477,22 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       /you approved Audacity's effect macro, but this project now masters with Your DAW's FX chain/,
     );
     expect((await daw.exportState()).phase).toBe('idle');
-    let job = await start(daw, { provider: 'daw', macro: '' });
+    let job = await start(daw, { provider: 'daw', macro: '', chainDigest: plan.chainDigest });
     expectMatches(exportJobSchema, job, 'mock export, daw row approved');
     expect(job.provider).toBe('daw');
     while (job.phase === 'running') job = await daw.exportState();
     expect(job.files.every((file) => file.mastering === undefined)).toBe(true);
+    // An approval of another chain: the first render refuses it, so the export stops there naming the file, nothing prepared.
+    const other = createMockApi({}, { mastering: { choice: 'daw' } });
+    await other.exportPickFiles();
+    let stale = await start(other, { provider: 'daw', macro: '', chainDigest: `sha256:${'0'.repeat(64)}` });
+    while (stale.phase === 'running') stale = await other.exportState();
+    expectMatches(exportJobSchema, stale, 'mock export, daw row, chain changed since the approval');
+    expect([stale.phase, stale.message]).toEqual([
+      'error',
+      'Stopped at 00 Opening credits.wav: the FX chain in your DAW changed after you approved it: approve the render again. 0 of 4 files were prepared.',
+    ]);
+    expect(stale.files.map((file) => file.status)).toEqual(['failed', 'cancelled', 'cancelled', 'cancelled']);
 
     const audacity = createMockApi({}, { mastering: { choice: 'audacity' } });
     await audacity.exportPickFiles();
