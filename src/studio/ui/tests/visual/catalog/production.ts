@@ -216,6 +216,19 @@ export const productionStates: StateEntry[] = [
   },
   {
     page: 'production',
+    state: 'report-written',
+    description:
+      'Production, Export status report after Export: "Wrote <html> and <json> to <folder>" with the open-folder icon button at the end of the line, the amount note under it, and Done in place of Export',
+  },
+  {
+    page: 'production',
+    state: 'report-open-folder-failed',
+    ...TOAST_FADES_OUT,
+    description:
+      'Production, Export status report written, then the open-folder button pressed while the file manager refuses (?mockOpenFolder=fail): an error toast in the host words with Retry; Retry asks the host again and the toast returns',
+  },
+  {
+    page: 'production',
     state: 'recording-check-rules',
     description:
       "Production, the Recording check rules dialog opened from the jump menu: the note that the values are proposed, then the share of each paragraph, the missing and misread runs, the shortest match and the background switch, this project's values",

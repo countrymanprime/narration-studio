@@ -52,6 +52,8 @@ declare global {
     __NARRATION_MOCK_OVERRIDES__?: Parameters<typeof createMockApi>[0];
     __NARRATION_MOCK_DAW__?: DawMockControl;
     /** The mock microphone's side: unplug it mid-session (teleprompterMock.ts). */
+    /** The mock's side of the report dialog's open-folder button: how many times the host was asked (the real host opens the file manager and shows nothing). */
+    __NARRATION_MOCK_REPORTS__?: { folderOpens: number };
     __NARRATION_MOCK_TELEPROMPTER__?: { failListening: (message: string) => void };
   }
 }
@@ -232,6 +234,8 @@ const mockInvalidPayload = (['bootstrap', 'manuscript', 'storybible', 'productio
 const mockLiveDegraded = mockParams.has('mockLiveDegraded');
 // `?mockHoldEdits=1` makes every Story Bible edit hang, so the busy Save button can be seen without a host.
 const mockHoldEdits = mockParams.has('mockHoldEdits');
+// `?mockOpenFolder=fail` makes the Export status report dialog's open-folder button fail, so its error toast with Retry can be seen without a host.
+const mockOpenFolder = mockParams.get('mockOpenFolder') === 'fail' ? ('fail' as const) : undefined;
 // `?mockUpdate=available|found|downloading|download-fails|ready|install-blocked|install-refused|failed|current|development` boots the mock host in that update state ("Version 0.2.7 is available", "could not reach
 // GitHub", "up to date", a development build), so the About and updates page can be seen without GitHub. `found` also notifies at once.
 const mockUpdate = (
@@ -420,8 +424,9 @@ const mockRenderExportHold = mockParams.get('mockRenderExport') === 'running';
 // packages from).
 const mockPackageMultiHold = mockParams.get('mockPackageMulti') === 'running';
 // `?mockMastering=daw|audacity` boots the project with that mastering row chosen, so Master & encode asks the narrator's approval
-// for the render (#2739) without choosing the row on the chain card first.
-const mockMastering = (['daw', 'audacity'] as const).find((seed) => seed === mockParams.get('mockMastering'));
+// for the render (#2739) without choosing the row on the chain card first. `no-audacity` boots it with the Audacity row not
+// available on this computer, so the chain card draws a row it cannot choose.
+const mockMastering = (['daw', 'audacity', 'no-audacity'] as const).find((seed) => seed === mockParams.get('mockMastering'));
 // `?mockExportPick=many|long` makes Master & QC's export picker choose a 40-chapter book, or files with very long names, so the
 // approval dialog's capped list can be seen full.
 const mockExportPick = (['many', 'long'] as const).find((seed) => seed === mockParams.get('mockExportPick'));
@@ -481,7 +486,11 @@ const mockInitial = {
   ...(mockDelivery ? { measure: 'delivery-ready' as const, renderExport: mockDelivery } : {}),
   ...(mockRenderExportHold ? { renderExport: 'hold' as const } : {}),
   ...(mockPackageMultiHold ? { renderPackageMulti: 'hold' as const } : {}),
-  ...(mockMastering ? { mastering: { choice: mockMastering } } : {}),
+  ...(mockMastering === 'no-audacity'
+    ? { mastering: { unavailable: { audacity: "Audacity's effect macro is not available on this computer." } } }
+    : mockMastering
+      ? { mastering: { choice: mockMastering } }
+      : {}),
   ...(mockExportPick ? { renderExportPick: mockExportPick } : {}),
   ...(mockDeliveryProfile ? { deliveryProfile: mockDeliveryProfile } : {}),
   ...(mockProduction ? { production: scenarioFromToday(mockProduction) } : {}),
@@ -513,6 +522,7 @@ const mockInitial = {
   ...(mockProfileRead ? { profileRead: mockProfileRead } : {}),
   ...(mockPlan ? { planRead: mockPlan } : {}),
   ...(mockHold.length > 0 ? { held: mockHold } : {}),
+  ...(mockOpenFolder ? { openFolder: mockOpenFolder } : {}),
   ...(mockSettings ? { settings: mockSettings } : {}),
   ...(mockVoiceSamples ? { voiceSamples: mockVoiceSamples } : {}),
   ...(mockDictionary ? { dictionary: mockDictionary } : {}),

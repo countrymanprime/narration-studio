@@ -4,6 +4,7 @@ import {
   productionOverviewSchema,
   productionPlanSchema,
   productionReportExportSchema,
+  reportsFolderResultSchema,
   productionReportPreviewSchema,
   productionStartResultSchema,
   productionStopResultSchema,
@@ -28,6 +29,8 @@ export const productionGoldens: Record<string, z.ZodType> = {
   'production-timer-stop-none.json': productionStopResultSchema,
   // The status report export (ProductionStatusReport).
   'production-status-report.json': productionReportExportSchema,
+  // ProductionOpenReportsFolder: the folder it showed.
+  'production-open-reports-folder.json': reportsFolderResultSchema,
   // SN-P621: the preview of that report (ProductionStatusReportPreview).
   'production-status-report-preview.json': productionReportPreviewSchema,
 };

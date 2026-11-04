@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { BoothVoice, VoiceTrackAssignment, VoiceTracksState } from '../contracts/voiceTracks';
+import type { BoothVoice, BoothVoiceAdded, BoothVoiceTrack, VoiceTrackAssignment, VoiceTracksState } from '../contracts/voiceTracks';
 
 // The host's limits (src/studio/desktop/internal/voicetracks): a track name and an id are at most 120 characters.
 const name = z.string().min(1).max(120);
@@ -19,30 +19,44 @@ export const voiceTracksStateSchema = z
   })
   .strict() satisfies z.ZodType<VoiceTracksState>;
 
-/** `BoothVoiceSet` (src/studio/desktop/bindings_booth_voice.go). */
+const boothVoiceTrackSchema = z.object({ guid: z.string().min(1), name: z.string() }).strict() satisfies z.ZodType<BoothVoiceTrack>;
+
+const BOOTH_VOICE_REASONS = [
+  'flat',
+  'not_a_voice',
+  'no_voices',
+  'unlinked',
+  'several_links',
+  'track_missing',
+  'standalone',
+  'not_running',
+  'failed',
+  'unsupported',
+  'timeout',
+  'not_our_recording',
+  'already_recording',
+  'playing',
+] as const;
+
+/** `BoothVoiceSet` and `BoothVoiceGet` (src/studio/desktop/bindings_booth_voice.go). */
 export const boothVoiceSchema = z
   .object({
     outcome: z.enum(['selected', 'switched', 'refused']),
-    reason: z
-      .enum([
-        'flat',
-        'not_a_voice',
-        'no_voices',
-        'unlinked',
-        'several_links',
-        'track_missing',
-        'standalone',
-        'not_running',
-        'failed',
-        'unsupported',
-        'timeout',
-        'not_our_recording',
-        'already_recording',
-        'playing',
-      ])
-      .optional(),
+    reason: z.enum(BOOTH_VOICE_REASONS).optional(),
     message: z.string().optional(),
     trackGuid: z.string().optional(),
     at: z.number().nonnegative().optional(),
+    added: z.array(boothVoiceTrackSchema).optional(),
   })
   .strict() satisfies z.ZodType<BoothVoice>;
+
+/** `BoothVoiceAdd` (src/studio/desktop/boothvoiceadd.go). */
+export const boothVoiceAddedSchema = z
+  .object({
+    outcome: z.enum(['added', 'refused']),
+    reason: z.enum([...BOOTH_VOICE_REASONS, 'no_name', 'name_taken', 'invalid', 'recording']).optional(),
+    message: z.string().optional(),
+    trackGuid: z.string().min(1).optional(),
+    name: z.string().optional(),
+  })
+  .strict() satisfies z.ZodType<BoothVoiceAdded>;

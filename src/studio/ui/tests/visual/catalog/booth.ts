@@ -22,8 +22,22 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'voices-list',
     description:
-      "Booth's voice list open from the voice control (?mockVoiceFolders=1, Num . or a press): a search box over the folder's voices in REAPER's order with their keys, Narrator (checked, the voice the take records on), White Rabbit (its character by name) and Extras (Hatter and Cheshire Cat, assigned)",
+      "Booth's voice list open from the voice control (?mockVoiceFolders=1, Num . or a press): a search box over the folder's voices in REAPER's order with their keys, Narrator (checked, the voice the take records on), White Rabbit (its character by name) and Extras (Hatter and Cheshire Cat, assigned), then under No track the chapter's speakers no voice records, each with its lines (#2839)",
     ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'voices-who-is-in',
+    description:
+      "Booth's \"Who is in Num 7?\" (?mockVoiceFolders=1, Num 7 pressed with three voices, #2839): how to record them (A new track, its key Num 3; An existing track; The Narrator, this time, Num 0), the chapter's characters with their lines or their key and the speakers with no track ticked, the rest of the book in its own capped group, and the track name (the one character's, or Extras); Cancel and Add track",
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'voices-who-records',
+    description:
+      'Booth\'s "Who records …?" for a character with no track (?mockVoiceFolders=1, a "No track" row picked in the voice list while stopped): the same three answers for that one character, the new track named after it; Cancel and Add track',
     ...REFLOW,
   },
   {

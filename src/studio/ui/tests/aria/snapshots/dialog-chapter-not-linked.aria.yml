@@ -4,8 +4,6 @@
 - status
 - alert
 - status
-- alert
-- status
 - 'dialog "Chapter 1: Down the Rabbit-Hole is not linked to a track"':
   - 'heading "Chapter 1: Down the Rabbit-Hole is not linked to a track" [level=2]'
   - button "Close"
