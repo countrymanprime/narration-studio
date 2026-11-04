@@ -41,7 +41,7 @@
     "markdown-it": "15.0.3",
     "markdownlint-cli2": "0.24.0",
     "mermaid": "^12.2.0",
-    "nx": "^23.3.0",
+    "nx": "^24.0.2",
     "pyright": "1.1.414"
   }
 }

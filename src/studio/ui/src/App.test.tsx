@@ -1260,7 +1260,8 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     renderApp({}, { projectFolder: '' });
     await screen.findByRole('heading', { level: 1, name: 'Choose your project' });
 
-    fireEvent.click(screen.getByRole('button', { name: 'New project' }));
+    // The header's New project is there at once; the empty state adds a second one when the host's project list comes back empty. Either opens the same dialog, so take the first rather than race the list.
+    fireEvent.click((await screen.findAllByRole('button', { name: 'New project' }))[0]);
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Fresh Book' } });
     fireEvent.click(screen.getByRole('button', { name: 'Create' }));
 
