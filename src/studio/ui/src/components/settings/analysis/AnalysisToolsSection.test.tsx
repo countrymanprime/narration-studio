@@ -217,7 +217,7 @@ describe('AnalysisToolsSection', () => {
     await download('booknlp-small', 'BookNLP (small)');
     const booknlp = await row('booknlp-small');
     await waitFor(() => expect(booknlp.getAttribute('data-status')).toBe('failed'), SLOW);
-    expect(toast).toHaveBeenCalledWith(sentence, expect.objectContaining({ tone: 'error' }));
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(sentence, expect.objectContaining({ tone: 'error' })));
     expect(booknlp.querySelector('[role=alert]'), 'nothing in the row').toBeNull();
     const details = booknlp.querySelector<HTMLDetailsElement>('[data-comp-error-detail]')!;
     expect(details.open).toBe(false);
