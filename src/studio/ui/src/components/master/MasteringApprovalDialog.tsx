@@ -11,10 +11,9 @@ import { Tooltip } from '../primitives/Tooltip';
 import { fileName } from './useExportJobs';
 
 const CHAIN_LABEL = 'FX chain this render runs';
+const MUTED = { color: 'var(--text-muted)' };
 /** What the digest binds, and what it does not (#2932's review): a hint, not a sentence in the dialog. */
 const CHAIN_SCOPE = 'Covers effect names, on/off and order, not their settings, routing or mute';
-/** Why Approve waits at a window too small to show the chain under the question (qa round 2 on #2932, N4). */
-const CHAIN_UNSEEN = 'Scroll to the FX chain first';
 
 /** "N effects on M tracks and the master": what the list holds, said on screen before it scrolls (#2932's walkthrough). */
 function chainCount(chain: ExportPlan['chain']): string {
@@ -29,7 +28,7 @@ function chainCount(chain: ExportPlan['chain']): string {
 }
 
 /** chain.go's blankLooking: letters and symbols that draw nothing (the Hangul fillers, the braille blank). */
-const BLANK_LOOKING = new Set([0x115f, 0x1160, 0x3164, 0xffa0, 0x2800]);
+const BLANK_LOOKING = new Set([0x115f, 0x1160, 0x3164, 0xffa0, 0x2800, 0xfffc, 0x1d159]);
 
 /**
  * A name from the narrator's project as the dialog draws it: a format or control character (a bidirectional override, a zero-width
@@ -49,38 +48,35 @@ function visibleName(raw: string | null | undefined, blank: string): string {
  * track with FX top to bottom and then the master, which carries a Master badge from its flag (a track the narrator named "Master"
  * is plain text). A bypassed plug-in has an Off badge. Capped to its own scroll; with no FX anywhere one row says so.
  */
-function ChainList({ chain, onSeen }: { chain: ExportPlan['chain'] | null | undefined; onSeen: () => void }) {
+function ChainList({ chain, onOutOfView }: { chain: ExportPlan['chain'] | null | undefined; onOutOfView: () => void }) {
   const tracks = chain ?? [];
   const rows = tracks.flatMap((track) => (track.fx ?? []).map((fx) => ({ master: track.master, track: track.name, fx })));
-  // The first row, wholly in view at least once, counts as the chain seen: at 320x300 it is below the dialog's visible body while
-  // Approve is pinned, so Approve waits for it (qa round 2 on #2932, N4). Without IntersectionObserver (jsdom) it counts as seen.
+  // Whether the chain's first row is in view as the dialog opens. At a small window (320x300, or 400% zoom) it is below the
+  // dialog's visible body while Approve is in view, so a pointer beside Approve says so (round 3 on #2932: Approve is never held,
+  // since at 400% zoom the body can be 0 px tall and a held Approve would be a dead end). The row is watched, not the number in it,
+  // so a tall first row counts once any of it shows (M5). Without IntersectionObserver (jsdom) nothing is reported.
   const first = useRef<HTMLSpanElement>(null);
-  const seen = useRef(onSeen);
-  seen.current = onSeen;
+  const report = useRef(onOutOfView);
+  report.current = onOutOfView;
   useEffect(() => {
-    const target = first.current;
-    if (!target || typeof IntersectionObserver === 'undefined') {
-      seen.current();
-      return;
-    }
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting && entry.intersectionRatio >= 0.99)) {
-          seen.current();
-          observer.disconnect();
-        }
-      },
-      { threshold: [0.99, 1] },
-    );
-    observer.observe(target);
+    const row = first.current?.closest('tr');
+    if (!row || typeof IntersectionObserver === 'undefined') return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => !entry.isIntersecting)) report.current();
+      observer.disconnect();
+    });
+    observer.observe(row);
     return () => observer.disconnect();
   }, []);
   return (
     <div data-decision-critical="">
-      <div className="mt-2 flex items-center gap-2">
-        <SectionLabel as="p">{chainCount(tracks)}</SectionLabel>
-        <Tooltip label="What this approval covers" text={CHAIN_SCOPE} />
-      </div>
+      {/* The "i" follows the count's last word, so it stays beside the text when the line wraps (round 3 ux). */}
+      <SectionLabel as="p" className="mt-2">
+        {chainCount(tracks)}{' '}
+        <span className="inline-flex align-middle normal-case">
+          <Tooltip label="What this approval covers" text={CHAIN_SCOPE} />
+        </span>
+      </SectionLabel>
       <Panel flush scroll label={CHAIN_LABEL} className="mt-1 max-h-[min(20rem,45vh)]">
         <Table label={CHAIN_LABEL} columns={['3rem', 'minmax(0,1fr)', 'minmax(0,1.5fr)']}>
           <TableHead>
@@ -119,7 +115,7 @@ function ChainList({ chain, onSeen }: { chain: ExportPlan['chain'] | null | unde
                     )}
                   </TableCell>
                   <TableCell className="break-words">
-                    <bdi>{visibleName(fx.name, '(unnamed)')}</bdi>
+                    <bdi style={fx.enabled ? undefined : MUTED}>{visibleName(fx.name, '(unnamed)')}</bdi>
                     {!fx.enabled && (
                       <>
                         {' '}
@@ -169,8 +165,18 @@ export function MasteringApprovalDialog({
 }) {
   const [macro, setMacro] = useState(plan.needsMacro ? lastMacro : '');
   const [problem, setProblem] = useState<string>();
-  // A DAW row's Approve waits until its chain has been in view (ChainList's first row); any other row has no chain to see.
-  const [chainSeen, setChainSeen] = useState(plan.provider !== 'daw');
+  // Whether the chain was out of view as the dialog opened: then a pointer beside Approve names it and scrolls to it.
+  const [chainBelow, setChainBelow] = useState(false);
+  const chainRef = useRef<HTMLDivElement>(null);
+  const effects = (plan.chain ?? []).reduce((sum, track) => sum + (track.fx ?? []).length, 0);
+  const off = (plan.chain ?? []).reduce((sum, track) => sum + (track.fx ?? []).filter((fx) => !fx.enabled).length, 0);
+  // The pointer beside Approve: how many effects are above, and how many of them are off (round 3 walkthrough).
+  const pointer: { secondary: () => void; secondaryLabel: string } | { secondary?: undefined; secondaryLabel?: undefined } = chainBelow
+    ? {
+        secondaryLabel: `See the ${effects} ${effects === 1 ? 'effect' : 'effects'} above${off > 0 ? `, ${off} switched off` : ''}`,
+        secondary: () => chainRef.current?.scrollIntoView({ block: 'start' }),
+      }
+    : {};
   const regions = plan.items.some((item) => item.region !== '');
   const count = plan.items.length === 1 ? '1 file' : `${plan.items.length} files`;
   const listLabel = regions ? 'Files and the regions they render' : 'Files to master';
@@ -197,12 +203,16 @@ export function MasteringApprovalDialog({
       confirm={approve}
       cancel={onCancel}
       pending={pending}
-      confirmBlockedReason={chainSeen ? undefined : CHAIN_UNSEEN}
+      {...pointer}
       focusCancel
       returnFocus={returnFocus}
     >
       {/* The chain first: it is what the narrator approves, so it is in view under the question at 360x500 (qa on #2932, B1). */}
-      {plan.provider === 'daw' && <ChainList chain={plan.chain} onSeen={() => setChainSeen(true)} />}
+      {plan.provider === 'daw' && (
+        <div ref={chainRef}>
+          <ChainList chain={plan.chain} onOutOfView={() => setChainBelow(true)} />
+        </div>
+      )}
       <Panel flush scroll label={listLabel} className="mt-2 max-h-[14rem]">
         <Table label={listLabel} columns={regions ? ['minmax(0,1fr)', 'minmax(0,1fr)'] : ['minmax(0,1fr)']}>
           <TableHead>

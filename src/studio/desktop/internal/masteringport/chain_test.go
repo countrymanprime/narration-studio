@@ -211,7 +211,7 @@ func TestTheDAWRowsPerRenderChainReadIsBounded(t *testing.T) {
 	useSession(t, func() (masteringport.Session, error) { return daw.Session(), nil })
 	digest := shownDigest(t)
 	daw.ChainNeverAnswers()
-	t.Cleanup(masteringport.SetRenderChainWait(50 * time.Millisecond))
+	t.Cleanup(masteringport.UseRenderChainWait(50 * time.Millisecond))
 	done := make(chan error, 1)
 	go func() {
 		_, err := dawRow(t).Master(context.Background(), masteringport.Request{Region: "Chapter 1", Destination: filepath.Join(project, "out.wav"),
@@ -220,14 +220,50 @@ func TestTheDAWRowsPerRenderChainReadIsBounded(t *testing.T) {
 	}()
 	select {
 	case err := <-done:
-		if !errors.Is(err, context.DeadlineExceeded) {
-			t.Fatalf("err = %v, want the read's deadline", err)
+		// A plain sentence, not "context deadline exceeded" (round 3 Go review), and still the deadline underneath.
+		if !errors.Is(err, masteringport.ErrChainNoAnswer) || !errors.Is(err, context.DeadlineExceeded) {
+			t.Fatalf("err = %v, want ErrChainNoAnswer over the read's deadline", err)
+		}
+		if err.Error() != masteringport.ErrChainNoAnswer.Error() {
+			t.Fatalf("message = %q", err)
 		}
 	case <-time.After(5 * time.Second):
 		t.Fatal("the master waited on a chain read that never answers")
 	}
 	if renders := daw.Renders(); len(renders) != 0 {
 		t.Fatalf("rendered without the chain read: %+v", renders)
+	}
+}
+
+// The narrator's Cancel during that read is a cancel, not a DAW that did not answer (round 3 Go review).
+func TestACancelDuringThePerRenderChainReadIsACancel(t *testing.T) {
+	project := t.TempDir()
+	daw := masteringporttest.NewFakeDAW(project)
+	useSession(t, func() (masteringport.Session, error) { return daw.Session(), nil })
+	digest := shownDigest(t)
+	daw.ChainNeverAnswers()
+	ctx, cancel := context.WithCancel(context.Background())
+	time.AfterFunc(30*time.Millisecond, cancel)
+	_, err := dawRow(t).Master(ctx, masteringport.Request{Region: "Chapter 1", Destination: filepath.Join(project, "out.wav"),
+		Profile: deliveryprofile.ACX(), Approved: true, ChainDigest: digest})
+	if !errors.Is(err, context.Canceled) || errors.Is(err, masteringport.ErrChainNoAnswer) {
+		t.Fatalf("err = %v, want the cancel", err)
+	}
+}
+
+// A rename in REAPER that only adds blank-looking characters at a name's ends changes nothing the narrator can see, so it keeps the
+// digest (round 3, M3).
+func TestABlankOnlyRenameKeepsTheDigest(t *testing.T) {
+	daw := masteringporttest.NewFakeDAW(t.TempDir())
+	useSession(t, func() (masteringport.Session, error) { return daw.Session(), nil })
+	chain := func(name string) dawport.MasterChain {
+		return dawport.MasterChain{Tracks: []dawport.TrackFX{{TrackGUID: "{1}", Name: "Voice", FX: []dawport.FXSlot{{Name: name, Enabled: true}}}}}
+	}
+	daw.SetChain(chain("EQ"), nil)
+	plain := shownDigest(t)
+	daw.SetChain(chain("\u2800EQ\u3164"), nil)
+	if shownDigest(t) != plain {
+		t.Fatal("a blank-only rename changed the digest")
 	}
 }
 

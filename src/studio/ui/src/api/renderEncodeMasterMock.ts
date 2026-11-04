@@ -351,7 +351,7 @@ export function createRenderEncodeMasterMock(
     const none = planned.filter((item) => regionsOnly && item.region === '').map((item) => baseName(item.path));
     if (none.length > 0)
       throw new Error(
-        `${row.label} masters the regions your DAW renders, and ${none.join(', ')} has no region: remove it from this export, or untick Master before encoding to encode it without mastering`,
+        `${row.label} masters the regions your DAW renders, and ${none.join(', ')} has no region: remove it from this export, or untick Master before encoding to encode it without mastering.`,
       );
     return { ...plan, provider: row.name, label: row.label, needsApproval: row.needsApproval, needsMacro: row.needsMacro, items: planned };
   };

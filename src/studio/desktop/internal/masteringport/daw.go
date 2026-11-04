@@ -145,6 +145,10 @@ func (dawChain) Master(ctx context.Context, req Request) (Result, error) {
 	chain, err := reader.ReadMasterChain(readCtx)
 	cancelRead()
 	if err != nil {
+		// The narrator's Cancel stays a cancel; only the read's own bound running out is REAPER not answering (round 3 Go review).
+		if ctx.Err() == nil && errors.Is(err, context.DeadlineExceeded) {
+			return Result{}, chainNoAnswer{cause: err}
+		}
 		return Result{}, err
 	}
 	// The chain this render runs is read here anyway, for the report: it must be the one approved, or nothing renders.
@@ -349,8 +353,15 @@ func placeNew(file, dest string) error {
 
 var _ ChainLister = dawChain{}
 
-// renderChainWait bounds the chain read each DAW master makes before it renders (a var so a test can shorten it).
+// renderChainWait bounds the chain read each DAW master makes before it renders.
 var renderChainWait = 10 * time.Second
+
+// UseRenderChainWait sets renderChainWait, for a test that must not wait the whole bound; it returns the restore.
+func UseRenderChainWait(wait time.Duration) (restore func()) {
+	previous := renderChainWait
+	renderChainWait = wait
+	return func() { renderChainWait = previous }
+}
 
 // Chain lists the FX a render would run now, through the DAW port's master_chain_read: each track with FX in order, then the
 // master. A chain the DAW cannot list whole, or no DAW, is an error, so the narrator never approves a chain they were not shown.

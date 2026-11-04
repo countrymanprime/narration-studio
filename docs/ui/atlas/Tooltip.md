@@ -50,7 +50,6 @@ Storybook title: `Primitives/Tooltip`. Source: `src/components/primitives/Toolti
 - `src/components/primitives/ActivityPanel.tsx`
 - `src/components/primitives/CapabilityGate.tsx`
 - `src/components/primitives/ChapterStepper.tsx`
-- `src/components/primitives/ConfirmDialog.tsx`
 - `src/components/primitives/ContextMenu.tsx`
 - `src/components/primitives/IconButton.tsx`
 - `src/components/primitives/NavButton.tsx`

@@ -64,27 +64,31 @@ export type MasteringMockSeed = {
 const CHAIN_UNREADABLE = "Your DAW's FX chain couldn't be read, so it can't be approved. Choose the built-in chain, or untick Master before encoding.";
 
 /** chain.go's blankLooking: letters and symbols that draw nothing (the Hangul fillers, the braille blank). */
-const BLANK_LOOKING = new Set([0x115f, 0x1160, 0x3164, 0xffa0, 0x2800]);
+const BLANK_LOOKING = new Set([0x115f, 0x1160, 0x3164, 0xffa0, 0x2800, 0xfffc, 0x1d159]);
 /** chain.go's maxChainName. */
 const MAX_CHAIN_NAME = 120;
 
+const isBlankLooking = (char: string): boolean => BLANK_LOOKING.has(char.codePointAt(0)!) || /\s/u.test(char);
+
 /**
  * chain.go's chainName, then trackName or chainFX's blank rule: format characters dropped, control characters spaced, spaces
- * collapsed, at most 120 code points (an ellipsis marks a cut), and a name with no readable letter, number, punctuation or symbol is
- * "Track" for a track and "(unnamed)" for a plug-in. Pinned to the host by chain-names.json.
+ * collapsed, blank-looking characters trimmed at either end, a name with no readable letter, number, punctuation or symbol (judged
+ * before any cut) is "Track" for a track and "(unnamed)" for a plug-in, and at most 120 code points (an ellipsis marks a cut). Pinned
+ * to the host by chain-names.json.
  */
 export function mockChainName(raw: string | null | undefined, kind: 'track' | 'fx'): string {
   const spaced = (raw ?? '').replace(/\p{Cf}/gu, '').replace(/[\p{Cc}\uFFFD]/gu, ' ');
-  let clean = spaced.split(/\s+/u).filter(Boolean).join(' ');
-  const points = [...clean];
-  if (points.length > MAX_CHAIN_NAME)
-    clean = `${points
-      .slice(0, MAX_CHAIN_NAME - 1)
-      .join('')
-      .trim()}…`;
-  const readable = [...clean].some((char) => /[\p{L}\p{N}\p{P}\p{S}]/u.test(char) && !BLANK_LOOKING.has(char.codePointAt(0)!));
-  if (readable) return clean;
-  return kind === 'track' ? 'Track' : '(unnamed)';
+  const points = [...spaced.split(/\s+/u).filter(Boolean).join(' ')];
+  while (points.length > 0 && isBlankLooking(points[0]!)) points.shift();
+  while (points.length > 0 && isBlankLooking(points.at(-1)!)) points.pop();
+  const readable = points.some((char) => /[\p{L}\p{N}\p{P}\p{S}]/u.test(char) && !BLANK_LOOKING.has(char.codePointAt(0)!));
+  if (!readable) return kind === 'track' ? 'Track' : '(unnamed)';
+  return points.length > MAX_CHAIN_NAME
+    ? `${points
+        .slice(0, MAX_CHAIN_NAME - 1)
+        .join('')
+        .trim()}…`
+    : points.join('');
 }
 
 /** The chain as dawChain.Chain lists it: every name cleaned as the host cleans it. */

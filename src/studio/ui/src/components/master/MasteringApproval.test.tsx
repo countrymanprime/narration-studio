@@ -105,7 +105,7 @@ describe('Master & encode with a row that makes the DAW render (#2739)', () => {
     const { exportStart } = await mount('daw', { keepSample: true });
     await press('Master & encode');
     // It says how to encode without mastering: untick the checkbox (round 2 walkthrough 3 on #2932).
-    await findToast('Retail sample.wav has no region: remove it from this export, or untick Master before encoding to encode it without mastering');
+    await findToast('Retail sample.wav has no region: remove it from this export, or untick Master before encoding to encode it without mastering.');
     expect(screen.queryByRole('alertdialog')).toBeNull();
     expect(exportStart).not.toHaveBeenCalled();
   });
@@ -355,6 +355,8 @@ describe('the approval shows the DAW chain it approves (#2932)', () => {
     const row = off[0]!.closest('tr, [role="row"]') as HTMLElement;
     expect(row.textContent).toContain('JS: De-esser');
     expect(within(row).getByText('Off, bypassed: will not run').className).toContain('sr-only');
+    // Its name is dimmed too, not only marked by the small badge (round 3 walkthrough).
+    expect(within(row).getByText('JS: De-esser').getAttribute('style')).toContain('var(--text-muted)');
   });
 
   it('names the master row from its master flag, never from the name the DAW sent', async () => {
@@ -492,16 +494,16 @@ describe('the approval shows the DAW chain it approves (#2932)', () => {
     expect(about.getAttribute('aria-description')).toBe('Covers effect names, on/off and order, not their settings, routing or mute');
   });
 
-  // qa round 2, N4: at a small window the chain is below the visible body while Approve is pinned in view. Approve waits until the
-  // chain's first row has been fully in view, and says why.
-  it('Approve waits until the chain has been in view, with its reason, then sends the approval', async () => {
-    const observed: { callback: IntersectionObserverCallback; target?: Element }[] = [];
+  // A fake IntersectionObserver whose first answer says whether the watched element is in view.
+  const observeAs = (inView: boolean) => {
+    const watched: Element[] = [];
     class FakeObserver {
-      constructor(callback: IntersectionObserverCallback) {
-        observed.push({ callback });
-      }
+      constructor(private readonly callback: IntersectionObserverCallback) {}
       observe(target: Element) {
-        observed[observed.length - 1]!.target = target;
+        watched.push(target);
+        queueMicrotask(() =>
+          this.callback([{ isIntersecting: inView, intersectionRatio: inView ? 1 : 0, target } as IntersectionObserverEntry], this as never),
+        );
       }
       disconnect() {}
       unobserve() {}
@@ -510,20 +512,57 @@ describe('the approval shows the DAW chain it approves (#2932)', () => {
       }
     }
     vi.stubGlobal('IntersectionObserver', FakeObserver);
+    return watched;
+  };
+
+  // Round 3 decision (option B): Approve is never held. When the chain is not in view as the dialog opens (a small window), a button
+  // beside Approve says how many effects the chain holds and scrolls to it; it watches the first row, not the number in it (M5).
+  it('when the chain is out of view on open, a pointer beside Approve says so and scrolls to it, and Approve stays usable', async () => {
+    const watched = observeAs(false);
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
     try {
       const { exportStart } = await mount('daw');
       await openDialog();
-      const approve = within(dialog()).getByRole('button', { name: 'Approve and master' });
-      expect(approve).toHaveProperty('disabled', true);
-      expect(within(dialog()).getByRole('group', { name: 'Scroll to the FX chain first' })).toBeTruthy();
-      const seen = observed.at(-1)!;
-      expect(seen.target?.closest('table')?.getAttribute('aria-label')).toBe('FX chain this render runs');
-      act(() => seen.callback([{ isIntersecting: true, intersectionRatio: 1, target: seen.target! } as IntersectionObserverEntry], {} as IntersectionObserver));
+      expect(watched.at(-1)?.tagName).toBe('TR');
+      const pointer = await within(dialog()).findByRole('button', { name: 'See the 2 effects above' });
+      expect(within(dialog()).getByRole('button', { name: 'Approve and master' })).toHaveProperty('disabled', false);
+      await userEvent.click(pointer);
+      expect(scrollIntoView).toHaveBeenCalled();
+      expect(screen.getByRole('alertdialog')).toBeTruthy();
       await pressInDialog('Approve and master');
       await waitFor(() => expect(exportStart).toHaveBeenCalledTimes(1));
     } finally {
       vi.unstubAllGlobals();
     }
+  });
+
+  it('the pointer counts the switched-off effects above too (round 3 walkthrough)', async () => {
+    observeAs(false);
+    try {
+      await mount('daw', { chain: 'long' });
+      await openDialog();
+      expect(await within(dialog()).findByRole('button', { name: 'See the 23 effects above, 1 switched off' })).toBeTruthy();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('when the chain is in view on open, there is no pointer', async () => {
+    observeAs(true);
+    try {
+      await mount('daw');
+      await openDialog();
+      await act(async () => undefined);
+      expect(within(dialog()).queryByRole('button', { name: /^See the \d+ effects? above/ })).toBeNull();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('the object replacement character and the musical null notehead are (unnamed) too (round 3, M2)', async () => {
+    await withChain([{ name: 'Voice', master: false, fx: ['\ufffc', '\u{1D159}'].map((name) => ({ name, enabled: true })) }]);
+    expect(rowsOf(chainTable()).map((row) => row[2])).toEqual(['(unnamed)', '(unnamed)']);
   });
 
   it("Audacity's macro has no DAW chain to show", async () => {

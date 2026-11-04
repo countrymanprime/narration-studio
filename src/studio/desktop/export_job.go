@@ -438,7 +438,9 @@ func (h *Host) runExport(
 			if ctx.Err() != nil {
 				return
 			}
-			if errors.Is(err, masteringport.ErrChainChanged) || errors.Is(err, masteringport.ErrNoChainDigest) {
+			// A chain the narrator did not approve, or a REAPER that does not answer the read, would refuse every later file the same
+			// way (and, for the read, after the same wait): the export stops at this file.
+			if errors.Is(err, masteringport.ErrChainChanged) || errors.Is(err, masteringport.ErrNoChainDigest) || errors.Is(err, masteringport.ErrChainNoAnswer) {
 				job.stop(index, err)
 				return
 			}

@@ -69,7 +69,7 @@ td{border-top:1px solid var(--line);padding:6px 10px}
   <div class="box chain"><table><thead><tr><th>#</th><th>Track</th><th>Effect</th></tr></thead><tbody>
     <tr><td class="num">1</td><td>Narration</td><td>VST3: Pro-Q 3 (FabFilter)</td></tr><tr><td class="num">2</td><td>Narration</td><td>VST: ReaComp (Cockos)</td></tr>
     <tr><td class="num">6</td><td>Alice</td><td>VST3: Pro-Q 3 (FabFilter)</td></tr>
-    <tr><td class="num">8</td><td>Alice</td><td>JS: De-esser <span class="pill">Off</span></td></tr>
+    <tr><td class="num">8</td><td>Alice</td><td><span style="color:var(--muted)">JS: De-esser</span> <span class="pill">Off</span></td></tr>
     <tr><td class="num">21</td><td><span class="pill master">Master</span></td><td>VST3: Pro-Q 3 (FabFilter)</td></tr>
   </tbody></table></div>
   <div class="actions"><button class="btn">Cancel</button><button class="btn primary">Approve and master</button></div>
@@ -80,9 +80,9 @@ td{border-top:1px solid var(--line);padding:6px 10px}
 <div class="dialog small">
   <h2>Approve this render?</h2>
   <p>Your DAW's FX chain masters 4 files for this export only.</p>
-  <div class="actions"><button class="btn">Cancel</button><button class="btn primary" disabled title="Scroll to the FX chain first">Approve and master</button></div>
+  <div class="actions"><button class="btn">Cancel</button><span><button class="btn">See the 23 effects above, 1 switched off</button> <button class="btn primary">Approve and master</button></span></div>
 </div>
-<p class="note">The chain is below the dialog's visible body, so Approve is off, its hint saying "Scroll to the FX chain first". Once the chain's first row has been wholly in view, Approve comes on. In a larger window the chain is in view under the question and Approve is on at once. The <b>i</b> beside the count says what the approval covers: each effect's name, whether it is on, and the order, not its settings, routing or mute.</p>
+<p class="note">The chain is below the dialog's visible body. Approve stays usable (at 400% zoom the body can be 0 px tall, so a held Approve would be a dead end); a button beside it says how many effects are above, and how many are off, and scrolls to them. The narrator can still approve without scrolling: an honest limit at this size. In a larger window the chain is in view under the question and there is no pointer. The <b>i</b> beside the count says what the approval covers: each effect's name, whether it is on, and the order, not its settings, routing or mute.</p>
 
 <h2>4. No FX anywhere</h2>
 <div class="dialog">

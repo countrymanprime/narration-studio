@@ -37,24 +37,6 @@ export const Pending: Story = {
   },
 };
 
-// The confirm waits for something the narrator has to see first (an approval's FX chain scrolled into view): it is off, its reason is
-// its hint, and a press sends nothing; Cancel still works.
-export const ConfirmBlocked: Story = {
-  args: {
-    title: 'Approve this render?',
-    body: "Your DAW's FX chain masters 4 files for this export only.",
-    confirmLabel: 'Approve and master',
-    confirmBlockedReason: 'Scroll to the FX chain first',
-  },
-  play: async ({ args }) => {
-    const confirm = await screen.findByRole('button', { name: 'Approve and master' });
-    await expect(confirm).toBeDisabled();
-    await expect(screen.getByRole('group', { name: 'Scroll to the FX chain first' })).toBeInTheDocument();
-    await expect(screen.getByRole('button', { name: 'Cancel' })).toBeEnabled();
-    await expect(args.confirm).not.toHaveBeenCalled();
-  },
-};
-
 // Overwriting existing work is spelled out in the body and the confirm label, and the confirm button is red.
 export const DestructiveConfirm: Story = {
   args: {

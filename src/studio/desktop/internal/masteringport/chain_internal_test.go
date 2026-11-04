@@ -33,6 +33,13 @@ var chainNameCases = []string{
 	strings.Repeat("x", 120),
 	strings.Repeat("x", 121),
 	strings.Repeat("\u00e9", 130),
+	"\ufffc",
+	"\U0001D159",
+	"EQ\u3164",
+	"\u2800EQ",
+	"\u3164 EQ \u2800",
+	strings.Repeat("\u3164", 130),
+	strings.Repeat("\u2800", 120) + "x",
 }
 
 // TestChainNameGoldenIsCurrent pins how a track's and a plug-in's name are cleaned, for the mock to match. UPDATE_CONTRACTS=1 rewrites
@@ -53,7 +60,10 @@ func TestChainNameGoldenIsCurrent(t *testing.T) {
 // A name of only blank-looking characters (a Hangul filler, a braille blank, a lone combining mark, a variation selector, a
 // private-use character) has nothing a narrator can read: a plug-in is "(unnamed)" and a track "Track" (qa round 2 on #2932, N2).
 func TestABlankLookingNameIsUnnamed(t *testing.T) {
-	for _, raw := range []string{"\u3164", "\u2800", "\u115f\u1160", "\u0301", "\ufe0f", "\ue000", "\u3164 \u2800 \u0301", "\uffa0"} {
+	// Round 3 (M2, and readable before the 120-rune cut): the object replacement character, the musical null notehead, and a name of
+	// 130 blank-looking characters, which a cut would otherwise end with a readable "…".
+	for _, raw := range []string{"\u3164", "\u2800", "\u115f\u1160", "\u0301", "\ufe0f", "\ue000", "\u3164 \u2800 \u0301", "\uffa0",
+		"\ufffc", "\U0001D159", strings.Repeat("\u3164", 130)} {
 		if got := chainFX([]dawport.FXSlot{{Name: raw}})[0].Name; got != unnamedFX {
 			t.Errorf("plug-in %q = %q, want %q", raw, got, unnamedFX)
 		}
@@ -61,7 +71,9 @@ func TestABlankLookingNameIsUnnamed(t *testing.T) {
 			t.Errorf("track %q = %q, want Track", raw, got)
 		}
 	}
-	for raw, want := range map[string]string{"e\u0301t\u00e9": "e\u0301t\u00e9", "\U0001F50A Loud": "\U0001F50A Loud", "\u2800x": "\u2800x"} {
+	// Blank-looking characters at either end are trimmed, so "EQ" and "EQ" with a filler look and digest alike (round 3, M3).
+	for raw, want := range map[string]string{"e\u0301t\u00e9": "e\u0301t\u00e9", "\U0001F50A Loud": "\U0001F50A Loud", "\u2800x": "x",
+		"EQ\u3164": "EQ", "\u2800EQ": "EQ", "\u3164 EQ \u2800": "EQ", "E\u3164Q": "E\u3164Q"} {
 		if got := chainFX([]dawport.FXSlot{{Name: raw}})[0].Name; got != want {
 			t.Errorf("plug-in %q = %q, want it kept", raw, got)
 		}

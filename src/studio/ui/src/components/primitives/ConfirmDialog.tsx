@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
 import { Button } from './Button';
 import { Dialog } from './Dialog';
-import { TooltipTarget } from './Tooltip';
 
 // A third action (Discard & continue) needs both its label and its handler: a button without a name is unusable to a
 // screen reader, so the type refuses one without the other.
@@ -29,9 +28,6 @@ type ConfirmDialogProps = {
   // The confirmed action is running: the confirm button says so and ignores a press, and nothing else in the dialog can be pressed,
   // so the action cannot be confirmed twice or walked away from half done. The caller closes the dialog when the action ends.
   pending?: boolean;
-  /** While set, the confirm waits for something the narrator must see first: it is off, this reason is its hint and, since a disabled
-   * button cannot take focus, the name of its tab stop; a press sends nothing. Cancel still works. */
-  confirmBlockedReason?: string;
   // Focus opens on the decline button, not the message: for a question whose safe answer is to stay (Keep recording).
   focusCancel?: boolean;
   // Closing leaves focus on <body> when that is where it was, rather than in the page's <main> (see `Dialog`).
@@ -58,7 +54,6 @@ export function ConfirmDialog({
   cancelLabel = 'Cancel',
   escapeCancels = true,
   pending = false,
-  confirmBlockedReason,
   focusCancel = false,
   stayOnBody = false,
   returnFocus,
@@ -91,17 +86,9 @@ export function ConfirmDialog({
               </Button>
             )}
             {/* A confirm that destroys data is the filled red, heavier than Cancel's outline (alignment audit R4SB-4, R3SB1-14). */}
-            {confirmBlockedReason ? (
-              <TooltipTarget text={confirmBlockedReason}>
-                <Button variant={confirmVariant === 'danger' ? 'danger-solid' : 'primary'} disabled>
-                  {confirmLabel}
-                </Button>
-              </TooltipTarget>
-            ) : (
-              <Button variant={confirmVariant === 'danger' ? 'danger-solid' : 'primary'} pending={pending} onClick={confirm}>
-                {confirmLabel}
-              </Button>
-            )}
+            <Button variant={confirmVariant === 'danger' ? 'danger-solid' : 'primary'} pending={pending} onClick={confirm}>
+              {confirmLabel}
+            </Button>
           </div>
         </>
       }

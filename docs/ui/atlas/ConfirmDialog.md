@@ -8,7 +8,6 @@ Storybook title: `Primitives/ConfirmDialog`. Source: `src/components/primitives/
 
 - Default
 - Pending
-- Confirm Blocked
 - Destructive Confirm
 - Rich Body
 - With Danger Action

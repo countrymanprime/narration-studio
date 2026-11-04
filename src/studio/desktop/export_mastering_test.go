@@ -184,7 +184,7 @@ func TestADAWRegionExportWithAnItemThatHasNoRegionIsRefusedUpFront(t *testing.T)
 		"plan":  func() error { _, err := host.exportPlan(req); return err },
 		"start": func() error { _, err := host.startExport(req); return err },
 	} {
-		if err := call(); err == nil || !strings.Contains(err.Error(), "Retail sample.wav has no region: remove it from this export, or untick Master before encoding to encode it without mastering") {
+		if err := call(); err == nil || !strings.Contains(err.Error(), "Retail sample.wav has no region: remove it from this export, or untick Master before encoding to encode it without mastering.") {
 			t.Fatalf("%s: err = %v, want a refusal naming the retail sample", name, err)
 		}
 	}

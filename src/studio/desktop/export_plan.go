@@ -136,8 +136,7 @@ func (h *Host) planExport(svc hostServices, req ExportRequest) (exportPlanned, e
 		}
 	}
 	if len(none) > 0 {
-		return exportPlanned{}, fmt.Errorf("%s masters the regions your DAW renders, and %s has no region: remove it from this export, or untick Master before encoding to encode it without mastering",
-			row.Descriptor.Label, strings.Join(none, ", "))
+		return exportPlanned{}, noRegionError{label: row.Descriptor.Label, files: strings.Join(none, ", ")}
 	}
 	return plan, nil
 }
@@ -223,6 +222,18 @@ func exportPlanPayload(plan exportPlanned) ExportPlan {
 
 // exportChainWait bounds ExportPlan's read of the DAW's chain, under the page's own 15 s wait for the answer; a var for tests.
 var exportChainWait = 10 * time.Second
+
+// noRegionError refuses an export through a row that renders regions when an item has none: a toast naming the file and the
+// checkbox that encodes it without mastering, as one full sentence (round 3 walkthrough on #2932).
+type noRegionError struct {
+	label string
+	files string
+}
+
+func (e noRegionError) Error() string {
+	return e.label + " masters the regions your DAW renders, and " + e.files +
+		" has no region: remove it from this export, or untick Master before encoding to encode it without mastering."
+}
 
 // chainUnreadableError is ExportPlan's refusal of a chain it could not read whole: one short toast with the reason and what to do
 // instead (#2932's walkthrough; the DAW's own reason was cut off mid-sentence). It still is the DAW's error, for errors.Is.

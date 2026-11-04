@@ -482,3 +482,35 @@ func TestExportPlanRefusalsForAnUnreadableChainSayWhatToDo(t *testing.T) {
 		})
 	}
 }
+
+// REAPER not answering the chain read before a render stops the export at that file with a plain sentence, instead of waiting the
+// read's whole bound again for every file after it (round 3 Go review on #2932).
+func TestAChainReadThatGoesUnansweredStopsTheExportAtTheFirstFile(t *testing.T) {
+	dir := t.TempDir()
+	paths := []string{filepath.Join(dir, "ch1.wav"), filepath.Join(dir, "ch2.wav"), filepath.Join(dir, "ch3.wav")}
+	items := make([]ExportItem, 0, len(paths))
+	for i, path := range paths {
+		writeFixtureFile(t, path, "wav")
+		items = append(items, ExportItem{Kind: string(packager.KindChapter), Title: fmt.Sprintf("Chapter %d", i+1), Path: path})
+	}
+	host := masteringExportHost(t, masteringport.DAW, paths...)
+	daw := masteringporttest.NewFakeDAW(host.config.projectFolder)
+	t.Cleanup(masteringport.UseSession(func() (masteringport.Session, error) { return daw.Session(), nil }))
+	approval := shownApproval(t, host, items)
+	daw.ChainNeverAnswers()
+	t.Cleanup(masteringport.UseRenderChainWait(200 * time.Millisecond))
+	began := time.Now()
+	if _, err := host.startExport(ExportRequest{Master: true, Items: items, Approval: approval}); err != nil {
+		t.Fatal(err)
+	}
+	job := waitExportEnded(t, host)
+	if took := time.Since(began); took > 2*time.Second {
+		t.Fatalf("the export took %v: it waited on each file", took)
+	}
+	if job.Phase != "error" || !strings.Contains(job.Message, "Stopped at ch1.wav: "+masteringport.ErrChainNoAnswer.Error()) {
+		t.Fatalf("phase %q, message %q", job.Phase, job.Message)
+	}
+	if job.Files[1].Status != exportFileCancelled || job.Files[2].Status != exportFileCancelled || len(daw.Renders()) != 0 {
+		t.Fatalf("files %+v, renders %+v", job.Files, daw.Renders())
+	}
+}

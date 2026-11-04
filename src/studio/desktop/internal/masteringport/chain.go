@@ -17,7 +17,16 @@ var (
 	ErrNoChainDigest = errors.New("this approval does not say which FX chain you were shown: approve the render again")
 	// ErrChainChanged: the chain the render would run is not the one the narrator approved.
 	ErrChainChanged = errors.New("the FX chain in your DAW changed after you approved it: approve the render again")
+	// ErrChainNoAnswer: REAPER did not answer the chain read a render makes first, within renderChainWait.
+	ErrChainNoAnswer = errors.New("REAPER didn't answer when the app read the FX chain again before rendering this file")
 )
+
+// chainNoAnswer is ErrChainNoAnswer over the read's own deadline, so errors.Is finds either.
+type chainNoAnswer struct{ cause error }
+
+func (e chainNoAnswer) Error() string        { return ErrChainNoAnswer.Error() }
+func (e chainNoAnswer) Is(target error) bool { return target == ErrChainNoAnswer }
+func (e chainNoAnswer) Unwrap() error        { return e.cause }
 
 // maxChainName is the longest track or plug-in name kept, in runes, as bridge.DeviceName bounds REAPER's device names.
 const maxChainName = 120
@@ -26,6 +35,10 @@ const maxChainName = 120
 // names: a control character (a newline, a tab) becomes a space and spaces collapse, a format character (a bidirectional override,
 // a zero-width space or joiner, a byte-order mark) is dropped, so a name can neither reverse what it says nor look like another,
 // and the length is bounded with an ellipsis (qa on #2932, B2). The digest is taken over the cleaned names.
+//
+// Blank-looking characters at either end are trimmed, so a name cannot differ from another only by them (round 3, M3), and a name
+// with nothing readable is "" before any cut, so a long blank name is not saved by the cut's "…" (round 3). Callers name "" ("Track",
+// "(unnamed)").
 func chainName(raw string) string {
 	clean := strings.Join(strings.Fields(strings.Map(func(r rune) rune {
 		switch {
@@ -36,6 +49,10 @@ func chainName(raw string) string {
 		}
 		return r
 	}, raw)), " ")
+	clean = strings.TrimFunc(clean, func(r rune) bool { return blankLooking[r] || unicode.IsSpace(r) })
+	if !readable(clean) {
+		return ""
+	}
 	if runes := []rune(clean); len(runes) > maxChainName {
 		return strings.TrimSpace(string(runes[:maxChainName-1])) + "…"
 	}
@@ -55,8 +72,9 @@ func listedChain(chain dawport.MasterChain) []ChainTrack {
 	return out
 }
 
-// blankLooking are letters and symbols that draw nothing: the Hangul fillers and the braille blank.
-var blankLooking = map[rune]bool{0x115F: true, 0x1160: true, 0x3164: true, 0xFFA0: true, 0x2800: true}
+// blankLooking are letters and symbols that draw nothing, or only a placeholder box: the Hangul fillers, the braille blank, the object
+// replacement character and the musical null notehead (round 3, M2).
+var blankLooking = map[rune]bool{0x115F: true, 0x1160: true, 0x3164: true, 0xFFA0: true, 0x2800: true, 0xFFFC: true, 0x1D159: true}
 
 // readable reports whether a cleaned name has something a narrator can read: a letter, number, punctuation mark or symbol that is
 // not blank-looking. A lone combining mark, a variation selector or a private-use character is not (qa round 2 on #2932, N2).
@@ -71,7 +89,7 @@ func readable(name string) bool {
 
 // trackName is a track's name as the narrator's report and the approval both say it: an unnamed track is "Track".
 func trackName(name string) string {
-	if clean := chainName(name); readable(clean) {
+	if clean := chainName(name); clean != "" {
 		return clean
 	}
 	return "Track"
@@ -84,7 +102,7 @@ func chainFX(slots []dawport.FXSlot) []ChainFX {
 	out := make([]ChainFX, 0, len(slots))
 	for _, slot := range slots {
 		name := chainName(slot.Name)
-		if !readable(name) {
+		if name == "" {
 			name = unnamedFX
 		}
 		out = append(out, ChainFX{Name: name, Enabled: slot.Enabled})
