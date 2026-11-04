@@ -642,7 +642,9 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
       window.history.replaceState(null, '', `/settings${anchor}`);
       renderApp();
       expect(await screen.findByRole('heading', { level: 2, name: 'Recording & DAW' })).toBeTruthy();
-      expect(await screen.findByRole('combobox', { name: /Microphone/ })).toBeTruthy();
+      // The Microphone row is drawn once the page is open: the picker before the recorder's state is known, the DAW's own input after. A
+      // combobox is only the first of the two, which the test used to catch by timing.
+      await waitFor(() => expect(document.querySelector('[data-row="daw.mic"]')).toBeTruthy());
       cleanup();
     }
   });
