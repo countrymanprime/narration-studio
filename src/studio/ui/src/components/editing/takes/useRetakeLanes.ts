@@ -18,11 +18,13 @@ export interface RetakeLanes {
   pick: (passage: LinePassage, line: RetakeLaneLine, retake: RetakeLane) => Promise<void>;
 }
 
-/** The first state REAPER sends for this pick (a new run) that says how it ended. */
+/** The first state REAPER sends for this pick (a new run) that says how it ended. A state the host replays on subscribing is not an answer: the pick listens only once it is under way. */
 function answerOf(port: RetakeLanesApi, itemGuid: string, start: () => Promise<unknown>): Promise<RetakeLanesState> {
   return new Promise<RetakeLanesState>((resolve, reject) => {
     let baseline: string | undefined;
+    let listening = false;
     let done = false;
+    let off: () => void = () => {};
     const finish = (settle: () => void) => {
       if (done) return;
       done = true;
@@ -30,19 +32,22 @@ function answerOf(port: RetakeLanesApi, itemGuid: string, start: () => Promise<u
       off();
       settle();
     };
-    const off = port.subscribeRetakeLanes((state) => {
-      if (state.itemGuid !== itemGuid || (state.phase !== 'picked' && state.phase !== 'error')) return;
+    const timer = setTimeout(() => finish(() => reject(new Error('REAPER did not answer. Check that it is open, then try again.'))), ANSWER_MS);
+    off = port.subscribeRetakeLanes((state) => {
+      if (!listening || state.itemGuid !== itemGuid || (state.phase !== 'picked' && state.phase !== 'error')) return;
       if (state.runId !== undefined && state.runId === baseline) return;
       finish(() => resolve(state));
     });
-    const timer = setTimeout(() => finish(() => reject(new Error('REAPER did not answer. Check that it is open, then try again.'))), ANSWER_MS);
     void port
       .retakeLanesState()
       .then((state) => {
         baseline = state.runId;
       })
       .catch(() => {})
-      .then(start)
+      .then(() => {
+        listening = true;
+        return start();
+      })
       .catch((reason: unknown) => finish(() => reject(reason)));
   });
 }
@@ -59,17 +64,21 @@ export function useRetakeLanes(journal: Pick<Journal, 'act' | 'undo'>, enabled: 
   const [list, setList] = useState<RetakeLanesList | null>(null);
   const [picking, setPicking] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!enabled) return;
-    let live = true;
+  const read = useCallback(() => {
     port
       .retakeLanesList()
-      .then((answer) => live && setList(answer))
-      .catch(() => live && setList({ lines: [], laneTracks: 0 }));
-    return () => {
-      live = false;
-    };
-  }, [port, enabled]);
+      .then(setList)
+      .catch(() => setList((current) => current ?? { lines: [], laneTracks: 0 }));
+  }, [port]);
+
+  // Read when the takes list first needs it, and again when the window regains focus: what plays is whatever REAPER's saved project says now, and an answer
+  // that came after a pick gave up shows here without a second press.
+  useEffect(() => {
+    if (!enabled) return;
+    read();
+    window.addEventListener('focus', read);
+    return () => window.removeEventListener('focus', read);
+  }, [read, enabled]);
 
   const byItem = useMemo(() => {
     const out = new Map<string, RetakeLaneLine>();
@@ -102,11 +111,11 @@ export function useRetakeLanes(journal: Pick<Journal, 'act' | 'undo'>, enabled: 
     );
   }, []);
 
-  const latest = useRef({ port, journal, played });
-  latest.current = { port, journal, played };
+  const latest = useRef({ port, journal, played, read });
+  latest.current = { port, journal, played, read };
 
   const pick = useCallback(async (passage: LinePassage, line: RetakeLaneLine, retake: RetakeLane) => {
-    const { port: api, journal: j, played: show } = latest.current;
+    const { port: api, journal: j, played: show, read: reread } = latest.current;
     const before = line.retakes.find((r) => r.plays);
     const choose = async (target: RetakeLane): Promise<Result<RetakeLanesState>> => {
       try {
@@ -133,6 +142,8 @@ export function useRetakeLanes(journal: Pick<Journal, 'act' | 'undo'>, enabled: 
     setPicking(null);
     if (!result.ok) {
       overlay.toast(result.refusal.reason, { tone: 'error' });
+      // A pick that failed or timed out may still have happened in REAPER, or the project may have changed since: show what it holds now.
+      reread();
       return;
     }
     const others = line.retakes.filter((r) => r.lane !== retake.lane).map((r) => r.lane + 1);
@@ -149,8 +160,9 @@ export function useRetakeLanes(journal: Pick<Journal, 'act' | 'undo'>, enabled: 
   return { forLine, picking, pick };
 }
 
-/** "Lane 1", "Lanes 1 and 3", "Lanes 1, 2 and 4". */
+/** "Lane 1", "Lanes 1 and 3", "Lanes 1, 2, 3 and 297 more": the first few lanes named, then how many more, so the message fits a window however many lanes there are. */
 function laneList(lanes: readonly number[]): string {
   if (lanes.length < 2) return `Lane ${lanes[0] ?? ''}`.trim();
-  return `Lanes ${lanes.slice(0, -1).join(', ')} and ${lanes[lanes.length - 1]}`;
+  if (lanes.length <= 4) return `Lanes ${lanes.slice(0, -1).join(', ')} and ${lanes[lanes.length - 1]}`;
+  return `Lanes ${lanes.slice(0, 3).join(', ')} and ${lanes.length - 3} more`;
 }

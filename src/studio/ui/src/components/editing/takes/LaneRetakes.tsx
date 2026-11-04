@@ -13,6 +13,9 @@ export interface LaneRetakesProps {
   onPick: (retake: RetakeLane) => void;
 }
 
+/** The item's name, or "Untitled item" for one with none or only blanks and invisible characters. */
+const shownName = (name: string): string => (name.replace(/[\s\u200b-\u200f\u2060\ufeff]/g, '') === '' ? 'Untitled item' : name);
+
 /**
  * A line's retakes on fixed lanes, under its takes (card #i2831 of the cross-page mocks, `docs/research/mockups/cross-page-tools/` in #2844; the Studio Next mock does not draw it): lane, item and length, which lane plays, and
  * "Play this lane", which makes that lane the only one playing on its track. The lane that plays has its button off: it already plays.
@@ -26,6 +29,7 @@ export function LaneRetakes({ line, gate, picking, onPick }: LaneRetakesProps) {
       <ul className="m-0 flex list-none flex-col gap-1 p-0">
         {line.retakes.map((retake) => {
           const lane = retake.lane + 1;
+          const name = shownName(retake.name);
           const reason = !gate.ok ? gate.reason : retake.plays ? 'This lane already plays.' : picking !== null ? 'REAPER is changing the lanes.' : null;
           return (
             <li
@@ -37,7 +41,11 @@ export function LaneRetakes({ line, gate, picking, onPick }: LaneRetakesProps) {
               <span className="min-w-0 flex-1 basis-48 break-all">
                 <b>Lane {lane}</b>{' '}
                 <span className="text-[var(--text-muted)]">
-                  {retake.name || 'Untitled item'} · {retake.length.toFixed(1)} s
+                  {/* The name is its own bidirectional run, so a right-to-left or overriding name cannot reorder the length beside it; a long one stops at two lines. */}
+                  <bdi title={name} className="line-clamp-2 inline-block max-w-full align-bottom">
+                    {name}
+                  </bdi>{' '}
+                  · {retake.length.toFixed(1)} s
                 </span>
               </span>
               {retake.plays ? <StatusBadge tone="success" label="Plays" shape="tag" /> : null}

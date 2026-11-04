@@ -20,6 +20,15 @@ const LINE = 'line-000004';
 /** The line's lane group as the mock host lists it (MOCK_LANE_LINE): lane 1 plays, lane 2 is the item the takes read names, lane 3 is a third pass. */
 const passage = (laneItems: readonly string[] = [MOCK_LANE_ITEM]): LinePassage => ({ ...measuredPassage(), laneItems });
 const OPEN: TakesGate = { ok: true };
+const LANE_LINE: RetakeLanesList['lines'][number] = {
+  lineId: LINE,
+  trackGuid: '{T}',
+  trackName: TRACK,
+  retakes: [
+    { itemGuid: '{A}', name: 'a.wav', lane: 0, plays: true, position: 0, length: 6 },
+    { itemGuid: MOCK_LANE_ITEM, name: 'b.wav', lane: 1, plays: false, position: 0, length: 5 },
+  ],
+};
 
 let journal: Journal;
 let toast: ReturnType<typeof vi.spyOn>;
@@ -162,6 +171,80 @@ describe('retakes on lanes, in the takes list', () => {
     await user.click(row(2));
     expect(pick).toHaveBeenCalledTimes(1);
     expect(toastUndo).not.toHaveBeenCalled();
+  });
+
+  it('retrying a lane after REAPER refused it asks REAPER again and shows its new answer, even when the host replays the last state on subscribe', async () => {
+    const user = userEvent.setup();
+    const api = renderPage({}, { retakeLanes: 'error' });
+    const pick = vi.spyOn(api, 'retakeLanesPick');
+    await user.click(await screen.findByRole('button', { name: `Play this lane: lane 2 on ${TRACK}` }));
+    await waitFor(() => expect(toast).toHaveBeenCalledTimes(1));
+    await user.click(row(2));
+    await waitFor(() => expect(toast).toHaveBeenCalledTimes(2));
+    expect(pick).toHaveBeenCalledTimes(2);
+    for (const call of toast.mock.calls) expect(String(call[0])).not.toMatch(/before initialization/);
+  });
+
+  it('re-reads the lane list after a pick that failed and when the window regains focus, so a late answer shows', async () => {
+    const user = userEvent.setup();
+    const list = vi.fn(async (): Promise<RetakeLanesList> => ({ lines: [LANE_LINE], laneTracks: 1 }));
+    renderPage({ retakeLanesPick: () => Promise.reject(new Error('the REAPER bridge is unavailable')), retakeLanesList: list });
+    await user.click(await screen.findByRole('button', { name: `Play this lane: lane 2 on ${TRACK}` }));
+    await waitFor(() => expect(toast).toHaveBeenCalled());
+    await waitFor(() => expect(list).toHaveBeenCalledTimes(2));
+    window.dispatchEvent(new Event('focus'));
+    await waitFor(() => expect(list).toHaveBeenCalledTimes(3));
+  });
+
+  it('keeps a bidi or blank item name in its own run and calls a blank one Untitled', async () => {
+    const odd: RetakeLanesList = {
+      laneTracks: 1,
+      lines: [
+        {
+          lineId: LINE,
+          trackGuid: '{T}',
+          trackName: TRACK,
+          retakes: [
+            { itemGuid: '{A}', name: 'שלום עולם', lane: 0, plays: true, position: 0, length: 6.2 },
+            { itemGuid: MOCK_LANE_ITEM, name: '   ', lane: 1, plays: false, position: 0, length: 5 },
+            { itemGuid: '{C}', name: '\u200b', lane: 2, plays: false, position: 0, length: 5 },
+          ],
+        },
+      ],
+    };
+    renderPage({ retakeLanesList: async () => odd });
+    const group = await screen.findByRole('region', { name: /Retakes on lanes/ });
+    expect(group.querySelector('[data-lane="1"] bdi')?.textContent).toBe('שלום עולם');
+    expect(group.querySelector('[data-lane="2"] bdi')?.textContent).toBe('Untitled item');
+    expect(group.querySelector('[data-lane="3"] bdi')?.textContent).toBe('Untitled item');
+  });
+
+  it('names at most a few of the silent lanes in the message, however many lanes there are', async () => {
+    const user = userEvent.setup();
+    const many: RetakeLanesList = {
+      laneTracks: 1,
+      lines: [
+        {
+          lineId: LINE,
+          trackGuid: '{T}',
+          trackName: TRACK,
+          retakes: Array.from({ length: 300 }, (_, lane) => ({
+            itemGuid: lane === 1 ? MOCK_LANE_ITEM : `{L${lane}}`,
+            name: `p${lane}.wav`,
+            lane,
+            plays: lane === 0,
+            position: 0,
+            length: 5,
+          })),
+        },
+      ],
+    };
+    renderPage({ retakeLanesList: async () => many });
+    await user.click(await screen.findByRole('button', { name: `Play this lane: lane 2 on ${TRACK}` }));
+    await waitFor(() => expect(toastUndo).toHaveBeenCalledTimes(1));
+    const text = String(toastUndo.mock.calls[0][0]);
+    expect(text.length).toBeLessThan(200);
+    expect(text).toMatch(/and 29\d more/);
   });
 
   it('keeps the rows and says why the buttons are off when the DAW cannot be asked', async () => {
