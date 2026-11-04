@@ -44,6 +44,11 @@ const KIND_LABELS: Readonly<Record<DawActionKind, string>> = {
   replace_range: MOCK_DAW_UNDO_LABELS.replace,
   restore_replacement: MOCK_DAW_UNDO_LABELS.restoreReplacement,
   use_take: MOCK_DAW_UNDO_LABELS.useTake,
+  add_range_fx: MOCK_DAW_UNDO_LABELS.addChain,
+  remove_range_fx: MOCK_DAW_UNDO_LABELS.removeChain,
+  set_fx_param: MOCK_DAW_UNDO_LABELS.setParam,
+  bypass_fx: MOCK_DAW_UNDO_LABELS.bypass,
+  enable_fx: MOCK_DAW_UNDO_LABELS.enable,
 };
 
 /** Each kind worded for the answers, one and several (dawport/reaper's actionNouns). */
@@ -53,6 +58,11 @@ const KIND_NOUNS: Readonly<Record<DawActionKind, readonly [string, string]>> = {
   replace_range: ['replacement', 'replacements'],
   restore_replacement: ['put-back', 'put-backs'],
   use_take: ['choice of take', 'choices of take'],
+  add_range_fx: ['effect added', 'effects added'],
+  remove_range_fx: ['effect taken off', 'effects taken off'],
+  set_fx_param: ['change of an effect setting', 'changes of an effect setting'],
+  bypass_fx: ['bypass', 'bypasses'],
+  enable_fx: ['turning an effect back on', 'times an effect was turned back on'],
 };
 
 /** dawport/reaper's answer when the DAW's next undo point is not the kind's: nothing was undone. */
