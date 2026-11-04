@@ -1,11 +1,10 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from 'vitest';
 import type { Mark, MarkType } from '../../../../api/contracts/marks';
-import type { ScriptWord } from '../../../../api/contracts/scriptPrep';
 import { createSearchRegistry } from '../../../../registries/search';
 import type { ManuscriptSearchHit, ManuscriptSearchResult } from '../../../../api/contracts/manuscript';
 import { bookMatches } from '../tools/find/searchManuscript';
-import { bookSource, manuscriptSource, marksSource, wordsSource, type ManuscriptLine } from './searchSources';
+import { bookSource, manuscriptSource, marksSource, type ManuscriptLine } from './searchSources';
 
 const line = (index: number, text: string): ManuscriptLine => ({ chapterId: 'c1', id: `p${index}`, index, text });
 const types: MarkType[] = [{ key: 'tone', name: 'Tone', colour: 'copper', style: 'underline', asks: false }];
@@ -63,16 +62,6 @@ describe('search-sources', () => {
     expect(source('soft')).toHaveLength(5);
     source('slowly')[0].run();
     expect(onShow).toHaveBeenCalledWith(marks[0]);
-  });
-
-  it('the words answer by word and by say-value', () => {
-    const onShow = vi.fn();
-    const words = [{ word: 'Caius', say: 'keys', source: 'manual', status: 'set', flags: [] } as unknown as ScriptWord];
-    const source = wordsSource(() => words, onShow);
-    expect(source('cai')[0]).toMatchObject({ group: 'My words', title: 'Caius', sub: 'Say: keys' });
-    expect(source('keys')).toHaveLength(1);
-    source('keys')[0].run();
-    expect(onShow).toHaveBeenCalledWith('Caius');
   });
 
   it('the minimum term length is the registry’s', () => {

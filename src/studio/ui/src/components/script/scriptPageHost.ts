@@ -154,9 +154,9 @@ function useDefinitionSource(): [DefinitionSource, (source: DefinitionSource) =>
   return [source, choose];
 }
 
-/** The Words tab's host: the narrator's definition source (a host setting), a source's candidate, the online entry and the web look-ups. */
+/** The Words tab's host: the narrator's definition source (a host setting), the online entry and the web look-ups. A source's candidate is asked
+ * by the Story Bible's own row (`NamePronunciation`), which the Words card renders (#2595). */
 export function useWordsHost(): WordsHost {
-  const sources = usePort('pronunciationSources');
   const online = usePort('pronunciationOnline');
   const lookup = usePort('pronunciationLookup');
   const [definitionSource, setDefinitionSource] = useDefinitionSource();
@@ -164,9 +164,6 @@ export function useWordsHost(): WordsHost {
     () => ({
       definitionSource,
       setDefinitionSource,
-      // The tab reads a miss as a result (`WordsHost.candidate`), so a refused call becomes one with the host's sentence.
-      candidate: (word, sourceId) =>
-        sources.pronunciationCandidate(word, sourceId).catch((error: unknown) => ({ ok: false as const, reason: apiErrorMessage(error) })),
       onlineDefinition: (word) => online.pronunciationOnlineLookup(word),
       async openLookup(source, word) {
         try {
@@ -176,7 +173,7 @@ export function useWordsHost(): WordsHost {
         }
       },
     }),
-    [definitionSource, setDefinitionSource, sources, online, lookup],
+    [definitionSource, setDefinitionSource, online, lookup],
   );
 }
 

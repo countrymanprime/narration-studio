@@ -150,7 +150,6 @@ describe('the Script, Story Bible and extraction rows (SN-B60)', () => {
     'hideExample',
     'recordHere',
     'goToChapter',
-    'addWord',
     'addMark',
     'addRelationship',
     'editBookmark',

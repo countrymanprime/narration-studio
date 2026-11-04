@@ -57,7 +57,6 @@ function mount() {
   const host: WordsHost = {
     definitionSource: 'web',
     setDefinitionSource: vi.fn(),
-    candidate: vi.fn(),
     onlineDefinition: vi.fn(),
     openLookup,
   };

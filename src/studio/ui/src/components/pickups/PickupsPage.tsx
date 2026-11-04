@@ -17,7 +17,7 @@ import { reviewFinding } from '../../studio/commands/reviewFinding';
 import { ALL_SCOPE, clock, inScope, lineText, reasonSentence, type ChapterRef } from './list/pickupRows';
 import { PickupWhere } from './list/PickupWhere';
 import { announcePickupListChanged } from './pickupListChanged';
-import { pickupToReturnTo, rememberPickupLeft } from './pickupReturn';
+import { pickupToReturnTo, rememberPickupLeft, rememberSessionLeft } from './pickupReturn';
 import { usePlayOriginal } from './list/usePlayOriginal';
 import { PickupsTable, type PickupsRead, type RemoveUndo } from './list/PickupsTable';
 import { SessionPanel } from './list/SessionPanel';
@@ -46,10 +46,13 @@ export function boothSessionPath(pickups: readonly PickupItem[]): string {
  */
 export function PickupsPage({
   hasManuscript,
+  dawFileLinked = true,
   goTo,
   goToScript,
 }: {
   hasManuscript: boolean;
+  /** Whether the project has a DAW project file linked: REAPER takes markers only into a linked file, which the top bar's badge asks for first. */
+  dawFileLinked?: boolean;
   goTo: (path: string) => void;
   goToScript: (chapterId: string) => void;
 }) {
@@ -65,17 +68,24 @@ export function PickupsPage({
     (sentence) => overlay.toast(sentence),
   );
   const review = useCapability('review');
-  const markers = useCapability('markers');
+  const markersCapability = useCapability('markers');
   const dawKind = useDawKind();
+  /* One reason for both messages: the badge says "link a project file", so the button says that too, before the bridge's "not connected". */
+  const markers: { available: boolean; message?: string } =
+    dawKind === 'REAPER' && !dawFileLinked
+      ? { available: false, message: 'Link a REAPER project (.rpp) file to add markers.' }
+      : { available: markersCapability.available, message: markersCapability.message };
   const [chapters, setChapters] = useState<ChapterRef[]>([]);
   const [list, setList] = useState<PickupList>({ pickups: [], leftOut: [] });
   const [read, setRead] = useState<PickupsRead>({ kind: 'loading' });
-  const [scopeChoice, setScope] = useState(ALL_SCOPE);
-  const [current, setCurrent] = useState('');
+  /* Back from the Booth: the page returns to what the narrator left, the chapter the stepper was on included. */
+  const [back] = useState(pickupToReturnTo);
+  const [scopeChoice, setScope] = useState(back?.scope ?? ALL_SCOPE);
+  const [current, setCurrent] = useState(back && back.scope !== ALL_SCOPE ? back.scope : '');
   /* The jump menu's pick of a line: the table selects it. `n` makes a second pick of the same line count. */
   const [reveal, setReveal] = useState<{ id: string; n: number } | null>(null);
   /* Back from the Booth lands on the line that was opened (the table selects it once the list is there). */
-  const [returnTo] = useState(pickupToReturnTo);
+  const returnTo = back?.kind === 'line' ? back.id : null;
   const [seconds, setSeconds] = useState<Measured<number>>(LOADING);
   /* Answers come back in any order and can be late: each request takes a number as it starts, and an answer older than one already shown is dropped. */
   const started = useRef(0);
@@ -270,15 +280,29 @@ export function PickupsPage({
   const dawName = !dawKind ? 'the DAW' : dawKind === 'none' ? 'the built-in recorder' : dawKind;
   const addMarkers = async (picked: PickupItem[]) => {
     const placed = picked.filter((p): p is PickupItem & { at: number } => p.at !== null);
+    /* A line the host cannot place in the recording gets no marker: say so, so the count on the button and the sentence agree. */
+    if (placed.length === 0) throw new Error('None of these lines has a place in the recording yet, so no marker was added.');
+    const skipped = picked.length - placed.length;
     const result = await daw.addPickupMarkers(placed.map((p) => ({ ref: p.id, start: p.at, tag: p.type, note: lineText(p) })));
     if (!result.ok) throw new Error(result.message);
-    const lines = placed.length === 1 ? '1 line' : `${placed.length} lines`;
+    const lines = skipped > 0 ? `${placed.length} of ${picked.length} lines` : placed.length === 1 ? '1 line' : `${placed.length} lines`;
+    const left =
+      skipped > 0
+        ? ` ${skipped} ${skipped === 1 ? 'line has' : 'lines have'} no place in the recording yet and ${skipped === 1 ? 'was' : 'were'} left out.`
+        : '';
     overlay.toast(
       result.changed
-        ? `Pickup ${placed.length === 1 ? 'marker' : 'markers'} for ${lines} ${placed.length === 1 ? 'is' : 'are'} in ${dawName}.`
-        : `Those markers were already in ${dawName}.`,
+        ? `Pickup ${placed.length === 1 ? 'marker' : 'markers'} for ${lines} ${placed.length === 1 ? 'is' : 'are'} in ${dawName}.${left}`
+        : `Those markers were already in ${dawName}.${left}`,
     );
     await changing(pickupsApi.pickupsList());
+  };
+
+  /* One way into the Booth for the button, a row and the jump menu, so Back keeps the chapter and focus whichever was used. */
+  const openInBooth = (picked: PickupItem[]) => {
+    if (picked.length === 1) rememberPickupLeft(picked[0].id, scope);
+    else rememberSessionLeft(scope);
+    goTo(boothSessionPath(picked));
   };
 
   usePickupsPageCommands({
@@ -288,22 +312,27 @@ export function PickupsPage({
     inView,
     chaptersToCheck: list.leftOut.map((chapter) => chapter.chapterId),
     daw: { available: review.available, message: review.message },
-    markers: { available: markers.available, message: markers.message },
+    markers,
     dawName,
     onScope: choose,
     onReveal: (id) => setReveal((before) => ({ id, n: (before?.n ?? 0) + 1 })),
     onCheck: (ids) => openCheckRecordings(ids),
-    onOpenInBooth: (picked) => goTo(boothSessionPath(picked)),
+    onOpenInBooth: openInBooth,
     onAddMarkers: addMarkers,
     onError: (error) => overlay.toast(reasonSentence(error), { tone: 'error' }),
   });
 
-  if (!hasManuscript) return <NeedManuscript title="Pickups" onImport={() => goTo('/')} />;
+  /* Back from a whole session: focus goes to the button that opened it, once the list is read. */
+  const sessionFocused = useRef(false);
+  useEffect(() => {
+    if (back?.kind !== 'session' || sessionFocused.current || read.kind !== 'ready') return;
+    const button = document.querySelector<HTMLElement>('[data-pickup-session-open]');
+    if (!button) return;
+    sessionFocused.current = true;
+    button.focus();
+  });
 
-  const openInBooth = (picked: PickupItem[]) => {
-    if (picked.length === 1) rememberPickupLeft(picked[0].id);
-    goTo(boothSessionPath(picked));
-  };
+  if (!hasManuscript) return <NeedManuscript title="Pickups" onImport={() => goTo('/')} />;
 
   return (
     <CommandScope kind="page">
@@ -348,7 +377,7 @@ export function PickupsPage({
             loading={read.kind === 'loading'}
             seconds={seconds}
             dawName={dawName}
-            markers={{ available: markers.available, message: markers.message }}
+            markers={markers}
             onOpenInBooth={openInBooth}
             onAddMarkers={addMarkers}
           />

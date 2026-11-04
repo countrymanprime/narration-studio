@@ -182,7 +182,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   },
   {
     file: 'components/engine/ChapterSyncConsentDialog.tsx',
-    text: 'You can turn chapter sync on or off later in the audio engine panel (the … chip at the top of the window).',
+    text: 'You can turn chapter sync on or off later in Settings, or in the audio engine panel (the … chip at the top of the window).',
     class: 'overlay',
   },
   {

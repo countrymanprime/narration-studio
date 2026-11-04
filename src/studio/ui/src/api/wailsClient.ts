@@ -57,7 +57,12 @@ import {
   dawTransportSchema,
 } from './schemas/daw';
 import { providerCapabilitiesSchema } from './schemas/providers';
-import { pronunciationCandidateSchema, pronunciationSourcesSchema } from './schemas/pronunciationSources';
+import {
+  pronunciationCandidateSchema,
+  pronunciationCandidatesSchema,
+  pronunciationSourcesSchema,
+  userDictionaryWordSchema,
+} from './schemas/pronunciationSources';
 import { takeEvidenceResultSchema } from './schemas/takeEvidence';
 import { pronunciationOnlineKeyStatusSchema, pronunciationOnlineResultSchema } from './schemas/pronunciationOnline';
 import { masteringProvidersSchema } from './schemas/mastering';
@@ -72,11 +77,12 @@ import {
   guideEntitiesSchema,
   guideMergeResultSchema,
   guidePreviewSchema,
+  guidePronunciationSchema,
   guideTypesSchema,
 } from './schemas/storyBible';
 import { approvedCharacterReferencesSchema, characterRegionsSchema, characterReferenceSchema } from './schemas/character';
 import { settingsForScopeSchema } from './schemas/settings';
-import { tracksDiscoverySchema, tracksProjectSchema } from './schemas/tracks';
+import { tracksDiscoverySchema, tracksLiveSchema, tracksProjectSchema } from './schemas/tracks';
 import {
   chapterRegionPlanSchema,
   chapterRegionsCreatedSchema,
@@ -116,6 +122,7 @@ import {
   productionOverviewSchema,
   productionPlanSchema,
   productionReportExportSchema,
+  reportsFolderResultSchema,
   productionReportPreviewSchema,
   productionStartResultSchema,
   productionStopResultSchema,
@@ -163,7 +170,7 @@ import { voiceSampleAnswerSchema, voiceSamplesChangedSchema, voiceSamplesRemoved
 import { passageMapSchema } from './schemas/passageMap';
 import { acceptedWordsChangeSchema, acceptedWordsSchema } from './schemas/editLog';
 import { markSchema, markThreadDeletedSchema, marksSchema } from './schemas/marks';
-import { scriptPrepChapterSchema, scriptPrepSchema, scriptWordSchema } from './schemas/scriptPrep';
+import { scriptPrepChapterSchema, scriptPrepSchema } from './schemas/scriptPrep';
 import {
   extractionDecisionSchema,
   extractionImportPlanSchema,
@@ -367,6 +374,10 @@ export const wailsClient: NarrationApi = {
   guideDialogueCues: () => decode(guideDialogueCuesSchema, 'GuideDialogueCues', host.GuideDialogueCues()),
   guideCorrectCue: (cueId, speakerEntityId) => decode(voidResult, 'GuideCorrectCue', host.GuideCorrectCue(cueId, speakerEntityId)),
   guideAttributeSpeakers: () => decode(speakerAttributionSchema, 'GuideAttributeSpeakers', host.GuideAttributeSpeakers()),
+  // The name's whole pronunciation as Undo writes it back; `status` is read from an older file only and is never written (the host answers the value it stored).
+  guidePronunciationRestore: async (id, { status: _status, ...value }, aliasIndex) => {
+    await decode(guidePronunciationSchema, 'GuidePronunciationRestore', host.GuidePronunciationRestore(id, aliasIndex ?? null, value));
+  },
   guideRestoreSpeakers: (previous) => decode(restoredSpeakersSchema, 'GuideRestoreSpeakers', host.GuideRestoreSpeakers(previous)),
   guideMarkReviewed: (id, aliasIndex) => decode(voidResult, 'GuideMarkReviewed', host.GuideMarkReviewed(id, aliasIndex ?? null)),
   guideFlagReview: (id, aliasIndex) => decode(voidResult, 'GuideFlagReview', host.GuideFlagReview(id, aliasIndex ?? null)),
@@ -473,9 +484,6 @@ export const wailsClient: NarrationApi = {
   marksSaveTypes: (types, removeUses) => decode(marksSchema, 'MarksSaveTypes', host.MarksSaveTypes(types, removeUses)),
   scriptPrepList: () => decode(scriptPrepSchema, 'ScriptPrepList', host.ScriptPrepList()),
   scriptPrepSetChapter: (chapterId, state) => decode(scriptPrepChapterSchema, 'ScriptPrepSetChapter', host.ScriptPrepSetChapter(chapterId, state)),
-  scriptWordFlag: (chapterId, paragraphId, start, end) => decode(scriptWordSchema, 'ScriptWordFlag', host.ScriptWordFlag(chapterId, paragraphId, start, end)),
-  scriptWordSay: (word, say, source) => decode(scriptWordSchema, 'ScriptWordSay', host.ScriptWordSay(word, say, source)),
-  scriptWordUnflag: (flagId) => decode(scriptWordSchema, 'ScriptWordUnflag', host.ScriptWordUnflag(flagId)),
   extractionList: () => decode(extractionSuggestionsSchema, 'ExtractionList', host.ExtractionList()),
   extractionAccept: (id, text) => decode(extractionDecisionSchema, 'ExtractionAccept', host.ExtractionAccept(id, text ?? null)),
   extractionReject: (id) => decode(extractionDecisionSchema, 'ExtractionReject', host.ExtractionReject(id)),
@@ -542,6 +550,7 @@ export const wailsClient: NarrationApi = {
   productionOverview: () => decode(productionOverviewSchema, 'ProductionOverview', host.ProductionOverview()),
   productionStartTimer: (chapterId, stage) => decode(productionStartResultSchema, 'ProductionStartTimer', host.ProductionStartTimer(chapterId, stage)),
   productionStopTimer: () => decode(productionStopResultSchema, 'ProductionStopTimer', host.ProductionStopTimer()),
+  productionOpenReportsFolder: () => decode(reportsFolderResultSchema, 'ProductionOpenReportsFolder', host.ProductionOpenReportsFolder()),
   productionStatusReport: (include) => decode(productionReportExportSchema, 'ProductionStatusReport', host.ProductionStatusReport(include)),
   productionStatusReportPreview: (include) =>
     decode(productionReportPreviewSchema, 'ProductionStatusReportPreview', host.ProductionStatusReportPreview(include)),
@@ -678,6 +687,10 @@ export const wailsClient: NarrationApi = {
   pronunciationOnlineLookup: (word) => decode(pronunciationOnlineResultSchema, 'PronunciationOnlineLookup', host.PronunciationOnlineLookup(word)),
   pronunciationSources: () => decode(pronunciationSourcesSchema, 'PronunciationSources', host.PronunciationSources()),
   pronunciationCandidate: (word, source) => decode(pronunciationCandidateSchema, 'PronunciationCandidate', host.PronunciationCandidate(word, source)),
+  pronunciationCandidates: (word) => decode(pronunciationCandidatesSchema, 'PronunciationCandidates', host.PronunciationCandidates(word)),
+  pronunciationPreview: (text, ipa) => decode(guidePreviewSchema, 'PronunciationPreview', host.PronunciationPreview(text, ipa)),
+  userDictionarySave: (word, say) => decode(userDictionaryWordSchema, 'UserDictionarySave', host.UserDictionarySave(word, say)),
+  userDictionaryRemove: (word, source, say) => decode(userDictionaryWordSchema, 'UserDictionaryRemove', host.UserDictionaryRemove(word, source, say)),
 
   dawCapabilities: () => decode(dawCapabilitiesSchema, 'DawCapabilities', host.DawCapabilities()),
   subscribeDawCapabilities: (onUpdate) => subscribeChecked('daw_capabilities_changed', dawCapabilitiesSchema, onUpdate),
@@ -756,6 +769,7 @@ export const wailsClient: NarrationApi = {
   tracksDiscover: () => decode(tracksDiscoverySchema, 'TracksDiscover', host.TracksDiscover()),
   tracksSelect: (path) => decode(tracksDiscoverySchema, 'TracksSelect', host.TracksSelect(path)),
   tracksList: () => decode(tracksProjectSchema, 'TracksList', host.TracksList()),
+  tracksLive: () => decode(tracksLiveSchema, 'TracksLive', host.TracksLive()),
   chapterTrackMapList: () => decode(chapterTrackMappingSchema, 'ChapterTrackMapList', host.ChapterTrackMapList()),
   chapterTrackMapConfirm: (trackGuid, chapterId) => decode(trackMappingSchema, 'ChapterTrackMapConfirm', host.ChapterTrackMapConfirm(trackGuid, chapterId)),
   chapterTrackSet: (chapterId, trackGuid) => decode(chapterTrackSetSchema, 'ChapterTrackSet', host.ChapterTrackSet(chapterId, trackGuid)),

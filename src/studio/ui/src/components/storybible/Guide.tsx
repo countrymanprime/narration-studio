@@ -1,4 +1,5 @@
 import { withoutCredits } from '../../chapterKinds';
+import { subscribePronunciationChanged } from '../../studio/commands/pronounce';
 import { LoadError } from '../layout/LoadError';
 import { describeApiError } from '../../api/errorMessage';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
@@ -213,6 +214,8 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
   const chapterOrder = useMemo(() => new Map(chapters.map((chapter, place) => [chapter.id, place])), [chapters]);
   // A build that ends while the narrator is elsewhere on this page still refreshes the entries.
   useEffect(() => api.subscribeJobEnded((event) => event.kind === 'story_bible' && void load()), [api, load]);
+  // A pronunciation changed on another page (Script's Words) or undone from History is read again: the entries are its one store (#2595).
+  useEffect(() => subscribePronunciationChanged(() => void load()), [load]);
 
   // A Draft entry (a brand new, not-yet-categorized entity) is hidden from
   // every tab/search except while it's the one open in the detail pane - it
