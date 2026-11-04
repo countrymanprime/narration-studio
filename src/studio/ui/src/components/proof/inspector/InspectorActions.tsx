@@ -7,7 +7,7 @@ import { shownFindingNoteType } from '../../../api/contracts/findings';
 import type { Finding, NarrationApi } from '../../../types';
 import { Button } from '../../primitives/Button';
 import { IconButton } from '../../primitives/IconButton';
-import { DawToolsButton } from '../../engine/DawToolsButton';
+import { RepairInReaperButton } from '../../engine/RepairInReaperButton';
 import { noteTime } from '../findingFormat';
 import type { EquivalenceApi } from './equivalence';
 import { HearIt, type HearItApi } from './HearIt';
@@ -146,7 +146,7 @@ export function InspectorActions({
           onClick={() => void addMarker()}
         />
         {/* #2821: the repair launchers act on the item Show in the DAW has just selected. */}
-        {REPAIRABLE_TYPES.has(shownFindingNoteType(finding)) && <DawToolsButton groups={['repair']} label="Repair in REAPER" action="repairInReaper" />}
+        {REPAIRABLE_TYPES.has(shownFindingNoteType(finding)) && <RepairInReaperButton />}
         <TreatAsSame finding={finding} api={api} inert={inert} onNoteRead={onNoteRead} />
         <IconButton
           action="openInScript"
