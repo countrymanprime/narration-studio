@@ -1,3 +1,4 @@
+import { HelpButton } from '../primitives/HelpButton';
 import { Panel } from '../primitives/Panel';
 import { fmtD, hm, num } from './dates';
 import { PACE, RATIO, WPH } from './estimates';
@@ -12,7 +13,14 @@ export function WorkedOut({ k, wph = WPH }: { k: Calc; wph?: number }) {
     ['Pickups', hm(k.pickH)],
   ];
   return (
-    <Panel title="How this is worked out">
+    <Panel
+      title="How this is worked out"
+      actions={
+        <HelpButton label="About these figures">
+          {`Finished audio is words ÷ ${num(wph)}. Recording takes ${RATIO.rec}×, editing ${RATIO.edit}× and proofing ${RATIO.proof}× the finished hours. Your pace is an estimate, not measured from your sessions: it assumes ${PACE.toFixed(1)} h of work a day.`}
+        </HelpButton>
+      }
+    >
       <dl className="flex flex-col gap-2 text-[0.88rem]">
         {rows.map(([name, value]) => (
           <div key={name} className="flex justify-between gap-3">
@@ -38,10 +46,6 @@ export function WorkedOut({ k, wph = WPH }: { k: Calc; wph?: number }) {
           <dd className="font-mono font-semibold">{fmtD(k.finish)}</dd>
         </div>
       </dl>
-      <p className="mt-3 text-[0.8125rem] text-[var(--text-muted)]">
-        Finished audio is words ÷ {num(wph)}. Recording takes {RATIO.rec}×, editing {RATIO.edit}× and proofing {RATIO.proof}× the finished hours. Your pace is
-        an estimate, not measured from your sessions: it assumes {PACE.toFixed(1)} h of work a day.
-      </p>
     </Panel>
   );
 }

@@ -8,7 +8,36 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'setup',
     description:
-      'Booth, ready to record (REAPER linked and answering, the mock\'s default): the top bar with the chapter stepper, the progress line, "Resume at ¶ 14 from the saved project" and the REAPER setup chip; the text full-bleed, opening with the chapter\'s title and subtitle as its first lines (#2251 item 7: "CHAPTER ONE", then "Bad Ideas Look Great in Neon"), the reading position on the title\'s first word; the side panel (In this chapter, Coming up, Last punch, This session); the footer with Record, the timer, Levels, and at its right the level bar and the room tone chip (the mock\'s .lvl-inline), and the key hints from the catalogue. Also captured at the 390 px reflow width (#1718): the top bar wraps as the mock\'s .btop does, the chapter picker at the mock\'s medium 190 px, so the progress line, the resume line and the setup chip never overlap the picker',
+      "Booth, ready to record (REAPER linked and answering, the mock's default): the top bar with the chapter stepper, the progress line, the \"Recorded through …\" chip (Chapter 1 is recorded through ¶ 14, #2633) and the REAPER setup chip, with no resume line since the chapter opens at ¶ 14, where its recording ends; the text full-bleed, scrolled to that paragraph, the reading position on its first word; the side panel (In this chapter, Coming up, Last punch, This session); the footer with Record, the timer, Levels, and at its right the level bar and the room tone chip (the mock's .lvl-inline), and the key hints from the catalogue. Also captured at the 390 px reflow width (#1718): the top bar wraps as the mock's .btop does, the chapter picker at the mock's medium 190 px, so the progress line, the resume line and the setup chip never overlap the picker",
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'voices',
+    description:
+      'Booth on a chapter linked to a folder of voices (?mockVoiceFolders=1, Voice folders): the voice control on the record bar after Levels, "Num 0 Narrator", the take records on, and the key hints gaining Num 0 Narrator, Num − Num + Voice and Num . Voices',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'voices-list',
+    description:
+      "Booth's voice list open from the voice control (?mockVoiceFolders=1, Num . or a press): a search box over the folder's voices in REAPER's order with their keys, Narrator (checked, the voice the take records on), White Rabbit (its character by name) and Extras (Hatter and Cheshire Cat, assigned), then under No track the chapter's speakers no voice records, each with its lines (#2839)",
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'voices-who-is-in',
+    description:
+      "Booth's \"Who is in Num 7?\" (?mockVoiceFolders=1, Num 7 pressed with three voices, #2839): how to record them (A new track, its key Num 3; An existing track; The Narrator, this time, Num 0), the chapter's characters with their lines or their key and the speakers with no track ticked, the rest of the book in its own capped group, and the track name (the one character's, or Extras); Cancel and Add track",
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'voices-who-records',
+    description:
+      'Booth\'s "Who records …?" for a character with no track (?mockVoiceFolders=1, a "No track" row picked in the voice list while stopped): the same three answers for that one character, the new track named after it; Cancel and Add track',
     ...REFLOW,
   },
   {
@@ -203,7 +232,7 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'resume',
     description:
-      'Booth, "Resume at ¶ 14" chosen: the reading position moves to where the recording ends, in ¶ 14, the text scrolls there, the progress line reads ¶ 14 of 24 and the chip is gone, since the reader is at its place',
+      'Booth, looked elsewhere in the chapter: Chapter 1 opens at ¶ 14, where its recording ends, and a click on a word in the next paragraph offers "Resume at ¶ 14" in the top bar; the progress line and the Recorded through chip stay, the chip is the way back',
     ...REFLOW,
   },
   {
@@ -218,6 +247,55 @@ export const boothStates: StateEntry[] = [
     state: 'levels-menu',
     description:
       "Booth, the footer's Levels menu open with the narrator's settings untouched: the input level and the microphone the DAW records from, named, with \"Same as REAPER\", what REAPER records from (device · channel) and plays on, and Choose a different one (TeleprompterReaperInput, #2251); REAPER's own meters and pre-roll show with no switch (they only read), and the monitor slider, which writes, is off with Turn on in Settings",
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'levels-menu-builtin',
+    description:
+      "Booth for a project that records with the built-in recorder (?mockEngine=builtin), a microphone chosen and the Levels menu open: its one Input meter is the built-in recorder's own level, started on that microphone when the menu opened and moving with its recording:level stream (#2732)",
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'levels-menu-builtin-long-name',
+    description:
+      'The Levels menu of levels-menu-builtin with a microphone whose name is very long (?mockMics=long): the picker and the Input meter keep the menu its bounded width, the name wraps',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'levels-menu-builtin-rtl-name',
+    description:
+      'The Levels menu of levels-menu-builtin with an Arabic microphone name with an emoji (?mockMics=weird, "ميكروفون 🎤 (USB)") chosen: the name reads right to left in the picker and the Input meter runs on it',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'levels-menu-builtin-refused',
+    description:
+      'The Levels menu of levels-menu-builtin when the built-in recorder cannot open the microphone (?mockRecorder=start-fails): the Input meter dimmed with no reading, "The meter did not start." under it in the error colour with Check again, and the recorder\'s own reason in an error toast',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'levels-menu-builtin-opening',
+    description:
+      'The Levels menu of levels-menu-builtin while the meter\'s start has not answered (?mockRecorder=meter-hangs): the Input meter dimmed with no reading and "Opening the microphone…" under it, the menu the same height as when it reads',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'levels-menu-builtin-paused',
+    description:
+      'The Levels menu of levels-menu-builtin after the window lost focus: the meter stopped, dimmed, and "Paused while the app is in the background." under it',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'levels-menu-builtin-no-mic',
+    description:
+      'The Levels menu with the built-in recorder when it no longer lists the chosen microphone (?mockRecorder=mic-gone): no meter started, the Input meter dimmed and "No microphone chosen." under it, the picker showing the chosen one as not found',
     ...REFLOW,
   },
   {
@@ -273,7 +351,13 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'text-width-full',
     description:
-      'Booth (as setup) with Text settings › Column width moved to Full and the popover closed: the column is 100 characters or the whole text area, whichever is less, so it is wider than Narrow at any width and runs up to the gutters on both sides, centred, no paragraph indent',
+      'Booth (as setup) with Text settings › Column width moved to Full and the popover closed: the column is 100 characters or the whole text area, whichever is less, so it is wider than Narrow wherever the text area holds more than 48 characters (the desktop) and runs up to the gutters on both sides, centred, no paragraph indent',
+    sameAs: {
+      of: 'booth/text-width-narrow',
+      reason:
+        'The column is its characters a line or the whole text area, whichever is less. Below the desktop the Booth text area holds fewer than 48 characters at its size, so Narrow already fills it and Full is the same picture.',
+      viewports: ['small-desktop', 'tablet', 'reflow'],
+    },
     ...REFLOW,
   },
   {

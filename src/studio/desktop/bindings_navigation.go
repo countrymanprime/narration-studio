@@ -2,9 +2,7 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
-	"fmt"
 	"maps"
 	"strings"
 	"sync"
@@ -233,7 +231,7 @@ func (n *findingNavigation) setLooping(id string) {
 	n.loopingID = id
 }
 
-// The connection states FindingsReaperStatus answers, and the refusal reasons FindingNavigation carries.
+// The connection states reaperStatus reads, and the refusal reasons FindingNavigation carries.
 const (
 	reaperStandalone = "standalone"
 	reaperNotRunning = "not_running"
@@ -260,7 +258,6 @@ const (
 	// What Audacity answers where REAPER's item and take are not there to use (docs/reference/daw/capabilities.md#navigate).
 	messageAudacityNotAnswering = "Audacity is not answering. Open the Audacity chip at the top for the steps, then try again."
 	messageAudacityNoTime       = "This finding has no place in the Audacity project to go to. Run the comparison again with the chapter's audio track selected."
-	messageAudacityNoTakes      = "Audacity keeps no separate takes, so one read of a grouped finding cannot be played on its own here. Go to the finding instead."
 )
 
 // ReaperStatus is whether the Review page's REAPER controls can work now: "connected" (REAPER's heartbeat is fresh),
@@ -287,12 +284,6 @@ type FindingNavigation struct {
 	Kept        *int     `json:"kept,omitempty"`
 }
 
-// FindingsReaperStatus answers whether REAPER is there for Go to and Loop, without sending REAPER anything: it reads
-// the heartbeat REAPER's script already broadcasts (daw.Reachability), so the page can poll it.
-func (h *Host) FindingsReaperStatus() (string, error) {
-	return encodeBinding(reaperStatus(h.services()), nil)
-}
-
 // FindingsGoTo selects the finding's item in REAPER and puts the edit cursor on its spot (its item's start when it has
 // no time in its audio).
 func (h *Host) FindingsGoTo(id string) (string, error) {
@@ -303,27 +294,6 @@ func (h *Host) FindingsGoTo(id string) (string, error) {
 // Play. The narrator's own selection and repeat come back with FindingsStopLoop.
 func (h *Host) FindingsLoop(id string) (string, error) {
 	return h.navigateFinding(id, findingTarget, true, loopFor(id))
-}
-
-// FindingsGoToRead is FindingsGoTo for one read of a finding that groups several (a take-review pickup or duplicate
-// read): read is the index in its evidence.members,
-// and REAPER goes to that read's own item and take, at the start of its range in its own source. A read index the
-// finding does not have is an error, not a refusal: the page only offers the reads it was sent.
-func (h *Host) FindingsGoToRead(id string, read int) (string, error) {
-	if h.services().audacity != nil {
-		return encodeBinding(refused(refusedNoItem, messageAudacityNoTakes), nil)
-	}
-	return h.navigateFinding(id, readTarget(read), false, goTo)
-}
-
-// FindingsLoopRead loops one read of a finding in REAPER, as FindingsLoop does, over that read's own range. The loop is
-// the finding's, so FindingsReaperStatus names the finding and FindingsStopLoop stops it. REAPER plays the item's
-// active take: a read that is another take of its item is heard as itself through the in-app audition instead.
-func (h *Host) FindingsLoopRead(id string, read int) (string, error) {
-	if h.services().audacity != nil {
-		return encodeBinding(refused(refusedNoItem, messageAudacityNoTakes), nil)
-	}
-	return h.navigateFinding(id, readTarget(read), true, loopFor(id))
 }
 
 func goTo(navigation *findingNavigation, target bridge.Target) FindingNavigation {
@@ -410,48 +380,6 @@ func audacityTarget(finding findings.Finding) (bridge.Target, error) {
 
 func findingTarget(finding findings.Finding) (bridge.Target, error) {
 	return navigationTarget(finding), nil
-}
-
-// findingRead is one read of a grouped finding, as internal/repeats writes it into evidence.members.
-type findingRead struct {
-	ItemGUID     string  `json:"item_guid"`
-	TakeGUID     string  `json:"take_guid"`
-	SourceStart  float64 `json:"source_start"`
-	SourceLength float64 `json:"source_length"`
-}
-
-// readTarget places read (an index in evidence.members) by its own item and take, over its own range in its source.
-func readTarget(read int) func(findings.Finding) (bridge.Target, error) {
-	return func(finding findings.Finding) (bridge.Target, error) {
-		reads, err := findingReads(finding)
-		if err != nil {
-			return bridge.Target{}, err
-		}
-		if read < 0 || read >= len(reads) {
-			return bridge.Target{}, fmt.Errorf("this finding has no read %d; reload the list", read+1)
-		}
-		chosen := reads[read]
-		start, end := chosen.SourceStart, chosen.SourceStart+chosen.SourceLength
-		return bridge.Target{ItemGUID: chosen.ItemGUID, TakeGUID: chosen.TakeGUID, SourceStart: &start, SourceEnd: &end}, nil
-	}
-}
-
-// findingReads decodes evidence.members, whichever shape it has in memory (the adapter's own maps, or JSON the store
-// read back). A finding without reads has none.
-func findingReads(finding findings.Finding) ([]findingRead, error) {
-	members, ok := finding.Evidence["members"]
-	if !ok {
-		return nil, nil
-	}
-	encoded, err := json.Marshal(members)
-	if err != nil {
-		return nil, err
-	}
-	var reads []findingRead
-	if err := json.Unmarshal(encoded, &reads); err != nil {
-		return nil, fmt.Errorf("this finding's reads could not be read: %w", err)
-	}
-	return reads, nil
 }
 
 // navigationTarget is where the finding is: its REAPER item and take, and its time inside the take's audio. Its project

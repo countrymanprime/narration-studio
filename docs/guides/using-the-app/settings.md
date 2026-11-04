@@ -64,9 +64,10 @@ project as it was. Use it only when the DAW cannot be used at all; the **?** bes
 Under it, **Connection** says what the app can reach right now, with **Test connection**; after a test it says when it last checked ("Last checked 12 s ago").
 
 You set nothing up in REAPER. The app puts its bridge in REAPER's Scripts folder by itself, and REAPER starts it each
-time it opens; the card says so under **Connection**, or says what stopped it. When a project linked to REAPER opens and
+time it opens; the **?** beside **Record with** says so, and the card says what stopped it when something did. When a project linked to REAPER opens and
 REAPER is not running, the app opens REAPER on the linked project: **Connection** reads **Starting REAPER** with how
-long ago it opened, until REAPER answers. If you close REAPER later the app does not reopen it; **Start REAPER** does.
+long ago it opened, until REAPER answers. If you close REAPER later the app does not reopen it; **Start REAPER** does, and it turns on the launcher first, as **Open in REAPER and
+connect** does on the Booth.
 If REAPER was already open before the app put its bridge there, the app runs the bridge in it for you.
 
 ![Settings - Recording: the app opening REAPER on the linked project, connecting on its own](../../images/ui/settings-recording-starting.webp)
@@ -81,6 +82,27 @@ Audacity cannot report its input, so with Audacity, and with the built-in record
 for Audacity or the built-in recorder); and, under Advanced for any recorder,
 **Capabilities** and, for REAPER, **Sync activity**. These are settings of this computer; a project has no override for them. **Voice sample output** names the
 recorder the project uses (for example "Audacity's own audio device is not used or changed").
+
+**Chapter layout** (under **Chapter sync**, REAPER only) is **Flat** or **Voice folders**, saved with the project. Flat makes a chapter one
+track; Voice folders makes a chapter a folder with one child track per voice. It is the same switch as the Layout row of the
+[audio engine panel](navigation.md#the-audio-engine-panel): change it in either place and the other shows it at once. The **?** beside it says what each means.
+
+![Settings - Recording & DAW: Chapter layout under Chapter sync, with Flat and Voice folders](../../images/ui/settings-chapter-layout.webp)
+
+**Sync chapters to tracks** (also under **Chapter sync**) is **On** or **Off**, saved with the project. On, the app links each chapter to
+the track named for it when the project is saved in the recording tool; off, nothing is linked on its own. Until you choose, neither is
+picked and the app asks the first time it could sync. It is the same choice as **Turn on** and **Turn off** on the Chapter sync card of the
+[audio engine panel](navigation.md#the-audio-engine-panel) and the question the app asks, and each shows the others' change at once.
+
+**Voices** (REAPER only, under **Chapter sync**) is the Voices card of the engine panel on the page: with the **Voice folders** layout it
+lists the voices of one chapter's folder with their keys, and the pencil beside a voice chooses the characters that track records, or, for
+the Narrator, the one character it also voices. With the **Flat** layout the row says each chapter records on one track.
+
+![Settings - Recording & DAW: Sync chapters to tracks and the Voices of a chapter folder](../../images/ui/settings-chapter-voices.webp)
+
+**Effects coverage cap** (under **Effects**) is how much of a chapter effects may cover before the [Editing](editing.md) Effects tab warns, a whole percent from 1 to 100 (10 until you change it). Set here it is this computer's value; **Override for this project** gives a project its own. The Effects tab's cap box always sets the project's own value, so typing there creates that override; **Use computer setting** removes it. The **?** says more.
+
+![Settings - Recording & DAW, Effects: the Effects coverage cap row after Override for this project, with its own project box](../../images/ui/settings-effects-cap.webp)
 
 **Start tone** (under **Take cues**) is **Off** or **On**. On, the Booth plays a short beep when you press Record, for recording by foot pedal without looking at the screen, and the take starts when the beep ends, a fraction of a second later, so the beep is not on the recording. Turning it on plays it once. It is kept in this window, as Theme and Motion are, and there is no tone to stop a take.
 
@@ -172,7 +194,7 @@ for longer.
   service. The choice is the same one as the Words tab's **Definitions from** menu. The local dictionary shows **Installed** or **Not installed** with a button to download or remove it; the online service
   shows **Online**, **Offline**, or **No key saved**.
 - **Pronunciation source for new names** is what a new name tries first (Automatic, CMU, Wiktionary or eSpeak); it never limits generating or replacing a pronunciation by hand for an entry.
-- **Merriam-Webster key** (Advanced): an optional free key of your own (**Get a free key**, **Save key**, **Test key**, **Remove key**) that Look up online uses when no dictionary on this computer knows a name. It is kept apart from the other settings and never shown again after you save it; only the word you look up is sent.
+- **Merriam-Webster key** (Advanced; its **?** says what a lookup sends): an optional free key of your own (**Get a free key**, **Save key**, **Test key**, **Remove key**) that Look up online uses when no dictionary on this computer knows a name. It is kept apart from the other settings and never shown again after you save it; only the word you look up is sent.
 
 ## Models and downloads
 
@@ -186,12 +208,14 @@ Each row says what it is, its type and size, its **Status**, **Used by** (pages)
 
 - **Not installed**: **Download** starts the download. A bar shows the real bytes so far and **Cancel** stops it while bytes are arriving; the checks after the last byte cannot be cancelled. A download that is already running when you open the page (started by a Story Bible build, a preview or a comparison) is shown too, and leaving the page does not stop it.
 - **Downloading** and **Checking the download**: the download itself, then the check of every file against its approved size and checksum.
-- **Installed · checked**: **Remove** deletes that one asset after you confirm. The confirm names the settings that use it; they switch to the smallest other model you have, and checks made with it are marked out of date. When it is the only installed choice for a setting, the removal is refused and says so.
+- **Installed · checked**: **Check the files** (the check icon) reads every file of the asset again and compares it with its approved size and checksum; use it when a model that was working fails to load. A large model takes a few seconds, during which the row shows **Checking the files** and the check icon spins. If every file matches, the status reads **Installed · checked** with the time of the check. If a file is damaged, the row turns to **Needs repair** and the keyboard focus moves to **Repair**; if the files are gone, it turns to **Not installed** and the focus moves to **Download**. A screen reader hears each result. A check that cannot be made, or that gets no answer within two minutes, says so in a message, and the status then reads **Installed** without "checked" until a check passes or the asset is downloaded again. **Remove** is hidden while a check runs. **Remove** deletes that one asset after you confirm. The confirm names the settings that use it; they switch to the smallest other model you have, and checks made with it are marked out of date. When it is the only installed choice for a setting, the removal is refused and says so.
 - **Needs repair**: some files are missing or no longer match, so the app will not use the asset. **Repair** downloads it again; **Remove** deletes it.
 - **Download failed**: the row says so, the reason (no connection, not enough disk space) comes up as a message that stays until dismissed, and the row has **Retry** and **Dismiss**.
 - **Not available yet**: the app lists the asset but does not offer it in this version. The row says why and has no buttons.
 
-With nothing downloaded, the page offers **Download the recommended set** (the Small transcription model and the preview voice). Below the list, **Story Bible analysis tools** lists the optional tools that make the Story Bible scan better (GLiNER, BookNLP small and large), each with what it does, its size, where it downloads from and the memory it needs, and the **Offer better analysis when scanning** box. GLiNER (about 730 MB) finds the names of characters, places and things, including invented ones; BookNLP groups the ways a character is named and works out who speaks each line. **Download** asks first; a Story Bible scan then runs the basic rules and each tool you have (with both BookNLP sizes, the large one). **Remove** deletes a tool, and the scan goes back to the rules and whatever else is installed. A tool whose download failed says why in a message that stays until dismissed, and its row has **Try again** and **Dismiss**; when the files arrived and matched but could not be unpacked or saved, **Details** under the reason names the file and what went wrong, which is what to quote in a report. The download dialog that other pages open shows the same line under **Live activity**.
+![Settings - Models & downloads checking the files of the Whisper model: Checking the files in its row and the check icon spinning](../../images/ui/settings-models-checking.webp)
+
+With nothing downloaded, the page (its **?** gives the size, about 600 MB) offers **Download the recommended set** (the Small transcription model and the preview voice). Below the list, **Story Bible analysis tools** lists the optional tools that make the Story Bible scan better (GLiNER, BookNLP small and large), each with what it does, its size, where it downloads from and the memory it needs, and the **Offer better analysis when scanning** box. GLiNER (about 730 MB) finds the names of characters, places and things, including invented ones; BookNLP groups the ways a character is named and works out who speaks each line. **Download** asks first; a Story Bible scan then runs the basic rules and each tool you have (with both BookNLP sizes, the large one). **Remove** deletes a tool, and the scan goes back to the rules and whatever else is installed. A tool whose download failed says why in a message that stays until dismissed, and its row has **Try again** and **Dismiss**; when the files arrived and matched but could not be unpacked or saved, **Details** under the reason names the file and what went wrong, which is what to quote in a report. The download dialog that other pages open shows the same line under **Live activity**.
 
 ## Delivery
 
@@ -266,7 +290,9 @@ replacing the manuscript keeps it; if its lines are gone, the panel says so and 
 - **Theme** sets **Match my system**, **Light** or **Dark**. The **Dark theme** / **Light theme** item at the foot of the sidebar switches it too. It is kept in this window, so the page calls it **This computer**.
 - **Motion** is **Follow Windows** or **Reduce**. **Reduce** stops the app's slides, fades and highlights: menus, drawers and messages appear at once, and the Booth's cursor jumps from line to line. **Follow Windows** does that only when Windows' **Animation effects** setting is off. Like Theme, it is kept in this window.
 - **Waveform arrow step** (under **Editing**) is how far an arrow at either end of the [Editing](editing.md) waveform moves it, from 15 to 30 seconds (20 until you change it). A click moves one step; holding scrolls at that many seconds a second. It is kept in this window, as Theme and Motion are.
-- **Reader font**, **Reader text size**, **Line spacing** and **Column width** set how the [Script](script.md) reader draws the text, one row each, with a quote drawn in all four under **Column width**. These are the Script's own text settings, so a change here shows there and the other way round. The Booth keeps its own text size and uses the font and column width chosen here; its **Text settings** change the same font and width.
+- **Reader font**, **Reader text size**, **Line spacing** and **Column width** set how the [Script](script.md) reader draws the text, one row each, with a quote drawn in all four under **Column width**. These are the Script's own text settings, so a change here shows there and the other way round. The Booth uses the font and column width chosen here, and keeps its own text size: **Booth text size** (24 to 72 px in steps of 4, 40 until you change it) sets it, and the Booth's **Text settings** and its larger and smaller text keys change the same size. It is kept in this window, as the reader text is.
+- **Story Bible order** (under **Look**) is which entries the [Story Bible](story-bible.md) lists first: **Name, A to Z** (until you change it), **Name, Z to A**, **Kind**, **Book order**, **Most mentioned**, and the reverse of each. The list's column headers and **Sort** menu keep the same order, so a change in either shows in the other, and a choice here replaces any header clicks that broke ties. It is kept in this window, as the Booth text size is.
+- **Editing playback** (under **Listening**) is the sound the [Editing](editing.md) page plays: the speed (0.75× to 2×, the pitch kept), the volume, **Silence playback**, and the output it plays on. They are the same choices as the Editing page's **Output** controls beside the transport bar, kept in this window as Theme and Motion are; the Editing page reads them when it opens. A saved output that is not connected stays chosen, with a note and **Check again**, and the sound plays on the system default until it is back. With a DAW linked, Editing plays through the DAW and its own level, so these choices are for the sound the app plays itself.
 - **Note colour** is the colour that marks reader notes in the text; a project may override it.
 - **Zoom** scales the whole window (100% to 200%, the steps the jump menu's zoom commands and **Ctrl+plus**, **Ctrl+minus** and **Ctrl+0** use); it follows those and sets the same level.
 - **Shortcuts** lists every command you can run without the mouse, grouped by where it works, with a **Find a shortcut** box; each command's keys and its **Change** button sit at the right of its line, and the list is as long as the card. **Change** opens a recorder under the command: press the key or pedal (a USB footswitch that types a key works like a keyboard), then **Replace**, **Add as another key**, **Unbind** or **Reset to default**. A key another command already uses is named, and **Replace** takes it from that command. A changed command shows **Changed** and its own **Reset**; **Reset all to defaults** undoes every change. Each change saves at once.
@@ -274,6 +300,12 @@ replacing the manuscript keeps it; if its lines are gone, the panel says so and 
 ![Settings - Waveform arrow step under Editing: a slider from 15 to 30 seconds, 20 s by default](../../images/ui/settings-wave-scroll-step.webp)
 
 ![Settings - the reader rows: Reader font, Reader text size, Line spacing and Column width, with the preview quote](../../images/ui/settings-reader-text.webp)
+
+![Settings - Booth text size under Look: a slider from 24 to 72 px, 40 px by default](../../images/ui/settings-booth-text-size.webp)
+
+![Settings - Story Bible order under Look: a select of eight orders, Name, A to Z by default](../../images/ui/settings-story-bible-order.webp)
+
+![Settings - Editing playback under Listening: speed, volume, silence and output device](../../images/ui/settings-editing-playback.webp)
 
 ![Production in the Dark theme](../../images/ui/theme-dark.webp)
 
@@ -283,7 +315,9 @@ replacing the manuscript keeps it; if its lines are gone, the panel says so and 
 
 ## App & updates
 
-**Check for updates on startup**, **Update channel**, **Tell me when a long task finishes** (a Windows notification when a long job ends while the app is not in front; on by default) and, under Advanced, **Debug logging**, which writes the reasons behind the app's decisions to the run log (turn it on when asked to send a log), and **Activity trace**, which records how the app behaved (the DAW connection, tool runs, crashes it survived) to `logs/trace.jsonl` and never your text, names or file paths. A build run from source has the trace on. **This version** follows them (see [About and updates](#about-and-updates)).
+**Check for updates on startup**, **Update channel**, **Tell me when a long task finishes** (a Windows notification when a long job ends while the app is not in front; on by default) and, under Advanced, **Debug logging**, which writes the reasons behind the app's decisions to the run log (turn it on when asked to send a log), and **Activity trace**, which records how the app behaved (the DAW connection, tool runs, crashes it survived) to `logs/trace.jsonl` and never your text, names or file paths. A build run from source has the trace on. The folder button beside Debug logging (**Reveal the log folder in the file manager**) opens the folder the run log is in, so you can attach the log to a bug report. **This version** follows them (see [About and updates](#about-and-updates)).
+
+![Settings - App & updates, Advanced: Debug logging with the Reveal the log folder in the file manager button beside it](../../images/ui/settings-diagnostics.webp)
 
 ### About and updates
 
@@ -317,7 +351,7 @@ If the app will not start after an update and the program file is missing from i
 
 ## Set on a page
 
-Some settings only change what one page does, so they belong on that page, next to what they change: the recording check's rules (Production), silence cleanup (Master & QC), the preview suggestion and compare defaults (Proof), stage suggestions (Production), punch pre-roll (Booth), favourite effects and the Audacity backups (Editing). **Set on a page** lists them, each with where on that page it belongs and, on the line of **Change it here for now**, an **Open** button for that page. Settings always keeps every one of them: **Change it here for now** opens the panel with its **Global** / **This project** switch, **Save** and **Discard changes**, and leaving Settings with unsaved changes there asks whether to save or discard them. Five pages also have a shortcut to the same setting, which reads and writes the same keys: Master & QC's **Jump to or run** (Ctrl+K) has **Open Silence cleanup options**, a dialog for the open project only, the same as choosing **This project** in the Silence cleanup panel here (Diagnostics also keeps its **Open Settings** link to that panel); Production's **Jump to or run** has **Open Stage suggestion options** and **Open Recording check rules**, the same for the open project only; Proof's **Jump to or run** has **Open Preview options** and **Open Compare options**, which open a dialog for the open project only, the same as choosing **This project** in the panel here; the Booth's **Levels** menu has **Punch pre-roll (seconds)**, which is Global like the panel here, and Editing's **Backups** tab has the backup settings for the open project only, the same as choosing **This project** in the Backups panel here (that panel can also set Global). Editing's **Effects** tab has a **Favourite** button on each chain and plug-in the DAW lists, which edits the same favourite effects list as **Favourite effects** here, at the Global layer (that panel can also set This project). Search finds them too.
+Some settings only change what one page does, so they belong on that page, next to what they change: the recording check's rules (Production; the grey box above them says the values are proposed and not yet calibrated, and its **?** says why), silence cleanup (Master & QC), the preview suggestion and compare defaults (Proof), stage suggestions (Production), punch pre-roll (Booth), favourite effects and the Audacity backups (Editing). **Set on a page** lists them, each with where on that page it belongs and, on the line of **Change it here for now**, an **Open** button for that page. Settings always keeps every one of them: **Change it here for now** opens the panel with its **Global** / **This project** switch, **Save** and **Discard changes** (closing the group does not drop what you typed: it is still there when you open it again), and leaving Settings with unsaved changes there asks whether to save or discard them. Five pages also have a shortcut to the same setting, which reads and writes the same keys: Master & QC's **Jump to or run** (Ctrl+K) has **Open Silence cleanup options**, a dialog for the open project only, the same as choosing **This project** in the Silence cleanup panel here (Diagnostics also keeps its **Open Settings** link to that panel); Production's **Jump to or run** has **Open Stage suggestion options** and **Open Recording check rules**, the same for the open project only; Proof's **Jump to or run** has **Open Preview options** and **Open Compare options**, which open a dialog for the open project only, the same as choosing **This project** in the panel here; the Booth's **Levels** menu has **Punch pre-roll (seconds)**, which is Global like the panel here, and Editing's **Backups** tab has the backup settings for the open project only, the same as choosing **This project** in the Backups panel here (that panel can also set Global). Editing's **Effects** tab has a **Favourite** button on each chain and plug-in the DAW lists, which edits the same favourite effects list as **Favourite effects** here, at the Global layer (that panel can also set This project). Search finds them too.
 
 ![Settings - Set on a page, with the recording check rules opened](../../images/ui/settings-pages.webp)
 

@@ -1,0 +1,72 @@
+{
+  "names": [
+    {
+      "name": "Book loudness",
+      "ok": true
+    },
+    {
+      "name": "ACX_Master-2",
+      "ok": true
+    },
+    {
+      "name": "  spaced  ",
+      "ok": true
+    },
+    {
+      "name": "a",
+      "ok": true
+    },
+    {
+      "name": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "ok": true
+    },
+    {
+      "name": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "ok": false
+    },
+    {
+      "name": "x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x x ",
+      "ok": true
+    },
+    {
+      "name": "",
+      "ok": false
+    },
+    {
+      "name": "   ",
+      "ok": false
+    },
+    {
+      "name": "ACX – Master",
+      "ok": false
+    },
+    {
+      "name": "Ünïcode",
+      "ok": false
+    },
+    {
+      "name": "مرحبا",
+      "ok": false
+    },
+    {
+      "name": "loud 🔊",
+      "ok": false
+    },
+    {
+      "name": "../../evil\"; rm -rf /",
+      "ok": false
+    },
+    {
+      "name": "back\\slash",
+      "ok": false
+    },
+    {
+      "name": "dot.name",
+      "ok": false
+    },
+    {
+      "name": "tab\tname",
+      "ok": false
+    }
+  ]
+}

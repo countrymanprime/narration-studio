@@ -8,12 +8,19 @@ import (
 	"strings"
 	"testing"
 
+	"desktop/internal/brand"
 	"desktop/internal/contractfile"
 )
 
+// manuscriptPathIn is the canonical manuscript file manuscript import writes in projectFolder
+// (internal/manuscript.Service.Load reads the same path).
+func manuscriptPathIn(projectFolder string) string {
+	return filepath.Join(projectFolder, brand.ProjectFolder, "manuscript", "manuscript.json")
+}
+
 // previewSuggestProject writes a project folder with just a canonical manuscript
 // (PreviewCandidates only ever reads the manuscript service, so nothing else is needed). manuscriptJSON is written
-// verbatim at the path manuscript import itself writes to (takeReviewManuscriptPath). Named "Suggest" (preview.Suggest, the engine entry point) to avoid clashing
+// verbatim at the path manuscript import itself writes to (manuscriptPathIn). Named "Suggest" (preview.Suggest, the engine entry point) to avoid clashing
 // with guidepreview_test.go's unrelated previewHost/previewProject (GuidePreview's own test helpers).
 func previewSuggestProject(t *testing.T, manuscriptJSON string) string {
 	t.Helper()
@@ -21,7 +28,7 @@ func previewSuggestProject(t *testing.T, manuscriptJSON string) string {
 	if manuscriptJSON == "" {
 		return project
 	}
-	path := takeReviewManuscriptPath(project)
+	path := manuscriptPathIn(project)
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
 	}

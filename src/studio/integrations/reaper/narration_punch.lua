@@ -58,6 +58,7 @@ local function punch_to(session_dir, run_id, time_text, preroll_text)
   end
   local target = math.max(0, time - preroll)
   reaper.SetEditCurPos(target, true, false)
+  core.cursor_moved()
   event(session_dir, 'PUNCHED', run_id, seconds(target))
 end
 

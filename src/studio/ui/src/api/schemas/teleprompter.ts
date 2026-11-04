@@ -21,7 +21,6 @@ import type {
   TeleprompterResumeFollow,
   TeleprompterResumeFollowEvent,
   TeleprompterResumeVerdict,
-  TeleprompterPunchResult,
   TeleprompterScript,
   TeleprompterStartResult,
   TeleprompterState,
@@ -292,24 +291,6 @@ const teleprompterFlagFindingSchema = z
 /** `TeleprompterSaveFlags`: one finding per flag sent, in order. */
 export const teleprompterFlagFindingsSchema = z.array(teleprompterFlagFindingSchema);
 
-/**
- * `TeleprompterPunchPreview`/`TeleprompterPunch` (`src/studio/desktop/teleprompterpunch.go`): a preview never carries `cursor`, and
- * only a successful punch does.
- */
-export const teleprompterPunchResultSchema = z
-  .object({
-    outcome: z.enum(['resolved', 'punched', 'refused']),
-    cursor: z.number().optional(),
-    resolvedTime: z.number().optional(),
-    source: z.enum(['anchor', 'alignment', 'estimate']).optional(),
-    preRoll: z.number().optional(),
-    message: z.string().optional(),
-  })
-  .refine((result) => (result.outcome === 'punched') === (result.cursor !== undefined), {
-    message: 'a punch cursor comes with outcome "punched", and only with it',
-    path: ['cursor'],
-  }) satisfies z.ZodType<TeleprompterPunchResult>;
-
 /** `ReadAloudReaperState` (`src/studio/desktop/readaloudreaper.go`): REAPER's arms against the chapter's linked track. */
 export const readAloudReaperStateSchema = z.object({
   status: z.enum(['ready', 'not_armed', 'other_armed', 'several_armed', 'no_link', 'recording_elsewhere', 'unavailable']),
@@ -322,10 +303,10 @@ export const readAloudReaperStateSchema = z.object({
 }) satisfies z.ZodType<ReadAloudReaperState>;
 
 /**
- * `ReadAloudArmOnly`/`ReadAloudRecordStart`/`ReadAloudRecordStartAt`/`ReadAloudRecordStop` (`src/studio/desktop/bindings_readaloud_record.go`): what arming, starting or stopping a REAPER recording did.
+ * `ReadAloudRecordStart`/`ReadAloudRecordStartAt`/`ReadAloudRecordStop` (`src/studio/desktop/bindings_readaloud_record.go`): what starting or stopping a REAPER recording did.
  */
 export const readAloudRecordingSchema = z.object({
-  outcome: z.enum(['armed', 'started', 'stopped', 'refused']),
+  outcome: z.enum(['started', 'stopped', 'refused']),
   reason: z
     .enum([
       'unlinked',
@@ -348,12 +329,11 @@ export const readAloudRecordingSchema = z.object({
       'no_microphone',
       'choose_microphone',
       'not_recording',
+      'no_voices',
     ])
     .optional(),
   message: z.string().optional(),
   trackGuid: z.string().optional(),
-  disarmed: z.number().int().nonnegative().optional(),
-  changed: z.boolean().optional(),
   position: z.number().optional(),
   restored: z.number().int().nonnegative().optional(),
   kept: z.number().int().nonnegative().optional(),

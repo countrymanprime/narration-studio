@@ -8,7 +8,7 @@ import (
 )
 
 // hideTakesTimeout bounds one hide_takes request: a single undo block in REAPER, like set_active_take.
-const hideTakesTimeout = takeReviewCreateTakeTimeout
+const hideTakesTimeout = takeRequestTimeout
 
 // WorkspaceHideTakes mutes the other takes of the passage between firstToken and lastToken of chapterID's stored alignment,
 // keeping keepCandidateID, one of the ids WorkspaceTakes offers (SND-5b; the Studio Next mock's hideTakes). Nothing is

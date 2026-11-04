@@ -118,9 +118,6 @@ func TestTheReviewLoopRunsAgainstAnAdapterThatIsNotReaper(t *testing.T) {
 		t.Fatalf("events delivered by the adapter must drive the state, got %#v", state)
 	}
 
-	if err := service.Jump("row-1"); err != nil {
-		t.Fatal(err)
-	}
 	service.mu.Lock()
 	service.state["output"] = filepath.Join(t.TempDir(), "results.txt")
 	service.mu.Unlock()
@@ -128,22 +125,12 @@ func TestTheReviewLoopRunsAgainstAnAdapterThatIsNotReaper(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	want := []string{"prepare", "dispatch", "navigate " + runID + " row-1", "export " + runID + " results.txt"}
+	want := []string{"prepare", "dispatch", "export " + runID + " results.txt"}
 	if !reflect.DeepEqual(fake.calls, want) {
 		t.Fatalf("calls = %v, want %v", fake.calls, want)
 	}
 	if want := (dawport.MarkerColors{Misread: "FF4040", Skipped: "FFC000", Extra: "40A0FF"}); fake.colors != want {
 		t.Fatalf("export colours = %+v, want the resolved settings %+v", fake.colors, want)
-	}
-}
-
-func TestJumpToAFindingTheRunDoesNotHaveNeverReachesTheAdapter(t *testing.T) {
-	service, fake := adapterService(t)
-	if err := service.Jump("row-9"); err == nil {
-		t.Fatal("jumping to an unknown finding must fail")
-	}
-	if len(fake.calls) != 0 {
-		t.Fatalf("calls = %v, want none", fake.calls)
 	}
 }
 
@@ -163,7 +150,7 @@ func TestNoAdapterIsTheUnavailableBridgeError(t *testing.T) {
 	if err := service.Drain(); err != nil {
 		t.Fatal(err)
 	}
-	if err := service.Jump("row-1"); err == nil {
+	if err := service.Start(map[string]string{}); err == nil {
 		t.Fatal("no adapter must be an error, not a panic")
 	}
 }

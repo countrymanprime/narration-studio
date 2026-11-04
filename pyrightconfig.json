@@ -1,0 +1,25 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/pyright/main/packages/vscode-pyright/schemas/pyrightconfig.schema.json",
+  "include": [
+    "src/studio/libs/python",
+    "src/studio/sidecars/manuscript-guide/core",
+    "src/studio/sidecars/transcript-compare/core",
+    "src/studio/sidecars/manuscript-teleprompter/core"
+  ],
+  "exclude": [
+    "**/tests",
+    "**/__pycache__",
+    "**/node_modules"
+  ],
+  "extraPaths": [
+    "src/studio/libs/python",
+    "src/studio/sidecars/manuscript-guide/core",
+    "src/studio/sidecars/transcript-compare/core",
+    "src/studio/sidecars/manuscript-teleprompter/core"
+  ],
+  "pythonVersion": "3.12",
+  "pythonPlatform": "Windows",
+  "venvPath": ".",
+  "venv": ".venv",
+  "typeCheckingMode": "basic"
+}

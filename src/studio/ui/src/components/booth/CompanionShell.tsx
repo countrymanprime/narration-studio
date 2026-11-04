@@ -18,7 +18,6 @@ import { Toolbar, ToolbarButton } from '../primitives/Toolbar';
 import { ReadAlongView } from './ReadAlongView';
 import type { ReaderMark } from './readerModel';
 import type { FollowCursor } from './useFollowCursor';
-import type { RecordInReaperState } from './useRecordInReaper';
 import type { TeleprompterSession } from './useTeleprompterSession';
 import { CompanionThisChapter } from './CompanionThisChapter';
 import { PickupsCompanionSummary } from '../pickups/PickupsCompanionSummary';
@@ -29,8 +28,6 @@ type Props = {
   chapterTitle?: string;
   /** The chapter being read, for "This chapter"; the credits chapters included. */
   chapterId?: string;
-  /** The Record-in-REAPER orchestration `CompanionHost` owns, so Play and Stop here arm and stop exactly as the Booth's do. */
-  recording: RecordInReaperState;
   marks?: Map<string, ReaderMark[]>;
   onOpenMark?: (mark: ReaderMark) => void;
   header?: ReactNode;
@@ -90,7 +87,7 @@ function useCompanionWindow(): string | null {
 // Mock 07: sections sit full-bleed on `--bg` (no card border, background or radius of their own - `CompactShell`'s
 // `main` already gives the whole column its side padding), separated from the one before by a 1 px `--border` rule.
 // The very first section sits right under the header's own rule, so it draws none of its own.
-function Section({ title, badge, children, first = false }: { title: string; badge?: ReactNode; children: ReactNode; first?: boolean }) {
+function Section({ title, badge, children, first = false }: { title: string; badge?: ReactNode; children?: ReactNode; first?: boolean }) {
   const headingId = useId();
   return (
     <section aria-labelledby={headingId} className={`text-sm ${first ? '' : 'border-t border-[var(--border)] pt-3'}`}>
@@ -115,7 +112,7 @@ function Section({ title, badge, children, first = false }: { title: string; bad
  * Play/Pause and Stop repeat the Booth page's few lines on the same handlers rather than share a hook with it: each surface
  * is mounted alone (one `reading.toggle` registration at a time).
  */
-export function CompanionShell({ session: t, follow, chapterTitle, chapterId, recording, marks, onFullApp, onOpenMark, header }: Props) {
+export function CompanionShell({ session: t, follow, chapterTitle, chapterId, marks, onFullApp, onOpenMark, header }: Props) {
   const [root, setRoot] = useState<HTMLDivElement | null>(null);
   const [escapeArmed, setEscapeArmed] = useState(false);
   const escapeTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -132,15 +129,11 @@ export function CompanionShell({ session: t, follow, chapterTitle, chapterId, re
   const listening = t.active && !t.paused;
   const playPauseDisabled = t.host.phase === 'starting' || t.host.phase === 'stopping' || (!t.active && !t.canStart);
   const onPlayPause = () => {
-    if (!t.active)
-      void recording.beforeStart().then((ok) => {
-        if (ok) void t.start();
-      });
+    if (!t.active) void t.start();
     else t.pause(listening);
   };
   const onStop = () => {
     t.stop();
-    recording.afterStop();
   };
   useCommand('reading.toggle', () => {
     if (!playPauseDisabled) onPlayPause();
@@ -264,9 +257,7 @@ export function CompanionShell({ session: t, follow, chapterTitle, chapterId, re
           <CompanionThisChapter chapterId={chapterId} />
         </Section>
         {/* Not built yet: last, so the working sections come first (XBO-32). */}
-        <Section title="Note at playhead" badge={<StatusBadge tone="neutral" label="Coming soon" />}>
-          <p style={{ color: 'var(--text-muted)' }}>The proofer&apos;s note at REAPER&apos;s playhead, with Resolve and Fine as read, will show here.</p>
-        </Section>
+        <Section title="Note at playhead" badge={<StatusBadge tone="neutral" label="Coming soon" />} />
       </CompactShell>
     </div>,
     document.body,

@@ -198,12 +198,6 @@
       "message": "No DAW is connected to this app. Open this app from your DAW to use it.",
       "reason": "standalone"
     },
-    "take_create": {
-      "available": false,
-      "level": "unsupported",
-      "message": "No DAW is connected to this app. Open this app from your DAW to use it.",
-      "reason": "standalone"
-    },
     "takes": {
       "available": false,
       "level": "unsupported",
@@ -228,6 +222,12 @@
       "message": "No DAW is connected to this app. Open this app from your DAW to use it.",
       "reason": "standalone"
     },
+    "tracks_read": {
+      "available": false,
+      "level": "unsupported",
+      "message": "No DAW is connected to this app. Open this app from your DAW to use it.",
+      "reason": "standalone"
+    },
     "transport_sync": {
       "available": false,
       "level": "unsupported",
@@ -235,6 +235,12 @@
       "reason": "standalone"
     },
     "undo_last": {
+      "available": false,
+      "level": "unsupported",
+      "message": "No DAW is connected to this app. Open this app from your DAW to use it.",
+      "reason": "standalone"
+    },
+    "voice_sample_region": {
       "available": false,
       "level": "unsupported",
       "message": "No DAW is connected to this app. Open this app from your DAW to use it.",

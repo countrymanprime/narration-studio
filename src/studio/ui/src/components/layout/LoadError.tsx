@@ -8,7 +8,6 @@ import { Heading } from '../primitives/Heading';
 import { Panel } from '../primitives/Panel';
 import { ARRIVE_CLASSES } from '../primitives/changeHighlight';
 import { useOverlay } from '../../overlay/OverlayProvider';
-import { sayInPlace } from '../../hooks/useToasts';
 
 /**
  * Retry swaps the error for the page's skeleton, so the button that was pressed unmounts and focus would fall to the document body, losing
@@ -35,21 +34,20 @@ export type LoadErrorExit = { label: string; onClick: () => void };
 export function LoadErrorPanel({ message, details, retry, exit }: { message: string; details?: string; retry: () => void; exit?: LoadErrorExit }) {
   const [open, setOpen] = useState(false);
   // The panel says the sentence in place, so an error toast saying the same one (raised by the page the narrator came from, which read the
-  // same data) goes, from the app's queue and the overlay service's: the sentence is not said twice (alignment audit R3PF-4).
+  // same data) goes, from the overlay service's queue: the sentence is not said twice (alignment audit R3PF-4).
   const overlay = useOverlay();
   useEffect(() => {
-    sayInPlace(message);
     for (const toast of overlay.getSnapshot().toasts) if (toast.tone === 'error' && toast.text === message) overlay.dismissToast(toast.id);
   }, [overlay, message]);
   return (
     <Panel title="This page could not be loaded" className={ARRIVE_CLASSES}>
-      <p role="alert" className="text-sm" style={{ color: 'var(--text-muted)' }}>
+      <p role="alert" className="text-sm [overflow-wrap:anywhere]" style={{ color: 'var(--text-muted)' }}>
         {message}
       </p>
       {details && (
         // The technical text (failing paths and rules, never a payload value) is closed by default, so the card's body stays the one sentence.
         <Disclosure title="Details" open={open} onOpenChange={setOpen} className="mt-3" aside={<CopyDetails text={details} />}>
-          <p className="mt-1 text-xs break-words" style={{ color: 'var(--text-muted)' }}>
+          <p className="mt-1 text-xs [overflow-wrap:anywhere]" style={{ color: 'var(--text-muted)' }}>
             {details}
           </p>
         </Disclosure>

@@ -30,7 +30,7 @@ export type PipelineCell = {
 export type RecordedFigure = {
   /** `measured` for a length the host read, `none` for a state word. */
   kind: 'measured' | 'none';
-  /** A clock ("1:12"), "<0:01" for under a minute, or a short state ("None yet", "Not linked"). */
+  /** A clock ("1:12"), "<0:01" for under a minute, or a short state ("None yet", "No track"). */
   text: string;
   /** The accessible name: "<chapter>: 1:12 recorded of about 1:20 estimated", or the state in words. */
   label: string;
@@ -104,7 +104,7 @@ const clockOf = (seconds: number): string => hm(seconds / 3600);
 
 /** Why a chapter has no recorded length, as the Rec. column's word and its tip (`recordedlengths.go`'s reasons). */
 const UNAVAILABLE: Record<RecordedUnavailable, { text: string; tip: string }> = {
-  unlinked: { text: 'Not linked', tip: 'Not linked to a track, so nothing is measured. Link it from the chapter’s track panel' },
+  unlinked: { text: 'No track', tip: 'No track is linked to this chapter, so nothing is measured. Link it from the chapter’s track panel' },
   no_project: { text: 'No project', tip: 'No saved DAW project could be read, so nothing is measured' },
   multiple_tracks: { text: '2+ tracks', tip: 'Linked to more than one track, so nothing is measured. Keep one in the chapter’s track panel' },
   track_missing: { text: 'Track gone', tip: 'The linked track is no longer in the saved project, so nothing is measured' },
@@ -166,7 +166,15 @@ function recordCell(chapter: ProductionChapter, check: ChapterCheckStatus | unde
   const checkLine = status ? `Recording check: ${status.label}${status.detail ? ` · ${status.detail}` : ''}` : '';
   const withCheck = (tip: string): string => (checkLine ? `${tip} · ${checkLine}` : tip);
   const length = chapter.recordedSeconds !== null ? `${clockOf(chapter.recordedSeconds)} recorded` : '';
-  if (past(chapter.status, 'editing')) return done('record', 'booth', withCheck(length ? `Recorded · ${length}` : 'Recorded'));
+  // The tick is the chapter's stage. With no track linked (a stage set by hand, or kept after the link was removed) nothing measures it.
+  const noTrack = chapter.recordedUnavailable === 'unlinked' && chapter.recordedSeconds === null;
+  if (past(chapter.status, 'editing')) {
+    return done(
+      'record',
+      'booth',
+      withCheck(length ? `Recorded · ${length}` : noTrack ? 'Recorded · the chapter’s stage; no track is linked, so no length is measured' : 'Recorded'),
+    );
+  }
   const through = chapter.recordedThrough;
   const words = throughWords(through);
   if (through && words) {
@@ -278,6 +286,10 @@ export function buildPipelineRows(chapters: readonly ProductionChapter[], source
     };
   });
 }
+
+/** The longest name a tip shows: a name of 10,000 characters made a tip taller than the window. */
+export const NAME_TIP_LIMIT = 240;
+export const nameTip = (name: string): string => (name.length > NAME_TIP_LIMIT ? `${name.slice(0, NAME_TIP_LIMIT - 1).trimEnd()}…` : name);
 
 /** The accessible name of a cell: "<chapter>: <stage> <state>". */
 // A cell's state starts with the text it draws (a count, a percent, PASS), so its name holds that text: axe fails a name that

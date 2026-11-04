@@ -7,9 +7,13 @@
 -- active takes. It opens no undo block and sets nothing. A track is named by its GUID; a GUID that does not resolve is reported as TRACK_STALE and no other track is
 -- ever answered in its place. With no GUID it answers the transport and the arms only.
 --
+-- With the option 'children' (a chapter linked to a folder of voices) it lists the items on the track and on every track inside it,
+-- in track order, each with its track's GUID; the limit and the total count the whole folder. Any other option is refused.
+--
 -- Events: TRACK_STATE|run|guid|playState|editCursor|playPosition|rpp|unsaved|changeCount|thisArmed|armedCount|recInput|
 -- inputDevice|outputDevice|recInputName, then TRACK_ITEM|run|itemGuid|takeGuid|position|length|sourceOffset|playrate|
--- sourceFile|muted per item (at most ITEM_LIMIT; muted is the last field), then TRACK_STATE_END|run|listed|total.
+-- sourceFile|muted per item (at most ITEM_LIMIT; muted is the last field, and with 'children' the item's track GUID
+-- follows it), then TRACK_STATE_END|run|listed|total.
 
 local core = ...
 local event = core.event
@@ -101,7 +105,11 @@ local function item_row(item)
     reaper.GetMediaItemInfo_Value(item, 'B_MUTE') ~= 0 and 1 or 0
 end
 
-local function chapter_track_state(session_dir, run_id, guid_text)
+local function chapter_track_state(session_dir, run_id, guid_text, option)
+  if option ~= '' and option ~= 'children' then
+    event(session_dir, 'ERROR', run_id, 'Unknown track read option: ' .. option .. '.')
+    return
+  end
   for _, name in ipairs({ 'GetPlayPosition', 'CountTracks', 'GetProjectStateChangeCount' }) do
     if not reaper.APIExists(name) then
       event(session_dir, 'ERROR', run_id, 'This REAPER version cannot report its transport and tracks.')
@@ -138,16 +146,34 @@ local function chapter_track_state(session_dir, run_id, guid_text)
     audio_device('IDENT_OUT'),
     rec_input and input_channel_name(rec_input) or ''
   )
-  local total = track and reaper.CountTrackMediaItems(track) or 0
-  local listed = math.min(total, ITEM_LIMIT)
-  for index = 0, listed - 1 do
-    event(session_dir, 'TRACK_ITEM', run_id, item_row(reaper.GetTrackMediaItem(track, index)))
+  if option ~= 'children' or not track then
+    local total = track and reaper.CountTrackMediaItems(track) or 0
+    local listed = math.min(total, ITEM_LIMIT)
+    for index = 0, listed - 1 do
+      event(session_dir, 'TRACK_ITEM', run_id, item_row(reaper.GetTrackMediaItem(track, index)))
+    end
+    event(session_dir, 'TRACK_STATE_END', run_id, listed, total)
+    return
+  end
+  local total, listed = 0, 0
+  for _, member in ipairs(core.with_descendants(track)) do
+    local member_guid = normalize_guid(reaper.GetTrackGUID(member))
+    local count = reaper.CountTrackMediaItems(member)
+    for index = 0, count - 1 do
+      if listed < ITEM_LIMIT then
+        local fields = { item_row(reaper.GetTrackMediaItem(member, index)) }
+        fields[#fields + 1] = member_guid
+        event(session_dir, 'TRACK_ITEM', run_id, table.unpack(fields))
+        listed = listed + 1
+      end
+    end
+    total = total + count
   end
   event(session_dir, 'TRACK_STATE_END', run_id, listed, total)
 end
 
 return function(registry)
   registry.register('chapter_track_state', function(ctx, args)
-    chapter_track_state(ctx.session_dir, args[1] or '', args[2] or '')
+    chapter_track_state(ctx.session_dir, args[1] or '', args[2] or '', args[3] or '')
   end)
 end

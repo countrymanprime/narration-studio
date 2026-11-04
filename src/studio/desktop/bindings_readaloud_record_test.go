@@ -70,78 +70,10 @@ func (f *fakeRecorder) RecordStop(context.Context) (bridge.RecordStopped, error)
 
 func (f *fakeRecorder) OnRecordEnded(handler func(bridge.RecordEnded)) { f.ended = handler }
 
-func TestReadAloudArmOnlyArmsTheChaptersLinkedTrack(t *testing.T) {
-	host, ids := newReadAloudReaperHost(t)
-	fake := &fakeRecorder{armed: bridge.Armed{Disarmed: 1, Changed: true}}
-
-	result, err := readAloudArmOnlyIn(context.Background(), host.services(), fake, ids[0])
-	if err != nil {
-		t.Fatal(err)
-	}
-	if fake.armGUID != readAloudTrack {
-		t.Fatalf("armed %q, want the chapter's linked track %q", fake.armGUID, readAloudTrack)
-	}
-	if result.Outcome != "armed" || result.TrackGUID != readAloudTrack || result.Disarmed == nil || *result.Disarmed != 1 || result.Changed == nil || !*result.Changed {
-		t.Fatalf("result = %+v", result)
-	}
-}
-
-func TestReadAloudArmOnlyRefusesWhileRecording(t *testing.T) {
-	host, ids := newReadAloudReaperHost(t)
-	fake := &fakeRecorder{armErr: bridge.ErrAlreadyRecording}
-
-	result, err := readAloudArmOnlyIn(context.Background(), host.services(), fake, ids[0])
-	if err != nil {
-		t.Fatal(err)
-	}
-	if result.Outcome != "refused" || result.Reason != "already_recording" {
-		t.Fatalf("result = %+v, want a refusal for already recording", result)
-	}
-}
-
-func TestReadAloudArmOnlyWithNoLinkedTrackIsRefused(t *testing.T) {
-	host, ids := newReadAloudReaperHost(t)
-	fake := &fakeRecorder{}
-
-	result, err := readAloudArmOnlyIn(context.Background(), host.services(), fake, ids[1])
-	if err != nil {
-		t.Fatal(err)
-	}
-	if result.Outcome != "refused" || result.Reason != readAloudUnlinked || fake.armGUID != "" {
-		t.Fatalf("result = %+v, armGUID = %q, want a no_link refusal and nothing sent", result, fake.armGUID)
-	}
-}
-
-func TestReadAloudArmOnlyWithNoRecorderIsUnsupported(t *testing.T) {
-	host, ids := newReadAloudReaperHost(t)
-
-	result, err := readAloudArmOnlyIn(context.Background(), host.services(), nil, ids[0])
-	if err != nil {
-		t.Fatal(err)
-	}
-	if result.Outcome != "refused" || result.Reason != readAloudUnsupported {
-		t.Fatalf("result = %+v", result)
-	}
-}
-
-func TestReadAloudArmOnlyWithAChapterTheManuscriptDoesNotHaveIsAnError(t *testing.T) {
+func TestReadAloudRecordStartWithAChapterTheManuscriptDoesNotHaveIsAnError(t *testing.T) {
 	host, _ := newReadAloudReaperHost(t)
-	if _, err := readAloudArmOnlyIn(context.Background(), host.services(), &fakeRecorder{}, "no-such-chapter"); err == nil {
+	if _, err := readAloudRecordStartIn(context.Background(), host.services(), &fakeRecorder{}, nil, "no-such-chapter"); err == nil {
 		t.Fatal("answered for a chapter the manuscript does not have")
-	}
-}
-
-func TestReadAloudArmOnlyIsStandaloneWithoutAReaperSession(t *testing.T) {
-	host, ids := newTestHostForChapterMatch(t)
-	linkChapter(t, host, ids[0], readAloudTrack)
-	// No host.reachability set: newTestHostForChapterMatch's host is standalone (bindings_navigation.go's reaperStatus).
-
-	result, err := readAloudArmOnlyIn(context.Background(), host.services(), &fakeRecorder{}, ids[0])
-	if err != nil {
-		t.Fatal(err)
-	}
-	if result.Outcome != "refused" || result.Reason != reaperStandalone {
-		t.Fatalf("result = %+v, want a standalone refusal", result)
 	}
 }
 
@@ -557,7 +489,6 @@ func TestReadAloudRecordStopWithNoRecorderIsUnsupported(t *testing.T) {
 func TestReadAloudRecordBindingsAnswerJSON(t *testing.T) {
 	host, ids := newReadAloudReaperHost(t)
 	for _, raw := range []func() (string, error){
-		func() (string, error) { return host.ReadAloudArmOnly(ids[0]) },
 		func() (string, error) { return host.ReadAloudRecordStart(ids[0]) },
 		func() (string, error) { return host.ReadAloudRecordStartAt(ids[0], 30) },
 		func() (string, error) { return host.ReadAloudRecordStop() },
@@ -638,7 +569,7 @@ func TestRecorderFromIsNilWithoutAResolver(t *testing.T) {
 }
 
 // The binding's answers, pinned for the UI's schema; other_armed and several_armed now start, since Record
-// disarms the others: one arm, record start and record stop per REAPER
+// disarms the others: one record start and record stop per REAPER
 // state the mock (`?mockReaper=`) can put a chapter in, plus the stale-track and no-link cases only the host can
 // reach. wireContracts.test.ts cross-checks every mock seed but "unavailable" (its own reason, standalone, differs
 // from unsupported's here on purpose - the read-aloud-reaper-states golden the same way).
@@ -647,17 +578,12 @@ func TestContractReadAloudRecordings(t *testing.T) {
 	answers := map[string]ReadAloudRecording{}
 	record := func(name string, fake *fakeRecorder, chapterID string) {
 		t.Helper()
-		// A nil *fakeRecorder must reach readAloudArmOnlyIn as a true nil dawport.Recorder, not a typed nil in a non-nil
+		// A nil *fakeRecorder must reach readAloudRecordStartIn as a true nil dawport.Recorder, not a typed nil in a non-nil
 		// interface (which would pass its `recorder == nil` check and then panic on the fake's nil receiver).
 		var recorder dawport.Recorder
 		if fake != nil {
 			recorder = fake
 		}
-		armed, err := readAloudArmOnlyIn(context.Background(), host.services(), recorder, chapterID)
-		if err != nil {
-			t.Fatal(err)
-		}
-		answers[name+".arm"] = armed
 		started, err := readAloudRecordStartIn(context.Background(), host.services(), recorder, nil, chapterID)
 		if err != nil {
 			t.Fatal(err)

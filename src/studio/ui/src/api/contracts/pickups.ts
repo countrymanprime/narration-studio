@@ -1,9 +1,9 @@
-// The pickup list: import a proofer's CSV, jump to the next open
-// pickup, resolve or reopen it, list every pickup marker, export the remaining list. Mirrors src/studio/desktop/internal/pickups.Service.Snapshot() exactly:
-// one run (import, export, jump, resolve, reopen, list or count) at a time, reported by phase, with remaining/total surviving
+// The pickup list: import a proofer's CSV, resolve or reopen a
+// pickup, list every pickup marker, export the remaining list. Mirrors src/studio/desktop/internal/pickups.Service.Snapshot() exactly:
+// one run (import, export, resolve, reopen, list or count) at a time, reported by phase, with remaining/total surviving
 // between runs so the count does not flash back to zero while a different action is in flight.
 
-export type PickupsPhase = 'idle' | 'importing' | 'exporting' | 'jumping' | 'resolving' | 'reopening' | 'listing' | 'counting' | 'success' | 'error';
+export type PickupsPhase = 'idle' | 'importing' | 'exporting' | 'resolving' | 'reopening' | 'listing' | 'counting' | 'success' | 'error';
 
 /** Whether a pickup marker in the DAW is still to record (`PICKUP:`) or done (`PICKUP_DONE:`). */
 export const PICKUP_MARKER_STATES = ['open', 'done'] as const;
@@ -124,8 +124,6 @@ export interface PickupsApi {
   pickupsImport(csvText: string): Promise<PickupsImportResult>;
   /** Asks REAPER for every remaining pickup; read-only. */
   pickupsExport(): Promise<PickupsStartResult>;
-  /** Moves the edit cursor to the next open pickup after the cursor, wrapping to the earliest one. */
-  pickupsNext(): Promise<PickupsStartResult>;
   /** Marks the open pickup nearest position (seconds) as done. */
   pickupsResolve(position: number): Promise<PickupsStartResult>;
   /** Puts the resolved pickup nearest position (seconds) back to open. A negative or non-finite position is refused. */

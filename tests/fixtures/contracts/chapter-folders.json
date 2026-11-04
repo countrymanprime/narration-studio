@@ -1,0 +1,77 @@
+{
+  "clean": {
+    "outcome": "clean",
+    "moves": [],
+    "expected": []
+  },
+  "nested": {
+    "outcome": "nested",
+    "moves": [
+      {
+        "trackGuid": "{44444444-0000-4000-8000-000000000004}",
+        "trackName": "Chapter 4",
+        "chapterId": "c-0002",
+        "fromGuid": "{33333333-0000-4000-8000-000000000003}",
+        "fromName": "Chapter 3",
+        "toGuid": "",
+        "toName": ""
+      },
+      {
+        "trackGuid": "{55555555-0000-4000-8000-000000000005}",
+        "trackName": "Cuts",
+        "fromGuid": "{33333333-0000-4000-8000-000000000003}",
+        "fromName": "Chapter 3",
+        "toGuid": "",
+        "toName": ""
+      }
+    ],
+    "expected": [
+      "{44444444-0000-4000-8000-000000000004}"
+    ]
+  },
+  "recording": {
+    "outcome": "refused",
+    "reason": "recording",
+    "message": "REAPER is recording. Stop the take, then move the chapters.",
+    "moves": [],
+    "expected": []
+  },
+  "repaired": {
+    "outcome": "repaired",
+    "moves": [
+      {
+        "trackGuid": "{44444444-0000-4000-8000-000000000004}",
+        "trackName": "Chapter 4",
+        "chapterId": "c-0002",
+        "fromGuid": "{33333333-0000-4000-8000-000000000003}",
+        "fromName": "Chapter 3",
+        "toGuid": "",
+        "toName": ""
+      },
+      {
+        "trackGuid": "{55555555-0000-4000-8000-000000000005}",
+        "trackName": "Cuts",
+        "fromGuid": "{33333333-0000-4000-8000-000000000003}",
+        "fromName": "Chapter 3",
+        "toGuid": "",
+        "toName": ""
+      }
+    ],
+    "expected": [
+      "{44444444-0000-4000-8000-000000000004}"
+    ]
+  },
+  "stale": {
+    "outcome": "stale",
+    "message": "The tracks in REAPER changed since they were checked, so nothing was moved. Check again.",
+    "moves": [],
+    "expected": []
+  },
+  "standalone": {
+    "outcome": "refused",
+    "reason": "standalone",
+    "message": "REAPER is not connected to this app, so its folders cannot be checked. Start REAPER, then check again.",
+    "moves": [],
+    "expected": []
+  }
+}

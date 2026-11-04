@@ -71,8 +71,6 @@ const sync = (chapterId: string, freshness: ChapterSyncChapter['freshness']): Ch
   lastChanged: null,
   pickupTrackGuid: '',
   pickupTrackName: '',
-  pickupsScannedAt: null,
-  pickupsChanged: false,
 });
 
 const SYNC_ROWS: ChapterSyncChapter[] = [

@@ -1,11 +1,7 @@
 import { z } from 'zod';
 import type {
-  ChapterCandidate,
   ChapterRegionPlan,
   ChapterRegionsCreated,
-  ChaptersForTracksEntry,
-  ChaptersForTracksResult,
-  ChapterSuggestion,
   ChapterTrackCandidate,
   ChapterTrackLink,
   ChapterTrackLinks,
@@ -17,6 +13,7 @@ import type {
   RecordedEnd,
   TrackMapping,
   TrackSelectResult,
+  ChapterFolders,
 } from '../contracts/chapterTrackMap';
 import { listFromNull } from './base';
 
@@ -60,45 +57,6 @@ const matchWarningSchema = z.enum(['confirmed-track-missing', 'confirmed-track-r
 
 const matchStatusSchema = z.enum(['confirmed', 'matched', 'uncertain', 'ambiguous', 'none']);
 
-const chapterCandidateSchema = z.object({
-  chapterId: z.string(),
-  chapterTitle: z.string(),
-  score: z.number().min(0).max(1),
-  source: z.enum(['confirmed', 'track-name', 'region-name']),
-  region: z.object({ name: z.string(), start: z.number(), end: z.number() }).nullable(),
-}) satisfies z.ZodType<ChapterCandidate>;
-
-// trackDirectionWarningSchema is the warning set the matcher's track-to-chapter direction can report (ForTrack): every ForChapter warning plus confirmed-chapter-missing, which only that direction can raise.
-const trackDirectionWarningSchema = z.enum(['confirmed-track-missing', 'confirmed-track-renamed', 'confirmed-links-conflict', 'confirmed-chapter-missing']);
-
-export const chapterSuggestionSchema = z.object({
-  projectFile: z.string(),
-  savedAt: z.string(),
-  basis: z.enum(['armed', 'selected', 'none']),
-  track: z.object({ guid: z.string(), name: z.string(), index: z.number().int() }).nullable(),
-  status: matchStatusSchema,
-  chapter: chapterCandidateSchema.nullable(),
-  candidates: z.array(chapterCandidateSchema),
-  warnings: z.array(trackDirectionWarningSchema),
-}) satisfies z.ZodType<ChapterSuggestion>;
-
-// ChaptersForTracksEntry.status is '' only alongside `error` (the requested GUID is not in the current project), so
-// it is not folded into matchStatusSchema itself: that enum stays the actual matcher statuses everywhere else.
-const chaptersForTracksEntrySchema = z.object({
-  status: z.union([matchStatusSchema, z.literal('')]),
-  chapter: chapterCandidateSchema.nullable(),
-  candidates: listFromNull(chapterCandidateSchema),
-  warnings: listFromNull(trackDirectionWarningSchema),
-  error: z.string().optional(),
-}) satisfies z.ZodType<ChaptersForTracksEntry>;
-
-/** ChaptersForTracks' answer. */
-export const chaptersForTracksSchema = z.object({
-  projectFile: z.string(),
-  savedAt: z.string(),
-  tracks: z.record(z.string(), chaptersForTracksEntrySchema),
-}) satisfies z.ZodType<ChaptersForTracksResult>;
-
 export const chapterTrackMatchSchema = z.object({
   chapterId: z.string(),
   chapterTitle: z.string(),
@@ -135,17 +93,44 @@ export const chapterTrackSetSchema = z.object({
   mappings: listFromNull(trackMappingSchema),
 }) satisfies z.ZodType<ChapterTrackSetResult>;
 
+const createdTrackSchema = z.object({ guid: z.string().min(1), name: z.string(), index: z.number().int().min(0) });
+
 export const chapterTrackCreateSchema = z.discriminatedUnion('outcome', [
   chapterTrackSetSchema.extend({
     outcome: z.literal('created'),
-    track: z.object({ guid: z.string().min(1), name: z.string(), index: z.number().int().min(0) }),
+    track: createdTrackSchema,
+    voice: createdTrackSchema.optional(),
   }),
   z.object({
     outcome: z.literal('refused'),
-    reason: z.enum(['standalone', 'not_running', 'recording', 'unsupported', 'failed']),
+    reason: z.enum(['standalone', 'not_running', 'recording', 'unsupported', 'failed', 'already_linked', 'name_taken', 'link_failed']),
     message: z.string().min(1),
   }),
 ]) satisfies z.ZodType<ChapterTrackCreateResult>;
+
+const chapterFolderMoveSchema = z.object({
+  trackGuid: z.string().min(1),
+  trackName: z.string(),
+  chapterId: z.string().min(1).optional(),
+  fromGuid: z.string(),
+  fromName: z.string(),
+  toGuid: z.string(),
+  toName: z.string(),
+});
+
+/** `ChapterFoldersCheck` / `ChapterFoldersRepair` (src/studio/desktop/chapterfolders.go). */
+export const chapterFoldersSchema = z
+  .object({
+    outcome: z.enum(['clean', 'nested', 'repaired', 'stale', 'refused']),
+    reason: z.enum(['standalone', 'not_running', 'recording', 'unsupported', 'failed']).optional(),
+    message: z.string().min(1).optional(),
+    moves: z.array(chapterFolderMoveSchema),
+    expected: z.array(z.string().min(1)),
+  })
+  .refine(
+    (value) => value.outcome !== 'refused' || (value.reason !== undefined && value.message !== undefined),
+    'a refusal says why',
+  ) satisfies z.ZodType<ChapterFolders>;
 
 const chapterTrackSummarySchema = z.object({
   guid: z.string(),

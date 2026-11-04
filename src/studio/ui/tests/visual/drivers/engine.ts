@@ -88,6 +88,72 @@ export const engineDrivers: Record<string, Driver> = {
     await card.getByText(/Last checked \d+ s ago/).waitFor();
     await card.getByRole('button', { name: 'Check again' }).waitFor();
   },
+  'voice-folders': async (page) => {
+    await page.goto('/?mockVoiceFolders=1');
+    await settlePage(page);
+    await openEnginePanel(page);
+    const table = page.getByRole('table', { name: /^Voices of / });
+    await table.getByRole('row', { name: /Extras/ }).waitFor();
+    await table.scrollIntoViewIfNeeded();
+  },
+  'voice-folders-picker': async (page) => {
+    await page.goto('/?mockVoiceFolders=1');
+    await settlePage(page);
+    await openEnginePanel(page);
+    const table = page.getByRole('table', { name: /^Voices of / });
+    await table.getByRole('row', { name: /Extras/ }).waitFor();
+    await table.scrollIntoViewIfNeeded();
+    await table.getByRole('button', { name: 'Choose who the Extras track records' }).click();
+    await page
+      .getByRole('dialog', { name: 'Choose who the Extras track records' })
+      .getByRole('checkbox', { name: /Cheshire Cat/ })
+      .waitFor();
+  },
+  'voice-folders-sync': async (page) => {
+    await page.goto('/?mockVoiceFolders=1');
+    await settlePage(page);
+    await openEnginePanel(page);
+    const layout = page.getByRole('group', { name: 'Chapter layout' });
+    await layout.waitFor();
+    await layout.evaluate((node) => node.closest('section, [data-panel], div')?.scrollIntoView({ block: 'start' }));
+    await page
+      .getByRole('treegrid', { name: 'Tracks' })
+      .getByRole('row', { name: /Extras/ })
+      .waitFor();
+  },
+  'voice-folders-links': async (page) => {
+    await page.goto('/?mockVoiceFolders=1');
+    await settlePage(page);
+    await openEnginePanel(page);
+    const table = page.getByRole('table', { name: 'Chapter links' });
+    await table.getByText('Chapter 1 · 3 voices').waitFor();
+    await table.evaluate((node) => node.scrollIntoView({ block: 'start' }));
+  },
+  'nested-chapters': async (page) => {
+    await page.goto('/?mockNestedChapters=1');
+    await settlePage(page);
+    await openEnginePanel(page);
+    const move = page.getByRole('button', { name: 'Move them out…' });
+    await move.waitFor();
+    await move.evaluate((node) => node.scrollIntoView({ block: 'center' }));
+  },
+  'nested-chapters-confirm': async (page) => {
+    await page.goto('/?mockNestedChapters=1');
+    await settlePage(page);
+    await openEnginePanel(page);
+    await page.getByRole('button', { name: 'Move them out…' }).click();
+    await page.getByRole('alertdialog').getByRole('list', { name: 'Tracks that move' }).waitFor();
+  },
+  'voice-folders-link-picker': async (page) => {
+    await page.goto('/?mockVoiceFolders=1&mockChapterLink=confirmed');
+    await settlePage(page);
+    await openEnginePanel(page);
+    const table = page.getByRole('table', { name: 'Chapter links' });
+    const trigger = table.getByRole('button', { name: /^Folder for Chapter 2/ });
+    await trigger.scrollIntoViewIfNeeded();
+    await trigger.click();
+    await page.getByRole('treeitem', { name: /White Rabbit/ }).waitFor();
+  },
   'folder-tracks': async (page) => {
     await page.goto('/?mockTrackFolders=1');
     await settlePage(page);
@@ -115,13 +181,14 @@ export const engineDrivers: Record<string, Driver> = {
     await openEnginePanel(page);
     const table = page.getByRole('table', { name: 'Chapter links' });
     await table.scrollIntoViewIfNeeded();
+    // The fifth body row is Chapter 4, the first chapter with no link at boot (the ticked chapters 1-3 and 7-10 boot linked).
     await table
       .locator('tbody tr')
-      .nth(2)
+      .nth(4)
       .getByRole('button', { name: /^Track for / })
       .click();
     await page.getByRole('textbox', { name: 'Search tracks' }).last().fill('chap');
-    await page.getByRole('treeitem', { name: /linked to Chapter 1/ }).waitFor();
+    await page.getByRole('treeitem', { name: /linked to Chapter 1\b/ }).waitFor();
   },
   'chapter-link-confirmed': async (page) => {
     // Boots with no link, so the click through Confirm below is what makes it (an unset seed boots Chapter 1 already linked).
@@ -136,6 +203,77 @@ export const engineDrivers: Record<string, Driver> = {
     await firstRow.getByRole('combobox').selectOption({ index: 1 });
     await firstRow.getByRole('button', { name: 'Confirm' }).click();
     await firstRow.getByRole('button', { name: 'Change' }).waitFor();
+  },
+  'chapter-track-created': async (page) => {
+    await page.goto('/?mockChapterLink=none');
+    await settlePage(page);
+    await openEnginePanel(page);
+    const table = page.getByRole('table', { name: 'Chapter links' });
+    await table.scrollIntoViewIfNeeded();
+    // By position: the row stops matching a "has a create button" filter the moment it is linked. The second body row is Chapter 1 (the
+    // opening credits come first).
+    const chapterRow = table.locator('tbody tr').nth(1);
+    await chapterRow.getByRole('button', { name: /^Create a track for Chapter 1/ }).click();
+    await chapterRow.getByRole('button', { name: 'Change' }).waitFor();
+    await page
+      .getByText(/^Created the track “/)
+      .first()
+      .waitFor();
+  },
+  'chapter-folder-created': async (page) => {
+    await page.goto('/?mockVoiceFolders=1');
+    await settlePage(page);
+    await openEnginePanel(page);
+    const table = page.getByRole('table', { name: 'Chapter links' });
+    await table.scrollIntoViewIfNeeded();
+    // The first chapter (not the credits) with no link: its button goes once the row is linked to the new folder.
+    const button = table.getByRole('button', { name: /^Create a folder for Chapter/ }).first();
+    const label = (await button.getAttribute('aria-label')) ?? '';
+    await button.click();
+    await table.getByRole('button', { name: label, exact: true }).waitFor({ state: 'detached' });
+    await table
+      .getByText(/ · 1 voice$/)
+      .first()
+      .waitFor();
+    await page
+      .getByText(/^Created the folder “/)
+      .first()
+      .waitFor();
+  },
+  'chapter-track-create-refused': async (page) => {
+    await page.goto('/?mockReaperState=recording_elsewhere&mockChapterLink=none');
+    await settlePage(page);
+    await openEnginePanel(page);
+    const table = page.getByRole('table', { name: 'Chapter links' });
+    await table.scrollIntoViewIfNeeded();
+    await table
+      .locator('tbody tr')
+      .first()
+      .getByRole('button', { name: /^Create a track for / })
+      .click();
+    await page.getByText('REAPER is recording. Stop the take, then create the track.').first().waitFor();
+  },
+  'live-tracks-saved': async (page) => {
+    // The mock's seam for REAPER not answering (see main.tsx): Chapter links' header says the tracks are the saved project's and why.
+    await page.goto('/?mockLiveTracks=saved');
+    await settlePage(page);
+    const panel = await openEnginePanel(page);
+    const links = panel.getByRole('region', { name: 'Chapter links' });
+    await links.scrollIntoViewIfNeeded();
+    await links.getByText(/^Saved project · read \d+ s ago$/).waitFor();
+  },
+  'live-tracks-stale': async (page) => {
+    // The mock answers the first live read and refuses every later one (see main.tsx): Refresh fails, the header says it can't tell and
+    // when it last read the tracks, and the failure is a toast.
+    await page.goto('/?mockLiveTracks=failing');
+    await settlePage(page);
+    const panel = await openEnginePanel(page);
+    const links = panel.getByRole('region', { name: 'Chapter links' });
+    await links.scrollIntoViewIfNeeded();
+    await links.getByText(/^REAPER now · read \d+ s ago$/).waitFor();
+    await links.getByRole('button', { name: 'Read the tracks from REAPER again' }).click();
+    await links.getByText(/^REAPER did not answer · last read \d+ s ago$/).waitFor();
+    await page.getByText('REAPER did not answer in time.').first().waitFor();
   },
   'chapter-link-missing': async (page) => {
     // Reload with the mock's missing-track seam (see main.tsx): a confirmed link whose

@@ -2,11 +2,11 @@ package main
 
 import (
 	"context"
+	"desktop/internal/creditsid"
 	"errors"
 	"fmt"
 
 	"desktop/internal/bridge"
-	"desktop/internal/coverage"
 	"desktop/internal/dawport"
 )
 
@@ -95,6 +95,13 @@ func readAloudReaperStateIn(ctx context.Context, svc hostServices, reader trackS
 			Message: fmt.Sprintf("%q is linked to %d tracks. Keep the one to record on, in the audio engine panel.", title, len(links))}, nil
 	}
 	guid := links[0]
+	// A chapter linked to a folder of voices records on its voice (svc.boothVoices, else the Narrator): its arms are the voice's. A
+	// folder with no voices keeps the folder, and Record says why it cannot start.
+	if voice, refused, err := recordTarget(svc, chapterID, guid); err != nil {
+		return readAloudReaperState{}, err
+	} else if refused == nil {
+		guid = voice
+	}
 	if status := reaperStatus(svc); status.Connection != reaperConnected {
 		return unavailable(status.Connection, readAloudConnectionMessage(status.Connection)), nil
 	}
@@ -117,8 +124,8 @@ func chapterLinksFor(svc hostServices, chapterID string) (string, []string, erro
 	}
 	title, found := "", false
 	// The opening and closing credits are recorded like a chapter but are never in the manuscript's chapter list.
-	if kind, ok := coverage.CreditsKind(chapterID); ok {
-		title, found = creditsScriptTitles[kind], true
+	if kind, ok := creditsid.Kind(chapterID); ok {
+		title, found = creditsid.Title(kind), true
 	} else {
 		chapters, err := svc.manuscript.ChaptersUnmeasured()
 		if err != nil {

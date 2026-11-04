@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { TrackChoice } from './trackChoices';
 import { TrackSelect } from './TrackSelect';
+import { VoiceLayoutContext } from '../engine/voiceLayout';
 
 afterEach(cleanup);
 
@@ -88,5 +89,34 @@ describe('the track picker for a project with folders', () => {
     await open();
     await userEvent.type(screen.getByRole('textbox', { name: 'Search tracks' }), 'zzz');
     expect(screen.getByText(/No track matches/)).toBeTruthy();
+  });
+});
+
+describe('the track picker in a Voice folders project', () => {
+  // Ch 8 > (Narrator, Queen); Chapter 9
+  const VOICES: TrackChoice[] = [c('Ch 8', 0, 0, { isFolder: true, hasAudio: false }), c('Narrator', 1, 1), c('Queen', 2, 1), c('Chapter 9', 3, 0)];
+  const pick = async (value = '', onChange = vi.fn()) => {
+    render(
+      <VoiceLayoutContext.Provider value="folders">
+        <TrackSelect label="Folder for Chapter 8" choices={VOICES} value={value} onChange={onChange} />
+      </VoiceLayoutContext.Provider>,
+    );
+    return onChange;
+  };
+
+  it('lets a chapter folder be chosen and its voice tracks not, saying why', async () => {
+    const onChange = await pick();
+    expect(screen.getByRole('button', { name: /^Folder for Chapter 8/ }).textContent).toContain('Choose a folder');
+    await userEvent.click(screen.getByRole('button', { name: /^Folder for Chapter 8/ }));
+    const queen = screen.getByRole('treeitem', { name: /Queen/ });
+    expect(queen.getAttribute('aria-disabled')).toBe('true');
+    expect(within(queen).getByText('A voice of its folder')).toBeTruthy();
+    await userEvent.click(screen.getByRole('treeitem', { name: /^Ch 8/ }));
+    expect(onChange).toHaveBeenCalledWith('g-Ch 8');
+  });
+
+  it('names a chosen folder with how many voices it holds', async () => {
+    await pick('g-Ch 8');
+    expect(screen.getByRole('button', { name: /^Folder for Chapter 8/ }).textContent).toContain('Ch 8 · 2 voices');
   });
 });

@@ -10,6 +10,18 @@ param(
   [long]$ExpectedSize = 0
 )
 $ErrorActionPreference = 'Stop'
+# GitHub's Windows runners give $env:TEMP in 8.3 form (C:\Users\RUNNER~1\...), and REAPER reports its resource path in the long form
+# (C:\Users\runneradmin\...). The launcher refuses to run unless the two strings match, so every scratch path is built from the long form.
+Add-Type -Namespace Win -Name Paths -MemberDefinition '[DllImport("kernel32.dll", CharSet = CharSet.Unicode)] public static extern uint GetLongPathName(string path, System.Text.StringBuilder buffer, uint size);'
+function Get-LongPath([string]$path) {
+  $buffer = New-Object System.Text.StringBuilder 1024
+  $n = [Win.Paths]::GetLongPathName($path, $buffer, 1024)
+  if ($n -gt 0 -and $n -lt 1024) { return $buffer.ToString() }
+  return $path
+}
+Write-Host "TEMP before: $env:TEMP"
+$env:TEMP = Get-LongPath $env:TEMP; $env:TMP = $env:TEMP
+Write-Host "TEMP used:   $env:TEMP"
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
 New-Item -ItemType Directory -Force $OutDir | Out-Null
 $tag = $Version -replace '\.', ''
@@ -42,22 +54,47 @@ Add-Content -Path $project -Value '>' -Encoding ascii
 $env:NARRATION_CI_SESSION = $session; $env:NARRATION_CI_OUT = $out; $env:NARRATION_CI_CFG = $cfg
 $env:NARRATION_CI_AUDIO = $audio; $env:NARRATION_CI_REAPER_DIR = Join-Path $repo 'src\studio\integrations\reaper'
 
-# REAPER and its dialog handler run in the background; the driver talks to the bridge in the foreground.
+# REAPER and its dialog handler run in the background; the driver talks to the bridge in the foreground. The handler closes REAPER at
+# -TimeoutSec, so that must outlast the scenario suites (about 6 minutes here; 240 s closed REAPER mid-suite on 2026-11-03). The step's own
+# 25-minute limit still bounds a hang.
 $job = Start-Job -ArgumentList $repo, $cfg, $out, $project, $PSScriptRoot -ScriptBlock {
   param($repo, $cfg, $out, $project, $here)
   & pwsh -NoProfile -File (Join-Path $repo 'src\studio\integrations\reaper\spikes\run-reaper.ps1') -Cfg $cfg -Out $out `
-    -Script (Join-Path $repo 'src\studio\integrations\reaper\spikes\ci_real_reaper_launcher.lua') -Project $project -Done (Join-Path $out 'done') -TimeoutSec 240 -IgnoreErrors
+    -Script (Join-Path $repo 'src\studio\integrations\reaper\spikes\ci_real_reaper_launcher.lua') -Project $project -Done (Join-Path $out 'done') -TimeoutSec 1200 -LogFile (Join-Path $out 'launcher-log.txt') -IgnoreErrors
 }
 $rc = 1
 try {
-  & python (Join-Path $PSScriptRoot 'drive.py') run --session $session --out $out --target real --timeout 90
+  & python (Join-Path $PSScriptRoot 'drive.py') run --session $session --out $out --target real --timeout 90 --suite
   $rc = $LASTEXITCODE
 } finally {
+  # A failed or stalled run must leave evidence of what REAPER showed: windows, a screenshot, the scratch cfg and session folders.
+  if ($rc -ne 0) {
+    try {
+      . (Join-Path $repo 'src\studio\integrations\reaper\spikes\win.ps1')
+      $diag = Join-Path $OutDir 'diagnostics'; New-Item -ItemType Directory -Force $diag | Out-Null
+      Get-Process | Where-Object { $_.ProcessName -match 'reaper' } | ForEach-Object {
+        "pid $($_.Id) $($_.ProcessName) responding=$($_.Responding) title='$($_.MainWindowTitle)'"
+        Get-ReaperWindows $_.Id | ForEach-Object { "  window $_" }
+      } | Set-Content (Join-Path $diag 'reaper-windows.txt')
+      Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+      $b = [System.Windows.Forms.SystemInformation]::VirtualScreen
+      $bmp = New-Object System.Drawing.Bitmap $b.Width, $b.Height
+      [System.Drawing.Graphics]::FromImage($bmp).CopyFromScreen($b.Location, [System.Drawing.Point]::Empty, $b.Size)
+      $bmp.Save((Join-Path $diag 'screen.png'))
+      Get-ChildItem $work -Recurse -File -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName | Set-Content (Join-Path $diag 'work-files.txt')
+      foreach ($f in (Join-Path $cfg 'reaper.ini'), (Join-Path $out 'launcher-log.txt')) { if (Test-Path $f) { Copy-Item $f $diag -Force } }
+      # The job log is the one place a reader can see without downloading the artifact.
+      foreach ($f in 'reaper-windows.txt', 'launcher-log.txt', 'reaper.ini') {
+        Write-Host "::group::diagnostics/$f"; if (Test-Path (Join-Path $diag $f)) { Get-Content (Join-Path $diag $f) | Write-Host } else { Write-Host '(missing)' }; Write-Host '::endgroup::'
+      }
+    } catch { "diagnostics failed: $_" | Set-Content (Join-Path $OutDir 'diagnostics-error.txt') }
+  }
   Wait-Job $job -Timeout 60 | Out-Null
+  Stop-Job $job -ErrorAction SilentlyContinue
   Receive-Job $job *>&1 | Tee-Object -FilePath (Join-Path $OutDir 'driver-log.txt')
   Remove-Job $job -Force
 }
-foreach ($f in 'results.md', 'results.json', 'regions.txt') { if (Test-Path (Join-Path $out $f)) { Copy-Item (Join-Path $out $f) $OutDir -Force } }
+foreach ($f in 'results.md', 'results.json', 'regions.txt', 'launcher-log.txt') { if (Test-Path (Join-Path $out $f)) { Copy-Item (Join-Path $out $f) $OutDir -Force } }
 foreach ($f in (Join-Path $session 'events.log'), (Join-Path $session 'fixture.json')) { if (Test-Path $f) { Copy-Item $f $OutDir -Force } }
 if ((Test-Path (Join-Path $out "results.md")) -and $env:GITHUB_STEP_SUMMARY) {
   @('### Real-REAPER bridge check', (Get-Content (Join-Path $out 'results.md') -Raw)) | Add-Content $env:GITHUB_STEP_SUMMARY -Encoding utf8

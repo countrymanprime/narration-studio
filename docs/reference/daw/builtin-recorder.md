@@ -4,7 +4,7 @@ The app's own recorder (`src/studio/desktop/internal/recording`) is an engine of
 
 ## When it is the launch's engine
 
-- **A launch with no DAW whose project records with the built-in recorder.** The project's choice is the `Recording.engine` row, which only the Booth's `RecorderChooseEngine` writes and which counts only where the recorder's capture row runs (Windows, [capture_wasapi.py](../../../src/studio/sidecars/manuscript-teleprompter/core/capture_wasapi.py)).
+- **A launch with no DAW whose project records with the built-in recorder.** The project's choice is the `Recording.engine` row, which `DawChoose` (Settings › Recording) writes and which counts only where the recorder's capture row runs (Windows, [capture_wasapi.py](../../../src/studio/sidecars/manuscript-teleprompter/core/capture_wasapi.py)).
 - **`--daw Built-in`** (or `builtin`, any case). A launch from REAPER or Audacity keeps its DAW whatever the project chose.
 - The host reads the kind in one place, `dawLaunchKind` in `src/studio/desktop/bindings_daw.go`, through `dawport.LaunchKind`. A page never sends a label that selects it ([threat model](../../architecture/threat-model.md), row 6f).
 

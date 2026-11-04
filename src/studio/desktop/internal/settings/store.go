@@ -161,20 +161,6 @@ var builtinDefaults = map[string]Values{
 		"proofing.delivery.duration_seconds": "required", "proofing.delivery.head_room_tone_seconds": "required",
 		"proofing.delivery.tail_room_tone_seconds": "required", "proofing.delivery.render_length": "required",
 	},
-	// TakeReview holds the pickup/duplicate detector's thresholds and
-	// scan-scope settings (internal/takereview), layered like every
-	// other tool here. Thresholds mirror repeats.DefaultThresholds();
-	// pickup_track_name and the pickup_range pair are mutually exclusive
-	// narrator-designated additions to the chapter track's own items
-	// and both default empty (no pickup scope beyond the
-	// chapter track).
-	"TakeReview": {
-		"full_coverage_threshold":          "0.9",
-		"near_duplicate_quality_threshold": "0.97",
-		"pickup_track_name":                "",
-		"pickup_range_start_seconds":       "",
-		"pickup_range_end_seconds":         "",
-	},
 	// Preview mirrors preview.DefaultSettings (docs/architecture/preview-suggestion.md):
 	// 5:00 target, 10% tolerance, the Sample preset, ending exclusion off.
 	"Preview": {

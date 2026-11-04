@@ -6,7 +6,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { LoadError, LoadErrorPanel } from './LoadError';
 import { OverlayProvider } from '../../overlay/OverlayProvider';
 import { createOverlayService } from '../../overlay/overlayService';
-import { useToasts } from '../../hooks/useToasts';
 
 afterEach(cleanup);
 
@@ -97,34 +96,6 @@ describe('LoadErrorPanel and the toasts', () => {
   });
 });
 
-// The toast that was left over Proof's card came from the app's own queue (`useToasts`, App's `notify`), not the overlay service's.
-describe('LoadErrorPanel and the app queue', () => {
-  function Shell({ failed }: { failed: boolean }) {
-    const { messages, notify } = useToasts();
-    return (
-      <>
-        <button onClick={() => notify('It failed.', 'error')}>raise</button>
-        <button onClick={() => notify('It failed.')}>inform</button>
-        <ul>
-          {messages.map((m) => (
-            <li key={m.id}>{`${m.tone}: ${m.text}`}</li>
-          ))}
-        </ul>
-        {failed && <LoadErrorPanel message="It failed." retry={vi.fn()} />}
-      </>
-    );
-  }
-
-  it("takes away the app queue's error toast with its sentence, and leaves an information one", async () => {
-    const view = render(<Shell failed={false} />);
-    await userEvent.click(screen.getByRole('button', { name: 'raise' }));
-    await userEvent.click(screen.getByRole('button', { name: 'inform' }));
-    expect(screen.getAllByRole('listitem').map((li) => li.textContent)).toEqual(['error: It failed.', 'info: It failed.']);
-    view.rerender(<Shell failed />);
-    expect(screen.getAllByRole('listitem').map((li) => li.textContent)).toEqual(['info: It failed.']);
-  });
-});
-
 // Issue #2648: the technical text of a failed read is behind a Details disclosure with Copy, never in the card's visible body.
 describe('LoadErrorPanel details', () => {
   const details = 'host.binding ManuscriptChapters did not match its schema: [0].index: Invalid input: expected number';
@@ -191,5 +162,17 @@ describe('LoadErrorPanel details', () => {
   it('draws no Details disclosure when there is nothing technical to show', () => {
     render(<LoadErrorPanel message="It failed." retry={() => {}} />);
     expect(screen.queryByRole('button', { name: /Details/ })).toBeNull();
+  });
+
+  it('lets a long unbroken sentence and its details wrap inside the card (#2796)', async () => {
+    const path = `C:\\${'LongFolder\\'.repeat(40)}file.json`;
+    render(
+      <OverlayProvider service={createOverlayService()}>
+        <LoadErrorPanel message={path} details={path} retry={() => undefined} />
+      </OverlayProvider>,
+    );
+    expect(screen.getAllByText(path)[0]?.className).toContain('[overflow-wrap:anywhere]');
+    await userEvent.click(screen.getByRole('button', { name: 'Details' }));
+    expect(screen.getAllByText(path).at(-1)?.className).toContain('[overflow-wrap:anywhere]');
   });
 });

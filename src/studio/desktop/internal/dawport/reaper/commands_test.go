@@ -12,7 +12,7 @@ import (
 )
 
 // Each asynchronous role method writes exactly the line its service's `Send` writes today (internal/pickups, lineidentity,
-// renderconfig, cleanuptools, retakelanes, projectstate, takereview/createtake.go), so moving a service from its own Send to the
+// renderconfig, cleanuptools, retakelanes, projectstate), so moving a service from its own Send to the
 // method changes nothing REAPER sees.
 func TestAsynchronousRolesWriteTodaysCommandLines(t *testing.T) {
 	trace := dawport.Trace{RunID: "log-run", Level: "debug"}
@@ -22,7 +22,6 @@ func TestAsynchronousRolesWriteTodaysCommandLines(t *testing.T) {
 	}{
 		"import_pickups": {func(a *Adapter) error { return pickups(a).ImportPickups("r1", "C:/in.json") }, []string{"import_pickups", "r1", "C:/in.json"}},
 		"export_pickups": {func(a *Adapter) error { return pickups(a).ExportPickups("r1", "C:/out.csv") }, []string{"export_pickups", "r1", "C:/out.csv"}},
-		"next_pickup":    {func(a *Adapter) error { return pickups(a).NextPickup("r1") }, []string{"next_pickup", "r1"}},
 		// pickups.Service formats the position with strconv.FormatFloat(position, 'f', 6, 64).
 		"resolve_pickup": {func(a *Adapter) error { return pickups(a).ResolvePickup("r1", 12.5) }, []string{"resolve_pickup", "r1", "12.500000"}},
 		"count_pickups":  {func(a *Adapter) error { return pickups(a).CountPickups("r1") }, []string{"count_pickups", "r1"}},
@@ -47,9 +46,6 @@ func TestAsynchronousRolesWriteTodaysCommandLines(t *testing.T) {
 		"project_state": {func(a *Adapter) error {
 			return a.Role(dawport.CapProjectState).(dawport.ProjectStateReader).RequestProjectState("r1")
 		}, []string{"project_state", "r1"}},
-		"create_take": {func(a *Adapter) error {
-			return a.Role(dawport.CapTakeCreate).(dawport.TakeCreator).CreateTake("r1", "C:/take.json")
-		}, []string{"create_take", "r1", "C:/take.json"}},
 	} {
 		t.Run(name, func(t *testing.T) {
 			adapter, dir := newAdapter(t, nil)
@@ -69,8 +65,8 @@ func TestAsynchronousRolesReturnASendFailure(t *testing.T) {
 	if err := os.RemoveAll(dir); err != nil {
 		t.Fatal(err)
 	}
-	if err := pickups(adapter).NextPickup("r1"); err == nil {
-		t.Error("NextPickup over a closed session returned nil")
+	if err := pickups(adapter).CountPickups("r1"); err == nil {
+		t.Error("CountPickups over a closed session returned nil")
 	}
 }
 

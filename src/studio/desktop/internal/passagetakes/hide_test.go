@@ -70,19 +70,16 @@ func TestHideRefusesAPassageTheAlignmentNoLongerHolds(t *testing.T) {
 	}
 }
 
-// Only a take of the passage's own item can be kept: a retake on another lane or a read from another item is refused, not stale.
+// Only a take of the passage's own item can be kept: a retake on another lane is refused, not stale.
 func TestHideRefusesACandidateFromAnotherItem(t *testing.T) {
 	lanes := resolve(t, func(in *Input) {
 		in.View.Items[0].ItemGUID, in.View.Items[0].TakeGUID = guidB, take3
-		in.Groups = nil
 	})
-	reads := resolve(t, nil)
 	for name, keep := range map[string]struct {
 		resolved Resolved
 		id       string
 	}{
 		"lane retake": {lanes, candidateOf(t, lanes, SourceLaneRetake, false).ID},
-		"other item":  {reads, candidateOf(t, reads, SourceTakeReview, false).ID},
 	} {
 		fake := &fakeHider{}
 		got := Hide(t.Context(), fake.hide, keep.resolved, keep.id)

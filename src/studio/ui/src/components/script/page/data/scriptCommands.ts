@@ -1,5 +1,5 @@
 // The Script page's journalled commands, the mock's `state/commands/script.ts` over the host: marks and their
-// threads (`MarksApi`), prep states and flagged words (`ScriptPrepApi`), speakers and new Story Bible entries
+// threads (`MarksApi`), prep states (`ScriptPrepApi`), speakers and new Story Bible entries
 // (`StoryBibleApi`). Each runs through `journal.act` with a label and the host command that takes it back, and reads what
 // the inverse needs from the page's read cache first. A refusal is the host's own sentence and journals nothing. After each
 // command and each undo the list it changed is read again.
@@ -9,7 +9,8 @@
 // and the replies carry the time they were added again.
 
 import type { Mark, MarksApi, MarkThreadAuthor, ThreadMessage } from '../../../../api/contracts/marks';
-import { SCRIPT_SAY_MANUAL_SOURCE, type PrepState, type ScriptPrepApi, type ScriptWord } from '../../../../api/contracts/scriptPrep';
+import type { PronounceApi } from '../../../../studio/commands/pronounce';
+import type { PrepState, ScriptPrepApi } from '../../../../api/contracts/scriptPrep';
 import type { SpeakerAttribution, StoryBibleApi } from '../../../../api/contracts/storyBible';
 import { apiErrorMessage } from '../../../../api/errorMessage';
 import { chapterName, type ChapterNameInput } from '../../../../chapterName';
@@ -20,8 +21,8 @@ import type { ScriptData, ScriptList } from './scriptData';
 export type ScriptCommandEnv = {
   journal: Pick<Journal, 'act'>;
   marks: Pick<MarksApi, 'marksAdd' | 'marksRemove' | 'marksReply' | 'marksEditMessage' | 'marksDeleteMessage' | 'marksRestoreMessage' | 'marksSetStatus'>;
-  scriptPrep: Pick<ScriptPrepApi, 'scriptPrepSetChapter' | 'scriptWordFlag' | 'scriptWordSay' | 'scriptWordUnflag'>;
-  storyBible: Pick<StoryBibleApi, 'guideAttributeSpeakers' | 'guideCorrectCue' | 'guideCreate' | 'guideDelete' | 'guideRestoreSpeakers'>;
+  scriptPrep: Pick<ScriptPrepApi, 'scriptPrepSetChapter'>;
+  storyBible: Pick<StoryBibleApi, 'guideAttributeSpeakers' | 'guideCorrectCue' | 'guideCreate' | 'guideDelete' | 'guideRestoreSpeakers'> & PronounceApi;
   data: Pick<ScriptData, 'getState' | 'load'>;
   /** Says a change aloud (the overlay service's live region). */
   announce: (text: string) => void;
@@ -243,84 +244,6 @@ export async function stepPrep(env: ScriptCommandEnv, chapter: ChapterNameInput 
   return next === current ? { ok: true, value: { value: current, entryId: null } } : setPrep(env, chapter, next);
 }
 
-/* ---------- Words ---------- */
-
-const sameRange = (a: LineRange, b: LineRange): boolean =>
-  a.chapterId === b.chapterId && a.paragraphId === b.paragraphId && a.start === b.start && a.end === b.end;
-
-/** Flags a range for pronunciation. A range that is flagged already answers its word and journals nothing. Undo removes the flag. */
-export async function flagWord(env: ScriptCommandEnv, range: LineRange): Promise<Result<Done<ScriptWord>>> {
-  const words = (await cached(env, 'prep'))?.words ?? [];
-  const existing = words.find((word) => word.flags.some((flag) => sameRange(flag, range)));
-  if (existing) return { ok: true, value: { value: existing, entryId: null } };
-  return journalled<ScriptWord>(env, ['prep'], {
-    label: 'Flagged a word',
-    touches: ['scriptPrep/words'],
-    run: () => attempt(() => env.scriptPrep.scriptWordFlag(range.chapterId, range.paragraphId, range.start, range.end)),
-    async undo(word) {
-      const flag = word.flags.find((row) => sameRange(row, range));
-      return flag ? attempt(() => env.scriptPrep.scriptWordUnflag(flag.id)) : refuse('flag-gone', 'That flag is no longer there.');
-    },
-  });
-}
-
-/** Removes one flag. Undo flags the same range again, and gives back how the word is said when the last flag took it away. */
-export async function unflagWord(env: ScriptCommandEnv, flagId: string): Promise<Result<Done<ScriptWord>>> {
-  const words = (await cached(env, 'prep'))?.words ?? [];
-  const word = words.find((row) => row.flags.some((flag) => flag.id === flagId));
-  const flag = word?.flags.find((row) => row.id === flagId);
-  if (!word || !flag) return refuse('flag-gone', 'That flag is no longer there.');
-  return journalled<ScriptWord>(env, ['prep'], {
-    label: 'Removed a flagged word',
-    touches: ['scriptPrep/words'],
-    run: () => attempt(() => env.scriptPrep.scriptWordUnflag(flagId)),
-    async undo(after) {
-      const flagged = await attempt(() => env.scriptPrep.scriptWordFlag(flag.chapterId, flag.paragraphId, flag.start, flag.end));
-      if (!flagged.ok || !word.say || after.say) return flagged;
-      return attempt(() => env.scriptPrep.scriptWordSay(word.word, word.say, word.source));
-    },
-  });
-}
-
-/**
- * Removes a word from the list: every one of its flags. Undo flags each range again and gives back how the word was said. The host
- * keeps a word only while it has a flag, so the mock's `addWord` (a word with no place in the text) has no host call and is not here.
- */
-export async function removeWord(env: ScriptCommandEnv, key: string): Promise<Result<Done<null>>> {
-  const word = ((await cached(env, 'prep'))?.words ?? []).find((row) => row.word === key);
-  if (!word || word.flags.length === 0) return refuse('word-gone', 'That word is no longer flagged.');
-  return journalled<null>(env, ['prep'], {
-    label: 'Removed a flagged word',
-    touches: [`scriptPrep/words/${key}`],
-    async run() {
-      for (const flag of word.flags) {
-        const removed = await attempt(() => env.scriptPrep.scriptWordUnflag(flag.id));
-        if (!removed.ok) return removed;
-      }
-      return { ok: true, value: null };
-    },
-    async undo() {
-      for (const flag of word.flags) {
-        const flagged = await attempt(() => env.scriptPrep.scriptWordFlag(flag.chapterId, flag.paragraphId, flag.start, flag.end));
-        if (!flagged.ok) return flagged;
-      }
-      return word.say ? attempt(() => env.scriptPrep.scriptWordSay(word.word, word.say, word.source)) : { ok: true, value: null };
-    },
-  });
-}
-
-/** Saves how a word is said and the source it came from; typed text is the narrator's own (`manual`). Undo puts the old value back. */
-export async function saveSay(env: ScriptCommandEnv, word: string, say: string, source: string = SCRIPT_SAY_MANUAL_SOURCE): Promise<Result<Done<ScriptWord>>> {
-  const words = (await cached(env, 'prep'))?.words ?? [];
-  const before = words.find((row) => row.word === word);
-  return journalled<ScriptWord>(env, ['prep'], {
-    label: 'Saved how a word is said',
-    touches: [`scriptPrep/words/${word}`],
-    run: () => attempt(() => env.scriptPrep.scriptWordSay(word, say.trim(), source)),
-    undo: () => attempt(() => env.scriptPrep.scriptWordSay(word, before?.say ?? '', before?.source ?? '')),
-  });
-}
-
 /* ---------- Speakers and Story Bible entries ---------- */
 
 /** Confirms who speaks a quoted phrase. Undo gives the phrase its earlier speaker (or none) back, as the narrator's correction. */
@@ -364,7 +287,7 @@ export async function createEntryFrom(env: ScriptCommandEnv, category: string, t
   if (found) return { ok: true, value: { value: found.id, entryId: null, created: false } };
   const result = await journalled<string>(env, ['entries'], {
     label: `Added “${name}” to the Story Bible`,
-    touches: ['storyBible/entries'],
+    touches: ['storyBible/entities'],
     run: () => attempt(() => env.storyBible.guideCreate(name, category, [])),
     undo: (id) => attempt(() => env.storyBible.guideDelete(id)),
   });
