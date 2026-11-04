@@ -1769,5 +1769,19 @@
     "viewport": "desktop",
     "docName": "proof-repair-in-reaper",
     "caption": "Proof - a click note: Repair in REAPER in the Inspector's row, its menu open on Cleanup tools"
+  },
+  {
+    "page": "settings",
+    "state": "no-project",
+    "viewport": "desktop",
+    "docName": "settings-no-project",
+    "caption": "Settings opened from the project picker - the project rows say \"Open a project to change this.\" and are off, the computer's rows work"
+  },
+  {
+    "page": "settings",
+    "state": "no-project-models",
+    "viewport": "desktop",
+    "docName": "settings-no-project-models",
+    "caption": "Models & downloads opened from the project picker"
   }
 ]
