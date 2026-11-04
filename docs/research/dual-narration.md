@@ -186,7 +186,7 @@ Per [`.claude/rules/wire-contracts.md`](../../.claude/rules/wire-contracts.md) a
 
 ## 5. UI sketch: the Assignments screen
 
-A section of Production, opened from **Assign narrators** beside the pipeline. Words, not pixels; it would be mocked in the Studio Next style ([which mocks are the spec](../prds/studio-next-rebuild.prd.md#which-mocks-are-the-spec)) before any code.
+A section of Production, opened from **Assign narrators** beside the pipeline. Words, not pixels; it would be mocked in the Studio Next style (which mocks are the spec) before any code.
 
 ```text
 Narrators                                         [ + Add narrator ]
