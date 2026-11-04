@@ -6,6 +6,7 @@ import { clockText } from '../../booth/boothProgress';
 import { Diff } from './TakeDiff';
 import { Suggested } from './Suggested';
 import { TakeCompare } from './TakeCompare';
+import { LaneRetakes, type LaneRetakesProps } from './LaneRetakes';
 import { TakeEvidence } from './TakeEvidence';
 import { matchedShare, takeDiff } from './diff';
 import { placedLabel, suggestionFor } from './evidence';
@@ -34,6 +35,8 @@ export interface TakeLinesProps {
   sourceLabel?: string | null;
   /** Seconds into the chapter where the second read of a doubled take starts, or null when the take reads the line once. */
   duplicateAt?: number | null;
+  /** The line's retakes on fixed lanes, drawn under its takes; null or absent when it has none. */
+  lanes?: LaneRetakesProps | null;
 }
 
 const takeRowId = (passageId: string, takeId: string): string => `take-${passageId}-${takeId}`;
@@ -154,6 +157,7 @@ export function TakeLines(props: TakeLinesProps) {
           <TakeRow key={t.id} {...props} take={t} suggestedId={suggestion.take} />
         ))}
       </div>
+      {props.lanes ? <LaneRetakes {...props.lanes} /> : null}
       <TakeCompare passage={passage} keptId={keptId} playingId={props.playingId} onPlay={props.onPlay} />
       {rows.length > 0 ? (
         <div className="flex flex-wrap items-center gap-2" data-takes-footer>

@@ -89,7 +89,6 @@ Storybook title: `Primitives/Button`. Source: `src/components/primitives/Button.
 - `src/components/engine/LinkChaptersDialog.tsx`
 - `src/components/engine/NestedChaptersNotice.tsx`
 - `src/components/engine/RenderConfigDialog.tsx`
-- `src/components/engine/RetakeLanesDialog.tsx`
 - `src/components/engine/SyncActivityLog.tsx`
 - `src/components/help/ShortcutSheet.tsx`
 - `src/components/layout/AddressGate.tsx`

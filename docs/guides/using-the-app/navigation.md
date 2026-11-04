@@ -270,16 +270,6 @@ installs it. Opening a tool changes nothing: you apply or cancel the repair in i
 Undo takes it back. What happened shows under the tool you opened; if nothing is selected, the tool is missing, or
 your REAPER is too old, it says so there.
 
-**Retakes on lanes…** is for retakes recorded into REAPER's fixed item lanes. It lists every line of
-the manuscript (linked with **Link chapters…**) that has retakes on more than one lane of a track, with
-each retake's lane, its item name and whether that lane plays in the saved project. Press **Play this
-lane** beside the retake you want: that lane becomes the only one playing on its track. The lane that already plays is
-highlighted, marked **Plays**, and its button is off. A lane plays
-across the whole track, so every other lane of that track goes silent, not only for this line.
-Nothing else changes, and one Undo in REAPER puts the previous lanes back. The app never turns
-lanes on, converts takes to lanes or builds a comp: if a track is not in fixed-lane mode, or the retake
-has changed since you last saved, the dialog says so and changes nothing.
-
 ### Tracks in folders
 
 The Tracks card lists the project's tracks with the chapter each one is linked to. When the REAPER project groups

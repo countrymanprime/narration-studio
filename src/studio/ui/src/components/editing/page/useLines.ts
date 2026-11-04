@@ -37,6 +37,9 @@ function linesToAsk(ranges: readonly ParagraphRange[], marks: readonly PassageMa
   return ranges.filter((r) => r.heard || booth.has(r.id));
 }
 
+/** A retake on a fixed lane: the takes list draws it in the lane group under the takes (`useRetakeLanes`), not as a take. */
+const isLaneRetake = (c: PassageTake): boolean => c.source === 'lane_retake';
+
 const takeOf = (c: PassageTake, items: WorkspaceAlignmentResult['items']): LineTake => ({
   id: c.id,
   label: c.label,
@@ -104,13 +107,15 @@ export function useLines(chapterId: string, ws: WorkspaceAlignmentResult | null)
         for (const one of all) {
           if (!one || one.answer.candidates.length === 0) continue;
           const { r, answer } = one;
+          const laneItems = answer.candidates.filter(isLaneRetake).map((c) => c.itemGuid);
           byId.set(r.id, {
             id: r.id,
             chapterId,
             firstToken: r.firstToken,
             lastToken: r.lastToken,
             script: r.text,
-            takes: answer.candidates.map((c) => takeOf(c, ws?.items ?? [])),
+            takes: answer.candidates.filter((c) => !isLaneRetake(c)).map((c) => takeOf(c, ws?.items ?? [])),
+            ...(laneItems.length > 0 ? { laneItems } : {}),
           });
           if (answer.passageId) passageIds.set(answer.passageId, r.id);
         }

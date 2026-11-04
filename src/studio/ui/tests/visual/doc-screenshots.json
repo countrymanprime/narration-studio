@@ -904,6 +904,13 @@
   },
   {
     "page": "editing",
+    "state": "takes-lane-picked",
+    "viewport": "desktop",
+    "docName": "editing-takes-lanes",
+    "caption": "Editing - a line's takes opened, the lane group under them with lane 2 playing after Play this lane"
+  },
+  {
+    "page": "editing",
     "state": "drawer-cleanup",
     "viewport": "desktop",
     "docName": "editing-drawer-cleanup",

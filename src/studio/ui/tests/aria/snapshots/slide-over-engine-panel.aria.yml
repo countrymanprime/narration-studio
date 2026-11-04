@@ -21,7 +21,6 @@
       - button "Create chapter regions…"
       - button "Embed chapter tags…"
       - button "Cleanup tools…"
-      - button "Retakes on lanes…"
   - region "Chapter sync":
     - heading "Chapter sync" [level=2]
     - button "Turn off"

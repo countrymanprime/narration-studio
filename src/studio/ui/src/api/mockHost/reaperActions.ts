@@ -41,6 +41,7 @@ import {
   WIRE_RENDER_CONFIG_SUCCESS,
   WIRE_RETAKE_LANES_ERROR,
   WIRE_RETAKE_LANES_IDLE,
+  MOCK_LANE_LINE,
   WIRE_RETAKE_LANES_LIST,
   WIRE_RETAKE_LANES_NONE,
   WIRE_RETAKE_LANES_PICKED,
@@ -135,7 +136,9 @@ export function createReaperActionsMock(initial: MockApiSeed, projectFolder: () 
   let projectState: ProjectStateState = wireClone(WIRE_PROJECT_STATE_IDLE);
   const projectStateSubscribers = new Set<(state: ProjectStateState) => void>();
   const publishProjectState = () => projectStateSubscribers.forEach((fn) => fn(wireClone(projectState)));
-  const retakeLanesList = wireClone(initial.retakeLanes === 'none' ? WIRE_RETAKE_LANES_NONE : WIRE_RETAKE_LANES_LIST);
+  const retakeLanesList = wireClone(
+    initial.retakeLanes === 'none' ? WIRE_RETAKE_LANES_NONE : { ...WIRE_RETAKE_LANES_LIST, lines: [...WIRE_RETAKE_LANES_LIST.lines, MOCK_LANE_LINE] },
+  );
   let retakeLanes: RetakeLanesState = wireClone(
     initial.retakeLanes === 'picked' ? WIRE_RETAKE_LANES_PICKED : initial.retakeLanes === 'error' ? WIRE_RETAKE_LANES_ERROR : WIRE_RETAKE_LANES_IDLE,
   );

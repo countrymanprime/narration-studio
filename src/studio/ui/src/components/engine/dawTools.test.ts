@@ -11,7 +11,6 @@ describe('the DAW tools registry', () => {
       'Create chapter regions…',
       'Embed chapter tags…',
       'Cleanup tools…',
-      'Retakes on lanes…',
     ]);
     expect(new Set(DAW_TOOLS.map((tool) => tool.id)).size).toBe(DAW_TOOLS.length);
   });

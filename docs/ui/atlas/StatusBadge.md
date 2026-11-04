@@ -49,6 +49,7 @@ Storybook title: `Primitives/StatusBadge`. Source: `src/components/primitives/St
 - `src/components/editing/script/ScriptDoc.tsx`
 - `src/components/editing/stack/RetryBar.tsx`
 - `src/components/editing/strip/TimelineStrip.tsx`
+- `src/components/editing/takes/LaneRetakes.tsx`
 - `src/components/editing/takes/Suggested.tsx`
 - `src/components/editing/takes/TakeChip.tsx`
 - `src/components/editing/takes/TakeLines.tsx`
@@ -60,7 +61,6 @@ Storybook title: `Primitives/StatusBadge`. Source: `src/components/primitives/St
 - `src/components/engine/ChapterTagsDialog.tsx`
 - `src/components/engine/LinkChaptersDialog.tsx`
 - `src/components/engine/NestedChaptersNotice.tsx`
-- `src/components/engine/RetakeLanesDialog.tsx`
 - `src/components/engine/ToolResult.tsx`
 - `src/components/engine/TrackList.tsx`
 - `src/components/engine/audacityLinkText.ts`

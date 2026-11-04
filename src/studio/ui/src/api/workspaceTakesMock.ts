@@ -15,6 +15,7 @@ import type {
   WorkspaceUseTakeResult,
 } from '../types';
 import type { MockReaper } from './findingsMock';
+import { MOCK_LANE_ITEM } from './mockFixtures';
 
 type Deps = {
   alignment: (chapterId: string) => Promise<WorkspaceAlignmentResult>;
@@ -40,7 +41,6 @@ export const USE_TAKE_MESSAGES = {
 } as const;
 
 const MOCK_TAKE_TWO = '{MOCK-TAKE-0002-0000-0000-000000000002}';
-const MOCK_LANE_ITEM = '{MOCK-ITEM-0002-0000-0000-000000000002}';
 const MOCK_LANE_TAKE = '{MOCK-TAKE-0003-0000-0000-000000000003}';
 
 const refused = (reason: UseTakeRefusal, message: string): WorkspaceUseTakeResult => ({ outcome: 'refused', reason, message, changed: false });
