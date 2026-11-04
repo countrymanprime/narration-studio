@@ -331,6 +331,17 @@ export function createMockApi(
   // `?mockPlan=loading|fails`: the Schedule's read of the plan never answers, or fails.
   // `?mockHold=overview,entities`: those reads never answer, so Production and the Story Bible stay on their loading skeleton.
   const held = new Set(initial.held ?? []);
+  // The real host opens the file manager, which the page cannot show, so the mock records each ask (window.__NARRATION_MOCK_REPORTS__) and
+  // can refuse it (`?mockOpenFolder=fail`).
+  const openReportsFolder = production.productionOpenReportsFolder;
+  const reportFolder = { folderOpens: 0 };
+  if (typeof window !== 'undefined') window.__NARRATION_MOCK_REPORTS__ = reportFolder;
+  production.productionOpenReportsFolder = async () => {
+    reportFolder.folderOpens += 1;
+    const answer = await openReportsFolder();
+    if (initial.openFolder === 'fail') throw new Error('the file manager could not open the reports folder');
+    return answer;
+  };
   const never = <T>() => new Promise<T>(() => {});
   if (held.has('overview')) production.productionOverview = never;
   if (held.has('entities')) storyBible.bindings.guideEntities = never;

@@ -307,6 +307,7 @@ var roleChecks = map[dawport.Capability]roleCheck{
 	dawport.CapTrackState:        check[dawport.TrackStateReader](),
 	dawport.CapTrackSelect:       check[dawport.TrackSelector](),
 	dawport.CapTrackCreate:       check[dawport.TrackCreator](),
+	dawport.CapTracksRead:        check[dawport.TrackLister](),
 	dawport.CapRecord:            check[dawport.Recorder](),
 	dawport.CapPunch:             check[dawport.Puncher](),
 	dawport.CapRegions:           check[dawport.RegionWriter](),

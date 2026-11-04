@@ -1017,7 +1017,8 @@
         "Expanded",
         "With Info Icon",
         "Scroll Cue",
-        "Opens And Closes With The Keyboard"
+        "Opens And Closes With The Keyboard",
+        "Keeps Its Panel While Closed"
       ],
       "consumers": [
         "src/components/editing/cleanup/CleanupInspector.tsx",
@@ -1594,6 +1595,7 @@
         "src/components/editing/takes/useShowInDaw.tsx",
         "src/components/editing/voicesample/VoiceSampleDialog.tsx",
         "src/components/engine/ChapterLinksTable.tsx",
+        "src/components/engine/LiveTracksStatus.tsx",
         "src/components/engine/TrackList.tsx",
         "src/components/engine/VoicesCard.tsx",
         "src/components/layout/AppShell.tsx",
@@ -3197,6 +3199,7 @@
         "src/components/engine/VoicesCard.tsx",
         "src/components/mapping/TrackSelect.tsx",
         "src/components/master/MasterToSpecPanel.tsx",
+        "src/components/pickups/list/AddPickup.tsx",
         "src/components/production/CreditsRowPanel.tsx",
         "src/components/production/ImportReview.tsx",
         "src/components/proof/NativeTakesPanel.tsx",
@@ -4083,6 +4086,7 @@
         "src/components/engine/ChapterSyncPanel.tsx",
         "src/components/engine/EnginePanel.tsx",
         "src/components/engine/SyncActivityLog.tsx",
+        "src/components/engine/useLiveTracks.ts",
         "src/components/engine/useVoiceTracks.ts",
         "src/components/primitives/Dialog.tsx",
         "src/components/production/ChapterTrackPanel.tsx",
@@ -4222,6 +4226,7 @@
         "src/components/editing/takes/prep/PrepControls.tsx",
         "src/components/editing/takes/split/SplitButton.tsx",
         "src/components/engine/AudacityLinkCard.tsx",
+        "src/components/engine/LiveTracksStatus.tsx",
         "src/components/engine/VoicesCard.tsx",
         "src/components/layout/AppShell.tsx",
         "src/components/layout/EngineChip.tsx",
