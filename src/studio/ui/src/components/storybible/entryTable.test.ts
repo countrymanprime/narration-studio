@@ -196,6 +196,24 @@ describe('the-sort-choice-is-kept', () => {
       expect(loadEntrySort()).toEqual(DEFAULT_SORT);
     }
   });
+  it('does not take an inherited property name for a legacy word', () => {
+    for (const bad of ['constructor', 'toString', '__proto__', 'hasOwnProperty']) {
+      window.localStorage.setItem(ENTRY_SORT_STORAGE_KEY, bad);
+      expect(loadEntrySort()).toEqual(DEFAULT_SORT);
+    }
+  });
+  it('keeps the valid leading keys when a later one is not a sort key', () => {
+    window.localStorage.setItem(ENTRY_SORT_STORAGE_KEY, '[{"column":"kind","dir":"desc"},{"column":"zzz","dir":"asc"}]');
+    expect(loadEntrySort()).toEqual([{ column: 'kind', dir: 'desc' }]);
+  });
+  it('says whether a choice was kept', () => {
+    expect(saveEntrySort([{ column: 'kind', dir: 'asc' }])).toBe(true);
+    const set = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    expect(saveEntrySort([{ column: 'book', dir: 'asc' }])).toBe(false);
+    set.mockRestore();
+  });
   it('survives storage that throws', () => {
     const get = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
       throw new Error('blocked');

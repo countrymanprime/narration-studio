@@ -175,7 +175,7 @@ opens [Proof](proof.md) with this panel open over it.)
 
 The panel reads the project's REAPER project file (`.rpp`) directly, so it needs neither REAPER running
 nor an imported manuscript; its [REAPER tools](#reaper-tools) are the exception. It shows the file it read
-and, beside the heading, **Link file…** (or **Change file…** once one is linked): the link a chapter's [Proof view](proof.md#comparing-the-recording-with-the-script) needs,
+and, beside the heading, a link icon (**Link a project file**, or **Change the linked file** once one is linked): the link a chapter's [Proof view](proof.md#comparing-the-recording-with-the-script) needs,
 and the same one [Settings](settings.md#daw-integration) makes. The file can be anywhere: in the project
 folder or a subfolder of it (the link then survives moving the whole project), or in a separate folder or
 drive kept for REAPER (a short note says where the file and the project are). When REAPER has a different project
@@ -213,12 +213,12 @@ all (such as a MIDI item). To hear a chapter, open it on [Editing](editing.md).
 
 ### REAPER tools
 
-When the project has tracks, the REAPER tools sit in their own card under the project. **Link chapters…** and
-**Prepare chapter render…** change the project open in REAPER, through the app's bridge
+When the project has tracks, the REAPER tools sit in their own card under the project, one icon each; hold the pointer on one for its name. **Link chapters to tracks** and
+**Prepare the chapter render** change the project open in REAPER, through the app's bridge
 REAPER starts when it opens; nothing is written until you press the dialog's action button. The app puts the
 bridge in REAPER and connects to it without you running anything in REAPER.
 
-**Link chapters…** (shown once a manuscript is imported) stamps each chapter's identity onto the REAPER
+**Link chapters to tracks** (shown once a manuscript is imported) stamps each chapter's identity onto the REAPER
 items that hold its recording. It reads REAPER's tracks again when it opens, and has its own **Refresh**, so a track you
 have just added in REAPER can be picked. It opens with the links the **Chapter links** list shows, the opening and
 closing credits included, and the two stay in step: choosing a track here links the chapter, **Not linked**
@@ -236,14 +236,14 @@ nothing in REAPER, and the dialog starts with every chapter Not linked whatever 
 The lines to record again have their own page, [Pickups](pickups.md); a proofer's CSV sheet is imported on
 [Proof](proof.md#the-notes).
 
-**Prepare chapter render…** sets REAPER's render to every chapter region, names each file after its
+**Prepare the chapter render** sets REAPER's render to every chapter region, names each file after its
 region, and saves into the **Output folder** (a `renders` folder in the project to start with). Press
 **Configure render** and it lists the files the render will create. It never renders anything itself:
 press Render in REAPER (Ctrl+Alt+R or File > Render) to create the files. Once it is configured, **Close** is the main
 button. If the project has no chapter regions yet, it warns you and offers **Create chapter regions…**, which opens
 that tool in its place.
 
-**Create chapter regions…** plans one REAPER region per chapter with a confirmed track link, plus an
+**Create chapter regions** plans one REAPER region per chapter with a confirmed track link, plus an
 **Opening credits track** and **Closing credits track** you choose in the dialog, and shows the plan
 before writing anything: each row's title, track, start, end and status (New region, Already exists,
 Moves an existing region, or Several regions share this title). A chapter or credits track with nothing
@@ -254,15 +254,15 @@ same-titled region instead of adding another; left unticked, a region that would
 still gets a new one alongside it. **Create N regions** writes the plan in one step and reports what
 happened, naming only the counts that aren't zero ("Sent 3: 2 created, 1 already existed."); **Close** then becomes the
 main button. While REAPER is not answering, **Create N regions** stays disabled and says why. The plan's column names stay in view while you scroll a long plan, as they do in
-**Link chapters…**.
+**Link chapters to tracks**.
 
-**Embed chapter tags…** adds ID3 chapter markers to an MP3 of the whole book that you have already
+**Embed chapter tags** adds ID3 chapter markers to an MP3 of the whole book that you have already
 rendered, timed from the chapter files of your last chapter render. It lists those chapters and marks
 any that are "not rendered yet"; every one must exist first. Enter the path of the combined book MP3 and
 tick the confirmation: the file you name is never changed, and a new, tagged copy is written beside it.
 This one does not talk to REAPER.
 
-**Cleanup tools…** opens a repair tool in REAPER on the items you have selected there. Select the items
+**Open the cleanup tools** opens a repair tool in REAPER on the items you have selected there. Select the items
 in REAPER first, then press **Open** beside the tool. **Repair Pops/Clicks** is REAPER's own dialog
 (REAPER 7.80 or later); **Magnolius DeClick** is a free third-party script for mouth clicks, and works only
 if you installed it in REAPER yourself (ReaPack, or Actions > Load ReaScript). The app never
@@ -270,8 +270,8 @@ installs it. Opening a tool changes nothing: you apply or cancel the repair in i
 Undo takes it back. What happened shows under the tool you opened; if nothing is selected, the tool is missing, or
 your REAPER is too old, it says so there.
 
-**Retakes on lanes…** is for retakes recorded into REAPER's fixed item lanes. It lists every line of
-the manuscript (linked with **Link chapters…**) that has retakes on more than one lane of a track, with
+**Show the retakes on lanes** is for retakes recorded into REAPER's fixed item lanes. It lists every line of
+the manuscript (linked with **Link chapters to tracks**) that has retakes on more than one lane of a track, with
 each retake's lane, its item name and whether that lane plays in the saved project. Press **Play this
 lane** beside the retake you want: that lane becomes the only one playing on its track. The lane that already plays is
 highlighted, marked **Plays**, and its button is off. A lane plays
@@ -306,8 +306,8 @@ which has no folders.
 Below the track list, Chapter links shows every narration chapter (not a chapter removed from recording) with the track it's confirmed
 to, so checks that need to know "which audio is this chapter" (the [editing check](#editing-check)
 below, an evidence view) don't guess by name. Each row is the chapter, its status, its track and its actions. A chapter
-starts **Not linked** with its track list on **Choose a track**: pick a track, then press Confirm, which stays off until you
-have picked one. A track another chapter already has is marked in the list with the chapter that has it. When the project has folders, the list is the same tree in a popover: the matcher's best match comes first with its folder path, a search box flattens the list to the matches with their paths, and a folder with no audio of its own is shown but can't be chosen (a folder that holds audio can), unless the project uses [Voice folders](#voice-folders). A confirmed chapter shows **Linked** with the track's name, and Change or Clear. Change
+starts **Not linked** with its track list on **Choose a track**: pick a track, then press the check icon (**Use this track**), which stays off until you
+have picked one. A track another chapter already has is marked in the list with the chapter that has it. When the project has folders, the list is the same tree in a popover: the matcher's best match comes first with its folder path, a search box flattens the list to the matches with their paths, and a folder with no audio of its own is shown but can't be chosen (a folder that holds audio can), unless the project uses [Voice folders](#voice-folders). A confirmed chapter shows **Linked** with the track's name, and a pencil icon (**Change the track**) and an eraser icon (**Clear the link**). Change
 replaces the chapter's link, so a chapter is never left linked to two tracks; a track already
 linked to another chapter moves to this one. Clear removes every link the chapter has. If the
 confirmed track is deleted, or the project points somewhere else, the chapter shows **Track
@@ -464,16 +464,16 @@ Once on, the Chapter sync section lists one fact per row: **Status** (On), **Las
 saved project file: "10:42, from the saved Alice.rpp"; for an Audacity project, the linked Audacity project: "10:42, from
 Book One.aup3 in Audacity", or "from the open Audacity project" when none is linked), **Links** (how many chapters it linked on its own and
 how many you linked: "8 chapters linked automatically, 1 by you"), **Background checks** while they are waiting
-("Waiting: REAPER is recording.", or Audacity for an Audacity project), and **Not chapters** (below). **Turn off**, beside the heading, stops it (chapter
-links you already made are kept); while it is off the same place has **Turn on**, which asks again. Its own Needs you list
+("Waiting: REAPER is recording.", or Audacity for an Audacity project), and **Not chapters** (below). The toggle icon (**Turn off**), beside the heading, stops it (chapter
+links you already made are kept); while it is off the same place has **Turn on**, drawn as the switch's other position, which asks again. Its own Needs you list
 says why each chapter wasn't linked ("Two tracks match: … A chapter is checked from one track.", or
 "Closest track … is not a confident match, so it was not linked on its own.") and lets you pick the
-right track and press **Link**, the same link Chapter links below records. A track sync doesn't
+right track and press the link icon (**Link this track**), the same link Chapter links below records. A track sync doesn't
 recognize as any chapter's is listed under **Not chapters** so it isn't mistaken for a
 missing link. When REAPER has changes you haven't saved yet, a line says so: sync reads the saved
 project, so it picks them up when you save.
 
-The log of what each sync did, with **Undo** on a link sync made, is in Settings: [Recording & DAW > Sync activity](settings.md).
+The log of what each sync did, with an **Undo** icon on a link sync made, is in Settings: [Recording & DAW > Sync activity](settings.md).
 
 ---
 
