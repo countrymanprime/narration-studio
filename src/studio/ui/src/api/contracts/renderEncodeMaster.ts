@@ -15,9 +15,11 @@ export type ExportItem = { kind: PackageItemKind; title: string; path: string };
 /**
  * The narrator's approval of one export's masters, given in the approval dialog just before the call that carries it: the row
  * they approved (MasteringProvider.name) and, for a row that needs one (`needsMacro`), the effect macro they named. The host
- * refuses it when the project masters with another row by then (a stale approval) and never keeps it past that call.
+ * refuses it when the project masters with another row by then (a stale approval) and never keeps it past that call. For a row whose
+ * steps live in the DAW, `chainDigest` is the plan's digest of the chain the dialog showed: the host refuses such an approval without
+ * it, and each render refuses a chain that differs from it, ending the export there (threat model row 5o).
  */
-export type MasteringApproval = { provider: string; macro: string };
+export type MasteringApproval = { provider: string; macro: string; chainDigest?: string };
 
 /** What ExportStart is asked to master (optionally) and encode; `approval` is null unless the narrator just gave one. */
 export type ExportRequest = { items: ExportItem[]; master: boolean; format: string; approval: MasteringApproval | null };
@@ -26,10 +28,17 @@ export type ExportRequest = { items: ExportItem[]; master: boolean; format: stri
  * from when the mastering row renders regions; `region` is '' with any other row. */
 export type ExportPlanItem = { kind: PackageItemKind; title: string; path: string; region: string };
 
+/** One plug-in in a DAW chain, as the DAW names it, and whether it is switched on. */
+export type ExportPlanFX = { name: string; enabled: boolean };
+
+/** One track's plug-ins in the chain a DAW render runs, in chain order: every track with FX, then the master (`master`). */
+export type ExportPlanTrack = { name: string; master: boolean; fx: ExportPlanFX[] };
+
 /**
  * What ExportStart would do with a request, answered by ExportPlan without starting anything: the mastering row (`provider` and
  * `label` empty when it does not master), whether each master needs the narrator's approval or a macro, and the items as the host
- * will export them. The approval dialog draws exactly this.
+ * will export them, and for a row whose steps live in the DAW, the chain it would run, read when the plan was asked for (empty for
+ * any other row; a chain the host cannot read whole refuses the plan). The approval dialog draws exactly this.
  */
 export type ExportPlan = {
   master: boolean;
@@ -38,6 +47,9 @@ export type ExportPlan = {
   needsApproval: boolean;
   needsMacro: boolean;
   items: ExportPlanItem[];
+  chain: ExportPlanTrack[];
+  /** masteringport.ChainDigest of `chain` for a row that lists its chain, sent back in the approval; empty for any other row. */
+  chainDigest: string;
 };
 
 /** The built-in chain's own report (internal/mastering.Result), narrowed to what the page shows per file; absent for a file another

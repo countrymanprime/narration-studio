@@ -53,6 +53,14 @@ export function createSettingsMock(
             }
           : field,
       );
+      // A project field that is not set follows the computer scope live, as the host resolves it; one the project sets keeps its own value.
+      if (scope === 'global') {
+        settings.project[tool] = (settings.project[tool] || []).map((field) =>
+          field.key in values && !field.isSet
+            ? { ...field, effectiveValue: settings.global[tool]?.find((item) => item.key === field.key)?.effectiveValue ?? field.effectiveValue }
+            : field,
+        );
+      }
       onSaved(tool, scope, values);
       return bootstrap();
     },

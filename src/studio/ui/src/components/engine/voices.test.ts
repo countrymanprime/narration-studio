@@ -37,6 +37,28 @@ describe('the voices of a chapter folder', () => {
     expect(folderChildren(tracks, 'gone')).toEqual([]);
   });
 
+  it("never reach a sibling chapter folder or a flat chapter after it: keys number only the folder's own children (#2251)", () => {
+    const siblings = [
+      track('c3', 'Chapter 3', 0, true),
+      track('n3', 'Narrator', 1),
+      track('v3', 'Veyra', 1),
+      track('c4', 'Chapter 4', 0, true),
+      track('n4', 'Narrator', 1),
+      track('a4', 'Alice', 1),
+      track('c5', 'Chapter 5', 0),
+    ];
+    const setup = { layout: 'folders' as const, narratorCharacter: '', tracks: [] };
+    expect(folderVoices(siblings, 'c3', [], setup).map((voice) => [voice.key, voice.name])).toEqual([
+      ['0', 'Narrator'],
+      ['1', 'Veyra'],
+    ]);
+    expect(folderVoices(siblings, 'c4', [], setup).map((voice) => [voice.key, voice.guid])).toEqual([
+      ['0', 'n4'],
+      ['1', 'a4'],
+    ]);
+    expect(folderChildren(siblings, 'c5')).toEqual([]);
+  });
+
   it('give the Narrator key 0 wherever it sits and the others 1 to 9 in order (decision F)', () => {
     const keys = folderVoices(tracks, 'c8', cast, { layout: 'folders', narratorCharacter: '', tracks: [] }).map((v) => [v.name, v.key]);
     expect(keys).toEqual([

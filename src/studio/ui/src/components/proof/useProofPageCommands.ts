@@ -1,4 +1,4 @@
-import { chapterName } from '../../chapterName';
+import { headingName } from '../../chapterHeading';
 import { usePageCommands, type PageItem } from '../../input/pageCommands';
 import type { ManuscriptChapter } from '../../types';
 import { ALL_CHAPTERS } from '../primitives/ChapterStepper';
@@ -42,7 +42,7 @@ export function useProofPageCommands(page: {
       const open = page.openIn(chapter.id);
       items.push({
         id: `chapter.${chapter.id}`,
-        label: chapterName(chapter),
+        label: headingName(chapter),
         group: 'Chapters',
         hint: open === 1 ? '1 open note' : `${open} open notes`,
         icon: 'goToChapter',
@@ -66,7 +66,7 @@ export function useProofPageCommands(page: {
     const shown = all ? undefined : page.chapters.find((c) => c.id === page.scope);
     items.push({
       id: 'check',
-      label: shown ? `Check recordings of ${chapterName(shown)}` : 'Check recordings',
+      label: shown ? `Check recordings of ${headingName(shown)}` : 'Check recordings',
       group: 'Checks',
       icon: 'checkRecordings',
       disabledReason: page.review.available ? undefined : page.review.message || 'The DAW is not reachable.',

@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import type { ProductionReportExport, ProductionReportInclude, ProductionReportPreview } from '../../../api/contracts/production';
 import { apiErrorMessage } from '../../../api/errorMessage';
+import { overlay } from '../../../overlay/overlayService';
 import { usePort } from '../../../ports/usePort';
 import { Button } from '../../primitives/Button';
 import { IconButton } from '../../primitives/IconButton';
@@ -14,6 +15,11 @@ const FORMATS = [
   { value: 'html', label: 'HTML' },
   { value: 'json', label: 'JSON' },
 ] as const;
+
+/** A held Enter or Space repeats keydown, and each repeat would press the button again as soon as it is free: only the first press counts. */
+const ignoreKeyRepeat = (event: KeyboardEvent<HTMLButtonElement>) => {
+  if (event.repeat && (event.key === 'Enter' || event.key === ' ')) event.preventDefault();
+};
 
 export type ReportDialogProps = {
   projectName: string;
@@ -38,6 +44,7 @@ export function ReportDialog({ projectName, asOf, onClose }: ReportDialogProps) 
   const [written, setWritten] = useState<ProductionReportExport>();
   const [exportProblem, setExportProblem] = useState<string>();
   const [writing, setWriting] = useState(false);
+  const [opening, setOpening] = useState(false);
   const latest = useRef(0);
 
   useEffect(() => {
@@ -73,6 +80,17 @@ export function ReportDialog({ projectName, asOf, onClose }: ReportDialogProps) 
     } finally {
       setWriting(false);
     }
+  };
+
+  // A failure is a toast (never an inline line in the dialog) with Retry: opening a folder changes nothing, so asking again is safe.
+  const openFolder = () => {
+    setOpening(true);
+    production
+      .productionOpenReportsFolder()
+      .catch((error: unknown) =>
+        overlay.toast(`The folder could not be opened: ${apiErrorMessage(error)}`, { tone: 'error', action: { label: 'Retry', onAction: openFolder } }),
+      )
+      .finally(() => setOpening(false));
   };
 
   const changeSection = (section: ReportSection, next: boolean) => {
@@ -121,6 +139,29 @@ export function ReportDialog({ projectName, asOf, onClose }: ReportDialogProps) 
           {preview && <code className="text-xs [overflow-wrap:anywhere] select-text">{reportPath(preview.folder, preview.stem, format)}</code>}
         </div>
         <div className="flex min-w-0 flex-col gap-3">
+          {/* What the export did comes first: under a tall preview it would be out of sight. */}
+          {exportProblem && (
+            <p role="alert" className="text-sm" style={DANGER}>
+              The report was not written: {exportProblem}
+            </p>
+          )}
+          {written && (
+            <div aria-live="polite" className="text-sm">
+              {/* The sentence and the folder button share a line, as the Delivery built list does. */}
+              <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
+                <p className="min-w-0 [overflow-wrap:anywhere]">
+                  Wrote <span className="font-medium [overflow-wrap:anywhere]">{written.htmlFile}</span> and{' '}
+                  <span className="font-medium [overflow-wrap:anywhere]">{written.jsonFile}</span> to {written.folder}.
+                </p>
+                <IconButton action="openFolder" onClick={openFolder} onKeyDown={ignoreKeyRepeat} pending={opening} />
+              </div>
+              <p className="mt-1" style={MUTED}>
+                {written.contractedAmountIncluded
+                  ? 'The contracted amount and effective rate are included.'
+                  : 'The contracted amount and effective rate are left out.'}
+              </p>
+            </div>
+          )}
           {previewProblem ? (
             <p role="alert" className="text-sm" style={DANGER}>
               The report could not be previewed: {previewProblem}
@@ -139,24 +180,6 @@ export function ReportDialog({ projectName, asOf, onClose }: ReportDialogProps) 
                   {preview.json}
                 </pre>
               )}
-            </div>
-          )}
-          {exportProblem && (
-            <p role="alert" className="text-sm" style={DANGER}>
-              The report was not written: {exportProblem}
-            </p>
-          )}
-          {written && (
-            <div aria-live="polite" className="text-sm">
-              <p>
-                Wrote <span className="font-medium [overflow-wrap:anywhere]">{written.htmlFile}</span> and{' '}
-                <span className="font-medium [overflow-wrap:anywhere]">{written.jsonFile}</span> to {written.folder}.
-              </p>
-              <p className="mt-1" style={MUTED}>
-                {written.contractedAmountIncluded
-                  ? 'The contracted amount and effective rate are included.'
-                  : 'The contracted amount and effective rate are left out.'}
-              </p>
             </div>
           )}
         </div>

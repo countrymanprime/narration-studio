@@ -5,9 +5,17 @@ import { Icon } from '../../primitives/Icon';
 import type { ListboxOption } from '../../primitives/Listbox';
 import { Popover } from '../../primitives/Popover';
 import { SearchList } from '../../primitives/SearchList';
+import { IconButton } from '../../primitives/IconButton';
+import { TooltipTarget } from '../../primitives/Tooltip';
 import { SpeakerTag } from '../../primitives/SpeakerTag';
 import type { BoothVoices } from './useBoothVoices';
+import { keyName, lineCount, voiceName, type WhoCharacter } from './whoIsIn';
+import { StatusBadge } from '../../primitives/StatusBadge';
 
+/** A "No track" row's option id: a character, never a track GUID. */
+const CHARACTER = 'character:';
+
+const keyLabel = (voice: Voice) => (voice.key ? keyName(voice.key) : '');
 /** The number-pad key as the number alone ("2"); a screen reader still hears which key it is ("Num 2"). */
 function KeyNumber({ voice }: { voice: Voice }) {
   if (!voice.key) return null;
@@ -19,8 +27,6 @@ function KeyNumber({ voice }: { voice: Voice }) {
     </span>
   );
 }
-/** A track REAPER holds with a blank name is still a voice: it is named so the row and the control say something. */
-const voiceName = (voice: Voice) => voice.name.trim() || 'Unnamed track';
 
 /** The mock's arm dot: drawn only when REAPER reports the voice armed. */
 function ArmDot() {
@@ -60,6 +66,12 @@ export function VoiceControl({
   onChoose,
   open,
   onOpenChange,
+  noTrack = [],
+  onPickCharacter,
+  standIn,
+  recording = false,
+  onAddFor,
+  onUseFor,
 }: {
   voices: readonly Voice[];
   current?: Voice;
@@ -68,14 +80,27 @@ export function VoiceControl({
   onChoose: (voice: Voice) => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** The chapter's speakers no voice records: the list's "No track" rows (the mock's #list). */
+  noTrack?: readonly WhoCharacter[];
+  /** A "No track" row picked: while stopped the page asks who records it; during a take the Narrator voice records it (`standIn`). */
+  onPickCharacter?: (character: WhoCharacter) => void;
+  /** The character with no track the Narrator voice records (decision 5): the control shows "King → Narrator" as a warning. */
+  standIn?: WhoCharacter;
+  recording?: boolean;
+  /** After the take, the stand-in's two other answers (the mock's #notice): a track of its own, or one the chapter has. */
+  onAddFor?: (character: WhoCharacter) => void;
+  onUseFor?: (character: WhoCharacter) => void;
 }) {
   const [query, setQuery] = useState('');
   const needle = query.trim().toLocaleLowerCase();
+  const missing = useMemo(() => noTrack.filter((character) => !needle || character.name.toLocaleLowerCase().includes(needle)), [noTrack, needle]);
+  const grouped = noTrack.length > 0;
   const options = useMemo<ListboxOption[]>(
-    () =>
-      voices
+    () => [
+      ...voices
         .filter((voice) => matches(voice, needle))
         .map((voice) => ({
+          group: grouped ? 'Tracks' : undefined,
           id: voice.guid,
           leading: (
             <span className="inline-flex min-w-6 flex-none justify-center">
@@ -93,24 +118,54 @@ export function VoiceControl({
           // The characters on the row's second line: beside the name they crowd it out of a narrow window.
           description: voice.characters.length ? <Who voice={voice} /> : undefined,
         })),
-    [voices, needle, current, arm.state],
+      // The chapter's speakers with no track: a pick asks who records them (the mock's "No track" section).
+      ...missing.map((character) => ({
+        id: `${CHARACTER}${character.id}`,
+        group: 'No track',
+        leading: (
+          <span className="inline-flex min-w-14 flex-none text-[var(--text-muted)]">
+            <Icon name="add" />
+          </span>
+        ),
+        label: (
+          <span className="truncate">
+            <bdi>{character.name}</bdi>
+          </span>
+        ),
+        // The same badge as the dialog's (the mock's `pill n`), so a line count is drawn one way.
+        trailing: <StatusBadge tone="neutral" label={lineCount(character.lines)} />,
+      })),
+    ],
+    [voices, needle, current, arm.state, missing, grouped],
   );
   if (!current) return null;
 
   const several = arm.state === 'several';
-  // The tooltip names the key that opens the list and, when REAPER has several tracks armed, what Record will do about it.
-  const tip = several ? `${arm.count ?? 'Several'} tracks armed in REAPER · Record arms only this one` : 'Choose the voice to record (Num .)';
+  const standingIn = standIn && current.narrator ? standIn : undefined;
+  // The tooltip names the key that opens the list and, when REAPER has several tracks armed, what Record will do about it; for a character
+  // with no track, who records it instead.
+  const tip = standingIn
+    ? `${standingIn.name} has no track · ${recording ? 'recording' : 'armed'} on ${voiceName(current)}${current.key ? ` (${keyLabel(current)})` : ''}`
+    : several
+      ? `${arm.count ?? 'Several'} tracks armed in REAPER · Record arms only this one`
+      : 'Choose the voice to record (Num .)';
   const changeOpen = (next: boolean) => {
     if (!next) setQuery('');
     onOpenChange(next);
   };
   const pick = (guid: string) => {
+    if (guid.startsWith(CHARACTER)) {
+      const character = noTrack.find((each) => `${CHARACTER}${each.id}` === guid);
+      changeOpen(false);
+      if (character) onPickCharacter?.(character);
+      return;
+    }
     const voice = voices.find((each) => each.guid === guid);
     if (voice) onChoose(voice);
     changeOpen(false);
   };
 
-  return (
+  const control = (
     <Popover
       label="Voices"
       side="top"
@@ -123,7 +178,21 @@ export function VoiceControl({
           <span className="flex max-w-[18rem] min-w-0 items-center gap-2 normal-case">
             {/* The name a screen reader says holds what is drawn ("Voice: Num 0 Narrator Armed in REAPER"), so a spoken command finds it. */}
             <span className="sr-only">Voice: </span>
-            <KeyNumber voice={current} />
+            {standingIn ? (
+              <>
+                <span className="flex-none text-[var(--warn-text)]">
+                  <Icon name="problem" />
+                </span>
+                <span className="min-w-0 truncate">
+                  <SpeakerTag label={standingIn.name} speakerId={standingIn.id} />
+                </span>
+                <span className="flex-none text-[var(--text-muted)]" aria-hidden="true">
+                  →
+                </span>
+                <span className="sr-only">has no track, recording on</span>
+              </>
+            ) : null}
+            {standingIn ? null : <KeyNumber voice={current} />}
             <span className="min-w-0 truncate">
               <SpeakerTag label={voiceName(current)} speakerId={current.characters[0]?.id ?? (current.narrator ? 'narrator' : current.guid)} />
             </span>
@@ -155,5 +224,18 @@ export function VoiceControl({
         />
       </div>
     </Popover>
+  );
+  if (!standingIn || recording) return control;
+  // After the take: the stand-in's other two answers, as icon buttons beside the control (the mock's "after the stop").
+  return (
+    <span className="inline-flex flex-none items-center gap-1">
+      {control}
+      <TooltipTarget text={`Add a track for ${standingIn.name}`}>
+        <IconButton action="add" label={`Add a track for ${standingIn.name}`} onClick={() => onAddFor?.(standingIn)} />
+      </TooltipTarget>
+      <TooltipTarget text={`Record ${standingIn.name} on an existing track`}>
+        <IconButton action="useExistingTrack" label={`Record ${standingIn.name} on an existing track`} onClick={() => onUseFor?.(standingIn)} />
+      </TooltipTarget>
+    </span>
   );
 }

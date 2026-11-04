@@ -301,6 +301,22 @@ describe('a pickup session in the Booth', () => {
     expect(h.api.pickupsList).toHaveBeenCalledTimes(2);
   });
 
+  // Issue #2919: reading the list changes nothing, so the failed read's toast carries Retry, which reads it again.
+  it('a failed read of the pickup list is an error toast with Retry, which reads the list again', async () => {
+    const h = host(LIST());
+    const real = h.api.pickupsList.getMockImplementation()!;
+    h.api.pickupsList.mockRejectedValueOnce(new Error('the pickups file is locked'));
+    const toast = vi.spyOn(overlay, 'toast');
+    mount(h, { ids: ['a', 'b'] });
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.stringContaining('locked'), expect.objectContaining({ tone: 'error' })));
+    const options = toast.mock.calls.find((call) => String(call[0]).includes('locked'))![1] as { action: { label: string; onAction: () => void } };
+    expect(options.action.label).toBe('Retry');
+    h.api.pickupsList.mockImplementation(real);
+    act(() => options.action.onAction());
+    expect(await screen.findByText('Pickups · 2 open')).toBeTruthy();
+    expect(h.api.pickupsList).toHaveBeenCalledTimes(2);
+  });
+
   it('the pickup list is empty outside a session', async () => {
     const h = host(LIST());
     mount(h, { ids: [] });

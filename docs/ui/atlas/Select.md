@@ -19,6 +19,7 @@ Storybook title: `Primitives/Select`. Source: `src/components/primitives/Select.
 
 - `src/components/booth/frame/BoothTop.tsx`
 - `src/components/booth/frame/LevelsMenu.tsx`
+- `src/components/booth/voices/WhoIsInDialog.tsx`
 - `src/components/delivery/ImportProfileField.tsx`
 - `src/components/delivery/profile/ProfileMenu.tsx`
 - `src/components/editing/menu/marks/NoteDialog.tsx`
@@ -34,6 +35,7 @@ Storybook title: `Primitives/Select`. Source: `src/components/primitives/Select.
 - `src/components/engine/VoicesCard.tsx`
 - `src/components/mapping/TrackSelect.tsx`
 - `src/components/master/MasterToSpecPanel.tsx`
+- `src/components/pickups/list/AddPickup.tsx`
 - `src/components/production/CreditsRowPanel.tsx`
 - `src/components/production/ImportReview.tsx`
 - `src/components/proof/NativeTakesPanel.tsx`

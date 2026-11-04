@@ -472,6 +472,24 @@ describe('Settings: search and filters', () => {
     expect(within(backups!).getByRole('button', { name: 'Change it here for now' })).toBeTruthy();
   });
 
+  it('keeps an unsaved edit in a Set on a page panel when its group is collapsed and opened again', async () => {
+    await renderPage();
+    await userEvent.type(await screen.findByRole('textbox', { name: 'Search settings' }), 'preroll');
+    const punch = document.querySelector<HTMLElement>('[data-page-setting="ps.punch"]')!;
+    const toggle = within(punch).getByRole('button', { name: 'Change it here for now' });
+    await userEvent.click(toggle);
+    const field = await waitFor(() => {
+      const input = punch.querySelector<HTMLInputElement>('input');
+      expect(input).toBeTruthy();
+      return input!;
+    });
+    await userEvent.clear(field);
+    await userEvent.type(field, '2.5');
+    await userEvent.click(toggle);
+    await userEvent.click(toggle);
+    expect(punch.querySelector<HTMLInputElement>('input')!.value).toBe('2.5');
+  });
+
   // Alignment audit (XSE2-21): Open <page> and Change it here for now share one line, the button one width for every page.
   it('puts Open <page> on the line of Change it here for now', async () => {
     await renderPage();

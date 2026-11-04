@@ -28,6 +28,7 @@ Storybook title: `Primitives/ToggleGroup`. Source: `src/components/primitives/To
 - `src/components/proof/inspector/FindingThread.tsx`
 - `src/components/script/page/chapters/PrepSegment.tsx`
 - `src/components/script/page/rail/threads/NoteCard.tsx`
+- `src/components/settings/controls/AppearanceBodies.tsx`
 - `src/components/settings/page/ModelsPane.tsx`
 - `src/components/settings/page/ScopedFieldsPanel.tsx`
 - `src/components/settings/page/SettingsPage.tsx`

@@ -22,7 +22,8 @@ type Type struct {
 var TypeColours = []string{"green", "blue", "violet", "amber", "teal", "rose"}
 
 // DefaultTypes are the types of a file without a list: the fixed categories of before, in the colours the app drew them in, and
-// only Character speaking (manuscript_guide.py DEFAULT_TYPES; TestDefaultTypesMatchTheSidecar pins the two together).
+// only Character speaking (manuscript_guide.py DEFAULT_TYPES). The build's defaultTypeRows are made from this list;
+// TestDefaultTypesMatchTheSidecar pins it to the golden that build test writes.
 func DefaultTypes() []Type {
 	return []Type{
 		{"Character", "green", true}, {"Place", "blue", false}, {"Organization", "violet", false},
