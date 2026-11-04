@@ -75,8 +75,11 @@ export function MasterToSpecPanel({
   const chainLabel = chain?.label;
   // The plan the open approval dialog shows: the host's answer when it opened, so a later read cannot change what the narrator approves.
   const [approving, setApproving] = useState<ExportPlan>();
-  const started = !!exportJob?.files.length;
-  const hasFiles = items.length > 0 || started;
+  const hasJobFiles = !!exportJob?.files.length;
+  // The table is the job's own files, read-only, while it runs, and after a reload that has picked nothing (the last run). Once a job
+  // ends, finished, cancelled or failed, the picked files are editable again with Add files…, the checkbox and Master & encode (#2935).
+  const showsJob = hasJobFiles && (exportRunning || items.length === 0);
+  const hasFiles = items.length > 0 || hasJobFiles;
   // A start or pick that failed is a toast; the panel is not opened just to draw it (rule 7, #2632), so it does not appear with nothing in it.
   useErrorToast(problem);
   // A job that ended in error is a toast too, not a red line under the table (rule 7, #2632).
@@ -125,9 +128,9 @@ export function MasterToSpecPanel({
       actions={
         // The panel's action sits in its header beside Add files…, where it stays at every width; it used to follow the checkbox's
         // sentence or drop under it as the window changed (R3MS-12).
-        !started && (
+        !exportRunning && (
           <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" onClick={() => void jobs.pick()} pending={jobs.picking} disabled={exportRunning}>
+            <Button variant="secondary" onClick={() => void jobs.pick()} pending={jobs.picking}>
               Add files…
             </Button>
             {items.length > 0 && (
@@ -139,7 +142,7 @@ export function MasterToSpecPanel({
         )
       }
     >
-      {(items.length > 0 || started) && (
+      {hasFiles && (
         <div
           ref={revealRef}
           tabIndex={0}
@@ -157,14 +160,14 @@ export function MasterToSpecPanel({
               </TableRow>
             </TableHead>
             <TableBody>
-              {(started && exportJob ? exportJob.files : items).map((item) => {
+              {(showsJob && exportJob ? exportJob.files : items).map((item) => {
                 const result = exportJob?.files.find((file) => file.path === item.path);
                 const status = exportRowStatus(result);
                 return (
                   <TableRow key={item.path}>
                     <TableCell className="break-words">{fileName(item.path)}</TableCell>
                     <TableCell>
-                      {started ? (
+                      {showsJob ? (
                         KIND_OPTIONS.find((option) => option.value === item.kind)?.label
                       ) : (
                         <Select
@@ -182,7 +185,7 @@ export function MasterToSpecPanel({
                           <span aria-hidden="true">—</span>
                           <span className="sr-only">No title for this role</span>
                         </span>
-                      ) : started ? (
+                      ) : showsJob ? (
                         item.title
                       ) : (
                         <TextField
@@ -201,7 +204,7 @@ export function MasterToSpecPanel({
                       )}
                     </TableCell>
                     <TableCell align="right">
-                      {!started && (
+                      {!showsJob && (
                         <Button variant="secondary" onClick={() => jobs.removeItem(item.path)}>
                           Remove
                         </Button>
@@ -214,7 +217,7 @@ export function MasterToSpecPanel({
           </Table>
         </div>
       )}
-      {items.length > 0 && !started && (
+      {items.length > 0 && !exportRunning && (
         <div className="mt-3 flex items-center gap-2">
           <Checkbox checked={jobs.master} onChange={jobs.setMaster}>
             {/* The row's own label, as the host words it: lowercasing it made "the your DAW's FX chain" (#2879's review). */}

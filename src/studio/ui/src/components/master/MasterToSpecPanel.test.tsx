@@ -1,10 +1,13 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { ApiProvider } from '../../api/ApiContext';
+import { createMockApi } from '../../api/mockApi';
 import type { ExportItem } from '../../types';
 import { toastTexts } from '../../fixtures/toasts';
 import { MasterToSpecPanel } from './MasterToSpecPanel';
-import type { ExportJobs } from './useExportJobs';
+import { type ExportJobs, useExportJobs } from './useExportJobs';
 
 afterEach(cleanup);
 
@@ -90,5 +93,90 @@ describe('MasterToSpecPanel: the chain it masters with', () => {
     render(<MasterToSpecPanel jobs={jobs({ items: [item], master: true } as never)} chain={{ name, label } as never} />);
     expect(screen.getByRole('checkbox', { name: wording })).toBeTruthy();
     cleanup();
+  });
+});
+
+// #2935: a job that ended (cancelled, finished or failed) gave back none of the panel's controls until the page reloaded.
+describe('MasterToSpecPanel: after a job ends, the controls come back (#2935)', () => {
+  function Harness() {
+    const exportJobs = useExportJobs();
+    return (
+      <>
+        <button type="button" onClick={() => void exportJobs.pick()}>
+          Pick
+        </button>
+        <MasterToSpecPanel jobs={exportJobs} />
+      </>
+    );
+  }
+
+  async function mount(renderExport?: 'hold') {
+    const api = createMockApi({}, renderExport ? { renderExport } : {});
+    const exportStart = vi.spyOn(api, 'exportStart');
+    render(
+      <ApiProvider api={api}>
+        <Harness />
+      </ApiProvider>,
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Pick' }));
+    await screen.findByRole('button', { name: 'Master & encode' });
+    return { exportStart };
+  }
+
+  const controls = () => ({
+    masterAndEncode: !!screen.queryByRole('button', { name: 'Master & encode' }),
+    addFiles: !!screen.queryByRole('button', { name: 'Add files…' }),
+    master: !!screen.queryByRole('checkbox', { name: /^Master before encoding/ }),
+  });
+
+  it('hides them while the job runs, and gives them back when it is cancelled', async () => {
+    await mount('hold');
+    await userEvent.click(screen.getByRole('button', { name: 'Master & encode' }));
+    await screen.findByRole('progressbar', { name: 'Preparing files' });
+    expect(controls()).toEqual({ masterAndEncode: false, addFiles: false, master: false });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await screen.findByText(/^Export cancelled\./);
+    expect(controls()).toEqual({ masterAndEncode: true, addFiles: true, master: true });
+    // The files are editable again, each still saying how the last run left it.
+    expect(screen.getAllByRole('button', { name: 'Remove' })).toHaveLength(5);
+    expect(screen.getAllByText('Cancelled')).toHaveLength(5);
+  });
+
+  it('gives them back when the job finishes, and Master & encode runs again', async () => {
+    const { exportStart } = await mount();
+    await userEvent.click(screen.getByRole('button', { name: 'Master & encode' }));
+    await screen.findByText(/^Prepared 5 files\./, undefined, { timeout: 10_000 });
+    expect(controls()).toEqual({ masterAndEncode: true, addFiles: true, master: true });
+    await userEvent.click(screen.getByRole('button', { name: 'Master & encode' }));
+    await waitFor(() => expect(exportStart).toHaveBeenCalledTimes(2));
+  }, 15_000);
+});
+
+describe('MasterToSpecPanel: which controls each job phase draws (#2935)', () => {
+  const job = (phase: string, status: string) =>
+    ({ id: 'j', phase, message: `The job is ${phase}.`, percent: 50, files: [{ path: item.path, kind: 'chapter', title: 'Chapter 01', status }] }) as never;
+
+  it.each([
+    ['running', 'mastering', false],
+    ['success', 'done', true],
+    ['cancelled', 'cancelled', true],
+    ['error', 'failed', true],
+  ])('a %s job with files picked draws the controls: %s', (phase, status, shown) => {
+    render(<MasterToSpecPanel jobs={jobs({ items: [item], master: true, exportJob: job(phase, status), exportRunning: phase === 'running' } as never)} />);
+    expect(!!screen.queryByRole('button', { name: 'Master & encode' })).toBe(shown);
+    expect(!!screen.queryByRole('button', { name: 'Add files…' })).toBe(shown);
+    expect(!!screen.queryByRole('checkbox', { name: /^Master before encoding/ })).toBe(shown);
+    expect(!!screen.queryByRole('combobox', { name: 'Role for Chapter 01.wav' })).toBe(shown);
+  });
+
+  it('after a reload with a finished job and nothing picked: the last run read-only, and Add files… to start again', () => {
+    render(<MasterToSpecPanel jobs={jobs({ exportJob: job('success', 'done') })} />);
+    expect(screen.getByRole('cell', { name: 'Chapter 01.wav' })).toBeTruthy();
+    expect(screen.getByText('Ready')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Add files…' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Master & encode' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Remove' })).toBeNull();
+    expect(screen.queryByRole('combobox')).toBeNull();
   });
 });

@@ -988,6 +988,13 @@
   },
   {
     "page": "master",
+    "state": "to-spec-cancelled",
+    "viewport": "desktop",
+    "docName": "master-to-spec-cancelled",
+    "caption": "Master & QC - a cancelled export: each file Cancelled, and the files and Master & encode back to run it again"
+  },
+  {
+    "page": "master",
     "state": "chain-choice",
     "viewport": "desktop",
     "docName": "master-chain-choice",
