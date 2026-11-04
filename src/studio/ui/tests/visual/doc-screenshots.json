@@ -141,6 +141,13 @@
   },
   {
     "page": "production",
+    "state": "report-written",
+    "viewport": "desktop",
+    "docName": "production-report-written",
+    "caption": "Production - Export status report after Export: the written files, their folder and the open-folder button"
+  },
+  {
+    "page": "production",
     "state": "recording-check-rules",
     "viewport": "desktop",
     "docName": "production-recording-check-rules",
@@ -434,6 +441,13 @@
     "caption": "Settings - Recording & DAW: Chapter layout under Chapter sync, with Flat and Voice folders"
   },
   {
+    "page": "settings",
+    "state": "recording-chapter-voices",
+    "viewport": "desktop",
+    "docName": "settings-chapter-voices",
+    "caption": "Settings - Recording & DAW: Sync chapters to tracks and the Voices of a chapter folder"
+  },
+  {
     "page": "engine",
     "state": "rpp-picker",
     "viewport": "desktop",
@@ -502,6 +516,20 @@
     "viewport": "desktop",
     "docName": "engine-panel-chapter-links",
     "caption": "The audio engine panel - the chapter links list, one chapter confirmed to a track"
+  },
+  {
+    "page": "engine",
+    "state": "live-tracks-saved",
+    "viewport": "desktop",
+    "docName": "engine-panel-live-tracks-saved",
+    "caption": "The audio engine panel - Chapter links when REAPER is not answering: the header says the tracks are the saved project's, and when they were read"
+  },
+  {
+    "page": "engine",
+    "state": "live-tracks-stale",
+    "viewport": "desktop",
+    "docName": "engine-panel-live-tracks-stale",
+    "caption": "The audio engine panel - Chapter links after REAPER stopped answering: the header says when the tracks were last read, and a message offers Retry"
   },
   {
     "page": "proof-chapter",
@@ -943,6 +971,13 @@
     "viewport": "desktop",
     "docName": "master-measured",
     "caption": "Master & QC - three files checked against ACX: length, RMS, peak, noise floor and head / tail per file, a 48 kHz render selected with why it fails, and the same file against ACX rule by rule"
+  },
+  {
+    "page": "master",
+    "state": "text-column",
+    "viewport": "desktop",
+    "docName": "master-text-column",
+    "caption": "Master & QC - the Text column: 100% from a current recording check, a red cross on a share under the check's thresholds, and Not checked where the chapter has no current check"
   },
   {
     "page": "master",

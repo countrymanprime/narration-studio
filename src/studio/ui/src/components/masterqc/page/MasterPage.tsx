@@ -26,6 +26,7 @@ import type { FileActions } from '../files/FileActions';
 import { FileChecks } from '../files/FileChecks';
 import { FilesTable } from '../files/FilesTable';
 import { buildChapterRows } from '../files/rows';
+import { useTextMatches } from '../files/textMatch';
 import { Consistency, rangeOf } from './Consistency';
 import { hasMeasureProgress, MeasureControls, MeasureProgress, useMeasureErrors, useMeasureRun } from './MeasureRun';
 import { PackageChecks } from './PackageChecks';
@@ -172,7 +173,11 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
     for (const line of openLines) counts[line.chapterId] = (counts[line.chapterId] ?? 0) + 1;
     return counts;
   }, [openLines]);
-  const rows = useMemo(() => (profile ? buildChapterRows(run.files, profile, chapters, openPickups) : []), [run.files, profile, chapters, openPickups]);
+  const texts = useTextMatches(chapters, run.files);
+  const rows = useMemo(
+    () => (profile ? buildChapterRows(run.files, profile, chapters, openPickups, texts) : []),
+    [run.files, profile, chapters, openPickups, texts],
+  );
   // A link by chapter id lands on that chapter's file once the files are known.
   const selected = useMemo(() => {
     const chapter = chapters.find((candidate) => candidate.id === picked);
@@ -282,6 +287,7 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
                 profile={profile && chaptersRead ? profile : undefined}
                 slots={chapters}
                 openPickups={openPickups}
+                texts={texts}
                 heading={heading}
                 controls={controls}
                 notices={notices}

@@ -6,6 +6,7 @@ import { CapabilityGate } from '../primitives/CapabilityGate';
 import { Toolbar, ToolbarButton } from '../primitives/Toolbar';
 import { DAW_TOOLS, DAW_TOOL_GROUP_LABELS, dawToolGate, type DawTool, type DawToolFacts, type DawToolGroup, type DawToolId } from './dawTools';
 import type { ChapterLinks } from './useChapterLinks';
+import type { LiveTracks } from './useLiveTracks';
 
 /**
  * The DAW tools of the `groups` it is given, and the dialog of whichever was pressed. Every place that offers these tools renders this
@@ -19,11 +20,13 @@ import type { ChapterLinks } from './useChapterLinks';
  * gate says `unsupported` (an Audacity project; Link chapters with no chapters): `show` draws it off with the reason, `hide` leaves it out.
  * A tool that is only not yet available (no tracks, the DAW not answering) is always drawn, off, with its reason. `dawOff`, `wrongProject` and
  * `linkedChapterCount` are the facts a page reads for itself (see `DawToolFacts`); the Engine panel, which has both beside it, leaves them out.
+ * `live` is a REAPER project's live track list (#2840), handed to the dialogs that show which tracks they list.
  */
 export function DawToolsMenu({
   label,
   groups,
   links,
+  live,
   forAudacity,
   layout = 'grid',
   whenUnsupported = 'show',
@@ -35,6 +38,7 @@ export function DawToolsMenu({
   label: string;
   groups: readonly DawToolGroup[];
   links: ChapterLinks;
+  live?: LiveTracks;
   forAudacity: boolean;
   layout?: 'grid' | 'menu';
   whenUnsupported?: 'show' | 'hide';
@@ -104,7 +108,7 @@ export function DawToolsMenu({
           </Menu>
         </div>
       )}
-      {dialog && <dialog.dialog links={links} onClose={close} onOpenTool={setOpen} />}
+      {dialog && <dialog.dialog links={links} live={live} onClose={close} onOpenTool={setOpen} />}
     </>
   );
 }

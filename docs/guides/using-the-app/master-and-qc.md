@@ -48,10 +48,13 @@ before any check, then lines such as **12 rows marked Waiting: no file measured 
 after a check that stopped, **2 rows marked Not measured: the check stopped before these files**. A row
 whose reason is its own (its pickups, a file that could not be read) keeps it in the row.
 A row with a file shows its **Length**, **RMS**, **Peak**, **Noise floor** and the room
-tone at its **Head / tail** in seconds, then its **Result**: **Pass**, **Fail**, **Not judged** (a value the
-profile needs could not be measured), or **Waiting** / **Not measured**. The table has no
-Clicks or Text column: the measurement reports clipping, not clicks, and does not compare the audio with the text, so
-nothing is drawn for them. A value that misses the
+tone at its **Head / tail** in seconds, then its **Text** and its **Result**: **Pass**, **Fail**, **Not judged** (a value the
+profile needs could not be measured), or **Waiting** / **Not measured**. **Text** is the share
+of the chapter's words the [recording check](production.md) found in its recording ("Text present"), judged by that
+check's own thresholds; a figure under them is red with a cross. The measurement itself does not compare the audio with
+the text: the figure is the chapter's current check, read back, and Master & QC never runs one. A file is paired with a chapter by its name, a chapter's title as whole words or its number, the longest title
+winning ("Chapter 10.wav" is Chapter 10, not Chapter 1). A file that fits no chapter, or two equally well, or whose chapter has no current check (never run, or out of date since the recording changed), says **Not checked**,
+never a guess. A red Text figure does not change **Pass** or **Fail**, which come from the profile's rules alone. The table has no Clicks column. A value that misses the
 profile's rule is red with a cross; a value the app could not measure (a silent render, or a file too
 short) is a dash, never a number, and never counted as met. A file not measured yet, or one that could not
 be read, says so in place of its values. If the measurement itself breaks on a file, its row says the
@@ -61,6 +64,8 @@ If the chapters or the delivery profile cannot be read, an error message at the 
 selects one. Right-click a row for the same actions as the buttons below it.
 
 ![Three files checked against ACX: a 48 kHz render selected with why it fails](../../images/ui/master-measured.webp)
+
+![The Text column: 100%, a red 65% under the recording check's thresholds, and Not checked](../../images/ui/master-text-column.webp)
 
 ### Why it fails
 

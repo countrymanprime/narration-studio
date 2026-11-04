@@ -164,6 +164,33 @@ export const ROWS: readonly SettingMeta[] = [
     needs: 'reaper',
     syn: 'flat voice folders tracks per voice folder layout chapter sync',
   },
+  {
+    id: 'daw.sync',
+    cat: 'recording',
+    section: 'Chapter sync',
+    label: 'Sync chapters to tracks',
+    scope: 'project',
+    def: 'on',
+    desc: 'Links each chapter to its track on its own.',
+    more: 'On: when the project is saved in the recording tool, each chapter is linked to the track named for it, and a track that matches no chapter is listed, not linked. Off: nothing is linked on its own; link each chapter yourself. Until you choose, the app asks the first time it could sync. The Engine panel’s Chapter sync card and the question the app asks set the same choice.',
+    used: ['production', 'booth', 'editing'],
+    also: 'Engine panel › Chapter sync',
+    syn: 'chapter sync link chapters automatically consent turn on off track names',
+  },
+  {
+    id: 'daw.voices',
+    cat: 'recording',
+    section: 'Chapter sync',
+    label: 'Voices',
+    scope: 'project',
+    def: '',
+    desc: 'Who each voice track records.',
+    more: 'With the Voice folders layout, each chapter folder holds one track per voice; with Flat, a chapter is one track and there is nothing to choose here. With Voice folders, you choose the one character the Narrator track also voices and the characters each other track records, from the Story Bible’s characters. The Engine panel’s Voices card changes the same choices.',
+    used: ['booth', 'editing'],
+    also: 'Engine panel › Voices',
+    needs: 'reaper',
+    syn: 'narrator character voice tracks characters per track who records voice folders cast',
+  },
 
   // ---- Speech to text
   {
