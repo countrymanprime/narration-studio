@@ -10,4 +10,4 @@ import { RECORDING_CONTROLS } from './recordingControls';
 export const CUSTOM: Record<string, ComponentType> = { ...RECORDING_CONTROLS, ...PROJECT_CONTROLS };
 
 /** The bodies drawn under their label across the whole row: a table or a form that needs the width (alignment audit XSE2-4, XSE2-11). */
-export const WIDE_BODIES: ReadonlySet<string> = new Set(['daw.capabilities', 'daw.voices', 'project.credits']);
+export const WIDE_BODIES: ReadonlySet<string> = new Set(['daw.capabilities', 'project.credits']);

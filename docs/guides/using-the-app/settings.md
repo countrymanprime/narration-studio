@@ -89,17 +89,6 @@ track; Voice folders makes a chapter a folder with one child track per voice. It
 
 ![Settings - Recording & DAW: Chapter layout under Chapter sync, with Flat and Voice folders](../../images/ui/settings-chapter-layout.webp)
 
-**Sync chapters to tracks** (also under **Chapter sync**) is **On** or **Off**, saved with the project. On, the app links each chapter to
-the track named for it when the project is saved in the recording tool; off, nothing is linked on its own. Until you choose, neither is
-picked and the app asks the first time it could sync. It is the same choice as **Turn on** and **Turn off** on the Chapter sync card of the
-[audio engine panel](navigation.md#the-audio-engine-panel) and the question the app asks, and each shows the others' change at once.
-
-**Voices** (REAPER only, under **Chapter sync**) is the Voices card of the engine panel on the page: with the **Voice folders** layout it
-lists the voices of one chapter's folder with their keys, and the pencil beside a voice chooses the characters that track records, or, for
-the Narrator, the one character it also voices. With the **Flat** layout the row says each chapter records on one track.
-
-![Settings - Recording & DAW: Sync chapters to tracks and the Voices of a chapter folder](../../images/ui/settings-chapter-voices.webp)
-
 **Start tone** (under **Take cues**) is **Off** or **On**. On, the Booth plays a short beep when you press Record, for recording by foot pedal without looking at the screen, and the take starts when the beep ends, a fraction of a second later, so the beep is not on the recording. Turning it on plays it once. It is kept in this window, as Theme and Motion are, and there is no tone to stop a take.
 
 **Voice sample output** chooses where this project's [voice samples](editing.md#marking-a-voice-sample) play, and is saved with the

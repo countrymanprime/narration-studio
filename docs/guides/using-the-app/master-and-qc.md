@@ -111,8 +111,17 @@ moves the selection to the file it names.
 **Mastering chain** shows the chain the book masters with, as its steps in order: the built-in chain's
 **EQ** (a high-pass at 80 Hz), **Limiter** (peaks held 0.5 dB under the platform's peak limit) and **Gain**
 (toward the platform's RMS target). It is one chain for the book, the same for every platform, with each
-platform's own numbers; a **?** in the panel's header says so. It is fixed and cannot be edited. The app does not yet play a file raw and mastered
+platform's own numbers; a **?** in the panel's header says so. The built-in chain's steps are fixed and cannot be edited. The app does not yet play a file raw and mastered
 side by side.
+
+**Master with** chooses the project's chain: **Built-in chain (EQ, limiter, gain)**, **Your DAW's FX chain** (your DAW renders
+each chapter's region through the project's own track and master FX) or **Audacity's effect macro** (Audacity applies a macro of
+yours). Each export through the last two asks your approval first ([Mastering to spec](#mastering-to-spec)).
+The choice moves once the project has saved it. A chain this computer cannot use is off; rest the pointer on it, or move to it with
+the keyboard, to read why. While an export starts or runs, the choice is held, and while a choice is being saved, **Master & encode** waits. If the project's saved chain cannot be used, the card says so
+and the built-in chain is used until it can.
+
+![The Mastering chain card with Master with: the built-in chain chosen, the DAW's FX chain and Audacity's effect macro beside it](../../images/ui/master-chain-choice.webp)
 
 ## Mastering to spec
 

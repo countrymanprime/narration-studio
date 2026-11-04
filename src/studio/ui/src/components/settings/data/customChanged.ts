@@ -5,9 +5,7 @@ import type { PortOf } from '../../../ports';
 import type { DeliveryProfilesState } from '../../../types';
 import { DELIVERY_PROFILES_CHANGED } from '../DeliveryProfilesPanel';
 import { MW_KEY_CHANGED } from '../controls/mwKeyStatus';
-import { useChapterSync } from '../../../hooks/useChapterSync';
-import type { VoiceTracksState } from '../../../api/contracts/voiceTracks';
-import { useVoiceSetup } from '../../engine/voiceLayout';
+import { useVoiceLayout } from '../../engine/voiceLayout';
 import { onEngineChanged } from './engineSignal';
 import { BROWSER_CHANGED } from './browserValues';
 import type { ReadSettings } from './values';
@@ -17,6 +15,8 @@ export type ProbeContext = {
   api: PortOf<'system'> & PortOf<'dawChoice'> & PortOf<'deliveryProfiles'> & PortOf<'pronunciationOnline'>;
   settings: ReadSettings;
   delivery: () => Promise<DeliveryProfilesState>;
+  /** The project's chapter layout as the app shares it, the same value the Engine panel shows. */
+  voiceLayout: string;
 };
 
 /**
@@ -34,6 +34,8 @@ export const CUSTOM_CHANGED: Readonly<Record<string, (context: ProbeContext) => 
   'voice.mwKey': async ({ api }) => (await api.pronunciationOnlineKeyStatus()).present,
   // This computer: the narrator added a profile of their own.
   'delivery.custom': async ({ delivery }) => (await delivery()).profiles.some((profile) => !profile.builtIn),
+  // This project: chapters are voice folders instead of one flat track each.
+  'daw.layout': ({ voiceLayout }) => voiceLayout !== 'flat',
   // This project: it records with something other than REAPER, or has its own delivery profile.
   'daw.engine': async ({ api }) => {
     const { chosen } = await api.dawChoice();
@@ -43,24 +45,6 @@ export const CUSTOM_CHANGED: Readonly<Record<string, (context: ProbeContext) => 
     const state = await delivery();
     return state.hasProject && state.projectChoice !== null;
   },
-};
-
-/** What the app already holds live, shared with the pages: read without a call, so a change shows at once and never re-runs the probes. */
-export type LiveContext = {
-  /** The project's voice setup, the same value the Engine panel shows. */
-  voiceSetup: VoiceTracksState;
-  /** Chapter sync's consent as the host last said it, or undefined before the first answer. */
-  syncConsent: string | undefined;
-};
-
-/** Rows whose value the app holds live (`LiveContext`): whether each differs from its default. */
-export const LIVE_CHANGED: Readonly<Record<string, (context: LiveContext) => boolean>> = {
-  // This project: chapters are voice folders instead of one flat track each.
-  'daw.layout': ({ voiceSetup }) => voiceSetup.layout !== 'flat',
-  // This project: the narrator turned Chapter sync off (on is what the app recommends, and what the first question offers).
-  'daw.sync': ({ syncConsent }) => syncConsent === 'off',
-  // This project: a character is chosen for the Narrator or assigned to a voice track.
-  'daw.voices': ({ voiceSetup }) => voiceSetup.narratorCharacter !== '' || voiceSetup.tracks.length > 0,
 };
 
 /** Why a row is not read: `report` shows what the tool says, `action` does something to project data, `unmarked-default` is a setting whose default the host does not mark. */
@@ -99,7 +83,7 @@ export const CHANGED_EXEMPT: Readonly<Record<string, { kind: ExemptKind; reason:
 
 /** Whether Changed can tell if this row differs from its default: a host field, a browser reader, a probe, or a stated exemption. */
 export const changedIsCovered = (row: { id: string; field?: unknown }): boolean =>
-  Boolean(row.field) || row.id in BROWSER_CHANGED || row.id in CUSTOM_CHANGED || row.id in LIVE_CHANGED || row.id in CHANGED_EXEMPT;
+  Boolean(row.field) || row.id in BROWSER_CHANGED || row.id in CUSTOM_CHANGED || row.id in CHANGED_EXEMPT;
 
 const sameSet = (a: ReadonlySet<string>, b: ReadonlySet<string>): boolean => a.size === b.size && [...a].every((id) => b.has(id));
 
@@ -115,9 +99,7 @@ export function useCustomChanged(settings: ReadSettings): ReadonlySet<string> {
   const delivery = usePort('deliveryProfiles');
   const pronunciation = usePort('pronunciationOnline');
   const api = useMemo(() => ({ ...system, ...dawChoice, ...delivery, ...pronunciation }), [system, dawChoice, delivery, pronunciation]);
-  const { setup: voiceSetup } = useVoiceSetup();
-  const chapterSync = usePort('chapterSync');
-  const syncConsent = useChapterSync(chapterSync)?.consent;
+  const voiceLayout = useVoiceLayout();
   const version = useBrowserSettingsVersion();
   const [again, setAgain] = useState(0);
   const [changed, setChanged] = useState<ReadonlySet<string>>(new Set());
@@ -140,7 +122,7 @@ export function useCustomChanged(settings: ReadSettings): ReadonlySet<string> {
     void Promise.all(
       Object.entries(CUSTOM_CHANGED).map(async ([id, probe]) => {
         try {
-          return (await probe({ api, settings, delivery: readDelivery })) ? id : undefined;
+          return (await probe({ api, settings, delivery: readDelivery, voiceLayout })) ? id : undefined;
         } catch {
           return undefined;
         }
@@ -153,11 +135,7 @@ export function useCustomChanged(settings: ReadSettings): ReadonlySet<string> {
     return () => {
       current = false;
     };
-  }, [api, settings, version, again]);
+  }, [api, settings, version, again, voiceLayout]);
 
-  const live = useMemo(
-    () => new Set(Object.entries(LIVE_CHANGED).flatMap(([id, differs]) => (differs({ voiceSetup, syncConsent }) ? [id] : []))),
-    [voiceSetup, syncConsent],
-  );
-  return useMemo(() => (live.size === 0 ? changed : new Set([...changed, ...live])), [changed, live]);
+  return changed;
 }

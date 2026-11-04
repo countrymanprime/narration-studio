@@ -290,6 +290,7 @@
         "src/components/booth/record/RecordSetup.tsx",
         "src/components/booth/side/VoicesInChapter.tsx",
         "src/components/booth/voices/VoiceControl.tsx",
+        "src/components/booth/voices/WhoIsInDialog.tsx",
         "src/components/connection/ChapterLinkDialog.tsx",
         "src/components/connection/ReaperOffDialog.tsx",
         "src/components/connection/ResolveShell.tsx",
@@ -576,6 +577,7 @@
         "Label Less Indeterminate"
       ],
       "consumers": [
+        "src/components/booth/voices/WhoIsInDialog.tsx",
         "src/components/credits/CreditsSetupDialog.tsx",
         "src/components/devtools/MockStatesPanel.tsx",
         "src/components/editing/cleanup/CleanupList.tsx",
@@ -978,6 +980,7 @@
         "Headerless"
       ],
       "consumers": [
+        "src/components/booth/voices/WhoIsInDialog.tsx",
         "src/components/connection/ResolveShell.tsx",
         "src/components/credits/CreditsSetupDialog.tsx",
         "src/components/engine/ChapterSyncConsentDialog.tsx",
@@ -1184,6 +1187,7 @@
         "Textarea Compact Hidden Label"
       ],
       "consumers": [
+        "src/components/booth/voices/WhoIsInDialog.tsx",
         "src/components/credits/CreditsSetupDialog.tsx",
         "src/components/delivery/ImportProfileField.tsx",
         "src/components/editing/menu/marks/NoteDialog.tsx",
@@ -1569,6 +1573,7 @@
         "src/components/booth/side/Reference.tsx",
         "src/components/booth/side/VoicesInChapter.tsx",
         "src/components/booth/suspected/SuspectedLines.tsx",
+        "src/components/booth/voices/VoiceControl.tsx",
         "src/components/delivery/page/OutputPanel.tsx",
         "src/components/delivery/page/Preflight.tsx",
         "src/components/editing/backups/BackupsInspector.tsx",
@@ -1655,7 +1660,6 @@
         "src/components/settings/controls/ChapterLayoutBody.tsx",
         "src/components/settings/controls/DefinitionsBody.tsx",
         "src/components/settings/controls/ProjectBodies.tsx",
-        "src/components/settings/controls/SyncEnabledBody.tsx",
         "src/components/settings/models/AssetRow.tsx",
         "src/components/settings/page/MarksPanel.tsx",
         "src/components/settings/page/StoryBibleTypesPanel.tsx",
@@ -1825,6 +1829,8 @@
       ],
       "consumers": [
         "src/components/booth/CompanionShell.tsx",
+        "src/components/booth/side/VoicesInChapter.tsx",
+        "src/components/booth/voices/WhoIsInDialog.tsx",
         "src/components/engine/RenderConfigDialog.tsx",
         "src/components/primitives/KeyCap.tsx",
         "src/components/primitives/KeyHint.tsx",
@@ -2704,12 +2710,13 @@
         "Standalone"
       ],
       "consumers": [
+        "src/components/booth/voices/WhoIsInDialog.tsx",
         "src/components/devtools/MockStatesPanel.tsx",
         "src/components/editing/range/cut/CutDialog.tsx",
+        "src/components/master/MasteringChain.tsx",
         "src/components/settings/controls/AppearanceBodies.tsx",
         "src/components/settings/controls/DefinitionsBody.tsx",
         "src/components/settings/controls/EngineBody.tsx",
-        "src/components/settings/controls/SyncEnabledBody.tsx",
         "src/components/settings/controls/TakeToneBody.tsx"
       ],
       "a11yDebt": false
@@ -3091,6 +3098,7 @@
         "Long Label Wraps"
       ],
       "consumers": [
+        "src/components/booth/voices/WhoIsInDialog.tsx",
         "src/components/delivery/page/OutputPanel.tsx",
         "src/components/delivery/profile/FormatRows.tsx",
         "src/components/delivery/profile/ProfileCard.tsx",
@@ -3175,6 +3183,7 @@
       "consumers": [
         "src/components/booth/frame/BoothTop.tsx",
         "src/components/booth/frame/LevelsMenu.tsx",
+        "src/components/booth/voices/WhoIsInDialog.tsx",
         "src/components/delivery/ImportProfileField.tsx",
         "src/components/delivery/profile/ProfileMenu.tsx",
         "src/components/editing/menu/marks/NoteDialog.tsx",
@@ -3411,6 +3420,7 @@
       "consumers": [
         "src/components/booth/ReaderText.tsx",
         "src/components/booth/voices/VoiceControl.tsx",
+        "src/components/booth/voices/WhoIsInDialog.tsx",
         "src/components/engine/VoicesCard.tsx"
       ],
       "a11yDebt": false
@@ -3582,6 +3592,8 @@
         "src/components/booth/reading/SpeakerChip.tsx",
         "src/components/booth/side/VoicesInChapter.tsx",
         "src/components/booth/suspected/SuspectedLines.tsx",
+        "src/components/booth/voices/VoiceControl.tsx",
+        "src/components/booth/voices/WhoIsInDialog.tsx",
         "src/components/credits/CreditsSetupBanner.tsx",
         "src/components/delivery/page/OutputPanel.tsx",
         "src/components/delivery/page/Preflight.tsx",
@@ -4202,6 +4214,7 @@
         "src/components/booth/record/SetupChip.tsx",
         "src/components/booth/resume/RecordedThroughChip.tsx",
         "src/components/booth/resume/ResumeOffer.tsx",
+        "src/components/booth/voices/VoiceControl.tsx",
         "src/components/editing/bar/SelectionActionButton.tsx",
         "src/components/editing/page/EditingHeader.tsx",
         "src/components/editing/ribbon/RibbonControls.tsx",
@@ -4215,6 +4228,7 @@
         "src/components/layout/AppShell.tsx",
         "src/components/layout/EngineChip.tsx",
         "src/components/master/DiagnosticsSection.tsx",
+        "src/components/master/MasteringChain.tsx",
         "src/components/primitives/ActivityPanel.tsx",
         "src/components/primitives/CapabilityGate.tsx",
         "src/components/primitives/ChapterStepper.tsx",

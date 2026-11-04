@@ -180,11 +180,6 @@ export const settingsDrivers: Record<string, Driver> = {
     const row = await showSettingsRow(page, 'daw.layout');
     await row.getByRole('group', { name: 'Chapter layout' }).waitFor();
   },
-  'recording-chapter-voices': async (page) => {
-    await openSettings(page, 'Recording & DAW', '?mockVoiceFolders=1');
-    const row = await showSettingsRow(page, 'daw.voices');
-    await row.getByRole('table', { name: /^Voices of / }).waitFor();
-  },
   'recording-reaper-path-invalid': async (page) => {
     await openSettings(page, 'Recording & DAW');
     await openAdvanced(page);

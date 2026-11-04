@@ -54,9 +54,6 @@ const DATA = 'Edits project content (a record, a link, a status), not a preferen
 const BINDINGS: Parity = {
   covered: {
     voiceTracksSetLayout: 'daw.layout',
-    chapterSyncSetEnabled: 'daw.sync',
-    voiceTracksSetNarrator: 'daw.voices',
-    voiceTracksSetCharacters: 'daw.voices',
     windowSetZoom: 'look.zoom',
     dawChoose: 'daw.engine',
     pronunciationOnlineKeySet: 'voice.mwKey',
@@ -87,10 +84,13 @@ const BINDINGS: Parity = {
     guideTypeSetSpeaks: 'The Story Bible type’s Can speak is edited in Settings’ Entry types row (project.types); this is that row’s own write.',
     voiceSampleSetPrimary: DATA,
     // Preferences with no Settings row yet. Each leaves this list in the pull request that adds its row (issue 2815).
+    chapterSyncSetEnabled: 'GAP, Engine panel: whether sync links chapters to tracks. Row comes in the Engine-panel pull request.',
     masteringChooseProvider: 'No control calls it (it is on the unwired-bindings list); a row comes with the control, if one is ever drawn.',
+    voiceTracksSetNarrator: 'GAP, Engine panel: the narrator’s character for voice tracks. Row comes in the Engine-panel pull request.',
+    voiceTracksSetCharacters: 'GAP, Engine panel: which characters a voice track records. Row comes in the Engine-panel pull request.',
     editingSetSourceChoice: 'A per-chapter choice recorded with that chapter’s analysis (source-choice.json), not a preference for the project.',
   },
-  cap: 26,
+  cap: 29,
 };
 
 // ---- Keys the window keeps in localStorage.
