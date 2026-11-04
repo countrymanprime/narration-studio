@@ -8,6 +8,8 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"golang.org/x/text/unicode/norm"
+
 	"desktop/internal/dawport"
 )
 
@@ -36,23 +38,27 @@ const maxChainName = 120
 // a zero-width space or joiner, a byte-order mark) is dropped, so a name can neither reverse what it says nor look like another,
 // and the length is bounded with an ellipsis (qa on #2932, B2). The digest is taken over the cleaned names.
 //
-// Default-ignorable characters (ignorable) are dropped anywhere, so two names that draw alike digest alike (round 5, B1).
-// Blank-looking symbols, which draw a gap inside a name, private-use characters and spaces are trimmed at either end (edgeBlank),
-// so a name cannot differ from another only by them (round 3, M3; round 4, N7), also where the cut lands before its "…" (round 4,
-// N6). A name with nothing readable is "" before any cut, so a long blank name is not saved by the cut's "…" (round 3). Callers
-// name "" ("Track", "(unnamed)").
+// Default-ignorable characters (ignorable) are dropped anywhere, except the Hangul fillers (hangulFiller), so two names of the same
+// characters digest alike (round 5, B1): most draw nothing, and a variation selector only picks another glyph for the same
+// character ("❤︎" and "❤️" are one name). The name is then NFC, so a precomposed and a decomposed accent are one name too (round 6,
+// qa B3); it runs after the drop, since a dropped grapheme joiner would otherwise have blocked the composition. Blank-looking
+// symbols (the Hangul fillers among them), which draw a gap inside a name, private-use characters and spaces are trimmed at
+// either end (edgeBlank), so a name cannot differ from another only by them (round 3, M3; round 4, N7), also where the cut lands
+// before its "…" (round 4, N6). A name with nothing readable is "" before any cut, so a long blank name is not saved by the cut's
+// "…" (round 3). Callers name "" ("Track", "(unnamed)"). Letters that look alike from different scripts (Latin A, Greek Alpha)
+// stay different names: no cleaning can tell them apart from what the narrator meant.
 func chainName(raw string) string {
 	clean := strings.Join(strings.Fields(strings.Map(func(r rune) rune {
 		switch {
-		// A default-ignorable character draws nothing wherever it is, so it goes from inside a name too (round 5, B1).
-		case unicode.Is(unicode.Cf, r) || ignorable(r):
+		// A default-ignorable character goes from inside a name too (round 5, B1); a Hangul filler draws a blank there and stays.
+		case unicode.Is(unicode.Cf, r) || (ignorable(r) && !hangulFiller[r]):
 			return -1
 		case unicode.IsControl(r) || r == utf8.RuneError:
 			return ' '
 		}
 		return r
 	}, raw)), " ")
-	clean = strings.TrimFunc(clean, edgeBlank)
+	clean = strings.TrimFunc(norm.NFC.String(clean), edgeBlank)
 	if !readable(clean) {
 		return ""
 	}
@@ -75,10 +81,15 @@ func listedChain(chain dawport.MasterChain) []ChainTrack {
 	return out
 }
 
-// blankLooking are the characters that draw nothing, or only a placeholder box, that Unicode does not call default-ignorable: the
-// braille blank, the object replacement character, the musical null notehead (round 3, M2), the Tifinagh consonant joiner and the
-// Khitan small script filler (round 4, N7). The Hangul fillers are default-ignorable (ignorable).
-var blankLooking = map[rune]bool{0x2800: true, 0xFFFC: true, 0x1D159: true, 0x2D7F: true, 0x16FE4: true}
+// hangulFiller are the Hangul fillers. Unicode calls them default-ignorable, but real fonts draw them as a blank: "E"+U+3164+"Q"
+// shows as "E Q" in REAPER, so inside a name it is kept and does not digest like "EQ" (round 6 Go review).
+var hangulFiller = map[rune]bool{0x115F: true, 0x1160: true, 0x3164: true, 0xFFA0: true}
+
+// blankLooking are the characters that draw a blank, or only a placeholder box, trimmed at a name's ends but kept inside it: the
+// Hangul fillers, the braille blank, the object replacement character, the musical null notehead (round 3, M2), the Tifinagh
+// consonant joiner and the Khitan small script filler (round 4, N7).
+var blankLooking = map[rune]bool{0x115F: true, 0x1160: true, 0x3164: true, 0xFFA0: true, 0x2800: true, 0xFFFC: true, 0x1D159: true,
+	0x2D7F: true, 0x16FE4: true}
 
 // ignorable reports Unicode's Default_Ignorable_Code_Point, which the unicode package has the parts of but not the property itself,
 // derived as DerivedCoreProperties.txt derives it: Other_Default_Ignorable_Code_Point + Cf + Variation_Selector - White_Space -

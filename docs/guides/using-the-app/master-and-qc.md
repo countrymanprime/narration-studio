@@ -144,8 +144,8 @@ a line says how many effects on how many tracks and how many are switched off, t
 each track's top to bottom and then the master's (marked **Master**). A switched-off effect is dimmed and has an **Off** badge.
 The **i** beside the count says what your approval covers: each effect's name, whether it is on, and the order, not its
 settings, routing or mute. In a small window the effects can be below what the dialog shows; a button beside **Approve and
-master** then says how many are above and brings the first one into view (at the smallest window sizes only a strip of it
-shows, #2998); it comes and goes as you resize the window. Under the effects, each file is listed with the region it renders
+master** then says how many are above and brings the first one into view (at the smallest window sizes, about 320x300,
+only a strip of it shows, #2998); it comes and goes as you resize the window. Under the effects, each file is listed with the region it renders
 from (a chapter's title, **Opening credits** or **Closing credits**).
 
 If the app cannot read the chain from your DAW, or your DAW is not connected, the export is refused before the dialog opens,

@@ -2390,13 +2390,18 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       else mockIgnorable.push([point, point]);
     }
     expect(mockIgnorable).toEqual(names.ignorable);
-    // No default-ignorable character survives inside a name, as none survives in the host's (round 5, B1).
+    // No default-ignorable character survives inside a name, as none survives in the host's (round 5, B1), except the Hangul
+    // fillers, which a font draws as a blank and are kept inside a name (round 6).
+    const fillers = new Set([0x115f, 0x1160, 0x3164, 0xffa0]);
     for (const [first, last] of names.ignorable) {
       for (let point = first; point <= last; point++) {
         const char = String.fromCodePoint(point);
-        expect([mockChainName(`E${char}Q`, 'fx'), mockChainName(`EQ${char}\u0301`, 'fx')], point.toString(16)).toEqual(['EQ', 'EQ\u0301']);
+        const inside = fillers.has(point) ? `E${char}Q` : 'EQ';
+        expect([mockChainName(`E${char}Q`, 'fx'), mockChainName(`${char}EQ${char}`, 'fx')], point.toString(16)).toEqual([inside, 'EQ']);
       }
     }
+    // Every cleaned name is NFC, as the host's are (round 6, qa B3).
+    for (const { raw } of names.cases) expect(mockChainName(raw, 'fx'), JSON.stringify(raw)).toBe(mockChainName(raw, 'fx').normalize('NFC'));
     expect(await mockChainDigest([{ name: 'Voice', master: false, fx: null as never }])).toBe(
       await mockChainDigest([{ name: 'Voice', master: false, fx: [] }]),
     );

@@ -77,8 +77,8 @@
     },
     {
       "raw": "été",
-      "track": "été",
-      "fx": "été"
+      "track": "été",
+      "fx": "été"
     },
     {
       "raw": "🔊 Loud",
@@ -147,8 +147,8 @@
     },
     {
       "raw": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaㅤXYZ",
-      "track": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaX…",
-      "fx": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaX…"
+      "track": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa…",
+      "fx": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa…"
     },
     {
       "raw": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa⠀XYZ",
@@ -257,13 +257,63 @@
     },
     {
       "raw": "EㅤQ",
-      "track": "EQ",
-      "fx": "EQ"
+      "track": "EㅤQ",
+      "fx": "EㅤQ"
     },
     {
       "raw": "E⠀Q",
       "track": "E⠀Q",
       "fx": "E⠀Q"
+    },
+    {
+      "raw": "EᅟQ",
+      "track": "EᅟQ",
+      "fx": "EᅟQ"
+    },
+    {
+      "raw": "EᅠQ",
+      "track": "EᅠQ",
+      "fx": "EᅠQ"
+    },
+    {
+      "raw": "EﾠQ",
+      "track": "EﾠQ",
+      "fx": "EﾠQ"
+    },
+    {
+      "raw": "ㅤᅟᅠﾠ",
+      "track": "Track",
+      "fx": "(unnamed)"
+    },
+    {
+      "raw": "café",
+      "track": "café",
+      "fx": "café"
+    },
+    {
+      "raw": "café",
+      "track": "café",
+      "fx": "café"
+    },
+    {
+      "raw": "cafe͏́",
+      "track": "café",
+      "fx": "café"
+    },
+    {
+      "raw": "가",
+      "track": "가",
+      "fx": "가"
+    },
+    {
+      "raw": "Å",
+      "track": "Å",
+      "fx": "Å"
+    },
+    {
+      "raw": "Å",
+      "track": "Å",
+      "fx": "Å"
     }
   ],
   "ignorable": [

@@ -1,9 +1,12 @@
 package masteringport
 
 import (
+	"slices"
 	"strings"
 	"testing"
 	"unicode"
+
+	"golang.org/x/text/unicode/norm"
 
 	"desktop/internal/contractfile"
 	"desktop/internal/dawport"
@@ -51,6 +54,9 @@ var chainNameCases = []string{
 	// Round 5, B1: a default-ignorable character inside a name draws nothing either, so it goes there too; a blank-looking symbol
 	// inside one draws a gap and stays.
 	"E\u034fQ", "EQ\u034f\u0301", "E\ufe0fQ", "E\u17b4Q", "E\u180bQ", "E\u3164Q", "E\u2800Q",
+	// Round 6: the Hangul fillers inside a name are kept, as a font draws them as a blank; a name is NFC, after the drops.
+	"E\u115fQ", "E\u1160Q", "E\uffa0Q", "\u3164\u115f\u1160\uffa0", "cafe\u0301", "caf\u00e9", "cafe\u034f\u0301", "\u1100\u1161",
+	"\u212b", "A\u030a",
 }
 
 // TestChainNameGoldenIsCurrent pins how a track's and a plug-in's name are cleaned, for the mock to match. UPDATE_CONTRACTS=1 rewrites
@@ -116,23 +122,53 @@ func TestEveryDefaultIgnorableIsTrimmedAtEitherEnd(t *testing.T) {
 	}
 }
 
-// A default-ignorable character draws nothing wherever it is, so no cleaned name keeps one: "E"+U+034F+"Q" is "EQ", and one
-// between a name and its combining mark goes too, so the two names that draw alike digest alike (round 5, B1). The Hangul filler
-// U+3164 is default-ignorable and goes with them (behaviour change from round 3, which kept an interior one).
+// testHangulFillers are the default-ignorable Hangul fillers that real fonts draw as a blank: "E"+U+3164+"Q" shows as "E Q" in
+// REAPER, so it must not digest like "EQ" (round 6 Go review). They are kept inside a name and trimmed at its ends, like U+2800.
+var testHangulFillers = map[rune]bool{0x115F: true, 0x1160: true, 0x3164: true, 0xFFA0: true}
+
+// A default-ignorable character draws nothing, or is the same character in another presentation (a variation selector), wherever
+// it is, so no cleaned name keeps one: "E"+U+034F+"Q" is "EQ", and one between a name and its combining mark goes too (round 5,
+// B1). The Hangul fillers are the exception, kept inside a name (round 6; testHangulFillers).
 func TestNoDefaultIgnorableSurvivesInsideAName(t *testing.T) {
 	for _, span := range ignorableRanges() {
 		for r := span[0]; r <= span[1]; r++ {
+			if testHangulFillers[r] {
+				if got, want := chainName("E"+string(r)+"Q"), "E"+string(r)+"Q"; got != want {
+					t.Errorf("filler U+%04X inside a name: %q, want it kept", r, got)
+				}
+				if got := chainName(string(r) + "EQ" + string(r)); got != "EQ" {
+					t.Errorf("filler U+%04X at the ends: %q, want EQ", r, got)
+				}
+				continue
+			}
 			for raw, want := range map[string]string{"E" + string(r) + "Q": "EQ", "EQ" + string(r) + "\u0301": "EQ\u0301"} {
 				got := chainName(raw)
 				if got != want {
 					t.Errorf("U+%04X: %q = %q, want %q", r, raw, got, want)
 				}
 				for _, c := range got {
-					if ignorable(c) {
+					if ignorable(c) && !testHangulFillers[c] {
 						t.Errorf("U+%04X: %q kept U+%04X", r, raw, c)
 					}
 				}
 			}
+		}
+	}
+}
+
+// A cleaned name is NFC, so a DAW that reports "cafe"+U+0301 one time and "caf"+U+00E9 the next shows and digests one name (round
+// 6, qa B3). NFC runs after the default-ignorable drop: a grapheme joiner between "e" and its accent would otherwise block the
+// composition and leave the decomposed form once it is dropped.
+func TestCleanedNamesAreNFC(t *testing.T) {
+	for raw, want := range map[string]string{"cafe\u0301": "caf\u00e9", "caf\u00e9": "caf\u00e9", "cafe\u034f\u0301": "caf\u00e9",
+		"\u1100\u1161": "\uac00", "\u212b": "\u00c5", "A\u030a": "\u00c5"} {
+		if got := chainName(raw); got != want {
+			t.Errorf("%q = %q, want %q", raw, got, want)
+		}
+	}
+	for _, raw := range append(slices.Clone(chainNameCases), "e\u0301\u0323", "\u1e0b\u0323", "\u0915\u093c", strings.Repeat("e\u0301", 130)) {
+		if got := chainName(raw); !norm.NFC.IsNormalString(got) {
+			t.Errorf("%q cleans to %q, which is not NFC", raw, got)
 		}
 	}
 }
@@ -163,8 +199,9 @@ func TestABlankLookingNameIsUnnamed(t *testing.T) {
 		}
 	}
 	// Blank-looking characters at either end are trimmed, so "EQ" and "EQ" with a filler look and digest alike (round 3, M3).
-	for raw, want := range map[string]string{"e\u0301t\u00e9": "e\u0301t\u00e9", "\U0001F50A Loud": "\U0001F50A Loud", "\u2800x": "x",
-		"EQ\u3164": "EQ", "\u2800EQ": "EQ", "\u3164 EQ \u2800": "EQ", "E\u2800Q": "E\u2800Q"} {
+	// Ported for round 6 (qa B3): the accented name is kept, now as NFC.
+	for raw, want := range map[string]string{"e\u0301t\u00e9": "\u00e9t\u00e9", "\U0001F50A Loud": "\U0001F50A Loud", "\u2800x": "x",
+		"EQ\u3164": "EQ", "\u2800EQ": "EQ", "\u3164 EQ \u2800": "EQ", "E\u2800Q": "E\u2800Q", "E\u3164Q": "E\u3164Q"} {
 		if got := chainFX([]dawport.FXSlot{{Name: raw}})[0].Name; got != want {
 			t.Errorf("plug-in %q = %q, want it kept", raw, got)
 		}

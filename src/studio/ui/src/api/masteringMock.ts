@@ -63,9 +63,11 @@ export type MasteringMockSeed = {
  * what to do next, then the DAW's reason. */
 const CHAIN_UNREADABLE = "Your DAW's FX chain couldn't be read, so it can't be approved. Choose the built-in chain, or untick Master before encoding.";
 
-/** chain.go's blankLooking: what draws nothing that Unicode does not call default-ignorable (the braille blank, the object
- * replacement character, the musical null notehead, the Tifinagh joiner, the Khitan filler). */
-const BLANK_LOOKING = new Set([0x2800, 0xfffc, 0x1d159, 0x2d7f, 0x16fe4]);
+/** chain.go's hangulFiller: default-ignorable, but a font draws them as a blank, so they are kept inside a name. */
+const HANGUL_FILLERS = new Set([0x115f, 0x1160, 0x3164, 0xffa0]);
+/** chain.go's blankLooking: what draws a blank, trimmed at a name's ends and kept inside it (the Hangul fillers, the braille
+ * blank, the object replacement character, the musical null notehead, the Tifinagh joiner, the Khitan filler). */
+const BLANK_LOOKING = new Set([...HANGUL_FILLERS, 0x2800, 0xfffc, 0x1d159, 0x2d7f, 0x16fe4]);
 /** chain.go's maxChainName. */
 const MAX_CHAIN_NAME = 120;
 
@@ -80,15 +82,18 @@ const trimEnd = (points: string[]): string[] => {
 };
 
 /**
- * chain.go's chainName, then trackName or chainFX's blank rule: format and default-ignorable characters dropped anywhere, control characters spaced, spaces
+ * chain.go's chainName, then trackName or chainFX's blank rule: format and default-ignorable characters (but the Hangul fillers) dropped anywhere, the name made NFC, control characters spaced, spaces
  * collapsed, characters that draw nothing trimmed at either end (also where the cut lands), a name with no readable letter, number, punctuation or symbol (judged
  * before any cut) is "Track" for a track and "(unnamed)" for a plug-in, and at most 120 code points (an ellipsis marks a cut). Pinned
  * to the host by chain-names.json.
  */
 export function mockChainName(raw: string | null | undefined, kind: 'track' | 'fx'): string {
-  // A default-ignorable character goes from anywhere in the name, as a format character does (round 5, B1).
-  const spaced = (raw ?? '').replace(/[\p{Cf}\p{Default_Ignorable_Code_Point}]/gu, '').replace(/[\p{Cc}\uFFFD]/gu, ' ');
-  const points = [...spaced.split(/\s+/u).filter(Boolean).join(' ')];
+  // A default-ignorable character goes from anywhere in the name, as a format character does (round 5, B1), except a Hangul
+  // filler (round 6); then the name is NFC, after the drop as in chain.go (round 6, qa B3).
+  const spaced = (raw ?? '')
+    .replace(/[\p{Cf}\p{Default_Ignorable_Code_Point}]/gu, (char) => (HANGUL_FILLERS.has(char.codePointAt(0)!) ? char : ''))
+    .replace(/[\p{Cc}\uFFFD]/gu, ' ');
+  const points = [...spaced.split(/\s+/u).filter(Boolean).join(' ').normalize('NFC')];
   while (points.length > 0 && isEdgeBlank(points[0]!)) points.shift();
   const kept = trimEnd(points);
   const readable = kept.some((char) => /[\p{L}\p{N}\p{P}\p{S}]/u.test(char) && !BLANK_LOOKING.has(char.codePointAt(0)!) && !isIgnorable(char));
