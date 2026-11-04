@@ -66,6 +66,9 @@ export const ItemWithReason: Story = {
     await expect(screen.getByText('REAPER is not running. Start it from the chip in the top bar.')).toBeVisible();
     await userEvent.click(off);
     await expect(screen.getByRole('menuitem', { name: /Prepare chapter render/ })).toBeVisible();
+    // Closed again: while a menu shows, Base UI's invisible focus guards trip axe's aria-hidden-focus, and the atlas runs axe after play().
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('menuitem')).toBeNull());
   },
 };
 
