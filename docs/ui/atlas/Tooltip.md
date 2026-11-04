@@ -41,6 +41,7 @@ Storybook title: `Primitives/Tooltip`. Source: `src/components/primitives/Toolti
 - `src/components/editing/takes/prep/PrepControls.tsx`
 - `src/components/editing/takes/split/SplitButton.tsx`
 - `src/components/engine/AudacityLinkCard.tsx`
+- `src/components/engine/LiveTracksStatus.tsx`
 - `src/components/engine/VoicesCard.tsx`
 - `src/components/layout/AppShell.tsx`
 - `src/components/layout/EngineChip.tsx`
