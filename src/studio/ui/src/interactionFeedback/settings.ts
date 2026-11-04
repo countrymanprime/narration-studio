@@ -74,7 +74,7 @@ export const settingsFeedback: Record<string, FeedbackRow> = {
   'src/components/settings/controls/CreditsBody.tsx::creditsPreview#1': row('effect', 'instant', 'na', 'na', 'ui', 'inline', 'na', 'exempt', 'Renders the opening and closing templates for the summary (Ready, or Needs the unresolved tokens); a template that cannot be rendered is shown as unknown, and the editor under Edit credits shows the real error (SILENT_CATCHES).'),
 
   // Settings > Keyboard & pedals
-  'src/components/settings/KeyboardPanel.tsx::saveSettings#1': row('click', 'file-io', 'none', 'disabled', 'toast', 'toast', 'na', 'ok', 'Replace, Add as another key, Unbind and both Reset actions all save through this one call site: a single JSON field write, the same tier-1 cost as Settings.tsx\'s own saveSettings rows. Every action button in the row and its recorder disables while a save is in flight (there is no per-action distinction to guard against, since they all write the same field).'),
+  'src/components/settings/KeyboardPanel.tsx::saveSettings#1': row('click', 'file-io', 'none', 'disabled', 'toast', 'toast', 'na', 'ok', 'Replace, Add as another key, Unbind and both Reset actions all save through this one call site: a single JSON field write, the same tier-1 cost as Settings.tsx\'s own saveSettings rows. Every action button in the row and its recorder disables while a save is in flight (there is no per-action distinction to guard against, since they all write the same field). A failure is an error toast with Retry, which saves the same keymap again.'),
 
   // Settings > Local assets
   // Settings > Story Bible: the analysis tools (the registry's `analysis` rows) and whether a scan offers them first

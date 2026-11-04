@@ -1,5 +1,6 @@
-import { useEffect, useRef } from 'react';
-import type { ExportJob, PackageItemKind } from '../../types';
+import { useEffect, useRef, useState } from 'react';
+import type { MasteringProvider } from '../../api/contracts/mastering';
+import type { ExportJob, ExportPlan, MasteringApproval, PackageItemKind } from '../../types';
 import { useErrorToast } from '../../hooks/useErrorToast';
 import { Button } from '../primitives/Button';
 import { IconButton } from '../primitives/IconButton';
@@ -14,6 +15,7 @@ import { TextField } from '../primitives/TextField';
 import { statusTone, type StatusId } from '../../kinds/statusTone';
 import { type ExportJobs, fileName } from './useExportJobs';
 import { ARRIVE_CLASSES } from '../primitives/changeHighlight';
+import { MasteringApprovalDialog } from './MasteringApprovalDialog';
 
 const MUTED = { color: 'var(--text-muted)' };
 const DANGER = { color: 'var(--danger-text)' };
@@ -54,10 +56,25 @@ const TABLE_FLOOR = 'min-w-[44rem]';
 /**
  * The files "Master all to spec…" picked: each
  * with its role in the package and, for a chapter, its title, then Master & encode as one job with real progress and Cancel. It
- * appears once files are picked or a job exists; before that the page's header action is the way in.
+ * appears once files are picked or a job exists; before that the page's header action is the way in. `chain` is the mastering row
+ * the host says the project masters with: when it makes the DAW render (`needsApproval`), Master & encode first asks the narrator's
+ * approval for this one export. A refusal of the start may mean the row changed, so `onStartRefused` reads the rows again.
  */
-export function MasterToSpecPanel({ jobs, chainLabel, onCheckFiles }: { jobs: ExportJobs; chainLabel?: string; onCheckFiles?: () => void }) {
+export function MasterToSpecPanel({
+  jobs,
+  chain,
+  onStartRefused,
+  onCheckFiles,
+}: {
+  jobs: ExportJobs;
+  chain?: MasteringProvider;
+  onStartRefused?: () => void;
+  onCheckFiles?: () => void;
+}) {
   const { items, exportJob, exportRunning, problem } = jobs;
+  const chainLabel = chain?.label;
+  // The plan the open approval dialog shows: the host's answer when it opened, so a later read cannot change what the narrator approves.
+  const [approving, setApproving] = useState<ExportPlan>();
   const started = !!exportJob?.files.length;
   const hasFiles = items.length > 0 || started;
   // A start or pick that failed is a toast; the panel is not opened just to draw it (rule 7, #2632), so it does not appear with nothing in it.
@@ -76,6 +93,31 @@ export function MasterToSpecPanel({ jobs, chainLabel, onCheckFiles }: { jobs: Ex
     }
     wasShown.current = shown;
   }, [shown]);
+  // Starting removes Master & encode (the table shows the job instead): focus goes to the files, never to the page's <body>.
+  const focusFiles = () => revealRef.current;
+  // Answers whether the export started, so the dialog keeps a macro name only once the host took it.
+  const start = (approval: MasteringApproval | null): Promise<boolean> =>
+    jobs.startExport(approval).then((outcome) => {
+      if (outcome === 'busy') return false;
+      setApproving(undefined);
+      if (outcome === 'refused') onStartRefused?.();
+      if (outcome === 'started' && (document.activeElement === null || document.activeElement === document.body)) focusFiles()?.focus();
+      return outcome === 'started';
+    });
+  // With mastering on, the host says first what it would do (ExportPlan): a request it would refuse is refused here, before any
+  // dialog, and a row that needs the narrator's approval opens the dialog over exactly the plan the host answered.
+  const masterAndEncode = () => {
+    if (!jobs.master) {
+      void start(null);
+      return;
+    }
+    void jobs.planExport().then(({ outcome, plan }) => {
+      if (outcome === 'refused') onStartRefused?.();
+      if (outcome !== 'started' || !plan) return;
+      if (plan.needsApproval) setApproving(plan);
+      else void start(null);
+    });
+  };
   if (!shown) return null;
   return (
     <Panel
@@ -88,7 +130,11 @@ export function MasterToSpecPanel({ jobs, chainLabel, onCheckFiles }: { jobs: Ex
             <Button variant="secondary" onClick={() => void jobs.pick()} pending={jobs.picking} disabled={exportRunning}>
               Add files…
             </Button>
-            {items.length > 0 && <Button onClick={() => void jobs.startExport()}>{jobs.master ? 'Master & encode' : 'Encode'}</Button>}
+            {items.length > 0 && (
+              <Button onClick={masterAndEncode} pending={jobs.starting && !approving}>
+                {jobs.master ? 'Master & encode' : 'Encode'}
+              </Button>
+            )}
           </div>
         )
       }
@@ -201,6 +247,15 @@ export function MasterToSpecPanel({ jobs, chainLabel, onCheckFiles }: { jobs: Ex
             <IconButton action="checkPreparedFiles" onClick={onCheckFiles} />
           )}
         </div>
+      )}
+      {approving && (
+        <MasteringApprovalDialog
+          plan={approving}
+          pending={jobs.starting}
+          onApprove={(macro) => start({ provider: approving.provider, macro })}
+          onCancel={() => setApproving(undefined)}
+          returnFocus={focusFiles}
+        />
       )}
     </Panel>
   );
