@@ -152,16 +152,16 @@ describe('the Mark menu', () => {
   });
 });
 
-describe('pronunciation-flag-from-a-selection', () => {
-  it('flags the word through the host and shows it in the Words tab', async () => {
-    const flag = vi.spyOn(api, 'scriptWordFlag');
+describe('pronunciation-word-from-a-selection', () => {
+  it('opens the word on the Words tab with what the dictionaries say, and creates nothing (#2595)', async () => {
+    const create = vi.spyOn(api, 'guideCreate');
     const m = mount();
-    m.rerender(inside(0, 5));
+    m.rerender(inside(10, 19));
     await userEvent.click(within(tool()).getByRole('button', { name: 'Mark' }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Pronunciation (a word)' }));
-    await waitFor(() => expect(flag).toHaveBeenCalledWith('chapter-1', rows[0]!.id, 0, 5));
     await waitFor(() => expect(view.tab).toBe('pron'));
-    expect(view.word).toBe(rows[0]!.text.slice(0, 5).toLowerCase());
+    expect(view.word).toBe('beginning');
+    expect(create).not.toHaveBeenCalled();
   });
 });
 

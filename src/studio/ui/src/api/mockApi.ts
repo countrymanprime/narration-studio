@@ -484,11 +484,7 @@ export function createMockApi(
       () => s.chapters,
       () => s.paragraphs,
     ),
-    ...createScriptPrepMock(
-      manuscriptReady,
-      () => s.chapters,
-      () => s.paragraphs,
-    ),
+    ...createScriptPrepMock(manuscriptReady, () => s.chapters),
     ...extraction,
     // The host refuses the whole entry while a suggestion about it still needs verification (GuideMarkReviewed); one name is not refused.
     guideMarkReviewed: async (id, aliasIndex) => {

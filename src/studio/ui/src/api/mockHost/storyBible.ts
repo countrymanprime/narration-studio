@@ -24,7 +24,7 @@ function parseMockProperties(text: string): GuideProperty[] {
  * A real, silent 22.05 kHz mono WAV (a 44-byte header and 200 bytes of samples). The Story Bible preview hook
  * rejects an empty payload (the host never sends one), so the mock must send audio.
  */
-const MOCK_PREVIEW_WAV_BASE64 =
+export const MOCK_PREVIEW_WAV_BASE64 =
   'UklGRuwAAABXQVZFZm10IBAAAAABAAEAIlYAAESsAAACABAAZGF0YcgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==';
 
 // A pronunciation the narrator typed: `manual`, or `user` in a file written before it.
@@ -310,6 +310,9 @@ export function createStoryBibleMock(
         if (!prior.alternate) throw new Error('There is no other pronunciation to switch to.');
         return setPronunciation(prior, { ...prior.alternate, chosen: true });
       });
+    },
+    guidePronunciationRestore: async (id, value, aliasIndex) => {
+      changePronunciation(id, aliasIndex, () => wireClone(value));
     },
     guideDialogueCues: async () => {
       // The cues are placed in the loaded text: a read before it is in waits for it, as the host reads cues of the manuscript it has.

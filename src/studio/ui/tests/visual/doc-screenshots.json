@@ -120,6 +120,13 @@
   },
   {
     "page": "script",
+    "state": "rail-words-name",
+    "viewport": "desktop",
+    "docName": "script-word-name",
+    "caption": "Script - a Story Bible name chosen on the Words tab: How I will say it is the entry's own row, the same as in the Story Bible"
+  },
+  {
+    "page": "script",
     "state": "mark-composer",
     "viewport": "desktop",
     "docName": "script-add-note",
