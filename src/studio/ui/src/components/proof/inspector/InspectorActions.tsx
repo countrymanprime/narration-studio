@@ -3,9 +3,11 @@ import { apiErrorMessage } from '../../../api/errorMessage';
 import { usePendingAction } from '../../../hooks/usePendingAction';
 import { usePort } from '../../../ports/usePort';
 import type { DawCapabilities } from '../../../api/contracts/daw';
+import { shownFindingNoteType } from '../../../api/contracts/findings';
 import type { Finding, NarrationApi } from '../../../types';
 import { Button } from '../../primitives/Button';
 import { IconButton } from '../../primitives/IconButton';
+import { RepairInReaperButton } from '../../engine/RepairInReaperButton';
 import { noteTime } from '../findingFormat';
 import type { EquivalenceApi } from './equivalence';
 import { HearIt, type HearItApi } from './HearIt';
@@ -22,6 +24,9 @@ const NO_SOURCE_TIME = 'This note has no time in its audio to put a marker at.';
 const NO_TIME = 'This note has no time in its audio to go to.';
 const CHECKING = 'Checking what the DAW can do…';
 const NOT_OFFERED = 'Your DAW does not offer this.';
+
+// The note types the REAPER repair launchers work on, by the type the narrator sees (a click is `mouth`); noise and the rest are not theirs.
+const REPAIRABLE_TYPES: ReadonlySet<string> = new Set(['mouth', 'plosive', 'breath']);
 
 type Gate = { ok: true } | { ok: false; reason: string };
 
@@ -140,6 +145,8 @@ export function InspectorActions({
           pending={action.isPending('marker')}
           onClick={() => void addMarker()}
         />
+        {/* #2821: the repair launchers act on the item Show in the DAW has just selected. */}
+        {REPAIRABLE_TYPES.has(shownFindingNoteType(finding)) && <RepairInReaperButton />}
         <TreatAsSame finding={finding} api={api} inert={inert} onNoteRead={onNoteRead} />
         <IconButton
           action="openInScript"

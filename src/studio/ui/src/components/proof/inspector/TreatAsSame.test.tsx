@@ -193,9 +193,30 @@ describe('TreatAsSame: the state matrix', () => {
     const { onNoteRead } = show(misread(), api);
     await userEvent.click(screen.getByRole('button', { name: NAME }));
     await act(async () => answers[0]!.reject(new Error('Refused.')));
-    await waitFor(() => expect(toast).toHaveBeenCalledWith('This note is no longer in the project.', { tone: 'error' }));
+    await waitFor(() => expect(toast).toHaveBeenCalledWith('This note is no longer in the project.', expect.objectContaining({ tone: 'error' })));
     expect(toast).toHaveBeenCalledWith('Refused.', { tone: 'error' });
     expect(onNoteRead).not.toHaveBeenCalled();
+  });
+
+  // Issue #2919: reading the note again changes nothing, so the failed re-read's toast carries Retry, which reads it again.
+  it('Retry on the failed re-read reads the note again', async () => {
+    const toast = vi.spyOn(overlay, 'toast').mockImplementation(() => undefined);
+    const { api, answers } = heldApi();
+    const changed = misread({ manuscript: { expected: 'Dinah', recorded: 'Diana and' } });
+    api.findingsGet = vi.fn().mockRejectedValueOnce(new Error('This note is no longer in the project.')).mockResolvedValue(changed);
+    const { onNoteRead } = show(misread(), api);
+    await userEvent.click(screen.getByRole('button', { name: NAME }));
+    await act(async () => answers[0]!.reject(new Error('Refused.')));
+    await waitFor(() =>
+      expect(toast).toHaveBeenCalledWith(
+        'This note is no longer in the project.',
+        expect.objectContaining({ action: expect.objectContaining({ label: 'Retry' }) }),
+      ),
+    );
+    const options = toast.mock.calls.find((call) => call[0] === 'This note is no longer in the project.')![1]!;
+    await act(async () => options.action!.onAction());
+    await waitFor(() => expect(onNoteRead).toHaveBeenCalledWith(changed));
+    expect(api.findingsGet).toHaveBeenCalledTimes(2);
   });
 });
 

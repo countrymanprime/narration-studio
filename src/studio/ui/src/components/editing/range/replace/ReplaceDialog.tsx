@@ -8,6 +8,7 @@ import { NumberInput } from '../../../primitives/NumberInput';
 import { SectionLabel } from '../../../primitives/SectionLabel';
 import { Select } from '../../../primitives/Select';
 import { overlay } from '../../../../overlay/overlayService';
+import { retryAction } from '../../../primitives/Toast';
 import { clock } from '../../bar/clock';
 import { DialogFooter } from '../common/DialogFooter';
 import type { ReplaceAsk } from './replaceCommand';
@@ -189,13 +190,17 @@ export function ReplaceDialog({ api, chapterId, firstToken, lastToken, text, wor
       overlay.announce(`Removed ${name} from the list`);
     } catch (e) {
       overlay.toast(why(e), { tone: 'error' });
-      try {
-        const list = await api.replaceNarrators();
-        take(list.narrators, { narrator: chosen.current.narratorId, file: chosen.current.fileId });
-      } catch (reread) {
-        // The list stays as it was; the failed re-read is said too, so a stale button state is not trusted silently.
-        overlay.toast(why(reread), { tone: 'error' });
-      }
+      // Reading the list again changes nothing, so the failed re-read's toast offers Retry (issue #2919).
+      const reread = async (): Promise<void> => {
+        try {
+          const list = await api.replaceNarrators();
+          take(list.narrators, { narrator: chosen.current.narratorId, file: chosen.current.fileId });
+        } catch (again) {
+          // The list stays as it was; the failed re-read is said too, so a stale button state is not trusted silently.
+          overlay.toast(why(again), { tone: 'error', action: retryAction(() => void reread()) });
+        }
+      };
+      await reread();
     } finally {
       removingRef.current = false;
       setRemoving(false);

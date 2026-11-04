@@ -4,12 +4,14 @@ import { Button } from '../../primitives/Button';
 import { Icon } from '../../primitives/Icon';
 import { IconButton } from '../../primitives/IconButton';
 import { KindChip } from '../../primitives/KindChip';
+import { Kbd } from '../../primitives/Kbd';
 import { ProgressBar } from '../../primitives/ProgressBar';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import { sampleLength, clipProblem } from '../../storybible/voicesamples/voiceSampleModel';
 import { useBoothSamplesContext } from '../samples/BoothSamplesContext';
 import type { BoothSamples } from '../samples/useBoothSamples';
 import type { ChapterVoice } from './nearby';
+import type { VoiceKeys } from './sections';
 import { DIM_CLASS, ROW_CLASS, SideSection } from './SideSection';
 
 /** What a voice with no sample says: where to make one. */
@@ -18,7 +20,7 @@ export const NO_SAMPLE_NOTE = 'No voice sample yet. Mark one in Editing.';
 const plural = (count: number) => `${count} ${count === 1 ? 'sample' : 'samples'}`;
 
 /** The speakers in and around the current phrase, each with the Story Bible's note on how they talk and, when the project has voice samples, how to hear them. */
-export function VoicesInChapter({ voices }: { voices: readonly ChapterVoice[] }) {
+export function VoicesInChapter({ voices, voiceKeys }: { voices: readonly ChapterVoice[]; voiceKeys?: VoiceKeys }) {
   const samples = useBoothSamplesContext();
   return (
     <SideSection title="In this chapter">
@@ -36,7 +38,7 @@ export function VoicesInChapter({ voices }: { voices: readonly ChapterVoice[] })
       {voices.length ? (
         voices.map((voice) => (
           <div className={`${ROW_CLASS} flex-col items-stretch`} key={voice.id}>
-            <VoiceRow voice={voice} samples={samples} />
+            <VoiceRow voice={voice} samples={samples} voiceKeys={voiceKeys} />
           </div>
         ))
       ) : (
@@ -58,7 +60,17 @@ function CantTell({ samples }: { samples: BoothSamples }) {
   );
 }
 
-function VoiceRow({ voice, samples }: { voice: ChapterVoice; samples: BoothSamples | null }) {
+/** In a folder chapter, the row's first column: the key of the voice that records the character, or a press to add a track for a speaker with none. */
+function VoiceKey({ voice, voiceKeys }: { voice: ChapterVoice; voiceKeys: VoiceKeys }) {
+  const key = voiceKeys.keyOf(voice.id);
+  if (key) return <Kbd keys={[`Num ${key}`]} />;
+  if (key !== undefined || !voiceKeys.speaks(voice.id)) return null;
+  return (
+    <IconButton action="add" size="sm" label={`Add a track for ${voice.name}`} disabledReason={voiceKeys.addWhy} onClick={() => voiceKeys.add(voice.id)} />
+  );
+}
+
+function VoiceRow({ voice, samples, voiceKeys }: { voice: ChapterVoice; samples: BoothSamples | null; voiceKeys?: VoiceKeys }) {
   const [open, setOpen] = useState(false);
   const mine = samples?.loaded ? samples.samplesOf(voice.name) : [];
   const primary = samples?.primaryOf(voice.name);
@@ -66,6 +78,11 @@ function VoiceRow({ voice, samples }: { voice: ChapterVoice; samples: BoothSampl
   return (
     <>
       <div className="flex items-center gap-2">
+        {voiceKeys ? (
+          <span className="inline-flex min-w-14 flex-none" data-voice-key>
+            <VoiceKey voice={voice} voiceKeys={voiceKeys} />
+          </span>
+        ) : null}
         <span className="flex flex-col gap-0.5">
           {voice.aliases.map((alias) => (
             <span className="w-fit" key={alias} data-speaker={alias}>

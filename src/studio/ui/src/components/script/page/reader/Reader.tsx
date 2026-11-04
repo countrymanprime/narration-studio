@@ -70,8 +70,6 @@ export type ReaderProps = {
   underHeader?: ReactNode;
   onPickSpeaker?: (cueId: string, anchor: DOMRect) => void;
   onShowAnnotation?: (id: string) => void;
-  /** A click on a flagged word: its key. */
-  onShowWord?: (word: string) => void;
   onShowEntry?: (id: string) => void;
   /** A click in the text puts the bookmark keys back to going from where the narrator is. */
   onTextClick?: () => void;
@@ -167,7 +165,12 @@ const Section = memo(function Section(props: SectionProps) {
           props.renderChapterCard(chapter)
         ) : (
           <>
-            <h2 className="m-0 text-2xl font-semibold">{chapter.title}</h2>
+            <h2
+              tabIndex={-1}
+              className="m-0 text-2xl font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+            >
+              {chapter.title}
+            </h2>
             <div className="text-sm text-[var(--text-muted)]">{chapter.wordCount.toLocaleString()} words</div>
           </>
         )}
@@ -226,7 +229,6 @@ export function Reader(props: ReaderProps) {
     underHeader,
     onPickSpeaker,
     onShowAnnotation,
-    onShowWord,
     onShowEntry,
     onTextClick,
     onStepPrep,
@@ -398,6 +400,10 @@ export function Reader(props: ReaderProps) {
       // A section outside the chapters (the credits) is always drawn.
       if (at === undefined || reach(at)) {
         jumpTo(pendingJump);
+        // The heading takes focus, so the next Tab and a screen reader start at the chapter the narrator chose (#2902), unless the
+        // narrator chose it in the chapter list: focus stays there so Down steps to the next chapter.
+        if (!document.activeElement?.closest('ul[aria-label="Chapters"]'))
+          root.querySelector<HTMLElement>(`[data-bound][data-ch="${pendingJump}"] h2`)?.focus({ preventScroll: true });
         onHandled?.('chapter');
         jumped = true;
       }
@@ -475,9 +481,7 @@ export function Reader(props: ReaderProps) {
     const mark = target.closest<HTMLElement>('[data-a]');
     const name = target.closest<HTMLElement>('[data-ent]');
     if ((!mark && !name) || !(window.getSelection()?.isCollapsed ?? true)) return;
-    // A flagged word is a `data-a` span too, with its word (`data-w`): it opens in the Words tab, as the mock's pronunciation marks do.
-    if (mark?.dataset.w !== undefined) onShowWord?.(mark.dataset.w);
-    else if (mark) onShowAnnotation?.(mark.dataset.a as string);
+    if (mark) onShowAnnotation?.(mark.dataset.a as string);
     else onShowEntry?.(name!.dataset.ent as string);
   };
 

@@ -115,6 +115,19 @@ export const settingsStates: StateEntry[] = [
   },
   {
     page: 'settings',
+    state: 'recording-chapter-layout',
+    description: 'Settings, Recording & DAW: the Chapter layout row under Chapter sync, Flat and Voice folders (the Engine panel switch, on its own row)',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
+    state: 'recording-chapter-voices',
+    description:
+      'Settings, Recording & DAW (?mockVoiceFolders=1): Sync chapters to tracks and the Voices row with a chapter folder’s voices and their characters',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
     state: 'recording-reaper-path-invalid',
     description:
       'Settings, Recording & DAW, Advanced: a REAPER program path that does not end in reaper.exe is refused in the row with "This is not the path to reaper.exe..." and the old value stays',
@@ -351,6 +364,59 @@ export const settingsStates: StateEntry[] = [
     state: 'reader-text',
     description:
       'Settings, Appearance & keys scrolled to the reader rows: Reader font, Reader text size, Line spacing and Column width, each its own row, with the preview quote under Column width',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
+    state: 'booth-text-size',
+    description: 'Settings, Appearance & keys scrolled to Booth text size: a slider from 24 to 72 px, 40 px by default, with its row in full view',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
+    state: 'story-bible-order',
+    description:
+      'Settings, Appearance & keys scrolled to Story Bible order under Look: a select of eight orders, Name, A to Z by default, with its row in full view',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
+    state: 'story-bible-order-changed',
+    description: 'Settings, Appearance & keys at Story Bible order after Most mentioned is chosen: the select and its Reset button beside it, in full view',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
+    state: 'first-use-tips',
+    description: 'Settings, App & updates scrolled to First-use tips under Tips: how many are dismissed and Show tips again, with its row in full view',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
+    state: 'first-use-tips-dismissed',
+    description:
+      'Settings, App & updates at First-use tips after the Script tip was dismissed: "1 dismissed" and an enabled Show tips again, with its row in full view',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
+    state: 'editing-playback',
+    description:
+      'Settings, Appearance & keys scrolled to Editing playback under Listening: speed, volume, silence and the output device, with the row in full view',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
+    state: 'effects-cap',
+    description:
+      'Settings, Recording & DAW scrolled to Effects coverage cap under Effects: 10 % after Override for this project, with its own project box, the row in full view',
     ...REFLOW,
     ...KEEPS_DESKTOP_SCROLL,
   },
