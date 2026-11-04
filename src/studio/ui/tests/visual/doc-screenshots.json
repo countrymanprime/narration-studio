@@ -1058,6 +1058,13 @@
   },
   {
     "page": "master",
+    "state": "to-spec-empty",
+    "viewport": "desktop",
+    "docName": "master-to-spec-empty",
+    "caption": "Master & QC - the Master to spec card before any file is picked: Choose files to master… and Master before encoding"
+  },
+  {
+    "page": "master",
     "state": "to-spec-picked",
     "viewport": "desktop",
     "docName": "master-to-spec-picked",
