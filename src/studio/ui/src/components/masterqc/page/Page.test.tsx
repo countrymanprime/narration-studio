@@ -368,6 +368,27 @@ describe('Master & QC page body', () => {
   });
 
   // qa on #2988: a picker answer with no paths at all is a cancel, not a crash.
+  // qa on #2988, break 1: after an export finished, the header icon picked files that the card then never showed. It must either start
+  // a new pick the narrator can see (the files listed and editable again, or a word that they already are) or be off with a reason.
+  it('the Master all to spec icon never silently does nothing: after a finished export it either starts a new pick or is disabled with a reason', async () => {
+    const { api } = mount([]);
+    const pick = vi.spyOn(api, 'exportPickFiles');
+    await userEvent.click(await screen.findByRole('button', { name: 'Choose files to master…' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Master & encode' }));
+    await screen.findByText(/^Prepared 5 files\./, undefined, { timeout: 10_000 });
+    const icon = screen.getByRole('button', { name: 'Master all to spec…' });
+    if (icon.getAttribute('aria-disabled') === 'true') {
+      expect(icon.closest('[aria-label]')?.getAttribute('aria-label') ?? '').not.toBe('');
+      return;
+    }
+    await userEvent.click(icon);
+    await waitFor(() => expect(pick).toHaveBeenCalledTimes(2));
+    // The pick is visible: the card lists the files as editable again, and says the picked ones are already there.
+    const card = screen.getByRole('region', { name: 'Master to spec' });
+    await waitFor(() => expect(within(card).getAllByRole('button', { name: 'Remove' }).length).toBeGreaterThan(0));
+    await findToast('already in the list');
+  }, 20_000);
+
   it('a picker answer with no paths is a cancel: no error, no rows', async () => {
     mount([], acx, { exportPickFiles: async () => ({}) as never });
     await userEvent.click(await screen.findByRole('button', { name: 'Choose files to master…' }));
