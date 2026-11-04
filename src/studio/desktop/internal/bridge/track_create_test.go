@@ -3,6 +3,7 @@ package bridge
 import (
 	"context"
 	"errors"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -152,5 +153,66 @@ func TestCreateTrackSendsNoFolder(t *testing.T) {
 	}
 	if commands := fake.commands(); len(commands[0]) > 4 {
 		t.Fatalf("the end-of-list create sent a folder: %v", commands[0])
+	}
+}
+
+const (
+	folderChapter3 = "{00000003-0000-4000-8000-000000000003}"
+	folderChapter4 = "{00000006-0000-4000-8000-000000000006}"
+)
+
+func TestChapterFoldersPreviewSendsTheChaptersAndReadsTheMoves(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	fake := startFakeReaper(t, client, dir, func(command []string) [][]string {
+		return [][]string{
+			{"FOLDER_MOVE", run(command), folderChapter4, "Chapter 4", folderChapter3, "Chapter 3", "", ""},
+			{"FOLDERS_PLANNED", run(command), "1"},
+		}
+	})
+	got, err := actions.ChapterFolders(context.Background(), false, []string{folderChapter3, " " + folderChapter4, "{bad,guid}"}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	commands := fake.commands()
+	if len(commands) != 1 || commands[0][1] != "chapter_folders" || commands[0][3] != "preview" || commands[0][4] != folderChapter3+","+folderChapter4 {
+		t.Fatalf("commands = %v", commands)
+	}
+	want := FolderPlan{Chapters: 1, Moves: []FolderMove{{GUID: folderChapter4, Name: "Chapter 4", FromGUID: folderChapter3, FromName: "Chapter 3"}}}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("got %+v, want %+v", got, want)
+	}
+}
+
+func TestChapterFoldersApplySendsWhatTheNarratorConfirmed(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	fake := startFakeReaper(t, client, dir, func(command []string) [][]string {
+		return [][]string{{"FOLDERS_REPAIRED", run(command), "1"}}
+	})
+	got, err := actions.ChapterFolders(context.Background(), true, []string{folderChapter3, folderChapter4}, []string{folderChapter4})
+	if err != nil || got.Chapters != 1 {
+		t.Fatalf("got %+v, %v", got, err)
+	}
+	if c := fake.commands()[0]; c[3] != "apply" || c[5] != folderChapter4 {
+		t.Fatalf("command = %v, want apply with the confirmed chapter", c)
+	}
+}
+
+func TestChapterFoldersApplyOnAChangedProjectIsStale(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	startFakeReaper(t, client, dir, func(command []string) [][]string {
+		return [][]string{{"FOLDERS_STALE", run(command)}}
+	})
+	if _, err := actions.ChapterFolders(context.Background(), true, []string{folderChapter3}, []string{folderChapter4}); !errors.Is(err, ErrFoldersStale) {
+		t.Fatalf("err = %v, want ErrFoldersStale", err)
+	}
+}
+
+func TestChapterFoldersRefusedWhileRecordingIsErrRecording(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	startFakeReaper(t, client, dir, func(command []string) [][]string {
+		return [][]string{{"ERROR", run(command), "REAPER is recording. Stop recording first."}}
+	})
+	if _, err := actions.ChapterFolders(context.Background(), true, []string{folderChapter3}, nil); !errors.Is(err, ErrRecording) {
+		t.Fatalf("err = %v, want ErrRecording", err)
 	}
 }
