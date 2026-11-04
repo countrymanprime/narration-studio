@@ -2682,29 +2682,6 @@ export function ReplacePlan(chapterID: string, firstToken: number, lastToken: nu
 }
 
 /**
- * RetakeLanesList lists, from the saved REAPER project the audio engine panel reads, every manuscript line whose retakes sit
- * on more than one fixed lane of a track, and which lane plays.
- */
-export function RetakeLanesList(): $CancellablePromise<string> {
-    return $Call.ByID(1618739891);
-}
-
-/**
- * RetakeLanesPick asks REAPER to make the retake named by lineID and itemGUID the only lane playing on its track, in
- * one undo step. Only a retake RetakeLanesList lists can be picked; nothing else in the project changes.
- */
-export function RetakeLanesPick(lineID: string, itemGUID: string): $CancellablePromise<string> {
-    return $Call.ByID(3760905438, lineID, itemGUID);
-}
-
-/**
- * RetakeLanesState answers the last pick's state (idle before any).
- */
-export function RetakeLanesState(): $CancellablePromise<string> {
-    return $Call.ByID(523795916);
-}
-
-/**
  * ScriptPrepList returns every manuscript chapter with its prep state (none when never set), then the credits once set.
  */
 export function ScriptPrepList(): $CancellablePromise<string> {
