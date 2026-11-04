@@ -46,6 +46,7 @@ function Rows() {
       empty="none"
       rows={[
         { id: 'alice', name: 'Alice', hear: hearOf('alice', true) },
+        { id: 'allie', name: 'Allie', hear: hearOf('alice', true, 0) },
         { id: 'flag', name: 'kroh-KAY', hear: hearOf(undefined, true) },
       ]}
     />
@@ -66,9 +67,19 @@ describe('Hear on Script', () => {
     mount(api);
     fireEvent.click(screen.getByRole('button', { name: 'Hear Alice' }));
     await waitFor(() => expect(audios).toHaveLength(1));
-    expect(preview).toHaveBeenCalledWith('alice');
+    expect(preview).toHaveBeenCalledWith('alice', undefined);
     expect(audios[0].play).toHaveBeenCalled();
     await waitFor(() => expect(screen.getByRole('button', { name: 'Stop Alice' })).toBeTruthy());
+  });
+
+  it("an alias plays that alias, not the entry's own name, and only one row plays at a time (#2595)", async () => {
+    const api = createMockApi();
+    const preview = vi.spyOn(api, 'guidePreview').mockResolvedValue({ status: 'ready', audioBase64: 'UklGRg==', mimeType: 'audio/wav' });
+    mount(api);
+    fireEvent.click(screen.getByRole('button', { name: 'Hear Allie' }));
+    await waitFor(() => expect(preview).toHaveBeenCalledWith('alice', 0));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Stop Allie' })).toBeTruthy());
+    expect(screen.getByRole('button', { name: 'Hear Alice' })).toBeTruthy();
   });
 
   it('says the preview voice is not installed, rather than toasting that a clip played', async () => {

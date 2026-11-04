@@ -70,7 +70,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   { file: 'components/booth/record/RecordSetup.tsx', text: 'Link the open project asks you to choose the project file … has open.', class: 'overlay' },
   { file: 'components/booth/record/RecordSetup.tsx', text: 'Could not read whether a project file is linked. Press Check again.', class: 'error' },
   { file: 'components/connection/ChapterLinkDialog.tsx', text: 'is linked to …. Linking it here moves it.', class: 'overlay' },
-  { file: 'components/connection/ChapterLinkDialog.tsx', text: 'Or have … add a new track for this chapter, named after it, and link it:', class: 'overlay' },
+  { file: 'components/connection/ChapterLinkDialog.tsx', text: 'Or have … add a new … for this chapter, named after it…, and link it:', class: 'overlay' },
   {
     file: 'components/credits/CreditsSetupDialog.tsx',
     text: 'Your opening and closing credits need … value…. We filled in what the manuscript already says; check them and save.',
@@ -284,7 +284,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   },
   {
     file: 'components/master/MasteringChain.tsx',
-    text: "One chain for the book: …, the same for every platform, with each platform's own RMS window and peak limit.",
+    text: "One chain masters the whole book, for every platform. Master with chooses it: the built-in chain brings each file to the platform's RMS window and peak limit; your DAW's FX chain or an Audacity macro runs your own steps, and asks your approval before each export.",
     class: 'overlay',
   },
   {

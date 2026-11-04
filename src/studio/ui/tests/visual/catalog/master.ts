@@ -2,7 +2,7 @@
 // Master page (SN-M5): the per-file checks, the selected file's checks, the book consistency and the delivery package beside them,
 // then the panels the mock has no equivalent of, kept as built. Building the package is Delivery's (catalog/delivery.ts).
 import type { StateEntry } from '../lib/types';
-import { KEEPS_DESKTOP_SCROLL, REFLOW, wholePage } from './shared';
+import { KEEPS_DESKTOP_SCROLL, POPUP_ANCHORED_AT_FIRST_WIDTH, REFLOW, TOOLTIP_CLOSES_ON_RESIZE, wholePage } from './shared';
 import { brand } from '../../../src/brand.gen';
 
 export const masterStates: StateEntry[] = [
@@ -12,6 +12,20 @@ export const masterStates: StateEntry[] = [
     description:
       'Master & QC, nothing measured yet - the ACX profile pill and Check files…, "Nothing measured yet", the book consistency with no measurements, the built-in chain as three steps, and the delivery package aside with what it waits on',
     ...REFLOW,
+  },
+  {
+    page: 'master',
+    state: 'daw-tools-menu',
+    description:
+      'Master & QC with nothing measured, the DAW tools menu beside Check files opened - both entries off, each saying no chapter is linked to a REAPER track yet',
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+  },
+  {
+    page: 'master',
+    state: 'daw-tools-menu-off',
+    description:
+      'Master & QC with nothing measured, the DAW tools menu beside Check files opened - both entries off, each saying no chapter is linked to a REAPER track yet',
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
   },
   {
     page: 'master',
@@ -37,6 +51,13 @@ export const masterStates: StateEntry[] = [
     state: 'book-spread',
     description:
       "Master & QC, six chapters already checked against ACX (?mockMeasure=spread) - every file passing, the first file's Checks, and the book consistency as RMS by file against the ACX range",
+  },
+  {
+    page: 'master',
+    state: 'text-column',
+    description:
+      'Master & QC, every chapter already measured (?mockDelivery=ready) - the files table\'s Text column: 100% from a current Recording Check, a red cross on the three below the check\'s thresholds, and "Not checked" on the file whose chapter has no check',
+    ...REFLOW,
   },
   {
     page: 'master',
@@ -117,10 +138,41 @@ export const masterStates: StateEntry[] = [
   // Master & QC, "Master all to spec…" (no mock equivalent, kept as built)
   {
     page: 'master',
+    state: 'to-spec-empty',
+    description:
+      'Master & QC, the Master to spec card before any file is picked - its labelled primary Choose files to master… and Master before encoding with the built-in chain; the page header keeps its icon as the secondary way in (#2931)',
+    ...KEEPS_DESKTOP_SCROLL,
+    ...REFLOW,
+  },
+  {
+    page: 'master',
     state: 'to-spec-picked',
     description:
       'Master & QC, Master all to spec… with five files picked and given a role - two chapters (their titles editable), opening and closing credits, a retail sample, Master before encoding on with the built-in chain, and Master & encode',
     ...KEEPS_DESKTOP_SCROLL,
+  },
+  // The chain card's choice of mastering row (#2739): the issue's placement, a control the mock lacks
+  {
+    page: 'master',
+    state: 'chain-choice',
+    description:
+      "Master & QC's Mastering chain card scrolled to - Master with: the three rows as radios, the built-in chain chosen (the row the host says the project masters with), and its three steps",
+    ...KEEPS_DESKTOP_SCROLL,
+    ...REFLOW,
+  },
+  {
+    page: 'master',
+    state: 'chain-saved',
+    description:
+      "Master & QC's Mastering chain card after choosing Your DAW's FX chain - the choice moved once the host answered, and the card says its steps are set in the DAW",
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'master',
+    state: 'chain-unavailable',
+    description:
+      "Master & QC's Mastering chain card with Audacity's row not available on this computer (?mockMastering=no-audacity) - that row off. The driver opens its reason as the tooltip under the pointer; the capture parks the pointer, so the shot shows the row off and the tooltip closed (a tooltip left open fails axe's landmark rule, and axe debt only shrinks)",
+    ...TOOLTIP_CLOSES_ON_RESIZE,
   },
   // Master & encode with a mastering row that makes the DAW render: the narrator's approval for this one export first (#2739)
   {
@@ -149,6 +201,28 @@ export const masterStates: StateEntry[] = [
   },
   {
     page: 'master',
+    state: 'to-spec-approve-long-chain',
+    description:
+      "Master & QC, the approval dialog over a project whose DAW chain is long (?mockMastering=daw&mockMasterChain=long, #2932) - the files and regions, then the FX chain this render runs, each track's plug-ins in order and the master's, one marked (off), capped to its own scroll, the question and the actions in view",
+    ...KEEPS_DESKTOP_SCROLL,
+    ...REFLOW,
+  },
+  {
+    page: 'master',
+    state: 'to-spec-approve-chain-off',
+    description:
+      "Master & QC, the approval dialog's long DAW chain scrolled to its bypassed plug-in (?mockMastering=daw&mockMasterChain=long, #2932) - the row numbered in signal order, its Off badge beside the name",
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'master',
+    state: 'to-spec-approve-no-fx',
+    description:
+      'Master & QC, the approval dialog over a project with no FX on any track or the master (?mockMastering=daw&mockMasterChain=empty, #2932) - "Signal order: no effects" and one "No FX" row, then the files',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'master',
     state: 'to-spec-approve-long-names',
     description:
       'Master & QC, the approval dialog over files with very long names (?mockMastering=daw&mockExportPick=long) - each name and region wrapping in its cell, nothing past the dialog',
@@ -160,6 +234,20 @@ export const masterStates: StateEntry[] = [
     state: 'to-spec-running',
     description:
       'Master & QC, mastering and encoding part way through (?mockRenderExport=running) - real progress, Cancel, and each file waiting, mastering or encoding',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'master',
+    state: 'to-spec-last-run',
+    description:
+      "Master & QC opened on an export that already finished (?mockDelivery=ready: the host keeps the job across the app's reload, the mock boots with one) - its files are the picked files, each Ready and editable, with Remove to dismiss them and Master & encode to run them again (#2935 review)",
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'master',
+    state: 'to-spec-cancelled',
+    description:
+      'Master & QC, a running Master & encode cancelled (?mockRenderExport=running) - each file Cancelled, its role and title editable again, Add files…, Master before encoding and Master & encode back to run it again (#2935)',
     ...KEEPS_DESKTOP_SCROLL,
   },
   // Master & QC, multi-platform export: several profiles' packages from one mastered/encoded source, in one action (no mock

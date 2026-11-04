@@ -1,4 +1,6 @@
 {
+  "chain": [],
+  "chainDigest": "",
   "items": [
     {
       "kind": "credits_opening",

@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 import { masterFileRows, measureOnMaster } from '../drivers/shared';
-import { clickCase, type OverlayCase } from '../helpers/overlayGuardFor';
+import { clickCase, fromState, type OverlayCase } from '../helpers/overlayGuardFor';
 
 const grid = (page: Page) => page.getByRole('grid', { name: 'Per-file checks' });
 const firstRow = (page: Page) => grid(page).getByRole('row').nth(1);
@@ -103,6 +103,8 @@ export const masterCases: OverlayCase[] = [
     },
   },
   afterMeasuring(clickCase('chapter picker', 'menu', picker)),
+  fromState('master', 'daw-tools-menu', 'menu'),
+  fromState('master', 'daw-tools-menu-off', 'menu'),
   hint('hint on Play the quietest 5 s', 'Play the quietest 5 s'),
   // Not at 320x300: the icon is in the table panel's header at the top of the page, and the guard only scrolls it to the window's top edge, under the
   // shell's top bar, so the pointer never reaches it (a narrator scrolls further). Listed as not covered; the other widths are.

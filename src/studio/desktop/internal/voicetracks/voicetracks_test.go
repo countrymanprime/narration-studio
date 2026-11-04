@@ -177,3 +177,50 @@ func TestWithNoProjectNothingIsSaved(t *testing.T) {
 		t.Fatalf("err = %v, want ErrNoProject", err)
 	}
 }
+
+func TestAddingCharactersToATrackKeepsTheOnesItHad(t *testing.T) {
+	service, _ := newService(t)
+	if _, err := service.SetTrackCharacters("Extras", []string{"duchess", "cook"}); err != nil {
+		t.Fatal(err)
+	}
+	got, err := service.AddTrackCharacters(" Extras ", []string{"cook", "king", "king"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []TrackAssignment{{Track: "Extras", Characters: []string{"duchess", "cook", "king"}}}
+	if !reflect.DeepEqual(got.Tracks, want) {
+		t.Fatalf("got %+v, want %+v", got.Tracks, want)
+	}
+	// A track with none yet gets the ones given; none given changes nothing.
+	got, _ = service.AddTrackCharacters("King", []string{"king"})
+	if len(got.Tracks) != 2 || got.Tracks[1].Track != "King" {
+		t.Fatalf("got %+v", got.Tracks)
+	}
+	got, _ = service.AddTrackCharacters("Queen", nil)
+	if len(got.Tracks) != 2 {
+		t.Fatalf("an empty add made an assignment: %+v", got.Tracks)
+	}
+	if _, err := service.AddTrackCharacters("", []string{"king"}); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("a blank name: %v", err)
+	}
+	if _, err := service.AddTrackCharacters("Extras", []string{""}); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("a blank id: %v", err)
+	}
+}
+
+func TestAddingPastTheLimitOfCharactersIsRefused(t *testing.T) {
+	service, _ := newService(t)
+	ids := make([]string, MaxCharacters)
+	for i := range ids {
+		ids[i] = "c" + strings.Repeat("x", i%5) + string(rune('a'+i%26)) + string(rune('a'+i/26))
+	}
+	if _, err := service.SetTrackCharacters("Extras", ids); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.AddTrackCharacters("Extras", []string{"one-more"}); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("got %v, want refused", err)
+	}
+	if _, err := service.AddTrackCharacters("Extras", ids[:3]); err != nil {
+		t.Fatalf("adding ones it has: %v", err)
+	}
+}

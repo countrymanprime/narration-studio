@@ -15,3 +15,9 @@ export function recorderNameCapital(daw: DawKind | undefined): string {
 
 /** Whether the app's own recorder is what records: nothing else can start or end its take, so a take it reports is the app's. */
 export const recordsInApp = (daw: DawKind | undefined): boolean => daw === 'Built-in';
+
+/** The refusal for a DAW that has a different project open than the one linked here: a take or an edit would land in the wrong project. The Booth and the DAW tools menu say it the same way. */
+export function wrongProjectReason(daw: DawKind | undefined): string {
+  const name = recorderNameCapital(daw);
+  return `${name} has a different project open than the one linked here. Open the linked project in ${name}, or link the open one in Settings.`;
+}
