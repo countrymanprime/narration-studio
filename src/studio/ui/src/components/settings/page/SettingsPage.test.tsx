@@ -442,6 +442,34 @@ describe('Settings: editing', () => {
   });
 });
 
+describe('Settings: Reset to defaults reaches every row Changed counts (issue 2605)', () => {
+  it('puts back the rows this window keeps and the simple custom rows, and the Changed count goes with them', async () => {
+    localStorage.setItem('narration-ui-theme', 'dark');
+    localStorage.setItem('narration.booth.textSize', '56');
+    localStorage.setItem('narration.storyBible.sort', JSON.stringify([{ column: 'mentions', dir: 'desc' }]));
+    localStorage.setItem('narration-ui-ribbon-scroll-step', '25');
+    await renderPage();
+    pick('Appearance & keys');
+    await waitFor(() => expect(within(nav()).getByLabelText('4 changed')).toBeTruthy());
+    fireEvent.click(await screen.findByRole('button', { name: 'Reset to defaults' }));
+    await waitFor(() => expect(within(nav()).queryByLabelText(/changed$/)).toBeNull());
+    expect(localStorage.getItem('narration.booth.textSize')).toBe('40');
+    expect(JSON.parse(localStorage.getItem('narration.storyBible.sort')!)).toEqual([{ column: 'name', dir: 'asc' }]);
+    expect(localStorage.getItem('narration-ui-ribbon-scroll-step')).toBe('20');
+    expect(localStorage.getItem('narration-ui-theme')).toBe('system');
+    expect(screen.queryByRole('button', { name: 'Reset to defaults' })).toBeNull();
+  });
+
+  it('shows no Reset when the only changed row is one Reset leaves to its own control', async () => {
+    const api = createMockApi();
+    vi.spyOn(api, 'pronunciationOnlineKeyStatus').mockResolvedValue({ present: true } as never);
+    await renderPage({ api });
+    pick('Voice & pronunciation');
+    await waitFor(() => expect(within(nav()).getByLabelText('1 changed')).toBeTruthy());
+    expect(screen.queryByRole('button', { name: 'Reset to defaults' })).toBeNull();
+  });
+});
+
 describe('Settings: search and filters', () => {
   it('finds a setting by a word that is not in its name, across categories', async () => {
     await renderPage();

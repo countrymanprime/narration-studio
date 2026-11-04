@@ -14,6 +14,7 @@ import type { Notify } from '../../primitives/Toast';
 import { SettingsFormsProvider } from '../data/settingsForms';
 import { SettingsStoreProvider, useSettingsStore } from '../data/SettingsStore';
 import { isAnyChanged, isBrowserChanged, overrideValue } from '../data/values';
+import { isResettable, useRowResets, type RowReset } from '../data/rowResets';
 import { AssetsStoreProvider } from '../models/AssetsStore';
 import { AboutSection } from '../controls/AboutSection';
 import { CATEGORIES, categoryLabel } from '../registry/categories';
@@ -138,6 +139,10 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
 
   const categoryRows = (id: CategoryId) => ROWS.filter((row) => row.cat === id && shown(row));
   const changedIn = (id: CategoryId) => categoryRows(id).filter(changed).length;
+  const resets = useRowResets();
+  const { notify } = useSettingsHost();
+  // What the header's Reset to defaults puts back: the changed rows it knows how to reset (the others are undone in their own row).
+  const resettableChangedIn = (id: CategoryId) => categoryRows(id).filter((row) => changed(row) && isResettable(row)).length;
 
   const showCategory = useCallback((id: CategoryId) => {
     setCat(id);
@@ -246,10 +251,10 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
           <CategoryPane
             category={category!}
             rows={categoryRows(cat)}
-            changed={changedIn(cat)}
+            changed={resettableChangedIn(cat)}
             advancedOpen={Boolean(advanced[cat])}
             onToggleAdvanced={() => setAdvanced((current) => ({ ...current, [cat]: !current[cat] }))}
-            onReset={() => void resetCategory(categoryRows(cat), store)}
+            onReset={() => void resetCategory(categoryRows(cat).filter(changed), store, resets, notify)}
             lit={lit}
             extra={cat === 'app' ? <AboutSection /> : undefined}
           />
@@ -335,14 +340,32 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
   );
 }
 
-/** Puts every row of a category back to its default: the computer's values and this project's overrides. */
-async function resetCategory(rows: readonly SettingMeta[], store: ReturnType<typeof useSettingsStore>): Promise<void> {
+/**
+ * Puts every changed row of a category back to its default: the computer's values and this project's overrides for a row with a host field,
+ * and the setter the row's own Reset uses for a row with none (`useRowResets`). A row it cannot reset is left to its own control. Rows reset
+ * one after another; the ones the host refused are named in one message.
+ */
+async function resetCategory(
+  rows: readonly SettingMeta[],
+  store: ReturnType<typeof useSettingsStore>,
+  resets: Readonly<Record<string, RowReset>>,
+  notify: (message: string, tone?: 'error') => void,
+): Promise<void> {
+  const failed: string[] = [];
   for (const row of rows) {
-    if (!row.field) continue;
-    const { global, project } = store.fieldsOf(row);
-    if (global?.isSet && global.value !== row.def) await store.write(row, 'global', null);
-    if (row.scope === 'both' && project?.isSet) await store.write(row, 'project', null);
+    try {
+      if (row.field) {
+        const { global, project } = store.fieldsOf(row);
+        if (global?.isSet && global.value !== row.def) await store.write(row, 'global', null);
+        if (row.scope === 'both' && project?.isSet) await store.write(row, 'project', null);
+      } else if (row.id in resets) {
+        await resets[row.id]!();
+      }
+    } catch {
+      failed.push(row.label);
+    }
   }
+  if (failed.length > 0) notify(`Could not reset ${failed.join(', ')}.`, 'error');
 }
 
 /**
