@@ -2722,6 +2722,7 @@
         "Standalone"
       ],
       "consumers": [
+        "src/components/booth/frame/LevelsMenu.tsx",
         "src/components/booth/voices/WhoIsInDialog.tsx",
         "src/components/devtools/MockStatesPanel.tsx",
         "src/components/editing/range/cut/CutDialog.tsx",
