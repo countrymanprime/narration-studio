@@ -169,7 +169,7 @@ describe('Settings: Models & downloads', () => {
     expect(bar.textContent).not.toContain('Stored in');
     const row = document.querySelector<HTMLElement>('[data-row="models.folder"]')!;
     expect(within(row).getByRole('button', { name: 'Open folder' })).toBeTruthy();
-    expect(screen.getAllByText(/narration-studio\/assets|AppData/).length).toBe(1);
+    expect(screen.getAllByText(/\/assets$|AppData/).length).toBe(1);
   });
 
   it('draws the analysis tools in a card under their label, like the list above', async () => {
