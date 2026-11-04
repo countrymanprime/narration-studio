@@ -141,13 +141,14 @@ describe('retakes on lanes, in the takes list', () => {
 
   it('turns the other lanes off while REAPER answers, and one pick at a time is made', async () => {
     const user = userEvent.setup();
-    const api = renderPage();
-    const pick = vi.spyOn(api, 'retakeLanesPick');
+    // REAPER has not answered yet: the pick started and no state event came.
+    const pick = vi.fn(async () => ({ status: 'started' as const }));
+    renderPage({ retakeLanesPick: pick });
     await user.click(await screen.findByRole('button', { name: `Play this lane: lane 3 on ${TRACK}` }));
-    expect(row(2).getAttribute('aria-disabled')).toBe('true');
+    await waitFor(() => expect(row(2).getAttribute('aria-disabled')).toBe('true'));
     await user.click(row(2));
     expect(pick).toHaveBeenCalledTimes(1);
-    await waitFor(() => expect(toastUndo).toHaveBeenCalledTimes(1));
+    expect(toastUndo).not.toHaveBeenCalled();
   });
 
   it('keeps the rows and says why the buttons are off when the DAW cannot be asked', async () => {
