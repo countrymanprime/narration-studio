@@ -6,7 +6,8 @@
       "provider": "wiktextract",
       "displayName": "Wiktionary pronunciations (via Wiktextract)",
       "description": "IPA pronunciations for the Story Bible's pronunciation feature, read from your own computer with no internet connection, between the CMU dictionary and the eSpeak NG letter-to-sound guess.",
-      "version": "PENDING-PHASE-0-VERIFICATION",
+      "version": "unpinned",
+      "pending": "No release is pinned. kaikki.org, en.wiktionary.org and dumps.wikimedia.org were unreachable when this was checked (HTTP 403 from the egress proxy, 2026-11-03), so no archive URL, size or SHA-256 has been read. Pin one by downloading the English extract and filling in url, sha256, size, expand and installedSize (docs/research/wiktextract-pronunciation-source.md).",
       "publisher": "Wiktionary contributors, via the Wiktextract project (kaikki.org)",
       "license": "CC-BY-SA-4.0",
       "licenseUrl": "https://en.wiktionary.org/wiki/Wiktionary:Copyrights",
@@ -17,8 +18,8 @@
       "files": [
         {
           "name": "wiktextract-en-pronunciation.jsonl",
-          "url": "PENDING-PHASE-0-VERIFICATION",
-          "sha256": "PENDING-PHASE-0-VERIFICATION",
+          "url": "",
+          "sha256": "",
           "size": 0,
           "extract": "wiktextract",
           "expand": 0

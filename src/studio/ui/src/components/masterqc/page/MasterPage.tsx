@@ -308,7 +308,7 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
             <Panel title="Book consistency" subtitle={profile ? `RMS by file against ${rangeOf(profile)}` : undefined}>
               <Consistency files={run.files} profile={profile} />
             </Panel>
-            <MasterToSpecPanel jobs={jobs} chainLabel={chain?.label} onCheckFiles={() => void run.chooseOther()} />
+            <MasterToSpecPanel jobs={jobs} chain={chain} onStartRefused={mastering.reload} onCheckFiles={() => void run.chooseOther()} />
             <MasteringChain providers={mastering.providers} problem={mastering.problem} />
             <DiagnosticsSection measuredPaths={run.paths} openSettings={openSettings} />
             <ReportExportPanel busy={run.running} measured={run.files.length > 0} />

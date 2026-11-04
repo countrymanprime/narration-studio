@@ -1,4 +1,5 @@
 // How to reach each `master` state in STATE_CATALOG (see app.drivers.ts).
+import type { Locator, Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
 import {
   type Driver,
@@ -17,6 +18,23 @@ import {
 } from './shared';
 
 const MEASURED = /^Measured 2 of 3 files; 1 could not be measured\./;
+
+// Removes one picked file from Master to spec by its Remove button.
+async function removeExportFile(page: Page, file: string): Promise<void> {
+  await page
+    .getByRole('row')
+    .filter({ has: page.getByRole('cell', { name: file, exact: true }) })
+    .getByRole('button', { name: 'Remove' })
+    .click();
+}
+
+// Presses Master & encode and waits for the approval dialog's table of the host's plan; answers the dialog.
+async function openApproval(page: Page, table: string): Promise<Locator> {
+  await page.getByRole('button', { name: 'Master & encode' }).click();
+  const dialog = page.getByRole('alertdialog', { name: 'Approve this render?' });
+  await dialog.getByRole('table', { name: table }).waitFor();
+  return dialog;
+}
 
 export const masterDrivers: Record<string, Driver> = {
   // The chapters never answer, so `openMaster` is not used: the page's own parts arrive, the package panel stays on its blocks.
@@ -154,6 +172,36 @@ export const masterDrivers: Record<string, Driver> = {
     await pickFilesToMaster(page);
     await page.getByRole('button', { name: 'Master & encode' }).waitFor();
     await scrollToTop(page, page.getByRole('region', { name: 'Master to spec' }));
+  },
+  'to-spec-approve-daw': async (page) => {
+    await openMaster(page, '?mockMastering=daw');
+    await pickFilesToMaster(page);
+    await removeExportFile(page, 'Retail sample.wav');
+    await openApproval(page, 'Files and the regions they render');
+  },
+  'to-spec-approve-macro': async (page) => {
+    await openMaster(page, '?mockMastering=audacity');
+    await pickFilesToMaster(page);
+    const dialog = await openApproval(page, 'Files to master');
+    await dialog.getByRole('textbox', { name: 'Macro' }).fill('ACX – Master');
+    await dialog.getByRole('button', { name: 'Approve and master' }).click();
+    await dialog.getByText(/A macro name can hold only/).waitFor();
+  },
+  'to-spec-approve-many': async (page) => {
+    await openMaster(page, '?mockMastering=daw&mockExportPick=many');
+    await page.getByRole('button', { name: 'Master all to spec…' }).click();
+    await page.getByRole('table', { name: 'Files to export' }).waitFor();
+    await page.getByLabel('Role for 00 Opening credits.wav').selectOption('credits_opening');
+    await page.getByLabel('Role for 00 Closing credits.wav').selectOption('credits_closing');
+    await openApproval(page, 'Files and the regions they render');
+  },
+  'to-spec-approve-long-names': async (page) => {
+    await openMaster(page, '?mockMastering=daw&mockExportPick=long');
+    await page.getByRole('button', { name: 'Master all to spec…' }).click();
+    await page.getByRole('table', { name: 'Files to export' }).waitFor();
+    await page.getByLabel(/^Role for 00 Opening credits/).selectOption('credits_opening');
+    await page.getByLabel(/^Role for 00 Closing credits/).selectOption('credits_closing');
+    await openApproval(page, 'Files and the regions they render');
   },
   'to-spec-running': async (page) => {
     await openMaster(page, '?mockRenderExport=running');
