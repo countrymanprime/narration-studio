@@ -233,6 +233,26 @@ describe('Master & encode with a row that makes the DAW render (#2739)', () => {
     expect(within(dialog()).getByText("Audacity's effect macro masters 4 files for this export only.")).toBeTruthy();
   });
 
+  it('after a chain-changed stop the narrator can approve again (Master & encode is back) (round 2, N1)', async () => {
+    const { api, exportPlan, exportStart } = await mount('daw');
+    // The dialog shows a chain the DAW no longer runs: the host stops at the first file, as dawChain.Master does.
+    exportPlan.mockRestore();
+    const plan = api.exportPlan.bind(api);
+    const stalePlan = vi.spyOn(api, 'exportPlan').mockImplementationOnce(async (req) => ({ ...(await plan(req)), chainDigest: `sha256:${'0'.repeat(64)}` }));
+    await openDialog();
+    await pressInDialog('Approve and master');
+    await waitFor(async () => expect((await api.exportState()).phase).toBe('error'));
+    expect((await api.exportState()).message).toMatch(/changed after you approved it: approve the render again/);
+    const again = await screen.findByRole('button', { name: 'Master & encode' });
+    expect(again.hasAttribute('disabled')).toBe(false);
+    await userEvent.click(again);
+    await screen.findByRole('alertdialog');
+    expect(stalePlan).toHaveBeenCalledTimes(2);
+    await pressInDialog('Approve and master');
+    await waitFor(() => expect(exportStart).toHaveBeenCalledTimes(2));
+    expect(sent(exportStart)[1]?.approval?.chainDigest).toBe((await plan({ items: sent(exportStart)[1]!.items, master: true })).chainDigest);
+  });
+
   it('a press while the start waits sends nothing more, and every control in the dialog is held', async () => {
     let answer: (() => void) | undefined;
     const { exportStart } = await mount('daw');
