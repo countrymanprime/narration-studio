@@ -192,6 +192,20 @@ export const masterStates: StateEntry[] = [
       'Master & QC, mastering and encoding part way through (?mockRenderExport=running) - real progress, Cancel, and each file waiting, mastering or encoding',
     ...KEEPS_DESKTOP_SCROLL,
   },
+  {
+    page: 'master',
+    state: 'to-spec-last-run',
+    description:
+      "Master & QC opened on an export that already finished (?mockDelivery=ready: the host keeps the job across the app's reload, the mock boots with one) - its files are the picked files, each Ready and editable, with Remove to dismiss them and Master & encode to run them again (#2935 review)",
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'master',
+    state: 'to-spec-cancelled',
+    description:
+      'Master & QC, a running Master & encode cancelled (?mockRenderExport=running) - each file Cancelled, its role and title editable again, Add files…, Master before encoding and Master & encode back to run it again (#2935)',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
   // Master & QC, multi-platform export: several profiles' packages from one mastered/encoded source, in one action (no mock
   // equivalent, kept as built, in the column beside the files)
   {

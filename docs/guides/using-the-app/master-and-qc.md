@@ -152,9 +152,18 @@ and [Delivery](delivery.md) still go by the files you checked: the check icon be
 "Check the prepared files so Delivery counts them") opens the file picker to check the copies, and a chapter counts as
 mastered once its file passes.
 
+From the press of **Master & encode** until the export ends, the files, **Add files…** and **Master before encoding**
+are locked, and **Cancel** shows it is busy until the app answers. When the export ends, finished, cancelled or failed,
+they unlock: each row keeps its **Status** from that run until you remove it, and you can change the files, the roles,
+the titles or the checkbox and press **Master & encode** again. If you come back to Master & QC while the app is still
+open, the last export's files are listed again with their status. Remove them to dismiss that run. Picking a file that
+is already listed adds no row, and a message says so.
+
 ![Master all to spec with five files picked and given a role](../../images/ui/master-to-spec-picked.webp)
 
 ![Master & encode asking approval to master with the DAW's FX chain, naming the regions it renders](../../images/ui/master-to-spec-approve.webp)
+
+![A cancelled export: each file Cancelled, and the files and Master & encode back to run it again](../../images/ui/master-to-spec-cancelled.webp)
 
 ## Building packages for several platforms at once
 
