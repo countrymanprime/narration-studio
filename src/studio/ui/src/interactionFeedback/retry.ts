@@ -288,8 +288,6 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/settings/models/ModelsFolder.tsx#2': no(RF),
   'src/components/settings/models/ModelsFolder.tsx#3': no(RF),
   'src/components/settings/controls/modelsControls.tsx#1': no(BT),
-  // Main's chapter-folders repair (#2926) was judged after it landed; it moves tracks in the DAW, so a repeat is the narrator's decision.
-  'src/components/engine/useChapterFolders.ts#1': no(ED),
   'src/components/settings/page/DeleteStoryBibleData.tsx#1': no(DS),
   'src/components/settings/page/DeleteStoryBibleData.tsx#2': no(BT),
   'src/components/settings/page/ProjectDataPanel.tsx#1': no(DS),
