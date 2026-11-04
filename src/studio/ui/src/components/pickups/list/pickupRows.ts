@@ -88,6 +88,9 @@ export const openPickups = (pickups: readonly PickupItem[]): PickupItem[] => pic
 /** The pickups the next session takes: open and not left out. */
 export const sessionPickups = (pickups: readonly PickupItem[]): PickupItem[] => pickups.filter((pickup) => !pickup.done && pickup.included);
 
+/** The most characters the host keeps in a hand-added line. */
+export const PICKUP_LINE_MAX = 500;
+
 /** Seconds into the recording as "05:12.0"; "—" when the source gave no time. */
 export function clock(seconds: number | null): string {
   if (seconds === null || !Number.isFinite(seconds)) return '—';

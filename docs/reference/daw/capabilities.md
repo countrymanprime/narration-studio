@@ -156,6 +156,16 @@ Facts about REAPER, Audacity and the built-in recorder are copied from the pages
 - **Audacity 4.x:** not available: no scripting interface ([Audacity 4.x](audacity-4.md)).
 - **Checked:** harness (`track_create_test.lua`) and the Audacity adapter's fake pipe (`trackcreate_test.go`); expected result is row C19; the run in REAPER is pending with the owner ([#510](https://github.com/countrymanprime/narration-studio/issues/510)). Not run in Audacity.
 
+### `tracks_read`
+
+- **Intent:** show the tracks the engine has now, so a track or folder the narrator adds there appears in Chapter links and Link chapters before the project is saved ([#2840](https://github.com/countrymanprime/narration-studio/issues/2840)).
+- **Role:** `TrackLister`, synchronous.
+- **Result:** the open project's file (empty when never saved), whether it is unsaved, its edit counter, and every track in order with the engine's id for it, its name (empty for a track never named) and its folder depth change; then how many were listed and how many there are. It changes nothing and adds no undo point. The host uses it only when the engine has the linked project open, and otherwise reads the saved project and says why (`TracksLive`).
+- **REAPER:** `tracks_read` (`TRACKS_READ`, `TRACKS_ROW`, `TRACKS_READ_END`), Experimental, in `narration_tracks_read.lua`: `EnumProjects(-1)`, `GetProjectStateChangeCount`, then per track `GetTrackGUID`, `P_NAME` and `I_FOLDERDEPTH`, at most 2000 rows. `P_NAME` is read rather than `GetTrackName`, which answers "Track N" for a track with no name, so the live name equals the saved `.rpp`'s `NAME`.
+- **Audacity 3.x:** not yet available: the host keeps reading Audacity's tracks from the snapshot it takes while Audacity answers.
+- **Audacity 4.x:** not available: no scripting interface ([Audacity 4.x](audacity-4.md)).
+- **Checked:** harness (`tracks_read_test.lua`) and the bridge's Go tests (`tracks_read_test.go`). In REAPER 7.82 on Linux, 2026-11-03: the real-REAPER scenario `tracks_read` lists a track and a folder added after the last save with their depth changes, an unnamed track as empty and a bar, emoji and Hebrew name whole, and the read leaves the undo history, the change count and the dirty flag as they were. Not run on Windows; the owner's pass is pending.
+
 ### `follow_position`
 
 - **Intent:** know which track the narrator is on and where their cursor is, and take them to a track at its end or at a time, so the Booth opens where the narrator is and moves the engine to the chapter and word it was opened at.

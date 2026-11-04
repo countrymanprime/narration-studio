@@ -141,6 +141,13 @@
   },
   {
     "page": "production",
+    "state": "report-written",
+    "viewport": "desktop",
+    "docName": "production-report-written",
+    "caption": "Production - Export status report after Export: the written files, their folder and the open-folder button"
+  },
+  {
+    "page": "production",
     "state": "recording-check-rules",
     "viewport": "desktop",
     "docName": "production-recording-check-rules",
@@ -516,6 +523,20 @@
     "viewport": "desktop",
     "docName": "engine-panel-nested-chapters-confirm",
     "caption": "The audio engine panel - the confirmation listing every track that moves out of the chapter's folder"
+  },
+  {
+    "page": "engine",
+    "state": "live-tracks-saved",
+    "viewport": "desktop",
+    "docName": "engine-panel-live-tracks-saved",
+    "caption": "The audio engine panel - Chapter links when REAPER is not answering: the header says the tracks are the saved project's, and when they were read"
+  },
+  {
+    "page": "engine",
+    "state": "live-tracks-stale",
+    "viewport": "desktop",
+    "docName": "engine-panel-live-tracks-stale",
+    "caption": "The audio engine panel - Chapter links after REAPER stopped answering: the header says when the tracks were last read, and a message offers Retry"
   },
   {
     "page": "proof-chapter",

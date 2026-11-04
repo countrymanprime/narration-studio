@@ -69,3 +69,16 @@ for (const size of [
     }
   });
 }
+
+// A double click on Remove is one removal: the second click lands on the line that moved up into the first one's place.
+test('Pickups / a double click on Remove removes one line', async ({ page }) => {
+  await page.goto('/');
+  await settlePage(page);
+  await goToPage(page, 'Pickups');
+  const remove = page.getByRole('region', { name: 'Pickups' }).getByRole('button', { name: 'Remove from pickups' });
+  await remove.first().waitFor();
+  const before = await remove.count();
+  await remove.first().dblclick();
+  await page.waitForTimeout(800);
+  expect(await remove.count()).toBe(before - 1);
+});

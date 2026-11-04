@@ -52,6 +52,9 @@ var declares = map[dawport.Capability]dawport.Level{
 	// track_create is track_create's (narration_track_create.lua): Experimental until the owner sees one Undo take the new track back
 	// and REAPER answer its GUID and index.
 	dawport.CapTrackCreate: dawport.Experimental,
+	// tracks_read is tracks_read's (narration_tracks_read.lua): read-only. Experimental until the owner sees a track and a folder added in
+	// REAPER, unsaved, listed in Chapter links (the real-REAPER scenario tracks_read keeps the run's evidence).
+	dawport.CapTracksRead: dawport.Experimental,
 	// follow_position is read_place's and go_to's (narration_track_select.lua): Experimental until the owner sees the Booth open on the track REAPER is on.
 	dawport.CapFollowPosition: dawport.Experimental,
 	// transport_sync is set_cursor's, play_from's, stop_play's and watch_transport's (narration_transport.lua): Experimental until the owner hears the
@@ -116,6 +119,7 @@ var commandCapability = map[string]dawport.Capability{
 	"select_track":        dawport.CapTrackSelect,
 	"track_create":        dawport.CapTrackCreate,
 	"chapter_folders":     dawport.CapTrackCreate,
+	"tracks_read":         dawport.CapTracksRead,
 	"read_place":          dawport.CapFollowPosition,
 	"go_to":               dawport.CapFollowPosition,
 	"set_cursor":          dawport.CapTransportSync,
@@ -262,6 +266,7 @@ func New(client *bridge.Client, allowed func(dawport.Capability) error) (*Adapte
 			dawport.CapTrackState:        actions,
 			dawport.CapTrackSelect:       actions,
 			dawport.CapTrackCreate:       actions,
+			dawport.CapTracksRead:        actions,
 			dawport.CapFollowPosition:    placeFollower{actions, allowed},
 			dawport.CapTransportSync:     transportSyncer{actions, allowed, positions},
 			dawport.CapRecord:            actions,

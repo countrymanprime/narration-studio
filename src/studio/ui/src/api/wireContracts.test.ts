@@ -134,13 +134,14 @@ import {
   productionOverviewSchema,
   productionPlanSchema,
   productionReportExportSchema,
+  reportsFolderResultSchema,
   productionReportPreviewSchema,
   productionStartResultSchema,
   productionStopResultSchema,
 } from './schemas/production';
 import { PRODUCTION_SCENARIOS } from './productionMock';
 import { findingMarkerSchema, findingNavigationSchema, findingSchema, findingsPageSchema, findingsSummarySchema } from './schemas/findings';
-import { tracksDiscoverySchema, tracksProjectSchema } from './schemas/tracks';
+import { tracksDiscoverySchema, tracksLiveSchema, tracksProjectSchema } from './schemas/tracks';
 import {
   chapterRegionPlanSchema,
   chapterRegionsCreatedSchema,
@@ -1542,8 +1543,10 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const api = createMockApi();
     expectMatches(tracksDiscoverySchema, await api.tracksDiscover(), 'mock tracks discovery');
     expectMatches(tracksProjectSchema, await api.tracksList(), 'mock tracks project');
+    expectMatches(tracksLiveSchema, await api.tracksLive(), 'mock live tracks');
     const folders = createMockApi({}, { trackFolders: true });
     expectMatches(tracksProjectSchema, await folders.tracksList(), 'mock tracks project in folders');
+    expectMatches(tracksLiveSchema, await folders.tracksLive(), 'mock live tracks in folders');
     expectMatches(chapterTrackLinksSchema, await folders.chapterTrackLinks(), 'mock chapter links in folders');
     expectMatches(chapterTrackMatchSchema, await folders.chapterTrackMatch((await ownChapters(folders))[0].id), 'mock chapter match in folders');
     const several = createMockApi({}, { tracksCandidates: ['C:/A/A.rpp', 'C:/A/B.rpp'] });
@@ -4408,6 +4411,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'tracksDiscover',
       'tracksSelect',
       'tracksList',
+      'tracksLive',
       'chapterTrackMapList',
       'chapterTrackMapConfirm',
       'chapterTrackSet',
@@ -4520,6 +4524,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'productionStartTimer',
       'productionStopTimer',
       'productionStatusReport',
+      'productionOpenReportsFolder',
       'productionStatusReportPreview',
       'measurePickFiles',
       'measureAnalyze',
@@ -4753,6 +4758,13 @@ describe('the production tracking mock', () => {
 
   it('the status report export follows the ticked sections, leaves out the money unless asked, and never repeats a file name', async () => {
     const pinned = productionReportExportSchema.parse(readGolden('production-status-report.json'));
+    const folder = reportsFolderResultSchema.parse(readGolden('production-open-reports-folder.json'));
+    const fresh = createMockApi();
+    await expect(fresh.productionOpenReportsFolder()).rejects.toThrow(/export a report first/);
+    await fresh.productionStatusReport(pinned.include);
+    expect(await fresh.productionOpenReportsFolder()).toEqual(folder);
+    expect(reportsFolderResultSchema.safeParse({ folder: '' }).success).toBe(false);
+    expect(reportsFolderResultSchema.safeParse({ folder: 'a', path: 'b' }).success).toBe(false);
     expect(() => productionReportExportSchema.parse({ ...pinned, include: { ...pinned.include, extra: true } })).toThrow();
     const api = createMockApi();
     const left = await api.productionStatusReport(pinned.include);

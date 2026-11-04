@@ -58,6 +58,9 @@ export type MockApiSeed = {
   tracksCandidates?: string[];
   /** The project's tracks sit in REAPER folders (`?mockTrackFolders=1`). */
   trackFolders?: boolean;
+  /** What TracksLive answers: the saved project because REAPER is not answering (`?mockLiveTracks=saved`), or the first read and then a
+   * refusal on every later one (`failing`). Left out, REAPER answers with its tracks. */
+  liveTracks?: 'saved' | 'failing';
   /** A Voice folders project: Chapter 1 linked to a folder of voice tracks, Extras assigned two characters (`?mockVoiceFolders=1`). */
   voiceFolders?: boolean;
   /** Chapters 2 and 3's linked tracks sit inside Chapter 1's folder in REAPER, as the append bug left the owner's project (#2838,
@@ -117,6 +120,8 @@ export type MockApiSeed = {
   assetNames?: 'long';
   /** `?mockHold=`: the reads named here never answer, so the page that makes them stays on its loading skeleton: the Production overview, the Story Bible's entries. */
   held?: readonly ('overview' | 'entities')[];
+  /** `?mockOpenFolder=fail`: the file manager refuses to open the reports folder, so the dialog's failure toast with Retry can be seen. */
+  openFolder?: 'fail';
   /** `?mockPlan=`: the read of the production plan (the Schedule's) never answers (`loading`) or fails (`fails`), so the Schedule shows its loading skeleton or its error. */
   planRead?: 'loading' | 'fails';
   /** `?mockChapters=`: the read of the manuscript's chapters never answers (`loading`) or fails (`fails`), so a page that reads them shows its loading skeleton or its error.
@@ -294,6 +299,8 @@ export type MockState = {
   createdTracks: number;
   /** A repair moved the `?mockNestedChapters=1` chapters out of the first chapter's folder. */
   chaptersUnnested: boolean;
+  /** How many times TracksLive was read, so `liveTracks: 'failing'` answers the first read only. */
+  liveTrackReads: number;
   jobEndListeners: Set<(event: JobEnded) => void>;
   endJob: (event: JobEnded) => void;
   /** The Story Bible's dialogue cues. */
@@ -321,6 +328,7 @@ export function createMockState(initial: MockApiSeed): MockState {
     chapterTrackMappings: wireClone(initial.chapterTrackMappings ?? []).map((link) => ({ origin: 'manual', match: null, ...link })),
     createdTracks: 0,
     chaptersUnnested: false,
+    liveTrackReads: 0,
     jobEndListeners,
     endJob: (event) => void setTimeout(() => jobEndListeners.forEach((listener) => listener(event)), 0),
     dialogueCues: wireClone(WIRE_DIALOGUE_CUES),

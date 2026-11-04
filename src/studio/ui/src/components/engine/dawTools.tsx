@@ -7,6 +7,7 @@ import { LinkChaptersDialog } from './LinkChaptersDialog';
 import { RenderConfigDialog } from './RenderConfigDialog';
 import { RetakeLanesDialog } from './RetakeLanesDialog';
 import type { ChapterLinks } from './useChapterLinks';
+import type { LiveTracks } from './useLiveTracks';
 
 /**
  * The one list of the tools that act on the DAW project, and the one function that says whether each can be used. The Engine panel's
@@ -19,8 +20,11 @@ export type DawToolId = 'link-chapters' | 'render-config' | 'create-regions' | '
 /** What the tool does to the project: tie chapters to tracks (map), write chapters into it (structure), fix audio in it (repair), write files out of it (export), choose between its takes (takes). */
 export type DawToolGroup = 'map' | 'structure' | 'repair' | 'export' | 'takes';
 
-/** What a tool's dialog gets: the chapter links the menu was given (its tracks too), a way to close, and a way to open another tool. */
-type DawToolDialogProps = { links: ChapterLinks; onClose: () => void; onOpenTool: (id: DawToolId) => void };
+/**
+ * What a tool's dialog gets: the chapter links the menu was given (its tracks too), a REAPER project's live track list when the page reads
+ * one (#2840), a way to close, and a way to open another tool.
+ */
+type DawToolDialogProps = { links: ChapterLinks; live?: LiveTracks; onClose: () => void; onOpenTool: (id: DawToolId) => void };
 
 export type DawTool = {
   id: DawToolId;
@@ -32,7 +36,12 @@ export type DawTool = {
 
 /** In the order the Engine panel has always drawn them. */
 export const DAW_TOOLS: readonly DawTool[] = [
-  { id: 'link-chapters', group: 'map', label: 'Link chapters…', dialog: ({ links, onClose }) => <LinkChaptersDialog links={links} onClose={onClose} /> },
+  {
+    id: 'link-chapters',
+    group: 'map',
+    label: 'Link chapters…',
+    dialog: ({ links, live, onClose }) => <LinkChaptersDialog links={links} live={live} onClose={onClose} />,
+  },
   {
     id: 'render-config',
     group: 'structure',

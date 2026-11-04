@@ -76,7 +76,7 @@ import {
 } from './schemas/storyBible';
 import { approvedCharacterReferencesSchema, characterRegionsSchema, characterReferenceSchema } from './schemas/character';
 import { settingsForScopeSchema } from './schemas/settings';
-import { tracksDiscoverySchema, tracksProjectSchema } from './schemas/tracks';
+import { tracksDiscoverySchema, tracksLiveSchema, tracksProjectSchema } from './schemas/tracks';
 import {
   chapterRegionPlanSchema,
   chapterRegionsCreatedSchema,
@@ -117,6 +117,7 @@ import {
   productionOverviewSchema,
   productionPlanSchema,
   productionReportExportSchema,
+  reportsFolderResultSchema,
   productionReportPreviewSchema,
   productionStartResultSchema,
   productionStopResultSchema,
@@ -543,6 +544,7 @@ export const wailsClient: NarrationApi = {
   productionOverview: () => decode(productionOverviewSchema, 'ProductionOverview', host.ProductionOverview()),
   productionStartTimer: (chapterId, stage) => decode(productionStartResultSchema, 'ProductionStartTimer', host.ProductionStartTimer(chapterId, stage)),
   productionStopTimer: () => decode(productionStopResultSchema, 'ProductionStopTimer', host.ProductionStopTimer()),
+  productionOpenReportsFolder: () => decode(reportsFolderResultSchema, 'ProductionOpenReportsFolder', host.ProductionOpenReportsFolder()),
   productionStatusReport: (include) => decode(productionReportExportSchema, 'ProductionStatusReport', host.ProductionStatusReport(include)),
   productionStatusReportPreview: (include) =>
     decode(productionReportPreviewSchema, 'ProductionStatusReportPreview', host.ProductionStatusReportPreview(include)),
@@ -757,6 +759,7 @@ export const wailsClient: NarrationApi = {
   tracksDiscover: () => decode(tracksDiscoverySchema, 'TracksDiscover', host.TracksDiscover()),
   tracksSelect: (path) => decode(tracksDiscoverySchema, 'TracksSelect', host.TracksSelect(path)),
   tracksList: () => decode(tracksProjectSchema, 'TracksList', host.TracksList()),
+  tracksLive: () => decode(tracksLiveSchema, 'TracksLive', host.TracksLive()),
   chapterTrackMapList: () => decode(chapterTrackMappingSchema, 'ChapterTrackMapList', host.ChapterTrackMapList()),
   chapterTrackMapConfirm: (trackGuid, chapterId) => decode(trackMappingSchema, 'ChapterTrackMapConfirm', host.ChapterTrackMapConfirm(trackGuid, chapterId)),
   chapterTrackSet: (chapterId, trackGuid) => decode(chapterTrackSetSchema, 'ChapterTrackSet', host.ChapterTrackSet(chapterId, trackGuid)),

@@ -17,6 +17,8 @@ import type { ChapterLinks } from './useChapterLinks';
 import type { ManuscriptChapter, Track, TrackMapping } from '../../types';
 import { addressPath } from '../../navigation/address';
 import { useVoiceLayout } from './voiceLayout';
+import { LiveTracksRefresh, LiveTracksStatus } from './LiveTracksStatus';
+import type { LiveTracks } from './useLiveTracks';
 import { folderChildren, folderLinkLabel } from './voices';
 import { NestedChaptersNotice } from './NestedChaptersNotice';
 import { linksKey, useChapterFolders } from './useChapterFolders';
@@ -43,8 +45,9 @@ const NARROW_ROW =
 // picture" list lives here, beside the per-chapter inline prompt used wherever a check needs it). It shows every
 // narration chapter whether or not it has a confirmed link, so an unlinked chapter and a link pointing at a track
 // that no longer exists are both visible in one place, not just the one chapter a narrator happens to be checking.
-// It draws from `links`, the one reader of the mapping that the Link chapters dialog and the Tracks card above share (R3EN1-7).
-export function ChapterLinksTable({ links, notify }: { links: ChapterLinks; notify: Notify }) {
+// It draws from `links`, the one reader of the mapping that the Link chapters dialog and the Tracks card above share (R3EN1-7). With `live` (a
+// REAPER project) its header says whose tracks these are and when they were read, with the Refresh that reads them again (#2840).
+export function ChapterLinksTable({ links, notify, live }: { links: ChapterLinks; notify: Notify; live?: LiveTracks }) {
   const { tracks, chapters, mappings, rows, error, busyChapterId } = links;
   const [editingChecking, setEditingChecking] = useState<ManuscriptChapter>();
   const folders = useVoiceLayout() === 'folders';
@@ -57,7 +60,13 @@ export function ChapterLinksTable({ links, notify }: { links: ChapterLinks; noti
     <Panel
       title="Chapter links"
       flush
-      actions={<NestedChaptersNotice check={nesting.check} repairing={nesting.repairing} onRepair={nesting.repair} onCheckAgain={nesting.recheck} />}
+      subtitle={live && <LiveTracksStatus live={live} />}
+      actions={
+        <span className="flex items-center gap-2">
+          <NestedChaptersNotice check={nesting.check} repairing={nesting.repairing} onRepair={nesting.repair} onCheckAgain={nesting.recheck} />
+          {live && <LiveTracksRefresh live={live} />}
+        </span>
+      }
     >
       {error && (
         <p role="alert" className="px-4 pt-3 text-sm" style={{ color: 'var(--danger-text)' }}>
@@ -181,7 +190,7 @@ function ChapterLinkRow({
           </span>
         ) : row.trackName ? (
           <span className="block truncate" title={linkedName}>
-            {linkedName}
+            <bdi>{linkedName}</bdi>
           </span>
         ) : (
           <span className="line-clamp-2 leading-[1.125rem]" style={{ color: 'var(--danger-text)' }}>

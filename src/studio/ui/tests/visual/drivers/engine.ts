@@ -204,6 +204,28 @@ export const engineDrivers: Record<string, Driver> = {
     await firstRow.getByRole('button', { name: 'Confirm' }).click();
     await firstRow.getByRole('button', { name: 'Change' }).waitFor();
   },
+  'live-tracks-saved': async (page) => {
+    // The mock's seam for REAPER not answering (see main.tsx): Chapter links' header says the tracks are the saved project's and why.
+    await page.goto('/?mockLiveTracks=saved');
+    await settlePage(page);
+    const panel = await openEnginePanel(page);
+    const links = panel.getByRole('region', { name: 'Chapter links' });
+    await links.scrollIntoViewIfNeeded();
+    await links.getByText(/^Saved project · read \d+ s ago$/).waitFor();
+  },
+  'live-tracks-stale': async (page) => {
+    // The mock answers the first live read and refuses every later one (see main.tsx): Refresh fails, the header says it can't tell and
+    // when it last read the tracks, and the failure is a toast.
+    await page.goto('/?mockLiveTracks=failing');
+    await settlePage(page);
+    const panel = await openEnginePanel(page);
+    const links = panel.getByRole('region', { name: 'Chapter links' });
+    await links.scrollIntoViewIfNeeded();
+    await links.getByText(/^REAPER now · read \d+ s ago$/).waitFor();
+    await links.getByRole('button', { name: 'Read the tracks from REAPER again' }).click();
+    await links.getByText(/^REAPER did not answer · last read \d+ s ago$/).waitFor();
+    await page.getByText('REAPER did not answer in time.').first().waitFor();
+  },
   'chapter-link-missing': async (page) => {
     // Reload with the mock's missing-track seam (see main.tsx): a confirmed link whose
     // trackGuid is not among the mock project's tracks.

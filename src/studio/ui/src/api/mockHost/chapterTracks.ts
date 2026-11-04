@@ -239,6 +239,23 @@ export function createChapterTracksMock(
       return wireClone(s.tracksDiscovery);
     },
     tracksList: async () => wireClone(project),
+    // TracksLive (src/studio/desktop/tracks_live.go): REAPER's tracks now by default; `?mockLiveTracks=saved` is REAPER not answering, so the
+    // saved project with its reason, and `failing` answers the first read and refuses every later one (a read that has gone quiet).
+    tracksLive: async () => {
+      s.liveTrackReads += 1;
+      if (initial.liveTracks === 'failing' && s.liveTrackReads > 1) throw new Error('REAPER did not answer in time.');
+      const readAt = new Date().toISOString();
+      if (initial.liveTracks === 'saved') {
+        return wireClone({
+          source: 'saved' as const,
+          reason: 'not_running' as const,
+          message: 'REAPER is not answering, so these are the tracks as of the last save.',
+          readAt,
+          project,
+        });
+      }
+      return wireClone({ source: 'live' as const, reason: '' as const, message: '', readAt, project });
+    },
     chapterTrackMapList: async () => ({ documentId: mockDocumentId, mappings: wireClone(s.chapterTrackMappings) }),
     chapterTrackMapConfirm: async (trackGuid, chapterId) => {
       await manuscriptReady;

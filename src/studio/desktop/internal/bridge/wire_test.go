@@ -71,6 +71,10 @@ var realEvents = map[string][]string{
 	"FOLDERS_PLANNED":  {"FOLDERS_PLANNED", "p1", "3"},
 	"FOLDERS_REPAIRED": {"FOLDERS_REPAIRED", "a1", "3"},
 	"FOLDERS_STALE":    {"FOLDERS_STALE", "a1"},
+	// src/studio/integrations/reaper/tests/tracks_read_test.lua (tracks_read).
+	"TRACKS_READ":     {"TRACKS_READ", "r1", "C:/p/Book.rpp", "0", "12"},
+	"TRACKS_ROW":      {"TRACKS_ROW", "r1", "3", "{00000004-0000-4000-8000-000000000004}", "Guard", "-1"},
+	"TRACKS_READ_END": {"TRACKS_READ_END", "r1", "5", "5"},
 	// src/studio/integrations/reaper/tests/media_file_test.lua (preview_file_range, stop_file_preview, reveal_file).
 	"FILE_PREVIEW_STARTED": {"FILE_PREVIEW_STARTED", "p1", "C:/Renders/Chapter 01.wav", "12.500000", "5.000000"},
 	"FILE_PREVIEW_STOPPED": {"FILE_PREVIEW_STOPPED", "s1", "1"},

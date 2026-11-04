@@ -110,6 +110,7 @@ var experimentalCapability = map[string]dawport.Capability{
 	"select_track":        dawport.CapTrackSelect,
 	"track_create":        dawport.CapTrackCreate,
 	"chapter_folders":     dawport.CapTrackCreate,
+	"tracks_read":         dawport.CapTracksRead,
 	"arm_only":            dawport.CapRecord,
 	"record_start":        dawport.CapRecord,
 	"record_stop":         dawport.CapRecord,
