@@ -479,7 +479,7 @@ export const settingsDrivers: Record<string, Driver> = {
   },
   'diagnostics-preview': async (page) => {
     await openSettings(page, 'App & updates');
-    await page.getByRole('region', { name: 'Diagnostics' }).evaluate((panel) => panel.scrollIntoView({ block: 'start' }));
+    await page.getByRole('region', { name: 'Diagnostics bundle' }).evaluate((panel) => panel.scrollIntoView({ block: 'start' }));
     await page.getByRole('button', { name: 'Preview the diagnostics bundle' }).click();
     await page.getByRole('dialog', { name: 'Diagnostics bundle' }).waitFor();
   },
