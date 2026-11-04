@@ -101,6 +101,20 @@ export const engineStates: StateEntry[] = [
   },
   {
     page: 'engine',
+    state: 'nested-chapters',
+    description:
+      "Chapter links when two linked chapters' tracks sit inside another linked chapter's folder in REAPER (?mockNestedChapters=1, #2838): the panel header's warning badge, 2 chapters nested, and Move them out…",
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'engine',
+    state: 'nested-chapters-confirm',
+    description:
+      "The nested-chapters repair's confirmation (?mockNestedChapters=1): the question, the sentence on what changes in REAPER and the list of every track that moves, each out of the chapter's folder to the top level",
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+  },
+  {
+    page: 'engine',
     state: 'voice-folders-link-picker',
     description:
       'A Voice folders project (?mockVoiceFolders=1) with Chapter 2\'s folder picker open: the Chapter 1 folder can be chosen (linked to Chapter 1), its Narrator, White Rabbit and Extras tracks are off with "A voice of its folder"',

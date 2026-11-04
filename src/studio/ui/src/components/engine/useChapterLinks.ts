@@ -59,9 +59,9 @@ function createdTracks(result: Extract<ChapterTrackCreateResult, { outcome: 'cre
  * The one reader of the chapter-to-track mapping in the audio engine panel. The Chapter links section, the Link chapters dialog and the
  * track list all draw from the value this returns, and a change goes through its `set` and `unlink` (chapterTrackSet and chapterTrackUnlink),
  * so no surface keeps a copy that can disagree with another. "Linked" means a confirmed mapping whose track is still in the project
- * (`chapterTrackRows`). `refreshKey` asks for a re-read after a change made elsewhere; `onChanged` tells the panel one was made here.
+ * (`chapterTrackRows`). `refreshKey` asks for a re-read after a change made elsewhere; `onChanged` tells the panel one was made here; not `enabled`, nothing is read yet.
  */
-export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: () => void, tracksReadAt: number | null = null): ChapterLinks {
+export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: () => void, tracksReadAt: number | null = null, enabled = true): ChapterLinks {
   const manuscript = usePort('manuscript');
   const chapterTrackMap = usePort('chapterTrackMap');
   const [chapters, setChapters] = useState<ManuscriptChapter[]>([]);
@@ -82,6 +82,7 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
   }, [manuscript, chapterTrackMap]);
 
   useEffect(() => {
+    if (!enabled) return;
     let active = true;
     reload().catch((reason) => {
       if (active) setError(String(reason));
@@ -90,7 +91,7 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
       active = false;
     };
     // refreshKey has no meaning of its own: it only asks this effect to run again after a change made elsewhere (chapter sync's panel).
-  }, [reload, refreshKey]);
+  }, [reload, refreshKey, enabled]);
 
   const change = (chapterId: string, write: () => Promise<unknown>) => {
     if (inFlight.current) return;

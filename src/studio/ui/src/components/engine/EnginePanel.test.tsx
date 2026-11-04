@@ -391,9 +391,11 @@ describe("EnginePanel's live track list", () => {
     );
     const links = await screen.findByRole('region', { name: 'Chapter links' });
     expect(await within(links).findByText('Tracks not read yet')).toBeTruthy();
-    expect(within(links).getByText(/^The tracks could not be read: .*REAPER did not answer in time\.$/)).toBeTruthy();
+    expect(await within(links).findByText(/^The tracks could not be read: .*REAPER did not answer in time\.$/)).toBeTruthy();
     expect(screen.queryByRole('alert')).toBeNull();
-    expect(notify).toHaveBeenCalledWith(expect.stringContaining('REAPER did not answer'), 'error', expect.objectContaining({ label: 'Retry' }));
+    await waitFor(() =>
+      expect(notify).toHaveBeenCalledWith(expect.stringContaining('REAPER did not answer'), 'error', expect.objectContaining({ label: 'Retry' })),
+    );
     fail = false;
     await user.click(within(links).getByRole('button', { name: 'Read the tracks from REAPER again' }));
     expect(await screen.findByRole('table', { name: 'Chapter links' })).toBeTruthy();

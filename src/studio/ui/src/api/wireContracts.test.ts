@@ -150,6 +150,7 @@ import {
   chapterTrackMatchSchema,
   chapterTrackSetSchema,
   chapterTrackCreateSchema,
+  chapterFoldersSchema,
   trackMappingSchema,
   trackSelectResultSchema,
 } from './schemas/chapterTrackMap';
@@ -1573,6 +1574,25 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(cleared.mappings).toHaveLength(0);
 
     await expect(api.chapterTrackMapConfirm('{0E4D1D7F-D039-674D-87E6-719376DE95EC}', 'not-a-real-chapter')).rejects.toThrow();
+  });
+
+  it('the ChapterFolders answers: clean, nested with its moves, repaired, stale and refused, each through the schema (#2838)', async () => {
+    expectMatches(chapterFoldersSchema, await createMockApi().chapterFoldersCheck(), 'mock chapter folders, clean');
+    const api = createMockApi({}, { nestedChapters: true });
+    const nested = await api.chapterFoldersCheck();
+    expectMatches(chapterFoldersSchema, nested, 'mock chapter folders, nested');
+    expect(nested.outcome).toBe('nested');
+    expect(nested.expected.length).toBeGreaterThan(0);
+    const stale = await api.chapterFoldersRepair([]);
+    expectMatches(chapterFoldersSchema, stale, 'mock chapter folders, stale');
+    expect(stale.outcome).toBe('stale');
+    const repaired = await api.chapterFoldersRepair(nested.expected);
+    expectMatches(chapterFoldersSchema, repaired, 'mock chapter folders, repaired');
+    expect(repaired.outcome).toBe('repaired');
+    expect((await api.chapterFoldersCheck()).outcome).toBe('clean');
+    const refused = await createMockApi({}, { nestedChapters: true, reaperState: 'recording_elsewhere' }).chapterFoldersCheck();
+    expectMatches(chapterFoldersSchema, refused, 'mock chapter folders, refused');
+    expect(refused.outcome).toBe('refused');
   });
 
   it('the ChapterTrackCreate answers: created and linked, each refusal, and a chapter the manuscript does not have', async () => {
@@ -4430,6 +4450,8 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'chapterTrackMapConfirm',
       'chapterTrackSet',
       'chapterTrackCreate',
+      'chapterFoldersCheck',
+      'chapterFoldersRepair',
       'chapterTrackUnlink',
       'chapterSyncState',
       'chapterSyncPreview',

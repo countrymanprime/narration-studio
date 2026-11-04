@@ -1,5 +1,5 @@
 // The mock host (mockApi.ts): tracks, chapter links and chapter sync.
-import type { ChapterTrackCreateResult } from '../contracts/chapterTrackMap';
+import type { ChapterFolderMove, ChapterFolders } from '../contracts/chapterTrackMap';
 import type { Track, TracksProject } from '../contracts/tracks';
 import type { VoiceTracksLayout } from '../contracts/voiceTracks';
 import type {
@@ -64,6 +64,33 @@ export function createChapterTracksMock(
       },
     ];
   }
+  // `?mockNestedChapters=1`: the first three chapters linked to the project's first three tracks, which REAPER nests (nestedPlan below).
+  if (initial.nestedChapters && s.chapterTrackMappings.length === 0) {
+    s.chapterTrackMappings = WIRE_CHAPTERS.slice(0, 3).map((chapter, index) => ({
+      trackGuid: project.tracks[index].guid,
+      chapterId: chapter.id,
+      chapterTitle: chapter.title,
+      confirmedAt: '2026-11-03T09:00:00Z',
+      origin: 'manual' as const,
+      match: null,
+    }));
+  }
+  // The nested shape `?mockNestedChapters=1` seeds, until a repair: the first linked chapter is the folder, the next two sit inside it.
+  const nestedPlan = (): ChapterFolders => {
+    const links = s.chapterTrackMappings;
+    if (!initial.nestedChapters || s.chaptersUnnested || links.length < 3) return { outcome: 'clean', moves: [], expected: [] };
+    const [folder, ...inside] = links.slice(0, 3);
+    const moves: ChapterFolderMove[] = inside.map((link) => ({
+      trackGuid: link.trackGuid,
+      trackName: link.chapterTitle,
+      chapterId: link.chapterId,
+      fromGuid: folder.trackGuid,
+      fromName: folder.chapterTitle,
+      toGuid: '',
+      toName: '',
+    }));
+    return { outcome: 'nested', moves, expected: moves.map((move) => move.trackGuid) };
+  };
   let chapterSyncConsent: ChapterSyncConsent = initial.chapterSync === 'ask' ? 'undecided' : initial.chapterSync === 'off' ? 'off' : 'on';
   let chapterSyncDecidedAt: string | null = chapterSyncConsent === 'undecided' ? null : '2026-09-24T09:00:00Z';
   let chapterSyncLastSync: string | null =
@@ -340,6 +367,30 @@ export function createChapterTracksMock(
         ...(voice ? { voice } : {}),
       });
     },
+    // ChapterFoldersCheck / ChapterFoldersRepair (src/studio/desktop/chapterfolders.go): with `?mockNestedChapters=1` the second and third
+    // linked chapters' tracks sit inside the first linked chapter's folder until a repair the narrator confirmed moves them out.
+    chapterFoldersCheck: async () => {
+      await manuscriptReady;
+      const refusal = mockCreateRefusal(initial.reaperState);
+      if (refusal?.outcome === 'refused') return { outcome: 'refused' as const, reason: refusal.reason, message: refusal.message, moves: [], expected: [] };
+      return wireClone(nestedPlan());
+    },
+    chapterFoldersRepair: async (expected) => {
+      await manuscriptReady;
+      const refusal = mockCreateRefusal(initial.reaperState);
+      if (refusal?.outcome === 'refused') return { outcome: 'refused' as const, reason: refusal.reason, message: refusal.message, moves: [], expected: [] };
+      const plan = nestedPlan();
+      if (expected.join(',') !== plan.expected.join(',')) {
+        return {
+          outcome: 'stale' as const,
+          message: 'The tracks in REAPER changed since they were checked, so nothing was moved. Check again.',
+          moves: [],
+          expected: [],
+        };
+      }
+      s.chaptersUnnested = true;
+      return wireClone({ ...plan, outcome: 'repaired' as const });
+    },
     chapterTrackUnlink: async (chapterId) => {
       await manuscriptReady;
       if (!s.chapters.some((candidate) => candidate.id === chapterId) && !CREDITS_CHECK_TITLE[chapterId])
@@ -477,7 +528,8 @@ function mockSyncActivity(): ChapterSyncBatch[] {
 }
 
 /** ChapterTrackCreate's refusals for the `?mockReaperState=` seeds that stop it, in the host's words; null when the DAW adds the track. */
-function mockCreateRefusal(seed: MockApiSeed['reaperState']): ChapterTrackCreateResult | null {
+// Only the connection refusals a seed can stage, so the chapter-folder check can answer them too (its reasons are a subset of a create's).
+function mockCreateRefusal(seed: MockApiSeed['reaperState']): { outcome: 'refused'; reason: 'standalone' | 'recording'; message: string } | null {
   if (seed === 'unavailable')
     return {
       outcome: 'refused',

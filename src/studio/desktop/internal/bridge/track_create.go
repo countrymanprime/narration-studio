@@ -106,3 +106,65 @@ func createdFrom(fields []string) (CreatedFolder, error) {
 	out.Child = CreatedTrack{GUID: normalizeGUID(fields[5]), Index: childIndex, Name: fields[7]}
 	return out, nil
 }
+
+// FolderMove is one track whose folder a ChapterFolders move changes: the track and its old and new folder, by GUID and by the name
+// REAPER holds now ("" for the top level).
+type FolderMove struct {
+	GUID, Name         string
+	FromGUID, FromName string
+	ToGUID, ToName     string
+}
+
+// FolderPlan is what ChapterFolders answered: every track whose folder changes, and how many of them are chapters.
+type FolderPlan struct {
+	Moves    []FolderMove
+	Chapters int
+}
+
+// ErrFoldersStale means the moves REAPER planned on apply are not the ones the narrator confirmed (the project changed since the
+// preview), so nothing was written.
+var ErrFoldersStale = errors.New("the project changed since the moves were shown")
+
+// ChapterFolders moves chapter tracks out of another chapter's folder (#2838): chapterGUIDs are the tracks the app links to chapters.
+// With apply false it only answers the moves. With apply true REAPER plans again and writes only when the chapters that move are
+// exactly expected, in order (else ErrFoldersStale): only the folder depth of the track before each nested chapter changes, in one undo
+// point. It refuses while REAPER records, and never saves the project.
+func (a *Actions) ChapterFolders(ctx context.Context, apply bool, chapterGUIDs, expected []string) (FolderPlan, error) {
+	mode, closing := "preview", "FOLDERS_PLANNED"
+	if apply {
+		mode, closing = "apply", "FOLDERS_REPAIRED"
+	}
+	events, err := a.request(ctx, "chapter_folders", []string{closing, "FOLDERS_STALE"}, mode, joinGUIDs(chapterGUIDs), joinGUIDs(expected))
+	if err != nil {
+		return FolderPlan{}, err
+	}
+	var plan FolderPlan
+	for _, event := range events {
+		switch event.Tag {
+		case "FOLDERS_STALE":
+			return FolderPlan{}, ErrFoldersStale
+		case "FOLDER_MOVE":
+			f := event.Fields
+			plan.Moves = append(plan.Moves, FolderMove{GUID: f[2], Name: f[3], FromGUID: f[4], FromName: f[5], ToGUID: f[6], ToName: f[7]})
+		case closing:
+			chapters, err := strconv.Atoi(event.Fields[2])
+			if err != nil {
+				return FolderPlan{}, fmt.Errorf("REAPER answered %s with %q chapters", closing, event.Fields[2])
+			}
+			plan.Chapters = chapters
+		}
+	}
+	return plan, nil
+}
+
+// joinGUIDs is the comma-separated list chapter_folders reads, each GUID normalized; a GUID with a comma or a pipe is dropped.
+func joinGUIDs(guids []string) string {
+	out := make([]string, 0, len(guids))
+	for _, guid := range guids {
+		guid = normalizeGUID(guid)
+		if guid != "" && !strings.ContainsAny(guid, ",|") {
+			out = append(out, guid)
+		}
+	}
+	return strings.Join(out, ",")
+}

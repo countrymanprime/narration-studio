@@ -129,6 +129,21 @@ export const engineDrivers: Record<string, Driver> = {
     await table.getByText('Chapter 1 · 3 voices').waitFor();
     await table.evaluate((node) => node.scrollIntoView({ block: 'start' }));
   },
+  'nested-chapters': async (page) => {
+    await page.goto('/?mockNestedChapters=1');
+    await settlePage(page);
+    await openEnginePanel(page);
+    const move = page.getByRole('button', { name: 'Move them out…' });
+    await move.waitFor();
+    await move.evaluate((node) => node.scrollIntoView({ block: 'center' }));
+  },
+  'nested-chapters-confirm': async (page) => {
+    await page.goto('/?mockNestedChapters=1');
+    await settlePage(page);
+    await openEnginePanel(page);
+    await page.getByRole('button', { name: 'Move them out…' }).click();
+    await page.getByRole('alertdialog').getByRole('list', { name: 'Tracks that move' }).waitFor();
+  },
   'voice-folders-link-picker': async (page) => {
     await page.goto('/?mockVoiceFolders=1&mockChapterLink=confirmed');
     await settlePage(page);

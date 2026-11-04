@@ -22,6 +22,8 @@ import { useVoiceLayout } from './voiceLayout';
 import { LiveTracksRefresh, LiveTracksStatus } from './LiveTracksStatus';
 import type { LiveTracks } from './useLiveTracks';
 import { folderChildren, folderLinkLabel } from './voices';
+import { NestedChaptersNotice } from './NestedChaptersNotice';
+import { linksKey, useChapterFolders } from './useChapterFolders';
 
 const STATE_BADGE: Record<ChapterLinkState, { label: string; tone: StatusTone }> = {
   linked: { label: 'Linked', tone: 'success' },
@@ -54,6 +56,8 @@ export function ChapterLinksTable({ links, notify, live }: { links: ChapterLinks
   const { tracks, chapters, mappings, rows, error, busyChapterId, creatingChapterId } = links;
   const [editingChecking, setEditingChecking] = useState<ManuscriptChapter>();
   const folders = useVoiceLayout() === 'folders';
+  // Checked again whenever a link changes: a chapter linked to a track inside another chapter's folder is the case it reports (#2838).
+  const nesting = useChapterFolders({ revision: linksKey(mappings), notify });
   // Nothing to link before a manuscript is imported: the mapping is scoped to a document.
   if (chapters.length === 0) return null;
 
@@ -75,7 +79,17 @@ export function ChapterLinksTable({ links, notify, live }: { links: ChapterLinks
   };
 
   return (
-    <Panel title="Chapter links" flush subtitle={live && <LiveTracksStatus live={live} />} actions={live && <LiveTracksRefresh live={live} />}>
+    <Panel
+      title="Chapter links"
+      flush
+      subtitle={live && <LiveTracksStatus live={live} />}
+      actions={
+        <span className="flex items-center gap-2">
+          <NestedChaptersNotice check={nesting.check} repairing={nesting.repairing} onRepair={nesting.repair} onCheckAgain={nesting.recheck} />
+          {live && <LiveTracksRefresh live={live} />}
+        </span>
+      }
+    >
       {error && (
         <p role="alert" className="px-4 pt-3 text-sm" style={{ color: 'var(--danger-text)' }}>
           {error}

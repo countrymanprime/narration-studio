@@ -122,6 +122,71 @@ describe('DawToolsMenu', () => {
   });
 });
 
+describe('DawToolsMenu as a menu (the layout the page headers use)', () => {
+  const openMenu = async (user: ReturnType<typeof userEvent.setup>) => {
+    await user.click(screen.getByRole('button', { name: 'DAW tools' }));
+    return screen.findByRole('menu');
+  };
+
+  it('is one icon button that opens a menu of the groups it is given, each under its heading', async () => {
+    const user = userEvent.setup();
+    renderMenu({ layout: 'menu', groups: ['structure'] });
+    expect(screen.queryByRole('toolbar')).toBeNull();
+    const menu = await openMenu(user);
+    expect(within(menu).getByText('Structure')).toBeTruthy();
+    expect(
+      within(menu)
+        .getAllByRole('menuitem')
+        .map((item) => item.textContent),
+    ).toEqual(['Prepare chapter render…', 'Create chapter regions…']);
+  });
+
+  it('opens the dialog of the entry chosen, the same one the Engine panel opens, and closes the menu', async () => {
+    const user = userEvent.setup();
+    renderMenu({ layout: 'menu', groups: ['structure'] }, { renderConfig: 'no-regions' });
+    await user.click(within(await openMenu(user)).getByRole('menuitem', { name: 'Prepare chapter render…' }));
+    expect(await screen.findByRole('dialog', { name: /render/i })).toBeTruthy();
+    expect(screen.queryByRole('menu')).toBeNull();
+  });
+
+  it('keeps an entry the gate turns off, with its reason, and a press opens nothing', async () => {
+    const user = userEvent.setup();
+    renderMenu({ layout: 'menu', groups: ['structure'], links: links({ tracks: [] }) });
+    const off = within(await openMenu(user)).getByRole('menuitem', { name: /Create chapter regions/ });
+    expect(off.getAttribute('aria-disabled')).toBe('true');
+    expect(screen.getAllByText('This REAPER project has no tracks yet.')).toHaveLength(2);
+    await user.click(off);
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('says the DAW is not answering, ahead of every other reason, on every entry', async () => {
+    const user = userEvent.setup();
+    renderMenu({ layout: 'menu', groups: ['structure'], dawOff: 'REAPER is not connected. Start it from the chip in the top bar.' });
+    await openMenu(user);
+    expect(screen.getAllByText('REAPER is not connected. Start it from the chip in the top bar.')).toHaveLength(2);
+  });
+
+  it('says no chapter is linked yet when the page knows none is', async () => {
+    const user = userEvent.setup();
+    renderMenu({ layout: 'menu', groups: ['structure'], linkedChapterCount: 0 });
+    await openMenu(user);
+    expect(screen.getAllByText('No chapter is linked to a REAPER track yet. Link one on Production.')).toHaveLength(2);
+  });
+
+  it('keeps every entry for an Audacity project, off, each with its own reason', async () => {
+    const user = userEvent.setup();
+    renderMenu({ layout: 'menu', groups: ['structure'], forAudacity: true });
+    await openMenu(user);
+    expect(screen.getByText(/Chapter regions are written in REAPER/)).toBeTruthy();
+    expect(screen.getByText(/Render setup is written in REAPER/)).toBeTruthy();
+  });
+
+  it('draws nothing for no groups', () => {
+    renderMenu({ layout: 'menu', groups: [] });
+    expect(screen.queryByRole('button', { name: 'DAW tools' })).toBeNull();
+  });
+});
+
 // The registry is the only list of DAW tools: no other file under src/ imports a tool's dialog.
 describe('the registry is the only list of DAW tools', () => {
   const DIALOGS = ['LinkChaptersDialog', 'RenderConfigDialog', 'CreateChapterRegionsDialog', 'ChapterTagsDialog', 'CleanupToolsDialog', 'RetakeLanesDialog'];
@@ -141,5 +206,16 @@ describe('the registry is the only list of DAW tools', () => {
       }
     }
     expect(offenders).toEqual([]);
+  });
+
+  // #2820: the three pages and the Engine panel open one dialog, so there is one place that writes chapter regions and one that configures the render.
+  it('has one caller of the chapter-region and render-config host calls: their dialogs', () => {
+    const callers: Record<string, string[]> = { chapterRegionsCreate: [], renderConfigConfigure: [] };
+    for (const file of sources(join(__dirname, '..', '..'))) {
+      const text = readFileSync(file, 'utf8');
+      for (const call of Object.keys(callers))
+        if (new RegExp(`\\.${call}\\(`).test(text) && !file.includes(`${join('src', 'api')}`)) callers[call].push(file.split('/').pop()!);
+    }
+    expect(callers).toEqual({ chapterRegionsCreate: ['CreateChapterRegionsDialog.tsx'], renderConfigConfigure: ['RenderConfigDialog.tsx'] });
   });
 });

@@ -423,10 +423,29 @@ describe('ReplaceDialog: remove a narrator', () => {
     await screen.findByLabelText('Other narrator');
     choose('n-2');
     fireEvent.click(screen.getByRole('button', { name: 'Remove Jon Doe' }));
-    await waitFor(() => expect(toast).toHaveBeenCalledWith('The narrators could not be read', { tone: 'error' }));
+    await waitFor(() => expect(toast).toHaveBeenCalledWith('The narrators could not be read', expect.objectContaining({ tone: 'error' })));
     expect(toast).toHaveBeenCalledWith(refusal, { tone: 'error' });
     expect(narratorSelect().value).toBe('n-2');
     expect(screen.getByRole('button', { name: 'Remove Jon Doe' }).getAttribute('aria-busy')).toBeNull();
+  });
+
+  // Issue #2919: reading the list again changes nothing, so the failed re-read's toast carries Retry, which reads it again.
+  it('Retry on the failed re-read after a refusal reads the narrators again', async () => {
+    const toast = vi.spyOn(overlay, 'toast').mockImplementation(() => undefined);
+    const api = await mockHost();
+    let reads = 0;
+    const replaceNarrators = vi.fn(() => (reads++ === 1 ? Promise.reject(new Error('The narrators could not be read')) : api.replaceNarrators()));
+    renderDialog({ ...api, replaceNarrators, replaceNarratorRemove: vi.fn(() => Promise.reject(new Error('they stay on the list'))) });
+    await screen.findByLabelText('Other narrator');
+    choose('n-2');
+    fireEvent.click(screen.getByRole('button', { name: 'Remove Jon Doe' }));
+    await waitFor(() =>
+      expect(toast).toHaveBeenCalledWith('The narrators could not be read', expect.objectContaining({ action: expect.objectContaining({ label: 'Retry' }) })),
+    );
+    const options = toast.mock.calls.find((call) => call[0] === 'The narrators could not be read')![1]!;
+    const before = replaceNarrators.mock.calls.length;
+    await act(async () => options.action!.onAction());
+    expect(replaceNarrators.mock.calls.length).toBe(before + 1);
   });
 
   it('moves the focus to the name field when the last narrator is removed', async () => {

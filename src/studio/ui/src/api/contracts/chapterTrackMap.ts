@@ -221,6 +221,29 @@ export type ChapterRegionsCreated = {
   failed: number;
 };
 
+/** One track whose folder moving nested chapters out changes (`ChapterFoldersCheck`, src/studio/desktop/chapterfolders.go): the
+ * track, the chapter linked to it (absent for a voice or other track) and its old and new folder (empty for the top level). */
+export type ChapterFolderMove = {
+  trackGuid: string;
+  trackName: string;
+  chapterId?: string;
+  fromGuid: string;
+  fromName: string;
+  toGuid: string;
+  toName: string;
+};
+
+/** `ChapterFoldersCheck` / `ChapterFoldersRepair` (#2838): `clean`, no chapter sits inside another's folder; `nested`, `moves` would put
+ * it right and `expected` is what to send to the repair; `repaired`; `stale`, the project changed since the check; `refused`, nothing
+ * changed and `message` says why. */
+export type ChapterFolders = {
+  outcome: 'clean' | 'nested' | 'repaired' | 'stale' | 'refused';
+  reason?: 'standalone' | 'not_running' | 'recording' | 'unsupported' | 'failed';
+  message?: string;
+  moves: ChapterFolderMove[];
+  expected: string[];
+};
+
 export interface ChapterTrackMapApi {
   chapterTrackMapList(): Promise<ChapterTrackMapping>;
   /** Confirms trackGuid as chapterId's link; refuses a chapterId outside the current manuscript. */
@@ -229,6 +252,10 @@ export interface ChapterTrackMapApi {
   chapterTrackSet(chapterId: string, trackGuid: string): Promise<ChapterTrackSetResult>;
   /** Adds a track named after chapterId in the DAW (at the end, unsaved) and links it as chapterTrackSet would; a DAW that cannot is a refusal. */
   chapterTrackCreate(chapterId: string): Promise<ChapterTrackCreateResult>;
+  /** Asks the DAW whether a linked chapter's track sits inside another linked chapter's folder, and what a repair would move; writes nothing. */
+  chapterFoldersCheck(): Promise<ChapterFolders>;
+  /** Moves the chapters a check listed (its `expected`) out of those folders, in one DAW undo point, only when the DAW plans the same moves. */
+  chapterFoldersRepair(expected: string[]): Promise<ChapterFolders>;
   /** Clears every link chapterId holds and returns the links that remain. */
   chapterTrackUnlink(chapterId: string): Promise<ChapterTrackMapping>;
   /** Every narration chapter's link state and track facts from one parse of the saved .rpp; read-only. */
