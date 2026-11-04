@@ -3,7 +3,7 @@ import type { DawClient } from '../../../ports/daw';
 import type { Command, Result } from '../../../studio/journal/createJournal';
 
 /** The kind of DAW change a take is, in the DAW port's words (`DawActionKind`). */
-const TAKE_KIND = 'record_take';
+export const TAKE_KIND = 'record_take';
 
 /** Why a take the DAW reported no undo points for cannot be undone here: its script predates them. */
 export const TAKE_SCRIPT_OUTDATED =

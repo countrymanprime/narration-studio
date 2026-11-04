@@ -8,7 +8,6 @@ Storybook title: `Production/NextUp`. Source: `src/components/production/pipelin
 
 - Ranked
 - Empty
-- Daw Cannot Record
 - Timer Running
 
 ## Used by

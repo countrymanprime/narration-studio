@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react';
+import { HelpButton } from '../../primitives/HelpButton';
 import { IconButton } from '../../primitives/IconButton';
 import { Panel } from '../../primitives/Panel';
 import type { Measured } from '../../../api/schemas/base';
@@ -107,7 +108,14 @@ export function ProgressChart({
       title={title}
       className="min-w-0"
       fill={fill}
-      actions={onOpenSchedule && <IconButton action="calendar" label="Open schedule" onClick={onOpenSchedule} />}
+      actions={
+        (onOpenSchedule || !due) && (
+          <div className="flex items-center gap-2">
+            {!due && <HelpButton label="About the plan line">Set a due date to see the plan line.</HelpButton>}
+            {onOpenSchedule && <IconButton action="calendar" label="Open schedule" onClick={onOpenSchedule} />}
+          </div>
+        )
+      }
     >
       {/* Filling, the svg is laid over the box so what it draws never sets the card's height: the cell does. */}
       <div className={fill ? 'flex h-full flex-col' : undefined}>
@@ -201,10 +209,10 @@ export function ProgressChart({
             >{`done ${fmtD(k.finish)} (est.)`}</text>
           </svg>
         </div>
-        {((!series.ok && noteBelow) || !due) && (
+        {!series.ok && noteBelow && (
           <p className="mt-1 flex-none text-[0.75rem] text-[var(--text-muted)]" data-chart-note>
-            {/* With no due date there is no plan line and the projection alone looks like a glitch: say what draws the plan (XSH-18). */}
-            {[!due && 'Set a due date to see the plan line.', !series.ok && noteBelow && `Recorded days ${NOT_MEASURED}`].filter(Boolean).join(' ')}
+            {/* With no due date the plan line is missing; the "?" in the header says what draws it (XSH-18). */}
+            {`Recorded days ${NOT_MEASURED}`}
           </p>
         )}
       </div>

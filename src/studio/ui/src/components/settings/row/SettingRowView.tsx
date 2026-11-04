@@ -10,6 +10,7 @@ import { choiceLabel, computerValue, isAnyChanged, isBrowserChanged, isChanged, 
 import { PAGE_LABEL, PAGE_PATH, type Scope, type SettingMeta } from '../registry/types';
 import { rowOf } from '../registry/rows';
 import { AssetNote } from './AssetNote';
+import { OpenLogFolderButton } from './OpenLogFolderButton';
 import { useSettingsNav } from './SettingsNav';
 import { ValueControl } from './ValueControl';
 import { WorkerPlanNote } from './WorkerPlanNote';
@@ -148,6 +149,8 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
                 invalid={Boolean(error)}
                 onChange={(value) => apply(value, 'global')}
               />
+              {/* Before Reset, so it does not move when Reset comes and goes. */}
+              {row.beside === 'logFolder' && <OpenLogFolderButton />}
               {isChanged(row, global) && (
                 <IconButton
                   action="undo"

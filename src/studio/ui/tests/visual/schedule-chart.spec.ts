@@ -3,7 +3,7 @@ import { scheduleDrivers } from './drivers/schedule';
 
 // The Schedule's chart (alignment audit XSH-8, R3SH-8, XSH-16, XSH-18): no note is printed on a gridline or against the axis labels, the
 // plot's left labels and its right end sit about as far in from the card's content edges, the plot starts just under the header, and
-// with no due date a caption says what draws the plan line.
+// with no due date a "?" in the card's header says what draws the plan line (no caption under the plot).
 for (const width of [1440, 1024, 768]) {
   for (const state of ['on-pace', 'no-due-date']) {
     test(`Schedule / the chart's notes and frame / ${state} / ${width}`, async ({ page }) => {
@@ -30,7 +30,10 @@ for (const width of [1440, 1024, 768]) {
       expect(m.wordsOnGrid, 'no note sits on a gridline').toBe(0);
       expect(Math.abs(m.leftInset - m.rightInset), 'the plot is inset alike on the left and the right').toBeLessThanOrEqual(6);
       expect(m.topBand, 'no empty band under the header').toBeLessThanOrEqual(24);
-      if (state === 'no-due-date') expect(m.note).toContain('Set a due date to see the plan line.');
+      if (state === 'no-due-date') {
+        expect(m.note, 'no caption for the missing due date').not.toContain('Set a due date');
+        await expect(chart.getByRole('button', { name: 'About the plan line' })).toBeVisible();
+      }
     });
   }
 }

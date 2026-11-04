@@ -50,7 +50,8 @@ function sourceLine(profile: DeliveryProfile): string {
 /** What the "?" beside the source says: how a file is judged, kept out of the page. */
 function judgingNote(profile: DeliveryProfile): string {
   const judged = 'Each file is judged rule by rule; a rule the app cannot check is listed, never counted as met.';
-  return profile.builtIn ? `${judged} This is a measurement, not ${profile.platform}'s approval.` : judged;
+  const loudness = `Loudness (LUFS) and true peak are shown in each file's detail for information${profile.builtIn ? `: ${profile.platform}'s page, as recorded, sets no LUFS rule` : ''}.`;
+  return profile.builtIn ? `${judged} This is a measurement, not ${profile.platform}'s approval. ${loudness}` : `${judged} ${loudness}`;
 }
 
 /**
@@ -142,11 +143,6 @@ function ProfileBody({ profile, open, onOpenChange }: { profile: DeliveryProfile
             </TableBody>
           </Table>
         </div>
-        <p className="mt-2 text-xs" style={MUTED}>
-          {profile.source.title ? `Source: ${profile.source.title}, read ${profile.source.readOn}. ` : ''}
-          Loudness (LUFS) and true peak are shown in each file&apos;s detail for information
-          {profile.builtIn ? `: ${profile.platform}'s page, as recorded, sets no LUFS rule.` : '.'}
-        </p>
       </Disclosure>
     </div>
   );

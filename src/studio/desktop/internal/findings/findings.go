@@ -150,10 +150,17 @@ func NoteTypes() []NoteType {
 
 func validNoteType(t NoteType) bool { return slices.Contains(NoteTypes(), t) }
 
+// retiredTakeReview is the analyzer the removed take review saved its groups under (#2765); a project may still hold some.
+const retiredTakeReview = "take-review"
+
 // DefaultNoteType is the word shown for f while the narrator has not chosen one: its category, refined by
-// evidence.kind where the category covers more than one word.
+// evidence.kind where the category covers more than one word. A pickup the retired take review saved is a group of reads
+// of one span, so it is a repeat.
 func DefaultNoteType(f Finding) NoteType {
 	kind, _ := f.Evidence["kind"].(string)
+	if f.Category == CategoryPickup && f.Analyzer == retiredTakeReview {
+		return NoteRepeat
+	}
 	switch f.Category {
 	case CategoryTranscriptDiscrepancy:
 		if strings.EqualFold(kind, "skipped") {

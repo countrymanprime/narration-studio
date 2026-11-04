@@ -67,9 +67,8 @@ func (h *Host) mediaMiddleware(next http.Handler) http.Handler {
 // the file that gets opened is always one the parsed project vouched for.
 //
 // It authorizes every take of every item, not only each item's active take
-// (item.SourceFile): take review's audition and comparison (docs/utilities/take-review.md)
-// play a candidate take's own source without first making it the active take
-// in REAPER.
+// (item.SourceFile): the Takes panel's in-app A/B plays a candidate take's own
+// source without first making it the active take in REAPER.
 func (h *Host) authorizedMediaSource(requested string) (string, bool) {
 	// A take of the built-in recorder: only a file its Recordings list names, as its own path.
 	if recorder := h.services().recorder; recorder != nil {

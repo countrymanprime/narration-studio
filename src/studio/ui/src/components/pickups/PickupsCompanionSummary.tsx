@@ -26,9 +26,6 @@ export function PickupsCompanionSummary() {
           {next.note}
         </p>
       )}
-      <p className="mt-1 text-sm" style={{ color: 'var(--text-muted)' }}>
-        Jump to one or mark it done on the Pickups page in the full app.
-      </p>
     </div>
   );
 }

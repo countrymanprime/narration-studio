@@ -6,6 +6,10 @@ how much the larger model has been asked to re-check and how much of that is don
 (`<progress>.activity.json`, `internal/coverage/activity.go`) and sends it with the run's state. It is best-effort, like the
 progress file: a run never fails because it could not be written, and a host that cannot read it shows the percent alone.
 
+The windows-only re-check stage (`--recheck`) has no first pass: its windows are the larger model's share, and it writes them as `recheck`
+(`ActivityLog.for_recheck`), so a field means one thing in every file and the host merges by field. A run that keeps no log is handed
+`NULL_ACTIVITY`.
+
 Everything here is a count of work the sidecar really did or really has queued; nothing is estimated.
 """
 
@@ -16,6 +20,7 @@ import os
 import threading
 import time
 from dataclasses import dataclass, field
+from typing import Protocol
 
 SCHEMA_VERSION = 1
 """The file's version; `internal/coverage/activity.go` (`activitySchemaVersion`) and `tests/fixtures/contracts/coverage-activity.json` name the same number."""
@@ -52,6 +57,73 @@ class _Pass:
         }
 
 
+class Activity(Protocol):
+    """What a run tells about its work: the calls `ActivityLog` counts. A run that keeps no log is handed `NULL_ACTIVITY`, so no caller asks
+    whether it has one."""
+
+    def set_workers(self, workers: int) -> None:
+        """The first pass's real count of transcriptions at once."""
+
+    def expect_recheck(self, model: str, workers: int) -> None:
+        """The run will hand doubtful passages to a larger model."""
+
+    def recheck_queued(self, windows: int, reason: str) -> None:
+        """More passages were handed to the larger model."""
+
+    def first_pass_ended(self) -> None:
+        """The first pass has handed over every item."""
+
+    def working(self, key: object, slots: int = 1, *, recheck: bool = False) -> None:
+        """Transcriptions of `key` are running now; 0 slots ends them."""
+
+    def unit_done(self, count: int = 1, *, recheck: bool = False) -> None:
+        """Units finished."""
+
+    def item_done(self) -> None:
+        """One item's words are final."""
+
+    def snapshot(self) -> dict:
+        """The counts as the file holds them."""
+
+    def flush(self) -> None:
+        """Write the counts now."""
+
+
+class NullActivityLog:
+    """The log of a run that keeps none: every call does nothing."""
+
+    def set_workers(self, workers: int) -> None:
+        """The first pass's real count of transcriptions at once."""
+
+    def expect_recheck(self, model: str, workers: int) -> None:
+        """The run will hand doubtful passages to a larger model."""
+
+    def recheck_queued(self, windows: int, reason: str) -> None:
+        """More passages were handed to the larger model."""
+
+    def first_pass_ended(self) -> None:
+        """The first pass has handed over every item."""
+
+    def working(self, key: object, slots: int = 1, *, recheck: bool = False) -> None:
+        """Transcriptions of `key` are running now; 0 slots ends them."""
+
+    def unit_done(self, count: int = 1, *, recheck: bool = False) -> None:
+        """Units finished."""
+
+    def item_done(self) -> None:
+        """One item's words are final."""
+
+    def snapshot(self) -> dict:
+        """The counts as the file holds them."""
+        return {}
+
+    def flush(self) -> None:
+        """Write the counts now."""
+
+
+NULL_ACTIVITY: Activity = NullActivityLog()
+
+
 class ActivityLog:
     """Counts of a run's work, written to `path` as JSON as they change. Safe to call from every worker thread.
 
@@ -68,7 +140,18 @@ class ActivityLog:
         self._items = items
         self._items_done = 0
         self._last_write = 0.0
+        self._recheck_only = False
         self._write(force=True)
+
+    @classmethod
+    def for_recheck(cls, path: str | os.PathLike | None, *, model: str, workers: int, windows: int, items: int) -> ActivityLog:
+        """The log of the windows-only re-check stage (`--recheck`): its windows are the run's only work, and it writes them as `recheck`, the
+        larger model's share, with no `firstPass`. Its windows are known at the start, so the total is final."""
+        log = cls(None, model=model, workers=max(1, min(workers, windows or 1)), units=windows, items=items)
+        log._path = None if path is None else str(path)
+        log._recheck_only = True
+        log._write(force=True)
+        return log
 
     def set_workers(self, workers: int) -> None:
         """The first pass's real count of transcriptions at once, known once the run has planned its pool. There are never more at once
@@ -137,11 +220,11 @@ class ActivityLog:
     def snapshot(self) -> dict:
         """The counts as the file holds them (the host's `activityFile`)."""
         with self._lock:
-            body: dict = {
-                "schemaVersion": SCHEMA_VERSION,
-                "items": {"total": self._items, "done": min(self._items_done, self._items)},
-                "firstPass": self._first.snapshot(),
-            }
+            body: dict = {"schemaVersion": SCHEMA_VERSION, "items": {"total": self._items, "done": min(self._items_done, self._items)}}
+            if self._recheck_only:
+                body["recheck"] = {**self._first.snapshot(), "reason": None}
+                return body
+            body["firstPass"] = self._first.snapshot()
             if self._recheck is not None:
                 body["recheck"] = {**self._recheck.snapshot(), "reason": self._reason}
             return body

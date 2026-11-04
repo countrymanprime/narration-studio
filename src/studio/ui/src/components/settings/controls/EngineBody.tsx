@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { ChoosableDaw, DawChoice, DawChoiceOption } from '../../../api/contracts/daw';
 import { apiErrorMessage, describeApiError } from '../../../api/errorMessage';
-import { useDawState } from '../../../daw/useDawSession';
+import { useDawSession, useDawState } from '../../../daw/useDawSession';
 import { usePort } from '../../../ports/usePort';
+import { startDaw } from '../../connection/startDaw';
 import { Button } from '../../primitives/Button';
 import { ConfirmDialog } from '../../primitives/ConfirmDialog';
 import { InsetCard } from '../../primitives/InsetCard';
@@ -116,12 +117,8 @@ function BridgeLine({ choice }: { choice: DawChoice }) {
       </p>
     );
   }
-  if (!bridge.installed || !bridge.startsWithReaper) return null;
-  return (
-    <p data-bridge="ok" className="text-[0.8125rem] text-[var(--text-muted)]">
-      The app keeps its bridge in REAPER’s Scripts folder and REAPER starts it each time it opens, so there is nothing to set up in REAPER.
-    </p>
-  );
+  // Installed and started by REAPER itself is the usual state: the "?" on Record with says so, and only a problem is drawn here.
+  return null;
 }
 
 /**
@@ -133,7 +130,9 @@ function BridgeLine({ choice }: { choice: DawChoice }) {
 export function EngineBody() {
   const dawChoice = usePort('dawChoice');
   const capsVersion = useDawState((state) => state.capsVersion);
+  const session = useDawSession();
   const project = usePort('project');
+  const system = usePort('system');
   const catalog = usePort('dawCatalog');
   const { data, notify, onLinkDawFile } = useSettingsHost();
   const audacity = useAudacityLink();
@@ -187,19 +186,17 @@ export function EngineBody() {
 
   const start = async () => {
     setStarting(true);
-    try {
-      const result = await project.launchDaw();
-      notify(`Started ${choice?.daw ?? 'the DAW'} (${result.path}).`);
-    } catch (failure) {
-      notify(describeApiError(failure), 'error');
-    } finally {
-      setStarting(false);
-    }
+    const started = await startDaw({ project, system }, choice?.daw ?? 'none');
+    if (started.ok) notify(`Started ${choice?.daw ?? 'the DAW'} (${started.path}).`);
+    else notify(started.message, 'error');
+    setStarting(false);
   };
 
   const check = async () => {
     setTest({ phase: 'testing', text: 'Testing…' });
     const began = performance.now();
+    // The one check route: the report is read again for every screen, and the header's facts follow it.
+    void session.checkConnection();
     const next = await read();
     if (!next) return setTest({ phase: 'bad', text: 'The connection could not be read.' });
     setError(undefined);

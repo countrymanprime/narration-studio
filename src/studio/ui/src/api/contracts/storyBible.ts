@@ -143,6 +143,9 @@ export interface StoryBibleApi {
   guidePronounceUser(id: string, ipa: string, aliasIndex?: number): Promise<void>;
   /** Puts the kept alternate back in use, keeping the one it replaces: lossless both ways. */
   guidePronunciationUseAlternate(id: string, aliasIndex?: number): Promise<void>;
+  /** Writes a name's whole pronunciation back exactly as given (its value, source, alternate and note): what Undo of a pronunciation change
+   * sends. A locked entry, an id no entry has and an alias index out of range are refused. */
+  guidePronunciationRestore(id: string, value: GuidePronunciation, aliasIndex?: number): Promise<void>;
   /** The Story Bible's extracted dialogue cues: one entry per quoted
    * span, with its resolved or unknown speaker. */
   guideDialogueCues(): Promise<GuideDialogueCue[]>;

@@ -148,6 +148,19 @@ describe('in-view-chip-only-when-the-window-is-narrower', () => {
   });
 });
 
+// #2800 (qa B1): a chapter whose open notes have no time (retired take-review notes) read "0 of 2 / No notes match" under In view.
+describe('in-view-keeps-notes-with-no-time', () => {
+  it('lists a chapter whose notes have no time, with In view on', () => {
+    const untimed = notesFixture()
+      .slice(0, 2)
+      .map((finding) => ({ ...finding, analyzer: 'take-review', time_range: undefined }));
+    render(<Harness all={false} findings={untimed} window={{ start: 10, len: 100, total: 760 }} />);
+    expect(screen.getByRole('button', { name: 'In view' }).getAttribute('aria-pressed')).toBe('true');
+    expect(dataRows()).toHaveLength(2);
+    expect(screen.queryByText('No notes match')).toBeNull();
+  });
+});
+
 describe('find-in-notes-filters-script-and-heard', () => {
   it('opens from its button, filters, and closes and clears on Escape', async () => {
     render(<Harness />);

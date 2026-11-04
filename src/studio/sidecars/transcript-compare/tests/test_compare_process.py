@@ -206,7 +206,9 @@ def test_the_command_line_refuses_a_run_without_its_files_and_recheck_without_co
     for argv, message in [
         (["--manuscript", "m.json"], "--manifest, --out required"),
         (["--manuscript", "m.json", "--recheck", "w.json"], "--recheck can only be used with --coverage"),
-        (["--manuscript", "m.json", "--coverage", "--find-repeats"], "--find-repeats cannot be used with --coverage"),
+        # The retired take review's modes (#2765) are gone, not ignored.
+        (["--manuscript", "m.json", "--manifest", "m.txt", "--out", "o.txt", "--find-repeats"], "unrecognized arguments: --find-repeats"),
+        (["--manuscript", "m.json", "--manifest", "m.json", "--out", "o.txt", "--take-divergence"], "unrecognized arguments: --take-divergence"),
     ]:
         with pytest.raises(SystemExit) as exited:
             run_main(monkeypatch, *argv)
@@ -217,17 +219,15 @@ def test_the_command_line_refuses_a_run_without_its_files_and_recheck_without_co
 def test_the_command_line_runs_the_mode_it_names_and_logs_to_the_log_file(tmp_path, monkeypatch, exits, capsys):
     ran = []
     monkeypatch.setattr(compare, "run", lambda args: ran.append("run"))
-    monkeypatch.setattr(compare, "find_repeated_spans", lambda args: ran.append("find_repeats"))
     log = tmp_path / "log.txt"
     files = ["--manuscript", "m.json", "--manifest", "m.txt", "--out", "o.txt", "--log", str(log)]
 
-    for extra in ([], ["--find-repeats"]):
-        with pytest.raises(Exited) as exited:
-            run_main(monkeypatch, *files, *extra)
-        assert exited.value.code == 0
+    with pytest.raises(Exited) as exited:
+        run_main(monkeypatch, *files)
+    assert exited.value.code == 0
     with pytest.raises(Exited):
         run_main(monkeypatch, "--manuscript", "m.json", "--capabilities")
 
-    assert ran == ["run", "find_repeats"]
+    assert ran == ["run"]
     assert log.exists()
     assert json.loads(capsys.readouterr().out)["type"] == "capabilities"

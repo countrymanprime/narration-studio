@@ -85,6 +85,7 @@ local function go_to(session_dir, run_id, guid_text, where, seconds_text)
   local target = where == 'end' and track_end(track) or seconds
   reaper.SetOnlyTrackSelected(track)
   reaper.SetEditCurPos(target, true, false)
+  core.cursor_moved()
   event(session_dir, 'PLACE_SET', run_id, wanted, target)
 end
 

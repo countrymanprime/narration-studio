@@ -9,6 +9,7 @@ Storybook title: `Proof/Inspector`. Source: `src/components/proof/inspector/Insp
 - Undecided
 - Decided With A Note
 - Evidence Changed
+- One Word Misread
 - No Confidence
 - Daw Unavailable
 

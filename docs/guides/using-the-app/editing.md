@@ -106,6 +106,14 @@ words it heard show the next time you open the chapter.
 
 ![Editing - a background check in progress at the bottom left, with Pause and Cancel](../../images/ui/background-check-running.webp)
 
+## The DAW tools menu
+
+The wrench icon button at the right end of the header (its tooltip is **DAW tools**) opens a menu headed **Structure** with **Prepare chapter render…** and **Create chapter regions…**. They are the same two dialogs as in the audio engine panel's REAPER tools: create the chapter regions REAPER renders one file per chapter from, then set up the render. When a tool cannot be used it stays in the menu, greyed, with the reason under its name: the DAW is not answering, the DAW has a different project open than the one linked here, the REAPER project has no tracks yet, no chapter is linked to a REAPER track yet (link one on [Production](production.md)), or the project records in Audacity, which has neither regions nor render setup to write. The menu reads the project the first time you open it, so for a moment both entries say **Reading the REAPER project…**.
+
+![Editing - the DAW tools menu open on a linked chapter: the Structure heading over Prepare chapter render and Create chapter regions](../../images/ui/editing-daw-tools.webp)
+
+![Editing - the DAW tools menu on a project that records in Audacity: both entries off, each saying what Audacity cannot do](../../images/ui/editing-daw-tools-audacity.webp)
+
 ## Selecting words
 
 Click a word to place the cursor there. Double-click selects the word and triple-click the whole line it is in. Shift+click another, drag across the text or press Shift+← and Shift+→ to
@@ -265,7 +273,7 @@ pick one there and click **Add**. If the item already had plug-ins, REAPER shows
 in it. You can add more than one, and set them up there as you would any plug-in in REAPER.
 
 While REAPER's window is open, the Effects tab shows what REAPER has chosen so far and checks every second or two, and when
-you come back to the app. Close REAPER's FX window when you are done, and the app adds what you chose to the words as an
+you come back to the app. Close REAPER's FX window when you are done (the **?** in the panel says so), and the app adds what you chose to the words as an
 effect, named after the plug-ins. **Keep it** adds it straight away with the window still open. **Cancel** takes off
 anything you chose and joins the item back together, and the app records nothing. **Check again** asks REAPER now. If
 REAPER stops answering, the panel says it cannot tell what is chosen and when REAPER last answered, rather than showing an
@@ -290,6 +298,9 @@ is what the script shows on the words their audio replaces. **Add a file of thei
 (WAV, FLAC, MP3, OGG or AIFF). REAPER puts it on a muted track of its own, named for them, and plays it from where it is: the
 file is not copied into the project folder, so keep it where it was. A file that was moved or changed since is marked in the
 list, and Replace stays off until you put it back or add it again.
+
+To take a name off the list, a name typed wrong for instance, choose it under **Other narrator** and press the remove button
+beside it. A narrator whose audio is in the project stays on the list: the button is off for them, and its tooltip says why.
 
 Under **Their stretch**, drag across their waveform to choose the part of their file that replaces your words, or type **From**
 and **To** in seconds. A file that is not a WAV shows a ruler instead of a waveform. The stretch can be 50 ms to 5 minutes long.
@@ -392,6 +403,10 @@ on Proof), so a gap is never trimmed twice. A finding decided **Needs pickup** o
 the DAW cannot do is off, with the DAW's reason.
 
 ![Editing - the drawer on Clean up: what was found in the chapter and the findings by kind](../../images/ui/editing-drawer-cleanup.webp)
+
+For clicks, breaths and plosives, **Repair in REAPER** (an icon button after **Apply**) opens a menu headed **Repair** with **Cleanup tools…**, the dialog that is also in the audio engine panel's REAPER tools. It opens REAPER's own Repair Pops/Clicks or Magnolius DeClick on the items selected in REAPER. **Apply** repairs in the app; these open REAPER's own tool, and you apply or cancel the repair there, where one Undo takes it back. The entry is off, with the reason under it, when the project records in Audacity, the DAW is not answering or has another project open, or the project has no tracks. Which item is selected, whether Magnolius DeClick is installed and whether REAPER has the Repair Pops/Clicks dialog (REAPER 7.80 or later) are only known when you press **Open**, so the dialog says so there.
+
+![Editing - Clicks chosen in Clean up: Repair in REAPER beside Apply, its menu open on Cleanup tools](../../images/ui/editing-drawer-cleanup-repair.webp)
 
 ### Effects, Backups and Timeline
 

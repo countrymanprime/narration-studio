@@ -144,17 +144,14 @@ describe("the browser mock's REAPER follows the host's navigation rules", () => 
     expect(REAPER_MESSAGES.recording).toBe(golden('findings-navigation-recording.json').message);
     expect(REAPER_MESSAGES.noItem).toBe(golden('findings-navigation-no-item.json').message);
     expect(REAPER_MESSAGES.notRunning).toBe(golden('findings-navigation-not-running.json').message);
-    expect(REAPER_MESSAGES.notRunning).toBe(golden('findings-reaper-status-not-running.json').message);
-    expect(REAPER_MESSAGES.standalone).toBe(golden('findings-reaper-status-standalone.json').message);
+    expect(REAPER_MESSAGES.standalone).toBe(golden('findings-navigation-standalone.json').message);
   });
 
   it('goes to and loops a finding with an item, and Stop puts back what the loop changed', async () => {
     const api = createFindingsMock(WIRE_FINDINGS);
     await expect(api.findingsGoTo('1a2b3c4d5e6f708192a3b4c5')).resolves.toEqual({ outcome: 'navigated', projectTime: 12.4 });
     await expect(api.findingsLoop('1a2b3c4d5e6f708192a3b4c5')).resolves.toEqual({ outcome: 'looping', loopStart: 9.4, loopEnd: 15.4 });
-    await expect(api.findingsReaperStatus()).resolves.toEqual({ connection: 'connected', loopingFindingId: '1a2b3c4d5e6f708192a3b4c5' });
     await expect(api.findingsStopLoop()).resolves.toEqual({ outcome: 'stopped', restored: 3, kept: 0 });
-    await expect(api.findingsReaperStatus()).resolves.toEqual({ connection: 'connected' });
     await expect(api.findingsStopLoop()).resolves.toEqual({ outcome: 'stopped', restored: 0, kept: 0 });
   });
 
@@ -176,7 +173,6 @@ describe("the browser mock's REAPER follows the host's navigation rules", () => 
       const api = createFindingsMock(WIRE_FINDINGS, { reaper });
       await expect(api.findingsGoTo('1a2b3c4d5e6f708192a3b4c5')).resolves.toMatchObject({ outcome: 'refused', reason });
       await expect(api.findingsLoop('1a2b3c4d5e6f708192a3b4c5')).resolves.toMatchObject({ outcome: 'refused', reason });
-      expect((await api.findingsReaperStatus()).loopingFindingId).toBeUndefined();
     }
   });
 });

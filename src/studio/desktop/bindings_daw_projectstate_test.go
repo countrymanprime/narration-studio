@@ -107,34 +107,26 @@ func TestDawProjectStateIsIdleWithoutAHeartbeat(t *testing.T) {
 	}
 }
 
-// binding-and-event: the event goes out on the first tick and then only when the payload changed.
-func TestDawProjectStateChangedOnlyWhenThePayloadChanges(t *testing.T) {
+// The transcriptLoop tick feeds the unsaved-edits baseline: an edit made after launch reads as unsaved even when no page
+// asked before it, and a save clears it.
+func TestTheTickKeepsTheUnsavedBaselineBetweenReads(t *testing.T) {
 	rpp := savedRPP(t)
 	host, reach := newTestHostWithHeartbeat(t)
 	reach.Record(heartbeat(rpp, "7", "0", "1.000000"))
-	if _, changed := host.dawProjectStateChanged(); !changed {
-		t.Fatal("the first read must count as a change, so the UI hears the project state once")
-	}
-	if _, changed := host.dawProjectStateChanged(); changed {
-		t.Fatal("an unchanged project state must not be pushed again on the next tick")
-	}
+	host.observeDawProjectState()
 	reach.Record(heartbeat(rpp, "8", "0", "1.000000"))
-	payload, changed := host.dawProjectStateChanged()
-	if !changed || payload.UnsavedChanges != true {
-		t.Fatalf("an edit in REAPER must be pushed as unsaved changes: changed = %v, payload = %+v", changed, payload)
+	raw, err := host.DawProjectState()
+	if got := decodeProjectState(t, raw, err); got["unsavedChanges"] != true {
+		t.Fatalf("an edit after the tick's baseline must read as unsaved: %v", got)
 	}
 	// A save moves the file's modification time: the edits are saved now.
 	saved := time.Date(2026, 9, 26, 9, 5, 0, 0, time.Local)
 	if err := os.Chtimes(rpp, saved, saved); err != nil {
 		t.Fatal(err)
 	}
-	payload, changed = host.dawProjectStateChanged()
-	if !changed || payload.UnsavedChanges || payload.SavedAt == nil || *payload.SavedAt != "2026-09-26T09:05" {
-		t.Fatalf("a save must be pushed with the new savedAt and no unsaved changes: changed = %v, payload = %+v", changed, payload)
-	}
-	// While stopped the position is not sent, so a heartbeat that only moved the edit cursor pushes nothing.
-	reach.Record(heartbeat(rpp, "8", "0", "5.000000"))
-	if _, changed := host.dawProjectStateChanged(); changed {
-		t.Fatal("a stopped transport's position is not part of the payload")
+	host.observeDawProjectState()
+	raw, err = host.DawProjectState()
+	if got := decodeProjectState(t, raw, err); got["unsavedChanges"] != false || got["savedAt"] != "2026-09-26T09:05" {
+		t.Fatalf("a save must read as no unsaved changes with the new savedAt: %v", got)
 	}
 }

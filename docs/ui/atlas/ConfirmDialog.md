@@ -26,14 +26,17 @@ Storybook title: `Primitives/ConfirmDialog`. Source: `src/components/primitives/
 
 - `src/App.tsx`
 - `src/components/assets/AssetInstallPrompt.tsx`
-- `src/components/booth/RecordInReaperConfirm.tsx`
 - `src/components/editing/CleanupAction.tsx`
+- `src/components/engine/NestedChaptersNotice.tsx`
+- `src/components/master/MasteringApprovalDialog.tsx`
 - `src/components/production/ManuscriptImport.tsx`
 - `src/components/production/RemoveFromRecordingDialog.tsx`
 - `src/components/settings/CreditsPanel.tsx`
 - `src/components/settings/DeliveryProfilesPanel.tsx`
 - `src/components/settings/UpdatesPanel.tsx`
 - `src/components/settings/analysis/AnalysisToolsSection.tsx`
+- `src/components/settings/controls/EngineBody.tsx`
+- `src/components/settings/page/DeleteStoryBibleData.tsx`
 - `src/components/settings/page/ModelsPane.tsx`
 - `src/components/settings/page/ProjectDataPanel.tsx`
 - `src/components/settings/page/ScopedFieldsPanel.tsx`

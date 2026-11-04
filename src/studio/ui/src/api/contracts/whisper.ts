@@ -17,18 +17,10 @@ export type WhisperModel = {
   installState: WhisperInstallState;
 };
 
-export type WhisperCatalog = {
-  catalogVersion: number;
-  model: { id: string; effectiveSource: string };
-  models: WhisperModel[];
-};
-
 export type WhisperInstallJob = AssetInstallJob & { modelId: string };
 
 export interface WhisperApi {
-  whisperCatalog(): Promise<WhisperCatalog>;
   whisperInstall(modelId: string): Promise<WhisperInstallJob>;
   whisperInstallState(jobId: string): Promise<WhisperInstallJob>;
   whisperInstallCancel(jobId: string): Promise<WhisperInstallJob>;
-  whisperRemove(modelId: string): Promise<void>;
 }

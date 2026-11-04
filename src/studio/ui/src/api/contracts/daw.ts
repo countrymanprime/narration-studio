@@ -64,17 +64,18 @@ export type DawCapabilityKey =
   | 'cleanup_tools'
   | 'retake_lanes'
   | 'project_state'
-  | 'take_create'
   | 'heartbeat'
   | 'project_read'
   | 'track_state'
   | 'track_select'
   | 'track_create'
+  | 'tracks_read'
   | 'follow_position'
   | 'transport_sync'
   | 'record'
   | 'punch'
   | 'regions'
+  | 'voice_sample_region'
   | 'takes'
   | 'fx_chains'
   | 'item_gain'
@@ -117,17 +118,18 @@ export const DAW_CAPABILITIES: ReadonlyArray<{ key: DawCapabilityKey; label: str
   { key: 'cleanup_tools', label: 'Cleanup tools' },
   { key: 'retake_lanes', label: 'Retake lanes' },
   { key: 'project_state', label: 'Project change check' },
-  { key: 'take_create', label: 'Create takes' },
   { key: 'heartbeat', label: 'Connection status' },
   { key: 'project_read', label: 'Read the saved project' },
   { key: 'track_state', label: 'Read track arm state' },
   { key: 'track_select', label: 'Select a track in the recording tool' },
   { key: 'track_create', label: 'Add a track for a chapter' },
+  { key: 'tracks_read', label: "Read the open project's tracks" },
   { key: 'follow_position', label: "Follow the narrator's place in the project" },
   { key: 'transport_sync', label: "Play and follow the project's transport" },
   { key: 'record', label: 'Record' },
   { key: 'punch', label: 'Punch and roll' },
   { key: 'regions', label: 'Chapter regions' },
+  { key: 'voice_sample_region', label: 'Keep a voice sample as a region' },
   { key: 'takes', label: 'Choose the active take' },
   { key: 'fx_chains', label: 'FX chains' },
   { key: 'item_gain', label: 'Level matching' },
@@ -270,7 +272,7 @@ export interface AudacityLinkApi {
   subscribeAudacityLink(onUpdate: (state: AudacityLink) => void): () => void;
 }
 
-/** The DAW project as last saved against the live one (DawProjectState and daw_project_state_changed;
+/** The DAW project as last saved against the live one (DawProjectState;
  * src/studio/desktop/bindings_daw_projectstate.go). `savedAt` is the saved file's modification time, read by the host, as a local
  * date and time to the minute (`2026-09-26T08:40`), null when the DAW keeps no saved project or this one was never saved.
  * `unsavedChanges` is true when REAPER has edits its saved file does not have. `playPosition` is project seconds as of the
@@ -568,22 +570,6 @@ export type DawPosition = {
   sameProject: boolean;
 };
 
-/** One media item of the chapter's track as the DAW has it now: where it plays in the project, from where in which source file, at what rate.
- * `sourceFile` is empty for an item with no audio take. */
-export type DawLiveItem = {
-  guid: string;
-  sourceFile: string;
-  position: number;
-  length: number;
-  sourceStart: number;
-  playRate: number;
-  muted: boolean;
-};
-
-/** DawLiveItems' answer. `available` is false, with no items, when the DAW cannot be read now (not running, `track_state` off, no linked track, the
- * track gone or longer than one read lists): the Editing page then follows by the items the saved project had. The read is never an error. */
-export type DawLiveItems = { available: boolean; items: DawLiveItem[] };
-
 /** One word's place in the project. `placed` has `start` and `end` in project seconds and the live `item` (an index into the answer's `items`); `not_in_project`
  * is a word heard whose audio no item on the track plays now (cut out, trimmed off, muted, its source not on the track): no time, never a neighbour's; `not_heard`
  * is a word the check heard nothing for. `clipped` marks a word a split or trim cuts through (`end` is the item's end). `i` is the alignment token's index. */
@@ -623,8 +609,6 @@ export type DawSyncAction = 'cursor' | 'play' | 'playRange' | 'stop' | 'watch';
  * narrator's selection, solos and mute back when the play ends); without a linked track, or with no audio on it at that time, the play is refused. */
 export interface DawTransportSyncApi {
   dawTransportSync(action: DawSyncAction, seconds: number, until?: number, chapterId?: string): Promise<DawResult>;
-  /** The media items on the chapter's linked track as the DAW has them now (DawLiveItems, src/studio/desktop/bindings_daw_liveitems.go). */
-  dawLiveItems(chapterId: string): Promise<DawLiveItems>;
   /** Where every word of the chapter's stored alignment plays in the DAW project now (WorkspaceWordTimes, src/studio/desktop/bindings_workspace_wordtimes.go). */
   workspaceWordTimes(chapterId: string): Promise<WordTimes>;
   /** Each time the DAW project is edited, with REAPER's change counter (daw_project_edited, bindings_daw_projectedited.go). Returns the unsubscribe. */
@@ -644,15 +628,11 @@ export interface DawBackupsApi {
   dawBackups(): Promise<DawBackupsFile>;
 }
 
-/** DawPreviewFileRange, DawStopFilePreview and DawRevealFile (SN-B98; src/studio/desktop/bindings_daw_files.go): play `length` seconds (at
- * most 60) of a file on disk from `start`, in the file's own seconds, stop that preview, and show a file in the DAW's own file browser,
- * all leaving the project unchanged (no undo step). The path is one the host's measurement result named: the host plays or shows only a
- * file the narrator picked to measure in this session, and only an absolute local path to an audio file that is there. A capability
- * refusal carries the capability's sentence; a path or stretch the host refuses, and a refusal the DAW answers, carry a sentence. */
+/** DawStopFilePreview (SN-B98; src/studio/desktop/bindings_daw_files.go) stops the file preview that Play the quietest 5 s
+ * (`masterPlayQuietest`) or a take's audition (`workspacePreviewTake`) started, leaving the project unchanged (no undo step). It answers
+ * whether anything was playing; a capability refusal carries the capability's sentence. */
 export interface DawFilesApi {
-  dawPreviewFileRange(path: string, start: number, length: number): Promise<DawResult>;
   dawStopFilePreview(): Promise<DawResult>;
-  dawRevealFile(path: string): Promise<DawResult>;
 }
 
 /** MasterPlayQuietest and MasterOpenInDaw (SN-M97; src/studio/desktop/bindings_master_files.go): Master & QC's Play the quietest 5 s and Open
@@ -666,8 +646,6 @@ export interface MasterFilesApi {
 
 export interface DawProjectStateApi {
   dawProjectState(): Promise<DawProjectState>;
-  /** The host pushes the current project state on its first tick after launch and then only on a change. */
-  subscribeDawProjectState(onUpdate: (state: DawProjectState) => void): () => void;
 }
 
 /** The most rows `<app>/backups.json` holds (`audacity.MaxBackups`). */

@@ -6,8 +6,6 @@
 - status
 - alert
 - status
-- alert
-- status
 - dialog "Audio engine":
   - heading "Audio engine" [level=2]
   - button "Close the engine panel"
@@ -43,8 +41,13 @@
         - row "Track Chapter Playable items"
       - rowgroup:
         - row "Chapter 1 Chapter 1 1/1"
-        - row "Chapter 2 Not linked This track has an item that can't be played 0/1"
+        - row "Chapter 2 Chapter 2 This track has an item that can't be played 0/1"
         - row "Click Track Muted Not linked This track has an item that can't be played 0/1"
+        - row "Chapter 3 Chapter 3 1/1"
+        - row "Chapter 7 Chapter 7 1/1"
+        - row "Chapter 8 Chapter 8 1/1"
+        - row "Chapter 9 Chapter 9 1/1"
+        - row "Chapter 10 Chapter 10 1/1"
   - region "Chapter links":
     - heading "Chapter links" [level=2]
     - table "Chapter links"

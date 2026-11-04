@@ -1,9 +1,9 @@
 package main
 
 import (
+	"desktop/internal/creditsid"
 	"fmt"
 
-	"desktop/internal/coverage"
 	"desktop/internal/evidence"
 	"desktop/internal/manuscript"
 	"desktop/internal/settings"
@@ -24,7 +24,7 @@ func (h *Host) CreditsRecordedLengths() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("could not read the manuscript: %w", err)
 	}
-	ids := []string{coverage.CreditsChapterID("opening"), coverage.CreditsChapterID("closing")}
+	ids := []string{creditsid.OpeningID, creditsid.ClosingID}
 	documentID, _ := data["documentId"].(string)
 	var lengths map[string]manuscript.RecordedLength
 	if documentID == "" {

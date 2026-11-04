@@ -15,6 +15,22 @@ allowBuilds:
 # release is not picked up. Matches the Dependabot cooldown for npm's minor and patch updates. To take an urgent
 # security fix sooner, add `name@version` to minimumReleaseAgeExclude for that one install and remove it after.
 minimumReleaseAge: 4320
+# Owner-approved and temporary: stable @wailsio/runtime 3.1.0 was published 2026-11-01. Remove this entry once it is three days old.
+minimumReleaseAgeExclude:
+  - '@wailsio/runtime@3.1.0'
+# Transitive dev-tool dependencies pinned by their parents below the patched version (#1133): nx pins undici,
+# markdownlint-cli2 pins markdown-it, smol-toml, katex and re2js, mermaid pins dompurify, commitlint's ajv pins fast-uri and storybook's
+# docgen plugin pins glob. Each override is a floor (>=), so a parent that moves past it is not held back; drop an entry when
+# `pnpm audit` is clean without it. `minimatch` is deliberately not overridden: minimatch 11 dropped `makeRe`, which nx 23 calls, and an override to 11 broke `nx show projects --projects=...` in CI. None of these ships in the desktop app (`pnpm audit --prod` is clean).
+overrides:
+  undici@7: '>=7.30.1'
+  dompurify@<3.4.17: '>=3.4.17'
+  markdown-it@>=15.0.0 <15.0.3: '>=15.0.3'
+  smol-toml@<1.9.0: '>=1.9.0'
+  fast-uri@<3.1.9: '>=3.1.9'
+  katex@<0.18.2: '>=0.18.2'
+  glob@>=9.0.0 <14.0.2: '>=14.0.2'
+  re2js@<2.8.7: '>=2.8.7'
 # Fail the install when a dependency has a build script that allowBuilds above does not name.
 strictDepBuilds: true
 # Refuse a transitive dependency that comes from a git repository or a tarball URL instead of the registry.
