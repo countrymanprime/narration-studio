@@ -206,6 +206,12 @@ local UNDO_LABELS = {
   restore_replacement = BRAND.name .. ': put audio back',
   -- Keep Take / Use this take: set_active_take (narration_workspace.lua) and pick_retake_lane (narration_retake_lanes.lua) both close with it.
   use_take = BRAND.name .. ': use take',
+  -- The chain edits Editing's Undo reads back (narration_range.lua closes each block with the label of its kind).
+  add_range_fx = BRAND.name .. ': add chain to range',
+  remove_range_fx = BRAND.name .. ': remove chain from range',
+  set_fx_param = BRAND.name .. ': change effect setting',
+  bypass_fx = BRAND.name .. ': bypass effect',
+  enable_fx = BRAND.name .. ': turn effect back on',
 }
 local function undo_label(kind)
   if type(kind) ~= 'string' then
