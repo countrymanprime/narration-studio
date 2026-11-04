@@ -61,7 +61,8 @@ describe('ChapterSyncPanel', () => {
       } else {
         await screen.findByText('the switch');
         expect(screen.getByText('Layout')).toBeTruthy();
-        expect(shown).toHaveBeenLastCalledWith(true);
+        // The report is an effect after the commit that draws the row, so wait for it.
+        await waitFor(() => expect(shown).toHaveBeenLastCalledWith(true));
       }
       cleanup();
     }

@@ -2,8 +2,6 @@
 - status
 - alert
 - status
-- alert
-- status
 - alertdialog "Approve this render?":
   - heading "Approve this render?" [level=2]
   - button "Close"

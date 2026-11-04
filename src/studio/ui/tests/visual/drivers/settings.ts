@@ -175,6 +175,11 @@ export const settingsDrivers: Record<string, Driver> = {
     const row = await showSettingsRow(page, 'daw.syncActivity');
     await row.getByRole('button', { name: /^Undo: Linked/ }).waitFor();
   },
+  'recording-chapter-layout': async (page) => {
+    await openSettings(page, 'Recording & DAW');
+    const row = await showSettingsRow(page, 'daw.layout');
+    await row.getByRole('group', { name: 'Chapter layout' }).waitFor();
+  },
   'recording-reaper-path-invalid': async (page) => {
     await openSettings(page, 'Recording & DAW');
     await openAdvanced(page);
