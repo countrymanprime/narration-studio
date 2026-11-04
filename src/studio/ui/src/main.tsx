@@ -72,6 +72,10 @@ const mockMultipleRpp = mockParams.has('mockMultipleRpp');
 const mockNoRpp = mockParams.has('mockNoRpp');
 // `?mockTrackFolders=1` puts the project's tracks in REAPER folders: the Tracks card and the track pickers draw the tree.
 const mockTrackFolders = mockParams.has('mockTrackFolders');
+// `?mockLiveTracks=saved` has REAPER not answering, so the engine panel's tracks are the saved project's and say why; `failing` answers the
+// first live read and refuses every later one, so Chapter links says it cannot tell and when it last read the tracks.
+const mockLiveTracksParam = mockParams.get('mockLiveTracks');
+const mockLiveTracks: 'saved' | 'failing' | undefined = mockLiveTracksParam === 'saved' || mockLiveTracksParam === 'failing' ? mockLiveTracksParam : undefined;
 // `?mockVoiceFolders=1` is a Voice folders project: Chapter 1 linked to a folder of voice tracks (the Engine panel's Voices card).
 const mockVoiceFolders = mockParams.has('mockVoiceFolders');
 // `?mockNoDaw=1` boots a project with no linked REAPER project (.rpp) file: the header pill reads "No REAPER project
@@ -579,6 +583,7 @@ const mockInitial = {
   ...(mockMultipleRpp ? { tracksCandidates: ['C:/Projects/Alice-in-Wonderland/Alice.rpp', 'C:/Projects/Alice-in-Wonderland/Alice-alt-mix.rpp'] } : {}),
   ...(mockNoRpp ? { tracksCandidates: [] } : {}),
   ...(mockTrackFolders ? { trackFolders: true } : {}),
+  ...(mockLiveTracks ? { liveTracks: mockLiveTracks } : {}),
   ...(mockVoiceFolders ? { voiceFolders: true } : {}),
   ...(mockManuscriptCandidate ? { manuscriptCandidate: { path: 'C:/Projects/Alice-in-Wonderland/manuscript.docx', name: 'manuscript.docx' } } : {}),
   ...(mockManuscriptMixed ? { mockManuscript: 'mixed' as const } : {}),

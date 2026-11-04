@@ -2932,6 +2932,14 @@ export function TracksList(): $CancellablePromise<string> {
     return $Call.ByID(3388241406);
 }
 
+/**
+ * TracksLive is TracksList's tracks as REAPER has them now, saved or not, when REAPER has the linked project open (tracks_live.go):
+ * source "live". Otherwise it is the saved .rpp, source "saved", with the reason and a sentence saying why. It changes nothing.
+ */
+export function TracksLive(): $CancellablePromise<string> {
+    return $Call.ByID(3607189096);
+}
+
 export function TracksSelect(path: string): $CancellablePromise<string> {
     return $Call.ByID(2374312442, path);
 }
