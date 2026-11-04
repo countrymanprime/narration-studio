@@ -63,7 +63,7 @@ def build_host(lua: LuaRuntime, reaper_dir: Path, scratch: Path) -> object:
     )
 
 
-def run_file(test_file: Path, reaper_dir: Path, scratch: Path) -> tuple[int, int, str]:
+def run_file(test_file: Path, reaper_dir: Path, scratch: Path, stop_at_failure: bool = False) -> tuple[int, int, str]:
     lua = LuaRuntime(unpack_returned_tuples=True)
     if lua.eval("_VERSION") != "Lua 5.4":
         raise RuntimeError(f"expected Lua 5.4, got {lua.eval('_VERSION')}")
@@ -71,20 +71,20 @@ def run_file(test_file: Path, reaper_dir: Path, scratch: Path) -> tuple[int, int
     lua.execute(BOOTSTRAP, host, TESTS_DIR.as_posix())
     harness = lua.eval("(require('harness'))")
     lua.eval("dofile")(str(test_file))
-    passed, failed, report = harness.run(test_file.name)
+    passed, failed, report = harness.run(test_file.name, stop_at_failure)
     return int(passed), int(failed), str(report)
 
 
 def run_suite(reaper_dir: Path, verbose: bool = True, first: tuple[str, ...] = (), stop_at_failure: bool = False) -> tuple[int, int, list[str]]:
     """Runs every test file. `first` names test files to run before the rest; with `stop_at_failure` the run ends at the
-    first file with a failing test (the mutation checks need one failure, not all of them)."""
+    first failing test (the mutation checks need one failure, not all of them)."""
     scratch = Path(tempfile.mkdtemp(prefix="reaper-harness-"))
     passed = failed = 0
     reports: list[str] = []
     test_files = sorted(TESTS_DIR.glob("*_test.lua"), key=lambda path: (path.name not in first, path.name))
     try:
         for test_file in test_files:
-            ok, bad, report = run_file(test_file, reaper_dir, scratch)
+            ok, bad, report = run_file(test_file, reaper_dir, scratch, stop_at_failure)
             passed, failed = passed + ok, failed + bad
             if report:
                 reports.append(report)
