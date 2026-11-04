@@ -309,7 +309,14 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
               <Consistency files={run.files} profile={profile} />
             </Panel>
             <MasterToSpecPanel jobs={jobs} chain={chain} onStartRefused={mastering.reload} onCheckFiles={() => void run.chooseOther()} />
-            <MasteringChain providers={mastering.providers} problem={mastering.problem} />
+            <MasteringChain
+              providers={mastering.providers}
+              problem={mastering.problem}
+              saveProblem={mastering.saveProblem}
+              saving={mastering.saving}
+              locked={jobs.exportRunning || jobs.starting}
+              onChoose={mastering.choose}
+            />
             <DiagnosticsSection measuredPaths={run.paths} openSettings={openSettings} />
             <ReportExportPanel busy={run.running} measured={run.files.length > 0} />
           </div>

@@ -173,6 +173,24 @@ export const masterDrivers: Record<string, Driver> = {
     await page.getByRole('button', { name: 'Master & encode' }).waitFor();
     await scrollToTop(page, page.getByRole('region', { name: 'Master to spec' }));
   },
+  'chain-choice': async (page) => {
+    await openMaster(page);
+    await page.getByRole('radiogroup', { name: 'Master with' }).waitFor();
+    await scrollToTop(page, page.getByRole('region', { name: 'Mastering chain' }));
+  },
+  'chain-saved': async (page) => {
+    await openMaster(page);
+    const daw = page.getByRole('radio', { name: "Your DAW's FX chain" });
+    await daw.click();
+    await page.getByText('Its steps are set in your DAW, not by the app.').waitFor();
+    await scrollToTop(page, page.getByRole('region', { name: 'Mastering chain' }));
+  },
+  'chain-unavailable': async (page) => {
+    await openMaster(page, '?mockMastering=no-audacity');
+    await scrollToTop(page, page.getByRole('region', { name: 'Mastering chain' }));
+    await page.getByRole('group', { name: "Audacity's effect macro is not available on this computer." }).hover();
+    await page.getByRole('tooltip').waitFor();
+  },
   'to-spec-approve-daw': async (page) => {
     await openMaster(page, '?mockMastering=daw');
     await pickFilesToMaster(page);
