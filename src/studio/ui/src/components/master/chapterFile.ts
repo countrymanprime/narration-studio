@@ -54,9 +54,6 @@ export function chapterForFile<C extends Titled>(file: Pick<MeasureFileResult, '
   return chapter;
 }
 
-/** The chapter a file belongs to, if any. */
-export const chapterOfFile = chapterForFile;
-
 /** The file that belongs to a chapter, if any: the first file whose one chapter, among `chapters`, is this one. */
 export function fileOf<F extends Pick<MeasureFileResult, 'name'>>(chapter: Titled, files: readonly F[], chapters: readonly Titled[]): F | undefined {
   return files.find((file) => chapterForFile(file, chapters) === chapter);

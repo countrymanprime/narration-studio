@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { makeChapters } from '../../fixtures/chapters';
 import type { ManuscriptChapter, MeasureFileResult } from '../../types';
-import { chapterForFile, chapterOfFile, fileOf } from './chapterFile';
+import { chapterForFile, fileOf } from './chapterFile';
 
 const chapter = (index: number, title: string) => ({ id: `c${index}`, title, index }) as Pick<ManuscriptChapter, 'title' | 'index'> & { id: string };
 const file = (name: string) => ({ name }) as MeasureFileResult;
@@ -21,14 +21,14 @@ describe('chapterFile', () => {
 
   it('goes the other way: the chapter a file belongs to', () => {
     const chapters = [chapter(0, 'One'), chapter(3, 'Four')];
-    expect(chapterOfFile(file('Chapter 04.wav'), chapters)).toBe(chapters[1]);
-    expect(chapterOfFile(file('Retail.wav'), chapters)).toBeUndefined();
+    expect(chapterForFile(file('Chapter 04.wav'), chapters)).toBe(chapters[1]);
+    expect(chapterForFile(file('Retail.wav'), chapters)).toBeUndefined();
   });
 
   it('gives "Chapter 10.wav" to the Chapter 10 row only, in both directions', () => {
     const chapters = [chapter(0, 'Chapter 1'), chapter(9, 'Chapter 10'), chapter(10, 'Chapter 11')];
     const files = [file('Chapter 10.wav'), file('Chapter 1.wav')];
-    expect(chapterOfFile(files[0]!, chapters)).toBe(chapters[1]);
+    expect(chapterForFile(files[0]!, chapters)).toBe(chapters[1]);
     expect(fileOf(chapters[0]!, files, chapters)).toBe(files[1]);
     expect(fileOf(chapters[1]!, files, chapters)).toBe(files[0]);
     expect(fileOf(chapters[2]!, files, chapters)).toBeUndefined();
@@ -36,9 +36,9 @@ describe('chapterFile', () => {
 
   it('keeps "Part 1" and "Part 10" apart', () => {
     const chapters = [chapter(0, 'Part 1'), chapter(1, 'Part 10')];
-    expect(chapterOfFile(file('Part 10 - final.wav'), chapters)).toBe(chapters[1]);
-    expect(chapterOfFile(file('Part 1 (take 2).wav'), chapters)).toBe(chapters[0]);
-    expect(chapterOfFile(file('Book Part 1.wav'), chapters)).toBe(chapters[0]);
+    expect(chapterForFile(file('Part 10 - final.wav'), chapters)).toBe(chapters[1]);
+    expect(chapterForFile(file('Part 1 (take 2).wav'), chapters)).toBe(chapters[0]);
+    expect(chapterForFile(file('Book Part 1.wav'), chapters)).toBe(chapters[0]);
   });
 });
 

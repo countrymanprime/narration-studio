@@ -5,7 +5,7 @@ import { apiErrorMessage } from '../../../api/errorMessage';
 import { useErrorToast } from '../../../hooks/useErrorToast';
 import { usePort } from '../../../ports/usePort';
 import type { DeliveryProfile, ManuscriptChapter } from '../../../types';
-import { chapterOfFile, fileOf } from '../../master/chapterFile';
+import { chapterForFile, fileOf } from '../../master/chapterFile';
 import { deliveryProfileKey } from '../../master/deliveryProfile';
 import { DiagnosticsSection } from '../../master/DiagnosticsSection';
 import { FileRulesPanel } from '../../master/FileRulesPanel';
@@ -200,14 +200,14 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
       : undefined;
   const chapterOfSelection = useMemo(() => {
     const file = run.files.find((candidate) => candidate.path === selected);
-    return (file && chapterOfFile(file, chapters)) ?? chapters.find((candidate) => candidate.id === selected);
+    return (file && chapterForFile(file, chapters)) ?? chapters.find((candidate) => candidate.id === selected);
   }, [selected, run.files, chapters]);
   const remember = useCallback((chapter: ManuscriptChapter | undefined) => chapter && saveSharedChapter(projectFolder, chapter.id), [projectFolder]);
   const select = useCallback(
     (id: string) => {
       setPicked(id);
       const file = run.files.find((candidate) => candidate.path === id);
-      remember(file ? chapterOfFile(file, chapters) : chapters.find((candidate) => candidate.id === id));
+      remember(file ? chapterForFile(file, chapters) : chapters.find((candidate) => candidate.id === id));
     },
     [run.files, chapters, remember],
   );

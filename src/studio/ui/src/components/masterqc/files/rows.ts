@@ -3,7 +3,7 @@
 // measure (`not_measurable`, `not_checked`, `off`) has no row here, and no value is made up for it.
 import { chapterName } from '../../../chapterName';
 import type { DeliveryProfile, DeliveryRule, DeliveryRuleResult, ManuscriptChapter, MeasureFileResult, MeasureReport } from '../../../types';
-import { chapterOfFile, fileOf } from '../../master/chapterFile';
+import { chapterForFile, fileOf } from '../../master/chapterFile';
 import { formatLength, formatLevel } from '../../master/deliveryFormat';
 import { formatBound, formatRuleValue } from '../../master/deliveryProfile';
 import { fileVerdict, type FileVerdict } from '../../master/fileVerdict';
@@ -66,7 +66,7 @@ const isSampleFile = (file: MeasureFileResult): boolean => /sample/i.test(file.n
 export function labelFiles(files: readonly MeasureFileResult[], chapters: readonly ManuscriptChapter[]): MeasureFileResult[] {
   return files.map((file) => {
     if (isSampleFile(file)) return { ...file, name: 'Retail sample' };
-    const chapter = chapterOfFile(file, chapters);
+    const chapter = chapterForFile(file, chapters);
     return chapter ? { ...file, name: chapterName(chapter) } : file;
   });
 }
