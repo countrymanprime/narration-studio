@@ -31,6 +31,7 @@ Storybook title: `Primitives/Icon`. Source: `src/components/primitives/Icon.tsx`
 - `src/components/primitives/ContextMenu.tsx`
 - `src/components/primitives/IconButton.tsx`
 - `src/components/primitives/SearchField.tsx`
+- `src/components/primitives/SplitButton.tsx`
 - `src/components/primitives/StatTile.tsx`
 - `src/components/primitives/TreeCaret.tsx`
 - `src/components/primitives/TreeSelect.tsx`
