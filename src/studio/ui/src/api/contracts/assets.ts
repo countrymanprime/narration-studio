@@ -83,12 +83,45 @@ export type AssetConsentFacts = {
 };
 
 export type AssetCatalog = {
-  /** The per-user cache folder every asset is kept under. */
+  /** The folder every asset is kept under: the per-user cache folder, or the one the narrator moved the downloads to. */
   cacheRoot: string;
+  /** The per-user cache folder, where the downloads are unless the narrator moved them. */
+  defaultRoot: string;
+  /** True once the downloads were moved out of the default folder. */
+  custom: boolean;
+  /** The folder a finished move left a copy in, which the narrator has not yet answered for (deleted or kept); empty when none. */
+  previousRoot: string;
   /** Bytes the installed assets take, from the catalog sizes. */
   totalInstalledBytes: number;
   assets: AssetItem[];
 };
+
+/**
+ * Where moving the downloads to another folder is: `copying` and `verifying` are the two passes over every byte (progress counts both),
+ * `switching` is the instant the new folder takes over, then one of the three ends. `idle` is no move since the app started. On
+ * `cancelled` and `error` the old folder is still the one in use; `error` is a sentence for the narrator, empty otherwise.
+ */
+export type AssetMovePhase = 'idle' | 'copying' | 'verifying' | 'switching' | 'success' | 'cancelled' | 'error';
+
+export type AssetMoveState = {
+  id: string;
+  phase: AssetMovePhase;
+  /** The folder the downloads are going to. */
+  target: string;
+  message: string;
+  /** Real bytes over real bytes of both passes; never more than 99 until the move succeeded. */
+  percent: number;
+  bytesDone: number;
+  bytesTotal: number;
+  error: string;
+};
+
+/** True while the move is still working. */
+export const isMoveRunning = (move: Pick<AssetMoveState, 'phase'>): boolean =>
+  move.phase === 'copying' || move.phase === 'verifying' || move.phase === 'switching';
+
+/** The folder the narrator picked in the system dialog; empty when they cancelled. */
+export type AssetFolderPick = { path: string };
 
 export type AssetVerifyResult = { kind: string; id: string; installState: AssetInstallState };
 
@@ -102,6 +135,20 @@ export interface AssetsApi {
   assetsVerify(kind: string, id: string): Promise<AssetVerifyResult>;
   /** Shows the folder the assets are kept in (`cacheRoot`) in the file manager. */
   assetsOpenFolder(): Promise<void>;
+  /** Asks for the folder to move the downloads to (the system's folder dialog). Changes nothing. */
+  assetsFolderPick(): Promise<AssetFolderPick>;
+  /**
+   * Starts moving the downloads to `target` (the default folder when empty): copy, check every file, then every download kind uses the new
+   * folder. The old folder is not changed. Refused for a folder that cannot work, during a download and during another move.
+   */
+  assetsMoveStart(target: string): Promise<AssetMoveState>;
+  assetsMoveState(): Promise<AssetMoveState>;
+  /** Stops the move; the old folder stays in use and the new one is left empty. */
+  assetsMoveCancel(): Promise<AssetMoveState>;
+  /** After the narrator confirmed: deletes the asset folders of the old copy (`previousRoot`) and nothing else. */
+  assetsMoveDeleteOld(): Promise<void>;
+  /** Ends the offer to delete the old copy and leaves it where it is. */
+  assetsMoveKeepOld(): Promise<void>;
   /** Deletes the asset and nothing else. Refused while it downloads. */
   assetsRemove(kind: string, id: string): Promise<void>;
 }

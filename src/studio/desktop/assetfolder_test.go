@@ -372,3 +372,22 @@ func TestEveryMoveFailureSaysTheModelsAreWhereTheyWere(t *testing.T) {
 		}
 	}
 }
+
+func TestAMoveWhoseSettingCannotBeSavedTakesItsCopyBackAndChangesNothing(t *testing.T) {
+	f := newFolderFixture(t)
+	f.seed(t, f.base)
+	f.host.mu.Lock()
+	f.host.settings = nil
+	f.host.mu.Unlock()
+	target := filepath.Join(f.other, "models")
+	if _, err := f.host.startModelsMove(target); err != nil {
+		t.Fatal(err)
+	}
+	f.waitFor(t, "error")
+	if exists(target) {
+		t.Fatalf("a copy that was never used was left in %s", target)
+	}
+	if f.host.registry().base != f.base || !exists(filepath.Join(f.base, "tts", "v", "model.onnx")) {
+		t.Fatal("the old location was touched")
+	}
+}

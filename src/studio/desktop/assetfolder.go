@@ -206,7 +206,10 @@ func (h *Host) runModelsMove(ctx context.Context, plan assetmove.Plan, toDefault
 		m.mu.Lock()
 		m.phase, m.message = movePhaseSwitching, "Switching to the new folder…"
 		m.mu.Unlock()
-		err = h.switchModelsFolder(plan, toDefault, folders)
+		if err = h.switchModelsFolder(plan, toDefault, folders); err != nil {
+			// The copy is in place but was never used: take it away again, so the narrator can try the same folder once the cause is gone.
+			_ = assetmove.RemoveOld(plan.Target, plan.Dirs)
+		}
 	}
 	m.mu.Lock()
 	defer m.mu.Unlock()

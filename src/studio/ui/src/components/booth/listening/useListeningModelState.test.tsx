@@ -10,7 +10,14 @@ import { useListeningModelState } from './useListeningModelState';
 
 const item = (over: Partial<AssetItem>): AssetItem =>
   ({ kind: 'whisper', kindLabel: 'Whisper model', id: 'tiny', displayName: 'Tiny', installState: 'installed', ...over }) as AssetItem;
-const catalog = (...assets: AssetItem[]): AssetCatalog => ({ cacheRoot: 'C:/cache', totalInstalledBytes: 0, assets });
+const catalog = (...assets: AssetItem[]): AssetCatalog => ({
+  cacheRoot: 'C:/cache',
+  defaultRoot: 'C:/cache',
+  custom: false,
+  previousRoot: '',
+  totalInstalledBytes: 0,
+  assets,
+});
 
 function state(assetsList: () => Promise<AssetCatalog>, engine = 'whisper', model = 'tiny', again = 0) {
   const api = createMockApi({ assetsList } as Partial<NarrationApi>);

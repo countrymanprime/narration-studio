@@ -17,9 +17,11 @@ import { assetKey, useAssetsStore, type AssetView } from '../models/AssetsStore'
 import { planRemoval, settingLabel, usesOf } from '../models/assetUse';
 import { ASSET_FILTERS, assetPages, GROUP_OF_KIND, RECOMMENDED_SET, type AssetGroup } from '../registry/assets';
 import { ANALYSIS_KIND } from '../analysis/components';
+import { rowOf } from '../registry/rows';
 import type { Category } from '../registry/types';
 import { useSettingsNav } from '../row/SettingsNav';
 import { PaneTitle } from './PaneTitle';
+import { RowOf } from './RowOf';
 
 type Filter = 'all' | AssetGroup;
 type Notice = { tone: 'alert' | 'status'; text: string };
@@ -35,7 +37,8 @@ function Heading({ category }: { category: Category }) {
  * section that uses it; here a download is started, followed, cancelled, repaired or removed. Removing one a setting has chosen moves that
  * setting to the smallest other installed choice, or is refused when there is none. The table becomes cards below 1020px of the page.
  */
-export function ModelsPane({ category }: { category: Category }) {
+export function ModelsPane({ category, lit = null }: { category: Category; lit?: string | null }) {
+  const folderRow = rowOf('models.folder');
   const assets = useAssetsStore();
   const api = usePort('assets');
   const settings = useSettingsStore();
@@ -170,6 +173,11 @@ export function ModelsPane({ category }: { category: Category }) {
           </Button>
         </div>
       </Panel>
+      {folderRow && (
+        <Panel flush>
+          <RowOf row={folderRow} flash={lit === folderRow.id} />
+        </Panel>
+      )}
       {noticeCard}
       {rows.every((view) => view.status !== 'installed') && (
         <Panel label="Nothing is downloaded yet">

@@ -249,6 +249,9 @@ const mockAssetsList = (['loading', 'fails'] as const).find((seed) => seed === m
 // `?mockAssetsVerify=damaged|absent|fails|silent|hangs` sets what Settings > Models & downloads' Check the files answers: the asset damaged,
 // gone, a refusal in the host's words, a refusal with no words, or no answer. `?mockAssetNames=long` gives the Whisper model a long name.
 const mockAssetsVerify = (['damaged', 'absent', 'fails', 'silent', 'hangs'] as const).find((seed) => seed === mockParams.get('mockAssetsVerify'));
+// `?mockMove=copying|verifying|fails|moved|cancel` sets how Settings > Models & downloads' Change location behaves: the move holds while copying or
+// checking, fails, boots already moved with the old copy awaiting an answer, or the folder dialog is closed without a choice.
+const mockMove = (['copying', 'verifying', 'fails', 'moved', 'cancel'] as const).find((seed) => seed === mockParams.get('mockMove'));
 const mockAssetNames = mockParams.get('mockAssetNames') === 'long' ? ('long' as const) : undefined;
 // `?mockHold=overview,entities` makes those reads never answer, so Production and the Story Bible show their loading skeleton.
 const mockHold = (mockParams.get('mockHold') ?? '').split(',').filter((name): name is 'overview' | 'entities' => name === 'overview' || name === 'entities');
@@ -513,6 +516,7 @@ const mockInitial = {
   ...(mockAssetsList ? { assetsList: mockAssetsList } : {}),
   ...(mockAssetsVerify ? { assetsVerify: mockAssetsVerify } : {}),
   ...(mockAssetNames ? { assetNames: mockAssetNames } : {}),
+  ...(mockMove ? { assetMove: mockMove } : {}),
   ...(mockChapters ? { chaptersRead: mockChapters } : {}),
   ...(mockChapterRead ? { chapterRead: mockChapterRead } : {}),
   ...(mockProfileRead ? { profileRead: mockProfileRead } : {}),

@@ -46,6 +46,13 @@ async function openModels(page: Page, query = ''): Promise<void> {
   await page.locator(`[data-asset="${WHISPER_SMALL}"]`).waitFor();
 }
 
+/** Change location, answered Yes and given a folder: the move starts and its dialog opens. */
+async function startMove(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Change location…' }).click();
+  await confirmDialog(page, 'Change where downloads are kept?').getByRole('button', { name: 'Choose a folder…' }).click();
+  await page.getByRole('dialog', { name: 'Moving models and downloads' }).waitFor();
+}
+
 /** Pulls the update dialog flow forward: Download update, then the confirm's Download. */
 async function startUpdateDownload(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Download update' }).click();
@@ -279,6 +286,28 @@ export const settingsDrivers: Record<string, Driver> = {
     await openModels(page);
     await page.locator(`[data-asset="${WHISPER_SMALL}"]`).getByRole('button', { name: 'Remove Small' }).click();
     await confirmDialog(page, 'Remove Small?').waitFor();
+  },
+  'models-folder-asking': async (page) => {
+    await openModels(page);
+    await page.getByRole('button', { name: 'Change location…' }).click();
+    await confirmDialog(page, 'Change where downloads are kept?').waitFor();
+  },
+  'models-moving': async (page) => {
+    await openModels(page, '?mockMove=copying');
+    await startMove(page);
+    await page.getByRole('progressbar', { name: 'Moving models and downloads progress' }).waitFor();
+    await page.getByText('Copying the models to the new folder…').waitFor();
+    await page.getByText(/\d+(\.\d+)? (MB|GB) of /).waitFor();
+  },
+  'models-moved': async (page) => {
+    await openModels(page, '?mockMove=moved');
+    await page.getByRole('button', { name: 'Delete old copy…' }).waitFor();
+    await page.locator('[data-row="models.folder"]').evaluate((el) => el.scrollIntoView({ block: 'center' }));
+  },
+  'models-move-failed': async (page) => {
+    await openModels(page, '?mockMove=fails');
+    await startMove(page);
+    await page.getByRole('alert').filter({ hasText: 'The disk filled up' }).waitFor();
   },
   'models-remove-refused': async (page) => {
     await openModels(page);

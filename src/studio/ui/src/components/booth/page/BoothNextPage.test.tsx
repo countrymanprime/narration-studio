@@ -147,6 +147,9 @@ describe('record-waits-for-the-live-model', () => {
   it('asks for the missing model first and records nothing while it is asked', async () => {
     const assetsList = vi.fn(async () => ({
       cacheRoot: 'C:/cache',
+      defaultRoot: 'C:/cache',
+      custom: false,
+      previousRoot: '',
       totalInstalledBytes: 0,
       assets: [
         {
