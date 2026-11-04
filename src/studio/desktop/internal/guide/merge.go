@@ -10,6 +10,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"unicode"
 )
 
 // maxMergeUndo is manuscript_guide.py MAX_MERGE_UNDO: how many merges the file can take back, newest kept.
@@ -39,6 +40,59 @@ func normalizeName(name string) string {
 func entityID(name string) string {
 	sum := sha1.Sum([]byte(normalizeName(name))) //nolint:gosec // G401: an identifier, not a security measure
 	return "entity-" + hex.EncodeToString(sum[:])[:12]
+}
+
+// nameKey is what tells two names apart when one would take the other's id: the name case-folded (foldCase), with white space and the
+// ASCII characters that are not letters or digits dropped, so "NICK!" and "N i c k" are still "nick" as the sidecar has it, and every
+// other character kept, so "日本" and "שלום", or "Zoë" and "Zo", are two names. A name that keeps nothing ("...") is its whole fold.
+func nameKey(name string) string {
+	folded := foldCase(pythonStrip(name))
+	key := strings.Map(func(r rune) rune {
+		if unicode.IsSpace(r) || (r < 0x80 && !unicode.IsLetter(r) && !unicode.IsDigit(r)) {
+			return -1
+		}
+		return r
+	}, folded)
+	if key == "" {
+		return folded
+	}
+	return key
+}
+
+// nameHolder is the part of entity (the entity itself, or one of its aliases) whose name has key, the canonical name first, or nil.
+func nameHolder(entity map[string]any, key string) map[string]any {
+	if name, ok := entity["canonical_name"].(string); ok && nameKey(name) == key {
+		return entity
+	}
+	for _, raw := range listOf(entity["aliases"]) {
+		alias, _ := raw.(map[string]any)
+		if text, ok := alias["text"].(string); ok && nameKey(text) == key {
+			return alias
+		}
+	}
+	return nil
+}
+
+// claimID is the id a new entry named name takes, or the entry that has the name already and the part of it that holds the name. The
+// id is entityID(name) unless an entry without the name holds it (normalizeName keeps only a-z and 0-9, so names in other scripts,
+// emoji, accents and punctuation alone share one): then it is that id with "-2", "-3" and so on, the first free one.
+func claimID(entities []any, name string) (string, map[string]any, map[string]any) {
+	base, key := entityID(name), nameKey(name)
+	for n := 1; ; n++ {
+		id := base
+		if n > 1 {
+			id = base + "-" + strconv.Itoa(n)
+		}
+		index := slices.IndexFunc(entities, func(raw any) bool { return idOf(raw) == id })
+		if index < 0 {
+			return id, nil, nil
+		}
+		if entity, _ := entities[index].(map[string]any); entity != nil {
+			if holder := nameHolder(entity, key); holder != nil {
+				return "", entity, holder
+			}
+		}
+	}
 }
 
 // newUndoID is os.urandom(8).hex(): 16 lowercase hexadecimal characters.
@@ -507,9 +561,9 @@ func splitAlias(document map[string]any, id, aliasText string) (string, error) {
 	alias, _ := aliases[match].(map[string]any)
 	entity["aliases"] = slices.Delete(slices.Clone(aliases), match, match+1)
 	text, _ := alias["text"].(string)
-	newID := entityID(text)
 	entities := listOf(document["entities"])
-	if slices.ContainsFunc(entities, func(raw any) bool { return idOf(raw) == newID }) {
+	newID, owner, _ := claimID(entities, text)
+	if owner != nil {
 		return "", errNameTaken
 	}
 	needsReview := slices.Contains(flagged, text)

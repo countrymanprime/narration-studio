@@ -33,6 +33,7 @@ export const REAPER_FILES = [
   'narration_track_create.lua',
   'narration_track_select.lua',
   'narration_track_state.lua',
+  'narration_tracks_read.lua',
   'narration_transport.lua',
   'narration_ui_bridge.lua',
   'narration_undo.lua',

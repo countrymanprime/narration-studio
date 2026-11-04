@@ -38,6 +38,7 @@ Storybook title: `Primitives/Button`. Source: `src/components/primitives/Button.
 - `src/components/booth/record/RecordSetup.tsx`
 - `src/components/booth/side/VoicesInChapter.tsx`
 - `src/components/booth/voices/VoiceControl.tsx`
+- `src/components/booth/voices/WhoIsInDialog.tsx`
 - `src/components/connection/ChapterLinkDialog.tsx`
 - `src/components/connection/ReaperOffDialog.tsx`
 - `src/components/connection/ResolveShell.tsx`
@@ -82,13 +83,11 @@ Storybook title: `Primitives/Button`. Source: `src/components/primitives/Button.
 - `src/components/engine/ChapterTagsDialog.tsx`
 - `src/components/engine/CleanupToolsDialog.tsx`
 - `src/components/engine/CreateChapterRegionsDialog.tsx`
-- `src/components/engine/DawToolsMenu.tsx`
-- `src/components/engine/EnginePanel.tsx`
 - `src/components/engine/EnginePanelContext.tsx`
 - `src/components/engine/LinkChaptersDialog.tsx`
+- `src/components/engine/NestedChaptersNotice.tsx`
 - `src/components/engine/RenderConfigDialog.tsx`
 - `src/components/engine/RetakeLanesDialog.tsx`
-- `src/components/engine/SyncActivityLog.tsx`
 - `src/components/help/ShortcutSheet.tsx`
 - `src/components/layout/AddressGate.tsx`
 - `src/components/layout/CheckLine.tsx`
@@ -202,6 +201,7 @@ Storybook title: `Primitives/Button`. Source: `src/components/primitives/Button.
 - `src/components/storybible/VoiceDataPanel.tsx`
 - `src/components/storybible/VoiceReferencesSection.tsx`
 - `src/components/storybible/source/PronSourceTag.tsx`
+- `src/components/storybible/source/PronunciationCandidates.tsx`
 - `src/components/storybible/source/SourceMenu.tsx`
 - `src/components/storybible/suggested/import/ImportDialog.tsx`
 - `src/components/storybible/suggested/panel/ScanStatus.tsx`

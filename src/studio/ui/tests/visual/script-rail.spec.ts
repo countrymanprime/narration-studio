@@ -1,6 +1,6 @@
 // The Script rail (#2251, alignment audit docs/research/alignment-audit/findings/script.md XSC-12, XSC-13, XSC-14, XSC-25, XSC-27,
 // XSC-34, XSC-43): the In this chapter table's text starts on the section label's x and keeps its columns between chapters, a name
-// with no first appearance has no dangling "first —", Add to my words is a labelled button, an empty tab's sentence sits on the
+// with no first appearance has no dangling "first —", Save to my dictionary is a labelled button, an empty tab's sentence sits on the
 // rail's inset, and as a sheet the rail is as tall as what it holds and centred between the columns' edges.
 import { expect, test, type Page } from '@playwright/test';
 import { scriptDrivers } from './drivers/script';
@@ -45,11 +45,12 @@ test('rail-story-bible at 1440: the table text is on the label, and no "first �
     .toEqual([]);
 });
 
-test('rail-words and retail-sample at 1440: the words table keeps its columns between chapters; Add to my words is labelled', async ({ page }) => {
+test('rail-words and retail-sample at 1440: the words table keeps its columns between chapters; Save to my dictionary is labelled', async ({ page }) => {
   await drive(page, 'rail-words', DESKTOP);
   const words = await tableEdges(page);
   expect.soft(words.text, "the first column's text starts under the section label").toBe(words.label);
-  await expect.soft(page.locator(rail).getByRole('button', { name: 'Add to my words' })).toHaveText(/Add to my words/);
+  // A word no dictionary has offers Save to my dictionary, a labelled button (design-system.md, XSC-12; #2595 replaced Add to my words).
+  await expect.soft(page.locator(rail).getByRole('button', { name: 'Save to my dictionary' })).toHaveText(/Save to my dictionary/i);
   await drive(page, 'retail-sample', DESKTOP);
   const sample = await tableEdges(page);
   expect.soft(sample.second, 'the second column starts at the same x in another chapter').toBe(words.second);

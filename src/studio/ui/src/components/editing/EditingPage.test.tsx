@@ -113,6 +113,19 @@ describe('EditingPage', () => {
     expect(document.querySelector('#timeline')).toBeNull();
   });
 
+  // #2820: the DAW tools menu is in the header, where a chapter is finished: its structure entries open the same dialogs as the Engine panel.
+  it('offers the DAW tools in the header, with the structure entries', async () => {
+    const user = userEvent.setup();
+    mount();
+    await script();
+    const header = screen.getByRole('heading', { level: 1, name: 'Editing' }).closest('header')!;
+    await user.click(within(header as HTMLElement).getByRole('button', { name: 'DAW tools' }));
+    const menu = await screen.findByRole('menu');
+    expect(within(menu).getByText('Structure')).toBeTruthy();
+    expect(within(menu).getByRole('menuitem', { name: /Create chapter regions/ })).toBeTruthy();
+    expect(within(menu).getByRole('menuitem', { name: /Prepare chapter render/ })).toBeTruthy();
+  });
+
   // #2251 item 35: the key hints are the shell's page footer, full width under the page, not a row inside the page's card.
   it('the key hints are drawn in the shell page footer', async () => {
     const footer = document.body.appendChild(document.createElement('div'));
@@ -758,6 +771,20 @@ describe('EditingPage', () => {
       expect(within(screen.getByRole('toolbar', { name: 'Playback and selection' })).getByText('1 word')).toBeTruthy();
       expect(document.querySelector('[data-flagcard]')).not.toBeNull();
     });
+    // Issue #2919: reading the finding a link names changes nothing, so the failed read's toast carries Retry, which reads it again.
+    it('a failed read of the finding is an error toast with Retry, which reads it again and opens the finding', async () => {
+      const toast = vi.spyOn(overlay, 'toast');
+      const findingsGet = vi.fn().mockRejectedValueOnce(new Error('the findings are locked'));
+      findingsGet.mockImplementation(async () => FINDING);
+      mount({ findingId: FINDING.id, api: { findingsGet } as never });
+      await script();
+      await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.stringContaining('the findings are locked'), expect.objectContaining({ tone: 'error' })));
+      const options = toast.mock.calls.find((call) => String(call[0]).includes('locked'))![1] as { action: { label: string; onAction: () => void } };
+      expect(options.action.label).toBe('Retry');
+      act(() => options.action.onAction());
+      await waitFor(() => expect(findingsGet).toHaveBeenCalledTimes(2));
+      await waitFor(() => expect(cursorKey()).toBe('w-p1:3'));
+    });
     it('opens a finding on all the words it names: its expected text in its paragraph, not the first word', async () => {
       const named = { id: 'f-run', manuscript: { chapter_id: 'c1', expected: 'turned and walked', span: { paragraph_id: 'p2' } } };
       mount({ findingId: 'f-run', api: { findingsGet: async () => named } as never });
@@ -1139,6 +1166,14 @@ describe('EditingPage loading state', () => {
     expect(region('Loading the editor')?.getAttribute('aria-busy')).toBe('true');
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(region('Loading the editor')).toBeTruthy();
+  });
+
+  // QA break B1 of #2820: the loading header and the loaded header are different trees, so a DAW tools menu opened while the chapters load would be
+  // closed when they arrived. The button is drawn with the loaded page, where it stays.
+  it('does not draw the DAW tools button until the chapters have been read, so a menu is never closed by their arrival', async () => {
+    mount({ api: { manuscriptChapters: never } });
+    await screen.findByRole('heading', { level: 1, name: 'Editing' });
+    expect(screen.queryByRole('button', { name: 'DAW tools' })).toBeNull();
   });
 
   it('is replaced by the script when the chapters and lines arrive', async () => {
