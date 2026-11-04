@@ -69,8 +69,8 @@ func readZoom(window zoomWindow) WindowZoomResult {
 
 // appearanceTool and appearanceZoomKey hold the remembered zoom level: one app-wide level in global settings. There is
 // no fieldSchemas entry for it, so it never appears on the generic Settings page; only this file's own binding and
-// main.go's startup read ever touch it, the same way Keymap.overrides and ReadAloud's rows are global/project-only
-// tools with no fieldSchemas UI row of their own.
+// main.go's startup read ever touch it, the same way Keymap.overrides is a global-only tool
+// with no fieldSchemas UI row of its own.
 const (
 	appearanceTool    = "Appearance"
 	appearanceZoomKey = "zoom"

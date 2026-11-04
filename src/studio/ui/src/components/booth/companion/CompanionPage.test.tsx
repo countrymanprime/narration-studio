@@ -10,18 +10,8 @@ import { withoutCredits } from '../../../chapterKinds';
 import type { CreditsRenderResult, NarrationApi } from '../../../types';
 import { CompanionPage } from './CompanionPage';
 
-const spies = vi.hoisted(() => ({ useRecordInReaper: vi.fn(), toggleFullscreen: vi.fn(async () => true), shellProps: vi.fn(), resume: vi.fn() }));
+const spies = vi.hoisted(() => ({ toggleFullscreen: vi.fn(async () => true), shellProps: vi.fn(), resume: vi.fn() }));
 
-vi.mock('../useRecordInReaper', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../useRecordInReaper')>();
-  return {
-    ...actual,
-    useRecordInReaper: (...args: Parameters<typeof actual.useRecordInReaper>) => {
-      spies.useRecordInReaper(...args);
-      return actual.useRecordInReaper(...args);
-    },
-  };
-});
 vi.mock('../../../api/hostWindow', async (importOriginal) => ({ ...(await importOriginal<object>()), toggleFullscreen: spies.toggleFullscreen }));
 vi.mock('../CompanionShell', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../CompanionShell')>();
@@ -88,19 +78,7 @@ describe('CompanionPage', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Companion' })).toBeTruthy();
     const props = spies.shellProps.mock.calls.at(-1)![0];
     expect(props.chapterId).toBe(first.id);
-    for (const key of ['session', 'follow', 'chapterTitle', 'recording', 'marks', 'header', 'onFullApp']) expect(props, key).toHaveProperty(key);
-  });
-
-  it('play-and-stop-still-arm-and-stop-reaper: the host passes useRecordInReaper(chapterId, record.available)', async () => {
-    const first = await firstChapter();
-    await renderCompanion(`/companion?chapter=${encodeURIComponent(first.id)}`);
-    await screen.findByRole('heading', { level: 1, name: 'Companion' });
-    const [chapterId, available] = spies.useRecordInReaper.mock.calls.at(-1)!;
-    expect(chapterId).toBe(first.id);
-    expect(typeof available).toBe('boolean');
-    expect(spies.shellProps.mock.calls.at(-1)![0].recording).toEqual(
-      expect.objectContaining({ beforeStart: expect.any(Function), afterStop: expect.any(Function) }),
-    );
+    for (const key of ['session', 'follow', 'chapterTitle', 'marks', 'header', 'onFullApp']) expect(props, key).toHaveProperty(key);
   });
 
   it('the-resume-notice-and-the-unresolved-credits-warning-are-kept: the header holds ResumePrompt for a chapter', async () => {

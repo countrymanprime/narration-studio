@@ -44,6 +44,15 @@ const optionalToolsFrozen = ['gliner', 'booknlp', 'transformers', 'torch'].filte
 if (optionalToolsFrozen.length) {
   throw new Error(`Release Story Bible sidecar carries an optional download: ${optionalToolsFrozen.join(', ')}. Manuscript Guide loads these from the analysis tool's install folder; exclude them in scripts/release/prepare-resources.py.`);
 }
+// No sidecar runs a development tool: prepare-resources.py excludes them (DEV_TOOL_MODULES) so their code and licences stay out of the release
+// (#245). setuptools ships as a folder; the others are folders or single files under _internal.
+const devToolNames = ['hypothesis', 'pytest', '_pytest', 'pluggy', 'iniconfig', 'setuptools', 'pkg_resources', 'fastapi', 'starlette', 'uvicorn'];
+const devToolsFrozen = ['manuscript-guide', 'transcript-compare', 'manuscript-teleprompter'].flatMap((sidecar) =>
+  devToolNames.filter((name) => existsSync(resolve(runtime, sidecar, '_internal', name))).map((name) => `${sidecar}/${name}`),
+);
+if (devToolsFrozen.length) {
+  throw new Error(`Release sidecars carry development tools: ${devToolsFrozen.join(', ')}. Exclude them in scripts/release/prepare-resources.py (DEV_TOOL_MODULES).`);
+}
 // The Windows Teleprompter sidecar carries the Moonshine engine (moonshine-voice is pinned for Windows only in pyproject.toml). Its
 // package loads moonshine.dll, and the onnxruntime.dll beside it, with ctypes from its own folder, which PyInstaller cannot see:
 // prepare-resources.py collects them by hand. the program's `--smoke` proves they load (`manuscript-teleprompter --capabilities --verify`); this proves they are
