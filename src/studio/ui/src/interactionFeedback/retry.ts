@@ -40,6 +40,10 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   ),
   'src/components/script/page/data/useScriptData.ts#2': no(ED),
   'src/components/script/page/data/useScriptData.ts#3': no(ED),
+  'src/components/settings/controls/ProjectBodies.tsx#1': no(
+    'The basis is read when the row mounts and again on every window focus, so the next focus repeats the read; the radios stay off until it succeeds.',
+  ),
+  'src/components/settings/controls/ProjectBodies.tsx#2': no(BT),
   'src/components/settings/controls/SyncEnabledBody.tsx#1': no(BT),
   'src/components/settings/controls/VoicesBody.tsx#1': no(
     'The tracks are read again every time the window is focused, so the next focus repeats the read; the narrator is in REAPER when it matters.',
