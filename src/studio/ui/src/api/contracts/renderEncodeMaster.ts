@@ -1,5 +1,5 @@
 // The Master & QC export flow: the narrator picks rendered chapter (and credits, and retail sample) WAV files,
-// optionally masters them (internal/mastering), encodes them (internal/encodeport) and assembles one delivery
+// optionally masters them (the project's mastering row, internal/masteringport), encodes them (internal/encodeport) and assembles one delivery
 // profile's package (internal/packager).
 // Mastering and encoding run together as one job (ExportStart/State/Cancel), matching the narrator's one "Master &
 // encode" action; packaging is its own job (PackageStart/State/Cancel) over an export's own encoded files.
@@ -12,10 +12,48 @@ export type PackageItemKind = 'chapter' | 'credits_opening' | 'credits_closing' 
 /** One rendered WAV to master and encode: its place in the package, and (for a chapter) its title. */
 export type ExportItem = { kind: PackageItemKind; title: string; path: string };
 
-/** What ExportStart is asked to master (optionally) and encode. */
-export type ExportRequest = { items: ExportItem[]; master: boolean; format: string };
+/**
+ * The narrator's approval of one export's masters, given in the approval dialog just before the call that carries it: the row
+ * they approved (MasteringProvider.name) and, for a row that needs one (`needsMacro`), the effect macro they named. The host
+ * refuses it when the project masters with another row by then (a stale approval) and never keeps it past that call. For a row whose
+ * steps live in the DAW, `chainDigest` is the plan's digest of the chain the dialog showed: the host refuses such an approval without
+ * it, and each render refuses a chain that differs from it, ending the export there (threat model row 5o).
+ */
+export type MasteringApproval = { provider: string; macro: string; chainDigest?: string };
 
-/** The mastering chain's own report (internal/mastering.Result), narrowed to what the page shows per file. */
+/** What ExportStart is asked to master (optionally) and encode; `approval` is null unless the narrator just gave one. */
+export type ExportRequest = { items: ExportItem[]; master: boolean; format: string; approval: MasteringApproval | null };
+
+/** One item as the host will export it (ExportPlanItem in Go): its path cleaned, its title trimmed, and the DAW region it renders
+ * from when the mastering row renders regions; `region` is '' with any other row. */
+export type ExportPlanItem = { kind: PackageItemKind; title: string; path: string; region: string };
+
+/** One plug-in in a DAW chain, as the DAW names it, and whether it is switched on. */
+export type ExportPlanFX = { name: string; enabled: boolean };
+
+/** One track's plug-ins in the chain a DAW render runs, in chain order: every track with FX, then the master (`master`). */
+export type ExportPlanTrack = { name: string; master: boolean; fx: ExportPlanFX[] };
+
+/**
+ * What ExportStart would do with a request, answered by ExportPlan without starting anything: the mastering row (`provider` and
+ * `label` empty when it does not master), whether each master needs the narrator's approval or a macro, and the items as the host
+ * will export them, and for a row whose steps live in the DAW, the chain it would run, read when the plan was asked for (empty for
+ * any other row; a chain the host cannot read whole refuses the plan). The approval dialog draws exactly this.
+ */
+export type ExportPlan = {
+  master: boolean;
+  provider: string;
+  label: string;
+  needsApproval: boolean;
+  needsMacro: boolean;
+  items: ExportPlanItem[];
+  chain: ExportPlanTrack[];
+  /** masteringport.ChainDigest of `chain` for a row that lists its chain, sent back in the approval; empty for any other row. */
+  chainDigest: string;
+};
+
+/** The built-in chain's own report (internal/mastering.Result), narrowed to what the page shows per file; absent for a file another
+ * row mastered. */
 export type MasteringSummary = {
   targets: { rms: number; rmsMin: number | null; rmsMax: number | null; peakMax: number; ceiling: number };
   highPassHz: number;
@@ -47,6 +85,8 @@ export type ExportJob = {
   message: string;
   percent: number;
   master: boolean;
+  /** The mastering row the job masters with (MasteringProvider.name); '' when it does not master. */
+  provider: string;
   format: string;
   logs: string[];
   elapsed: number;
@@ -124,8 +164,12 @@ export type MultiPackageJob = {
 export interface RenderEncodeMasterApi {
   /** Opens the picker for the files to master and encode. Only paths chosen here can be exported. */
   exportPickFiles(): Promise<MeasurePickResult>;
-  /** Masters (when requested) and encodes the picked files as a job; rejects a path that was not picked, an empty
-   * request, or a second export while one runs. */
+  /** What exportStart would do with `req`, starting nothing (ExportPlan): refuses what exportStart refuses before a job starts,
+   * except a missing or stale approval. */
+  exportPlan(req: ExportRequest): Promise<ExportPlan>;
+  /** Masters (when requested) with the project's mastering row and encodes the picked files as a job; rejects a path that was
+   * not picked, an empty request, a second export while one runs, a row that needs approval without one, an approval of another
+   * row (stale), and a row that needs a macro without its name. */
   exportStart(req: ExportRequest): Promise<ExportJob>;
   /** The export job: idle, running with real progress, or how it ended with every file's result. */
   exportState(): Promise<ExportJob>;

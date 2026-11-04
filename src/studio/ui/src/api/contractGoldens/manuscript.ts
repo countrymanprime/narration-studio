@@ -8,7 +8,7 @@ import {
   notesSchema,
   paragraphsSchema,
   readerStateSchema,
-  searchHitsSchema,
+  manuscriptSearchResultSchema,
   workJobSchema,
 } from '../schemas/manuscript';
 
@@ -24,7 +24,7 @@ export const manuscriptGoldens: Record<string, z.ZodType> = {
   'manuscript-chapter-status.json': chapterSchema,
   'manuscript-chapter-kind-removed.json': chapterKindResultSchema,
   'manuscript-paragraphs.json': paragraphsSchema,
-  'manuscript-search.json': searchHitsSchema,
+  'manuscript-search.json': manuscriptSearchResultSchema,
   'manuscript-notes.json': notesSchema,
   'manuscript-notes-empty.json': notesSchema,
   'manuscript-reader-state.json': readerStateSchema,

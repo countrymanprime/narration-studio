@@ -1,8 +1,8 @@
-import type { WordStatus } from '../../../../../api/contracts/scriptPrep';
 import type { StatusTone } from '../../../../primitives/StatusBadge';
+import type { NameStatus } from '../../data/script.selectors';
 
-const LABELS: Record<WordStatus, string> = { set: 'Set', not_set: 'Not set', not_flagged: 'Not flagged' };
+const LABELS: Record<NameStatus, string> = { set: 'Set', not_set: 'Not set' };
 
-/** The mock's status words for the host's status. */
-export const statusLabel = (status: WordStatus): string => LABELS[status];
-export const statusTone = (status: WordStatus): StatusTone => (status === 'set' ? 'success' : 'neutral');
+/** The mock's status words for a Story Bible name's pronunciation (#2595). */
+export const statusLabel = (status: NameStatus): string => LABELS[status];
+export const statusTone = (status: NameStatus): StatusTone => (status === 'set' ? 'success' : 'neutral');

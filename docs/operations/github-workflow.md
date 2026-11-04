@@ -110,18 +110,43 @@ These live outside the repository, so a pull request cannot enforce them:
 | --- | --- |
 | Wiki | Disabled (`gh repo edit --enable-wiki=false`) |
 | Squash-only merges, delete branch on merge | On |
-| `Main Protection` and `Pull Request` rulesets (Settings > Rules) | Active on the default branch. `Main Protection` blocks deleting, force-pushing to and re-creating `main` (the admin role and the owner bypass it). `Pull Request`: squash only, one approval, code-owner review (`.github/CODEOWNERS`), stale approvals dismissed on push, last push approved, threads resolved; the admin role bypasses through a pull request and the owner is exempt. Neither requires a status check. Read with `gh api repos/{owner}/{repo}/rulesets` (and `.../rulesets/<id>` for the rules). See [CI and releases](ci-and-releases.md#what-the-repository-enforces-and-what-ci-is-for) |
+| `Main Protection` and `Pull Request` rulesets (Settings > Rules) | Active on the default branch. `Main Protection` blocks deleting, force-pushing to and re-creating `main` (the admin role and the owner bypass it). `Pull Request`: squash only, one approval, stale approvals dismissed on push, last push approved, threads resolved; the admin role bypasses through a pull request and the owner is exempt. Neither requires a status check. Read with `gh api repos/{owner}/{repo}/rulesets` (and `.../rulesets/<id>` for the rules). See [CI and releases](ci-and-releases.md#what-the-repository-enforces-and-what-ci-is-for) |
 | `production` environment (Settings > Environments) | Exists: required reviewer `@countrymanprime`, self-review allowed, administrator bypass on, **no branch or tag restriction**. **Promote pre-release** waits on it. Restricting it to `main` and `v*` tags is optional and off. Read with `gh api repos/{owner}/{repo}/environments` |
 | Workflow token defaults (Settings > Actions > General) | Read-only default `GITHUB_TOKEN` permissions; workflows may not approve pull requests. Every workflow also declares its own `permissions` ([Workflow security](ci-and-releases.md#workflow-security)). Read with `gh api repos/{owner}/{repo}/actions/permissions/workflow` |
 | GitHub Pages (Settings > Pages) | **Not enabled** (the API answers 404). **Owner step:** Settings > Pages > Build and deployment > Source = **GitHub Actions** (or `gh api -X POST repos/{owner}/{repo}/pages -f build_type=workflow`). Nothing else: the workflow ([`pages.yml`](../../.github/workflows/pages.yml), [what it does](ci-and-releases.md#the-pages-workflow)) brings its own `github-pages` environment on first deploy. Until it is enabled, every push to `main` that touches the site shows a red `deploy` job in the `Pages` run (the `build` job passes); after enabling, re-run the latest `Pages` run or start it from the Actions tab, and the site is at `https://countrymanprime.github.io/narration-studio/` with the docs at `.../docs/`, the demo at `.../demo/` and the Storybook at `.../storybook/`. Optional hardening once the environment exists: Settings > Environments > `github-pages` > Deployment branches and tags > `main` only (the workflow's own `if` already refuses other refs). No agent enables it |
 | Code-signing certificate and secrets | **None exist, by decision:** the first stable release is unsigned (owner decision D7) and no workflow signs anything. Adding a certificate, a signing service or a secret is the owner's; the repository has no Actions secrets (0 on 2026-09-21) and the workflows use only `GITHUB_TOKEN`. See [Build provenance](ci-and-releases.md#build-provenance) and [SECURITY.md](../../SECURITY.md#what-is-in-scope) |
 | Secret scanning and push protection | On. Its two extras, non-provider patterns and validity checks, are off; turning them on is optional (`gh api -X PATCH repos/{owner}/{repo} -f "security_and_analysis[secret_scanning_non_provider_patterns][status]=enabled"`, and `...[secret_scanning_validity_checks]...`) |
-| Required status checks | None, by owner decision: the docs follow the live rulesets. `zizmor`, `security.yml`, `osv-scanner.yml`, CodeQL and dependency review are advisory too, and path-filtered (a pull request that changes none of what they read shows no such check, so none may be required). If the owner ever adds one, the safe first choice is `Docs / Docs checks` (Settings > Rules > `Pull Request` > Require status checks to pass): it runs on every pull request, docs-only ones included, so it never stays pending ([the docs link check](ci-and-releases.md#the-docs-link-check)) |
+| Required status checks | None, by owner decision (what to require and the exact rule: [Turning on required checks](#turning-on-required-checks-544)): the docs follow the live rulesets. `zizmor`, `security.yml`, `osv-scanner.yml`, CodeQL and dependency review are advisory too, and path-filtered (a pull request that changes none of what they read shows no such check, so none may be required). If the owner ever adds one, the safe first choice is `Docs / Docs checks` (Settings > Rules > `Pull Request` > Require status checks to pass): it runs on every pull request, docs-only ones included, so it never stays pending ([the docs link check](ci-and-releases.md#the-docs-link-check)) |
 | Require actions to be pinned to a full-length commit SHA (Settings > Actions > General; the actions-pinning policy) | **Off (`sha_pinning_required` is false); enable it after the workflow-pinning pull request has merged and one Dependabot `github-actions` run has passed** (checklist below) |
 | Immutable releases (Settings > General > Releases) | **Off, and stays off** until a spike proves a flow ([#186](https://github.com/countrymanprime/narration-studio/issues/186)): once on, `gh release upload` to a published release fails and the release-candidate prune cannot reuse or delete a tag. Repository-wide, so it cannot be limited to stable releases. Read the state with `gh api repos/{owner}/{repo}/immutable-releases` |
 | Private vulnerability reporting (what [`SECURITY.md`](../../SECURITY.md) points reporters to) | `gh api -X PUT repos/{owner}/{repo}/private-vulnerability-reporting` |
 | Dependabot alerts (also turns on the dependency graph that `dependency-review.yml` needs) | `gh api -X PUT repos/{owner}/{repo}/vulnerability-alerts` |
 | Dependabot security updates | `gh api -X PUT repos/{owner}/{repo}/automated-security-fixes` |
+
+### Turning on required checks (#544)
+
+Nothing here is applied: the ruleset is the owner's, and requiring a check changes who can merge what. What is ready, read from the live `Pull Request` ruleset (id 23521923) on 2026-11-03:
+
+- **Check to require: `CI passed`** (the aggregate job in `ci.yml`; it sums every quality job, counts a job skipped by Nx scope as passed, and fails if any needed job failed or was cancelled). Requiring the 12 individual names from [#544](https://github.com/countrymanprime/narration-studio/issues/544) would break on every rename; this one does not.
+- **Decide first: documentation-only pull requests.** `ci.yml` has `paths-ignore: docs/**, **/*.md`, so `CI passed` never reports on them and a required check would sit pending. The ruleset has no path condition, and a second workflow that reports the same name only for docs-only changes also reports on mixed ones, which makes the name ambiguous. The options are to drop `paths-ignore` and let Nx skip the jobs (each docs-only pull request then costs a minute of runner time), or to leave `CI passed` unrequired and require only **`Docs / Docs checks`** (never skipped, safe today).
+- **Drafts** show `CI light passed`, not `CI passed`, so a required `CI passed` also stops a draft from merging, which is the intent.
+- **The owner and the admin role keep their bypass** (`bypass_actors` in the ruleset), so the solo maintainer's own merges are unchanged; the check binds everyone else, including an agent with merge rights.
+- **Merged tree:** a squash merge is still not the tree that was tested. "Require branches to be up to date" (`strict_required_status_checks_policy`) closes that at the cost of a rebase when `main` moves; a merge queue is not available for this repository ([CI and releases](ci-and-releases.md)).
+
+To turn it on, after choosing the documentation-only option, add this rule to the ruleset's `rules` array (Settings > Rules > Pull Request > Require status checks to pass, or `gh api -X PUT repos/{owner}/{repo}/rulesets/23521923` with the whole ruleset body and this rule added):
+
+```json
+{
+  "type": "required_status_checks",
+  "parameters": {
+    "strict_required_status_checks_policy": false,
+    "do_not_enforce_on_create": false,
+    "required_status_checks": [{ "context": "CI passed", "integration_id": 15368 }]
+  }
+}
+```
+
+`15368` is the GitHub Actions app. Then update the "No ruleset requires a status check" bullet in [CI and releases](ci-and-releases.md#what-the-repository-enforces-and-what-ci-is-for) and the "Required status checks" row above. Turn it off by removing the rule.
 
 ### Owner checklist for the release supply-chain work
 

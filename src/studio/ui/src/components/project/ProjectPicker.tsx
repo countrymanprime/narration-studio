@@ -44,6 +44,8 @@ export function ProjectPicker({
   // The recent project the running REAPER has open, when the host knows one; null draws no banner (a failed read draws none either).
   const [running, setRunning] = useState<RunningDawProject | null>(null);
   const [recentsFailed, setRecentsFailed] = useState(false);
+  // False until the host has answered: an unanswered list is unknown, not empty, so the empty state waits for the answer.
+  const [recentsLoaded, setRecentsLoaded] = useState(false);
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
   const [newProjectOpen, setNewProjectOpen] = useState(false);
@@ -58,7 +60,10 @@ export function ProjectPicker({
     void api
       .projectRecents()
       .then((next) => {
-        if (active) setRecents(next);
+        if (active) {
+          setRecents(next);
+          setRecentsLoaded(true);
+        }
       })
       .catch(() => {
         if (active) setRecentsFailed(true);
@@ -259,7 +264,7 @@ export function ProjectPicker({
                 <p className="p-4 text-sm" style={{ color: 'var(--danger-text)' }}>
                   Couldn&apos;t load recent projects.
                 </p>
-              ) : visible.length === 0 ? (
+              ) : !recentsLoaded ? null : visible.length === 0 ? (
                 // An empty list offers the way forward where the eye is, not only in the header row (XPJ-8).
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2 p-4 text-sm">
                   <p className="min-w-0 flex-1" style={{ color: 'var(--text-muted)' }}>

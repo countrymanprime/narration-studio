@@ -273,4 +273,18 @@ describe('there-is-no-way-to-flag-by-hand and the-provider-decides', () => {
   it('names no speech engine: the host decides', () => {
     for (const [name, text] of sources) expect(text, name).not.toMatch(/moonshine|whisper/i);
   });
+
+  // Issue #2919: reading the same place again changes nothing, so the failed read's toast carries Retry, which reads it again.
+  it('Retry on the failed read of the decisions reads them again', async () => {
+    const toast = vi.spyOn(overlay, 'toast').mockImplementation(() => undefined);
+    const { save, view } = host();
+    save.mockRejectedValueOnce(new Error('The teleprompter file is locked.'));
+    render(view([skipped]));
+    await waitFor(() => expect(toast).toHaveBeenCalled());
+    const [text, options] = toast.mock.calls[0];
+    expect(text).toContain('locked');
+    expect(options).toMatchObject({ tone: 'error', action: { label: 'Retry' } });
+    await act(async () => options!.action!.onAction());
+    expect(save).toHaveBeenCalledTimes(2);
+  });
 });

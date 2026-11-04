@@ -614,6 +614,15 @@ export function useBoothPage(options: BoothPageOptions) {
     else await roll.startTake();
   }, [control, roll, blocked]);
   retryTake.current = toggleTake;
+  // A voice key with no track behind it stops the take before it asks who is in it (#2839): the narrator's own Stop, so the take is kept as
+  // a Stop press keeps it. Answers whether no take runs afterwards.
+  const stopTake = useCallback(async (): Promise<boolean> => {
+    if (!latest.current.recording) return true;
+    const pending = starting.current;
+    // A take whose listening is still starting: its own failure takes it back, and then there is nothing left to stop.
+    if (pending && !(await pending)) return true;
+    return control.stop();
+  }, [control]);
   const punchAndRoll = useCallback(() => {
     if (!latest.current.recording && control.gate) return blocked(control.gate);
     void roll.punchAndRoll();
@@ -714,6 +723,7 @@ export function useBoothPage(options: BoothPageOptions) {
     goTo,
     leave,
     toggleTake,
+    stopTake,
     /** R: roll again from the chosen phrase, or the current one; says why when no take runs. */
     punchAndRoll,
     /** Moves the reading one phrase on or back, as the Down and Up keys do. */

@@ -1,6 +1,6 @@
 # Local language model spike: candidates, cost, quality and quote discipline
 
-**Date:** 2026-10-12. **Issue:** [#1272](https://github.com/countrymanprime/narration-studio/issues/1272), Phase 9 (Could) of the [Studio Next extraction PRD](../prds/studio-next-extraction-and-analysis-tools.prd.md). **Question:** is there a local language model small enough for a 16 GB Windows computer that is worth offering as an optional analysis tool, and under what condition would the catalogue row's `unavailable` be lifted?
+**Date:** 2026-10-12. **Issue:** [#1272](https://github.com/countrymanprime/narration-studio/issues/1272), Phase 9 (Could) of the Studio Next extraction PRD. **Question:** is there a local language model small enough for a 16 GB Windows computer that is worth offering as an optional analysis tool, and under what condition would the catalogue row's `unavailable` be lifted?
 
 **Recommendation: keep unavailable. No default changes.** Every model below fits 16 GB, but the only measurements are from the 2026-10-10 trial on a 4-vCPU CPU, where a book took 3 to 11 hours, and the [SN-X8 calibration table](studio-next-extraction-calibration.md) holds no figure for any source, so the model cannot yet be compared with the rules baseline. Section 5 states what lifts it.
 

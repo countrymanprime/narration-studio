@@ -3,6 +3,9 @@ import { type FeedbackRow, row, subscription } from './row';
 
 // prettier-ignore
 export const settingsFeedback: Record<string, FeedbackRow> = {
+  // The Chapter sync and Voices rows (the Engine panel's own controls, on the same shared state)
+  'src/components/settings/controls/SyncEnabledBody.tsx::chapterSyncSetEnabled#1': row('click', 'file-io', 'pending', 'pending', 'ui', 'toast', 'na', 'ok', 'On / Off on the Chapter sync row: the pick shows at once and quick picks are queued, the last one sent when the first has answered; a failure is a toast and the radios fall back to the host\'s own state (the same chaptersync:state event the panel reads).'),
+  'src/components/settings/controls/VoicesBody.tsx::tracksList#1': row('mount', 'file-io', 'na', 'na', 'ui', 'toast', 'na', 'ok', 'The saved project\'s tracks for the Voices row, read when the row opens and whenever the window is focused again; a failed read is a toast and the table keeps what it showed.'),
   // Settings: the shared read, the kept panels' fields forms and their own host calls
   'src/components/settings/page/ScopedFieldsPanel.tsx::saveSettings#1': row('click', 'file-io', 'none', 'none', 'toast', 'toast', 'na', 'ok', 'Measured at about 3 ms (docs/research/interaction-latency-baseline.md), tier 1: nothing to acknowledge, and a second save writes the same values, so a failed save is a toast with Retry.'),
   'src/components/settings/page/ScopedFieldsPanel.tsx::saveSettings#2': row('click', 'file-io', 'none', 'none', 'toast', 'toast', 'na', 'ok', 'Clearing a project override is the same one-field write, about 3 ms: tier 1, and a failure is a toast with Retry.'),
@@ -71,7 +74,7 @@ export const settingsFeedback: Record<string, FeedbackRow> = {
   'src/components/settings/controls/CreditsBody.tsx::creditsPreview#1': row('effect', 'instant', 'na', 'na', 'ui', 'inline', 'na', 'exempt', 'Renders the opening and closing templates for the summary (Ready, or Needs the unresolved tokens); a template that cannot be rendered is shown as unknown, and the editor under Edit credits shows the real error (SILENT_CATCHES).'),
 
   // Settings > Keyboard & pedals
-  'src/components/settings/KeyboardPanel.tsx::saveSettings#1': row('click', 'file-io', 'none', 'disabled', 'toast', 'toast', 'na', 'ok', 'Replace, Add as another key, Unbind and both Reset actions all save through this one call site: a single JSON field write, the same tier-1 cost as Settings.tsx\'s own saveSettings rows. Every action button in the row and its recorder disables while a save is in flight (there is no per-action distinction to guard against, since they all write the same field).'),
+  'src/components/settings/KeyboardPanel.tsx::saveSettings#1': row('click', 'file-io', 'none', 'disabled', 'toast', 'toast', 'na', 'ok', 'Replace, Add as another key, Unbind and both Reset actions all save through this one call site: a single JSON field write, the same tier-1 cost as Settings.tsx\'s own saveSettings rows. Every action button in the row and its recorder disables while a save is in flight (there is no per-action distinction to guard against, since they all write the same field). A failure is an error toast with Retry, which saves the same keymap again.'),
 
   // Settings > Local assets
   // Settings > Story Bible: the analysis tools (the registry's `analysis` rows) and whether a scan offers them first
