@@ -125,6 +125,7 @@ Storybook title: `Primitives/IconButton`. Source: `src/components/primitives/Ico
 - `src/components/settings/controls/ProjectBodies.tsx`
 - `src/components/settings/controls/SyncEnabledBody.tsx`
 - `src/components/settings/models/AssetRow.tsx`
+- `src/components/settings/models/ModelsFolder.tsx`
 - `src/components/settings/page/MarksPanel.tsx`
 - `src/components/settings/page/StoryBibleTypesPanel.tsx`
 - `src/components/settings/row/AssetNote.tsx`
