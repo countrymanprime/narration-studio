@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { describeApiError } from '../../../../api/errorMessage';
 import type { ExtractionDecision, ExtractionScanJob, ExtractionSource, ExtractionSuggestion } from '../../../../api/contracts/extraction';
+import { retryAction } from '../../../primitives/Toast';
 import { overlay } from '../../../../overlay/overlayService';
 import { usePort } from '../../../../ports/usePort';
 import { availableSourceIds } from './selectors';
@@ -56,7 +57,12 @@ export function useSuggestions({ pollMs = POLL_MS }: { pollMs?: number } = {}): 
     return () => void (alive.current = false);
   }, []);
 
-  const fail = useCallback((cause: unknown) => alive.current && overlay.toast(describeApiError(cause), { tone: 'error' }), []);
+  // A failed read is an error toast; the reads (the list, the sources, the scan state) change nothing, so each passes Retry (issue #2919).
+  const fail = useCallback(
+    (cause: unknown, again?: () => void) =>
+      alive.current && overlay.toast(describeApiError(cause), { tone: 'error', action: again ? retryAction(again) : undefined }),
+    [],
+  );
 
   const reload = useCallback(async () => {
     try {
@@ -68,37 +74,50 @@ export function useSuggestions({ pollMs = POLL_MS }: { pollMs?: number } = {}): 
       setLoaded(true);
     } catch (cause) {
       if (!alive.current) return;
-      if (everLoaded.current) fail(cause);
+      if (everLoaded.current) fail(cause, () => void reload());
       else setError(describeApiError(cause));
     }
+  }, [port, fail]);
+
+  const readSources = useCallback((): void => {
+    port.extractionSources().then(
+      (all) => alive.current && setSources(all),
+      (cause) => fail(cause, readSources),
+    );
+  }, [port, fail]);
+  const readScan = useCallback((): void => {
+    port.extractionScanState().then(
+      (state) => alive.current && setJob(state),
+      (cause) => fail(cause, readScan),
+    );
   }, [port, fail]);
 
   // The first load: the list, the sources and the scan left running when the narrator was elsewhere.
   useEffect(() => {
     void reload();
-    port.extractionSources().then((all) => alive.current && setSources(all), fail);
-    port.extractionScanState().then((state) => alive.current && setJob(state), fail);
-  }, [port, reload, fail]);
+    readSources();
+    readScan();
+  }, [reload, readSources, readScan]);
 
   // The end of a scan: its last state (the sentences of what failed) and the list, once each.
   useEffect(
     () =>
       system.subscribeJobEnded((event) => {
         if (event.kind !== 'extraction_scan') return;
-        port.extractionScanState().then((state) => alive.current && setJob(state), fail);
+        readScan();
         void reload();
       }),
-    [system, port, reload, fail],
+    [system, reload, readScan],
   );
 
   const running = job?.phase === 'running';
   useEffect(() => {
     if (!running) return;
     const timer = setInterval(() => {
-      port.extractionScanState().then((state) => alive.current && setJob(state), fail);
+      readScan();
     }, pollMs);
     return () => clearInterval(timer);
-  }, [running, port, pollMs, fail]);
+  }, [running, pollMs, readScan]);
 
   const start = useCallback(async () => {
     if (busy.current.starting) return;

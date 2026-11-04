@@ -142,7 +142,6 @@ function ScriptWorkspace({
 
   const [drawer, update] = useScriptView((state) => state.drawer);
   const [selectedMark] = useScriptView((state) => state.sel);
-  const [missSel] = useScriptView((state) => state.missSel);
   const [spyAt] = useScriptView((state) => state.spyAt);
   const [pendingJump] = useScriptView((state) => state.pendingJump);
   const [pendingPid] = useScriptView((state) => state.pendingPid);
@@ -352,7 +351,7 @@ function ScriptWorkspace({
   const lookUp = useCallback(
     (text: string, picked: ReaderSelection) => {
       const target = lookupTarget(text, entries.entries);
-      // The selection goes with a single word, so its card can offer Add to my words for a word not flagged yet.
+      // A single word opens its card on the Words tab, with what the dictionaries say (#2595).
       if (target.tab === 'pron') update({ tab: 'pron', word: target.word, missSel: picked });
       else if ('entryId' in target) update({ tab: 'bible', entryId: target.entryId, miss: null, missSel: null });
       else update({ tab: 'bible', entryId: null, miss: target.miss, missSel: picked });
@@ -520,7 +519,7 @@ function ScriptWorkspace({
   const body = (current: RailTab): ReactNode => {
     switch (current) {
       case 'pron':
-        return <WordsTab chapterId={inView} host={wordsHost} selection={missSel ?? undefined} />;
+        return <WordsTab chapterId={inView} host={wordsHost} />;
       case 'bible':
         return <BibleTab chapterId={inView} host={wordsHost} onOpenStoryBible={focusStoryBibleEntity} />;
       case 'marks':
@@ -573,7 +572,6 @@ function ScriptWorkspace({
                 sources={{
                   marks: marks.marks,
                   markTypes: marks.types,
-                  words: prep.words,
                   entries: entries.entries,
                   cues: speakers.value ?? [],
                   types: entries.types,
@@ -604,7 +602,6 @@ function ScriptWorkspace({
                   if (mark) showMark(mark, false);
                 }}
                 onShowEntry={showEntry}
-                onShowWord={showWord}
                 onTextClick={() => setPlace((current) => (current.at ? { ...current, at: null } : current))}
               />
             </div>

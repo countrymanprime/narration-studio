@@ -120,6 +120,13 @@
   },
   {
     "page": "script",
+    "state": "rail-words-name",
+    "viewport": "desktop",
+    "docName": "script-word-name",
+    "caption": "Script - a Story Bible name chosen on the Words tab: How I will say it is the entry's own row, the same as in the Story Bible"
+  },
+  {
+    "page": "script",
     "state": "mark-composer",
     "viewport": "desktop",
     "docName": "script-add-note",
@@ -138,6 +145,13 @@
     "viewport": "desktop",
     "docName": "production-report-dialog",
     "caption": "Production - Export status report: the Include checkboxes, format and path beside the live preview"
+  },
+  {
+    "page": "production",
+    "state": "report-written",
+    "viewport": "desktop",
+    "docName": "production-report-written",
+    "caption": "Production - Export status report after Export: the written files, their folder and the open-folder button"
   },
   {
     "page": "production",
@@ -292,6 +306,13 @@
     "viewport": "desktop",
     "docName": "booth-voices-list",
     "caption": "The Booth - the voice list: the chapter folder's voices with their keys and characters"
+  },
+  {
+    "page": "booth",
+    "state": "voices-who-is-in",
+    "viewport": "desktop",
+    "docName": "booth-voices-who-is-in",
+    "caption": "The Booth - Who is in Num 7?: the chapter's characters to tick, a new track's name and key, an existing track or the Narrator"
   },
   {
     "page": "booth",
@@ -504,6 +525,48 @@
     "caption": "The audio engine panel - the chapter links list, one chapter confirmed to a track"
   },
   {
+    "page": "engine",
+    "state": "nested-chapters",
+    "viewport": "desktop",
+    "docName": "engine-panel-nested-chapters",
+    "caption": "The audio engine panel - Chapter links' header: two chapters nested in another chapter's folder in REAPER, and Move them out"
+  },
+  {
+    "page": "engine",
+    "state": "nested-chapters-confirm",
+    "viewport": "desktop",
+    "docName": "engine-panel-nested-chapters-confirm",
+    "caption": "The audio engine panel - the confirmation listing every track that moves out of the chapter's folder"
+  },
+  {
+    "page": "engine",
+    "state": "live-tracks-saved",
+    "viewport": "desktop",
+    "docName": "engine-panel-live-tracks-saved",
+    "caption": "The audio engine panel - Chapter links when REAPER is not answering: the header says the tracks are the saved project's, and when they were read"
+  },
+  {
+    "page": "engine",
+    "state": "live-tracks-stale",
+    "viewport": "desktop",
+    "docName": "engine-panel-live-tracks-stale",
+    "caption": "The audio engine panel - Chapter links after REAPER stopped answering: the header says when the tracks were last read, and a message offers Retry"
+  },
+  {
+    "page": "engine",
+    "state": "chapter-track-created",
+    "viewport": "desktop",
+    "docName": "engine-panel-chapter-track-created",
+    "caption": "The audio engine panel - Chapter links after Create a track for this chapter: the chapter linked to its new track, and a message saying it was made"
+  },
+  {
+    "page": "engine",
+    "state": "chapter-folder-created",
+    "viewport": "desktop",
+    "docName": "engine-panel-chapter-folder-created",
+    "caption": "The audio engine panel - Chapter links in a Voice folders project after Create a folder for this chapter: the chapter linked to its new folder with one voice"
+  },
+  {
     "page": "proof-chapter",
     "state": "never",
     "viewport": "desktop",
@@ -683,7 +746,7 @@
     "state": "effects-cap",
     "viewport": "desktop",
     "docName": "settings-effects-cap",
-    "caption": "Settings - Recording & DAW, Effects: the Effects coverage cap row, 10 %, with Override for this project"
+    "caption": "Settings - Recording & DAW, Effects: the Effects coverage cap row after Override for this project, with its own project box"
   },
   {
     "page": "settings",
@@ -988,6 +1051,13 @@
   },
   {
     "page": "master",
+    "state": "text-column",
+    "viewport": "desktop",
+    "docName": "master-text-column",
+    "caption": "Master & QC - the Text column: 100% from a current recording check, a red cross on a share under the check's thresholds, and Not checked where the chapter has no current check"
+  },
+  {
+    "page": "master",
     "state": "file-rules",
     "viewport": "desktop",
     "docName": "master-file-rules",
@@ -1023,6 +1093,13 @@
   },
   {
     "page": "master",
+    "state": "to-spec-empty",
+    "viewport": "desktop",
+    "docName": "master-to-spec-empty",
+    "caption": "Master & QC - the Master to spec card before any file is picked: Choose files to master… and Master before encoding"
+  },
+  {
+    "page": "master",
     "state": "to-spec-picked",
     "viewport": "desktop",
     "docName": "master-to-spec-picked",
@@ -1034,6 +1111,20 @@
     "viewport": "desktop",
     "docName": "master-to-spec-approve",
     "caption": "Master & QC - Master & encode asking approval to master with the DAW's FX chain, naming the regions it renders"
+  },
+  {
+    "page": "master",
+    "state": "to-spec-cancelled",
+    "viewport": "desktop",
+    "docName": "master-to-spec-cancelled",
+    "caption": "Master & QC - a cancelled export: each file Cancelled, and the files and Master & encode back to run it again"
+  },
+  {
+    "page": "master",
+    "state": "chain-choice",
+    "viewport": "desktop",
+    "docName": "master-chain-choice",
+    "caption": "Master & QC - the Mastering chain card's Master with choice: the built-in chain chosen, the DAW's FX chain and Audacity's effect macro beside it"
   },
   {
     "page": "delivery",
@@ -1622,5 +1713,47 @@
     "viewport": "desktop",
     "docName": "background-check-running",
     "caption": "Editing - a background check in progress at the bottom left, with Pause and Cancel"
+  },
+  {
+    "page": "editing",
+    "state": "daw-tools-menu",
+    "viewport": "desktop",
+    "docName": "editing-daw-tools",
+    "caption": "Editing - the DAW tools menu open on a linked chapter: the Structure heading over Prepare chapter render and Create chapter regions"
+  },
+  {
+    "page": "editing",
+    "state": "daw-tools-menu-audacity",
+    "viewport": "desktop",
+    "docName": "editing-daw-tools-audacity",
+    "caption": "Editing - the DAW tools menu on a project that records in Audacity: both entries off, each saying what Audacity cannot do"
+  },
+  {
+    "page": "proof",
+    "state": "daw-tools-menu",
+    "viewport": "desktop",
+    "docName": "proof-daw-tools",
+    "caption": "Proof - the DAW tools menu open at the end of the head: the Structure heading over Prepare chapter render and Create chapter regions"
+  },
+  {
+    "page": "master",
+    "state": "daw-tools-menu-off",
+    "viewport": "desktop",
+    "docName": "master-daw-tools",
+    "caption": "Master & QC with nothing measured and REAPER not answering: the DAW tools menu beside Check files, both entries off with REAPER's own sentence under each"
+  },
+  {
+    "page": "editing",
+    "state": "drawer-cleanup-repair",
+    "viewport": "desktop",
+    "docName": "editing-drawer-cleanup-repair",
+    "caption": "Editing - Clicks chosen in Clean up: Repair in REAPER beside Apply, its menu open on Cleanup tools"
+  },
+  {
+    "page": "proof",
+    "state": "inspector-repair-menu",
+    "viewport": "desktop",
+    "docName": "proof-repair-in-reaper",
+    "caption": "Proof - a click note: Repair in REAPER in the Inspector's row, its menu open on Cleanup tools"
   }
 ]

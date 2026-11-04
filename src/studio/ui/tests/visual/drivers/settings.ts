@@ -452,6 +452,9 @@ export const settingsDrivers: Record<string, Driver> = {
     await openSettings(page, 'Recording & DAW');
     const row = await showSettingsRow(page, 'daw.fxCap');
     await row.getByRole('textbox').waitFor();
+    // The state says "with Override for this project": press it, so the capture shows the project box and is not the same picture as the neighbouring Recording & DAW rows.
+    await row.getByRole('button', { name: /^Override for this project/ }).click();
+    await row.getByText('This project uses', { exact: false }).waitFor();
   },
   'wave-scroll-step': async (page) => {
     await openSettings(page, 'Appearance & keys');

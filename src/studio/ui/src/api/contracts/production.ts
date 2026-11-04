@@ -145,6 +145,9 @@ export type ProductionReportInclude = {
  * chose to include the contracted amount and effective rate (off by default: a status report is often shared with
  * someone the narrator would not otherwise tell their rate).
  */
+/** What ProductionOpenReportsFolder answers: the folder it showed, relative to the project. */
+export type ReportsFolderResult = { folder: string };
+
 export type ProductionReportExport = {
   folder: string;
   htmlFile: string;
@@ -199,6 +202,11 @@ export interface ProductionApi {
    * off by default. Rejects without a project.
    */
   productionStatusReport(include: ProductionReportInclude): Promise<ProductionReportExport>;
+  /**
+   * Shows the project's status-report folder in the file manager and answers it as the export names it (relative to the project). Takes no
+   * path. Rejects with no project open, or before a report was exported.
+   */
+  productionOpenReportsFolder(): Promise<ReportsFolderResult>;
   /**
    * The status report an export would write now, built by the host from the same model as `productionStatusReport`,
    * so the preview is the written file. Writes nothing; `include` is the same choice of sections. Rejects without

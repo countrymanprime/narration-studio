@@ -3,6 +3,7 @@ import type { PickupItem, PickupList } from '../../../api/contracts/pickups';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { useCommand } from '../../../input/useCommand';
 import { useOverlay } from '../../../overlay/OverlayProvider';
+import { retryAction } from '../../primitives/Toast';
 import { usePort } from '../../../ports/usePort';
 import { useJournalOrOwn } from '../../../studio/StudioProvider';
 import type { Result } from '../../../studio/journal/createJournal';
@@ -58,6 +59,7 @@ export function usePickupSession(options: PickupSessionOptions): PickupSessionMo
   const key = ids.join('\n');
   const [list, setList] = useState<readonly PickupItem[]>([]);
   const [picked, setPicked] = useState<string | null>(initialAt);
+  const [attempt, setAttempt] = useState(0);
 
   // Opening the Booth on a session reads the list again, so a pickup done in the DAW is done here and a reopened one is open here.
   useEffect(() => {
@@ -66,11 +68,12 @@ export function usePickupSession(options: PickupSessionOptions): PickupSessionMo
     pickups
       .pickupsList()
       .then((answer) => live && setList(answer.pickups))
-      .catch((reason) => live && overlay.toast(apiErrorMessage(reason), { tone: 'error' }));
+      // Reading the list changes nothing, so Retry reads it again (issue #2919).
+      .catch((reason) => live && overlay.toast(apiErrorMessage(reason), { tone: 'error', action: retryAction(() => setAttempt((n) => n + 1)) }));
     return () => {
       live = false;
     };
-  }, [pickups, overlay, active, key]);
+  }, [pickups, overlay, active, key, attempt]);
 
   const lines = useMemo(() => (active ? sessionLines(list, ids) : []), [active, list, ids]);
   const at = active ? (lines.find((item) => item.id === picked)?.id ?? lines[0]?.id ?? null) : null;

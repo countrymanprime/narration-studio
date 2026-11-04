@@ -1,8 +1,10 @@
-// Package scriptprep is the Script page's preparation record: each chapter's prep state (not started, in progress, prepped) and
-// the words the narrator flagged for pronunciation, each with how it is said and the id of the source the value came from. A flag is a range of one paragraph; the word is the manuscript's own text for the range, lower-cased as its key, so the
-// same word flagged in two places is one word with two flags. A word's say-value is kept while any of its flags remains and is
-// dropped with the last one. Every flag is checked against the current text on every read: one whose line is gone, whose range
-// no longer fits or whose words changed is reported stale, never moved.
+// Package scriptprep is the Script page's preparation record: each chapter's prep state (not started, in progress, prepped), the
+// opening and closing credits' among them.
+//
+// Schema 1 also kept the words the narrator flagged for pronunciation, each with how it is said and its source. A word's
+// pronunciation now lives on its Story Bible name (#2595): a schema-1 file still reads its chapters, LegacyWords gives its words to
+// the migration that moves them into the Story Bible, Backup keeps the file as script-prep.v1.json (or script-prep.v1-<n>.json beside an earlier cycle's backup), and FinishMigration rewrites it
+// as schema 2. Until then a chapter change keeps the words as they were.
 //
 // The file is narrator data, read through persist: a corrupt one is kept aside and a fresh record starts, one written by a newer
 // app is refused and never overwritten. Replacing the manuscript or Clear project data removes it (the manuscript service's
@@ -10,17 +12,15 @@
 package scriptprep
 
 import (
-	"crypto/rand"
 	"desktop/internal/brand"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
-	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -30,19 +30,22 @@ import (
 	"desktop/internal/persist"
 )
 
-// SchemaVersion is the only script-prep.json version this package reads or writes.
-const SchemaVersion = 1
+// SchemaVersion is the script-prep.json version this package writes. It reads legacyVersion too.
+const SchemaVersion = 2
+
+// legacyVersion is the schema that also kept the flagged words.
+const legacyVersion = 1
 
 // what names the file for the narrator in a persist notice or an error.
 const what = "script prep"
 
 // The limits. Text is counted in UTF-16 code units, the unit the UI's maxLength and its schema count.
 const (
-	// MaxWordUnits is the longest flagged range, the pronunciation sources' own word limit.
+	// MaxWordUnits is the longest flagged range a schema-1 file kept.
 	MaxWordUnits = 80
-	// MaxSayUnits is the longest say-value.
+	// MaxSayUnits is the longest say-value a schema-1 file kept.
 	MaxSayUnits = 200
-	// MaxFlags is the most flags a project keeps.
+	// MaxFlags is the most flags a schema-1 file kept.
 	MaxFlags = 10000
 	// MaxChapters is the most chapter prep states a project keeps.
 	MaxChapters = 5000
@@ -66,26 +69,6 @@ const (
 
 func isCredits(id string) bool { return id == CreditsOpening || id == CreditsClosing }
 
-// A word's pronunciation status, the mock's pronStatus: Set, Not set, Not flagged.
-const (
-	StatusSet        = "set"
-	StatusNotSet     = "not_set"
-	StatusNotFlagged = "not_flagged"
-)
-
-// ManualSource is the source id of a say-value the narrator typed. A say-value saved with no source is one.
-const ManualSource = "manual"
-
-// Why a flag is stale.
-const (
-	// StaleParagraphMissing means the line the flag was placed on is no longer in its chapter.
-	StaleParagraphMissing = "paragraph_missing"
-	// StaleRangeOutOfRange means the line is there but the range runs past its end or splits a surrogate pair.
-	StaleRangeOutOfRange = "range_out_of_range"
-	// StaleTextChanged means the range fits the line but its words are no longer the quoted ones.
-	StaleTextChanged = "text_changed"
-)
-
 var sourcePattern = regexp.MustCompile(`^[A-Za-z0-9_.-]{1,64}$`)
 
 // File is where a project's script prep is kept.
@@ -93,9 +76,45 @@ func File(project string) string {
 	return filepath.Join(project, brand.ProjectFolder, "script-prep.json")
 }
 
-// Flag is one flagged range as stored. Start and End are UTF-16 code units into the paragraph's text (a JS string index, the
-// page's own unit), Start before End; Quote is the line's own text for the range when it was flagged; Word is its key.
-type Flag struct {
+// BackupFile is the schema-1 file as it was before the migration moved its words, written once and never overwritten. A schema-1
+// file with other bytes, from a later cycle, is backed up beside it as script-prep.v1-2.json, script-prep.v1-3.json and so on.
+func BackupFile(project string) string {
+	return backupName(project, 1)
+}
+
+// backupName is the nth backup's path: BackupFile for the first, script-prep.v1-<n>.json after it.
+func backupName(project string, n int) string {
+	name := "script-prep.v1.json"
+	if n > 1 {
+		name = "script-prep.v1-" + strconv.Itoa(n) + ".json"
+	}
+	return filepath.Join(project, brand.ProjectFolder, name)
+}
+
+var backupPattern = regexp.MustCompile(`^script-prep\.v1(-[1-9][0-9]*)?\.json$`)
+
+// BackupFiles is every backup of a schema-1 file the project has: script-prep.v1.json and each script-prep.v1-<n>.json.
+func BackupFiles(project string) ([]string, error) {
+	folder := filepath.Join(project, brand.ProjectFolder)
+	entries, err := os.ReadDir(folder)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	var backups []string
+	for _, entry := range entries {
+		if backupPattern.MatchString(entry.Name()) {
+			backups = append(backups, filepath.Join(folder, entry.Name()))
+		}
+	}
+	return backups, nil
+}
+
+// legacyFlag is one flagged range as a schema-1 file stored it. Start and End are UTF-16 code units into the paragraph's text,
+// Start before End; Quote is the line's own text for the range when it was flagged; Word is its key, Quote lower-cased.
+type legacyFlag struct {
 	ID          string    `json:"id"`
 	ChapterID   string    `json:"chapterId"`
 	ParagraphID string    `json:"paragraphId"`
@@ -106,36 +125,28 @@ type Flag struct {
 	CreatedAt   time.Time `json:"createdAt"`
 }
 
-// Say is how a word is said and the id of the source the value came from.
-type Say struct {
+// legacySay is how a schema-1 file kept a word's value and the id of the source it came from.
+type legacySay struct {
 	Say    string `json:"say"`
 	Source string `json:"source"`
 }
 
-// ResolvedFlag is a flag as the UI gets it: where its line is in the current manuscript, or why it is stale.
-type ResolvedFlag struct {
-	ID          string    `json:"id"`
-	ChapterID   string    `json:"chapterId"`
-	ParagraphID string    `json:"paragraphId"`
-	Start       int       `json:"start"`
-	End         int       `json:"end"`
-	Quote       string    `json:"quote"`
-	CreatedAt   time.Time `json:"createdAt"`
-	// Paragraph is the line's index in the manuscript, or nil when the line is gone.
-	Paragraph *int `json:"paragraph"`
-	// Stale is true when the line is gone, the range no longer fits it or its words changed. The range is then the stored one.
-	Stale       bool   `json:"stale"`
-	StaleReason string `json:"staleReason,omitempty"`
+// LegacyFlag is one place a schema-1 file flagged a word.
+type LegacyFlag struct {
+	ChapterID   string
+	ParagraphID string
+	Start       int
+	End         int
+	Quote       string
 }
 
-// Word is one flagged word: its key, its say-value and source (both empty while nothing is set), its status, and its flags in
-// reading order. A word whose last flag was just removed comes back once with no flags, no value and not_flagged.
-type Word struct {
-	Word   string         `json:"word"`
-	Say    string         `json:"say"`
-	Source string         `json:"source"`
-	Status string         `json:"status"`
-	Flags  []ResolvedFlag `json:"flags"`
+// LegacyWord is one word a schema-1 file kept: its lower-cased key, its say-value and source (both empty when none was set), and
+// its flags in reading order.
+type LegacyWord struct {
+	Word   string
+	Say    string
+	Source string
+	Flags  []LegacyFlag
 }
 
 // Chapter is one chapter's prep state.
@@ -144,11 +155,10 @@ type Chapter struct {
 	State     string `json:"state"`
 }
 
-// ScriptPrep is what a list answers: every manuscript chapter in order with its state (none when never set), and every flagged
-// word in reading order of its first flag.
+// ScriptPrep is what a list answers: every manuscript chapter in order with its state (none when never set), then the credits
+// once set.
 type ScriptPrep struct {
 	Chapters []Chapter `json:"chapters"`
-	Words    []Word    `json:"words"`
 }
 
 // Line is one paragraph of the manuscript as it currently is.
@@ -169,31 +179,33 @@ type Book struct {
 type Config struct {
 	// Project is the project folder; empty means no project is open, and nothing is saved.
 	Project string
-	// Manuscript reads the current manuscript; an error reads as an empty one, so every flag shows stale.
+	// Manuscript reads the current manuscript; an error reads as an empty one.
 	Manuscript func() (Book, error)
-	// Sources lists the registered pronunciation source ids a say-value may name; nil allows only ManualSource.
-	Sources func() []string
 	// Reporter tells the narrator about a file that cannot be read; nil only logs nothing.
 	Reporter *persist.Reporter
 }
 
+// prepFile is the file. Flags and Says are a schema-1 file's words, kept as read until FinishMigration drops them; a schema-2
+// file has neither.
 type prepFile struct {
-	SchemaVersion int               `json:"schemaVersion"`
-	Chapters      map[string]string `json:"chapters"`
-	Flags         []Flag            `json:"flags"`
-	Says          map[string]Say    `json:"says"`
+	SchemaVersion int                  `json:"schemaVersion"`
+	Chapters      map[string]string    `json:"chapters"`
+	Flags         []legacyFlag         `json:"flags,omitempty"`
+	Says          map[string]legacySay `json:"says,omitempty"`
 }
+
+// legacy reports whether the file still holds a schema-1 file's words.
+func (file prepFile) legacy() bool { return len(file.Flags) > 0 || len(file.Says) > 0 }
 
 // Service reads and writes a project's script prep. It holds no state of its own, so the host builds one per call; the
 // read-modify-write of one file is serialised by fileLock.
 type Service struct {
 	config Config
-	now    func() time.Time
 }
 
 // New returns the service for config.
 func New(config Config) *Service {
-	return &Service{config: config, now: time.Now}
+	return &Service{config: config}
 }
 
 var fileLocks sync.Map
@@ -208,10 +220,10 @@ func lockFile(path string) func() {
 }
 
 func emptyPrep() ScriptPrep {
-	return ScriptPrep{Chapters: []Chapter{}, Words: []Word{}}
+	return ScriptPrep{Chapters: []Chapter{}}
 }
 
-// List returns every chapter's prep state and every flagged word, each flag checked against the current manuscript.
+// List returns every chapter's prep state.
 func (s *Service) List() (ScriptPrep, error) {
 	if s.config.Project == "" {
 		return emptyPrep(), nil
@@ -256,128 +268,6 @@ func (s *Service) SetChapter(chapterID, state string) (Chapter, error) {
 	return Chapter{ChapterID: chapterID, State: state}, nil
 }
 
-// Flag flags a range of one line for pronunciation: start and end are UTF-16 units into the line's current text, start before
-// end. The word is the line's own text for the range, lower-cased as its key; the same range flagged again is the one flag.
-func (s *Service) Flag(chapterID, paragraphID string, start, end int) (Word, error) {
-	if s.config.Project == "" {
-		return Word{}, errors.New("save the project first")
-	}
-	book := s.manuscript()
-	if !hasChapter(book, chapterID) {
-		return Word{}, errors.New("that chapter is not in the manuscript")
-	}
-	line, ok := findLine(book, chapterID, paragraphID)
-	if !ok {
-		return Word{}, errors.New("that line is not in this chapter")
-	}
-	if start >= end {
-		return Word{}, errors.New("choose a word to flag first")
-	}
-	quote, ok := slice(line.Text, start, end)
-	if !ok {
-		return Word{}, errors.New("those words are not in the line")
-	}
-	if units(quote) > MaxWordUnits {
-		return Word{}, fmt.Errorf("a flagged word can be at most %d characters", MaxWordUnits)
-	}
-	key := wordKey(quote)
-	if key == "" {
-		return Word{}, errors.New("choose a word to flag first")
-	}
-	unlock := lockFile(File(s.config.Project))
-	defer unlock()
-	file, err := s.read()
-	if err != nil {
-		return Word{}, err
-	}
-	for _, flag := range file.Flags {
-		if flag.ChapterID == chapterID && flag.ParagraphID == paragraphID && flag.Start == start && flag.End == end && flag.Word == key {
-			return wordOf(file, key, book), nil
-		}
-	}
-	if len(file.Flags) >= MaxFlags {
-		return Word{}, fmt.Errorf("a project can keep at most %d flagged words", MaxFlags)
-	}
-	file.Flags = append(file.Flags, Flag{ID: newID(), ChapterID: chapterID, ParagraphID: paragraphID, Start: start, End: end, Quote: quote, Word: key, CreatedAt: s.now().UTC()})
-	if err := s.write(file); err != nil {
-		return Word{}, err
-	}
-	return wordOf(file, key, book), nil
-}
-
-// Say stores how a flagged word is said and the source the value came from: a registered source id, or empty for one the
-// narrator typed (stored as ManualSource). An empty say clears the value and keeps the word flagged.
-func (s *Service) Say(word, say, source string) (Word, error) {
-	if s.config.Project == "" {
-		return Word{}, errors.New("save the project first")
-	}
-	key := wordKey(word)
-	say = strings.TrimSpace(say)
-	if err := checkSay(say); err != nil {
-		return Word{}, err
-	}
-	switch {
-	case say == "":
-		source = ""
-	case source == "":
-		source = ManualSource
-	case !s.knownSource(source):
-		return Word{}, errors.New("that pronunciation source is not one of yours")
-	}
-	unlock := lockFile(File(s.config.Project))
-	defer unlock()
-	file, err := s.read()
-	if err != nil {
-		return Word{}, err
-	}
-	if !flagged(file, key) {
-		return Word{}, errors.New("flag the word in the text first")
-	}
-	if say == "" {
-		delete(file.Says, key)
-	} else {
-		file.Says[key] = Say{Say: say, Source: source}
-	}
-	if err := s.write(file); err != nil {
-		return Word{}, err
-	}
-	return wordOf(file, key, s.manuscript()), nil
-}
-
-// Unflag removes one flag and returns its word. The word's say-value is kept while any of its flags remains and dropped with
-// the last, and the word then comes back not_flagged.
-func (s *Service) Unflag(flagID string) (Word, error) {
-	if s.config.Project == "" {
-		return Word{}, errors.New("save the project first")
-	}
-	unlock := lockFile(File(s.config.Project))
-	defer unlock()
-	file, err := s.read()
-	if err != nil {
-		return Word{}, err
-	}
-	key := ""
-	kept := make([]Flag, 0, len(file.Flags))
-	for _, flag := range file.Flags {
-		if flag.ID == flagID {
-			key = flag.Word
-			continue
-		}
-		kept = append(kept, flag)
-	}
-	if key == "" {
-		return Word{}, errors.New("that flag is no longer there")
-	}
-	file.Flags = kept
-	if !flagged(file, key) {
-		delete(file.Says, key)
-	}
-	if err := s.write(file); err != nil {
-		return Word{}, err
-	}
-	return wordOf(file, key, s.manuscript()), nil
-}
-
 // manuscript reads the current manuscript; one that cannot be read is an empty one.
 func (s *Service) manuscript() Book {
 	if s.config.Manuscript == nil {
@@ -390,45 +280,9 @@ func (s *Service) manuscript() Book {
 	return book
 }
 
-func (s *Service) knownSource(source string) bool {
-	if !sourcePattern.MatchString(source) {
-		return false
-	}
-	if source == ManualSource {
-		return true
-	}
-	if s.config.Sources == nil {
-		return false
-	}
-	for _, id := range s.config.Sources() {
-		if id == source {
-			return true
-		}
-	}
-	return false
-}
-
 func hasChapter(book Book, chapterID string) bool {
 	for _, id := range book.Chapters {
 		if id == chapterID {
-			return true
-		}
-	}
-	return false
-}
-
-func findLine(book Book, chapterID, paragraphID string) (Line, bool) {
-	for _, line := range book.Lines {
-		if line.ID == paragraphID && line.ChapterID == chapterID {
-			return line, true
-		}
-	}
-	return Line{}, false
-}
-
-func flagged(file prepFile, key string) bool {
-	for _, flag := range file.Flags {
-		if flag.Word == key {
 			return true
 		}
 	}
@@ -440,7 +294,7 @@ func wordKey(text string) string {
 	return strings.ToLower(strings.TrimSpace(text))
 }
 
-// checkSay checks a say-value: one line of plain text of at most MaxSayUnits.
+// checkSay checks a schema-1 say-value: one line of plain text of at most MaxSayUnits.
 func checkSay(say string) error {
 	if units(say) > MaxSayUnits {
 		return fmt.Errorf("how a word is said can be at most %d characters", MaxSayUnits)
@@ -453,8 +307,12 @@ func checkSay(say string) error {
 	return nil
 }
 
-// validFile reports whether a stored file keeps the rules the service enforces; a file that does not is corrupt.
+// validFile reports whether a stored file keeps the rules the service enforced when it was written; a file that does not is
+// corrupt. A schema-2 file has no words.
 func validFile(file prepFile) bool {
+	if file.SchemaVersion != legacyVersion && file.legacy() {
+		return false
+	}
 	if len(file.Chapters) > MaxChapters || len(file.Flags) > MaxFlags {
 		return false
 	}
@@ -491,106 +349,7 @@ func units(text string) int {
 	return count
 }
 
-// slice returns the text between two UTF-16 offsets, or false when either is past the end or between the two halves of a
-// surrogate pair.
-func slice(text string, start, end int) (string, bool) {
-	if start < 0 || end < start {
-		return "", false
-	}
-	from, to := -1, -1
-	count := 0
-	for index, character := range text {
-		if count == start {
-			from = index
-		}
-		if count == end {
-			to = index
-		}
-		count += utf16.RuneLen(character)
-	}
-	if count == start {
-		from = len(text)
-	}
-	if count == end {
-		to = len(text)
-	}
-	if from < 0 || to < 0 {
-		return "", false
-	}
-	return text[from:to], true
-}
-
-// resolve checks one stored flag against the current manuscript.
-func resolve(flag Flag, book Book) ResolvedFlag {
-	result := ResolvedFlag{ID: flag.ID, ChapterID: flag.ChapterID, ParagraphID: flag.ParagraphID, Start: flag.Start, End: flag.End, Quote: flag.Quote, CreatedAt: flag.CreatedAt}
-	line, ok := findLine(book, flag.ChapterID, flag.ParagraphID)
-	if !ok {
-		result.Stale, result.StaleReason = true, StaleParagraphMissing
-		return result
-	}
-	index := line.Index
-	result.Paragraph = &index
-	quote, fits := slice(line.Text, flag.Start, flag.End)
-	switch {
-	case !fits:
-		result.Stale, result.StaleReason = true, StaleRangeOutOfRange
-	case quote != flag.Quote:
-		result.Stale, result.StaleReason = true, StaleTextChanged
-	}
-	return result
-}
-
-// readingOrder sorts resolved flags by line, then range; one whose line is gone goes last.
-func readingOrder(flags []ResolvedFlag, book Book) {
-	position := make(map[string]int, len(book.Lines))
-	for index, line := range book.Lines {
-		position[line.ChapterID+"\x00"+line.ID] = index
-	}
-	at := func(flag ResolvedFlag) int {
-		if index, ok := position[flag.ChapterID+"\x00"+flag.ParagraphID]; ok {
-			return index
-		}
-		return math.MaxInt
-	}
-	sort.SliceStable(flags, func(i, j int) bool {
-		a, b := flags[i], flags[j]
-		if at(a) != at(b) {
-			return at(a) < at(b)
-		}
-		if a.Start != b.Start {
-			return a.Start < b.Start
-		}
-		if a.End != b.End {
-			return a.End < b.End
-		}
-		if !a.CreatedAt.Equal(b.CreatedAt) {
-			return a.CreatedAt.Before(b.CreatedAt)
-		}
-		return a.ID < b.ID
-	})
-}
-
-// wordOf answers one word with its status and its flags in reading order.
-func wordOf(file prepFile, key string, book Book) Word {
-	word := Word{Word: key, Flags: []ResolvedFlag{}}
-	for _, flag := range file.Flags {
-		if flag.Word == key {
-			word.Flags = append(word.Flags, resolve(flag, book))
-		}
-	}
-	readingOrder(word.Flags, book)
-	word.Status = StatusNotFlagged
-	if len(word.Flags) > 0 {
-		say := file.Says[key]
-		word.Say, word.Source, word.Status = say.Say, say.Source, StatusNotSet
-		if say.Say != "" {
-			word.Status = StatusSet
-		}
-	}
-	return word
-}
-
-// answer lists every manuscript chapter with its state and every flagged word, in reading order of its first flag.
+// answer lists every manuscript chapter with its state, then the credits once set.
 func answer(file prepFile, book Book) ScriptPrep {
 	result := emptyPrep()
 	for _, chapterID := range book.Chapters {
@@ -605,36 +364,14 @@ func answer(file prepFile, book Book) ScriptPrep {
 			result.Chapters = append(result.Chapters, Chapter{ChapterID: id, State: state})
 		}
 	}
-	all := make([]ResolvedFlag, 0, len(file.Flags))
-	wordByID := make(map[string]string, len(file.Flags))
-	for _, flag := range file.Flags {
-		all = append(all, resolve(flag, book))
-		wordByID[flag.ID] = flag.Word
-	}
-	readingOrder(all, book)
-	seen := map[string]bool{}
-	for _, flag := range all {
-		key := wordByID[flag.ID]
-		if seen[key] {
-			continue
-		}
-		seen[key] = true
-		result.Words = append(result.Words, wordOf(file, key, book))
-	}
 	return result
-}
-
-func newID() string {
-	bytes := make([]byte, 16)
-	_, _ = rand.Read(bytes)
-	return hex.EncodeToString(bytes)
 }
 
 // read reads script-prep.json; the caller holds the file's lock. A corrupt file, one over the byte cap, or one that breaks a
 // rule is kept aside and a fresh one started (the narrator is told by the reporter); one written by a newer app is refused and
 // never overwritten.
 func (s *Service) read() (prepFile, error) {
-	file := prepFile{SchemaVersion: SchemaVersion, Chapters: map[string]string{}, Flags: []Flag{}, Says: map[string]Say{}}
+	file := prepFile{SchemaVersion: SchemaVersion, Chapters: map[string]string{}}
 	path := File(s.config.Project)
 	newer := 0
 	var decoded prepFile
@@ -668,18 +405,16 @@ func (s *Service) read() (prepFile, error) {
 	if decoded.Chapters == nil {
 		decoded.Chapters = map[string]string{}
 	}
-	if decoded.Flags == nil {
-		decoded.Flags = []Flag{}
-	}
-	if decoded.Says == nil {
-		decoded.Says = map[string]Say{}
-	}
 	return decoded, nil
 }
 
-// write replaces script-prep.json through a temporary file and a rename; the caller holds the file's lock.
+// write replaces script-prep.json through a temporary file and a rename; the caller holds the file's lock. A file that still holds
+// a schema-1 file's words is written as schema 1, so they wait for the migration.
 func (s *Service) write(file prepFile) error {
 	file.SchemaVersion = SchemaVersion
+	if file.legacy() {
+		file.SchemaVersion = legacyVersion
+	}
 	path := File(s.config.Project)
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return fmt.Errorf("could not create the app's folder in the project: %w", err)
