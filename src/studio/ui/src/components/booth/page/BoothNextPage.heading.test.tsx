@@ -193,10 +193,14 @@ describe('the-title-is-read-text', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
     await host.hear({ type: 'flag', id: 3, kind: 'misread', start: 4, end: 5, heard: 'warden' });
     await host.hear(heardAt(9));
+    await settle();
+    // The line is stored when it appears; the stop reads that decision back once, and the same flags rebuilt at the stop save nothing more (#2538).
+    const whenAppeared = host.teleprompterSaveFlags.mock.calls.length;
     await space();
-    await waitFor(() => expect(host.teleprompterSaveFlags).toHaveBeenCalled());
-    // Every save of the take names the text's misread only (a take's stop may be told more than once; the host answers a repeat
-    // with the decision it already stored).
+    await waitFor(() => expect(host.teleprompterSaveFlags.mock.calls.length).toBeGreaterThan(whenAppeared));
+    await settle();
+    expect(host.teleprompterSaveFlags.mock.calls.length - whenAppeared).toBe(1);
+    // Every save of the take names the text's misread only.
     for (const call of host.teleprompterSaveFlags.mock.calls)
       expect(call).toEqual(['c1', [expect.objectContaining({ paragraphId: 'p1', wordStart: 2, heard: 'warden' })]]);
   });

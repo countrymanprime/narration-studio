@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { scheduleDrivers } from './drivers/schedule';
+import { settlePage } from './helpers/settle';
 
 // The Schedule's milestone table lines up with its card and keeps its columns (alignment audit XSH-3, XSH-4, XSH-11, XSH-12, XSH-17,
 // R3SH-5, R3SH-7, R4SM-13, R4SM-14): the Milestone column starts at the card title for every row, Due and Status stand at the same x
@@ -85,3 +86,53 @@ test('Schedule / at 390 px the milestone table keeps Due and Status on screen', 
   const narrow = await layout(page);
   expect(narrow.statusRight, 'the Final row status ends inside its card').toBeLessThanOrEqual(narrow.view);
 });
+
+test('Schedule / at 390 px a milestone row stacks, so no button or date is reachable only by a sideways scroll', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await scheduleDrivers['on-pace']!(page);
+  const fit = await page.evaluate(() => {
+    const group = document.querySelector('[aria-label="Milestones scroll area"]')!;
+    const card = group.closest('section')!.getBoundingClientRect();
+    const buttons = [...group.querySelectorAll('tbody button')].map((b) => b.getBoundingClientRect());
+    const date = document.querySelector('input[aria-label="Delivery due"]') as HTMLInputElement;
+    return {
+      scrolls: group.scrollWidth > group.clientWidth,
+      buttonsRight: Math.max(0, ...buttons.map((b) => Math.round(b.right))),
+      cardRight: Math.round(card.right),
+      dateScrolls: date.scrollWidth > date.clientWidth,
+    };
+  });
+  expect(fit.scrolls, 'the table needs no sideways scroll').toBe(false);
+  expect(fit.buttonsRight, 'the row buttons end inside the card').toBeLessThanOrEqual(fit.cardRight);
+  expect(fit.dateScrolls, 'the Final delivery date is shown whole, not cut to its year').toBe(false);
+});
+
+// The Add milestone dialog's fields scroll inside it and its footer, Cancel and Add milestone, stays on screen and topmost at short windows
+// (they sat below a 400 px window, reachable only by scrolling the dialog).
+for (const size of [
+  { width: 700, height: 400 },
+  { width: 360, height: 500 },
+  { width: 320, height: 300 },
+]) {
+  test(`Schedule / Add milestone keeps Cancel and Add milestone reachable / ${size.width}x${size.height}`, async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/');
+    await settlePage(page);
+    await scheduleDrivers['no-due-date']!(page);
+    await page.setViewportSize(size);
+    await page.getByRole('button', { name: 'Add milestone' }).first().click();
+    const dialog = page.getByRole('dialog').last();
+    await dialog.waitFor();
+    for (const name of [/^Cancel$/, /^Add milestone$/]) {
+      const button = dialog.getByRole('button', { name });
+      const box = (await button.boundingBox())!;
+      expect(box.y + box.height, `${name} is above the bottom edge`).toBeLessThanOrEqual(size.height);
+      const topmost = await button.evaluate((element) => {
+        const rect = element.getBoundingClientRect();
+        const top = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
+        return top !== null && element.contains(top);
+      });
+      expect(topmost, `${name} is topmost`).toBe(true);
+    }
+  });
+}
