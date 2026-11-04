@@ -16,6 +16,7 @@ exclude_docs: |
   research/mockups/booth-voices/
   research/mockups/master-to-spec-entry/
   research/mockups/approval-fx-chain/
+  research/mockups/settings-parity/
 site_dir: build/site
 strict: true
 
