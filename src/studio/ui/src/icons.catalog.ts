@@ -51,6 +51,7 @@ import {
   faFlagCheckered,
   faFolder,
   faFolderOpen,
+  faFolderPlus,
   faFont,
   faForwardStep,
   faGauge,
@@ -93,6 +94,7 @@ import {
   faComment,
   faUpRightAndDownLeftFromCenter,
   faUpload,
+  faWrench,
   faUserTag,
   faVolumeHigh,
   faVolumeXmark,
@@ -145,6 +147,7 @@ export const TOOLTIP_VERBS = [
   'Close',
   'Compare',
   'Copy',
+  'Create',
   'Delete',
   'Dismiss',
   'Download',
@@ -277,6 +280,9 @@ export const CATALOG = {
   // REAPER's folder tracks in the Tracks card and the track picker.
   trackFolder: action(faFolder, 'a folder of tracks', 'Show the folder'),
   trackFolderOpen: action(faFolderOpen, 'open a folder', 'Show the open folder'),
+  // Chapter links: the DAW adds a chapter's track (Flat) or its folder with a Narrator track (Voice folders), named after it, and links it (#2840).
+  createChapterTrack: action(faPlus, 'add', 'Create a track for this chapter'),
+  createChapterFolder: action(faFolderPlus, 'add a folder of tracks', 'Create a folder for this chapter'),
   folderCaret: action(faChevronRight, 'expand or collapse a folder', 'Toggle the folder'),
   openAllFolders: action(faAnglesDown, 'open every folder', 'Open all folders'),
   closeAllFolders: action(faAnglesUp, 'close every folder', 'Close all folders'),
@@ -342,6 +348,8 @@ export const CATALOG = {
   // The mock draws a wave for it, which is the Proof page's icon (audit rule 1), so a voice sample wears the speech bubble.
   primarySample: action(faStar, 'primary sample', 'Mark the primary sample'),
   moreActions: action(faEllipsis, 'more actions', 'Show more actions'),
+  // The tools that act on the DAW project (chapter regions, render prep), offered on the pages where a chapter is finished.
+  dawTools: action(faWrench, 'DAW tools', 'Show the DAW tools'),
   // Script: finds who speaks the quoted lines; a line the narrator confirmed is never changed.
   attributeSpeakers: action(faUserTag, 'attribute speakers', 'Find who speaks each line'),
   voiceSample: action(faCommentDots, 'voice sample', 'Mark a voice sample', 'V'),

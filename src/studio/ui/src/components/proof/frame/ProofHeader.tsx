@@ -3,11 +3,11 @@ import { Heading } from '../../primitives/Heading';
 import type { ProofProgress } from '../proof.selectors';
 
 /**
- * The head of the Proof panel: the title, the chapter bar the page passes in, and the one Proof percent as a ring with the two counters.
+ * The head of the Proof panel: the title, the chapter bar the page passes in, the one Proof percent as a ring with the two counters, and the page's `tools` (the DAW tools menu) at the end.
  * The ring is decorative and the text carries the meaning. With no notes there is neither. When the percent changes the arc eases
  * to it on the base token (`--ring-percent`, registered in styles.css); the counters change at once.
  */
-export function ProofHeader({ progress, chapterBar }: { progress: ProofProgress; chapterBar: ReactNode }) {
+export function ProofHeader({ progress, chapterBar, tools }: { progress: ProofProgress; chapterBar: ReactNode; tools?: ReactNode }) {
   return (
     <div className="flex flex-wrap items-center gap-3">
       <Heading title="Proof" />
@@ -35,6 +35,7 @@ export function ProofHeader({ progress, chapterBar }: { progress: ProofProgress;
           </span>
         </div>
       ) : null}
+      {tools}
     </div>
   );
 }

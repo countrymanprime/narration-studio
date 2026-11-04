@@ -9,6 +9,7 @@ Storybook title: `Primitives/Menu`. Source: `src/components/primitives/Menu.tsx`
 - Closed
 - Disabled
 - Icon Only Trigger
+- Item With Reason
 - Opens On Press
 - Keyboard Chooses An Item
 - Sections That Choose
@@ -17,6 +18,7 @@ Storybook title: `Primitives/Menu`. Source: `src/components/primitives/Menu.tsx`
 
 - `src/components/editing/range/fx/FxButtons.tsx`
 - `src/components/engine/ChapterLinksTable.tsx`
+- `src/components/engine/DawToolsMenu.tsx`
 - `src/components/script/page/rail/bible/BiblePanel.tsx`
 - `src/components/script/page/tools/select/KindMenu.tsx`
 - `src/components/script/page/tools/select/MarkMenu.tsx`

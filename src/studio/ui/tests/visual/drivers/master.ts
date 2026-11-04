@@ -1,5 +1,5 @@
 // How to reach each `master` state in STATE_CATALOG (see app.drivers.ts).
-import type { Locator, Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
 import {
   type Driver,
@@ -65,6 +65,23 @@ export const masterDrivers: Record<string, Driver> = {
   empty: async (page) => {
     await openMaster(page);
     await page.getByText(/^Nothing measured yet/).waitFor();
+  },
+  // The DAW tools menu beside Check files (#2820), opened before anything is measured: the plain mock has chapters linked, so both entries are live.
+  'daw-tools-menu': async (page) => {
+    await openMaster(page);
+    await page.getByText(/^Nothing measured yet/).waitFor();
+    await page.getByRole('button', { name: 'DAW tools' }).click();
+    const menu = page.getByRole('menu');
+    await menu.waitFor();
+    await expect(menu.getByText('Reading the REAPER project…')).toHaveCount(0);
+  },
+  'daw-tools-menu-off': async (page) => {
+    await openMaster(page, '?mockDawChoice=not-running');
+    await page.getByText(/^Nothing measured yet/).waitFor();
+    await page.getByRole('button', { name: 'DAW tools' }).click();
+    const menu = page.getByRole('menu');
+    await menu.waitFor();
+    await expect(menu.getByText('Reading the REAPER project…')).toHaveCount(0);
   },
   running: async (page) => {
     await measureOnMaster(page, '?mockMeasure=running');

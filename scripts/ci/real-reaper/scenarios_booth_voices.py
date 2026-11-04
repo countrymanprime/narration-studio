@@ -834,6 +834,195 @@ def track_create_appends_outside_folders(env: Env) -> str:
     return "; ".join(seen)
 
 
+# The owner's project (#2838): Chapter 3's folder was left open at the end, and the chapters the app added afterwards landed inside it.
+OWNER_NESTED = [
+    ("Chapter 1", 0),
+    ("Chapter 2", 0),
+    ("Chapter 3", 1),
+    ("Narrator", 0),
+    ("Veyra", 0),
+    ("Chapter 4", 0),
+    ("Chapter 5", 0),
+    ("Chapter 6", 0),
+]
+
+
+@scenario(
+    "booth_voices",
+    "chapter_folders",
+    "voices fix: chapter_folders on the owner's nested project previews the moves without writing, then moves Chapters 4 to 6 out of "
+    "Chapter 3's folder by closing it on its last voice, in one undo point that one Undo takes back",
+)
+def chapter_folders_owner_project(env: Env) -> str:
+    sibling_rows(env, OWNER_NESTED)
+    guid = {name: env.lua("return reaper.GetTrackGUID(ci.track_by_name(args[1]))", name) for name, _ in OWNER_NESTED}
+    chapters = ",".join(guid[f"Chapter {n}"] for n in range(1, 7))
+    before = structure(env)
+    preview = env.send("chapter_folders", "preview", chapters, "", until={"FOLDERS_PLANNED"})
+    moves = [e for e in preview if e[0] == "FOLDER_MOVE"]
+    assert [m[3] for m in moves] == ["Chapter 4", "Chapter 5", "Chapter 6"], f"preview moves {moves}"
+    assert all(m[5] == "Chapter 3" and m[7] == "" for m in moves), f"preview moves {moves}"
+    assert structure(env) == before, "the preview wrote something"
+    expected = ",".join(guid[f"Chapter {n}"] for n in (4, 5, 6))
+    stale = env.send("chapter_folders", "apply", chapters, guid["Chapter 4"], until={"FOLDERS_REPAIRED", "FOLDERS_STALE"})
+    assert stale[-1][0] == "FOLDERS_STALE" and structure(env) == before, f"a stale apply answered {stale[-1]}"
+    undo_before = env.lua("return reaper.Undo_CanUndo2(0) or ''")
+    applied = env.send("chapter_folders", "apply", chapters, expected, until={"FOLDERS_REPAIRED", "FOLDERS_STALE"})
+    assert applied[-1][0] == "FOLDERS_REPAIRED" and applied[-1][2] == "3", f"apply answered {applied[-1]}"
+    undo = env.lua("return reaper.Undo_CanUndo2(0) or ''")
+    # One Undo takes the whole move back (checked before any reload, which clears REAPER's undo history), and Redo puts it back.
+    env.lua("reaper.Undo_DoUndo2(0) return true")
+    undone = [(r["name"], r["delta"]) for r in structure(env)]
+    assert undone == [(n, d) for n, d in OWNER_NESTED], f"one Undo left {undone}"
+    env.lua("reaper.Undo_DoRedo2(0) return true")
+    env.lua("ci.save_and_reload(ci.rpp) return true")
+    after = structure(env)
+    got = [(r["name"], r["delta"], r["parent"]) for r in after]
+    assert got == [
+        ("Chapter 1", 0, ""),
+        ("Chapter 2", 0, ""),
+        ("Chapter 3", 1, ""),
+        ("Narrator", 0, "Chapter 3"),
+        ("Veyra", -1, "Chapter 3"),
+        ("Chapter 4", 0, ""),
+        ("Chapter 5", 0, ""),
+        ("Chapter 6", 0, ""),
+    ], got
+    return f"preview {[m[3] for m in moves]} wrote nothing; a stale apply wrote nothing; undo before {undo_before!r}, after {undo!r}; one Undo: {undone}, Redo then save and reload: {got}"
+
+
+@scenario(
+    "booth_voices",
+    "chapter_folders",
+    "voices fix: chapter_folders lifts a nested chapter that closed its folder inside a Book, giving the level back so the track after it stays in the Book",
+)
+def chapter_folders_inside_a_book(env: Env) -> str:
+    layout = [("Book", 1), ("Chapter 3", 1), ("Narrator", 0), ("Chapter 4", -1), ("Outro", 0)]
+    sibling_rows(env, layout)
+    guid = {name: env.lua("return reaper.GetTrackGUID(ci.track_by_name(args[1]))", name) for name, _ in layout}
+    before = parents(structure(env))
+    applied = env.send("chapter_folders", "apply", f"{guid['Chapter 3']},{guid['Chapter 4']}", guid["Chapter 4"], until={"FOLDERS_REPAIRED", "FOLDERS_STALE"})
+    assert applied[-1][0] == "FOLDERS_REPAIRED" and applied[-1][2] == "1", f"apply answered {applied[-1]}"
+    env.lua("ci.save_and_reload(ci.rpp) return true")
+    rows = structure(env)
+    got = [(r["name"], r["delta"], r["parent"]) for r in rows]
+    assert got == [
+        ("Book", 1, ""),
+        ("Chapter 3", 1, "Book"),
+        ("Narrator", -1, "Chapter 3"),
+        ("Chapter 4", 0, "Book"),
+        ("Outro", 0, before["Outro"]),
+    ], got
+    return f"after save and reload {got}"
+
+
+@scenario(
+    "booth_voices",
+    "track_create, (snippet) Undo_DoUndo2",
+    "#2840 breaker B1: a plain track_create after a project whose last folder is left open closes that folder on its last track and adds the "
+    "track at the top level; no other track changes parent, the same after save and reload, and one Undo restores the project",
+)
+def track_create_plain_after_open_folder(env: Env) -> str:
+    env.lua(
+        """
+        local ch8 = ci.add_track('Ch 8')
+        ci.add_track('Narrator')
+        ci.add_track('Queen')
+        reaper.SetMediaTrackInfo_Value(ch8, 'I_FOLDERDEPTH', 1)
+        ci.save_and_reload(ci.rpp)
+        return true
+        """
+    )
+    before = [(r["name"], r["delta"], r["depth"], r["parent"]) for r in structure(env)]
+    assert before == [("Ch 8", 1, 0, ""), ("Narrator", 0, 1, "Ch 8"), ("Queen", 0, 1, "Ch 8")], before
+    created = env.ok("track_create", "Chapter 9", until="TRACK_CREATED")
+    assert created[3:5] == ["3", "Chapter 9"], f"created {created}"
+    want = [("Ch 8", 1, 0, ""), ("Narrator", 0, 1, "Ch 8"), ("Queen", -1, 1, "Ch 8"), ("Chapter 9", 0, 0, "")]
+    after = [(r["name"], r["delta"], r["depth"], r["parent"]) for r in structure(env)]
+    assert after == want, after
+    undo = env.lua("return reaper.Undo_CanUndo2(0) or ''")
+    env.lua("reaper.Undo_DoUndo2(0) return true")
+    undone = [(r["name"], r["delta"], r["depth"], r["parent"]) for r in structure(env)]
+    assert undone == before, f"one Undo left {undone}"
+    env.ok("track_create", "Chapter 9", until="TRACK_CREATED")
+    env.lua("ci.save_and_reload(ci.rpp) return true")
+    reloaded = [(r["name"], r["delta"], r["depth"], r["parent"]) for r in structure(env)]
+    assert reloaded == want, reloaded
+    return f"after {[(n, d, depth, p) for n, d, depth, p in after]}; undo {undo!r} restored {[(n, d) for n, d, _, _ in undone]}; same after save and reload; ISBUS {isbus_lines(env)}"
+
+
+@scenario(
+    "booth_voices",
+    "track_create, (snippet) Undo_DoUndo2",
+    "#2840 part 2: track_create with a child name appends a chapter folder and its Narrator after a project whose last folder is left open; the "
+    "open folder is closed on its last track, no other depth moves, both survive save and reload, and one Undo removes the folder, its child and "
+    "the close",
+)
+def track_create_chapter_folder(env: Env) -> str:
+    env.lua(
+        """
+        local ch7 = ci.add_track('Ch 7')
+        ci.add_track('Narrator')
+        local alice = ci.add_track('Alice')
+        local ch8 = ci.add_track('Ch 8')
+        ci.add_track('Narrator')
+        ci.add_track('Queen')
+        reaper.SetMediaTrackInfo_Value(ch7, 'I_FOLDERDEPTH', 1)
+        reaper.SetMediaTrackInfo_Value(alice, 'I_FOLDERDEPTH', -1)
+        reaper.SetMediaTrackInfo_Value(ch8, 'I_FOLDERDEPTH', 1)
+        ci.save_and_reload(ci.rpp)
+        return true
+        """
+    )
+    before = [(r["name"], r["delta"], r["depth"], r["parent"]) for r in structure(env)]
+    # REAPER keeps the last folder open on a last track whose depth change leaves it open (#2251): Queen is inside Ch 8 with a 0 change.
+    assert before == [
+        ("Ch 7", 1, 0, ""),
+        ("Narrator", 0, 1, "Ch 7"),
+        ("Alice", -1, 1, "Ch 7"),
+        ("Ch 8", 1, 0, ""),
+        ("Narrator", 0, 1, "Ch 8"),
+        ("Queen", 0, 1, "Ch 8"),
+    ], before
+    undo_before = env.lua("return reaper.Undo_CanUndo2(0) or ''")
+    created = env.ok("track_create", "Chapter 9: The Mock Turtle's Story", "", "Narrator", until="TRACK_CREATED")
+    assert created[3:5] == ["6", "Chapter 9: The Mock Turtle's Story"] and created[6:8] == ["7", "Narrator"], f"created {created}"
+    undo = env.lua("return reaper.Undo_CanUndo2(0) or ''")
+    assert undo.endswith(": add track"), f"undo point {undo!r}"
+    after = [(r["name"], r["delta"], r["depth"], r["parent"]) for r in structure(env)]
+    want = [
+        ("Ch 7", 1, 0, ""),
+        ("Narrator", 0, 1, "Ch 7"),
+        ("Alice", -1, 1, "Ch 7"),
+        ("Ch 8", 1, 0, ""),
+        ("Narrator", 0, 1, "Ch 8"),
+        ("Queen", -1, 1, "Ch 8"),
+        ("Chapter 9: The Mock Turtle's Story", 1, 0, ""),
+        ("Narrator", -1, 1, "Chapter 9: The Mock Turtle's Story"),
+    ]
+    assert after == want, after
+    env.lua("ci.save_and_reload(ci.rpp) return true")
+    reloaded = [(r["name"], r["delta"], r["depth"], r["parent"]) for r in structure(env)]
+    assert reloaded == want, reloaded
+    isbus = isbus_lines(env)
+    # One Undo takes back the whole create: the two tracks and Queen's close. The reload above cleared the history, so make it again.
+    env.lua(
+        """
+        local queen = ci.track_by_name('Queen')
+        reaper.SetMediaTrackInfo_Value(queen, 'I_FOLDERDEPTH', 0)
+        for i = reaper.CountTracks(0) - 1, 6, -1 do reaper.DeleteTrack(reaper.GetTrack(0, i)) end
+        ci.save_and_reload(ci.rpp)
+        return true
+        """
+    )
+    assert [(r["name"], r["delta"]) for r in structure(env)] == [(n, d) for n, d, _, _ in before], "the reset project differs from the first"
+    env.ok("track_create", "Chapter 9: The Mock Turtle's Story", "", "Narrator", until="TRACK_CREATED")
+    env.lua("reaper.Undo_DoUndo2(0) return true")
+    undone = [(r["name"], r["delta"], r["depth"], r["parent"]) for r in structure(env)]
+    assert undone == before, f"one Undo left {undone}"
+    return f"undo before {undo_before!r}, after {undo!r}; tracks after {[(n, d) for n, d, _, _ in after]}; same after save and reload; ISBUS {isbus}; one Undo restored {[(n, d) for n, d, _, _ in undone]}"
+
+
 @scenario(
     "booth_voices",
     "record_stop, track_create",

@@ -150,6 +150,7 @@ import {
   chapterTrackMatchSchema,
   chapterTrackSetSchema,
   chapterTrackCreateSchema,
+  chapterFoldersSchema,
   trackMappingSchema,
   trackSelectResultSchema,
 } from './schemas/chapterTrackMap';
@@ -1575,6 +1576,25 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     await expect(api.chapterTrackMapConfirm('{0E4D1D7F-D039-674D-87E6-719376DE95EC}', 'not-a-real-chapter')).rejects.toThrow();
   });
 
+  it('the ChapterFolders answers: clean, nested with its moves, repaired, stale and refused, each through the schema (#2838)', async () => {
+    expectMatches(chapterFoldersSchema, await createMockApi().chapterFoldersCheck(), 'mock chapter folders, clean');
+    const api = createMockApi({}, { nestedChapters: true });
+    const nested = await api.chapterFoldersCheck();
+    expectMatches(chapterFoldersSchema, nested, 'mock chapter folders, nested');
+    expect(nested.outcome).toBe('nested');
+    expect(nested.expected.length).toBeGreaterThan(0);
+    const stale = await api.chapterFoldersRepair([]);
+    expectMatches(chapterFoldersSchema, stale, 'mock chapter folders, stale');
+    expect(stale.outcome).toBe('stale');
+    const repaired = await api.chapterFoldersRepair(nested.expected);
+    expectMatches(chapterFoldersSchema, repaired, 'mock chapter folders, repaired');
+    expect(repaired.outcome).toBe('repaired');
+    expect((await api.chapterFoldersCheck()).outcome).toBe('clean');
+    const refused = await createMockApi({}, { nestedChapters: true, reaperState: 'recording_elsewhere' }).chapterFoldersCheck();
+    expectMatches(chapterFoldersSchema, refused, 'mock chapter folders, refused');
+    expect(refused.outcome).toBe('refused');
+  });
+
   it('the ChapterTrackCreate answers: created and linked, each refusal, and a chapter the manuscript does not have', async () => {
     const api = createMockApi({}, { reaperState: 'no_link' });
     const chapters = await ownChapters(api);
@@ -1586,15 +1606,47 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(created.mappings.filter((mapping) => mapping.chapterId === chapters[0].id)).toHaveLength(1);
     // The host reads the new link: the chapter that had no track is ready to record.
     expect((await api.readAloudReaperState(chapters[0].id)).status).toBe('ready');
+    // A second create for the chapter is refused, naming its track (#2958, B2); after Clear, the track's name is taken (F2).
     const second = await api.chapterTrackCreate(chapters[0].id);
-    if (second.outcome !== 'created') throw new Error('expected a created track');
-    expect(second.track.guid).not.toBe(created.track.guid);
+    expectMatches(chapterTrackCreateSchema, second, 'mock chapter track create, already linked');
+    expect(second).toMatchObject({ outcome: 'refused', reason: 'already_linked' });
+    await api.chapterTrackUnlink(chapters[0].id);
+    const taken = await api.chapterTrackCreate(chapters[0].id);
+    expectMatches(chapterTrackCreateSchema, taken, 'mock chapter track create, name taken');
+    expect(taken).toMatchObject({ outcome: 'refused', reason: 'name_taken' });
     await expect(api.chapterTrackCreate('not-a-real-chapter')).rejects.toThrow();
+    // `?mockReaperState=no_link` is a chapter with no link: a link chapter sync made on its own does not count, so the Booth's Create a new
+    // track adds and links one (the visual state booth / record-unlinked-created).
+    const noLink = createMockApi({}, { reaperState: 'no_link', chapterSync: 'ask' });
+    await noLink.chapterSyncSetEnabled(true);
+    expect((await noLink.chapterTrackMapList()).mappings.some((link) => link.chapterId === 'chapter-1' && link.origin === 'auto')).toBe(true);
+    const unlinked = await noLink.chapterTrackCreate('chapter-1');
+    expectMatches(chapterTrackCreateSchema, unlinked, 'mock chapter track create, no_link scene');
+    expect(unlinked.outcome).toBe('created');
     for (const reaperState of ['unavailable', 'recording_elsewhere'] as const) {
       const refused = await createMockApi({}, { reaperState }).chapterTrackCreate(chapters[0].id);
       expectMatches(chapterTrackCreateSchema, refused, `mock chapter track create, refused (${reaperState})`);
       expect(refused.outcome).toBe('refused');
     }
+  });
+
+  it('the ChapterTrackCreate answer in a Voice folders project: a folder with a Narrator, both in the live track list at once', async () => {
+    const api = createMockApi({}, { reaperState: 'no_link', voiceFolders: true });
+    const chapters = await ownChapters(api);
+    const created = await api.chapterTrackCreate(chapters[1].id);
+    expectMatches(chapterTrackCreateSchema, created, 'mock chapter track create, folder');
+    if (created.outcome !== 'created' || !created.voice) throw new Error('expected a created folder with a voice');
+    expect(created.voice.name).toBe('Narrator');
+    expect(created.link.trackGuid).toBe(created.track.guid);
+    const live = await api.tracksLive();
+    const folder = live.project.tracks.find((track) => track.guid === created.track.guid);
+    const voice = live.project.tracks.find((track) => track.guid === created.voice?.guid);
+    expect(folder).toMatchObject({ isFolder: true, depth: 0, name: created.track.name });
+    expect(voice).toMatchObject({ isFolder: false, depth: 1, name: 'Narrator', index: (folder?.index ?? -1) + 1 });
+    await api.voiceTracksSetLayout('flat');
+    const plain = await api.chapterTrackCreate(chapters[2].id);
+    if (plain.outcome !== 'created') throw new Error('expected a created track');
+    expect(plain.voice).toBeUndefined();
   });
 
   it('the ChapterTrackSet, ChapterTrackUnlink and ChapterTrackLinks answers', async () => {
@@ -4398,6 +4450,8 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'chapterTrackMapConfirm',
       'chapterTrackSet',
       'chapterTrackCreate',
+      'chapterFoldersCheck',
+      'chapterFoldersRepair',
       'chapterTrackUnlink',
       'chapterSyncState',
       'chapterSyncPreview',
