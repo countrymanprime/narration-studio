@@ -21,6 +21,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -144,6 +145,9 @@ type Resolved struct {
 type Marks struct {
 	Types []MarkType `json:"types"`
 	Marks []Resolved `json:"marks"`
+	// TypesChanged is true when Types differ from DefaultTypes in any key, name, colour, style or asks flag, or in order or count:
+	// a type renamed, added, removed or moved. Settings > Changed reads it.
+	TypesChanged bool `json:"typesChanged"`
 }
 
 // Line is one paragraph of the manuscript as it currently is.
@@ -602,7 +606,7 @@ func answer(file marksFile, book Book) Marks {
 		return a.ID < b.ID
 	})
 	types := append([]MarkType{}, file.Types...)
-	return Marks{Types: types, Marks: result}
+	return Marks{Types: types, Marks: result, TypesChanged: !slices.Equal(types, DefaultTypes())}
 }
 
 func newID() string {

@@ -89,5 +89,6 @@
       "name": "Query for author",
       "style": "highlight"
     }
-  ]
+  ],
+  "typesChanged": false
 }

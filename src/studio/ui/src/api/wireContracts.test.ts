@@ -5423,6 +5423,7 @@ describe('the marks bindings', () => {
     const empty = await api.marksList();
     expectMatches(marksSchema, empty, 'mock marks list (empty)');
     expect(empty.types.map((type) => type.key)).toEqual(['stress', 'breath', 'pace', 'emo', 'note', 'ask']);
+    expect(empty.typesChanged).toBe(false);
     const later = await api.marksAdd(chapterId, line.id, 6, 10, 'stress', '');
     const question = await api.marksAdd(chapterId, line.id, 0, 4, 'ask', '  Is this right?  ');
     expectMatches(markSchema, question, 'mock marks add');
@@ -5439,6 +5440,7 @@ describe('the marks bindings', () => {
     expectMatches(marksSchema, saved, 'mock marks types');
     expect(saved.marks).toEqual([]);
     expect(saved.types.at(-1)?.key).not.toBe('');
+    expect(saved.typesChanged).toBe(true);
   });
 
   it('the mock refuses what the host refuses and saves nothing', async () => {
@@ -5460,6 +5462,8 @@ describe('the marks bindings', () => {
     expect(list.marks.map((mark) => mark.staleReason ?? null)).toEqual([null, 'text_changed', 'paragraph_missing']);
     const added = parseWire(markSchema, readGolden('marks-add.json'), ctx('marks add'));
     expect(added).toMatchObject({ status: 'open', thread: [] });
+    expect(list.typesChanged).toBe(false);
+    expect(parseWire(marksSchema, readGolden('marks-types.json'), ctx('marks types')).typesChanged).toBe(true);
     expect(parseWire(marksSchema, readGolden('marks-remove.json'), ctx('marks remove')).marks).toHaveLength(2);
     expect(parseWire(marksSchema, readGolden('marks-types.json'), ctx('marks types')).types.at(-1)?.key).toBe('accent');
     const type = list.types[0];

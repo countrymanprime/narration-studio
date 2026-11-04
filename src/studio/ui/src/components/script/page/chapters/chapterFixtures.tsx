@@ -97,7 +97,11 @@ export function chapterHost(
       states.set(chapterId, state);
       return { chapterId, state };
     },
-    marksList: async () => ({ types: TYPES, marks: [...asking.map((id) => query(id, 'open')), query('c3', 'resolved')] }),
+    marksList: async () => ({
+      types: TYPES,
+      marks: [...asking.map((id) => query(id, 'open')), query('c3', 'resolved')],
+      typesChanged: false,
+    }),
     ...overrides,
   });
 }

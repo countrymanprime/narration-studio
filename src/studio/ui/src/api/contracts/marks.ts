@@ -67,6 +67,9 @@ export type MarkThreadDeleted = {
 export type Marks = {
   types: MarkType[];
   marks: Mark[];
+  /** True when `types` differ from the six a project starts with: any key, name, colour, style or asks flag, or the order or count.
+   * Settings > Changed reads it. */
+  typesChanged: boolean;
 };
 
 export interface MarksApi {

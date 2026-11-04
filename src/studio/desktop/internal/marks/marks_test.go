@@ -400,3 +400,37 @@ func TestOldNotesComeAcrossOnce(t *testing.T) {
 		t.Fatalf("second read = %+v after %d reads of the old notes", list.Marks, reads)
 	}
 }
+
+func TestTypesChangedMarksOnlyAListThatDiffersFromTheDefaults(t *testing.T) {
+	book := alice()
+	service := newService(t, t.TempDir(), &book)
+	list := mustList(t, service)
+	if list.TypesChanged {
+		t.Fatal("a new project's types are the defaults")
+	}
+	types := append([]MarkType{}, list.Types...)
+	cases := map[string][]MarkType{
+		"renamed":   append([]MarkType{{Key: "stress", Name: "Stress", Colour: "copper", Style: "highlight"}}, types[1:]...),
+		"removed":   types[1:],
+		"added":     append(append([]MarkType{}, types...), MarkType{Key: "", Name: "Pickup", Colour: "ok", Style: "box"}),
+		"reordered": append([]MarkType{types[1], types[0]}, types[2:]...),
+	}
+	for name, edited := range cases {
+		saved, err := service.SaveTypes(edited, false)
+		if err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		if !saved.TypesChanged {
+			t.Errorf("%s: SaveTypes did not say the types changed", name)
+		}
+		if !mustList(t, service).TypesChanged {
+			t.Errorf("%s: List did not say the types changed", name)
+		}
+		if _, err := service.SaveTypes(DefaultTypes(), false); err != nil {
+			t.Fatal(err)
+		}
+		if mustList(t, service).TypesChanged {
+			t.Errorf("%s: the defaults saved again still read as changed", name)
+		}
+	}
+}

@@ -54,6 +54,7 @@ export const marksSchema = z
   .object({
     types: z.array(markTypeSchema).min(1),
     marks: z.array(markSchema),
+    typesChanged: z.boolean(),
   })
   .strict() satisfies z.ZodType<Marks>;
 

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Marks } from '../../../api/contracts/marks';
 import { usePort } from '../../../ports/usePort';
 
-const NONE: Marks = { types: [], marks: [] };
+const NONE: Marks = { types: [], marks: [], typesChanged: false };
 
 /**
  * The Script's marks and their types, read once when the Booth opens a chapter: the marked words, the notes under a paragraph and each
