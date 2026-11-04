@@ -125,8 +125,10 @@ and the built-in chain is used until it can.
 
 ## Mastering to spec
 
-The **Master all to spec…** icon button, beside **Check files…**, picks the rendered files to master and encode and opens
-**Master to spec** with a row per file; **Add files…** adds more and **Remove** drops one. Give each its
+The **Master to spec** card is always on the page. Before you pick anything it holds **Choose files to master…** and the
+**Master before encoding** checkbox; with the checkbox off the button reads **Choose files to encode…**. The button picks
+the rendered files to master and encode; the **Master all to spec…** icon beside **Check files…** at the top of the page
+does the same. The card then lists a row per file; **Add files…** adds more and **Remove** drops one. Give each its
 **Role** in the package (**Chapter**, **Opening credits**, **Closing credits** or **Retail sample**) and
 each chapter its **Title** (the other roles take none, shown as a dash), then press **Master & encode**, at the top
 of the panel beside **Add files…**: with **Master before encoding** on (the
@@ -146,6 +148,8 @@ When it ends, the line under the bar says how many files were prepared. They are
 and [Delivery](delivery.md) still go by the files you checked: the check icon beside that line (its tooltip reads
 "Check the prepared files so Delivery counts them") opens the file picker to check the copies, and a chapter counts as
 mastered once its file passes.
+
+![The Master to spec card before any file is picked: Choose files to master… and Master before encoding](../../images/ui/master-to-spec-empty.webp)
 
 ![Master all to spec with five files picked and given a role](../../images/ui/master-to-spec-picked.webp)
 

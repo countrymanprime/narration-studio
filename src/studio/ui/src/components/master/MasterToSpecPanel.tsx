@@ -55,8 +55,9 @@ const TABLE_FLOOR = 'min-w-[44rem]';
 
 /**
  * The files "Master all to spec…" picked: each
- * with its role in the package and, for a chapter, its title, then Master & encode as one job with real progress and Cancel. It
- * appears once files are picked or a job exists; before that the page's header action is the way in. `chain` is the mastering row
+ * with its role in the package and, for a chapter, its title, then Master & encode as one job with real progress and Cancel. It is
+ * always on the page: before any file is picked its own primary, a labelled text button, picks them (#2931); the page header's icon
+ * is the secondary way in. `chain` is the mastering row
  * the host says the project masters with: when it makes the DAW render (`needsApproval`), Master & encode first asks the narrator's
  * approval for this one export. A refusal of the start may mean the row changed, so `onStartRefused` reads the rows again.
  */
@@ -77,22 +78,22 @@ export function MasterToSpecPanel({
   const [approving, setApproving] = useState<ExportPlan>();
   const started = !!exportJob?.files.length;
   const hasFiles = items.length > 0 || started;
-  // A start or pick that failed is a toast; the panel is not opened just to draw it (rule 7, #2632), so it does not appear with nothing in it.
+  // A start or pick that failed is a toast, never a line in the card (rule 7, #2632).
   useErrorToast(problem);
   // A job that ended in error is a toast too, not a red line under the table (rule 7, #2632).
   useErrorToast(exportJob?.phase === 'error' ? exportJob.message : undefined);
-  const shown = hasFiles;
   const revealRef = useRef<HTMLDivElement>(null);
-  const wasShown = useRef(shown);
-  // The panel sits far below the header's "Master all to spec…" button on a 15-file book, so showing it off screen looks like a dead
-  // button: bring it into view and put the keyboard on its files. Not on mount: a page that opens with a job running stays where it is.
+  const hadFiles = useRef(hasFiles);
+  // The table sits far below the header's "Master all to spec…" icon on a 15-file book, so drawing it off screen looks like a dead
+  // button; and the card's own "Choose files…" button goes away once files are picked. Either way, bring the table into view and put
+  // the keyboard on its files. Not on mount: a page that opens with a job running stays where it is.
   useEffect(() => {
-    if (shown && !wasShown.current) {
+    if (hasFiles && !hadFiles.current) {
       revealRef.current?.scrollIntoView?.({ block: 'nearest' });
       revealRef.current?.focus();
     }
-    wasShown.current = shown;
-  }, [shown]);
+    hadFiles.current = hasFiles;
+  }, [hasFiles]);
   // Starting removes Master & encode (the table shows the job instead): focus goes to the files, never to the page's <body>.
   const focusFiles = () => revealRef.current;
   // Answers whether the export started, so the dialog keeps a macro name only once the host took it.
@@ -118,24 +119,42 @@ export function MasterToSpecPanel({
       else void start(null);
     });
   };
-  if (!shown) return null;
+  const masterCheckbox = (
+    <div className={`flex items-center gap-2 ${hasFiles ? 'mt-3' : ''}`}>
+      <Checkbox checked={jobs.master} onChange={jobs.setMaster}>
+        {/* The row's own label, as the host words it: lowercasing it made "the your DAW's FX chain" (#2879's review). */}
+        Master before encoding{chainLabel ? `: ${chainLabel}` : ''}
+      </Checkbox>
+      <HelpButton label="About mastering before encoding">
+        Mastering brings each file to the platform&apos;s RMS window and peak limit before it is encoded.
+      </HelpButton>
+    </div>
+  );
   return (
     <Panel
       title="Master to spec"
       actions={
-        // The panel's action sits in its header beside Add files…, where it stays at every width; it used to follow the checkbox's
-        // sentence or drop under it as the window changed (R3MS-12).
-        !started && (
-          <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" onClick={() => void jobs.pick()} pending={jobs.picking} disabled={exportRunning}>
-              Add files…
-            </Button>
-            {items.length > 0 && (
-              <Button onClick={masterAndEncode} pending={jobs.starting && !approving}>
-                {jobs.master ? 'Master & encode' : 'Encode'}
+        // Before any file is picked, the card's primary is a labelled text button that picks them: the owner's rule is primary = text,
+        // and the page header's icon stays the secondary way in (#2931). It names what it does, so it is not a second "Master all to spec…".
+        !hasFiles ? (
+          <Button onClick={() => void jobs.pick()} pending={jobs.picking}>
+            {jobs.master ? 'Choose files to master…' : 'Choose files to encode…'}
+          </Button>
+        ) : (
+          // The panel's action sits in its header beside Add files…, where it stays at every width; it used to follow the checkbox's
+          // sentence or drop under it as the window changed (R3MS-12).
+          !started && (
+            <div className="flex flex-wrap gap-2">
+              <Button variant="secondary" onClick={() => void jobs.pick()} pending={jobs.picking} disabled={exportRunning}>
+                Add files…
               </Button>
-            )}
-          </div>
+              {items.length > 0 && (
+                <Button onClick={masterAndEncode} pending={jobs.starting && !approving}>
+                  {jobs.master ? 'Master & encode' : 'Encode'}
+                </Button>
+              )}
+            </div>
+          )
         )
       }
     >
@@ -214,17 +233,8 @@ export function MasterToSpecPanel({
           </Table>
         </div>
       )}
-      {items.length > 0 && !started && (
-        <div className="mt-3 flex items-center gap-2">
-          <Checkbox checked={jobs.master} onChange={jobs.setMaster}>
-            {/* The row's own label, as the host words it: lowercasing it made "the your DAW's FX chain" (#2879's review). */}
-            Master before encoding{chainLabel ? `: ${chainLabel}` : ''}
-          </Checkbox>
-          <HelpButton label="About mastering before encoding">
-            Mastering brings each file to the platform&apos;s RMS window and peak limit before it is encoded.
-          </HelpButton>
-        </div>
-      )}
+      {/* With nothing picked the checkbox is the card's body: the one choice that applies before picking. */}
+      {(!hasFiles || (items.length > 0 && !started)) && masterCheckbox}
       {exportJob && exportRunning && (
         <div className="mt-3 flex flex-col gap-2">
           <ProgressBar label="Preparing files" value={exportJob.percent} running valueText={`${exportJob.percent}% prepared`} />

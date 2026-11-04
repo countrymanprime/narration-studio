@@ -15,9 +15,34 @@ function jobs(patch: Partial<ExportJobs> = {}): ExportJobs {
 }
 
 describe('MasterToSpecPanel: showing up', () => {
-  it('draws nothing until files are picked', () => {
-    const { container } = render(<MasterToSpecPanel jobs={jobs()} />);
-    expect(container.firstChild).toBeNull();
+  // #2931: it used to draw nothing until files were picked, so the only way in was the page header's unlabelled icon.
+  it('with nothing picked, draws its card with a labelled primary that picks the files, and the mastering checkbox', () => {
+    const pick = vi.fn(() => Promise.resolve());
+    render(
+      <MasterToSpecPanel jobs={jobs({ master: true, pick } as never)} chain={{ name: 'builtin', label: 'Built-in chain (EQ, limiter, gain)' } as never} />,
+    );
+    expect(screen.getByRole('region', { name: 'Master to spec' })).toBeTruthy();
+    const button = screen.getByRole('button', { name: 'Choose files to master…' });
+    expect(button.textContent).toBe('Choose files to master…');
+    expect(screen.getByRole('checkbox', { name: 'Master before encoding: Built-in chain (EQ, limiter, gain)' })).toBeTruthy();
+    expect(screen.queryByRole('table')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Add files…' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Master & encode' })).toBeNull();
+    fireEvent.click(button);
+    expect(pick).toHaveBeenCalledTimes(1);
+  });
+
+  it('with mastering off, the same button says it chooses files to encode', () => {
+    render(<MasterToSpecPanel jobs={jobs({ master: false })} />);
+    expect(screen.getByRole('button', { name: 'Choose files to encode…' })).toBeTruthy();
+  });
+
+  it('shows the picker open on the button, and takes the button away once files are picked', () => {
+    const { rerender } = render(<MasterToSpecPanel jobs={jobs({ master: true, picking: true } as never)} />);
+    expect(screen.getByRole('button', { name: 'Choose files to master…' }).getAttribute('aria-busy')).toBe('true');
+    rerender(<MasterToSpecPanel jobs={jobs({ master: true, items: [item] } as never)} />);
+    expect(screen.queryByRole('button', { name: 'Choose files to master…' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Add files…' })).toBeTruthy();
   });
 
   it('scrolls to its files and puts the keyboard on them when picking first shows it', () => {
@@ -37,11 +62,11 @@ describe('MasterToSpecPanel: showing up', () => {
     expect(scrollIntoView).not.toHaveBeenCalled();
   });
 
-  it('tells a refusal that has no files as a toast and draws no panel for it', () => {
+  it('tells a refusal that has no files as a toast, and draws no text for it in the card', () => {
     const { container, rerender } = render(<MasterToSpecPanel jobs={jobs()} />);
     rerender(<MasterToSpecPanel jobs={jobs({ problem: 'Could not read the folder.' })} />);
     expect(toastTexts()).toEqual(['Could not read the folder.']);
-    expect(container.innerHTML).toBe('');
+    expect(container.textContent).not.toContain('Could not read the folder.');
     expect(screen.queryByRole('alert')).toBeNull();
   });
 

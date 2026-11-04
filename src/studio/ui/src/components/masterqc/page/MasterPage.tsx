@@ -246,7 +246,8 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
             );
             const controls = (
               <>
-                {/* Opens Master to spec below (no mock equivalent, kept as built). */}
+                {/* Picks the files for Master to spec below (no mock equivalent, kept as built): the secondary way in, beside Check files…;
+                    the card's own labelled "Choose files to master…" is the primary (#2931). */}
                 <IconButton
                   action="masterAllToSpec"
                   label="Master all to spec…"
