@@ -65,7 +65,9 @@ describe('Models folder: breaks', () => {
     fireEvent.click(reset);
     expect(screen.queryByRole('alertdialog')).toBeNull();
     expect(pick).not.toHaveBeenCalled();
-    expect(document.querySelector('[data-old-copy]')!.textContent).toContain('Delete the old copy or keep it before moving again');
+    // The reason lives on the disabled buttons (a tooltip), not as a sentence in the flow.
+    expect(document.querySelector('[data-old-copy]')!.textContent).toContain('The old copy is still in');
+    expect(document.querySelector('[data-old-copy]')!.textContent).not.toContain('before moving again');
   });
 
   it("Keep it says where the old copy stays and that deleting it is the narrator's to do", async () => {

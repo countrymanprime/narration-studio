@@ -3,12 +3,12 @@ import { overlay } from '../../../overlay/overlayService';
 import { formatSize } from '../../assets/AssetFacts';
 import { Button } from '../../primitives/Button';
 import { ConfirmDialog } from '../../primitives/ConfirmDialog';
-import { Dialog } from '../../primitives/Dialog';
 import { IconButton } from '../../primitives/IconButton';
 import { TooltipTarget } from '../../primitives/Tooltip';
 import { WorkDialog } from '../../primitives/WorkDialog';
 import { isMoveRunning, type AssetMovePhase, type AssetMoveState, type WorkJob } from '../../../types';
 import { useAssetsStore } from './AssetsStore';
+import { MoveEndedDialog } from './MoveEndedDialog';
 
 /** A path in a sentence or a title: isolated left to right, so a path with right-to-left letters does not reorder the words around it. */
 const isolate = (value: string): string => `\u2066${value}\u2069`;
@@ -18,17 +18,6 @@ const path = (value: string) => (
     {value}
   </code>
 );
-
-/** The title of the dialog that tells how a move ended: the sentence is the title, so the dialog is not left saying it is still moving. */
-const ENDED: Record<AssetMovePhase, (back: boolean) => string> = {
-  success: (back) => (back ? 'The models were moved back' : 'The models were moved'),
-  cancelled: () => 'The move was cancelled',
-  error: () => 'The move failed',
-  idle: () => '',
-  copying: () => 'Moving models',
-  verifying: () => 'Moving models',
-  switching: () => 'Moving models',
-};
 
 const PHASE: Record<AssetMovePhase, WorkJob['phase']> = {
   idle: 'idle',
@@ -148,21 +137,7 @@ export function ModelsFolderControl() {
         />
       )}
       {move && !isMoveRunning(move) && move.phase !== 'idle' && (
-        <Dialog
-          title={ENDED[move.phase](move.target === catalog.defaultRoot)}
-          dismissOnOutsidePress={false}
-          actionsAlign="end"
-          onEscape={store.dismissMove}
-          actions={
-            <Button variant="primary" onClick={store.dismissMove}>
-              Close
-            </Button>
-          }
-        >
-          <p className="text-sm" role={move.phase === 'error' ? 'alert' : 'status'}>
-            {move.phase === 'success' ? <>The models are in {path(move.target)} and in use.</> : move.error || move.message}
-          </p>
-        </Dialog>
+        <MoveEndedDialog move={move} toDefault={move.target === catalog.defaultRoot} path={path} onClose={store.dismissMove} />
       )}
       {move && isMoveRunning(move) && (
         <WorkDialog title="Moving models" job={jobOf(move, started, now)} cancel={() => void store.cancelMove()} close={store.dismissMove} />
@@ -201,7 +176,7 @@ export function OldCopyOffer() {
   };
   return (
     <div data-old-copy className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[0.8125rem] text-[var(--text-muted)]">
-      <span className="min-w-0">The old copy is still in {path(previous)}. Delete the old copy or keep it before moving again.</span>
+      <span className="min-w-0">The old copy is still in {path(previous)}.</span>
       <span className="flex items-center gap-2">
         <Button variant="secondary" size="sm" onClick={() => setAsking(true)}>
           Delete old copy…
