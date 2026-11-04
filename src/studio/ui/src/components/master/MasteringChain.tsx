@@ -9,7 +9,8 @@ import { Badge } from '../primitives/StatusBadge';
 
 const MUTED = { color: 'var(--text-muted)' };
 
-/** The mastering chains and the project's choice, read once; `undefined` while loading. */
+/** The mastering chains and the project's choice, read on opening and again on `reload` (after a refusal that may mean they
+ * changed); `undefined` while loading. */
 export function useMasteringProviders(): { providers?: MasteringProviders; problem?: string; reload: () => void } {
   const api = useApi();
   const [providers, setProviders] = useState<MasteringProviders>();

@@ -19,7 +19,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import { WINDOWS_INSTALLER, requireInstaller } from './assets.mjs';
+import { WINDOWS_INSTALLER, requireInstaller, requireNotices } from './assets.mjs';
 import { readRootVersion } from './sync-version.mjs';
 
 const BARE_SEMVER = /^\d+\.\d+\.\d+$/;
@@ -104,6 +104,11 @@ export function removeStaleInstaller(extra, binDir = BIN_DIR) {
 }
 
 // makensis writes the setup program to build/bin (project.nsi's OutFile). A build that asked for it and has none fails here.
+// project.nsi installs THIRD-PARTY-NOTICES.txt beside the program (#250), and makensis fails on a missing file with a path nobody can act on.
+export function assertNoticesReady(extra, binDir = BIN_DIR) {
+  if (installerRequested(extra)) requireNotices(binDir);
+}
+
 export function assertInstallerBuilt(extra, binDir = BIN_DIR) {
   if (installerRequested(extra)) requireInstaller(binDir);
 }
@@ -127,6 +132,7 @@ function build(extra) {
     run('wails3', buildAssetsArguments(product, version, assets));
     mkdirSync(BIN_DIR, { recursive: true });
     removeStaleInstaller(extra);
+    assertNoticesReady(extra);
     if (goos === 'windows') {
       const manifest = join(assets, 'windows', 'wails.exe.manifest');
       writeFileSync(manifest, withFourPartManifestVersion(readFileSync(manifest, 'utf8'), version));

@@ -7,6 +7,7 @@ import test from 'node:test';
 import { WINDOWS_INSTALLER } from './assets.mjs';
 import {
   assertInstallerBuilt,
+  assertNoticesReady,
   buildAssetsArguments,
   goBuildArguments,
   goosOf,
@@ -139,4 +140,12 @@ test('an installer left by an earlier build is removed before the build so it ca
   writeFileSync(join(bin, WINDOWS_INSTALLER), 'kept');
   removeStaleInstaller([], bin);
   assert.equal(existsSync(join(bin, WINDOWS_INSTALLER)), true);
+});
+
+test('a setup program is not built without the notices it installs, and a plain build does not need them', () => {
+  const bin = mkdtempSync(join(tmpdir(), 'wails-build-notices-'));
+  assert.throws(() => assertNoticesReady(['--installer'], bin), /THIRD-PARTY-NOTICES\.txt/);
+  assert.doesNotThrow(() => assertNoticesReady([], bin));
+  writeFileSync(join(bin, 'THIRD-PARTY-NOTICES.txt'), 'notices');
+  assert.doesNotThrow(() => assertNoticesReady(['--installer'], bin));
 });

@@ -99,8 +99,8 @@ func TestAnImportedFrontMatterChapterIsNeverListed(t *testing.T) {
 	if got, err := service.Paragraphs(text(chapters[0], "id")); err != nil || len(got) != 1 || text(got[0], "id") != "p-000002" {
 		t.Fatalf("paragraphs = %#v, %v, want only the book's", got, err)
 	}
-	hits, err := service.Search("alice")
-	if err != nil || len(hits) != 1 || hits[0]["chapterId"] != "c-0002" {
-		t.Fatalf("search = %#v, %v, want the one hit in the book", hits, err)
+	found, err := service.Search("alice")
+	if err != nil || len(found.Hits) != 1 || found.Total != 1 || found.Hits[0].ChapterID != "c-0002" {
+		t.Fatalf("search = %#v, %v, want the one hit in the book", found, err)
 	}
 }

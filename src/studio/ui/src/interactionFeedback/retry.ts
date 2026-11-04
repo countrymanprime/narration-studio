@@ -7,7 +7,7 @@
 // Retry belongs on a failure whose repeat is safe (a save of the same value, a read) and whose trigger the narrator cannot press again.
 // It never belongs on record, delete, duplicate, import, a DAW edit or a refusal.
 
-export type RetryVerdict = 'yes' | 'no' | 'n/a';
+type RetryVerdict = 'yes' | 'no' | 'n/a';
 export type RetryJudgment = { retry: RetryVerdict; reason: string };
 
 const yes = (reason: string): RetryJudgment => ({ retry: 'yes', reason });
@@ -35,6 +35,12 @@ const SE = 'Runs inside a dialog that has already closed and moved on to the sca
 
 /** Judged error toasts. `yes` must carry a Retry (or an equal action) in the call; `no` and `n/a` say why in a sentence. */
 export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
+  'src/components/layout/JumpMenu.tsx#1': no(
+    'A search run as the narrator types: the next change of the query runs it again, and one toast per group replaces the last, so a Retry button would add nothing.',
+  ),
+  'src/components/script/page/tools/find/useBookFind.ts#1': no(
+    'A search run as the narrator types: the next change of the term runs it again, and the results show that it failed, so a Retry button would add nothing.',
+  ),
   'src/components/booth/bookmarks/useBoothBookmarks.ts#1': no(RF),
   'src/components/booth/bookmarks/useBoothBookmarks.ts#2': no(RF),
   'src/components/booth/frame/LevelsMenu.tsx#1': yes("The Booth's built-in input read: Retry reads it again."),
