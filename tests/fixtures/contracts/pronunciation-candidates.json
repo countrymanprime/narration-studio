@@ -1,0 +1,25 @@
+{
+  "candidates": [
+    {
+      "label": "CMU dictionary",
+      "say": "say Tulgey (cmu)",
+      "sourceId": "cmu"
+    },
+    {
+      "label": "eSpeak NG",
+      "say": "say Tulgey (espeak)",
+      "sourceId": "espeak"
+    },
+    {
+      "label": "Script (imported)",
+      "say": "TUL-gee",
+      "sourceId": "script_imported"
+    },
+    {
+      "label": "My dictionary",
+      "say": "TOOL-gay",
+      "sourceId": "user_dictionary"
+    }
+  ],
+  "misses": []
+}

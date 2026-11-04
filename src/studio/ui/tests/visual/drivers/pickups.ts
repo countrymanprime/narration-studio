@@ -11,6 +11,15 @@ async function openPickups(page: Page): Promise<void> {
   await list(page).getByRole('button', { name: 'Open in Booth at this line' }).first().waitFor();
 }
 
+// Adds a line by hand ("Pickup by hand") to the first chapter in the list's popover and waits for it to be listed.
+async function addByHand(page: Page): Promise<void> {
+  await list(page).getByRole('button', { name: 'Add a pickup by hand' }).click();
+  await page.getByRole('textbox', { name: 'Time in the recording' }).fill('01:00.0');
+  await page.getByRole('textbox', { name: 'Line to re-record' }).fill('Pickup by hand');
+  await page.getByRole('button', { name: 'Add pickup', exact: true }).click();
+  await page.getByRole('button', { name: /^Open 4 in Booth$/ }).waitFor();
+}
+
 export const pickupsDrivers: Record<string, Driver> = {
   list: async (page) => {
     await openPickups(page);
@@ -48,6 +57,22 @@ export const pickupsDrivers: Record<string, Driver> = {
     await page.getByRole('button', { name: 'Add pickup', exact: true }).click();
     await page.getByText('Type the line first.').waitFor();
   },
+  // A line over 500 characters: the one message under the line box, no toast.
+  'add-popover-too-long': async (page) => {
+    await openPickups(page);
+    await list(page).getByRole('button', { name: 'Add a pickup by hand' }).click();
+    await page.getByRole('textbox', { name: 'Time in the recording' }).fill('05:12.0');
+    await page.getByRole('textbox', { name: 'Line to re-record' }).fill('word '.repeat(101));
+    await page.getByRole('button', { name: 'Add pickup', exact: true }).click();
+    await page.getByText('A line can be at most 500 characters.').waitFor();
+  },
+  // A line added by hand has no place in the recording yet, so it gets no marker: the toast counts the placed lines against the session.
+  'markers-partial-toast': async (page) => {
+    await openPickups(page);
+    await addByHand(page);
+    await page.getByRole('button', { name: /^Add 3 as markers in / }).click();
+    await page.getByText(/^Pickup markers for 3 of 4 lines are in .+ 1 line has no place in the recording yet and was left out\.$/).waitFor();
+  },
   'marked-recorded': async (page) => {
     await openPickups(page);
     await list(page).getByRole('button', { name: 'Mark recorded' }).first().click();
@@ -59,6 +84,16 @@ export const pickupsDrivers: Record<string, Driver> = {
     await settlePage(page);
     await goToPage(page, 'Pickups');
     await page.getByRole('group', { name: 'Loading the pickups' }).waitFor();
+  },
+  // REAPER with no project file linked: the markers button is off and says why, as the top bar's badge does.
+  'markers-not-linked': async (page) => {
+    await page.goto('/?mockNoDaw=1');
+    await settlePage(page);
+    await openPickups(page);
+    await page
+      .getByRole('button', { name: /^Add \d+ as markers in / })
+      .and(page.locator('[aria-disabled="true"]'))
+      .waitFor();
   },
   unreadable: async (page) => {
     await page.goto('/?mockPickupList=unreadable');

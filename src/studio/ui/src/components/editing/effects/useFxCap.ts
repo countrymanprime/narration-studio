@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ScopedSettingField } from '../../../api/contracts/system';
 import { usePort } from '../../../ports/usePort';
 import { FX_CAP_MAX, FX_CAP_MIN, FX_CAP_PCT } from './effectsMath';
@@ -38,6 +38,15 @@ export function useFxCap(): FxCapState {
   const [ready, setReady] = useState(false);
   const [error, setError] = useState('');
   const [version, setVersion] = useState(0);
+  const saves = useRef(0);
+
+  // The setting lives in the host and can change elsewhere (Settings has the same row), and a read that failed has no other way back, so the
+  // cap is read again whenever the window is focused.
+  useEffect(() => {
+    const again = () => setVersion((v) => v + 1);
+    window.addEventListener('focus', again);
+    return () => window.removeEventListener('focus', again);
+  }, []);
 
   useEffect(() => {
     let live = true;
@@ -46,6 +55,7 @@ export function useFxCap(): FxCapState {
         if (!live) return;
         setLocal(fxCapOf(fields));
         setReady(true);
+        setError('');
       },
       (e) => live && setError(why(e)),
     );
@@ -58,9 +68,12 @@ export function useFxCap(): FxCapState {
     (pct: number) => {
       const next = Math.min(FX_CAP_MAX, Math.max(FX_CAP_MIN, Math.round(pct)));
       setLocal(next);
+      // Only the newest save speaks: an older one that fails after a newer one succeeded must not put its error up or its old value back.
+      const mine = ++saves.current;
       system.saveSettings(TOOL, 'project', { [KEY]: String(next) }).then(
-        () => setError(''),
+        () => mine === saves.current && setError(''),
         (e) => {
+          if (mine !== saves.current) return;
           setError(why(e));
           setVersion((v) => v + 1);
         },

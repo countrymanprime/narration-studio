@@ -20,6 +20,7 @@
     "visual:check-run": "playwright test -c playwright.visual-run.config.ts",
     "mock-match": "playwright test -c playwright.mock-match.config.ts",
     "docs:atlas": "node scripts/atlas-docs.mjs",
+    "docs:atlas:check": "pnpm run build-storybook && node scripts/atlas-docs.mjs --check",
     "storybook": "storybook dev --port 6006",
     "build-storybook": "storybook build --output-dir storybook-static",
     "atlas": "pnpm run build-storybook && playwright test -c playwright.atlas.config.ts",

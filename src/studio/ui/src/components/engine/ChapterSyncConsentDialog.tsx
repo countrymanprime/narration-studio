@@ -110,7 +110,7 @@ export function ChapterSyncConsentDialog({
             </section>
           )}
           <p style={{ color: 'var(--text-muted)' }}>
-            You can turn chapter sync on or off later in the audio engine panel (the {daw.daw} chip at the top of the window).
+            You can turn chapter sync on or off later in Settings, or in the audio engine panel (the {daw.daw} chip at the top of the window).
           </p>
         </div>
       )}
