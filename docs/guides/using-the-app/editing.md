@@ -72,7 +72,7 @@ your keyboard settings ([Settings](settings.md)), so a key you rebound shows its
 Beside the clock, the **Output** group sets what you hear, not what is recorded. **Silence output** mutes the app's sound; it is not the
 **Mute** that silences the selected words in the recording. **Show volume and output device** opens a popover with the speed (0.75× to 2×, with the pitch of the voice kept), the volume and the output device: the system
 default, or one of this computer's outputs. A speed other than 1× is also written beside the buttons. The choices apply to the chapter and to a take you play on this page, and are kept for this
-computer, not for the project. A saved output that is not connected stays chosen with "(not connected)", the sound plays on the system default meanwhile, and **Check again** reads the list; a
+computer, not for the project. A saved output that is not connected stays chosen with "(not connected)", the sound plays on the system default meanwhile, and the refresh icon (**Check again**) reads the list; a
 computer that names no outputs turns the choice off and says so. With REAPER connected and **Set the monitor level** on in [Settings](settings.md), the popover also has REAPER's monitor level,
 which sets REAPER's own output when REAPER plays and does not change the app's sound.
 
@@ -92,10 +92,10 @@ track named after the chapter and links it instead (the main button when the pro
 so the page can read the new track. If you close it with the X, the
 **Not linked to a track** mark in the header opens it again. The page also reads the chapter again whenever you come back
 to its window, so a link made in REAPER or the audio engine panel shows without a reload. When the track is empty, or with the
-built-in recorder (which has no track to link), a note over the script says to record the chapter, with **Read again**.
+built-in recorder (which has no track to link), a note over the script says to record the chapter, with a retry icon (**Read again**).
 A chapter
 that was never checked has no heard words: the page shows its script plain, with a **Not transcribed yet** note and a
-**Check recordings…** button beside it that opens [Check recordings](production.md#checking-a-chapters-recording), the one recording
+**Check recordings…** icon beside it that opens [Check recordings](production.md#checking-a-chapters-recording), the one recording
 check every page opens, with this chapter ticked. When the dialog closes the page reads the chapter again, so
 what the check found shows without a reload. Opening Editing never starts a check.
 
@@ -259,7 +259,7 @@ before it goes ahead.
 
 **FX in REAPER** lists the plug-ins on the project's tracks and its master track as REAPER holds them now: where each one
 sits, its name, and whether it is switched on there. It reads REAPER and changes nothing, so a plug-in you add or bypass in
-REAPER shows here when you come back to the app or press **Check again**; the list says when REAPER last answered. If REAPER
+REAPER shows here when you come back to the app or press the refresh icon (**Check again**); the list says when REAPER last answered. If REAPER
 cannot be read the section says why instead of showing an old list. The **?** beside the heading says how a plug-in gets onto words:
 use **Choose in REAPER…** (below), or save it in REAPER as an FX chain, which **Add an effect** then lists.
 
@@ -275,7 +275,7 @@ in it. You can add more than one, and set them up there as you would any plug-in
 While REAPER's window is open, the Effects tab shows what REAPER has chosen so far and checks every second or two, and when
 you come back to the app. Close REAPER's FX window when you are done (the **?** in the panel says so), and the app adds what you chose to the words as an
 effect, named after the plug-ins. **Keep it** adds it straight away with the window still open. **Cancel** takes off
-anything you chose and joins the item back together, and the app records nothing. **Check again** asks REAPER now. If
+anything you chose and joins the item back together, and the app records nothing. The refresh icon (**Check again**) asks REAPER now. If
 REAPER stops answering, the panel says it cannot tell what is chosen and when REAPER last answered, rather than showing an
 old answer.
 

@@ -42,7 +42,7 @@ A row's state in the table is read from the tree after the change, so `converted
 
 ## Totals
 
-Totals: **457** buttons found; **32** converted in this change; **100** mapped to a catalogue action and queued; **73** need a catalogue decision; **252** kept as text with a reason.
+Totals: **457** buttons found; **39** converted in this change; **93** mapped to a catalogue action and queued; **73** need a catalogue decision; **252** kept as text with a reason.
 
 Per page group (before this change), `converted` + `convert` + `decide` are the buttons the owner's rule asks to become icons:
 
@@ -50,9 +50,9 @@ Per page group (before this change), `converted` + `convert` + `decide` are the 
 | - | - | - | - | - |
 | settings | 14 | 12 | 15 | 33 |
 | engine | 14 | 0 | 0 | 21 |
+| editing | 7 | 5 | 15 | 38 |
 | script | 2 | 5 | 4 | 14 |
 | booth | 2 | 3 | 4 | 21 |
-| editing | 0 | 12 | 15 | 38 |
 | storybible | 0 | 16 | 8 | 16 |
 | proof | 0 | 12 | 6 | 16 |
 | production | 0 | 10 | 4 | 19 |
@@ -145,7 +145,7 @@ The Engine PR keeps `Link` (Chapter sync's Needs-you row) and `Confirm` (Chapter
 | `editing/effects/AddEffect.tsx:109` | secondary | row | {starred ? '★ Favourite' : 'Favourite'} | keep | option in a pick list: the label is the choice |
 | `editing/effects/ChooseInDaw.tsx:75` | primary | page | Keep it | keep | primary action of its card, page or dialog |
 | `editing/effects/ChooseInDaw.tsx:78` | secondary | page | Cancel | convert (queued) | cancelEdit |
-| `editing/effects/ChooseInDaw.tsx:81` | secondary | page | Check again | convert (queued) | +checkAgain |
+| `editing/effects/ChooseInDaw.tsx:81` | secondary | page | Check again | converted | +checkAgain |
 | `editing/effects/CoverageStrip.tsx:87` | native | row | (icon) | keep | native button that is a whole row or a menu item (the label is the cho |
 | `editing/effects/EffectInspector.tsx:86` | danger | page | Remove this effect | convert (queued) | remove |
 | `editing/effects/EffectSettings.tsx:57` | secondary | page | Settings | decide (queued) | needs a catalogue decision |
@@ -157,7 +157,7 @@ The Engine PR keeps `Link` (Chapter sync's Needs-you row) and `Confirm` (Chapter
 | `editing/effects/EffectSettings.tsx:378` | secondary | page | Compare | keep | text row in the catalogue (reopen, compare): no unambiguous icon |
 | `editing/effects/EffectSettings.tsx:382` | secondary | page | Stop comparing | decide (queued) | needs a catalogue decision |
 | `editing/effects/EffectsList.tsx:55` | link | row | {clock(at.start)} – {clock(at.end)} | keep | inline text action inside a sentence |
-| `editing/effects/ProjectFx.tsx:41` | secondary | page | Check again | convert (queued) | +checkAgain |
+| `editing/effects/ProjectFx.tsx:41` | secondary | page | Check again | converted | +checkAgain |
 | `editing/flags/FlagCard.tsx:150` | primary | panel | Stack as 2 takes | keep | primary decision action of the Inspector card (owner rule: primary = t |
 | `editing/flags/FlagCard.tsx:153` | secondary | panel | Hear both reads | keep | primary decision action of the Inspector card (owner rule: primary = t |
 | `editing/flags/FlagCard.tsx:156` | secondary | panel | Leave in place | keep | primary decision action of the Inspector card (owner rule: primary = t |
@@ -169,20 +169,20 @@ The Engine PR keeps `Link` (Chapter sync's Needs-you row) and `Confirm` (Chapter
 | `editing/flags/FlagCard.tsx:184` | primary | panel | Mark for pickup | keep | primary decision action of the Inspector card (owner rule: primary = t |
 | `editing/menu/marks/NoteDialog.tsx:66` | secondary | dialog | Cancel | keep | dialog footer decision (the catalogue lists Cancel and Save as text ro |
 | `editing/menu/marks/NoteDialog.tsx:69` | primary | dialog | Save note | keep | primary action of its card, page or dialog |
-| `editing/output/OutputControls.tsx:68` | secondary | row | Check again | convert (queued) | +checkAgain |
-| `editing/page/NoAudioBanner.tsx:26` | secondary | page | Read again | convert (queued) | retry |
+| `editing/output/OutputControls.tsx:68` | secondary | row | Check again | converted | +checkAgain |
+| `editing/page/NoAudioBanner.tsx:26` | secondary | page | Read again | converted | retry |
 | `editing/range/cut/CutDialog.tsx:162` | secondary | dialog | Cancel | keep | dialog footer decision (the catalogue lists Cancel and Save as text ro |
 | `editing/range/cut/CutDialog.tsx:165` | primary | dialog | {mute ? `Mute ${plural(n, 'word', 'words')}` : `Delete ${plur} | keep | primary action of its card, page or dialog |
 | `editing/range/fx/FxDialog.tsx:120` | secondary | dialog | A/B | keep | skip link or a text-only value control (A/B, 30 s) |
 | `editing/range/fx/FxDialog.tsx:143` | secondary | dialog | Cancel | keep | dialog footer decision (the catalogue lists Cancel and Save as text ro |
 | `editing/range/fx/FxDialog.tsx:146` | primary | dialog | {fxButton(over !== null, plan)} | keep | primary action of its card, page or dialog |
 | `editing/range/replace/ReplaceDialog.tsx:282` | secondary | dialog | Add a file of theirs… | decide (queued) | needs a catalogue decision |
-| `editing/range/replace/ReplaceDialog.tsx:291` | secondary | dialog | Add | convert (queued) | add |
+| `editing/range/replace/ReplaceDialog.tsx:291` | secondary | dialog | Add | converted | add |
 | `editing/range/replace/ReplaceDialog.tsx:400` | secondary | dialog | Cancel | keep | dialog footer decision (the catalogue lists Cancel and Save as text ro |
 | `editing/range/replace/ReplaceDialog.tsx:403` | primary | dialog | {`Replace ${plural(words, 'word', 'words')}`} | keep | primary action of its card, page or dialog |
 | `editing/range/replace/ReplacementMark.tsx:25` | native | page | {r.narratorName} | keep | native button that is a whole row or a menu item (the label is the cho |
 | `editing/range/replace/ReplacementMark.tsx:48` | secondary | page | Put my audio back | decide (queued) | needs a catalogue decision |
-| `editing/script/ScriptDoc.tsx:120` | secondary | page | Check recordings… | convert (queued) | checkRecordings |
+| `editing/script/ScriptDoc.tsx:120` | secondary | page | Check recordings… | converted | checkRecordings |
 | `editing/stack/RetryBar.tsx:65` | secondary | toolbar | {STACK_TEXT.action} | decide (queued) | needs a catalogue decision |
 | `editing/stack/RetryBar.tsx:70` | secondary | toolbar | {STACK_TEXT.action} | decide (queued) | needs a catalogue decision |
 | `editing/stack/StackControls.tsx:24` | secondary | page | {label} | decide (queued) | needs a catalogue decision |
@@ -195,7 +195,7 @@ The Engine PR keeps `Link` (Chapter sync's Needs-you row) and `Confirm` (Chapter
 | `editing/takes/TakeChip.tsx:43` | secondary | page | {n} {n === 1 ? 'take' : 'takes'} {passage.takes.map((t) => ( <i key={t | decide (queued) | needs a catalogue decision |
 | `editing/takes/TakeCompare.tsx:34` | secondary | page | A then B | keep | skip link or a text-only value control (A/B, 30 s) |
 | `editing/voicesample/SampleMark.tsx:39` | native | page | {many ? samples.length : null} | keep | native button that is a whole row or a menu item (the label is the cho |
-| `editing/voicesample/SampleMark.tsx:122` | secondary | row | Open in Story Bible | convert (queued) | pageLink |
+| `editing/voicesample/SampleMark.tsx:122` | secondary | row | Open in Story Bible | converted | pageLink |
 | `editing/voicesample/VoiceSampleDialog.tsx:241` | secondary | dialog | Cancel | keep | dialog footer decision (the catalogue lists Cancel and Save as text ro |
 | `editing/voicesample/VoiceSampleDialog.tsx:244` | primary | dialog | Save sample | keep | primary action of its card, page or dialog |
 | `engine/AudacityLinkCard.tsx:99` | primary | panel | {busy === 'start' ? 'Starting Audacity…' : 'Start Audacity'} | keep | primary action of its card, page or dialog |

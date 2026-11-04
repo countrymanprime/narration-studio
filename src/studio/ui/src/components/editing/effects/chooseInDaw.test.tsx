@@ -113,6 +113,10 @@ describe('the choosing panel', () => {
   it('shows a problem as an alert, keeps long and right-to-left words inside, and turns its buttons off while busy', () => {
     render(panel(choosing({ problem: 'REAPER did not answer.', busy: true, text: 'שלום 👋 '.repeat(40) })));
     expect(screen.getByRole('alert').textContent).toBe('REAPER did not answer.');
-    for (const name of ['Keep it', 'Cancel', 'Check again']) expect((screen.getByRole('button', { name }) as HTMLButtonElement).disabled).toBe(true);
+    for (const name of ['Keep it', 'Cancel']) expect((screen.getByRole('button', { name }) as HTMLButtonElement).disabled).toBe(true);
+    // Check again is an icon button: busy keeps it focusable (aria-disabled and aria-busy) instead of a native disabled that drops focus.
+    const check = screen.getByRole('button', { name: 'Check again' });
+    expect(check.getAttribute('aria-disabled')).toBe('true');
+    expect(check.getAttribute('aria-busy')).toBe('true');
   });
 });
