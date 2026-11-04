@@ -508,11 +508,12 @@ describe('the approval shows the DAW chain it approves (#2932)', () => {
     expect(rowsOf(chainTable())).toEqual([['1', 'Track', '(unnamed)']]);
   });
 
-  it('says in a hint, not in the page, what the approval covers and what it does not', async () => {
+  // #2995: the hint names what is bound now (settings, mute, solo, routing) instead of what was not.
+  it('says in a hint, not in the page, what the approval covers', async () => {
     await mount('daw');
     await openDialog();
     const about = within(dialog()).getByRole('button', { name: 'What this approval covers' });
-    expect(about.getAttribute('aria-description')).toBe('Covers effect names, on/off and order, not their settings, routing or mute');
+    expect(about.getAttribute('aria-description')).toBe("Covers effect settings, order and on/off, and tracks' mute, solo and routing");
   });
 
   // A fake IntersectionObserver whose first answer says whether the watched element is in view.

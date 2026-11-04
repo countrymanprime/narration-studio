@@ -798,6 +798,42 @@
     "replace": "\n"
   },
   {
+    "name": "an FX's parameters are not bound",
+    "file": "narration_master_render.lua",
+    "find": "    values[#values + 1] = reaper.TrackFX_GetParamNormalized(track, fx, param)\n",
+    "replace": "\n"
+  },
+  {
+    "name": "a send or receive is not bound",
+    "file": "narration_master_render.lua",
+    "find": "        values[#values + 1] = reaper.GetTrackSendInfo_Value(track, category, index, key)\n",
+    "replace": "\n"
+  },
+  {
+    "name": "a track's volume and parent send are not bound",
+    "file": "narration_master_render.lua",
+    "find": "    values[#values + 1] = reaper.GetMediaTrackInfo_Value(track, key)\n",
+    "replace": "\n"
+  },
+  {
+    "name": "a track's mute is not answered",
+    "file": "narration_master_render.lua",
+    "find": "local mute = reaper.GetMediaTrackInfo_Value(track, 'B_MUTE') ~= 0 and 1 or 0",
+    "replace": "local mute = 0"
+  },
+  {
+    "name": "the track list is not capped",
+    "file": "narration_master_render.lua",
+    "find": "    if tracks >= MASTER_CHAIN_LIMIT then\n",
+    "replace": "    if false then\n"
+  },
+  {
+    "name": "a NaN parameter fails the read",
+    "file": "narration_master_render.lua",
+    "find": "  if value ~= value or value >= 1e12 or value <= -1e12 then\n",
+    "replace": "  if false then\n"
+  },
+  {
     "name": "record_start end moves the cursor before the refusal checks",
     "file": "narration_transport.lua",
     "find": "  if recording() then\n    event(session_dir, 'ERROR', run_id, 'REAPER is already recording.')",

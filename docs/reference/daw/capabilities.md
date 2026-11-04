@@ -272,11 +272,11 @@ Facts about REAPER, Audacity and the built-in recorder are copied from the pages
 
 - **Intent:** show the narrator the FX a render would run, before they approve it, and the FX in the DAW now on the Editing page's Effects tab ([#2251](https://github.com/countrymanprime/narration-studio/issues/2251) item 36).
 - **Role:** `MasterChainReader`, synchronous.
-- **Result:** `MASTER_CHAIN_FX` per slot (every track's, then the master's, at most 500), then `MASTER_CHAIN_READ` with the count and whether the list was cut. Reads only.
+- **Result:** per track and then the master, `MASTER_CHAIN_TRACK` with its mute, solo and a fingerprint of its mix and routing, then `MASTER_CHAIN_FX` per slot with a fingerprint of its parameters (at most 500 tracks and 500 slots); then `MASTER_CHAIN_READ` with the count, whether the list was cut and the track count. A script older than #2995 answers no track lines and no parameters: the chain still reads, marked `SettingsUnread`, and the mastering row refuses it (`bridge.ErrScriptOutdated`). Reads only.
 - **REAPER:** `master_chain_read`.
 - **Audacity:** none. A macro's steps cannot be read back.
 - **Binding:** `WorkspaceProjectFx()` (`src/studio/desktop/bindings_workspace_project_fx.go`) answers every track's FX and the master's, each with whether it is switched on, and how many in all; the UI's API calls it as `workspaceProjectFx`. It is refused (`bridge.ErrUnavailable`) offline or before this capability is on, as the mastering preview's read is. The mastering preview reads the same role through `masteringport`.
-- **Checked:** REAPER, harness (`master_render_test.lua`). Not run in REAPER.
+- **Checked:** REAPER, harness (`master_render_test.lua`). The real-REAPER scenario `master_chain_settings` (`scripts/ci/real-reaper/scenarios_session.py`, #2995) checks that a moved parameter, a mute, a solo, a volume and a send each change the read and that putting each back restores it; it has not been run yet (owner-pending).
 
 ### `macro_render`
 

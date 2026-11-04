@@ -271,9 +271,12 @@ func TestExportPlanGoldenIsCurrent(t *testing.T) {
 			plan := exportPlanned{master: true, items: items, regions: make([]string, len(items)), row: entry, caps: entry.New().Capabilities()}
 			if choice == masteringport.DAW {
 				plan.listed = true
+				// #2995: each track's mute, solo and mix, each plug-in's parameters, and a track with no FX.
 				plan.chain = []masteringport.ChainTrack{
-					{Name: "Voice", FX: []masteringport.ChainFX{{Name: "VST: ReaEQ (Cockos)", Enabled: true}, {Name: "JS: De-esser"}}},
-					{Name: "Master", Master: true, FX: []masteringport.ChainFX{{Name: "VST: ReaLimit (Cockos)", Enabled: true}}},
+					{Name: "Voice", Mix: "7:825649450:779707780", FX: []masteringport.ChainFX{{Name: "VST: ReaEQ (Cockos)", Enabled: true, Params: "2:1031854743:1991403497"},
+						{Name: "JS: De-esser", Params: "0:7:11"}}},
+					{Name: "Room tone", Mute: true, Solo: 2, Mix: "7:1741980508:1004297306", FX: []masteringport.ChainFX{}},
+					{Name: "Master", Master: true, Mix: "7:825649450:779707780", FX: []masteringport.ChainFX{{Name: "VST: ReaLimit (Cockos)", Enabled: true, Params: "0:7:11"}}},
 				}
 			}
 			if !entry.Descriptor.Supports(masteringport.ModeWAV) {
@@ -480,6 +483,24 @@ func TestExportPlanRefusalsForAnUnreadableChainSayWhatToDo(t *testing.T) {
 				t.Errorf("refusal = %q\nwant      %q", err, want)
 			}
 		})
+	}
+}
+
+// A script in REAPER older than #2995 cannot answer the settings, routing and mute an approval binds, so the plan is refused with
+// what to do: import the script again (the bridge's ErrScriptOutdated), not the generic "couldn't be read".
+func TestExportPlanRefusesAChainFromAnOlderScriptWithWhatToDo(t *testing.T) {
+	chapter := filepath.Join(t.TempDir(), "ch1.wav")
+	writeFixtureFile(t, chapter, "wav")
+	host := masteringExportHost(t, masteringport.DAW, chapter)
+	daw := masteringporttest.NewFakeDAW(host.config.projectFolder)
+	daw.SetChain(dawport.MasterChain{Master: []dawport.FXSlot{{Name: "VST: ReaLimit (Cockos)", Enabled: true}}, SettingsUnread: true}, nil)
+	t.Cleanup(masteringport.UseSession(func() (masteringport.Session, error) { return daw.Session(), nil }))
+	_, err := host.exportPlan(ExportRequest{Master: true, Items: oneChapter(chapter)})
+	if !errors.Is(err, bridge.ErrScriptOutdated) {
+		t.Fatalf("err = %v, want ErrScriptOutdated", err)
+	}
+	if want := "Your DAW's FX chain can't be checked: the app's script in REAPER is older than this app. Import it again from this app's REAPER folder, or choose the built-in chain."; err.Error() != want {
+		t.Errorf("refusal = %q\nwant      %q", err, want)
 	}
 }
 

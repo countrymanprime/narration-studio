@@ -12,8 +12,9 @@ import { fileName } from './useExportJobs';
 
 const CHAIN_LABEL = 'FX chain this render runs';
 const MUTED = { color: 'var(--text-muted)' };
-/** What the digest binds, and what it does not (#2932's review): a hint, not a sentence in the dialog. */
-const CHAIN_SCOPE = 'Covers effect names, on/off and order, not their settings, routing or mute';
+/** What the digest binds (#2932's review): a hint, not a sentence in the dialog. Since #2995 it binds each effect's settings and
+ * each track's mute, solo and routing, not only names, order and on/off. */
+const CHAIN_SCOPE = "Covers effect settings, order and on/off, and tracks' mute, solo and routing";
 
 /** "N effects on M tracks and the master": what the list holds, said on screen before it scrolls (#2932's walkthrough). */
 function chainCount(chain: ExportPlan['chain']): string {

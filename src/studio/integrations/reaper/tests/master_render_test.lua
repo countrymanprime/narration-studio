@@ -66,43 +66,123 @@ end
 
 -- master_chain_read ------------------------------------------------------------------------------------------------
 
-H.test('master_chain_read lists every track with FX, then the master, with each slot on or off', function()
+-- The fingerprints below were computed outside Lua (two polynomial hashes over the values in a fixed order, each quantized to
+-- a millionth): "<count>:<a>:<b>". An FX's is over its normalized parameters; a track's mix is over its volume, pan, phase,
+-- parent send and folder depth, then its sends and its receives, each with mute, phase, mono, volume, pan, mode and channels
+-- (#2995). The literals pin the algorithm, so a change to it is a change the host's digest sees.
+local NO_PARAMS = '0:7:11'
+local EQ_PARAMS = '2:1031854743:1991403497' -- { 0.5, 0.25 }
+local EQ_PARAMS_MOVED = '2:1031864743:1991413497' -- { 0.5, 0.26 }
+local DEFAULT_MIX = '7:825649450:779707780' -- unity, centre, phase normal, parent send on, no folder, no sends or receives
+local QUIETER_MIX = '7:1741980508:1004297306' -- the same at half volume
+local SENDING_MIX = '15:1512987012:1012841191' -- the default, with one send at unity
+local RECEIVING_MIX = '15:134616856:960716943' -- the default, with that send as its one receive
+
+H.test('master_chain_read lists every track and then the master, each with its mute, solo and mix, and each slot with its parameters', function()
   local s = new_session()
   local voice = s.fake:add_track('Voice')
-  voice.fx = { { name = 'VST: ReaEQ (Cockos)' }, { name = 'VST: ReaComp (Cockos)', enabled = false } }
-  s.fake:add_track('Room tone')
+  voice.fx = { { name = 'VST: ReaEQ (Cockos)', params = { 0.5, 0.25 } }, { name = 'VST: ReaComp (Cockos)', enabled = false } }
+  local room = s.fake:add_track('Room tone')
   s.fake.master.fx = { { name = 'VST: ReaLimit (Cockos)' } }
   s:send('master_chain_read', 'c1')
   H.eq(s:events(), {
-    { 'MASTER_CHAIN_FX', 'c1', voice.guid, 'Voice', 'VST: ReaEQ (Cockos)', '1' },
-    { 'MASTER_CHAIN_FX', 'c1', voice.guid, 'Voice', 'VST: ReaComp (Cockos)', '0' },
-    { 'MASTER_CHAIN_FX', 'c1', 'master', 'MASTER', 'VST: ReaLimit (Cockos)', '1' },
-    { 'MASTER_CHAIN_READ', 'c1', '3', '0' },
+    { 'MASTER_CHAIN_TRACK', 'c1', voice.guid, 'Voice', '0', '0', DEFAULT_MIX },
+    { 'MASTER_CHAIN_FX', 'c1', voice.guid, 'Voice', 'VST: ReaEQ (Cockos)', '1', EQ_PARAMS },
+    { 'MASTER_CHAIN_FX', 'c1', voice.guid, 'Voice', 'VST: ReaComp (Cockos)', '0', NO_PARAMS },
+    { 'MASTER_CHAIN_TRACK', 'c1', room.guid, 'Room tone', '0', '0', DEFAULT_MIX },
+    { 'MASTER_CHAIN_TRACK', 'c1', 'master', 'MASTER', '0', '0', DEFAULT_MIX },
+    { 'MASTER_CHAIN_FX', 'c1', 'master', 'MASTER', 'VST: ReaLimit (Cockos)', '1', NO_PARAMS },
+    { 'MASTER_CHAIN_READ', 'c1', '3', '0', '3' },
   })
 end)
 
-H.test('master_chain_read answers an empty chain for a project with no FX', function()
+H.test('master_chain_read lists the tracks and the master of a project with no FX', function()
   local s = new_session()
-  s.fake:add_track('Voice')
+  local voice = s.fake:add_track('Voice')
   s:send('master_chain_read', 'c1')
-  H.eq(s:events(), { { 'MASTER_CHAIN_READ', 'c1', '0', '0' } })
+  H.eq(s:events(), {
+    { 'MASTER_CHAIN_TRACK', 'c1', voice.guid, 'Voice', '0', '0', DEFAULT_MIX },
+    { 'MASTER_CHAIN_TRACK', 'c1', 'master', 'MASTER', '0', '0', DEFAULT_MIX },
+    { 'MASTER_CHAIN_READ', 'c1', '0', '0', '2' },
+  })
+end)
+
+local function line(events, tag, guid, name)
+  for _, event in ipairs(events) do
+    if event[1] == tag and event[3] == guid and (name == nil or event[5] == name) then
+      return event
+    end
+  end
+end
+
+H.test('master_chain_read answers the same parameters twice, and other ones once one parameter moves', function()
+  local s = new_session()
+  local voice = s.fake:add_track('Voice')
+  voice.fx = { { name = 'VST: ReaEQ (Cockos)', params = { 0.5, 0.25 } } }
+  s:send('master_chain_read', 'c1')
+  s:send('master_chain_read', 'c2')
+  voice.fx[1].params[2] = 0.26
+  s:send('master_chain_read', 'c3')
+  local by_run = {}
+  for _, event in ipairs(s:events()) do
+    if event[1] == 'MASTER_CHAIN_FX' then
+      by_run[event[2]] = event[7]
+    end
+  end
+  H.eq(by_run, { c1 = EQ_PARAMS, c2 = EQ_PARAMS, c3 = EQ_PARAMS_MOVED })
+end)
+
+H.test("master_chain_read answers each track's mute and solo, and its mix moves with its volume", function()
+  local s = new_session()
+  local voice = s.fake:add_track('Voice')
+  voice.muted = true
+  voice.solo = 2
+  local quiet = s.fake:add_track('Quiet')
+  quiet.volume = 0.5
+  s:send('master_chain_read', 'c1')
+  local events = s:events()
+  H.eq(line(events, 'MASTER_CHAIN_TRACK', voice.guid), { 'MASTER_CHAIN_TRACK', 'c1', voice.guid, 'Voice', '1', '2', DEFAULT_MIX })
+  H.eq(line(events, 'MASTER_CHAIN_TRACK', quiet.guid), { 'MASTER_CHAIN_TRACK', 'c1', quiet.guid, 'Quiet', '0', '0', QUIETER_MIX })
+end)
+
+H.test('master_chain_read folds a send into the mix of the track that sends it and of the track that receives it', function()
+  local s = new_session()
+  local voice = s.fake:add_track('Voice')
+  local bus = s.fake:add_track('Reverb bus')
+  s.fake:add_send(voice, bus)
+  s:send('master_chain_read', 'c1')
+  local events = s:events()
+  H.eq(line(events, 'MASTER_CHAIN_TRACK', voice.guid)[7], SENDING_MIX)
+  H.eq(line(events, 'MASTER_CHAIN_TRACK', bus.guid)[7], RECEIVING_MIX)
+end)
+
+H.test('master_chain_read answers a parameter that is not a number without failing', function()
+  local s = new_session()
+  local voice = s.fake:add_track('Voice')
+  voice.fx = { { name = 'JS: Odd', params = { 0 / 0 } } }
+  s:send('master_chain_read', 'c1')
+  H.eq(line(s:events(), 'MASTER_CHAIN_FX', voice.guid)[7], '1:7000021:10999831')
 end)
 
 H.test('master_chain_read reads and changes nothing', function()
   local s = new_session()
   local voice = s.fake:add_track('Voice')
-  voice.fx = { { name = 'VST: ReaEQ (Cockos)' } }
+  voice.fx = { { name = 'VST: ReaEQ (Cockos)', params = { 0.5 } } }
+  s.fake:add_send(voice, s.fake:add_track('Bus'))
   s:send('master_chain_read', 'c1')
   H.eq(#s.fake.undo, 0, 'no undo point')
   H.eq(render_triggers(s), 0, 'no action run')
   for _, call in ipairs(s.fake.calls) do
     H.truthy(not call.set, 'no project setting written: ' .. tostring(call.key))
     H.truthy(call.name ~= 'TrackFX_AddByName', 'no FX added')
+    H.truthy(call.name ~= 'SetMediaTrackInfo_Value', 'no track value written: ' .. tostring(call.key))
+    H.truthy(call.name ~= 'SetTrackSendInfo_Value', 'no send written')
   end
   H.eq(#voice.fx, 1)
+  H.eq(voice.fx[1].params, { 0.5 })
 end)
 
-H.test('master_chain_read stops listing at its cap and says the list was cut short', function()
+H.test('master_chain_read stops listing FX at its cap and says the list was cut short', function()
   local s = new_session()
   local voice = s.fake:add_track('Voice')
   voice.fx = {}
@@ -111,8 +191,19 @@ H.test('master_chain_read stops listing at its cap and says the list was cut sho
   end
   s:send('master_chain_read', 'c1')
   local events = s:events()
-  H.eq(#events, 501)
-  H.eq(events[#events], { 'MASTER_CHAIN_READ', 'c1', '500', '1' })
+  H.eq(#events, 503, 'the voice track, 500 FX, the master track and the close')
+  H.eq(events[#events], { 'MASTER_CHAIN_READ', 'c1', '500', '1', '2' })
+end)
+
+H.test('master_chain_read stops listing tracks at its cap and says the list was cut short', function()
+  local s = new_session()
+  for index = 1, 501 do
+    s.fake:add_track('Track ' .. index)
+  end
+  s:send('master_chain_read', 'c1')
+  local events = s:events()
+  H.eq(#events, 501, '500 tracks and the close: the master is past the cap')
+  H.eq(events[#events], { 'MASTER_CHAIN_READ', 'c1', '0', '1', '500' })
 end)
 
 H.test('master_chain_read needs the track FX API', function()
@@ -120,6 +211,15 @@ H.test('master_chain_read needs the track FX API', function()
   s.fake:remove_api('TrackFX_GetFXName')
   s:send('master_chain_read', 'c1')
   H.eq(s:events(), { { 'ERROR', 'c1', 'This REAPER version cannot list FX.' } })
+end)
+
+H.test('master_chain_read needs the FX parameter and send API', function()
+  for _, name in ipairs({ 'TrackFX_GetNumParams', 'TrackFX_GetParamNormalized', 'GetTrackNumSends', 'GetTrackSendInfo_Value' }) do
+    local s = new_session()
+    s.fake:remove_api(name)
+    s:send('master_chain_read', 'c1')
+    H.eq(s:events(), { { 'ERROR', 'c1', 'This REAPER version cannot list FX.' } }, name)
+  end
 end)
 
 -- render_with_fx: the render -----------------------------------------------------------------------------------------

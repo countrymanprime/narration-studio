@@ -3,6 +3,8 @@ package bridge
 import (
 	"context"
 	"errors"
+	"regexp"
+	"strconv"
 )
 
 // The mastering port's DAW row reads the chain a render with FX would run before the
@@ -12,40 +14,84 @@ import (
 // MasterTrackGUID is how master_chain_read names the master track in MASTER_CHAIN_FX.
 const MasterTrackGUID = "master"
 
-// ErrChainTooLong: REAPER listed only part of the project's FX, so the chain cannot be shown whole before a render is approved.
-var ErrChainTooLong = errors.New("this project has more FX than this app can list, so it cannot show you the whole chain before a render")
+var (
+	// ErrChainTooLong: REAPER listed only part of the project's FX or tracks, so the chain cannot be shown whole before a render is
+	// approved.
+	ErrChainTooLong = errors.New("this project has more FX than this app can list, so it cannot show you the whole chain before a render")
+	// ErrChainFingerprint: a mix or parameter fingerprint that is not "<count>:<a>:<b>" in digits, which the digest cannot bind.
+	ErrChainFingerprint = errors.New("REAPER answered FX chain settings this app cannot read")
+)
 
-// MasterChain is the FX a render with FX runs, in chain order: every track that has FX, then the master track's.
+// fingerprintPattern is how master_chain_read writes a fingerprint: a count and two hashes, in digits.
+var fingerprintPattern = regexp.MustCompile(`^[0-9]+:[0-9]+:[0-9]+$`)
+
+// MasterChain is the FX a render with FX runs, in chain order: every track, with FX or not, then the master track's, with the
+// master's own mix (#2995). SettingsUnread is true when the script in REAPER is older than #2995 and answered names and on/off
+// only: the mixes and parameters are empty, and a consumer that binds them refuses the chain.
 type MasterChain struct {
-	Tracks []TrackFX
-	Master []FXSlot
+	Tracks         []TrackFX
+	Master         []FXSlot
+	MasterMix      TrackMix
+	SettingsUnread bool
 }
 
-// TrackFX is one track's FX chain.
+// TrackFX is one track's FX chain and its mix.
 type TrackFX struct {
 	TrackGUID string
 	Name      string
+	Mix       TrackMix
 	FX        []FXSlot
 }
 
-// FXSlot is one plug-in in a chain, as REAPER names it, and whether it is switched on.
+// TrackMix is what a track does to the render besides its FX: muted, its solo state (I_SOLO, 0 when not soloed), and Mix, the
+// fingerprint of its volume, pan, phase, parent send, folder depth, sends and receives (#2995).
+type TrackMix struct {
+	Mute bool
+	Solo int
+	Mix  string
+}
+
+// FXSlot is one plug-in in a chain, as REAPER names it, whether it is switched on, and Params, the fingerprint of its parameter
+// values (#2995).
 type FXSlot struct {
 	Name    string
 	Enabled bool
+	Params  string
 }
 
-// ReadMasterChain lists every track's FX and the master track's. It changes nothing. A list REAPER cut short is ErrChainTooLong.
+// ReadMasterChain lists every track, its mix and its FX, then the master track's. It changes nothing. A list REAPER cut short is
+// ErrChainTooLong, and a fingerprint that is not digits is ErrChainFingerprint. A script older than #2995 answers no track lines
+// and no parameters: its chain still reads (the Effects tab shows names), marked SettingsUnread.
 func (a *Actions) ReadMasterChain(ctx context.Context) (MasterChain, error) {
 	events, err := a.request(ctx, "master_chain_read", []string{"MASTER_CHAIN_READ"})
 	if err != nil {
 		return MasterChain{}, err
 	}
 	chain := MasterChain{Tracks: []TrackFX{}, Master: []FXSlot{}}
+	masterListed := false
 	for _, event := range events {
 		switch event.Tag {
+		case "MASTER_CHAIN_TRACK":
+			mix, err := trackMix(event.Fields[4:7])
+			if err != nil {
+				return MasterChain{}, err
+			}
+			if event.Fields[2] == MasterTrackGUID {
+				chain.MasterMix, masterListed = mix, true
+				continue
+			}
+			chain.Tracks = append(chain.Tracks, TrackFX{TrackGUID: event.Fields[2], Name: event.Fields[3], Mix: mix, FX: []FXSlot{}})
 		case "MASTER_CHAIN_FX":
 			guid, name := event.Fields[2], event.Fields[3]
 			slot := FXSlot{Name: event.Fields[4], Enabled: event.Fields[5] == "1"}
+			if len(event.Fields) > 6 && event.Fields[6] != "" {
+				if !fingerprintPattern.MatchString(event.Fields[6]) {
+					return MasterChain{}, ErrChainFingerprint
+				}
+				slot.Params = event.Fields[6]
+			} else {
+				chain.SettingsUnread = true
+			}
 			switch {
 			case guid == MasterTrackGUID:
 				chain.Master = append(chain.Master, slot)
@@ -53,13 +99,30 @@ func (a *Actions) ReadMasterChain(ctx context.Context) (MasterChain, error) {
 				last := &chain.Tracks[len(chain.Tracks)-1]
 				last.FX = append(last.FX, slot)
 			default:
+				// An older script sends no track line: the FX opens its track, as it did before #2995.
 				chain.Tracks = append(chain.Tracks, TrackFX{TrackGUID: guid, Name: name, FX: []FXSlot{slot}})
+				chain.SettingsUnread = true
 			}
 		case "MASTER_CHAIN_READ":
 			if event.Fields[3] == "1" {
 				return MasterChain{}, ErrChainTooLong
 			}
+			if len(event.Fields) < 5 || event.Fields[4] == "" || !masterListed {
+				chain.SettingsUnread = true
+			}
 		}
 	}
 	return chain, nil
+}
+
+// trackMix is a MASTER_CHAIN_TRACK line's mute, solo and mix fingerprint.
+func trackMix(fields []string) (TrackMix, error) {
+	solo, err := strconv.Atoi(fields[1])
+	if err != nil {
+		return TrackMix{}, ErrChainFingerprint
+	}
+	if !fingerprintPattern.MatchString(fields[2]) {
+		return TrackMix{}, ErrChainFingerprint
+	}
+	return TrackMix{Mute: fields[0] == "1", Solo: solo, Mix: fields[2]}, nil
 }

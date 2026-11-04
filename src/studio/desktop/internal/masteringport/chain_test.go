@@ -19,16 +19,20 @@ import (
 )
 
 // The approval dialog shows the narrator the chain a render would run before they approve it (threat model row 5o, #2932): the DAW
-// row lists it from the DAW port's master_chain_read, every track with FX in order and then the master, each plug-in as the DAW
-// names it and whether it is on.
+// row lists it from the DAW port's master_chain_read, every track in order and then the master, each plug-in as the DAW names it and
+// whether it is on. Since #2995 every track is listed, one with no FX too, with its mute, solo and mix, and each plug-in with its
+// parameters, so the digest binds them.
 func TestTheDAWRowListsTheChainItWouldRunInOrder(t *testing.T) {
 	daw := masteringporttest.NewFakeDAW(t.TempDir())
 	daw.SetChain(dawport.MasterChain{
 		Tracks: []dawport.TrackFX{
-			{TrackGUID: "{1}", Name: "Voice", FX: []dawport.FXSlot{{Name: "VST: ReaEQ (Cockos)", Enabled: true}, {Name: "JS: De-esser", Enabled: false}}},
-			{TrackGUID: "{2}", Name: "", FX: []dawport.FXSlot{{Name: "VST: ReaComp (Cockos)", Enabled: true}}},
+			{TrackGUID: "{1}", Name: "Voice", Mix: dawport.TrackMix{Mix: "7:1:1"},
+				FX: []dawport.FXSlot{{Name: "VST: ReaEQ (Cockos)", Enabled: true, Params: "2:3:3"}, {Name: "JS: De-esser", Enabled: false, Params: "0:7:11"}}},
+			{TrackGUID: "{2}", Name: "", Mix: dawport.TrackMix{Mute: true, Mix: "7:2:2"}, FX: []dawport.FXSlot{{Name: "VST: ReaComp (Cockos)", Enabled: true, Params: "4:5:5"}}},
+			{TrackGUID: "{3}", Name: "Room tone", Mix: dawport.TrackMix{Solo: 2, Mix: "7:4:4"}},
 		},
-		Master: []dawport.FXSlot{{Name: "VST: ReaLimit (Cockos)", Enabled: true}},
+		Master:    []dawport.FXSlot{{Name: "VST: ReaLimit (Cockos)", Enabled: true, Params: "1:6:6"}},
+		MasterMix: dawport.TrackMix{Mix: "7:9:9"},
 	}, nil)
 	useSession(t, func() (masteringport.Session, error) { return daw.Session(), nil })
 
@@ -41,22 +45,25 @@ func TestTheDAWRowListsTheChainItWouldRunInOrder(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := []masteringport.ChainTrack{
-		{Name: "Voice", FX: []masteringport.ChainFX{{Name: "VST: ReaEQ (Cockos)", Enabled: true}, {Name: "JS: De-esser"}}},
-		{Name: "Track", FX: []masteringport.ChainFX{{Name: "VST: ReaComp (Cockos)", Enabled: true}}},
-		{Name: "Master", Master: true, FX: []masteringport.ChainFX{{Name: "VST: ReaLimit (Cockos)", Enabled: true}}},
+		{Name: "Voice", Mix: "7:1:1", FX: []masteringport.ChainFX{{Name: "VST: ReaEQ (Cockos)", Enabled: true, Params: "2:3:3"}, {Name: "JS: De-esser", Params: "0:7:11"}}},
+		{Name: "Track", Mute: true, Mix: "7:2:2", FX: []masteringport.ChainFX{{Name: "VST: ReaComp (Cockos)", Enabled: true, Params: "4:5:5"}}},
+		{Name: "Room tone", Solo: 2, Mix: "7:4:4", FX: []masteringport.ChainFX{}},
+		{Name: "Master", Master: true, Mix: "7:9:9", FX: []masteringport.ChainFX{{Name: "VST: ReaLimit (Cockos)", Enabled: true, Params: "1:6:6"}}},
 	}
 	if !reflect.DeepEqual(chain, want) {
 		t.Fatalf("chain = %+v\nwant %+v", chain, want)
 	}
 }
 
-func TestTheDAWRowListsAnEmptyChainAsNone(t *testing.T) {
+// Ported for #2995: a project with no FX still lists its master, whose mix and mute the digest binds; it has no plug-ins.
+func TestTheDAWRowListsAChainWithNoFXAsTheMasterAlone(t *testing.T) {
 	daw := masteringporttest.NewFakeDAW(t.TempDir())
-	daw.SetChain(dawport.MasterChain{}, nil)
+	daw.SetChain(dawport.MasterChain{MasterMix: dawport.TrackMix{Mix: "7:9:9"}}, nil)
 	useSession(t, func() (masteringport.Session, error) { return daw.Session(), nil })
 	chain, err := dawRow(t).(masteringport.ChainLister).Chain(context.Background())
-	if err != nil || chain == nil || len(chain) != 0 {
-		t.Fatalf("chain = %#v, %v; want an empty, non-nil list", chain, err)
+	want := []masteringport.ChainTrack{{Name: "Master", Master: true, Mix: "7:9:9", FX: []masteringport.ChainFX{}}}
+	if err != nil || !reflect.DeepEqual(chain, want) {
+		t.Fatalf("chain = %#v, %v; want the master alone", chain, err)
 	}
 }
 
@@ -90,13 +97,15 @@ func shownDigest(t *testing.T) string {
 // The digest binds an approval to the chain shown (#2932's review): every name, on/off, the master flag and the order count.
 func TestChainDigestChangesWithAnythingTheNarratorWasShown(t *testing.T) {
 	base := []masteringport.ChainTrack{
-		{Name: "Voice", FX: []masteringport.ChainFX{{Name: "EQ", Enabled: true}, {Name: "Comp", Enabled: true}}},
-		{Name: "Master", Master: true, FX: []masteringport.ChainFX{{Name: "Limit", Enabled: true}}},
+		{Name: "Voice", Mix: "7:1:1", FX: []masteringport.ChainFX{{Name: "EQ", Enabled: true, Params: "2:3:3"}, {Name: "Comp", Enabled: true, Params: "0:7:11"}}},
+		{Name: "Room tone", Mix: "7:2:2", FX: []masteringport.ChainFX{}},
+		{Name: "Master", Master: true, Mix: "7:9:9", FX: []masteringport.ChainFX{{Name: "Limit", Enabled: true, Params: "1:6:6"}}},
 	}
 	clone := func(edit func(c []masteringport.ChainTrack)) []masteringport.ChainTrack {
 		out := make([]masteringport.ChainTrack, len(base))
 		for i, track := range base {
-			out[i] = masteringport.ChainTrack{Name: track.Name, Master: track.Master, FX: append([]masteringport.ChainFX(nil), track.FX...)}
+			out[i] = track
+			out[i].FX = append([]masteringport.ChainFX(nil), track.FX...)
 		}
 		edit(out)
 		return out
@@ -113,8 +122,21 @@ func TestChainDigestChangesWithAnythingTheNarratorWasShown(t *testing.T) {
 		"plug-ins reordered":     func(c []masteringport.ChainTrack) { c[0].FX[0], c[0].FX[1] = c[0].FX[1], c[0].FX[0] },
 		"a plug-in renamed":      func(c []masteringport.ChainTrack) { c[0].FX[0].Name = "EQ2" },
 		"a track renamed":        func(c []masteringport.ChainTrack) { c[0].Name = "Narration" },
-		"the master flag":        func(c []masteringport.ChainTrack) { c[1].Master = false },
-		"a plug-in moved across": func(c []masteringport.ChainTrack) { c[1].FX = append(c[1].FX, c[0].FX[1]); c[0].FX = c[0].FX[:1] },
+		"the master flag":        func(c []masteringport.ChainTrack) { c[2].Master = false },
+		"a plug-in moved across": func(c []masteringport.ChainTrack) { c[2].FX = append(c[2].FX, c[0].FX[1]); c[0].FX = c[0].FX[:1] },
+		// #2995: what the render does besides names and order.
+		"a plug-in's parameters":        func(c []masteringport.ChainTrack) { c[0].FX[0].Params = "2:3:4" },
+		"a track muted":                 func(c []masteringport.ChainTrack) { c[0].Mute = true },
+		"a track soloed":                func(c []masteringport.ChainTrack) { c[0].Solo = 1 },
+		"the solo mode":                 func(c []masteringport.ChainTrack) { c[0].Solo = 2 },
+		"the mix of a track with no FX": func(c []masteringport.ChainTrack) { c[1].Mix = "8:2:2" },
+		"a track with no FX muted":      func(c []masteringport.ChainTrack) { c[1].Mute = true },
+		"the master's mix":              func(c []masteringport.ChainTrack) { c[2].Mix = "7:9:8" },
+		"a track with no FX taken away": func(c []masteringport.ChainTrack) {
+			copy(c[1:], c[2:])
+			c[len(c)-1] = masteringport.ChainTrack{Name: "Extra"}
+		},
+		"a master plug-in's parameters": func(c []masteringport.ChainTrack) { c[2].FX[0].Params = "1:6:7" },
 	} {
 		if masteringport.ChainDigest(clone(edit)) == digest {
 			t.Errorf("%s left the digest unchanged", name)
@@ -311,5 +333,69 @@ func TestOnlyTheDAWRowListsADAWChain(t *testing.T) {
 		if _, ok := entry.New().(masteringport.ChainLister); ok {
 			t.Errorf("%s lists a DAW chain", name)
 		}
+	}
+}
+
+// A render refuses a chain whose settings, routing or mute moved after the approval, as it refuses a renamed or reordered one
+// (#2995): nothing renders.
+func TestTheDAWRowRefusesARenderWhoseSettingsRoutingOrMuteMoved(t *testing.T) {
+	base := func() dawport.MasterChain {
+		return dawport.MasterChain{
+			Tracks: []dawport.TrackFX{
+				{TrackGUID: "{1}", Name: "Voice", Mix: dawport.TrackMix{Mix: "7:1:1"}, FX: []dawport.FXSlot{{Name: "EQ", Enabled: true, Params: "2:3:3"}}},
+				{TrackGUID: "{2}", Name: "Bus", Mix: dawport.TrackMix{Mix: "15:2:2"}},
+			},
+			Master:    []dawport.FXSlot{{Name: "Limit", Enabled: true, Params: "1:6:6"}},
+			MasterMix: dawport.TrackMix{Mix: "7:9:9"},
+		}
+	}
+	for name, move := range map[string]func(*dawport.MasterChain){
+		"an EQ setting":         func(c *dawport.MasterChain) { c.Tracks[0].FX[0].Params = "2:3:4" },
+		"the limiter's ceiling": func(c *dawport.MasterChain) { c.Master[0].Params = "1:6:7" },
+		"a send to the bus":     func(c *dawport.MasterChain) { c.Tracks[0].Mix.Mix = "15:5:5"; c.Tracks[1].Mix.Mix = "23:6:6" },
+		"the voice muted":       func(c *dawport.MasterChain) { c.Tracks[0].Mix.Mute = true },
+		"the bus soloed":        func(c *dawport.MasterChain) { c.Tracks[1].Mix.Solo = 1 },
+		"the master's volume":   func(c *dawport.MasterChain) { c.MasterMix.Mix = "7:9:8" },
+	} {
+		t.Run(name, func(t *testing.T) {
+			project := t.TempDir()
+			daw := masteringporttest.NewFakeDAW(project)
+			useSession(t, func() (masteringport.Session, error) { return daw.Session(), nil })
+			chain := base()
+			daw.SetChain(chain, nil)
+			digest := shownDigest(t)
+			moved := base()
+			move(&moved)
+			daw.SetChain(moved, nil)
+			_, err := dawRow(t).Master(context.Background(), masteringport.Request{Region: "Chapter 1", Destination: filepath.Join(project, "out.wav"),
+				Profile: deliveryprofile.ACX(), Approved: true, ChainDigest: digest})
+			if !errors.Is(err, masteringport.ErrChainChanged) {
+				t.Fatalf("err = %v, want ErrChainChanged", err)
+			}
+			if renders := daw.Renders(); len(renders) != 0 {
+				t.Fatalf("rendered a chain that moved: %+v", renders)
+			}
+		})
+	}
+}
+
+// A chain from a script older than #2995 has no settings, routing or mute to bind: the DAW row neither lists it for an approval
+// nor renders through it, and says to import the script again (bridge.ErrScriptOutdated).
+func TestTheDAWRowRefusesAChainWhoseSettingsAnOlderScriptCouldNotRead(t *testing.T) {
+	project := t.TempDir()
+	daw := masteringporttest.NewFakeDAW(project)
+	useSession(t, func() (masteringport.Session, error) { return daw.Session(), nil })
+	digest := shownDigest(t)
+	daw.SetChain(dawport.MasterChain{Master: []dawport.FXSlot{{Name: "Limit", Enabled: true}}, SettingsUnread: true}, nil)
+	if _, err := dawRow(t).(masteringport.ChainLister).Chain(context.Background()); !errors.Is(err, bridge.ErrScriptOutdated) {
+		t.Fatalf("Chain: err = %v, want ErrScriptOutdated", err)
+	}
+	_, err := dawRow(t).Master(context.Background(), masteringport.Request{Region: "Chapter 1", Destination: filepath.Join(project, "out.wav"),
+		Profile: deliveryprofile.ACX(), Approved: true, ChainDigest: digest})
+	if !errors.Is(err, bridge.ErrScriptOutdated) {
+		t.Fatalf("Master: err = %v, want ErrScriptOutdated", err)
+	}
+	if renders := daw.Renders(); len(renders) != 0 {
+		t.Fatalf("rendered a chain whose settings were not read: %+v", renders)
 	}
 }

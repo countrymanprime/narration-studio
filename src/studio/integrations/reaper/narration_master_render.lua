@@ -2,7 +2,9 @@
 -- master_chain_read and render_with_fx.
 --
 -- master_chain_read lists the FX a render with FX runs, every track's and then the master track's, so the app can show
--- the narrator the chain before they approve a render. It reads and changes nothing.
+-- the narrator the chain before they approve a render. It reads and changes nothing. Beside each track it answers the track's
+-- mute, solo and a fingerprint of its mix and routing, and beside each FX a fingerprint of its parameters, so an approval binds
+-- those too and a render refuses a chain whose settings moved (#2995).
 --
 -- render_with_fx is the bridge's one render. narration_render.lua only configures a render and never triggers one; this
 -- file does trigger one, and only on these conditions (threat-model row 5o):
@@ -25,7 +27,7 @@ local event = core.event
 local RENDER_ACTION = 42230
 local RENDER_BOUNDS_CUSTOM = 0 -- RENDER_BOUNDSFLAG: custom time bounds, RENDER_STARTPOS to RENDER_ENDPOS.
 local RENDER_MASTER_MIX = 0 -- RENDER_SETTINGS: the master mix, not stems.
-local MASTER_CHAIN_LIMIT = 500 -- The most FX slots master_chain_read lists.
+local MASTER_CHAIN_LIMIT = 500 -- The most FX slots master_chain_read lists, and the most tracks.
 local REGION_LIMIT = 100 -- The most regions one render_with_fx renders.
 
 local NUMBER_KEYS = { 'RENDER_BOUNDSFLAG', 'RENDER_STARTPOS', 'RENDER_ENDPOS', 'RENDER_SETTINGS', 'RENDER_ADDTOPROJ' }
@@ -42,20 +44,92 @@ end
 
 -- master_chain_read ------------------------------------------------------------------------------------------------
 
-local function master_chain_read(session_dir, run_id)
-  if not reaper.APIExists('TrackFX_GetFXName') or not reaper.APIExists('TrackFX_GetEnabled') then
-    event(session_dir, 'ERROR', run_id, 'This REAPER version cannot list FX.')
-    return
+local CHAIN_API = {
+  'TrackFX_GetFXName',
+  'TrackFX_GetEnabled',
+  'TrackFX_GetNumParams',
+  'TrackFX_GetParamNormalized',
+  'GetTrackNumSends',
+  'GetTrackSendInfo_Value',
+}
+-- Two polynomial hashes, each modulo a prime under 2^31, so every product stays well inside Lua 5.4's 64-bit integers (no bit
+-- operators: the shared subset).
+local HASH_A, HASH_B = 2147483647, 2147483629
+-- A track's own mix values, then the same fields for each of its sends and each of its receives (#2995).
+local TRACK_MIX = { 'D_VOL', 'D_PAN', 'B_PHASE', 'B_MAINSEND', 'I_FOLDERDEPTH' }
+local ROUTE_MIX = { 'B_MUTE', 'B_PHASE', 'B_MONO', 'D_VOL', 'D_PAN', 'I_SENDMODE', 'I_SRCCHAN', 'I_DSTCHAN' }
+local SENDS, RECEIVES = 0, -1
+
+-- A number to a non-negative integer under HASH_A, to a millionth: a parameter or gain that moves by less is not seen. NaN,
+-- infinities and values too large to count in millionths answer one fixed value instead of failing the read.
+local function quantize(value)
+  if value ~= value or value >= 1e12 or value <= -1e12 then
+    return HASH_A - 1
   end
-  local listed, truncated = 0, false
+  return math.floor(value * 1000000 + 0.5) % HASH_A
+end
+
+-- "<count>:<a>:<b>" over the values in order. The host binds it as text and does not recompute it; the harness pins its digits.
+local function fingerprint(values)
+  local a, b = 7, 11
+  for _, value in ipairs(values) do
+    local q = quantize(value)
+    a = (a * 1000003 + q + 1) % HASH_A
+    b = (b * 999983 + q + 1) % HASH_B
+  end
+  return string.format('%d:%d:%d', #values, a, b)
+end
+
+local function fx_params(track, fx)
+  local values = {}
+  for param = 0, reaper.TrackFX_GetNumParams(track, fx) - 1 do
+    values[#values + 1] = reaper.TrackFX_GetParamNormalized(track, fx, param)
+  end
+  return fingerprint(values)
+end
+
+local function track_mix(track)
+  local values = {}
+  for _, key in ipairs(TRACK_MIX) do
+    values[#values + 1] = reaper.GetMediaTrackInfo_Value(track, key)
+  end
+  for _, category in ipairs({ SENDS, RECEIVES }) do
+    local count = reaper.GetTrackNumSends(track, category)
+    values[#values + 1] = count
+    for index = 0, count - 1 do
+      for _, key in ipairs(ROUTE_MIX) do
+        values[#values + 1] = reaper.GetTrackSendInfo_Value(track, category, index, key)
+      end
+    end
+  end
+  return fingerprint(values)
+end
+
+local function master_chain_read(session_dir, run_id)
+  for _, name in ipairs(CHAIN_API) do
+    if not reaper.APIExists(name) then
+      event(session_dir, 'ERROR', run_id, 'This REAPER version cannot list FX.')
+      return
+    end
+  end
+  local listed, tracks, truncated = 0, 0, false
   local function list(track, guid, name)
+    if tracks >= MASTER_CHAIN_LIMIT then
+      truncated = true
+      return
+    end
+    local mute = reaper.GetMediaTrackInfo_Value(track, 'B_MUTE') ~= 0 and 1 or 0
+    local solo = math.floor(reaper.GetMediaTrackInfo_Value(track, 'I_SOLO'))
+    event(session_dir, 'MASTER_CHAIN_TRACK', run_id, guid, name, mute, solo, track_mix(track))
+    tracks = tracks + 1
     for fx = 0, reaper.TrackFX_GetCount(track) - 1 do
       if listed >= MASTER_CHAIN_LIMIT then
         truncated = true
         return
       end
       local _, fx_name = reaper.TrackFX_GetFXName(track, fx, '')
-      event(session_dir, 'MASTER_CHAIN_FX', run_id, guid, name, fx_name, reaper.TrackFX_GetEnabled(track, fx) and 1 or 0)
+      local enabled = reaper.TrackFX_GetEnabled(track, fx) and 1 or 0
+      event(session_dir, 'MASTER_CHAIN_FX', run_id, guid, name, fx_name, enabled, fx_params(track, fx))
       listed = listed + 1
     end
   end
@@ -65,7 +139,7 @@ local function master_chain_read(session_dir, run_id)
     list(track, reaper.GetTrackGUID(track), name)
   end
   list(reaper.GetMasterTrack(0), 'master', 'MASTER')
-  event(session_dir, 'MASTER_CHAIN_READ', run_id, listed, truncated and 1 or 0)
+  event(session_dir, 'MASTER_CHAIN_READ', run_id, listed, truncated and 1 or 0, tracks)
 end
 
 -- render_with_fx: checks ---------------------------------------------------------------------------------------------

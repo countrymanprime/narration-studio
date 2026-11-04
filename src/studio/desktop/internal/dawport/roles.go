@@ -119,23 +119,38 @@ type FXRenderedFile struct {
 	Path   string
 }
 
-// MasterChain is the FX a render runs, in chain order: every track's FX, then the master track's.
+// MasterChain is the FX a render runs, in chain order: every track, with FX or not, then the master track's, and the master's own
+// mix (#2995). SettingsUnread is true when the engine's script is older and answered names and on/off only: the mixes and
+// parameters are empty, and a consumer that binds them refuses the chain.
 type MasterChain struct {
-	Tracks []TrackFX
-	Master []FXSlot
+	Tracks         []TrackFX
+	Master         []FXSlot
+	MasterMix      TrackMix
+	SettingsUnread bool
 }
 
-// TrackFX is one track's FX chain.
+// TrackFX is one track's FX chain and its mix.
 type TrackFX struct {
 	TrackGUID string
 	Name      string
+	Mix       TrackMix
 	FX        []FXSlot
 }
 
-// FXSlot is one plugin in a chain, as the engine names it, and whether it is switched on.
+// TrackMix is what a track does to a render besides its FX: muted, its solo state (0 when not soloed), and Mix, an engine's
+// fingerprint of its volume, pan, phase, parent send, folder and sends (#2995). Mix is opaque: it is compared, never read.
+type TrackMix struct {
+	Mute bool
+	Solo int
+	Mix  string
+}
+
+// FXSlot is one plugin in a chain, as the engine names it, whether it is switched on, and Params, the engine's fingerprint of its
+// parameter values (#2995), opaque like TrackMix.Mix.
 type FXSlot struct {
 	Name    string
 	Enabled bool
+	Params  string
 }
 
 // Trace ties a request to the host's run log (runlog.Run's ID and Level), for the commands whose script logs under the host's run.

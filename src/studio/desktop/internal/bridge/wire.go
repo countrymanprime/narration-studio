@@ -197,10 +197,14 @@ var eventSpecs = map[string]eventSpec{
 	// is 0 or 1; MASTER_CHAIN_READ closes the list (truncated 1 when the bridge's cap cut it). FX_RENDER_FILE is one per
 	// region rendered, in the order asked, its path inside the run folder; FX_RENDERED closes the render with the folder
 	// and count.
-	"MASTER_CHAIN_FX":   {required: []fieldSpec{text("run"), text("track"), text("trackName"), text("name"), count("enabled")}},
-	"MASTER_CHAIN_READ": {required: []fieldSpec{text("run"), count("count"), count("truncated")}},
-	"FX_RENDER_FILE":    {required: []fieldSpec{text("run"), text("region"), text("path")}},
-	"FX_RENDERED":       {required: []fieldSpec{text("run"), text("folder"), count("count")}},
+	// #2995 appended params to MASTER_CHAIN_FX, added MASTER_CHAIN_TRACK (one per track and the master, before its FX: mute 0
+	// or 1, solo as I_SOLO, mix a fingerprint) and appended tracks to MASTER_CHAIN_READ; they are optional so an older script's
+	// lines still read, and ReadMasterChain refuses such a chain as ErrScriptOutdated.
+	"MASTER_CHAIN_FX":    {required: []fieldSpec{text("run"), text("track"), text("trackName"), text("name"), count("enabled")}, optional: []fieldSpec{text("params")}},
+	"MASTER_CHAIN_TRACK": {required: []fieldSpec{text("run"), text("track"), text("trackName"), count("mute"), count("solo"), text("mix")}},
+	"MASTER_CHAIN_READ":  {required: []fieldSpec{text("run"), count("count"), count("truncated")}, optional: []fieldSpec{count("tracks")}},
+	"FX_RENDER_FILE":     {required: []fieldSpec{text("run"), text("region"), text("path")}},
+	"FX_RENDERED":        {required: []fieldSpec{text("run"), text("folder"), count("count")}},
 	// split_take (narration_takes.lua): the item and take it cut, the new take that plays the second read, the cut's time in
 	// the project and the undo points it added.
 	"TAKE_SPLIT": {required: []fieldSpec{text("run"), text("itemGuid"), text("takeGuid"), text("newTakeGuid"), number("at"), count("undoPoints")}},

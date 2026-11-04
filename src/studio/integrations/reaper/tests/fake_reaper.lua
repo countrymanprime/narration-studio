@@ -118,6 +118,22 @@ function Fake:add_hw_output(volume, track)
   return track.hw_outs[#track.hw_outs]
 end
 
+-- A send from one track to another (master_chain_read, #2995): one record kept in from.sends and in to.receives, as REAPER
+-- answers one route from both ends (category 0 on the sender, -1 on the receiver). Fields as GetTrackSendInfo_Value names them
+-- (B_MUTE, B_PHASE, B_MONO, D_VOL, D_PAN, I_SENDMODE, I_SRCCHAN, I_DSTCHAN), unity and post-fader by default. Modelled on the
+-- ReaScript reference text, not on a run in REAPER (pending the owner's pass on #2995).
+function Fake:add_send(from, to, fields)
+  local send = { mute = 0, phase = 0, mono = 0, vol = 1.0, pan = 0, mode = 0, src = 0, dst = 0 }
+  for key, value in pairs(fields or {}) do
+    send[key] = value
+  end
+  from.sends = from.sends or {}
+  from.sends[#from.sends + 1] = send
+  to.receives = to.receives or {}
+  to.receives[#to.receives + 1] = send
+  return send
+end
+
 function Fake:add_track(name, selected)
   local track = self:new_track(name, selected)
   self.tracks[#self.tracks + 1] = track
@@ -990,15 +1006,42 @@ function Fake:add_item_api(api)
   -- reference text (category < 0 receives, 0 sends, 1 hardware outputs; D_VOL a linear gain, 1.0 = 0 dB), not on a run in
   -- REAPER (pending the QA pass, #1495). Set answers false for an index that does not exist, or when fake.send_set_fails.
   -- Every Set is recorded in fake.calls.
-  function api.GetTrackNumSends(track, category)
+  -- Sends (category 0) and receives (category < 0) are Fake:add_send's records (master_chain_read, #2995), read by their
+  -- GetTrackSendInfo_Value names; pending a run in REAPER like the rest.
+  local SEND_FIELDS = {
+    B_MUTE = 'mute',
+    B_PHASE = 'phase',
+    B_MONO = 'mono',
+    D_VOL = 'vol',
+    D_PAN = 'pan',
+    I_SENDMODE = 'mode',
+    I_SRCCHAN = 'src',
+    I_DSTCHAN = 'dst',
+  }
+  local function routes(track, category)
     if category == 1 then
-      return #(track.hw_outs or {})
+      return track.hw_outs or {}
+    elseif category == 0 then
+      return track.sends or {}
     end
-    return 0
+    return track.receives or {}
+  end
+  function api.GetTrackNumSends(track, category)
+    return #routes(track, category)
   end
   function api.GetTrackSendInfo_Value(track, category, index, param)
-    local send = category == 1 and param == 'D_VOL' and (track.hw_outs or {})[index + 1] or nil
-    return send and send.vol or 0.0
+    local send = routes(track, category)[index + 1]
+    if category == 1 then
+      return send and param == 'D_VOL' and send.vol or 0.0
+    end
+    if not send then
+      return 0.0
+    end
+    local field = SEND_FIELDS[param]
+    if not field then
+      error('fake reaper: unmodelled send value ' .. tostring(param))
+    end
+    return send[field]
   end
   function api.SetTrackSendInfo_Value(track, category, index, param, value)
     fake.calls[#fake.calls + 1] = { name = 'SetTrackSendInfo_Value', category = category, index = index, param = param, value = value }
@@ -1047,6 +1090,16 @@ function Fake:add_item_api(api)
   function api.TrackFX_GetEnabled(track, fx)
     local slot = (track.fx or {})[fx + 1]
     return slot ~= nil and slot.enabled ~= false
+  end
+  -- A slot's parameters (master_chain_read, #2995): slot.params, the normalized values, none unless a test sets them. Modelled on
+  -- the ReaScript reference text (0 to 1 per parameter), not on a run in REAPER (pending the owner's pass on #2995).
+  function api.TrackFX_GetNumParams(track, fx)
+    local slot = (track.fx or {})[fx + 1]
+    return slot and #(slot.params or {}) or 0
+  end
+  function api.TrackFX_GetParamNormalized(track, fx, param)
+    local slot = (track.fx or {})[fx + 1]
+    return slot and (slot.params or {})[param + 1] or 0.0
   end
   function api.GetMediaItem_Track(item)
     return item.track
@@ -1765,6 +1818,16 @@ function Fake:add_lane_api(api)
     elseif key == 'I_FOLDERDEPTH' then
       -- The change in folder depth after this track (1 opens a folder, 0 none, -N closes N levels); 0 on a new track.
       return track.folder_depth or 0
+    elseif key == 'D_VOL' then
+      -- master_chain_read's mix (#2995), from the ReaScript reference text, pending a run in REAPER: a linear gain (1 is 0 dB),
+      -- pan -1 to 1, phase inverted 1, and the send to the parent or master on unless a test turns it off.
+      return track.volume or 1.0
+    elseif key == 'D_PAN' then
+      return track.pan or 0.0
+    elseif key == 'B_PHASE' then
+      return track.phase and 1 or 0
+    elseif key == 'B_MAINSEND' then
+      return track.main_send == false and 0 or 1
     end
     local lane = key:match('^C_LANEPLAYS:(%d+)$')
     if lane then

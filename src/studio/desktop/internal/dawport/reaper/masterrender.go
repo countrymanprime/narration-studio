@@ -47,17 +47,22 @@ func (m masterChainReader) ReadMasterChain(ctx context.Context) (dawport.MasterC
 	if err != nil {
 		return dawport.MasterChain{}, err
 	}
-	out := dawport.MasterChain{Tracks: make([]dawport.TrackFX, 0, len(chain.Tracks)), Master: slots(chain.Master)}
+	out := dawport.MasterChain{Tracks: make([]dawport.TrackFX, 0, len(chain.Tracks)), Master: slots(chain.Master), MasterMix: trackMix(chain.MasterMix),
+		SettingsUnread: chain.SettingsUnread}
 	for _, track := range chain.Tracks {
-		out.Tracks = append(out.Tracks, dawport.TrackFX{TrackGUID: track.TrackGUID, Name: track.Name, FX: slots(track.FX)})
+		out.Tracks = append(out.Tracks, dawport.TrackFX{TrackGUID: track.TrackGUID, Name: track.Name, Mix: trackMix(track.Mix), FX: slots(track.FX)})
 	}
 	return out, nil
+}
+
+func trackMix(in bridge.TrackMix) dawport.TrackMix {
+	return dawport.TrackMix{Mute: in.Mute, Solo: in.Solo, Mix: in.Mix}
 }
 
 func slots(in []bridge.FXSlot) []dawport.FXSlot {
 	out := make([]dawport.FXSlot, 0, len(in))
 	for _, slot := range in {
-		out = append(out, dawport.FXSlot{Name: slot.Name, Enabled: slot.Enabled})
+		out = append(out, dawport.FXSlot{Name: slot.Name, Enabled: slot.Enabled, Params: slot.Params})
 	}
 	return out
 }

@@ -233,6 +233,76 @@ def render_with_fx(env: Env) -> str:
     return f"2 regions rendered with the master's -12 dB chain: {db(with_fx.rms(0.5, 3.5) / plain.rms(0.5, 3.5)):+.2f} dB vs the plain mix"
 
 
+@scenario(
+    "render_with_fx",
+    "master_chain_read",
+    "the chain read binds settings: a moved parameter, a mute, a solo, a volume and a send each change what it answers, "
+    "and putting each back answers the first read again (#2995)",
+)
+def master_chain_settings(env: Env) -> str:
+    fx = two_chapters(env)
+    make_chains(env)
+    env.ok("apply_fx_chain", "master", "Voice/Quiet.RfxChain", until="FX_CHAIN_APPLIED")
+
+    def read() -> dict:
+        events = env.send("master_chain_read", until="MASTER_CHAIN_READ")
+        tracks = {e[2]: (e[4], e[5], e[6]) for e in events if e[0] == "MASTER_CHAIN_TRACK"}
+        params = [e[6] for e in events if e[0] == "MASTER_CHAIN_FX"]
+        assert events[-1][0] == "MASTER_CHAIN_READ" and events[-1][4] == str(len(tracks)), f"close {events[-1]}"
+        return {"tracks": tracks, "params": params}
+
+    def change(code: str) -> None:
+        env.lua("local one, two = ci.track_by_name('Chapter 1'), ci.track_by_name('Chapter 2') " + code + " return true")
+
+    base = read()
+    assert set(base["tracks"]) == {fx["ch1"], fx["ch2"], "master"}, f"every track and the master: {sorted(base['tracks'])}"
+    assert read() == base, "two reads of an unchanged project answer the same"
+    seen = []
+
+    value = env.lua("local m = reaper.GetMasterTrack(0) assert(reaper.TrackFX_GetNumParams(m, 0) > 0) return reaper.TrackFX_GetParamNormalized(m, 0, 0)")
+    env.lua("reaper.TrackFX_SetParamNormalized(reaper.GetMasterTrack(0), 0, 0, args[1]) return true", value + 0.25 if value < 0.5 else value - 0.25)
+    moved = read()
+    assert moved["params"] != base["params"] and moved["tracks"] == base["tracks"], f"a moved parameter: {moved} vs {base}"
+    env.lua("reaper.TrackFX_SetParamNormalized(reaper.GetMasterTrack(0), 0, 0, args[1]) return true", value)
+    assert read() == base, "the parameter put back answers the first read"
+    seen.append("parameter")
+
+    for label, do, undo, check in [
+        (
+            "mute",
+            "reaper.SetMediaTrackInfo_Value(one, 'B_MUTE', 1)",
+            "reaper.SetMediaTrackInfo_Value(one, 'B_MUTE', 0)",
+            lambda r: r["tracks"][fx["ch1"]][0] == "1" and r["tracks"][fx["ch1"]][2] == base["tracks"][fx["ch1"]][2],
+        ),
+        (
+            "solo",
+            "reaper.SetMediaTrackInfo_Value(one, 'I_SOLO', 1)",
+            "reaper.SetMediaTrackInfo_Value(one, 'I_SOLO', 0)",
+            lambda r: r["tracks"][fx["ch1"]][1] == "1",
+        ),
+        (
+            "volume",
+            "reaper.SetMediaTrackInfo_Value(one, 'D_VOL', 0.5)",
+            "reaper.SetMediaTrackInfo_Value(one, 'D_VOL', 1.0)",
+            lambda r: r["tracks"][fx["ch1"]][2] != base["tracks"][fx["ch1"]][2],
+        ),
+        (
+            "send",
+            "reaper.CreateTrackSend(one, two)",
+            "reaper.RemoveTrackSend(one, 0, 0)",
+            lambda r: r["tracks"][fx["ch1"]][2] != base["tracks"][fx["ch1"]][2] and r["tracks"][fx["ch2"]][2] != base["tracks"][fx["ch2"]][2],
+        ),
+    ]:
+        change(do)
+        after = read()
+        assert check(after), f"{label}: {after['tracks']} vs {base['tracks']}"
+        assert after["params"] == base["params"], f"{label} moved an FX's parameters"
+        change(undo)
+        assert read() == base, f"{label} put back answers the first read"
+        seen.append(label)
+    return f"{', '.join(seen)} each changed the read and putting them back restored it"
+
+
 @scenario("render_with_fx", "render_with_fx", "render with FX: a folder outside the app's mastering folder, a non-empty one and an unknown region are refused")
 def render_with_fx_refusals(env: Env) -> str:
     two_chapters(env)

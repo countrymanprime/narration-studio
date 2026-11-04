@@ -2409,10 +2409,12 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const plan = await daw.exportPlan({ items: withRegions, master: true, format: 'mp3', approval: null });
     expectMatches(exportPlanSchema, plan, 'mock export plan, daw row');
     expect([plan.provider, plan.needsApproval, plan.needsMacro]).toEqual(['daw', true, false]);
-    // The chain the render runs, as dawChain.Chain answers it over masteringporttest's FakeDAW (#2932): each track with FX, then the master.
+    // The chain the render runs, as dawChain.Chain answers it over masteringporttest's FakeDAW (#2932): each track, then the master,
+    // with each track's mute, solo and mix and each plug-in's parameters (#2995).
+    const mix = '7:825649450:779707780';
     expect(plan.chain).toEqual([
-      { name: 'Voice', master: false, fx: [{ name: 'VST: ReaEQ (Cockos)', enabled: true }] },
-      { name: 'Master', master: true, fx: [{ name: 'VST: ReaLimit (Cockos)', enabled: true }] },
+      { name: 'Voice', master: false, mute: false, solo: 0, mix, fx: [{ name: 'VST: ReaEQ (Cockos)', enabled: true, params: '0:7:11' }] },
+      { name: 'Master', master: true, mute: false, solo: 0, mix, fx: [{ name: 'VST: ReaLimit (Cockos)', enabled: true, params: '0:7:11' }] },
     ]);
     const cut = createMockApi({}, { mastering: { choice: 'daw', chain: 'unreadable' } });
     await cut.exportPickFiles();
@@ -2454,10 +2456,22 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     }
     // Every cleaned name is NFC, as the host's are (round 6, qa B3).
     for (const { raw } of names.cases) expect(mockChainName(raw, 'fx'), JSON.stringify(raw)).toBe(mockChainName(raw, 'fx').normalize('NFC'));
-    expect(await mockChainDigest([{ name: 'Voice', master: false, fx: null as never }])).toBe(
-      await mockChainDigest([{ name: 'Voice', master: false, fx: [] }]),
+    expect(await mockChainDigest([{ name: 'Voice', master: false, mute: false, solo: 0, mix: '', fx: null as never }])).toBe(
+      await mockChainDigest([{ name: 'Voice', master: false, mute: false, solo: 0, mix: '', fx: [] }]),
     );
-    expect(await mockChainDigest([{ name: null as never, master: false, fx: [{ name: null as never, enabled: true }] }])).toMatch(/^sha256:/);
+    // A missing mute, solo, mix or parameters digests too (#2995).
+    expect(
+      await mockChainDigest([
+        {
+          name: null as never,
+          master: false,
+          mute: null as never,
+          solo: null as never,
+          mix: null as never,
+          fx: [{ name: null as never, enabled: true, params: null as never }],
+        },
+      ]),
+    ).toMatch(/^sha256:/);
     expect(plan.chainDigest).toBe(await mockChainDigest(plan.chain));
     await expect(start(daw, { provider: 'daw', macro: '', chainDigest: '' })).rejects.toThrow(/does not say which FX chain you were shown/);
     expect(plan.items.map((item) => item.region)).toEqual(

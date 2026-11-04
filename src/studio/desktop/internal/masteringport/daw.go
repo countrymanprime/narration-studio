@@ -153,6 +153,10 @@ func (dawChain) Master(ctx context.Context, req Request) (Result, error) {
 		}
 		return Result{}, err
 	}
+	// A script replaced by an older one since the approval cannot answer what the approval binds (#2995).
+	if chain.SettingsUnread {
+		return Result{}, bridge.ErrScriptOutdated
+	}
 	// The chain this render runs is read here anyway, for the report: it must be the one approved, or nothing renders.
 	if ChainDigest(listedChain(chain)) != req.ChainDigest {
 		return Result{}, ErrChainChanged
@@ -365,8 +369,9 @@ func UseRenderChainWait(wait time.Duration) (restore func()) {
 	return func() { renderChainWait = previous }
 }
 
-// Chain lists the FX a render would run now, through the DAW port's master_chain_read: each track with FX in order, then the
-// master. A chain the DAW cannot list whole, or no DAW, is an error, so the narrator never approves a chain they were not shown.
+// Chain lists the FX a render would run now, through the DAW port's master_chain_read: each track in order, then the master. A
+// chain the DAW cannot list whole, or no DAW, is an error, so the narrator never approves a chain they were not shown, and so is a
+// chain whose settings an older script could not read (bridge.ErrScriptOutdated, #2995): the approval binds them.
 func (dawChain) Chain(ctx context.Context) ([]ChainTrack, error) {
 	session, err := dawSession()
 	if err != nil {
@@ -379,6 +384,9 @@ func (dawChain) Chain(ctx context.Context) ([]ChainTrack, error) {
 	chain, err := reader.ReadMasterChain(ctx)
 	if err != nil {
 		return nil, err
+	}
+	if chain.SettingsUnread {
+		return nil, bridge.ErrScriptOutdated
 	}
 	return listedChain(chain), nil
 }
