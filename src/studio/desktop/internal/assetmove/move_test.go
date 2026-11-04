@@ -354,3 +354,12 @@ func TestMoveReportsProgressInBothPhases(t *testing.T) {
 		t.Fatalf("phases seen: %v", phases)
 	}
 }
+
+func TestRelatedSeesTheSameFolderAndEitherHoldingTheOther(t *testing.T) {
+	root := t.TempDir()
+	for target, want := range map[string]bool{root: true, filepath.Join(root, "a"): true, filepath.Dir(root): true, t.TempDir(): false} {
+		if got := Related(root, target); got != want {
+			t.Fatalf("Related(%s, %s) = %v", root, target, got)
+		}
+	}
+}

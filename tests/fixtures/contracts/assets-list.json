@@ -303,5 +303,8 @@
     }
   ],
   "cacheRoot": "C:/Users/narrator/AppData/Local/narration-studio/assets",
+  "custom": false,
+  "defaultRoot": "C:/Users/narrator/AppData/Local/narration-studio/assets",
+  "previousRoot": "",
   "totalInstalledBytes": 0
 }

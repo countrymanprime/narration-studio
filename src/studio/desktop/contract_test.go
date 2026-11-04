@@ -198,6 +198,7 @@ func TestContractAssetsListAndVerify(t *testing.T) {
 	}
 	// The cache folder is a per-machine path; the golden holds a fixed one so the file is the same everywhere.
 	list["cacheRoot"] = "C:/Users/narrator/AppData/Local/" + brand.DataFolder + "/assets"
+	list["defaultRoot"] = "C:/Users/narrator/AppData/Local/" + brand.DataFolder + "/assets"
 	for _, entry := range list["assets"].([]map[string]any) {
 		entry["path"] = "C:/Users/narrator/AppData/Local/" + brand.DataFolder + "/assets/" + entry["kind"].(string) + "/" + entry["id"].(string)
 	}
@@ -207,6 +208,22 @@ func TestContractAssetsListAndVerify(t *testing.T) {
 	contractfile.Check(t, "asset-install-unpack-error", snapshotInstall(&installJob{id: "analysis-1", kind: installKindAnalysis, assetID: "booknlp-small", phase: installPhaseError, message: unpack, errorText: unpack,
 		errorDetail: "Unpacking torch-2.14.1-cp312-cp312-win_amd64.whl: open: Access is denied.", done: 220000000, total: 220000000}))
 	contractfile.Check(t, "assets-verify", map[string]any{"kind": "tts", "id": "en_US-ljspeech-high", "installState": "verification_failed"})
+}
+
+// Moving the downloads to another folder: the job the three move bindings answer with, while it copies and when it failed, and the list of a
+// host whose downloads were moved and whose old copy has not been answered for.
+func TestContractAssetsMove(t *testing.T) {
+	copying := &Host{}
+	copying.modelsMove.phase, copying.modelsMove.id, copying.modelsMove.target = movePhaseCopying, "move-1", "D:/Audio/Narration models"
+	copying.modelsMove.message, copying.modelsMove.done, copying.modelsMove.total = "Copying the models to the new folder…", 600000000, 2400000000
+	contractfile.Check(t, "assets-move-copying", copying.modelsMoveSnapshot())
+	failed := &Host{}
+	failed.modelsMove.phase, failed.modelsMove.id, failed.modelsMove.target = movePhaseError, "move-1", "D:/Audio/Narration models"
+	failed.modelsMove.errorText = moveFailureText(&assets.InsufficientSpaceError{Need: 2_500_000_000, Free: 1_000_000_000})
+	failed.modelsMove.message, failed.modelsMove.done, failed.modelsMove.total = failed.modelsMove.errorText, 600000000, 2400000000
+	contractfile.Check(t, "assets-move-error", failed.modelsMoveSnapshot())
+	contractfile.Check(t, "assets-move-idle", (&Host{}).modelsMoveSnapshot())
+	contractfile.Check(t, "assets-folder-pick", map[string]any{"path": "D:/Audio/Narration models"})
 }
 
 func TestContractAFirstUseGateForAModel(t *testing.T) {

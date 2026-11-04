@@ -1,0 +1,10 @@
+{
+  "bytesDone": 600000000,
+  "bytesTotal": 2400000000,
+  "error": "The disk that folder is on does not have room: the models need about 2.3 GB and it has 954 MB free. Free some space or choose another folder. Your models are still where they were.",
+  "id": "move-1",
+  "message": "The disk that folder is on does not have room: the models need about 2.3 GB and it has 954 MB free. Free some space or choose another folder. Your models are still where they were.",
+  "percent": 25,
+  "phase": "error",
+  "target": "D:/Audio/Narration models"
+}

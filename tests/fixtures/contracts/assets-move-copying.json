@@ -1,0 +1,10 @@
+{
+  "bytesDone": 600000000,
+  "bytesTotal": 2400000000,
+  "error": "",
+  "id": "move-1",
+  "message": "Copying the models to the new folder…",
+  "percent": 25,
+  "phase": "copying",
+  "target": "D:/Audio/Narration models"
+}

@@ -17,6 +17,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"desktop/internal/assetmove"
 	"desktop/internal/audacitybridge"
 	"desktop/internal/bridge"
 	"desktop/internal/character"
@@ -416,7 +417,12 @@ type Host struct {
 	quitApp       func()
 	executable    func() (string, error)
 	openFolder    func(dir string) error
-	pendingPath   string
+	// modelsMove is the move of the models folder that may be running (assetfolder.go); moveModels and pickModelsFolder are seams for
+	// tests: nil means the real mover and the real folder dialog.
+	modelsMove       modelsMoveState
+	moveModels       func(context.Context, assetmove.Plan, func(assetmove.Progress)) error
+	pickModelsFolder func() (string, error)
+	pendingPath      string
 	// reaperLaunch and reaperLocate are seams for tests (dawlaunch.go): nil means daw.Launch and
 	// daw.LocateReaperExecutable, the real detached spawn and the real registry lookup.
 	reaperLaunch func(program string, args []string) error
@@ -628,7 +634,7 @@ func (h *Host) ServiceStartup(ctx context.Context, _ application.ServiceOptions)
 // cleanStaleDownloads removes the leftovers of a download or repair that was interrupted long ago. It never runs while a download of this
 // session could be using them: it only touches folders older than a week (or an hour for the aside copy of a repair).
 func (h *Host) cleanStaleDownloads() {
-	base, err := assetCacheBase()
+	base, err := assetBaseFor(h.settingsStore())
 	if err != nil {
 		return
 	}

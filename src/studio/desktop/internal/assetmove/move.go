@@ -98,6 +98,12 @@ func Check(plan Plan) error {
 	return nil
 }
 
+// Related reports whether two folders are the same or one holds the other.
+func Related(a, b string) bool {
+	a, b = normal(a), normal(b)
+	return same(a, b) || inside(a, b) || inside(b, a)
+}
+
 // Move copies the plan's folders into the target, checks the copy against the source, and puts it in place. report, when set, is called
 // as bytes are copied and checked. On any error, a cancelled ctx included, the target is as it was and the source untouched.
 func Move(ctx context.Context, plan Plan, report func(Progress)) (err error) {

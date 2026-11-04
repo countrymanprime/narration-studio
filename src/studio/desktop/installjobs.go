@@ -107,6 +107,10 @@ func (h *Host) startInstall(spec installSpec) (map[string]any, error) {
 	}
 	for {
 		h.mu.Lock()
+		if h.modelsMoving() {
+			h.mu.Unlock()
+			return nil, errModelsMoving
+		}
 		if h.removing[spec.kind+"/"+spec.assetID] {
 			h.mu.Unlock()
 			return nil, errBeingRemoved(spec.noun)
