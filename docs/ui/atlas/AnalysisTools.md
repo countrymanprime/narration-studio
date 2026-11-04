@@ -8,6 +8,7 @@ Storybook title: `Settings/AnalysisTools`. Source: `src/components/settings/anal
 
 - Not Installed
 - Every Status
+- Failed With Details
 
 ## Used by
 

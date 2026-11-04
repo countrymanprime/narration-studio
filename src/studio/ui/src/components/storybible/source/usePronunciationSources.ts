@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
 import type { PronunciationSource } from '../../../api/contracts/pronunciationSources';
@@ -10,12 +10,16 @@ export type PronunciationSources = {
   defaultId: string;
   /** Why the list could not be read, in the host's words. */
   error?: string;
+  /** Reads the list again: reading changes nothing, so a failed read's toast offers it as Retry (#2919). */
+  retry: () => void;
 };
 
-/** The sources of the pronunciation port, read once when the component mounts. */
+/** The sources of the pronunciation port, read when the component mounts and again on `retry`. */
 export function usePronunciationSources(): PronunciationSources {
   const port = usePort('pronunciationSources');
-  const [state, setState] = useState<PronunciationSources>({ sources: [], defaultId: '' });
+  const [state, setState] = useState<Omit<PronunciationSources, 'retry'>>({ sources: [], defaultId: '' });
+  const [attempt, setAttempt] = useState(0);
+  const retry = useCallback(() => setAttempt((n) => n + 1), []);
   useEffect(() => {
     let live = true;
     port.pronunciationSources().then(
@@ -25,6 +29,6 @@ export function usePronunciationSources(): PronunciationSources {
     return () => {
       live = false;
     };
-  }, [port]);
-  return state;
+  }, [port, attempt]);
+  return { ...state, retry };
 }

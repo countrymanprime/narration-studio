@@ -5,7 +5,7 @@ import { apiErrorMessage } from '../../../api/errorMessage';
 import { useErrorToast } from '../../../hooks/useErrorToast';
 import { usePort } from '../../../ports/usePort';
 import type { DeliveryProfile, ManuscriptChapter } from '../../../types';
-import { chapterOfFile, fileOf } from '../../master/chapterFile';
+import { chapterForFile, fileOf } from '../../master/chapterFile';
 import { deliveryProfileKey } from '../../master/deliveryProfile';
 import { DiagnosticsSection } from '../../master/DiagnosticsSection';
 import { FileRulesPanel } from '../../master/FileRulesPanel';
@@ -26,6 +26,7 @@ import type { FileActions } from '../files/FileActions';
 import { FileChecks } from '../files/FileChecks';
 import { FilesTable } from '../files/FilesTable';
 import { buildChapterRows } from '../files/rows';
+import { useTextMatches } from '../files/textMatch';
 import { Consistency, rangeOf } from './Consistency';
 import { hasMeasureProgress, MeasureControls, MeasureProgress, useMeasureErrors, useMeasureRun } from './MeasureRun';
 import { PackageChecks } from './PackageChecks';
@@ -33,6 +34,7 @@ import { profileName } from './packageItems';
 import { saveSharedChapter } from './sharedChapter';
 import { PAGE_COLUMN_CLASS } from '../../primitives/pageColumn';
 import { useFileActions } from './useFileActions';
+import { DawToolsButton } from '../../engine/DawToolsButton';
 
 const MUTED = { color: 'var(--text-muted)' };
 
@@ -171,11 +173,15 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
     for (const line of openLines) counts[line.chapterId] = (counts[line.chapterId] ?? 0) + 1;
     return counts;
   }, [openLines]);
-  const rows = useMemo(() => (profile ? buildChapterRows(run.files, profile, chapters, openPickups) : []), [run.files, profile, chapters, openPickups]);
+  const texts = useTextMatches(chapters, run.files);
+  const rows = useMemo(
+    () => (profile ? buildChapterRows(run.files, profile, chapters, openPickups, texts) : []),
+    [run.files, profile, chapters, openPickups, texts],
+  );
   // A link by chapter id lands on that chapter's file once the files are known.
   const selected = useMemo(() => {
     const chapter = chapters.find((candidate) => candidate.id === picked);
-    return (chapter && fileOf(chapter, run.files)?.path) ?? picked;
+    return (chapter && fileOf(chapter, run.files, chapters)?.path) ?? picked;
   }, [picked, chapters, run.files]);
   const current = rows.find((row) => row.id === selected);
   // A link that names neither a file of this check nor a chapter (a stale or mistyped address) is said so, with a way out; it is never
@@ -192,14 +198,14 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
       : undefined;
   const chapterOfSelection = useMemo(() => {
     const file = run.files.find((candidate) => candidate.path === selected);
-    return (file && chapterOfFile(file, chapters)) ?? chapters.find((candidate) => candidate.id === selected);
+    return (file && chapterForFile(file, chapters)) ?? chapters.find((candidate) => candidate.id === selected);
   }, [selected, run.files, chapters]);
   const remember = useCallback((chapter: ManuscriptChapter | undefined) => chapter && saveSharedChapter(projectFolder, chapter.id), [projectFolder]);
   const select = useCallback(
     (id: string) => {
       setPicked(id);
       const file = run.files.find((candidate) => candidate.path === id);
-      remember(file ? chapterOfFile(file, chapters) : chapters.find((candidate) => candidate.id === id));
+      remember(file ? chapterForFile(file, chapters) : chapters.find((candidate) => candidate.id === id));
     },
     [run.files, chapters, remember],
   );
@@ -207,7 +213,7 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
   const goToChapter = (id: string) => {
     const chapter = chapters.find((candidate) => candidate.id === id);
     if (!chapter) return;
-    setPicked(fileOf(chapter, run.files)?.path ?? chapter.id);
+    setPicked(fileOf(chapter, run.files, chapters)?.path ?? chapter.id);
     remember(chapter);
   };
   const stepChapter = (direction: -1 | 1) => {
@@ -246,7 +252,8 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
             );
             const controls = (
               <>
-                {/* Opens Master to spec below (no mock equivalent, kept as built). */}
+                {/* Picks the files for Master to spec below (no mock equivalent, kept as built): the secondary way in, beside Check files…;
+                    the card's own labelled "Choose files to master…" is the primary (#2931). */}
                 <IconButton
                   action="masterAllToSpec"
                   label="Master all to spec…"
@@ -255,6 +262,8 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
                   disabledReason={jobs.exportRunning ? 'An export is running' : undefined}
                 />
                 <MeasureControls run={run} />
+                {/* #2820: with nothing measured the next step is to render the chapters in the DAW, so its structure tools sit beside Check files. */}
+                {run.files.length === 0 && <DawToolsButton groups={['structure']} />}
               </>
             );
             // What the card says under its controls, at its own inset: what could not be read with Retry at the card's right edge, a
@@ -279,6 +288,7 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
                 profile={profile && chaptersRead ? profile : undefined}
                 slots={chapters}
                 openPickups={openPickups}
+                texts={texts}
                 heading={heading}
                 controls={controls}
                 notices={notices}
@@ -302,8 +312,16 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
             <Panel title="Book consistency" subtitle={profile ? `RMS by file against ${rangeOf(profile)}` : undefined}>
               <Consistency files={run.files} profile={profile} />
             </Panel>
-            <MasterToSpecPanel jobs={jobs} chainLabel={chain?.label} onCheckFiles={() => void run.chooseOther()} />
-            <MasteringChain providers={mastering.providers} problem={mastering.problem} />
+            <MasterToSpecPanel jobs={jobs} chain={chain} onStartRefused={mastering.reload} onCheckFiles={() => void run.chooseOther()} />
+            <MasteringChain
+              providers={mastering.providers}
+              problem={mastering.problem}
+              saveProblem={mastering.saveProblem}
+              saving={mastering.saving}
+              locked={jobs.exportRunning || jobs.starting}
+              onChoose={mastering.choose}
+              retry={mastering.reload}
+            />
             <DiagnosticsSection measuredPaths={run.paths} openSettings={openSettings} />
             <ReportExportPanel busy={run.running} measured={run.files.length > 0} />
           </div>

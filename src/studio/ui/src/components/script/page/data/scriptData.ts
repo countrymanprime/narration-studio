@@ -18,6 +18,9 @@ export type ScriptPorts = {
   scriptPrep: Pick<ScriptPrepApi, 'scriptPrepList'>;
   storyBible: Pick<StoryBibleApi, 'guideEntities' | 'guideTypes' | 'guideDialogueCues'>;
   system: Pick<SystemApi, 'subscribeJobEnded' | 'subscribeProjectAttach'>;
+  /** Says a name's pronunciation changed, on this page or another, or was undone from History: the Story Bible is the one store of
+   * pronunciations (#2595), so its entries are read again. */
+  pronunciation?: { subscribe: (listener: () => void) => () => void };
 };
 
 /** One read: loading (with the last value while a reload runs), ready, or failed with the host's sentence. */
@@ -133,9 +136,13 @@ export function createScriptData(ports: ScriptPorts): ScriptData {
           lists.forEach((list) => void load(list));
           chapterIds.forEach((chapterId) => void loadParagraphs(chapterId));
         });
+        const offPronunciation = ports.pronunciation?.subscribe(() => {
+          if (state.entries) void load('entries');
+        });
         stop = () => {
           offJob();
           offProject();
+          offPronunciation?.();
         };
       }
       return () => {

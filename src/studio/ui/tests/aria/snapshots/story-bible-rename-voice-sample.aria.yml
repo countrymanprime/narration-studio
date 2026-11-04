@@ -3,8 +3,6 @@
 - status
 - alert
 - status
-- alert
-- status
 - dialog "Rename voice sample":
   - heading "Rename voice sample" [level=2]
   - button "Close"

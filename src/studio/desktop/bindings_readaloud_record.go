@@ -221,6 +221,10 @@ func readAloudRecordStartSteps(ctx context.Context, svc hostServices, recorder d
 		return readAloudRecordRefusal(name, err), nil
 	}
 	opts, message := dawport.RecordOptions{Start: bridge.AtEnd}, ""
+	if !sameTrackID(guid, link) {
+		// A voice of the chapter's folder: the take goes on after the latest item of the whole folder, not of this voice alone (#3025).
+		opts = dawport.RecordOptions{Start: bridge.ChapterEnd, Folder: link}
+	}
 	if at != nil {
 		_, err := puncher.PunchTo(ctx, *at, 0)
 		timeline.Mark("punched")

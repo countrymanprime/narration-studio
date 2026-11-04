@@ -4,6 +4,37 @@
 
 local Fake = require('fake_reaper')
 
+-- Every test builds fresh sessions, and each one loads the bridge's source files again: a mutation check runs hundreds of
+-- those loads, each reading and parsing the same unchanged files (the cost that took the Windows run past its time limit).
+-- The first load of a file in the source folder compiles it; later loads rebuild it from the compiled chunk, a new function
+-- with fresh upvalues, the same as loading the file again, with its name and line numbers kept for failure messages.
+do
+  local plain_loadfile = loadfile
+  local compiled_chunks = {}
+  local prefix = host.reaper_dir
+
+  local function cached_loadfile(path, ...)
+    if select('#', ...) > 0 or type(path) ~= 'string' or path:sub(1, #prefix) ~= prefix then
+      return plain_loadfile(path, ...)
+    end
+    local dumped = compiled_chunks[path]
+    if dumped == nil then
+      local chunk, err = plain_loadfile(path)
+      if not chunk then
+        return nil, err
+      end
+      dumped = string.dump(chunk)
+      compiled_chunks[path] = dumped
+    end
+    return load(dumped, '@' .. path, 'b')
+  end
+
+  loadfile = cached_loadfile
+  dofile = function(path)
+    return assert(cached_loadfile(path))()
+  end
+end
+
 local H = {}
 local SEP = package.config:sub(1, 1)
 local tests = {}
@@ -141,7 +172,9 @@ function H.test(name, fn)
 end
 
 -- Runs the registered tests, each in a fresh session directory. Returns passed, failed, and a report string.
-function H.run(file_label)
+-- With `stop_at_failure` the run ends at the first failing test: a mutation check needs one failure, not all of them, and each
+-- test builds its own sessions, so the tests after the first failure are most of the time a mutation check spends.
+function H.run(file_label, stop_at_failure)
   local passed, failed, report = 0, 0, {}
   for _, entry in ipairs(tests) do
     sessions = {}
@@ -163,6 +196,9 @@ function H.run(file_label)
     else
       failed = failed + 1
       report[#report + 1] = string.format('FAIL %s :: %s\n  %s', file_label, entry.name, (tostring(err):gsub('\n', '\n  ')))
+      if stop_at_failure then
+        break
+      end
     end
   end
   return passed, failed, table.concat(report, '\n')
@@ -261,6 +297,30 @@ end
 -- Names still waiting in commands/ (the bridge deletes each command it reads).
 function Session:pending_commands()
   return host.listdir(H.join(self.dir, 'commands'))
+end
+
+-- The folder each of the fake's tracks sits inside, by track name ('' at the top level), from the running sum of the folder depths: what
+-- REAPER shows as its parent. The guard tests compare it before and after a command that adds a track (#2251).
+function H.parents(s)
+  local out, stack, depth = {}, {}, 0
+  for _, track in ipairs(s.fake.tracks) do
+    out[track.name] = stack[depth] or ''
+    local delta = track.folder_depth or 0
+    if delta > 0 then
+      stack[depth + 1] = track.name
+    end
+    depth = math.max(depth + delta, 0)
+  end
+  return out
+end
+
+-- Asserts that every track named in `before` (H.parents) is still in the same folder.
+function H.same_parents(before, s)
+  local after = H.parents(s)
+  for name, parent in pairs(before) do
+    H.eq(after[name], parent, name .. ' keeps its folder')
+  end
+  return after
 end
 
 return H

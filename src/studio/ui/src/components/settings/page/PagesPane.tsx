@@ -1,9 +1,24 @@
 import { useState } from 'react';
-import { Button } from '../../primitives/Button';
+import { IconButton } from '../../primitives/IconButton';
+import type { IconName } from '../../../icons.catalog';
 import { Disclosure } from '../../primitives/Disclosure';
 import { Panel } from '../../primitives/Panel';
 import { PAGE_SETTINGS, type PageSetting } from '../registry/pageSettings';
-import { PAGE_LABEL, PAGE_PATH } from '../registry/types';
+import { PAGE_LABEL, PAGE_PATH, type UsedPage } from '../registry/types';
+
+// The rail's own icon for each page a setting is read on, so the button that opens it wears that page's icon and nothing else's.
+const PAGE_ACTION: Record<UsedPage, IconName> = {
+  production: 'home',
+  schedule: 'calendar',
+  script: 'script',
+  bible: 'book',
+  booth: 'microphone',
+  editing: 'scissors',
+  proof: 'wave',
+  pickups: 'pickups',
+  master: 'gauge',
+  delivery: 'delivery',
+};
 import { useSettingsNav } from '../row/SettingsNav';
 import { PageSettingPanel } from './PageSettingPanel';
 import { PaneTitle } from './PaneTitle';
@@ -15,6 +30,8 @@ import { PaneTitle } from './PaneTitle';
 export function PageSettingList({ items }: { items: readonly PageSetting[] }) {
   const { go } = useSettingsNav();
   const [open, setOpen] = useState<Record<string, boolean>>({});
+  // A panel that was opened stays in the page when it is closed, so an edit not yet saved is not dropped; one never opened is not read at all.
+  const [opened, setOpened] = useState<Record<string, boolean>>({});
   return (
     <Panel flush>
       {items.map((item) => (
@@ -31,18 +48,19 @@ export function PageSettingList({ items }: { items: readonly PageSetting[] }) {
           <Disclosure
             title="Change it here for now"
             open={Boolean(open[item.id])}
-            onOpenChange={(next) => setOpen((current) => ({ ...current, [item.id]: next }))}
+            keepMounted={Boolean(opened[item.id])}
+            onOpenChange={(next) => {
+              setOpen((current) => ({ ...current, [item.id]: next }));
+              if (next) setOpened((current) => ({ ...current, [item.id]: true }));
+            }}
             className="mt-2"
             aside={
-              <Button
-                variant="secondary"
+              <IconButton
+                action={PAGE_ACTION[item.page]}
                 size="sm"
-                className="min-w-[9.5rem] flex-none"
-                aria-label={`Open ${PAGE_LABEL[item.page]}, where ${item.label} belongs`}
+                label={`Open ${PAGE_LABEL[item.page]}, where ${item.label} belongs`}
                 onClick={() => go(PAGE_PATH[item.page])}
-              >
-                Open {PAGE_LABEL[item.page]}
-              </Button>
+              />
             }
           >
             <div className="pt-2">

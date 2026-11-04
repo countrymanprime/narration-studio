@@ -69,11 +69,13 @@ export type DawCapabilityKey =
   | 'track_state'
   | 'track_select'
   | 'track_create'
+  | 'tracks_read'
   | 'follow_position'
   | 'transport_sync'
   | 'record'
   | 'punch'
   | 'regions'
+  | 'voice_sample_region'
   | 'takes'
   | 'fx_chains'
   | 'item_gain'
@@ -121,11 +123,13 @@ export const DAW_CAPABILITIES: ReadonlyArray<{ key: DawCapabilityKey; label: str
   { key: 'track_state', label: 'Read track arm state' },
   { key: 'track_select', label: 'Select a track in the recording tool' },
   { key: 'track_create', label: 'Add a track for a chapter' },
+  { key: 'tracks_read', label: "Read the open project's tracks" },
   { key: 'follow_position', label: "Follow the narrator's place in the project" },
   { key: 'transport_sync', label: "Play and follow the project's transport" },
   { key: 'record', label: 'Record' },
   { key: 'punch', label: 'Punch and roll' },
   { key: 'regions', label: 'Chapter regions' },
+  { key: 'voice_sample_region', label: 'Keep a voice sample as a region' },
   { key: 'takes', label: 'Choose the active take' },
   { key: 'fx_chains', label: 'FX chains' },
   { key: 'item_gain', label: 'Level matching' },
@@ -469,10 +473,10 @@ export interface DawRepairClickApi {
  * `dawUndoLast` undoes. `cut_range` is a cut made with `dawDeleteRange`; `record_take` is the take the Booth recorded last (the points
  * its stop reported as `undoPoints`). The host and the DAW map a kind to the DAW's own mark for it; the page never names one. A closed
  * union: a later kind is added on both sides. */
-export type DawActionKind = 'cut_range' | 'record_take' | 'replace_range' | 'restore_replacement';
+export type DawActionKind = 'cut_range' | 'record_take' | 'replace_range' | 'restore_replacement' | 'use_take';
 
 /** The action kinds this build knows, in the order of DawActionKind. */
-export const DAW_ACTION_KINDS = ['cut_range', 'record_take', 'replace_range', 'restore_replacement'] as const satisfies readonly DawActionKind[];
+export const DAW_ACTION_KINDS = ['cut_range', 'record_take', 'replace_range', 'restore_replacement', 'use_take'] as const satisfies readonly DawActionKind[];
 
 /** What `dawLastAction` answers of the DAW's next undo point for a kind (dawport.LastAction): `this` when it is that kind's, `other`
  * when it is anything else or there is none, `unknown` when the DAW cannot tell (the `undo_last` capability refused, the DAW not

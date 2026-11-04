@@ -14,6 +14,7 @@ import { CleanupInspector, CleanupKindHeading } from './CleanupInspector';
 import { CleanupList } from './CleanupList';
 import { NO_PLAYBACK, usePreviewPlay, windowOf, type PreviewPlayback } from './usePreviewPlay';
 import { useDawCapabilities } from '../../../hooks/useDawCapabilities';
+import { RepairInReaperButton } from '../../engine/RepairInReaperButton';
 
 const NO_TRIM = 'The DAW cannot trim ranges here yet.';
 
@@ -143,6 +144,7 @@ export function CleanupTab({ chapterId, journal, deps, playback }: CleanupTabPro
         onParam={setParam}
         noiseFloor={noiseFloorOf(findings)}
         dawReason={dawReason ?? (deps ? null : NO_TRIM)}
+        repairTools={op === 'clicks' || op === 'breaths' || op === 'plosives' ? <RepairInReaperButton /> : undefined}
         preview={preview}
         onPreview={() => {
           setPreview(previewOf(op, on, params[op], dawName));
