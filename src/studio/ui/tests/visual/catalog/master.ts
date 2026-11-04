@@ -2,7 +2,7 @@
 // Master page (SN-M5): the per-file checks, the selected file's checks, the book consistency and the delivery package beside them,
 // then the panels the mock has no equivalent of, kept as built. Building the package is Delivery's (catalog/delivery.ts).
 import type { StateEntry } from '../lib/types';
-import { KEEPS_DESKTOP_SCROLL, POPUP_ANCHORED_AT_FIRST_WIDTH, REFLOW, wholePage } from './shared';
+import { KEEPS_DESKTOP_SCROLL, POPUP_ANCHORED_AT_FIRST_WIDTH, REFLOW, TOOLTIP_CLOSES_ON_RESIZE, wholePage } from './shared';
 import { brand } from '../../../src/brand.gen';
 
 export const masterStates: StateEntry[] = [
@@ -135,6 +135,29 @@ export const masterStates: StateEntry[] = [
     description:
       'Master & QC, Master all to spec… with five files picked and given a role - two chapters (their titles editable), opening and closing credits, a retail sample, Master before encoding on with the built-in chain, and Master & encode',
     ...KEEPS_DESKTOP_SCROLL,
+  },
+  // The chain card's choice of mastering row (#2739): the issue's placement, a control the mock lacks
+  {
+    page: 'master',
+    state: 'chain-choice',
+    description:
+      "Master & QC's Mastering chain card scrolled to - Master with: the three rows as radios, the built-in chain chosen (the row the host says the project masters with), and its three steps",
+    ...KEEPS_DESKTOP_SCROLL,
+    ...REFLOW,
+  },
+  {
+    page: 'master',
+    state: 'chain-saved',
+    description:
+      "Master & QC's Mastering chain card after choosing Your DAW's FX chain - the choice moved once the host answered, and the card says its steps are set in the DAW",
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'master',
+    state: 'chain-unavailable',
+    description:
+      "Master & QC's Mastering chain card with Audacity's row not available on this computer (?mockMastering=no-audacity) - that row off. The driver opens its reason as the tooltip under the pointer; the capture parks the pointer, so the shot shows the row off and the tooltip closed (a tooltip left open fails axe's landmark rule, and axe debt only shrinks)",
+    ...TOOLTIP_CLOSES_ON_RESIZE,
   },
   // Master & encode with a mastering row that makes the DAW render: the narrator's approval for this one export first (#2739)
   {

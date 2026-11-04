@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { VoiceTracksLayout, VoiceTracksState } from '../../api/contracts/voiceTracks';
 import { usePort } from '../../ports/usePort';
 
@@ -10,9 +10,14 @@ type VoiceSetup = {
   readError: unknown;
   /** Takes the state a save answered with, so every picker sees the new layout at once. */
   replace: (next: VoiceTracksState) => void;
+  /**
+   * Starts a save and answers whether it is still the newest one for this project when the host replies: a save made anywhere else on the
+   * same setup, or a switch of project, makes it stale, so a slow answer never undoes a newer change or lands in another project.
+   */
+  beginSave: () => () => boolean;
 };
 
-const VoiceSetupContext = createContext<VoiceSetup>({ setup: FLAT, readError: '', replace: () => {} });
+const VoiceSetupContext = createContext<VoiceSetup>({ setup: FLAT, readError: '', replace: () => {}, beginSave: () => () => true });
 
 /** An override of the project's layout for the pickers under it: the Engine panel of an Audacity project, which has no folders, is flat. */
 export const VoiceLayoutContext = createContext<VoiceTracksLayout | null>(null);
@@ -26,8 +31,10 @@ export function VoiceSetupProvider({ projectFolder, children }: { projectFolder:
   const port = usePort('voiceTracks');
   const [setup, setSetup] = useState<VoiceTracksState>(FLAT);
   const [readError, setReadError] = useState<unknown>('');
+  const saves = useRef(0);
   useEffect(() => {
     let active = true;
+    saves.current += 1;
     setSetup(FLAT);
     setReadError('');
     if (!projectFolder) return;
@@ -40,7 +47,11 @@ export function VoiceSetupProvider({ projectFolder, children }: { projectFolder:
     };
   }, [port, projectFolder]);
   const replace = useCallback((next: VoiceTracksState) => setSetup(next), []);
-  const value = useMemo(() => ({ setup, readError, replace }), [setup, readError, replace]);
+  const beginSave = useCallback(() => {
+    const mine = ++saves.current;
+    return () => mine === saves.current;
+  }, []);
+  const value = useMemo(() => ({ setup, readError, replace, beginSave }), [setup, readError, replace, beginSave]);
   return <VoiceSetupContext.Provider value={value}>{children}</VoiceSetupContext.Provider>;
 }
 

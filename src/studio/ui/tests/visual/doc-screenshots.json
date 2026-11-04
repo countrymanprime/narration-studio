@@ -295,6 +295,13 @@
   },
   {
     "page": "booth",
+    "state": "voices-who-is-in",
+    "viewport": "desktop",
+    "docName": "booth-voices-who-is-in",
+    "caption": "The Booth - Who is in Num 7?: the chapter's characters to tick, a new track's name and key, an existing track or the Narrator"
+  },
+  {
+    "page": "booth",
     "state": "setup",
     "viewport": "desktop",
     "docName": "booth-setup",
@@ -418,6 +425,13 @@
     "viewport": "desktop",
     "docName": "settings-sync-activity",
     "caption": "Settings - Recording & DAW, Advanced: the Sync activity log, with Undo on a link sync made"
+  },
+  {
+    "page": "settings",
+    "state": "recording-chapter-layout",
+    "viewport": "desktop",
+    "docName": "settings-chapter-layout",
+    "caption": "Settings - Recording & DAW: Chapter layout under Chapter sync, with Flat and Voice folders"
   },
   {
     "page": "engine",
@@ -980,6 +994,13 @@
     "caption": "Master & QC - Master & encode asking approval to master with the DAW's FX chain, naming the regions it renders"
   },
   {
+    "page": "master",
+    "state": "chain-choice",
+    "viewport": "desktop",
+    "docName": "master-chain-choice",
+    "caption": "Master & QC - the Mastering chain card's Master with choice: the built-in chain chosen, the DAW's FX chain and Audacity's effect macro beside it"
+  },
+  {
     "page": "delivery",
     "state": "measured",
     "viewport": "desktop",
@@ -1167,6 +1188,13 @@
     "viewport": "desktop",
     "docName": "script-search",
     "caption": "Script - Ctrl+F then \"Alice\": the menu lists the matches under In the script, the matched word marked"
+  },
+  {
+    "page": "script",
+    "state": "search-steps",
+    "viewport": "desktop",
+    "docName": "script-search-steps",
+    "caption": "Script - a search showing, then Ctrl+F and Search: Next match and Previous match with where you are (1 of 397 for “alice”), and Clear the search"
   },
   {
     "page": "script",
