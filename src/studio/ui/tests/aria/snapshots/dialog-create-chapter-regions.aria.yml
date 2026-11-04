@@ -8,8 +8,6 @@
 - status
 - alert
 - status
-- alert
-- status
 - dialog "Create chapter regions":
   - heading "Create chapter regions" [level=2]
   - button "Close"

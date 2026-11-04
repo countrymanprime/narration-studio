@@ -6,8 +6,6 @@
 - status
 - alert
 - status
-- alert
-- status
 - dialog "Define how you mark up":
   - heading "Define how you mark up" [level=2]
   - button "Close"
