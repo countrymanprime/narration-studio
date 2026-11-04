@@ -167,6 +167,7 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/engine/ChapterSyncPanel.tsx#2': no(ED),
   'src/components/engine/ChapterSyncPanel.tsx#3': no(ED),
   'src/components/engine/SyncActivityLog.tsx#1': no(DS),
+  'src/components/engine/useChapterFolders.ts#1': no(ED),
   'src/components/engine/useVoiceTracks.ts#1': yes("The project's voice setup read changes nothing; Retry reads it again."),
   'src/components/engine/useVoiceTracks.ts#2': yes('The Story Bible characters read for the voice setup changes nothing; Retry reads it again.'),
   'src/components/engine/useVoiceTracks.ts#3': no(AU),
