@@ -24,7 +24,7 @@ const copyText = async (text: string): Promise<boolean> => {
 const kilobytes = (bytes: number): string => `${Math.max(1, Math.round(bytes / 1024))} KB`;
 
 /**
- * Diagnostics under App & updates: look at what a diagnostics bundle would hold, then save it as a zip in a folder the narrator picks. The
+ * The diagnostics bundle under App & updates (named so it is not a second "Diagnostics" beside the Advanced rows of that name): look at what a diagnostics bundle would hold, then save it as a zip in a folder the narrator picks. The
  * path is copied to the clipboard. Nothing is sent anywhere; the narrator attaches the file to an issue by hand. The preview is a
  * dialog, so a long list of files never moves the page.
  */
@@ -60,14 +60,14 @@ export function DiagnosticsSection() {
   };
 
   return (
-    <section aria-label="Diagnostics" className="flex flex-col">
+    <section aria-label="Diagnostics bundle" className="flex flex-col">
       <SectionLabel as="h3" className="mb-1.5">
-        Diagnostics
+        Diagnostics bundle
       </SectionLabel>
       <Panel flush>
         <div className={ROW} data-about="diagnostics">
           <div className="flex min-w-0 flex-col gap-[3px]">
-            <b className="text-[0.9375rem] font-semibold">Diagnostics bundle</b>
+            <b className="text-[0.9375rem] font-semibold">File for a bug report</b>
             <span className="max-w-[60ch] text-[0.8125rem] text-[var(--text-muted)]">
               A zip of how the app behaved, with no text, names or file paths from your books. Nothing is sent anywhere.
             </span>
