@@ -1,0 +1,114 @@
+{
+  "cases": [
+    {
+      "raw": "VST: ReaEQ (Cockos)",
+      "track": "VST: ReaEQ (Cockos)",
+      "fx": "VST: ReaEQ (Cockos)"
+    },
+    {
+      "raw": "Voice‮ lav\n2\u0000",
+      "track": "Voice lav 2",
+      "fx": "Voice lav 2"
+    },
+    {
+      "raw": "VST:\tReaEQ‏",
+      "track": "VST: ReaEQ",
+      "fx": "VST: ReaEQ"
+    },
+    {
+      "raw": "Re​EQ",
+      "track": "ReEQ",
+      "fx": "ReEQ"
+    },
+    {
+      "raw": "⁦Limit⁩",
+      "track": "Limit",
+      "fx": "Limit"
+    },
+    {
+      "raw": "  spaced   out  ",
+      "track": "spaced out",
+      "fx": "spaced out"
+    },
+    {
+      "raw": "",
+      "track": "Track",
+      "fx": "(unnamed)"
+    },
+    {
+      "raw": " ​﻿ ",
+      "track": "Track",
+      "fx": "(unnamed)"
+    },
+    {
+      "raw": "ㅤ",
+      "track": "Track",
+      "fx": "(unnamed)"
+    },
+    {
+      "raw": "⠀",
+      "track": "Track",
+      "fx": "(unnamed)"
+    },
+    {
+      "raw": "ᅟᅠ",
+      "track": "Track",
+      "fx": "(unnamed)"
+    },
+    {
+      "raw": "́",
+      "track": "Track",
+      "fx": "(unnamed)"
+    },
+    {
+      "raw": "️",
+      "track": "Track",
+      "fx": "(unnamed)"
+    },
+    {
+      "raw": "",
+      "track": "Track",
+      "fx": "(unnamed)"
+    },
+    {
+      "raw": "ㅤ ⠀ ́",
+      "track": "Track",
+      "fx": "(unnamed)"
+    },
+    {
+      "raw": "été",
+      "track": "été",
+      "fx": "été"
+    },
+    {
+      "raw": "🔊 Loud",
+      "track": "🔊 Loud",
+      "fx": "🔊 Loud"
+    },
+    {
+      "raw": "مرحبا",
+      "track": "مرحبا",
+      "fx": "مرحبا"
+    },
+    {
+      "raw": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "track": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "fx": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    },
+    {
+      "raw": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "track": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "fx": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    },
+    {
+      "raw": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "track": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx…",
+      "fx": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx…"
+    },
+    {
+      "raw": "éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé",
+      "track": "ééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé…",
+      "fx": "ééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé…"
+    }
+  ]
+}

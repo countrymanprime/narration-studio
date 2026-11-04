@@ -104,7 +104,8 @@ describe('Master & encode with a row that makes the DAW render (#2739)', () => {
   it('an item the DAW row has no region for is refused before any dialog, naming it, and nothing starts (walkthrough 2)', async () => {
     const { exportStart } = await mount('daw', { keepSample: true });
     await press('Master & encode');
-    await findToast('Retail sample.wav has no region');
+    // It says how to encode without mastering: untick the checkbox (round 2 walkthrough 3 on #2932).
+    await findToast('Retail sample.wav has no region: remove it from this export, or untick Master before encoding to encode it without mastering');
     expect(screen.queryByRole('alertdialog')).toBeNull();
     expect(exportStart).not.toHaveBeenCalled();
   });
@@ -342,7 +343,8 @@ describe('the approval shows the DAW chain it approves (#2932)', () => {
     cleanup();
     await mount('daw', { chain: 'long' });
     await openDialog();
-    expect(within(dialog()).getByText('Signal order: 23 effects on 4 tracks and the master')).toBeTruthy();
+    // A bypassed effect far down the list is counted on top (round 2 walkthrough 2).
+    expect(within(dialog()).getByText('Signal order: 23 effects on 4 tracks and the master, 1 switched off')).toBeTruthy();
   });
 
   it('marks a plug-in that is switched off with an Off badge, named for a screen reader as bypassed', async () => {
@@ -393,7 +395,8 @@ describe('the approval shows the DAW chain it approves (#2932)', () => {
     const { exportStart } = await mount('daw', { chain: 'unreadable' });
     await press('Master & encode');
     // What to do next, in the host's words (#2932's walkthrough).
-    await findToast('choose the built-in chain, or untick Master before encoding to encode without mastering');
+    // Short enough to show whole in a toast: the reason, then what to do (round 2 walkthrough 1, qa N7).
+    await findToast("Your DAW's FX chain couldn't be read, so it can't be approved. Choose the built-in chain, or untick Master before encoding.");
     expect(screen.queryByRole('alertdialog')).toBeNull();
     expect(exportStart).not.toHaveBeenCalled();
   });
@@ -462,6 +465,65 @@ describe('the approval shows the DAW chain it approves (#2932)', () => {
     cleanup();
     await withChain(null);
     expect(rowsOf(chainTable())).toEqual([['', 'All tracks and the master', 'No FX']]);
+  });
+
+  it('a name of only blank-looking characters is (unnamed), a blank track is Track (qa round 2, N2)', async () => {
+    await withChain([
+      {
+        name: '\u3164',
+        master: false,
+        fx: ['\u3164', '\u2800', '\u0301', '\ufe0f', '\ue000', '\u115f\u1160'].map((name) => ({ name, enabled: true })),
+      },
+    ]);
+    const rows = rowsOf(chainTable());
+    expect(rows.map((row) => row[1])).toEqual(Array(6).fill('Track'));
+    expect(rows.map((row) => row[2])).toEqual(Array(6).fill('(unnamed)'));
+  });
+
+  it('a null track or plug-in name does not crash the dialog (qa round 2, N3)', async () => {
+    await withChain([{ name: null, master: false, fx: [{ name: null, enabled: true }] }]);
+    expect(rowsOf(chainTable())).toEqual([['1', 'Track', '(unnamed)']]);
+  });
+
+  it('says in a hint, not in the page, what the approval covers and what it does not', async () => {
+    await mount('daw');
+    await openDialog();
+    const about = within(dialog()).getByRole('button', { name: 'What this approval covers' });
+    expect(about.getAttribute('aria-description')).toBe('Covers effect names, on/off and order, not their settings, routing or mute');
+  });
+
+  // qa round 2, N4: at a small window the chain is below the visible body while Approve is pinned in view. Approve waits until the
+  // chain's first row has been fully in view, and says why.
+  it('Approve waits until the chain has been in view, with its reason, then sends the approval', async () => {
+    const observed: { callback: IntersectionObserverCallback; target?: Element }[] = [];
+    class FakeObserver {
+      constructor(callback: IntersectionObserverCallback) {
+        observed.push({ callback });
+      }
+      observe(target: Element) {
+        observed[observed.length - 1]!.target = target;
+      }
+      disconnect() {}
+      unobserve() {}
+      takeRecords() {
+        return [];
+      }
+    }
+    vi.stubGlobal('IntersectionObserver', FakeObserver);
+    try {
+      const { exportStart } = await mount('daw');
+      await openDialog();
+      const approve = within(dialog()).getByRole('button', { name: 'Approve and master' });
+      expect(approve).toHaveProperty('disabled', true);
+      expect(within(dialog()).getByRole('group', { name: 'Scroll to the FX chain first' })).toBeTruthy();
+      const seen = observed.at(-1)!;
+      expect(seen.target?.closest('table')?.getAttribute('aria-label')).toBe('FX chain this render runs');
+      act(() => seen.callback([{ isIntersecting: true, intersectionRatio: 1, target: seen.target! } as IntersectionObserverEntry], {} as IntersectionObserver));
+      await pressInDialog('Approve and master');
+      await waitFor(() => expect(exportStart).toHaveBeenCalledTimes(1));
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it("Audacity's macro has no DAW chain to show", async () => {

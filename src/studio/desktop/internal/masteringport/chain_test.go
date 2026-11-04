@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"desktop/internal/dawport"
 	"desktop/internal/deliveryprofile"
@@ -199,6 +200,34 @@ func TestTheDAWRowRendersOnlyTheChainTheNarratorApproved(t *testing.T) {
 	}
 	if _, err := dawRow(t).Master(context.Background(), request("now.wav", shownDigest(t))); err != nil {
 		t.Fatalf("with the chain shown now: %v", err)
+	}
+}
+
+// The chain each render reads before it renders has its own time bound, like the plan's: a DAW that never answers fails the master
+// with the deadline instead of holding the export forever, and nothing renders (round 2 Go review on #2932).
+func TestTheDAWRowsPerRenderChainReadIsBounded(t *testing.T) {
+	project := t.TempDir()
+	daw := masteringporttest.NewFakeDAW(project)
+	useSession(t, func() (masteringport.Session, error) { return daw.Session(), nil })
+	digest := shownDigest(t)
+	daw.ChainNeverAnswers()
+	t.Cleanup(masteringport.SetRenderChainWait(50 * time.Millisecond))
+	done := make(chan error, 1)
+	go func() {
+		_, err := dawRow(t).Master(context.Background(), masteringport.Request{Region: "Chapter 1", Destination: filepath.Join(project, "out.wav"),
+			Profile: deliveryprofile.ACX(), Approved: true, ChainDigest: digest})
+		done <- err
+	}()
+	select {
+	case err := <-done:
+		if !errors.Is(err, context.DeadlineExceeded) {
+			t.Fatalf("err = %v, want the read's deadline", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("the master waited on a chain read that never answers")
+	}
+	if renders := daw.Renders(); len(renders) != 0 {
+		t.Fatalf("rendered without the chain read: %+v", renders)
 	}
 }
 

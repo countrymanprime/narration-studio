@@ -55,9 +55,23 @@ func listedChain(chain dawport.MasterChain) []ChainTrack {
 	return out
 }
 
+// blankLooking are letters and symbols that draw nothing: the Hangul fillers and the braille blank.
+var blankLooking = map[rune]bool{0x115F: true, 0x1160: true, 0x3164: true, 0xFFA0: true, 0x2800: true}
+
+// readable reports whether a cleaned name has something a narrator can read: a letter, number, punctuation mark or symbol that is
+// not blank-looking. A lone combining mark, a variation selector or a private-use character is not (qa round 2 on #2932, N2).
+func readable(name string) bool {
+	for _, r := range name {
+		if (unicode.IsLetter(r) || unicode.IsNumber(r) || unicode.IsPunct(r) || unicode.IsSymbol(r)) && !blankLooking[r] {
+			return true
+		}
+	}
+	return false
+}
+
 // trackName is a track's name as the narrator's report and the approval both say it: an unnamed track is "Track".
 func trackName(name string) string {
-	if clean := chainName(name); clean != "" {
+	if clean := chainName(name); readable(clean) {
 		return clean
 	}
 	return "Track"
@@ -70,7 +84,7 @@ func chainFX(slots []dawport.FXSlot) []ChainFX {
 	out := make([]ChainFX, 0, len(slots))
 	for _, slot := range slots {
 		name := chainName(slot.Name)
-		if name == "" {
+		if !readable(name) {
 			name = unnamedFX
 		}
 		out = append(out, ChainFX{Name: name, Enabled: slot.Enabled})

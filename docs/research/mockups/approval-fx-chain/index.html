@@ -33,6 +33,9 @@ td{border-top:1px solid var(--line);padding:6px 10px}
 .num{width:2.5rem;color:var(--muted)}
 .pill{font:600 11px var(--f-display);letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--line-strong);border-radius:999px;padding:1px 8px;margin-left:6px}
 .pill.master{background:var(--info-soft);color:var(--info);border-color:transparent;margin-left:0}
+.info{display:inline-grid;place-items:center;width:16px;height:16px;border:1px solid var(--muted);border-radius:50%;font-size:10px;margin-left:4px}
+.small{max-width:288px}
+.btn[disabled]{opacity:.55}
 .actions{display:flex;justify-content:space-between;gap:8px;margin-top:16px}
 .btn{font:600 12px var(--f-display);letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--btn-line);border-radius:6px;height:36px;padding:0 12px;background:var(--surface)}
 .btn.primary{background:var(--copper);color:var(--copper-ink);border-color:transparent}
@@ -47,7 +50,7 @@ td{border-top:1px solid var(--line);padding:6px 10px}
 <div class="dialog">
   <h2>Approve this render?</h2>
   <p>Your DAW's FX chain masters 4 files for this export only.</p>
-  <p class="label">Signal order: 2 effects on 1 track and the master</p>
+  <p class="label">Signal order: 2 effects on 1 track and the master <span class="info" title="Covers effect names, on/off and order, not their settings, routing or mute">i</span></p>
   <div class="box chain"><table aria-label="FX chain this render runs"><thead><tr><th>#</th><th>Track</th><th>Effect</th></tr></thead><tbody>
     <tr><td class="num">1</td><td>Voice</td><td>VST: ReaEQ (Cockos)</td></tr>
     <tr><td class="num">2</td><td><span class="pill master">Master</span></td><td>VST: ReaLimit (Cockos)</td></tr>
@@ -62,7 +65,7 @@ td{border-top:1px solid var(--line);padding:6px 10px}
 <h2>2. A long chain (23 plug-ins), one bypassed</h2>
 <div class="dialog">
   <h2>Approve this render?</h2>
-  <p class="label">Signal order: 23 effects on 4 tracks and the master</p>
+  <p class="label">Signal order: 23 effects on 4 tracks and the master, 1 switched off <span class="info" title="Covers effect names, on/off and order, not their settings, routing or mute">i</span></p>
   <div class="box chain"><table><thead><tr><th>#</th><th>Track</th><th>Effect</th></tr></thead><tbody>
     <tr><td class="num">1</td><td>Narration</td><td>VST3: Pro-Q 3 (FabFilter)</td></tr><tr><td class="num">2</td><td>Narration</td><td>VST: ReaComp (Cockos)</td></tr>
     <tr><td class="num">6</td><td>Alice</td><td>VST3: Pro-Q 3 (FabFilter)</td></tr>
@@ -73,14 +76,22 @@ td{border-top:1px solid var(--line);padding:6px 10px}
 </div>
 <p class="note">The list takes up to 20 rem (or 45% of the window) before it scrolls in its own box. A bypassed plug-in has an Off badge (a screen reader hears "Off, bypassed: will not run"). A name's hidden characters (a bidirectional override, a zero-width space) are dropped by the host and, if any reach the dialog, shown as their code; a name with nothing readable is "(unnamed)".</p>
 
-<h2>3. No FX anywhere</h2>
+<h2>3. A window too small to show the chain (320x300)</h2>
+<div class="dialog small">
+  <h2>Approve this render?</h2>
+  <p>Your DAW's FX chain masters 4 files for this export only.</p>
+  <div class="actions"><button class="btn">Cancel</button><button class="btn primary" disabled title="Scroll to the FX chain first">Approve and master</button></div>
+</div>
+<p class="note">The chain is below the dialog's visible body, so Approve is off, its hint saying "Scroll to the FX chain first". Once the chain's first row has been wholly in view, Approve comes on. In a larger window the chain is in view under the question and Approve is on at once. The <b>i</b> beside the count says what the approval covers: each effect's name, whether it is on, and the order, not its settings, routing or mute.</p>
+
+<h2>4. No FX anywhere</h2>
 <div class="dialog">
   <p class="label">Signal order: no effects</p>
   <div class="box chain"><table><thead><tr><th>#</th><th>Track</th><th>Effect</th></tr></thead><tbody><tr><td class="num"></td><td>All tracks and the master</td><td>No FX</td></tr></tbody></table></div>
 </div>
 
-<h2>4. The chain cannot be read whole, or changed after the approval</h2>
-<p class="toast">Your DAW's FX chain cannot be shown to you before it runs, so it cannot be approved: choose the built-in chain, or untick Master before encoding to encode without mastering (this project has more FX than this app can list, …)</p>
+<h2>5. The chain cannot be read, or changed after the approval</h2>
+<p class="toast">Your DAW's FX chain couldn't be read, so it can't be approved. Choose the built-in chain, or untick Master before encoding.</p>
 <p class="toast">Stopped at Chapter 02.wav: the FX chain in your DAW changed after you approved it: approve the render again. 1 of 4 files were prepared.</p>
 <p class="note">Both are toasts. No dialog opens for a chain that cannot be read; a chain changed after the approval stops the export at the file whose render refused it, keeping the files already prepared.</p>
 </body>

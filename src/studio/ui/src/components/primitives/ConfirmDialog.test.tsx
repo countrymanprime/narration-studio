@@ -59,6 +59,31 @@ describe('ConfirmDialog', () => {
     expect(danger).not.toHaveBeenCalled();
   });
 
+  // An approval whose deciding content is not yet in view (qa round 2 on #2932, N4): the confirm waits, says why, and sends nothing.
+  it('a blocked confirm is off with its reason as its hint and name, sends nothing, and comes on when unblocked', () => {
+    const confirm = vi.fn();
+    const { rerender } = render(
+      <ConfirmDialog
+        title="Approve this render?"
+        body="Body."
+        confirmLabel="Approve"
+        confirm={confirm}
+        cancel={vi.fn()}
+        confirmBlockedReason="Scroll to the FX chain first"
+      />,
+    );
+    const button = screen.getByRole('button', { name: 'Approve' });
+    expect(button).toHaveProperty('disabled', true);
+    fireEvent.click(button);
+    expect(confirm).not.toHaveBeenCalled();
+    // The disabled button cannot take focus, so its wrapper is the tab stop and carries the reason.
+    expect(screen.getByRole('group', { name: 'Scroll to the FX chain first' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Cancel' })).toHaveProperty('disabled', false);
+    rerender(<ConfirmDialog title="Approve this render?" body="Body." confirmLabel="Approve" confirm={confirm} cancel={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Approve' }));
+    expect(confirm).toHaveBeenCalledOnce();
+  });
+
   it('omits the danger action entirely when no dangerLabel/danger is given', () => {
     render(<ConfirmDialog title="Confirm" body="Continue?" confirmLabel="OK" confirm={() => {}} cancel={() => {}} />);
     expect(screen.queryByRole('button', { name: /discard/i })).toBeNull();

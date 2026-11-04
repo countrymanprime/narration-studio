@@ -140,7 +140,10 @@ func (dawChain) Master(ctx context.Context, req Request) (Result, error) {
 		return Result{}, err
 	}
 	progress(req, 0)
-	chain, err := reader.ReadMasterChain(ctx)
+	// The read has its own bound, like ExportPlan's, so a DAW that never answers fails this file instead of holding the export.
+	readCtx, cancelRead := context.WithTimeout(ctx, renderChainWait)
+	chain, err := reader.ReadMasterChain(readCtx)
+	cancelRead()
 	if err != nil {
 		return Result{}, err
 	}
@@ -345,6 +348,9 @@ func placeNew(file, dest string) error {
 }
 
 var _ ChainLister = dawChain{}
+
+// renderChainWait bounds the chain read each DAW master makes before it renders (a var so a test can shorten it).
+var renderChainWait = 10 * time.Second
 
 // Chain lists the FX a render would run now, through the DAW port's master_chain_read: each track with FX in order, then the
 // master. A chain the DAW cannot list whole, or no DAW, is an error, so the narrator never approves a chain they were not shown.

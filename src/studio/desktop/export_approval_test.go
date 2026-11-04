@@ -475,10 +475,9 @@ func TestExportPlanRefusalsForAnUnreadableChainSayWhatToDo(t *testing.T) {
 			if !errors.Is(err, set.want) {
 				t.Fatalf("err = %v, want %v", err, set.want)
 			}
-			for _, words := range []string{"choose the built-in chain", "untick Master before encoding"} {
-				if !strings.Contains(err.Error(), words) {
-					t.Errorf("refusal %q does not say %q", err, words)
-				}
+			// Short enough for a toast to show whole: the reason and what to do (round 2 walkthrough and qa N7 on #2932).
+			if want := "Your DAW's FX chain couldn't be read, so it can't be approved. Choose the built-in chain, or untick Master before encoding."; err.Error() != want {
+				t.Errorf("refusal = %q\nwant      %q", err, want)
 			}
 		})
 	}

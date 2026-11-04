@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { MACRO_NAME_CHARACTERS, macroNameProblem } from '../../api/macroName';
 import type { ExportPlan } from '../../types';
 import { ConfirmDialog } from '../primitives/ConfirmDialog';
@@ -7,9 +7,14 @@ import { Panel } from '../primitives/Panel';
 import { SectionLabel } from '../primitives/SectionLabel';
 import { StatusBadge } from '../primitives/StatusBadge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
+import { Tooltip } from '../primitives/Tooltip';
 import { fileName } from './useExportJobs';
 
 const CHAIN_LABEL = 'FX chain this render runs';
+/** What the digest binds, and what it does not (#2932's review): a hint, not a sentence in the dialog. */
+const CHAIN_SCOPE = 'Covers effect names, on/off and order, not their settings, routing or mute';
+/** Why Approve waits at a window too small to show the chain under the question (qa round 2 on #2932, N4). */
+const CHAIN_UNSEEN = 'Scroll to the FX chain first';
 
 /** "N effects on M tracks and the master": what the list holds, said on screen before it scrolls (#2932's walkthrough). */
 function chainCount(chain: ExportPlan['chain']): string {
@@ -18,17 +23,24 @@ function chainCount(chain: ExportPlan['chain']): string {
   const tracks = chain.filter((track) => !track.master && (track.fx ?? []).length > 0).length;
   const master = chain.some((track) => track.master && (track.fx ?? []).length > 0);
   const on = [tracks > 0 ? `${tracks} ${tracks === 1 ? 'track' : 'tracks'}` : '', master ? 'the master' : ''].filter(Boolean).join(' and ');
-  return `Signal order: ${effects} ${effects === 1 ? 'effect' : 'effects'} on ${on}`;
+  // A bypassed effect far down a long list is counted here, where it is seen first (round 2 walkthrough on #2932).
+  const off = chain.reduce((sum, track) => sum + (track.fx ?? []).filter((fx) => !fx.enabled).length, 0);
+  return `Signal order: ${effects} ${effects === 1 ? 'effect' : 'effects'} on ${on}${off > 0 ? `, ${off} switched off` : ''}`;
 }
+
+/** chain.go's blankLooking: letters and symbols that draw nothing (the Hangul fillers, the braille blank). */
+const BLANK_LOOKING = new Set([0x115f, 0x1160, 0x3164, 0xffa0, 0x2800]);
 
 /**
  * A name from the narrator's project as the dialog draws it: a format or control character (a bidirectional override, a zero-width
- * space) is shown as its code, so a name cannot reverse or hide what it says (the host drops them too, chain.go's chainName); a name
- * with nothing readable left is "(unnamed)" (qa on #2932, B2 and B3).
+ * space) is shown as its code, so a name cannot reverse or hide what it says (the host drops them too, chain.go's chainName). A name
+ * with no readable letter, number, punctuation or symbol left, or none at all, is `blank` ("Track", "(unnamed)"), as the host's rule
+ * (qa on #2932, B2 and B3; round 2, N2 and N3).
  */
-function visibleName(raw: string): string {
-  const shown = raw.replace(/[\p{Cf}\p{Cc}]/gu, (char) => `<U+${char.codePointAt(0)!.toString(16).toUpperCase().padStart(4, '0')}>`);
-  return /[^\s]/u.test(shown) ? shown : '(unnamed)';
+function visibleName(raw: string | null | undefined, blank: string): string {
+  const shown = (raw ?? '').replace(/[\p{Cf}\p{Cc}]/gu, (char) => `<U+${char.codePointAt(0)!.toString(16).toUpperCase().padStart(4, '0')}>`);
+  const readable = [...shown].some((char) => /[\p{L}\p{N}\p{P}\p{S}]/u.test(char) && !BLANK_LOOKING.has(char.codePointAt(0)!));
+  return readable ? shown : blank;
 }
 
 /**
@@ -37,14 +49,38 @@ function visibleName(raw: string): string {
  * track with FX top to bottom and then the master, which carries a Master badge from its flag (a track the narrator named "Master"
  * is plain text). A bypassed plug-in has an Off badge. Capped to its own scroll; with no FX anywhere one row says so.
  */
-function ChainList({ chain }: { chain: ExportPlan['chain'] | null | undefined }) {
+function ChainList({ chain, onSeen }: { chain: ExportPlan['chain'] | null | undefined; onSeen: () => void }) {
   const tracks = chain ?? [];
   const rows = tracks.flatMap((track) => (track.fx ?? []).map((fx) => ({ master: track.master, track: track.name, fx })));
+  // The first row, wholly in view at least once, counts as the chain seen: at 320x300 it is below the dialog's visible body while
+  // Approve is pinned, so Approve waits for it (qa round 2 on #2932, N4). Without IntersectionObserver (jsdom) it counts as seen.
+  const first = useRef<HTMLSpanElement>(null);
+  const seen = useRef(onSeen);
+  seen.current = onSeen;
+  useEffect(() => {
+    const target = first.current;
+    if (!target || typeof IntersectionObserver === 'undefined') {
+      seen.current();
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting && entry.intersectionRatio >= 0.99)) {
+          seen.current();
+          observer.disconnect();
+        }
+      },
+      { threshold: [0.99, 1] },
+    );
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, []);
   return (
     <div data-decision-critical="">
-      <SectionLabel as="p" className="mt-2">
-        {chainCount(tracks)}
-      </SectionLabel>
+      <div className="mt-2 flex items-center gap-2">
+        <SectionLabel as="p">{chainCount(tracks)}</SectionLabel>
+        <Tooltip label="What this approval covers" text={CHAIN_SCOPE} />
+      </div>
       <Panel flush scroll label={CHAIN_LABEL} className="mt-1 max-h-[min(20rem,45vh)]">
         <Table label={CHAIN_LABEL} columns={['3rem', 'minmax(0,1fr)', 'minmax(0,1.5fr)']}>
           <TableHead>
@@ -57,7 +93,9 @@ function ChainList({ chain }: { chain: ExportPlan['chain'] | null | undefined })
           <TableBody>
             {rows.length === 0 ? (
               <TableRow>
-                <TableCell>{''}</TableCell>
+                <TableCell>
+                  <span ref={first} />
+                </TableCell>
                 <TableCell>All tracks and the master</TableCell>
                 <TableCell>No FX</TableCell>
               </TableRow>
@@ -65,7 +103,9 @@ function ChainList({ chain }: { chain: ExportPlan['chain'] | null | undefined })
               rows.map(({ master, track, fx }, index) => (
                 // Keyed by position: two tracks can share a name (every unnamed one is "Track").
                 <TableRow key={index}>
-                  <TableCell className="whitespace-nowrap tabular-nums">{index + 1}</TableCell>
+                  <TableCell className="whitespace-nowrap tabular-nums">
+                    <span ref={index === 0 ? first : undefined}>{index + 1}</span>
+                  </TableCell>
                   <TableCell className="break-words">
                     {master ? (
                       <>
@@ -75,11 +115,11 @@ function ChainList({ chain }: { chain: ExportPlan['chain'] | null | undefined })
                         <span className="sr-only">Master track</span>
                       </>
                     ) : (
-                      <bdi>{visibleName(track)}</bdi>
+                      <bdi>{visibleName(track, 'Track')}</bdi>
                     )}
                   </TableCell>
                   <TableCell className="break-words">
-                    <bdi>{visibleName(fx.name)}</bdi>
+                    <bdi>{visibleName(fx.name, '(unnamed)')}</bdi>
                     {!fx.enabled && (
                       <>
                         {' '}
@@ -129,6 +169,8 @@ export function MasteringApprovalDialog({
 }) {
   const [macro, setMacro] = useState(plan.needsMacro ? lastMacro : '');
   const [problem, setProblem] = useState<string>();
+  // A DAW row's Approve waits until its chain has been in view (ChainList's first row); any other row has no chain to see.
+  const [chainSeen, setChainSeen] = useState(plan.provider !== 'daw');
   const regions = plan.items.some((item) => item.region !== '');
   const count = plan.items.length === 1 ? '1 file' : `${plan.items.length} files`;
   const listLabel = regions ? 'Files and the regions they render' : 'Files to master';
@@ -155,11 +197,12 @@ export function MasteringApprovalDialog({
       confirm={approve}
       cancel={onCancel}
       pending={pending}
+      confirmBlockedReason={chainSeen ? undefined : CHAIN_UNSEEN}
       focusCancel
       returnFocus={returnFocus}
     >
       {/* The chain first: it is what the narrator approves, so it is in view under the question at 360x500 (qa on #2932, B1). */}
-      {plan.provider === 'daw' && <ChainList chain={plan.chain} />}
+      {plan.provider === 'daw' && <ChainList chain={plan.chain} onSeen={() => setChainSeen(true)} />}
       <Panel flush scroll label={listLabel} className="mt-2 max-h-[14rem]">
         <Table label={listLabel} columns={regions ? ['minmax(0,1fr)', 'minmax(0,1fr)'] : ['minmax(0,1fr)']}>
           <TableHead>

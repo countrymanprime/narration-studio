@@ -136,7 +136,7 @@ func (h *Host) planExport(svc hostServices, req ExportRequest) (exportPlanned, e
 		}
 	}
 	if len(none) > 0 {
-		return exportPlanned{}, fmt.Errorf("%s masters the regions your DAW renders, and %s has no region: remove it from this export, or encode it without mastering",
+		return exportPlanned{}, fmt.Errorf("%s masters the regions your DAW renders, and %s has no region: remove it from this export, or untick Master before encoding to encode it without mastering",
 			row.Descriptor.Label, strings.Join(none, ", "))
 	}
 	return plan, nil
@@ -224,6 +224,19 @@ func exportPlanPayload(plan exportPlanned) ExportPlan {
 // exportChainWait bounds ExportPlan's read of the DAW's chain, under the page's own 15 s wait for the answer; a var for tests.
 var exportChainWait = 10 * time.Second
 
+// chainUnreadableError is ExportPlan's refusal of a chain it could not read whole: one short toast with the reason and what to do
+// instead (#2932's walkthrough; the DAW's own reason was cut off mid-sentence). It still is the DAW's error, for errors.Is.
+type chainUnreadableError struct {
+	label string
+	cause error
+}
+
+func (e chainUnreadableError) Error() string {
+	return e.label + " couldn't be read, so it can't be approved. Choose the built-in chain, or untick Master before encoding."
+}
+
+func (e chainUnreadableError) Unwrap() error { return e.cause }
+
 // exportPlan is ExportPlan's answer for req. With a row whose steps live in the DAW it reads the chain the render would run, so
 // the approval dialog shows it (threat model row 5o); a chain that cannot be read whole refuses the plan. ExportStart does not read
 // it: each render reads it again itself.
@@ -238,9 +251,7 @@ func (h *Host) exportPlan(req ExportRequest) (ExportPlan, error) {
 			defer cancel()
 			chain, err := lister.Chain(ctx)
 			if err != nil {
-				// A toast: what to do next, then the DAW's own reason (#2932's walkthrough).
-				return ExportPlan{}, fmt.Errorf("%s cannot be shown to you before it runs, so it cannot be approved: choose the built-in chain, or untick Master before encoding to encode without mastering (%w)",
-					plan.row.Descriptor.Label, err)
+				return ExportPlan{}, chainUnreadableError{label: plan.row.Descriptor.Label, cause: err}
 			}
 			plan.chain, plan.listed = chain, true
 		}

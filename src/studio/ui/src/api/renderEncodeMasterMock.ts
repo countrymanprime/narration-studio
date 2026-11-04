@@ -23,7 +23,7 @@ import type {
 } from '../types';
 import type { MasteringProviders } from './contracts/mastering';
 import type { ExportPlan, ExportPlanTrack } from './contracts/renderEncodeMaster';
-import { mockChainDigest } from './masteringMock';
+import { mockChainDigest, mockCleanChain } from './masteringMock';
 
 /** masteringport.ErrChainChanged's words. */
 const CHAIN_CHANGED = 'the FX chain in your DAW changed after you approved it: approve the render again';
@@ -351,7 +351,7 @@ export function createRenderEncodeMasterMock(
     const none = planned.filter((item) => regionsOnly && item.region === '').map((item) => baseName(item.path));
     if (none.length > 0)
       throw new Error(
-        `${row.label} masters the regions your DAW renders, and ${none.join(', ')} has no region: remove it from this export, or encode it without mastering`,
+        `${row.label} masters the regions your DAW renders, and ${none.join(', ')} has no region: remove it from this export, or untick Master before encoding to encode it without mastering`,
       );
     return { ...plan, provider: row.name, label: row.label, needsApproval: row.needsApproval, needsMacro: row.needsMacro, items: planned };
   };
@@ -389,7 +389,8 @@ export function createRenderEncodeMasterMock(
     exportPlan: async (req: ExportRequest): Promise<ExportPlan> => {
       const plan = await planOf(req);
       if (!plan.master || plan.provider !== 'daw') return wireClone(plan);
-      const chain = await masterChain();
+      // dawChain.Chain: the names as the host cleans them, and the digest over those (qa round 2, N5).
+      const chain = mockCleanChain(await masterChain());
       return wireClone({ ...plan, chain, chainDigest: await mockChainDigest(chain) });
     },
     exportStart: async (req: ExportRequest): Promise<ExportJob> => {
@@ -412,7 +413,7 @@ export function createRenderEncodeMasterMock(
         files: plan.items.map((item) => ({ kind: item.kind, title: item.title, path: item.path, status: 'pending' })),
       };
       // dawChain.Master: the first render reads the chain and refuses one the narrator did not approve, so the export stops there.
-      if (plan.provider === 'daw' && req.approval?.chainDigest !== (await mockChainDigest(await masterChain()))) {
+      if (plan.provider === 'daw' && req.approval?.chainDigest !== (await mockChainDigest(mockCleanChain(await masterChain())))) {
         const first = exportJob.files[0];
         exportJob = {
           ...exportJob,

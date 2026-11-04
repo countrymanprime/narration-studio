@@ -90,7 +90,7 @@ import { MOCK_REAPER_INPUT_SEEDS, MOCK_REAPER_SEEDS, mockLastReading } from './t
 import { deliveryQcEvidenceSchema, deliveryReportExportSchema, measureJobSchema, measurePickResultSchema } from './schemas/measure';
 import { exportJobSchema, exportPlanSchema, multiPackageJobSchema, packageFolderResultSchema, packageJobSchema } from './schemas/renderEncodeMaster';
 import { MOCK_EXPORT_ITEMS, MOCK_EXPORT_PATHS, createRenderEncodeMasterMock } from './renderEncodeMasterMock';
-import { mockChainDigest } from './masteringMock';
+import { mockChainDigest, mockChainName } from './masteringMock';
 import { deliveryProfileSchema, deliveryProfilesStateSchema } from './schemas/deliveryProfiles';
 import { MOCK_ACX, evaluateMockFile, mockCustomProfile } from './deliveryProfilesMock';
 import { diagnosticsJobSchema } from './schemas/diagnostics';
@@ -230,7 +230,7 @@ import {
   audacityLinkSchema,
 } from './schemas/daw';
 import { providerCapabilitiesSchema } from './schemas/providers';
-import { masteringProvidersSchema } from './schemas/mastering';
+import { chainNamesSchema, masteringProvidersSchema } from './schemas/mastering';
 import { recorderDevicesResultSchema, recorderLevelSchema, recorderStateSchema } from './schemas/recording';
 import { projectStateChangedSchema, projectStateStartResultSchema, projectStateStateSchema } from './schemas/projectstate';
 import { retakeLanesListSchema, retakeLanesStartResultSchema, retakeLanesStateSchema } from './schemas/retakelanes';
@@ -2362,7 +2362,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const cut = createMockApi({}, { mastering: { choice: 'daw', chain: 'unreadable' } });
     await cut.exportPickFiles();
     await expect(cut.exportPlan({ items: withRegions, master: true, format: 'mp3', approval: null })).rejects.toThrow(
-      /choose the built-in chain, or untick Master before encoding/,
+      /couldn't be read, so it can't be approved\. Choose the built-in chain, or untick Master before encoding\./,
     );
     const plainRow = createMockApi();
     await plainRow.exportPickFiles();
@@ -2371,6 +2371,16 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     // against the Go golden, and its start refuses an approval of the DAW row without one, as approvalFor does.
     const golden = parseWire(exportPlanSchema, readGolden('export-plan-daw.json'), ctx('export plan golden'));
     expect(await mockChainDigest(golden.chain)).toBe(golden.chainDigest);
+    // The mock cleans names exactly as chain.go does, over the host's own cases (qa round 2 on #2932, N5), and digests a chain with a
+    // missing list or name without throwing (N3).
+    const names = chainNamesSchema.parse(readGolden('chain-names.json'));
+    for (const { raw, track, fx } of names.cases) {
+      expect([mockChainName(raw, 'track'), mockChainName(raw, 'fx')], JSON.stringify(raw)).toEqual([track, fx]);
+    }
+    expect(await mockChainDigest([{ name: 'Voice', master: false, fx: null as never }])).toBe(
+      await mockChainDigest([{ name: 'Voice', master: false, fx: [] }]),
+    );
+    expect(await mockChainDigest([{ name: null as never, master: false, fx: [{ name: null as never, enabled: true }] }])).toMatch(/^sha256:/);
     expect(plan.chainDigest).toBe(await mockChainDigest(plan.chain));
     await expect(start(daw, { provider: 'daw', macro: '', chainDigest: '' })).rejects.toThrow(/does not say which FX chain you were shown/);
     expect(plan.items.map((item) => item.region)).toEqual(

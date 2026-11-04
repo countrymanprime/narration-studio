@@ -61,15 +61,50 @@ export type MasteringMockSeed = {
 
 /** The bridge's refusal of a chain it listed only part of (bridge.ErrChainTooLong), as export_plan.go words it for the DAW row:
  * what to do next, then the DAW's reason. */
-const CHAIN_UNREADABLE =
-  "Your DAW's FX chain cannot be shown to you before it runs, so it cannot be approved: choose the built-in chain, or untick Master before encoding to encode without mastering (this project has more FX than this app can list, so it cannot show you the whole chain before a render)";
+const CHAIN_UNREADABLE = "Your DAW's FX chain couldn't be read, so it can't be approved. Choose the built-in chain, or untick Master before encoding.";
+
+/** chain.go's blankLooking: letters and symbols that draw nothing (the Hangul fillers, the braille blank). */
+const BLANK_LOOKING = new Set([0x115f, 0x1160, 0x3164, 0xffa0, 0x2800]);
+/** chain.go's maxChainName. */
+const MAX_CHAIN_NAME = 120;
+
+/**
+ * chain.go's chainName, then trackName or chainFX's blank rule: format characters dropped, control characters spaced, spaces
+ * collapsed, at most 120 code points (an ellipsis marks a cut), and a name with no readable letter, number, punctuation or symbol is
+ * "Track" for a track and "(unnamed)" for a plug-in. Pinned to the host by chain-names.json.
+ */
+export function mockChainName(raw: string | null | undefined, kind: 'track' | 'fx'): string {
+  const spaced = (raw ?? '').replace(/\p{Cf}/gu, '').replace(/[\p{Cc}\uFFFD]/gu, ' ');
+  let clean = spaced.split(/\s+/u).filter(Boolean).join(' ');
+  const points = [...clean];
+  if (points.length > MAX_CHAIN_NAME)
+    clean = `${points
+      .slice(0, MAX_CHAIN_NAME - 1)
+      .join('')
+      .trim()}…`;
+  const readable = [...clean].some((char) => /[\p{L}\p{N}\p{P}\p{S}]/u.test(char) && !BLANK_LOOKING.has(char.codePointAt(0)!));
+  if (readable) return clean;
+  return kind === 'track' ? 'Track' : '(unnamed)';
+}
+
+/** The chain as dawChain.Chain lists it: every name cleaned as the host cleans it. */
+export function mockCleanChain(chain: readonly ExportPlanTrack[]): ExportPlanTrack[] {
+  return chain.map((track) => ({
+    name: track.master ? 'Master' : mockChainName(track.name, 'track'),
+    master: track.master,
+    fx: (track.fx ?? []).map((fx) => ({ name: mockChainName(fx.name, 'fx'), enabled: fx.enabled })),
+  }));
+}
 
 /** masteringport.ChainDigest: "sha256:" and the hex of SHA-256 over one tab-separated, newline-ended line per track ("track", its
  * master flag, its name) and per plug-in ("fx", on or off, its name), in chain order. The export plan golden pins it to the host's. */
 export async function mockChainDigest(chain: readonly ExportPlanTrack[]): Promise<string> {
   const flag = (on: boolean) => (on ? '1' : '0');
   const lines = chain
-    .map((track) => `track\t${flag(track.master)}\t${track.name}\n${track.fx.map((fx) => `fx\t${flag(fx.enabled)}\t${fx.name}\n`).join('')}`)
+    // Null-safe: a track with no list, or a missing name, digests as an empty list or an empty name (qa round 2, N3).
+    .map(
+      (track) => `track\t${flag(track.master)}\t${track.name ?? ''}\n${(track.fx ?? []).map((fx) => `fx\t${flag(fx.enabled)}\t${fx.name ?? ''}\n`).join('')}`,
+    )
     .join('');
   const sum = await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode(lines));
   return `sha256:${[...new Uint8Array(sum)].map((byte) => byte.toString(16).padStart(2, '0')).join('')}`;
