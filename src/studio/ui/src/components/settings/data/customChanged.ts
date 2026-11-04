@@ -5,6 +5,7 @@ import type { PortOf } from '../../../ports';
 import type { DeliveryProfilesState } from '../../../types';
 import { DELIVERY_PROFILES_CHANGED } from '../DeliveryProfilesPanel';
 import { MW_KEY_CHANGED } from '../controls/mwKeyStatus';
+import { useVoiceLayout } from '../../engine/voiceLayout';
 import { onEngineChanged } from './engineSignal';
 import { BROWSER_CHANGED } from './browserValues';
 import type { ReadSettings } from './values';
@@ -14,6 +15,8 @@ export type ProbeContext = {
   api: PortOf<'system'> & PortOf<'dawChoice'> & PortOf<'deliveryProfiles'> & PortOf<'pronunciationOnline'>;
   settings: ReadSettings;
   delivery: () => Promise<DeliveryProfilesState>;
+  /** The project's chapter layout as the app shares it, the same value the Engine panel shows. */
+  voiceLayout: string;
 };
 
 /**
@@ -31,6 +34,8 @@ export const CUSTOM_CHANGED: Readonly<Record<string, (context: ProbeContext) => 
   'voice.mwKey': async ({ api }) => (await api.pronunciationOnlineKeyStatus()).present,
   // This computer: the narrator added a profile of their own.
   'delivery.custom': async ({ delivery }) => (await delivery()).profiles.some((profile) => !profile.builtIn),
+  // This project: chapters are voice folders instead of one flat track each.
+  'daw.layout': ({ voiceLayout }) => voiceLayout !== 'flat',
   // This project: it records with something other than REAPER, or has its own delivery profile.
   'daw.engine': async ({ api }) => {
     const { chosen } = await api.dawChoice();
@@ -94,6 +99,7 @@ export function useCustomChanged(settings: ReadSettings): ReadonlySet<string> {
   const delivery = usePort('deliveryProfiles');
   const pronunciation = usePort('pronunciationOnline');
   const api = useMemo(() => ({ ...system, ...dawChoice, ...delivery, ...pronunciation }), [system, dawChoice, delivery, pronunciation]);
+  const voiceLayout = useVoiceLayout();
   const version = useBrowserSettingsVersion();
   const [again, setAgain] = useState(0);
   const [changed, setChanged] = useState<ReadonlySet<string>>(new Set());
@@ -116,7 +122,7 @@ export function useCustomChanged(settings: ReadSettings): ReadonlySet<string> {
     void Promise.all(
       Object.entries(CUSTOM_CHANGED).map(async ([id, probe]) => {
         try {
-          return (await probe({ api, settings, delivery: readDelivery })) ? id : undefined;
+          return (await probe({ api, settings, delivery: readDelivery, voiceLayout })) ? id : undefined;
         } catch {
           return undefined;
         }
@@ -129,7 +135,7 @@ export function useCustomChanged(settings: ReadSettings): ReadonlySet<string> {
     return () => {
       current = false;
     };
-  }, [api, settings, version, again]);
+  }, [api, settings, version, again, voiceLayout]);
 
   return changed;
 }

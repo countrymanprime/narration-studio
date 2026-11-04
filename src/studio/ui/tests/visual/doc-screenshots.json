@@ -420,6 +420,13 @@
     "caption": "Settings - Recording & DAW, Advanced: the Sync activity log, with Undo on a link sync made"
   },
   {
+    "page": "settings",
+    "state": "recording-chapter-layout",
+    "viewport": "desktop",
+    "docName": "settings-chapter-layout",
+    "caption": "Settings - Recording & DAW: Chapter layout under Chapter sync, with Flat and Voice folders"
+  },
+  {
     "page": "engine",
     "state": "rpp-picker",
     "viewport": "desktop",
