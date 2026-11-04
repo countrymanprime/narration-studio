@@ -103,7 +103,8 @@ func (h *Host) CreditsSaveProjectValues(title, subtitle, author, series, bookNum
 
 // CreditsChanged is whether the credits differ from what ships: the template library has a shipped template edited or deleted, or
 // one added (credits.TemplateStore.Changed), or the open project has credits values of its own (credits.Values.IsSet). With no
-// project open only the library counts. Settings > Changed reads it; it answers a JSON boolean and writes nothing.
+// project open only the library counts. Settings > Changed reads it; it answers a JSON boolean and writes nothing. Reading the project's
+// manifest (project.Load) can trigger persist's quarantine of a corrupt file, and with it the narrator's notice, as any read of it does.
 func (h *Host) CreditsChanged() (string, error) {
 	changed, err := h.creditTemplates.Changed()
 	if err != nil {

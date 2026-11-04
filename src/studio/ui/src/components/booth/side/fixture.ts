@@ -73,7 +73,6 @@ const mark = (over: Partial<Mark> & Pick<Mark, 'id' | 'paragraphId' | 'start' | 
 
 /** The chapter's marks: a stressed name with a note and a reply, a pause with no note, a stale mark and an open question. */
 export const marks: Marks = {
-  typesChanged: true,
   types: [
     { key: 'stress', name: 'Word stress', colour: 'copper', style: 'highlight', asks: false },
     { key: 'breath', name: 'Breath / pause', colour: 'info', style: 'dotted', asks: false },

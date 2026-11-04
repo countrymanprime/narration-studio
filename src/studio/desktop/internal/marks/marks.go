@@ -145,9 +145,6 @@ type Resolved struct {
 type Marks struct {
 	Types []MarkType `json:"types"`
 	Marks []Resolved `json:"marks"`
-	// TypesChanged is true when Types differ from DefaultTypes in any key, name, colour, style or asks flag, or in order or count:
-	// a type renamed, added, removed or moved. Settings > Changed reads it.
-	TypesChanged bool `json:"typesChanged"`
 }
 
 // Line is one paragraph of the manuscript as it currently is.
@@ -606,7 +603,7 @@ func answer(file marksFile, book Book) Marks {
 		return a.ID < b.ID
 	})
 	types := append([]MarkType{}, file.Types...)
-	return Marks{Types: types, Marks: result, TypesChanged: !slices.Equal(types, DefaultTypes())}
+	return Marks{Types: types, Marks: result}
 }
 
 func newID() string {
@@ -620,6 +617,38 @@ func newID() string {
 // never overwritten. When there is no file yet, the reader's old notes come across as note marks, and migrated says some did:
 // a caller that does not otherwise write then writes the file, so they come across only once.
 func (s *Service) read() (marksFile, bool, error) {
+	file, outcome, err := s.readStored()
+	if err != nil {
+		return marksFile{}, false, err
+	}
+	if outcome == persist.Missing {
+		migrated := s.migrate(file)
+		return migrated, len(migrated.Marks) > 0, nil
+	}
+	return file, false, nil
+}
+
+// TypesChanged is whether the mark types differ from DefaultTypes in any key, name, colour, style or asks flag, or in order or
+// count. It only reads: no project, no file, a corrupt file (kept aside by the reporter, as any read does) or a healed one answers
+// false; it never migrates old notes, writes, takes the file's lock or loads the manuscript. A file from a newer app, or one that
+// cannot be read at all, is an error. Settings > Changed reads it.
+func (s *Service) TypesChanged() (bool, error) {
+	if s.config.Project == "" {
+		return false, nil
+	}
+	file, outcome, err := s.readStored()
+	if err != nil {
+		return false, err
+	}
+	if outcome != persist.Loaded {
+		return false, nil
+	}
+	return !slices.Equal(file.Types, DefaultTypes()), nil
+}
+
+// readStored reads marks.json as it is: the file when it decoded (outcome Loaded), else the default file with why (Missing,
+// Quarantined or Healed). A newer version and an unreadable file are errors. It writes nothing and migrates nothing.
+func (s *Service) readStored() (marksFile, persist.Outcome, error) {
 	file := marksFile{SchemaVersion: SchemaVersion, MigratedNotes: true, Types: DefaultTypes(), Marks: []Mark{}}
 	path := File(s.config.Project)
 	newer := 0
@@ -643,21 +672,18 @@ func (s *Service) read() (marksFile, bool, error) {
 		return nil
 	})
 	switch outcome {
-	case persist.Missing:
-		migrated := s.migrate(file)
-		return migrated, len(migrated.Marks) > 0, nil
-	case persist.Quarantined, persist.Healed:
-		return file, false, nil
+	case persist.Missing, persist.Quarantined, persist.Healed:
+		return file, outcome, nil
 	case persist.Unreadable:
-		return marksFile{}, false, fmt.Errorf("your %s file could not be read, so nothing was changed", what)
+		return marksFile{}, outcome, fmt.Errorf("your %s file could not be read, so nothing was changed", what)
 	}
 	if err := persist.CheckVersion(newer, SchemaVersion, what); err != nil {
-		return marksFile{}, false, err
+		return marksFile{}, outcome, err
 	}
 	if decoded.Marks == nil {
 		decoded.Marks = []Mark{}
 	}
-	return decoded, false, nil
+	return decoded, outcome, nil
 }
 
 // migrate brings the reader's old notes across as note marks: its anchor range when it has one, else the start of its line.

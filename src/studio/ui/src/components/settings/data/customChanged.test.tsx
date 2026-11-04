@@ -114,8 +114,8 @@ describe('each probe says changed for a changed value and not for the default', 
     expect(await run('project.types', ctx({ guideTypesChanged: async () => true }))).toBe(true);
   });
   it('project.marks', async () => {
-    expect(await run('project.marks', ctx({ marksList: async () => ({ types: [], marks: [], typesChanged: false }) }))).toBe(false);
-    expect(await run('project.marks', ctx({ marksList: async () => ({ types: [], marks: [], typesChanged: true }) }))).toBe(true);
+    expect(await run('project.marks', ctx({ marksTypesChanged: async () => false }))).toBe(false);
+    expect(await run('project.marks', ctx({ marksTypesChanged: async () => true }))).toBe(true);
   });
   it('project.credits', async () => {
     expect(await run('project.credits', ctx({ creditsChanged: async () => false }))).toBe(false);

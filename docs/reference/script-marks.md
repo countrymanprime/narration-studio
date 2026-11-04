@@ -38,10 +38,11 @@ The first read of a project with no `marks.json` brings the reader's notes (`<ap
 
 | Binding | Takes | Answers |
 | --- | --- | --- |
-| `MarksList` | nothing | `{types, marks, typesChanged}` (`marks-list.json`); `typesChanged` is true when the types differ from the six a project starts with in any key, name, colour, style or asks flag, or in order or count |
+| `MarksList` | nothing | `{types, marks}` (`marks-list.json`) |
 | `MarksAdd` | chapter id, line id, start, end, type key, text | the mark (`marks-add.json`) |
-| `MarksRemove` | mark id | `{types, marks, typesChanged}` (`marks-remove.json`) |
-| `MarksSaveTypes` | the full type list, `removeUses` | `{types, marks, typesChanged}` (`marks-types.json`) |
+| `MarksRemove` | mark id | `{types, marks}` (`marks-remove.json`) |
+| `MarksSaveTypes` | the full type list, `removeUses` | `{types, marks}` (`marks-types.json`) |
+| `MarksTypesChanged` | nothing | a JSON boolean (`marks-types-changed.json`): true when the types differ from the six a project starts with in any key, name, colour, style or asks flag, or in order or count. It only reads `marks.json`: it never brings old notes across, writes or loads the manuscript. Settings > Changed reads it |
 | `MarksReply` | mark id, who, text | the mark (`marks-thread.json`) |
 | `MarksEditMessage` | mark id, message index, text | the mark |
 | `MarksDeleteMessage` | mark id, message index | `{mark, message}`: the mark and the message removed (`marks-thread-deleted.json`) |

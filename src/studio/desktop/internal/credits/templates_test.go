@@ -1,6 +1,7 @@
 package credits
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -226,5 +227,34 @@ func TestEditingAShippedTemplateBackToTheShippedTextIsNotAChange(t *testing.T) {
 	}
 	if changed, err := store.Changed(); err != nil || changed {
 		t.Fatalf("restored: %v, %v", changed, err)
+	}
+}
+
+func TestChangedTreatsNullTemplatesAsTheDefaultsAndAnEmptyListAsAChange(t *testing.T) {
+	for content, want := range map[string]bool{
+		`{"schemaVersion": 1}`:                    false,
+		`{"schemaVersion": 1, "templates": null}`: false,
+		`{"schemaVersion": 1, "templates": []}`:   true,
+	} {
+		path := filepath.Join(t.TempDir(), "credit-templates.json")
+		if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if changed, err := NewTemplateStore(path).Changed(); err != nil || changed != want {
+			t.Errorf("%s: Changed = %v, %v; want %v", content, changed, err, want)
+		}
+	}
+}
+
+func TestChangedCountsANarratorAddedChapterAnnouncement(t *testing.T) {
+	store := NewTemplateStore(filepath.Join(t.TempDir(), "credit-templates.json"))
+	if _, err := store.List(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.Save(Template{Kind: "chapter_announcement", Name: "Chapter", Body: "[Chapter]."}); err != nil {
+		t.Fatal(err)
+	}
+	if changed, err := store.Changed(); err != nil || !changed {
+		t.Fatalf("Changed = %v, %v", changed, err)
 	}
 }

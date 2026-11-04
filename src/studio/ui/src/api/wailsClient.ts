@@ -164,7 +164,7 @@ import { boothVoiceSchema, voiceTracksStateSchema } from './schemas/voiceTracks'
 import { voiceSampleAnswerSchema, voiceSamplesChangedSchema, voiceSamplesRemovedSchema, voiceSamplesSchema } from './schemas/voiceSamples';
 import { passageMapSchema } from './schemas/passageMap';
 import { acceptedWordsChangeSchema, acceptedWordsSchema } from './schemas/editLog';
-import { markSchema, markThreadDeletedSchema, marksSchema } from './schemas/marks';
+import { markSchema, markThreadDeletedSchema, marksSchema, marksTypesChangedSchema } from './schemas/marks';
 import { scriptPrepChapterSchema, scriptPrepSchema, scriptWordSchema } from './schemas/scriptPrep';
 import {
   extractionDecisionSchema,
@@ -470,6 +470,7 @@ export const wailsClient: NarrationApi = {
   editingAccept: (chapterId, keys) => decode(acceptedWordsChangeSchema, 'EditingAccept', host.EditingAccept(chapterId, keys)),
   editingUnaccept: (chapterId, keys) => decode(acceptedWordsChangeSchema, 'EditingUnaccept', host.EditingUnaccept(chapterId, keys)),
   marksList: () => decode(marksSchema, 'MarksList', host.MarksList()),
+  marksTypesChanged: () => decode(marksTypesChangedSchema, 'MarksTypesChanged', host.MarksTypesChanged()),
   marksAdd: (chapterId, paragraphId, start, end, type, text) => decode(markSchema, 'MarksAdd', host.MarksAdd(chapterId, paragraphId, start, end, type, text)),
   marksRemove: (id) => decode(marksSchema, 'MarksRemove', host.MarksRemove(id)),
   marksSaveTypes: (types, removeUses) => decode(marksSchema, 'MarksSaveTypes', host.MarksSaveTypes(types, removeUses)),

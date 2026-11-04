@@ -86,8 +86,7 @@ export function createMarksMock(ready: Promise<unknown>, chapters: () => Manuscr
     const marks = stored
       .map(resolve)
       .sort((a, b) => at(a) - at(b) || a.start - b.start || a.end - b.end || a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id));
-    const typesChanged = types.length !== DEFAULT_TYPES.length || types.some((type, index) => JSON.stringify(type) !== JSON.stringify(DEFAULT_TYPES[index]));
-    return wireClone({ types, marks, typesChanged });
+    return wireClone({ types, marks });
   };
 
   /** Applies edit to one stored mark and answers it; a refused edit changes nothing. */
@@ -107,6 +106,8 @@ export function createMarksMock(ready: Promise<unknown>, chapters: () => Manuscr
   };
 
   return {
+    marksTypesChanged: async () =>
+      types.length !== DEFAULT_TYPES.length || types.some((type, index) => JSON.stringify(type) !== JSON.stringify(DEFAULT_TYPES[index])),
     marksList: async () => {
       await ready;
       return list();

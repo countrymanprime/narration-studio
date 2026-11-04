@@ -1400,7 +1400,6 @@ describe('the reference in the side panel', () => {
   const MARKS: Marks = {
     types: [{ key: 'stress', name: 'Word stress', colour: 'copper', style: 'highlight', asks: false }],
     marks: [mark({})],
-    typesChanged: true,
   };
   const reference = () => document.getElementById('booth-reference');
   const word = (unit: number, index: number) => document.querySelector<HTMLElement>(`[data-unit="${unit}"] [data-word="${index}"]`)!;

@@ -166,7 +166,9 @@ func (s *TemplateStore) Delete(id string) error {
 
 // Changed is whether the library differs from the shipped defaults: a shipped template edited or deleted, or one added or
 // duplicated (BuiltIn is informational and not compared; the order is not either). A library with no file yet is the defaults, and
-// asking does not seed it. Settings > Changed reads it.
+// asking does not seed it. A file whose templates are null (nil) is the defaults too, as Save treats it by seeding them; an empty
+// list that is not null means the narrator deleted every template, which is a change. A narrator-added template of any kind, a
+// chapter announcement included, is a change. Settings > Changed reads it.
 func (s *TemplateStore) Changed() (bool, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -174,7 +176,7 @@ func (s *TemplateStore) Changed() (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if !found {
+	if !found || file.Templates == nil {
 		return false, nil
 	}
 	if len(file.Templates) != len(defaultTemplates) {

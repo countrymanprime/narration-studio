@@ -54,9 +54,11 @@ export const marksSchema = z
   .object({
     types: z.array(markTypeSchema).min(1),
     marks: z.array(markSchema),
-    typesChanged: z.boolean(),
   })
   .strict() satisfies z.ZodType<Marks>;
+
+/** MarksTypesChanged: a JSON boolean. */
+export const marksTypesChangedSchema = z.boolean();
 
 export const markThreadDeletedSchema = z
   .object({

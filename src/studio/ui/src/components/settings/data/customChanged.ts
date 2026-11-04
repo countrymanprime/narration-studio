@@ -58,8 +58,8 @@ export const CUSTOM_CHANGED: Readonly<Record<string, (context: ProbeContext) => 
   },
   // This project: the Story Bible's types are not the default six.
   'project.types': async ({ api }) => api.guideTypesChanged(),
-  // This project: the Script page's mark types are not the default six.
-  'project.marks': async ({ api }) => (await api.marksList()).typesChanged,
+  // This project: the Script page's mark types are not the default six (a read of the file only, so it never migrates old notes).
+  'project.marks': async ({ api }) => api.marksTypesChanged(),
   // This computer and this project: a shipped credit template was edited, deleted or added to, or this project has credits values of its own.
   'project.credits': async ({ api }) => api.creditsChanged(),
   'delivery.profile': async ({ delivery }) => {
