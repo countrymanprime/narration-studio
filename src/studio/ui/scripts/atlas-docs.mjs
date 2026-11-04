@@ -7,7 +7,8 @@
 // Everything under docs/ui/atlas and docs/ui/images is generated and pruned; inventory.json keeps the fields a person
 // added (tier, depth, atlasExempt) and the components that have no stories. Dependency-free Node apart from sharp (an
 // src/studio/ui dev dependency), which only the images need.
-import { existsSync, mkdirSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { createRequire } from 'node:module';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -36,8 +37,9 @@ const SOURCE_SKIP = /(^|[\\/])(node_modules|dist|storybook-static|screenshots|te
 /**
  * @param {string} uiDir the UI project (holds storybook-static/, screenshots/atlas/, src/, tests/atlas/a11y-debt.ts)
  * @param {string} outDir where docs/ui lives
+ * @param {{ images?: boolean }} [options] images: false skips the screenshots and the images (the drift check)
  */
-export async function atlasDocs(uiDir, outDir) {
+export async function atlasDocs(uiDir, outDir, { images = true } = {}) {
   const indexPath = join(uiDir, 'storybook-static', 'index.json');
   if (!existsSync(indexPath)) throw new Error(`no ${posix(relative(process.cwd(), indexPath))}: run the storybook build (pnpm atlas) first`);
   const entries = Object.values(readJson(indexPath).entries).filter((e) => e.type === 'story');
@@ -50,7 +52,7 @@ export async function atlasDocs(uiDir, outDir) {
   mkdirSync(imgDir, { recursive: true });
   let sharp;
   try {
-    sharp = createRequire(join(uiDir, 'package.json'))('sharp');
+    sharp = images ? createRequire(join(uiDir, 'package.json'))('sharp') : undefined;
   } catch {
     sharp = undefined;
   }
@@ -92,6 +94,7 @@ export async function atlasDocs(uiDir, outDir) {
     const consumers = sources.filter((f) => importer.test(readText(f))).map((f) => posix(relative(uiDir, f)));
     let image = '';
     for (const story of stories) {
+      if (!images) break;
       const file = join(uiDir, 'screenshots', 'atlas', slug(story.title), `${slug(story.name)}--light-wide.png`);
       if (!existsSync(file) || (await isBlank(file))) continue;
       image = `images/${slug(name)}.webp`;
@@ -138,13 +141,61 @@ export async function atlasDocs(uiDir, outDir) {
   return { components: inventory.length, stories: entries.length, outDir, images: Boolean(sharp) };
 }
 
+const IMAGE_LINE = /^!\[[^\]]*\]\(\.\.\/images\/[^)]*\)\n/gm;
+// A page without its screenshot line: the image exists only after the Playwright atlas run, the rest comes from the Storybook build alone.
+const withoutImage = (text) => text.replace(IMAGE_LINE, '').replace(/\n{3,}/g, '\n\n');
+
+/**
+ * Regenerates the pages and inventory.json into a temp copy and lists every file of outDir that differs.
+ * The images (webp) are not compared: they come from screenshots, which differ by machine.
+ * @returns {Promise<string[]>} the differences, empty when the committed docs equal a fresh generation
+ */
+export async function checkAtlasDocs(uiDir, outDir) {
+  const tmp = mkdtempSync(join(tmpdir(), 'atlas-docs-check-'));
+  try {
+    const fresh = join(tmp, 'ui');
+    mkdirSync(join(fresh, 'atlas'), { recursive: true });
+    // inventory.json keeps the hand-written fields of the committed one, so seed the temp copy with it.
+    if (existsSync(join(outDir, 'inventory.json'))) cpSync(join(outDir, 'inventory.json'), join(fresh, 'inventory.json'));
+    await atlasDocs(uiDir, fresh, { images: false });
+    const list = (dir) => (existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith('.md')) : []);
+    const diffs = [];
+    const names = new Set([...list(join(fresh, 'atlas')), ...list(join(outDir, 'atlas'))]);
+    for (const name of [...names].sort()) {
+      const a = join(fresh, 'atlas', name);
+      const b = join(outDir, 'atlas', name);
+      if (!existsSync(b)) diffs.push(`atlas/${name}: missing (a fresh generation writes it)`);
+      else if (!existsSync(a)) diffs.push(`atlas/${name}: stale (a fresh generation does not write it)`);
+      else if (withoutImage(readText(a)) !== withoutImage(readText(b))) diffs.push(`atlas/${name}: differs`);
+    }
+    const inv = (dir) => (existsSync(join(dir, 'inventory.json')) ? readText(join(dir, 'inventory.json')) : '');
+    if (inv(fresh) !== inv(outDir)) diffs.push('inventory.json: differs');
+    return diffs;
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+}
+
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const uiDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-  atlasDocs(uiDir, resolve(uiDir, '..', '..', 'docs', 'ui'))
+  const outDir = resolve(uiDir, '..', '..', '..', 'docs', 'ui');
+  const checking = process.argv.includes('--check');
+  (checking
+    ? checkAtlasDocs(uiDir, outDir).then((diffs) => {
+        if (diffs.length)
+          throw new Error(
+            `docs/ui is not what a fresh generation writes:\n  ${diffs.join('\n  ')}\nRun pnpm --dir src/studio/ui docs:atlas and commit the result.`,
+          );
+        return { check: true, outDir };
+      })
+    : atlasDocs(uiDir, outDir)
+  )
     .then((result) =>
-      console.log(
-        `docs: ${result.components} components, ${result.stories} stories -> ${posix(relative(process.cwd(), result.outDir))}${result.images ? '' : ' (no sharp: images skipped)'}`,
-      ),
+      result.check
+        ? console.log(`docs: ${posix(relative(process.cwd(), result.outDir))} equals a fresh generation`)
+        : console.log(
+            `docs: ${result.components} components, ${result.stories} stories -> ${posix(relative(process.cwd(), result.outDir))}${result.images ? '' : ' (no sharp: images skipped)'}`,
+          ),
     )
     .catch((error) => {
       console.error(`atlas-docs: ${error.message}`);

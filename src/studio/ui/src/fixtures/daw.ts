@@ -53,6 +53,7 @@ const REAPER_LEVELS: Record<DawCapabilityKey, DawCapabilitySupport['level']> = {
   record: 'experimental',
   punch: 'experimental',
   regions: 'experimental',
+  voice_sample_region: 'experimental',
   takes: 'experimental',
   fx_chains: 'experimental',
   item_gain: 'experimental',

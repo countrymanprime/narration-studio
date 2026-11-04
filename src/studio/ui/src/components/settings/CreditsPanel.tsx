@@ -10,7 +10,7 @@ import { ConfirmDialog } from '../primitives/ConfirmDialog';
 import { Field } from '../primitives/Field';
 import { Select } from '../primitives/Select';
 import { Highlight } from '../primitives/Highlight';
-import type { Notify } from '../primitives/Toast';
+import { type Notify, retryAction } from '../primitives/Toast';
 
 const KIND_LABEL: Record<string, string> = { opening: 'Opening', closing: 'Closing', chapter_announcement: 'Chapter announcement' };
 
@@ -162,7 +162,12 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
       await load();
       setSelectedId(saved.id);
     } catch (error) {
-      notify(apiErrorMessage(error), 'error');
+      // Saving the same template again writes the same body, so it is safe to repeat.
+      notify(
+        apiErrorMessage(error),
+        'error',
+        retryAction(() => void saveTemplate()),
+      );
     } finally {
       setBusy(false);
     }
@@ -209,7 +214,12 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
     try {
       await api.saveCreditsProjectValues(next);
     } catch (error) {
-      notify(apiErrorMessage(error), 'error');
+      // The same save again writes the same values.
+      notify(
+        apiErrorMessage(error),
+        'error',
+        retryAction(() => void saveValue(key, value)),
+      );
     } finally {
       setSavingKey((current) => (current === key ? undefined : current));
     }
@@ -223,7 +233,12 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
       notify('Credits cleared for this project.');
       setConfirmingClear(false);
     } catch (error) {
-      notify(apiErrorMessage(error), 'error');
+      // Clearing is a save of empty values, so doing it again is the same save.
+      notify(
+        apiErrorMessage(error),
+        'error',
+        retryAction(() => void clearValues()),
+      );
     } finally {
       setClearing(false);
     }
