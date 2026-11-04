@@ -283,10 +283,8 @@
         "src/components/booth/CompanionShell.tsx",
         "src/components/booth/ResumePrompt.tsx",
         "src/components/booth/UnresolvedCreditsWarning.tsx",
-        "src/components/booth/frame/BoothFooter.tsx",
         "src/components/booth/frame/LevelsMenu.tsx",
         "src/components/booth/page/BoothUnavailable.tsx",
-        "src/components/booth/record/RecordControl.tsx",
         "src/components/booth/record/RecordSetup.tsx",
         "src/components/booth/side/VoicesInChapter.tsx",
         "src/components/booth/voices/VoiceControl.tsx",
@@ -334,6 +332,7 @@
         "src/components/engine/ChapterTagsDialog.tsx",
         "src/components/engine/CleanupToolsDialog.tsx",
         "src/components/engine/CreateChapterRegionsDialog.tsx",
+        "src/components/engine/DawToolsMenu.tsx",
         "src/components/engine/EnginePanel.tsx",
         "src/components/engine/EnginePanelContext.tsx",
         "src/components/engine/LinkChaptersDialog.tsx",
@@ -480,6 +479,8 @@
       "consumers": [
         "src/components/editing/CleanupAction.tsx",
         "src/components/engine/CreateChapterRegionsDialog.tsx",
+        "src/components/engine/DawToolsMenu.tsx",
+        "src/components/engine/dawTools.tsx",
         "src/components/proof/CompareRun.tsx",
         "src/dawAvailability.ts",
         "src/useCapability.ts"
@@ -732,6 +733,7 @@
         "src/App.tsx",
         "src/components/assets/AssetInstallPrompt.tsx",
         "src/components/editing/CleanupAction.tsx",
+        "src/components/master/MasteringApprovalDialog.tsx",
         "src/components/production/ManuscriptImport.tsx",
         "src/components/production/RemoveFromRecordingDialog.tsx",
         "src/components/settings/CreditsPanel.tsx",
@@ -1188,6 +1190,7 @@
         "src/components/engine/ChapterTagsDialog.tsx",
         "src/components/engine/CreateChapterRegionsDialog.tsx",
         "src/components/engine/RenderConfigDialog.tsx",
+        "src/components/master/MasteringApprovalDialog.tsx",
         "src/components/pickups/list/AddPickup.tsx",
         "src/components/production/ImportReview.tsx",
         "src/components/project/NewProjectDialog.tsx",
@@ -1501,6 +1504,7 @@
         "src/components/primitives/ContextMenu.tsx",
         "src/components/primitives/IconButton.tsx",
         "src/components/primitives/SearchField.tsx",
+        "src/components/primitives/SplitButton.tsx",
         "src/components/primitives/StatTile.tsx",
         "src/components/primitives/TreeCaret.tsx",
         "src/components/primitives/TreeSelect.tsx",
@@ -1785,6 +1789,7 @@
       "stories": [
         "Script",
         "Script Search",
+        "Script Search Waiting",
         "Editing Selection Off",
         "Booth",
         "Production",
@@ -1816,7 +1821,6 @@
       ],
       "consumers": [
         "src/components/booth/CompanionShell.tsx",
-        "src/components/booth/voices/VoiceControl.tsx",
         "src/components/engine/RenderConfigDialog.tsx",
         "src/components/primitives/KeyCap.tsx",
         "src/components/primitives/KeyHint.tsx",
@@ -2417,6 +2421,7 @@
         "src/components/master/DiagnosticsSection.tsx",
         "src/components/master/FileRulesPanel.tsx",
         "src/components/master/MasterToSpecPanel.tsx",
+        "src/components/master/MasteringApprovalDialog.tsx",
         "src/components/master/MasteringChain.tsx",
         "src/components/master/MultiPlatformExportPanel.tsx",
         "src/components/master/ReportExportPanel.tsx",
@@ -3421,6 +3426,23 @@
       "a11yDebt": false
     },
     {
+      "title": "Primitives/SplitButton",
+      "name": "SplitButton",
+      "source": "src/components/primitives/SplitButton.tsx",
+      "stories": [
+        "Default",
+        "With Switch",
+        "Stopping"
+      ],
+      "consumers": [
+        "src/components/booth/frame/BoothFooter.tsx",
+        "src/components/booth/frame/LevelsMenu.tsx",
+        "src/components/booth/record/RecordControl.tsx",
+        "src/components/editing/takes/split/useSplitDuplicate.tsx"
+      ],
+      "a11yDebt": false
+    },
+    {
       "title": "Proof/Spot takes",
       "name": "Spot takes",
       "source": "src/components/proof/spot/Spot.stories.tsx",
@@ -3775,6 +3797,7 @@
         "src/components/master/DiagnosticsTables.tsx",
         "src/components/master/FileRulesPanel.tsx",
         "src/components/master/MasterToSpecPanel.tsx",
+        "src/components/master/MasteringApprovalDialog.tsx",
         "src/components/masterqc/files/FilesTable.tsx",
         "src/components/pickups/list/PickupsTable.tsx",
         "src/components/production/RecordingCheckReport.tsx",
@@ -4140,7 +4163,7 @@
       ],
       "consumers": [
         "src/components/booth/CompanionShell.tsx",
-        "src/components/engine/EnginePanel.tsx"
+        "src/components/engine/DawToolsMenu.tsx"
       ],
       "a11yDebt": false
     },
@@ -4195,6 +4218,7 @@
         "src/components/primitives/NavButton.tsx",
         "src/components/primitives/Pill.tsx",
         "src/components/primitives/SearchField.tsx",
+        "src/components/primitives/SplitButton.tsx",
         "src/components/primitives/Table.tsx",
         "src/components/primitives/TagInput.tsx",
         "src/components/primitives/TitleSubtitle.tsx",
