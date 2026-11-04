@@ -676,6 +676,10 @@
     "id": "acx",
     "version": "2026-09"
   },
+  "shippedDefault": {
+    "id": "acx",
+    "version": "2026-09"
+  },
   "hasProject": true,
   "projectChoice": {
     "id": "acx",

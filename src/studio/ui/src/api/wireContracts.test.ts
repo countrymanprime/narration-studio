@@ -2580,6 +2580,9 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const state = await api.deliveryProfiles();
     expectMatches(deliveryProfilesStateSchema, state, 'mock delivery profiles');
     expect(state).toMatchObject({ globalDefault: pinned.globalDefault, projectProfile: 'acx@2026-09', projectChoice: null });
+    expect(pinned.shippedDefault).toEqual({ id: 'acx', version: '2026-09' });
+    expect(state.shippedDefault).toEqual(pinned.shippedDefault);
+    expect((await api.deliverySelectProfile('global', 'acx', '2026-09')).shippedDefault).toEqual(pinned.shippedDefault);
     const copy = await api.deliveryDuplicateProfile('acx', '2026-09');
     expectMatches(deliveryProfileSchema, copy, 'mock duplicate');
     expect(copy).toMatchObject({ builtIn: false, revision: 1, basedOn: 'acx@2026-09', name: 'ACX (September 2026) copy' });
