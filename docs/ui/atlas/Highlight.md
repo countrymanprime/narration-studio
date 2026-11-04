@@ -30,5 +30,7 @@ Storybook title: `Primitives/Highlight`. Source: `src/components/primitives/High
 ## Used by
 
 - `src/components/booth/ReaderText.tsx`
-- `src/components/script/page/tools/find/FindBar.tsx`
+- `src/components/layout/JumpMenu.tsx`
+- `src/components/proof/around/SurroundingText.tsx`
 - `src/components/settings/CreditsPanel.tsx`
+- `src/components/storybible/EntryTable.tsx`

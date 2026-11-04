@@ -93,6 +93,9 @@ type Capabilities struct {
 	Level port.Level
 	// NeedsApproval: each master needs Request.Approved. Every row that makes a DAW render needs it.
 	NeedsApproval bool
+	// NeedsMacro: each master needs Request.Macro, the name of the narrator's own effect macro, which the narrator gives with their
+	// approval (the Audacity row).
+	NeedsMacro bool
 	// Needs are the DAW port capabilities the row uses, which the launch's DAW must have available.
 	Needs []dawport.Capability
 	// Chain is the row's own fixed chain, in order, in words that hold for any profile, so it can be shown before anything is

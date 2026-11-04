@@ -99,6 +99,7 @@ var smokeReaperFiles = []string{
 	"narration_transport.lua",
 	"narration_ui_bridge.lua",
 	"narration_undo.lua",
+	"narration_voice_sample_region.lua",
 	"narration_workspace.lua",
 	"reaper_common_core.lua",
 	"reaper_common_process.lua",

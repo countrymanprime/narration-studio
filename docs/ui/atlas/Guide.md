@@ -7,9 +7,10 @@ Storybook title: `Story Bible/Guide`. Source: `src/components/storybible/Guide.t
 ## Stories
 
 - List
-- Kind Chip On
+- Kind Chosen
 - No Match
 - Needs Manuscript
+- Sorted By Kind
 
 ## Used by
 
