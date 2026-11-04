@@ -179,6 +179,8 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
       }
       if (plan.kind === 'confirm' && !(await ask(`Punch in at ¶ ${s.paragraphOf(at) + 1}?`, 'Punch in', plan.dawName))) return;
       if (target.trackGuid && actionsRef.current.chooseVoice && !(await actionsRef.current.chooseVoice(target.trackGuid))) return;
+      // The narrator is told which track is recorded over before the take starts, never only after.
+      actionsRef.current.notify(`Recording over ¶ ${s.paragraphOf(at) + 1}${target.trackName ? ` on ${target.trackName}` : ''}.`);
       return actionsRef.current.beginTake(target.start);
     },
     [ask],
