@@ -151,6 +151,7 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/editing/stack/useStackRetries.tsx#8': no(RF),
   'src/components/editing/takes/keepTake.ts#1': no(RF),
   'src/components/editing/takes/keepTake.ts#2': no(RF),
+  'src/components/editing/takes/useRetakeLanes.ts#1': no(ED),
   'src/components/editing/takes/prep/useHideOthers.tsx#1': no(RF),
   'src/components/editing/takes/prep/usePrepSteps.tsx#1': no(RF),
   'src/components/editing/takes/prep/usePrepSteps.tsx#2': no(RF),
