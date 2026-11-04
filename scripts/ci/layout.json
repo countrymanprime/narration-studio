@@ -28,6 +28,7 @@
     "pnpm-workspace.yaml",
     "project.json",
     "pyproject.toml",
+    "pyrightconfig.json",
     "scripts",
     "src",
     "stylua.toml",

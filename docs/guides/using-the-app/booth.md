@@ -65,8 +65,10 @@ how many punches). In a [pickup session](#a-pickup-session) the pickup lines com
 behind it is dimmed while it is open, and a click on the dimmed text closes it; in a window under 480 pixels wide the drawer
 takes the whole width.
 
-The footer has **Record**, the take's timer, **Levels** (the microphone in use and two sliders), **Cold read**, a level bar and the
-room tone of that microphone at the right, and the keys the Booth answers, drawn from your keymap. One sentence at a time sits
+The footer has one **Record** button with two attached parts, the **Cold read** switch and, on its side, **Levels** (the caret that
+opens the microphone in use and two sliders). The take's timer follows it, and in a chapter that records on voice folders the
+[voice control](#recording-each-voice-on-its-own-track) sits to its left. A level bar and the room tone of that microphone are at the
+right, then the keys the Booth answers, drawn from your keymap. One sentence at a time sits
 between the controls and the level bar: why the text cannot follow your voice, or else why Record cannot start. In a window
 narrower than 1024 pixels the sentence moves to its own line under **Record**; the level bar stays on Record's line.
 
@@ -297,13 +299,34 @@ to start), the footer says why. Listening starts at the same time as the DAW, so
 
 ### A cold read
 
-To read a passage through before recording it, press **Cold read** in the footer beside **Levels**, or choose **Start cold read** in the jump menu (Ctrl+K). The Booth listens as it does during a take, with the engine and model chosen in Settings, and nothing you say leaves this computer. Nothing is recorded. While it listens, the top bar shows **Mic on · cold read** in the recording colour, drawn dashed.
+To read a passage through before recording it, press **Cold read** in the footer, between **Record** and **Levels**, or choose **Start cold read** in the jump menu (Ctrl+K). The Booth listens as it does during a take, with the engine and model chosen in Settings, and nothing you say leaves this computer. Nothing is recorded. While it listens, the top bar shows **Mic on · cold read** in the recording colour, drawn dashed.
 
 A second cursor, the **ghost**, follows your voice: the word you have reached has a dashed outline and a muted tint, with a dashed tick above it. The text keeps the ghost in view, so you can read on without touching anything. The real cursor, a filled word with a caret, stays where you left it: the next take starts from there. The progress line and the resume line follow the real cursor too. A click, an arrow key or **Start from here** moves the real cursor, not the ghost. What you read during a cold read is not kept: it never moves the real cursor, sets where you stopped, adds a suspected line or touches a bookmark.
 
 A cold read keeps listening until you stop it: press **Cold read** again, press **Record**, or leave the Booth. It does not stop at a pause or at the end of the chapter. **Record** ends the cold read first: the ghost goes, the text eases back to the real cursor, and the take starts there. **Cold read** is unavailable while a take records. Changing chapter ends it, and Escape leaves without asking, since nothing would be lost.
 
 ![Booth - a cold read: the dashed ghost on the word you have reached, the real cursor still where the next take starts, and Mic on · cold read in the top bar](../../images/ui/booth-cold-read.webp)
+
+### Recording each voice on its own track
+
+In a project set to **Voice folders** ([the audio engine panel](navigation.md#voice-folders)), a chapter linked to a REAPER folder records on
+one of the folder's tracks, its voices, so an effect on a character's track covers every line of that character. The footer then shows the
+voice a take records on, to the left of **Record**: its number-pad key (the number alone, "2") and the track's name, with a red ring when REAPER reports that track
+armed, and a warning sign when REAPER has several tracks armed (Record arms only the voice). Until you choose another, it is the track
+named **Narrator**.
+
+Press the voice control, or **Num .**, for the folder's voices in REAPER's order, each with its key and the characters it records. Type to
+narrow the list by key, track or character, and press **Enter** or click a voice to choose it. **Num 0** chooses the Narrator track, **Num 1** to **Num 9** the others in order, and **Num +** and **Num −** the next and
+previous voice. During a take a voice key switches the recording at once and REAPER keeps recording: the take is one item on each voice
+and one undo point, and about a twentieth of a second at the switch is recorded on neither track, so press the key in a pause between
+lines. A key pressed before the last one is answered is sent next, so the voice you end on is the one you pressed last. A key with no track
+behind it changes nothing and says so. Each chapter keeps the voice you chose until you close the app or open another project, and the
+control shows the voice the app will record on, also after you leave the Booth and come back. In a
+chapter that records on one track the voice keys say why they do nothing, and **=** and **-** still change the text size.
+
+![Booth - the voice control on the record bar, with the voice keys among the key hints](../../images/ui/booth-voices.webp)
+
+![Booth - the voice list: the chapter folder's voices with their keys and characters](../../images/ui/booth-voices-list.webp)
 
 ## Where the Booth opens in your DAW
 

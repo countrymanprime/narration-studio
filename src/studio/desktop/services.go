@@ -31,6 +31,7 @@ import (
 // and the registry that holds them is built once (assetregistry.go).
 type hostServices struct {
 	config       config
+	boothVoices  *boothVoiceChoices
 	findings     *findings.Store
 	guide        *guide.Service
 	lineIdentity *lineidentity.Service
@@ -168,6 +169,7 @@ func (h *Host) services() hostServices {
 		bridge:           h.bridge,
 		actions:          h.actions,
 		navigation:       h.navigation,
+		boothVoices:      h.boothVoices,
 		takeSelector:     h.takeSelector,
 		puncher:          h.puncher,
 		rangeCutter:      h.rangeCutter,

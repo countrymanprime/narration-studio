@@ -25,7 +25,7 @@ import { createFindingsMock } from './findingsMock';
 import { createWorkspaceTakesMock } from './workspaceTakesMock';
 import { createTakeEvidenceMock } from './takeEvidenceMock';
 import { createMeasureMock } from './measureMock';
-import { createRenderEncodeMasterMock } from './renderEncodeMasterMock';
+import { MOCK_EXPORT_LONG_PATHS, MOCK_EXPORT_MANY_PATHS, MOCK_EXPORT_PATHS, createRenderEncodeMasterMock } from './renderEncodeMasterMock';
 import { DELIVERY_REVIEW_ANALYZER, mockDeliveryReviewFindings, resavingAfterProfileChange } from './deliveryReviewMock';
 import { createDeliveryProfilesMock } from './deliveryProfilesMock';
 import { createDiagnosticsMock } from './diagnosticsMock';
@@ -33,6 +33,7 @@ import { createEditingMock, type EditingChoices } from './editingMock';
 import { createCleanupActionMock } from './cleanupActionMock';
 import { createBookmarksMock } from './bookmarksMock';
 import { createVoiceTracksMock } from './voiceTracksMock';
+import { createBoothVoiceMock } from './boothVoiceMock';
 import { createVoiceSamplesMock } from './voiceSamplesMock';
 import { createPassageMapMock } from './passageMapMock';
 import { takesPerParagraph } from './passageMapSpans';
@@ -362,7 +363,15 @@ export function createMockApi(
     saveFileFindings(DELIVERY_REVIEW_ANALYZER, review.files, review.findings);
     recordRenderMeasurement(job.files);
   });
-  const renderEncodeMaster = createRenderEncodeMasterMock(endJob, initial.renderExport, deliveryProfile, deliveryProfilesAll, initial.renderPackageMulti);
+  const renderEncodeMaster = createRenderEncodeMasterMock(
+    endJob,
+    initial.renderExport,
+    deliveryProfile,
+    deliveryProfilesAll,
+    initial.renderPackageMulti,
+    mastering.masteringProviders,
+    initial.renderExportPick === 'many' ? MOCK_EXPORT_MANY_PATHS : initial.renderExportPick === 'long' ? MOCK_EXPORT_LONG_PATHS : MOCK_EXPORT_PATHS,
+  );
   const system = createSystemMock(s, initial, {
     version: update.version,
     project,
@@ -374,7 +383,17 @@ export function createMockApi(
   });
   // The mock DAW's undo history: the edits below leave their labels on it (recordingUndo), and DawLastAction and DawUndoLast read it.
   const undoHistory = new MockUndoHistory();
+  // Built over the finished api below (it reads the links, tracks and voice setup through it); base forwards to it.
+  const late: { boothVoices?: ReturnType<typeof createBoothVoiceMock> } = {};
   const base: NarrationApi = {
+    boothVoiceSet: (chapterId, trackGuid) => {
+      if (!late.boothVoices) throw new Error('the mock is still being built');
+      return late.boothVoices.boothVoiceSet(chapterId, trackGuid);
+    },
+    boothVoiceGet: (chapterId) => {
+      if (!late.boothVoices) throw new Error('the mock is still being built');
+      return late.boothVoices.boothVoiceGet(chapterId);
+    },
     ...system.bindings,
     ...manuscript.bindings,
     manuscriptChapters: chaptersWithCredits,
@@ -557,7 +576,10 @@ export function createMockApi(
         : boot;
     },
   };
-  const recorded: NarrationApi = { ...withAudacityFacts, ...recordingUndo(withAudacityFacts, undoHistory) };
+  const undone: NarrationApi = { ...withAudacityFacts, ...recordingUndo(withAudacityFacts, undoHistory) };
+  // The Booth's voice choice over the mock's own voice setup, links and tracks; a record start in a voice folder answers its voice.
+  late.boothVoices = createBoothVoiceMock(undone);
+  const recorded: NarrationApi = { ...undone, ...late.boothVoices };
   const api = initial.invalidPayload ? { ...recorded, ...invalidPayloadOverrides(initial.invalidPayload, recorded) } : recorded;
   const final: NarrationApi = { ...api, ...overrides };
   // A driver (Playwright, a console) plays REAPER's side of the mock DAW from here: kill it, restart it, open another project.

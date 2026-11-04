@@ -155,7 +155,7 @@ export const proofDrivers: Record<string, Driver> = {
     await inspector(page).locator('[data-quote="script"]').scrollIntoViewIfNeeded();
   },
   'chapter-no-recording': async (page) => {
-    await openProof(page);
+    await openProof(page, 'mockChapterLink=confirmed');
     await openChapter(page, 'Chapter 2');
     await page.getByText('This chapter has no recording to check.').waitFor();
   },

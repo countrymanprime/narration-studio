@@ -3,6 +3,13 @@ import { type FeedbackRow, row, subscription } from './row';
 
 // prettier-ignore
 export const teleprompterFeedback: Record<string, FeedbackRow> = {
+  // The Booth's voices in a Voice folders project (components/booth/voices/useBoothVoices.ts; src/studio/desktop/bindings_booth_voice.go)
+  'src/components/booth/voices/useBoothVoices.ts::tracksList#1': row('effect', 'file-io', 'na', 'na', 'ui', 'toast', 'na', 'ok', 'The saved project\'s tracks, read when the chapter changes and when the voice list opens, for the folder\'s voices; a failed read is a toast and the control keeps what it showed.'),
+  'src/components/booth/voices/useBoothVoices.ts::chapterTrackMapList#1': row('effect', 'file-io', 'na', 'na', 'ui', 'toast', 'na', 'ok', 'The chapter\'s link, read with the tracks: a chapter linked to one folder has voices; a failed read is a toast.'),
+  'src/components/booth/voices/useBoothVoices.ts::guideEntities#1': row('effect', 'file-io', 'na', 'na', 'ui', 'toast', 'na', 'ok', 'The Story Bible\'s characters, read with the tracks, to show who each voice records; a failed read is a toast.'),
+  'src/components/booth/voices/useBoothVoices.ts::boothVoiceGet#1': row('effect', 'file-io', 'na', 'na', 'ui', 'toast', 'na', 'ok', 'The voice the host records the chapter on, read with the tracks and again after a take stops, so the control shows the host\'s voice and not one the page assumed; a failed read is a toast and the voices are still listed.'),
+  'src/components/booth/voices/useBoothVoices.ts::readAloudReaperState#1': row('effect', 'instant', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'REAPER\'s arms on the chapter\'s voice, read with the voices, after a choice and when a take starts or stops, for the voice control\'s arm dot and its several-armed warning; a failed read shows neither, so no stale arm state is given as fact.'),
+  'src/components/booth/voices/useBoothVoices.ts::boothVoiceSet#1': row('click', 'file-io', 'pending', 'pending', 'ui', 'toast', 'na', 'ok', 'A voice key, Num + or Num −, or a press in the voice list: the control is busy until the host answers, and a press meanwhile is sent once it does (the last one wins); during a take the DAW switches the recording (about 50 ms), and a refusal is a toast that keeps the voice.'),
   // The reading session core is `useTeleprompterSession`, mounted by the Booth page and the Companion host.
   // booth/passagemap/usePassageMapWriter.ts: the marks of a take are sent once, at stop; a refused run is kept, toasted once and sent again at the next stop or flush.
   // booth/pickups/usePickupSession.ts: the pickup session (SN-O82), opened from Pickups at a pickup.
@@ -20,30 +27,7 @@ export const teleprompterFeedback: Record<string, FeedbackRow> = {
   'src/components/booth/useTeleprompterSession.ts::subscribeTeleprompterState#1': subscription('The live session state.'),
   'src/components/booth/useTeleprompterSession.ts::teleprompterState#1': row('mount', 'instant', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'Hydrates a session that was already running; the state event follows anyway.'),
   'src/components/booth/useTeleprompterSession.ts::teleprompterDevices#1': row('effect', 'python', 'na', 'disabled', 'ui', 'inline', 'na', 'ok', 'Loads the device list on mount and again on a manual Refresh click in the picker (disabled while a listing is already in flight); a listing failure shows inline instead of blocking Start with a previously-chosen device (the host never fails this call outright).'),
-  'src/components/booth/useRecordInReaper.ts::settingsForScope#1': row('effect', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'Loads the Record-in-REAPER saved per-project state on mount; if it fails the setting just reads as off, exactly as a project that has never turned it on.'),
   'src/components/booth/pages/useWordsPerPage.ts::settingsForScope#1': row('mount', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'Reads the project\'s words per page for the page breaks when the Booth opens; if it fails the pages break at the default 250, and Settings reports the real error.'),
-  'src/components/booth/useRecordInReaper.ts::readAloudRecordStart#1': row(
-    'click',
-    'file-io',
-    'disabled',
-    'host',
-    'ui',
-    'inline',
-    'no',
-    'ok',
-    'Play with the toggle on: the Play/Pause button is already disabled while starting (useTeleprompterSession\'s own phase guard covers the click that follows); a refusal or the 3-second timeout shows inline in the status line and TeleprompterStart is never sent, so nothing starts listening silently.',
-  ),
-  'src/components/booth/useRecordInReaper.ts::readAloudRecordStop#1': row(
-    'click',
-    'file-io',
-    'none',
-    'none',
-    'ui',
-    'inline',
-    'na',
-    'ok',
-    'Stop (and the dialog\'s "Stop reading?" confirm) always stops listening first; this is a best-effort follow-up only when this app actually started a REAPER recording, so a refusal (REAPER already stopped on its own) shows inline but never blocks the reading session from having already ended.',
-  ),
   'src/components/booth/useTeleprompterSession.ts::settingsForScope#1': row('effect', 'file-io', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'Loads the persisted microphone and runs the one-time browser-storage migration on the standalone page; if it fails the field just starts empty.'),
   'src/components/booth/useTeleprompterSession.ts::manuscriptParagraphs#1': row('effect', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'An inline error.'),
   'src/components/booth/useTeleprompterSession.ts::teleprompterStart#1': row('click', 'job', 'disabled', 'host', 'ui', 'inline', 'no', 'ok', 'The state event moves the page to "starting" and disables Start; the host refuses a second session.'),

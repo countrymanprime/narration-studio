@@ -11,8 +11,9 @@ import (
 	"time"
 
 	"desktop/internal/encodeport"
-	"desktop/internal/mastering"
+	"desktop/internal/masteringport"
 	"desktop/internal/packager"
+	"desktop/internal/port"
 	"desktop/internal/runlog"
 )
 
@@ -46,18 +47,49 @@ func writeFixtureFile(t *testing.T, path, body string) {
 	}
 }
 
-// fakeMaster answers a mastering.Result and, like the real chain, writes req.Destination - never req.Source.
-func fakeMaster(t *testing.T) masterFileFunc {
-	return func(_ context.Context, req mastering.Request, opts mastering.Options) (mastering.Result, error) {
-		if req.Source == req.Destination {
-			t.Fatalf("mastering asked to write over its own source %q", req.Source)
+// masterRow is a test mastering row: master runs for each file it masters.
+type masterRow struct {
+	name   string
+	modes  []string
+	caps   masteringport.Capabilities
+	master func(ctx context.Context, req masteringport.Request) (masteringport.Result, error)
+}
+
+func (r masterRow) Name() string                             { return r.name }
+func (r masterRow) Capabilities() masteringport.Capabilities { return r.caps }
+func (r masterRow) Master(ctx context.Context, req masteringport.Request) (masteringport.Result, error) {
+	return r.master(ctx, req)
+}
+
+// masterRows is a registry of rows, the first the default, each a ModeWAV row unless it says otherwise in modes.
+func masterRows(rows ...masterRow) *port.Registry[masteringport.Mastering] {
+	registry := masteringport.NewRegistry()
+	for _, row := range rows {
+		modes := row.modes
+		if modes == nil {
+			modes = []string{masteringport.ModeWAV}
 		}
-		writeFixtureFile(t, req.Destination, "mastered "+req.Source)
-		if opts.Progress != nil {
-			opts.Progress(1, 1)
-		}
-		return mastering.Result{Source: req.Source, Destination: req.Destination}, nil
+		registry.Register(port.Entry[masteringport.Mastering]{
+			Name: row.name, Descriptor: port.Descriptor{Label: row.name + " chain", Modes: modes},
+			New: func() masteringport.Mastering { return row },
+		})
 	}
+	return registry
+}
+
+// fakeMaster is a Supported row that, like the real chain, writes req.Destination - never req.Source.
+func fakeMaster(t *testing.T) *port.Registry[masteringport.Mastering] {
+	return masterRows(masterRow{name: "fake", caps: masteringport.Capabilities{Level: port.Supported},
+		master: func(_ context.Context, req masteringport.Request) (masteringport.Result, error) {
+			if req.Source == req.Destination {
+				t.Fatalf("mastering asked to write over its own source %q", req.Source)
+			}
+			writeFixtureFile(t, req.Destination, "mastered "+req.Source)
+			if req.Progress != nil {
+				req.Progress(1, 1)
+			}
+			return masteringport.Result{Provider: "fake", Source: req.Source, Destination: req.Destination}, nil
+		}})
 }
 
 // fakeEncode answers success and, like the real encoders, writes dst - never wav.
@@ -116,10 +148,10 @@ func TestExportEncodesWithoutMasteringWhenMasterIsOff(t *testing.T) {
 	host, ended := renderExportHost(t, source)
 	pickAllExport(t, host)
 	host.encodeFile = fakeEncode(t)
-	host.masterFile = func(context.Context, mastering.Request, mastering.Options) (mastering.Result, error) {
+	host.masteringRows = masterRows(masterRow{name: "fake", master: func(context.Context, masteringport.Request) (masteringport.Result, error) {
 		t.Fatal("mastering should not run when Master is false")
-		return mastering.Result{}, nil
-	}
+		return masteringport.Result{}, nil
+	}})
 
 	job, err := host.startExport(ExportRequest{Items: []ExportItem{{Kind: string(packager.KindChapter), Title: "01", Path: source}}})
 	if err != nil {
@@ -149,7 +181,7 @@ func TestExportMastersThenEncodesWhenMasterIsOn(t *testing.T) {
 	writeFixtureFile(t, source, "wav")
 	host, _ := renderExportHost(t, source)
 	pickAllExport(t, host)
-	host.masterFile = fakeMaster(t)
+	host.masteringRows = fakeMaster(t)
 	host.encodeFile = fakeEncode(t)
 
 	if _, err := host.startExport(ExportRequest{Master: true, Items: []ExportItem{{Kind: string(packager.KindChapter), Title: "01", Path: source}}}); err != nil {
