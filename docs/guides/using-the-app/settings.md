@@ -184,7 +184,7 @@ for longer.
 ## Models and downloads
 
 One list of everything the app can keep on this computer: Whisper models, Moonshine models, the preview voices, the Story Bible language models, the dictionary, the wiktionary pronunciations and the MP3 encoder. Nothing downloads by itself, and
-removing one never touches your projects. Above the list, the disk the installed ones use, and under it the **Models folder** row, which shows the folder they are kept in, has **Open folder** to show it in the file manager and [moves them to another folder](#models-folder). When the list cannot be read, the message offers **Retry** and **Open the folder**.
+removing one never touches your projects. Above the list, the disk the installed ones use, and under it the **Models folder location** row, which shows the folder they are kept in, has **Open folder** to show it in the file manager and [moves them to another folder](#models-folder). When the list cannot be read, the message offers **Retry** and **Open the folder**.
 Which one is *used* is chosen in the category that uses it; here you only get, check and remove them.
 
 ![Settings - Models & downloads: the disk used and each download with its state, size, what uses it and its actions](../../images/ui/settings-models.webp)
@@ -204,7 +204,7 @@ With nothing downloaded, the page (its **?** gives the size, about 600 MB) offer
 
 ### Models folder
 
-Under the disk bar, **Models folder** is where the downloads are kept: the folder in use, **Open folder**, **Change location…** and, once you have moved them, a reset button. It is also found by searching for "location" or "folder", and by the **Changed** filter once it is not the default. Its **?** says what a move does.
+Under the disk bar, **Models folder location** is where the downloads are kept: the folder in use, **Open folder**, **Change location…** and, once you have moved them, a reset button. It is also found by searching for "location" or "folder", and by the **Changed** filter once it is not the default. Its **?** says what a move does.
 
 **Change location…** asks first (the question is below), then opens your computer's folder dialog. Choose an empty folder (make a new one in the dialog if you like; a folder inside the current one, or one that already holds files, is refused). The app copies everything it has downloaded, checks every copied file against the original, and only then uses the new folder, at once and for every kind of download. A bar shows the bytes of both passes and **Cancel** stops the move. A move is refused while a download runs, and no download starts during one.
 
@@ -212,9 +212,9 @@ Under the disk bar, **Models folder** is where the downloads are kept: the folde
 
 ![Settings - Models & downloads while the downloads are being moved: a progress bar and Cancel](../../images/ui/settings-models-moving.webp)
 
-If you cancel, or anything fails (the folder is read-only, the disk is full, a disk is unplugged, a copied file does not match), the dialog says why and your models are exactly where they were: nothing is deleted, nothing changes, and a half copy is removed.
+While a move runs the bar counts the bytes of the copy and then of the check, each against the size shown as used. When it ends, the dialog is titled by how it ended (**The models were moved**, **The move failed** or **The move was cancelled**) and has only **Close**. If you cancel, or anything fails (the folder is read-only, the disk is full, a disk is unplugged, a copied file does not match), the dialog says why and your models are exactly where they were: nothing is deleted, nothing changes, and a half copy is removed.
 
-When a move has finished, the old copy is still on your disk. The row says so, with **Delete old copy…** and **Keep it**. Deleting asks first and removes only the downloaded models, voices and tools in that folder, never anything else you keep there. It is refused while something that may still read the old copy is running. **Keep it** leaves the folder alone and stops asking. Until you answer, another move is not offered.
+When a move has finished, the old copy is still on your disk. The row says so, with **Delete old copy…** and **Keep it**. Deleting asks first and removes only the downloaded models, voices and tools in that folder, never anything else you keep there. It is refused while something that may still read the old copy is running. **Keep it** leaves the folder alone and stops asking, and a message says where it is: there is no way back to the question, so delete that folder yourself when you no longer need it. Until you answer, **Change location…** and the reset button are off, with a tooltip and a line under the row saying why.
 
 ![Settings - Models & downloads after a move: the new folder in use and the old copy waiting for an answer](../../images/ui/settings-models-moved.webp)
 

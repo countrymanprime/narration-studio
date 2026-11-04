@@ -45,6 +45,8 @@ async function renderModels(seed: MockApiSeed = {}, overrides: Partial<Narration
   return api;
 }
 
+/** The dialog that says how a move ended, once it has. */
+const ended = (title: string) => screen.findByRole('dialog', { name: title }, SLOW);
 const row = () => document.querySelector<HTMLElement>('[data-row="models.folder"]')!;
 const move = async () => {
   fireEvent.click(await screen.findByRole('button', { name: 'Change location…' }));
@@ -52,19 +54,36 @@ const move = async () => {
 };
 
 describe('Models folder: breaks', () => {
-  it('does not open the folder dialog while an old copy waits, and says why', async () => {
-    const { overlay } = await import('../../../overlay/overlayService');
-    const toast = vi.spyOn(overlay, 'toast');
+  it('turns Change location and Reset off while an old copy waits, and says why on the offer line', async () => {
     const api = await renderModels({ assetMove: 'moved' });
     const pick = vi.spyOn(api, 'assetsFolderPick');
-    fireEvent.click(await screen.findByRole('button', { name: 'Change location…' }));
-    expect(screen.queryByRole('alertdialog')).toBeNull();
-    expect(pick).not.toHaveBeenCalled();
-    expect(toast).toHaveBeenCalledWith(expect.stringContaining('Delete the old copy or keep it first'), { tone: 'error' });
+    const change = await screen.findByRole('button', { name: 'Change location…' });
+    expect(change.hasAttribute('disabled')).toBe(true);
+    fireEvent.click(change);
     const reset = await screen.findByRole('button', { name: 'Reset the models folder to the default folder' });
     expect(reset.getAttribute('aria-disabled')).toBe('true');
     fireEvent.click(reset);
     expect(screen.queryByRole('alertdialog')).toBeNull();
+    expect(pick).not.toHaveBeenCalled();
+    expect(document.querySelector('[data-old-copy]')!.textContent).toContain('Delete the old copy or keep it before moving again');
+  });
+
+  it("Keep it says where the old copy stays and that deleting it is the narrator's to do", async () => {
+    const { overlay } = await import('../../../overlay/overlayService');
+    const toast = vi.spyOn(overlay, 'toast');
+    await renderModels({ assetMove: 'moved' });
+    fireEvent.click(await screen.findByRole('button', { name: 'Keep it' }));
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.stringContaining('Delete that folder yourself when you no longer need it')));
+    expect(toast.mock.calls.at(-1)![0]).toContain(MOCK_ASSET_ROOT);
+  });
+
+  it('counts each pass against the real total, the same size the disk bar says is used', async () => {
+    await renderModels({ assetMove: 'copying' });
+    const used = document.querySelector('[data-disk]')!.textContent!;
+    await move();
+    const dialog = await screen.findByRole('dialog', { name: /^Moving models/ });
+    await waitFor(() => expect(dialog.textContent).toMatch(/\d+ MB of 495 MB/), SLOW);
+    expect(used).toContain('495 MB');
   });
 
   it('counts the elapsed time from when the host says the move began, also on a page opened mid-move', async () => {
@@ -122,14 +141,16 @@ describe('Models folder: breaks', () => {
     };
     const first = await renderOnce();
     fireEvent.click(within(screen.getByRole('navigation', { name: 'Settings categories' })).getByRole('button', { name: /^Models & downloads/ }));
-    const dialog = await screen.findByRole('dialog', { name: /^Moving models/ });
+    const dialog = await ended('The move failed');
     expect(dialog.textContent).toContain('The disk filled up');
+    expect(within(dialog).queryByRole('progressbar')).toBeNull();
+    expect(dialog.textContent).not.toContain('elapsed');
     fireEvent.click(within(dialog).getByRole('button', { name: 'Close' }));
     first.unmount();
     await renderOnce();
     fireEvent.click(within(screen.getByRole('navigation', { name: 'Settings categories' })).getByRole('button', { name: /^Models & downloads/ }));
     await screen.findByRole('button', { name: 'Change location…' });
-    expect(screen.queryByRole('dialog', { name: /^Moving models/ })).toBeNull();
+    expect(screen.queryByRole('dialog', { name: 'The move failed' })).toBeNull();
   });
 
   it('draws every path left to right, so a path with right-to-left letters keeps its order', async () => {
@@ -163,9 +184,10 @@ describe('Models folder', () => {
 
     const dialog = await screen.findByRole('dialog', { name: /^Moving models/ });
     expect(within(dialog).getByRole('button', { name: 'Cancel' })).toBeTruthy();
-    await waitFor(() => expect(within(dialog).getByRole('button', { name: 'Close' })).toBeTruthy(), SLOW);
-    expect(dialog.textContent).toContain('The models are in the new folder and in use.');
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Close' }));
+    const done = await ended('The models were moved');
+    expect(done.textContent).toContain(`The models are in ${MOCK_MOVED_ROOT} and in use.`);
+    expect(within(done).queryByRole('progressbar')).toBeNull();
+    fireEvent.click(within(done).getByRole('button', { name: 'Close' }));
 
     await waitFor(() => expect(within(row()).getByText(MOCK_MOVED_ROOT)).toBeTruthy());
     expect(row().getAttribute('data-changed')).toBe('true');
@@ -180,8 +202,11 @@ describe('Models folder', () => {
     const dialog = await screen.findByRole('dialog', { name: /^Moving models/ });
     await waitFor(() => expect(within(dialog).getByRole('progressbar').getAttribute('aria-valuenow')).toBe('40'), SLOW);
     fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
-    await waitFor(() => expect(dialog.textContent).toContain('Your models are still where they were.'));
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Close' }));
+    const stopped = await ended('The move was cancelled');
+    expect(stopped.textContent).toContain('Your models are still where they were.');
+    expect(within(stopped).queryByRole('progressbar')).toBeNull();
+    expect(stopped.textContent).not.toContain('elapsed');
+    fireEvent.click(within(stopped).getByRole('button', { name: 'Close' }));
     expect(within(row()).getByText(MOCK_ASSET_ROOT)).toBeTruthy();
     expect(within(row()).queryByRole('button', { name: /^Reset the models folder/ })).toBeNull();
   });
@@ -189,9 +214,9 @@ describe('Models folder', () => {
   it('a failed move says why in the dialog and changes nothing', async () => {
     await renderModels({ assetMove: 'fails' });
     await move();
-    const dialog = await screen.findByRole('dialog', { name: /^Moving models/ });
-    await waitFor(() => expect(within(dialog).getByRole('alert').textContent).toContain('The disk filled up'), SLOW);
-    expect(within(dialog).getByRole('progressbar').getAttribute('aria-valuenow')).toBe('0');
+    const dialog = await ended('The move failed');
+    expect(within(dialog).getByRole('alert').textContent).toContain('The disk filled up');
+    expect(within(dialog).queryByRole('progressbar')).toBeNull();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Close' }));
     expect(within(row()).getByText(MOCK_ASSET_ROOT)).toBeTruthy();
   });
@@ -250,8 +275,7 @@ describe('Models folder', () => {
     const question = await screen.findByRole('alertdialog', { name: 'Move the downloads back to the default folder?' });
     fireEvent.click(within(question).getByRole('button', { name: 'Move back' }));
     await waitFor(() => expect(start).toHaveBeenCalledWith(''));
-    const dialog = await screen.findByRole('dialog', { name: /^Moving models/ });
-    await waitFor(() => expect(within(dialog).getByRole('button', { name: 'Close' })).toBeTruthy(), SLOW);
+    const dialog = await ended('The models were moved back');
     fireEvent.click(within(dialog).getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(row().getAttribute('data-changed')).toBeNull());
   });
@@ -259,7 +283,7 @@ describe('Models folder', () => {
   it('is found by search and by the Changed filter', async () => {
     await renderModels({ assetMove: 'moved' });
     fireEvent.change(screen.getByRole('textbox', { name: 'Search settings' }), { target: { value: 'location' } });
-    expect(await screen.findByText('Models folder')).toBeTruthy();
+    expect(await screen.findByText('Models folder location')).toBeTruthy();
     fireEvent.change(screen.getByRole('textbox', { name: 'Search settings' }), { target: { value: '' } });
     fireEvent.click(screen.getByRole('button', { name: 'Changed' }));
     await waitFor(() => expect(document.querySelector('[data-row="models.folder"]')).not.toBeNull());

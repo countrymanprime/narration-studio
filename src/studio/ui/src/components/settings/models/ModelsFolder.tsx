@@ -3,7 +3,9 @@ import { overlay } from '../../../overlay/overlayService';
 import { formatSize } from '../../assets/AssetFacts';
 import { Button } from '../../primitives/Button';
 import { ConfirmDialog } from '../../primitives/ConfirmDialog';
+import { Dialog } from '../../primitives/Dialog';
 import { IconButton } from '../../primitives/IconButton';
+import { TooltipTarget } from '../../primitives/Tooltip';
 import { WorkDialog } from '../../primitives/WorkDialog';
 import { isMoveRunning, type AssetMovePhase, type AssetMoveState, type WorkJob } from '../../../types';
 import { useAssetsStore } from './AssetsStore';
@@ -16,6 +18,17 @@ const path = (value: string) => (
     {value}
   </code>
 );
+
+/** The title of the dialog that tells how a move ended: the sentence is the title, so the dialog is not left saying it is still moving. */
+const ENDED: Record<AssetMovePhase, (back: boolean) => string> = {
+  success: (back) => (back ? 'The models were moved back' : 'The models were moved'),
+  cancelled: () => 'The move was cancelled',
+  error: () => 'The move failed',
+  idle: () => '',
+  copying: () => 'Moving models',
+  verifying: () => 'Moving models',
+  switching: () => 'Moving models',
+};
 
 const PHASE: Record<AssetMovePhase, WorkJob['phase']> = {
   idle: 'idle',
@@ -37,9 +50,9 @@ function jobOf(move: AssetMoveState, fallback: number, now: number): WorkJob {
     kind: 'asset_install',
     phase: PHASE[move.phase],
     message: move.message,
-    // A move that ended badly shows an empty bar: it is not progressing, and nothing was changed.
-    percent: move.phase === 'error' || move.phase === 'cancelled' ? 0 : move.percent,
-    detail: move.bytesTotal > 0 && running ? `${formatSize(move.bytesDone / 2)} of ${formatSize(move.bytesTotal / 2)}` : undefined,
+    percent: move.percent,
+    // Each pass (copying, then checking) counts against the real total, which is what the page says is used.
+    detail: move.bytesTotal > 0 && running ? `${formatSize(move.bytesDone)} of ${formatSize(move.bytesTotal)}` : undefined,
     logs: [],
     elapsed: Math.max(0, (now - started) / 1000),
     error: move.error || undefined,
@@ -68,7 +81,7 @@ export function ModelsFolderControl() {
   if (!catalog) return null;
 
   const previous = catalog.previousRoot;
-  const answerOldFirst = () => overlay.toast('Delete the old copy or keep it first: another move is not offered until you have.', { tone: 'error' });
+  const oldFirst = 'Delete the old copy or keep it before moving again';
   const begin = async (target: string) => {
     setStarted(Date.now());
     setNow(Date.now());
@@ -90,14 +103,22 @@ export function ModelsFolderControl() {
 
   return (
     <>
-      <Button variant="secondary" size="sm" className="flex-none" pending={picking} onClick={() => (previous ? answerOldFirst() : setAsking('change'))}>
-        Change location…
-      </Button>
+      {previous ? (
+        <TooltipTarget text={oldFirst}>
+          <Button variant="secondary" size="sm" className="flex-none" disabled>
+            Change location…
+          </Button>
+        </TooltipTarget>
+      ) : (
+        <Button variant="secondary" size="sm" className="flex-none" pending={picking} onClick={() => setAsking('change')}>
+          Change location…
+        </Button>
+      )}
       {catalog.custom && (
         <IconButton
           action="undo"
           label="Reset the models folder to the default folder"
-          disabledReason={previous ? 'Delete the old copy or keep it first' : undefined}
+          disabledReason={previous ? oldFirst : undefined}
           className="flex-none border-transparent"
           onClick={() => setAsking('reset')}
         />
@@ -126,7 +147,24 @@ export function ModelsFolderControl() {
           cancel={() => setAsking(undefined)}
         />
       )}
-      {move && move.phase !== 'idle' && (
+      {move && !isMoveRunning(move) && move.phase !== 'idle' && (
+        <Dialog
+          title={ENDED[move.phase](move.target === catalog.defaultRoot)}
+          dismissOnOutsidePress={false}
+          actionsAlign="end"
+          onEscape={store.dismissMove}
+          actions={
+            <Button variant="primary" onClick={store.dismissMove}>
+              Close
+            </Button>
+          }
+        >
+          <p className="text-sm" role={move.phase === 'error' ? 'alert' : 'status'}>
+            {move.phase === 'success' ? <>The models are in {path(move.target)} and in use.</> : move.error || move.message}
+          </p>
+        </Dialog>
+      )}
+      {move && isMoveRunning(move) && (
         <WorkDialog title="Moving models" job={jobOf(move, started, now)} cancel={() => void store.cancelMove()} close={store.dismissMove} />
       )}
     </>
@@ -151,14 +189,24 @@ export function OldCopyOffer() {
     setAsking(false);
     if (refused !== undefined) overlay.toast(`${failure} ${refused}`, { tone: 'error' });
   };
+  const keep = async () => {
+    const folder = previous;
+    const refused = await store.keepOld();
+    if (refused !== undefined) {
+      overlay.toast(`The old copy was not kept. ${refused}`, { tone: 'error' });
+      return;
+    }
+    // The offer is gone for good once it is answered, so the toast says where the folder is and that deleting it is the narrator's to do.
+    overlay.toast(`The old copy stays in ${isolate(folder)}. Delete that folder yourself when you no longer need it.`);
+  };
   return (
     <div data-old-copy className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[0.8125rem] text-[var(--text-muted)]">
-      <span className="min-w-0">The old copy is still in {path(previous)}</span>
+      <span className="min-w-0">The old copy is still in {path(previous)}. Delete the old copy or keep it before moving again.</span>
       <span className="flex items-center gap-2">
         <Button variant="secondary" size="sm" onClick={() => setAsking(true)}>
           Delete old copy…
         </Button>
-        <Button variant="secondary" size="sm" onClick={() => void answer(store.keepOld, 'The old copy was not kept.')}>
+        <Button variant="secondary" size="sm" onClick={() => void keep()}>
           Keep it
         </Button>
       </span>

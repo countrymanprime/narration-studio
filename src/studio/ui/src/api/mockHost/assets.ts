@@ -52,7 +52,6 @@ export const MOCK_ASSET_ROOT = `C:/Users/narrator/AppData/Local/${brand.identity
 export const MOCK_MOVED_ROOT = 'D:/Audio/Narration models';
 
 const IDLE_MOVE: AssetMoveState = { id: '', startedAt: '', phase: 'idle', target: '', message: '', percent: 0, bytesDone: 0, bytesTotal: 0, error: '' };
-const MOCK_MOVE_BYTES = 1_200_000_000;
 const MOVE_FAILURE = 'The disk filled up while the models were being copied. Free some space or choose another folder. Your models are still where they were.';
 
 /** The asset bindings: the preview voice, the Whisper and Moonshine models, the language model and the dictionary. */
@@ -205,14 +204,17 @@ export function createAssetsMock(initial: MockApiSeed) {
   let previousRoot = initial.assetMove === 'moved' ? MOCK_ASSET_ROOT : '';
   let move: AssetMoveState = IDLE_MOVE;
   let moveStep = 0;
+  // What the move copies: what the page says is used, set when a move starts (listUsed).
+  let moveBytes = 495_000_000;
+  let listUsed: () => Promise<number> = async () => moveBytes;
   const moveAt = (phase: AssetMoveState['phase'], percent: number, message: string, error = ''): AssetMoveState => ({
     ...move,
     phase,
     percent,
     message,
     error,
-    bytesDone: Math.floor((MOCK_MOVE_BYTES * 2 * percent) / 100),
-    bytesTotal: MOCK_MOVE_BYTES * 2,
+    bytesDone: Math.floor((moveBytes * percent) / 100),
+    bytesTotal: moveBytes,
   });
   const installMockFor = (jobId: string) =>
     otherVoiceJob(jobId)?.install ??
@@ -414,6 +416,7 @@ export function createAssetsMock(initial: MockApiSeed) {
       if (!/^([A-Za-z]:[\\/]|\/)/.test(to)) throw new Error('Choose a folder by its full path.');
       if (to === root) throw new Error('The models are already in that folder.');
       moveStep = 0;
+      moveBytes = await listUsed();
       move = { ...IDLE_MOVE, id: `mock-move-${Date.now()}`, startedAt: new Date().toISOString(), target: to };
       move = moveAt('copying', 0, 'Copying the models…');
       return move;
@@ -463,6 +466,7 @@ export function createAssetsMock(initial: MockApiSeed) {
       }
     },
   } satisfies Partial<NarrationApi>;
+  listUsed = async () => (await bindings.assetsList()).totalInstalledBytes;
   return {
     bindings,
     ttsInstalled: () => ttsInstalled,

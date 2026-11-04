@@ -79,7 +79,8 @@ type Plan struct {
 	Dirs           []string
 }
 
-// Progress is how far a move is: Done of Total bytes, counting the copy and the check each as a pass over every byte.
+// Progress is how far the current pass is: Done of Total bytes. The copy and then the check are each a pass over every byte, so Done
+// starts again at 0 when the check begins; Total is the real size of what is moved.
 type Progress struct {
 	Phase       string
 	Done, Total int64
@@ -327,13 +328,15 @@ func Move(ctx context.Context, plan Plan, report func(Progress)) (err error) {
 		}
 	}()
 
-	progress := &counter{total: total * 2, report: report}
+	progress := &counter{total: total, report: report}
 	facts := map[string]fileFact{}
 	for _, dir := range plan.Dirs {
 		if err = copyTree(ctx, filepath.Join(source, dir), filepath.Join(staging, dir), dir, facts, progress); err != nil {
 			return err
 		}
 	}
+	progress.done = 0
+	progress.add(PhaseVerifying, 0)
 	for _, dir := range plan.Dirs {
 		if err = verifyTree(ctx, filepath.Join(staging, dir), dir, facts, progress); err != nil {
 			return err

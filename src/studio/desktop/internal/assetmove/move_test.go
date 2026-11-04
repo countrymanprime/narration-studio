@@ -761,3 +761,33 @@ func TestMoveWithNoProgressCallbackAndAnEmptySourceWorks(t *testing.T) {
 		t.Fatal("the target was not made")
 	}
 }
+
+// Each pass counts against the real size of what is moved: the copy goes 0 to the total, then the check goes 0 to the total again.
+func TestEachPassCountsAgainstTheRealTotal(t *testing.T) {
+	source, target := filepath.Join(t.TempDir(), "old"), filepath.Join(t.TempDir(), "new")
+	files := seed(t, source)
+	var want int64
+	for _, content := range files {
+		want += int64(len(content))
+	}
+	var copyEnd, checkStart, checkEnd Progress
+	checkStarted := false
+	if err := Move(context.Background(), Plan{Source: source, Target: target, Dirs: kinds}, func(p Progress) {
+		if p.Total != want {
+			t.Fatalf("total %d, want %d", p.Total, want)
+		}
+		if p.Phase == PhaseCopying {
+			copyEnd = p
+		} else {
+			if !checkStarted {
+				checkStart, checkStarted = p, true
+			}
+			checkEnd = p
+		}
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if copyEnd.Done != want || checkStart.Done != 0 || checkEnd.Done != want {
+		t.Fatalf("copy ended at %d, check began at %d and ended at %d (total %d)", copyEnd.Done, checkStart.Done, checkEnd.Done, want)
+	}
+}
