@@ -1583,9 +1583,9 @@
   },
   {
     "page": "master",
-    "state": "daw-tools-menu",
+    "state": "daw-tools-menu-off",
     "viewport": "desktop",
     "docName": "master-daw-tools",
-    "caption": "Master & QC with nothing measured: the DAW tools menu beside Check files, both entries off with the reason that no chapter is linked to a REAPER track yet"
+    "caption": "Master & QC with nothing measured and REAPER not answering: the DAW tools menu beside Check files, both entries off with REAPER's own sentence under each"
   }
 ]

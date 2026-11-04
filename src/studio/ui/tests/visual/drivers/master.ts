@@ -66,9 +66,17 @@ export const masterDrivers: Record<string, Driver> = {
     await openMaster(page);
     await page.getByText(/^Nothing measured yet/).waitFor();
   },
-  // The DAW tools menu beside Check files (#2820), opened before anything is measured: no chapter is linked in the plain mock, so both entries are off, each with its reason.
+  // The DAW tools menu beside Check files (#2820), opened before anything is measured: the plain mock has chapters linked, so both entries are live.
   'daw-tools-menu': async (page) => {
     await openMaster(page);
+    await page.getByText(/^Nothing measured yet/).waitFor();
+    await page.getByRole('button', { name: 'DAW tools' }).click();
+    const menu = page.getByRole('menu');
+    await menu.waitFor();
+    await expect(menu.getByText('Reading the REAPER project…')).toHaveCount(0);
+  },
+  'daw-tools-menu-off': async (page) => {
+    await openMaster(page, '?mockDawChoice=not-running');
     await page.getByText(/^Nothing measured yet/).waitFor();
     await page.getByRole('button', { name: 'DAW tools' }).click();
     const menu = page.getByRole('menu');

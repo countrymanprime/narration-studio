@@ -22,6 +22,13 @@ export const masterStates: StateEntry[] = [
   },
   {
     page: 'master',
+    state: 'daw-tools-menu-off',
+    description:
+      'Master & QC with nothing measured, the DAW tools menu beside Check files opened - both entries off, each saying no chapter is linked to a REAPER track yet',
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+  },
+  {
+    page: 'master',
     state: 'running',
     description:
       'Master & QC, a check part way through (?mockMeasure=running) - its real progress from the bytes read, what it is reading and Cancel in the table card under Check files, the file being read marked Measuring and the rest Waiting',
