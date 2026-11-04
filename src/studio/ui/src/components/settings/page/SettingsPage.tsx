@@ -22,7 +22,7 @@ import { PAGE_SETTINGS } from '../registry/pageSettings';
 import { ROWS } from '../registry/rows';
 import { search, type Hit } from '../registry/search';
 import { PAGE_LABEL, PAGE_PATH, type CategoryId, type SettingMeta, type UsedPage } from '../registry/types';
-import { SettingsHostProvider, useSettingsHost, type SettingsHost } from '../row/SettingsHost';
+import { SettingsHostProvider, useHasProject, useSettingsHost, type SettingsHost } from '../row/SettingsHost';
 import { SettingsNavProvider } from '../row/SettingsNav';
 import { ANCHOR_TARGETS } from './anchors';
 import { CategoryNav } from './CategoryNav';
@@ -72,6 +72,7 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
   // A window-kept setting is written outside the store: redraw the Changed counts when one is.
   const browserVersion = useBrowserSettingsVersion();
   const { data, go } = useSettingsHost();
+  const hasProject = useHasProject();
   const target = initialCategory ? ANCHOR_TARGETS[initialCategory] : undefined;
   const [cat, setCat] = useState<CategoryId>(target?.cat ?? 'recording');
   const [query, setQuery] = useState('');
@@ -266,7 +267,7 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
           <Heading title="Settings" />
           {cameFrom && (
             <Button variant="secondary" size="sm" id="settings-back" onClick={() => go(cameFrom)}>
-              <Icon name="previous" /> Back to {pageNameOf(cameFrom)}
+              <Icon name="previous" /> Back to {hasProject ? pageNameOf(cameFrom) : 'project picker'}
             </Button>
           )}
           <span className="flex-1" />
@@ -294,7 +295,7 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
               options={[
                 { value: 'all', label: 'All' },
                 { value: 'changed', label: 'Changed' },
-                { value: 'project', label: 'In this project' },
+                { value: 'project', label: 'In this project', disabled: !hasProject },
               ]}
             />
           </div>

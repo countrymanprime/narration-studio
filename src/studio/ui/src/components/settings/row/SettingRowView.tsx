@@ -9,6 +9,8 @@ import { useBrowserSettingsVersion } from '../../../browserSettings';
 import { choiceLabel, computerValue, isAnyChanged, isBrowserChanged, isChanged, overrideValue, projectValue } from '../data/values';
 import { PAGE_LABEL, PAGE_PATH, type Scope, type SettingMeta } from '../registry/types';
 import { rowOf } from '../registry/rows';
+import { needsProject, NEEDS_PROJECT_REASON } from '../registry/projectNeeds';
+import { useHasProject } from './SettingsHost';
 import { AssetNote } from './AssetNote';
 import { OpenLogFolderButton } from './OpenLogFolderButton';
 import { useSettingsNav } from './SettingsNav';
@@ -30,7 +32,10 @@ function ScopeBadge({ row, overridden }: { row: SettingMeta; overridden: boolean
 /** The pages that read this setting; each link goes there. The setting is changed here, once. */
 function UsedBy({ row }: { row: SettingMeta }) {
   const { go } = useSettingsNav();
+  const hasProject = useHasProject();
   if (row.used.length === 0) return null;
+  // With no project open the pages are not there to go to: they are named, not linked.
+  if (!hasProject) return <span>Used by {row.used.map((page) => PAGE_LABEL[page]).join(', ')}</span>;
   return (
     <span className="inline-flex flex-wrap items-center gap-x-1">
       <span>Used by</span>
@@ -70,6 +75,10 @@ const CELL = `${SETTING_ROW_GRID} border-t border-[var(--border)] px-5 py-4 firs
  */
 export function SettingRowView({ row, children, flash, wide }: { row: SettingMeta; children?: ReactNode; flash?: boolean; wide?: boolean }) {
   const store = useSettingsStore();
+  const hasProject = useHasProject();
+  // No project open: the row stays, says what it waits for, and its control is off. Its body is not drawn at all, so nothing in it can ask the
+  // host for a project that is not there.
+  const waiting = !hasProject && needsProject(row);
   const uid = useId();
   const [asking, setAsking] = useState<string>();
   const { global, project } = store.fieldsOf(row);
@@ -110,6 +119,7 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
       data-row={row.id}
       data-changed={changed ? 'true' : undefined}
       data-scope={row.scope}
+      data-needs-project={waiting ? 'true' : undefined}
     >
       {/* The bar runs the row's full height, so it marks the row instead of interrupting the card's edge (R3SE1-16, XSE2-34). */}
       {changed && <span aria-hidden="true" data-changed-bar className="absolute inset-y-0 left-0 w-[3px] bg-[var(--info)]" />}
@@ -132,7 +142,12 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
         </span>
       </div>
       <div className={`flex max-w-full min-w-0 flex-col items-start gap-2 ${wide ? 'col-span-full' : ''}`} data-row-body={wide ? 'wide' : undefined}>
-        {hasCustom ? (
+        {waiting && <span className="text-[0.8125rem] text-[var(--text-muted)]">{NEEDS_PROJECT_REASON}</span>}
+        {waiting && !hasCustom && global ? (
+          <div data-control-line className="flex w-full min-w-0 flex-nowrap items-center gap-1.5">
+            <ValueControl row={row} field={global} id={controlId} value={comp} describedBy={describedBy} onChange={() => undefined} disabled />
+          </div>
+        ) : waiting ? null : hasCustom ? (
           children
         ) : global ? (
           <>
@@ -162,7 +177,12 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
               {saved && <SavedWord key={store.saved?.n} />}
             </div>
             {global.kind === 'choice' && <AssetNote row={row} value={comp} kindOf={kindOf} />}
-            {row.scope === 'both' && project && (
+            {row.scope === 'both' && !hasProject && (
+              <div className="text-[0.8125rem] text-[var(--text-muted)]" data-override-waits={row.id}>
+                Open a project to give it a value of its own.
+              </div>
+            )}
+            {row.scope === 'both' && project && hasProject && (
               <div
                 className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[0.8125rem] text-[var(--text-muted)]"
                 data-override={own !== undefined ? row.id : undefined}

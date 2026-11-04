@@ -27,17 +27,21 @@ export const REMOVE_UNDO_MS = TOAST_INFO_MS + 1_000;
 // failure states before any bootstrap payload exists at all. Built to the Studio Next mock's
 // ProjectPicker.tsx, less the taskbar jump list preview, which the host does not expose.
 // `onCreated` runs when New project made a project (the app opens it on Script); opening or browsing to one leaves the page alone.
+// `onOpenSettings` is set when no project is open: Settings has rows that are this computer's (downloads, updates, appearance), so the picker offers
+// it as an icon button at the top right, beside where Back is when a project is open (issue 3024).
 // `onBack` is set when the picker was opened from the header's project name over a project that is already open: it draws a Back button that closes the picker and keeps that project.
 export function ProjectPicker({
   notify,
   onCreated,
   onBack,
   currentName,
+  onOpenSettings,
 }: {
   notify: Notify;
   onCreated: () => void;
   onBack?: () => void;
   currentName?: string;
+  onOpenSettings?: () => void;
 }) {
   const api = useApi();
   const [recents, setRecents] = useState<RecentProject[]>([]);
@@ -210,6 +214,12 @@ export function ProjectPicker({
         <div className="mx-auto flex w-full max-w-[47.5rem] min-w-0 flex-col gap-5 pt-[min(6vh,3rem)]">
           <div className="flex items-center gap-[0.625rem]">
             <Brand />
+            {onOpenSettings && (
+              // The hint wraps the button in a span, so the span is the flex item that takes the row's free space.
+              <span className="ml-auto flex">
+                <IconButton action="gear" label="Settings" onClick={onOpenSettings} />
+              </span>
+            )}
             {onBack && (
               <Button variant="secondary" className="ml-auto" onClick={onBack} aria-label={currentName ? `Back to ${currentName}` : 'Back'}>
                 Back

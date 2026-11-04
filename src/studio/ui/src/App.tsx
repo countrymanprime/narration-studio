@@ -47,6 +47,7 @@ import { registerCommandProvider } from './input/commandProviders';
 import { ProjectPicker } from './components/project/ProjectPicker';
 import { Guide } from './components/storybible/Guide';
 import { SettingsPage } from './components/settings/page/SettingsPage';
+import { NoProjectSettings } from './components/settings/page/NoProjectSettings';
 import { categoryAnchorKey } from './components/settings/page/anchors';
 import { CATEGORIES } from './components/settings/registry/categories';
 import { BoothNextPage } from './components/booth/page/BoothNextPage';
@@ -763,21 +764,6 @@ function AppRoutes() {
       />
     );
 
-  // A standalone launch (Start Menu shortcut, taskbar pin) has no
-  // REAPER-supplied project, so Bootstrap() returns a populated payload with
-  // an empty projectFolder rather than null. subscribeProjectAttach (above)
-  // already refreshes `data` once ProjectPicker's switch/create succeeds, so
-  // no callback needs to be threaded through here.
-  // A project made from the picker opens on Script, as the mock's New project does; the Script page offers the import when it has no manuscript.
-  if (!data.projectFolder || projectPickerOpen)
-    return (
-      <ProjectPicker
-        notify={setNotice}
-        onCreated={() => navigate('/script')}
-        onBack={data.projectFolder ? () => setProjectPickerOpen(false) : undefined}
-        currentName={data.projectFolder ? data.projectName : undefined}
-      />
-    );
   transcriptPhaseRef.current = data.transcript.phase;
 
   // Deep links are expressed as a URL anchor on the fixed page path, not as
@@ -870,6 +856,77 @@ function AppRoutes() {
   };
   guardedBackRef.current = guardedBack;
   guardedForwardRef.current = guardedForward;
+
+  // A standalone launch (Start Menu shortcut, taskbar pin) has no
+  // REAPER-supplied project, so Bootstrap() returns a populated payload with
+  // an empty projectFolder rather than null. subscribeProjectAttach (above)
+  // already refreshes `data` once ProjectPicker's switch/create succeeds, so
+  // no callback needs to be threaded through here.
+  // A project made from the picker opens on Script, as the mock's New project does; the Script page offers the import when it has no manuscript.
+  // Settings is reachable before a project is open (issue 3024): the picker's Settings button, Ctrl+, and the jump menu's Settings rows all go to
+  // /settings, and with no project that route draws the Settings page in the picker's frame instead of the shell. Its Back returns to the picker.
+  const settingsWithoutProject = !data.projectFolder && location.pathname === '/settings';
+  const settingsPageProps = {
+    data,
+    notify: setNotice,
+    onDirtyChange: setSettingsDirty,
+    registerActions: (actions: { save: () => Promise<void>; discard: () => Promise<void> }) => {
+      settingsActions.current = actions;
+    },
+    onProjectDataCleared: async () => {
+      await refreshBootstrap();
+      guardedNavigate('/');
+    },
+    onLinkDawFile: () => void linkDawFile(),
+    go: guardedNavigate,
+    refreshBootstrap,
+    initialCategory: SETTINGS_ANCHORS[location.hash],
+  };
+  // Leaving Settings with an edit not yet saved asks first, wherever Settings is drawn (the shell, or the frame for no project).
+  const unsavedSettings = pendingMove && (
+    <ConfirmDialog
+      title="Unsaved settings"
+      body="Save or discard changes before leaving Settings?"
+      confirmLabel="Save & continue"
+      confirm={() =>
+        void settingsActions.current?.save().then(() => {
+          setSettingsDirty(false);
+          resolvePendingMove(pendingMove);
+          setPendingMove(undefined);
+        })
+      }
+      dangerLabel="Discard & continue"
+      danger={() =>
+        void settingsActions.current?.discard().then(() => {
+          setSettingsDirty(false);
+          resolvePendingMove(pendingMove);
+          setPendingMove(undefined);
+        })
+      }
+      cancel={() => setPendingMove(undefined)}
+    />
+  );
+
+  if (settingsWithoutProject)
+    return (
+      <div className="relative h-full">
+        <NoProjectSettings>
+          {/* The Back always has somewhere to go: the picker, which is what `/` draws with no project. */}
+          <SettingsPage {...settingsPageProps} cameFrom={settingsOrigin.origin ?? '/'} />
+        </NoProjectSettings>
+        {unsavedSettings}
+      </div>
+    );
+  if (!data.projectFolder || projectPickerOpen)
+    return (
+      <ProjectPicker
+        notify={setNotice}
+        onCreated={() => navigate('/script')}
+        onBack={data.projectFolder ? () => setProjectPickerOpen(false) : undefined}
+        currentName={data.projectFolder ? data.projectName : undefined}
+        onOpenSettings={data.projectFolder ? undefined : openSettings}
+      />
+    );
 
   return (
     <div className="relative h-full overflow-hidden" style={{ background: 'var(--bg)' }}>
@@ -1072,28 +1129,7 @@ function AppRoutes() {
                         )
                       }
                     />
-                    <Route
-                      path="/settings"
-                      element={
-                        <SettingsPage
-                          data={data}
-                          notify={setNotice}
-                          onDirtyChange={setSettingsDirty}
-                          registerActions={(actions) => {
-                            settingsActions.current = actions;
-                          }}
-                          onProjectDataCleared={async () => {
-                            await refreshBootstrap();
-                            guardedNavigate('/');
-                          }}
-                          onLinkDawFile={() => void linkDawFile()}
-                          go={guardedNavigate}
-                          refreshBootstrap={refreshBootstrap}
-                          initialCategory={SETTINGS_ANCHORS[location.hash]}
-                          cameFrom={settingsOrigin.origin}
-                        />
-                      }
-                    />
+                    <Route path="/settings" element={<SettingsPage {...settingsPageProps} cameFrom={settingsOrigin.origin} />} />
                     <Route path="*" element={<NotFoundPage />} />
                   </Routes>
                 </ErrorBoundary>
@@ -1134,29 +1170,7 @@ function AppRoutes() {
           </VoiceSetupProvider>
         </EnginePanelProvider>
       </LinkDawFileContext.Provider>
-      {pendingMove && (
-        <ConfirmDialog
-          title="Unsaved settings"
-          body="Save or discard changes before leaving Settings?"
-          confirmLabel="Save & continue"
-          confirm={() =>
-            void settingsActions.current?.save().then(() => {
-              setSettingsDirty(false);
-              resolvePendingMove(pendingMove);
-              setPendingMove(undefined);
-            })
-          }
-          dangerLabel="Discard & continue"
-          danger={() =>
-            void settingsActions.current?.discard().then(() => {
-              setSettingsDirty(false);
-              resolvePendingMove(pendingMove);
-              setPendingMove(undefined);
-            })
-          }
-          cancel={() => setPendingMove(undefined)}
-        />
-      )}
+      {unsavedSettings}
       {shortcutsOpen && (
         <ShortcutSheet
           onClose={() => setShortcutsOpen(false)}
