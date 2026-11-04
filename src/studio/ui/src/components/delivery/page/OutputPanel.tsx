@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { DeliveryProfile } from '../../../types';
 import { Button } from '../../primitives/Button';
 import { IconButton } from '../../primitives/IconButton';
+import { ChapterTagsDialog } from '../../engine/ChapterTagsDialog';
 import { Panel } from '../../primitives/Panel';
 import { ProgressBar } from '../../primitives/ProgressBar';
 import { SectionLabel } from '../../primitives/SectionLabel';
@@ -85,11 +86,22 @@ export function OutputPanel({
               : waiting;
   // A press on a blocked Build builds nothing; this says so, with the reason, to a screen reader as well as the eye. It goes when Build is live.
   const [refused, setRefused] = useState(false);
+  // Embed chapter tags: its dialog, and the button that opened it, which gets focus back when the dialog closes.
+  const [tagging, setTagging] = useState(false);
+  const embedButton = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     if (canBuild) setRefused(false);
   }, [canBuild]);
   return (
     <Panel title="Output">
+      {tagging && (
+        <ChapterTagsDialog
+          onClose={() => {
+            setTagging(false);
+            setTimeout(() => embedButton.current?.focus(), 0);
+          }}
+        />
+      )}
       <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-1">
           <SectionLabel>Folder</SectionLabel>
@@ -121,6 +133,10 @@ export function OutputPanel({
               Cancel
             </Button>
           )}
+          {/* #2829: writes ID3 chapters into the finished book MP3; it never talks to the DAW and needs no passing chapters, so it is on whatever the build says. */}
+          <Button variant="secondary" ref={embedButton} onClick={() => setTagging(true)}>
+            Embed chapter tags…
+          </Button>
           <span id={WHY_ID} className="text-sm" style={MUTED}>
             {why}
           </span>

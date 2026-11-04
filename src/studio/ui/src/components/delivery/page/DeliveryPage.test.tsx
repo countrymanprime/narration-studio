@@ -71,6 +71,20 @@ function mount(
 }
 
 describe('DeliveryPage', () => {
+  // #2829: Embed chapter tags writes ID3 chapters into the finished book MP3 and never talks to the DAW, so it sits with the build, whether or not the build is on.
+  it('offers Embed chapter tags… beside Build, with the build blocked or not, and opens the dialog', async () => {
+    const user = userEvent.setup();
+    mount(BLOCKED, {}, {});
+    const embed = await screen.findByRole('button', { name: 'Embed chapter tags…' });
+    expect(embed.getAttribute('aria-disabled')).toBeNull();
+    await user.click(embed);
+    const dialog = await screen.findByRole('dialog', { name: 'Embed chapter tags' });
+    expect(await within(dialog).findByText(/Prepare chapter render….? in DAW tools on Editing, Proof or Master/)).toBeTruthy();
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await waitFor(() => expect(document.activeElement).toBe(embed));
+  });
+
   // Issue #2648: a chapters read whose payload did not match its schema says the plain sentence, in the toast that tells the failed read
   // (#2677), never the failing paths.
   it('says a chapters payload that did not match its schema in plain words, with no failing path', async () => {

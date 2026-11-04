@@ -48,7 +48,7 @@ describe('EnginePanel', () => {
       within(tools)
         .getAllByRole('button')
         .map((button) => button.textContent),
-    ).toEqual(['Link chapters…', 'Prepare chapter render…', 'Create chapter regions…', 'Embed chapter tags…', 'Cleanup tools…', 'Retakes on lanes…']);
+    ).toEqual(['Link chapters…', 'Prepare chapter render…', 'Create chapter regions…', 'Cleanup tools…', 'Retakes on lanes…']);
     expect(await within(panel).findByRole('table', { name: 'Chapter links' })).toBeTruthy();
     // No player: a chapter is heard in its Proof chapter view.
     expect(within(panel).queryByRole('button', { name: 'Play' })).toBeNull();

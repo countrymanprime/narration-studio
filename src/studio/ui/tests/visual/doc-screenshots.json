@@ -1685,5 +1685,12 @@
     "viewport": "desktop",
     "docName": "master-daw-tools",
     "caption": "Master & QC with nothing measured and REAPER not answering: the DAW tools menu beside Check files, both entries off with REAPER's own sentence under each"
+  },
+  {
+    "page": "delivery",
+    "state": "chapter-tags-ready",
+    "viewport": "desktop",
+    "docName": "delivery-chapter-tags",
+    "caption": "Delivery - Embed chapter tags ready to embed: the combined book MP3, the chapters from the last render and the confirmation"
   }
 ]

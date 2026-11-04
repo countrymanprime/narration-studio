@@ -22,7 +22,50 @@ async function openReady(page: Parameters<Driver>[0], seed: string): Promise<voi
   await page.getByText('Every chapter passes.').waitFor();
 }
 
+// Opens the Embed chapter tags dialog from Delivery's Output panel.
+async function embedChapterTags(page: Parameters<Driver>[0]): Promise<void> {
+  await page.getByRole('button', { name: 'Embed chapter tags…' }).click();
+  await page.getByRole('dialog', { name: 'Embed chapter tags' }).waitFor();
+}
+
+// Fills the destination and the confirmation, then embeds.
+async function fillEmbed(page: Parameters<Driver>[0]): Promise<void> {
+  await page.getByLabel('Combined book MP3 to add chapters to').fill('C:\\Books\\Alice\\Alice in Wonderland.mp3');
+  await page.getByRole('checkbox', { name: /I understand this writes a new file/ }).click();
+  await page.getByRole('dialog', { name: 'Embed chapter tags' }).getByRole('button', { name: 'Embed chapter tags', exact: true }).click();
+}
+
 export const deliveryDrivers: Record<string, Driver> = {
+  // Embed chapter tags (#2829): the dialog opened from the Output panel's button, whatever the build says.
+  'chapter-tags-idle': async (page) => {
+    await openDelivery(page);
+    await embedChapterTags(page);
+    await page.getByText(/No chapter render is configured yet/).waitFor();
+  },
+  'chapter-tags-ready': async (page) => {
+    await openDelivery(page, '?mockChapterTags=ready');
+    await embedChapterTags(page);
+    await page.getByRole('dialog', { name: 'Embed chapter tags' }).getByText('Chapter 2').waitFor();
+  },
+  'chapter-tags-not-rendered': async (page) => {
+    await openDelivery(page, '?mockChapterTags=not-rendered');
+    await embedChapterTags(page);
+    await page.getByText('Not rendered yet', { exact: true }).waitFor();
+  },
+  'chapter-tags-success': async (page) => {
+    await openDelivery(page, '?mockChapterTags=ready');
+    await embedChapterTags(page);
+    await fillEmbed(page);
+    await page.getByText(/^Wrote /).waitFor();
+  },
+  'chapter-tags-error': async (page) => {
+    await openDelivery(page, '?mockChapterTags=ready&mockChapterTagsEmbedError=1');
+    await embedChapterTags(page);
+    await fillEmbed(page);
+    const message = page.getByText(/could not write chapter tags/).first();
+    await message.waitFor();
+    await message.scrollIntoViewIfNeeded();
+  },
   // The chapters never answer, so `openDelivery` (which waits for the chapter counts) is not used.
   loading: async (page) => {
     await page.goto('/?mockChapters=loading');

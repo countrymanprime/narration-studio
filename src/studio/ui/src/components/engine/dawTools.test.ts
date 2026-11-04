@@ -9,7 +9,6 @@ describe('the DAW tools registry', () => {
       'Link chapters…',
       'Prepare chapter render…',
       'Create chapter regions…',
-      'Embed chapter tags…',
       'Cleanup tools…',
       'Retakes on lanes…',
     ]);

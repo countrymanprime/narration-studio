@@ -19,7 +19,6 @@
       - button "Link chapters…"
       - button "Prepare chapter render…"
       - button "Create chapter regions…"
-      - button "Embed chapter tags…"
       - button "Cleanup tools…"
       - button "Retakes on lanes…"
   - region "Chapter sync":
