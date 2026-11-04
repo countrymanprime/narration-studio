@@ -2694,7 +2694,10 @@
         "Late",
         "No Take Log",
         "Nothing Recorded",
-        "No Due Date"
+        "No Due Date",
+        "Due Tomorrow",
+        "Due Today",
+        "Due Year 9999"
       ],
       "consumers": [
         "src/components/production/ProductionPage.tsx",

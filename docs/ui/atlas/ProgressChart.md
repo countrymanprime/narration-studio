@@ -11,6 +11,9 @@ Storybook title: `Production/ProgressChart`. Source: `src/components/production/
 - No Take Log
 - Nothing Recorded
 - No Due Date
+- Due Tomorrow
+- Due Today
+- Due Year 9999
 
 ## Used by
 
