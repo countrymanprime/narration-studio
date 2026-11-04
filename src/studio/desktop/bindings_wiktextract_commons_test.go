@@ -152,8 +152,8 @@ func productionWiktextractCatalogFixture(t *testing.T) string {
 	t.Helper()
 	catalog := map[string]any{"catalogVersion": 1, "sources": []map[string]any{{
 		"id": "wiktextract-en-pronunciation", "provider": "wiktextract", "displayName": "Wiktionary pronunciations",
-		"version": wiktextract.Pending,
-		"files":   []map[string]any{{"name": "x.zip", "url": wiktextract.Pending, "sha256": wiktextract.Pending, "size": 0, "extract": "wiktextract"}},
+		"version": "unpinned",
+		"files":   []map[string]any{{"name": "x.zip", "url": "", "sha256": "", "size": 0, "extract": "wiktextract"}},
 	}}}
 	path := filepath.Join(t.TempDir(), "wiktextract-assets.json")
 	body, err := json.Marshal(catalog)

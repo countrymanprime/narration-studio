@@ -2,6 +2,7 @@ package importer
 
 import (
 	"archive/zip"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -582,5 +583,87 @@ func TestDocxTitleStyleWithNoFollowingSubtitleCapturesTitleOnly(t *testing.T) {
 	}
 	if got := *draft.SourceMetadata; got.Title != "After the Applause" || got.Subtitle != "" {
 		t.Fatalf("got %+v", got)
+	}
+}
+
+// docxBombFixture builds a .docx whose word/document.xml inflates to size bytes of zeros: a few hundred kilobytes on disk.
+func docxBombFixture(t *testing.T, size int64) string {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "bomb.docx")
+	file, err := os.Create(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	archive := zip.NewWriter(file)
+	writer, err := archive.Create("word/document.xml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	chunk := make([]byte, 1<<20)
+	for written := int64(0); written < size; written += int64(len(chunk)) {
+		if _, err := writer.Write(chunk); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := archive.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := file.Close(); err != nil {
+		t.Fatal(err)
+	}
+	return path
+}
+
+func TestDocxDecompressionBombIsRefusedWithAClearMessage(t *testing.T) {
+	path := docxBombFixture(t, docxMaxEntrySize+1<<20)
+	_, err := docxWithProgress(path, nil)
+	var importErr *Error
+	if !errors.As(err, &importErr) || !strings.Contains(importErr.Error(), "more text than") {
+		t.Fatalf("want the too-large import error, got %v", err)
+	}
+}
+
+func TestReadCappedStopsAtTheLimit(t *testing.T) {
+	cases := []struct {
+		name    string
+		size    int
+		limit   int64
+		tooBig  bool
+		wantLen int
+	}{
+		{"under", 9, 10, false, 9},
+		{"exactly at the limit", 10, 10, false, 10},
+		{"one over", 11, 10, true, 0},
+		{"zero limit and data", 1, 0, true, 0},
+		{"zero limit and no data", 0, 0, false, 0},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			data, err := readCapped(strings.NewReader(strings.Repeat("a", tc.size)), tc.limit)
+			if tc.tooBig {
+				if !errors.Is(err, errDocxEntryTooLarge) {
+					t.Fatalf("want errDocxEntryTooLarge, got %v", err)
+				}
+				return
+			}
+			if err != nil || len(data) != tc.wantLen {
+				t.Fatalf("got %d bytes, %v", len(data), err)
+			}
+		})
+	}
+}
+
+func TestDocxEntryChargesTheSharedBudget(t *testing.T) {
+	archive, err := zip.OpenReader(docxFixture(t, wordParagraph("", wordRun("hello"))))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = archive.Close() }()
+	budget := int64(10)
+	if _, err := docxEntry(archive, "word/document.xml", &budget); !errors.Is(err, errDocxEntryTooLarge) {
+		t.Fatalf("an entry larger than the budget must be refused, got %v", err)
+	}
+	if _, err := docxEntry(archive, "no/such.xml", nil); !errors.Is(err, errDocxEntryMissing) {
+		t.Fatalf("want errDocxEntryMissing, got %v", err)
 	}
 }
