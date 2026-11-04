@@ -13,7 +13,6 @@ import {
   faKeyboard,
   faTableList,
   faArrowsRotate,
-  faClone,
   faDiagramProject,
   faFilm,
   faPaperclip,
@@ -415,7 +414,6 @@ export const CATALOG = {
   createRegions: action(faRulerHorizontal, 'create chapter regions', 'Create chapter regions'),
   embedTags: action(faTags, 'embed chapter tags', 'Embed chapter tags'),
   cleanupTools: action(faBroom, 'cleanup tools', 'Open the cleanup tools'),
-  retakeLanes: action(faClone, 'retakes on lanes', 'Show the retakes on lanes'),
 
   // No unambiguous icon: text (audit rule 6).
   cancel: text('cancel', 'Cancel'),

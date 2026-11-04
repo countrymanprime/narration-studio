@@ -394,47 +394,6 @@ export const engineDrivers: Record<string, Driver> = {
     await message.waitFor();
     await message.scrollIntoViewIfNeeded();
   },
-  'chapter-tags-idle': async (page) => {
-    await openEnginePanel(page);
-    await clickVisible(page, 'button', 'Embed chapter tags');
-    await page.getByText(/No chapter render is configured yet/).waitFor();
-  },
-  'chapter-tags-ready': async (page) => {
-    await page.goto('/?mockChapterTags=ready');
-    await settlePage(page);
-    await openEnginePanel(page);
-    await clickVisible(page, 'button', 'Embed chapter tags');
-    await page.getByRole('dialog', { name: 'Embed chapter tags' }).getByText('Chapter 2').waitFor();
-  },
-  'chapter-tags-not-rendered': async (page) => {
-    await page.goto('/?mockChapterTags=not-rendered');
-    await settlePage(page);
-    await openEnginePanel(page);
-    await clickVisible(page, 'button', 'Embed chapter tags');
-    await page.getByText('Not rendered yet', { exact: true }).waitFor();
-  },
-  'chapter-tags-success': async (page) => {
-    await page.goto('/?mockChapterTags=ready');
-    await settlePage(page);
-    await openEnginePanel(page);
-    await clickVisible(page, 'button', 'Embed chapter tags');
-    await page.getByLabel('Combined book MP3 to add chapters to').fill('C:\\Books\\Alice\\Alice in Wonderland.mp3');
-    await page.getByRole('checkbox', { name: /I understand this writes a new file/ }).click();
-    await page.getByRole('dialog', { name: 'Embed chapter tags' }).getByRole('button', { name: 'Embed chapter tags', exact: true }).click();
-    await page.getByText(/^Wrote /).waitFor();
-  },
-  'chapter-tags-error': async (page) => {
-    await page.goto('/?mockChapterTags=ready&mockChapterTagsEmbedError=1');
-    await settlePage(page);
-    await openEnginePanel(page);
-    await clickVisible(page, 'button', 'Embed chapter tags');
-    await page.getByLabel('Combined book MP3 to add chapters to').fill('C:\\Books\\Alice\\Alice in Wonderland.mp3');
-    await page.getByRole('checkbox', { name: /I understand this writes a new file/ }).click();
-    await page.getByRole('dialog', { name: 'Embed chapter tags' }).getByRole('button', { name: 'Embed chapter tags', exact: true }).click();
-    const message = page.getByText(/could not write chapter tags/).first();
-    await message.waitFor();
-    await message.scrollIntoViewIfNeeded();
-  },
   'cleanup-tools-idle': async (page) => {
     await openEnginePanel(page);
     await clickVisible(page, 'button', 'Open the cleanup tools');
@@ -455,36 +414,6 @@ export const engineDrivers: Record<string, Driver> = {
     await openEnginePanel(page);
     await clickVisible(page, 'button', 'Open the cleanup tools');
     const message = page.getByText(/Magnolius DeClick is not installed/).first();
-    await message.waitFor();
-    await message.scrollIntoViewIfNeeded();
-  },
-  'retake-lanes-list': async (page) => {
-    await openEnginePanel(page);
-    await clickVisible(page, 'button', 'Show the retakes on lanes');
-    await page.getByRole('button', { name: 'Play this lane: lane 2 for line-000013 on Chapter 1' }).waitFor();
-  },
-  'retake-lanes-picked': async (page) => {
-    await page.goto('/?mockRetakeLanes=picked');
-    await settlePage(page);
-    await openEnginePanel(page);
-    await clickVisible(page, 'button', 'Show the retakes on lanes');
-    const message = page.getByText(/is now the only lane playing/);
-    await message.waitFor();
-    await message.scrollIntoViewIfNeeded();
-  },
-  'retake-lanes-none': async (page) => {
-    await page.goto('/?mockRetakeLanes=none');
-    await settlePage(page);
-    await openEnginePanel(page);
-    await clickVisible(page, 'button', 'Show the retakes on lanes');
-    await page.getByText(/No track in the saved project uses fixed item lanes/).waitFor();
-  },
-  'retake-lanes-error': async (page) => {
-    await page.goto('/?mockRetakeLanes=error');
-    await settlePage(page);
-    await openEnginePanel(page);
-    await clickVisible(page, 'button', 'Show the retakes on lanes');
-    const message = page.getByText(/is not in fixed item lane mode/).first();
     await message.waitFor();
     await message.scrollIntoViewIfNeeded();
   },

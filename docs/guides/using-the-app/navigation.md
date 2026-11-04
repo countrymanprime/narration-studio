@@ -256,11 +256,7 @@ happened, naming only the counts that aren't zero ("Sent 3: 2 created, 1 already
 main button. While REAPER is not answering, **Create N regions** stays disabled and says why. The plan's column names stay in view while you scroll a long plan, as they do in
 **Link chapters to tracks**.
 
-**Embed chapter tags** adds ID3 chapter markers to an MP3 of the whole book that you have already
-rendered, timed from the chapter files of your last chapter render. It lists those chapters and marks
-any that are "not rendered yet"; every one must exist first. Enter the path of the combined book MP3 and
-tick the confirmation: the file you name is never changed, and a new, tagged copy is written beside it.
-This one does not talk to REAPER.
+**Embed chapter tags** is not here: it writes into the finished book MP3 and never talks to REAPER, so it sits beside the build on [Delivery](delivery.md#embedding-chapter-tags).
 
 **Open the cleanup tools** opens a repair tool in REAPER on the items you have selected there. Select the items
 in REAPER first, then press **Open** beside the tool. **Repair Pops/Clicks** is REAPER's own dialog
@@ -269,16 +265,6 @@ if you installed it in REAPER yourself (ReaPack, or Actions > Load ReaScript). T
 installs it. Opening a tool changes nothing: you apply or cancel the repair in its own window, and REAPER's
 Undo takes it back. What happened shows under the tool you opened; if nothing is selected, the tool is missing, or
 your REAPER is too old, it says so there.
-
-**Show the retakes on lanes** is for retakes recorded into REAPER's fixed item lanes. It lists every line of
-the manuscript (linked with **Link chapters to tracks**) that has retakes on more than one lane of a track, with
-each retake's lane, its item name and whether that lane plays in the saved project. Press **Play this
-lane** beside the retake you want: that lane becomes the only one playing on its track. The lane that already plays is
-highlighted, marked **Plays**, and its button is off. A lane plays
-across the whole track, so every other lane of that track goes silent, not only for this line.
-Nothing else changes, and one Undo in REAPER puts the previous lanes back. The app never turns
-lanes on, converts takes to lanes or builds a comp: if a track is not in fixed-lane mode, or the retake
-has changed since you last saved, the dialog says so and changes nothing.
 
 ### Tracks in folders
 

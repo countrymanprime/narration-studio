@@ -19,9 +19,7 @@
       - button "Link chapters to tracks"
       - button "Prepare the chapter render"
       - button "Create chapter regions"
-      - button "Embed chapter tags"
       - button "Open the cleanup tools"
-      - button "Show the retakes on lanes"
   - region "Chapter sync":
     - heading "Chapter sync" [level=2]
     - button "Turn off chapter sync"

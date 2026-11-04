@@ -418,6 +418,10 @@ export function createMockApi(
       if (!late.boothVoices) throw new Error('the mock is still being built');
       return late.boothVoices.boothVoiceGet(chapterId);
     },
+    boothPunchTarget: (chapterId, paragraphId, fromWord, toWord) => {
+      if (!late.boothVoices) throw new Error('the mock is still being built');
+      return late.boothVoices.boothPunchTarget(chapterId, paragraphId, fromWord, toWord);
+    },
     boothVoiceAdd: (chapterId, name, characterIds) => {
       if (!late.boothVoices) throw new Error('the mock is still being built');
       return late.boothVoices.boothVoiceAdd(chapterId, name, characterIds);

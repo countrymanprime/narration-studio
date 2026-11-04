@@ -377,6 +377,11 @@ script it read as written, and its pause, level, noise, clarity and breaths. A t
 (Enter) makes it the one that plays, and **Hide others** (H) hides the other takes from the lanes. **Show in the DAW**
 moves the DAW to the line, on a DAW that can move to a place in the project.
 
+Retakes recorded into REAPER's fixed item lanes are listed with the line's other takes, each as **Retake on lane N**, and are chosen the same way. **Keep take**
+on one makes that lane the only one playing on its track; a lane plays across the whole track, so the other lanes go silent for every line of that track. Nothing else
+changes, and one Undo in REAPER puts the previous lane back. The app never turns lanes on, converts takes to lanes or builds a comp: if the track is not in fixed-lane mode,
+or the retake changed since the project was last saved, a message says so and nothing changes. What plays is read from the project as last saved in REAPER.
+
 ![Editing - Normalise from a suggestion's steps: the question says what it will change in the DAW](../../images/ui/editing-suggestion-step.webp)
 
 **How retries are kept** decides, for the line or the whole chapter, whether a line read again later in the chapter is

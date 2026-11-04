@@ -64,6 +64,14 @@ func dawRollIn(ctx context.Context, svc hostServices, support dawport.Support, p
 	if unlinked != nil {
 		return dawport.Refused(unlinked.Message), nil
 	}
+	// In a Voice folders chapter the link is a folder: the roll is on the voice the take records on, which is the track the bridge knows.
+	track, refused, err := recordTarget(svc, chapterID, track)
+	if err != nil {
+		return dawport.Result{}, err
+	}
+	if refused != nil {
+		return dawport.Refused(refused.Message), nil
+	}
 	if support.Destructive && !confirmed {
 		return dawport.Refused(rollConfirmSentence), nil
 	}

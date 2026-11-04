@@ -199,8 +199,6 @@ export type MockApiSeed = {
   /** How a project-state check answers 'changed' (count 42, one more than the last
    * comparison's 41, the default), 'unchanged' (41), or 'error' (REAPER is not open from this app). */
   projectState?: 'changed' | 'unchanged' | 'error';
-  /** Boots the retake-lane list and RetakeLanesState at this result, so "Retakes on lanes" states can be seen without a pick. 'none' lists a project with no lane tracks; 'error' also makes every pick fail. */
-  retakeLanes?: 'picked' | 'error' | 'none';
   /** Boots ChapterTagsPreview already at this result, so "Embed chapter tags" states can be seen without a real render. */
   chapterTags?: 'idle' | 'ready' | 'not-rendered';
   /** Makes chapterTagsEmbed always reject, to review the error state. */

@@ -210,6 +210,16 @@ export function BookmarksUpdate(id: string, label: string, note: string): $Cance
 }
 
 /**
+ * BoothPunchTarget answers where the words of paragraphID from fromWord to toWord (inclusive, 0-based in the paragraph) of chapterID were
+ * recorded before: the project seconds the passage plays from and to, and the track holding it (the voice that read it, in a chapter folder).
+ * "never_recorded" says nothing of it was heard, so the take should continue, not punch; "refused" carries a sentence and nothing is guessed (no
+ * recording check, a stale one, the DAW not answering, part of the passage cut, or several voices). Read-only.
+ */
+export function BoothPunchTarget(chapterID: string, paragraphID: string, fromWord: number, toWord: number): $CancellablePromise<string> {
+    return $Call.ByID(1550759971, chapterID, paragraphID, fromWord, toWord);
+}
+
+/**
  * BoothVoiceAdd adds a voice track named name inside chapterID's linked folder, after its last child, assigns characterIDs (Story
  * Bible ids) to it and chooses it for the next take. Sent only from the Booth's "Who is in Num N?" dialog, while no take of this app
  * runs. The DAW's undo takes the track back; the project is not saved.
@@ -2725,29 +2735,6 @@ export function ReplaceNarrators(): $CancellablePromise<string> {
  */
 export function ReplacePlan(chapterID: string, firstToken: number, lastToken: number, fileID: string, sourceStart: number, sourceEnd: number): $CancellablePromise<string> {
     return $Call.ByID(1619504105, chapterID, firstToken, lastToken, fileID, sourceStart, sourceEnd);
-}
-
-/**
- * RetakeLanesList lists, from the saved REAPER project the audio engine panel reads, every manuscript line whose retakes sit
- * on more than one fixed lane of a track, and which lane plays.
- */
-export function RetakeLanesList(): $CancellablePromise<string> {
-    return $Call.ByID(1618739891);
-}
-
-/**
- * RetakeLanesPick asks REAPER to make the retake named by lineID and itemGUID the only lane playing on its track, in
- * one undo step. Only a retake RetakeLanesList lists can be picked; nothing else in the project changes.
- */
-export function RetakeLanesPick(lineID: string, itemGUID: string): $CancellablePromise<string> {
-    return $Call.ByID(3760905438, lineID, itemGUID);
-}
-
-/**
- * RetakeLanesState answers the last pick's state (idle before any).
- */
-export function RetakeLanesState(): $CancellablePromise<string> {
-    return $Call.ByID(523795916);
 }
 
 /**

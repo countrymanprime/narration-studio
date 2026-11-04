@@ -1,12 +1,10 @@
 import type { ComponentType } from 'react';
 import type { IconName } from '../../icons.catalog';
 import type { CapabilityEntry } from '../primitives/CapabilityGate';
-import { ChapterTagsDialog } from './ChapterTagsDialog';
 import { CleanupToolsDialog } from './CleanupToolsDialog';
 import { CreateChapterRegionsDialog } from './CreateChapterRegionsDialog';
 import { LinkChaptersDialog } from './LinkChaptersDialog';
 import { RenderConfigDialog } from './RenderConfigDialog';
-import { RetakeLanesDialog } from './RetakeLanesDialog';
 import type { ChapterLinks } from './useChapterLinks';
 import type { LiveTracks } from './useLiveTracks';
 
@@ -16,10 +14,10 @@ import type { LiveTracks } from './useLiveTracks';
  * wants, and adds nothing here but a row. A tool a page can use is a row; a tool's dialog stays its own component.
  */
 
-export type DawToolId = 'link-chapters' | 'render-config' | 'create-regions' | 'chapter-tags' | 'cleanup-tools' | 'retake-lanes';
+export type DawToolId = 'link-chapters' | 'render-config' | 'create-regions' | 'cleanup-tools';
 
-/** What the tool does to the project: tie chapters to tracks (map), write chapters into it (structure), fix audio in it (repair), write files out of it (export), choose between its takes (takes). */
-export type DawToolGroup = 'map' | 'structure' | 'repair' | 'export' | 'takes';
+/** What the tool does to the project: tie chapters to tracks (map), write chapters into it (structure), fix audio in it (repair). */
+export type DawToolGroup = 'map' | 'structure' | 'repair';
 
 /**
  * What a tool's dialog gets: the chapter links the menu was given (its tracks too), a REAPER project's live track list when the page reads
@@ -66,14 +64,6 @@ export const DAW_TOOLS: readonly DawTool[] = [
     dialog: ({ links, onClose }) => <CreateChapterRegionsDialog tracks={links.tracks} onClose={onClose} />,
   },
   {
-    id: 'chapter-tags',
-    group: 'export',
-    label: 'Embed chapter tags…',
-    action: 'embedTags',
-    audacity: 'Chapter tags are read from a REAPER render. This project records in Audacity.',
-    dialog: ({ onClose }) => <ChapterTagsDialog onClose={onClose} />,
-  },
-  {
     id: 'cleanup-tools',
     group: 'repair',
     label: 'Cleanup tools…',
@@ -81,20 +71,12 @@ export const DAW_TOOLS: readonly DawTool[] = [
     audacity: 'The cleanup tools open in REAPER. This project records in Audacity.',
     dialog: ({ onClose }) => <CleanupToolsDialog onClose={onClose} />,
   },
-  {
-    id: 'retake-lanes',
-    group: 'takes',
-    label: 'Retakes on lanes…',
-    action: 'retakeLanes',
-    audacity: 'Retakes are REAPER fixed lanes. This project records in Audacity.',
-    dialog: ({ onClose }) => <RetakeLanesDialog onClose={onClose} />,
-  },
 ];
 
-export const DAW_TOOL_GROUPS: readonly DawToolGroup[] = ['map', 'structure', 'repair', 'export', 'takes'];
+export const DAW_TOOL_GROUPS: readonly DawToolGroup[] = ['map', 'structure', 'repair'];
 
 /** The heading a menu draws over a group's tools. */
-export const DAW_TOOL_GROUP_LABELS: Record<DawToolGroup, string> = { map: 'Link', structure: 'Structure', repair: 'Repair', export: 'Export', takes: 'Takes' };
+export const DAW_TOOL_GROUP_LABELS: Record<DawToolGroup, string> = { map: 'Link', structure: 'Structure', repair: 'Repair' };
 
 /** What the gate reads: nothing but these facts, so it is the same wherever a page gets them from. */
 export type DawToolFacts = {

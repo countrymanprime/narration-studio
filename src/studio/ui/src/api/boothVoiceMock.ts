@@ -2,7 +2,7 @@
 // the chapter links and the saved project's tracks. In a Voice folders project a chapter linked to a folder records on one of its
 // direct children: the one chosen, else the first named Narrator, else the first. A take this app started switches voice live.
 import type { NarrationApi } from '../types';
-import type { BoothVoice, BoothVoiceAdded, BoothVoiceTrack } from './contracts/voiceTracks';
+import type { BoothPunch, BoothVoice, BoothVoiceAdded, BoothVoiceTrack } from './contracts/voiceTracks';
 import type { Track } from './contracts/tracks';
 
 type Deps = Pick<
@@ -98,6 +98,11 @@ export function createBoothVoiceMock(api: Deps) {
   };
 
   return {
+    // The mock has no recording check to read a passage from: nothing of it was heard, so a start from here continues (the host's
+    // answer for a passage no word of which was heard).
+    async boothPunchTarget(_chapterId: string, _paragraphId: string, _fromWord: number, _toWord: number): Promise<BoothPunch> {
+      return { outcome: 'never_recorded' };
+    },
     async boothVoiceGet(chapterId: string): Promise<BoothVoice> {
       const { links, voices } = await voicesOf(chapterId);
       const notOne = linkRefusal(links);

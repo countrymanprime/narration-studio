@@ -66,9 +66,9 @@ import { BoothSkeleton } from './BoothSkeleton';
 import { BoothUnavailable } from './BoothUnavailable';
 import { BoothGutter, BoothMessage } from './BoothMessage';
 import { CreditsWarning } from './CreditsWarning';
-import { bodyParagraphIndex, creditsParagraphs, entityAtWord, headingParagraphs, positionAtOffset, readingParagraphsOf, secondsBefore } from './readingSource';
+import { bodyParagraphIndex, creditsParagraphs, entityAtWord, headingParagraphs, readingParagraphsOf } from './readingSource';
+import { useMoveTarget } from './useMoveTarget';
 import { useFollowDawOnOpen, useMoveDawOnOpen } from './useDawFollow';
-import { unitAtPosition } from '../reading/readingPosition';
 import { useBoothData, type BoothSource } from './useBoothData';
 import { useBoothPage } from './useBoothPage';
 import type { StoppedTake } from '../pickups/usePickupSession';
@@ -434,13 +434,7 @@ function BoothSession({
   const reference = useMemo(() => referenceOf(referenced.target, entities, marks, types), [referenced.target, entities, marks, types]);
 
   // Opened at a chapter, the DAW goes there too: to the end of its track, or to the line the Booth opened at, so the narrator can punch from it.
-  const moveTarget = useMemo(() => {
-    if (units.length === 0) return null;
-    // The credits have no line to start from: the DAW goes to the end of their track.
-    const position = chapter && from ? positionAtOffset(paragraphs, from.paragraphId, from.offset) : null;
-    const unit = position && unitAtPosition(paragraphs, units, position);
-    return unit ? ({ where: 'at', seconds: secondsBefore(units, unit.cur) } as const) : ({ where: 'end' } as const);
-  }, [chapter, from, paragraphs, units]);
+  const moveTarget = useMoveTarget({ chapterId, paragraphs, units, line: chapter && from ? from : undefined });
   useMoveDawOnOpen({
     enabled: moveDaw,
     chapterId,

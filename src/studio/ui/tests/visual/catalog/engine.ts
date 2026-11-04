@@ -275,41 +275,6 @@ export const engineStates: StateEntry[] = [
   },
   {
     page: 'engine',
-    state: 'chapter-tags-idle',
-    description:
-      'The engine panel, "Embed chapter tags" dialog open before any chapter render is configured - "Prepare chapter render first" message, Embed disabled',
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  {
-    page: 'engine',
-    state: 'chapter-tags-ready',
-    description:
-      'The engine panel, "Embed chapter tags" dialog with two rendered chapters known - the chapter list, destination field and confirm checkbox, Embed enabled once both are filled in (reached via the ?mockChapterTags=ready mock seam)',
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  {
-    page: 'engine',
-    state: 'chapter-tags-not-rendered',
-    description:
-      'The engine panel, "Embed chapter tags" dialog with a chapter configured but not yet rendered - a "Not rendered yet" badge and the press-Render-first warning, Embed disabled (reached via the ?mockChapterTags=not-rendered mock seam)',
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  {
-    page: 'engine',
-    state: 'chapter-tags-success',
-    description:
-      'The engine panel, "Embed chapter tags" dialog after a completed embed - the new tagged file\'s path shown, the original file unmentioned as changed',
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  {
-    page: 'engine',
-    state: 'chapter-tags-error',
-    description:
-      'The engine panel, "Embed chapter tags" dialog when the embed fails - inline error message (reached via the ?mockChapterTags=ready&mockChapterTagsEmbedError=1 mock seam)',
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  {
-    page: 'engine',
     state: 'cleanup-tools-idle',
     description: 'The engine panel, "Cleanup tools" dialog open before any launch - Repair Pops/Clicks and Magnolius DeClick, each with its own Open button',
   },
@@ -324,29 +289,5 @@ export const engineStates: StateEntry[] = [
     state: 'cleanup-tools-error',
     description:
       'The engine panel, "Cleanup tools" dialog when REAPER refuses a launch - "Magnolius DeClick is not installed" inline alert, nothing opened (reached via the ?mockCleanupTools=error mock seam)',
-  },
-  {
-    page: 'engine',
-    state: 'retake-lanes-list',
-    description:
-      'The engine panel, "Retakes on lanes" dialog - two lines of Chapter 1 with their retakes by lane, which lane plays in the saved project, and a "Play this lane" button per retake',
-  },
-  {
-    page: 'engine',
-    state: 'retake-lanes-picked',
-    description:
-      'The engine panel, "Retakes on lanes" dialog after REAPER confirmed a pick - lane 2 now plays for both lines of the track, "Undo in REAPER" status line (reached via the ?mockRetakeLanes=picked mock seam)',
-  },
-  {
-    page: 'engine',
-    state: 'retake-lanes-none',
-    description:
-      'The engine panel, "Retakes on lanes" dialog for a project with no fixed-lane track - says why nothing is listed (reached via the ?mockRetakeLanes=none mock seam)',
-  },
-  {
-    page: 'engine',
-    state: 'retake-lanes-error',
-    description:
-      'The engine panel, "Retakes on lanes" dialog when REAPER refuses a pick - "not in fixed item lane mode" inline alert, nothing changed (reached via the ?mockRetakeLanes=error mock seam)',
   },
 ];
