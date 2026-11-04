@@ -166,6 +166,10 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/engine/ChapterSyncPanel.tsx#1': yes('The chapter sync preview read changes nothing; Retry reads it again.'),
   'src/components/engine/ChapterSyncPanel.tsx#2': no(ED),
   'src/components/engine/ChapterSyncPanel.tsx#3': no(ED),
+  'src/components/engine/ChapterLinksTable.tsx#1': no(RF),
+  'src/components/engine/ChapterLinksTable.tsx#2': no(
+    'Adds a track or a chapter folder in REAPER (a DAW edit): a blind repeat after a create that half-happened could add a second one, and the row keeps its Create button for a deliberate press.',
+  ),
   'src/components/engine/SyncActivityLog.tsx#1': no(DS),
   'src/components/engine/useChapterFolders.ts#1': no(
     'Moves tracks out of folders in REAPER (a DAW edit): a blind repeat could apply a move that half-happened again, and the folders are checked again after the failure, so Move them out is offered afresh from what REAPER holds now.',
