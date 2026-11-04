@@ -448,3 +448,42 @@ H.test('a plain track_create while REAPER records leaves a folder open at the en
   s:send('track_create', 'c1', 'Chapter 9')
   H.eq(depths(s), { { 'Ch 8', 1 }, { 'Narrator', 0 } })
 end)
+
+-- "Who is in Num N?" during a take (#2839): the Booth stops the take with record_stop, as its Stop press does, and only then adds the voice. The
+-- take is kept as an item on the voice it recorded on, its own undo point, and the new track is a second point after it, so undoing the add
+-- never takes the recording with it.
+H.test('a voice added after record_stop keeps the take on its voice, in its own undo point before the add', function()
+  local s, t = folder_session()
+  t.narrator.armed = true
+  s.fake.cursor = 12
+  s:send('record_start', 'r1', t.narrator.guid)
+  H.eq(s:events()[1][1], 'RECORD_STARTED')
+  s.fake.play_position = 20
+  -- The key's add, had it been sent during the take, is refused and adds nothing.
+  s:send('track_create', 'c0', 'King of Hearts', t.folder.guid)
+  H.eq(s:events(), { { 'ERROR', 'c0', 'REAPER is recording. Stop recording first.' } })
+  H.eq(#s.fake.tracks, 6)
+  s:send('record_stop', 's1')
+  H.eq(s:events()[1][1], 'RECORD_STOPPED')
+  H.eq(#t.narrator.items, 1, 'the take is an item on the voice it recorded on')
+  s:send('track_create', 'c1', 'King of Hearts', t.folder.guid)
+  local created = s:events()[1]
+  H.eq({ created[1], created[4], created[5] }, { 'TRACK_CREATED', '5', 'King of Hearts' })
+  H.eq(depths(s), {
+    { 'Book', 1 },
+    { 'Chapter 3', 1 },
+    { 'Narrator', 0 },
+    { 'Crowd', 1 },
+    { 'Guard', -1 },
+    { 'King of Hearts', -2 },
+    { 'After', 0 },
+  })
+  H.eq(#t.narrator.items, 1, 'adding the voice left the take where it was')
+  local labels = {}
+  for _, point in ipairs(s.fake.undo) do
+    labels[#labels + 1] = point.label
+  end
+  H.eq(labels[#labels], H.brand.name .. ': add track')
+  H.eq(labels[#labels - 1], 'Recorded media')
+  H.eq(s.fake.open_undo_blocks, 0)
+end)

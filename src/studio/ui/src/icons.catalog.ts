@@ -79,6 +79,7 @@ import {
   faAngleLeft,
   faAngleRight,
   faPlus,
+  faLink,
   faRotate,
   faRotateLeft,
   faArrowsLeftRightToLine,
@@ -230,6 +231,8 @@ export const CATALOG = {
   remove: action(faTrashCan, 'discard', 'Remove'),
   copy: action(faCopy, 'copy', 'Copy'),
   addNote: action(faComment, 'add a note', 'Add a note'),
+  // The Booth's character with no track goes on a track the chapter has (docs/research/mockups/booth-voices/, #notice).
+  useExistingTrack: action(faLink, 'use an existing track', 'Use an existing track'),
   markText: action(faHighlighter, 'mark text', 'Mark the selected text'),
 
   // Audio.
