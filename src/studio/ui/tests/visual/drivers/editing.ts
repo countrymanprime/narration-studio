@@ -298,8 +298,8 @@ export const editingDrivers: Record<string, Driver> = {
     await openTakes(page, `${LINKED}&mockRetakeLanes=error`);
     await page.getByRole('button', { name: 'Play this lane: lane 2 on Chapter 1' }).click();
     await page
-      .getByRole('status')
-      .filter({ hasText: /not in fixed item lane mode/ })
+      .getByText(/not in fixed item lane mode/)
+      .first()
       .waitFor();
   },
   'suggestion-step': async (page) => {
