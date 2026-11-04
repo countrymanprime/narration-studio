@@ -172,6 +172,14 @@ export const masterStates: StateEntry[] = [
   },
   {
     page: 'master',
+    state: 'to-spec-approve-long-chain',
+    description:
+      "Master & QC, the approval dialog over a project whose DAW chain is long (?mockMastering=daw&mockMasterChain=long, #2932) - the files and regions, then the FX chain this render runs, each track's plug-ins in order and the master's, one marked (off), capped to its own scroll, the question and the actions in view",
+    ...KEEPS_DESKTOP_SCROLL,
+    ...REFLOW,
+  },
+  {
+    page: 'master',
     state: 'to-spec-approve-long-names',
     description:
       'Master & QC, the approval dialog over files with very long names (?mockMastering=daw&mockExportPick=long) - each name and region wrapping in its cell, nothing past the dialog',

@@ -2353,6 +2353,19 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const plan = await daw.exportPlan({ items: withRegions, master: true, format: 'mp3', approval: null });
     expectMatches(exportPlanSchema, plan, 'mock export plan, daw row');
     expect([plan.provider, plan.needsApproval, plan.needsMacro]).toEqual(['daw', true, false]);
+    // The chain the render runs, as dawChain.Chain answers it over masteringporttest's FakeDAW (#2932): each track with FX, then the master.
+    expect(plan.chain).toEqual([
+      { name: 'Voice', master: false, fx: [{ name: 'VST: ReaEQ (Cockos)', enabled: true }] },
+      { name: 'Master', master: true, fx: [{ name: 'VST: ReaLimit (Cockos)', enabled: true }] },
+    ]);
+    const cut = createMockApi({}, { mastering: { choice: 'daw', chain: 'unreadable' } });
+    await cut.exportPickFiles();
+    await expect(cut.exportPlan({ items: withRegions, master: true, format: 'mp3', approval: null })).rejects.toThrow(
+      /could not read the chain to show it to you/,
+    );
+    const plainRow = createMockApi();
+    await plainRow.exportPickFiles();
+    expect((await plainRow.exportPlan({ items: withRegions, master: true, format: 'mp3', approval: null })).chain).toEqual([]);
     expect(plan.items.map((item) => item.region)).toEqual(
       withRegions.map((item) => (item.kind === 'chapter' ? item.title : item.kind === 'credits_opening' ? 'Opening credits' : 'Closing credits')),
     );

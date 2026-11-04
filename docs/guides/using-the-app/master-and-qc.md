@@ -134,7 +134,9 @@ default; its **?** says the file is brought to the platform's RMS window and pea
 encoded; turn it off and the button reads **Encode**. When the project masters with your DAW's FX chain or an Audacity effect
 macro, **Master & encode** first asks your approval for this export. **Approve this render?** names the chain and lists the files
 it masters; for your DAW's FX chain, each file is listed with the region it renders from (a chapter's title, **Opening credits** or
-**Closing credits**). A retail sample has no region, so an export through your DAW's FX chain that includes one is refused before
+**Closing credits**). Under the files it lists the FX that render runs, as your DAW names them: each track's plug-ins in order,
+then the master's, with **(off)** after one that is switched off. A long chain scrolls in its own box. If the app cannot read the
+whole chain from your DAW, or your DAW is not connected, the export is refused before the dialog opens. A retail sample has no region, so an export through your DAW's FX chain that includes one is refused before
 the dialog opens, naming the file: remove it, or encode it without mastering. A chapter with no title is refused the same way. For
 Audacity, type the macro's name as Audacity's Macro Manager lists it (letters, digits, spaces, hyphens and underscores); a name
 Audacity cannot run is refused in the dialog. **Approve and master** starts the export; **Cancel** sends nothing. The approval
