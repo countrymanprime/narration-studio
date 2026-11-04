@@ -355,6 +355,16 @@ describe('Master & QC page body', () => {
     expect(await screen.findByRole('tooltip')).toBeTruthy();
   });
 
+  it('removing the last file to master puts the keyboard back on Master all to spec…, not the page (#2935 review)', async () => {
+    mount([]);
+    const entry = await screen.findByRole('button', { name: 'Master all to spec…' });
+    await userEvent.click(entry);
+    const table = await screen.findByRole('table', { name: 'Files to export' });
+    for (const remove of within(table).getAllByRole('button', { name: 'Remove' })) await userEvent.click(remove);
+    expect(screen.queryByRole('table', { name: 'Files to export' })).toBeNull();
+    expect(document.activeElement).toBe(entry);
+  });
+
   it('a-measured-book-offers-Re-check-and-Choose-other-files-as-icon-buttons', async () => {
     mount(ALL_PASS);
     for (const name of [/^Re-check \d+ files?$/, 'Choose other files…']) {

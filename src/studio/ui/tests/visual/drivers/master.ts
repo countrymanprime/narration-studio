@@ -219,6 +219,13 @@ export const masterDrivers: Record<string, Driver> = {
     await page.getByRole('progressbar', { name: 'Preparing files' }).waitFor();
     await scrollToTop(page, page.getByRole('region', { name: 'Master to spec' }));
   },
+  'to-spec-last-run': async (page) => {
+    await openMaster(page, '?mockDelivery=ready');
+    const panel = page.getByRole('region', { name: 'Master to spec' });
+    await panel.getByRole('button', { name: 'Master & encode' }).waitFor();
+    await panel.getByRole('button', { name: 'Remove' }).first().waitFor();
+    await scrollToTop(page, panel);
+  },
   'to-spec-cancelled': async (page) => {
     await openMaster(page, '?mockRenderExport=running');
     await pickFilesToMaster(page);
