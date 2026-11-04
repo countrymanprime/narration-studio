@@ -2,7 +2,7 @@ import type { ComponentType } from 'react';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { overlay } from '../../../overlay/overlayService';
 import { usePort } from '../../../ports/usePort';
-import { Button } from '../../primitives/Button';
+import { IconButton } from '../../primitives/IconButton';
 import { Skeleton } from '../../primitives/Skeleton';
 import { ModelsFolderControl, OldCopyOffer } from '../models/ModelsFolder';
 import { useAssetsStore } from '../models/AssetsStore';
@@ -26,9 +26,7 @@ function ModelsFolderBody() {
         </span>
       )}
       <span className="flex flex-wrap items-center gap-1.5">
-        <Button variant="secondary" size="sm" className="flex-none" onClick={open}>
-          Open folder
-        </Button>
+        <IconButton action="openFolder" size="sm" className="flex-none" onClick={open} />
         <ModelsFolderControl />
       </span>
       <OldCopyOffer />

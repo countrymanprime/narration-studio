@@ -3,6 +3,7 @@ import { apiErrorMessage } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
 import { formatSize } from '../../assets/AssetFacts';
 import { Button } from '../../primitives/Button';
+import { IconButton } from '../../primitives/IconButton';
 import { HelpButton } from '../../primitives/HelpButton';
 import { InsetCard } from '../../primitives/InsetCard';
 import { ConfirmDialog } from '../../primitives/ConfirmDialog';
@@ -87,12 +88,8 @@ export function ModelsPane({ category, lit = null }: { category: Category; lit?:
           <b>The list of models could not be read.</b>
           <span>{loadError} Your downloads are not touched.</span>
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
-            <Button variant="secondary" size="sm" onClick={() => void assets.refresh()}>
-              Retry
-            </Button>
-            <Button variant="secondary" size="sm" onClick={openFolder}>
-              Open the folder
-            </Button>
+            <IconButton action="retry" size="sm" onClick={() => void assets.refresh()} />
+            <IconButton action="openFolder" size="sm" onClick={openFolder} />
           </div>
         </InsetCard>
         {noticeCard}

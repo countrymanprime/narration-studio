@@ -76,7 +76,7 @@ Needs the owner present and approval for one test recording on a copy of a proje
 
 ## Part C: the Studio Next DAW commands (not scripted yet)
 
-The commands added by [the DAW PRD](../prds/studio-next-daw-ports-and-capabilities.prd.md) (SN-D44 to SN-D72), and the file commands of SN-B98 (C10, C11). `run-pass-part-a.ps1` does not run them yet, and no row below has run in REAPER (2026-10-12); the owner deferred each to the QA pass, [#1495](https://github.com/countrymanprime/narration-studio/issues/1495), where the detail of what to confirm is listed. Each "Pass when" is the capability's result in [the capabilities reference](../reference/daw/capabilities.md); the harness test named proves the bridge's logic only. C2 records and C10 plays audio, so they need Part B's set-up and the owner present; the others run on Part A's scratch project with the device closed.
+The commands added by the DAW PRD (SN-D44 to SN-D72), and the file commands of SN-B98 (C10, C11). `run-pass-part-a.ps1` does not run them yet, and no row below has run in REAPER (2026-10-12); the owner deferred each to the QA pass, [#1495](https://github.com/countrymanprime/narration-studio/issues/1495), where the detail of what to confirm is listed. Each "Pass when" is the capability's result in [the capabilities reference](../reference/daw/capabilities.md); the harness test named proves the bridge's logic only. C2 records and C10 plays audio, so they need Part B's set-up and the owner present; the others run on Part A's scratch project with the device closed.
 
 | # | Command | Steps | Pass when |
 | --- | --- | --- | --- |

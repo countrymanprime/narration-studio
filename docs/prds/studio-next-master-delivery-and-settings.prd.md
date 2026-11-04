@@ -1,6 +1,6 @@
 # Studio Next Master, Delivery and Settings: Capability-Driven Settings and Delivery Brought to the Mock
 
-**Source:** owner request of 2026-10-10 ([Studio Next Rebuild](studio-next-rebuild.prd.md)); the Settings, Master and Delivery behaviour in the mock's `studio-next/src/pages/Settings.tsx`, `studio-next/src/pages/Master.tsx`, `studio-next/src/pages/Delivery.tsx` and the delivery-profile rulings (ACX only; checkpoint as a template; payment type) in `studio-next/research/repo-compare-decisions.md`; the owner's rulings of 2026-10-11 (see Decisions).
+**Source:** owner request of 2026-10-10 (Studio Next Rebuild); the Settings, Master and Delivery behaviour in the mock's `studio-next/src/pages/Settings.tsx`, `studio-next/src/pages/Master.tsx`, `studio-next/src/pages/Delivery.tsx` and the delivery-profile rulings (ACX only; checkpoint as a template; payment type) in `studio-next/research/repo-compare-decisions.md`; the owner's rulings of 2026-10-11 (see Decisions).
 
 **Builds on:** the delivered Master & QC page, delivery profiles and mastering ([ACX delivery requirements](../reference/acx-delivery-requirements.md), [Data files](../reference/data-files.md), [The mastering chain](../guides/using-the-app/master-and-qc.md#the-mastering-chain), [Exporting a report](../guides/using-the-app/master-and-qc.md#exporting-a-report), [Master & QC](../guides/using-the-app/master-and-qc.md), [Shared Findings Contract](../architecture/findings-contract.md), [Provider ports](../architecture/provider-ports.md)), the Settings page and scoped settings (`src/studio/ui/src/components/settings/`), the capability toggles ([resolver.go](../../src/studio/desktop/internal/dawport/resolver.go)) and the keyboard panel ([Studio shell and registries](../architecture/studio-shell-and-registries.md)). It carries over two owner-side validation phases (overview table).
 
@@ -32,7 +32,7 @@ Settings in the mock is where the new seams become visible: the DAW capabilities
 1. **Capabilities in Settings** show the resolver's reason, the `destructive` flag (a warning chip) and the `mode`, using the extended capability payload.
 2. **Settings > Manuscript** carries Replace manuscript (the one place); the Script reader's icon goes.
 3. **Backups** (window minutes, retention days) shown only when the DAW reports the `backups` capability.
-4. **Story Bible analysis** section: the installed tools, sizes, remove, "ask before scanning" preference, using the [Extraction and Analysis Tools](studio-next-extraction-and-analysis-tools.prd.md) consent flow.
+4. **Story Bible analysis** section: the installed tools, sizes, remove, "ask before scanning" preference, using the Extraction and Analysis Tools consent flow.
 5. **Keys** list generated from the catalogue and the narrator's keymap.
 6. **Delivery.** `platformHas(profile, capability)` is the one lookup for what a profile unlocks (templates, measures, payment types); the first import asks for the profile (ACX or none) and Settings changes it; Master & QC draws only what the host measures ([The mastering chain](../guides/using-the-app/master-and-qc.md#the-mastering-chain)); DAW wording on Master and Delivery comes from capabilities.
 7. **Reflow.** Settings states are captured at 390 px ([Design system reference](../design/design-system.md)); the mock's breakpoints apply to the reported width.

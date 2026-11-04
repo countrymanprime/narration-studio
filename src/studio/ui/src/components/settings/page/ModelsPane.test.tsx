@@ -165,10 +165,10 @@ describe('Settings: Models & downloads', () => {
     await renderModels();
     await ready('whisper/small');
     const bar = document.querySelector<HTMLElement>('[data-disk]')!;
-    expect(within(bar).queryByRole('button', { name: 'Open folder' })).toBeNull();
+    expect(within(bar).queryByRole('button', { name: 'Open the folder' })).toBeNull();
     expect(bar.textContent).not.toContain('Stored in');
     const row = document.querySelector<HTMLElement>('[data-row="models.folder"]')!;
-    expect(within(row).getByRole('button', { name: 'Open folder' })).toBeTruthy();
+    expect(within(row).getByRole('button', { name: 'Open the folder' })).toBeTruthy();
     expect(screen.getAllByText(/\/assets$|AppData/).length).toBe(1);
   });
 
@@ -335,9 +335,9 @@ describe('Settings: Models & downloads', () => {
     const assetsOpenFolder = vi.fn().mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error('No file manager.'));
     await renderModels({ overrides: { assetsOpenFolder } });
     await ready('whisper/small');
-    fireEvent.click(screen.getByRole('button', { name: 'Open folder' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open the folder' }));
     await waitFor(() => expect(assetsOpenFolder).toHaveBeenCalledTimes(1));
-    fireEvent.click(screen.getByRole('button', { name: 'Open folder' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Open the folder' }));
     await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.stringContaining('The folder could not be opened: No file manager.'), { tone: 'error' }));
   });
 

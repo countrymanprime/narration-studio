@@ -657,7 +657,9 @@ describe('the inspector with a DAW that has the commands', () => {
     await waitFor(() => expect(stopsInDaw).toBe(1));
     await waitFor(() => expect(inspector().queryByRole('status')).toBeNull());
     const entries = await journal.entries();
-    expect(entries.map((e) => [e.label, e.daw, e.undoable])).toEqual([['Compared Podcast Voice with and without', true, true]]);
+    // Behaviour changed (#3016): not a `daw` entry. A Compare adds no undo point, so the DAW has no last action to be asked about and the journal
+    // refused its Undo every time it asked; Undo now goes through the effect's own record (the `sameThing` order check still applies).
+    expect(entries.map((e) => [e.label, e.daw, e.undoable])).toEqual([['Compared Podcast Voice with and without', false, true]]);
     // One Undo stops any Compare still playing and leaves the effect as it was before (on): no record changes.
     expect(await journal.undo(entries[0].id)).toMatchObject({ ok: true });
     expect(stopsInDaw).toBe(2);
@@ -682,6 +684,41 @@ describe('the inspector with a DAW that has the commands', () => {
     await waitFor(() => expect(toast).toHaveBeenCalledWith('That effect is gone.', { tone: 'error' }));
     expect(inspector().queryByRole('status')).toBeNull();
     expect(await journal.entries()).toEqual([]);
+  });
+
+  // #3016: a setting change, a bypass and turning back on each name the DAW action they left, so the journal can ask the DAW before it undoes them.
+  it('Undo of a setting, a bypass and a turn-on asks the DAW about the action each one left', async () => {
+    const asked: unknown[] = [];
+    journal = createJournal({
+      dawName: () => 'REAPER',
+      dawLastAction: async (action) => {
+        asked.push(action);
+        return 'this';
+      },
+    });
+    const daw = dawWith(withFxRange(DAW_SETUPS.reaper, 'native'));
+    show(MANY[0], daw, host({ effects: ONE }));
+    const mode = (await screen.findByRole('textbox', { name: 'Mode' })) as HTMLInputElement;
+    fireEvent.change(mode, { target: { value: '2' } });
+    await waitFor(async () => expect((await journal.entries()).length).toBe(1));
+    const box = screen.getByRole('checkbox', { name: 'Bypass this effect' });
+    fireEvent.click(box);
+    await waitFor(async () => expect((await journal.entries()).length).toBe(2));
+    await waitFor(() => expect(box.getAttribute('aria-checked')).toBe('true'));
+    fireEvent.click(box);
+    await waitFor(async () => expect((await journal.entries()).length).toBe(3));
+    // Reading the entries asks the DAW about each one too; only the asks an Undo makes are counted.
+    const newestFirst = await journal.entries();
+    asked.length = 0;
+    for (const entry of newestFirst) {
+      const undone = await journal.undo(entry.id);
+      expect(undone, entry.label + ' ' + JSON.stringify(undone)).toMatchObject({ ok: true });
+    }
+    expect(asked).toEqual([
+      { kind: 'enable_fx', steps: 1 },
+      { kind: 'bypass_fx', steps: 1 },
+      { kind: 'set_fx_param', steps: 1 },
+    ]);
   });
 
   it('Bypass is kept with the effect, so the figure leaves it out, and one Undo turns it on in the DAW and the record', async () => {

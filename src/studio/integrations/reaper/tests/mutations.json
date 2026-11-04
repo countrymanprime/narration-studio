@@ -2812,15 +2812,27 @@
     "replace": "local stop = record and (stopped_at(record) or 0)"
   },
   {
+    "name": "chapter_end continues after the armed voice only, not the whole folder",
+    "file": "narration_transport.lua",
+    "find": "    last = math.max(last, track_end(track))",
+    "replace": "    last = math.max(last, track_end(folder))"
+  },
+  {
+    "name": "chapter_end accepts a target outside the chapter folder",
+    "file": "narration_transport.lua",
+    "find": "      inside = inside or member == target",
+    "replace": "      inside = true"
+  },
+  {
     "name": "the end rule ignores where the last take stopped",
     "file": "narration_transport.lua",
-    "find": "    if not here then\n      reaper.SetEditCurPos(track_end(target), true, false)",
+    "find": "    if not here then\n      reaper.SetEditCurPos(folder and folder_end(folder) or track_end(target), true, false)",
     "replace": "    if true then\n      reaper.SetEditCurPos(track_end(target), true, false)"
   },
   {
     "name": "the end rule keeps any cursor, so a take records over later audio",
     "file": "narration_transport.lua",
-    "find": "    if not here then\n      reaper.SetEditCurPos(track_end(target), true, false)",
+    "find": "    if not here then\n      reaper.SetEditCurPos(folder and folder_end(folder) or track_end(target), true, false)",
     "replace": "    if false then\n      reaper.SetEditCurPos(track_end(target), true, false)"
   },
   {

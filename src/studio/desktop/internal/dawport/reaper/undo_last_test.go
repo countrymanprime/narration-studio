@@ -174,7 +174,8 @@ func TestUndoLastRefusesBeforeAnythingIsSent(t *testing.T) {
 
 // Every kind the port knows is one the bridge sends, so a kind added on one side cannot be refused by the other.
 func TestEveryActionKindIsOneTheBridgeSends(t *testing.T) {
-	for _, kind := range []dawport.ActionKind{dawport.ActionCutRange, dawport.ActionRecordTake, dawport.ActionUseTake} {
+	for _, kind := range []dawport.ActionKind{dawport.ActionCutRange, dawport.ActionRecordTake, dawport.ActionUseTake,
+		dawport.ActionAddRangeFX, dawport.ActionRemoveRangeFX, dawport.ActionSetFXParam, dawport.ActionBypassFX, dawport.ActionEnableFX} {
 		if !kind.Valid() || !bridge.UndoKinds[string(kind)] {
 			t.Errorf("%s: valid %v, sent by the bridge %v", kind, kind.Valid(), bridge.UndoKinds[string(kind)])
 		}
@@ -206,5 +207,28 @@ func TestUndoLastWordsAUsedTake(t *testing.T) {
 	})
 	if got, err := undoer.LastAction(t.Context(), dawport.ActionUseTake); err != nil || got != dawport.LastActionThis {
 		t.Errorf("LastAction = %q, %v; want this", got, err)
+	}
+}
+
+// Each chain edit is a kind of its own (#3016), worded as its own noun; the bridge sends exactly the kind it was asked about.
+func TestUndoLastWordsEachChainEdit(t *testing.T) {
+	for kind, noun := range map[dawport.ActionKind]string{
+		dawport.ActionAddRangeFX:    "effect added",
+		dawport.ActionRemoveRangeFX: "effect taken off",
+		dawport.ActionSetFXParam:    "change of an effect setting",
+		dawport.ActionBypassFX:      "bypass",
+		dawport.ActionEnableFX:      "turning an effect back on",
+	} {
+		undoer := undoerAnswering(t, func(command []string) [][]string {
+			if command[0] != "undo_last" || len(command) != 4 || command[2] != string(kind) {
+				t.Errorf("%s: command = %v", kind, command)
+			}
+			return [][]string{{"UNDONE_LAST", command[1], string(kind), command[3], "1"}}
+		})
+		got, err := undoer.UndoLast(t.Context(), kind, 1)
+		want := dawport.OK("Undid the "+noun+" in REAPER.", true).WithUndoSteps(0)
+		if err != nil || !reflect.DeepEqual(got, want) {
+			t.Errorf("%s: UndoLast = %+v, %v; want %+v", kind, got, err, want)
+		}
 	}
 }

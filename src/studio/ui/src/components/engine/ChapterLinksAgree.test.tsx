@@ -28,7 +28,7 @@ function renderEngine(api: NarrationApi) {
   render(
     <MemoryRouter>
       <ApiProvider api={api}>
-        <EnginePanel open onClose={() => {}} notify={() => {}} link={LINK} />
+        <EnginePanel open onClose={() => {}} notify={() => {}} link={LINK} onOpenRecordingSettings={() => {}} />
       </ApiProvider>
     </MemoryRouter>,
   );

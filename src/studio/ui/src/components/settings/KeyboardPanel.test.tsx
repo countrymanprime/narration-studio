@@ -57,7 +57,7 @@ async function openRecorderFor(label: string) {
   // header row, which also holds this row's (and only this row's) Change button.
   const heading = await screen.findByText(label);
   const headerRow = heading.closest('div')!;
-  fireEvent.click(within(headerRow).getByRole('button', { name: 'Change' }));
+  fireEvent.click(within(headerRow).getByRole('button', { name: /^Change the shortcut/ }));
   return within(await screen.findByRole('group', { name: `Change "${label}"` }));
 }
 
@@ -74,7 +74,7 @@ describe('KeyboardPanel', () => {
     );
     await screen.findByText('A fake settings row');
     expect(screen.queryByText('Not in Settings')).toBeNull();
-    expect(screen.getAllByRole('button', { name: 'Change' })).toHaveLength(commandsFor('settings', catalog).length);
+    expect(screen.getAllByRole('button', { name: /^Change the shortcut/ })).toHaveLength(commandsFor('settings', catalog).length);
   });
 
   it('groups the catalog by scope, with each hint from the Visual Spec', async () => {

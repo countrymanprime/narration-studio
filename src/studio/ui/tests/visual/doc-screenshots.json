@@ -1645,6 +1645,13 @@
     "caption": "Schedule - a due date that has passed: how many days overdue, Behind, and when the work would finish at your pace"
   },
   {
+    "page": "schedule",
+    "state": "milestone-statuses",
+    "viewport": "desktop",
+    "docName": "schedule-milestone-statuses",
+    "caption": "Schedule - milestone statuses: a done milestone, a custom one past its date (Past due), a custom one ahead and Final delivery with its estimate"
+  },
+  {
     "page": "pickups",
     "state": "show-where",
     "viewport": "desktop",

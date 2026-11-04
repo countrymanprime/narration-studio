@@ -41,7 +41,7 @@ export function createBuiltinBoothRecordMock(deps: Deps): Pick<TeleprompterApi, 
     const { devices, error } = await deps.recorder.recorderDevices();
     if (devices.length === 1) return { device: devices[0].name };
     if (devices.length === 0) return refused('no_microphone', error ?? 'No microphone found. Plug one in, then press Record again.');
-    return refused('choose_microphone', 'Choose the microphone in Levels, then press Record.');
+    return refused('choose_microphone', 'Choose the microphone in Record options, then press Record.');
   };
   return {
     readAloudRecordStart: async (chapterId) => {

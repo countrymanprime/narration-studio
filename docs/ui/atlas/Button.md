@@ -160,8 +160,6 @@ Storybook title: `Primitives/Button`. Source: `src/components/primitives/Button.
 - `src/components/script/page/tools/select/MarkComposer.tsx`
 - `src/components/script/page/tools/select/MarksDialog.tsx`
 - `src/components/script/page/tools/select/SelectionTool.tsx`
-- `src/components/settings/BackupsSection.tsx`
-- `src/components/settings/CapabilitySection.tsx`
 - `src/components/settings/CreditsPanel.tsx`
 - `src/components/settings/DeliveryProfileEditor.tsx`
 - `src/components/settings/DeliveryProfilesPanel.tsx`
@@ -169,10 +167,8 @@ Storybook title: `Primitives/Button`. Source: `src/components/primitives/Button.
 - `src/components/settings/RetailSamplePanel.tsx`
 - `src/components/settings/ScopedSetting.tsx`
 - `src/components/settings/UpdatesPanel.tsx`
-- `src/components/settings/analysis/AnalysisToolsSection.tsx`
 - `src/components/settings/analysis/ConsentDialog.tsx`
 - `src/components/settings/controls/AppearanceBodies.tsx`
-- `src/components/settings/controls/CapabilitiesBody.tsx`
 - `src/components/settings/controls/CreditsBody.tsx`
 - `src/components/settings/controls/EngineBody.tsx`
 - `src/components/settings/controls/MicBody.tsx`
@@ -185,9 +181,7 @@ Storybook title: `Primitives/Button`. Source: `src/components/primitives/Button.
 - `src/components/settings/page/CategoryPane.tsx`
 - `src/components/settings/page/DeleteStoryBibleData.tsx`
 - `src/components/settings/page/ModelsPane.tsx`
-- `src/components/settings/page/PagesPane.tsx`
 - `src/components/settings/page/ProjectDataPanel.tsx`
-- `src/components/settings/page/Results.tsx`
 - `src/components/settings/page/ScopedFieldsPanel.tsx`
 - `src/components/settings/page/SettingsPage.tsx`
 - `src/components/settings/row/AssetNote.tsx`
