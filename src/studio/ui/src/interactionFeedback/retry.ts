@@ -35,6 +35,25 @@ const SE = 'Runs inside a dialog that has already closed and moved on to the sca
 
 /** Judged error toasts. `yes` must carry a Retry (or an equal action) in the call; `no` and `n/a` say why in a sentence. */
 export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
+  'src/components/production/report/ReportDialog.tsx#1': yes(
+    'Opening the report folder again repeats the same open; the toast carries Retry (added by the report dialog).',
+  ),
+  'src/components/script/page/data/useScriptData.ts#2': no(ED),
+  'src/components/script/page/data/useScriptData.ts#3': no(ED),
+  'src/components/settings/controls/SyncEnabledBody.tsx#1': no(BT),
+  'src/components/settings/controls/VoicesBody.tsx#1': no(
+    'The tracks are read again every time the window is focused, so the next focus repeats the read; the narrator is in REAPER when it matters.',
+  ),
+  'src/components/settings/controls/VoicesBody.tsx#2': no(
+    'The chapter links are read again every time the window is focused (the same refresh counter as the tracks), so the next focus repeats the read.',
+  ),
+  'src/components/storybible/source/NamePronunciation.tsx#1': yes(
+    'The pronunciation sources list read changes nothing; Retry reads it again (added by the pronunciation rework).',
+  ),
+  'src/components/storybible/source/NamePronunciation.tsx#3': no(ED),
+  'src/components/storybible/source/PronunciationCandidates.tsx#1': yes(
+    'Asking for the candidates again changes nothing; the toast carries Retry (added by the pronunciation rework).',
+  ),
   'src/components/booth/voices/useBoothVoices.ts#5': no(ED),
   'src/components/booth/voices/useBoothVoices.ts#6': no(RF),
   'src/components/booth/voices/useBoothVoices.ts#7': yes('Reading the voice setup back after a track was added changes nothing; Retry reads it again.'),
@@ -316,4 +335,4 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
  * The error toasts of a read that is safe to repeat and still has no Retry (the hook has no re-read path yet). Each leaves this list by
  * getting a Retry and a `yes` above, test first; the list may only shrink, and a new error toast is judged in `ERROR_TOAST_RETRY`, never added here.
  */
-export const RETRY_TODO_ERROR_TOASTS: readonly string[] = ['src/components/storybible/source/NamePronunciation.tsx#1'];
+export const RETRY_TODO_ERROR_TOASTS: readonly string[] = [];

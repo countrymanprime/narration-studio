@@ -8,6 +8,7 @@ import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import { WIRE_CHAPTERS, WIRE_TRACKS_PROJECT } from '../../api/mockFixtures';
 import type { NarrationApi } from '../../types';
+import type { Track, TracksLive } from '../../api/contracts/tracks';
 
 afterEach(cleanup);
 
@@ -138,7 +139,9 @@ describe('EnginePanel', () => {
     expect(await screen.findByText('No REAPER project file found.')).toBeTruthy();
     expect(screen.queryByRole('toolbar', { name: 'REAPER tools' })).toBeNull();
     cleanup();
-    renderPanel({ tracksList: async () => ({ path: 'C:/Book/Empty.rpp', tracks: [] }) });
+    renderPanel({
+      tracksLive: async () => ({ source: 'live', reason: '', message: '', readAt: '2026-11-03T12:00:00Z', project: { path: 'C:/Book/Empty.rpp', tracks: [] } }),
+    });
     expect(await screen.findByText('This REAPER project has no tracks yet.')).toBeTruthy();
   });
 
@@ -255,5 +258,172 @@ describe('EnginePanel for an Audacity project', () => {
     );
     const panel = await screen.findByRole('dialog', { name: 'Audio engine' });
     expect(await within(panel).findByText(/No tracks have been read from Audacity yet/)).toBeTruthy();
+  });
+});
+
+// #2840: a chapter folder or track added in REAPER showed nowhere until the project was saved. The panel reads REAPER's tracks live
+// (useLiveTracks.test.tsx holds the reader's state matrix); these are the surfaces that draw them.
+describe("EnginePanel's live track list", () => {
+  const ADDED: Track = {
+    ...WIRE_TRACKS_PROJECT.tracks[0],
+    guid: '{ADDED000-0000-4000-8000-000000000001}',
+    index: WIRE_TRACKS_PROJECT.tracks.length,
+    name: 'Chapter 9 – הים 🌊',
+    items: [],
+  };
+  const live = (tracks: Track[], over: Partial<TracksLive> = {}): TracksLive => ({
+    source: 'live',
+    reason: '',
+    message: '',
+    readAt: '2026-11-03T12:00:00Z',
+    project: { ...WIRE_TRACKS_PROJECT, tracks },
+    ...over,
+  });
+
+  const named = (name: string) => (accessible: string) => accessible.includes(name);
+  // The Chapter links card once the tracks are read: before that a card of the same name holds only the status and Refresh.
+  const linksCard = async () => {
+    const section = (await screen.findByRole('table', { name: 'Chapter links' })).closest('section');
+    if (!section) throw new Error('the Chapter links table is not in its card');
+    return section;
+  };
+
+  it('a track added in REAPER after the panel opened appears in the Tracks card, the Chapter links pickers and Link chapters on Refresh', async () => {
+    const user = userEvent.setup();
+    let tracks: Track[] = WIRE_TRACKS_PROJECT.tracks;
+    const tracksLive = vi.fn(async () => live(tracks));
+    renderPanel({ tracksLive });
+    const links = await linksCard();
+    expect(await within(links).findByText(/^REAPER now · read \d+ s ago$/)).toBeTruthy();
+    expect(within(links).getByText('REAPER’s tracks now, saved or not.')).toBeTruthy();
+    expect(within(await trackTable()).queryByText(ADDED.name)).toBeNull();
+
+    tracks = [...WIRE_TRACKS_PROJECT.tracks, ADDED];
+    await user.click(within(links).getByRole('button', { name: 'Read the tracks from REAPER again' }));
+    await waitFor(() => expect(within(screen.getByRole('table', { name: 'Tracks' })).getByText(ADDED.name)).toBeTruthy());
+    const picker = within(links).getByRole('combobox', { name: `Track for ${WIRE_CHAPTERS[1].title}` });
+    expect(within(picker).getByRole('option', { name: named(ADDED.name) })).toBeTruthy();
+
+    const calls = tracksLive.mock.calls.length;
+    await user.click(screen.getByRole('button', { name: 'Link chapters…' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Link chapters to REAPER' });
+    await waitFor(() => expect(tracksLive.mock.calls.length).toBe(calls + 1));
+    expect(within(dialog).getByText('REAPER’s tracks now, saved or not.')).toBeTruthy();
+    expect(within(dialog).getAllByRole('option', { name: named(ADDED.name) }).length).toBeGreaterThan(0);
+    expect(within(dialog).getByRole('button', { name: 'Read the tracks from REAPER again' })).toBeTruthy();
+  });
+
+  // Breaker 8: the dialog's own read on open came on top of the panel's.
+  it('opening Link chapters while the panel is reading shares that read', async () => {
+    const user = userEvent.setup();
+    let hold: ((value: TracksLive) => void) | undefined;
+    let calls = 0;
+    const tracksLive = vi.fn(() => {
+      calls += 1;
+      if (calls === 1) return Promise.resolve(live(WIRE_TRACKS_PROJECT.tracks));
+      return new Promise<TracksLive>((resolve) => (hold = resolve));
+    });
+    renderPanel({ tracksLive });
+    const links = await linksCard();
+    await within(links).findByText('REAPER’s tracks now, saved or not.');
+    window.dispatchEvent(new Event('focus'));
+    await waitFor(() => expect(tracksLive).toHaveBeenCalledTimes(2));
+    await user.click(screen.getByRole('button', { name: 'Link chapters…' }));
+    await screen.findByRole('dialog', { name: 'Link chapters to REAPER' });
+    expect(tracksLive).toHaveBeenCalledTimes(2);
+    hold?.(live(WIRE_TRACKS_PROJECT.tracks));
+  });
+
+  it('says the tracks are the saved project’s, and why, when REAPER cannot list them', async () => {
+    const message = 'REAPER is not answering, so these are the tracks as of the last save.';
+    renderPanel({ tracksLive: async () => live(WIRE_TRACKS_PROJECT.tracks, { source: 'saved', reason: 'not_running', message }) });
+    const links = await linksCard();
+    expect(await within(links).findByText(message)).toBeTruthy();
+    expect(within(links).getByText(/^Saved project · read \d+ s ago$/)).toBeTruthy();
+  });
+
+  it('marks the tracks "can’t tell" with the reason, and toasts with a Retry, when a read fails after a good one', async () => {
+    const user = userEvent.setup();
+    const notify = vi.fn();
+    let fail = false;
+    const api = createMockApi({
+      tracksLive: async () => {
+        if (fail) throw new Error('REAPER did not answer in time.');
+        return live(WIRE_TRACKS_PROJECT.tracks);
+      },
+    });
+    render(
+      <MemoryRouter>
+        <ApiProvider api={api}>
+          <EnginePanel open onClose={() => {}} notify={notify} link={LINKED} />
+        </ApiProvider>
+      </MemoryRouter>,
+    );
+    const links = await linksCard();
+    await within(links).findByText('REAPER’s tracks now, saved or not.');
+    fail = true;
+    await user.click(within(links).getByRole('button', { name: 'Read the tracks from REAPER again' }));
+    expect(await within(links).findByText(/^Can’t tell whether these are REAPER’s tracks now: .*REAPER did not answer in time\.$/)).toBeTruthy();
+    expect(within(links).getByText(/^REAPER did not answer · last read \d+ s ago$/)).toBeTruthy();
+    expect(notify).toHaveBeenCalledWith(expect.stringContaining('REAPER did not answer'), 'error', expect.objectContaining({ label: 'Retry' }));
+    // The tracks are still listed, and no alert is pushed into the page.
+    expect(within(await trackTable()).getByText(WIRE_TRACKS_PROJECT.tracks[0].name)).toBeTruthy();
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  // UX rule 7 / breaker B1: a first read that failed was an alert pushed into the page, and with no tracks there was no table, no Refresh
+  // and no Link chapters until a timer read answered.
+  it('a first live read that fails still shows a retry', async () => {
+    const user = userEvent.setup();
+    const notify = vi.fn();
+    let fail = true;
+    const tracksLive = vi.fn(async () => {
+      if (fail) throw new Error('REAPER did not answer in time.');
+      return live(WIRE_TRACKS_PROJECT.tracks);
+    });
+    const api = createMockApi({ tracksLive });
+    render(
+      <MemoryRouter>
+        <ApiProvider api={api}>
+          <EnginePanel open onClose={() => {}} notify={notify} link={LINKED} />
+        </ApiProvider>
+      </MemoryRouter>,
+    );
+    const links = await screen.findByRole('region', { name: 'Chapter links' });
+    expect(await within(links).findByText('Tracks not read yet')).toBeTruthy();
+    expect(within(links).getByText(/^The tracks could not be read: .*REAPER did not answer in time\.$/)).toBeTruthy();
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(notify).toHaveBeenCalledWith(expect.stringContaining('REAPER did not answer'), 'error', expect.objectContaining({ label: 'Retry' }));
+    fail = false;
+    await user.click(within(links).getByRole('button', { name: 'Read the tracks from REAPER again' }));
+    expect(await screen.findByRole('table', { name: 'Chapter links' })).toBeTruthy();
+    expect(await trackTable()).toBeTruthy();
+  });
+
+  it('the Refresh button shows its hint on focus', async () => {
+    renderPanel({ tracksLive: async () => live(WIRE_TRACKS_PROJECT.tracks) });
+    const links = await linksCard();
+    const refresh = await within(links).findByRole('button', { name: 'Read the tracks from REAPER again' });
+    refresh.focus();
+    expect((await screen.findByRole('tooltip')).textContent).toBe('Read the tracks from REAPER again');
+  });
+
+  // Breaker 7: a right-to-left override in a track name reversed what followed it.
+  it('isolates a track name with a direction override where the panel draws it', async () => {
+    const tricky: Track = { ...ADDED, name: 'Chapter ‮evil' };
+    renderPanel({ tracksLive: async () => live([...WIRE_TRACKS_PROJECT.tracks, tricky]) });
+    const table = await trackTable();
+    const cell = await within(table).findByText(tricky.name);
+    expect(cell.closest('bdi')).not.toBeNull();
+  });
+
+  it('never reads REAPER’s tracks for an Audacity project', async () => {
+    const tracksLive = vi.fn(async () => live([]));
+    renderPanel(
+      { tracksLive },
+      { daw: { daw: 'Audacity' }, audacityLink: { module: 'on', running: true, pipe: 'answering', openProject: 'linked', linkedFile: 'Book One.aup3' } },
+    );
+    expect(await screen.findByRole('table', { name: 'Tracks' })).toBeTruthy();
+    expect(tracksLive).not.toHaveBeenCalled();
   });
 });

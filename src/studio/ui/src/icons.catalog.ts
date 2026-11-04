@@ -303,7 +303,6 @@ export const CATALOG = {
   hideExample: action(faEyeSlash, 'hide an example', 'Hide the format example'),
   recordHere: { ...action(faCircle, 'record', 'Record from here'), tint: 'rec' },
   goToChapter: action(faArrowRight, 'go on', 'Go to the chapter'),
-  addWord: action(faPlus, 'add', 'Add to my words'),
   addMark: action(faPlus, 'add', 'Add a mark'),
   addRelationship: action(faPlus, 'add', 'Add a relationship'),
   editBookmark: action(faPen, 'edit', 'Edit the bookmark'),

@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 
 	"desktop/internal/chaptermatch"
+	"desktop/internal/dawport"
 	"desktop/internal/evidence"
 	"desktop/internal/tracks"
 )
@@ -146,7 +148,24 @@ type chapterTrackLinks struct {
 }
 
 func (h *Host) chapterTrackLinks() (chapterTrackLinks, error) {
-	return chapterTrackLinksIn(h.services())
+	svc := h.services()
+	lister, support := trackListerFrom(svc)
+	ctx, cancel := context.WithTimeout(context.Background(), tracksLiveTimeout)
+	defer cancel()
+	return chapterTrackLinksLive(ctx, svc, lister, support)
+}
+
+// chapterTrackLinksLive is chapterTrackLinksIn judged against the engine's live track list when the engine has the linked
+// project open (liveProject, tracks_live.go), so a track added and linked since the last save is not "missing". Otherwise it is
+// chapterTrackLinksIn. support is why lister is nil.
+func chapterTrackLinksLive(ctx context.Context, svc hostServices, lister dawport.TrackLister, support dawport.Support) (chapterTrackLinks, error) {
+	project, state, message := readLinksProject(svc)
+	if state == linksProjectReady {
+		if live, reason, _ := liveProject(ctx, readAloudAdapterName(svc), lister, support, project.Path, project); reason == "" {
+			project = live
+		}
+	}
+	return chapterTrackLinksOver(svc, project, state, message)
 }
 
 // chapterTrackLinksIn reads the manuscript, the confirmed links and the saved
@@ -154,6 +173,13 @@ func (h *Host) chapterTrackLinks() (chapterTrackLinks, error) {
 // against them. It refuses without a project or a manuscript, as
 // mappingContext does; a missing or unreadable .rpp is a state, not an error.
 func chapterTrackLinksIn(svc hostServices) (chapterTrackLinks, error) {
+	project, state, message := readLinksProject(svc)
+	return chapterTrackLinksOver(svc, project, state, message)
+}
+
+// chapterTrackLinksOver resolves every narration chapter against project, as read by readLinksProject (state and message say
+// whether it could be).
+func chapterTrackLinksOver(svc hostServices, project tracks.Project, state linksProjectState, message string) (chapterTrackLinks, error) {
 	documentID, store, err := mappingContext(svc)
 	if err != nil {
 		return chapterTrackLinks{}, err
@@ -189,7 +215,6 @@ func chapterTrackLinksIn(svc hostServices) (chapterTrackLinks, error) {
 	}
 
 	links := chapterTrackLinks{Tracks: []trackSummary{}, Chapters: make([]chapterTrackLink, 0, len(narration))}
-	project, state, message := readLinksProject(svc)
 	links.Project, links.Message = state, message
 	if state == linksProjectReady {
 		links.ProjectFile, links.SavedAt = project.Path, savedAt(project.Path)

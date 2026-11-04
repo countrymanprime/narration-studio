@@ -9,7 +9,7 @@ import { ERROR_TOAST_RETRY, RETRY_TODO_ERROR_TOASTS } from './interactionFeedbac
 // toast judged `yes` carries it. The scan reads the source with the TypeScript parser, like interactionFeedback.test.ts.
 
 /** The most read-failure toasts still waiting for a Retry (`retry-todo`). Lower it when the list shrinks; raising it is how a toast would slip past, so it never goes up. */
-const TODO_CEILING = 1;
+const TODO_CEILING = 0;
 
 const uiRoot = join(__dirname, '..');
 const srcRoot = __dirname;

@@ -40,6 +40,13 @@ export const masterStates: StateEntry[] = [
   },
   {
     page: 'master',
+    state: 'text-column',
+    description:
+      'Master & QC, every chapter already measured (?mockDelivery=ready) - the files table\'s Text column: 100% from a current Recording Check, a red cross on the three below the check\'s thresholds, and "Not checked" on the file whose chapter has no check',
+    ...REFLOW,
+  },
+  {
+    page: 'master',
     state: 'custom-profile',
     description:
       'Master & QC judged by a custom profile (?mockDeliveryProfile=custom) - the profile pill names "My ACX, tighter peak", and the table, the checks and the package aside judge against it',
