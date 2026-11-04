@@ -41,14 +41,14 @@ type PronunciationSource struct {
 }
 
 // PronunciationSourceList is the sources in the order they are offered (the registry's, the keyed online one when a key is
-// stored, then manual last) and the one taken first for a name that has nothing yet.
+// stored, the user dictionary's two, then manual last) and the one taken first for a name that has nothing yet.
 type PronunciationSourceList struct {
 	Sources []PronunciationSource `json:"sources"`
 	Default string                `json:"default"`
 }
 
 // PronunciationSources lists the sources and the default. The default is the narrator's setting when that source is available,
-// otherwise the first available source in registry order; never an unavailable one, and never manual.
+// otherwise the first available source in registry order; never an unavailable one, never manual and never the user dictionary's.
 func (h *Host) PronunciationSources() (string, error) {
 	return encodeBinding(h.pronunciationSourceList(), nil)
 }
@@ -72,12 +72,14 @@ func (h *Host) pronunciationSourceList() PronunciationSourceList {
 	if status, err := h.pronunciationOnline.KeyStatus(); err == nil && status.Present {
 		list.Sources = append(list.Sources, PronunciationSource{ID: status.Source, Label: status.Label, Kind: pronunciationport.KindLookup, Needs: pronunciationNeedsNetwork, Available: true})
 	}
+	list.Sources = append(list.Sources, userDictionarySources()...)
 	list.Sources = append(list.Sources, PronunciationSource{ID: guide.ManualSource, Label: "Entered by me", Kind: pronunciationKindManual, Available: true})
 	list.Default = h.pronunciationDefault(list.Sources)
 	return list
 }
 
-// pronunciationDefault is the narrator's setting when it names an available source, else the first available one that is not manual.
+// pronunciationDefault is the narrator's setting when it names an available source, else the first available one; never manual or a
+// user dictionary source, which hold only the words the narrator saved.
 func (h *Host) pronunciationDefault(sources []PronunciationSource) string {
 	wanted := ""
 	if settings := h.services().settings; settings != nil {
@@ -85,7 +87,7 @@ func (h *Host) pronunciationDefault(sources []PronunciationSource) string {
 	}
 	first := ""
 	for _, source := range sources {
-		if !source.Available || source.Kind == pronunciationKindManual {
+		if !source.Available || source.Kind == pronunciationKindManual || isUserDictionarySource(source.ID) {
 			continue
 		}
 		if source.ID == wanted {
@@ -143,6 +145,8 @@ func (h *Host) pronunciationCandidate(word, source string) guide.Candidate {
 		return miss(chosen.Reason)
 	case chosen.Needs == pronunciationNeedsNetwork:
 		return h.onlineCandidate(word, chosen.Label)
+	case isUserDictionarySource(chosen.ID):
+		return h.userDictionaryCandidate(word, chosen.ID)
 	}
 	service := h.services().guide
 	if service == nil {

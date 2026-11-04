@@ -20,6 +20,7 @@
 //   reload, leave mid-action,
 //   the DAW never answers          not tested: the dialog holds no state the host keeps, and nothing here talks to the DAW (the host reads the saved project when Save is pressed)
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
 import type { GuideDialogueCue, GuideEntity } from '../../../api/contracts/storyBible';
@@ -27,6 +28,8 @@ import type { VoiceSample, VoiceSampleAnswer, VoiceSampleMarkRequest, VoiceSampl
 import { VOICE_SAMPLE_SENTENCES } from '../../../api/contracts/voiceSamples';
 import type { WorkspaceAlignmentResult, WorkspaceToken } from '../../../api/contracts/workspace';
 import { createMockApi } from '../../../api/mockApi';
+import { createJournal, type Journal } from '../../../studio/journal/createJournal';
+import { StudioProvider } from '../../../studio/StudioProvider';
 import { COMMAND_CATALOG } from '../../../input/commands.catalog';
 import { gesture } from '../../../input/gestures';
 import type { GestureEvent, InputSource } from '../../../input/InputSource';
@@ -146,7 +149,10 @@ function Inner() {
   return <SelectionBar playback={idle} end={60} />;
 }
 
-function mount() {
+const Journalled = ({ journal, children }: { journal?: Journal; children: ReactNode }) =>
+  journal ? <StudioProvider journal={journal}>{children}</StudioProvider> : <>{children}</>;
+
+function mount(journal?: Journal) {
   const api = Object.assign(createMockApi(), {
     guideEntities: () => entities(),
     guideDialogueCues: () => cues(),
@@ -167,9 +173,11 @@ function mount() {
       <CommandRouter source={source} keymap={keymap}>
         <CommandScope kind="page">
           <ContextMenuHost>
-            <EditingPageProvider doc={marksDoc()}>
-              <Inner />
-            </EditingPageProvider>
+            <Journalled journal={journal}>
+              <EditingPageProvider doc={marksDoc()}>
+                <Inner />
+              </EditingPageProvider>
+            </Journalled>
           </ContextMenuHost>
         </CommandScope>
       </CommandRouter>
@@ -260,7 +268,7 @@ describe('marking a voice sample', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(toastUndo).toHaveBeenCalledWith('Saved voice sample for The Queen of Hearts.', expect.any(Function), {
       durationMs: 10_000,
-      offJournal: expect.any(String),
+      entry: expect.any(Number),
     });
   });
 
@@ -443,6 +451,19 @@ describe('marking a voice sample', () => {
     expect(remove).toHaveBeenCalledWith('a'.repeat(32));
   });
 
+  it('a saved voice sample is one journal entry, and Ctrl+Z removes it', async () => {
+    const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
+    mount(journal);
+    await select('p-1:0', 'p-1:1');
+    await openDialog();
+    enter();
+    await flush();
+    const [row] = await journal.entries();
+    expect(row).toMatchObject({ label: 'Saved a voice sample for The Queen of Hearts', undoable: true });
+    await act(async () => void (await journal.undoLast()));
+    expect(remove).toHaveBeenCalledWith('a'.repeat(32));
+  });
+
   it('a failed Undo is a toast', async () => {
     remove.mockRejectedValueOnce(new Error('The voice sample could not be removed.'));
     mount();
@@ -452,7 +473,7 @@ describe('marking a voice sample', () => {
     await flush();
     let result: unknown;
     await act(async () => void (result = await undo?.()));
-    expect(result).toEqual({ ok: false, refusal: { reason: 'The voice sample could not be removed.' } });
+    expect(result).toMatchObject({ ok: false, refusal: { reason: 'The voice sample could not be removed.' } });
   });
 
   it('marking the same stretch again says so and offers no Undo', async () => {

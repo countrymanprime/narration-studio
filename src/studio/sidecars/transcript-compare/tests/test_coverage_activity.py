@@ -179,3 +179,41 @@ def test_the_file_is_the_one_the_host_reads(tmp_path):
     log.item_done()
     expected = json.loads((Path(__file__).parent / "fixtures" / "coverage_activity.json").read_text(encoding="utf-8"))
     assert log.snapshot() == expected
+
+
+# --- the re-check stage ----------------------------------------------------------------------------------------------------------------
+
+
+def test_the_recheck_stage_writes_its_windows_under_recheck_and_no_first_pass(tmp_path):
+    """fixtures/coverage_activity_recheck.json is also read by the host's test (internal/coverage/activity_test.go)."""
+    log = activity.ActivityLog.for_recheck(tmp_path / "a.json", model="large-v3-turbo", workers=1, windows=2, items=1)
+    log.working("w")
+    log.unit_done()
+    log.item_done()
+    expected = json.loads((Path(__file__).parent / "fixtures" / "coverage_activity_recheck.json").read_text(encoding="utf-8"))
+    assert log.snapshot() == expected
+    assert "firstPass" not in log.snapshot()
+
+
+def test_the_recheck_stages_windows_are_final_and_cannot_pass_the_total(tmp_path):
+    log = activity.ActivityLog.for_recheck(tmp_path / "a.json", model="large-v3-turbo", workers=3, windows=2, items=1)
+    log.unit_done(5)
+    recheck = log.snapshot()["recheck"]
+    assert (recheck["workers"], recheck["done"], recheck["final"], recheck["reason"]) == (2, 2, True, None)
+
+
+# --- no activity -----------------------------------------------------------------------------------------------------------------------
+
+
+def test_the_null_log_answers_every_call_the_real_log_does():
+    def calls(cls):
+        return {name for name in dir(cls) if not name.startswith("_") and callable(getattr(cls, name))}
+
+    assert calls(activity.ActivityLog) - {"for_recheck"} <= calls(activity.NullActivityLog)
+    log = activity.NULL_ACTIVITY
+    log.working("k")
+    log.unit_done(recheck=True)
+    log.item_done()
+    log.recheck_queued(1, "low_confidence")
+    log.flush()
+    assert log.snapshot() == {}

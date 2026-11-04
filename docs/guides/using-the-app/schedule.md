@@ -24,7 +24,7 @@ date is today or past, no daily pace can reach it, so the pill says how late ins
 
 ## How it is worked out
 
-**How this is worked out** lists the recording, editing and proofing left, the pickups still open, and their sum, **Work left**. Like Production, it counts the narration chapters only; a chapter removed from recording is not work.
+**How this is worked out** (its **?** gives the arithmetic: words per finished hour, the recording, editing and proofing multiples, and the hours a day it assumes) lists the recording, editing and proofing left, the pickups still open, and their sum, **Work left**. Like Production, it counts the narration chapters only; a chapter removed from recording is not work.
 With no due date, **Pace needed for the due date** says **Set a due date**; once the date is today or past, it says **Due today** or **Past the due date**. The numbers behind it are fixed, not measured from your sessions, so the page labels **Your pace** and **At your
 pace, done** as estimates and says what they assume: finished audio is words ÷ 9,300 per hour (or your own measured rate, once you choose **Your pace** in Production's finished-hour target; every hours figure on Production and Schedule follows that choice), recording takes 3×
 the finished hours, editing 2.1× and proofing 0.94×, a pickup takes 0.06 hours (3.6 minutes), and your pace is 1.5 hours a day. **At your
@@ -32,7 +32,7 @@ pace, done** is today plus the work left divided by that pace.
 
 The chart, **Recorded audio vs plan**, draws the plan as a dashed line to the due date, the recorded days as a solid line when
 the app can read them (otherwise a line under the chart says why it cannot), today (its label sits beside the dot, on the side away from the plan, estimate and due lines), and the
-estimated finish as a dotted line. With no due date there is no plan or due line, and the line under the chart says **Set a due date to see the plan line.**
+estimated finish as a dotted line. With no due date there is no plan or due line, and the chart's **?** says **Set a due date to see the plan line.**
 
 ## Contract
 
@@ -44,7 +44,7 @@ refused with a message and the box goes back to the stored amount. A refusal's m
 
 ## Milestones
 
-The table lists your milestones by date, with the **Final delivery** row, the book's due date, at the end. With no other milestones, a line above it says so. The columns stay where they are whatever the milestones are called: a long name stops at two lines (hover it for the whole name, or open **Edit**). In a window narrower than 1024 px, what a milestone measures moves under its name; narrower still, the table scrolls sideways inside its card, with a shadow on the edge that has more to see, and Tab reaches it. Each row has:
+The table lists your milestones by date, with the **Final delivery** row, the book's due date, at the end. With no other milestones, a line above it says so. The columns stay where they are whatever the milestones are called: a long name stops at two lines (hover it for the whole name, or open **Edit**). In a window narrower than 1024 px, what a milestone measures moves under its name; in a card narrower than about 35 rem (a phone), each row stacks, with the name and status on the first line and the date and the buttons under them, so nothing needs a sideways scroll; in between, the table scrolls sideways inside its card, with a shadow on the edge that has more to see, and Tab reaches it. Each row has:
 
 - a name, what it **measures** (a custom milestone measures nothing), and its date.
 - a status cell: **Late by 3 d**, **At risk** or **On track** with the estimated date, or **Not estimated** for a custom one.

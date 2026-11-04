@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 // The Script page's data layer over the browser mock (`createMockApi`) and over fakes that refuse: reads and their error
 // state, the journalled commands and their inverses, prep announcements, words, speakers and Story Bible entries.
+import { pronounceOwn } from '../../../../studio/commands/pronounce';
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 import { type ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
@@ -283,40 +284,34 @@ describe('prep-state-is-journalled-and-announced', () => {
   });
 });
 
-describe('words-follow-the-mock', () => {
-  it('flag, say and unflag map to the three word calls with the host status; typing records manual', async () => {
-    const say = vi.spyOn(api, 'scriptWordSay');
+describe('a-pronunciation-is-the-story-bible-names (#2595)', () => {
+  it('a change made through the shared command is what the Script reads, with no job event, and Undo puts it back', async () => {
     const hook = setup();
     await ready(hook);
-    const r = await range(0, 5);
-    let word = '';
-    await act(async () => void (word = (await hook.result.current.commands.flagWord(r))!.word));
-    expect(hook.result.current.prep.pronStatus(word)).toBe('not_set');
-    await act(async () => void (await hook.result.current.commands.flagWord(r)));
-    expect(await hook.result.current.journal.entries()).toHaveLength(1);
-
-    await act(async () => void (await hook.result.current.commands.saveSay(word, 'uh-LIS')));
-    expect(say).toHaveBeenLastCalledWith(word, 'uh-LIS', 'manual');
-    expect(hook.result.current.prep.pronStatus(word)).toBe('set');
-    expect(hook.result.current.prep.pronOfWord(word)).toEqual({ say: 'uh-LIS', source: 'manual' });
-    await act(async () => void (await hook.result.current.commands.saveSay(word, 'uh-lees', 'cmu')));
-    expect(hook.result.current.prep.pronOfWord(word)).toEqual({ say: 'uh-lees', source: 'cmu' });
+    await waitFor(() => expect(hook.result.current.entries.nameByKey('alice')).toBeTruthy());
+    const name = hook.result.current.entries.nameByKey('alice')!;
+    const target = { entryId: name.entryId, name: name.name, prior: name.pronunciation };
+    await act(async () => void (await pronounceOwn(hook.result.current.journal, api, target, 'AL-iss')));
+    await waitFor(() => expect(hook.result.current.entries.nameByKey('alice')).toMatchObject({ status: 'set', pronunciation: { ipa: 'AL-iss' } }));
     await undoLast(hook);
-    expect(hook.result.current.prep.pronOfWord(word).say).toBe('uh-LIS');
+    await waitFor(() => expect(hook.result.current.entries.nameByKey('alice')?.pronunciation.ipa).toBe(name.pronunciation.ipa));
+  });
+});
 
-    const flagId = hook.result.current.prep.words.find((w) => w.word === word)!.flags[0]!.id;
-    await act(async () => void (await hook.result.current.commands.unflagWord(flagId)));
-    expect(hook.result.current.prep.pronStatus(word)).toBe('not_flagged');
+describe('save-to-my-dictionary', () => {
+  it('saves a word no dictionary has to the user dictionary, never the Story Bible; Undo removes it', async () => {
+    const create = vi.spyOn(api, 'guideCreate');
+    const save = vi.spyOn(api, 'userDictionarySave');
+    const hook = setup();
+    await ready(hook);
+    let saved = false;
+    await act(async () => void (saved = await hook.result.current.commands.saveToMyDictionary('zarvex', 'ZAR-vex')));
+    expect(saved).toBe(true);
+    expect(save).toHaveBeenCalledWith('zarvex', 'ZAR-vex');
+    expect(create).not.toHaveBeenCalled();
+    expect((await api.pronunciationCandidates('zarvex')).candidates).toEqual([expect.objectContaining({ sourceId: 'user_dictionary', say: 'ZAR-vex' })]);
     await undoLast(hook);
-    expect(hook.result.current.prep.pronStatus(word)).toBe('set');
-    expect(hook.result.current.prep.wordsInChapter('chapter-1').map((w) => w.word)).toEqual([word]);
-
-    await act(async () => void (await hook.result.current.commands.flagWord(await range(1, 5))));
-    await act(async () => void (await hook.result.current.commands.removeWord(word)));
-    expect(hook.result.current.prep.pronStatus(word)).toBe('not_flagged');
-    await undoLast(hook);
-    expect(hook.result.current.prep.pronStatus(word)).toBe('set');
-    expect(hook.result.current.prep.pronOfWord(word).say).toBe('uh-LIS');
+    expect((await api.pronunciationCandidates('zarvex')).candidates.filter((row) => row.sourceId === 'user_dictionary')).toEqual([]);
   });
 });
 
@@ -447,15 +442,15 @@ describe('contract-kit', () => {
 
   it('every command refusing is a toast and an empty journal', async () => {
     const no = refusing('No.');
-    api = host({ marksAdd: no, scriptPrepSetChapter: no, scriptWordFlag: no, guideCorrectCue: no });
+    api = host({ marksAdd: no, scriptPrepSetChapter: no, guideCorrectCue: no, userDictionarySave: no });
     const hook = setup();
     await ready(hook);
     const c = hook.result.current.commands;
     await act(async () => {
       expect(await c.addMark(await range(), 'stress', '')).toBeNull();
       expect(await c.setPrep(hook.result.current.chapters.value![0]!, 'prepped')).toBe(false);
-      expect(await c.flagWord(await range())).toBeNull();
       expect(await c.confirmSpeaker('cue-1', 'alice')).toBe(false);
+      expect(await c.saveToMyDictionary('quorlen', 'x')).toBe(false);
     });
     expect(toast.mock.calls.filter(([text]) => text === 'No.')).toHaveLength(4);
     expect(announce).not.toHaveBeenCalled();

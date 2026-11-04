@@ -1,6 +1,6 @@
 import { useCallback, useRef } from 'react';
 import type { Envelope } from '../model/audioTail';
-import { peaksWindowAll } from './peaksWindow';
+import { decodeEntry, peaksWindowAll } from './peaksWindow';
 import type { DocPeaks, ItemClocks } from './docClock';
 import { pickEntries, useRibbonPeaks } from './useRibbonPeaks';
 
@@ -16,12 +16,12 @@ const rooms = new WeakMap<object, number>();
 function roomLevel(entry: DocPeaks): number {
   const known = rooms.get(entry.peaks);
   if (known !== undefined) return known;
-  const bytes = Uint8Array.from(atob(entry.peaks.minMax), (c) => c.charCodeAt(0));
+  const bytes = decodeEntry(entry.peaks);
   const counts = new Array<number>(FULL_SCALE + 1).fill(0);
   const buckets = bytes.length >> 1;
   for (let k = 0; k < buckets; k += 1) {
-    const lo = bytes[2 * k] > 127 ? 256 - bytes[2 * k] : bytes[2 * k];
-    const hi = bytes[2 * k + 1] > 127 ? 256 - bytes[2 * k + 1] : bytes[2 * k + 1];
+    const lo = Math.abs(bytes[2 * k]);
+    const hi = Math.abs(bytes[2 * k + 1]);
     counts[Math.min(FULL_SCALE, Math.max(lo, hi))] += 1;
   }
   let seen = 0;

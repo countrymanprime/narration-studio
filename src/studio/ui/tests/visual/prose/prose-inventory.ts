@@ -25,26 +25,6 @@ export type ProseEntry = { file: string; text: string; class: ProseClass };
 
 export const PROSE_INVENTORY: ProseEntry[] = [
   { file: 'components/booth/CompanionShell.tsx', text: 'Hotkeys that reach this panel from REAPER are not available yet.', class: 'state' },
-  {
-    file: 'components/booth/CompanionShell.tsx',
-    text: 'The proofer&apos;s note at REAPER&apos;s playhead, with Resolve and Fine as read, will show here.',
-    class: 'state',
-  },
-  {
-    file: 'components/booth/RecordInReaperConfirm.tsx',
-    text: 'Play will arm and start recording in REAPER on the track linked to … , and Stop will stop that recording.',
-    class: 'overlay',
-  },
-  {
-    file: 'components/booth/RecordInReaperConfirm.tsx',
-    text: 'Nothing is recorded on any other track, and a recording you started in REAPER yourself is never stopped by the app.',
-    class: 'overlay',
-  },
-  {
-    file: 'components/booth/RecordInReaperConfirm.tsx',
-    text: 'You will be asked this once for this project. You can turn it off from the bar at any time.',
-    class: 'overlay',
-  },
   { file: 'components/booth/ResumePrompt.tsx', text: 'REAPER and your last reading are in different places. Start where?', class: 'state' },
   {
     file: 'components/booth/ResumePrompt.tsx',
@@ -87,10 +67,10 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     text: 'A take would not land in the project linked here. Open the linked project in …, or link the one that is open now.',
     class: 'error',
   },
-  { file: 'components/booth/record/RecordSetup.tsx', text: 'Link the open project asks you to choose the project file … has open.', class: 'instruction' },
+  { file: 'components/booth/record/RecordSetup.tsx', text: 'Link the open project asks you to choose the project file … has open.', class: 'overlay' },
   { file: 'components/booth/record/RecordSetup.tsx', text: 'Could not read whether a project file is linked. Press Check again.', class: 'error' },
   { file: 'components/connection/ChapterLinkDialog.tsx', text: 'is linked to …. Linking it here moves it.', class: 'overlay' },
-  { file: 'components/connection/ChapterLinkDialog.tsx', text: 'Or have … add a new track for this chapter, named after it, and link it:', class: 'overlay' },
+  { file: 'components/connection/ChapterLinkDialog.tsx', text: 'Or have … add a new … for this chapter, named after it…, and link it:', class: 'overlay' },
   {
     file: 'components/credits/CreditsSetupDialog.tsx',
     text: 'Your opening and closing credits need … value…. We filled in what the manuscript already says; check them and save.',
@@ -114,7 +94,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     text: "Matching changes each item's volume in REAPER to bring it onto target, in one undo step.",
     class: 'overlay',
   },
-  { file: 'components/editing/EditingCheckPanel.tsx', text: 'A met or not-met status shows only while this chapter is in Editing.', class: 'explanation' },
+  { file: 'components/editing/EditingCheckPanel.tsx', text: 'A met or not-met status shows only while this chapter is in Editing.', class: 'overlay' },
   { file: 'components/editing/EditingCheckPanel.tsx', text: 'Another chapter is being checked. Check this one when it finishes.', class: 'overlay' },
   {
     file: 'components/editing/EditingCheckPanel.tsx',
@@ -125,8 +105,8 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   { file: 'components/editing/cleanup/CleanupPreview.tsx', text: 'Hidden on …; nothing is deleted.', class: 'state' },
   {
     file: 'components/editing/effects/ChooseInDaw.tsx',
-    text: 'Choose an effect for … in …’s FX window. When you close that window it is added to these words; Keep it adds it now.',
-    class: 'instruction',
+    text: 'When you close that window the effect is added to these words; Keep it adds it now.',
+    class: 'overlay',
   },
   { file: 'components/editing/flags/FlagCard.tsx', text: 'reads the line twice. The second read starts at ….', class: 'state' },
   {
@@ -150,7 +130,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   {
     file: 'components/editing/stack/useStackRetries.tsx',
     text: 'Hide … (…) of this passage. They are muted and put out of the way, never deleted, and Undo brings them back.',
-    class: 'explanation',
+    class: 'overlay',
   },
   {
     file: 'components/editing/takes/TakeCompare.tsx',
@@ -196,18 +176,13 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     class: 'overlay',
   },
   {
-    file: 'components/engine/AudacityLinkCard.tsx',
-    text: 'Unlinking leaves the link label in the Audacity project; delete it there if you like.',
-    class: 'explanation',
-  },
-  {
     file: 'components/engine/ChapterSyncConsentDialog.tsx',
     text: 'You choose these after syncing, in the audio engine panel or from the chapter&rsquo;s Recorded cell on Production.',
     class: 'overlay',
   },
   {
     file: 'components/engine/ChapterSyncConsentDialog.tsx',
-    text: 'You can turn chapter sync on or off later in the audio engine panel (the … chip at the top of the window).',
+    text: 'You can turn chapter sync on or off later in Settings, or in the audio engine panel (the … chip at the top of the window).',
     class: 'overlay',
   },
   {
@@ -281,17 +256,11 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     text: 'Choose which lane plays for a line. A lane plays across its whole track, so choosing one silences the other lanes of that track everywhere, not only for this line. … changes nothing else, and Undo in REAPER puts the previous lanes back.',
     class: 'overlay',
   },
-  { file: 'components/layout/HistoryPanel.tsx', text: 'History keeps the newest … changes; older changes can no longer be undone.', class: 'explanation' },
   { file: 'components/layout/NeedManuscript.tsx', text: 'This project has no manuscript yet. Import one to begin.', class: 'empty' },
   {
     file: 'components/layout/NotFoundPage.tsx',
     text: 'The app has no page at this address. It may be an old link, or it may have been mistyped.',
     class: 'empty',
-  },
-  {
-    file: 'components/master/DeliveryProfilePanel.tsx',
-    text: 'Loudness (LUFS) and true peak are shown in each file&apos;s detail for information',
-    class: 'explanation',
   },
   {
     file: 'components/master/DiagnosticsSection.tsx',
@@ -311,21 +280,18 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   {
     file: 'components/master/FileRulesPanel.tsx',
     text: 'Book rules (channels the same across files, credits files, retail sample, one section per file, consistency) judge the book as a whole, not this one file: see the Delivery package beside the files.',
-    class: 'explanation',
+    class: 'overlay',
   },
-  { file: 'components/master/MasterToSpecPanel.tsx', text: 'Master before encoding…, to the platform&apos;s RMS window and peak limit', class: 'instruction' },
   {
     file: 'components/master/MasteringChain.tsx',
-    text: "One chain for the book: …, the same for every platform, with each platform's own RMS window and peak limit.",
-    class: 'explanation',
+    text: "One chain masters the whole book, for every platform. Master with chooses it: the built-in chain brings each file to the platform's RMS window and peak limit; your DAW's FX chain or an Audacity macro runs your own steps, and asks your approval before each export.",
+    class: 'overlay',
   },
   {
     file: 'components/master/ReportExportPanel.tsx',
-    text: 'Writes an HTML page anyone can open and a JSON file with the same findings, of the files measured and checked here, into this project’s … … folder. Every open finding and every file not measured is listed. It is a measurement, not a distributor’s approval, and your audio is never changed.',
-    class: 'explanation',
+    text: 'Writes an HTML page anyone can open and a JSON file with the same findings, of the files measured and checked here, into this project’s …/delivery folder. Every open finding and every file not measured is listed. It is a measurement, not a distributor’s approval, and your audio is never changed. Without the full location, only file names are written.',
+    class: 'overlay',
   },
-  { file: 'components/master/ReportExportPanel.tsx', text: 'Include each file’s full location (otherwise only file names are written)', class: 'explanation' },
-  { file: 'components/pickups/PickupsCompanionSummary.tsx', text: 'Jump to one or mark it done on the Pickups page in the full app.', class: 'instruction' },
   {
     file: 'components/pickups/list/PickupsTable.tsx',
     text: 'A pickup can be added once the list has been read. If it could not be read, use Retry.',
@@ -354,17 +320,17 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     text: 'Imported by mistake? Take it out of the board and totals. Its text stays in the manuscript.',
     class: 'overlay',
   },
-  { file: 'components/production/ImportReview.tsx', text: 'Checked names become reviewable Character entries after import.', class: 'explanation' },
+  { file: 'components/production/ImportReview.tsx', text: 'Checked names become reviewable Character entries after import.', class: 'overlay' },
   {
     file: 'components/production/RecordingCheckReport.tsx',
     text: 'heard (retakes, asides, a spoken title); extra words never count against the reading.',
-    class: 'explanation',
+    class: 'overlay',
   },
   { file: 'components/production/RecordingCheckReport.tsx', text: 'The paragraphs with missing words. The other … are fully read.', class: 'state' },
   {
     file: 'components/production/RecordingCheckRules.tsx',
     text: 'They were chosen on synthetic test recordings and have not been checked against real ones. The first two only change how a stored check is judged; changing either of the next two changes which words count, so earlier checks read as out of date and those chapters need checking again.',
-    class: 'explanation',
+    class: 'overlay',
   },
   {
     file: 'components/production/RemoveFromRecordingDialog.tsx',
@@ -374,21 +340,11 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   {
     file: 'components/production/pipeline/NoManuscript.tsx',
     text: 'The app reads your manuscript, finds the chapters, and works out how much finished audio, recording and editing that means.',
-    class: 'explanation',
+    class: 'overlay',
   },
   {
     file: 'components/production/report/ReportDialog.tsx',
     text: 'Writes an HTML page anyone can open and a JSON file with the same figures into this project’s reports folder. The contracted amount and effective rate are left out unless you include them.',
-    class: 'overlay',
-  },
-  {
-    file: 'components/proof/AuditionDialog.tsx',
-    text: 'This read&rsquo;s audio couldn&rsquo;t be played. Check that its source file is still where the project expects it.',
-    class: 'overlay',
-  },
-  {
-    file: 'components/proof/AuditionDialog.tsx',
-    text: 'Each read plays straight from its own source file, with about …s before and …s after the matched span. REAPER&rsquo;s processing chain (FX, gain, edits) is not applied, so this can sound different from the project.',
     class: 'overlay',
   },
   {
@@ -449,12 +405,12 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   {
     file: 'components/recordingcheck/RunOptions.tsx',
     text: 'Only the passages that are missing or that Whisper was unsure of are transcribed a second time.',
-    class: 'explanation',
+    class: 'overlay',
   },
   {
     file: 'components/recordingcheck/RunOptions.tsx',
     text: 'Chapters share the processors and the memory, so more chapters at once means fewer transcriptions for each.',
-    class: 'explanation',
+    class: 'overlay',
   },
   { file: 'components/recordingcheck/RunOptions.tsx', text: 'Automatic: plan it from the processors, the free memory and the model', class: 'overlay' },
   { file: 'components/schedule/MilestoneTable.tsx', text: 'No other milestones yet. Add one with +.', class: 'empty' },
@@ -462,7 +418,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   {
     file: 'components/schedule/WorkedOut.tsx',
     text: 'Finished audio is words ÷ …. Recording takes …×, editing …× and proofing …× the finished hours. Your pace is an estimate, not measured from your sessions: it assumes … h of work a day.',
-    class: 'explanation',
+    class: 'overlay',
   },
   { file: 'components/script/page/rail/threads/ThreadsPanel.tsx', text: 'No notes in this chapter yet. Select text and choose Mark.', class: 'empty' },
   { file: 'components/script/page/rail/words/DefinitionBlock.tsx', text: 'cannot be reached. The web links below still work.', class: 'error' },
@@ -493,17 +449,6 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   },
   { file: 'components/settings/DeliveryProfilesPanel.tsx', text: 'No custom profiles. Duplicate a built-in profile to make one.', class: 'empty' },
   { file: 'components/settings/KeyboardPanel.tsx', text: 'Press another key or pedal to try again. Esc cancels.', class: 'error' },
-  {
-    file: 'components/settings/KeyboardPanel.tsx',
-    text: 'Replace takes it from "…", which is then left with no key; you can give it another one afterwards.',
-    class: 'explanation',
-  },
-  { file: 'components/settings/RecordingCheckSummary.tsx', text: 'Misreads, extra words and a spoken title never count against it.', class: 'explanation' },
-  {
-    file: 'components/settings/RecordingCheckSummary.tsx',
-    text: 'These values were chosen on synthetic test recordings and have not been checked against real recordings yet. Changing the first two only changes how a stored check is judged; changing either of the last two makes earlier checks out of date, so check those chapters again.',
-    class: 'explanation',
-  },
   {
     file: 'components/settings/UpdatesPanel.tsx',
     text: 'Update checks are for releases. A development build is never offered an update.',
@@ -538,11 +483,6 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   { file: 'components/settings/controls/DeliveryBodies.tsx', text: 'None checked. Master &amp; QC measures but does not judge.', class: 'state' },
   {
     file: 'components/settings/controls/EngineBody.tsx',
-    text: 'The app keeps its bridge in REAPER’s Scripts folder and REAPER starts it each time it opens, so there is nothing to set up in REAPER.',
-    class: 'explanation',
-  },
-  {
-    file: 'components/settings/controls/EngineBody.tsx',
     text: 'This window was opened from …, so it records with … until the app is opened another way. The choice saved for this project is ….',
     class: 'state',
   },
@@ -564,7 +504,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   {
     file: 'components/settings/controls/MwKeyBody.tsx',
     text: 'When no dictionary on this computer knows a name, Look up online asks Merriam-Webster. Only the one word you look up is sent, never your text, file names or project. Answers are kept on this computer, so a word is never sent twice.',
-    class: 'explanation',
+    class: 'overlay',
   },
   {
     file: 'components/settings/controls/SampleOutputBody.tsx',
@@ -579,12 +519,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   {
     file: 'components/settings/page/ModelsPane.tsx',
     text: 'The app needs a transcription model to check recordings and a voice to preview names. The recommended pair is about 600 MB.',
-    class: 'explanation',
-  },
-  {
-    file: 'components/settings/page/ProjectDataPanel.tsx',
-    text: 'Clearing removes the imported manuscript and stored source, Story Bible, proofing artifacts, reader notes/bookmarks, and saved comparison results. Settings remain.',
-    class: 'explanation',
+    class: 'overlay',
   },
   { file: 'components/settings/page/ScopedFieldsPanel.tsx', text: 'Settings could not be loaded: ….', class: 'error' },
   {
@@ -598,7 +533,6 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     text: 'You confirmed the move from … to … on …. A check since then is not met (below). Nothing has changed: the chapter stays in … unless you revert it.',
     class: 'state',
   },
-  { file: 'components/stages/StageEvidence.tsx', text: 'Reads the evidence again; it starts no check.', class: 'explanation' },
   { file: 'components/stages/StageEvidence.tsx', text: 'Based on the saved REAPER project, file modified … …. Read ….', class: 'state' },
   { file: 'components/storybible/AppearsIn.tsx', text: 'Not listed yet. Build the Story Bible again to list the chapters.', class: 'empty' },
   {
@@ -611,7 +545,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   {
     file: 'components/storybible/VoiceDataPanel.tsx',
     text: "Narration's voice samples and approved references are here - a character's own live on its entry. Remove voice data clears every approved reference in the project; Remove voice samples deletes every sample and its audio. Nothing else about the Story Bible changes.",
-    class: 'explanation',
+    class: 'overlay',
   },
   {
     file: 'components/storybible/suggested/import/ImportDialog.tsx',
@@ -621,7 +555,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   {
     file: 'components/storybible/suggested/scan/AnalysisPrompt.tsx',
     text: 'GLiNER also labels characters, places, items and groups. BookNLP groups the ways a character is named. Nothing downloads until you agree.',
-    class: 'explanation',
+    class: 'overlay',
   },
   {
     file: 'components/recordingcheck/CheckResult.tsx',
@@ -713,16 +647,20 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     class: 'overlay',
   },
   {
+    file: 'components/engine/VoicesCard.tsx',
+    text: 'Flat: a chapter is one track. Voice folders: a chapter is a folder, one child track per voice.',
+    class: 'overlay',
+  },
+  {
     file: 'components/layout/StartupScreen.tsx',
     text: 'Lost connection to the app’s server. It may have been closed or crashed - check that it is still running.',
     class: 'error',
   },
   {
-    file: 'components/master/DeliveryProfilePanel.tsx',
-    text: 'Each file is judged rule by rule; a rule the app cannot check is listed, never counted as met.',
+    file: 'components/master/MasterToSpecPanel.tsx',
+    text: 'Mastering brings each file to the platform&apos;s RMS window and peak limit before it is encoded.',
     class: 'overlay',
   },
-  { file: 'components/master/DeliveryProfilePanel.tsx', text: ": …'s page, as recorded, sets no LUFS rule.", class: 'state' },
   { file: 'components/master/FileRulesPanel.tsx', text: ' Loudness … LUFS (information: … no LUFS rule).', class: 'state' },
   { file: 'components/master/ReportExportPanel.tsx', text: 'Check some files first: the report covers the files measured here.', class: 'empty' },
   { file: 'components/masterqc/page/MasterPage.tsx', text: 'The link names …, but no files are measured yet. Check files to measure them.', class: 'empty' },
@@ -783,11 +721,6 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     class: 'state',
   },
   {
-    file: 'components/settings/controls/MwKeyBody.tsx',
-    text: ' On this system the key is kept in a file only your account can read, not in a protected credential store.',
-    class: 'state',
-  },
-  {
     file: 'components/settings/controls/SampleOutputBody.tsx',
     text: "Voice samples play on this computer's default output. …'s own audio device is not used or changed.",
     class: 'overlay',
@@ -805,7 +738,12 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   { file: 'components/storybible/voicesamples/MoveVoiceSampleDialog.tsx', text: '… has … samples. Delete one first.', class: 'overlay' },
   {
     file: 'components/storybible/voicesamples/VoiceSamplesBody.tsx',
-    text: 'No voice samples yet. Mark one in Editing: select words you voiced well and press V.',
-    class: 'empty',
+    text: 'Mark one in Editing: select words you voiced well and press V.',
+    class: 'overlay',
+  },
+  {
+    file: 'components/settings/RecordingCheckSummary.tsx',
+    text: 'These values were chosen on synthetic test recordings and have not been checked against real recordings yet. Changing the first two only changes how a stored check is judged; changing either of the last two makes earlier checks out of date, so check those chapters again. Misreads, extra words and a spoken title never count against it.',
+    class: 'overlay',
   },
 ];

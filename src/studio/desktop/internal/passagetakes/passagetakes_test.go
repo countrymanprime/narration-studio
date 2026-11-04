@@ -5,10 +5,8 @@ import (
 	"testing"
 
 	"desktop/internal/coverage"
-	"desktop/internal/findings"
 	"desktop/internal/passagemap"
 	"desktop/internal/retakelanes"
-	"desktop/internal/takecompare"
 	"desktop/internal/tracks"
 )
 
@@ -72,24 +70,9 @@ func view() coverage.AlignmentView {
 	}
 }
 
-func group(id string, members ...map[string]any) findings.Finding {
-	list := make([]any, len(members))
-	for i, m := range members {
-		list[i] = m
-	}
-	return findings.Finding{ID: id, Analyzer: "take-review", Category: findings.CategoryPickup,
-		Manuscript: &findings.Manuscript{ChapterID: "ch-1"},
-		Evidence:   map[string]any{"kind": "pickup", "matched_span_first": 0, "matched_span_last": 1, "members": list}}
-}
-
-func member(item, take, file string, start float64) map[string]any {
-	return map[string]any{"item_guid": item, "take_guid": take, "source_file": file, "source_start": start, "source_length": 8.0}
-}
-
 func resolve(t *testing.T, mutate func(*Input)) Resolved {
 	t.Helper()
-	in := Input{ChapterID: "ch-1", View: view(), FirstToken: 1, LastToken: 2, Project: project(),
-		Groups: []findings.Finding{group("g-1", member(guidA, take1, "read-1.wav", 0), member(guidD, take5, "pickup.wav", 3))}}
+	in := Input{ChapterID: "ch-1", View: view(), FirstToken: 1, LastToken: 2, Project: project()}
 	if mutate != nil {
 		mutate(&in)
 	}
@@ -127,11 +110,11 @@ func TestAPassageSnapsOutToWholeParagraphsAndNamesTheItemMostOfItsWordsWereHeard
 	}
 }
 
-func TestEveryTakeOfTheItemLaneRetakesAndReadsFromTheProjectAreOffered(t *testing.T) {
+func TestEveryTakeOfTheItemIsOffered(t *testing.T) {
 	got := resolve(t, nil).View.Candidates
 
 	takes := bySource(got, SourceItemTake)
-	if len(takes) != 2 || !takes[0].Active || takes[1].Active || takes[1].Action != ActionMakeActive || takes[1].Confirm || takes[1].TakeGUID != take2 {
+	if len(takes) != 2 || !takes[0].Active || takes[1].Active || takes[1].Action != ActionMakeActive || takes[1].TakeGUID != take2 {
 		t.Fatalf("item takes = %+v", takes)
 	}
 	if takes[1].SourceFile != "read-2.wav" || takes[1].SourceStart != 2 || takes[1].SourceLength != 8 || !takes[1].Usable {
@@ -140,16 +123,14 @@ func TestEveryTakeOfTheItemLaneRetakesAndReadsFromTheProjectAreOffered(t *testin
 	if lanes := bySource(got, SourceLaneRetake); len(lanes) != 0 {
 		t.Fatalf("item A is not on a lane track, so its lane retakes are not offered: %+v", lanes)
 	}
-	reads := bySource(got, SourceTakeReview)
-	if len(reads) != 1 || reads[0].ItemGUID != guidD || reads[0].Action != ActionAddAndActivate || !reads[0].Confirm || !reads[0].Usable {
-		t.Fatalf("reads = %+v", reads)
+	if len(got) != 2 {
+		t.Fatalf("only the item's own takes are offered: %+v", got)
 	}
 }
 
 func TestALaneItemsOtherRetakesAreOfferedAsLanePicks(t *testing.T) {
 	got := resolve(t, func(in *Input) {
 		in.View.Items[0] = coverage.AlignmentItem{Index: 0, ItemGUID: guidB, Live: true, TakeGUID: take3}
-		in.Groups = nil
 	}).View.Candidates
 
 	lanes := bySource(got, SourceLaneRetake)
@@ -158,34 +139,6 @@ func TestALaneItemsOtherRetakesAreOfferedAsLanePicks(t *testing.T) {
 	}
 	if len(bySource(got, SourceItemTake)) != 0 {
 		t.Fatalf("a one-take item offers no other take: %+v", got)
-	}
-}
-
-func TestAReadOnTheSameItemOrAlreadyListedIsNotOfferedAgain(t *testing.T) {
-	got := resolve(t, func(in *Input) {
-		in.Groups = []findings.Finding{group("g-1", member(guidA, take2, "read-2.wav", 2), member(guidA, take1, "read-1.wav", 0))}
-	}).View.Candidates
-	if reads := bySource(got, SourceTakeReview); len(reads) != 0 {
-		t.Fatalf("reads on the passage's own item are its takes already: %+v", reads)
-	}
-}
-
-func TestATakeReviewGroupWithNoReadOnThePassagesItemIsNotOffered(t *testing.T) {
-	got := resolve(t, func(in *Input) {
-		in.Groups = []findings.Finding{group("g-2", member(guidB, take3, "lane-b.wav", 0), member(guidD, take5, "pickup.wav", 3))}
-	}).View.Candidates
-	if reads := bySource(got, SourceTakeReview); len(reads) != 0 {
-		t.Fatalf("reads = %+v", reads)
-	}
-}
-
-func TestAReadThatChangedSinceTheScanIsListedButNotUsable(t *testing.T) {
-	got := resolve(t, func(in *Input) {
-		in.Groups = []findings.Finding{group("g-1", member(guidA, take1, "read-1.wav", 0), member(guidD, take5, "pickup.wav", 9))}
-	}).View.Candidates
-	reads := bySource(got, SourceTakeReview)
-	if len(reads) != 1 || reads[0].Usable || !strings.Contains(reads[0].Reason, "trimmed") {
-		t.Fatalf("reads = %+v", reads)
 	}
 }
 
@@ -230,49 +183,9 @@ func TestAChoiceIsFoundByIdAndOnlyAmongTheOfferedCandidates(t *testing.T) {
 	if _, ok := resolved.Choice("take:" + guidA + ":" + take2 + "x"); ok {
 		t.Error("an id nobody offered was accepted")
 	}
-	choice, _ := resolved.Choice(bySource(resolved.View.Candidates, SourceTakeReview)[0].ID)
-	if choice.FindingID != "g-1" || choice.TargetItemGUID != guidA || choice.RangeStart != 3 || choice.RangeEnd != 11 || choice.SourceFile != "pickup.wav" {
+	choice, _ := resolved.Choice(bySource(resolved.View.Candidates, SourceItemTake)[1].ID)
+	if choice.TargetItemGUID != guidA || choice.Candidate.TakeGUID != take2 {
 		t.Fatalf("choice = %+v", choice)
-	}
-}
-
-func TestTheReadsToCompareAreEveryUsableCandidateOncePerTake(t *testing.T) {
-	resolved := resolve(t, func(in *Input) { in.Project.Tracks[0].Items[0].Takes[1].SourceAvailable = false })
-	reads := resolved.Reads()
-	if len(reads) != 2 || reads[0].TakeGUID != take1 || reads[1].TakeGUID != take5 {
-		t.Fatalf("reads = %+v", reads)
-	}
-	for _, read := range reads {
-		if reason := takecompare.CheckRead(project(), read); reason != "" {
-			t.Errorf("read %+v: %s", read, reason)
-		}
-	}
-}
-
-func TestASavedComparisonMarksEachTakeItCovered(t *testing.T) {
-	saved := findings.Finding{ID: "cmp-1", Analyzer: takecompare.AnalyzerName, Category: findings.CategoryTakeComparison, Evidence: map[string]any{
-		"members": []any{
-			map[string]any{"item_guid": guidA, "take_guid": take1, "compared": true, "fidelity": 0.75},
-			map[string]any{"item_guid": guidD, "take_guid": take5, "compared": false, "not_compared_reason": "None of this part of the script was heard in this take, so it is not compared with the others."},
-		}}}
-	got := resolve(t, func(in *Input) {
-		in.Comparison = func(string) (findings.Finding, bool) { return saved, true }
-	}).View
-	if got.ComparisonID != "cmp-1" {
-		t.Fatalf("comparison id = %q", got.ComparisonID)
-	}
-	byTake := map[string]Candidate{}
-	for _, c := range got.Candidates {
-		byTake[c.TakeGUID] = c
-	}
-	if c := byTake[take1]; !c.Compared || c.Fidelity == nil || *c.Fidelity != 0.75 {
-		t.Errorf("take 1 = %+v", c)
-	}
-	if c := byTake[take5]; c.Compared || !strings.Contains(c.NotComparedReason, "not compared") {
-		t.Errorf("take 5 = %+v", c)
-	}
-	if c := byTake[take2]; c.Compared || c.NotComparedReason != "" {
-		t.Errorf("take 2 was never in the comparison: %+v", c)
 	}
 }
 

@@ -36,7 +36,7 @@ const pickupMarkerSchema = z.object({
 
 export const pickupsStateSchema = z.object({
   runId: optionalFromNull(z.string()),
-  phase: z.enum(['idle', 'importing', 'exporting', 'jumping', 'resolving', 'reopening', 'listing', 'counting', 'success', 'error']),
+  phase: z.enum(['idle', 'importing', 'exporting', 'resolving', 'reopening', 'listing', 'counting', 'success', 'error']),
   message: z.string(),
   remaining: z.number(),
   total: z.number(),

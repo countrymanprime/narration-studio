@@ -63,11 +63,16 @@ type plan struct {
 // an UnknownError: the chapter as heard cannot be measured, so the run is
 // refused instead of reporting the missing item's text as unread.
 func buildPlan(project tracks.Project, trackGUID string, identify evidence.SourceIdentifier) (plan, error) {
-	track, ok := findTrack(project, trackGUID)
+	// A chapter linked to a REAPER folder of voices covers every track inside it (docs/prds/booth-voice-tracks.prd.md, phase 2b); a
+	// track that is not a folder is itself alone.
+	members, ok := project.WithDescendants(trackGUID)
 	if !ok {
 		return plan{}, unknown(ReasonMappedTrackMissing, "the chapter's confirmed track is not in the saved REAPER project")
 	}
-	items := append([]tracks.Item(nil), track.Items...)
+	var items []tracks.Item
+	for _, member := range members {
+		items = append(items, member.Items...)
+	}
 	sort.SliceStable(items, func(i, j int) bool { return items[i].Position < items[j].Position })
 
 	result := plan{trackGUID: trackGUID}
@@ -157,15 +162,6 @@ func (p plan) itemGUIDs() []string {
 		guids = append(guids, item.ItemGUID)
 	}
 	return guids
-}
-
-func findTrack(project tracks.Project, trackGUID string) (tracks.Track, bool) {
-	for _, track := range project.Tracks {
-		if track.GUID == trackGUID {
-			return track, true
-		}
-	}
-	return tracks.Track{}, false
 }
 
 // confirmedTrack is the chapter's one narrator-confirmed track (D5). No link

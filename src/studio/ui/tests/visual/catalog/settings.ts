@@ -1,7 +1,7 @@
 // The `settings` rows of STATE_CATALOG (see state-catalog.ts), in the order they are captured: one page of eight categories and an index of what
 // moved to a page (src/studio/ui/src/components/settings), then the states of the page itself (search, a deep link, loading, unreadable, save failed).
 import type { StateEntry } from '../lib/types';
-import { REFLOW, KEEPS_DESKTOP_SCROLL, FOLDS_WITH_THE_PAGE_WIDTH, FREEZES_THE_CLOCK, wholePage } from './shared';
+import { REFLOW, KEEPS_DESKTOP_SCROLL, FOLDS_WITH_THE_PAGE_WIDTH, FREEZES_THE_CLOCK, TOAST_FADES_OUT, wholePage } from './shared';
 
 export const settingsStates: StateEntry[] = [
   {
@@ -115,6 +115,19 @@ export const settingsStates: StateEntry[] = [
   },
   {
     page: 'settings',
+    state: 'recording-chapter-layout',
+    description: 'Settings, Recording & DAW: the Chapter layout row under Chapter sync, Flat and Voice folders (the Engine panel switch, on its own row)',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
+    state: 'recording-chapter-voices',
+    description:
+      'Settings, Recording & DAW (?mockVoiceFolders=1): Sync chapters to tracks and the Voices row with a chapter folder’s voices and their characters',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
     state: 'recording-reaper-path-invalid',
     description:
       'Settings, Recording & DAW, Advanced: a REAPER program path that does not end in reaper.exe is refused in the row with "This is not the path to reaper.exe..." and the old value stays',
@@ -189,6 +202,24 @@ export const settingsStates: StateEntry[] = [
     page: 'settings',
     state: 'models-needs-repair',
     description: 'Settings, Models & downloads with a model that failed its check (?mockAssets=damaged): Needs repair, with Repair and Remove in its row',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
+    state: 'models-checking',
+    description:
+      'Settings, Models & downloads after Check the files on the Whisper model, with a host that has not answered yet (?mockAssetsVerify=hangs): Checking the files in its row and the check button spinning, Remove hidden until it ends',
+    // Driven per viewport so the scrolled-to row is in frame at each width.
+    reloadPerViewport: true,
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
+    state: 'models-long-name',
+    description:
+      'Settings, Models & downloads with a Whisper model whose name is long (?mockAssetNames=long): the name wraps in its cell and Check the files and Remove stay on the name line, inside the row at 390 px',
+    // Driven per viewport so the scrolled-to row is in frame at each width.
+    reloadPerViewport: true,
     ...REFLOW,
   },
   {
@@ -338,6 +369,44 @@ export const settingsStates: StateEntry[] = [
   },
   {
     page: 'settings',
+    state: 'booth-text-size',
+    description: 'Settings, Appearance & keys scrolled to Booth text size: a slider from 24 to 72 px, 40 px by default, with its row in full view',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
+    state: 'story-bible-order',
+    description:
+      'Settings, Appearance & keys scrolled to Story Bible order under Look: a select of eight orders, Name, A to Z by default, with its row in full view',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
+    state: 'story-bible-order-changed',
+    description: 'Settings, Appearance & keys at Story Bible order after Most mentioned is chosen: the select and its Reset button beside it, in full view',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
+    state: 'editing-playback',
+    description:
+      'Settings, Appearance & keys scrolled to Editing playback under Listening: speed, volume, silence and the output device, with the row in full view',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
+    state: 'effects-cap',
+    description:
+      'Settings, Recording & DAW scrolled to Effects coverage cap under Effects: 10 % after Override for this project, with its own project box, the row in full view',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
     state: 'wave-scroll-step',
     description:
       'Settings, Appearance & keys scrolled to the Editing section: Waveform arrow step, a slider from 15 to 30 seconds reading 20 s, with the rows around it',
@@ -374,6 +443,22 @@ export const settingsStates: StateEntry[] = [
     description:
       'Settings, App & updates, nothing checked yet: the This version panel (the version, "Not checked yet.", Check for updates), Updates, Notifications and Diagnostics',
     ...REFLOW,
+  },
+  {
+    page: 'settings',
+    state: 'app-diagnostics',
+    description:
+      'Settings, App & updates with Advanced open: the Diagnostics section, with the Debug logging switch and the folder icon button beside it that opens the log folder (issue 2730)',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
+    state: 'app-log-folder-refused',
+    description:
+      'Settings, App & updates with Advanced open, after the host refused Reveal the log folder in the file manager (?mockLogFolder=refused): the error toast "The log folder could not be opened." and the folder button ready again (issue 2730)',
+    ...REFLOW,
+    ...TOAST_FADES_OUT,
   },
   {
     page: 'settings',

@@ -1,9 +1,10 @@
 // The mock host (mockApi.ts): the manuscript.
 import type { GuideEvidence, ManuscriptChapter, ManuscriptContentKind, ManuscriptParagraph, NarrationApi, ReaderState, WorkJob } from '../../types';
-import { aliceChapterSeeds, mockRecordedThrough, WIRE_NOTES, WIRE_READER_STATE, WIRE_TRACKS_PROJECT, wireClone, withFormatting } from '../mockFixtures';
+import { aliceChapterSeeds, mockRecordedThrough, WIRE_NOTES, WIRE_READER_STATE, mockTracksProject, wireClone, withFormatting } from '../mockFixtures';
 import { loadAliceManuscript } from '../aliceManuscript';
 import { mockRecordedLength } from '../chapterTrackMatchMock';
 import { mockImportPreview, mockImportPreviewLog } from '../mockImportPreview';
+import { searchMockManuscript } from '../manuscriptSearchMock';
 import { type MockApiSeed, type MockState } from './state';
 
 // `?mockManuscript=mixed`: a buttonless row (Front Matter, contentKind 'opening') before
@@ -201,17 +202,25 @@ export function createManuscriptMock(
       if (initial.chaptersRead === 'fails') throw new Error('The manuscript could not be read from this project.');
       await manuscriptReady;
       const readable = Boolean(s.tracksDiscovery.selected);
-      const narration = s.chapters.filter((chapter) => (chapter.contentKind ?? 'narration') === 'narration');
+      // Indexed once: a 5000-chapter book (`?mockBooth=many-chapters`) read these per chapter, quadratic in the chapters (#1764).
+      const narrationIndexOf = new Map<unknown, number>();
+      for (const chapter of s.chapters) if ((chapter.contentKind ?? 'narration') === 'narration') narrationIndexOf.set(chapter, narrationIndexOf.size);
+      const paragraphsOf = new Map<string, typeof s.paragraphs>();
+      for (const paragraph of s.paragraphs) {
+        const list = paragraphsOf.get(paragraph.chapterId);
+        if (list) list.push(paragraph);
+        else paragraphsOf.set(paragraph.chapterId, [paragraph]);
+      }
       return wireClone(
         s.chapters.map((chapter) => {
           // How far it is recorded: a seeded chapter's own, else the mock book's pattern over the text it really has, counted over the
           // narration chapters only (as WIRE_CHAPTERS are), so front matter before them does not shift which chapter is which.
-          const narrationIndex = narration.indexOf(chapter);
-          const paragraphs = s.paragraphs.filter((paragraph) => paragraph.chapterId === chapter.id);
+          const narrationIndex = narrationIndexOf.get(chapter) ?? -1;
+          const paragraphs = paragraphsOf.get(chapter.id) ?? [];
           const through = chapter.recordedThrough ?? (narrationIndex < 0 ? undefined : mockRecordedThrough(narrationIndex, paragraphs));
           return {
             ...withMeasurement(chapter),
-            ...mockRecordedLength(chapter.id, WIRE_TRACKS_PROJECT, s.chapterTrackMappings, readable),
+            ...mockRecordedLength(chapter.id, mockTracksProject(initial), s.chapterTrackMappings, readable),
             ...(through ? { recordedThrough: through } : {}),
           };
         }),
@@ -223,21 +232,7 @@ export function createManuscriptMock(
     },
     manuscriptSearch: async (query) => {
       await manuscriptReady;
-      const needle = query.toLowerCase();
-      return wireClone(
-        s.paragraphs
-          .map((paragraph) => ({ paragraph, matchStart: paragraph.text.toLowerCase().indexOf(needle) }))
-          .filter(({ matchStart }) => matchStart >= 0)
-          .map(({ paragraph, matchStart }) => ({
-            chapter: paragraph.chapter,
-            chapterId: paragraph.chapterId,
-            paragraph: paragraph.index,
-            paragraphId: paragraph.id,
-            sourceLine: paragraph.sourceLine,
-            excerpt: paragraph.text,
-            matchStart,
-          })),
-      );
+      return wireClone(searchMockManuscript(s.chapters, s.paragraphs, query));
     },
     // The host's ManuscriptSetChapterKind (src/studio/desktop/chapterkind.go): only the kind changes, and a removal clears the
     // chapter's links.
@@ -269,10 +264,6 @@ export function createManuscriptMock(
       return wireClone(withMeasurement(found));
     },
     noteList: async (chapter) => wireClone(chapter ? notes.filter((note) => note.chapter === chapter) : notes),
-    manuscriptReader: async () => {
-      await manuscriptReady;
-      return { chapters: wireClone(s.chapters.map(withMeasurement)), paragraphs: wireClone(s.paragraphs), notes: wireClone(notes) };
-    },
     readerState: async () => wireClone(readerState),
   } satisfies Partial<NarrationApi>;
   return { bindings, manuscriptReady, hasImported: () => imported };

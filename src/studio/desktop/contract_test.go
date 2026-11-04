@@ -1,11 +1,9 @@
 package main
 
 import (
-	"context"
 	"desktop/internal/brand"
 	"desktop/internal/trace"
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,19 +12,14 @@ import (
 
 	"desktop/internal/analysistools"
 	"desktop/internal/assets"
-	"desktop/internal/bridge"
 	"desktop/internal/contractfile"
 	"desktop/internal/dictionary"
-	"desktop/internal/findings"
 	"desktop/internal/layout"
 	"desktop/internal/manuscript"
 	"desktop/internal/moonshine"
 	"desktop/internal/project"
-	"desktop/internal/repeats"
 	"desktop/internal/settings"
 	"desktop/internal/spacy"
-	"desktop/internal/takecompare"
-	"desktop/internal/takereview"
 	"desktop/internal/tts"
 	"desktop/internal/whisper"
 )
@@ -205,19 +198,7 @@ func contractServices(t *testing.T) contractFixture {
 	return contractFixture{registry: registry, settings: settings.New(layout.FindRoot("."), "")}
 }
 
-func TestContractCatalogsAndInstallJobs(t *testing.T) {
-	svc := contractServices(t)
-	voices, err := ttsCatalogPayload(svc.registry, svc.settings)
-	if err != nil {
-		t.Fatal(err)
-	}
-	contractfile.Check(t, "tts-catalog", voices)
-	models, err := whisperCatalogPayload(svc.registry, svc.settings)
-	if err != nil {
-		t.Fatal(err)
-	}
-	contractfile.Check(t, "whisper-catalog", models)
-
+func TestContractInstallJobs(t *testing.T) {
 	for name, job := range map[string]*installJob{
 		"tts-install-downloading":     {id: "tts-1", kind: installKindTts, assetID: "en_US-ljspeech-high", phase: installPhaseDownloading, message: "Downloading and verifying the approved voice…", done: 45678901, total: 114203981},
 		"tts-install-verifying":       {id: "tts-1", kind: installKindTts, assetID: "en_US-ljspeech-high", phase: installPhaseVerifying, message: "Checking the voice against its approved checksum…", done: 114203981, total: 114203981},
@@ -457,31 +438,6 @@ func TestContractChapterTrackMatch(t *testing.T) {
 	}
 }
 
-// ChaptersForTracks's payload: one call over a track that matches, another that
-// matches nothing, and a GUID the project no longer has, so the golden file
-// shows every per-GUID shape (matched, none, error) at once.
-func TestContractChaptersForTracks(t *testing.T) {
-	host := newTestHostForChaptersForTracksNone(t)
-	folder := host.config.projectFolder
-	raw, err := host.ChaptersForTracks([]string{
-		"{22222222-2222-4222-8222-222222222222}",
-		"{44444444-4444-4444-8444-444444444444}",
-		"{99999999-9999-4999-8999-999999999999}",
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	var payload map[string]any
-	if err := json.Unmarshal([]byte(raw), &payload); err != nil {
-		t.Fatal(err)
-	}
-	stable, err := contractfile.PortablePaths(payload, folder, "C:/Projects/Alice")
-	if err != nil {
-		t.Fatal(err)
-	}
-	contractfile.Check(t, "chapters-for-tracks", stable)
-}
-
 // The chapter track link control's payloads: ChapterTrackLinks with a ready
 // project, with no .rpp, and with a double link, a missing track and a renamed one; ChapterTrackSet taking a track from
 // another chapter; ChapterTrackUnlink. Paths are made portable, ids and times fixed by Stabilize.
@@ -519,31 +475,6 @@ func TestContractChapterTrackLinks(t *testing.T) {
 	pin(t, "chapter-track-links-conflict", folder, call(host.ChapterTrackLinks()))
 	pin(t, "chapter-track-set-displaced", folder, call(host.ChapterTrackSet(ids[0], chapterLinksTrack)))
 	pin(t, "chapter-track-unlink", folder, call(host.ChapterTrackUnlink(ids[1])))
-}
-
-// ChapterSuggestion's payload: the armed track's
-// chapter, two armed tracks naming different chapters (a choice), and nothing armed or selected.
-func TestContractChapterSuggestion(t *testing.T) {
-	for name, flags := range map[string]map[string]string{
-		"chapter-suggestion-matched":   {suggestTrackI: armLine},
-		"chapter-suggestion-ambiguous": {suggestTrackI: armLine, suggestTrackII: armLine},
-		"chapter-suggestion-none":      nil,
-	} {
-		host, _ := newTestHostForSuggestion(t, flags)
-		raw, err := host.ChapterSuggestion()
-		if err != nil {
-			t.Fatal(err)
-		}
-		var payload map[string]any
-		if err := json.Unmarshal([]byte(raw), &payload); err != nil {
-			t.Fatal(err)
-		}
-		stable, err := contractfile.PortablePaths(payload, host.config.projectFolder, "C:/Projects/Alice")
-		if err != nil {
-			t.Fatal(err)
-		}
-		contractfile.Check(t, name, stable)
-	}
 }
 
 // The system:notice event: something the app did for the narrator that they should read.
@@ -780,153 +711,17 @@ func TestContractCreditsRecordedLengths(t *testing.T) {
 	contractfile.Check(t, "credits-recorded-lengths", decoded)
 }
 
-// The take-review findings as the Review page lists them (FindingsList filtered to the take-review analyzer,
-// docs/architecture/wire-contracts.md): one partial pickup (a read below full coverage) and one near-identical
-// duplicate_read (full coverage, both reads above the quality bar), each with its reads in evidence.members, which
-// the page decodes with its own schema. Built from internal/repeats.ToFindings, the adapter the scan job saves
-// through, into a real findings store: no sidecar, no REAPER project.
-func TestContractTakeReviewFindings(t *testing.T) {
-	groups := []repeats.Group{
-		{
-			ID: 0, FirstUnit: 3, LastUnit: 7,
-			Members: []repeats.Member{
-				{ItemIndex: 0, ItemGUID: "{11111111-0000-0000-0000-000000000001}", TakeGUID: "{22222222-0000-0000-0000-000000000001}", SourceFile: "C:/Projects/Alice/media/chapter1-take1.wav", StartOffset: 0, Length: 4.5, FirstUnit: 3, LastUnit: 7, Coverage: 1, Quality: 0.62},
-				{ItemIndex: 1, ItemGUID: "{11111111-0000-0000-0000-000000000002}", TakeGUID: "{22222222-0000-0000-0000-000000000002}", SourceFile: "C:/Projects/Alice/media/chapter1-take2.wav", StartOffset: 10, Length: 3.1, FirstUnit: 3, LastUnit: 7, Coverage: 0.7, Quality: 0.58},
-			},
-		},
-		{
-			ID: 1, FirstUnit: 12, LastUnit: 15,
-			Members: []repeats.Member{
-				{ItemIndex: 2, ItemGUID: "{11111111-0000-0000-0000-000000000003}", TakeGUID: "{22222222-0000-0000-0000-000000000003}", SourceFile: "C:/Projects/Alice/media/chapter1-take3.wav", StartOffset: 0, Length: 2.2, FirstUnit: 12, LastUnit: 15, Coverage: 1, Quality: 0.99},
-				{ItemIndex: 3, ItemGUID: "{11111111-0000-0000-0000-000000000004}", TakeGUID: "{22222222-0000-0000-0000-000000000004}", SourceFile: "C:/Projects/Alice/media/chapter1-take4.wav", StartOffset: 0, Length: 2.2, FirstUnit: 12, LastUnit: 15, Coverage: 1, Quality: 0.98},
-			},
-		},
+// The findings the retired take review and take comparison saved, as FindingsList still sends them (#2765): plain
+// findings the page lists and decides like any other, with the evidence they were saved with.
+func TestContractRetiredTakeFindings(t *testing.T) {
+	host := newRetiredFindingsHost(t, &fakeNavigator{})
+	for analyzer, golden := range map[string]string{"take-review": "findings-list-take-review", "take-comparison": "findings-list-take-comparison"} {
+		listed, err := host.FindingsList(FindingsQuery{Analyzer: analyzer})
+		if err != nil {
+			t.Fatal(err)
+		}
+		checkBindingContract(t, golden, listed)
 	}
-	project := findings.Project{Path: "C:/Projects/Alice"}
-	manuscript := findings.Manuscript{ChapterID: "chapter-1", ChapterTitle: "Chapter 1"}
-	store := findings.NewStore(t.TempDir())
-	if _, err := store.SaveAnalyzerFindings(repeats.AnalyzerName, "chapter-1", repeats.ToFindings(groups, project, manuscript, repeats.DefaultThresholds())); err != nil {
-		t.Fatal(err)
-	}
-	host := &Host{findings: store}
-	listed, err := host.FindingsList(FindingsQuery{Analyzer: repeats.AnalyzerName})
-	if err != nil {
-		t.Fatal(err)
-	}
-	checkBindingContract(t, "findings-list-take-review", listed)
-}
-
-// What TakeReviewScanStart, TakeReviewScanState and TakeReviewScanCancel send: the idle job
-// offering the project's saved pickup track, a scan running at the sidecar's own stage, and each way one ends.
-// What TakeComparisonStart, TakeComparisonState and TakeComparisonCancel send: the idle job, a
-// comparison running at the sidecar's own stage, and each way one ends.
-func TestContractTakeComparisonJob(t *testing.T) {
-	pin := func(name string, job TakeComparisonJob) {
-		t.Helper()
-		job.Elapsed = 3.5
-		contractfile.Check(t, name, job)
-	}
-	pin("takecomparison-idle", (&Host{}).takeComparisonState())
-	running := &takeComparisonJob{id: "take-comparison-1", phase: "running", message: "Transcribing take 2/3", percent: 33,
-		logs: []string{"Comparing 3 reads.", "Transcribing take 2/3"}, started: time.Now(), findingID: "group-1"}
-	pin("takecomparison-running", running.snapshot())
-	finished := func(saved findings.Finding, err error, cancelled bool) TakeComparisonJob {
-		job := &takeComparisonJob{id: "take-comparison-1", phase: "running", message: "Transcribing take 3/3", percent: 64,
-			logs: []string{"Comparing 3 reads."}, started: time.Now(), findingID: "group-1"}
-		job.finish(saved, err, cancelled)
-		return job.snapshot()
-	}
-	pin("takecomparison-success", finished(findings.Finding{ID: "comparison-1"}, nil, false))
-	pin("takecomparison-cancelled", finished(findings.Finding{}, context.Canceled, true))
-	pin("takecomparison-error", finished(findings.Finding{}, fmt.Errorf("takecompare: the take aligner exited 1: no chapter with id 'ch-1'"), false))
-}
-
-// A take_comparison finding as the Review page lists it: three reads of one span compared by
-// the real Comparer over tone fixtures, from the sidecar's own pinned results, so every per-take category is filled.
-// The temporary project folder is replaced by a fixed one before pinning.
-func TestContractTakeComparisonFinding(t *testing.T) {
-	runner := &fakeTakeCompareRunner{raw: pinnedDivergenceResults(t)}
-	host, groupID, _ := compareReadyHost(t, runner)
-	if _, err := host.TakeComparisonStart(groupID); err != nil {
-		t.Fatal(err)
-	}
-	if done := waitForComparison(t, host); done.Phase != "success" {
-		t.Fatalf("comparison = %+v", done)
-	}
-	payload, err := host.FindingsList(FindingsQuery{Analyzer: takecompare.AnalyzerName})
-	if err != nil {
-		t.Fatal(err)
-	}
-	folder := host.config.projectFolder
-	for _, form := range []string{strings.ReplaceAll(folder, `\`, `\\`), filepath.ToSlash(folder)} {
-		payload = strings.ReplaceAll(payload, form, "C:/Projects/Alice")
-	}
-	payload = strings.ReplaceAll(payload, `C:/Projects/Alice\\media\\`, "C:/Projects/Alice/media/")
-	// The id and evidence version hash the project folder too, so they are fixed with it.
-	var page map[string]any
-	if err := json.Unmarshal([]byte(payload), &page); err != nil {
-		t.Fatal(err)
-	}
-	listed := page["findings"].([]any)[0].(map[string]any)
-	listed["id"], listed["evidence_version"] = "5c0ffee0c0ffee0c0ffee0c0", "e71dence0e71dence0e71de0"
-	contractfile.Check(t, "findings-list-take-comparison", page)
-}
-
-func TestContractTakeReviewScanJob(t *testing.T) {
-	pin := func(name string, job TakeReviewScanJob) {
-		t.Helper()
-		job.Elapsed = 2.5
-		contractfile.Check(t, name, job)
-	}
-	host := newTestHostForTakeReview(t, t.TempDir())
-	pickups := "Pickups"
-	if err := host.settings.Save("TakeReview", "project", map[string]*string{"pickup_track_name": &pickups}); err != nil {
-		t.Fatal(err)
-	}
-	pin("takereview-scan-idle", host.takeReviewScanState())
-
-	start, end := 1800.0, 2400.0
-	scope := TakeReviewScanScope{ChapterTrackName: "Chapter 1", PickupRangeStart: &start, PickupRangeEnd: &end}
-	running := &takeReviewScanJob{id: "take-review-1", phase: "running", message: "Transcribing read 2/4", percent: 47,
-		logs: []string{"Scanning Chapter 1 for pickups and duplicates.", "Transcribing read 2/4"}, started: time.Now(), scope: scope}
-	pin("takereview-scan-running", running.snapshot())
-
-	finished := func(saved []findings.Finding, err error, cancelled bool) TakeReviewScanJob {
-		job := &takeReviewScanJob{id: "take-review-1", phase: "running", message: "Transcribing read 4/4", percent: 92,
-			logs: []string{"Scanning Chapter 1 for pickups and duplicates."}, started: time.Now(), scope: scope}
-		job.finish(saved, err, cancelled)
-		return job.snapshot()
-	}
-	pin("takereview-scan-success", finished([]findings.Finding{{ID: "a"}, {ID: "b"}, {ID: "c", NotInLatestRun: true}}, nil, false))
-	pin("takereview-scan-cancelled", finished(nil, context.Canceled, true))
-	pin("takereview-scan-error", finished(nil, fmt.Errorf("takereview: repeated-span detector exited 1: no manuscript chapter matched"), false))
-}
-
-// FindingsGoToRead and FindingsLoopRead answer in FindingNavigation's shape, pinned here for the read a take-review
-// finding names; every refusal is the one FindingsGoTo pins.
-func TestContractFindingsReadNavigation(t *testing.T) {
-	fake := &fakeNavigator{navigate: bridge.Navigated{ItemGUID: readItemB, ProjectTime: 40.25}, loop: bridge.LoopStarted{ItemGUID: readItemB, Start: 38.25, End: 45.35}}
-	host, id := newReadsHost(t, fake)
-	payload, err := host.FindingsGoToRead(id, 1)
-	if err != nil {
-		t.Fatal(err)
-	}
-	checkBindingContract(t, "findings-go-to-read", payload)
-	if payload, err = host.FindingsLoopRead(id, 1); err != nil {
-		t.Fatal(err)
-	}
-	checkBindingContract(t, "findings-loop-read", payload)
-}
-
-// The result TakeReviewCreateTake sends once REAPER confirms a take was added: the target item's own
-// GUID (unchanged) and the new take's GUID, both
-// re-resolved by narration_take_review.lua after its Undo_EndBlock2.
-func TestContractTakeReviewCreateTakeResult(t *testing.T) {
-	result := takereview.CreateTakeResult{
-		TargetItemGUID: "{11111111-0000-0000-0000-000000000001}",
-		NewTakeGUID:    "{22222222-0000-0000-0000-000000000099}",
-	}
-	contractfile.Check(t, "takereview-create-take", result)
 }
 
 // The manuscript:dropped event: an import begun on a dropped file (it names the file and the job, never the path), and a drop the host refused.

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
@@ -30,8 +30,10 @@ function setup(finding: Finding, setupId: DawSetupId = 'reaper', props: { inert?
     findingsGoTo: vi.fn(async () => ({ outcome: 'navigated' as const, projectTime: 12.4 })),
     findingsLoop: vi.fn(async () => ({ outcome: 'looping' as const, loopStart: 7, loopEnd: 14 })),
     findingsStopLoop: vi.fn(async () => ({ outcome: 'stopped' as const, restored: 3, kept: 0 })),
+    transcriptAddEquivalence: vi.fn(async () => 'Added equivalence: Dinah = Dina'),
+    findingsGet: vi.fn(async () => finding),
   };
-  const handlers = { onOpenScript: vi.fn(), onOpenBooth: vi.fn(), onReopen: vi.fn() };
+  const handlers = { onOpenScript: vi.fn(), onOpenBooth: vi.fn(), onReopen: vi.fn(), onNoteRead: vi.fn() };
   render(
     <ApiProvider api={createMockApi()}>
       <PortOverrides clients={{ daw }}>
@@ -112,6 +114,18 @@ describe('open-in-script-and-booth-are-links-not-moves', () => {
     expect(t.onOpenBooth).toHaveBeenCalledWith('chapter-1');
   });
 
+  // #2800 (walkthrough 4): a note with an item but no time (every retired take-review note) toasted "Moved to 00:00.0", the item's
+  // start, while the pane said the note has no time. Show in is off with the reason, as Hear it and Add marker are.
+  it('turns Show in REAPER off with the reason for a note with no time, and asks the DAW nothing', async () => {
+    const t = setup(placed({ time_range: undefined }));
+    await waitFor(() =>
+      expect(button('Show in REAPER').getAttribute('aria-disabled') ?? String((button('Show in REAPER') as HTMLButtonElement).disabled)).toMatch(/true/),
+    );
+    expect(screen.getByText('This note has no time in its audio to go to.')).toBeTruthy();
+    await userEvent.click(button('Show in REAPER'));
+    expect(t.api.findingsGoTo).not.toHaveBeenCalled();
+  });
+
   it('turns both off for a note with no chapter', () => {
     setup(placed({ manuscript: { expected: 'a', recorded: 'b' } }));
     expect(enabled('Open this chapter in Script')).toBe(false);
@@ -136,5 +150,44 @@ describe('note-steps-and-banner-are-the-merged-ones', () => {
     for (const name of ['Show in REAPER', 'Add marker in REAPER', 'Open this chapter in Script', 'Reopen']) expect(enabled(name)).toBe(false);
     await userEvent.click(button('Open this chapter in Script'));
     expect(t.onOpenScript).not.toHaveBeenCalled();
+  });
+});
+
+describe('repair-in-reaper-for-an-audio-note', () => {
+  // #2821: the REAPER repair launchers act on the items selected in REAPER, which Show in REAPER has just selected for this note.
+  const audio = (kind: string, category = 'audio_quality') => placed({ category, evidence: { kind }, manuscript: undefined });
+
+  it('offers Repair in REAPER on a mouth click, a plosive and a breath', () => {
+    for (const kind of ['mouth_click', 'mouth', 'plosive', 'breath']) {
+      setup(audio(kind));
+      expect(button('Repair in REAPER')).toBeTruthy();
+      cleanup();
+    }
+  });
+
+  it('does not offer it on a misread or on background noise', () => {
+    setup(placed());
+    expect(screen.queryByRole('button', { name: 'Repair in REAPER' })).toBeNull();
+    cleanup();
+    setup(audio('noise_floor'));
+    expect(screen.queryByRole('button', { name: 'Repair in REAPER' })).toBeNull();
+  });
+
+  it('follows the type the narrator chose: a noise note chosen as a breath gets it, a click chosen as a misread loses it', () => {
+    setup({ ...audio('noise_floor'), review: { status: 'unreviewed', type: 'breath' } });
+    expect(screen.queryByRole('button', { name: 'Repair in REAPER' })).toBeTruthy();
+    cleanup();
+    setup({ ...audio('mouth_click'), review: { status: 'unreviewed', type: 'misread' } });
+    expect(screen.queryByRole('button', { name: 'Repair in REAPER' })).toBeNull();
+  });
+
+  it('opens the repair menu with Cleanup tools, which opens the Cleanup tools dialog', async () => {
+    const user = userEvent.setup();
+    setup(audio('mouth_click'));
+    await user.click(button('Repair in REAPER'));
+    const menu = await screen.findByRole('menu');
+    expect(within(menu).getByText('Repair')).toBeTruthy();
+    await user.click(within(menu).getByRole('menuitem', { name: /Cleanup tools/ }));
+    expect(await screen.findByRole('dialog', { name: 'Cleanup tools' })).toBeTruthy();
   });
 });

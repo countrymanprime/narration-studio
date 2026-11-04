@@ -12,7 +12,6 @@ import { CommandRouter, CommandScope } from '../../input/router';
 import { CompanionShell } from './CompanionShell';
 import { initialSession } from './readerModel';
 import type { FollowCursor } from './useFollowCursor';
-import type { RecordInReaperState } from './useRecordInReaper';
 import type { TeleprompterSession } from './useTeleprompterSession';
 import { WIRE_PICKUPS_NEXT_SUCCESS } from '../../api/mockFixtures';
 
@@ -69,23 +68,6 @@ function followCursor(): FollowCursor {
   return { following: true, resume: vi.fn(), readerRef: { current: null } };
 }
 
-function fakeRecording(overrides: Partial<RecordInReaperState> = {}): RecordInReaperState {
-  return {
-    loaded: true,
-    enabled: false,
-    recording: false,
-    armPending: false,
-    confirmPending: false,
-    toggle: vi.fn(),
-    confirm: vi.fn(),
-    cancelConfirm: vi.fn(),
-    armOnly: vi.fn(async () => {}),
-    beforeStart: vi.fn(async () => true),
-    afterStop: vi.fn(),
-    ...overrides,
-  };
-}
-
 function renderCompanion(overrides: Partial<Parameters<typeof CompanionShell>[0]> = {}, api: Partial<NarrationApi> = {}) {
   let pushTransport: (state: DawTransport) => void = () => {};
   const mock = createMockApi({
@@ -106,7 +88,6 @@ function renderCompanion(overrides: Partial<Parameters<typeof CompanionShell>[0]
             <CompanionShell
               session={baseSession()}
               follow={followCursor()}
-              recording={fakeRecording()}
               chapterTitle="Chapter 5 — Advice from a Caterpillar"
               onFullApp={onFullApp}
               {...overrides}
@@ -306,11 +287,9 @@ describe('CompanionShell', () => {
   it('Play starts the same session the dialog would (reading.toggle), and Space does too', async () => {
     const user = userEvent.setup();
     const start = vi.fn();
-    const recording = fakeRecording();
-    renderCompanion({ session: baseSession({ start }), recording });
+    renderCompanion({ session: baseSession({ start }) });
     await user.click(screen.getByRole('button', { name: 'Play' }));
     await waitFor(() => expect(start).toHaveBeenCalledTimes(1));
-    expect(recording.beforeStart).toHaveBeenCalled();
     await user.keyboard(' ');
     await waitFor(() => expect(start).toHaveBeenCalledTimes(2));
   });
@@ -319,13 +298,11 @@ describe('CompanionShell', () => {
     const user = userEvent.setup();
     const pause = vi.fn();
     const stop = vi.fn();
-    const recording = fakeRecording();
-    renderCompanion({ session: baseSession({ active: true, pause, stop }), recording });
+    renderCompanion({ session: baseSession({ active: true, pause, stop }) });
     await user.click(screen.getByRole('button', { name: 'Pause' }));
     expect(pause).toHaveBeenCalledWith(true);
     await user.click(screen.getByRole('button', { name: 'Stop reading' }));
     expect(stop).toHaveBeenCalled();
-    expect(recording.afterStop).toHaveBeenCalled();
   });
 
   it('is the whole window: the page behind it is hidden and inert while it shows, and given back after', () => {

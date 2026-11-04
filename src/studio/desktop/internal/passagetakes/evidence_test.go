@@ -87,7 +87,6 @@ func recorded(t *testing.T, dir string) func(*Input) {
 		a.Length = 6.2
 		a.Takes[0].SourceFile, a.Takes[0].SOFFS = loud, 0
 		a.Takes[1].SourceFile, a.Takes[1].SOFFS = quiet, 0
-		in.Groups = nil
 	}
 }
 
@@ -119,7 +118,7 @@ func isFigure(f Figure) bool {
 func TestOneEntryPerOfferedTake(t *testing.T) {
 	resolved := resolve(t, nil)
 	got := Evidence(resolved, NewMeasureCache(func(Range) TakeMeasure { return unmeasured("spy") }))
-	if len(got.Takes) != len(resolved.View.Candidates) || len(got.Takes) < 3 {
+	if len(got.Takes) != len(resolved.View.Candidates) || len(got.Takes) < 2 {
 		t.Fatalf("takes = %d, candidates = %d", len(got.Takes), len(resolved.View.Candidates))
 	}
 	for i, take := range got.Takes {

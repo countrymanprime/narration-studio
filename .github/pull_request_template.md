@@ -6,6 +6,8 @@ Use the pull request title that you want GitHub to use for the squash commit:
 
 ## Related issue
 
+<!-- One line per issue. `Closes #n` for each issue this fully resolves (merging closes it). `Refs #n` only if it is a partial fix. Or `Issue: none — <reason>`. -->
+
 Closes #
 
 ## Checks

@@ -22,7 +22,7 @@ import { useTheme } from './theme/ThemeContext';
 import { useUserKeymap } from './input/useUserKeymap';
 import { useNavCounts } from './components/layout/useNavCounts';
 import { StartupScreen, type StartupState } from './components/layout/StartupScreen';
-import { ToastRegion, type ToastTone } from './components/primitives/Toast';
+import type { ToastTone } from './components/primitives/Toast';
 import { useProjectPicker } from './hooks/useProjectPicker';
 import { useToasts } from './hooks/useToasts';
 import { attachRefusalClaimed } from './components/connection/attachRefusal';
@@ -58,6 +58,7 @@ import { NotFoundPage } from './components/layout/NotFoundPage';
 import { CompanionPage } from './components/booth/companion/CompanionPage';
 import { EnginePanel } from './components/engine/EnginePanel';
 import { EnginePanelProvider } from './components/engine/EnginePanelContext';
+import { VoiceSetupProvider } from './components/engine/voiceLayout';
 import { LinkDawFileContext, linkOutcome, type LinkOutcome } from './components/connection/linkDawFile';
 import { useAudacityLink } from './components/engine/useAudacityLink';
 import { RetiredTracksRoute } from './components/engine/RetiredTracksRoute';
@@ -210,7 +211,7 @@ function AppRoutes() {
   const hasManuscript = Boolean(data?.manuscript);
   // One queue for the whole app: messages stack instead of replacing each other, an identical one that is showing starts its time again, and
   // an error stays until it is dismissed. `notify` and `dismiss` keep their identity, so a page effect that lists them never re-runs.
-  const { messages, notify: setNotice, dismiss: dismissMessage } = useToasts();
+  const { notify: setNotice } = useToasts(overlay);
   // Chapter sync's consent: read here, once, so "Sync chapters to
   // tracks?" shows from every link path (the engine panel, an import, an attach) wherever the narrator happens to be.
   const chapterSync = useChapterSync(api);
@@ -289,7 +290,13 @@ function AppRoutes() {
     };
     // The app's DAW session is the one reader of the capability report; this follows its reports, each one once.
     let seen = dawSession.getState().caps;
+    let checks = dawSession.getState().checkVersion;
     const unsubscribe = dawSession.subscribe(() => {
+      // A Check again anywhere reads the host's facts too, whatever the report says.
+      if (dawSession.getState().checkVersion !== checks) {
+        checks = dawSession.getState().checkVersion;
+        again();
+      }
       const caps = dawSession.getState().caps;
       if (!caps || caps === seen) return;
       seen = caps;
@@ -644,8 +651,8 @@ function AppRoutes() {
   // The jump menu's own commands: Settings categories, Import and Replace manuscript, the theme, fixed zoom steps and a labelled Undo.
   useShellCommands({
     hasManuscript,
+    // No `isModalOpen()` guard: these run from a jump-menu row, and the menu is still in the document while its row runs (#2792).
     openSettings: (categoryId) => {
-      if (isModalOpen()) return;
       settingsOrigin.markLink();
       guardedNavigateRef.current(categoryId ? `${addressPagePath('settings')}#category-${categoryId}` : addressPagePath('settings'));
     },
@@ -769,15 +776,12 @@ function AppRoutes() {
   // A project made from the picker opens on Script, as the mock's New project does; the Script page offers the import when it has no manuscript.
   if (!data.projectFolder || projectPickerOpen)
     return (
-      <>
-        <ProjectPicker
-          notify={setNotice}
-          onCreated={() => navigate('/script')}
-          onBack={data.projectFolder ? () => setProjectPickerOpen(false) : undefined}
-          currentName={data.projectFolder ? data.projectName : undefined}
-        />
-        <ToastRegion messages={messages} dismiss={dismissMessage} />
-      </>
+      <ProjectPicker
+        notify={setNotice}
+        onCreated={() => navigate('/script')}
+        onBack={data.projectFolder ? () => setProjectPickerOpen(false) : undefined}
+        currentName={data.projectFolder ? data.projectName : undefined}
+      />
     );
   transcriptPhaseRef.current = data.transcript.phase;
 
@@ -871,255 +875,263 @@ function AppRoutes() {
     <div className="relative h-full overflow-hidden" style={{ background: 'var(--bg)' }}>
       <LinkDawFileContext.Provider value={linkDawFileOutcome}>
         <EnginePanelProvider value={openEnginePanel}>
-          <TooltipProvider>
-            <AppShell
-              pathname={location.pathname}
-              navigate={guardedNavigate}
-              projectName={data.projectName}
-              hasManuscript={Boolean(data.manuscript)}
-              dawFileLinked={data.dawFileLinked}
-              dawReachable={data.dawReachable}
-              dawProjectMatches={data.dawProjectMatches}
-              onOpenEnginePanel={openEnginePanel}
-              linkingDawFile={dawLink.isBusy}
-              engine={engine}
-              daw={dawKind}
-              audacity={audacityLink.link}
-              navCounts={navCounts}
-              onOpenJump={() => openJump()}
-              onOpenZoomMenu={() => openJump(undefined, 'Zoom')}
-              onSwitchProject={() => setProjectPickerOpen(true)}
-              theme={{ dark: theme.resolved === 'dark', toggle: toggleTheme }}
-              contextMenu={contextMenu}
-              zoom={{ percent: zoom.percent, announcement: zoom.announcement }}
-            >
-              <ErrorBoundary key={location.pathname.split('/')[1] || 'production'} onError={() => trace('ui.error', { source: 'boundary' })}>
-                <Routes>
-                  <Route
-                    path="/"
-                    element={
-                      <ProductionPage
-                        data={data}
-                        go={guardedNavigate}
-                        notify={setNotice}
-                        goToScript={goToScript}
-                        goToBooth={(chapterId) => {
-                          const credits = chapterId ? creditsKindOfId(chapterId) : undefined;
-                          if (credits) goToBooth({ credits });
-                          else if (chapterId) goToBooth({ chapter: chapterId });
-                          else guardedNavigate('/booth');
-                        }}
-                        refreshBootstrap={refreshBootstrap}
-                        onManuscriptChanged={() => studio.publish(MANUSCRIPT_CHANGED)}
-                      />
-                    }
-                  />
-                  {/* The Schedule (the Studio Next mock's Schedule page): with no manuscript it says to import one first. */}
-                  <Route path="/schedule" element={<SchedulePage journal={journal} hasManuscript={hasManuscript} onImport={() => guardedNavigate('/')} />} />
-                  <Route
-                    path="/script"
-                    element={
-                      data.manuscript ? (
-                        gated(
-                          'script',
-                          <ScriptPage notify={setNotice} focusStoryBibleEntity={goToStoryBible} goToEditing={goToEditing} goToBooth={goToBooth} />,
-                        )
-                      ) : (
-                        <NeedManuscriptImport title="Script" data={data} go={guardedNavigate} notify={setNotice} refreshBootstrap={refreshBootstrap} />
-                      )
-                    }
-                  />
-                  <Route path="/manuscript" element={<RedirectKeepingLocation to="/script" />} />
-                  <Route
-                    path="/story-bible"
-                    element={gated(
-                      'story-bible',
-                      <Guide
-                        notify={setNotice}
-                        goToManuscript={goToScript}
-                        hasManuscript={Boolean(data.manuscript)}
-                        needManuscript={
-                          <NeedManuscriptImport title="Story Bible" data={data} go={guardedNavigate} notify={setNotice} refreshBootstrap={refreshBootstrap} />
-                        }
-                      />,
-                    )}
-                  />
-                  {/* Retired by the engine panel: lands on Proof, where a chapter
-                  is heard, with the panel open over it, since the Tracks page's REAPER tools live there. */}
-                  <Route path="/tracks" element={<RetiredTracksRoute />} />
-                  <Route
-                    path="/proof/:chapterId"
-                    element={
-                      data.manuscript ? (
-                        <ProofChapterPage
+          <VoiceSetupProvider projectFolder={data.projectFolder}>
+            <TooltipProvider>
+              <AppShell
+                pathname={location.pathname}
+                navigate={guardedNavigate}
+                projectName={data.projectName}
+                hasManuscript={Boolean(data.manuscript)}
+                dawFileLinked={data.dawFileLinked}
+                dawReachable={data.dawReachable}
+                dawProjectMatches={data.dawProjectMatches}
+                onOpenEnginePanel={openEnginePanel}
+                linkingDawFile={dawLink.isBusy}
+                engine={engine}
+                daw={dawKind}
+                audacity={audacityLink.link}
+                navCounts={navCounts}
+                onOpenJump={() => openJump()}
+                onOpenZoomMenu={() => openJump(undefined, 'Zoom')}
+                onSwitchProject={() => setProjectPickerOpen(true)}
+                theme={{ dark: theme.resolved === 'dark', toggle: toggleTheme }}
+                contextMenu={contextMenu}
+                zoom={{ percent: zoom.percent, announcement: zoom.announcement }}
+              >
+                <ErrorBoundary key={location.pathname.split('/')[1] || 'production'} onError={() => trace('ui.error', { source: 'boundary' })}>
+                  <Routes>
+                    <Route
+                      path="/"
+                      element={
+                        <ProductionPage
+                          data={data}
+                          go={guardedNavigate}
                           notify={setNotice}
-                          transcript={data.transcript}
-                          dawFileLinked={data.dawFileLinked}
+                          goToScript={goToScript}
+                          goToBooth={(chapterId) => {
+                            const credits = chapterId ? creditsKindOfId(chapterId) : undefined;
+                            if (credits) goToBooth({ credits });
+                            else if (chapterId) goToBooth({ chapter: chapterId });
+                            else guardedNavigate('/booth');
+                          }}
+                          refreshBootstrap={refreshBootstrap}
+                          onManuscriptChanged={() => studio.publish(MANUSCRIPT_CHANGED)}
+                        />
+                      }
+                    />
+                    {/* The Schedule (the Studio Next mock's Schedule page): with no manuscript it says to import one first. */}
+                    <Route path="/schedule" element={<SchedulePage journal={journal} hasManuscript={hasManuscript} onImport={() => guardedNavigate('/')} />} />
+                    <Route
+                      path="/script"
+                      element={
+                        data.manuscript ? (
+                          gated(
+                            'script',
+                            <ScriptPage notify={setNotice} focusStoryBibleEntity={goToStoryBible} goToEditing={goToEditing} goToBooth={goToBooth} />,
+                          )
+                        ) : (
+                          <NeedManuscriptImport title="Script" data={data} go={guardedNavigate} notify={setNotice} refreshBootstrap={refreshBootstrap} />
+                        )
+                      }
+                    />
+                    <Route path="/manuscript" element={<RedirectKeepingLocation to="/script" />} />
+                    <Route
+                      path="/story-bible"
+                      element={gated(
+                        'story-bible',
+                        <Guide
+                          notify={setNotice}
                           goToManuscript={goToScript}
-                          goToEditing={goToEditing}
-                          refreshKey={`${data.manuscript.id}:${data.manuscript.importedAt}`}
-                        />
-                      ) : (
-                        <NeedManuscript title="Proof" onImport={() => guardedNavigate('/')} />
-                      )
-                    }
-                  />
-                  {/* Editing (the Studio Next mock's Editing page): the chapter's script is the editor. `/editing` opens the first chapter;
-                  with no manuscript the page asks for one. */}
-                  <Route
-                    path="/editing"
-                    element={gated('editing', <EditingRoute hasManuscript={Boolean(data.manuscript)} onImport={() => guardedNavigate('/')} />)}
-                  />
-                  <Route
-                    path="/editing/:chapterId"
-                    element={
-                      <EditingGate gated={gated}>
-                        <EditingRoute hasManuscript={Boolean(data.manuscript)} onImport={() => guardedNavigate('/')} />
-                      </EditingGate>
-                    }
-                  />
-                  <Route
-                    path="/booth"
-                    element={gated(
-                      'booth',
-                      <BoothNextPage
-                        hasManuscript={Boolean(data.manuscript)}
-                        navigate={guardedNavigate}
-                        onImport={() => guardedNavigate('/')}
-                        projectFolder={data.projectFolder}
-                      />,
-                    )}
-                  />
-                  <Route
-                    path="/companion"
-                    element={
-                      data.manuscript ? (
-                        <CompanionPage onFixCredits={() => guardedNavigate(addressPath({ page: 'settings', anchor: 'credits' }))} />
-                      ) : (
-                        <Navigate to="/" replace />
-                      )
-                    }
-                  />
-                  <Route path="/teleprompter" element={<RedirectKeepingLocation to="/booth" />} />
-                  <Route
-                    path="/proof"
-                    element={gated(
-                      'proof',
-                      <ProofPage
-                        hasManuscript={Boolean(data.manuscript)}
-                        projectFolder={data.projectFolder}
-                        goTo={guardedNavigate}
-                        goToScript={(chapterId) => goToScript(chapterId)}
-                        goToBooth={(chapterId) => goToBooth({ chapter: chapterId })}
-                        goToEditing={goToEditing}
-                      />,
-                    )}
-                  />
-                  {/* Pickups replaces the Tracks page's Pickups dialog, which had no route. */}
-                  <Route
-                    path="/pickups"
-                    element={<PickupsPage hasManuscript={Boolean(data.manuscript)} goTo={guardedNavigate} goToScript={(chapterId) => goToScript(chapterId)} />}
-                  />
-                  {/* Retired by Proof: old links land, query and hash kept. */}
-                  <Route path="/review" element={<RedirectKeepingLocation to="/proof" />} />
-                  <Route path="/proofing" element={<RedirectKeepingLocation to="/proof" />} />
-                  {/* A chapter's old Tracks address lands on Editing at that chapter, ?t= and ?finding= kept. */}
-                  <Route
-                    path="/tracks/chapter/:chapterId"
-                    element={<RedirectKeepingLocation to={({ chapterId = '' }) => `/editing/${encodeURIComponent(chapterId)}`} />}
-                  />
-                  {/* The Production page moved to `/`. */}
-                  <Route path="/production" element={<RedirectKeepingLocation to="/" />} />
-                  {/* Master & QC and Delivery are two pages; without a manuscript Delivery asks for one itself. */}
-                  <Route
-                    path="/master"
-                    element={gated(
-                      'master',
-                      <MasterPage
-                        hasManuscript={Boolean(data.manuscript)}
-                        projectFolder={data.projectFolder}
-                        onImport={() => guardedNavigate('/')}
-                        onOpenDelivery={() => guardedNavigate('/delivery')}
-                        openSettings={() => guardedNavigate(addressPath({ page: 'settings', anchor: 'cleanup' }))}
-                        focusFile={parseMasterHash(location.hash)?.file}
-                      />,
-                    )}
-                  />
-                  {/* An older finding link (`/delivery#file=…`, masterLink.ts) still lands on Master & QC, anchor kept. */}
-                  <Route
-                    path="/delivery"
-                    element={
-                      parseMasterHash(location.hash) ? (
-                        <RedirectKeepingLocation to="/master" />
-                      ) : (
-                        <DeliveryPage
                           hasManuscript={Boolean(data.manuscript)}
-                          onOpenInMaster={(chapterId) => guardedNavigate(addressPath({ page: 'master', file: chapterId }))}
-                          onOpenMaster={() => guardedNavigate(addressPagePath('master'))}
+                          needManuscript={
+                            <NeedManuscriptImport title="Story Bible" data={data} go={guardedNavigate} notify={setNotice} refreshBootstrap={refreshBootstrap} />
+                          }
+                        />,
+                      )}
+                    />
+                    {/* Retired by the engine panel: lands on Proof, where a chapter
+                  is heard, with the panel open over it, since the Tracks page's REAPER tools live there. */}
+                    <Route path="/tracks" element={<RetiredTracksRoute />} />
+                    <Route
+                      path="/proof/:chapterId"
+                      element={
+                        data.manuscript ? (
+                          <ProofChapterPage
+                            notify={setNotice}
+                            transcript={data.transcript}
+                            dawFileLinked={data.dawFileLinked}
+                            goToManuscript={goToScript}
+                            goToEditing={goToEditing}
+                            refreshKey={`${data.manuscript.id}:${data.manuscript.importedAt}`}
+                          />
+                        ) : (
+                          <NeedManuscript title="Proof" onImport={() => guardedNavigate('/')} />
+                        )
+                      }
+                    />
+                    {/* Editing (the Studio Next mock's Editing page): the chapter's script is the editor. `/editing` opens the first chapter;
+                  with no manuscript the page asks for one. */}
+                    <Route
+                      path="/editing"
+                      element={gated('editing', <EditingRoute hasManuscript={Boolean(data.manuscript)} onImport={() => guardedNavigate('/')} />)}
+                    />
+                    <Route
+                      path="/editing/:chapterId"
+                      element={
+                        <EditingGate gated={gated}>
+                          <EditingRoute hasManuscript={Boolean(data.manuscript)} onImport={() => guardedNavigate('/')} />
+                        </EditingGate>
+                      }
+                    />
+                    <Route
+                      path="/booth"
+                      element={gated(
+                        'booth',
+                        <BoothNextPage
+                          hasManuscript={Boolean(data.manuscript)}
+                          navigate={guardedNavigate}
                           onImport={() => guardedNavigate('/')}
+                          projectFolder={data.projectFolder}
+                        />,
+                      )}
+                    />
+                    <Route
+                      path="/companion"
+                      element={
+                        data.manuscript ? (
+                          <CompanionPage onFixCredits={() => guardedNavigate(addressPath({ page: 'settings', anchor: 'credits' }))} />
+                        ) : (
+                          <Navigate to="/" replace />
+                        )
+                      }
+                    />
+                    <Route path="/teleprompter" element={<RedirectKeepingLocation to="/booth" />} />
+                    <Route
+                      path="/proof"
+                      element={gated(
+                        'proof',
+                        <ProofPage
+                          hasManuscript={Boolean(data.manuscript)}
+                          projectFolder={data.projectFolder}
+                          goTo={guardedNavigate}
+                          goToScript={(chapterId) => goToScript(chapterId)}
+                          goToBooth={(chapterId) => goToBooth({ chapter: chapterId })}
+                          goToEditing={goToEditing}
+                        />,
+                      )}
+                    />
+                    {/* Pickups replaces the Tracks page's Pickups dialog, which had no route. */}
+                    <Route
+                      path="/pickups"
+                      element={
+                        <PickupsPage
+                          hasManuscript={Boolean(data.manuscript)}
+                          dawFileLinked={data.dawFileLinked}
+                          goTo={guardedNavigate}
+                          goToScript={(chapterId) => goToScript(chapterId)}
                         />
-                      )
-                    }
-                  />
-                  <Route
-                    path="/settings"
-                    element={
-                      <SettingsPage
-                        data={data}
-                        notify={setNotice}
-                        onDirtyChange={setSettingsDirty}
-                        registerActions={(actions) => {
-                          settingsActions.current = actions;
-                        }}
-                        onProjectDataCleared={async () => {
-                          await refreshBootstrap();
-                          guardedNavigate('/');
-                        }}
-                        onLinkDawFile={() => void linkDawFile()}
-                        go={guardedNavigate}
-                        refreshBootstrap={refreshBootstrap}
-                        initialCategory={SETTINGS_ANCHORS[location.hash]}
-                        cameFrom={settingsOrigin.origin}
-                      />
-                    }
-                  />
-                  <Route path="*" element={<NotFoundPage />} />
-                </Routes>
-              </ErrorBoundary>
-              <ToastRegion messages={messages} dismiss={dismissMessage} />
-              <EnginePanel
-                open={enginePanelOpen}
-                onClose={() => setEnginePanelOpen(false)}
-                notify={setNotice}
-                link={{
-                  dawFileLinked: data.dawFileLinked,
-                  dawReachable: data.dawReachable,
-                  dawProjectMatches: data.dawProjectMatches,
-                  checkedAt: dataReadAt,
-                  onCheckAgain: () => void refreshBootstrap(),
-                  onLinkDawFile: () => void linkDawFile(),
-                  linkingDawFile: dawLink.isBusy,
-                }}
-              />
-              <BackgroundChecks chapterSync={chapterSync} folded={location.pathname === '/booth'} />
-              {chapterSync?.ask && (
-                <ChapterSyncConsentDialog
-                  projectFile={chapterSync.projectFile}
-                  daw={audacityLink.link?.chosen ? { daw: 'Audacity', linkedFile: audacityLink.link.linkedFile } : { daw: 'REAPER' }}
-                  preview={syncPreview}
-                  busy={syncBusy}
-                  onSync={() => {
-                    setSyncBusy(true);
-                    void api
-                      .chapterSyncSetEnabled(true)
-                      .catch((error) => setNotice(describeApiError(error), 'error'))
-                      .finally(() => setSyncBusy(false));
+                      }
+                    />
+                    {/* Retired by Proof: old links land, query and hash kept. */}
+                    <Route path="/review" element={<RedirectKeepingLocation to="/proof" />} />
+                    <Route path="/proofing" element={<RedirectKeepingLocation to="/proof" />} />
+                    {/* A chapter's old Tracks address lands on Editing at that chapter, ?t= and ?finding= kept. */}
+                    <Route
+                      path="/tracks/chapter/:chapterId"
+                      element={<RedirectKeepingLocation to={({ chapterId = '' }) => `/editing/${encodeURIComponent(chapterId)}`} />}
+                    />
+                    {/* The Production page moved to `/`. */}
+                    <Route path="/production" element={<RedirectKeepingLocation to="/" />} />
+                    {/* Master & QC and Delivery are two pages; without a manuscript Delivery asks for one itself. */}
+                    <Route
+                      path="/master"
+                      element={gated(
+                        'master',
+                        <MasterPage
+                          hasManuscript={Boolean(data.manuscript)}
+                          projectFolder={data.projectFolder}
+                          onImport={() => guardedNavigate('/')}
+                          onOpenDelivery={() => guardedNavigate('/delivery')}
+                          openSettings={() => guardedNavigate(addressPath({ page: 'settings', anchor: 'cleanup' }))}
+                          focusFile={parseMasterHash(location.hash)?.file}
+                        />,
+                      )}
+                    />
+                    {/* An older finding link (`/delivery#file=…`, masterLink.ts) still lands on Master & QC, anchor kept. */}
+                    <Route
+                      path="/delivery"
+                      element={
+                        parseMasterHash(location.hash) ? (
+                          <RedirectKeepingLocation to="/master" />
+                        ) : (
+                          <DeliveryPage
+                            hasManuscript={Boolean(data.manuscript)}
+                            onOpenInMaster={(chapterId) => guardedNavigate(addressPath({ page: 'master', file: chapterId }))}
+                            onOpenMaster={() => guardedNavigate(addressPagePath('master'))}
+                            onImport={() => guardedNavigate('/')}
+                          />
+                        )
+                      }
+                    />
+                    <Route
+                      path="/settings"
+                      element={
+                        <SettingsPage
+                          data={data}
+                          notify={setNotice}
+                          onDirtyChange={setSettingsDirty}
+                          registerActions={(actions) => {
+                            settingsActions.current = actions;
+                          }}
+                          onProjectDataCleared={async () => {
+                            await refreshBootstrap();
+                            guardedNavigate('/');
+                          }}
+                          onLinkDawFile={() => void linkDawFile()}
+                          go={guardedNavigate}
+                          refreshBootstrap={refreshBootstrap}
+                          initialCategory={SETTINGS_ANCHORS[location.hash]}
+                          cameFrom={settingsOrigin.origin}
+                        />
+                      }
+                    />
+                    <Route path="*" element={<NotFoundPage />} />
+                  </Routes>
+                </ErrorBoundary>
+                <EnginePanel
+                  open={enginePanelOpen}
+                  onClose={() => setEnginePanelOpen(false)}
+                  notify={setNotice}
+                  link={{
+                    dawFileLinked: data.dawFileLinked,
+                    dawReachable: data.dawReachable,
+                    dawProjectMatches: data.dawProjectMatches,
+                    checkedAt: dataReadAt,
+                    onCheckAgain: () => void dawSession.checkConnection(),
+                    onLinkDawFile: () => void linkDawFile(),
+                    linkingDawFile: dawLink.isBusy,
                   }}
-                  onNotNow={() => void api.chapterSyncSetEnabled(false).catch((error) => setNotice(describeApiError(error), 'error'))}
                 />
-              )}
-            </AppShell>
-          </TooltipProvider>
+                <BackgroundChecks chapterSync={chapterSync} folded={location.pathname === '/booth'} />
+                {chapterSync?.ask && (
+                  <ChapterSyncConsentDialog
+                    projectFile={chapterSync.projectFile}
+                    daw={audacityLink.link?.chosen ? { daw: 'Audacity', linkedFile: audacityLink.link.linkedFile } : { daw: 'REAPER' }}
+                    preview={syncPreview}
+                    busy={syncBusy}
+                    onSync={() => {
+                      setSyncBusy(true);
+                      void api
+                        .chapterSyncSetEnabled(true)
+                        .catch((error) => setNotice(describeApiError(error), 'error'))
+                        .finally(() => setSyncBusy(false));
+                    }}
+                    onNotNow={() => void api.chapterSyncSetEnabled(false).catch((error) => setNotice(describeApiError(error), 'error'))}
+                  />
+                )}
+              </AppShell>
+            </TooltipProvider>
+          </VoiceSetupProvider>
         </EnginePanelProvider>
       </LinkDawFileContext.Provider>
       {pendingMove && (

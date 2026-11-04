@@ -29,7 +29,7 @@ Every entry carries `review: {"entry", "aliases"}`: whether the entry itself sti
 
 The host writes the dialogue cues (`dialogue_cues`) itself (`src/studio/desktop/internal/guide/cues.go`, `guide.Service.RefreshCues`): one per double-quoted span, against the entries already filed under a speaking type. A cue's speaker is only ever an entry of a speaking type, never a Needs Review name (owner, 2026-10-24). It comes from, in order: a speech tag naming one (`tag`); the other of exactly two speakers taking turns in a scene (`continuation`); and the first such name within 70 characters after the quote, up to the next one, else the last before it (`proximity`, the Studio Next mock's rule). A proximity speaker never starts a continuation. The rules source's speaker suggestions (`internal/guide/rules.go`) offer only a tag naming an entry of a speaking type. Every one is a suggestion until the narrator corrects the cue.
 
-- A refresh keeps every other key of the file, in its order, and every narrator correction, and says how many cues it found and how many have a speaker. Given chapters, it recomputes only theirs and keeps the rest, in manuscript order. With no file yet, or one that is not JSON, it starts an empty Story Bible, which the host reports as stale until a build. It holds the host's edit lock while it runs.
+- A refresh keeps every other key of the file, in its order, and every narrator correction, and says how many cues it found and how many have a speaker. Given chapters, it recomputes only theirs and keeps the rest, in manuscript order. With no file yet, or one that is not JSON, it starts an empty Story Bible, which the host reports as stale until a build. It holds the host's edit lock while it runs. It refuses a file whose `schema_version` is newer than the app reads (the words of every other host edit), leaving it as it was; a file with no `schema_version` is read as before.
 - The narrator can also run it whenever they like, from the Script page's **Find who speaks each line** button (`guide.Service.AttributeSpeakers`, `src/studio/desktop/bindings_attribute.go`). It is this refresh over every chapter plus a report: how many lines it filled (no speaker before), changed (a different suggestion) and left alone because the narrator had confirmed or edited them (`corrected`). A confirmed line is never touched, a re-run with nothing new changes nothing, and a run that fails writes nothing. `RestoreSpeakers` is its undo: it puts the moved lines back to their earlier suggestion and skips any line confirmed since.
 - It runs at the end of every scan and after every manuscript import; for the chapters an entry's names appear in (`guide.Service.SpeakerChapters`) after an edit of its type, name or aliases, a new entry, a merge or a delete, when the entry spoke before or speaks after; for every chapter when a type starts or stops speaking (`src/studio/desktop/extraction_cues.go`); and right after every build (`guide.Service.Build`), under the same edit lock: the build keeps the file's old cues where they were, and the refresh then leaves the file the sidecar's build wrote while it found the cues itself. A refresh that fails fails the build, with the new entries already written. All but the scan's and the build's run in the background and are logged to the run log.
 - The sidecar's `cues` command and its cue code were deleted in step 3 of [Go versus Python for the sidecars](../research/sidecar-go-vs-python.md). The cases it recorded before then are frozen in `tests/fixtures/guide-cues`: `TestRefreshCuesMatchesTheSidecar` holds the host to the file it wrote, byte for byte, and to its refusals, and `TestBuildThenRefreshIsTodaysBuild` with `TestEveryRecordedBuildWritesTheFileThatKeepsTheCues` holds a build and the refresh after it to the file the old build wrote. The file is read as Python's `json.loads` reads it and written as `write_json` wrote it, with CRLF line ends on Windows as Python's text mode wrote them. `TestTheCuesGolden` writes `cues-golden.json`, which `TestCuesMatchTheGolden` reads back through `DialogueCues`.
@@ -64,7 +64,7 @@ file under its edit lock. An auto-generated value (no `chosen` key) is still rep
 
 The sidecar's `pronounce` command, which did all of this and wrote the file, was deleted (#2251). The runs it recorded before then are
 frozen in `tests/fixtures/guide-pronounce`: `TestPronounceMatchesTheSidecar` holds the host to the file it wrote, byte for byte, and to
-its refusals in its words, and `TestPronounceWritesWindowsLineEnds` replays them with Windows line ends.
+its refusals in its words, and `TestPronounceWritesWindowsLineEnds` replays them with Windows line ends. The sidecar rewrote a file from a newer app (`schema_version` above 2) in its own layout; the host refuses it instead (#2418), before asking the source, with the same words as every other host edit. The recorded runs that start from such a file are asserted as those refusals, not replayed against the golden.
 
 The Go host exposes it as `GuidePronounce(id, aliasIndex *int, source string)` / the `GuidePronounce` binding
 (`hostAPIVersion` 13). The UI gates the play button on a pronunciation existing (the preview always speaks the name as
@@ -77,8 +77,8 @@ and verifies (`wiktextract.Manager.Installed`, asked through the resolver `app.g
 `guide.Service.SetWiktextractIndex`, each time a lookup starts): to `pronunciation --source wiktextract` and
 `candidate --source wiktextract`, and to every lookup that tries the sources in turn (a build's `entities` or
 `pronunciation --words-file`, and the `pronunciation --word=` of a create or an alias edit). A named source other than Wiktextract
-never gets it. The host never passes `--espeak-library`: no build ships a `libespeak-ng` for it to name, so `phonemizer` looks for the
-system's own ([CI and releases](../operations/ci-and-releases.md), "Known gap"). Pinned by
+never gets it. The host never passes `--espeak-library`: no build ships a `libespeak-ng` for it to name, so the eSpeak source answers
+through Piper's bundled espeak-ng and its `piper/espeak-ng-data` ([CI and releases](../operations/ci-and-releases.md)); `phonemizer` is used only when that flag names a library. Pinned by
 `src/studio/desktop/internal/guide/wiktextract_index_test.go` and `src/studio/desktop/guidepronounce_test.go`.
 
 `candidate --word=<text> --source cmu|espeak|wiktextract` prints one JSON line, `{"ok":true,"say":...}` or `{"ok":false,"reason":...}`, and changes nothing; a word over 80 characters, or with a newline or NUL, is refused. The host calls it through `guide.Service.Candidate`.
@@ -87,11 +87,13 @@ system's own ([CI and releases](../operations/ci-and-releases.md), "Known gap").
 
 A narrator can also keep their own pronunciation: `GuidePronounceUser` sets one with source `manual` (a file written earlier says
 `user`; it reads as `manual`) that never asks a dictionary, and keeps the dictionary's answer beside it as `alternate`;
-`GuidePronunciationUseAlternate` swaps the two back, losslessly and without a lookup. Since
+`GuidePronunciationUseAlternate` swaps the two back, losslessly and without a lookup. `GuidePronunciationRestore` writes a
+name's whole pronunciation object back as the page read it, for undo. Since
 [How you say each name](../guides/using-the-app/story-bible.md#how-you-say-each-name)
 the host's `Entities()` ignores a stored `status` and a rebuild no longer carries it; a note and the alternate are kept, and
 the Story Bible shows an old note read-only. A pronunciation's `source` is the registry name (`cmu`, `wiktextract`,
-`espeak`) or `manual`. The host applies both itself (see who writes the file, below). The sidecar has no command that sets a status (SN-B81 removed `pronunciation-status`).
+`espeak`), `manual`, or a user dictionary source (`user_dictionary`, `script_imported`) when the narrator picked one of
+its values for the name (`GuidePronunciationRestore`) or the old Script page's value filled it. The host applies both itself (see who writes the file, below). The sidecar has no command that sets a status (SN-B81 removed `pronunciation-status`).
 
 ## Rules suggestions
 

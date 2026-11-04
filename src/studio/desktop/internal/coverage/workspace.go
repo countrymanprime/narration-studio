@@ -1,6 +1,7 @@
 package coverage
 
 import (
+	"desktop/internal/creditsid"
 	"encoding/json"
 	"strings"
 
@@ -251,7 +252,7 @@ func (s *Service) chapterParagraphs(chapterID string) ([]AlignmentParagraph, err
 		return nil, unknown(ReasonNoManuscript, err.Error())
 	}
 	// A credits file's text is its rendered template, one paragraph: the same stand-in its recording check reads (credits.go).
-	if kind, isCredits := CreditsKind(chapterID); isCredits {
+	if kind, isCredits := creditsid.Kind(chapterID); isCredits {
 		if s.config.LoadCredits == nil {
 			return nonNil[AlignmentParagraph](nil), nil
 		}
@@ -278,7 +279,7 @@ func (s *Service) chapterParagraphs(chapterID string) ([]AlignmentParagraph, err
 // chapterHeading is the chapter's title and subtitle from the manuscript, or two empty strings for a credits row (its name is never read
 // aloud) and for a manuscript that cannot be read: a missing heading only leaves it out of the page's text.
 func (s *Service) chapterHeading(chapterID string) (title, subtitle string) {
-	if _, ok := CreditsKind(chapterID); ok || s.config.LoadManuscript == nil {
+	if _, ok := creditsid.Kind(chapterID); ok || s.config.LoadManuscript == nil {
 		return "", ""
 	}
 	data, err := s.config.LoadManuscript()

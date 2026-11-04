@@ -820,3 +820,39 @@ def record_end_rule_after_stop(env: Env) -> str:
     env.wait_for(lambda: play_state(env) == 0, what="REAPER to stop")
     assert float(moved[3]) >= 5.0 - 1e-3, f"a moved cursor started at {moved[3]}, not after the last item"
     return f"pickup 1.000-{stop:.3f} s over the 0-5 s read; the next plain take began at {float(started[3]):.3f} s; with the cursor moved it began at {float(moved[3]):.3f} s"
+
+
+@scenario(
+    "record",
+    "arm_only, record_start, record_stop",
+    "record stopped inside REAPER's pre-roll leaves no item and no undo point",
+    needs_audio=True,
+)
+def record_stopped_in_preroll(env: Env) -> str:
+    """The Booth starts listening alongside the recording (docs/research/record-press-timeline.md): a listening start that fails during
+    REAPER's pre-roll stops the recording there, and nothing may be left of it. Pre-roll on record, 2 measures (4 s at 120 BPM)."""
+    fx = book(env)
+    count = "return reaper.CountTrackMediaItems(ci.track_by_name('Chapter 1'))"
+    get = "local _, a = reaper.get_config_var_string('preroll') local _, b = reaper.get_config_var_string('prerollmeas') return {a, b}"
+    before = env.lua(get)
+    items, undo = env.lua(count), env.lua("return reaper.Undo_CanUndo2(0) or ''")
+    try:
+        env.lua("reaper.set_config_var_string('preroll', '2', 0) reaper.set_config_var_string('prerollmeas', '2', 0) return true")
+        env.ok("arm_only", fx["ch1"], until="ARMED")
+        began = time.monotonic()
+        env.ok("record_start", fx["ch1"], "end", until="RECORD_STARTED")
+        time.sleep(1.0)  # well inside the 4 s lead-in
+        assert play_state(env) & 4 == 4, "REAPER is not recording"
+        position = env.lua("return reaper.GetPlayPosition()")
+        stopped = env.ok("record_stop", until="RECORD_STOPPED")
+        inside = time.monotonic() - began
+        env.wait_for(lambda: play_state(env) == 0, what="REAPER to stop")
+    finally:
+        if play_state(env) & 4:
+            stop_by_hand(env)
+        env.lua("reaper.set_config_var_string('preroll', args[1], 0) reaper.set_config_var_string('prerollmeas', args[2], 0) return true", *before)
+    after_items, after_undo = env.lua(count), env.lua("return reaper.Undo_CanUndo2(0) or ''")
+    assert position < 5.0, f"the play head was at {position:.2f} s, past the cursor at 5 s: not inside the pre-roll"
+    assert after_items == items, f"Chapter 1 holds {after_items} items after a stop inside the pre-roll, {items} before"
+    assert after_undo == undo, f"the top undo point is {after_undo!r} after a stop inside the pre-roll, {undo!r} before"
+    return f"stopped {inside:.2f} s after record_start with the play head at {position:.2f} s (cursor 5 s): {after_items} items, undo points {stopped[-1] if stopped else '?'}"

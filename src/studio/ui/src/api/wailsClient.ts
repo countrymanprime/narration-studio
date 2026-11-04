@@ -11,9 +11,8 @@ import {
   chapterKindResultSchema,
   chapterSchema,
   paragraphsSchema,
-  readerSchema,
   readerStateSchema,
-  searchHitsSchema,
+  manuscriptSearchResultSchema,
   workJobSchema,
 } from './schemas/manuscript';
 import {
@@ -53,13 +52,17 @@ import {
   dawPositionSchema,
   dawProjectStateSchema,
   dawResultSchema,
-  dawLiveItemsSchema,
   dawProjectEditedSchema,
   wordTimesSchema,
   dawTransportSchema,
 } from './schemas/daw';
 import { providerCapabilitiesSchema } from './schemas/providers';
-import { pronunciationCandidateSchema, pronunciationSourcesSchema } from './schemas/pronunciationSources';
+import {
+  pronunciationCandidateSchema,
+  pronunciationCandidatesSchema,
+  pronunciationSourcesSchema,
+  userDictionaryWordSchema,
+} from './schemas/pronunciationSources';
 import { takeEvidenceResultSchema } from './schemas/takeEvidence';
 import { pronunciationOnlineKeyStatusSchema, pronunciationOnlineResultSchema } from './schemas/pronunciationOnline';
 import { masteringProvidersSchema } from './schemas/mastering';
@@ -74,26 +77,24 @@ import {
   guideEntitiesSchema,
   guideMergeResultSchema,
   guidePreviewSchema,
+  guidePronunciationSchema,
   guideTypesSchema,
 } from './schemas/storyBible';
 import { approvedCharacterReferencesSchema, characterRegionsSchema, characterReferenceSchema } from './schemas/character';
-import { seriesListSchema, seriesSchema, seriesVoiceBibleSchema } from './schemas/series';
 import { settingsForScopeSchema } from './schemas/settings';
-import { tracksDiscoverySchema, tracksProjectSchema } from './schemas/tracks';
+import { tracksDiscoverySchema, tracksLiveSchema, tracksProjectSchema } from './schemas/tracks';
 import {
   chapterRegionPlanSchema,
   chapterRegionsCreatedSchema,
-  chaptersForTracksSchema,
-  chapterSuggestionSchema,
   chapterTrackLinksSchema,
   chapterTrackMappingSchema,
   chapterTrackMatchSchema,
   chapterTrackSetSchema,
   chapterTrackCreateSchema,
+  chapterFoldersSchema,
   trackMappingSchema,
   trackSelectResultSchema,
 } from './schemas/chapterTrackMap';
-import { takeComparisonJobSchema, takeReviewCreateTakeResultSchema, takeReviewScanJobSchema } from './schemas/takeReview';
 import { deliveryReportExportSchema, measureJobSchema, measurePickResultSchema } from './schemas/measure';
 import { deliveryProfileSchema, deliveryProfilesStateSchema } from './schemas/deliveryProfiles';
 import { diagnosticsJobSchema } from './schemas/diagnostics';
@@ -119,20 +120,20 @@ import { pinnedPreviewSchema, previewResultSchema } from './schemas/preview';
 import { stageDecisionResultSchema, stageRecommendationsSchema } from './schemas/stages';
 import { proofingChooseRenderResultSchema, proofingRenderSchema } from './schemas/proofingRender';
 import {
-  productionBurndownSchema,
   productionOverviewSchema,
   productionPlanSchema,
   productionReportExportSchema,
+  reportsFolderResultSchema,
   productionReportPreviewSchema,
   productionStartResultSchema,
   productionStopResultSchema,
 } from './schemas/production';
 import { workspaceSnapResultSchema } from './schemas/workspaceSnap';
-import { findingMarkerSchema, findingNavigationSchema, findingSchema, findingsPageSchema, findingsSummarySchema, reaperStatusSchema } from './schemas/findings';
+import { findingMarkerSchema, findingNavigationSchema, findingSchema, findingsPageSchema, findingsSummarySchema } from './schemas/findings';
 import { assetCatalogSchema, assetInstallJobSchema, assetVerifyResultSchema } from './schemas/assets';
-import { ttsCatalogSchema, ttsInstallJobSchema } from './schemas/tts';
+import { ttsInstallJobSchema } from './schemas/tts';
 import { updateJobSchema, updateStatusSchema } from './schemas/update';
-import { startResultSchema, whisperCatalogSchema, whisperInstallJobSchema } from './schemas/whisper';
+import { startResultSchema, whisperInstallJobSchema } from './schemas/whisper';
 import {
   bootstrapSchema,
   diagnosticsPreviewSchema,
@@ -154,7 +155,6 @@ import {
   teleprompterEventSchema,
   teleprompterFlagFindingsSchema,
   teleprompterLocateResultSchema,
-  teleprompterPunchResultSchema,
   teleprompterResumeFollowEventSchema,
   teleprompterResumeFollowSchema,
   teleprompterStartResultSchema,
@@ -168,11 +168,12 @@ import { renderConfigStartResultSchema, renderConfigStateSchema, renderConfigSug
 import { chapterTagsEmbedResultSchema, chapterTagsPreviewSchema } from './schemas/chaptertags';
 import { cleanupToolsStartResultSchema, cleanupToolsStateSchema } from './schemas/cleanuptools';
 import { bookmarkSchema as spotBookmarkSchema, bookmarksSchema } from './schemas/bookmarks';
+import { boothVoiceAddedSchema, boothVoiceSchema, voiceTracksStateSchema } from './schemas/voiceTracks';
 import { voiceSampleAnswerSchema, voiceSamplesChangedSchema, voiceSamplesRemovedSchema, voiceSamplesSchema } from './schemas/voiceSamples';
 import { passageMapSchema } from './schemas/passageMap';
 import { acceptedWordsChangeSchema, acceptedWordsSchema } from './schemas/editLog';
 import { markSchema, markThreadDeletedSchema, marksSchema } from './schemas/marks';
-import { scriptPrepChapterSchema, scriptPrepSchema, scriptWordSchema } from './schemas/scriptPrep';
+import { scriptPrepChapterSchema, scriptPrepSchema } from './schemas/scriptPrep';
 import {
   extractionDecisionSchema,
   extractionImportPlanSchema,
@@ -200,7 +201,7 @@ import { levelMatchApplyResultSchema, levelMatchPreviewResultSchema } from './sc
 import { projectStateChangedSchema, projectStateStartResultSchema, projectStateStateSchema } from './schemas/projectstate';
 import { dictionaryLookupResultSchema } from './schemas/dictionary';
 import { retakeLanesListSchema, retakeLanesStartResultSchema, retakeLanesStateSchema } from './schemas/retakelanes';
-import { exportJobSchema, multiPackageJobSchema, packageFolderResultSchema, packageJobSchema } from './schemas/renderEncodeMaster';
+import { exportJobSchema, exportPlanSchema, multiPackageJobSchema, packageFolderResultSchema, packageJobSchema } from './schemas/renderEncodeMaster';
 import type { NarrationApi } from '../types';
 import * as host from '../../wailsjs/desktop/host';
 import { Events } from '@wailsio/runtime';
@@ -380,6 +381,10 @@ export const wailsClient: NarrationApi = {
   guideDialogueCues: () => decode(guideDialogueCuesSchema, 'GuideDialogueCues', host.GuideDialogueCues()),
   guideCorrectCue: (cueId, speakerEntityId) => decode(voidResult, 'GuideCorrectCue', host.GuideCorrectCue(cueId, speakerEntityId)),
   guideAttributeSpeakers: () => decode(speakerAttributionSchema, 'GuideAttributeSpeakers', host.GuideAttributeSpeakers()),
+  // The name's whole pronunciation as Undo writes it back; `status` is read from an older file only and is never written (the host answers the value it stored).
+  guidePronunciationRestore: async (id, { status: _status, ...value }, aliasIndex) => {
+    await decode(guidePronunciationSchema, 'GuidePronunciationRestore', host.GuidePronunciationRestore(id, aliasIndex ?? null, value));
+  },
   guideRestoreSpeakers: (previous) => decode(restoredSpeakersSchema, 'GuideRestoreSpeakers', host.GuideRestoreSpeakers(previous)),
   guideMarkReviewed: (id, aliasIndex) => decode(voidResult, 'GuideMarkReviewed', host.GuideMarkReviewed(id, aliasIndex ?? null)),
   guideFlagReview: (id, aliasIndex) => decode(voidResult, 'GuideFlagReview', host.GuideFlagReview(id, aliasIndex ?? null)),
@@ -396,20 +401,12 @@ export const wailsClient: NarrationApi = {
   characterRevoke: (id) => decode(voidResult, 'CharacterRevoke', host.CharacterRevoke(id)),
   characterReferences: () => decode(approvedCharacterReferencesSchema, 'CharacterReferences', host.CharacterReferences()),
   characterRemoveVoiceData: () => decode(voidResult, 'CharacterRemoveVoiceData', host.CharacterRemoveVoiceData()),
-  seriesVoiceBible: () => decode(seriesVoiceBibleSchema, 'SeriesVoiceBible', host.SeriesVoiceBible()),
-  seriesList: () => decode(seriesListSchema, 'SeriesList', host.SeriesList()),
-  seriesSave: (id, name, memberProjectPaths) => decode(seriesSchema, 'SeriesSave', host.SeriesSave(id, name, memberProjectPaths)),
-  seriesDelete: (id) => decode(voidResult, 'SeriesDelete', host.SeriesDelete(id)),
-  ttsCatalog: () => decode(ttsCatalogSchema, 'TtsCatalog', host.TtsCatalog()),
   ttsInstall: (voiceId) => decode(ttsInstallJobSchema, 'TtsInstall', host.TtsInstall(voiceId)),
   ttsInstallState: (jobId) => decode(ttsInstallJobSchema, 'TtsInstallState', host.TtsInstallState(jobId)),
   ttsInstallCancel: (jobId) => decode(ttsInstallJobSchema, 'TtsInstallCancel', host.TtsInstallCancel(jobId)),
-  ttsRemove: (voiceId) => decode(voidResult, 'TtsRemove', host.TtsRemove(voiceId)),
-  whisperCatalog: () => decode(whisperCatalogSchema, 'WhisperCatalog', host.WhisperCatalog()),
   whisperInstall: (modelId) => decode(whisperInstallJobSchema, 'WhisperInstall', host.WhisperInstall(modelId)),
   whisperInstallState: (jobId) => decode(whisperInstallJobSchema, 'WhisperInstallState', host.WhisperInstallState(jobId)),
   whisperInstallCancel: (jobId) => decode(whisperInstallJobSchema, 'WhisperInstallCancel', host.WhisperInstallCancel(jobId)),
-  whisperRemove: (modelId) => decode(voidResult, 'WhisperRemove', host.WhisperRemove(modelId)),
   assetsList: () => decode(assetCatalogSchema, 'AssetsList', host.AssetsList()),
   assetsInstall: (kind, id) => decode(assetInstallJobSchema, 'AssetsInstall', host.AssetsInstall(kind, id)),
   assetsInstallState: (jobId) => decode(assetInstallJobSchema, 'AssetsInstallState', host.AssetsInstallState(jobId)),
@@ -422,7 +419,6 @@ export const wailsClient: NarrationApi = {
   transcriptReset: () => decode(voidResult, 'TranscriptReset', host.TranscriptReset()),
   transcriptLastCompleted: () => decode(lastCompletedSchema, 'TranscriptLastCompleted', host.TranscriptLastCompleted()),
   transcriptAddEquivalence: (id) => decode(equivalenceSchema, 'TranscriptAddEquivalence', host.TranscriptAddEquivalence(id)).then((value) => value.message),
-  transcriptJump: (id) => decode(voidResult, 'TranscriptJump', host.TranscriptJump(id)),
   transcriptExportMarkers: () => decode(voidResult, 'TranscriptExportMarkers', host.TranscriptExportMarkers()),
   transcriptSuggestHints: () => decode(hintSuggestionsSchema, 'TranscriptSuggestHints', host.TranscriptSuggestHints()),
   transcriptHints: () => decode(hintsSchema, 'TranscriptHints', host.TranscriptHints()),
@@ -459,10 +455,9 @@ export const wailsClient: NarrationApi = {
   subscribeNotices: (onNotice) => subscribeChecked('system:notice', noticeSchema, (event) => onNotice(event.text)),
   subscribeJobEnded: (onEnded) => subscribeChecked('job:ended', jobEndedSchema, onEnded),
   manuscriptChapters: () => decode(chaptersSchema, 'ManuscriptChapters', host.ManuscriptChapters()),
-  manuscriptReader: () => decode(readerSchema, 'ManuscriptReader', host.ManuscriptReader()),
   readerState: () => decode(readerStateSchema, 'ManuscriptReaderState', host.ManuscriptReaderState()),
   manuscriptParagraphs: (chapter) => decode(paragraphsSchema, 'ManuscriptParagraphs', host.ManuscriptParagraphs(chapter)),
-  manuscriptSearch: (query) => decode(searchHitsSchema, 'ManuscriptSearch', host.ManuscriptSearch(query)),
+  manuscriptSearch: (query) => decode(manuscriptSearchResultSchema, 'ManuscriptSearch', host.ManuscriptSearch(query)),
   manuscriptSetChapterStatus: (chapter, status) => decode(chapterSchema, 'ManuscriptSetChapterStatus', host.ManuscriptSetChapterStatus(chapter, status)),
   manuscriptSetChapterKind: (chapterId, kind) => decode(chapterKindResultSchema, 'ManuscriptSetChapterKind', host.ManuscriptSetChapterKind(chapterId, kind)),
   noteList: (chapter) => decode(notesSchema, 'ManuscriptNotes', host.ManuscriptNotes(chapter ?? '')),
@@ -471,6 +466,14 @@ export const wailsClient: NarrationApi = {
   bookmarksSetStop: (chapterId, paragraphId, offset) => decode(bookmarksSchema, 'BookmarksSetStop', host.BookmarksSetStop(chapterId, paragraphId, offset)),
   bookmarksUpdate: (id, label, note) => decode(spotBookmarkSchema, 'BookmarksUpdate', host.BookmarksUpdate(id, label, note)),
   bookmarksRemove: (id) => decode(bookmarksSchema, 'BookmarksRemove', host.BookmarksRemove(id)),
+  voiceTracksGet: () => decode(voiceTracksStateSchema, 'VoiceTracksGet', host.VoiceTracksGet()),
+  voiceTracksSetLayout: (layout) => decode(voiceTracksStateSchema, 'VoiceTracksSetLayout', host.VoiceTracksSetLayout(layout)),
+  voiceTracksSetCharacters: (track, characterIds) =>
+    decode(voiceTracksStateSchema, 'VoiceTracksSetCharacters', host.VoiceTracksSetCharacters(track, characterIds)),
+  voiceTracksSetNarrator: (characterId) => decode(voiceTracksStateSchema, 'VoiceTracksSetNarrator', host.VoiceTracksSetNarrator(characterId)),
+  boothVoiceSet: (chapterId, trackGuid) => decode(boothVoiceSchema, 'BoothVoiceSet', host.BoothVoiceSet(chapterId, trackGuid)),
+  boothVoiceGet: (chapterId) => decode(boothVoiceSchema, 'BoothVoiceGet', host.BoothVoiceGet(chapterId)),
+  boothVoiceAdd: (chapterId, name, characterIds) => decode(boothVoiceAddedSchema, 'BoothVoiceAdd', host.BoothVoiceAdd(chapterId, name, characterIds)),
   voiceSamplesList: () => decode(voiceSamplesSchema, 'VoiceSamplesList', host.VoiceSamplesList()),
   voiceSampleMark: (request) => decode(voiceSampleAnswerSchema, 'VoiceSampleMark', host.VoiceSampleMark(request)),
   voiceSampleUpdate: (id, change) => decode(voiceSampleAnswerSchema, 'VoiceSampleUpdate', host.VoiceSampleUpdate(id, change)),
@@ -490,9 +493,6 @@ export const wailsClient: NarrationApi = {
   marksSaveTypes: (types, removeUses) => decode(marksSchema, 'MarksSaveTypes', host.MarksSaveTypes(types, removeUses)),
   scriptPrepList: () => decode(scriptPrepSchema, 'ScriptPrepList', host.ScriptPrepList()),
   scriptPrepSetChapter: (chapterId, state) => decode(scriptPrepChapterSchema, 'ScriptPrepSetChapter', host.ScriptPrepSetChapter(chapterId, state)),
-  scriptWordFlag: (chapterId, paragraphId, start, end) => decode(scriptWordSchema, 'ScriptWordFlag', host.ScriptWordFlag(chapterId, paragraphId, start, end)),
-  scriptWordSay: (word, say, source) => decode(scriptWordSchema, 'ScriptWordSay', host.ScriptWordSay(word, say, source)),
-  scriptWordUnflag: (flagId) => decode(scriptWordSchema, 'ScriptWordUnflag', host.ScriptWordUnflag(flagId)),
   extractionList: () => decode(extractionSuggestionsSchema, 'ExtractionList', host.ExtractionList()),
   extractionAccept: (id, text) => decode(extractionDecisionSchema, 'ExtractionAccept', host.ExtractionAccept(id, text ?? null)),
   extractionReject: (id) => decode(extractionDecisionSchema, 'ExtractionReject', host.ExtractionReject(id)),
@@ -559,10 +559,10 @@ export const wailsClient: NarrationApi = {
   productionOverview: () => decode(productionOverviewSchema, 'ProductionOverview', host.ProductionOverview()),
   productionStartTimer: (chapterId, stage) => decode(productionStartResultSchema, 'ProductionStartTimer', host.ProductionStartTimer(chapterId, stage)),
   productionStopTimer: () => decode(productionStopResultSchema, 'ProductionStopTimer', host.ProductionStopTimer()),
+  productionOpenReportsFolder: () => decode(reportsFolderResultSchema, 'ProductionOpenReportsFolder', host.ProductionOpenReportsFolder()),
   productionStatusReport: (include) => decode(productionReportExportSchema, 'ProductionStatusReport', host.ProductionStatusReport(include)),
   productionStatusReportPreview: (include) =>
     decode(productionReportPreviewSchema, 'ProductionStatusReportPreview', host.ProductionStatusReportPreview(include)),
-  productionBurndown: () => decode(productionBurndownSchema, 'ProductionBurndown', host.ProductionBurndown()),
   subscribeCoverage: (onUpdate) => subscribeChecked('coverage:state', coverageStateSchema, onUpdate),
   editingStart: (documentId, chapterId, chapterTitle) =>
     decode(editingStartResultSchema, 'EditingStart', host.EditingStart(documentId, chapterId, chapterTitle)),
@@ -586,8 +586,6 @@ export const wailsClient: NarrationApi = {
     decode(workspaceTakesResultSchema, 'WorkspaceTakes', host.WorkspaceTakes(chapterId, firstToken, lastToken)),
   workspaceTakeEvidence: (chapterId, firstToken, lastToken) =>
     decode(takeEvidenceResultSchema, 'WorkspaceTakeEvidence', host.WorkspaceTakeEvidence(chapterId, firstToken, lastToken)),
-  workspaceTakesCompareStart: (chapterId, firstToken, lastToken) =>
-    decode(takeComparisonJobSchema, 'WorkspaceTakesCompareStart', host.WorkspaceTakesCompareStart(chapterId, firstToken, lastToken)),
   workspaceUseTake: (chapterId, firstToken, lastToken, candidateId) =>
     decode(workspaceUseTakeResultSchema, 'WorkspaceUseTake', host.WorkspaceUseTake(chapterId, firstToken, lastToken, candidateId)),
   workspaceProjectFx: () => decode(workspaceProjectFxResultSchema, 'WorkspaceProjectFx', host.WorkspaceProjectFx()),
@@ -612,7 +610,6 @@ export const wailsClient: NarrationApi = {
   subscribeLineIdentity: (onUpdate) => subscribeChecked('lineidentity:state', lineIdentityStateSchema, onUpdate),
   pickupsImport: (csvText) => decode(pickupsImportResultSchema, 'PickupsImport', host.PickupsImport(csvText)),
   pickupsExport: () => decode(pickupsStartResultSchema, 'PickupsExport', host.PickupsExport()),
-  pickupsNext: () => decode(pickupsStartResultSchema, 'PickupsNext', host.PickupsNext()),
   pickupsResolve: (position) => decode(pickupsStartResultSchema, 'PickupsResolve', host.PickupsResolve(position)),
   pickupsReopen: (position) => decode(pickupsStartResultSchema, 'PickupsReopen', host.PickupsReopen(position)),
   pickupsListMarkers: () => decode(pickupsStartResultSchema, 'PickupsListMarkers', host.PickupsListMarkers()),
@@ -634,7 +631,6 @@ export const wailsClient: NarrationApi = {
   projectStateCheck: () => decode(projectStateStartResultSchema, 'ProjectStateCheck', host.ProjectStateCheck()),
   projectStateChangedSince: (current, baseline) =>
     decode(projectStateChangedSchema, 'ProjectStateChangedSince', host.ProjectStateChangedSince(current, baseline)),
-  projectStateState: () => decode(projectStateStateSchema, 'ProjectStateState', host.ProjectStateState()),
   subscribeProjectState: (onUpdate) => subscribeChecked('projectstate:state', projectStateStateSchema, onUpdate),
   retakeLanesList: () => decode(retakeLanesListSchema, 'RetakeLanesList', host.RetakeLanesList()),
   retakeLanesPick: (lineId, itemGuid) => decode(retakeLanesStartResultSchema, 'RetakeLanesPick', host.RetakeLanesPick(lineId, itemGuid)),
@@ -700,6 +696,10 @@ export const wailsClient: NarrationApi = {
   pronunciationOnlineLookup: (word) => decode(pronunciationOnlineResultSchema, 'PronunciationOnlineLookup', host.PronunciationOnlineLookup(word)),
   pronunciationSources: () => decode(pronunciationSourcesSchema, 'PronunciationSources', host.PronunciationSources()),
   pronunciationCandidate: (word, source) => decode(pronunciationCandidateSchema, 'PronunciationCandidate', host.PronunciationCandidate(word, source)),
+  pronunciationCandidates: (word) => decode(pronunciationCandidatesSchema, 'PronunciationCandidates', host.PronunciationCandidates(word)),
+  pronunciationPreview: (text, ipa) => decode(guidePreviewSchema, 'PronunciationPreview', host.PronunciationPreview(text, ipa)),
+  userDictionarySave: (word, say) => decode(userDictionaryWordSchema, 'UserDictionarySave', host.UserDictionarySave(word, say)),
+  userDictionaryRemove: (word, source, say) => decode(userDictionaryWordSchema, 'UserDictionaryRemove', host.UserDictionaryRemove(word, source, say)),
 
   dawCapabilities: () => decode(dawCapabilitiesSchema, 'DawCapabilities', host.DawCapabilities()),
   subscribeDawCapabilities: (onUpdate) => subscribeChecked('daw_capabilities_changed', dawCapabilitiesSchema, onUpdate),
@@ -716,12 +716,9 @@ export const wailsClient: NarrationApi = {
   masteringProviders: () => decode(masteringProvidersSchema, 'MasteringProviders', host.MasteringProviders()),
   masteringChooseProvider: (name) => decode(masteringProvidersSchema, 'MasteringChooseProvider', host.MasteringChooseProvider(name)),
   recorderState: () => decode(recorderStateSchema, 'RecorderState', host.RecorderState()),
-  recorderChooseEngine: (engine) => decode(recorderStateSchema, 'RecorderChooseEngine', host.RecorderChooseEngine(engine)),
   recorderDevices: () => decode(recorderDevicesResultSchema, 'RecorderDevices', host.RecorderDevices()),
   recorderMeterStart: (device) => decode(recorderStateSchema, 'RecorderMeterStart', host.RecorderMeterStart(device)),
   recorderMeterStop: () => decode(recorderStateSchema, 'RecorderMeterStop', host.RecorderMeterStop()),
-  recorderStart: (device) => decode(recorderStateSchema, 'RecorderStart', host.RecorderStart(device)),
-  recorderStop: () => decode(recorderStateSchema, 'RecorderStop', host.RecorderStop()),
   recorderSetTakeLine: (takeName, entityId) => decode(recorderStateSchema, 'RecorderSetTakeLine', host.RecorderSetTakeLine(takeName, entityId)),
   recorderSetTakeKeeper: (takeName, keeper) => decode(recorderStateSchema, 'RecorderSetTakeKeeper', host.RecorderSetTakeKeeper(takeName, keeper)),
   subscribeRecorderState: (onUpdate) => subscribeChecked('recording:state', recorderStateSchema, onUpdate),
@@ -767,29 +764,27 @@ export const wailsClient: NarrationApi = {
   dawGoToChapter: (chapterId, where, seconds) => decode(dawResultSchema, 'DawGoToChapter', host.DawGoToChapter(chapterId, where, seconds)),
   workspaceWordTimes: (chapterId) => decode(wordTimesSchema, 'WorkspaceWordTimes', host.WorkspaceWordTimes(chapterId)),
   subscribeDawProjectEdited: (onUpdate) => subscribeChecked('daw_project_edited', dawProjectEditedSchema, onUpdate),
-  dawLiveItems: (chapterId) => decode(dawLiveItemsSchema, 'DawLiveItems', host.DawLiveItems(chapterId)),
   dawTransportSync: (action, seconds, until = 0, chapterId = '') =>
     decode(dawResultSchema, 'DawTransportSync', host.DawTransportSync(action, seconds, until, chapterId)),
   subscribeDawPosition: (onUpdate) => subscribeChecked('daw_position_changed', dawPositionSchema, onUpdate),
   dawBackupAround: (chapterId, firstToken, lastToken, label) =>
     decode(dawResultSchema, 'DawBackupAround', host.DawBackupAround(chapterId, firstToken, lastToken, label)),
   dawRestoreBackup: (backupId) => decode(dawResultSchema, 'DawRestoreBackup', host.DawRestoreBackup(backupId)),
-  dawPreviewFileRange: (path, start, length) => decode(dawResultSchema, 'DawPreviewFileRange', host.DawPreviewFileRange(path, start, length)),
   dawStopFilePreview: () => decode(dawResultSchema, 'DawStopFilePreview', host.DawStopFilePreview()),
-  dawRevealFile: (path) => decode(dawResultSchema, 'DawRevealFile', host.DawRevealFile(path)),
   masterPlayQuietest: (fileId) => decode(dawResultSchema, 'MasterPlayQuietest', host.MasterPlayQuietest(fileId)),
   masterOpenInDaw: (fileId) => decode(dawResultSchema, 'MasterOpenInDaw', host.MasterOpenInDaw(fileId)),
   dawBackups: () => decode(dawBackupsFileSchema, 'DawBackups', host.DawBackups()),
-  subscribeDawProjectState: (onUpdate) => subscribeChecked('daw_project_state_changed', dawProjectStateSchema, onUpdate),
   subscribeAudacityLink: (onUpdate) => subscribeChecked('audacity_link_changed', audacityLinkSchema, onUpdate),
   tracksDiscover: () => decode(tracksDiscoverySchema, 'TracksDiscover', host.TracksDiscover()),
   tracksSelect: (path) => decode(tracksDiscoverySchema, 'TracksSelect', host.TracksSelect(path)),
   tracksList: () => decode(tracksProjectSchema, 'TracksList', host.TracksList()),
+  tracksLive: () => decode(tracksLiveSchema, 'TracksLive', host.TracksLive()),
   chapterTrackMapList: () => decode(chapterTrackMappingSchema, 'ChapterTrackMapList', host.ChapterTrackMapList()),
   chapterTrackMapConfirm: (trackGuid, chapterId) => decode(trackMappingSchema, 'ChapterTrackMapConfirm', host.ChapterTrackMapConfirm(trackGuid, chapterId)),
-  chapterTrackMapClear: (trackGuid) => decode(chapterTrackMappingSchema, 'ChapterTrackMapClear', host.ChapterTrackMapClear(trackGuid)),
   chapterTrackSet: (chapterId, trackGuid) => decode(chapterTrackSetSchema, 'ChapterTrackSet', host.ChapterTrackSet(chapterId, trackGuid)),
   chapterTrackCreate: (chapterId) => decode(chapterTrackCreateSchema, 'ChapterTrackCreate', host.ChapterTrackCreate(chapterId)),
+  chapterFoldersCheck: () => decode(chapterFoldersSchema, 'ChapterFoldersCheck', host.ChapterFoldersCheck()),
+  chapterFoldersRepair: (expected) => decode(chapterFoldersSchema, 'ChapterFoldersRepair', host.ChapterFoldersRepair(expected)),
   chapterTrackUnlink: (chapterId) => decode(chapterTrackMappingSchema, 'ChapterTrackUnlink', host.ChapterTrackUnlink(chapterId)),
   chapterSyncState: () => decode(chapterSyncStateSchema, 'ChapterSyncState', host.ChapterSyncState()),
   chapterSyncPreview: () => decode(chapterSyncPreviewSchema, 'ChapterSyncPreview', host.ChapterSyncPreview()),
@@ -803,8 +798,6 @@ export const wailsClient: NarrationApi = {
   chapterRegionsCreate: (openingTrackGuid, closingTrackGuid, update) =>
     decode(chapterRegionsCreatedSchema, 'ChapterRegionsCreate', host.ChapterRegionsCreate(openingTrackGuid, closingTrackGuid, update)),
   chapterTrackMatch: (chapterId) => decode(chapterTrackMatchSchema, 'ChapterTrackMatch', host.ChapterTrackMatch(chapterId)),
-  chapterSuggestion: () => decode(chapterSuggestionSchema, 'ChapterSuggestion', host.ChapterSuggestion()),
-  chaptersForTracks: (guids) => decode(chaptersForTracksSchema, 'ChaptersForTracks', host.ChaptersForTracks(guids)),
   findingsList: (query) => decode(findingsPageSchema, 'FindingsList', host.FindingsList(query)),
   findingsGet: (id) => decode(findingSchema, 'FindingsGet', host.FindingsGet(id)),
   findingsReview: ({ id, evidenceVersion, status, note }) => decode(findingSchema, 'FindingsReview', host.FindingsReview(id, evidenceVersion, status, note)),
@@ -822,19 +815,10 @@ export const wailsClient: NarrationApi = {
       ),
     ),
   findingsSummary: () => decode(findingsSummarySchema, 'FindingsSummary', host.FindingsSummary()),
-  findingsReaperStatus: () => decode(reaperStatusSchema, 'FindingsReaperStatus', host.FindingsReaperStatus()),
   findingsGoTo: (id) => decode(findingNavigationSchema, 'FindingsGoTo', host.FindingsGoTo(id)),
   findingsLoop: (id) => decode(findingNavigationSchema, 'FindingsLoop', host.FindingsLoop(id)),
-  findingsGoToRead: (id, read) => decode(findingNavigationSchema, 'FindingsGoToRead', host.FindingsGoToRead(id, read)),
-  findingsLoopRead: (id, read) => decode(findingNavigationSchema, 'FindingsLoopRead', host.FindingsLoopRead(id, read)),
   findingsStopLoop: () => decode(findingNavigationSchema, 'FindingsStopLoop', host.FindingsStopLoop()),
   findingsAddMarker: (id) => decode(findingMarkerSchema, 'FindingsAddMarker', host.FindingsAddMarker(id)),
-  takeReviewScanStart: (scope) => decode(takeReviewScanJobSchema, 'TakeReviewScanStart', host.TakeReviewScanStart(scope)),
-  takeReviewScanState: () => decode(takeReviewScanJobSchema, 'TakeReviewScanState', host.TakeReviewScanState()),
-  takeReviewScanCancel: () => decode(takeReviewScanJobSchema, 'TakeReviewScanCancel', host.TakeReviewScanCancel()),
-  takeComparisonStart: (findingId) => decode(takeComparisonJobSchema, 'TakeComparisonStart', host.TakeComparisonStart(findingId)),
-  takeComparisonState: () => decode(takeComparisonJobSchema, 'TakeComparisonState', host.TakeComparisonState()),
-  takeComparisonCancel: () => decode(takeComparisonJobSchema, 'TakeComparisonCancel', host.TakeComparisonCancel()),
   measurePickFiles: () => decode(measurePickResultSchema, 'MeasurePickFiles', host.MeasurePickFiles()),
   measureAnalyze: (paths) => decode(measureJobSchema, 'MeasureAnalyze', host.MeasureAnalyze(paths)),
   measureState: () => decode(measureJobSchema, 'MeasureState', host.MeasureState()),
@@ -848,19 +832,6 @@ export const wailsClient: NarrationApi = {
   diagnosticsAnalyze: (paths, sourceKind) => decode(diagnosticsJobSchema, 'DiagnosticsAnalyze', host.DiagnosticsAnalyze(paths, sourceKind)),
   diagnosticsState: () => decode(diagnosticsJobSchema, 'DiagnosticsState', host.DiagnosticsState()),
   diagnosticsCancel: () => decode(diagnosticsJobSchema, 'DiagnosticsCancel', host.DiagnosticsCancel()),
-  takeReviewCreateTake: (request) =>
-    decode(
-      takeReviewCreateTakeResultSchema,
-      'TakeReviewCreateTake',
-      host.TakeReviewCreateTake(
-        request.findingId,
-        request.targetItemGuid,
-        request.candidateItemGuid,
-        request.sourceFile,
-        request.sourceRangeStart,
-        request.sourceRangeEnd,
-      ),
-    ),
   teleprompterStart: (options) => decode(teleprompterStartResultSchema, 'TeleprompterStart', host.TeleprompterStart(toStartOptions(options))),
   teleprompterStop: () => decode(voidResult, 'TeleprompterStop', host.TeleprompterStop()),
   teleprompterSeek: (word) => decode(voidResult, 'TeleprompterSeek', host.TeleprompterSeek(word)),
@@ -871,10 +842,7 @@ export const wailsClient: NarrationApi = {
   teleprompterMeterStart: (device) => decode(voidResult, 'TeleprompterMeterStart', host.TeleprompterMeterStart(device)),
   teleprompterMeterStop: () => decode(voidResult, 'TeleprompterMeterStop', host.TeleprompterMeterStop()),
   teleprompterPause: (paused) => decode(voidResult, 'TeleprompterPause', host.TeleprompterPause(paused)),
-  teleprompterPunchPreview: (word) => decode(teleprompterPunchResultSchema, 'TeleprompterPunchPreview', host.TeleprompterPunchPreview(word)),
-  teleprompterPunch: (word) => decode(teleprompterPunchResultSchema, 'TeleprompterPunch', host.TeleprompterPunch(word)),
   readAloudReaperState: (chapterId) => decode(readAloudReaperStateSchema, 'ReadAloudReaperState', host.ReadAloudReaperState(chapterId)),
-  readAloudArmOnly: (chapterId) => decode(readAloudRecordingSchema, 'ReadAloudArmOnly', host.ReadAloudArmOnly(chapterId)),
   readAloudRecordStart: (chapterId) => decode(readAloudRecordingSchema, 'ReadAloudRecordStart', host.ReadAloudRecordStart(chapterId)),
   readAloudRecordStartAt: (chapterId, at) => decode(readAloudRecordingSchema, 'ReadAloudRecordStartAt', host.ReadAloudRecordStartAt(chapterId, at)),
   readAloudRecordStop: () => decode(readAloudRecordingSchema, 'ReadAloudRecordStop', host.ReadAloudRecordStop()),
@@ -889,6 +857,7 @@ export const wailsClient: NarrationApi = {
   subscribeTeleprompterResumeFollow: (onEvent) => subscribeChecked('teleprompter_resume_follow', teleprompterResumeFollowEventSchema, onEvent),
   mediaUrl: (sourceFile) => `${mediaRoute}?path=${encodeURIComponent(sourceFile)}`,
   exportPickFiles: () => decode(measurePickResultSchema, 'ExportPickFiles', host.ExportPickFiles()),
+  exportPlan: (req) => decode(exportPlanSchema, 'ExportPlan', host.ExportPlan(req)),
   exportStart: (req) => decode(exportJobSchema, 'ExportStart', host.ExportStart(req)),
   exportState: () => decode(exportJobSchema, 'ExportState', host.ExportState()),
   exportCancel: () => decode(exportJobSchema, 'ExportCancel', host.ExportCancel()),

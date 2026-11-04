@@ -10,7 +10,13 @@ import (
 
 // AssetsList is every approved asset of every kind with its state, size, publisher, licence and provenance links, where it is installed,
 // when, and the download that is running for it (so a page opened while one runs can follow it). It reads no file contents.
-func (h *Host) AssetsList() (string, error) { return encodeBinding(h.assetsList()) }
+// The Booth's record press asks it first (the speech model check), so it begins a press on the record-press timeline.
+func (h *Host) AssetsList() (string, error) {
+	h.timeline.Begin("assets_list")
+	list, err := h.assetsList()
+	h.timeline.Mark("assets_listed")
+	return encodeBinding(list, err)
+}
 
 // AssetsInstall starts installing one asset, or repairs it when it is damaged, and answers with its job. A second call for an asset that is
 // already downloading joins that job. The narrator asked for it: nothing else starts a download.

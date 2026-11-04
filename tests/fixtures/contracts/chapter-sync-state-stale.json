@@ -21,8 +21,6 @@
       "origin": "manual",
       "pickupTrackGuid": "",
       "pickupTrackName": "",
-      "pickupsChanged": false,
-      "pickupsScannedAt": null,
       "reasons": [
         "item_trimmed"
       ],

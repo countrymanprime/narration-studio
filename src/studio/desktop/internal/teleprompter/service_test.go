@@ -764,6 +764,31 @@ func TestAwaitReadyAnswersOnceTheSidecarIsListening(t *testing.T) {
 	}
 }
 
+// The record-press timeline (internal/presstimeline) is told when the sidecar was launched, when it first spoke and when it listens.
+func TestAStartReportsItsStepsToTheStepHookInOrder(t *testing.T) {
+	dumpStacksIfStillRunning(t, 20*time.Second)
+	f := newFixture(t, "stream")
+	var mu sync.Mutex
+	var steps []string
+	f.service.SetStepHook(func(step string) {
+		mu.Lock()
+		defer mu.Unlock()
+		steps = append(steps, step)
+	})
+	if err := f.service.Start(validOptions()); err != nil {
+		t.Fatal(err)
+	}
+	defer f.service.Stop()
+	if err := f.service.AwaitReady(10 * time.Second); err != nil {
+		t.Fatal(err)
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if got := strings.Join(steps, ","); got != "sidecar_spawned,sidecar_first_line,listening" {
+		t.Fatalf("steps = %s", got)
+	}
+}
+
 func TestAwaitReadyWithoutASessionAnswersNil(t *testing.T) {
 	f := newFixture(t, "stream")
 	if err := f.service.AwaitReady(time.Millisecond); err != nil {

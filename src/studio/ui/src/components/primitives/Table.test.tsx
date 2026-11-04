@@ -400,3 +400,48 @@ describe('TableHeader alignment (owner rule 5, #2641)', () => {
     for (const th of screen.getAllByRole('columnheader')) expect(th.className).not.toMatch(/text-(left|right)/);
   });
 });
+
+describe('TableRow tree (#2643)', () => {
+  const place = { id: 'a', level: 1, posInSet: 1, setSize: 1, active: true };
+
+  it('is a tree row that takes the tree keys, not a pressable one', () => {
+    render(
+      <Table label="Tracks" tree>
+        <TableBody>
+          <TableRow tree={place}>
+            <TableCell>Narration</TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>,
+    );
+    const row = screen.getByRole('row');
+    expect(row.getAttribute('data-tree-row')).toBe('a');
+    expect(row.hasAttribute('data-row')).toBe(false);
+    expect(row.hasAttribute('aria-selected')).toBe(false);
+  });
+
+  it('cannot be given the props its branch would drop', () => {
+    // The assertions are the compiler's: tsc fails on an unused expect-error, so a tree row that took these again would break the typecheck.
+    const rows = (
+      <>
+        {/* @ts-expect-error a tree row is not pressable */}
+        <TableRow tree={place} onActivate={() => undefined}>
+          x
+        </TableRow>
+        {/* @ts-expect-error a tree row has no selected state of its own */}
+        <TableRow tree={place} selected>
+          x
+        </TableRow>
+        {/* @ts-expect-error the active row is the tab stop */}
+        <TableRow tree={place} tabStop={false}>
+          x
+        </TableRow>
+        {/* @ts-expect-error a tree row is placed by the tree, not by a row index */}
+        <TableRow tree={place} rowIndex={2}>
+          x
+        </TableRow>
+      </>
+    );
+    expect(rows).toBeTruthy();
+  });
+});

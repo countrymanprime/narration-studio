@@ -1,3 +1,4 @@
+import type { GuidePreview } from './storyBible';
 /**
  * The narrator's pronunciation sources and one source's candidate for one word (Go: `src/studio/desktop/bindings_pronunciationsources.go`,
  * docs/guides/using-the-app/story-bible.md#how-you-say-each-name). The host lists the sources of the pronunciation port, the keyed online one when a key is saved and
@@ -31,8 +32,33 @@ export interface PronunciationSourceList {
 /** What one source says for a word, or why it cannot say. A miss is a result, never a thrown error. */
 export type PronunciationCandidate = { ok: true; say: string } | { ok: false; reason: string };
 
+/** The project's user dictionary (#2595): words no dictionary has, saved by the narrator (`user_dictionary`, "My dictionary"), and the
+ * Script page's old flagged words moved in once when the project opened (`script_imported`, "Script (imported)"). Never the Story Bible. */
+export const USER_DICTIONARY_SOURCE = 'user_dictionary';
+export const SCRIPT_IMPORTED_SOURCE = 'script_imported';
+/** The longest value the user dictionary keeps, in UTF-16 units (the host's `userdictionary.MaxSayUnits`). */
+export const USER_DICTIONARY_MAX_SAY = 200;
+export type UserDictionaryRecord = { say: string; source: string; addedAt: string };
+export type UserDictionaryWord = { word: string; records: UserDictionaryRecord[] };
+
+/** One source's answer for a word, with the source it came from. */
+export type PronunciationCandidateRow = { sourceId: string; label: string; say: string };
+/** A source that has nothing for the word, and why. */
+export type PronunciationCandidateMiss = { sourceId: string; label: string; reason: string };
+/** What every local source and the user dictionary say for one word, in the order the sources are offered. The online source is never
+ * asked here: only by the narrator's own pick of it (D72). */
+export type PronunciationCandidates = { candidates: PronunciationCandidateRow[]; misses: PronunciationCandidateMiss[] };
+
 export interface PronunciationSourcesApi {
   pronunciationSources(): Promise<PronunciationSourceList>;
   /** Asks one source how it would say `word` and changes nothing. Only the online source sends anything, and only this one word. */
   pronunciationCandidate(word: string, source: string): Promise<PronunciationCandidate>;
+  /** Every local source's candidate for a word and the user dictionary's records for it; a miss is a row, never a throw. */
+  pronunciationCandidates(word: string): Promise<PronunciationCandidates>;
+  /** The preview voice saying `ipa` for `text`, before the narrator picks it; the Story Bible's preview shape. */
+  pronunciationPreview(text: string, ipa: string): Promise<GuidePreview>;
+  /** Saves how the narrator says a word in their dictionary (their own record replaces their earlier one). Answers the word. */
+  userDictionarySave(word: string, say: string): Promise<UserDictionaryWord>;
+  /** Removes one record; the word goes with its last. Answers the word, its records possibly empty. */
+  userDictionaryRemove(word: string, source: string, say: string): Promise<UserDictionaryWord>;
 }

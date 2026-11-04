@@ -7,7 +7,7 @@ Status: built, and on whenever REAPER is linked and answering (capability `trans
 | Piece | What it does | Where |
 | --- | --- | --- |
 | Heartbeat | Every 1.5 s, and at once when the play state changes, REAPER appends `PROJECT_STATUS` with the project path, edit counter, `GetPlayState` and `GetPlayPosition`. It carries no edit cursor. | `src/studio/integrations/reaper/narration_ui_bridge.lua`, `daw.Reachability.Transport` |
-| Heartbeat to the UI | `daw_transport_changed` (play, record, position) and `daw_project_state_changed`, pushed by the host loop on a change; `DawProjectState` reads the same. The position moves only with the heartbeat. | `bindings_daw_transport.go`, `bindings_daw_projectstate.go` |
+| Heartbeat to the UI | `daw_transport_changed` (play, record, position), pushed by the host loop on a change; `DawProjectState` reads the saved project against the live one on demand. The position moves only with the heartbeat. | `bindings_daw_transport.go`, `bindings_daw_projectstate.go` |
 | Editing follow of REAPER's play | `useDawPlayPosition` reads `projectState` four times a second while the page is visible, maps the position to a word and lights it. Playing only; no cursor; the position still steps every 1.5 s. It read the saved project's items; it now reads the word table (below). | `follow/useDawPlayPosition.ts` |
 | Booth follow | `useFollowDawOnOpen` asks `DawPlace` once on open, `useMoveDawOnOpen` sends `DawGoToChapter` once. Neither follows afterwards. | `booth/page/useDawFollow.ts`, `bindings_daw_place.go` |
 | Transport commands | `arm_only`, `record_start`, `record_stop` (recording), `go_to` and `read_place` (cursor, with a track), `navigate_item`, `loop_context`, `stop_loop` (a finding), `preview_file_range`. None plays the project from a time. | `narration_transport.lua`, `narration_track_select.lua`, `narration_navigation.lua` |
@@ -50,7 +50,7 @@ Every play goes through the playback providers in [`playback/providers.ts`](../.
 | Audition a take | the DAW's file preview, `file_preview` (`previewTake`) | the app's range player on the take's file |
 | Proof's **Hear it** | the DAW's loop of the note, `navigate` (`FindingsLoop`) | the app's range player on the note's source file |
 | Pickups' **Hear the original in context** | the transport, `transport_sync`, from the pickup's project second less 3 s, stopped after the stretch | the app's range player on the source file |
-| A voice sample's play control (the dots after a marked range, the Story Bible) | none: the clip is a file the app wrote, and the DAW's file preview plays only a file the narrator picked (`DawPreviewFileRange`) | the app's sample player, as before |
+| A voice sample's play control (the dots after a marked range, the Story Bible) | none: the clip is a file the app wrote, and the DAW's file preview plays only a take the passage offers or a file the narrator measured (`WorkspacePreviewTake`, `MasterPlayQuietest`) | the app's sample player, as before |
 
 The rule, which replaces "a linked DAW is the only player" of #2251 item 32 by the owner's decision on that issue ("we should play something … if a specific capability is not working we should have a fallback if it is not a DAW specific action"):
 

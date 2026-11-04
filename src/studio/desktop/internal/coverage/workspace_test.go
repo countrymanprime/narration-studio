@@ -2,6 +2,7 @@ package coverage
 
 import (
 	"desktop/internal/brand"
+	"desktop/internal/creditsid"
 	"encoding/json"
 	"math"
 	"os"
@@ -161,7 +162,7 @@ func TestAlignmentCarriesTheChaptersTitleAndSubtitle(t *testing.T) {
 	if checked.Title != title || checked.Subtitle != "Down the Rabbit-Hole" {
 		t.Fatalf("checked: title %q subtitle %q", checked.Title, checked.Subtitle)
 	}
-	if title, subtitle := service.chapterHeading(CreditsChapterID("opening")); title != "" || subtitle != "" {
+	if title, subtitle := service.chapterHeading(creditsid.ID("opening")); title != "" || subtitle != "" {
 		t.Fatalf("a credits row has no heading to read, got %q / %q", title, subtitle)
 	}
 }

@@ -5,6 +5,7 @@ import type { WorkspaceAlignmentResult } from '../../../api/contracts/workspace'
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { overlay } from '../../../overlay/overlayService';
 import { usePort } from '../../../ports/usePort';
+import { useJournalOrOwn } from '../../../studio/StudioProvider';
 import { registerSelectionAction } from '../bar/selectionActions';
 import { SelectionActionButton } from '../bar/SelectionActionButton';
 import { registerWordMenuSection } from '../menu/wordMenuRegistry';
@@ -49,6 +50,7 @@ export function useVoiceSample({ chapterId, workspace, items, mediaUrl, stopPlay
   const { doc, selected } = useEditingPage();
   const storyBible = usePort('storyBible');
   const samples = usePort('voiceSamples');
+  const journal = useJournalOrOwn();
 
   // Read from the latest render inside open(), so a page playback that changes does not rebuild the registered actions.
   const live = useRef(playback);
@@ -105,42 +107,64 @@ export function useVoiceSample({ chapterId, workspace, items, mediaUrl, stopPlay
               onCancel={close}
               onSave={async (values) => {
                 if (!result.ok) return { ok: false, message: result.message };
-                let answer;
-                try {
-                  const { range } = result;
-                  answer = await samples.voiceSampleMark({
-                    chapterId: range.chapterId,
-                    itemGuid: range.itemGuid,
-                    takeGuid: range.takeGuid,
-                    sourceStart: range.sourceStart,
-                    sourceEnd: range.sourceEnd,
-                    startKey: range.startKey,
-                    endKey: range.endKey,
-                    characterId: values.characterId,
-                    label: values.label,
-                    note: values.note,
-                    makePrimary: values.makePrimary,
-                    alignmentRecordId: range.alignmentRecordId,
-                  });
-                } catch (error) {
-                  return { ok: false, message: apiErrorMessage(error) };
-                }
-                if (answer.status === 'refused') return { ok: false, message: answer.message };
-                close();
+                const { range } = result;
                 const name = choices.find((c) => c.id === values.characterId)?.name ?? 'this character';
-                const id = answer.sample.id;
-                // The host answers the sample that exists when the same frames are marked twice; Undo must not remove an earlier save.
-                if (list?.samples.some((s) => s.id === id)) overlay.toast(`That stretch is already a voice sample for ${name}.`);
-                else
-                  overlay.toastUndo(
-                    `Saved voice sample for ${name}.`,
-                    () =>
-                      samples
-                        .voiceSampleRemove(id)
-                        .then(() => ({ ok: true as const }))
-                        .catch((error: unknown) => ({ ok: false as const, refusal: { reason: apiErrorMessage(error) } })),
-                    { durationMs: UNDO_MS, offJournal: 'A voice sample is removed by the host call, not a journal command.' },
-                  );
+                const refuse = (code: string, reason: string) => ({ ok: false as const, refusal: { code, reason } });
+                // The save is one journal entry, so Ctrl+Z and History remove the sample as the toast's Undo does.
+                const done = await journal.act<string>({
+                  label: `Saved a voice sample for ${name}`,
+                  touches: [`voiceSamples/${values.characterId}`],
+                  run: async () => {
+                    let answer;
+                    try {
+                      answer = await samples.voiceSampleMark({
+                        chapterId: range.chapterId,
+                        itemGuid: range.itemGuid,
+                        takeGuid: range.takeGuid,
+                        sourceStart: range.sourceStart,
+                        sourceEnd: range.sourceEnd,
+                        startKey: range.startKey,
+                        endKey: range.endKey,
+                        characterId: values.characterId,
+                        label: values.label,
+                        note: values.note,
+                        makePrimary: values.makePrimary,
+                        alignmentRecordId: range.alignmentRecordId,
+                      });
+                    } catch (error) {
+                      return refuse('host_refused', apiErrorMessage(error));
+                    }
+                    if (answer.status === 'refused') return refuse('refused', answer.message);
+                    const id = answer.sample.id;
+                    // The host answers the sample that exists when the same frames are marked twice; Undo must not remove an earlier save.
+                    if (list?.samples.some((s) => s.id === id)) return refuse('duplicate', `That stretch is already a voice sample for ${name}.`);
+                    return { ok: true as const, value: id };
+                  },
+                  undo: async (id) => {
+                    try {
+                      await samples.voiceSampleRemove(id);
+                      return { ok: true as const, value: id };
+                    } catch (error) {
+                      return refuse('host_refused', apiErrorMessage(error));
+                    }
+                  },
+                });
+                if (!done.ok) {
+                  if (done.refusal.code !== 'duplicate') return { ok: false, message: done.refusal.reason };
+                  close();
+                  overlay.toast(done.refusal.reason);
+                  return { ok: true };
+                }
+                close();
+                const entry = done.value.id;
+                overlay.toastUndo(
+                  `Saved voice sample for ${name}.`,
+                  async () => {
+                    const undone = await journal.undo(entry);
+                    return undone.ok ? { ok: true as const } : undone;
+                  },
+                  { durationMs: UNDO_MS, entry },
+                );
                 return { ok: true };
               }}
             />
@@ -148,7 +172,7 @@ export function useVoiceSample({ chapterId, workspace, items, mediaUrl, stopPlay
         });
       })();
     },
-    [selected, doc, workspace, items, mediaUrl, stopPlayback, chapterId, storyBible, samples],
+    [selected, doc, workspace, items, mediaUrl, stopPlayback, chapterId, storyBible, samples, journal],
   );
 
   const latest = useRef(open);
