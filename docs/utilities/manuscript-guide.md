@@ -39,6 +39,7 @@ The host writes the dialogue cues (`dialogue_cues`) itself (`src/studio/desktop/
 The file may carry `types`, the narrator's ordered list of `{name, colour, speaks}` ([Settings](../guides/using-the-app/settings.md)). Without it the types are the defaults: Character (speaks), Place, Organization, Lore, Item and Event, in the hues they have always had. An entry's `category` is a type's name, or `Needs Review` or `Draft`.
 
 - **Add**, **rename**, **colour** (green, blue, violet, amber, teal or rose), **can speak** and **remove** (`GuideTypeAdd`, `GuideTypeRename`, `GuideTypeSetColour`, `GuideTypeSetSpeaks`, `GuideTypeRemove`, in `src/studio/desktop/internal/guide/types.go`) each write the whole list. A rename moves every entry of the type; a type in use and the last type cannot be removed.
+- `GuideTypesChanged` answers a JSON boolean (`guide-types-changed.json`): true when the list differs from the defaults in any name, colour or can-speak flag, or in order or count. Settings > Changed reads it.
 - Only an entry whose type speaks takes a speaker colour, and a build's dialogue cues resolve only to such entries. A rebuild keeps the list and files a new entry under the type its built-in category was renamed to (`builtin`), or under Needs Review when that type was removed.
 
 ## Merge and its undo

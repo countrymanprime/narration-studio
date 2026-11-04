@@ -11,12 +11,20 @@ import { subscribeRateBasis } from '../../schedule/useEffectiveWph';
 import { useTips } from '../../../tips/useFirstUseTip';
 import { useVoiceSetup } from '../../engine/voiceLayout';
 import { onEngineChanged } from './engineSignal';
+import { onProjectDataChanged } from './projectDataSignal';
 import { BROWSER_CHANGED } from './browserValues';
 import type { ReadSettings } from './values';
 
 /** What a probe may look at: the ports it reads through, the fields the page already read, and the delivery profiles (read once per pass). */
 export type ProbeContext = {
-  api: PortOf<'system'> & PortOf<'dawChoice'> & PortOf<'deliveryProfiles'> & PortOf<'pronunciationOnline'> & PortOf<'production'>;
+  api: PortOf<'system'> &
+    PortOf<'dawChoice'> &
+    PortOf<'deliveryProfiles'> &
+    PortOf<'pronunciationOnline'> &
+    PortOf<'production'> &
+    PortOf<'storyBible'> &
+    PortOf<'marks'> &
+    PortOf<'credits'>;
   settings: ReadSettings;
   delivery: () => Promise<DeliveryProfilesState>;
 };
@@ -43,6 +51,17 @@ export const CUSTOM_CHANGED: Readonly<Record<string, (context: ProbeContext) => 
     const { chosen } = await api.dawChoice();
     return chosen !== null && chosen !== 'REAPER';
   },
+  // This computer: the Global default is not the profile that ships as the default.
+  'delivery.default': async ({ delivery }) => {
+    const { globalDefault, shippedDefault } = await delivery();
+    return globalDefault.id !== shippedDefault.id || (globalDefault.version ?? '') !== (shippedDefault.version ?? '');
+  },
+  // This project: the Story Bible's types are not the default six.
+  'project.types': async ({ api }) => api.guideTypesChanged(),
+  // This project: the Script page's mark types are not the default six.
+  'project.marks': async ({ api }) => (await api.marksList()).typesChanged,
+  // This computer and this project: a shipped credit template was edited, deleted or added to, or this project has credits values of its own.
+  'project.credits': async ({ api }) => api.creditsChanged(),
   'delivery.profile': async ({ delivery }) => {
     const state = await delivery();
     return state.hasProject && state.projectChoice !== null;
@@ -81,28 +100,9 @@ export type ExemptKind = 'report' | 'action' | 'unmarked-default';
 export const CHANGED_EXEMPT: Readonly<Record<string, { kind: ExemptKind; reason: string }>> = {
   'daw.capabilities': { kind: 'report', reason: 'A report of what the linked tool can do; nothing here is set.' },
   'daw.syncActivity': { kind: 'report', reason: 'A log of chapter syncs; nothing here is set.' },
-  'delivery.default': {
-    kind: 'unmarked-default',
-    reason:
-      'The host reports the chosen default profile but not which one ships as the default (deliveryprofile.Default() is not in the binding), and a component may not name a profile id.',
-  },
   'project.manuscript': { kind: 'action', reason: 'The import and replace action for the manuscript, which is project data and not a setting.' },
   'project.bibleData': { kind: 'action', reason: 'Deletes Story Bible data; an action, not a setting.' },
   'project.data': { kind: 'action', reason: 'Deletes project data; an action, not a setting.' },
-  'project.types': {
-    kind: 'unmarked-default',
-    reason: 'The default is the six types of the host’s guide.DefaultTypes(); the host marks none as added or changed and the UI holds no copy of the list.',
-  },
-  'project.marks': {
-    kind: 'unmarked-default',
-    reason:
-      'The default is the six mark types of the host’s marks.DefaultTypes(); the host marks none as added or changed and the UI holds no copy of the list.',
-  },
-  'project.credits': {
-    kind: 'unmarked-default',
-    reason:
-      'Scope both: the opening and closing credit templates, which the narrator owns (a shipped one may be edited or deleted), plus this project’s values; the host marks neither as differing from the shipped text.',
-  },
 };
 
 /** Whether Changed can tell if this row differs from its default: a host field, a browser reader, a probe, or a stated exemption. */
@@ -123,9 +123,12 @@ export function useCustomChanged(settings: ReadSettings): ReadonlySet<string> {
   const delivery = usePort('deliveryProfiles');
   const pronunciation = usePort('pronunciationOnline');
   const production = usePort('production');
+  const storyBible = usePort('storyBible');
+  const marks = usePort('marks');
+  const credits = usePort('credits');
   const api = useMemo(
-    () => ({ ...system, ...dawChoice, ...delivery, ...pronunciation, ...production }),
-    [system, dawChoice, delivery, pronunciation, production],
+    () => ({ ...system, ...dawChoice, ...delivery, ...pronunciation, ...production, ...storyBible, ...marks, ...credits }),
+    [system, dawChoice, delivery, pronunciation, production, storyBible, marks, credits],
   );
   const { setup: voiceSetup } = useVoiceSetup();
   const chapterSync = usePort('chapterSync');
@@ -141,10 +144,12 @@ export function useCustomChanged(settings: ReadSettings): ReadonlySet<string> {
     for (const name of events) window.addEventListener(name, bump);
     const stop = onEngineChanged(bump);
     const stopBasis = subscribeRateBasis(bump);
+    const stopData = onProjectDataChanged(bump);
     return () => {
       for (const name of events) window.removeEventListener(name, bump);
       stop();
       stopBasis();
+      stopData();
     };
   }, []);
 

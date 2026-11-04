@@ -577,6 +577,50 @@ describe('Settings: search and filters', () => {
   }, 60_000);
 });
 
+// Issue 2729: four rows had no default to compare with. Each is listed under Changed once it differs from what ships, and none is while it is the default.
+describe('Settings: Changed lists the delivery default, the Story Bible types, the mark types and the credits', () => {
+  const ROWS = ['delivery.default', 'project.types', 'project.marks', 'project.credits'];
+
+  it('lists none of them while they are what ships', async () => {
+    await renderPage({ api: createMockApi() });
+    await screen.findByRole('heading', { level: 2, name: 'Recording & DAW' });
+    fireEvent.click(screen.getByRole('button', { name: 'Changed' }));
+    expect(screen.getByText('Nothing is changed from the defaults')).toBeTruthy();
+    for (const id of ROWS) expect(row(id), id).toBeFalsy();
+  });
+
+  it.each([
+    [
+      'delivery.default',
+      async (api: ReturnType<typeof createMockApi>) => {
+        const copy = await api.deliveryDuplicateProfile('acx', '2026-09');
+        await api.deliverySelectProfile('global', copy.id, '');
+      },
+    ],
+    ['project.types', async (api: ReturnType<typeof createMockApi>) => api.guideTypeAdd('Creature')],
+    [
+      'project.marks',
+      async (api: ReturnType<typeof createMockApi>) => {
+        const { types } = await api.marksList();
+        await api.marksSaveTypes([...types, { key: '', name: 'Accent', colour: 'info', style: 'box', asks: false }], false);
+      },
+    ],
+    ['project.credits', async (api: ReturnType<typeof createMockApi>) => void (await api.saveCreditsProjectValues({ title: 'Alice' }))],
+  ])(
+    'lists %s once it differs, and only that row',
+    async (id, change) => {
+      const api = createMockApi();
+      await change(api);
+      await renderPage({ api });
+      await screen.findByRole('heading', { level: 2, name: 'Recording & DAW' });
+      fireEvent.click(screen.getByRole('button', { name: 'Changed' }));
+      await waitForRow(id);
+      for (const other of ROWS.filter((candidate) => candidate !== id)) expect(row(other), other).toBeFalsy();
+    },
+    30_000,
+  );
+});
+
 describe('Settings: putting Changed rows back while the Changed list is open', () => {
   // ux-review of the Changed list saw one crash ("useSettingsStore needs a SettingsStoreProvider") after resetting Zoom. Repeated so a race shows.
   it.each(Array.from({ length: 5 }, (_, n) => n + 1))(
