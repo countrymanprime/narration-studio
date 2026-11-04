@@ -187,6 +187,9 @@ func (h *Host) startModelsMove(target string) (map[string]any, error) {
 }
 
 // planMoveLocked checks that a move may start and makes its plan from the folders as they are now. The caller holds h.mu and m.mu.
+//
+// +checklocks:h.mu
+// +checklocks:h.modelsMove.mu
 func (h *Host) planMoveLocked(store *settings.Store, target string) (assetmove.Plan, bool, modelsFolders, error) {
 	m := &h.modelsMove
 	if m.phase == movePhaseCopying || m.phase == movePhaseVerifying || m.phase == movePhaseSwitching {
