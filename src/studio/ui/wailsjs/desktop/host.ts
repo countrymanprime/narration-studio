@@ -467,6 +467,15 @@ export function CoverageWorkerPlan(options: { [_ in string]?: string }): $Cancel
 }
 
 /**
+ * CreditsChanged is whether the credits differ from what ships: the template library has a shipped template edited or deleted, or
+ * one added (credits.TemplateStore.Changed), or the open project has credits values of its own (credits.Values.IsSet). With no
+ * project open only the library counts. Settings > Changed reads it; it answers a JSON boolean and writes nothing.
+ */
+export function CreditsChanged(): $CancellablePromise<string> {
+    return $Call.ByID(1030552876);
+}
+
+/**
  * CreditsChapterAnnouncements renders body once per narration chapter, with the project's own tokens plus the chapter's
  * [Chapter] and [Chapter Title]. The Settings preview shows the first; the estimate times them all.
  */
@@ -1731,6 +1740,14 @@ export function GuideTypeSetSpeaks(name: string, speaks: boolean): $CancellableP
  */
 export function GuideTypes(): $CancellablePromise<string> {
     return $Call.ByID(975543863);
+}
+
+/**
+ * GuideTypesChanged is whether the Story Bible's types differ from the default six: a type added, renamed, recoloured, set to
+ * speak or not, removed or moved. Settings > Changed reads it (guide.Service.TypesChanged). It answers a JSON boolean.
+ */
+export function GuideTypesChanged(): $CancellablePromise<string> {
+    return $Call.ByID(2590553717);
 }
 
 /**

@@ -390,6 +390,8 @@ export function createStoryBibleMock(
       );
     },
     guideTypes: async () => wireClone(types),
+    guideTypesChanged: async () =>
+      types.length !== MOCK_DEFAULT_TYPES.length || types.some((row, index) => JSON.stringify(row) !== JSON.stringify(MOCK_DEFAULT_TYPES[index])),
     guideTypeAdd: async (name) => {
       const value = mockTypeName(types, name);
       types = [...types, { name: value, colour: GUIDE_TYPE_COLOURS[types.length % GUIDE_TYPE_COLOURS.length], speaks: false }];

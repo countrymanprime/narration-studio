@@ -7,6 +7,7 @@ import {
   guideEntitiesSchema,
   guideMergeResultSchema,
   guidePreviewSchema,
+  guideTypesChangedSchema,
   guideTypesFileSchema,
   guideTypesSchema,
 } from '../schemas/storyBible';
@@ -28,6 +29,8 @@ export const storyBibleGoldens: Record<string, z.ZodType> = {
   'guide-types-default.json': guideTypesSchema,
   'guide-types-default-sidecar.json': guideTypesSchema,
   'guide-types.json': guideTypesSchema,
+  'guide-types-changed-default.json': guideTypesChangedSchema,
+  'guide-types-changed.json': guideTypesChangedSchema,
   'guide-types-sidecar.json': guideTypesFileSchema,
   'guide-merge.json': guideMergeResultSchema,
   'guide-delete-all.json': guideDeletedSchema,

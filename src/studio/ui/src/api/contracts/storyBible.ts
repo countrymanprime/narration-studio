@@ -166,6 +166,8 @@ export interface StoryBibleApi {
   guideSetSpeakerColor(id: string, index: number | null): Promise<void>;
   /** The Story Bible's types, in order (the defaults until the narrator changes one). Read it again after each change below. */
   guideTypes(): Promise<GuideType[]>;
+  /** Whether the types differ from the default six in any name, colour or speaks flag, or in order or count. Settings > Changed reads it. */
+  guideTypesChanged(): Promise<boolean>;
   /** Adds a type at the end, with the next colour, that does not speak. Refused for an empty, taken (whatever its case) or reserved name. */
   guideTypeAdd(name: string): Promise<void>;
   /** Renames a type and moves every entry of it, a locked one too. Refused for an empty, taken or reserved name. */

@@ -1202,12 +1202,12 @@ describe('the marks bindings', () => {
     createdAt: '2026-10-11T10:00:00Z',
     stale: false,
   };
-  const marks = { types: [type], marks: [mark] };
+  const marks = { types: [type], marks: [mark], typesChanged: true };
 
   it('calls the four host methods with their arguments and decodes each answer', async () => {
     const list = vi.fn().mockResolvedValue(JSON.stringify(marks));
     const add = vi.fn().mockResolvedValue(JSON.stringify(mark));
-    const remove = vi.fn().mockResolvedValue(JSON.stringify({ types: [type], marks: [] }));
+    const remove = vi.fn().mockResolvedValue(JSON.stringify({ types: [type], marks: [], typesChanged: true }));
     const saveTypes = vi.fn().mockResolvedValue(JSON.stringify(marks));
     standInHost({ MarksList: list, MarksAdd: add, MarksRemove: remove, MarksSaveTypes: saveTypes });
 
