@@ -57,6 +57,7 @@ Storybook title: `Primitives/StatusBadge`. Source: `src/components/primitives/St
 - `src/components/engine/ChapterSyncPanel.tsx`
 - `src/components/engine/ChapterTagsDialog.tsx`
 - `src/components/engine/LinkChaptersDialog.tsx`
+- `src/components/engine/NestedChaptersNotice.tsx`
 - `src/components/engine/RetakeLanesDialog.tsx`
 - `src/components/engine/ToolResult.tsx`
 - `src/components/engine/TrackList.tsx`
