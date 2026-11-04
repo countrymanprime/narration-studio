@@ -113,6 +113,19 @@ describe('EditingPage', () => {
     expect(document.querySelector('#timeline')).toBeNull();
   });
 
+  // #2820: the DAW tools menu is in the header, where a chapter is finished: its structure entries open the same dialogs as the Engine panel.
+  it('offers the DAW tools in the header, with the structure entries', async () => {
+    const user = userEvent.setup();
+    mount();
+    await script();
+    const header = screen.getByRole('heading', { level: 1, name: 'Editing' }).closest('header')!;
+    await user.click(within(header as HTMLElement).getByRole('button', { name: 'DAW tools' }));
+    const menu = await screen.findByRole('menu');
+    expect(within(menu).getByText('Structure')).toBeTruthy();
+    expect(within(menu).getByRole('menuitem', { name: /Create chapter regions/ })).toBeTruthy();
+    expect(within(menu).getByRole('menuitem', { name: /Prepare chapter render/ })).toBeTruthy();
+  });
+
   // #2251 item 35: the key hints are the shell's page footer, full width under the page, not a row inside the page's card.
   it('the key hints are drawn in the shell page footer', async () => {
     const footer = document.body.appendChild(document.createElement('div'));
@@ -1153,6 +1166,14 @@ describe('EditingPage loading state', () => {
     expect(region('Loading the editor')?.getAttribute('aria-busy')).toBe('true');
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(region('Loading the editor')).toBeTruthy();
+  });
+
+  // QA break B1 of #2820: the loading header and the loaded header are different trees, so a DAW tools menu opened while the chapters load would be
+  // closed when they arrived. The button is drawn with the loaded page, where it stays.
+  it('does not draw the DAW tools button until the chapters have been read, so a menu is never closed by their arrival', async () => {
+    mount({ api: { manuscriptChapters: never } });
+    await screen.findByRole('heading', { level: 1, name: 'Editing' });
+    expect(screen.queryByRole('button', { name: 'DAW tools' })).toBeNull();
   });
 
   it('is replaced by the script when the chapters and lines arrive', async () => {

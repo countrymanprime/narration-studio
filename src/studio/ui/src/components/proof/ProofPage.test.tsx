@@ -115,6 +115,20 @@ describe('sort-asks-the-host', () => {
   });
 });
 
+describe('daw-tools-in-the-header', () => {
+  // #2820: the same menu as Editing's header, over the same registry.
+  it('offers the DAW tools beside the Proof title, with the structure entries', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await noteRows();
+    await user.click(screen.getByRole('button', { name: 'DAW tools' }));
+    const menu = await screen.findByRole('menu');
+    expect(within(menu).getByText('Structure')).toBeTruthy();
+    expect(within(menu).getByRole('menuitem', { name: /Create chapter regions/ })).toBeTruthy();
+    expect(within(menu).getByRole('menuitem', { name: /Prepare chapter render/ })).toBeTruthy();
+  });
+});
+
 describe('page-data-load-failure', () => {
   it('keeps the title, says the page could not be loaded and reloads on Retry', async () => {
     const api = createMockApi();

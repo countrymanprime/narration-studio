@@ -1597,6 +1597,7 @@
         "src/components/editing/takes/useShowInDaw.tsx",
         "src/components/editing/voicesample/VoiceSampleDialog.tsx",
         "src/components/engine/ChapterLinksTable.tsx",
+        "src/components/engine/DawToolsMenu.tsx",
         "src/components/engine/LiveTracksStatus.tsx",
         "src/components/engine/TrackList.tsx",
         "src/components/engine/VoicesCard.tsx",
@@ -2128,6 +2129,7 @@
         "Closed",
         "Disabled",
         "Icon Only Trigger",
+        "Item With Reason",
         "Opens On Press",
         "Keyboard Chooses An Item",
         "Sections That Choose"
@@ -2135,6 +2137,7 @@
       "consumers": [
         "src/components/editing/range/fx/FxButtons.tsx",
         "src/components/engine/ChapterLinksTable.tsx",
+        "src/components/engine/DawToolsMenu.tsx",
         "src/components/script/page/rail/bible/BiblePanel.tsx",
         "src/components/script/page/tools/select/KindMenu.tsx",
         "src/components/script/page/tools/select/MarkMenu.tsx",

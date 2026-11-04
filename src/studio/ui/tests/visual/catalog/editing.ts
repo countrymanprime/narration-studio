@@ -72,6 +72,19 @@ export const editingStates: StateEntry[] = [
   },
   {
     page: 'editing',
+    state: 'daw-tools-menu',
+    description:
+      'Editing, the DAW tools icon button in the header opened on a linked chapter - the Structure heading over Prepare chapter render and Create chapter regions, both live',
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+  },
+  {
+    page: 'editing',
+    state: 'daw-tools-menu-audacity',
+    description: 'Editing, the DAW tools menu on a project that records in Audacity - both entries stay, off, each saying what Audacity cannot do',
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+  },
+  {
+    page: 'editing',
     state: 'fx-menu',
     description: 'Editing, Add FX on four selected words - the menu of the DAW’s FX chains',
     ...POPUP_ANCHORED_AT_FIRST_WIDTH,
