@@ -63,6 +63,9 @@ export type MockApiSeed = {
   liveTracks?: 'saved' | 'failing';
   /** A Voice folders project: Chapter 1 linked to a folder of voice tracks, Extras assigned two characters (`?mockVoiceFolders=1`). */
   voiceFolders?: boolean;
+  /** Chapters 2 and 3's linked tracks sit inside Chapter 1's folder in REAPER, as the append bug left the owner's project (#2838,
+   * `?mockNestedChapters=1`): the Chapter links panel offers to move them out. */
+  nestedChapters?: boolean;
   noManuscript?: boolean;
   /** The Pickups list cannot be read: every read is refused with a reason (`unreadable`), or never answers (`loading`). */
   pickupList?: 'unreadable' | 'loading';
@@ -294,6 +297,8 @@ export type MockState = {
   chapterTrackMappings: TrackMapping[];
   /** Tracks ChapterTrackCreate has added this session, for the next one's GUID and index. */
   createdTracks: number;
+  /** A repair moved the `?mockNestedChapters=1` chapters out of the first chapter's folder. */
+  chaptersUnnested: boolean;
   /** How many times TracksLive was read, so `liveTracks: 'failing'` answers the first read only. */
   liveTrackReads: number;
   jobEndListeners: Set<(event: JobEnded) => void>;
@@ -322,6 +327,7 @@ export function createMockState(initial: MockApiSeed): MockState {
     // A seed built before links had an origin reads as the narrator's own link, as the host reads a v1 file.
     chapterTrackMappings: wireClone(initial.chapterTrackMappings ?? []).map((link) => ({ origin: 'manual', match: null, ...link })),
     createdTracks: 0,
+    chaptersUnnested: false,
     liveTrackReads: 0,
     jobEndListeners,
     endJob: (event) => void setTimeout(() => jobEndListeners.forEach((listener) => listener(event)), 0),

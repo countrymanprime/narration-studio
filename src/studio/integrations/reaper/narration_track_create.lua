@@ -144,8 +144,181 @@ local function track_create(session_dir, run_id, name_text, parent_text)
   event(session_dir, 'TRACK_CREATED', run_id, reaper.GetTrackGUID(track), index, stored)
 end
 
+-- chapter_folders|run|mode|chapterGuids|expected moves chapter tracks out of another chapter's folder (#2838). A project can carry chapters
+-- nested by the append bug fixed in core.append_track: every chapter added after a folder left open at the end landed inside that folder.
+-- chapterGuids lists the tracks the app links to chapters (comma-separated); a chapter track whose folder, or any folder above it, is
+-- another chapter's is lifted out of the innermost such folder by lowering the folder depth (I_FOLDERDEPTH) of the track just before
+-- it, the only value written. A nested chapter's own voices move with it and stay inside it; a voice track is never lifted, only a chapter.
+-- mode is preview (answers the moves, writes nothing) or apply, which plans again and writes only when the moves are exactly the
+-- `expected` chapter GUIDs the narrator confirmed (comma-separated, in order), in one undo point; otherwise FOLDERS_STALE and nothing is
+-- written. Each track whose folder changes is answered as FOLDER_MOVE|run|guid|name|oldFolderGuid|oldFolderName|newFolderGuid|newFolderName
+-- ('' for the top level), the names as REAPER holds them now.
+-- Events: FOLDER_MOVE lines, then FOLDERS_PLANNED|run|count, FOLDERS_REPAIRED|run|count, FOLDERS_STALE|run, or ERROR|run|message.
+
+local UNDO_FOLDERS = core.brand.name .. ': move chapters out of folders'
+local BAD_MODE = 'Choose preview or apply.'
+local FOLDERS_UNSAFE =
+  'Moving these chapters would put other tracks in a different folder, so nothing was moved. Move the chapter tracks out of the folder in REAPER.'
+
+local function split_guids(text)
+  local out = {}
+  for part in tostring(text or ''):gmatch('[^,]+') do
+    local guid = normalize_guid(part)
+    if guid ~= '' then
+      out[#out + 1] = guid
+    end
+  end
+  return out
+end
+
+-- The planned folder depths, and the 1-based positions of the lifts. Each pass lifts the first chapter that sits inside
+-- another chapter's folder out of the innermost one; lifting it moves the tracks after it up by the same levels, so the next pass reads
+-- the structure again. At most one pass per track.
+local function plan_lifts(deltas, guids, chapters)
+  local planned = {}
+  for position, delta in ipairs(deltas) do
+    planned[position] = delta
+  end
+  local lifted = {}
+  for _ = 1, #planned do
+    local parents = core.folder_parents(planned)
+    local found
+    for position = 2, #planned do
+      if chapters[guids[position]] then
+        local levels, ancestor = 0, parents[position]
+        while ancestor ~= 0 do
+          levels = levels + 1
+          if chapters[guids[ancestor]] then
+            found = { position = position, levels = levels, folder = ancestor }
+            break
+          end
+          ancestor = parents[ancestor]
+        end
+        if found then
+          break
+        end
+      end
+    end
+    if not found then
+      break
+    end
+    -- The track that closed the chapter folder the nested chapter leaves gives the lifted levels back, so every track after that folder
+    -- keeps the folder it was in (a Book that holds the chapters, say). A folder left open at the end has no such track.
+    local before, depth = {}, 0
+    for position, delta in ipairs(planned) do
+      before[position] = depth
+      depth = math.max(depth + delta, 0)
+    end
+    local folder_depth, closing = before[found.folder], nil
+    for position = found.position, #planned do
+      local after = position < #planned and before[position + 1] or math.max(before[position] + planned[position], 0)
+      if before[position] > folder_depth and after <= folder_depth then
+        closing = position
+        break
+      end
+    end
+    planned[found.position - 1] = planned[found.position - 1] - found.levels
+    if closing then
+      planned[closing] = planned[closing] + found.levels
+    end
+    lifted[#lifted + 1] = found.position
+  end
+  return planned, lifted
+end
+
+-- True when every track whose folder changes sat somewhere inside a chapter's folder and moves to a folder that held its old one (or the
+-- top level): a lift never puts a track inside anything new, and never moves a track that no chapter folder holds.
+local function lifts_only_out_of_chapters(before, after, guids, chapters)
+  local was, now = core.folder_parents(before), core.folder_parents(after)
+  for position = 1, #before do
+    if was[position] ~= now[position] then
+      local inside_chapter, reaches = false, now[position] == 0
+      local ancestor = was[position]
+      while ancestor ~= 0 do
+        inside_chapter = inside_chapter or chapters[guids[ancestor]] == true
+        reaches = reaches or (ancestor ~= was[position] and ancestor == now[position])
+        ancestor = was[ancestor]
+      end
+      if not (inside_chapter and reaches) then
+        return false
+      end
+    end
+  end
+  return true
+end
+
+local function chapter_folders(session_dir, run_id, mode, chapter_text, expected_text)
+  if mode ~= 'preview' and mode ~= 'apply' then
+    event(session_dir, 'ERROR', run_id, BAD_MODE)
+    return
+  end
+  if recording() then
+    event(session_dir, 'ERROR', run_id, RECORDING)
+    return
+  end
+  local chapters = {}
+  for _, guid in ipairs(split_guids(chapter_text)) do
+    chapters[guid] = true
+  end
+  local deltas = core.folder_deltas()
+  local guids = {}
+  for position = 1, #deltas do
+    guids[position] = normalize_guid(reaper.GetTrackGUID(reaper.GetTrack(0, position - 1)))
+  end
+  local planned, lifted = plan_lifts(deltas, guids, chapters)
+  if not lifts_only_out_of_chapters(deltas, planned, guids, chapters) then
+    event(session_dir, 'ERROR', run_id, FOLDERS_UNSAFE)
+    return
+  end
+  local was, now = core.folder_parents(deltas), core.folder_parents(planned)
+  -- The chapters that change folder, in order: what the narrator confirmed, and what apply checks it still is.
+  local moved = {}
+  for position = 1, #deltas do
+    if chapters[guids[position]] and was[position] ~= now[position] then
+      moved[#moved + 1] = guids[position]
+    end
+  end
+  if mode == 'apply' and table.concat(moved, ',') ~= table.concat(split_guids(expected_text), ',') then
+    event(session_dir, 'FOLDERS_STALE', run_id)
+    return
+  end
+  local function named(position)
+    if position == 0 then
+      return '', ''
+    end
+    local _, name = reaper.GetTrackName(reaper.GetTrack(0, position - 1))
+    return guids[position], name
+  end
+  for position = 1, #deltas do
+    if was[position] ~= now[position] then
+      local guid, name = named(position)
+      local from_guid, from_name = named(was[position])
+      local to_guid, to_name = named(now[position])
+      event(session_dir, 'FOLDER_MOVE', run_id, guid, name, from_guid, from_name, to_guid, to_name)
+    end
+  end
+  if mode == 'preview' then
+    event(session_dir, 'FOLDERS_PLANNED', run_id, #moved)
+    return
+  end
+  if #lifted > 0 then
+    reaper.Undo_BeginBlock2(0)
+    for position, delta in ipairs(planned) do
+      if delta ~= deltas[position] then
+        reaper.SetMediaTrackInfo_Value(reaper.GetTrack(0, position - 1), 'I_FOLDERDEPTH', delta)
+      end
+    end
+    reaper.Undo_EndBlock2(0, UNDO_FOLDERS, -1)
+    reaper.UpdateArrange()
+  end
+  event(session_dir, 'FOLDERS_REPAIRED', run_id, #moved)
+end
+
 return function(registry)
   registry.register('track_create', function(ctx, args)
     track_create(ctx.session_dir, args[1] or '', args[2] or '', args[3] or '')
+  end)
+  registry.register('chapter_folders', function(ctx, args)
+    chapter_folders(ctx.session_dir, args[1] or '', args[2] or '', args[3] or '', args[4] or '')
   end)
 end

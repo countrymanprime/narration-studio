@@ -155,6 +155,13 @@ var eventSpecs = map[string]eventSpec{
 	// track_create (narration_track_create.lua): the track added at the end of the track list, its 0-based index and the name it
 	// was given, in one undo point.
 	"TRACK_CREATED": {required: []fieldSpec{text("run"), text("guid"), count("index"), text("name")}},
+	// chapter_folders (narration_track_create.lua, #2838): each track whose folder a move of nested chapters out of another chapter's
+	// folder changes (the folders' GUIDs and names, '' for the top level), then the closing line with how many chapters move;
+	// FOLDERS_STALE when the moves are not the ones confirmed, so nothing was written.
+	"FOLDER_MOVE":      {required: []fieldSpec{text("run"), text("guid"), text("name"), text("fromGuid"), text("fromName"), text("toGuid"), text("toName")}},
+	"FOLDERS_PLANNED":  {required: []fieldSpec{text("run"), count("chapters")}},
+	"FOLDERS_REPAIRED": {required: []fieldSpec{text("run"), count("chapters")}},
+	"FOLDERS_STALE":    {required: []fieldSpec{text("run")}},
 	// tracks_read (narration_tracks_read.lua): the open project's track list as REAPER has it now, saved or not, read-only. rpp is empty
 	// for a project never saved; one TRACKS_ROW per track (folderDelta is I_FOLDERDEPTH), then TRACKS_READ_END (listed, and the total).
 	"TRACKS_READ":     {required: []fieldSpec{text("run"), text("rpp"), count("unsaved"), count("changeCount")}},
