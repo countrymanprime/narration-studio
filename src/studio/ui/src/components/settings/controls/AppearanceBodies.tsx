@@ -9,6 +9,7 @@ import { useMotionPreference, type MotionPreference } from '../../../motion';
 import { IconButton } from '../../primitives/IconButton';
 import { RadioGroup } from '../../primitives/RadioGroup';
 import { Select } from '../../primitives/Select';
+import { retryAction } from '../../primitives/Toast';
 import { InsetCard } from '../../primitives/InsetCard';
 import { Button } from '../../primitives/Button';
 import { Checkbox } from '../../primitives/Checkbox';
@@ -226,7 +227,8 @@ export function ZoomRowBody() {
     return () => window.removeEventListener('resize', read);
   }, [read]);
 
-  const choose = (next: number) =>
+  // A failed set or save is an error toast with Retry: setting the same level and saving it again writes the same value (issue #2919).
+  const choose = (next: number): void =>
     void system
       .windowSetZoom(next)
       .then(async (result) => {
@@ -234,7 +236,13 @@ export function ZoomRowBody() {
         await system.windowSaveZoom(result.level);
         announceBrowserSettingChange();
       })
-      .catch((failure: unknown) => notify(apiErrorMessage(failure), 'error'));
+      .catch((failure: unknown) =>
+        notify(
+          apiErrorMessage(failure),
+          'error',
+          retryAction(() => choose(next)),
+        ),
+      );
 
   // A level under 100% (Ctrl + wheel) is shown as it is, though it is not one to choose.
   const levels = ZOOM_STEPS.includes(level) ? ZOOM_STEPS : [...ZOOM_STEPS, level].sort((a, b) => a - b);

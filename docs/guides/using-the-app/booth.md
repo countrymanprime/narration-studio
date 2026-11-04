@@ -320,13 +320,37 @@ narrow the list by key, track or character, and press **Enter** or click a voice
 previous voice. During a take a voice key switches the recording at once and REAPER keeps recording: the take is one item on each voice
 and one undo point, and about a twentieth of a second at the switch is recorded on neither track, so press the key in a pause between
 lines. A key pressed before the last one is answered is sent next, so the voice you end on is the one you pressed last. A key with no track
-behind it changes nothing and says so. Each chapter keeps the voice you chose until you close the app or open another project, and the
+behind it asks who is in it ([below](#adding-a-voice-track)). Each chapter keeps the voice you chose until you close the app or open another project, and the
 control shows the voice the app will record on, also after you leave the Booth and come back. In a
 chapter that records on one track the voice keys say why they do nothing, and **=** and **-** still change the text size.
 
 ![Booth - the voice control on the record bar, with the voice keys among the key hints](../../images/ui/booth-voices.webp)
 
 ![Booth - the voice list: the chapter folder's voices with their keys and characters](../../images/ui/booth-voices-list.webp)
+
+#### Adding a voice track
+
+A number key with no track behind it opens **Who is in Num 7?**. During a take, the Booth first stops the take as **Stop** does, so what
+you recorded is kept on the voice it recorded on, and then asks. If you press another key before the take has stopped, the Booth uses
+that key, and a key with a track is then simply chosen. Choose how to record them:
+
+- **A new track**: tick the characters it is for. The chapter's characters come first, with their lines in the chapter or the key of the
+  voice that already records them, and the speakers with no track are ticked for you. The rest of the book follows. The name is the
+  character's when one is ticked, else **Extras**; type another if you like. **Add track** adds it in REAPER as the folder's last track,
+  so it takes the next free key, not necessarily the one you pressed, and chooses it for the next take.
+- **An existing track**: the ticked characters are added to the track you pick, and it is chosen.
+- **The Narrator, this time**: the Narrator track is chosen and nothing is assigned.
+
+A new track is one undo point in REAPER, after the take's own, so undoing it never takes the recording with it. The app lists the track
+at once. Save the project in REAPER to keep it: until you do, the saved project does not have it, though the Booth records on it.
+
+The voice list shows the chapter's speakers with no track under **No track**, each with its lines. Choosing one while stopped asks
+**Who records the King of Hearts?**, with the same three answers. During a take it asks nothing: the Narrator track records the
+character at once, and the voice control shows **King of Hearts → Narrator** with a warning sign. After the take, two buttons beside it
+add a track for the character or put it on an existing one. In the side panel, **In this chapter** shows each character's voice key, or
+an add-track button for a speaker with no track.
+
+![Booth - Who is in Num 7?: the chapter's characters to tick, a new track's name and key, an existing track or the Narrator](../../images/ui/booth-voices-who-is-in.webp)
 
 ## Where the Booth opens in your DAW
 

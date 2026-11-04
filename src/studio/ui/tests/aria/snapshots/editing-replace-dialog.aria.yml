@@ -8,8 +8,6 @@
 - status: /4 words selected, 0:\d+ to 0:\d+/
 - alert
 - status
-- alert
-- status
 - dialog "Replace 4 words with another narrator's audio":
   - heading "Replace 4 words with another narrator's audio" [level=2]
   - button "Close"

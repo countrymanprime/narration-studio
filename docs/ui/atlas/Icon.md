@@ -41,7 +41,6 @@ Storybook title: `Primitives/Icon`. Source: `src/components/primitives/Icon.tsx`
 - `src/components/schedule/MilestoneTable.tsx`
 - `src/components/script/bookmarks/ui/BookmarkRibbon.tsx`
 - `src/components/script/page/rail/words/DefinitionSourceMenu.tsx`
-- `src/components/script/page/rail/words/WordCard.tsx`
 - `src/components/script/page/rail/words/WordsTab.tsx`
 - `src/components/script/page/tools/select/KindMenu.tsx`
 - `src/components/script/page/tools/select/MarkMenu.tsx`

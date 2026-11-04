@@ -348,9 +348,8 @@ end
 -- Inside the undo block: the Cuts track found, keyed and muted, or added.
 local function ensure_cuts(track, keyed)
   if not track then
-    local index = reaper.CountTracks(0)
-    reaper.InsertTrackAtIndex(index, false)
-    track = reaper.GetTrack(0, index)
+    -- At the top level, never inside a folder left open at the end of the project (core.append_track).
+    track = core.append_track()
     reaper.GetSetMediaTrackInfo_String(track, 'P_NAME', CUTS_NAME, true)
   end
   if not keyed then

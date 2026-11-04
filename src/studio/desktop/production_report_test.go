@@ -274,3 +274,40 @@ func TestProductionStatusReportJudgesTheLastMeasurementAgainstTheProfile(t *test
 		t.Fatalf("the page does not count the unchecked file:\n%s", page)
 	}
 }
+
+// ProductionOpenReportsFolder: shows the project's reports folder, takes no path and refuses before there is one.
+
+func TestProductionOpenReportsFolderRefusesWithoutAProjectOrBeforeAnExport(t *testing.T) {
+	host := newTestHost(t)
+	if _, err := host.ProductionOpenReportsFolder(); err == nil || !strings.Contains(err.Error(), "open a project first") {
+		t.Fatalf("want a refusal with no project, got %v", err)
+	}
+	host = productionHost(t)
+	opened := false
+	host.openFolder = func(string) error { opened = true; return nil }
+	if _, err := host.ProductionOpenReportsFolder(); err == nil || !strings.Contains(err.Error(), "export a report first") {
+		t.Fatalf("want a refusal before an export, got %v", err)
+	}
+	if opened {
+		t.Fatal("nothing should be opened before a report was exported")
+	}
+}
+
+func TestContractProductionOpenReportsFolder(t *testing.T) {
+	host := productionHost(t)
+	var opened []string
+	host.openFolder = func(dir string) error { opened = append(opened, dir); return nil }
+	if _, err := host.ProductionStatusReport(defaultReportInclude); err != nil {
+		t.Fatal(err)
+	}
+	answer := decodeAnswer(t)(host.ProductionOpenReportsFolder())
+	want := filepath.Join(host.config.projectFolder, filepath.FromSlash(brand.ProjectFolder+"/production/reports"))
+	if len(opened) != 1 || opened[0] != want {
+		t.Fatalf("want the project's reports folder %q opened once, got %v", want, opened)
+	}
+	stable, err := contractfile.Stabilize(answer)
+	if err != nil {
+		t.Fatal(err)
+	}
+	contractfile.Check(t, "production-open-reports-folder", stable)
+}

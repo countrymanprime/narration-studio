@@ -14,7 +14,26 @@ export const scriptStates: StateEntry[] = [
     description:
       'Script, the continuous reader on Chapter 1: the chapter list with its prep dots, the chapter card, the marks and speaker chips in the text, and the rail on its Words tab',
   },
-  railTab('rail-words', 'Script, the rail on its Words tab with a word chosen: how to say it, its source and the web look-ups'),
+  {
+    ...railTab('rail-words', 'Script, the rail on its Words tab with a word chosen: how to say it, its source and the web look-ups'),
+    // A word no dictionary has: its Save to my dictionary field is judged at a phone's width too (#2595).
+    extraViewports: [...RAIL_DEPENDS_ON_WIDTH.extraViewports, ...REFLOW.extraViewports],
+  },
+  {
+    ...railTab(
+      'rail-words-name',
+      "Script, the rail on its Words tab with a Story Bible name chosen: its card edits the name's pronunciation with the Story Bible's own row (#2595)",
+    ),
+    // The card's row wraps below 32 rem; it is also judged at a phone's width (#2595).
+    extraViewports: [...RAIL_DEPENDS_ON_WIDTH.extraViewports, ...REFLOW.extraViewports],
+  },
+  {
+    ...railTab(
+      'rail-words-candidates',
+      "Script, a Story Bible name's Words card with From the dictionaries open: each source's value with its source, Hear and Use (#2595)",
+    ),
+    extraViewports: [...RAIL_DEPENDS_ON_WIDTH.extraViewports, ...REFLOW.extraViewports],
+  },
   railTab('rail-story-bible', "Script, the rail on its Story Bible tab: the book's entries by kind, one opened"),
   railTab('rail-notes', "Script, the rail on its Notes tab: the chapter's notes, each with where it is"),
   {
@@ -29,6 +48,12 @@ export const scriptStates: StateEntry[] = [
       'Script, Chapter 3 chosen from the chapter list: the column at 1440, the drawer from the left with its scrim below 1180 px (the header’s Chapters button)',
     // The driver opens the drawer only where the width shows its button, so each width loads afresh.
     reloadPerViewport: true,
+  },
+  {
+    page: 'script',
+    state: 'chapter-jump-focus',
+    description:
+      'Script, a chapter chosen from the jump menu: the reader scrolled to it with keyboard focus on its heading, which shows the focus ring (#2902)',
   },
   {
     page: 'script',

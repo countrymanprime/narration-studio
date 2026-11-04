@@ -48,6 +48,7 @@ const REAPER_LEVELS: Record<DawCapabilityKey, DawCapabilitySupport['level']> = {
   track_state: 'experimental',
   track_select: 'experimental',
   track_create: 'experimental',
+  tracks_read: 'experimental',
   follow_position: 'experimental',
   transport_sync: 'experimental',
   record: 'experimental',

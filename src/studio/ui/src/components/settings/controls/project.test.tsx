@@ -355,6 +355,23 @@ describe('Settings: Appearance & keys', () => {
     await waitFor(() => expect(set).toHaveBeenLastCalledWith(1));
   });
 
+  // Issue #2919: the select has moved on by the time the save fails, so the error toast offers Retry, which sets and saves the same level again.
+  it('a failed zoom save is an error toast with Retry, which sets and saves the same level again', async () => {
+    const api = createMockApi();
+    const set = vi.spyOn(api, 'windowSetZoom');
+    const save = vi.spyOn(api, 'windowSaveZoom').mockRejectedValueOnce(new Error('the zoom could not be written'));
+    const { notify } = await renderPage({ api });
+    await open('Appearance & keys');
+    fireEvent.change(within(row('look.zoom')).getByRole('combobox', { name: 'Zoom' }), { target: { value: '1.25' } });
+    await waitFor(() =>
+      expect(notify).toHaveBeenCalledWith(expect.stringContaining('could not be written'), 'error', expect.objectContaining({ label: 'Retry' })),
+    );
+    (notify as ReturnType<typeof vi.fn>).mock.calls.find((call) => call[1] === 'error')![2].onAction();
+    await waitFor(() => expect(save).toHaveBeenCalledTimes(2));
+    expect(set).toHaveBeenLastCalledWith(1.25);
+    expect(save).toHaveBeenLastCalledWith(1.25);
+  });
+
   // Alignment audit (XSE1-3, XSE1-4, XSE2-33).
   it('shortcuts: the list grows with the card, no frame or scroller of its own, and Change keeps one right edge', async () => {
     await renderPage();

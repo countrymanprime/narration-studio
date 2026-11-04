@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Master to spec entry draft mock</title>
+<style>
+/* Tokens copied from docs/research/mockups/studio-next/src/styles/app.css so the draft reads like the spec mock. System fonts only: nothing loads from the network. */
+:root{
+  --bg:#EFEDE7; --surface:#FBFAF7; --raised:#F4F2EC; --line:#DCD7CB; --line-strong:#BDB6A6; --btn-line:#2B2723;
+  --ink:#23201B; --muted:#5C564B; --faint:#766F60;
+  --copper:#B04F17; --copper-ink:#FFFFFF; --copper-soft:#F1DDC9; --copper-text:#8F3F0F;
+  --focus:#1F5FBF;
+  --f-display:'Barlow Condensed','Arial Narrow',sans-serif; --f-body:'IBM Plex Sans',system-ui,sans-serif; --f-mono:'IBM Plex Mono',ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#14120E; --surface:#1D1A15; --raised:#26221C; --line:#38332A; --line-strong:#51493C; --btn-line:#7A7060;
+  --ink:#EDE8DE; --muted:#B0A797; --faint:#968D7D;
+  --copper:#D9803F; --copper-ink:#1A0F05; --copper-soft:#3A2617; --copper-text:#F0A06A;
+  --focus:#7FB0FF; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#14120E; --surface:#1D1A15; --raised:#26221C; --line:#38332A; --line-strong:#51493C; --btn-line:#7A7060;
+  --ink:#EDE8DE; --muted:#B0A797; --faint:#968D7D;
+  --copper:#D9803F; --copper-ink:#1A0F05; --copper-soft:#3A2617; --copper-text:#F0A06A;
+  --focus:#7FB0FF; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 var(--f-body);margin:0;padding:16px}
+button{font:inherit;color:inherit;cursor:pointer}
+h1,h2{font-family:var(--f-display);font-weight:600;margin:0 0 6px}
+.sub{color:var(--muted);font-size:13px;max-width:70ch}
+.note{font-size:13px;color:var(--muted);margin:4px 0 24px;max-width:80ch}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:10px 0}
+.ph{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-height:50px;padding:8px 16px;border-bottom:1px solid var(--line)}
+.ph h2,.ph h1{margin:0;font-size:22px}
+.pb{padding:16px}
+.spacer{flex:1}
+.btn{font:600 12px var(--f-display);letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--btn-line);border-radius:6px;height:36px;padding:0 12px;background:var(--surface)}
+.btn.primary{background:var(--copper);color:var(--copper-ink);border-color:transparent}
+.icon{width:36px;height:36px;border:1px solid var(--btn-line);border-radius:6px;background:var(--surface);display:inline-grid;place-items:center}
+.icon.primary{background:var(--copper);color:var(--copper-ink);border-color:transparent}
+.pill{font:600 12px var(--f-display);letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--line-strong);border-radius:999px;padding:3px 10px}
+.check{display:flex;align-items:center;gap:8px}
+.box{width:16px;height:16px;border-radius:3px;background:var(--copper);color:var(--copper-ink);display:inline-grid;place-items:center;font-size:11px}
+.help{width:18px;height:18px;border:1px solid var(--muted);border-radius:50%;display:inline-grid;place-items:center;font-size:11px;color:var(--muted)}
+table{width:100%;border-collapse:collapse}
+th{font:600 12px var(--f-display);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:8px;text-align:center}
+td{border-top:1px solid var(--line);padding:8px}
+.narrow{max-width:390px}
+.tip{font-size:12px;background:var(--ink);color:var(--bg);border-radius:4px;padding:3px 8px;margin-left:6px}
+</style>
+</head>
+<body>
+<h1>Master &amp; QC: Master to spec, a labelled way in (draft)</h1>
+<p class="sub">Draft for <a href="https://github.com/countrymanprime/narration-studio/issues/2931">#2931</a>. The Studio Next mock has no Master to spec control (kept as built). Today the only way in is the unlabelled bullseye icon in the page header. The owner rule for this issue: the primary action is a labelled text button; an icon stays only where it is secondary.</p>
+
+<h2>1. Nothing picked yet</h2>
+<div class="card">
+  <div class="ph"><h1>Master &amp; QC</h1><span class="pill">ACX</span><span class="spacer"></span><span class="icon" title="Master all to spec…">◎</span><span class="tip">Master all to spec…</span><span class="icon primary" title="Check files…">✓</span></div>
+  <div class="pb sub">(the per-file checks table, unchanged)</div>
+</div>
+<div class="card">
+  <div class="ph"><h2>Master to spec</h2><span class="spacer"></span><button class="btn primary">Choose files to master…</button></div>
+  <div class="pb"><span class="check"><span class="box">✓</span>Master before encoding: Built-in chain (EQ, limiter, gain) <span class="help">?</span></span></div>
+</div>
+<p class="note">The page header keeps the icon as the secondary shortcut beside Check files… (a header holds icons, rule 1). The Master to spec card is always on the page. Before any file is picked, its own primary is a labelled text button named for what it does (it opens the file picker, like Diagnostics' Choose files to check…), and its body holds the one choice that applies before picking, Master before encoding. There is no instruction sentence (rule 8). With the checkbox off the button reads <b>Choose files to encode…</b>.</p>
+
+<h2>2. Files picked (unchanged)</h2>
+<div class="card">
+  <div class="ph"><h2>Master to spec</h2><span class="spacer"></span><button class="btn">Add files…</button><button class="btn primary">Master &amp; encode</button></div>
+  <div class="pb">
+    <table><thead><tr><th>File</th><th>Role</th><th>Title</th><th>Status</th><th></th></tr></thead>
+    <tbody><tr><td>Chapter 01.wav</td><td>Chapter</td><td>Chapter 01</td><td><span class="pill">Not started</span></td><td><button class="btn">Remove</button></td></tr></tbody></table>
+    <p class="check" style="margin-top:12px"><span class="box">✓</span>Master before encoding: Built-in chain (EQ, limiter, gain) <span class="help">?</span></p>
+  </div>
+</div>
+<p class="note">Once files are picked, Add files… and Master &amp; encode take the header as today, and the checkbox moves under the table.</p>
+
+<h2>3. Nothing picked, 390 px</h2>
+<div class="card narrow">
+  <div class="ph"><h2>Master to spec</h2><span class="spacer"></span><button class="btn primary">Choose files to master…</button></div>
+  <div class="pb"><span class="check"><span class="box">✓</span>Master before encoding: Built-in chain (EQ, limiter, gain) <span class="help">?</span></span></div>
+</div>
+<p class="note">At a narrow width the button wraps under the title (the panel header's 12 rem title basis) rather than squeezing it.</p>
+</body>
+</html>

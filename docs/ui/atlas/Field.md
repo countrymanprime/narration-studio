@@ -30,6 +30,7 @@ Storybook title: `Primitives/Field`. Source: `src/components/primitives/Field.ts
 
 ## Used by
 
+- `src/components/booth/voices/WhoIsInDialog.tsx`
 - `src/components/credits/CreditsSetupDialog.tsx`
 - `src/components/delivery/ImportProfileField.tsx`
 - `src/components/editing/menu/marks/NoteDialog.tsx`
