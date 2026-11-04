@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useApi } from '../../api/ApiContext';
 import { Button } from '../primitives/Button';
+import { IconButton } from '../primitives/IconButton';
 import { Dialog } from '../primitives/Dialog';
 import { SectionLabel } from '../primitives/SectionLabel';
 import { StatusBadge } from '../primitives/StatusBadge';
@@ -51,15 +52,13 @@ function RetakeRow({
       <span className="w-[4.5rem] flex-none">
         <StatusBadge tone={plays ? 'success' : 'neutral'} label={plays ? 'Plays' : 'Silent'} />
       </span>
-      <Button
-        variant="secondary"
-        aria-label={`Play this lane: lane ${lane} for ${line.lineId} on ${line.trackName}`}
+      <IconButton
+        action="play"
+        label={`Play this lane: lane ${lane} for ${line.lineId} on ${line.trackName}`}
         onClick={onPick}
         pending={picking && state.itemGuid === retake.itemGuid}
-        disabled={plays || (picking && state.itemGuid !== retake.itemGuid)}
-      >
-        Play this lane
-      </Button>
+        disabledReason={plays ? 'This lane already plays' : picking && state.itemGuid !== retake.itemGuid ? 'Another lane is being set' : undefined}
+      />
     </li>
   );
 }

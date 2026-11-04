@@ -134,7 +134,7 @@ export function OutputPanel({
             </Button>
           )}
           {/* #2829: writes ID3 chapters into the finished book MP3; it never talks to the DAW and needs no passing chapters, so it is on whatever the build says. */}
-          <IconButton action="embedChapterTags" ref={embedButton} onClick={() => setTagging(true)} />
+          <IconButton action="embedTags" ref={embedButton} onClick={() => setTagging(true)} />
           <span id={WHY_ID} className="text-sm" style={MUTED}>
             {why}
           </span>

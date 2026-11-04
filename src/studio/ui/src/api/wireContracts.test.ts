@@ -36,6 +36,9 @@ import {
   takesUnstackedAnswer,
 } from '../fixtures/daw';
 import { notLastAnswer, undoneAnswer } from '../fixtures/dawUndo';
+import { DAW_SETUPS } from '../fixtures/daw';
+import { createMockDawClient } from '../ports/daw';
+import { withFxRange } from '../components/editing/range/fx/fxFixtures';
 import { createExtractionMock } from './extractionMock';
 import type { JobEnded, ScopedSettingField } from './contracts/system';
 import type { ProjectStateState } from './contracts/projectstate';
@@ -3814,6 +3817,54 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(await api.dawLastAction('record_take')).toBe('this');
     expect(await api.dawUndoLast('record_take', 1)).toEqual(readGolden('daw-undo-last-take-done.json'));
     expect(await api.dawLastAction('record_take')).toBe('other');
+  });
+
+  // #2945: Keep Take's Undo needs a kind for "use take" (narration_workspace.lua's set_active_take closes its block with it).
+  it('a used take is use_take: it is the last action until the DAW changes again, and the mock undoes it as the host answers', async () => {
+    const client = createMockDawClient(DAW_SETUPS.reaper, { chapterIds: ['5'], candidateIds: ['t-7', 't-8'], findingIds: [] });
+    expect(await client.lastAction('use_take')).toBe('other');
+    expect((await client.useTake('5', 1, 2, 't-8')).undoSteps).toBe(1);
+    expect(await client.lastAction('use_take')).toBe('this');
+    const undone = await client.undoLast('use_take', 1);
+    expectMatches(dawResultSchema, undone, 'mock undo of use_take');
+    expect(undone).toMatchObject({ ok: true, changed: true, message: 'Undid the choice of take in REAPER.' });
+    expect(await client.lastAction('use_take')).toBe('other');
+    // Any later point of the DAW's own makes it refuse with the DAW's sentence, and changes nothing.
+    await client.useTake('5', 1, 2, 't-8');
+    await client.hideTakes('5', 1, 2, 't-8');
+    expect(await client.lastAction('use_take')).toBe('other');
+    expect(await client.undoLast('use_take', 1)).toMatchObject({
+      ok: false,
+      refused: "REAPER's last action is not this one, so it was left alone. Use Edit > Undo in REAPER.",
+    });
+  });
+
+  // #3016: the chain edits of Editing's effects are kinds of their own, each the label its REAPER command closes its undo block with.
+  it('the chain edits are add_range_fx, remove_range_fx, set_fx_param, bypass_fx and enable_fx: each is the last action until the DAW changes again', async () => {
+    const client = createMockDawClient(withFxRange(DAW_SETUPS.reaper, 'native'), {
+      chapterIds: ['5'],
+      candidateIds: [],
+      findingIds: [],
+      fxChains: ['Voice.RfxChain'],
+    });
+    const target = { chapterId: '5', firstToken: 1, lastToken: 2, chainName: 'Voice.RfxChain' };
+    const kinds = ['add_range_fx', 'remove_range_fx', 'set_fx_param', 'bypass_fx', 'enable_fx'] as const;
+    const onlyThis = async (expected: (typeof kinds)[number]) => {
+      for (const kind of kinds) expect(await client.lastAction(kind), `${expected} is on top, so ${kind}`).toBe(kind === expected ? 'this' : 'other');
+    };
+    const first = await client.applyFxToRange({ ...target, fadeMs: 10 });
+    expect(first, JSON.stringify(first)).toMatchObject({ ok: true, undoSteps: 1 });
+    await onlyThis('add_range_fx');
+    await client.setFxRangeParam({ ...target, fx: 0, index: 0, value: 1 });
+    await onlyThis('set_fx_param');
+    await client.bypassFxRange(target, true);
+    await onlyThis('bypass_fx');
+    await client.bypassFxRange(target, false);
+    await onlyThis('enable_fx');
+    expect(await client.undoLast('bypass_fx', 1)).toMatchObject({ ok: false });
+    expect(await client.undoLast('enable_fx', 1)).toMatchObject({ ok: true, message: 'Undid the turning an effect back on in REAPER.' });
+    await client.removeFxFromRange(target);
+    await onlyThis('remove_range_fx');
   });
 
   it('dawLastAction and dawUndoLast answer a dawLastAction and a dawResult: the host goldens parse, and the mock answers as the host does', async () => {

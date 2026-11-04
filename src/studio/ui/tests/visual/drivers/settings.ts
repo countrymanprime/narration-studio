@@ -2,7 +2,7 @@
 // (shared.ts: openSettingsCategory); each driver waits for what its own state shows.
 import type { Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
-import { type Driver, clickNav, clickVisible, confirmDialog, freezeClock, openAdvanced, openSettings, showSettingsRow } from './shared';
+import { type Driver, clickNav, clickVisible, confirmDialog, freezeClock, goToPage, openAdvanced, openSettings, showSettingsRow } from './shared';
 import { brand } from '../../../src/brand.gen';
 
 const WHISPER_SMALL = 'whisper/small';
@@ -404,6 +404,42 @@ export const settingsDrivers: Record<string, Driver> = {
     await openSettings(page, 'Appearance & keys');
     const row = await showSettingsRow(page, 'look.boothSize');
     await row.getByRole('slider', { name: 'Booth text size' }).waitFor();
+  },
+  'story-bible-order': async (page) => {
+    await openSettings(page, 'Appearance & keys');
+    const row = await showSettingsRow(page, 'look.entrySort');
+    await row.getByRole('combobox', { name: 'Story Bible order' }).waitFor();
+  },
+  'story-bible-order-changed': async (page) => {
+    await openSettings(page, 'Appearance & keys');
+    const row = await showSettingsRow(page, 'look.entrySort');
+    await row.getByRole('combobox', { name: 'Story Bible order' }).selectOption('mentions-desc');
+    await row.getByRole('button', { name: 'Reset Story Bible order to Name, A to Z' }).waitFor();
+  },
+  'first-use-tips': async (page) => {
+    await openSettings(page, 'App & updates');
+    const row = await showSettingsRow(page, 'app.tips');
+    await row.getByRole('button', { name: 'Show tips again' }).waitFor();
+  },
+  'first-use-tips-dismissed': async (page) => {
+    // Opening the Script page presses Got it on its tip, so the app has one tip dismissed when Settings opens in the same session.
+    await goToPage(page, 'Script');
+    await openSettings(page, 'App & updates');
+    const row = await showSettingsRow(page, 'app.tips');
+    await row.getByText('1 dismissed').waitFor();
+    await row.getByRole('button', { name: 'Show tips again' }).waitFor();
+  },
+  'schedule-basis': async (page) => {
+    await openSettings(page, 'Project');
+    const row = await showSettingsRow(page, 'project.rateBasis');
+    await row.getByRole('radio', { name: 'Standard' }).waitFor();
+  },
+  'schedule-basis-own': async (page) => {
+    await openSettings(page, 'Project');
+    const row = await showSettingsRow(page, 'project.rateBasis');
+    await row.getByRole('radio', { name: 'Your own pace' }).click();
+    await row.getByRole('radio', { name: 'Your own pace', checked: true }).waitFor();
+    await row.getByText('Changed', { exact: true }).waitFor();
   },
   'editing-playback': async (page) => {
     // Found by search, so the row is shown whole on its own (the Shortcuts list below it in the category has its own layout debt to settle).

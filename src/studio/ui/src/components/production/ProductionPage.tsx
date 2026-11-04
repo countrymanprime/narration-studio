@@ -497,8 +497,6 @@ export function ProductionPage({
                   series={recordedSeries(log, start)}
                   onOpenSchedule={() => go('/schedule')}
                   fill
-                  clearTodayLabel
-                  noteBelow
                 />
               </div>
             </div>

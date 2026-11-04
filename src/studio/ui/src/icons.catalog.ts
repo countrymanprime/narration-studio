@@ -10,6 +10,24 @@
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import {
   faArrowLeft,
+  faKeyboard,
+  faTableList,
+  faArrowsRotate,
+  faClone,
+  faDiagramProject,
+  faFilm,
+  faPaperclip,
+  faScrewdriverWrench,
+  faTag,
+  faArrowRightArrowLeft,
+  faBroom,
+  faEraser,
+  faLinkSlash,
+  faRulerHorizontal,
+  faPenToSquare,
+  faTags,
+  faToggleOff,
+  faToggleOn,
   faBandage,
   faFilter,
   faRightLeft,
@@ -45,7 +63,6 @@ import {
   faEye,
   faEyeSlash,
   faFileExport,
-  faTags,
   faFileCircleCheck,
   faFileImport,
   faFileLines,
@@ -96,6 +113,7 @@ import {
   faComment,
   faUpRightAndDownLeftFromCenter,
   faUpload,
+  faHammer,
   faWrench,
   faUserTag,
   faVolumeHigh,
@@ -144,6 +162,7 @@ export const TOOLTIP_VERBS = [
   'Accept',
   'Add',
   'Cancel',
+  'Change',
   'Check',
   'Clear',
   'Close',
@@ -162,6 +181,7 @@ export const TOOLTIP_VERBS = [
   'Hide',
   'Import',
   'Jump',
+  'Link',
   'Keep',
   'Look',
   'Master',
@@ -171,10 +191,13 @@ export const TOOLTIP_VERBS = [
   'Pause',
   'Pin',
   'Play',
+  'Prepare',
+  'Read',
   'Record',
   'Reject',
   'Remove',
   'Reopen',
+  'Reset',
   'Retry',
   'Save',
   'Scan',
@@ -183,8 +206,10 @@ export const TOOLTIP_VERBS = [
   'Stop',
   'Toggle',
   'Treat',
+  'Turn',
   'Trim',
   'Undo',
+  'Unlink',
   'Unpin',
   'Use',
   'Zoom',
@@ -274,7 +299,6 @@ export const CATALOG = {
   // Files and the DAW.
   import: action(faFileImport, 'import', 'Import a file'),
   export: action(faFileExport, 'export', 'Export a file'),
-  embedChapterTags: action(faTags, 'embed chapter tags', 'Embed chapter tags in the book MP3'),
   download: action(faDownload, 'download', 'Download'),
   openFolder: action(faFolderOpen, 'open a folder', 'Open the folder'),
   // Master & QC's toolbar: the page's own words as the `label`, these as the hint.
@@ -366,6 +390,33 @@ export const CATALOG = {
   // The mock's wave is the Proof page's icon (audit rule 1), so the strip wears the timeline.
   timelineStrip: action(faTimeline, 'timeline', 'Show the timeline strip', 'S'),
 
+  // The Engine panel and the other pages that read the DAW (icon-button audit, #2836): a secondary action in a card header, a row or a tool grid
+  // is an icon with this hint, never a text button. `checkAgain` is the forced fresh read; `retry` stays the try-again of a failed call.
+  checkAgain: action(faArrowsRotate, 'check again', 'Check again'),
+  linkFile: action(faPaperclip, 'link a project file', 'Link a project file'),
+  linkChapters: action(faDiagramProject, 'link chapters to tracks', 'Link chapters to tracks'),
+  changeLink: action(faPenToSquare, 'change the linked file', 'Change the linked file'),
+  changeTrack: action(faArrowRightArrowLeft, 'change the track', 'Change the track'),
+  unlink: action(faLinkSlash, 'unlink', 'Unlink'),
+  clearLink: action(faEraser, 'clear', 'Clear the link'),
+  turnOn: action(faToggleOn, 'turn on', 'Turn on'),
+  turnOff: action(faToggleOff, 'turn off', 'Turn off'),
+  // A Story Bible pronunciation candidate (the one name a narrator picks from a list): a check, the same accept as a suggestion's.
+  usePronunciation: action(faCheck, 'accept', 'Use this pronunciation'),
+  // Settings (icon-button audit, #2836).
+  useSuggestion: action(faCheck, 'accept', 'Use this suggestion'),
+  changeShortcut: action(faKeyboard, 'change the shortcut', 'Change the shortcut'),
+  showCategory: action(faTableList, 'show a whole category', 'Show the whole category'),
+  readStamps: action(faTag, 'read the stamps', 'Read current stamps'),
+  repairPopsClicks: action(faHammer, 'repair pops and clicks', 'Open Repair Pops/Clicks'),
+  magnoliusDeclick: action(faScrewdriverWrench, 'declick with Magnolius', 'Open Magnolius DeClick'),
+  // REAPER tools grid (Engine panel): one icon per tool, each opens its dialog.
+  prepareRender: action(faFilm, 'prepare the chapter render', 'Prepare the chapter render'),
+  createRegions: action(faRulerHorizontal, 'create chapter regions', 'Create chapter regions'),
+  embedTags: action(faTags, 'embed chapter tags', 'Embed chapter tags'),
+  cleanupTools: action(faBroom, 'cleanup tools', 'Open the cleanup tools'),
+  retakeLanes: action(faClone, 'retakes on lanes', 'Show the retakes on lanes'),
+
   // No unambiguous icon: text (audit rule 6).
   cancel: text('cancel', 'Cancel'),
   save: text('save', 'Save'),
@@ -378,6 +429,8 @@ export const CATALOG = {
   sortList: action(faArrowDownWideShort, 'sort the list', 'Show the list in another order'),
   reopen: text('reopen', 'Reopen'),
   scan: text('scan', 'Scan the manuscript'),
+  // A setting, a shortcut or a list put back to its default: no icon says it without also saying undo or retry.
+  resetToDefault: text('reset to default', 'Reset to default'),
   importFromFile: text('import from a file', 'Import from a file instead'),
 } as const satisfies Record<string, CatalogRow>;
 

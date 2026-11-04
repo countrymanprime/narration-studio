@@ -8,31 +8,33 @@ import { createMockApi } from '../../api/mockApi';
 import type { DawMockSeed } from '../../api/dawMock';
 import { brand } from '../../brand.gen';
 import { KeyHints } from '../primitives/KeyHints';
+import { EnginePanelProvider } from '../engine/EnginePanelContext';
 
 afterEach(cleanup);
 
 const defaultZoom = { percent: 100, announcement: '' };
 
-function renderShell(props: Partial<Parameters<typeof AppShell>[0]> = {}, daw: DawMockSeed = {}) {
+function renderShell(props: Partial<Parameters<typeof AppShell>[0]> = {}, daw: DawMockSeed = {}, openEnginePanel: () => void = () => {}) {
   const api = createMockApi({}, { daw });
   return render(
     <ApiProvider api={api}>
       <TooltipProvider>
-        <AppShell
-          pathname="/"
-          navigate={() => {}}
-          projectName="Alice"
-          hasManuscript
-          dawFileLinked
-          onOpenEnginePanel={() => {}}
-          zoom={defaultZoom}
-          onOpenJump={() => {}}
-          onOpenZoomMenu={() => {}}
-          onSwitchProject={() => {}}
-          {...props}
-        >
-          {props.children ?? <div>page content</div>}
-        </AppShell>
+        <EnginePanelProvider value={openEnginePanel}>
+          <AppShell
+            pathname="/"
+            navigate={() => {}}
+            projectName="Alice"
+            hasManuscript
+            dawFileLinked
+            zoom={defaultZoom}
+            onOpenJump={() => {}}
+            onOpenZoomMenu={() => {}}
+            onSwitchProject={() => {}}
+            {...props}
+          >
+            {props.children ?? <div>page content</div>}
+          </AppShell>
+        </EnginePanelProvider>
       </TooltipProvider>
     </ApiProvider>,
   );
@@ -112,7 +114,6 @@ describe('AppShell nav gating', () => {
             projectName="Alice"
             hasManuscript={false}
             dawFileLinked
-            onOpenEnginePanel={() => {}}
             zoom={defaultZoom}
             onOpenJump={() => {}}
             onOpenZoomMenu={() => {}}
@@ -155,7 +156,7 @@ describe('AppShell nav gating', () => {
 describe('AppShell engine chip', () => {
   it('names the DAW the capabilities report and opens the engine panel on click', () => {
     const onOpenEnginePanel = vi.fn();
-    renderShell({ daw: 'Audacity', dawFileLinked: true, dawReachable: true, dawProjectMatches: true, onOpenEnginePanel });
+    renderShell({ daw: 'Audacity', dawFileLinked: true, dawReachable: true, dawProjectMatches: true }, {}, onOpenEnginePanel);
     const chip = screen.getByRole('button', { name: /^Audacity: / });
     expect(chip.textContent).toBe('Audacity');
     fireEvent.click(chip);
@@ -589,7 +590,6 @@ describe('AppShell page change', () => {
           projectName="Alice"
           hasManuscript
           dawFileLinked
-          onOpenEnginePanel={() => {}}
           zoom={defaultZoom}
           onOpenJump={() => {}}
           onOpenZoomMenu={() => {}}

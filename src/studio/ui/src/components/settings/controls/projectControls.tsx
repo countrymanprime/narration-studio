@@ -1,6 +1,8 @@
 import type { ComponentType } from 'react';
 import {
   BoothTextSizeBody,
+  EntrySortBody,
+  TipsBody,
   PlaybackBody,
   MotionRowBody,
   ReaderFontBody,
@@ -12,7 +14,7 @@ import {
   ZoomRowBody,
 } from './AppearanceBodies';
 import { CreditsRowBody } from './CreditsBody';
-import { ManuscriptRowBody, MarksRowBody, ProjectDataRowBody, StoryBibleDataRowBody, StoryBibleTypesRowBody } from './ProjectBodies';
+import { ManuscriptRowBody, MarksRowBody, RateBasisBody, ProjectDataRowBody, StoryBibleDataRowBody, StoryBibleTypesRowBody } from './ProjectBodies';
 import { ShortcutsRowBody } from './ShortcutsBody';
 
 /** Bodies for Project, Appearance & keys and App & updates rows, by registry row id. (App & updates draws its version and update check as `AboutSection`.) */
@@ -31,6 +33,9 @@ export const PROJECT_CONTROLS: Record<string, ComponentType> = {
   'look.readerWidth': ReaderWidthBody,
   'look.boothSize': BoothTextSizeBody,
   'look.playback': PlaybackBody,
+  'look.entrySort': EntrySortBody,
+  'app.tips': TipsBody,
+  'project.rateBasis': RateBasisBody,
   'look.waveScrollStep': WaveScrollStepBody,
   'look.zoom': ZoomRowBody,
   'keys.map': ShortcutsRowBody,

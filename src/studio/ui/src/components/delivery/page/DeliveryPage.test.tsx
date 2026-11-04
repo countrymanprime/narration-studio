@@ -75,7 +75,7 @@ describe('DeliveryPage', () => {
   it('offers the Embed chapter tags button beside Build, with the build blocked or not, and opens the dialog', async () => {
     const user = userEvent.setup();
     mount(BLOCKED, {}, {});
-    const embed = await screen.findByRole('button', { name: 'Embed chapter tags in the book MP3' });
+    const embed = await screen.findByRole('button', { name: 'Embed chapter tags' });
     expect(embed.getAttribute('aria-disabled')).toBeNull();
     await user.click(embed);
     const dialog = await screen.findByRole('dialog', { name: 'Embed chapter tags' });

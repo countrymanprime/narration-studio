@@ -104,8 +104,6 @@ export const SILENT_CATCHES: Record<string, string> = {
   'src/App.tsx#2': 'The window error handler reports a diagnostic; a failing report must not raise another window error.',
   'src/App.tsx#3': 'The unhandled-rejection handler reports a diagnostic; a failing report must not raise another rejection.',
   'src/App.tsx#4': "Cosmetic: the narrator's entity colours. The built-in colours stay if the settings cannot be read, and Settings reports the real error.",
-  'src/components/storybible/entryTable.ts#1':
-    "Saving the Story Bible table's sort choice to localStorage: with storage unavailable the choice lasts until the page closes, and the table is already sorted as asked.",
   'src/components/production/ManuscriptImport.tsx#1':
     "Only sets where the review's 'Close when the import finishes' box starts; a failed read leaves it on, its default.",
   'src/components/editing/ribbon/useRibbonPeaks.ts#1':
@@ -149,7 +147,7 @@ export const SILENT_CATCHES: Record<string, string> = {
   'src/components/booth/CompanionShell.tsx#1':
     "Companion mode's exit on unmount: nothing is left mounted to tell, and the host's exit is a no-op when companion mode was never entered, so there is no state it could leave wrong that a retry would fix.",
   'src/components/booth/listening/useListeningMic.ts#1':
-    'Asking the DAW which microphone it records with, only to preselect it: a failed ask leaves the choice to the narrator in Levels, exactly as an answer that is not a sure match does.',
+    'Asking the DAW which microphone it records with, only to preselect it: a failed ask leaves the choice to the narrator in Record options, exactly as an answer that is not a sure match does.',
   'src/components/booth/useRecorder.ts#1': "Only the engine chip's first reading; without it the chip stays on REAPER until the next recording:state.",
   'src/components/engine/outputPrefs.ts#1':
     "Saving Editing's volume, mute, speed and output to browser storage: when storage is unavailable the choice holds for this window, which is all a per-window setting promises.",

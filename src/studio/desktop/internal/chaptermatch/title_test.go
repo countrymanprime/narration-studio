@@ -127,3 +127,17 @@ func TestAProjectsEquivalencesApplyToTheTitleAndTheTrackName(t *testing.T) {
 		t.Fatalf("tokens %v %q", tokens, marker)
 	}
 }
+
+// A name that is one chapter's title as whole tokens never goes to a chapter whose title only starts with the same characters (#2942).
+func TestMatchTitleKeepsNumberedTitlesApart(t *testing.T) {
+	for _, family := range [][]string{{"Chapter 1", "Chapter 10", "Chapter 11", "Chapter 100"}, {"Part 1", "Part 10"}} {
+		for want, title := range family {
+			for _, name := range []string{title, title + " final"} {
+				match := MatchTitle(family, name)
+				if match.Index != want {
+					t.Errorf("MatchTitle(%q) in %v = chapter %d, want %d", name, family, match.Index, want)
+				}
+			}
+		}
+	}
+}

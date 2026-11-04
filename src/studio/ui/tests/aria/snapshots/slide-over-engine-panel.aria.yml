@@ -11,19 +11,19 @@
   - button "Close the engine panel"
   - region "REAPER project":
     - heading "REAPER project" [level=2]
-    - button "Change file…"
+    - button "Change the linked file"
   - region "REAPER tools":
     - heading "REAPER tools" [level=2]
     - toolbar "REAPER tools":
       - /children: equal
-      - button "Link chapters…"
-      - button "Prepare chapter render…"
-      - button "Create chapter regions…"
-      - button "Cleanup tools…"
-      - button "Retakes on lanes…"
+      - button "Link chapters to tracks"
+      - button "Prepare the chapter render"
+      - button "Create chapter regions"
+      - button "Open the cleanup tools"
+      - button "Show the retakes on lanes"
   - region "Chapter sync":
     - heading "Chapter sync" [level=2]
-    - button "Turn off"
+    - button "Turn off chapter sync"
     # Chapter sync's facts are a description list, one term per fact, the tracks that are not chapters among them.
     - term: Status
     - definition: "On"

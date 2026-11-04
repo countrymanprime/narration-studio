@@ -105,14 +105,14 @@ function booth(overrides: Partial<NarrationApi>, { device = 'USB Mic', recording
   );
   const view = render(footer({}));
   return {
-    open: () => userEvent.click(screen.getByRole('button', { name: 'Levels' })),
+    open: () => userEvent.click(screen.getByRole('button', { name: 'Record options' })),
     close: () => userEvent.keyboard('{Escape}'),
     rerender: (props: { device?: string; recording?: boolean }) => view.rerender(footer(props)),
     unmount: view.unmount,
   };
 }
 
-const popup = () => screen.getByRole('dialog', { name: 'Levels' });
+const popup = () => screen.getByRole('dialog', { name: 'Record options' });
 const meter = () => within(popup()).getByRole('meter', { name: 'Input level' });
 const drawnMeters = () => within(popup()).getAllByRole('meter', { name: 'Input level' });
 const settle = () => act(async () => void (await Promise.resolve()));
@@ -133,7 +133,7 @@ describe("the built-in recorder's meter in the Levels menu", () => {
         />
       </ApiProvider>,
     );
-    await userEvent.click(screen.getByRole('button', { name: 'Levels' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Record options' }));
     expect(drawnMeters()).toHaveLength(1);
     await settle();
     expect(recorder.calls).toEqual([]);
