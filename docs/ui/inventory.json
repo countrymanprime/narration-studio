@@ -1014,7 +1014,8 @@
         "Expanded",
         "With Info Icon",
         "Scroll Cue",
-        "Opens And Closes With The Keyboard"
+        "Opens And Closes With The Keyboard",
+        "Keeps Its Panel While Closed"
       ],
       "consumers": [
         "src/components/editing/cleanup/CleanupInspector.tsx",
