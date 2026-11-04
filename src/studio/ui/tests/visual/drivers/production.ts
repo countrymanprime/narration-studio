@@ -77,7 +77,23 @@ async function scrollPipelineTo(page: Page, row: number): Promise<void> {
   await page.locator(PIPELINE_ROWS).first().waitFor();
 }
 
+/** Puts keyboard focus on the first (or, with End, the last) control of the pipeline's second row and closes the tip that opens with it. */
+async function focusPipelineCell(page: Page, end: boolean): Promise<void> {
+  await openProduction(page);
+  const row = page.locator(PIPELINE_ROWS).nth(1);
+  await row.locator('button').first().focus();
+  await page.keyboard.press(end ? 'End' : 'Shift');
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('tooltip')).toHaveCount(0);
+  await expect(row.locator('button:focus')).toHaveCount(1);
+  // The pipeline is under the figures: bring the focused row to the middle of the view.
+  await row.evaluate((element) => element.scrollIntoView({ block: 'center' }));
+}
+
 export const productionDrivers: Record<string, Driver> = {
+  // The roving cell's focus ring at the left end of a row (beside the pinned names) and at the right end (against the scroll area's edge).
+  'pipeline-cell-focus-first': (page) => focusPipelineCell(page, false),
+  'pipeline-cell-focus-last': (page) => focusPipelineCell(page, true),
   // 5002 chapters: the pipeline windows its rows (#1764), so the page is ready in seconds and draws a few dozen of them. Each of these
   // states is driven afresh at every width (reloadPerViewport) and scrolls the page to the pipeline, so the capture shows its rows.
   'many-chapters': async (page) => {
