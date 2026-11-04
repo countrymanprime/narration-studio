@@ -1,12 +1,13 @@
 // @vitest-environment jsdom
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import type { BoothPunch } from '../../../api/contracts/voiceTracks';
 import type { DawCapabilities, DawResult } from '../../../api/contracts/daw';
 import { DAW_SETUPS } from '../../../fixtures/daw';
 import { createOverlayService } from '../../../overlay/overlayService';
 import { rollConfirmSpec } from './rollConfirm';
 import { rollPlan } from './rollPlan';
-import { clampPhrase, isPunch } from './startFromHere';
+import { clampPhrase } from './startFromHere';
 import { createTakeHold } from './takeHold';
 import { useRoll, type RollSession } from './useRoll';
 
@@ -30,6 +31,7 @@ function setup(capabilities: DawCapabilities | null, over: Partial<RollSession> 
     pause: vi.fn(),
     resume: vi.fn(),
     beginTake: vi.fn(),
+    chooseVoice: vi.fn(async () => true),
     chooseStart: vi.fn(),
     clearStart: vi.fn(),
     moveTo: vi.fn(),
@@ -43,8 +45,9 @@ function setup(capabilities: DawCapabilities | null, over: Partial<RollSession> 
     phrase: 3,
     punchAt: null,
     paragraphOf: (p) => Math.floor(p / 2),
-    secondsOf: (p) => p * 10,
-    recordedEnd: 30,
+    // Phrases 0-2 were recorded before, at p * 10 seconds on the track 'T'; later ones never were.
+    punchTarget: async (p): Promise<BoothPunch> =>
+      p < 3 ? { outcome: 'found', trackGuid: 'T', trackName: 'Narrator', start: p * 10, end: p * 10 + 5 } : { outcome: 'never_recorded' },
     takeSeconds: 42,
     ...over,
   };
@@ -184,6 +187,36 @@ describe('useRoll', () => {
     expect(actions.beginTake).toHaveBeenCalledWith(20);
   });
 
+  it('a passage recorded on a voice is punched on that voice, at its own earlier spot', async () => {
+    const { hook, actions } = setup(SETUPS.reaper, { recording: false, punchAt: 1 });
+    await act(() => hook.result.current.startTake());
+    expect(actions.chooseVoice).toHaveBeenCalledExactlyOnceWith('T');
+    expect(actions.beginTake).toHaveBeenCalledExactlyOnceWith(10);
+  });
+
+  it('a voice that cannot be chosen starts no take', async () => {
+    const { hook, actions } = setup(SETUPS.reaper, { recording: false, punchAt: 1 });
+    actions.chooseVoice.mockResolvedValue(false);
+    await act(() => hook.result.current.startTake());
+    expect(actions.beginTake).not.toHaveBeenCalled();
+  });
+
+  it('a passage the host cannot find says why, forgets the start and starts nothing', async () => {
+    const refused: BoothPunch = { outcome: 'refused', reason: 'stale', message: 'The recording has changed since it was last checked.' };
+    const { hook, actions } = setup(SETUPS.reaper, { recording: false, punchAt: 1, punchTarget: async () => refused });
+    await act(() => hook.result.current.startTake());
+    expect(actions.notify).toHaveBeenCalledWith(refused.message);
+    expect(actions.clearStart).toHaveBeenCalledTimes(1);
+    expect(actions.beginTake).not.toHaveBeenCalled();
+  });
+
+  it('a lookup that fails is a sentence and no take, never a guess', async () => {
+    const { hook, actions } = setup(SETUPS.reaper, { recording: false, punchAt: 1, punchTarget: async () => Promise.reject(new Error('down')) });
+    await act(() => hook.result.current.startTake());
+    expect(actions.notify).toHaveBeenCalledWith(expect.stringContaining('could not be read'));
+    expect(actions.beginTake).not.toHaveBeenCalled();
+  });
+
   it('r-before-a-take-past-the-recorded-end-records-at-the-end', async () => {
     const { hook, actions } = setup(SETUPS.reaper, { recording: false, phrase: 5 });
     await act(() => hook.result.current.punchAndRoll());
@@ -210,6 +243,7 @@ describe('useRoll', () => {
       act(() => {
         done = hook.result.current.startTake() as Promise<void>;
       });
+      await settle();
       expect(dialog()?.spec).toMatchObject({ title: 'Punch in at ¶ 1?', confirmLabel: 'Punch in', cancelLabel: 'Cancel' });
       expect(actions.pause).not.toHaveBeenCalled();
       act(() => dialog()!.answer(true));
@@ -228,6 +262,7 @@ describe('useRoll', () => {
       act(() => {
         done = hook.result.current.startTake() as Promise<void>;
       });
+      await settle();
       act(() => dialog()!.answer(false));
       await act(() => done);
       expect(actions.beginTake).not.toHaveBeenCalled();
@@ -251,9 +286,7 @@ describe('useRoll', () => {
       expect(actions.chooseStart).not.toHaveBeenCalled();
       expect(actions.notify).toHaveBeenCalledWith(expect.stringContaining('The next take starts from the end of what is already there, not from ¶ 1.'));
     });
-    it('isPunch and clampPhrase', () => {
-      expect(isPunch({ phrase: 2, seconds: 29.6, recordedEnd: 30 })).toBe(false);
-      expect(isPunch({ phrase: 2, seconds: 29.4, recordedEnd: 30 })).toBe(true);
+    it('clampPhrase', () => {
       expect(clampPhrase(9, 6)).toBe(5);
       expect(clampPhrase(-1, 6)).toBe(0);
     });

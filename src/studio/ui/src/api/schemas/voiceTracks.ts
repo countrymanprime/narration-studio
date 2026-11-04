@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { BoothVoice, BoothVoiceAdded, BoothVoiceTrack, VoiceTrackAssignment, VoiceTracksState } from '../contracts/voiceTracks';
+import type { BoothPunch, BoothVoice, BoothVoiceAdded, BoothVoiceTrack, VoiceTrackAssignment, VoiceTracksState } from '../contracts/voiceTracks';
 
 // The host's limits (src/studio/desktop/internal/voicetracks): a track name and an id are at most 120 characters.
 const name = z.string().min(1).max(120);
@@ -60,3 +60,16 @@ export const boothVoiceAddedSchema = z
     name: z.string().optional(),
   })
   .strict() satisfies z.ZodType<BoothVoiceAdded>;
+
+/** `BoothPunchTarget` (src/studio/desktop/bindings_booth_punch.go). */
+export const boothPunchSchema = z
+  .object({
+    outcome: z.enum(['found', 'never_recorded', 'refused']),
+    reason: z.string().optional(),
+    message: z.string().optional(),
+    trackGuid: z.string().min(1).optional(),
+    trackName: z.string().optional(),
+    start: z.number().nonnegative().optional(),
+    end: z.number().nonnegative().optional(),
+  })
+  .strict() satisfies z.ZodType<BoothPunch>;

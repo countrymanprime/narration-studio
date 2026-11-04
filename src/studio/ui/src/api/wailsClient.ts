@@ -166,7 +166,7 @@ import { renderConfigStartResultSchema, renderConfigStateSchema, renderConfigSug
 import { chapterTagsEmbedResultSchema, chapterTagsPreviewSchema } from './schemas/chaptertags';
 import { cleanupToolsStartResultSchema, cleanupToolsStateSchema } from './schemas/cleanuptools';
 import { bookmarkSchema as spotBookmarkSchema, bookmarksSchema } from './schemas/bookmarks';
-import { boothVoiceAddedSchema, boothVoiceSchema, voiceTracksStateSchema } from './schemas/voiceTracks';
+import { boothPunchSchema, boothVoiceAddedSchema, boothVoiceSchema, voiceTracksStateSchema } from './schemas/voiceTracks';
 import { voiceSampleAnswerSchema, voiceSamplesChangedSchema, voiceSamplesRemovedSchema, voiceSamplesSchema } from './schemas/voiceSamples';
 import { passageMapSchema } from './schemas/passageMap';
 import { acceptedWordsChangeSchema, acceptedWordsSchema } from './schemas/editLog';
@@ -466,6 +466,8 @@ export const wailsClient: NarrationApi = {
   boothVoiceSet: (chapterId, trackGuid) => decode(boothVoiceSchema, 'BoothVoiceSet', host.BoothVoiceSet(chapterId, trackGuid)),
   boothVoiceGet: (chapterId) => decode(boothVoiceSchema, 'BoothVoiceGet', host.BoothVoiceGet(chapterId)),
   boothVoiceAdd: (chapterId, name, characterIds) => decode(boothVoiceAddedSchema, 'BoothVoiceAdd', host.BoothVoiceAdd(chapterId, name, characterIds)),
+  boothPunchTarget: (chapterId, paragraphId, fromWord, toWord) =>
+    decode(boothPunchSchema, 'BoothPunchTarget', host.BoothPunchTarget(chapterId, paragraphId, fromWord, toWord)),
   voiceSamplesList: () => decode(voiceSamplesSchema, 'VoiceSamplesList', host.VoiceSamplesList()),
   voiceSampleMark: (request) => decode(voiceSampleAnswerSchema, 'VoiceSampleMark', host.VoiceSampleMark(request)),
   voiceSampleUpdate: (id, change) => decode(voiceSampleAnswerSchema, 'VoiceSampleUpdate', host.VoiceSampleUpdate(id, change)),

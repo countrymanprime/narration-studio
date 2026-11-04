@@ -164,6 +164,16 @@ export function BookmarksUpdate(id: string, label: string, note: string): $Cance
 }
 
 /**
+ * BoothPunchTarget answers where the words of paragraphID from fromWord to toWord (inclusive, 0-based in the paragraph) of chapterID were
+ * recorded before: the project seconds the passage plays from and to, and the track holding it (the voice that read it, in a chapter folder).
+ * "never_recorded" says nothing of it was heard, so the take should continue, not punch; "refused" carries a sentence and nothing is guessed (no
+ * recording check, a stale one, the DAW not answering, part of the passage cut, or several voices). Read-only.
+ */
+export function BoothPunchTarget(chapterID: string, paragraphID: string, fromWord: number, toWord: number): $CancellablePromise<string> {
+    return $Call.ByID(1550759971, chapterID, paragraphID, fromWord, toWord);
+}
+
+/**
  * BoothVoiceAdd adds a voice track named name inside chapterID's linked folder, after its last child, assigns characterIDs (Story
  * Bible ids) to it and chooses it for the next take. Sent only from the Booth's "Who is in Num N?" dialog, while no take of this app
  * runs. The DAW's undo takes the track back; the project is not saved.

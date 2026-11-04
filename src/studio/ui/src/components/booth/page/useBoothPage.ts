@@ -27,7 +27,7 @@ import { retryAction } from '../../primitives/Toast';
 import { resumeOfferFor, type KeptResume, type OpenedResume, type ResumeTarget } from '../resume/resumeOfferModel';
 import { useRoll } from '../roll/useRoll';
 import type { TeleprompterSession } from '../useTeleprompterSession';
-import { bodyParagraphIndex, estimatedSpans, positionAtOffset, positionInScript, scriptWordAt, secondsBefore, suspectedFrom } from './readingSource';
+import { bodyParagraphIndex, estimatedSpans, positionAtOffset, positionInScript, scriptWordAt, suspectedFrom, wordRangeOf } from './readingSource';
 import type { BoothStart } from './boothQuery';
 import { timerText } from '../frame/progressLine';
 import { useTakeClock } from './useTakeClock';
@@ -250,6 +250,7 @@ export function useBoothPage(options: BoothPageOptions) {
 
   // The resume line: one lookup per chapter while no take runs; it also says where the recording ends, for the punch rule.
   const teleprompter = usePort('teleprompter');
+  const voiceTracks = usePort('voiceTracks');
   const model = useRef(session.model);
   model.current = session.model;
   const [located, setLocated] = useState<{ id: string; result: TeleprompterLocateResult } | null>(null);
@@ -365,8 +366,13 @@ export function useBoothPage(options: BoothPageOptions) {
       phrase: at.cur,
       punchAt,
       paragraphOf: (phrase) => bodyParagraphIndex(paragraphs, units[phrase]?.paragraphIndex ?? 0),
-      secondsOf: (phrase) => secondsBefore(units, phrase),
-      recordedEnd,
+      punchTarget: (phrase) => {
+        // The words of the phrase (a sentence) in its paragraph: where the host finds them in the last recording check.
+        const unit = latest.current.units[phrase];
+        const range = unit && wordRangeOf(latest.current.paragraphs, unit);
+        if (!range) return Promise.resolve({ outcome: 'refused' as const, message: 'That phrase is not in the chapter.' });
+        return voiceTracks.boothPunchTarget(recordId, range.paragraphId, range.from, range.to);
+      },
       takeSeconds: seconds,
     },
     {
@@ -384,6 +390,15 @@ export function useBoothPage(options: BoothPageOptions) {
           starting.current = null;
           kept(false);
         }
+      },
+      chooseVoice: async (trackGuid) => {
+        const answer = await voiceTracks.boothVoiceSet(recordId, trackGuid).catch(() => null);
+        // A flat chapter has one track and nothing to choose; anything else the host refused is said, and no take starts over the wrong voice.
+        if (!answer || (answer.outcome === 'refused' && answer.reason !== 'flat')) {
+          notify(answer?.message ?? 'The voice this passage was recorded on could not be chosen, so no take was started.');
+          return false;
+        }
+        return true;
       },
       clearStart: () => setPunchAt(null),
       chooseStart: (phrase, move) => {

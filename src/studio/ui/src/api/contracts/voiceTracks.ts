@@ -66,6 +66,22 @@ export type BoothVoiceAdded = {
   name?: string;
 };
 
+/**
+ * Where a passage was recorded before, from `BoothPunchTarget` (src/studio/desktop/bindings_booth_punch.go): `found`, it plays from `start`
+ * to `end` (project seconds) on the track `trackGuid` (named `trackName`), the voice that read it; `never_recorded`, none of it was heard,
+ * so the take continues instead of punching; `refused`, `message` says why (no recording check, a stale one, the DAW not answering, part of
+ * the passage cut, several voices) and nothing is guessed.
+ */
+export type BoothPunch = {
+  outcome: 'found' | 'never_recorded' | 'refused';
+  reason?: string;
+  message?: string;
+  trackGuid?: string;
+  trackName?: string;
+  start?: number;
+  end?: number;
+};
+
 export interface VoiceTracksApi {
   /** The project's voice setup: flat with no assignments when nothing was saved. */
   voiceTracksGet(): Promise<VoiceTracksState>;
@@ -84,4 +100,6 @@ export interface VoiceTracksApi {
   /** Adds a voice track named `name` inside the chapter's linked folder, after its last child, assigns `characterIds` to it (added to
    * any the name already has) and chooses it. Sent only from the Booth's "Who is in Num N?" dialog, never during this app's take. */
   boothVoiceAdd(chapterId: string, name: string, characterIds: string[]): Promise<BoothVoiceAdded>;
+  /** Where the words `fromWord` to `toWord` (inclusive, 0-based) of the paragraph were recorded before, so a take can record over them. Read-only. */
+  boothPunchTarget(chapterId: string, paragraphId: string, fromWord: number, toWord: number): Promise<BoothPunch>;
 }
