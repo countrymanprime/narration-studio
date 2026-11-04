@@ -30,14 +30,14 @@ describe('Popover', () => {
     const user = userEvent.setup();
     let pressed = 0;
     render(
-      <Popover trigger={<Button>Levels</Button>} label="Record options" focusPopup>
+      <Popover trigger={<Button>Levels</Button>} label="Levels" focusPopup>
         <button type="button" onClick={() => (pressed += 1)}>
           Turn on in Settings
         </button>
       </Popover>,
     );
-    await user.click(screen.getByRole('button', { name: 'Record options' }));
-    const popup = await screen.findByRole('dialog', { name: 'Record options' });
+    await user.click(screen.getByRole('button', { name: 'Levels' }));
+    const popup = await screen.findByRole('dialog', { name: 'Levels' });
     await waitFor(() => expect(document.activeElement).toBe(popup));
     await user.keyboard('{Enter}');
     expect(pressed).toBe(0);

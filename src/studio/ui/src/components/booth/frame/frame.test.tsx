@@ -275,7 +275,7 @@ describe('with-a-daw-levels-names-the-microphone-the-booth-listens-to', () => {
     expect(within(group).getByRole('button', { name: 'Line In' }).getAttribute('aria-pressed')).toBe('true');
   });
   it('offers the listed microphones with the host’s sentence when the DAW could not say, and reports the choice', async () => {
-    const note = 'REAPER did not say which input device it has open. Choose the microphone in Levels.';
+    const note = 'REAPER did not say which input device it has open. Choose the microphone in Record options.';
     const choice = listen({ origin: 'first', note }, [{ name: 'USB Mic' }]);
     footer(api(), { mic: { ...mic, engine: 'daw', device: 'USB Mic', listen: choice } });
     await open();
@@ -285,7 +285,7 @@ describe('with-a-daw-levels-names-the-microphone-the-booth-listens-to', () => {
     expect(choice.onPick).toHaveBeenCalledWith('USB Mic');
   });
   it('says Audacity cannot report its input and leaves the picker', async () => {
-    const note = 'Audacity cannot report which microphone it records from, so the Booth listens to the one chosen in Levels.';
+    const note = 'Audacity cannot report which microphone it records from, so the Booth listens to the one chosen in Record options.';
     footer(api(), { mic: { ...mic, engine: 'daw', dawName: 'Audacity', device: 'USB Mic', listen: listen({ origin: 'chosen', note }) } });
     await open();
     expect(await screen.findByText(note)).toBeTruthy();

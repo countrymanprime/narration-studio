@@ -52,7 +52,7 @@ async function startTake(page: Page, query = ''): Promise<void> {
   await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
 }
 
-// The Booth recording with the built-in recorder, the microphone `name` chosen in Levels and the menu left open on the built-in meter,
+// The Booth recording with the built-in recorder, the microphone `name` chosen in Record options and the menu left open on the built-in meter,
 // its level the mock recorder's steady −14.2 dB peak.
 async function openBuiltinLevels(page: Page, query: string, name: string): Promise<void> {
   await readyToRecord(page, query);

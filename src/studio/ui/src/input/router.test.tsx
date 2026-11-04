@@ -432,7 +432,7 @@ describe('useCommand', () => {
 describe('a popup that owns the keyboard keeps the page behind it from acting', () => {
   // Every popup the app shows with real content: a popover (a `dialog` with the popup attribute), a menu, a list of choices, a dialog.
   const LAYERS: Array<[string, string]> = [
-    ['a popover', '<div role="dialog" aria-label="Record options" data-popover-popup></div>'],
+    ['a popover', '<div role="dialog" aria-label="Levels" data-popover-popup></div>'],
     ['a menu', '<div role="menu"></div>'],
     ['a list of choices', '<div role="listbox"></div>'],
     ['a dialog', '<div role="dialog"></div>'],

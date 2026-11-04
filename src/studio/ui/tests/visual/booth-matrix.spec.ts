@@ -596,7 +596,7 @@ test.describe('the worst inputs', () => {
   });
 
   for (const mics of ['0', '1', '50', 'weird', 'long', 'unbroken'] as const) {
-    test(`${mics} microphone(s) in Levels: listed or explained, inside the window, and the popover closes`, async ({ page }) => {
+    test(`${mics} microphone(s) in Record options: listed or explained, inside the window, and the popover closes`, async ({ page }) => {
       const errors = watch(page);
       await openBooth(page, `?mockMics=${mics}`);
       await page.getByRole('button', { name: 'Record options' }).click();

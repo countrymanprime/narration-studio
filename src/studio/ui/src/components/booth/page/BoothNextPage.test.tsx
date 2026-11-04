@@ -537,7 +537,7 @@ describe('escape-closes-the-drawer-then-a-popover-then-exits', () => {
   it('a popover takes Escape first; then Escape exits', async () => {
     const page = renderPage();
     await ready();
-    await userEvent.click(screen.getByRole('button', { name: /levels/i }));
+    await userEvent.click(screen.getByRole('button', { name: /record options/i }));
     const popover = await screen.findByRole('dialog');
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(popover.isConnected).toBe(false));
@@ -1481,7 +1481,7 @@ describe('the text follows the voice: the listening microphone and the model', (
       : {
           status: 'unavailable' as const,
           reason: 'reaper_no_device' as const,
-          message: 'REAPER did not say which input device it has open. Choose the microphone in Levels.',
+          message: 'REAPER did not say which input device it has open. Choose the microphone in Record options.',
           candidates: [],
         };
   const two = async () => ({ devices: [{ name: 'USB Mic' }, { name: 'Line In' }], error: null });
@@ -1538,7 +1538,7 @@ describe('the text follows the voice: the listening microphone and the model', (
     expect(await within(menu).findByText('Same as REAPER')).toBeTruthy();
   });
 
-  it('when the DAW cannot say, the take listens to the first microphone listed with no trip to Settings, and a choice in Levels is the next', async () => {
+  it('when the DAW cannot say, the take listens to the first microphone listed with no trip to Settings, and a choice in Record options is the next', async () => {
     const teleprompterStart = vi.fn(async () => ({ status: 'started' as const }));
     const page = renderPage({
       api: { settingsForScope: noSavedDevice, teleprompterReaperInput: reaperInput(), teleprompterDevices: two, teleprompterStart } as never,
@@ -1546,7 +1546,7 @@ describe('the text follows the voice: the listening microphone and the model', (
     await ready();
     await userEvent.click(screen.getByRole('button', { name: 'Record options' }));
     const menu = await screen.findByRole('dialog', { name: 'Record options' });
-    expect(within(menu).getByText('REAPER did not say which input device it has open. Choose the microphone in Levels.')).toBeTruthy();
+    expect(within(menu).getByText('REAPER did not say which input device it has open. Choose the microphone in Record options.')).toBeTruthy();
     expect(within(menu).getByRole('combobox', { name: 'Microphone' })).toHaveProperty('value', 'USB Mic');
     expect(document.getElementById('blisten-why')).toBeNull();
     await userEvent.selectOptions(within(menu).getByRole('combobox', { name: 'Microphone' }), 'Line In');

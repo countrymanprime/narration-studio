@@ -591,7 +591,7 @@ export async function openCheckingLink(page: Page, path: string): Promise<void> 
 }
 
 // The built-in recorder listens before it records (the Booth starts listening first and a take never begins without it), so a take needs a microphone
-// chosen in Levels, as a narrator does it: the first one the mock lists. In REAPER the DAW chooses it, so this is for the built-in recorder only.
+// chosen in Record options, as a narrator does it: the first one the mock lists. In REAPER the DAW chooses it, so this is for the built-in recorder only.
 export async function chooseMicrophone(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Record options' }).click();
   const menu = page.getByRole('dialog', { name: 'Record options' });
