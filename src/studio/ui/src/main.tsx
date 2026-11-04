@@ -161,7 +161,7 @@ const mockChapterSync = (['ask', 'off', 'linked', 'unsaved', 'pickups', 'activit
 // has a background check held at 42% with one chapter waiting, `waiting` has two chapters waiting while REAPER records).
 const mockBackgroundChecks = (['confirm', 'running', 'waiting'] as const).find((seed) => seed === mockParams.get('mockBackgroundChecks'));
 // `?mockBooth=huge-chapter|many-chapters|emoji|rtl|odd-titles` replaces the manuscript with the Booth's worst cases (fixtures/boothStress.ts): a
-// 100,000-word chapter, 5000 chapters, all-emoji, right-to-left and hostile titles and text. `?mockMics=0|1|50|weird|long` lists that many microphones,
+// 100,000-word chapter, 5000 chapters (`many-unbroken`: 200 whose titles may be 10,000 characters long), all-emoji, right-to-left and hostile titles and text. `?mockMics=0|1|50|weird|long` lists that many microphones,
 // or ones with quotes, newlines, right-to-left text and emoji in their names, to the teleprompter and the built-in recorder.
 const mockBoothStress = BOOTH_STRESS.find((name) => name === mockParams.get('mockBooth'));
 const mockMicsStress = MIC_STRESS.find((name) => name === mockParams.get('mockMics'));

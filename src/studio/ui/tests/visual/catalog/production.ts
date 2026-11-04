@@ -1,6 +1,6 @@
 // The `production` rows of STATE_CATALOG (see state-catalog.ts), in the order they are captured.
 import type { StateEntry } from '../lib/types';
-import { KEEPS_DESKTOP_SCROLL, LIVE_PROGRESS_MOVES_ON, TOAST_FADES_OUT, wholePage } from './shared';
+import { KEEPS_DESKTOP_SCROLL, REFLOW, LIVE_PROGRESS_MOVES_ON, TOAST_FADES_OUT, wholePage } from './shared';
 
 export const productionStates: StateEntry[] = [
   {
@@ -365,6 +365,46 @@ export const productionStates: StateEntry[] = [
     state: 'loading',
     description:
       'Production while the production log is still being read (?mockHold=overview): the page header with its title and buttons, and grey blocks where the chapter and word counts, the due date and the verdict will be (never "0 chapters" or "No due date set"), and grey blocks in place of the KPI row, the three cards, the chapter pipeline and the side panels, with one polite "Reading the production log…" status',
+  },
+  {
+    page: 'production',
+    state: 'many-chapters',
+    // 5002 chapters: each width loads the book afresh (the scroll position must not carry over), and a load takes seconds, not tens.
+    reloadPerViewport: true,
+    timeoutFactor: 2,
+    ...REFLOW,
+    description:
+      'Production for a 5002-chapter book (?mockBooth=many-chapters) scrolled to the Chapter pipeline: only the rows in view and a margin are drawn (one 52 px row each, names clamped to two lines), the rest held by spacer rows, so the page opens in seconds',
+  },
+  {
+    page: 'production',
+    state: 'many-chapters-unbroken',
+    // Each width loads the book afresh, as the other many-chapters rows do.
+    reloadPerViewport: true,
+    timeoutFactor: 2,
+    ...REFLOW,
+    description:
+      'The windowed pipeline of 200 chapters, some titled with 10,000 characters (?mockBooth=many-unbroken, one with no break opportunity, one with spaces): every name is held to its two-line clamp inside its column, the scroll area is no wider than the table, and the tip of such a name fits the window',
+  },
+  {
+    page: 'production',
+    state: 'many-chapters-scrolled',
+    // 5002 chapters: each width loads the book afresh (the scroll position must not carry over), and a load takes seconds, not tens.
+    reloadPerViewport: true,
+    timeoutFactor: 2,
+    ...REFLOW,
+    description:
+      'The 5002-chapter pipeline scrolled to chapter 2400: the window has followed the scroll, rows from there on are drawn with the spacer above holding the 2400 before them',
+  },
+  {
+    page: 'production',
+    state: 'many-chapters-focus',
+    // 5002 chapters: each width loads the book afresh (the scroll position must not carry over), and a load takes seconds, not tens.
+    reloadPerViewport: true,
+    timeoutFactor: 2,
+    ...REFLOW,
+    description:
+      'The 5002-chapter pipeline scrolled to chapter 2400 with keyboard focus on a stage cell: the focus ring is drawn on the cell and its row stays drawn',
   },
 ];
 productionStates.push(wholePage(productionStates, 'on-pace'));

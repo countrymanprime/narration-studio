@@ -2,11 +2,29 @@ import { headingName } from '../../chapterHeading';
 import { usePageCommands, type PageItem } from '../../input/pageCommands';
 import type { ProductionChapter } from '../../api/contracts/production';
 import { PIPELINE_AREA } from './useChapterTools';
+import { revealRow } from './pipeline/rowWindow';
 
-/** Scrolls the pipeline row at `index` into view and puts focus on its first control, so the chapter chosen in the menu is where the narrator is. */
-function focusPipelineRow(index: number): void {
-  const row = document.querySelectorAll<HTMLElement>(`[${PIPELINE_AREA}] tbody tr`)[index];
-  if (!row) return;
+/**
+ * Scrolls the pipeline row of chapter `id` (at `index` in the list) into view and puts focus on its first control, so the chapter chosen in the
+ * menu is where the narrator is. A long book draws only the rows near the view: a row not drawn yet is scrolled to by its place, then found a
+ * frame later.
+ */
+function focusPipelineRow(id: string, index: number): void {
+  // After the jump menu has closed: it returns focus to what opened it when it closes, and a row already on screen was focused before that,
+  // so the focus went back to the project button and the chapter chosen gave no cue (a far one was focused later and kept it).
+  requestAnimationFrame(() => requestAnimationFrame(() => reachPipelineRow(id, index, 3)));
+}
+
+function reachPipelineRow(id: string, index: number, retries: number): void {
+  const body = document.querySelector(`[${PIPELINE_AREA}] tbody`);
+  if (!body) return;
+  const row = [...body.querySelectorAll<HTMLElement>('tr[data-chapter-id]')].find((tr) => tr.dataset.chapterId === id);
+  if (!row) {
+    if (retries <= 0) return;
+    revealRow(body, index);
+    requestAnimationFrame(() => requestAnimationFrame(() => reachPipelineRow(id, index, retries - 1)));
+    return;
+  }
   row.scrollIntoView({ block: 'center' });
   row.querySelector<HTMLElement>('button')?.focus();
 }
@@ -49,7 +67,7 @@ export function useProductionPageCommands(page: {
       label: headingName(row),
       group: 'Chapters',
       icon: 'goToChapter',
-      run: () => focusPipelineRow(index),
+      run: () => focusPipelineRow(row.id, index),
     }));
 
     const checkReason =
