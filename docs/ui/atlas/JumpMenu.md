@@ -6,6 +6,7 @@ Storybook title: `Layout/JumpMenu`. Source: `src/components/layout/JumpMenu.stor
 
 - Script
 - Script Search
+- Script Search Waiting
 - Editing Selection Off
 - Booth
 - Production
