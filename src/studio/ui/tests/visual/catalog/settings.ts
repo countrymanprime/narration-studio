@@ -420,6 +420,12 @@ export const settingsStates: StateEntry[] = [
   },
   {
     page: 'settings',
+    state: 'category-reset',
+    description: 'Settings, Appearance & keys with the theme changed: the category title line with Reset to defaults beside it, and the count in the list',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
     state: 'editing-playback',
     description:
       'Settings, Appearance & keys scrolled to Editing playback under Listening: speed, volume, silence and the output device, with the row in full view',

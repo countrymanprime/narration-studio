@@ -441,6 +441,14 @@ export const settingsDrivers: Record<string, Driver> = {
     await row.getByRole('radio', { name: 'Your own pace', checked: true }).waitFor();
     await row.getByText('Changed', { exact: true }).waitFor();
   },
+  'category-reset': async (page) => {
+    await openSettings(page, 'Appearance & keys');
+    const row = await showSettingsRow(page, 'look.theme');
+    await row.getByRole('radio', { name: 'Dark' }).click();
+    await page.getByRole('button', { name: 'Reset to defaults' }).waitFor();
+    // Back to the top, so the title line holds the button.
+    await page.evaluate(() => document.querySelector('main')?.scrollTo(0, 0));
+  },
   'editing-playback': async (page) => {
     // Found by search, so the row is shown whole on its own (the Shortcuts list below it in the category has its own layout debt to settle).
     await openSettings(page);
