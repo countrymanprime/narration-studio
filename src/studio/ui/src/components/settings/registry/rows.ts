@@ -871,6 +871,18 @@ export const ROWS: readonly SettingMeta[] = [
     syn: 'import dialog auto close finish complete',
   },
   {
+    id: 'app.tips',
+    cat: 'app',
+    section: 'Tips',
+    label: 'First-use tips',
+    scope: 'computer',
+    def: '',
+    desc: 'The short tips a page shows once, until you press Got it.',
+    more: 'A page shows a short tip the first time you use what it explains, until you press Got it or use the feature. Show tips again forgets which you dismissed, so each shows once more. Kept for this computer, not for a project.',
+    used: ['script'],
+    syn: 'hints reset tips again dismissed got it onboarding first use',
+  },
+  {
     id: 'app.debug',
     cat: 'app',
     section: 'Diagnostics',

@@ -11,6 +11,7 @@ import { RadioGroup } from '../../primitives/RadioGroup';
 import { Select } from '../../primitives/Select';
 import { retryAction } from '../../primitives/Toast';
 import { InsetCard } from '../../primitives/InsetCard';
+import { Button } from '../../primitives/Button';
 import { Checkbox } from '../../primitives/Checkbox';
 import { Slider } from '../../primitives/Slider';
 import { ToggleGroup } from '../../primitives/ToggleGroup';
@@ -24,6 +25,7 @@ import { useOutputDevices } from '../../editing/output/useOutputDevices';
 import { TEXT_SIZE, textSizePx } from '../../booth/reading/BoothText';
 import { changeReaderText, useReaderText } from './readerText';
 import { useSettingsHost } from '../row/SettingsHost';
+import { useTips } from '../../../tips/useFirstUseTip';
 
 const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
   { value: 'system', label: 'Match my system' },
@@ -308,6 +310,34 @@ export function EntrySortBody() {
       />
       {changed && (
         <IconButton action="undo" label="Reset Story Bible order to Name, A to Z" className="border-transparent" onClick={() => choose(DEFAULT_ENTRY_ORDER)} />
+      )}
+    </div>
+  );
+}
+
+/** First-use tips: how many were dismissed with Got it, and Show tips again, which forgets them all (the host keeps them in Tips.seen). */
+export function TipsBody() {
+  const { notify } = useSettingsHost();
+  const { seen, failed, reset, retry } = useTips();
+  const [busy, setBusy] = useState(false);
+  const count = seen?.size ?? 0;
+  const showAgain = async () => {
+    setBusy(true);
+    const problem = await reset();
+    setBusy(false);
+    if (problem) notify(`The tips could not be shown again: ${problem}`, 'error');
+  };
+  return (
+    <div className="flex items-center gap-3">
+      <span className="text-sm">{seen === null ? (failed ? 'Could not be read' : 'Reading…') : count === 0 ? 'None dismissed' : `${count} dismissed`}</span>
+      {seen === null && failed ? (
+        <Button variant="secondary" size="sm" onClick={retry}>
+          Retry
+        </Button>
+      ) : (
+        <Button variant="secondary" size="sm" disabled={busy || count === 0} onClick={() => void showAgain()}>
+          Show tips again
+        </Button>
       )}
     </div>
   );
