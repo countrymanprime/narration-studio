@@ -45,6 +45,7 @@ import {
   faEye,
   faEyeSlash,
   faFileExport,
+  faTags,
   faFileCircleCheck,
   faFileImport,
   faFileLines,
@@ -153,6 +154,7 @@ export const TOOLTIP_VERBS = [
   'Dismiss',
   'Download',
   'Edit',
+  'Embed',
   'Export',
   'Find',
   'Go',
@@ -272,6 +274,7 @@ export const CATALOG = {
   // Files and the DAW.
   import: action(faFileImport, 'import', 'Import a file'),
   export: action(faFileExport, 'export', 'Export a file'),
+  embedChapterTags: action(faTags, 'embed chapter tags', 'Embed chapter tags in the book MP3'),
   download: action(faDownload, 'download', 'Download'),
   openFolder: action(faFolderOpen, 'open a folder', 'Open the folder'),
   // Master & QC's toolbar: the page's own words as the `label`, these as the hint.

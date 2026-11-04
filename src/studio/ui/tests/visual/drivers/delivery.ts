@@ -24,7 +24,7 @@ async function openReady(page: Parameters<Driver>[0], seed: string): Promise<voi
 
 // Opens the Embed chapter tags dialog from Delivery's Output panel.
 async function embedChapterTags(page: Parameters<Driver>[0]): Promise<void> {
-  await page.getByRole('button', { name: 'Embed chapter tags…' }).click();
+  await page.getByRole('button', { name: 'Embed chapter tags in the book MP3' }).click();
   await page.getByRole('dialog', { name: 'Embed chapter tags' }).waitFor();
 }
 

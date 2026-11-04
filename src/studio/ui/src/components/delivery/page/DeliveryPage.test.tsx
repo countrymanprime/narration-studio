@@ -72,10 +72,10 @@ function mount(
 
 describe('DeliveryPage', () => {
   // #2829: Embed chapter tags writes ID3 chapters into the finished book MP3 and never talks to the DAW, so it sits with the build, whether or not the build is on.
-  it('offers Embed chapter tags… beside Build, with the build blocked or not, and opens the dialog', async () => {
+  it('offers the Embed chapter tags button beside Build, with the build blocked or not, and opens the dialog', async () => {
     const user = userEvent.setup();
     mount(BLOCKED, {}, {});
-    const embed = await screen.findByRole('button', { name: 'Embed chapter tags…' });
+    const embed = await screen.findByRole('button', { name: 'Embed chapter tags in the book MP3' });
     expect(embed.getAttribute('aria-disabled')).toBeNull();
     await user.click(embed);
     const dialog = await screen.findByRole('dialog', { name: 'Embed chapter tags' });
