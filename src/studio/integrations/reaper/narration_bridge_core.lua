@@ -204,6 +204,8 @@ local UNDO_LABELS = {
   cut_range = BRAND.name .. ': delete words',
   replace_range = BRAND.name .. ': replace audio',
   restore_replacement = BRAND.name .. ': put audio back',
+  -- Keep Take / Use this take: set_active_take (narration_workspace.lua) and pick_retake_lane (narration_retake_lanes.lua) both close with it.
+  use_take = BRAND.name .. ': use take',
 }
 local function undo_label(kind)
   if type(kind) ~= 'string' then

@@ -356,7 +356,7 @@
   {
     "name": "pick_retake_lane changes the play state outside an undo block",
     "file": "narration_retake_lanes.lua",
-    "find": "  reaper.Undo_BeginBlock2(0)\n  reaper.SetMediaTrackInfo_Value(track, 'C_LANEPLAYS:' .. lane, PLAYS_EXCLUSIVELY)\n  reaper.Undo_EndBlock2(0, core.brand.name .. ': play retake lane ' .. (lane + 1), -1)",
+    "find": "  reaper.Undo_BeginBlock2(0)\n  reaper.SetMediaTrackInfo_Value(track, 'C_LANEPLAYS:' .. lane, PLAYS_EXCLUSIVELY)\n  reaper.Undo_EndBlock2(0, UNDO_USE_TAKE, -1)",
     "replace": "  reaper.SetMediaTrackInfo_Value(track, 'C_LANEPLAYS:' .. lane, PLAYS_EXCLUSIVELY)"
   },
   {

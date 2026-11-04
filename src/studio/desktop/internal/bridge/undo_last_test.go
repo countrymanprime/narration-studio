@@ -88,6 +88,12 @@ func TestUndoLastRefusesWhileRecordingAndPassesOnTheScriptsSentence(t *testing.T
 }
 
 // Only a kind in UndoKinds is sent, never a label, and only 1 to 12 steps.
+func TestUseTakeIsAKindTheBridgeSends(t *testing.T) {
+	if !UndoKinds["use_take"] {
+		t.Fatal("use_take must be in UndoKinds: narration_bridge_core.lua's table holds its label")
+	}
+}
+
 func TestUndoLastAndLastActionCheckTheirArgumentsBeforeAnythingIsSent(t *testing.T) {
 	actions, client, dir := newActionsSession(t, true)
 	fake := startFakeReaper(t, client, dir, func([]string) [][]string { return nil })
