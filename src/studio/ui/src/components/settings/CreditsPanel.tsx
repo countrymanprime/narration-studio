@@ -6,6 +6,7 @@ import type { CreditsRenderResult, CreditTemplate, CreditValues, DetectedCandida
 import { CREDITS_FIELDS, CREDITS_HEADING, CREDITS_SECTION } from './creditsLayout';
 import { RetailSamplePanel } from './RetailSamplePanel';
 import { Button } from '../primitives/Button';
+import { IconButton } from '../primitives/IconButton';
 import { ConfirmDialog } from '../primitives/ConfirmDialog';
 import { Field } from '../primitives/Field';
 import { Select } from '../primitives/Select';
@@ -368,9 +369,7 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
                     <span>
                       Detected from {candidate.source}: “{candidate.value}”{candidate.confidence === 'low' ? ' (check this)' : ''}.
                     </span>
-                    <Button size="sm" variant="secondary" type="button" className="flex-none whitespace-nowrap" onClick={() => acceptDetected(key, candidate)}>
-                      Use suggestion
-                    </Button>
+                    <IconButton action="useSuggestion" size="sm" className="flex-none" onClick={() => acceptDetected(key, candidate)} />
                   </p>
                 )}
               </div>

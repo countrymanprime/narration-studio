@@ -725,8 +725,19 @@ local function track_end(track)
   return last
 end
 
-local function record_start(session_dir, state, run_id, guid_text, start_rule)
-  if start_rule ~= '' and start_rule ~= 'end' then
+-- The end of the latest item on the folder or any track inside it (nested folders too), muted tracks included, or 0 when it holds none:
+-- a chapter linked to a folder of voices goes on after the whole chapter, not after one voice. Items count whether or not they are muted,
+-- so nothing recorded is overwritten.
+local function folder_end(folder)
+  local last = 0
+  for _, track in ipairs(core.with_descendants(folder)) do
+    last = math.max(last, track_end(track))
+  end
+  return last
+end
+
+local function record_start(session_dir, state, run_id, guid_text, start_rule, folder_text)
+  if start_rule ~= '' and start_rule ~= 'end' and start_rule ~= 'chapter_end' then
     event(session_dir, 'ERROR', run_id, 'Unknown start rule: ' .. start_rule .. '.')
     return
   end
@@ -763,14 +774,45 @@ local function record_start(session_dir, state, run_id, guid_text, start_rule)
     event(session_dir, 'ERROR', run_id, 'Another track is armed.')
     return
   end
-  if start_rule == 'end' then
+  local folder
+  if start_rule == 'chapter_end' then
+    folder = find_track(normalize_guid(folder_text))
+    if not folder then
+      event(session_dir, 'TRACK_STALE', run_id, folder_text)
+      return
+    end
+    local inside = false
+    for _, member in ipairs(core.with_descendants(folder)) do
+      inside = inside or member == target
+    end
+    if not inside then
+      event(session_dir, 'ERROR', run_id, 'The armed track is not inside the chapter folder.')
+      return
+    end
+  end
+  if start_rule == 'end' or start_rule == 'chapter_end' then
     -- Only now that every check passed. Like punch_to: scroll the view, do not seek playback, open no undo block. A cursor
     -- still where the last take on this track stopped is where the narrator goes on, later audio or not; anywhere else
     -- the take starts after the track's last item, so it never records over audio from a place nobody chose.
     local last = state.last_stop
-    local here = last and last.track == track_guid(target) and math.abs(reaper.GetCursorPosition() - last.at) <= STOP_EPSILON
+    -- In a chapter folder the stop may have been on any voice of it: the narrator goes on from where the chapter was last stopped.
+    local function stopped_here()
+      if not last or math.abs(reaper.GetCursorPosition() - last.at) > STOP_EPSILON then
+        return false
+      end
+      if not folder then
+        return last.track == track_guid(target)
+      end
+      for _, member in ipairs(core.with_descendants(folder)) do
+        if track_guid(member) == last.track then
+          return true
+        end
+      end
+      return false
+    end
+    local here = stopped_here()
     if not here then
-      reaper.SetEditCurPos(track_end(target), true, false)
+      reaper.SetEditCurPos(folder and folder_end(folder) or track_end(target), true, false)
     end
   end
   state.stop_guard = nil
@@ -864,7 +906,7 @@ return function(registry)
     arm_only(ctx.session_dir, state, args[1] or '', args[2] or '')
   end)
   registry.register('record_start', function(ctx, args)
-    record_start(ctx.session_dir, state, args[1] or '', args[2] or '', args[3] or '')
+    record_start(ctx.session_dir, state, args[1] or '', args[2] or '', args[3] or '', args[4] or '')
   end)
   registry.register('record_stop', function(ctx, args)
     record_stop(ctx.session_dir, state, args[1] or '')

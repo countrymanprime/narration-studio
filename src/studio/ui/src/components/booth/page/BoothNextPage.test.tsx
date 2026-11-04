@@ -1099,7 +1099,7 @@ describe('a pickup session on the page', () => {
   });
 });
 
-// SN-O11: the rest of the Booth parity audit (docs/research/studio-next-parity-booth.md, G2 to G15).
+// SN-O11: the rest of the Booth parity audit (the deleted parity note for the Booth, G2 to G15).
 const toasts = (page: ReturnType<typeof renderPage>) => page.overlay.getSnapshot().toasts.map((toast) => toast.text);
 
 /** A host whose listening session the test drives: it pushes the session's state and events as the sidecar would. */

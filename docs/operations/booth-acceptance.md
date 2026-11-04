@@ -1,6 +1,6 @@
 # Booth acceptance walkthrough
 
-The steps a narrator takes to record a chapter in the Booth (`/booth`, `src/studio/ui/src/components/booth/page/BoothNextPage.tsx`), what each must do, and what proves it. The Booth is accepted when every row passes. The spec is the Studio Next mock's Booth (`docs/research/mockups/studio-next/src/pages/Booth.tsx` and `src/pages/booth/`) and [the Booth PRD](../prds/studio-next-booth.prd.md).
+The steps a narrator takes to record a chapter in the Booth (`/booth`, `src/studio/ui/src/components/booth/page/BoothNextPage.tsx`), what each must do, and what proves it. The Booth is accepted when every row passes. The spec was the Studio Next mock's Booth (`src/pages/Booth.tsx` and `src/pages/booth/` of the mock, deleted from the tree) and the Booth PRD.
 
 **How verified:**
 
@@ -66,7 +66,7 @@ The record path (the built-in recorder, the record gating in the DAW, the microp
 
 ## Differences from the mock
 
-Found by capturing the mock (`docs/research/mockups/studio-next`, `npx vite`) and the app in the same states, 2026-10-13. Sample data differs and is not a difference.
+Found by capturing the mock (`npx vite` in the mock folder, since deleted) and the app in the same states, 2026-10-13. Sample data differs and is not a difference.
 
 | Where | Mock | App on `main` 13ca3b55 |
 | - | - | - | - |

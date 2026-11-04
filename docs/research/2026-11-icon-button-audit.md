@@ -3,7 +3,7 @@
 Tracking issue: [#2836](https://github.com/countrymanprime/narration-studio/issues/2836). Refs #2251.
 
 The owner found the Engine panel drawing text buttons where icon buttons save space. The earlier audit,
-[icon-audit.md](mockups/studio-next/research/icon-audit.md), scanned the Studio Next mock's sources, not
+icon-audit.md, scanned the Studio Next mock's sources, not
 `src/studio/ui/src/components`, so the real app was never checked. This audit covers every `<Button>` and native `<button>` in
 `src/studio/ui/src/components/**` (stories and tests left out).
 
@@ -42,20 +42,20 @@ A row's state in the table is read from the tree after the change, so `converted
 
 ## Totals
 
-Totals: **457** buttons found; **14** converted in this change; **116** mapped to a catalogue action and queued; **79** need a catalogue decision; **248** kept as text with a reason.
+Totals: **457** buttons found; **32** converted in this change; **100** mapped to a catalogue action and queued; **73** need a catalogue decision; **252** kept as text with a reason.
 
 Per page group (before this change), `converted` + `convert` + `decide` are the buttons the owner's rule asks to become icons:
 
 | Group | Converted | Convert (queued) | Decide (queued) | Keep |
 | - | - | - | - | - |
+| settings | 14 | 12 | 15 | 33 |
 | engine | 14 | 0 | 0 | 21 |
-| settings | 0 | 28 | 17 | 29 |
+| script | 2 | 5 | 4 | 14 |
+| booth | 2 | 3 | 4 | 21 |
 | editing | 0 | 12 | 15 | 38 |
 | storybible | 0 | 16 | 8 | 16 |
 | proof | 0 | 12 | 6 | 16 |
 | production | 0 | 10 | 4 | 19 |
-| script | 0 | 5 | 6 | 14 |
-| booth | 0 | 3 | 6 | 21 |
 | master | 0 | 4 | 4 | 4 |
 | recordingcheck | 0 | 7 | 1 | 9 |
 | layout | 0 | 4 | 2 | 7 |
@@ -89,7 +89,7 @@ The Engine PR keeps `Link` (Chapter sync's Needs-you row) and `Confirm` (Chapter
 | `booth/bookmarks/BookmarkRibbons.tsx:61` | native | page | ! | keep | native button that is a whole row or a menu item (the label is the cho |
 | `booth/CompanionShell.tsx:178` | secondary | page | Full app | decide (queued) | needs a catalogue decision |
 | `booth/CompanionShell.tsx:216` | primary | toolbar | Follow | keep | primary action of its card, page or dialog |
-| `booth/frame/BoothFooter.tsx:146` | {coldRead.on ? 'danger' : 'secondary'} | dialog | Cold read | decide (queued) | needs a catalogue decision |
+| `booth/frame/BoothFooter.tsx:146` | {coldRead.on ? 'danger' : 'secondary'} | dialog | Cold read | converted | needs a catalogue decision |
 | `booth/frame/LevelsMenu.tsx:174` | secondary | page | {`Use ${dawName}'s input`} | keep | sentence-length action that names its object, not one verb |
 | `booth/frame/LevelsMenu.tsx:189` | ghost | page | Choose a different one | keep | sentence-length action that names its object, not one verb |
 | `booth/frame/LevelsMenu.tsx:198` | {candidate === device && mic.origin === 'daw' ? 'primary' : 'secondary | row | {candidate} | keep | primary action of its row or card while its state allows it |
@@ -115,7 +115,7 @@ The Engine PR keeps `Link` (Chapter sync's Needs-you row) and `Confirm` (Chapter
 | `booth/side/VoicesInChapter.tsx:94` | ghost | row | {plural(mine.length)} {open ? '▴' : '▾'} | keep | option in a pick list: the label is the choice |
 | `booth/side/VoicesInChapter.tsx:133` | ghost | page | {sample.primary ? '★ ' : ''} {name} · {sampleLength(sample.durationMs) | decide (queued) | needs a catalogue decision |
 | `booth/UnresolvedCreditsWarning.tsx:25` | secondary | page | Fill them in Settings | convert (queued) | edit |
-| `booth/voices/VoiceControl.tsx:109` | secondary | page | Voice: {current.key ? ( <span className="flex-none whitespace-nowrap}  | decide (queued) | needs a catalogue decision |
+| `booth/voices/VoiceControl.tsx:109` | secondary | page | Voice: {current.key ? ( <span className="flex-none whitespace-nowrap}  | converted | needs a catalogue decision |
 | `connection/ChapterLinkDialog.tsx:164` | secondary | dialog | {createLabel} | keep | dialog footer decision (the catalogue lists Cancel and Save as text ro |
 | `connection/ReaperOffDialog.tsx:135` | link | dialog | Link in Settings | keep | inline text action inside a sentence |
 | `connection/ResolveShell.tsx:35` | {variant} | page | {action.label} | decide (queued) | needs a catalogue decision |
@@ -411,8 +411,8 @@ The Engine PR keeps `Link` (Chapter sync's Needs-you row) and `Confirm` (Chapter
 | `script/page/rail/words/DefinitionSourceMenu.tsx:17` | secondary | page | Source: {DEFINITION_SOURCES[current]} | decide (queued) | needs a catalogue decision |
 | `script/page/rail/words/DefinitionSourceMenu.tsx:26` | ghost | row | {DEFINITION_SOURCES[key]} | keep | option in a pick list: the label is the choice |
 | `script/page/rail/words/ExternalLinks.tsx:15` | secondary | row | {link.label} | keep | option in a pick list: the label is the choice |
-| `script/page/rail/words/WordCard.tsx:84` | secondary | panel | Save | decide (queued) | needs a catalogue decision |
-| `script/page/rail/words/WordCard.tsx:99` | secondary | panel | Add to my words | decide (queued) | needs a catalogue decision |
+| `script/page/rail/words/WordCard.tsx:84` | secondary | panel | Save | converted | needs a catalogue decision |
+| `script/page/rail/words/WordCard.tsx:99` | secondary | panel | Add to my words | converted | needs a catalogue decision |
 | `script/page/reader/Para.tsx:47` | native | page | (icon) | keep | native button that is a whole row or a menu item (the label is the cho |
 | `script/page/tools/select/MarkComposer.tsx:52` | secondary | dialog | Cancel | keep | dialog footer decision (the catalogue lists Cancel and Save as text ro |
 | `script/page/tools/select/MarkComposer.tsx:55` | primary | dialog | Save | keep | primary action of its card, page or dialog |
@@ -420,12 +420,12 @@ The Engine PR keeps `Link` (Chapter sync's Needs-you row) and `Confirm` (Chapter
 | `script/page/tools/select/MarksDialog.tsx:135` | danger | row | {`Remove ${used(type.key)} uses too?`} | keep | option in a pick list: the label is the choice |
 | `script/page/tools/select/MarksDialog.tsx:147` | secondary | dialog | Add a mark | decide (queued) | needs a catalogue decision |
 | `script/page/tools/select/SelectionTool.tsx:122` | inverse | page | {ACROSS_PARAGRAPHS} | decide (queued) | needs a catalogue decision |
-| `settings/analysis/AnalysisToolsSection.tsx:65` | secondary | panel | Retry | convert (queued) | retry |
+| `settings/analysis/AnalysisToolsSection.tsx:65` | secondary | panel | Retry | converted | retry |
 | `settings/analysis/ConsentDialog.tsx:59` | secondary | dialog | Cancel | keep | dialog footer decision (the catalogue lists Cancel and Save as text ro |
 | `settings/analysis/ConsentDialog.tsx:62` | primary | dialog | Download | keep | primary action of its card, page or dialog |
-| `settings/BackupsSection.tsx:77` | secondary | page | Retry | convert (queued) | retry |
-| `settings/CapabilitySection.tsx:98` | secondary | panel | Retry | convert (queued) | retry |
-| `settings/controls/CapabilitiesBody.tsx:56` | secondary | page | Retry | convert (queued) | retry |
+| `settings/BackupsSection.tsx:77` | secondary | page | Retry | converted | retry |
+| `settings/CapabilitySection.tsx:98` | secondary | panel | Retry | converted | retry |
+| `settings/controls/CapabilitiesBody.tsx:56` | secondary | page | Retry | converted | retry |
 | `settings/controls/CreditsBody.tsx:108` | secondary | row | {editing ? 'Close credits editor' : 'Edit credits…'} | keep | option in a pick list: the label is the choice |
 | `settings/controls/EngineBody.tsx:268` | primary | panel | Link {foundFiles[0]} | keep | primary action of its card, page or dialog |
 | `settings/controls/EngineBody.tsx:273` | secondary | panel | {starting ? `Starting ${daw}…` : `Start ${daw}`} | decide (queued) | needs a catalogue decision |
@@ -449,7 +449,7 @@ The Engine PR keeps `Link` (Chapter sync's Needs-you row) and `Confirm` (Chapter
 | `settings/CreditsPanel.tsx:262` | secondary | panel | Duplicate | convert (queued) | +duplicate |
 | `settings/CreditsPanel.tsx:265` | danger | panel | Delete | convert (queued) | delete |
 | `settings/CreditsPanel.tsx:301` | primary | panel | Save template | keep | primary action of its card, page or dialog |
-| `settings/CreditsPanel.tsx:356` | secondary | row | Use suggestion | convert (queued) | +useThis |
+| `settings/CreditsPanel.tsx:356` | secondary | row | Use suggestion | converted | +useThis |
 | `settings/CreditsPanel.tsx:365` | danger | panel | Clear credits | convert (queued) | +reset |
 | `settings/DeliveryProfileEditor.tsx:103` | secondary | dialog | Cancel | keep | dialog footer decision (the catalogue lists Cancel and Save as text ro |
 | `settings/DeliveryProfileEditor.tsx:106` | primary | dialog | Save profile | keep | primary action of its card, page or dialog |
@@ -457,32 +457,32 @@ The Engine PR keeps `Link` (Chapter sync's Needs-you row) and `Confirm` (Chapter
 | `settings/KeyboardPanel.tsx:139` | primary | panel | Replace | keep | primary action of its card, page or dialog |
 | `settings/KeyboardPanel.tsx:144` | secondary | panel | Add as another key | decide (queued) | needs a catalogue decision |
 | `settings/KeyboardPanel.tsx:147` | secondary | panel | Unbind | convert (queued) | +unlink |
-| `settings/KeyboardPanel.tsx:150` | secondary | panel | Reset to default | convert (queued) | +reset |
+| `settings/KeyboardPanel.tsx:150` | secondary | panel | Reset to default | keep | text row in the catalogue (resetToDefault): no icon says it without al |
 | `settings/KeyboardPanel.tsx:156` | secondary | panel | Try another key | decide (queued) | needs a catalogue decision |
 | `settings/KeyboardPanel.tsx:160` | secondary | panel | Cancel | convert (queued) | cancelEdit |
-| `settings/KeyboardPanel.tsx:234` | secondary | panel | Reset all to defaults | convert (queued) | +reset |
-| `settings/KeyboardPanel.tsx:270` | secondary | row | Reset | convert (queued) | +reset |
-| `settings/KeyboardPanel.tsx:274` | secondary | row | Change | convert (queued) | +changeLink |
+| `settings/KeyboardPanel.tsx:234` | secondary | panel | Reset all to defaults | keep | text row in the catalogue (resetToDefault): no icon says it without al |
+| `settings/KeyboardPanel.tsx:270` | secondary | row | Reset | keep | text row in the catalogue (resetToDefault): no icon says it without al |
+| `settings/KeyboardPanel.tsx:274` | secondary | row | Change | converted | +changeLink |
 | `settings/models/AssetRow.tsx:125` | link | row | {PAGE_LABEL[page]} | keep | inline text action inside a sentence |
 | `settings/page/CategoryNav.tsx:37` | native | page | {label} {count > 0 && ( <span aria-label={countLabel}> <StatusBadge t} | keep | native button that is a whole row or a menu item (the label is the cho |
 | `settings/page/CategoryNav.tsx:62` | native | page | Category {currentLabel} | keep | native button that is a whole row or a menu item (the label is the cho |
-| `settings/page/CategoryPane.tsx:65` | secondary | page | Reset to defaults | convert (queued) | +reset |
+| `settings/page/CategoryPane.tsx:65` | secondary | page | Reset to defaults | keep | text row in the catalogue (resetToDefault): no icon says it without al |
 | `settings/page/DeleteStoryBibleData.tsx:95` | danger | page | Delete Story Bible data… | decide (queued) | needs a catalogue decision |
-| `settings/page/ModelsPane.tsx:87` | secondary | panel | Retry | convert (queued) | retry |
-| `settings/page/ModelsPane.tsx:90` | secondary | panel | Open the folder | convert (queued) | openFolder |
-| `settings/page/ModelsPane.tsx:168` | secondary | panel | Open folder | convert (queued) | openFolder |
+| `settings/page/ModelsPane.tsx:87` | secondary | panel | Retry | converted | retry |
+| `settings/page/ModelsPane.tsx:90` | secondary | panel | Open the folder | converted | openFolder |
+| `settings/page/ModelsPane.tsx:168` | secondary | panel | Open folder | converted | openFolder |
 | `settings/page/ModelsPane.tsx:183` | primary | panel | Download the recommended set | keep | primary action of its card, page or dialog |
-| `settings/page/PagesPane.tsx:37` | secondary | row | Open {PAGE_LABEL[item.page]} | decide (queued) | needs a catalogue decision |
+| `settings/page/PagesPane.tsx:37` | secondary | row | Open {PAGE_LABEL[item.page]} | converted | needs a catalogue decision |
 | `settings/page/ProjectDataPanel.tsx:16` | danger | page | {label} | decide (queued) | needs a catalogue decision |
-| `settings/page/Results.tsx:46` | secondary | row | Show the whole category | decide (queued) | needs a catalogue decision |
-| `settings/page/ScopedFieldsPanel.tsx:158` | secondary | panel | Retry | convert (queued) | retry |
+| `settings/page/Results.tsx:46` | secondary | row | Show the whole category | converted | needs a catalogue decision |
+| `settings/page/ScopedFieldsPanel.tsx:158` | secondary | panel | Retry | converted | retry |
 | `settings/page/ScopedFieldsPanel.tsx:204` | secondary | panel | Discard changes | convert (queued) | +reset |
 | `settings/page/ScopedFieldsPanel.tsx:207` | primary | panel | Save | keep | primary action of its card, page or dialog |
 | `settings/page/SettingsPage.tsx:267` | secondary | page | Back to {pageNameOf(cameFrom)} | keep | navigation back, names its destination |
-| `settings/page/SettingsPage.tsx:322` | secondary | panel | Retry | convert (queued) | retry |
+| `settings/page/SettingsPage.tsx:322` | secondary | panel | Retry | converted | retry |
 | `settings/RetailSamplePanel.tsx:132` | primary | panel | Save sample | keep | primary action of its card, page or dialog |
 | `settings/RetailSamplePanel.tsx:141` | secondary | panel | Clear sample | convert (queued) | +reset |
-| `settings/row/AssetNote.tsx:52` | secondary | page | Retry | convert (queued) | retry |
+| `settings/row/AssetNote.tsx:52` | secondary | page | Retry | converted | retry |
 | `settings/row/AssetNote.tsx:56` | secondary | page | {view.status === 'repair' ? 'Repair' : 'Download'} | decide (queued) | needs a catalogue decision |
 | `settings/row/AssetNote.tsx:65` | link | page | Models &amp; downloads | keep | inline text action inside a sentence |
 | `settings/row/SettingRowView.tsx:38` | link | row | {PAGE_LABEL[page]} | keep | inline text action inside a sentence |
