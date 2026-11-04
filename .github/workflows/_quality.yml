@@ -327,6 +327,9 @@ jobs:
         env:
           SHARD: ${{ matrix.shard }}
         run: pnpm --dir src/studio/ui run atlas --shard="$SHARD/2"
+      # docs/ui (the atlas pages and inventory.json) must equal a fresh generation; fix with `pnpm --dir src/studio/ui docs:atlas`.
+      - if: steps.scope.outputs.affected == 'true' && matrix.shard == 1
+        run: pnpm exec nx run ui:atlas-docs --skip-nx-cache
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
@@ -379,7 +382,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: ./.github/actions/nx-run
         with:
-          targets: lint test
+          targets: lint test typecheck
           projects: tag:toolchain:python,fixtures
       - name: reaper (Lua)
         if: ${{ !cancelled() }}
@@ -421,6 +424,8 @@ jobs:
     #     on the Linux runners. Here rather than in go-test so the tests do not wait behind it.
     # 25 min: the reaper step's mutation checks alone ran 12 of the 15 on Windows once the undo_last mutations joined
     # (two cancelled runs), and go lint follows them.
+    # The mutation checks run one per CPU (tests/mutations.py, spawn workers) since the folder-depth mutations took the
+    # Windows reaper step to 19 min and cancelled this job (run 41654984217); on four CPUs they take a quarter of that.
     needs: scope
     if: needs.scope.outputs.winquick == 'true'
     timeout-minutes: 25

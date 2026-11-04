@@ -37,7 +37,7 @@ func TestTheDAWRowRendersTheRegionThroughTheProjectsFXAndReportsTheChain(t *test
 	useSession(t, func() (masteringport.Session, error) { return daw.Session(), nil })
 	dest := filepath.Join(project, "Chapter 1 mastered.wav")
 	result, err := dawRow(t).Master(context.Background(), masteringport.Request{
-		Region: "Chapter 1", Destination: dest, Profile: deliveryprofile.ACX(), Approved: true})
+		Region: "Chapter 1", Destination: dest, Profile: deliveryprofile.ACX(), Approved: true, ChainDigest: shownDigest(t)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,7 +70,7 @@ func TestEachDAWMasterCarriesItsOwnApproval(t *testing.T) {
 	useSession(t, func() (masteringport.Session, error) { return daw.Session(), nil })
 	for _, name := range []string{"one.wav", "two.wav"} {
 		if _, err := dawRow(t).Master(context.Background(), masteringport.Request{Region: "Chapter 1", Destination: filepath.Join(project, name),
-			Profile: deliveryprofile.ACX(), Approved: true}); err != nil {
+			Profile: deliveryprofile.ACX(), Approved: true, ChainDigest: shownDigest(t)}); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -82,7 +82,7 @@ func TestEachDAWMasterCarriesItsOwnApproval(t *testing.T) {
 
 func TestTheDAWRowNeedsADAWARegionAndItsCapabilities(t *testing.T) {
 	project := t.TempDir()
-	request := masteringport.Request{Region: "Chapter 1", Destination: filepath.Join(project, "out.wav"), Profile: deliveryprofile.ACX(), Approved: true}
+	request := masteringport.Request{Region: "Chapter 1", Destination: filepath.Join(project, "out.wav"), Profile: deliveryprofile.ACX(), Approved: true, ChainDigest: "sha256:shown"}
 
 	useSession(t, nil)
 	if _, err := dawRow(t).Master(context.Background(), request); !errors.Is(err, masteringport.ErrNoDAW) {

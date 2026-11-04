@@ -156,6 +156,20 @@ describe('ProjectPicker', () => {
     expect(screen.queryByText('No recent projects yet.')).toBeNull();
   });
 
+  // Before the host answers, the list is unknown, not empty: drawing "No recent projects yet." (and its second New project) for that
+  // moment flashed the wrong state and made a test that looked for the one header button find two (#2848).
+  it('draws no empty-list state and a single New project while the recents are still loading', async () => {
+    let resolve: (value: Awaited<ReturnType<ReturnType<typeof createMockApi>['projectRecents']>>) => void = () => undefined;
+    renderPicker({ projectRecents: () => new Promise((done) => (resolve = done)) });
+
+    expect(screen.queryByText('No recent projects yet.')).toBeNull();
+    expect(screen.getAllByRole('button', { name: 'New project' })).toHaveLength(1);
+
+    await act(async () => resolve([]));
+    expect(await screen.findByText('No recent projects yet.')).toBeTruthy();
+    expect(screen.getAllByRole('button', { name: 'New project' })).toHaveLength(2);
+  });
+
   it('keeps New project and Browse available when there are no recent projects', async () => {
     renderPicker({ projectRecents: async () => [] });
 

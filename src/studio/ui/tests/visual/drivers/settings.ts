@@ -175,6 +175,16 @@ export const settingsDrivers: Record<string, Driver> = {
     const row = await showSettingsRow(page, 'daw.syncActivity');
     await row.getByRole('button', { name: /^Undo: Linked/ }).waitFor();
   },
+  'recording-chapter-layout': async (page) => {
+    await openSettings(page, 'Recording & DAW');
+    const row = await showSettingsRow(page, 'daw.layout');
+    await row.getByRole('group', { name: 'Chapter layout' }).waitFor();
+  },
+  'recording-chapter-voices': async (page) => {
+    await openSettings(page, 'Recording & DAW', '?mockVoiceFolders=1');
+    const row = await showSettingsRow(page, 'daw.voices');
+    await row.getByRole('table', { name: /^Voices of / }).waitFor();
+  },
   'recording-reaper-path-invalid': async (page) => {
     await openSettings(page, 'Recording & DAW');
     await openAdvanced(page);
@@ -389,6 +399,37 @@ export const settingsDrivers: Record<string, Driver> = {
     await openSettings(page, 'Appearance & keys');
     await showSettingsRow(page, 'look.reader');
     await page.getByRole('slider', { name: 'Column width' }).waitFor();
+  },
+  'booth-text-size': async (page) => {
+    await openSettings(page, 'Appearance & keys');
+    const row = await showSettingsRow(page, 'look.boothSize');
+    await row.getByRole('slider', { name: 'Booth text size' }).waitFor();
+  },
+  'story-bible-order': async (page) => {
+    await openSettings(page, 'Appearance & keys');
+    const row = await showSettingsRow(page, 'look.entrySort');
+    await row.getByRole('combobox', { name: 'Story Bible order' }).waitFor();
+  },
+  'story-bible-order-changed': async (page) => {
+    await openSettings(page, 'Appearance & keys');
+    const row = await showSettingsRow(page, 'look.entrySort');
+    await row.getByRole('combobox', { name: 'Story Bible order' }).selectOption('mentions-desc');
+    await row.getByRole('button', { name: 'Reset Story Bible order to Name, A to Z' }).waitFor();
+  },
+  'editing-playback': async (page) => {
+    // Found by search, so the row is shown whole on its own (the Shortcuts list below it in the category has its own layout debt to settle).
+    await openSettings(page);
+    await page.getByRole('textbox', { name: 'Search settings' }).fill('Editing playback');
+    await page.getByText(/\d+ settings? found/).waitFor();
+    await page.locator('[data-row="look.playback"]').getByRole('slider', { name: 'Playback volume' }).waitFor();
+  },
+  'effects-cap': async (page) => {
+    await openSettings(page, 'Recording & DAW');
+    const row = await showSettingsRow(page, 'daw.fxCap');
+    await row.getByRole('textbox').waitFor();
+    // The state says "with Override for this project": press it, so the capture shows the project box and is not the same picture as the neighbouring Recording & DAW rows.
+    await row.getByRole('button', { name: /^Override for this project/ }).click();
+    await row.getByText('This project uses', { exact: false }).waitFor();
   },
   'wave-scroll-step': async (page) => {
     await openSettings(page, 'Appearance & keys');

@@ -8,12 +8,10 @@ Storybook title: `Script/ThreadsPanel`. Source: `src/components/script/page/rail
 
 - Note
 - Note Selected
-- Open Query With Thread
-- Resolved Queries
-- All Queries
+- Asking Mark With Thread
+- Asking Mark Selected
 - Editing A Message
 - Empty Notes
-- Empty Queries
 - Reopen Resolved
 
 ## Used by

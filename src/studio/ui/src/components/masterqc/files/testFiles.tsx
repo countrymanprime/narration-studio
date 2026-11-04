@@ -12,7 +12,7 @@ import type { DeliveryRuleResult, ManuscriptChapter, MeasureFileResult } from '.
 import { FileChecks } from './FileChecks';
 import type { FileActions } from './FileActions';
 import { FilesTable } from './FilesTable';
-import { buildRows, labelFiles } from './rows';
+import { buildRows, labelFiles, type TextMatch } from './rows';
 
 // Imported, not read from disk: the stories run in the browser, where there is no `fs`.
 const job = measureJobSchema.parse(measureSuccess);
@@ -71,6 +71,8 @@ export function FilesDemo({
   initial,
   onSelected,
   chapters = [],
+  texts,
+  chapterRows = false,
 }: {
   files: readonly MeasureFileResult[];
   actions?: FileActions;
@@ -78,6 +80,10 @@ export function FilesDemo({
   onSelected?: (id: string) => void;
   /** The manuscript's chapters: the files are named by them, as the page does. */
   chapters?: readonly ManuscriptChapter[];
+  /** Each chapter's current Recording Check, for the Text column. */
+  texts?: Readonly<Record<string, TextMatch>>;
+  /** One row per chapter (the page's table), so a chapter's Text figure can reach its file. */
+  chapterRows?: boolean;
 }) {
   const [selected, setSelected] = useState<string | undefined>(initial);
   const pick = (id: string) => {
@@ -89,7 +95,15 @@ export function FilesDemo({
   const current = selected === undefined ? undefined : rows.find((row) => row.id === selected);
   return (
     <div className="flex flex-col gap-4">
-      <FilesTable files={labelled} profile={profile} selected={selected} onSelect={pick} actions={actions} />
+      <FilesTable
+        files={labelled}
+        profile={profile}
+        slots={chapterRows ? chapters : undefined}
+        texts={texts}
+        selected={selected}
+        onSelect={pick}
+        actions={actions}
+      />
       <FileChecks
         row={current ?? (selected === undefined ? undefined : undefined)}
         chapterLabel={selected !== undefined && !current ? 'Chapter 09' : undefined}

@@ -26,7 +26,7 @@ import {
   faTags,
   faToggleOff,
   faToggleOn,
-  faWrench,
+  faBandage,
   faFilter,
   faRightLeft,
   faArrowDownWideShort,
@@ -68,6 +68,7 @@ import {
   faFlagCheckered,
   faFolder,
   faFolderOpen,
+  faFolderPlus,
   faFont,
   faForwardStep,
   faGauge,
@@ -95,6 +96,7 @@ import {
   faAngleLeft,
   faAngleRight,
   faPlus,
+  faLink,
   faRotate,
   faRotateLeft,
   faArrowsLeftRightToLine,
@@ -109,6 +111,8 @@ import {
   faComment,
   faUpRightAndDownLeftFromCenter,
   faUpload,
+  faHammer,
+  faWrench,
   faUserTag,
   faVolumeHigh,
   faVolumeXmark,
@@ -253,6 +257,8 @@ export const CATALOG = {
   remove: action(faTrashCan, 'discard', 'Remove'),
   copy: action(faCopy, 'copy', 'Copy'),
   addNote: action(faComment, 'add a note', 'Add a note'),
+  // The Booth's character with no track goes on a track the chapter has (docs/research/mockups/booth-voices/, #notice).
+  useExistingTrack: action(faLink, 'use an existing track', 'Use an existing track'),
   markText: action(faHighlighter, 'mark text', 'Mark the selected text'),
 
   // Audio.
@@ -299,6 +305,9 @@ export const CATALOG = {
   // REAPER's folder tracks in the Tracks card and the track picker.
   trackFolder: action(faFolder, 'a folder of tracks', 'Show the folder'),
   trackFolderOpen: action(faFolderOpen, 'open a folder', 'Show the open folder'),
+  // Chapter links: the DAW adds a chapter's track (Flat) or its folder with a Narrator track (Voice folders), named after it, and links it (#2840).
+  createChapterTrack: action(faPlus, 'add', 'Create a track for this chapter'),
+  createChapterFolder: action(faFolderPlus, 'add a folder of tracks', 'Create a folder for this chapter'),
   folderCaret: action(faChevronRight, 'expand or collapse a folder', 'Toggle the folder'),
   openAllFolders: action(faAnglesDown, 'open every folder', 'Open all folders'),
   closeAllFolders: action(faAnglesUp, 'close every folder', 'Close all folders'),
@@ -325,7 +334,6 @@ export const CATALOG = {
   hideExample: action(faEyeSlash, 'hide an example', 'Hide the format example'),
   recordHere: { ...action(faCircle, 'record', 'Record from here'), tint: 'rec' },
   goToChapter: action(faArrowRight, 'go on', 'Go to the chapter'),
-  addWord: action(faPlus, 'add', 'Add to my words'),
   addMark: action(faPlus, 'add', 'Add a mark'),
   addRelationship: action(faPlus, 'add', 'Add a relationship'),
   editBookmark: action(faPen, 'edit', 'Edit the bookmark'),
@@ -365,6 +373,10 @@ export const CATALOG = {
   // The mock draws a wave for it, which is the Proof page's icon (audit rule 1), so a voice sample wears the speech bubble.
   primarySample: action(faStar, 'primary sample', 'Mark the primary sample'),
   moreActions: action(faEllipsis, 'more actions', 'Show more actions'),
+  // The tools that act on the DAW project (chapter regions, render prep), offered on the pages where a chapter is finished.
+  dawTools: action(faWrench, 'DAW tools', 'Show the DAW tools'),
+  // The REAPER repair launchers, beside the defect: they open REAPER's own repair on the items selected there, where Clean up's Apply repairs in the app.
+  repairInReaper: action(faBandage, 'repair in REAPER', 'Open the repair tools in REAPER'),
   // Script: finds who speaks the quoted lines; a line the narrator confirmed is never changed.
   attributeSpeakers: action(faUserTag, 'attribute speakers', 'Find who speaks each line'),
   voiceSample: action(faCommentDots, 'voice sample', 'Mark a voice sample', 'V'),
@@ -386,8 +398,10 @@ export const CATALOG = {
   clearLink: action(faEraser, 'clear', 'Clear the link'),
   turnOn: action(faToggleOn, 'turn on', 'Turn on'),
   turnOff: action(faToggleOff, 'turn off', 'Turn off'),
+  // A Story Bible pronunciation candidate (the one name a narrator picks from a list): a check, the same accept as a suggestion's.
+  usePronunciation: action(faCheck, 'accept', 'Use this pronunciation'),
   readStamps: action(faTag, 'read the stamps', 'Read current stamps'),
-  repairPopsClicks: action(faWrench, 'repair pops and clicks', 'Open Repair Pops/Clicks'),
+  repairPopsClicks: action(faHammer, 'repair pops and clicks', 'Open Repair Pops/Clicks'),
   magnoliusDeclick: action(faScrewdriverWrench, 'declick with Magnolius', 'Open Magnolius DeClick'),
   // REAPER tools grid (Engine panel): one icon per tool, each opens its dialog.
   prepareRender: action(faFilm, 'prepare the chapter render', 'Prepare the chapter render'),

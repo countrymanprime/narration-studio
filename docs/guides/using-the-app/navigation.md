@@ -219,7 +219,8 @@ REAPER starts when it opens; nothing is written until you press the dialog's act
 bridge in REAPER and connects to it without you running anything in REAPER.
 
 **Link chapters to tracks** (shown once a manuscript is imported) stamps each chapter's identity onto the REAPER
-items that hold its recording. It opens with the links the **Chapter links** list shows, the opening and
+items that hold its recording. It reads REAPER's tracks again when it opens, and has its own **Refresh**, so a track you
+have just added in REAPER can be picked. It opens with the links the **Chapter links** list shows, the opening and
 closing credits included, and the two stay in step: choosing a track here links the chapter, **Not linked**
 clears the link, and either shows in the other at once. **To stamp** shows how many of that track's items will
 carry the chapter's identity, and **Stamp N items** writes it. The credits are linked here but not stamped. What the stamp did, or why it failed, shows at the top
@@ -315,7 +316,53 @@ change the REAPER project.
 
 ![The audio engine panel's chapter links list with one chapter confirmed to a track](../../images/ui/engine-panel-chapter-links.webp)
 
+To add a track for a chapter that has none, press the **+** button on its row (**Create a track for this chapter**). REAPER adds a track
+named after the chapter after every other track, the chapter is linked to it, and a message says what was made. Nothing else in the
+project changes, the project is not saved, and one Undo in REAPER takes it back. The button is only on a row with no link: a chapter
+whose track is missing keeps Change and Clear. While REAPER records, or when it is closed or not answering, nothing is added and a
+message says why. Nothing is added either when the chapter is already linked to a track, or when a track or folder already has the
+name the new one would get: link that one with the track list instead. While one track is being added, the other rows' buttons are off.
+If the project's last folder was left open in REAPER, that folder is closed on its last track first, so the new track is never inside
+it. With [Voice folders](#voice-folders) the button is **Create a folder for this chapter**: REAPER adds a folder named
+after the chapter with one track inside it, **Narrator**, and the chapter is linked to the folder. The Booth's and Editing's link dialog
+says **Create a new folder** in a Voice folders project and makes the same folder.
+
+![Chapter links after Create a track for this chapter: the first chapter linked to its new track, and a message saying it was made](../../images/ui/engine-panel-chapter-track-created.webp)
+
+The tracks here are REAPER's own, saved or not, while REAPER has the linked project open: a track or folder you add in REAPER shows
+without saving. Chapter links' header says in one line whose tracks they are and when they were read (**REAPER now · read 3 s ago**);
+point at it for the whole sentence. The panel reads them again when it opens, after **Check again**, when you come back to the window
+and every few seconds while it is in front; the **Refresh** button beside the header (also in the Link chapters dialog) reads them at
+once. While REAPER is closed, not answering or has another project open, the header reads **Saved project** and the tracks are as of
+the project's last save; its sentence says why. Save the project in REAPER after adding a track: Chapter links sees it at once, but
+other pages, such as Editing and Proof, read the saved project and see it only once it is saved.
+
+![Chapter links when REAPER is not answering: the header says the tracks are the saved project's](../../images/ui/engine-panel-live-tracks-saved.webp)
+
+If REAPER stops answering after a good read, the header reads **REAPER did not answer** with when the tracks were last read, the
+tracks stay as they were, and a message with **Retry** says why, once. To try again, press **Retry** in the message or **Refresh**
+in the header. If the first read fails, the card shows only that header, with **Refresh**, until a read answers.
+
+![Chapter links after REAPER stopped answering: the header says when the tracks were last read, and a message offers Retry](../../images/ui/engine-panel-live-tracks-stale.webp)
+
 ![A chapter's track picker open on a project with folders: the tree, with a search box](../../images/ui/engine-panel-folder-picker.webp)
+
+#### Chapters inside another chapter's folder
+
+If a linked chapter's track sits inside another linked chapter's folder in REAPER, the app reads it as one of that chapter's voices.
+An earlier version of the app could leave a project like this: when the last folder in a project was left open at the end, each
+chapter track it added afterwards landed inside that folder. Chapter links' header then shows how many chapters are nested, and
+**Move them out…**, whose tooltip names them and the folder they sit in. The app checks again when the panel opens, when a link changes
+and when you come back to the window.
+
+Press **Move them out…** to see every track the move changes before anything happens in REAPER: each chapter, and any track that comes
+after one inside the same folder, with the folder it leaves and where it goes. Confirm to move them. Only the folder setting of the track
+just before each chapter changes, so a chapter's own voices stay inside it, and one Undo in REAPER takes the whole move back. If the
+tracks changed in REAPER since the check, nothing is moved and the app checks again. Save the project in REAPER to keep the move.
+
+![Chapter links' header: two chapters nested in REAPER, and Move them out](../../images/ui/engine-panel-nested-chapters.webp)
+
+![The confirmation listing every track that moves out of the chapter's folder](../../images/ui/engine-panel-nested-chapters-confirm.webp)
 
 The **More actions** button (**⋯**) at the end of each row holds the rest. For a linked chapter it has **Open in Editing**, which opens
 the chapter on [Editing](editing.md) to hear it against its script and edit it, and **Open in Proof**, into the chapter's
@@ -343,6 +390,8 @@ With Voice folders, Chapter links' last column is **Folder**: a chapter links to
 ("Chapter 1 · 3 voices"), and a track inside such a folder can't be chosen, since it is one of that chapter's voices.
 
 ![A chapter's folder picker: the Chapter 1 folder can be chosen, its voice tracks can't](../../images/ui/engine-panel-voices-folder-picker.webp)
+
+![Chapter links after Create a folder for this chapter: the chapter linked to its new folder with one voice, and a message naming the folder and its Narrator track](../../images/ui/engine-panel-chapter-folder-created.webp)
 
 The **Voices** card, below Chapter links, lists the folder's tracks for the chapter picked in its header, in REAPER's order. The first
 track named **Narrator** gets number-pad key 0 and the others 1 to 9; a track past the ninth gets no key. Each row shows the characters

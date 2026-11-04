@@ -17,7 +17,9 @@
       "project": ["scripts/**"],
       "ignoreDependencies": [
         // Loaded by `nx release version` (nx.json "release"), not imported anywhere.
-        "@nx/js"
+        "@nx/js",
+        // Run by node_modules/.bin path from scripts/ci/pyright-ratchet.mjs (the `typecheck` target of narration-common), not imported.
+        "pyright"
       ],
       "ignoreBinaries": [
         // Go toolchain and Wails CLI, called from scripts/quality.mjs, package scripts and the desktop project's

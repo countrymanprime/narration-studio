@@ -27,7 +27,6 @@ const meta = {
     host: {
       definitionSource: 'web',
       setDefinitionSource: fn(),
-      candidate: fn(),
       onlineDefinition: fn(),
       openLookup: fn(async () => undefined),
     },
@@ -67,7 +66,6 @@ export const UnknownTextWithOnlineDefinition: Story = {
     host: {
       definitionSource: 'api',
       setDefinitionSource: fn(),
-      candidate: fn(),
       openLookup: fn(async () => undefined),
       onlineDefinition: async (word: string) => ({
         word,

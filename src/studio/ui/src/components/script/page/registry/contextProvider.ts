@@ -20,7 +20,6 @@ const TARGETS = {
   line: 'p[data-pid]',
   phrase: '[data-ph]',
   mark: '[data-a][data-st]',
-  flag: '[data-w]',
   name: '[data-ent]',
   chapter: '[data-jump], [data-bound][data-ch]',
   word: 'tr[data-w]',
@@ -33,8 +32,6 @@ type MenuCommands = {
   setMarkType: (id: string, type: string) => Promise<unknown>;
   removeMark: (id: string) => Promise<unknown>;
   setStatus: (id: string, status: 'open' | 'resolved') => Promise<unknown>;
-  removeWord: (word: string) => Promise<unknown>;
-  flagWord: (range: LineRange) => Promise<unknown>;
   createEntryFrom: (category: string, text: string) => Promise<unknown>;
   setPrep: (chapter: { id: string; title: string; subtitle?: string }, state: PrepState) => Promise<unknown>;
 };
@@ -119,7 +116,8 @@ function selectionItems(selection: ReaderSelection, lists: MenuLists, commands: 
   const out: ContextMenuItem[] = [
     ...submenu('mark-as', 'Mark as', [
       ...lists.types.map((type) => item(`mark-as-${type.key}`, type.name, () => handlers.composeMark(type.key, selection))),
-      item('mark-as-word', 'Pronunciation (a word)', () => void commands.flagWord(selection)),
+      // How the words are said: their card on the Words tab, with what the dictionaries say (#2595). Nothing is created.
+      item('mark-as-word', 'Pronunciation (a word)', () => handlers.showWord(selection.quote.trim())),
     ]),
     // A name the Story Bible already has is opened, not added again.
     ...submenu(
@@ -140,7 +138,7 @@ function selectionItems(selection: ReaderSelection, lists: MenuLists, commands: 
   return out;
 }
 
-/** Reader text: the mark, the flagged word or the name under the pointer first, then the selection's items. */
+/** Reader text: the mark or the name under the pointer first, then the selection's items. */
 function lineItems(target: Element, deps: ScriptMenuDeps): ContextMenuItem[] {
   const lists = deps.lists();
   const handlers = deps.handlers();
@@ -154,15 +152,9 @@ function lineItems(target: Element, deps: ScriptMenuDeps): ContextMenuItem[] {
     out.push(item('speaker', `Speaker: ${name}…`, () => pickSpeaker(phrase.dataset.ph as string, phrase.getBoundingClientRect())));
   }
   const mark = lists.marks.find((row) => row.id === attr(target, TARGETS.mark, 'data-a'));
-  const word = attr(target, TARGETS.flag, 'data-w');
   const entry = lists.entries.find((row) => row.id === attr(target, TARGETS.name, 'data-ent'));
   if (mark) out.push(...markItems(mark, lists, commands, handlers));
-  else if (word) {
-    out.push(
-      item('word-show', 'Show in Words', () => handlers.showWord(word)),
-      item('word-remove', 'Remove from my words', () => void commands.removeWord(word)),
-    );
-  } else if (entry) {
+  else if (entry) {
     out.push(
       item('entry-show', `Open “${entry.canonical_name}” in the side panel`, () => handlers.showEntry(entry.id)),
       item('entry-find', `Find “${entry.canonical_name}” in the manuscript`, () => handlers.openFind(entry.canonical_name)),
@@ -210,10 +202,7 @@ export function scriptContextProvider(deps: ScriptMenuDeps): ContextProvider {
       if (chapter) return chapterItems(chapter, deps);
       const w = word(target);
       if (w === undefined) return [];
-      return [
-        item('word-show', `Show “${w}”`, () => deps.handlers().showWord(w)),
-        item('word-remove', 'Remove from my words', () => void deps.commands.removeWord(w)),
-      ];
+      return [item('word-show', `Show “${w}”`, () => deps.handlers().showWord(w))];
     },
   };
 }

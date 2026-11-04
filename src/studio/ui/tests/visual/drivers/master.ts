@@ -1,4 +1,5 @@
 // How to reach each `master` state in STATE_CATALOG (see app.drivers.ts).
+import { expect, type Locator, type Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
 import {
   type Driver,
@@ -17,6 +18,23 @@ import {
 } from './shared';
 
 const MEASURED = /^Measured 2 of 3 files; 1 could not be measured\./;
+
+// Removes one picked file from Master to spec by its Remove button.
+async function removeExportFile(page: Page, file: string): Promise<void> {
+  await page
+    .getByRole('row')
+    .filter({ has: page.getByRole('cell', { name: file, exact: true }) })
+    .getByRole('button', { name: 'Remove' })
+    .click();
+}
+
+// Presses Master & encode and waits for the approval dialog's table of the host's plan; answers the dialog.
+async function openApproval(page: Page, table: string): Promise<Locator> {
+  await page.getByRole('button', { name: 'Master & encode' }).click();
+  const dialog = page.getByRole('alertdialog', { name: 'Approve this render?' });
+  await dialog.getByRole('table', { name: table }).waitFor();
+  return dialog;
+}
 
 export const masterDrivers: Record<string, Driver> = {
   // The chapters never answer, so `openMaster` is not used: the page's own parts arrive, the package panel stays on its blocks.
@@ -48,6 +66,23 @@ export const masterDrivers: Record<string, Driver> = {
     await openMaster(page);
     await page.getByText(/^Nothing measured yet/).waitFor();
   },
+  // The DAW tools menu beside Check files (#2820), opened before anything is measured: the plain mock has chapters linked, so both entries are live.
+  'daw-tools-menu': async (page) => {
+    await openMaster(page);
+    await page.getByText(/^Nothing measured yet/).waitFor();
+    await page.getByRole('button', { name: 'DAW tools' }).click();
+    const menu = page.getByRole('menu');
+    await menu.waitFor();
+    await expect(menu.getByText('Reading the REAPER project…')).toHaveCount(0);
+  },
+  'daw-tools-menu-off': async (page) => {
+    await openMaster(page, '?mockDawChoice=not-running');
+    await page.getByText(/^Nothing measured yet/).waitFor();
+    await page.getByRole('button', { name: 'DAW tools' }).click();
+    const menu = page.getByRole('menu');
+    await menu.waitFor();
+    await expect(menu.getByText('Reading the REAPER project…')).toHaveCount(0);
+  },
   running: async (page) => {
     await measureOnMaster(page, '?mockMeasure=running');
     await page.getByRole('progressbar', { name: 'Measuring' }).waitFor();
@@ -71,6 +106,15 @@ export const masterDrivers: Record<string, Driver> = {
     const consistency = panelTitled(page, 'Book consistency');
     await consistency.waitFor();
     await scrollToTop(page, consistency);
+  },
+  'text-column': async (page) => {
+    await openMaster(page, '?mockDelivery=ready');
+    await masterFileRows(page).first().waitFor();
+    const table = page.getByRole('grid', { name: 'Per-file checks' });
+    await table.getByText('Not checked').first().waitFor();
+    await scrollToTop(page, table);
+    // At a narrow width the rows stack and the box shows about three: bring the first red figure into it, so the Text line is seen where it changes.
+    await table.getByRole('row', { name: /Chapter 4/ }).scrollIntoViewIfNeeded();
   },
   'custom-profile': async (page) => {
     await measureOnMaster(page, '?mockDeliveryProfile=custom');
@@ -140,11 +184,88 @@ export const masterDrivers: Record<string, Driver> = {
     await page.getByText(/^Check some files first: the report covers the files measured here/).waitFor();
     await scrollToTop(page, page.getByRole('region', { name: 'Report' }));
   },
+  'to-spec-empty': async (page) => {
+    await openMaster(page);
+    const panel = page.getByRole('region', { name: 'Master to spec' });
+    await panel.getByRole('button', { name: 'Choose files to master…' }).waitFor();
+    await panel.getByRole('checkbox', { name: /^Master before encoding: Built-in chain/ }).waitFor();
+    await scrollToTop(page, panel);
+  },
   'to-spec-picked': async (page) => {
     await openMaster(page);
     await pickFilesToMaster(page);
     await page.getByRole('button', { name: 'Master & encode' }).waitFor();
     await scrollToTop(page, page.getByRole('region', { name: 'Master to spec' }));
+  },
+  'chain-choice': async (page) => {
+    await openMaster(page);
+    await page.getByRole('radiogroup', { name: 'Master with' }).waitFor();
+    await scrollToTop(page, page.getByRole('region', { name: 'Mastering chain' }));
+  },
+  'chain-saved': async (page) => {
+    await openMaster(page);
+    const daw = page.getByRole('radio', { name: "Your DAW's FX chain" });
+    await daw.click();
+    await page.getByText('Its steps are set in your DAW, not by the app.').waitFor();
+    await scrollToTop(page, page.getByRole('region', { name: 'Mastering chain' }));
+  },
+  'chain-unavailable': async (page) => {
+    await openMaster(page, '?mockMastering=no-audacity');
+    await scrollToTop(page, page.getByRole('region', { name: 'Mastering chain' }));
+    await page.getByRole('group', { name: "Audacity's effect macro is not available on this computer." }).hover();
+    await page.getByRole('tooltip').waitFor();
+  },
+  'to-spec-approve-daw': async (page) => {
+    await openMaster(page, '?mockMastering=daw');
+    await pickFilesToMaster(page);
+    await removeExportFile(page, 'Retail sample.wav');
+    await openApproval(page, 'Files and the regions they render');
+  },
+  'to-spec-approve-macro': async (page) => {
+    await openMaster(page, '?mockMastering=audacity');
+    await pickFilesToMaster(page);
+    const dialog = await openApproval(page, 'Files to master');
+    await dialog.getByRole('textbox', { name: 'Macro' }).fill('ACX – Master');
+    await dialog.getByRole('button', { name: 'Approve and master' }).click();
+    await dialog.getByText(/A macro name can hold only/).waitFor();
+  },
+  'to-spec-approve-many': async (page) => {
+    await openMaster(page, '?mockMastering=daw&mockExportPick=many');
+    await page.getByRole('button', { name: 'Master all to spec…' }).click();
+    await page.getByRole('table', { name: 'Files to export' }).waitFor();
+    await page.getByLabel('Role for 00 Opening credits.wav').selectOption('credits_opening');
+    await page.getByLabel('Role for 00 Closing credits.wav').selectOption('credits_closing');
+    await openApproval(page, 'Files and the regions they render');
+  },
+  'to-spec-approve-long-chain': async (page) => {
+    await openMaster(page, '?mockMastering=daw&mockMasterChain=long');
+    await pickFilesToMaster(page);
+    await removeExportFile(page, 'Retail sample.wav');
+    const dialog = await openApproval(page, 'Files and the regions they render');
+    await dialog.getByRole('table', { name: 'FX chain this render runs' }).waitFor();
+  },
+  'to-spec-approve-chain-off': async (page) => {
+    await openMaster(page, '?mockMastering=daw&mockMasterChain=long');
+    await pickFilesToMaster(page);
+    await removeExportFile(page, 'Retail sample.wav');
+    const dialog = await openApproval(page, 'FX chain this render runs');
+    const off = dialog.getByRole('table', { name: 'FX chain this render runs' }).getByText('Off', { exact: true });
+    await off.scrollIntoViewIfNeeded();
+  },
+  'to-spec-approve-no-fx': async (page) => {
+    await openMaster(page, '?mockMastering=daw&mockMasterChain=empty');
+    await pickFilesToMaster(page);
+    await removeExportFile(page, 'Retail sample.wav');
+    const dialog = await openApproval(page, 'FX chain this render runs');
+    await dialog.getByText('No FX', { exact: true }).waitFor();
+  },
+  'to-spec-approve-long-names': async (page) => {
+    await openMaster(page, '?mockMastering=daw&mockExportPick=long');
+    await page.getByRole('button', { name: 'Master all to spec…' }).click();
+    await page.getByRole('table', { name: 'Files to export' }).waitFor();
+    await page.getByLabel(/^Role for 00 Opening credits/).selectOption('credits_opening');
+    await page.getByLabel(/^Role for 00 Closing credits/).selectOption('credits_closing');
+    await openApproval(page, 'Files and the regions they render');
   },
   'to-spec-running': async (page) => {
     await openMaster(page, '?mockRenderExport=running');
@@ -152,6 +273,23 @@ export const masterDrivers: Record<string, Driver> = {
     await page.getByRole('button', { name: 'Master & encode' }).click();
     await page.getByRole('progressbar', { name: 'Preparing files' }).waitFor();
     await scrollToTop(page, page.getByRole('region', { name: 'Master to spec' }));
+  },
+  'to-spec-last-run': async (page) => {
+    await openMaster(page, '?mockDelivery=ready');
+    const panel = page.getByRole('region', { name: 'Master to spec' });
+    await panel.getByRole('button', { name: 'Master & encode' }).waitFor();
+    await panel.getByRole('button', { name: 'Remove' }).first().waitFor();
+    await scrollToTop(page, panel);
+  },
+  'to-spec-cancelled': async (page) => {
+    await openMaster(page, '?mockRenderExport=running');
+    await pickFilesToMaster(page);
+    await page.getByRole('button', { name: 'Master & encode' }).click();
+    const panel = page.getByRole('region', { name: 'Master to spec' });
+    await panel.getByRole('button', { name: 'Cancel' }).click();
+    await panel.getByText(/^Export cancelled\./).waitFor();
+    await panel.getByRole('button', { name: 'Master & encode' }).waitFor();
+    await scrollToTop(page, panel);
   },
   'multi-export-empty': async (page) => {
     await openMaster(page);
