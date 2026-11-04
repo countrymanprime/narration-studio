@@ -7,6 +7,7 @@ import { DELIVERY_PROFILES_CHANGED } from '../DeliveryProfilesPanel';
 import { MW_KEY_CHANGED } from '../controls/mwKeyStatus';
 import { useChapterSync } from '../../../hooks/useChapterSync';
 import type { VoiceTracksState } from '../../../api/contracts/voiceTracks';
+import { subscribeRateBasis } from '../../schedule/useEffectiveWph';
 import { useTips } from '../../../tips/useFirstUseTip';
 import { useVoiceSetup } from '../../engine/voiceLayout';
 import { onEngineChanged } from './engineSignal';
@@ -15,7 +16,7 @@ import type { ReadSettings } from './values';
 
 /** What a probe may look at: the ports it reads through, the fields the page already read, and the delivery profiles (read once per pass). */
 export type ProbeContext = {
-  api: PortOf<'system'> & PortOf<'dawChoice'> & PortOf<'deliveryProfiles'> & PortOf<'pronunciationOnline'>;
+  api: PortOf<'system'> & PortOf<'dawChoice'> & PortOf<'deliveryProfiles'> & PortOf<'pronunciationOnline'> & PortOf<'production'>;
   settings: ReadSettings;
   delivery: () => Promise<DeliveryProfilesState>;
 };
@@ -35,6 +36,8 @@ export const CUSTOM_CHANGED: Readonly<Record<string, (context: ProbeContext) => 
   'voice.mwKey': async ({ api }) => (await api.pronunciationOnlineKeyStatus()).present,
   // This computer: the narrator added a profile of their own.
   'delivery.custom': async ({ delivery }) => (await delivery()).profiles.some((profile) => !profile.builtIn),
+  // This project: the schedule uses the narrator's own pace instead of the standard.
+  'project.rateBasis': async ({ api }) => (await api.productionPlan()).rateBasis === 'own',
   // This project: it records with something other than REAPER, or has its own delivery profile.
   'daw.engine': async ({ api }) => {
     const { chosen } = await api.dawChoice();
@@ -119,7 +122,11 @@ export function useCustomChanged(settings: ReadSettings): ReadonlySet<string> {
   const dawChoice = usePort('dawChoice');
   const delivery = usePort('deliveryProfiles');
   const pronunciation = usePort('pronunciationOnline');
-  const api = useMemo(() => ({ ...system, ...dawChoice, ...delivery, ...pronunciation }), [system, dawChoice, delivery, pronunciation]);
+  const production = usePort('production');
+  const api = useMemo(
+    () => ({ ...system, ...dawChoice, ...delivery, ...pronunciation, ...production }),
+    [system, dawChoice, delivery, pronunciation, production],
+  );
   const { setup: voiceSetup } = useVoiceSetup();
   const chapterSync = usePort('chapterSync');
   const syncConsent = useChapterSync(chapterSync)?.consent;
@@ -133,9 +140,11 @@ export function useCustomChanged(settings: ReadSettings): ReadonlySet<string> {
     const events = [DELIVERY_PROFILES_CHANGED, MW_KEY_CHANGED];
     for (const name of events) window.addEventListener(name, bump);
     const stop = onEngineChanged(bump);
+    const stopBasis = subscribeRateBasis(bump);
     return () => {
       for (const name of events) window.removeEventListener(name, bump);
       stop();
+      stopBasis();
     };
   }, []);
 
