@@ -15,7 +15,8 @@ import (
 // #2838: the owner's chapters ended up nested in another chapter's folder after they relinked. Linking, relinking, unlinking, chapter
 // sync, the layout switch and the Voices card's saves write only the app's own files: none of them may ask the DAW for anything that
 // changes the project, and the saved project file stays byte-identical. Every DAW call goes through the DAW port's resolver, so a fake
-// adapter that records each role call shows exactly what these paths can reach.
+// adapter that records each role call shows exactly what these paths can reach. A read the DAW answers without changing anything is
+// allowed by name (readOnlyDAWCalls); every other call fails the test.
 func TestLinkingRelinkingSyncingAndTheLayoutSwitchNeverChangeTheDAWProject(t *testing.T) {
 	host, ids := newVoiceFolderHost(t, voicetracks.LayoutFolders)
 	fake := dawporttest.NewFake(dawport.KindREAPER, dawporttest.Levels(dawport.Experimental))
@@ -74,8 +75,8 @@ func TestLinkingRelinkingSyncingAndTheLayoutSwitchNeverChangeTheDAWProject(t *te
 		if _, err := step.call(); err != nil {
 			t.Logf("%s: %v (an error is fine; a write is not)", step.name, err)
 		}
-		if calls := fake.Calls(); len(calls) > 0 {
-			t.Fatalf("%s asked the DAW for %v; linking, syncing and the voice setup must not reach the DAW", step.name, calls)
+		if calls := dawWrites(fake.Calls()); len(calls) > 0 {
+			t.Fatalf("%s asked the DAW for %v; linking, syncing and the voice setup may only read the DAW", step.name, calls)
 		}
 	}
 	after, err := os.ReadFile(rpp)
@@ -92,7 +93,22 @@ func TestLinkingRelinkingSyncingAndTheLayoutSwitchNeverChangeTheDAWProject(t *te
 	// same resolver, so an empty call list above means those paths asked for nothing, not that the fake records nothing.
 	// (The fake's new track has no GUID, so the link that follows it fails; only the DAW call matters here.)
 	_, _ = host.ChapterTrackCreate(ids[1])
-	if calls := fake.Calls(); len(calls) != 1 || calls[0] != "track_create.CreateTrack" {
+	if calls := dawWrites(fake.Calls()); len(calls) != 1 || calls[0] != "track_create.CreateTrack" {
 		t.Fatalf("the create press reached the DAW as %v, want one track_create.CreateTrack", calls)
 	}
+}
+
+// readOnlyDAWCalls are the role calls the DAW answers without changing the project: listing the links reads REAPER's live track list
+// (tracks_read, #2840), which opens no undo block and sets nothing (narration_tracks_read.lua, tracks_read_test.lua).
+var readOnlyDAWCalls = map[string]bool{"tracks_read.ReadTracks": true}
+
+// dawWrites is calls without the read-only ones, in order.
+func dawWrites(calls []string) []string {
+	var out []string
+	for _, call := range calls {
+		if !readOnlyDAWCalls[call] {
+			out = append(out, call)
+		}
+	}
+	return out
 }
