@@ -2703,6 +2703,7 @@
       "consumers": [
         "src/components/devtools/MockStatesPanel.tsx",
         "src/components/editing/range/cut/CutDialog.tsx",
+        "src/components/master/MasteringChain.tsx",
         "src/components/settings/controls/AppearanceBodies.tsx",
         "src/components/settings/controls/DefinitionsBody.tsx",
         "src/components/settings/controls/EngineBody.tsx",
@@ -4211,6 +4212,7 @@
         "src/components/layout/AppShell.tsx",
         "src/components/layout/EngineChip.tsx",
         "src/components/master/DiagnosticsSection.tsx",
+        "src/components/master/MasteringChain.tsx",
         "src/components/primitives/ActivityPanel.tsx",
         "src/components/primitives/CapabilityGate.tsx",
         "src/components/primitives/ChapterStepper.tsx",

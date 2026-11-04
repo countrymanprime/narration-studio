@@ -2001,6 +2001,18 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect((await api.masteringProviders()).choice).toBe('audacity');
     expect((await api.masteringChooseProvider('')).choice).toBeNull();
 
+    // A row not available on this computer (the chain card's off row): refused with its sentence, as chooseMasteringProvider does.
+    const off = createMockApi({}, { mastering: { unavailable: { audacity: "Audacity's effect macro is not available on this computer." } } });
+    const offState = await off.masteringProviders();
+    expectMatches(masteringProvidersSchema, offState, 'mock mastering chains (a row not available here)');
+    expect(offState.providers.find((row) => row.name === 'audacity')?.support).toEqual({
+      level: 'unsupported',
+      available: false,
+      reason: 'unsupported',
+      message: "Audacity's effect macro is not available on this computer.",
+    });
+    await expect(off.masteringChooseProvider('audacity')).rejects.toThrow("Audacity's effect macro is not available on this computer.");
+
     const stale = await createMockApi({}, { mastering: { choice: 'dolby-atmos' } }).masteringProviders();
     expectMatches(masteringProvidersSchema, stale, 'mock mastering chains (a stored choice this version does not have)');
     expect(stale).toEqual(readGolden('mastering-providers-unknown-choice.json'));
