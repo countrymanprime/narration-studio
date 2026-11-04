@@ -16,6 +16,8 @@ export type TipsStore = {
   load(): Promise<void>;
   /** Marks a tip dismissed at once and saves the list. Returns the sentence of a failed save, after putting the tip back; null when it saved. */
   dismiss(id: string): Promise<string | null>;
+  /** Forgets every dismissed tip at once and saves the empty list, so each tip shows again. Same return as `dismiss`. */
+  reset(): Promise<string | null>;
 };
 
 const parse = (value: string): Set<string> => new Set(value.split(/\s+/).filter(Boolean));
@@ -28,6 +30,16 @@ export function createTipsStore(system: SystemPort): TipsStore {
   const set = (next: TipsSnapshot) => {
     seen = next;
     listeners.forEach((listener) => listener());
+  };
+  /** Saves the list as it now stands; on a refusal puts `before` back and returns the host's sentence. */
+  const save = async (before: ReadonlySet<string>): Promise<string | null> => {
+    try {
+      await system.saveSettings(TOOL, 'global', { [KEY]: [...(seen ?? [])].join(' ') });
+      return null;
+    } catch (error) {
+      set(before);
+      return error instanceof Error ? error.message : String(error);
+    }
   };
   return {
     snapshot: () => seen,
@@ -48,13 +60,12 @@ export function createTipsStore(system: SystemPort): TipsStore {
     async dismiss(id) {
       const before = seen ?? new Set<string>();
       set(new Set([...before, id]));
-      try {
-        await system.saveSettings(TOOL, 'global', { [KEY]: [...(seen ?? [])].join(' ') });
-        return null;
-      } catch (error) {
-        set(before);
-        return error instanceof Error ? error.message : String(error);
-      }
+      return save(before);
+    },
+    async reset() {
+      const before = seen ?? new Set<string>();
+      set(new Set());
+      return save(before);
     },
   };
 }

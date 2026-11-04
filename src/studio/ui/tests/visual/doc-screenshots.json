@@ -659,6 +659,13 @@
   },
   {
     "page": "settings",
+    "state": "first-use-tips",
+    "viewport": "desktop",
+    "docName": "settings-first-use-tips",
+    "caption": "Settings - First-use tips under Tips: how many were dismissed, and Show tips again"
+  },
+  {
+    "page": "settings",
     "state": "editing-playback",
     "viewport": "desktop",
     "docName": "settings-editing-playback",

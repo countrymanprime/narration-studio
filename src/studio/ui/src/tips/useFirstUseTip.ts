@@ -30,3 +30,13 @@ export function useFirstUseTip(id: TipId): { visible: boolean; dismiss: () => vo
   }, [store, id]);
   return { visible: seen !== null && !seen.has(id), dismiss };
 }
+
+/** The dismissed tips (`null` until the host has said), read live, with a way to show them all again. The Settings row and its Changed mark use it. */
+export function useTips(): { seen: ReadonlySet<string> | null; reset: () => Promise<string | null> } {
+  const store = useTipsStore();
+  const seen = useSyncExternalStore(store.subscribe, store.snapshot);
+  useEffect(() => {
+    void store.load();
+  }, [store]);
+  return { seen, reset: store.reset };
+}
