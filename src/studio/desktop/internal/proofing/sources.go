@@ -7,16 +7,17 @@ import (
 
 	"desktop/internal/findings"
 	"desktop/internal/liveflags"
-	"desktop/internal/repeats"
 	"desktop/internal/stages"
 )
 
 // The analyzers whose findings are pickup sources. Transcript Compare's
 // name is spelled here rather than imported so this package does not depend on
 // the transcript service (a test pins it to transcript.AnalyzerName).
+// AnalyzerTakeReview is the retired take review's pickup and duplicate scan:
+// nothing writes its findings any more, but a project may still hold some.
 const (
 	AnalyzerTranscriptCompare = "transcript-compare"
-	AnalyzerTakeReview        = repeats.AnalyzerName
+	AnalyzerTakeReview        = "take-review"
 	AnalyzerTeleprompter      = liveflags.AnalyzerName
 )
 
@@ -30,9 +31,9 @@ var pickupCategories = []findings.Category{
 // sourceSpec is what the roll-up knows about a source before reading it.
 // absentResolved says a finding the source's latest run did not reproduce may
 // be read as resolved without a ledger record: true only for a source whose
-// store merge happens after a complete, whole-chapter run and never after a
-// partial or failed one (take review: takereview.Scanner.Scan saves only after
-// a successful scan of the chapter's full scope). Transcript Compare's absence
+// store merge happened after a complete, whole-chapter run and never after a
+// partial or failed one (the retired take review saved only after a successful
+// scan of the chapter's full scope). Transcript Compare's absence
 // is judged per finding by its run's coverage instead; read-aloud
 // flags are merged, never marked absent (findings.Store.MergeAnalyzerFindings).
 type sourceSpec struct {
@@ -42,8 +43,14 @@ type sourceSpec struct {
 
 var knownSources = map[string]sourceSpec{
 	AnalyzerTranscriptCompare: {label: "Transcript Compare"},
-	AnalyzerTakeReview:        {label: "Take review", absentResolved: true},
 	AnalyzerTeleprompter:      {label: "Read-aloud flags"},
+}
+
+// retiredSources are sources nothing runs any more. Their saved findings are
+// still read, as plain pickups the narrator decides on Proof, but a retired
+// source is reported only for a chapter that has some.
+var retiredSources = map[string]sourceSpec{
+	AnalyzerTakeReview: {label: "Take review", absentResolved: true},
 }
 
 // FindingsReader is the read-only part of the findings store the roll-up
@@ -93,6 +100,9 @@ func gatherSources(ctx context.Context, reader FindingsReader, judges map[string
 	reports := make([]SourceReport, 0, len(analyzers))
 	for _, analyzer := range analyzers {
 		spec, known := knownSources[analyzer]
+		if !known {
+			spec, known = retiredSources[analyzer]
+		}
 		if !known {
 			spec = sourceSpec{label: analyzer}
 		}

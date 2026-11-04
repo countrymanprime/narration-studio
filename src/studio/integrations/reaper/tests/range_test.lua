@@ -113,6 +113,16 @@ H.test('the Cuts track is created once, at the end, and a second cut reuses it',
   H.eq(#cuts_track(s).items, 2)
 end)
 
+H.test('the Cuts track goes at the top level even when the project ends inside an open folder, and no track changes folder', function()
+  local s, p = project()
+  p.chapter.folder_depth = 1 -- Chapter 2 is Chapter 1's child and the folder is left open at the end
+  local before = H.parents(s)
+  s:send('delete_range', 'c1', p.item.guid, '14', '16', 'close', '0')
+  H.eq(s:events()[1][1], 'RANGE_CUT')
+  local after = H.same_parents(before, s)
+  H.eq(after.Cuts, '')
+end)
+
 H.test('a track named Cuts without the key is used, keyed and muted; a keyed Cuts track the narrator unmuted is muted again', function()
   local s, p = project()
   local named = s.fake:add_track('Cuts')

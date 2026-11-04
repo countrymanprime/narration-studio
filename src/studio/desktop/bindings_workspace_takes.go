@@ -2,30 +2,31 @@ package main
 
 import (
 	"context"
-	"desktop/internal/coverage"
-	"errors"
+	"desktop/internal/creditsid"
 	"fmt"
+	"strings"
+	"time"
 
 	"desktop/internal/bridge"
 	"desktop/internal/dawport"
-	"desktop/internal/findings"
 	"desktop/internal/passagetakes"
 	"desktop/internal/runlog"
-	"desktop/internal/takecompare"
-	"desktop/internal/takereview"
 	"desktop/internal/tracks"
 )
 
-// The workspace's Takes panel: the alternate takes of a chapter passage, a passage-based comparison of them,
-// and "Use this take". The page sends a chapter id and a range of token indices (and, to choose, the id of a candidate
-// this host offered), never a GUID, a file or a time: every one of those is read here from the chapter's stored
-// alignment, the Booth's passage map, the saved REAPER project and the findings store (internal/passagetakes), exactly as
-// WorkspaceGoTo does for a word (threat model rows 5l and 4f).
+// The workspace's Takes panel: the alternate takes of a chapter passage and "Use this take". The page sends a chapter
+// id and a range of token indices (and, to choose, the id of a candidate this host offered), never a GUID, a file or a
+// time: every one of those is read here from the chapter's stored alignment, the Booth's passage map and the saved
+// REAPER project (internal/passagetakes), exactly as WorkspaceGoTo does for a word (threat model rows 5l and 4f).
+
+// takeRequestTimeout bounds the wait for REAPER to answer one take request from the Takes panel (and the range
+// requests that share it): long enough for a busy REAPER, short enough that a hung one is reported.
+const takeRequestTimeout = 12 * time.Second
 
 // workspaceTakesResolved reads the alternates of the passage [firstToken, lastToken] of chapterID, with the saved
 // project they were resolved against (a choice acts on that project's GUIDs).
 func (h *Host) workspaceTakesResolved(svc hostServices, chapterID string, firstToken, lastToken int) (passagetakes.Resolved, tracks.Project, error) {
-	if svc.coverage == nil || svc.findings == nil || svc.manuscript == nil {
+	if svc.coverage == nil || svc.manuscript == nil {
 		return passagetakes.Resolved{}, tracks.Project{}, errNoProject
 	}
 	view, err := svc.coverage.Alignment(chapterID, coverageSettings(svc.settings).Alignment)
@@ -36,22 +37,6 @@ func (h *Host) workspaceTakesResolved(svc hostServices, chapterID string, firstT
 	if err != nil {
 		return passagetakes.Resolved{}, tracks.Project{}, err
 	}
-	title, err := manuscriptChapterTitle(svc, chapterID)
-	if err != nil {
-		return passagetakes.Resolved{}, tracks.Project{}, err
-	}
-	groups, err := svc.findings.List(findings.Query{Analyzer: "take-review"})
-	if err != nil {
-		return passagetakes.Resolved{}, tracks.Project{}, err
-	}
-	// A take-review group names its chapter by the title the scan aligned it to (comparisonChapterID), not by the
-	// manuscript's own id.
-	var chapterGroups []findings.Finding
-	for _, group := range groups {
-		if group.Manuscript != nil && group.Manuscript.ChapterTitle == title {
-			chapterGroups = append(chapterGroups, group)
-		}
-	}
 	// The Booth's passage map places the passages it recorded (TK-1 part 2). A map that cannot be read places nothing:
 	// every take is then placed by the alignment, as for a chapter recorded elsewhere.
 	marks, err := h.passageMapIn(svc, nil).List(chapterID)
@@ -59,19 +44,15 @@ func (h *Host) workspaceTakesResolved(svc hostServices, chapterID string, firstT
 		marks = nil
 	}
 	resolved, err := passagetakes.Resolve(passagetakes.Input{
-		ChapterID: chapterID, View: view, FirstToken: firstToken, LastToken: lastToken, Project: project, Groups: chapterGroups, Marks: marks,
-		Comparison: func(passageID string) (findings.Finding, bool) {
-			saved, found, err := svc.findings.Get(takecompare.PassageFindingID(svc.config.projectFolder, passageID))
-			return saved, err == nil && found
-		},
+		ChapterID: chapterID, View: view, FirstToken: firstToken, LastToken: lastToken, Project: project, Marks: marks,
 	})
 	return resolved, project, err
 }
 
 // manuscriptChapterTitle is the display title of the manuscript's narration chapter chapterID.
 func manuscriptChapterTitle(svc hostServices, chapterID string) (string, error) {
-	if kind, ok := coverage.CreditsKind(chapterID); ok {
-		return creditsScriptTitles[kind], nil
+	if kind, ok := creditsid.Kind(chapterID); ok {
+		return creditsid.Title(kind), nil
 	}
 	data, err := svc.manuscript.Load()
 	if err != nil {
@@ -86,10 +67,31 @@ func manuscriptChapterTitle(svc hostServices, chapterID string) (string, error) 
 	return "", fmt.Errorf("no chapter of the manuscript has the id %q; reload the workspace", chapterID)
 }
 
+// displayTitle joins a heading's lines with ": ", as the manuscript's chapter list shows them.
+func displayTitle(title string) string {
+	var lines []string
+	for _, line := range strings.Split(title, "\n") {
+		if line = strings.TrimSpace(line); line != "" {
+			lines = append(lines, line)
+		}
+	}
+	return strings.Join(lines, ": ")
+}
+
+func asObjects(value any) []map[string]any {
+	list, _ := value.([]any)
+	objects := make([]map[string]any, 0, len(list))
+	for _, item := range list {
+		if object, ok := item.(map[string]any); ok {
+			objects = append(objects, object)
+		}
+	}
+	return objects
+}
+
 // WorkspaceTakes lists the takes the narrator can set beside the passage (the tokens firstToken to lastToken of the
 // chapter's stored alignment, snapped out to whole paragraphs): the other takes of the item it was heard on, the other
-// retakes of its line on a fixed-lane track, and reads a take-review group set beside it (EP6). It reads only; it works
-// with REAPER closed.
+// and the other retakes of its line on a fixed-lane track (EP6). It reads only; it works with REAPER closed.
 func (h *Host) WorkspaceTakes(chapterID string, firstToken int, lastToken int) (string, error) {
 	resolved, _, err := h.workspaceTakesResolved(h.services(), chapterID, firstToken, lastToken)
 	return encodeBinding(resolved.View, err)
@@ -113,43 +115,11 @@ func (h *Host) WorkspaceTakeEvidence(chapterID string, firstToken int, lastToken
 	return encodeBinding(passagetakes.Evidence(resolved, takeEvidenceMeasures), nil)
 }
 
-// WorkspaceTakesCompareStart compares the passage's usable takes as the one take comparison job:
-// the same sidecar mode, state and cancel as a take-review group's comparison (TakeComparisonState and
-// TakeComparisonCancel answer for it, with the passage's id as the job's FindingID), with a manifest built from the
-// saved project. It saves one take_comparison finding whose id is computable from the passage, so the panel reads it back.
-func (h *Host) WorkspaceTakesCompareStart(chapterID string, firstToken int, lastToken int) (string, error) {
-	svc := h.services()
-	resolved, project, err := h.workspaceTakesResolved(svc, chapterID, firstToken, lastToken)
-	if err != nil {
-		return "", err
-	}
-	view := resolved.View
-	if view.PassageID == "" {
-		return "", errors.New(view.Message)
-	}
-	reads := resolved.Reads()
-	if len(reads) < 2 {
-		return "", fmt.Errorf("fewer than two of this passage's takes can be compared; there is nothing to set side by side")
-	}
-	title, err := manuscriptChapterTitle(svc, chapterID)
-	if err != nil {
-		return "", err
-	}
-	request := takecompare.Request{
-		Passage: &takecompare.Passage{
-			ID: view.PassageID, FirstParagraph: view.FirstParagraph, LastParagraph: view.LastParagraph, ChapterTitle: title, Reads: reads,
-		},
-		Project: project, ProjectPath: svc.config.projectFolder, ManuscriptPath: takeReviewManuscriptPath(svc.config.projectFolder), ChapterID: chapterID,
-	}
-	return encodeBinding(h.launchTakeComparison(svc, "passage_id", view.PassageID, len(reads), request))
-}
-
 // WorkspaceUseTake makes a take of the passage the one that plays (EP7). candidateID is one of the
 // ids WorkspaceTakes just offered: the host re-reads the alternates from the saved project and refuses an id it does
 // not offer, so nothing but a listed take can be chosen. What happens depends on where the take came from: another take
 // of the item is made active (set_active_take, one undo step); another retake on a fixed-lane track becomes the lane
-// that plays (pick_retake_lane); a read from another item is added as a take (create_take) and then made active, in
-// one action the page confirms first. Every REAPER refusal is answered as a refused outcome and changes nothing.
+// that plays (pick_retake_lane). Every REAPER refusal is answered as a refused outcome and changes nothing.
 func (h *Host) WorkspaceUseTake(chapterID string, firstToken int, lastToken int, candidateID string) (string, error) {
 	svc := h.services()
 	resolved, project, err := h.workspaceTakesResolved(svc, chapterID, firstToken, lastToken)
@@ -167,7 +137,7 @@ func (h *Host) WorkspaceUseTake(chapterID string, firstToken int, lastToken int,
 		return encodeBinding(passagetakes.Outcome{Outcome: passagetakes.OutcomeRefused, Reason: status.Connection, Message: status.Message}, nil)
 	}
 	run := h.runLog.Begin("use_take", "chapter_id", chapterID, "action", choice.Candidate.Action, "source", choice.Candidate.Source)
-	ctx, cancel := context.WithTimeout(context.Background(), 2*takeReviewCreateTakeTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), takeRequestTimeout)
 	defer cancel()
 	resolver, _ := h.dawResolverFor(svc)
 	outcome := passagetakes.Use(ctx, workspaceTakeActors(svc, resolver, project, run), choice)
@@ -181,7 +151,7 @@ func (h *Host) WorkspaceUseTake(chapterID string, firstToken int, lastToken int,
 
 // workspaceTakeActors are the REAPER requests WorkspaceUseTake may make, each through the DAW port's own role (or the
 // retake lanes service), so each is gated exactly as the same request from another page (dawport.CapTakes,
-// CapTakeCreate, CapRetakeLanes). Making a take active uses svc.takeSelector behind the launch's resolver, as
+// CapRetakeLanes). Making a take active uses svc.takeSelector behind the launch's resolver, as
 // WorkspaceHideTakes does: h.dawPortResolver's adapter (p5aAdapter) has no takes role.
 func workspaceTakeActors(svc hostServices, resolver *dawport.Resolver, project tracks.Project, run *runlog.Run) passagetakes.Actors {
 	return passagetakes.Actors{
@@ -194,12 +164,6 @@ func workspaceTakeActors(svc hostServices, resolver *dawport.Resolver, project t
 			}
 			set, err := svc.takeSelector.SetActiveTake(ctx, itemGUID, takeGUID)
 			return set.Changed, err
-		},
-		CreateTake: func(ctx context.Context, req takereview.CreateTakeRequest) (takereview.CreateTakeResult, error) {
-			if svc.takeCreator == nil {
-				return takereview.CreateTakeResult{}, bridge.ErrUnavailable
-			}
-			return takereview.CreateTake(ctx, svc.takeCreator, takeReviewSessionDir(svc.config.sessionDir), req)
 		},
 		PickLane: func(lineID, itemGUID string) error {
 			if svc.retakeLanes == nil {

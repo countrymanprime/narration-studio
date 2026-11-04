@@ -9,8 +9,6 @@
 - status
 - alert
 - status
-- alert
-- status
 - dialog "Check recordings":
   - heading "Check recordings" [level=2]
   - button "Close"
@@ -25,9 +23,9 @@
   - region "Pickups (0)":
     - heading "Pickups (0)" [level=3]
     - paragraph: None from this check.
-    - text: "Repeated reads (Proof): none waiting"
+    - text: "Pickup notes (Proof): none waiting"
     - link "Open Proof":
-      - /url: /proof
+      - /url: /proof?chapter=chapter-4
     - text: "Pickup list: 3 open (project-wide)"
     - link "Open pickups":
       - /url: /pickups

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"desktop/internal/creditsid"
 	"os"
 	"sync"
 	"time"
@@ -31,7 +32,7 @@ func recordedLengths(folder string, store *settings.Store, service *manuscript.S
 			return nil
 		}
 		project, readable := cache.read(folder, store)
-		return recordedLengthsFor(append(chapterIDs(data), manuscript.OpeningCreditsID, manuscript.ClosingCreditsID), mappings, project, readable)
+		return recordedLengthsFor(append(chapterIDs(data), creditsid.OpeningID, creditsid.ClosingID), mappings, project, readable)
 	}
 }
 

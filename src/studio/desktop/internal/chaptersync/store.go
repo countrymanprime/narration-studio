@@ -39,19 +39,10 @@ type Activity struct {
 	NewTracks []TrackRef              `json:"newTracks"`
 }
 
-// PickupScan is the last take-review scan that included a chapter's pickup track: the track's Fingerprint as
-// scanned, and when. A pickup track whose fingerprint differs since has pickups the scan has not seen.
-type PickupScan struct {
-	TrackGUID   string    `json:"trackGuid"`
-	Fingerprint string    `json:"fingerprint"`
-	ScannedAt   time.Time `json:"scannedAt"`
-}
-
 type fileShape struct {
-	SchemaVersion int          `json:"schemaVersion"`
-	Snapshot      Snapshot     `json:"snapshot"`
-	Activity      []Activity   `json:"activity,omitempty"`
-	PickupScans   []PickupScan `json:"pickupScans,omitempty"`
+	SchemaVersion int        `json:"schemaVersion"`
+	Snapshot      Snapshot   `json:"snapshot"`
+	Activity      []Activity `json:"activity,omitempty"`
 }
 
 // Store keeps the last sync's Snapshot and the activity list. It is disposable
@@ -120,29 +111,6 @@ func (s *Store) Write(snapshot Snapshot, entries ...Activity) error {
 		file.Activity = file.Activity[:ActivityLimit]
 	}
 	file.Snapshot = snapshot
-	return s.writeLocked(file)
-}
-
-// PickupScans returns the recorded pickup scans, one per pickup track.
-func (s *Store) PickupScans() []PickupScan {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	return append([]PickupScan{}, s.readLocked().PickupScans...)
-}
-
-// RecordPickupScan remembers scan as its track's last pickup scan, replacing an earlier one.
-func (s *Store) RecordPickupScan(scan PickupScan) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	file := s.readLocked()
-	kept := []PickupScan{}
-	for _, existing := range file.PickupScans {
-		if existing.TrackGUID != scan.TrackGUID {
-			kept = append(kept, existing)
-		}
-	}
-	scan.ScannedAt = scan.ScannedAt.UTC()
-	file.PickupScans = append(kept, scan)
 	return s.writeLocked(file)
 }
 

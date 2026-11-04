@@ -3,6 +3,7 @@ import { apiErrorMessage } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
 import { formatSize } from '../../assets/AssetFacts';
 import { Button } from '../../primitives/Button';
+import { HelpButton } from '../../primitives/HelpButton';
 import { InsetCard } from '../../primitives/InsetCard';
 import { ConfirmDialog } from '../../primitives/ConfirmDialog';
 import { Panel } from '../../primitives/Panel';
@@ -173,10 +174,12 @@ export function ModelsPane({ category }: { category: Category }) {
       {rows.every((view) => view.status !== 'installed') && (
         <Panel label="Nothing is downloaded yet">
           <div className="flex flex-col items-start gap-2.5">
-            <b>Nothing is downloaded yet</b>
-            <p className="m-0 max-w-[62ch]">
-              The app needs a transcription model to check recordings and a voice to preview names. The recommended pair is about 600 MB.
-            </p>
+            <span className="flex items-center gap-2">
+              <b>Nothing is downloaded yet</b>
+              <HelpButton label="About the recommended set">
+                The app needs a transcription model to check recordings and a voice to preview names. The recommended pair is about 600 MB.
+              </HelpButton>
+            </span>
             <Button pending={recommendedBusy} onClick={downloadRecommended}>
               Download the recommended set
             </Button>
@@ -221,6 +224,7 @@ export function ModelsPane({ category }: { category: Category }) {
                   setRemoving(view);
                 }}
                 dismiss={() => assets.dismissFailure(view.item)}
+                verify={() => void assets.verify(view.item)}
               />
             );
           })}

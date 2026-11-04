@@ -244,3 +244,24 @@ func TestReachabilityMatchReasonNamesWhyAProjectDoesNotMatch(t *testing.T) {
 		t.Errorf("old heartbeat: MatchReason = %q, want stale", got)
 	}
 }
+
+func TestReachabilityKnowsTheTimingSwitchFromAFreshHeartbeat(t *testing.T) {
+	reach := NewReachability(nil)
+	clock := time.Now()
+	reach.now = func() time.Time { return clock }
+	if reach.TimingOn() {
+		t.Fatal("TimingOn() before any heartbeat")
+	}
+	reach.Record(bridge.Event{Fields: []string{"PROJECT_STATUS", "", "C:/p/Book.rpp", "0", "3", "0", "0.000000", "1"}})
+	if !reach.TimingOn() {
+		t.Fatal("TimingOn() = false after a heartbeat carrying 1")
+	}
+	clock = clock.Add(heartbeatTimeout + time.Second)
+	if reach.TimingOn() {
+		t.Fatal("TimingOn() = true from a heartbeat older than the timeout")
+	}
+	reach.Record(bridge.Event{Fields: []string{"PROJECT_STATUS", "", "C:/p/Book.rpp", "0", "3", "0", "0.000000"}})
+	if reach.TimingOn() {
+		t.Fatal("TimingOn() = true after a heartbeat without the field")
+	}
+}

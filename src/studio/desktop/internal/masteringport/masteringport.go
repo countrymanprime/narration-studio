@@ -6,9 +6,10 @@
 //
 // The rows:
 //   - builtin (builtin.go): today's internal/mastering chain, EQ then limiter then gain, wrapped unchanged. The default.
-//   - daw (daw.go): declared, not yet available. It will render regions through the project's own track and master FX, through
-//     the DAW port's render_with_fx role, with the narrator's approval for each render.
-//   - an Audacity row is planned (its effect macros, then Export2), once the Audacity 3.x pipe client lands; it is not registered.
+//   - daw (daw.go): Experimental. It renders a region through the project's own track and master FX, through the DAW port's
+//     render_with_fx role, with the narrator's approval for each render.
+//   - audacity (mastering_audacity.go): Experimental. It applies the narrator's effect macro in Audacity, then exports, with the
+//     narrator's approval for each render.
 //
 // A row's Descriptor.Modes say what it masters from: ModeWAV, a rendered WAV file at Request.Source; ModeDAWRegion, regions the DAW
 // renders itself (Request.Region). Capabilities say how far it is built and what it needs.
@@ -55,6 +56,9 @@ type Request struct {
 	// Approved is the narrator's yes for this one master, given in the UI just before it runs. A row whose Capabilities say
 	// NeedsApproval refuses without it (ErrNotApproved); the host never sets it on its own or remembers it between runs.
 	Approved bool
+	// ChainDigest is ChainDigest of the chain the narrator was shown and approved, for a row that lists its chain (ChainLister):
+	// such a row refuses a request without one (ErrNoChainDigest) and a render whose chain differs from it (ErrChainChanged).
+	ChainDigest string
 	// Progress, when set, hears how far the master has got; done never goes back and reaches total on success.
 	Progress func(done, total int64)
 }
@@ -80,6 +84,9 @@ type Result struct {
 	// After and Judgement are Judge's answer for Destination, whichever row wrote it.
 	After     measure.Report
 	Judgement deliveryprofile.Judgement
+	// BuiltinReport is the built-in chain's own report (internal/mastering's Result), with the gain and high-pass numbers it chose,
+	// for a caller that shows them; nil for every other row, whose chain the app does not set.
+	BuiltinReport *mastering.Result
 }
 
 // Capabilities are what a row declares beyond its descriptor: how far it is built, and what it needs before it can run.
@@ -89,6 +96,9 @@ type Capabilities struct {
 	Level port.Level
 	// NeedsApproval: each master needs Request.Approved. Every row that makes a DAW render needs it.
 	NeedsApproval bool
+	// NeedsMacro: each master needs Request.Macro, the name of the narrator's own effect macro, which the narrator gives with their
+	// approval (the Audacity row).
+	NeedsMacro bool
 	// Needs are the DAW port capabilities the row uses, which the launch's DAW must have available.
 	Needs []dawport.Capability
 	// Chain is the row's own fixed chain, in order, in words that hold for any profile, so it can be shown before anything is
@@ -105,6 +115,26 @@ type Mastering interface {
 	Capabilities() Capabilities
 	// Master writes req.Destination from the row's input and answers what ran and Judge's verdict on the file.
 	Master(ctx context.Context, req Request) (Result, error)
+}
+
+// ChainLister is a row whose steps live outside the app, in the narrator's DAW: Chain reads the plug-ins a master would run now,
+// so the narrator sees them before approving it (threat model row 5o). A row that declares its own steps (the built-in chain) or is
+// named in the approval (Audacity's macro) does not implement it.
+type ChainLister interface {
+	Chain(ctx context.Context) ([]ChainTrack, error)
+}
+
+// ChainTrack is one track's plug-ins in the chain, in chain order: every track that has FX, then the master track's (Master).
+type ChainTrack struct {
+	Name   string
+	Master bool
+	FX     []ChainFX
+}
+
+// ChainFX is one plug-in as the DAW names it, and whether it is switched on.
+type ChainFX struct {
+	Name    string
+	Enabled bool
 }
 
 // The refusals every row shares. The first two are internal/mastering's own, so a caller of either package checks one error.

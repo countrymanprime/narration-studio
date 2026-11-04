@@ -48,6 +48,8 @@ export interface DawSessionState {
   capsError: string;
   /** Counts every capability report taken, so a consumer that re-reads something on a DAW change keys an effect on it. */
   capsVersion: number;
+  /** Counts every Check again the narrator pressed, so the facts read elsewhere (the host's bootstrap) are read again with the report. */
+  checkVersion: number;
   /** REAPER's transport from `daw_transport_changed`; stopped until the first push. */
   transport: DawTransport;
   meters: DawMetersState;
@@ -66,6 +68,8 @@ export interface DawSession {
   stop(): void;
   /** Asks the DAW for its capabilities again, resolving once the answer is in. */
   refreshCapabilities(): Promise<void>;
+  /** The narrator's Check again, the one route every connection check takes: the report is read now and `checkVersion` tells the other readers to read their facts again. */
+  checkConnection(): Promise<void>;
   /** A fresh read for a caller that gates an action on it: every screen sees the answer, and a failed read rejects with the host's error. */
   readCapabilities(): Promise<DawCapabilities>;
   /** Takes a report read elsewhere (the dialog's wait after Start), so every screen follows it. */
@@ -83,6 +87,7 @@ const INITIAL: DawSessionState = {
   capsReadFailed: false,
   capsError: '',
   capsVersion: 0,
+  checkVersion: 0,
   transport: { playing: false, recording: false },
   meters: { kind: 'loading' },
   fx: { chain: null, reading: true, error: '', readAt: null },
@@ -143,6 +148,11 @@ export function createDawSession(host: DawSessionApi): DawSession {
         if (running) set({ capsReadFailed: true, capsError: describeApiError(error) });
       },
     );
+  };
+
+  const checkConnection = () => {
+    set({ checkVersion: state.checkVersion + 1 });
+    return refreshCapabilities();
   };
 
   const readCapabilities = () =>
@@ -266,6 +276,7 @@ export function createDawSession(host: DawSessionApi): DawSession {
       state = INITIAL;
     },
     refreshCapabilities,
+    checkConnection,
     readCapabilities,
     takeCapabilities,
     refreshFx,

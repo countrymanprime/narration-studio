@@ -2,6 +2,7 @@ package main
 
 import (
 	"desktop/internal/brand"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -12,6 +13,7 @@ import (
 	"desktop/internal/deliveryprofile"
 	"desktop/internal/production"
 	"desktop/internal/productionreport"
+	"desktop/internal/update"
 )
 
 // The Production page's status report export. The page sends only the narrator's choice of sections (the Include
@@ -178,6 +180,37 @@ func (h *Host) ProductionStatusReport(include ProductionReportInclude) (string, 
 		return "", err
 	}
 	return encodeBinding(writeProductionReport(project, generatedAt, report))
+}
+
+// ReportsFolderResult is ProductionOpenReportsFolder's answer: the folder it showed, as the export names it (relative to the project).
+type ReportsFolderResult struct {
+	Folder string `json:"folder"`
+}
+
+// ProductionOpenReportsFolder shows the project's status-report folder in the file manager, through the same openFolder the
+// log and package folders use. It takes no path: the folder is always <app>/production/reports of the open project, never one
+// the UI names. It is refused with a sentence when no project is open or no report has been exported yet.
+func (h *Host) ProductionOpenReportsFolder() (string, error) {
+	return encodeBinding(h.openReportsFolder())
+}
+
+func (h *Host) openReportsFolder() (ReportsFolderResult, error) {
+	project := h.services().config.projectFolder
+	if project == "" {
+		return ReportsFolderResult{}, errors.New("open a project first; the reports are kept in its " + brand.ProjectFolder + "/production/reports folder")
+	}
+	dir := filepath.Join(project, filepath.FromSlash(productionreport.Dir))
+	if info, err := os.Stat(dir); err != nil || !info.IsDir() {
+		return ReportsFolderResult{}, errors.New("export a report first; there is no reports folder to open yet")
+	}
+	open := h.openFolder
+	if open == nil {
+		open = update.OpenFolder
+	}
+	if err := open(dir); err != nil {
+		return ReportsFolderResult{}, err
+	}
+	return ReportsFolderResult{Folder: productionreport.Dir}, nil
 }
 
 // writeProductionReport writes the two files under a name no earlier report has, each through a temporary file.

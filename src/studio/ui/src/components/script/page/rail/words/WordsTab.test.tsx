@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 // The Words tab over the browser mock host (`createMockApi`) and a fake `WordsHost`: the table, the word card, the source tag, the
-// definitions for each source, "Use", the fixed web links, "Add to my words" and the wording the mock leaves out.
+// definitions for each source, "Use", the fixed web links, the dictionaries' candidates and "Save to my dictionary" for a word no
+// dictionary has, and the wording the mock leaves out. Every row is a Story Bible
+// name and every value is that entry's (#2595); a word that is no story element goes to the user dictionary, never the Story Bible.
 import { useEffect } from 'react';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -9,6 +11,7 @@ import { ApiProvider } from '../../../../../api/ApiContext';
 import type { PronunciationOnlineResult } from '../../../../../api/contracts/pronunciationOnline';
 import { createMockApi } from '../../../../../api/mockApi';
 import { useScriptView } from '../../data/useScriptData';
+import { overlay } from '../../../../../overlay/overlayService';
 import { StudioProvider } from '../../../../../studio/StudioProvider';
 import type { NarrationApi } from '../../../../../types';
 import { TooltipProvider } from '../../../../primitives/Tooltip';
@@ -36,31 +39,27 @@ function fakeHost(over: Partial<WordsHost> = {}): WordsHost {
   return {
     definitionSource: 'web',
     setDefinitionSource: vi.fn(),
-    candidate: vi.fn(async () => ({ ok: true as const, say: 'KAN-dee' })),
     onlineDefinition: vi.fn(async () => ONLINE),
     openLookup: vi.fn(async () => undefined),
     ...over,
   };
 }
 
-/** Flags the first word of the first two lines of the chapter, so the table has two rows. */
-async function flagTwo() {
-  const lines = await api.manuscriptParagraphs(CHAPTER);
-  const found: string[] = [];
-  for (const line of lines.slice(0, 2)) {
-    const match = /\p{L}+/u.exec(line.text)!;
-    const flagged = await api.scriptWordFlag(CHAPTER, line.id, match.index, match.index + match[0].length);
-    found.push(flagged.word);
-  }
-  return found;
+/** Two words of the chapter that are no Story Bible name, added as the narrator adds a word: entries of the type Word. */
+const WORDS = ['beginning', 'considering'];
+let ids: Record<string, string>;
+async function addTwo() {
+  ids = {};
+  for (const word of WORDS) ids[word] = await api.guideCreate(word, 'Item', []);
+  return WORDS;
 }
 
-function mount(host: WordsHost, props: { chapterId?: string; selection?: Parameters<typeof WordsTab>[0]['selection'] } = {}) {
+function mount(host: WordsHost, props: { chapterId?: string } = {}) {
   return render(
     <ApiProvider api={api}>
       <StudioProvider>
         <TooltipProvider>
-          <WordsTab chapterId={props.chapterId ?? CHAPTER} host={host} selection={props.selection} />
+          <WordsTab chapterId={props.chapterId ?? CHAPTER} host={host} />
         </TooltipProvider>
       </StudioProvider>
     </ApiProvider>,
@@ -69,7 +68,7 @@ function mount(host: WordsHost, props: { chapterId?: string; selection?: Paramet
 
 beforeEach(async () => {
   api = createMockApi();
-  words = await flagTwo();
+  words = await addTwo();
 });
 afterEach(cleanup);
 
@@ -80,14 +79,15 @@ const hear = (of: HTMLElement) => within(of).queryByRole('button', { name: /^Hea
 const row = (word: string) => screen.getByRole('row', { name: named(word) });
 
 describe('list-shows-the-chapters-words-with-a-play-button', () => {
-  it('lists each flagged word with a play button and source icon, no phonetic text and no status; Enter or a click selects it', async () => {
-    await api.scriptWordSay(words[0]!, 'uh-LIS', 'cmu');
+  it('lists each word with a play button and source icon once said, no phonetic text and no status; Enter or a click selects it', async () => {
+    await api.guidePronounceUser(ids[words[0]!]!, 'bih-GIN-ing');
     mount(fakeHost());
     const first = await screen.findByRole('row', { name: named(words[0]!) });
-    expect(within(first).queryByText('uh-LIS')).toBeNull();
-    expect(within(first).getByLabelText('Source: CMU dictionary')).toBeTruthy();
-    // A marked word has no Story Bible entry, which is all the host can speak, so it has no Hear (a Story Bible name does, below).
-    expect(hear(first)).toBeNull();
+    expect(within(first).queryByText('bih-GIN-ing')).toBeNull();
+    expect(within(first).getByLabelText('Source: Entered by me')).toBeTruthy();
+    expect(hear(first)).not.toBeNull();
+    // Not said yet: nothing to play and no source.
+    expect(hear(row(words[1]!))).toBeNull();
     expect(within(row(words[1]!)).queryByLabelText(/^Source:/)).toBeNull();
     expect(screen.queryByRole('columnheader', { name: 'Status' })).toBeNull();
     expect(first.getAttribute('aria-selected')).toBe('false');
@@ -99,77 +99,69 @@ describe('list-shows-the-chapters-words-with-a-play-button', () => {
     expect(row(words[0]!).getAttribute('aria-selected')).toBe('false');
   });
 
-  it("lists the Story Bible names in the chapter text with the entry's pronunciation, read-only, as the Booth's Coming up does", async () => {
+  it("a character or place in the text is a row like any word, its value the entry's, and opens the same card (#2595)", async () => {
     mount(fakeHost());
     const rabbit = await screen.findByRole('row', { name: named('White Rabbit') });
     expect(hear(rabbit)).not.toBeNull();
-    expect(within(rabbit).getByLabelText('Source: Story Bible')).toBeTruthy();
     expect(within(rabbit).queryByText(/ˈræbɪt/)).toBeNull();
     await userEvent.click(rabbit);
-    expect(rabbit.getAttribute('aria-selected')).toBeNull();
-    expect(screen.queryByRole('group', { name: 'Word: White Rabbit' })).toBeNull();
+    expect(rabbit.getAttribute('aria-selected')).toBe('true');
+    expect(await screen.findByRole('group', { name: 'Word: White Rabbit' })).toBeTruthy();
   });
 
-  it('lists only words flagged in this chapter', async () => {
+  it('lists nothing for a chapter with no Story Bible names in its text', async () => {
     mount(fakeHost(), { chapterId: 'no-such-chapter' });
     expect(await screen.findByText('No words marked for pronunciation in this chapter.')).toBeTruthy();
   });
 });
 
-describe('word-card-saves-how-i-say-it', () => {
-  it('Save and Enter call saveSay with the manual source, and the pill follows', async () => {
-    const say = vi.spyOn(api, 'scriptWordSay');
+describe('word-card-edits-the-story-bible-name (#2595)', () => {
+  it("typing and Enter is the narrator's own value on the entry, one journal entry, and the row follows", async () => {
+    const own = vi.spyOn(api, 'guidePronounceUser');
     mount(fakeHost());
     await userEvent.click(await screen.findByRole('row', { name: named(words[0]!) }));
-    const input = await screen.findByLabelText('How I will say it');
-    await userEvent.type(input, 'kroh-KAY');
-    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
-    expect(say).toHaveBeenLastCalledWith(words[0], 'kroh-KAY', 'manual');
+    const input = await screen.findByLabelText(`How I say ${words[0]}`);
+    await userEvent.type(input, 'kroh-KAY{Enter}');
+    await waitFor(() => expect(own).toHaveBeenLastCalledWith(ids[words[0]!], 'kroh-KAY'));
     await waitFor(() => expect(within(row(words[0]!)).getByLabelText(/^Source:/)).toBeTruthy());
-    await userEvent.clear(input);
-    await userEvent.type(input, 'kroh-KEE{Enter}');
-    expect(say).toHaveBeenLastCalledWith(words[0], 'kroh-KEE', 'manual');
   });
 
-  it('an empty save leaves the word Not set', async () => {
-    const say = vi.spyOn(api, 'scriptWordSay');
+  it('an empty value writes nothing and the word stays Not set', async () => {
+    const own = vi.spyOn(api, 'guidePronounceUser');
     mount(fakeHost());
     await userEvent.click(await screen.findByRole('row', { name: named(words[0]!) }));
-    await userEvent.click(await screen.findByRole('button', { name: 'Save' }));
-    expect(say).not.toHaveBeenCalled();
+    const input = await screen.findByLabelText(`How I say ${words[0]}`);
+    await userEvent.type(input, '{Enter}');
+    expect(own).not.toHaveBeenCalled();
     expect(within(row(words[0]!)).queryByLabelText(/^Source:/)).toBeNull();
   });
 });
 
 describe('source-tag-switches-the-source', () => {
-  async function openCard(host: WordsHost) {
-    mount(host);
-    await userEvent.click(await screen.findByRole('row', { name: named(words[0]!) }));
-    await screen.findByLabelText('How I will say it');
-  }
   const pickSource = async (label: string) => {
     await userEvent.click(await screen.findByRole('button', { name: /^Pronunciation source for .*/ }));
     await userEvent.click(await screen.findByRole('button', { name: label }));
   };
 
-  it('a source that answers fills the value and records its id', async () => {
-    const say = vi.spyOn(api, 'scriptWordSay');
-    const host = fakeHost();
-    await openCard(host);
+  it('a source that answers is applied to the Story Bible name by the host', async () => {
+    const pronounce = vi.spyOn(api, 'guidePronounce');
+    mount(fakeHost());
+    await userEvent.click(await screen.findByRole('row', { name: named('Alice') }));
+    await screen.findByLabelText('How I say Alice');
     await pickSource('CMU dictionary');
-    expect(host.candidate).toHaveBeenCalledWith(words[0], 'cmu');
-    await waitFor(() => expect(say).toHaveBeenLastCalledWith(words[0], 'KAN-dee', 'cmu'));
-    expect((screen.getByLabelText('How I will say it') as HTMLInputElement).value).toBe('KAN-dee');
+    await waitFor(() => expect(pronounce).toHaveBeenLastCalledWith(expect.any(String), 'cmu'));
   });
 
   it('a source that cannot answer leaves the value and says why', async () => {
-    const say = vi.spyOn(api, 'scriptWordSay');
-    const host = fakeHost({ candidate: vi.fn(async () => ({ ok: false as const, reason: 'CMU dictionary has nothing for “x”.' })) });
-    await openCard(host);
+    const pronounce = vi.spyOn(api, 'guidePronounce');
+    const toast = vi.spyOn(overlay, 'toast');
+    mount(fakeHost());
+    await userEvent.click(await screen.findByRole('row', { name: named(words[0]!) }));
+    await screen.findByLabelText(`How I say ${words[0]}`);
     await pickSource('CMU dictionary');
-    expect(await screen.findByText('CMU dictionary has nothing for “x”.')).toBeTruthy();
-    expect(say).not.toHaveBeenCalled();
-    expect((screen.getByLabelText('How I will say it') as HTMLInputElement).value).toBe('');
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(`CMU dictionary has nothing for “${words[0]}”.`, undefined));
+    expect(pronounce).not.toHaveBeenCalled();
+    expect((screen.getByLabelText(`How I say ${words[0]}`) as HTMLInputElement).value).toBe('');
   });
 });
 
@@ -297,13 +289,13 @@ describe('the definition source is a host setting (SN-M93)', () => {
 });
 
 describe('use-on-a-definition-records-its-source', () => {
-  it('Use fills the input with the definition’s pronunciation and saves with its source id', async () => {
-    const say = vi.spyOn(api, 'scriptWordSay');
+  it('Use saves the definition’s pronunciation as the narrator’s own value on the Story Bible name, and the field shows it', async () => {
+    const own = vi.spyOn(api, 'guidePronounceUser');
     mount(fakeHost({ definitionSource: 'api' }));
     await userEvent.click(await screen.findByRole('row', { name: named(words[0]!) }));
     await userEvent.click(await screen.findByRole('button', { name: 'Use' }));
-    expect((screen.getByLabelText('How I will say it') as HTMLInputElement).value).toBe('ˈa-ləs');
-    await waitFor(() => expect(say).toHaveBeenLastCalledWith(words[0], 'ˈa-ləs', 'merriam_webster'));
+    await waitFor(() => expect(own).toHaveBeenLastCalledWith(ids[words[0]!], 'ˈa-ləs'));
+    await waitFor(() => expect((screen.getByLabelText(`How I say ${words[0]}`) as HTMLInputElement).value).toBe('ˈa-ləs'));
   });
 });
 
@@ -324,50 +316,90 @@ describe('web-links-open-the-fixed-templates', () => {
   });
 });
 
-describe('add-to-my-words', () => {
-  /** Shows a word the chapter has no flag for, as the reader's look-up does, with the reader's selection of it. */
+describe('a-word-that-is-no-story-element (#2595)', () => {
   function ShowWord({ word }: { word: string }) {
     const [, update] = useScriptView(() => null);
     useEffect(() => update({ word }), [update, word]);
     return null;
   }
-  async function unflaggedSelection() {
-    const line = (await api.manuscriptParagraphs(CHAPTER))[2]!;
-    const match = /\p{L}+/u.exec(line.text)!;
-    return { word: match[0].toLowerCase(), range: { chapterId: CHAPTER, paragraphId: line.id, start: match.index, end: match.index + match[0].length } };
-  }
-  function mountWithWord(word: string, range?: Parameters<typeof WordsTab>[0]['selection']) {
+  function mountWithWord(word: string) {
     return render(
       <ApiProvider api={api}>
         <StudioProvider>
           <TooltipProvider>
             <ShowWord word={word} />
-            <WordsTab chapterId={CHAPTER} host={fakeHost()} selection={range} />
+            <WordsTab chapterId={CHAPTER} host={fakeHost()} />
           </TooltipProvider>
         </StudioProvider>
       </ApiProvider>,
     );
   }
 
-  it('a word not yet flagged shows the plus button, which flags the selection through the hook', async () => {
-    const { word, range } = await unflaggedSelection();
-    const flag = vi.spyOn(api, 'scriptWordFlag');
-    mountWithWord(word, range);
-    await userEvent.click(await screen.findByRole('button', { name: 'Add to my words' }));
-    expect(flag).toHaveBeenCalledWith(range.chapterId, range.paragraphId, range.start, range.end);
-    await waitFor(() => expect(screen.queryByRole('button', { name: 'Add to my words' })).toBeNull());
-    expect(hear(row(word))).toBeNull();
+  it('shows what each dictionary says, with its source and Hear, and offers no save while one has it', async () => {
+    const preview = vi.spyOn(api, 'pronunciationPreview');
+    mountWithWord('croquet');
+    const list = await screen.findByRole('list', { name: 'Dictionary candidates for croquet' });
+    const rows = within(list).getAllByRole('listitem');
+    expect(rows.map((row) => row.getAttribute('data-source'))).toEqual(['cmu', 'wiktextract', 'espeak']);
+    expect(within(rows[0]!).getByText('CMU dictionary')).toBeTruthy();
+    await userEvent.click(within(rows[1]!).getByRole('button', { name: /^Hear Wiktionary/ }));
+    await waitFor(() => expect(preview).toHaveBeenCalledWith('croquet', '/ˈkɹoʊkeɪ/'));
+    expect(screen.queryByRole('button', { name: 'Save to my dictionary' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Add to my words/ })).toBeNull();
   });
 
-  it('a flagged word has no plus button, and an unflagged word with no selection has none either', async () => {
-    const { word } = await unflaggedSelection();
-    mountWithWord(words[0]!);
-    await screen.findByLabelText('How I will say it');
-    expect(screen.queryByRole('button', { name: 'Add to my words' })).toBeNull();
-    cleanup();
-    mountWithWord(word);
-    await screen.findByLabelText('How I will say it');
-    expect(screen.queryByRole('button', { name: 'Add to my words' })).toBeNull();
+  it('a word no dictionary has is saved to my dictionary, never the Story Bible, and then reads as a My dictionary candidate', async () => {
+    const create = vi.spyOn(api, 'guideCreate');
+    mountWithWord('Dinah');
+    const field = await screen.findByLabelText('Pronunciation of Dinah for my dictionary');
+    await userEvent.type(field, 'DY-nuh{Enter}');
+    const list = await screen.findByRole('list', { name: 'Dictionary candidates for Dinah' });
+    await waitFor(() => expect(within(list).getByText('My dictionary')).toBeTruthy());
+    expect(within(list).getByText('DY-nuh')).toBeTruthy();
+    expect(create).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: 'Save to my dictionary' })).toBeNull();
+  });
+
+  it('a saved value can be removed to correct it: the card offers Save again, and the field takes no more than the host keeps', async () => {
+    mountWithWord('Dinah');
+    await userEvent.type(await screen.findByLabelText('Pronunciation of Dinah for my dictionary'), 'DY-nuh{Enter}');
+    await userEvent.click(await screen.findByRole('button', { name: 'Remove DY-nuh from my dictionary' }));
+    const field = await screen.findByLabelText('Pronunciation of Dinah for my dictionary');
+    expect((await api.pronunciationCandidates('Dinah')).candidates).toEqual([]);
+    expect((field as HTMLInputElement).maxLength).toBe(200);
+  });
+});
+
+describe('card-states', () => {
+  it('a locked entry says so on the card, and its row cannot be changed', async () => {
+    await api.guideSetLocked(ids[words[0]!]!, true);
+    mount(fakeHost());
+    await userEvent.click(await screen.findByRole('row', { name: named(words[0]!) }));
+    const card = await screen.findByRole('group', { name: `Word: ${words[0]}` });
+    expect(within(card).getByText('Locked')).toBeTruthy();
+    expect((within(card).getByLabelText(`How I say ${words[0]}`) as HTMLInputElement).disabled).toBe(true);
+  });
+
+  it('a word that is no story element has no Record and no name Hear: its candidates carry their own Hear', async () => {
+    function ShowWord() {
+      const [, update] = useScriptView(() => null);
+      useEffect(() => update({ word: 'croquet' }), [update]);
+      return null;
+    }
+    render(
+      <ApiProvider api={api}>
+        <StudioProvider>
+          <TooltipProvider>
+            <ShowWord />
+            <WordsTab chapterId={CHAPTER} host={fakeHost()} />
+          </TooltipProvider>
+        </StudioProvider>
+      </ApiProvider>,
+    );
+    const card = await screen.findByRole('group', { name: 'Word: croquet' });
+    expect(within(card).queryByRole('button', { name: /record/i })).toBeNull();
+    expect(within(card).queryByRole('button', { name: 'Hear croquet' })).toBeNull();
+    expect(await within(card).findAllByRole('button', { name: /^Hear .*: / })).not.toHaveLength(0);
   });
 });
 

@@ -1,10 +1,8 @@
 import type { IconName } from '../../icons.catalog';
-import { Icon } from './Icon';
 import { ProgressBar } from './ProgressBar';
+import { MONO, StatTile } from './StatTile';
 import { StatusBadge, type StatusTone } from './StatusBadge';
 import { TooltipTarget } from './Tooltip';
-
-const MONO = "font-['IBM_Plex_Mono',ui-monospace,monospace]";
 
 /** One figure of the panel: an icon and label that name it (the hint is its tooltip and its accessible description), and its value. */
 export type ActivityFigure = { key: string; icon: IconName; label: string; value: string; hint: string };
@@ -68,19 +66,8 @@ export function ActivityPanel({
         {figures.map((figure) => (
           <li key={figure.key} className="flex min-w-0">
             <TooltipTarget text={figure.hint} className="min-w-0">
-              <span tabIndex={0} aria-label={`${figure.label}: ${figure.value}. ${figure.hint}`} className="flex min-w-0 flex-col gap-0.5 rounded-sm">
-                <span className="flex min-w-0 items-center gap-1.5">
-                  <span className="text-[var(--text-muted)]">
-                    <Icon name={figure.icon} />
-                  </span>
-                  {/* Narrow: the icon and its tooltip name the figure; the word stays for assistive technology. */}
-                  <span className="truncate text-[length:var(--font-size-sm)] font-semibold text-[var(--text-muted)] uppercase @max-[24rem]:sr-only">
-                    {figure.label}
-                  </span>
-                </span>
-                <span className={`truncate ${MONO}`} aria-hidden="true">
-                  {figure.value}
-                </span>
+              <span tabIndex={0} aria-label={`${figure.label}: ${figure.value}. ${figure.hint}`} className="block min-w-0 rounded-sm">
+                <StatTile size="compact" icon={figure.icon} label={figure.label} value={figure.value} className="min-w-0 [&>div:nth-child(2)]:truncate" />
               </span>
             </TooltipTarget>
           </li>

@@ -2,6 +2,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { settlePage } from './helpers/settle';
 import { goToPage } from './drivers/shared';
+import { boothChapterReady } from './helpers/viewTop';
 
 type Case = { name: string; width: number; height: number; larger: number; query: string };
 const CASES: Case[] = [
@@ -41,7 +42,7 @@ for (const c of CASES) {
     await page.goto(`/${c.query}`);
     await settlePage(page);
     await goToPage(page, 'Booth');
-    await page.getByRole('button', { name: /^Resume at ¶/, includeHidden: true }).waitFor();
+    await boothChapterReady(page);
     await expect(page.locator('#brec-setup')).toBeVisible();
     // The connect case is a mark and a dialog that opened by itself: the narrator closes it to read on.
     const dialog = page.getByRole('dialog');
@@ -80,7 +81,7 @@ for (const c of [
     await page.goto('/?mockDawMismatch=1');
     await settlePage(page);
     await goToPage(page, 'Booth');
-    await page.getByRole('button', { name: /^Resume at ¶/, includeHidden: true }).waitFor();
+    await boothChapterReady(page);
     await expect(page.locator('#brec-setup')).toBeVisible();
     // The open-project dialog opens by itself; the narrator closes it and reads on with the chip above the footer.
     const dialog = page.getByRole('dialog', { name: 'REAPER has a different project open' });
@@ -120,7 +121,7 @@ for (const c of [
     await page.goto('/?mockDawMismatch=1');
     await settlePage(page);
     await goToPage(page, 'Booth');
-    await page.getByRole('button', { name: /^Resume at ¶/, includeHidden: true }).waitFor();
+    await boothChapterReady(page);
     const dialog = page.getByRole('dialog', { name: 'REAPER has a different project open' });
     await dialog.getByRole('button', { name: 'Close' }).click();
     await dialog.waitFor({ state: 'detached' });

@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"desktop/internal/bridge"
-	"desktop/internal/takereview"
 )
 
 // What Use answers.
@@ -29,8 +28,6 @@ const (
 type Actors struct {
 	// SetActiveTake is set_active_take: one undo step, reporting whether the active take changed.
 	SetActiveTake func(ctx context.Context, itemGUID, takeGUID string) (changed bool, err error)
-	// CreateTake is create_take: a read's range as a new take on the target item.
-	CreateTake func(ctx context.Context, req takereview.CreateTakeRequest) (takereview.CreateTakeResult, error)
 	// PickLane is pick_retake_lane: it starts the pick, whose end REAPER reports on its own event.
 	PickLane func(lineID, itemGUID string) error
 }
@@ -50,7 +47,7 @@ func refused(reason, message string) Outcome {
 }
 
 // Use carries out choice, one of the candidates Resolve offered, and never anything else: the item, take, line and
-// range it acts on are the choice's own, read from the saved project and the findings store (EP7). A take that cannot
+// line it acts on are the choice's own, read from the saved project (EP7). A take that cannot
 // be heard is refused before anything is sent; REAPER's own refusals are worded and never reported as a change.
 func Use(ctx context.Context, actors Actors, choice Choice) Outcome {
 	candidate := choice.Candidate
@@ -71,8 +68,6 @@ func Use(ctx context.Context, actors Actors, choice Choice) Outcome {
 			return refuse(err)
 		}
 		return Outcome{Outcome: OutcomeStarted, Message: "Asking REAPER to play this retake…"}
-	case ActionAddAndActivate:
-		return addAndActivate(ctx, actors, choice)
 	}
 	return refused(ReasonFailed, "That take can't be chosen from here.")
 }
@@ -89,27 +84,6 @@ func makeActive(ctx context.Context, actors Actors, itemGUID, takeGUID, done str
 		return Outcome{Outcome: OutcomeDone, Message: "That take was already active in REAPER, so nothing changed."}
 	}
 	return Outcome{Outcome: OutcomeDone, Changed: true, Message: done + saveNote}
-}
-
-// addAndActivate is the one two-step choice: the read becomes a new take on the passage's item, then that take is made
-// active. If the second step fails the first stands, and the narrator is told so.
-func addAndActivate(ctx context.Context, actors Actors, choice Choice) Outcome {
-	if actors.CreateTake == nil || actors.SetActiveTake == nil {
-		return refuse(bridge.ErrUnavailable)
-	}
-	created, err := actors.CreateTake(ctx, takereview.CreateTakeRequest{
-		FindingID: choice.FindingID, TargetItemGUID: choice.TargetItemGUID, CandidateItemGUID: choice.Candidate.ItemGUID,
-		SourceFile: choice.SourceFile, SourceRangeStart: choice.RangeStart, SourceRangeEnd: choice.RangeEnd,
-	})
-	if err != nil {
-		return refuse(err)
-	}
-	outcome := makeActive(ctx, actors, choice.TargetItemGUID, created.NewTakeGUID, "Added the read as a new take and made it active in REAPER (two undo steps).")
-	if outcome.Outcome == OutcomeRefused {
-		outcome.Message = "The read was added as a new take on the item, but it is not the active one: " + outcome.Message + " Undo in REAPER removes the added take."
-		outcome.Changed = true
-	}
-	return outcome
 }
 
 // refuse words what REAPER (or the DAW port) answered. Nothing in REAPER changed for a refusal.

@@ -72,6 +72,13 @@ describe('TrackList as a tree', () => {
     expect(screen.getByText('1 of 3 linked')).toBeTruthy();
   });
 
+  it('names the chapter on a folder linked itself (a Voice folders chapter) instead of the roll-up', () => {
+    render(<TrackList tracks={TRACKS} mappings={[link('Part 1')]} />);
+    const part = screen.getAllByRole('row')[3];
+    expect(within(part).getByText('Chapter Part 1')).toBeTruthy();
+    expect(within(part).queryByText(/of 2 linked/)).toBeNull();
+  });
+
   it('opens and closes a folder from its caret, with a tooltip name', async () => {
     render(<TrackList tracks={TRACKS} mappings={[]} />);
     await userEvent.click(screen.getByRole('button', { name: 'Close Part 1' }));

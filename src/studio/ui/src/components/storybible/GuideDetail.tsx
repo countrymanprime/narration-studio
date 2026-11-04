@@ -13,6 +13,7 @@ import { useApi } from '../../api/ApiContext';
 import { usePort } from '../../ports/usePort';
 import { useAssetInstall } from '../../hooks/useAssetInstall';
 import { overlay } from '../../overlay/overlayService';
+import { useJournalOrOwn } from '../../studio/StudioProvider';
 import { usePendingAction } from '../../hooks/usePendingAction';
 import { AssetFacts } from '../assets/AssetFacts';
 import { AssetInstallPrompt } from '../assets/AssetInstallPrompt';
@@ -31,7 +32,7 @@ import { EntryVoiceSamples } from './voicesamples/EntryVoiceSamples';
 import { VoiceReferencesSection } from './VoiceReferencesSection';
 import { DialogueCueAttribution } from './DialogueCueAttribution';
 import { SpeakerColourField } from './SpeakerColourField';
-import { NamePronunciation } from './source/NamePronunciation';
+import { NamePronunciation, NAMES_GRID } from './source/NamePronunciation';
 import { nameRows } from './source/pronunciationRows';
 import { usePronunciationSources } from './source/usePronunciationSources';
 import { AppearsIn } from './AppearsIn';
@@ -194,18 +195,6 @@ export type EntryCommand = { id: string; kind: 'review' | 'delete' | 'hear'; non
 const NO_CHAPTERS: readonly ChapterRef[] = [];
 /** The rule over a titled section of the entry, as Properties, Relationships and Appears in draw it; an empty section draws none. */
 const SECTION_RULE = 'border-t border-[var(--border)] pt-4 empty:hidden';
-/**
- * The names list's one grid: the name, how it is said, its source and the row's buttons. Every row is a subgrid of it, so the
- * columns are shared and a row with more buttons does not move the others' (alignment audit SBX-4). Below a 32 rem card the
- * rows wrap instead (`NamePronunciation`).
- */
-const NAMES_GRID = {
-  // Read: the source follows the longest pronunciation, not the row's far end (SBX-2); the buttons keep the right edge.
-  read: 'grid-cols-[9rem_minmax(0,max-content)_minmax(0,1fr)_auto]',
-  // Edit: the pronunciation is a text box that takes the room.
-  edit: 'grid-cols-[9rem_minmax(0,1fr)_auto_auto]',
-  shared: 'm-0 grid list-none gap-x-2 gap-y-3 p-0 @max-[32rem]:grid-cols-[minmax(0,1fr)_auto]',
-};
 const NO_PRONUNCIATION_REASON = 'No pronunciation exists for this name yet.';
 const VERIFY_FIRST_REASON = 'Verify or reject its suggestions first.';
 
@@ -252,6 +241,7 @@ export function GuideDetail({
   onCommandTaken?: () => void;
 }) {
   const api = useApi();
+  const journal = useJournalOrOwn();
   const { types, failed: typesFailed, checkAgain: checkTypesAgain } = useGuideTypes(entities);
   const speaks = entity ? canSpeak(types, entity.category) : false;
   /** The dot beside a category: its type's colour (a Needs Review or Draft entry is amber), the same as its chip and its list swatch. */
@@ -502,21 +492,46 @@ export function GuideDetail({
     // Arguments as an array, so a call for the entry carries no `undefined` alias index.
     const argsFor = (index: number | undefined): Parameters<typeof api.guideMarkReviewed> => (index === undefined ? [id] : [id, index]);
     return mutation.run(aliasIndex === undefined ? 'review' : `review:${aliasIndex}`, async () => {
+      const refuse = (error: unknown, say: (error: unknown) => string = apiErrorMessage) => ({
+        ok: false as const,
+        refusal: { code: 'host_refused', reason: say(error) },
+      });
+      // Marking reviewed is one journal entry, so Ctrl+Z and History flag the entry back as the toast's Undo does.
+      const done = await journal.act<null>({
+        label: `Reviewed “${named ?? entity.canonical_name}”`,
+        touches: [`storyBible/entities/${id}`],
+        run: async () => {
+          try {
+            await api.guideMarkReviewed(...argsFor(aliasIndex));
+            return { ok: true, value: null };
+          } catch (error) {
+            return refuse(error, describeApiError);
+          }
+        },
+        undo: async () => {
+          try {
+            for (const index of restore) await api.guideFlagReview(...argsFor(index));
+            await reloadFor(id);
+            return { ok: true, value: null };
+          } catch (error) {
+            return refuse(error);
+          }
+        },
+      });
+      if (!done.ok) {
+        notify(done.refusal.reason, 'error');
+        return;
+      }
+      const entry = done.value.id;
+      overlay.toastUndo(
+        `“${named ?? entity.canonical_name}” reviewed.`,
+        async () => {
+          const undone = await journal.undo(entry);
+          return undone.ok ? { ok: true as const } : undone;
+        },
+        { entry },
+      );
       try {
-        await api.guideMarkReviewed(...argsFor(aliasIndex));
-        overlay.toastUndo(
-          `“${named ?? entity.canonical_name}” reviewed.`,
-          async () => {
-            try {
-              for (const index of restore) await api.guideFlagReview(...argsFor(index));
-              await reloadFor(id);
-              return { ok: true as const };
-            } catch (error) {
-              return { ok: false as const, refusal: { reason: apiErrorMessage(error) } };
-            }
-          },
-          { offJournal: 'Mark reviewed restores through the flag review host call, not a journal command.' },
-        );
         await reloadFor(id);
       } catch (error) {
         notify(describeApiError(error), 'error');
@@ -578,22 +593,47 @@ export function GuideDetail({
   const mergeEntry = (source: GuideEntity) => {
     const target = entity;
     return mutation.run('merge', async () => {
+      const refuse = (error: unknown, say: (error: unknown) => string = apiErrorMessage) => ({
+        ok: false as const,
+        refusal: { code: 'host_refused', reason: say(error) },
+      });
+      // The merge is one journal entry, so Ctrl+Z and History unmerge it as the toast's Undo does.
+      const done = await journal.act<string>({
+        label: `Merged “${source.canonical_name}” into “${target.canonical_name}”`,
+        touches: [`storyBible/entities/${source.id}`, `storyBible/entities/${target.id}`],
+        run: async () => {
+          try {
+            const { undoId } = await api.guideMerge(source.id, target.id);
+            return { ok: true, value: undoId };
+          } catch (error) {
+            return refuse(error, describeApiError);
+          }
+        },
+        undo: async (undoId) => {
+          try {
+            await api.guideUnmerge(undoId);
+            await reloadFor(target.id);
+            return { ok: true, value: undoId };
+          } catch (error) {
+            return refuse(error);
+          }
+        },
+      });
+      if (!done.ok) {
+        notify(done.refusal.reason, 'error');
+        return;
+      }
+      clearAliasMatch();
+      const entry = done.value.id;
+      overlay.toastUndo(
+        `Merged “${source.canonical_name}” into “${target.canonical_name}”.`,
+        async () => {
+          const undone = await journal.undo(entry);
+          return undone.ok ? { ok: true as const } : undone;
+        },
+        { entry },
+      );
       try {
-        const { undoId } = await api.guideMerge(source.id, target.id);
-        clearAliasMatch();
-        overlay.toastUndo(
-          `Merged “${source.canonical_name}” into “${target.canonical_name}”.`,
-          async () => {
-            try {
-              await api.guideUnmerge(undoId);
-              await reloadFor(target.id);
-              return { ok: true as const };
-            } catch (error) {
-              return { ok: false as const, refusal: { reason: apiErrorMessage(error) } };
-            }
-          },
-          { offJournal: 'A merge is undone by the host unmerge id, not a journal command.' },
-        );
         await reloadFor(target.id);
       } catch (error) {
         notify(describeApiError(error), 'error');

@@ -37,8 +37,8 @@ describe('KpiRow', () => {
     // Three of five one-hour chapters are recorded or further on, the fourth is half recorded, the fifth not started: the stage bar's own count (3:30 of 5:00, the fourth chapter half recorded).
     expect(screen.getByRole('button', { name: /Recorded audio/ }).textContent).toContain('3:30');
     expect(screen.getByRole('button', { name: /Recorded audio/ }).textContent).toContain('/ 5:00');
-    expect(screen.getByRole('button', { name: /Recording/ }).textContent).toMatch(/of 15:00 work/);
-    expect(screen.getByRole('button', { name: /Editing \+ proof/ }).textContent).toMatch(/of 15:12 work/);
+    expect(screen.getByRole('button', { name: /Recording/ }).textContent).toContain('est. 3.0× the book');
+    expect(screen.getByRole('button', { name: /Editing \+ proof/ }).textContent).toContain('est. 3.04× the book');
   });
 
   // Class guard (#2634): every figure on the strip is a function of one book, the one the stage bar draws.
@@ -56,8 +56,10 @@ describe('KpiRow', () => {
     expect(o.book.recordedHours).toBeCloseTo(book - sum(['unrecorded']), 9);
     expect(tile('recorded').value).toBe(hm(o.book.recordedHours));
     expect(tile('recorded').unit).toBe(`/ ${hm(book)}`);
-    expect(tile('recording').hint).toBe(`of ${hm(book * RATIO.rec)} work`);
-    expect(tile('editing').hint).toBe(`of ${hm(book * (RATIO.edit + RATIO.proof))} work`);
+    expect(tile('recording').hint).toBe(`est. ${RATIO.rec.toFixed(1)}× the book`);
+    expect(tile('editing').hint).toBe(`est. ${(RATIO.edit + RATIO.proof).toFixed(2)}× the book`);
+    // One book length on the strip: no tile hint prints a total of its own (the 3× and 3.33× work totals were two more "lengths" beside the book's).
+    for (const t of o.tiles) for (const m of (t.hint ?? '').match(/\d+:\d{2}/g) ?? []) expect(m).toBe(hm(book));
     expect(tile('recording').tip).toContain(hm(book));
     // The chart's and the week's targets read the same book.
     expect(o.k.words / WPH).toBeCloseTo(book, 9);

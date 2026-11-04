@@ -5,7 +5,7 @@
 // a chapter is heard in its Proof chapter view. `tracks/sync-consent` went too: the same dialog over the Production home is
 // `production/chapter-sync-consent`.
 import type { StateEntry } from '../lib/types';
-import { KEEPS_DESKTOP_SCROLL } from './shared';
+import { KEEPS_DESKTOP_SCROLL, POPUP_ANCHORED_AT_FIRST_WIDTH } from './shared';
 
 export const engineStates: StateEntry[] = [
   {
@@ -73,6 +73,55 @@ export const engineStates: StateEntry[] = [
   },
   {
     page: 'engine',
+    state: 'voice-folders',
+    description:
+      'The engine panel for a Voice folders project (?mockVoiceFolders=1): Chapter sync\'s Layout row on Voice folders, Chapter links\' Folder column naming "Chapter 1 · 3 voices", and below it the Voices card with Chapter 1 picked in its header and its voices - Narrator on key 0, White Rabbit on 1 matched by name, Extras on 2 with the two characters assigned to it - each with its edit button',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'engine',
+    state: 'voice-folders-picker',
+    description:
+      "The engine panel's Voices card with the Extras track's character popover open (?mockVoiceFolders=1): the Story Bible's characters as checkboxes, Hatter and Cheshire Cat checked, each other character with the voice it is already on",
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+  },
+  {
+    page: 'engine',
+    state: 'voice-folders-sync',
+    description:
+      'A Voice folders project (?mockVoiceFolders=1) scrolled to Chapter sync: its Layout row with Voice folders pressed and the help button, and below it the Tracks card, where the Chapter 1 folder names its chapter and its Narrator, White Rabbit and Extras tracks sit inside it',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'engine',
+    state: 'voice-folders-links',
+    description:
+      'A Voice folders project (?mockVoiceFolders=1) scrolled to Chapter links: the Folder column header, Chapter 1 linked to "Chapter 1 · 3 voices", the other chapters on "Choose a folder"',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'engine',
+    state: 'nested-chapters',
+    description:
+      "Chapter links when two linked chapters' tracks sit inside another linked chapter's folder in REAPER (?mockNestedChapters=1, #2838): the panel header's warning badge, 2 chapters nested, and Move them out…",
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'engine',
+    state: 'nested-chapters-confirm',
+    description:
+      "The nested-chapters repair's confirmation (?mockNestedChapters=1): the question, the sentence on what changes in REAPER and the list of every track that moves, each out of the chapter's folder to the top level",
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+  },
+  {
+    page: 'engine',
+    state: 'voice-folders-link-picker',
+    description:
+      'A Voice folders project (?mockVoiceFolders=1) with Chapter 2\'s folder picker open: the Chapter 1 folder can be chosen (linked to Chapter 1), its Narrator, White Rabbit and Extras tracks are off with "A voice of its folder"',
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+  },
+  {
+    page: 'engine',
     state: 'folder-tracks',
     description:
       'The engine panel for a project whose tracks sit in REAPER folders (?mockTrackFolders=1): the Tracks card as an indented tree - guides, caret, folder icon, child count and an "N of M linked" roll-up on each folder, Co-narrator\'s empty folder, the search box and open/close all - scrolling inside its own card',
@@ -97,6 +146,41 @@ export const engineStates: StateEntry[] = [
     state: 'chapter-link-confirmed',
     description:
       'The engine panel, the Chapter links list at the foot of the page - the first chapter confirmed to a track shows Linked with the track name, Change and Clear',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'engine',
+    state: 'chapter-track-created',
+    description:
+      'The engine panel with no chapter linked (?mockChapterLink=none) after Chapter 1\'s "Create a track for this chapter" press (#2840): its Chapter links row Linked to the new track named after the chapter, with Change and Clear, the unlinked rows below still offering the create button, and the toast saying the track was made and the project is not saved',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'engine',
+    state: 'chapter-folder-created',
+    description:
+      'A Voice folders project (?mockVoiceFolders=1) after the first unlinked chapter\'s "Create a folder for this chapter" press (#2840): the row Linked to the new folder "<title> · 1 voice", the other unlinked rows offering the folder button, and the toast naming the folder and its Narrator track',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'engine',
+    state: 'chapter-track-create-refused',
+    description:
+      'The engine panel with REAPER recording (?mockReaperState=recording_elsewhere&mockChapterLink=none) after a create press on the first Chapter links row: the refusal as an error toast, the row still Not linked with its create button',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'engine',
+    state: 'live-tracks-saved',
+    description:
+      'The engine panel with REAPER not answering (?mockLiveTracks=saved): Chapter links\' header says on one line "Saved project · read N s ago", beside the Refresh button',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'engine',
+    state: 'live-tracks-stale',
+    description:
+      'The engine panel after a Refresh that REAPER did not answer (?mockLiveTracks=failing): Chapter links\' header says on one line "REAPER did not answer · last read N s ago", the tracks still listed, and the failure as a toast with Retry',
     ...KEEPS_DESKTOP_SCROLL,
   },
   {

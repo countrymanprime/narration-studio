@@ -53,7 +53,11 @@ func waitForStderrFile(t *testing.T, path, want string) string {
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
-	t.Fatalf("run stderr file %s never contained %q; last read: %q", path, want, last)
+	size := int64(-1)
+	if info, err := os.Stat(path); err == nil {
+		size = info.Size()
+	}
+	t.Fatalf("run stderr file %s never contained %q; size on disk %d bytes (-1 = no file), last read %d bytes: %q", path, want, size, len(last), last)
 	return ""
 }
 
@@ -76,6 +80,7 @@ func TestSupervisorDrainsAndRecordsExit(t *testing.T) {
 }
 
 func TestStartKeepsStderrInTheRunsFileAndSetsEnv(t *testing.T) {
+	dumpStacksIfStillRunning(t, 15*time.Second)
 	dir := t.TempDir()
 	ctx, stderrPath := runContext(t, dir)
 	supervisor := NewSupervisor()
@@ -88,6 +93,9 @@ func TestStartKeepsStderrInTheRunsFileAndSetsEnv(t *testing.T) {
 	deadline := time.Now().Add(20 * time.Second)
 	for !child.HasExited() && time.Now().Before(deadline) {
 		time.Sleep(10 * time.Millisecond)
+	}
+	if !child.HasExited() {
+		t.Logf("child pid %d had not been reported as exited after 20s", child.pid)
 	}
 	run := runlog.FromContext(ctx)
 	got := waitForStderrFile(t, stderrPath, "run="+run.ID())

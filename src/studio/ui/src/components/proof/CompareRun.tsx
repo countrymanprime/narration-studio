@@ -25,6 +25,7 @@ import { hasHint, splitHintTerms, suggestionMessage } from './hints';
 import { PROOFING_CHUNK_OPTIONS } from './options';
 import { ProofOptions } from './proofOptions/ProofOptions';
 import type { Notify } from '../primitives/Toast';
+import { retryAction } from '../primitives/Toast';
 import { ARRIVE_CLASSES } from '../primitives/changeHighlight';
 
 /** The host rejects with its error text as a plain string; an Error carries it in `message`. */
@@ -164,6 +165,8 @@ export function CompareRun({
       }
     });
 
+  // Reading the saved hints changes nothing, so a failed read is an error toast with Retry (issue #2919).
+  const [hintsAttempt, setHintsAttempt] = useState(0);
   useEffect(() => {
     let active = true;
     (async () => {
@@ -173,13 +176,18 @@ export function CompareRun({
       } catch (error) {
         // Non-blocking: the page stays usable. Adding a hint saves a fresh list over the unreadable file
         // (the host keeps the old one as vocab_hints.json.corrupt).
-        if (active) notify(`The saved vocabulary hints could not be loaded: ${errorText(error)}. Hints you add now will replace them.`, 'error');
+        if (active)
+          notify(
+            `The saved vocabulary hints could not be loaded: ${errorText(error)}. Hints you add now will replace them.`,
+            'error',
+            retryAction(() => setHintsAttempt((n) => n + 1)),
+          );
       }
     })();
     return () => {
       active = false;
     };
-  }, [api, notify]);
+  }, [api, notify, hintsAttempt]);
   useEffect(() => {
     (async () => {
       try {

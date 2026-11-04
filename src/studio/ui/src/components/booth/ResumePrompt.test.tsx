@@ -42,6 +42,9 @@ function renderDialog(overrides: Partial<NarrationApi> = {}, initial: Initial = 
         stateListeners.add(listener);
         return () => stateListeners.delete(listener);
       },
+      // These tests are about the located resume point, so the host has recorded nothing it could start from by itself: the mock's
+      // Chapter 1 is recorded through ¶ 14 (#2633), which the dialog would offer first as "Continuing at…".
+      manuscriptChapters: async () => (await base.manuscriptChapters()).map(({ recordedThrough: _recorded, ...chapter }) => chapter),
       ...overrides,
       teleprompterLocate,
       teleprompterStart,
@@ -252,7 +255,8 @@ describe('ResumePrompt', () => {
   it('is gone the moment a session starts, and comes back, asking again, once it ends (#2649)', async () => {
     const { setState, teleprompterLocate } = renderDialog();
     await prompt();
-    expect(teleprompterLocate).toHaveBeenCalledTimes(1);
+    // The lookup follows the read of how far the chapter is recorded, which the Companion offers first.
+    await waitFor(() => expect(teleprompterLocate).toHaveBeenCalledTimes(1));
 
     setState({ phase: 'running', message: 'Listening…', chapter: 'chapter-1' });
     await waitFor(() => expect(screen.queryByRole('region', { name: 'Where you stopped' })).toBeNull());
