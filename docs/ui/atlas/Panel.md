@@ -49,6 +49,7 @@ Storybook title: `Primitives/Panel`. Source: `src/components/primitives/Panel.ts
 - `src/components/master/DiagnosticsSection.tsx`
 - `src/components/master/FileRulesPanel.tsx`
 - `src/components/master/MasterToSpecPanel.tsx`
+- `src/components/master/MasteringApprovalDialog.tsx`
 - `src/components/master/MasteringChain.tsx`
 - `src/components/master/MultiPlatformExportPanel.tsx`
 - `src/components/master/ReportExportPanel.tsx`
