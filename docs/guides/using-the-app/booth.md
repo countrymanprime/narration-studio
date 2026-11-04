@@ -257,7 +257,7 @@ recorder's take; its file stays in `Recordings`.
 **R** punches and rolls from the word you are on, or from the phrase you chose with **Start from here**. With no take running it
 starts one in the same press: the text moves to the word, the DAW's cursor goes there and recording starts, so you never press Record first. With a take
 running it records again from there, keeping the earlier audio as a take. The only lead-in is the DAW's own pre-roll (see **Punch** under Record options); the
-Booth adds none. Pressed again within a moment, it rolls once, not again. Where the DAW would replace the audio instead (Audacity without backups), the Booth asks first ("Roll
+Booth adds none. With no take running, the spot is where that passage was recorded before, found in the last recording check and the DAW's items (on a Voice folders project, on the voice that read it, which becomes the voice for the take), and the take records over exactly that spot, after a message that names the track being recorded over ("Recording over ¶ 3 on Hero."); a passage nobody recorded continues from the end of the chapter's audio on every voice, and the Booth says so ("¶ 3 was not recorded before, so the take goes on from the end of the chapter's audio."). When the check is missing or out of date, part of the passage was cut, or it was recorded on two voices, the Booth says so and starts nothing. Pressed again within a moment, it rolls once, not again. Where the DAW would replace the audio instead (Audacity without backups), the Booth asks first ("Roll
 again from ¶ n?") and holds the take while it asks. **R** is always record: with **Main button** set to **Cold read** it still starts a real take, because only Space and the button follow the mode.
 
 Click a word to start from it. **↑** and **↓** move by phrase, **←** and **→** by word, **=** and **-** change the text size, and
@@ -357,7 +357,7 @@ an add-track button for a speaker with no track.
 When your DAW is connected and following is on, the Booth and the DAW stay together at the start:
 
 - **Opened with no chapter** (from the sidebar, say): the Booth opens on the chapter you last left in this project, at the place [Where you stopped](#where-you-stopped) describes. With none kept, or the chapter gone from the book, it opens on the chapter whose track is selected in the DAW; with no track selected, several selected, or a track no chapter is linked to, it opens where it would have.
-- **Opened at a chapter** (from the Script, Pickups or a bookmark): the DAW goes to that chapter's track as well. With only a chapter, its cursor goes to the end of the track; with a line, to that line's place in the track, so you can punch from it.
+- **Opened at a chapter** (from the Script, Pickups or a bookmark): the DAW goes to that chapter's track as well. With only a chapter, its cursor goes to the end of the track; with a line, to where that line was recorded before (found in the last recording check, on whichever voice read it; a line nobody recorded goes to the end of the chapter's audio, and when there is no current check the Booth estimates the place from the text's length), so you can punch from it.
 - **Start from here** and **Punch and roll** from a line move the text there, move the DAW's cursor to that spot, and start recording from it, so you never have to find the place in the DAW with the microphone live.
 
 The DAW may still be connecting when the Booth opens; the Booth asks for about twenty seconds and then stays where it is. A DAW that cannot follow is left alone without a message.

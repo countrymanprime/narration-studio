@@ -33,7 +33,6 @@ export const KEPT: Readonly<Record<string, string>> = {
   'src/components/engine/EnginePanel.tsx': ENGINE,
   'src/components/engine/LinkChaptersDialog.tsx': ENGINE,
   'src/components/engine/RenderConfigDialog.tsx': ENGINE,
-  'src/components/engine/RetakeLanesDialog.tsx': ENGINE,
   'src/components/layout/StartupScreen.tsx': PICKER,
   'src/components/layout/TimerChip.tsx': TIMER,
   'src/components/project/NewProjectDialog.tsx': PICKER,

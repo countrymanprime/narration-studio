@@ -417,34 +417,4 @@ export const engineDrivers: Record<string, Driver> = {
     await message.waitFor();
     await message.scrollIntoViewIfNeeded();
   },
-  'retake-lanes-list': async (page) => {
-    await openEnginePanel(page);
-    await clickVisible(page, 'button', 'Show the retakes on lanes');
-    await page.getByRole('button', { name: 'Play this lane: lane 2 for line-000013 on Chapter 1' }).waitFor();
-  },
-  'retake-lanes-picked': async (page) => {
-    await page.goto('/?mockRetakeLanes=picked');
-    await settlePage(page);
-    await openEnginePanel(page);
-    await clickVisible(page, 'button', 'Show the retakes on lanes');
-    const message = page.getByText(/is now the only lane playing/);
-    await message.waitFor();
-    await message.scrollIntoViewIfNeeded();
-  },
-  'retake-lanes-none': async (page) => {
-    await page.goto('/?mockRetakeLanes=none');
-    await settlePage(page);
-    await openEnginePanel(page);
-    await clickVisible(page, 'button', 'Show the retakes on lanes');
-    await page.getByText(/No track in the saved project uses fixed item lanes/).waitFor();
-  },
-  'retake-lanes-error': async (page) => {
-    await page.goto('/?mockRetakeLanes=error');
-    await settlePage(page);
-    await openEnginePanel(page);
-    await clickVisible(page, 'button', 'Show the retakes on lanes');
-    const message = page.getByText(/is not in fixed item lane mode/).first();
-    await message.waitFor();
-    await message.scrollIntoViewIfNeeded();
-  },
 };

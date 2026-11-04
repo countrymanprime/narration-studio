@@ -74,7 +74,7 @@ import (
 // Keep this in lockstep with src/studio/ui/src/hostApi.ts.  The frontend rejects
 // an older host before bootstrapping so a partial update cannot run against a
 // binding contract it does not understand.
-const hostAPIVersion = 155
+const hostAPIVersion = 156
 
 // Host is the Wails binding boundary. The frontend invokes only this bound
 // object; it never receives a loopback port or an HTTP capability.
@@ -911,7 +911,7 @@ func (h *Host) configureLocked(next config) {
 	// The retake-lane service is one more consumer of the
 	// same bridge client, over its retake_lanes role. It only ever asks REAPER to make one listed
 	// retake's lane the only one playing.
-	h.retakeLanes = retakelanes.New(retakelanes.Config{SessionDir: h.config.sessionDir}, retakePicker, h.emitRetakeLanes)
+	h.retakeLanes = retakelanes.New(retakelanes.Config{SessionDir: h.config.sessionDir}, retakePicker, nil)
 	// The project-state service (the change-driven re-compare indicator) is the bridge's fifth real
 	// consumer, over its project_state role: pollTranscript's Drain call already pumps its events
 	// too, the same way it does above. It is a Could-tier, on-demand check (Check/ProjectStateCheck), not a poll of
@@ -1218,17 +1218,6 @@ func (h *Host) emitRenderConfig(state map[string]any) {
 	h.mu.RUnlock()
 	if ctx != nil {
 		emitEvent("renderconfig:state", state)
-	}
-}
-
-// emitRetakeLanes relays a retakelanes.Service snapshot to the frontend (the retake-lane pick), the same
-// simple relay emitCleanupTools uses.
-func (h *Host) emitRetakeLanes(state map[string]any) {
-	h.mu.RLock()
-	ctx := h.ctx
-	h.mu.RUnlock()
-	if ctx != nil {
-		emitEvent("retakelanes:state", state)
 	}
 }
 

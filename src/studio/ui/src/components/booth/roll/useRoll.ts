@@ -1,9 +1,10 @@
 import { useCallback, useRef } from 'react';
 import type { DawCapabilities, DawResult } from '../../../api/contracts/daw';
+import type { BoothPunch } from '../../../api/contracts/voiceTracks';
 import type { OverlayService } from '../../../overlay/overlayService';
 import { rollConfirmSpec } from './rollConfirm';
 import { rollPlan } from './rollPlan';
-import { clampPhrase, isPunch } from './startFromHere';
+import { clampPhrase } from './startFromHere';
 import { createTakeHold, type TakeControls } from './takeHold';
 
 /** The roll itself, typed here until `DawClient.roll` exists (SN-D6x). `confirmed` is true when the narrator answered the question. */
@@ -20,10 +21,8 @@ export type RollSession = {
   punchAt: number | null;
   /** The paragraph (0-based) a phrase belongs to. */
   paragraphOf: (phrase: number) => number;
-  /** Where a phrase sits in the chapter's audio, in seconds. */
-  secondsOf: (phrase: number) => number;
-  /** Where the last item on the chapter's track ends, in seconds. */
-  recordedEnd: number;
+  /** Where the phrase was recorded before (the host reads it from the recording check and the DAW's items), on which track. */
+  punchTarget: (phrase: number) => Promise<BoothPunch>;
   /** Seconds into the running take. */
   takeSeconds: number;
 };
@@ -33,6 +32,8 @@ export type RollActions = TakeControls & {
   roll: RollFn;
   /** Starts a take, at `punchAt` seconds when it is a punch. */
   beginTake: (punchAt?: number) => void | Promise<void>;
+  /** Makes the voice the passage was recorded on the one the take records on; false (with the reason said) when it could not. */
+  chooseVoice?: (trackGuid: string) => Promise<boolean>;
   /** Marks the phrase the next roll starts from; before a take, `move` also moves the reading position there. */
   chooseStart: (phrase: number, move: boolean) => void;
   /** Lets go of the phrase chosen with Start from here. */
@@ -44,7 +45,14 @@ export type RollActions = TakeControls & {
   notify: (sentence: string) => void;
 };
 
+/** How long the Booth waits for the host to say where a passage was recorded (the host's own limit is shorter): then it says so and starts nothing. */
+export const LOOKUP_MS = 8000;
+
+const LOOKUP_FAILED = 'Where this passage was recorded could not be read, so no take was started. Try again.';
+const LOOKUP_SLOW = 'Where this passage was recorded did not come back in time, so no take was started. Try again.';
+
 /** How long after a roll went through another is ignored (milliseconds). */
+
 const ROLL_PAUSE_MS = 700;
 
 /**
@@ -116,6 +124,18 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
     [ask, doRoll],
   );
 
+  /** The host's answer for a phrase, or a refusal that says why there is none: a failed read and one that never comes back are both sentences. */
+  const lookUp = useCallback((phrase: number): Promise<BoothPunch> => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const slow = new Promise<BoothPunch>((resolve) => {
+      timer = setTimeout(() => resolve({ outcome: 'refused', reason: 'timeout', message: LOOKUP_SLOW }), LOOKUP_MS);
+    });
+    const asked = sessionRef.current.punchTarget(phrase).catch((): BoothPunch => ({ outcome: 'refused', reason: 'failed', message: LOOKUP_FAILED }));
+    return Promise.race([asked, slow]).finally(() => clearTimeout(timer));
+  }, []);
+  /** Each start gets a number; an answer that comes back after a newer start (or after a take began) is dropped, so a slow lookup never starts a take. */
+  const latestStart = useRef(0);
+
   const startTakeRef = useRef<(from?: number) => Promise<void>>(async () => {});
   const startFromHereRef = useRef<(unit: number) => Promise<void>>(async () => {});
 
@@ -134,7 +154,7 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
       const to = clampPhrase(unit, s.phraseCount);
       // Before a take, a start the DAW could not punch to is not armed: the narrator is told now, not after Space, where the take will start.
       const plan = rollPlan(s.capabilities);
-      if (!s.recording && plan.kind === 'refused' && isPunch({ phrase: to, seconds: s.secondsOf(to), recordedEnd: s.recordedEnd })) {
+      if (!s.recording && plan.kind === 'refused' && (await lookUp(to)).outcome === 'found') {
         actionsRef.current.notify(`${plan.reason} The next take starts from the end of what is already there, not from ¶ ${s.paragraphOf(to) + 1}.`);
         return;
       }
@@ -145,18 +165,34 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
       actionsRef.current.notify(`Starting from ¶ ${s.paragraphOf(to) + 1}`);
       return startTakeRef.current(to);
     },
-    [rollFrom],
+    [rollFrom, lookUp],
   );
   startFromHereRef.current = startFromHere;
 
-  /** Starts the take: a phrase chosen inside what is recorded is a punch-in and follows the plan; anywhere else it starts at the end. */
+  /**
+   * Starts the take. A phrase chosen with Start from here is looked up (the host reads where it was recorded before): found, the take records
+   * over exactly that spot, on the voice that read it, and follows the plan; never recorded, it is not a punch and the take goes on from the end
+   * of the chapter; refused, the sentence is shown and nothing starts (a start is never guessed).
+   */
   const startTake = useCallback(
     async (from?: number) => {
       const s = sessionRef.current;
       const at = from ?? s.punchAt;
-      if (at == null || at >= s.phraseCount || !isPunch({ phrase: at, seconds: s.secondsOf(at), recordedEnd: s.recordedEnd }))
+      if (at == null || at >= s.phraseCount) return actionsRef.current.beginTake();
+      const mine = ++latestStart.current;
+      const target = await lookUp(at);
+      // A newer start was chosen meanwhile, or a take began (the Space key, the DAW's own Record): this answer is out of date.
+      if (mine !== latestStart.current || sessionRef.current.recording) return;
+      if (target.outcome === 'never_recorded') {
+        // Not a punch: said, so a narrator never thinks earlier work is being recorded over.
+        actionsRef.current.notify(`¶ ${s.paragraphOf(at) + 1} was not recorded before, so the take goes on from the end of the chapter's audio.`);
         return actionsRef.current.beginTake();
-      const seconds = Math.round(s.secondsOf(at));
+      }
+      if (target.outcome !== 'found' || target.start === undefined) {
+        actionsRef.current.notify(target.message ?? 'Where this passage was recorded is not known, so no take was started.');
+        actionsRef.current.clearStart?.();
+        return;
+      }
       const plan = rollPlan(s.capabilities);
       if (plan.kind === 'refused') {
         // A punch the DAW cannot do must not leave the narrator unable to record at all: the chosen start is let go, the take starts at the end of
@@ -166,9 +202,12 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
         return actionsRef.current.beginTake();
       }
       if (plan.kind === 'confirm' && !(await ask(`Punch in at ¶ ${s.paragraphOf(at) + 1}?`, 'Punch in', plan.dawName))) return;
-      return actionsRef.current.beginTake(seconds);
+      if (target.trackGuid && actionsRef.current.chooseVoice && !(await actionsRef.current.chooseVoice(target.trackGuid))) return;
+      // The narrator is told which track is recorded over before the take starts, never only after.
+      actionsRef.current.notify(`Recording over ¶ ${s.paragraphOf(at) + 1}${target.trackName ? ` on ${target.trackName}` : ''}.`);
+      return actionsRef.current.beginTake(target.start);
     },
-    [ask],
+    [ask, lookUp],
   );
   startTakeRef.current = startTake;
 

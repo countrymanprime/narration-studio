@@ -6,7 +6,6 @@ import { lineIdentityStateSchema } from '../schemas/lineidentity';
 import { pickupListSchema, pickupsStateSchema } from '../schemas/pickups';
 import { projectStateChangedSchema, projectStateStateSchema } from '../schemas/projectstate';
 import { renderConfigStateSchema } from '../schemas/renderconfig';
-import { retakeLanesListSchema, retakeLanesStateSchema } from '../schemas/retakelanes';
 
 export const reaperActionsGoldens: Record<string, z.ZodType> = {
   'line-identity-idle.json': lineIdentityStateSchema,
@@ -23,9 +22,6 @@ export const reaperActionsGoldens: Record<string, z.ZodType> = {
   'project-state-idle.json': projectStateStateSchema,
   'project-state-checked.json': projectStateStateSchema,
   'project-state-changed-since.json': projectStateChangedSchema,
-  'retake-lanes-list.json': retakeLanesListSchema,
-  'retake-lanes-idle.json': retakeLanesStateSchema,
-  'retake-lanes-picked.json': retakeLanesStateSchema,
   'chapter-tags-preview-idle.json': chapterTagsPreviewSchema,
   'chapter-tags-preview-ready.json': chapterTagsPreviewSchema,
   'chapter-tags-embed-success.json': chapterTagsEmbedResultSchema,

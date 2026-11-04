@@ -38,7 +38,6 @@ Storybook title: `Primitives/Dialog`. Source: `src/components/primitives/Dialog.
 - `src/components/engine/CreateChapterRegionsDialog.tsx`
 - `src/components/engine/LinkChaptersDialog.tsx`
 - `src/components/engine/RenderConfigDialog.tsx`
-- `src/components/engine/RetakeLanesDialog.tsx`
 - `src/components/help/ShortcutSheet.tsx`
 - `src/components/primitives/ConfirmDialog.tsx`
 - `src/components/primitives/WorkDialog.tsx`
