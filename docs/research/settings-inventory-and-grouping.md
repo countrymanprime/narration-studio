@@ -1,6 +1,6 @@
 # Settings inventory and proposed grouping
 
-Researched 2026-10-17 on `main` at `847c1d0`, tracking issue [#1817](https://github.com/countrymanprime/narration-studio/issues/1817). Counts and line numbers are for that commit and are not kept current. Rules cited as R-xxx are in [the best-practice note](settings-best-practice.md). The proposal is recorded as [Settings redesign](../prds/studio-next-master-delivery-and-settings.prd.md#settings-redesign-proposed) and drawn in the [Studio Next mock](mockups/studio-next/README.md#settings).
+Researched 2026-10-17 on `main` at `847c1d0`, tracking issue [#1817](https://github.com/countrymanprime/narration-studio/issues/1817). Counts and line numbers are for that commit and are not kept current. Rules cited as R-xxx are in [the best-practice note](settings-best-practice.md). The proposal is recorded as [Settings redesign](../prds/studio-next-master-delivery-and-settings.prd.md#settings-redesign-proposed) and drawn in the Studio Next mock.
 
 **Question.** Which settings exist, who reads each one, and where should each live so that a setting shared by several pages has one home?
 

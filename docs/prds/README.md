@@ -50,7 +50,7 @@ Most PRDs open with a `**Supersedes:**` or `**Source:**` line naming what they r
 
 ## Index
 
-Phase counts are the rows of each PRD's phase table. The Studio Next series (the rebuild around the working mock in [`docs/research/mockups/studio-next/`](../research/mockups/studio-next/README.md)) is the main set of open PRDs, with one feature PRD beside it; every earlier PRD was deleted on 2026-10-10 (see [Deleted PRDs](#deleted-prds)).
+Phase counts are the rows of each PRD's phase table. The Studio Next series (the rebuild around the Studio Next mock, which was deleted from the tree: see [Reading the deleted mock](../operations/verification-tooling.md#reading-the-deleted-studio-next-mock)) is the main set of open PRDs, with one feature PRD beside it; every earlier PRD was deleted on 2026-10-10 (see [Deleted PRDs](#deleted-prds)).
 
 | PRD | Type | Phases | Replaces |
 | --- | --- | --- | --- |

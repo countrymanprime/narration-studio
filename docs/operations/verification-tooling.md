@@ -115,6 +115,10 @@ Since the Proof swap (SN-Q9, 2026-10-12), 04 has no target and is unscored: the 
 
 The Booth (03) and the companion (07) are scored at `booth/dark` (1440×900; `booth/speaker-tags` until the Studio Next Booth replaced the old page, SN-O10, so the 03 baseline above is the old page's) and `booth/companion-listening` (the active companion, at the mock's 420×900 crop). Layout and style are what the score is for, not the mock's sample data: don't seed demo data to raise it. What is left is content the app has no data for (the Schedule and Delivery items, the series chip, "following Ch 7") and features not built yet (Master's OUTPUTS list and its "Preview naming", "Edit chain" and "A/B" buttons).
 
+## Reading the deleted Studio Next mock
+
+The Studio Next mock (`docs/research/mockups/studio-next/`) was deleted from the tree once the app was built to it; the commit before the deletion is the last one that has it. Find the deleting commit with `git log --diff-filter=D --format=%H -1 -- docs/research/mockups/studio-next`, then read a file with `git show <sha>^:docs/research/mockups/studio-next/<path>` or check the whole mock out into a scratch folder with `git worktree add <dir> <sha>^`. The mock was a standalone npm project (`npm ci`, `npm run dev`). Dated notes in `docs/research/` and the ADRs still name its paths as history.
+
 ## Gate stamp
 
 `scripts/ci/gate-stamp.mjs` records that `pnpm check` passed on an exact working tree. `record` writes the hash of every non-ignored file to `.cache/gate-pass.json`; the hash comes from a throwaway index, so committing after a green run keeps the stamp valid and any later edit invalidates it. `pnpm check` runs `record` as its last step.
