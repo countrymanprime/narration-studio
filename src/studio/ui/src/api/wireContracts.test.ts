@@ -47,7 +47,7 @@ import type { WordFxRequest } from './contracts/wordFx';
 import type { ExportRequest } from './contracts/renderEncodeMaster';
 import { WIRE_CHAPTERS, WIRE_FINDINGS, WIRE_ONE_WORD_MISREAD, WIRE_TAKE_REVIEW_FINDINGS, WIRE_TRACKS_PROJECT, WIRE_TRANSCRIPT } from './mockFixtures';
 import { bookmarkSchema as spotBookmarkSchema, bookmarksSchema } from './schemas/bookmarks';
-import { boothVoiceAddedSchema, boothVoiceSchema, voiceTracksStateSchema } from './schemas/voiceTracks';
+import { boothPunchSchema, boothVoiceAddedSchema, boothVoiceSchema, voiceTracksStateSchema } from './schemas/voiceTracks';
 import { createVoiceTracksMock } from './voiceTracksMock';
 import { voiceSampleAnswerSchema, voiceSamplesChangedSchema, voiceSamplesRemovedSchema, voiceSamplesSchema } from './schemas/voiceSamples';
 import { VOICE_SAMPLE_SENTENCES, type VoiceSampleMarkRequest } from './contracts/voiceSamples';
@@ -4441,6 +4441,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'boothVoiceSet',
       'boothVoiceGet',
       'boothVoiceAdd',
+      'boothPunchTarget',
       'voiceSamplesList',
       'voiceSampleMark',
       'voiceSampleUpdate',
@@ -6310,6 +6311,12 @@ describe('the voice tracks bindings', () => {
     const narrator = await api.voiceTracksSetNarrator('alice');
     expectMatches(voiceTracksStateSchema, narrator, 'mock voice tracks narrator');
     expect((await api.voiceTracksSetCharacters('Queen', [])).tracks.map((entry) => entry.track)).toEqual(['Gardeners']);
+  });
+
+  it("the mock's punch target is a passage nobody recorded, through the schema", async () => {
+    const answer = await createMockApi().boothPunchTarget(WIRE_CHAPTERS[0].id, 'p1', 0, 3);
+    expectMatches(boothPunchSchema, answer, 'mock booth punch target');
+    expect(answer.outcome).toBe('never_recorded');
   });
 
   it('the mock refuses what the host refuses, and keeps nothing of it', async () => {
