@@ -6,5 +6,6 @@
   "message": "The disk that folder is on does not have room: the models need about 2.3 GB and it has 954 MB free. Free some space or choose another folder. Your models are still where they were.",
   "percent": 25,
   "phase": "error",
+  "startedAt": "2026-11-04T12:00:00Z",
   "target": "D:/Audio/Narration models"
 }

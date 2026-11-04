@@ -37,6 +37,7 @@ export const assetCatalogSchema = z.object({
   defaultRoot: z.string(),
   custom: z.boolean(),
   previousRoot: z.string(),
+  folderNote: z.string(),
   totalInstalledBytes: z.number(),
   assets: listFromNull(
     z.object({
@@ -82,6 +83,7 @@ const assetMovePhaseSchema = z.enum(['idle', 'copying', 'verifying', 'switching'
 
 export const assetMoveStateSchema = z.object({
   id: z.string(),
+  startedAt: z.string(),
   phase: assetMovePhaseSchema,
   target: z.string(),
   message: z.string(),

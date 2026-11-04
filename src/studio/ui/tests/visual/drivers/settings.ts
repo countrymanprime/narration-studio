@@ -50,7 +50,7 @@ async function openModels(page: Page, query = ''): Promise<void> {
 async function startMove(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Change location…' }).click();
   await confirmDialog(page, 'Change where downloads are kept?').getByRole('button', { name: 'Choose a folder…' }).click();
-  await page.getByRole('dialog', { name: 'Moving models and downloads' }).waitFor();
+  await page.getByRole('dialog', { name: /^Moving models/ }).waitFor();
 }
 
 /** Pulls the update dialog flow forward: Download update, then the confirm's Download. */
@@ -295,8 +295,8 @@ export const settingsDrivers: Record<string, Driver> = {
   'models-moving': async (page) => {
     await openModels(page, '?mockMove=copying');
     await startMove(page);
-    await page.getByRole('progressbar', { name: 'Moving models and downloads progress' }).waitFor();
-    await page.getByText('Copying the models to the new folder…').waitFor();
+    await page.getByRole('progressbar', { name: /^Moving models progress/ }).waitFor();
+    await page.getByText('Copying the models…').waitFor();
     await page
       .getByText(/\d+(\.\d+)? (MB|GB) of /)
       .first()

@@ -37,7 +37,15 @@ function asset(kind: string, id: string, installState: AssetItem['installState']
 }
 
 function setup(assets: AssetItem[]) {
-  const catalog: AssetCatalog = { cacheRoot: 'C:/cache', defaultRoot: 'C:/cache', custom: false, previousRoot: '', totalInstalledBytes: 0, assets };
+  const catalog: AssetCatalog = {
+    cacheRoot: 'C:/cache',
+    defaultRoot: 'C:/cache',
+    custom: false,
+    previousRoot: '',
+    folderNote: '',
+    totalInstalledBytes: 0,
+    assets,
+  };
   const saveSettings = vi.fn(async () => ({}) as never);
   const teleprompterStart = vi.fn(async () => ({ status: 'started' as const }));
   const api = createMockApi({ assetsList: async () => structuredClone(catalog), saveSettings, teleprompterStart } as never);

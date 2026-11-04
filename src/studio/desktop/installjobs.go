@@ -90,7 +90,10 @@ type installSpec struct {
 	// endedKind is the job:ended kind (jobs.go); noun is the asset in the narrator's words ("voice", "Whisper model").
 	endedKind, noun string
 	files           []assets.File
-	run             func(ctx context.Context, options assets.Options) error
+	// registry is the asset registry the caller looked the asset up in. A move of the models folder replaces the registry, so a spec
+	// looked up before it finished is refused after it: it would install into the folder the move left.
+	registry *assetRegistry
+	run      func(ctx context.Context, options assets.Options) error
 }
 
 // startInstall starts the install of one approved asset, or joins the one already running for it: a second press, a second window or a
@@ -110,6 +113,10 @@ func (h *Host) startInstall(spec installSpec) (map[string]any, error) {
 		if h.modelsMoving() {
 			h.mu.Unlock()
 			return nil, errModelsMoving
+		}
+		if spec.registry != nil && h.assets != nil && spec.registry != h.assets {
+			h.mu.Unlock()
+			return nil, errModelsMoved
 		}
 		if h.removing[spec.kind+"/"+spec.assetID] {
 			h.mu.Unlock()

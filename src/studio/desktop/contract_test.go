@@ -215,10 +215,12 @@ func TestContractAssetsListAndVerify(t *testing.T) {
 func TestContractAssetsMove(t *testing.T) {
 	copying := &Host{}
 	copying.modelsMove.phase, copying.modelsMove.id, copying.modelsMove.target = movePhaseCopying, "move-1", "D:/Audio/Narration models"
-	copying.modelsMove.message, copying.modelsMove.done, copying.modelsMove.total = "Copying the models to the new folder…", 600000000, 2400000000
+	copying.modelsMove.started = time.Date(2026, 11, 4, 12, 0, 0, 0, time.UTC)
+	copying.modelsMove.message, copying.modelsMove.done, copying.modelsMove.total = "Copying the models…", 600000000, 2400000000
 	contractfile.Check(t, "assets-move-copying", copying.modelsMoveSnapshot())
 	failed := &Host{}
 	failed.modelsMove.phase, failed.modelsMove.id, failed.modelsMove.target = movePhaseError, "move-1", "D:/Audio/Narration models"
+	failed.modelsMove.started = time.Date(2026, 11, 4, 12, 0, 0, 0, time.UTC)
 	failed.modelsMove.errorText = moveFailureText(&assets.InsufficientSpaceError{Need: 2_500_000_000, Free: 1_000_000_000})
 	failed.modelsMove.message, failed.modelsMove.done, failed.modelsMove.total = failed.modelsMove.errorText, 600000000, 2400000000
 	contractfile.Check(t, "assets-move-error", failed.modelsMoveSnapshot())

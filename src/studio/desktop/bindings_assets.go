@@ -121,7 +121,7 @@ func (h *Host) assetsList() (map[string]any, error) {
 	if err != nil {
 		return nil, err
 	}
-	return map[string]any{"cacheRoot": registry.base, "defaultRoot": folders.def, "custom": folders.custom, "previousRoot": folders.previous,
+	return map[string]any{"cacheRoot": registry.base, "defaultRoot": folders.def, "custom": folders.custom, "previousRoot": folders.previous, "folderNote": folders.note,
 		"totalInstalledBytes": installedBytes, "assets": entries}, nil
 }
 
@@ -180,7 +180,8 @@ type assetGate interface {
 }
 
 func (h *Host) startAssetInstall(kind, id string) (map[string]any, error) {
-	provider, item, err := h.registry().lookup(kind, id)
+	registry := h.registry()
+	provider, item, err := registry.lookup(kind, id)
 	if err != nil {
 		return nil, err
 	}
@@ -189,7 +190,7 @@ func (h *Host) startAssetInstall(kind, id string) (map[string]any, error) {
 			return nil, err
 		}
 	}
-	return h.startInstall(installSpec{kind: kind, assetID: id, endedKind: provider.endedKind(), noun: provider.noun(), files: item.files,
+	return h.startInstall(installSpec{kind: kind, assetID: id, endedKind: provider.endedKind(), noun: provider.noun(), files: item.files, registry: registry,
 		run: func(ctx context.Context, options assets.Options) error { return provider.install(ctx, id, options) }})
 }
 
@@ -205,8 +206,11 @@ func (h *Host) verifyAsset(kind, id string) (map[string]any, error) {
 	return map[string]any{"kind": kind, "id": id, "installState": state}, nil
 }
 
-func (h *Host) removeAsset(kind, id string) error {
-	provider, _, err := h.registry().lookup(kind, id)
+func (h *Host) removeAsset(kind, id string) error { return h.removeAssetIn(h.registry(), kind, id) }
+
+// removeAssetIn removes from registry, the one the asset was looked up in: if a move replaced it meanwhile the removal is refused.
+func (h *Host) removeAssetIn(registry *assetRegistry, kind, id string) error {
+	provider, _, err := registry.lookup(kind, id)
 	if err != nil {
 		return err
 	}
@@ -217,6 +221,10 @@ func (h *Host) removeAsset(kind, id string) error {
 	if h.modelsMoving() {
 		h.mu.Unlock()
 		return errModelsMoving
+	}
+	if h.assets != nil && registry != h.assets {
+		h.mu.Unlock()
+		return errModelsMoved
 	}
 	for _, job := range h.installJobs {
 		if job.kind == kind && job.assetID == id && job.running() {

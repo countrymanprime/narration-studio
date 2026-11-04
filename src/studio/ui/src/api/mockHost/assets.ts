@@ -51,7 +51,7 @@ export const MOCK_ASSET_ROOT = `C:/Users/narrator/AppData/Local/${brand.identity
 /** The folder the mock's picker answers with, and where `?mockMove=moved` boots. */
 export const MOCK_MOVED_ROOT = 'D:/Audio/Narration models';
 
-const IDLE_MOVE: AssetMoveState = { id: '', phase: 'idle', target: '', message: '', percent: 0, bytesDone: 0, bytesTotal: 0, error: '' };
+const IDLE_MOVE: AssetMoveState = { id: '', startedAt: '', phase: 'idle', target: '', message: '', percent: 0, bytesDone: 0, bytesTotal: 0, error: '' };
 const MOCK_MOVE_BYTES = 1_200_000_000;
 const MOVE_FAILURE = 'The disk filled up while the models were being copied. Free some space or choose another folder. Your models are still where they were.';
 
@@ -366,7 +366,7 @@ export function createAssetsMock(initial: MockApiSeed) {
         defaultRoot: MOCK_ASSET_ROOT,
         custom: root !== MOCK_ASSET_ROOT,
         previousRoot,
-        // Only what verifies counts: a damaged asset is not one the app can use.
+        folderNote: '', // Only what verifies counts: a damaged asset is not one the app can use.
         totalInstalledBytes: [voice, ...others, model, language, dictionary].reduce(
           (sum, listed) => sum + (listed.installState === 'installed' ? listed.diskSize : 0),
           0,
@@ -414,19 +414,19 @@ export function createAssetsMock(initial: MockApiSeed) {
       if (!/^([A-Za-z]:[\\/]|\/)/.test(to)) throw new Error('Choose a folder by its full path.');
       if (to === root) throw new Error('The models are already in that folder.');
       moveStep = 0;
-      move = { ...IDLE_MOVE, id: `mock-move-${Date.now()}`, target: to };
-      move = moveAt('copying', 0, 'Copying the models to the new folder…');
+      move = { ...IDLE_MOVE, id: `mock-move-${Date.now()}`, startedAt: new Date().toISOString(), target: to };
+      move = moveAt('copying', 0, 'Copying the models…');
       return move;
     },
     assetsMoveState: async () => {
       if (move.phase !== 'copying' && move.phase !== 'verifying') return move;
       moveStep += 1;
       const seed = initial.assetMove;
-      if (seed === 'copying') move = moveAt('copying', 40, 'Copying the models to the new folder…');
-      else if (seed === 'verifying') move = moveAt('verifying', 80, 'Checking every copied file against the original…');
+      if (seed === 'copying') move = moveAt('copying', 40, 'Copying the models…');
+      else if (seed === 'verifying') move = moveAt('verifying', 80, 'Checking the copy…');
       else if (seed === 'fails') move = moveAt('error', 40, MOVE_FAILURE, MOVE_FAILURE);
-      else if (moveStep === 1) move = moveAt('copying', 30, 'Copying the models to the new folder…');
-      else if (moveStep === 2) move = moveAt('verifying', 70, 'Checking every copied file against the original…');
+      else if (moveStep === 1) move = moveAt('copying', 30, 'Copying the models…');
+      else if (moveStep === 2) move = moveAt('verifying', 70, 'Checking the copy…');
       else {
         previousRoot = root;
         root = move.target;

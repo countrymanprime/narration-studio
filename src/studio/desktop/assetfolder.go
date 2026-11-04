@@ -31,33 +31,42 @@ func assetKindDirs() []string {
 
 // assetBaseFor is the folder downloads live in: the one the narrator moved them to, or the per-user cache folder.
 func assetBaseFor(store *settings.Store) (string, error) {
-	if store != nil {
-		if custom := strings.TrimSpace(store.Global(assetsSettingsTool)[modelsFolderKey]); custom != "" {
-			return custom, nil
-		}
-	}
-	return assetCacheBase()
+	folders, err := modelsFoldersFor(store)
+	return folders.active, err
 }
 
 // modelsFolders is where the downloads are, where they are by default, and the folder a move left a copy in that the narrator has not
-// yet answered for ("" when none).
+// yet answered for ("" when none). note says, when the settings file holds a folder that cannot be used as written, what the app did.
 type modelsFolders struct {
-	active, def, previous string
-	custom                bool
+	active, def, previous, note string
+	custom                      bool
 }
 
+// modelsFoldersFor reads the folders from the settings. A folder in the file that is not a full path (a hand-edited file) is not
+// followed: the default is used, and the note says so.
 func modelsFoldersFor(store *settings.Store) (modelsFolders, error) {
 	def, err := assetCacheBase()
 	if err != nil {
 		return modelsFolders{}, err
 	}
 	folders := modelsFolders{active: def, def: def}
-	if store != nil {
-		values := store.Global(assetsSettingsTool)
-		if custom := strings.TrimSpace(values[modelsFolderKey]); custom != "" {
+	if store == nil {
+		return folders, nil
+	}
+	values := store.Global(assetsSettingsTool)
+	if custom := strings.TrimSpace(values[modelsFolderKey]); custom != "" {
+		switch {
+		case !filepath.IsAbs(custom):
+			folders.note = fmt.Sprintf("The models folder in your settings (%s) is not a full path, so the default folder is used.", custom)
+		default:
 			folders.active, folders.custom = custom, true
+			if _, statErr := os.Stat(custom); statErr != nil {
+				folders.note = "The models folder cannot be found. Reconnect its disk, or move the downloads back with the reset button."
+			}
 		}
-		folders.previous = strings.TrimSpace(values[previousModelsFolderKey])
+	}
+	if previous := strings.TrimSpace(values[previousModelsFolderKey]); previous != "" && filepath.IsAbs(previous) {
+		folders.previous = previous
 	}
 	return folders, nil
 }
@@ -92,6 +101,8 @@ type modelsMoveState struct {
 	total int64
 	// +checklocks:mu
 	cancel context.CancelFunc
+	// +checklocks:mu
+	started time.Time
 }
 
 func (m *modelsMoveState) running() bool {
@@ -103,6 +114,8 @@ func (m *modelsMoveState) running() bool {
 // modelsMoving reports whether the models folder is being moved, so a download or a removal waits: it would write into a folder that
 // is about to be left.
 func (h *Host) modelsMoving() bool { return h.modelsMove.running() }
+
+var errModelsMoved = errors.New("the models folder changed while this was starting: try again")
 
 var errModelsMoving = errors.New("the models folder is being moved: try again when the move has finished")
 
@@ -121,7 +134,11 @@ func (h *Host) modelsMoveSnapshot() map[string]any {
 	case m.total > 0:
 		percent = int(min(m.done*100/m.total, 99))
 	}
-	return map[string]any{"id": m.id, "phase": phase, "target": m.target, "message": m.message, "percent": percent,
+	startedAt := ""
+	if !m.started.IsZero() {
+		startedAt = m.started.UTC().Format(time.RFC3339Nano)
+	}
+	return map[string]any{"id": m.id, "phase": phase, "startedAt": startedAt, "target": m.target, "message": m.message, "percent": percent,
 		"bytesDone": m.done, "bytesTotal": m.total, "error": m.errorText}
 }
 
@@ -135,49 +152,72 @@ func (h *Host) cancelModelsMove() map[string]any {
 	return h.modelsMoveSnapshot()
 }
 
+// moveStartHook is a seam for tests, called before the move takes its locks.
+var moveStartHook func()
+
 // startModelsMove begins moving the models folder to target ("" is the default folder) and answers with the job. It refuses, before
-// anything is written, a target that cannot work, a download in progress and a second move.
+// anything is written, a target that cannot work, a download in progress and a second move. The folders it moves from are read inside
+// the same critical section that marks the move as running, so a move that finished meanwhile is seen and not overwritten.
 func (h *Host) startModelsMove(target string) (map[string]any, error) {
 	store := h.settingsStore()
-	folders, err := modelsFoldersFor(store)
+	if hook := moveStartHook; hook != nil {
+		hook()
+	}
+	h.mu.Lock()
+	m := &h.modelsMove
+	m.mu.Lock()
+	plan, toDefault, folders, err := h.planMoveLocked(store, target)
 	if err != nil {
+		m.mu.Unlock()
+		h.mu.Unlock()
 		return nil, err
 	}
+	parent := h.ctx
+	if parent == nil {
+		parent = context.Background()
+	}
+	ctx, cancel := context.WithCancel(parent)
+	m.id, m.phase, m.target, m.errorText, m.done, m.total, m.cancel = fmt.Sprintf("move-%d", time.Now().UnixNano()), movePhaseCopying, plan.Target, "", 0, 0, cancel
+	m.message = "Copying the models…"
+	m.started = time.Now()
+	m.mu.Unlock()
+	h.mu.Unlock()
+	go h.runModelsMove(ctx, plan, toDefault, folders)
+	return h.modelsMoveSnapshot(), nil
+}
+
+// planMoveLocked checks that a move may start and makes its plan from the folders as they are now. The caller holds h.mu and m.mu.
+func (h *Host) planMoveLocked(store *settings.Store, target string) (assetmove.Plan, bool, modelsFolders, error) {
+	m := &h.modelsMove
+	if m.phase == movePhaseCopying || m.phase == movePhaseVerifying || m.phase == movePhaseSwitching {
+		return assetmove.Plan{}, false, modelsFolders{}, fmt.Errorf("the models are already being moved")
+	}
+	if len(h.removing) > 0 {
+		return assetmove.Plan{}, false, modelsFolders{}, fmt.Errorf("a download is being removed: try again in a moment")
+	}
+	for _, job := range h.installJobs {
+		if job.running() {
+			return assetmove.Plan{}, false, modelsFolders{}, fmt.Errorf("a download is running: wait for it to finish or cancel it, then move the models")
+		}
+	}
+	folders, err := modelsFoldersFor(store)
+	if err != nil {
+		return assetmove.Plan{}, false, modelsFolders{}, err
+	}
 	if folders.previous != "" {
-		return nil, fmt.Errorf("the old copy in %s is still on this computer: delete it or keep it before moving the models again", folders.previous)
+		return assetmove.Plan{}, false, modelsFolders{}, fmt.Errorf("the old copy in %s is still on this computer: delete it or keep it before moving the models again", folders.previous)
 	}
 	toDefault := strings.TrimSpace(target) == ""
 	if toDefault {
 		target = folders.def
 	} else if !filepath.IsAbs(target) {
-		return nil, fmt.Errorf("choose a folder by its full path")
+		return assetmove.Plan{}, false, modelsFolders{}, fmt.Errorf("choose a folder by its full path")
 	}
-	target = filepath.Clean(target)
-	plan := assetmove.Plan{Source: folders.active, Target: target, Dirs: assetKindDirs()}
+	plan := assetmove.Plan{Source: folders.active, Target: filepath.Clean(target), Dirs: assetKindDirs()}
 	if err := assetmove.Check(plan); err != nil {
-		return nil, errors.New(moveRefusalText(err))
+		return assetmove.Plan{}, false, modelsFolders{}, errors.New(moveRefusalText(err))
 	}
-	h.mu.Lock()
-	for _, job := range h.installJobs {
-		if job.running() {
-			h.mu.Unlock()
-			return nil, fmt.Errorf("a download is running: wait for it to finish or cancel it, then move the models")
-		}
-	}
-	m := &h.modelsMove
-	m.mu.Lock()
-	if m.phase == movePhaseCopying || m.phase == movePhaseVerifying || m.phase == movePhaseSwitching {
-		m.mu.Unlock()
-		h.mu.Unlock()
-		return nil, fmt.Errorf("the models are already being moved")
-	}
-	ctx, cancel := context.WithCancel(context.Background())
-	m.id, m.phase, m.target, m.errorText, m.done, m.total, m.cancel = fmt.Sprintf("move-%d", time.Now().UnixNano()), movePhaseCopying, target, "", 0, 0, cancel
-	m.message = "Copying the models to the new folder…"
-	m.mu.Unlock()
-	h.mu.Unlock()
-	go h.runModelsMove(ctx, plan, toDefault, folders)
-	return h.modelsMoveSnapshot(), nil
+	return plan, toDefault, folders, nil
 }
 
 func (h *Host) runModelsMove(ctx context.Context, plan assetmove.Plan, toDefault bool, folders modelsFolders) {
@@ -194,21 +234,23 @@ func (h *Host) runModelsMove(ctx context.Context, plan assetmove.Plan, toDefault
 	if move == nil {
 		move = assetmove.Move
 	}
+	made := assetmove.MissingFolders(plan.Target)
 	err := h.guardedMove(ctx, move, plan, func(p assetmove.Progress) {
 		m.mu.Lock()
 		defer m.mu.Unlock()
 		m.phase, m.done, m.total = p.Phase, p.Done, p.Total
 		if p.Phase == assetmove.PhaseVerifying {
-			m.message = "Checking every copied file against the original…"
+			m.message = "Checking the copy…"
 		}
 	})
 	if err == nil {
 		m.mu.Lock()
-		m.phase, m.message = movePhaseSwitching, "Switching to the new folder…"
+		m.phase, m.message = movePhaseSwitching, "Switching…"
 		m.mu.Unlock()
 		if err = h.switchModelsFolder(plan, toDefault, folders); err != nil {
-			// The copy is in place but was never used: take it away again, so the narrator can try the same folder once the cause is gone.
-			_ = assetmove.RemoveOld(plan.Target, plan.Dirs)
+			h.rollBackMove(plan, made)
+		} else {
+			_ = assetmove.Finish(plan.Target)
 		}
 	}
 	m.mu.Lock()
@@ -251,12 +293,27 @@ func (h *Host) switchModelsFolder(plan assetmove.Plan, toDefault bool, folders m
 		changes[previousModelsFolderKey] = &source
 	}
 	if err := store.Save(assetsSettingsTool, "global", changes); err != nil {
-		return err
+		// A write that failed may still have landed: if the setting now names the new folder it is the folder in use, whatever was reported.
+		if now, _ := modelsFoldersFor(store); now.active != plan.Target || now.custom == toDefault {
+			return err
+		}
 	}
 	h.mu.Lock()
 	h.assets = h.buildAssetRegistry()
 	h.mu.Unlock()
 	return nil
+}
+
+// rollBackMove takes away a copy that was placed but never used, so the narrator can try the same folder once the cause is gone. It
+// removes only the copied per-kind folders and the marker, and the target itself only if the move made it, and only if the setting
+// still names the old folder: a copy the setting now points at is never removed.
+func (h *Host) rollBackMove(plan assetmove.Plan, made []string) {
+	if now, _ := modelsFoldersFor(h.settingsStore()); now.active == plan.Target {
+		return
+	}
+	_ = assetmove.RemoveKinds(plan.Target, plan.Dirs)
+	_ = assetmove.Finish(plan.Target)
+	assetmove.RemoveEmpty(made)
 }
 
 func holdsAssets(root string, dirs []string) bool {
@@ -307,6 +364,9 @@ func (h *Host) deleteOldModels() error {
 	if assetmove.Related(previous, folders.active) {
 		return fmt.Errorf("that folder is the one the models are in now, so it was not deleted")
 	}
+	if err := assetmove.Covered(previous, folders.active, assetKindDirs()); err != nil {
+		return fmt.Errorf("the models folder in use is not complete (%v), so the old copy was not deleted", err)
+	}
 	h.mu.RLock()
 	idle := h.idleLocked()
 	h.mu.RUnlock()
@@ -314,7 +374,7 @@ func (h *Host) deleteOldModels() error {
 		return fmt.Errorf("something that may still be reading the old copy is running: delete it when that has finished")
 	}
 	if err := assetmove.RemoveOld(previous, assetKindDirs()); err != nil {
-		return fmt.Errorf("the old copy could not be deleted: %w", err)
+		return fmt.Errorf("the old copy could only be partly deleted, so some of it may be gone: %w", err)
 	}
 	return h.settingsStore().Save(assetsSettingsTool, "global", map[string]*string{previousModelsFolderKey: nil})
 }

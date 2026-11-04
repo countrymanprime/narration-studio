@@ -6,5 +6,6 @@
   "message": "",
   "percent": 0,
   "phase": "idle",
+  "startedAt": "",
   "target": ""
 }

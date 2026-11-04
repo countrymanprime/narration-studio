@@ -15,6 +15,7 @@ const catalog = (...assets: AssetItem[]): AssetCatalog => ({
   defaultRoot: 'C:/cache',
   custom: false,
   previousRoot: '',
+  folderNote: '',
   totalInstalledBytes: 0,
   assets,
 });

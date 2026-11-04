@@ -8,7 +8,14 @@ import { WorkDialog } from '../../primitives/WorkDialog';
 import { isMoveRunning, type AssetMovePhase, type AssetMoveState, type WorkJob } from '../../../types';
 import { useAssetsStore } from './AssetsStore';
 
-const path = (value: string) => <code className="font-['IBM_Plex_Mono',ui-monospace,monospace] text-[0.75rem] [overflow-wrap:anywhere]">{value}</code>;
+/** A path in a sentence or a title: isolated left to right, so a path with right-to-left letters does not reorder the words around it. */
+const isolate = (value: string): string => `\u2066${value}\u2069`;
+
+const path = (value: string) => (
+  <code dir="ltr" className="font-['IBM_Plex_Mono',ui-monospace,monospace] text-[0.75rem] [overflow-wrap:anywhere]">
+    {value}
+  </code>
+);
 
 const PHASE: Record<AssetMovePhase, WorkJob['phase']> = {
   idle: 'idle',
@@ -21,14 +28,17 @@ const PHASE: Record<AssetMovePhase, WorkJob['phase']> = {
 };
 
 /** The move as the work dialog draws it: the two passes are one bar, and the bytes sit beside the message. */
-function jobOf(move: AssetMoveState, started: number, now: number): WorkJob {
+function jobOf(move: AssetMoveState, fallback: number, now: number): WorkJob {
+  const begun = Date.parse(move.startedAt);
+  const started = Number.isNaN(begun) ? fallback : begun;
   const running = isMoveRunning(move);
   return {
     id: move.id,
     kind: 'asset_install',
     phase: PHASE[move.phase],
     message: move.message,
-    percent: move.percent,
+    // A move that ended badly shows an empty bar: it is not progressing, and nothing was changed.
+    percent: move.phase === 'error' || move.phase === 'cancelled' ? 0 : move.percent,
     detail: move.bytesTotal > 0 && running ? `${formatSize(move.bytesDone / 2)} of ${formatSize(move.bytesTotal / 2)}` : undefined,
     logs: [],
     elapsed: Math.max(0, (now - started) / 1000),
@@ -57,6 +67,8 @@ export function ModelsFolderControl() {
   }, [running]);
   if (!catalog) return null;
 
+  const previous = catalog.previousRoot;
+  const answerOldFirst = () => overlay.toast('Delete the old copy or keep it first: another move is not offered until you have.', { tone: 'error' });
   const begin = async (target: string) => {
     setStarted(Date.now());
     setNow(Date.now());
@@ -78,13 +90,14 @@ export function ModelsFolderControl() {
 
   return (
     <>
-      <Button variant="secondary" size="sm" className="flex-none" pending={picking} onClick={() => setAsking('change')}>
+      <Button variant="secondary" size="sm" className="flex-none" pending={picking} onClick={() => (previous ? answerOldFirst() : setAsking('change'))}>
         Change location…
       </Button>
       {catalog.custom && (
         <IconButton
           action="undo"
           label="Reset the models folder to the default folder"
+          disabledReason={previous ? 'Delete the old copy or keep it first' : undefined}
           className="flex-none border-transparent"
           onClick={() => setAsking('reset')}
         />
@@ -114,7 +127,7 @@ export function ModelsFolderControl() {
         />
       )}
       {move && move.phase !== 'idle' && (
-        <WorkDialog title="Moving models and downloads" job={jobOf(move, started, now)} cancel={() => void store.cancelMove()} close={store.dismissMove} />
+        <WorkDialog title="Moving models" job={jobOf(move, started, now)} cancel={() => void store.cancelMove()} close={store.dismissMove} />
       )}
     </>
   );
@@ -151,7 +164,7 @@ export function OldCopyOffer() {
       </span>
       {asking && (
         <ConfirmDialog
-          title="Delete the old copy?"
+          title={`Delete the old copy in ${isolate(previous)}?`}
           body={
             <>
               This deletes the downloaded models, voices and tools in {path(previous)}. Anything else in that folder stays. The copy in{' '}

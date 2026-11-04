@@ -70,6 +70,9 @@ func (h *Host) wiktextractManagerFor() (*wiktextract.Manager, error) {
 	if seam != nil {
 		return seam()
 	}
+	if h.modelsMoving() {
+		return nil, errModelsMoving
+	}
 	base, err := assetBaseFor(h.settingsStore())
 	if err != nil {
 		return nil, err

@@ -641,6 +641,9 @@ func (h *Host) cleanStaleDownloads() {
 	for _, removed := range cleanAssetCaches(base) {
 		_ = h.log.Report("asset_cache_cleaned", removed)
 	}
+	for _, removed := range assetmove.SweepStale(base) {
+		_ = h.log.Report("asset_cache_cleaned", filepath.Join(base, removed))
+	}
 }
 
 // configureLocked rebuilds project-scoped services from launcher arguments.
@@ -2014,6 +2017,9 @@ func (h *Host) settingsForScope(scope string) (map[string]any, error) {
 	return result, nil
 }
 func (h *Host) saveSettings(tool, scope string, values map[string]*string) error {
+	if tool == assetsSettingsTool {
+		return fmt.Errorf("the models folder is changed only by Change location in Models & downloads, which moves the files with it")
+	}
 	schemas, ok := h.settingsSchemas()[tool]
 	if !ok {
 		return fmt.Errorf("unsupported settings tool")

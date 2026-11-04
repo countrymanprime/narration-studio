@@ -184,7 +184,7 @@ for longer.
 ## Models and downloads
 
 One list of everything the app can keep on this computer: Whisper models, Moonshine models, the preview voices, the Story Bible language models, the dictionary, the wiktionary pronunciations and the MP3 encoder. Nothing downloads by itself, and
-removing one never touches your projects. Above the list, the disk the installed ones use and the folder they are kept in, with **Open folder** to show it in the file manager, and under it the **Models folder** row, which [moves them to another folder](#models-folder). When the list cannot be read, the message offers **Retry** and **Open the folder**.
+removing one never touches your projects. Above the list, the disk the installed ones use, and under it the **Models folder** row, which shows the folder they are kept in, has **Open folder** to show it in the file manager and [moves them to another folder](#models-folder). When the list cannot be read, the message offers **Retry** and **Open the folder**.
 Which one is *used* is chosen in the category that uses it; here you only get, check and remove them.
 
 ![Settings - Models & downloads: the disk used and each download with its state, size, what uses it and its actions](../../images/ui/settings-models.webp)
@@ -204,7 +204,7 @@ With nothing downloaded, the page (its **?** gives the size, about 600 MB) offer
 
 ### Models folder
 
-Under the disk bar, **Models folder** is where the downloads are kept: the folder in use, **Change location…** and, once you have moved them, a reset button. It is also found by searching for "location" or "folder", and by the **Changed** filter once it is not the default. Its **?** says what a move does.
+Under the disk bar, **Models folder** is where the downloads are kept: the folder in use, **Open folder**, **Change location…** and, once you have moved them, a reset button. It is also found by searching for "location" or "folder", and by the **Changed** filter once it is not the default. Its **?** says what a move does.
 
 **Change location…** asks first (the question is below), then opens your computer's folder dialog. Choose an empty folder (make a new one in the dialog if you like; a folder inside the current one, or one that already holds files, is refused). The app copies everything it has downloaded, checks every copied file against the original, and only then uses the new folder, at once and for every kind of download. A bar shows the bytes of both passes and **Cancel** stops the move. A move is refused while a download runs, and no download starts during one.
 

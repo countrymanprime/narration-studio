@@ -6,12 +6,14 @@ package assetmove
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 
@@ -40,8 +42,35 @@ var (
 	// ErrMismatch is a copy that differs from its source in size or checksum.
 	ErrMismatch = errors.New("a copied file does not match its original")
 	// ErrLink is a link in the source: a move copies files and never follows a link out of the folder.
-	ErrLink = errors.New("the folder holds a link to somewhere else")
+	ErrLink = errors.New("the folder holds a link or another kind of entry that is not moved")
+	// ErrIncomplete is a folder that lacks files of the one it is meant to replace.
+	ErrIncomplete = errors.New("the new copy does not hold everything the old one does")
+	// ErrBadName is a folder name Windows would silently change (a trailing dot or space).
+	ErrBadName = errors.New("a folder name may not end in a dot or a space")
 )
+
+// journalName is the marker a move writes into the target just before it renames the folders into place, naming them. A crash
+// between that and the setting being written leaves the folders in a target that looks foreign; the marker lets the next move
+// recognise them as its own leftovers. Finish removes it once the folder is in use.
+const journalName = movingPrefix + "journal"
+
+// stagingMarker is the file a move writes first into its staging folder. Only a folder named like a generated one that holds it is
+// treated as ours: a folder of the narrator's that happens to start with movingPrefix is neither removed nor ignored.
+const stagingMarker = ".narration-move"
+
+var stagingName = regexp.MustCompile(`^` + regexp.QuoteMeta(movingPrefix) + `[0-9]+$`)
+
+// isStaging reports whether dir/name is a staging folder this package made.
+func isStaging(dir, name string) bool {
+	if !stagingName.MatchString(name) {
+		return false
+	}
+	info, err := os.Lstat(filepath.Join(dir, name, stagingMarker))
+	return err == nil && info.Mode().IsRegular()
+}
+
+// syncFile is a seam for tests: every copied file is flushed through it before it is checked.
+var syncFile = func(f *os.File) error { return f.Sync() }
 
 // Plan is one move: the folder the downloads are in, the folder they go to, and the per-kind folders of the downloads inside the source.
 // Only those folders are copied (and later removed): anything else the narrator keeps in the source is left alone.
@@ -66,8 +95,12 @@ type fileFact struct {
 	hash sum
 }
 
-// Check says why a move from plan.Source to plan.Target must not start, or nil. It writes nothing.
+// Check says why a move from plan.Source to plan.Target must not start, or nil. It writes nothing. Folders are compared by name and by
+// identity (os.SameFile along the nearest existing parents), so a link, another spelling or a case variant of the same folder is seen.
 func Check(plan Plan) error {
+	if runtime.GOOS == "windows" && hasTrailingDotOrSpace(plan.Target) {
+		return ErrBadName
+	}
 	source, target := normal(plan.Source), normal(plan.Target)
 	switch {
 	case same(source, target):
@@ -76,6 +109,9 @@ func Check(plan Plan) error {
 		return ErrTargetInsideSource
 	case inside(source, target):
 		return ErrSourceInsideTarget
+	}
+	if err := identity(source, target); err != nil {
+		return err
 	}
 	info, err := os.Stat(target)
 	switch {
@@ -90,12 +126,155 @@ func Check(plan Plan) error {
 	if err != nil {
 		return err
 	}
+	own := journalDirs(target, plan.Dirs)
 	for _, entry := range entries {
-		if !strings.HasPrefix(entry.Name(), movingPrefix) {
+		if !isStaging(target, entry.Name()) && entry.Name() != journalName && !own[entry.Name()] {
 			return ErrTargetNotEmpty
 		}
 	}
 	return nil
+}
+
+// identity compares the two folders by what is on the disk and not by their names.
+func identity(source, target string) error {
+	src, err := os.Stat(source)
+	if err != nil {
+		return nil
+	}
+	for p := target; ; p = filepath.Dir(p) {
+		if info, statErr := os.Stat(p); statErr == nil && os.SameFile(src, info) {
+			if p == target {
+				return ErrSameFolder
+			}
+			return ErrTargetInsideSource
+		}
+		if filepath.Dir(p) == p {
+			break
+		}
+	}
+	if tgt, statErr := os.Stat(target); statErr == nil {
+		for p := filepath.Dir(source); ; p = filepath.Dir(p) {
+			if info, e := os.Stat(p); e == nil && os.SameFile(tgt, info) {
+				return ErrSourceInsideTarget
+			}
+			if filepath.Dir(p) == p {
+				break
+			}
+		}
+	}
+	return nil
+}
+
+// hasTrailingDotOrSpace reports a path component Windows would change by dropping its trailing dots or spaces (".." and "." are fine).
+func hasTrailingDotOrSpace(path string) bool {
+	for _, part := range strings.FieldsFunc(path, func(r rune) bool { return r == '/' || r == '\\' }) {
+		if part == "." || part == ".." {
+			continue
+		}
+		if strings.HasSuffix(part, ".") || strings.HasSuffix(part, " ") {
+			return true
+		}
+	}
+	return false
+}
+
+// journalDirs are the folders a crashed move's marker names that this plan may own: only plain names from the plan's own list.
+func journalDirs(target string, allowed []string) map[string]bool {
+	own := map[string]bool{}
+	data, err := os.ReadFile(filepath.Join(target, journalName))
+	if err != nil {
+		return own
+	}
+	var doc struct {
+		Dirs []string `json:"dirs"`
+	}
+	if json.Unmarshal(data, &doc) != nil {
+		return own
+	}
+	for _, name := range doc.Dirs {
+		for _, kind := range allowed {
+			if name == kind {
+				own[name] = true
+			}
+		}
+	}
+	return own
+}
+
+// recoverLeftovers removes what an interrupted move left in the target: the folders its marker names, the marker, and staging folders.
+func recoverLeftovers(target string, dirs []string) {
+	for name := range journalDirs(target, dirs) {
+		_ = os.RemoveAll(filepath.Join(target, name))
+	}
+	removeStale(target)
+}
+
+// Finish ends a move whose folder is now in use: it removes the marker. Call it after the setting was written.
+func Finish(target string) error {
+	err := os.Remove(filepath.Join(normal(target), journalName))
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil
+	}
+	return err
+}
+
+// SweepStale removes the staging folders and markers an interrupted move left in root, and answers their names.
+func SweepStale(root string) []string {
+	var removed []string
+	entries, _ := os.ReadDir(root)
+	for _, entry := range entries {
+		name := entry.Name()
+		if (isStaging(root, name) || (name == journalName && entry.Type().IsRegular())) && os.RemoveAll(filepath.Join(root, name)) == nil {
+			removed = append(removed, name)
+		}
+	}
+	return removed
+}
+
+// Covered says whether now holds every file of old's per-kind folders, at the same size. A kind folder old does not have, or has empty,
+// needs nothing. It is how the host knows the copy that replaced the old folder is whole before it offers to delete the old one.
+func Covered(old, now string, dirs []string) error {
+	for _, dir := range dirs {
+		want, err := sizes(filepath.Join(old, dir))
+		if err != nil {
+			return err
+		}
+		if len(want) == 0 {
+			continue
+		}
+		have, err := sizes(filepath.Join(now, dir))
+		if err != nil {
+			return fmt.Errorf("%w: %s", ErrIncomplete, dir)
+		}
+		for name, size := range want {
+			if got, ok := have[name]; !ok || got != size {
+				return fmt.Errorf("%w: %s/%s", ErrIncomplete, dir, name)
+			}
+		}
+	}
+	return nil
+}
+
+func sizes(root string) (map[string]int64, error) {
+	out := map[string]int64{}
+	err := filepath.WalkDir(root, func(path string, entry fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if entry.Type().IsRegular() {
+			info, err := entry.Info()
+			if err != nil {
+				return err
+			}
+			rel, _ := filepath.Rel(root, path)
+			out[filepath.ToSlash(rel)] = info.Size()
+		}
+		return nil
+	})
+	if errors.Is(err, fs.ErrNotExist) {
+		return map[string]int64{}, nil
+	}
+	return out, err
 }
 
 // Related reports whether two folders are the same or one holds the other.
@@ -118,19 +297,20 @@ func Move(ctx context.Context, plan Plan, report func(Progress)) (err error) {
 	if err = assets.RequireFreeSpace(target, total); err != nil {
 		return err
 	}
-	madeTarget := false
-	if _, statErr := os.Stat(target); errors.Is(statErr, fs.ErrNotExist) {
-		if err = os.MkdirAll(target, 0o755); err != nil {
-			return err
-		}
-		madeTarget = true
-	}
-	removeStale(target)
-	staging, err := os.MkdirTemp(target, movingPrefix)
+	created, err := makeDirs(target)
 	if err != nil {
-		if madeTarget {
-			_ = os.Remove(target)
+		return err
+	}
+	recoverLeftovers(target, plan.Dirs)
+	staging, err := os.MkdirTemp(target, movingPrefix)
+	if err == nil {
+		err = os.WriteFile(filepath.Join(staging, stagingMarker), nil, 0o600)
+	}
+	if err != nil {
+		if staging != "" {
+			_ = os.RemoveAll(staging)
 		}
+		removeEmpty(created)
 		return err
 	}
 	var placed []string
@@ -139,10 +319,11 @@ func Move(ctx context.Context, plan Plan, report func(Progress)) (err error) {
 			for _, dir := range placed {
 				_ = os.RemoveAll(filepath.Join(target, dir))
 			}
+			_ = os.Remove(filepath.Join(target, journalName))
 		}
 		_ = os.RemoveAll(staging)
-		if err != nil && madeTarget {
-			_ = os.Remove(target)
+		if err != nil {
+			removeEmpty(created)
 		}
 	}()
 
@@ -161,16 +342,107 @@ func Move(ctx context.Context, plan Plan, report func(Progress)) (err error) {
 	if err = ctx.Err(); err != nil {
 		return err
 	}
+	var present []string
 	for _, dir := range plan.Dirs {
-		if _, statErr := os.Stat(filepath.Join(staging, dir)); statErr != nil {
-			continue
+		if _, statErr := os.Stat(filepath.Join(staging, dir)); statErr == nil {
+			if err = syncTree(filepath.Join(staging, dir)); err != nil {
+				return err
+			}
+			present = append(present, dir)
 		}
+	}
+	if err = writeJournal(target, present); err != nil {
+		return err
+	}
+	for _, dir := range present {
 		if err = os.Rename(filepath.Join(staging, dir), filepath.Join(target, dir)); err != nil {
 			return err
 		}
 		placed = append(placed, dir)
 	}
-	return nil
+	return syncDir(target)
+}
+
+// MissingFolders is the folder and the parents of it that do not exist yet, deepest first: what making it would create.
+func MissingFolders(path string) []string {
+	var missing []string
+	for p := normal(path); ; p = filepath.Dir(p) {
+		if _, err := os.Lstat(p); err == nil || filepath.Dir(p) == p {
+			break
+		}
+		missing = append(missing, p)
+	}
+	return missing
+}
+
+// RemoveEmpty removes each folder of paths that is empty, in the order given (deepest first, from MissingFolders). It never removes one
+// that holds anything.
+func RemoveEmpty(paths []string) {
+	removeEmpty(paths)
+}
+
+func removeEmpty(paths []string) {
+	for _, p := range paths {
+		_ = os.Remove(p)
+	}
+}
+
+// makeDirs creates the folder and its parents and answers every one it made, deepest first. When it fails partway the ones it made are removed.
+func makeDirs(target string) ([]string, error) {
+	created := MissingFolders(target)
+	if len(created) == 0 {
+		return nil, nil
+	}
+	if err := os.MkdirAll(target, 0o755); err != nil {
+		removeEmpty(created)
+		return nil, err
+	}
+	return created, nil
+}
+
+func writeJournal(target string, dirs []string) error {
+	data, err := json.Marshal(map[string][]string{"dirs": dirs})
+	if err != nil {
+		return err
+	}
+	file, err := os.OpenFile(filepath.Join(target, journalName), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o644) //nolint:gosec // G302: a marker with no secret in it
+	if err != nil {
+		return err
+	}
+	_, err = file.Write(data)
+	if err == nil {
+		err = syncFile(file)
+	}
+	if closeErr := file.Close(); err == nil {
+		err = closeErr
+	}
+	return err
+}
+
+// syncDir flushes a folder's entries to the disk. Windows has no such call for a folder, so it is skipped there.
+func syncDir(path string) error {
+	if runtime.GOOS == "windows" {
+		return nil
+	}
+	dir, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	err = dir.Sync()
+	if closeErr := dir.Close(); err == nil {
+		err = closeErr
+	}
+	return err
+}
+
+// syncTree flushes every folder under root, so the names of the copied files are as safe as their contents.
+func syncTree(root string) error {
+	return filepath.WalkDir(root, func(path string, entry fs.DirEntry, walkErr error) error {
+		if walkErr != nil || !entry.IsDir() {
+			return walkErr
+		}
+		return syncDir(path)
+	})
 }
 
 // RemoveOld deletes the plan's per-kind folders from root and then root itself when nothing else is left in it. It deletes nothing else.
@@ -182,13 +454,22 @@ func RemoveOld(root string, dirs []string) error {
 	if filepath.Dir(root) == root {
 		return fmt.Errorf("refusing to remove %q", root)
 	}
+	if err := RemoveKinds(root, dirs); err != nil {
+		return err
+	}
+	removeStale(root)
+	if entries, err := os.ReadDir(root); err == nil && len(entries) == 0 {
+		return os.Remove(root)
+	}
+	return nil
+}
+
+// RemoveKinds deletes the plan's per-kind folders from root and nothing else, not even root.
+func RemoveKinds(root string, dirs []string) error {
 	for _, dir := range dirs {
 		if err := os.RemoveAll(filepath.Join(root, dir)); err != nil {
 			return err
 		}
-	}
-	if entries, err := os.ReadDir(root); err == nil && len(entries) == 0 {
-		return os.Remove(root)
 	}
 	return nil
 }
@@ -196,7 +477,7 @@ func RemoveOld(root string, dirs []string) error {
 func removeStale(target string) {
 	entries, _ := os.ReadDir(target)
 	for _, entry := range entries {
-		if strings.HasPrefix(entry.Name(), movingPrefix) {
+		if isStaging(target, entry.Name()) {
 			_ = os.RemoveAll(filepath.Join(target, entry.Name()))
 		}
 	}
@@ -225,7 +506,7 @@ func measure(source string, dirs []string) (int64, error) {
 				}
 				return walkErr
 			}
-			if entry.Type()&fs.ModeSymlink != 0 {
+			if !entry.IsDir() && !entry.Type().IsRegular() {
 				return fmt.Errorf("%w: %s", ErrLink, path)
 			}
 			if entry.Type().IsRegular() {
@@ -257,10 +538,8 @@ func copyTree(ctx context.Context, from, to, key string, facts map[string]fileFa
 		switch {
 		case entry.IsDir():
 			return os.MkdirAll(dst, 0o755)
-		case entry.Type()&fs.ModeSymlink != 0:
-			return fmt.Errorf("%w: %s", ErrLink, path)
 		case !entry.Type().IsRegular():
-			return nil
+			return fmt.Errorf("%w: %s", ErrLink, path)
 		}
 		fact, err := copyFile(ctx, path, dst, progress)
 		if err != nil {
@@ -276,17 +555,20 @@ func copyFile(ctx context.Context, from, to string, progress *counter) (fileFact
 	if err != nil {
 		return fileFact{}, err
 	}
-	defer in.Close()
+	defer func() { _ = in.Close() }()
 	info, err := in.Stat()
 	if err != nil {
 		return fileFact{}, err
 	}
-	out, err := os.OpenFile(to, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
+	out, err := os.OpenFile(to, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644) //nolint:gosec // G302: a copy of a downloaded model, readable like the original
 	if err != nil {
 		return fileFact{}, err
 	}
 	hash := sha256.New()
 	written, err := copyChunks(ctx, io.MultiWriter(out, hash), in, func(n int64) { progress.add(PhaseCopying, n) })
+	if err == nil {
+		err = syncFile(out)
+	}
 	if closeErr := out.Close(); err == nil {
 		err = closeErr
 	}
@@ -312,8 +594,11 @@ func verifyTree(ctx context.Context, root, key string, facts map[string]fileFact
 		if walkErr != nil {
 			return walkErr
 		}
-		if !entry.Type().IsRegular() {
+		if entry.IsDir() {
 			return nil
+		}
+		if !entry.Type().IsRegular() {
+			return fmt.Errorf("%w: %s is not a file", ErrMismatch, path)
 		}
 		rel, _ := filepath.Rel(root, path)
 		name := filepath.ToSlash(filepath.Join(key, rel))
@@ -322,11 +607,11 @@ func verifyTree(ctx context.Context, root, key string, facts map[string]fileFact
 			return fmt.Errorf("%w: %s was not in the original", ErrMismatch, name)
 		}
 		seen[name] = true
-		file, err := os.Open(path)
+		file, err := os.Open(path) //nolint:gosec // G122: the folder is the one this move just wrote, and links are refused
 		if err != nil {
 			return err
 		}
-		defer file.Close()
+		defer func() { _ = file.Close() }()
 		hash := sha256.New()
 		n, err := copyChunks(ctx, hash, file, func(n int64) { progress.add(PhaseVerifying, n) })
 		if err != nil {

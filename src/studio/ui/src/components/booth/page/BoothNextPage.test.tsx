@@ -150,6 +150,7 @@ describe('record-waits-for-the-live-model', () => {
       defaultRoot: 'C:/cache',
       custom: false,
       previousRoot: '',
+      folderNote: '',
       totalInstalledBytes: 0,
       assets: [
         {

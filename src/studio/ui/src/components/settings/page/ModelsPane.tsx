@@ -164,13 +164,7 @@ export function ModelsPane({ category, lit = null }: { category: Category; lit?:
               <b>{catalog.totalInstalledBytes > 0 ? formatSize(catalog.totalInstalledBytes) : '0 MB'}</b> used by {installed}{' '}
               {installed === 1 ? 'item' : 'items'}
             </span>
-            <span className="min-w-0 text-[0.8125rem] text-[var(--text-muted)]">
-              Stored in <code className="font-['IBM_Plex_Mono',ui-monospace,monospace] text-[0.75rem] [overflow-wrap:anywhere]">{catalog.cacheRoot}</code>
-            </span>
           </div>
-          <Button variant="secondary" size="sm" className="flex-none" onClick={openFolder}>
-            Open folder
-          </Button>
         </div>
       </Panel>
       {folderRow && (

@@ -17,6 +17,9 @@ import {
 /** Raised on the window when a move of the downloads ended, so the Changed marks (customChanged.ts) read the folder again. */
 export const MODELS_FOLDER_CHANGED = 'narration:models-folder-changed';
 
+/** The move each host last showed, so a move that ended while Settings was closed is shown once and not on every visit. */
+const shownMoves = new WeakMap<object, string>();
+
 /** How often a running download is asked how far it is. */
 const POLL_MS = 400;
 
@@ -310,6 +313,7 @@ export function AssetsStoreProvider({ children }: { children: ReactNode }) {
     async (first: AssetMoveState) => {
       if (followingMove.current) return;
       followingMove.current = true;
+      shownMoves.set(api, first.id);
       try {
         let state = first;
         setMove(state);
@@ -339,7 +343,16 @@ export function AssetsStoreProvider({ children }: { children: ReactNode }) {
   // A move already running when the page opened is followed, so its dialog is on screen.
   useEffect(() => {
     void api.assetsMoveState().then(
-      (state) => (alive.current && isMoveRunning(state) ? followMove(state) : undefined),
+      (state) => {
+        if (!alive.current) return undefined;
+        if (isMoveRunning(state)) return followMove(state);
+        // A move that failed or was cancelled while Settings was closed is told once, so the narrator learns the models did not move.
+        if ((state.phase === 'error' || state.phase === 'cancelled') && shownMoves.get(api) !== state.id) {
+          shownMoves.set(api, state.id);
+          setMove(state);
+        }
+        return undefined;
+      },
       () => undefined,
     );
   }, [api, followMove]);

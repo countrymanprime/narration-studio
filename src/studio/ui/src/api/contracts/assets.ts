@@ -91,6 +91,8 @@ export type AssetCatalog = {
   custom: boolean;
   /** The folder a finished move left a copy in, which the narrator has not yet answered for (deleted or kept); empty when none. */
   previousRoot: string;
+  /** Set when the settings hold a folder that cannot be used as written (not a full path, or not found): what the app did about it. Empty otherwise. */
+  folderNote: string;
   /** Bytes the installed assets take, from the catalog sizes. */
   totalInstalledBytes: number;
   assets: AssetItem[];
@@ -105,6 +107,8 @@ export type AssetMovePhase = 'idle' | 'copying' | 'verifying' | 'switching' | 's
 
 export type AssetMoveState = {
   id: string;
+  /** When the move began (ISO 8601); empty while idle. A page opened mid-move counts its elapsed time from this. */
+  startedAt: string;
   phase: AssetMovePhase;
   /** The folder the downloads are going to. */
   target: string;
