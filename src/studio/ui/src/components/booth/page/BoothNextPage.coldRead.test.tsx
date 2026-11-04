@@ -274,6 +274,33 @@ describe('only-the-toggle-a-take-or-leaving-ends-it', () => {
     expect(mainName()).toBe('Cold read');
   });
 
+  it("Space on a focused Main button choice starts nothing: it is the radio's key, not the pedal's", async () => {
+    const page = renderPage();
+    await ready();
+    await act(async () => void fireEvent.click(screen.getByRole('button', { name: 'Levels' })));
+    const radio = within(await screen.findByRole('radiogroup', { name: 'Main button' })).getByRole('radio', { name: 'Cold read' });
+    await act(async () => void radio.focus());
+    await act(async () => void fireEvent.keyDown(radio, { key: ' ', code: 'Space' }));
+    await settle();
+    expect(page.recordStart).not.toHaveBeenCalled();
+    expect(page.teleprompterStart).not.toHaveBeenCalled();
+    // The popover is still open: the pedal did not close it.
+    expect(screen.queryByRole('radiogroup', { name: 'Main button' })).not.toBeNull();
+  });
+
+  it('locks the Main button choice from the press while a cold read is still starting', async () => {
+    let resolveStart: (value: { status: 'started' }) => void = () => {};
+    const page = renderPage();
+    page.teleprompterStart.mockImplementationOnce(() => new Promise((resolve) => (resolveStart = resolve)));
+    await ready();
+    await chooseCold();
+    await act(async () => void fireEvent.click(main()));
+    await act(async () => void fireEvent.click(screen.getByRole('button', { name: 'Levels' })));
+    const group = await screen.findByRole('radiogroup', { name: 'Main button' });
+    expect(within(group).getByRole('radio', { name: 'Record' }).getAttribute('aria-disabled')).toBe('true');
+    await act(async () => resolveStart({ status: 'started' }));
+  });
+
   it('with the mode back on Record, the button records again', async () => {
     const page = renderPage();
     await ready();

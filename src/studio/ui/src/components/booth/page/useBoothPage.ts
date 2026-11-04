@@ -572,6 +572,8 @@ export function useBoothPage(options: BoothPageOptions) {
   // toggle, a take or leaving the Booth ends it (it never stops itself).
   const coldReadReason = recording ? COLD_READ_WHILE_RECORDING : undefined;
   const coldReadStarting = useRef(false);
+  // The same fact as a state, so the Main button choice locks from the press, not only once the listening is up.
+  const [coldStarting, setColdStarting] = useState(false);
   const toggleColdRead = useCallback(async () => {
     const now = latest.current;
     if (now.recording) return notify(COLD_READ_WHILE_RECORDING);
@@ -583,6 +585,7 @@ export function useBoothPage(options: BoothPageOptions) {
     if (coldReadStarting.current) return;
     if (now.session.active) return notify('The Booth is already listening. Stop reading first.');
     coldReadStarting.current = true;
+    setColdStarting(true);
     try {
       if (!(await now.session.ensureModel())) return;
       // As Record does, an empty microphone is the host's to refuse: its sentence is the message.
@@ -590,6 +593,7 @@ export function useBoothPage(options: BoothPageOptions) {
       if (!started.ok) overlay.toast(`Cold read did not start: ${started.reason || 'listening failed'}.`, { tone: 'error' });
     } finally {
       coldReadStarting.current = false;
+      setColdStarting(false);
     }
   }, [notify, overlay, realWord]);
   // Another chapter is another text: the cold read of this one ends. Leaving the Booth ends it too, however the Booth is left.
@@ -708,7 +712,7 @@ export function useBoothPage(options: BoothPageOptions) {
     position,
     /** Where a cold read hears the narrator; absent when none runs. */
     ghost,
-    coldRead: { on: coldRead, toggle: coldReadFromJump, disabledReason: coldReadReason, mode: coldMode, setMode: setColdMode },
+    coldRead: { on: coldRead, toggle: coldReadFromJump, disabledReason: coldReadReason, mode: coldMode, setMode: setColdMode, starting: coldStarting },
     browse,
     setBrowse,
     punchAt,

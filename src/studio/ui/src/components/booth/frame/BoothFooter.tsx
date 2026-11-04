@@ -58,7 +58,7 @@ export function useRoomTone(port: { roomTone(mic: string): Promise<Measured<numb
 }
 
 /** Cold read (#2251 item 13): `on` while one runs; `mode` is whether the main button reads cold (chosen in the side menu), `setMode` changes it. */
-export type ColdReadToggle = { on: boolean; mode: boolean; setMode: (cold: boolean) => void };
+export type ColdReadToggle = { on: boolean; mode: boolean; setMode: (cold: boolean) => void; starting?: boolean };
 
 type Mic = Pick<LevelsMenuProps, 'engine' | 'dawName' | 'reachable' | 'offReason' | 'device' | 'onDevice' | 'listen' | 'levels' | 'recorderMeter'>;
 
@@ -144,7 +144,9 @@ export function BoothFooter({
             <LevelsMenu
               {...mic}
               recording={recording}
-              mainButton={coldRead ? { cold: coldRead.mode, onChange: coldRead.setMode, locked: recording || coldRead.on } : undefined}
+              mainButton={
+                coldRead ? { cold: coldRead.mode, onChange: coldRead.setMode, locked: recording || coldRead.on || Boolean(coldRead.starting) } : undefined
+              }
               warn={Boolean(listenWhy)}
               level={level}
               error={error}
