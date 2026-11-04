@@ -80,3 +80,15 @@ describe('MasterToSpecPanel: after the files are prepared (issue 2631)', () => {
     expect(screen.queryByRole('button', { name: /check the prepared files/i })).toBeNull();
   });
 });
+
+describe('MasterToSpecPanel: the chain it masters with', () => {
+  it.each([
+    ['built-in', 'builtin', 'Built-in chain (EQ, limiter, gain)', 'Master before encoding: Built-in chain (EQ, limiter, gain)'],
+    ['DAW', 'daw', "Your DAW's FX chain", "Master before encoding: Your DAW's FX chain"],
+    ['Audacity', 'audacity', "Audacity's effect macro", "Master before encoding: Audacity's effect macro"],
+  ])("names the %s row in the host's own words, never lowercased into the sentence (#2879's review)", (_, name, label, wording) => {
+    render(<MasterToSpecPanel jobs={jobs({ items: [item], master: true } as never)} chain={{ name, label } as never} />);
+    expect(screen.getByRole('checkbox', { name: wording })).toBeTruthy();
+    cleanup();
+  });
+});
