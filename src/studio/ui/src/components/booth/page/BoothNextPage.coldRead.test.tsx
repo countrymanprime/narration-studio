@@ -78,9 +78,9 @@ function fakeHost() {
   return { api, teleprompterStart, teleprompterStop, teleprompterSaveFlags, hear: (event: TeleprompterEvent) => act(() => hear(event)) };
 }
 
-function renderPage() {
+function renderPage(setup: Parameters<typeof dawFor>[0] = 'reaper') {
   const host = fakeHost();
-  const daw = dawFor('reaper');
+  const daw = dawFor(setup);
   const recordStart = vi.spyOn(daw, 'recordStart');
   const navigate = vi.fn();
   const overlay = createOverlayService();
@@ -244,6 +244,19 @@ describe('only-the-toggle-a-take-or-leaving-ends-it', () => {
     expect(main().className).toContain('border-[var(--info)]');
     await act(async () => void main().focus());
     expect((await screen.findAllByText(/Start a cold read \(Space\)\. Nothing is recorded\./)).length).toBeGreaterThan(0);
+  });
+
+  it("does not blame Record for a cold read: with the recorder unavailable, the footer sentence is Record's only, and a cold read still starts", async () => {
+    const page = renderPage('reaper-off');
+    await screen.findByText('Nobody', { exact: false });
+    await waitFor(() => expect(document.getElementById('brec-why')?.textContent).toBeTruthy());
+    await chooseCold();
+    expect(mainName()).toBe('Cold read');
+    expect(document.getElementById('brec-why')?.textContent ?? '').toBe('');
+    expect(main().getAttribute('aria-disabled')).toBeNull();
+    await act(async () => void fireEvent.click(main()));
+    await settle();
+    expect(page.teleprompterStart.mock.calls[0][0]).toMatchObject({ coldRead: true });
   });
 
   it('with the mode on Cold read, Space starts the cold read instead of a take, and Space again stops it', async () => {

@@ -621,7 +621,10 @@ function BoothSession({
     );
   };
   // The host's sentence for an unlinked chapter points at the audio engine panel; the chip and its dialog are that fix now.
-  const footerWhy = linkProblem ? `${recordName} has no track to record on. Press Record to link one.` : control.reason;
+  // Record's reason is about Record: while the main button reads Cold read (no take runs) the footer does not blame Record for it.
+  const coldMode = page.coldRead.mode && !control.recording;
+  const recordWhy = linkProblem ? `${recordName} has no track to record on. Press Record to link one.` : control.reason;
+  const footerWhy = coldMode ? '' : recordWhy;
   const roomTone = useRoomTone(measurements, session.device);
   // The app's own recorder is what records (the project chose it, or no DAW is linked): the microphone is chosen here, not in a DAW.
   const standalone = capabilities?.daw === 'none' || recordsInApp(capabilities?.daw);
