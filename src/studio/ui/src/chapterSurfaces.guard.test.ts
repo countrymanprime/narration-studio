@@ -33,6 +33,8 @@ const EXEMPT: Record<string, string> = {
   'components/settings/RetailSamplePanel.tsx': "the retail sample is picked from the book's text; the credits have none (CreditsPanel tests)",
   'components/proof/PreviewPanel.tsx': "resolves a preview candidate's paragraph ids to an index; the credits have no paragraphs",
   'components/storybible/Guide.tsx': 'Appears in and evidence links name entities in the text; the credits have none (withoutCredits)',
+  'components/booth/companion/useRecordedThrough.ts':
+    "reads one chapter's recordedThrough by its id; the Companion lists no chapters (CompanionPage shows the chapter asked for)",
   'components/script/page/data/scriptData.ts':
     'the Script page draws the credits as their own cards (ScriptPage tests: each once); its paragraphs exclude them',
 };

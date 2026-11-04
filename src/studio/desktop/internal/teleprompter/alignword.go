@@ -12,7 +12,7 @@ import (
 	"desktop/internal/scripttrack"
 )
 
-// Punch and roll's offline word-time alignment (docs/architecture/manuscript-teleprompter.md#punch-from-here-where-a-words-time-comes-from: live anchors first,
+// Punch and roll's offline word-time alignment (docs/architecture/manuscript-teleprompter.md#punch-anchors-and-word-alignment: live anchors first,
 // offline alignment as the fallback). When no anchor brackets a flagged word
 // (anchors.go), the host runs the sidecar's `--align-word` mode (align_word.py) once over a stretch of the chapter's
 // recorded audio: the tail-audio locate's own decode and placement (locate.go) pointed at one word, which

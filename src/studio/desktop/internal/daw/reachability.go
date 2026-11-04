@@ -40,7 +40,10 @@ type Reachability struct {
 	transport Transport
 	// +checklocks:mu
 	hasTransport bool
-	now          func() time.Time
+	// timing is the heartbeat's optional seventh field: the bridge timing diagnostic is switched on in REAPER.
+	// +checklocks:mu
+	timing bool
+	now    func() time.Time
 }
 
 // Transport is REAPER's transport as of the last heartbeat: GetPlayState's play and record bits and GetPlayPosition.
@@ -97,6 +100,7 @@ func (r *Reachability) Record(event bridge.Event) {
 		transport = Transport{Playing: playState&1 != 0, Recording: playState&4 != 0, Position: position}
 		hasTransport = true
 	}
+	timing := len(event.Fields) > 7 && event.Fields[7] == "1"
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.lastSeen = r.now()
@@ -104,6 +108,15 @@ func (r *Reachability) Record(event bridge.Event) {
 	r.unsaved = unsaved
 	r.changeCount, r.hasChangeCount = changeCount, hasChangeCount
 	r.transport, r.hasTransport = transport, hasTransport
+	r.timing = timing
+}
+
+// TimingOn reports whether the last heartbeat, still fresh, said the bridge timing diagnostic is switched on in REAPER:
+// the host then times a record press too (internal/presstimeline).
+func (r *Reachability) TimingOn() bool {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.reachableLocked() && r.timing
 }
 
 // Transport returns REAPER's transport from the last heartbeat, and whether it is known: the heartbeat must be fresh and

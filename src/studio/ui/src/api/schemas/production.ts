@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { recordedThroughSchema } from './manuscript';
 import type {
-  ProductionBurndownPoint,
   ProductionChapter,
   ProductionMilestone,
   ProductionNextUpItem,
@@ -11,6 +10,7 @@ import type {
   ProductionPlan,
   ProductionReadiness,
   ProductionReportExport,
+  ReportsFolderResult,
   ProductionReportInclude,
   ProductionReportPreview,
   ProductionSession,
@@ -126,6 +126,8 @@ const productionReportIncludeSchema = z.strictObject({
   money: z.boolean(),
 }) satisfies z.ZodType<ProductionReportInclude>;
 
+export const reportsFolderResultSchema = z.object({ folder: z.string().min(1) }).strict() satisfies z.ZodType<ReportsFolderResult>;
+
 export const productionReportExportSchema = z.object({
   folder: z.string(),
   htmlFile: z.string(),
@@ -142,5 +144,3 @@ export const productionReportPreviewSchema = z.strictObject({
   contractedAmountIncluded: z.boolean(),
   include: productionReportIncludeSchema,
 }) satisfies z.ZodType<ProductionReportPreview>;
-
-export const productionBurndownSchema = z.array(z.object({ date: calendarDate, hoursLogged: z.number() })) satisfies z.ZodType<ProductionBurndownPoint[]>;

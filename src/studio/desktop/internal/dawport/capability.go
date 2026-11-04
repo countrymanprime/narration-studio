@@ -20,13 +20,15 @@ const (
 	CapCleanupTools Capability = "cleanup_tools"
 	CapRetakeLanes  Capability = "retake_lanes"
 	CapProjectState Capability = "project_state"
-	CapTakeCreate   Capability = "take_create"
 	CapHeartbeat    Capability = "heartbeat"
 	CapProjectRead  Capability = "project_read"
 	CapTrackState   Capability = "track_state"
 	CapTrackSelect  Capability = "track_select"
 	// CapTrackCreate adds one named track at the end of the project's track list, so a chapter with no track can be linked to a new one.
 	CapTrackCreate Capability = "track_create"
+	// CapTracksRead lists the open project's tracks as the engine has them now, saved or not, so a track the narrator adds in the
+	// engine shows in the app before the project is saved (#2840).
+	CapTracksRead Capability = "tracks_read"
 	// CapFollowPosition reads the track and cursor the narrator is on and moves them: the Booth opens where the narrator is, and takes them to
 	// the chapter and word it was opened at.
 	CapFollowPosition Capability = "follow_position"
@@ -36,9 +38,12 @@ const (
 	CapRecord        Capability = "record"
 	CapPunch         Capability = "punch"
 	CapRegions       Capability = "regions"
-	CapTakes         Capability = "takes"
-	CapFXChains      Capability = "fx_chains"
-	CapItemGain      Capability = "item_gain"
+	// CapVoiceSampleRegion keeps a character voice sample in the project as a region named for the character and label, and reads it
+	// back (docs/prds/character-voice-samples.prd.md, phase 6). An engine that cannot label a range is not offered the setting.
+	CapVoiceSampleRegion Capability = "voice_sample_region"
+	CapTakes             Capability = "takes"
+	CapFXChains          Capability = "fx_chains"
+	CapItemGain          Capability = "item_gain"
 	// CapRenderWithFX is the mastering port's DAW row, declared but not yet built. It is the one
 	// capability that makes the engine render, so each use needs the narrator's approval in the UI (threat model row 5o).
 	CapRenderWithFX    Capability = "render_with_fx"
@@ -118,17 +123,18 @@ var specs = []Spec{
 	{CapCleanupTools, "Cleanup tools", NeedsRunning, reflect.TypeFor[CleanupLauncher](), nil},
 	{CapRetakeLanes, "Retake lanes", NeedsRunning, reflect.TypeFor[RetakeLanePicker](), nil},
 	{CapProjectState, "Project change check", NeedsRunning, reflect.TypeFor[ProjectStateReader](), nil},
-	{CapTakeCreate, "Create takes", NeedsRunning, reflect.TypeFor[TakeCreator](), nil},
 	{CapHeartbeat, "Connection status", NeedsBridge, reflect.TypeFor[Heartbeat](), nil},
 	{CapProjectRead, "Read the saved project", NeedsNothing, reflect.TypeFor[ProjectReader](), nil},
 	{CapTrackState, "Read track arm state", NeedsRunning, reflect.TypeFor[TrackStateReader](), nil},
 	{CapTrackSelect, "Select a track in the recording tool", NeedsRunning, reflect.TypeFor[TrackSelector](), nil},
 	{CapTrackCreate, "Add a track for a chapter", NeedsRunning, reflect.TypeFor[TrackCreator](), nil},
+	{CapTracksRead, "Read the open project's tracks", NeedsRunning, reflect.TypeFor[TrackLister](), nil},
 	{CapFollowPosition, "Follow the narrator's place in the project", NeedsRunning, reflect.TypeFor[PlaceFollower](), nil},
 	{CapTransportSync, "Play and follow the project's transport", NeedsRunning, reflect.TypeFor[TransportSyncer](), nil},
 	{CapRecord, "Record", NeedsRunning, reflect.TypeFor[Recorder](), nil},
 	{CapPunch, "Punch and roll", NeedsRunning, reflect.TypeFor[Puncher](), nil},
 	{CapRegions, "Chapter regions", NeedsRunning, reflect.TypeFor[RegionWriter](), nil},
+	{CapVoiceSampleRegion, "Keep a voice sample as a region", NeedsRunning, reflect.TypeFor[VoiceSampleRegionKeeper](), nil},
 	{CapTakes, "Choose the active take", NeedsRunning, reflect.TypeFor[TakeSelector](), nil},
 	{CapFXChains, "FX chains", NeedsRunning, reflect.TypeFor[FXManager](), nil},
 	{CapItemGain, "Level matching", NeedsRunning, reflect.TypeFor[GainAdjuster](), nil},

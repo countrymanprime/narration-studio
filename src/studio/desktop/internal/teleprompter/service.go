@@ -98,6 +98,12 @@ type Service struct {
 	// with the last position it is the stretch of the chapter the take followed (Reading.Ranges).
 	// +checklocks:mu
 	startWord int
+	// step is told each step of a start (internal/presstimeline): sidecar_spawned, sidecar_first_line, listening. nil tells
+	// nothing. spoke is whether the running session's sidecar has printed a line yet.
+	// +checklocks:mu
+	step func(string)
+	// +checklocks:mu
+	spoke bool
 
 	state    map[string]any
 	script   json.RawMessage
@@ -223,26 +229,6 @@ func (s *Service) CurrentWord() (chapterID string, word int, ok bool) {
 		return "", 0, false
 	}
 	return chapter, *positionEvent.Read, true
-}
-
-// CurrentChapter is the manuscript chapter a live session is reading, or was reading while it stops, for "Punch from
-// here": a flag's own word index is punched against whichever chapter is
-// live, so a caller never needs to name it. false for a Script/credits session (no manuscript chapter to
-// anchor against, CurrentWord's own exclusion) or with no session running at all. Unlike CurrentWord, this does not
-// require "running" specifically or the session to be unpaused: a narrator reviewing a flag and confirming a punch
-// may have paused, or the session may already be winding down.
-func (s *Service) CurrentChapter() (chapterID string, ok bool) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	phase, _ := s.state["phase"].(string)
-	if !active(phase) || s.scriptFile != "" {
-		return "", false
-	}
-	chapter, _ := s.state["chapter"].(string)
-	if chapter == "" {
-		return "", false
-	}
-	return chapter, true
 }
 
 func (s *Service) notify() {
@@ -457,7 +443,7 @@ func (s *Service) begin(plan launch) error {
 	}
 	s.cancelAutoStopLocked()
 	s.autoStopped = false
-	s.ready, s.readyDone = make(chan struct{}), false
+	s.ready, s.readyDone, s.spoke = make(chan struct{}), false, false
 	s.mu.Unlock()
 	s.notify()
 	// The session opens the same microphone and reports its own levels: the meter lets go of it first.
@@ -485,6 +471,9 @@ func (s *Service) begin(plan launch) error {
 	s.mu.Unlock()
 	ctx, cancel := context.WithCancel(context.Background())
 	child, err := s.sidecars.StartStream(ctx, s.onLine, s.config.Python, plan.args...)
+	if err == nil {
+		s.tellStep("sidecar_spawned")
+	}
 	if err != nil {
 		cancel()
 		if plan.scriptFile != "" {
@@ -567,6 +556,13 @@ func (s *Service) drop() {
 // silently. A JSON value that is not an event envelope (an object with a string `type`) is dropped, counted and logged.
 // The rest is relayed unchanged: the UI checks the rest of each event against its schema.
 func (s *Service) onLine(line string) {
+	s.mu.Lock()
+	first := !s.spoke
+	s.spoke = true
+	s.mu.Unlock()
+	if first {
+		s.tellStep("sidecar_first_line")
+	}
 	if !json.Valid([]byte(line)) {
 		return
 	}
@@ -655,10 +651,32 @@ func (s *Service) relay(kind string, raw json.RawMessage) {
 
 func (s *Service) markReady() {
 	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.ready != nil && !s.readyDone {
+	ready := s.ready
+	closing := ready != nil && !s.readyDone
+	if closing {
 		s.readyDone = true
-		close(s.ready)
+	}
+	s.mu.Unlock()
+	if closing {
+		// Told before ready closes, so whoever AwaitReady released finds the step already told.
+		s.tellStep("listening")
+		close(ready)
+	}
+}
+
+// SetStepHook sets the function told each step of a start (sidecar_spawned, sidecar_first_line, listening); nil tells nothing.
+func (s *Service) SetStepHook(step func(string)) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.step = step
+}
+
+func (s *Service) tellStep(name string) {
+	s.mu.RLock()
+	step := s.step
+	s.mu.RUnlock()
+	if step != nil {
+		step(name)
 	}
 }
 

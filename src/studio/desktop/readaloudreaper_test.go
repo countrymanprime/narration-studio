@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"desktop/internal/creditsid"
 	"encoding/json"
 	"errors"
 	"strings"
@@ -9,7 +10,6 @@ import (
 
 	"desktop/internal/bridge"
 	"desktop/internal/contractfile"
-	"desktop/internal/coverage"
 	"desktop/internal/dawport"
 	"desktop/internal/dawport/dawporttest"
 )
@@ -162,7 +162,7 @@ func TestANilReaderIsStandalone(t *testing.T) {
 func TestACreditsRowLinkedToATrackIsReadLikeAChapter(t *testing.T) {
 	host, _ := newReadAloudReaperHost(t)
 	for _, kind := range []string{"opening", "closing"} {
-		id := coverage.CreditsChapterID(kind)
+		id := creditsid.ID(kind)
 		linkChapter(t, host, id, readAloudTrack)
 		reader := &fakeTrackStates{state: bridge.TrackState{ArmedCount: 1, TrackArmed: true}}
 

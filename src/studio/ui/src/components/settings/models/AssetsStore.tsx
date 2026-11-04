@@ -1,11 +1,42 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { apiErrorMessage } from '../../../api/errorMessage';
+import { overlay } from '../../../overlay/overlayService';
 import { usePort } from '../../../ports/usePort';
 import { without } from '../data/record';
-import { isInstallRunning, type AssetCatalog, type AssetInstallJob, type AssetItem } from '../../../types';
+import { isInstallRunning, type AssetCatalog, type AssetInstallJob, type AssetItem, type AssetVerifyResult, type AssetsApi } from '../../../types';
 
 /** How often a running download is asked how far it is. */
 const POLL_MS = 400;
+
+/**
+ * How long Check the files waits for the host. A check reads every byte, seconds for a large model; a host that has not answered by then
+ * is given up on, so the row does not stay busy for good.
+ */
+export const VERIFY_WAIT_MS = 120_000;
+
+/**
+ * The checks of one host, kept outside the page, so a row drawn again, or the Settings page opened again, still shows them. `running`: the
+ * checks under way, each ending within VERIFY_WAIT_MS, so the row stays busy and ignores another press. `unchecked`: the assets whose last
+ * check was refused or not answered, whose row must not claim its files were checked until a check passes or a download replaces them.
+ */
+type HostChecks = { running: Map<string, Promise<void>>; unchecked: Set<string> };
+const hostChecks = new WeakMap<object, HostChecks>();
+const checksOf = (api: object): HostChecks => {
+  let checks = hostChecks.get(api);
+  if (!checks) hostChecks.set(api, (checks = { running: new Map(), unchecked: new Set() }));
+  return checks;
+};
+
+/** What the page's live region says when a check answers: the files whole, damaged or gone, and what to do next. */
+const CHECK_RESULT: Record<AssetVerifyResult['installState'], (name: string) => string> = {
+  installed: (name) => `${name}: files checked, all whole.`,
+  verification_failed: (name) => `${name}: a file failed its check. Repair it.`,
+  not_installed: (name) => `${name}: its files are gone. Download it again.`,
+};
+
+/** The sentence for a check that could not be made: the host's words after a colon, or a full stop when it gave none. */
+const notChecked = (name: string, reason: string): string =>
+  reason.trim() ? `The files of ${name} could not be checked: ${reason.trim()}` : `The files of ${name} could not be checked.`;
 
 export type AssetStatus = 'installed' | 'missing' | 'downloading' | 'verifying' | 'failed' | 'repair' | 'unavailable';
 
@@ -16,6 +47,10 @@ export type AssetView = {
   percent: number;
   /** Why the last download or action failed, in the host's words. */
   failure: string;
+  /** Check the files is reading the installed asset. Its status stays `installed`: it is installed until the host says otherwise. */
+  checking: boolean;
+  /** The last Check the files was refused or not answered: the row does not say its files were checked. */
+  unchecked: boolean;
 };
 
 export const assetKey = (item: Pick<AssetItem, 'kind' | 'id'> | { kind: string; id: string }): string => `${item.kind}/${item.id}`;
@@ -32,6 +67,11 @@ export type AssetsStore = {
   /** Removes the asset. Resolves with the host's sentence when it refused, or undefined when it is gone. */
   remove: (item: AssetItem) => Promise<string | undefined>;
   dismissFailure: (item: AssetItem) => void;
+  /**
+   * Check the files: reads every byte of an installed asset (assetsVerify) and moves its row to the answer, then reads the list again for
+   * `verifiedAt`. A press while one runs for the asset is ignored; a refusal, or no answer within VERIFY_WAIT_MS, is an error toast.
+   */
+  verify: (item: AssetItem) => Promise<void>;
   /** What a screen reader hears about downloads. */
   announcement: string;
 };
@@ -57,6 +97,18 @@ export function AssetsStoreProvider({ children }: { children: ReactNode }) {
       alive.current = false;
     };
   }, []);
+
+  // The host's record of failed checks, drawn: a page opened after one still does not claim the files were checked.
+  const [unchecked, setUnchecked] = useState<Record<string, true>>(() => Object.fromEntries([...checksOf(api).unchecked].map((key) => [key, true])));
+  const setUnverified = useCallback(
+    (key: string, failed: boolean) => {
+      const record = checksOf(api).unchecked;
+      if (failed) record.add(key);
+      else record.delete(key);
+      if (alive.current) setUnchecked((current) => (failed ? { ...current, [key]: true } : without(current, key)));
+    },
+    [api],
+  );
 
   const refresh = useCallback(async () => {
     const mine = ++latest.current;
@@ -95,6 +147,8 @@ export function AssetsStoreProvider({ children }: { children: ReactNode }) {
           setAnnouncement(`${item.displayName} could not be downloaded. ${reason}`);
         } else if (job.phase === 'success') {
           setAnnouncement(`${item.displayName} downloaded and checked.`);
+          // The download checked every file it wrote, so a refused Check the files before it no longer stands.
+          setUnverified(key, false);
         }
         setJobs((current) => without(current, key));
         await refresh();
@@ -108,7 +162,7 @@ export function AssetsStoreProvider({ children }: { children: ReactNode }) {
         following.current.delete(key);
       }
     },
-    [api, refresh],
+    [api, refresh, setUnverified],
   );
 
   // A download already running when the page opened is followed, so its bar is on screen.
@@ -162,6 +216,7 @@ export function AssetsStoreProvider({ children }: { children: ReactNode }) {
     async (item: AssetItem) => {
       try {
         await api.assetsRemove(item.kind, item.id);
+        setUnverified(assetKey(item), false);
         setAnnouncement(`${item.displayName} removed.`);
         await refresh();
         return undefined;
@@ -169,10 +224,57 @@ export function AssetsStoreProvider({ children }: { children: ReactNode }) {
         return apiErrorMessage(error);
       }
     },
-    [api, refresh],
+    [api, refresh, setUnverified],
   );
 
   const dismissFailure = useCallback((item: AssetItem) => setFailures((current) => without(current, assetKey(item))), []);
+
+  // A check started before this page opened (the narrator left and came back) is drawn busy until it ends, then the list is read again.
+  const [checking, setChecking] = useState<Record<string, true>>(() => Object.fromEntries([...checksOf(api).running.keys()].map((key) => [key, true])));
+  useEffect(() => {
+    for (const [key, task] of checksOf(api).running) {
+      void task.finally(() => {
+        if (!alive.current) return;
+        setChecking((current) => without(current, key));
+        setUnchecked(() => Object.fromEntries([...checksOf(api).unchecked].map((done) => [done, true])));
+        void refresh();
+      });
+    }
+  }, [api, refresh]);
+
+  const verify = useCallback(
+    async (item: AssetItem) => {
+      const key = assetKey(item);
+      const { running } = checksOf(api);
+      if (running.has(key)) return;
+      const task = check(api, item).then((answer) => {
+        // Recorded for the host whether or not this page is still open; what is drawn and said is this page's.
+        setUnverified(key, !answer);
+        if (!answer || !alive.current) return;
+        setAnnouncement(CHECK_RESULT[answer.installState](item.displayName));
+        // The row follows the answer at once; the read after it brings the host's `verifiedAt` (and the same state).
+        setCatalog(
+          (current) =>
+            current && {
+              ...current,
+              assets: current.assets.map((asset) => (assetKey(asset) === key ? { ...asset, installState: answer.installState } : asset)),
+            },
+        );
+      });
+      running.set(key, task);
+      setChecking((current) => ({ ...current, [key]: true }));
+      try {
+        await task;
+      } finally {
+        running.delete(key);
+        if (alive.current) {
+          setChecking((current) => without(current, key));
+          await refresh();
+        }
+      }
+    },
+    [api, refresh, setUnverified],
+  );
 
   const views = useMemo<AssetView[]>(
     () =>
@@ -188,17 +290,47 @@ export function AssetsStoreProvider({ children }: { children: ReactNode }) {
         else if (item.installState === 'verification_failed') status = 'repair';
         else if (item.unavailableReason) status = 'unavailable';
         else status = 'missing';
-        return { item, status, percent: job?.percent ?? 0, failure };
+        const installed = status === 'installed';
+        return {
+          item,
+          status,
+          percent: job?.percent ?? 0,
+          failure,
+          checking: installed && checking[key] === true,
+          unchecked: installed && unchecked[key] === true,
+        };
       }),
-    [catalog, jobs, failures, starting],
+    [catalog, jobs, failures, starting, checking, unchecked],
   );
   const viewOf = useCallback((ref: { kind: string; id: string }) => views.find((view) => view.item.kind === ref.kind && view.item.id === ref.id), [views]);
 
   const value = useMemo<AssetsStore>(
-    () => ({ catalog, loadError, views, viewOf, refresh, install, cancel, remove, dismissFailure, announcement }),
-    [catalog, loadError, views, viewOf, refresh, install, cancel, remove, dismissFailure, announcement],
+    () => ({ catalog, loadError, views, viewOf, refresh, install, cancel, remove, dismissFailure, verify, announcement }),
+    [catalog, loadError, views, viewOf, refresh, install, cancel, remove, dismissFailure, verify, announcement],
   );
   return <Context.Provider value={value}>{children}</Context.Provider>;
+}
+
+/**
+ * One check of an asset's files: the host's answer, or undefined after the error toast for a refusal or for no answer within VERIFY_WAIT_MS.
+ * The toast is raised here, not by the page, so a check that ends after the narrator left Settings is still told once.
+ */
+async function check(api: Pick<AssetsApi, 'assetsVerify'>, item: AssetItem): Promise<AssetVerifyResult | undefined> {
+  let timer: number | undefined;
+  const timedOut = new Promise<'timeout'>((resolve) => {
+    timer = window.setTimeout(() => resolve('timeout'), VERIFY_WAIT_MS);
+  });
+  try {
+    const answer = await Promise.race([api.assetsVerify(item.kind, item.id), timedOut]);
+    if (answer !== 'timeout') return answer;
+    const minutes = Math.round(VERIFY_WAIT_MS / 60_000);
+    overlay.toast(`The files of ${item.displayName} were not checked: the app did not answer in ${minutes} minutes.`, { tone: 'error' });
+  } catch (error) {
+    overlay.toast(notChecked(item.displayName, apiErrorMessage(error)), { tone: 'error' });
+  } finally {
+    window.clearTimeout(timer);
+  }
+  return undefined;
 }
 
 export function useAssetsStore(): AssetsStore {

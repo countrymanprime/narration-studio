@@ -41,8 +41,11 @@ import type { JobEnded, ScopedSettingField } from './contracts/system';
 import type { ProjectStateState } from './contracts/projectstate';
 import type { EditCutRequest } from './contracts/editCuts';
 import type { WordFxRequest } from './contracts/wordFx';
-import { WIRE_CHAPTERS, WIRE_TAKE_REVIEW_FINDINGS, WIRE_TRACKS_PROJECT, WIRE_TRANSCRIPT } from './mockFixtures';
+import type { ExportRequest } from './contracts/renderEncodeMaster';
+import { WIRE_CHAPTERS, WIRE_FINDINGS, WIRE_ONE_WORD_MISREAD, WIRE_TAKE_REVIEW_FINDINGS, WIRE_TRACKS_PROJECT, WIRE_TRANSCRIPT } from './mockFixtures';
 import { bookmarkSchema as spotBookmarkSchema, bookmarksSchema } from './schemas/bookmarks';
+import { boothVoiceAddedSchema, boothVoiceSchema, voiceTracksStateSchema } from './schemas/voiceTracks';
+import { createVoiceTracksMock } from './voiceTracksMock';
 import { voiceSampleAnswerSchema, voiceSamplesChangedSchema, voiceSamplesRemovedSchema, voiceSamplesSchema } from './schemas/voiceSamples';
 import { VOICE_SAMPLE_SENTENCES, type VoiceSampleMarkRequest } from './contracts/voiceSamples';
 import { passageMapSchema, passageMarkSchema } from './schemas/passageMap';
@@ -62,7 +65,7 @@ import { wordFxChangeSchema, wordFxListSchema, wordFxSchema } from './schemas/wo
 import type { EditStackRecordRequest } from './contracts/editStacks';
 import { passageStackSchema, retryModeAnswerSchema, stackChangeSchema, stackListSchema } from './schemas/editStacks';
 import { markSchema, markThreadDeletedSchema, markTypeSchema, marksSchema, threadMessageSchema } from './schemas/marks';
-import { scriptPrepChapterSchema, scriptPrepSchema, scriptWordFlagSchema, scriptWordSchema } from './schemas/scriptPrep';
+import { scriptPrepChapterSchema, scriptPrepSchema } from './schemas/scriptPrep';
 import {
   extractionDecisionSchema,
   extractionImportPlanSchema,
@@ -81,13 +84,13 @@ import { editingSourceChoiceSchema } from './schemas/editing';
 import { pronunciationCandidateSchema, pronunciationSourceSchema, pronunciationSourcesSchema } from './schemas/pronunciationSources';
 import { takeEvidenceResultSchema, takeFigureSchema } from './schemas/takeEvidence';
 import { pronunciationOnlineKeyStatusSchema, pronunciationOnlineResultSchema } from './schemas/pronunciationOnline';
-import { WIRE_TAKE_COMPARISON_FINDING } from './takeComparisonMock';
 import { MOCK_MEASURE_PATHS } from './measureMock';
 import { judgeMock } from './coverageMock';
 import { MOCK_REAPER_INPUT_SEEDS, MOCK_REAPER_SEEDS, mockLastReading } from './teleprompterMock';
 import { deliveryQcEvidenceSchema, deliveryReportExportSchema, measureJobSchema, measurePickResultSchema } from './schemas/measure';
-import { exportJobSchema, multiPackageJobSchema, packageFolderResultSchema, packageJobSchema } from './schemas/renderEncodeMaster';
+import { exportJobSchema, exportPlanSchema, multiPackageJobSchema, packageFolderResultSchema, packageJobSchema } from './schemas/renderEncodeMaster';
 import { MOCK_EXPORT_ITEMS, MOCK_EXPORT_PATHS, createRenderEncodeMasterMock } from './renderEncodeMasterMock';
+import { isIgnorable, mockChainDigest, mockChainName } from './masteringMock';
 import { deliveryProfileSchema, deliveryProfilesStateSchema } from './schemas/deliveryProfiles';
 import { MOCK_ACX, evaluateMockFile, mockCustomProfile } from './deliveryProfilesMock';
 import { diagnosticsJobSchema } from './schemas/diagnostics';
@@ -98,22 +101,14 @@ import {
   fileSelectionSchema,
   notesSchema,
   paragraphsSchema,
-  readerSchema,
   readerStateSchema,
-  searchHitsSchema,
+  manuscriptSearchResultSchema,
   workJobSchema,
 } from './schemas/manuscript';
 import { chapterSyncPreviewSchema, chapterSyncStateSchema } from './schemas/chapterSync';
 import { assetCatalogSchema, assetInstallJobSchema, assetVerifyResultSchema } from './schemas/assets';
 import { definitionSourceOf, definitionSourceSchema, settingsForScopeSchema } from './schemas/settings';
 import { keymapOverridesSchema } from './schemas/keymap';
-import {
-  takeComparisonEvidenceSchema,
-  takeComparisonJobSchema,
-  takeReviewCreateTakeResultSchema,
-  takeReviewEvidenceSchema,
-  takeReviewScanJobSchema,
-} from './schemas/takeReview';
 import {
   COVERAGE_EVALUATOR_REASONS,
   COVERAGE_REFUSAL_REASONS,
@@ -137,20 +132,18 @@ import { pinnedPreviewSchema, previewResultSchema } from './schemas/preview';
 import { STAGE_REFUSAL_REASONS, STAGE_UNKNOWN_CAUSES, stageDecisionResultSchema, stageRecommendationsSchema } from './schemas/stages';
 import { proofingChooseRenderResultSchema, proofingRenderSchema } from './schemas/proofingRender';
 import {
-  productionBurndownSchema,
   productionOverviewSchema,
   productionPlanSchema,
   productionReportExportSchema,
+  reportsFolderResultSchema,
   productionReportPreviewSchema,
   productionStartResultSchema,
   productionStopResultSchema,
 } from './schemas/production';
 import { PRODUCTION_SCENARIOS } from './productionMock';
-import { findingMarkerSchema, findingNavigationSchema, findingSchema, findingsPageSchema, findingsSummarySchema, reaperStatusSchema } from './schemas/findings';
-import { tracksDiscoverySchema, tracksProjectSchema } from './schemas/tracks';
+import { findingMarkerSchema, findingNavigationSchema, findingSchema, findingsPageSchema, findingsSummarySchema } from './schemas/findings';
+import { tracksDiscoverySchema, tracksLiveSchema, tracksProjectSchema } from './schemas/tracks';
 import {
-  chaptersForTracksSchema,
-  chapterSuggestionSchema,
   chapterRegionPlanSchema,
   chapterRegionsCreatedSchema,
   chapterTrackLinksSchema,
@@ -158,12 +151,13 @@ import {
   chapterTrackMatchSchema,
   chapterTrackSetSchema,
   chapterTrackCreateSchema,
+  chapterFoldersSchema,
   trackMappingSchema,
   trackSelectResultSchema,
 } from './schemas/chapterTrackMap';
-import { ttsCatalogSchema, ttsInstallJobSchema } from './schemas/tts';
+import { ttsInstallJobSchema } from './schemas/tts';
 import { updateJobSchema, updateStatusSchema } from './schemas/update';
-import { startResultSchema, whisperCatalogSchema, whisperInstallJobSchema } from './schemas/whisper';
+import { startResultSchema, whisperInstallJobSchema } from './schemas/whisper';
 import {
   dawLaunchResultSchema,
   dawLinkResultSchema,
@@ -197,7 +191,6 @@ import {
   guidePronunciationSchema,
 } from './schemas/storyBible';
 import { approvedCharacterReferencesSchema, characterRegionsSchema, characterReferenceSchema } from './schemas/character';
-import { seriesListSchema, seriesSchema, seriesVoiceBibleSchema } from './schemas/series';
 import { bootstrapSchema, copyDiagnosticsResultSchema, projectAttachStateSchema, readySchema, windowZoomSchema } from './schemas/system';
 import {
   readAloudReaperStateSchema,
@@ -210,7 +203,6 @@ import {
   teleprompterReadingSchema,
   teleprompterLocateResultSchema,
   teleprompterResumeFollowSchema,
-  teleprompterPunchResultSchema,
   teleprompterStartResultSchema,
   teleprompterStateSchema,
 } from './schemas/teleprompter';
@@ -232,7 +224,6 @@ import {
   dawPunchPrerollSchema,
   dawPlaceSchema,
   dawPositionSchema,
-  dawLiveItemsSchema,
   dawProjectEditedSchema,
   wordTimesSchema,
   dawProjectStateSchema,
@@ -241,7 +232,7 @@ import {
   audacityLinkSchema,
 } from './schemas/daw';
 import { providerCapabilitiesSchema } from './schemas/providers';
-import { masteringProvidersSchema } from './schemas/mastering';
+import { chainNamesSchema, masteringProvidersSchema } from './schemas/mastering';
 import { recorderDevicesResultSchema, recorderLevelSchema, recorderStateSchema } from './schemas/recording';
 import { projectStateChangedSchema, projectStateStartResultSchema, projectStateStateSchema } from './schemas/projectstate';
 import { retakeLanesListSchema, retakeLanesStartResultSchema, retakeLanesStateSchema } from './schemas/retakelanes';
@@ -489,34 +480,18 @@ describe('golden payloads written by the Go host and the Python sidecars', () =>
     }
   });
 
-  it("the host's punch results all pass the schema, and the mock's answers pass it too", async () => {
-    const golden = z.record(z.string(), teleprompterPunchResultSchema).parse(readGolden('teleprompter-punch-results.json'));
-    Object.entries(golden).forEach(([name, result]) => expectMatches(teleprompterPunchResultSchema, result, `host teleprompter punch ${name}`));
-
-    const api = createMockApi();
-    const preview = await api.teleprompterPunchPreview(4);
-    expectMatches(teleprompterPunchResultSchema, preview, 'mock teleprompter punch preview');
-    expect(preview.outcome).toBe('resolved');
-    const punched = await api.teleprompterPunch(4);
-    expectMatches(teleprompterPunchResultSchema, punched, 'mock teleprompter punch');
-    expect(punched.outcome).toBe('punched');
-  });
-
-  it("every mock arm, record start and record stop passes the schema and agrees with the host's golden for the same REAPER state", async () => {
+  it("every mock record start and record stop passes the schema and agrees with the host's golden for the same REAPER state", async () => {
     const golden = z.record(z.string(), readAloudRecordingSchema).parse(readGolden('read-aloud-recordings.json'));
     for (const seed of MOCK_REAPER_SEEDS) {
       // Record is switched on in the mock DAW, so the seed alone decides what the host would answer.
       const api = createMockApi({}, { reaperState: seed, daw: {} });
       const [chapter] = await ownChapters(api);
-      const armed = await api.readAloudArmOnly(chapter.id);
       const started = await api.readAloudRecordStart(chapter.id);
       const stopped = await api.readAloudRecordStop();
-      expectMatches(readAloudRecordingSchema, armed, `mock arm ${seed}`);
       expectMatches(readAloudRecordingSchema, started, `mock record start ${seed}`);
       expectMatches(readAloudRecordingSchema, stopped, `mock record stop ${seed}`);
       // "unavailable" is the mock's own standalone case, which the read-aloud-reaper-states check above skips too.
       if (seed === 'unavailable') continue;
-      expect([armed.outcome, armed.reason]).toEqual([golden[`${seed}.arm`].outcome, golden[`${seed}.arm`].reason]);
       expect([started.outcome, started.reason]).toEqual([golden[`${seed}.start`].outcome, golden[`${seed}.start`].reason]);
       expect([stopped.outcome, stopped.reason]).toEqual([golden[`${seed}.stop`].outcome, golden[`${seed}.stop`].reason]);
     }
@@ -943,10 +918,9 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     const api = createMockApi();
     const chapters = await ownChapters(api);
     expectMatches(chaptersSchema, chapters, 'mock chapters');
-    expectMatches(readerSchema, await api.manuscriptReader(), 'mock reader');
     expectMatches(readerStateSchema, await api.readerState(), 'mock reader state');
     expectMatches(paragraphsSchema, await api.manuscriptParagraphs(chapters[0]?.id ?? ''), 'mock paragraphs');
-    expectMatches(searchHitsSchema, await api.manuscriptSearch('alice'), 'mock search');
+    expectMatches(manuscriptSearchResultSchema, await api.manuscriptSearch('alice'), 'mock search');
     expectMatches(notesSchema, await api.noteList(), 'mock notes');
     expectMatches(chapterSchema, await api.manuscriptSetChapterStatus(chapters[0]?.id ?? '', 'recording'), 'mock chapter status');
   });
@@ -996,10 +970,10 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     expectMatches(chapterSyncStateSchema, staleState, 'mock chapter sync, a stale row');
     expect(staleState.chapters[0]).toMatchObject({ freshness: 'stale', reasons: ['item_trimmed'] });
 
-    // A chapter's pickup track, changed since its last scan.
+    // A chapter's pickup track, named on its row.
     const pickups = await createMockApi({}, { chapterSync: 'pickups' }).chapterSyncState();
-    expectMatches(chapterSyncStateSchema, pickups, 'mock chapter sync, pickups changed');
-    expect(pickups.chapters.filter((row) => row.pickupsChanged)).toHaveLength(1);
+    expectMatches(chapterSyncStateSchema, pickups, 'mock chapter sync, a pickup track');
+    expect(pickups.chapters.filter((row) => row.pickupTrackGuid !== '')).toHaveLength(1);
   });
 
   // Remove from recording clears the chapter's links, and Restore brings it back.
@@ -1213,40 +1187,6 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     expect(seeded.length).toBeGreaterThan(0);
     await api.characterRemoveVoiceData();
     expect(await api.characterReferences()).toHaveLength(0);
-  });
-
-  it('the series voice bible: not in a series, a single-book series, and a multi-book series grouped by character', async () => {
-    const solo = createMockApi({}, { seriesVoiceBible: 'not-in-series' });
-    const notInSeries = await solo.seriesVoiceBible();
-    expectMatches(seriesVoiceBibleSchema, notInSeries, 'mock series voice bible, not in a series');
-    expect(notInSeries).toMatchObject({ inSeries: false });
-    expect(notInSeries.characters).toBeUndefined();
-
-    const oneBook = createMockApi({}, { seriesVoiceBible: 'single-book' });
-    const single = await oneBook.seriesVoiceBible();
-    expectMatches(seriesVoiceBibleSchema, single, 'mock series voice bible, one book so far');
-    expect(single).toMatchObject({ inSeries: true, bookCount: 1 });
-    expect(single.characters).toBeUndefined();
-
-    const api = createMockApi();
-    const bible = await api.seriesVoiceBible();
-    expectMatches(seriesVoiceBibleSchema, bible, 'mock series voice bible');
-    expect(bible.inSeries).toBe(true);
-    expect(bible.bookCount).toBe(2);
-    const alice = bible.characters?.find((character) => character.characterId === 'alice');
-    expect(alice?.clips.length).toBeGreaterThanOrEqual(2);
-    expect(alice?.clips.some((clip) => clip.isCurrentProject)).toBe(true);
-    expect(alice?.clips.some((clip) => !clip.isCurrentProject)).toBe(true);
-
-    const list = await api.seriesList();
-    expectMatches(seriesListSchema, list, 'mock series list');
-    expect(list.length).toBeGreaterThan(0);
-    const created = await api.seriesSave('', 'New Series', ['/books/one']);
-    expectMatches(seriesSchema, created, 'mock series save');
-    expect(created.name).toBe('New Series');
-    await expect(api.seriesSave('', '  ', [])).rejects.toThrow('needs a name');
-    await api.seriesDelete(created.id);
-    expect((await api.seriesList()).some((series) => series.id === created.id)).toBe(false);
   });
 
   it('the dictionary lookup answers: a word it has, one it does not, and the first-use gate', async () => {
@@ -1466,10 +1406,9 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expectMatches(bootstrapSchema, await api.saveSettings('General', 'global', { log_verbosity: 'verbose' }), 'mock saved settings');
   });
 
-  it('the voice and model catalogs and their install jobs', async () => {
+  it('the voice and model install jobs', async () => {
     const api = createMockApi();
-    expectMatches(ttsCatalogSchema, await api.ttsCatalog(), 'mock voice catalog');
-    const voice = (await api.ttsCatalog()).voices[0]?.id ?? '';
+    const voice = (await api.assetsList()).assets.find((asset) => asset.kind === 'tts')?.id ?? '';
     const started = await api.ttsInstall(voice);
     for (const job of [
       started,
@@ -1480,8 +1419,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     ]) {
       expectMatches(ttsInstallJobSchema, job, 'mock voice install job');
     }
-    expectMatches(whisperCatalogSchema, await api.whisperCatalog(), 'mock model catalog');
-    const model = (await api.whisperCatalog()).models[0]?.id ?? '';
+    const model = (await api.assetsList()).assets.find((asset) => asset.kind === 'whisper')?.id ?? '';
     const running = await api.whisperInstall(model);
     for (const job of [
       running,
@@ -1548,9 +1486,9 @@ describe('answers of the mock client for the settings, voice, model, transcript 
 
   it('the first-use gates for a model that is not installed, and a start that goes ahead', async () => {
     const api = createMockApi();
-    const model = (await api.whisperCatalog()).models[0]?.id ?? '';
+    const model = (await api.assetsList()).assets.find((asset) => asset.kind === 'whisper')?.id ?? '';
     expectMatches(startResultSchema, await api.transcriptStart({ model, chunk: '60', workers: '1', hints: '' }), 'mock transcript start');
-    await api.whisperRemove(model);
+    await api.assetsRemove('whisper', model);
     const gate = await api.transcriptStart({ model, chunk: '60', workers: '1', hints: '' });
     expect(gate.status).toBe('asset_required');
     expectMatches(startResultSchema, gate, 'mock transcript first-use gate');
@@ -1571,7 +1509,8 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expectMatches(lastCompletedSchema, (await api.transcriptLastCompleted()) ?? null, 'mock last completed run');
     expectMatches(hintSuggestionsSchema, await api.transcriptSuggestHints(), 'mock hint suggestions');
     expectMatches(hintsSchema, await api.transcriptHints(), 'mock hints');
-    expectMatches(equivalenceSchema, { message: await api.transcriptAddEquivalence('row-1') }, 'mock equivalence');
+    const withMisread = createMockApi({}, { findings: [...WIRE_FINDINGS, WIRE_ONE_WORD_MISREAD] });
+    expectMatches(equivalenceSchema, { message: await withMisread.transcriptAddEquivalence(WIRE_ONE_WORD_MISREAD.id) }, 'mock equivalence');
   });
 
   it.each(['available', 'found', 'failed', 'current', 'development', undefined] as const)('the update status the mock host answers (%s)', async (seed) => {
@@ -1605,8 +1544,10 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const api = createMockApi();
     expectMatches(tracksDiscoverySchema, await api.tracksDiscover(), 'mock tracks discovery');
     expectMatches(tracksProjectSchema, await api.tracksList(), 'mock tracks project');
+    expectMatches(tracksLiveSchema, await api.tracksLive(), 'mock live tracks');
     const folders = createMockApi({}, { trackFolders: true });
     expectMatches(tracksProjectSchema, await folders.tracksList(), 'mock tracks project in folders');
+    expectMatches(tracksLiveSchema, await folders.tracksLive(), 'mock live tracks in folders');
     expectMatches(chapterTrackLinksSchema, await folders.chapterTrackLinks(), 'mock chapter links in folders');
     expectMatches(chapterTrackMatchSchema, await folders.chapterTrackMatch((await ownChapters(folders))[0].id), 'mock chapter match in folders');
     const several = createMockApi({}, { tracksCandidates: ['C:/A/A.rpp', 'C:/A/B.rpp'] });
@@ -1629,11 +1570,30 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expectMatches(chapterTrackMappingSchema, listed, 'mock chapter-track map, one confirmed');
     expect(listed.mappings).toHaveLength(1);
 
-    const cleared = await api.chapterTrackMapClear(confirmed.trackGuid);
-    expectMatches(chapterTrackMappingSchema, cleared, 'mock chapter-track map after clear');
+    const cleared = await api.chapterTrackUnlink(confirmed.chapterId);
+    expectMatches(chapterTrackMappingSchema, cleared, 'mock chapter-track map after unlink');
     expect(cleared.mappings).toHaveLength(0);
 
     await expect(api.chapterTrackMapConfirm('{0E4D1D7F-D039-674D-87E6-719376DE95EC}', 'not-a-real-chapter')).rejects.toThrow();
+  });
+
+  it('the ChapterFolders answers: clean, nested with its moves, repaired, stale and refused, each through the schema (#2838)', async () => {
+    expectMatches(chapterFoldersSchema, await createMockApi().chapterFoldersCheck(), 'mock chapter folders, clean');
+    const api = createMockApi({}, { nestedChapters: true });
+    const nested = await api.chapterFoldersCheck();
+    expectMatches(chapterFoldersSchema, nested, 'mock chapter folders, nested');
+    expect(nested.outcome).toBe('nested');
+    expect(nested.expected.length).toBeGreaterThan(0);
+    const stale = await api.chapterFoldersRepair([]);
+    expectMatches(chapterFoldersSchema, stale, 'mock chapter folders, stale');
+    expect(stale.outcome).toBe('stale');
+    const repaired = await api.chapterFoldersRepair(nested.expected);
+    expectMatches(chapterFoldersSchema, repaired, 'mock chapter folders, repaired');
+    expect(repaired.outcome).toBe('repaired');
+    expect((await api.chapterFoldersCheck()).outcome).toBe('clean');
+    const refused = await createMockApi({}, { nestedChapters: true, reaperState: 'recording_elsewhere' }).chapterFoldersCheck();
+    expectMatches(chapterFoldersSchema, refused, 'mock chapter folders, refused');
+    expect(refused.outcome).toBe('refused');
   });
 
   it('the ChapterTrackCreate answers: created and linked, each refusal, and a chapter the manuscript does not have', async () => {
@@ -1647,15 +1607,47 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(created.mappings.filter((mapping) => mapping.chapterId === chapters[0].id)).toHaveLength(1);
     // The host reads the new link: the chapter that had no track is ready to record.
     expect((await api.readAloudReaperState(chapters[0].id)).status).toBe('ready');
+    // A second create for the chapter is refused, naming its track (#2958, B2); after Clear, the track's name is taken (F2).
     const second = await api.chapterTrackCreate(chapters[0].id);
-    if (second.outcome !== 'created') throw new Error('expected a created track');
-    expect(second.track.guid).not.toBe(created.track.guid);
+    expectMatches(chapterTrackCreateSchema, second, 'mock chapter track create, already linked');
+    expect(second).toMatchObject({ outcome: 'refused', reason: 'already_linked' });
+    await api.chapterTrackUnlink(chapters[0].id);
+    const taken = await api.chapterTrackCreate(chapters[0].id);
+    expectMatches(chapterTrackCreateSchema, taken, 'mock chapter track create, name taken');
+    expect(taken).toMatchObject({ outcome: 'refused', reason: 'name_taken' });
     await expect(api.chapterTrackCreate('not-a-real-chapter')).rejects.toThrow();
+    // `?mockReaperState=no_link` is a chapter with no link: a link chapter sync made on its own does not count, so the Booth's Create a new
+    // track adds and links one (the visual state booth / record-unlinked-created).
+    const noLink = createMockApi({}, { reaperState: 'no_link', chapterSync: 'ask' });
+    await noLink.chapterSyncSetEnabled(true);
+    expect((await noLink.chapterTrackMapList()).mappings.some((link) => link.chapterId === 'chapter-1' && link.origin === 'auto')).toBe(true);
+    const unlinked = await noLink.chapterTrackCreate('chapter-1');
+    expectMatches(chapterTrackCreateSchema, unlinked, 'mock chapter track create, no_link scene');
+    expect(unlinked.outcome).toBe('created');
     for (const reaperState of ['unavailable', 'recording_elsewhere'] as const) {
       const refused = await createMockApi({}, { reaperState }).chapterTrackCreate(chapters[0].id);
       expectMatches(chapterTrackCreateSchema, refused, `mock chapter track create, refused (${reaperState})`);
       expect(refused.outcome).toBe('refused');
     }
+  });
+
+  it('the ChapterTrackCreate answer in a Voice folders project: a folder with a Narrator, both in the live track list at once', async () => {
+    const api = createMockApi({}, { reaperState: 'no_link', voiceFolders: true });
+    const chapters = await ownChapters(api);
+    const created = await api.chapterTrackCreate(chapters[1].id);
+    expectMatches(chapterTrackCreateSchema, created, 'mock chapter track create, folder');
+    if (created.outcome !== 'created' || !created.voice) throw new Error('expected a created folder with a voice');
+    expect(created.voice.name).toBe('Narrator');
+    expect(created.link.trackGuid).toBe(created.track.guid);
+    const live = await api.tracksLive();
+    const folder = live.project.tracks.find((track) => track.guid === created.track.guid);
+    const voice = live.project.tracks.find((track) => track.guid === created.voice?.guid);
+    expect(folder).toMatchObject({ isFolder: true, depth: 0, name: created.track.name });
+    expect(voice).toMatchObject({ isFolder: false, depth: 1, name: 'Narrator', index: (folder?.index ?? -1) + 1 });
+    await api.voiceTracksSetLayout('flat');
+    const plain = await api.chapterTrackCreate(chapters[2].id);
+    if (plain.outcome !== 'created') throw new Error('expected a created track');
+    expect(plain.voice).toBeUndefined();
   });
 
   it('the ChapterTrackSet, ChapterTrackUnlink and ChapterTrackLinks answers', async () => {
@@ -1758,48 +1750,6 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     await expect(api.chapterTrackMatch('not-a-real-chapter')).rejects.toThrow();
   });
 
-  it('the ChapterSuggestion answers', async () => {
-    const none = await createMockApi().chapterSuggestion();
-    expectMatches(chapterSuggestionSchema, none, 'mock chapter suggestion, nothing armed');
-    expect(none.basis).toBe('none');
-
-    const [chapter1, chapter2] = WIRE_TRACKS_PROJECT.tracks;
-    const matched = await createMockApi({}, { armedTracks: [chapter2.guid] }).chapterSuggestion();
-    expectMatches(chapterSuggestionSchema, matched, 'mock chapter suggestion, armed track matched');
-    expect(matched.status).toBe('matched');
-    expect(matched.chapter?.chapterTitle).toBe('Chapter 2');
-
-    const ambiguous = await createMockApi({}, { armedTracks: [chapter1.guid, chapter2.guid] }).chapterSuggestion();
-    expectMatches(chapterSuggestionSchema, ambiguous, 'mock chapter suggestion, two armed tracks');
-    expect(ambiguous.status).toBe('ambiguous');
-    expect(ambiguous.chapter).toBeNull();
-
-    const linkedApi = createMockApi({}, { armedTracks: [chapter2.guid] });
-    const chapters = await ownChapters(linkedApi);
-    await linkedApi.chapterTrackMapConfirm(chapter2.guid, chapters[4].id);
-    const confirmed = await linkedApi.chapterSuggestion();
-    expectMatches(chapterSuggestionSchema, confirmed, 'mock chapter suggestion, confirmed link');
-    expect(confirmed.status).toBe('confirmed');
-    expect(confirmed.chapter?.chapterId).toBe(chapters[4].id);
-  });
-
-  it('the ChaptersForTracks answers', async () => {
-    const api = createMockApi();
-    const [track1] = WIRE_TRACKS_PROJECT.tracks;
-    const [item1] = track1.items;
-    const result = await api.chaptersForTracks([track1.guid, item1.guid, item1.takeGuid, 'not-a-real-guid']);
-    expectMatches(chaptersForTracksSchema, result, 'mock chapters for tracks');
-
-    expect(result.tracks[track1.guid].status).toBe('matched');
-    expect(result.tracks[track1.guid].chapter?.chapterTitle).toBe('Chapter 1');
-    // The item and its active take resolve through the same track as the track GUID itself.
-    expect(result.tracks[item1.guid]).toEqual(result.tracks[track1.guid]);
-    expect(result.tracks[item1.takeGuid]).toEqual(result.tracks[track1.guid]);
-
-    expect(result.tracks['not-a-real-guid'].status).toBe('');
-    expect(result.tracks['not-a-real-guid'].error).toBeTruthy();
-  });
-
   it('the line-identity state through a stamp and a read run, and its seeded states', async () => {
     vi.useFakeTimers();
     const api = createMockApi();
@@ -1825,7 +1775,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     await expect(createMockApi().lineIdentityStamp([], false)).rejects.toThrow(/select at least one item/);
   });
 
-  it('the pickups state through import, export, next, resolve and count, and its seeded states', async () => {
+  it('the pickups state through import, export, resolve and count, and its seeded states', async () => {
     vi.useFakeTimers();
     const api = createMockApi();
     const seen: unknown[] = [];
@@ -1833,8 +1783,6 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const imported = await api.pickupsImport('start,note,tag\n1.5,Mispronounced,narrator\n9.25,Second pickup,\n');
     expectMatches(pickupsImportResultSchema, imported, 'mock import start');
     expect(imported.rowErrors).toEqual([]);
-    await vi.advanceTimersByTimeAsync(300);
-    expectMatches(pickupsStartResultSchema, await api.pickupsNext(), 'mock next start');
     await vi.advanceTimersByTimeAsync(300);
     expectMatches(pickupsStartResultSchema, await api.pickupsResolve(1.5), 'mock resolve start');
     await vi.advanceTimersByTimeAsync(300);
@@ -1951,8 +1899,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       expectMatches(projectStateStartResultSchema, await api.projectStateCheck(), 'mock project-state check start');
       await vi.advanceTimersByTimeAsync(200);
       for (const state of seen) expectMatches(projectStateStateSchema, state, 'mock projectstate:state');
-      const checked = await api.projectStateState();
-      expectMatches(projectStateStateSchema, checked, 'mock project-state state');
+      const checked = seen[seen.length - 1];
       const baseline = (await api.transcriptLastCompleted())?.projectChangeCount;
       expect(baseline).toBe(41);
       const changed = await api.projectStateChangedSince(checked.changeCount ?? 0, baseline ?? 0);
@@ -2110,6 +2057,18 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect((await api.masteringProviders()).choice).toBe('audacity');
     expect((await api.masteringChooseProvider('')).choice).toBeNull();
 
+    // A row not available on this computer (the chain card's off row): refused with its sentence, as chooseMasteringProvider does.
+    const off = createMockApi({}, { mastering: { unavailable: { audacity: "Audacity's effect macro is not available on this computer." } } });
+    const offState = await off.masteringProviders();
+    expectMatches(masteringProvidersSchema, offState, 'mock mastering chains (a row not available here)');
+    expect(offState.providers.find((row) => row.name === 'audacity')?.support).toEqual({
+      level: 'unsupported',
+      available: false,
+      reason: 'unsupported',
+      message: "Audacity's effect macro is not available on this computer.",
+    });
+    await expect(off.masteringChooseProvider('audacity')).rejects.toThrow("Audacity's effect macro is not available on this computer.");
+
     const stale = await createMockApi({}, { mastering: { choice: 'dolby-atmos' } }).masteringProviders();
     expectMatches(masteringProvidersSchema, stale, 'mock mastering chains (a stored choice this version does not have)');
     expect(stale).toEqual(readGolden('mastering-providers-unknown-choice.json'));
@@ -2241,12 +2200,15 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const levels: unknown[] = [];
     api.subscribeRecorderState((state) => states.push(state));
     api.subscribeRecorderLevel((level) => levels.push(level));
-    await expect(api.recorderStart('Mic')).rejects.toThrow('choose the built-in recorder');
-    expect((await api.recorderChooseEngine('builtin')).engine).toBe('builtin');
-    const recording = await api.recorderStart('Analogue 1 + 2 (Focusrite USB Audio)');
+    // The project records with its DAW until the narrator chooses the built-in recorder (DawChoose), then the Booth's Record takes.
+    await api.dawChoose('Built-in');
+    expect((await api.recorderState()).engine).toBe('builtin');
+    await api.saveSettings('Teleprompter', 'global', { input_device: 'Analogue 1 + 2 (Focusrite USB Audio)' });
+    expect(await api.readAloudRecordStart('c-0001')).toEqual({ outcome: 'started' });
+    const recording = await api.recorderState();
     expectMatches(recorderStateSchema, recording, 'mock recorder (recording)');
     expect(recording).toMatchObject({ phase: 'recording', take: 'Take 001' });
-    expect((await api.recorderStop()).phase).toBe('stopping');
+    expect(await api.readAloudRecordStop()).toEqual({ outcome: 'stopped' });
     await vi.waitFor(async () => expect((await api.recorderState()).phase).toBe('idle'));
     const done = await api.recorderState();
     expectMatches(recorderStateSchema, done, 'mock recorder (a take finished)');
@@ -2267,7 +2229,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       hidden: false,
       cuts: [],
     });
-    await expect(createMockApi({}, { recording: { unavailable: true } }).recorderChooseEngine('builtin')).rejects.toThrow('not available');
+    await expect(createMockApi({}, { recording: { unavailable: true } }).dawChoose('Built-in')).rejects.toThrow('not available');
   });
 
   it('recorderSetTakeLine and recorderSetTakeKeeper mark and undo', async () => {
@@ -2321,15 +2283,11 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(seen({ daw: { connected: false, transport: recording } })[0]).toEqual(quiet);
   });
 
-  it('dawProjectState and its subscribe answer the seeded project state, and match the host goldens', async () => {
+  it('dawProjectState answers the seeded project state, and matches the host goldens', async () => {
     const read = async (seed: Parameters<typeof createMockApi>[1]): Promise<unknown> => {
       const api = createMockApi({}, seed);
       const answered = await api.dawProjectState();
       expectMatches(dawProjectStateSchema, answered, 'mock DawProjectState');
-      const events: unknown[] = [];
-      api.subscribeDawProjectState((state) => events.push(structuredClone(state)))();
-      expect(events).toEqual([answered]);
-      expectMatches(dawProjectStateSchema, events[0], 'mock daw_project_state_changed');
       return answered;
     };
     const savedAt = '2026-09-26T08:40';
@@ -2383,51 +2341,6 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     ).rejects.toThrow();
   });
 
-  it('the take-review scan job answers, and the reads of every finding it saves', async () => {
-    const api = createMockApi();
-    expectMatches(takeReviewScanJobSchema, await api.takeReviewScanState(), 'mock take-review scan, idle');
-    const started = await api.takeReviewScanStart({ chapterTrackName: 'Chapter 1' });
-    expectMatches(takeReviewScanJobSchema, started, 'mock take-review scan, started');
-    let job = started;
-    while (job.phase === 'running') {
-      job = await api.takeReviewScanState();
-      expectMatches(takeReviewScanJobSchema, job, `mock take-review scan, ${job.phase} at ${job.percent}%`);
-    }
-    expect(job).toMatchObject({ phase: 'success', found: 2 });
-    const { findings } = await api.findingsList({ analyzer: 'take-review' });
-    expect(findings).toHaveLength(2);
-    for (const finding of findings) expectMatches(takeReviewEvidenceSchema, finding.evidence, `mock take-review evidence of ${finding.id}`);
-    await api.takeReviewScanStart({ chapterTrackName: 'Chapter 2' });
-    expectMatches(takeReviewScanJobSchema, await api.takeReviewScanCancel(), 'mock take-review scan, cancelled');
-    await expect(api.takeReviewScanStart({ chapterTrackName: '' })).rejects.toThrow(/choose a track/);
-  });
-
-  it('the evidence of the take comparison the host pins, and of the mock fixture', () => {
-    const pinned = findingsPageSchema.parse(readGolden('findings-list-take-comparison.json'));
-    expect(pinned.findings).toHaveLength(1);
-    for (const finding of [...pinned.findings, WIRE_TAKE_COMPARISON_FINDING]) {
-      expectMatches(takeComparisonEvidenceSchema, finding.evidence, `take-comparison evidence of ${finding.id}`);
-    }
-  });
-
-  it('the take comparison job answers, and the comparison it saves', async () => {
-    const api = createMockApi({}, { findings: WIRE_TAKE_REVIEW_FINDINGS });
-    expectMatches(takeComparisonJobSchema, await api.takeComparisonState(), 'mock take comparison, idle');
-    let job = await api.takeComparisonStart(WIRE_TAKE_REVIEW_FINDINGS[0].id);
-    expectMatches(takeComparisonJobSchema, job, 'mock take comparison, started');
-    await expect(api.takeComparisonStart(WIRE_TAKE_REVIEW_FINDINGS[0].id)).rejects.toThrow(/already running/);
-    while (job.phase === 'running') {
-      job = await api.takeComparisonState();
-      expectMatches(takeComparisonJobSchema, job, `mock take comparison, ${job.phase} at ${job.percent}%`);
-    }
-    expect(job.phase).toBe('success');
-    const saved = await api.findingsGet(job.comparisonId ?? '');
-    expectMatches(takeComparisonEvidenceSchema, saved.evidence, 'mock take comparison evidence');
-    await api.takeComparisonStart(WIRE_TAKE_REVIEW_FINDINGS[1].id);
-    expectMatches(takeComparisonJobSchema, await api.takeComparisonCancel(), 'mock take comparison, cancelled');
-    await expect(api.takeComparisonStart('missing')).rejects.toThrow(/not in the review list/);
-  });
-
   it('the measurement job answers, with every file measured, unavailable or refused', async () => {
     const api = createMockApi();
     expectMatches(measureJobSchema, await api.measureState(), 'mock measurement, idle');
@@ -2460,14 +2373,14 @@ describe('answers of the mock client for the settings, voice, model, transcript 
   it('the export job masters (when asked) and encodes every picked file, in the shape the host pins', async () => {
     const api = createMockApi();
     expectMatches(exportJobSchema, await api.exportState(), 'mock export, idle');
-    await expect(api.exportStart({ items: MOCK_EXPORT_ITEMS, master: false, format: 'mp3' })).rejects.toThrow(/not chosen in the file picker/);
+    await expect(api.exportStart({ items: MOCK_EXPORT_ITEMS, master: false, format: 'mp3', approval: null })).rejects.toThrow(/not chosen in the file picker/);
     const picked = await api.exportPickFiles();
     expectMatches(measurePickResultSchema, picked, 'mock export picker');
     expect(picked.paths).toEqual(MOCK_EXPORT_PATHS);
-    await expect(api.exportStart({ items: [], master: false, format: 'mp3' })).rejects.toThrow(/at least one file/);
-    let job = await api.exportStart({ items: MOCK_EXPORT_ITEMS, master: true, format: 'mp3' });
+    await expect(api.exportStart({ items: [], master: false, format: 'mp3', approval: null })).rejects.toThrow(/at least one file/);
+    let job = await api.exportStart({ items: MOCK_EXPORT_ITEMS, master: true, format: 'mp3', approval: null });
     expectMatches(exportJobSchema, job, 'mock export, started');
-    await expect(api.exportStart({ items: MOCK_EXPORT_ITEMS, master: true, format: 'mp3' })).rejects.toThrow(/already running/);
+    await expect(api.exportStart({ items: MOCK_EXPORT_ITEMS, master: true, format: 'mp3', approval: null })).rejects.toThrow(/already running/);
     let percent = job.percent;
     while (job.phase === 'running') {
       job = await api.exportState();
@@ -2478,11 +2391,118 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(job.phase).toBe('success');
     expect(job.files.every((file) => file.status === 'done' && file.encodedPath && file.mastering)).toBe(true);
 
-    await api.exportStart({ items: MOCK_EXPORT_ITEMS, master: false, format: 'mp3' });
+    await api.exportStart({ items: MOCK_EXPORT_ITEMS, master: false, format: 'mp3', approval: null });
     await api.exportState();
     const cancelledExport = await api.exportCancel();
     expectMatches(exportJobSchema, cancelledExport, 'mock export, cancelled');
     expect(cancelledExport.files.some((file) => file.status === 'cancelled')).toBe(true);
+  });
+
+  it("the export masters with the project's row and refuses an approval as export_job.go does (#2739)", async () => {
+    const withRegions = MOCK_EXPORT_ITEMS.filter((item) => item.kind !== 'retail_sample');
+    const start = (api: ReturnType<typeof createMockApi>, approval: ExportRequest['approval'], items = withRegions) =>
+      api.exportStart({ items, master: true, format: 'mp3', approval });
+    const daw = createMockApi({}, { mastering: { choice: 'daw' } });
+    await daw.exportPickFiles();
+    // The plan, as export_plan.go answers it: the row, what it needs, and each item's region; a retail sample has none, so an
+    // export with one is refused whole, by the plan and the start alike.
+    const plan = await daw.exportPlan({ items: withRegions, master: true, format: 'mp3', approval: null });
+    expectMatches(exportPlanSchema, plan, 'mock export plan, daw row');
+    expect([plan.provider, plan.needsApproval, plan.needsMacro]).toEqual(['daw', true, false]);
+    // The chain the render runs, as dawChain.Chain answers it over masteringporttest's FakeDAW (#2932): each track with FX, then the master.
+    expect(plan.chain).toEqual([
+      { name: 'Voice', master: false, fx: [{ name: 'VST: ReaEQ (Cockos)', enabled: true }] },
+      { name: 'Master', master: true, fx: [{ name: 'VST: ReaLimit (Cockos)', enabled: true }] },
+    ]);
+    const cut = createMockApi({}, { mastering: { choice: 'daw', chain: 'unreadable' } });
+    await cut.exportPickFiles();
+    await expect(cut.exportPlan({ items: withRegions, master: true, format: 'mp3', approval: null })).rejects.toThrow(
+      /couldn't be read, so it can't be approved\. Choose the built-in chain, or untick Master before encoding\./,
+    );
+    const plainRow = createMockApi();
+    await plainRow.exportPickFiles();
+    expect((await plainRow.exportPlan({ items: withRegions, master: true, format: 'mp3', approval: null })).chain).toEqual([]);
+    // The digest binds the approval to the chain shown (#2932's review): the mock computes masteringport.ChainDigest's lines, pinned
+    // against the Go golden, and its start refuses an approval of the DAW row without one, as approvalFor does.
+    const golden = parseWire(exportPlanSchema, readGolden('export-plan-daw.json'), ctx('export plan golden'));
+    expect(await mockChainDigest(golden.chain)).toBe(golden.chainDigest);
+    // The mock cleans names exactly as chain.go does, over the host's own cases (qa round 2 on #2932, N5), and digests a chain with a
+    // missing list or name without throwing (N3).
+    const names = chainNamesSchema.parse(readGolden('chain-names.json'));
+    for (const { raw, track, fx } of names.cases) {
+      expect([mockChainName(raw, 'track'), mockChainName(raw, 'fx')], JSON.stringify(raw)).toEqual([track, fx]);
+    }
+    // The mock's \p{Default_Ignorable_Code_Point} is the host's derived set, code point for code point (round 4, N7).
+    const mockIgnorable: [number, number][] = [];
+    for (let point = 0; point <= 0x10ffff; point++) {
+      if (point >= 0xd800 && point <= 0xdfff) continue;
+      if (!isIgnorable(String.fromCodePoint(point))) continue;
+      const last = mockIgnorable.at(-1);
+      if (last && last[1] === point - 1) last[1] = point;
+      else mockIgnorable.push([point, point]);
+    }
+    expect(mockIgnorable).toEqual(names.ignorable);
+    // No default-ignorable character survives inside a name, as none survives in the host's (round 5, B1), except the Hangul
+    // fillers, which a font draws as a blank and are kept inside a name (round 6).
+    const fillers = new Set([0x115f, 0x1160, 0x3164, 0xffa0]);
+    for (const [first, last] of names.ignorable) {
+      for (let point = first; point <= last; point++) {
+        const char = String.fromCodePoint(point);
+        const inside = fillers.has(point) ? `E${char}Q` : 'EQ';
+        expect([mockChainName(`E${char}Q`, 'fx'), mockChainName(`${char}EQ${char}`, 'fx')], point.toString(16)).toEqual([inside, 'EQ']);
+      }
+    }
+    // Every cleaned name is NFC, as the host's are (round 6, qa B3).
+    for (const { raw } of names.cases) expect(mockChainName(raw, 'fx'), JSON.stringify(raw)).toBe(mockChainName(raw, 'fx').normalize('NFC'));
+    expect(await mockChainDigest([{ name: 'Voice', master: false, fx: null as never }])).toBe(
+      await mockChainDigest([{ name: 'Voice', master: false, fx: [] }]),
+    );
+    expect(await mockChainDigest([{ name: null as never, master: false, fx: [{ name: null as never, enabled: true }] }])).toMatch(/^sha256:/);
+    expect(plan.chainDigest).toBe(await mockChainDigest(plan.chain));
+    await expect(start(daw, { provider: 'daw', macro: '', chainDigest: '' })).rejects.toThrow(/does not say which FX chain you were shown/);
+    expect(plan.items.map((item) => item.region)).toEqual(
+      withRegions.map((item) => (item.kind === 'chapter' ? item.title : item.kind === 'credits_opening' ? 'Opening credits' : 'Closing credits')),
+    );
+    await expect(daw.exportPlan({ items: MOCK_EXPORT_ITEMS, master: true, format: 'mp3', approval: null })).rejects.toThrow(/Retail sample\.wav has no region/);
+    await expect(start(daw, { provider: 'daw', macro: '' }, MOCK_EXPORT_ITEMS)).rejects.toThrow(/Retail sample\.wav has no region/);
+    await expect(start(daw, null, [{ ...withRegions[1]!, title: '   ' }])).rejects.toThrow(/has no chapter title/);
+    // No character a narrator can see is no title either, and the refusal names the file, not its whole path (qa on #2929).
+    for (const title of ['\u200b', '\u202e', '\u00a0\u3000']) {
+      const refusal = start(daw, null, [{ ...withRegions[1]!, title }]);
+      await expect(refusal).rejects.toThrow('"Chapter 01.wav" has no chapter title');
+      await expect(refusal).rejects.not.toThrow('C:/Users');
+    }
+    await expect(start(daw, null)).rejects.toThrow(/Your DAW's FX chain runs only after you approve this render/);
+    await expect(start(daw, { provider: 'audacity', macro: 'Loud' })).rejects.toThrow(
+      /you approved Audacity's effect macro, but this project now masters with Your DAW's FX chain/,
+    );
+    expect((await daw.exportState()).phase).toBe('idle');
+    let job = await start(daw, { provider: 'daw', macro: '', chainDigest: plan.chainDigest });
+    expectMatches(exportJobSchema, job, 'mock export, daw row approved');
+    expect(job.provider).toBe('daw');
+    while (job.phase === 'running') job = await daw.exportState();
+    expect(job.files.every((file) => file.mastering === undefined)).toBe(true);
+    // An approval of another chain: the first render refuses it, so the export stops there naming the file, nothing prepared.
+    const other = createMockApi({}, { mastering: { choice: 'daw' } });
+    await other.exportPickFiles();
+    let stale = await start(other, { provider: 'daw', macro: '', chainDigest: `sha256:${'0'.repeat(64)}` });
+    while (stale.phase === 'running') stale = await other.exportState();
+    expectMatches(exportJobSchema, stale, 'mock export, daw row, chain changed since the approval');
+    expect([stale.phase, stale.message]).toEqual([
+      'error',
+      'Stopped at 00 Opening credits.wav: the FX chain in your DAW changed after you approved it: approve the render again. 0 of 4 files were prepared.',
+    ]);
+    expect(stale.files.map((file) => file.status)).toEqual(['failed', 'cancelled', 'cancelled', 'cancelled']);
+
+    const audacity = createMockApi({}, { mastering: { choice: 'audacity' } });
+    await audacity.exportPickFiles();
+    await expect(start(audacity, { provider: 'audacity', macro: '  ' })).rejects.toThrow(/choose the macro/);
+    await expect(start(audacity, { provider: 'audacity', macro: 'ACX – Master' })).rejects.toThrow(/macro name/);
+    expect((await start(audacity, { provider: 'audacity', macro: 'Loud' })).provider).toBe('audacity');
+
+    const builtin = createMockApi();
+    await builtin.exportPickFiles();
+    expect((await start(builtin, null)).provider).toBe('builtin');
   });
 
   it("the package job assembles the profile's book checklist from an export's own encoded files, in the shape the host pins", async () => {
@@ -2496,7 +2516,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     ).rejects.toThrow(/not encoded in this session/);
 
     await api.exportPickFiles();
-    let job = await api.exportStart({ items: MOCK_EXPORT_ITEMS, master: false, format: 'mp3' });
+    let job = await api.exportStart({ items: MOCK_EXPORT_ITEMS, master: false, format: 'mp3', approval: null });
     while (job.phase === 'running') job = await api.exportState();
     const items = job.files.map((file) => ({ kind: file.kind, title: file.title, path: file.encodedPath! }));
 
@@ -2519,7 +2539,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const profile = await api.deliveryProfiles();
     const acx = profile.profiles.find((candidate) => candidate.id === 'acx')!;
     await api.exportPickFiles();
-    let job = await api.exportStart({ items: MOCK_EXPORT_ITEMS, master: false, format: 'mp3' });
+    let job = await api.exportStart({ items: MOCK_EXPORT_ITEMS, master: false, format: 'mp3', approval: null });
     while (job.phase === 'running') job = await api.exportState();
     const items = job.files.map((file) => ({ kind: file.kind, title: file.title, path: file.encodedPath! }));
     const built = await api.packageStart({ profileId: acx.id, profileVersion: acx.version, items });
@@ -2544,7 +2564,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       );
 
       await api.exportPickFiles();
-      let job = await api.exportStart({ items: MOCK_EXPORT_ITEMS, master: false, format: 'mp3' });
+      let job = await api.exportStart({ items: MOCK_EXPORT_ITEMS, master: false, format: 'mp3', approval: null });
       while (job.phase === 'running') job = await api.exportState();
       const items = job.files.map((file) => ({ kind: file.kind, title: file.title, path: file.encodedPath! }));
 
@@ -2592,7 +2612,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
         () => [MOCK_ACX, m4b],
       );
       await api.exportPickFiles();
-      let job = await api.exportStart({ items: MOCK_EXPORT_ITEMS, master: false, format: 'mp3' });
+      let job = await api.exportStart({ items: MOCK_EXPORT_ITEMS, master: false, format: 'mp3', approval: null });
       while (job.phase === 'running') job = await api.exportState();
       const items = job.files.map((file) => ({ kind: file.kind, title: file.title, path: file.encodedPath! }));
 
@@ -2763,24 +2783,16 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(cancelled.files.map((file) => file.status)).toEqual(['cancelled', 'cancelled', 'cancelled']);
   });
 
-  it('the evidence of every take-review finding the host pins, and of the mock fixture', () => {
-    const pinned = findingsPageSchema.parse(readGolden('findings-list-take-review.json'));
-    for (const finding of [...pinned.findings, ...WIRE_TAKE_REVIEW_FINDINGS]) {
-      expectMatches(takeReviewEvidenceSchema, finding.evidence, `take-review evidence of ${finding.id}`);
+  // The retired take review and take comparison (#2765): what a project already holds is listed as plain findings, and the
+  // page reads nothing from their evidence. The host pins both pages; the mock fixture is the same shape.
+  it('the findings the retired take review and take comparison saved still list as plain findings', async () => {
+    for (const file of ['findings-list-take-review.json', 'findings-list-take-comparison.json']) {
+      expect(findingsPageSchema.parse(readGolden(file)).findings).toHaveLength(1);
     }
-  });
-
-  it('the answers for going to and looping one read of a take-review finding', async () => {
-    const api = createMockApi();
-    await api.takeReviewScanStart({ chapterTrackName: 'Chapter 1' });
-    while ((await api.takeReviewScanState()).phase === 'running');
-    const [finding] = (await api.findingsList({ analyzer: 'take-review' })).findings;
-    expectMatches(findingNavigationSchema, await api.findingsGoToRead(finding.id, 1), 'mock go to read');
-    expectMatches(findingNavigationSchema, await api.findingsLoopRead(finding.id, 1), 'mock loop read');
-    for (const reaper of ['standalone', 'stale'] as const) {
-      const refusing = createMockApi({}, { reaper, findings: WIRE_TAKE_REVIEW_FINDINGS });
-      expectMatches(findingNavigationSchema, await refusing.findingsGoToRead(WIRE_TAKE_REVIEW_FINDINGS[0].id, 0), `mock ${reaper} go to read`);
-    }
+    const api = createMockApi({}, { findings: WIRE_TAKE_REVIEW_FINDINGS });
+    const page = await api.findingsList({ analyzer: 'take-review' });
+    expectMatches(findingsPageSchema, page, 'mock retired take-review findings');
+    expect(page.findings.map((finding) => finding.id).sort()).toEqual(WIRE_TAKE_REVIEW_FINDINGS.map((finding) => finding.id).sort());
   });
 
   it('the review bindings answers', async () => {
@@ -2833,19 +2845,17 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const answers: Array<[string, Promise<unknown>]> = [
       ['go to', api.findingsGoTo(placed.id)],
       ['loop', api.findingsLoop(placed.id)],
-      ['status while looping', api.findingsReaperStatus()],
       ['stop', api.findingsStopLoop()],
       ['no item', api.findingsGoTo(older.id)],
     ];
     for (const reaper of ['standalone', 'not-running', 'stale', 'recording', 'outdated'] as const) {
       const refusing = createMockApi({}, { reaper });
-      answers.push([`${reaper} status`, refusing.findingsReaperStatus()], [`${reaper} go to`, refusing.findingsGoTo(placed.id)]);
+      answers.push([`${reaper} go to`, refusing.findingsGoTo(placed.id)]);
       answers.push([`${reaper} loop`, refusing.findingsLoop(placed.id)], [`${reaper} stop`, refusing.findingsStopLoop()]);
     }
     for (const [name, answer] of answers) {
       const value = await answer;
-      const schema = name.endsWith('status') || name === 'status while looping' ? reaperStatusSchema : findingNavigationSchema;
-      expectMatches(schema, value, `mock ${name}`);
+      expectMatches(findingNavigationSchema, value, `mock ${name}`);
     }
   });
 
@@ -2864,20 +2874,6 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       answers.push([reaper, await refusing.findingsAddMarker(placed.id)]);
     }
     for (const [name, answer] of answers) expectMatches(findingMarkerSchema, answer, `mock add marker, ${name}`);
-  });
-
-  it('the take-creation answer', async () => {
-    const api = createMockApi();
-    const result = await api.takeReviewCreateTake({
-      findingId: 'finding-1',
-      targetItemGuid: '{AAAAAAAA-0000-4000-8000-000000000001}',
-      candidateItemGuid: '',
-      sourceFile: 'C:/Projects/Alice/media/chapter1-take2.wav',
-      sourceRangeStart: 0,
-      sourceRangeEnd: 3,
-    });
-    expectMatches(takeReviewCreateTakeResultSchema, result, 'mock take creation');
-    expect(result.targetItemGuid).toBe('{AAAAAAAA-0000-4000-8000-000000000001}');
   });
 
   it('the recording coverage answers: a current, a never and a stale result, a check to its end, and every refusal', async () => {
@@ -3142,10 +3138,8 @@ describe('answers of the mock client for the settings, voice, model, transcript 
 
     const takes = await api.workspaceTakes(measured.id, 0, 1);
     expectMatches(workspaceTakesResultSchema, takes, 'mock workspace takes');
-    expect(takes.candidates.map((candidate) => candidate.source)).toEqual(['item_take', 'item_take', 'lane_retake', 'take_review']);
+    expect(takes.candidates.map((candidate) => candidate.source)).toEqual(['item_take', 'item_take', 'lane_retake']);
     expect(takes.candidates.filter((candidate) => candidate.active)).toHaveLength(1);
-    expect(takes.candidates.find((candidate) => candidate.source === 'take_review')?.confirm).toBe(true);
-    expect(takes.comparisonId).toBeUndefined();
     await expect(api.workspaceTakes(measured.id, 0, 99999)).rejects.toThrow(/not in this chapter's alignment/);
 
     // A passage nothing was heard on has no takes and says why (the mock chapter's unheard words are its skipped paragraph).
@@ -3158,27 +3152,14 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       expect(none.message).toMatch(/wasn't heard/);
     }
 
-    // Comparing them is the one take comparison job, and it marks what it covered.
-    let job = await api.workspaceTakesCompareStart(measured.id, 0, 1);
-    expectMatches(takeComparisonJobSchema, job, 'mock passage comparison, started');
-    expect(job.findingId).toBe(takes.passageId);
-    while (job.phase === 'running') job = await api.takeComparisonState();
-    expect(job.phase).toBe('success');
-    const saved = await api.findingsGet(job.comparisonId ?? '');
-    expectMatches(takeComparisonEvidenceSchema, saved.evidence, 'mock passage comparison evidence');
-    const compared = await api.workspaceTakes(measured.id, 0, 1);
-    expect(compared.comparisonId).toBe(saved.id);
-    expect(compared.candidates.every((candidate) => candidate.compared && candidate.fidelity !== undefined)).toBe(true);
-
-    // Using a take: another take is made active, an already-playing one changes nothing, a lane pick starts, a read is added.
-    const [first, second, lane, read] = takes.candidates;
+    // Using a take: another take is made active, an already-playing one changes nothing, a lane pick starts.
+    const [first, second, lane] = takes.candidates;
     const changed = await api.workspaceUseTake(measured.id, 0, 1, second.id);
     expectMatches(workspaceUseTakeResultSchema, changed, 'mock use take, done');
     expect(changed).toMatchObject({ outcome: 'done', changed: true });
     expect((await api.workspaceTakes(measured.id, 0, 1)).candidates.find((candidate) => candidate.active)?.id).toBe(second.id);
     expect(await api.workspaceUseTake(measured.id, 0, 1, second.id)).toMatchObject({ outcome: 'done', changed: false });
     expect(await api.workspaceUseTake(measured.id, 0, 1, lane.id)).toMatchObject({ outcome: 'started' });
-    expect(await api.workspaceUseTake(measured.id, 0, 1, read.id)).toMatchObject({ outcome: 'done', changed: true });
     expect(await api.workspaceUseTake(measured.id, 0, 1, first.id)).toMatchObject({ outcome: 'done', changed: true });
     // Hearing a take through the DAW's preview: an offered take answers a DawResult (the preview's sentence while file_preview is off),
     // and one the passage no longer offers is refused stale.
@@ -3791,18 +3772,6 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect((await api.dawTransportSync('playRange', -1, 3)).refused).toBe('That place is not a usable number of seconds.');
     stop();
 
-    // dawLiveItems: the host goldens parse, every key is required, and the mock answers unavailable until the DAW has items to read.
-    expectMatches(dawLiveItemsSchema, readGolden('daw-live-items.json'), 'daw-live-items.json');
-    expectMatches(dawLiveItemsSchema, readGolden('daw-live-items-unavailable.json'), 'daw-live-items-unavailable.json');
-    const item = { guid: 'g', sourceFile: 'a.wav', position: 1, length: 2, sourceStart: 0, playRate: 1, muted: false };
-    expect(dawLiveItemsSchema.safeParse({ available: true, items: [item] }).success).toBe(true);
-    for (const key of Object.keys(item))
-      expect(dawLiveItemsSchema.safeParse({ available: true, items: [Object.fromEntries(Object.entries(item).filter(([k]) => k !== key))] }).success, key).toBe(
-        false,
-      );
-    expect(dawLiveItemsSchema.safeParse({ available: true, items: null }).success).toBe(false);
-    expect(await api.dawLiveItems('c1')).toEqual({ available: false, items: [] });
-
     // workspaceWordTimes and daw_project_edited: the host goldens parse, every key is required, and the mock answers unavailable until the DAW has a table.
     expectMatches(wordTimesSchema, readGolden('workspace-word-times.json'), 'workspace-word-times.json');
     expectMatches(wordTimesSchema, readGolden('workspace-word-times-unavailable.json'), 'workspace-word-times-unavailable.json');
@@ -3939,7 +3908,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(noBackupAnswer('Audacity')).toBe('Audacity has no backup with that id.');
   });
 
-  it('dawPreviewFileRange, dawStopFilePreview and dawRevealFile: the host goldens parse, and the mock answers as the host does', async () => {
+  it('dawStopFilePreview and the file-action answers: the host goldens parse, and the mock answers as the host does', async () => {
     const files = [
       'daw-file-preview-playing.json',
       'daw-file-preview-stopped.json',
@@ -3966,31 +3935,17 @@ describe('answers of the mock client for the settings, voice, model, transcript 
 
     // Off by default (Experimental): the capability's sentence, as the host answers it.
     const off = createMockApi({}, { daw: { reachable: false } });
-    const [path] = (await off.measurePickFiles()).paths;
     const offSupport = (await off.dawCapabilities()).capabilities.file_preview;
     expect(offSupport.available).toBe(false);
-    expect((await off.dawPreviewFileRange(path, 0, 5)).refused).toBe(offSupport.message);
+    expect((await off.dawStopFilePreview()).refused).toBe(offSupport.message);
 
-    const api = createMockApi({}, { daw: {} });
-    expect((await api.dawPreviewFileRange(path, 0, 5)).refused).toBe(DAW_ANSWERS.fileNotPicked);
-    const [picked] = (await api.measurePickFiles()).paths;
-    const playing = await api.dawPreviewFileRange(picked, 12.5, 5);
-    expectMatches(dawResultSchema, playing, 'mock file preview');
-    expect(playing).toEqual({ ok: true, changed: false, undoSteps: 0, message: filePreviewAnswer(picked, 12.5, 5) });
-    for (const [start, length] of [
-      [-1, 5],
-      [0, 0],
-      [0, 61],
-      [Number.NaN, 5],
-    ]) {
-      expect((await api.dawPreviewFileRange(picked, start, length)).refused).toBe(DAW_ANSWERS.fileBadStretch);
-    }
+    // Stop answers whether a preview the app started (here Play the quietest 5 s) was still playing.
+    const api = createMockApi({}, { measure: 'spread', daw: {} });
+    expect((await api.dawStopFilePreview()).message).toBe(DAW_ANSWERS.fileNothingPlaying);
+    const [file] = (await api.measureState()).files;
+    expect((await api.masterPlayQuietest(file.path)).ok).toBe(true);
     expect(await api.dawStopFilePreview()).toEqual(readGolden('daw-file-preview-stopped.json'));
     expect((await api.dawStopFilePreview()).message).toBe(DAW_ANSWERS.fileNothingPlaying);
-    const shown = await api.dawRevealFile(picked);
-    expectMatches(dawResultSchema, shown, 'mock reveal');
-    expect(shown.message).toBe(fileRevealAnswer(picked, 'REAPER'));
-    expect((await api.dawRevealFile('C:/elsewhere/Other.wav')).refused).toBe(DAW_ANSWERS.fileNotPicked);
   });
 
   it('masterPlayQuietest and masterOpenInDaw: the host goldens parse, and the mock answers as the host does', async () => {
@@ -4393,6 +4348,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'coverageGapIgnore',
       'coverageGapReviews',
       'exportPickFiles',
+      'exportPlan',
       'exportStart',
       'exportState',
       'exportCancel',
@@ -4403,8 +4359,6 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'packageStartMulti',
       'packageMultiState',
       'packageMultiCancel',
-      'teleprompterPunchPreview',
-      'teleprompterPunch',
       'ready',
       'bootstrap',
       'systemLookup',
@@ -4429,6 +4383,13 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'bookmarksSetStop',
       'bookmarksUpdate',
       'bookmarksRemove',
+      'voiceTracksGet',
+      'voiceTracksSetLayout',
+      'voiceTracksSetCharacters',
+      'voiceTracksSetNarrator',
+      'boothVoiceSet',
+      'boothVoiceGet',
+      'boothVoiceAdd',
       'voiceSamplesList',
       'voiceSampleMark',
       'voiceSampleUpdate',
@@ -4473,9 +4434,6 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'marksSetStatus',
       'scriptPrepList',
       'scriptPrepSetChapter',
-      'scriptWordFlag',
-      'scriptWordSay',
-      'scriptWordUnflag',
       'extractionList',
       'extractionAccept',
       'extractionReject',
@@ -4491,7 +4449,10 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'extractionImportPrompt',
       'pronunciationSources',
       'pronunciationCandidate',
-      'manuscriptReader',
+      'pronunciationCandidates',
+      'pronunciationPreview',
+      'userDictionarySave',
+      'userDictionaryRemove',
       'readerState',
       'guideEntities',
       'guideCreate',
@@ -4501,23 +4462,19 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'guideDialogueCues',
       'guideAttributeSpeakers',
       'guideRestoreSpeakers',
+      'guidePronunciationRestore',
       'guideTypes',
       'characterListRegions',
       'characterApprove',
       'characterReferences',
-      'seriesVoiceBible',
-      'seriesList',
-      'seriesSave',
       'assetsList',
       'assetsInstall',
       'assetsInstallState',
       'assetsInstallCancel',
       'assetsVerify',
-      'ttsCatalog',
       'ttsInstall',
       'ttsInstallState',
       'ttsInstallCancel',
-      'whisperCatalog',
       'whisperInstall',
       'whisperInstallState',
       'whisperInstallCancel',
@@ -4542,23 +4499,22 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'masteringProviders',
       'masteringChooseProvider',
       'recorderState',
-      'recorderChooseEngine',
       'recorderDevices',
       'recorderMeterStart',
       'recorderMeterStop',
-      'recorderStart',
-      'recorderStop',
       'recorderSetTakeLine',
       'recorderSetTakeKeeper',
       'dawCatalogList',
       'tracksDiscover',
       'tracksSelect',
       'tracksList',
+      'tracksLive',
       'chapterTrackMapList',
       'chapterTrackMapConfirm',
-      'chapterTrackMapClear',
       'chapterTrackSet',
       'chapterTrackCreate',
+      'chapterFoldersCheck',
+      'chapterFoldersRepair',
       'chapterTrackUnlink',
       'chapterSyncState',
       'chapterSyncPreview',
@@ -4569,14 +4525,11 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'chapterRegionsPreview',
       'chapterRegionsCreate',
       'chapterTrackMatch',
-      'chapterSuggestion',
-      'chaptersForTracks',
       'lineIdentityStamp',
       'lineIdentityRead',
       'lineIdentityState',
       'pickupsImport',
       'pickupsExport',
-      'pickupsNext',
       'pickupsResolve',
       'pickupsReopen',
       'pickupsListMarkers',
@@ -4594,16 +4547,11 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'cleanupToolsState',
       'projectStateCheck',
       'projectStateChangedSince',
-      'projectStateState',
       'retakeLanesList',
       'retakeLanesPick',
       'retakeLanesState',
       'chapterTagsPreview',
       'chapterTagsEmbed',
-      'takeReviewScanStart',
-      'takeReviewScanState',
-      'takeReviewScanCancel',
-      'takeReviewCreateTake',
       'coverageStart',
       'coverageState',
       'coverageResult',
@@ -4612,7 +4560,6 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'workspaceListFXChains',
       'workspaceTakes',
       'workspaceTakeEvidence',
-      'workspaceTakesCompareStart',
       'workspaceUseTake',
       'workspacePreviewTake',
       'workspaceProjectFx',
@@ -4643,15 +4590,12 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'dawPlace',
       'dawGoToChapter',
       'dawTransportSync',
-      'dawLiveItems',
       'workspaceWordTimes',
       'subscribeDawProjectEdited',
       'dawBackupAround',
       'dawRestoreBackup',
       'dawBackups',
-      'dawPreviewFileRange',
       'dawStopFilePreview',
-      'dawRevealFile',
       'masterPlayQuietest',
       'masterOpenInDaw',
       'workspacePeaks',
@@ -4677,11 +4621,8 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'productionStartTimer',
       'productionStopTimer',
       'productionStatusReport',
+      'productionOpenReportsFolder',
       'productionStatusReportPreview',
-      'productionBurndown',
-      'takeComparisonStart',
-      'takeComparisonState',
-      'takeComparisonCancel',
       'measurePickFiles',
       'measureAnalyze',
       'measureState',
@@ -4708,11 +4649,8 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'findingsSetType',
       'findingsThread',
       'findingsSummary',
-      'findingsReaperStatus',
       'findingsGoTo',
       'findingsLoop',
-      'findingsGoToRead',
-      'findingsLoopRead',
       'findingsStopLoop',
       'findingsAddMarker',
       'teleprompterStart',
@@ -4724,7 +4662,6 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'teleprompterResumeUnfollow',
       'teleprompterSaveFlags',
       'readAloudReaperState',
-      'readAloudArmOnly',
       'readAloudRecordStart',
       'readAloudRecordStartAt',
       'readAloudRecordStop',
@@ -4779,16 +4716,12 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'guideTypeRemove',
       'characterRevoke',
       'characterRemoveVoiceData',
-      'seriesDelete',
-      'ttsRemove',
-      'whisperRemove',
       'assetsOpenFolder',
       'assetsRemove',
       'transcriptCancel',
       'coverageCancel',
       'editingCancel',
       'transcriptReset',
-      'transcriptJump',
       'transcriptExportMarkers',
       'transcriptSaveHints',
       'teleprompterStop',
@@ -4835,7 +4768,6 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'subscribeDawCapabilities',
       'subscribeDawTransport',
       'subscribeDawPosition',
-      'subscribeDawProjectState',
       'subscribeAudacityLink',
       'subscribeRecorderState',
       'subscribeRecorderLevel',
@@ -4923,6 +4855,13 @@ describe('the production tracking mock', () => {
 
   it('the status report export follows the ticked sections, leaves out the money unless asked, and never repeats a file name', async () => {
     const pinned = productionReportExportSchema.parse(readGolden('production-status-report.json'));
+    const folder = reportsFolderResultSchema.parse(readGolden('production-open-reports-folder.json'));
+    const fresh = createMockApi();
+    await expect(fresh.productionOpenReportsFolder()).rejects.toThrow(/export a report first/);
+    await fresh.productionStatusReport(pinned.include);
+    expect(await fresh.productionOpenReportsFolder()).toEqual(folder);
+    expect(reportsFolderResultSchema.safeParse({ folder: '' }).success).toBe(false);
+    expect(reportsFolderResultSchema.safeParse({ folder: 'a', path: 'b' }).success).toBe(false);
     expect(() => productionReportExportSchema.parse({ ...pinned, include: { ...pinned.include, extra: true } })).toThrow();
     const api = createMockApi();
     const left = await api.productionStatusReport(pinned.include);
@@ -4952,18 +4891,6 @@ describe('the production tracking mock', () => {
     expect(included.contractedAmountIncluded).toBe(true);
     expect(included.json).toContain('Contracted amount');
     expect(included.json).not.toContain('Hours logged');
-  });
-
-  it('the burndown is empty with nothing logged, and cumulative by day once a seed logs some', async () => {
-    const empty = await createMockApi().productionBurndown();
-    expectMatches(productionBurndownSchema, empty, 'mock production burndown, nothing logged');
-    expect(empty).toEqual([]);
-
-    const seeded = await createMockApi({}, { production: PRODUCTION_SCENARIOS['on-pace'] }).productionBurndown();
-    expectMatches(productionBurndownSchema, seeded, 'mock production burndown, on-pace');
-    expect(seeded.length).toBeGreaterThan(0);
-    expect(seeded.at(-1)?.hoursLogged).toBeCloseTo(seeded.reduce((max, point) => Math.max(max, point.hoursLogged), 0));
-    for (let i = 1; i < seeded.length; i++) expect(seeded[i].hoursLogged).toBeGreaterThanOrEqual(seeded[i - 1].hoursLogged);
   });
 
   it.each(['on-pace', 'at-risk'] as const)('seeds a %s book whose figures come from its log and measured audio only', async (seed) => {
@@ -6190,75 +6117,38 @@ describe('the script prep bindings', () => {
       second: wordy[1] ?? { id: '', text: '', index: 0 },
     };
   };
-  const firstWord = (text: string) => text.indexOf(' ');
 
-  it('the mock answers the prep list, a chapter state, a flag, a say-value and an unflag through their schemas', async () => {
-    const { api, chapterId, first, second } = await firstLines();
+  it('the mock answers the prep list and a chapter state through their schemas', async () => {
+    const { api, chapterId } = await firstLines();
     const empty = await api.scriptPrepList();
     expectMatches(scriptPrepSchema, empty, 'mock script prep list (empty)');
-    expect(empty.words).toEqual([]);
     expect(empty.chapters.every((chapter) => chapter.state === 'none')).toBe(true);
     const chapter = await api.scriptPrepSetChapter(chapterId, 'prepped');
     expectMatches(scriptPrepChapterSchema, chapter, 'mock script prep chapter');
-    const word = first.text.slice(0, firstWord(first.text));
-    const flagged = await api.scriptWordFlag(chapterId, first.id, 0, firstWord(first.text));
-    expectMatches(scriptWordSchema, flagged, 'mock script word flag');
-    expect(flagged).toMatchObject({ word: word.toLowerCase(), say: '', source: '', status: 'not_set' });
-    expect((await api.scriptWordFlag(chapterId, first.id, 0, firstWord(first.text))).flags).toHaveLength(1);
-    const said = await api.scriptWordSay(word.toUpperCase(), '  say-it  ', 'espeak');
-    expectMatches(scriptWordSchema, said, 'mock script word say');
-    expect(said).toMatchObject({ say: 'say-it', source: 'espeak', status: 'set' });
-    expect(await api.scriptWordSay(word, 'typed', '')).toMatchObject({ source: 'manual' });
-    const other = await api.scriptWordFlag(chapterId, second.id, 0, firstWord(second.text));
     const listed = await api.scriptPrepList();
     expectMatches(scriptPrepSchema, listed, 'mock script prep list');
     expect(listed.chapters.find((entry) => entry.chapterId === chapterId)?.state).toBe('prepped');
-    expect(listed.words.map((entry) => entry.word)).toEqual([...new Set([word.toLowerCase(), other.word])]);
-    const gone = await api.scriptWordUnflag(flagged.flags[0]?.id ?? '');
-    expectMatches(scriptWordSchema, gone, 'mock script word unflag');
-    if (other.word !== gone.word) expect(gone).toMatchObject({ status: 'not_flagged', say: '', source: '', flags: [] });
   });
 
   it('the mock refuses what the host refuses and saves nothing', async () => {
-    const { api, chapterId, otherId, first } = await firstLines();
+    const { api } = await firstLines();
     await expect(api.scriptPrepSetChapter('no-such-chapter', 'prepped')).rejects.toThrow('not in the manuscript');
-    await expect(api.scriptWordFlag('no-such-chapter', first.id, 0, 3)).rejects.toThrow('not in the manuscript');
-    await expect(api.scriptWordFlag(otherId, first.id, 0, 3)).rejects.toThrow('not in this chapter');
-    await expect(api.scriptWordFlag(chapterId, first.id, 3, 3)).rejects.toThrow('choose a word');
-    await expect(api.scriptWordFlag(chapterId, first.id, 0, first.text.length + 1)).rejects.toThrow('not in the line');
-    await expect(api.scriptWordSay('never-flagged', 'x', '')).rejects.toThrow('flag the word');
-    await expect(api.scriptWordUnflag('no-such-flag')).rejects.toThrow('no longer there');
-    await api.scriptWordFlag(chapterId, first.id, 0, firstWord(first.text));
-    const word = first.text.slice(0, firstWord(first.text));
-    await expect(api.scriptWordSay(word, 'a\nb', '')).rejects.toThrow('one line');
-    await expect(api.scriptWordSay(word, 'a\u0000b', '')).rejects.toThrow('one line');
-    await expect(api.scriptWordSay(word, 'x'.repeat(201), '')).rejects.toThrow('at most 200');
-    await expect(api.scriptWordSay(word, 'x', 'made-up')).rejects.toThrow('not one of yours');
     const listed = await api.scriptPrepList();
-    expect(listed.words.map((entry) => entry.status)).toEqual(['not_set']);
     expect(listed.chapters.every((chapter) => chapter.state === 'none')).toBe(true);
   });
 
-  it('the schemas read the goldens and refuse an unknown state, status, stale reason or key', () => {
+  it('the schemas read the goldens and refuse an unknown state, a key, or words beside the chapters (#2595)', () => {
     const list = parseWire(scriptPrepSchema, readGolden('script-prep-list.json'), ctx('script prep list'));
-    expect(list.chapters.map((chapter) => chapter.state)).toEqual(['progress', 'none']);
-    expect(list.words.map((word) => word.status)).toEqual(['set', 'not_set', 'not_set']);
-    expect(list.words.map((word) => word.flags[0]?.staleReason ?? null)).toEqual([null, 'text_changed', null]);
+    expect(list.chapters.map((chapter) => [chapter.chapterId, chapter.state])).toEqual([
+      ['c-0001', 'progress'],
+      ['c-0002', 'none'],
+      ['credits:opening', 'prepped'],
+    ]);
     const chapter = parseWire(scriptPrepChapterSchema, readGolden('script-prep-chapter.json'), ctx('script prep chapter'));
-    const word = parseWire(scriptWordSchema, readGolden('script-prep-word.json'), ctx('script prep word'));
-    expect(word).toMatchObject({ word: 'queen', say: 'kween', source: 'cmu', status: 'set' });
-    const flag = word.flags[0];
     expect(scriptPrepChapterSchema.safeParse({ ...chapter, state: 'done' }).success).toBe(false);
     expect(scriptPrepChapterSchema.safeParse({ ...chapter, extra: true }).success).toBe(false);
-    expect(scriptWordSchema.safeParse({ ...word, status: 'maybe' }).success).toBe(false);
-    expect(scriptWordSchema.safeParse({ ...word, path: '/etc/passwd' }).success).toBe(false);
-    expect(scriptWordSchema.safeParse({ ...word, status: 'not_set' }).success).toBe(false);
-    expect(scriptWordSchema.safeParse({ ...word, source: '' }).success).toBe(false);
-    expect(scriptWordSchema.safeParse({ ...word, status: 'not_flagged' }).success).toBe(false);
-    expect(scriptWordSchema.safeParse({ word: 'queen', say: '', source: '', status: 'not_flagged', flags: [] }).success).toBe(true);
-    expect(scriptWordFlagSchema.safeParse({ ...flag, staleReason: 'moved' }).success).toBe(false);
-    expect(scriptWordFlagSchema.safeParse({ ...flag, start: 9, end: 2 }).success).toBe(false);
     expect(scriptPrepSchema.safeParse({ ...list, extra: [] }).success).toBe(false);
+    expect(scriptPrepSchema.safeParse({ ...list, words: [] }).success).toBe(false);
   });
 });
 
@@ -6350,5 +6240,94 @@ describe('Replace audio (bindings_replace.go): the mock answers through the sche
     );
     expect((await api.dawReplaceRange(chapterId, first, last, 'f-1', 1, 2, 10, 24.5)).result.refused).toBe('The level change must be from -24 to 24 dB.');
     expect((await api.editingReplacementsList(chapterId)).replacements).toEqual([]);
+  });
+});
+
+// A project's voice setup: the mock answers through the schema the host's goldens are checked against, and keeps the host's rules.
+describe('the voice tracks bindings', () => {
+  it('the mock starts flat, saves the layout, assignments by track name and the narrator, each through the schema', async () => {
+    const api = createVoiceTracksMock();
+    expectMatches(voiceTracksStateSchema, await api.voiceTracksGet(), 'mock voice tracks (empty)');
+    expectMatches(voiceTracksStateSchema, await api.voiceTracksSetLayout('folders'), 'mock voice tracks layout');
+    await api.voiceTracksSetCharacters('Queen', ['queen-of-hearts']);
+    const shared = await api.voiceTracksSetCharacters(' Gardeners ', ['two', 'five', 'two']);
+    expectMatches(voiceTracksStateSchema, shared, 'mock voice tracks characters');
+    expect(shared.tracks).toEqual([
+      { track: 'Gardeners', characters: ['two', 'five'] },
+      { track: 'Queen', characters: ['queen-of-hearts'] },
+    ]);
+    const narrator = await api.voiceTracksSetNarrator('alice');
+    expectMatches(voiceTracksStateSchema, narrator, 'mock voice tracks narrator');
+    expect((await api.voiceTracksSetCharacters('Queen', [])).tracks.map((entry) => entry.track)).toEqual(['Gardeners']);
+  });
+
+  it('the mock refuses what the host refuses, and keeps nothing of it', async () => {
+    const api = createVoiceTracksMock();
+    await expect(api.voiceTracksSetLayout('nested' as 'flat')).rejects.toThrow();
+    await expect(api.voiceTracksSetCharacters('a\nb', ['two'])).rejects.toThrow();
+    await expect(api.voiceTracksSetCharacters('Queen', [''])).rejects.toThrow();
+    expect(await api.voiceTracksGet()).toEqual({ layout: 'flat', narratorCharacter: '', tracks: [] });
+  });
+
+  it("the Booth's voice choice: a flat project refuses, a voice folder chooses a child and a take switches it, each through the schema", async () => {
+    const chapterId = WIRE_CHAPTERS[0].id;
+    const unlinked = await createMockApi().boothVoiceSet(chapterId, '{V01CE-RABB1T}');
+    expectMatches(boothVoiceSchema, unlinked, 'mock booth voice (unlinked)');
+    expect(unlinked.reason).toBe('unlinked');
+
+    const api = createMockApi({}, { voiceFolders: true });
+    await api.voiceTracksSetLayout('flat');
+    const flat = await api.boothVoiceSet(chapterId, '{V01CE-RABB1T}');
+    expectMatches(boothVoiceSchema, flat, 'mock booth voice (flat)');
+    expect(flat.reason).toBe('flat');
+    await api.voiceTracksSetLayout('folders');
+    expect((await api.boothVoiceSet(chapterId, '{F0LD-V01CE}')).reason).toBe('not_a_voice');
+    const selected = await api.boothVoiceSet(chapterId, '{v01ce-rabb1t}');
+    expectMatches(boothVoiceSchema, selected, 'mock booth voice (selected)');
+    expect(selected).toEqual({ outcome: 'selected', trackGuid: '{V01CE-RABB1T}' });
+    const started = await api.readAloudRecordStart(chapterId);
+    expect(started.trackGuid).toBe('{V01CE-RABB1T}');
+    const switched = await api.boothVoiceSet(chapterId, '{V01CE-EXTRAS}');
+    expectMatches(boothVoiceSchema, switched, 'mock booth voice (switched)');
+    expect(switched.outcome).toBe('switched');
+  });
+
+  it("the Booth's voice read: the Narrator voice until one is chosen, then the choice, per chapter, each through the schema", async () => {
+    const [first, second] = WIRE_CHAPTERS.map((chapter) => chapter.id);
+    const flat = await createMockApi().boothVoiceGet(first);
+    expectMatches(boothVoiceSchema, flat, 'mock booth voice read (unlinked)');
+    expect(flat.outcome).toBe('refused');
+    const api = createMockApi({}, { voiceFolders: true });
+    const before = await api.boothVoiceGet(first);
+    expectMatches(boothVoiceSchema, before, 'mock booth voice read');
+    expect(before.trackGuid).not.toBe('{V01CE-EXTRAS}');
+    await api.boothVoiceSet(first, '{V01CE-EXTRAS}');
+    expect(await api.boothVoiceGet(first)).toEqual({ outcome: 'selected', trackGuid: '{V01CE-EXTRAS}' });
+    expect((await api.boothVoiceGet(second)).trackGuid).not.toBe('{V01CE-EXTRAS}');
+  });
+
+  it("the Booth's voice add: a child of the chapter's folder, listed as added until saved, chosen, refused as the host refuses, each through the schema", async () => {
+    const [first] = WIRE_CHAPTERS.map((chapter) => chapter.id);
+    const unlinked = await createMockApi().boothVoiceAdd(first, 'Extras', []);
+    expectMatches(boothVoiceAddedSchema, unlinked, 'mock booth voice add (unlinked)');
+    expect(unlinked.reason).toBe('unlinked');
+    const api = createMockApi({}, { voiceFolders: true });
+    expect((await api.boothVoiceAdd(first, ' \n ', [])).reason).toBe('no_name');
+    expect((await api.boothVoiceAdd(first, ' extras ', [])).reason).toBe('name_taken');
+    expect((await api.boothVoiceAdd(first, 'x'.repeat(121), [])).reason).toBe('invalid');
+    const added = await api.boothVoiceAdd(first, '  King  of Hearts ', ['king-of-hearts']);
+    expectMatches(boothVoiceAddedSchema, added, 'mock booth voice add');
+    expect(added).toMatchObject({ outcome: 'added', name: 'King of Hearts' });
+    const read = await api.boothVoiceGet(first);
+    expectMatches(boothVoiceSchema, read, 'mock booth voice read (added)');
+    expect(read).toEqual({ outcome: 'selected', trackGuid: added.trackGuid, added: [{ guid: added.trackGuid, name: 'King of Hearts' }] });
+    expect((await api.voiceTracksGet()).tracks.find((entry) => entry.track === 'King of Hearts')?.characters).toEqual(['king-of-hearts']);
+    await api.readAloudRecordStart(first);
+    expect((await api.boothVoiceAdd(first, 'Crowd', [])).reason).toBe('recording');
+  });
+
+  it('the schema refuses an unknown layout and an empty assignment', () => {
+    expect(voiceTracksStateSchema.safeParse({ layout: 'nested', narratorCharacter: '', tracks: [] }).success).toBe(false);
+    expect(voiceTracksStateSchema.safeParse({ layout: 'flat', narratorCharacter: '', tracks: [{ track: 'A', characters: [] }] }).success).toBe(false);
   });
 });

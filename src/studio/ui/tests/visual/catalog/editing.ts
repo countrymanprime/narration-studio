@@ -72,6 +72,19 @@ export const editingStates: StateEntry[] = [
   },
   {
     page: 'editing',
+    state: 'daw-tools-menu',
+    description:
+      'Editing, the DAW tools icon button in the header opened on a linked chapter - the Structure heading over Prepare chapter render and Create chapter regions, both live',
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+  },
+  {
+    page: 'editing',
+    state: 'daw-tools-menu-audacity',
+    description: 'Editing, the DAW tools menu on a project that records in Audacity - both entries stay, off, each saying what Audacity cannot do',
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+  },
+  {
+    page: 'editing',
     state: 'fx-menu',
     description: 'Editing, Add FX on four selected words - the menu of the DAW’s FX chains',
     ...POPUP_ANCHORED_AT_FIRST_WIDTH,
@@ -136,6 +149,27 @@ export const editingStates: StateEntry[] = [
   },
   {
     page: 'editing',
+    state: 'replace-dialog-removable',
+    description:
+      "Editing, Replace with another narrator's audio - Jon Doe, named by mistake and with no files, chosen under Other narrator: the remove button beside the list is on (#2737)",
+  },
+  {
+    page: 'editing',
+    state: 'replace-dialog-removed',
+    description:
+      "Editing, Replace with another narrator's audio - Jon Doe just removed: Eric Leach is left on the list, nobody is chosen (the list reads Choose the other narrator), Add a file of theirs is off and the list has the focus (#2737)",
+  },
+  {
+    page: 'editing',
+    state: 'replace-dialog-long-name',
+    description:
+      "Editing, Replace with another narrator's audio - a narrator with an 80-character name (the host's longest) chosen: the list ends in an ellipsis and the remove button stays inside the dialog, at every width down to 390 px (#2737)",
+    // The driver checks the button's place at each width, so it runs on a fresh load at each.
+    extraViewports: REFLOW.extraViewports,
+    reloadPerViewport: true,
+  },
+  {
+    page: 'editing',
     state: 'replace-mark-open',
     description:
       "Editing, four words replaced with another narrator's audio - the narrator's name after the last word, opened: their stretch, the level change and Put my audio back",
@@ -163,6 +197,12 @@ export const editingStates: StateEntry[] = [
     page: 'editing',
     state: 'drawer-cleanup',
     description: 'Editing, the drawer open on Clean up - what was found in the chapter and the findings by operation',
+  },
+  {
+    page: 'editing',
+    state: 'drawer-cleanup-repair',
+    description: 'Editing, the drawer on Clean up with Clicks chosen - Repair in REAPER beside Apply, its menu open on Repair with Cleanup tools',
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
   },
   {
     page: 'editing',

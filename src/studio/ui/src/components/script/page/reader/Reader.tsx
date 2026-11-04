@@ -22,8 +22,8 @@ import { buildLayerIndex, paragraphLayers, type Layer, type LayerSources } from 
 import { Para, type FindRange } from './Para';
 import { loadReaderPosition, READER_POSITION_KEY, saveReaderPosition } from './readerPosition';
 
-/** A Find match in a paragraph, in the order Find lists them. */
-type FindMatch = { paragraphId: string; start: number; end: number };
+/** A Find match in a paragraph, in the order Find lists them. `chapterId` lets the reader go to a match in a chapter not read yet. */
+type FindMatch = { paragraphId: string; chapterId?: string; start: number; end: number };
 /** A place in a paragraph: a bookmark's line. */
 type BookmarkSpot = { paragraphId: string; offset: number };
 /** Which request the reader just honoured, so its owner clears it. */
@@ -51,7 +51,8 @@ export type ReaderProps = {
   flashParagraphId?: string | null;
   /** The page zoom, so a measured line is in the paragraph's own pixels. */
   zoom?: number;
-  find?: { matches: readonly FindMatch[]; current: number } | null;
+  /** The matches, the current one, and `request`, which changes each time the narrator chooses a match, so choosing the current one again scrolls back to it. */
+  find?: { matches: readonly FindMatch[]; current: number; request?: number } | null;
   activeMarkId?: string | null;
   /** The bookmark ribbons of a paragraph (the ribbon comes in through this slot). Keep the function the same between renders. */
   renderGutter?: (paragraph: ManuscriptParagraph) => ReactNode;
@@ -69,8 +70,6 @@ export type ReaderProps = {
   underHeader?: ReactNode;
   onPickSpeaker?: (cueId: string, anchor: DOMRect) => void;
   onShowAnnotation?: (id: string) => void;
-  /** A click on a flagged word: its key. */
-  onShowWord?: (word: string) => void;
   onShowEntry?: (id: string) => void;
   /** A click in the text puts the bookmark keys back to going from where the narrator is. */
   onTextClick?: () => void;
@@ -166,7 +165,12 @@ const Section = memo(function Section(props: SectionProps) {
           props.renderChapterCard(chapter)
         ) : (
           <>
-            <h2 className="m-0 text-2xl font-semibold">{chapter.title}</h2>
+            <h2
+              tabIndex={-1}
+              className="m-0 text-2xl font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+            >
+              {chapter.title}
+            </h2>
             <div className="text-sm text-[var(--text-muted)]">{chapter.wordCount.toLocaleString()} words</div>
           </>
         )}
@@ -225,7 +229,6 @@ export function Reader(props: ReaderProps) {
     underHeader,
     onPickSpeaker,
     onShowAnnotation,
-    onShowWord,
     onShowEntry,
     onTextClick,
     onStepPrep,
@@ -281,17 +284,19 @@ export function Reader(props: ReaderProps) {
   const findState = useMemo(() => {
     const by = new Map<string, FindRange[]>();
     let currentPid: string | null = null;
+    let currentChapterId: string | null = null;
     let currentLocal = -1;
     (find?.matches ?? []).forEach((match, i) => {
       const list = by.get(match.paragraphId) ?? [];
       if (i === find?.current) {
         currentPid = match.paragraphId;
+        currentChapterId = match.chapterId ?? null;
         currentLocal = list.length;
       }
       list.push({ start: match.start, end: match.end });
       by.set(match.paragraphId, list);
     });
-    return { by, currentPid, currentLocal };
+    return { by, currentPid, currentChapterId: currentChapterId as string | null, currentLocal, request: find?.request ?? 0 };
   }, [find]);
   const activeParagraphId = useMemo(() => sources.marks.find((mark) => mark.id === activeMarkId)?.paragraphId ?? null, [sources.marks, activeMarkId]);
 
@@ -395,6 +400,10 @@ export function Reader(props: ReaderProps) {
       // A section outside the chapters (the credits) is always drawn.
       if (at === undefined || reach(at)) {
         jumpTo(pendingJump);
+        // The heading takes focus, so the next Tab and a screen reader start at the chapter the narrator chose (#2902), unless the
+        // narrator chose it in the chapter list: focus stays there so Down steps to the next chapter.
+        if (!document.activeElement?.closest('ul[aria-label="Chapters"]'))
+          root.querySelector<HTMLElement>(`[data-bound][data-ch="${pendingJump}"] h2`)?.focus({ preventScroll: true });
         onHandled?.('chapter');
         jumped = true;
       }
@@ -430,18 +439,27 @@ export function Reader(props: ReaderProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paragraphsOf]);
 
-  /* Find: bring the current match into view. */
+  /* Find: bring the current match into view. A match in a chapter not drawn or not read yet draws and reads it first, then scrolls once its
+     text arrives; each choice of a match (and each step) moves the reader once. */
+  const findShown = useRef<string | null>(null);
   useLayoutEffect(() => {
     const root = scroller.current;
-    if (!root || !findState.currentPid) return;
-    const at = chapterOf(findState.currentPid);
+    if (!root || !findState.currentPid) {
+      findShown.current = null;
+      return;
+    }
+    const key = `${findState.currentPid}:${findState.currentLocal}:${findState.request}`;
+    if (findShown.current === key) return;
+    const at = findState.currentChapterId !== null ? (indexOf.get(findState.currentChapterId) ?? -1) : chapterOf(findState.currentPid);
     if (at < 0 || !reach(at)) return;
-    release();
     const match = root.querySelector<HTMLElement>('.a-find-cur');
-    if (match) root.scrollTop += (match.getBoundingClientRect().top - root.getBoundingClientRect().top) / zoom - root.clientHeight / 3;
-    // Only a different current match moves the reader.
+    if (!match) return;
+    release();
+    findShown.current = key;
+    root.scrollTop += (match.getBoundingClientRect().top - root.getBoundingClientRect().top) / zoom - root.clientHeight / 3;
+    // A different current match, a match chosen again, a chapter drawn or text read; the key above keeps one choice from moving the reader twice.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [findState.currentPid, findState.currentLocal, drawn]);
+  }, [findState.currentPid, findState.currentLocal, findState.request, drawn, paragraphsOf]);
 
   useEffect(() => () => clearTimeout(saveTimer.current), []);
 
@@ -463,9 +481,7 @@ export function Reader(props: ReaderProps) {
     const mark = target.closest<HTMLElement>('[data-a]');
     const name = target.closest<HTMLElement>('[data-ent]');
     if ((!mark && !name) || !(window.getSelection()?.isCollapsed ?? true)) return;
-    // A flagged word is a `data-a` span too, with its word (`data-w`): it opens in the Words tab, as the mock's pronunciation marks do.
-    if (mark?.dataset.w !== undefined) onShowWord?.(mark.dataset.w);
-    else if (mark) onShowAnnotation?.(mark.dataset.a as string);
+    if (mark) onShowAnnotation?.(mark.dataset.a as string);
     else onShowEntry?.(name!.dataset.ent as string);
   };
 
@@ -495,8 +511,9 @@ export function Reader(props: ReaderProps) {
         <ReaderColumn
           data-reader=""
           width={READER_COLUMN_VAR}
-          // 24 px a side (the mock's 20 plus 4), so a bookmark ribbon's 24 px press area fits between the panel edge and the text (R3SC-12).
-          className="px-6 pt-2 pb-20"
+          // 24 px a side (the mock's 20 plus 4), so a bookmark ribbon's 24 px press area fits between the panel edge and the text (R3SC-12). A word
+          // wider than the column (a long URL) breaks inside it, as the Booth's text does.
+          className="px-6 pt-2 pb-20 [overflow-wrap:anywhere]"
           style={{
             fontFamily: 'var(--rf, Georgia, serif)',
             fontSize: 'calc(var(--rs, 18) * 1px)',

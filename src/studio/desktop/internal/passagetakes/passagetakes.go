@@ -1,12 +1,10 @@
 // Package passagetakes finds the alternate takes of a chapter passage for the workspace's Takes panel: the
-// other takes on the item the passage was heard on, the other retakes of its line on a fixed-lane track, and the reads
-// a take-review group set beside it. Everything is read from the saved project, the chapter's stored alignment and the
-// findings store, never from the page: the page names a chapter and a range of tokens, and a candidate is chosen by an
+// other takes on the item the passage was heard on and the other retakes of its line on a fixed-lane track. Everything
+// is read from the saved project, the chapter's stored alignment and the Booth's passage map, never from the page: the page names a chapter and a range of tokens, and a candidate is chosen by an
 // id this package offered (Resolved.Choice), so a GUID, a file or a time never comes from the UI (threat model 5l).
 package passagetakes
 
 import (
-	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"strconv"
@@ -17,36 +15,27 @@ import (
 	"desktop/internal/measure"
 	"desktop/internal/passagemap"
 	"desktop/internal/retakelanes"
-	"desktop/internal/takecompare"
 	"desktop/internal/tracks"
 )
 
-// Where a candidate comes from (EP6's three sources) and what choosing it does (EP7).
+// Where a candidate comes from (EP6) and what choosing it does (EP7).
 const (
 	SourceItemTake   = "item_take"
 	SourceLaneRetake = "lane_retake"
-	SourceTakeReview = "take_review"
 
 	// ActionMakeActive makes the take the item's active one (set_active_take, one undo step).
 	ActionMakeActive = "make_active"
 	// ActionPickLane makes the retake's lane the only one playing (pick_retake_lane, one undo step).
 	ActionPickLane = "pick_lane"
-	// ActionAddAndActivate adds a read from another item as a new take and makes it active: two REAPER steps, so the
-	// narrator confirms it (EP7).
-	ActionAddAndActivate = "add_and_activate"
 )
-
-const takeReviewAnalyzer = "take-review"
 
 // Candidate is one take the narrator can hear against the passage and choose.
 type Candidate struct {
 	ID     string `json:"id"`
 	Source string `json:"source"`
 	Action string `json:"action"`
-	// Confirm is set only for ActionAddAndActivate.
-	Confirm bool   `json:"confirm"`
-	Label   string `json:"label"`
-	Detail  string `json:"detail"`
+	Label  string `json:"label"`
+	Detail string `json:"detail"`
 	// Active is set for what plays now.
 	Active   bool   `json:"active"`
 	ItemGUID string `json:"itemGuid"`
@@ -56,11 +45,8 @@ type Candidate struct {
 	SourceStart  float64 `json:"sourceStart"`
 	SourceLength float64 `json:"sourceLength"`
 	// Usable is false when the take cannot be heard or chosen, and Reason says why.
-	Usable            bool     `json:"usable"`
-	Reason            string   `json:"reason,omitempty"`
-	Compared          bool     `json:"compared"`
-	Fidelity          *float64 `json:"fidelity,omitempty"`
-	NotComparedReason string   `json:"notComparedReason,omitempty"`
+	Usable bool   `json:"usable"`
+	Reason string `json:"reason,omitempty"`
 }
 
 // Alternates is the Takes panel's read: the passage as the host snapped it and every candidate for it.
@@ -68,8 +54,7 @@ type Alternates struct {
 	ChapterID  string `json:"chapterId"`
 	FirstToken int    `json:"firstToken"`
 	LastToken  int    `json:"lastToken"`
-	// FirstParagraph and LastParagraph are the passage snapped out to whole paragraphs, in the chapter's order: the
-	// span a comparison aligns every take to.
+	// FirstParagraph and LastParagraph are the passage snapped out to whole paragraphs, in the chapter's order.
 	FirstParagraph int `json:"firstParagraph"`
 	LastParagraph  int `json:"lastParagraph"`
 	// Words is how many words of the chapter's alignment the asked range holds.
@@ -78,23 +63,16 @@ type Alternates struct {
 	PassageID string `json:"passageId"`
 	ItemGUID  string `json:"itemGuid"`
 	// Message says why there are no candidates, when there are none.
-	Message string `json:"message,omitempty"`
-	// ComparisonID is the saved take_comparison finding for this passage, if one was made.
-	ComparisonID string      `json:"comparisonId,omitempty"`
-	Candidates   []Candidate `json:"candidates"`
+	Message    string      `json:"message,omitempty"`
+	Candidates []Candidate `json:"candidates"`
 }
 
-// Choice is everything acting on a candidate needs, all from the saved project and the findings store.
+// Choice is everything acting on a candidate needs, all from the saved project.
 type Choice struct {
 	Candidate      Candidate
 	TargetItemGUID string
-	// LineID and FindingID are set for a lane pick and for an add-and-activate.
-	LineID    string
-	FindingID string
-	// SourceFile, RangeStart and RangeEnd are the read's own range (add-and-activate): create_take's inputs.
-	SourceFile string
-	RangeStart float64
-	RangeEnd   float64
+	// LineID is set for a lane pick.
+	LineID string
 }
 
 // Input is what Resolve reads.
@@ -104,20 +82,15 @@ type Input struct {
 	FirstToken int
 	LastToken  int
 	Project    tracks.Project
-	// Groups are the chapter's take-review findings.
-	Groups []findings.Finding
-	// Comparison finds the saved comparison of a passage; nil means none are kept.
-	Comparison func(passageID string) (findings.Finding, bool)
 	// Marks are the chapter's runs in the Booth's passage map (passagemap.Service.List): where each take the Booth recorded
 	// began and ended in the text, with the DAW's ids. A passage the Booth recorded is placed from them (TK-1 part 2).
 	Marks []passagemap.Resolved
 }
 
-// Resolved is Alternates plus what is needed to act on a candidate and to compare them.
+// Resolved is Alternates plus what is needed to act on a candidate.
 type Resolved struct {
 	View    Alternates
 	choices map[string]Choice
-	reads   []takecompare.Read
 	// input is what the view was resolved from, for Evidence.
 	input Input
 }
@@ -127,9 +100,6 @@ func (r Resolved) Choice(id string) (Choice, bool) {
 	choice, ok := r.choices[id]
 	return choice, ok
 }
-
-// Reads are the usable candidates as the reads a comparison aligns, one per take.
-func (r Resolved) Reads() []takecompare.Read { return r.reads }
 
 // Resolve reads the alternates of the passage [FirstToken, LastToken] of the chapter's alignment. It errors only for a
 // range outside the alignment (the caller's copy of it is out of date); every other problem is the view's Message.
@@ -170,14 +140,7 @@ func Resolve(in Input) (Resolved, error) {
 	b := &builder{in: in, target: item, seen: map[string]bool{}}
 	b.itemTakes(item)
 	b.laneRetakes(track, item)
-	b.takeReviewReads(item)
 
-	if in.Comparison != nil {
-		if saved, found := in.Comparison(view.PassageID); found {
-			view.ComparisonID = saved.ID
-			markCompared(b.candidates, saved)
-		}
-	}
 	view.Candidates = b.candidates
 	for i := range view.Candidates {
 		candidate := view.Candidates[i]
@@ -186,7 +149,6 @@ func Resolve(in Input) (Resolved, error) {
 		resolved.choices[candidate.ID] = choice
 	}
 	resolved.View = view
-	resolved.reads = b.reads
 	return resolved, nil
 }
 
@@ -196,7 +158,6 @@ type builder struct {
 	seen       map[string]bool
 	candidates []Candidate
 	choices    map[string]Choice
-	reads      []takecompare.Read
 }
 
 func (b *builder) add(candidate Candidate, choice Choice) {
@@ -211,12 +172,6 @@ func (b *builder) add(candidate Candidate, choice Choice) {
 	choice.TargetItemGUID = b.target.GUID
 	b.choices[candidate.ID] = choice
 	b.candidates = append(b.candidates, candidate)
-	if candidate.Usable {
-		b.reads = append(b.reads, takecompare.Read{
-			ItemGUID: candidate.ItemGUID, TakeGUID: candidate.TakeGUID, SourceFile: candidate.SourceFile,
-			SourceStart: candidate.SourceStart, SourceLength: candidate.SourceLength,
-		})
-	}
 }
 
 // takeRange is a take's played range of its own file, or why it cannot be derived or heard.
@@ -281,94 +236,6 @@ func findLine(project tracks.Project, item tracks.Item) (retakelanes.Line, retak
 		return retakelanes.Line{}, retakelanes.Retake{}, false
 	}
 	return retakelanes.Lines(project).Find(lineID, item.GUID)
-}
-
-func (b *builder) takeReviewReads(target tracks.Item) {
-	for _, group := range b.in.Groups {
-		members, ok := groupMembers(group)
-		if !ok || !hasMemberOn(members, target.GUID) {
-			continue
-		}
-		kind, _ := group.Evidence["kind"].(string)
-		for index, member := range members {
-			if member.ItemGUID == target.GUID || member.ItemGUID == "" || member.TakeGUID == "" {
-				continue
-			}
-			read := takecompare.Read{ItemGUID: member.ItemGUID, TakeGUID: member.TakeGUID, SourceFile: member.SourceFile, SourceStart: member.SourceStart, SourceLength: member.SourceLength}
-			reason := takecompare.CheckRead(b.in.Project, read)
-			file := member.SourceFile
-			if reason == "" {
-				if _, item, found := b.in.Project.ItemByGUID(member.ItemGUID); found {
-					for _, take := range item.Takes {
-						if take.GUID == member.TakeGUID {
-							file = take.SourceFile
-						}
-					}
-				}
-			}
-			b.add(Candidate{
-				ID: "read:" + group.ID + ":" + strconv.Itoa(index), Source: SourceTakeReview, Action: ActionAddAndActivate, Confirm: true,
-				Label: "Pickup read", Detail: fmt.Sprintf("%s · found by Find pickups and duplicates%s", fileName(member.SourceFile), kindSuffix(kind)),
-				ItemGUID: member.ItemGUID, TakeGUID: member.TakeGUID, SourceFile: file, SourceStart: member.SourceStart, SourceLength: member.SourceLength,
-				Usable: reason == "", Reason: reason,
-			}, Choice{FindingID: group.ID, SourceFile: file, RangeStart: member.SourceStart, RangeEnd: member.SourceStart + member.SourceLength})
-		}
-	}
-}
-
-func kindSuffix(kind string) string {
-	if kind == "" {
-		return ""
-	}
-	return " (" + strings.ReplaceAll(kind, "_", " ") + ")"
-}
-
-func groupMembers(group findings.Finding) ([]takecompare.Read, bool) {
-	if group.Analyzer != takeReviewAnalyzer {
-		return nil, false
-	}
-	var evidence struct {
-		Members []takecompare.Read `json:"members"`
-	}
-	encoded, err := json.Marshal(group.Evidence)
-	if err != nil || json.Unmarshal(encoded, &evidence) != nil {
-		return nil, false
-	}
-	return evidence.Members, len(evidence.Members) > 0
-}
-
-func hasMemberOn(members []takecompare.Read, itemGUID string) bool {
-	for _, member := range members {
-		if member.ItemGUID == itemGUID {
-			return true
-		}
-	}
-	return false
-}
-
-// markCompared copies a saved comparison's per-take answer onto the candidates it covered.
-func markCompared(candidates []Candidate, saved findings.Finding) {
-	var evidence struct {
-		Members []struct {
-			ItemGUID          string   `json:"item_guid"`
-			TakeGUID          string   `json:"take_guid"`
-			Compared          bool     `json:"compared"`
-			NotComparedReason string   `json:"not_compared_reason"`
-			Fidelity          *float64 `json:"fidelity"`
-		} `json:"members"`
-	}
-	encoded, err := json.Marshal(saved.Evidence)
-	if err != nil || json.Unmarshal(encoded, &evidence) != nil {
-		return
-	}
-	for i := range candidates {
-		for _, member := range evidence.Members {
-			if member.ItemGUID != candidates[i].ItemGUID || member.TakeGUID != candidates[i].TakeGUID {
-				continue
-			}
-			candidates[i].Compared, candidates[i].Fidelity, candidates[i].NotComparedReason = member.Compared, member.Fidelity, member.NotComparedReason
-		}
-	}
 }
 
 // paragraphSpan is the range of the chapter's paragraphs the tokens [first, last] touch, in the paragraphs' order.

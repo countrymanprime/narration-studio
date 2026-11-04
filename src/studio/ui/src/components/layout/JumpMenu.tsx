@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useId, useMemo, useState, type ReactNode } from 'react';
 import { providedCommands } from '../../input/commandProviders';
 import { COMMAND_CATALOG, type CommandDescriptor, type CommandId } from '../../input/commands.catalog';
 import type { Gesture } from '../../input/gestures';
@@ -6,12 +6,12 @@ import type { Keymap } from '../../input/keymap';
 import { currentPageContext, type PageItem } from '../../input/pageCommands';
 import { commandsFor } from '../../input/surfaces';
 import { overlay, type OverlayService } from '../../overlay/overlayService';
-import { searchAll } from '../../registries/search';
 import { Highlight } from '../primitives/Highlight';
 import { Icon } from '../primitives/Icon';
 import { KeyChord } from '../primitives/KeyCap';
 import { Listbox, listboxOptionId, type ListboxOption } from '../primitives/Listbox';
 import { TextField } from '../primitives/TextField';
+import { useJumpSearch, type SearchFailure } from './useJumpSearch';
 import { COMMANDS_HEADING, PAGE_HEADING, hitEntries, pageEntries, pageGroupRows, pageHeading, rankEntries, type Entry, type GroupRef } from './jumpMenuModel';
 
 // A resolved gesture's `code` is the physical key, so this reads "Slash" where the key cap should say "/".
@@ -43,6 +43,8 @@ type JumpMenuProps = {
    */
   disabledReasons?: () => Partial<Record<CommandId, string>>;
   catalog?: readonly CommandDescriptor[];
+  /** Where a search source's failure is said. */
+  service: OverlayService;
 };
 
 /** What a result row draws as its label: the title, with the matched part marked when the source split it. */
@@ -67,11 +69,24 @@ function shownHint(entry: Entry): string | undefined {
 
 const resultCount = (count: number) => (count === 0 ? 'No results' : `${count} result${count === 1 ? '' : 's'}`);
 
+/** What a screen reader hears as the list changes: the result count, and that more may come while a source is still searching. */
+const searchStatus = (entries: readonly Entry[]) => {
+  const count = resultCount(entries.filter((entry) => !entry.waiting).length);
+  return entries.some((entry) => entry.waiting) ? `${count} so far. Still searching.` : count;
+};
+
+/** A search source that did not answer is said in a toast; the rest of the menu stays. */
+const failureText = (failure: SearchFailure) =>
+  failure.kind === 'slow'
+    ? `Searching “${failure.group}” took too long. Type the search again to retry.`
+    : `Couldn't search “${failure.group}”: ${failure.reason}`;
+
 /**
  * The jump menu's content (docs/architecture/studio-shell-and-registries.md#command-providers-and-go-to): the page's own items under "On this page"
  * (`input/pageCommands.ts`), the catalogue rows for the `jumpMenu` surface, the commands providers return, then search-source hits, filtered by the
  * typed term. With nothing typed it shows one row per group, the page's first, and a group opens to its rows. A leading `>` lists commands only.
- * The field keeps focus and names the active option; nothing here waits on the host, and a page's host items join the list when they arrive.
+ * The field keeps focus and names the active option. A page's host items join the list when they arrive, and an asynchronous search source's
+ * hits replace its waiting row when it answers (`useJumpSearch`); the active row stays on the row it was on.
  */
 function JumpMenu({
   keymap,
@@ -82,12 +97,14 @@ function JumpMenu({
   scope: initialScope,
   disabledReasons,
   catalog = COMMAND_CATALOG,
+  service,
 }: JumpMenuProps) {
   const listId = useId();
   const noteId = useId();
   const [query, setQuery] = useState(initialTerm);
   const [group, setGroup] = useState<GroupRef | null>(initialGroup ? { source: 'command', name: initialGroup } : null);
-  const [active, setActive] = useState(0);
+  // The active row by id, so a source's answer arriving above it does not move it; null is the first row.
+  const [active, setActiveRow] = useState<{ id: string | null; index: number }>({ id: null, index: 0 });
 
   // The page, its items and the providers are asked once per open, not per keystroke.
   const page = useMemo(() => currentPageContext(), []);
@@ -138,6 +155,11 @@ function JumpMenu({
   const raw = query.trim();
   const commandsOnly = raw.startsWith('>');
   const term = (commandsOnly ? raw.slice(1) : raw).trim().toLowerCase();
+  const sayFailure = useCallback(
+    (failure: SearchFailure) => service.toast(failureText(failure), { tone: 'error', topic: `jump-search-${failure.group}` }),
+    [service],
+  );
+  const slots = useJumpSearch(term, !commandsOnly, sayFailure);
 
   const entries = useMemo<Entry[]>(() => {
     if (!term && !commandsOnly) {
@@ -170,10 +192,12 @@ function JumpMenu({
       }));
       return [...pageGroups, ...commandGroups];
     }
-    return rankEntries({ page: pageRows, hits: hitEntries(searchAll(term)), commands, term, pageOnly, commandsOnly });
-  }, [commands, commandsOnly, group, pageOnly, pageRows, term]);
+    return rankEntries({ page: pageRows, hits: hitEntries(slots), commands, term, pageOnly, commandsOnly });
+  }, [commands, commandsOnly, group, pageOnly, pageRows, slots, term]);
 
-  const activeIndex = Math.min(active, Math.max(0, entries.length - 1));
+  const found = active.id === null ? 0 : entries.findIndex((entry) => entry.id === active.id);
+  const activeIndex = Math.min(found >= 0 ? found : active.index, Math.max(0, entries.length - 1));
+  const setActive = (index: number) => setActiveRow({ id: index === 0 ? null : (entries[index]?.id ?? null), index });
   const activeEntry = entries[activeIndex];
   const activeOptionId = activeEntry ? listboxOptionId(listId, activeEntry.id) : undefined;
   useEffect(() => {
@@ -182,7 +206,7 @@ function JumpMenu({
 
   const choose = (entry: Entry | undefined) => {
     // An off command stays listed with its reason; running it does nothing and the menu stays open.
-    if (!entry || entry.disabledReason) return;
+    if (!entry || entry.disabledReason || entry.waiting) return;
     if (entry.opens === 'back') {
       setGroup(null);
       setActive(0);
@@ -209,7 +233,7 @@ function JumpMenu({
       leading: entry.icon ? <Icon name={entry.icon} /> : undefined,
       trailing,
       group: entry.group,
-      disabled: Boolean(entry.disabledReason),
+      disabled: Boolean(entry.disabledReason) || entry.waiting === true,
     };
   });
 
@@ -267,7 +291,7 @@ function JumpMenu({
           </span>
         ) : null}
         <span role="status" className="sr-only">
-          {searching ? resultCount(entries.length) : ''}
+          {searching ? searchStatus(entries) : ''}
         </span>
       </div>
       <Listbox
@@ -285,7 +309,7 @@ function JumpMenu({
   );
 }
 
-export type JumpMenuOptions = Omit<JumpMenuProps, 'close'> & { service?: OverlayService };
+export type JumpMenuOptions = Omit<JumpMenuProps, 'close' | 'service'> & { service?: OverlayService };
 
 /** Opens the jump menu in a dialog and returns the function that closes it. The first list is drawn in the same call. */
 export function openJumpMenu({ service = overlay, ...props }: JumpMenuOptions): () => void {
@@ -295,6 +319,6 @@ export function openJumpMenu({ service = overlay, ...props }: JumpMenuOptions): 
     headerless: true,
     size: 'palette',
     dismissOnOutsidePress: true,
-    render: ({ close }) => <JumpMenu {...props} close={close} />,
+    render: ({ close }) => <JumpMenu {...props} service={service} close={close} />,
   });
 }

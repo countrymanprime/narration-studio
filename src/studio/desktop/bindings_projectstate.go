@@ -13,7 +13,7 @@ import (
 // (TranscriptState.projectChangeCount, from prepare_compare) and the Transcript page compares a later check with it.
 
 // ProjectStateCheck asks REAPER (when it is open from this app) for its live change count and the current
-// project's saved-file path. The result (ProjectStateState's changeCount, projectFile and savedModifiedAt) comes
+// project's saved-file path. The result (the projectstate:state payload's changeCount, projectFile and savedModifiedAt) comes
 // back once REAPER answers; with no bridge it fails immediately, so a caller can fall back to a saved-file-mtime
 // basis without waiting.
 func (h *Host) ProjectStateCheck() (string, error) {
@@ -29,14 +29,4 @@ func (h *Host) ProjectStateCheck() (string, error) {
 // fresh Check just to compare two counts it already has.
 func (h *Host) ProjectStateChangedSince(current, baseline int) (string, error) {
 	return encodeBinding(map[string]any{"changed": projectstate.ChangedSince(current, baseline)}, nil)
-}
-
-func (h *Host) ProjectStateState() (string, error) {
-	if service := h.services().projectState; service != nil {
-		return encodeBinding(service.Snapshot(), nil)
-	}
-	return encodeBinding(map[string]any{
-		"runId": nil, "phase": "idle", "message": "",
-		"changeCount": nil, "projectFile": "", "savedModifiedAt": nil,
-	}, nil)
 }

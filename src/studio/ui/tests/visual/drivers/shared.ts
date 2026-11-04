@@ -189,7 +189,8 @@ export async function openMaster(page: Page, query = ''): Promise<void> {
   }
   await goToPage(page, 'Master & QC');
   await page.getByTitle('Open Delivery').waitFor();
-  await page.getByRole('list', { name: 'Mastering steps' }).waitFor();
+  // The chain card's help appears once the rows are read, whichever row it is (a DAW row has no steps of the app's to list).
+  await page.getByRole('button', { name: 'About the mastering chain' }).waitFor();
 }
 
 // Opens the Production home, with a `?mockProduction=` seed when given, once its board is drawn (the app's page at `/`).
@@ -233,10 +234,11 @@ export async function scrollToTop(page: Page, region: Locator): Promise<void> {
   await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => resolve(undefined))));
 }
 
-// Picks the mock's five files (opening/closing credits, two chapters, a retail sample) with Master & QC's "Master all to spec…"
-// and assigns the three non-chapter roles the mock picker cannot infer on its own.
+// Picks the mock's five files (opening/closing credits, two chapters, a retail sample) with the Master to spec card's own
+// "Choose files to master…" (#2931; the -many and -long approval drivers use the header's icon), and assigns the three
+// non-chapter roles the mock picker cannot infer on its own.
 export async function pickFilesToMaster(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'Master all to spec…' }).click();
+  await page.getByRole('region', { name: 'Master to spec' }).getByRole('button', { name: 'Choose files to master…' }).click();
   await page.getByRole('table', { name: 'Files to export' }).waitFor();
   await page.getByLabel('Role for 00 Opening credits.wav').selectOption('credits_opening');
   await page.getByLabel('Role for 00 Closing credits.wav').selectOption('credits_closing');
@@ -518,6 +520,16 @@ export async function selectReaderWord(page: Page, word: string): Promise<void> 
             top: scroller.scrollTop + at.top + at.height / 2 - (scroller.getBoundingClientRect().top + scroller.clientHeight / 2),
             behavior: 'instant',
           });
+        // The reader names the chapter whose heading is at or above 70 px under its top, and the rail follows it. Centring can leave the
+        // word's own chapter heading lower than that (a wide column puts a paragraph close under its heading), and the rail would then
+        // list the chapter before it. Bring the heading to the top, as a jump to the chapter does, when the word stays on screen under it.
+        const bound = scroller && paragraph.closest<HTMLElement>('[data-para]')?.dataset.ch;
+        const heading = bound ? scroller?.querySelector<HTMLElement>(`[data-bound][data-ch="${bound}"]`) : null;
+        if (scroller && heading && heading.offsetTop - scroller.scrollTop > 70) {
+          const target = Math.max(0, heading.offsetTop - 8);
+          const wordTop = range.getBoundingClientRect().top - scroller.getBoundingClientRect().top - (target - scroller.scrollTop);
+          if (wordTop >= 64) scroller.scrollTo({ top: target, behavior: 'instant' });
+        }
         const selection = window.getSelection();
         selection?.removeAllRanges();
         selection?.addRange(range);

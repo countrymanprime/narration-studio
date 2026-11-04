@@ -28,7 +28,7 @@ func boothRecorderHost(t *testing.T, fake *recordingtest.Fake, mic string) *Host
 	// The global settings (the microphone) live under APPDATA: a test never reads or writes the machine's.
 	t.Setenv("APPDATA", t.TempDir())
 	host := recorderHost(t, fake)
-	recorderOf(t)(host.RecorderChooseEngine(engineBuiltin))
+	chooseEngine(t, host, engineBuiltin)
 	if mic != "" {
 		boothSetting(t, host, "Teleprompter", "global", "input_device", mic)
 	}
@@ -105,6 +105,9 @@ func TestBuiltinBoothRecordPicksTheMicrophone(t *testing.T) {
 	}{
 		{name: "the chosen microphone wins over the last one", devices: []recording.Device{{Name: micOne}, {Name: micTwo}}, saved: micOne, chosen: micTwo, want: micTwo},
 		{name: "the last microphone when none is chosen", devices: []recording.Device{{Name: micOne}, {Name: micTwo}}, saved: micTwo, want: micTwo},
+		{name: "a last microphone that is no longer listed is not used, several listed", devices: []recording.Device{{Name: micOne}, {Name: micTwo}}, saved: "Unplugged USB Mic", refusal: "Choose the microphone in Levels"},
+		{name: "a last microphone that is no longer listed gives way to the only one listed", devices: []recording.Device{{Name: micOne}}, saved: "Unplugged USB Mic", want: micOne},
+		{name: "a last microphone with nothing listed", saved: "Unplugged USB Mic", refusal: "No microphone found"},
 		{name: "the only microphone", devices: []recording.Device{{Name: micOne}}, want: micOne},
 		{name: "several and none chosen", devices: []recording.Device{{Name: micOne}, {Name: micTwo}}, refusal: "Choose the microphone in Levels"},
 		{name: "none listed", refusal: "No microphone found"},
@@ -206,7 +209,7 @@ func TestBuiltinBoothTakeEndingByItselfIsHeardAndKept(t *testing.T) {
 func TestBoothRecordWithADawDoesNotTouchTheBuiltinRecorder(t *testing.T) {
 	fake := &recordingtest.Fake{DeviceList: []recording.Device{{Name: micOne}}}
 	host := boothRecorderHost(t, fake, micOne)
-	recorderOf(t)(host.RecorderChooseEngine(engineDAW))
+	chooseEngine(t, host, engineDAW)
 	result := boothRecord(t)(host.ReadAloudRecordStart("c-0001"))
 	if result.Outcome != "refused" || fake.Last() != nil {
 		t.Fatalf("start = %+v (run %v), want REAPER's refusal and no built-in take", result, fake.Last())

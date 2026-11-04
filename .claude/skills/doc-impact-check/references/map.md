@@ -11,7 +11,7 @@ Paths are repo-relative. A change can match several rows. Add a row when a new a
 | `src/studio/ui/src/components/primitives/**`, `src/studio/ui/src/styles.css` | `docs/design/design-system.md`, `docs/design/colour-and-contrast.md`, `docs/design/motion-and-animation.md`; regenerate `docs/ui/` with `pnpm --dir src/studio/ui docs:atlas`; run `design-spec-guard` |
 | `src/studio/ui/src/**` (a page or state a user sees) | `docs/guides/using-the-app/<page>.md`; run `visual-catalog-sync` then `doc-screenshot-sync`; `docs/ui/` if a primitive changed |
 | `src/studio/sidecars/manuscript-guide/**`, `src/studio/desktop/internal/guide/**` | `docs/utilities/manuscript-guide.md`, `docs/architecture/story-bible-preview.md`, `docs/architecture/story-bible-entity-accuracy.md` |
-| `src/studio/sidecars/transcript-compare/**` | `docs/utilities/transcript-compare.md`, `docs/utilities/recording-coverage.md`, `docs/utilities/take-review.md` |
+| `src/studio/sidecars/transcript-compare/**` | `docs/utilities/transcript-compare.md`, `docs/utilities/recording-coverage.md` |
 | `src/studio/sidecars/manuscript-teleprompter/**` | `docs/architecture/manuscript-teleprompter.md`, `docs/guides/using-the-app/booth.md` |
 | `src/studio/desktop/internal/findings/**` | `docs/architecture/findings-contract.md` |
 | Stage or readiness signals | `docs/architecture/stage-recommendations.md`, `docs/workflows/chapter-stage-progression.md` |

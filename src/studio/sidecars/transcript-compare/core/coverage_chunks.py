@@ -31,6 +31,7 @@ from types import ModuleType
 from typing import TYPE_CHECKING
 
 import numpy as np
+from coverage_activity import NULL_ACTIVITY, Activity
 
 if TYPE_CHECKING:
     from coverage_mode import ItemWords, ManifestItem
@@ -209,7 +210,7 @@ class ChunkedTranscriber:
         plain: Callable[[ManifestItem, Callable[[float], None]], ItemWords] | None = None,
         cpus: int | None = None,
         sharers: int = 1,
-        activity=None,
+        activity: Activity = NULL_ACTIVITY,
     ):
         self._engine = engine
         self._model_size = model_size
@@ -298,8 +299,6 @@ class ChunkedTranscriber:
 
     def _chunk_done(self, item: ManifestItem, remaining: int, workers: int) -> None:
         """Tell the activity log a chunk finished and how many of this item's chunks run at once for the rest (the item's first chunk runs alone)."""
-        if self._activity is None:
-            return
         self._activity.unit_done()
         self._activity.working(item.index, min(workers, remaining))
 

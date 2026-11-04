@@ -6,7 +6,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import { loadBrand } from '../brand/brand.mjs';
-import { WINDOWS_INSTALLER } from './assets.mjs';
+import { NOTICES_FILE, WINDOWS_INSTALLER } from './assets.mjs';
 
 // Nothing on a developer machine or in a pull request can run makensis (it is only installed in the Windows build job), so these
 // tests read the installer definition and hold it to the decisions of docs/operations/ci-and-releases.md#the-windows-setup-program that a later edit could quietly undo.
@@ -104,10 +104,16 @@ test('the uninstaller removes the program, the copies the updater leaves and the
     '$INSTDIR\\${PRODUCT_EXECUTABLE}.new',
     '$INSTDIR\\${PRODUCT_EXECUTABLE}.old',
     '$INSTDIR\\${PRODUCT_EXECUTABLE}.failed',
+    '$INSTDIR\\${NOTICES_FILE}',
     '$SMPROGRAMS\\${INFO_PRODUCTNAME}.lnk',
     '$SMPROGRAMS\\${INFO_PRODUCTNAME} for Audacity.lnk',
     '$DESKTOP\\${INFO_PRODUCTNAME}.lnk',
   ]);
+});
+
+test('the setup program installs the third-party notices beside the program, under the name the release asset uses (#250)', () => {
+  assert.equal(define('NOTICES_FILE'), NOTICES_FILE);
+  assert.match(code, /^\s*File "\/oname=\$\{NOTICES_FILE\}" "\.\.\\\.\.\\bin\\\$\{NOTICES_FILE\}"$/m);
 });
 
 test('the uninstaller never removes a folder recursively, so a folder the narrator chose keeps its other contents', () => {

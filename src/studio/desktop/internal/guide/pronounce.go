@@ -89,6 +89,9 @@ func pronounceFile(path, id string, aliasIndex *int, lookup func(name string) (*
 			return err
 		}
 	}
+	if err := refuseNewerBible(loaded); err != nil {
+		return err
+	}
 	if !pyTruthy(loaded) {
 		return errNoGuide
 	}

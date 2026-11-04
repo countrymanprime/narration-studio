@@ -1,0 +1,70 @@
+// What the Voices card shows for a chapter linked to a REAPER folder (docs/prds/booth-voice-tracks.prd.md, decisions 2, 3 and F): the
+// folder's children in REAPER order with their number-pad key, and the characters each records, from the narrator's assignment by
+// track name or, with none, the Story Bible entry whose name or alias is the track's name.
+import type { Track } from '../../api/contracts/tracks';
+import type { GuideEntity } from '../../api/contracts/storyBible';
+import type { VoiceTracksState } from '../../api/contracts/voiceTracks';
+
+type VoiceCharacter = { id: string; name: string; source: 'assigned' | 'name' | 'alias' };
+
+export type Voice = {
+  guid: string;
+  name: string;
+  /** "0" for the Narrator track, "1" to "9" for the others in REAPER order, "" past nine. */
+  key: string;
+  narrator: boolean;
+  characters: VoiceCharacter[];
+};
+
+const NARRATOR = 'narrator';
+const same = (a: string, b: string) => a.trim().toLocaleLowerCase() === b.trim().toLocaleLowerCase();
+
+/** The direct children of the folder `folderGuid` among `tracks` (file order, with depth), or [] when it is not a folder. */
+/** A chapter folder as the link pickers name it in a Voice folders project (the mock's "Ch 8 · 5 voices"). */
+export function folderLinkLabel(name: string, voices: number): string {
+  return `${name} · ${voices === 1 ? '1 voice' : `${voices} voices`}`;
+}
+
+export function folderChildren(tracks: readonly Track[], folderGuid: string): Track[] {
+  const at = tracks.findIndex((track) => track.guid === folderGuid);
+  const folder = tracks[at];
+  if (!folder?.isFolder) return [];
+  const children: Track[] = [];
+  for (const track of tracks.slice(at + 1)) {
+    if (track.depth <= folder.depth) break;
+    if (track.depth === folder.depth + 1) children.push(track);
+  }
+  return children;
+}
+
+function charactersOf(track: Track, entities: readonly GuideEntity[], setup: VoiceTracksState, narrator: boolean): VoiceCharacter[] {
+  const byId = new Map(entities.map((entity) => [entity.id, entity]));
+  const assigned = setup.tracks.find((entry) => entry.track === track.name.trim());
+  const extra: VoiceCharacter[] = [];
+  if (narrator && setup.narratorCharacter) {
+    const entity = byId.get(setup.narratorCharacter);
+    extra.push({ id: setup.narratorCharacter, name: entity?.canonical_name ?? setup.narratorCharacter, source: 'assigned' });
+  }
+  if (assigned) return [...assigned.characters.map((id) => ({ id, name: byId.get(id)?.canonical_name ?? id, source: 'assigned' as const })), ...extra];
+  for (const entity of entities) {
+    if (same(entity.canonical_name, track.name)) return [{ id: entity.id, name: entity.canonical_name, source: 'name' }, ...extra];
+  }
+  for (const entity of entities) {
+    if (entity.aliases.some((alias) => same(alias.text, track.name))) return [{ id: entity.id, name: entity.canonical_name, source: 'alias' }, ...extra];
+  }
+  return extra;
+}
+
+/** The voices of the chapter linked to `folderGuid`: the first Narrator child is key 0 wherever it sits, the others 1 to 9 in order. */
+export function folderVoices(tracks: readonly Track[], folderGuid: string, entities: readonly GuideEntity[], setup: VoiceTracksState): Voice[] {
+  let next = 1;
+  let narratorSeen = false;
+  return folderChildren(tracks, folderGuid).map((track) => {
+    // Only the first Narrator child is key 0; a second one is an ordinary voice, so no two tracks share a key.
+    const narrator = !narratorSeen && same(track.name, NARRATOR);
+    if (narrator) narratorSeen = true;
+    const key = narrator ? '0' : next <= 9 ? String(next) : '';
+    if (!narrator) next += 1;
+    return { guid: track.guid, name: track.name, key, narrator, characters: charactersOf(track, entities, setup, narrator) };
+  });
+}

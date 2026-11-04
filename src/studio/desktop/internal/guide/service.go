@@ -16,6 +16,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"desktop/internal/findings"
 	"desktop/internal/persist"
@@ -918,7 +920,56 @@ func (s *Service) Preview(id string, alias *int, voice PreviewVoice) ([]byte, er
 	if spoken == "" {
 		return nil, fmt.Errorf("the requested Story Bible name no longer exists")
 	}
-	name := previewFileName(voice, spoken, chosenPronunciationKey(entities, id, alias))
+	var extra []string
+	if alias != nil {
+		extra = []string{"--alias-index", fmt.Sprint(*alias)}
+	}
+	return s.render(voice, spoken, chosenPronunciationKey(entities, id, alias), s.guidePath(), id, extra...)
+}
+
+// maxPreviewText is the longest text PreviewText speaks, in characters: the longest word a candidate is asked for.
+const maxPreviewText = 80
+
+// PreviewText returns a WAV of the voice speaking text said as ipa: a pronunciation candidate heard before the narrator picks it. It is
+// rendered as Preview renders a name, from a Story Bible of one name made for the run and deleted after it, and cached beside the
+// Story Bible's own previews under the same key, so a name said the same way shares the render.
+func (s *Service) PreviewText(text, ipa string, voice PreviewVoice) ([]byte, error) {
+	text, ipa = strings.TrimSpace(text), strings.TrimSpace(ipa)
+	switch {
+	case text == "" || ipa == "":
+		return nil, errors.New("a preview needs a word and how it is said")
+	case strings.ContainsFunc(text+ipa, unicode.IsControl):
+		return nil, errors.New("a preview's word and how it is said are one line each")
+	case utf8.RuneCountInString(text) > maxPreviewText:
+		return nil, fmt.Errorf("a preview's word can be at most %d characters", maxPreviewText)
+	case utf8.RuneCountInString(ipa) > maxUserPronunciation:
+		return nil, fmt.Errorf("how a word is said can be at most %d characters", maxUserPronunciation)
+	}
+	document := map[string]any{"entities": []any{map[string]any{
+		"id": "preview", "canonical_name": text, "aliases": []any{},
+		"pronunciation": map[string]any{"ipa": ipa, "source": ManualSource, "confidence": "narrator", "chosen": true},
+	}}}
+	raw, err := json.Marshal(document)
+	if err != nil {
+		return nil, err
+	}
+	folder, err := os.MkdirTemp("", "pronunciation-preview-")
+	if err != nil {
+		return nil, fmt.Errorf("could not prepare the preview: %w", err)
+	}
+	defer func() { _ = os.RemoveAll(folder) }()
+	guidePath := filepath.Join(folder, "manuscript_guide.json")
+	if err := os.WriteFile(guidePath, raw, 0o600); err != nil {
+		return nil, fmt.Errorf("could not prepare the preview: %w", err)
+	}
+	return s.render(voice, text, ipa, guidePath, "preview")
+}
+
+// render runs the sidecar's render-audio for one entity of the Story Bible file at guidePath (extra is its --alias-index, when one is
+// spoken) into the preview cache, reusing a cached render of the same voice, spoken text and pronunciation key. A failed, empty or timed-out render leaves no file
+// behind, so the next attempt always starts clean.
+func (s *Service) render(voice PreviewVoice, spoken, pronunciationKey, guidePath, entityID string, extra ...string) ([]byte, error) {
+	name := previewFileName(voice, spoken, pronunciationKey)
 	dir := filepath.Join(s.project, "ManuscriptGuide", "audio", "tts")
 	out := filepath.Join(dir, name)
 	lock := s.previewLock(name)
@@ -927,13 +978,10 @@ func (s *Service) Preview(id string, alias *int, voice PreviewVoice) ([]byte, er
 	if audio, ok := cachedPreview(out); ok {
 		return audio, nil
 	}
-	args := []string{"render-audio", "--guide", s.guidePath(), "--entity-id", id, "--audio-dir", dir, "--piper-model", voice.Model, "--output-name", name}
-	if alias != nil {
-		args = append(args, "--alias-index", fmt.Sprint(*alias))
-	}
+	args := append([]string{"render-audio", "--guide", guidePath, "--entity-id", entityID, "--audio-dir", dir, "--piper-model", voice.Model, "--output-name", name}, extra...)
 	ctx, cancel := context.WithTimeout(context.Background(), s.previewTimeout)
 	defer cancel()
-	if _, err = s.runContext(ctx, args...); err != nil {
+	if _, err := s.runContext(ctx, args...); err != nil {
 		discardPreview(out)
 		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 			return nil, fmt.Errorf("the preview took longer than %s and was stopped; try again, and restart the app if it keeps happening", s.previewTimeout.Round(time.Second))

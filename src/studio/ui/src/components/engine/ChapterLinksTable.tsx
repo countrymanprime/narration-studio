@@ -16,6 +16,14 @@ import type { ChapterLinkState, ChapterTrackRow } from './chapterTrackRows';
 import type { ChapterLinks } from './useChapterLinks';
 import type { ManuscriptChapter, Track, TrackMapping } from '../../types';
 import { addressPath } from '../../navigation/address';
+import { apiErrorMessage } from '../../api/errorMessage';
+import type { ChapterTrackCreateResult } from '../../api/contracts/chapterTrackMap';
+import { useVoiceLayout } from './voiceLayout';
+import { LiveTracksRefresh, LiveTracksStatus } from './LiveTracksStatus';
+import type { LiveTracks } from './useLiveTracks';
+import { folderChildren, folderLinkLabel } from './voices';
+import { NestedChaptersNotice } from './NestedChaptersNotice';
+import { linksKey, useChapterFolders } from './useChapterFolders';
 
 const STATE_BADGE: Record<ChapterLinkState, { label: string; tone: StatusTone }> = {
   linked: { label: 'Linked', tone: 'success' },
@@ -39,15 +47,49 @@ const NARROW_ROW =
 // picture" list lives here, beside the per-chapter inline prompt used wherever a check needs it). It shows every
 // narration chapter whether or not it has a confirmed link, so an unlinked chapter and a link pointing at a track
 // that no longer exists are both visible in one place, not just the one chapter a narrator happens to be checking.
-// It draws from `links`, the one reader of the mapping that the Link chapters dialog and the Tracks card above share (R3EN1-7).
-export function ChapterLinksTable({ links, notify }: { links: ChapterLinks; notify: Notify }) {
-  const { tracks, chapters, mappings, rows, error, busyChapterId } = links;
+// It draws from `links`, the one reader of the mapping that the Link chapters dialog and the Tracks card above share (R3EN1-7). With `live` (a
+// REAPER project) its header says whose tracks these are and when they were read, with the Refresh that reads them again (#2840).
+// A chapter with no link has a create button: the DAW adds a track named after it (a folder holding a Narrator track with Voice folders,
+// as the host decides at the press) and the chapter is linked to it. A refusal or a failure is a toast and leaves the row as it was; on
+// success the row shows the link at once, a toast says what was made, and the live track list is read again so it lists it.
+export function ChapterLinksTable({ links, notify, live }: { links: ChapterLinks; notify: Notify; live?: LiveTracks }) {
+  const { tracks, chapters, mappings, rows, error, busyChapterId, creatingChapterId } = links;
   const [editingChecking, setEditingChecking] = useState<ManuscriptChapter>();
+  const folders = useVoiceLayout() === 'folders';
+  // Checked again whenever a link changes: a chapter linked to a track inside another chapter's folder is the case it reports (#2838).
+  const nesting = useChapterFolders({ revision: linksKey(mappings), notify });
   // Nothing to link before a manuscript is imported: the mapping is scoped to a document.
   if (chapters.length === 0) return null;
 
+  const create = (chapter: ManuscriptChapter) => {
+    links.create(chapter.id).then(
+      (result) => {
+        if (!result) return;
+        if (result.outcome === 'refused') {
+          notify(result.message, 'error');
+          // The DAW added the track but its link was not saved: read the tracks so it can be picked.
+          if (result.reason === 'link_failed') live?.refresh();
+          return;
+        }
+        live?.refresh();
+        notify(createdSentence(result, chapterName(chapter, 'short')), 'info');
+      },
+      (reason: unknown) => notify(`The track could not be added: ${apiErrorMessage(reason)}`, 'error'),
+    );
+  };
+
   return (
-    <Panel title="Chapter links" flush>
+    <Panel
+      title="Chapter links"
+      flush
+      subtitle={live && <LiveTracksStatus live={live} />}
+      actions={
+        <span className="flex items-center gap-2">
+          <NestedChaptersNotice check={nesting.check} repairing={nesting.repairing} onRepair={nesting.repair} onCheckAgain={nesting.recheck} />
+          {live && <LiveTracksRefresh live={live} />}
+        </span>
+      }
+    >
       {error && (
         <p role="alert" className="px-4 pt-3 text-sm" style={{ color: 'var(--danger-text)' }}>
           {error}
@@ -59,7 +101,7 @@ export function ChapterLinksTable({ links, notify }: { links: ChapterLinks; noti
             <TableRow>
               <TableHeader>Chapter</TableHeader>
               <TableHeader>Status</TableHeader>
-              <TableHeader>Track</TableHeader>
+              <TableHeader>{folders ? 'Folder' : 'Track'}</TableHeader>
               <TableHeader hiddenLabel="Actions" />
             </TableRow>
           </TableHead>
@@ -71,6 +113,9 @@ export function ChapterLinksTable({ links, notify }: { links: ChapterLinks; noti
                 tracks={tracks}
                 mappings={mappings}
                 busy={busyChapterId === row.chapter.id}
+                creating={creatingChapterId === row.chapter.id}
+                createLocked={creatingChapterId !== '' && creatingChapterId !== row.chapter.id}
+                onCreate={() => create(row.chapter)}
                 onConfirm={(trackGuid) => links.set(row.chapter.id, trackGuid)}
                 onClear={() => links.unlink(row.chapter.id)}
                 onEditingCheck={() => setEditingChecking(row.chapter)}
@@ -101,6 +146,13 @@ export function ChapterLinksTable({ links, notify }: { links: ChapterLinks; noti
   );
 }
 
+/** The done toast: what the DAW made, named as it was given, and that it is not saved yet. */
+function createdSentence(result: Extract<ChapterTrackCreateResult, { outcome: 'created' }>, short: string): string {
+  return result.voice
+    ? `Created the folder “${result.track.name}” with a ${result.voice.name} track and linked ${short} to it. Save the project to keep it.`
+    : `Created the track “${result.track.name}” and linked ${short} to it. Save the project to keep it.`;
+}
+
 // One chapter's row. It owns only the pending pick, as MappingConfirm does: the confirmed link is the table's, re-read after each call.
 // The select opens on "Choose a track" and Confirm waits for a pick (R3EN2-1); Open in Editing, Open in Proof and Editing check sit in
 // the row's More actions menu so the row keeps one line of controls (ENX-3, ENX-5).
@@ -109,6 +161,9 @@ function ChapterLinkRow({
   tracks,
   mappings,
   busy,
+  creating,
+  createLocked,
+  onCreate,
   onConfirm,
   onClear,
   onEditingCheck,
@@ -117,6 +172,10 @@ function ChapterLinkRow({
   tracks: Track[];
   mappings: TrackMapping[];
   busy: boolean;
+  creating: boolean;
+  /** Another chapter's create is in flight: this row's button is off until it ends (walkthrough F1). */
+  createLocked: boolean;
+  onCreate: () => void;
   onConfirm: (trackGuid: string) => void;
   onClear: () => void;
   onEditingCheck: () => void;
@@ -132,10 +191,25 @@ function ChapterLinkRow({
   }, [hasLink, linkedGuid]);
 
   const name = headingName(row.chapter);
+  // In a Voice folders project a chapter's link is its folder, named with how many voices it holds.
+  const folders = useVoiceLayout() === 'folders';
+  const linkedTrack = tracks.find((track) => track.guid === linkedGuid);
+  const linkedName = folders && linkedTrack?.isFolder ? folderLinkLabel(row.trackName ?? '', folderChildren(tracks, linkedTrack.guid).length) : row.trackName;
   const short = chapterName(row.chapter, 'short');
   const choices = plainTrackChoices(tracks, mappings, row.chapter.id);
   const badge = STATE_BADGE[row.state];
   const showPicker = picking && choices.length > 0;
+  // Only a chapter with no link at all gets a new track: a missing one keeps Change and Clear, and a Change picks among the tracks.
+  const createButton = !hasLink && (
+    <IconButton
+      size="sm"
+      action={folders ? 'createChapterFolder' : 'createChapterTrack'}
+      label={`Create a ${folders ? 'folder' : 'track'} for ${short}`}
+      pending={creating}
+      disabledReason={createLocked ? 'Wait for the track being added' : busy && !creating ? 'Wait for the change in progress' : undefined}
+      onClick={onCreate}
+    />
+  );
   const menu: MenuItem[] = [
     // Editing is where a linked chapter is heard and edited; Proof's chapter view keeps its compare run and stage panels.
     ...(row.state === 'linked'
@@ -159,14 +233,14 @@ function ChapterLinkRow({
       </TableCell>
       <TableCell>
         {showPicker ? (
-          <TrackSelect label={`Track for ${short}`} choices={choices} value={chosen} onChange={setChosen} fullWidth />
+          <TrackSelect label={`${folders ? 'Folder' : 'Track'} for ${short}`} choices={choices} value={chosen} onChange={setChosen} fullWidth />
         ) : picking ? (
           <span className="text-sm" style={{ color: 'var(--text-muted)' }}>
             No REAPER tracks to link
           </span>
         ) : row.trackName ? (
-          <span className="block truncate" title={row.trackName}>
-            {row.trackName}
+          <span className="block truncate" title={linkedName}>
+            <bdi>{linkedName}</bdi>
           </span>
         ) : (
           <span className="line-clamp-2 leading-[1.125rem]" style={{ color: 'var(--danger-text)' }}>
@@ -178,9 +252,10 @@ function ChapterLinkRow({
         <span className="flex items-center justify-end gap-2 whitespace-nowrap">
           {showPicker ? (
             <>
-              <Button variant={chosen ? 'primary' : 'secondary'} disabled={!chosen} pending={busy} onClick={() => onConfirm(chosen)}>
+              <Button variant={chosen ? 'primary' : 'secondary'} disabled={!chosen || creating} pending={busy && !creating} onClick={() => onConfirm(chosen)}>
                 Confirm
               </Button>
+              {createButton}
               {hasLink && (
                 <Button variant="secondary" disabled={busy} onClick={() => setPicking(false)}>
                   Cancel
@@ -196,7 +271,9 @@ function ChapterLinkRow({
                 Clear
               </Button>
             </>
-          ) : null}
+          ) : (
+            createButton
+          )}
           <Menu render={<IconButton action="moreActions" label={`More actions for ${short}`} />} items={menu}>
             {null}
           </Menu>

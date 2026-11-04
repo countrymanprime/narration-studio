@@ -5,7 +5,7 @@ import "desktop/internal/dawport"
 // daw_project_edited tells the UI the DAW project was edited: its payload is the heartbeat's change counter (REAPER's
 // GetProjectStateChangeCount), which rises on every edit, saved or not, and restarts when a project opens. The Editing page holds a table of where
 // each word plays in the project (WorkspaceWordTimes) made at one count and asks for a new one when the count moves. Nothing is sent to the DAW: the
-// counter is what the heartbeat already carries (as daw_project_state_changed's unsaved flag is made from it).
+// counter is what the heartbeat already carries (as DawProjectState's unsaved flag is made from it).
 
 // dawProjectEdited is the daw_project_edited payload.
 type dawProjectEdited struct {

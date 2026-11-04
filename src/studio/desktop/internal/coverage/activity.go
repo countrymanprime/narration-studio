@@ -61,12 +61,13 @@ type Activity struct {
 	Recheck   *RecheckActivity `json:"recheck,omitempty"`
 }
 
-// activityFile is the sidecar's file.
+// activityFile is the sidecar's file. A plain or pipelined run writes firstPass (and recheck when it hands passages to the larger model);
+// the windows-only re-check stage writes recheck alone, because its windows are the larger model's share and it has no first pass.
 type activityFile struct {
-	SchemaVersion int          `json:"schemaVersion"`
-	Items         Counts       `json:"items"`
-	FirstPass     PassActivity `json:"firstPass"`
-	Recheck       *fileRecheck `json:"recheck"`
+	SchemaVersion int           `json:"schemaVersion"`
+	Items         Counts        `json:"items"`
+	FirstPass     *PassActivity `json:"firstPass"`
+	Recheck       *fileRecheck  `json:"recheck"`
 }
 
 type fileRecheck struct {
@@ -91,7 +92,10 @@ func readActivityFile(path string) (activityFile, bool) {
 	if err := json.Unmarshal(raw, &file); err != nil || file.SchemaVersion != activitySchemaVersion {
 		return activityFile{}, false
 	}
-	if !file.FirstPass.believable() || (file.Recheck != nil && !file.Recheck.believable()) || file.Items.Total < 0 || file.Items.Done < 0 {
+	if file.FirstPass == nil && file.Recheck == nil {
+		return activityFile{}, false
+	}
+	if (file.FirstPass != nil && !file.FirstPass.believable()) || (file.Recheck != nil && !file.Recheck.believable()) || file.Items.Total < 0 || file.Items.Done < 0 {
 		return activityFile{}, false
 	}
 	return file, true
@@ -101,25 +105,34 @@ func (p PassActivity) believable() bool {
 	return p.Workers >= 1 && p.Busy >= 0 && p.Busy <= p.Workers && p.Total >= 0 && p.Done >= 0
 }
 
-// activityOf is the run's activity for the stage it is in: the first stage's file as it is; a later stage's file added to what the
-// first stage ended with (activityBase), because the re-check stages are one more pass of the larger model over more passages.
-func (j *job) activityOf(file activityFile) Activity {
-	activity := Activity{Requested: j.request.Parallel.Workers, Items: file.Items, FirstPass: file.FirstPass}
+// activityOf is the run's activity for the stage it is in, and ok is false when the file lacks the pass the stage reports. The first
+// stage's file is taken as it is. A later stage's file holds the larger model's share in recheck, and the host adds it to what the first
+// stage ended with (activityBase) field by field, because the re-check stages are one more pass of the larger model over more passages.
+// The reason a passage was chosen is the file's when it names one, otherwise the stage's own.
+func (j *job) activityOf(file activityFile) (Activity, bool) {
+	activity := Activity{Requested: j.request.Parallel.Workers, Items: file.Items}
 	if j.stage == stageFirstPass {
+		if file.FirstPass == nil {
+			return Activity{}, false
+		}
+		activity.FirstPass = *file.FirstPass
 		if file.Recheck != nil {
 			activity.Recheck = &RecheckActivity{PassActivity: file.Recheck.PassActivity, Reasons: reasonsOf(file.Recheck.Reason)}
 		}
-		return activity
+		return activity, true
+	}
+	if file.Recheck == nil {
+		return Activity{}, false
 	}
 	base := j.activityBase
 	activity.Items = base.Items
 	activity.FirstPass = base.FirstPass
 	activity.FirstPass.Busy = 0
-	reason := ReasonMissingWords
-	if j.stage == stageRecheckWhole {
-		reason = ReasonWidespread
+	reason := j.stageReason()
+	if file.Recheck.Reason != nil {
+		reason = *file.Recheck.Reason
 	}
-	recheck := RecheckActivity{PassActivity: file.FirstPass, Reasons: []string{reason}}
+	recheck := RecheckActivity{PassActivity: file.Recheck.PassActivity, Reasons: []string{reason}}
 	if base.Recheck != nil {
 		recheck.Total += base.Recheck.Total
 		recheck.Done += base.Recheck.Done
@@ -128,7 +141,15 @@ func (j *job) activityOf(file activityFile) Activity {
 		recheck.Reasons = slices.Compact(recheck.Reasons)
 	}
 	activity.Recheck = &recheck
-	return activity
+	return activity, true
+}
+
+// stageReason is why a re-check stage asked the larger model for its passages.
+func (j *job) stageReason() string {
+	if j.stage == stageRecheckWhole {
+		return ReasonWidespread
+	}
+	return ReasonMissingWords
 }
 
 func reasonsOf(reason *string) []string {

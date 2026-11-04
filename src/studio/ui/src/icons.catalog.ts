@@ -10,6 +10,7 @@
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import {
   faArrowLeft,
+  faBandage,
   faFilter,
   faRightLeft,
   faArrowDownWideShort,
@@ -51,6 +52,7 @@ import {
   faFlagCheckered,
   faFolder,
   faFolderOpen,
+  faFolderPlus,
   faFont,
   faForwardStep,
   faGauge,
@@ -78,6 +80,7 @@ import {
   faAngleLeft,
   faAngleRight,
   faPlus,
+  faLink,
   faRotate,
   faRotateLeft,
   faArrowsLeftRightToLine,
@@ -92,6 +95,7 @@ import {
   faComment,
   faUpRightAndDownLeftFromCenter,
   faUpload,
+  faWrench,
   faUserTag,
   faVolumeHigh,
   faVolumeXmark,
@@ -100,13 +104,18 @@ import {
   faXmark,
   faListCheck,
   faEllipsis,
+  faEquals,
   faStar,
   faTriangleExclamation,
 } from '@fortawesome/free-solid-svg-icons';
 import { faCircleCheck as faCircleCheckRegular } from '@fortawesome/free-regular-svg-icons';
 
-/** `page` is a rail or navigation icon, `pageLink` a button that opens that page, `action` anything else. A `text` row has no icon. */
-type CatalogKind = 'page' | 'pageLink' | 'action';
+/**
+ * `page` is a rail or navigation icon, `pageLink` a button that opens that page, `action` anything else a button does. `figure` is a glyph that
+ * labels a number the screen shows (an `ActivityPanel` figure): it is information, never a control, so it has no button tooltip (the figure
+ * carries its own hint). A `text` row has no icon.
+ */
+type CatalogKind = 'page' | 'pageLink' | 'action' | 'figure';
 
 type CatalogFields = {
   /** What the control does, in words. Two rows that wear one icon must share it (an alias); `page:<name>` for a page and its links. */
@@ -124,6 +133,7 @@ type TextRow = CatalogFields & { kind: 'text'; icon: null };
 export type CatalogRow = IconRow | TextRow;
 
 const action = (icon: IconDefinition, meaning: string, tooltip: string, shortcut?: string): IconRow => ({ kind: 'action', icon, meaning, tooltip, shortcut });
+const figure = (icon: IconDefinition, meaning: string): IconRow => ({ kind: 'figure', icon, meaning, tooltip: '' });
 const page = (icon: IconDefinition, name: string, tooltip: string): IconRow => ({ kind: 'page', icon, meaning: `page:${name}`, tooltip });
 const pageLink = (icon: IconDefinition, name: string, tooltip: string): IconRow => ({ kind: 'pageLink', icon, meaning: `page:${name}`, tooltip });
 const text = (meaning: string, tooltip: string): TextRow => ({ kind: 'text', icon: null, meaning, tooltip });
@@ -138,6 +148,7 @@ export const TOOLTIP_VERBS = [
   'Close',
   'Compare',
   'Copy',
+  'Create',
   'Delete',
   'Dismiss',
   'Download',
@@ -169,6 +180,7 @@ export const TOOLTIP_VERBS = [
   'Show',
   'Stop',
   'Toggle',
+  'Treat',
   'Trim',
   'Undo',
   'Unpin',
@@ -221,6 +233,8 @@ export const CATALOG = {
   remove: action(faTrashCan, 'discard', 'Remove'),
   copy: action(faCopy, 'copy', 'Copy'),
   addNote: action(faComment, 'add a note', 'Add a note'),
+  // The Booth's character with no track goes on a track the chapter has (docs/research/mockups/booth-voices/, #notice).
+  useExistingTrack: action(faLink, 'use an existing track', 'Use an existing track'),
   markText: action(faHighlighter, 'mark text', 'Mark the selected text'),
 
   // Audio.
@@ -240,10 +254,10 @@ export const CATALOG = {
   checkPreparedFiles: action(faClipboardCheck, 'check prepared files', 'Check the prepared files so Delivery counts them'),
   checkRecordings: action(faEarListen, 'check recordings', 'Check recordings'),
   problem: action(faTriangleExclamation, 'problem', 'Show the problem'),
-  // The recording check's activity panel: the figures it labels, drawn with `Icon` and named by their tooltip.
-  chunksTranscribed: action(faPuzzlePiece, 'chunks transcribed', 'Show the chunks transcribed'),
-  transcriptionsAtOnce: action(faMicrochip, 'transcriptions at once', 'Show the transcriptions at once'),
-  largerModelRecheck: action(faCheckDouble, 'larger-model re-check', 'Show the larger-model re-check'),
+  // The recording check's activity panel: the figures it labels, drawn with `Icon`. Each figure shows its own hint as its tooltip.
+  chunksTranscribed: figure(faPuzzlePiece, 'chunks transcribed'),
+  transcriptionsAtOnce: figure(faMicrochip, 'transcriptions at once'),
+  largerModelRecheck: figure(faCheckDouble, 'larger-model re-check'),
 
   // State: outline is off, solid is on (audit rule 3).
   markDone: action(faCircleCheckRegular, 'mark done', 'Mark done'),
@@ -267,6 +281,9 @@ export const CATALOG = {
   // REAPER's folder tracks in the Tracks card and the track picker.
   trackFolder: action(faFolder, 'a folder of tracks', 'Show the folder'),
   trackFolderOpen: action(faFolderOpen, 'open a folder', 'Show the open folder'),
+  // Chapter links: the DAW adds a chapter's track (Flat) or its folder with a Narrator track (Voice folders), named after it, and links it (#2840).
+  createChapterTrack: action(faPlus, 'add', 'Create a track for this chapter'),
+  createChapterFolder: action(faFolderPlus, 'add a folder of tracks', 'Create a folder for this chapter'),
   folderCaret: action(faChevronRight, 'expand or collapse a folder', 'Toggle the folder'),
   openAllFolders: action(faAnglesDown, 'open every folder', 'Open all folders'),
   closeAllFolders: action(faAnglesUp, 'close every folder', 'Close all folders'),
@@ -277,6 +294,8 @@ export const CATALOG = {
   showInReaper: action(faArrowUpRightFromSquare, 'go to REAPER', 'Show in REAPER'),
   addMarker: action(faFlag, 'REAPER marker', 'Add a marker in REAPER'),
   trimGap: action(faArrowsLeftRightToLine, 'trim a gap', 'Trim the gap'),
+  // Proof's note inspector on a one-word misread (#2736): the script word and the heard word count as a match in later checks.
+  treatAsSame: action(faEquals, 'treat two words as the same', 'Treat these two words as the same in later checks'),
 
   // Script, Story Bible and the extraction tools (SN-B60): the actions those pages draw in the Studio Next mock. A catalogue key
   // is the action, so a row that wears an icon another action already wears shares that action's meaning (an alias).
@@ -291,7 +310,6 @@ export const CATALOG = {
   hideExample: action(faEyeSlash, 'hide an example', 'Hide the format example'),
   recordHere: { ...action(faCircle, 'record', 'Record from here'), tint: 'rec' },
   goToChapter: action(faArrowRight, 'go on', 'Go to the chapter'),
-  addWord: action(faPlus, 'add', 'Add to my words'),
   addMark: action(faPlus, 'add', 'Add a mark'),
   addRelationship: action(faPlus, 'add', 'Add a relationship'),
   editBookmark: action(faPen, 'edit', 'Edit the bookmark'),
@@ -331,6 +349,10 @@ export const CATALOG = {
   // The mock draws a wave for it, which is the Proof page's icon (audit rule 1), so a voice sample wears the speech bubble.
   primarySample: action(faStar, 'primary sample', 'Mark the primary sample'),
   moreActions: action(faEllipsis, 'more actions', 'Show more actions'),
+  // The tools that act on the DAW project (chapter regions, render prep), offered on the pages where a chapter is finished.
+  dawTools: action(faWrench, 'DAW tools', 'Show the DAW tools'),
+  // The REAPER repair launchers, beside the defect: they open REAPER's own repair on the items selected there, where Clean up's Apply repairs in the app.
+  repairInReaper: action(faBandage, 'repair in REAPER', 'Open the repair tools in REAPER'),
   // Script: finds who speaks the quoted lines; a line the narrator confirmed is never changed.
   attributeSpeakers: action(faUserTag, 'attribute speakers', 'Find who speaks each line'),
   voiceSample: action(faCommentDots, 'voice sample', 'Mark a voice sample', 'V'),
