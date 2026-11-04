@@ -10,6 +10,8 @@
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core';
 import {
   faArrowLeft,
+  faKeyboard,
+  faTableList,
   faArrowsRotate,
   faClone,
   faDiagramProject,
@@ -195,6 +197,7 @@ export const TOOLTIP_VERBS = [
   'Reject',
   'Remove',
   'Reopen',
+  'Reset',
   'Retry',
   'Save',
   'Scan',
@@ -400,6 +403,10 @@ export const CATALOG = {
   turnOff: action(faToggleOff, 'turn off', 'Turn off'),
   // A Story Bible pronunciation candidate (the one name a narrator picks from a list): a check, the same accept as a suggestion's.
   usePronunciation: action(faCheck, 'accept', 'Use this pronunciation'),
+  // Settings (icon-button audit, #2836).
+  useSuggestion: action(faCheck, 'accept', 'Use this suggestion'),
+  changeShortcut: action(faKeyboard, 'change the shortcut', 'Change the shortcut'),
+  showCategory: action(faTableList, 'show a whole category', 'Show the whole category'),
   readStamps: action(faTag, 'read the stamps', 'Read current stamps'),
   repairPopsClicks: action(faHammer, 'repair pops and clicks', 'Open Repair Pops/Clicks'),
   magnoliusDeclick: action(faScrewdriverWrench, 'declick with Magnolius', 'Open Magnolius DeClick'),
@@ -422,6 +429,8 @@ export const CATALOG = {
   sortList: action(faArrowDownWideShort, 'sort the list', 'Show the list in another order'),
   reopen: text('reopen', 'Reopen'),
   scan: text('scan', 'Scan the manuscript'),
+  // A setting, a shortcut or a list put back to its default: no icon says it without also saying undo or retry.
+  resetToDefault: text('reset to default', 'Reset to default'),
   importFromFile: text('import from a file', 'Import from a file instead'),
 } as const satisfies Record<string, CatalogRow>;
 

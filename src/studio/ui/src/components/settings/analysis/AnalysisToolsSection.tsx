@@ -2,7 +2,7 @@ import { useErrorToast } from '../../../hooks/useErrorToast';
 import { useState } from 'react';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import type { AssetItem } from '../../../types';
-import { Button } from '../../primitives/Button';
+import { IconButton } from '../../primitives/IconButton';
 import { Checkbox } from '../../primitives/Checkbox';
 import { ConfirmDialog } from '../../primitives/ConfirmDialog';
 import { Panel } from '../../primitives/Panel';
@@ -62,9 +62,7 @@ export function AnalysisToolsSection({ bare = false }: { bare?: boolean }) {
               style={{ background: 'var(--review-soft)', color: 'var(--danger-text)' }}
             >
               <span>The analysis tools could not be listed: {tools.loadError}</span>
-              <Button variant="secondary" onClick={() => void tools.reload()}>
-                Retry
-              </Button>
+              <IconButton action="retry" onClick={() => void tools.reload()} />
             </div>
           ) : (
             <ul className="m-0 flex list-none flex-col p-0">

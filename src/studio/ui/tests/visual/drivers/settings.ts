@@ -429,6 +429,18 @@ export const settingsDrivers: Record<string, Driver> = {
     await row.getByText('1 dismissed').waitFor();
     await row.getByRole('button', { name: 'Show tips again' }).waitFor();
   },
+  'schedule-basis': async (page) => {
+    await openSettings(page, 'Project');
+    const row = await showSettingsRow(page, 'project.rateBasis');
+    await row.getByRole('radio', { name: 'Standard' }).waitFor();
+  },
+  'schedule-basis-own': async (page) => {
+    await openSettings(page, 'Project');
+    const row = await showSettingsRow(page, 'project.rateBasis');
+    await row.getByRole('radio', { name: 'Your own pace' }).click();
+    await row.getByRole('radio', { name: 'Your own pace', checked: true }).waitFor();
+    await row.getByText('Changed', { exact: true }).waitFor();
+  },
   'editing-playback': async (page) => {
     // Found by search, so the row is shown whole on its own (the Shortcuts list below it in the category has its own layout debt to settle).
     await openSettings(page);

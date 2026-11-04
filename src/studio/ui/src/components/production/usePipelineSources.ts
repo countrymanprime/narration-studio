@@ -34,7 +34,7 @@ function proofByChapter(findings: readonly Finding[]): Proof {
 export function masterByChapter(chapters: readonly Pick<ManuscriptChapter, 'id' | 'title' | 'index'>[], files: readonly MeasureFileResult[]): Master {
   const byChapter: Record<string, { mastered: boolean; qc: string | null }> = {};
   for (const chapter of chapters) {
-    const file = fileOf(chapter, files);
+    const file = fileOf(chapter, files, chapters);
     if (!file) continue;
     const verdict = fileVerdict(file);
     byChapter[chapter.id] = { mastered: verdict !== 'none', qc: verdict === 'pass' ? 'PASS' : verdict === 'fail' ? 'FAIL' : null };
