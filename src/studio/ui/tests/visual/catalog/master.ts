@@ -2,7 +2,7 @@
 // Master page (SN-M5): the per-file checks, the selected file's checks, the book consistency and the delivery package beside them,
 // then the panels the mock has no equivalent of, kept as built. Building the package is Delivery's (catalog/delivery.ts).
 import type { StateEntry } from '../lib/types';
-import { KEEPS_DESKTOP_SCROLL, REFLOW, wholePage } from './shared';
+import { KEEPS_DESKTOP_SCROLL, REFLOW, TOOLTIP_CLOSES_ON_RESIZE, wholePage } from './shared';
 import { brand } from '../../../src/brand.gen';
 
 export const masterStates: StateEntry[] = [
@@ -37,6 +37,13 @@ export const masterStates: StateEntry[] = [
     state: 'book-spread',
     description:
       "Master & QC, six chapters already checked against ACX (?mockMeasure=spread) - every file passing, the first file's Checks, and the book consistency as RMS by file against the ACX range",
+  },
+  {
+    page: 'master',
+    state: 'text-column',
+    description:
+      'Master & QC, every chapter already measured (?mockDelivery=ready) - the files table\'s Text column: 100% from a current Recording Check, a red cross on the three below the check\'s thresholds, and "Not checked" on the file whose chapter has no check',
+    ...REFLOW,
   },
   {
     page: 'master',
@@ -122,6 +129,29 @@ export const masterStates: StateEntry[] = [
       'Master & QC, Master all to spec… with five files picked and given a role - two chapters (their titles editable), opening and closing credits, a retail sample, Master before encoding on with the built-in chain, and Master & encode',
     ...KEEPS_DESKTOP_SCROLL,
   },
+  // The chain card's choice of mastering row (#2739): the issue's placement, a control the mock lacks
+  {
+    page: 'master',
+    state: 'chain-choice',
+    description:
+      "Master & QC's Mastering chain card scrolled to - Master with: the three rows as radios, the built-in chain chosen (the row the host says the project masters with), and its three steps",
+    ...KEEPS_DESKTOP_SCROLL,
+    ...REFLOW,
+  },
+  {
+    page: 'master',
+    state: 'chain-saved',
+    description:
+      "Master & QC's Mastering chain card after choosing Your DAW's FX chain - the choice moved once the host answered, and the card says its steps are set in the DAW",
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'master',
+    state: 'chain-unavailable',
+    description:
+      "Master & QC's Mastering chain card with Audacity's row not available on this computer (?mockMastering=no-audacity) - that row off. The driver opens its reason as the tooltip under the pointer; the capture parks the pointer, so the shot shows the row off and the tooltip closed (a tooltip left open fails axe's landmark rule, and axe debt only shrinks)",
+    ...TOOLTIP_CLOSES_ON_RESIZE,
+  },
   // Master & encode with a mastering row that makes the DAW render: the narrator's approval for this one export first (#2739)
   {
     page: 'master',
@@ -160,6 +190,20 @@ export const masterStates: StateEntry[] = [
     state: 'to-spec-running',
     description:
       'Master & QC, mastering and encoding part way through (?mockRenderExport=running) - real progress, Cancel, and each file waiting, mastering or encoding',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'master',
+    state: 'to-spec-last-run',
+    description:
+      "Master & QC opened on an export that already finished (?mockDelivery=ready: the host keeps the job across the app's reload, the mock boots with one) - its files are the picked files, each Ready and editable, with Remove to dismiss them and Master & encode to run them again (#2935 review)",
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'master',
+    state: 'to-spec-cancelled',
+    description:
+      'Master & QC, a running Master & encode cancelled (?mockRenderExport=running) - each file Cancelled, its role and title editable again, Add files…, Master before encoding and Master & encode back to run it again (#2935)',
     ...KEEPS_DESKTOP_SCROLL,
   },
   // Master & QC, multi-platform export: several profiles' packages from one mastered/encoded source, in one action (no mock

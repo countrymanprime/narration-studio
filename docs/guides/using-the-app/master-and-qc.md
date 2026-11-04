@@ -44,10 +44,13 @@ before any check, then lines such as **12 rows marked Waiting: no file measured 
 after a check that stopped, **2 rows marked Not measured: the check stopped before these files**. A row
 whose reason is its own (its pickups, a file that could not be read) keeps it in the row.
 A row with a file shows its **Length**, **RMS**, **Peak**, **Noise floor** and the room
-tone at its **Head / tail** in seconds, then its **Result**: **Pass**, **Fail**, **Not judged** (a value the
-profile needs could not be measured), or **Waiting** / **Not measured**. The table has no
-Clicks or Text column: the measurement reports clipping, not clicks, and does not compare the audio with the text, so
-nothing is drawn for them. A value that misses the
+tone at its **Head / tail** in seconds, then its **Text** and its **Result**: **Pass**, **Fail**, **Not judged** (a value the
+profile needs could not be measured), or **Waiting** / **Not measured**. **Text** is the share
+of the chapter's words the [recording check](production.md) found in its recording ("Text present"), judged by that
+check's own thresholds; a figure under them is red with a cross. The measurement itself does not compare the audio with
+the text: the figure is the chapter's current check, read back, and Master & QC never runs one. A file is paired with a chapter by its name, a chapter's title as whole words or its number, the longest title
+winning ("Chapter 10.wav" is Chapter 10, not Chapter 1). A file that fits no chapter, or two equally well, or whose chapter has no current check (never run, or out of date since the recording changed), says **Not checked**,
+never a guess. A red Text figure does not change **Pass** or **Fail**, which come from the profile's rules alone. The table has no Clicks column. A value that misses the
 profile's rule is red with a cross; a value the app could not measure (a silent render, or a file too
 short) is a dash, never a number, and never counted as met. A file not measured yet, or one that could not
 be read, says so in place of its values. If the measurement itself breaks on a file, its row says the
@@ -57,6 +60,8 @@ If the chapters or the delivery profile cannot be read, an error message at the 
 selects one. Right-click a row for the same actions as the buttons below it.
 
 ![Three files checked against ACX: a 48 kHz render selected with why it fails](../../images/ui/master-measured.webp)
+
+![The Text column: 100%, a red 65% under the recording check's thresholds, and Not checked](../../images/ui/master-text-column.webp)
 
 ### Why it fails
 
@@ -111,8 +116,17 @@ moves the selection to the file it names.
 **Mastering chain** shows the chain the book masters with, as its steps in order: the built-in chain's
 **EQ** (a high-pass at 80 Hz), **Limiter** (peaks held 0.5 dB under the platform's peak limit) and **Gain**
 (toward the platform's RMS target). It is one chain for the book, the same for every platform, with each
-platform's own numbers; a **?** in the panel's header says so. It is fixed and cannot be edited. The app does not yet play a file raw and mastered
+platform's own numbers; a **?** in the panel's header says so. The built-in chain's steps are fixed and cannot be edited. The app does not yet play a file raw and mastered
 side by side.
+
+**Master with** chooses the project's chain: **Built-in chain (EQ, limiter, gain)**, **Your DAW's FX chain** (your DAW renders
+each chapter's region through the project's own track and master FX) or **Audacity's effect macro** (Audacity applies a macro of
+yours). Each export through the last two asks your approval first ([Mastering to spec](#mastering-to-spec)).
+The choice moves once the project has saved it. A chain this computer cannot use is off; rest the pointer on it, or move to it with
+the keyboard, to read why. While an export starts or runs, the choice is held, and while a choice is being saved, **Master & encode** waits. If the project's saved chain cannot be used, the card says so
+and the built-in chain is used until it can.
+
+![The Mastering chain card with Master with: the built-in chain chosen, the DAW's FX chain and Audacity's effect macro beside it](../../images/ui/master-chain-choice.webp)
 
 ## Mastering to spec
 
@@ -138,9 +152,18 @@ and [Delivery](delivery.md) still go by the files you checked: the check icon be
 "Check the prepared files so Delivery counts them") opens the file picker to check the copies, and a chapter counts as
 mastered once its file passes.
 
+From the press of **Master & encode** until the export ends, the files, **Add files…** and **Master before encoding**
+are locked, and **Cancel** shows it is busy until the app answers. When the export ends, finished, cancelled or failed,
+they unlock: each row keeps its **Status** from that run until you remove it, and you can change the files, the roles,
+the titles or the checkbox and press **Master & encode** again. If you come back to Master & QC while the app is still
+open, the last export's files are listed again with their status. Remove them to dismiss that run. Picking a file that
+is already listed adds no row, and a message says so.
+
 ![Master all to spec with five files picked and given a role](../../images/ui/master-to-spec-picked.webp)
 
 ![Master & encode asking approval to master with the DAW's FX chain, naming the regions it renders](../../images/ui/master-to-spec-approve.webp)
+
+![A cancelled export: each file Cancelled, and the files and Master & encode back to run it again](../../images/ui/master-to-spec-cancelled.webp)
 
 ## Building packages for several platforms at once
 

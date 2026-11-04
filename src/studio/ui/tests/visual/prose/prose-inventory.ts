@@ -284,7 +284,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   },
   {
     file: 'components/master/MasteringChain.tsx',
-    text: "One chain for the book: …, the same for every platform, with each platform's own RMS window and peak limit.",
+    text: "One chain masters the whole book, for every platform. Master with chooses it: the built-in chain brings each file to the platform's RMS window and peak limit; your DAW's FX chain or an Audacity macro runs your own steps, and asks your approval before each export.",
     class: 'overlay',
   },
   {

@@ -1,12 +1,11 @@
 // The Script page's pure selectors, ported from the Studio Next mock's `selectors/annotations.ts`, `bible.ts`, `phrases.ts`
-// and `speakers.ts` onto the host's lists: marks and their types (`marksList`), flagged words (`scriptPrepList`), Story
-// Bible entries (`guideEntities`) and dialogue cues (`guideDialogueCues`). Each takes plain lists and returns a new value; none
+// and `speakers.ts` onto the host's lists: marks and their types (`marksList`), Story
+// Bible entries (`guideEntities`, which hold every name's pronunciation, #2595) and dialogue cues (`guideDialogueCues`). Each takes plain lists and returns a new value; none
 // mutates its input or reads anything else, so the hooks bind them and a story or test calls them with no host.
 
-import type { GuideDialogueCue, GuideEntity, GuideType } from '../../../../api/contracts/storyBible';
+import type { GuideDialogueCue, GuideEntity, GuidePronunciation, GuideType } from '../../../../api/contracts/storyBible';
 import type { ManuscriptParagraph } from '../../../../api/contracts/manuscript';
 import type { Mark, MarkThreadAuthor, MarkType } from '../../../../api/contracts/marks';
-import type { ScriptWord, WordStatus } from '../../../../api/contracts/scriptPrep';
 import { cueSpeakerState, type CueSpeakerState } from '../../../manuscript/dialogueCues.selectors';
 
 /** A flagged word's key as the host stores it: the text trimmed and lower-cased. */
@@ -28,32 +27,58 @@ export function markMessages(mark: Mark): MarkMessage[] {
   return [...opening, ...mark.thread.map((message, index) => ({ ...message, index }))];
 }
 
-/** Flagged words with at least one flag in the chapter, in the host's order. */
-export const wordsInChapter = (words: readonly ScriptWord[], chapterId: string): ScriptWord[] =>
-  words.filter((word) => word.flags.some((flag) => flag.chapterId === chapterId));
+/** Whether a name has a pronunciation: the mock's Set and Not set. A word with no Story Bible entry has none, and is not listed. */
+export type NameStatus = 'set' | 'not_set';
 
-/** One row of the Words tab: a word flagged in the chapter, or a Story Bible name found in its text. */
+/** One row of the Words tab: one name (an entry's own or one alias) of a Story Bible entry found in the chapter's text. */
 export type ChapterWord = {
-  word: string;
-  say: string;
-  source: string;
-  status: WordStatus;
-  fromBible: boolean;
-  /** The Story Bible entry a name comes from; none for a flagged word. */ entryId?: string;
+  /** The name's key: its text trimmed and lower-cased, what the view's selected word holds. */
+  key: string;
+  /** The name as the entry spells it. */
+  name: string;
+  entryId: string;
+  /** Absent for the entry's own name. */
+  aliasIndex?: number;
+  /** The entry's category (a Story Bible type), so a plain `Word` can be told from a character or a place. */
+  category: string;
+  pronunciation: GuidePronunciation;
+  status: NameStatus;
 };
 
+/** Each name of an entry as a row, its own first. */
+function namesWithPronunciation(entry: GuideEntity): Omit<ChapterWord, 'status'>[] {
+  const own = {
+    key: wordKey(entry.canonical_name),
+    name: entry.canonical_name,
+    entryId: entry.id,
+    category: entry.category,
+    pronunciation: entry.pronunciation,
+  };
+  const aliases = entry.aliases.map((alias, aliasIndex) => ({
+    key: wordKey(alias.text),
+    name: alias.text,
+    entryId: entry.id,
+    aliasIndex,
+    category: entry.category,
+    pronunciation: alias.pronunciation,
+  }));
+  return [own, ...aliases];
+}
+
+const statusOf = (pronunciation: GuidePronunciation): NameStatus => (pronunciation.ipa.trim() ? 'set' : 'not_set');
+
+/** The name of the Story Bible that has this key: what the Words card shows for the selected word. */
+export function nameByKey(entries: readonly GuideEntity[], key: string): ChapterWord | undefined {
+  for (const entry of entries) for (const row of namesWithPronunciation(entry)) if (row.key === key) return { ...row, status: statusOf(row.pronunciation) };
+  return undefined;
+}
+
 /**
- * Every word the narrator will meet in a chapter with how it is said: the words flagged there, then the Story Bible names in its text
- * that are not flagged (their pronunciation is the entry's, so Set or Not set follows it), each name once, in the order it first appears.
+ * Every word the narrator will meet in a chapter with how it is said: each Story Bible name found in its text, once, in the order it first
+ * appears. The value is the entry's (#2595): there is no second list, so nothing decides between two.
  */
-export function chapterWords(
-  words: readonly ScriptWord[],
-  entries: readonly GuideEntity[],
-  chapterId: string,
-  paragraphs: readonly Pick<ManuscriptParagraph, 'text'>[],
-): ChapterWord[] {
-  const flagged: ChapterWord[] = wordsInChapter(words, chapterId).map(({ word, say, source, status }) => ({ word, say, source, status, fromBible: false }));
-  const seen = new Set(flagged.map((row) => row.word));
+export function chapterWords(entries: readonly GuideEntity[], paragraphs: readonly Pick<ManuscriptParagraph, 'text'>[]): ChapterWord[] {
+  const seen = new Set<string>();
   const rows: ChapterWord[] = [];
   for (const paragraph of paragraphs) {
     for (const mention of mentionsIn(entries, paragraph.text)) {
@@ -61,23 +86,11 @@ export function chapterWords(
       if (seen.has(key)) continue;
       seen.add(key);
       const entry = entries.find((row) => row.id === mention.entryId);
-      const named =
-        entry && (wordKey(entry.canonical_name) === key ? entry.pronunciation : entry.aliases.find((alias) => wordKey(alias.text) === key)?.pronunciation);
-      const say = named?.ipa.trim() ?? '';
-      rows.push({ word: mention.text, say, source: '', status: say ? 'set' : 'not_set', fromBible: true, entryId: mention.entryId });
+      const name = entry && namesWithPronunciation(entry).find((row) => row.key === key);
+      if (name) rows.push({ ...name, status: statusOf(name.pronunciation) });
     }
   }
-  return [...flagged, ...rows];
-}
-
-/** The host's status of a word; a word the list lacks is not flagged. */
-export const pronStatus = (words: readonly ScriptWord[], text: string): WordStatus =>
-  words.find((word) => word.word === wordKey(text))?.status ?? 'not_flagged';
-
-/** How a flagged word is said and where that came from. A value saved with no source was typed by the narrator. */
-export function pronOfWord(words: readonly ScriptWord[], text: string): { say: string; source: string } {
-  const word = words.find((row) => row.word === wordKey(text));
-  return { say: word?.say ?? '', source: word?.say ? word.source || 'manual' : '' };
+  return rows;
 }
 
 const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
@@ -85,7 +98,7 @@ const plural = (n: number, one: string, many: string): string => `${n} ${n === 1
 export type ChapterFactsInput = {
   types: readonly MarkType[];
   marks: readonly Mark[];
-  words: readonly ScriptWord[];
+  entries: readonly GuideEntity[];
   /** Quoted phrases in the chapter that nothing attributes to a speaker (`unattributed`). */
   unattributed: number;
 };
@@ -94,9 +107,16 @@ export type ChapterFactsInput = {
 export function chapterFacts(input: ChapterFactsInput, chapterId: string): string {
   const inChapter = marksInChapter(input.marks, chapterId);
   const notes = inChapter.length;
-  const unsaid = input.words
-    .filter((word) => word.status === 'not_set')
-    .reduce((n, word) => n + word.flags.filter((flag) => flag.chapterId === chapterId).length, 0);
+  // Each place in the chapter a Story Bible name with no pronunciation is found (the entry's own evidence, as the host records it).
+  const unsaid = input.entries.reduce(
+    (n, entry) =>
+      n +
+      (statusOf(entry.pronunciation) === 'not_set' ? entry.occurrences.filter((at) => at.chapterId === chapterId).length : 0) +
+      entry.aliases
+        .filter((alias) => statusOf(alias.pronunciation) === 'not_set')
+        .reduce((m, alias) => m + alias.occurrences.filter((at) => at.chapterId === chapterId).length, 0),
+    0,
+  );
   const speakers = input.unattributed ? ` · ${input.unattributed} without a speaker` : '';
   return `${plural(notes, 'note', 'notes')} · ${unsaid} without pronunciation${speakers}`;
 }
@@ -124,14 +144,14 @@ const escape = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\\
 
 /**
  * The entries' names in a text, left to right, never overlapping: at each place the longest name wins, a name matches as a
- * whole word only, and case is ignored. A name two entries share belongs to the first in the list.
+ * whole word only (a combining accent is part of the word), and case is ignored. A name two entries share belongs to the first in the list.
  */
 export function mentionsIn(entries: readonly GuideEntity[], text: string): Mention[] {
   const owner = new Map<string, string>();
   for (const entry of entries) for (const name of namesOf(entry)) if (!owner.has(name.toLowerCase())) owner.set(name.toLowerCase(), entry.id);
   if (owner.size === 0) return [];
   const names = [...owner.keys()].sort((a, b) => b.length - a.length || a.localeCompare(b));
-  const re = new RegExp(`(?<![\\p{L}\\p{N}_])(?:${names.map(escape).join('|')})(?![\\p{L}\\p{N}_])`, 'giu');
+  const re = new RegExp(`(?<![\\p{L}\\p{M}\\p{N}_])(?:${names.map(escape).join('|')})(?![\\p{L}\\p{M}\\p{N}_])`, 'giu');
   return [...text.matchAll(re)].map((match) => ({
     start: match.index,
     end: match.index + match[0].length,

@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react';
 
 /**
- * How long a Master & QC request to the host (planning and starting the export) waits before it is freed and says
+ * How long a Master & QC request to the host (planning and starting the export, saving the mastering chain) waits before it is freed and says
  * the host did not answer. Each only checks and records (the export's work runs after the answer), so a real host answers well
  * inside it; the same bound as the log-folder button's wait (`LOG_FOLDER_WAIT_MS`).
  */
@@ -70,11 +70,19 @@ function createHostRequest() {
   };
 }
 
-// Starting the export: Master & encode's read of the plan, and the approval dialog's Approve.
-const exportStart = createHostRequest();
+// One lock for every Master & QC request that decides how the book is mastered: Master & encode's read of the plan, the approval
+// dialog's start, and the chain card's save of the mastering row. A save that lands while an export is being planned or started
+// would export with one row and then show another, so neither runs while the other waits (qa on #2929).
+const masteringLock = createHostRequest();
 
-/** Whether a request to plan or start the export is waiting for the host. */
-export const useExportStarting = exportStart.useWaiting;
+/** Whether a plan, a start or a save of the mastering row is waiting for the host. */
+export const useExportStarting = masteringLock.useWaiting;
 
-/** Sends a request to plan or start the export unless one waits (`createHostRequest`). */
-export const startExportRequest = exportStart.send;
+/** Sends a request to plan or start the export unless any request of the lock waits (`createHostRequest`). */
+export const startExportRequest = masteringLock.send;
+
+/** Whether a plan, a start or a save of the mastering row is waiting for the host: the chain card holds its rows while it is. */
+export const useMasteringChoiceSaving = masteringLock.useWaiting;
+
+/** Sends a save of the project's mastering row unless any request of the lock waits (`createHostRequest`). */
+export const saveMasteringChoiceRequest = masteringLock.send;

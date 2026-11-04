@@ -19,4 +19,5 @@ Storybook title: `Primitives/SpeakerTag`. Source: `src/components/primitives/Spe
 
 - `src/components/booth/ReaderText.tsx`
 - `src/components/booth/voices/VoiceControl.tsx`
+- `src/components/booth/voices/WhoIsInDialog.tsx`
 - `src/components/engine/VoicesCard.tsx`

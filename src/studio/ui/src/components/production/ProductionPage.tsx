@@ -276,6 +276,37 @@ export function ProductionPage({
     onChanged();
   }, stages.busy);
 
+  // The pipeline's rows, built once per input that changes rather than on every render: a 5000-chapter book re-rendered all of them each time
+  // any hook of the page resolved (#1764). The lookups are indexed, so building is linear in the chapters, not quadratic.
+  const trackLinkRows = tools.trackLinks?.chapters;
+  const syncRows = sync?.chapters;
+  const { proof: proofSource, master: masterSource, prep: prepSource } = pipelineSources;
+  const rows = useMemo(() => {
+    // Open lines per chapter from the Pickups list, so a chapter's Pickups cell and the tile above add up. Nothing is claimed until the list is read.
+    let pickupsByChapter: Record<string, number> | undefined;
+    if (openLines) {
+      pickupsByChapter = {};
+      for (const line of openLines) pickupsByChapter[line.chapterId] = (pickupsByChapter[line.chapterId] ?? 0) + 1;
+      for (const c of narrated) pickupsByChapter[c.id] ??= 0;
+    }
+    const linkOf = new Map((trackLinkRows ?? []).map((entry) => [entry.chapterId, entry]));
+    const syncOf = new Map((syncRows ?? []).map((entry) => [entry.chapterId, entry]));
+    return buildPipelineRows(pipelineRows, {
+      proof: proofSource,
+      master: masterSource,
+      wph,
+      pickups: pickupsByChapter,
+      // A chapter's Prep is the Script page's prep record, the credits' included ("My prep" on their card). Absent until read: "Not measured yet".
+      prep: prepSource,
+      checks: Object.fromEntries(
+        narrated.map((c) => {
+          const syncRow = syncOf.get(c.id);
+          return [c.id, chapterCheckStatus(linkOf.get(c.id), syncRow, syncRow?.checking ?? false)];
+        }),
+      ),
+    });
+  }, [openLines, narrated, pipelineRows, trackLinkRows, syncRows, proofSource, masterSource, prepSource, wph]);
+
   const record = canRecord(caps);
   const narrationIds = new Set(narrated.map((c) => c.id));
   const counts = checkCounts(sync?.chapters ?? [], narrationIds);
@@ -312,23 +343,6 @@ export function ProductionPage({
   const book = bookFigures(narrated, wph, pipelineSources.master);
   const recordedHours = narrated.reduce((a, c) => a + (c.recordedSeconds ?? 0), 0) / 3600;
   const recommendations = stages.state.byChapter;
-  // Open lines per chapter from the Pickups list, so a chapter's Pickups cell and the tile above add up. Nothing is claimed until the list is read.
-  const pickupsByChapter = openLines ? Object.fromEntries(narrated.map((c) => [c.id, openLines.filter((line) => line.chapterId === c.id).length])) : undefined;
-  const rows = buildPipelineRows(pipelineRows, {
-    proof: pipelineSources.proof,
-    master: pipelineSources.master,
-    wph,
-    pickups: pickupsByChapter,
-    // A chapter's Prep is the Script page's prep record, the credits' included ("My prep" on their card). Absent until read: "Not measured yet".
-    prep: pipelineSources.prep,
-    checks: Object.fromEntries(
-      narrated.map((c) => {
-        const link = tools.trackLinks?.chapters.find((entry) => entry.chapterId === c.id);
-        const syncRow = sync?.chapters.find((entry) => entry.chapterId === c.id);
-        return [c.id, chapterCheckStatus(link, syncRow, syncRow?.checking ?? false)];
-      }),
-    ),
-  });
   const pickupMinutes = measured.answers
     ? measured.answers.pickupSessionSeconds.ok
       ? { ok: true as const, value: Math.round(measured.answers.pickupSessionSeconds.value / 60) }

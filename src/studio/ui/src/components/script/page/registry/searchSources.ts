@@ -1,19 +1,17 @@
-// The Script page's search sources for the jump menu: text in the whole book, the narrator's marks and flagged words. The registry sets
+// The Script page's search sources for the jump menu: text in the whole book and the narrator's marks. The registry sets
 // the minimum term length, and choosing a hit calls a handler the page passes. The book is searched on the host (`bookSource`, #2775),
 // and Find reads the same answer, so the menu's row n is Find's match n and choosing it marks every match in the reader and scrolls to
-// that one. The marks and words answer from memory. The Booth's chapter search (`manuscriptSource`) searches the lines it is given.
+// that one. The marks answer from memory. The Booth's chapter search (`manuscriptSource`) searches the lines it is given.
 // The Story Bible entries and the mark types are page items (`useScriptRegistry`), not hits, so a name is listed once. Nothing here
 // names a mark type or a Story Bible kind.
 
 import type { Mark, MarkType } from '../../../../api/contracts/marks';
-import type { ScriptWord } from '../../../../api/contracts/scriptPrep';
 import type { ManuscriptSearchResult } from '../../../../api/contracts/manuscript';
 import type { AsyncSearchSource, SearchHit, SearchSource } from '../../../../registries/search';
 import { bookMatches, searchManuscript, type FindMatch } from '../tools/find/searchManuscript';
 
 export const MANUSCRIPT_GROUP = 'In the script';
 const MARKS_GROUP = 'My marks';
-const WORDS_GROUP = 'My words';
 
 /** Matches the menu lists before one row says how many more there are. */
 const MANUSCRIPT_SHOWN = 50;
@@ -98,15 +96,5 @@ export function marksSource(marks: () => { types: readonly MarkType[]; marks: re
         sub: types.find((row) => row.key === mark.type)?.name ?? mark.type,
         run: () => onShow(mark),
       }));
-  };
-}
-
-/** Flagged words whose text or say-value holds the term. */
-export function wordsSource(words: () => readonly ScriptWord[], onShow: (word: string) => void): SearchSource {
-  return (term) => {
-    const needle = term.toLowerCase();
-    return words()
-      .filter((row) => has(row.word, needle) || has(row.say, needle))
-      .map((row) => ({ group: WORDS_GROUP, title: row.word, sub: row.say ? `Say: ${row.say}` : undefined, run: () => onShow(row.word) }));
   };
 }
