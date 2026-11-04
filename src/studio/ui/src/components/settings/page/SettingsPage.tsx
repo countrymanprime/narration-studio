@@ -140,6 +140,15 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
   const categoryRows = (id: CategoryId) => ROWS.filter((row) => row.cat === id && shown(row));
   const changedIn = (id: CategoryId) => categoryRows(id).filter(changed).length;
   const resets = useRowResets();
+  // One reset at a time (a second press would write every row twice), and none after the page is gone.
+  const resetting = useRef(false);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   const { notify } = useSettingsHost();
   // What the header's Reset to defaults puts back: the changed rows it knows how to reset (the others are undone in their own row).
   const resettableChangedIn = (id: CategoryId) => categoryRows(id).filter((row) => changed(row) && isResettable(row)).length;
@@ -254,7 +263,13 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
             changed={resettableChangedIn(cat)}
             advancedOpen={Boolean(advanced[cat])}
             onToggleAdvanced={() => setAdvanced((current) => ({ ...current, [cat]: !current[cat] }))}
-            onReset={() => void resetCategory(categoryRows(cat).filter(changed), store, resets, notify)}
+            onReset={() => {
+              if (resetting.current) return;
+              resetting.current = true;
+              void resetCategory(categoryRows(cat).filter(changed), store, resets, notify, () => mounted.current).finally(() => {
+                resetting.current = false;
+              });
+            }}
             lit={lit}
             extra={cat === 'app' ? <AboutSection /> : undefined}
           />
@@ -350,22 +365,27 @@ async function resetCategory(
   store: ReturnType<typeof useSettingsStore>,
   resets: Readonly<Record<string, RowReset>>,
   notify: (message: string, tone?: 'error') => void,
+  alive: () => boolean,
 ): Promise<void> {
   const failed: string[] = [];
   for (const row of rows) {
+    // A page that was closed (or a project that was switched) stops the reset: the rest would be written to whatever is open by then.
+    if (!alive()) return;
     try {
+      let done = true;
       if (row.field) {
         const { global, project } = store.fieldsOf(row);
-        if (global?.isSet && global.value !== row.def) await store.write(row, 'global', null);
-        if (row.scope === 'both' && project?.isSet) await store.write(row, 'project', null);
+        if (global?.isSet && global.value !== row.def) done = (await store.write(row, 'global', null)) !== false && done;
+        if (row.scope === 'both' && project?.isSet) done = (await store.write(row, 'project', null)) !== false && done;
       } else if (row.id in resets) {
         await resets[row.id]!();
       }
+      if (!done) failed.push(row.label);
     } catch {
       failed.push(row.label);
     }
   }
-  if (failed.length > 0) notify(`Could not reset ${failed.join(', ')}.`, 'error');
+  if (failed.length > 0 && alive()) notify(`Could not reset ${failed.join(', ')}.`, 'error');
 }
 
 /**

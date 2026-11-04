@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { announceBrowserSettingChange } from '../../../browserSettings';
+import type { PortOf } from '../../../ports';
 import { usePort } from '../../../ports/usePort';
 import { useMotionPreference } from '../../../motion';
 import { useTheme } from '../../../theme/ThemeContext';
@@ -17,6 +18,8 @@ import { DELIVERY_PROFILES_CHANGED, optionValue } from '../DeliveryProfilesPanel
 import { engineChanged } from './engineSignal';
 import { changeReaderText } from '../controls/readerText';
 import { useSettingsHost } from '../row/SettingsHost';
+import { rowOf } from '../registry/rows';
+import { useSettingsStore } from './SettingsStore';
 
 /** Puts one row's value back to its default; a refusal rejects, and the caller says which rows could not be reset. */
 export type RowReset = () => Promise<unknown> | void;
@@ -48,6 +51,18 @@ export const RESETTABLE_ROWS = [
 export const isResettable = (row: { id: string; field?: unknown }): boolean => Boolean(row.field) || (RESETTABLE_ROWS as readonly string[]).includes(row.id);
 
 /**
+ * There is no call that clears a project's delivery profile, so the project takes the global default, which is what unchanged means. A global
+ * default that is not in the list (removed meanwhile) cannot be chosen, so that is said instead of leaving the row Changed with nothing done.
+ */
+export async function deliveryProfileReset(delivery: Pick<PortOf<'deliveryProfiles'>, 'deliveryProfiles' | 'deliverySelectProfile'>): Promise<void> {
+  const state = await delivery.deliveryProfiles();
+  const base = state.profiles.find((profile) => optionValue(profile) === optionValue(state.globalDefault));
+  if (!base) throw new Error('The global default profile is not in the list.');
+  await delivery.deliverySelectProfile('project', base.id, base.builtIn ? base.version : '');
+  window.dispatchEvent(new Event(DELIVERY_PROFILES_CHANGED));
+}
+
+/**
  * What the header's Reset to defaults does for a row that has no host field (a custom body, or a value this window keeps): the same setter
  * the row's own Reset uses, so the page, the row and the header agree. A row with a host field is reset by writing its default (`resetCategory`).
  */
@@ -62,6 +77,7 @@ export function useRowResets(): Readonly<Record<(typeof RESETTABLE_ROWS)[number]
   const { reset: resetTips } = useTips();
   const { change: changeOutput } = useOutputPrefs();
   const { notify } = useSettingsHost();
+  const store = useSettingsStore();
   const { setLayout } = useVoiceTracks(notify, { characters: false });
   return useMemo(
     () => ({
@@ -92,23 +108,18 @@ export function useRowResets(): Readonly<Record<(typeof RESETTABLE_ROWS)[number]
       'daw.sync': () => chapterSync.chapterSyncSetEnabled(true),
       'daw.layout': () => setLayout('flat'),
       // The shortcut list's own Reset all to defaults saves the default keymap; clearing the saved overrides is the same result.
+      // Saved through the page's store, so its fields (which Changed reads) follow; the row has no field of its own.
       'keys.map': async () => {
-        await system.saveSettings('Keymap', 'global', { overrides: null });
+        const row = rowOf('keys.map');
+        if (row) await store.write({ ...row, field: { tool: 'Keymap', key: 'overrides' } }, 'global', null);
         refreshUserKeymap();
       },
       'daw.engine': async () => {
         await dawChoice.dawChoose('REAPER');
         engineChanged();
       },
-      // There is no call that clears a project's profile, so the project takes the global default, which is what unchanged means.
-      'delivery.profile': async () => {
-        const state = await delivery.deliveryProfiles();
-        const base = state.profiles.find((profile) => optionValue(profile) === optionValue(state.globalDefault));
-        if (!base) return;
-        await delivery.deliverySelectProfile('project', base.id, base.builtIn ? base.version : '');
-        window.dispatchEvent(new Event(DELIVERY_PROFILES_CHANGED));
-      },
+      'delivery.profile': () => deliveryProfileReset(delivery),
     }),
-    [setPreference, setMotion, system, chapterSync, production, dawChoice, delivery, resetTips, changeOutput, setLayout],
+    [setPreference, setMotion, store, system, chapterSync, production, dawChoice, delivery, resetTips, changeOutput, setLayout],
   );
 }

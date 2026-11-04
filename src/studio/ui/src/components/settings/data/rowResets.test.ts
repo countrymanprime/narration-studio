@@ -33,4 +33,15 @@ describe('the header Reset to defaults and the Changed marks (issue 2605)', () =
     expect(isResettable({ id: 'daw.voices' })).toBe(false);
     expect(isResettable({ id: 'look.theme' })).toBe(true);
   });
+
+  it('a reset of the project delivery profile that cannot find the global default says so instead of doing nothing', async () => {
+    const { deliveryProfileReset } = await import('./rowResets');
+    const calls: string[] = [];
+    const port = {
+      deliveryProfiles: async () => ({ profiles: [{ id: 'x', builtIn: true, version: '1' }], globalDefault: { id: 'gone', version: '' } }),
+      deliverySelectProfile: async (...args: unknown[]) => void calls.push(args.join()),
+    };
+    await expect(deliveryProfileReset(port as never)).rejects.toThrow(/global default/);
+    expect(calls).toEqual([]);
+  });
 });

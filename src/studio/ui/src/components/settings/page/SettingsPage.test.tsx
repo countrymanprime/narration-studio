@@ -461,6 +461,71 @@ describe('Settings: Reset to defaults reaches every row Changed counts (issue 26
     expect(screen.queryByRole('button', { name: 'Reset to defaults' })).toBeNull();
   });
 
+  const badge = (category: string) => within(within(nav()).getByRole('button', { name: new RegExp(`^${category}`) })).queryByLabelText(/ changed$/);
+
+  it('resets the rows whose value the host holds too: the zoom and the shortcut list, and the schedule basis', async () => {
+    const api = createMockApi();
+    await api.windowSetZoom(1.25);
+    await api.saveSettings('Keymap', 'global', { overrides: JSON.stringify({ version: 1, bindings: [{ command: 'app.undo', keys: ['Ctrl+Y'] }] }) });
+    await api.setProductionRateBasis('own');
+    await renderPage({ api });
+    pick('Appearance & keys');
+    await waitFor(() => expect(badge('Appearance')?.getAttribute('aria-label')).toMatch(/^[2-9] changed$/));
+    fireEvent.click(await screen.findByRole('button', { name: 'Reset to defaults' }));
+    await waitFor(() => expect(badge('Appearance')).toBeNull());
+    expect((await api.windowZoom()).level).toBe(1);
+    const keymap = (await api.settingsForScope('global')).Keymap?.find((field) => field.key === 'overrides');
+    expect(keymap?.isSet).toBe(false);
+    pick('Project');
+    await waitFor(() => expect(badge('Project')?.getAttribute('aria-label')).toBe('1 changed'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Reset to defaults' }));
+    await waitFor(async () => expect((await api.productionPlan()).rateBasis).not.toBe('own'));
+    await waitFor(() => expect(badge('Project')).toBeNull());
+  });
+
+  it('names a field row the host refused, still resets the others, and does not run twice on a double click', async () => {
+    const api = createMockApi();
+    await api.saveSettings('General', 'global', { notifications: 'false', debug_logging: 'true' });
+    const real = api.saveSettings.bind(api);
+    const calls: string[] = [];
+    vi.spyOn(api, 'saveSettings').mockImplementation(async (tool, scope, values) => {
+      calls.push(`${tool}:${JSON.stringify(values)}`);
+      if ('notifications' in values) throw new Error('disk full');
+      return real(tool, scope, values);
+    });
+    const notify = vi.fn();
+    await renderPage({ api, notify });
+    pick('App & updates');
+    const button = await screen.findByRole('button', { name: 'Reset to defaults' });
+    fireEvent.click(button);
+    fireEvent.click(button);
+    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringMatching(/Could not reset .*Tell me when a long task finishes/), 'error'));
+    expect(notify).toHaveBeenCalledTimes(1);
+    expect(calls.filter((call) => call.includes('debug_logging'))).toHaveLength(1);
+    expect(calls.filter((call) => call.includes('notifications'))).toHaveLength(1);
+  });
+
+  it('stops resetting when the page is closed, instead of writing the remaining rows afterwards', async () => {
+    const api = createMockApi();
+    await api.saveSettings('General', 'global', { notifications: 'false', debug_logging: 'true' });
+    const real = api.saveSettings.bind(api);
+    const calls: string[] = [];
+    let release: () => void = () => undefined;
+    vi.spyOn(api, 'saveSettings').mockImplementation(async (tool, scope, values) => {
+      calls.push(Object.keys(values).join(','));
+      if (calls.length === 1) await new Promise<void>((resolve) => (release = resolve));
+      return real(tool, scope, values);
+    });
+    await renderPage({ api });
+    pick('App & updates');
+    fireEvent.click(await screen.findByRole('button', { name: 'Reset to defaults' }));
+    await waitFor(() => expect(calls).toHaveLength(1));
+    cleanup();
+    release();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(calls).toHaveLength(1);
+  });
+
   it('does not count a Merriam-Webster key as changed, and shows no Reset for it: a secret the narrator pasted has no default', async () => {
     const api = createMockApi();
     vi.spyOn(api, 'pronunciationOnlineKeyStatus').mockResolvedValue({ present: true } as never);
