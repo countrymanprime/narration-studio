@@ -616,6 +616,12 @@ export function useBoothPage(options: BoothPageOptions) {
     else await roll.startTake();
   }, [control, roll, blocked]);
   retryTake.current = toggleTake;
+  // The jump menu's cold read: it picks the Cold read mode and starts one (or stops the one that listens), so the button says what is happening.
+  const coldReadFromJump = useCallback(async () => {
+    const now = latest.current;
+    if (!now.coldRead && !now.recording) setColdMode(true);
+    await toggleColdRead();
+  }, [toggleColdRead]);
   // The main button's press, and Space's: a take, or, while the mode is Cold read, a cold read (a take that already runs is always stopped).
   const pressMain = useCallback(async () => {
     const now = latest.current;
@@ -702,7 +708,7 @@ export function useBoothPage(options: BoothPageOptions) {
     position,
     /** Where a cold read hears the narrator; absent when none runs. */
     ghost,
-    coldRead: { on: coldRead, toggle: toggleColdRead, disabledReason: coldReadReason, mode: coldMode, setMode: setColdMode },
+    coldRead: { on: coldRead, toggle: coldReadFromJump, disabledReason: coldReadReason, mode: coldMode, setMode: setColdMode },
     browse,
     setBrowse,
     punchAt,

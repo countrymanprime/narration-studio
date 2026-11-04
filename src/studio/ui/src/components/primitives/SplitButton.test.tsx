@@ -24,15 +24,15 @@ describe('SplitButton', () => {
     expect([main.mock.calls.length, side.mock.calls.length]).toEqual([1, 1]);
   });
 
-  it('draws the cold-read tone as an outline on both parts, and the accent fill otherwise', () => {
+  it('draws the cold-read tone as an info outline on both parts, and the accent fill otherwise', () => {
     render(
       <SplitButton label="Recording">
-        <SplitMain tone="danger">Cold read</SplitMain>
-        <SplitSide label="Levels" tone="danger" />
+        <SplitMain tone="cold">Cold read</SplitMain>
+        <SplitSide label="Levels" tone="cold" />
       </SplitButton>,
     );
-    expect(screen.getByRole('button', { name: 'Cold read' }).className).toContain('border-[var(--danger)]');
-    expect(screen.getByRole('button', { name: 'Levels' }).className).toContain('border-[var(--danger)]');
+    expect(screen.getByRole('button', { name: 'Cold read' }).className).toContain('border-[var(--info)]');
+    expect(screen.getByRole('button', { name: 'Levels' }).className).toContain('border-[var(--info)]');
     cleanup();
     drawn();
     expect(screen.getByRole('button', { name: 'Record' }).className).toContain('bg-[var(--accent)]');

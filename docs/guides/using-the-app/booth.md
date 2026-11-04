@@ -111,7 +111,7 @@ With a DAW that has no pre-roll of its own, **Punch pre-roll (seconds)** sets ho
 
 ## Recording
 
-Press **Record** (or Space, or a foot pedal mapped to Space) to start a take, and again to stop it. Record arms only the chapter's
+Press **Record** (or Space, or a foot pedal mapped to Space) to start a take, and again to stop it. Space does what the main button says: while **Main button** is set to **Cold read** (see [A cold read](#a-cold-read)), it starts and stops a cold read instead of a take. Record arms only the chapter's
 track. It starts where your last take on that track stopped, as long as REAPER's edit cursor is still there. Otherwise it starts at
 the end of the last item on the track, so a take never records over audio from a place you did not choose.
 
@@ -299,11 +299,11 @@ to start), the footer says why. Listening starts at the same time as the DAW, so
 
 ### A cold read
 
-To read a passage through before recording it, open **Levels** (the caret on the side of **Record**) and choose **Cold read** under **Main button**: the button now reads **Cold read** and stays so until you choose **Record** there again. Press the button, or Space, to start; or choose **Start cold read** in the jump menu (Ctrl+K), which leaves the button as it is. The Booth listens as it does during a take, with the engine and model chosen in Settings, and nothing you say leaves this computer. Nothing is recorded. While it listens, the top bar shows **Mic on · cold read** in the recording colour, drawn dashed.
+To read a passage through before recording it, open **Levels** (the caret on the side of **Record**) and choose **Cold read** under **Main button**. The button now reads **Cold read**, outlined in blue so it cannot be mistaken for a take, and its hint says that Space starts a cold read and that nothing is recorded. Press the button or Space to start. Choosing **Record** there again switches the button back. The choice lasts for the visit: when you open the Booth again it reads **Record**, so a lone Space records. Choosing **Start cold read** in the jump menu (Ctrl+K) does both steps at once. The Booth listens as it does during a take, with the engine and model chosen in Settings, and nothing you say leaves this computer. Nothing is recorded. While it listens, the top bar shows **Mic on · cold read** in the recording colour, drawn dashed.
 
 A second cursor, the **ghost**, follows your voice: the word you have reached has a dashed outline and a muted tint, with a dashed tick above it. The text keeps the ghost in view, so you can read on without touching anything. The real cursor, a filled word with a caret, stays where you left it: the next take starts from there. The progress line and the resume line follow the real cursor too. A click, an arrow key or **Start from here** moves the real cursor, not the ghost. What you read during a cold read is not kept: it never moves the real cursor, sets where you stopped, adds a suspected line or touches a bookmark.
 
-A cold read keeps listening until you stop it: press the button, which now reads **Stop**, press Space, or leave the Booth. It does not stop at a pause or at the end of the chapter. The choice under **Main button** is off while a cold read listens or a take records. A cold read started from the jump menu leaves the button on **Record**, and pressing **Record** then ends the cold read first: the ghost goes, the text eases back to the real cursor, and the take starts there. Changing chapter ends it, and Escape leaves without asking, since nothing would be lost.
+A cold read keeps listening until you stop it: press the button, which now reads **Stop**, press Space, or leave the Booth. It does not stop at a pause or at the end of the chapter. The choice under **Main button** is off while a cold read listens or a take records. Changing chapter ends the cold read, and Escape leaves without asking, since nothing would be lost.
 
 ![Booth - a cold read: the dashed ghost on the word you have reached, the real cursor still where the next take starts, and Mic on · cold read in the top bar](../../images/ui/booth-cold-read.webp)
 

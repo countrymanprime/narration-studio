@@ -531,7 +531,7 @@ export function LevelsMenu({
       focusPopup
       open={open}
       onOpenChange={onOpenChange}
-      trigger={<SplitSide label="Levels" id="blevels" aria-haspopup="dialog" tone={mainButton?.cold && !recording ? 'danger' : 'primary'} badge={warn} />}
+      trigger={<SplitSide label="Levels" id="blevels" aria-haspopup="dialog" tone={mainButton?.cold && !recording ? 'cold' : 'primary'} badge={warn} />}
     >
       <div className="flex w-max max-w-[min(26rem,calc(100vw-4rem))] min-w-72 flex-col gap-4">
         {mainButton ? (

@@ -25,7 +25,14 @@ export function RecordControl({
   const stop = recording || (coldMode && cold?.on);
   return (
     // `SplitMain` is as wide as "Record" in both states, so the timer beside it does not move when it becomes Stop (alignment audit XBO-25).
-    <SplitMain id="brec" {...(disabled ? { 'aria-disabled': true } : {})} aria-describedby={reason ? describedBy : undefined} onClick={() => void toggle()}>
+    <SplitMain
+      id="brec"
+      tone={coldMode ? 'cold' : 'primary'}
+      hint={coldMode ? (stop ? 'Stop the cold read (Space)' : 'Start a cold read (Space). Nothing is recorded.') : undefined}
+      {...(disabled ? { 'aria-disabled': true } : {})}
+      aria-describedby={reason ? describedBy : undefined}
+      onClick={() => void toggle()}
+    >
       <Icon name={stop ? 'stop' : coldMode ? 'microphone' : 'record'} />
       {stop ? 'Stop' : coldMode ? 'Cold read' : 'Record'}
     </SplitMain>

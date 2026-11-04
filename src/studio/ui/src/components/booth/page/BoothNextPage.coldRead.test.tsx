@@ -209,36 +209,41 @@ describe('only-the-toggle-a-take-or-leaving-ends-it', () => {
     expect(mainName()).toBe('Stop');
   });
 
-  it('Record ends one started from the jump menu first and starts the take from the real cursor, with a session of its own; the ghost is gone before the take', async () => {
+  it('the jump menu picks the Cold read mode and starts one: the button reads Stop, and pressing it ends the cold read and leaves the mode on Cold read', async () => {
     const page = renderPage();
     await ready();
-    // The real cursor in the last paragraph, the ghost in the second.
-    await act(async () => void fireEvent.click(document.querySelector<HTMLElement>('[data-paragraph="p3"] [data-word="1"]')!));
-    // Started from the jump menu, the main button stays Record: pressing it ends the cold read and records.
+    expect(mainName()).toBe('Record');
     await act(async () => void item('booth.cold-read')!.run());
     await settle();
-    const coldFrom = page.teleprompterStart.mock.calls[0][0].startWord;
-    expect(coldFrom).toBeGreaterThanOrEqual(26);
-    await page.hear(heardAt(20));
-    await waitFor(() => expect(ghost()?.closest('[data-paragraph]')?.getAttribute('data-paragraph')).toBe('p2'));
-    const real = currentWord();
-    skipStartGuard();
-    await act(async () => void fireEvent.click(screen.getByRole('button', { name: /^Record$/ })));
-    await waitFor(() => expect(page.recordStart).toHaveBeenCalledTimes(1));
+    expect(page.teleprompterStart.mock.calls[0][0]).toMatchObject({ coldRead: true });
+    await waitFor(() => expect(mainName()).toBe('Stop'));
+    expect(page.recordStart).not.toHaveBeenCalled();
+    await act(async () => void fireEvent.click(main()));
+    await settle();
     expect(page.teleprompterStop).toHaveBeenCalledTimes(1);
-    expect(page.teleprompterStart).toHaveBeenCalledTimes(2);
-    const take = page.teleprompterStart.mock.calls[1][0];
-    expect(take.coldRead).toBeUndefined();
-    // The take's session starts where the real cursor is, never at the ghost's word.
-    expect(take.startWord).toBe(coldFrom);
-    expect(ghost()).toBeNull();
-    expect(currentWord()).toBe(real);
-    await waitFor(() => expect(screen.getByText('REC')).toBeTruthy());
-    expect(screen.queryByText('Mic on · cold read')).toBeNull();
-    // The mode cannot change during a take: both choices are off in the side menu.
-    await act(async () => void fireEvent.click(screen.getByRole('button', { name: 'Levels' })));
-    const group = await screen.findByRole('radiogroup', { name: 'Main button' });
-    expect(within(group).getByRole('radio', { name: 'Cold read' }).getAttribute('aria-disabled')).toBe('true');
+    expect(mainName()).toBe('Cold read');
+    // The take is the other choice: nothing recorded so far, and Record is a pick away.
+    expect(page.recordStart).not.toHaveBeenCalled();
+  });
+
+  it("the choice is the Booth visit's: a Booth opened again reads Record, so a lone Space records", async () => {
+    renderPage();
+    await ready();
+    await chooseCold();
+    expect(mainName()).toBe('Cold read');
+    cleanup();
+    renderPage();
+    await ready();
+    expect(mainName()).toBe('Record');
+  });
+
+  it('shows the cold-read mode unmistakably: the cold tone, and a hint that names Space and says nothing is recorded', async () => {
+    renderPage();
+    await ready();
+    await chooseCold();
+    expect(main().className).toContain('border-[var(--info)]');
+    await act(async () => void main().focus());
+    expect((await screen.findAllByText(/Start a cold read \(Space\)\. Nothing is recorded\./)).length).toBeGreaterThan(0);
   });
 
   it('with the mode on Cold read, Space starts the cold read instead of a take, and Space again stops it', async () => {
@@ -297,6 +302,15 @@ describe('cold-read-in-the-jump-menu', () => {
     await settle();
     expect(page.teleprompterStart).toHaveBeenCalledWith(expect.objectContaining({ coldRead: true }));
     await waitFor(() => expect(item('booth.cold-read')?.label).toBe('Stop cold read'));
+    await act(async () => item('booth.cold-read')!.run());
+    await settle();
+    await waitFor(() => expect(item('booth.cold-read')?.label).toBe('Start cold read'));
+    // The jump menu left the mode on Cold read: Record is the other choice in the side menu.
+    await act(async () => void fireEvent.click(screen.getByRole('button', { name: 'Levels' })));
+    const group = await screen.findByRole('radiogroup', { name: 'Main button' });
+    await act(async () => void fireEvent.click(within(group).getByRole('radio', { name: 'Record' })));
+    await act(async () => void fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape', code: 'Escape' }));
+    await waitFor(() => expect(mainName()).toBe('Record'));
     skipStartGuard();
     await act(async () => void fireEvent.click(screen.getByRole('button', { name: /^Record$/ })));
     await waitFor(() => expect(page.recordStart).toHaveBeenCalled());

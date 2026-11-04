@@ -34,18 +34,18 @@ export const ColdRead: Story = {
   render: () => (
     <div className="flex flex-col gap-3">
       <SplitButton label="Recording">
-        <SplitMain tone="danger">
+        <SplitMain tone="cold">
           <Icon name="microphone" />
           Cold read
         </SplitMain>
-        <SplitSide label="Levels" aria-haspopup="dialog" tone="danger" />
+        <SplitSide label="Levels" aria-haspopup="dialog" tone="cold" />
       </SplitButton>
       <SplitButton label="Recording">
-        <SplitMain tone="danger">
+        <SplitMain tone="cold">
           <Icon name="stop" />
           Stop
         </SplitMain>
-        <SplitSide label="Levels" aria-haspopup="dialog" tone="danger" badge />
+        <SplitSide label="Levels" aria-haspopup="dialog" tone="cold" badge />
       </SplitButton>
     </div>
   ),

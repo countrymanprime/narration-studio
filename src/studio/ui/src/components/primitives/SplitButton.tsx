@@ -15,10 +15,8 @@ const DISABLED = 'not-aria-busy:aria-disabled:bg-[var(--surface-2)] not-aria-bus
 const TONES = {
   // The action's own fill, as a primary `Button`.
   primary: 'border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast)] not-aria-disabled:hover:bg-[var(--accent-strong)]',
-  // The recording colour as an outline, never the primary fill beside it (a pressed switch).
-  danger: 'border-[var(--danger)] bg-transparent text-[var(--danger-text)] not-aria-disabled:hover:bg-[var(--review-soft)]',
-  // A part of a joined control that is not the main action: a secondary `Button`'s look.
-  secondary: 'border-[var(--btn-line)] bg-[var(--surface)] text-[var(--text)] not-aria-disabled:hover:bg-[var(--surface-2)]',
+  // A cold read: the info colour as an outline on its soft fill, so it can be neither mistaken for Record's fill nor for a take's red.
+  cold: 'border-[var(--info)] bg-[var(--info-soft)] text-[var(--info-text)] not-aria-disabled:hover:brightness-95',
 } as const;
 
 /** The group: one tab-reachable control of several buttons. `label` names it for a screen reader. */
@@ -38,11 +36,12 @@ export function SplitButton({ label, className = '', children }: { label: string
 type PartProps = ComponentPropsWithRef<'button'>;
 
 /**
- * The main action; at least 5.75 rem wide so Record and Stop are the same width. `tone` `primary` is the accent fill, `danger` the outlined
- * recording colour (a cold read: never the take's fill).
+ * The main action; at least 5.75 rem wide so Record and Stop are the same width. `tone` `primary` is the accent fill, `cold` the outlined
+ * info colour of a cold read, never a take's fill or red. `hint` is its tooltip, for a state the label alone does not explain.
  */
-export function SplitMain({ tone = 'primary', className = '', type = 'button', ...rest }: PartProps & { tone?: 'primary' | 'danger' }) {
-  return <button type={type} className={`${PART} ${TONES[tone]} ${DISABLED} min-w-[5.75rem] ${className}`} {...rest} />;
+export function SplitMain({ tone = 'primary', hint, className = '', type = 'button', ...rest }: PartProps & { tone?: 'primary' | 'cold'; hint?: string }) {
+  const button = <button type={type} className={`${PART} ${TONES[tone]} ${DISABLED} min-w-[5.75rem] ${className}`} {...rest} />;
+  return hint ? <TooltipTarget text={hint}>{button}</TooltipTarget> : button;
 }
 
 /**
@@ -56,7 +55,7 @@ export function SplitSide({
   className = '',
   type = 'button',
   ...rest
-}: Omit<PartProps, 'aria-label' | 'title'> & { label: string; tone?: 'primary' | 'danger'; badge?: boolean }) {
+}: Omit<PartProps, 'aria-label' | 'title'> & { label: string; tone?: 'primary' | 'cold'; badge?: boolean }) {
   return (
     <TooltipTarget text={label}>
       <button type={type} aria-label={label} className={`${PART} relative px-2! ${TONES[tone]} ${DISABLED} ${className}`} {...rest}>

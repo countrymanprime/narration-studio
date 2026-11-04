@@ -265,3 +265,22 @@ describe('useRecordControl', () => {
     expect(stop).not.toHaveBeenCalled();
   });
 });
+
+describe('the main button in Cold read mode', () => {
+  it("reads Cold read in the cold tone with a hint that names Space, then Stop while it listens, and ignores Record's reasons", async () => {
+    const toggle = vi.fn(async () => {});
+    const { rerender } = render(
+      <RecordControl control={{ recording: false, disabled: true, reason: 'The recorder is not running', toggle }} cold={{ mode: true, on: false }} />,
+    );
+    const button = screen.getByRole('button', { name: 'Cold read' });
+    expect(button.className).toContain('border-[var(--info)]');
+    expect(button.getAttribute('aria-disabled')).toBeNull();
+    expect(button.getAttribute('aria-describedby')).toBeNull();
+    await userEvent.hover(button);
+    expect((await screen.findAllByText(/Start a cold read \(Space\)/)).length).toBeGreaterThan(0);
+    rerender(<RecordControl control={{ recording: false, disabled: true, reason: 'x', toggle }} cold={{ mode: true, on: true }} />);
+    expect(screen.getByRole('button', { name: 'Stop' }).className).toContain('border-[var(--info)]');
+    rerender(<RecordControl control={{ recording: false, disabled: false, reason: '', toggle }} cold={{ mode: false, on: false }} />);
+    expect(screen.getByRole('button', { name: 'Record' }).className).toContain('bg-[var(--accent)]');
+  });
+});
