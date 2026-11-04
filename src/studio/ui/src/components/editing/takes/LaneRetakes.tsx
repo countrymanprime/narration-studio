@@ -14,7 +14,7 @@ export interface LaneRetakesProps {
 }
 
 /**
- * A line's retakes on fixed lanes, under its takes (the mock's "Retakes on lanes" card, #2831): lane, item and length, which lane plays, and
+ * A line's retakes on fixed lanes, under its takes (card #i2831 of the cross-page mocks, `docs/research/mockups/cross-page-tools/` in #2844; the Studio Next mock does not draw it): lane, item and length, which lane plays, and
  * "Play this lane", which makes that lane the only one playing on its track. The lane that plays has its button off: it already plays.
  */
 export function LaneRetakes({ line, gate, picking, onPick }: LaneRetakesProps) {
