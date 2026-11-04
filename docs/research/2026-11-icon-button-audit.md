@@ -3,7 +3,7 @@
 Tracking issue: [#2836](https://github.com/countrymanprime/narration-studio/issues/2836). Refs #2251.
 
 The owner found the Engine panel drawing text buttons where icon buttons save space. The earlier audit,
-[icon-audit.md](mockups/studio-next/research/icon-audit.md), scanned the Studio Next mock's sources, not
+icon-audit.md, scanned the Studio Next mock's sources, not
 `src/studio/ui/src/components`, so the real app was never checked. This audit covers every `<Button>` and native `<button>` in
 `src/studio/ui/src/components/**` (stories and tests left out).
 
