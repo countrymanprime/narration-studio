@@ -406,6 +406,20 @@ export const settingsStates: StateEntry[] = [
   },
   {
     page: 'settings',
+    state: 'schedule-basis',
+    description: 'Settings, Project scrolled to Schedule basis: Standard chosen, Your own pace beside it, with its row in full view',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
+    state: 'schedule-basis-own',
+    description: 'Settings, Project at Schedule basis with Your own pace chosen: the row is marked Changed',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
     state: 'editing-playback',
     description:
       'Settings, Appearance & keys scrolled to Editing playback under Listening: speed, volume, silence and the output device, with the row in full view',

@@ -666,6 +666,13 @@
   },
   {
     "page": "settings",
+    "state": "schedule-basis-own",
+    "viewport": "desktop",
+    "docName": "settings-schedule-basis",
+    "caption": "Settings - Schedule basis under Schedule: Standard or Your own pace, with Your own pace chosen"
+  },
+  {
+    "page": "settings",
     "state": "editing-playback",
     "viewport": "desktop",
     "docName": "settings-editing-playback",

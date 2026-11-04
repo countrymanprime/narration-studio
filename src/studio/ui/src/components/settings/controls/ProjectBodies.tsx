@@ -1,4 +1,9 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { apiErrorMessage } from '../../../api/errorMessage';
+import type { ProductionRateBasis } from '../../../api/contracts/production';
+import { usePort } from '../../../ports/usePort';
+import { RadioGroup } from '../../primitives/RadioGroup';
+import { announceRateBasis, subscribeRateBasis } from '../../schedule/useEffectiveWph';
 import { IconButton } from '../../primitives/IconButton';
 import { MarksList } from '../page/MarksPanel';
 import { useMarks } from '../../script/page/data/useScriptData';
@@ -51,4 +56,45 @@ export function ProjectDataRowBody() {
 export function StoryBibleDataRowBody() {
   const { data, notify } = useSettingsHost();
   return <DeleteStoryBibleData projectName={data.projectFolder ? data.projectName : undefined} notify={notify} />;
+}
+
+const BASIS_OPTIONS: { value: ProductionRateBasis; label: string }[] = [
+  { value: 'standard', label: 'Standard' },
+  { value: 'own', label: 'Your own pace' },
+];
+
+/**
+ * Schedule basis: whether the hours on Production and Schedule use the standard words per finished hour or this narrator's measured pace, the
+ * same choice as the Production target popover's toggle (the plan's `rateBasis`). It follows a choice made there while it is shown.
+ */
+export function RateBasisBody() {
+  const production = usePort('production');
+  const { notify } = useSettingsHost();
+  const [basis, setBasis] = useState<ProductionRateBasis | null>(null);
+  const read = useCallback(() => {
+    production.productionPlan().then(
+      (plan) => setBasis(plan.rateBasis ?? 'standard'),
+      (failure: unknown) => notify(`The schedule basis could not be read: ${apiErrorMessage(failure)}`, 'error'),
+    );
+  }, [production, notify]);
+  useEffect(() => {
+    read();
+    window.addEventListener('focus', read);
+    const stop = subscribeRateBasis((next) => setBasis(next ?? 'standard'));
+    return () => {
+      window.removeEventListener('focus', read);
+      stop();
+    };
+  }, [read]);
+  const choose = (next: ProductionRateBasis) => {
+    production.setProductionRateBasis(next).then(
+      (saved) => {
+        setBasis(saved.rateBasis ?? 'standard');
+        announceRateBasis(saved.rateBasis);
+      },
+      (failure: unknown) => notify(`The schedule basis was not saved: ${apiErrorMessage(failure)}`, 'error'),
+    );
+  };
+  const options = BASIS_OPTIONS.map((option) => ({ ...option, disabled: basis === null }));
+  return <RadioGroup label="Schedule basis" value={basis ?? 'standard'} onChange={choose} options={options} />;
 }
