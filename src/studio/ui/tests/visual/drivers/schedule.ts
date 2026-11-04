@@ -52,12 +52,12 @@ export const scheduleDrivers: Record<string, Driver> = {
   },
   'long-text': async (page) => {
     await openSchedule(page, '?mockProduction=on-pace');
-    const add = async (name: string, note: string) => {
+    const add = async (name: string, note: string, due = '2026-10-02') => {
       await clickVisible(page, 'button', 'Add milestone');
       const dialog = confirmDialog(page, /milestone/i);
       await dialog.waitFor();
       await dialog.getByRole('textbox', { name: 'Name' }).fill(name);
-      await dialog.getByRole('textbox', { name: 'Due' }).fill('2026-10-02');
+      await dialog.getByRole('textbox', { name: 'Due' }).fill(due);
       await dialog.getByRole('textbox', { name: 'Note' }).fill(note);
       await dialog.getByRole('button', { name: 'Add milestone' }).click();
       await dialog.waitFor({ state: 'detached' });
@@ -70,6 +70,8 @@ export const scheduleDrivers: Record<string, Driver> = {
     await add('W'.repeat(200), 'a note');
     await add('تسليم الفصل الأول للمراجعة النهائية', 'ملاحظة');
     await add('🎙️ Final mix 🦎🍺 — 👨‍👩‍👧‍👦', '🍺');
+    // One whose date has passed with the work not done: its status reads late, so the status badge is seen at its widest.
+    await add('Chapter 1 retakes', 'late', '2026-09-01');
     await page.getByText('تسليم الفصل الأول للمراجعة النهائية').waitFor();
     // The state is about the table's long names, which sit below the chart and the side cards at every width: bring the table up.
     await page.getByRole('heading', { name: 'Milestones', exact: true }).evaluate((heading) => heading.scrollIntoView({ block: 'start' }));
@@ -78,5 +80,7 @@ export const scheduleDrivers: Record<string, Driver> = {
     await openWithoutManuscript(page, 'Schedule');
   },
 };
+// The whole page of long-text: every custom milestone row in the window, at every width.
+scheduleDrivers['long-text-whole-page'] = scheduleDrivers['long-text'];
 // The whole page of on-pace (catalog/shared.ts: wholePage), driven the same way.
 scheduleDrivers['whole-page'] = scheduleDrivers['on-pace'];

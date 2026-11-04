@@ -3,7 +3,7 @@ import type { Measured } from '../../../api/schemas/base';
 import type { Keymap } from '../../../input/keymap';
 import { footerHints } from '../../../input/hints';
 import { useToastClearance } from '../../../hooks/useToastClearance';
-import { Button } from '../../primitives/Button';
+import { SplitButton, SplitToggle } from '../../primitives/SplitButton';
 import { KeyHints } from '../../primitives/KeyHints';
 import { useDawMeterLease } from '../../../daw/useDawSession';
 import { LevelsInline, LevelsMenu, type LevelsMenuProps } from './LevelsMenu';
@@ -63,7 +63,7 @@ export type ColdReadToggle = { on: boolean; toggle: () => void; disabledReason?:
 type Mic = Pick<LevelsMenuProps, 'engine' | 'dawName' | 'reachable' | 'offReason' | 'device' | 'onDevice' | 'listen' | 'levels' | 'recorderMeter'>;
 
 /**
- * The Booth's footer (the mock's `bfoot`): the Record control from SN-O23 as a slot, the take timer, the Levels menu, why Record
+ * The Booth's footer (the mock's `bfoot`): the voice control, then one split button (the Record control from SN-O23 as a slot, the Cold read switch and the Levels menu) and the take timer, why Record
  * is unavailable, the open meter with the room tone, and the shared key hints under them. The hints come from the catalogue
  * (`footerHints('booth', keymap)`), so Esc Exit is a reminder here and not a button on the top bar.
  */
@@ -81,6 +81,8 @@ export function BoothFooter({
   keymap,
   pickupSession = false,
   coldRead,
+  voice,
+  voiceFolders = false,
 }: {
   record: ReactNode;
   seconds: number;
@@ -100,15 +102,25 @@ export function BoothFooter({
   roomToneHint?: string;
   keymap: Keymap;
   pickupSession?: boolean;
-  /** Beside the microphone's Levels; absent, the footer has no Cold read. */
+  /** A switch inside the split button, between Record and Levels; absent, the footer has no Cold read. */
   coldRead?: ColdReadToggle;
+  /** The voice control, left of Record (a chapter linked to a folder of voices draws one; otherwise it draws nothing). */
+  voice?: ReactNode;
+  /** The chapter records on a folder of voices: the footer hints show the voice keys. */
+  voiceFolders?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   // One reading for the menu and the inline meter, running for as long as the Booth shows: the meter beside the room tone follows the
   // microphone without the Levels menu being opened, and the DAW's own meters are read for as long as the footer is mounted too.
   useDawMeterLease();
   const { level, error } = useLevels(mic.device, { active: recording, enabled: true });
-  const hints = footerHints('booth', keymap, undefined, undefined, new Set(pickupSession ? ['pickupSession' as const] : []));
+  const hints = footerHints(
+    'booth',
+    keymap,
+    undefined,
+    undefined,
+    new Set([...(pickupSession ? ['pickupSession' as const] : []), ...(voiceFolders ? ['voiceFolders' as const] : [])]),
+  );
   // A message rises above the whole footer, so it never covers the chips (room tone, meter) or the key hints.
   const bar = useRef<HTMLDivElement>(null);
   useToastClearance(bar);
@@ -123,25 +135,29 @@ export function BoothFooter({
         little rows with the meter alone (R4BO1-1, R4BO2-7, XBO-10).
       */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[var(--border)] bg-[var(--surface)] px-[var(--page-gutter)] py-2.5">
-        <div className="flex flex-none items-center gap-4">
-          {record}
+        {/* Wraps in a narrow window, so the voice control and Cold read drop to a second row instead of leaving the window. */}
+        <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2">
+          {/* Who records, then what records: the voice sits left of the one split button (Record, the Cold read switch, Levels). */}
+          {voice}
+          <SplitButton label="Recording">
+            {record}
+            {coldRead ? (
+              <SplitToggle
+                id="bcold"
+
+                pressed={coldRead.on}
+                aria-disabled={coldRead.disabledReason ? true : undefined}
+                hint={coldRead.disabledReason ?? (coldRead.on ? 'Stop following your voice' : 'Follow your voice without recording')}
+                onClick={() => (coldRead.disabledReason ? undefined : coldRead.toggle())}
+              >
+                Cold read
+              </SplitToggle>
+            ) : null}
+            <LevelsMenu {...mic} recording={recording} warn={Boolean(listenWhy)} level={level} error={error} open={open} onOpenChange={setOpen} />
+          </SplitButton>
           <span id="btimer" className="font-mono text-lg text-[var(--text)]">
             {timerText(seconds)}
           </span>
-          <LevelsMenu {...mic} recording={recording} level={level} error={error} open={open} onOpenChange={setOpen} />
-          {coldRead ? (
-            <Button
-              id="bcold"
-              // Pressed, it takes the recording colour as an outline, as the microphone badge does: never Record's fill beside Record.
-              variant={coldRead.on ? 'danger' : 'secondary'}
-              aria-pressed={coldRead.on}
-              aria-disabled={coldRead.disabledReason ? true : undefined}
-              title={coldRead.disabledReason ?? (coldRead.on ? 'Stop following your voice' : 'Follow your voice without recording')}
-              onClick={() => (coldRead.disabledReason ? undefined : coldRead.toggle())}
-            >
-              Cold read
-            </Button>
-          ) : null}
           {why && !shownWhy ? (
             <span id="brec-why" className="sr-only">
               {why}

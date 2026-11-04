@@ -23,7 +23,6 @@ export const KEPT: Readonly<Record<string, string>> = {
   'src/components/booth/ResumePrompt.tsx': COMPANION,
   'src/components/booth/companion/CompanionHost.tsx': COMPANION,
   'src/components/booth/companion/CompanionPage.tsx': COMPANION,
-  'src/components/booth/useRecordInReaper.ts': COMPANION,
   'src/components/booth/useResumeLocate.ts': COMPANION,
   'src/components/credits/CreditsSetupBanner.tsx': CREDITS,
   'src/components/credits/CreditsSetupDialog.tsx': CREDITS,

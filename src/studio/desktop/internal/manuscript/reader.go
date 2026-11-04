@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"unicode/utf8"
 
 	"desktop/internal/persist"
 	"desktop/internal/recordedthrough"
@@ -137,51 +136,6 @@ func (s *Service) Paragraphs(chapterID string) ([]map[string]any, error) {
 	}
 	return result, nil
 }
-
-func (s *Service) Search(query string) ([]map[string]any, error) {
-	if strings.TrimSpace(query) == "" {
-		return []map[string]any{}, nil
-	}
-	data, err := s.Load()
-	if err != nil {
-		return nil, err
-	}
-	needle := strings.ToLower(query)
-	hidden := frontMatterChapterIDs(data)
-	result := []map[string]any{}
-	for _, paragraph := range objects(data["paragraphs"]) {
-		if hidden[text(paragraph, "chapterId")] {
-			continue
-		}
-		body := text(paragraph, "text")
-		byteOffset := strings.Index(strings.ToLower(body), needle)
-		if byteOffset < 0 {
-			continue
-		}
-		// matchStart travels to the UI as a JS string index (UTF-16 code units), but strings.Index
-		// returns a UTF-8 byte offset - identical for ASCII, but wrong as soon as a curly quote, em
-		// dash or accented letter (all common in a manuscript) appears before the match. Converting
-		// to a rune count fixes every character in the Basic Multilingual Plane (everything but
-		// emoji and rare CJK extensions, which encode as UTF-16 surrogate pairs); that residual gap
-		// is accepted rather than tracked per-surrogate for a feature this narrow.
-		offset := utf8.RuneCountInString(body[:byteOffset])
-		result = append(result, map[string]any{
-			"chapter": text(paragraph, "chapterTitle"), "chapterId": text(paragraph, "chapterId"),
-			"paragraph": paragraph["index"], "paragraphId": text(paragraph, "id"), "excerpt": body,
-			"matchStart": offset,
-		})
-		if len(result) >= maxSearchResults {
-			break
-		}
-	}
-	return result, nil
-}
-
-// A cap, not a hard limit the narrator would notice in practice: a query that matches every
-// paragraph of an 88,000-word manuscript still returns in a few milliseconds
-// (interaction-latency-baseline.md), so this exists to bound the response and the panel's own
-// rendering, not to fix a measured slowness.
-const maxSearchResults = 200
 
 func (s *Service) SetChapterStatus(chapterID, status string) (map[string]any, error) {
 	if !validChapterStatus(status) {

@@ -17,6 +17,8 @@ export type MasteringProvider = {
   modes: string[];
   /** Whether every master with this chain needs the narrator's approval first (any chain that makes the DAW render). */
   needsApproval: boolean;
+  /** Whether the narrator names their own effect macro with each approval (the Audacity row). */
+  needsMacro: boolean;
   /** The DAW port capabilities the chain uses (dawport.Capability names), which the launch's DAW must have available. */
   needs: string[];
   /** Whether it can be chosen now: the DAW port's own Support shape (port.Support in Go). */

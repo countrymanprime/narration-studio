@@ -346,7 +346,9 @@ export type ReadAloudRecordReason =
   | 'not_yet'
   | 'no_microphone'
   | 'choose_microphone'
-  | 'not_recording';
+  | 'not_recording'
+  // A Voice folders chapter whose folder has no voice tracks (bindings_booth_voice.go).
+  | 'no_voices';
 export type ReadAloudRecording = {
   outcome: ReadAloudRecordOutcome;
   reason?: ReadAloudRecordReason;

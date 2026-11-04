@@ -2,8 +2,8 @@
 // coverage mock's state, reasons and basis (an alignment is only ever as current as the coverage result it came
 // from) and builds tokens from the mock manuscript's real paragraph text, one per whitespace word, read in order at
 // a narration pace. It never runs anything. The played-range join (WorkspaceItem.live) is real when the
-// chapter has a confirmed, still-live track link (mockChapterLink=confirmed, or chapterTrackMappings seeded some
-// other way): the workspace's own player needs a real item GUID and source file to seek the mock's fake WAV
+// chapter has a confirmed, still-live track link (the default boot's mockChapterLink=recorded, mockChapterLink=confirmed,
+// or chapterTrackMappings seeded some other way): the workspace's own player needs a real item GUID and source file to seek the mock's fake WAV
 // (mockAudioSource, src/studio/ui/src/api/mockApi.ts) against, same as Tracks' player does.
 import type {
   CoverageReport,

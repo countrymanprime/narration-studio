@@ -6,8 +6,8 @@
 // read by the guide sidecar (Python, WiktextractSource in providers.py), given its resolved path as --wiktextract-index;
 // there is no Go-side lookup.
 //
-// The catalog row's URL and SHA-256 are the literal sentinel Pending until a session that can reach kaikki.org fills them
-// in (docs/research/wiktextract-pronunciation-source.md); Install and Repair refuse a Pending row rather than guess.
+// The catalog row's URL and SHA-256 are empty, and its Pending note says why, until someone who can reach kaikki.org pins a
+// release (docs/research/wiktextract-pronunciation-source.md); Install and Repair refuse an unpinned row rather than guess.
 package wiktextract
 
 import (
@@ -23,17 +23,15 @@ import (
 
 type File = assets.File
 
-// Pending is the sentinel a catalog row's URL and SHA-256 carry until a session that can reach kaikki.org verifies the
-// real values (docs/research/wiktextract-pronunciation-source.md, #510).
-const Pending = "PENDING-PHASE-0-VERIFICATION"
-
 // Source is one approved pronunciation-index source.
 type Source struct {
-	ID            string `json:"id"`
-	Provider      string `json:"provider"`
-	DisplayName   string `json:"displayName"`
-	Description   string `json:"description"`
-	Version       string `json:"version"`
+	ID          string `json:"id"`
+	Provider    string `json:"provider"`
+	DisplayName string `json:"displayName"`
+	Description string `json:"description"`
+	Version     string `json:"version"`
+	// PendingNote, when set, says why the row has no pinned release yet; a row with a note, or without a URL and SHA-256, cannot install.
+	PendingNote   string `json:"pending,omitempty"`
 	Publisher     string `json:"publisher"`
 	License       string `json:"license"`
 	LicenseURL    string `json:"licenseUrl"`
@@ -61,8 +59,8 @@ type Manager struct {
 // ErrNotInstalled is asked for a source that is not installed, or did not verify: the caller offers the first-use download.
 var ErrNotInstalled = errors.New("the pronunciation index is not installed or did not verify")
 
-// ErrPendingVerification is asked for a source whose catalog row still carries the Pending sentinel.
-var ErrPendingVerification = errors.New("this source's download is not yet verified (docs/research/wiktextract-pronunciation-source.md, #510)")
+// ErrPendingVerification is asked for a source whose catalog row is not pinned.
+var ErrPendingVerification = errors.New("this source's download is not yet verified (docs/research/wiktextract-pronunciation-source.md, #1472)")
 
 // New reads a catalog. Each source must be exactly one archive that is unpacked, which is what the index is built from.
 func New(catalogPath, root string) (*Manager, error) {
@@ -105,9 +103,9 @@ func (m *Manager) Default() (Source, bool) {
 	return m.catalog.Sources[0], true
 }
 
-// Pending reports whether s's download is still unverified (docs/research/wiktextract-pronunciation-source.md).
+// Pending reports whether s's download is still unpinned (docs/research/wiktextract-pronunciation-source.md).
 func (s Source) Pending() bool {
-	return len(s.Files) == 0 || s.Files[0].URL == Pending || s.Files[0].SHA256 == Pending
+	return s.PendingNote != "" || len(s.Files) == 0 || s.Files[0].URL == "" || s.Files[0].SHA256 == ""
 }
 
 // DownloadSize is the archive; DiskSize is the index the install keeps (the catalog's measured size, or the unpacked
