@@ -60,7 +60,7 @@ export function StoryBibleDataRowBody() {
 
 const BASIS_OPTIONS: { value: ProductionRateBasis; label: string }[] = [
   { value: 'standard', label: 'Standard' },
-  { value: 'own', label: 'Your own pace' },
+  { value: 'own', label: 'Your pace' },
 ];
 
 /**

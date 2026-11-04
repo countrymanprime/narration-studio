@@ -1,4 +1,5 @@
-import { useId, useState, type ReactNode } from 'react';
+import { useId, useRef, useState, type ReactNode } from 'react';
+import { describeApiError } from '../../../api/errorMessage';
 import { Button } from '../../primitives/Button';
 import { ConfirmDialog } from '../../primitives/ConfirmDialog';
 import { HelpButton } from '../../primitives/HelpButton';
@@ -11,6 +12,8 @@ import { PAGE_LABEL, PAGE_PATH, type Scope, type SettingMeta } from '../registry
 import { rowOf } from '../registry/rows';
 import { AssetNote } from './AssetNote';
 import { OpenLogFolderButton } from './OpenLogFolderButton';
+import { useRowReset } from './RowResetContext';
+import { useSettingsHost } from './SettingsHost';
 import { useSettingsNav } from './SettingsNav';
 import { ValueControl } from './ValueControl';
 import { WorkerPlanNote } from './WorkerPlanNote';
@@ -71,6 +74,10 @@ const CELL = `${SETTING_ROW_GRID} border-t border-[var(--border)] px-5 py-4 firs
  * that control instead of the host field's (the setting is more than one value); a `wide` one draws it under the label across the whole row,
  * for a table or a form that needs the width (alignment audit XSE2-4, XSE2-11).
  */
+// Rows whose body already carries its own way back: the layout, sync, zoom and order controls draw a Reset beside them, the tips row's button is
+// the reset, and the shortcut list has Reset all to defaults.
+const OWN_RESET = new Set(['daw.layout', 'daw.sync', 'look.zoom', 'look.entrySort', 'app.tips', 'keys.map']);
+
 export function SettingRowView({ row, children, flash, wide }: { row: SettingMeta; children?: ReactNode; flash?: boolean; wide?: boolean }) {
   const store = useSettingsStore();
   const uid = useId();
@@ -79,6 +86,9 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
   const controlId = `set-${row.id}`;
   const error = store.rowErrors[row.id];
   const hasCustom = children !== undefined;
+  const rowEl = useRef<HTMLDivElement>(null);
+  const reset = useRowReset(row.id);
+  const { notify } = useSettingsHost();
   const comp = computerValue(row, global);
   const own = overrideValue(row, project);
   // A custom body has no host field to compare, except a row this window keeps, which has its own reader.
@@ -109,7 +119,9 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
 
   return (
     <div
-      className={`${CELL} relative scroll-mt-24 ${flash ? 'bg-[var(--accent-soft)]' : ''}`}
+      className={`${CELL} relative scroll-mt-24 outline-none ${flash ? 'bg-[var(--accent-soft)]' : ''}`}
+      ref={rowEl}
+      tabIndex={-1}
       data-row={row.id}
       data-changed={changed ? 'true' : undefined}
       data-scope={row.scope}
@@ -136,7 +148,24 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
       </div>
       <div className={`flex max-w-full min-w-0 flex-col items-start gap-2 ${wide ? 'col-span-full' : ''}`} data-row-body={wide ? 'wide' : undefined}>
         {hasCustom ? (
-          children
+          changed && reset && !OWN_RESET.has(row.id) ? (
+            <div data-control-line className="flex w-full min-w-0 flex-wrap items-center gap-1.5">
+              {children}
+              <IconButton
+                action="undo"
+                label={`Reset ${row.label} to its default`}
+                className="border-transparent"
+                onClick={() => {
+                  void Promise.resolve(reset())
+                    .catch((failure: unknown) => notify(`${row.label} could not be reset: ${describeApiError(failure)}`, 'error'))
+                    // The button is gone once the row is back at its default; keep the place instead of dropping to the page.
+                    .finally(() => rowEl.current?.focus());
+                }}
+              />
+            </div>
+          ) : (
+            children
+          )
         ) : global ? (
           <>
             {/* The row of the control and its Reset takes the column's width, so the control's own `w-full` has a width to resolve against.

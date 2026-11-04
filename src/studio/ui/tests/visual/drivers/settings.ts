@@ -437,8 +437,8 @@ export const settingsDrivers: Record<string, Driver> = {
   'schedule-basis-own': async (page) => {
     await openSettings(page, 'Project');
     const row = await showSettingsRow(page, 'project.rateBasis');
-    await row.getByRole('radio', { name: 'Your own pace' }).click();
-    await row.getByRole('radio', { name: 'Your own pace', checked: true }).waitFor();
+    await row.getByRole('radio', { name: 'Your pace' }).click();
+    await row.getByRole('radio', { name: 'Your pace', checked: true }).waitFor();
     await row.getByText('Changed', { exact: true }).waitFor();
   },
   'category-reset': async (page) => {

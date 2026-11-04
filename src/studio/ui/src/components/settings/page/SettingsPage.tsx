@@ -22,6 +22,7 @@ import { PAGE_SETTINGS } from '../registry/pageSettings';
 import { ROWS } from '../registry/rows';
 import { search, type Hit } from '../registry/search';
 import { PAGE_LABEL, PAGE_PATH, type CategoryId, type SettingMeta, type UsedPage } from '../registry/types';
+import { RowResetContext } from '../row/RowResetContext';
 import { SettingsHostProvider, useSettingsHost, type SettingsHost } from '../row/SettingsHost';
 import { SettingsNavProvider } from '../row/SettingsNav';
 import { ANCHOR_TARGETS } from './anchors';
@@ -121,7 +122,7 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
     [store, flagged],
   );
   const inProject = useCallback(
-    (row: SettingMeta): boolean => row.scope === 'project' || overrideValue(row, store.fieldsOf(row).project) !== undefined,
+    (row: SettingMeta): boolean => (row.scope === 'project' && !row.field) || overrideValue(row, store.fieldsOf(row).project) !== undefined,
     [store],
   );
   const passes = useCallback(
@@ -279,79 +280,81 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
   }
 
   return (
-    <SettingsNavProvider value={{ go, showCategory }}>
-      <div className="@container flex w-full flex-col gap-4" data-testid="settings-page">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <Heading title="Settings" />
-          {cameFrom && (
-            <Button variant="secondary" size="sm" id="settings-back" onClick={() => go(cameFrom)}>
-              <Icon name="previous" /> Back to {pageNameOf(cameFrom)}
-            </Button>
-          )}
-          <span className="flex-1" />
-          <div role="search" className="flex flex-wrap items-center gap-2.5 @max-[760px]:w-full">
-            <div className="w-[260px] min-w-0 flex-[1_1_180px]">
-              <SearchField
-                leadingIcon
-                label="Search settings"
-                placeholder="Search settings"
-                value={query}
-                onChange={setQuery}
-                onKeyDown={(event) => {
-                  if (event.key === 'Escape' && query) {
-                    event.stopPropagation();
-                    setQuery('');
-                  }
-                }}
+    <RowResetContext.Provider value={resets}>
+      <SettingsNavProvider value={{ go, showCategory }}>
+        <div className="@container flex w-full flex-col gap-4" data-testid="settings-page">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <Heading title="Settings" />
+            {cameFrom && (
+              <Button variant="secondary" size="sm" id="settings-back" onClick={() => go(cameFrom)}>
+                <Icon name="previous" /> Back to {pageNameOf(cameFrom)}
+              </Button>
+            )}
+            <span className="flex-1" />
+            <div role="search" className="flex flex-wrap items-center gap-2.5 @max-[760px]:w-full">
+              <div className="w-[260px] min-w-0 flex-[1_1_180px]">
+                <SearchField
+                  leadingIcon
+                  label="Search settings"
+                  placeholder="Search settings"
+                  value={query}
+                  onChange={setQuery}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Escape' && query) {
+                      event.stopPropagation();
+                      setQuery('');
+                    }
+                  }}
+                />
+              </div>
+              <ToggleGroup
+                label="Show"
+                look="segmented"
+                value={filter}
+                onChange={(next) => setFilter(next as Filter)}
+                options={[
+                  { value: 'all', label: 'All' },
+                  { value: 'changed', label: 'Changed' },
+                  { value: 'project', label: 'In this project' },
+                ]}
               />
             </div>
-            <ToggleGroup
-              label="Show"
-              look="segmented"
-              value={filter}
-              onChange={(next) => setFilter(next as Filter)}
-              options={[
-                { value: 'all', label: 'All' },
-                { value: 'changed', label: 'Changed' },
-                { value: 'project', label: 'In this project' },
-              ]}
-            />
           </div>
+          <div className="grid items-start gap-5 @min-[761px]:grid-cols-[236px_minmax(0,1fr)]">
+            <CategoryNav
+              current={cat}
+              browsing={searching}
+              open={navOpen}
+              onToggle={() => setNavOpen((current) => !current)}
+              onPick={showCategory}
+              changedIn={changedIn}
+              pageSettingCount={PAGE_SETTINGS.length}
+            />
+            <section aria-labelledby="settings-heading" id="settings-pane" className="flex min-w-0 scroll-mt-3 flex-col gap-4">
+              {store.failing && (
+                <InsetCard tone="warn" role="status" className="flex flex-col items-start gap-1.5 text-[0.875rem]">
+                  <b>Changes cannot be saved right now.</b>
+                  <span>The last change was not kept and the previous value is still in use. The setting says why.</span>
+                </InsetCard>
+              )}
+              {broken && (
+                <InsetCard tone="danger" role="alert" className="flex flex-col items-start gap-1.5 text-[0.875rem]">
+                  <b>Your settings could not be read.</b>
+                  <span>{store.readError.global}. Nothing can be changed until the file can be read.</span>
+                  <Button variant="secondary" size="sm" onClick={() => void store.reload()}>
+                    Retry
+                  </Button>
+                </InsetCard>
+              )}
+              {content}
+            </section>
+          </div>
+          <span className="sr-only" role="status" aria-live="polite">
+            {store.announcement}
+          </span>
         </div>
-        <div className="grid items-start gap-5 @min-[761px]:grid-cols-[236px_minmax(0,1fr)]">
-          <CategoryNav
-            current={cat}
-            browsing={searching}
-            open={navOpen}
-            onToggle={() => setNavOpen((current) => !current)}
-            onPick={showCategory}
-            changedIn={changedIn}
-            pageSettingCount={PAGE_SETTINGS.length}
-          />
-          <section aria-labelledby="settings-heading" id="settings-pane" className="flex min-w-0 scroll-mt-3 flex-col gap-4">
-            {store.failing && (
-              <InsetCard tone="warn" role="status" className="flex flex-col items-start gap-1.5 text-[0.875rem]">
-                <b>Changes cannot be saved right now.</b>
-                <span>The last change was not kept and the previous value is still in use. The setting says why.</span>
-              </InsetCard>
-            )}
-            {broken && (
-              <InsetCard tone="danger" role="alert" className="flex flex-col items-start gap-1.5 text-[0.875rem]">
-                <b>Your settings could not be read.</b>
-                <span>{store.readError.global}. Nothing can be changed until the file can be read.</span>
-                <Button variant="secondary" size="sm" onClick={() => void store.reload()}>
-                  Retry
-                </Button>
-              </InsetCard>
-            )}
-            {content}
-          </section>
-        </div>
-        <span className="sr-only" role="status" aria-live="polite">
-          {store.announcement}
-        </span>
-      </div>
-    </SettingsNavProvider>
+      </SettingsNavProvider>
+    </RowResetContext.Provider>
   );
 }
 

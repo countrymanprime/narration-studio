@@ -526,6 +526,43 @@ describe('Settings: Reset to defaults reaches every row Changed counts (issue 26
     expect(calls).toHaveLength(1);
   });
 
+  it('shows the default in every row Reset put back, not the value it had (walkthrough: stale rows)', async () => {
+    localStorage.setItem('narration.booth.textSize', '52');
+    localStorage.setItem('narration-ui-ribbon-scroll-step', '23');
+    localStorage.setItem('narration-ui-motion', 'reduce');
+    localStorage.setItem('narration-ui-editing-output', JSON.stringify({ volume: 50, muted: false, rate: 1.5, device: '' }));
+    const api = createMockApi();
+    await api.windowSetZoom(1.25);
+    await renderPage({ api });
+    pick('Appearance & keys');
+    await waitFor(() => expect(screen.getByRole('slider', { name: 'Booth text size' }).getAttribute('aria-valuetext')).toBe('52 px'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Reset to defaults' }));
+    await waitFor(() => expect(badge('Appearance')).toBeNull());
+    await waitFor(() => expect(screen.getByRole('slider', { name: 'Booth text size' }).getAttribute('aria-valuetext')).toBe('40 px'));
+    expect(screen.getByRole('slider', { name: /Waveform arrow step/ }).getAttribute('aria-valuetext')).toMatch(/^20 s/);
+    expect(screen.getByRole('radio', { name: 'Follow Windows' }).getAttribute('aria-checked')).toBe('true');
+    expect((screen.getByRole('combobox', { name: 'Zoom' }) as HTMLSelectElement).value).toBe('1');
+    expect(screen.getByRole('button', { name: '1×' }).getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('gives a changed row that has no control of its own a Reset, and focus stays on the row after it (walkthrough)', async () => {
+    localStorage.setItem('narration.booth.textSize', '52');
+    localStorage.setItem('narration-ui-motion', 'reduce');
+    await renderPage();
+    pick('Appearance & keys');
+    const size = await waitFor(() => {
+      const found = row('look.boothSize');
+      expect(found).toBeTruthy();
+      return found;
+    });
+    fireEvent.click(within(size).getByRole('button', { name: 'Reset Booth text size to its default' }));
+    await waitFor(() => expect(within(row('look.boothSize')).getByRole('slider').getAttribute('aria-valuetext')).toBe('40 px'));
+    expect(within(row('look.boothSize')).queryByRole('button', { name: /^Reset Booth text size/ })).toBeNull();
+    expect(row('look.boothSize').contains(document.activeElement)).toBe(true);
+    // The rows that already carry their own Reset do not get a second one.
+    expect(within(row('look.motion')).getAllByRole('button', { name: /^Reset / })).toHaveLength(1);
+  });
+
   it('does not count a Merriam-Webster key as changed, and shows no Reset for it: a secret the narrator pasted has no default', async () => {
     const api = createMockApi();
     vi.spyOn(api, 'pronunciationOnlineKeyStatus').mockResolvedValue({ present: true } as never);
