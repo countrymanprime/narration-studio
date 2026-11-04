@@ -106,6 +106,7 @@ const STORAGE: Parity = {
     'narration.script.text': 'look.reader',
     'narration.booth.textSize': 'look.boothSize',
     'narration-ui-editing-output': 'look.playback',
+    'narration.storyBible.sort': 'look.entrySort',
   },
   exempt: {
     'narration-ui-demo-play-motion': 'A development switch for recorded demos, not offered to a narrator.',
@@ -116,9 +117,8 @@ const STORAGE: Parity = {
     'narration.booth.chapterPlaces.': 'Where the Booth was in each chapter: remembered position, not a preference.',
     'narration.proof.lastChapter.': 'The chapter Proof and Master & QC were last on: remembered position, not a preference.',
     'narration.readAloud.flags': 'Read only; nothing writes it.',
-    'narration.storyBible.sort': 'GAP, Story Bible: the entry table’s sort. Row, or a reason, comes in the Story Bible pull request.',
   },
-  cap: 9,
+  cap: 8,
 };
 
 // ---- Files that write a host settings field outside the Settings page.
@@ -138,13 +138,13 @@ const WRITERS: Parity = {
     'components/editing/effects/useFxFavourites.ts': 'ps.fx',
     'components/proof/proofOptions/useProjectOptions.ts': 'ps.preview',
     'components/editing/effects/useFxCap.ts': 'daw.fxCap',
+    'tips/tipsStore.ts': 'app.tips',
   },
   exempt: {
     'components/credits/CreditsSetupDialog.tsx':
       'Writes the narrator name for “all my projects”, the same value as project.narrator’s global scope; the dialog is that row’s prompt.',
-    'tips/tipsStore.ts': 'GAP, App: which first-use tips were dismissed. Row (reset tips), or a reason, comes in the App pull request.',
   },
-  cap: 2,
+  cap: 1,
 };
 
 describe('settings parity (issue 2815)', () => {

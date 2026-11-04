@@ -715,6 +715,20 @@
   },
   {
     "page": "settings",
+    "state": "story-bible-order",
+    "viewport": "desktop",
+    "docName": "settings-story-bible-order",
+    "caption": "Settings - Story Bible order under Look: a select of eight orders, Name, A to Z by default"
+  },
+  {
+    "page": "settings",
+    "state": "first-use-tips-dismissed",
+    "viewport": "desktop",
+    "docName": "settings-first-use-tips",
+    "caption": "Settings - First-use tips under Tips after a tip was dismissed: 1 dismissed, and Show tips again"
+  },
+  {
+    "page": "settings",
     "state": "editing-playback",
     "viewport": "desktop",
     "docName": "settings-editing-playback",
