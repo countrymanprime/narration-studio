@@ -185,6 +185,25 @@ def test_the_guide_freeze_carries_piper_data_and_the_cmu_dictionary(script, monk
         assert "piper" not in flag_values(other, "--collect-data"), "only the guide speaks; the others must not grow by 19 MB"
 
 
+def test_every_freeze_excludes_the_development_tools_the_environment_carries(script, monkeypatch):
+    # pyproject.toml lists the runtime and the development tools in one environment, so PyInstaller followed the test tools' imports
+    # into every sidecar (hypothesis from narration_common's profiles, pytest and setuptools through plugins and hooks, fastapi and
+    # starlette through huggingface_hub's optional webhook server) and shipped them with their licences (#245). httpx is not excluded:
+    # huggingface_hub and spaCy's weasel import it at run time.
+    fake = FakePyInstaller()
+    install(monkeypatch, script, fake)
+
+    script.main()
+
+    assert {"hypothesis", "pytest", "_pytest", "pluggy", "iniconfig", "setuptools", "pkg_resources", "fastapi", "starlette", "uvicorn"} == set(
+        script.DEV_TOOL_MODULES
+    )
+    assert len(fake.calls) == len(SIDECARS)
+    for call in fake.calls:
+        assert set(script.DEV_TOOL_MODULES) <= set(flag_values(call, "--exclude-module")), call["name"]
+        assert "httpx" not in flag_values(call, "--exclude-module")
+
+
 def test_the_guide_freeze_excludes_the_optional_tools_it_loads_from_their_install_folder(script, monkeypatch):
     # GLiNER, BookNLP, transformers and torch are optional downloads the guide imports from the asset registry's install folder
     # Its import is a plain one PyInstaller follows, so a build machine that has them would ship about 5 GB.

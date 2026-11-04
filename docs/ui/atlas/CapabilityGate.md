@@ -7,7 +7,7 @@ Storybook title: `Primitives/CapabilityGate`. Source: `src/components/primitives
 ## Stories
 
 - Supported Is Unchanged
-- Experimental Is Enabled With A Badge
+- Built Is Unchanged
 - Not Yet Available Is Disabled With The Message
 - Unsupported Falls Back To The Controls Own Name
 - Unsupported Can Be Hidden Instead

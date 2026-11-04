@@ -231,6 +231,28 @@ func TestComparisonJudge(t *testing.T) {
 			writeAudio(t, f.dir, "take-b.wav", "a new recording")
 			return f.savedView()
 		}, RunUnknown, stages.CauseStale},
+		{"an item's start offset moved after the run", func(t *testing.T, f *compareFixture) stages.EvidenceView {
+			f.record(t, OutcomeComplete, "Chapter One", f.project.Tracks[0].Items...)
+			f.project.Tracks[0].Items[1].Takes[0].SOFFS = 3
+			return f.savedView()
+		}, RunUnknown, stages.CauseStale},
+		{"an item's playback rate changed after the run", func(t *testing.T, f *compareFixture) stages.EvidenceView {
+			f.record(t, OutcomeComplete, "Chapter One", f.project.Tracks[0].Items...)
+			f.project.Tracks[0].Items[1].Takes[0].PlayRate = 2
+			return f.savedView()
+		}, RunUnknown, stages.CauseStale},
+		{"a length change inside a millisecond is the same item", func(t *testing.T, f *compareFixture) stages.EvidenceView {
+			f.record(t, OutcomeComplete, "Chapter One", f.project.Tracks[0].Items...)
+			f.project.Tracks[0].Items[1].Length += 0.0005
+			return f.savedView()
+		}, RunCurrent, ""},
+		{"a source file that can no longer be read", func(t *testing.T, f *compareFixture) stages.EvidenceView {
+			f.record(t, OutcomeComplete, "Chapter One", f.project.Tracks[0].Items...)
+			if err := os.Remove(f.audioB); err != nil {
+				t.Fatal(err)
+			}
+			return f.savedView()
+		}, RunUnknown, stages.CauseStale},
 		{"partial selection", func(t *testing.T, f *compareFixture) stages.EvidenceView {
 			f.record(t, OutcomeComplete, "Chapter One", f.project.Tracks[0].Items[0])
 			return f.savedView()

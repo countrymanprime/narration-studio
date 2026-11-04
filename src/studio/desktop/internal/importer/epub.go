@@ -15,7 +15,7 @@ import (
 // Size limits (E5), a proposed judgement call revisited once real files are
 // supplied (F1) and recorded in docs/architecture/docx-import-quirks.md: a shared capped reader keeps a
 // hostile zip entry or an oversized book from an unbounded read, the same
-// hazard docxEntry has today (Evidence, threat-model row 6a, issue #239).
+// hazard docxEntry guards against with its own caps (threat-model row 6a, issue #239).
 const (
 	epubMaxFileSize  int64 = 64 * 1024 * 1024  // 64 MB EPUB on disk
 	epubMaxEntrySize int64 = 16 * 1024 * 1024  // 16 MB per decompressed entry
