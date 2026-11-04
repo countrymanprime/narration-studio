@@ -163,6 +163,20 @@ export const ROWS: readonly SettingMeta[] = [
     advanced: true,
     syn: 'chapter sync log history undo link diagnostics track',
   },
+  {
+    id: 'daw.layout',
+    cat: 'recording',
+    section: 'Chapter sync',
+    label: 'Chapter layout',
+    scope: 'project',
+    def: 'flat',
+    desc: 'One track per chapter, or a folder with a track per voice.',
+    more: 'Flat: a chapter is one track. Voice folders: a chapter is a folder with one child track per voice, so each voice records to its own track. The Engine panel’s Chapter sync card changes the same setting.',
+    used: ['production', 'booth', 'editing'],
+    also: 'Engine panel › Chapter sync',
+    needs: 'reaper',
+    syn: 'flat voice folders tracks per voice folder layout chapter sync',
+  },
 
   // ---- Speech to text
   {

@@ -420,8 +420,9 @@ const mockRenderExportHold = mockParams.get('mockRenderExport') === 'running';
 // packages from).
 const mockPackageMultiHold = mockParams.get('mockPackageMulti') === 'running';
 // `?mockMastering=daw|audacity` boots the project with that mastering row chosen, so Master & encode asks the narrator's approval
-// for the render (#2739) without choosing the row on the chain card first.
-const mockMastering = (['daw', 'audacity'] as const).find((seed) => seed === mockParams.get('mockMastering'));
+// for the render (#2739) without choosing the row on the chain card first. `no-audacity` boots it with the Audacity row not
+// available on this computer, so the chain card draws a row it cannot choose.
+const mockMastering = (['daw', 'audacity', 'no-audacity'] as const).find((seed) => seed === mockParams.get('mockMastering'));
 // `?mockExportPick=many|long` makes Master & QC's export picker choose a 40-chapter book, or files with very long names, so the
 // approval dialog's capped list can be seen full.
 const mockExportPick = (['many', 'long'] as const).find((seed) => seed === mockParams.get('mockExportPick'));
@@ -481,7 +482,11 @@ const mockInitial = {
   ...(mockDelivery ? { measure: 'delivery-ready' as const, renderExport: mockDelivery } : {}),
   ...(mockRenderExportHold ? { renderExport: 'hold' as const } : {}),
   ...(mockPackageMultiHold ? { renderPackageMulti: 'hold' as const } : {}),
-  ...(mockMastering ? { mastering: { choice: mockMastering } } : {}),
+  ...(mockMastering === 'no-audacity'
+    ? { mastering: { unavailable: { audacity: "Audacity's effect macro is not available on this computer." } } }
+    : mockMastering
+      ? { mastering: { choice: mockMastering } }
+      : {}),
   ...(mockExportPick ? { renderExportPick: mockExportPick } : {}),
   ...(mockDeliveryProfile ? { deliveryProfile: mockDeliveryProfile } : {}),
   ...(mockProduction ? { production: scenarioFromToday(mockProduction) } : {}),

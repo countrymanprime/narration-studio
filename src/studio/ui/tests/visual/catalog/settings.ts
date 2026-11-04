@@ -131,6 +131,12 @@ export const settingsStates: StateEntry[] = [
   },
   {
     page: 'settings',
+    state: 'recording-chapter-layout',
+    description: 'Settings, Recording & DAW: the Chapter layout row under Chapter sync, Flat and Voice folders (the Engine panel switch, on its own row)',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
     state: 'recording-reaper-path-invalid',
     description:
       'Settings, Recording & DAW, Advanced: a REAPER program path that does not end in reaper.exe is refused in the row with "This is not the path to reaper.exe..." and the old value stays',

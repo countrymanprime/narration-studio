@@ -83,6 +83,12 @@ for Audacity or the built-in recorder); and, under Advanced for any recorder,
 **Capabilities** and, for REAPER, **Sync activity**. These are settings of this computer; a project has no override for them. **Voice sample output** names the
 recorder the project uses (for example "Audacity's own audio device is not used or changed").
 
+**Chapter layout** (under **Chapter sync**, REAPER only) is **Flat** or **Voice folders**, saved with the project. Flat makes a chapter one
+track; Voice folders makes a chapter a folder with one child track per voice. It is the same switch as the Layout row of the
+[audio engine panel](navigation.md#the-audio-engine-panel): change it in either place and the other shows it at once. The **?** beside it says what each means.
+
+![Settings - Recording & DAW: Chapter layout under Chapter sync, with Flat and Voice folders](../../images/ui/settings-chapter-layout.webp)
+
 **Start tone** (under **Take cues**) is **Off** or **On**. On, the Booth plays a short beep when you press Record, for recording by foot pedal without looking at the screen, and the take starts when the beep ends, a fraction of a second later, so the beep is not on the recording. Turning it on plays it once. It is kept in this window, as Theme and Motion are, and there is no tone to stop a take.
 
 **Voice sample storage** (project setting) chooses where a new [voice sample](editing.md#marking-a-voice-sample) is kept: **In the project folder** (the default) copies its audio into the project, **In the DAW** keeps only a region in REAPER's project, named for the character and label, and plays the audio under that region, and **Both** does both. Moving the region in REAPER moves the sample; deleting it ends the sample, and a region REAPER has not saved yet reads as "Not saved in REAPER yet". A recording tool that cannot keep a region (Audacity today) shows the two DAW choices off; hover or focus one to see why.

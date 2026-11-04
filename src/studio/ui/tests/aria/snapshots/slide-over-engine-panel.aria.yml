@@ -6,8 +6,6 @@
 - status
 - alert
 - status
-- alert
-- status
 - dialog "Audio engine":
   - heading "Audio engine" [level=2]
   - button "Close the engine panel"
