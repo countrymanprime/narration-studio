@@ -1,3 +1,4 @@
+import { retryAction } from '../primitives/Toast';
 import { headingName } from '../../chapterHeading';
 import { chapterRecordedDetail } from '../../recordedThrough';
 import { useToastSideClearance } from '../../hooks/useToastClearance';
@@ -53,6 +54,7 @@ import { useProofPageCommands } from './useProofPageCommands';
 import { useNoteContextMenu } from './useNoteContextMenu';
 import { hasRecording } from './checkcard/cardSelectors';
 import { announcePickupListChanged } from '../pickups/pickupListChanged';
+import { DawToolsButton } from '../engine/DawToolsButton';
 
 /** A pin's ink is its note type's kind colour (kinds/kindMap.ts); a take comparison has no hue, so it is muted. */
 const pinColour = (type: FindingNoteType): string => {
@@ -181,7 +183,7 @@ export function ProofPage({
       })
       .catch((error: unknown) => {
         if (!live) return;
-        if (read.current.chapters) overlay.toast(describeApiError(error), { tone: 'error' });
+        if (read.current.chapters) overlay.toast(describeApiError(error), { tone: 'error', action: retryAction(() => setAttempt((n) => n + 1)) });
         else setChaptersProblem(describeApiError(error));
       });
     return () => {
@@ -216,7 +218,7 @@ export function ProofPage({
       })
       .catch((error: unknown) => {
         if (!live) return;
-        if (read.current.notes) overlay.toast(describeApiError(error), { tone: 'error' });
+        if (read.current.notes) overlay.toast(describeApiError(error), { tone: 'error', action: retryAction(() => setAttempt((n) => n + 1)) });
         else setNotesProblem(describeApiError(error));
       });
     return () => {
@@ -446,7 +448,7 @@ export function ProofPage({
             aria-label="Proof"
             className="flex min-w-0 flex-col gap-3 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-4"
           >
-            <ProofHeader progress={progress} chapterBar={stepper} />
+            <ProofHeader progress={progress} chapterBar={stepper} tools={<DawToolsButton groups={['structure']} />} />
             {all || !chapter ? (
               <div className="flex flex-col gap-1">
                 <SectionLabel>Open notes, by chapter</SectionLabel>

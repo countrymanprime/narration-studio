@@ -15,7 +15,7 @@ const IDLE: ChapterTagsPreview = { chapters: [], ready: false };
  * the last "Prepare chapter render" result (the per-chapter MP3 titles and files) to build a chapter
  * timeline, then writes ID3v2 CHAP/CTOC frames into a NEW copy of a separate, already-rendered combined-book MP3
  * the narrator names below - never into the per-chapter files, and never overwriting the file they name. Reachable
- * from the audio engine panel next to "Link chapters…" and "Prepare chapter render…",
+ * from the audio engine panel next to "Link chapters to tracks" and "Prepare the chapter render",
  * not a new nav item. */
 export function ChapterTagsDialog({ onClose }: { onClose: () => void }) {
   const api = useApi();
@@ -77,7 +77,7 @@ export function ChapterTagsDialog({ onClose }: { onClose: () => void }) {
       {previewError && <ToolResult tone="danger" message={previewError} />}
       {!previewError && preview.chapters.length === 0 && (
         <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-          No chapter render is configured yet. Use &ldquo;Prepare chapter render…&rdquo; first.
+          No chapter render is configured yet. Use the tool “Prepare the chapter render” first.
         </p>
       )}
       {preview.chapters.length > 0 && (

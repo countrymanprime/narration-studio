@@ -51,12 +51,40 @@ export const scriptDrivers: Record<string, Driver> = {
       .first()
       .waitFor();
   },
+  // A Story Bible name chosen on the Words tab: the card's How I will say it is the Story Bible entry's own row (#2595).
+  'rail-words-name': async (page) => {
+    await openRailTab(page, 'Words');
+    const rail = await openRail(page);
+    await rail.getByRole('row', { name: /^White Rabbit\b/ }).click();
+    await rail.getByRole('group', { name: 'Word: White Rabbit' }).waitFor();
+    await rail.getByLabel('How I say White Rabbit').waitFor();
+  },
+  // The dictionaries' candidates for a name, opened on its Words card (#2595).
+  'rail-words-candidates': async (page) => {
+    await openRailTab(page, 'Words');
+    const rail = await openRail(page);
+    await rail.getByRole('row', { name: /^Alice\b/ }).click();
+    await rail.getByRole('group', { name: 'Word: Alice' }).waitFor();
+    await rail.getByRole('button', { name: 'From the dictionaries' }).click();
+    await rail.getByRole('list', { name: 'Dictionary candidates for Alice' }).getByRole('listitem').first().waitFor();
+  },
   'rail-story-bible': async (page) => openRailTab(page, 'Story Bible'),
   'rail-notes': async (page) => openRailTab(page, 'Notes'),
   // The first-use tip over the reader, as the narrator meets it the first time Script opens.
   'first-use-tip': async (page) => {
     await goToPage(page, 'Script', { keepTips: true });
     await page.getByRole('complementary', { name: 'Tip' }).waitFor();
+  },
+  // The narrator picks a chapter in the jump menu: focus lands on that chapter's heading, drawn with its ring (#2902).
+  'chapter-jump-focus': async (page) => {
+    await goToPage(page, 'Script');
+    await page.keyboard.press('Control+k');
+    const field = page.getByRole('combobox', { name: 'Jump menu' });
+    await field.fill('chapter 3');
+    await page.getByRole('option').first().waitFor();
+    await page.keyboard.press('Enter');
+    await page.getByRole('dialog').waitFor({ state: 'detached' });
+    await expect(page.locator('h2:focus')).toHaveCount(1);
   },
   'chapter-list': async (page) => {
     await goToPage(page, 'Script');

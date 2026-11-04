@@ -10,10 +10,11 @@ Storybook title: `StoryBible/PronSourceTag`. Source: `src/components/storybible/
 - Button
 - Menu With Unavailable Sources
 - Name Row Editing
+- Name Row Under A Heading
+- Name Row Dictionary Candidates
 - Name Row Read Only
 
 ## Used by
 
 - `src/components/script/page/rail/bible/EntryCard.tsx`
-- `src/components/script/page/rail/words/WordCard.tsx`
 - `src/components/storybible/source/NamePronunciation.tsx`

@@ -1,4 +1,5 @@
 import { withoutCredits } from '../../chapterKinds';
+import { subscribePronunciationChanged } from '../../studio/commands/pronounce';
 import { LoadError } from '../layout/LoadError';
 import { describeApiError } from '../../api/errorMessage';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
@@ -51,6 +52,7 @@ import { useSamplePlayer } from '../voicesamples/useSamplePlayer';
 import { VoiceDataPanel } from './VoiceDataPanel';
 import { Icon } from '../primitives/Icon';
 import { SearchField } from '../primitives/SearchField';
+import { retryAction } from '../primitives/Toast';
 import type { Notify } from '../primitives/Toast';
 import { useJustChanged } from '../primitives/changeHighlight';
 import { GuideDetailSkeleton, GuideListSkeleton } from './GuideSkeleton';
@@ -135,8 +137,9 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
   // render would silently discard whatever the user just typed.
   const newEntityDraft = useMemo(() => (pendingNewEntity ? emptyGuideEntity(pendingNewEntity.name) : undefined), [pendingNewEntity]);
 
+  // Reading the entries changes nothing, so a failed later read is an error toast with Retry (issue #2919).
   const load = useCallback(
-    async (selectId?: string) => {
+    async (selectId?: string): Promise<void> => {
       try {
         const next = await api.guideEntities();
         loadedOnce.current = true;
@@ -147,7 +150,12 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
         if (selectId !== undefined) setUnknownEntity(next.some((row) => row.id === selectId) ? undefined : selectId);
         setSelectedId((current) => (next.find((row) => row.id === (selectId ?? current)) || next.find((row) => row.category !== 'Draft'))?.id);
       } catch (error) {
-        if (loadedOnce.current) notify(describeApiError(error), 'error');
+        if (loadedOnce.current)
+          notify(
+            describeApiError(error),
+            'error',
+            retryAction(() => void load(selectId)),
+          );
         else setLoadError(describeApiError(error));
       }
     },
@@ -213,6 +221,8 @@ function GuideLoaded({ notify, goToManuscript }: Pick<GuideProps, 'notify' | 'go
   const chapterOrder = useMemo(() => new Map(chapters.map((chapter, place) => [chapter.id, place])), [chapters]);
   // A build that ends while the narrator is elsewhere on this page still refreshes the entries.
   useEffect(() => api.subscribeJobEnded((event) => event.kind === 'story_bible' && void load()), [api, load]);
+  // A pronunciation changed on another page (Script's Words) or undone from History is read again: the entries are its one store (#2595).
+  useEffect(() => subscribePronunciationChanged(() => void load()), [load]);
 
   // A Draft entry (a brand new, not-yet-categorized entity) is hidden from
   // every tab/search except while it's the one open in the detail pane - it
