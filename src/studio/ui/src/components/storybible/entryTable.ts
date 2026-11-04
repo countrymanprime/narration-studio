@@ -2,6 +2,7 @@
 // filter, and the sort kept in browser storage. The sort is a per-viewer convenience like readerPreferences.ts; storage can be
 // missing or blocked, so every access is guarded and the table sorts by name when it fails.
 
+import { announceBrowserSettingChange } from '../../browserSettings';
 import type { ExtractionSuggestion } from '../../api/contracts/extraction';
 import type { GuideEntity } from '../../types';
 import { entryNeedsReview } from './entryList';
@@ -236,6 +237,7 @@ export function loadEntrySort(): EntrySort {
 export function saveEntrySort(sort: EntrySort): void {
   try {
     window.localStorage.setItem(ENTRY_SORT_STORAGE_KEY, JSON.stringify(sort));
+    announceBrowserSettingChange();
   } catch {
     /* storage unavailable: the choice lasts until the page closes */
   }

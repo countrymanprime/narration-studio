@@ -16,6 +16,7 @@ import { ToggleGroup } from '../../primitives/ToggleGroup';
 import { READER_FONTS, READER_SIZES, READER_SPACING, READER_WIDTHS, fontStack, widthName } from '../../script/page/tools/text/readerText';
 import { readScrollStep, SCROLL_STEP_MAX, SCROLL_STEP_MIN, writeScrollStep } from '../../editing/ribbon/scrollStep';
 import { readBoothSize, writeBoothSize } from '../../booth/page/boothSize';
+import { DEFAULT_SORT, loadEntrySort, saveEntrySort, type ColumnKey } from '../../storybible/entryTable';
 import { RATES, rateLabel, useOutputPrefs } from '../../engine/outputPrefs';
 import { DeviceRow } from '../../editing/output/OutputControls';
 import { useOutputDevices } from '../../editing/output/useOutputDevices';
@@ -246,6 +247,50 @@ export function ZoomRowBody() {
         onChange={(value) => choose(Number(value))}
       />
       {level !== 1 && <IconButton action="undo" label="Reset zoom to 100%" className="border-transparent" onClick={() => choose(1)} />}
+    </div>
+  );
+}
+
+const ENTRY_ORDERS: { value: string; label: string; key: { column: ColumnKey; dir: 'asc' | 'desc' } }[] = [
+  { value: 'name-asc', label: 'Name, A to Z', key: { column: 'name', dir: 'asc' } },
+  { value: 'name-desc', label: 'Name, Z to A', key: { column: 'name', dir: 'desc' } },
+  { value: 'kind-asc', label: 'Kind, first to last', key: { column: 'kind', dir: 'asc' } },
+  { value: 'kind-desc', label: 'Kind, last to first', key: { column: 'kind', dir: 'desc' } },
+  { value: 'book-asc', label: 'Book order', key: { column: 'book', dir: 'asc' } },
+  { value: 'book-desc', label: 'Book order, reversed', key: { column: 'book', dir: 'desc' } },
+  { value: 'mentions-desc', label: 'Most mentioned', key: { column: 'mentions', dir: 'desc' } },
+  { value: 'mentions-asc', label: 'Least mentioned', key: { column: 'mentions', dir: 'asc' } },
+];
+const DEFAULT_ENTRY_ORDER = 'name-asc';
+const entryOrderOf = (): string => {
+  const first = loadEntrySort()[0] ?? DEFAULT_SORT[0]!;
+  return `${first.column}-${first.dir}`;
+};
+
+/**
+ * Story Bible order: the one column the entry table sorts by first, the same sort its headers and Sort menu keep in this browser window. A
+ * choice here replaces the header clicks that broke ties.
+ */
+export function EntrySortBody() {
+  const [order, setOrder] = useState(entryOrderOf);
+  const choose = (value: string) => {
+    const picked = ENTRY_ORDERS.find((option) => option.value === value);
+    if (!picked) return;
+    saveEntrySort([picked.key]);
+    setOrder(value);
+  };
+  return (
+    <div className="flex items-center gap-2">
+      <Select
+        label="Story Bible order"
+        value={order}
+        onChange={choose}
+        options={ENTRY_ORDERS.map(({ value, label }) => ({ value, label }))}
+        className={READER_FIELD}
+      />
+      {order !== DEFAULT_ENTRY_ORDER && (
+        <IconButton action="undo" label="Reset to Name, A to Z" className="border-transparent" onClick={() => choose(DEFAULT_ENTRY_ORDER)} />
+      )}
     </div>
   );
 }

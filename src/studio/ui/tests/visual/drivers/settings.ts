@@ -405,6 +405,11 @@ export const settingsDrivers: Record<string, Driver> = {
     const row = await showSettingsRow(page, 'look.boothSize');
     await row.getByRole('slider', { name: 'Booth text size' }).waitFor();
   },
+  'story-bible-order': async (page) => {
+    await openSettings(page, 'Appearance & keys');
+    const row = await showSettingsRow(page, 'look.entrySort');
+    await row.getByRole('combobox', { name: 'Story Bible order' }).waitFor();
+  },
   'editing-playback': async (page) => {
     // Found by search, so the row is shown whole on its own (the Shortcuts list below it in the category has its own layout debt to settle).
     await openSettings(page);

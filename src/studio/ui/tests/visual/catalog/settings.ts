@@ -376,6 +376,14 @@ export const settingsStates: StateEntry[] = [
   },
   {
     page: 'settings',
+    state: 'story-bible-order',
+    description:
+      'Settings, Appearance & keys scrolled to Story Bible order under Look: a select of eight orders, Name, A to Z by default, with its row in full view',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
     state: 'editing-playback',
     description:
       'Settings, Appearance & keys scrolled to Editing playback under Listening: speed, volume, silence and the output device, with the row in full view',
