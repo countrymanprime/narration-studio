@@ -4,9 +4,9 @@ import { TooltipTarget } from '../primitives/Tooltip';
 import { useOpenEnginePanel, useOpenRecordingSettings } from './EnginePanelContext';
 
 /** What every DAW chip's tooltip ends with: where a press goes. */
-export const ENGINE_CHIP_DESTINATION = 'Opens the Audio engine panel';
+const ENGINE_CHIP_DESTINATION = 'Opens the Audio engine panel';
 /** The Built-in chips' tooltip ending: the app's own recorder has no link to manage, so its chip goes to where the engine is chosen. */
-export const BUILTIN_CHIP_DESTINATION = 'Opens Recording settings';
+const BUILTIN_CHIP_DESTINATION = 'Opens Recording settings';
 
 /**
  * The one button behind every chip that names the recorder (the header's EngineChip on every page with the header, the Booth's SetupChip): a
