@@ -38,6 +38,7 @@ Storybook title: `Primitives/Button`. Source: `src/components/primitives/Button.
 - `src/components/booth/record/RecordSetup.tsx`
 - `src/components/booth/side/VoicesInChapter.tsx`
 - `src/components/booth/voices/VoiceControl.tsx`
+- `src/components/booth/voices/WhoIsInDialog.tsx`
 - `src/components/connection/ChapterLinkDialog.tsx`
 - `src/components/connection/ReaperOffDialog.tsx`
 - `src/components/connection/ResolveShell.tsx`

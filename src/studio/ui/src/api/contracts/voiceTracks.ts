@@ -45,6 +45,25 @@ export type BoothVoice = {
   message?: string;
   trackGuid?: string;
   at?: number;
+  /** `BoothVoiceGet` only: the voices the Booth added to the chapter's folder this session (`BoothVoiceAdd`) that the saved project
+   * does not hold yet. The page lists them after the folder's saved children until the narrator saves in the DAW. */
+  added?: BoothVoiceTrack[];
+};
+
+/** A voice track the Booth added this session: its GUID and the name the DAW gave it. */
+export type BoothVoiceTrack = { guid: string; name: string };
+
+/**
+ * What `BoothVoiceAdd` did (src/studio/desktop/boothvoiceadd.go): `added`, a track named `name` is the chapter folder's last child, the
+ * characters are assigned to it and it is the voice the next take records on; `refused`, nothing was added or assigned and `message`
+ * says why (`recording` while a take runs, `name_taken` for a name a voice of the folder has, `no_name`, `invalid` past the limits).
+ */
+export type BoothVoiceAdded = {
+  outcome: 'added' | 'refused';
+  reason?: BoothVoice['reason'] | 'no_name' | 'name_taken' | 'invalid' | 'recording';
+  message?: string;
+  trackGuid?: string;
+  name?: string;
 };
 
 export interface VoiceTracksApi {
@@ -62,4 +81,7 @@ export interface VoiceTracksApi {
   /** The voice the host records the chapter on: the one chosen this session while it is still a voice of the chapter's folder, else
    * its Narrator voice. Refused, as a record start would be, for a flat, unlinked or empty-folder chapter. */
   boothVoiceGet(chapterId: string): Promise<BoothVoice>;
+  /** Adds a voice track named `name` inside the chapter's linked folder, after its last child, assigns `characterIds` to it (added to
+   * any the name already has) and chooses it. Sent only from the Booth's "Who is in Num N?" dialog, never during this app's take. */
+  boothVoiceAdd(chapterId: string, name: string, characterIds: string[]): Promise<BoothVoiceAdded>;
 }
