@@ -3,7 +3,7 @@
 // Lists every text <Button> in src/components (stories and tests skipped): file, line, variant, label text, and the nearest
 // enclosing context hint (row/toolbar/list/dialog footer). Run: node scripts/icon-button-audit.mjs [--json]
 import fs from 'node:fs';
-import { auditButtons } from './iconButtonAudit.mjs';
+import { auditButtons, escapeCell } from './iconButtonAudit.mjs';
 
 const out = auditButtons();
 if (process.argv.includes('--md')) {
@@ -23,7 +23,7 @@ if (process.argv.includes('--md')) {
     }
   }
   const status = (r) => (r.converted ? 'converted' : r.class === 'convert' ? 'convert (queued)' : r.class === 'review' ? 'decide (queued)' : 'keep');
-  const esc = (t) => t.replace(/\\/g, '\\\\').replace(/\|/g, '\\|').replace(/\s+/g, ' ').slice(0, 70);
+  const esc = escapeCell;
   const count = (f) => out.filter(f).length;
   console.log(
     `Totals: **${out.length}** buttons found; **${count((r) => status(r) === 'converted')}** converted in this change; **${count((r) => status(r) === 'convert (queued)')}** mapped to a catalogue action and queued; **${count((r) => status(r) === 'decide (queued)')}** need a catalogue decision; **${count((r) => r.class === 'keep')}** kept as text with a reason.\n`,

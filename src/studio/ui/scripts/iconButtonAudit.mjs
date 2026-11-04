@@ -92,6 +92,11 @@ function classify(r) {
   if (L === '') return ['keep', 'icon or custom content child (no text label)'];
   return ['review', 'needs a catalogue decision'];
 }
+/** A label as one cell of a Markdown table: backslashes escaped first (so a label's own `\|` stays two characters), then pipes, whitespace folded, cut at 70. */
+export function escapeCell(text) {
+  return text.replace(/\\/g, '\\\\').replace(/\|/g, '\\|').replace(/\s+/g, ' ').slice(0, 70);
+}
+
 export function auditButtons() {
   const files = [];
   (function walk(d) {

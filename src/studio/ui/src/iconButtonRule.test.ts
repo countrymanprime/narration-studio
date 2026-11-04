@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
 // @ts-expect-error the audit is a plain .mjs script with no declaration file
-import { auditButtons } from '../scripts/iconButtonAudit.mjs';
+import { auditButtons, escapeCell } from '../scripts/iconButtonAudit.mjs';
 import { TOOLTIP_VERBS } from './icons.catalog';
 
 // Owner rule (icon-button audit, #2836): a secondary action in a row, a list or a toolbar is an `IconButton` with a catalogue hint, not a text
@@ -67,5 +67,20 @@ describe('row and toolbar actions are icon buttons', () => {
 
   test('every exception carries a reason', () => {
     for (const [key, reason] of Object.entries(EXCEPTIONS)) expect(reason.length, key).toBeGreaterThan(10);
+  });
+});
+
+// Code-scanning alert 115: the audit table's cell escape did not escape backslashes, so a label ending in one could swallow the pipe after it.
+describe('escapeCell, the audit table cell escape', () => {
+  test('escapes a backslash before a pipe so the two stay two characters', () => {
+    expect(escapeCell('a\\|b')).toBe('a\\\\\\|b');
+  });
+  test('escapes a lone backslash and a lone pipe', () => {
+    expect(escapeCell('a\\b')).toBe('a\\\\b');
+    expect(escapeCell('a|b')).toBe('a\\|b');
+  });
+  test('folds whitespace and cuts at 70 characters', () => {
+    expect(escapeCell('a \n  b')).toBe('a b');
+    expect(escapeCell('x'.repeat(100))).toHaveLength(70);
   });
 });
