@@ -189,7 +189,8 @@ export async function openMaster(page: Page, query = ''): Promise<void> {
   }
   await goToPage(page, 'Master & QC');
   await page.getByTitle('Open Delivery').waitFor();
-  await page.getByRole('list', { name: 'Mastering steps' }).waitFor();
+  // The chain card's help appears once the rows are read, whichever row it is (a DAW row has no steps of the app's to list).
+  await page.getByRole('button', { name: 'About the mastering chain' }).waitFor();
 }
 
 // Opens the Production home, with a `?mockProduction=` seed when given, once its board is drawn (the app's page at `/`).

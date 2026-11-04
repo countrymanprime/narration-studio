@@ -17,5 +17,6 @@ Storybook title: `Voice samples/SamplePlayButton`. Source: `src/components/voice
 ## Used by
 
 - `src/components/booth/page/BoothNextPage.tsx`
+- `src/components/editing/voicesample/SampleMark.tsx`
 - `src/components/storybible/Guide.tsx`
 - `src/components/storybible/voicesamples/VoiceSampleRow.tsx`
