@@ -40,24 +40,30 @@ function Note({ children, alert = false }: { children: ReactNode; alert?: boolea
 }
 
 /** The output device: the system default, this computer's named outputs, and a saved output that is not connected, kept chosen and said so. */
-function DeviceRow({
+export function DeviceRow({
   prefs,
   devices,
   deviceProblem,
   onChange,
   onCheckDevices,
-}: Pick<OutputControlsProps, 'prefs' | 'devices' | 'deviceProblem' | 'onChange' | 'onCheckDevices'>) {
-  const listed = devices.phase === 'ready' && devices.status === 'ok' ? devices.outputs : [];
+  heading = true,
+}: Pick<OutputControlsProps, 'prefs' | 'devices' | 'deviceProblem' | 'onChange' | 'onCheckDevices'> & { heading?: boolean }) {
+  // Two outputs with the same name are one choice: the choice is kept by name (qa-breaker B3).
+  const listed = (devices.phase === 'ready' && devices.status === 'ok' ? devices.outputs : []).filter(
+    (output, at, all) => all.findIndex((other) => other.label === output.label) === at,
+  );
+  const unlisted = devices.phase === 'ready' && devices.status === 'unavailable';
   const missing = prefs.device !== '' && devices.phase === 'ready' && !listed.some((o) => o.label === prefs.device);
   const options = [
     { value: '', label: 'System default' },
     ...listed.map((o) => ({ value: o.label, label: o.label })),
     ...(missing ? [{ value: prefs.device, label: `${prefs.device} (not connected)` }] : []),
   ];
-  const off = devices.phase === 'loading' || (devices.phase === 'ready' && devices.status === 'unavailable');
+  // With no list and a saved output the choice stays on, so the system default can still be picked; it is off while loading, or when there is nothing to clear.
+  const off = devices.phase === 'loading' || (unlisted && prefs.device === '');
   return (
     <div className="flex flex-col gap-1.5">
-      <span className={HEADING}>Output</span>
+      {heading && <span className={HEADING}>Output</span>}
       <Select label="Output device" fullWidth value={prefs.device} options={options} disabled={off} onChange={(device) => onChange({ device })} />
       {devices.phase === 'loading' ? <Note>Listing outputs…</Note> : null}
       {devices.phase === 'ready' && devices.status === 'unavailable' ? (
