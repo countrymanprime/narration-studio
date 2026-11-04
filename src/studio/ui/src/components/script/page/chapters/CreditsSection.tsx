@@ -52,7 +52,12 @@ export function CreditsSection({
               <SectionLabel>Credits</SectionLabel>
               {onRecord && count > 0 && <IconButton action="recordInBooth" label={`Record ${title} in Booth`} onClick={onRecord} />}
             </div>
-            <h2 className="font-['Barlow_Condensed',sans-serif] text-[1.625rem] font-semibold">{title}</h2>
+            <h2
+              tabIndex={-1}
+              className="font-['Barlow_Condensed',sans-serif] text-[1.625rem] font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+            >
+              {title}
+            </h2>
             <CardFacts facts={cardFacts(count, facts(id))} />
             <div className="flex flex-wrap items-center gap-3">
               <SectionLabel>My prep</SectionLabel>

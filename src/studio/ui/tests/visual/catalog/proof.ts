@@ -1,6 +1,6 @@
 // The `proof` rows of STATE_CATALOG: the Studio Next Proof page (see state-catalog.ts), in the order they are captured.
 import type { StateEntry } from '../lib/types';
-import { KEEPS_DESKTOP_SCROLL, REFLOW, wholePage } from './shared';
+import { KEEPS_DESKTOP_SCROLL, POPUP_ANCHORED_AT_FIRST_WIDTH, REFLOW, wholePage } from './shared';
 
 export const proofStates: StateEntry[] = [
   {
@@ -16,6 +16,14 @@ export const proofStates: StateEntry[] = [
     description:
       'Proof while the chapters are still being read (?mockChapters=loading): the Proof title and grey blocks where the chapter strip, the notes queue and the Inspector will be, with one polite "Reading the chapters and notes…" status',
     ...REFLOW,
+  },
+  {
+    page: 'proof',
+    state: 'daw-tools-menu',
+    description:
+      'Proof, the DAW tools icon button at the end of the head opened on a linked chapter - the Structure heading over Prepare chapter render and Create chapter regions',
+    ...REFLOW,
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
   },
   {
     page: 'proof',

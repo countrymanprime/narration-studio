@@ -12,6 +12,7 @@ import { useCreditsRows } from '../credits/useCreditsRows';
 import { LoadError } from '../layout/LoadError';
 import { Panel } from '../primitives/Panel';
 import { StatStrip } from '../primitives/StatStrip';
+import { retryAction } from '../primitives/Toast';
 import type { Notify } from '../primitives/Toast';
 import { canRecord } from '../booth/record/useCanRecord';
 import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
@@ -235,7 +236,7 @@ export function ProductionPage({
 
   // The credits are chapters of the overview, so they are rows, counts and hours like any chapter. The credits rows are read only for what a chapter
   // does not carry: the credits panel.
-  const credits = useCreditsRows(manuscriptKey, (error) => notify(describeApiError(error), 'error'));
+  const credits = useCreditsRows(manuscriptKey, (error, retry) => notify(describeApiError(error), 'error', retryAction(retry)));
   const pipelineRows = narrated;
 
   // The pipeline row a Confirm, a Revert or a Restore just changed is highlighted once (changeHighlight.ts).

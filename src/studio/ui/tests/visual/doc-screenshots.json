@@ -526,6 +526,20 @@
   },
   {
     "page": "engine",
+    "state": "nested-chapters",
+    "viewport": "desktop",
+    "docName": "engine-panel-nested-chapters",
+    "caption": "The audio engine panel - Chapter links' header: two chapters nested in another chapter's folder in REAPER, and Move them out"
+  },
+  {
+    "page": "engine",
+    "state": "nested-chapters-confirm",
+    "viewport": "desktop",
+    "docName": "engine-panel-nested-chapters-confirm",
+    "caption": "The audio engine panel - the confirmation listing every track that moves out of the chapter's folder"
+  },
+  {
+    "page": "engine",
     "state": "live-tracks-saved",
     "viewport": "desktop",
     "docName": "engine-panel-live-tracks-saved",
@@ -677,6 +691,13 @@
     "viewport": "desktop",
     "docName": "settings-reader-text",
     "caption": "Settings - the reader rows: Reader font, Reader text size, Line spacing and Column width, with the preview quote"
+  },
+  {
+    "page": "settings",
+    "state": "booth-text-size",
+    "viewport": "desktop",
+    "docName": "settings-booth-text-size",
+    "caption": "Settings - Booth text size under Look: a slider from 24 to 72 px, 40 px by default"
   },
   {
     "page": "settings",
@@ -1643,5 +1664,33 @@
     "viewport": "desktop",
     "docName": "background-check-running",
     "caption": "Editing - a background check in progress at the bottom left, with Pause and Cancel"
+  },
+  {
+    "page": "editing",
+    "state": "daw-tools-menu",
+    "viewport": "desktop",
+    "docName": "editing-daw-tools",
+    "caption": "Editing - the DAW tools menu open on a linked chapter: the Structure heading over Prepare chapter render and Create chapter regions"
+  },
+  {
+    "page": "editing",
+    "state": "daw-tools-menu-audacity",
+    "viewport": "desktop",
+    "docName": "editing-daw-tools-audacity",
+    "caption": "Editing - the DAW tools menu on a project that records in Audacity: both entries off, each saying what Audacity cannot do"
+  },
+  {
+    "page": "proof",
+    "state": "daw-tools-menu",
+    "viewport": "desktop",
+    "docName": "proof-daw-tools",
+    "caption": "Proof - the DAW tools menu open at the end of the head: the Structure heading over Prepare chapter render and Create chapter regions"
+  },
+  {
+    "page": "master",
+    "state": "daw-tools-menu-off",
+    "viewport": "desktop",
+    "docName": "master-daw-tools",
+    "caption": "Master & QC with nothing measured and REAPER not answering: the DAW tools menu beside Check files, both entries off with REAPER's own sentence under each"
   }
 ]

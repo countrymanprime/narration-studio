@@ -34,6 +34,7 @@ import { profileName } from './packageItems';
 import { saveSharedChapter } from './sharedChapter';
 import { PAGE_COLUMN_CLASS } from '../../primitives/pageColumn';
 import { useFileActions } from './useFileActions';
+import { DawToolsButton } from '../../engine/DawToolsButton';
 
 const MUTED = { color: 'var(--text-muted)' };
 
@@ -261,6 +262,8 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
                   disabledReason={jobs.exportRunning ? 'An export is running' : undefined}
                 />
                 <MeasureControls run={run} />
+                {/* #2820: with nothing measured the next step is to render the chapters in the DAW, so its structure tools sit beside Check files. */}
+                {run.files.length === 0 && <DawToolsButton groups={['structure']} />}
               </>
             );
             // What the card says under its controls, at its own inset: what could not be read with Retry at the card's right edge, a
@@ -317,6 +320,7 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
               saving={mastering.saving}
               locked={jobs.exportRunning || jobs.starting}
               onChoose={mastering.choose}
+              retry={mastering.reload}
             />
             <DiagnosticsSection measuredPaths={run.paths} openSettings={openSettings} />
             <ReportExportPanel busy={run.running} measured={run.files.length > 0} />

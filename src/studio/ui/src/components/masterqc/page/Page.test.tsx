@@ -49,6 +49,17 @@ describe('Master & QC page body', () => {
   };
   const bar = () => screen.getByRole('button', { name: /^Chapter: / });
 
+  // #2820: the next step after Proof is to render the chapters in REAPER, so the structure tools sit beside Check files until there are files.
+  it('offers the DAW tools beside Check files while no file has been measured, and not once there are files', async () => {
+    mount([]);
+    expect(await screen.findByRole('button', { name: 'Check files…' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'DAW tools' })).toBeTruthy();
+    cleanup();
+    mount(ALL_PASS);
+    expect(await screen.findByRole('button', { name: /Re-check/ })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'DAW tools' })).toBeNull();
+  });
+
   it('selecting a file moves the shared chapter and the chapter bar follows', async () => {
     window.localStorage.clear();
     const user = userEvent.setup();

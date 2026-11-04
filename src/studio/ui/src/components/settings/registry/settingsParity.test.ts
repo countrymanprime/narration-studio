@@ -104,6 +104,7 @@ const STORAGE: Parity = {
     'narration-ui-take-tone': 'daw.startTone',
     'narration-ui-ribbon-scroll-step': 'look.waveScrollStep',
     'narration.script.text': 'look.reader',
+    'narration.booth.textSize': 'look.boothSize',
   },
   exempt: {
     'narration-ui-demo-play-motion': 'A development switch for recorded demos, not offered to a narrator.',
@@ -115,10 +116,9 @@ const STORAGE: Parity = {
     'narration.proof.lastChapter.': 'The chapter Proof and Master & QC were last on: remembered position, not a preference.',
     'narration.readAloud.flags': 'Read only; nothing writes it.',
     'narration.storyBible.sort': 'GAP, Story Bible: the entry table’s sort. Row, or a reason, comes in the Story Bible pull request.',
-    'narration.booth.textSize': 'GAP, Booth: the Booth’s own text size. Row comes in the Booth pull request.',
     'narration-ui-editing-output': 'GAP, Editing: playback speed, volume and output device. Row comes in the Editing pull request.',
   },
-  cap: 11,
+  cap: 10,
 };
 
 // ---- Files that write a host settings field outside the Settings page.

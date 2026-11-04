@@ -369,6 +369,13 @@ export const settingsStates: StateEntry[] = [
   },
   {
     page: 'settings',
+    state: 'booth-text-size',
+    description: 'Settings, Appearance & keys scrolled to Booth text size: a slider from 24 to 72 px, 40 px by default, with its row in full view',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
     state: 'wave-scroll-step',
     description:
       'Settings, Appearance & keys scrolled to the Editing section: Waveform arrow step, a slider from 15 to 30 seconds reading 20 s, with the rows around it',

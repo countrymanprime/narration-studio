@@ -78,6 +78,22 @@ describe('a failed read says so, with a way forward', () => {
     expect(notify).not.toHaveBeenCalledWith(expect.stringContaining('Error: Error'), 'error');
   });
 
+  // Issue #2919: reading the entries changes nothing, so the toast of a failed reload carries Retry, which reads them again.
+  it('a reload failing offers Retry in its toast, which reads the entries again', async () => {
+    const api = createMockApi();
+    const reload = endStoryBibleJob(api);
+    const notify = mount(api);
+    await screen.findAllByText('Alice');
+    const read = vi.spyOn(api, 'guideEntities').mockRejectedValueOnce(new Error('The Story Bible file is locked by another program.'));
+    reload();
+    await vi.waitFor(() =>
+      expect(notify).toHaveBeenCalledWith(expect.stringContaining('locked by another program'), 'error', expect.objectContaining({ label: 'Retry' })),
+    );
+    const failed = notify.mock.calls.find((call) => call[1] === 'error')!;
+    failed[2].onAction();
+    await vi.waitFor(() => expect(read).toHaveBeenCalledTimes(2));
+  });
+
   it('the types failing says so in the list panel, keeps the entries, and Retry reads the types again', async () => {
     const api = createMockApi();
     const types = vi.spyOn(api, 'guideTypes').mockRejectedValue(new Error('no answer'));
