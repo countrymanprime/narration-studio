@@ -676,7 +676,7 @@
     "state": "effects-cap",
     "viewport": "desktop",
     "docName": "settings-effects-cap",
-    "caption": "Settings - Recording & DAW, Effects: the Effects coverage cap row, 10 %, with Override for this project"
+    "caption": "Settings - Recording & DAW, Effects: the Effects coverage cap row after Override for this project, with the project's own box"
   },
   {
     "page": "settings",
