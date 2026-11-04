@@ -1,0 +1,295 @@
+package main
+
+import (
+	"encoding/json"
+	"errors"
+	"path/filepath"
+	"reflect"
+	"strings"
+	"testing"
+
+	"desktop/internal/audacitybridge"
+	"desktop/internal/contractfile"
+	"desktop/internal/masteringport"
+	"desktop/internal/masteringport/masteringporttest"
+	"desktop/internal/packager"
+	"desktop/internal/port"
+)
+
+func oneChapter(path string) []ExportItem {
+	return []ExportItem{{Kind: string(packager.KindChapter), Title: "Chapter 1", Path: path}}
+}
+
+// The approval reaches the DAW row: the export masters the chapter's region through the project's DAW (the fake DAW the
+// conformance suite uses, which refuses what the bridge refuses: no approval, a used token, a folder outside the project), the
+// job names the row it masters with, and the file is Judge's.
+func TestAnApprovedExportMastersThroughTheDAWRow(t *testing.T) {
+	source := filepath.Join(t.TempDir(), "ch1.wav")
+	writeFixtureFile(t, source, "wav")
+	host := masteringExportHost(t, masteringport.DAW, source)
+	daw := masteringporttest.NewFakeDAW(host.config.projectFolder)
+	t.Cleanup(masteringport.UseSession(func() (masteringport.Session, error) { return daw.Session(), nil }))
+
+	job, err := host.startExport(ExportRequest{Master: true, Items: oneChapter(source), Approval: &MasteringApproval{Provider: masteringport.DAW}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if job.Provider != masteringport.DAW {
+		t.Fatalf("job provider = %q, want daw", job.Provider)
+	}
+	job = waitExport(t, host)
+	if job.Phase != "success" {
+		t.Fatalf("phase %q (%s), file %+v, DAW refusals %q", job.Phase, job.Message, job.Files[0], daw.Refusals())
+	}
+	renders := daw.Renders()
+	if len(renders) != 1 || len(renders[0].Regions) != 1 || renders[0].Regions[0] != "Chapter 1" || renders[0].Approval == "" {
+		t.Fatalf("renders = %+v, want one approved render of the chapter's region", renders)
+	}
+	if job.Provider != masteringport.DAW || job.Files[0].MasteredPath == "" || job.Files[0].Mastering != nil {
+		t.Fatalf("job = %+v", job)
+	}
+}
+
+// An approval holds for the one call that carries it: the next export without one is refused again, before anything runs.
+func TestAnApprovalIsNotRememberedForTheNextExport(t *testing.T) {
+	source := filepath.Join(t.TempDir(), "ch1.wav")
+	writeFixtureFile(t, source, "wav")
+	host := masteringExportHost(t, masteringport.DAW, source)
+	daw := masteringporttest.NewFakeDAW(host.config.projectFolder)
+	t.Cleanup(masteringport.UseSession(func() (masteringport.Session, error) { return daw.Session(), nil }))
+	if _, err := host.startExport(ExportRequest{Master: true, Items: oneChapter(source), Approval: &MasteringApproval{Provider: masteringport.DAW}}); err != nil {
+		t.Fatal(err)
+	}
+	waitExport(t, host)
+	if _, err := host.startExport(ExportRequest{Master: true, Items: oneChapter(source)}); !errors.Is(err, masteringport.ErrNotApproved) {
+		t.Fatalf("second export without approval: err = %v, want ErrNotApproved", err)
+	}
+	if len(daw.Renders()) != 1 {
+		t.Fatalf("renders = %d, want only the approved one", len(daw.Renders()))
+	}
+}
+
+// An approval names the row the narrator saw. When the project masters with another row by the time it arrives (its choice
+// changed, or the chosen row stopped being available), the approval is stale: refused before a job starts, with both rows named.
+func TestAStaleApprovalIsRefusedBeforeAnythingRuns(t *testing.T) {
+	for _, c := range []struct{ choice, approved, want string }{
+		{masteringport.DAW, masteringport.Audacity, "you approved Audacity's effect macro, but this project now masters with Your DAW's FX chain"},
+		{masteringport.Builtin, masteringport.DAW, "you approved Your DAW's FX chain, but this project now masters with Built-in chain"},
+		{"", "retired-row", `you approved retired-row, but this project now masters with Built-in chain`},
+	} {
+		t.Run(c.choice+"/"+c.approved, func(t *testing.T) {
+			source := filepath.Join(t.TempDir(), "ch1.wav")
+			writeFixtureFile(t, source, "wav")
+			host := masteringExportHost(t, c.choice, source)
+			_, err := host.startExport(ExportRequest{Master: true, Items: oneChapter(source), Approval: &MasteringApproval{Provider: c.approved, Macro: "Loud"}})
+			if !errors.Is(err, errStaleApproval) || !strings.Contains(err.Error(), c.want) {
+				t.Fatalf("err = %v, want a stale refusal naming %q", err, c.want)
+			}
+			if state := host.exportState(); state.Phase != "idle" {
+				t.Fatalf("a refused export left a job: %+v", state)
+			}
+		})
+	}
+}
+
+// A row that needs a macro gets the narrator's macro name, trimmed, with its approval; no name, or a name Audacity's pipe cannot
+// carry, is refused before a job starts.
+func TestAMacroRowNeedsTheMacroNamedWithItsApproval(t *testing.T) {
+	source := filepath.Join(t.TempDir(), "ch1.wav")
+	writeFixtureFile(t, source, "wav")
+	row, asked := recordingRow(t, "macro")
+	row.caps = masteringport.Capabilities{Level: port.Experimental, NeedsApproval: true, NeedsMacro: true}
+
+	for _, bad := range []string{"", "   ", `Loud"; Delete`} {
+		host := masteringExportHost(t, "", source)
+		host.masteringRows = masterRows(row)
+		_, err := host.startExport(ExportRequest{Master: true, Items: oneChapter(source), Approval: &MasteringApproval{Provider: "macro", Macro: bad}})
+		if err == nil || (strings.TrimSpace(bad) == "" && !errors.Is(err, masteringport.ErrNoMacro)) {
+			t.Fatalf("macro %q: err = %v, want a refusal (ErrNoMacro when it is blank)", bad, err)
+		}
+		if state := host.exportState(); state.Phase != "idle" {
+			t.Fatalf("macro %q left a job: %+v", bad, state)
+		}
+	}
+	host := masteringExportHost(t, "", source)
+	host.masteringRows = masterRows(row)
+	if _, err := host.startExport(ExportRequest{Master: true, Items: oneChapter(source), Approval: &MasteringApproval{Provider: "macro", Macro: "  Book Loudness  "}}); err != nil {
+		t.Fatal(err)
+	}
+	if job := waitExport(t, host); job.Phase != "success" {
+		t.Fatalf("phase %q (%s)", job.Phase, job.Message)
+	}
+	if got := asked(); len(got) != 1 || got[0].Macro != "Book Loudness" || !got[0].Approved {
+		t.Fatalf("requests = %+v, want one approved request with the trimmed macro", got)
+	}
+}
+
+// An approval of the row the project masters with does no harm when that row does not need one, and an export that does not
+// master ignores it: neither is a stale refusal, and the job names its row or none.
+func TestAnApprovalOfTheBuiltInRowOrWithoutMasteringIsAccepted(t *testing.T) {
+	source := filepath.Join(t.TempDir(), "ch1.wav")
+	writeFixtureFile(t, source, "wav")
+	host := masteringExportHost(t, "", source)
+	host.masteringRows = fakeMaster(t)
+	job, err := host.startExport(ExportRequest{Master: true, Items: oneChapter(source), Approval: &MasteringApproval{Provider: "fake"}})
+	if err != nil || job.Provider != "fake" {
+		t.Fatalf("job %+v, err %v", job, err)
+	}
+	waitExport(t, host)
+
+	job, err = host.startExport(ExportRequest{Items: oneChapter(source), Approval: &MasteringApproval{Provider: "elsewhere"}})
+	if err != nil || job.Provider != "" {
+		t.Fatalf("encode-only: job %+v, err %v", job, err)
+	}
+	waitExport(t, host)
+}
+
+// The DAW row's own refusal (no DAW connected) reaches the file's error in the row's words, and the job ends in error.
+func TestAnApprovedDAWMasterWithNoDAWFailsTheFileWithTheReason(t *testing.T) {
+	source := filepath.Join(t.TempDir(), "ch1.wav")
+	writeFixtureFile(t, source, "wav")
+	host := masteringExportHost(t, masteringport.DAW, source)
+	t.Cleanup(masteringport.UseSession(func() (masteringport.Session, error) { return masteringport.Session{}, masteringport.ErrNoDAW }))
+	if _, err := host.startExport(ExportRequest{Master: true, Items: oneChapter(source), Approval: &MasteringApproval{Provider: masteringport.DAW}}); err != nil {
+		t.Fatal(err)
+	}
+	job := waitExportEnded(t, host)
+	if job.Phase != "error" || job.Files[0].Error != masteringport.ErrNoDAW.Error() {
+		t.Fatalf("job %+v", job)
+	}
+}
+
+// A chapter title of spaces is no title: refused by the plan and the start before a job starts, never sent as a DAW region of
+// spaces (qa B1, B2 on #2879).
+func TestAWhitespaceChapterTitleIsRefusedBeforeAnythingRuns(t *testing.T) {
+	source := filepath.Join(t.TempDir(), "ch1.wav")
+	writeFixtureFile(t, source, "wav")
+	host := masteringExportHost(t, masteringport.DAW, source)
+	for _, title := range []string{"", "   ", "\t"} {
+		req := ExportRequest{Master: true, Items: []ExportItem{{Kind: string(packager.KindChapter), Title: title, Path: source}}, Approval: &MasteringApproval{Provider: masteringport.DAW}}
+		if _, err := host.exportPlan(req); err == nil || !strings.Contains(err.Error(), "no chapter title") {
+			t.Fatalf("plan with title %q: err = %v", title, err)
+		}
+		if _, err := host.startExport(req); err == nil || !strings.Contains(err.Error(), "no chapter title") {
+			t.Fatalf("start with title %q: err = %v", title, err)
+		}
+	}
+	if state := host.exportState(); state.Phase != "idle" {
+		t.Fatalf("a refused export left a job: %+v", state)
+	}
+}
+
+// A row that needs a macro but not approval, asked with no approval at all, is refused for want of a macro; it does not
+// dereference the missing approval (qa G2 on #2879).
+func TestAMacroRowWithNoApprovalIsRefusedNotPanicking(t *testing.T) {
+	source := filepath.Join(t.TempDir(), "ch1.wav")
+	writeFixtureFile(t, source, "wav")
+	row, _ := recordingRow(t, "macro-only")
+	row.caps = masteringport.Capabilities{Level: port.Experimental, NeedsMacro: true}
+	host := masteringExportHost(t, "", source)
+	host.masteringRows = masterRows(row)
+	if _, err := host.startExport(ExportRequest{Master: true, Items: oneChapter(source)}); !errors.Is(err, masteringport.ErrNoMacro) {
+		t.Fatalf("err = %v, want ErrNoMacro", err)
+	}
+}
+
+// ExportPlan answers the row, what it needs, and each item as the host will export it (the title trimmed, the DAW region it
+// renders from), and changes nothing: no job, and no approval is asked of it.
+func TestExportPlanAnswersTheRowAndEachItemsRegion(t *testing.T) {
+	dir := t.TempDir()
+	chapter, opening := filepath.Join(dir, "ch1.wav"), filepath.Join(dir, "open.wav")
+	writeFixtureFile(t, chapter, "wav")
+	writeFixtureFile(t, opening, "wav")
+	host := masteringExportHost(t, masteringport.DAW, chapter, opening)
+	plan, err := host.exportPlan(ExportRequest{Master: true, Items: []ExportItem{
+		{Kind: string(packager.KindCreditsOpening), Path: opening},
+		{Kind: string(packager.KindChapter), Title: " Chapter 1 ", Path: chapter},
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := ExportPlan{Master: true, Provider: masteringport.DAW, Label: "Your DAW's FX chain", NeedsApproval: true, Items: []ExportPlanItem{
+		{Kind: string(packager.KindCreditsOpening), Path: opening, Region: "Opening credits"},
+		{Kind: string(packager.KindChapter), Title: "Chapter 1", Path: chapter, Region: "Chapter 1"},
+	}}
+	if !reflect.DeepEqual(plan, want) {
+		t.Fatalf("plan = %+v\nwant %+v", plan, want)
+	}
+	if state := host.exportState(); state.Phase != "idle" {
+		t.Fatalf("a plan started a job: %+v", state)
+	}
+	plain, err := host.exportPlan(ExportRequest{Items: []ExportItem{{Kind: string(packager.KindChapter), Title: "Chapter 1", Path: chapter}}})
+	if err != nil || plain.Master || plain.Provider != "" || plain.Items[0].Region != "" {
+		t.Fatalf("encode-only plan = %+v, %v", plain, err)
+	}
+}
+
+// TestExportPlanGoldenIsCurrent pins ExportPlan's answer for the DAW row and the Audacity row. UPDATE_CONTRACTS=1 rewrites
+// tests/fixtures/contracts/export-plan-*.json.
+func TestExportPlanGoldenIsCurrent(t *testing.T) {
+	items := []ExportItem{
+		{Kind: string(packager.KindCreditsOpening), Path: "C:/Renders/00 Opening credits.wav"},
+		{Kind: string(packager.KindChapter), Title: "Chapter 1", Path: "C:/Renders/Chapter 01.wav"},
+	}
+	for name, choice := range map[string]string{"export-plan-daw": masteringport.DAW, "export-plan-audacity": masteringport.Audacity} {
+		t.Run(name, func(t *testing.T) {
+			entry, err := masteringport.Rows.Lookup(choice)
+			if err != nil {
+				t.Fatal(err)
+			}
+			plan := exportPlanned{master: true, items: items, regions: make([]string, len(items)), row: entry, caps: entry.New().Capabilities()}
+			if !entry.Descriptor.Supports(masteringport.ModeWAV) {
+				for i, item := range items {
+					plan.regions[i] = exportRegion(item)
+				}
+			}
+			raw, err := encodeBinding(exportPlanPayload(plan), nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var decoded map[string]any
+			if err := json.Unmarshal([]byte(raw), &decoded); err != nil {
+				t.Fatal(err)
+			}
+			contractfile.Check(t, name, decoded)
+		})
+	}
+}
+
+// TestMacroNameRuleGoldenIsCurrent pins audacitybridge.CheckMacroName's verdict on names a narrator might type, so the approval
+// dialog's own check of a macro name (src/studio/ui/src/api/macroName.ts) is tested against the host's rule rather than a copy of
+// it. UPDATE_CONTRACTS=1 rewrites tests/fixtures/contracts/macro-names.json.
+func TestMacroNameRuleGoldenIsCurrent(t *testing.T) {
+	names := []string{
+		"Book loudness", "ACX_Master-2", "  spaced  ", "a", strings.Repeat("x", 64), strings.Repeat("x", 65), strings.Repeat("x ", 64),
+		"", "   ", "ACX \u2013 Master", "\u00dcn\u00efcode", "\u0645\u0631\u062d\u0628\u0627", "loud \U0001F50A", `../../evil"; rm -rf /`, "back\\slash", "dot.name", "tab\tname",
+	}
+	verdicts := make([]any, 0, len(names))
+	for _, name := range names {
+		verdicts = append(verdicts, map[string]any{"name": name, "ok": audacitybridge.CheckMacroName(name) == nil})
+	}
+	contractfile.Check(t, "macro-names", map[string]any{"names": verdicts})
+}
+
+// A title with no character a narrator can see (a zero-width space, a direction mark, an override) is no title: refused like an
+// empty one by the plan and the start, and the refusal names the file, not its whole path (qa on #2929).
+func TestATitleWithNoVisibleCharacterIsRefusedNamingTheFile(t *testing.T) {
+	source := filepath.Join(t.TempDir(), "Chapter 01.wav")
+	writeFixtureFile(t, source, "wav")
+	host := masteringExportHost(t, masteringport.Builtin, source)
+	for _, title := range []string{"\u200b", "\u200b \u200b", "\u202e", "\u00a0\u3000", "\u2066\u2069"} {
+		req := ExportRequest{Master: true, Items: []ExportItem{{Kind: string(packager.KindChapter), Title: title, Path: source}}}
+		for name, call := range map[string]func() error{
+			"plan":  func() error { _, err := host.exportPlan(req); return err },
+			"start": func() error { _, err := host.startExport(req); return err },
+		} {
+			err := call()
+			if err == nil || !strings.Contains(err.Error(), `"Chapter 01.wav" has no chapter title`) || strings.Contains(err.Error(), filepath.Dir(source)) {
+				t.Fatalf("%s with title %q: err = %v, want a refusal naming only the file", name, title, err)
+			}
+		}
+	}
+	if _, err := host.exportPlan(ExportRequest{Items: []ExportItem{{Kind: string(packager.KindChapter), Title: "\u200bChapter 1", Path: source}}}); err != nil {
+		t.Fatalf("a title with visible characters was refused: %v", err)
+	}
+}

@@ -11,7 +11,6 @@ Storybook title: `Script/ChapterCard`. Source: `src/components/script/page/chapt
 - Prepped
 - Credits
 - No Record Button
-- Review Banner
 
 ## Used by
 
