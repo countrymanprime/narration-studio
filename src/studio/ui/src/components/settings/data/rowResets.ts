@@ -12,28 +12,16 @@ import { useVoiceTracks } from '../../engine/useVoiceTracks';
 import { DEFAULT_TEXT_PREFS } from '../../script/page/tools/text/readerText';
 import { announceRateBasis } from '../../schedule/useEffectiveWph';
 import { DEFAULT_SORT, saveEntrySort } from '../../storybible/entryTable';
+import { refreshUserKeymap } from '../../../input/useUserKeymap';
+import { DELIVERY_PROFILES_CHANGED, optionValue } from '../DeliveryProfilesPanel';
+import { engineChanged } from './engineSignal';
 import { changeReaderText } from '../controls/readerText';
 import { useSettingsHost } from '../row/SettingsHost';
 
 /** Puts one row's value back to its default; a refusal rejects, and the caller says which rows could not be reset. */
 export type RowReset = () => Promise<unknown> | void;
 
-/**
- * Changed rows the header's Reset to defaults leaves alone, each with why. They hold something the narrator entered or chose, not a value
- * with a default the app can restore, so each is undone in its own row. Changed still counts them. `rowResets.test.ts` fails for a Changed
- * row that is in neither this list nor `useRowResets`, and for an entry here that has a reset or is not Changed-readable, so the list only
- * shrinks.
- */
-export const RESET_BY_ROW: Readonly<Record<string, string>> = {
-  'daw.voices': 'Which character each voice track records is project data the narrator entered; it is changed in its own row, track by track.',
-  'delivery.custom': 'The narrator’s own delivery profiles are data they wrote; each is deleted in the profile list.',
-  'voice.mwKey': 'The Merriam-Webster key is a secret the narrator pasted; it is removed in its own row, which asks first.',
-  'keys.map': 'The shortcut list has its own Reset all to defaults, which asks first and can be undone command by command.',
-  'daw.engine': 'Which recording tool the project uses is a choice that starts or stops tools; it is changed in its own row.',
-  'delivery.profile': 'The project’s own delivery profile is chosen in its own row.',
-};
-
-/** The rows `useRowResets` resets, in one list so a test can compare it with the rows Changed reads. */
+/** The rows `useRowResets` resets, in one list so a test can compare it with the rows Changed reads (they are the same rows). */
 export const RESETTABLE_ROWS = [
   'look.theme',
   'look.motion',
@@ -51,6 +39,9 @@ export const RESETTABLE_ROWS = [
   'project.rateBasis',
   'daw.sync',
   'daw.layout',
+  'keys.map',
+  'daw.engine',
+  'delivery.profile',
 ] as const;
 
 /** Whether the header's Reset to defaults puts this row back: a row with a host field, or one `useRowResets` knows. */
@@ -66,6 +57,8 @@ export function useRowResets(): Readonly<Record<(typeof RESETTABLE_ROWS)[number]
   const system = usePort('system');
   const chapterSync = usePort('chapterSync');
   const production = usePort('production');
+  const dawChoice = usePort('dawChoice');
+  const delivery = usePort('deliveryProfiles');
   const { reset: resetTips } = useTips();
   const { change: changeOutput } = useOutputPrefs();
   const { notify } = useSettingsHost();
@@ -98,7 +91,24 @@ export function useRowResets(): Readonly<Record<(typeof RESETTABLE_ROWS)[number]
       },
       'daw.sync': () => chapterSync.chapterSyncSetEnabled(true),
       'daw.layout': () => setLayout('flat'),
+      // The shortcut list's own Reset all to defaults saves the default keymap; clearing the saved overrides is the same result.
+      'keys.map': async () => {
+        await system.saveSettings('Keymap', 'global', { overrides: null });
+        refreshUserKeymap();
+      },
+      'daw.engine': async () => {
+        await dawChoice.dawChoose('REAPER');
+        engineChanged();
+      },
+      // There is no call that clears a project's profile, so the project takes the global default, which is what unchanged means.
+      'delivery.profile': async () => {
+        const state = await delivery.deliveryProfiles();
+        const base = state.profiles.find((profile) => optionValue(profile) === optionValue(state.globalDefault));
+        if (!base) return;
+        await delivery.deliverySelectProfile('project', base.id, base.builtIn ? base.version : '');
+        window.dispatchEvent(new Event(DELIVERY_PROFILES_CHANGED));
+      },
     }),
-    [setPreference, setMotion, system, chapterSync, production, resetTips, changeOutput, setLayout],
+    [setPreference, setMotion, system, chapterSync, production, dawChoice, delivery, resetTips, changeOutput, setLayout],
   );
 }

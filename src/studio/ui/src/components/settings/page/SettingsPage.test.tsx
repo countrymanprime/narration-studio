@@ -8,6 +8,7 @@ import { createMockApi } from '../../../api/mockApi';
 import { ThemeProvider } from '../../../theme/ThemeContext';
 import type { NarrationApi } from '../../../types';
 import { SettingsPage } from './SettingsPage';
+import { ROWS } from '../registry/rows';
 import { brand } from '../../../brand.gen';
 
 afterEach(() => {
@@ -460,13 +461,36 @@ describe('Settings: Reset to defaults reaches every row Changed counts (issue 26
     expect(screen.queryByRole('button', { name: 'Reset to defaults' })).toBeNull();
   });
 
-  it('shows no Reset when the only changed row is one Reset leaves to its own control', async () => {
+  it('does not count a Merriam-Webster key as changed, and shows no Reset for it: a secret the narrator pasted has no default', async () => {
     const api = createMockApi();
     vi.spyOn(api, 'pronunciationOnlineKeyStatus').mockResolvedValue({ present: true } as never);
     await renderPage({ api });
     pick('Voice & pronunciation');
-    await waitFor(() => expect(within(nav()).getByLabelText('1 changed')).toBeTruthy());
+    await screen.findByRole('heading', { level: 2, name: 'Voice & pronunciation' });
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(within(nav()).queryByLabelText(/changed$/)).toBeNull();
     expect(screen.queryByRole('button', { name: 'Reset to defaults' })).toBeNull();
+  });
+});
+
+describe('Settings: a row that saves for every project does not say it is this project’s (issue 2605)', () => {
+  it('words per page says it is kept for all projects, as it is saved on this computer', async () => {
+    await renderPage();
+    pick('Project');
+    const wordsPerPage = await waitFor(() => {
+      const found = row('project.wordsPerPage');
+      expect(found).toBeTruthy();
+      return found;
+    });
+    expect(within(wordsPerPage).queryByText('This project')).toBeNull();
+    expect(within(wordsPerPage).getByText('All projects')).toBeTruthy();
+  });
+
+  it('every row drawn as this project’s but saved with a host field says in its help that it is kept for every project', () => {
+    for (const meta of ROWS.filter((candidate) => candidate.scope === 'project' && candidate.field)) {
+      expect(meta.more ?? '', `${meta.id} saves at the computer scope`).toMatch(/every project/i);
+      expect(meta.desc, `${meta.id} calls itself this project’s`).not.toMatch(/this project/i);
+    }
   });
 });
 

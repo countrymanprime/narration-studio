@@ -19,9 +19,12 @@ const SCOPE_LABEL: Record<Scope, string> = { computer: 'This computer', project:
 
 /** Whose the setting is, and where this project differs. */
 function ScopeBadge({ row, overridden }: { row: SettingMeta; overridden: boolean }) {
+  // A row drawn for the project that is saved with a host field is written at the computer scope (the control has no project layer to write), so
+  // it says so: the value is kept for every project until a project-scope write exists (issue 2605).
+  const forAll = row.scope === 'project' && Boolean(row.field);
   return (
-    <span data-scope={row.scope} className={row.scope === 'project' ? 'text-[var(--accent-strong)]' : ''}>
-      {SCOPE_LABEL[row.scope]}
+    <span data-scope={row.scope} className={row.scope === 'project' && !forAll ? 'text-[var(--accent-strong)]' : ''}>
+      {forAll ? SCOPE_LABEL.both : SCOPE_LABEL[row.scope]}
       {overridden && <b className="font-semibold text-[var(--accent-strong)]"> · overridden here</b>}
     </span>
   );

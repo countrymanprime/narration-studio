@@ -27,7 +27,7 @@ describe('the custom-row probes', () => {
       </ApiProvider>,
     );
     await waitFor(() => expect(zoom).toHaveBeenCalledTimes(1));
-    // Three rows read the delivery profiles; they share one call.
+    // The delivery row reads the profiles once per pass.
     expect(profiles).toHaveBeenCalledTimes(1);
 
     // Re-rendering with nothing changed reads nothing more.
@@ -67,10 +67,6 @@ describe('each probe says changed for a changed value and not for the default', 
     expect(await run('look.zoom', ctx({ windowZoom: async () => ({ level: 1 }) }))).toBe(false);
     expect(await run('look.zoom', ctx({ windowZoom: async () => ({ level: 1.25 }) }))).toBe(true);
   });
-  it('voice.mwKey', async () => {
-    expect(await run('voice.mwKey', ctx({ pronunciationOnlineKeyStatus: async () => ({ present: false }) }))).toBe(false);
-    expect(await run('voice.mwKey', ctx({ pronunciationOnlineKeyStatus: async () => ({ present: true }) }))).toBe(true);
-  });
   it('daw.engine', async () => {
     expect(await run('daw.engine', ctx({ dawChoice: async () => ({ chosen: 'REAPER' }) }))).toBe(false);
     expect(await run('daw.engine', ctx({ dawChoice: async () => ({ chosen: null }) }))).toBe(false);
@@ -81,10 +77,12 @@ describe('each probe says changed for a changed value and not for the default', 
     expect(await run('keys.map', ctx({}, { settings: keymap(false) }))).toBe(false);
     expect(await run('keys.map', ctx({}, { settings: keymap(true) }))).toBe(true);
   });
-  it('the delivery rows', async () => {
-    expect(await run('delivery.custom', ctx({}, { delivery: profilesOf({}) }))).toBe(false);
-    expect(await run('delivery.custom', ctx({}, { delivery: profilesOf({ profiles: [{ builtIn: true }, { builtIn: false }] }) }))).toBe(true);
+  it('delivery.profile: the project chose something other than the global default', async () => {
     expect(await run('delivery.profile', ctx({}, { delivery: profilesOf({}) }))).toBe(false);
+    expect(await run('delivery.profile', ctx({}, { delivery: profilesOf({ projectChoice: { id: 'builtin' } }) }))).toBe(false);
     expect(await run('delivery.profile', ctx({}, { delivery: profilesOf({ projectChoice: { id: 'none' } }) }))).toBe(true);
+  });
+  it('the data rows are not read: what the narrator entered has no default to differ from', () => {
+    for (const id of ['voice.mwKey', 'delivery.custom']) expect(CUSTOM_CHANGED[id], id).toBeUndefined();
   });
 });
