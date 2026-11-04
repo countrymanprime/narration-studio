@@ -9,7 +9,7 @@ import { rollConfirmSpec } from './rollConfirm';
 import { rollPlan } from './rollPlan';
 import { clampPhrase } from './startFromHere';
 import { createTakeHold } from './takeHold';
-import { useRoll, type RollSession } from './useRoll';
+import { LOOKUP_MS, useRoll, type RollSession } from './useRoll';
 
 // The mock's setups: a roll REAPER keeps as a take, Audacity without backups (destructive), Audacity with backups (not).
 const withRoll = (base: DawCapabilities, punch: DawCapabilities['capabilities'][string]): DawCapabilities => ({
@@ -55,7 +55,7 @@ function setup(capabilities: DawCapabilities | null, over: Partial<RollSession> 
   const dialog = () =>
     overlay.getSnapshot().dialogs[0] as
       { spec: { title: string; body: string; confirmLabel: string; cancelLabel?: string }; answer: (c: boolean) => void } | undefined;
-  return { hook, actions, overlay, dialog };
+  return { hook, actions, overlay, dialog, session };
 }
 const settle = () =>
   act(async () => {
@@ -217,6 +217,93 @@ describe('useRoll', () => {
     await act(() => hook.result.current.startTake());
     expect(actions.notify).toHaveBeenCalledWith(expect.stringContaining('could not be read'));
     expect(actions.beginTake).not.toHaveBeenCalled();
+  });
+
+  describe('a lookup that is slow, never comes or comes late (the host is the other side)', () => {
+    const found = (p: number): BoothPunch => ({ outcome: 'found', trackGuid: `T${p}`, trackName: `Voice ${p}`, start: p * 10, end: p * 10 + 5 });
+    const gate = () => {
+      let resolve!: (value: BoothPunch) => void;
+      const promise = new Promise<BoothPunch>((r) => (resolve = r));
+      return { promise, resolve };
+    };
+
+    it('a lookup that never answers times out with a sentence and starts no take', async () => {
+      vi.useFakeTimers();
+      try {
+        const { hook, actions } = setup(SETUPS.reaper, { recording: false, punchAt: 1, punchTarget: () => new Promise(() => {}) });
+        let done: Promise<void> = Promise.resolve();
+        act(() => {
+          done = hook.result.current.startTake() as Promise<void>;
+        });
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(LOOKUP_MS);
+          await done;
+        });
+        expect(actions.notify).toHaveBeenCalledWith(expect.stringContaining('did not come back in time'));
+        expect(actions.clearStart).toHaveBeenCalledTimes(1);
+        expect(actions.beginTake).not.toHaveBeenCalled();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('Start from here with a DAW that cannot punch and a lookup that never answers does not hang', async () => {
+      vi.useFakeTimers();
+      try {
+        const { hook, actions } = setup(SETUPS.reaperOff, { recording: false, punchTarget: () => new Promise(() => {}) });
+        let done: Promise<void> = Promise.resolve();
+        act(() => {
+          done = hook.result.current.startFromHere(1) as Promise<void>;
+        });
+        await act(async () => {
+          await vi.runAllTimersAsync(); // the early check's wait, then the take's own
+          await done;
+        });
+        expect(actions.chooseStart).toHaveBeenCalledWith(1, true);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('a lookup that answers after a take began starts nothing', async () => {
+      const late = gate();
+      const { hook, actions, session } = setup(SETUPS.reaper, { recording: false, punchAt: 1, punchTarget: () => late.promise });
+      let done: Promise<void> = Promise.resolve();
+      act(() => {
+        done = hook.result.current.startTake() as Promise<void>;
+      });
+      hook.rerender({ ...session, recording: true });
+      late.resolve(found(1));
+      await act(() => done);
+      expect(actions.beginTake).not.toHaveBeenCalled();
+      expect(actions.chooseVoice).not.toHaveBeenCalled();
+    });
+
+    it('two quick Start from here presses look up twice but start once', async () => {
+      const { hook, actions } = setup(SETUPS.reaper, { recording: false, punchTarget: async (p) => found(p) });
+      await act(async () => {
+        await Promise.all([hook.result.current.startFromHere(1), hook.result.current.startFromHere(1)]);
+      });
+      expect(actions.beginTake).toHaveBeenCalledTimes(1);
+      expect(actions.chooseVoice).toHaveBeenCalledTimes(1);
+    });
+
+    it('a lookup answered after a newer start was chosen is ignored: the wrong voice is never recorded over', async () => {
+      const slow = gate();
+      const { hook, actions } = setup(SETUPS.reaper, {
+        recording: false,
+        punchTarget: (p) => (p === 2 ? slow.promise : Promise.resolve(found(p))),
+      });
+      let first: Promise<void> = Promise.resolve();
+      act(() => {
+        first = hook.result.current.startFromHere(2) as Promise<void>;
+      });
+      await act(() => hook.result.current.startFromHere(1));
+      slow.resolve(found(2));
+      await act(() => first);
+      expect(actions.beginTake).toHaveBeenCalledExactlyOnceWith(10);
+      expect(actions.chooseVoice).toHaveBeenCalledExactlyOnceWith('T1');
+    });
   });
 
   it('r-before-a-take-past-the-recorded-end-records-at-the-end', async () => {
