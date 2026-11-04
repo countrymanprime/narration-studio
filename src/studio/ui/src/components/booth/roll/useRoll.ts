@@ -183,7 +183,11 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
       const target = await lookUp(at);
       // A newer start was chosen meanwhile, or a take began (the Space key, the DAW's own Record): this answer is out of date.
       if (mine !== latestStart.current || sessionRef.current.recording) return;
-      if (target.outcome === 'never_recorded') return actionsRef.current.beginTake();
+      if (target.outcome === 'never_recorded') {
+        // Not a punch: said, so a narrator never thinks earlier work is being recorded over.
+        actionsRef.current.notify(`¶ ${s.paragraphOf(at) + 1} was not recorded before, so the take goes on from the end of the chapter's audio.`);
+        return actionsRef.current.beginTake();
+      }
       if (target.outcome !== 'found' || target.start === undefined) {
         actionsRef.current.notify(target.message ?? 'Where this passage was recorded is not known, so no take was started.');
         actionsRef.current.clearStart?.();

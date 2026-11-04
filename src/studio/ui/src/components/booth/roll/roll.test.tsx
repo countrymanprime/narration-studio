@@ -196,6 +196,13 @@ describe('useRoll', () => {
     expect(actions.beginTake).toHaveBeenCalledExactlyOnceWith(10);
   });
 
+  it('a passage nobody recorded says the take goes on from the end', async () => {
+    const { hook, actions } = setup(SETUPS.reaper, { recording: false, punchAt: 4 });
+    await act(() => hook.result.current.startTake());
+    expect(actions.notify).toHaveBeenCalledWith("¶ 3 was not recorded before, so the take goes on from the end of the chapter's audio.");
+    expect(actions.beginTake).toHaveBeenCalledExactlyOnceWith();
+  });
+
   it('a voice that cannot be chosen starts no take', async () => {
     const { hook, actions } = setup(SETUPS.reaper, { recording: false, punchAt: 1 });
     actions.chooseVoice.mockResolvedValue(false);
