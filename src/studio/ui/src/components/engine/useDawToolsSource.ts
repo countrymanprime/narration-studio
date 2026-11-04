@@ -78,7 +78,7 @@ export function useDawToolsSource(opened: number): DawToolsSource {
     };
   }, [system, enabled, opened, reachable, dawKind]);
 
-  const links = useChapterLinks(tracks, opened, noop, enabled);
+  const links = useChapterLinks(tracks, opened, noop, null, enabled);
   const linked = links.rows.filter((row) => row.state === 'linked').length;
   const dawOff =
     state === 'reading'

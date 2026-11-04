@@ -150,6 +150,27 @@ export const engineStates: StateEntry[] = [
   },
   {
     page: 'engine',
+    state: 'chapter-track-created',
+    description:
+      'The engine panel with no chapter linked (?mockChapterLink=none) after Chapter 1\'s "Create a track for this chapter" press (#2840): its Chapter links row Linked to the new track named after the chapter, with Change and Clear, the unlinked rows below still offering the create button, and the toast saying the track was made and the project is not saved',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'engine',
+    state: 'chapter-folder-created',
+    description:
+      'A Voice folders project (?mockVoiceFolders=1) after the first unlinked chapter\'s "Create a folder for this chapter" press (#2840): the row Linked to the new folder "<title> · 1 voice", the other unlinked rows offering the folder button, and the toast naming the folder and its Narrator track',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'engine',
+    state: 'chapter-track-create-refused',
+    description:
+      'The engine panel with REAPER recording (?mockReaperState=recording_elsewhere&mockChapterLink=none) after a create press on the first Chapter links row: the refusal as an error toast, the row still Not linked with its create button',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'engine',
     state: 'live-tracks-saved',
     description:
       'The engine panel with REAPER not answering (?mockLiveTracks=saved): Chapter links\' header says on one line "Saved project · read N s ago", beside the Refresh button',

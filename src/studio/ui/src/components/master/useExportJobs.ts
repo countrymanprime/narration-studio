@@ -153,10 +153,11 @@ export function useExportJobs() {
     setPicking(true);
     setProblem(undefined);
     try {
-      const picked = await api.exportPickFiles();
-      if (picked.paths.length === 0) return;
+      // An answer with no paths at all is a cancel, as an empty list is (qa on #2988).
+      const paths = (await api.exportPickFiles())?.paths ?? [];
+      if (paths.length === 0) return;
       // A path picked twice in one batch is one row; one already listed adds none, and the narrator is told so, once per pick.
-      const batch = [...new Set(picked.paths)];
+      const batch = [...new Set(paths)];
       const listed = new Set(items.map((item) => item.path));
       const repeats = batch.filter((path) => listed.has(path));
       setItems((current) => {
