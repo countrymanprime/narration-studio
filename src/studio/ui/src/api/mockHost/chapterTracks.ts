@@ -45,6 +45,10 @@ export function createChapterTracksMock(
   const project = mockTracksProject(initial);
   // The tracks ChapterTrackCreate added in REAPER this session: in REAPER's live list at once, in the saved project only after a save.
   const added: Track[] = [];
+  // `?mockReaperState=no_link` stages a chapter with no link: as the Booth's read does (mockApi's `linked`), only a link the narrator made
+  // this session counts, not one seeded or written by chapter sync on its own.
+  const startedAt = Date.now();
+  const linkCounts = (link: TrackMapping) => initial.reaperState !== 'no_link' || (link.origin === 'manual' && Date.parse(link.confirmedAt) >= startedAt);
   const liveProject = (): TracksProject => ({ ...project, tracks: [...project.tracks, ...added] });
   // A Voice folders project links Chapter 1 to its folder, in place of the default seed's link to its first track.
   if (initial.voiceFolders) {
@@ -283,7 +287,7 @@ export function createChapterTracksMock(
       // The host's guards, in its order (chaptertrackcreate.go): a chapter already linked to a track REAPER has, then a name a track has.
       const present = liveProject().tracks;
       const linked = s.chapterTrackMappings
-        .filter((existing) => existing.chapterId === chapterId)
+        .filter((existing) => existing.chapterId === chapterId && linkCounts(existing))
         .map((existing) => present.find((candidate) => candidate.guid === existing.trackGuid))
         .find((candidate) => candidate !== undefined);
       if (linked)

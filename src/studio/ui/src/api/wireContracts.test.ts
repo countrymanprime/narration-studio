@@ -1594,6 +1594,14 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expectMatches(chapterTrackCreateSchema, taken, 'mock chapter track create, name taken');
     expect(taken).toMatchObject({ outcome: 'refused', reason: 'name_taken' });
     await expect(api.chapterTrackCreate('not-a-real-chapter')).rejects.toThrow();
+    // `?mockReaperState=no_link` is a chapter with no link: a link chapter sync made on its own does not count, so the Booth's Create a new
+    // track adds and links one (the visual state booth / record-unlinked-created).
+    const noLink = createMockApi({}, { reaperState: 'no_link', chapterSync: 'ask' });
+    await noLink.chapterSyncSetEnabled(true);
+    expect((await noLink.chapterTrackMapList()).mappings.some((link) => link.chapterId === 'chapter-1' && link.origin === 'auto')).toBe(true);
+    const unlinked = await noLink.chapterTrackCreate('chapter-1');
+    expectMatches(chapterTrackCreateSchema, unlinked, 'mock chapter track create, no_link scene');
+    expect(unlinked.outcome).toBe('created');
     for (const reaperState of ['unavailable', 'recording_elsewhere'] as const) {
       const refused = await createMockApi({}, { reaperState }).chapterTrackCreate(chapters[0].id);
       expectMatches(chapterTrackCreateSchema, refused, `mock chapter track create, refused (${reaperState})`);
