@@ -89,5 +89,87 @@ test('Master / the pointer counts a switched-off effect above / 320x300', async 
   const pointer = dialog.getByRole('button', { name: 'See the 23 effects above, 1 switched off' });
   await expect(pointer).toBeVisible();
   await pointer.click();
-  expect(await topLineInView(page, '[role="alertdialog"] [data-decision-critical] p'), 'the pointer brings the chain into view').toBe(true);
+  // Ported for round 4 (N2): the press brings the first effect into view, not the count line above it. At 320x300 the dialog's
+  // body is about 11 px (Dialog's height cap leaves the header and the wrapped action row the rest), shorter than any row, so the
+  // body is filled with the first effect: a whole row needs a Dialog change, a known limit beside #2998's.
+  await expect
+    .poll(async () => {
+      const { shown, height, room } = await firstRowShown(page);
+      return shown >= Math.min(height, room) - 1;
+    }, 'the body shows the first effect, as much of it as fits')
+    .toBe(true);
 });
+
+/** How many px of the chain's first effect row show inside every box that clips it, the row's own height and the clip's. */
+const firstRowShown = (page: Page) =>
+  page
+    .locator('[role="alertdialog"] [data-decision-critical] tbody tr')
+    .first()
+    .evaluate((row) => {
+      const rect = row.getBoundingClientRect();
+      let top = 0;
+      let bottom = window.innerHeight;
+      for (let node = row.parentElement; node; node = node.parentElement) {
+        if (/(auto|scroll|hidden)/.test(getComputedStyle(node).overflowY)) {
+          const box = node.getBoundingClientRect();
+          top = Math.max(top, box.top);
+          bottom = Math.min(bottom, box.bottom);
+        }
+      }
+      return { shown: Math.max(0, Math.min(rect.bottom, bottom) - Math.max(rect.top, top)), height: rect.height, room: bottom - top };
+    });
+const expectFirstRowShown = (page: Page) =>
+  expect
+    .poll(async () => {
+      const { shown, height } = await firstRowShown(page);
+      return shown >= height - 1;
+    }, 'the whole first effect row shows')
+    .toBe(true);
+const POINTER = /^See the (\d+ effects? above|chain above)/;
+
+// Pressing the pointer brings an effect itself into view, not only the chain's count line above it (round 4, N2).
+for (const size of [
+  { width: 400, height: 360 },
+  { width: 500, height: 320 },
+]) {
+  test(`Master / pressing the pointer shows at least one effect row / ${size.width}x${size.height}`, async ({ page }) => {
+    await page.setViewportSize(size);
+    await page.goto('/');
+    await settlePage(page);
+    await masterDrivers['to-spec-approve-long-chain']!(page);
+    const pointer = page.getByRole('alertdialog', { name: 'Approve this render?' }).getByRole('button', { name: POINTER });
+    await expect(pointer, 'the first effect is out of view on open').toHaveCount(1);
+    await pointer.click();
+    await expectFirstRowShown(page);
+  });
+}
+
+// The pointer follows the window while the dialog is open (round 4, N3).
+test('Master / the pointer follows a resize with the dialog open / 1100x800 to 400x360 and back', async ({ page }) => {
+  await page.setViewportSize({ width: 1100, height: 800 });
+  await page.goto('/');
+  await settlePage(page);
+  await masterDrivers['to-spec-approve-long-chain']!(page);
+  const pointer = page.getByRole('alertdialog', { name: 'Approve this render?' }).getByRole('button', { name: POINTER });
+  await expect(pointer).toHaveCount(0);
+  await page.setViewportSize({ width: 400, height: 360 });
+  await expect(pointer, 'shrunk: the chain is below, the pointer says so').toHaveCount(1);
+  await page.setViewportSize({ width: 1100, height: 800 });
+  await expect(pointer, 'grown: the chain is in view, the pointer goes').toHaveCount(0);
+});
+
+// A sliver of the first row is not "in view": under half of it showing keeps the pointer (round 4, N4).
+for (const size of [
+  { width: 360, height: 400 },
+  { width: 360, height: 500 },
+]) {
+  test(`Master / under half the first effect row in view counts as out of view / ${size.width}x${size.height}`, async ({ page }) => {
+    await page.setViewportSize(size);
+    await page.goto('/');
+    await settlePage(page);
+    await masterDrivers['to-spec-approve-long-chain']!(page);
+    const pointer = page.getByRole('alertdialog', { name: 'Approve this render?' }).getByRole('button', { name: POINTER });
+    const { shown, height } = await firstRowShown(page);
+    await expect(pointer, `${shown} of ${height} px of the first effect shows`).toHaveCount(shown < height / 2 ? 1 : 0);
+  });
+}

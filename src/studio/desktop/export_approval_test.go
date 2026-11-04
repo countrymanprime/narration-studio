@@ -484,8 +484,19 @@ func TestExportPlanRefusalsForAnUnreadableChainSayWhatToDo(t *testing.T) {
 }
 
 // REAPER not answering the chain read before a render stops the export at that file with a plain sentence, instead of waiting the
-// read's whole bound again for every file after it (round 3 Go review on #2932).
+// read's whole bound again for every file after it (round 3 Go review on #2932). The real bridge gives up on its own, with
+// bridge.ErrNoAnswer, before the read's bound runs out (round 4 qa, N1): that is the same silence and stops the export too.
 func TestAChainReadThatGoesUnansweredStopsTheExportAtTheFirstFile(t *testing.T) {
+	for name, silence := range map[string]func(*masteringporttest.FakeDAW){
+		"the read's own bound runs out": func(d *masteringporttest.FakeDAW) { d.ChainNeverAnswers() },
+		"the bridge gives up first":     func(d *masteringporttest.FakeDAW) { d.SetChain(dawport.MasterChain{}, bridge.ErrNoAnswer) },
+	} {
+		t.Run(name, func(t *testing.T) { unansweredChainReadStopsTheExport(t, silence) })
+	}
+}
+
+func unansweredChainReadStopsTheExport(t *testing.T, silence func(*masteringporttest.FakeDAW)) {
+	t.Helper()
 	dir := t.TempDir()
 	paths := []string{filepath.Join(dir, "ch1.wav"), filepath.Join(dir, "ch2.wav"), filepath.Join(dir, "ch3.wav")}
 	items := make([]ExportItem, 0, len(paths))
@@ -497,7 +508,7 @@ func TestAChainReadThatGoesUnansweredStopsTheExportAtTheFirstFile(t *testing.T) 
 	daw := masteringporttest.NewFakeDAW(host.config.projectFolder)
 	t.Cleanup(masteringport.UseSession(func() (masteringport.Session, error) { return daw.Session(), nil }))
 	approval := shownApproval(t, host, items)
-	daw.ChainNeverAnswers()
+	silence(daw)
 	t.Cleanup(masteringport.UseRenderChainWait(200 * time.Millisecond))
 	began := time.Now()
 	if _, err := host.startExport(ExportRequest{Master: true, Items: items, Approval: approval}); err != nil {

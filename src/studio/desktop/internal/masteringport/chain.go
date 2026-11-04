@@ -17,11 +17,11 @@ var (
 	ErrNoChainDigest = errors.New("this approval does not say which FX chain you were shown: approve the render again")
 	// ErrChainChanged: the chain the render would run is not the one the narrator approved.
 	ErrChainChanged = errors.New("the FX chain in your DAW changed after you approved it: approve the render again")
-	// ErrChainNoAnswer: REAPER did not answer the chain read a render makes first, within renderChainWait.
+	// ErrChainNoAnswer: REAPER did not answer the chain read a render makes first, within renderChainWait or the bridge's own wait.
 	ErrChainNoAnswer = errors.New("REAPER didn't answer when the app read the FX chain again before rendering this file")
 )
 
-// chainNoAnswer is ErrChainNoAnswer over the read's own deadline, so errors.Is finds either.
+// chainNoAnswer is ErrChainNoAnswer over the read's own deadline or the bridge's ErrNoAnswer, so errors.Is finds either.
 type chainNoAnswer struct{ cause error }
 
 func (e chainNoAnswer) Error() string        { return ErrChainNoAnswer.Error() }
@@ -36,9 +36,9 @@ const maxChainName = 120
 // a zero-width space or joiner, a byte-order mark) is dropped, so a name can neither reverse what it says nor look like another,
 // and the length is bounded with an ellipsis (qa on #2932, B2). The digest is taken over the cleaned names.
 //
-// Blank-looking characters at either end are trimmed, so a name cannot differ from another only by them (round 3, M3), and a name
-// with nothing readable is "" before any cut, so a long blank name is not saved by the cut's "…" (round 3). Callers name "" ("Track",
-// "(unnamed)").
+// Characters that draw nothing at either end are trimmed (edgeBlank), so a name cannot differ from another only by them (round 3, M3;
+// round 4, N7), also where the cut lands before its "…" (round 4, N6), and a name with nothing readable is "" before any cut, so a
+// long blank name is not saved by the cut's "…" (round 3). Callers name "" ("Track", "(unnamed)").
 func chainName(raw string) string {
 	clean := strings.Join(strings.Fields(strings.Map(func(r rune) rune {
 		switch {
@@ -49,12 +49,12 @@ func chainName(raw string) string {
 		}
 		return r
 	}, raw)), " ")
-	clean = strings.TrimFunc(clean, func(r rune) bool { return blankLooking[r] || unicode.IsSpace(r) })
+	clean = strings.TrimFunc(clean, edgeBlank)
 	if !readable(clean) {
 		return ""
 	}
 	if runes := []rune(clean); len(runes) > maxChainName {
-		return strings.TrimSpace(string(runes[:maxChainName-1])) + "…"
+		return strings.TrimRightFunc(string(runes[:maxChainName-1]), edgeBlank) + "…"
 	}
 	return clean
 }
@@ -72,15 +72,35 @@ func listedChain(chain dawport.MasterChain) []ChainTrack {
 	return out
 }
 
-// blankLooking are letters and symbols that draw nothing, or only a placeholder box: the Hangul fillers, the braille blank, the object
-// replacement character and the musical null notehead (round 3, M2).
-var blankLooking = map[rune]bool{0x115F: true, 0x1160: true, 0x3164: true, 0xFFA0: true, 0x2800: true, 0xFFFC: true, 0x1D159: true}
+// blankLooking are the characters that draw nothing, or only a placeholder box, that Unicode does not call default-ignorable: the
+// braille blank, the object replacement character, the musical null notehead (round 3, M2), the Tifinagh consonant joiner and the
+// Khitan small script filler (round 4, N7). The Hangul fillers are default-ignorable (ignorable).
+var blankLooking = map[rune]bool{0x2800: true, 0xFFFC: true, 0x1D159: true, 0x2D7F: true, 0x16FE4: true}
+
+// ignorable reports Unicode's Default_Ignorable_Code_Point, which the unicode package has the parts of but not the property itself,
+// derived as DerivedCoreProperties.txt derives it: Other_Default_Ignorable_Code_Point + Cf + Variation_Selector - White_Space -
+// FFF9..FFFB (interlinear annotation) - 13430..1343F (Egyptian hieroglyph format controls) - Prepended_Concatenation_Mark. A
+// renderer draws none of these when it has no glyph for them (round 4, N7). chain-names.json lists the ranges for the mock.
+func ignorable(r rune) bool {
+	if unicode.Is(unicode.White_Space, r) || (r >= 0xFFF9 && r <= 0xFFFB) || (r >= 0x13430 && r <= 0x1343F) ||
+		unicode.Is(unicode.Prepended_Concatenation_Mark, r) {
+		return false
+	}
+	return unicode.Is(unicode.Other_Default_Ignorable_Code_Point, r) || unicode.Is(unicode.Cf, r) || unicode.Is(unicode.Variation_Selector, r)
+}
+
+// edgeBlank reports a character trimmed from a name's ends: a space, a default-ignorable or blank-looking character, or a
+// private-use one, which has no agreed glyph. A combining mark at the end is kept: it draws on the letter before it.
+func edgeBlank(r rune) bool {
+	return unicode.IsSpace(r) || ignorable(r) || blankLooking[r] || unicode.Is(unicode.Co, r)
+}
 
 // readable reports whether a cleaned name has something a narrator can read: a letter, number, punctuation mark or symbol that is
-// not blank-looking. A lone combining mark, a variation selector or a private-use character is not (qa round 2 on #2932, N2).
+// neither default-ignorable nor blank-looking. A lone combining mark, a variation selector or a private-use character is not (qa
+// round 2 on #2932, N2).
 func readable(name string) bool {
 	for _, r := range name {
-		if (unicode.IsLetter(r) || unicode.IsNumber(r) || unicode.IsPunct(r) || unicode.IsSymbol(r)) && !blankLooking[r] {
+		if (unicode.IsLetter(r) || unicode.IsNumber(r) || unicode.IsPunct(r) || unicode.IsSymbol(r)) && !blankLooking[r] && !ignorable(r) {
 			return true
 		}
 	}

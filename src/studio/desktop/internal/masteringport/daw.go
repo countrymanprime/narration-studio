@@ -15,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	"desktop/internal/bridge"
 	"desktop/internal/dawport"
 	"desktop/internal/port"
 )
@@ -145,8 +146,9 @@ func (dawChain) Master(ctx context.Context, req Request) (Result, error) {
 	chain, err := reader.ReadMasterChain(readCtx)
 	cancelRead()
 	if err != nil {
-		// The narrator's Cancel stays a cancel; only the read's own bound running out is REAPER not answering (round 3 Go review).
-		if ctx.Err() == nil && errors.Is(err, context.DeadlineExceeded) {
+		// The narrator's Cancel stays a cancel. REAPER not answering is the read's own bound running out, or the bridge giving up
+		// first with bridge.ErrNoAnswer (its DefaultAnswerTimeout is shorter than renderChainWait; round 4 qa, N1).
+		if ctx.Err() == nil && (errors.Is(err, context.DeadlineExceeded) || errors.Is(err, bridge.ErrNoAnswer)) {
 			return Result{}, chainNoAnswer{cause: err}
 		}
 		return Result{}, err

@@ -569,6 +569,114 @@ describe('the approval shows the DAW chain it approves (#2932)', () => {
     }
   });
 
+  // A fake IntersectionObserver that keeps watching: each emit is a new answer for the watched row (round 4, N3 and N4).
+  const observeLive = () => {
+    const live: { callback?: IntersectionObserverCallback; target?: Element; disconnected: boolean } = { disconnected: false };
+    class FakeObserver {
+      constructor(callback: IntersectionObserverCallback) {
+        live.callback = callback;
+      }
+      observe(target: Element) {
+        live.target = target;
+      }
+      disconnect() {
+        live.disconnected = true;
+      }
+      unobserve() {}
+      takeRecords() {
+        return [];
+      }
+    }
+    vi.stubGlobal('IntersectionObserver', FakeObserver);
+    /** Answers that `shown` px of the watched row's `height` px are in view. */
+    const emit = (shown: number, height = 39) =>
+      act(() => {
+        live.callback!(
+          [
+            {
+              isIntersecting: shown > 0,
+              intersectionRatio: shown / height,
+              intersectionRect: { height: shown } as DOMRectReadOnly,
+              boundingClientRect: { height } as DOMRectReadOnly,
+              target: live.target!,
+            } as IntersectionObserverEntry,
+          ],
+          {} as never,
+        );
+      });
+    return { emit, live };
+  };
+  const pointerOf = () => within(dialog()).queryByRole('button', { name: /^See the / });
+
+  it('the pointer follows the window: shown when the window shrinks with the dialog open, gone when it grows (round 4, N3)', async () => {
+    const { emit, live } = observeLive();
+    try {
+      await mount('daw', { chain: 'long' });
+      await openDialog();
+      await emit(39);
+      expect(pointerOf()).toBeNull();
+      await emit(0);
+      expect(pointerOf()?.textContent).toBe('See the 23 effects above, 1 switched off');
+      await emit(39);
+      expect(pointerOf()).toBeNull();
+      expect(live.disconnected).toBe(false);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('a sliver of the first row is not in view: under half of it shown keeps the pointer (round 4, N4)', async () => {
+    const { emit } = observeLive();
+    try {
+      await mount('daw', { chain: 'long' });
+      await openDialog();
+      await emit(9);
+      expect(pointerOf()).not.toBeNull();
+      await emit(25);
+      expect(pointerOf()).toBeNull();
+      // A first row taller than the body counts once a few lines of it show.
+      await emit(60, 400);
+      expect(pointerOf()).toBeNull();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('the pointer brings the first effect into view and puts the keyboard on the chain, so it is not lost when the pointer goes (round 4, N2)', async () => {
+    const { emit } = observeLive();
+    const scrolled: Element[] = [];
+    const scrollIntoView = vi.fn(function (this: Element) {
+      scrolled.push(this);
+    });
+    Element.prototype.scrollIntoView = scrollIntoView;
+    try {
+      await mount('daw', { chain: 'long' });
+      await openDialog();
+      await emit(0);
+      await userEvent.click(pointerOf()!);
+      expect(scrolled.at(-1)).toBe(chainTable().querySelector('tbody tr'));
+      expect(scrollIntoView).toHaveBeenLastCalledWith({ block: 'nearest' });
+      const chainGroup = within(dialog()).getByRole('group', { name: 'FX chain this render runs' });
+      expect(document.activeElement).toBe(chainGroup);
+      await emit(39);
+      expect(pointerOf()).toBeNull();
+      expect(document.activeElement).toBe(chainGroup);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('an empty chain\'s pointer says there are no effects, never "the 0 effects" (round 4, N5)', async () => {
+    observeAs(false);
+    try {
+      await mount('daw', { chain: 'empty' });
+      await openDialog();
+      expect((await within(dialog()).findByRole('button', { name: /^See the chain above/ })).textContent).toBe('See the chain above: no effects');
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('when the chain is in view on open, there is no pointer', async () => {
     observeAs(true);
     try {

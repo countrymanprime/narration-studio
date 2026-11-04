@@ -63,32 +63,37 @@ export type MasteringMockSeed = {
  * what to do next, then the DAW's reason. */
 const CHAIN_UNREADABLE = "Your DAW's FX chain couldn't be read, so it can't be approved. Choose the built-in chain, or untick Master before encoding.";
 
-/** chain.go's blankLooking: letters and symbols that draw nothing (the Hangul fillers, the braille blank). */
-const BLANK_LOOKING = new Set([0x115f, 0x1160, 0x3164, 0xffa0, 0x2800, 0xfffc, 0x1d159]);
+/** chain.go's blankLooking: what draws nothing that Unicode does not call default-ignorable (the braille blank, the object
+ * replacement character, the musical null notehead, the Tifinagh joiner, the Khitan filler). */
+const BLANK_LOOKING = new Set([0x2800, 0xfffc, 0x1d159, 0x2d7f, 0x16fe4]);
 /** chain.go's maxChainName. */
 const MAX_CHAIN_NAME = 120;
 
-const isBlankLooking = (char: string): boolean => BLANK_LOOKING.has(char.codePointAt(0)!) || /\s/u.test(char);
+/** chain.go's ignorable: the same property, which chain-names.json's ranges pin to the host's. */
+export const isIgnorable = (char: string): boolean => /\p{Default_Ignorable_Code_Point}/u.test(char);
+/** chain.go's edgeBlank: a space, a default-ignorable, blank-looking or private-use character, trimmed from a name's ends. */
+const isEdgeBlank = (char: string): boolean => BLANK_LOOKING.has(char.codePointAt(0)!) || /[\s\p{Co}]/u.test(char) || isIgnorable(char);
+const trimEnd = (points: string[]): string[] => {
+  const out = [...points];
+  while (out.length > 0 && isEdgeBlank(out.at(-1)!)) out.pop();
+  return out;
+};
 
 /**
  * chain.go's chainName, then trackName or chainFX's blank rule: format characters dropped, control characters spaced, spaces
- * collapsed, blank-looking characters trimmed at either end, a name with no readable letter, number, punctuation or symbol (judged
+ * collapsed, characters that draw nothing trimmed at either end (also where the cut lands), a name with no readable letter, number, punctuation or symbol (judged
  * before any cut) is "Track" for a track and "(unnamed)" for a plug-in, and at most 120 code points (an ellipsis marks a cut). Pinned
  * to the host by chain-names.json.
  */
 export function mockChainName(raw: string | null | undefined, kind: 'track' | 'fx'): string {
   const spaced = (raw ?? '').replace(/\p{Cf}/gu, '').replace(/[\p{Cc}\uFFFD]/gu, ' ');
   const points = [...spaced.split(/\s+/u).filter(Boolean).join(' ')];
-  while (points.length > 0 && isBlankLooking(points[0]!)) points.shift();
-  while (points.length > 0 && isBlankLooking(points.at(-1)!)) points.pop();
-  const readable = points.some((char) => /[\p{L}\p{N}\p{P}\p{S}]/u.test(char) && !BLANK_LOOKING.has(char.codePointAt(0)!));
+  while (points.length > 0 && isEdgeBlank(points[0]!)) points.shift();
+  const kept = trimEnd(points);
+  const readable = kept.some((char) => /[\p{L}\p{N}\p{P}\p{S}]/u.test(char) && !BLANK_LOOKING.has(char.codePointAt(0)!) && !isIgnorable(char));
   if (!readable) return kind === 'track' ? 'Track' : '(unnamed)';
-  return points.length > MAX_CHAIN_NAME
-    ? `${points
-        .slice(0, MAX_CHAIN_NAME - 1)
-        .join('')
-        .trim()}…`
-    : points.join('');
+  // The cut never ends on a character that draws nothing before its "…" (round 4, N6).
+  return kept.length > MAX_CHAIN_NAME ? `${trimEnd(kept.slice(0, MAX_CHAIN_NAME - 1)).join('')}…` : kept.join('');
 }
 
 /** The chain as dawChain.Chain lists it: every name cleaned as the host cleans it. */

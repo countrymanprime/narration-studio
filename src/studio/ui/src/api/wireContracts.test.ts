@@ -90,7 +90,7 @@ import { MOCK_REAPER_INPUT_SEEDS, MOCK_REAPER_SEEDS, mockLastReading } from './t
 import { deliveryQcEvidenceSchema, deliveryReportExportSchema, measureJobSchema, measurePickResultSchema } from './schemas/measure';
 import { exportJobSchema, exportPlanSchema, multiPackageJobSchema, packageFolderResultSchema, packageJobSchema } from './schemas/renderEncodeMaster';
 import { MOCK_EXPORT_ITEMS, MOCK_EXPORT_PATHS, createRenderEncodeMasterMock } from './renderEncodeMasterMock';
-import { mockChainDigest, mockChainName } from './masteringMock';
+import { isIgnorable, mockChainDigest, mockChainName } from './masteringMock';
 import { deliveryProfileSchema, deliveryProfilesStateSchema } from './schemas/deliveryProfiles';
 import { MOCK_ACX, evaluateMockFile, mockCustomProfile } from './deliveryProfilesMock';
 import { diagnosticsJobSchema } from './schemas/diagnostics';
@@ -2380,6 +2380,16 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     for (const { raw, track, fx } of names.cases) {
       expect([mockChainName(raw, 'track'), mockChainName(raw, 'fx')], JSON.stringify(raw)).toEqual([track, fx]);
     }
+    // The mock's \p{Default_Ignorable_Code_Point} is the host's derived set, code point for code point (round 4, N7).
+    const mockIgnorable: [number, number][] = [];
+    for (let point = 0; point <= 0x10ffff; point++) {
+      if (point >= 0xd800 && point <= 0xdfff) continue;
+      if (!isIgnorable(String.fromCodePoint(point))) continue;
+      const last = mockIgnorable.at(-1);
+      if (last && last[1] === point - 1) last[1] = point;
+      else mockIgnorable.push([point, point]);
+    }
+    expect(mockIgnorable).toEqual(names.ignorable);
     expect(await mockChainDigest([{ name: 'Voice', master: false, fx: null as never }])).toBe(
       await mockChainDigest([{ name: 'Voice', master: false, fx: [] }]),
     );

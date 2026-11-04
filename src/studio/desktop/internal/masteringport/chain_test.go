@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"desktop/internal/bridge"
 	"desktop/internal/dawport"
 	"desktop/internal/deliveryprofile"
 	"desktop/internal/masteringport"
@@ -229,6 +230,27 @@ func TestTheDAWRowsPerRenderChainReadIsBounded(t *testing.T) {
 		}
 	case <-time.After(5 * time.Second):
 		t.Fatal("the master waited on a chain read that never answers")
+	}
+	if renders := daw.Renders(); len(renders) != 0 {
+		t.Fatalf("rendered without the chain read: %+v", renders)
+	}
+}
+
+// The real bridge stops waiting on its own (bridge.DefaultAnswerTimeout) before renderChainWait runs out, and says so with
+// bridge.ErrNoAnswer: that is REAPER not answering too, so the export stops instead of failing each file in turn (round 4 qa, N1).
+func TestTheDAWRowsPerRenderChainReadBridgeNoAnswerStopsTheExport(t *testing.T) {
+	project := t.TempDir()
+	daw := masteringporttest.NewFakeDAW(project)
+	useSession(t, func() (masteringport.Session, error) { return daw.Session(), nil })
+	digest := shownDigest(t)
+	daw.SetChain(dawport.MasterChain{}, bridge.ErrNoAnswer)
+	_, err := dawRow(t).Master(context.Background(), masteringport.Request{Region: "Chapter 1", Destination: filepath.Join(project, "out.wav"),
+		Profile: deliveryprofile.ACX(), Approved: true, ChainDigest: digest})
+	if !errors.Is(err, masteringport.ErrChainNoAnswer) || !errors.Is(err, bridge.ErrNoAnswer) {
+		t.Fatalf("err = %v, want ErrChainNoAnswer over the bridge's own no-answer", err)
+	}
+	if err.Error() != masteringport.ErrChainNoAnswer.Error() {
+		t.Fatalf("message = %q", err)
 	}
 	if renders := daw.Renders(); len(renders) != 0 {
 		t.Fatalf("rendered without the chain read: %+v", renders)

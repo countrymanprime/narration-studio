@@ -3,6 +3,7 @@ package masteringport
 import (
 	"strings"
 	"testing"
+	"unicode"
 
 	"desktop/internal/contractfile"
 	"desktop/internal/dawport"
@@ -40,6 +41,13 @@ var chainNameCases = []string{
 	"\u3164 EQ \u2800",
 	strings.Repeat("\u3164", 130),
 	strings.Repeat("\u2800", 120) + "x",
+	// Round 4, N6: the cut lands on a blank-looking character, which goes before the "…".
+	strings.Repeat("a", 118) + "\u3164XYZ",
+	strings.Repeat("a", 118) + "\u2800XYZ",
+	strings.Repeat("a", 117) + " \u034fXYZ",
+	// Round 4, N7: default-ignorable and blank characters next to a name, which go, and a combining mark, which stays.
+	"EQ\u17b4", "\u17b4EQ", "EQ\u034f", "EQ\ufe0f", "\ufe0fEQ", "EQ\ue000", "\ue000EQ", "EQ\u180b", "EQ\u2d7f", "EQ\U00016FE4",
+	"EQ\U000E0100", "EQ\u115f", "EQ\u0301", "\u2764\ufe0f Warm",
 }
 
 // TestChainNameGoldenIsCurrent pins how a track's and a plug-in's name are cleaned, for the mock to match. UPDATE_CONTRACTS=1 rewrites
@@ -54,7 +62,65 @@ func TestChainNameGoldenIsCurrent(t *testing.T) {
 	for _, raw := range chainNameCases {
 		rows = append(rows, row{Raw: raw, Track: trackName(raw), FX: chainFX([]dawport.FXSlot{{Name: raw}})[0].Name})
 	}
-	contractfile.Check(t, "chain-names", map[string]any{"cases": rows})
+	contractfile.Check(t, "chain-names", map[string]any{"cases": rows, "ignorable": ignorableRanges()})
+}
+
+// ignorableRanges is ignorable as inclusive [first, last] code point ranges, for the mock to check its own
+// \p{Default_Ignorable_Code_Point} against.
+func ignorableRanges() [][2]rune {
+	var out [][2]rune
+	for r := rune(0); r <= unicode.MaxRune; r++ {
+		if !ignorable(r) {
+			continue
+		}
+		if n := len(out); n > 0 && out[n-1][1] == r-1 {
+			out[n-1][1] = r
+		} else {
+			out = append(out, [2]rune{r, r})
+		}
+	}
+	return out
+}
+
+// Every default-ignorable code point is trimmed from either end of a name, the whole class rather than a list (round 4, N7), and
+// the derivation is the property's size in the unicode package's version (4174 since Unicode 15.1).
+func TestEveryDefaultIgnorableIsTrimmedAtEitherEnd(t *testing.T) {
+	count := 0
+	for _, span := range ignorableRanges() {
+		for r := span[0]; r <= span[1]; r++ {
+			count++
+			for _, raw := range []string{"EQ" + string(r), string(r) + "EQ", string(r) + " EQ " + string(r)} {
+				if got := chainName(raw); got != "EQ" {
+					t.Errorf("U+%04X: %q = %q, want EQ", r, raw, got)
+				}
+			}
+		}
+	}
+	if count != 4174 {
+		t.Errorf("%d default-ignorable code points, want 4174", count)
+	}
+	// What blankLooking adds, and private use, go too; a combining mark draws on the letter before it and stays.
+	for r := range blankLooking {
+		if got := chainName("EQ" + string(r)); got != "EQ" {
+			t.Errorf("U+%04X: %q", r, got)
+		}
+	}
+	if got := chainName("EQ\ue000"); got != "EQ" {
+		t.Errorf("private use: %q", got)
+	}
+	if got := chainName("EQ\u0301"); got != "EQ\u0301" {
+		t.Errorf("combining mark: %q", got)
+	}
+}
+
+// The 120-rune cut never ends on a character that draws nothing before its "…" (round 4, N6).
+func TestTheCutTrimsBlankCharactersBeforeTheEllipsis(t *testing.T) {
+	for _, blank := range []string{"\u3164", "\u2800", " \u034f", "\ufe0f"} {
+		raw := strings.Repeat("a", 119-len([]rune(blank))) + blank + "XYZ"
+		if got, want := chainName(raw), strings.Repeat("a", 119-len([]rune(blank)))+"…"; got != want {
+			t.Errorf("%q = %q, want %q", raw, got, want)
+		}
+	}
 }
 
 // A name of only blank-looking characters (a Hangul filler, a braille blank, a lone combining mark, a variation selector, a

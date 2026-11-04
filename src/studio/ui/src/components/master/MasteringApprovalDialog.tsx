@@ -42,29 +42,38 @@ function visibleName(raw: string | null | undefined, blank: string): string {
   return readable ? shown : blank;
 }
 
+/** How much of a tall first row must show for it to count as in view: a couple of lines of its text. */
+const TALL_ROW_SHOWN = 32;
+/** The observer answers at every tenth of the row, so a resize that hides or shows half of it is heard. */
+const VIEW_STEPS = Array.from({ length: 11 }, (_, i) => i / 10);
+
 /**
  * The DAW chain the render runs, as the host read it for this plan (threat model row 5o, #2932), first in the dialog: it is what the
  * narrator approves. A line says how many effects on how many tracks, in signal order; then one numbered row per plug-in, every
  * track with FX top to bottom and then the master, which carries a Master badge from its flag (a track the narrator named "Master"
  * is plain text). A bypassed plug-in has an Off badge. Capped to its own scroll; with no FX anywhere one row says so.
  */
-function ChainList({ chain, onOutOfView }: { chain: ExportPlan['chain'] | null | undefined; onOutOfView: () => void }) {
+function ChainList({ chain, onView }: { chain: ExportPlan['chain'] | null | undefined; onView: (inView: boolean) => void }) {
   const tracks = chain ?? [];
   const rows = tracks.flatMap((track) => (track.fx ?? []).map((fx) => ({ master: track.master, track: track.name, fx })));
-  // Whether the chain's first row is in view as the dialog opens. At a small window (320x300, or 400% zoom) it is below the
-  // dialog's visible body while Approve is in view, so a pointer beside Approve says so (round 3 on #2932: Approve is never held,
-  // since at 400% zoom the body can be 0 px tall and a held Approve would be a dead end). The row is watched, not the number in it,
-  // so a tall first row counts once any of it shows (M5). Without IntersectionObserver (jsdom) nothing is reported.
+  // Whether the chain's first row is in view. At a small window (320x300, or 400% zoom) it is below the dialog's visible body while
+  // Approve is in view, so a pointer beside Approve says so (round 3 on #2932: Approve is never held, since at 400% zoom the body can
+  // be 0 px tall and a held Approve would be a dead end). It is watched for as long as the dialog is open, so the pointer follows a
+  // resize (round 4, N3). The row counts as in view when half of it shows, or a few lines of a row taller than that (M5), never a
+  // sliver (round 4, N4). Without IntersectionObserver (jsdom) nothing is reported.
   const first = useRef<HTMLSpanElement>(null);
-  const report = useRef(onOutOfView);
-  report.current = onOutOfView;
+  const report = useRef(onView);
+  report.current = onView;
   useEffect(() => {
     const row = first.current?.closest('tr');
     if (!row || typeof IntersectionObserver === 'undefined') return;
-    const observer = new IntersectionObserver((entries) => {
-      if (entries.some((entry) => !entry.isIntersecting)) report.current();
-      observer.disconnect();
-    });
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries.at(-1);
+        if (entry) report.current(entry.isIntersecting && (entry.intersectionRatio >= 0.5 || (entry.intersectionRect?.height ?? 0) >= TALL_ROW_SHOWN));
+      },
+      { threshold: VIEW_STEPS },
+    );
     observer.observe(row);
     return () => observer.disconnect();
   }, []);
@@ -165,16 +174,25 @@ export function MasteringApprovalDialog({
 }) {
   const [macro, setMacro] = useState(plan.needsMacro ? lastMacro : '');
   const [problem, setProblem] = useState<string>();
-  // Whether the chain was out of view as the dialog opened: then a pointer beside Approve names it and scrolls to it.
+  // Whether the chain's first row is out of view: then a pointer beside Approve names it and brings it into view.
   const [chainBelow, setChainBelow] = useState(false);
   const chainRef = useRef<HTMLDivElement>(null);
   const effects = (plan.chain ?? []).reduce((sum, track) => sum + (track.fx ?? []).length, 0);
   const off = (plan.chain ?? []).reduce((sum, track) => sum + (track.fx ?? []).filter((fx) => !fx.enabled).length, 0);
-  // The pointer beside Approve: how many effects are above, and how many of them are off (round 3 walkthrough).
+  // The pointer beside Approve: how many effects are above, and how many of them are off (round 3 walkthrough), or that there are
+  // none (round 4, N5). Pressing it brings the first effect itself into view, not the chain's top, which at a short body would show
+  // only the count (round 4, N2), and puts the keyboard on the chain's list, which stays when the pointer goes.
+  const showChain = () => {
+    chainRef.current?.querySelector('tbody tr')?.scrollIntoView({ block: 'nearest' });
+    chainRef.current?.querySelector<HTMLElement>('[role="group"]')?.focus({ preventScroll: true });
+  };
   const pointer: { secondary: () => void; secondaryLabel: string } | { secondary?: undefined; secondaryLabel?: undefined } = chainBelow
     ? {
-        secondaryLabel: `See the ${effects} ${effects === 1 ? 'effect' : 'effects'} above${off > 0 ? `, ${off} switched off` : ''}`,
-        secondary: () => chainRef.current?.scrollIntoView({ block: 'start' }),
+        secondaryLabel:
+          effects === 0
+            ? 'See the chain above: no effects'
+            : `See the ${effects} ${effects === 1 ? 'effect' : 'effects'} above${off > 0 ? `, ${off} switched off` : ''}`,
+        secondary: showChain,
       }
     : {};
   const regions = plan.items.some((item) => item.region !== '');
@@ -210,7 +228,7 @@ export function MasteringApprovalDialog({
       {/* The chain first: it is what the narrator approves, so it is in view under the question at 360x500 (qa on #2932, B1). */}
       {plan.provider === 'daw' && (
         <div ref={chainRef}>
-          <ChainList chain={plan.chain} onOutOfView={() => setChainBelow(true)} />
+          <ChainList chain={plan.chain} onView={(inView) => setChainBelow(!inView)} />
         </div>
       )}
       <Panel flush scroll label={listLabel} className="mt-2 max-h-[14rem]">
