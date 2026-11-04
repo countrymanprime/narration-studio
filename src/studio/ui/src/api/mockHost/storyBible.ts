@@ -314,7 +314,11 @@ export function createStoryBibleMock(
     guidePronunciationRestore: async (id, value, aliasIndex) => {
       changePronunciation(id, aliasIndex, () => wireClone(value));
     },
-    guideDialogueCues: async () => wireClone(s.dialogueCues),
+    guideDialogueCues: async () => {
+      // The cues are placed in the loaded text: a read before it is in waits for it, as the host reads cues of the manuscript it has.
+      await manuscriptReady;
+      return wireClone(s.dialogueCues);
+    },
     guideAttributeSpeakers: async () => {
       // The tag names the speaker, as the host's attribution reads it; a confirmed or edited line is never touched.
       const named = (tag: string) =>

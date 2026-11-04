@@ -15,7 +15,8 @@ import { useCommand } from '../../../../input/useCommand';
 import { POPOVER_POPUP_SELECTOR } from '../../../primitives/Popover';
 import { useContextProvider } from '../../../../registries/context';
 import { useAsyncSearchSource, useSearchSource } from '../../../../registries/search';
-import { chapterName, type ChapterNameInput } from '../../../../chapterName';
+import type { ChapterNameInput } from '../../../../chapterName';
+import { headingName } from '../../../../chapterHeading';
 import type { ScriptViewState } from '../data/scriptView';
 import { useChapters, useEntries, useMarks, useScriptCommands, useScriptPrep, useScriptView } from '../data/useScriptData';
 import { closeFind, escapeClosesFind, quoteTerm, stepFind } from '../tools/find/findState';
@@ -133,7 +134,7 @@ export function useScriptRegistry(options: ScriptRegistryOptions): void {
     for (const chapter of stops ?? chapterList) {
       items.push({
         id: `chapter.${chapter.id}`,
-        label: chapterName(chapter, 'full'),
+        label: headingName(chapter),
         group: 'Chapters',
         icon: 'goToChapter',
         run: () => latest.current.goToChapter(chapter.id),

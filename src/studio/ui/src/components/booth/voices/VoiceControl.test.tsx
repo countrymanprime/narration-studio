@@ -89,4 +89,69 @@ describe('the voice control', () => {
     );
     expect(container.textContent).toBe('');
   });
+
+  describe('characters with no track (phase 5)', () => {
+    const king = { id: 'king', name: 'King of Hearts', lines: 12 };
+    const knave = { id: 'knave', name: 'Knave of Hearts', lines: 1 };
+
+    function NoTrack(props: Partial<Parameters<typeof VoiceControl>[0]>) {
+      const [open, setOpen] = useState(false);
+      return (
+        <VoiceControl
+          voices={voices}
+          current={voices[0]}
+          choosing={false}
+          arm={{ state: 'armed' }}
+          onChoose={vi.fn()}
+          open={open}
+          onOpenChange={setOpen}
+          noTrack={[king, knave]}
+          {...props}
+        />
+      );
+    }
+
+    it('lists them under "No track" after the tracks, with their lines; a pick hands the character on and closes the list', async () => {
+      const onPickCharacter = vi.fn();
+      render(<NoTrack onPickCharacter={onPickCharacter} />);
+      await userEvent.click(screen.getByRole('button', { name: /^Voice:/ }));
+      const list = await screen.findByRole('listbox', { name: 'Voices of this chapter' });
+      expect(list.textContent).toMatch(/Tracks.*Narrator.*No track.*King of Hearts.*12 lines.*Knave of Hearts.*1 line/);
+      await userEvent.click(within(list).getAllByRole('option')[3]);
+      expect(onPickCharacter).toHaveBeenCalledWith(king);
+      expect(screen.queryByRole('listbox')).toBeNull();
+    });
+
+    it('the search finds them by name, and Enter on one hands it on', async () => {
+      const onPickCharacter = vi.fn();
+      render(<NoTrack onPickCharacter={onPickCharacter} />);
+      await userEvent.click(screen.getByRole('button', { name: /^Voice:/ }));
+      await userEvent.type(screen.getByRole('combobox', { name: 'Search voices' }), 'knave{Enter}');
+      expect(onPickCharacter).toHaveBeenCalledWith(knave);
+    });
+
+    it('during a take a stand-in reads "King → Narrator" as a warning, with no other answers offered yet', () => {
+      render(<NoTrack standIn={king} recording onAddFor={vi.fn()} onUseFor={vi.fn()} />);
+      const trigger = screen.getByRole('button', { name: /^Voice:.*King of Hearts.*has no track, recording on.*Narrator/ });
+      expect(trigger.getAttribute('title')).toBe('King of Hearts has no track · recording on Narrator (Num 0)');
+      expect(screen.queryByRole('button', { name: 'Add a track for King of Hearts' })).toBeNull();
+    });
+
+    it('after the take the control offers a track of its own or one the chapter has', async () => {
+      const onAddFor = vi.fn();
+      const onUseFor = vi.fn();
+      render(<NoTrack standIn={king} onAddFor={onAddFor} onUseFor={onUseFor} />);
+      expect(screen.getByRole('button', { name: /^Voice:/ }).getAttribute('title')).toBe('King of Hearts has no track · armed on Narrator (Num 0)');
+      await userEvent.click(screen.getByRole('button', { name: 'Add a track for King of Hearts' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Record King of Hearts on an existing track' }));
+      expect(onAddFor).toHaveBeenCalledWith(king);
+      expect(onUseFor).toHaveBeenCalledWith(king);
+    });
+
+    it('a stand-in shows only while the Narrator voice records: another voice chosen draws the plain control', () => {
+      render(<NoTrack standIn={king} current={voices[1]} />);
+      expect(screen.getByRole('button', { name: /^Voice:/ }).textContent).not.toContain('King of Hearts');
+      expect(screen.queryByRole('button', { name: 'Add a track for King of Hearts' })).toBeNull();
+    });
+  });
 });

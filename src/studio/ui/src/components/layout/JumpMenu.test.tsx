@@ -208,7 +208,28 @@ describe('JumpMenu', () => {
     render(<Provide />);
     act(() => void open());
     await userEvent.setup().type(field(), 'ch 3');
-    expect(names()).toEqual([expect.stringContaining('Go to Chapter 3 — The Road')]);
+    expect(names()).toEqual([expect.stringContaining('Go to Chapter 3: The Road')]);
+  });
+
+  it('no-em-dash-in-chapter-label: a chapter is listed the way every page shows it, never joined with an em dash (#2903)', async () => {
+    function Provide() {
+      useGoToCommands({
+        pages: [{ id: 'proof', label: 'Proof' }],
+        chapters: [
+          { id: 'c3', title: 'Chapter 3', subtitle: 'The Road' },
+          { id: 'c8', title: 'CHAPTER VIII.', subtitle: 'Croquet' },
+        ],
+        go: () => {},
+      });
+      return null;
+    }
+    const { open } = mount();
+    render(<Provide />);
+    act(() => void open());
+    await userEvent.setup().type(field(), 'go to ch');
+    const labels = names();
+    expect(labels).toEqual([expect.stringContaining('Go to Chapter 3: The Road'), expect.stringContaining('Go to CHAPTER VIII. Croquet')]);
+    expect(labels.join('')).not.toContain('—');
   });
 
   it('search-sources-group-and-isolate: hits show under their group with the sub line, a short term asks nobody, a throwing source is skipped', async () => {

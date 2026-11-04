@@ -81,6 +81,14 @@ describe('SessionPanel', () => {
     expect(screen.getByText('Lines').nextElementSibling?.textContent).toBe('not known');
   });
 
+  it('names no count and turns markers off when the list could not be read', () => {
+    setup({ pickups: [], unreadable: true });
+    const markers = screen.getByRole('button', { name: 'Add as markers in REAPER' });
+    expect(markers.getAttribute('aria-disabled')).toBe('true');
+    expect(screen.queryByRole('button', { name: /Add 0 as markers/ })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Open in Booth' })).toBeTruthy();
+  });
+
   it('adds the lines as markers and names the DAW', async () => {
     const { onAddMarkers, user } = setup({ pickups: MIXED.slice(0, 2) });
     await user.click(screen.getByRole('button', { name: 'Add 2 as markers in REAPER' }));
@@ -101,6 +109,13 @@ describe('SessionPanel', () => {
     expect(icon.getAttribute('aria-describedby')).toBe(screen.getByText('Markers are turned off for REAPER in Settings.').id);
     await user.click(icon);
     expect(onAddMarkers).not.toHaveBeenCalled();
+  });
+
+  it('keeps the markers reason out of the page flow: the tooltip and a screen-reader description carry it, so the panel does not grow', () => {
+    setup({ markers: { available: false, message: 'Link a REAPER project (.rpp) file to add markers.' } });
+    const reason = screen.getByText('Link a REAPER project (.rpp) file to add markers.');
+    expect(reason.tagName).toBe('SPAN');
+    expect(reason.className).toContain('sr-only');
   });
 
   it('Copy puts the pickup script on the clipboard and says Copied.', async () => {

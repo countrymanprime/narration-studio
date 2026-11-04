@@ -217,7 +217,8 @@ export function MasterToSpecPanel({
       {items.length > 0 && !started && (
         <div className="mt-3 flex items-center gap-2">
           <Checkbox checked={jobs.master} onChange={jobs.setMaster}>
-            Master before encoding{chainLabel ? ` with the ${chainLabel.charAt(0).toLowerCase()}${chainLabel.slice(1)}` : ''}
+            {/* The row's own label, as the host words it: lowercasing it made "the your DAW's FX chain" (#2879's review). */}
+            Master before encoding{chainLabel ? `: ${chainLabel}` : ''}
           </Checkbox>
           <HelpButton label="About mastering before encoding">
             Mastering brings each file to the platform&apos;s RMS window and peak limit before it is encoded.

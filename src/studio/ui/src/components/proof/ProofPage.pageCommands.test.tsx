@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import type { DawCapabilities } from '../../api/contracts/daw';
 import { createMockApi } from '../../api/mockApi';
-import { chapterName } from '../../chapterName';
+import { headingName } from '../../chapterHeading';
 import { COMMAND_CATALOG } from '../../input/commands.catalog';
 import { defaultKeymap } from '../../input/keymap';
 import { currentPageContext, type PageItem } from '../../input/pageCommands';
@@ -81,7 +81,7 @@ describe('proof-page-commands', () => {
     const narration = (await api.manuscriptChapters()).filter((c) => (c.contentKind ?? 'narration') === 'narration');
     renderPage({ api });
     await ready();
-    expect(items('Chapters').map((row) => row.label)).toEqual(['All chapters', ...narration.map((c) => chapterName(c))]);
+    expect(items('Chapters').map((row) => row.label)).toEqual(['All chapters', ...narration.map((c) => headingName(c))]);
     expect(byId('chapter.all').disabledReason).toBe('All chapters is already showing.');
     expect(byId(`chapter.${narration[1].id}`).disabledReason).toBeUndefined();
 
