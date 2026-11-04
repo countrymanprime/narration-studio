@@ -12,7 +12,7 @@ export const engineStates: StateEntry[] = [
     page: 'engine',
     state: 'default',
     description:
-      'The engine panel opened from the header chip over the Production home: the linked Alice.rpp and "Change file…", the six REAPER tools on a three-column grid, Chapter sync (its facts as label and value rows, "Not chapters" among them), the track list with each track\'s chapter and its unplayable items flagged, and Chapter links',
+      'The engine panel opened from the header chip over the Production home: the linked Alice.rpp and a "Change the linked file" icon, the six REAPER tools as icon buttons, Chapter sync (its facts as label and value rows, "Not chapters" among them), the track list with each track\'s chapter and its unplayable items flagged, and Chapter links',
   },
   {
     page: 'engine',
@@ -63,7 +63,7 @@ export const engineStates: StateEntry[] = [
     page: 'engine',
     state: 'no-daw-link',
     description:
-      'The engine panel with no linked REAPER project file (?mockNoDaw=1): the panel’s own DAW-link control reads "Link file…" instead of "Change file…" and the header chip reading REAPER with a quiet dot - the panel stays usable since it reads its .rpp through its own discovery flow',
+      'The engine panel with no linked REAPER project file (?mockNoDaw=1): the panel’s own DAW-link control is a "Link a project file" icon instead of "Change the linked file" and the header chip reading REAPER with a quiet dot - the panel stays usable since it reads its .rpp through its own discovery flow',
   },
   {
     page: 'engine',
@@ -101,6 +101,20 @@ export const engineStates: StateEntry[] = [
   },
   {
     page: 'engine',
+    state: 'nested-chapters',
+    description:
+      "Chapter links when two linked chapters' tracks sit inside another linked chapter's folder in REAPER (?mockNestedChapters=1, #2838): the panel header's warning badge, 2 chapters nested, and Move them out…",
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'engine',
+    state: 'nested-chapters-confirm',
+    description:
+      "The nested-chapters repair's confirmation (?mockNestedChapters=1): the question, the sentence on what changes in REAPER and the list of every track that moves, each out of the chapter's folder to the top level",
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+  },
+  {
+    page: 'engine',
     state: 'voice-folders-link-picker',
     description:
       'A Voice folders project (?mockVoiceFolders=1) with Chapter 2\'s folder picker open: the Chapter 1 folder can be chosen (linked to Chapter 1), its Narrator, White Rabbit and Extras tracks are off with "A voice of its folder"',
@@ -132,6 +146,27 @@ export const engineStates: StateEntry[] = [
     state: 'chapter-link-confirmed',
     description:
       'The engine panel, the Chapter links list at the foot of the page - the first chapter confirmed to a track shows Linked with the track name, Change and Clear',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'engine',
+    state: 'chapter-track-created',
+    description:
+      'The engine panel with no chapter linked (?mockChapterLink=none) after Chapter 1\'s "Create a track for this chapter" press (#2840): its Chapter links row Linked to the new track named after the chapter, with Change and Clear, the unlinked rows below still offering the create button, and the toast saying the track was made and the project is not saved',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'engine',
+    state: 'chapter-folder-created',
+    description:
+      'A Voice folders project (?mockVoiceFolders=1) after the first unlinked chapter\'s "Create a folder for this chapter" press (#2840): the row Linked to the new folder "<title> · 1 voice", the other unlinked rows offering the folder button, and the toast naming the folder and its Narrator track',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'engine',
+    state: 'chapter-track-create-refused',
+    description:
+      'The engine panel with REAPER recording (?mockReaperState=recording_elsewhere&mockChapterLink=none) after a create press on the first Chapter links row: the refusal as an error toast, the row still Not linked with its create button',
     ...KEEPS_DESKTOP_SCROLL,
   },
   {

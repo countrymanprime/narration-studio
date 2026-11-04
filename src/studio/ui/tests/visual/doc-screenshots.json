@@ -526,6 +526,20 @@
   },
   {
     "page": "engine",
+    "state": "nested-chapters",
+    "viewport": "desktop",
+    "docName": "engine-panel-nested-chapters",
+    "caption": "The audio engine panel - Chapter links' header: two chapters nested in another chapter's folder in REAPER, and Move them out"
+  },
+  {
+    "page": "engine",
+    "state": "nested-chapters-confirm",
+    "viewport": "desktop",
+    "docName": "engine-panel-nested-chapters-confirm",
+    "caption": "The audio engine panel - the confirmation listing every track that moves out of the chapter's folder"
+  },
+  {
+    "page": "engine",
     "state": "live-tracks-saved",
     "viewport": "desktop",
     "docName": "engine-panel-live-tracks-saved",
@@ -537,6 +551,20 @@
     "viewport": "desktop",
     "docName": "engine-panel-live-tracks-stale",
     "caption": "The audio engine panel - Chapter links after REAPER stopped answering: the header says when the tracks were last read, and a message offers Retry"
+  },
+  {
+    "page": "engine",
+    "state": "chapter-track-created",
+    "viewport": "desktop",
+    "docName": "engine-panel-chapter-track-created",
+    "caption": "The audio engine panel - Chapter links after Create a track for this chapter: the chapter linked to its new track, and a message saying it was made"
+  },
+  {
+    "page": "engine",
+    "state": "chapter-folder-created",
+    "viewport": "desktop",
+    "docName": "engine-panel-chapter-folder-created",
+    "caption": "The audio engine panel - Chapter links in a Voice folders project after Create a folder for this chapter: the chapter linked to its new folder with one voice"
   },
   {
     "page": "proof-chapter",
@@ -684,6 +712,34 @@
     "viewport": "desktop",
     "docName": "settings-booth-text-size",
     "caption": "Settings - Booth text size under Look: a slider from 24 to 72 px, 40 px by default"
+  },
+  {
+    "page": "settings",
+    "state": "story-bible-order",
+    "viewport": "desktop",
+    "docName": "settings-story-bible-order",
+    "caption": "Settings - Story Bible order under Look: a select of eight orders, Name, A to Z by default"
+  },
+  {
+    "page": "settings",
+    "state": "first-use-tips-dismissed",
+    "viewport": "desktop",
+    "docName": "settings-first-use-tips",
+    "caption": "Settings - First-use tips under Tips after a tip was dismissed: 1 dismissed, and Show tips again"
+  },
+  {
+    "page": "settings",
+    "state": "editing-playback",
+    "viewport": "desktop",
+    "docName": "settings-editing-playback",
+    "caption": "Settings - Editing playback under Listening: speed, volume, silence and output device"
+  },
+  {
+    "page": "settings",
+    "state": "effects-cap",
+    "viewport": "desktop",
+    "docName": "settings-effects-cap",
+    "caption": "Settings - Recording & DAW, Effects: the Effects coverage cap row after Override for this project, with its own project box"
   },
   {
     "page": "settings",
@@ -1027,6 +1083,13 @@
     "viewport": "desktop",
     "docName": "master-report-exported",
     "caption": "Master & QC - Export report wrote an HTML and a JSON report into the project's delivery folder, with file names only"
+  },
+  {
+    "page": "master",
+    "state": "to-spec-empty",
+    "viewport": "desktop",
+    "docName": "master-to-spec-empty",
+    "caption": "Master & QC - the Master to spec card before any file is picked: Choose files to master… and Master before encoding"
   },
   {
     "page": "master",
@@ -1671,5 +1734,19 @@
     "viewport": "desktop",
     "docName": "master-daw-tools",
     "caption": "Master & QC with nothing measured and REAPER not answering: the DAW tools menu beside Check files, both entries off with REAPER's own sentence under each"
+  },
+  {
+    "page": "editing",
+    "state": "drawer-cleanup-repair",
+    "viewport": "desktop",
+    "docName": "editing-drawer-cleanup-repair",
+    "caption": "Editing - Clicks chosen in Clean up: Repair in REAPER beside Apply, its menu open on Cleanup tools"
+  },
+  {
+    "page": "proof",
+    "state": "inspector-repair-menu",
+    "viewport": "desktop",
+    "docName": "proof-repair-in-reaper",
+    "caption": "Proof - a click note: Repair in REAPER in the Inspector's row, its menu open on Cleanup tools"
   }
 ]

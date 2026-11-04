@@ -19,6 +19,13 @@ export const proofStates: StateEntry[] = [
   },
   {
     page: 'proof',
+    state: 'inspector-repair-menu',
+    description: 'Proof, a click note selected - Repair in REAPER in the inspector icon row, its menu open on Repair with Cleanup tools',
+    ...REFLOW,
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+  },
+  {
+    page: 'proof',
     state: 'daw-tools-menu',
     description:
       'Proof, the DAW tools icon button at the end of the head opened on a linked chapter - the Structure heading over Prepare chapter render and Create chapter regions',

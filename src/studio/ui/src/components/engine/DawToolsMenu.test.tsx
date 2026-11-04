@@ -8,6 +8,7 @@ import { join } from 'node:path';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import { WIRE_TRACKS_PROJECT } from '../../api/mockFixtures';
+import { nameFor } from '../../icons.catalog';
 import { DAW_TOOLS, DAW_TOOL_GROUPS } from './dawTools';
 import { DawToolsMenu } from './DawToolsMenu';
 import type { ChapterLinks } from './useChapterLinks';
@@ -25,8 +26,10 @@ function links(overrides: Partial<ChapterLinks> = {}): ChapterLinks {
     rows: [],
     error: '',
     busyChapterId: '',
+    creatingChapterId: '',
     set: () => {},
     unlink: () => {},
+    create: async () => undefined,
     ...overrides,
   };
 }
@@ -44,17 +47,17 @@ function renderMenu(props: Partial<Parameters<typeof DawToolsMenu>[0]> = {}, ini
 const names = () =>
   within(screen.getByRole('toolbar', { name: 'DAW tools' }))
     .getAllByRole('button')
-    .map((button) => button.textContent);
+    .map((button) => button.getAttribute('aria-label'));
 
 describe('DawToolsMenu', () => {
   it('draws every tool, in registry order, when given every group', () => {
     renderMenu();
-    expect(names()).toEqual(DAW_TOOLS.map((tool) => tool.label));
+    expect(names()).toEqual(DAW_TOOLS.map((tool) => nameFor(tool.action)));
   });
 
   it('draws only the groups it is given, in registry order whatever the order of the groups', () => {
     renderMenu({ groups: ['repair', 'structure'] });
-    expect(names()).toEqual(['Prepare chapter render…', 'Create chapter regions…', 'Cleanup tools…']);
+    expect(names()).toEqual(['Prepare the chapter render', 'Create chapter regions', 'Open the cleanup tools']);
   });
 
   it('draws nothing at all for no groups', () => {
@@ -65,7 +68,7 @@ describe('DawToolsMenu', () => {
   it('opens the dialog of the tool that was pressed, and closes it again', async () => {
     const user = userEvent.setup();
     renderMenu();
-    await user.click(screen.getByRole('button', { name: 'Cleanup tools…' }));
+    await user.click(screen.getByRole('button', { name: 'Open the cleanup tools' }));
     const dialog = await screen.findByRole('dialog', { name: 'Cleanup tools' });
     await user.click(within(dialog).getAllByRole('button', { name: /close|cancel|done/i })[0]);
     expect(screen.queryByRole('dialog', { name: 'Cleanup tools' })).toBeNull();
@@ -74,7 +77,7 @@ describe('DawToolsMenu', () => {
   it('hands Prepare chapter render over to Create chapter regions', async () => {
     const user = userEvent.setup();
     renderMenu({}, { renderConfig: 'no-regions' });
-    await user.click(screen.getByRole('button', { name: 'Prepare chapter render…' }));
+    await user.click(screen.getByRole('button', { name: 'Prepare the chapter render' }));
     const render = await screen.findByRole('dialog', { name: /render/i });
     await user.click(await within(render).findByRole('button', { name: /create chapter regions/i }));
     expect(await screen.findByRole('dialog', { name: /regions/i })).toBeTruthy();
@@ -84,7 +87,7 @@ describe('DawToolsMenu', () => {
   it('returns focus to the toolbar button that started a chain of tools, however many dialogs it passed through', async () => {
     const user = userEvent.setup();
     renderMenu({}, { renderConfig: 'no-regions' });
-    const start = screen.getByRole('button', { name: 'Prepare chapter render…' });
+    const start = screen.getByRole('button', { name: 'Prepare the chapter render' });
     await user.click(start);
     const render = await screen.findByRole('dialog', { name: /render/i });
     await user.click(await within(render).findByRole('button', { name: /create chapter regions/i }));
@@ -97,13 +100,13 @@ describe('DawToolsMenu', () => {
 
   it('hides a tool the gate calls unsupported when asked to, and leaves the others', () => {
     renderMenu({ links: links({ chapters: [] }), whenUnsupported: 'hide' });
-    expect(names()).not.toContain('Link chapters…');
+    expect(names()).not.toContain('Link chapters to tracks');
     expect(names()).toHaveLength(DAW_TOOLS.length - 1);
   });
 
   it('shows a gated tool off with the reason, never hidden, when the project has no tracks', async () => {
     renderMenu({ links: links({ tracks: [] }), whenUnsupported: 'hide' });
-    const button = screen.getByRole('button', { name: 'Cleanup tools…' });
+    const button = screen.getByRole('button', { name: 'Open the cleanup tools' });
     expect(button.getAttribute('aria-disabled')).toBe('true');
     expect(screen.getAllByText('This REAPER project has no tracks yet.').length).toBeGreaterThan(0);
     await userEvent.setup().click(button);
@@ -177,6 +180,23 @@ describe('DawToolsMenu as a menu (the layout the page headers use)', () => {
     await openMenu(user);
     expect(screen.getByText(/Chapter regions are written in REAPER/)).toBeTruthy();
     expect(screen.getByText(/Render setup is written in REAPER/)).toBeTruthy();
+  });
+
+  // #2821: the same menu over the repair group, with its own button name and icon.
+  it('draws the repair group under its own heading, behind a button named for what it does', async () => {
+    const user = userEvent.setup();
+    renderMenu({ layout: 'menu', groups: ['repair'], label: 'Repair in REAPER', action: 'repairInReaper' });
+    expect(screen.queryByRole('button', { name: 'DAW tools' })).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Repair in REAPER' }));
+    const menu = await screen.findByRole('menu');
+    expect(within(menu).getByText('Repair')).toBeTruthy();
+    expect(
+      within(menu)
+        .getAllByRole('menuitem')
+        .map((item) => item.textContent),
+    ).toEqual(['Cleanup tools…']);
+    await user.click(within(menu).getByRole('menuitem', { name: 'Cleanup tools…' }));
+    expect(await screen.findByRole('dialog', { name: 'Cleanup tools' })).toBeTruthy();
   });
 
   it('draws nothing for no groups', () => {

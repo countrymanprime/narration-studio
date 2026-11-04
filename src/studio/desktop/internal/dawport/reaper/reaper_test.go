@@ -109,6 +109,7 @@ var experimentalCapability = map[string]dawport.Capability{
 	"chapter_track_state": dawport.CapTrackState,
 	"select_track":        dawport.CapTrackSelect,
 	"track_create":        dawport.CapTrackCreate,
+	"chapter_folders":     dawport.CapTrackCreate,
 	"tracks_read":         dawport.CapTracksRead,
 	"arm_only":            dawport.CapRecord,
 	"record_start":        dawport.CapRecord,
@@ -280,6 +281,13 @@ func TestTheSynchronousRolesAreTodaysTypes(t *testing.T) {
 	}
 	if adapter.Role(dawport.CapNavigate) != adapter.Role(dawport.CapMarkers) {
 		t.Error("navigate and markers have different navigators: one client subscription each is enough")
+	}
+	// A Voice folders chapter is a folder (#2840): REAPER's track_create role adds one, and a voice inside one.
+	if _, ok := adapter.Role(dawport.CapTrackCreate).(dawport.FolderTrackCreator); !ok {
+		t.Error("REAPER's track_create role cannot add a chapter folder")
+	}
+	if _, ok := adapter.Role(dawport.CapTrackCreate).(dawport.ChildTrackCreator); !ok {
+		t.Error("REAPER's track_create role cannot add a voice inside a folder")
 	}
 }
 

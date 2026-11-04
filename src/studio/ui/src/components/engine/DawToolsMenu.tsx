@@ -1,8 +1,7 @@
-import { useRef, useState } from 'react';
-import { Button } from '../primitives/Button';
+import { useId, useRef, useState } from 'react';
 import { IconButton } from '../primitives/IconButton';
 import { Menu } from '../primitives/Menu';
-import { CapabilityGate } from '../primitives/CapabilityGate';
+import type { CapabilityGate } from '../primitives/CapabilityGate';
 import { Toolbar, ToolbarButton } from '../primitives/Toolbar';
 import { DAW_TOOLS, DAW_TOOL_GROUP_LABELS, dawToolGate, type DawTool, type DawToolFacts, type DawToolGroup, type DawToolId } from './dawTools';
 import type { ChapterLinks } from './useChapterLinks';
@@ -12,8 +11,7 @@ import type { LiveTracks } from './useLiveTracks';
  * The DAW tools of the `groups` it is given, and the dialog of whichever was pressed. Every place that offers these tools renders this
  * component from the registry in `dawTools.tsx`; a disabled tool says why, from the one gate function.
  *
- * `layout` is how they are drawn. `grid` is one toolbar of equal cells (three across, two below 36rem, one below 26rem, so the buttons share
- * their edges whatever their labels), the Engine panel's card. `menu` is one DAW tools icon button that opens a menu with a heading per group,
+ * `layout` is how they are drawn. `grid` is one wrapping toolbar of icon buttons, one per tool with its name as the hint, the Engine panel's card. `menu` is one DAW tools icon button that opens a menu with a heading per group,
  * for a page header; an entry that is off stays in it with its reason under its label.
  *
  * `links` is the one reader of the chapter links (the project's tracks come from it). `whenUnsupported` is what to do with a tool whose
@@ -24,6 +22,7 @@ import type { LiveTracks } from './useLiveTracks';
  */
 export function DawToolsMenu({
   label,
+  action = 'dawTools',
   groups,
   links,
   live,
@@ -36,6 +35,8 @@ export function DawToolsMenu({
   onOpen,
 }: {
   label: string;
+  /** The icon and hint of the `menu` layout's button, from the icon catalog. */
+  action?: 'dawTools' | 'repairInReaper';
   groups: readonly DawToolGroup[];
   links: ChapterLinks;
   live?: LiveTracks;
@@ -73,7 +74,7 @@ export function DawToolsMenu({
     <>
       {shown.length > 0 && layout === 'grid' && (
         <div ref={host} className="@container">
-          <Toolbar label={label} className="grid! grid-cols-1 @min-[26rem]:grid-cols-2 @min-[36rem]:grid-cols-3" gapClassName="gap-2">
+          <Toolbar label={label} className="flex-wrap" gapClassName="gap-2">
             {shown.map((tool) => (
               <ToolButton key={tool.id} tool={tool} gate={dawToolGate(tool, facts)} onOpen={() => openFrom(`[data-daw-tool="${tool.id}"]`, tool.id)} />
             ))}
@@ -102,7 +103,7 @@ export function DawToolsMenu({
                     };
                   }),
               }))}
-            render={<IconButton action="dawTools" label={label} data-daw-tools-trigger="" />}
+            render={<IconButton action={action} label={label} data-daw-tools-trigger="" />}
           >
             {null}
           </Menu>
@@ -113,36 +114,24 @@ export function DawToolsMenu({
   );
 }
 
-// One cell: it fills its grid cell, so the rows share their edges. The gate wraps the button inside the toolbar item, so the item keeps
-// its roving tab stop whether the tool is on or off.
+// One icon per tool (icon-button audit, #2836); the hint names it and each opens its own dialog. A tool that is off keeps its place and its roving
+// tab stop (`disabledReason` gates an `IconButton` without taking it out of the tab order) and says why as its hint.
 function ToolButton({ tool, gate, onOpen }: { tool: DawTool; gate: Parameters<typeof CapabilityGate>[0]['capability']; onOpen: () => void }) {
+  const reasonId = useId();
+  const reason = gate.available ? undefined : gate.message || tool.label;
   return (
-    <ToolbarButton
-      render={
-        <GatedButton gate={gate} onClick={onOpen} data-daw-tool={tool.id}>
-          {tool.label}
-        </GatedButton>
-      }
-    />
-  );
-}
-
-// Takes the props the toolbar item hands its control and gives them to the button, behind the gate.
-function GatedButton({
-  gate,
-  children,
-  ...props
-}: {
-  gate: Parameters<typeof CapabilityGate>[0]['capability'];
-  children: string;
-  onClick: () => void;
-  'data-daw-tool': DawToolId;
-}) {
-  return (
-    <CapabilityGate capability={gate}>
-      <Button {...props} variant="secondary" className="w-full">
-        {children}
-      </Button>
-    </CapabilityGate>
+    <>
+      <ToolbarButton
+        disabled={!gate.available}
+        render={
+          <IconButton action={tool.action} disabledReason={reason} aria-describedby={reason ? reasonId : undefined} onClick={onOpen} data-daw-tool={tool.id} />
+        }
+      />
+      {reason && (
+        <span id={reasonId} className="sr-only">
+          {reason}
+        </span>
+      )}
+    </>
   );
 }

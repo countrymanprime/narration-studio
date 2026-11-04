@@ -70,7 +70,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   { file: 'components/booth/record/RecordSetup.tsx', text: 'Link the open project asks you to choose the project file … has open.', class: 'overlay' },
   { file: 'components/booth/record/RecordSetup.tsx', text: 'Could not read whether a project file is linked. Press Check again.', class: 'error' },
   { file: 'components/connection/ChapterLinkDialog.tsx', text: 'is linked to …. Linking it here moves it.', class: 'overlay' },
-  { file: 'components/connection/ChapterLinkDialog.tsx', text: 'Or have … add a new track for this chapter, named after it, and link it:', class: 'overlay' },
+  { file: 'components/connection/ChapterLinkDialog.tsx', text: 'Or have … add a new … for this chapter, named after it…, and link it:', class: 'overlay' },
   {
     file: 'components/credits/CreditsSetupDialog.tsx',
     text: 'Your opening and closing credits need … value…. We filled in what the manuscript already says; check them and save.',
@@ -197,7 +197,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   },
   {
     file: 'components/engine/ChapterTagsDialog.tsx',
-    text: 'No chapter render is configured yet. Use &ldquo;Prepare chapter render…&rdquo; first.',
+    text: 'No chapter render is configured yet. Use the tool “Prepare the chapter render” first.',
     class: 'overlay',
   },
   {

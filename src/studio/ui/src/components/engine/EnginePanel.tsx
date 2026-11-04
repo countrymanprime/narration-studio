@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTriangleExclamation } from '@fortawesome/free-solid-svg-icons';
 import { useApi } from '../../api/ApiContext';
-import { Button } from '../primitives/Button';
+import { IconButton } from '../primitives/IconButton';
 import { InsetCard } from '../primitives/InsetCard';
 import { Panel } from '../primitives/Panel';
 import { SlideOver } from '../primitives/SlideOver';
@@ -94,7 +94,7 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
   // Chapter sync draws the layout switch as its Layout row while it is drawn at all; otherwise the Voices card does.
   const [layoutInSync, setLayoutInSync] = useState(false);
   // The one reader of the chapter links: the Link chapters button and dialog, the Tracks card and the Chapter links section all use it.
-  const links = useChapterLinks(project?.tracks ?? NO_TRACKS, refresh, () => setRefresh((count) => count + 1));
+  const links = useChapterLinks(project?.tracks ?? NO_TRACKS, refresh, () => setRefresh((count) => count + 1), forAudacity ? null : live.readAt);
   // Read-only here, so onStatus is a no-op; a Link or a Change below is exactly
   // what resolves an unmapped_track/unconfirmed_mapping cause.
   const stages = useStageRecommendations({ refreshKey: String(refresh), notify, onStatus: () => {} });
@@ -235,9 +235,7 @@ function ProjectSection({ discovery, link, onSelectRpp }: { discovery?: TracksDi
       actions={
         picking ? undefined : (
           // A short label of one width either way (ENX-25); the card's title already says it is the REAPER project file.
-          <Button variant="secondary" pending={link.linkingDawFile} onClick={link.onLinkDawFile}>
-            {link.dawFileLinked ? 'Change file…' : 'Link file…'}
-          </Button>
+          <IconButton action={link.dawFileLinked ? 'changeLink' : 'linkFile'} pending={link.linkingDawFile} onClick={link.onLinkDawFile} />
         )
       }
     >
@@ -260,12 +258,8 @@ function ProjectSection({ discovery, link, onSelectRpp }: { discovery?: TracksDi
             </p>
             <CheckLine waiting="Waiting for REAPER to open the linked project" unknown="REAPER has the linked project open" checkedAt={link.checkedAt} />
             <div className="flex flex-wrap gap-2">
-              <Button variant="secondary" pending={link.linkingDawFile} onClick={link.onLinkDawFile}>
-                Link the open project…
-              </Button>
-              <Button variant="secondary" onClick={link.onCheckAgain}>
-                Check again
-              </Button>
+              <IconButton action="linkFile" label="Link the open project" pending={link.linkingDawFile} onClick={link.onLinkDawFile} />
+              <IconButton action="checkAgain" onClick={link.onCheckAgain} />
             </div>
           </InsetCard>
         )}

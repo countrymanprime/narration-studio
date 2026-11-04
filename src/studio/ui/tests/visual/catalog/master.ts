@@ -138,6 +138,14 @@ export const masterStates: StateEntry[] = [
   // Master & QC, "Master all to spec…" (no mock equivalent, kept as built)
   {
     page: 'master',
+    state: 'to-spec-empty',
+    description:
+      'Master & QC, the Master to spec card before any file is picked - its labelled primary Choose files to master… and Master before encoding with the built-in chain; the page header keeps its icon as the secondary way in (#2931)',
+    ...KEEPS_DESKTOP_SCROLL,
+    ...REFLOW,
+  },
+  {
+    page: 'master',
     state: 'to-spec-picked',
     description:
       'Master & QC, Master all to spec… with five files picked and given a role - two chapters (their titles editable), opening and closing credits, a retail sample, Master before encoding on with the built-in chain, and Master & encode',
@@ -190,6 +198,28 @@ export const masterStates: StateEntry[] = [
       'Master & QC, the approval dialog over a 40-chapter book (?mockMastering=daw&mockExportPick=many) - the table of files and regions capped to its own scroll, the question and the actions in view',
     ...KEEPS_DESKTOP_SCROLL,
     ...REFLOW,
+  },
+  {
+    page: 'master',
+    state: 'to-spec-approve-long-chain',
+    description:
+      "Master & QC, the approval dialog over a project whose DAW chain is long (?mockMastering=daw&mockMasterChain=long, #2932) - the files and regions, then the FX chain this render runs, each track's plug-ins in order and the master's, one marked (off), capped to its own scroll, the question and the actions in view",
+    ...KEEPS_DESKTOP_SCROLL,
+    ...REFLOW,
+  },
+  {
+    page: 'master',
+    state: 'to-spec-approve-chain-off',
+    description:
+      "Master & QC, the approval dialog's long DAW chain scrolled to its bypassed plug-in (?mockMastering=daw&mockMasterChain=long, #2932) - the row numbered in signal order, its Off badge beside the name",
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'master',
+    state: 'to-spec-approve-no-fx',
+    description:
+      'Master & QC, the approval dialog over a project with no FX on any track or the master (?mockMastering=daw&mockMasterChain=empty, #2932) - "Signal order: no effects" and one "No FX" row, then the files',
+    ...KEEPS_DESKTOP_SCROLL,
   },
   {
     page: 'master',
