@@ -553,6 +553,20 @@
     "caption": "The audio engine panel - Chapter links after REAPER stopped answering: the header says when the tracks were last read, and a message offers Retry"
   },
   {
+    "page": "engine",
+    "state": "chapter-track-created",
+    "viewport": "desktop",
+    "docName": "engine-panel-chapter-track-created",
+    "caption": "The audio engine panel - Chapter links after Create a track for this chapter: the chapter linked to its new track, and a message saying it was made"
+  },
+  {
+    "page": "engine",
+    "state": "chapter-folder-created",
+    "viewport": "desktop",
+    "docName": "engine-panel-chapter-folder-created",
+    "caption": "The audio engine panel - Chapter links in a Voice folders project after Create a folder for this chapter: the chapter linked to its new folder with one voice"
+  },
+  {
     "page": "proof-chapter",
     "state": "never",
     "viewport": "desktop",
@@ -698,6 +712,20 @@
     "viewport": "desktop",
     "docName": "settings-booth-text-size",
     "caption": "Settings - Booth text size under Look: a slider from 24 to 72 px, 40 px by default"
+  },
+  {
+    "page": "settings",
+    "state": "editing-playback",
+    "viewport": "desktop",
+    "docName": "settings-editing-playback",
+    "caption": "Settings - Editing playback under Listening: speed, volume, silence and output device"
+  },
+  {
+    "page": "settings",
+    "state": "effects-cap",
+    "viewport": "desktop",
+    "docName": "settings-effects-cap",
+    "caption": "Settings - Recording & DAW, Effects: the Effects coverage cap row after Override for this project, with its own project box"
   },
   {
     "page": "settings",
@@ -1041,6 +1069,13 @@
     "viewport": "desktop",
     "docName": "master-report-exported",
     "caption": "Master & QC - Export report wrote an HTML and a JSON report into the project's delivery folder, with file names only"
+  },
+  {
+    "page": "master",
+    "state": "to-spec-empty",
+    "viewport": "desktop",
+    "docName": "master-to-spec-empty",
+    "caption": "Master & QC - the Master to spec card before any file is picked: Choose files to master… and Master before encoding"
   },
   {
     "page": "master",
@@ -1692,5 +1727,19 @@
     "viewport": "desktop",
     "docName": "delivery-chapter-tags",
     "caption": "Delivery - Embed chapter tags ready to embed: the combined book MP3, the chapters from the last render and the confirmation"
+  },
+  {
+    "page": "editing",
+    "state": "drawer-cleanup-repair",
+    "viewport": "desktop",
+    "docName": "editing-drawer-cleanup-repair",
+    "caption": "Editing - Clicks chosen in Clean up: Repair in REAPER beside Apply, its menu open on Cleanup tools"
+  },
+  {
+    "page": "proof",
+    "state": "inspector-repair-menu",
+    "viewport": "desktop",
+    "docName": "proof-repair-in-reaper",
+    "caption": "Proof - a click note: Repair in REAPER in the Inspector's row, its menu open on Cleanup tools"
   }
 ]

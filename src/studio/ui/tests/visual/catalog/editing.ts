@@ -200,6 +200,12 @@ export const editingStates: StateEntry[] = [
   },
   {
     page: 'editing',
+    state: 'drawer-cleanup-repair',
+    description: 'Editing, the drawer on Clean up with Clicks chosen - Repair in REAPER beside Apply, its menu open on Repair with Cleanup tools',
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+  },
+  {
+    page: 'editing',
     state: 'drawer-effects',
     // The FX in the DAW section says when the DAW last answered, which is a different clock time on every run.
     mask: ['[data-projectfx-read]'],

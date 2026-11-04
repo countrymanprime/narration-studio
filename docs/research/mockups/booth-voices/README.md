@@ -17,6 +17,7 @@ The Studio Next mock stays the spec for the Booth and the Engine panel and is no
 | Extras tracks | One child holding several characters |
 | Engine: linking | The project's layout (Flat or Voice folders), a folder as a chapter's link target, the Voices card with key, track, characters and how each matched, and the character picker for a child |
 | Narrow windows | The Booth bar, the list and the Voices card at 360 px |
+| Engine: create a chapter's track or folder | [#2840](https://github.com/countrymanprime/narration-studio/issues/2840), part 2. Decided 2026-11-03 (coordinator): row button; Narrator only; done toast; open for the owner to overrule. Draws the create button on a Chapter links row with no link, in Flat and Voice folders; its busy, refused and done states; REAPER's tracks before and after, with the one depth change a folder left open at the end needs |
 
 ## Primitives for a real build
 

@@ -24,6 +24,7 @@ import type { LiveTracks } from './useLiveTracks';
  */
 export function DawToolsMenu({
   label,
+  action = 'dawTools',
   groups,
   links,
   live,
@@ -36,6 +37,8 @@ export function DawToolsMenu({
   onOpen,
 }: {
   label: string;
+  /** The icon and hint of the `menu` layout's button, from the icon catalog. */
+  action?: 'dawTools' | 'repairInReaper';
   groups: readonly DawToolGroup[];
   links: ChapterLinks;
   live?: LiveTracks;
@@ -102,7 +105,7 @@ export function DawToolsMenu({
                     };
                   }),
               }))}
-            render={<IconButton action="dawTools" label={label} data-daw-tools-trigger="" />}
+            render={<IconButton action={action} label={label} data-daw-tools-trigger="" />}
           >
             {null}
           </Menu>

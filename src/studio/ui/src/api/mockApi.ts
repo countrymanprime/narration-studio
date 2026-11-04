@@ -19,7 +19,7 @@ import { createAudacityLinkMock } from './audacityLinkMock';
 import { createDawChoiceMock } from './dawChoiceMock';
 import { createDawMock } from './dawMock';
 import { createProvidersMock } from './providersMock';
-import { createMasteringMock } from './masteringMock';
+import { createMasteringMock, mockMasterChain } from './masteringMock';
 import { createBuiltinBoothRecordMock } from './builtinBoothMock';
 import { createRecordingMock, type RecorderMockControl } from './recordingMock';
 import { createFindingsMock } from './findingsMock';
@@ -193,8 +193,12 @@ export function createMockApi(
     paragraphs: () => s.paragraphs,
     proofNotes: () => proofNotes.read(),
   });
+  const voiceTracks = createVoiceTracksMock(
+    initial.voiceFolders ? { layout: 'folders', tracks: [{ track: 'Extras', characters: ['mad-hatter', 'cheshire-cat'] }] } : undefined,
+  );
   const chapterTracks = createChapterTracksMock(s, initial, {
     manuscriptReady,
+    voiceLayout: async () => (await voiceTracks.voiceTracksGet()).layout,
     chaptersWithCredits: () => credits.withCreditsChapters(s.chapters),
     dawFileLinked: project.dawFileLinked,
     peekCoverage: (chapterId) => peekCoverage(chapterId),
@@ -390,6 +394,7 @@ export function createMockApi(
     initial.renderPackageMulti,
     mastering.masteringProviders,
     initial.renderExportPick === 'many' ? MOCK_EXPORT_MANY_PATHS : initial.renderExportPick === 'long' ? MOCK_EXPORT_LONG_PATHS : MOCK_EXPORT_PATHS,
+    () => mockMasterChain(initial.mastering?.chain),
   );
   const system = createSystemMock(s, initial, {
     version: update.version,
@@ -459,9 +464,7 @@ export function createMockApi(
     // editingCandidateFor in mockFixtures.ts), so Accept/Dismiss/Defer on it go through the real review binding.
     editingCandidates: async (chapterId) => (await findings.findingsList({ analyzer: 'editing', chapterId })).findings,
     ...cleanupAction,
-    ...createVoiceTracksMock(
-      initial.voiceFolders ? { layout: 'folders', tracks: [{ track: 'Extras', characters: ['mad-hatter', 'cheshire-cat'] }] } : undefined,
-    ),
+    ...voiceTracks,
     ...createBookmarksMock(
       manuscriptReady,
       () => s.chapters,

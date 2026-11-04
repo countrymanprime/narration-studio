@@ -52,7 +52,7 @@ export function useDawToolsSource(opened: number): DawToolsSource {
         setState('read');
       },
       (reason) => {
-        if (active) setState({ failed: `The REAPER project could not be read: ${apiErrorMessage(reason)}` });
+        if (active) setState({ failed: `The REAPER project could not be read: ${apiErrorMessage(reason).slice(0, 200)}` });
       },
     );
     return () => {
@@ -78,7 +78,7 @@ export function useDawToolsSource(opened: number): DawToolsSource {
     };
   }, [system, enabled, opened, reachable, dawKind]);
 
-  const links = useChapterLinks(tracks, opened, noop, enabled);
+  const links = useChapterLinks(tracks, opened, noop, null, enabled);
   const linked = links.rows.filter((row) => row.state === 'linked').length;
   const dawOff =
     state === 'reading'

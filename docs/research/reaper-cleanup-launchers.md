@@ -25,3 +25,5 @@ Run under the D3 rules in [`src/studio/integrations/reaper/spikes/README.md`](..
 5. **Pending, needs the owner.** Press **Open Repair Pops/Clicks** in the app on a real narration item, apply a repair in the dialog, and confirm one REAPER Undo takes it back (the repair is REAPER's edit, not the app's).
 
 Until step 1 is run, a REAPER whose action text differs from the accepted names reports "This REAPER has no Repair Pops/Clicks dialog" instead of opening it. It cannot open a different action.
+
+Editing's Clean up tab and Proof's inspector also offer the launchers now (#2821: a **Repair in REAPER** button opening **Cleanup tools…**), so a REAPER whose action text differs reaches the narrator from more places than the audio engine panel. The five checks above gate trust in them and are still Pending; none was run for #2821.
