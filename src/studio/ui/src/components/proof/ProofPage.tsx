@@ -1,3 +1,4 @@
+import { retryAction } from '../primitives/Toast';
 import { headingName } from '../../chapterHeading';
 import { chapterRecordedDetail } from '../../recordedThrough';
 import { useToastSideClearance } from '../../hooks/useToastClearance';
@@ -181,7 +182,7 @@ export function ProofPage({
       })
       .catch((error: unknown) => {
         if (!live) return;
-        if (read.current.chapters) overlay.toast(describeApiError(error), { tone: 'error' });
+        if (read.current.chapters) overlay.toast(describeApiError(error), { tone: 'error', action: retryAction(() => setAttempt((n) => n + 1)) });
         else setChaptersProblem(describeApiError(error));
       });
     return () => {
@@ -216,7 +217,7 @@ export function ProofPage({
       })
       .catch((error: unknown) => {
         if (!live) return;
-        if (read.current.notes) overlay.toast(describeApiError(error), { tone: 'error' });
+        if (read.current.notes) overlay.toast(describeApiError(error), { tone: 'error', action: retryAction(() => setAttempt((n) => n + 1)) });
         else setNotesProblem(describeApiError(error));
       });
     return () => {
