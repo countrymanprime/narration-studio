@@ -34,6 +34,8 @@ Storybook title: `Primitives/StatusBadge`. Source: `src/components/primitives/St
 - `src/components/booth/reading/SpeakerChip.tsx`
 - `src/components/booth/side/VoicesInChapter.tsx`
 - `src/components/booth/suspected/SuspectedLines.tsx`
+- `src/components/booth/voices/VoiceControl.tsx`
+- `src/components/booth/voices/WhoIsInDialog.tsx`
 - `src/components/credits/CreditsSetupBanner.tsx`
 - `src/components/delivery/page/OutputPanel.tsx`
 - `src/components/delivery/page/Preflight.tsx`
