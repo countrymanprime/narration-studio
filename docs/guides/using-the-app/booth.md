@@ -65,8 +65,8 @@ how many punches). In a [pickup session](#a-pickup-session) the pickup lines com
 behind it is dimmed while it is open, and a click on the dimmed text closes it; in a window under 480 pixels wide the drawer
 takes the whole width.
 
-The footer has one **Record** button with two attached parts, the **Cold read** switch and, on its side, **Levels** (the caret that
-opens the microphone in use and two sliders). The take's timer follows it, and in a chapter that records on voice folders the
+The footer has one **Record** button with **Levels** attached to its side (the caret that opens a choice for what the button does, the
+microphone in use and two sliders). The take's timer follows it, and in a chapter that records on voice folders the
 [voice control](#recording-each-voice-on-its-own-track) sits to its left. A level bar and the room tone of that microphone are at the
 right, then the keys the Booth answers, drawn from your keymap. One sentence at a time sits
 between the controls and the level bar: why the text cannot follow your voice, or else why Record cannot start. In a window
@@ -299,11 +299,11 @@ to start), the footer says why. Listening starts at the same time as the DAW, so
 
 ### A cold read
 
-To read a passage through before recording it, press **Cold read** in the footer, between **Record** and **Levels**, or choose **Start cold read** in the jump menu (Ctrl+K). The Booth listens as it does during a take, with the engine and model chosen in Settings, and nothing you say leaves this computer. Nothing is recorded. While it listens, the top bar shows **Mic on · cold read** in the recording colour, drawn dashed.
+To read a passage through before recording it, open **Levels** (the caret on the side of **Record**) and choose **Cold read** under **Main button**: the button now reads **Cold read** and stays so until you choose **Record** there again. Press the button, or Space, to start; or choose **Start cold read** in the jump menu (Ctrl+K), which leaves the button as it is. The Booth listens as it does during a take, with the engine and model chosen in Settings, and nothing you say leaves this computer. Nothing is recorded. While it listens, the top bar shows **Mic on · cold read** in the recording colour, drawn dashed.
 
 A second cursor, the **ghost**, follows your voice: the word you have reached has a dashed outline and a muted tint, with a dashed tick above it. The text keeps the ghost in view, so you can read on without touching anything. The real cursor, a filled word with a caret, stays where you left it: the next take starts from there. The progress line and the resume line follow the real cursor too. A click, an arrow key or **Start from here** moves the real cursor, not the ghost. What you read during a cold read is not kept: it never moves the real cursor, sets where you stopped, adds a suspected line or touches a bookmark.
 
-A cold read keeps listening until you stop it: press **Cold read** again, press **Record**, or leave the Booth. It does not stop at a pause or at the end of the chapter. **Record** ends the cold read first: the ghost goes, the text eases back to the real cursor, and the take starts there. **Cold read** is unavailable while a take records. Changing chapter ends it, and Escape leaves without asking, since nothing would be lost.
+A cold read keeps listening until you stop it: press the button, which now reads **Stop**, press Space, or leave the Booth. It does not stop at a pause or at the end of the chapter. The choice under **Main button** is off while a cold read listens or a take records. A cold read started from the jump menu leaves the button on **Record**, and pressing **Record** then ends the cold read first: the ghost goes, the text eases back to the real cursor, and the take starts there. Changing chapter ends it, and Escape leaves without asking, since nothing would be lost.
 
 ![Booth - a cold read: the dashed ghost on the word you have reached, the real cursor still where the next take starts, and Mic on · cold read in the top bar](../../images/ui/booth-cold-read.webp)
 

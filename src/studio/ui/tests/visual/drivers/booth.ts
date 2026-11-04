@@ -311,6 +311,10 @@ export const boothDrivers: Record<string, Driver> = {
     await readyToRecord(page);
     await page.clock.install({ time: REC_START });
     await page.clock.pauseAt(REC_START + 1_000);
+    // Option B: the side menu picks what the main button does, then the main button starts the cold read.
+    await page.getByRole('button', { name: 'Levels' }).click();
+    await page.getByRole('radio', { name: 'Cold read' }).click();
+    await page.keyboard.press('Escape');
     await page.getByRole('button', { name: 'Cold read' }).click();
     await page.getByText('Mic on · cold read', { exact: true }).waitFor();
     await page.clock.runFor(30_000);

@@ -168,7 +168,7 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'cold-read',
     description:
-      'Booth, thirty seconds into a cold read (#2251 item 13; Cold read pressed, the page clock run on, then held): the ghost - a dashed outline and muted wash with a dashed tick - on the word the mock teleprompter has reached, and the view resting on it; the real cursor still on the first word, the progress line still at ¶ 1, no REC and no timer running; the dashed REC-tone "Mic on · cold read" badge in the top bar and Cold read pressed in the footer beside Levels',
+      'Booth, thirty seconds into a cold read (#2251 item 13; Cold read chosen in the side menu and the main button pressed, the page clock run on, then held): the ghost - a dashed outline and muted wash with a dashed tick - on the word the mock teleprompter has reached, and the view resting on it; the real cursor still on the first word, the progress line still at ¶ 1, no REC and no timer running; the dashed REC-tone "Mic on · cold read" badge in the top bar and the main button reading Stop outlined in the recording colour, beside its Levels caret',
     ...FREEZES_THE_CLOCK,
     ...REFLOW,
   },

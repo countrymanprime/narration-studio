@@ -202,8 +202,10 @@ export function useBoothPage(options: BoothPageOptions) {
   // The take is stopping because the reading reached the end of the chapter: its stop says the take is saved.
   const endOfChapter = useRef(false);
 
-  const latest = useRef({ at, position, units, paragraphs, spans, listening, following, coldRead, session, recording, elapsed: takeClock.read });
-  latest.current = { at, position, units, paragraphs, spans, listening, following, coldRead, session, recording, elapsed: takeClock.read };
+  // Which job the main button does (record, or a cold read): chosen in the side menu, kept until the narrator picks the other.
+  const [coldMode, setColdMode] = useState(false);
+  const latest = useRef({ at, position, units, paragraphs, spans, listening, following, coldRead, coldMode, session, recording, elapsed: takeClock.read });
+  latest.current = { at, position, units, paragraphs, spans, listening, following, coldRead, coldMode, session, recording, elapsed: takeClock.read };
 
   /** Puts the reading position on a sentence and word; a listening session for a take is moved there too (a cold read's ghost is not). */
   const moveTo = useCallback((next: UnitPosition) => {
@@ -614,6 +616,12 @@ export function useBoothPage(options: BoothPageOptions) {
     else await roll.startTake();
   }, [control, roll, blocked]);
   retryTake.current = toggleTake;
+  // The main button's press, and Space's: a take, or, while the mode is Cold read, a cold read (a take that already runs is always stopped).
+  const pressMain = useCallback(async () => {
+    const now = latest.current;
+    if (now.coldMode && !now.recording) await toggleColdRead();
+    else await toggleTake();
+  }, [toggleColdRead, toggleTake]);
   // A voice key with no track behind it stops the take before it asks who is in it (#2839): the narrator's own Stop, so the take is kept as
   // a Stop press keeps it. Answers whether no take runs afterwards.
   const stopTake = useCallback(async (): Promise<boolean> => {
@@ -627,8 +635,8 @@ export function useBoothPage(options: BoothPageOptions) {
     if (!latest.current.recording && control.gate) return blocked(control.gate);
     void roll.punchAndRoll();
   }, [control.gate, roll, blocked]);
-  useCommand('reading.toggle', () => void toggleTake());
-  usePedalSpace(toggleTake);
+  useCommand('reading.toggle', () => void pressMain());
+  usePedalSpace(pressMain);
   useCommand('booth.phrase.next', () => moveTo(nextPhrase(latest.current.units, latest.current.at)));
   useCommand('booth.phrase.prev', () => moveTo(backPhrase(latest.current.at)));
   useCommand('booth.word.next', () => moveTo(stepWord(latest.current.units, latest.current.at, 1)));
@@ -694,7 +702,7 @@ export function useBoothPage(options: BoothPageOptions) {
     position,
     /** Where a cold read hears the narrator; absent when none runs. */
     ghost,
-    coldRead: { on: coldRead, toggle: toggleColdRead, disabledReason: coldReadReason },
+    coldRead: { on: coldRead, toggle: toggleColdRead, disabledReason: coldReadReason, mode: coldMode, setMode: setColdMode },
     browse,
     setBrowse,
     punchAt,
@@ -723,6 +731,7 @@ export function useBoothPage(options: BoothPageOptions) {
     goTo,
     leave,
     toggleTake,
+    pressMain,
     stopTake,
     /** R: roll again from the chosen phrase, or the current one; says why when no take runs. */
     punchAndRoll,

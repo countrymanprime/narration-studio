@@ -407,25 +407,50 @@ describe('the text popover', () => {
 });
 
 describe('the record bar is voice, then one split button', () => {
-  it('draws the voice left of a Recording group that holds Record, Cold read and Levels, then the timer', () => {
-    footer(api(), { voice: <button>Voice: Queen</button>, coldRead: { on: false, toggle: vi.fn() } });
+  it('draws the voice left of a Recording group that holds Record and Levels, then the timer', () => {
+    footer(api(), { voice: <button>Voice: Queen</button>, coldRead: { on: false, mode: false, setMode: vi.fn() } });
     const voice = screen.getByRole('button', { name: 'Voice: Queen' });
     const group = screen.getByRole('group', { name: 'Recording' });
     const parts = within(group)
       .getAllByRole('button')
       .map((button) => button.textContent || button.getAttribute('aria-label'));
-    expect(parts).toEqual(['Record', 'Cold read', 'Levels']);
+    expect(parts).toEqual(['Record', 'Levels']);
     const order = [voice, group, document.getElementById('btimer')!];
     expect(order[0].compareDocumentPosition(order[1]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(order[1].compareDocumentPosition(order[2]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it('keeps Cold read pressed state and its reason, and marks Levels when listening has a problem', () => {
-    footer(api(), { coldRead: { on: true, toggle: vi.fn(), disabledReason: 'Not during a take' }, listenWhy: 'No microphone found' });
-    const cold = screen.getByRole('button', { name: 'Cold read' });
-    expect(cold.getAttribute('aria-pressed')).toBe('true');
-    expect(cold.getAttribute('aria-disabled')).toBe('true');
+  it('marks Levels when listening has a problem', () => {
+    footer(api(), { listenWhy: 'No microphone found' });
     expect(screen.getByRole('button', { name: 'Levels' }).querySelector('span[aria-hidden]')).not.toBeNull();
+  });
+
+  it('chooses what the main button does at the top of the Levels menu, and locks the choice while a cold read runs', async () => {
+    const setMode = vi.fn();
+    const { rerender } = footer(api(), { coldRead: { on: false, mode: false, setMode } });
+    await userEvent.click(screen.getByRole('button', { name: 'Levels' }));
+    const group = await screen.findByRole('radiogroup', { name: 'Main button' });
+    expect(within(group).getByRole('radio', { name: 'Record' }).getAttribute('aria-checked')).toBe('true');
+    await userEvent.click(within(group).getByRole('radio', { name: 'Cold read' }));
+    expect(setMode).toHaveBeenCalledWith(true);
+    rerender(
+      <ApiProvider api={api().value}>
+        <BoothFooter
+          record={<button>Record</button>}
+          seconds={0}
+          recording={false}
+          mic={mic}
+          roomTone="Room tone −58 dBFS"
+          keymap={defaultKeymap()}
+          coldRead={{ on: true, mode: true, setMode }}
+        />
+      </ApiProvider>,
+    );
+    expect(
+      within(await screen.findByRole('radiogroup', { name: 'Main button' }))
+        .getByRole('radio', { name: 'Record' })
+        .getAttribute('aria-disabled'),
+    ).toBe('true');
   });
 
   it('opens the Levels popover from the caret on the side of Record', async () => {

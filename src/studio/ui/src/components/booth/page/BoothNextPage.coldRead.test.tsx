@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // A cold read (#2251 item 13): the Booth follows the narrator's voice with a ghost, records nothing, and the real cursor never moves
 // because of it. Only the toggle, a take or leaving the Booth ends it.
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../../api/hostWindow', () => ({ toggleFullscreen: vi.fn(async () => true), exitFullscreen: vi.fn(async () => {}) }));
@@ -97,9 +97,19 @@ const ready = async () => {
   await screen.findByText('Nobody', { exact: false });
   await waitFor(() => expect((screen.getByRole('button', { name: /^Record$/ }) as HTMLButtonElement).disabled).toBe(false));
 };
-const toggle = () => screen.getByRole('button', { name: 'Cold read' });
+// The main button: Record, or, once the side menu picked Cold read, Cold read (Stop while one listens).
+const main = () => document.getElementById('brec') as HTMLButtonElement;
+const mainName = () => main().textContent;
+const chooseCold = async () => {
+  await act(async () => void fireEvent.click(screen.getByRole('button', { name: 'Levels' })));
+  const group = await screen.findByRole('radiogroup', { name: 'Main button' });
+  await act(async () => void fireEvent.click(within(group).getByRole('radio', { name: 'Cold read' })));
+  await act(async () => void fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape', code: 'Escape' }));
+  await waitFor(() => expect(screen.queryByRole('radiogroup', { name: 'Main button' })).toBeNull());
+};
 const pressToggle = async () => {
-  await act(async () => void fireEvent.click(toggle()));
+  if (mainName() === 'Record') await chooseCold();
+  await act(async () => void fireEvent.click(main()));
   await settle();
 };
 const ghost = () => document.querySelector<HTMLElement>('[data-ghost]');
@@ -110,10 +120,14 @@ const currentWord = () => {
 const item = (id: string): PageItem | undefined => currentPageContext()?.items.find((entry) => entry.id === id);
 
 describe('cold-read-is-off-by-default-and-starts-from-the-real-cursor', () => {
-  it('shows an unpressed toggle and no microphone badge until it is pressed', async () => {
-    renderPage();
+  it('draws Record, with no cold read choice made and no microphone badge, until the side menu picks Cold read and the button is pressed', async () => {
+    const page = renderPage();
     await ready();
-    expect(toggle().getAttribute('aria-pressed')).toBe('false');
+    expect(mainName()).toBe('Record');
+    expect(screen.queryByRole('button', { name: 'Cold read' })).toBeNull();
+    await chooseCold();
+    expect(mainName()).toBe('Cold read');
+    expect(page.teleprompterStart).not.toHaveBeenCalled();
     expect(screen.queryByText('Mic on · cold read')).toBeNull();
     expect(ghost()).toBeNull();
   });
@@ -124,7 +138,7 @@ describe('cold-read-is-off-by-default-and-starts-from-the-real-cursor', () => {
     await pressToggle();
     expect(page.teleprompterStart).toHaveBeenCalledTimes(1);
     expect(page.teleprompterStart.mock.calls[0][0]).toMatchObject({ chapter: 'c1', coldRead: true, engine: 'whisper' });
-    await waitFor(() => expect(toggle().getAttribute('aria-pressed')).toBe('true'));
+    await waitFor(() => expect(mainName()).toBe('Stop'));
     expect(screen.getByText('Mic on · cold read')).toBeTruthy();
     expect(screen.queryByText('REC')).toBeNull();
     expect(page.recordStart).not.toHaveBeenCalled();
@@ -181,7 +195,7 @@ describe('only-the-toggle-a-take-or-leaving-ends-it', () => {
     await pressToggle();
     expect(page.teleprompterStop).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(ghost()).toBeNull());
-    expect(toggle().getAttribute('aria-pressed')).toBe('false');
+    expect(mainName()).toBe('Cold read');
     expect(screen.queryByText('Mic on · cold read')).toBeNull();
   });
 
@@ -192,15 +206,17 @@ describe('only-the-toggle-a-take-or-leaving-ends-it', () => {
     await page.hear({ type: 'position', read: 36, committed: 36, status: 'done', jump: null, skipped: null });
     await settle();
     expect(page.teleprompterStop).not.toHaveBeenCalled();
-    expect(toggle().getAttribute('aria-pressed')).toBe('true');
+    expect(mainName()).toBe('Stop');
   });
 
-  it('Record ends it first and starts the take from the real cursor, with a session of its own; the ghost is gone before the take', async () => {
+  it('Record ends one started from the jump menu first and starts the take from the real cursor, with a session of its own; the ghost is gone before the take', async () => {
     const page = renderPage();
     await ready();
     // The real cursor in the last paragraph, the ghost in the second.
     await act(async () => void fireEvent.click(document.querySelector<HTMLElement>('[data-paragraph="p3"] [data-word="1"]')!));
-    await pressToggle();
+    // Started from the jump menu, the main button stays Record: pressing it ends the cold read and records.
+    await act(async () => void item('booth.cold-read')!.run());
+    await settle();
     const coldFrom = page.teleprompterStart.mock.calls[0][0].startWord;
     expect(coldFrom).toBeGreaterThanOrEqual(26);
     await page.hear(heardAt(20));
@@ -219,10 +235,37 @@ describe('only-the-toggle-a-take-or-leaving-ends-it', () => {
     expect(currentWord()).toBe(real);
     await waitFor(() => expect(screen.getByText('REC')).toBeTruthy());
     expect(screen.queryByText('Mic on · cold read')).toBeNull();
-    expect(toggle().getAttribute('aria-disabled')).toBe('true');
-    // The reason is the switch's hint: it opens on keyboard focus.
-    act(() => toggle().focus());
-    expect((await screen.findAllByText('Not while recording. Stop the take first.')).length).toBeGreaterThan(0);
+    // The mode cannot change during a take: both choices are off in the side menu.
+    await act(async () => void fireEvent.click(screen.getByRole('button', { name: 'Levels' })));
+    const group = await screen.findByRole('radiogroup', { name: 'Main button' });
+    expect(within(group).getByRole('radio', { name: 'Cold read' }).getAttribute('aria-disabled')).toBe('true');
+  });
+
+  it('with the mode on Cold read, Space starts the cold read instead of a take, and Space again stops it', async () => {
+    const page = renderPage();
+    await ready();
+    await chooseCold();
+    await act(async () => void fireEvent.keyDown(document.body, { key: ' ', code: 'Space' }));
+    await settle();
+    expect(page.teleprompterStart.mock.calls[0][0]).toMatchObject({ coldRead: true });
+    expect(page.recordStart).not.toHaveBeenCalled();
+    await waitFor(() => expect(mainName()).toBe('Stop'));
+    await act(async () => void fireEvent.keyDown(document.body, { key: ' ', code: 'Space' }));
+    await settle();
+    expect(page.teleprompterStop).toHaveBeenCalledTimes(1);
+    expect(mainName()).toBe('Cold read');
+  });
+
+  it('with the mode back on Record, the button records again', async () => {
+    const page = renderPage();
+    await ready();
+    await chooseCold();
+    await act(async () => void fireEvent.click(screen.getByRole('button', { name: 'Levels' })));
+    const group = await screen.findByRole('radiogroup', { name: 'Main button' });
+    await act(async () => void fireEvent.click(within(group).getByRole('radio', { name: 'Record' })));
+    await act(async () => void fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape', code: 'Escape' }));
+    await waitFor(() => expect(mainName()).toBe('Record'));
+    expect(page.teleprompterStart).not.toHaveBeenCalled();
   });
 
   it('Escape leaves without a question and ends it', async () => {

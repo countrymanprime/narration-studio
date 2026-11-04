@@ -9,17 +9,25 @@ import type { RecordControlState } from './useRecordControl';
  */
 export function RecordControl({
   control,
+  cold,
   describedBy = 'brec-why',
 }: {
   control: Pick<RecordControlState, 'recording' | 'disabled' | 'reason'> & { toggle: () => Promise<unknown> };
+  /** The side menu picked Cold read: the button reads it and starts one (`on` while it listens: Stop); Record's own reasons do not apply. */
+  cold?: { mode: boolean; on: boolean };
   describedBy?: string;
 }) {
-  const { recording, disabled, reason, toggle } = control;
+  const { recording, toggle } = control;
+  const coldMode = Boolean(cold?.mode) && !recording;
+  // A cold read needs a microphone, not a recorder: Record's reasons leave it alone.
+  const disabled = coldMode ? false : control.disabled;
+  const reason = coldMode ? undefined : control.reason;
+  const stop = recording || (coldMode && cold?.on);
   return (
     // `SplitMain` is as wide as "Record" in both states, so the timer beside it does not move when it becomes Stop (alignment audit XBO-25).
     <SplitMain id="brec" {...(disabled ? { 'aria-disabled': true } : {})} aria-describedby={reason ? describedBy : undefined} onClick={() => void toggle()}>
-      <Icon name={recording ? 'stop' : 'record'} />
-      {recording ? 'Stop' : 'Record'}
+      <Icon name={stop ? 'stop' : coldMode ? 'microphone' : 'record'} />
+      {stop ? 'Stop' : coldMode ? 'Cold read' : 'Record'}
     </SplitMain>
   );
 }

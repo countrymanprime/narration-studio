@@ -809,7 +809,9 @@ function BoothSession({
           </BoothSamplesProvider>
           <SamplePlayerAnnouncement text={samples.announcement} />
           <BoothFooter
-            record={<RecordControl control={{ ...control, reason: footerWhy, toggle: page.toggleTake }} />}
+            record={
+              <RecordControl control={{ ...control, reason: footerWhy, toggle: page.pressMain }} cold={{ mode: page.coldRead.mode, on: page.coldRead.on }} />
+            }
             seconds={page.seconds}
             recording={control.recording}
             why={footerWhy || undefined}

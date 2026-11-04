@@ -2,8 +2,8 @@ import type { ComponentPropsWithRef, ReactNode } from 'react';
 import { Icon } from './Icon';
 import { TooltipTarget } from './Tooltip';
 
-// One control made of joined parts: a main action, an optional switch that changes what the main action is about to do, and a side button
-// that opens a menu or popover (the Booth's Record, Cold read and Levels). It owns its look like `Button` does, so a page composes the
+// One control made of joined parts: a main action and a side button that opens a menu or popover (the Booth's Record and its Levels, where the
+// side menu also picks whether the main action records or reads cold). It owns its look like `Button` does, so a page composes the
 // parts and passes `className` for layout only. The parts must be direct children of `SplitButton`: the first takes the left radius, the
 // last the right, and each overlaps its neighbour's border by 1 px so the seams are one line.
 
@@ -37,27 +37,12 @@ export function SplitButton({ label, className = '', children }: { label: string
 
 type PartProps = ComponentPropsWithRef<'button'>;
 
-/** The main action, in the accent fill; at least 5.75 rem wide so Record and Stop are the same width. */
-export function SplitMain({ className = '', type = 'button', ...rest }: PartProps) {
-  return <button type={type} className={`${PART} ${TONES.primary} ${DISABLED} min-w-[5.75rem] ${className}`} {...rest} />;
-}
-
 /**
- * A switch between the main action and the side: pressed (`aria-pressed`) it takes the recording colour as an outline; its word is always
- * drawn (an icon alone left narrators guessing what it did). `hint` is its tooltip: what pressing it does, or why it cannot.
+ * The main action; at least 5.75 rem wide so Record and Stop are the same width. `tone` `primary` is the accent fill, `danger` the outlined
+ * recording colour (a cold read: never the take's fill).
  */
-export function SplitToggle({
-  pressed,
-  hint,
-  className = '',
-  type = 'button',
-  ...rest
-}: Omit<PartProps, 'aria-pressed' | 'title'> & { pressed: boolean; hint: string }) {
-  return (
-    <TooltipTarget text={hint}>
-      <button type={type} aria-pressed={pressed} className={`${PART} ${pressed ? TONES.danger : TONES.secondary} ${DISABLED} ${className}`} {...rest} />
-    </TooltipTarget>
-  );
+export function SplitMain({ tone = 'primary', className = '', type = 'button', ...rest }: PartProps & { tone?: 'primary' | 'danger' }) {
+  return <button type={type} className={`${PART} ${TONES[tone]} ${DISABLED} min-w-[5.75rem] ${className}`} {...rest} />;
 }
 
 /**
@@ -66,14 +51,15 @@ export function SplitToggle({
  */
 export function SplitSide({
   label,
+  tone = 'primary',
   badge = false,
   className = '',
   type = 'button',
   ...rest
-}: Omit<PartProps, 'aria-label' | 'title'> & { label: string; badge?: boolean }) {
+}: Omit<PartProps, 'aria-label' | 'title'> & { label: string; tone?: 'primary' | 'danger'; badge?: boolean }) {
   return (
     <TooltipTarget text={label}>
-      <button type={type} aria-label={label} className={`${PART} relative px-2! ${TONES.primary} ${DISABLED} ${className}`} {...rest}>
+      <button type={type} aria-label={label} className={`${PART} relative px-2! ${TONES[tone]} ${DISABLED} ${className}`} {...rest}>
         <Icon name="openMenu" />
         {badge ? <span aria-hidden className="absolute top-1 right-1 size-2 rounded-full bg-[var(--warn)] ring-2 ring-[var(--surface)]" /> : null}
       </button>

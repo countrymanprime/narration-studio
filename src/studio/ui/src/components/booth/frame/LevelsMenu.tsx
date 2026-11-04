@@ -8,6 +8,7 @@ import { Button } from '../../primitives/Button';
 import { IconButton } from '../../primitives/IconButton';
 import { LevelMeter } from '../../primitives/LevelMeter';
 import { Popover } from '../../primitives/Popover';
+import { RadioGroup } from '../../primitives/RadioGroup';
 import { SplitSide } from '../../primitives/SplitButton';
 import { Select } from '../../primitives/Select';
 import { NumberInput } from '../../primitives/NumberInput';
@@ -68,6 +69,11 @@ export type LevelsMenuProps = {
   recorderMeter?: boolean;
   /** A take records: the built-in meter is not started, and the take's own level moves its row. */
   recording?: boolean;
+  /**
+   * What the main button does, chosen at the top of the menu: Record, or a cold read (listen and follow with the ghost, record nothing). The
+   * side button takes the cold read's outline while it is chosen. Absent, the menu offers no choice. `locked` while a take or a cold read runs.
+   */
+  mainButton?: { cold: boolean; onChange: (cold: boolean) => void; locked: boolean };
   /** Something about listening needs attention: a dot on the side button, so it is seen with the menu closed. */
   warn?: boolean;
   level: InputLevel | null;
@@ -507,6 +513,7 @@ export function LevelsMenu({
   levels,
   recorderMeter = false,
   recording = false,
+  mainButton,
   warn = false,
   level,
   error,
@@ -524,9 +531,23 @@ export function LevelsMenu({
       focusPopup
       open={open}
       onOpenChange={onOpenChange}
-      trigger={<SplitSide label="Levels" id="blevels" aria-haspopup="dialog" badge={warn} />}
+      trigger={<SplitSide label="Levels" id="blevels" aria-haspopup="dialog" tone={mainButton?.cold && !recording ? 'danger' : 'primary'} badge={warn} />}
     >
       <div className="flex w-max max-w-[min(26rem,calc(100vw-4rem))] min-w-72 flex-col gap-4">
+        {mainButton ? (
+          <div className="flex flex-col gap-1.5">
+            <span className={SECTION_LABEL}>Main button</span>
+            <RadioGroup
+              label="Main button"
+              value={mainButton.cold ? 'cold' : 'record'}
+              onChange={(next) => mainButton.onChange(next === 'cold')}
+              options={[
+                { value: 'record', label: 'Record', disabled: mainButton.locked },
+                { value: 'cold', label: 'Cold read', disabled: mainButton.locked },
+              ]}
+            />
+          </div>
+        ) : null}
         {ownMeter ? (
           <BuiltinInput device={device} onDevice={onDevice} recording={recording} />
         ) : (

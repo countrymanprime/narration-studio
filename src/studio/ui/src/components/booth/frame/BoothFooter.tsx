@@ -3,7 +3,7 @@ import type { Measured } from '../../../api/schemas/base';
 import type { Keymap } from '../../../input/keymap';
 import { footerHints } from '../../../input/hints';
 import { useToastClearance } from '../../../hooks/useToastClearance';
-import { SplitButton, SplitToggle } from '../../primitives/SplitButton';
+import { SplitButton } from '../../primitives/SplitButton';
 import { KeyHints } from '../../primitives/KeyHints';
 import { useDawMeterLease } from '../../../daw/useDawSession';
 import { LevelsInline, LevelsMenu, type LevelsMenuProps } from './LevelsMenu';
@@ -57,8 +57,8 @@ export function useRoomTone(port: { roomTone(mic: string): Promise<Measured<numb
   return { label: roomToneLabel(answer, current?.failed ?? false), ok: answer.ok, ...(hint ? { hint } : {}) };
 }
 
-/** The Cold read toggle (#2251 item 13): pressed while a cold read runs; `disabledReason` while it cannot start (a take records). */
-export type ColdReadToggle = { on: boolean; toggle: () => void; disabledReason?: string };
+/** Cold read (#2251 item 13): `on` while one runs; `mode` is whether the main button reads cold (chosen in the side menu), `setMode` changes it. */
+export type ColdReadToggle = { on: boolean; mode: boolean; setMode: (cold: boolean) => void };
 
 type Mic = Pick<LevelsMenuProps, 'engine' | 'dawName' | 'reachable' | 'offReason' | 'device' | 'onDevice' | 'listen' | 'levels' | 'recorderMeter'>;
 
@@ -102,7 +102,7 @@ export function BoothFooter({
   roomToneHint?: string;
   keymap: Keymap;
   pickupSession?: boolean;
-  /** A switch inside the split button, between Record and Levels; absent, the footer has no Cold read. */
+  /** The main button's mode, in the Levels menu on the split button's side; absent, the footer has no Cold read. */
   coldRead?: ColdReadToggle;
   /** The voice control, left of Record (a chapter linked to a folder of voices draws one; otherwise it draws nothing). */
   voice?: ReactNode;
@@ -141,19 +141,16 @@ export function BoothFooter({
           {voice}
           <SplitButton label="Recording">
             {record}
-            {coldRead ? (
-              <SplitToggle
-                id="bcold"
-
-                pressed={coldRead.on}
-                aria-disabled={coldRead.disabledReason ? true : undefined}
-                hint={coldRead.disabledReason ?? (coldRead.on ? 'Stop following your voice' : 'Follow your voice without recording')}
-                onClick={() => (coldRead.disabledReason ? undefined : coldRead.toggle())}
-              >
-                Cold read
-              </SplitToggle>
-            ) : null}
-            <LevelsMenu {...mic} recording={recording} warn={Boolean(listenWhy)} level={level} error={error} open={open} onOpenChange={setOpen} />
+            <LevelsMenu
+              {...mic}
+              recording={recording}
+              mainButton={coldRead ? { cold: coldRead.mode, onChange: coldRead.setMode, locked: recording || coldRead.on } : undefined}
+              warn={Boolean(listenWhy)}
+              level={level}
+              error={error}
+              open={open}
+              onOpenChange={setOpen}
+            />
           </SplitButton>
           <span id="btimer" className="font-mono text-lg text-[var(--text)]">
             {timerText(seconds)}

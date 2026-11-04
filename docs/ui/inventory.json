@@ -3461,7 +3461,7 @@
       "source": "src/components/primitives/SplitButton.tsx",
       "stories": [
         "Default",
-        "With Switch",
+        "Cold Read",
         "Stopping"
       ],
       "consumers": [
