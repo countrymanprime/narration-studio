@@ -210,17 +210,18 @@ const LEGACY_SORTS: Record<string, EntrySort> = {
 
 function parseSort(raw: string | null): EntrySort {
   if (raw === null) return DEFAULT_SORT;
-  if (raw in LEGACY_SORTS) return LEGACY_SORTS[raw]!;
+  if (Object.hasOwn(LEGACY_SORTS, raw)) return LEGACY_SORTS[raw]!;
   try {
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed) || parsed.length === 0) return DEFAULT_SORT;
+    // The valid keys from the front are kept: a bad later key costs only itself.
     const keys: SortKey[] = [];
     for (const item of parsed.slice(0, MAX_KEYS)) {
       const { column, dir } = (item ?? {}) as Record<string, unknown>;
-      if (!isColumn(column) || (dir !== 'asc' && dir !== 'desc')) return DEFAULT_SORT;
+      if (!isColumn(column) || (dir !== 'asc' && dir !== 'desc')) break;
       keys.push({ column, dir });
     }
-    return keys;
+    return keys.length > 0 ? keys : DEFAULT_SORT;
   } catch {
     return DEFAULT_SORT;
   }
@@ -234,11 +235,13 @@ export function loadEntrySort(): EntrySort {
   }
 }
 
-export function saveEntrySort(sort: EntrySort): void {
+/** Keeps a sort and says so to the Settings page; false when storage refused it, so the choice lasts only until the page closes. */
+export function saveEntrySort(sort: EntrySort): boolean {
   try {
     window.localStorage.setItem(ENTRY_SORT_STORAGE_KEY, JSON.stringify(sort));
     announceBrowserSettingChange();
+    return true;
   } catch {
-    /* storage unavailable: the choice lasts until the page closes */
+    return false;
   }
 }

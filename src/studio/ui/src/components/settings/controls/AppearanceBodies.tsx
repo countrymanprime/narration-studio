@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ZOOM_STEPS } from '../../../hooks/useZoom';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
-import { announceBrowserSettingChange } from '../../../browserSettings';
+import { announceBrowserSettingChange, useBrowserSettingsVersion } from '../../../browserSettings';
 import { useTheme } from '../../../theme/ThemeContext';
 import type { ThemePreference } from '../../../theme/theme';
 import { useMotionPreference, type MotionPreference } from '../../../motion';
@@ -16,7 +16,7 @@ import { ToggleGroup } from '../../primitives/ToggleGroup';
 import { READER_FONTS, READER_SIZES, READER_SPACING, READER_WIDTHS, fontStack, widthName } from '../../script/page/tools/text/readerText';
 import { readScrollStep, SCROLL_STEP_MAX, SCROLL_STEP_MIN, writeScrollStep } from '../../editing/ribbon/scrollStep';
 import { readBoothSize, writeBoothSize } from '../../booth/page/boothSize';
-import { DEFAULT_SORT, loadEntrySort, saveEntrySort, type ColumnKey } from '../../storybible/entryTable';
+import { DEFAULT_SORT, ENTRY_SORT_STORAGE_KEY, loadEntrySort, saveEntrySort, type ColumnKey } from '../../storybible/entryTable';
 import { RATES, rateLabel, useOutputPrefs } from '../../engine/outputPrefs';
 import { DeviceRow } from '../../editing/output/OutputControls';
 import { useOutputDevices } from '../../editing/output/useOutputDevices';
@@ -262,22 +262,32 @@ const ENTRY_ORDERS: { value: string; label: string; key: { column: ColumnKey; di
   { value: 'mentions-asc', label: 'Least mentioned', key: { column: 'mentions', dir: 'asc' } },
 ];
 const DEFAULT_ENTRY_ORDER = 'name-asc';
-const entryOrderOf = (): string => {
-  const first = loadEntrySort()[0] ?? DEFAULT_SORT[0]!;
+const entryOrderOf = (sort: readonly { column: ColumnKey; dir: 'asc' | 'desc' }[]): string => {
+  const first = sort[0] ?? DEFAULT_SORT[0]!;
   return `${first.column}-${first.dir}`;
 };
 
 /**
  * Story Bible order: the one column the entry table sorts by first, the same sort its headers and Sort menu keep in this browser window. A
- * choice here replaces the header clicks that broke ties.
+ * choice here replaces the header clicks that broke ties. It reads the stored sort on every change (a header click while this is shown, or
+ * another window's write), so it never shows an order the Story Bible is not using.
  */
 export function EntrySortBody() {
-  const [order, setOrder] = useState(entryOrderOf);
+  const { notify } = useSettingsHost();
+  useBrowserSettingsVersion();
+  useEffect(() => {
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === null || event.key === ENTRY_SORT_STORAGE_KEY) announceBrowserSettingChange();
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+  const stored = loadEntrySort();
+  const order = entryOrderOf(stored);
+  const changed = JSON.stringify(stored) !== JSON.stringify(DEFAULT_SORT);
   const choose = (value: string) => {
     const picked = ENTRY_ORDERS.find((option) => option.value === value);
-    if (!picked) return;
-    saveEntrySort([picked.key]);
-    setOrder(value);
+    if (picked && !saveEntrySort([picked.key])) notify('Story Bible order was not saved: this browser is not keeping settings.', 'error');
   };
   return (
     <div className="flex items-center gap-2">
@@ -288,8 +298,8 @@ export function EntrySortBody() {
         options={ENTRY_ORDERS.map(({ value, label }) => ({ value, label }))}
         className={READER_FIELD}
       />
-      {order !== DEFAULT_ENTRY_ORDER && (
-        <IconButton action="undo" label="Reset to Name, A to Z" className="border-transparent" onClick={() => choose(DEFAULT_ENTRY_ORDER)} />
+      {changed && (
+        <IconButton action="undo" label="Reset Story Bible order to Name, A to Z" className="border-transparent" onClick={() => choose(DEFAULT_ENTRY_ORDER)} />
       )}
     </div>
   );

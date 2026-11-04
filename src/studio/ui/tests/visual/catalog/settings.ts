@@ -384,6 +384,13 @@ export const settingsStates: StateEntry[] = [
   },
   {
     page: 'settings',
+    state: 'story-bible-order-changed',
+    description: 'Settings, Appearance & keys at Story Bible order after Most mentioned is chosen: the select and its Reset button beside it, in full view',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
     state: 'editing-playback',
     description:
       'Settings, Appearance & keys scrolled to Editing playback under Listening: speed, volume, silence and the output device, with the row in full view',
