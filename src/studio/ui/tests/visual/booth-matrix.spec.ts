@@ -256,15 +256,22 @@ test.describe('with a take running', () => {
     expect(errors).toEqual([]);
   });
 
-  test('the setup chip asks before it leaves, and Keep recording changes nothing', async ({ page }) => {
+  test('the setup chip opens the Audio engine panel over the take, and its Recording settings asks before it leaves; Keep recording changes nothing', async ({
+    page,
+  }) => {
     const errors = watch(page);
     await takeRunning(page);
     await page.getByRole('button', { name: /^Recording setup: REAPER/ }).click();
+    const panel = page.getByRole('dialog', { name: 'Audio engine' });
+    await expect(panel).toBeVisible();
+    expect((await daw(page))?.recording).toBe(true);
+    await panel.getByRole('button', { name: 'Recording settings' }).click();
     const question = page.getByRole('alertdialog', { name: 'Stop recording?' });
     await expect(question).toBeVisible();
     await question.getByRole('button', { name: 'Keep recording' }).click();
     await expect(question).toBeHidden();
     await expect(stop(page)).toBeVisible();
+    expect((await daw(page))?.recording).toBe(true);
     expect(errors).toEqual([]);
   });
 
