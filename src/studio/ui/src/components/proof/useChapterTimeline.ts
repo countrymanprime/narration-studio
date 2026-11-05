@@ -1,3 +1,4 @@
+import { chapterTrackOf } from '../../api/chapterTrackItems';
 import { useEffect, useMemo, useState } from 'react';
 import type { TrackItem } from '../../api/contracts/tracks';
 import type { WorkspaceItem } from '../../api/contracts/workspace';
@@ -34,7 +35,7 @@ export function useChapterTimeline(chapterId: string | undefined): ChapterTimeli
     Promise.all([trackMap.chapterTrackMapList(), tracks.tracksList(), workspace.workspaceAlignment(chapterId).catch(() => undefined)])
       .then(([mapping, project, alignment]) => {
         const trackGuid = mapping.mappings.find((entry) => entry.chapterId === chapterId)?.trackGuid;
-        const items = project.tracks.find((track) => track.guid === trackGuid)?.items ?? [];
+        const items = chapterTrackOf(project.tracks, trackGuid)?.items ?? [];
         if (live) setLoaded({ chapterId, items, aligned: alignment?.items ?? [] });
       })
       .catch(() => live && setLoaded({ chapterId, items: [], aligned: [] }));
