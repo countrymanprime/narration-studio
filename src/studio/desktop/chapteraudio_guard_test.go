@@ -13,7 +13,6 @@ import (
 // The reads below keep the one-track read on purpose, each with the reason; a new caller of ChapterTrackState must either read through
 // ChapterAudioState or be added here with its reason.
 var oneTrackReads = map[string]string{
-	"bindings_daw_stack.go":          "edit commands (stack, split, range, gain, click repair) plan on the linked track's own items because the Lua commands act within one track; folder support is its own change",
 	"bindings_replace.go":            "replace-range edits the item on the track the alignment names; the Lua command acts within one track",
 	"bindings_readaloud_record.go":   "the record precondition reads the voice the take arms, never the folder (recordTarget)",
 	"readaloudreaper.go":             "the arm state of the voice the take records on",

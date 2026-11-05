@@ -99,6 +99,9 @@ func dawDeleteRangeIn(ctx context.Context, svc hostServices, support dawport.Sup
 	if cutter == nil {
 		return dawport.Refused(readAloudConnectionRefusal(name, reaperStandalone).Message), nil
 	}
+	if cutMode == dawport.CutClose && savedVoicesWithAudio(svc, chapterID) > 1 {
+		return rippleRefusal(name, "Closing the gap of a cut"), nil
+	}
 	request := dawport.DeleteRangeRequest{RangeRequest: resolved.Request, Mode: cutMode, FadeMs: fadeMs, PadMs: padMs, RoomTone: roomTone}
 	if _, ok := request.Padded(); !ok {
 		return dawport.Refused(cutPadAllSentence), nil
@@ -161,6 +164,9 @@ func dawTrimRangeIn(ctx context.Context, name string, support dawport.Support, c
 	}
 	if refused != nil {
 		return *refused, nil
+	}
+	if voiceTracksWithAudio(items) > 1 {
+		return rippleRefusal(name, "Shortening a gap"), nil
 	}
 	wanted := splitGUID(itemID)
 	var item *dawport.TrackItem

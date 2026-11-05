@@ -113,10 +113,12 @@ type replaceDeps struct {
 	daw       string
 	log       *editlog.Service
 	alignment func(chapterID string) (coverage.AlignmentView, error)
-	theirs    func(ctx context.Context, trackGUID string) (dawport.TrackState, error)
-	measure   func(ctx context.Context, path string, rng measure.Range) (measure.Report, error)
-	target    float64
-	newID     func() string
+	// voices is how many of the chapter's tracks hold audio: a replacement moves the audio after it (savedVoicesWithAudio); nil counts as one.
+	voices  func(chapterID string) int
+	theirs  func(ctx context.Context, trackGUID string) (dawport.TrackState, error)
+	measure func(ctx context.Context, path string, rng measure.Range) (measure.Report, error)
+	target  float64
+	newID   func() string
 }
 
 func (h *Host) replaceDeps(svc hostServices) replaceDeps {
@@ -126,6 +128,7 @@ func (h *Host) replaceDeps(svc hostServices) replaceDeps {
 		replacer: svc.rangeReplacer,
 		daw:      readAloudAdapterName(svc),
 		log:      h.editLog(),
+		voices:   func(chapterID string) int { return savedVoicesWithAudio(svc, chapterID) },
 		alignment: func(chapterID string) (coverage.AlignmentView, error) {
 			if svc.coverage == nil {
 				return coverage.AlignmentView{}, errNoProject
@@ -460,6 +463,9 @@ func dawReplaceRangeIn(ctx context.Context, deps replaceDeps, chapterID string, 
 	if deps.replacer == nil {
 		return answer(dawport.Refused(replaceNotConnected(deps.daw)), "")
 	}
+	if deps.voices != nil && deps.voices(chapterID) > 1 {
+		return answer(rippleRefusal(deps.daw, "Replacing words"), "")
+	}
 	from, to, refused, err := theirProjectSeconds(ctx, deps, planned.file, sourceStart, sourceEnd)
 	if err != nil {
 		return answer(replaceRefusal(deps.daw, err), "")
@@ -564,6 +570,9 @@ func dawRestoreReplacementIn(ctx context.Context, deps replaceDeps, chapterID, r
 	}
 	if deps.replacer == nil {
 		return answer(dawport.Refused(replaceNotConnected(deps.daw)))
+	}
+	if deps.voices != nil && deps.voices(chapterID) > 1 {
+		return answer(rippleRefusal(deps.daw, "Putting replaced words back"))
 	}
 	got, err := deps.replacer.RestoreReplacement(ctx, dawport.RestoreRequest{ReplacementItem: stored.Item, ID: stored.ID, Words: len(stored.Words)})
 	if err != nil {
