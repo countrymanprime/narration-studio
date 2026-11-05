@@ -27,15 +27,13 @@ var systemCategoryNames = wordSet("Needs Review", "Draft")
 // defaultTypeRows is manuscript_guide.py DEFAULT_TYPES as guide_types copies it: name, colour, speaks and builtin, Character alone
 // speaking.
 func defaultTypeRows() []*pyObject {
-	rows := make([]*pyObject, len(defaultTypeNames))
-	for i, name := range defaultTypeNames {
-		rows[i] = newPyObject("name", name, "colour", typeColours[i], "speaks", name == categoryCharacter, "builtin", name)
+	defaults := DefaultTypes()
+	rows := make([]*pyObject, len(defaults))
+	for i, row := range defaults {
+		rows[i] = newPyObject("name", row.Name, "colour", row.Colour, "speaks", row.Speaks, "builtin", row.Name)
 	}
 	return rows
 }
-
-// defaultTypeNames are the names of DEFAULT_TYPES, in order, each with the colour of typeColours at its index.
-var defaultTypeNames = []string{"Character", "Place", "Organization", "Lore", "Item", "Event"}
 
 // buildTypes is manuscript_guide.py guide_types(previous or {}): the stored rows, each copied with only its name, colour, speaks and
 // builtin, or the default rows for a file without types. A list that is not a non-empty list of rows with a name, a palette colour and

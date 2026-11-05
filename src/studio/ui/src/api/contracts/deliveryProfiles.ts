@@ -76,6 +76,8 @@ export type DeliveryRuleResult = {
 export type DeliveryProfilesState = {
   profiles: DeliveryProfile[];
   globalDefault: DeliveryProfileRef;
+  /** The profile the Global default is until the narrator chooses another (the newest ACX). `globalDefault` differs from it when they did. */
+  shippedDefault: DeliveryProfileRef;
   hasProject: boolean;
   projectChoice: DeliveryProfileRef | null;
   projectProfile: string;

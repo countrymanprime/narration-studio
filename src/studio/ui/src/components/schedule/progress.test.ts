@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import type { ChapterStatus, ManuscriptContentKind } from '../../api/contracts/manuscript';
 import { PACE, RATIO, WPH } from './estimates';
-import { parseIso } from './dates';
+import { addDays, parseIso } from './dates';
 import { calc, deadlineTone, milestoneStatus, remainFor, scheduleChapters, type ScheduleChapter } from './progress';
 
 const ch = (status: ChapterStatus, words = WPH, kind: ManuscriptContentKind | '' = 'narration'): ScheduleChapter => ({ status, words, kind });
@@ -132,13 +132,47 @@ describe('a milestone status', () => {
     const late = milestoneStatus(ms('rec', need - 2), book, TODAY);
     expect(late.kind).toBe('late');
     expect(late.sentence).toMatch(/^Late by 2 d \(est\. [A-Z][a-z]{2} \d+\)$/);
-    expect(late.short).toBe('+2 d');
+    expect(late.short).toBe('2 d late');
     expect(milestoneStatus(ms('rec', need - 1), book, TODAY).kind).toBe('late');
     expect(milestoneStatus(ms('rec', need), book, TODAY).kind).toBe('risk');
     expect(milestoneStatus(ms('rec', need + 1), book, TODAY).kind).toBe('risk');
     const ok = milestoneStatus(ms('rec', need + 3), book, TODAY);
     expect(ok.kind).toBe('ok');
     expect(ok.sentence).toMatch(/^On track \(est\./);
+  });
+});
+
+describe('a milestone status: what the cell says (issue 1943)', () => {
+  const book = [ch('not_started')];
+  const need = Math.ceil(RATIO.rec / PACE);
+  const date = (n: number) => {
+    const d = addDays(TODAY, n);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
+  it('says "Past due" for an undone custom milestone whose date has passed, and a dash before it', () => {
+    const past = milestoneStatus({ dueDate: date(-1) }, book, TODAY);
+    expect(past).toMatchObject({ kind: 'late', short: 'Past due', sentence: 'Past due by 1 d: not marked done' });
+    expect(milestoneStatus({ dueDate: date(0) }, book, TODAY)).toMatchObject({ kind: 'none', short: '—' });
+    expect(milestoneStatus({ dueDate: date(5) }, book, TODAY)).toMatchObject({ kind: 'none' });
+    expect(milestoneStatus({ dueDate: date(-9), done: true }, book, TODAY).kind).toBe('done');
+  });
+
+  it('writes a long past-due count with a thousands separator, as the header does', () => {
+    expect(milestoneStatus({ dueDate: '1000-01-01' }, book, TODAY).sentence).toMatch(/^Past due by \d{3},\d{3} d/);
+  });
+
+  it('says "late" and "est." in the cell, not a bare "+8 d" or a bare date', () => {
+    expect(milestoneStatus({ dueDate: date(need - 8), measure: 'rec' }, book, TODAY).short).toBe('8 d late');
+    expect(milestoneStatus({ dueDate: date(need), measure: 'rec' }, book, TODAY).short).toMatch(/^est\. [A-Z][a-z]{2} \d+$/);
+    expect(milestoneStatus({ dueDate: date(need + 4), measure: 'rec' }, book, TODAY).short).toMatch(/^est\. /);
+  });
+
+  it('is at risk when the estimate lands on the date or the day before it, and late from a day after', () => {
+    expect(milestoneStatus({ dueDate: date(need), measure: 'rec' }, book, TODAY).kind).toBe('risk');
+    expect(milestoneStatus({ dueDate: date(need + 1), measure: 'rec' }, book, TODAY).kind).toBe('risk');
+    expect(milestoneStatus({ dueDate: date(need + 2), measure: 'rec' }, book, TODAY).kind).toBe('ok');
+    expect(milestoneStatus({ dueDate: date(need - 1), measure: 'rec' }, book, TODAY)).toMatchObject({ kind: 'late', short: '1 d late' });
   });
 });
 

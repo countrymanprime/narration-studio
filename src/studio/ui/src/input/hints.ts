@@ -18,6 +18,7 @@ const NAMED_CODES: Record<string, string> = {
   Minus: '-',
   NumpadAdd: 'Num +',
   NumpadSubtract: 'Num -',
+  NumpadDecimal: 'Num .',
   Space: 'Space',
   BrowserBack: 'Browser Back',
   BrowserForward: 'Browser Forward',
@@ -40,7 +41,7 @@ export function gestureKeys(gesture: Gesture): string[] {
 }
 
 /** A fact about the screen that decides whether a conditional hint shows. */
-type FooterCondition = 'pickupSession' | 'chapterView';
+type FooterCondition = 'pickupSession' | 'chapterView' | 'voiceFolders';
 
 /**
  * One footer's hints: the command whose first gesture is drawn, any `with` commands whose caps follow it in one chord
@@ -66,6 +67,10 @@ export const FOOTER_SPECS: Record<FooterSurface, FooterSpec> = {
     { id: 'bookmark.here', label: 'Bookmark' },
     { id: 'bookmark.prev', with: ['bookmark.next'], label: 'Bookmarks' },
     { id: 'booth.pickup.next', label: 'Next pickup', when: 'pickupSession' },
+    // A chapter linked to a folder of voices (docs/prds/booth-voice-tracks.prd.md): the keys 1 to 9 are on the voice list.
+    { id: 'booth.voice.0', label: 'Narrator', when: 'voiceFolders' },
+    { id: 'booth.voice.prev', with: ['booth.voice.next'], label: 'Voice', when: 'voiceFolders' },
+    { id: 'booth.voice.list', label: 'Voices', when: 'voiceFolders' },
     { id: 'booth.fullscreen', label: 'Full screen' },
     { id: 'booth.exit', label: 'Exit' },
   ],

@@ -53,7 +53,7 @@ local function take_guid(take)
 end
 -- Undo, redo and project reload replace REAPER's item/take objects (confirmed by the S0 spike and by this one):
 -- any script that mutates and then must read the result back needs to re-resolve by GUID, never keep the old
--- pointer. This is what create_take (narration_take_review.lua) does after Undo_EndBlock2.
+-- pointer. The retired create_take command did this after Undo_EndBlock2.
 local function find_item_by_guid(guid)
   for index = 0, reaper.CountMediaItems(0) - 1 do
     local item = reaper.GetMediaItem(0, index)
@@ -90,7 +90,7 @@ local function add_target_item(track, file, position, length, take_name)
   return item, take
 end
 -- Adds a candidate's source range as a new take, the mechanism the spike evaluates. Does not call SetActiveTake and does
--- not touch D_LENGTH: this is the sequence create_take (narration_take_review.lua) runs.
+-- not touch D_LENGTH: the sequence the retired create_take command ran.
 local function add_candidate_take(item, file, take_name)
   local take = reaper.AddTakeToMediaItem(item)
   reaper.SetMediaItemTake_Source(take, reaper.PCM_Source_CreateFromFile('media/' .. file))

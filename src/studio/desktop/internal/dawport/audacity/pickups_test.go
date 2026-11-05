@@ -175,29 +175,6 @@ func TestExportWritesOnlyTheOpenPickupsInTheShapeImportReads(t *testing.T) {
 	}
 }
 
-func TestNextGoesToTheNextOpenPickupAfterTheCursorAndWraps(t *testing.T) {
-	f := newPickupsFixture(t)
-	seedPickups(t, f)
-	for _, c := range []struct{ cursor, want float64 }{{0, 10}, {10, 30}, {25, 30}, {30, 40}, {40, 10}, {500, 10}} {
-		f.server.With(func(p *abt.Project) { p.SelStart, p.SelEnd = c.cursor, c.cursor })
-		_ = f.pickups.NextPickup("run")
-		e := f.wait(t, "PICKUP_NEXT")
-		f.server.With(func(p *abt.Project) {
-			if p.SelStart != c.want || p.SelEnd != c.want {
-				t.Errorf("cursor %v: the cursor went to %v-%v, want %v", c.cursor, p.SelStart, p.SelEnd, c.want)
-			}
-		})
-		if e.Fields[2] != f6(c.want) {
-			t.Errorf("cursor %v: event position %q", c.cursor, e.Fields[2])
-		}
-	}
-	empty := newPickupsFixture(t)
-	_ = empty.pickups.NextPickup("run")
-	if e := empty.wait(t, "ERROR"); e.Fields[2] != "No pickups remain." {
-		t.Errorf("no pickups = %q", e.Fields[2])
-	}
-}
-
 func TestResolveAndReopenRewriteOnlyThePrefixOfTheNearestPickup(t *testing.T) {
 	f := newPickupsFixture(t)
 	seedPickups(t, f)

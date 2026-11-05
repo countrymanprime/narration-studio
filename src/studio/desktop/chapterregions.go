@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"desktop/internal/manuscript"
+	"desktop/internal/creditsid"
 	"errors"
 	"fmt"
 	"math"
@@ -17,13 +17,6 @@ import (
 // REAPER regions, read from the saved .rpp and the confirmed chapter-track links, that the narrator previews and then
 // approves. Nothing is written to REAPER until ChapterRegionsCreate, and that recomputes the plan itself rather than
 // trusting bounds the UI sends back. The one command both share is create_regions.
-
-// Credits rows are named like the chapter table's rows (the labels are AudiobookEstimatePanel.tsx's CREDITS_LABEL), so
-// a $region render writes files named the way the table names them.
-const (
-	openingCreditsRegion = "Opening credits"
-	closingCreditsRegion = "Closing credits"
-)
 
 // regionRowState says what the plan expects create_regions to do with a row, judged against the regions the saved
 // .rpp already holds, in create_regions' own order (a matching region first). REAPER decides for real: the live
@@ -140,10 +133,10 @@ func chapterRegionPlanIn(svc hostServices, openingTrackGUID, closingTrackGUID st
 		plan.Rows = append(plan.Rows, row)
 	}
 	if openingTrackGUID != "" {
-		add("opening", "", openingCreditsRegion, openingTrackGUID)
+		add(creditsid.Opening, "", creditsid.Title(creditsid.Opening), openingTrackGUID)
 	}
 	for _, chapter := range links.Chapters {
-		if manuscript.IsCreditsID(chapter.ChapterID) {
+		if creditsid.IsID(chapter.ChapterID) {
 			continue // the credits regions come from the tracks picked above and below
 		}
 		switch len(chapter.Links) {
@@ -160,7 +153,7 @@ func chapterRegionPlanIn(svc hostServices, openingTrackGUID, closingTrackGUID st
 		}
 	}
 	if closingTrackGUID != "" {
-		add("closing", "", closingCreditsRegion, closingTrackGUID)
+		add(creditsid.Closing, "", creditsid.Title(creditsid.Closing), closingTrackGUID)
 	}
 	return plan, nil
 }

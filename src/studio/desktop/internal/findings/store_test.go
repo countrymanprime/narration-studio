@@ -825,6 +825,17 @@ func TestDefaultNoteTypeMapsEveryCategoryToOneOfTheTen(t *testing.T) {
 	}
 }
 
+// #2800 (walkthrough 1): a pickup the retired take review saved is a line read again, not a misread. Every other pickup keeps its
+// word.
+func TestARetiredTakeReviewPickupIsARepeat(t *testing.T) {
+	if got := DefaultNoteType(Finding{Analyzer: "take-review", Category: CategoryPickup, Evidence: map[string]any{"kind": "pickup"}}); got != NoteRepeat {
+		t.Errorf("take-review pickup maps to %q, want repeat", got)
+	}
+	if got := DefaultNoteType(Finding{Analyzer: "teleprompter", Category: CategoryPickup, Evidence: map[string]any{"kind": "restart"}}); got != NoteMisread {
+		t.Errorf("a read-aloud restart maps to %q, want misread as before", got)
+	}
+}
+
 func TestDefaultNoteTypeRefinesAudioQualityByEvidenceKind(t *testing.T) {
 	for kind, want := range map[string]NoteType{
 		"mouth_click": NoteMouth, "MOUTH": NoteMouth, "plosive": NotePlosive, "breath": NoteBreath, "hiss": NoteNoise, "": NoteNoise,

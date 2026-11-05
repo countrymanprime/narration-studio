@@ -3,6 +3,7 @@ import { Disclosure } from '../../primitives/Disclosure';
 import { Panel } from '../../primitives/Panel';
 import { SectionLabel } from '../../primitives/SectionLabel';
 import type { Category, SettingMeta } from '../registry/types';
+import { useHasProject } from '../row/SettingsHost';
 import { PaneTitle } from './PaneTitle';
 import { RowOf } from './RowOf';
 
@@ -53,13 +54,14 @@ export function CategoryPane({
   /** Drawn under the sections and above Advanced (App & updates puts the version there). */
   extra?: React.ReactNode;
 }) {
+  const hasProject = useHasProject();
   const basic = rows.filter((row) => !row.advanced);
   const advanced = rows.filter((row) => row.advanced);
   return (
     <>
       <PaneTitle
         title={category.label}
-        blurb={category.blurb}
+        blurb={hasProject ? category.blurb : (category.blurbWithoutProject ?? category.blurb)}
         action={
           changed > 0 && (
             <Button variant="secondary" size="sm" onClick={onReset}>

@@ -31,18 +31,6 @@ const (
 	fileNothingPlayingSentence = "Nothing was playing."
 )
 
-// DawPreviewFileRange plays length seconds of the file at path from start (the file's own seconds) through the DAW's preview,
-// never through the project, stopping a preview this app started before. The resolver's file_preview sentence comes first,
-// then the stretch, then the path; nothing is sent to the DAW on any refusal.
-func (h *Host) DawPreviewFileRange(path string, start, length float64) (string, error) {
-	svc := h.services()
-	resolver, _ := h.dawResolverFor(svc)
-	ctx, cancel := context.WithTimeout(context.Background(), fileActionTimeout)
-	defer cancel()
-	clean, picked := h.pickedFile(path)
-	return encodeBinding(dawPreviewFileIn(ctx, svc, resolver.Support(dawport.CapFilePreview), svc.filePreviewer, clean, picked, start, length), nil)
-}
-
 // DawStopFilePreview stops the preview this app started; with none playing it changes nothing.
 func (h *Host) DawStopFilePreview() (string, error) {
 	svc := h.services()
@@ -50,17 +38,6 @@ func (h *Host) DawStopFilePreview() (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), fileActionTimeout)
 	defer cancel()
 	return encodeBinding(dawStopFilePreviewIn(ctx, svc, resolver.Support(dawport.CapFilePreview), svc.filePreviewer), nil)
-}
-
-// DawRevealFile shows the file at path in the DAW's own file browser without importing or playing it. The resolver's
-// file_reveal sentence comes first, then the path; nothing is sent to the DAW on any refusal.
-func (h *Host) DawRevealFile(path string) (string, error) {
-	svc := h.services()
-	resolver, _ := h.dawResolverFor(svc)
-	ctx, cancel := context.WithTimeout(context.Background(), fileActionTimeout)
-	defer cancel()
-	clean, picked := h.pickedFile(path)
-	return encodeBinding(dawRevealFileIn(ctx, svc, resolver.Support(dawport.CapFileReveal), svc.fileRevealer, clean, picked), nil)
 }
 
 // pickedFile is path cleaned, and whether the narrator picked it to measure in this session.

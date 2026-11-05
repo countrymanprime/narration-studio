@@ -68,6 +68,16 @@ describe('chapter card', () => {
     expect(screen.getByText('End of opening credits · 120 words')).toBeTruthy();
   });
 
+  it('makes its heading focusable by script, not by Tab, so a jump can land on it (#2902)', () => {
+    mount();
+    expect(screen.getByRole('heading', { level: 2 }).getAttribute('tabindex')).toBe('-1');
+  });
+
+  it('names a focusable heading even when the chapter has no title', () => {
+    mount({ chapter: { ...TWO, title: '   ', subtitle: undefined }, previous: undefined });
+    expect(screen.getByRole('heading', { level: 2, name: 'Untitled chapter' })).toBeTruthy();
+  });
+
   it('reserves no subtitle line for a chapter without one', () => {
     mount({ chapter: { ...TWO, subtitle: '' }, previous: undefined });
     expect(screen.getByRole('heading', { level: 2 }).querySelectorAll('.block')).toHaveLength(1);

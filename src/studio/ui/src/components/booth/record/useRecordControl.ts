@@ -47,6 +47,9 @@ export type RecordControlState = {
   disabled: boolean;
   /** Start or stop a take (the `reading.toggle` command), a start at `at` seconds when it is a punch. A start that a precondition stops says why through `notify` and starts nothing. Answers whether the take started. A narrator's press within `START_GUARD_MS` of a start is ignored (a double click or key repeat is not a Stop); an `automatic` stop, the Booth's own, is never. */
   toggle: (at?: number, how?: { automatic?: boolean }) => Promise<boolean>;
+  /** Stops the take as a narrator's Stop press does (the start guard included) and answers whether no take runs afterwards: true when
+   * it stopped or none was running, false when the stop was refused, failed or another press was being answered. */
+  stop: () => Promise<boolean>;
   /** The take was stopped by another path (the leave guard's "Stop and leave"): the Booth stops holding it now, not when the DAW's next heartbeat says so. */
   stopped: () => void;
   /** Read the capabilities again, after a setting the Booth itself changed. */
@@ -415,6 +418,8 @@ export function useRecordControl({
   const startedRef = useRef(onStarted);
   startedRef.current = onStarted;
 
+  // Set by a stop the DAW accepted, so `stop` can say whether its press stopped the take.
+  const stopAccepted = useRef(false);
   const toggle = useCallback(
     async (at?: number, how?: { automatic?: boolean }): Promise<boolean> => {
       if (busy.current) return false;
@@ -447,6 +452,7 @@ export function useRecordControl({
           if (starting) startedRef.current?.(result);
           if (!starting && !recordsInApp(capabilitiesRef.current?.daw)) await stoppedRef.current?.(result);
           setRefused(null);
+          if (!starting) stopAccepted.current = true;
           if (starting) lastStartAt = Date.now();
           setRecording(starting);
           return starting;
@@ -478,11 +484,19 @@ export function useRecordControl({
     setRecording(false);
   }, []);
 
+  const stop = useCallback(async () => {
+    if (!recordingRef.current) return true;
+    stopAccepted.current = false;
+    await toggle();
+    return stopAccepted.current;
+  }, [toggle]);
+
   return {
     capabilities,
     project,
     recording,
     stopped,
+    stop,
     startedByApp: true,
     reason,
     gate,

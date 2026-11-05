@@ -1,13 +1,15 @@
 // The golden payloads of the Script page's marks (src/studio/desktop/bindings_marks.go) and their threads
 // (src/studio/desktop/bindings_marks_thread.go).
 import type { z } from 'zod';
-import { markSchema, markThreadDeletedSchema, marksSchema } from '../schemas/marks';
+import { markSchema, markThreadDeletedSchema, marksSchema, marksTypesChangedSchema } from '../schemas/marks';
 
 export const marksGoldens: Record<string, z.ZodType> = {
   'marks-add.json': markSchema,
   'marks-list.json': marksSchema,
   'marks-remove.json': marksSchema,
   'marks-types.json': marksSchema,
+  'marks-types-changed-default.json': marksTypesChangedSchema,
+  'marks-types-changed.json': marksTypesChangedSchema,
   'marks-thread.json': markSchema,
   'marks-thread-deleted.json': markThreadDeletedSchema,
 };

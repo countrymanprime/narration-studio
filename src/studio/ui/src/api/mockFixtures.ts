@@ -20,16 +20,14 @@ import type {
   RenderConfigState,
   CleanupToolsState,
   ProjectStateState,
-  RetakeLanesList,
-  RetakeLanesState,
   ScopedSettingField,
-  Series,
-  SeriesVoiceBibleClip,
   TeleprompterDevice,
   TextSpan,
+  TrackMapping,
   TracksProject,
   TranscriptState,
 } from '../types';
+import { reached } from '../chapterStatus';
 
 export const aliceChapterSeeds = [
   {
@@ -227,14 +225,15 @@ export const withFormatting = (paragraph: ManuscriptParagraph): ManuscriptParagr
 };
 export const WIRE_PARAGRAPHS: ManuscriptParagraph[] = plainParagraphs.map(withFormatting);
 /**
- * How far the mock's chapter is recorded (`recordedThrough`): chapters 1-3 and those past recording in full by Proof, 4-6 two
- * thirds of the way by the Booth’s takes, 11 about a third by its track’s length alone (an estimate), the rest none.
+ * How far the mock's chapter is recorded (`recordedThrough`): chapters 2-3 and those past recording in full by Proof, 1 through
+ * ¶ 14 of its 24 (58%) and 4-6 two thirds of the way by the Booth’s takes, 11 about a third by its track’s length alone (an estimate),
+ * the rest none. Chapter 1 is not complete so that the Booth’s first chapter reads one story: recorded through ¶ 14, resume at ¶ 14 (#2633).
  */
 export function mockRecordedThrough(index: number, paragraphs: readonly ManuscriptParagraph[]): ManuscriptChapter['recordedThrough'] {
   const last = paragraphs.at(-1);
   if (!last) return undefined;
   const words = (paragraph: ManuscriptParagraph) => paragraph.text.split(/\s+/).filter(Boolean).length;
-  if (index < 3 || (index >= 6 && index < 10))
+  if ((index >= 1 && index < 3) || (index >= 6 && index < 10))
     return { paragraphId: last.id, paragraph: paragraphs.length, word: words(last) - 1, percent: 100, complete: true, source: 'proof', confident: true };
   const part = (share: number, source: 'booth' | 'daw') => {
     const index = Math.min(paragraphs.length - 1, Math.floor(paragraphs.length * share));
@@ -249,6 +248,7 @@ export function mockRecordedThrough(index: number, paragraphs: readonly Manuscri
       confident: source !== 'daw',
     };
   };
+  if (index === 0) return part(0.58, 'booth');
   if (index < 6) return part(0.65, 'booth');
   if (index === 10) return part(0.3, 'daw');
   return undefined;
@@ -449,50 +449,6 @@ export const WIRE_CHARACTER_REFERENCES: ApprovedCharacterReference[] = [
     approvedAt: '2026-09-21T09:00:00.000Z',
     note: 'Re-approve once the tea-party region is finalized.',
     changedSinceApproval: true,
-  },
-];
-
-// Series, reference data only (no acoustic-drift binding reads it): a two-book series so the Series tab has something to show by default. The current project
-// (DEFAULT_PROJECT_FOLDER, 'C:/Projects/Alice-in-Wonderland') is Book 1; the second member is a sibling project this
-// mock never actually opens - its own reference clips are canned in WIRE_SERIES_SIBLING_CLIPS below rather than
-// simulated through a second MockState, since the mock always represents exactly one open project.
-export const WIRE_SERIES: Series = {
-  id: 'series-wonderland',
-  name: 'Wonderland',
-  memberProjectPaths: ['C:/Projects/Alice-in-Wonderland', 'C:/Projects/Through-the-Looking-Glass'],
-};
-
-// Book 2's own approved clips for characters that also appear in Book 1 (WIRE_CHARACTER_REFERENCES, by the same
-// characterId): grouped with them in the Series tab, each labeled by its own book.
-export const WIRE_SERIES_SIBLING_CLIPS: Array<{ characterId: string; clip: SeriesVoiceBibleClip }> = [
-  {
-    characterId: 'alice',
-    clip: {
-      id: 'ref-alice-2',
-      projectPath: 'C:/Projects/Through-the-Looking-Glass',
-      book: 'Through-the-Looking-Glass',
-      isCurrentProject: false,
-      regionGuid: '{C0FFEE00-0000-0000-0000-000000000101}',
-      name: 'Alice ref, Looking-Glass Ch. 1',
-      start: 8.0,
-      end: 14.5,
-      approvedAt: '2026-09-24T09:00:00.000Z',
-    },
-  },
-  {
-    characterId: 'mad-hatter',
-    clip: {
-      id: 'ref-hatter-2',
-      projectPath: 'C:/Projects/Through-the-Looking-Glass',
-      book: 'Through-the-Looking-Glass',
-      isCurrentProject: false,
-      regionGuid: '{C0FFEE00-0000-0000-0000-000000000102}',
-      name: 'Hatta ref, Looking-Glass Ch. 7',
-      start: 30.0,
-      end: 36.0,
-      approvedAt: '2026-09-25T09:00:00.000Z',
-      note: '"Hatta" in Book 2.',
-    },
   },
 ];
 
@@ -735,6 +691,22 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
   ],
   // Editing.fx_cap_pct unset, so it reads as the default, 10 (tests/fixtures/contracts/settings-fx-cap.json); the Effects tab's cap.
   Editing: [
+    // The empty-space check's three limits are unset by default, and an unset limit is not checked (internal/editing).
+    ...(['max_gap_seconds', 'head_max_seconds', 'tail_max_seconds'] as const).map((key) => ({
+      key,
+      label: {
+        max_gap_seconds: "Maximum gap before it's flagged (empty space)",
+        head_max_seconds: 'Maximum leading silence (head)',
+        tail_max_seconds: 'Maximum trailing silence (tail)',
+      }[key],
+      kind: 'number' as const,
+      choices: [],
+      value: '',
+      isSet: false,
+      effectiveValue: '',
+      effectiveSource: 'hardcoded' as const,
+      number: { min: 0, max: null, step: 0.1, unit: 's' },
+    })),
     {
       key: 'fx_cap_pct',
       label: 'Most of a chapter effects may cover (%)',
@@ -745,6 +717,20 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
       effectiveValue: '10',
       effectiveSource: 'repo_default',
       number: { min: 1, max: 100, step: 1, unit: '%' },
+    },
+  ],
+  // Proofing.render_length_tolerance_seconds unset: the render length check is not required (no default is proposed until real renders are measured).
+  Proofing: [
+    {
+      key: 'render_length_tolerance_seconds',
+      label: 'Render length tolerance',
+      kind: 'number',
+      choices: [],
+      value: '',
+      isSet: false,
+      effectiveValue: '',
+      effectiveSource: 'hardcoded',
+      number: { min: 0, max: null, step: 0.1, unit: 's' },
     },
   ],
   // Booth.words_per_page unset, so it reads as the default, 250 (tests/fixtures/contracts/settings-words-per-page.json); the Booth's page size.
@@ -1086,8 +1072,49 @@ export const WIRE_TRACKS_PROJECT: TracksProject = {
         },
       ],
     },
+    // The other chapters whose Record stage is ticked (3 and 7-10) have a track each, so the Production Rec. column measures them (#2634).
+    ...[
+      { chapter: 3, length: 587.2 },
+      { chapter: 7, length: 653.8 },
+      { chapter: 8, length: 701.5 },
+      { chapter: 9, length: 566.1 },
+      { chapter: 10, length: 618.7 },
+    ].map(({ chapter, length }, offset) => ({
+      guid: `{5C0A7E10-0000-4D1E-9A00-${String(chapter).padStart(12, '0')}}`,
+      index: 3 + offset,
+      name: `Chapter ${chapter}`,
+      color: '',
+      muted: false,
+      soloed: false,
+      depth: 0,
+      isFolder: false,
+      items: [
+        {
+          guid: `{5C0A7E11-0000-4D1E-9A00-${String(chapter).padStart(12, '0')}}`,
+          position: 0,
+          length,
+          name: `ch${chapter}_take1.wav`,
+          sourceKind: 'WAVE',
+          sourceFile: `C:/Projects/Alice-in-Wonderland/media/ch${chapter}_take1.wav`,
+          sourceAvailable: true,
+          supported: true,
+          takeGuid: `{E1A2B3C4-${String(chapter).padStart(4, '0')}-4A5B-8C6D-7E8F90A1B2C3}`,
+          sourceStart: 0,
+          playRate: 1,
+        },
+      ],
+    })),
   ],
 };
+
+/**
+ * The confirmed links the mock boots with: Chapter 1 to its own track, and every other chapter whose Record stage is ticked (at or past Editing)
+ * to the track of the same name, so each shows a measured length and not "No track".
+ */
+export const WIRE_TICKED_CHAPTER_LINKS: TrackMapping[] = WIRE_CHAPTERS.filter((chapter) => reached(chapter.status, 'editing')).flatMap((chapter) => {
+  const track = WIRE_TRACKS_PROJECT.tracks.find((candidate) => candidate.name === chapter.title);
+  return track ? [{ trackGuid: track.guid, chapterId: chapter.id, chapterTitle: chapter.title, confirmedAt: '2026-09-01T12:00:00Z' }] : [];
+});
 
 const idleLineIdentityStamp: LineIdentityState['stamp'] = { applied: 0, unchanged: 0, missingCount: 0, conflictsCount: 0, missing: [], conflicts: [] };
 
@@ -1118,7 +1145,7 @@ const folderTrack = (name: string, index: number, depth: number, color: string):
  * WIRE_TRACKS_PROJECT as REAPER folders hold it (`?mockTrackFolders=1`): the Alice tracks inside Narration > Chapters, a Credits folder holding a
  * copy of the first track as "Opening credits", and an empty Co-narrator folder. Its shape is `testdata/folders-handmade.rpp`'s.
  */
-export const WIRE_TRACKS_PROJECT_FOLDERS: TracksProject = (() => {
+const WIRE_TRACKS_PROJECT_FOLDERS: TracksProject = (() => {
   const inside = WIRE_TRACKS_PROJECT.tracks.map((track) => ({ ...track, depth: 2 }));
   const opening: FixtureTrack = { ...WIRE_TRACKS_PROJECT.tracks[0], guid: '{0PEN-1NG}', name: 'Opening credits', depth: 2, items: [] };
   const guest: FixtureTrack = { ...WIRE_TRACKS_PROJECT.tracks[0], guid: '{GUEST-1}', name: 'Guest', depth: 1, items: [] };
@@ -1133,6 +1160,30 @@ export const WIRE_TRACKS_PROJECT_FOLDERS: TracksProject = (() => {
   ];
   return { ...WIRE_TRACKS_PROJECT, tracks: list.map((track, index) => ({ ...track, index })) };
 })();
+
+/**
+ * WIRE_TRACKS_PROJECT in a Voice folders project (`?mockVoiceFolders=1`, docs/prds/booth-voice-tracks.prd.md): Chapter 1 is a folder whose
+ * children are its voices. Its take sits on the Narrator child; White Rabbit matches its character by name and Extras holds the two
+ * characters the seed's voice setup assigns it.
+ */
+export const WIRE_VOICE_FOLDER_GUID = '{F0LD-V01CE}';
+const WIRE_TRACKS_PROJECT_VOICES: TracksProject = (() => {
+  const [first, ...rest] = WIRE_TRACKS_PROJECT.tracks;
+  const child = (guid: string, name: string, items: FixtureTrack['items'] = []): FixtureTrack => ({ ...first, guid, name, depth: 1, isFolder: false, items });
+  const list = [
+    { ...first, guid: WIRE_VOICE_FOLDER_GUID, isFolder: true, depth: 0, items: [] },
+    child(first.guid, 'Narrator', first.items),
+    child('{V01CE-RABB1T}', 'White Rabbit'),
+    child('{V01CE-EXTRAS}', 'Extras'),
+    ...rest.map((track) => ({ ...track, depth: 0 })),
+  ];
+  return { ...WIRE_TRACKS_PROJECT, tracks: list.map((track, index) => ({ ...track, index })) };
+})();
+
+/** The REAPER project a mock seed's host reads: the voice-folder or folder variant, or the flat Alice tracks. */
+export function mockTracksProject(seed: { voiceFolders?: boolean; trackFolders?: boolean }): TracksProject {
+  return seed.voiceFolders ? WIRE_TRACKS_PROJECT_VOICES : seed.trackFolders ? WIRE_TRACKS_PROJECT_FOLDERS : WIRE_TRACKS_PROJECT;
+}
 
 /** One row of every status the classifier produces, keyed to WIRE_TRACKS_PROJECT's own chapter track item GUIDs where it helps a screenshot read naturally (mirrors tests/fixtures/contracts/line-identity-read-success.json). */
 export const WIRE_LINE_IDENTITY_LINES: LineIdentityLine[] = [
@@ -1266,7 +1317,7 @@ export const WIRE_PICKUPS_EXPORT_SUCCESS: PickupsState = {
   markers: [],
 };
 
-/** REAPER reported a problem importing, exporting, jumping, resolving or counting pickups. */
+/** REAPER reported a problem importing, exporting, resolving or counting pickups. */
 export const WIRE_PICKUPS_ERROR: PickupsState = {
   runId: '1790000000000003',
   phase: 'error',
@@ -1351,61 +1402,6 @@ export const WIRE_CLEANUP_TOOLS_ERROR: CleanupToolsState = {
   action: '',
 };
 
-/** Two lines of Chapter 1 recorded as retakes on fixed lanes, lane 1 (index 0) playing in the saved project. Same shape
- * as tests/fixtures/contracts/retake-lanes-list.json, which is built from a REAPER 7.80 fixture project (src/studio/desktop/internal/tracks/testdata/reaper/README.md) and so has test-case track names. */
-export const WIRE_RETAKE_LANES_LIST: RetakeLanesList = {
-  laneTracks: 1,
-  lines: [
-    {
-      lineId: 'line-000012',
-      trackGuid: '{0E4D1D7F-D039-674D-87E6-719376DE95EC}',
-      trackName: 'Chapter 1',
-      retakes: [
-        { itemGuid: '{3A1F0C2E-5B6D-4E7F-8091-A2B3C4D5E601}', name: 'ch1_pass1.wav', lane: 0, plays: true, position: 42.5, length: 6.2 },
-        { itemGuid: '{3A1F0C2E-5B6D-4E7F-8091-A2B3C4D5E602}', name: 'ch1_pass2.wav', lane: 1, plays: false, position: 42.5, length: 5.9 },
-        { itemGuid: '{3A1F0C2E-5B6D-4E7F-8091-A2B3C4D5E603}', name: 'ch1_pass3.wav', lane: 2, plays: false, position: 42.5, length: 6.0 },
-      ],
-    },
-    {
-      lineId: 'line-000013',
-      trackGuid: '{0E4D1D7F-D039-674D-87E6-719376DE95EC}',
-      trackName: 'Chapter 1',
-      retakes: [
-        { itemGuid: '{3A1F0C2E-5B6D-4E7F-8091-A2B3C4D5E611}', name: 'ch1_pass1.wav', lane: 0, plays: true, position: 49.1, length: 4.4 },
-        { itemGuid: '{3A1F0C2E-5B6D-4E7F-8091-A2B3C4D5E612}', name: 'ch1_pass2.wav', lane: 1, plays: false, position: 49.1, length: 4.1 },
-      ],
-    },
-  ],
-};
-
-/** A project with no track in fixed-lane mode (the list answer, e.g. tests/fixtures/contracts/basic.rpp's). */
-export const WIRE_RETAKE_LANES_NONE: RetakeLanesList = { laneTracks: 0, lines: [] };
-
-/** The Go host's RetakeLanesState before any pick (mirrors tests/fixtures/contracts/retake-lanes-idle.json). */
-export const WIRE_RETAKE_LANES_IDLE: RetakeLanesState = { phase: 'idle', message: '', lineId: '', itemGuid: '', trackName: '' };
-
-/** A pick REAPER confirmed: lane 2 of Chapter 1 now plays alone (same shape as tests/fixtures/contracts/retake-lanes-picked.json). */
-export const WIRE_RETAKE_LANES_PICKED: RetakeLanesState = {
-  runId: '1790000000000000',
-  phase: 'picked',
-  message: 'Lane 2 is now the only lane playing on Chapter 1. To go back, use Undo in REAPER: it restores what played before.',
-  lineId: 'line-000012',
-  itemGuid: '{3A1F0C2E-5B6D-4E7F-8091-A2B3C4D5E602}',
-  trackName: 'Chapter 1',
-  lane: 1,
-};
-
-/** REAPER refused the pick: the narrator turned lanes off since the project was saved (narration_retake_lanes.lua's message). */
-export const WIRE_RETAKE_LANES_ERROR: RetakeLanesState = {
-  runId: '1790000000000001',
-  phase: 'error',
-  message:
-    'The track "Chapter 1" is not in fixed item lane mode, so it has no lanes to choose from. The app never turns lanes on or converts takes to lanes: do that in REAPER if you want to.',
-  lineId: 'line-000012',
-  itemGuid: '{3A1F0C2E-5B6D-4E7F-8091-A2B3C4D5E602}',
-  trackName: 'Chapter 1',
-};
-
 /** No chapter render has been configured yet (mirrors tests/fixtures/contracts/chapter-tags-preview-idle.json). */
 export const WIRE_CHAPTER_TAGS_PREVIEW_IDLE: ChapterTagsPreview = { chapters: [], ready: false };
 
@@ -1432,11 +1428,9 @@ export const WIRE_CHAPTER_TAGS_EMBED_SUCCESS: ChapterTagsEmbedResult = {
   outputPath: 'C:\\Books\\Alice\\renders\\Alice in Wonderland.chapters.mp3',
 };
 
-// What a pickup and duplicate scan of "Chapter 1" of WIRE_TRACKS_PROJECT saves: one partial pickup (a
-// re-read of part of the span, below the near-duplicate quality bar) and one near-identical duplicate_read, in the shape
-// src/studio/desktop/contract_test.go's TestContractTakeReviewFindings pins as tests/fixtures/contracts/findings-list-take-review.json.
-// The mock scan saves them into the findings store, so they reach the Review page the way the host's do. No composite score
-// anywhere in this fixture: only per-category evidence.
+// What the retired pickup and duplicate scan (#2765) saved for "Chapter 1" of WIRE_TRACKS_PROJECT: one partial pickup and one
+// near-identical duplicate_read, in the shape the take review wrote (tests/fixtures/contracts/findings-list-take-review.json
+// pins the host's listing of one). Nothing writes these any more; a project that holds some lists them as plain findings.
 export const WIRE_TAKE_REVIEW_FINDINGS: Finding[] = [
   {
     schema_version: 1,
@@ -1657,8 +1651,38 @@ export const WIRE_FINDINGS: Finding[] = [
   },
 ];
 
-/** One unreviewed take-review pickup finding for chapterId: the
- * summary's "Take review" count and Open Review link demo, seeded additively (never into the default
+/** A one-word Transcript Compare misread (Dinah heard as Dina) for "Treat these two words as the same" (#2736): `?mockFindings=misread`
+ * adds it to WIRE_FINDINGS, and the contract test asks the mock host to add its pair. */
+export const WIRE_ONE_WORD_MISREAD: Finding = {
+  schema_version: 1,
+  id: '4e5f60718293a4b5c6d7e8f9',
+  analyzer: 'transcript-compare',
+  project: { path: 'C:/Projects/Alice-in-Wonderland' },
+  source: {
+    file: 'C:/Projects/Alice-in-Wonderland/media/ch1_take1.wav',
+    track_guid: '{5E1F0000-0000-4000-8000-0000000000F1}',
+    item_guid: '{5E1F0000-0000-4000-8000-000000000001}',
+    take_guid: '{5E1F0000-0000-4000-8000-0000000000A1}',
+  },
+  time_range: { start: 8.6, end: 8.6, source_start: 8.6, source_end: 8.6 },
+  manuscript: { chapter_id: 'chapter-1', chapter_title: 'Chapter 1', expected: 'Dinah', recorded: 'Dina', span: { paragraph_id: 'p-2' } },
+  category: 'transcript_discrepancy',
+  severity: 'warning',
+  confidence: 0.6,
+  confidence_reason: 'compare.py measured a middling pause at this discrepancy’s audio boundary — a provisional signal, not proof.',
+  evidence_version: 'sha256:7b3e2a2f7f4d6e8c0a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f6a7b',
+  evidence: {
+    kind: 'MISREAD',
+    marker_state: 'pending',
+    script_context: 'Dinah my dear! I wish you were down here with me!',
+    audio_context: 'Dina my dear! I wish you were down here with me!',
+    sound_alike: 0.89,
+  },
+  review: { status: 'unreviewed' },
+};
+
+/** One unreviewed pickup finding the retired take review saved for chapterId: the
+ * summary's repeated-reads count and Open Proof link demo, seeded additively (never into the default
  * `WIRE_FINDINGS` other tests hardcode exact counts against) alongside the coverage mock's own interior-pickups
  * seed for the same chapter. */
 export function takeReviewPickupFor(chapterId: string, chapterTitle: string): Finding {

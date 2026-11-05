@@ -1,8 +1,8 @@
 # Studio Next gap audit: the built app against the mock
 
-**Status: snapshot of `main` at `efbf4a31` (2026-10-19).** It lists what is still missing between the built app and the frozen Studio Next mock ([`docs/research/mockups/studio-next/`](mockups/studio-next/README.md)), so the remaining build can be cut into parallel pull requests. It is evidence, not kept current: the gap ids (PR-1, SB-4 and so on) are this note's own, and a PR that closes a row says so in its body.
+**Status: snapshot of `main` at `efbf4a31` (2026-10-19).** It lists what is still missing between the built app and the frozen Studio Next mock (`docs/research/mockups/studio-next/`), so the remaining build can be cut into parallel pull requests. It is evidence, not kept current: the gap ids (PR-1, SB-4 and so on) are this note's own, and a PR that closes a row says so in its body.
 
-Owner direction (D99): after the open PRs merge, finish the app toward the mock except where the owner decided otherwise. The rule is [Which mocks are the spec](../prds/studio-next-rebuild.prd.md#which-mocks-are-the-spec): the mock is a frozen reference, a departure supersedes its line in a PRD or doc, and the repo's old equivalent of anything in the mock is removed when the page is swapped in.
+Owner direction (D99): after the open PRs merge, finish the app toward the mock except where the owner decided otherwise. The rule is Which mocks are the spec: the mock is a frozen reference, a departure supersedes its line in a PRD or doc, and the repo's old equivalent of anything in the mock is removed when the page is swapped in.
 
 ## What this note does not list
 
@@ -265,7 +265,7 @@ These rows differ from the mock on purpose, or need a ruling before anyone build
 
 | Id | Question | Default if not ruled |
 | --- | --- | --- |
-| BO-7, SC-7 | The mock binds bookmark stepping to plain `[` and `]`; the app uses `Alt+[`/`Alt+]` because Proof's `workspace.flag.*` holds the bare brackets (documented D1 in [the bookmarks parity note](studio-next-parity-bookmarks-and-extraction.md)). Rebind per page? | Keep `Alt` |
+| BO-7, SC-7 | The mock binds bookmark stepping to plain `[` and `]`; the app uses `Alt+[`/`Alt+]` because Proof's `workspace.flag.*` holds the bare brackets (documented D1 in the bookmarks parity note). Rebind per page? | Keep `Alt` |
 | BO-8, PF-9, PK-3 | The mock prefixes chapter names with the manuscript heading style ("CHAPTER VIII. …"). The app has one rule ([`chapterName.ts`](../../src/studio/ui/src/chapterName.ts)): title and subtitle in source casing. Which wins? | Keep the app's rule (the mock's prefix comes from its sample book) |
 | PF-4 | Play ±3 s on a note (Space, the menu, a moving playhead). The PRD lists it under What We're Not Building. | Not built |
 | SB-8 | Delete an entry at once with a toast, as the mock does, or keep the confirm dialog? | Keep the confirm |
@@ -292,7 +292,7 @@ Constraint: the owner wants progress after the open PRs merge, and eight of them
 2. **Shell first once #2027 merges (wave 2a).** W-7 shell and rail. `main` padding (SH-3) and the rail rhythm (SH-2) shift every page by 8 px, so land them before the per-page measure work and before anyone regenerates guide screenshots for it.
 3. **Per-page chrome once the colour PR for the page merges (wave 2b), all parallel.** W-8 Production and Schedule (after #1994, #1999, #2027), W-9 Proof inspector and queue (after #2022), W-10 Booth chrome (after #2021), W-11 Script rail and reader (after #2024), W-12 Editing script text, takes and layout (after #2023), W-13 Editing effects (after #1924), W-15 Pickups and Check recordings (after #2021).
 4. **Host-backed, last (wave 3).** W-16 project picker pins (SH-6) and W-17 chapter review banner (SC-2) need host calls. Start each with its wire-contract slice.
-5. **Then the owner decisions,** and the cutover audit ([Cutover](../prds/studio-next-cutover.prd.md)).
+5. **Then the owner decisions,** and the cutover audit (Cutover).
 
 The kit PRs the colour work added (the kind registry) are used as they are: a work item never draws a kind colour or shape itself.
 

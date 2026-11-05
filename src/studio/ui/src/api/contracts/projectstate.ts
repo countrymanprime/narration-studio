@@ -26,6 +26,5 @@ export interface ProjectStateApi {
   projectStateCheck(): Promise<ProjectStateStartResult>;
   /** Whether REAPER's count now differs from a baseline, such as the comparison's projectChangeCount. */
   projectStateChangedSince(current: number, baseline: number): Promise<ProjectStateChanged>;
-  projectStateState(): Promise<ProjectStateState>;
   subscribeProjectState(onUpdate: (state: ProjectStateState) => void): () => void;
 }

@@ -82,13 +82,6 @@
     "proofing.delivery.tail_room_tone_seconds": "required",
     "proofing.delivery.render_length": "required"
   },
-  "TakeReview": {
-    "full_coverage_threshold": "0.9",
-    "near_duplicate_quality_threshold": "0.97",
-    "pickup_track_name": "",
-    "pickup_range_start_seconds": "",
-    "pickup_range_end_seconds": ""
-  },
   "Preview": {
     "target_seconds": "300",
     "tolerance_fraction": "0.1",

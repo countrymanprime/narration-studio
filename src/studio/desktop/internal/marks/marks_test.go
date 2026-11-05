@@ -400,3 +400,74 @@ func TestOldNotesComeAcrossOnce(t *testing.T) {
 		t.Fatalf("second read = %+v after %d reads of the old notes", list.Marks, reads)
 	}
 }
+
+func TestTypesChangedReadsTheFileAndTouchesNothing(t *testing.T) {
+	book := alice()
+	project := t.TempDir()
+	notes := func() ([]OldNote, error) {
+		return []OldNote{{ChapterID: "c1", ParagraphID: "p1", Text: "old note"}}, nil
+	}
+	service := New(Config{Project: project, Manuscript: func() (Book, error) { t.Fatal("the probe loaded the manuscript"); return book, nil }, OldNotes: func() ([]OldNote, error) {
+		t.Fatal("the probe read the old notes")
+		return notes()
+	}})
+	if changed, err := service.TypesChanged(); err != nil || changed {
+		t.Fatalf("no marks.json: %v, %v", changed, err)
+	}
+	if _, err := os.Stat(File(project)); !os.IsNotExist(err) {
+		t.Fatalf("the probe created marks.json: %v", err)
+	}
+	if changed, err := New(Config{}).TypesChanged(); err != nil || changed {
+		t.Fatalf("no project: %v, %v", changed, err)
+	}
+
+	writer := newService(t, project, &book)
+	if _, err := writer.List(); err != nil {
+		t.Fatal(err)
+	}
+	reader := New(Config{Project: project})
+	if changed, err := reader.TypesChanged(); err != nil || changed {
+		t.Fatalf("the defaults: %v, %v", changed, err)
+	}
+	types := DefaultTypes()
+	cases := map[string][]MarkType{
+		"renamed":   append([]MarkType{{Key: "stress", Name: "Stress", Colour: "copper", Style: "highlight"}}, types[1:]...),
+		"removed":   types[1:],
+		"added":     append(append([]MarkType{}, types...), MarkType{Name: "Pickup", Colour: "ok", Style: "box"}),
+		"reordered": append([]MarkType{types[1], types[0]}, types[2:]...),
+	}
+	for name, edited := range cases {
+		if _, err := writer.SaveTypes(edited, false); err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		if changed, err := reader.TypesChanged(); err != nil || !changed {
+			t.Errorf("%s: %v, %v", name, changed, err)
+		}
+		if _, err := writer.SaveTypes(DefaultTypes(), false); err != nil {
+			t.Fatal(err)
+		}
+		if changed, err := reader.TypesChanged(); err != nil || changed {
+			t.Errorf("%s restored: %v, %v", name, changed, err)
+		}
+	}
+}
+
+func TestTypesChangedIsFalseForACorruptFileAndAnErrorForANewerOne(t *testing.T) {
+	project := t.TempDir()
+	path := File(project)
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte("{not json"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if changed, err := New(Config{Project: project}).TypesChanged(); err != nil || changed {
+		t.Fatalf("corrupt: %v, %v", changed, err)
+	}
+	if err := os.WriteFile(path, []byte(`{"schemaVersion": 99}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := New(Config{Project: project}).TypesChanged(); err == nil {
+		t.Fatal("a newer file is an error")
+	}
+}

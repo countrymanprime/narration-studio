@@ -145,6 +145,9 @@ export type ProductionReportInclude = {
  * chose to include the contracted amount and effective rate (off by default: a status report is often shared with
  * someone the narrator would not otherwise tell their rate).
  */
+/** What ProductionOpenReportsFolder answers: the folder it showed, relative to the project. */
+export type ReportsFolderResult = { folder: string };
+
 export type ProductionReportExport = {
   folder: string;
   htmlFile: string;
@@ -169,12 +172,6 @@ export type ProductionReportPreview = {
   /** The sections the preview holds. */
   include: ProductionReportInclude;
 };
-
-/**
- * One calendar date of the book's logged-hours burndown (ProductionBurndown): every hour logged by the end of that day, added up from every earlier day. Data only - a chart
- * primitive would plot it; none does yet.
- */
-export type ProductionBurndownPoint = { date: string; hoursLogged: number };
 
 export interface ProductionApi {
   /** Reads this project's deadline, contracted amount and milestones; an empty plan when none are set. */
@@ -206,12 +203,14 @@ export interface ProductionApi {
    */
   productionStatusReport(include: ProductionReportInclude): Promise<ProductionReportExport>;
   /**
+   * Shows the project's status-report folder in the file manager and answers it as the export names it (relative to the project). Takes no
+   * path. Rejects with no project open, or before a report was exported.
+   */
+  productionOpenReportsFolder(): Promise<ReportsFolderResult>;
+  /**
    * The status report an export would write now, built by the host from the same model as `productionStatusReport`,
    * so the preview is the written file. Writes nothing; `include` is the same choice of sections. Rejects without
    * a project.
    */
   productionStatusReportPreview(include: ProductionReportInclude): Promise<ProductionReportPreview>;
-  /** The book's logged hours by day, one point per day from the first stopped session to the last; empty until one
-   * is logged. Data only, for a chart primitive that does not exist yet. */
-  productionBurndown(): Promise<ProductionBurndownPoint[]>;
 }

@@ -4,6 +4,7 @@ import { useBrowserSettingsVersion } from '../../../browserSettings';
 import { useProjectDaw } from '../data/useProjectDaw';
 import type { Bootstrap } from '../../../types';
 import { Button } from '../../primitives/Button';
+import { IconButton } from '../../primitives/IconButton';
 import { InsetCard } from '../../primitives/InsetCard';
 import { Heading } from '../../primitives/Heading';
 import { Icon } from '../../primitives/Icon';
@@ -21,7 +22,7 @@ import { PAGE_SETTINGS } from '../registry/pageSettings';
 import { ROWS } from '../registry/rows';
 import { search, type Hit } from '../registry/search';
 import { PAGE_LABEL, PAGE_PATH, type CategoryId, type SettingMeta, type UsedPage } from '../registry/types';
-import { SettingsHostProvider, useSettingsHost, type SettingsHost } from '../row/SettingsHost';
+import { SettingsHostProvider, useHasProject, useSettingsHost, type SettingsHost } from '../row/SettingsHost';
 import { SettingsNavProvider } from '../row/SettingsNav';
 import { ANCHOR_TARGETS } from './anchors';
 import { CategoryNav } from './CategoryNav';
@@ -71,6 +72,7 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
   // A window-kept setting is written outside the store: redraw the Changed counts when one is.
   const browserVersion = useBrowserSettingsVersion();
   const { data, go } = useSettingsHost();
+  const hasProject = useHasProject();
   const target = initialCategory ? ANCHOR_TARGETS[initialCategory] : undefined;
   const [cat, setCat] = useState<CategoryId>(target?.cat ?? 'recording');
   const [query, setQuery] = useState('');
@@ -236,7 +238,7 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
       </fieldset>
     );
   } else if (cat === 'models') {
-    content = <ModelsPane category={category!} />;
+    content = <ModelsPane category={category!} lit={lit} />;
   } else {
     content = (
       <fieldset disabled={broken} className="m-0 flex min-w-0 flex-col gap-4 border-0 p-0 disabled:opacity-55">
@@ -265,7 +267,7 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
           <Heading title="Settings" />
           {cameFrom && (
             <Button variant="secondary" size="sm" id="settings-back" onClick={() => go(cameFrom)}>
-              <Icon name="previous" /> Back to {pageNameOf(cameFrom)}
+              <Icon name="previous" /> Back to {hasProject ? pageNameOf(cameFrom) : 'project picker'}
             </Button>
           )}
           <span className="flex-1" />
@@ -293,7 +295,7 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
               options={[
                 { value: 'all', label: 'All' },
                 { value: 'changed', label: 'Changed' },
-                { value: 'project', label: 'In this project' },
+                { value: 'project', label: 'In this project', disabledReason: hasProject ? undefined : 'Open a project to see what it sets' },
               ]}
             />
           </div>
@@ -319,9 +321,7 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
               <InsetCard tone="danger" role="alert" className="flex flex-col items-start gap-1.5 text-[0.875rem]">
                 <b>Your settings could not be read.</b>
                 <span>{store.readError.global}. Nothing can be changed until the file can be read.</span>
-                <Button variant="secondary" size="sm" onClick={() => void store.reload()}>
-                  Retry
-                </Button>
+                <IconButton action="retry" size="sm" onClick={() => void store.reload()} />
               </InsetCard>
             )}
             {content}

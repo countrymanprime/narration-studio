@@ -4,6 +4,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { pastStartGuard } from './helpers/startGuard';
 import { settlePage } from './helpers/settle';
 import { goToPage } from './drivers/shared';
+import { boothChapterReady } from './helpers/viewTop';
 
 // includeHidden: the connect dialog hides the page behind it from the accessibility tree, and Record is still there, disabled.
 const record = (page: Page) => page.getByRole('button', { name: /^Record$/, includeHidden: true });
@@ -28,7 +29,7 @@ async function openLive(page: Page, script: string, extra = ''): Promise<void> {
   await page.goto(`/?mockDaw=${script}${extra}`);
   await settlePage(page);
   await goToPage(page, 'Booth');
-  await page.getByRole('button', { name: /^Resume at ¶/, includeHidden: true }).waitFor();
+  await boothChapterReady(page);
 }
 
 /** What the mock DAW holds, read through the handle a driver plays REAPER's side with. */
@@ -40,7 +41,7 @@ async function linkProject(page: Page): Promise<void> {
   await dialog(page).getByRole('button', { name: 'Link in Settings' }).click();
   await page.getByRole('button', { name: /^Link Alice\.rpp/ }).click();
   await goToPage(page, 'Booth');
-  await page.getByRole('button', { name: /^Resume at ¶/, includeHidden: true }).waitFor();
+  await boothChapterReady(page);
 }
 
 // Nothing to switch on: on a fresh machine Record is off only because REAPER is not connected, and the connect steps are up.

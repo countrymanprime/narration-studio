@@ -30,6 +30,7 @@ function renderPage(
   api: NarrationApi = createMockApi({ pickupsList: () => Promise.resolve(LIST) }),
   chapters: readonly object[] = CHAPTERS.map((chapter, index) => ({ id: chapter.id, title: chapter.name, index, wordCount: 100, status: 'recording' })),
   journal: Journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' }),
+  dawFileLinked = true,
 ) {
   vi.spyOn(api, 'manuscriptChapters').mockResolvedValue(chapters as never);
   const goTo = vi.fn();
@@ -40,7 +41,7 @@ function renderPage(
         <StudioProvider journal={journal}>
           <TooltipProvider>
             <CommandRouter>
-              <PickupsPage hasManuscript goTo={goTo} goToScript={goToScript} />
+              <PickupsPage hasManuscript dawFileLinked={dawFileLinked} goTo={goTo} goToScript={goToScript} />
             </CommandRouter>
             <OverlayHost />
           </TooltipProvider>
@@ -152,6 +153,19 @@ describe('fine-not-a-pickup-and-show-where', () => {
     expect(entries.at(-1)?.label).toBe('Fine, not a pickup at 00:12.0');
     await act(async () => void (await journal.undo(entries.at(-1)!.id)));
     await waitFor(() => expect(review).toHaveBeenLastCalledWith({ id: 'f9', evidenceVersion: note.evidence_version ?? '', status: 'accepted', note: 'mine' }));
+  });
+
+  it('Remove on a line added by hand is one journal entry, and Ctrl+Z puts it back', async () => {
+    const mine = pickup({ id: 'you:1', chapterId: 'c1', source: 'you', time: 30, script: 'my line' });
+    const { api, remove, user, journal } = await setupFine(mine);
+    const add = vi.spyOn(api, 'pickupsAdd').mockResolvedValue({ pickups: [mine], leftOut: [] });
+    await user.click(screen.getByRole('button', { name: 'Remove from pickups' }));
+    await waitFor(() => expect(remove).toHaveBeenCalledWith('you:1'));
+    await waitFor(async () => expect(await journal.entries()).toHaveLength(1));
+    const [row] = await journal.entries();
+    expect(row).toMatchObject({ label: 'Removed 00:30.0 from pickups', touches: ['pickups'], undoable: true });
+    expect((await journal.undoLast()).ok).toBe(true);
+    expect(add).toHaveBeenCalledWith('c1', 30, 'my line');
   });
 
   it('a check’s gap with a note is also taken off the list', async () => {
@@ -420,8 +434,8 @@ describe('narrator-walkthrough-fixes-2', () => {
 describe('adding-lines-as-markers-says-what-happened', () => {
   const markersDaw = (changed: boolean) =>
     ({ addPickupMarkers: vi.fn().mockResolvedValue({ ok: true, changed, message: 'Imported 2 pickups.', undoSteps: changed ? 1 : 0 }) }) as never;
-  const renderWith = (changed: boolean) => {
-    const api = createMockApi({ pickupsList: () => Promise.resolve(LIST) });
+  const renderWith = (changed: boolean, list: PickupList = LIST) => {
+    const api = createMockApi({ pickupsList: () => Promise.resolve(list) });
     vi.spyOn(api, 'manuscriptChapters').mockResolvedValue(
       CHAPTERS.map((c, index) => ({ id: c.id, title: c.name, index, wordCount: 100, status: 'recording' })) as never,
     );
@@ -450,10 +464,43 @@ describe('adding-lines-as-markers-says-what-happened', () => {
     expect(screen.queryByText(/Imported/)).toBeNull();
   });
 
+  it('says how many lines had no place in the recording, so the count matches the button', async () => {
+    const placed = pickup({ id: 'a', at: 10, time: 10 });
+    const unplaced = pickup({ id: 'b', at: null, time: 20 });
+    renderWith(true, { pickups: [placed, unplaced], leftOut: [] });
+    await userEvent.setup().click(await screen.findByRole('button', { name: 'Add 1 as markers in REAPER' }));
+    expect(await screen.findByText('Pickup marker for 1 of 2 lines is in REAPER. 1 line has no place in the recording yet and was left out.')).toBeTruthy();
+  });
+
+  it('turns the markers button off, saying why, when no line has a place', async () => {
+    renderWith(true, { pickups: [pickup({ id: 'b', at: null, time: 20 })], leftOut: [] });
+    const add = await screen.findByRole('button', { name: 'Add 0 as markers in REAPER' });
+    expect(add.getAttribute('aria-disabled')).toBe('true');
+    expect(screen.getByText('None of these lines has a place in the recording yet.')).toBeTruthy();
+  });
+
   it('says the markers were already there when nothing changed', async () => {
     renderWith(false);
     await userEvent.setup().click(await screen.findByRole('button', { name: /^Add \d+ as markers in / }));
     expect(await screen.findByText(/^Those markers were already in .+\.$/)).toBeTruthy();
+  });
+});
+
+describe('adding-markers-needs-a-linked-project', () => {
+  const NOT_LINKED = 'Link a REAPER project (.rpp) file to add markers.';
+
+  it('turns the markers button off with the same ask the top bar makes when no project file is linked', async () => {
+    renderPage(undefined, undefined, undefined, false);
+    const add = await screen.findByRole('button', { name: /^Add \d+ as markers in / });
+    expect(add.getAttribute('aria-disabled')).toBe('true');
+    expect(await screen.findByText(NOT_LINKED)).toBeTruthy();
+  });
+
+  it('keeps the button on when a project file is linked', async () => {
+    renderPage();
+    const add = await screen.findByRole('button', { name: /^Add \d+ as markers in / });
+    expect(add.getAttribute('aria-disabled')).toBeNull();
+    expect(screen.queryByText(NOT_LINKED)).toBeNull();
   });
 });
 
@@ -471,5 +518,31 @@ describe('coming-back-from-the-booth', () => {
     renderPage();
     await waitFor(() => expect(document.activeElement?.getAttribute('data-pk')).toBe(id));
     expect(document.activeElement?.getAttribute('aria-selected')).toBe('true');
+  });
+
+  it('returns to the chapter the narrator had picked, not to all chapters', async () => {
+    const first = renderPage();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: /^Chapter: .*\. Change chapter$/ }));
+    await user.click(await screen.findByRole('menuitemradio', { name: /^Chapter 3(: | |$)/ }));
+    const line = (await screen.findAllByRole('row')).find((row) => row.hasAttribute('data-pk'))!;
+    line.focus();
+    await user.keyboard('{Enter}');
+    expect(first.goTo).toHaveBeenCalled();
+    cleanup();
+    renderPage();
+    const stepper = await screen.findByRole('button', { name: /^Chapter: .*\. Change chapter$/ });
+    expect(stepper.getAttribute('aria-label')).toMatch(/Chapter 3/);
+    expect(document.activeElement?.getAttribute('data-pk')).toBe(line.getAttribute('data-pk'));
+  });
+
+  it('puts focus back on Open N in Booth after the whole session was opened', async () => {
+    const first = renderPage();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: /^Open \d+ in Booth$/ }));
+    expect(first.goTo).toHaveBeenCalled();
+    cleanup();
+    renderPage();
+    await waitFor(() => expect(document.activeElement?.textContent).toMatch(/^Open \d+ in Booth$/));
   });
 });

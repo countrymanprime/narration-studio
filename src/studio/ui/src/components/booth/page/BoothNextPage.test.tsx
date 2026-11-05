@@ -34,7 +34,8 @@ import type { TeleprompterEvent } from '../../../api/contracts/teleprompter';
 import type { NarrationApi, TeleprompterState } from '../../../types';
 import { TEXT_PREFS_STORAGE_KEY } from '../../script/page/tools/text/readerText';
 import { BoothNextPage } from './BoothNextPage';
-import { BOOTH_SIZE_STORAGE_KEY } from './useTextChoices';
+import { EnginePanelProvider } from '../../engine/EnginePanelContext';
+import { BOOTH_SIZE_STORAGE_KEY } from './boothSize';
 import { BoothHost, creditsChapter, dawFor, LOCATED, newJournal, pageApi } from './testPage';
 import { forgetAppTake, skipStartGuard } from '../record/useRecordControl';
 import { createJournal, type Journal } from '../../../studio/journal/createJournal';
@@ -82,6 +83,7 @@ function spied(daw: DawClient) {
 }
 
 function renderPage({ setup = 'reaper', daw: given, search, api: over = {}, hasManuscript = true, measurements, journal: journalFor }: Options = {}) {
+  const openEnginePanel = vi.fn();
   const passageMapRecordRun = vi.fn(async () => {});
   const teleprompterStop = vi.fn(async () => {});
   const api = pageApi({ passageMapRecordRun, teleprompterStop, ...over } as Partial<NarrationApi>);
@@ -92,14 +94,16 @@ function renderPage({ setup = 'reaper', daw: given, search, api: over = {}, hasM
   const view = render(
     <BoothHost api={api} daw={daw} journal={journal} overlay={overlay} search={search}>
       <PortOverrides clients={measurements ? { daw, measurements } : { daw }}>
-        <BoothNextPage hasManuscript={hasManuscript} navigate={navigate} />
+        <EnginePanelProvider value={openEnginePanel}>
+          <BoothNextPage hasManuscript={hasManuscript} navigate={navigate} />
+        </EnginePanelProvider>
       </PortOverrides>
       <Driver />
     </BoothHost>,
   );
   const dialog = () =>
     overlay.getSnapshot().dialogs[0] as { spec: { title: string; body: string; confirmLabel: string }; answer: (yes: boolean) => void } | undefined;
-  return { view, daw, journal, overlay, navigate, dialog, passageMapRecordRun, teleprompterStop };
+  return { view, daw, journal, overlay, navigate, openEnginePanel, dialog, passageMapRecordRun, teleprompterStop };
 }
 
 /** The router, from inside it: what the address is and a way to change it, as a link elsewhere in the app would. */
@@ -147,6 +151,10 @@ describe('record-waits-for-the-live-model', () => {
   it('asks for the missing model first and records nothing while it is asked', async () => {
     const assetsList = vi.fn(async () => ({
       cacheRoot: 'C:/cache',
+      defaultRoot: 'C:/cache',
+      custom: false,
+      previousRoot: '',
+      folderNote: '',
       totalInstalledBytes: 0,
       assets: [
         {
@@ -338,13 +346,14 @@ describe('every-way-out-asks-while-recording', () => {
     expect(page.passageMapRecordRun).toHaveBeenCalledTimes(1);
   });
 
-  it('the setup chip asks too', async () => {
+  it('the setup chip opens the Audio engine panel, as the header chip does, and leaves the take running', async () => {
     const page = renderPage();
     await record(page);
     await userEvent.click(screen.getByRole('button', { name: 'Recording setup: REAPER' }));
-    expect(page.dialog()?.spec.title).toBe('Stop recording?');
-    await act(async () => page.dialog()!.answer(true));
-    await waitFor(() => expect(page.navigate).toHaveBeenCalledWith('/settings#recording'));
+    expect(page.openEnginePanel).toHaveBeenCalledTimes(1);
+    expect(page.dialog()).toBeUndefined();
+    expect(page.navigate).not.toHaveBeenCalled();
+    expect(page.daw.recordStop).not.toHaveBeenCalled();
   });
 
   it('the shell asks before the nav, Back, Forward, Alt+Arrow or a chapter opened in Script; its Yes stops the take as the page goes', async () => {
@@ -401,6 +410,23 @@ describe('a-built-in-take-is-guarded-too', () => {
     page.view.unmount();
     await settle();
     expect(page.daw.recordStop).not.toHaveBeenCalled();
+  });
+
+  // The app's own recorder has no pre-roll to load the speech model in, and keeps its file from the first instant: it starts once listening has.
+  it('starts the built-in recorder only once listening has started', async () => {
+    let listening = (_value: { status: 'started' }) => {};
+    const teleprompterStart = vi.fn(() => new Promise<{ status: 'started' }>((resolve) => (listening = resolve)));
+    const settingsForScope = async () => ({
+      Teleprompter: [{ key: 'input_device', label: 'Microphone', kind: 'text', value: 'USB Mic', effectiveValue: 'USB Mic', isSet: true }],
+    });
+    const page = renderPage({ setup: 'builtin', api: { settingsForScope, teleprompterStart } as never });
+    await ready();
+    await space();
+    await waitFor(() => expect(teleprompterStart).toHaveBeenCalledTimes(1));
+    await settle();
+    expect(page.daw.recordStart).not.toHaveBeenCalled();
+    await act(async () => listening({ status: 'started' }));
+    await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(1));
   });
 
   it('"Stop and leave" stops the take through the port before the Booth goes', async () => {
@@ -520,7 +546,7 @@ describe('escape-closes-the-drawer-then-a-popover-then-exits', () => {
   it('a popover takes Escape first; then Escape exits', async () => {
     const page = renderPage();
     await ready();
-    await userEvent.click(screen.getByRole('button', { name: /levels/i }));
+    await userEvent.click(screen.getByRole('button', { name: /record options/i }));
     const popover = await screen.findByRole('dialog');
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(popover.isConnected).toBe(false));
@@ -1077,7 +1103,7 @@ describe('a pickup session on the page', () => {
   });
 });
 
-// SN-O11: the rest of the Booth parity audit (docs/research/studio-next-parity-booth.md, G2 to G15).
+// SN-O11: the rest of the Booth parity audit (the deleted parity note for the Booth, G2 to G15).
 const toasts = (page: ReturnType<typeof renderPage>) => page.overlay.getSnapshot().toasts.map((toast) => toast.text);
 
 /** A host whose listening session the test drives: it pushes the session's state and events as the sidecar would. */
@@ -1290,8 +1316,8 @@ describe('the Levels menu', () => {
     );
     const page = renderPage({ daw });
     await ready();
-    await userEvent.click(screen.getByRole('button', { name: 'Levels' }));
-    const levels = await screen.findByRole('dialog', { name: 'Levels' });
+    await userEvent.click(screen.getByRole('button', { name: 'Record options' }));
+    const levels = await screen.findByRole('dialog', { name: 'Record options' });
     expect(within(levels).getByText(off.message)).toBeTruthy();
     expect(within(levels).queryByRole('button', { name: 'Turn on in Settings' })).toBeNull();
     expect(page.navigate).not.toHaveBeenCalledWith(expect.stringContaining('/settings'));
@@ -1464,7 +1490,7 @@ describe('the text follows the voice: the listening microphone and the model', (
       : {
           status: 'unavailable' as const,
           reason: 'reaper_no_device' as const,
-          message: 'REAPER did not say which input device it has open. Choose the microphone in Levels.',
+          message: 'REAPER did not say which input device it has open. Choose the microphone in Record options.',
           candidates: [],
         };
   const two = async () => ({ devices: [{ name: 'USB Mic' }, { name: 'Line In' }], error: null });
@@ -1481,8 +1507,8 @@ describe('the text follows the voice: the listening microphone and the model', (
     expect(teleprompterReaperInput).toHaveBeenCalledWith('c1');
     expect(saveSettings).not.toHaveBeenCalledWith('Teleprompter', 'global', expect.objectContaining({ input_device: expect.anything() }));
     expect(document.getElementById('blisten-why')).toBeNull();
-    await userEvent.click(screen.getByRole('button', { name: 'Levels' }));
-    const menu = await screen.findByRole('dialog', { name: 'Levels' });
+    await userEvent.click(screen.getByRole('button', { name: 'Record options' }));
+    const menu = await screen.findByRole('dialog', { name: 'Record options' });
     expect(within(menu).getByText('Line In')).toBeTruthy();
     expect(within(menu).getByText('Same as REAPER')).toBeTruthy();
     expect(within(menu).getByText('REAPER records from Line In · Input 2.')).toBeTruthy();
@@ -1514,27 +1540,27 @@ describe('the text follows the voice: the listening microphone and the model', (
     });
     await record(page);
     await waitFor(() => expect(teleprompterStart).toHaveBeenCalledWith(expect.objectContaining({ device: 'USB Mic' })));
-    await userEvent.click(screen.getByRole('button', { name: 'Levels' }));
-    const menu = await screen.findByRole('dialog', { name: 'Levels' });
+    await userEvent.click(screen.getByRole('button', { name: 'Record options' }));
+    const menu = await screen.findByRole('dialog', { name: 'Record options' });
     await userEvent.click(within(menu).getByRole('button', { name: "Use REAPER's input" }));
     expect(saveSettings).toHaveBeenCalledWith('Teleprompter', 'global', { input_source: 'daw' });
     expect(await within(menu).findByText('Same as REAPER')).toBeTruthy();
   });
 
-  it('when the DAW cannot say, the take listens to the first microphone listed with no trip to Settings, and a choice in Levels is the next', async () => {
+  it('when the DAW cannot say, the take listens to the first microphone listed with no trip to Settings, and a choice in Record options is the next', async () => {
     const teleprompterStart = vi.fn(async () => ({ status: 'started' as const }));
     const page = renderPage({
       api: { settingsForScope: noSavedDevice, teleprompterReaperInput: reaperInput(), teleprompterDevices: two, teleprompterStart } as never,
     });
     await ready();
-    await userEvent.click(screen.getByRole('button', { name: 'Levels' }));
-    const menu = await screen.findByRole('dialog', { name: 'Levels' });
-    expect(within(menu).getByText('REAPER did not say which input device it has open. Choose the microphone in Levels.')).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: 'Record options' }));
+    const menu = await screen.findByRole('dialog', { name: 'Record options' });
+    expect(within(menu).getByText('REAPER did not say which input device it has open. Choose the microphone in Record options.')).toBeTruthy();
     expect(within(menu).getByRole('combobox', { name: 'Microphone' })).toHaveProperty('value', 'USB Mic');
     expect(document.getElementById('blisten-why')).toBeNull();
     await userEvent.selectOptions(within(menu).getByRole('combobox', { name: 'Microphone' }), 'Line In');
-    await userEvent.click(screen.getByRole('button', { name: 'Levels' }));
-    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Levels' })).toBeNull());
+    await userEvent.click(screen.getByRole('button', { name: 'Record options' }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Record options' })).toBeNull());
     await record(page);
     await waitFor(() => expect(teleprompterStart).toHaveBeenCalledWith(expect.objectContaining({ device: 'Line In' })));
   });
@@ -1552,8 +1578,8 @@ describe('the text follows the voice: the listening microphone and the model', (
       api: { settingsForScope: noSavedDevice, teleprompterReaperInput: uncertain, teleprompterDevices: two, teleprompterStart, saveSettings } as never,
     });
     await ready();
-    await userEvent.click(screen.getByRole('button', { name: 'Levels' }));
-    const menu = await screen.findByRole('dialog', { name: 'Levels' });
+    await userEvent.click(screen.getByRole('button', { name: 'Record options' }));
+    const menu = await screen.findByRole('dialog', { name: 'Record options' });
     const group = await within(menu).findByRole('group', { name: 'Which microphone REAPER records from' });
     await userEvent.click(within(group).getByRole('button', { name: 'Line In' }));
     expect(saveSettings).toHaveBeenCalledWith('Teleprompter', 'global', { input_device: 'Line In' });
@@ -1561,7 +1587,7 @@ describe('the text follows the voice: the listening microphone and the model', (
     expect(await within(menu).findByText('Same as REAPER')).toBeTruthy();
     const settled = within(menu).getByRole('group', { name: 'Which microphone REAPER records from' });
     expect(within(settled).getByRole('button', { name: 'Line In' }).getAttribute('aria-pressed')).toBe('true');
-    await userEvent.click(screen.getByRole('button', { name: 'Levels' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Record options' }));
     await record(page);
     await waitFor(() => expect(teleprompterStart).toHaveBeenCalledWith(expect.objectContaining({ device: 'Line In' })));
   });
@@ -1587,26 +1613,73 @@ describe('the text follows the voice: the listening microphone and the model', (
       installPath: 'C:/assets/whisper',
     }));
     const page = renderPage({ api: { settingsForScope: savedDevice('USB Mic'), teleprompterStart, assetsInstall } as never });
+    page.daw.recordStop.mockImplementation(async () => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
     await ready();
     await space();
     expect(await screen.findByRole('alertdialog', { name: 'Download local Whisper model?' })).toBeTruthy();
-    expect(page.daw.recordStart).not.toHaveBeenCalled();
+    // Changed 2026-11-01 (#2251): the DAW starts alongside listening, so a model the asset list did not report missing is found once it has;
+    // the recording is stopped at once and nothing of it is kept, so no take runs behind the question.
+    await waitFor(() => expect(page.daw.recordStop).toHaveBeenCalledTimes(1));
+    expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
+    expect(page.passageMapRecordRun).not.toHaveBeenCalled();
+    await waitFor(() => expect(screen.queryByText('REC')).toBeNull());
     expect(assetsInstall).not.toHaveBeenCalled();
   });
 
-  it('a session that fails to start says so in the footer, and no take begins', async () => {
+  // Changed 2026-11-01 (#2251): the DAW is asked to record alongside listening, not after it, so its pre-roll covers the model load; a take whose
+  // text cannot follow is still never kept: the recording is stopped and anything it recorded is taken back.
+  it('a session that fails to start stops the recording it began alongside, takes it back, and says so in the footer', async () => {
+    let fail = (_reason: Error) => {};
+    const teleprompterStart = vi.fn(() => new Promise<never>((_resolve, reject) => (fail = reject)));
+    const page = renderPage({ api: { settingsForScope: savedDevice('USB Mic'), teleprompterStart } as never });
+    page.daw.recordStop.mockImplementation(async () => ({ ok: true, changed: true, message: '', undoSteps: 1 }));
+    await ready();
+    await space();
+    // Listening is still starting and the DAW has already been asked: its pre-roll runs while the model loads.
+    await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(1));
+    expect(teleprompterStart).toHaveBeenCalledTimes(1);
+    await act(async () => fail(new Error('The microphone is in use by another application.')));
+    await waitFor(() =>
+      expect(document.getElementById('blisten-why')?.textContent).toBe('The text cannot follow your voice: The microphone is in use by another application.'),
+    );
+    await waitFor(() => expect(page.daw.recordStop).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(page.daw.undoLast).toHaveBeenCalledWith('record_take', 1));
+    expect(page.passageMapRecordRun).not.toHaveBeenCalled();
+    expect(screen.queryByText(/Take saved/i)).toBeNull();
+    expect(await screen.findByRole('button', { name: /^Record$/ })).toBeTruthy();
+    // The recording that started did not start a second listening session behind the first.
+    expect(teleprompterStart).toHaveBeenCalledTimes(1);
+  });
+
+  it("a session that fails inside the DAW's pre-roll stops the recording and has nothing to take back", async () => {
     const teleprompterStart = vi.fn(async () => {
       throw new Error('The microphone is in use by another application.');
     });
     const page = renderPage({ api: { settingsForScope: savedDevice('USB Mic'), teleprompterStart } as never });
+    page.daw.recordStop.mockImplementation(async () => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
     await ready();
     await space();
-    await waitFor(() =>
-      expect(document.getElementById('blisten-why')?.textContent).toBe('The text cannot follow your voice: The microphone is in use by another application.'),
-    );
-    // The DAW is never asked to record: a take whose text cannot follow the voice is not started.
-    expect(page.daw.recordStart).not.toHaveBeenCalled();
-    expect(screen.getByRole('button', { name: /^Record$/ })).toBeTruthy();
+    await waitFor(() => expect(page.daw.recordStop).toHaveBeenCalledTimes(1));
+    expect(page.daw.undoLast).not.toHaveBeenCalled();
+    expect(page.passageMapRecordRun).not.toHaveBeenCalled();
+    expect(await screen.findByRole('button', { name: /^Record$/ })).toBeTruthy();
+  });
+
+  it('a recording the DAW refuses stops the listening started alongside it', async () => {
+    const teleprompterStart = vi.fn(async () => ({ status: 'started' as const }));
+    const page = renderPage({ api: { settingsForScope: savedDevice('USB Mic'), teleprompterStart } as never });
+    page.daw.recordStart.mockImplementation(async () => ({
+      ok: false,
+      changed: false,
+      message: 'REAPER is playing: stop it first.',
+      refused: 'REAPER is playing: stop it first.',
+      undoSteps: 0,
+    }));
+    await ready();
+    await space();
+    await waitFor(() => expect(teleprompterStart).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(page.teleprompterStop).toHaveBeenCalled());
+    expect(page.daw.recordStop).not.toHaveBeenCalled();
   });
 });
 
@@ -1650,7 +1723,7 @@ describe('a-pedals-space-records-and-stops-with-a-popup-open', () => {
   it.each([
     ['Text settings', () => screen.getByRole('combobox', { name: 'Font' })],
     ['Text settings', () => screen.getByRole('slider', { name: /Size/ })],
-    ['Levels', () => document.activeElement ?? document.body],
+    ['Record options', () => document.activeElement ?? document.body],
   ])('starts a take from the %s popover with focus on a non-text control', async (name, pick) => {
     const page = renderPage();
     await ready();
@@ -1665,7 +1738,7 @@ describe('a-pedals-space-records-and-stops-with-a-popup-open', () => {
   it('stops a running take from the Levels popover', async () => {
     const page = renderPage();
     await record(page);
-    const popover = await openPopover('Levels');
+    const popover = await openPopover('Record options');
     await spaceOn(document.activeElement ?? popover);
     await waitFor(() => expect(page.daw.recordStop).toHaveBeenCalledTimes(1));
   });
@@ -1673,7 +1746,7 @@ describe('a-pedals-space-records-and-stops-with-a-popup-open', () => {
   it('still types a space into a text field inside a popup', async () => {
     const page = renderPage();
     await ready();
-    const popover = await openPopover('Levels');
+    const popover = await openPopover('Record options');
     const field = document.createElement('input');
     field.type = 'text';
     popover.append(field);
@@ -1777,5 +1850,125 @@ describe('a-take-is-undone-in-the-daw', () => {
     await settle();
     expect(await page.journal.entries()).toEqual([]);
     expect(toastNamed(page, 'Take saved')).toBeUndefined();
+  });
+});
+
+// Listening and the recording start together (#2251): what a second press, a Stop or a failed stop does while listening is still starting.
+// From the qa-breaker pass of 2026-11-02 (B1 to B4).
+describe('a-record-press-while-listening-starts', () => {
+  const settingsForScope = async () => ({
+    Teleprompter: [{ key: 'input_device', label: 'Microphone', kind: 'text', value: 'USB Mic', effectiveValue: 'USB Mic', isSet: true }],
+  });
+  // A real double press: the start guard stays on.
+  const rawSpace = () =>
+    act(() => {
+      fireEvent.keyDown(document.body, { key: ' ', code: 'Space' });
+    });
+  const stopped = (undoSteps: number) => async () => ({ ok: true, changed: true, message: '', undoSteps });
+  const toasts = (page: ReturnType<typeof renderPage>) => page.overlay.getSnapshot().toasts.map((t) => t.text);
+  /** A host whose one session the test settles by hand, and that tells the page its phase as the real host does. */
+  const manual = () => {
+    let phase = 'idle';
+    const states = new Set<(next: never) => void>();
+    const publish = (next: string) => {
+      phase = next;
+      states.forEach((listener) =>
+        listener({ phase, message: '', engine: 'whisper', chapter: 'c1', paused: false, coldRead: false, script: null, position: null } as never),
+      );
+    };
+    let pending: { ok: () => void; fail: (e: Error) => void } = { ok: () => {}, fail: () => {} };
+    const start = vi.fn(() => {
+      act(() => publish('starting'));
+      return new Promise<{ status: 'started' }>((resolve, reject) => {
+        pending = {
+          ok: () => {
+            publish('running');
+            resolve({ status: 'started' });
+          },
+          fail: (error) => {
+            publish('stopped');
+            reject(error);
+          },
+        };
+      });
+    });
+    const stop = vi.fn(async () => {
+      if (phase === 'running' || phase === 'starting') act(() => publish('stopped'));
+    });
+    const api = {
+      settingsForScope,
+      teleprompterStart: start,
+      teleprompterStop: stop,
+      teleprompterState: async () => ({ phase, message: '', engine: null, chapter: null, paused: false, coldRead: false, script: null, position: null }),
+      subscribeTeleprompterState: (listener: (next: never) => void) => {
+        states.add(listener);
+        return () => states.delete(listener);
+      },
+    };
+    return { start, stop, api, listen: () => act(async () => pending.ok()), fail: (message: string) => act(async () => pending.fail(new Error(message))) };
+  };
+
+  it('a second press while listening is still starting starts nothing more', async () => {
+    const host = manual();
+    const page = renderPage({ api: host.api as never });
+    await ready();
+    await space();
+    await rawSpace();
+    await settle();
+    await host.listen();
+    await settle();
+    expect(host.start).toHaveBeenCalledTimes(1);
+    expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
+    expect(page.daw.recordStop).not.toHaveBeenCalled();
+  });
+
+  it('Stop while listening starts waits for it; listening up, the take stops and is kept as usual', async () => {
+    const host = manual();
+    const page = renderPage({ api: host.api as never });
+    await ready();
+    await space();
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+    await space();
+    await settle();
+    expect(page.daw.recordStop).not.toHaveBeenCalled();
+    await host.listen();
+    await waitFor(() => expect(page.daw.recordStop).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(host.stop).toHaveBeenCalled());
+    expect(page.daw.undoLast).not.toHaveBeenCalled();
+  });
+
+  it('Stop while listening starts, then listening fails: one stop, the take taken back, nothing saved or mapped', async () => {
+    const host = manual();
+    const page = renderPage({ api: host.api as never });
+    page.daw.recordStop.mockImplementation(stopped(1));
+    await ready();
+    await space();
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+    await space();
+    await host.fail('The microphone is in use by another application.');
+    await waitFor(() => expect(page.daw.undoLast).toHaveBeenCalledWith('record_take', 1));
+    await settle();
+    expect(page.daw.recordStop).toHaveBeenCalledTimes(1);
+    expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
+    expect(page.passageMapRecordRun).not.toHaveBeenCalled();
+    // The mock DAW refuses the undo (it never recorded the take this stop reports); its own sentence says what to do, once.
+    expect(toasts(page).filter((text) => /Take saved|could not be stopped/i.test(text))).toEqual([]);
+    expect(toasts(page).filter((text) => /Undo it in/.test(text))).toEqual([]);
+  });
+
+  it('a stop that fails after a failed listen is said, and the take is not mapped', async () => {
+    const host = manual();
+    const page = renderPage({ api: host.api as never });
+    page.daw.recordStop.mockImplementation(async () => {
+      throw new Error('bridge gone');
+    });
+    await ready();
+    await space();
+    await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(1));
+    await host.fail('no mic');
+    await waitFor(() => expect(toasts(page).some((text) => /could not be stopped/.test(text))).toBe(true));
+    await settle();
+    expect(page.passageMapRecordRun).not.toHaveBeenCalled();
+    expect(toasts(page).some((text) => /Nothing was recorded/.test(text))).toBe(false);
   });
 });

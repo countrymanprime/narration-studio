@@ -94,15 +94,16 @@ function Session({ ids, recording = false, jumps }: { ids: string[]; recording?:
 function mount(h: ReturnType<typeof host>, props: { ids: string[]; recording?: boolean }) {
   const jumps = vi.fn();
   const api = pageApi(h.api as never);
+  const journal = newJournal();
   const tree = (next: { ids: string[]; recording?: boolean }) => (
-    <BoothHost api={api} daw={dawFor('reaper')} journal={newJournal()} overlay={overlay}>
+    <BoothHost api={api} daw={dawFor('reaper')} journal={journal} overlay={overlay}>
       <CommandScope kind="booth">
         <Session {...next} jumps={jumps} />
       </CommandScope>
     </BoothHost>
   );
   const view = render(tree(props));
-  return { jumps, rerender: (next: { ids: string[]; recording?: boolean }) => view.rerender(tree(next)), unmount: view.unmount };
+  return { jumps, journal, rerender: (next: { ids: string[]; recording?: boolean }) => view.rerender(tree(next)), unmount: view.unmount };
 }
 
 const toasts = () => overlay.getSnapshot().toasts.map((toast) => toast.text);
@@ -163,6 +164,22 @@ describe('a pickup session in the Booth', () => {
     expect(model.at).toBe('c');
     expect(jumps).toHaveBeenCalledTimes(1);
     expect(toasts()).toContain('Stop recording first.');
+  });
+
+  it('the marks a take makes are one journal entry, and Ctrl+Z opens the lines again', async () => {
+    const h = host(LIST());
+    const { journal } = mount(h, { ids: ['a', 'b', 'c'] });
+    await screen.findByText('Pickups · 3 open');
+    await act(async () => {
+      await stop({ began: 0, stopped: 2 });
+    });
+    const [row] = await journal.entries();
+    expect(row).toMatchObject({ label: '2 pickups marked recorded', touches: ['pickups'], undoable: true });
+    await act(async () => {
+      await journal.undoLast();
+    });
+    expect(h.api.pickupsSetDone).toHaveBeenLastCalledWith('b', false);
+    expect(await screen.findByText('Pickups · 3 open')).toBeTruthy();
   });
 
   it('a-take-that-ran-over-a-line-marks-it-recorded-and-the-toast-can-undo', async () => {
@@ -280,6 +297,22 @@ describe('a pickup session in the Booth', () => {
     cleanup();
     h.inDaw('a', false);
     mount(h, { ids: ['a', 'b'] });
+    expect(await screen.findByText('Pickups · 2 open')).toBeTruthy();
+    expect(h.api.pickupsList).toHaveBeenCalledTimes(2);
+  });
+
+  // Issue #2919: reading the list changes nothing, so the failed read's toast carries Retry, which reads it again.
+  it('a failed read of the pickup list is an error toast with Retry, which reads the list again', async () => {
+    const h = host(LIST());
+    const real = h.api.pickupsList.getMockImplementation()!;
+    h.api.pickupsList.mockRejectedValueOnce(new Error('the pickups file is locked'));
+    const toast = vi.spyOn(overlay, 'toast');
+    mount(h, { ids: ['a', 'b'] });
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.stringContaining('locked'), expect.objectContaining({ tone: 'error' })));
+    const options = toast.mock.calls.find((call) => String(call[0]).includes('locked'))![1] as { action: { label: string; onAction: () => void } };
+    expect(options.action.label).toBe('Retry');
+    h.api.pickupsList.mockImplementation(real);
+    act(() => options.action.onAction());
     expect(await screen.findByText('Pickups · 2 open')).toBeTruthy();
     expect(h.api.pickupsList).toHaveBeenCalledTimes(2);
   });

@@ -6,6 +6,14 @@ import { type Driver, openCheckingLink, clickNav, goToPage, openWithoutManuscrip
 /** Chapter 1 linked to its track, so its words carry their heard times. */
 const LINKED = '?mockChapterLink=confirmed';
 
+// Opens the header's DAW tools menu once the page has read the project: the menu says it is reading until then.
+async function openDawTools(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'DAW tools' }).click();
+  const menu = page.getByRole('menu');
+  await menu.waitFor();
+  await expect(menu.getByText('Reading the REAPER project…')).toHaveCount(0);
+}
+
 export const editingDrivers: Record<string, Driver> = {
   'address-checking': async (page) => {
     await openCheckingLink(page, '/editing/gone');
@@ -218,6 +226,47 @@ export const editingDrivers: Record<string, Driver> = {
   'replace-dialog': async (page) => {
     await openReplace(page);
   },
+  'replace-dialog-removable': async (page) => {
+    const dialog = await openReplace(page);
+    await addNarrator(dialog, 'Jon Doe');
+    await dialog.getByRole('button', { name: 'Remove Jon Doe' }).waitFor();
+    await dialog.getByRole('button', { name: 'Cancel' }).focus();
+  },
+  'replace-dialog-removed': async (page) => {
+    const dialog = await openReplace(page);
+    await addNarrator(dialog, 'Jon Doe');
+    await dialog.getByRole('button', { name: 'Remove Jon Doe' }).click();
+    await dialog.getByRole('button', { name: /^Remove / }).waitFor({ state: 'detached' });
+    await dialog.getByRole('combobox', { name: 'Other narrator' }).and(page.locator(':focus')).waitFor();
+  },
+  'replace-dialog-long-name': async (page) => {
+    const dialog = await openReplace(page);
+    const name = 'Maximiliana Theodora Wilhelmina Bartholomew-Featherstonehaugh de la Montgomery-A';
+    await addNarrator(dialog, name);
+    const remove = dialog.getByRole('button', { name: `Remove ${name}` });
+    await remove.waitFor();
+    // The button is inside the dialog, nothing covers it, and no control of its section sticks out (qa B3: the list once pushed it out).
+    const placed = await remove.evaluate((button) => {
+      const box = button.getBoundingClientRect();
+      const frame = button.closest('[role="dialog"]')?.getBoundingClientRect();
+      const top = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+      // The first control of the Whose audio section that sticks out of it, or null. (The dialog's body is measured by its box, not its scroll
+      // width: the sticky footer bleeds into the body's scrollbar gutter by design, at every width.)
+      const section = button.closest('section')?.getBoundingClientRect();
+      const out = [...(button.closest('section')?.querySelectorAll('select, button, input') ?? [])].find((el) => {
+        const r = el.getBoundingClientRect();
+        return !section || r.left < section.left - 1 || r.right > section.right + 1;
+      });
+      const wide = out ? `${out.tagName} ${out.getAttribute('aria-label') ?? out.textContent ?? ''}` : null;
+      return {
+        inside: !!frame && box.left >= frame.left && box.right <= frame.right && box.top >= frame.top && box.bottom <= frame.bottom,
+        topmost: !!top && button.contains(top),
+        wide,
+      };
+    });
+    expect(placed).toEqual({ inside: true, topmost: true, wide: null });
+    await dialog.getByRole('button', { name: 'Cancel' }).focus();
+  },
   'replace-mark-open': async (page) => {
     const dialog = await openReplace(page);
     await dialog.getByRole('button', { name: /^Replace \d+ words$/ }).click();
@@ -243,6 +292,16 @@ export const editingDrivers: Record<string, Driver> = {
   'drawer-cleanup': async (page) => {
     await openDrawer(page);
     await page.getByRole('region', { name: 'Clean up findings' }).waitFor();
+  },
+  // The Clicks list with Repair in REAPER beside Apply, its menu open (#2821).
+  'drawer-cleanup-repair': async (page) => {
+    await openDrawer(page);
+    await page.getByRole('region', { name: 'Clean up findings' }).waitFor();
+    await page.getByRole('button', { name: /^Clicks/ }).click();
+    await page.getByRole('button', { name: 'Repair in REAPER' }).click();
+    const menu = page.getByRole('menu');
+    await menu.waitFor();
+    await expect(menu.getByText('Reading the REAPER project…')).toHaveCount(0);
   },
   'drawer-effects': async (page) => {
     await openDrawer(page);
@@ -328,6 +387,16 @@ export const editingDrivers: Record<string, Driver> = {
     await page.getByRole('button', { name: /Not linked to a track/ }).waitFor();
   },
   // The DAW is not answering: the dialog opens once the app has had its time to connect on its own.
+  // The DAW tools menu in the header (#2820), opened: the structure entries, live for a chapter that is linked.
+  'daw-tools-menu': async (page) => {
+    await openEditing(page, LINKED);
+    await openDawTools(page);
+  },
+  // The same menu for an Audacity project: both entries stay, off, each with what Audacity cannot do.
+  'daw-tools-menu-audacity': async (page) => {
+    await openEditing(page, `${LINKED}&mockDaw=Audacity&mockAudacityLink=linked`);
+    await openDawTools(page);
+  },
   'daw-off': async (page) => {
     await openEditing(page, `${LINKED}&mockDaw=Audacity`);
     await page.getByRole('dialog', { name: /is not connected/ }).waitFor({ timeout: 20_000 });
@@ -414,6 +483,13 @@ async function openReplace(page: Page): Promise<Locator> {
   await dialog.getByText(/target -?\d+ LUFS|could not be measured/).waitFor();
   await dialog.getByRole('button', { name: 'Cancel' }).focus();
   return dialog;
+}
+
+/** Names another narrator in the open Replace dialog; the host chooses them in the list. */
+async function addNarrator(dialog: Locator, name: string): Promise<void> {
+  await dialog.getByRole('textbox', { name: 'Name another narrator' }).fill(name);
+  await dialog.getByRole('button', { name: 'Add', exact: true }).click();
+  await dialog.getByRole('combobox', { name: 'Other narrator' }).getByRole('option', { name, selected: true }).waitFor({ state: 'attached' });
 }
 
 /** The dot after the last word of the range just saved. */

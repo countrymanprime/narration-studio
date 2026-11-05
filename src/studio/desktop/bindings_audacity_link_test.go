@@ -62,6 +62,9 @@ func newAudacityLinkFixture(t *testing.T) *audacityLinkFixture {
 		return nil
 	}
 	host.mu.Unlock()
+	// attachProjectLocked started the backup prune through goBackground; it reads host fields (platform among them) that the tests
+	// reassign, so let it finish before the test body runs.
+	host.waitForBackground()
 	return f
 }
 

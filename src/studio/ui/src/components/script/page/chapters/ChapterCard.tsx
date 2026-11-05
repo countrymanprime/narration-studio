@@ -77,7 +77,12 @@ export function ChapterCard({
         className="@container/card flex flex-col gap-2 font-['IBM_Plex_Sans',ui-sans-serif,sans-serif]"
       >
         <div className="flex items-start justify-between gap-2">
-          <h2 className="m-0 font-['Barlow_Condensed',sans-serif] text-[1.5rem]">
+          <h2
+            tabIndex={-1}
+            // A title of only spaces draws nothing, but a jump still focuses this heading, so it keeps a name.
+            aria-label={headingName(chapter).trim() ? undefined : 'Untitled chapter'}
+            className="m-0 min-w-0 font-['Barlow_Condensed',sans-serif] text-[1.5rem] [overflow-wrap:anywhere] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)]"
+          >
             <TitleSubtitle layout="stacked" {...parts} />
           </h2>
           {onRecord && <IconButton action="recordInBooth" onClick={() => onRecord(chapter.id)} />}

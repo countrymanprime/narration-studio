@@ -5,7 +5,7 @@ import type { OverlayService } from '../../../../overlay/overlayService';
 import type { Journal, Result } from '../../../../studio/journal/createJournal';
 import { announcePickupListChanged } from '../../../pickups/pickupListChanged';
 import { fixKindOf } from '../../../proof/resolution';
-import { decideLinked, restoreLinked, type LinkedChange } from '../../flags/decideLinked';
+import { decideLinked, restoreLinked, type LinkedChange } from '../../../../studio/commands/reviewFinding';
 import { findingsAt } from '../../flags/findingLink';
 import type { ChapterDoc } from '../../model';
 import { scriptSpanOf } from './scriptSpan';

@@ -20,3 +20,12 @@ func TestResolvePrefersTheProjectsOwnNarratorOverride(t *testing.T) {
 		t.Fatalf("Narrator = %q, want the project override to win", resolved["Narrator"])
 	}
 }
+
+func TestIsSetIsTrueOnlyWhenSomeValueHasText(t *testing.T) {
+	if (Values{}).IsSet() || (Values{Title: "  ", Narrator: "\t"}).IsSet() {
+		t.Fatal("empty or blank values are not set")
+	}
+	if !(Values{Publisher: "Acme"}).IsSet() || !(Values{Narrator: "Me"}).IsSet() {
+		t.Fatal("a value with text is set")
+	}
+}

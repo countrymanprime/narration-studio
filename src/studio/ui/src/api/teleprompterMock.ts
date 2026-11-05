@@ -53,11 +53,6 @@ const SECONDS_PER_WORD = 60 / MOCK_READING_WORDS_PER_MINUTE;
 const MIN_REPLAY_SECONDS = 8;
 const HEARD_WORDS = 6;
 const SEED_WORDS_INTO_TEXT = 30;
-// Punch and roll: a plausible reading pace and the repo default
-// pre-roll (src/studio/desktop/settings_number.go), so "Punch from here" resolves a deterministic time and cursor without a
-// real anchors file.
-const MOCK_PUNCH_SECONDS_PER_WORD = 0.4;
-const MOCK_PUNCH_PREROLL = 3;
 // Where the mock's tail-audio locate says a recorded chapter stopped (a fraction of its words), how many words before
 // that it "heard", and how much it "transcribed" (the host's teleprompter.DefaultTailSeconds).
 const MOCK_RESUME_FRACTION = 0.6;
@@ -105,21 +100,21 @@ function mockReaperInput(seed: MockReaperInputSeed, devices: string[]): Teleprom
         status: 'no_match',
         reaperDevice: 'ASIO4ALL v2',
         candidates: [],
-        message: 'REAPER records from "ASIO4ALL v2", which does not match a microphone here. Choose the microphone in Levels.',
+        message: 'REAPER records from "ASIO4ALL v2", which does not match a microphone here. Choose the microphone in Record options.',
       };
     case 'reaper_no_device':
       return {
         status: 'unavailable',
         reason: 'reaper_no_device',
         candidates: [],
-        message: 'REAPER did not say which input device it has open. Choose the microphone in Levels.',
+        message: 'REAPER did not say which input device it has open. Choose the microphone in Record options.',
       };
     case 'daw_cannot_report':
       return {
         status: 'unavailable',
         reason: 'daw_cannot_report',
         candidates: [],
-        message: 'Audacity cannot report which microphone it records from, so the Booth listens to the one chosen in Levels.',
+        message: 'Audacity cannot report which microphone it records from, so the Booth listens to the one chosen in Record options.',
       };
   }
 }
@@ -207,29 +202,18 @@ function mockReaperState(seed: MockReaperSeed, title: string): ReadAloudReaperSt
   }
 }
 
-// `?mockReaper=` doubles as ReadAloudArmOnly/ReadAloudRecordStart/ReadAloudRecordStop's mock, so a story or test that sets up a chapter as `not_armed` sees
+// `?mockReaper=` doubles as ReadAloudRecordStart/ReadAloudRecordStop's mock, so a story or test that sets up a chapter as `not_armed` sees
 // arming and starting agree with the read-only state `readAloudReaperState` answers for the same chapter.
-function mockReadAloudRecording(seed: MockReaperSeed, kind: 'arm' | 'start' | 'stop', title: string): ReadAloudRecording {
+function mockReadAloudRecording(seed: MockReaperSeed, kind: 'start' | 'stop', title: string): ReadAloudRecording {
   if (seed === 'unavailable')
     return {
       outcome: 'refused',
       reason: 'standalone',
       message: 'REAPER is not connected to this app. To record with reading, open REAPER; the app connects to it by itself.',
     };
-  // ReadAloudRecordStop takes no chapter id (it stops whatever this app is recording), so no_link only refuses arm and start.
+  // ReadAloudRecordStop takes no chapter id (it stops whatever this app is recording), so no_link only refuses a start.
   if (kind !== 'stop' && seed === 'no_link')
     return { outcome: 'refused', reason: 'unlinked', message: `"${title}" has no linked track. Link it to its REAPER track in the audio engine panel.` };
-  // arm_only refuses only while REAPER is recording (narration_transport.lua); an arm count that is not the chapter's alone is
-  // exactly what arming fixes, so every other seed succeeds.
-  if (kind === 'arm') {
-    if (seed === 'recording_elsewhere') return { outcome: 'refused', reason: 'already_recording', message: 'REAPER is already recording.' };
-    return {
-      outcome: 'armed',
-      trackGuid: MOCK_REAPER_TRACK,
-      disarmed: seed === 'several_armed' ? 3 : seed === 'other_armed' ? 1 : 0,
-      changed: seed !== 'ready',
-    };
-  }
   // REAPER leaves one "Recorded media" point per stop (docs/research/reaper-recording-undo-2026-10-23.md).
   if (kind === 'stop') return { outcome: 'stopped', restored: 0, kept: 0, undoPoints: 1 };
   switch (seed) {
@@ -697,18 +681,6 @@ export function createTeleprompterMock(deps: Deps): TeleprompterApi {
       if (state.phase !== 'running') throw new Error('no teleprompter session is running');
       emit({ type: 'position', read: word, committed: word, status: 'listening', jump: 'restart', skipped: null });
     },
-    // Punch and roll's preview: a deterministic time and pre-roll from `word` (no real anchors file in the mock), never
-    // moving anything.
-    teleprompterPunchPreview: async (word) => ({
-      outcome: 'resolved',
-      resolvedTime: Math.round(word * MOCK_PUNCH_SECONDS_PER_WORD * 100) / 100,
-      source: 'anchor',
-      preRoll: MOCK_PUNCH_PREROLL,
-    }),
-    teleprompterPunch: async (word) => {
-      const resolvedTime = Math.round(word * MOCK_PUNCH_SECONDS_PER_WORD * 100) / 100;
-      return { outcome: 'punched', cursor: Math.max(0, resolvedTime - MOCK_PUNCH_PREROLL), resolvedTime, source: 'anchor', preRoll: MOCK_PUNCH_PREROLL };
-    },
     teleprompterSaveFlags: createFlagStore(deps),
     teleprompterState: async () => {
       // Concurrent first callers (React StrictMode mounts twice) must share one seeding.
@@ -742,12 +714,6 @@ export function createTeleprompterMock(deps: Deps): TeleprompterApi {
       if (!target) throw new Error('that chapter is not part of the current manuscript');
       if (deps.dawRecording?.()) return mockReaperState('recording_elsewhere', target.title);
       return mockReaperState(seedFor(chapterId), target.title);
-    },
-    readAloudArmOnly: async (chapterId) => {
-      await deps.ready;
-      const target = recordTarget(chapterId);
-      if (!target) throw new Error('that chapter is not part of the current manuscript');
-      return mockReadAloudRecording(seedFor(chapterId), 'arm', target.title);
     },
     readAloudRecordStart: async (chapterId) => {
       await deps.ready;

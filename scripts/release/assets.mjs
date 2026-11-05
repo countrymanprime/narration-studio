@@ -39,8 +39,9 @@ function requireInBin(binDir, name) {
   if (!existsSync(join(binDir, name))) throw new Error(`Expected ${name} in ${binDir}; did the Wails build run?`);
 }
 
-// The notices are written after the Wails build (they read the frozen sidecars and the build's Go modules), into the same folder.
-function requireNotices(binDir, name = NOTICES_FILE) {
+// The notices are written before the Wails build (they read the frozen sidecars and the build's Go modules, not the compiled program),
+// into the same folder, so the setup program can install a copy beside the program.
+export function requireNotices(binDir, name = NOTICES_FILE) {
   if (!existsSync(join(binDir, name))) {
     throw new Error(`Expected ${name} in ${binDir}. Write it with scripts/licenses/notices.py --out ${join(binDir, name)} after the build and before packaging.`);
   }

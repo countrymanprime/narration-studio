@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import type { Marks } from '../../../api/contracts/marks';
+import { FLAT_VOICE_KEYS, useBoothVoices } from '../voices/useBoothVoices';
+import { VoiceControl } from '../voices/VoiceControl';
+import { WhoIsInDialog, type WhoAsk } from '../voices/WhoIsInDialog';
+import { castOf } from '../voices/whoIsIn';
 import type { PickupItem } from '../../../api/contracts/pickups';
-import type { GuideEntity } from '../../../api/contracts/storyBible';
-import type { GuideType } from '../../../types';
 import { useSearchParams } from 'react-router-dom';
 import { headingName } from '../../../chapterHeading';
 import { chapterName } from '../../../chapterName';
@@ -20,10 +21,10 @@ import { usePort } from '../../../ports/usePort';
 import { recordsInApp } from '../../../studio/dawNames';
 import { dawShortName, useJournal } from '../../../studio/StudioProvider';
 import { ContextMenuHost } from '../../layout/ContextMenuHost';
+import type { ToastAction } from '../../primitives/Toast';
 import type { ContextMenuItem } from '../../primitives/ContextMenu';
 import { ChapterStepper } from '../../primitives/ChapterStepper';
 import { NeedManuscript } from '../../layout/NeedManuscript';
-import { entryColour, speakerColour } from '../../../kinds/entityColour';
 import { BookmarkRibbons } from '../bookmarks/BookmarkRibbons';
 import { useBoothBookmarks } from '../bookmarks/useBoothBookmarks';
 import { PageBreaks } from '../pages/PageBreaks';
@@ -53,11 +54,11 @@ import { ResumeOfferLine } from '../resume/ResumeOffer';
 import { offerAwayFrom, saveNote } from '../resume/resumeOfferModel';
 import { useSuspectedPickups } from '../suspected/useSuspectedPickups';
 import { BoothSidePanel, useBoothSideOpen } from '../side/BoothSidePanel';
-import { boothDecorations, markAtWord, markNote } from '../side/decorations';
-import { comingUpWords, voicesInChapter } from '../side/nearby';
-import type { BoothReference } from '../side/sections';
+import { boothDecorations, markAtWord } from '../side/decorations';
+import { comingUpWords, linesInChapter } from '../side/nearby';
 import { useBoothMarks } from '../side/useBoothMarks';
-import { useBoothReference, type ReferenceTarget } from '../side/useBoothReference';
+import { referenceOf } from '../side/referenceOf';
+import { useBoothReference } from '../side/useBoothReference';
 import { useTeleprompterSession } from '../useTeleprompterSession';
 import { boothQuery, readBoothQuery, readPickupIds, type BoothStart, type BoothChapterTarget } from './boothQuery';
 import { LoadError } from '../../layout/LoadError';
@@ -65,19 +66,20 @@ import { BoothSkeleton } from './BoothSkeleton';
 import { BoothUnavailable } from './BoothUnavailable';
 import { BoothGutter, BoothMessage } from './BoothMessage';
 import { CreditsWarning } from './CreditsWarning';
-import { bodyParagraphIndex, creditsParagraphs, entityAtWord, headingParagraphs, positionAtOffset, readingParagraphsOf, secondsBefore } from './readingSource';
+import { bodyParagraphIndex, creditsParagraphs, entityAtWord, headingParagraphs, readingParagraphsOf } from './readingSource';
+import { useMoveTarget } from './useMoveTarget';
 import { useFollowDawOnOpen, useMoveDawOnOpen } from './useDawFollow';
-import { unitAtPosition } from '../reading/readingPosition';
 import { useBoothData, type BoothSource } from './useBoothData';
 import { useBoothPage } from './useBoothPage';
 import type { StoppedTake } from '../pickups/usePickupSession';
-import { loadChapterPlace, loadLastPlace, saveLastPlace, type LastPlace } from './lastPlace';
-import { resumeStart } from '../resume/resumeStart';
+import { loadLastPlace, type LastPlace } from './lastPlace';
+import { useBoothSpeakers } from './useBoothSpeakers';
+import { useChapterNavigation } from './useChapterNavigation';
+import { useChapterResume } from './useChapterResume';
 import { RecordedThroughChip } from '../resume/RecordedThroughChip';
 import { chapterRecordedDetail, recordedThroughLabel } from '../../../recordedThrough';
 import { useBoothFind } from './useBoothFind';
 import { useBoothPageCommands } from './useBoothPageCommands';
-import { canSpeak } from '../../../storyBibleTypes';
 import { cueSpeakerEntries } from '../../manuscript/dialogueCues.selectors';
 
 /** Where the Booth's links go. The page is mounted at `/booth` (SN-O10); every one of them passes the leave guard. */
@@ -111,8 +113,6 @@ type Props = {
  * follows the voice, the side panel's sections, and the footer with Record, the timer, the levels and the key hints. What it reads is in
  * the address (`?chapter=`, which also names the credits chapters, `&para=&at=` for Record from here, and `&pickups=` for a pickup session opened from Pickups).
  */
-/** How long a chapter asked for counts as the place the next step starts from, if it never arrives. */
-const PENDING_STEP_MS = 2000;
 
 /** The topic of the message that says the chapter is linked (or its track was added): gone once a take starts. */
 const LINKED_TOPIC = 'booth-linked';
@@ -321,6 +321,7 @@ function BoothSession({
     recordBlocked?: (block: RecordBlock) => void;
   }>({});
   const page = useBoothPage({
+    projectFolder,
     recordId,
     title,
     credits: source.kind === 'credits',
@@ -399,43 +400,23 @@ function BoothSession({
   // Ctrl+F opens the jump menu; its search finds the text in this chapter and brings the match into view (during a take, without moving the reading).
   const find = useBoothFind({ chapterId: recordId, paragraphs, recording: control.recording, seek, view: page.view });
 
-  // Where the chapter opens (resume/resumeStart.ts, #2251): a target the narrator came with is placed by its own code (the address's `from`,
-  // the pickup session's line); otherwise the word after the last one recorded, else where they left this chapter, else its top. The place
-  // is kept as the reading moves only once the chapter is placed (a save before then would overwrite it with the top).
   const recordedThrough = chapter ? data.recorded[chapter.id] : undefined;
-  const explicitStart = !!from || pickupIds.length > 0;
-  const { setOpened } = page;
-  const [back, setBack] = useState(false);
-  useEffect(() => {
-    if (back) return;
-    // The chapter the narrator left is on its way (the address is being changed to it): the fallback chapter on screen until then keeps nothing.
-    if (returnTo && returnTo.chapterId !== chapter?.id) return;
-    if (!chapter) return setBack(true);
-    if (units.length === 0) return;
-    const kept = returnTo?.paragraphId ? returnTo : projectFolder ? loadChapterPlace(projectFolder, chapter.id) : null;
-    const start = resumeStart({ paragraphs, explicit: explicitStart, recorded: recordedThrough, kept });
-    if (start.place) {
-      seek(start.place.paragraphId, start.place.word);
-      setOpened({ ...start.place, why: start.reason === 'recorded' ? 'recording' : 'left' });
-    }
-    setBack(true);
-    onReturned();
-  }, [back, returnTo, chapter, units.length, paragraphs, projectFolder, explicitStart, recordedThrough, seek, setOpened, onReturned]);
-  // A take just ended (its listening session stopped): how far each chapter is recorded is read again, so a chapter the narrator comes
-  // back to opens where this take ended.
-  const { refreshRecorded } = data;
-  const wasListening = useRef(false);
-  useEffect(() => {
-    if (wasListening.current && !session.active) refreshRecorded();
-    wasListening.current = session.active;
-  }, [session.active, refreshRecorded]);
+  useChapterResume({
+    chapter,
+    paragraphs,
+    unitCount: units.length,
+    projectFolder,
+    returnTo,
+    explicit: !!from || pickupIds.length > 0,
+    recordedThrough,
+    position: page.position,
+    listening: session.active,
+    refreshRecorded: data.refreshRecorded,
+    seek,
+    setOpened: page.setOpened,
+    onReturned,
+  });
   const recordedLabel = recordedThroughLabel(recordedThrough, paragraphs);
-  const placeParagraph = page.position?.paragraphId;
-  const placeWord = page.position?.word;
-  useEffect(() => {
-    if (!projectFolder || !chapter || !back || placeParagraph === undefined || placeWord === undefined) return;
-    saveLastPlace(projectFolder, { chapterId: chapter.id, paragraphId: placeParagraph, word: placeWord });
-  }, [projectFolder, chapter, back, placeParagraph, placeWord]);
 
   const side = useBoothSideOpen();
   const marks = useBoothMarks((message) => overlay.toast(message, { tone: 'error' }));
@@ -453,13 +434,7 @@ function BoothSession({
   const reference = useMemo(() => referenceOf(referenced.target, entities, marks, types), [referenced.target, entities, marks, types]);
 
   // Opened at a chapter, the DAW goes there too: to the end of its track, or to the line the Booth opened at, so the narrator can punch from it.
-  const moveTarget = useMemo(() => {
-    if (units.length === 0) return null;
-    // The credits have no line to start from: the DAW goes to the end of their track.
-    const position = chapter && from ? positionAtOffset(paragraphs, from.paragraphId, from.offset) : null;
-    const unit = position && unitAtPosition(paragraphs, units, position);
-    return unit ? ({ where: 'at', seconds: secondsBefore(units, unit.cur) } as const) : ({ where: 'end' } as const);
-  }, [chapter, from, paragraphs, units]);
+  const moveTarget = useMoveTarget({ chapterId, paragraphs, units, line: chapter && from ? from : undefined });
   useMoveDawOnOpen({
     enabled: moveDaw,
     chapterId,
@@ -468,55 +443,14 @@ function BoothSession({
     say: (sentence) => overlay.toast(sentence, { tone: 'error', topic: 'daw-follow' }),
   });
 
-  // A chapter asked for in the address while a take runs: leaving this one is asked about like any other way out; staying puts the
-  // address back. The picker is disabled during a take, so this is a link from elsewhere (a Script card, a bookmark, a pickup).
-  const current: BoothChapterTarget = { chapter: chapterId };
-  const requestedQuery = requested ? boothQuery(requested) : null;
-  const followed = useRef({ requested, current, recording: control.recording, leave: page.leave, adopt, choose });
-  followed.current = { requested, current, recording: control.recording, leave: page.leave, adopt, choose };
-  useEffect(() => {
-    const now = followed.current;
-    if (!now.requested || requestedQuery === null) return;
-    const target = now.requested;
-    if (sameSource(target, now.current)) {
-      if (target.from) now.adopt(target);
-      return;
-    }
-    if (!now.recording) {
-      now.adopt(target);
-      return;
-    }
-    let moved = false;
-    void now
-      .leave(`/booth${requestedQuery}`, () => {
-        moved = true;
-        now.adopt(target);
-      })
-      .then(() => {
-        if (!moved) now.choose(now.current);
-      });
-  }, [requestedQuery]);
-  // The chapter last asked for and not shown yet: a second press of Next lands one past it, so presses made while a chapter loads are
-  // queued in order instead of every one stepping from the chapter still on screen and all but the first being lost.
-  const asked = useRef<{ id: string; at: number } | null>(null);
-  const changeChapter = (target: BoothChapterTarget) => {
-    // Back onto the chapter on screen while another is still loading is a request too: the address has to go back to it.
-    if (sameSource(target, current) && !asked.current) return;
-    if (control.recording) {
-      overlay.toast('Stop recording first.');
-      return;
-    }
-    asked.current = { id: target.chapter, at: Date.now() };
-    choose(target);
-  };
-
-  const inThisChapter = useMemo(() => voicesInChapter(paragraphs, units, entities, types), [paragraphs, units, entities, types]);
-  const characters = useMemo(() => entities.filter((entity) => canSpeak(types, entity.category)), [entities, types]);
-  // The speakers who speak in this chapter, for the picker's first group.
-  const inChapter = useMemo(
-    () => new Set(units.filter((unit) => unit.quoted && unit.speaker !== '' && unit.speaker !== UNKNOWN_SPEAKER).map((unit) => unit.speaker)),
-    [units],
-  );
+  const { inThisChapter, characters, inChapter, colourOf, setSpeaker } = useBoothSpeakers({
+    paragraphs,
+    units,
+    entities,
+    types,
+    correctCue: data.correctCue,
+    toast: (text) => overlay.toast(text, { tone: 'error' }),
+  });
   // The project's voice samples, the guards (a take records, or the DAW cannot be heard) and the pause of a listening session while a sample plays.
   const samples = useBoothSamples({
     characters,
@@ -539,18 +473,70 @@ function BoothSession({
     if (unit.quoted && unit.speaker === UNKNOWN_SPEAKER) return overlay.toast('Choose who speaks this line first: press its speaker chip.');
     samples.toggleSpeaker(unit.quoted ? unit.speaker : NARRATION_SPEAKER);
   });
-  const colourOf = useMemo(() => {
-    const byName = new Map(characters.map((entity) => [entity.canonical_name, entity]));
-    return (speaker: string) => {
-      const entity = byName.get(speaker);
-      return entity ? (speakerColour(types, { category: entity.category, speakerColor: entity.speaker_color }) ?? undefined) : undefined;
-    };
-  }, [characters, types]);
-  const setSpeaker = (cueId: string, speaker: string) => {
-    const entity = characters.find((item) => item.canonical_name === speaker);
-    if (!entity) return;
-    data.correctCue(cueId, entity.id).catch((reason) => overlay.toast(reason instanceof Error ? reason.message : String(reason), { tone: 'error' }));
-  };
+
+  // The chapter's voices in a Voice folders project (docs/prds/booth-voice-tracks.prd.md): Num 0 to Num 9 choose one, Num + and Num −
+  // step through them, Num . opens the list; during a take the choice switches the recording live.
+  const voiceToast = useCallback(
+    (text: string, tone?: 'error' | 'info', action?: ToastAction) => overlay.toast(text, tone === 'error' ? { tone, action } : undefined),
+    [overlay],
+  );
+  // "Who is in Num N?" (phase 5, #2839): a key with no track behind it asks, after stopping a take this app runs as Stop does.
+  const [whoAsk, setWhoAsk] = useState<WhoAsk | null>(null);
+  const voices = useBoothVoices({
+    chapterId: recordId,
+    recording: control.recording,
+    notify: voiceToast,
+    stopTake: page.stopTake,
+    onNoTrack: (key) => setWhoAsk({ kind: 'key', key }),
+    asking: whoAsk !== null,
+  });
+  const [voiceListOpen, setVoiceListOpen] = useState(false);
+  const lines = useMemo(() => linesInChapter(units, entities), [units, entities]);
+  const cast = useMemo(
+    () =>
+      castOf({
+        inThisChapter: inThisChapter.map((voice) => ({ id: voice.id, name: voice.name })),
+        characters: characters.map((entity) => ({ id: entity.id, name: entity.canonical_name })),
+        lines,
+        voices: voices.voices,
+      }),
+    [inThisChapter, characters, lines, voices.voices],
+  );
+  // Another chapter is another folder: a question about this one's voices goes.
+  useEffect(() => setWhoAsk(null), [recordId]);
+  const askFor = useCallback(
+    (characterId: string, choice?: 'new' | 'existing') => {
+      const character = [...cast.inChapter, ...cast.elsewhere].find((each) => each.id === characterId);
+      if (character) setWhoAsk({ kind: 'character', character, choice });
+    },
+    [cast],
+  );
+  const voiceKeys =
+    voices.voices.length > 0
+      ? {
+          keyOf: (id: string) => cast.inChapter.find((character) => character.id === id)?.key,
+          speaks: (id: string) => (lines.get(id) ?? 0) > 0,
+          add: (id: string) => askFor(id, 'new'),
+          addWhy: control.recording ? 'Not while recording. Stop the take first.' : undefined,
+        }
+      : undefined;
+  useCommand('booth.voice.0', () => voices.byKey(0));
+  useCommand('booth.voice.1', () => voices.byKey(1));
+  useCommand('booth.voice.2', () => voices.byKey(2));
+  useCommand('booth.voice.3', () => voices.byKey(3));
+  useCommand('booth.voice.4', () => voices.byKey(4));
+  useCommand('booth.voice.5', () => voices.byKey(5));
+  useCommand('booth.voice.6', () => voices.byKey(6));
+  useCommand('booth.voice.7', () => voices.byKey(7));
+  useCommand('booth.voice.8', () => voices.byKey(8));
+  useCommand('booth.voice.9', () => voices.byKey(9));
+  useCommand('booth.voice.next', () => voices.step(1));
+  useCommand('booth.voice.prev', () => voices.step(-1));
+  useCommand('booth.voice.list', () => {
+    if (voices.voices.length === 0) return voiceToast(FLAT_VOICE_KEYS, 'info');
+    voices.reload();
+    setVoiceListOpen(true);
+  });
 
   // The chapter list is the picker, the credits included (opening first, closing last, as the host lists them).
   const pickerChapters = (data.chapters ?? []).map((item) => {
@@ -558,12 +544,16 @@ function BoothSession({
     return { id: item.id, name: headingName(item), ...(detail ? { detail } : {}) };
   });
   const pickerValue = chapterId;
-  if (asked.current && (asked.current.id === pickerValue || Date.now() - asked.current.at > PENDING_STEP_MS)) asked.current = null;
-  const step = (direction: -1 | 1) => {
-    const from = asked.current?.id ?? pickerValue;
-    const next = pickerChapters[pickerChapters.findIndex((item) => item.id === from) + direction];
-    if (next) changeChapter({ chapter: next.id });
-  };
+  const { changeChapter, step } = useChapterNavigation({
+    requested,
+    chapterId,
+    recording: control.recording,
+    leave: page.leave,
+    adopt,
+    choose,
+    chapters: pickerChapters,
+    toast: (text) => overlay.toast(text),
+  });
 
   useBoothPageCommands({
     chapters: pickerChapters,
@@ -626,7 +616,10 @@ function BoothSession({
     );
   };
   // The host's sentence for an unlinked chapter points at the audio engine panel; the chip and its dialog are that fix now.
-  const footerWhy = linkProblem ? `${recordName} has no track to record on. Press Record to link one.` : control.reason;
+  // Record's reason is about Record: while the main button reads Cold read (no take runs) the footer does not blame Record for it.
+  const coldMode = page.coldRead.mode && !control.recording;
+  const recordWhy = linkProblem ? `${recordName} has no track to record on. Press Record to link one.` : control.reason;
+  const footerWhy = coldMode ? '' : recordWhy;
   const roomTone = useRoomTone(measurements, session.device);
   // The app's own recorder is what records (the project chose it, or no DAW is linked): the microphone is chosen here, not in a DAW.
   const standalone = capabilities?.daw === 'none' || recordsInApp(capabilities?.daw);
@@ -690,7 +683,6 @@ function BoothSession({
                     project={control.project}
                     choice={dawChoice}
                     otherProject={setupPlan?.kind === 'other-project'}
-                    onClick={() => void page.goTo(`${BOOTH_LINKS.settings}#recording`)}
                   />
                 ) : undefined
               }
@@ -806,6 +798,7 @@ function BoothSession({
                     numbers: page.numbers,
                     flags: page.flags,
                     onOpenEntry: (id) => void page.goTo(`${BOOTH_LINKS.storyBible}#${encodeURIComponent(id)}`),
+                    voiceKeys,
                   }}
                 />
               </PickupSessionProvider>
@@ -813,7 +806,9 @@ function BoothSession({
           </BoothSamplesProvider>
           <SamplePlayerAnnouncement text={samples.announcement} />
           <BoothFooter
-            record={<RecordControl control={{ ...control, reason: footerWhy, toggle: page.toggleTake }} />}
+            record={
+              <RecordControl control={{ ...control, reason: footerWhy, toggle: page.pressMain }} cold={{ mode: page.coldRead.mode, on: page.coldRead.on }} />
+            }
             seconds={page.seconds}
             recording={control.recording}
             why={footerWhy || undefined}
@@ -822,6 +817,8 @@ function BoothSession({
             listenWhy={listeningProblem({ ...session, modelNotInstalled: modelState === 'missing', recording: control.recording })}
             mic={{
               engine: standalone ? 'builtin' : 'daw',
+              // The built-in recorder's own meter: only when it is what records, not for a project with no recorder at all.
+              recorderMeter: recordsInApp(capabilities?.daw),
               dawName: page.dawName,
               reachable: capabilities?.reachable ?? true,
               offReason: capabilities?.capabilities.record?.message,
@@ -851,20 +848,46 @@ function BoothSession({
             keymap={keymap}
             pickupSession={pickups.active}
             coldRead={page.coldRead}
+            voiceFolders={voices.voices.length > 0}
+            voice={
+              <VoiceControl
+                voices={voices.voices}
+                current={voices.current}
+                choosing={voices.choosing}
+                arm={voices.arm}
+                onChoose={voices.choose}
+                open={voiceListOpen}
+                onOpenChange={(next) => {
+                  if (next) voices.reload();
+                  setVoiceListOpen(next);
+                }}
+                noTrack={cast.noTrack}
+                // A character with no track: while stopped, who records it; during a take the Narrator voice does at once (decision 5).
+                onPickCharacter={(character) => (control.recording ? voices.standInFor(character) : setWhoAsk({ kind: 'character', character }))}
+                standIn={voices.standIn}
+                recording={control.recording}
+                onAddFor={(character) => setWhoAsk({ kind: 'character', character, choice: 'new' })}
+                onUseFor={(character) => setWhoAsk({ kind: 'character', character, choice: 'existing' })}
+              />
+            }
           />
+          {whoAsk && voices.voices.length > 0 ? (
+            <WhoIsInDialog
+              ask={whoAsk}
+              voices={voices.voices}
+              cast={cast}
+              onAdd={voices.add}
+              onUse={voices.use}
+              onNarrator={(narrator) => {
+                voices.choose(narrator);
+                setWhoAsk(null);
+              }}
+              onClose={() => setWhoAsk(null)}
+            />
+          ) : null}
         </div>
         <ListeningModelPrompt session={session} />
       </ContextMenuHost>
     </CommandScope>
   );
-}
-
-const sameSource = (a: BoothChapterTarget, b: BoothChapterTarget): boolean => a.chapter === b.chapter;
-
-/** The entry and the mark a reference target names, as the side panel draws them; nothing when neither is there any more. */
-function referenceOf(target: ReferenceTarget | null, entities: readonly GuideEntity[], marks: Marks, types: readonly GuideType[]): BoothReference | null {
-  if (!target) return null;
-  const entry = target.entryId ? entities.find((item) => item.id === target.entryId) : undefined;
-  const mark = target.noteId ? marks.marks.find((item) => item.id === target.noteId) : undefined;
-  return entry || mark ? { entry, colour: entry && entryColour(types, entry.category), note: mark && markNote(mark, marks) } : null;
 }

@@ -324,13 +324,12 @@ export type ReadAloudReaperState = {
 };
 
 /**
- * What arming a track, starting or stopping a REAPER recording did (`ReadAloudArmOnly`/`ReadAloudRecordStart`/`ReadAloudRecordStartAt`/`ReadAloudRecordStop`):
- * `armed` (the track REAPER armed, how many others it
- * disarmed, and whether anything changed), `started` (the track REAPER records on and the position, in project seconds, where it
+ * What starting or stopping a REAPER recording did (`ReadAloudRecordStart`/`ReadAloudRecordStartAt`/`ReadAloudRecordStop`):
+ * `started` (the track REAPER records on and the position, in project seconds, where it
  * began), `stopped` (how many arms came back and how many stayed changed) or `refused` (`reason` and `message` say why; nothing in
  * REAPER changed). `reason` carries `ReadAloudReaperReason`'s cases plus the ones only a record command refuses with.
  */
-export type ReadAloudRecordOutcome = 'armed' | 'started' | 'stopped' | 'refused';
+export type ReadAloudRecordOutcome = 'started' | 'stopped' | 'refused';
 export type ReadAloudRecordReason =
   | ReadAloudReaperReason
   | 'not_armed'
@@ -347,14 +346,14 @@ export type ReadAloudRecordReason =
   | 'not_yet'
   | 'no_microphone'
   | 'choose_microphone'
-  | 'not_recording';
+  | 'not_recording'
+  // A Voice folders chapter whose folder has no voice tracks (bindings_booth_voice.go).
+  | 'no_voices';
 export type ReadAloudRecording = {
   outcome: ReadAloudRecordOutcome;
   reason?: ReadAloudRecordReason;
   message?: string;
   trackGuid?: string;
-  disarmed?: number;
-  changed?: boolean;
   position?: number;
   restored?: number;
   kept?: number;
@@ -381,23 +380,6 @@ export type TeleprompterReaperInput = {
 };
 
 /**
- * Punch and roll's "Punch from here" answer (`TeleprompterPunchPreview`/`TeleprompterPunch`):
- * `resolved` (a preview only, nothing moved) or
- * `punched` (`cursor` is where REAPER's edit cursor landed), each with `resolvedTime`, `source` (an exact or
- * interpolated anchor, or an estimate past every anchor's range) and `preRoll` so the UI can show them before and
- * after moving; or `refused` (`message` says why, nothing moved: no live chapter, no anchor near this word yet, or no
- * DAW connected).
- */
-export type TeleprompterPunchResult = {
-  outcome: 'resolved' | 'punched' | 'refused';
-  cursor?: number;
-  resolvedTime?: number;
-  source?: 'anchor' | 'alignment' | 'estimate';
-  preRoll?: number;
-  message?: string;
-};
-
-/**
  * `TeleprompterResumeFollow` / `TeleprompterResumeUnfollow`: whether the
  * host now follows REAPER for the resume prompt; not with no track to follow (`no_track`) or no way to ask REAPER
  * (`unavailable`: no DAW, REAPER not reachable, or track state switched off).
@@ -415,10 +397,6 @@ export interface TeleprompterApi {
   teleprompterStop(): Promise<void>;
   /** Move a running session's tracker straight to script word `word` ("Start here" / "Go back to here"). */
   teleprompterSeek(word: number): Promise<void>;
-  /** Resolve `word`'s punch time, source and pre-roll with no REAPER mutation: what "Punch from here" shows before confirming. */
-  teleprompterPunchPreview(word: number): Promise<TeleprompterPunchResult>;
-  /** Move REAPER's edit cursor to `word`'s resolved time minus the pre-roll. */
-  teleprompterPunch(word: number): Promise<TeleprompterPunchResult>;
   /** Keep a session's flags as suspected, unreviewed findings; answers one finding per flag, in order. */
   teleprompterSaveFlags(chapterId: string, flags: TeleprompterFlagSave[]): Promise<TeleprompterFlagFinding[]>;
   teleprompterState(): Promise<TeleprompterState>;
@@ -435,8 +413,6 @@ export interface TeleprompterApi {
   teleprompterPause(paused: boolean): Promise<void>;
   /** Ask REAPER, once, whether it is ready to record `chapterId` with reading; read-only. Ask on open, toggle, Play and Refresh, never on a timer. */
   readAloudReaperState(chapterId: string): Promise<ReadAloudReaperState>;
-  /** Arm `chapterId`'s linked track and disarm every other one ("Arm Chapter N only"); refused while REAPER records. */
-  readAloudArmOnly(chapterId: string): Promise<ReadAloudRecording>;
   /** Start REAPER recording on `chapterId`'s linked track, which must already be the one armed track; refuses or times out otherwise. */
   readAloudRecordStart(chapterId: string): Promise<ReadAloudRecording>;
   /** Record as `readAloudRecordStart` does, but from `at` (project seconds, the narrator's punch) instead of the end of the track's last

@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
-import type { CoverageReport, ManuscriptChapter } from '../../types';
+import { takeReviewPickupFor } from '../../api/mockFixtures';
+import type { CoverageReport, Finding, ManuscriptChapter } from '../../types';
 import { RecordingCheckReport } from './RecordingCheckReport';
 
 afterEach(cleanup);
@@ -39,8 +40,8 @@ const report: CoverageReport = {
   regions: [],
 };
 
-function renderReport(openWorkspace?: () => void) {
-  const api = createMockApi();
+function renderReport(openWorkspace?: () => void, findings?: Finding[]) {
+  const api = createMockApi({}, findings ? { findings } : {});
   render(
     <MemoryRouter>
       <ApiProvider api={api}>
@@ -101,5 +102,26 @@ describe('RecordingCheckReport', () => {
   it('renders no Open in Editing button when the caller has none', () => {
     renderReport();
     expect(screen.queryByRole('button', { name: 'Open in Editing' })).toBeNull();
+  });
+
+  // #2800 (walkthrough 3): the row named the removed take review. It counts the chapter's unreviewed pickup notes on Proof, which
+  // the Booth's read-aloud restarts still write (and a saved take-review group still is), so it says that, and Open Proof opens
+  // that chapter.
+  it('counts the chapter’s unreviewed pickup notes as such, and opens Proof on the chapter', async () => {
+    const restart: Finding = {
+      ...takeReviewPickupFor(chapter.id, chapter.title),
+      id: 'restart-1',
+      analyzer: 'teleprompter',
+      evidence: { kind: 'restart', heard: 'once upon', suspected: true },
+    };
+    renderReport(undefined, [takeReviewPickupFor(chapter.id, chapter.title), restart]);
+    await waitFor(() => expect(screen.getByText('Pickup notes (Proof): 2 not reviewed yet')).toBeTruthy());
+    expect(screen.queryByText(/Repeated reads/)).toBeNull();
+    expect(screen.getByRole('link', { name: 'Open Proof' }).getAttribute('href')).toBe(`/proof?chapter=${chapter.id}`);
+  });
+
+  it('says none waiting when the chapter has no unreviewed pickup notes', async () => {
+    renderReport(undefined, []);
+    await waitFor(() => expect(screen.getByText('Pickup notes (Proof): none waiting')).toBeTruthy());
   });
 });
