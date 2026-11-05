@@ -149,7 +149,9 @@ func TestRipplingEditsOnSeveralVoicesAreRefusedWhereTheLiveItemsAreNotRead(t *te
 	role := &fakeRangeCutter{answer: cutInREAPER()}
 	host := deleteRangeHost(t, "REAPER", liveReachability(), role)
 	svc := host.services()
-	svc.voicesWithAudio = func(string) int { return 2 }
+	was := savedVoiceCount
+	savedVoiceCount = func(hostServices, string) int { return 2 }
+	t.Cleanup(func() { savedVoiceCount = was })
 	got, err := dawDeleteRangeIn(t.Context(), svc, dawport.Support{Available: true}, role, host.editLog(), "c-0001", 0, 0, string(dawport.CutClose), 12, 0, false)
 	if err != nil || got.OK || !strings.Contains(got.Refused, "more than one voice track") || len(role.cut) != 0 {
 		t.Errorf("close: %+v, %v, sent %+v", got, err, role.cut)

@@ -36,9 +36,13 @@ func voiceTracksWithAudio(items []dawport.TrackItem) int {
 // savedVoicesWithAudio is how many of the tracks inside the chapter's linked folder hold an unmuted item in the saved project (a plain track: 1 or
 // 0). It is the count the commands that read no live items use; a project that cannot be read counts as 0, which refuses nothing.
 func savedVoicesWithAudio(svc hostServices, chapterID string) int {
-	if svc.voicesWithAudio != nil {
-		return svc.voicesWithAudio(chapterID)
-	}
+	return savedVoiceCount(svc, chapterID)
+}
+
+// savedVoiceCount is the saved-project read behind savedVoicesWithAudio; a test swaps it (and restores it) to stand in for a project file.
+var savedVoiceCount = readSavedVoiceCount
+
+func readSavedVoiceCount(svc hostServices, chapterID string) int {
 	link, refused, err := readAloudTrackGUID(svc, chapterID)
 	if err != nil || refused != nil {
 		return 0

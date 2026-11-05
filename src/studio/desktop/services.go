@@ -30,28 +30,26 @@ import (
 // nil checks. The asset managers are not here: they are not project-scoped,
 // and the registry that holds them is built once (assetregistry.go).
 type hostServices struct {
-	config config
-	// voicesWithAudio is a test seam for how many of a chapter's tracks hold audio (savedVoicesWithAudio); nil in the app.
-	voicesWithAudio func(chapterID string) int
-	boothVoices     *boothVoiceChoices
-	findings        *findings.Store
-	guide           *guide.Service
-	lineIdentity    *lineidentity.Service
-	manuscript      *manuscript.Service
-	pickups         *pickups.Service
-	projectState    *projectstate.Service
-	renderConfig    *renderconfig.Service
-	cleanupTools    *cleanuptools.Service
-	retakeLanes     *retakelanes.Service
-	settings        *settings.Store
-	teleprompter    *teleprompter.Service
-	recorder        *recording.Service
-	transcript      *transcript.Service
-	coverage        *coverage.Service
-	stages          *stages.Service
-	production      *production.Service
-	editing         *editing.Service
-	character       *character.Service
+	config       config
+	boothVoices  *boothVoiceChoices
+	findings     *findings.Store
+	guide        *guide.Service
+	lineIdentity *lineidentity.Service
+	manuscript   *manuscript.Service
+	pickups      *pickups.Service
+	projectState *projectstate.Service
+	renderConfig *renderconfig.Service
+	cleanupTools *cleanuptools.Service
+	retakeLanes  *retakelanes.Service
+	settings     *settings.Store
+	teleprompter *teleprompter.Service
+	recorder     *recording.Service
+	transcript   *transcript.Service
+	coverage     *coverage.Service
+	stages       *stages.Service
+	production   *production.Service
+	editing      *editing.Service
+	character    *character.Service
 	// reachability tracks the current bridge client's PROJECT_STATUS heartbeat, behind the
 	// DAW port's Heartbeat role. Never a true nil interface: with no bridge client configureLocked
 	// still sets it to an always-unreachable stand-in.
