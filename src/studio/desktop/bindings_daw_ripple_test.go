@@ -199,3 +199,29 @@ func TestReplacingOnAPlainTrackSendsNoFolder(t *testing.T) {
 		t.Fatalf("%+v, %v, sent %+v", answer.Result, err, f.replacer.replaced)
 	}
 }
+
+func TestLastRecordedItemIsTheOneThatStartsLatestOnAnyVoice(t *testing.T) {
+	items := []dawport.TrackItem{
+		{ItemGUID: "i1", Position: 0, Length: 5, TrackGUID: voiceA},
+		{ItemGUID: "i3", Position: 40, Length: 5, TrackGUID: voiceB},
+		{ItemGUID: "i2", Position: 20, Length: 5, TrackGUID: voiceA},
+	}
+	if got, ok := lastRecordedItem(items); !ok || got.ItemGUID != "i3" {
+		t.Errorf("got %+v, %v; want i3, the latest start across both voices", got, ok)
+	}
+	if _, ok := lastRecordedItem(nil); ok {
+		t.Error("no items must be no stamp")
+	}
+	tie := []dawport.TrackItem{{ItemGUID: "a", Position: 10}, {ItemGUID: "b", Position: 10}}
+	if got, _ := lastRecordedItem(tie); got.ItemGUID != "b" {
+		t.Errorf("a tie keeps the later item, as the one-track read did: %+v", got)
+	}
+}
+
+func TestThePassageMapStampReadsTheFolderSoAVoiceFolderIsNotUnstamped(t *testing.T) {
+	reader := &folderReader{}
+	stamp, err := stampFromChapter(t.Context(), reader, "{F}")
+	if err != nil || stamp.ItemGUID != "i2" || len(reader.asked) != 1 || reader.asked[0] != "folder:{F}" {
+		t.Fatalf("stamp %+v, %v, asked %v; want the folder's last item", stamp, err, reader.asked)
+	}
+}
