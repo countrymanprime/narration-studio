@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { EditCut } from '../../../api/contracts/editCuts';
 import type { WordFx } from '../../../api/contracts/wordFx';
+import { chapterTrackOf } from '../../../api/chapterTrackItems';
 import { usePort } from '../../../ports/usePort';
 import { useSpeakers } from '../../script/page/data/useScriptData';
 import type { QuotedPhrase } from '../script/docFromHeard';
@@ -72,9 +73,12 @@ export function useChapterSource(chapterId: string, chapterName: string): Chapte
       try {
         const [map, project] = await Promise.all([trackMap.chapterTrackMapList(), tracks.tracksList()]);
         const guid = map.mappings.find((m) => m.chapterId === chapterId)?.trackGuid;
-        const track = project.tracks.find((t) => t.guid === guid);
-        const link = guid === undefined ? ('unlinked' as const) : track ? ('linked' as const) : ('missing' as const);
-        return track ? { items: track.items, place: `track “${track.name}”`, link } : { items: [], place: chapterName, link };
+        // A folder of voices has its audio on its children: the items are read through the folder (chapterTrackOf), never off the linked track alone.
+        const found = chapterTrackOf(project.tracks, guid);
+        const link = guid === undefined ? ('unlinked' as const) : found ? ('linked' as const) : ('missing' as const);
+        return found
+          ? { items: found.items, place: `${found.track.isFolder ? 'folder' : 'track'} “${found.track.name}”`, link }
+          : { items: [], place: chapterName, link };
       } catch {
         // The saved project could not be read: the text still shows, and nothing plays.
         return { items: [], place: chapterName, link: 'unknown' as const };
