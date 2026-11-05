@@ -14,6 +14,8 @@ async function openEditing(page: Page, theme: 'light' | 'dark'): Promise<void> {
   await page.goto('/editing/chapter-1');
   await settlePage(page);
   await page.locator('#wavedock [data-ribbon-surface]').waitFor();
+  // In a window shorter than the header, the script, the dock and the bar together, the card scrolls: bring the dock into view before measuring or dragging on it.
+  await page.locator('#wavedock').scrollIntoViewIfNeeded();
 }
 
 for (const theme of ['light', 'dark'] as const) {
