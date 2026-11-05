@@ -66,7 +66,14 @@ async function mount({ seed = {}, statuses = ['not_started', 'not_started'], pro
   api = createMockApi(
     {
       productionOverview: async () => overview(statuses),
-      deliveryProfiles: async () => ({ profiles: [], globalDefault: { id: 'acx' }, shippedDefault: { id: 'acx' }, hasProject: true, projectChoice: null, projectProfile: profile }),
+      deliveryProfiles: async () => ({
+        profiles: [],
+        globalDefault: { id: 'acx' },
+        shippedDefault: { id: 'acx' },
+        hasProject: true,
+        projectChoice: null,
+        projectProfile: profile,
+      }),
     },
     { production: { deadline: '2026-10-31', contractedAmount: 250, payment: 'per_finished_hour', milestones: [REC, CUSTOM_DONE, CUSTOM], ...seed } },
   );
