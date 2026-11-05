@@ -324,6 +324,21 @@ describe('only-the-toggle-a-take-or-leaving-ends-it', () => {
     await act(async () => resolveStart({ status: 'started' }));
   });
 
+  it.each(['Enter', 'NumpadEnter'])('with the mode on Cold read, %s starts the cold read instead of a take, and again stops it', async (code) => {
+    const page = renderPage();
+    await ready();
+    await chooseCold();
+    await act(async () => void fireEvent.keyDown(document.body, { key: 'Enter', code }));
+    await settle();
+    expect(page.teleprompterStart.mock.calls[0][0]).toMatchObject({ coldRead: true });
+    expect(page.recordStart).not.toHaveBeenCalled();
+    await waitFor(() => expect(mainName()).toBe('Stop'));
+    await act(async () => void fireEvent.keyDown(document.body, { key: 'Enter', code }));
+    await settle();
+    expect(page.teleprompterStop).toHaveBeenCalledTimes(1);
+    expect(mainName()).toBe('Cold read');
+  });
+
   it('with the mode back on Record, the button records again', async () => {
     const page = renderPage();
     await ready();
