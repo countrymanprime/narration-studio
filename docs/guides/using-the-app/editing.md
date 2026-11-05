@@ -464,6 +464,8 @@ read, select and play; the actions that change the DAW (delete, mute, effects, k
 With no track linked to the chapter there is nothing to edit yet. The legend reads **No audio to edit**, the script shows no
 word as not read, and the dialog described above lists the tracks to link.
 
+A chapter linked to a folder of voice tracks (the Voice folders layout) has its audio on the folder's tracks, nested folders included, so the page reads and plays what is on any of them. Only when none of them holds audio does it say the folder has no audio on any of its voice tracks, and to record the chapter onto a voice track inside the folder and save the project.
+
 ![Editing with no track linked - the dialog naming the chapter and with its track dropdown, the best match chosen](../../images/ui/editing-unlinked.webp)
 
 ![Editing with no track linked, dialog closed - the Not linked to a track mark, and the legend](../../images/ui/editing-unlinked-closed.webp)

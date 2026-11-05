@@ -77,11 +77,11 @@ export function useChapterSource(chapterId: string, chapterName: string): Chapte
         const found = chapterTrackOf(project.tracks, guid);
         const link = guid === undefined ? ('unlinked' as const) : found ? ('linked' as const) : ('missing' as const);
         return found
-          ? { items: found.items, place: `${found.track.isFolder ? 'folder' : 'track'} “${found.track.name}”`, link }
-          : { items: [], place: chapterName, link };
+          ? { items: found.items, place: `${found.track.isFolder ? 'folder' : 'track'} “${found.track.name}”`, link, folder: found.track.isFolder }
+          : { items: [], place: chapterName, link, folder: false };
       } catch {
         // The saved project could not be read: the text still shows, and nothing plays.
-        return { items: [], place: chapterName, link: 'unknown' as const };
+        return { items: [], place: chapterName, link: 'unknown' as const, folder: false };
       }
     };
     Promise.all([
@@ -102,7 +102,7 @@ export function useChapterSource(chapterId: string, chapterName: string): Chapte
           accepted: accepted.words.map((w) => w.key),
           items: track.items,
           place: track.place,
-          audio: audioOf(track.link, track.items.length, ws.items.filter((item) => item.live).length),
+          audio: audioOf(track.link, track.items.length, ws.items.filter((item) => item.live).length, track.folder),
         };
         setState({ chapterId, read, error: null });
       })

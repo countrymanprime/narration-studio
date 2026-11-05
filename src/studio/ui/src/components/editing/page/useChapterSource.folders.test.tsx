@@ -86,8 +86,11 @@ describe('the Editing page reads the chapter audio through the track it is linke
     expect(await audioOf(read(tracks, 'F').result)).toBe('ready');
   });
 
-  it('an empty folder is empty (the link is fine, nothing is recorded), not missing', async () => {
-    expect(await audioOf(read([track('F', 0, true), track('V', 1, false)], 'F').result)).toBe('empty');
+  it('an empty folder is empty (the link is fine, nothing is recorded), not missing, and says it is a folder', async () => {
+    const empty = read([track('F', 0, true), track('V', 1, false)], 'F');
+    expect(await audioOf(empty.result)).toBe('empty');
+    const source = empty.result.current.source;
+    expect(source.status === 'ready' && source.read.audio).toEqual({ kind: 'empty', folder: true });
     expect(await audioOf(read([track('F', 0, true)], 'F').result)).toBe('empty');
   });
 
@@ -98,5 +101,14 @@ describe('the Editing page reads the chapter audio through the track it is linke
   it('a link to a track the project no longer has is missing; no link is unlinked', async () => {
     expect(await audioOf(read([track('A', 0, false, [item('a1')])], 'gone').result)).toBe('missing');
     expect(await audioOf(read([track('A', 0, false, [item('a1')])], null).result)).toBe('unlinked');
+  });
+
+  it('the Voice folders mock (?mockVoiceFolders=1): Chapter 1 is linked to its folder and the Narrator voice’s take is the chapter’s audio, before any check has run', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    const wrapper = ({ children }: { children: ReactNode }) => <ApiProvider api={api}>{children}</ApiProvider>;
+    const { result } = renderHook(() => useChapterSource('chapter-1', 'Chapter 1'), { wrapper });
+    expect(await audioOf(result)).toBe('ready');
+    const source = result.current.source;
+    expect(source.status === 'ready' && source.read.items).toHaveLength(1);
   });
 });

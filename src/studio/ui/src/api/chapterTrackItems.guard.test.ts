@@ -15,10 +15,18 @@ const sources = (dir: string): string[] =>
 
 // `tracks.find((t) => t.guid === guid)?.items` and `const track = project.tracks.find(...); ... track.items`.
 const FIND_THEN_ITEMS = /\.find\(\s*\(?\s*\w+\s*\)?\s*=>\s*\w+\.guid\s*===\s*[^)]*\)\)?\s*\??\.items/;
-const FIND_BOUND = /(?:const|let)\s+(\w+)\s*=\s*[\w.]*tracks\.find\(\s*\(?\s*\w+\s*\)?\s*=>\s*\w+\.guid\s*===/g;
+const FIND_BOUND = /(?:const|let)\s+(\w+)\s*=[^;]*?tracks\.find\(\s*\(?\s*\w+\s*\)?\s*=>\s*\w+\.guid\s*===/g;
+
+// Reads that mean the linked track's own items, with the reason.
+const ONE_TRACK = new Map([
+  [
+    join('components', 'engine', 'LinkChaptersDialog.tsx'),
+    "the Link chapters dialog's 'To stamp' count is of the linked track's own items; the stamp is a separate feature and not changed here",
+  ],
+]);
 
 describe('no page reads the audio of a linked track off the track alone', () => {
-  const files = sources(ROOT).filter((file) => !file.endsWith('chapterTrackItems.ts'));
+  const files = sources(ROOT).filter((file) => !file.endsWith('chapterTrackItems.ts') && !ONE_TRACK.has(relative(ROOT, file)));
 
   it('scans the UI sources', () => {
     expect(files.length).toBeGreaterThan(200);
