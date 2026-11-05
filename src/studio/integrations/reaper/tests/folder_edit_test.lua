@@ -93,11 +93,69 @@ H.test('hide_takes on a voice of the folder hides the other takes of its item', 
   H.eq(#s.fake:undo_labels(), 1, 'one undo block')
 end)
 
-H.test('delete_range in close mode shifts the later items of the cut item’s own track only (why the host refuses it for several voices)', function()
+H.test('delete_range in close mode without a folder shifts the later items of the cut item’s own track only (why the host sends the folder)', function()
   local s, p = project('narrator')
   s:send('delete_range', 'c1', ITEM, '14', '16', 'close', '10')
   H.eq(s:events()[1][1], 'RANGE_CUT')
   H.eq(span(p.later), { 22, 6 }, 'the narrator’s later item moves up by the cut length')
   H.eq(span(p.other_hero), { 24, 6 }, 'the hero’s item at the same time does not: the voices would drift apart')
   H.eq(span(p.after_item), { 0, 5 }, 'the next chapter is untouched')
+end)
+
+-- With the chapter's folder as the fourth part of the fade field (fade|pad|room_tone|folder), a close cut moves the later items of every track inside it.
+local function close_with_folder(s, p, item_guid, from, to)
+  s:send('delete_range', 'c1', item_guid or ITEM, from or '14', to or '16', 'close', '10|0|0|' .. p.folder.guid)
+end
+
+for _, where in ipairs({ 'narrator', 'guard', 'hero' }) do
+  H.test('delete_range close with the folder moves the later items of every voice inside it (the cut is on ' .. where .. '), in one undo block', function()
+    local s, p = project(where)
+    local guard_later = s.fake:add_item(p.guard, { position = 30, length = 2, source = 'guard-later.wav' })
+    local hero_item = where == 'hero' and p.later or p.other_hero
+    local mine_later = p.later
+    s:send('delete_range', 'c1', ITEM, '14', '16', 'close', '10|0|0|' .. p.folder.guid)
+    H.eq(s:events()[1][1], 'RANGE_CUT')
+    H.eq(span(mine_later), { 22, 6 }, 'the cut voice’s later item moves up by the cut length')
+    H.eq(span(hero_item), { 22, 6 }, 'so does the hero’s item')
+    H.eq(span(guard_later), { 28, 2 }, 'and the nested folder’s voice')
+    H.eq(span(p.after_item), { 0, 5 }, 'the next chapter is not in the folder and stays')
+    local cuts
+    for _, track in ipairs(s.fake.tracks) do
+      if track.name == 'Cuts' then
+        cuts = track
+      end
+    end
+    H.eq(span(cuts.items[1]), { 14, 2 }, 'the cut piece sits on Cuts, which does not ripple')
+    H.eq(#s.fake:undo_labels(), 1, 'one undo block for every track')
+    H.eq(s.fake.open_undo_blocks, 0)
+  end)
+end
+
+H.test('delete_range close with the folder refuses when another voice has audio in the range, and changes nothing', function()
+  local s, p = project('narrator')
+  s.fake:add_item(p.hero, { position = 13, length = 2, source = 'hero-line.wav' })
+  s.fake.calls = {}
+  close_with_folder(s, p)
+  H.eq(s:events(), { { 'ERROR', 'c1', 'Another voice in the folder has audio in the range to cut, so nothing was cut.' } })
+  H.eq(span(p.item), { 10, 10 })
+  H.eq(span(p.later), { 24, 6 })
+  H.eq(#s.fake.undo, 0, 'no undo point')
+end)
+
+H.test('delete_range with a folder that is gone is stale and one the item is not inside is refused; nothing changes', function()
+  local s, p = project('narrator')
+  s:send('delete_range', 'c1', ITEM, '14', '16', 'close', '10|0|0|{FFFFFFFF-0000-4000-8000-00000000FFFF}')
+  H.eq(s:events(), { { 'TRACK_STALE', 'c1', '{FFFFFFFF-0000-4000-8000-00000000FFFF}' } })
+  s:send('delete_range', 'c1', ITEM, '14', '16', 'close', '10|0|0|' .. p.hero.guid)
+  H.eq(s:events(), { { 'ERROR', 'c1', 'The item is not inside the chapter folder, so nothing was cut.' } })
+  H.eq(span(p.item), { 10, 10 })
+  H.eq(#s.fake.undo, 0)
+end)
+
+H.test('delete_range in gap mode with a folder moves nothing, as without it', function()
+  local s, p = project('narrator')
+  s:send('delete_range', 'c1', ITEM, '14', '16', 'gap', '10|0|0|' .. p.folder.guid)
+  H.eq(s:events()[1][1], 'RANGE_CUT')
+  H.eq(span(p.later), { 24, 6 })
+  H.eq(span(p.other_hero), { 24, 6 })
 end)
