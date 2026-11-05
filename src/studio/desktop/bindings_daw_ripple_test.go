@@ -164,20 +164,23 @@ func TestAClosingCutSendsTheChaptersFolderAndAGapCutDoesNot(t *testing.T) {
 	}
 }
 
-func TestReplacingAndPuttingBackAreRefusedOnSeveralVoices(t *testing.T) {
+func TestReplacingAndPuttingBackSendTheChaptersFolder(t *testing.T) {
 	f := newReplaceFixture(t)
-	f.deps.voices = func(string) int { return 2 }
+	f.deps.folder = func(string) string { return voiceFolderTrack }
 	answer, err := dawReplaceRangeIn(t.Context(), f.deps, replaceChapter, 4, 6, f.fileID(), 50, 53, 10, 6)
-	if err != nil || answer.Result.OK || !strings.Contains(answer.Result.Refused, "more than one voice track") || len(f.replacer.replaced) != 0 {
-		t.Errorf("replace: %+v, %v, sent %d", answer.Result, err, len(f.replacer.replaced))
+	if err != nil || !answer.Result.OK || len(f.replacer.replaced) != 1 || f.replacer.replaced[0].ChapterTrack != voiceFolderTrack {
+		t.Fatalf("replace: %+v, %v, sent %+v; want the folder", answer.Result, err, f.replacer.replaced)
 	}
-	f.deps.voices = func(string) int { return 1 }
-	if answer, err := dawReplaceRangeIn(t.Context(), f.deps, replaceChapter, 4, 6, f.fileID(), 50, 53, 10, 6); err != nil || !answer.Result.OK {
-		t.Fatalf("one voice: %+v, %v", answer.Result, err)
-	}
-	f.deps.voices = func(string) int { return 2 }
 	back, err := dawRestoreReplacementIn(t.Context(), f.deps, replaceChapter, "r-0123456789ab")
-	if err != nil || back.Result.OK || !strings.Contains(back.Result.Refused, "more than one voice track") || len(f.replacer.restored) != 0 {
-		t.Errorf("restore: %+v, %v, sent %d", back.Result, err, len(f.replacer.restored))
+	if err != nil || !back.Result.OK || len(f.replacer.restored) != 1 || f.replacer.restored[0].ChapterTrack != voiceFolderTrack {
+		t.Fatalf("restore: %+v, %v, sent %+v; want the folder", back.Result, err, f.replacer.restored)
+	}
+}
+
+func TestReplacingOnAPlainTrackSendsNoFolder(t *testing.T) {
+	f := newReplaceFixture(t)
+	if answer, err := dawReplaceRangeIn(t.Context(), f.deps, replaceChapter, 4, 6, f.fileID(), 50, 53, 10, 6); err != nil || !answer.Result.OK ||
+		f.replacer.replaced[0].ChapterTrack != "" {
+		t.Fatalf("%+v, %v, sent %+v", answer.Result, err, f.replacer.replaced)
 	}
 }

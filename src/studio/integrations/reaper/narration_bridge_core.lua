@@ -288,6 +288,45 @@ function M.with_descendants(track)
   return out
 end
 
+-- The tracks an edit that moves later audio ripples besides the item's own: with the chapter's folder GUID, every other track inside it except
+-- the Cuts track (a chapter of several voices keeps them in step), none without. Answers the list, or nil after the refusal it has already sent
+-- (a folder that does not resolve is TRACK_STALE; an item that is not inside it is an ERROR saying `unchanged`, e.g. "nothing was cut"; both
+-- before anything changes).
+function M.ripple_peers(session_dir, run_id, folder_text, track, cuts, unchanged)
+  if folder_text == nil or folder_text == '' then
+    return {}
+  end
+  local function bare(guid)
+    return (tostring(guid or ''):gsub('[{}%s]', ''):upper())
+  end
+  local wanted = bare(folder_text)
+  local folder
+  for index = 0, reaper.CountTracks(0) - 1 do
+    local candidate = reaper.GetTrack(0, index)
+    if bare(reaper.GetTrackGUID(candidate)) == wanted then
+      folder = candidate
+      break
+    end
+  end
+  if not folder then
+    event(session_dir, 'TRACK_STALE', run_id, folder_text)
+    return nil
+  end
+  local peers, inside = {}, false
+  for _, member in ipairs(M.with_descendants(folder)) do
+    if member == track then
+      inside = true
+    elseif member ~= cuts and member ~= folder then
+      peers[#peers + 1] = member
+    end
+  end
+  if not inside then
+    event(session_dir, 'ERROR', run_id, 'The item is not inside the chapter folder, so ' .. unchanged .. '.')
+    return nil
+  end
+  return peers
+end
+
 -- The parent of each track, by 1-based position (0 at the top level), from a list of folder depth changes (I_FOLDERDEPTH, one per track in
 -- order): what REAPER shows as each track's folder. A close past the top level stays at the top level, as REAPER reads it. Reads only.
 function M.folder_parents(deltas)
