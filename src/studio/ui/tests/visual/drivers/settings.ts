@@ -509,9 +509,18 @@ export const settingsDrivers: Record<string, Driver> = {
   'schedule-basis-own': async (page) => {
     await openSettings(page, 'Project');
     const row = await showSettingsRow(page, 'project.rateBasis');
-    await row.getByRole('radio', { name: 'Your own pace' }).click();
-    await row.getByRole('radio', { name: 'Your own pace', checked: true }).waitFor();
+    await row.getByRole('radio', { name: 'Your pace' }).click();
+    await row.getByRole('radio', { name: 'Your pace', checked: true }).waitFor();
     await row.getByText('Changed', { exact: true }).waitFor();
+  },
+  'category-reset': async (page) => {
+    // A row that does not change the theme, so the capture is the run's own theme.
+    await openSettings(page, 'Appearance & keys');
+    const row = await showSettingsRow(page, 'look.entrySort');
+    await row.getByRole('combobox', { name: 'Story Bible order' }).selectOption('mentions-desc');
+    await page.getByRole('button', { name: 'Reset to defaults' }).waitFor();
+    // Back to the top, so the title line holds the button at every width.
+    await page.getByRole('heading', { level: 2, name: 'Appearance & keys' }).evaluate((element) => element.scrollIntoView({ block: 'start' }));
   },
   'editing-playback': async (page) => {
     // Found by search, so the row is shown whole on its own (the Shortcuts list below it in the category has its own layout debt to settle).

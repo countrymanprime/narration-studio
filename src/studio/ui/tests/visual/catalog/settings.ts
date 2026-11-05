@@ -443,16 +443,22 @@ export const settingsStates: StateEntry[] = [
   {
     page: 'settings',
     state: 'schedule-basis',
-    description: 'Settings, Project scrolled to Schedule basis: Standard chosen, Your own pace beside it, with its row in full view',
+    description: 'Settings, Project scrolled to Schedule basis: Standard chosen, Your pace beside it, with its row in full view',
     ...REFLOW,
     ...KEEPS_DESKTOP_SCROLL,
   },
   {
     page: 'settings',
     state: 'schedule-basis-own',
-    description: 'Settings, Project at Schedule basis with Your own pace chosen: the row is marked Changed',
+    description: 'Settings, Project at Schedule basis with Your pace chosen: the row is marked Changed',
     ...REFLOW,
     ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
+    state: 'category-reset',
+    description: 'Settings, Appearance & keys with the theme changed: the category title line with Reset to defaults beside it, and the count in the list',
+    ...REFLOW,
   },
   {
     page: 'settings',

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ZOOM_STEPS } from '../../../hooks/useZoom';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
-import { announceBrowserSettingChange, useBrowserSettingsVersion } from '../../../browserSettings';
+import { announceBrowserSettingChange, useBrowserSetting, useBrowserSettingsVersion } from '../../../browserSettings';
 import { useTheme } from '../../../theme/ThemeContext';
 import type { ThemePreference } from '../../../theme/theme';
 import { useMotionPreference, type MotionPreference } from '../../../motion';
@@ -81,7 +81,7 @@ export function ReaderSizeBody() {
 
 /** Waveform arrow step: 15 to 30 seconds, kept by this browser window and read by the Editing waveform's arrows at each press. */
 export function WaveScrollStepBody() {
-  const [seconds, setSeconds] = useState(readScrollStep);
+  const [seconds, setSeconds] = useBrowserSetting(readScrollStep);
   return (
     <Slider
       aria-label="Waveform arrow step"
@@ -101,7 +101,7 @@ export function WaveScrollStepBody() {
 
 /** Booth text size: 24 to 72 px in steps of 4, kept by this browser window and read by the Booth; the Booth's Text settings write the same size. */
 export function BoothTextSizeBody() {
-  const [size, setSize] = useState(readBoothSize);
+  const [size, setSize] = useBrowserSetting(readBoothSize);
   return (
     <Slider
       aria-label="Booth text size"
@@ -221,11 +221,13 @@ export function ZoomRowBody() {
       .then((result) => setLevel(result.level))
       .catch(() => undefined);
   }, [system]);
+  // Read again when a window-kept write is announced too (the header's Reset to defaults sets the zoom through the host, not the resize).
+  const browserVersion = useBrowserSettingsVersion();
   useEffect(() => {
     read();
     window.addEventListener('resize', read);
     return () => window.removeEventListener('resize', read);
-  }, [read]);
+  }, [read, browserVersion]);
 
   // A failed set or save is an error toast with Retry: setting the same level and saving it again writes the same value (issue #2919).
   const choose = (next: number): void =>

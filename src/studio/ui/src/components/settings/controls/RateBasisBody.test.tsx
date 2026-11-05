@@ -45,10 +45,10 @@ describe('the schedule basis setting (parity audit)', () => {
     const save = vi.spyOn(api, 'setProductionRateBasis');
     mount(api);
     expect(((await radio('Standard')) as HTMLInputElement).getAttribute('aria-checked')).toBe('true');
-    fireEvent.click(await radio('Your own pace'));
+    fireEvent.click(await radio('Your pace'));
     await waitFor(() => expect(save).toHaveBeenCalledWith('own'));
     await waitFor(async () => expect((await api.productionPlan()).rateBasis).toBe('own'));
-    expect((await radio('Your own pace')).getAttribute('aria-checked')).toBe('true');
+    expect((await radio('Your pace')).getAttribute('aria-checked')).toBe('true');
   });
 
   it('follows a choice made elsewhere while it is shown', async () => {
@@ -57,14 +57,14 @@ describe('the schedule basis setting (parity audit)', () => {
     await radio('Standard');
     await api.setProductionRateBasis('own');
     act(() => announceRateBasis('own'));
-    await waitFor(async () => expect((await radio('Your own pace')).getAttribute('aria-checked')).toBe('true'));
+    await waitFor(async () => expect((await radio('Your pace')).getAttribute('aria-checked')).toBe('true'));
   });
 
   it('keeps the earlier choice and says why when the host refuses', async () => {
     const api = createMockApi();
     vi.spyOn(api, 'setProductionRateBasis').mockRejectedValueOnce(new Error('disk full'));
     mount(api);
-    fireEvent.click(await radio('Your own pace'));
+    fireEvent.click(await radio('Your pace'));
     await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringContaining('disk full'), 'error'));
     expect((await radio('Standard')).getAttribute('aria-checked')).toBe('true');
   });
@@ -86,10 +86,10 @@ describe('the schedule basis setting (parity audit)', () => {
     await radio('Standard');
     read.mockImplementationOnce(() => new Promise((resolve) => (finishSlow = resolve)));
     act(() => void window.dispatchEvent(new Event('focus')));
-    fireEvent.click(await radio('Your own pace'));
-    await waitFor(async () => expect((await radio('Your own pace')).getAttribute('aria-checked')).toBe('true'));
+    fireEvent.click(await radio('Your pace'));
+    await waitFor(async () => expect((await radio('Your pace')).getAttribute('aria-checked')).toBe('true'));
     await act(async () => finishSlow({ deadline: null, contractedAmount: null, payment: 'none', rateBasis: 'standard', milestones: [] } as never));
-    expect((await radio('Your own pace')).getAttribute('aria-checked')).toBe('true');
+    expect((await radio('Your pace')).getAttribute('aria-checked')).toBe('true');
   });
 
   it('saves once when the same choice is pressed twice before the host has answered', async () => {
@@ -104,7 +104,7 @@ describe('the schedule basis setting (parity audit)', () => {
           ),
       );
     mount(api);
-    const own = await radio('Your own pace');
+    const own = await radio('Your pace');
     fireEvent.click(own);
     fireEvent.click(own);
     expect(save).toHaveBeenCalledTimes(1);
