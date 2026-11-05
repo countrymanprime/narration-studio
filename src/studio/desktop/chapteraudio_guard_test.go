@@ -36,10 +36,12 @@ func TestOnlyReadsThatMeanOneTrackAskForTheLinkedTrackAlone(t *testing.T) {
 			}
 			return nil
 		}
-		if !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") && path != "chapteraudio_guard_test.go" {
+		// Windows walks with backslashes: every comparison below is on the slash form.
+		slash := filepath.ToSlash(path)
+		if !strings.HasSuffix(slash, ".go") || strings.HasSuffix(slash, "_test.go") && slash != "chapteraudio_guard_test.go" {
 			return nil
 		}
-		if strings.HasPrefix(path, "internal/") && !strings.HasPrefix(path, "internal/bridge/") && !strings.HasPrefix(path, "internal/dawport/roles.go") {
+		if strings.HasPrefix(slash, "internal/") && !strings.HasPrefix(slash, "internal/bridge/") && slash != "internal/dawport/roles.go" {
 			return nil
 		}
 		text, err := os.ReadFile(path)
@@ -47,7 +49,7 @@ func TestOnlyReadsThatMeanOneTrackAskForTheLinkedTrackAlone(t *testing.T) {
 			return err
 		}
 		if strings.Contains(string(text), ".ChapterTrackState(") || strings.Contains(string(text), "ChapterTrackState(ctx") {
-			found = append(found, filepath.ToSlash(path))
+			found = append(found, slash)
 		}
 		return nil
 	})
