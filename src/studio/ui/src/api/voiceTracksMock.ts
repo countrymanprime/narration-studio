@@ -11,7 +11,9 @@ function validName(text: string): boolean {
 }
 
 /** Every VoiceTracksApi call but the Booth's voice, which needs the links and tracks too (boothVoiceMock.ts). */
-export function createVoiceTracksMock(initial?: Partial<VoiceTracksState>): Omit<VoiceTracksApi, 'boothVoiceSet' | 'boothVoiceGet' | 'boothVoiceAdd'> {
+export function createVoiceTracksMock(
+  initial?: Partial<VoiceTracksState>,
+): Omit<VoiceTracksApi, 'boothVoiceSet' | 'boothVoiceGet' | 'boothVoiceAdd' | 'boothPunchTarget'> {
   let state: VoiceTracksState = { layout: 'flat', narratorCharacter: '', tracks: [], ...initial };
   const snapshot = (): VoiceTracksState => ({ ...state, tracks: state.tracks.map((entry) => ({ ...entry, characters: [...entry.characters] })) });
   return {

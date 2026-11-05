@@ -36,6 +36,9 @@ import {
   takesUnstackedAnswer,
 } from '../fixtures/daw';
 import { notLastAnswer, undoneAnswer } from '../fixtures/dawUndo';
+import { DAW_SETUPS } from '../fixtures/daw';
+import { createMockDawClient } from '../ports/daw';
+import { withFxRange } from '../components/editing/range/fx/fxFixtures';
 import { createExtractionMock } from './extractionMock';
 import type { JobEnded, ScopedSettingField } from './contracts/system';
 import type { ProjectStateState } from './contracts/projectstate';
@@ -44,7 +47,7 @@ import type { WordFxRequest } from './contracts/wordFx';
 import type { ExportRequest } from './contracts/renderEncodeMaster';
 import { WIRE_CHAPTERS, WIRE_FINDINGS, WIRE_ONE_WORD_MISREAD, WIRE_TAKE_REVIEW_FINDINGS, WIRE_TRACKS_PROJECT, WIRE_TRANSCRIPT } from './mockFixtures';
 import { bookmarkSchema as spotBookmarkSchema, bookmarksSchema } from './schemas/bookmarks';
-import { boothVoiceAddedSchema, boothVoiceSchema, voiceTracksStateSchema } from './schemas/voiceTracks';
+import { boothPunchSchema, boothVoiceAddedSchema, boothVoiceSchema, voiceTracksStateSchema } from './schemas/voiceTracks';
 import { createVoiceTracksMock } from './voiceTracksMock';
 import { voiceSampleAnswerSchema, voiceSamplesChangedSchema, voiceSamplesRemovedSchema, voiceSamplesSchema } from './schemas/voiceSamples';
 import { VOICE_SAMPLE_SENTENCES, type VoiceSampleMarkRequest } from './contracts/voiceSamples';
@@ -64,7 +67,7 @@ import {
 import { wordFxChangeSchema, wordFxListSchema, wordFxSchema } from './schemas/wordFx';
 import type { EditStackRecordRequest } from './contracts/editStacks';
 import { passageStackSchema, retryModeAnswerSchema, stackChangeSchema, stackListSchema } from './schemas/editStacks';
-import { markSchema, markThreadDeletedSchema, markTypeSchema, marksSchema, threadMessageSchema } from './schemas/marks';
+import { markSchema, markThreadDeletedSchema, markTypeSchema, marksSchema, marksTypesChangedSchema, threadMessageSchema } from './schemas/marks';
 import { scriptPrepChapterSchema, scriptPrepSchema } from './schemas/scriptPrep';
 import {
   extractionDecisionSchema,
@@ -106,7 +109,7 @@ import {
   workJobSchema,
 } from './schemas/manuscript';
 import { chapterSyncPreviewSchema, chapterSyncStateSchema } from './schemas/chapterSync';
-import { assetCatalogSchema, assetInstallJobSchema, assetVerifyResultSchema } from './schemas/assets';
+import { assetCatalogSchema, assetFolderPickSchema, assetInstallJobSchema, assetMoveStateSchema, assetVerifyResultSchema } from './schemas/assets';
 import { definitionSourceOf, definitionSourceSchema, settingsForScopeSchema } from './schemas/settings';
 import { keymapOverridesSchema } from './schemas/keymap';
 import {
@@ -169,6 +172,7 @@ import {
 } from './schemas/project';
 import {
   creditsAnnouncementsSchema,
+  creditsChangedSchema,
   creditsProjectValuesResultSchema,
   creditsRecordedLengthsSchema,
   creditsSetupStateSchema,
@@ -187,6 +191,7 @@ import {
   guideEntitiesSchema,
   guideMergeResultSchema,
   guidePreviewSchema,
+  guideTypesChangedSchema,
   guideTypesSchema,
   guidePronunciationSchema,
 } from './schemas/storyBible';
@@ -235,7 +240,6 @@ import { providerCapabilitiesSchema } from './schemas/providers';
 import { chainNamesSchema, masteringProvidersSchema } from './schemas/mastering';
 import { recorderDevicesResultSchema, recorderLevelSchema, recorderStateSchema } from './schemas/recording';
 import { projectStateChangedSchema, projectStateStartResultSchema, projectStateStateSchema } from './schemas/projectstate';
-import { retakeLanesListSchema, retakeLanesStartResultSchema, retakeLanesStateSchema } from './schemas/retakelanes';
 import { chapterTagsEmbedResultSchema, chapterTagsPreviewSchema } from './schemas/chaptertags';
 import { dictionaryLookupResultSchema } from './schemas/dictionary';
 import { unknownKeys } from './schemas/strictness';
@@ -1145,7 +1149,11 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     const defaults = await api.guideTypes();
     expectMatches(guideTypesSchema, defaults, 'mock Story Bible types');
     expect(defaults.filter((row) => row.speaks).map((row) => row.name)).toEqual(['Character']);
+    expect(await api.guideTypesChanged()).toBe(false);
+    expect(guideTypesChangedSchema.parse(readGolden('guide-types-changed-default.json'))).toBe(false);
     await api.guideTypeAdd(' Creature ');
+    expect(await api.guideTypesChanged()).toBe(true);
+    expect(guideTypesChangedSchema.parse(readGolden('guide-types-changed.json'))).toBe(true);
     await expect(api.guideTypeAdd('creature')).rejects.toThrow('already');
     await expect(api.guideTypeAdd('Needs Review')).rejects.toThrow('own use');
     await api.guideTypeSetColour('Creature', 'rose');
@@ -1158,6 +1166,7 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     if (character) await expect(api.guideTypeRemove('Person')).rejects.toThrow('in use');
     await api.guideTypeRemove('Creature');
     await expect(api.guideTypeRemove('Creature')).rejects.toThrow('no type');
+    if (!character) expect(await api.guideTypesChanged()).toBe(false);
     expectMatches(guideTypesSchema, await api.guideTypes(), 'mock Story Bible types after edits');
   });
 
@@ -1251,19 +1260,26 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     const templates = await api.creditsTemplates();
     expectMatches(creditTemplatesSchema, templates, 'mock credit templates');
     expect(templates.length).toBeGreaterThan(0);
+    expect(await api.creditsChanged()).toBe(false);
+    expect(creditsChangedSchema.parse(readGolden('credits-changed-default.json'))).toBe(false);
     const created = await api.saveCreditsTemplate('', 'opening', 'My opening', '[Title], by [Author].');
     expectMatches(creditTemplateSchema, created, 'mock saved credit template');
     const updated = await api.saveCreditsTemplate(created.id, 'opening', 'My opening (edited)', '[Title].');
     expect(updated.id).toBe(created.id);
     const duplicated = await api.duplicateCreditsTemplate(templates[0].id);
     expectMatches(creditTemplateSchema, duplicated, 'mock duplicated credit template');
+    expect(await api.creditsChanged()).toBe(true);
+    expect(creditsChangedSchema.parse(readGolden('credits-changed.json'))).toBe(true);
     expect(duplicated.id).not.toBe(templates[0].id);
     await api.deleteCreditsTemplate(created.id);
+    await api.deleteCreditsTemplate(duplicated.id);
+    expect(await api.creditsChanged()).toBe(false);
     expect((await api.creditsTemplates()).some((template) => template.id === created.id)).toBe(false);
 
     const values = await api.creditsProjectValues();
     expectMatches(creditsProjectValuesResultSchema, values, 'mock credits project values');
     const saved = await api.saveCreditsProjectValues({ title: 'Neon', author: 'A. Writer' });
+    expect(await api.creditsChanged()).toBe(true);
     expectMatches(creditsProjectValuesResultSchema.shape.values, saved, 'mock saved credits project values');
     const preview = await api.creditsPreview('[Title], written by [Author], narrated by [Narrator].');
     expectMatches(creditsRenderResultSchema, preview, 'mock credits preview');
@@ -1429,6 +1445,42 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     ]) {
       expectMatches(whisperInstallJobSchema, job, 'mock model install job');
     }
+  });
+
+  it('moving the downloads: the folder picker and the move job, from start to the end, as the mock answers them', async () => {
+    const api = createMockApi();
+    expectMatches(assetFolderPickSchema, await api.assetsFolderPick(), 'mock folder pick');
+    expectMatches(assetMoveStateSchema, await api.assetsMoveState(), 'mock move, idle');
+    const started = await api.assetsMoveStart('D:/Audio/Models');
+    expectMatches(assetMoveStateSchema, started, 'mock move, started');
+    const phases = new Set<string>();
+    for (let step = 0; step < 6; step += 1) {
+      const state = await api.assetsMoveState();
+      expectMatches(assetMoveStateSchema, state, 'mock move, polled');
+      phases.add(state.phase);
+    }
+    expect([...phases]).toEqual(['copying', 'verifying', 'success']);
+    const moved = await api.assetsList();
+    expectMatches(assetCatalogSchema, moved, 'mock asset list after a move');
+    expect([moved.cacheRoot, moved.custom, moved.previousRoot === moved.defaultRoot]).toEqual(['D:/Audio/Models', true, true]);
+    await expect(api.assetsMoveStart('E:/Other')).rejects.toThrow(/old copy/);
+    await api.assetsMoveKeepOld();
+    expect((await api.assetsList()).previousRoot).toBe('');
+    await expect(api.assetsMoveStart('relative')).rejects.toThrow(/full path/);
+    await api.assetsMoveStart('');
+    for (let step = 0; step < 3; step += 1) await api.assetsMoveState();
+    const back = await api.assetsList();
+    expect([back.cacheRoot === back.defaultRoot, back.custom, back.previousRoot]).toEqual([true, false, 'D:/Audio/Models']);
+    await api.assetsMoveDeleteOld();
+    await expect(api.assetsMoveDeleteOld()).rejects.toThrow(/no old copy/i);
+  });
+
+  it('a move can be cancelled and the folder stays', async () => {
+    const api = createMockApi({}, { assetMove: 'copying' });
+    await api.assetsMoveStart('D:/Audio/Models');
+    expectMatches(assetMoveStateSchema, await api.assetsMoveCancel(), 'mock move, cancelled');
+    const list = await api.assetsList();
+    expect([list.custom, list.previousRoot]).toEqual([false, '']);
   });
 
   it('the list of every approved asset, its install job and a verify', async () => {
@@ -1862,32 +1914,6 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     for (const seed of ['launched', 'error'] as const) {
       expectMatches(cleanupToolsStateSchema, await createMockApi({}, { cleanupTools: seed }).cleanupToolsState(), `mock cleanup-tools seed ${seed}`);
     }
-  });
-
-  it('the retake-lane list and state through a pick, and their seeded states', async () => {
-    vi.useFakeTimers();
-    const api = createMockApi();
-    const seen: unknown[] = [];
-    api.subscribeRetakeLanes((state) => seen.push(structuredClone(state)));
-    const list = await api.retakeLanesList();
-    expectMatches(retakeLanesListSchema, list, 'mock retake-lanes list');
-    const [line] = list.lines;
-    expectMatches(retakeLanesStartResultSchema, await api.retakeLanesPick(line.lineId, line.retakes[1].itemGuid), 'mock retake-lane pick start');
-    await vi.advanceTimersByTimeAsync(300);
-    expect(seen.length).toBeGreaterThan(2);
-    for (const state of seen) expectMatches(retakeLanesStateSchema, state, 'mock retakelanes:state');
-    expectMatches(retakeLanesStateSchema, await api.retakeLanesState(), 'mock retake-lanes state');
-    for (const seed of ['picked', 'error', 'none'] as const) {
-      const seeded = createMockApi({}, { retakeLanes: seed });
-      expectMatches(retakeLanesStateSchema, await seeded.retakeLanesState(), `mock retake-lanes seed ${seed}`);
-      expectMatches(retakeLanesListSchema, await seeded.retakeLanesList(), `mock retake-lanes list seed ${seed}`);
-    }
-  });
-
-  it('retakeLanesPick refuses a retake the list does not hold, the way the Go service does', async () => {
-    const api = createMockApi();
-    const [line] = (await api.retakeLanesList()).lines;
-    await expect(api.retakeLanesPick('line-000099', line.retakes[0].itemGuid)).rejects.toThrow(/not on a fixed-lane track/);
   });
 
   it('the project-state check against the last comparison baseline', async () => {
@@ -2710,6 +2736,9 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const state = await api.deliveryProfiles();
     expectMatches(deliveryProfilesStateSchema, state, 'mock delivery profiles');
     expect(state).toMatchObject({ globalDefault: pinned.globalDefault, projectProfile: 'acx@2026-09', projectChoice: null });
+    expect(pinned.shippedDefault).toEqual({ id: 'acx', version: '2026-09' });
+    expect(state.shippedDefault).toEqual(pinned.shippedDefault);
+    expect((await api.deliverySelectProfile('global', 'acx', '2026-09')).shippedDefault).toEqual(pinned.shippedDefault);
     const copy = await api.deliveryDuplicateProfile('acx', '2026-09');
     expectMatches(deliveryProfileSchema, copy, 'mock duplicate');
     expect(copy).toMatchObject({ builtIn: false, revision: 1, basedOn: 'acx@2026-09', name: 'ACX (September 2026) copy' });
@@ -3816,6 +3845,54 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(await api.dawLastAction('record_take')).toBe('other');
   });
 
+  // #2945: Keep Take's Undo needs a kind for "use take" (narration_workspace.lua's set_active_take closes its block with it).
+  it('a used take is use_take: it is the last action until the DAW changes again, and the mock undoes it as the host answers', async () => {
+    const client = createMockDawClient(DAW_SETUPS.reaper, { chapterIds: ['5'], candidateIds: ['t-7', 't-8'], findingIds: [] });
+    expect(await client.lastAction('use_take')).toBe('other');
+    expect((await client.useTake('5', 1, 2, 't-8')).undoSteps).toBe(1);
+    expect(await client.lastAction('use_take')).toBe('this');
+    const undone = await client.undoLast('use_take', 1);
+    expectMatches(dawResultSchema, undone, 'mock undo of use_take');
+    expect(undone).toMatchObject({ ok: true, changed: true, message: 'Undid the choice of take in REAPER.' });
+    expect(await client.lastAction('use_take')).toBe('other');
+    // Any later point of the DAW's own makes it refuse with the DAW's sentence, and changes nothing.
+    await client.useTake('5', 1, 2, 't-8');
+    await client.hideTakes('5', 1, 2, 't-8');
+    expect(await client.lastAction('use_take')).toBe('other');
+    expect(await client.undoLast('use_take', 1)).toMatchObject({
+      ok: false,
+      refused: "REAPER's last action is not this one, so it was left alone. Use Edit > Undo in REAPER.",
+    });
+  });
+
+  // #3016: the chain edits of Editing's effects are kinds of their own, each the label its REAPER command closes its undo block with.
+  it('the chain edits are add_range_fx, remove_range_fx, set_fx_param, bypass_fx and enable_fx: each is the last action until the DAW changes again', async () => {
+    const client = createMockDawClient(withFxRange(DAW_SETUPS.reaper, 'native'), {
+      chapterIds: ['5'],
+      candidateIds: [],
+      findingIds: [],
+      fxChains: ['Voice.RfxChain'],
+    });
+    const target = { chapterId: '5', firstToken: 1, lastToken: 2, chainName: 'Voice.RfxChain' };
+    const kinds = ['add_range_fx', 'remove_range_fx', 'set_fx_param', 'bypass_fx', 'enable_fx'] as const;
+    const onlyThis = async (expected: (typeof kinds)[number]) => {
+      for (const kind of kinds) expect(await client.lastAction(kind), `${expected} is on top, so ${kind}`).toBe(kind === expected ? 'this' : 'other');
+    };
+    const first = await client.applyFxToRange({ ...target, fadeMs: 10 });
+    expect(first, JSON.stringify(first)).toMatchObject({ ok: true, undoSteps: 1 });
+    await onlyThis('add_range_fx');
+    await client.setFxRangeParam({ ...target, fx: 0, index: 0, value: 1 });
+    await onlyThis('set_fx_param');
+    await client.bypassFxRange(target, true);
+    await onlyThis('bypass_fx');
+    await client.bypassFxRange(target, false);
+    await onlyThis('enable_fx');
+    expect(await client.undoLast('bypass_fx', 1)).toMatchObject({ ok: false });
+    expect(await client.undoLast('enable_fx', 1)).toMatchObject({ ok: true, message: 'Undid the turning an effect back on in REAPER.' });
+    await client.removeFxFromRange(target);
+    await onlyThis('remove_range_fx');
+  });
+
   it('dawLastAction and dawUndoLast answer a dawLastAction and a dawResult: the host goldens parse, and the mock answers as the host does', async () => {
     expect(dawLastActionSchema.parse(readGolden('daw-last-action-this.json'))).toBe('this');
     expect(dawLastActionSchema.parse(readGolden('daw-last-action-unknown.json'))).toBe('unknown');
@@ -4390,6 +4467,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'boothVoiceSet',
       'boothVoiceGet',
       'boothVoiceAdd',
+      'boothPunchTarget',
       'voiceSamplesList',
       'voiceSampleMark',
       'voiceSampleUpdate',
@@ -4424,6 +4502,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'editingReplacementRemove',
       'replaceFilePeaks',
       'marksList',
+      'marksTypesChanged',
       'marksAdd',
       'marksRemove',
       'marksSaveTypes',
@@ -4464,6 +4543,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'guideRestoreSpeakers',
       'guidePronunciationRestore',
       'guideTypes',
+      'guideTypesChanged',
       'characterListRegions',
       'characterApprove',
       'characterReferences',
@@ -4472,6 +4552,10 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'assetsInstallState',
       'assetsInstallCancel',
       'assetsVerify',
+      'assetsFolderPick',
+      'assetsMoveStart',
+      'assetsMoveState',
+      'assetsMoveCancel',
       'ttsInstall',
       'ttsInstallState',
       'ttsInstallCancel',
@@ -4547,9 +4631,6 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'cleanupToolsState',
       'projectStateCheck',
       'projectStateChangedSince',
-      'retakeLanesList',
-      'retakeLanesPick',
-      'retakeLanesState',
       'chapterTagsPreview',
       'chapterTagsEmbed',
       'coverageStart',
@@ -4673,6 +4754,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'updateJobCancel',
       'updateInstall',
       'creditsTemplates',
+      'creditsChanged',
       'saveCreditsTemplate',
       'duplicateCreditsTemplate',
       'creditsProjectValues',
@@ -4717,6 +4799,8 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'characterRevoke',
       'characterRemoveVoiceData',
       'assetsOpenFolder',
+      'assetsMoveDeleteOld',
+      'assetsMoveKeepOld',
       'assetsRemove',
       'transcriptCancel',
       'coverageCancel',
@@ -4764,7 +4848,6 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'subscribeRenderConfig',
       'subscribeCleanupTools',
       'subscribeProjectState',
-      'subscribeRetakeLanes',
       'subscribeDawCapabilities',
       'subscribeDawTransport',
       'subscribeDawPosition',
@@ -5567,6 +5650,8 @@ describe('the marks bindings', () => {
     const empty = await api.marksList();
     expectMatches(marksSchema, empty, 'mock marks list (empty)');
     expect(empty.types.map((type) => type.key)).toEqual(['stress', 'breath', 'pace', 'emo', 'note', 'ask']);
+    expect(await api.marksTypesChanged()).toBe(false);
+    expect(marksTypesChangedSchema.parse(readGolden('marks-types-changed-default.json'))).toBe(false);
     const later = await api.marksAdd(chapterId, line.id, 6, 10, 'stress', '');
     const question = await api.marksAdd(chapterId, line.id, 0, 4, 'ask', '  Is this right?  ');
     expectMatches(markSchema, question, 'mock marks add');
@@ -5583,6 +5668,8 @@ describe('the marks bindings', () => {
     expectMatches(marksSchema, saved, 'mock marks types');
     expect(saved.marks).toEqual([]);
     expect(saved.types.at(-1)?.key).not.toBe('');
+    expect(await api.marksTypesChanged()).toBe(true);
+    expect(marksTypesChangedSchema.parse(readGolden('marks-types-changed.json'))).toBe(true);
   });
 
   it('the mock refuses what the host refuses and saves nothing', async () => {
@@ -6259,6 +6346,12 @@ describe('the voice tracks bindings', () => {
     const narrator = await api.voiceTracksSetNarrator('alice');
     expectMatches(voiceTracksStateSchema, narrator, 'mock voice tracks narrator');
     expect((await api.voiceTracksSetCharacters('Queen', [])).tracks.map((entry) => entry.track)).toEqual(['Gardeners']);
+  });
+
+  it("the mock's punch target is a passage nobody recorded, through the schema", async () => {
+    const answer = await createMockApi().boothPunchTarget(WIRE_CHAPTERS[0].id, 'p1', 0, 3);
+    expectMatches(boothPunchSchema, answer, 'mock booth punch target');
+    expect(answer.outcome).toBe('never_recorded');
   });
 
   it('the mock refuses what the host refuses, and keeps nothing of it', async () => {

@@ -1,4 +1,4 @@
-import { Button } from '../../primitives/Button';
+import { IconButton } from '../../primitives/IconButton';
 import { Panel } from '../../primitives/Panel';
 import { SectionLabel } from '../../primitives/SectionLabel';
 import { CATEGORIES } from '../registry/categories';
@@ -42,11 +42,7 @@ export function Results({
           <section key={name} aria-label={name} className="flex flex-col">
             <div className="mb-1.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
               <SectionLabel as="h3">{name}</SectionLabel>
-              {category && (
-                <Button variant="secondary" size="sm" onClick={() => onShowCategory(category.id)}>
-                  Show the whole category
-                </Button>
-              )}
+              {category && <IconButton action="showCategory" size="sm" label={`Show the whole ${name} category`} onClick={() => onShowCategory(category.id)} />}
             </div>
             {rows.length > 0 && (
               <Panel flush>

@@ -14,7 +14,7 @@ type Chapter = Pick<ManuscriptChapter, 'id' | 'title' | 'index'> & { subtitle?: 
 export function failingChapter(chapters: readonly Chapter[], files: readonly MeasureFileResult[], profile: DeliveryProfile | null): NextUpInputs['failing'] {
   if (!profile) return null;
   for (const chapter of chapters) {
-    const file = fileOf(chapter, files);
+    const file = fileOf(chapter, files, chapters);
     if (!file || fileVerdict(file) !== 'fail') continue;
     const fails = missesWithLimit(file, profile);
     if (fails.length) return { chapterId: chapter.id, tag: chapterName(chapter), fails };

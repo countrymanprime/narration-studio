@@ -25,6 +25,9 @@ export const creditTemplateSchema = z.object({
 }) satisfies z.ZodType<CreditTemplate>;
 export const creditTemplatesSchema = listFromNull(creditTemplateSchema);
 
+/** CreditsChanged: a JSON boolean. */
+export const creditsChangedSchema = z.boolean();
+
 export const creditsRenderResultSchema = z.object({
   text: z.string(),
   words: z.number(),

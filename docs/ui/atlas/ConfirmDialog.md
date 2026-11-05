@@ -36,6 +36,7 @@ Storybook title: `Primitives/ConfirmDialog`. Source: `src/components/primitives/
 - `src/components/settings/UpdatesPanel.tsx`
 - `src/components/settings/analysis/AnalysisToolsSection.tsx`
 - `src/components/settings/controls/EngineBody.tsx`
+- `src/components/settings/models/ModelsFolder.tsx`
 - `src/components/settings/page/DeleteStoryBibleData.tsx`
 - `src/components/settings/page/ModelsPane.tsx`
 - `src/components/settings/page/ProjectDataPanel.tsx`

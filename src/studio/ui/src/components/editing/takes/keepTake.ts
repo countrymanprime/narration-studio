@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
-import type { DawResult } from '../../../api/contracts/daw';
 import { apiErrorMessage } from '../../../api/errorMessage';
+import { DAW_RESULT_MAX_UNDO_STEPS, type DawResult } from '../../../api/contracts/daw';
 import { overlay } from '../../../overlay/overlayService';
 import { usePort } from '../../../ports/usePort';
 import type { DawClient } from '../../../ports/daw';
@@ -19,6 +19,8 @@ export const LINE_BUSY = 'Still changing this line’s takes. Try again in a mom
 
 /** What keeping needs of the journal. */
 export type KeepJournal = Pick<Journal, 'act' | 'undo'>;
+
+const USE_TAKE_KIND = 'use_take';
 
 async function choose(daw: DawClient, passage: LinePassage, take: LineTake): Promise<Result<DawResult>> {
   let result: DawResult;
@@ -43,6 +45,8 @@ function keepTakeCommand(daw: DawClient, passage: LinePassage, take: LineTake): 
     label: `Kept ${take.label}`,
     touches: [`takes/${passage.id}`],
     daw: true,
+    // One undo point in the DAW's history (narration_workspace.lua's set_active_take, or a lane pick); a keep that changed nothing left none and names no action.
+    dawAction: ({ undoSteps }) => (undoSteps >= 1 && undoSteps <= DAW_RESULT_MAX_UNDO_STEPS ? { kind: USE_TAKE_KIND, steps: undoSteps } : undefined),
     run: () => choose(daw, passage, take),
     ...(before ? { undo: () => choose(daw, passage, before) } : {}),
   };

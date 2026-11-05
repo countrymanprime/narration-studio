@@ -68,6 +68,7 @@ export const deliveryRuleResultSchema = z.object({
 export const deliveryProfilesStateSchema = z.object({
   profiles: listFromNull(deliveryProfileSchema),
   globalDefault: deliveryProfileRefSchema,
+  shippedDefault: deliveryProfileRefSchema,
   hasProject: z.boolean(),
   projectChoice: deliveryProfileRefSchema.nullable(),
   projectProfile: z.string(),

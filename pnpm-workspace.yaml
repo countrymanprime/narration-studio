@@ -15,9 +15,6 @@ allowBuilds:
 # release is not picked up. Matches the Dependabot cooldown for npm's minor and patch updates. To take an urgent
 # security fix sooner, add `name@version` to minimumReleaseAgeExclude for that one install and remove it after.
 minimumReleaseAge: 4320
-# Owner-approved and temporary: stable @wailsio/runtime 3.1.0 was published 2026-11-01. Remove this entry once it is three days old.
-minimumReleaseAgeExclude:
-  - '@wailsio/runtime@3.1.0'
 # Transitive dev-tool dependencies pinned by their parents below the patched version (#1133): nx pins undici,
 # markdownlint-cli2 pins markdown-it, smol-toml, katex and re2js, mermaid pins dompurify, commitlint's ajv pins fast-uri and storybook's
 # docgen plugin pins glob. Each override is a floor (>=), so a parent that moves past it is not held back; drop an entry when

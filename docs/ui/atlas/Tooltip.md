@@ -29,7 +29,6 @@ Storybook title: `Primitives/Tooltip`. Source: `src/components/primitives/Toolti
 - `src/components/booth/ReaderText.tsx`
 - `src/components/booth/bookmarks/BookmarkRibbons.tsx`
 - `src/components/booth/page/CreditsWarning.tsx`
-- `src/components/booth/record/SetupChip.tsx`
 - `src/components/booth/resume/RecordedThroughChip.tsx`
 - `src/components/booth/resume/ResumeOffer.tsx`
 - `src/components/booth/voices/VoiceControl.tsx`
@@ -42,10 +41,10 @@ Storybook title: `Primitives/Tooltip`. Source: `src/components/primitives/Toolti
 - `src/components/editing/takes/prep/PrepControls.tsx`
 - `src/components/editing/takes/split/SplitButton.tsx`
 - `src/components/engine/AudacityLinkCard.tsx`
+- `src/components/engine/EngineChipButton.tsx`
 - `src/components/engine/LiveTracksStatus.tsx`
 - `src/components/engine/VoicesCard.tsx`
 - `src/components/layout/AppShell.tsx`
-- `src/components/layout/EngineChip.tsx`
 - `src/components/master/DiagnosticsSection.tsx`
 - `src/components/master/MasteringApprovalDialog.tsx`
 - `src/components/master/MasteringChain.tsx`
@@ -80,6 +79,7 @@ Storybook title: `Primitives/Tooltip`. Source: `src/components/primitives/Toolti
 - `src/components/script/page/tools/select/MarkMenu.tsx`
 - `src/components/script/page/tools/select/harness.tsx`
 - `src/components/settings/ScopedSetting.tsx`
+- `src/components/settings/models/ModelsFolder.tsx`
 - `src/components/settings/page/StoryBibleTypesPanel.tsx`
 - `src/components/stages/StageEvidence.tsx`
 - `src/components/storybible/GuideDetail.tsx`

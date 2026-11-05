@@ -29,6 +29,7 @@ export function listeningProblem(session: Session): string | undefined {
   if (session.modelNotInstalled && !session.prompt)
     return 'The text cannot follow your voice yet: the speech model is not downloaded. Download it in Settings, or press Space and you will be asked.';
   if (session.canStart || session.devicesLoading || !session.settingsLoaded) return undefined;
-  if (session.device === '' && session.startReason === NO_MIC) return 'Choose the microphone the Booth listens to in Levels, so the text follows your voice.';
+  if (session.device === '' && session.startReason === NO_MIC)
+    return 'Choose the microphone the Booth listens to in Record options, so the text follows your voice.';
   return `The text cannot follow your voice: ${session.startReason}`;
 }

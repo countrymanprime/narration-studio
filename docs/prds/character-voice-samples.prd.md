@@ -194,7 +194,7 @@ Every cell is built and tested, or marked "not tested" with its reason, in the p
 | Booth, in the picker | `Mod+Enter` | Plays the highlighted character's primary sample without choosing them; `Enter` still chooses |
 | Anywhere a sample plays | `Esc` | Stops it |
 
-- Space stays Record in the Booth and is never bound to a sample, because the foot pedal maps to Space only ([Booth PRD](studio-next-booth.prd.md)).
+- Space stays Record in the Booth and is never bound to a sample, because the foot pedal maps to Space only (Booth PRD).
 - A play control is an `IconButton` named "Play voice sample: angry, to the Duke, 7 seconds", and "Stop" while it plays. A polite live region says "Playing voice sample for Hatter" and "Voice sample finished". The progress is real (`currentTime` over `duration`, [Design principles](../architecture/principles.md)), a bar and no animation, so reduced motion needs no case.
 - A listbox option cannot hold a button, so a picker row's play control is a mouse affordance with `tabIndex={-1}` and `aria-hidden`; the option's description says "Has 3 voice samples. Press Control Enter to hear it", and `Mod+Enter` is the keyboard path. The `Listbox` primitive gains an optional per-option trailing action for this ([Base UI wrappers](../design/design-system.md#base-ui-wrappers), [Base UI wrappers](../design/design-system.md#base-ui-wrappers)).
 - The dialog is the modal shell: its role tree is pinned by an ARIA snapshot ([Verification and code-health tooling](../operations/verification-tooling.md)) and every state is run through axe ([CI and releases](../operations/ci-and-releases.md)).

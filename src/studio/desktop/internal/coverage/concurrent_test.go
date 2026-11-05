@@ -3,6 +3,7 @@ package coverage
 import (
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -230,5 +231,30 @@ func TestEachRunsStateAndEndAreReportedOnce(t *testing.T) {
 		if count != 1 {
 			t.Fatalf("run %s ended %d times", id, count)
 		}
+	}
+}
+
+// Wait returns only after the state callback for a run's end has returned. finish removes the run from the service before it reports
+// the end, so a Wait that joined only the runs still listed could return while the callback was still reading the host (the race behind
+// issues 3018 and 3019).
+func TestWaitReturnsOnlyAfterTheCallbackForARunsEndHasReturned(t *testing.T) {
+	p := newTestProject(t)
+	service := p.service(&fakeSidecar{})
+	var ended atomic.Bool
+	service.changed = func(state State) {
+		if state.Phase == PhaseComplete {
+			time.Sleep(100 * time.Millisecond)
+			ended.Store(true)
+		}
+	}
+	if _, err := service.Start(testRequest()); err != nil {
+		t.Fatal(err)
+	}
+	for service.Busy() {
+		time.Sleep(time.Millisecond)
+	}
+	service.Wait()
+	if !ended.Load() {
+		t.Fatal("Wait returned while the callback for the run's end was still running")
 	}
 }

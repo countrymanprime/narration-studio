@@ -70,6 +70,9 @@ export type Marks = {
 };
 
 export interface MarksApi {
+  /** Whether the types differ from the six a project starts with: any key, name, colour, style or asks flag, or the order or count.
+   * Settings > Changed reads it. It only reads the file: it never brings old notes across, writes or loads the manuscript. */
+  marksTypesChanged(): Promise<boolean>;
   /** The types and every mark, each checked against the current manuscript. The first read of a project with no marks file
    * brings the reader's old notes across once, as note marks. */
   marksList(): Promise<Marks>;
