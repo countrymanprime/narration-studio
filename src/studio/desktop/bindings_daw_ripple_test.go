@@ -99,12 +99,6 @@ func twoVoiceItems() []dawport.TrackItem {
 	return items
 }
 
-func oneVoiceItems() []dawport.TrackItem {
-	items := splitItems()
-	items[0].TrackGUID, items[1].TrackGUID = voiceA, voiceA
-	return items
-}
-
 func TestShorteningAGapOnSeveralVoicesSendsTheChaptersFolderSoEveryVoiceMovesUp(t *testing.T) {
 	role := &fakeRangeCutter{answer: trimInREAPER()}
 	items := twoVoiceItems()
