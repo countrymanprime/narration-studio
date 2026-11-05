@@ -2991,6 +2991,8 @@
       "source": "src/components/editing/ribbon/RibbonRange.stories.tsx",
       "stories": [
         "No Range",
+        "Long Take Name",
+        "Short Take Name",
         "Range",
         "Zoomed In",
         "Handle Focused",
