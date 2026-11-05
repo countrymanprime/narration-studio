@@ -78,8 +78,10 @@ type assetProvider interface {
 	remove(id string) error
 }
 
-// assetRegistry holds every asset provider. It is built once, when the app starts, and never replaced: the managers are not
-// project-scoped (a project switch leaves the downloaded assets where they are), so no binding needs the lock to read them.
+// assetRegistry holds every asset provider. It is built when the app starts and built again, as a whole, when the narrator moves the
+// models folder (assetfolder.go); it is never changed in place. The managers are not project-scoped (a project switch leaves the
+// downloaded assets where they are). A caller that looks something up and acts on it later passes the registry on (installSpec.registry),
+// so an action that began before a move is refused after it.
 type assetRegistry struct {
 	// base is the per-user cache folder every provider keeps its assets under.
 	base string
@@ -182,7 +184,7 @@ func (r *assetRegistry) catalogUnavailable(what string) error {
 	return fmt.Errorf("the approved %s catalog is unavailable", what)
 }
 
-// registry is the asset registry: set once at start, so it is read like the other set-once fields. Before start (a test that builds a
+// registry is the asset registry: set at start and replaced whole by a move of the models folder, so it is read under the lock. Before start (a test that builds a
 // Host by hand) it is empty and every asset is unavailable.
 func (h *Host) registry() *assetRegistry {
 	h.mu.RLock()

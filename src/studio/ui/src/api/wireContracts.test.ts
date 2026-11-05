@@ -109,7 +109,7 @@ import {
   workJobSchema,
 } from './schemas/manuscript';
 import { chapterSyncPreviewSchema, chapterSyncStateSchema } from './schemas/chapterSync';
-import { assetCatalogSchema, assetInstallJobSchema, assetVerifyResultSchema } from './schemas/assets';
+import { assetCatalogSchema, assetFolderPickSchema, assetInstallJobSchema, assetMoveStateSchema, assetVerifyResultSchema } from './schemas/assets';
 import { definitionSourceOf, definitionSourceSchema, settingsForScopeSchema } from './schemas/settings';
 import { keymapOverridesSchema } from './schemas/keymap';
 import {
@@ -1431,6 +1431,42 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     ]) {
       expectMatches(whisperInstallJobSchema, job, 'mock model install job');
     }
+  });
+
+  it('moving the downloads: the folder picker and the move job, from start to the end, as the mock answers them', async () => {
+    const api = createMockApi();
+    expectMatches(assetFolderPickSchema, await api.assetsFolderPick(), 'mock folder pick');
+    expectMatches(assetMoveStateSchema, await api.assetsMoveState(), 'mock move, idle');
+    const started = await api.assetsMoveStart('D:/Audio/Models');
+    expectMatches(assetMoveStateSchema, started, 'mock move, started');
+    const phases = new Set<string>();
+    for (let step = 0; step < 6; step += 1) {
+      const state = await api.assetsMoveState();
+      expectMatches(assetMoveStateSchema, state, 'mock move, polled');
+      phases.add(state.phase);
+    }
+    expect([...phases]).toEqual(['copying', 'verifying', 'success']);
+    const moved = await api.assetsList();
+    expectMatches(assetCatalogSchema, moved, 'mock asset list after a move');
+    expect([moved.cacheRoot, moved.custom, moved.previousRoot === moved.defaultRoot]).toEqual(['D:/Audio/Models', true, true]);
+    await expect(api.assetsMoveStart('E:/Other')).rejects.toThrow(/old copy/);
+    await api.assetsMoveKeepOld();
+    expect((await api.assetsList()).previousRoot).toBe('');
+    await expect(api.assetsMoveStart('relative')).rejects.toThrow(/full path/);
+    await api.assetsMoveStart('');
+    for (let step = 0; step < 3; step += 1) await api.assetsMoveState();
+    const back = await api.assetsList();
+    expect([back.cacheRoot === back.defaultRoot, back.custom, back.previousRoot]).toEqual([true, false, 'D:/Audio/Models']);
+    await api.assetsMoveDeleteOld();
+    await expect(api.assetsMoveDeleteOld()).rejects.toThrow(/no old copy/i);
+  });
+
+  it('a move can be cancelled and the folder stays', async () => {
+    const api = createMockApi({}, { assetMove: 'copying' });
+    await api.assetsMoveStart('D:/Audio/Models');
+    expectMatches(assetMoveStateSchema, await api.assetsMoveCancel(), 'mock move, cancelled');
+    const list = await api.assetsList();
+    expect([list.custom, list.previousRoot]).toEqual([false, '']);
   });
 
   it('the list of every approved asset, its install job and a verify', async () => {
@@ -4497,6 +4533,10 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'assetsInstallState',
       'assetsInstallCancel',
       'assetsVerify',
+      'assetsFolderPick',
+      'assetsMoveStart',
+      'assetsMoveState',
+      'assetsMoveCancel',
       'ttsInstall',
       'ttsInstallState',
       'ttsInstallCancel',
@@ -4739,6 +4779,8 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'characterRevoke',
       'characterRemoveVoiceData',
       'assetsOpenFolder',
+      'assetsMoveDeleteOld',
+      'assetsMoveKeepOld',
       'assetsRemove',
       'transcriptCancel',
       'coverageCancel',

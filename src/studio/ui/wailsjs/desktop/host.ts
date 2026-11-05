@@ -32,6 +32,14 @@ import * as voicesample$0 from "./internal/voicesample/models.js";
 import * as $models from "./models.js";
 
 /**
+ * AssetsFolderPick asks the narrator for the folder to move the downloads to, in the system's folder dialog, and answers with its path
+ * (empty when they cancelled). It changes nothing: AssetsMoveStart does, when the narrator has confirmed.
+ */
+export function AssetsFolderPick(): $CancellablePromise<string> {
+    return $Call.ByID(2597265850);
+}
+
+/**
  * AssetsInstall starts installing one asset, or repairs it when it is damaged, and answers with its job. A second call for an asset that is
  * already downloading joins that job. The narrator asked for it: nothing else starts a download.
  */
@@ -54,6 +62,44 @@ export function AssetsInstallState(jobID: string): $CancellablePromise<string> {
  */
 export function AssetsList(): $CancellablePromise<string> {
     return $Call.ByID(2175855371);
+}
+
+/**
+ * AssetsMoveCancel stops the move while it copies or checks. The old folder stays in use and nothing is left in the new one.
+ */
+export function AssetsMoveCancel(): $CancellablePromise<string> {
+    return $Call.ByID(3475958456);
+}
+
+/**
+ * AssetsMoveDeleteOld deletes the copy a finished move left in the old folder, after the narrator confirmed it: the asset folders in it
+ * and nothing else. It refuses while that folder is the one in use.
+ */
+export function AssetsMoveDeleteOld(): $CancellablePromise<string> {
+    return $Call.ByID(1769046022);
+}
+
+/**
+ * AssetsMoveKeepOld ends the offer to delete the old copy and leaves it where it is.
+ */
+export function AssetsMoveKeepOld(): $CancellablePromise<string> {
+    return $Call.ByID(1597581696);
+}
+
+/**
+ * AssetsMoveStart starts moving the downloads to the folder at target (the default folder when target is empty), and answers with the
+ * job. Every file is copied, checked against the original, and only then is the new folder used by every download kind; the old folder
+ * is never changed. A target that cannot work, a download in progress and a second move are refused.
+ */
+export function AssetsMoveStart(target: string): $CancellablePromise<string> {
+    return $Call.ByID(1343153266, target);
+}
+
+/**
+ * AssetsMoveState is the move that is running, or how the last one ended.
+ */
+export function AssetsMoveState(): $CancellablePromise<string> {
+    return $Call.ByID(1023495935);
 }
 
 /**

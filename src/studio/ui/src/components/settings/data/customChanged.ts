@@ -5,6 +5,7 @@ import type { PortOf } from '../../../ports';
 import type { DeliveryProfilesState } from '../../../types';
 import { DELIVERY_PROFILES_CHANGED } from '../DeliveryProfilesPanel';
 import { MW_KEY_CHANGED } from '../controls/mwKeyStatus';
+import { MODELS_FOLDER_CHANGED } from '../models/AssetsStore';
 import { useChapterSync } from '../../../hooks/useChapterSync';
 import type { VoiceTracksState } from '../../../api/contracts/voiceTracks';
 import { subscribeRateBasis } from '../../schedule/useEffectiveWph';
@@ -16,7 +17,7 @@ import type { ReadSettings } from './values';
 
 /** What a probe may look at: the ports it reads through, the fields the page already read, and the delivery profiles (read once per pass). */
 export type ProbeContext = {
-  api: PortOf<'system'> & PortOf<'dawChoice'> & PortOf<'deliveryProfiles'> & PortOf<'pronunciationOnline'> & PortOf<'production'>;
+  api: PortOf<'system'> & PortOf<'dawChoice'> & PortOf<'deliveryProfiles'> & PortOf<'pronunciationOnline'> & PortOf<'production'> & PortOf<'assets'>;
   settings: ReadSettings;
   delivery: () => Promise<DeliveryProfilesState>;
 };
@@ -32,6 +33,8 @@ export const CUSTOM_CHANGED: Readonly<Record<string, (context: ProbeContext) => 
   'look.zoom': async ({ api }) => (await api.windowZoom()).level !== 1,
   // This computer: some command's keys were changed from the default.
   'keys.map': ({ settings }) => settings.global?.Keymap?.some((field) => field.isSet) === true,
+  // This computer: the downloads were moved out of the default folder.
+  'models.folder': async ({ api }) => (await api.assetsList()).custom,
   // This computer: a Merriam-Webster key is saved.
   'voice.mwKey': async ({ api }) => (await api.pronunciationOnlineKeyStatus()).present,
   // This computer: the narrator added a profile of their own.
@@ -123,9 +126,10 @@ export function useCustomChanged(settings: ReadSettings): ReadonlySet<string> {
   const delivery = usePort('deliveryProfiles');
   const pronunciation = usePort('pronunciationOnline');
   const production = usePort('production');
+  const assets = usePort('assets');
   const api = useMemo(
-    () => ({ ...system, ...dawChoice, ...delivery, ...pronunciation, ...production }),
-    [system, dawChoice, delivery, pronunciation, production],
+    () => ({ ...system, ...dawChoice, ...delivery, ...pronunciation, ...production, ...assets }),
+    [system, dawChoice, delivery, pronunciation, production, assets],
   );
   const { setup: voiceSetup } = useVoiceSetup();
   const chapterSync = usePort('chapterSync');
@@ -137,7 +141,7 @@ export function useCustomChanged(settings: ReadSettings): ReadonlySet<string> {
 
   useEffect(() => {
     const bump = () => setAgain((n) => n + 1);
-    const events = [DELIVERY_PROFILES_CHANGED, MW_KEY_CHANGED];
+    const events = [DELIVERY_PROFILES_CHANGED, MW_KEY_CHANGED, MODELS_FOLDER_CHANGED];
     for (const name of events) window.addEventListener(name, bump);
     const stop = onEngineChanged(bump);
     const stopBasis = subscribeRateBasis(bump);

@@ -470,6 +470,20 @@ export const ROWS: readonly SettingMeta[] = [
     syn: 'api secret online dictionary',
   },
 
+  // ---- Models & downloads
+  {
+    id: 'models.folder',
+    cat: 'models',
+    section: 'Where downloads are kept',
+    label: 'Models folder location',
+    scope: 'computer',
+    def: '',
+    desc: 'Where models, voices and tools are kept on this computer.',
+    more: 'Choose Change location to copy everything the app has downloaded to another folder. Every file is checked against the original, and only then is the new folder used, at once and for every download. Nothing is downloaded again. The old copy stays where it was until you delete it, and cancelling or a failure leaves everything as it was. The reset button moves it back to the default folder the same way.',
+    used: [],
+    syn: 'location folder directory path move change keep bigger drive disk storage downloads download location cache relocate',
+  },
+
   // ---- Delivery
   {
     id: 'delivery.profile',

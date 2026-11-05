@@ -130,7 +130,7 @@ import {
 } from './schemas/production';
 import { workspaceSnapResultSchema } from './schemas/workspaceSnap';
 import { findingMarkerSchema, findingNavigationSchema, findingSchema, findingsPageSchema, findingsSummarySchema } from './schemas/findings';
-import { assetCatalogSchema, assetInstallJobSchema, assetVerifyResultSchema } from './schemas/assets';
+import { assetCatalogSchema, assetFolderPickSchema, assetInstallJobSchema, assetMoveStateSchema, assetVerifyResultSchema } from './schemas/assets';
 import { ttsInstallJobSchema } from './schemas/tts';
 import { updateJobSchema, updateStatusSchema } from './schemas/update';
 import { startResultSchema, whisperInstallJobSchema } from './schemas/whisper';
@@ -406,6 +406,12 @@ export const wailsClient: NarrationApi = {
   assetsInstallCancel: (jobId) => decode(assetInstallJobSchema, 'AssetsInstallCancel', host.AssetsInstallCancel(jobId)),
   assetsVerify: (kind, id) => decode(assetVerifyResultSchema, 'AssetsVerify', host.AssetsVerify(kind, id)),
   assetsOpenFolder: () => decode(voidResult, 'AssetsOpenFolder', host.AssetsOpenFolder()),
+  assetsFolderPick: () => decode(assetFolderPickSchema, 'AssetsFolderPick', host.AssetsFolderPick()),
+  assetsMoveStart: (target) => decode(assetMoveStateSchema, 'AssetsMoveStart', host.AssetsMoveStart(target)),
+  assetsMoveState: () => decode(assetMoveStateSchema, 'AssetsMoveState', host.AssetsMoveState()),
+  assetsMoveCancel: () => decode(assetMoveStateSchema, 'AssetsMoveCancel', host.AssetsMoveCancel()),
+  assetsMoveDeleteOld: () => decode(voidResult, 'AssetsMoveDeleteOld', host.AssetsMoveDeleteOld()),
+  assetsMoveKeepOld: () => decode(voidResult, 'AssetsMoveKeepOld', host.AssetsMoveKeepOld()),
   assetsRemove: (kind, id) => decode(voidResult, 'AssetsRemove', host.AssetsRemove(kind, id)),
   transcriptStart: (options) => decode(startResultSchema, 'TranscriptStart', host.TranscriptStart(options)),
   transcriptCancel: () => decode(voidResult, 'TranscriptCancel', host.TranscriptCancel()),

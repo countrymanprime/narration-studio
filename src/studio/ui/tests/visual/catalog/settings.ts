@@ -230,6 +230,34 @@ export const settingsStates: StateEntry[] = [
   },
   {
     page: 'settings',
+    state: 'models-folder-asking',
+    description:
+      'Settings, Models & downloads: the question Change location asks on the Models folder row before the system folder dialog opens, with Cancel as the default',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
+    state: 'models-moving',
+    description:
+      'Settings, Models & downloads while the downloads are moved to another folder (?mockMove=copying): the work dialog with a progress bar, the bytes of both passes and Cancel',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
+    state: 'models-moved',
+    description:
+      'Settings, Models & downloads after a move (?mockMove=moved): the Models folder row marked Changed with the new folder, the reset button, and the old copy waiting with Delete old copy and Keep it',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
+    state: 'models-move-failed',
+    description:
+      'Settings, Models & downloads after a move failed (?mockMove=fails): the work dialog says the disk filled up and that the models are still where they were, with Close',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
     state: 'models-remove-refused',
     description:
       'Settings, Models & downloads after Remove was confirmed on the only installed transcription model: an alert says it was not removed and names the setting that needs it',

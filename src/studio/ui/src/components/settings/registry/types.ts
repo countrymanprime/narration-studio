@@ -56,7 +56,7 @@ export type OptionNote = { label?: string; asset?: AssetRef };
 
 export type SettingMeta = {
   id: string;
-  cat: Exclude<CategoryId, 'models' | 'pages'>;
+  cat: Exclude<CategoryId, 'pages'>;
   section: string;
   /** The label shown; the host's own label is the fallback. */
   label: string;

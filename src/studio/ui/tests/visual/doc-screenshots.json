@@ -659,6 +659,27 @@
   },
   {
     "page": "settings",
+    "state": "models-folder-asking",
+    "viewport": "desktop",
+    "docName": "settings-models-folder-asking",
+    "caption": "Settings - Models & downloads: Change location asks before it opens the folder dialog"
+  },
+  {
+    "page": "settings",
+    "state": "models-moving",
+    "viewport": "desktop",
+    "docName": "settings-models-moving",
+    "caption": "Settings - Models & downloads while the downloads are being moved: a progress bar and Cancel"
+  },
+  {
+    "page": "settings",
+    "state": "models-moved",
+    "viewport": "desktop",
+    "docName": "settings-models-moved",
+    "caption": "Settings - Models & downloads after a move: the new folder in use and the old copy waiting for an answer"
+  },
+  {
+    "page": "settings",
     "state": "delivery-profile-editor",
     "viewport": "desktop",
     "docName": "settings-delivery-profile",

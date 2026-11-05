@@ -174,6 +174,8 @@ Storybook title: `Primitives/Button`. Source: `src/components/primitives/Button.
 - `src/components/settings/controls/MwKeyBody.tsx`
 - `src/components/settings/controls/SampleOutputBody.tsx`
 - `src/components/settings/models/AssetRow.tsx`
+- `src/components/settings/models/ModelsFolder.tsx`
+- `src/components/settings/models/MoveEndedDialog.tsx`
 - `src/components/settings/page/CategoryPane.tsx`
 - `src/components/settings/page/DeleteStoryBibleData.tsx`
 - `src/components/settings/page/ModelsPane.tsx`

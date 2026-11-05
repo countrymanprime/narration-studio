@@ -237,7 +237,7 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
       </fieldset>
     );
   } else if (cat === 'models') {
-    content = <ModelsPane category={category!} />;
+    content = <ModelsPane category={category!} lit={lit} />;
   } else {
     content = (
       <fieldset disabled={broken} className="m-0 flex min-w-0 flex-col gap-4 border-0 p-0 disabled:opacity-55">

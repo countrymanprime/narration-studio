@@ -426,6 +426,8 @@
         "src/components/settings/controls/MwKeyBody.tsx",
         "src/components/settings/controls/SampleOutputBody.tsx",
         "src/components/settings/models/AssetRow.tsx",
+        "src/components/settings/models/ModelsFolder.tsx",
+        "src/components/settings/models/MoveEndedDialog.tsx",
         "src/components/settings/page/CategoryPane.tsx",
         "src/components/settings/page/DeleteStoryBibleData.tsx",
         "src/components/settings/page/ModelsPane.tsx",
@@ -740,6 +742,7 @@
         "src/components/settings/UpdatesPanel.tsx",
         "src/components/settings/analysis/AnalysisToolsSection.tsx",
         "src/components/settings/controls/EngineBody.tsx",
+        "src/components/settings/models/ModelsFolder.tsx",
         "src/components/settings/page/DeleteStoryBibleData.tsx",
         "src/components/settings/page/ModelsPane.tsx",
         "src/components/settings/page/ProjectDataPanel.tsx",
@@ -996,6 +999,7 @@
         "src/components/script/page/tools/select/MarksDialog.tsx",
         "src/components/settings/DeliveryProfileEditor.tsx",
         "src/components/settings/analysis/ConsentDialog.tsx",
+        "src/components/settings/models/MoveEndedDialog.tsx",
         "src/components/storybible/Relationships.tsx",
         "src/components/storybible/voicesamples/EditVoiceSampleDialog.tsx",
         "src/components/storybible/voicesamples/MoveVoiceSampleDialog.tsx",
@@ -1671,7 +1675,9 @@
         "src/components/settings/controls/DefinitionsBody.tsx",
         "src/components/settings/controls/ProjectBodies.tsx",
         "src/components/settings/controls/SyncEnabledBody.tsx",
+        "src/components/settings/controls/modelsControls.tsx",
         "src/components/settings/models/AssetRow.tsx",
+        "src/components/settings/models/ModelsFolder.tsx",
         "src/components/settings/page/MarksPanel.tsx",
         "src/components/settings/page/ModelsPane.tsx",
         "src/components/settings/page/PagesPane.tsx",
@@ -3345,6 +3351,7 @@
         "src/components/proof/frame/ProofSkeleton.tsx",
         "src/components/schedule/ScheduleSkeleton.tsx",
         "src/components/script/page/layout/ScriptSkeleton.tsx",
+        "src/components/settings/controls/modelsControls.tsx",
         "src/components/settings/page/ModelsPane.tsx",
         "src/components/settings/page/SettingsPage.tsx",
         "src/components/storybible/GuideSkeleton.tsx"
@@ -4307,6 +4314,7 @@
         "src/components/script/page/tools/select/MarkMenu.tsx",
         "src/components/script/page/tools/select/harness.tsx",
         "src/components/settings/ScopedSetting.tsx",
+        "src/components/settings/models/ModelsFolder.tsx",
         "src/components/settings/page/StoryBibleTypesPanel.tsx",
         "src/components/stages/StageEvidence.tsx",
         "src/components/storybible/GuideDetail.tsx",
@@ -4496,7 +4504,8 @@
         "src/components/assets/AssetInstallPrompt.tsx",
         "src/components/production/ManuscriptImport.tsx",
         "src/components/settings/UpdateDownloadDialog.tsx",
-        "src/components/settings/UpdatesPanel.tsx"
+        "src/components/settings/UpdatesPanel.tsx",
+        "src/components/settings/models/ModelsFolder.tsx"
       ],
       "a11yDebt": false
     }
