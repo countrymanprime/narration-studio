@@ -76,16 +76,20 @@ type stackSources struct {
 	saved    func() (tracks.Project, error)
 }
 
-// stackSourcesIn reads svc's passage map against the current manuscript, the chapter's one linked track through the
+// stackSourcesIn reads svc's passage map against the current manuscript, the chapter's audio (its linked track, or the voices inside its linked folder) through the
 // track_state role (trackState is that capability's support), and the selected .rpp.
 func (h *Host) stackSourcesIn(svc hostServices, trackState dawport.Support) stackSources {
-	return h.stackSourcesReading(svc, trackState, func(ctx context.Context, reader trackStateReader, guid string) (dawport.TrackState, error) {
-		return reader.ChapterTrackState(ctx, guid)
-	})
+	return h.stackSourcesReading(svc, trackState, chapterItemsRead)
 }
 
-// stackSourcesReading is stackSourcesIn with the live read given: a command that edits an item reads the linked track's own items
-// (stackSourcesIn); a reader of the chapter's audio passes dawport.ChapterAudioState, which also reads a folder of voices.
+// chapterItemsRead is the live read an edit plans from: the linked track's items, and for a chapter linked to a folder of voices the items of
+// every track inside it, each carrying its track (dawport.ChapterAudioState). The Lua edit commands name an item by GUID and act on that item's
+// own track, so a voice's item is edited where it is (#3043).
+func chapterItemsRead(ctx context.Context, reader trackStateReader, guid string) (dawport.TrackState, error) {
+	return dawport.ChapterAudioState(ctx, reader, guid)
+}
+
+// stackSourcesReading is stackSourcesIn with the live read given, so a test can pass its own.
 func (h *Host) stackSourcesReading(svc hostServices, trackState dawport.Support, read func(context.Context, trackStateReader, string) (dawport.TrackState, error)) stackSources {
 	return stackSources{
 		passages: func(chapterID string) ([]passagetakes.StackPassage, error) {
@@ -158,6 +162,9 @@ func dawRestackIn(ctx context.Context, svc hostServices, support dawport.Support
 	}
 	if refused != nil {
 		return *refused, nil
+	}
+	if voiceTracksWithAudio(live) > 1 {
+		return rippleRefusal(name, map[bool]string{false: "Stacking takes", true: "Unstacking takes"}[unstack]), nil
 	}
 	in.Live = live
 	plan, act := passagetakes.StackPlan, stacker.StackTakes
