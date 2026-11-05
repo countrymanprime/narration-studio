@@ -32,8 +32,8 @@ the picker.
 - **Check now** and **Download update** under **App & updates** work too. **Install and restart** brings the app back to the
   picker, or to the project it was started with.
 - A **This project** row (Record with, the chapter layout, the project's manuscript and credits, its delivery profile) stays in
-  its place and says **Open a project to change this.** Its control is off. A **Used by** list names the pages without
-  links, and the **In this project** filter is off.
+  its place, described as "a project's", and says **Open a project to change this.** It shows no value, since there is no project to hold one. A **Used by** list names the pages without
+  links, **Also set in** is left out, and the **In this project** filter is off.
 - A **Set on a page** entry that has a computer value and a project value edits the computer's, and says **Open a project to
   set these for a project.** Audacity's backups belong to the project alone and say **Open a project to change this.**
 

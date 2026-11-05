@@ -180,18 +180,6 @@ describe('Settings with no project: the page', () => {
     expect(go).toHaveBeenCalledWith('/');
   });
 
-  it('a project row that is a host field is drawn disabled, not hidden', async () => {
-    await renderPage();
-    pick('Project');
-    const row = await waitFor(() => {
-      const found = rowEl('project.wordsPerPage');
-      if (!found) throw new Error('no row');
-      return found;
-    });
-    expect(within(row).getByText(NEEDS_PROJECT_REASON)).toBeTruthy();
-    expect((within(row).getByRole('textbox') as HTMLInputElement).disabled).toBe(true);
-  });
-
   it('a project that is open is unchanged: no reason, controls live', async () => {
     const api = createMockApi();
     await renderPage({ api });
@@ -213,7 +201,7 @@ describe('Settings with no project: the page', () => {
     expect(filter.getAttribute('aria-pressed')).toBe('false');
   });
 
-  it('ties the reason to the disabled control, so a screen reader announces it', async () => {
+  it('a project-only host field is drawn as its reason, with no value that could read as a real one', async () => {
     await renderPage();
     pick('Project');
     const row = await waitFor(() => {
@@ -221,12 +209,31 @@ describe('Settings with no project: the page', () => {
       if (!found) throw new Error('no row');
       return found;
     });
-    const control = within(row).getByRole('textbox');
-    const described = control
-      .getAttribute('aria-describedby')!
-      .split(' ')
-      .map((id) => document.getElementById(id)?.textContent);
-    expect(described).toContain(NEEDS_PROJECT_REASON);
+    expect(within(row).getByText(NEEDS_PROJECT_REASON)).toBeTruthy();
+    expect(within(row).queryByRole('textbox')).toBeNull();
+    expect(row.textContent).not.toContain('250');
+  });
+
+  it("says nothing of the navigation rail, the header or a page's control as another place to set a setting", async () => {
+    await renderPage();
+    pick('Appearance & keys');
+    const row = await waitFor(() => {
+      const found = rowEl('look.theme');
+      if (!found) throw new Error('no row');
+      return found;
+    });
+    expect(row.textContent).not.toMatch(/Also set in/);
+    expect(row.textContent).not.toMatch(/navigation rail/);
+    expect(document.body.textContent).not.toMatch(/navigation rail/);
+  });
+
+  it('introduces the Project and Delivery categories without an open project', async () => {
+    await renderPage();
+    pick('Project');
+    await screen.findByText('Settings for a project. Open a project to change them.');
+    expect(document.body.textContent).not.toContain('The open project’s');
+    pick('Delivery');
+    await screen.findByText('The standard a project is judged against, and the limits it carries.');
   });
 
   it('describes a project row without saying "this project" when none is open', async () => {
@@ -237,6 +244,13 @@ describe('Settings with no project: the page', () => {
       return found;
     });
     expect(row.textContent).not.toContain('Where this project');
+    pick('Project');
+    const manuscript = await waitFor(() => {
+      const found = rowEl('project.manuscript');
+      if (!found) throw new Error('no row');
+      return found;
+    });
+    expect(manuscript.textContent).toContain('The text a project is recorded from.');
     expect(row.textContent).toContain('Where a project’s recordings live.');
   });
 });
