@@ -180,6 +180,14 @@ export const settingsStates: StateEntry[] = [
   },
   {
     page: 'settings',
+    state: 'editing-checks',
+    description:
+      'Settings, Recording & DAW scrolled to Editing checks: the longest empty gap, leading silence and trailing silence, each a box in seconds, empty until chosen',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
     state: 'models',
     description:
       'Settings, Models & downloads: the disk use panel, the Show filter, and the table of every model, voice and tool with its size, state, who uses it and the one action its state allows',

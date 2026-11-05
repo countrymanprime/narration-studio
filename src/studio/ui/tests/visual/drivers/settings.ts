@@ -281,6 +281,11 @@ export const settingsDrivers: Record<string, Driver> = {
   },
 
   // ---- Models & downloads
+  'editing-checks': async (page) => {
+    await openSettings(page, 'Recording & DAW');
+    const row = await showSettingsRow(page, 'editing.maxGap');
+    await row.getByRole('textbox').waitFor();
+  },
   models: async (page) => {
     await openModels(page);
   },

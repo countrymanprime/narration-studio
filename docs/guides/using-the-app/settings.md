@@ -186,6 +186,10 @@ the last 5 seconds, and the card says whether its open project matches the linke
 
 The Audacity backups and the favourite effects are listed under [Set on a page](#set-on-a-page), where Settings edits them; [Editing](editing.md) has a shortcut to the same settings.
 
+**Editing checks** are three limits the [Editing](editing.md) page measures a chapter against: **Longest empty gap** (silence between words), **Longest leading silence** and **Longest trailing silence**, each in seconds. They are empty until you choose them, and an empty limit is not checked. Each is for this computer, and a project may use its own.
+
+![Settings - Editing checks under Recording & DAW: the longest empty gap, leading silence and trailing silence, each in seconds and empty until chosen](../../images/ui/settings-editing-checks.webp)
+
 ## Speech to text
 
 **Transcription model** is the one default for comparing and checking recordings: Production's recording check,
@@ -261,6 +265,7 @@ The reset button next to **Change location…** moves the downloads back to the 
 ## Delivery
 
 - **Delivery profile** picks the profile this project is judged against, on [Master & QC](master-and-qc.md) and [Delivery](delivery.md), the same choice as Delivery's own menu, with the limits of the chosen profile listed under it.
+- **Render length tolerance** (under **Checks**) is how many seconds a chapter's rendered file may differ in length from the chapter before [Proof](proof.md)'s render length check is not met. It is empty until you choose it, and then that check is not required; a project may use its own.
 - **Default profile for new projects** is what a project that has not chosen its own is judged against (ACX until you change it).
 - **Custom profiles** (Advanced) lists your profiles and the built-in ones to copy. **Duplicate** makes a custom copy and opens it in the editor, where you can rename it, turn a rule off, and change the lowest and highest of a rule that has a range (a length is in minutes); a rule with a fixed value can only be turned off, and a copy cannot add a kind of rule the app does not check. **Edit** and **Delete** work on a custom profile; a project that chose a deleted profile goes back to the default.
 

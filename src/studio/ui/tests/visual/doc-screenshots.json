@@ -211,6 +211,13 @@
   },
   {
     "page": "settings",
+    "state": "editing-checks",
+    "viewport": "desktop",
+    "docName": "settings-editing-checks",
+    "caption": "Settings - Editing checks under Recording & DAW: the longest empty gap, leading silence and trailing silence, each in seconds and empty until chosen"
+  },
+  {
+    "page": "settings",
     "state": "import-choose",
     "viewport": "desktop",
     "docName": "production-import-choose",

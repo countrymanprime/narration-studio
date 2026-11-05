@@ -442,6 +442,60 @@ describe('Settings: editing', () => {
   });
 });
 
+describe('Settings: the checks that had no editor now have a row (issue 1867)', () => {
+  it('lists the empty-space limits under Recording & DAW and the render length tolerance under Delivery, each unset until chosen', async () => {
+    await renderPage();
+    pick('Recording & DAW');
+    for (const id of ['editing.maxGap', 'editing.headMax', 'editing.tailMax']) await waitFor(() => expect(row(id)).toBeTruthy());
+    pick('Delivery');
+    await waitFor(() => expect(row('proofing.renderTolerance')).toBeTruthy());
+  });
+
+  it.each([
+    ['editing.maxGap', 'Recording & DAW', 'Editing', 'max_gap_seconds', '3.5'],
+    ['editing.headMax', 'Recording & DAW', 'Editing', 'head_max_seconds', '2'],
+    ['editing.tailMax', 'Recording & DAW', 'Editing', 'tail_max_seconds', '4.2'],
+    ['proofing.renderTolerance', 'Delivery', 'Proofing', 'render_length_tolerance_seconds', '1.5'],
+  ])('saves %s for the computer, marks it Changed, and Reset puts it back to not checked', async (id, category, tool, key, value) => {
+    const api = createMockApi();
+    const save = vi.spyOn(api, 'saveSettings');
+    await renderPage({ api });
+    pick(category);
+    const box = (await waitFor(() => within(row(id)).getByRole('textbox'))) as HTMLInputElement;
+    fireEvent.change(box, { target: { value } });
+    fireEvent.blur(box);
+    await waitFor(() => expect(save).toHaveBeenCalledWith(tool, 'global', { [key]: value }));
+    await waitFor(() => expect(within(row(id)).getByText('Changed')).toBeTruthy());
+    fireEvent.click(within(row(id)).getByRole('button', { name: /^Reset .* to / }));
+    await waitFor(() => expect(save).toHaveBeenLastCalledWith(tool, 'global', { [key]: null }));
+  });
+
+  // qa-breaker: with the computer value unset, Override copied '' (saved as nothing), said Saved and drew no project box.
+  it.each([
+    ['editing.maxGap', 'Recording & DAW', 'Editing', 'max_gap_seconds'],
+    ['editing.headMax', 'Recording & DAW', 'Editing', 'head_max_seconds'],
+    ['editing.tailMax', 'Recording & DAW', 'Editing', 'tail_max_seconds'],
+    ['proofing.renderTolerance', 'Delivery', 'Proofing', 'render_length_tolerance_seconds'],
+  ])(
+    'Override for this project on the unset %s opens an empty project box, says nothing is saved, and the box saves a project limit',
+    async (id, category, tool, key) => {
+      const api = createMockApi();
+      const save = vi.spyOn(api, 'saveSettings');
+      await renderPage({ api });
+      pick(category);
+      await waitFor(() => expect(row(id)).toBeTruthy());
+      fireEvent.click(within(row(id)).getByRole('button', { name: /^Override for this project/ }));
+      await waitFor(() => expect(within(row(id)).getAllByRole('textbox')).toHaveLength(2));
+      expect(within(row(id)).queryByText('Saved')).toBeNull();
+      expect(save).not.toHaveBeenCalled();
+      const box = within(row(id)).getAllByRole('textbox')[1] as HTMLInputElement;
+      fireEvent.change(box, { target: { value: '2' } });
+      fireEvent.blur(box);
+      await waitFor(() => expect(save).toHaveBeenCalledWith(tool, 'project', { [key]: '2' }));
+    },
+  );
+});
+
 describe('Settings: search and filters', () => {
   it('finds a setting by a word that is not in its name, across categories', async () => {
     await renderPage();
