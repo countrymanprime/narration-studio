@@ -105,7 +105,16 @@ func oneVoiceItems() []dawport.TrackItem {
 	return items
 }
 
-func TestShorteningAGapIsRefusedOnSeveralVoicesAndSendsNothing(t *testing.T) {
+func TestShorteningAGapOnSeveralVoicesSendsTheChaptersFolderSoEveryVoiceMovesUp(t *testing.T) {
+	role := &fakeRangeCutter{answer: trimInREAPER()}
+	items := twoVoiceItems()
+	got, err := dawTrimRangeInFolder(t.Context(), "REAPER", available(), role, splitTrack(&items, nil, nil), voiceFolderTrack, "c-0001", splitItem, 12.5, 14, 6)
+	if err != nil || !got.OK || len(role.cut) != 1 || role.cut[0].ChapterTrack != voiceFolderTrack || role.cut[0].Mode != dawport.CutClose {
+		t.Fatalf("%+v, %v, sent %+v; want a close cut carrying the folder", got, err, role.cut)
+	}
+}
+
+func TestShorteningAGapOnSeveralVoicesWithNoFolderToNameIsRefusedAndSendsNothing(t *testing.T) {
 	role := &fakeRangeCutter{answer: trimInREAPER()}
 	items := twoVoiceItems()
 	got, err := dawTrimRangeIn(t.Context(), "REAPER", available(), role, splitTrack(&items, nil, nil), "c-0001", splitItem, 12.5, 14, 6)
@@ -114,12 +123,12 @@ func TestShorteningAGapIsRefusedOnSeveralVoicesAndSendsNothing(t *testing.T) {
 	}
 }
 
-func TestShorteningAGapOnOneVoiceOfAFolderGoesThrough(t *testing.T) {
+func TestShorteningAGapOnAFlatChapterSendsNoFolder(t *testing.T) {
 	role := &fakeRangeCutter{answer: trimInREAPER()}
-	items := oneVoiceItems()
+	items := splitItems()
 	got, err := dawTrimRangeIn(t.Context(), "REAPER", available(), role, splitTrack(&items, nil, nil), "c-0001", splitItem, 12.5, 14, 6)
-	if err != nil || !got.OK || len(role.cut) != 1 {
-		t.Fatalf("%+v, %v, sent %+v; want the cut sent for an item on the one voice", got, err, role.cut)
+	if err != nil || !got.OK || len(role.cut) != 1 || role.cut[0].ChapterTrack != "" {
+		t.Fatalf("%+v, %v, sent %+v", got, err, role.cut)
 	}
 }
 
@@ -144,20 +153,18 @@ func TestStackingOnOneVoiceOfAFolderGoesThrough(t *testing.T) {
 	}
 }
 
-func TestRipplingEditsOnSeveralVoicesAreRefusedWhereTheLiveItemsAreNotRead(t *testing.T) {
-	// Closing the gap of a cut.
+func TestAClosingCutSendsTheChaptersFolderAndAGapCutDoesNot(t *testing.T) {
 	role := &fakeRangeCutter{answer: cutInREAPER()}
 	host := deleteRangeHost(t, "REAPER", liveReachability(), role)
 	svc := host.services()
-	svc.voicesWithAudio = func(string) int { return 2 }
-	got, err := dawDeleteRangeIn(t.Context(), svc, dawport.Support{Available: true}, role, host.editLog(), "c-0001", 0, 0, string(dawport.CutClose), 12, 0, false)
-	if err != nil || got.OK || !strings.Contains(got.Refused, "more than one voice track") || len(role.cut) != 0 {
-		t.Errorf("close: %+v, %v, sent %+v", got, err, role.cut)
+	svc.chapterFolder = func(string) string { return voiceFolderTrack }
+	closed, err := dawDeleteRangeIn(t.Context(), svc, dawport.Support{Available: true}, role, host.editLog(), "c-0001", 0, 0, string(dawport.CutClose), 12, 0, false)
+	if err != nil || !closed.OK || len(role.cut) != 1 || role.cut[0].ChapterTrack != voiceFolderTrack {
+		t.Fatalf("close: %+v, %v, sent %+v; want the folder", closed, err, role.cut)
 	}
-	// A cut that leaves a gap moves nothing and goes through.
 	gap, err := dawDeleteRangeIn(t.Context(), svc, dawport.Support{Available: true}, role, host.editLog(), "c-0001", 0, 0, string(dawport.CutGap), 12, 0, false)
-	if err != nil || !gap.OK || len(role.cut) != 1 {
-		t.Errorf("gap: %+v, %v, sent %+v", gap, err, role.cut)
+	if err != nil || !gap.OK || len(role.cut) != 2 || role.cut[1].ChapterTrack != "" {
+		t.Fatalf("gap: %+v, %v, sent %+v; want no folder (a gap moves nothing)", gap, err, role.cut)
 	}
 }
 

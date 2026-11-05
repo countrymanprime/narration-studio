@@ -1,5 +1,23 @@
 [
   {
+    "name": "a close cut with the folder moves only the item's own track",
+    "file": "narration_range.lua",
+    "find": "      for _, moved in ipairs(items_from(peer, nil, last_cut)) do",
+    "replace": "      for _, moved in ipairs({}) do"
+  },
+  {
+    "name": "a close cut with the folder lets another voice's audio sit inside the range removed",
+    "file": "narration_range.lua",
+    "find": "      if overlapping(peer, nil, first_cut, last_cut) then",
+    "replace": "      if false then"
+  },
+  {
+    "name": "a cut with a folder accepts an item that is not inside it",
+    "file": "narration_range.lua",
+    "find": "  if not inside then\n    event(session_dir, 'ERROR', run_id, 'The item is not inside the chapter folder, so nothing was cut.')",
+    "replace": "  if false then\n    event(session_dir, 'ERROR', run_id, 'The item is not inside the chapter folder, so nothing was cut.')"
+  },
+  {
     "name": "a stale GUID resolves to another item",
     "file": "narration_line_identity.lua",
     "find": "local item = items[row.guid]\n    if not item then",

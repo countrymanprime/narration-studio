@@ -99,10 +99,11 @@ func dawDeleteRangeIn(ctx context.Context, svc hostServices, support dawport.Sup
 	if cutter == nil {
 		return dawport.Refused(readAloudConnectionRefusal(name, reaperStandalone).Message), nil
 	}
-	if cutMode == dawport.CutClose && savedVoicesWithAudio(svc, chapterID) > 1 {
-		return rippleRefusal(name, "Closing the gap of a cut"), nil
-	}
 	request := dawport.DeleteRangeRequest{RangeRequest: resolved.Request, Mode: cutMode, FadeMs: fadeMs, PadMs: padMs, RoomTone: roomTone}
+	if cutMode == dawport.CutClose {
+		// The later audio of every voice inside the chapter's folder moves up with it (narration_range.lua).
+		request.ChapterTrack = chapterFolderTrack(svc, chapterID)
+	}
 	if _, ok := request.Padded(); !ok {
 		return dawport.Refused(cutPadAllSentence), nil
 	}
@@ -136,8 +137,8 @@ func (h *Host) DawTrimRange(chapterID string, itemID string, start float64, end 
 	defer cancel()
 	run := h.runLog.Begin("trim_range", "chapter_id", chapterID)
 	live := h.stackSourcesIn(svc, resolver.Support(dawport.CapTrackState)).live
-	result, err := dawTrimRangeIn(ctx, readAloudAdapterName(svc), resolver.Support(dawport.CapCutRange), svc.rangeCutter, live,
-		chapterID, itemID, start, end, fadeMs)
+	result, err := dawTrimRangeInFolder(ctx, readAloudAdapterName(svc), resolver.Support(dawport.CapCutRange), svc.rangeCutter, live,
+		chapterFolderTrack(svc, chapterID), chapterID, itemID, start, end, fadeMs)
 	endStackRun(run, result, err)
 	return encodeBinding(result, err)
 }
@@ -145,6 +146,13 @@ func (h *Host) DawTrimRange(chapterID string, itemID string, start float64, end 
 // dawTrimRangeIn is DawTrimRange with the launch's cut_range support, the engine's role (nil with no live adapter) and the track
 // read given. name is the engine's name for the sentences.
 func dawTrimRangeIn(ctx context.Context, name string, support dawport.Support, cutter dawport.RangeCutter, live splitLive,
+	chapterID, itemID string, start, end float64, fadeMs int) (dawport.Result, error) {
+	return dawTrimRangeInFolder(ctx, name, support, cutter, live, "", chapterID, itemID, start, end, fadeMs)
+}
+
+// dawTrimRangeInFolder is dawTrimRangeIn for a chapter whose linked track is the folder chapterTrack: the cut then moves the later audio of every
+// voice inside it. With several voices and no folder to name there is no safe cut, and it is refused.
+func dawTrimRangeInFolder(ctx context.Context, name string, support dawport.Support, cutter dawport.RangeCutter, live splitLive, chapterTrack,
 	chapterID, itemID string, start, end float64, fadeMs int) (dawport.Result, error) {
 	if !support.Available {
 		return dawport.Refused(support.Message), nil
@@ -165,7 +173,7 @@ func dawTrimRangeIn(ctx context.Context, name string, support dawport.Support, c
 	if refused != nil {
 		return *refused, nil
 	}
-	if voiceTracksWithAudio(items) > 1 {
+	if chapterTrack == "" && voiceTracksWithAudio(items) > 1 {
 		return rippleRefusal(name, "Shortening a gap"), nil
 	}
 	wanted := splitGUID(itemID)
@@ -183,7 +191,7 @@ func dawTrimRangeIn(ctx context.Context, name string, support dawport.Support, c
 		return dawport.RefusedStale(fmt.Sprintf(trimOutsideSentence, name)), nil
 	}
 	request := dawport.DeleteRangeRequest{RangeRequest: dawport.RangeRequest{ChapterID: chapterID, ItemGUID: item.ItemGUID, Start: start, End: end},
-		Mode: dawport.CutClose, FadeMs: fadeMs}
+		Mode: dawport.CutClose, FadeMs: fadeMs, ChapterTrack: chapterTrack}
 	result, err := cutter.DeleteRange(ctx, request)
 	if err != nil {
 		return cutRefusal(name, err), nil

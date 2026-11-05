@@ -50,6 +50,26 @@ func savedVoicesWithAudio(svc hostServices, chapterID string) int {
 	return projectVoicesWithAudio(project, link)
 }
 
+// chapterFolderTrack is the GUID of the chapter's linked track when it is a folder in the saved project (a chapter of voices), else "". An edit that
+// moves the audio after it sends it so the script moves the later items of every voice inside, not only the item's own track.
+func chapterFolderTrack(svc hostServices, chapterID string) string {
+	if svc.chapterFolder != nil {
+		return svc.chapterFolder(chapterID)
+	}
+	link, refused, err := readAloudTrackGUID(svc, chapterID)
+	if err != nil || refused != nil {
+		return ""
+	}
+	project, err := selectedProject(svc)
+	if err != nil {
+		return ""
+	}
+	if members, ok := project.WithDescendants(link); ok && len(members) > 0 && members[0].IsFolder {
+		return link
+	}
+	return ""
+}
+
 // projectVoicesWithAudio counts the tracks of the folder link names (or link itself) that hold audio.
 func projectVoicesWithAudio(project tracks.Project, link string) int {
 	members, ok := project.WithDescendants(link)

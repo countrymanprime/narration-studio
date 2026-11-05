@@ -514,6 +514,8 @@ type DeleteRangeRequest struct {
 	FadeMs   int
 	PadMs    int
 	RoomTone bool
+	// ChapterTrack is the GUID of the chapter's folder track when its audio is on voice tracks inside it: a close cut then moves the later items of every one of them.
+	ChapterTrack string
 }
 
 // Padded is the request's range with PadMs taken off each end, and false when the pad leaves nothing of it, for an engine

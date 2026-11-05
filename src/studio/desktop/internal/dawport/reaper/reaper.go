@@ -484,7 +484,7 @@ func (r rangeCutter) DeleteRange(ctx context.Context, request dawport.DeleteRang
 			return refused, nil
 		}
 	}
-	got, err := r.actions.DeleteRange(ctx, request.ItemGUID, request.Start, request.End, bridge.CutMode(request.Mode), request.FadeMs,
+	got, err := r.actions.DeleteRangeInFolder(ctx, request.ChapterTrack, request.ItemGUID, request.Start, request.End, bridge.CutMode(request.Mode), request.FadeMs,
 		request.PadMs, request.RoomTone)
 	var stale *bridge.StaleError
 	var refusal *bridge.RefusalError
