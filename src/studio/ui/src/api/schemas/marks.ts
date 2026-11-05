@@ -57,6 +57,9 @@ export const marksSchema = z
   })
   .strict() satisfies z.ZodType<Marks>;
 
+/** MarksTypesChanged: a JSON boolean. */
+export const marksTypesChangedSchema = z.boolean();
+
 export const markThreadDeletedSchema = z
   .object({
     mark: markSchema,

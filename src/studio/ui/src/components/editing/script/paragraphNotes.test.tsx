@@ -57,7 +57,7 @@ function show(cues: GuideDialogueCue[], marks: Mark[] = [mark()]) {
   });
   render(
     <EditingPageProvider doc={doc}>
-      <ScriptNotesProvider sources={{ marks, markTypes: [TYPE], words: [], entries: ENTRIES, cues, types: TYPES }} chapterId="5">
+      <ScriptNotesProvider sources={{ marks, markTypes: [TYPE], entries: ENTRIES, cues, types: TYPES }} chapterId="5">
         <ScriptDoc />
       </ScriptNotesProvider>
     </EditingPageProvider>,

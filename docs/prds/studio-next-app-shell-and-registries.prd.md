@@ -1,6 +1,6 @@
 # Studio Next App Shell and Registries: Commands, Keys, Jump Menu, Context Menus, Help and Overlays as Data
 
-**Source:** owner request of 2026-10-10 ([Studio Next Rebuild](studio-next-rebuild.prd.md)); the mock's registries and shell: `studio-next/src/app/`, `studio-next/ARCHITECTURE.md` ("Wire into the shared systems"); the owner's rulings of 2026-10-11 (see Decisions).
+**Source:** owner request of 2026-10-10 (Studio Next Rebuild); the mock's registries and shell: `studio-next/src/app/`, `studio-next/ARCHITECTURE.md` ("Wire into the shared systems"); the owner's rulings of 2026-10-11 (see Decisions).
 
 **Builds on / extends:** Input Commands and Pedals (old PRD `input-commands-and-pedals.prd.md`, recoverable from git history) and [Studio shell and registries](../architecture/studio-shell-and-registries.md) (the command registry and keymap, delivered in part), (`ContextMenu`), [Base UI wrappers](../design/design-system.md#base-ui-wrappers), [Design system reference](../design/design-system.md) (overlays), [Design principles](../architecture/principles.md) (navigation groups), [useNavCounts.ts](../../src/studio/ui/src/components/layout/useNavCounts.ts) (rail counts). It does not replace them; it adds the layers the mock proves and the repo lacks.
 
@@ -25,7 +25,7 @@ In the mock, a page adds a command, a key, a right-click menu, a search source o
 4. **Context menu providers.** `registerContextProvider(target-matcher, items)`; one `ContextMenuHost` mounted by the shell resolves the target under the pointer (or the focused element for Menu and Shift+F10, including `aria-activedescendant` as the mock does) and renders the existing `ContextMenu` popup. Each menu ends with the shared tail (jump menu, find). Existing per-area `ContextMenu` uses migrate one at a time.
 5. **Help as data.** `ShortcutSheet`, the Settings key list and the Booth, Proof and Editing key-hint footers read one structured table derived from the catalogue plus per-surface "hint specs" (which keys a footer shows, in which order).
 6. **Overlay service.** `overlay.confirm`, `overlay.toast`, `overlay.toastUndo`, `overlay.announce`, `overlay.open(dialog spec)` as a thin imperative API that renders the existing declarative primitives (`ConfirmDialog`, `Toast`, `Dialog`, `SlideOver`, `Popover`), so a command can open one without being a component, and stacking and focus return stay the primitives' ([Design system reference](../design/design-system.md)).
-7. **History panel.** A slide-over listing undoable entries (label, whether it touched the DAW, undo refusal reason), backed by the journal in [Domain, State and Wire Contracts](studio-next-domain-state-and-contracts.prd.md), opened from the jump menu and the shell.
+7. **History panel.** A slide-over listing undoable entries (label, whether it touched the DAW, undo refusal reason), backed by the journal in Domain, State and Wire Contracts, opened from the jump menu and the shell.
 8. **Shell.** The rail follows `studio-next/src/app/Shell.tsx`: Production, Schedule, then Prep (Script, Story Bible), Record (Booth), Edit (Editing), Review (Proof, Pickups), Finish (Master & QC, Delivery), with counts only on Proof, Pickups and Master & QC, each from a host-reported count ([useNavCounts.ts](../../src/studio/ui/src/components/layout/useNavCounts.ts) rule kept). The rail collapses below 1360 CSS px as the mock does. The open-queries badge on Story Bible is not in the mock and goes with the Story Bible swap. The header gains the Undo and History affordances and the engine chip carries the DAW label from capabilities. Schedule and Delivery rail items are added by their page swaps, not here.
 
 ## Key Hypothesis
@@ -82,7 +82,7 @@ Narrators using the keyboard and the pedal, and every page worker (they consume 
 | Context menu by keyboard | `studio-next/src/app/keys.ts` (`ContextMenu`, Shift+F10) | The menu opens at the focused element or the active descendant |
 | Help is the keymap | `studio-next/src/app/help.tsx`, `studio-next/tests/d2-keycaps.test.tsx` | The sheet shows the user's remapped keys, not defaults |
 | Toast with Undo | `studio-next/src/ui/overlay.ts` `toastUndo` | Pressing Undo undoes exactly that entry or says why not |
-| Leave guard | `studio-next/src/state/store.ts` `setChangeGuard` | A page can register a leave guard that asks before a page change (used by [Booth](studio-next-booth.prd.md)) |
+| Leave guard | `studio-next/src/state/store.ts` `setChangeGuard` | A page can register a leave guard that asks before a page change (used by Booth) |
 
 ### Interfaces
 
@@ -95,7 +95,7 @@ Narrators using the keyboard and the pedal, and every page worker (they consume 
 
 ### Supersedes / depends on ADRs
 
-On conflict this PRD, and the ADR written when its phase lands, is the source of truth for the rebuild; an old ADR stays in force for code not yet migrated until the superseding ADR is merged ([register](studio-next-adr-register.prd.md)).
+On conflict this PRD, and the ADR written when its phase lands, is the source of truth for the rebuild; an old ADR stays in force for code not yet migrated until the superseding ADR is merged (register).
 
 | ADR | Class | Note |
 | --- | --- | --- |
@@ -137,7 +137,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 ### Phase Details
 
 - **Phase 2.** Keep `commands.catalog.test.ts` green; add the surfaces test; no handler is moved yet.
-- **Phase 4.** Search sources for manuscript text, entries, marks arrive with their page PRDs ([Script and Story Bible](studio-next-script-and-story-bible.prd.md)); this phase ships chapters and pages only.
+- **Phase 4.** Search sources for manuscript text, entries, marks arrive with their page PRDs (Script and Story Bible); this phase ships chapters and pages only.
 - **Phase 5.** Migrations of existing `ContextMenu` sites (`WorkspacePage` word menu, Script) are separate slices per site.
 - **Phase 8.** The shell navigation is a train-wide serial point; this slice runs alone.
 

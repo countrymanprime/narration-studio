@@ -106,6 +106,8 @@ export function createMarksMock(ready: Promise<unknown>, chapters: () => Manuscr
   };
 
   return {
+    marksTypesChanged: async () =>
+      types.length !== DEFAULT_TYPES.length || types.some((type, index) => JSON.stringify(type) !== JSON.stringify(DEFAULT_TYPES[index])),
     marksList: async () => {
       await ready;
       return list();

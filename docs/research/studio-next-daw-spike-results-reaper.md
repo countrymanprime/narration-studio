@@ -2,7 +2,7 @@
 
 **Status: results pending, structure written 2026-10-11.** The owner has not returned the results table of [the spike runbook](../operations/daw-spike-run-sheet.md) for spikes 1a to 1e, so no spike below has a result. Every "Result" cell reads "pending" and stays empty until the table comes back on #992. A worker cannot run REAPER, so nothing here is a guess. Tracking: issue #1145, part of #1016.
 
-Spikes SND-S1 to SND-S5 of [the DAW PRD](../prds/studio-next-daw-ports-and-capabilities.prd.md). The questions are the PRD's, copied from the runbook. Each section follows the shape of [REAPER spike S7](reaper-spike-s7-fixed-lanes.md): question, setup, what was observed, what was not proved, consequence.
+Spikes SND-S1 to SND-S5 of the DAW PRD. The questions are the PRD's, copied from the runbook. Each section follows the shape of [REAPER spike S7](reaper-spike-s7-fixed-lanes.md): question, setup, what was observed, what was not proved, consequence.
 
 ## How to fill this note
 

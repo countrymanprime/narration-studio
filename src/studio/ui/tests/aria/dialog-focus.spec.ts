@@ -13,6 +13,6 @@ test('focus returns to the toolbar button after a render to regions chain', asyn
   await expect(dialogs.last()).toContainText(/regions/i);
   await page.keyboard.press('Escape');
   await page.waitForTimeout(500);
-  const active = await page.evaluate(() => document.activeElement?.textContent);
-  expect(active).toBe('Prepare chapter render…');
+  const active = await page.evaluate(() => document.activeElement?.getAttribute('aria-label'));
+  expect(active).toBe('Prepare the chapter render');
 });

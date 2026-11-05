@@ -38,7 +38,7 @@ describe('Changed covers every row', () => {
 
   // The list shrinks as rows get probes. A new entry needs this number raised in the same change, which a reviewer sees.
   it('the exemption list does not grow silently', () => {
-    expect(Object.keys(CHANGED_EXEMPT).length).toBeLessThanOrEqual(12);
+    expect(Object.keys(CHANGED_EXEMPT).length).toBeLessThanOrEqual(8);
   });
 
   // Closed list (issue 2605): what the narrator entered is not a value with a default, so Changed does not count it and the header Reset does not

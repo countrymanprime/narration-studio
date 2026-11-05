@@ -14,6 +14,29 @@ list. **Settings** is the page's one title; the category you are in is named by 
 a "fix credits" link, Master's silence cleanup), Settings opens on the setting, lights it up for a moment and
 offers **Back to** the page you came from.
 
+## Before a project is open
+
+Settings does not wait for a project. On **Choose your project** the **Settings** button (the gear at the top right) opens
+the same page in place of the picker, and **Ctrl+,** or **Settings: <category>** in the jump menu (**Ctrl+K**) opens it
+there too. There is no navigation rail, since every page of the app needs a project. **Back to project picker** returns to
+the picker.
+
+![Settings opened from the project picker - the project rows say "Open a project to change this." and are off, the computer's rows work](../../images/ui/settings-no-project.webp)
+
+- Every row that is **This computer** or **All projects** works as it does with a project open: the microphone, the speech
+  and voice settings, the Merriam-Webster key, the delivery default, appearance and keys, and updates.
+- **Models & downloads** is the same list. Download, check, repair and remove a model or voice here before you choose a project.
+
+![Models & downloads opened from the project picker](../../images/ui/settings-no-project-models.webp)
+
+- **Check now** and **Download update** under **App & updates** work too. **Install and restart** brings the app back to the
+  picker, or to the project it was started with.
+- A **This project** row (Record with, the chapter layout, the project's manuscript and credits, its delivery profile) stays in
+  its place, described as "a project's", and says **Open a project to change this.** It shows no value, since there is no project to hold one. A **Used by** list names the pages without
+  links, **Also set in** is left out, and the **In this project** filter is off.
+- A **Set on a page** entry that has a computer value and a project value edits the computer's, and says **Open a project to
+  set these for a project.** Audacity's backups belong to the project alone and say **Open a project to change this.**
+
 ## Every setting says whose it is and who uses it
 
 Each row has a name, one line on what it does (a **?** beside the name opens the details, where there are more), and under it:
@@ -39,12 +62,13 @@ says how many it holds.
 ## Find a setting
 
 At the top right, the **Search settings** box (a magnifier inside it, at its left) and the **All** / **Changed** / **In this project** control sit on one line (on a narrow window they take the full width). **Search settings** matches the name, the description, its details and words you might use instead (typing "whisper" finds the
-transcription model; "breath" finds silence cleanup). Results are grouped under their category, each with a **Show the
-whole category** button at the right of its header, and include matches from the Advanced sections. **Changed** lists every setting that differs from
+transcription model; "breath" finds silence cleanup). Results are grouped under their category, each with a table icon (**Show the
+whole category**) at the right of its header, and include matches from the Advanced sections. **Changed** lists every setting that differs from
 the default: the host's settings, what this window keeps (Theme, Motion, Start tone, the waveform arrow step, Reader text), and Zoom, the
-Shortcuts, the Merriam-Webster key, the recording tool (anything but REAPER) and the delivery profiles (your own, or one chosen for this project). It does not list
-the rows that are not settings with a default: the capabilities report, the sync log, the manuscript, the Story Bible types and data, the marks, the credits
-templates, the default delivery profile and Delete project data. **In this project** lists the settings this project owns or overrides. Each says so
+Shortcuts, the Merriam-Webster key, the recording tool (anything but REAPER), the delivery profiles (your own, or one chosen for this project), the default delivery profile
+(when it is not the one the app ships with), the Story Bible types and the mark types (when they are not the six each starts with), and the credits (when a
+shipped template was edited, deleted or added to, or this project has credit values of its own). It does not list
+the rows that are not settings with a default: the capabilities report, the sync log, the manuscript, the Story Bible data and Delete project data. **In this project** lists the settings this project owns or overrides. Each says so
 when nothing is there; on a narrow window the folded category button reads **Search results** while results show. **Escape** clears the search.
 
 ![Settings - searching for "whisper"](../../images/ui/settings-search.webp)
@@ -102,7 +126,7 @@ the Narrator, the one character it also voices. With the **Flat** layout the row
 
 **Effects coverage cap** (under **Effects**) is how much of a chapter effects may cover before the [Editing](editing.md) Effects tab warns, a whole percent from 1 to 100 (10 until you change it). Set here it is this computer's value; **Override for this project** gives a project its own. The Effects tab's cap box always sets the project's own value, so typing there creates that override; **Use computer setting** removes it. The **?** says more.
 
-![Settings - Recording & DAW, Effects: the Effects coverage cap row, 10 %, with Override for this project](../../images/ui/settings-effects-cap.webp)
+![Settings - Recording & DAW, Effects: the Effects coverage cap row after Override for this project, with its own project box](../../images/ui/settings-effects-cap.webp)
 
 **Start tone** (under **Take cues**) is **Off** or **On**. On, the Booth plays a short beep when you press Record, for recording by foot pedal without looking at the screen, and the take starts when the beep ends, a fraction of a second later, so the beep is not on the recording. Turning it on plays it once. It is kept in this window, as Theme and Motion are, and there is no tone to stop a take.
 
@@ -162,6 +186,10 @@ the last 5 seconds, and the card says whether its open project matches the linke
 
 The Audacity backups and the favourite effects are listed under [Set on a page](#set-on-a-page), where Settings edits them; [Editing](editing.md) has a shortcut to the same settings.
 
+**Editing checks** are three limits the [Editing](editing.md) page measures a chapter against: **Longest empty gap** (silence between words), **Longest leading silence** and **Longest trailing silence**, each in seconds. They are empty until you choose them, and an empty limit is not checked. Each is for this computer, and a project may use its own.
+
+![Settings - Editing checks under Recording & DAW: the longest empty gap, leading silence and trailing silence, each in seconds and empty until chosen](../../images/ui/settings-editing-checks.webp)
+
 ## Speech to text
 
 **Transcription model** is the one default for comparing and checking recordings: Production's recording check,
@@ -198,7 +226,7 @@ for longer.
 ## Models and downloads
 
 One list of everything the app can keep on this computer: Whisper models, Moonshine models, the preview voices, the Story Bible language models, the dictionary, the wiktionary pronunciations and the MP3 encoder. Nothing downloads by itself, and
-removing one never touches your projects. Above the list, the disk the installed ones use and the folder they are kept in, with **Open folder** to show it in the file manager. When the list cannot be read, the message offers **Retry** and **Open the folder**.
+removing one never touches your projects. Above the list, the disk the installed ones use, and under it the **Models folder location** row, which shows the folder they are kept in, has an **Open the folder** icon to show it in the file manager and [moves them to another folder](#models-folder). When the list cannot be read, the message offers **Retry** and **Open the folder**.
 Which one is *used* is chosen in the category that uses it; here you only get, check and remove them.
 
 ![Settings - Models & downloads: the disk used and each download with its state, size, what uses it and its actions](../../images/ui/settings-models.webp)
@@ -216,9 +244,28 @@ Each row says what it is, its type and size, its **Status**, **Used by** (pages)
 
 With nothing downloaded, the page (its **?** gives the size, about 600 MB) offers **Download the recommended set** (the Small transcription model and the preview voice). Below the list, **Story Bible analysis tools** lists the optional tools that make the Story Bible scan better (GLiNER, BookNLP small and large), each with what it does, its size, where it downloads from and the memory it needs, and the **Offer better analysis when scanning** box. GLiNER (about 730 MB) finds the names of characters, places and things, including invented ones; BookNLP groups the ways a character is named and works out who speaks each line. **Download** asks first; a Story Bible scan then runs the basic rules and each tool you have (with both BookNLP sizes, the large one). **Remove** deletes a tool, and the scan goes back to the rules and whatever else is installed. A tool whose download failed says why in a message that stays until dismissed, and its row has **Try again** and **Dismiss**; when the files arrived and matched but could not be unpacked or saved, **Details** under the reason names the file and what went wrong, which is what to quote in a report. The download dialog that other pages open shows the same line under **Live activity**.
 
+### Models folder
+
+Under the disk bar, **Models folder location** is where the downloads are kept: the folder in use, the **Open the folder** icon, **Change location…** and, once you have moved them, a reset button. It is also found by searching for "location" or "folder", and by the **Changed** filter once it is not the default. Its **?** says what a move does.
+
+**Change location…** asks first (the question is below), then opens your computer's folder dialog. Choose an empty folder (make a new one in the dialog if you like; a folder inside the current one, or one that already holds files, is refused). The app copies everything it has downloaded, checks every copied file against the original, and only then uses the new folder, at once and for every kind of download. A bar shows the bytes of both passes and **Cancel** stops the move. A move is refused while a download runs, and no download starts during one.
+
+![Settings - Models & downloads: Change location asks before it opens the folder dialog](../../images/ui/settings-models-folder-asking.webp)
+
+![Settings - Models & downloads while the downloads are being moved: a progress bar and Cancel](../../images/ui/settings-models-moving.webp)
+
+While a move runs the bar counts the bytes of the copy and then of the check, each against the size shown as used. When it ends, the dialog is titled by how it ended (**The models were moved**, **The move failed** or **The move was cancelled**) and has only **Close**. If you cancel, or anything fails (the folder is read-only, the disk is full, a disk is unplugged, a copied file does not match), the dialog says why and your models are exactly where they were: nothing is deleted, nothing changes, and a half copy is removed.
+
+When a move has finished, the old copy is still on your disk. The row says so, with **Delete old copy…** and **Keep it**. Deleting asks first and removes only the downloaded models, voices and tools in that folder, never anything else you keep there. It is refused while something that may still read the old copy is running. **Keep it** leaves the folder alone and stops asking, and a message says where it is: there is no way back to the question, so delete that folder yourself when you no longer need it. Until you answer, **Change location…** and the reset button are off, with a tooltip and a line under the row saying why.
+
+![Settings - Models & downloads after a move: the new folder in use and the old copy waiting for an answer](../../images/ui/settings-models-moved.webp)
+
+The reset button next to **Change location…** moves the downloads back to the default folder (the per-user cache folder) the same way: copy, check, switch, then offer to delete the copy you left.
+
 ## Delivery
 
 - **Delivery profile** picks the profile this project is judged against, on [Master & QC](master-and-qc.md) and [Delivery](delivery.md), the same choice as Delivery's own menu, with the limits of the chosen profile listed under it.
+- **Render length tolerance** (under **Checks**) is how many seconds a chapter's rendered file may differ in length from the chapter before [Proof](proof.md)'s render length check is not met. It is empty until you choose it, and then that check is not required; a project may use its own.
 - **Default profile for new projects** is what a project that has not chosen its own is judged against (ACX until you change it).
 - **Custom profiles** (Advanced) lists your profiles and the built-in ones to copy. **Duplicate** makes a custom copy and opens it in the editor, where you can rename it, turn a rule off, and change the lowest and highest of a rule that has a range (a length is in minutes); a rule with a fixed value can only be turned off, and a copy cannot add a kind of rule the app does not check. **Edit** and **Delete** work on a custom profile; a project that chose a deleted profile goes back to the default.
 
@@ -266,7 +313,7 @@ With nothing downloaded, the page (its **?** gives the size, about 600 MB) offer
   ("Shown for Chapter 1, one of 12 chapters"); it needs an imported manuscript.
 - **Project values**: Title, Subtitle, Author, Series, Book number, Copyright, Year, Copyright holder,
   Publisher, and a Narrator that overrides the narrator name set under **Project** (Settings > Project, Narrator and credits) for this project only. A value
-  is saved as you type. Where the manuscript suggests a title or author, **Use suggestion** fills it in.
+  is saved as you type. Where the manuscript suggests a title or author, the check icon (**Use this suggestion**) fills it in.
 - **Clear credits** empties every project value at once, after asking. The templates in your library stay,
   so the credits show their tokens in brackets again until you fill them in.
 
@@ -297,7 +344,7 @@ replacing the manuscript keeps it; if its lines are gone, the panel says so and 
 - **Editing playback** (under **Listening**) is the sound the [Editing](editing.md) page plays: the speed (0.75× to 2×, the pitch kept), the volume, **Silence playback**, and the output it plays on. They are the same choices as the Editing page's **Output** controls beside the transport bar, kept in this window as Theme and Motion are; the Editing page reads them when it opens. A saved output that is not connected stays chosen, with a note and **Check again**, and the sound plays on the system default until it is back. With a DAW linked, Editing plays through the DAW and its own level, so these choices are for the sound the app plays itself.
 - **Note colour** is the colour that marks reader notes in the text; a project may override it.
 - **Zoom** scales the whole window (100% to 200%, the steps the jump menu's zoom commands and **Ctrl+plus**, **Ctrl+minus** and **Ctrl+0** use); it follows those and sets the same level.
-- **Shortcuts** lists every command you can run without the mouse, grouped by where it works, with a **Find a shortcut** box; each command's keys and its **Change** button sit at the right of its line, and the list is as long as the card. **Change** opens a recorder under the command: press the key or pedal (a USB footswitch that types a key works like a keyboard), then **Replace**, **Add as another key**, **Unbind** or **Reset to default**. A key another command already uses is named, and **Replace** takes it from that command. A changed command shows **Changed** and its own **Reset**; **Reset all to defaults** undoes every change. Each change saves at once.
+- **Shortcuts** lists every command you can run without the mouse, grouped by where it works, with a **Find a shortcut** box; each command's keys and its keyboard icon (**Change the shortcut**) sit at the right of its line, and the list is as long as the card. **Change the shortcut** opens a recorder under the command: press the key or pedal (a USB footswitch that types a key works like a keyboard), then **Replace**, **Add as another key**, **Unbind** or **Reset to default**. A key another command already uses is named, and **Replace** takes it from that command. A changed command shows **Changed** and its own **Reset**; **Reset all to defaults** undoes every change. Each change saves at once.
 
 ![Settings - Waveform arrow step under Editing: a slider from 15 to 30 seconds, 20 s by default](../../images/ui/settings-wave-scroll-step.webp)
 
@@ -321,7 +368,7 @@ replacing the manuscript keeps it; if its lines are gone, the panel says so and 
 
 ![Settings - App & updates, Advanced: Debug logging with the Reveal the log folder in the file manager button beside it](../../images/ui/settings-diagnostics.webp)
 
-**First-use tips** (under **Tips**) shows how many of the short tips a page shows once you have dismissed with **Got it**, and **Show tips again** forgets them all, so each shows once more. It is the same list for every project on this computer, and the button is off while none are dismissed. If the list cannot be read, the row says so and offers **Try again**.
+**First-use tips** (under **Tips**) shows how many of the short tips a page shows once you have dismissed with **Got it**, and **Show tips again** forgets them all, so each shows once more. It is the same list for every project on this computer, and the button is off while none are dismissed. If the list cannot be read, the row says so and offers **Retry**.
 
 ![Settings - First-use tips under Tips after a tip was dismissed: 1 dismissed, and Show tips again](../../images/ui/settings-first-use-tips.webp)
 
@@ -357,7 +404,7 @@ If the app will not start after an update and the program file is missing from i
 
 ## Set on a page
 
-Some settings only change what one page does, so they belong on that page, next to what they change: the recording check's rules (Production; the grey box above them says the values are proposed and not yet calibrated, and its **?** says why), silence cleanup (Master & QC), the preview suggestion and compare defaults (Proof), stage suggestions (Production), punch pre-roll (Booth), favourite effects and the Audacity backups (Editing). **Set on a page** lists them, each with where on that page it belongs and, on the line of **Change it here for now**, an **Open** button for that page. Settings always keeps every one of them: **Change it here for now** opens the panel with its **Global** / **This project** switch, **Save** and **Discard changes**, and leaving Settings with unsaved changes there asks whether to save or discard them. Five pages also have a shortcut to the same setting, which reads and writes the same keys: Master & QC's **Jump to or run** (Ctrl+K) has **Open Silence cleanup options**, a dialog for the open project only, the same as choosing **This project** in the Silence cleanup panel here (Diagnostics also keeps its **Open Settings** link to that panel); Production's **Jump to or run** has **Open Stage suggestion options** and **Open Recording check rules**, the same for the open project only; Proof's **Jump to or run** has **Open Preview options** and **Open Compare options**, which open a dialog for the open project only, the same as choosing **This project** in the panel here; the Booth's **Levels** menu has **Punch pre-roll (seconds)**, which is Global like the panel here, and Editing's **Backups** tab has the backup settings for the open project only, the same as choosing **This project** in the Backups panel here (that panel can also set Global). Editing's **Effects** tab has a **Favourite** button on each chain and plug-in the DAW lists, which edits the same favourite effects list as **Favourite effects** here, at the Global layer (that panel can also set This project). Search finds them too.
+Some settings only change what one page does, so they belong on that page, next to what they change: the recording check's rules (Production; the grey box above them says the values are proposed and not yet calibrated, and its **?** says why), silence cleanup (Master & QC), the preview suggestion and compare defaults (Proof), stage suggestions (Production), punch pre-roll (Booth), favourite effects and the Audacity backups (Editing). **Set on a page** lists them, each with where on that page it belongs and, on the line of **Change it here for now**, an icon for that page (the one the navigation rail draws for it; hold the pointer on it for **Open** and the page's name). Settings always keeps every one of them: **Change it here for now** opens the panel with its **Global** / **This project** switch, **Save** and **Discard changes** (closing the group does not drop what you typed: it is still there when you open it again), and leaving Settings with unsaved changes there asks whether to save or discard them. Five pages also have a shortcut to the same setting, which reads and writes the same keys: Master & QC's **Jump to or run** (Ctrl+K) has **Open Silence cleanup options**, a dialog for the open project only, the same as choosing **This project** in the Silence cleanup panel here (Diagnostics also keeps its **Open Settings** link to that panel); Production's **Jump to or run** has **Open Stage suggestion options** and **Open Recording check rules**, the same for the open project only; Proof's **Jump to or run** has **Open Preview options** and **Open Compare options**, which open a dialog for the open project only, the same as choosing **This project** in the panel here; the Booth's **Levels** menu has **Punch pre-roll (seconds)**, which is Global like the panel here, and Editing's **Backups** tab has the backup settings for the open project only, the same as choosing **This project** in the Backups panel here (that panel can also set Global). Editing's **Effects** tab has a **Favourite** button on each chain and plug-in the DAW lists, which edits the same favourite effects list as **Favourite effects** here, at the Global layer (that panel can also set This project). Search finds them too.
 
 ![Settings - Set on a page, with the recording check rules opened](../../images/ui/settings-pages.webp)
 
@@ -367,6 +414,7 @@ Some settings only change what one page does, so they belong on that page, next 
 - If the settings file cannot be read, the page says **Your settings could not be read** and disables the controls until **Retry** works.
 - If a change cannot be saved, the page says **Changes cannot be saved right now** and the row says why; the previous value is still in use.
 - If the list of downloads cannot be read, Models & downloads says so with **Retry**; your downloads are not touched.
+- If moving the models folder fails or you cancel it, your models are still in the folder they were in. The dialog says why; choose another folder, or free some space, and try again. If the new folder is on a disk that is later unplugged, the models read as not downloaded until it is back.
 
 ---
 

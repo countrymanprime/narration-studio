@@ -48,11 +48,16 @@ type StartRule string
 const (
 	StartHere StartRule = ""
 	AtEnd     StartRule = "end"
+	// ChapterEnd is AtEnd for a chapter linked to a folder of voices (RecordOptions.Folder names it): the end is the latest item of the
+	// folder and every track inside it, and the cursor stays where the chapter last stopped, on whichever voice.
+	ChapterEnd StartRule = "chapter_end"
 )
 
 // RecordOptions is what RecordStart is asked besides the track.
 type RecordOptions struct {
 	Start StartRule
+	// Folder is the chapter's folder track GUID, sent with ChapterEnd and ignored by every other rule.
+	Folder string
 }
 
 // RecordStarted is the track REAPER records on and the edit cursor where recording began, in seconds.
@@ -100,6 +105,9 @@ func (a *Actions) RecordStart(ctx context.Context, trackGUID string, opts Record
 	args := []string{trackGUID}
 	if opts.Start != StartHere {
 		args = append(args, string(opts.Start))
+		if opts.Start == ChapterEnd {
+			args = append(args, opts.Folder)
+		}
 	}
 	events, err := a.request(ctx, "record_start", []string{"RECORD_STARTED", "TRACK_STALE"}, args...)
 	if err != nil {

@@ -178,7 +178,7 @@ local MAX_ROOM_TONE_PIECES = 64
 local BAD_PAD = 'The pad must be from 0 to 500 milliseconds.'
 local NO_ROOM_TONE = 'This chapter has no room tone marked in REAPER. Mark a stretch of room tone on its track with a region named Room tone.'
 
-local UNDO_ADD_CHAIN = core.brand.name .. ': add chain to range'
+local UNDO_ADD_CHAIN = core.undo_label('add_range_fx')
 local UNDO_CHOOSE_FX = core.brand.name .. ': choose FX in REAPER'
 -- The chain name choose_range_fx records: it does not end .RfxChain, so it can never be a chain list_fx_chains lists or
 -- apply_fx_range loads.
@@ -189,7 +189,7 @@ local CHAIN_BEFORE_KEY = 'P_EXT:' .. core.brand.identity.reaperExtPrefix .. 'fx_
 local SHOW_FX_CHAIN = 40638
 local SHOW_FX_CHAIN_TEXT = 'Item: Show FX chain for item take'
 local MAX_CHOSEN_FX = 64
-local UNDO_REMOVE_CHAIN = core.brand.name .. ': remove chain from range'
+local UNDO_REMOVE_CHAIN = core.undo_label('remove_range_fx')
 -- The take P_EXT keys apply_fx_range writes: the chain's name, and the GUIDs of the FX it added, space-separated.
 local CHAIN_KEY = 'P_EXT:' .. core.brand.identity.reaperExtPrefix .. 'fx_range_chain'
 local CHAIN_FX_KEY = 'P_EXT:' .. core.brand.identity.reaperExtPrefix .. 'fx_range_fx'
@@ -264,9 +264,8 @@ end
 -- Inside the undo block: the Cuts track found, keyed and muted, or added.
 local function ensure_cuts(track, keyed)
   if not track then
-    local index = reaper.CountTracks(0)
-    reaper.InsertTrackAtIndex(index, false)
-    track = reaper.GetTrack(0, index)
+    -- At the top level, never inside a folder left open at the end of the project (core.append_track).
+    track = core.append_track()
     reaper.GetSetMediaTrackInfo_String(track, 'P_NAME', CUTS_NAME, true)
   end
   if not keyed then
@@ -1329,9 +1328,9 @@ end
 
 -- fx_range_params, fx_range_set_param, fx_range_bypass ---------------------------------------------------------------
 
-local UNDO_SET_PARAM = core.brand.name .. ': change effect setting'
-local UNDO_BYPASS = core.brand.name .. ': bypass effect'
-local UNDO_ENABLE = core.brand.name .. ': turn effect back on'
+local UNDO_SET_PARAM = core.undo_label('set_fx_param')
+local UNDO_BYPASS = core.undo_label('bypass_fx')
+local UNDO_ENABLE = core.undo_label('enable_fx')
 -- The most parameters fx_range_params lists, over every FX of the chain: a plug-in can have thousands.
 local MAX_FX_PARAMS = 512
 local FX_EDIT_NEEDED = {

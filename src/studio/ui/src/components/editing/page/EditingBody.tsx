@@ -6,6 +6,7 @@ import type { FindingsApi } from '../../../api/contracts/findings';
 import type { Keymap } from '../../../input/keymap';
 import { useCommand } from '../../../input/useCommand';
 import { overlay } from '../../../overlay/overlayService';
+import { retryAction } from '../../primitives/Toast';
 import { useJournal } from '../../../studio/StudioProvider';
 import { useOutputPrefs } from '../../engine/outputPrefs';
 import { useTakeAudition } from '../takes/useTakeAudition';
@@ -52,7 +53,7 @@ import { ReplacementMarksContext } from '../range/replace/replacementMarks';
 import { useReplaceAudio } from '../range/replace/useReplaceAudio';
 import { useVoiceSample } from '../voicesample/useVoiceSample';
 import { TimelineStrip, type TimelineStripProps } from '../strip/TimelineStrip';
-import { useKeepTakes } from '../takes/keepTake';
+import { createLineBusy, useKeepTakes } from '../takes/keepTake';
 import { useHideOthers } from '../takes/prep/useHideOthers';
 import { usePrepSteps } from '../takes/prep/usePrepSteps';
 import { dawSplitter } from '../takes/split/splitCommand';
@@ -238,11 +239,12 @@ export function EditingBody(props: EditingBodyProps) {
   const current = activePid(doc, state);
   const currentLine = current ? (lines.byId.get(current) ?? null) : null;
   const dockTake = currentLine?.takes.find((t) => t.active)?.label ?? null;
-  const keep = useKeepTakes(journal, lines.byId);
+  const lineBusy = useMemo(createLineBusy, []);
+  const keep = useKeepTakes(journal, lines.byId, lineBusy);
   const passageOf = useCallback((sel: WordMenuSelection) => lineOfKey(sel.doc, lines.byId, sel.keys[0]), [lines.byId]);
   const currentRef = useRef(currentLine);
   currentRef.current = currentLine;
-  const hide = useHideOthers({ journal, kept: keep.kept, current: () => currentRef.current, passageOf });
+  const hide = useHideOthers({ journal, kept: keep.kept, current: () => currentRef.current, passageOf, busy: lineBusy });
   const prep = usePrepSteps({ journal, hidden: hide.hiddenIds });
   const lineTakes = useLineTakes(currentLine, keep.keep);
   const [openLines, setOpenLines] = useState<ReadonlySet<string>>(new Set());
@@ -566,6 +568,7 @@ export function EditingBody(props: EditingBodyProps) {
               drawerOpen={drawerOpen}
               onDrawer={panels.drawer.toggle}
               onDrawerKeyDown={drawerOpen ? drawerEscape : undefined}
+              dawTools
             />
             {/* Under the header, so the title stays where it is on every state (XED-7). */}
             <NoAudioBanner audio={read.audio} chapterName={chapterName} daw={dawName} onReread={props.onReread} />
@@ -733,6 +736,8 @@ function useOpenAt(
     done.current.passage = true;
     setLineOpen(id, true);
   }, [link.passageId, doc, lines, dispatch, setLineOpen]);
+  // A failed read of the finding a link names is an error toast with Retry, which reads it again (issue #2919).
+  const [findingAttempt, setFindingAttempt] = useState(0);
   useEffect(() => {
     if (!link.findingId || done.current.finding) return;
     let live = true;
@@ -768,11 +773,17 @@ function useOpenAt(
       (e: unknown) => {
         if (!live) return;
         done.current.finding = true;
-        overlay.toast(`The finding this link names could not be read: ${e instanceof Error ? e.message : String(e)}`, { tone: 'error' });
+        overlay.toast(`The finding this link names could not be read: ${e instanceof Error ? e.message : String(e)}`, {
+          tone: 'error',
+          action: retryAction(() => {
+            done.current.finding = false;
+            setFindingAttempt((n) => n + 1);
+          }),
+        });
       },
     );
     return () => {
       live = false;
     };
-  }, [link.findingId, doc, dispatch, findings]);
+  }, [link.findingId, doc, dispatch, findings, findingAttempt]);
 }

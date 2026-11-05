@@ -3,7 +3,22 @@ import { apiErrorMessage } from '../../../api/errorMessage';
 import { overlay } from '../../../overlay/overlayService';
 import { usePort } from '../../../ports/usePort';
 import { without } from '../data/record';
-import { isInstallRunning, type AssetCatalog, type AssetInstallJob, type AssetItem, type AssetVerifyResult, type AssetsApi } from '../../../types';
+import {
+  isInstallRunning,
+  isMoveRunning,
+  type AssetCatalog,
+  type AssetInstallJob,
+  type AssetItem,
+  type AssetMoveState,
+  type AssetVerifyResult,
+  type AssetsApi,
+} from '../../../types';
+
+/** Raised on the window when a move of the downloads ended, so the Changed marks (customChanged.ts) read the folder again. */
+export const MODELS_FOLDER_CHANGED = 'narration:models-folder-changed';
+
+/** The move each host last showed, so a move that ended while Settings was closed is shown once and not on every visit. */
+const shownMoves = new WeakMap<object, string>();
 
 /** How often a running download is asked how far it is. */
 const POLL_MS = 400;
@@ -74,6 +89,22 @@ export type AssetsStore = {
   verify: (item: AssetItem) => Promise<void>;
   /** What a screen reader hears about downloads. */
   announcement: string;
+  /** The move of the downloads to another folder that runs, or how the last one ended until it is dismissed; undefined when there is none to show. */
+  move: AssetMoveState | undefined;
+  /** Asks for a folder in the system dialog: the path, or empty when the narrator closed it. A refusal is an error toast. */
+  pickFolder: () => Promise<string>;
+  /**
+   * Starts moving the downloads to `target` (empty is the default folder) and follows the move. Resolves with the host's sentence when it
+   * refused to start, or undefined once it started; how it ends is `move`.
+   */
+  startMove: (target: string) => Promise<string | undefined>;
+  cancelMove: () => Promise<void>;
+  /** Clears the end of a move from `move` (the dialog's Close). */
+  dismissMove: () => void;
+  /** Deletes the old copy a move left. Resolves with the host's sentence when it refused, or undefined when it is gone. */
+  deleteOld: () => Promise<string | undefined>;
+  /** Ends the offer to delete the old copy and leaves it. */
+  keepOld: () => Promise<string | undefined>;
 };
 
 const Context = createContext<AssetsStore | undefined>(undefined);
@@ -276,6 +307,99 @@ export function AssetsStoreProvider({ children }: { children: ReactNode }) {
     [api, refresh, setUnverified],
   );
 
+  const [move, setMove] = useState<AssetMoveState>();
+  const followingMove = useRef(false);
+  const followMove = useCallback(
+    async (first: AssetMoveState) => {
+      if (followingMove.current) return;
+      followingMove.current = true;
+      shownMoves.set(api, first.id);
+      try {
+        let state = first;
+        setMove(state);
+        while (isMoveRunning(state)) {
+          await new Promise((resolve) => window.setTimeout(resolve, POLL_MS));
+          if (!alive.current) return;
+          state = await api.assetsMoveState();
+          if (!alive.current) return;
+          setMove(state);
+        }
+        // The list names the folder in use, whether the old copy is waiting, and what is installed: read again whatever the end was.
+        setAnnouncement(state.phase === 'success' ? 'The models were moved and are in use.' : state.error || state.message);
+        await refresh();
+        window.dispatchEvent(new Event(MODELS_FOLDER_CHANGED));
+      } catch (error) {
+        if (!alive.current) return;
+        const reason = apiErrorMessage(error);
+        setMove((current) => current && { ...current, phase: 'error', error: reason, message: reason });
+        setAnnouncement(reason);
+      } finally {
+        followingMove.current = false;
+      }
+    },
+    [api, refresh],
+  );
+
+  // A move already running when the page opened is followed, so its dialog is on screen.
+  useEffect(() => {
+    void api.assetsMoveState().then(
+      (state) => {
+        if (!alive.current) return undefined;
+        if (isMoveRunning(state)) return followMove(state);
+        // A move that failed or was cancelled while Settings was closed is told once, so the narrator learns the models did not move.
+        if ((state.phase === 'error' || state.phase === 'cancelled') && shownMoves.get(api) !== state.id) {
+          shownMoves.set(api, state.id);
+          setMove(state);
+        }
+        return undefined;
+      },
+      () => undefined,
+    );
+  }, [api, followMove]);
+
+  const pickFolder = useCallback(async () => {
+    try {
+      return (await api.assetsFolderPick()).path;
+    } catch (error) {
+      overlay.toast(`The folder dialog could not be opened: ${apiErrorMessage(error)}`, { tone: 'error' });
+      return '';
+    }
+  }, [api]);
+  const startMove = useCallback(
+    async (target: string) => {
+      try {
+        void followMove(await api.assetsMoveStart(target));
+        return undefined;
+      } catch (error) {
+        return apiErrorMessage(error);
+      }
+    },
+    [api, followMove],
+  );
+  const cancelMove = useCallback(async () => {
+    try {
+      setMove(await api.assetsMoveCancel());
+    } catch (error) {
+      overlay.toast(`The move could not be cancelled: ${apiErrorMessage(error)}`, { tone: 'error' });
+    }
+  }, [api]);
+  const dismissMove = useCallback(() => setMove(undefined), []);
+  const answerOld = useCallback(
+    async (act: () => Promise<void>, done: string) => {
+      try {
+        await act();
+        setAnnouncement(done);
+        await refresh();
+        return undefined;
+      } catch (error) {
+        return apiErrorMessage(error);
+      }
+    },
+    [refresh],
+  );
+  const deleteOld = useCallback(() => answerOld(() => api.assetsMoveDeleteOld(), 'The old copy was deleted.'), [api, answerOld]);
+  const keepOld = useCallback(() => answerOld(() => api.assetsMoveKeepOld(), 'The old copy was kept.'), [api, answerOld]);
+
   const views = useMemo<AssetView[]>(
     () =>
       (catalog?.assets ?? []).map((item) => {
@@ -305,8 +429,46 @@ export function AssetsStoreProvider({ children }: { children: ReactNode }) {
   const viewOf = useCallback((ref: { kind: string; id: string }) => views.find((view) => view.item.kind === ref.kind && view.item.id === ref.id), [views]);
 
   const value = useMemo<AssetsStore>(
-    () => ({ catalog, loadError, views, viewOf, refresh, install, cancel, remove, dismissFailure, verify, announcement }),
-    [catalog, loadError, views, viewOf, refresh, install, cancel, remove, dismissFailure, verify, announcement],
+    () => ({
+      catalog,
+      loadError,
+      views,
+      viewOf,
+      refresh,
+      install,
+      cancel,
+      remove,
+      dismissFailure,
+      verify,
+      announcement,
+      move,
+      pickFolder,
+      startMove,
+      cancelMove,
+      dismissMove,
+      deleteOld,
+      keepOld,
+    }),
+    [
+      catalog,
+      loadError,
+      views,
+      viewOf,
+      refresh,
+      install,
+      cancel,
+      remove,
+      dismissFailure,
+      verify,
+      announcement,
+      move,
+      pickFolder,
+      startMove,
+      cancelMove,
+      dismissMove,
+      deleteOld,
+      keepOld,
+    ],
   );
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }

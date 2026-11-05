@@ -208,7 +208,42 @@ describe('JumpMenu', () => {
     render(<Provide />);
     act(() => void open());
     await userEvent.setup().type(field(), 'ch 3');
-    expect(names()).toEqual([expect.stringContaining('Go to Chapter 3 — The Road')]);
+    expect(names()).toEqual([expect.stringContaining('Go to Chapter 3: The Road')]);
+  });
+
+  it('no-em-dash-in-chapter-label: a chapter is listed the way every page shows it, never joined with an em dash (#2903)', async () => {
+    function Provide() {
+      useGoToCommands({
+        pages: [{ id: 'proof', label: 'Proof' }],
+        chapters: [
+          { id: 'c3', title: 'Chapter 3', subtitle: 'The Road' },
+          { id: 'c8', title: 'CHAPTER VIII.', subtitle: 'Croquet' },
+        ],
+        go: () => {},
+      });
+      return null;
+    }
+    const { open } = mount();
+    render(<Provide />);
+    act(() => void open());
+    await userEvent.setup().type(field(), 'go to ch');
+    const labels = names();
+    expect(labels).toEqual([expect.stringContaining('Go to Chapter 3: The Road'), expect.stringContaining('Go to CHAPTER VIII. Croquet')]);
+    expect(labels.join('')).not.toContain('—');
+  });
+
+  it('focus-after-choosing: a result that moves focus to its destination keeps it there when the menu closes (#2902)', async () => {
+    provide(command('t.dest', 'Go to', 'Go to Destination', () => document.getElementById('destination')?.focus()));
+    const { open } = mount();
+    render(<button id="destination">Destination</button>);
+    screen.getByRole('button', { name: 'Opener' }).focus();
+    act(() => void open());
+    const user = userEvent.setup();
+    await user.type(field(), 'destination');
+    await user.keyboard('{Enter}');
+    await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 50))));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(document.activeElement?.id).toBe('destination');
   });
 
   it('search-sources-group-and-isolate: hits show under their group with the sub line, a short term asks nobody, a throwing source is skipped', async () => {

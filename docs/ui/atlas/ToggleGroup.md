@@ -10,6 +10,7 @@ Storybook title: `Primitives/ToggleGroup`. Source: `src/components/primitives/To
 - Second Chosen
 - Choosing Moves The Press
 - Disabled Chip Is Not Chosen
+- Chip Disabled With Reason
 - Segmented
 - Segmented Measured Shapes
 

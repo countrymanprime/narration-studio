@@ -168,9 +168,9 @@ describe('Settings: page frame', () => {
   it('Show the whole category is a button at the end of the group header, not a link inside the label', async () => {
     await renderPage();
     fireEvent.change(screen.getByRole('textbox', { name: 'Search settings' }), { target: { value: 'whisper' } });
-    const show = (await screen.findAllByRole('button', { name: 'Show the whole category' }))[0]!;
+    const show = (await screen.findAllByRole('button', { name: /^Show the whole .* category/ }))[0]!;
     expect(show.closest('h3')).toBeNull();
-    expect(show.className).toContain('min-h-[var(--button-height-sm)]');
+    expect(show.className).toContain('size-[var(--button-height-sm)]');
   });
 
   it('says so when nothing matches in a left-aligned card like the rest of the page', async () => {
@@ -443,6 +443,60 @@ describe('Settings: editing', () => {
   });
 });
 
+describe('Settings: the checks that had no editor now have a row (issue 1867)', () => {
+  it('lists the empty-space limits under Recording & DAW and the render length tolerance under Delivery, each unset until chosen', async () => {
+    await renderPage();
+    pick('Recording & DAW');
+    for (const id of ['editing.maxGap', 'editing.headMax', 'editing.tailMax']) await waitFor(() => expect(row(id)).toBeTruthy());
+    pick('Delivery');
+    await waitFor(() => expect(row('proofing.renderTolerance')).toBeTruthy());
+  });
+
+  it.each([
+    ['editing.maxGap', 'Recording & DAW', 'Editing', 'max_gap_seconds', '3.5'],
+    ['editing.headMax', 'Recording & DAW', 'Editing', 'head_max_seconds', '2'],
+    ['editing.tailMax', 'Recording & DAW', 'Editing', 'tail_max_seconds', '4.2'],
+    ['proofing.renderTolerance', 'Delivery', 'Proofing', 'render_length_tolerance_seconds', '1.5'],
+  ])('saves %s for the computer, marks it Changed, and Reset puts it back to not checked', async (id, category, tool, key, value) => {
+    const api = createMockApi();
+    const save = vi.spyOn(api, 'saveSettings');
+    await renderPage({ api });
+    pick(category);
+    const box = (await waitFor(() => within(row(id)).getByRole('textbox'))) as HTMLInputElement;
+    fireEvent.change(box, { target: { value } });
+    fireEvent.blur(box);
+    await waitFor(() => expect(save).toHaveBeenCalledWith(tool, 'global', { [key]: value }));
+    await waitFor(() => expect(within(row(id)).getByText('Changed')).toBeTruthy());
+    fireEvent.click(within(row(id)).getByRole('button', { name: /^Reset .* to / }));
+    await waitFor(() => expect(save).toHaveBeenLastCalledWith(tool, 'global', { [key]: null }));
+  });
+
+  // qa-breaker: with the computer value unset, Override copied '' (saved as nothing), said Saved and drew no project box.
+  it.each([
+    ['editing.maxGap', 'Recording & DAW', 'Editing', 'max_gap_seconds'],
+    ['editing.headMax', 'Recording & DAW', 'Editing', 'head_max_seconds'],
+    ['editing.tailMax', 'Recording & DAW', 'Editing', 'tail_max_seconds'],
+    ['proofing.renderTolerance', 'Delivery', 'Proofing', 'render_length_tolerance_seconds'],
+  ])(
+    'Override for this project on the unset %s opens an empty project box, says nothing is saved, and the box saves a project limit',
+    async (id, category, tool, key) => {
+      const api = createMockApi();
+      const save = vi.spyOn(api, 'saveSettings');
+      await renderPage({ api });
+      pick(category);
+      await waitFor(() => expect(row(id)).toBeTruthy());
+      fireEvent.click(within(row(id)).getByRole('button', { name: /^Override for this project/ }));
+      await waitFor(() => expect(within(row(id)).getAllByRole('textbox')).toHaveLength(2));
+      expect(within(row(id)).queryByText('Saved')).toBeNull();
+      expect(save).not.toHaveBeenCalled();
+      const box = within(row(id)).getAllByRole('textbox')[1] as HTMLInputElement;
+      fireEvent.change(box, { target: { value: '2' } });
+      fireEvent.blur(box);
+      await waitFor(() => expect(save).toHaveBeenCalledWith(tool, 'project', { [key]: '2' }));
+    },
+  );
+});
+
 describe('Settings: Reset to defaults reaches every row Changed counts (issue 2605)', () => {
   it('puts back the rows this window keeps and the simple custom rows, and the Changed count goes with them', async () => {
     localStorage.setItem('narration-ui-theme', 'dark');
@@ -626,6 +680,24 @@ describe('Settings: search and filters', () => {
     expect(within(backups!).getByRole('button', { name: 'Change it here for now' })).toBeTruthy();
   });
 
+  it('keeps an unsaved edit in a Set on a page panel when its group is collapsed and opened again', async () => {
+    await renderPage();
+    await userEvent.type(await screen.findByRole('textbox', { name: 'Search settings' }), 'preroll');
+    const punch = document.querySelector<HTMLElement>('[data-page-setting="ps.punch"]')!;
+    const toggle = within(punch).getByRole('button', { name: 'Change it here for now' });
+    await userEvent.click(toggle);
+    const field = await waitFor(() => {
+      const input = punch.querySelector<HTMLInputElement>('input');
+      expect(input).toBeTruthy();
+      return input!;
+    });
+    await userEvent.clear(field);
+    await userEvent.type(field, '2.5');
+    await userEvent.click(toggle);
+    await userEvent.click(toggle);
+    expect(punch.querySelector<HTMLInputElement>('input')!.value).toBe('2.5');
+  });
+
   // Alignment audit (XSE2-21): Open <page> and Change it here for now share one line, the button one width for every page.
   it('puts Open <page> on the line of Change it here for now', async () => {
     await renderPage();
@@ -633,8 +705,9 @@ describe('Settings: search and filters', () => {
     const punch = document.querySelector<HTMLElement>('[data-page-setting="ps.punch"]')!;
     const open = within(punch).getByRole('button', { name: /^Open Booth/ });
     const change = within(punch).getByRole('button', { name: 'Change it here for now' });
-    expect(open.parentElement).toBe(change.parentElement);
-    expect(open.className).toContain('min-w-[9.5rem]');
+    // Both sit in the setting's one entry, the open icon at the right of the disclosure's line.
+    expect(open.closest('[data-page-setting]')).toBe(change.closest('[data-page-setting]'));
+    expect(open.className).toContain('size-[var(--button-height-sm)]');
   });
 
   it('lists the favourite effects with a way to Editing and the panel that edits them here', async () => {
@@ -729,6 +802,50 @@ describe('Settings: search and filters', () => {
     ])
       expect(row(id), id).toBeTruthy();
   }, 60_000);
+});
+
+// Issue 2729: four rows had no default to compare with. Each is listed under Changed once it differs from what ships, and none is while it is the default.
+describe('Settings: Changed lists the delivery default, the Story Bible types, the mark types and the credits', () => {
+  const ROWS = ['delivery.default', 'project.types', 'project.marks', 'project.credits'];
+
+  it('lists none of them while they are what ships', async () => {
+    await renderPage({ api: createMockApi() });
+    await screen.findByRole('heading', { level: 2, name: 'Recording & DAW' });
+    fireEvent.click(screen.getByRole('button', { name: 'Changed' }));
+    expect(screen.getByText('Nothing is changed from the defaults')).toBeTruthy();
+    for (const id of ROWS) expect(row(id), id).toBeFalsy();
+  });
+
+  it.each([
+    [
+      'delivery.default',
+      async (api: ReturnType<typeof createMockApi>) => {
+        const copy = await api.deliveryDuplicateProfile('acx', '2026-09');
+        await api.deliverySelectProfile('global', copy.id, '');
+      },
+    ],
+    ['project.types', async (api: ReturnType<typeof createMockApi>) => api.guideTypeAdd('Creature')],
+    [
+      'project.marks',
+      async (api: ReturnType<typeof createMockApi>) => {
+        const { types } = await api.marksList();
+        await api.marksSaveTypes([...types, { key: '', name: 'Accent', colour: 'info', style: 'box', asks: false }], false);
+      },
+    ],
+    ['project.credits', async (api: ReturnType<typeof createMockApi>) => void (await api.saveCreditsProjectValues({ title: 'Alice' }))],
+  ])(
+    'lists %s once it differs, and only that row',
+    async (id, change) => {
+      const api = createMockApi();
+      await change(api);
+      await renderPage({ api });
+      await screen.findByRole('heading', { level: 2, name: 'Recording & DAW' });
+      fireEvent.click(screen.getByRole('button', { name: 'Changed' }));
+      await waitForRow(id);
+      for (const other of ROWS.filter((candidate) => candidate !== id)) expect(row(other), other).toBeFalsy();
+    },
+    30_000,
+  );
 });
 
 describe('Settings: putting Changed rows back while the Changed list is open', () => {

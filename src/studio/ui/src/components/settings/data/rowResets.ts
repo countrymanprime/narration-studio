@@ -47,6 +47,19 @@ export const RESETTABLE_ROWS = [
   'delivery.profile',
 ] as const;
 
+/**
+ * Rows Changed marks that the header Reset leaves to their own panel, each with why (a closed list: a test holds it to exactly these). Putting
+ * them back is not a value write: it moves gigabytes, or erases what the narrator built, so it is asked for where that is shown.
+ */
+export const LEFT_TO_THEIR_PANEL: Readonly<Record<string, string>> = {
+  'models.folder': 'Moving the downloads back copies gigabytes and asks first; its row has its own Reset, which does that.',
+  'delivery.default':
+    'The default profile for new projects is chosen in the Delivery list, beside the profiles it can point at; there is no one-press default.',
+  'project.types': 'Resetting would drop the Story Bible types the narrator made, and the entries filed under them; its own panel renames and removes them.',
+  'project.marks': 'Resetting would drop the mark types the narrator made, and the marks filed under them; its own panel renames and removes them.',
+  'project.credits': 'Resetting would erase the credit templates and this project’s credit text the narrator wrote; its own panel edits and deletes them.',
+};
+
 /** Whether the header's Reset to defaults puts this row back: a row with a host field, or one `useRowResets` knows. */
 export const isResettable = (row: { id: string; field?: unknown }): boolean => Boolean(row.field) || (RESETTABLE_ROWS as readonly string[]).includes(row.id);
 

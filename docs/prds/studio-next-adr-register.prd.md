@@ -2,7 +2,7 @@
 
 **Source:** owner requirement of 2026-10-10 for the Studio Next series: treat the PRDs as superseding existing ADRs wherever they conflict with the mock's design. On 2026-10-11 the owner withdrew the exception for a worse experience and ruled on all 18 conflicts that had been flagged for discussion: "The mocks are the gold standard and if it is not in the mock it doesn't get built. If it exists already and has an equivalent somewhere in the Studio Next mocks then get rid of the old. Anything that is there before: forget it."
 
-**Builds on / appendix to:** [Studio Next Rebuild](studio-next-rebuild.prd.md), which summarises this register; every focused PRD of the series repeats its own rows in a "Supersedes / depends on ADRs" subsection. The decisions are the 336 files in [`docs/adr/`](../adr/README.md) at `550a7d1`; the rulings are `studio-next/research/repo-compare-decisions.md`.
+**Builds on / appendix to:** Studio Next Rebuild, which summarises this register; every focused PRD of the series repeats its own rows in a "Supersedes / depends on ADRs" subsection. The decisions are the 336 files in [`docs/adr/`](../adr/README.md) at `550a7d1`; the rulings are `studio-next/research/repo-compare-decisions.md`.
 
 **Status (2026-10-11):** draft; no row is open. This register writes no ADR and edits no existing ADR (they are immutable once accepted, [ADR rules](../adr/README.md#what-an-adr-means-and-why-you-supersede-it)). Each superseding ADR is authored with the `adr-author` workflow when the code of its phase lands, with the next free number checked at merge time ([Cross-PRD sequencing](README.md#cross-prd-sequencing)). The titles below are working titles.
 
@@ -80,7 +80,7 @@ Ruled by the owner on 2026-10-11. Each ruling is the plan; the superseding ADR i
 | DQ-17 | The mock's wheel-browse behaviour is the spec. | 0119 is kept only where it describes identical behaviour; superseded otherwise | Wheel browse follows the mock | SNO |
 | DQ-18 | Capability-driven take management for Audacity, as in the mock. | Superseded to that extent: 0660 | Audacity backups table and capability-driven takes | SND, SNQ |
 
-Rulings that remove an existing equivalent (DQ-6, DQ-11, DQ-14) are carried out in the owning page's swap slice; the [Cutover](studio-next-cutover.prd.md) lists the deletions.
+Rulings that remove an existing equivalent (DQ-6, DQ-11, DQ-14) are carried out in the owning page's swap slice; the Cutover lists the deletions.
 
 ### Register: every ADR, by area
 

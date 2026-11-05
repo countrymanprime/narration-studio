@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -134,35 +135,80 @@ func (s *Service) SetLayout(layout string) (State, error) {
 // SetTrackCharacters replaces the characters assigned to the voice track named track (trimmed, as REAPER shows it). An empty list
 // clears the assignment, so the track matches by name again. A repeated id is kept once, in first-seen order.
 func (s *Service) SetTrackCharacters(track string, characters []string) (State, error) {
-	name := strings.TrimSpace(track)
-	if !validText(name, MaxTrackName) {
-		return State{}, fmt.Errorf("%w: the track name", ErrInvalid)
-	}
-	if len(characters) > MaxCharacters {
-		return State{}, fmt.Errorf("%w: more than %d characters on one track", ErrInvalid, MaxCharacters)
-	}
-	ids := make([]string, 0, len(characters))
-	seen := make(map[string]bool, len(characters))
-	for _, id := range characters {
-		if !validText(id, MaxCharacterID) {
-			return State{}, fmt.Errorf("%w: a character id", ErrInvalid)
-		}
-		if !seen[id] {
-			seen[id] = true
-			ids = append(ids, id)
-		}
+	name, ids, err := validAssignment(track, characters)
+	if err != nil {
+		return State{}, err
 	}
 	return s.change(func(file *voiceFile) error {
 		if len(ids) == 0 {
 			delete(file.Tracks, name)
 			return nil
 		}
-		if _, ok := file.Tracks[name]; !ok && len(file.Tracks) >= MaxTracks {
-			return fmt.Errorf("%w: more than %d voice tracks", ErrInvalid, MaxTracks)
-		}
-		file.Tracks[name] = trackEntry{Characters: ids}
-		return nil
+		return file.assign(name, ids)
 	})
+}
+
+// AddTrackCharacters adds characters to those already assigned to the voice track named track, keeping the ones it had first (a
+// track the Booth adds for characters, or a character the narrator puts on an existing track). An empty list changes nothing.
+func (s *Service) AddTrackCharacters(track string, characters []string) (State, error) {
+	name, ids, err := validAssignment(track, characters)
+	if err != nil {
+		return State{}, err
+	}
+	return s.change(func(file *voiceFile) error {
+		if len(ids) == 0 {
+			return nil
+		}
+		merged := append([]string{}, file.Tracks[name].Characters...)
+		for _, id := range ids {
+			if !slices.Contains(merged, id) {
+				merged = append(merged, id)
+			}
+		}
+		if len(merged) > MaxCharacters {
+			return fmt.Errorf("%w: more than %d characters on one track", ErrInvalid, MaxCharacters)
+		}
+		return file.assign(name, merged)
+	})
+}
+
+// validAssignment is a track name, trimmed, and its character ids with each repeat kept once, or ErrInvalid.
+func validAssignment(track string, characters []string) (string, []string, error) {
+	name := strings.TrimSpace(track)
+	if !validText(name, MaxTrackName) {
+		return "", nil, fmt.Errorf("%w: the track name", ErrInvalid)
+	}
+	if len(characters) > MaxCharacters {
+		return "", nil, fmt.Errorf("%w: more than %d characters on one track", ErrInvalid, MaxCharacters)
+	}
+	ids := make([]string, 0, len(characters))
+	seen := make(map[string]bool, len(characters))
+	for _, id := range characters {
+		if !validText(id, MaxCharacterID) {
+			return "", nil, fmt.Errorf("%w: a character id", ErrInvalid)
+		}
+		if !seen[id] {
+			seen[id] = true
+			ids = append(ids, id)
+		}
+	}
+	return name, ids, nil
+}
+
+// CheckAssignment is nil when SetTrackCharacters or AddTrackCharacters would accept track and characters as given (ErrInvalid
+// otherwise), so a caller can refuse before it changes anything else.
+func CheckAssignment(track string, characters []string) error {
+	_, _, err := validAssignment(track, characters)
+	return err
+}
+
+// assign sets the characters of the track named name, refusing a new track past MaxTracks.
+func (f *voiceFile) assign(name string, ids []string) error {
+	if _, ok := f.Tracks[name]; !ok && len(f.Tracks) >= MaxTracks {
+		return fmt.Errorf("%w: more than %d voice tracks", ErrInvalid, MaxTracks)
+	}
+	f.Tracks[name] = trackEntry{Characters: ids}
+	return nil
 }
 
 // SetNarratorCharacter sets the character the Narrator track also voices, or clears it with "".
