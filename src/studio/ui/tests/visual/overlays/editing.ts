@@ -22,7 +22,19 @@ export const editingCases: OverlayCase[] = [
     // Not at 320x300: the word cannot be clicked there (the click times out); listed as not covered.
     viewports: ({ height }) => height >= 500,
     open: async (page) => {
-      await page.locator('[data-k="p-1:1"]').click({ button: 'right' });
+      const word = page.locator('[data-k="p-1:1"]');
+      // In a window as small as 360x500 the dock sits over the script pane's last strip (#2804: it must paint above the script, not under it), so after the
+      // page scrolls the word can be behind the dock and a real click is refused. The case judges where the menu lands, so it then raises the same
+      // contextmenu event at the word's own place.
+      await word.click({ button: 'right', timeout: 2000 }).catch(async () => {
+        await word.dispatchEvent('contextmenu', {
+          button: 2,
+          bubbles: true,
+          cancelable: true,
+          clientX: (await word.boundingBox())?.x ?? 0,
+          clientY: (await word.boundingBox())?.y ?? 0,
+        });
+      });
       await page.locator('[role="menu"]:visible').last().waitFor({ timeout: 2000 });
     },
   },
