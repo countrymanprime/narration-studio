@@ -5,6 +5,8 @@ Storybook title: `Editing/Ribbon range`. Source: `src/components/editing/ribbon/
 ## Stories
 
 - No Range
+- Long Take Name
+- Short Take Name
 - Range
 - Zoomed In
 - Handle Focused
