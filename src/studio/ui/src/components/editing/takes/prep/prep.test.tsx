@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import axe from 'axe-core';
-import { useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import { ApiProvider } from '../../../../api/ApiContext';
 import { createMockApi } from '../../../../api/mockApi';
@@ -16,7 +16,7 @@ import { createJournal, type Journal } from '../../../../studio/journal/createJo
 import { buildWordMenu } from '../../menu/wordMenuRegistry';
 import { marksDoc } from '../../script/scriptFixtures';
 import { summarize } from '../../model';
-import { useKeepTakes } from '../keepTake';
+import { LINE_BUSY, createLineBusy, useKeepTakes } from '../keepTake';
 import { unevenPassage } from '../takeFixtures';
 import { TakeLines } from '../TakeLines';
 import { useTakesGate } from '../useTakesGate';
@@ -32,6 +32,9 @@ let journal: Journal;
 let daw: DawClient;
 let dawCalls: string[];
 let hideTakes: ReturnType<typeof vi.fn>;
+/** While set, the host's useTake and hideTakes wait for it: a call on its way. */
+let holdKeep: Promise<void> | null = null;
+let holdHide: Promise<void> | null = null;
 let deleteRange: ReturnType<typeof vi.fn>;
 let evidence: ReturnType<typeof vi.fn>;
 let levelMatchPreview: Mock<NarrationApi['levelMatchPreview']>;
@@ -44,11 +47,18 @@ let rangesOf: Mock<RangesOf>;
 
 function makeDaw(setup: DawSetupId, refuse?: string): DawClient {
   const base = createMockDawClient(DAW_SETUPS[setup], { chapterIds: ['5'], candidateIds: ['t-7', 't-8', 't-9'], findingIds: [] });
-  hideTakes = vi.fn((...a: Parameters<DawClient['hideTakes']>) => base.hideTakes(...a));
+  hideTakes = vi.fn(async (...a: Parameters<DawClient['hideTakes']>) => {
+    await holdHide;
+    return base.hideTakes(...a);
+  });
+  const useTakeHeld = vi.fn(async (...a: Parameters<DawClient['useTake']>) => {
+    await holdKeep;
+    return base.useTake(...a);
+  });
   deleteRange = vi.fn(async (...a: Parameters<DawClient['deleteRange']>) =>
     refuse ? { ok: false, changed: false, message: refuse, undoSteps: 0, refused: refuse } : base.deleteRange(...a),
   );
-  const wrapped = { ...base, hideTakes, deleteRange } as DawClient;
+  const wrapped = { ...base, hideTakes, deleteRange, useTake: useTakeHeld } as DawClient;
   return new Proxy(wrapped, {
     get: (t, k: keyof DawClient) =>
       typeof t[k] === 'function' && k !== 'capabilities' ? (...a: unknown[]) => (dawCalls.push(String(k)), (t[k] as (...x: unknown[]) => unknown)(...a)) : t[k],
@@ -56,10 +66,12 @@ function makeDaw(setup: DawSetupId, refuse?: string): DawClient {
 }
 
 function Page({ passage }: { passage: LinePassage }) {
-  const { kept, keep } = useKeepTakes(journal);
+  // One busy map for both, as the Editing page holds it.
+  const busy = useMemo(createLineBusy, []);
+  const { kept, keep } = useKeepTakes(journal, undefined, busy);
   const gate = useTakesGate();
   const [, setTick] = useState(0);
-  hide = useHideOthers({ journal, kept, current: () => passage, passageOf: () => passage });
+  hide = useHideOthers({ journal, kept, current: () => passage, passageOf: () => passage, busy });
   const prep = usePrepSteps({ journal, hidden: hide.hiddenIds, rangesOf });
   const shown = hide.shown(prep.prepared(passage));
   return (
@@ -104,6 +116,8 @@ const pressH = async () => {
 };
 
 beforeEach(() => {
+  holdKeep = null;
+  holdHide = null;
   journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'this' });
   dawCalls = [];
   confirm = vi.spyOn(overlay, 'confirm').mockResolvedValue(true);
@@ -164,6 +178,70 @@ describe('hide-others-needs-a-kept-take-first', () => {
     expect(document.querySelectorAll('[data-take]')).toHaveLength(1);
     expect(hideTakes).toHaveBeenCalledTimes(1);
     expect(confirm).toHaveBeenCalledTimes(1);
+  });
+
+  it('a hide the host rejects shows an error toast and hides nothing', async () => {
+    mount();
+    await flush();
+    await keepT8();
+    hideTakes.mockRejectedValueOnce(new Error('the host went away'));
+    await pressH();
+    expect(toast).toHaveBeenLastCalledWith('Could not hide the other takes: the host went away', { tone: 'error' });
+    expect(document.querySelectorAll('[data-take]')).toHaveLength(3);
+  });
+
+  it('a second Hide while the first is on its way sends one hideTakes and asks once', async () => {
+    mount();
+    await flush();
+    await keepT8();
+    let release!: () => void;
+    holdHide = new Promise<void>((r) => (release = r));
+    await pressH();
+    await pressH();
+    await pressH();
+    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(hideTakes).toHaveBeenCalledTimes(1);
+    release();
+    holdHide = null;
+    await flush();
+    await flush();
+    expect(hideTakes).toHaveBeenCalledTimes(1);
+    expect(document.querySelectorAll('[data-take]')).toHaveLength(1);
+  });
+
+  it('a Hide pressed while a Keep is still on its way hides nothing (it would act on the take that was kept before) and says so', async () => {
+    mount();
+    await flush();
+    await keepT8();
+    let release!: () => void;
+    holdKeep = new Promise<void>((r) => (release = r));
+    fireEvent.click(button('Keep T-9'));
+    await flush();
+    await pressH();
+    expect(hideTakes).not.toHaveBeenCalled();
+    expect(confirm).not.toHaveBeenCalled();
+    expect(toast).toHaveBeenLastCalledWith(LINE_BUSY);
+    release();
+    holdKeep = null;
+    await flush();
+  });
+
+  it('a Keep pressed while a Hide is on its way sends nothing and says so', async () => {
+    mount();
+    await flush();
+    await keepT8();
+    let release!: () => void;
+    holdHide = new Promise<void>((r) => (release = r));
+    await pressH();
+    dawCalls.length = 0;
+    fireEvent.click(button('Keep T-9'));
+    await flush();
+    expect(dawCalls).not.toContain('useTake');
+    expect(toast).toHaveBeenLastCalledWith(LINE_BUSY);
+    release();
+    holdHide = null;
+    await flush();
+    await flush();
   });
 
   it('cancelling the question hides nothing', async () => {
