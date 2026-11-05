@@ -59,7 +59,7 @@ Storybook title: `Primitives/StatusBadge`. Source: `src/components/primitives/St
 - `src/components/engine/ChapterSyncPanel.tsx`
 - `src/components/engine/ChapterTagsDialog.tsx`
 - `src/components/engine/LinkChaptersDialog.tsx`
-- `src/components/engine/RetakeLanesDialog.tsx`
+- `src/components/engine/NestedChaptersNotice.tsx`
 - `src/components/engine/ToolResult.tsx`
 - `src/components/engine/TrackList.tsx`
 - `src/components/engine/audacityLinkText.ts`
@@ -67,6 +67,7 @@ Storybook title: `Primitives/StatusBadge`. Source: `src/components/primitives/St
 - `src/components/layout/HistoryPanel.tsx`
 - `src/components/master/DiagnosticsTables.tsx`
 - `src/components/master/MasterToSpecPanel.tsx`
+- `src/components/master/MasteringApprovalDialog.tsx`
 - `src/components/master/MasteringChain.tsx`
 - `src/components/master/RuleBadges.tsx`
 - `src/components/masterqc/files/FileChecks.tsx`
@@ -118,6 +119,7 @@ Storybook title: `Primitives/StatusBadge`. Source: `src/components/primitives/St
 - `src/components/storybible/Relationships.tsx`
 - `src/components/storybible/VoiceReferencesSection.tsx`
 - `src/components/storybible/source/PronSourceTag.tsx`
+- `src/components/storybible/source/PronunciationCandidates.tsx`
 - `src/components/storybible/suggested/import/ImportDialog.tsx`
 - `src/components/storybible/suggested/panel/EntryVerifyPill.tsx`
 - `src/components/storybible/suggested/panel/LooseSuggestionRows.tsx`

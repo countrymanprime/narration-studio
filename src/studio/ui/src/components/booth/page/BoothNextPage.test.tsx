@@ -34,7 +34,8 @@ import type { TeleprompterEvent } from '../../../api/contracts/teleprompter';
 import type { NarrationApi, TeleprompterState } from '../../../types';
 import { TEXT_PREFS_STORAGE_KEY } from '../../script/page/tools/text/readerText';
 import { BoothNextPage } from './BoothNextPage';
-import { BOOTH_SIZE_STORAGE_KEY } from './useTextChoices';
+import { EnginePanelProvider } from '../../engine/EnginePanelContext';
+import { BOOTH_SIZE_STORAGE_KEY } from './boothSize';
 import { BoothHost, creditsChapter, dawFor, LOCATED, newJournal, pageApi } from './testPage';
 import { forgetAppTake, skipStartGuard } from '../record/useRecordControl';
 import { createJournal, type Journal } from '../../../studio/journal/createJournal';
@@ -82,6 +83,7 @@ function spied(daw: DawClient) {
 }
 
 function renderPage({ setup = 'reaper', daw: given, search, api: over = {}, hasManuscript = true, measurements, journal: journalFor }: Options = {}) {
+  const openEnginePanel = vi.fn();
   const passageMapRecordRun = vi.fn(async () => {});
   const teleprompterStop = vi.fn(async () => {});
   const api = pageApi({ passageMapRecordRun, teleprompterStop, ...over } as Partial<NarrationApi>);
@@ -92,14 +94,16 @@ function renderPage({ setup = 'reaper', daw: given, search, api: over = {}, hasM
   const view = render(
     <BoothHost api={api} daw={daw} journal={journal} overlay={overlay} search={search}>
       <PortOverrides clients={measurements ? { daw, measurements } : { daw }}>
-        <BoothNextPage hasManuscript={hasManuscript} navigate={navigate} />
+        <EnginePanelProvider value={openEnginePanel}>
+          <BoothNextPage hasManuscript={hasManuscript} navigate={navigate} />
+        </EnginePanelProvider>
       </PortOverrides>
       <Driver />
     </BoothHost>,
   );
   const dialog = () =>
     overlay.getSnapshot().dialogs[0] as { spec: { title: string; body: string; confirmLabel: string }; answer: (yes: boolean) => void } | undefined;
-  return { view, daw, journal, overlay, navigate, dialog, passageMapRecordRun, teleprompterStop };
+  return { view, daw, journal, overlay, navigate, openEnginePanel, dialog, passageMapRecordRun, teleprompterStop };
 }
 
 /** The router, from inside it: what the address is and a way to change it, as a link elsewhere in the app would. */
@@ -147,6 +151,10 @@ describe('record-waits-for-the-live-model', () => {
   it('asks for the missing model first and records nothing while it is asked', async () => {
     const assetsList = vi.fn(async () => ({
       cacheRoot: 'C:/cache',
+      defaultRoot: 'C:/cache',
+      custom: false,
+      previousRoot: '',
+      folderNote: '',
       totalInstalledBytes: 0,
       assets: [
         {
@@ -338,13 +346,14 @@ describe('every-way-out-asks-while-recording', () => {
     expect(page.passageMapRecordRun).toHaveBeenCalledTimes(1);
   });
 
-  it('the setup chip asks too', async () => {
+  it('the setup chip opens the Audio engine panel, as the header chip does, and leaves the take running', async () => {
     const page = renderPage();
     await record(page);
     await userEvent.click(screen.getByRole('button', { name: 'Recording setup: REAPER' }));
-    expect(page.dialog()?.spec.title).toBe('Stop recording?');
-    await act(async () => page.dialog()!.answer(true));
-    await waitFor(() => expect(page.navigate).toHaveBeenCalledWith('/settings#recording'));
+    expect(page.openEnginePanel).toHaveBeenCalledTimes(1);
+    expect(page.dialog()).toBeUndefined();
+    expect(page.navigate).not.toHaveBeenCalled();
+    expect(page.daw.recordStop).not.toHaveBeenCalled();
   });
 
   it('the shell asks before the nav, Back, Forward, Alt+Arrow or a chapter opened in Script; its Yes stops the take as the page goes', async () => {
@@ -537,7 +546,7 @@ describe('escape-closes-the-drawer-then-a-popover-then-exits', () => {
   it('a popover takes Escape first; then Escape exits', async () => {
     const page = renderPage();
     await ready();
-    await userEvent.click(screen.getByRole('button', { name: /levels/i }));
+    await userEvent.click(screen.getByRole('button', { name: /record options/i }));
     const popover = await screen.findByRole('dialog');
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(popover.isConnected).toBe(false));
@@ -1094,7 +1103,7 @@ describe('a pickup session on the page', () => {
   });
 });
 
-// SN-O11: the rest of the Booth parity audit (docs/research/studio-next-parity-booth.md, G2 to G15).
+// SN-O11: the rest of the Booth parity audit (the deleted parity note for the Booth, G2 to G15).
 const toasts = (page: ReturnType<typeof renderPage>) => page.overlay.getSnapshot().toasts.map((toast) => toast.text);
 
 /** A host whose listening session the test drives: it pushes the session's state and events as the sidecar would. */
@@ -1307,8 +1316,8 @@ describe('the Levels menu', () => {
     );
     const page = renderPage({ daw });
     await ready();
-    await userEvent.click(screen.getByRole('button', { name: 'Levels' }));
-    const levels = await screen.findByRole('dialog', { name: 'Levels' });
+    await userEvent.click(screen.getByRole('button', { name: 'Record options' }));
+    const levels = await screen.findByRole('dialog', { name: 'Record options' });
     expect(within(levels).getByText(off.message)).toBeTruthy();
     expect(within(levels).queryByRole('button', { name: 'Turn on in Settings' })).toBeNull();
     expect(page.navigate).not.toHaveBeenCalledWith(expect.stringContaining('/settings'));
@@ -1481,7 +1490,7 @@ describe('the text follows the voice: the listening microphone and the model', (
       : {
           status: 'unavailable' as const,
           reason: 'reaper_no_device' as const,
-          message: 'REAPER did not say which input device it has open. Choose the microphone in Levels.',
+          message: 'REAPER did not say which input device it has open. Choose the microphone in Record options.',
           candidates: [],
         };
   const two = async () => ({ devices: [{ name: 'USB Mic' }, { name: 'Line In' }], error: null });
@@ -1498,8 +1507,8 @@ describe('the text follows the voice: the listening microphone and the model', (
     expect(teleprompterReaperInput).toHaveBeenCalledWith('c1');
     expect(saveSettings).not.toHaveBeenCalledWith('Teleprompter', 'global', expect.objectContaining({ input_device: expect.anything() }));
     expect(document.getElementById('blisten-why')).toBeNull();
-    await userEvent.click(screen.getByRole('button', { name: 'Levels' }));
-    const menu = await screen.findByRole('dialog', { name: 'Levels' });
+    await userEvent.click(screen.getByRole('button', { name: 'Record options' }));
+    const menu = await screen.findByRole('dialog', { name: 'Record options' });
     expect(within(menu).getByText('Line In')).toBeTruthy();
     expect(within(menu).getByText('Same as REAPER')).toBeTruthy();
     expect(within(menu).getByText('REAPER records from Line In · Input 2.')).toBeTruthy();
@@ -1531,27 +1540,27 @@ describe('the text follows the voice: the listening microphone and the model', (
     });
     await record(page);
     await waitFor(() => expect(teleprompterStart).toHaveBeenCalledWith(expect.objectContaining({ device: 'USB Mic' })));
-    await userEvent.click(screen.getByRole('button', { name: 'Levels' }));
-    const menu = await screen.findByRole('dialog', { name: 'Levels' });
+    await userEvent.click(screen.getByRole('button', { name: 'Record options' }));
+    const menu = await screen.findByRole('dialog', { name: 'Record options' });
     await userEvent.click(within(menu).getByRole('button', { name: "Use REAPER's input" }));
     expect(saveSettings).toHaveBeenCalledWith('Teleprompter', 'global', { input_source: 'daw' });
     expect(await within(menu).findByText('Same as REAPER')).toBeTruthy();
   });
 
-  it('when the DAW cannot say, the take listens to the first microphone listed with no trip to Settings, and a choice in Levels is the next', async () => {
+  it('when the DAW cannot say, the take listens to the first microphone listed with no trip to Settings, and a choice in Record options is the next', async () => {
     const teleprompterStart = vi.fn(async () => ({ status: 'started' as const }));
     const page = renderPage({
       api: { settingsForScope: noSavedDevice, teleprompterReaperInput: reaperInput(), teleprompterDevices: two, teleprompterStart } as never,
     });
     await ready();
-    await userEvent.click(screen.getByRole('button', { name: 'Levels' }));
-    const menu = await screen.findByRole('dialog', { name: 'Levels' });
-    expect(within(menu).getByText('REAPER did not say which input device it has open. Choose the microphone in Levels.')).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: 'Record options' }));
+    const menu = await screen.findByRole('dialog', { name: 'Record options' });
+    expect(within(menu).getByText('REAPER did not say which input device it has open. Choose the microphone in Record options.')).toBeTruthy();
     expect(within(menu).getByRole('combobox', { name: 'Microphone' })).toHaveProperty('value', 'USB Mic');
     expect(document.getElementById('blisten-why')).toBeNull();
     await userEvent.selectOptions(within(menu).getByRole('combobox', { name: 'Microphone' }), 'Line In');
-    await userEvent.click(screen.getByRole('button', { name: 'Levels' }));
-    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Levels' })).toBeNull());
+    await userEvent.click(screen.getByRole('button', { name: 'Record options' }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Record options' })).toBeNull());
     await record(page);
     await waitFor(() => expect(teleprompterStart).toHaveBeenCalledWith(expect.objectContaining({ device: 'Line In' })));
   });
@@ -1569,8 +1578,8 @@ describe('the text follows the voice: the listening microphone and the model', (
       api: { settingsForScope: noSavedDevice, teleprompterReaperInput: uncertain, teleprompterDevices: two, teleprompterStart, saveSettings } as never,
     });
     await ready();
-    await userEvent.click(screen.getByRole('button', { name: 'Levels' }));
-    const menu = await screen.findByRole('dialog', { name: 'Levels' });
+    await userEvent.click(screen.getByRole('button', { name: 'Record options' }));
+    const menu = await screen.findByRole('dialog', { name: 'Record options' });
     const group = await within(menu).findByRole('group', { name: 'Which microphone REAPER records from' });
     await userEvent.click(within(group).getByRole('button', { name: 'Line In' }));
     expect(saveSettings).toHaveBeenCalledWith('Teleprompter', 'global', { input_device: 'Line In' });
@@ -1578,7 +1587,7 @@ describe('the text follows the voice: the listening microphone and the model', (
     expect(await within(menu).findByText('Same as REAPER')).toBeTruthy();
     const settled = within(menu).getByRole('group', { name: 'Which microphone REAPER records from' });
     expect(within(settled).getByRole('button', { name: 'Line In' }).getAttribute('aria-pressed')).toBe('true');
-    await userEvent.click(screen.getByRole('button', { name: 'Levels' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Record options' }));
     await record(page);
     await waitFor(() => expect(teleprompterStart).toHaveBeenCalledWith(expect.objectContaining({ device: 'Line In' })));
   });
@@ -1714,7 +1723,7 @@ describe('a-pedals-space-records-and-stops-with-a-popup-open', () => {
   it.each([
     ['Text settings', () => screen.getByRole('combobox', { name: 'Font' })],
     ['Text settings', () => screen.getByRole('slider', { name: /Size/ })],
-    ['Levels', () => document.activeElement ?? document.body],
+    ['Record options', () => document.activeElement ?? document.body],
   ])('starts a take from the %s popover with focus on a non-text control', async (name, pick) => {
     const page = renderPage();
     await ready();
@@ -1729,7 +1738,7 @@ describe('a-pedals-space-records-and-stops-with-a-popup-open', () => {
   it('stops a running take from the Levels popover', async () => {
     const page = renderPage();
     await record(page);
-    const popover = await openPopover('Levels');
+    const popover = await openPopover('Record options');
     await spaceOn(document.activeElement ?? popover);
     await waitFor(() => expect(page.daw.recordStop).toHaveBeenCalledTimes(1));
   });
@@ -1737,7 +1746,7 @@ describe('a-pedals-space-records-and-stops-with-a-popup-open', () => {
   it('still types a space into a text field inside a popup', async () => {
     const page = renderPage();
     await ready();
-    const popover = await openPopover('Levels');
+    const popover = await openPopover('Record options');
     const field = document.createElement('input');
     field.type = 'text';
     popover.append(field);

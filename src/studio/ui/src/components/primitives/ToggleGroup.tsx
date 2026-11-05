@@ -6,6 +6,8 @@ type ToggleGroupOption = {
   disabled?: boolean;
   // Shown as a hint on the chip (why it is off, or what it means).
   title?: string;
+  // Off, with the reason a hover, a focus and a screen reader get (`Pill`'s `disabledReason`).
+  disabledReason?: string;
 };
 
 /** `default` is a row of standalone chips, each with its own border. `segmented` is one bordered container (the Master
@@ -48,6 +50,7 @@ export function ToggleGroup({
           active={value === option.value}
           disabled={option.disabled}
           title={option.title}
+          disabledReason={option.disabledReason}
           look={look === 'segmented' ? 'segmented' : 'chip'}
           onClick={() => onChange(option.value)}
         />

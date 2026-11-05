@@ -98,6 +98,13 @@ field, a source tag, and beside the play button **Record my own clip** (for your
   Merriam-Webster online. The source is asked for that name alone; one with nothing for it says so and the value stays.
 - When you replace a dictionary's answer with your own, or the other way round, the one replaced is kept: the tag's
   menu offers **Use mine** or **Use the dictionary's** to switch back.
+- **From the dictionaries** lists what each local source says for the name, each with its source: the CMU dictionary, Wiktionary (when
+  it is installed), eSpeak NG, and your own dictionary (**My dictionary**, and **Script (imported)** for words an older version kept on the
+  Script page). **Hear** plays a value before you choose it; **Use** makes it the name's.
+- Each change is one step in the history: **Undo** puts the name's earlier pronunciation back.
+
+This row is also the **How I will say it** row on the [Script](script.md#the-rail) page's **Words** card, and both edit the same value: a change
+made on either page shows on the other. The Story Bible holds story elements only: a word that is none goes to your own dictionary instead.
 
 A new scan keeps all of this. Which source a *fresh* pronunciation tries first (at scan time, or when you add an alias)
 follows **Settings > Voice & pronunciation > Pronunciation source for new names**. A note written on a pronunciation shows under its

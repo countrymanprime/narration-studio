@@ -1,3 +1,4 @@
+import { retryAction, type ToastAction } from '../../primitives/Toast';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { GuideEntity } from '../../../api/contracts/storyBible';
 import type { Track } from '../../../api/contracts/tracks';
@@ -58,7 +59,7 @@ export function useBoothVoices({
 }: {
   chapterId: string;
   recording: boolean;
-  notify: (text: string, tone?: 'error' | 'info') => void;
+  notify: (text: string, tone?: 'error' | 'info', action?: ToastAction) => void;
   /** Stops the take this app runs, as the Stop press does (the take is kept); resolves true once it has stopped. */
   stopTake?: () => Promise<boolean>;
   /** A key with no track behind it, pressed or answered once no take runs: the page asks who is in it. */
@@ -93,7 +94,12 @@ export function useBoothVoices({
       storyBible.guideEntities(),
       // A failed read is a toast; the voices are still listed, and the control shows the Narrator voice a start with no choice uses.
       voiceTracks.boothVoiceGet(chapterId).catch((reason: unknown) => {
-        if (live) notify(describeApiError(reason), 'error');
+        if (live)
+          notify(
+            describeApiError(reason),
+            'error',
+            retryAction(() => setRevision((n) => n + 1)),
+          );
         return undefined;
       }),
     ])
@@ -109,7 +115,15 @@ export function useBoothVoices({
           added: voice?.added ?? [],
         });
       })
-      .catch((reason: unknown) => live && notify(describeApiError(reason), 'error'));
+      .catch(
+        (reason: unknown) =>
+          live &&
+          notify(
+            describeApiError(reason),
+            'error',
+            retryAction(() => setRevision((n) => n + 1)),
+          ),
+      );
     return () => {
       live = false;
     };
@@ -249,10 +263,19 @@ export function useBoothVoices({
           added: [...(last.chapterId === chapterId ? last.added : []), { guid, name: answer.name ?? name }],
         }));
         // The characters are on the new track's name: the Voices card and the keys read them from the setup.
-        await voiceTracks
-          .voiceTracksGet()
-          .then(replace)
-          .catch((reason: unknown) => notify(`The track was added, but its characters could not be read back: ${describeApiError(reason)}`, 'error'));
+        // Reading the setup again changes nothing, so the failed read-back's toast offers Retry (issue #2919).
+        const readBack = (): Promise<void> =>
+          voiceTracks
+            .voiceTracksGet()
+            .then(replace)
+            .catch((reason: unknown) =>
+              notify(
+                `The track was added, but its characters could not be read back: ${describeApiError(reason)}`,
+                'error',
+                retryAction(() => void readBack()),
+              ),
+            );
+        await readBack();
         setRevision((count) => count + 1);
         return true;
       } catch (reason: unknown) {

@@ -61,6 +61,7 @@ export function usePickupsPageCommands(page: {
     }
 
     const session = sessionPickups(page.inView);
+    const placeable = session.filter((pickup) => pickup.at !== null).length;
     const none = session.length === 0 ? 'No lines in the session.' : undefined;
     items.push(
       {
@@ -81,10 +82,12 @@ export function usePickupsPageCommands(page: {
       },
       {
         id: 'session.markers',
-        label: `Add ${session.length} as markers in ${page.dawName}`,
+        label: `Add ${placeable} as markers in ${page.dawName}`,
         group: 'Actions',
         icon: 'addMarker',
-        disabledReason: page.markers.available ? none : page.markers.message || `${page.dawName} cannot add markers now.`,
+        disabledReason: page.markers.available
+          ? (none ?? (placeable === 0 ? 'None of these lines has a place in the recording yet.' : undefined))
+          : page.markers.message || `${page.dawName} cannot add markers now.`,
         run: () => void page.onAddMarkers(session).catch(page.onError),
       },
     );

@@ -38,7 +38,11 @@ function check(found: string[], { covered, exempt, cap }: Parity) {
     'a setting control with no Settings row',
   ).toEqual([]);
   expect(found.length).toBeGreaterThan(0);
-  expect(Object.keys(exempt).length, 'the exempt list grew; add a Settings row instead').toBeLessThanOrEqual(cap);
+  // The cap is the exempt list's length, not a ceiling above it: adding an exemption fails here (add a Settings row instead), and so does
+  // removing one without lowering the cap, which would leave room for one to come back unreviewed.
+  expect(Object.keys(exempt).length, 'the exempt list and its cap differ: a new exemption needs the owner, a removed one lowers the cap').toBe(cap);
+  for (const [name, reason] of Object.entries(exempt))
+    expect(reason, `${name} is still marked GAP: build its Settings row or give the reason`).not.toMatch(/^GAP\b/);
   for (const name of [...Object.keys(covered), ...Object.keys(exempt)]) expect(found, `${name} is listed but no longer exists`).toContain(name);
 }
 
@@ -54,6 +58,9 @@ const DATA = 'Edits project content (a record, a link, a status), not a preferen
 const BINDINGS: Parity = {
   covered: {
     voiceTracksSetLayout: 'daw.layout',
+    chapterSyncSetEnabled: 'daw.sync',
+    voiceTracksSetNarrator: 'daw.voices',
+    voiceTracksSetCharacters: 'daw.voices',
     windowSetZoom: 'look.zoom',
     dawChoose: 'daw.engine',
     pronunciationOnlineKeySet: 'voice.mwKey',
@@ -83,14 +90,10 @@ const BINDINGS: Parity = {
     guideTypeSetColour: 'The Story Bible type colours are edited in Settings’ Entry types row (project.types); this is that row’s own write.',
     guideTypeSetSpeaks: 'The Story Bible type’s Can speak is edited in Settings’ Entry types row (project.types); this is that row’s own write.',
     voiceSampleSetPrimary: DATA,
-    // Preferences with no Settings row yet. Each leaves this list in the pull request that adds its row (issue 2815).
-    chapterSyncSetEnabled: 'GAP, Engine panel: whether sync links chapters to tracks. Row comes in the Engine-panel pull request.',
     masteringChooseProvider: 'No control calls it (it is on the unwired-bindings list); a row comes with the control, if one is ever drawn.',
-    voiceTracksSetNarrator: 'GAP, Engine panel: the narrator’s character for voice tracks. Row comes in the Engine-panel pull request.',
-    voiceTracksSetCharacters: 'GAP, Engine panel: which characters a voice track records. Row comes in the Engine-panel pull request.',
     editingSetSourceChoice: 'A per-chapter choice recorded with that chapter’s analysis (source-choice.json), not a preference for the project.',
   },
-  cap: 29,
+  cap: 26,
 };
 
 // ---- Keys the window keeps in localStorage.
@@ -104,6 +107,9 @@ const STORAGE: Parity = {
     'narration-ui-take-tone': 'daw.startTone',
     'narration-ui-ribbon-scroll-step': 'look.waveScrollStep',
     'narration.script.text': 'look.reader',
+    'narration.booth.textSize': 'look.boothSize',
+    'narration-ui-editing-output': 'look.playback',
+    'narration.storyBible.sort': 'look.entrySort',
   },
   exempt: {
     'narration-ui-demo-play-motion': 'A development switch for recorded demos, not offered to a narrator.',
@@ -114,11 +120,8 @@ const STORAGE: Parity = {
     'narration.booth.chapterPlaces.': 'Where the Booth was in each chapter: remembered position, not a preference.',
     'narration.proof.lastChapter.': 'The chapter Proof and Master & QC were last on: remembered position, not a preference.',
     'narration.readAloud.flags': 'Read only; nothing writes it.',
-    'narration.storyBible.sort': 'GAP, Story Bible: the entry table’s sort. Row, or a reason, comes in the Story Bible pull request.',
-    'narration.booth.textSize': 'GAP, Booth: the Booth’s own text size. Row comes in the Booth pull request.',
-    'narration-ui-editing-output': 'GAP, Editing: playback speed, volume and output device. Row comes in the Editing pull request.',
   },
-  cap: 11,
+  cap: 8,
 };
 
 // ---- Files that write a host settings field outside the Settings page.
@@ -137,15 +140,25 @@ const WRITERS: Parity = {
     'components/editing/backups/useBackupSettings.ts': 'ps.backups',
     'components/editing/effects/useFxFavourites.ts': 'ps.fx',
     'components/proof/proofOptions/useProjectOptions.ts': 'ps.preview',
+    'components/editing/effects/useFxCap.ts': 'daw.fxCap',
+    'tips/tipsStore.ts': 'app.tips',
   },
   exempt: {
-    'components/editing/effects/useFxCap.ts': 'GAP, Editing: the effects coverage cap. Row comes in the Editing pull request.',
     'components/credits/CreditsSetupDialog.tsx':
       'Writes the narrator name for “all my projects”, the same value as project.narrator’s global scope; the dialog is that row’s prompt.',
-    'tips/tipsStore.ts': 'GAP, App: which first-use tips were dismissed. Row (reset tips), or a reason, comes in the App pull request.',
   },
-  cap: 3,
+  cap: 1,
 };
+
+// The binding scan above reads names that contain Set, Choose, Enable or Disable after a lowercase start; a name that starts with `set` does
+// not match it. The one such binding that is a preference gets its row checked here instead of being added to the scan.
+describe('the schedule basis (issue 2815)', () => {
+  it('is saved by a binding the contracts declare, and has a Settings row', () => {
+    const contracts = readdirSync(join(SRC, 'api/contracts')).map((file) => text(join(SRC, 'api/contracts', file)));
+    expect(contracts.some((source) => /\bsetProductionRateBasis\s*\(/.test(source))).toBe(true);
+    expect(rowIds.has('project.rateBasis')).toBe(true);
+  });
+});
 
 describe('settings parity (issue 2815)', () => {
   it('every host binding that sets or chooses something has a Settings row or a stated reason', () => check(bindings, BINDINGS));

@@ -204,6 +204,14 @@ local UNDO_LABELS = {
   cut_range = BRAND.name .. ': delete words',
   replace_range = BRAND.name .. ': replace audio',
   restore_replacement = BRAND.name .. ': put audio back',
+  -- Keep Take / Use this take: set_active_take (narration_workspace.lua) and pick_retake_lane (narration_retake_lanes.lua) both close with it.
+  use_take = BRAND.name .. ': use take',
+  -- The chain edits Editing's Undo reads back (narration_range.lua closes each block with the label of its kind).
+  add_range_fx = BRAND.name .. ': add chain to range',
+  remove_range_fx = BRAND.name .. ': remove chain from range',
+  set_fx_param = BRAND.name .. ': change effect setting',
+  bypass_fx = BRAND.name .. ': bypass effect',
+  enable_fx = BRAND.name .. ': turn effect back on',
 }
 local function undo_label(kind)
   if type(kind) ~= 'string' then
@@ -278,6 +286,68 @@ function M.with_descendants(track)
     index = index + 1
   end
   return out
+end
+
+-- The parent of each track, by 1-based position (0 at the top level), from a list of folder depth changes (I_FOLDERDEPTH, one per track in
+-- order): what REAPER shows as each track's folder. A close past the top level stays at the top level, as REAPER reads it. Reads only.
+function M.folder_parents(deltas)
+  local out, stack, depth = {}, {}, 0
+  for position, delta in ipairs(deltas) do
+    out[position] = stack[depth] or 0
+    if delta > 0 then
+      stack[depth + 1] = position
+    end
+    depth = math.max(depth + delta, 0)
+  end
+  return out
+end
+
+-- Every track's I_FOLDERDEPTH, in order.
+function M.folder_deltas()
+  local out = {}
+  for index = 0, reaper.CountTracks(0) - 1 do
+    out[#out + 1] = reaper.GetMediaTrackInfo_Value(reaper.GetTrack(0, index), 'I_FOLDERDEPTH')
+  end
+  return out
+end
+
+-- True when `after` (the depth changes with one track inserted at 1-based position `at`) leaves every other track in the folder it was in
+-- before, and puts the new track in `parent` (a 1-based position in `before`, or 0 for the top level). The guard every track insert passes
+-- before it writes anything: a structure that would move a chapter into another chapter's folder is refused, never written (#2251).
+function M.insert_keeps_parents(before, after, at, parent)
+  local was, now = M.folder_parents(before), M.folder_parents(after)
+  -- A position in `before` is one further in `after` from the insert on.
+  local function shifted(position)
+    if position >= at then
+      return position + 1
+    end
+    return position
+  end
+  for position = 1, #before do
+    local old = was[position]
+    if now[shifted(position)] ~= (old == 0 and 0 or shifted(old)) then
+      return false
+    end
+  end
+  return now[at] == (parent == 0 and 0 or shifted(parent))
+end
+
+-- Adds a track at the end of the project, at the top level, and answers it and its 0-based index. A project can end inside an open folder
+-- (REAPER 7.82 accepts a last track whose I_FOLDERDEPTH leaves a folder open and closes it at the end), and a track appended there lands
+-- inside that folder, so every chapter added afterwards would nest under the last chapter's folder (#2251). The previous last track closes
+-- every folder still open instead, which changes no track's folder. Call it inside the caller's undo block.
+function M.append_track()
+  local count = reaper.CountTracks(0)
+  local open = 0
+  for _, delta in ipairs(M.folder_deltas()) do
+    open = math.max(open + delta, 0)
+  end
+  if count > 0 and open > 0 then
+    local last = reaper.GetTrack(0, count - 1)
+    reaper.SetMediaTrackInfo_Value(last, 'I_FOLDERDEPTH', reaper.GetMediaTrackInfo_Value(last, 'I_FOLDERDEPTH') - open)
+  end
+  reaper.InsertTrackAtIndex(count, false)
+  return reaper.GetTrack(0, count), count
 end
 
 -- The bridge's own cursor moves (set_cursor, punch_to) told to every module that listens: narration_transport.lua's stop

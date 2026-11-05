@@ -24,6 +24,7 @@ Storybook title: `Primitives/Icon`. Source: `src/components/primitives/Icon.tsx`
 - `src/components/editing/takes/TakeChip.tsx`
 - `src/components/editing/voicesample/SampleMark.tsx`
 - `src/components/editing/voicesample/VoiceSampleDialog.tsx`
+- `src/components/engine/AudacityLinkCard.tsx`
 - `src/components/engine/TrackList.tsx`
 - `src/components/layout/Brand.tsx`
 - `src/components/layout/JumpMenu.tsx`
@@ -41,7 +42,6 @@ Storybook title: `Primitives/Icon`. Source: `src/components/primitives/Icon.tsx`
 - `src/components/schedule/MilestoneTable.tsx`
 - `src/components/script/bookmarks/ui/BookmarkRibbon.tsx`
 - `src/components/script/page/rail/words/DefinitionSourceMenu.tsx`
-- `src/components/script/page/rail/words/WordCard.tsx`
 - `src/components/script/page/rail/words/WordsTab.tsx`
 - `src/components/script/page/tools/select/KindMenu.tsx`
 - `src/components/script/page/tools/select/MarkMenu.tsx`

@@ -35,6 +35,13 @@ func (h *Host) MarksSaveTypes(types []marks.MarkType, removeUses bool) (string, 
 	return encodeBinding(h.marks().SaveTypes(types, removeUses))
 }
 
+// MarksTypesChanged is whether the mark types differ from the default six: a type renamed, recoloured, restyled, added, removed or
+// moved. Settings > Changed reads it. It only reads the project's marks.json (marks.Service.TypesChanged): it never brings old notes
+// across, writes, or loads the manuscript. It answers a JSON boolean.
+func (h *Host) MarksTypesChanged() (string, error) {
+	return encodeBinding(h.marks().TypesChanged())
+}
+
 // marks builds the marks store over one services() snapshot: it keeps no state of its own, so a project switch in the
 // middle of a call never mixes two projects.
 func (h *Host) marks() *marks.Service {

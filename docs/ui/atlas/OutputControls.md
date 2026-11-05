@@ -21,3 +21,4 @@ Storybook title: `Editing/OutputControls`. Source: `src/components/editing/outpu
 ## Used by
 
 - `src/components/editing/output/EditingOutput.tsx`
+- `src/components/settings/controls/AppearanceBodies.tsx`

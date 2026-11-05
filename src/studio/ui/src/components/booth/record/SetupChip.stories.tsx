@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { expect, fn, within } from 'storybook/test';
+import { expect, within } from 'storybook/test';
 import type { DawChoice } from '../../../api/contracts/daw';
 import { setupCapabilities } from './fixtures';
 import { SetupChip } from './SetupChip';
@@ -25,7 +25,7 @@ const choice = (over: Partial<DawChoice>): DawChoice => ({
 const meta = {
   title: 'Booth/SetupChip',
   component: SetupChip,
-  args: { capabilities: setupCapabilities('reaper'), standaloneName: 'Recorder', choice: choice({}), onClick: fn() },
+  args: { capabilities: setupCapabilities('reaper'), standaloneName: 'Recorder', choice: choice({}) },
   decorators: [
     (Story) => (
       <div className="flex items-center gap-3 bg-[var(--surface)] px-5 py-2.5">

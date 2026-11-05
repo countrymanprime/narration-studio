@@ -65,6 +65,8 @@ export function VoiceSamplesBody({
       : read.samples
         ? `Couldn't read the voice samples again, so this list may be out of date. ${read.message}`
         : `Couldn't read the voice samples. ${read.message}`,
+    // Reading the list changes nothing, so Retry reads it again (issue #2919).
+    () => void refresh(),
   );
   const headingRef = useRef<HTMLHeadingElement>(null);
   const [checking, setChecking] = useState(false);

@@ -76,6 +76,29 @@ export const scheduleDrivers: Record<string, Driver> = {
     // The state is about the table's long names, which sit below the chart and the side cards at every width: bring the table up.
     await page.getByRole('heading', { name: 'Milestones', exact: true }).evaluate((heading) => heading.scrollIntoView({ block: 'start' }));
   },
+  'milestone-statuses': async (page) => {
+    // A custom milestone whose date has passed ("Past due"), one still ahead (a dash) and a done one, beside the Final delivery status.
+    await openSchedule(page, '?mockProduction=on-pace');
+    const add = async (name: string, due: string, done = false) => {
+      await clickVisible(page, 'button', 'Add milestone');
+      const dialog = confirmDialog(page, /milestone/i);
+      await dialog.waitFor();
+      await dialog.getByRole('textbox', { name: 'Name' }).fill(name);
+      await dialog.getByRole('textbox', { name: 'Due' }).fill(due);
+      if (done) await dialog.getByRole('checkbox', { name: 'Done' }).check();
+      await dialog.getByRole('button', { name: 'Add milestone' }).click();
+      await dialog.waitFor({ state: 'detached' });
+      const added = page.getByRole('status').getByText('Milestone added.');
+      await added.waitFor();
+      await page.getByRole('button', { name: 'Dismiss message' }).click();
+      await added.waitFor({ state: 'detached' });
+    };
+    await add('Retail sample', '2026-09-20');
+    await add('Cover approved', '2026-09-10', true);
+    await add('Press kit', '2026-10-05');
+    await page.getByRole('img', { name: /^Past due by/ }).waitFor();
+    await page.getByRole('heading', { name: 'Milestones', exact: true }).evaluate((heading) => heading.scrollIntoView({ block: 'start' }));
+  },
   'no-manuscript': async (page) => {
     await openWithoutManuscript(page, 'Schedule');
   },

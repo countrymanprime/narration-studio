@@ -13,6 +13,7 @@ const host = (profile: DeliveryProfile, overrides: Partial<DeliveryProfilesApi> 
     deliveryProfiles: async () => ({
       profiles: [MOCK_ACX, mockCustomProfile()],
       globalDefault: { id: MOCK_ACX.id },
+      shippedDefault: { id: MOCK_ACX.id },
       hasProject: true,
       projectChoice: null,
       projectProfile: keyOf(profile),

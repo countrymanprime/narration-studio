@@ -21,6 +21,7 @@ import { usePort } from '../../../ports/usePort';
 import { recordsInApp } from '../../../studio/dawNames';
 import { dawShortName, useJournal } from '../../../studio/StudioProvider';
 import { ContextMenuHost } from '../../layout/ContextMenuHost';
+import type { ToastAction } from '../../primitives/Toast';
 import type { ContextMenuItem } from '../../primitives/ContextMenu';
 import { ChapterStepper } from '../../primitives/ChapterStepper';
 import { NeedManuscript } from '../../layout/NeedManuscript';
@@ -65,9 +66,9 @@ import { BoothSkeleton } from './BoothSkeleton';
 import { BoothUnavailable } from './BoothUnavailable';
 import { BoothGutter, BoothMessage } from './BoothMessage';
 import { CreditsWarning } from './CreditsWarning';
-import { bodyParagraphIndex, creditsParagraphs, entityAtWord, headingParagraphs, positionAtOffset, readingParagraphsOf, secondsBefore } from './readingSource';
+import { bodyParagraphIndex, creditsParagraphs, entityAtWord, headingParagraphs, readingParagraphsOf } from './readingSource';
+import { useMoveTarget } from './useMoveTarget';
 import { useFollowDawOnOpen, useMoveDawOnOpen } from './useDawFollow';
-import { unitAtPosition } from '../reading/readingPosition';
 import { useBoothData, type BoothSource } from './useBoothData';
 import { useBoothPage } from './useBoothPage';
 import type { StoppedTake } from '../pickups/usePickupSession';
@@ -320,6 +321,7 @@ function BoothSession({
     recordBlocked?: (block: RecordBlock) => void;
   }>({});
   const page = useBoothPage({
+    projectFolder,
     recordId,
     title,
     credits: source.kind === 'credits',
@@ -432,13 +434,7 @@ function BoothSession({
   const reference = useMemo(() => referenceOf(referenced.target, entities, marks, types), [referenced.target, entities, marks, types]);
 
   // Opened at a chapter, the DAW goes there too: to the end of its track, or to the line the Booth opened at, so the narrator can punch from it.
-  const moveTarget = useMemo(() => {
-    if (units.length === 0) return null;
-    // The credits have no line to start from: the DAW goes to the end of their track.
-    const position = chapter && from ? positionAtOffset(paragraphs, from.paragraphId, from.offset) : null;
-    const unit = position && unitAtPosition(paragraphs, units, position);
-    return unit ? ({ where: 'at', seconds: secondsBefore(units, unit.cur) } as const) : ({ where: 'end' } as const);
-  }, [chapter, from, paragraphs, units]);
+  const moveTarget = useMoveTarget({ chapterId, paragraphs, units, line: chapter && from ? from : undefined });
   useMoveDawOnOpen({
     enabled: moveDaw,
     chapterId,
@@ -480,7 +476,10 @@ function BoothSession({
 
   // The chapter's voices in a Voice folders project (docs/prds/booth-voice-tracks.prd.md): Num 0 to Num 9 choose one, Num + and Num −
   // step through them, Num . opens the list; during a take the choice switches the recording live.
-  const voiceToast = useCallback((text: string, tone?: 'error' | 'info') => overlay.toast(text, tone === 'error' ? { tone } : undefined), [overlay]);
+  const voiceToast = useCallback(
+    (text: string, tone?: 'error' | 'info', action?: ToastAction) => overlay.toast(text, tone === 'error' ? { tone, action } : undefined),
+    [overlay],
+  );
   // "Who is in Num N?" (phase 5, #2839): a key with no track behind it asks, after stopping a take this app runs as Stop does.
   const [whoAsk, setWhoAsk] = useState<WhoAsk | null>(null);
   const voices = useBoothVoices({
@@ -617,7 +616,10 @@ function BoothSession({
     );
   };
   // The host's sentence for an unlinked chapter points at the audio engine panel; the chip and its dialog are that fix now.
-  const footerWhy = linkProblem ? `${recordName} has no track to record on. Press Record to link one.` : control.reason;
+  // Record's reason is about Record: while the main button reads Cold read (no take runs) the footer does not blame Record for it.
+  const coldMode = page.coldRead.mode && !control.recording;
+  const recordWhy = linkProblem ? `${recordName} has no track to record on. Press Record to link one.` : control.reason;
+  const footerWhy = coldMode ? '' : recordWhy;
   const roomTone = useRoomTone(measurements, session.device);
   // The app's own recorder is what records (the project chose it, or no DAW is linked): the microphone is chosen here, not in a DAW.
   const standalone = capabilities?.daw === 'none' || recordsInApp(capabilities?.daw);
@@ -681,7 +683,6 @@ function BoothSession({
                     project={control.project}
                     choice={dawChoice}
                     otherProject={setupPlan?.kind === 'other-project'}
-                    onClick={() => void page.goTo(`${BOOTH_LINKS.settings}#recording`)}
                   />
                 ) : undefined
               }
@@ -805,7 +806,9 @@ function BoothSession({
           </BoothSamplesProvider>
           <SamplePlayerAnnouncement text={samples.announcement} />
           <BoothFooter
-            record={<RecordControl control={{ ...control, reason: footerWhy, toggle: page.toggleTake }} />}
+            record={
+              <RecordControl control={{ ...control, reason: footerWhy, toggle: page.pressMain }} cold={{ mode: page.coldRead.mode, on: page.coldRead.on }} />
+            }
             seconds={page.seconds}
             recording={control.recording}
             why={footerWhy || undefined}
