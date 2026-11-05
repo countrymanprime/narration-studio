@@ -98,7 +98,7 @@ func TestChapterTrackMapConfirmRejectsAChapterIDNotInTheManuscript(t *testing.T)
 	}
 }
 
-func TestChapterTrackMapClearRemovesTheLinkAndReturnsWhatRemains(t *testing.T) {
+func TestChapterTrackUnlinkRemovesTheChaptersLinkAndReturnsWhatRemains(t *testing.T) {
 	host, firstChapterID := newTestHostForMapping(t)
 	chapters, err := host.services().manuscript.Chapters()
 	if err != nil {
@@ -113,7 +113,7 @@ func TestChapterTrackMapClearRemovesTheLinkAndReturnsWhatRemains(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	clearedRaw, err := host.ChapterTrackMapClear("track-guid-a")
+	clearedRaw, err := host.ChapterTrackUnlink(firstChapterID)
 	if err != nil {
 		t.Fatal(err)
 	}

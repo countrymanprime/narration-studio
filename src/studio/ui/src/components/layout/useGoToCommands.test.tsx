@@ -2,7 +2,7 @@
 import { cleanup, render } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { providedCommands } from '../../input/commandProviders';
-import { chapterName } from '../../chapterName';
+import { headingName } from '../../chapterHeading';
 import { useGoToCommands, type GoToChapter, type GoToPage } from './useGoToCommands';
 
 afterEach(cleanup);
@@ -25,7 +25,7 @@ describe('useGoToCommands', () => {
   it('chapters-by-formatted-name: each chapter is "Go to" plus its formatted name, and the page rows come from the list too', () => {
     render(<Harness go={() => {}} />);
     const commands = providedCommands();
-    expect(commands.filter((c) => c.group === 'Chapters').map((c) => c.label)).toEqual(chapters.map((c) => `Go to ${chapterName(c, 'full')}`));
+    expect(commands.filter((c) => c.group === 'Chapters').map((c) => c.label)).toEqual(chapters.map((c) => `Go to ${headingName(c)}`));
     expect(commands.filter((c) => c.group === 'Go to').map((c) => c.label)).toEqual(['Go to Proof', 'Go to Production']);
   });
 

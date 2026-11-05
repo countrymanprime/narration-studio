@@ -245,7 +245,7 @@ About 5 are close to pure architecture description: `codebase-map.md`, `wire-con
 
 - All 15 carry "Parallel-session compatibility" (files each phase touches and which agent sessions collide), "Slices", "Supersedes / depends on ADRs", and both "Decisions" and "Decisions Log". The template in `docs/prds/README.md` requires them: item 11, "a Parallel-session compatibility table of the files each phase touches and who else collides with them", and a `PRP Plan` column. These are delivery-plan and tracker content (section 1.3).
 - [Studio Next Agent Delivery](../../.claude/skills/agent-train/references/studio-next-delivery.md) is not a product requirement: "The worker contract", "PR babysitting as a standing duty", "Session cap per slice". It is agent operating procedure.
-- [Studio Next ADR Register](../prds/studio-next-adr-register.prd.md) is a register of 143 ADR keep/extend/yield verdicts and 18 owner rulings: an ADR supersession plan, not a PRD.
+- Studio Next ADR Register is a register of 143 ADR keep/extend/yield verdicts and 18 owner rulings: an ADR supersession plan, not a PRD.
 - Several PRDs name agents as their users: "The owner, the coordinator and the last workers" (Cutover), "Page workers (consumers) ... the coordinator" (Domain state).
 - Product rules that PRDs cite live in the agent runbook: D69 (dark mode is one theme) and D98 (the mock is the only spec) are in `agent-train.md` "Owner standing rules".
 
@@ -563,7 +563,7 @@ Categories as in section 2.2. "Suggested home" is where the content would go if 
 | [0095](../architecture/docx-import-quirks.md#txt) | IMPL | N | Accepted | code comments in src/studio/desktop/internal/importer/txt.go | Charset detection order and hard-wrap heuristics; parsing detail |
 | [0096](../../src/studio/ui/vite.config.ts) | IMPL | N | Accepted | comment in src/studio/ui/vite.config.ts / docs/operations | Demo build mode and router basename; build configuration detail |
 | [0097](../architecture/dictionary-thesaurus-integration.md) | ARCH | N | Accepted | keep | Local Open English WordNet asset, no cloud API; data dependency and licence choice |
-| [0098](../../src/studio/integrations/reaper/narration_take_review.lua) | ARCH | N | Accepted | keep | Take provenance persisted in REAPER take P_EXT keys; persistence strategy |
+| [0098](https://github.com/countrymanprime/narration-studio/blob/0eebd02e9d0d29b40cee7a7d1b23cdc61b9d1176/src/studio/integrations/reaper/narration_take_review.lua) | ARCH | N | Accepted | keep | Take provenance persisted in REAPER take P_EXT keys; persistence strategy |
 | [0099](../../src/studio/desktop/internal/chaptertags/chaptertags.go) | ARCH | N | Accepted | keep | bogem/id3v2 dependency with hand-built CTOC, new-file MP3 output; library choice |
 | [0100](../../src/studio/desktop/internal/evidence/fingerprint.go) | ARCH | Y | Accepted | keep | Two hash keys, run ledger and confirmed track map; evidence persistence model with several decisions |
 | [0101](../architecture/docx-import-quirks.md) | IMPL | N | Accepted | code comments in src/studio/desktop/internal/importer/epub.go | EPUB TOC fallback order, caps, DRM refusal; parser details |
@@ -598,7 +598,7 @@ Categories as in section 2.2. "Suggested home" is where the content would go if 
 | [0135](../architecture/import-review.md#correcting-a-subtitle) | IMPL | N | Proposed | docs/utilities import reference | Importer per-section subtitleOff field and how an override is applied. |
 | [0136](../architecture/first-use-dependency-provisioning.md#the-asset-manager-implemented) | ARCH | N | Proposed | keep | Asset pipeline gains a Derive step changing what verified installs persist and how they are verified. |
 | [0140](../../src/studio/desktop/internal/measure/takemetrics.go) | IMPL | Y | Proposed | reference measure doc / code comments | Range API shape and clipping metric inside the measure package. |
-| [0141](../../src/studio/sidecars/transcript-compare/core/take_divergence_mode.py) | ARCH | N | Proposed | keep | Rejects forced-alignment dependency (PyTorch/Kaldi); keeps Whisper-timestamp approach for divergence. |
+| [0141](https://github.com/countrymanprime/narration-studio/blob/0eebd02e9d0d29b40cee7a7d1b23cdc61b9d1176/src/studio/sidecars/transcript-compare/core/take_divergence_mode.py) | ARCH | N | Proposed | keep | Rejects forced-alignment dependency (PyTorch/Kaldi); keeps Whisper-timestamp approach for divergence. |
 | [0143](../architecture/daw-integration.md#the-daw-port) | ARCH | N | Proposed | keep | Introduces DAW adapter interface seam and makes the event vocabulary part of its contract. |
 | [0144](../architecture/daw-integration.md#audacity-boundary) | ARCH | N | Proposed | keep | Launch-argument DAW classification decides which process bridges and services start. |
 | [0145](../architecture/daw-integration.md#audacity-boundary) | ENG | Y | Proposed | docs/operations release/installer doc | Installer creates an Audacity Start Menu entry; bundles project-picker UX rule. |
@@ -754,8 +754,8 @@ Categories as in section 2.2. "Suggested home" is where the content would go if 
 | [0525](../../src/studio/desktop/internal/proofing/pickups.go) | UX | N | Proposed | PRD proofing signals | Defines when a proofing signal reads met/not_met/unknown; product rule |
 | [0545](../guides/using-the-app/proof.md#the-chapter-view) | UX | Y | Proposed | PRD native takes | Panel placement, assignment UI, keeper marks and a new keeper.json bundled |
 | [0550](../guides/using-the-app/navigation.md#editing-check) | ARCH | Y | Proposed | keep | Editing reuses proofing's render store, adds a choice store and fingerprint-scoped ledger; module boundaries |
-| [0560](../architecture/manuscript-teleprompter.md#punch-from-here-where-a-words-time-comes-from) | ARCH | N | Proposed | keep | Adds a sidecar align-word mode as a punch-time source; external integration approach |
-| [0565](../../src/studio/desktop/internal/series/voicebible.go) | UX | Y | Accepted | PRD series voice bible | Grouping, labels, display names, empty state and error reporting for one feature |
+| [0560](https://github.com/countrymanprime/narration-studio/blob/e95ce0c3c8d5d2bf3860d95e8184b6d308da1ef4/docs/architecture/manuscript-teleprompter.md#punch-from-here-where-a-words-time-comes-from) | ARCH | N | Proposed | keep | Adds a sidecar align-word mode as a punch-time source; external integration approach |
+| [0565](https://github.com/countrymanprime/narration-studio/blob/e95ce0c3c8d5d2bf3860d95e8184b6d308da1ef4/src/studio/desktop/internal/series/voicebible.go) | UX | Y | Accepted | PRD series voice bible | Grouping, labels, display names, empty state and error reporting for one feature |
 | [0566](../guides/using-the-app/story-bible.md) | UX | N | Accepted | PRD series | Where series membership is managed and which picker it reuses |
 | [0567](../guides/using-the-app/story-bible.md) | UX | N | Accepted | PRD series | Series tab placement in Story Bible and what is left out of the UI |
 | [0568](../../src/studio/desktop/internal/guide/readonly.go) | IMPL | N | Accepted | code comment in internal/guide/readonly.go | One read-only function's behaviour and missing-file rule |

@@ -43,7 +43,7 @@ func TestAudacityFindingsGoToPutTheCursorAtTheFindingsProjectTime(t *testing.T) 
 			t.Errorf("cursor at %v-%v", p.SelStart, p.SelEnd)
 		}
 	})
-	status := bindingAnswer[ReaperStatus](t)(f.host.FindingsReaperStatus())
+	status := reaperStatus(f.host.services())
 	if status.Connection != reaperConnected {
 		t.Errorf("status = %+v", status)
 	}
@@ -55,7 +55,7 @@ func TestAudacityFindingsLoopAndStop(t *testing.T) {
 	if got.Outcome != "looping" || got.LoopStart == nil || *got.LoopStart >= 22.5 || *got.LoopEnd <= 22.5 {
 		t.Fatalf("loop = %+v", got)
 	}
-	status := bindingAnswer[ReaperStatus](t)(f.host.FindingsReaperStatus())
+	status := reaperStatus(f.host.services())
 	if status.LoopingFindingID != "heard" {
 		t.Errorf("looping = %q", status.LoopingFindingID)
 	}
@@ -83,8 +83,6 @@ func TestAudacityFindingsAreRefusedInAudacitysWords(t *testing.T) {
 		says string
 	}{
 		{"a finding with no time", func() (string, error) { return f.host.FindingsGoTo("no-time") }, "no place in the Audacity project"},
-		{"one read of a grouped finding", func() (string, error) { return f.host.FindingsGoToRead("heard", 0) }, "keeps no separate takes"},
-		{"one read to loop", func() (string, error) { return f.host.FindingsLoopRead("heard", 0) }, "keeps no separate takes"},
 	}
 	for _, c := range cases {
 		got := bindingAnswer[FindingNavigation](t)(c.call())
@@ -98,7 +96,7 @@ func TestAudacityFindingsAreRefusedInAudacitysWords(t *testing.T) {
 	if got.Outcome != "refused" || got.Reason != reaperNotRunning || !strings.Contains(got.Message, "Audacity") || strings.Contains(got.Message, "REAPER") {
 		t.Errorf("Audacity gone: %+v", got)
 	}
-	if status := bindingAnswer[ReaperStatus](t)(f.host.FindingsReaperStatus()); status.Connection != reaperNotRunning || !strings.Contains(status.Message, "Audacity") {
+	if status := reaperStatus(f.host.services()); status.Connection != reaperNotRunning || !strings.Contains(status.Message, "Audacity") {
 		t.Errorf("status = %+v", status)
 	}
 }

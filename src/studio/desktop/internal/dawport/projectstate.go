@@ -2,8 +2,8 @@ package dawport
 
 import "time"
 
-// ProjectState is the DAW project as last saved against the live one (the DawProjectState binding and its
-// daw_project_state_changed event, src/studio/desktop/bindings_daw_projectstate.go). It is assembled from what the host already
+// ProjectState is the DAW project as last saved against the live one (the DawProjectState binding,
+// src/studio/desktop/bindings_daw_projectstate.go). It is assembled from what the host already
 // has, with no command of its own: the saved file's modification time (a host-side stat), REAPER's edit counter and
 // transport from the heartbeat.
 type ProjectState struct {
@@ -26,7 +26,7 @@ const (
 	PlayRecording = "recording"
 )
 
-// savedAtLayout is the mock's local date-time to the minute (docs/research/mockups/studio-next/src/fixtures/daw.ts).
+// savedAtLayout is the mock's local date-time to the minute (src/fixtures/daw.ts of the Studio Next mock, deleted from the tree).
 const savedAtLayout = "2006-01-02T15:04"
 
 // ProjectStateInput is what NewProjectState reads. The caller gathers it from the heartbeat, a stat of the saved file and

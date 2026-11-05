@@ -4,7 +4,7 @@ The app's own recorder (`src/studio/desktop/internal/recording`) is an engine of
 
 ## When it is the launch's engine
 
-- **A launch with no DAW whose project records with the built-in recorder.** The project's choice is the `Recording.engine` row, which only the Booth's `RecorderChooseEngine` writes and which counts only where the recorder's capture row runs (Windows, [capture_wasapi.py](../../../src/studio/sidecars/manuscript-teleprompter/core/capture_wasapi.py)).
+- **A launch with no DAW whose project records with the built-in recorder.** The project's choice is the `Recording.engine` row, which `DawChoose` (Settings › Recording) writes and which counts only where the recorder's capture row runs (Windows, [capture_wasapi.py](../../../src/studio/sidecars/manuscript-teleprompter/core/capture_wasapi.py)).
 - **`--daw Built-in`** (or `builtin`, any case). A launch from REAPER or Audacity keeps its DAW whatever the project chose.
 - The host reads the kind in one place, `dawLaunchKind` in `src/studio/desktop/bindings_daw.go`, through `dawport.LaunchKind`. A page never sends a label that selects it ([threat model](../../architecture/threat-model.md), row 6f).
 
@@ -28,7 +28,7 @@ The recorder is part of the app, so it is always there and answering (`reachable
 
 The Booth asks the same two bindings it asks for a DAW, `ReadAloudRecordStart` and `ReadAloudRecordStop`; when the project's engine is the built-in recorder (`recordsInApp`, `src/studio/desktop/bindings_booth_record.go`) they go to the recorder and none of REAPER's preconditions apply (no bridge, no linked or armed track).
 
-- **Start** goes through the `record` role (`builtin.RecordStart`), so a refusal is the capability's own sentence. It then picks the microphone: the global `Teleprompter.input_device` row (what Levels saves), else the project's `Recording.device` row, else the only device listed. Several listed and none chosen is "Choose the microphone in Levels, then press Record."; none is "No microphone found." with the sidecar's reason. The device is remembered as `Recording.device`. The chapter id is not used: the take is a file, assigned to a line afterwards (`RecorderSetTakeLine`).
+- **Start** goes through the `record` role (`builtin.RecordStart`), so a refusal is the capability's own sentence. It then picks the microphone: the global `Teleprompter.input_device` row (what Levels saves), else the project's `Recording.device` row, else the only device listed. Several listed and none chosen is "Choose the microphone in Record options, then press Record."; none is "No microphone found." with the sidecar's reason. The device is remembered as `Recording.device`. The chapter id is not used: the take is a file, assigned to a line afterwards (`RecorderSetTakeLine`).
 - **Stop** is not gated by the capability report, so turning Experimental off during a take cannot strand it. With no take recording it answers `not_recording`.
 - **A punch** (`ReadAloudRecordStartAt`) answers the `punch` capability's own refusal, "Not available with the built-in recorder yet."
 - **The transport** (`daw_transport_changed`, `DawProjectState`) reads the recorder, not a heartbeat: `recording` is true while a take records and not asked to stop, with no position, and the project state has no saved time and no unsaved changes. A take that ends by itself (the device failed, the disk filled) therefore ends the Booth's take too, and `recording:state` carries the recorder's sentence for why. Each state change of the recorder pushes both events at once.

@@ -39,8 +39,8 @@ for (const theme of ['light', 'dark'] as const) {
 
   test(`Booth: the Levels popup has room and holds its content at 320x300 (${theme})`, async ({ page }) => {
     await open(page, '/booth', theme);
-    await page.getByRole('button', { name: 'Levels' }).first().click();
-    const popup = page.getByRole('dialog', { name: 'Levels' });
+    await page.getByRole('button', { name: 'Record options' }).first().click();
+    const popup = page.getByRole('dialog', { name: 'Record options' });
     await popup.waitFor();
     const m = await popup.evaluate((el) => {
       const r = el.getBoundingClientRect();
@@ -63,10 +63,10 @@ for (const theme of ['light', 'dark'] as const) {
     expect(m.wide, 'content wider than the popup').toEqual([]);
     expect(m.sideways).toBe(false);
     expect(m.height, 'the popup is tall enough to read').toBeGreaterThanOrEqual(110);
-    // The popup may lie over the top of the Booth's bars, but not over Record or its own Levels button: both stay the topmost thing at their corners and centre.
+    // The popup may lie over the top of the Booth's bars, but not over Record or its own Record options button: both stay the topmost thing at their corners and centre.
     const uncovered = await page.evaluate(() => {
       const covered: string[] = [];
-      for (const label of ['Record', 'Levels']) {
+      for (const label of ['Record', 'Record options']) {
         const button = [...document.querySelectorAll('button')].find(
           (b) => (b.getAttribute('aria-label') ?? b.textContent?.trim())?.toLowerCase() === label.toLowerCase() && b.getBoundingClientRect().width > 0,
         );
@@ -88,7 +88,7 @@ for (const theme of ['light', 'dark'] as const) {
       }
       return covered;
     });
-    expect(uncovered, 'the popup covers Record or the Levels button').toEqual([]);
+    expect(uncovered, 'the popup covers Record or the Record options button').toEqual([]);
     expect(m.top).toBeGreaterThanOrEqual(0);
     expect(m.bottom).toBeLessThanOrEqual(TINY.height);
     expect(m.left).toBeGreaterThanOrEqual(0);
@@ -103,8 +103,8 @@ for (const theme of ['light', 'dark'] as const) {
     await page.emulateMedia({ colorScheme: theme });
     await page.goto('/booth');
     await settlePage(page);
-    await page.getByRole('button', { name: 'Levels' }).first().click();
-    const popup = page.getByRole('dialog', { name: 'Levels' });
+    await page.getByRole('button', { name: 'Record options' }).first().click();
+    const popup = page.getByRole('dialog', { name: 'Record options' });
     await popup.waitFor();
     await page.setViewportSize(TINY);
     await expect

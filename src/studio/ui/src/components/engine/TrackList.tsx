@@ -6,7 +6,8 @@ import { SearchField } from '../primitives/SearchField';
 import { Dot, StatusBadge } from '../primitives/StatusBadge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
 import { treeKeyHandler } from '../primitives/treeKeys';
-import { IndentGuides, TREE_INDENT, TrackMark, TreeCaret, tracksWord } from '../tracks/TreeRowParts';
+import { IndentGuides, TREE_INDENT, TreeCaret } from '../primitives/TreeCaret';
+import { TrackMark, tracksWord } from '../tracks/TreeRowParts';
 import { buildTrackTree, defaultOpen, folderRollup, searchVisible, trackLabel, visibleNodes } from '../tracks/trackTree';
 import type { Track, TrackMapping } from '../../types';
 
@@ -80,7 +81,8 @@ export function TrackList({ tracks, mappings }: { tracks: Track[]; mappings: Tra
                 const hasIssue = track.items.some((item) => !item.supported || !item.sourceAvailable);
                 const chapterTitles = titlesFor(track.guid);
                 const isOpen = searching ? track.isFolder : open.has(node.id);
-                const rollup = track.isFolder ? folderRollup(nodes, at, linked) : undefined;
+                // A folder linked to a chapter itself (a Voice folders chapter, or a folder with audio) names its chapter, as a track does.
+                const rollup = track.isFolder && chapterTitles.length === 0 ? folderRollup(nodes, at, linked) : undefined;
                 const name = trackLabel(track);
                 const row = (children: React.ReactNode) =>
                   hasFolders ? (
@@ -107,7 +109,9 @@ export function TrackList({ tracks, mappings }: { tracks: Track[]; mappings: Tra
                       <span className="flex min-w-0 items-center gap-1.5" style={{ marginLeft: `calc(var(--g) * ${hasFolders ? node.level - 1 : 0})` }}>
                         {hasFolders && <TreeCaret folderName={track.isFolder ? name : undefined} open={isOpen} onToggle={() => toggle(node.id, !isOpen)} />}
                         <TrackMark color={track.color} folder={track.isFolder} open={isOpen} />
-                        <span className={`min-w-0 [overflow-wrap:anywhere] ${track.isFolder ? 'font-semibold' : 'font-medium'}`}>{name}</span>
+                        <span className={`min-w-0 [overflow-wrap:anywhere] ${track.isFolder ? 'font-semibold' : 'font-medium'}`}>
+                          <bdi>{name}</bdi>
+                        </span>
                         {track.isFolder && (
                           <span className="@max-[40rem]:hidden">
                             <StatusBadge tone="neutral" label={node.childCount === 0 ? 'Empty' : tracksWord(node.childCount)} />

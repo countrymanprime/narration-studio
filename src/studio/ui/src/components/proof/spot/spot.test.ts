@@ -7,7 +7,6 @@ const candidate = (id: string, over: Partial<PassageTake> = {}): PassageTake => 
   id,
   source: 'item_take',
   action: 'make_active',
-  confirm: false,
   label: id,
   detail: '',
   active: false,
@@ -17,7 +16,6 @@ const candidate = (id: string, over: Partial<PassageTake> = {}): PassageTake => 
   sourceStart: 1,
   sourceLength: 4,
   usable: true,
-  compared: false,
   ...over,
 });
 const result = (candidates: PassageTake[]): WorkspaceTakesResult => ({

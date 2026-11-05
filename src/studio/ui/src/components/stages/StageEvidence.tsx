@@ -4,6 +4,7 @@ import { chapterName, context } from '../../chapterName';
 import type { ManuscriptChapter, StageChapterRecommendation, StageEvidence as Evidence, StageSignal } from '../../types';
 import { Button } from '../primitives/Button';
 import { InsetCard } from '../primitives/InsetCard';
+import { TooltipTarget } from '../primitives/Tooltip';
 import { SlideOver } from '../primitives/SlideOver';
 import { formatWhen, paragraphRefs } from '../production/recordingCheckText';
 import type { StageDecision, StagesState } from './useStageRecommendations';
@@ -139,12 +140,11 @@ function EvidenceBody({
         ))}
       </div>
       <div className="flex flex-wrap items-center gap-2 border-t border-[var(--border)] pt-3">
-        <Button variant="secondary" pending={phase === 'loading'} onClick={onCheckNow}>
-          Check now
-        </Button>
-        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-          Reads the evidence again; it starts no check.
-        </span>
+        <TooltipTarget text="Reads the evidence again, and starts no check">
+          <Button variant="secondary" pending={phase === 'loading'} onClick={onCheckNow}>
+            Check now
+          </Button>
+        </TooltipTarget>
       </div>
     </div>
   );

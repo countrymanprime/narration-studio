@@ -129,7 +129,7 @@ func TestLoopAnswersTheWindowAndTheStatusNamesTheLoopingFindingUntilStop(t *test
 	if looping.Outcome != "looping" || *looping.LoopStart != 98.5 || *looping.LoopEnd != 103 {
 		t.Fatalf("loop: %+v", looping)
 	}
-	if status := bindingAnswer[ReaperStatus](t)(host.FindingsReaperStatus()); status.Connection != "connected" || status.LoopingFindingID != "with-item" {
+	if status := reaperStatus(host.services()); status.Connection != "connected" || status.LoopingFindingID != "with-item" {
 		t.Fatalf("status while looping: %+v", status)
 	}
 
@@ -137,7 +137,7 @@ func TestLoopAnswersTheWindowAndTheStatusNamesTheLoopingFindingUntilStop(t *test
 	if stopped.Outcome != "stopped" || *stopped.Restored != 2 || *stopped.Kept != 1 {
 		t.Fatalf("stop: %+v", stopped)
 	}
-	if status := bindingAnswer[ReaperStatus](t)(host.FindingsReaperStatus()); status.LoopingFindingID != "" {
+	if status := reaperStatus(host.services()); status.LoopingFindingID != "" {
 		t.Fatalf("status after stop: %+v", status)
 	}
 }
@@ -151,7 +151,7 @@ func TestARefusedLoopLeavesTheLoopThatWasPlaying(t *testing.T) {
 	if got := bindingAnswer[FindingNavigation](t)(host.FindingsLoop("with-item")); got.Outcome != "refused" || got.Reason != "stale" {
 		t.Fatalf("got %+v", got)
 	}
-	if status := bindingAnswer[ReaperStatus](t)(host.FindingsReaperStatus()); status.LoopingFindingID != "with-item" {
+	if status := reaperStatus(host.services()); status.LoopingFindingID != "with-item" {
 		t.Fatalf("a refused loop changed what is looping: %+v", status)
 	}
 }
@@ -198,7 +198,7 @@ func TestWithoutAListeningREAPERNothingIsSentAndTheRefusalSaysWhy(t *testing.T) 
 		host := newNavigationHost(t, fake)
 		check.host(host)
 
-		status := bindingAnswer[ReaperStatus](t)(host.FindingsReaperStatus())
+		status := reaperStatus(host.services())
 		if status.Connection != check.connection || status.Message == "" {
 			t.Fatalf("%s: status %+v", check.name, status)
 		}
@@ -255,7 +255,7 @@ func TestAFailedStopKeepsTheLoopToStopAgain(t *testing.T) {
 	if got := bindingAnswer[FindingNavigation](t)(host.FindingsStopLoop()); got.Outcome != "refused" || got.Reason != "not_running" {
 		t.Fatalf("got %+v", got)
 	}
-	if status := bindingAnswer[ReaperStatus](t)(host.FindingsReaperStatus()); status.LoopingFindingID != "with-item" {
+	if status := reaperStatus(host.services()); status.LoopingFindingID != "with-item" {
 		t.Fatalf("status %+v", status)
 	}
 }

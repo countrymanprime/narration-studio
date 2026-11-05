@@ -1,6 +1,7 @@
 import type { RecordedThrough } from '../../../api/contracts/manuscript';
 import type { ReadingParagraph } from '../reading/boothUnits';
 import type { ChapterPlace } from '../page/lastPlace';
+import type { OpenedResume } from './resumeOfferModel';
 
 /**
  * Why the Booth opened a chapter where it did: a target the narrator came with (a pickup line, a flagged line, a go-to link, Start
@@ -50,4 +51,13 @@ export function resumeStart(args: {
   const left = kept ? within(paragraphs, kept) : null;
   if (left) return { place: left, reason: 'kept' };
   return { place: null, reason: 'start' };
+}
+
+/**
+ * The start as the resume line offers it back (`OpenedResume`): the one place the two vocabularies meet, so a reason added above is
+ * mapped here and nowhere else. Null when the chapter opened at its top or at a target the narrator came with: nothing to offer back.
+ */
+export function openedResume(start: ResumeStart): OpenedResume | null {
+  if (!start.place) return null;
+  return { ...start.place, why: start.reason === 'recorded' ? 'recording' : 'left' };
 }

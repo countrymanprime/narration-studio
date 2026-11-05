@@ -1,13 +1,13 @@
 ---
 name: wails-v3
-description: Touching the Wails v3 desktop shell (src/studio/desktop)? How this repo calls Wails, where bindings, events, windows and dialogs live, what the generated bindings and the beta pin require, and the Windows behaviours that differ from v2. Load before adding a Host method, a live event, a dialog, a window option or a Wails version bump.
+description: Touching the Wails v3 desktop shell (src/studio/desktop)? How this repo calls Wails, where bindings, events, windows and dialogs live, what the generated bindings and the version pin require, and the Windows behaviours that differ from v2. Load before adding a Host method, a live event, a dialog, a window option or a Wails version bump.
 ---
 
 # wails-v3
 
 ## Why this exists
 
-Wails v3 is a beta, and this repo pins it ([ADR 0001](../../../docs/adr/0001-the-app-is-written-in-go.md)). Its API moves between betas and several defaults differ from v2. An agent that writes v3 code from memory, or from the v2 docs, produces calls that do not exist, bypass the one file that wraps Wails, or break under `go test` where there is no running application.
+Wails v3 is young, and this repo pins one exact release ([ADR 0001](../../../docs/adr/0001-the-app-is-written-in-go.md)). Its API can move between releases and several defaults differ from v2. An agent that writes v3 code from memory, or from the v2 docs, produces calls that do not exist, bypass the one file that wraps Wails, or break under `go test` where there is no running application.
 
 ## When to use this
 
@@ -28,7 +28,7 @@ Any change under `src/studio/desktop` that calls into `github.com/wailsapp/wails
 9. **A failed binding rejects with a `RuntimeError`, not its text.** `hostErrorText` in `wailsClient.ts` unwraps it; a new client path must go through it.
 10. **Window options are deliberate.** `mainWindowOptions` in `main.go` sets `ZoomControlEnabled: true` and `DefaultContextMenuDisabled: true` to keep v2's behaviour, and `wailsapp_test.go` holds them. Do not drop either while tidying options.
 11. **Zoom on Windows:** `SetZoom` floors at 1.0 and v3 sends no zoom-changed event, so the page reads the level back from the window ([Zoom](../../../docs/guides/using-the-app/navigation.md#zoom), Proposed).
-12. **A Wails bump is its own reviewed change of three pins** (ADR 0001): `src/studio/desktop/go.mod`, `@wailsio/runtime` in `src/studio/ui/package.json` (exact version), and the CLI in `scripts/toolchain.json` plus `.github/actions/setup-toolchain`. Regenerate the bindings, then run the full gate. A new beta needs a note in the ADR or a superseding one.
+12. **A Wails bump is its own reviewed change of three pins** (ADR 0001): `src/studio/desktop/go.mod`, `@wailsio/runtime` in `src/studio/ui/package.json` (exact version), and the CLI in `scripts/toolchain.json` plus `.github/actions/setup-toolchain`. Regenerate the bindings, then run the full gate. A change of major or minor version needs a note in the ADR or a superseding one.
 13. **Build and run:** `pnpm --dir src/studio/desktop run build` runs `scripts/release/wails-build.mjs` (no Taskfile). There is no hot reload; use `pnpm --dir src/studio/ui dev:mock` for UI work and `pnpm --dir src/studio/desktop dev` to run the app. Windows is the only supported platform ([Supported platforms](../../../README.md#supported-platforms)).
 14. `full-verification-gate`, then `feature-cleanup`.
 

@@ -37,8 +37,8 @@ describe('KpiRow', () => {
     // Three of five one-hour chapters are recorded or further on, the fourth is half recorded, the fifth not started: the stage bar's own count (3:30 of 5:00, the fourth chapter half recorded).
     expect(screen.getByRole('button', { name: /Recorded audio/ }).textContent).toContain('3:30');
     expect(screen.getByRole('button', { name: /Recorded audio/ }).textContent).toContain('/ 5:00');
-    expect(screen.getByRole('button', { name: /Recording/ }).textContent).toMatch(/of 15:00 work/);
-    expect(screen.getByRole('button', { name: /Editing \+ proof/ }).textContent).toMatch(/of 15:12 work/);
+    expect(screen.getByRole('button', { name: /Recording/ }).textContent).toContain('est. 3.0× the book');
+    expect(screen.getByRole('button', { name: /Editing \+ proof/ }).textContent).toContain('est. 3.04× the book');
   });
 
   // Class guard (#2634): every figure on the strip is a function of one book, the one the stage bar draws.
@@ -56,8 +56,10 @@ describe('KpiRow', () => {
     expect(o.book.recordedHours).toBeCloseTo(book - sum(['unrecorded']), 9);
     expect(tile('recorded').value).toBe(hm(o.book.recordedHours));
     expect(tile('recorded').unit).toBe(`/ ${hm(book)}`);
-    expect(tile('recording').hint).toBe(`of ${hm(book * RATIO.rec)} work`);
-    expect(tile('editing').hint).toBe(`of ${hm(book * (RATIO.edit + RATIO.proof))} work`);
+    expect(tile('recording').hint).toBe(`est. ${RATIO.rec.toFixed(1)}× the book`);
+    expect(tile('editing').hint).toBe(`est. ${(RATIO.edit + RATIO.proof).toFixed(2)}× the book`);
+    // One book length on the strip: no tile hint prints a total of its own (the 3× and 3.33× work totals were two more "lengths" beside the book's).
+    for (const t of o.tiles) for (const m of (t.hint ?? '').match(/\d+:\d{2}/g) ?? []) expect(m).toBe(hm(book));
     expect(tile('recording').tip).toContain(hm(book));
     // The chart's and the week's targets read the same book.
     expect(o.k.words / WPH).toBeCloseTo(book, 9);
@@ -236,20 +238,9 @@ describe('WeekCard', () => {
 });
 
 describe('ProgressChart', () => {
-  const chart = (chapters = MID_BOOK, log = undefined as Parameters<typeof overviewFor>[2], clearTodayLabel = false) => {
+  const chart = (chapters = MID_BOOK, log = undefined as Parameters<typeof overviewFor>[2]) => {
     const o = overviewFor(chapters, undefined, log);
-    return view(
-      <ProgressChart
-        k={o.k}
-        wph={9300}
-        start={o.start}
-        today={STORY_TODAY}
-        due={o.kpi.due}
-        recordedHours={o.recordedHours}
-        series={o.series}
-        clearTodayLabel={clearTodayLabel}
-      />,
-    );
+    return view(<ProgressChart k={o.k} wph={9300} start={o.start} today={STORY_TODAY} due={o.kpi.due} recordedHours={o.recordedHours} series={o.series} />);
   };
 
   it('chart-plan-actual-projection', () => {
@@ -262,16 +253,18 @@ describe('ProgressChart', () => {
   });
 
   it('chart-today-label-clears-the-estimate-line: never centred over the dot, where the projection runs up and right from it', () => {
-    const { container } = chart(MID_BOOK, undefined, true);
+    const { container } = chart(MID_BOOK);
     const dot = container.querySelector('[data-marker="today"]') as SVGCircleElement;
     const label = screen.getByText('today');
     const [x, y, cx, cy] = [label.getAttribute('x'), label.getAttribute('y'), dot.getAttribute('cx'), dot.getAttribute('cy')].map(Number);
-    // Left of the dot and above it (recording ahead of the plan), or right of it and below (behind it, or no room on the left).
-    if (label.getAttribute('text-anchor') === 'end') expect([x < cx, y < cy]).toEqual([true, true]);
-    else expect([label.getAttribute('text-anchor'), x > cx, y > cy]).toEqual(['start', true, true]);
+    // Beside the dot, never on it, and close enough to read as its label.
+    const w = 32;
+    const [x1, x2] = label.getAttribute('text-anchor') === 'end' ? [x - w, x] : [x, x + w];
+    expect(x2 < cx - 5 || x1 > cx + 5 || y < cy - 8 || y > cy + 8).toBe(true);
+    expect(Math.abs((x1 + x2) / 2 - cx)).toBeLessThanOrEqual(64);
   });
 
-  it('chart-today-label-leaves-the-dot-when-the-due-line-is-close: a due date a day away puts the label left of the dot', () => {
+  it('chart-today-label-leaves-the-dot-when-the-due-line-is-close: a due date a day away puts no part of the label on the due line', () => {
     const o = overviewFor(MID_BOOK, undefined, undefined);
     const dayAfter = new Date(STORY_TODAY.getTime() + 24 * 3600 * 1000);
     view(
@@ -283,15 +276,13 @@ describe('ProgressChart', () => {
         due={dayAfter}
         recordedHours={0.1}
         series={o.series}
-        clearTodayLabel
       />,
     );
-    expect(screen.getByText('today').getAttribute('text-anchor')).toBe('end');
-  });
-
-  it('chart keeps the label centred above the dot unless asked, as Production draws it', () => {
-    chart();
-    expect(screen.getByText('today').getAttribute('text-anchor')).toBe('middle');
+    const label = screen.getByText('today');
+    const dueX = Number(document.querySelector('[data-line="due"]')!.getAttribute('x1'));
+    const x = Number(label.getAttribute('x'));
+    const [x1, x2] = label.getAttribute('text-anchor') === 'end' ? [x - 32, x] : [x, x + 32];
+    expect(dueX < x1 || dueX > x2).toBe(true);
   });
 
   it('chart without a take log has no actual line and says why', () => {

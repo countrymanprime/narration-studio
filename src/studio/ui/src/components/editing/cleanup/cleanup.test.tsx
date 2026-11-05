@@ -189,6 +189,19 @@ describe('the Clean up tab', () => {
     expect(screen.getByText('Reduce by 9 dB')).toBeTruthy();
   });
 
+  // #2821: the REAPER repair launchers sit beside Apply for the kinds a launcher repairs, and nowhere else.
+  it('offers Repair in REAPER beside Apply for clicks, breaths and plosives, not for gaps or noise', async () => {
+    mount();
+    await screen.findByRole('button', { name: /^Gaps 2/ });
+    expect(screen.queryByRole('button', { name: 'Repair in REAPER' })).toBeNull();
+    for (const kind of [/^Clicks/, /^Breaths/, /^Plosives/]) {
+      fireEvent.click(chip(kind));
+      expect(await screen.findByRole('button', { name: 'Repair in REAPER' })).toBeTruthy();
+    }
+    fireEvent.click(chip(/^Noise/));
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Repair in REAPER' })).toBeNull());
+  });
+
   it('levels-set-the-thresholds-and-advanced-edits-them', async () => {
     mount();
     await screen.findByRole('button', { name: /^Gaps 2/ });

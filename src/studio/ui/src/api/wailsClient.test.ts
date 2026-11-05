@@ -564,7 +564,7 @@ describe('wailsClient', () => {
     await expect(wailsClient.tracksList()).resolves.toEqual(project);
   });
 
-  it('decodes the ChapterTrackMap list, confirm, and clear bindings', async () => {
+  it('decodes the ChapterTrackMap list and confirm bindings', async () => {
     const empty = { documentId: 'doc-1', mappings: [] };
     const confirmed = {
       trackGuid: 'track-guid-a',
@@ -576,19 +576,15 @@ describe('wailsClient', () => {
     };
     const withOne = { documentId: 'doc-1', mappings: [confirmed] };
     const confirm = vi.fn().mockResolvedValue(JSON.stringify(confirmed));
-    const clear = vi.fn().mockResolvedValue(JSON.stringify(empty));
     standInHost({
       ChapterTrackMapList: vi.fn().mockResolvedValueOnce(JSON.stringify(empty)).mockResolvedValueOnce(JSON.stringify(withOne)),
       ChapterTrackMapConfirm: confirm,
-      ChapterTrackMapClear: clear,
     });
 
     await expect(wailsClient.chapterTrackMapList()).resolves.toEqual(empty);
     await expect(wailsClient.chapterTrackMapConfirm('track-guid-a', 'c-0001')).resolves.toEqual(confirmed);
     expect(confirm).toHaveBeenCalledWith('track-guid-a', 'c-0001');
     await expect(wailsClient.chapterTrackMapList()).resolves.toEqual(withOne);
-    await expect(wailsClient.chapterTrackMapClear('track-guid-a')).resolves.toEqual(empty);
-    expect(clear).toHaveBeenCalledWith('track-guid-a');
   });
 
   it('sends the review query and decision to the host and decodes the findings it answers', async () => {
@@ -647,15 +643,13 @@ describe('wailsClient', () => {
     const goTo = vi.fn().mockResolvedValue(JSON.stringify({ outcome: 'navigated', projectTime: 102.5 }));
     const loop = vi.fn().mockResolvedValue(JSON.stringify({ outcome: 'refused', reason: 'stale', message: 'Gone.' }));
     const stop = vi.fn().mockResolvedValue(JSON.stringify({ outcome: 'stopped', restored: 2, kept: 1 }));
-    const status = vi.fn().mockResolvedValue(JSON.stringify({ connection: 'connected', loopingFindingId: 'f1' }));
-    standInHost({ FindingsGoTo: goTo, FindingsLoop: loop, FindingsStopLoop: stop, FindingsReaperStatus: status });
+    standInHost({ FindingsGoTo: goTo, FindingsLoop: loop, FindingsStopLoop: stop });
 
     await expect(wailsClient.findingsGoTo('f1')).resolves.toEqual({ outcome: 'navigated', projectTime: 102.5 });
     expect(goTo).toHaveBeenCalledWith('f1');
     await expect(wailsClient.findingsLoop('f1')).resolves.toEqual({ outcome: 'refused', reason: 'stale', message: 'Gone.' });
     expect(loop).toHaveBeenCalledWith('f1');
     await expect(wailsClient.findingsStopLoop()).resolves.toEqual({ outcome: 'stopped', restored: 2, kept: 1 });
-    await expect(wailsClient.findingsReaperStatus()).resolves.toEqual({ connection: 'connected', loopingFindingId: 'f1' });
   });
 
   it('sends a cut to WorkspaceSnap as ids and a time and decodes the snapped answer', async () => {
@@ -1388,7 +1382,7 @@ describe('the extraction scan bindings', () => {
   });
 });
 
-describe('the DAW project state binding and event', () => {
+describe('the DAW project state binding', () => {
   const state = { savedAt: '2026-09-26T08:40', unsavedChanges: true, playState: 'playing', playPosition: 12.5 } as const;
 
   it('decodes DawProjectState and refuses an answer its schema does not accept', async () => {
@@ -1396,22 +1390,6 @@ describe('the DAW project state binding and event', () => {
     await expect(wailsClient.dawProjectState()).resolves.toEqual(state);
     standInHost({ DawProjectState: () => Promise.resolve(JSON.stringify({ ...state, playState: 'paused' })) });
     await expect(wailsClient.dawProjectState()).rejects.toBeInstanceOf(WireError);
-  });
-
-  it('subscribes to daw_project_state_changed and passes on a payload its schema accepts', () => {
-    let callback: ((payload: unknown) => void) | undefined;
-    const eventsOn = vi.fn((_event: string, listener: (payload: unknown) => void) => {
-      callback = listener;
-      return () => {};
-    });
-    standInEvents(eventsOn);
-    const update = vi.fn();
-
-    wailsClient.subscribeDawProjectState(update);
-    callback?.(state);
-
-    expect(eventsOn).toHaveBeenCalledWith('daw_project_state_changed', expect.any(Function));
-    expect(update).toHaveBeenCalledWith(state);
   });
 });
 
@@ -1660,38 +1638,22 @@ describe('the stack record and retry mode bindings', () => {
 });
 
 describe('the script prep bindings', () => {
-  const flag = {
-    id: 'f1',
-    chapterId: 'c-0001',
-    paragraphId: 'p-000001',
-    paragraph: 0,
-    start: 25,
-    end: 30,
-    quote: 'Queen',
-    createdAt: '2026-10-11T10:00:00Z',
-    stale: false,
-  };
-  const word = { word: 'queen', say: 'kween', source: 'cmu', status: 'set', flags: [flag] };
   const chapter = { chapterId: 'c-0001', state: 'prepped' };
-  const prep = { chapters: [chapter], words: [word] };
+  const prep = { chapters: [chapter] };
 
-  it('calls the five host methods with their arguments and decodes each answer', async () => {
+  it('calls the two host methods with their arguments and decodes each answer', async () => {
     const list = vi.fn().mockResolvedValue(JSON.stringify(prep));
     const setChapter = vi.fn().mockResolvedValue(JSON.stringify(chapter));
-    const flagWord = vi.fn().mockResolvedValue(JSON.stringify({ ...word, say: '', source: '', status: 'not_set' }));
-    const say = vi.fn().mockResolvedValue(JSON.stringify(word));
-    const unflag = vi.fn().mockResolvedValue(JSON.stringify({ word: 'queen', say: '', source: '', status: 'not_flagged', flags: [] }));
-    standInHost({ ScriptPrepList: list, ScriptPrepSetChapter: setChapter, ScriptWordFlag: flagWord, ScriptWordSay: say, ScriptWordUnflag: unflag });
+    standInHost({ ScriptPrepList: list, ScriptPrepSetChapter: setChapter });
 
     await expect(wailsClient.scriptPrepList()).resolves.toEqual(prep);
     await expect(wailsClient.scriptPrepSetChapter('c-0001', 'prepped')).resolves.toEqual(chapter);
     expect(setChapter).toHaveBeenCalledWith('c-0001', 'prepped');
-    await expect(wailsClient.scriptWordFlag('c-0001', 'p-000001', 25, 30)).resolves.toMatchObject({ status: 'not_set' });
-    expect(flagWord).toHaveBeenCalledWith('c-0001', 'p-000001', 25, 30);
-    await expect(wailsClient.scriptWordSay('Queen', 'kween', 'cmu')).resolves.toEqual(word);
-    expect(say).toHaveBeenCalledWith('Queen', 'kween', 'cmu');
-    await expect(wailsClient.scriptWordUnflag('f1')).resolves.toMatchObject({ status: 'not_flagged', flags: [] });
-    expect(unflag).toHaveBeenCalledWith('f1');
+  });
+
+  it('refuses a list that still carries words: a pronunciation lives in the Story Bible (#2595)', async () => {
+    standInHost({ ScriptPrepList: () => Promise.resolve(JSON.stringify({ ...prep, words: [] })) });
+    await expect(wailsClient.scriptPrepList()).rejects.toBeInstanceOf(WireError);
   });
 
   it('refuses an answer its schema does not accept', async () => {

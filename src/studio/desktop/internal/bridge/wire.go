@@ -80,13 +80,19 @@ var eventSpecs = map[string]eventSpec{
 	"RANGE_FX_REMOVED": {required: []fieldSpec{text("run"), text("item"), text("chain"), count("undoPoints")}},
 	// stack_takes and unstack_takes (narration_takes.lua, docs/reference/daw/capabilities.md): the groups and takes moved, the seconds the audio
 	// after them moved (negative for a stack), and the undo points the command added (1).
-	"TAKES_STACKED":         {required: []fieldSpec{text("run"), count("groups"), count("takes"), number("shift"), count("undoPoints")}},
-	"TAKES_UNSTACKED":       {required: []fieldSpec{text("run"), count("groups"), count("takes"), number("shift"), count("undoPoints")}},
-	"REGIONS_CREATED":       {required: []fieldSpec{text("run"), count("created"), count("existing"), count("invalid")}, optional: []fieldSpec{count("updated"), count("ambiguous"), count("failed")}},
+	"TAKES_STACKED":   {required: []fieldSpec{text("run"), count("groups"), count("takes"), number("shift"), count("undoPoints")}},
+	"TAKES_UNSTACKED": {required: []fieldSpec{text("run"), count("groups"), count("takes"), number("shift"), count("undoPoints")}},
+	"REGIONS_CREATED": {required: []fieldSpec{text("run"), count("created"), count("existing"), count("invalid")}, optional: []fieldSpec{count("updated"), count("ambiguous"), count("failed")}},
+	// keep_voice_sample and read_voice_samples (narration_voice_sample_region.lua): the region's number and what was done (created,
+	// existing, moved or unchanged), a number the project no longer has as a voice sample region, and the regions read back (name last)
+	// with the count and REAPER's change count.
+	"VOICE_SAMPLE_KEPT":     {required: []fieldSpec{text("run"), count("number"), text("outcome")}},
+	"VOICE_SAMPLE_STALE":    {required: []fieldSpec{text("run"), count("number")}},
+	"VOICE_SAMPLE_REGION":   {required: []fieldSpec{text("run"), count("number"), number("start"), number("end"), text("name")}},
+	"VOICE_SAMPLES_READ":    {required: []fieldSpec{text("run"), count("count"), count("changeCount")}},
 	"PICKUPS_IMPORTED":      {required: []fieldSpec{text("run"), count("added"), count("existing"), count("invalid")}},
 	"PICKUPS_EXPORTED":      {required: []fieldSpec{text("run"), text("path"), count("count")}},
 	"PICKUPS_COUNTED":       {required: []fieldSpec{text("run"), count("remaining"), count("total")}},
-	"PICKUP_NEXT":           {required: []fieldSpec{text("run"), number("position"), text("tag"), text("note")}},
 	"PICKUP_RESOLVED":       {required: []fieldSpec{text("run"), number("position"), text("tag"), text("note")}},
 	"PICKUP_REOPENED":       {required: []fieldSpec{text("run"), number("position"), text("tag"), text("note")}},
 	"PICKUP_MARKERS_LISTED": {required: []fieldSpec{text("run"), text("path"), count("open"), count("done")}},
@@ -104,8 +110,10 @@ var eventSpecs = map[string]eventSpec{
 	// exactly when rpp is empty. changeCount (GetProjectStateChangeCount(0)) was appended later: optional, so an older
 	// script's three-field heartbeat still passes, and empty on a REAPER without the call. playState (GetPlayState's
 	// bit field: 1 playing, 2 paused, 4 recording) and playPosition (GetPlayPosition, seconds) were appended later
-	// optional for the same reason; the script also sends a heartbeat at once when playState changes.
-	"PROJECT_STATUS": {required: []fieldSpec{text("run"), text("rpp"), count("unsaved")}, optional: []fieldSpec{count("changeCount"), count("playState"), number("playPosition")}},
+	// optional for the same reason; the script also sends a heartbeat at once when playState changes. timing is 1 while the
+	// bridge timing diagnostic is switched on in REAPER (the host then writes its record-press timeline, internal/presstimeline),
+	// and absent otherwise.
+	"PROJECT_STATUS": {required: []fieldSpec{text("run"), text("rpp"), count("unsaved")}, optional: []fieldSpec{count("changeCount"), count("playState"), number("playPosition"), count("timing")}},
 	// src/studio/integrations/reaper/narration_cleanup.lua: a cleanup launcher opened its dialog. tool is the allow-listed key the host sent; action is the
 	// action-list name REAPER matched (so the narrator sees what opened).
 	"CLEANUP_LAUNCHED": {required: []fieldSpec{text("run"), text("tool"), text("action")}},
@@ -120,8 +128,6 @@ var eventSpecs = map[string]eventSpec{
 	// itemGuid name the retake (a line id alone names several items on a lane track); lane is the 0-based lane REAPER
 	// read from the item when the pick ran.
 	"RETAKE_LANE_PICKED": {required: []fieldSpec{text("run"), text("lineId"), text("itemGuid"), count("lane")}},
-	"TAKE_CREATED":       {required: []fieldSpec{text("run"), text("targetItemGuid"), text("newTakeGuid")}},
-	"TAKE_STALE":         {required: []fieldSpec{text("run"), text("guid")}},
 	// Going to and looping a finding (narration_navigation.lua, bridge.Navigator). Times are
 	// project seconds; restored/kept count the time selection, loop points and repeat; looping and playing are 0 or 1;
 	// reason is item, take or range.
@@ -137,17 +143,31 @@ var eventSpecs = map[string]eventSpec{
 	// REAPER has no device open; recInputName is REAPER's name for the input channel(s), empty when it cannot say. One TRACK_ITEM per item on the track follows, then TRACK_STATE_END (listed, and the track's total).
 	"TRACK_STATE": {required: []fieldSpec{text("run"), text("guid"), count("playState"), number("editCursor"), number("playPosition"), text("rpp"), count("unsaved"),
 		count("changeCount"), count("thisArmed"), count("armedCount")}, optional: []fieldSpec{count("recInput"), text("inputDevice"), text("outputDevice"), text("recInputName")}},
-	// TRACK_ITEM's muted (B_MUTE, 1 or 0) is appended for the resume locate; an older script leaves it off.
+	// TRACK_ITEM's muted (B_MUTE, 1 or 0) is appended for the resume locate; an older script leaves it off. trackGuid, the track the item is
+	// on, follows it only in the 'children' read of a folder (ChapterFolderState).
 	"TRACK_ITEM": {required: []fieldSpec{text("run"), text("itemGuid"), text("takeGuid"), number("position"), number("length"), number("sourceOffset"), number("playrate"), text("sourceFile")},
-		optional: []fieldSpec{count("muted")}},
+		optional: []fieldSpec{count("muted"), text("trackGuid")}},
 	"TRACK_STATE_END": {required: []fieldSpec{text("run"), count("listed"), count("total")}},
 	"TRACK_STALE":     {required: []fieldSpec{text("run"), text("guid")}},
 	// select_track (narration_track_select.lua): "Select in REAPER" deselected every other track and selected guid. It
 	// opens no undo block.
 	"TRACK_SELECTED": {required: []fieldSpec{text("run"), text("guid")}},
 	// track_create (narration_track_create.lua): the track added at the end of the track list, its 0-based index and the name it
-	// was given, in one undo point.
-	"TRACK_CREATED": {required: []fieldSpec{text("run"), text("guid"), count("index"), text("name")}},
+	// was given, in one undo point. A chapter folder (#2840) appends its one child: optional, so a plain track's answer, and an older
+	// script's, still reads.
+	"TRACK_CREATED": {required: []fieldSpec{text("run"), text("guid"), count("index"), text("name")}, optional: []fieldSpec{text("childGuid"), count("childIndex"), text("childName")}},
+	// chapter_folders (narration_track_create.lua, #2838): each track whose folder a move of nested chapters out of another chapter's
+	// folder changes (the folders' GUIDs and names, '' for the top level), then the closing line with how many chapters move;
+	// FOLDERS_STALE when the moves are not the ones confirmed, so nothing was written.
+	"FOLDER_MOVE":      {required: []fieldSpec{text("run"), text("guid"), text("name"), text("fromGuid"), text("fromName"), text("toGuid"), text("toName")}},
+	"FOLDERS_PLANNED":  {required: []fieldSpec{text("run"), count("chapters")}},
+	"FOLDERS_REPAIRED": {required: []fieldSpec{text("run"), count("chapters")}},
+	"FOLDERS_STALE":    {required: []fieldSpec{text("run")}},
+	// tracks_read (narration_tracks_read.lua): the open project's track list as REAPER has it now, saved or not, read-only. rpp is empty
+	// for a project never saved; one TRACKS_ROW per track (folderDelta is I_FOLDERDEPTH), then TRACKS_READ_END (listed, and the total).
+	"TRACKS_READ":     {required: []fieldSpec{text("run"), text("rpp"), count("unsaved"), count("changeCount")}},
+	"TRACKS_ROW":      {required: []fieldSpec{text("run"), count("index"), text("guid"), text("name"), count("folderDelta")}},
+	"TRACKS_READ_END": {required: []fieldSpec{text("run"), count("listed"), count("total")}},
 	// arm_only, record_start, record_stop (narration_transport.lua). changed is 0 or 1; position is the edit cursor
 	// where recording began; restored/kept count the track arms put back and kept. RECORD_ENDED carries the run of the
 	// record_start whose recording the narrator stopped in REAPER. undoPoints, the points REAPER's undo history gained during
@@ -157,6 +177,9 @@ var eventSpecs = map[string]eventSpec{
 	"RECORD_STOPPED":  {required: []fieldSpec{text("run"), count("restored"), count("kept")}, optional: []fieldSpec{count("undoPoints")}},
 	"RECORD_ENDED":    {required: []fieldSpec{text("run"), count("restored"), count("kept")}, optional: []fieldSpec{count("undoPoints")}},
 	"RECORD_NOT_OURS": {required: []fieldSpec{text("run")}},
+	// switch_voice (narration_transport.lua, docs/research/2026-10-30-booth-sub-track-recording.md section 6b): the voice track
+	// REAPER records on now and the play position of the switch.
+	"VOICE_SWITCHED": {required: []fieldSpec{text("run"), text("guid"), number("at")}},
 	// set_active_take, list_fx_chains, apply_fx_chain (narration_workspace.lua). changed is 0 or 1; reason
 	// is item, take or range; a chain's name is its path relative to FXChains with forward slashes; added is the
 	// number of FX a chain added.

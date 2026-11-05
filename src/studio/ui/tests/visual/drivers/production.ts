@@ -1,5 +1,5 @@
 // How to reach each `production` state in STATE_CATALOG (see app.drivers.ts).
-import { expect } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
 import {
   type Driver,
@@ -20,7 +20,143 @@ import {
 // names a date (or counts days) reads the same on every run with the clock pinned here. The clock keeps ticking.
 const MOCK_DAY = new Date(2026, 8, 26, 9, 0, 0);
 
+const PIPELINE_ROWS = 'table[aria-label="Chapter pipeline"] tbody tr[data-chapter-id]';
+
+async function openManyChapters(page: Page): Promise<void> {
+  await page.goto('/?mockBooth=many-chapters');
+  await settlePage(page);
+  await page.locator(PIPELINE_ROWS).first().waitFor();
+}
+
+/** Scrolls the page (whichever element scrolls it) so the pipeline's row number `row` is near the top of the view, then waits for the window to follow. */
+/** Every drawn row is ROW_PX tall, one- and two-line names alike: the window and spacer maths count on it (a row a pixel off drifts 5000 px over the book). */
+async function expectFixedRowHeight(page: Page): Promise<void> {
+  const heights = await page.locator(PIPELINE_ROWS).evaluateAll((rows) => rows.map((row) => row.getBoundingClientRect().height));
+  expect(heights.length).toBeGreaterThan(5);
+  for (const height of heights) expect(Math.abs(height - 52)).toBeLessThanOrEqual(1);
+  expect(new Set(heights.map(Math.round)).size).toBe(1);
+  // The name clamp is a real line clamp on the element that holds the text (so a name of three lines ends in an ellipsis, not a silent cut), and
+  // no name is taller than its two lines.
+  const names = await page.locator(`${PIPELINE_ROWS} .line-clamp-2`).evaluateAll((elements) =>
+    elements.map((element) => {
+      const style = getComputedStyle(element);
+      return {
+        display: style.display,
+        clamp: style.getPropertyValue('-webkit-line-clamp'),
+        overflow: style.overflow,
+        height: element.getBoundingClientRect().height,
+      };
+    }),
+  );
+  expect(names.length).toBe(heights.length);
+  for (const name of names) {
+    // The clamp is on the element that holds the text. This Chromium serialises `display: -webkit-box` as `flow-root`; a plain `block` (what a
+    // stray `block` class made of it) clamps nothing, so the name was cut with no ellipsis.
+    expect(name).toMatchObject({ clamp: '2', overflow: 'hidden' });
+    expect(['-webkit-box', 'flow-root']).toContain(name.display);
+    expect(name.height).toBeLessThanOrEqual(41);
+  }
+}
+
+async function scrollPipelineTo(page: Page, row: number): Promise<void> {
+  await page.evaluate((index) => {
+    const table = document.querySelector('table[aria-label="Chapter pipeline"]')!;
+    let scroller: Element | null = table.parentElement;
+    while (
+      scroller &&
+      !(scroller.scrollHeight > scroller.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(scroller).overflowY) && scroller.clientHeight > 300)
+    ) {
+      scroller = scroller.parentElement;
+    }
+    if (!scroller) return;
+    const body = table.querySelector('tbody')!;
+    const offset = body.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop;
+    scroller.scrollTop = offset + index * 52 - 90;
+  }, row);
+  await page.waitForTimeout(400);
+  await page.locator(PIPELINE_ROWS).first().waitFor();
+}
+
+/** Puts keyboard focus on the first (or, with End, the last) control of the pipeline's second row and closes the tip that opens with it. */
+async function focusPipelineCell(page: Page, end: boolean): Promise<void> {
+  await openProduction(page);
+  const row = page.locator(PIPELINE_ROWS).nth(1);
+  await row.locator('button').first().focus();
+  await page.keyboard.press(end ? 'End' : 'Shift');
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('tooltip')).toHaveCount(0);
+  await expect(row.locator('button:focus')).toHaveCount(1);
+  // The pipeline is under the figures: bring the focused row to the middle of the view.
+  await row.evaluate((element) => element.scrollIntoView({ block: 'center' }));
+}
+
 export const productionDrivers: Record<string, Driver> = {
+  // The roving cell's focus ring at the left end of a row (beside the pinned names) and at the right end (against the scroll area's edge).
+  'pipeline-cell-focus-first': (page) => focusPipelineCell(page, false),
+  'pipeline-cell-focus-last': (page) => focusPipelineCell(page, true),
+  // 5002 chapters: the pipeline windows its rows (#1764), so the page is ready in seconds and draws a few dozen of them. Each of these
+  // states is driven afresh at every width (reloadPerViewport) and scrolls the page to the pipeline, so the capture shows its rows.
+  'many-chapters': async (page) => {
+    await openManyChapters(page);
+    await scrollPipelineTo(page, 0);
+    await expectFixedRowHeight(page);
+    // A clamped name gives its whole name in a tip once the pointer has rested on it (the hover delay is about a second); the tip is closed again
+    // before the capture, because a portalled popup sits outside the landmarks.
+    const title = page.locator(`${PIPELINE_ROWS} [data-title]`).nth(10);
+    await title.hover();
+    await expect(page.getByRole('tooltip')).toHaveText(/The Rabbit Sends in a Little Bill|Chapter \d+ — /, { timeout: 4000 });
+    await page.mouse.move(0, 0);
+    await expect(page.getByRole('tooltip')).toHaveCount(0);
+  },
+  // Titles of 10,000 characters, with no break opportunity and with spaces (?mockBooth=many-unbroken, 200 chapters so the rows are windowed): the name
+  // clamp holds them in their cell (the scroll area never grows past the table's own minimum width) and their tip fits the window.
+  'many-chapters-unbroken': async (page) => {
+    await page.goto('/?mockBooth=many-unbroken');
+    await settlePage(page);
+    await page.locator(PIPELINE_ROWS).first().waitFor();
+    await scrollPipelineTo(page, 0);
+    await expectFixedRowHeight(page);
+    const widths = await page.getByRole('group', { name: 'Chapter pipeline scroll area' }).evaluate((area) => ({
+      scroll: area.scrollWidth,
+      client: area.clientWidth,
+      min: 45.75 * parseFloat(getComputedStyle(document.documentElement).fontSize),
+    }));
+    expect(widths.scroll).toBeLessThanOrEqual(Math.max(widths.client, widths.min) + 1);
+    // The fifth chapter's name is the unbroken one, the seventh's the long one with spaces; each gives a tip that fits the window.
+    for (const nth of [4, 6]) {
+      await page
+        .locator(`${PIPELINE_ROWS} [data-title]`)
+        .nth(nth + 1)
+        .hover();
+      const tip = page.getByRole('tooltip');
+      await tip.waitFor({ timeout: 4000 });
+      const box = (await tip.boundingBox())!;
+      expect(box.height).toBeLessThanOrEqual((page.viewportSize()?.height ?? 900) - 16);
+      await page.mouse.move(0, 0);
+      await expect(page.getByRole('tooltip')).toHaveCount(0);
+    }
+  },
+  // The window moved: rows 2400 on, the spacer above holding the place of the 2400 before them.
+  'many-chapters-scrolled': async (page) => {
+    await openManyChapters(page);
+    await scrollPipelineTo(page, 2400);
+    await expect(page.locator(PIPELINE_ROWS).first()).not.toHaveAttribute('data-chapter-id', /^(credits-opening|chapter-1)$/);
+    await expectFixedRowHeight(page);
+  },
+  // Keyboard focus on a cell of a drawn row far down the book: the ring shows on the cell.
+  'many-chapters-focus': async (page) => {
+    await openManyChapters(page);
+    await scrollPipelineTo(page, 2400);
+    // Named once: the focus scrolls the cell into view, the window follows, and a position in the list would then be another cell.
+    const name = (await page.locator(`${PIPELINE_ROWS} button[data-cell]`).nth(18).getAttribute('aria-label'))!;
+    const cell = page.getByRole('button', { name, exact: true });
+    await cell.focus();
+    await page.keyboard.press('Shift');
+    // The cell's tip opens with the focus; Escape closes it (a portalled popup sits outside the landmarks) and leaves the focus where it is.
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('tooltip')).toHaveCount(0);
+    await expect(cell).toBeFocused();
+  },
   // The overview never answers, so `openProduction` (which waits for the pipeline table) is not used.
   loading: async (page) => {
     await page.goto('/?mockHold=overview');
@@ -58,7 +194,7 @@ export const productionDrivers: Record<string, Driver> = {
       .getByRole('img', { name: /: recorded none yet(,|$)/ })
       .first()
       .waitFor();
-    await table.getByRole('img', { name: /^Chapter 9\b.*: recorded not linked(,|$)/ }).waitFor();
+    await table.getByRole('img', { name: /^Chapter 9\b.*: recorded no track(,|$)/ }).waitFor();
   },
 
   'live-updates-degraded': async (page) => {
@@ -207,6 +343,13 @@ export const productionDrivers: Record<string, Driver> = {
     await dialog.getByText('Skipped').waitFor();
     await dialog.getByText('Read short').waitFor();
   },
+  // The same result scrolled to the chapter's pickup notes row, so the row is in frame at every width.
+  'recording-check-pickup-notes': async (page) => {
+    const dialog = await showResult(page, 'Chapter 4', 'mockCoverage=pickups');
+    const row = dialog.getByText(/^Pickup notes \(Proof\)/);
+    await row.waitFor();
+    await row.evaluate((el) => el.scrollIntoView({ block: 'center' }));
+  },
   'recording-check-stale': async (page) => {
     const dialog = await showResult(page, 'Chapter 4', 'mockCoverage=stale');
     await dialog.getByText('This result is out of date').waitFor();
@@ -224,6 +367,33 @@ export const productionDrivers: Record<string, Driver> = {
     const dialog = page.getByRole('dialog', { name: 'Export status report' });
     await dialog.getByTitle('Preview of the report').waitFor();
     await dialog.getByRole('checkbox', { name: 'Contracted amount and effective rate' }).waitFor();
+  },
+  // The same dialog after Export: the written files and the folder they went to, with the open-folder button beside them.
+  'report-written': async (page) => {
+    await openProduction(page, '?mockProduction=on-pace');
+    await page.getByRole('button', { name: 'Export status report' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Export status report' });
+    await dialog.getByTitle('Preview of the report').waitFor();
+    await dialog.getByRole('button', { name: 'Export', exact: true }).click();
+    await dialog.getByText(/^Wrote production-status-.*\.html and/).waitFor();
+    await dialog.getByRole('button', { name: 'Open the folder' }).waitFor();
+  },
+  // The open-folder button when the file manager refuses (?mockOpenFolder=fail): an error toast in the host's words with Retry, and Retry asks the host again.
+  'report-open-folder-failed': async (page) => {
+    await openProduction(page, '?mockProduction=on-pace&mockOpenFolder=fail');
+    await page.getByRole('button', { name: 'Export status report' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Export status report' });
+    await dialog.getByTitle('Preview of the report').waitFor();
+    await dialog.getByRole('button', { name: 'Export', exact: true }).click();
+    await dialog.getByRole('button', { name: 'Open the folder' }).click();
+    const toast = page.getByText(/^The folder could not be opened/);
+    await toast.waitFor();
+    await expect(toast).toContainText('the file manager could not open the reports folder');
+    expect(await page.evaluate(() => window.__NARRATION_MOCK_REPORTS__?.folderOpens)).toBe(1);
+    await page.getByRole('button', { name: 'Retry' }).click();
+    await expect.poll(() => page.evaluate(() => window.__NARRATION_MOCK_REPORTS__?.folderOpens)).toBe(2);
+    // The second refusal raises its toast again; the picture shows it.
+    await expect(page.getByText(/^The folder could not be opened/).first()).toBeVisible();
   },
   // The rules the check judges by, opened from the jump menu on Production: the last of them, the background switch, is in the picture.
   'recording-check-rules': async (page) => {

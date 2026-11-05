@@ -40,9 +40,7 @@ function HistoryPanel({ journal, dawName }: { journal: HistoryJournal; dawName: 
     // else (alignment audit R4SM-19, XSL-13).
     <div className="flex flex-col gap-3">
       {rows && rows.length === 0 ? <p>Nothing to undo yet.</p> : null}
-      {rows && rows.length >= JOURNAL_LIMIT ? (
-        <p className="text-[var(--text-muted)]">{`History keeps the newest ${JOURNAL_LIMIT} changes; older changes can no longer be undone.`}</p>
-      ) : null}
+      {rows && rows.length >= JOURNAL_LIMIT ? <p className="text-[var(--text-muted)]">{`History keeps the newest ${JOURNAL_LIMIT} changes.`}</p> : null}
       {rows && rows.length > 0 ? (
         <ul aria-label="Changes, newest first" className="flex flex-col gap-3">
           {rows.map((row) => {

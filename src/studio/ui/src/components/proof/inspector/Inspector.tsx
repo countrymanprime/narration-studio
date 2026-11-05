@@ -145,6 +145,7 @@ export function Inspector({
         onOpenScript={onOpenScript}
         onOpenBooth={onOpenBooth}
         onReopen={() => void decide('unreviewed')}
+        onNoteRead={(next) => onChanged(next, false)}
       />
       <SectionLabel>Decision</SectionLabel>
       <DecisionButtons status={shown.review.status} fix={fix} disabled={inert} pendingStatus={saving} onDecide={(status) => void decide(status)} />

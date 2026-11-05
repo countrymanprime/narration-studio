@@ -1,7 +1,6 @@
 import type { CoverageReason } from './coverage';
 import type { DawResult } from './daw';
 import type { FindingNavigation } from './findings';
-import type { TakeComparisonJob } from './takeReview';
 
 // The edit-and-proof workspace's stored word alignment: the
 // recording check's per-token alignment (COVERAGE_TOKEN/COVERAGE_EXTRA, src/studio/sidecars/transcript-compare) read back and
@@ -122,13 +121,11 @@ export type ProjectFxSlot = { name: string; enabled: boolean };
 export type WorkspaceProjectFxResult = { tracks: { trackGuid: string; name: string; fx: ProjectFxSlot[] }[]; master: ProjectFxSlot[]; total: number };
 
 /** Where a take offered for a passage comes from: another take
- * of the item the passage was heard on, another retake of its line on a fixed-lane track, or a read a take-review
- * group set beside it. */
-export type PassageTakeSource = 'item_take' | 'lane_retake' | 'take_review';
+ * of the item the passage was heard on, or another retake of its line on a fixed-lane track. */
+export type PassageTakeSource = 'item_take' | 'lane_retake';
 
-/** What choosing a take does: make it the item's active take (one undo step), make its lane the one that plays,
- * or add a read from another item as a take and make that active (two steps, so `confirm` is set). */
-export type PassageTakeAction = 'make_active' | 'pick_lane' | 'add_and_activate';
+/** What choosing a take does: make it the item's active take (one undo step), or make its lane the one that plays. */
+export type PassageTakeAction = 'make_active' | 'pick_lane';
 
 /** One take the narrator can hear against the passage and choose. The id names it for `workspaceUseTake`: the page
  * sends that id back, never a GUID, file or time (src/studio/desktop/internal/passagetakes). */
@@ -136,7 +133,6 @@ export type PassageTake = {
   id: string;
   source: PassageTakeSource;
   action: PassageTakeAction;
-  confirm: boolean;
   label: string;
   detail: string;
   /** What plays in REAPER now. */
@@ -150,15 +146,10 @@ export type PassageTake = {
   /** False when the take cannot be heard or chosen; `reason` says why. */
   usable: boolean;
   reason?: string;
-  /** Whether a saved comparison of this passage covered this take, with how much of the passage's words it matched. */
-  compared: boolean;
-  fidelity?: number;
-  notComparedReason?: string;
 };
 
 /** The Takes panel's read for a passage of a chapter (WorkspaceTakes): the passage as the host snapped it to whole
- * paragraphs, and every take offered for it. `message` says why there are none; `comparisonId` is the saved
- * take_comparison finding (a finding, read with findingsList), when one was made. */
+ * paragraphs, and every take offered for it. `message` says why there are none. */
 export type WorkspaceTakesResult = {
   chapterId: string;
   firstToken: number;
@@ -169,7 +160,6 @@ export type WorkspaceTakesResult = {
   passageId: string;
   itemGuid: string;
   message?: string;
-  comparisonId?: string;
   candidates: PassageTake[];
 };
 
@@ -178,7 +168,7 @@ export type WorkspaceTakesResult = {
 export type UseTakeRefusal = 'not_offered' | 'unusable' | 'stale' | 'recording' | 'script_outdated' | 'standalone' | 'not_running' | 'failed';
 
 /** What "Use this take" did: `done` (changed says whether the active take changed), `started` (a lane pick, whose end
- * retakeLanesState reports) or `refused`. */
+ * the retake-lane event once reported) or `refused`. */
 export type WorkspaceUseTakeResult = {
   outcome: 'done' | 'started' | 'refused';
   reason?: UseTakeRefusal;
@@ -209,7 +199,7 @@ export interface WorkspaceApi {
    * runs anything. */
   workspaceAlignment(chapterId: string): Promise<WorkspaceAlignmentResult>;
   /** Selects tokenIndex's item in REAPER and puts the edit cursor on the spot it was heard (navigate_item): the host resolves the
-   * token's item, take and source time, exactly as findingsGoTo does for a finding. Connection status is shared with the Review page (findingsReaperStatus). */
+   * token's item, take and source time, exactly as findingsGoTo does for a finding. Its refusals are the ones findingsGoTo gives. */
   workspaceGoTo(chapterId: string, tokenIndex: number): Promise<FindingNavigation>;
   /** Lists the narrator's FX chains (list_fx_chains). Refused offline or before the DAW port's FX chains
    * capability is available (dawport.CapFXChains). */
@@ -220,9 +210,6 @@ export interface WorkspaceApi {
   /** Lists the takes that can be set beside a passage (the tokens firstToken to lastToken, snapped out to whole
    * paragraphs). Reads only, and works with REAPER closed. */
   workspaceTakes(chapterId: string, firstToken: number, lastToken: number): Promise<WorkspaceTakesResult>;
-  /** Compares the passage's usable takes as the one take comparison job: takeComparisonState and takeComparisonCancel
-   * answer for it, with the passage's id as the job's findingId. It saves one take_comparison finding. */
-  workspaceTakesCompareStart(chapterId: string, firstToken: number, lastToken: number): Promise<TakeComparisonJob>;
   /** Makes a take the passage's playing one, by an id workspaceTakes offered. */
   workspaceUseTake(chapterId: string, firstToken: number, lastToken: number, candidateId: string): Promise<WorkspaceUseTakeResult>;
   /** Plays a take workspaceTakes offered through the DAW's preview (file_preview), outside the project: the host reads the take's own

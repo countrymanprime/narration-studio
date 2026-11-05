@@ -434,6 +434,7 @@ describe('D5 and the profile while it builds', () => {
     const profiles = {
       profiles: [MOCK_ACX, custom],
       globalDefault: { id: MOCK_ACX.id },
+      shippedDefault: { id: MOCK_ACX.id },
       hasProject: true,
       projectChoice: null,
       projectProfile: 'acx@2026-09',

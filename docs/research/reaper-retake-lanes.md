@@ -16,7 +16,7 @@ Reaper automation follow-through PRD (deleted) Phase 25, [Tracks](../utilities/t
 
 - The static reader: lane, lane count and playing lanes for every track of the two S7 fixtures (`go test ./internal/tracks`), and the lines the dialog lists from them (`go test ./internal/retakelanes`).
 - The bridge command `pick_retake_lane` against the fake `reaper` (`src/studio/integrations/reaper/tests/retake_lanes_test.lua`, 12 tests; the fake's lane play semantics are pinned to S7 in `fake_fidelity_test.lua`), and seven mutation checks in `mutations.json`: it sets exactly `C_LANEPLAYS:<lane>=1` on the retake's own track in one undo block, changes no item, take, lane mode, lane count or other track, and refuses a track not in fixed-lane mode, a stale GUID and an item that no longer carries the line.
-- The host and UI: `internal/retakelanes` service tests, the wire contracts (`retake-lanes-list.json`, `retake-lanes-idle.json`, `retake-lanes-picked.json`), `RetakeLanesDialog.test.tsx` and four visual states.
+- The host and UI: `internal/retakelanes` service tests, the wire contracts (`retake-lanes-list.json`, `retake-lanes-idle.json`, `retake-lanes-picked.json`), the host's `retakelanes` and `passagetakes` tests (the Editing takes list offers a lane retake as a take, a `lane_retake` candidate).
 
 ## Pending: scripted checks in REAPER (need the owner's approval)
 
@@ -29,5 +29,5 @@ Run under the D3 rules in [`src/studio/integrations/reaper/spikes/README.md`](..
 
 ## Pending: the owner (needs audio hardware and listening)
 
-1. **Pending, needs the owner.** Record three passes of one line into a fixed-lane track in the owner's own REAPER setup, with the narrator's usual "new recording adds lanes" option, then run **Link chapters**, save, and open **Tracks > Retakes on lanes…**: confirm the line lists one retake per pass on its own lane. This also answers S7's open question (one lane per pass, which lane plays after it) and whether a recorded retake carries a line id.
+1. **Pending, needs the owner.** Record three passes of one line into a fixed-lane track in the owner's own REAPER setup, with the narrator's usual "new recording adds lanes" option, then run **Link chapters**, save, and open **Editing** and a line's takes: confirm the line lists one retake per pass on its own lane. This also answers S7's open question (one lane per pass, which lane plays after it) and whether a recorded retake carries a line id.
 2. **Pending, needs the owner.** Press **Play this lane** on a retake and **listen**: only that lane is heard, across the whole track. Then press Undo in REAPER once and listen that the previous lane is heard again.

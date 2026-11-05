@@ -85,6 +85,8 @@ InstallDirRegKey HKCU "${UNINST_KEY}" "InstallLocation" # An update of an existi
 ShowInstDetails show # This will always show the installation details.
 ShowUninstDetails show
 
+!define NOTICES_FILE "THIRD-PARTY-NOTICES.txt" # The name the release asset uses (scripts/release/assets.mjs), written by scripts/licenses/notices.py.
+
 Function .onInit
    !insertmacro wails.checkArchitecture
 FunctionEnd
@@ -98,6 +100,11 @@ Section "${INFO_PRODUCTNAME} (required)"
     SetOutPath $INSTDIR
 
     !insertmacro wails.files
+
+    # The third-party licences and the source offer, beside the program (issue #250). build-native writes the file before makensis runs
+    # and wails-build.mjs refuses to compile the setup program without it. It is data: nothing runs it. The in-app updater replaces
+    # only the program, so this copy is the one of the version that was installed.
+    File "/oname=${NOTICES_FILE}" "..\..\bin\${NOTICES_FILE}"
 
     CreateShortcut "$SMPROGRAMS\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}"
     # The Audacity launcher: Audacity cannot start a program, so this entry does it instead,
@@ -125,6 +132,7 @@ Section "uninstall"
     Delete "$INSTDIR\${PRODUCT_EXECUTABLE}.new"
     Delete "$INSTDIR\${PRODUCT_EXECUTABLE}.old"
     Delete "$INSTDIR\${PRODUCT_EXECUTABLE}.failed"
+    Delete "$INSTDIR\${NOTICES_FILE}"
 
     Delete "$SMPROGRAMS\${INFO_PRODUCTNAME}.lnk"
     Delete "$SMPROGRAMS\${INFO_PRODUCTNAME} for Audacity.lnk"

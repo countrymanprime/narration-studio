@@ -1,4 +1,4 @@
--- Pickup list: import_pickups, export_pickups, next_pickup, resolve_pickup and count_pickups (see
+-- Pickup list: import_pickups, export_pickups, resolve_pickup and count_pickups (see
 -- docs/architecture/reaper-bridge.md). Project markers named `PICKUP: <body>` (open) and `PICKUP_DONE: <body>`
 -- (resolved), reusing the `PREFIX:` marker convention (narration_compare.lua's marker_kind). `<body>` is the note,
 -- or `[tag] note` when a tag was given (Open Question 5: generic CSV first, start time, note, optional tag).
@@ -161,60 +161,16 @@ H.test('a pickup list round-trips: export after import reproduces the same rows'
   H.eq(s:events(), { { 'PICKUPS_EXPORTED', 't2', out, '3' }, { 'PICKUPS_IMPORTED', 't3', '0', '3', '0' } })
 end)
 
--- next_pickup ----------------------------------------------------------------------------------------------------
+-- next_pickup (removed) -----------------------------------------------------------------------------------------
 
-H.test('next_pickup reports when none remain', function()
+H.test('next_pickup is not a command: Pickups does not move the edit cursor (#2759, DQ-6)', function()
   local s = new_session()
-  s:send('next_pickup', 't1')
-  H.eq(s:events(), { { 'ERROR', 't1', 'No pickups remain.' } })
-end)
-
-H.test('next_pickup jumps to the nearest pickup after the cursor', function()
-  local s = new_session()
-  s:send('import_pickups', 't1', payload(s, 'p.txt', { '1.5||First', '9.25|tag|Second', '30||Third' }))
+  s:send('import_pickups', 't1', payload(s, 'p.txt', { '9.25||Open' }))
   s:events()
   s.fake.cursor = 5
   s:send('next_pickup', 't2')
-  H.eq(s:events(), { { 'PICKUP_NEXT', 't2', '9.25', 'tag', 'Second' } })
-  H.eq(s.fake.cursor, 9.25)
-  H.eq(s.fake.cursor_moveview, true)
-end)
-
-H.test('next_pickup wraps to the earliest pickup when the cursor is past all of them', function()
-  local s = new_session()
-  s:send('import_pickups', 't1', payload(s, 'p.txt', { '1.5||First', '9.25||Second' }))
-  s:events()
-  s.fake.cursor = 100
-  s:send('next_pickup', 't2')
-  H.eq(s:events()[1], { 'PICKUP_NEXT', 't2', '1.5', '', 'First' })
-end)
-
-H.test('next_pickup ignores markers that are not pickups even when one sits between the cursor and the real pickup', function()
-  local s = new_session()
-  s.fake:insert_marker({ is_region = false, pos = 2, rgnend = 0, name = 'COMPARE: something', color = 0 })
-  s:send('import_pickups', 't1', payload(s, 'p.txt', { '5||Real pickup' }))
-  s:events()
-  s:send('next_pickup', 't2')
-  H.eq(s:events(), { { 'PICKUP_NEXT', 't2', '5', '', 'Real pickup' } })
-end)
-
-H.test('next_pickup skips resolved pickups', function()
-  local s = new_session()
-  s.fake:insert_marker({ is_region = false, pos = 1.5, rgnend = 0, name = 'PICKUP_DONE: Fixed', color = 0 })
-  s:send('import_pickups', 't1', payload(s, 'p.txt', { '9.25||Still open' }))
-  s:events()
-  s:send('next_pickup', 't2')
-  H.eq(s:events(), { { 'PICKUP_NEXT', 't2', '9.25', '', 'Still open' } })
-end)
-
-H.test('next_pickup does not select a media item; a marker has none', function()
-  local s, track = new_session(), nil
-  track = s.fake:add_track('Narrator')
-  local item = s.fake:add_item(track, { guid = '{AAAAAAAA-0000-4000-8000-000000000001}', selected = true })
-  s:send('import_pickups', 't1', payload(s, 'p.txt', { '9.25||Open' }))
-  s:events()
-  s:send('next_pickup', 't2')
-  H.eq(item.selected, true)
+  H.eq(s:events(), { { 'ERROR', 't2', 'Unsupported workspace command' } })
+  H.eq(s.fake.cursor, 5)
 end)
 
 -- resolve_pickup -------------------------------------------------------------------------------------------------

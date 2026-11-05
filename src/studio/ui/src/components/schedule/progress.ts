@@ -5,7 +5,7 @@ import { reached } from '../../chapterStatus';
 import { isNarrationChapter } from '../../chapterKinds';
 import { creditsKindOfId } from '../credits/creditsEntries';
 import type { CreditsKind } from '../credits/useCreditsRows';
-import { addDays, diffDays, fmtD, isIsoDate, parseIso } from './dates';
+import { addDays, diffDays, fmtD, isIsoDate, num, parseIso } from './dates';
 import { PACE, PICKUP_HOURS, RATIO, WARN_DAYS, WPH } from './estimates';
 import { CHECKPOINT_MEASURE, chaptersOf, measOf, minutesOf } from './measures';
 
@@ -141,11 +141,12 @@ export type MilestoneStatus = {
   kind: 'done' | 'none' | 'late' | 'risk' | 'ok';
   /** The full sentence, the cell's name and its tooltip. */
   sentence: string;
-  /** What the cell shows: a check for done, a dash for no estimate, "+3 d" for late, or the estimated date. */
+  /** What the cell shows: a check for done, a dash for no estimate, "3 d late", "Past due", or "est." and the estimated date. */
   short: string;
 };
 
-/** Whether the pace reaches a milestone's measure by its date. A done milestone is done; a custom one is not estimated. */
+/** Whether the pace reaches a milestone's measure by its date. A done milestone is done; a custom one is not estimated, and reads Past due once its date has passed.
+ * The estimate lands on the date or a day before it: at risk; later: late by the days between the estimate and the date (not the days since the date, which the page header counts). */
 export function milestoneStatus(
   m: Pick<ProductionMilestone, 'dueDate' | 'measure' | 'done'>,
   chapters: readonly ScheduleChapter[],
@@ -153,12 +154,17 @@ export function milestoneStatus(
   wph: number = WPH,
 ): MilestoneStatus {
   if (m.done) return { kind: 'done', sentence: 'Done', short: '✓' };
-  if (measOf(m.measure) === 'custom') return { kind: 'none', sentence: 'Not estimated', short: '—' };
+  if (measOf(m.measure) === 'custom') {
+    // A custom milestone has no estimate, but a date that has passed with the box unticked is a miss the narrator should see, not a dash.
+    const over = isIsoDate(m.dueDate) ? diffDays(today, parseIso(m.dueDate)) : 0;
+    if (over > 0) return { kind: 'late', sentence: `Past due by ${num(over)} d: not marked done`, short: 'Past due' };
+    return { kind: 'none', sentence: 'Not estimated', short: '—' };
+  }
   if (!isIsoDate(m.dueDate)) return { kind: 'none', sentence: `Not estimated: ${m.dueDate || 'no date'} is not a real date`, short: '—' };
   const projected = addDays(today, Math.ceil(remainFor(chapters, m.measure ?? '', wph) / PACE));
   const est = fmtD(projected);
   const late = diffDays(projected, parseIso(m.dueDate));
-  if (late > 0) return { kind: 'late', sentence: `Late by ${late} d (est. ${est})`, short: `+${late} d` };
-  if (late >= -1) return { kind: 'risk', sentence: `At risk (est. ${est})`, short: est };
-  return { kind: 'ok', sentence: `On track (est. ${est})`, short: est };
+  if (late > 0) return { kind: 'late', sentence: `Late by ${late} d (est. ${est})`, short: `${late} d late` };
+  if (late >= -1) return { kind: 'risk', sentence: `At risk (est. ${est})`, short: `est. ${est}` };
+  return { kind: 'ok', sentence: `On track (est. ${est})`, short: `est. ${est}` };
 }

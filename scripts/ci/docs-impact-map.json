@@ -102,7 +102,6 @@
         "src/studio/desktop/internal/project/manifest.go",
         "src/studio/desktop/internal/recents/store.go",
         "src/studio/desktop/internal/scriptprep/scriptprep.go",
-        "src/studio/desktop/internal/series/series.go",
         "src/studio/desktop/internal/settings/store.go",
         "src/studio/desktop/internal/stages/store.go",
         "src/studio/desktop/internal/transcript/service.go",

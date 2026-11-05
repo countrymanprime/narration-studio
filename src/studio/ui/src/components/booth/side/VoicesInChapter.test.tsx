@@ -192,3 +192,39 @@ describe('In this chapter, with voice samples', () => {
     expect(screen.getByRole('button', { name: `Play primary voice sample for ${odd}` })).toBeTruthy();
   });
 });
+
+describe('voice keys in a chapter linked to a folder of voices (phase 5)', () => {
+  const cast = [
+    { id: 'queen', name: 'Queen', voice: '', aliases: ['Queen'] },
+    { id: 'king', name: 'King of Hearts', voice: '', aliases: ['King of Hearts'] },
+    { id: 'cook', name: 'Cook', voice: '', aliases: ['Cook'] },
+  ];
+  const keys = (over: Partial<import('./sections').VoiceKeys> = {}) => ({
+    keyOf: (id: string) => (id === 'queen' ? '2' : undefined),
+    speaks: (id: string) => id !== 'cook',
+    add: vi.fn(),
+    ...over,
+  });
+
+  it('a character with a voice shows its key; a speaker with none offers a track; one only named offers nothing', async () => {
+    const voiceKeys = keys();
+    render(<VoicesInChapter voices={cast} voiceKeys={voiceKeys} />);
+    expect(screen.getByRole('img', { name: 'Num 2' })).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: 'Add a track for King of Hearts' }));
+    expect(voiceKeys.add).toHaveBeenCalledWith('king');
+    expect(screen.queryByRole('button', { name: 'Add a track for Cook' })).toBeNull();
+  });
+
+  it('during a take the add-track press is off with its reason', async () => {
+    const voiceKeys = keys({ addWhy: 'Not while recording. Stop the take first.' });
+    render(<VoicesInChapter voices={cast} voiceKeys={voiceKeys} />);
+    const add = screen.getByRole('button', { name: /Add a track for King of Hearts/ });
+    await userEvent.click(add);
+    expect(voiceKeys.add).not.toHaveBeenCalled();
+  });
+
+  it('a chapter on one track draws no key column', () => {
+    render(<VoicesInChapter voices={cast} />);
+    expect(document.querySelector('[data-voice-key]')).toBeNull();
+  });
+});
