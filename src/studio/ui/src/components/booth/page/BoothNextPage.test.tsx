@@ -243,13 +243,13 @@ describe('space-records-and-stops-and-nothing-else-records', () => {
   });
 
   // R is no longer in this list: Punch and roll now starts a take when none runs (next test). A pedal still sends only Space (ruling CF-4).
+  // Enter and numpad Enter record too, by the owner's request (#3039): they have their own describe below. A pedal still sends only Space.
   it('a pedal only starts and stops: no other key records, rolls or flags', async () => {
     const page = renderPage();
     await ready();
     for (const [key, code] of [
       ['f', 'KeyF'],
       ['p', 'KeyP'],
-      ['Enter', 'Enter'],
       ['ArrowDown', 'ArrowDown'],
       ['n', 'KeyN'],
     ])
@@ -1970,5 +1970,68 @@ describe('a-record-press-while-listening-starts', () => {
     await settle();
     expect(page.passageMapRecordRun).not.toHaveBeenCalled();
     expect(toasts(page).some((text) => /Nothing was recorded/.test(text))).toBe(false);
+  });
+});
+
+describe('enter-and-numpad-enter-record-and-stop-like-space', () => {
+  const enter = (code: 'Enter' | 'NumpadEnter', init: KeyboardEventInit = {}, target: Element = document.body) => press('Enter', code, init, target);
+
+  it.each(['Enter', 'NumpadEnter'] as const)('%s records and stops through the Record control, as Space does', async (code) => {
+    const page = renderPage();
+    await ready();
+    await enter(code);
+    await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(1));
+    expect(screen.getByText('REC')).toBeTruthy();
+    await enter(code);
+    await waitFor(() => expect(page.daw.recordStop).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(page.passageMapRecordRun).toHaveBeenCalledTimes(1));
+  });
+
+  it.each(['Enter', 'NumpadEnter'] as const)('a held %s records once: its repeats are left alone', async (code) => {
+    const page = renderPage();
+    await ready();
+    await enter(code);
+    await enter(code, { repeat: true });
+    await enter(code, { repeat: true });
+    await settle();
+    await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(1));
+    expect(page.daw.recordStop).not.toHaveBeenCalled();
+  });
+
+  it.each(['Enter', 'NumpadEnter'] as const)('a focused button keeps %s: the button is pressed, the page does not also record', async (code) => {
+    const page = renderPage();
+    await ready();
+    const caret = screen.getByRole('button', { name: 'Record options' });
+    await enter(code, {}, caret);
+    await settle();
+    expect(page.daw.recordStart).not.toHaveBeenCalled();
+  });
+
+  it.each(['Enter', 'NumpadEnter'] as const)('a text field keeps %s', async (code) => {
+    const page = renderPage();
+    await ready();
+    const field = document.createElement('input');
+    document.body.append(field);
+    await enter(code, {}, field);
+    await settle();
+    field.remove();
+    expect(page.daw.recordStart).not.toHaveBeenCalled();
+  });
+
+  it.each(['Enter', 'NumpadEnter'] as const)('an open popover keeps %s: it is for the popover, not for the page behind it', async (code) => {
+    const page = renderPage();
+    await ready();
+    await userEvent.click(screen.getByRole('button', { name: 'Text settings' }));
+    await screen.findByRole('dialog', { name: 'Text settings' });
+    await enter(code);
+    await settle();
+    expect(page.daw.recordStart).not.toHaveBeenCalled();
+  });
+
+  it("a pedal is still only Space: a USB pedal sends Space, and Enter is the keyboard's", async () => {
+    const page = renderPage();
+    await ready();
+    await space();
+    await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(1));
   });
 });
