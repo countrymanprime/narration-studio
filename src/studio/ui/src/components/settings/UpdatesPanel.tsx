@@ -8,6 +8,7 @@ import { WorkDialog } from '../primitives/WorkDialog';
 import { UpdateDownloadDialog } from './UpdateDownloadDialog';
 import { brand } from '../../brand.gen';
 import { calendarDay } from '../../calendarDay';
+import { useHasProject } from './row/SettingsHost';
 
 const BYTES_PER_MB = 1024 * 1024;
 
@@ -22,6 +23,7 @@ const capitalise = (text: string): string => text.charAt(0).toUpperCase() + text
  */
 export function UpdatesPanel() {
   const api = useApi();
+  const hasProject = useHasProject();
   const [status, setStatus] = useState<UpdateStatus>();
   const [error, setError] = useState('');
   const [checking, setChecking] = useState(false);
@@ -178,7 +180,7 @@ export function UpdatesPanel() {
       {confirmingInstall && available && status.downloaded && (
         <ConfirmDialog
           title={`Install version ${available.version} and restart?`}
-          body={`The app closes and starts again on version ${available.version} with the same project, and REAPER's launcher keeps working. It cannot install while an import, a Story Bible build, a download, a comparison or a teleprompter session is running. If the new version does not start, the previous one comes back by itself.`}
+          body={`The app closes and starts again on version ${available.version}${hasProject ? " with the same project, and REAPER's launcher keeps working" : ', at the project picker'}. It cannot install while an import, a Story Bible build, a download, a comparison or a teleprompter session is running. If the new version does not start, the previous one comes back by itself.`}
           confirmLabel="Install and restart"
           confirm={() => void install(status.downloaded?.jobId ?? '', available.version)}
           cancel={() => setConfirmingInstall(false)}

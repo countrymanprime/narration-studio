@@ -440,7 +440,7 @@ function settingsCategories(page: Page): Locator {
 }
 
 /** Opens a row of the category list by its label, opening the folded list first when that is how the width shows it. */
-async function openSettingsCategory(page: Page, label: string): Promise<void> {
+export async function openSettingsCategory(page: Page, label: string): Promise<void> {
   const nav = settingsCategories(page);
   const choice = nav.getByRole('button', { name: new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`) });
   if (!(await choice.isVisible())) await nav.getByRole('button', { name: /^Category/ }).click();

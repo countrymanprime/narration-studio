@@ -14,6 +14,29 @@ list. **Settings** is the page's one title; the category you are in is named by 
 a "fix credits" link, Master's silence cleanup), Settings opens on the setting, lights it up for a moment and
 offers **Back to** the page you came from.
 
+## Before a project is open
+
+Settings does not wait for a project. On **Choose your project** the **Settings** button (the gear at the top right) opens
+the same page in place of the picker, and **Ctrl+,** or **Settings: <category>** in the jump menu (**Ctrl+K**) opens it
+there too. There is no navigation rail, since every page of the app needs a project. **Back to project picker** returns to
+the picker.
+
+![Settings opened from the project picker - the project rows say "Open a project to change this." and are off, the computer's rows work](../../images/ui/settings-no-project.webp)
+
+- Every row that is **This computer** or **All projects** works as it does with a project open: the microphone, the speech
+  and voice settings, the Merriam-Webster key, the delivery default, appearance and keys, and updates.
+- **Models & downloads** is the same list. Download, check, repair and remove a model or voice here before you choose a project.
+
+![Models & downloads opened from the project picker](../../images/ui/settings-no-project-models.webp)
+
+- **Check now** and **Download update** under **App & updates** work too. **Install and restart** brings the app back to the
+  picker, or to the project it was started with.
+- A **This project** row (Record with, the chapter layout, the project's manuscript and credits, its delivery profile) stays in
+  its place and says **Open a project to change this.** Its control is off. A **Used by** list names the pages without
+  links, and the **In this project** filter is off.
+- A **Set on a page** entry that has a computer value and a project value edits the computer's, and says **Open a project to
+  set these for a project.** Audacity's backups belong to the project alone and say **Open a project to change this.**
+
 ## Every setting says whose it is and who uses it
 
 Each row has a name, one line on what it does (a **?** beside the name opens the details, where there are more), and under it:

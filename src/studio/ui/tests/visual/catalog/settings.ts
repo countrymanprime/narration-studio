@@ -681,6 +681,20 @@ export const settingsStates: StateEntry[] = [
   },
   {
     page: 'settings',
+    state: 'no-project',
+    description:
+      'Settings opened from the project picker with no project open (?mockNoProject=1): Recording & DAW with "Record with" and the other project rows held back, each saying "Open a project to change this." with its control off, the Microphone and the other computer rows live, and Back to project picker beside the heading; no navigation rail',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
+    state: 'no-project-models',
+    description:
+      'Settings with no project open, Models & downloads: the list of speech models and voices with Download on each, as it is with a project open; nothing waits for a project',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
     state: 'override',
     description:
       'Settings, Project: a setting that belongs to both scopes overridden by the project (Build the Story Bible after import, Override for this project): "This project uses" with its own control, Use computer setting, and "overridden here" in the row\'s scope',
