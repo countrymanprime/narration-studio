@@ -32,6 +32,7 @@ import {
   creditsRenderResultSchema,
   creditsStatusesSchema,
   creditTemplateSchema,
+  creditsChangedSchema,
   creditTemplatesSchema,
   retailSampleAnswerSchema,
 } from './schemas/credits';
@@ -78,6 +79,7 @@ import {
   guideMergeResultSchema,
   guidePreviewSchema,
   guidePronunciationSchema,
+  guideTypesChangedSchema,
   guideTypesSchema,
 } from './schemas/storyBible';
 import { approvedCharacterReferencesSchema, characterRegionsSchema, characterReferenceSchema } from './schemas/character';
@@ -170,7 +172,7 @@ import { boothPunchSchema, boothVoiceAddedSchema, boothVoiceSchema, voiceTracksS
 import { voiceSampleAnswerSchema, voiceSamplesChangedSchema, voiceSamplesRemovedSchema, voiceSamplesSchema } from './schemas/voiceSamples';
 import { passageMapSchema } from './schemas/passageMap';
 import { acceptedWordsChangeSchema, acceptedWordsSchema } from './schemas/editLog';
-import { markSchema, markThreadDeletedSchema, marksSchema } from './schemas/marks';
+import { markSchema, markThreadDeletedSchema, marksSchema, marksTypesChangedSchema } from './schemas/marks';
 import { scriptPrepChapterSchema, scriptPrepSchema } from './schemas/scriptPrep';
 import {
   extractionDecisionSchema,
@@ -383,6 +385,7 @@ export const wailsClient: NarrationApi = {
   guideFlagReview: (id, aliasIndex) => decode(voidResult, 'GuideFlagReview', host.GuideFlagReview(id, aliasIndex ?? null)),
   guideSetSpeakerColor: (id, index) => decode(voidResult, 'GuideSetSpeakerColor', host.GuideSetSpeakerColor(id, index)),
   guideTypes: () => decode(guideTypesSchema, 'GuideTypes', host.GuideTypes()),
+  guideTypesChanged: () => decode(guideTypesChangedSchema, 'GuideTypesChanged', host.GuideTypesChanged()),
   guideTypeAdd: (name) => decode(voidResult, 'GuideTypeAdd', host.GuideTypeAdd(name)),
   guideTypeRename: (name, to) => decode(voidResult, 'GuideTypeRename', host.GuideTypeRename(name, to)),
   guideTypeSetColour: (name, colour) => decode(voidResult, 'GuideTypeSetColour', host.GuideTypeSetColour(name, colour)),
@@ -487,6 +490,7 @@ export const wailsClient: NarrationApi = {
   editingAccept: (chapterId, keys) => decode(acceptedWordsChangeSchema, 'EditingAccept', host.EditingAccept(chapterId, keys)),
   editingUnaccept: (chapterId, keys) => decode(acceptedWordsChangeSchema, 'EditingUnaccept', host.EditingUnaccept(chapterId, keys)),
   marksList: () => decode(marksSchema, 'MarksList', host.MarksList()),
+  marksTypesChanged: () => decode(marksTypesChangedSchema, 'MarksTypesChanged', host.MarksTypesChanged()),
   marksAdd: (chapterId, paragraphId, start, end, type, text) => decode(markSchema, 'MarksAdd', host.MarksAdd(chapterId, paragraphId, start, end, type, text)),
   marksRemove: (id) => decode(marksSchema, 'MarksRemove', host.MarksRemove(id)),
   marksSaveTypes: (types, removeUses) => decode(marksSchema, 'MarksSaveTypes', host.MarksSaveTypes(types, removeUses)),
@@ -644,6 +648,7 @@ export const wailsClient: NarrationApi = {
   linkDawFile: () => decode(dawLinkResultSchema, 'ProjectLinkDawFile', host.ProjectLinkDawFile()),
   launchDaw: () => decode(dawLaunchResultSchema, 'DawLaunch', host.DawLaunch()),
   creditsTemplates: () => decode(creditTemplatesSchema, 'CreditsTemplates', host.CreditsTemplates()),
+  creditsChanged: () => decode(creditsChangedSchema, 'CreditsChanged', host.CreditsChanged()),
   saveCreditsTemplate: (id, kind, name, body) => decode(creditTemplateSchema, 'CreditsSaveTemplate', host.CreditsSaveTemplate(id, kind, name, body)),
   duplicateCreditsTemplate: (id) => decode(creditTemplateSchema, 'CreditsDuplicateTemplate', host.CreditsDuplicateTemplate(id)),
   deleteCreditsTemplate: (id) => decode(voidResult, 'CreditsDeleteTemplate', host.CreditsDeleteTemplate(id)),

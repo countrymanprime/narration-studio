@@ -16,6 +16,7 @@ afterEach(cleanup);
 const stateOf = (profile: DeliveryProfile, profiles = profile.builtIn ? [MOCK_ACX, mockCustomProfile()] : [MOCK_ACX, profile]): DeliveryProfilesState => ({
   profiles,
   globalDefault: { id: MOCK_ACX.id },
+  shippedDefault: { id: MOCK_ACX.id },
   hasProject: true,
   projectChoice: null,
   projectProfile: profile.builtIn ? `${profile.id}@${profile.version}` : `${profile.id}@r${profile.revision}`,

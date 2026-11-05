@@ -67,7 +67,7 @@ import {
 import { wordFxChangeSchema, wordFxListSchema, wordFxSchema } from './schemas/wordFx';
 import type { EditStackRecordRequest } from './contracts/editStacks';
 import { passageStackSchema, retryModeAnswerSchema, stackChangeSchema, stackListSchema } from './schemas/editStacks';
-import { markSchema, markThreadDeletedSchema, markTypeSchema, marksSchema, threadMessageSchema } from './schemas/marks';
+import { markSchema, markThreadDeletedSchema, markTypeSchema, marksSchema, marksTypesChangedSchema, threadMessageSchema } from './schemas/marks';
 import { scriptPrepChapterSchema, scriptPrepSchema } from './schemas/scriptPrep';
 import {
   extractionDecisionSchema,
@@ -172,6 +172,7 @@ import {
 } from './schemas/project';
 import {
   creditsAnnouncementsSchema,
+  creditsChangedSchema,
   creditsProjectValuesResultSchema,
   creditsRecordedLengthsSchema,
   creditsSetupStateSchema,
@@ -190,6 +191,7 @@ import {
   guideEntitiesSchema,
   guideMergeResultSchema,
   guidePreviewSchema,
+  guideTypesChangedSchema,
   guideTypesSchema,
   guidePronunciationSchema,
 } from './schemas/storyBible';
@@ -1147,7 +1149,11 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     const defaults = await api.guideTypes();
     expectMatches(guideTypesSchema, defaults, 'mock Story Bible types');
     expect(defaults.filter((row) => row.speaks).map((row) => row.name)).toEqual(['Character']);
+    expect(await api.guideTypesChanged()).toBe(false);
+    expect(guideTypesChangedSchema.parse(readGolden('guide-types-changed-default.json'))).toBe(false);
     await api.guideTypeAdd(' Creature ');
+    expect(await api.guideTypesChanged()).toBe(true);
+    expect(guideTypesChangedSchema.parse(readGolden('guide-types-changed.json'))).toBe(true);
     await expect(api.guideTypeAdd('creature')).rejects.toThrow('already');
     await expect(api.guideTypeAdd('Needs Review')).rejects.toThrow('own use');
     await api.guideTypeSetColour('Creature', 'rose');
@@ -1160,6 +1166,7 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     if (character) await expect(api.guideTypeRemove('Person')).rejects.toThrow('in use');
     await api.guideTypeRemove('Creature');
     await expect(api.guideTypeRemove('Creature')).rejects.toThrow('no type');
+    if (!character) expect(await api.guideTypesChanged()).toBe(false);
     expectMatches(guideTypesSchema, await api.guideTypes(), 'mock Story Bible types after edits');
   });
 
@@ -1253,19 +1260,26 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     const templates = await api.creditsTemplates();
     expectMatches(creditTemplatesSchema, templates, 'mock credit templates');
     expect(templates.length).toBeGreaterThan(0);
+    expect(await api.creditsChanged()).toBe(false);
+    expect(creditsChangedSchema.parse(readGolden('credits-changed-default.json'))).toBe(false);
     const created = await api.saveCreditsTemplate('', 'opening', 'My opening', '[Title], by [Author].');
     expectMatches(creditTemplateSchema, created, 'mock saved credit template');
     const updated = await api.saveCreditsTemplate(created.id, 'opening', 'My opening (edited)', '[Title].');
     expect(updated.id).toBe(created.id);
     const duplicated = await api.duplicateCreditsTemplate(templates[0].id);
     expectMatches(creditTemplateSchema, duplicated, 'mock duplicated credit template');
+    expect(await api.creditsChanged()).toBe(true);
+    expect(creditsChangedSchema.parse(readGolden('credits-changed.json'))).toBe(true);
     expect(duplicated.id).not.toBe(templates[0].id);
     await api.deleteCreditsTemplate(created.id);
+    await api.deleteCreditsTemplate(duplicated.id);
+    expect(await api.creditsChanged()).toBe(false);
     expect((await api.creditsTemplates()).some((template) => template.id === created.id)).toBe(false);
 
     const values = await api.creditsProjectValues();
     expectMatches(creditsProjectValuesResultSchema, values, 'mock credits project values');
     const saved = await api.saveCreditsProjectValues({ title: 'Neon', author: 'A. Writer' });
+    expect(await api.creditsChanged()).toBe(true);
     expectMatches(creditsProjectValuesResultSchema.shape.values, saved, 'mock saved credits project values');
     const preview = await api.creditsPreview('[Title], written by [Author], narrated by [Narrator].');
     expectMatches(creditsRenderResultSchema, preview, 'mock credits preview');
@@ -2722,6 +2736,9 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const state = await api.deliveryProfiles();
     expectMatches(deliveryProfilesStateSchema, state, 'mock delivery profiles');
     expect(state).toMatchObject({ globalDefault: pinned.globalDefault, projectProfile: 'acx@2026-09', projectChoice: null });
+    expect(pinned.shippedDefault).toEqual({ id: 'acx', version: '2026-09' });
+    expect(state.shippedDefault).toEqual(pinned.shippedDefault);
+    expect((await api.deliverySelectProfile('global', 'acx', '2026-09')).shippedDefault).toEqual(pinned.shippedDefault);
     const copy = await api.deliveryDuplicateProfile('acx', '2026-09');
     expectMatches(deliveryProfileSchema, copy, 'mock duplicate');
     expect(copy).toMatchObject({ builtIn: false, revision: 1, basedOn: 'acx@2026-09', name: 'ACX (September 2026) copy' });
@@ -4485,6 +4502,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'editingReplacementRemove',
       'replaceFilePeaks',
       'marksList',
+      'marksTypesChanged',
       'marksAdd',
       'marksRemove',
       'marksSaveTypes',
@@ -4525,6 +4543,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'guideRestoreSpeakers',
       'guidePronunciationRestore',
       'guideTypes',
+      'guideTypesChanged',
       'characterListRegions',
       'characterApprove',
       'characterReferences',
@@ -4735,6 +4754,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'updateJobCancel',
       'updateInstall',
       'creditsTemplates',
+      'creditsChanged',
       'saveCreditsTemplate',
       'duplicateCreditsTemplate',
       'creditsProjectValues',
@@ -5630,6 +5650,8 @@ describe('the marks bindings', () => {
     const empty = await api.marksList();
     expectMatches(marksSchema, empty, 'mock marks list (empty)');
     expect(empty.types.map((type) => type.key)).toEqual(['stress', 'breath', 'pace', 'emo', 'note', 'ask']);
+    expect(await api.marksTypesChanged()).toBe(false);
+    expect(marksTypesChangedSchema.parse(readGolden('marks-types-changed-default.json'))).toBe(false);
     const later = await api.marksAdd(chapterId, line.id, 6, 10, 'stress', '');
     const question = await api.marksAdd(chapterId, line.id, 0, 4, 'ask', '  Is this right?  ');
     expectMatches(markSchema, question, 'mock marks add');
@@ -5646,6 +5668,8 @@ describe('the marks bindings', () => {
     expectMatches(marksSchema, saved, 'mock marks types');
     expect(saved.marks).toEqual([]);
     expect(saved.types.at(-1)?.key).not.toBe('');
+    expect(await api.marksTypesChanged()).toBe(true);
+    expect(marksTypesChangedSchema.parse(readGolden('marks-types-changed.json'))).toBe(true);
   });
 
   it('the mock refuses what the host refuses and saves nothing', async () => {

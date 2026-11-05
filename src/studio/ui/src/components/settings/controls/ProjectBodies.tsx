@@ -9,6 +9,7 @@ import { MarksList } from '../page/MarksPanel';
 import { useMarks } from '../../script/page/data/useScriptData';
 import { MarksDialog } from '../../script/page/tools/select/MarksDialog';
 import { useSaveMarkTypes } from '../../script/scriptPageHost';
+import { projectDataChanged } from '../data/projectDataSignal';
 import { ManuscriptBody } from '../ManuscriptSection';
 import { DeleteStoryBibleData } from '../page/DeleteStoryBibleData';
 import { ClearProjectData } from '../page/ProjectDataPanel';
@@ -30,7 +31,12 @@ export function StoryBibleTypesRowBody() {
 export function MarksRowBody() {
   const marks = useMarks();
   const [editing, setEditing] = useState(false);
-  const saveMarkTypes = useSaveMarkTypes(marks.retry);
+  const { retry } = marks;
+  const saved = useCallback(() => {
+    retry();
+    projectDataChanged();
+  }, [retry]);
+  const saveMarkTypes = useSaveMarkTypes(saved);
   return (
     <>
       {/* The pills on the left and Edit marks at the top right, beside them, not wrapped alone under the pills (alignment audit XSE2-23, XSE1-15). */}

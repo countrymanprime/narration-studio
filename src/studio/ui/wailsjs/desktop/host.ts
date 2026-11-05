@@ -549,6 +549,16 @@ export function CoverageWorkerPlan(options: { [_ in string]?: string }): $Cancel
 }
 
 /**
+ * CreditsChanged is whether the credits differ from what ships: the template library has a shipped template edited or deleted, or
+ * one added (credits.TemplateStore.Changed), or the open project has credits values of its own (credits.Values.IsSet). With no
+ * project open only the library counts. Settings > Changed reads it; it answers a JSON boolean and writes nothing. Reading the project's
+ * manifest (project.Load) can trigger persist's quarantine of a corrupt file, and with it the narrator's notice, as any read of it does.
+ */
+export function CreditsChanged(): $CancellablePromise<string> {
+    return $Call.ByID(1030552876);
+}
+
+/**
  * CreditsChapterAnnouncements renders body once per narration chapter, with the project's own tokens plus the chapter's
  * [Chapter] and [Chapter Title]. The Settings preview shows the first; the estimate times them all.
  */
@@ -1827,6 +1837,14 @@ export function GuideTypes(): $CancellablePromise<string> {
 }
 
 /**
+ * GuideTypesChanged is whether the Story Bible's types differ from the default six: a type added, renamed, recoloured, set to
+ * speak or not, removed or moved. Settings > Changed reads it (guide.Service.TypesChanged). It answers a JSON boolean.
+ */
+export function GuideTypesChanged(): $CancellablePromise<string> {
+    return $Call.ByID(2590553717);
+}
+
+/**
  * GuideUnmerge takes back one GuideMerge by the undo id it answered, or rejects with the reason it cannot (an entry changed since).
  */
 export function GuideUnmerge(undoID: string): $CancellablePromise<string> {
@@ -2003,6 +2021,15 @@ export function MarksSaveTypes(types: marks$0.MarkType[], removeUses: boolean): 
  */
 export function MarksSetStatus(id: string, status: string): $CancellablePromise<string> {
     return $Call.ByID(4108478942, id, status);
+}
+
+/**
+ * MarksTypesChanged is whether the mark types differ from the default six: a type renamed, recoloured, restyled, added, removed or
+ * moved. Settings > Changed reads it. It only reads the project's marks.json (marks.Service.TypesChanged): it never brings old notes
+ * across, writes, or loads the manuscript. It answers a JSON boolean.
+ */
+export function MarksTypesChanged(): $CancellablePromise<string> {
+    return $Call.ByID(3936366811);
 }
 
 /**

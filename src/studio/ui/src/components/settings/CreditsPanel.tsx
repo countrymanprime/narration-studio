@@ -3,6 +3,7 @@ import { apiErrorMessage } from '../../api/errorMessage';
 import { useApi } from '../../api/ApiContext';
 import { previewParts } from '../../creditsPreviewParts';
 import type { CreditsRenderResult, CreditTemplate, CreditValues, DetectedCandidate } from '../../types';
+import { projectDataChanged } from './data/projectDataSignal';
 import { CREDITS_FIELDS, CREDITS_HEADING, CREDITS_SECTION } from './creditsLayout';
 import { RetailSamplePanel } from './RetailSamplePanel';
 import { Button } from '../primitives/Button';
@@ -160,6 +161,7 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
     try {
       const saved = await api.saveCreditsTemplate(selected?.id ?? '', draftKind, draftName, draftBody);
       notify('Credit template saved.');
+      projectDataChanged();
       await load();
       setSelectedId(saved.id);
     } catch (error) {
@@ -186,6 +188,7 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
     try {
       const duplicate = await api.duplicateCreditsTemplate(selected.id);
       notify(`Duplicated as "${duplicate.name}".`);
+      projectDataChanged();
       await load();
       setSelectedId(duplicate.id);
     } catch (error) {
@@ -200,6 +203,7 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
     try {
       await api.deleteCreditsTemplate(selected.id);
       notify('Credit template deleted.');
+      projectDataChanged();
       await load();
     } catch (error) {
       notify(apiErrorMessage(error), 'error');
@@ -214,6 +218,7 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
     setSavingKey(key);
     try {
       await api.saveCreditsProjectValues(next);
+      projectDataChanged();
     } catch (error) {
       // The same save again writes the same values.
       notify(
@@ -231,6 +236,7 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
     setClearing(true);
     try {
       setValues(await api.saveCreditsProjectValues({}));
+      projectDataChanged();
       notify('Credits cleared for this project.');
       setConfirmingClear(false);
     } catch (error) {
