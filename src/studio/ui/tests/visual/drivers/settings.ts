@@ -2,10 +2,29 @@
 // (shared.ts: openSettingsCategory); each driver waits for what its own state shows.
 import type { Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
-import { type Driver, clickNav, clickVisible, confirmDialog, freezeClock, goToPage, openAdvanced, openSettings, showSettingsRow } from './shared';
+import {
+  type Driver,
+  openSettingsCategory,
+  clickNav,
+  clickVisible,
+  confirmDialog,
+  freezeClock,
+  goToPage,
+  openAdvanced,
+  openSettings,
+  showSettingsRow,
+} from './shared';
 import { brand } from '../../../src/brand.gen';
 
 const WHISPER_SMALL = 'whisper/small';
+
+/** The project picker of an app with no project (`?mockNoProject=1`), then its Settings button: Settings drawn without the shell. */
+async function openSettingsFromPicker(page: Page): Promise<void> {
+  await page.goto('/?mockNoProject=1');
+  await settlePage(page);
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByRole('heading', { level: 1, name: 'Settings', exact: true }).waitFor();
+}
 
 /** The app booted in an update state (`?mockUpdate=`), on App & updates with the This version panel, which holds the update, at the top of the page area. */
 async function openUpdates(page: Page, seed: string): Promise<void> {
@@ -44,6 +63,13 @@ async function openModels(page: Page, query = ''): Promise<void> {
   await openSettings(page, 'Models & downloads', query);
   await page.getByRole('table', { name: 'Models, voices and tools' }).waitFor();
   await page.locator(`[data-asset="${WHISPER_SMALL}"]`).waitFor();
+}
+
+/** Change location, answered Yes and given a folder: the move starts and its dialog opens. */
+async function startMove(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'Change location…' }).click();
+  await confirmDialog(page, 'Change where downloads are kept?').getByRole('button', { name: 'Choose a folder…' }).click();
+  await page.getByRole('dialog', { name: /^Moving models/ }).waitFor();
 }
 
 /** Pulls the update dialog flow forward: Download update, then the confirm's Download. */
@@ -90,6 +116,22 @@ export const settingsDrivers: Record<string, Driver> = {
     await page.keyboard.press('Control+k');
     await page.getByRole('combobox', { name: 'Jump menu' }).fill('microphone');
     await page.getByRole('option').first().waitFor();
+  },
+  // Settings from the project picker: no project is open (`?mockNoProject=1`), so the page is drawn in the picker's frame, and the rows that need a
+  // project are held back with the reason.
+  'no-project': async (page) => {
+    await openSettingsFromPicker(page);
+    await page.getByRole('heading', { level: 2, name: 'Recording & DAW', exact: true }).waitFor();
+    await page.locator('[data-row="daw.engine"][data-needs-project="true"]').waitFor();
+    await page.locator('[data-row="daw.mic"]').waitFor();
+  },
+  'no-project-models': async (page) => {
+    await openSettingsFromPicker(page);
+    await openSettingsCategory(page, 'Models & downloads');
+    await page
+      .getByRole('button', { name: /^Download /i })
+      .first()
+      .waitFor();
   },
   'page-top': async (page) => {
     await openSettings(page);
@@ -239,6 +281,11 @@ export const settingsDrivers: Record<string, Driver> = {
   },
 
   // ---- Models & downloads
+  'editing-checks': async (page) => {
+    await openSettings(page, 'Recording & DAW');
+    const row = await showSettingsRow(page, 'editing.maxGap');
+    await row.getByRole('textbox').waitFor();
+  },
   models: async (page) => {
     await openModels(page);
   },
@@ -284,6 +331,31 @@ export const settingsDrivers: Record<string, Driver> = {
     await openModels(page);
     await page.locator(`[data-asset="${WHISPER_SMALL}"]`).getByRole('button', { name: 'Remove Small' }).click();
     await confirmDialog(page, 'Remove Small?').waitFor();
+  },
+  'models-folder-asking': async (page) => {
+    await openModels(page);
+    await page.getByRole('button', { name: 'Change location…' }).click();
+    await confirmDialog(page, 'Change where downloads are kept?').waitFor();
+  },
+  'models-moving': async (page) => {
+    await openModels(page, '?mockMove=copying');
+    await startMove(page);
+    await page.getByRole('progressbar', { name: /^Moving models progress/ }).waitFor();
+    await page.getByText('Copying the models…').waitFor();
+    await page
+      .getByText(/\d+(\.\d+)? (MB|GB) of /)
+      .first()
+      .waitFor();
+  },
+  'models-moved': async (page) => {
+    await openModels(page, '?mockMove=moved');
+    await page.getByRole('button', { name: 'Delete old copy…' }).waitFor();
+    await page.locator('[data-row="models.folder"]').evaluate((el) => el.scrollIntoView({ block: 'center' }));
+  },
+  'models-move-failed': async (page) => {
+    await openModels(page, '?mockMove=fails');
+    await startMove(page);
+    await page.getByRole('alert').filter({ hasText: 'The disk filled up' }).waitFor();
   },
   'models-remove-refused': async (page) => {
     await openModels(page);

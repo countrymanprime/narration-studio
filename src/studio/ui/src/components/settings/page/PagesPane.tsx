@@ -20,6 +20,7 @@ const PAGE_ACTION: Record<UsedPage, IconName> = {
   delivery: 'delivery',
 };
 import { useSettingsNav } from '../row/SettingsNav';
+import { useHasProject } from '../row/SettingsHost';
 import { PageSettingPanel } from './PageSettingPanel';
 import { PaneTitle } from './PaneTitle';
 
@@ -29,6 +30,7 @@ import { PaneTitle } from './PaneTitle';
  */
 export function PageSettingList({ items }: { items: readonly PageSetting[] }) {
   const { go } = useSettingsNav();
+  const hasProject = useHasProject();
   const [open, setOpen] = useState<Record<string, boolean>>({});
   // A panel that was opened stays in the page when it is closed, so an edit not yet saved is not dropped; one never opened is not read at all.
   const [opened, setOpened] = useState<Record<string, boolean>>({});
@@ -59,6 +61,7 @@ export function PageSettingList({ items }: { items: readonly PageSetting[] }) {
                 action={PAGE_ACTION[item.page]}
                 size="sm"
                 label={`Open ${PAGE_LABEL[item.page]}, where ${item.label} belongs`}
+                disabledReason={hasProject ? undefined : 'Open a project to go to its pages'}
                 onClick={() => go(PAGE_PATH[item.page])}
               />
             }

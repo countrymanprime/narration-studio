@@ -14,6 +14,29 @@ list. **Settings** is the page's one title; the category you are in is named by 
 a "fix credits" link, Master's silence cleanup), Settings opens on the setting, lights it up for a moment and
 offers **Back to** the page you came from.
 
+## Before a project is open
+
+Settings does not wait for a project. On **Choose your project** the **Settings** button (the gear at the top right) opens
+the same page in place of the picker, and **Ctrl+,** or **Settings: <category>** in the jump menu (**Ctrl+K**) opens it
+there too. There is no navigation rail, since every page of the app needs a project. **Back to project picker** returns to
+the picker.
+
+![Settings opened from the project picker - the project rows say "Open a project to change this." and are off, the computer's rows work](../../images/ui/settings-no-project.webp)
+
+- Every row that is **This computer** or **All projects** works as it does with a project open: the microphone, the speech
+  and voice settings, the Merriam-Webster key, the delivery default, appearance and keys, and updates.
+- **Models & downloads** is the same list. Download, check, repair and remove a model or voice here before you choose a project.
+
+![Models & downloads opened from the project picker](../../images/ui/settings-no-project-models.webp)
+
+- **Check now** and **Download update** under **App & updates** work too. **Install and restart** brings the app back to the
+  picker, or to the project it was started with.
+- A **This project** row (Record with, the chapter layout, the project's manuscript and credits, its delivery profile) stays in
+  its place and says **Open a project to change this.** Its control is off. A **Used by** list names the pages without
+  links, and the **In this project** filter is off.
+- A **Set on a page** entry that has a computer value and a project value edits the computer's, and says **Open a project to
+  set these for a project.** Audacity's backups belong to the project alone and say **Open a project to change this.**
+
 ## Every setting says whose it is and who uses it
 
 Each row has a name, one line on what it does (a **?** beside the name opens the details, where there are more), and under it:
@@ -164,6 +187,10 @@ the last 5 seconds, and the card says whether its open project matches the linke
 
 The Audacity backups and the favourite effects are listed under [Set on a page](#set-on-a-page), where Settings edits them; [Editing](editing.md) has a shortcut to the same settings.
 
+**Editing checks** are three limits the [Editing](editing.md) page measures a chapter against: **Longest empty gap** (silence between words), **Longest leading silence** and **Longest trailing silence**, each in seconds. They are empty until you choose them, and an empty limit is not checked. Each is for this computer, and a project may use its own.
+
+![Settings - Editing checks under Recording & DAW: the longest empty gap, leading silence and trailing silence, each in seconds and empty until chosen](../../images/ui/settings-editing-checks.webp)
+
 ## Speech to text
 
 **Transcription model** is the one default for comparing and checking recordings: Production's recording check,
@@ -200,7 +227,7 @@ for longer.
 ## Models and downloads
 
 One list of everything the app can keep on this computer: Whisper models, Moonshine models, the preview voices, the Story Bible language models, the dictionary, the wiktionary pronunciations and the MP3 encoder. Nothing downloads by itself, and
-removing one never touches your projects. Above the list, the disk the installed ones use and the folder they are kept in, with an **Open the folder** icon to show it in the file manager. When the list cannot be read, the message offers **Retry** and **Open the folder**.
+removing one never touches your projects. Above the list, the disk the installed ones use, and under it the **Models folder location** row, which shows the folder they are kept in, has an **Open the folder** icon to show it in the file manager and [moves them to another folder](#models-folder). When the list cannot be read, the message offers **Retry** and **Open the folder**.
 Which one is *used* is chosen in the category that uses it; here you only get, check and remove them.
 
 ![Settings - Models & downloads: the disk used and each download with its state, size, what uses it and its actions](../../images/ui/settings-models.webp)
@@ -218,9 +245,28 @@ Each row says what it is, its type and size, its **Status**, **Used by** (pages)
 
 With nothing downloaded, the page (its **?** gives the size, about 600 MB) offers **Download the recommended set** (the Small transcription model and the preview voice). Below the list, **Story Bible analysis tools** lists the optional tools that make the Story Bible scan better (GLiNER, BookNLP small and large), each with what it does, its size, where it downloads from and the memory it needs, and the **Offer better analysis when scanning** box. GLiNER (about 730 MB) finds the names of characters, places and things, including invented ones; BookNLP groups the ways a character is named and works out who speaks each line. **Download** asks first; a Story Bible scan then runs the basic rules and each tool you have (with both BookNLP sizes, the large one). **Remove** deletes a tool, and the scan goes back to the rules and whatever else is installed. A tool whose download failed says why in a message that stays until dismissed, and its row has **Try again** and **Dismiss**; when the files arrived and matched but could not be unpacked or saved, **Details** under the reason names the file and what went wrong, which is what to quote in a report. The download dialog that other pages open shows the same line under **Live activity**.
 
+### Models folder
+
+Under the disk bar, **Models folder location** is where the downloads are kept: the folder in use, the **Open the folder** icon, **Change location…** and, once you have moved them, a reset button. It is also found by searching for "location" or "folder", and by the **Changed** filter once it is not the default. Its **?** says what a move does.
+
+**Change location…** asks first (the question is below), then opens your computer's folder dialog. Choose an empty folder (make a new one in the dialog if you like; a folder inside the current one, or one that already holds files, is refused). The app copies everything it has downloaded, checks every copied file against the original, and only then uses the new folder, at once and for every kind of download. A bar shows the bytes of both passes and **Cancel** stops the move. A move is refused while a download runs, and no download starts during one.
+
+![Settings - Models & downloads: Change location asks before it opens the folder dialog](../../images/ui/settings-models-folder-asking.webp)
+
+![Settings - Models & downloads while the downloads are being moved: a progress bar and Cancel](../../images/ui/settings-models-moving.webp)
+
+While a move runs the bar counts the bytes of the copy and then of the check, each against the size shown as used. When it ends, the dialog is titled by how it ended (**The models were moved**, **The move failed** or **The move was cancelled**) and has only **Close**. If you cancel, or anything fails (the folder is read-only, the disk is full, a disk is unplugged, a copied file does not match), the dialog says why and your models are exactly where they were: nothing is deleted, nothing changes, and a half copy is removed.
+
+When a move has finished, the old copy is still on your disk. The row says so, with **Delete old copy…** and **Keep it**. Deleting asks first and removes only the downloaded models, voices and tools in that folder, never anything else you keep there. It is refused while something that may still read the old copy is running. **Keep it** leaves the folder alone and stops asking, and a message says where it is: there is no way back to the question, so delete that folder yourself when you no longer need it. Until you answer, **Change location…** and the reset button are off, with a tooltip and a line under the row saying why.
+
+![Settings - Models & downloads after a move: the new folder in use and the old copy waiting for an answer](../../images/ui/settings-models-moved.webp)
+
+The reset button next to **Change location…** moves the downloads back to the default folder (the per-user cache folder) the same way: copy, check, switch, then offer to delete the copy you left.
+
 ## Delivery
 
 - **Delivery profile** picks the profile this project is judged against, on [Master & QC](master-and-qc.md) and [Delivery](delivery.md), the same choice as Delivery's own menu, with the limits of the chosen profile listed under it.
+- **Render length tolerance** (under **Checks**) is how many seconds a chapter's rendered file may differ in length from the chapter before [Proof](proof.md)'s render length check is not met. It is empty until you choose it, and then that check is not required; a project may use its own.
 - **Default profile for new projects** is what a project that has not chosen its own is judged against (ACX until you change it).
 - **Custom profiles** (Advanced) lists your profiles and the built-in ones to copy. **Duplicate** makes a custom copy and opens it in the editor, where you can rename it, turn a rule off, and change the lowest and highest of a rule that has a range (a length is in minutes); a rule with a fixed value can only be turned off, and a copy cannot add a kind of rule the app does not check. **Edit** and **Delete** work on a custom profile; a project that chose a deleted profile goes back to the default.
 
@@ -369,6 +415,7 @@ Some settings only change what one page does, so they belong on that page, next 
 - If the settings file cannot be read, the page says **Your settings could not be read** and disables the controls until **Retry** works.
 - If a change cannot be saved, the page says **Changes cannot be saved right now** and the row says why; the previous value is still in use.
 - If the list of downloads cannot be read, Models & downloads says so with **Retry**; your downloads are not touched.
+- If moving the models folder fails or you cancel it, your models are still in the folder they were in. The dialog says why; choose another folder, or free some space, and try again. If the new folder is on a disk that is later unplugged, the models read as not downloaded until it is back.
 
 ---
 

@@ -70,16 +70,19 @@ func (h *Host) wiktextractManagerFor() (*wiktextract.Manager, error) {
 	if seam != nil {
 		return seam()
 	}
-	return defaultWiktextractManager(repoRoot, h.packagedResources())
+	if h.modelsMoving() {
+		return nil, errModelsMoving
+	}
+	base, err := assetBaseFor(h.settingsStore())
+	if err != nil {
+		return nil, err
+	}
+	return defaultWiktextractManager(repoRoot, h.packagedResources(), base)
 }
 
 // defaultWiktextractManager mirrors buildDictionaryManager (assetcache.go): the checkout's own catalog, falling back
 // to the packaged release's when a checkout does not have one, over the per-user asset cache.
-func defaultWiktextractManager(repoRoot, packagedRoot string) (*wiktextract.Manager, error) {
-	base, err := assetCacheBase()
-	if err != nil {
-		return nil, err
-	}
+func defaultWiktextractManager(repoRoot, packagedRoot, base string) (*wiktextract.Manager, error) {
 	catalog := layout.Path(repoRoot, layout.WiktextractCatalogFile)
 	if _, statErr := os.Stat(catalog); statErr != nil && packagedRoot != "" {
 		catalog = filepath.Join(packagedRoot, "config", "wiktextract-assets.json")

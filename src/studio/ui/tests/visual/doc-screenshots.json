@@ -211,6 +211,13 @@
   },
   {
     "page": "settings",
+    "state": "editing-checks",
+    "viewport": "desktop",
+    "docName": "settings-editing-checks",
+    "caption": "Settings - Editing checks under Recording & DAW: the longest empty gap, leading silence and trailing silence, each in seconds and empty until chosen"
+  },
+  {
+    "page": "settings",
     "state": "import-choose",
     "viewport": "desktop",
     "docName": "production-import-choose",
@@ -656,6 +663,27 @@
     "viewport": "desktop",
     "docName": "settings-models-checking",
     "caption": "Settings - Models & downloads checking the files of the Whisper model: Checking the files in its row and the check icon spinning"
+  },
+  {
+    "page": "settings",
+    "state": "models-folder-asking",
+    "viewport": "desktop",
+    "docName": "settings-models-folder-asking",
+    "caption": "Settings - Models & downloads: Change location asks before it opens the folder dialog"
+  },
+  {
+    "page": "settings",
+    "state": "models-moving",
+    "viewport": "desktop",
+    "docName": "settings-models-moving",
+    "caption": "Settings - Models & downloads while the downloads are being moved: a progress bar and Cancel"
+  },
+  {
+    "page": "settings",
+    "state": "models-moved",
+    "viewport": "desktop",
+    "docName": "settings-models-moved",
+    "caption": "Settings - Models & downloads after a move: the new folder in use and the old copy waiting for an answer"
   },
   {
     "page": "settings",
@@ -1769,5 +1797,19 @@
     "viewport": "desktop",
     "docName": "proof-repair-in-reaper",
     "caption": "Proof - a click note: Repair in REAPER in the Inspector's row, its menu open on Cleanup tools"
+  },
+  {
+    "page": "settings",
+    "state": "no-project",
+    "viewport": "desktop",
+    "docName": "settings-no-project",
+    "caption": "Settings opened from the project picker - the project rows say \"Open a project to change this.\" and are off, the computer's rows work"
+  },
+  {
+    "page": "settings",
+    "state": "no-project-models",
+    "viewport": "desktop",
+    "docName": "settings-no-project-models",
+    "caption": "Models & downloads opened from the project picker"
   }
 ]

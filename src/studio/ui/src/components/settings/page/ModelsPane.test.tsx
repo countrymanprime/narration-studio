@@ -128,7 +128,7 @@ describe('Settings: Models & downloads', () => {
     expect(within(voice).getByText('Not installed')).toBeTruthy();
     expect(within(voice).getByRole('button', { name: 'Used by Script. Go to Script' })).toBeTruthy();
     expect(document.querySelector('[data-disk]')!.textContent).toMatch(/used by \d+ items?/);
-    expect(document.querySelector('[data-disk]')!.textContent).toContain('assets');
+    expect(document.querySelector('[data-row="models.folder"]')!.textContent).toContain('assets');
   });
 
   // Alignment audit, Models & downloads (XSE1-5, XSE2-25, XSE2-27, XSE1-14, R3SE2-5, XSE1-17, XSE1-18, XSE1-28).
@@ -161,12 +161,15 @@ describe('Settings: Models & downloads', () => {
     for (const cell of screen.getAllByRole('cell')) expect(cell.className).toContain('@max-[1020px]:border-b-0!');
   });
 
-  it('keeps Open folder at the end of the disk bar, not wrapped under the path', async () => {
+  it('draws the folder once: the disk bar says how much is used, and the Models folder row owns the path and Open folder', async () => {
     await renderModels();
-    const open = within(document.querySelector<HTMLElement>('[data-disk]')!).getByRole('button', { name: 'Open the folder' });
-    expect(open.className).toContain('flex-none');
-    expect(open.closest('[data-disk]')).not.toBeNull();
-    expect(document.querySelector('[data-disk]')!.className).not.toContain('flex-wrap');
+    await ready('whisper/small');
+    const bar = document.querySelector<HTMLElement>('[data-disk]')!;
+    expect(within(bar).queryByRole('button', { name: 'Open the folder' })).toBeNull();
+    expect(bar.textContent).not.toContain('Stored in');
+    const row = document.querySelector<HTMLElement>('[data-row="models.folder"]')!;
+    expect(within(row).getByRole('button', { name: 'Open the folder' })).toBeTruthy();
+    expect(screen.getAllByText(/\/assets$|AppData/).length).toBe(1);
   });
 
   it('draws the analysis tools in a card under their label, like the list above', async () => {
@@ -328,14 +331,14 @@ describe('Settings: Models & downloads', () => {
     await ready('whisper/small');
     expect(screen.queryByText('The list of models could not be read.')).toBeNull();
   });
-  it('opens the asset folder from the disk bar and says when the host refuses', async () => {
+  it('opens the asset folder from the Models folder row and says when the host refuses', async () => {
     const assetsOpenFolder = vi.fn().mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error('No file manager.'));
     await renderModels({ overrides: { assetsOpenFolder } });
     await ready('whisper/small');
     fireEvent.click(screen.getByRole('button', { name: 'Open the folder' }));
     await waitFor(() => expect(assetsOpenFolder).toHaveBeenCalledTimes(1));
     fireEvent.click(screen.getByRole('button', { name: 'Open the folder' }));
-    expect((await screen.findByRole('alert')).textContent).toContain('The folder could not be opened: No file manager.');
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.stringContaining('The folder could not be opened: No file manager.'), { tone: 'error' }));
   });
 
   it('opens the asset folder from the load-error banner', async () => {

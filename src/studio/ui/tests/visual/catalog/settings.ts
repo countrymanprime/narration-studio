@@ -180,6 +180,14 @@ export const settingsStates: StateEntry[] = [
   },
   {
     page: 'settings',
+    state: 'editing-checks',
+    description:
+      'Settings, Recording & DAW scrolled to Editing checks: the longest empty gap, leading silence and trailing silence, each a box in seconds, empty until chosen',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
     state: 'models',
     description:
       'Settings, Models & downloads: the disk use panel, the Show filter, and the table of every model, voice and tool with its size, state, who uses it and the one action its state allows',
@@ -226,6 +234,34 @@ export const settingsStates: StateEntry[] = [
     page: 'settings',
     state: 'models-remove-confirm',
     description: 'Settings, Models & downloads: the danger confirm before a model is removed, with the settings that use it and what it frees',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
+    state: 'models-folder-asking',
+    description:
+      'Settings, Models & downloads: the question Change location asks on the Models folder row before the system folder dialog opens, with Cancel as the default',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
+    state: 'models-moving',
+    description:
+      'Settings, Models & downloads while the downloads are moved to another folder (?mockMove=copying): the work dialog with a progress bar, the bytes of both passes and Cancel',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
+    state: 'models-moved',
+    description:
+      'Settings, Models & downloads after a move (?mockMove=moved): the Models folder row marked Changed with the new folder, the reset button, and the old copy waiting with Delete old copy and Keep it',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
+    state: 'models-move-failed',
+    description:
+      'Settings, Models & downloads after a move failed (?mockMove=fails): the work dialog says the disk filled up and that the models are still where they were, with Close',
     ...REFLOW,
   },
   {
@@ -649,6 +685,20 @@ export const settingsStates: StateEntry[] = [
     state: 'save-failed',
     description:
       'Settings after a change could not be saved (?mockSettings=save-fails): "Changes cannot be saved right now." above the pane, and the row names the reason and keeps the old value',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
+    state: 'no-project',
+    description:
+      'Settings opened from the project picker with no project open (?mockNoProject=1): Recording & DAW with "Record with" and the other project rows held back, each saying "Open a project to change this." with its control off, the Microphone and the other computer rows live, and Back to project picker beside the heading; no navigation rail',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
+    state: 'no-project-models',
+    description:
+      'Settings with no project open, Models & downloads: the list of speech models and voices with Download on each, as it is with a project open; nothing waits for a project',
     ...REFLOW,
   },
   {

@@ -117,6 +117,7 @@ import {
   trimRangeAnswerOf,
   repairClickAnswerOf,
 } from '../fixtures/daw';
+import { withNoProjectAnswers } from './mockHost/noProject';
 import { knownActionKind, MOCK_DAW_UNDO_LABELS, MockUndoHistory } from '../fixtures/dawUndo';
 
 export { applyMixedManuscriptMock } from './mockHost/manuscript';
@@ -605,7 +606,7 @@ export function createMockApi(
   const undone: NarrationApi = { ...withAudacityFacts, ...recordingUndo(withAudacityFacts, undoHistory) };
   // The Booth's voice choice over the mock's own voice setup, links and tracks; a record start in a voice folder answers its voice.
   late.boothVoices = createBoothVoiceMock(undone);
-  const recorded: NarrationApi = { ...undone, ...late.boothVoices };
+  const recorded: NarrationApi = withNoProjectAnswers({ ...undone, ...late.boothVoices }, project.projectFolder);
   const api = initial.invalidPayload ? { ...recorded, ...invalidPayloadOverrides(initial.invalidPayload, recorded) } : recorded;
   const final: NarrationApi = { ...api, ...overrides };
   // A driver (Playwright, a console) plays REAPER's side of the mock DAW from here: kill it, restart it, open another project.
