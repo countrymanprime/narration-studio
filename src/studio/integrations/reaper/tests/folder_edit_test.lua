@@ -266,3 +266,145 @@ H.test('restore_replacement with a folder that is gone is stale; nothing changes
   H.eq(span(p.later), { 25, 6 })
   H.eq(#s.fake.undo, 1)
 end)
+
+-- stack_takes and unstack_takes ripple the whole folder when the payload names it (#3043 part 4): a `folder|GUID` line right after the `shift` line.
+local function guid(n)
+  return string.format('{%08X-0000-4000-8000-%012X}', 0xB0000000 + n, n)
+end
+local BASE, BASE_TAKE, RETRY, RETRY_TAKE = guid(1), guid(2), guid(3), guid(4)
+
+-- Chapter 1 folder > Narrator (the first read 10-15, a retry 16-20, a later item 30-35), Crowd folder > Guard (an item 40-42), Hero (an item 30-35).
+local function stack_project()
+  local s = H.session({ project_path = H.join(host.tmpdir(), 'Book.rpp') })
+  local fake = s.fake
+  local folder = fake:add_track('Chapter 1')
+  local narrator = fake:add_track('Narrator')
+  local crowd = fake:add_track('Crowd')
+  local guard = fake:add_track('Guard')
+  local hero = fake:add_track('Hero')
+  local after = fake:add_track('Chapter 2')
+  folder.folder_depth, crowd.folder_depth, guard.folder_depth, hero.folder_depth = 1, 1, -1, -1
+  local file = s:path('retry.wav')
+  H.write_file(file, 'RIFF')
+  local p = { folder = folder, narrator = narrator, guard = guard, hero = hero }
+  p.base = fake:add_item(narrator, { guid = BASE, take_guid = BASE_TAKE, position = 10, length = 5, source = 'read1.wav' })
+  p.retry = fake:add_item(narrator, { guid = RETRY, take_guid = RETRY_TAKE, position = 16, length = 4, source = file })
+  p.later = fake:add_item(narrator, { position = 30, length = 5, source = 'later.wav' })
+  p.guard_item = fake:add_item(guard, { position = 40, length = 2, source = 'guard.wav' })
+  p.hero_item = fake:add_item(hero, { position = 30, length = 5, source = 'hero.wav' })
+  p.after_item = fake:add_item(after, { position = 0, length = 5, source = 'ch2.wav' })
+  fake.calls = {}
+  return s, p
+end
+
+local function stack_payload(s, name, lines)
+  local path = s:path(name)
+  H.write_file(path, table.concat(lines, '\n') .. '\n')
+  return path
+end
+
+local function stack_lines(p, folder)
+  local lines = { 'shift|-5' }
+  if folder then
+    lines[#lines + 1] = 'folder|' .. folder
+  end
+  lines[#lines + 1] = 'group|' .. BASE .. '|' .. BASE_TAKE
+  lines[#lines + 1] = 'move|' .. RETRY_TAKE .. '|16|10|4'
+  return lines
+end
+
+local function unstack_lines(folder)
+  local lines = { 'shift|5' }
+  if folder then
+    lines[#lines + 1] = 'folder|' .. folder
+  end
+  lines[#lines + 1] = 'group|' .. BASE .. '|' .. BASE_TAKE
+  lines[#lines + 1] = 'move|' .. RETRY_TAKE .. '|10|16|4'
+  return lines
+end
+
+H.test('stack_takes with the folder moves the later items of every voice, in one undo block', function()
+  local s, p = stack_project()
+  s:send('stack_takes', 's1', stack_payload(s, 'stack.txt', stack_lines(p, p.folder.guid)))
+  H.eq(s:events()[1][1], 'TAKES_STACKED')
+  H.eq(span(p.later), { 25, 5 }, 'the narrator’s later item moves up by the 5 s the retry took')
+  H.eq(span(p.hero_item), { 25, 5 }, 'so does the hero’s')
+  H.eq(span(p.guard_item), { 35, 2 }, 'and the nested folder’s voice')
+  H.eq(span(p.after_item), { 0, 5 }, 'the next chapter is not in the folder')
+  H.eq(#s.fake:undo_labels(), 1, 'one undo block for every track')
+  H.eq(s.fake.open_undo_blocks, 0)
+end)
+
+H.test('stack_takes without the folder moves only the reads’ own track (why the host sends it)', function()
+  local s, p = stack_project()
+  s:send('stack_takes', 's1', stack_payload(s, 'stack.txt', stack_lines(p)))
+  H.eq(s:events()[1][1], 'TAKES_STACKED')
+  H.eq(span(p.later), { 25, 5 })
+  H.eq(span(p.hero_item), { 30, 5 })
+end)
+
+H.test('stack_takes with the folder refuses when another voice has audio in the stretch the reads leave, and changes nothing', function()
+  local s, p = stack_project()
+  s.fake:add_item(p.hero, { position = 17, length = 1, source = 'hero-line.wav' })
+  s.fake.calls = {}
+  s:send('stack_takes', 's1', stack_payload(s, 'stack.txt', stack_lines(p, p.folder.guid)))
+  H.eq(s:events(), { { 'ERROR', 's1', 'Another voice in the folder has audio where the stacked reads sit, so nothing changed.' } })
+  H.eq(span(p.later), { 30, 5 })
+  H.eq(#p.base.takes, 1, 'no take is added')
+  H.eq(#s.fake.undo, 0)
+end)
+
+H.test('stack_takes with a folder that is gone is stale, and one the reads are not inside is refused; nothing changes', function()
+  local s, p = stack_project()
+  s:send('stack_takes', 's1', stack_payload(s, 'stack.txt', stack_lines(p, '{FFFFFFFF-0000-4000-8000-00000000FFFF}')))
+  H.eq(s:events(), { { 'TRACK_STALE', 's1', '{FFFFFFFF-0000-4000-8000-00000000FFFF}' } })
+  s:send('stack_takes', 's2', stack_payload(s, 'stack2.txt', stack_lines(p, p.hero.guid)))
+  H.eq(s:events(), { { 'ERROR', 's2', 'The item is not inside the chapter folder, so nothing changed.' } })
+  H.eq(span(p.later), { 30, 5 })
+  H.eq(#s.fake.undo, 0)
+end)
+
+H.test('a folder line anywhere but right after the shift line, or twice, is an unreadable request', function()
+  local s, p = stack_project()
+  local lines = stack_lines(p)
+  lines[#lines + 1] = 'folder|' .. p.folder.guid
+  s:send('stack_takes', 's1', stack_payload(s, 'late.txt', lines))
+  H.eq(s:events()[1][1], 'ERROR')
+  local twice =
+    { 'shift|-5', 'folder|' .. p.folder.guid, 'folder|' .. p.folder.guid, 'group|' .. BASE .. '|' .. BASE_TAKE, 'move|' .. RETRY_TAKE .. '|16|10|4' }
+  s:send('stack_takes', 's2', stack_payload(s, 'twice.txt', twice))
+  H.eq(s:events()[1][1], 'ERROR')
+  s:send(
+    'stack_takes',
+    's3',
+    stack_payload(s, 'bad.txt', { 'shift|-5', 'folder|not-a-guid', 'group|' .. BASE .. '|' .. BASE_TAKE, 'move|' .. RETRY_TAKE .. '|16|10|4' })
+  )
+  H.eq(s:events()[1][1], 'ERROR')
+  H.eq(span(p.later), { 30, 5 })
+  H.eq(#s.fake.undo, 0)
+end)
+
+H.test('unstack_takes with the folder puts every voice back, and one more stack and unstack round trips', function()
+  local s, p = stack_project()
+  s:send('stack_takes', 's1', stack_payload(s, 'stack.txt', stack_lines(p, p.folder.guid)))
+  H.eq(s:events()[1][1], 'TAKES_STACKED')
+  s:send('unstack_takes', 'u1', stack_payload(s, 'unstack.txt', unstack_lines(p.folder.guid)))
+  H.eq(s:events()[1][1], 'TAKES_UNSTACKED')
+  H.eq(span(p.later), { 30, 5 })
+  H.eq(span(p.hero_item), { 30, 5 })
+  H.eq(span(p.guard_item), { 40, 2 })
+  H.eq(span(p.retry), { 16, 4 }, 'the retry is back where it was recorded')
+  H.eq(#s.fake:undo_labels(), 2, 'one undo block each')
+end)
+
+H.test('unstack_takes with the folder refuses when another voice has audio where the reads go back, and changes nothing', function()
+  local s, p = stack_project()
+  s:send('stack_takes', 's1', stack_payload(s, 'stack.txt', stack_lines(p, p.folder.guid)))
+  s:events()
+  s.fake:add_item(p.hero, { position = 16, length = 1, source = 'hero-line.wav' })
+  s.fake.calls = {}
+  s:send('unstack_takes', 'u1', stack_payload(s, 'unstack.txt', unstack_lines(p.folder.guid)))
+  H.eq(s:events(), { { 'ERROR', 'u1', 'Another voice in the folder has audio where the stacked reads sit, so nothing changed.' } })
+  H.eq(span(p.later), { 25, 5 })
+  H.eq(#s.fake.undo, 1, 'only the stack has an undo point')
+end)

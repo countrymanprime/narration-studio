@@ -163,9 +163,6 @@ func dawRestackIn(ctx context.Context, svc hostServices, support dawport.Support
 	if refused != nil {
 		return *refused, nil
 	}
-	if voiceTracksWithAudio(live) > 1 {
-		return rippleRefusal(name, map[bool]string{false: "Stacking takes", true: "Unstacking takes"}[unstack]), nil
-	}
 	in.Live = live
 	plan, act := passagetakes.StackPlan, stacker.StackTakes
 	if unstack {
@@ -178,6 +175,7 @@ func dawRestackIn(ctx context.Context, svc hostServices, support dawport.Support
 	if refusedPlan != nil {
 		return *refusedPlan, nil
 	}
+	request.ChapterTrack = chapterFolderOf(svc, chapterID)
 	result, err := act(ctx, request)
 	if err != nil {
 		return stackRefusal(name, err), nil
