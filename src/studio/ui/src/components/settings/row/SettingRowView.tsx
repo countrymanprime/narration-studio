@@ -166,20 +166,23 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
           </span>
         )}
         {waiting ? null : hasCustom ? (
-          changed && reset && !OWN_RESET.has(row.id) ? (
+          reset && !OWN_RESET.has(row.id) ? (
+            // The wrapper stays whether or not the row is changed, so the body keeps its place and its state when the Reset appears.
             <div data-control-line className="flex w-full min-w-0 flex-wrap items-center gap-1.5">
               {children}
-              <IconButton
-                action="undo"
-                label={`Reset ${row.label} to its default`}
-                className="border-transparent"
-                onClick={() => {
-                  void Promise.resolve(reset())
-                    .catch((failure: unknown) => notify(`${row.label} could not be reset: ${describeApiError(failure)}`, 'error'))
-                    // The button is gone once the row is back at its default; keep the place instead of dropping to the page.
-                    .finally(() => rowEl.current?.focus());
-                }}
-              />
+              {changed && (
+                <IconButton
+                  action="undo"
+                  label={`Reset ${row.label} to its default`}
+                  className="border-transparent"
+                  onClick={() => {
+                    void Promise.resolve(reset())
+                      .catch((failure: unknown) => notify(`${row.label} could not be reset: ${describeApiError(failure)}`, 'error'))
+                      // The button is gone once the row is back at its default; keep the place instead of dropping to the page.
+                      .finally(() => rowEl.current?.focus());
+                  }}
+                />
+              )}
             </div>
           ) : (
             children
