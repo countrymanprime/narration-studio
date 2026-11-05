@@ -408,3 +408,22 @@ H.test('unstack_takes with the folder refuses when another voice has audio where
   H.eq(span(p.later), { 25, 5 })
   H.eq(#s.fake.undo, 1, 'only the stack has an undo point')
 end)
+
+H.test('stack_takes with the folder refuses a second passage whose reads are on a track outside it, and changes nothing', function()
+  local s, p = stack_project()
+  local base2, take2, retry2, retry2_take = guid(11), guid(12), guid(13), guid(14)
+  local file = s:path('retry2.wav')
+  H.write_file(file, 'RIFF')
+  local outside = p.after_item.track
+  s.fake:add_item(outside, { guid = base2, take_guid = take2, position = 10, length = 4, source = 'read2.wav' })
+  s.fake:add_item(outside, { guid = retry2, take_guid = retry2_take, position = 15, length = 3, source = file })
+  s.fake.calls = {}
+  local lines = stack_lines(p, p.folder.guid)
+  lines[1] = 'shift|-9'
+  lines[#lines + 1] = 'group|' .. base2 .. '|' .. take2
+  lines[#lines + 1] = 'move|' .. retry2_take .. '|15|10|3'
+  s:send('stack_takes', 's1', stack_payload(s, 'two.txt', lines))
+  H.eq(s:events(), { { 'ERROR', 's1', 'The item is not inside the chapter folder, so nothing changed.' } })
+  H.eq(span(p.later), { 30, 5 })
+  H.eq(#s.fake.undo, 0)
+end)
