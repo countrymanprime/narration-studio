@@ -211,6 +211,13 @@
   },
   {
     "page": "settings",
+    "state": "editing-checks",
+    "viewport": "desktop",
+    "docName": "settings-editing-checks",
+    "caption": "Settings - Editing checks under Recording & DAW: the longest empty gap, leading silence and trailing silence, each in seconds and empty until chosen"
+  },
+  {
+    "page": "settings",
     "state": "import-choose",
     "viewport": "desktop",
     "docName": "production-import-choose",
@@ -659,6 +666,27 @@
   },
   {
     "page": "settings",
+    "state": "models-folder-asking",
+    "viewport": "desktop",
+    "docName": "settings-models-folder-asking",
+    "caption": "Settings - Models & downloads: Change location asks before it opens the folder dialog"
+  },
+  {
+    "page": "settings",
+    "state": "models-moving",
+    "viewport": "desktop",
+    "docName": "settings-models-moving",
+    "caption": "Settings - Models & downloads while the downloads are being moved: a progress bar and Cancel"
+  },
+  {
+    "page": "settings",
+    "state": "models-moved",
+    "viewport": "desktop",
+    "docName": "settings-models-moved",
+    "caption": "Settings - Models & downloads after a move: the new folder in use and the old copy waiting for an answer"
+  },
+  {
+    "page": "settings",
     "state": "delivery-profile-editor",
     "viewport": "desktop",
     "docName": "settings-delivery-profile",
@@ -719,6 +747,20 @@
     "viewport": "desktop",
     "docName": "settings-story-bible-order",
     "caption": "Settings - Story Bible order under Look: a select of eight orders, Name, A to Z by default"
+  },
+  {
+    "page": "settings",
+    "state": "first-use-tips-dismissed",
+    "viewport": "desktop",
+    "docName": "settings-first-use-tips",
+    "caption": "Settings - First-use tips under Tips after a tip was dismissed: 1 dismissed, and Show tips again"
+  },
+  {
+    "page": "settings",
+    "state": "schedule-basis-own",
+    "viewport": "desktop",
+    "docName": "settings-schedule-basis",
+    "caption": "Settings - Schedule basis under Schedule: Standard or Your own pace, with Your own pace chosen"
   },
   {
     "page": "settings",
@@ -1610,6 +1652,13 @@
     "caption": "Schedule - a due date that has passed: how many days overdue, Behind, and when the work would finish at your pace"
   },
   {
+    "page": "schedule",
+    "state": "milestone-statuses",
+    "viewport": "desktop",
+    "docName": "schedule-milestone-statuses",
+    "caption": "Schedule - milestone statuses: a done milestone, a custom one past its date (Past due), a custom one ahead and Final delivery with its estimate"
+  },
+  {
     "page": "pickups",
     "state": "show-where",
     "viewport": "desktop",
@@ -1729,6 +1778,13 @@
     "caption": "Master & QC with nothing measured and REAPER not answering: the DAW tools menu beside Check files, both entries off with REAPER's own sentence under each"
   },
   {
+    "page": "delivery",
+    "state": "chapter-tags-ready",
+    "viewport": "desktop",
+    "docName": "delivery-chapter-tags",
+    "caption": "Delivery - Embed chapter tags ready to embed: the combined book MP3, the chapters from the last render and the confirmation"
+  },
+  {
     "page": "editing",
     "state": "drawer-cleanup-repair",
     "viewport": "desktop",
@@ -1741,5 +1797,19 @@
     "viewport": "desktop",
     "docName": "proof-repair-in-reaper",
     "caption": "Proof - a click note: Repair in REAPER in the Inspector's row, its menu open on Cleanup tools"
+  },
+  {
+    "page": "settings",
+    "state": "no-project",
+    "viewport": "desktop",
+    "docName": "settings-no-project",
+    "caption": "Settings opened from the project picker - the project rows say \"Open a project to change this.\" and are off, the computer's rows work"
+  },
+  {
+    "page": "settings",
+    "state": "no-project-models",
+    "viewport": "desktop",
+    "docName": "settings-no-project-models",
+    "caption": "Models & downloads opened from the project picker"
   }
 ]

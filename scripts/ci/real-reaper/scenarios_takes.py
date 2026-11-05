@@ -47,6 +47,13 @@ def set_active_take(env: Env) -> str:
     assert env.render_mix("use_take", 0.0, 3.0).pitch(0.2, 2.8) == "tone_b", "the render does not play take 2"
     again = env.ok("set_active_take", fx["item"], fx["second"], until="ACTIVE_TAKE_SET")
     assert again[4] == "0", f"second send changed {again[4]}"
+    # Keep Take's Undo (#2945): the used take is the use_take kind, and undo_last takes it back by that kind alone.
+    assert env.ok("last_action", "use_take", until="LAST_ACTION")[3] == "this", "use_take is not REAPER's last action"
+    assert env.ok("last_action", "cut_range", until="LAST_ACTION")[3] == "other", "the cut kind reads a used take"
+    undone_by_kind = env.ok("undo_last", "use_take", "1", until="UNDONE_LAST")
+    assert undone_by_kind[3:5] == ["1", "1"], f"undo_last use_take answered {undone_by_kind[2:]}"
+    assert [t["active"] for t in the_item(env)["takes"]] == [True, False], "undo_last use_take did not make take 1 active again"
+    env.ok("set_active_take", fx["item"], fx["second"], until="ACTIVE_TAKE_SET")
     undone = undo_once(env)
     assert undone == undo_label("use take"), f"undid {undone!r}"
     assert [t["active"] for t in the_item(env)["takes"]] == [True, False], "Undo did not make take 1 active again"

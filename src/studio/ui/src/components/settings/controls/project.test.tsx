@@ -380,16 +380,17 @@ describe('Settings: Appearance & keys', () => {
     expect(list.className).not.toMatch(/overflow|max-h/);
     expect(list.hasAttribute('tabindex')).toBe(false);
     expect(list.parentElement!.style.borderColor).toBe('');
-    const change = (await within(list).findAllByRole('button', { name: 'Change' }))[0]!;
-    expect(change.parentElement!.className).toContain('ml-auto');
-    expect(change.parentElement!.className).toContain('justify-end');
+    const change = (await within(list).findAllByRole('button', { name: /^Change the shortcut/ }))[0]!;
+    // The icon sits in its tooltip wrapper, inside the row's right-aligned group.
+    const group = change.closest('.ml-auto')!;
+    expect(group.className).toContain('justify-end');
   });
 
   it('shortcuts: the recorder keeps Cancel last in its one button row, not pushed apart', async () => {
     await renderPage();
     await open('Appearance & keys');
     const list = await within(row('keys.map')).findByRole('region', { name: 'Shortcuts' });
-    await userEvent.click((await within(list).findAllByRole('button', { name: 'Change' }))[0]!);
+    await userEvent.click((await within(list).findAllByRole('button', { name: /^Change the shortcut/ }))[0]!);
     const recorder = await within(list).findByRole('group', { name: /^Change "/ });
     const cancel = within(recorder).getByRole('button', { name: 'Cancel' });
     expect(cancel.className).not.toContain('ml-auto');
@@ -408,14 +409,14 @@ describe('Settings: Appearance & keys', () => {
     await renderPage({ api });
     await open('Appearance & keys');
     const list = await within(row('keys.map')).findByRole('region', { name: 'Shortcuts' });
-    await waitFor(() => expect(within(list).getAllByRole('button', { name: 'Change' }).length).toBeGreaterThan(3));
-    const before = within(list).getAllByRole('button', { name: 'Change' }).length;
+    await waitFor(() => expect(within(list).getAllByRole('button', { name: /^Change the shortcut/ }).length).toBeGreaterThan(3));
+    const before = within(list).getAllByRole('button', { name: /^Change the shortcut/ }).length;
     await userEvent.type(within(row('keys.map')).getByRole('textbox', { name: 'Find a shortcut' }), 'zzzz-nothing');
     expect(within(list).getByText('No shortcut matches.')).toBeTruthy();
     await userEvent.clear(within(row('keys.map')).getByRole('textbox', { name: 'Find a shortcut' }));
-    expect(within(list).getAllByRole('button', { name: 'Change' }).length).toBe(before);
+    expect(within(list).getAllByRole('button', { name: /^Change the shortcut/ }).length).toBe(before);
 
-    await userEvent.click(within(list).getAllByRole('button', { name: 'Change' })[0]);
+    await userEvent.click(within(list).getAllByRole('button', { name: /^Change the shortcut/ })[0]);
     expect(await within(list).findByRole('group', { name: /^Change "/ })).toBeTruthy();
     expect(save).not.toHaveBeenCalled();
     await userEvent.click(within(list).getByRole('button', { name: 'Unbind' }));

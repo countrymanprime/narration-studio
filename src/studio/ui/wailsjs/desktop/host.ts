@@ -32,6 +32,14 @@ import * as voicesample$0 from "./internal/voicesample/models.js";
 import * as $models from "./models.js";
 
 /**
+ * AssetsFolderPick asks the narrator for the folder to move the downloads to, in the system's folder dialog, and answers with its path
+ * (empty when they cancelled). It changes nothing: AssetsMoveStart does, when the narrator has confirmed.
+ */
+export function AssetsFolderPick(): $CancellablePromise<string> {
+    return $Call.ByID(2597265850);
+}
+
+/**
  * AssetsInstall starts installing one asset, or repairs it when it is damaged, and answers with its job. A second call for an asset that is
  * already downloading joins that job. The narrator asked for it: nothing else starts a download.
  */
@@ -54,6 +62,44 @@ export function AssetsInstallState(jobID: string): $CancellablePromise<string> {
  */
 export function AssetsList(): $CancellablePromise<string> {
     return $Call.ByID(2175855371);
+}
+
+/**
+ * AssetsMoveCancel stops the move while it copies or checks. The old folder stays in use and nothing is left in the new one.
+ */
+export function AssetsMoveCancel(): $CancellablePromise<string> {
+    return $Call.ByID(3475958456);
+}
+
+/**
+ * AssetsMoveDeleteOld deletes the copy a finished move left in the old folder, after the narrator confirmed it: the asset folders in it
+ * and nothing else. It refuses while that folder is the one in use.
+ */
+export function AssetsMoveDeleteOld(): $CancellablePromise<string> {
+    return $Call.ByID(1769046022);
+}
+
+/**
+ * AssetsMoveKeepOld ends the offer to delete the old copy and leaves it where it is.
+ */
+export function AssetsMoveKeepOld(): $CancellablePromise<string> {
+    return $Call.ByID(1597581696);
+}
+
+/**
+ * AssetsMoveStart starts moving the downloads to the folder at target (the default folder when target is empty), and answers with the
+ * job. Every file is copied, checked against the original, and only then is the new folder used by every download kind; the old folder
+ * is never changed. A target that cannot work, a download in progress and a second move are refused.
+ */
+export function AssetsMoveStart(target: string): $CancellablePromise<string> {
+    return $Call.ByID(1343153266, target);
+}
+
+/**
+ * AssetsMoveState is the move that is running, or how the last one ended.
+ */
+export function AssetsMoveState(): $CancellablePromise<string> {
+    return $Call.ByID(1023495935);
 }
 
 /**
@@ -161,6 +207,16 @@ export function BookmarksSetStop(chapterID: string, paragraphID: string, offset:
  */
 export function BookmarksUpdate(id: string, label: string, note: string): $CancellablePromise<string> {
     return $Call.ByID(3562503062, id, label, note);
+}
+
+/**
+ * BoothPunchTarget answers where the words of paragraphID from fromWord to toWord (inclusive, 0-based in the paragraph) of chapterID were
+ * recorded before: the project seconds the passage plays from and to, and the track holding it (the voice that read it, in a chapter folder).
+ * "never_recorded" says nothing of it was heard, so the take should continue, not punch; "refused" carries a sentence and nothing is guessed (no
+ * recording check, a stale one, the DAW not answering, part of the passage cut, or several voices). Read-only.
+ */
+export function BoothPunchTarget(chapterID: string, paragraphID: string, fromWord: number, toWord: number): $CancellablePromise<string> {
+    return $Call.ByID(1550759971, chapterID, paragraphID, fromWord, toWord);
 }
 
 /**
@@ -490,6 +546,16 @@ export function CoverageState(): $CancellablePromise<string> {
  */
 export function CoverageWorkerPlan(options: { [_ in string]?: string }): $CancellablePromise<string> {
     return $Call.ByID(1310535801, options);
+}
+
+/**
+ * CreditsChanged is whether the credits differ from what ships: the template library has a shipped template edited or deleted, or
+ * one added (credits.TemplateStore.Changed), or the open project has credits values of its own (credits.Values.IsSet). With no
+ * project open only the library counts. Settings > Changed reads it; it answers a JSON boolean and writes nothing. Reading the project's
+ * manifest (project.Load) can trigger persist's quarantine of a corrupt file, and with it the narrator's notice, as any read of it does.
+ */
+export function CreditsChanged(): $CancellablePromise<string> {
+    return $Call.ByID(1030552876);
 }
 
 /**
@@ -1771,6 +1837,14 @@ export function GuideTypes(): $CancellablePromise<string> {
 }
 
 /**
+ * GuideTypesChanged is whether the Story Bible's types differ from the default six: a type added, renamed, recoloured, set to
+ * speak or not, removed or moved. Settings > Changed reads it (guide.Service.TypesChanged). It answers a JSON boolean.
+ */
+export function GuideTypesChanged(): $CancellablePromise<string> {
+    return $Call.ByID(2590553717);
+}
+
+/**
  * GuideUnmerge takes back one GuideMerge by the undo id it answered, or rejects with the reason it cannot (an entry changed since).
  */
 export function GuideUnmerge(undoID: string): $CancellablePromise<string> {
@@ -1947,6 +2021,15 @@ export function MarksSaveTypes(types: marks$0.MarkType[], removeUses: boolean): 
  */
 export function MarksSetStatus(id: string, status: string): $CancellablePromise<string> {
     return $Call.ByID(4108478942, id, status);
+}
+
+/**
+ * MarksTypesChanged is whether the mark types differ from the default six: a type renamed, recoloured, restyled, added, removed or
+ * moved. Settings > Changed reads it. It only reads the project's marks.json (marks.Service.TypesChanged): it never brings old notes
+ * across, writes, or loads the manuscript. It answers a JSON boolean.
+ */
+export function MarksTypesChanged(): $CancellablePromise<string> {
+    return $Call.ByID(3936366811);
 }
 
 /**
@@ -2679,29 +2762,6 @@ export function ReplaceNarrators(): $CancellablePromise<string> {
  */
 export function ReplacePlan(chapterID: string, firstToken: number, lastToken: number, fileID: string, sourceStart: number, sourceEnd: number): $CancellablePromise<string> {
     return $Call.ByID(1619504105, chapterID, firstToken, lastToken, fileID, sourceStart, sourceEnd);
-}
-
-/**
- * RetakeLanesList lists, from the saved REAPER project the audio engine panel reads, every manuscript line whose retakes sit
- * on more than one fixed lane of a track, and which lane plays.
- */
-export function RetakeLanesList(): $CancellablePromise<string> {
-    return $Call.ByID(1618739891);
-}
-
-/**
- * RetakeLanesPick asks REAPER to make the retake named by lineID and itemGUID the only lane playing on its track, in
- * one undo step. Only a retake RetakeLanesList lists can be picked; nothing else in the project changes.
- */
-export function RetakeLanesPick(lineID: string, itemGUID: string): $CancellablePromise<string> {
-    return $Call.ByID(3760905438, lineID, itemGUID);
-}
-
-/**
- * RetakeLanesState answers the last pick's state (idle before any).
- */
-export function RetakeLanesState(): $CancellablePromise<string> {
-    return $Call.ByID(523795916);
 }
 
 /**

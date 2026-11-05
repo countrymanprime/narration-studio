@@ -41,9 +41,9 @@ function menu(over: Partial<NarrationApi> = {}, setup: keyof typeof DAW_SETUPS =
       />
     </ApiProvider>,
   );
-  return { calls, open: () => userEvent.click(screen.getByRole('button', { name: 'Levels' })) };
+  return { calls, open: () => userEvent.click(screen.getByRole('button', { name: 'Record options' })) };
 }
-const popup = () => screen.getByRole('dialog', { name: 'Levels' });
+const popup = () => screen.getByRole('dialog', { name: 'Record options' });
 
 describe('the Levels menu sliders', () => {
   it("shows Input level off with the capability's sentence, and Monitor level at the level the DAW holds", async () => {

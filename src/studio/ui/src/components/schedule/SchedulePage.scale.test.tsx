@@ -30,7 +30,7 @@ describe('how many', () => {
     // The columns are fixed (only Milestone takes what is left, on a table with a floor), and the name stops at two lines.
     const table = screen.getByRole('table', { name: 'Milestones' });
     expect(table.className).toContain('table-fixed');
-    expect(table.className).toContain('min-w-[34.5rem]');
+    expect(table.className).toContain('min-w-[36.5rem]');
     expect(document.querySelector('[data-name="0"]')!.className).toContain('line-clamp-2');
   });
 

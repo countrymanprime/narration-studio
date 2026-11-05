@@ -19,6 +19,7 @@ const keyOf = (profile: DeliveryProfile) => (profile.builtIn ? `${profile.id}@${
 const stateOf = (profile: DeliveryProfile, profiles = [MOCK_ACX, mockCustomProfile()]): DeliveryProfilesState => ({
   profiles,
   globalDefault: { id: MOCK_ACX.id },
+  shippedDefault: { id: MOCK_ACX.id },
   hasProject: true,
   projectChoice: null,
   projectProfile: keyOf(profile),

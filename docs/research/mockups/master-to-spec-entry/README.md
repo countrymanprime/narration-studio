@@ -14,4 +14,4 @@ One static file, `index.html`: no build, no network, system fonts. It takes the 
 
 ## Lifecycle
 
-This folder is deleted in the pull request that follows the owner's approval or changes, as the Studio Next mock's rule says ([Which mocks are the spec](../../../prds/studio-next-rebuild.prd.md#which-mocks-are-the-spec)).
+This folder is deleted in the pull request that follows the owner's approval or changes, as the Studio Next mock's rule says (Which mocks are the spec).

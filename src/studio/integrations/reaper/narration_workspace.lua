@@ -13,6 +13,9 @@
 local core = ...
 local event = core.event
 
+-- The undo point label of a used take, fixed in narration_bridge_core.lua so undo_last may reach it (kind use_take).
+local UNDO_USE_TAKE = core.undo_label('use_take')
+
 local CHAIN_DEPTH_LIMIT = 4
 local CHAIN_COUNT_LIMIT = 500
 
@@ -80,7 +83,7 @@ local function set_active_take(session_dir, run_id, item_text, take_text)
   reaper.Undo_BeginBlock2(0)
   reaper.SetActiveTake(take)
   reaper.UpdateItemInProject(item)
-  reaper.Undo_EndBlock2(0, core.brand.name .. ': use take', -1)
+  reaper.Undo_EndBlock2(0, UNDO_USE_TAKE, -1)
   reaper.UpdateArrange()
   event(session_dir, 'ACTIVE_TAKE_SET', run_id, item_guid(item), take_guid(take), 1)
 end

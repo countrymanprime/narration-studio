@@ -273,6 +273,44 @@ describe('keep-calls-the-daw-and-offers-undo', () => {
       expect(r.refusal!.reason).toContain("Undo 'Later change' first");
     });
   });
+  // #2945: the entry named no DAW action, so the journal asked the DAW about nothing and always refused with "last action is not this one".
+  it('Undo asks the DAW whether its last action is a use_take of one step, and goes through when it is', async () => {
+    const asked: unknown[] = [];
+    journal = createJournal({
+      dawName: () => 'REAPER',
+      dawLastAction: async (action) => {
+        asked.push(action);
+        return action?.kind === 'use_take' ? 'this' : 'other';
+      },
+    });
+    mount();
+    await flush();
+    fireEvent.click(chip());
+    fireEvent.click(screen.getByRole('button', { name: 'Keep T-8' }));
+    await flush();
+    const undo = toastUndo.mock.calls[0][1] as () => Promise<{ ok: boolean }>;
+    await act(async () => {
+      expect((await undo()).ok).toBe(true);
+    });
+    expect(asked).toEqual([{ kind: 'use_take', steps: 1 }]);
+    expect(useTake).toHaveBeenLastCalledWith('5', 10, 20, 't-7');
+  });
+  it('Undo is refused with the DAW’s sentence once the DAW’s last action is another one, and the take stays kept', async () => {
+    journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async (action) => (action?.kind === 'use_take' ? 'other' : 'this') });
+    mount();
+    await flush();
+    fireEvent.click(chip());
+    fireEvent.click(screen.getByRole('button', { name: 'Keep T-8' }));
+    await flush();
+    const undo = toastUndo.mock.calls[0][1] as () => Promise<{ ok: boolean; refusal?: { reason: string } }>;
+    await act(async () => {
+      const r = await undo();
+      expect(r.ok).toBe(false);
+      expect(r.refusal!.reason).toBe("REAPER's last action is not this one, so it was left alone. Use Edit > Undo in REAPER.");
+    });
+    expect(useTake).toHaveBeenCalledTimes(1);
+    expect(chip().textContent).toContain('Kept');
+  });
   it('after a keep exactly one row reads Kept and none still reads Active (the lines have not been read again)', async () => {
     mount();
     await flush();

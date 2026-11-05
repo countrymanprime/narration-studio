@@ -82,7 +82,7 @@ func (h *Host) builtinMicrophone(ctx context.Context, svc hostServices) (string,
 		refused := readAloudRefused(readAloudNoMicrophone, message)
 		return "", &refused
 	}
-	refused := readAloudRefused(readAloudChooseMicrophone, "Choose the microphone in Levels, then press Record.")
+	refused := readAloudRefused(readAloudChooseMicrophone, "Choose the microphone in Record options, then press Record.")
 	return "", &refused
 }
 

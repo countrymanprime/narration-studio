@@ -426,6 +426,9 @@ jobs:
     # (two cancelled runs), and go lint follows them.
     # The mutation checks run one per CPU (tests/mutations.py, spawn workers) since the folder-depth mutations took the
     # Windows reaper step to 19 min and cancelled this job (run 41654984217); on four CPUs they take a quarter of that.
+    # They were cancelled again at 25 min with 563 entries (run 41828167325): every test builds sessions that reload the
+    # bridge's ~35 Lua files, so the harness now compiles each file once per Lua state (tests/harness.lua) and a mutation
+    # check stops at its first failing test. The run prints its CPU count and elapsed seconds.
     needs: scope
     if: needs.scope.outputs.winquick == 'true'
     timeout-minutes: 25

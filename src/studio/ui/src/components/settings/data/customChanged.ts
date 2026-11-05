@@ -5,16 +5,31 @@ import type { PortOf } from '../../../ports';
 import type { DeliveryProfilesState } from '../../../types';
 import { DELIVERY_PROFILES_CHANGED } from '../DeliveryProfilesPanel';
 import { MW_KEY_CHANGED } from '../controls/mwKeyStatus';
+import { MODELS_FOLDER_CHANGED } from '../models/AssetsStore';
 import { useChapterSync } from '../../../hooks/useChapterSync';
 import type { VoiceTracksState } from '../../../api/contracts/voiceTracks';
+import { subscribeRateBasis } from '../../schedule/useEffectiveWph';
+import { useTips } from '../../../tips/useFirstUseTip';
 import { useVoiceSetup } from '../../engine/voiceLayout';
 import { onEngineChanged } from './engineSignal';
+import { onProjectDataChanged } from './projectDataSignal';
+import { needsProject } from '../registry/projectNeeds';
+import { rowOf } from '../registry/rows';
+import { useHasProject } from '../row/SettingsHost';
 import { BROWSER_CHANGED } from './browserValues';
 import type { ReadSettings } from './values';
 
 /** What a probe may look at: the ports it reads through, the fields the page already read, and the delivery profiles (read once per pass). */
 export type ProbeContext = {
-  api: PortOf<'system'> & PortOf<'dawChoice'> & PortOf<'deliveryProfiles'> & PortOf<'pronunciationOnline'>;
+  api: PortOf<'system'> &
+    PortOf<'dawChoice'> &
+    PortOf<'deliveryProfiles'> &
+    PortOf<'pronunciationOnline'> &
+    PortOf<'production'> &
+    PortOf<'assets'> &
+    PortOf<'storyBible'> &
+    PortOf<'marks'> &
+    PortOf<'credits'>;
   settings: ReadSettings;
   delivery: () => Promise<DeliveryProfilesState>;
 };
@@ -30,15 +45,30 @@ export const CUSTOM_CHANGED: Readonly<Record<string, (context: ProbeContext) => 
   'look.zoom': async ({ api }) => (await api.windowZoom()).level !== 1,
   // This computer: some command's keys were changed from the default.
   'keys.map': ({ settings }) => settings.global?.Keymap?.some((field) => field.isSet) === true,
+  // This computer: the downloads were moved out of the default folder.
+  'models.folder': async ({ api }) => (await api.assetsList()).custom,
   // This computer: a Merriam-Webster key is saved.
   'voice.mwKey': async ({ api }) => (await api.pronunciationOnlineKeyStatus()).present,
   // This computer: the narrator added a profile of their own.
   'delivery.custom': async ({ delivery }) => (await delivery()).profiles.some((profile) => !profile.builtIn),
+  // This project: the schedule uses the narrator's own pace instead of the standard.
+  'project.rateBasis': async ({ api }) => (await api.productionPlan()).rateBasis === 'own',
   // This project: it records with something other than REAPER, or has its own delivery profile.
   'daw.engine': async ({ api }) => {
     const { chosen } = await api.dawChoice();
     return chosen !== null && chosen !== 'REAPER';
   },
+  // This computer: the Global default is not the profile that ships as the default.
+  'delivery.default': async ({ delivery }) => {
+    const { globalDefault, shippedDefault } = await delivery();
+    return globalDefault.id !== shippedDefault.id || (globalDefault.version ?? '') !== (shippedDefault.version ?? '');
+  },
+  // This project: the Story Bible's types are not the default six.
+  'project.types': async ({ api }) => api.guideTypesChanged(),
+  // This project: the Script page's mark types are not the default six (a read of the file only, so it never migrates old notes).
+  'project.marks': async ({ api }) => api.marksTypesChanged(),
+  // This computer and this project: a shipped credit template was edited, deleted or added to, or this project has credits values of its own.
+  'project.credits': async ({ api }) => api.creditsChanged(),
   'delivery.profile': async ({ delivery }) => {
     const state = await delivery();
     return state.hasProject && state.projectChoice !== null;
@@ -51,6 +81,8 @@ export type LiveContext = {
   voiceSetup: VoiceTracksState;
   /** Chapter sync's consent as the host last said it, or undefined before the first answer. */
   syncConsent: string | undefined;
+  /** The first-use tips dismissed, or null before the host has said. */
+  tipsSeen: ReadonlySet<string> | null;
 };
 
 /** Rows whose value the app holds live (`LiveContext`): whether each differs from its default. */
@@ -60,7 +92,15 @@ export const LIVE_CHANGED: Readonly<Record<string, (context: LiveContext) => boo
   // This project: the narrator turned Chapter sync off (on is what the app recommends, and what the first question offers).
   'daw.sync': ({ syncConsent }) => syncConsent === 'off',
   // This project: a character is chosen for the Narrator or assigned to a voice track.
+  // This computer: some first-use tip was dismissed.
+  'app.tips': ({ tipsSeen }) => (tipsSeen?.size ?? 0) > 0,
   'daw.voices': ({ voiceSetup }) => voiceSetup.narratorCharacter !== '' || voiceSetup.tracks.length > 0,
+};
+
+/** Whether the row of this id can only be changed with a project open. */
+const waitsForProject = (id: string): boolean => {
+  const row = rowOf(id);
+  return row !== undefined && needsProject(row);
 };
 
 /** Why a row is not read: `report` shows what the tool says, `action` does something to project data, `unmarked-default` is a setting whose default the host does not mark. */
@@ -73,28 +113,9 @@ export type ExemptKind = 'report' | 'action' | 'unmarked-default';
 export const CHANGED_EXEMPT: Readonly<Record<string, { kind: ExemptKind; reason: string }>> = {
   'daw.capabilities': { kind: 'report', reason: 'A report of what the linked tool can do; nothing here is set.' },
   'daw.syncActivity': { kind: 'report', reason: 'A log of chapter syncs; nothing here is set.' },
-  'delivery.default': {
-    kind: 'unmarked-default',
-    reason:
-      'The host reports the chosen default profile but not which one ships as the default (deliveryprofile.Default() is not in the binding), and a component may not name a profile id.',
-  },
   'project.manuscript': { kind: 'action', reason: 'The import and replace action for the manuscript, which is project data and not a setting.' },
   'project.bibleData': { kind: 'action', reason: 'Deletes Story Bible data; an action, not a setting.' },
   'project.data': { kind: 'action', reason: 'Deletes project data; an action, not a setting.' },
-  'project.types': {
-    kind: 'unmarked-default',
-    reason: 'The default is the six types of the host’s guide.DefaultTypes(); the host marks none as added or changed and the UI holds no copy of the list.',
-  },
-  'project.marks': {
-    kind: 'unmarked-default',
-    reason:
-      'The default is the six mark types of the host’s marks.DefaultTypes(); the host marks none as added or changed and the UI holds no copy of the list.',
-  },
-  'project.credits': {
-    kind: 'unmarked-default',
-    reason:
-      'Scope both: the opening and closing credit templates, which the narrator owns (a shipped one may be edited or deleted), plus this project’s values; the host marks neither as differing from the shipped text.',
-  },
 };
 
 /** Whether Changed can tell if this row differs from its default: a host field, a browser reader, a probe, or a stated exemption. */
@@ -108,28 +129,44 @@ const sameSet = (a: ReadonlySet<string>, b: ReadonlySet<string>): boolean => a.s
  * written (the zoom body announces its change too), and on the events the bodies already raise for the engine, the delivery profiles and the
  * Merriam-Webster key. A probe that fails counts as "not changed", so a host that cannot answer lists nothing wrongly. The set keeps its
  * identity when a pass finds the same ids. `usePort` answers the same object for the same api, so `api` below changes only with the api.
+ * With no project open the probes of rows that need one are not run: they would read a project that is not there, and such a row cannot be
+ * changed from its default (`projectNeeds.ts`).
  */
 export function useCustomChanged(settings: ReadSettings): ReadonlySet<string> {
   const system = usePort('system');
   const dawChoice = usePort('dawChoice');
   const delivery = usePort('deliveryProfiles');
   const pronunciation = usePort('pronunciationOnline');
-  const api = useMemo(() => ({ ...system, ...dawChoice, ...delivery, ...pronunciation }), [system, dawChoice, delivery, pronunciation]);
+  const production = usePort('production');
+  const assets = usePort('assets');
+  const storyBible = usePort('storyBible');
+  const marks = usePort('marks');
+  const credits = usePort('credits');
+  const api = useMemo(
+    () => ({ ...system, ...dawChoice, ...delivery, ...pronunciation, ...production, ...assets, ...storyBible, ...marks, ...credits }),
+    [system, dawChoice, delivery, pronunciation, production, assets, storyBible, marks, credits],
+  );
   const { setup: voiceSetup } = useVoiceSetup();
   const chapterSync = usePort('chapterSync');
   const syncConsent = useChapterSync(chapterSync)?.consent;
+  const tipsSeen = useTips().seen;
+  const hasProject = useHasProject();
   const version = useBrowserSettingsVersion();
   const [again, setAgain] = useState(0);
   const [changed, setChanged] = useState<ReadonlySet<string>>(new Set());
 
   useEffect(() => {
     const bump = () => setAgain((n) => n + 1);
-    const events = [DELIVERY_PROFILES_CHANGED, MW_KEY_CHANGED];
+    const events = [DELIVERY_PROFILES_CHANGED, MW_KEY_CHANGED, MODELS_FOLDER_CHANGED];
     for (const name of events) window.addEventListener(name, bump);
     const stop = onEngineChanged(bump);
+    const stopBasis = subscribeRateBasis(bump);
+    const stopData = onProjectDataChanged(bump);
     return () => {
       for (const name of events) window.removeEventListener(name, bump);
       stop();
+      stopBasis();
+      stopData();
     };
   }, []);
 
@@ -139,6 +176,7 @@ export function useCustomChanged(settings: ReadSettings): ReadonlySet<string> {
     const readDelivery = () => (profiles ??= api.deliveryProfiles());
     void Promise.all(
       Object.entries(CUSTOM_CHANGED).map(async ([id, probe]) => {
+        if (!hasProject && waitsForProject(id)) return undefined;
         try {
           return (await probe({ api, settings, delivery: readDelivery })) ? id : undefined;
         } catch {
@@ -153,11 +191,16 @@ export function useCustomChanged(settings: ReadSettings): ReadonlySet<string> {
     return () => {
       current = false;
     };
-  }, [api, settings, version, again]);
+  }, [api, settings, version, again, hasProject]);
 
   const live = useMemo(
-    () => new Set(Object.entries(LIVE_CHANGED).flatMap(([id, differs]) => (differs({ voiceSetup, syncConsent }) ? [id] : []))),
-    [voiceSetup, syncConsent],
+    () =>
+      new Set(
+        Object.entries(LIVE_CHANGED).flatMap(([id, differs]) =>
+          (hasProject || !waitsForProject(id)) && differs({ voiceSetup, syncConsent, tipsSeen }) ? [id] : [],
+        ),
+      ),
+    [voiceSetup, syncConsent, tipsSeen, hasProject],
   );
   return useMemo(() => (live.size === 0 ? changed : new Set([...changed, ...live])), [changed, live]);
 }

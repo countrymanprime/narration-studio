@@ -36,6 +36,11 @@ func Unavailable() WireView {
 
 // Wire makes the table from the stored alignment, the saved project (where an alignment item's source file is read) and the live track.
 func Wire(view coverage.AlignmentView, saved tracks.Project, state bridge.TrackState) WireView {
+	return wireOf(TableOf(view, saved, state))
+}
+
+// TableOf places every word of the stored alignment in the project now: Wire's table before it is put on the wire.
+func TableOf(view coverage.AlignmentView, saved tracks.Project, state bridge.TrackState) Table {
 	items := make([]Item, 0, len(view.Items))
 	for _, it := range view.Items {
 		item := Item{Index: it.Index, GUID: it.ItemGUID}
@@ -59,7 +64,10 @@ func Wire(view coverage.AlignmentView, saved tracks.Project, state bridge.TrackS
 			SourceStart: it.SourceOffset, PlayRate: it.PlayRate, Muted: it.Muted != nil && *it.Muted,
 		})
 	}
-	table := Compute(Input{Words: words, Items: items, Live: live, ChangeCount: state.ChangeCount, RecordID: view.RecordID})
+	return Compute(Input{Words: words, Items: items, Live: live, ChangeCount: state.ChangeCount, RecordID: view.RecordID})
+}
+
+func wireOf(table Table) WireView {
 	out := WireView{Available: true, Version: table.Version, ChangeCount: table.ChangeCount, Items: []string{}, Words: make([]WireRow, 0, len(table.Rows))}
 	index := map[string]int{}
 	for _, r := range table.Rows {

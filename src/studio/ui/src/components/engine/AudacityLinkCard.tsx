@@ -4,6 +4,8 @@ import { apiErrorMessage } from '../../api/errorMessage';
 import { usePort } from '../../ports/usePort';
 import { startDaw } from '../connection/startDaw';
 import { Button } from '../primitives/Button';
+import { IconButton } from '../primitives/IconButton';
+import { Icon } from '../primitives/Icon';
 import { StatusBadge } from '../primitives/StatusBadge';
 import { TooltipTarget } from '../primitives/Tooltip';
 import type { Notify } from '../primitives/Toast';
@@ -110,19 +112,27 @@ export function AudacityLinkCard({ view, notify }: { view: AudacityLinkView; not
             Link the open Audacity project
           </Button>
         )}
-        <Button variant="secondary" size="sm" disabled={busy !== undefined} onClick={() => void run('file', () => port.audacityLinkFile())}>
-          {link.linkedFile ? 'Change Audacity project file' : 'Choose Audacity project file'}
-        </Button>
+        <IconButton
+          action={link.linkedFile ? 'changeLink' : 'linkFile'}
+          label={link.linkedFile ? 'Change Audacity project file' : 'Choose Audacity project file'}
+          size="sm"
+          disabled={busy !== undefined}
+          onClick={() => void run('file', () => port.audacityLinkFile())}
+        />
         {link.linked && (
           <TooltipTarget text="Leaves the link label in the Audacity project">
-            <Button variant="secondary" size="sm" disabled={busy !== undefined} onClick={() => void run('unlink', () => port.audacityUnlink())}>
-              Unlink
-            </Button>
+            <IconButton label="Unlink" size="sm" disabled={busy !== undefined} onClick={() => void run('unlink', () => port.audacityUnlink())}>
+              <Icon name="unlink" />
+            </IconButton>
           </TooltipTarget>
         )}
-        <Button variant="secondary" size="sm" disabled={busy !== undefined} onClick={() => void run('check', () => check())}>
-          {busy === 'check' ? 'Checking…' : 'Check again'}
-        </Button>
+        <IconButton
+          action="checkAgain"
+          size="sm"
+          pending={busy === 'check'}
+          disabled={busy !== undefined && busy !== 'check'}
+          onClick={() => void run('check', () => check())}
+        />
       </div>
       {(problem ?? error) && (
         <p role="alert" className="text-[var(--danger-text)]">
