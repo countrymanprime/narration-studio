@@ -3450,7 +3450,7 @@
   {
     "name": "stack_takes with the folder takes reads from outside it",
     "file": "narration_takes.lua",
-    "find": "      if not inside[group.track] then",
+    "find": "    if not inside[group.track] then",
     "replace": "      if false then"
   },
   {
