@@ -157,7 +157,9 @@ func TestAClosingCutSendsTheChaptersFolderAndAGapCutDoesNot(t *testing.T) {
 	role := &fakeRangeCutter{answer: cutInREAPER()}
 	host := deleteRangeHost(t, "REAPER", liveReachability(), role)
 	svc := host.services()
-	svc.chapterFolder = func(string) string { return voiceFolderTrack }
+	was := chapterFolderOf
+	chapterFolderOf = func(hostServices, string) string { return voiceFolderTrack }
+	t.Cleanup(func() { chapterFolderOf = was })
 	closed, err := dawDeleteRangeIn(t.Context(), svc, dawport.Support{Available: true}, role, host.editLog(), "c-0001", 0, 0, string(dawport.CutClose), 12, 0, false)
 	if err != nil || !closed.OK || len(role.cut) != 1 || role.cut[0].ChapterTrack != voiceFolderTrack {
 		t.Fatalf("close: %+v, %v, sent %+v; want the folder", closed, err, role.cut)
