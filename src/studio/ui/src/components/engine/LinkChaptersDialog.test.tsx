@@ -110,6 +110,24 @@ describe('LinkChaptersDialog', () => {
     expect(rows.filter((row) => row.lineId === second.id).map((row) => row.itemGuid)).toEqual(['{I3}']);
   });
 
+  // #3053: the host moves a track that another chapter holds (`displaced`); the dialog said nothing, so that chapter went to "Not linked" unseen.
+  it('says which chapter a picked track was taken from, and that it is now not linked', async () => {
+    const user = userEvent.setup();
+    renderDialog();
+    const [first, second] = WIRE_CHAPTERS;
+    const track = WIRE_TRACKS_PROJECT.tracks[0].guid;
+
+    await user.selectOptions(await screen.findByRole('combobox', { name: `Track for ${first.title}` }), track);
+    await waitFor(() => expect((screen.getByRole('combobox', { name: `Track for ${first.title}` }) as HTMLSelectElement).value).toBe(track));
+    expect(screen.queryByText(/is now not linked/)).toBeNull();
+
+    await user.selectOptions(screen.getByRole('combobox', { name: `Track for ${second.title}` }), track);
+
+    const notice = await screen.findByText(new RegExp(`${first.title}.*is now not linked`));
+    expect(notice).toBeTruthy();
+    expect((screen.getByRole('combobox', { name: `Track for ${first.title}` }) as HTMLSelectElement).value).toBe('');
+  });
+
   it('previews every item of a mapped track and stamps only once approved', async () => {
     const user = userEvent.setup();
     const { api } = renderDialog();
