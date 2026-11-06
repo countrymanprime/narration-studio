@@ -77,6 +77,34 @@ describe('LinkChaptersDialog', () => {
     );
   });
 
+  // #3053: a folder and a track looked the same in the picker. A folder reads as the Chapter links list names it: "<name> · N voices".
+  it('names a folder in the track picker with its voice count, and a plain track by its name', async () => {
+    const item = (guid: string) => ({ ...WIRE_TRACKS_PROJECT.tracks[0].items[0], guid });
+    const track = (guid: string, name: string, depth: number, isFolder: boolean, items: string[]): Track => ({
+      ...WIRE_TRACKS_PROJECT.tracks[0],
+      guid,
+      name,
+      depth,
+      isFolder,
+      items: items.map(item),
+    });
+    const voices = [
+      track('{F0000000-0000-4000-8000-0000000000F1}', 'Chapter 1', 0, true, []),
+      track('{F0000000-0000-4000-8000-0000000000F2}', 'Narrator', 1, false, ['{I1}']),
+      track('{F0000000-0000-4000-8000-0000000000F3}', 'Hero', 1, false, ['{I2}']),
+      track('{F0000000-0000-4000-8000-0000000000F4}', 'Chapter 2', 0, false, ['{I3}']),
+    ];
+    renderDialog({}, {}, vi.fn(), voices);
+
+    const picker = await screen.findByRole('combobox', { name: `Track for ${WIRE_CHAPTERS[0].title}` });
+    const labels = within(picker)
+      .getAllByRole('option')
+      .map((option) => option.textContent);
+    expect(labels).toContain('Chapter 1 · 2 voices');
+    expect(labels).toContain('Chapter 2');
+    expect(labels).not.toContain('Chapter 1');
+  });
+
   it('counts and stamps an item once when an outer folder and a track inside it are both linked, for the chapter linked nearest', async () => {
     const user = userEvent.setup();
     const item = (guid: string) => ({ ...WIRE_TRACKS_PROJECT.tracks[0].items[0], guid });
@@ -146,7 +174,7 @@ describe('LinkChaptersDialog', () => {
   it('reports a stale item and a conflict after stamping', async () => {
     renderDialog({}, { lineIdentity: 'conflict' });
 
-    expect(await screen.findByText(/Stamped 1 line, 1 stale item, 1 conflict\./)).toBeTruthy();
+    expect(await screen.findByText(/Stamped 1 item, 1 stale item, 1 conflict\./)).toBeTruthy();
     expect(screen.getByText(/Stale items/)).toBeTruthy();
     expect(screen.getByText(/Already stamped with a different chapter/)).toBeTruthy();
   });
@@ -182,7 +210,7 @@ describe('LinkChaptersDialog', () => {
     expect(within(mapping).getByRole('columnheader', { name: 'To stamp' })).toBeTruthy();
 
     await user.click(screen.getByRole('button', { name: 'Read current stamps' }));
-    const stamped = await screen.findByRole('table', { name: 'Stamped lines' });
+    const stamped = await screen.findByRole('table', { name: 'Stamped items' });
     expect(stamped.className).toContain('table-fixed');
     expect(within(stamped).getByRole('columnheader', { name: 'Entity' })).toBeTruthy();
   });
@@ -194,7 +222,7 @@ describe('LinkChaptersDialog', () => {
     expect(mapping.querySelector('thead')?.className).toContain('sticky');
 
     await user.click(screen.getByRole('button', { name: 'Read current stamps' }));
-    const stamped = await screen.findByRole('table', { name: 'Stamped lines' });
+    const stamped = await screen.findByRole('table', { name: 'Stamped items' });
     expect(stamped.querySelector('thead')?.className).toContain('sticky');
   });
 

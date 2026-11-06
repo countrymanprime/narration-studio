@@ -1240,7 +1240,7 @@ export const WIRE_LINE_IDENTITY_LINES: LineIdentityLine[] = [
 export const WIRE_LINE_IDENTITY_READ_SUCCESS: LineIdentityState = {
   runId: '1790000000000000',
   phase: 'success',
-  message: `Read ${WIRE_LINE_IDENTITY_LINES.length} stamped lines.`,
+  message: `Read ${WIRE_LINE_IDENTITY_LINES.length} stamped items.`,
   stamp: { ...idleLineIdentityStamp },
   lines: WIRE_LINE_IDENTITY_LINES,
   linesRead: WIRE_LINE_IDENTITY_LINES.length,
@@ -1250,7 +1250,7 @@ export const WIRE_LINE_IDENTITY_READ_SUCCESS: LineIdentityState = {
 export const WIRE_LINE_IDENTITY_STAMP_CONFLICT: LineIdentityState = {
   runId: '1790000000000001',
   phase: 'success',
-  message: 'Stamped 1 line, 1 stale item, 1 conflict.',
+  message: 'Stamped 1 item, 1 stale item, 1 conflict.',
   stamp: {
     applied: 1,
     unchanged: 0,
