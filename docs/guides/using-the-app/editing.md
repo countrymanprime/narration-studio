@@ -12,6 +12,21 @@ effect on. Open it from **Editing** in the sidebar's Edit group, from a linked c
 With no manuscript imported yet, the page says so and offers **Import manuscript**, which goes to
 [Production](production.md#importing-the-manuscript).
 
+## Common tasks
+
+This page is a reference to everything Editing shows. To do one thing, start here:
+
+- **Hear a line against its script**: [select the words](#selecting-words) and play them.
+- **Choose between takes of a line**: [Takes](#takes).
+- **Fix a line said twice**: [A line said twice](#a-line-said-twice).
+- **Cut words and their audio**: [Deleting words and their audio](#deleting-words-and-their-audio).
+- **Put an effect on some words**: [Effects on words](#effects-on-words).
+- **Find clicks, breaths, plosives, noise and long gaps** in the chapter: [Cleaning up](#cleaning-up).
+- **Patch in another narrator's read**: [Replacing words with another narrator's audio](#replacing-words-with-another-narrators-audio).
+- **Mark a voice sample for a character**: [Marking a voice sample](#marking-a-voice-sample).
+- **When nothing plays or the DAW is not answering**: [When the DAW is not connected](#when-the-daw-is-not-connected)
+  and [When the chapter has no audio](#when-the-chapter-has-no-audio).
+
 ## The page
 
 The header sits inside the one bordered card that holds the script, so the title, the chapter step (the previous and
@@ -473,6 +488,12 @@ In that layout the edits that act on a take where it is (splitting a double read
 ![Editing with no track linked - the dialog naming the chapter and with its track dropdown, the best match chosen](../../images/ui/editing-unlinked.webp)
 
 ![Editing with no track linked, dialog closed - the Not linked to a track mark, and the legend](../../images/ui/editing-unlinked-closed.webp)
+
+## What next
+
+- [Proof](proof.md): every check's notes on the chapter, and your decision on each.
+- [Pickups](pickups.md): the lines to record again, when the edit cannot fix them.
+- [Master & QC](master-and-qc.md): check the finished files against a delivery profile.
 
 ---
 
