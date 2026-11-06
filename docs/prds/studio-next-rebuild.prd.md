@@ -28,7 +28,7 @@
 | Master, Delivery and Settings | SNM | Settings, Master and Delivery brought to the mock's capability-driven behaviour | 4 |
 | Cutover | SNC | Parity audit, ratchets, deleting the mock and the steady-state docs | 3 |
 
-Total about 95 people-weeks of one engineer familiar with the repo. The estimates are assumptions, not measurements: the agent train's throughput is set by usage bands and review, not by headcount ([Usage and autoscaling](../../.claude/skills/agent-train/SKILL.md#usage-and-autoscaling)).
+Total about 95 people-weeks of one engineer familiar with the repo. The estimates are assumptions, not measurements: the agent train's throughput is set by usage bands and review, not by headcount ([Usage and autoscaling](../../.claude/skills/agent-train/references/coordinator.md#usage-and-autoscaling)).
 
 ## Problem Statement
 
@@ -97,7 +97,7 @@ The owner's deferred and rejected list stands (`studio-next/research/repo-compar
 - Audacity 4 (no scripting there yet; revisit when it exists) and any Audacity clip-takes except through the backups table.
 - Redo. Undo reaching the DAW is a spike and an owner QA step, not a promise.
 - The rejected items: query and confirm for names, stale-anchor detection, repo stress/breath/pause markup, evidence excerpts, derived prep completeness, chapter results in Find, the speaker coverage strip, prep sheet export, a Series tab. The real Series tab and series voice bible have no equivalent in the mock and stay as built (SN0-Q5).
-- A remote or hosted LLM by default; a hosted model is never required, and no narrator or author data leaves the machine ([agent-train D72](../../.claude/skills/agent-train/SKILL.md#owner-standing-rules)).
+- A remote or hosted LLM by default; a hosted model is never required, and no narrator or author data leaves the machine ([agent-train D72](../../.claude/skills/agent-train/references/owner-rules.md#owner-standing-rules)).
 - macOS or Linux support ([Supported platforms](../../README.md#supported-platforms)).
 - A feature flag, a `?studioNext` switch or any period with two versions of a page, Editing included (SN0-Q2).
 - Anything that is not in the Studio Next mock.
@@ -136,7 +136,7 @@ The 18 rulings on the ADR conflicts (DQ-1 to DQ-18) are in the register. Three c
 
 - **The narrator-owner** wants the app to behave as the mock does, with screenshots to judge it and no surprise regressions.
 - **Worker sessions** (Sonnet by default, Opus for contracts, new Lua commands and semantic fixers) read `CLAUDE.md` (and the `.claude/rules/` files that load for the paths they touch), this series and their slice issue, and nothing else. A slice must be buildable from the repo alone.
-- **The coordinator session** runs one pass every 30 minutes ([The coordinator's pass](../../.claude/skills/agent-train/SKILL.md#the-coordinators-pass)) and needs a ready list it can compute from the phase and slice tables.
+- **The coordinator session** runs one pass every 30 minutes ([The coordinator's pass](../../.claude/skills/agent-train/references/coordinator.md#the-coordinators-pass)) and needs a ready list it can compute from the phase and slice tables.
 - **Reviewers** (the owner, code-owner review) see small PRs with evidence.
 
 ## Solution Detail
@@ -285,7 +285,7 @@ The series is built to be delivered by the agent train without a pause. The deta
 
 - **Every PRD ends with a "Slices" table** (id, scope, depends on, parallel-safe, verification). A slice is one PR by one worker in one lane, with its own issue created just in time, a machine-readable header (`owns` globs, `depends`, serial points) and a `## Handoff` comment so a fresh session resumes from the repo and the issue alone.
 - **Lanes are the train's lanes** (K contracts, A host, B adapters and sidecars, U primitives and input, C UI features, D documents, X exclusive); the series' new directories (`src/studio/ui/src/studio/`, `ports/`, `overlay/`, `registries/`) are proposed lane U territory.
-- **The coordinator's pass is the train's pass** ([The coordinator's pass](../../.claude/skills/agent-train/SKILL.md#the-coordinators-pass)) plus a groomer launch when fewer than twice `TARGET` ready slices exist.
+- **The coordinator's pass is the train's pass** ([The coordinator's pass](../../.claude/skills/agent-train/references/coordinator.md#the-coordinators-pass)) plus a groomer launch when fewer than twice `TARGET` ready slices exist.
 - **Owner decisions** are recorded in a decisions register issue seeded from `repo-compare-decisions.md` and the rulings of 2026-10-11; there are no DISCUSS rows, and an ADR is never accepted by default.
 
 Slice graph at the level of the serial spine and the first parallel fan-out (S marks a serial-point slice):
@@ -421,7 +421,7 @@ flowchart LR
 | Workers chase the benchmark or an older ADR where the mock differs | Medium | Studio Next is the only spec (SN0-Q1); the slice issue names the mock page file |
 | Workers copy mock code that breaks an ADR (global CSS, raw keys) | High | The "port, do not copy" rule in the slice template; architecture tests (`src/studio/ui/src/architectureRules.test.ts`, `src/studio/ui/src/legacyCss.test.ts`) catch it |
 | A rebuilt page regresses behaviour the mock never knew (it never read the repo) | Medium | Phase 0 of each page PRD is a characterization pass: list the real page's consumers and tests before changing it (`change-impact-scan`) |
-| Spikes need REAPER or Audacity hardware | High | Scripted spikes on copies; hardware steps pending on #510 and never block ([D65](../../.claude/skills/agent-train/SKILL.md#owner-standing-rules)) |
+| Spikes need REAPER or Audacity hardware | High | Scripted spikes on copies; hardware steps pending on #510 and never block ([D65](../../.claude/skills/agent-train/references/owner-rules.md#owner-standing-rules)) |
 | The slice count overloads the coordinator | Medium | Slices carry machine-readable dependency lines; the ready list is computed, not judged |
 | Usage bands starve the train | Medium | Lane K and the spine first; the train's own scaling applies |
 | The store becomes a second source of truth | Medium | Reducers write only through host commands; a test fails on state that is not derivable from a host read |
@@ -442,7 +442,7 @@ The phases of this overview are the program-level slices. Page and seam slices a
 ### Phase Details
 
 - **Phase 1.** Docs only. The decisions register is the issue described in Agent Delivery; its seed is `studio-next/research/repo-compare-decisions.md`, copied by reference (the file is not moved), plus the rulings of 2026-10-11.
-- **Phase 2.** ADR numbers are allocated at write time and again before the last push, in blocks of ten above the highest existing number, recorded on #509 ([Lanes](../../.claude/skills/agent-train/SKILL.md#lanes)).
+- **Phase 2.** ADR numbers are allocated at write time and again before the last push, in blocks of ten above the highest existing number, recorded on #509 ([Lanes](../../.claude/skills/agent-train/references/worker.md#lanes)).
 - **Phase 3.** A script under `scripts/dev/` that drives `studio-next/e2e/lib.mjs`-style navigation (the `shot.mjs` pattern) and writes `<state>-<viewport>.png`. It must work offline once `npm ci` has run.
 
 ### Parallelism Notes

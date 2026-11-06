@@ -1,0 +1,14 @@
+the-worker-protocol worker.md
+serial-points worker.md
+lanes worker.md
+ui-prs-update-the-how-to-guide worker.md
+which-mocks-are-the-spec worker.md
+owner-standing-rules owner-rules.md
+studio-next-slices groomer.md
+where-state-lives coordinator.md
+switches-on-989 coordinator.md
+usage-and-autoscaling coordinator.md
+safety-net coordinator.md
+the-coordinators-pass coordinator.md
+mockup-gates coordinator.md
+queue coordinator.md

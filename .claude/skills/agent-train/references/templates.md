@@ -11,7 +11,7 @@ You are worker stream <ID> (lane <L>: <lane name>) in this repository's agent tr
 No human is watching live; never wait for answers. Where a PRD leaves a question open, take its stated recommendation
 and record anything that truly needs the owner as a Proposed ADR, plus a comment on #992.
 
-READ FIRST: CLAUDE.md; the agent-train skill, .claude/skills/agent-train/SKILL.md ("The worker protocol", "Serial points",
+READ FIRST: CLAUDE.md; the agent-train skill, .claude/skills/agent-train/references/worker.md ("The worker protocol", "Serial points",
 "Lanes"); then each PRD in scope, in full.
 SCOPE: <PRD path> phases <N…>: <one line each>.
 SLICE: #<slice issue>, for a Studio Next slice. The issue is the spec; read its Handoff comment first, and rewrite it at every checkpoint.

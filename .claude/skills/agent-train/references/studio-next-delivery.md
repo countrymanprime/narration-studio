@@ -13,7 +13,7 @@ This was the PRD `docs/prds/studio-next-agent-delivery.prd.md` (code SNA), remov
 The train already runs continuously, but it is tuned for PRDs whose phases are 1 to 3 per stream and whose tracking issue is one per PRD. The Studio Next series has about 14 PRDs and, in all, roughly 150 units of work. At that size three things fail without more structure:
 
 1. **Work units are not sized or specified for a cold session.** A "phase" can be a week of work. A worker that dies on a usage limit loses context, and the next session has only a draft PR's `## Resume notes`.
-2. **Collisions are checked by reading PRD tables.** The coordinator "doesn't read the codebase" ([The coordinator's pass](../SKILL.md#the-coordinators-pass)), so file ownership has to be a machine-readable fact, not a judgement.
+2. **Collisions are checked by reading PRD tables.** The coordinator "doesn't read the codebase" ([The coordinator's pass](coordinator.md#the-coordinators-pass)), so file ownership has to be a machine-readable fact, not a judgement.
 3. **Owner decisions arrive in chat.** The train logs them as `D<n>` rows after the fact. The owner ruled on this series' questions on 2026-10-11, but new ones will come; agents need one place to poll and to know the default when the owner has not answered.
 
 ## Evidence
@@ -22,12 +22,12 @@ What the train already gives (all cited from the train's procedure, then `docs/o
 
 | Need | The train today | Gap for this series |
 | --- | --- | --- |
-| Live state | Issue #509 "Train control" (body rewritten by the coordinator); #510 "Owner queue" ([Where state lives](../SKILL.md#where-state-lives)) | One body for 8 workers is fine; for 150 slices it needs a per-program status view |
-| Stop and scale | `HOLD`, `HOLD-UNTIL-RESET`, `DRAIN`, `MAX_WORKERS`, `MAX_OPUS_WORKERS`, `TARGET`, usage bands ([Switches](../SKILL.md#switches-on-989), [Usage and autoscaling](../SKILL.md#usage-and-autoscaling)) | No way to pause only this program |
-| Territories | Lanes K, A, B, U, C, D, X with ADR blocks ([Lanes](../SKILL.md#lanes)) | The new directories of this series have no lane (`src/studio/ui/src/studio/`, `ports/`, `overlay/`) |
-| Serial points | `hostAPIVersion`, ADR numbers, index rows, append-only rows, nav, workflows, token batch, hot UI files ([Serial points](../SKILL.md#serial-points)) | Fine; slices must name which they touch |
-| Ready list | A phase is ready when `Status` is pending, `Depends` complete, no unmet gate, no file collision, wave reached ([step 5](../SKILL.md#the-coordinators-pass)) | Computed from PRD tables the coordinator does not read in depth |
-| Worker protocol | Push after every green step; checkpoints; pause or yield; one-shot finish (D99): open the PR, report, end; no `send_later` or scheduling tools ([The worker protocol](../SKILL.md#the-worker-protocol)) | Resume depends on the PR body, which exists only after the first push |
+| Live state | Issue #509 "Train control" (body rewritten by the coordinator); #510 "Owner queue" ([Where state lives](coordinator.md#where-state-lives)) | One body for 8 workers is fine; for 150 slices it needs a per-program status view |
+| Stop and scale | `HOLD`, `HOLD-UNTIL-RESET`, `DRAIN`, `MAX_WORKERS`, `MAX_OPUS_WORKERS`, `TARGET`, usage bands ([Switches](coordinator.md#switches-on-989), [Usage and autoscaling](coordinator.md#usage-and-autoscaling)) | No way to pause only this program |
+| Territories | Lanes K, A, B, U, C, D, X with ADR blocks ([Lanes](worker.md#lanes)) | The new directories of this series have no lane (`src/studio/ui/src/studio/`, `ports/`, `overlay/`) |
+| Serial points | `hostAPIVersion`, ADR numbers, index rows, append-only rows, nav, workflows, token batch, hot UI files ([Serial points](worker.md#serial-points)) | Fine; slices must name which they touch |
+| Ready list | A phase is ready when `Status` is pending, `Depends` complete, no unmet gate, no file collision, wave reached ([step 5](coordinator.md#the-coordinators-pass)) | Computed from PRD tables the coordinator does not read in depth |
+| Worker protocol | Push after every green step; checkpoints; pause or yield; one-shot finish (D99): open the PR, report, end; no `send_later` or scheduling tools ([The worker protocol](worker.md#the-worker-protocol)) | Resume depends on the PR body, which exists only after the first push |
 | Templates | Worker, resume and fixer templates ([Templates](templates.md)) | No slice fields (the mock reference in the worker template now names the Studio Next page, D98) |
 | Quality | D43 targeted checks, D44 full gate at the end; D46 and D97 benchmark mock comparison (the target becomes the Studio Next mock page); the guide rule ([UI PRs update the how-to guide](../../../../CONTRIBUTING.md#ui-prs-update-the-how-to-guide)) | CLAUDE.md step 4 and the `full-verification-gate` skill ask for the targeted checks for what changed, with the PR pipeline as the full gate; the train allows the same per phase. This series keeps that |
 | Mock-first | D67: build against a mock that passes the schema; swap behind the port | Exactly the series' provider principle; used as is |
@@ -49,11 +49,11 @@ If every unit of work is sized for one session, specified in a machine-readable 
 
 ## What We're NOT Building
 
-- A new scheduler, a database or a file of live state on `main`. State stays on issues ([Where state lives](../SKILL.md#where-state-lives)).
+- A new scheduler, a database or a file of live state on `main`. State stays on issues ([Where state lives](coordinator.md#where-state-lives)).
 - A replacement for the coordinator Routine, the usage bands or `TARGET` scaling.
 - Auto-merge, force-push or rebase (denied by `.claude/settings.json`); workers never merge.
 - A way for an agent to approve its own mocks, ADRs or REAPER verification (see "Guardrails").
-- Per-token billing control: the only usage signal the train can read is the account-wide `rate_limit_info` ([Usage and autoscaling](../SKILL.md#usage-and-autoscaling)); per-slice budgets are session counts and wall time.
+- Per-token billing control: the only usage signal the train can read is the account-wide `rate_limit_info` ([Usage and autoscaling](coordinator.md#usage-and-autoscaling)); per-slice budgets are session counts and wall time.
 - In-app agent features.
 
 ## Success Metrics
@@ -75,7 +75,7 @@ The owner ruled on 2026-10-11 (see Studio Next Rebuild). The process choices bel
 | Id | Decision | Consequence |
 | --- | --- | --- |
 | SNA-Q1 | One GitHub issue per slice, with the PRD issue as parent (sub-issues, `mcp__github__sub_issue_write`). | D-1; `Closes #<slice>` on each PR. |
-| SNA-Q2 | The groomer is a session type. Mockup-design sessions are the precedent ([Mockup gates](../SKILL.md#mockup-gates)). | D-2; it reads the code, so the coordinator does not. |
+| SNA-Q2 | The groomer is a session type. Mockup-design sessions are the precedent ([Mockup gates](coordinator.md#mockup-gates)). | D-2; it reads the code, so the coordinator does not. |
 | SNA-Q3 | A daily cap of slices launched per day, default 12, switchable (`SN_DAILY_CAP`). | D-4. |
 | SNA-Q4 | Lane U territory adds `src/studio/ui/src/studio/**`, `ports/**` and `overlay/**`. | D-7. |
 | SNA-Q5 | A recommended default applies silently after 7 days for questions that do not change an accepted ADR. Superseding ADRs (A1..A17 of the overview) stay Proposed until the owner accepts them. | D-8. |
@@ -84,7 +84,7 @@ The owner ruled on 2026-10-11 (see Studio Next Rebuild). The process choices bel
 
 ## Users & Context
 
-The coordinator session (30-minute Routine), worker sessions (Sonnet default), groomer sessions (Sonnet, Opus for the contract PRDs), fixer sessions, and the owner (reviews, answers questions, merges are the coordinator's under D40). Sessions are cloud sessions on `https://github.com/countrymanprime/narration-studio` with the `SessionStart` hook installing the toolchain ([Tooling](../SKILL.md#the-worker-protocol)).
+The coordinator session (30-minute Routine), worker sessions (Sonnet default), groomer sessions (Sonnet, Opus for the contract PRDs), fixer sessions, and the owner (reviews, answers questions, merges are the coordinator's under D40). Sessions are cloud sessions on `https://github.com/countrymanprime/narration-studio` with the `SessionStart` hook installing the toolchain ([Tooling](worker.md#the-worker-protocol)).
 
 ## Solution Detail
 
@@ -129,11 +129,11 @@ The spine (one at a time, in order) is: ADR batch A, the design token batch, the
 | G1 to G2 pages | 6 to 8 | SNB, SNP, SNM, SNO, SNQ at once (lane C, disjoint feature folders); SNX host and sidecar (lanes A, B); SNE after its dependencies |
 | G3 cutover | 1 to 2 | parity audit, deletes, docs |
 
-Lanes stay K, A, B, U, C, D, X; two workers share a lane only if their `Owns` globs are disjoint (D48, [Lanes](../SKILL.md#lanes)).
+Lanes stay K, A, B, U, C, D, X; two workers share a lane only if their `Owns` globs are disjoint (D48, [Lanes](worker.md#lanes)).
 
 ### The coordinator loop (extending the train's pass)
 
-The train's pass is unchanged: switches, usage, reconcile, merge, launch, housekeeping ([The coordinator's pass](../SKILL.md#the-coordinators-pass)). The series adds:
+The train's pass is unchanged: switches, usage, reconcile, merge, launch, housekeeping ([The coordinator's pass](coordinator.md#the-coordinators-pass)). The series adds:
 
 1. **Pick.** The ready list is computed from labels: `slice` and `ready`, every `depends` closed by a merged PR, no open slice whose `owns` overlaps (glob intersection), no unanswered `owner-decision` blocker, the program's wave reached. Order: the train's order (contracts first, resumes, unblockers, leaf features, docs, filler).
 2. **Spawn.** `create_session` exactly as step 5.3 of the pass, with the worker template plus a `SLICE:` block that holds the issue number and says "the issue is the spec; read its Handoff comment first". Title `"N-<lane><n> SN-<code><n> <scope>"`, tags `["agent-train", "lane-<L>", "studio-next"]`.

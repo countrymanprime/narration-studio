@@ -8,7 +8,7 @@
 // The header is a fenced block tagged `slice-meta` holding a small YAML subset (scalars, `[a, b]` lists, `- item` lists):
 //
 //   id: SN-A1                       SN-<code><n>: the PRD code in capitals, then the slice number
-//   lane: D                         one of K A B U C D X (.claude/skills/agent-train/SKILL.md, "Lanes")
+//   lane: D                         one of K A B U C D X (.claude/skills/agent-train/references/worker.md, "Lanes")
 //   kind: docs                      one of spike adr seam page swap host lua docs
 //   depends: [996]                  issue numbers (`996` or `#996`) that must be merged first; `[]` for none
 //   owns:                           globs this slice may touch; at least one

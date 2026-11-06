@@ -20,7 +20,7 @@ Skip both for a typo, a doc-only change with no stated goal, or a mechanical cha
 
 Read these in order of authority, and name which one each criterion came from:
 
-1. The owner's words: the request, an answer on the tracking issue, [#510](https://github.com/countrymanprime/narration-studio/issues/510) answers, and the owner standing rules in [the agent train](../agent-train/SKILL.md#owner-standing-rules) (D-numbers).
+1. The owner's words: the request, an answer on the tracking issue, [#510](https://github.com/countrymanprime/narration-studio/issues/510) answers, and the owner standing rules in [the agent train](../agent-train/references/owner-rules.md#owner-standing-rules) (D-numbers).
 2. The PRD phase: its Description, Phase Details and the PRD's Problem, Success Metrics and **What We're NOT Building** ([PRD template](../../../docs/prds/README.md#prd-template)).
 3. For UI, the page's guide in `docs/guides/using-the-app/` and the PRD or doc that covers it (the Studio Next mock was deleted from the tree). A control or state they do not call for is unrequested, and an old equivalent a swap replaces should be deleted in the same change (D98).
 4. The ADRs in `docs/adr/` and `design-principles`.

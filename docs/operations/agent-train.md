@@ -2,7 +2,7 @@
 
 The agent train's procedure moved to [`.claude/skills/agent-train/SKILL.md`](../../.claude/skills/agent-train/SKILL.md) on 2026-10-12: instructions that only automated coding tools follow live in `.claude/` ([Which document](../README.md#which-document)). Its templates are in [`references/templates.md`](../../.claude/skills/agent-train/references/templates.md) beside it, and the Studio Next delivery model (the removed PRD `docs/prds/studio-next-agent-delivery.prd.md`) is in [`references/studio-next-delivery.md`](../../.claude/skills/agent-train/references/studio-next-delivery.md).
 
-A Routine or prompt that says to read this file and run one pass: read `.claude/skills/agent-train/SKILL.md` on `main` instead, and run one pass from it.
+A Routine or prompt that says to read this file and run one pass: read `.claude/skills/agent-train/SKILL.md` on `main` instead, and run one pass from it (its index sends the coordinator to `references/coordinator.md`).
 
 The headings below stay so that older links keep resolving. Delete this file once nothing links it.
 
@@ -16,27 +16,27 @@ Now in [CONTRIBUTING.md](../../CONTRIBUTING.md#ui-prs-update-the-how-to-guide), 
 
 ## Owner standing rules
 
-Now in [the procedure](../../.claude/skills/agent-train/SKILL.md#owner-standing-rules). D69 (one app-wide theme) is in [the design system](../design/design-system.md#theme); D98 is in the rebuild PRD.
+Now in [the procedure](../../.claude/skills/agent-train/references/owner-rules.md#owner-standing-rules). D69 (one app-wide theme) is in [the design system](../design/design-system.md#theme); D98 is in the rebuild PRD.
 
 ## Safety net
 
-Now in [the procedure](../../.claude/skills/agent-train/SKILL.md#safety-net).
+Now in [the procedure](../../.claude/skills/agent-train/references/coordinator.md#safety-net).
 
 ## Serial points
 
-Now in [the procedure](../../.claude/skills/agent-train/SKILL.md#serial-points).
+Now in [the procedure](../../.claude/skills/agent-train/references/worker.md#serial-points).
 
 ## Lanes
 
-Now in [the procedure](../../.claude/skills/agent-train/SKILL.md#lanes).
+Now in [the procedure](../../.claude/skills/agent-train/references/worker.md#lanes).
 
 ## The coordinator's pass
 
-Now in [the procedure](../../.claude/skills/agent-train/SKILL.md#the-coordinators-pass).
+Now in [the procedure](../../.claude/skills/agent-train/references/coordinator.md#the-coordinators-pass).
 
 ## The worker protocol
 
-Now in [the procedure](../../.claude/skills/agent-train/SKILL.md#the-worker-protocol).
+Now in [the procedure](../../.claude/skills/agent-train/references/worker.md#the-worker-protocol).
 
 ## Worker template
 

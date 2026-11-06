@@ -46,7 +46,7 @@ repository (read with `gh api repos/{owner}/{repo}/rulesets`, and `.../environme
   shows no `CI passed`. Marking the pull request ready runs the full tier. No other workflow has a draft condition.
 - **A pull request's runs stop when they stop mattering.** Every workflow a pull request starts has a `concurrency` group
   with `cancel-in-progress`, so a newer push cancels the run before it. Nothing cancels the runs of a pull request that is
-  merged or closed: the coordinator cancels them by hand (`.claude/skills/agent-train/SKILL.md`). Runs on
+  merged or closed: the coordinator cancels them by hand (`.claude/skills/agent-train/references/coordinator.md`). Runs on
   `main` and the release workflows are never cancelled. A push cancels the run before it, so a refresh push that changes nothing a
   reviewer needs ("merge `main` into the branch" with no conflict) throws away a run that was part way through ([Wasted runs](#wasted-runs)).
 - **Windows is the only platform the app is built for** (a timing and maturity choice, not a design limit; see [Supported platforms](../../README.md#supported-platforms)). `Build (Windows)` is the only native
@@ -830,7 +830,7 @@ non-pull-request trigger are the full tier.
 | Starts again on | each push | each push, and when the draft is marked ready (`ready_for_review`) |
 
 `CI passed` is reserved for the full tier. A draft shows a differently named check, so a green on a draft cannot be read as the full gate, and
-the merge conditions ([agent train, step 4](../../.claude/skills/agent-train/SKILL.md)) keep asking for the full run: `Build (Windows)` and
+the merge conditions ([agent train, step 4](../../.claude/skills/agent-train/references/coordinator.md#the-coordinators-pass)) keep asking for the full run: `Build (Windows)` and
 `ui-dist` succeeded on the head, which a draft's run never produces. Nothing in the light tier is weaker than the same job in the full tier:
 the Nx cache stays off, nothing is retried and no test is skipped. The light tier only leaves out whole jobs. Marking a pull request ready runs
 the light jobs again next to the heavy ones; that repeat is the price of keeping one definition of the full run.
