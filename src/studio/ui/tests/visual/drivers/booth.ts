@@ -222,12 +222,9 @@ export const boothDrivers: Record<string, Driver> = {
   },
   'record-turned-away': async (page) => {
     await openBooth(page, '?mockDaw=busy');
-    const notice = page.locator('#brec-setup');
     const connect = page.getByRole('dialog', { name: /is not connected/ });
-    await connect.getByRole('button', { name: 'Link in Settings' }).click();
-    await page.getByRole('button', { name: /^Link Alice\.rpp/ }).click();
-    await goToPage(page, 'Booth');
-    await notice.getByRole('button').click();
+    // The dialog links the project file itself (#2823); once linked, the same dialog offers the start.
+    await connect.getByRole('button', { name: 'Link project file…' }).click();
     await connect.getByRole('button', { name: 'Open in REAPER and connect' }).click();
     await connect.getByRole('alert').waitFor();
     // The app waits ten seconds for the bridge with the button busy (dimmed); the state is the settled dialog, with the button offered again.
@@ -235,12 +232,9 @@ export const boothDrivers: Record<string, Driver> = {
   },
   'record-other-project': async (page) => {
     await openBooth(page, '?mockDaw=different');
-    const notice = page.locator('#brec-setup');
     const connect = page.getByRole('dialog', { name: /is not connected/ });
-    await connect.getByRole('button', { name: 'Link in Settings' }).click();
-    await page.getByRole('button', { name: /^Link Alice\.rpp/ }).click();
-    await goToPage(page, 'Booth');
-    await notice.getByRole('button').click();
+    // The dialog links the project file itself (#2823); once linked, the same dialog offers the start.
+    await connect.getByRole('button', { name: 'Link project file…' }).click();
     await connect.getByRole('button', { name: 'Open in REAPER and connect' }).click();
     // It opens by itself: a take would land in the wrong project.
     const other = page.getByRole('dialog', { name: 'REAPER has a different project open' });

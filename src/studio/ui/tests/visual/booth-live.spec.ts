@@ -35,13 +35,11 @@ async function openLive(page: Page, script: string, extra = ''): Promise<void> {
 /** What the mock DAW holds, read through the handle a driver plays REAPER's side with. */
 const dawState = (page: Page) => page.evaluate(() => window.__NARRATION_MOCK_DAW__?.state());
 
-// Settings is one step from the Booth's notice: its "Link in Settings" button. The one-click link there is the narrator's, then back.
+// The dialog links the project file itself ("Link project file…", the app's one link action): it stays up and offers the start once linked.
 async function linkProject(page: Page): Promise<void> {
   await openConnect(page);
-  await dialog(page).getByRole('button', { name: 'Link in Settings' }).click();
-  await page.getByRole('button', { name: /^Link Alice\.rpp/ }).click();
-  await goToPage(page, 'Booth');
-  await boothChapterReady(page);
+  await dialog(page).getByRole('button', { name: 'Link project file…' }).click();
+  await expect(dialog(page).getByRole('button', { name: 'Link project file…' })).toHaveCount(0);
 }
 
 // Nothing to switch on: on a fresh machine Record is off only because REAPER is not connected, and the connect steps are up.
