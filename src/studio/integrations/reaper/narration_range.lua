@@ -405,7 +405,7 @@ local function lay_room_tone(track, tone, spans, sources, fade)
   end
 end
 
-local function delete_range(session_dir, run_id, guid_text, start_text, end_text, mode, fade_text, pad_text, tone_text)
+local function delete_range(session_dir, run_id, guid_text, start_text, end_text, mode, fade_text, pad_text, tone_text, folder_text)
   local first_cut, last_cut = finite(start_text), finite(end_text)
   if not first_cut or not last_cut or last_cut - first_cut <= EDGE_TOLERANCE then
     event(session_dir, 'ERROR', run_id, BAD_RANGE)
@@ -509,7 +509,25 @@ local function delete_range(session_dir, run_id, guid_text, start_text, end_text
     end
   end
   local length = last_cut - first_cut
+  local peers = core.ripple_peers(session_dir, run_id, folder_text, track, cuts, 'nothing was cut')
+  if not peers then
+    return
+  end
   local later = mode == 'close' and items_from(track, item, last_cut) or {}
+  if mode == 'close' then
+    -- Every other voice in the folder moves up with it, so none may have audio inside the range that is removed.
+    for _, peer in ipairs(peers) do
+      if overlapping(peer, nil, first_cut, last_cut) then
+        event(session_dir, 'ERROR', run_id, 'Another voice in the folder has audio in the range to cut, so nothing was cut.')
+        return
+      end
+    end
+    for _, peer in ipairs(peers) do
+      for _, moved in ipairs(items_from(peer, nil, last_cut)) do
+        later[#later + 1] = moved
+      end
+    end
+  end
 
   reaper.Undo_BeginBlock2(0)
   local right = split_end and reaper.SplitMediaItem(item, last_cut) or nil
@@ -538,17 +556,18 @@ local function delete_range(session_dir, run_id, guid_text, start_text, end_text
   event(session_dir, 'RANGE_CUT', run_id, left and item_guid(left) or '', item_guid(middle), 1)
 end
 
--- delete_range's last field: fade_ms, or fade_ms|pad|room_tone. More parts than that leave the whole field as the fade,
+-- delete_range's last field: fade_ms, or fade_ms|pad|room_tone, or fade_ms|pad|room_tone|folder (the chapter's folder GUID: a close cut then
+-- moves the later items of every track inside it, so the voices of a chapter stay in step; the item must be inside it). More parts than that leave the whole field as the fade,
 -- which then refuses.
 local function cut_tail(field)
   local parts = {}
   for part in ((field or '') .. '|'):gmatch('(.-)|') do
     parts[#parts + 1] = part
   end
-  if #parts > 3 then
+  if #parts > 4 then
     return field
   end
-  return parts[1], parts[2], parts[3]
+  return parts[1], parts[2], parts[3], parts[4]
 end
 
 -- The parts of a name list_fx_chains could list, or nil. Pure Lua: it runs before any REAPER call.
@@ -1945,8 +1964,8 @@ return function(registry)
   registry.interrupt_compare = interrupt_compare
   registry.register('delete_range', function(ctx, args)
     interrupt_compare()
-    local fade, pad, tone = cut_tail(args[6])
-    delete_range(ctx.session_dir, args[1] or '', args[2] or '', args[3], args[4], args[5], fade, pad, tone)
+    local fade, pad, tone, folder = cut_tail(args[6])
+    delete_range(ctx.session_dir, args[1] or '', args[2] or '', args[3], args[4], args[5], fade, pad, tone, folder)
   end)
   registry.register('apply_fx_range', function(ctx, args)
     interrupt_compare()

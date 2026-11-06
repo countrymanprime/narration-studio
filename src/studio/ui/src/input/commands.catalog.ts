@@ -436,7 +436,16 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
   // binding (nothing is flagged or sent to Pickups from the Booth) and no Ctrl or Meta default, so a modified press is never theirs.
   // Space stays the one record action: a pedal's only default is Space. "+" is Shift+Equal, which would also fire while typing, so
   // the larger-text keys are Equal and the numpad plus.
-  { id: 'reading.toggle', label: 'Record or stop', scope: 'booth', defaults: [key('Space')], group: 'Booth', surfaces: ['help', 'settings'] },
+  // Enter and numpad Enter do what Space does, for a narrator working from the numpad (#3039). A focused button keeps both (it is pressed by them),
+  // a field and an open popup keep them too, so they record only from the page itself; a pedal still sends Space alone.
+  {
+    id: 'reading.toggle',
+    label: 'Record or stop',
+    scope: 'booth',
+    defaults: [key('Space'), key('Enter'), key('NumpadEnter')],
+    group: 'Booth',
+    surfaces: ['help', 'settings'],
+  },
   {
     id: 'booth.phrase.next',
     label: 'Next phrase',

@@ -41,14 +41,23 @@ type InstalledModelOnly interface {
 	InstalledModelOnly() bool
 }
 
+// Rechecked is implemented by a live engine whose readings a Whisper model rechecks after each segment (the trailing
+// confirmation pass, docs/architecture/manuscript-teleprompter.md): a fast engine that is sometimes wrong (Moonshine). An
+// engine that does not implement it is its own best reading, so nothing rechecks it.
+type Rechecked interface {
+	Rechecked() bool
+}
+
 type engine struct {
 	name, assetKind string
 	installedOnly   bool
+	rechecked       bool
 }
 
 func (e engine) Name() string             { return e.name }
 func (e engine) AssetKind() string        { return e.assetKind }
 func (e engine) InstalledModelOnly() bool { return e.installedOnly }
+func (e engine) Rechecked() bool          { return e.rechecked }
 
 // NewRegistry is a registry holding the built-in rows, Whisper first as the default. A test registers a fake on its own copy.
 func NewRegistry() *port.Registry[Engine] {
@@ -62,7 +71,9 @@ func NewRegistry() *port.Registry[Engine] {
 	r.Register(port.Entry[Engine]{
 		Name:       Moonshine,
 		Descriptor: port.Descriptor{Label: "Moonshine", Platforms: []string{"windows"}, Modes: []string{ModeLive}},
-		New:        func() Engine { return engine{name: Moonshine, assetKind: "moonshine", installedOnly: true} },
+		New: func() Engine {
+			return engine{name: Moonshine, assetKind: "moonshine", installedOnly: true, rechecked: true}
+		},
 	})
 	return r
 }
@@ -110,4 +121,17 @@ func NeedsInstalledModelIn(r *port.Registry[Engine], engine string) bool {
 	}
 	installed, ok := entry.New().(InstalledModelOnly)
 	return ok && installed.InstalledModelOnly()
+}
+
+// NeedsRecheck reports whether a Whisper model rechecks engine's readings (Rechecked).
+func NeedsRecheck(engine string) bool { return NeedsRecheckIn(Engines, engine) }
+
+// NeedsRecheckIn is NeedsRecheck over registry r; an unknown engine needs none.
+func NeedsRecheckIn(r *port.Registry[Engine], engine string) bool {
+	entry, err := r.Lookup(engine)
+	if err != nil {
+		return false
+	}
+	rechecked, ok := entry.New().(Rechecked)
+	return ok && rechecked.Rechecked()
 }

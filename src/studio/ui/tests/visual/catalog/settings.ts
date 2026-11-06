@@ -459,16 +459,22 @@ export const settingsStates: StateEntry[] = [
   {
     page: 'settings',
     state: 'schedule-basis',
-    description: 'Settings, Project scrolled to Schedule basis: Standard chosen, Your own pace beside it, with its row in full view',
+    description: 'Settings, Project scrolled to Schedule basis: Standard chosen, Your pace beside it, with its row in full view',
     ...REFLOW,
     ...KEEPS_DESKTOP_SCROLL,
   },
   {
     page: 'settings',
     state: 'schedule-basis-own',
-    description: 'Settings, Project at Schedule basis with Your own pace chosen: the row is marked Changed',
+    description: 'Settings, Project at Schedule basis with Your pace chosen: the row is marked Changed',
     ...REFLOW,
     ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
+    state: 'category-reset',
+    description: 'Settings, Appearance & keys with the theme changed: the category title line with Reset to defaults beside it, and the count in the list',
+    ...REFLOW,
   },
   {
     page: 'settings',
@@ -554,6 +560,12 @@ export const settingsStates: StateEntry[] = [
     description: 'Settings, App & updates after a check that could not reach GitHub (?mockUpdate=failed)',
     ...REFLOW,
     ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
+    state: 'diagnostics-preview',
+    description: 'Settings, App & updates: the diagnostics bundle preview dialog, with the files it holds, what it leaves out and the leak check',
+    ...REFLOW,
   },
   {
     page: 'settings',

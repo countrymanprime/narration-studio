@@ -1,0 +1,380 @@
+{
+  "mock": "cross-page-tools",
+  "refs": "#2251",
+  "audit": "docs/research/2026-11-cross-page-function-audit.md",
+  "note": "Draft mocks, not yet signed off by the owner. Each image is one issue’s card: light and dark, at 1440 and 390 px.",
+  "items": [
+    {
+      "issue": 2820,
+      "title": "Chapter regions and render prep where the chapter is finished",
+      "whatChanges": "A DAW tools button in the Editing and Proof headers, and in Master’s “no files yet” state, opens Create chapter regions and Prepare chapter render. Today they exist only in the Engine panel, two clicks away from where a chapter is finished.",
+      "images": [
+        {
+          "file": "shots/2820-1440-light.png",
+          "width": 1440,
+          "theme": "light",
+          "caption": "Desktop, light. The dashed button in each header, the open menu, and below it how the menu looks when REAPER is off, no chapter is linked, or the project uses Audacity: entries stay, greyed, with the reason."
+        },
+        {
+          "file": "shots/2820-1440-dark.png",
+          "width": 1440,
+          "theme": "dark",
+          "caption": "Desktop, dark. The dashed button in each header, the open menu, and below it how the menu looks when REAPER is off, no chapter is linked, or the project uses Audacity: entries stay, greyed, with the reason."
+        },
+        {
+          "file": "shots/2820-390-light.png",
+          "width": 390,
+          "theme": "light",
+          "caption": "Phone-width, light. The dashed button in each header, the open menu, and below it how the menu looks when REAPER is off, no chapter is linked, or the project uses Audacity: entries stay, greyed, with the reason."
+        },
+        {
+          "file": "shots/2820-390-dark.png",
+          "width": 390,
+          "theme": "dark",
+          "caption": "Phone-width, dark. The dashed button in each header, the open menu, and below it how the menu looks when REAPER is off, no chapter is linked, or the project uses Audacity: entries stay, greyed, with the reason."
+        }
+      ]
+    },
+    {
+      "issue": 2821,
+      "title": "Repair tools beside the defect",
+      "whatChanges": "Repair Pops/Clicks and Magnolius DeClick get a Repair in REAPER button next to Apply in Editing’s Clean up tab and in Proof’s inspector for click, breath and plosive notes. They act on the item selected in REAPER, which Show in REAPER has just selected.",
+      "images": [
+        {
+          "file": "shots/2821-1440-light.png",
+          "width": 1440,
+          "theme": "light",
+          "caption": "Desktop, light. The button with its one-sentence tooltip in Editing, the Proof inspector with the menu open and the toast, and the six off states at the bottom."
+        },
+        {
+          "file": "shots/2821-1440-dark.png",
+          "width": 1440,
+          "theme": "dark",
+          "caption": "Desktop, dark. The button with its one-sentence tooltip in Editing, the Proof inspector with the menu open and the toast, and the six off states at the bottom."
+        },
+        {
+          "file": "shots/2821-390-light.png",
+          "width": 390,
+          "theme": "light",
+          "caption": "Phone-width, light. The button with its one-sentence tooltip in Editing, the Proof inspector with the menu open and the toast, and the six off states at the bottom."
+        },
+        {
+          "file": "shots/2821-390-dark.png",
+          "width": 390,
+          "theme": "dark",
+          "caption": "Phone-width, dark. The button with its one-sentence tooltip in Editing, the Proof inspector with the menu open and the toast, and the six off states at the bottom."
+        }
+      ]
+    },
+    {
+      "issue": 2822,
+      "title": "Compare the recording with the script on the Proof page",
+      "whatChanges": "The comparison, preview and native takes are reachable only through the Engine panel today. They move under the Recording check on the Proof page, next to Check recordings.",
+      "images": [
+        {
+          "file": "shots/2822-1440-light.png",
+          "width": 1440,
+          "theme": "light",
+          "caption": "Desktop, light. The Compare button in the check card and the panel below it; the small states (not compared, comparing, stale, no recording, failed)."
+        },
+        {
+          "file": "shots/2822-1440-dark.png",
+          "width": 1440,
+          "theme": "dark",
+          "caption": "Desktop, dark. The Compare button in the check card and the panel below it; the small states (not compared, comparing, stale, no recording, failed)."
+        },
+        {
+          "file": "shots/2822-390-light.png",
+          "width": 390,
+          "theme": "light",
+          "caption": "Phone-width, light. The Compare button in the check card and the panel below it; the small states (not compared, comparing, stale, no recording, failed)."
+        },
+        {
+          "file": "shots/2822-390-dark.png",
+          "width": 390,
+          "theme": "dark",
+          "caption": "Phone-width, dark. The Compare button in the check card and the panel below it; the small states (not compared, comparing, stale, no recording, failed)."
+        }
+      ]
+    },
+    {
+      "issue": 2823,
+      "title": "One DAW connection state on every page that needs the DAW",
+      "whatChanges": "The same “REAPER is not connected” chip and dialog on Proof, Pickups and Master, and a working Link project file button on Editing and Production, where the dialog now only says to link the file first.",
+      "images": [
+        {
+          "file": "shots/2823-1440-light.png",
+          "width": 1440,
+          "theme": "light",
+          "caption": "Desktop, light. The chip on three pages, the dialog with the new Link project file button, and the dialog’s other states."
+        },
+        {
+          "file": "shots/2823-1440-dark.png",
+          "width": 1440,
+          "theme": "dark",
+          "caption": "Desktop, dark. The chip on three pages, the dialog with the new Link project file button, and the dialog’s other states."
+        },
+        {
+          "file": "shots/2823-390-light.png",
+          "width": 390,
+          "theme": "light",
+          "caption": "Phone-width, light. The chip on three pages, the dialog with the new Link project file button, and the dialog’s other states."
+        },
+        {
+          "file": "shots/2823-390-dark.png",
+          "width": 390,
+          "theme": "dark",
+          "caption": "Phone-width, dark. The chip on three pages, the dialog with the new Link project file button, and the dialog’s other states."
+        }
+      ]
+    },
+    {
+      "issue": 2824,
+      "title": "Both package builds on Delivery",
+      "whatChanges": "The multi-platform package build moves from Master & QC (before any file is measured) to Delivery, beside the single-profile build. Master keeps measuring, mastering and encoding.",
+      "images": [
+        {
+          "file": "shots/2824-1440-light.png",
+          "width": 1440,
+          "theme": "light",
+          "caption": "Desktop, light. The All platforms panel on Delivery’s Output, and the states under it, including what Master shows afterwards."
+        },
+        {
+          "file": "shots/2824-1440-dark.png",
+          "width": 1440,
+          "theme": "dark",
+          "caption": "Desktop, dark. The All platforms panel on Delivery’s Output, and the states under it, including what Master shows afterwards."
+        },
+        {
+          "file": "shots/2824-390-light.png",
+          "width": 390,
+          "theme": "light",
+          "caption": "Phone-width, light. The All platforms panel on Delivery’s Output, and the states under it, including what Master shows afterwards."
+        },
+        {
+          "file": "shots/2824-390-dark.png",
+          "width": 390,
+          "theme": "dark",
+          "caption": "Phone-width, dark. The All platforms panel on Delivery’s Output, and the states under it, including what Master shows afterwards."
+        }
+      ]
+    },
+    {
+      "issue": 2825,
+      "title": "Check files from Delivery’s preflight",
+      "whatChanges": "Delivery lists each chapter’s result but can only re-read it. A Check files button starts the measurement from the page that blocks the build.",
+      "images": [
+        {
+          "file": "shots/2825-1440-light.png",
+          "width": 1440,
+          "theme": "light",
+          "caption": "Desktop, light. The Check files button in “Before you build” and its states (none yet, checking, done, cancelled)."
+        },
+        {
+          "file": "shots/2825-1440-dark.png",
+          "width": 1440,
+          "theme": "dark",
+          "caption": "Desktop, dark. The Check files button in “Before you build” and its states (none yet, checking, done, cancelled)."
+        },
+        {
+          "file": "shots/2825-390-light.png",
+          "width": 390,
+          "theme": "light",
+          "caption": "Phone-width, light. The Check files button in “Before you build” and its states (none yet, checking, done, cancelled)."
+        },
+        {
+          "file": "shots/2825-390-dark.png",
+          "width": 390,
+          "theme": "dark",
+          "caption": "Phone-width, dark. The Check files button in “Before you build” and its states (none yet, checking, done, cancelled)."
+        }
+      ]
+    },
+    {
+      "issue": 2826,
+      "title": "One Show in REAPER button, now on Pickups rows",
+      "whatChanges": "Four differently worded “go to the spot in the DAW” controls become one icon button with one label. Pickups rows, which had none, gain it.",
+      "images": [
+        {
+          "file": "shots/2826-1440-light.png",
+          "width": 1440,
+          "theme": "light",
+          "caption": "Desktop, light. The new icon in the Pickups table (greyed on a recorded row) and the shared states underneath."
+        },
+        {
+          "file": "shots/2826-1440-dark.png",
+          "width": 1440,
+          "theme": "dark",
+          "caption": "Desktop, dark. The new icon in the Pickups table (greyed on a recorded row) and the shared states underneath."
+        },
+        {
+          "file": "shots/2826-390-light.png",
+          "width": 390,
+          "theme": "light",
+          "caption": "Phone-width, light. The new icon in the Pickups table (greyed on a recorded row) and the shared states underneath."
+        },
+        {
+          "file": "shots/2826-390-dark.png",
+          "width": 390,
+          "theme": "dark",
+          "caption": "Phone-width, dark. The new icon in the Pickups table (greyed on a recorded row) and the shared states underneath."
+        }
+      ]
+    },
+    {
+      "issue": 2827,
+      "title": "Match levels in the Editing drawer",
+      "whatChanges": "Match levels is reachable today only from Production’s row menu and the Engine panel. It joins the other clean-up actions in Editing’s drawer, with the same preview and Apply.",
+      "images": [
+        {
+          "file": "shots/2827-1440-light.png",
+          "width": 1440,
+          "theme": "light",
+          "caption": "Desktop, light. The Match levels button in the Clean up tab and its preview dialog."
+        },
+        {
+          "file": "shots/2827-1440-dark.png",
+          "width": 1440,
+          "theme": "dark",
+          "caption": "Desktop, dark. The Match levels button in the Clean up tab and its preview dialog."
+        },
+        {
+          "file": "shots/2827-390-light.png",
+          "width": 390,
+          "theme": "light",
+          "caption": "Phone-width, light. The Match levels button in the Clean up tab and its preview dialog."
+        },
+        {
+          "file": "shots/2827-390-dark.png",
+          "width": 390,
+          "theme": "dark",
+          "caption": "Phone-width, dark. The Match levels button in the Clean up tab and its preview dialog."
+        }
+      ]
+    },
+    {
+      "issue": 2829,
+      "title": "Embed chapter tags next to the package build",
+      "whatChanges": "Writing chapter markers into the finished book MP3 never touches REAPER, so it moves from the REAPER tools card to Delivery’s Output panel, for any DAW or none.",
+      "images": [
+        {
+          "file": "shots/2829-1440-light.png",
+          "width": 1440,
+          "theme": "light",
+          "caption": "Desktop, light. The button beside Build, the existing dialog, and the three result states."
+        },
+        {
+          "file": "shots/2829-1440-dark.png",
+          "width": 1440,
+          "theme": "dark",
+          "caption": "Desktop, dark. The button beside Build, the existing dialog, and the three result states."
+        },
+        {
+          "file": "shots/2829-390-light.png",
+          "width": 390,
+          "theme": "light",
+          "caption": "Phone-width, light. The button beside Build, the existing dialog, and the three result states."
+        },
+        {
+          "file": "shots/2829-390-dark.png",
+          "width": 390,
+          "theme": "dark",
+          "caption": "Phone-width, dark. The button beside Build, the existing dialog, and the three result states."
+        }
+      ]
+    },
+    {
+      "issue": 2830,
+      "title": "One Add marker on Proof, Pickups and the Editing flag card",
+      "whatChanges": "Add marker and Add N as markers become one component with one label and one gate. Editing’s flag card and Proof’s right-click menu gain it.",
+      "images": [
+        {
+          "file": "shots/2830-1440-light.png",
+          "width": 1440,
+          "theme": "light",
+          "caption": "Desktop, light. The button on the flag card, the new entry in Proof’s context menu, and the shared states."
+        },
+        {
+          "file": "shots/2830-1440-dark.png",
+          "width": 1440,
+          "theme": "dark",
+          "caption": "Desktop, dark. The button on the flag card, the new entry in Proof’s context menu, and the shared states."
+        },
+        {
+          "file": "shots/2830-390-light.png",
+          "width": 390,
+          "theme": "light",
+          "caption": "Phone-width, light. The button on the flag card, the new entry in Proof’s context menu, and the shared states."
+        },
+        {
+          "file": "shots/2830-390-dark.png",
+          "width": 390,
+          "theme": "dark",
+          "caption": "Phone-width, dark. The button on the flag card, the new entry in Proof’s context menu, and the shared states."
+        }
+      ]
+    },
+    {
+      "issue": 2831,
+      "title": "Retakes on lanes inside the Editing takes list",
+      "whatChanges": "Choosing which lane plays is the same decision the takes list already makes, so lane rows with a Play this lane button appear under the line’s takes and the separate dialog goes away.",
+      "images": [
+        {
+          "file": "shots/2831-1440-light.png",
+          "width": 1440,
+          "theme": "light",
+          "caption": "Desktop, light. The lane rows under Take 1 and Take 2, the row after a pick with its Undo toast, and the states."
+        },
+        {
+          "file": "shots/2831-1440-dark.png",
+          "width": 1440,
+          "theme": "dark",
+          "caption": "Desktop, dark. The lane rows under Take 1 and Take 2, the row after a pick with its Undo toast, and the states."
+        },
+        {
+          "file": "shots/2831-390-light.png",
+          "width": 390,
+          "theme": "light",
+          "caption": "Phone-width, light. The lane rows under Take 1 and Take 2, the row after a pick with its Undo toast, and the states."
+        },
+        {
+          "file": "shots/2831-390-dark.png",
+          "width": 390,
+          "theme": "dark",
+          "caption": "Phone-width, dark. The lane rows under Take 1 and Take 2, the row after a pick with its Undo toast, and the states."
+        }
+      ]
+    },
+    {
+      "issue": 2833,
+      "title": "One Check recordings button, and an offer after a take",
+      "whatChanges": "Check recordings has nine entry points with different labels; Proof draws two on one screen. It becomes one button, and the Booth offers the check once after Stop.",
+      "images": [
+        {
+          "file": "shots/2833-1440-light.png",
+          "width": 1440,
+          "theme": "light",
+          "caption": "Desktop, light. Proof with a single button, and the Booth toast right after Stop. The owner can drop the Booth part."
+        },
+        {
+          "file": "shots/2833-1440-dark.png",
+          "width": 1440,
+          "theme": "dark",
+          "caption": "Desktop, dark. Proof with a single button, and the Booth toast right after Stop. The owner can drop the Booth part."
+        },
+        {
+          "file": "shots/2833-390-light.png",
+          "width": 390,
+          "theme": "light",
+          "caption": "Phone-width, light. Proof with a single button, and the Booth toast right after Stop. The owner can drop the Booth part."
+        },
+        {
+          "file": "shots/2833-390-dark.png",
+          "width": 390,
+          "theme": "dark",
+          "caption": "Phone-width, dark. Proof with a single button, and the Booth toast right after Stop. The owner can drop the Booth part."
+        }
+      ]
+    }
+  ]
+}

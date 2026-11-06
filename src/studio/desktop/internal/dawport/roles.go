@@ -514,6 +514,8 @@ type DeleteRangeRequest struct {
 	FadeMs   int
 	PadMs    int
 	RoomTone bool
+	// ChapterTrack is the GUID of the chapter's folder track when its audio is on voice tracks inside it: a close cut then moves the later items of every one of them.
+	ChapterTrack string
 }
 
 // Padded is the request's range with PadMs taken off each end, and false when the pad leaves nothing of it, for an engine
@@ -553,11 +555,13 @@ type StackGroup struct {
 }
 
 // StackRequest stacks (or unstacks) the retries of a chapter's passages. Shift is how far the audio that follows moves, summed over
-// the groups (negative: earlier).
+// the groups (negative: earlier). ChapterTrack is the engine's id of the chapter's folder of voices, or empty: with it the audio after each
+// passage moves on every voice inside the folder.
 type StackRequest struct {
-	ChapterID string
-	Groups    []StackGroup
-	Shift     float64
+	ChapterID    string
+	Groups       []StackGroup
+	Shift        float64
+	ChapterTrack string
 }
 
 // BackupRequest asks the engine to clone the audio from Start to End seconds of a chapter's track before it is changed. GUID is the
@@ -583,7 +587,8 @@ const MaxReplaceGainDB = bridge.MaxReplaceGainDB
 // ReplaceRangeRequest replaces a range's words with a stretch of another narrator's audio already in the project: RangeRequest is
 // the narrator's words; SourceItemGUID is the item on the other narrator's own track and SourceStart..SourceEnd the stretch of it,
 // in project seconds. FadeMs (0 to MaxCutFadeMs) is the fade at each seam, GainDB (-MaxReplaceGainDB to MaxReplaceGainDB) the level
-// change on their stretch, ID the host's record of the replacement and Narrator whose audio it is, for the message.
+// change on their stretch, ID the host's record of the replacement and Narrator whose audio it is, for the message. ChapterTrack is the
+// engine's id of the chapter's folder of voices, or empty: with it the audio after the words moves on every voice inside the folder.
 type ReplaceRangeRequest struct {
 	RangeRequest
 	SourceItemGUID string
@@ -593,6 +598,7 @@ type ReplaceRangeRequest struct {
 	GainDB         float64
 	ID             string
 	Narrator       string
+	ChapterTrack   string
 }
 
 // RangeReplaced is what ReplaceRange did. Result is the call's answer; ReplacementItem is the engine's id of the new audio, what
@@ -606,11 +612,12 @@ type RangeReplaced struct {
 }
 
 // RestoreRequest puts the narrator's audio back in place of a replacement: ReplacementItem and ID as ReplaceRange made and recorded
-// them; Words is how many words it held, for the message.
+// them; Words is how many words it held, for the message; ChapterTrack as on ReplaceRangeRequest.
 type RestoreRequest struct {
 	ReplacementItem string
 	ID              string
 	Words           int
+	ChapterTrack    string
 }
 
 // TheirAudio is what ImportTheirAudio did. Result is the call's answer; Track and Item are the engine's ids of the new track and of the

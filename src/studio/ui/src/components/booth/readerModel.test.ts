@@ -484,3 +484,36 @@ describe('readerMarks', () => {
     expect(marks.size).toBe(0);
   });
 });
+
+describe('reduceEvent: the confirmation pass settling a flag', () => {
+  const raised = { type: 'flag', id: 1, kind: 'skipped', start: 7, end: 9, heard: '' } as const;
+  const withFlag = reduceEvent(initialSession, raised);
+
+  it('puts the verdict on the flag it names', () => {
+    expect(reduceEvent(withFlag, { type: 'flag_check', id: 1, state: 'cleared' }).flags).toEqual([{ ...raised, check: 'cleared' }]);
+  });
+
+  it('settles a flag once: a second verdict for it changes nothing', () => {
+    const settled = reduceEvent(withFlag, { type: 'flag_check', id: 1, state: 'confirmed' });
+    expect(reduceEvent(settled, { type: 'flag_check', id: 1, state: 'cleared' })).toBe(settled);
+  });
+
+  it('a verdict heard before its flag is applied when the flag arrives; one for a flag that never comes touches no flag', () => {
+    const early = reduceEvent(initialSession, { type: 'flag_check', id: 1, state: 'cleared' });
+    expect(early.flags).toEqual([]);
+    expect(reduceEvent(early, raised).flags).toEqual([{ ...raised, check: 'cleared' }]);
+    expect(reduceEvent(withFlag, { type: 'flag_check', id: 9, state: 'cleared' }).flags).toEqual(withFlag.flags);
+  });
+
+  it('keeps the verdict when the same flag is raised again', () => {
+    const settled = reduceEvent(withFlag, { type: 'flag_check', id: 1, state: 'confirmed' });
+    expect(reduceEvent(settled, raised).flags).toEqual([{ ...raised, check: 'confirmed' }]);
+  });
+});
+
+describe('reduceEvent: a verdict the page cannot read', () => {
+  it('ignores a flag_check whose state is neither confirmed nor cleared', () => {
+    const raised = reduceEvent(initialSession, { type: 'flag', id: 1, kind: 'skipped', start: 7, end: 9, heard: '' });
+    expect(reduceEvent(raised, { type: 'flag_check', id: 1, state: 'maybe' } as never)).toBe(raised);
+  });
+});

@@ -320,7 +320,10 @@ function BoothSession({
     escapeStoppedSample?: () => boolean;
     recordBlocked?: (block: RecordBlock) => void;
   }>({});
+  // Set below, once the listening microphone is known (it is built after the page): why Record cannot begin on a microphone, or null.
+  const micProblem = useRef<string | null>(null);
   const page = useBoothPage({
+    micProblem: () => micProblem.current,
     projectFolder,
     recordId,
     title,
@@ -627,6 +630,7 @@ function BoothSession({
   // linked DAW's own input unless the narrator chose a different one.
   const listening = useListeningMic({
     dawRecords: !!capabilities && !standalone,
+    appRecords: !!capabilities && standalone,
     chapterId,
     chosen: session.chosenDevice,
     source: session.inputSource,
@@ -634,6 +638,16 @@ function BoothSession({
     devices: session.devices,
     listenOn: session.listenOn,
   });
+  micProblem.current =
+    !capabilities || !standalone
+      ? null
+      : listening.device.trim() === ''
+        ? listening.micNames.length === 0
+          ? 'No microphone found. Plug one in, then press Record again.'
+          : 'Choose the microphone in Record options, then press Record.'
+        : listening.origin === 'chosen' && !listening.micNames.includes(listening.device)
+          ? `${listening.device} was not found. Choose another microphone in Record options, then press Record.`
+          : null;
 
   return (
     <CommandScope kind="booth">
@@ -824,6 +838,7 @@ function BoothSession({
               offReason: capabilities?.capabilities.record?.message,
               device: session.device,
               onDevice: session.changeDevice,
+              micNote: standalone && listening.origin === 'last' ? 'The microphone this project last recorded with, until you choose one.' : undefined,
               listen: standalone
                 ? undefined
                 : {

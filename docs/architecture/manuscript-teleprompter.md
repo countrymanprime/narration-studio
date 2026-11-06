@@ -250,8 +250,29 @@ alike the script's and the heard words sound (`internal/soundalike`, as for Tran
 opened mid-session reads. The host's `cmd/booth-replay` replays a printed `live_asr.py` session (`--stream`), or a
 Moonshine probe recording through `replay.py --events X`, through the host's own tracker
 (`internal/boothreplay`, held to the reports Python's replay wrote before its tracking was deleted), and reports flags per 100 heard words by kind, which on a
-clean read is the false-flag rate. Nothing confirms a
-flag after the session.
+clean read is the false-flag rate. A trailing
+confirmation pass rechecks a flag after its segment closes ([The trailing confirmation pass](#the-trailing-confirmation-pass)).
+
+## The trailing confirmation pass
+
+With a non-Whisper live engine (Moonshine), `--confirm-model` (and `--confirm-model-dir`, a verified catalog install; it never
+downloads) turns on a second opinion on every closed segment ([#1476](https://github.com/countrymanprime/narration-studio/issues/1476)).
+`core/confirm.py` keeps the last 60 s of the audio the engine heard, and on a `segment_end` cuts the segment's span (first
+word start to last word end, 0.3 s either side) and has faster-whisper read it on its own thread. The result is a
+`segment_check` event with Whisper's words in the engine's stream time, printed on the next chunk or event and once more when
+the input ends (waiting at most 5 s). The model loads on that thread at the first check, so the first chunk is not delayed.
+A segment whose audio has left the ring, or that has no timed words, is skipped; a decode or a model load that fails prints
+`segment_check` with an `error` for that segment and the session goes on. With `--engine whisper` or no `--confirm-model`
+the pass is off.
+**Host half.** `TeleprompterStart` resolves the tiny Whisper model (`confirmModelID`) like the locate model and, for an
+engine whose registry row says it is rechecked (`asrport.NeedsRecheck`: Moonshine), passes `--confirm-model` and the
+verified `--confirm-model-dir`; a model that is not installed leaves the pass off, with no first-use gate. The follower keeps
+each flagged segment's reading (the last 32). A `segment_check` line is consumed, never relayed: its words are read as a
+segment against the same anchor and script with the same flag rules (`scripttrack.FlaggingTracker.Check`), and each live
+flag of that segment becomes a `flag_check` event, `confirmed` when the check raises a flag of the same kind over the same
+words, `cleared` when it does not. A check with no words, an error, an unknown segment or a second check for a segment says
+nothing. When the narrator saves the session's flags, `liveflags` drops a `cleared` flag and marks a `confirmed` one in its
+evidence (`recheck`) and reason. The Booth page shows the verdicts in the next change.
 
 ## Streaming subprocess support
 
@@ -397,13 +418,13 @@ through the exact `av.open(file=f"audio={name}", format="dshow")` call
 name that is listed is the name that opens, so no separate device-id mapping
 is needed for Start.
 
-**Duplicate device names.** ffmpeg disambiguates same-named devices with an
-"Alternative name" line (a stable `@device_...` path); `devices.py` records
-it (`Device.alternative_name`) but nothing opens a device by that path
-instead of its friendly name, and no duplicate audio device names existed
-on the development machine to test the collision case against. The
-alternative name is not exposed over the wire (`Device.to_json()` returns only
-`name`).
+**Duplicate device names.** ffmpeg disambiguates same-named devices with an "Alternative name" line (a stable `@device_...`
+path); `devices.py` records it (`Device.alternative_name`). Devices that share a friendly name are listed as "Name (1)",
+"Name (2)" in ffmpeg's order, and `open_target` turns such a name back into the alternative name that `audio=` accepts, when
+the capture opens it. A name that is alone is listed and opened as ffmpeg names it. The collision case is tested over log
+entries in the recorded format only: no duplicate audio device names existed on the development machine, so opening a real
+pair is a check for a machine that has one ([Windows QA checklist](../operations/windows-qa-checklist.md)). The alternative
+name is not exposed over the wire (`Device.to_json()` returns only `name`).
 
 The Go binding (`src/studio/desktop/internal/teleprompter/service.go`'s `Devices`,
 exposed as the `TeleprompterDevices` host binding) runs
@@ -610,9 +631,9 @@ the exact commit ported from. The LocalAgreement policy added later comes from
   `script` event's spans (a paragraph that disagrees is shown untracked), and
   the chapter is chosen from a picker that starts on the reader's active chapter
   ([usePacedCursor.ts](../../src/studio/ui/src/components/booth/usePacedCursor.ts)).
-- Tracker limits: word matching is normalization plus
-  a close-spelling check, without Transcript Compare's homophone, number-word
-  and hyphenation handling; invented names and spoken numbers are the likely
-  misses. Flags forgive those forms (`internal/compare`'s spoken forms, see
-  "Flags" above), but position matching still does not; flags reach the
+- Tracker limits: the Booth's tracker (`scripttrack.Tracker.SpokenForms`) matches a heard word to a script word by
+  normalization, a close-spelling check, or a shared spoken form for a single word (a homophone, a possessive, a number as
+  digits or as a word: `compare.SpokenKey`), the forms the flags forgive. A heard stretch over several script words
+  ("twenty three" for "23", "daisy chain" for "daisy-chain") still misses; invented names are the likely misses. The
+  frozen booth-parity goldens pin the spelling-only tracker, which placement and word timing keep. Flags reach the
   findings contract through `internal/liveflags`.

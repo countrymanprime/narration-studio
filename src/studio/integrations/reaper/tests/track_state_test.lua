@@ -267,6 +267,24 @@ H.test('chapter_track_state with children lists the items on every descendant of
   H.eq(events[#events], { 'TRACK_STATE_END', 't1', '3', '3' })
 end)
 
+H.test('chapter_track_state with children on an empty folder (voices with no items, or no voices at all) lists nothing and is not stale', function()
+  local s = H.session({ project_path = H.join(host.tmpdir(), 'Book.rpp') })
+  local folder = s.fake:add_track('Chapter 1')
+  local voice = s.fake:add_track('Narrator')
+  local last = s.fake:add_track('Chapter 2')
+  folder.folder_depth, voice.folder_depth = 1, -1
+  s:send('chapter_track_state', 't1', folder.guid, 'children')
+  local events = s:events()
+  H.eq(events[1][3], folder.guid, "the state is the folder's, not a stale answer")
+  H.eq(events[#events], { 'TRACK_STATE_END', 't1', '0', '0' })
+  -- A folder opened on the very last track has no voices inside it.
+  last.folder_depth = 1
+  s:send('chapter_track_state', 't2', last.guid, 'children')
+  events = s:events()
+  H.eq(events[1][3], last.guid)
+  H.eq(events[#events], { 'TRACK_STATE_END', 't2', '0', '0' })
+end)
+
 H.test("chapter_track_state with children includes the folder's own items first", function()
   local s, t = voices_session()
   s.fake:add_item(t.folder, { position = 9, length = 1, source = 'folder.wav' })

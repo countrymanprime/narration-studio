@@ -60,7 +60,7 @@ export function useRoomTone(port: { roomTone(mic: string): Promise<Measured<numb
 /** Cold read (#2251 item 13): `on` while one runs; `mode` is whether the main button reads cold (chosen in the side menu), `setMode` changes it. */
 export type ColdReadToggle = { on: boolean; mode: boolean; setMode: (cold: boolean) => void; starting?: boolean };
 
-type Mic = Pick<LevelsMenuProps, 'engine' | 'dawName' | 'reachable' | 'offReason' | 'device' | 'onDevice' | 'listen' | 'levels' | 'recorderMeter'>;
+type Mic = Pick<LevelsMenuProps, 'engine' | 'dawName' | 'reachable' | 'offReason' | 'device' | 'onDevice' | 'listen' | 'micNote' | 'levels' | 'recorderMeter'>;
 
 /**
  * The Booth's footer (the mock's `bfoot`): the voice control, then one split button (the Record control from SN-O23 as a slot, the Cold read switch and the Levels menu) and the take timer, why Record

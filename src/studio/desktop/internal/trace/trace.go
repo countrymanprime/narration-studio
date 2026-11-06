@@ -223,7 +223,7 @@ func (t *Tracer) Enabled() bool {
 }
 
 // SetEnabled turns writing to the file on or off. Turning it on saves the per-install salt if it has not been saved and
-// starts the flush timer; turning it off flushes and stops it. The ring keeps filling either way.
+// starts the flush timer; turning it off writes what is buffered, closes the file and stops the timer. The ring keeps filling either way.
 func (t *Tracer) SetEnabled(enabled bool) {
 	if t == nil {
 		return
@@ -242,7 +242,9 @@ func (t *Tracer) SetEnabled(enabled bool) {
 	}
 	stop, done := t.detachFlusherLocked()
 	if t.out != nil {
-		_ = t.out.flush()
+		// Closing writes what is buffered and lets go of the file, so the narrator can delete or move it while the trace is off; the
+		// next record opens it again.
+		_ = t.out.close()
 	}
 	t.mu.Unlock()
 	waitFlusher(stop, done)

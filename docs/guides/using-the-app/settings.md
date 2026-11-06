@@ -50,7 +50,7 @@ Each row has a name, one line on what it does (a **?** beside the name opens the
 
 A change applies at once, with no Save button. The row says **Saved** beside its control. A row that differs from its
 default shows **Changed**, a bar at its edge and a reset button that puts it back; a category with changed rows shows
-how many in the list and a **Reset to defaults** button beside its title. A change that costs something asks first: changing the
+how many in the list and a **Reset to defaults** button beside its title. **Reset to defaults** puts back every changed row in the category: the computer's values, this project's overrides, the choices this window keeps (theme, text sizes, orders and the like), the shortcut list, the recording tool (back to REAPER) and the project's delivery profile (back to the global default). What you entered is not counted as changed and is never reset here: which character each voice track records, your own delivery profiles and your Merriam-Webster key. Each of those is changed or removed in its own row. **Reset to defaults** also leaves five changed rows to their own panels, because putting them back is not a value write: the **Models folder location** (it moves gigabytes and asks first, with its own reset), the default delivery profile, the Story Bible types, the mark types and the credits (it would erase what you wrote). A changed row of the choices this window keeps also has its own **Reset** button (named for the row, for example “Reset Booth text size to its default”) that puts back that one row and leaves focus on it. A change that costs something asks first: changing the
 transcription model says earlier checks are marked out of date and run again. A value the host refuses keeps
 the previous value and says why under the row; the page then notes that changes may not be kept until one succeeds.
 
@@ -134,8 +134,7 @@ the Narrator, the one character it also voices. With the **Flat** layout the row
 
 ![Settings - Recording & DAW with REAPER: Voice sample storage with In the project folder, In the DAW and Both, and Both chosen](../../images/ui/settings-sample-storage.webp)
 
-**Voice sample output** chooses where this project's [voice samples](editing.md#marking-a-voice-sample) play, and is saved with the
-project. With the **Built-in recorder** it lists this computer's outputs after **System default**; **Refresh the list** reads them
+**Voice sample output** chooses where [voice samples](editing.md#marking-a-voice-sample) play, and is kept for every project on this computer. With the **Built-in recorder** it lists this computer's outputs after **System default**; **Refresh the list** reads them
 again, and **Test sound** plays a short tone on the one chosen so you can tell where a sample will come from. A sample always plays
 in the app's own audio, so with a DAW the row is **Test sound** with a **?** beside it: samples play on this computer's default output and the DAW's own audio
 device is not used or changed. An output that is not connected stays chosen, with a notice that samples play on the system default
@@ -281,8 +280,8 @@ The reset button next to **Change location…** moves the downloads back to the 
 ![Settings - Project: the manuscript, the Story Bible rows, the marks and the narrator](../../images/ui/settings-project.webp)
 
 - **Manuscript** says when the manuscript was imported and how many words it has (or **No manuscript yet**), with **Replace manuscript…** (or **Import manuscript** when there is none). **Replace manuscript…** opens the same two steps as the [import](production.md#importing-the-manuscript); step 2 names what the replace clears.
-- **Words per page** (this project, 250 by default, 50 to 1000) is where the [Booth](booth.md) marks a page break: at the end of the paragraph in which a page reaches that many words, counted from the start of each chapter, so a page never breaks inside a paragraph.
-- **Schedule basis** (this project, **Standard** until you choose) is which pace the hours on [Production](production.md) and [Schedule](schedule.md) use: the standard words per finished hour, or **Your own pace**, which takes effect once enough chapters have a measured length (until then the standard is used). It is the same choice as the Schedule basis toggle in Production's target popover, so a change in either shows in the other. If the schedule cannot be read, the row says so and its choices stay off.
+- **Words per page** (kept for every project on this computer, 250 by default, 50 to 1000) is where the [Booth](booth.md) marks a page break: at the end of the paragraph in which a page reaches that many words, counted from the start of each chapter, so a page never breaks inside a paragraph.
+- **Schedule basis** (this project, **Standard** until you choose) is which pace the hours on [Production](production.md) and [Schedule](schedule.md) use: the standard words per finished hour, or **Your pace**, which takes effect once enough chapters have a measured length (until then the standard is used). It is the same choice as the Schedule basis toggle in Production's target popover, so a change in either shows in the other. If the schedule cannot be read, the row says so and its choices stay off.
 - **Build the Story Bible after import** and **Language model for the Story Bible** are for all projects, and a project may override them.
 - **Entry types** lists the kinds of [Story Bible](story-bible.md) entry, each with its name, colour (the swatch is the colour the entries of that type are drawn in on every page), a **Can speak** box (entries of that type can be picked as the speaker of a quoted line, and the next Story Bible build attributes dialogue to them) and how many entries it has, on one line in a wide window (in a narrow one the colour, **Can speak**, the count and the remove button take a second line under the name). A type you add with **New type** does not speak until you tick the box. Rename a type in its box and every entry of it moves with it; change its colour; or remove one: the remove button stays off while entries use the type, and the last type cannot go. A taken or reserved name is refused, and says why under the list.
 - **Marks** lists your mark types, each with its colour, and **tracks a reply** on a type that asks for one. **Edit marks…**, the pencil at the right of the marks, opens the same **Define how you mark up** dialog as the Script page.
@@ -291,7 +290,7 @@ The reset button next to **Change location…** moves the downloads back to the 
 - **Delete Story Bible data** (Advanced) deletes this project's Story Bible and nothing else: the confirm names the project and counts every entry and every suggestion the manuscript scan made (accepted and rejected ones too, so a later scan offers them again), and says that the entries' names, pronunciations, notes, relationships, review flags and speaker colours, the types you added or changed (the default types come back) and who speaks each line of dialogue go with them. It opens on **Cancel** and there is no undo. The script, takes, recordings, settings, voice samples and voice references stay; a character's samples show in **Voice data** as samples for a character no longer in the Story Bible, and an entry added again under the same name has them again. It is refused, with a message, while a scan or a Story Bible build runs. This is the only place the Story Bible's data is deleted.
 - **Clear derived data** (Advanced) removes the imported manuscript and its stored source, the Story Bible, proofing artifacts, reader notes and bookmarks, and saved comparison results for the current project, after you confirm. Its settings remain.
 
-![Settings - Schedule basis under Schedule: Standard or Your own pace, with Your own pace chosen](../../images/ui/settings-schedule-basis.webp)
+![Settings - Schedule basis under Schedule: Standard or Your pace, with Your pace chosen](../../images/ui/settings-schedule-basis.webp)
 
 ![Settings - Replace manuscript, step 2 of 2: the chapter outline, with the line that names what a replace clears](../../images/ui/settings-manuscript.webp)
 
@@ -369,13 +368,25 @@ replacing the manuscript keeps it; if its lines are gone, the panel says so and 
 
 ## App & updates
 
-**Check for updates on startup**, **Update channel**, **Tell me when a long task finishes** (a Windows notification when a long job ends while the app is not in front; on by default) and, under Advanced, **Debug logging**, which writes the reasons behind the app's decisions to the run log: turn it on when asked to send a log. The folder button beside it (**Reveal the log folder in the file manager**) opens the folder the run log is in, so you can attach the log to a bug report. **This version** follows them (see [About and updates](#about-and-updates)).
+**Check for updates on startup**, **Update channel**, **Tell me when a long task finishes** (a Windows notification when a long job ends while the app is not in front; on by default) and, under Advanced, **Debug logging**, which writes the reasons behind the app's decisions to the run log (turn it on when asked to send a log), and **Activity trace**, which records how the app behaved (the DAW connection, tool runs, crashes it survived) to `logs/trace.jsonl` and never your text, names or file paths. A build run from source has the trace on. The folder button beside Debug logging (**Reveal the log folder in the file manager**) opens the folder the run log is in, so you can attach the log to a bug report. **This version** follows them (see [About and updates](#about-and-updates)).
 
 ![Settings - App & updates, Advanced: Debug logging with the Reveal the log folder in the file manager button beside it](../../images/ui/settings-diagnostics.webp)
 
 **First-use tips** (under **Tips**) shows how many of the short tips a page shows once you have dismissed with **Got it**, and **Show tips again** forgets them all, so each shows once more. It is the same list for every project on this computer, and the button is off while none are dismissed. If the list cannot be read, the row says so and offers **Retry**.
 
 ![Settings - First-use tips under Tips after a tip was dismissed: 1 dismissed, and Show tips again](../../images/ui/settings-first-use-tips.webp)
+
+### Diagnostics
+
+Below **This version**, the **Diagnostics bundle** section has one row, **File for a bug report**, with two icon buttons. **Preview the
+diagnostics bundle** opens a window that lists the files the bundle would hold, what it leaves out and why (plain sidecar
+output and the host log are not included), and how many lines the leak check dropped for naming
+you or your project. It writes nothing. **Save the diagnostics bundle** asks for a folder, saves one zip there and copies its path;
+attach the zip to a GitHub issue yourself, since the app sends nothing. The bundle holds how the app behaved (screens,
+tool runs, the DAW connection, failures) and never your text, names or file paths. The **Activity trace** row above records
+it to disk; with it off, the bundle holds only what the app kept in memory since it started.
+
+![Settings - the diagnostics bundle preview](../../images/ui/settings-diagnostics-preview.webp)
 
 ### About and updates
 

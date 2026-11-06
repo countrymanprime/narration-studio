@@ -34,9 +34,11 @@ var ErrBadStack = errors.New("the takes to stack are not valid")
 // ErrNothingToStack is the refusal for a request with no group: nothing was sent, or the script found nothing to do.
 var ErrNothingToStack = errors.New("nothing to stack")
 
+const stackUnreadable = "The stacking request is not readable, so nothing changed."
+
 var stackRefusals = map[string]error{
-	"The stacking request is not readable, so nothing changed.": ErrBadStack,
-	"The stacking request is too large, so nothing changed.":    ErrBadStack,
+	stackUnreadable: ErrBadStack,
+	"The stacking request is too large, so nothing changed.": ErrBadStack,
 	"Nothing to stack.":    ErrNothingToStack,
 	"Nothing to un-stack.": ErrNothingToStack,
 }
@@ -63,6 +65,10 @@ type StackGroup struct {
 type StackRequest struct {
 	Groups []StackGroup
 	Shift  float64
+	// Folder is the GUID of the chapter's folder of voices, or empty: with it the audio after each passage moves on every track inside the
+	// folder, not only the passage's own, as a `folder|GUID` line after the shift line. A script that does not know the line reads the request as
+	// unreadable and changes nothing (ErrScriptOutdated).
+	Folder string
 }
 
 // TakesStacked is what stack_takes or unstack_takes did: the groups and takes moved, the shift REAPER applied to the
@@ -108,15 +114,21 @@ func (a *Actions) stack(ctx context.Context, command, answer string, request Sta
 		return TakesStacked{}, fmt.Errorf("could not write the takes to stack: %w", err)
 	}
 	defer func() { _ = os.Remove(path) }()
-	events, err := a.request(ctx, command, []string{answer, "ITEM_STALE"}, path)
+	events, err := a.request(ctx, command, []string{answer, "ITEM_STALE", "TRACK_STALE"}, path)
 	if err != nil {
 		var refusal *RefusalError
+		if request.Folder != "" && errors.As(err, &refusal) && refusal.Sentence == stackUnreadable {
+			return TakesStacked{}, fmt.Errorf("%w: it cannot move every voice of a folder, so nothing changed", ErrScriptOutdated)
+		}
 		if errors.As(err, &refusal) && stackRefusals[refusal.Sentence] != nil {
 			return TakesStacked{}, fmt.Errorf("%w: %s", stackRefusals[refusal.Sentence], refusal.Sentence)
 		}
 		return TakesStacked{}, err
 	}
 	event := events[len(events)-1]
+	if event.Tag == "TRACK_STALE" {
+		return TakesStacked{}, &TrackStaleError{GUID: event.Fields[2]}
+	}
 	if event.Tag == "ITEM_STALE" {
 		return TakesStacked{}, &StaleError{GUID: event.Fields[2], Reason: event.Fields[3]}
 	}
@@ -128,7 +140,7 @@ func (a *Actions) stack(ctx context.Context, command, answer string, request Sta
 
 // normalizedStack writes every GUID as the script compares it (upper case in braces), on a copy.
 func normalizedStack(request StackRequest) StackRequest {
-	out := StackRequest{Shift: request.Shift, Groups: make([]StackGroup, len(request.Groups))}
+	out := StackRequest{Shift: request.Shift, Folder: request.Folder, Groups: make([]StackGroup, len(request.Groups))}
 	for i, group := range request.Groups {
 		moves := make([]StackMove, len(group.Moves))
 		for j, move := range group.Moves {
@@ -148,6 +160,9 @@ func validStack(request StackRequest, sign float64) error {
 	}
 	if !finite(request.Shift) || request.Shift*sign < 0 {
 		return fmt.Errorf("%w: shift %v", ErrBadStack, request.Shift)
+	}
+	if request.Folder != "" && !stackGUID.MatchString(normalizeGUID(request.Folder)) {
+		return fmt.Errorf("%w: folder %q", ErrBadStack, request.Folder)
 	}
 	if len(request.Groups) > MaxStackGroups {
 		return fmt.Errorf("%w: %d groups", ErrBadStack, len(request.Groups))
@@ -177,11 +192,14 @@ func validStack(request StackRequest, sign float64) error {
 	return nil
 }
 
-// stackPayload is the file the script reads: `shift|seconds`, then per group `group|item|base take` followed by one
+// stackPayload is the file the script reads: `shift|seconds`, then `folder|GUID` when the chapter's folder is named, then per group `group|item|base take` followed by one
 // `move|take|from|to|length` per later read (docs/architecture/reaper-bridge.md, "Stacking takes").
 func stackPayload(request StackRequest) string {
 	var payload strings.Builder
 	fmt.Fprintf(&payload, "shift|%s\n", formatSeconds(request.Shift))
+	if request.Folder != "" {
+		fmt.Fprintf(&payload, "folder|%s\n", normalizeGUID(request.Folder))
+	}
 	for _, group := range request.Groups {
 		fmt.Fprintf(&payload, "group|%s|%s\n", group.ItemGUID, group.BaseTakeGUID)
 		for _, move := range group.Moves {

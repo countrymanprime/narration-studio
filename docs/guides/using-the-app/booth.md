@@ -111,7 +111,7 @@ With a DAW that has no pre-roll of its own, **Punch pre-roll (seconds)** sets ho
 
 ## Recording
 
-Press **Record** (or Space, or a foot pedal mapped to Space) to start a take, and again to stop it. Space does what the main button says: while **Main button** is set to **Cold read** (see [A cold read](#a-cold-read)), it starts and stops a cold read instead of a take. Record arms only the chapter's
+Press **Record** (or Space, or Enter, or the numpad's Enter, or a foot pedal mapped to Space) to start a take, and again to stop it. Those keys do what the main button says: while **Main button** is set to **Cold read** (see [A cold read](#a-cold-read)), they start and stop a cold read instead of a take. Enter keeps its own job where it has one: with a button focused it presses that button, in a box you type in it is the box's, and while a popover, menu or question is open it belongs to that, so only an Enter pressed from the page itself records. A foot pedal is Space alone, and Space (unlike Enter) still wins over an open popover (see below). Record arms only the chapter's
 track. It starts where your last take on that track stopped, as long as REAPER's edit cursor is still there. Otherwise it starts at
 the end of the last item on the track, so a take never records over audio from a place you did not choose.
 
@@ -201,8 +201,9 @@ in the project's `Recordings` folder (`Take 001.wav`, `Take 002.wav`, …); an e
 ![Booth - a project that records with the built-in recorder: the chip reads Built-in, and Record is ready with no track to link](../../images/ui/booth-builtin-setup.webp)
 
 - **The microphone.** The take records on the microphone you chose in **Record options**. With none chosen it uses the one the project
-  last recorded with if it is still plugged in, then the only one the computer lists. With several listed and none chosen, Record says **Choose the
-  microphone in Record options, then press Record**; with none listed it says **No microphone found** and why. A microphone Windows
+  last recorded with if it is still plugged in, then the only one the computer lists. **Record options** names that same microphone, so
+  what it shows is what the take records on. With several listed and none chosen, **Record options** shows **Choose a microphone…** and
+  Record says **Choose the microphone in Record options, then press Record**; with none listed it says **No microphone found** and why. A microphone Windows
   will not let the app open (another program has it, or the privacy setting blocks it) is refused in the recorder's own words and
   nothing records.
 - **The recorder's own level.** While **Record options** is open, its **Input** meter shows the level the built-in recorder hears on the
@@ -258,10 +259,10 @@ recorder's take; its file stays in `Recordings`.
 starts one in the same press: the text moves to the word, the DAW's cursor goes there and recording starts, so you never press Record first. With a take
 running it records again from there, keeping the earlier audio as a take. The only lead-in is the DAW's own pre-roll (see **Punch** under Record options); the
 Booth adds none. With no take running, the spot is where that passage was recorded before, found in the last recording check and the DAW's items (on a Voice folders project, on the voice that read it, which becomes the voice for the take), and the take records over exactly that spot, after a message that names the track being recorded over ("Recording over ¶ 3 on Hero."); a passage nobody recorded continues from the end of the chapter's audio on every voice, and the Booth says so ("¶ 3 was not recorded before, so the take goes on from the end of the chapter's audio."). When the check is missing or out of date, part of the passage was cut, or it was recorded on two voices, the Booth says so and starts nothing. Pressed again within a moment, it rolls once, not again. Where the DAW would replace the audio instead (Audacity without backups), the Booth asks first ("Roll
-again from ¶ n?") and holds the take while it asks. **R** is always record: with **Main button** set to **Cold read** it still starts a real take, because only Space and the button follow the mode.
+again from ¶ n?") and holds the take while it asks. **R** is always record: with **Main button** set to **Cold read** it still starts a real take, because only the button, Space and Enter follow the mode.
 
 Click a word to start from it. **↑** and **↓** move by phrase, **←** and **→** by word, **=** and **-** change the text size, and
-**F11** takes the window full screen. Hold an arrow and the reading position keeps travelling; Record and Stop (**Space** and the foot pedal) act once, however long they are held. A press on Stop within a second of the take starting (a double click) is ignored, and the Booth says "Recording just started. Press Stop again in a moment if you meant to stop."
+**F11** takes the window full screen. Hold an arrow and the reading position keeps travelling; Record and Stop (**Space**, **Enter**, the numpad's Enter and the foot pedal) act once, however long they are held. A press on Stop within a second of the take starting (a double click) is ignored, and the Booth says "Recording just started. Press Stop again in a moment if you meant to stop."
 
 Right-click the text for **Start from here** (on a phrase), **Bookmark here** (on a word), **Next phrase**, **Back one phrase**,
 **Punch and roll**, **Larger text**, **Smaller text** and **Exit Booth**. **Start from here** marks where the next take starts;
@@ -299,11 +300,11 @@ to start), the footer says why. Listening starts at the same time as the DAW, so
 
 ### A cold read
 
-To read a passage through before recording it, open **Record options** (the caret on the side of **Record**) and choose **Cold read** under **Main button**. The button now reads **Cold read**, outlined in blue so it cannot be mistaken for a take, and its hint says that Space starts a cold read and that nothing is recorded. Press the button or Space to start. Choosing **Record** there again switches the button back. The choice is not kept: when you open the Booth again the button reads **Record**, so a lone Space records, and changing chapter while a cold read listens ends it and puts the button back on **Record** too. Choosing **Start cold read** in the jump menu (Ctrl+K) does both steps at once. The Booth listens as it does during a take, with the engine and model chosen in Settings, and nothing you say leaves this computer. Nothing is recorded. While it listens, the top bar shows **Mic on · cold read** in the recording colour, drawn dashed.
+To read a passage through before recording it, open **Record options** (the caret on the side of **Record**) and choose **Cold read** under **Main button**. The button now reads **Cold read**, outlined in blue so it cannot be mistaken for a take, and its hint says that Space starts a cold read and that nothing is recorded. Press the button, Space or Enter to start. Choosing **Record** there again switches the button back. The choice is not kept: when you open the Booth again the button reads **Record**, so a lone Space records, and changing chapter while a cold read listens ends it and puts the button back on **Record** too. Choosing **Start cold read** in the jump menu (Ctrl+K) does both steps at once. The Booth listens as it does during a take, with the engine and model chosen in Settings, and nothing you say leaves this computer. Nothing is recorded. While it listens, the top bar shows **Mic on · cold read** in the recording colour, drawn dashed.
 
 A second cursor, the **ghost**, follows your voice: the word you have reached has a dashed outline and a muted tint, with a dashed tick above it. The text keeps the ghost in view, so you can read on without touching anything. The real cursor, a filled word with a caret, stays where you left it: the next take starts from there. The progress line and the resume line follow the real cursor too. A click, an arrow key or **Start from here** moves the real cursor, not the ghost. What you read during a cold read is not kept: it never moves the real cursor, sets where you stopped, adds a suspected line or touches a bookmark.
 
-A cold read keeps listening until you stop it: press the button, which now reads **Stop**, press Space, or leave the Booth. It does not stop at a pause or at the end of the chapter. The choice under **Main button** is off while a cold read listens or a take records. Changing chapter ends the cold read, and Escape leaves without asking, since nothing would be lost.
+A cold read keeps listening until you stop it: press the button, which now reads **Stop**, press Space or Enter, or leave the Booth. It does not stop at a pause or at the end of the chapter. The choice under **Main button** is off while a cold read listens or a take records. Changing chapter ends the cold read, and Escape leaves without asking, since nothing would be lost.
 
 ![Booth - a cold read: the dashed ghost on the word you have reached, the real cursor still where the next take starts, and Mic on · cold read in the top bar](../../images/ui/booth-cold-read.webp)
 
@@ -476,6 +477,13 @@ recorded") with **Undo**. With a DAW, that **Undo** takes the take back in the D
 While you read, the Booth marks places where listening suspects something went differently from the script, such as skipped
 words or a restart. They are listed in the side panel as cards, a chip naming what was suspected above the line, where **Dismiss** removes one from the list. Every
 one is only suspected: Transcript Compare over the recording is the authority.
+
+With Moonshine as the listening engine and the tiny Whisper model installed, a second listen rechecks each stretch you finish
+reading a few seconds later. A suspicion it also hears gets a **Confirmed** chip, and its hint in the text says "A second listen
+heard it too." A suspicion it does not hear, because it read the script there, gets a **Not confirmed** chip and a dimmed card
+with no Dismiss button, leaves the count, and is no longer marked in the text. A stopped take does not put it on Pickups, and it is
+not kept as a finding. Nothing waits on the second listen: the highlight follows you as before, and without the model or with the
+Whisper engine a suspicion stays as listening raised it.
 
 A dismissal, and the suspected lines a stopped take puts on Pickups, are each one entry in History, so **Undo** in the toast, Ctrl+Z
 and History all take them back.

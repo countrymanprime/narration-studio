@@ -484,11 +484,14 @@ func (r rangeCutter) DeleteRange(ctx context.Context, request dawport.DeleteRang
 			return refused, nil
 		}
 	}
-	got, err := r.actions.DeleteRange(ctx, request.ItemGUID, request.Start, request.End, bridge.CutMode(request.Mode), request.FadeMs,
+	got, err := r.actions.DeleteRangeInFolder(ctx, request.ChapterTrack, request.ItemGUID, request.Start, request.End, bridge.CutMode(request.Mode), request.FadeMs,
 		request.PadMs, request.RoomTone)
 	var stale *bridge.StaleError
+	var folderGone *bridge.TrackStaleError
 	var refusal *bridge.RefusalError
 	switch {
+	case errors.As(err, &folderGone):
+		return dawport.RefusedStale(messageFolderStale), nil
 	case errors.As(err, &stale):
 		return dawport.RefusedStale("That passage's item is no longer in the REAPER project. Read the project again."), nil
 	case errors.Is(err, bridge.ErrRecording):
@@ -504,6 +507,9 @@ func (r rangeCutter) DeleteRange(ctx context.Context, request dawport.DeleteRang
 	}
 	return dawport.OK(cutMessage(request.Words), true).WithUndoSteps(got.UndoPoints), nil
 }
+
+// messageFolderStale answers an edit that names the chapter's folder of voices when REAPER no longer has it.
+const messageFolderStale = "That chapter's folder is no longer in the REAPER project. Read the project again."
 
 // messageCutScriptOutdated answers a pad or room tone sent to a script older than them, which refused and cut nothing.
 const messageCutScriptOutdated = "The app's script in REAPER is older than this app and cannot pad a cut or fill it with room tone, so nothing was cut. Import the script again from this app's REAPER folder."
@@ -920,7 +926,7 @@ func (r takeStacker) refused() (dawport.Result, bool) {
 // stackRequest is the port's request in bridge's terms: a group's Base is its first read's take, and a move's TakeID the later
 // read's take, both as REAPER's GUIDs.
 func stackRequest(request dawport.StackRequest) bridge.StackRequest {
-	out := bridge.StackRequest{Shift: request.Shift}
+	out := bridge.StackRequest{Shift: request.Shift, Folder: request.ChapterTrack}
 	for _, group := range request.Groups {
 		moves := make([]bridge.StackMove, 0, len(group.Moves))
 		for _, move := range group.Moves {
@@ -935,10 +941,15 @@ func stackRequest(request dawport.StackRequest) bridge.StackRequest {
 // (studio-next/src/fixtures/daw.ts); ok is false, with a nil error, when err is nil.
 func stackRefused(err error) (dawport.Result, bool, error) {
 	var stale *bridge.StaleError
+	var folderGone *bridge.TrackStaleError
 	var refusal *bridge.RefusalError
 	switch {
 	case err == nil:
 		return dawport.Result{}, false, nil
+	case errors.As(err, &folderGone):
+		return dawport.RefusedStale(messageFolderStale), true, nil
+	case errors.Is(err, bridge.ErrScriptOutdated):
+		return dawport.Refused(messageStackScriptOutdated), true, nil
 	case errors.As(err, &stale):
 		return dawport.RefusedStale("That item changed in REAPER since the app read it. Nothing was changed."), true, nil
 	case errors.Is(err, bridge.ErrNothingToStack):
@@ -952,6 +963,9 @@ func stackRefused(err error) (dawport.Result, bool, error) {
 	}
 	return dawport.Result{}, false, err
 }
+
+// messageStackScriptOutdated answers a folder sent to a script older than it, which refused and moved nothing.
+const messageStackScriptOutdated = "The app's script in REAPER is older than this app and cannot move every voice of a folder, so nothing was changed. Import the script again from this app's REAPER folder."
 
 // takesMessage words a stack or un-stack as the mock does (studio-next/src/state/daw.ts, restack).
 func takesMessage(verb string, takes int) string {

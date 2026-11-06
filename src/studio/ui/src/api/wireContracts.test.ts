@@ -196,7 +196,15 @@ import {
   guidePronunciationSchema,
 } from './schemas/storyBible';
 import { approvedCharacterReferencesSchema, characterRegionsSchema, characterReferenceSchema } from './schemas/character';
-import { bootstrapSchema, copyDiagnosticsResultSchema, projectAttachStateSchema, readySchema, windowZoomSchema } from './schemas/system';
+import {
+  bootstrapSchema,
+  diagnosticsPreviewSchema,
+  projectAttachStateSchema,
+  readySchema,
+  saveDiagnosticsResultSchema,
+  traceBatchResultSchema,
+  windowZoomSchema,
+} from './schemas/system';
 import {
   readAloudReaperStateSchema,
   readAloudRecordingSchema,
@@ -756,6 +764,19 @@ describe('answers of the mock client (it must pass the schemas the real host ans
     expect(new Set(events.map((event) => (event as { kind: string }).kind))).toEqual(new Set(['misread', 'skipped', 'restart', 'extra']));
   });
 
+  it('a teleprompter session whose suspected flags the confirmation pass has judged (checked)', async () => {
+    const api = createMockApi({}, { teleprompter: 'checked' });
+    const events: { type: string; id?: number; state?: string }[] = [];
+    api.subscribeTeleprompterEvent((event) => events.push(event));
+    expectMatches(teleprompterStateSchema, await api.teleprompterState(), 'mock teleprompter checked');
+    await vi.waitFor(() => expect(events.some((event) => event.type === 'flag_check')).toBe(true));
+    for (const event of events) expectMatches(teleprompterEventSchema, event, 'mock teleprompter checked event');
+    const flagIds = new Set(events.filter((event) => event.type === 'flag').map((event) => event.id));
+    const verdicts = events.filter((event) => event.type === 'flag_check');
+    expect(verdicts.map((event) => event.state)).toEqual(['confirmed', 'cleared']);
+    for (const verdict of verdicts) expect(flagIds.has(verdict.id)).toBe(true);
+  });
+
   it('the teleprompter device list', async () => {
     const api = createMockApi();
     expectMatches(teleprompterDevicesResultSchema, await api.teleprompterDevices(), 'mock teleprompter devices');
@@ -1212,9 +1233,11 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     await expect(api.systemLookup('two words')).rejects.toThrow(/single word/);
   });
 
-  it('copy diagnostics answers the saved path', async () => {
+  it('save diagnostics answers the saved path and the preview answers the manifest', async () => {
     const api = createMockApi();
-    expectMatches(copyDiagnosticsResultSchema, await api.systemCopyDiagnostics('last_run'), 'mock copy diagnostics');
+    expectMatches(saveDiagnosticsResultSchema, await api.systemSaveDiagnostics(), 'mock save diagnostics');
+    expectMatches(traceBatchResultSchema, await api.systemTraceBatch('{"events":[]}'), 'mock trace batch');
+    expectMatches(diagnosticsPreviewSchema, await api.systemDiagnosticsPreview(), 'mock diagnostics preview');
   });
 
   it('the window zoom binding reads and sets a level', async () => {
@@ -4439,7 +4462,9 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'ready',
       'bootstrap',
       'systemLookup',
-      'systemCopyDiagnostics',
+      'systemDiagnosticsPreview',
+      'systemSaveDiagnostics',
+      'systemTraceBatch',
       'windowZoom',
       'windowSetZoom',
       'saveSettings',
@@ -4879,6 +4904,16 @@ describe('one deliberately broken sample per boundary fails with a specific mess
   it('a live event (a position with a text read index)', () => {
     const position = (readGolden('teleprompter-events.json') as Array<{ type: string }>).find((event) => event.type === 'position');
     expect(failure(teleprompterEventSchema, { ...position, read: 'four' }, 'teleprompter:event').issues.map((issue) => issue.path)).toEqual(['read']);
+  });
+
+  it('a live event (the confirmation pass settling a flag): the golden parses and a state the UI does not know does not', () => {
+    const events = readGolden('teleprompter-flag-check.json') as Array<{ type: string }>;
+    for (const event of events) expectMatches(teleprompterEventSchema, event, 'teleprompter flag and flag_check golden');
+    const check = events.find((event) => event.type === 'flag_check');
+    expect(new Set(events.filter((event) => event.type === 'flag_check').map((event) => (event as { state?: string }).state))).toEqual(
+      new Set(['confirmed', 'cleared']),
+    );
+    expect(failure(teleprompterEventSchema, { ...check, state: 'maybe' }, 'teleprompter:event').issues.map((issue) => issue.path)).toEqual(['state']);
   });
 
   it('a live event (a flag of a kind the UI does not know)', () => {

@@ -494,9 +494,10 @@ H.test('delete_range without pad or room tone is unchanged', function()
   H.eq(#room_tone_pieces(p.chapter), 0)
 end)
 
-H.test('a fade field with more than fade, pad and room tone is refused as a fade', function()
+-- The fourth part is the chapter's folder (folder_edit_test.lua); a fifth is nothing the command knows.
+H.test('a fade field with more than fade, pad, room tone and folder is refused as a fade', function()
   local s, p = with_room_tone()
-  refused(s, p, 'The fade must be a whole number of milliseconds from 0 to 500.', p.item.guid, '14', '16', 'gap', '0', '', '1', 'x')
+  refused(s, p, 'The fade must be a whole number of milliseconds from 0 to 500.', p.item.guid, '14', '16', 'gap', '0', '', '1', 'x', 'y')
 end)
 
 -- 8. gap trims by item and seconds (SN-E112) ---------------------------------------------------------------------------

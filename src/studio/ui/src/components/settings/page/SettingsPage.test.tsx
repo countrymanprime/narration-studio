@@ -8,6 +8,7 @@ import { createMockApi } from '../../../api/mockApi';
 import { ThemeProvider } from '../../../theme/ThemeContext';
 import type { NarrationApi } from '../../../types';
 import { SettingsPage } from './SettingsPage';
+import { ROWS } from '../registry/rows';
 import { brand } from '../../../brand.gen';
 
 afterEach(() => {
@@ -494,6 +495,159 @@ describe('Settings: the checks that had no editor now have a row (issue 1867)', 
       await waitFor(() => expect(save).toHaveBeenCalledWith(tool, 'project', { [key]: '2' }));
     },
   );
+});
+
+describe('Settings: Reset to defaults reaches every row Changed counts (issue 2605)', () => {
+  it('puts back the rows this window keeps and the simple custom rows, and the Changed count goes with them', async () => {
+    localStorage.setItem('narration-ui-theme', 'dark');
+    localStorage.setItem('narration.booth.textSize', '56');
+    localStorage.setItem('narration.storyBible.sort', JSON.stringify([{ column: 'mentions', dir: 'desc' }]));
+    localStorage.setItem('narration-ui-ribbon-scroll-step', '25');
+    await renderPage();
+    pick('Appearance & keys');
+    await waitFor(() => expect(within(nav()).getByLabelText('4 changed')).toBeTruthy());
+    fireEvent.click(await screen.findByRole('button', { name: 'Reset to defaults' }));
+    await waitFor(() => expect(within(nav()).queryByLabelText(/changed$/)).toBeNull());
+    expect(localStorage.getItem('narration.booth.textSize')).toBe('40');
+    expect(JSON.parse(localStorage.getItem('narration.storyBible.sort')!)).toEqual([{ column: 'name', dir: 'asc' }]);
+    expect(localStorage.getItem('narration-ui-ribbon-scroll-step')).toBe('20');
+    expect(localStorage.getItem('narration-ui-theme')).toBe('system');
+    expect(screen.queryByRole('button', { name: 'Reset to defaults' })).toBeNull();
+  });
+
+  const badge = (category: string) => within(within(nav()).getByRole('button', { name: new RegExp(`^${category}`) })).queryByLabelText(/ changed$/);
+
+  it('resets the rows whose value the host holds too: the zoom and the shortcut list, and the schedule basis', async () => {
+    const api = createMockApi();
+    await api.windowSetZoom(1.25);
+    await api.saveSettings('Keymap', 'global', { overrides: JSON.stringify({ version: 1, bindings: [{ command: 'app.undo', keys: ['Ctrl+Y'] }] }) });
+    await api.setProductionRateBasis('own');
+    await renderPage({ api });
+    pick('Appearance & keys');
+    await waitFor(() => expect(badge('Appearance')?.getAttribute('aria-label')).toMatch(/^[2-9] changed$/));
+    fireEvent.click(await screen.findByRole('button', { name: 'Reset to defaults' }));
+    await waitFor(() => expect(badge('Appearance')).toBeNull());
+    expect((await api.windowZoom()).level).toBe(1);
+    const keymap = (await api.settingsForScope('global')).Keymap?.find((field) => field.key === 'overrides');
+    expect(keymap?.isSet).toBe(false);
+    pick('Project');
+    await waitFor(() => expect(badge('Project')?.getAttribute('aria-label')).toBe('1 changed'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Reset to defaults' }));
+    await waitFor(async () => expect((await api.productionPlan()).rateBasis).not.toBe('own'));
+    await waitFor(() => expect(badge('Project')).toBeNull());
+  });
+
+  it('names a field row the host refused, still resets the others, and does not run twice on a double click', async () => {
+    const api = createMockApi();
+    await api.saveSettings('General', 'global', { notifications: 'false', debug_logging: 'true' });
+    const real = api.saveSettings.bind(api);
+    const calls: string[] = [];
+    vi.spyOn(api, 'saveSettings').mockImplementation(async (tool, scope, values) => {
+      calls.push(`${tool}:${JSON.stringify(values)}`);
+      if ('notifications' in values) throw new Error('disk full');
+      return real(tool, scope, values);
+    });
+    const notify = vi.fn();
+    await renderPage({ api, notify });
+    pick('App & updates');
+    const button = await screen.findByRole('button', { name: 'Reset to defaults' });
+    fireEvent.click(button);
+    fireEvent.click(button);
+    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringMatching(/Could not reset .*Tell me when a long task finishes/), 'error'));
+    expect(notify).toHaveBeenCalledTimes(1);
+    expect(calls.filter((call) => call.includes('debug_logging'))).toHaveLength(1);
+    expect(calls.filter((call) => call.includes('notifications'))).toHaveLength(1);
+  });
+
+  it('stops resetting when the page is closed, instead of writing the remaining rows afterwards', async () => {
+    const api = createMockApi();
+    await api.saveSettings('General', 'global', { notifications: 'false', debug_logging: 'true' });
+    const real = api.saveSettings.bind(api);
+    const calls: string[] = [];
+    let release: () => void = () => undefined;
+    vi.spyOn(api, 'saveSettings').mockImplementation(async (tool, scope, values) => {
+      calls.push(Object.keys(values).join(','));
+      if (calls.length === 1) await new Promise<void>((resolve) => (release = resolve));
+      return real(tool, scope, values);
+    });
+    await renderPage({ api });
+    pick('App & updates');
+    fireEvent.click(await screen.findByRole('button', { name: 'Reset to defaults' }));
+    await waitFor(() => expect(calls).toHaveLength(1));
+    cleanup();
+    release();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(calls).toHaveLength(1);
+  });
+
+  it('shows the default in every row Reset put back, not the value it had (walkthrough: stale rows)', async () => {
+    localStorage.setItem('narration.booth.textSize', '52');
+    localStorage.setItem('narration-ui-ribbon-scroll-step', '23');
+    localStorage.setItem('narration-ui-motion', 'reduce');
+    localStorage.setItem('narration-ui-editing-output', JSON.stringify({ volume: 50, muted: false, rate: 1.5, device: '' }));
+    const api = createMockApi();
+    await api.windowSetZoom(1.25);
+    await renderPage({ api });
+    pick('Appearance & keys');
+    await waitFor(() => expect(screen.getByRole('slider', { name: 'Booth text size' }).getAttribute('aria-valuetext')).toBe('52 px'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Reset to defaults' }));
+    await waitFor(() => expect(badge('Appearance')).toBeNull());
+    await waitFor(() => expect(screen.getByRole('slider', { name: 'Booth text size' }).getAttribute('aria-valuetext')).toBe('40 px'));
+    expect(screen.getByRole('slider', { name: /Waveform arrow step/ }).getAttribute('aria-valuetext')).toMatch(/^20 s/);
+    expect(screen.getByRole('radio', { name: 'Follow Windows' }).getAttribute('aria-checked')).toBe('true');
+    expect((screen.getByRole('combobox', { name: 'Zoom' }) as HTMLSelectElement).value).toBe('1');
+    expect(screen.getByRole('button', { name: '1×' }).getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('gives a changed row that has no control of its own a Reset, and focus stays on the row after it (walkthrough)', async () => {
+    localStorage.setItem('narration.booth.textSize', '52');
+    localStorage.setItem('narration-ui-motion', 'reduce');
+    await renderPage();
+    pick('Appearance & keys');
+    const size = await waitFor(() => {
+      const found = row('look.boothSize');
+      expect(found).toBeTruthy();
+      return found;
+    });
+    fireEvent.click(within(size).getByRole('button', { name: 'Reset Booth text size to its default' }));
+    await waitFor(() => expect(within(row('look.boothSize')).getByRole('slider').getAttribute('aria-valuetext')).toBe('40 px'));
+    expect(within(row('look.boothSize')).queryByRole('button', { name: /^Reset Booth text size/ })).toBeNull();
+    expect(row('look.boothSize').contains(document.activeElement)).toBe(true);
+    // The rows that already carry their own Reset do not get a second one.
+    expect(within(row('look.motion')).getAllByRole('button', { name: /^Reset / })).toHaveLength(1);
+  });
+
+  it('does not count a Merriam-Webster key as changed, and shows no Reset for it: a secret the narrator pasted has no default', async () => {
+    const api = createMockApi();
+    vi.spyOn(api, 'pronunciationOnlineKeyStatus').mockResolvedValue({ present: true } as never);
+    await renderPage({ api });
+    pick('Voice & pronunciation');
+    await screen.findByRole('heading', { level: 2, name: 'Voice & pronunciation' });
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(within(nav()).queryByLabelText(/changed$/)).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Reset to defaults' })).toBeNull();
+  });
+});
+
+describe('Settings: a row that saves for every project does not say it is this project’s (issue 2605)', () => {
+  it('words per page says it is kept for all projects, as it is saved on this computer', async () => {
+    await renderPage();
+    pick('Project');
+    const wordsPerPage = await waitFor(() => {
+      const found = row('project.wordsPerPage');
+      expect(found).toBeTruthy();
+      return found;
+    });
+    expect(within(wordsPerPage).queryByText('This project')).toBeNull();
+    expect(within(wordsPerPage).getByText('All projects')).toBeTruthy();
+  });
+
+  it('every row drawn as this project’s but saved with a host field says in its help that it is kept for every project', () => {
+    for (const meta of ROWS.filter((candidate) => candidate.scope === 'project' && candidate.field)) {
+      expect(meta.more ?? '', `${meta.id} saves at the computer scope`).toMatch(/every project/i);
+      expect(meta.desc, `${meta.id} calls itself this project’s`).not.toMatch(/this project/i);
+    }
+  });
 });
 
 describe('Settings: search and filters', () => {

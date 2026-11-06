@@ -53,7 +53,7 @@ import { ReplacementMarksContext } from '../range/replace/replacementMarks';
 import { useReplaceAudio } from '../range/replace/useReplaceAudio';
 import { useVoiceSample } from '../voicesample/useVoiceSample';
 import { TimelineStrip, type TimelineStripProps } from '../strip/TimelineStrip';
-import { useKeepTakes } from '../takes/keepTake';
+import { createLineBusy, useKeepTakes } from '../takes/keepTake';
 import { useHideOthers } from '../takes/prep/useHideOthers';
 import { usePrepSteps } from '../takes/prep/usePrepSteps';
 import { dawSplitter } from '../takes/split/splitCommand';
@@ -239,11 +239,12 @@ export function EditingBody(props: EditingBodyProps) {
   const current = activePid(doc, state);
   const currentLine = current ? (lines.byId.get(current) ?? null) : null;
   const dockTake = currentLine?.takes.find((t) => t.active)?.label ?? null;
-  const keep = useKeepTakes(journal, lines.byId);
+  const lineBusy = useMemo(createLineBusy, []);
+  const keep = useKeepTakes(journal, lines.byId, lineBusy);
   const passageOf = useCallback((sel: WordMenuSelection) => lineOfKey(sel.doc, lines.byId, sel.keys[0]), [lines.byId]);
   const currentRef = useRef(currentLine);
   currentRef.current = currentLine;
-  const hide = useHideOthers({ journal, kept: keep.kept, current: () => currentRef.current, passageOf });
+  const hide = useHideOthers({ journal, kept: keep.kept, current: () => currentRef.current, passageOf, busy: lineBusy });
   const prep = usePrepSteps({ journal, hidden: hide.hiddenIds });
   const lineTakes = useLineTakes(currentLine, keep.keep);
   const [openLines, setOpenLines] = useState<ReadonlySet<string>>(new Set());
@@ -552,7 +553,7 @@ export function EditingBody(props: EditingBodyProps) {
       {chapterLink.dialog}
       <div className="min-h-0 flex-1 pb-3 [&>div]:h-full">
         <DrawerLayout open={drawerOpen} onClose={closeDrawer} drawer={drawer}>
-          <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[10px] border border-[var(--border)] bg-[var(--surface)]">
+          <div className="flex h-full min-h-0 flex-col overflow-x-hidden overflow-y-auto rounded-[10px] border border-[var(--border)] bg-[var(--surface)]">
             <EditingHeader
               stepper={props.stepper}
               legend={<Legend doc={doc} noAudio={read.audio.kind !== 'ready'} />}
@@ -693,7 +694,8 @@ function ScriptHost({ box, root, children }: { box: RefObject<HTMLElement | null
   useEffect(() => {
     box.current = root.current?.querySelector<HTMLElement>('[data-script]') ?? null;
   });
-  return <div className="relative flex min-h-0 flex-1 flex-col">{children}</div>;
+  // The script keeps room to read in a window too short for the header, the dock and the bar around it; the card scrolls then, so the dock sits under the script and not over it (#2804).
+  return <div className="relative flex min-h-32 flex-1 flex-col">{children}</div>;
 }
 
 /**

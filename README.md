@@ -20,7 +20,7 @@ logic is DAW-agnostic; a thin per-DAW driver wires it into a specific host.
 The tools share one native UI, shown below on the Production page, plus a manuscript reader and a Settings page that also lists,
 verifies and removes the voices and models the app has downloaded (Settings > Models & downloads). See
 [Using the app](docs/guides/using-the-app/README.md) for a full screenshot walkthrough. The UI's component library is a
-Storybook atlas (`pnpm --dir src/studio/ui run storybook`, checked in CI by the `ui-atlas` job); its generated reference is in
+Storybook atlas (`pnpm --dir src/studio/ui run storybook`, checked in CI by the `ui-unit` jobs); its generated reference is in
 [`docs/ui/atlas/`](docs/ui/atlas/index.md) and the design rules in the [design system reference](docs/design/design-system.md).
 The public website (a landing page, the condensed guides, a live demo of the app and the Storybook atlas) is built from
 [`src/web`](docs/operations/public-demo-site.md) and deployed to GitHub Pages from `main` by
@@ -218,7 +218,7 @@ copy as a network service, must offer the corresponding source under the same te
 including v0.2.7-rc were published under the MIT license and remain available under it.
 
 Every release carries its notices, as a release asset and inside the zip: the third-party licences
-and the AGPL text with a source offer, generated from what the release contains
+and the AGPL text with a source offer, generated from what the release contains (the complete source of a release is this repository at the tag it was built from)
 ([third-party notices](docs/operations/ci-and-releases.md#third-party-notices)). Every model has a
 recorded licence and commercial-use finding, and one with an unclear licence stays out of the
 catalog ([model provenance](docs/architecture/model-provenance.md)). `moonshine-voice` (MIT) ships

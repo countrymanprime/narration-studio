@@ -48,7 +48,7 @@ the mark's underline stays under both.
 
 Each line starts with its time in the chapter (a chapter with nothing heard yet has no times, and its text starts at the
 card's edge). Every line that has takes, one with a single take included, has a takes chip under it: how many takes, a bar for each take with
-the playing one filled, the one that plays, and where the choice stands: **Kept**, **Stacked** (the later reads sit on the
+the playing one filled (once you keep a take, the kept one), the name of that take, which stays at every window width, and where the choice stands: **Kept**, **Stacked** (the later reads sit on the
 first read's spot), **Duplicate read** (the take reads the line twice) or **To choose** (no take is active in the DAW). **Kept** is the take the DAW plays, the same take Proof marks Kept, so it reads the same after you reopen the project. Tab visits one chip, the one on the
 line the cursor is on (the first before there is a cursor), so the script is not forty stops; **T** opens the takes of the
 cursor's line (and folds them again on a line with one take), and a click on a chip opens any other. The takes list
@@ -465,6 +465,10 @@ read, select and play; the actions that change the DAW (delete, mute, effects, k
 
 With no track linked to the chapter there is nothing to edit yet. The legend reads **No audio to edit**, the script shows no
 word as not read, and the dialog described above lists the tracks to link.
+
+A chapter linked to a folder of voice tracks (the Voice folders layout) has its audio on the folder's tracks, nested folders included, so the page reads and plays what is on any of them. Only when none of them holds audio does it say the folder has no audio on any of its voice tracks, and to record the chapter onto a voice track inside the folder and save the project.
+
+In that layout the edits that act on a take where it is (splitting a double read into takes, lowering breaths, repairing a click, an effect on a range, a cut that leaves a gap) work on the voice that read the words. Closing a cut, shortening a gap, replacing words, putting them back, stacking takes and unstacking them move the audio after them on every voice of the folder together, in one undo step, and are refused when another voice has audio inside the stretch that would be removed or replaced, or where stacked reads sit.
 
 ![Editing with no track linked - the dialog naming the chapter and with its track dropdown, the best match chosen](../../images/ui/editing-unlinked.webp)
 

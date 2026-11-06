@@ -128,6 +128,7 @@ type Position struct {
 // was read from, where those words were located (in tracker positions, see
 // Tracker.OriginalIndex) and each word's Times (nil where the event had none).
 type SegmentReading struct {
+	Segment         float64
 	Heard, HeardRaw []string
 	Anchor          int
 	Location        Location
@@ -166,6 +167,22 @@ type Tracker struct {
 	hasProgress    bool
 	progressAt     float64
 	emitted        state
+	spoken         bool
+}
+
+// SpokenForms makes the tracker count a heard word that is said like a script word (a homophone, a possessive, a number as
+// digits or as a word) as a match, the single-word forms Transcript Compare and the flags forgive. A tracker without it
+// matches by spelling alone, which the frozen booth-parity goldens pin.
+func (t *Tracker) SpokenForms() *Tracker {
+	t.spoken = true
+	return t
+}
+
+func (t *Tracker) locate(heard, script []string, anchor int) Location {
+	if t.spoken {
+		return locate(heard, script, anchor, liveAdvance)
+	}
+	return Locate(heard, script, anchor)
 }
 
 // New is ScriptTracker(tokens): punctuation-only tokens carry no tracker
@@ -196,7 +213,7 @@ func (t *Tracker) Feed(event Event, now float64) []Position {
 	switch event.Type {
 	case "partial":
 		t.enterSegment(event.Segment)
-		t.moveDisplay(Locate(heardWords(event.Words), t.script, t.anchor), now)
+		t.moveDisplay(t.locate(heardWords(event.Words), t.script, t.anchor), now)
 	case "word":
 		t.onConfirmedWord(event, now)
 	case "segment_end":
@@ -252,7 +269,7 @@ func (t *Tracker) onConfirmedWord(event Event, now float64) {
 	t.confirmed = append(t.confirmed, word)
 	t.confirmedRaw = append(t.confirmedRaw, event.Word)
 	t.confirmedTimes = append(t.confirmedTimes, event.Times)
-	location := Locate(t.confirmed, t.script, t.anchor)
+	location := t.locate(t.confirmed, t.script, t.anchor)
 	t.confirmedAt = &location
 	t.committed = location.Read
 	t.moveDisplay(location, now)
@@ -264,7 +281,7 @@ func (t *Tracker) onSegmentEnd() {
 	}
 	if t.confirmedAt != nil {
 		t.closed = &SegmentReading{
-			Heard: t.confirmed, HeardRaw: t.confirmedRaw, Anchor: t.anchor, Location: *t.confirmedAt, HeardTimes: t.confirmedTimes,
+			Segment: t.segment, Heard: t.confirmed, HeardRaw: t.confirmedRaw, Anchor: t.anchor, Location: *t.confirmedAt, HeardTimes: t.confirmedTimes,
 		}
 	}
 	t.anchor = t.committed
