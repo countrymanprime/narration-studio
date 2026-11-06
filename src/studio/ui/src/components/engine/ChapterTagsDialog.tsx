@@ -76,7 +76,7 @@ export function ChapterTagsDialog({ onClose }: { onClose: () => void }) {
       {previewError && <ToolResult tone="danger" message={previewError} />}
       {!previewError && preview.chapters.length === 0 && (
         <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-          No chapter render is configured yet. Use &ldquo;Prepare chapter render…&rdquo; in DAW tools on Editing, Proof or Master first.
+          No chapter render is configured yet. Use &ldquo;Prepare chapter render…&rdquo; in DAW tools on Editing, Proof or Master &amp; QC first.
         </p>
       )}
       {preview.chapters.length > 0 && (

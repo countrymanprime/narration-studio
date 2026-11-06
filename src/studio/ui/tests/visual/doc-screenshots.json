@@ -973,6 +973,13 @@
     "caption": "Settings - Recording & DAW: Voice sample output with the built-in recorder and an output chosen, with Refresh the list and Test sound"
   },
   {
+    "page": "settings",
+    "state": "recording-sample-storage",
+    "viewport": "desktop",
+    "docName": "settings-sample-storage",
+    "caption": "Settings - Recording & DAW with REAPER: Voice sample storage with In the project folder, In the DAW and Both, and Both chosen"
+  },
+  {
     "page": "editing",
     "state": "voice-sample-dialog",
     "viewport": "desktop",
@@ -1174,6 +1181,13 @@
     "viewport": "desktop",
     "docName": "delivery-measured",
     "caption": "Delivery with the book checked: the chapters passing in Before you build, and Output waiting on the rest"
+  },
+  {
+    "page": "delivery",
+    "state": "check-running",
+    "viewport": "desktop",
+    "docName": "delivery-check-running",
+    "caption": "Delivery with Check files… pressed: the measurement part way through, with its progress bar and Cancel under Before you build"
   },
   {
     "page": "shell",
@@ -1433,6 +1447,13 @@
     "viewport": "desktop",
     "docName": "storybible-voice-samples",
     "caption": "Story Bible - the Queen of Hearts entry with four voice samples: the primary, one whose passage changed, one whose audio file is missing"
+  },
+  {
+    "page": "storybible",
+    "state": "voice-samples-daw",
+    "viewport": "desktop",
+    "docName": "storybible-voice-samples-daw",
+    "caption": "Story Bible - the Queen of Hearts with samples kept in REAPER: Not saved in REAPER yet, Region removed and Region moved"
   },
   {
     "page": "storybible",

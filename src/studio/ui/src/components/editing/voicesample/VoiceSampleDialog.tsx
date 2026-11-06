@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
-import { VOICE_SAMPLE_LABEL_MAX, VOICE_SAMPLE_NOTE_MAX } from '../../../api/contracts/voiceSamples';
+import { VOICE_SAMPLE_LABEL_MAX, VOICE_SAMPLE_NOTE_MAX, type VoiceSampleStorage } from '../../../api/contracts/voiceSamples';
 import { Button } from '../../primitives/Button';
 import { Checkbox } from '../../primitives/Checkbox';
 import { FIELD_LABEL_CLASSES } from '../../primitives/Field';
+import { HelpButton } from '../../primitives/HelpButton';
 import { Icon } from '../../primitives/Icon';
 import { IconButton } from '../../primitives/IconButton';
 import { Select } from '../../primitives/Select';
@@ -39,6 +40,8 @@ export type VoiceSampleDialogProps = {
   counts: Readonly<Record<string, number>>;
   /** How many samples a character may have. */
   limit: number;
+  /** Where the sample will be kept (the `VoiceSamples.storage` setting); the line under the checkbox says it. Absent is the project folder. */
+  storage?: VoiceSampleStorage;
   initialCharacterId: string;
   /** Saves the sample; a refusal or a failure comes back as its sentence and the dialog stays. */
   onSave: (values: VoiceSampleValues) => Promise<{ ok: true } | { ok: false; message: string }>;
@@ -46,6 +49,20 @@ export type VoiceSampleDialogProps = {
 };
 
 const COULD_NOT_PLAY = "That stretch couldn't be played. Check that its audio file is still where the project expects it.";
+
+/** Where the sample will be kept, as a short status under the checkbox: the Settings row "Voice sample storage" chooses it. */
+const STORAGE_STATUS: Record<VoiceSampleStorage, string> = {
+  project: 'Kept in the project folder',
+  both: 'Kept in the project folder and the DAW',
+  daw: 'Kept in the DAW',
+};
+
+/** What each choice does, behind the "?" beside the status. */
+const STORAGE_HELP: Record<VoiceSampleStorage, string> = {
+  project: 'Copies the raw recording, as it was before editing, into this project. Nothing leaves your computer.',
+  both: 'Copies the raw recording, as it was before editing, into this project, and adds a region named for the character and label to the DAW’s project.',
+  daw: 'Adds a region named for the character and label to the DAW’s project, with no copy of the audio. Moving the region there moves the sample; deleting it ends the sample.',
+};
 
 const alert = 'm-0 rounded-lg bg-[var(--warn-soft)] px-3 py-2.5 text-sm';
 
@@ -63,6 +80,7 @@ export function VoiceSampleDialog({
   choices,
   counts,
   limit,
+  storage = 'project',
   initialCharacterId,
   onSave,
   onCancel,
@@ -227,9 +245,10 @@ export function VoiceSampleDialog({
           <Checkbox checked={makePrimary} onChange={setPrimaryChoice} disabled={blocked}>
             Make primary for {name}
           </Checkbox>
-          <p className="m-0 text-sm text-[var(--text-muted)]">
-            Copies the raw recording, as it was before editing, into this project. Nothing leaves your computer.
-          </p>
+          <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]" data-voice-sample-storage={storage}>
+            {STORAGE_STATUS[storage]}
+            <HelpButton label="About where the sample is kept">{STORAGE_HELP[storage]}</HelpButton>
+          </div>
         </>
       )}
       {failure ? (

@@ -140,7 +140,7 @@ function DawMic() {
         {told?.outputDevice ? <span className={NOTE_CLASS}>{`${dawName} plays on ${told.outputDevice}.`}</span> : null}
         {/* Below `sm` the first button keeps its width and the last one takes the rest of the row, so the pair ends at the row's edge, flush with the
             connection card above (alignment audit A4 at 390 px); the long label never has to wrap to fit a half column (W1). */}
-        <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:items-center [&>span:last-child]:flex-1 sm:[&>span:last-child]:flex-none [&>span:last-child_button]:w-full sm:[&>span:last-child_button]:w-auto">
+        <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:items-center max-sm:[&>span]:flex-auto max-sm:[&>span_button]:w-full [&>span:last-child]:flex-auto sm:[&>span:last-child]:flex-none [&>span:last-child_button]:w-full sm:[&>span:last-child_button]:w-auto">
           {different}
           {checkAgain}
         </div>

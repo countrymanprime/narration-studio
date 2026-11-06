@@ -79,7 +79,7 @@ describe('DeliveryPage', () => {
     expect(embed.getAttribute('aria-disabled')).toBeNull();
     await user.click(embed);
     const dialog = await screen.findByRole('dialog', { name: 'Embed chapter tags' });
-    expect(await within(dialog).findByText(/Prepare chapter render….? in DAW tools on Editing, Proof or Master/)).toBeTruthy();
+    expect(await within(dialog).findByText(/Prepare chapter render….? in DAW tools on Editing, Proof or Master & QC first/)).toBeTruthy();
     await user.keyboard('{Escape}');
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     await waitFor(() => expect(document.activeElement).toBe(embed));
@@ -339,6 +339,46 @@ describe('DeliveryPage', () => {
       const build = screen.getByRole('button', { name: 'Build 1 package' });
       await waitFor(() => expect(build.getAttribute('aria-disabled')).toBe('true'));
       expect(within(screen.getByRole('region', { name: 'All platforms' })).getByText('Every chapter has to pass first.')).toBeTruthy();
+    });
+  });
+
+  describe('Check files on the preflight (#2825)', () => {
+    it('picks and measures files from Delivery with the same button Master has, and shows the result in the list', async () => {
+      const measurePickFiles = vi.fn(async () => ({ paths: ['C:/files/Chapter 01.wav'] }));
+      const measureAnalyze = vi.fn(async () => measureJob([passing('Chapter 01.wav')]));
+      mount([], { measurePickFiles, measureAnalyze, measureState: async () => ({ ...measureJob([]), phase: 'idle' }) as unknown as MeasureJob });
+      const preflight = await screen.findByRole('region', { name: 'Before you build' });
+      await userEvent.click(await within(preflight).findByRole('button', { name: 'Check files…' }));
+      await waitFor(() => expect(measureAnalyze).toHaveBeenCalledWith(['C:/files/Chapter 01.wav']));
+      expect(measurePickFiles).toHaveBeenCalledOnce();
+      // Once files were measured the same button is Re-check, as on Master.
+      expect(await within(preflight).findByRole('button', { name: /^Re-check 1 file$/ })).toBeTruthy();
+    });
+
+    it('does not start a measurement from a picker that answers after the page was left (qa-breaker B1)', async () => {
+      let answer: (value: { paths: string[] }) => void = () => undefined;
+      const measurePickFiles = vi.fn(() => new Promise<{ paths: string[] }>((resolve) => (answer = resolve)));
+      const measureAnalyze = vi.fn(async () => measureJob([passing('Chapter 01.wav')]));
+      mount([], { measurePickFiles, measureAnalyze, measureState: async () => ({ ...measureJob([]), phase: 'idle' }) as unknown as MeasureJob });
+      const preflight = await screen.findByRole('region', { name: 'Before you build' });
+      await userEvent.click(await within(preflight).findByRole('button', { name: 'Check files…' }));
+      await waitFor(() => expect(measurePickFiles).toHaveBeenCalledOnce());
+      cleanup();
+      answer({ paths: ['C:/files/Chapter 01.wav'] });
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      // Nobody is looking at that run and nothing could cancel it: it is not started.
+      expect(measureAnalyze).not.toHaveBeenCalled();
+    });
+
+    it('shows a running measurement with its progress and Cancel, and Cancel stops it', async () => {
+      const running = { ...measureJob([]), phase: 'running', percent: 40, message: 'Reading Chapter 01.wav' } as unknown as MeasureJob;
+      const measureCancel = vi.fn(async () => ({ ...measureJob([]), phase: 'cancelled', message: 'Stopped at 1 of 4.' }) as unknown as MeasureJob);
+      mount([], { measureState: async () => running, measureCancel });
+      const preflight = await screen.findByRole('region', { name: 'Before you build' });
+      expect(await within(preflight).findByRole('progressbar', { name: 'Measuring' })).toBeTruthy();
+      await userEvent.click(within(preflight).getByRole('button', { name: 'Cancel' }));
+      expect(measureCancel).toHaveBeenCalledOnce();
+      expect(await within(preflight).findByText('Stopped at 1 of 4.')).toBeTruthy();
     });
   });
 });

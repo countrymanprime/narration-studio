@@ -24,6 +24,7 @@ import (
 	"desktop/internal/dawport"
 	"desktop/internal/editlog"
 	"desktop/internal/persist"
+	"desktop/internal/tracks"
 )
 
 // Version is the only samples.json version this package reads or writes.
@@ -77,6 +78,10 @@ const (
 	ReasonProjectLimit      Reason = "project_limit"
 	// ReasonNotFound is an update of a sample that is gone.
 	ReasonNotFound Reason = "not_found"
+	// ReasonDawUnavailable is a sample the narrator chose to keep in the DAW when the DAW cannot label a range (or is not linked).
+	ReasonDawUnavailable Reason = "daw_unavailable"
+	// ReasonDawRefused is the DAW saying no to the region (it is recording, or it did not add it). Nothing was saved.
+	ReasonDawRefused Reason = "daw_refused"
 )
 
 // Reasons lists every reason, in the order the PRD names them.
@@ -84,6 +89,7 @@ func Reasons() []Reason {
 	return []Reason{
 		ReasonStaleAlignment, ReasonNotHeard, ReasonSpansTakes, ReasonSpansCut, ReasonTooShort, ReasonTooLong,
 		ReasonUnsupportedSource, ReasonSourceMissing, ReasonProjectUnreadable, ReasonCharacterLimit, ReasonProjectLimit, ReasonNotFound,
+		ReasonDawUnavailable, ReasonDawRefused,
 	}
 }
 
@@ -131,6 +137,10 @@ func sentence(reason Reason) string {
 		return "Voice samples already use the 200 MiB a project may hold. Delete one first."
 	case ReasonNotFound:
 		return "That voice sample is no longer there."
+	case ReasonDawUnavailable:
+		return "The DAW cannot keep a voice sample. Choose In the project folder in Settings, or link a DAW that can."
+	case ReasonDawRefused:
+		return "The DAW did not add the voice sample's region. Stop recording if it is, then try again."
 	}
 	return "The sample could not be saved."
 }
@@ -229,6 +239,17 @@ type Config struct {
 	Cuts Cuts
 	// Reporter tells the narrator about a file that cannot be read; nil only keeps it aside.
 	Reporter *persist.Reporter
+	// Storage answers where a new sample is kept (StorageProject, StorageDAW or StorageBoth); nil means StorageProject. It is the
+	// VoiceSamples.storage setting.
+	Storage func() string
+	// Regions adds the DAW region a StorageDAW or StorageBoth sample is kept as; nil means the DAW cannot label a range, and a mark
+	// that asks for it is refused (ReasonDawUnavailable).
+	Regions RegionAdder
+	// Unsaved says whether the DAW has edits its saved project does not have yet, so a region it just added is "not saved yet"
+	// and not "missing". nil means false.
+	Unsaved func() bool
+	// CharacterName names a character for a region's name; nil or an empty answer falls back to the id.
+	CharacterName func(characterID string) string
 }
 
 // Service reads and writes a project's voice samples. It holds no state of its own, so the host builds one per call; the
@@ -240,6 +261,10 @@ type Service struct {
 	newID func() string
 	// rename is a test seam for the atomic writes; nil is os.Rename.
 	rename func(oldPath, newPath string) error
+	// project is the saved project, read once per Service by cachedProject.
+	project     tracks.Project
+	projectErr  error
+	projectRead bool
 }
 
 // New returns the service for config.
@@ -305,6 +330,10 @@ type Sample struct {
 	Bytes       int64      `json:"bytes"`
 	ClipState   ClipState  `json:"clipState"`
 	Source      SourceView `json:"source"`
+	// Storage is where the sample is kept, and Daw the state of its DAW region; both are left out for a sample kept only in the
+	// project folder.
+	Storage string   `json:"storage,omitempty"`
+	Daw     *DawView `json:"daw,omitempty"`
 }
 
 // Totals is what the samples add up to.
@@ -347,4 +376,7 @@ type ClipFile struct {
 	Path  string
 	Bytes int64
 	State ClipState
+	// Data is the audio itself, set instead of Path for a sample kept only in the DAW: the window of its source, cut in memory, so
+	// no copy of it is ever written to the project folder.
+	Data []byte
 }
