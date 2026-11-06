@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
@@ -108,8 +108,96 @@ describe('ShowInDawButton (#2826): one button, one label, one host call per kind
     expect(t.findingGoTo).not.toHaveBeenCalled();
   });
 
+  it('the built-in recorder has no DAW to show, so the button is not drawn (the approved mock)', async () => {
+    setup({ kind: 'finding', id: 'f1' }, 'builtin');
+    await waitFor(() => expect(screen.queryByRole('button')).toBeNull());
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(screen.queryByRole('button')).toBeNull();
+  });
+
+  it('a DAW that is not answering says why in the DAW’s own sentence, on the button', async () => {
+    const message = DAW_SETUPS['reaper-off'].capabilities.navigate?.message;
+    expect(message).toBeTruthy();
+    setup({ kind: 'finding', id: 'f1' }, 'reaper-off');
+    const b = await button(/^Show in /);
+    await userEvent.hover(b);
+    expect(await screen.findByText(message!)).toBeTruthy();
+  });
+
   it('a caller can switch it off (a note whose evidence changed)', async () => {
     setup({ kind: 'finding', id: 'f1' }, 'reaper', { disabled: true });
     expect(isOff(await button('Show in REAPER'))).toBe(true);
+  });
+});
+
+describe('ShowInDawButton hostile cases (qa-breaker #2826)', () => {
+  it('B1: a DAW that never answers gives up with a sentence, and the button is free again', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const t = setup({ kind: 'finding', id: 'f1' });
+      t.findingGoTo.mockReturnValue(new Promise(() => {}));
+      await userEvent.setup({ advanceTimers: vi.advanceTimersByTime }).click(await button('Show in REAPER'));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(20000);
+      });
+      expect(t.toast).toHaveBeenCalledWith(expect.stringMatching(/did not answer/), { tone: 'error' });
+      expect((await button('Show in REAPER')).getAttribute('aria-busy')).not.toBe('true');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('B3: an answer that comes after the button is gone says nothing', async () => {
+    const t = setup({ kind: 'finding', id: 'f1' });
+    let answer: (v: never) => void = () => {};
+    t.findingGoTo.mockReturnValue(new Promise((resolve) => (answer = resolve as never)));
+    await userEvent.click(await button('Show in REAPER'));
+    cleanup();
+    await act(async () => answer({ outcome: 'navigated', projectTime: 5 } as never));
+    expect(t.toast).not.toHaveBeenCalled();
+  });
+
+  it('B2: a press in flight does not leak onto the next place the same button is aimed at', async () => {
+    const api = createMockApi();
+    const first = vi.spyOn(api, 'findingsGoTo');
+    let answer: (v: never) => void = () => {};
+    first.mockReturnValueOnce(new Promise((resolve) => (answer = resolve as never)));
+    first.mockResolvedValue({ outcome: 'navigated', projectTime: 9 });
+    const toast = vi.spyOn(overlay, 'toast').mockImplementation(() => '' as never);
+    const daw = createMockDawClient(DAW_SETUPS.reaper, { chapterIds: [], candidateIds: [], findingIds: [] });
+    const ui = (id: string) => (
+      <ApiProvider api={api}>
+        <PortOverrides clients={{ daw }}>
+          <TooltipProvider>
+            <ShowInDawButton target={{ kind: 'pickup', findingId: id }} />
+          </TooltipProvider>
+        </PortOverrides>
+      </ApiProvider>
+    );
+    const { rerender } = render(ui('f1'));
+    await userEvent.click(await button('Show in REAPER'));
+    rerender(ui('f2'));
+    const b = await button('Show in REAPER');
+    expect(b.getAttribute('aria-busy')).not.toBe('true');
+    await userEvent.click(b);
+    await waitFor(() => expect(toast).toHaveBeenCalledWith('Moved to 0:09 in REAPER.'));
+    toast.mockClear();
+    await act(async () => answer({ outcome: 'navigated', projectTime: 5 } as never));
+    expect(toast).not.toHaveBeenCalled();
+  });
+
+  it('B8: a time that is not a number is not printed', async () => {
+    const t = setup({ kind: 'pickup', findingId: 'f9' });
+    t.findingGoTo.mockResolvedValue({ outcome: 'navigated', projectTime: Number.NaN } as never);
+    await userEvent.click(await button('Show in REAPER'));
+    await waitFor(() => expect(t.toast).toHaveBeenCalledWith('Moved in REAPER.'));
+  });
+
+  it('B9: an empty id or chapter is no target: off, nothing asked', async () => {
+    const t = setup({ kind: 'finding', id: '' });
+    const b = await button('Show in REAPER');
+    expect(b.getAttribute('aria-disabled')).toBe('true');
+    await userEvent.click(b);
+    expect(t.findingGoTo).not.toHaveBeenCalled();
   });
 });

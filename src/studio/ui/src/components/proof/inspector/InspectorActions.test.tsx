@@ -89,11 +89,12 @@ describe('actions-follow-the-daw-capability', () => {
     expect(screen.getByRole('button', { name: /^Add marker in Audacity/ })).toBeTruthy();
   });
 
-  it('turns both off with the capability’s own sentence when the DAW offers neither', async () => {
+  // The built-in recorder is not a DAW: Show in is not drawn (the approved mock, #2826); Add marker stays, off, with the capability's sentence.
+  it('draws no Show in and turns Add marker off with the capability’s own sentence when the DAW offers neither', async () => {
     setup(accepted(), 'builtin');
-    const sentence = DAW_SETUPS.builtin.capabilities.navigate.message!;
+    const sentence = DAW_SETUPS.builtin.capabilities.markers.message!;
     await waitFor(() => expect(screen.getByText(sentence)).toBeTruthy());
-    expect(enabled('Show in the DAW')).toBe(false);
+    expect(screen.queryByRole('button', { name: /^Show in / })).toBeNull();
     expect(enabled('Add marker in the DAW')).toBe(false);
   });
 

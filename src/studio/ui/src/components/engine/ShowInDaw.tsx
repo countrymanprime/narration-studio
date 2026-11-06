@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useApi } from '../../api/ApiContext';
 import type { NarrationApi } from '../../types';
 import type { DawCapabilities } from '../../api/contracts/daw';
@@ -25,6 +25,8 @@ const CHECKING = 'Checking what the DAW can do.';
 const ASK_FAILED = 'Could not ask the DAW what it can do.';
 const NO_WORDS = 'These words are not in the script, so the DAW cannot be asked about them.';
 const NO_RECORDING = 'This line has no recording to show.';
+/** How long a press waits for the DAW before it says so and frees the button. */
+const ASK_DEADLINE_MS = 15000;
 const NO_TRACK = 'No chapter track is linked to this chapter yet: link one from the audio engine panel';
 
 /** The DAW the setup names, for a control's label, or "the DAW" while it has not answered or names none. */
@@ -43,9 +45,9 @@ function capabilityReason(caps: DawCapabilities | null, failed: boolean, key: 'n
 function targetReason(target: ShowInDawTarget): string | null {
   switch (target.kind) {
     case 'passage':
-      return target.token === undefined ? NO_WORDS : null;
+      return target.token === undefined || !target.chapterId ? NO_WORDS : null;
     case 'finding':
-      return target.reason ?? null;
+      return target.reason ?? (target.id ? null : NO_RECORDING);
     case 'pickup':
       return target.findingId ? null : NO_RECORDING;
     case 'chapter':
@@ -78,7 +80,9 @@ export async function showInDaw(api: NarrationApi, target: ShowInDawTarget, dawN
         : await api.findingsGoTo(target.kind === 'finding' ? target.id : target.findingId!);
     if (went.outcome === 'refused') return { message: went.message, failed: true };
     const when = target.kind === 'finding' ? noteTime : clock;
-    return went.outcome === 'navigated' ? { message: `Moved to ${when(went.projectTime)} in ${dawName}.`, failed: false } : null;
+    if (went.outcome !== 'navigated') return null;
+    // A host that sends no usable time still moved the DAW: say so without printing NaN.
+    return { message: Number.isFinite(went.projectTime) ? `Moved to ${when(went.projectTime)} in ${dawName}.` : `Moved in ${dawName}.`, failed: false };
   } catch (error) {
     return { message: `The DAW was not asked: ${apiErrorMessage(error)}`, failed: true };
   }
@@ -91,7 +95,7 @@ export async function showInDaw(api: NarrationApi, target: ShowInDawTarget, dawN
 function useShowInDaw(
   target: ShowInDawTarget,
   onResult?: (result: ShowInDawResult) => void,
-): { label: string; reason: string | null; pending: boolean; go: () => void } {
+): { label: string; reason: string | null; pending: boolean; hidden: boolean; go: () => void } {
   const api = useApi();
   const { caps, failed } = useDawCapabilities();
   const [pending, setPending] = useState(false);
@@ -105,14 +109,45 @@ function useShowInDaw(
     },
     [onResult],
   );
+  // The press belongs to the place it was made for: an answer that arrives after the target changed, or the button left, is not said, and a new
+  // place starts free (the Proof inspector keeps one button over every note).
+  const key =
+    target.kind === 'finding'
+      ? `f:${target.id}`
+      : target.kind === 'pickup'
+        ? `p:${target.findingId}`
+        : target.kind === 'passage'
+          ? `w:${target.chapterId}:${target.token}`
+          : `c:${target.trackGuid}`;
+  const live = useRef(key);
+  live.current = key;
+  useEffect(() => {
+    live.current = key;
+    setPending(false);
+    return () => {
+      live.current = '';
+    };
+  }, [key]);
   const go = (): void => {
-    if (reason !== null) return;
+    if (reason !== null || pending) return;
+    const mine = key;
     setPending(true);
-    void showInDaw(api, target, name)
-      .then((result) => result && say(result))
-      .finally(() => setPending(false));
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const deadline = new Promise<ShowInDawResult>((resolve) => {
+      timer = setTimeout(() => resolve({ message: `${name} did not answer. Press Show in again to try once more.`, failed: true }), ASK_DEADLINE_MS);
+    });
+    void Promise.race([showInDaw(api, target, name), deadline])
+      .then((result) => {
+        if (result && live.current === mine) say(result);
+      })
+      .finally(() => {
+        clearTimeout(timer);
+        if (live.current === mine) setPending(false);
+      });
   };
-  return { label: showInDawLabel(name), reason, pending, go };
+  // The built-in recorder is not a DAW: there is no place in a project to show, so no button (the approved mock's last state).
+  const hidden = caps !== null && (caps.daw === 'Built-in' || caps.daw === 'none');
+  return { label: showInDawLabel(name), reason, pending, hidden, go };
 }
 
 /** The Show in {DAW} icon button every page mounts. `disabled` switches it off for a reason of the caller's own (stale evidence). */
@@ -128,6 +163,7 @@ export function ShowInDawButton({
   onResult?: (result: ShowInDawResult) => void;
 }) {
   const show = useShowInDaw(target, onResult);
+  if (show.hidden) return null;
   return (
     <IconButton
       action="showInReaper"

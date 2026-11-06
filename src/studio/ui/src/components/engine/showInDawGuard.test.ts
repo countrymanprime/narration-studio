@@ -36,4 +36,12 @@ describe('one Show in {DAW} (#2826)', () => {
       .map((file) => relative(SRC, file));
     expect(own).toEqual([]);
   });
+
+  it('only ShowInDaw.tsx draws the show-in-the-DAW icon, whatever it is labelled', () => {
+    const own = sources(join(SRC, 'components'))
+      .filter((file) => !file.endsWith('ShowInDaw.tsx'))
+      .filter((file) => /action=["{']+showInReaper/.test(readFileSync(file, 'utf8')))
+      .map((file) => relative(SRC, file));
+    expect(own).toEqual([]);
+  });
 });
