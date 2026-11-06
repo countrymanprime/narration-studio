@@ -90,7 +90,7 @@ function LoadedDelivery({ onOpenInMaster, onOpenMaster }: { onOpenInMaster: (cha
           <OutputPanel
             profile={profile}
             ready={ready && !measuring}
-            waiting={measuring ? 'Measuring the files in Master & QC.' : text}
+            waiting={measuring ? 'Measuring the files.' : text}
             failure={measuring ? undefined : failure}
             build={{ ...build, build: start }}
             showBuilt={built}

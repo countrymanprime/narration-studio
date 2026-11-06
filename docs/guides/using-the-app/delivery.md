@@ -82,7 +82,7 @@ names the first chapter in the way, so you do not have to open Master & QC to le
 chapter it gives the rule it misses, its value and the limit ("Chapter 8: noise floor −57.8 dBFS (limit ≤ −60
 dBFS), and 1 more rule."). When no chapter fails, it names the first chapter that is not ready and why: it has no
 measured file, its file is not measured yet or could not be read, or part of it could not be measured. Until
-anything is measured, it says "Nothing is measured yet. Measure the files in Master & QC." with **Open Master & QC**
+anything is measured, it says "Nothing is measured yet. Use Check files… above." with **Open Master & QC**
 beside it, in the same row, so nothing under Output moves.
 
 While Build is off it is dimmed but still reachable with Tab, and a screen reader reads the reason beside it as
