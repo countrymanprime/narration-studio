@@ -166,7 +166,7 @@ caret back brightens those words again.
 ![Booth - six seconds into a take: the words before the caret are dimmed one by one and the text follows the voice](../../images/ui/booth-following.webp)
 
 A chip under the text, above the footer, names each problem the Booth can fix and opens its dialog again. While it is up the
-footer does not repeat the reason, and the setup chip on the top bar warns too:
+footer does not repeat the reason, and the setup chip on the top bar warns too (**REAPER · no track**, **REAPER · several tracks**, **REAPER · other project**, or **not running** for a DAW that is not connected):
 
 - **Not linked to a track.** The chapter has no track in the DAW project (or several). The dialog opens by itself the first
   time you open the chapter, and again each time you press Record. It offers two fixes:

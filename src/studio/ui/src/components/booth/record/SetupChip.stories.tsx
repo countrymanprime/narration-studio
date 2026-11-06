@@ -63,3 +63,11 @@ export const OtherProjectOpen: Story = {
     await expect(within(canvasElement).getByRole('button', { name: 'Recording setup: REAPER, other project' })).toHaveTextContent('REAPER · other project');
   },
 };
+
+// Connected, but the chapter has no track in the DAW project (or several): the chip warns and says so, as the "Not linked to a track" notice does.
+export const ChapterHasNoTrack: Story = {
+  args: { trackProblem: 'none' },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByRole('button', { name: 'Recording setup: REAPER, no track' })).toHaveTextContent('REAPER · no track');
+  },
+};
