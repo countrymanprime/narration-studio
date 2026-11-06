@@ -72,6 +72,7 @@ Storybook title: `Primitives/SectionLabel`. Source: `src/components/primitives/S
 - `src/components/settings/analysis/AnalysisToolsSection.tsx`
 - `src/components/settings/analysis/ConsentDialog.tsx`
 - `src/components/settings/controls/AboutSection.tsx`
+- `src/components/settings/controls/DiagnosticsSection.tsx`
 - `src/components/settings/page/CategoryPane.tsx`
 - `src/components/settings/page/Results.tsx`
 - `src/components/storybible/suggested/import/ImportDialog.tsx`
