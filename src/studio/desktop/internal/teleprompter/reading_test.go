@@ -249,12 +249,12 @@ func TestWriteReadingReportsAFolderItCannotCreate(t *testing.T) {
 func TestWriteReadingReportsATemporaryFileItCannotWrite(t *testing.T) {
 	project := t.TempDir()
 	writeManuscript(t, project, readingManuscript)
-	// A folder where the temporary file goes makes writing it fail.
-	if err := os.MkdirAll(filepath.Join(ReadingDir(project), readingFileName("c1")+".tmp"), 0o755); err != nil {
+	// A folder with something in it where the file goes makes replacing it fail.
+	if err := os.MkdirAll(filepath.Join(ReadingDir(project), readingFileName("c1"), "keep"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	if err := WriteReading(project, "c1", 1, 4, "listening", readingTime); err == nil {
-		t.Fatal("WriteReading with a folder in the temporary file's place: want an error, got nil")
+		t.Fatal("WriteReading with a folder in the file's place: want an error, got nil")
 	}
 }
 
