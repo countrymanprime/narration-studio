@@ -50,6 +50,9 @@ function Quote({ label, markup, which }: { label: string; markup: string; which:
   );
 }
 
+/** How long after a saved decision another one is ignored. The Inspector remounts for the next note, so the page holds the clock. */
+const DECISION_QUIET_MS = 350;
+
 /**
  * The Studio Next Inspector for one note: the time and type, the steps, what the script says against what was heard, the DAW and link
  * actions, the decision with its optional note, and the check's confidence. It reads no store and imports no router: the note, the host
@@ -70,6 +73,7 @@ export function Inspector({
   onOpenEditing,
   spot,
   typeControl,
+  decisionClock,
 }: {
   finding: Finding;
   api: InspectorHostApi;
@@ -85,6 +89,8 @@ export function Inspector({
   onOpenEditing?: (chapterId: string, findingId: string) => void;
   spot?: ReactNode;
   typeControl?: ReactNode;
+  /** The note the page last saved a decision for and when, so a press for another note just after is ignored (a double press, a held key); absent, nothing is ignored. */
+  decisionClock?: { current: { id: string; at: number } };
 }) {
   const evidence = useShownEvidence({ api, finding, order, onSelect, onChanged });
   const [outcome, setOutcome] = useState<{ message: string; failed: boolean }>();
@@ -96,10 +102,14 @@ export function Inspector({
   const noteLength = [...evidence.note].length;
 
   const decide = async (status: FindingReviewStatus) => {
+    // A press right after a saved decision is the second half of a double press or a held key: the page has already moved to the next note, so it
+    // would decide that one too (#3114).
+    if (decisionClock && decisionClock.current.id !== shown.id && Date.now() - decisionClock.current.at < DECISION_QUIET_MS) return;
     setOutcome(undefined);
     setSaving(status);
     const result = await evidence.decide(status);
     setSaving(undefined);
+    if (result.ok && decisionClock) decisionClock.current = { id: shown.id, at: Date.now() };
     setOutcome(result.ok ? { message: savedMessage(status, fix), failed: false } : { message: result.message, failed: true });
   };
   const step = (delta: -1 | 1) => {
