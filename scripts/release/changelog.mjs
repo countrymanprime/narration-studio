@@ -4,8 +4,8 @@
 // An entry is `{ sha, subject, body }`: one squash-merged pull request as `git log` shows it (its title is the subject, its
 // description the body). `buildChangelog` groups them, `renderChangelog` writes the Markdown for a release page.
 
-/** Section order on the page. */
-export const SECTIONS = ['important', 'added', 'changed', 'fixed'];
+// Section order on the page.
+const SECTIONS = ['important', 'added', 'changed', 'fixed'];
 const TITLES = { important: 'Important', added: 'Added', changed: 'Changed', fixed: 'Fixed' };
 
 // Conventional Commit types that reach a narrator. The rest (docs, chore, ci, test, build, style) change the repository, not the app.
@@ -99,7 +99,7 @@ function reference(entry) {
 }
 
 /** One line per entry: `- Title (#42, closes #7)`. */
-export function renderLine(entry) {
+function renderLine(entry) {
   return `- ${entry.text} ${reference(entry)}`;
 }
 
