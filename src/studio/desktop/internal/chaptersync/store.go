@@ -124,12 +124,8 @@ func (s *Store) writeLocked(file fileShape) error {
 	if err != nil {
 		return err
 	}
-	temp := s.path + ".tmp"
-	if err := os.WriteFile(temp, bytes, 0o600); err != nil {
+	if err := persist.WriteFile(s.path, bytes, 0o600); err != nil {
 		return fmt.Errorf("could not write the chapter sync snapshot: %w", err)
-	}
-	if err := os.Rename(temp, s.path); err != nil {
-		return fmt.Errorf("could not activate the chapter sync snapshot: %w", err)
 	}
 	return nil
 }
