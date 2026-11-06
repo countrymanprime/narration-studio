@@ -42,6 +42,12 @@ async function linkProject(page: Page): Promise<void> {
   await expect(dialog(page).getByRole('button', { name: 'Link project file…' })).toHaveCount(0);
 }
 
+/** The mock's one-press link takes the project REAPER has open, so "another project open" is made after the link: REAPER opens the other one. */
+async function openOtherProject(page: Page): Promise<void> {
+  await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.openProject('other'));
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+}
+
 // Nothing to switch on: on a fresh machine Record is off only because REAPER is not connected, and the connect steps are up.
 async function connectStepsShown(page: Page): Promise<void> {
   await expect(record(page)).toBeDisabled();
@@ -211,6 +217,7 @@ test.describe('Booth with a moving mock DAW', () => {
     await connectStepsShown(page);
     await linkProject(page);
     await startReaper(page);
+    await openOtherProject(page);
     await expect(differentNotice(page)).toBeVisible({ timeout: 15_000 });
     await expect(differentNotice(page).getByRole('button', { name: 'Link the open project' })).toBeVisible();
     await expect(differentNotice(page).getByRole('button', { name: 'DAW settings' })).toBeVisible();
@@ -228,6 +235,7 @@ test.describe('Booth with a moving mock DAW', () => {
     await connectStepsShown(page);
     await linkProject(page);
     await startReaper(page);
+    await openOtherProject(page);
     await expect(differentNotice(page)).toBeVisible({ timeout: 15_000 });
     await differentNotice(page).getByRole('button', { name: 'Link the open project' }).dblclick();
     await expect(page.getByText('REAPER project linked.').first()).toBeVisible();
