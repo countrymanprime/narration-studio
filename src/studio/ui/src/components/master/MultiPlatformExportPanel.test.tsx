@@ -89,7 +89,9 @@ describe('Multi-platform export', () => {
   it('is off with the reason beside it until a chapter is encoded, and says what is in the way after that (#2824)', () => {
     const { rerender } = render(<MultiPlatformExportPanel profiles={[ACX]} multi={{ ...jobs([]), encoded: 0 }} />);
     expect(screen.getByText('Master and encode a chapter first.')).toBeTruthy();
-    expect(screen.getByRole('button', { name: /^Build/ }).hasAttribute('disabled')).toBe(true);
+    // aria-disabled, not `disabled`: a Build that goes off the moment it is pressed must not drop the keyboard's focus (qa-breaker B5).
+    expect(screen.getByRole('button', { name: /^Build/ }).getAttribute('aria-disabled')).toBe('true');
+    expect(screen.getByRole('button', { name: /^Build/ }).hasAttribute('disabled')).toBe(false);
     rerender(<MultiPlatformExportPanel profiles={[ACX]} multi={{ ...jobs([]), blocked: true }} />);
     expect(screen.getByText('Another build or export is using the files.')).toBeTruthy();
   });
@@ -98,5 +100,27 @@ describe('Multi-platform export', () => {
     render(<MultiPlatformExportPanel profiles={[ACX]} multi={{ ...jobs([]), encoded: 0 }} />);
     expect(screen.getByRole('checkbox', { name: 'ACX' }).getAttribute('aria-disabled')).toBe('true');
     expect(screen.getByRole('button', { name: 'Build 0 packages' })).toBeTruthy();
+  });
+
+  it('shows a cancelled job as cancelled: no row left on Building…, and no success colour on its message (qa-breaker B1, B2)', () => {
+    const cancelled = jobs([result({ phase: 'running' }), result({ profile: 'findaway', platform: 'Findaway', phase: 'pending' })]);
+    cancelled.job = { ...cancelled.job!, phase: 'cancelled', message: 'Cancelled. 0 of 2 packages were built.' } as unknown as MultiPackageJob;
+    render(<MultiPlatformExportPanel profiles={[ACX, FINDAWAY]} multi={cancelled} />);
+    expect(screen.queryByText('Building…')).toBeNull();
+    expect(screen.getAllByText('Cancelled').length).toBeGreaterThan(0);
+    const line = screen.getByText('Cancelled. 0 of 2 packages were built.');
+    expect((line as HTMLElement).style.color).not.toBe('var(--ok-text)');
+  });
+
+  it('keeps the platforms being built checked when the page is opened again mid-build (qa-breaker B4)', () => {
+    render(<MultiPlatformExportPanel profiles={[ACX, FINDAWAY]} multi={jobs([result({ phase: 'running' })], true)} />);
+    expect(screen.getByRole('checkbox', { name: 'ACX' }).getAttribute('aria-checked')).toBe('true');
+    expect(screen.getByRole('checkbox', { name: 'Findaway' }).getAttribute('aria-checked')).toBe('false');
+  });
+
+  it('lets a long unbroken platform name wrap inside the card (qa-breaker B6)', () => {
+    const long = profile('x', 'X'.repeat(60));
+    render(<MultiPlatformExportPanel profiles={[long]} multi={jobs([])} />);
+    expect(screen.getByText('X'.repeat(60)).className).toContain('[overflow-wrap:anywhere]');
   });
 });

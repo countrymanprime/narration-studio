@@ -78,7 +78,12 @@ function LoadedDelivery({ onOpenInMaster, onOpenMaster }: { onOpenInMaster: (cha
        next to the Build button its counts explain, before Profile rules (XDL-6). */
     <div className={`${PAGE_COLUMN_CLASS} grid grid-cols-[minmax(0,1fr)] items-start gap-4 lg:grid-cols-[minmax(0,1fr)_22.5rem] lg:grid-rows-[auto_auto_1fr]`}>
       <div className="min-w-0 lg:col-start-1">
-        <ProfileCard onChange={onChange} onProfile={onProfile} onProfiles={setPlatforms} locked={build.running || build.starting} />
+        <ProfileCard
+          onChange={onChange}
+          onProfile={onProfile}
+          onProfiles={setPlatforms}
+          locked={build.running || build.starting || build.multi.running || build.multi.starting}
+        />
       </div>
       <div className="min-w-0 empty:hidden lg:col-start-1">
         {profile && (

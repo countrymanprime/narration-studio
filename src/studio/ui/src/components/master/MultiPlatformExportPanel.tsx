@@ -51,8 +51,10 @@ function BreakablePath({ path }: { path: string }) {
  * A platform's result, under its own checkbox and level with the checkbox's label (R4MS2-8, R3MS-14): the status in words with its icon,
  * then the folder and the file count, or what went wrong.
  */
-function ResultLine({ result }: { result: MultiPackageResult }) {
-  const { icon, word } = RESULT_STATUS[result.phase];
+function ResultLine({ result, cancelled = false }: { result: MultiPackageResult; cancelled?: boolean }) {
+  // A cancelled job leaves the profile it was on, and the ones it never reached, as the host last drew them: they were stopped, not building or waiting.
+  const stopped = cancelled && (result.phase === 'running' || result.phase === 'pending');
+  const { icon, word } = stopped ? { icon: 'not_measurable' as const, word: 'Cancelled' } : RESULT_STATUS[result.phase];
   return (
     <div className="pb-1 pl-6 text-[0.8rem]">
       <span className="flex items-center" style={result.phase === 'error' ? DANGER : MUTED}>
@@ -101,8 +103,16 @@ const WHY_ID = 'multi-build-why';
  * and a per-profile result row once it has (or has started to) run.
  */
 export function MultiPlatformExportPanel({ profiles, multi }: { profiles: DeliveryProfile[]; multi: MultiPackageSource }) {
-  const [selected, setSelected] = useState<Set<string>>(new Set());
   const { job: multiPackageJob, running: multiPackageRunning, problem: multiPackageProblem } = multi;
+  // Opened again while a build runs: the platforms it is building for are the ones checked, not an empty list over a running job.
+  const [selected, setSelected] = useState<Set<string>>(
+    () =>
+      new Set(
+        multiPackageRunning
+          ? profiles.filter((profile) => multiPackageJob?.results.some((result) => resultIsFor(result, profile))).map((profile) => profile.id)
+          : [],
+      ),
+  );
   // A failed build is a toast, not a red line that opens under the button and pushes the card down (rule 7, #2632).
   useErrorToast(multiPackageProblem);
   useErrorToast(multiPackageJob?.phase === 'error' ? multiPackageJob.message : undefined);
@@ -148,9 +158,11 @@ export function MultiPlatformExportPanel({ profiles, multi }: { profiles: Delive
                   onChange={(checked) => toggle(profile.id, checked)}
                   disabled={multiPackageRunning || multi.encoded === 0}
                 >
-                  {platformNameFor(profile)}
+                  <span dir="auto" className="[overflow-wrap:anywhere]">
+                    {platformNameFor(profile)}
+                  </span>
                 </Checkbox>
-                {result && <ResultLine result={result} />}
+                {result && <ResultLine result={result} cancelled={multiPackageJob?.phase === 'cancelled'} />}
               </div>
             );
           })}
@@ -162,13 +174,14 @@ export function MultiPlatformExportPanel({ profiles, multi }: { profiles: Delive
         .map((result) => (
           <div key={result.profile} className="mt-2 text-sm">
             <span className="font-medium">{result.platform}</span>
-            <ResultLine result={result} />
+            <ResultLine result={result} cancelled={multiPackageJob?.phase === 'cancelled'} />
           </div>
         ))}
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <Button
-          onClick={() => void multi.start(chosen)}
-          disabled={!canBuild}
+          onClick={canBuild ? () => void multi.start(chosen) : undefined}
+          // `aria-disabled`, not `disabled`: a Build that goes off the moment it is pressed keeps the keyboard's focus, as the single build does.
+          {...(canBuild ? {} : { 'aria-disabled': true })}
           pending={multiPackageRunning || multi.starting}
           aria-describedby={why ? WHY_ID : undefined}
         >
@@ -187,7 +200,7 @@ export function MultiPlatformExportPanel({ profiles, multi }: { profiles: Delive
       </div>
       {multiPackageRunning && <ProgressBar label="Building packages" value={null} running className="mt-3" />}
       {multiPackageJob && multiPackageJob.phase !== 'idle' && multiPackageJob.phase !== 'running' && multiPackageJob.phase !== 'error' && (
-        <p aria-live="polite" className="mt-2 text-sm" style={OK}>
+        <p aria-live="polite" className="mt-2 text-sm" style={multiPackageJob.phase === 'success' ? OK : MUTED}>
           {multiPackageJob.message}
         </p>
       )}
