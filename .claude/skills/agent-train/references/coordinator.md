@@ -92,6 +92,19 @@ With `WARNING_POLICY: ignore`, warnings count as GREEN.
 5. documentation;
 6. filler: any pending phase of a PRD in `docs/prds/` that collides with nothing running.
 
+## Models by role
+
+| Role | Model | Why |
+| --- | --- | --- |
+| The coordinator | Sonnet | A rules-driven state machine; the merge conditions and the pass are checklists. Opus only for a semantic conflict fixer |
+| Workers | The lane table in [worker.md](worker.md#lanes) | Opus for lanes K and X, Sonnet by default, Haiku for bookkeeping |
+| Fixers | Sonnet for mechanical files, Opus for semantic conflicts | As in step 4 of the pass |
+| Intent reviewer | Sonnet | Needs judgement against the issue; stays in its own session |
+| `phase-planner`, `standards-auditor` | Haiku | Read-only, report-shaped; set in the agent's frontmatter |
+| The other agents (`intent-reviewer`, `lua-reviewer`, `narrator-walkthrough`, `qa-breaker`, `ux-reviewer`) | Sonnet | They judge or drive the app; unchanged |
+
+Compare one week of passes before and after the Haiku change on `phase-planner` and `standards-auditor` (findings note, C7). If either misses things the others catch, set it back to `sonnet`.
+
 ## Safety net
 
 Nobody watches the train live, so these checks run without a person and none of them relies on a worker's own report. Each one closes a failure the train has had or the [research behind it](../../../../docs/operations/ci-and-releases.md) found: a stopped coordinator that nobody noticed for eleven days, regressions that sit on `main` between full sweeps, a worker weakening its own tests, and a stream relaunched forever.
