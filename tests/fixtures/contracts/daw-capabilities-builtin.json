@@ -217,6 +217,12 @@
       "message": "Not available with the built-in recorder.",
       "reason": "unsupported"
     },
+    "tracks_read": {
+      "available": false,
+      "level": "unsupported",
+      "message": "Not available with the built-in recorder.",
+      "reason": "unsupported"
+    },
     "transport_sync": {
       "available": false,
       "level": "unsupported",
@@ -228,6 +234,12 @@
       "level": "not_yet_available",
       "message": "Not available with the built-in recorder yet.",
       "reason": "not_yet"
+    },
+    "voice_sample_region": {
+      "available": false,
+      "level": "unsupported",
+      "message": "Not available with the built-in recorder.",
+      "reason": "unsupported"
     }
   },
   "daw": "Built-in",

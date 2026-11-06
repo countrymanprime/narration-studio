@@ -97,7 +97,7 @@ func replayPronounce(t *testing.T) {
 		}
 	}
 	s := hostEditService(t)
-	written, refused, inWords, shapes, crlf := 0, 0, 0, 0, 0
+	written, refused, inWords, shapes, crlf, newer := 0, 0, 0, 0, 0, 0
 	for i, c := range cases {
 		want := results[i]
 		if want.Name != c.Name {
@@ -117,6 +117,21 @@ func replayPronounce(t *testing.T) {
 		}
 		if bytes.Contains(start, []byte("\r")) {
 			crlf++
+		}
+		if loaded, _ := pyLoadBible(start, errPronounceShape); ok && refuseNewerBible(loaded) != nil {
+			// Intended refusal (#2418): the sidecar rewrote a newer-schema file; the host refuses it before asking the source or writing.
+			newer++
+			s.sourceLookup = func(name, _ string) (*pyObject, error) {
+				t.Errorf("%s: asked the source for %q of a newer-schema file", c.Name, name)
+				return nil, errors.New("asked")
+			}
+			if err := s.Pronounce(c.EntityID, c.AliasIndex, c.Source); err == nil || !strings.Contains(err.Error(), "newer version") {
+				t.Errorf("%s: error %v, want the newer-version refusal", c.Name, err)
+			}
+			if !bytes.Equal(readOrNone(t, s.guidePath()), start) {
+				t.Errorf("%s: a refused pronunciation changed the file", c.Name)
+			}
+			continue
 		}
 		var asked []any
 		s.sourceLookup = func(name, source string) (*pyObject, error) {
@@ -179,7 +194,11 @@ func replayPronounce(t *testing.T) {
 	}
 	t.Logf("%d runs: %d written, %d refused (%d in the sidecar's words), %d refused as a value of the wrong type, %d from CRLF files",
 		len(cases), written, refused, inWords, shapes, crlf)
-	if len(cases) < 4000 || written < 1500 || inWords < 1500 || shapes < 300 {
+	t.Logf("%d runs started from a newer-schema file and are intended refusals", newer)
+	if newer < 500 {
+		t.Errorf("%d newer-schema runs, want at least 500", newer)
+	}
+	if len(cases) < 4000 || written < 1000 || inWords < 1500 || shapes < 200 {
 		t.Errorf("%d runs: %d written, %d refused in words, %d shapes", len(cases), written, inWords, shapes)
 	}
 }

@@ -143,6 +143,9 @@ export interface StoryBibleApi {
   guidePronounceUser(id: string, ipa: string, aliasIndex?: number): Promise<void>;
   /** Puts the kept alternate back in use, keeping the one it replaces: lossless both ways. */
   guidePronunciationUseAlternate(id: string, aliasIndex?: number): Promise<void>;
+  /** Writes a name's whole pronunciation back exactly as given (its value, source, alternate and note): what Undo of a pronunciation change
+   * sends. A locked entry, an id no entry has and an alias index out of range are refused. */
+  guidePronunciationRestore(id: string, value: GuidePronunciation, aliasIndex?: number): Promise<void>;
   /** The Story Bible's extracted dialogue cues: one entry per quoted
    * span, with its resolved or unknown speaker. */
   guideDialogueCues(): Promise<GuideDialogueCue[]>;
@@ -166,6 +169,8 @@ export interface StoryBibleApi {
   guideSetSpeakerColor(id: string, index: number | null): Promise<void>;
   /** The Story Bible's types, in order (the defaults until the narrator changes one). Read it again after each change below. */
   guideTypes(): Promise<GuideType[]>;
+  /** Whether the types differ from the default six in any name, colour or speaks flag, or in order or count. Settings > Changed reads it. */
+  guideTypesChanged(): Promise<boolean>;
   /** Adds a type at the end, with the next colour, that does not speak. Refused for an empty, taken (whatever its case) or reserved name. */
   guideTypeAdd(name: string): Promise<void>;
   /** Renames a type and moves every entry of it, a locked one too. Refused for an empty, taken or reserved name. */

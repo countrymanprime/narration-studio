@@ -111,7 +111,6 @@ export function AppShell({
   dawFileLinked,
   dawReachable = false,
   dawProjectMatches = false,
-  onOpenEnginePanel,
   linkingDawFile = false,
   engine = 'daw',
   daw,
@@ -134,8 +133,6 @@ export function AppShell({
   dawReachable?: boolean;
   /** Whether that heartbeat's open project is the linked file; only meaningful when dawReachable is true. */
   dawProjectMatches?: boolean;
-  /** Opens the engine panel from the header's engine chip. */
-  onOpenEnginePanel: () => void;
   /** True while the shared DAW-link binding is running for any of its three call sites (docs/architecture/interaction-feedback.md#the-standard's ref guard). */
   linkingDawFile?: boolean;
   /** Which engine the header's chip shows; UI-only until native recording picks 'builtin'. */
@@ -369,7 +366,6 @@ export function AppShell({
               dawFileLinked={dawFileLinked}
               dawReachable={dawReachable}
               dawProjectMatches={dawProjectMatches}
-              onOpenEnginePanel={onOpenEnginePanel}
               linkingDawFile={linkingDawFile}
             />
           </header>

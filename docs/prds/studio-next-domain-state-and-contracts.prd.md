@@ -1,6 +1,6 @@
 # Studio Next Domain, State and Wire Contracts: A Typed Store with Undo, Selectors, Schemas and a Mock-versus-Real Parity Kit
 
-**Source:** owner request of 2026-10-10 ([Studio Next Rebuild](studio-next-rebuild.prd.md)); the mock's `studio-next/src/state/`, `studio-next/src/selectors/`, `studio-next/src/domain/` and `studio-next/src/fixtures/`; the owner's rulings of 2026-10-11 (see Decisions).
+**Source:** owner request of 2026-10-10 (Studio Next Rebuild); the mock's `studio-next/src/state/`, `studio-next/src/selectors/`, `studio-next/src/domain/` and `studio-next/src/fixtures/`; the owner's rulings of 2026-10-11 (see Decisions).
 
 **Builds on:** [Wire contracts: how data is checked where it crosses a boundary](../architecture/wire-contracts.md) (Zod behind `parseWire`), [wire contracts](../architecture/wire-contracts.md), [The rule](../architecture/host-binding-concurrency.md#the-rule) (host bindings read services through one accessor), the `NarrationApi` split into per-domain interfaces (`src/studio/ui/src/types.ts`) and the mock host (`src/studio/ui/src/api/mockApi.ts`), [The DAW port](../architecture/daw-integration.md#the-daw-port).
 
@@ -90,7 +90,7 @@ Page workers (consumers), the owner (sees the history list and the refusals), th
 
 ### Supersedes / depends on ADRs
 
-On conflict this PRD, and the ADR written when its phase lands, is the source of truth for the rebuild; an old ADR stays in force for code not yet migrated until the superseding ADR is merged ([register](studio-next-adr-register.prd.md)).
+On conflict this PRD, and the ADR written when its phase lands, is the source of truth for the rebuild; an old ADR stays in force for code not yet migrated until the superseding ADR is merged (register).
 
 | ADR | Class | Note |
 | --- | --- | --- |
@@ -132,7 +132,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 - **Phase 1.** The table lists each `act(...)` in `studio-next/src/state/commands/` with its real inverse (host command), "UI only", or "not undoable in-app".
 - **Phase 3.** Port `undoEntry` rules and tests; the DAW-last rule becomes "a DAW entry is undoable only if it is the last entry and the DAW reports it is still its last action" once the capability exists (SND).
 - **Phase 5.** The ratchet counts files that call `useApi()` and use more than the one declared domain; it may only fall.
-- **Phase 7.** Journalled command: Add bookmark ([Script and Story Bible](studio-next-script-and-story-bible.prd.md)) is the intended first, since it is small and host-persisted.
+- **Phase 7.** Journalled command: Add bookmark (Script and Story Bible) is the intended first, since it is small and host-persisted.
 
 ### Parallelism Notes
 
@@ -174,4 +174,4 @@ Read: the mock store, domain, selectors list, fixtures list, test names; the rep
 
 ## Visual Spec
 
-None for the store. The history list is specified in [App Shell and Registries](studio-next-app-shell-and-registries.prd.md).
+None for the store. The history list is specified in App Shell and Registries.

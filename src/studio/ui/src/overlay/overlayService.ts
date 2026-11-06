@@ -42,6 +42,8 @@ type DialogSpec =
 type ToastOptions = {
   tone?: ToastTone;
   action?: ToastAction;
+  /** Leads an information message with the glyph of what it is about; an error always leads with its warning glyph. */
+  icon?: ToastMessage['icon'];
   topic?: string;
   /** How long an information message stays, when longer than the usual five seconds. */ durationMs?: number;
 };
@@ -58,7 +60,7 @@ type OverlaySnapshot = {
   announcement: string;
 };
 
-/** How many toasts show at once; the oldest information toast goes first, then the oldest error. */
+/** How many toasts show at once; the oldest plain information toast goes first, then the oldest information toast with an action, then the oldest error. */
 const OVERLAY_TOAST_LIMIT = 4;
 
 /**
@@ -123,9 +125,18 @@ export function createOverlayService(): OverlayService {
   };
 
   const toast = (text: string, options: ToastOptions = {}, undo?: ToastMessage['undo']) => {
-    if (!text) return;
+    if (text.trim() === '') return;
     const tone = options.tone ?? 'info';
-    const message: ToastMessage = { id: ++lastId, text, tone, action: options.action, topic: options.topic, durationMs: options.durationMs, undo };
+    const message: ToastMessage = {
+      id: ++lastId,
+      text,
+      tone,
+      action: options.action,
+      icon: options.icon,
+      topic: options.topic,
+      durationMs: options.durationMs,
+      undo,
+    };
     // A message that says what one on screen already says, with the same action or none, is that message again, and one on the same topic
     // is its newer word: either replaces the old one (its timer starts again), so a repeated press, three adds in a row ("Milestone added."
     // with its Undo) or a lost-and-found DAW never stacks the same sentence (alignment audit cause P). An Undo that replaces another takes
@@ -134,7 +145,10 @@ export function createOverlayService(): OverlayService {
       (options.topic !== undefined && old.topic === options.topic) || (old.action?.label === options.action?.label && old.text === text && old.tone === tone);
     const queue = [...snapshot.toasts.filter((old) => !again(old)), message];
     while (queue.length > OVERLAY_TOAST_LIMIT) {
-      const info = queue.slice(0, -1).findIndex((m) => m.tone === 'info');
+      // The oldest plain notice goes first: a toast with an action (an Undo) is something to press, so a burst of notices does not take it.
+      const older = queue.slice(0, -1);
+      const plain = older.findIndex((m) => m.tone === 'info' && !m.action && !m.undo);
+      const info = plain >= 0 ? plain : older.findIndex((m) => m.tone === 'info');
       queue.splice(info >= 0 ? info : 0, 1);
     }
     update({ toasts: queue });

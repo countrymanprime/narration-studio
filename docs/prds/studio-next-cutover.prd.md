@@ -1,8 +1,8 @@
 # Studio Next Cutover: Parity Audit, Ratchets, Deleting the Mock and the Steady-State Docs
 
-**Source:** owner request of 2026-10-10 ([Studio Next Rebuild](studio-next-rebuild.prd.md)); the mock's lifecycle ("this folder is deleted when the real app matches it", `studio-next/README.md`) and the "Which mocks are the spec" section of [`.claude/rules/ui-spec-and-screenshots.md`](../../.claude/rules/ui-spec-and-screenshots.md).
+**Source:** owner request of 2026-10-10 (Studio Next Rebuild); the mock's lifecycle ("this folder is deleted when the real app matches it", `studio-next/README.md`) and the "Which mocks are the spec" section of [`.claude/rules/ui-spec-and-screenshots.md`](../../.claude/rules/ui-spec-and-screenshots.md).
 
-**Builds on:** [Which mocks are the spec](studio-next-rebuild.prd.md#which-mocks-are-the-spec), [Lifecycle of a PRD](README.md#lifecycle-of-a-prd) (planned work is deleted when built), [Design principles](../architecture/principles.md) (replacement rule), the lifecycle in [the PRD README](README.md#lifecycle-of-a-prd).
+**Builds on:** Which mocks are the spec, [Lifecycle of a PRD](README.md#lifecycle-of-a-prd) (planned work is deleted when built), [Design principles](../architecture/principles.md) (replacement rule), the lifecycle in [the PRD README](README.md#lifecycle-of-a-prd).
 
 **Status (2026-10-11):** draft; every owner question is decided (see Decisions). Runs last; its first two slices (the ruling index and the owner QA list) start early so the index fills as pages land.
 
@@ -50,7 +50,7 @@ If every agreed ruling has a named test and the owner has done the QA list, dele
 
 ## Decisions
 
-The owner's rulings of 2026-10-11 (SN0-Q1, DQ-1 to DQ-18; see [Studio Next Rebuild](studio-next-rebuild.prd.md#decisions)) settle every question this PRD had. No question is open.
+The owner's rulings of 2026-10-11 (SN0-Q1, DQ-1 to DQ-18; see Studio Next Rebuild) settle every question this PRD had. No question is open.
 
 | Id | Ruling | Consequence for the cutover |
 | --- | --- | --- |
@@ -97,7 +97,7 @@ Not removed, re-skinned or extended: the Series voice bible and Series tab, the 
 
 ### Supersedes / depends on ADRs
 
-On conflict this PRD, and the ADR written when its phase lands, is the source of truth; old ADRs stay in force for unmigrated code ([register](studio-next-adr-register.prd.md)). This PRD checks that every superseding ADR in the register is merged and the old ADRs' Status lines read "Superseded by"; every row of the register is KEEP, EXTEND, SUPERSEDE or DECIDED.
+On conflict this PRD, and the ADR written when its phase lands, is the source of truth; old ADRs stay in force for unmigrated code (register). This PRD checks that every superseding ADR in the register is merged and the old ADRs' Status lines read "Superseded by"; every row of the register is KEEP, EXTEND, SUPERSEDE or DECIDED.
 
 | ADR | Class | Note |
 | --- | --- | --- |
@@ -114,7 +114,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 **Rollout.** One slice per deletion kind; the mock goes last, after the owner QA list is cleared or waived.
 
-**ADRs.** The cutover PR checks them and writes none; the spec precedence is A1 ([register](studio-next-adr-register.prd.md), DQ-1).
+**ADRs.** The cutover PR checks them and writes none; the spec precedence is A1 (register, DQ-1).
 
 **Trust boundaries.** Re-read the threat-model rows touched by the series; update review dates (CLAUDE.md step 6).
 

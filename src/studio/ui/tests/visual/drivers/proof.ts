@@ -77,6 +77,23 @@ async function openMisread(page: Page, seed: 'misread' | 'misread-long' | 'misre
 }
 
 export const proofDrivers: Record<string, Driver> = {
+  // A click note's inspector with the Repair in REAPER menu open (#2821): the repair launchers act on the item Show in REAPER selects.
+  'inspector-repair-menu': async (page) => {
+    await openProof(page, 'mockChapterLink=confirmed&mockFindings=click', false);
+    await notes(page).locator('tr[data-row]').filter({ hasText: /mouth/i }).first().click();
+    await page.getByRole('button', { name: 'Repair in REAPER' }).click();
+    const menu = page.getByRole('menu');
+    await menu.waitFor();
+    await expect(menu.getByText('Reading the REAPER project…')).toHaveCount(0);
+  },
+  // The DAW tools menu in the header (#2820), opened: the structure entries, live for a project whose chapter is linked.
+  'daw-tools-menu': async (page) => {
+    await openProof(page, 'mockChapterLink=confirmed');
+    await page.getByRole('button', { name: 'DAW tools' }).click();
+    const menu = page.getByRole('menu');
+    await menu.waitFor();
+    await expect(menu.getByText('Reading the REAPER project…')).toHaveCount(0);
+  },
   'address-checking': async (page) => {
     await openCheckingLink(page, '/proof?chapter=gone');
   },

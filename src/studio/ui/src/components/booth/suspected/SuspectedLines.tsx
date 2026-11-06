@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { overlay } from '../../../overlay/overlayService';
+import { retryAction } from '../../primitives/Toast';
 import { usePort } from '../../../ports/usePort';
 import { putBack } from '../../../studio/commands/reviewFinding';
 import { useJournalOrOwn } from '../../../studio/StudioProvider';
@@ -41,11 +42,18 @@ export function SuspectedLines({ chapterId, flags: given }: { chapterId: string;
     [teleprompter, chapterId],
   );
 
-  // Reading the same place again changes nothing: the host answers each flag with its stored decision.
+  // Reading the same place again changes nothing: the host answers each flag with its stored decision. The save follows the places, not the
+  // array: the page rebuilds the same flags when a take stops, and that must not save them a second time (#2538).
+  const places = flags.map((flag) => suspectedKey(flag)).join('|');
+  const current = useRef(flags);
+  current.current = flags;
   useEffect(() => {
-    if (flags.length === 0) return;
-    keep(flags, new Set()).catch((reason) => overlay.toast(apiErrorMessage(reason), { tone: 'error' }));
-  }, [flags, keep]);
+    if (places === '') return;
+    // Reading again is what Retry does (issue #2919).
+    const read = (): void =>
+      void keep(current.current, new Set()).catch((reason) => overlay.toast(apiErrorMessage(reason), { tone: 'error', action: retryAction(read) }));
+    read();
+  }, [places, keep]);
 
   const dismiss = async (flag: SuspectedFlag) => {
     const key = suspectedKey(flag);

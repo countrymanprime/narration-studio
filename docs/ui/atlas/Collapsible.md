@@ -12,4 +12,4 @@ Storybook title: `Primitives/Collapsible`. Source: `src/components/primitives/Co
 
 ## Used by
 
-- nothing outside its own stories and tests yet
+- `src/components/booth/frame/LevelsMenu.tsx`

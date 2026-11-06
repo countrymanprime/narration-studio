@@ -12,7 +12,7 @@ describe('listeningProblem', () => {
   });
   it('points to Levels when no microphone is chosen', () => {
     expect(listeningProblem({ ...base, canStart: false, device: '', startReason: 'Choose a microphone first.' })).toBe(
-      'Choose the microphone the Booth listens to in Levels, so the text follows your voice.',
+      'Choose the microphone the Booth listens to in Record options, so the text follows your voice.',
     );
   });
   it('keeps saying the speech model is missing once the question about it is answered, and not while it is open', () => {

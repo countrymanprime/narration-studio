@@ -49,6 +49,17 @@ describe('Master & QC page body', () => {
   };
   const bar = () => screen.getByRole('button', { name: /^Chapter: / });
 
+  // #2820: the next step after Proof is to render the chapters in REAPER, so the structure tools sit beside Check files until there are files.
+  it('offers the DAW tools beside Check files while no file has been measured, and not once there are files', async () => {
+    mount([]);
+    expect(await screen.findByRole('button', { name: 'Check files…' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'DAW tools' })).toBeTruthy();
+    cleanup();
+    mount(ALL_PASS);
+    expect(await screen.findByRole('button', { name: /Re-check/ })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'DAW tools' })).toBeNull();
+  });
+
   it('selecting a file moves the shared chapter and the chapter bar follows', async () => {
     window.localStorage.clear();
     const user = userEvent.setup();
@@ -353,6 +364,59 @@ describe('Master & QC page body', () => {
     }
     await userEvent.hover(screen.getByRole('button', { name: 'Check files…' }));
     expect(await screen.findByRole('tooltip')).toBeTruthy();
+  });
+
+  // ux walkthrough on #2988 (F2): the header's two icons carry their names as tooltips on hover and on keyboard focus alike.
+  it.each(['Master all to spec…', 'Check files…'])('%s shows its name as a tooltip on hover and on focus', async (name) => {
+    mount([]);
+    const button = await screen.findByRole('button', { name });
+    await userEvent.hover(button);
+    expect((await screen.findByRole('tooltip')).textContent).toContain(name.replace('…', ''));
+    await userEvent.unhover(button);
+    await waitFor(() => expect(screen.queryByRole('tooltip')).toBeNull());
+    act(() => button.focus());
+    expect((await screen.findByRole('tooltip')).textContent).toContain(name.replace('…', ''));
+  });
+
+  // qa on #2988: a picker answer with no paths at all is a cancel, not a crash.
+  // qa on #2988, break 1: after an export finished, the header icon picked files that the card then never showed. It must either start
+  // a new pick the narrator can see (the files listed and editable again, or a word that they already are) or be off with a reason.
+  it('the Master all to spec icon never silently does nothing: after a finished export it either starts a new pick or is disabled with a reason', async () => {
+    const { api } = mount([]);
+    const pick = vi.spyOn(api, 'exportPickFiles');
+    await userEvent.click(await screen.findByRole('button', { name: 'Choose files to master…' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Master & encode' }));
+    await screen.findByText(/^Prepared 5 files\./, undefined, { timeout: 10_000 });
+    const icon = screen.getByRole('button', { name: 'Master all to spec…' });
+    if (icon.getAttribute('aria-disabled') === 'true') {
+      expect(icon.closest('[aria-label]')?.getAttribute('aria-label') ?? '').not.toBe('');
+      return;
+    }
+    await userEvent.click(icon);
+    await waitFor(() => expect(pick).toHaveBeenCalledTimes(2));
+    // The pick is visible: the card lists the files as editable again, and says the picked ones are already there.
+    const card = screen.getByRole('region', { name: 'Master to spec' });
+    await waitFor(() => expect(within(card).getAllByRole('button', { name: 'Remove' }).length).toBeGreaterThan(0));
+    await findToast('already in the list');
+  }, 20_000);
+
+  it('a picker answer with no paths is a cancel: no error, no rows', async () => {
+    mount([], acx, { exportPickFiles: async () => ({}) as never });
+    await userEvent.click(await screen.findByRole('button', { name: 'Choose files to master…' }));
+    await act(async () => undefined);
+    expect(toastTexts()).toEqual([]);
+    expect(screen.queryByRole('table', { name: 'Files to export' })).toBeNull();
+  });
+
+  // Ported from #2935's review: the card now stays when its last file goes (#2931), so the keyboard lands on its own button.
+  it("removing the last file to master puts the keyboard on the card's Choose files to master…, not the page (#2935 review)", async () => {
+    mount([]);
+    const entry = await screen.findByRole('button', { name: 'Master all to spec…' });
+    await userEvent.click(entry);
+    const table = await screen.findByRole('table', { name: 'Files to export' });
+    for (const remove of within(table).getAllByRole('button', { name: 'Remove' })) await userEvent.click(remove);
+    expect(screen.queryByRole('table', { name: 'Files to export' })).toBeNull();
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Choose files to master…' }));
   });
 
   it('a-measured-book-offers-Re-check-and-Choose-other-files-as-icon-buttons', async () => {

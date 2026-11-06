@@ -57,6 +57,41 @@ func (h *Host) AssetsOpenFolder() (string, error) {
 	return encodeBinding(nil, update.OpenFolder(dir))
 }
 
+// AssetsFolderPick asks the narrator for the folder to move the downloads to, in the system's folder dialog, and answers with its path
+// (empty when they cancelled). It changes nothing: AssetsMoveStart does, when the narrator has confirmed.
+func (h *Host) AssetsFolderPick() (string, error) {
+	path, err := h.pickModelsFolderPath()
+	return encodeBinding(map[string]any{"path": path}, err)
+}
+
+// AssetsMoveStart starts moving the downloads to the folder at target (the default folder when target is empty), and answers with the
+// job. Every file is copied, checked against the original, and only then is the new folder used by every download kind; the old folder
+// is never changed. A target that cannot work, a download in progress and a second move are refused.
+func (h *Host) AssetsMoveStart(target string) (string, error) {
+	return encodeBinding(h.startModelsMove(target))
+}
+
+// AssetsMoveState is the move that is running, or how the last one ended.
+func (h *Host) AssetsMoveState() (string, error) {
+	return encodeBinding(h.modelsMoveSnapshot(), nil)
+}
+
+// AssetsMoveCancel stops the move while it copies or checks. The old folder stays in use and nothing is left in the new one.
+func (h *Host) AssetsMoveCancel() (string, error) {
+	return encodeBinding(h.cancelModelsMove(), nil)
+}
+
+// AssetsMoveDeleteOld deletes the copy a finished move left in the old folder, after the narrator confirmed it: the asset folders in it
+// and nothing else. It refuses while that folder is the one in use.
+func (h *Host) AssetsMoveDeleteOld() (string, error) {
+	return encodeBinding(nil, h.deleteOldModels())
+}
+
+// AssetsMoveKeepOld ends the offer to delete the old copy and leaves it where it is.
+func (h *Host) AssetsMoveKeepOld() (string, error) {
+	return encodeBinding(nil, h.keepOldModels())
+}
+
 // AssetsRemove deletes one asset. It refuses while the asset is downloading, and touches nothing else: not another asset, not a setting,
 // not a project.
 func (h *Host) AssetsRemove(kind, id string) (string, error) {
@@ -82,7 +117,12 @@ func (h *Host) assetsList() (map[string]any, error) {
 			entries = append(entries, assetEntry(provider, item, state, h.runningInstallID(item.kind, item.id)))
 		}
 	}
-	return map[string]any{"cacheRoot": registry.base, "totalInstalledBytes": installedBytes, "assets": entries}, nil
+	folders, err := modelsFoldersFor(h.settingsStore())
+	if err != nil {
+		return nil, err
+	}
+	return map[string]any{"cacheRoot": registry.base, "defaultRoot": folders.def, "custom": folders.custom, "previousRoot": folders.previous, "folderNote": folders.note,
+		"totalInstalledBytes": installedBytes, "assets": entries}, nil
 }
 
 // assetEntry is one row of the list. installedAt and verifiedAt come from the manifest (a small file), never from the asset itself.
@@ -140,7 +180,8 @@ type assetGate interface {
 }
 
 func (h *Host) startAssetInstall(kind, id string) (map[string]any, error) {
-	provider, item, err := h.registry().lookup(kind, id)
+	registry := h.registry()
+	provider, item, err := registry.lookup(kind, id)
 	if err != nil {
 		return nil, err
 	}
@@ -149,7 +190,7 @@ func (h *Host) startAssetInstall(kind, id string) (map[string]any, error) {
 			return nil, err
 		}
 	}
-	return h.startInstall(installSpec{kind: kind, assetID: id, endedKind: provider.endedKind(), noun: provider.noun(), files: item.files,
+	return h.startInstall(installSpec{kind: kind, assetID: id, endedKind: provider.endedKind(), noun: provider.noun(), files: item.files, registry: registry,
 		run: func(ctx context.Context, options assets.Options) error { return provider.install(ctx, id, options) }})
 }
 
@@ -165,8 +206,11 @@ func (h *Host) verifyAsset(kind, id string) (map[string]any, error) {
 	return map[string]any{"kind": kind, "id": id, "installState": state}, nil
 }
 
-func (h *Host) removeAsset(kind, id string) error {
-	provider, _, err := h.registry().lookup(kind, id)
+func (h *Host) removeAsset(kind, id string) error { return h.removeAssetIn(h.registry(), kind, id) }
+
+// removeAssetIn removes from registry, the one the asset was looked up in: if a move replaced it meanwhile the removal is refused.
+func (h *Host) removeAssetIn(registry *assetRegistry, kind, id string) error {
+	provider, _, err := registry.lookup(kind, id)
 	if err != nil {
 		return err
 	}
@@ -174,6 +218,14 @@ func (h *Host) removeAsset(kind, id string) error {
 	// the two and the asset cannot come back after it was removed.
 	key := kind + "/" + id
 	h.mu.Lock()
+	if h.modelsMoving() {
+		h.mu.Unlock()
+		return errModelsMoving
+	}
+	if h.assets != nil && registry != h.assets {
+		h.mu.Unlock()
+		return errModelsMoved
+	}
 	for _, job := range h.installJobs {
 		if job.kind == kind && job.assetID == id && job.running() {
 			h.mu.Unlock()

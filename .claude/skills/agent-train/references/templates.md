@@ -15,7 +15,7 @@ READ FIRST: CLAUDE.md; the agent-train skill, .claude/skills/agent-train/SKILL.m
 "Lanes"); then each PRD in scope, in full.
 SCOPE: <PRD path> phases <N…>: <one line each>.
 SLICE: #<slice issue>, for a Studio Next slice. The issue is the spec; read its Handoff comment first, and rewrite it at every checkpoint.
-MOCKUPS (D46, D98): <per phase: the exact docs/research/mockups/studio-next/src/pages/... file and its state, or "none">. Open it
+MOCKUPS (D46, D98): <per phase: the exact src/pages/... file of the Studio Next mock in git history and its state, or "none">. Open it
 and the running mock before coding and build to match. The Studio Next mock is the only spec (D98): if it is not in the mock, don't build it; if the repo
 already has an equivalent of something in it, the old one is removed in the swap. Compare light to light and dark to dark by the theme the mock page is
 drawn in. Layout and style are the spec, never the mock's sample data.

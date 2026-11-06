@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildChapterRows, openingId, SAMPLE_ROW_ID } from './rows';
 import { CHAPTERS, failingTwo, passing, profile } from './testFiles';
+import { makeChapters } from '../../../fixtures/chapters';
 import type { ManuscriptChapter } from '../../../types';
 
 const chapters: ManuscriptChapter[] = CHAPTERS;
@@ -34,6 +35,31 @@ describe('buildChapterRows: one row per chapter and the retail sample, measured 
     const rows = buildChapterRows([stray], profile, chapters);
     expect(rows.at(-2)).toMatchObject({ id: stray.path, name: 'Interview bonus.wav' });
     expect(rows.at(-1)).toMatchObject({ id: SAMPLE_ROW_ID });
+  });
+
+  it('draws the Text figure of a file from the current Recording Check of its chapter, keyed by the file, and "Not checked" for every file without one (#2105)', () => {
+    const texts = { [passing('Chapter 01.wav').path]: { percent: 97, met: true }, [failingTwo('Chapter 04.wav').path]: { percent: 82, met: false } };
+    const rows = buildChapterRows(
+      [passing('Chapter 01.wav'), failingTwo('Chapter 04.wav'), passing('Chapter 02.wav'), passing('Interview bonus.wav')],
+      profile,
+      chapters,
+      undefined,
+      texts,
+    );
+    expect(rows[0]!.text).toEqual({ text: '97%', missed: false });
+    expect(rows[3]!.text).toEqual({ text: '82%', missed: true });
+    expect(rows[1]!.text).toEqual({ text: 'Not checked', missed: false, unchecked: true });
+    expect(rows.find((row) => row.name === 'Interview bonus.wav')!.text).toEqual({ text: 'Not checked', missed: false, unchecked: true });
+    expect(rows[2]!.text).toBeUndefined();
+  });
+
+  it('shows a file’s Text figure only on the row of the chapter it was read for: Chapter 10.wav is not Chapter 1’s file', () => {
+    const eleven = makeChapters({ shape: 'titleAndSubtitle', count: 11 });
+    const file = passing('Chapter 10.wav');
+    const rows = buildChapterRows([file], profile, eleven, undefined, { [file.path]: { percent: 50, met: false, chapterId: 'chapter-10' } });
+    expect(rows[0]!.noFile).toBe(true);
+    expect(rows[0]!.text).toBeUndefined();
+    expect(rows[9]!.text).toEqual({ text: '50%', missed: true });
   });
 
   it('opens on the first file when none fails, never on a waiting row', () => {

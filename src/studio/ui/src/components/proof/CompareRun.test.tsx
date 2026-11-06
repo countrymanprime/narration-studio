@@ -477,9 +477,21 @@ describe('CompareRun vocabulary hints feedback', () => {
       expect(notify).toHaveBeenCalledWith(
         'The saved vocabulary hints could not be loaded: the saved vocabulary hints file is not a valid list. Hints you add now will replace them.',
         'error',
+        expect.objectContaining({ label: 'Retry' }),
       ),
     );
     expect(screen.getByText('Vocabulary hints')).toBeTruthy();
+  });
+
+  // Issue #2919: reading the saved hints changes nothing, so Retry reads them again.
+  it('Retry on the failed hints load reads the saved hints again', async () => {
+    const transcriptHints = vi.fn().mockRejectedValueOnce('the saved vocabulary hints file is not a valid list').mockResolvedValue([]);
+    const notify = renderHints({ transcriptHints });
+    await waitFor(() =>
+      expect(notify).toHaveBeenCalledWith(expect.stringContaining('could not be loaded'), 'error', expect.objectContaining({ label: 'Retry' })),
+    );
+    notify.mock.calls.find((call) => call[1] === 'error')![2].onAction();
+    await waitFor(() => expect(transcriptHints).toHaveBeenCalledTimes(2));
   });
 
   it('adds a typed term once, whatever its case', async () => {

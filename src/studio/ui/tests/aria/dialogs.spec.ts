@@ -29,6 +29,11 @@ const MODALS: { name: string; state: [string, string]; snapshot: string }[] = [
   },
   { name: 'the import confirm is an alert dialog', state: ['production', 'import-confirm'], snapshot: 'confirm-import-manuscript.aria.yml' },
   {
+    name: "the render approval is an alert dialog with its question, the host's plan as a table of files and regions, and both actions",
+    state: ['master', 'to-spec-approve-daw'],
+    snapshot: 'confirm-approve-render.aria.yml',
+  },
+  {
     name: 'the unsaved-settings confirm is an alert dialog with three actions',
     state: ['settings', 'pages-navigate-away-confirm'],
     snapshot: 'confirm-unsaved-settings.aria.yml',
