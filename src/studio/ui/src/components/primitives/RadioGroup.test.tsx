@@ -184,6 +184,26 @@ describe('RadioGroup', () => {
     expect(there.getAttribute('aria-describedby')).toBe(drawn.id);
   });
 
+  it('a disabled option with a reason and a description is described by both, and the reason sits under the label at its start edge', () => {
+    render(
+      <RadioGroup
+        label="Where"
+        value="a"
+        onChange={() => undefined}
+        options={[
+          { value: 'a', label: 'Here' },
+          { value: 'b', label: 'There', description: 'Over there.', disabled: true, reason: 'There is not available yet.' },
+        ]}
+      />,
+    );
+    const there = screen.getByRole('radio', { name: 'There' });
+    const ids = (there.getAttribute('aria-describedby') ?? '').split(' ');
+    expect(ids.map((id) => document.getElementById(id)?.textContent)).toEqual(['There is not available yet.', 'Over there.']);
+    // A logical margin, so the line stays under the label when the page is right to left.
+    expect(screen.getByText('There is not available yet.').className).toMatch(/\bms-\[/);
+    expect(screen.getByText('There is not available yet.').className).not.toMatch(/\bml-\[/);
+  });
+
   it('an enabled option never draws its reason', () => {
     render(<RadioGroup label="Where" value="a" onChange={() => undefined} options={[{ value: 'a', label: 'Here', reason: 'Not drawn: it is on.' }]} />);
     expect(screen.queryByText('Not drawn: it is on.')).toBeNull();

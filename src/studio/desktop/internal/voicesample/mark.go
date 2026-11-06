@@ -424,6 +424,10 @@ func (s *Service) upgradeLocked(ctx context.Context, current storeFile, existing
 	upgraded := current.Samples[index]
 	wantClip := storage != StorageDAW && upgraded.Storage == StorageDAW
 	wantRegion := storage != StorageProject && (upgraded.Storage == "" || upgraded.Storage == StorageProject)
+	if !wantClip && !wantRegion {
+		// The sample that is there now (the stretch may have been replaced while this waited for the lock) already keeps what is asked.
+		return s.view(upgraded, book), nil
+	}
 	var clipPath string
 	if wantClip {
 		expected := source.ClipBytes(win.count)
@@ -498,6 +502,8 @@ func (s *Service) writeClip(path string, source zerocross.Source, in io.ReadSeek
 		return StoredClip{}, fmt.Errorf("could not create the project's voice samples folder: %w", err)
 	}
 	temporary := path + ".tmp"
+	// The store lock is held, so a temporary file here is one an earlier crash left: it must not block this sample for good.
+	_ = os.Remove(temporary)
 	out, err := os.OpenFile(temporary, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
 	if err != nil {
 		return StoredClip{}, fmt.Errorf("could not write the voice sample's audio: %w", err)

@@ -67,7 +67,7 @@ function RadioItem({ value, label, description, disabled, reason }: RadioOption<
       <BaseRadio.Root
         value={value}
         disabled={disabled}
-        aria-describedby={why ? reasonId : description ? descriptionId : undefined}
+        aria-describedby={[why ? reasonId : '', description ? descriptionId : ''].filter(Boolean).join(' ') || undefined}
         // Unselected fill is --surface-3 with the --border rim, not --surface, as the benchmark mocks draw it.
         className="inline-flex size-4 flex-none items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface-3)] data-[checked]:border-[var(--accent)]"
       >
@@ -82,12 +82,12 @@ function RadioItem({ value, label, description, disabled, reason }: RadioOption<
     <div>
       {choice}
       {why ? (
-        <div id={reasonId} className="mt-0.5 ml-[1.65rem] text-sm" style={{ color: 'var(--text-muted)' }}>
+        <div id={reasonId} className="ms-[1.65rem] mt-0.5 text-sm" style={{ color: 'var(--text-muted)' }}>
           {why}
         </div>
       ) : null}
       {description && (
-        <div id={descriptionId} className="mt-0.5 ml-[1.65rem]" style={{ color: 'var(--text-muted)' }}>
+        <div id={descriptionId} className="ms-[1.65rem] mt-0.5" style={{ color: 'var(--text-muted)' }}>
           {description}
         </div>
       )}

@@ -28,9 +28,11 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
+	"time"
 	"unicode"
 	"unicode/utf8"
 
@@ -499,5 +501,63 @@ func TestAnUpgradeThatAddsAClipIsHeldToTheProjectLimit(t *testing.T) {
 	}
 	if stored := r.stored().Samples; stored[0].Storage != StorageDAW {
 		t.Fatalf("the sample changed: %+v", stored[0])
+	}
+}
+
+// A mark that waits for the store lock while its stretch's sample is replaced must act on the sample it finds when it gets the lock:
+// one that already keeps what is asked is answered as it is, never rewritten as kept in both with a clip or region it does not have.
+func TestAMarkWhoseStretchWasReplacedMeanwhileInventsNothing(t *testing.T) {
+	r := newRig(t)
+	current := StorageDAW
+	r.config.Storage = func() string { return current }
+	r.config.Regions = &fakeRegions{}
+	r.service = r.build()
+	r.mustMark(request(10, 12))
+	row := r.stored().Samples[0]
+	current = StorageProject
+	release := lockFile(r.storePath())
+	done := make(chan error, 1)
+	go func() {
+		_, err := r.mark(request(10, 12))
+		done <- err
+	}()
+	time.Sleep(300 * time.Millisecond)
+	row.Storage, row.DawRegion = "", nil
+	row.Clip.SHA256 = strings.Repeat("a", 64)
+	r.seed(row)
+	release()
+	if err := <-done; err != nil {
+		t.Fatalf("mark: %v", err)
+	}
+	if rows := r.stored().Samples; len(rows) != 1 || rows[0].Storage != "" || rows[0].DawRegion != nil {
+		t.Fatalf("the sample was rewritten: %+v", rows)
+	}
+	if listed := r.list(); len(listed.Samples) != 1 {
+		t.Fatalf("the store does not read back: %+v", listed)
+	}
+}
+
+// An upgrade writes the clip under the sample's own id, so a temporary file a crash left under it must not block it for good.
+func TestAnUpgradeSurvivesALeftoverTempClip(t *testing.T) {
+	r := newRig(t)
+	current := StorageDAW
+	r.config.Storage = func() string { return current }
+	r.config.Regions = &fakeRegions{}
+	r.service = r.build()
+	sample := r.mustMark(request(10, 12))
+	temporary := r.clipPath(sample.ID) + ".tmp"
+	if err := os.MkdirAll(filepath.Dir(temporary), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	writeFile(t, temporary, []byte("half a clip"))
+	current = StorageProject
+	if _, err := r.mark(request(10, 12)); err != nil {
+		t.Fatalf("the upgrade was blocked by a leftover temporary file: %v", err)
+	}
+	if _, err := os.Stat(temporary); err == nil {
+		t.Fatal("the temporary file is still there")
+	}
+	if rows := r.stored().Samples; len(rows) != 1 || rows[0].Storage != StorageBoth {
+		t.Fatalf("rows = %+v", rows)
 	}
 }

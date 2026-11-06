@@ -146,7 +146,10 @@ export function useVoiceSample({ chapterId, workspace, items, mediaUrl, stopPlay
                     // an addition back, and removing the sample would lose the earlier save).
                     const before = list?.samples.find((s) => s.id === id);
                     if (before) {
-                      const extended = (before.storage ?? 'project') !== (answer.sample.storage ?? 'project');
+                      // "Kept" only when the sample reads whole: a clip or a region that is gone is not kept, whatever the row says.
+                      const { clipState, daw } = answer.sample;
+                      const whole = clipState === 'ok' && (daw === undefined || daw.state === 'ok' || daw.state === 'label_moved');
+                      const extended = whole && (before.storage ?? 'project') !== (answer.sample.storage ?? 'project');
                       return refuse(
                         'duplicate',
                         extended

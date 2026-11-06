@@ -545,6 +545,29 @@ describe('marking a voice sample', () => {
     expect(toastUndo).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ['its clip', { clipState: 'missing' }],
+    ['its region', { daw: { state: 'label_missing', name: 'Voice sample: x', start: 0, end: 1 } }],
+  ] as const)('marking the same stretch again does not say it is kept when the sample reads %s as gone', async (_what, gone) => {
+    existing = list([sample('a'.repeat(32), 'e-queen')]);
+    mark.mockResolvedValueOnce({
+      status: 'saved',
+      sample: {
+        ...sample('a'.repeat(32), 'e-queen'),
+        storage: 'both',
+        daw: { state: 'ok', name: 'Voice sample: x', start: 0, end: 1 },
+        ...gone,
+      } as VoiceSample,
+    });
+    mount();
+    await select('p-1:0', 'p-1:1');
+    await openDialog();
+    enter();
+    await flush();
+    expect(toast).toHaveBeenCalledWith('That stretch is already a voice sample for The Queen of Hearts.');
+    expect(toastUndo).not.toHaveBeenCalled();
+  });
+
   it('a failed read is a note and the dialog still opens, with Narration to choose', async () => {
     entities = () => Promise.reject(new Error('no story bible'));
     cues = () => Promise.reject(new Error('no cues'));
