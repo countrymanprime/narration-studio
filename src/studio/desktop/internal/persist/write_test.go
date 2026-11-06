@@ -73,3 +73,25 @@ func TestWriteFileGivesUpAfterTheRetryBudget(t *testing.T) {
 		t.Fatalf("rename called %d times, want %d", calls, renameAttempts)
 	}
 }
+
+func TestWriteFileFailsWhenTheFolderIsMissing(t *testing.T) {
+	err := WriteFile(filepath.Join(t.TempDir(), "missing", "a.json"), []byte("x"), 0o600)
+	if err == nil {
+		t.Fatal("WriteFile into a missing folder succeeded")
+	}
+}
+
+func TestFlushTemporaryReportsAFailedWriteAndStillCloses(t *testing.T) {
+	file, err := os.CreateTemp(t.TempDir(), "x")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = file.Close() // writing to a closed file fails
+	if err := flushTemporary(file, []byte("x"), 0o600); err == nil {
+		t.Fatal("flushTemporary on a closed file succeeded")
+	}
+}
+
+func TestSyncFolderIgnoresAMissingFolder(t *testing.T) {
+	syncFolder(filepath.Join(t.TempDir(), "missing"))
+}

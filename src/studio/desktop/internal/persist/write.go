@@ -36,33 +36,30 @@ func WriteFile(path string, data []byte, perm os.FileMode) error {
 		return err
 	}
 	name := temporary.Name()
-	keep := false
-	defer func() {
-		if !keep {
-			_ = os.Remove(name)
-		}
-	}()
-	if _, err := temporary.Write(data); err != nil {
-		_ = temporary.Close()
+	err = flushTemporary(temporary, data, perm)
+	if err == nil {
+		err = renameWithRetry(name, path)
+	}
+	if err != nil {
+		_ = os.Remove(name)
 		return err
 	}
-	if err := temporary.Chmod(perm); err != nil && !errors.Is(err, os.ErrPermission) {
-		_ = temporary.Close()
-		return err
-	}
-	if err := temporary.Sync(); err != nil {
-		_ = temporary.Close()
-		return err
-	}
-	if err := temporary.Close(); err != nil {
-		return err
-	}
-	if err := renameWithRetry(name, path); err != nil {
-		return err
-	}
-	keep = true
 	syncFolder(filepath.Dir(path))
 	return nil
+}
+
+// flushTemporary writes data to the open temporary file, sets its mode, flushes it to disk and closes it, reporting the first failure.
+// Setting the mode is best effort: Windows has no POSIX mode to set.
+func flushTemporary(file *os.File, data []byte, perm os.FileMode) error {
+	_, err := file.Write(data)
+	if err == nil {
+		_ = file.Chmod(perm)
+		err = file.Sync()
+	}
+	if closeErr := file.Close(); err == nil {
+		err = closeErr
+	}
+	return err
 }
 
 func renameWithRetry(from, to string) error {
