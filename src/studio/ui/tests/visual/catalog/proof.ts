@@ -48,8 +48,22 @@ export const proofStates: StateEntry[] = [
   },
   {
     page: 'proof',
+    state: 'compare-open',
+    description:
+      'Proof, Chapter 1 linked, Compare with the script pressed beside Check recordings (#2822): the Compare panel under the check card with its Differences, Preview and Native takes tabs, on the comparison’s setup',
+    ...REFLOW,
+  },
+  {
+    page: 'proof',
+    state: 'compare-preview',
+    description: 'Proof, Chapter 1 linked, the Compare panel on its Preview tab (#2822): the same preview panel the chapter view draws',
+    ...REFLOW,
+  },
+  {
+    page: 'proof',
     state: 'chapter-no-recording',
-    description: 'Proof, Chapter 2 with no track linked: the check card with nothing recorded to check and why, and no waveform under it',
+    description:
+      'Proof, Chapter 2 with no track linked: the check card with nothing recorded to check and why (Check recordings and Compare with the script both off), and no waveform under it',
     ...REFLOW,
   },
   {

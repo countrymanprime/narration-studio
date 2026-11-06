@@ -171,6 +171,21 @@ export const proofDrivers: Record<string, Driver> = {
     await openMisread(page, 'misread-rtl', /שלם/);
     await inspector(page).locator('[data-quote="script"]').scrollIntoViewIfNeeded();
   },
+  // Compare opened under the check card of a chapter with a measured recording (#2822): its three tabs on Differences, and the run's setup.
+  'compare-open': async (page) => {
+    await openProof(page, 'mockChapterLink=confirmed');
+    await openChapter(page, 'Chapter 1');
+    await page.getByRole('button', { name: 'Compare with the script' }).click();
+    await page.getByRole('region', { name: 'Compare' }).getByRole('heading', { name: 'Compare the recording with the script' }).waitFor();
+  },
+  'compare-preview': async (page) => {
+    await openProof(page, 'mockChapterLink=confirmed');
+    await openChapter(page, 'Chapter 1');
+    await page.getByRole('button', { name: 'Compare with the script' }).click();
+    const panel = page.getByRole('region', { name: 'Compare' });
+    await panel.getByRole('button', { name: 'Preview' }).click();
+    await panel.getByRole('heading', { name: 'Preview' }).waitFor();
+  },
   'chapter-no-recording': async (page) => {
     await openProof(page, 'mockChapterLink=confirmed');
     await openChapter(page, 'Chapter 2');
