@@ -17,7 +17,7 @@ With no manuscript imported yet, the page is the import.
 
 ![Import manuscript, step 2 of 2: the chapter outline with each heading's words and a preview](../../../docs/images/ui/production-import-confirm.webp "Check the chapter outline")
 
-> **Note:** The import does not build the Story Bible. Open [Story Bible](story-bible.md) and use **Scan the manuscript** or **Import entries**.
+> **Note:** When the Story Bible has no entries yet, the import builds it and says what it made. Turn off **Build the Story Bible after import** in Settings to start from an empty one. Later, use **Scan the manuscript** on [Story Bible](story-bible.md).
 
 ## Read where the book stands
 
