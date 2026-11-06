@@ -3315,7 +3315,8 @@
         "Linked Not Started",
         "Not Running",
         "Records In The App",
-        "Other Project Open"
+        "Other Project Open",
+        "Chapter Has No Track"
       ],
       "consumers": [
         "src/components/booth/page/BoothNextPage.tsx"
