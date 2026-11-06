@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, waitFor } from '@testing-library/react';
+import { act, render, waitFor } from '@testing-library/react';
 import { useEffect, useRef, useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { TOAST_CLEAR_RIGHT_VAR, TOAST_CLEAR_VAR, useToastClearance, useToastSideClearance } from './useToastClearance';
@@ -109,6 +109,23 @@ describe('useToastSideClearance', () => {
     }
     render(<Late />);
     await waitFor(() => expect(read()).toBe('392px'));
+  });
+
+  it('puts the toasts back when the panel goes away while the page stays', async () => {
+    vi.stubGlobal('innerWidth', 1440);
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ width: 380, right: 1440 } as DOMRect);
+    let hide: () => void = () => {};
+    function Goes() {
+      const ref = useRef<HTMLDivElement>(null);
+      const [shown, setShown] = useState(true);
+      hide = () => setShown(false);
+      useToastSideClearance(ref);
+      return shown ? <div ref={ref}>panel</div> : <p>no panel</p>;
+    }
+    render(<Goes />);
+    expect(read()).toBe('392px');
+    act(() => hide());
+    await waitFor(() => expect(read()).toBe(''));
   });
 
   it('leaves the toasts alone when the panel spans the window (the layout stacked it under the page)', () => {
