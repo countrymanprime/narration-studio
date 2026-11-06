@@ -160,7 +160,7 @@ export function Inspector({
       {/* The decision is the note's main action, so it stays at the panel's bottom edge while the evidence and the takes above it scroll past (#3114). The aside's scroll margin keeps a control above the band, a focused one or one scrolled into view, clear of it, not under it. */}
       <div
         data-decision-band
-        className="sticky bottom-[calc(var(--page-gutter)*-1)] z-[1] -mx-4 -mb-3 flex flex-col gap-3 border-t border-[var(--border)] bg-[var(--surface)] px-4 py-3"
+        className="sticky bottom-[calc(var(--page-gutter)*-1)] z-[1] -mb-3 flex flex-col gap-3 border-t border-[var(--border)] bg-[var(--surface)] py-3 shadow-[-1rem_0_0_var(--surface),1rem_0_0_var(--surface)]"
       >
         <SectionLabel>Decision</SectionLabel>
         <DecisionButtons status={shown.review.status} fix={fix} disabled={inert} pendingStatus={saving} onDecide={(status) => void decide(status)} />
