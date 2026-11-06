@@ -174,7 +174,7 @@ export const settingsDrivers: Record<string, Driver> = {
     const row = await showSettingsRow(page, 'daw.sampleStorage');
     // Audacity cannot keep a region: In the DAW and Both are off, each with the reason drawn under it.
     await row
-      .getByText(/not available with Audacity yet/)
+      .getByText(/Not available with this recording tool yet/)
       .first()
       .waitFor();
   },

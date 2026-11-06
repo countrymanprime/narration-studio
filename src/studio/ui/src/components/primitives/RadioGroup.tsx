@@ -82,7 +82,7 @@ function RadioItem({ value, label, description, disabled, reason }: RadioOption<
     <div>
       {choice}
       {why ? (
-        <div id={reasonId} className="mt-0.5 ml-[1.65rem]" style={{ color: 'var(--text-muted)' }}>
+        <div id={reasonId} className="mt-0.5 ml-[1.65rem] text-sm" style={{ color: 'var(--text-muted)' }}>
           {why}
         </div>
       ) : null}

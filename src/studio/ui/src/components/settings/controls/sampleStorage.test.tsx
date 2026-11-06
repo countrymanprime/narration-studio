@@ -95,10 +95,10 @@ describe('Voice sample storage', () => {
     // The reason is drawn under each off choice, and each is described by it: the narrator sees why without hovering or focusing.
     for (const name of ['In the DAW', 'Both']) {
       const described = document.getElementById((await radio(name)).getAttribute('aria-describedby') ?? '');
-      expect(described?.textContent).toBe('This recording tool cannot keep a voice sample in the DAW yet.');
+      expect(described?.textContent).toBe('Not available with this recording tool yet.');
       expect(described?.className).not.toContain('sr-only');
     }
-    expect(within(row()).getAllByText('This recording tool cannot keep a voice sample in the DAW yet.')).toHaveLength(2);
+    expect(within(row()).getAllByText('Not available with this recording tool yet.')).toHaveLength(2);
     expect((await radio('In the project folder')).getAttribute('aria-disabled')).not.toBe('true');
   });
 });

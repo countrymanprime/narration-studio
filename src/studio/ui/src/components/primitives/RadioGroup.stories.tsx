@@ -81,13 +81,13 @@ export const DisabledOptionWithReason: Story = {
   args: {
     options: [
       { value: 'reference', label: 'In the project folder' },
-      { value: 'opening', label: 'In the DAW', disabled: true, reason: 'This recording tool cannot keep a voice sample in the DAW yet.' },
+      { value: 'opening', label: 'In the DAW', disabled: true, reason: 'Not available with this recording tool yet.' },
     ],
   },
   play: async ({ args, canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByText('This recording tool cannot keep a voice sample in the DAW yet.')).toBeVisible();
-    await expect(canvas.getByRole('radio', { name: 'In the DAW' })).toHaveAccessibleDescription(/cannot keep a voice sample/);
+    await expect(canvas.getByText('Not available with this recording tool yet.')).toBeVisible();
+    await expect(canvas.getByRole('radio', { name: 'In the DAW' })).toHaveAccessibleDescription(/Not available with this recording tool/);
     await userEvent.click(canvas.getByText('In the DAW'));
     await expect(args.onChange).not.toHaveBeenCalled();
   },

@@ -7,7 +7,7 @@ import { rowOf } from '../registry/rows';
 type Storage = 'project' | 'daw' | 'both';
 
 /** Why a DAW choice is off, drawn under it: the tool declares it cannot keep a region, and the host's own sentence is built from the capability's name. */
-const CANNOT = 'This recording tool cannot keep a voice sample in the DAW yet.';
+const CANNOT = 'Not available with this recording tool yet.';
 
 /**
  * Where a new voice sample is kept (docs/prds/character-voice-samples.prd.md, Where a sample is kept): copied into the project folder (the
