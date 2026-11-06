@@ -113,10 +113,21 @@ type replaceDeps struct {
 	daw       string
 	log       *editlog.Service
 	alignment func(chapterID string) (coverage.AlignmentView, error)
-	theirs    func(ctx context.Context, trackGUID string) (dawport.TrackState, error)
-	measure   func(ctx context.Context, path string, rng measure.Range) (measure.Report, error)
-	target    float64
-	newID     func() string
+	// folder is the GUID of the chapter's linked folder of voices, or "": a replacement moves the audio after it on every voice inside it
+	// (chapterFolderTrack); nil is none.
+	folder  func(chapterID string) string
+	theirs  func(ctx context.Context, trackGUID string) (dawport.TrackState, error)
+	measure func(ctx context.Context, path string, rng measure.Range) (measure.Report, error)
+	target  float64
+	newID   func() string
+}
+
+// chapterFolder is the chapter's folder GUID, or "" with no folder or no way to read one.
+func (deps replaceDeps) chapterFolder(chapterID string) string {
+	if deps.folder == nil {
+		return ""
+	}
+	return deps.folder(chapterID)
 }
 
 func (h *Host) replaceDeps(svc hostServices) replaceDeps {
@@ -126,6 +137,7 @@ func (h *Host) replaceDeps(svc hostServices) replaceDeps {
 		replacer: svc.rangeReplacer,
 		daw:      readAloudAdapterName(svc),
 		log:      h.editLog(),
+		folder:   func(chapterID string) string { return chapterFolderTrack(svc, chapterID) },
 		alignment: func(chapterID string) (coverage.AlignmentView, error) {
 			if svc.coverage == nil {
 				return coverage.AlignmentView{}, errNoProject
@@ -469,7 +481,7 @@ func dawReplaceRangeIn(ctx context.Context, deps replaceDeps, chapterID string, 
 	}
 	id := deps.newID()
 	request := dawport.ReplaceRangeRequest{RangeRequest: planned.resolved.Request, SourceItemGUID: planned.file.Item, SourceStart: from,
-		SourceEnd: to, FadeMs: fadeMs, GainDB: gainDB, ID: id, Narrator: planned.narrator.Name}
+		SourceEnd: to, FadeMs: fadeMs, GainDB: gainDB, ID: id, Narrator: planned.narrator.Name, ChapterTrack: deps.chapterFolder(chapterID)}
 	got, err := deps.replacer.ReplaceRange(ctx, request)
 	if err != nil {
 		return answer(replaceRefusal(deps.daw, err), "")
@@ -565,7 +577,7 @@ func dawRestoreReplacementIn(ctx context.Context, deps replaceDeps, chapterID, r
 	if deps.replacer == nil {
 		return answer(dawport.Refused(replaceNotConnected(deps.daw)))
 	}
-	got, err := deps.replacer.RestoreReplacement(ctx, dawport.RestoreRequest{ReplacementItem: stored.Item, ID: stored.ID, Words: len(stored.Words)})
+	got, err := deps.replacer.RestoreReplacement(ctx, dawport.RestoreRequest{ReplacementItem: stored.Item, ID: stored.ID, Words: len(stored.Words), ChapterTrack: deps.chapterFolder(chapterID)})
 	if err != nil {
 		return answer(replaceRefusal(deps.daw, err))
 	}

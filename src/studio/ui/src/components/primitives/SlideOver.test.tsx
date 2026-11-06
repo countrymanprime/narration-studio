@@ -112,8 +112,16 @@ describe('SlideOver is a real modal panel', () => {
   it('closes when the click-away backdrop is pressed', async () => {
     const onClose = vi.fn();
     const { user } = await openPanel(onClose);
+    await new Promise((resolve) => setTimeout(resolve, 450));
     await user.click(document.querySelector('[data-slide-over-backdrop]') as HTMLElement);
     expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it('ignores a press on the backdrop in the instant after it opens: the second press of a double click on its opener', async () => {
+    const onClose = vi.fn();
+    const { user } = await openPanel(onClose);
+    await user.click(document.querySelector('[data-slide-over-backdrop]') as HTMLElement);
+    expect(onClose).not.toHaveBeenCalled();
   });
 
   it('keeps Tab inside the panel', async () => {

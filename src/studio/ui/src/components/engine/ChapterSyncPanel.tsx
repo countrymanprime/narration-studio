@@ -4,7 +4,9 @@ import { describeApiError } from '../../api/errorMessage';
 import { useChapterSync } from '../../hooks/useChapterSync';
 import type { ChapterSyncPreview } from '../../api/contracts/chapterSync';
 import type { Notify } from '../primitives/Toast';
+import { retryAction } from '../primitives/Toast';
 import { Button } from '../primitives/Button';
+import { IconButton } from '../primitives/IconButton';
 import { Panel } from '../primitives/Panel';
 import { InsetCard } from '../primitives/InsetCard';
 import { SectionLabel } from '../primitives/SectionLabel';
@@ -46,11 +48,16 @@ export function ChapterSyncPanel({
   const [picked, setPicked] = useState<Record<string, string>>({});
   const [linkingChapterId, setLinkingChapterId] = useState('');
 
-  const loadPreview = useCallback(async () => {
+  // Reading the preview changes nothing, so a failed read is an error toast with Retry (issue #2919).
+  const loadPreview = useCallback(async (): Promise<void> => {
     try {
       setPreview(await api.chapterSyncPreview());
     } catch (error) {
-      notify(describeApiError(error), 'error');
+      notify(
+        describeApiError(error),
+        'error',
+        retryAction(() => void loadPreview()),
+      );
     }
   }, [api, notify]);
 
@@ -80,9 +87,12 @@ export function ChapterSyncPanel({
 
   // The on/off button is in the card's header in both states, so it never moves and the card keeps its header (alignment audit ENX-8).
   const toggleButton = (on: boolean) => (
-    <Button variant="secondary" pending={toggling} onClick={() => void toggle(on)}>
-      {on ? 'Turn on' : 'Turn off'}
-    </Button>
+    <IconButton
+      action={on ? 'turnOn' : 'turnOff'}
+      label={on ? 'Turn on chapter sync' : 'Turn off chapter sync'}
+      pending={toggling}
+      onClick={() => void toggle(on)}
+    />
   );
 
   if (state.consent === 'off') {

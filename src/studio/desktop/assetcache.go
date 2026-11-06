@@ -27,7 +27,8 @@ const (
 	analysisCacheDir   = analysistools.CacheDir
 )
 
-// assetCacheBase is where downloaded assets live: the per-user cache folder, never the temporary one (assets.CacheBase).
+// assetCacheBase is where downloaded assets live unless the narrator moved them (assetBaseFor): the per-user cache folder, never the
+// temporary one (assets.CacheBase).
 func assetCacheBase() (string, error) { return assets.CacheBase() }
 
 // cleanAssetCaches removes what an interrupted download or repair left under the asset cache and nothing will resume: run once at start.
@@ -40,11 +41,12 @@ func cleanAssetCaches(base string) []string {
 	return removed
 }
 
-// buildAssetRegistry builds the registry once, at start: the per-user cache folder and a manager for each approved catalog (the checkout catalog
-// or, in a release, the packaged one). When the operating system cannot name the cache folder the registry says why and holds no provider;
-// there is no fallback to the temporary folder. The caller holds h.mu.
+// buildAssetRegistry builds the registry at start, and again after the narrator moves the models folder: the models folder (the per-user
+// cache folder unless moved, assetBaseFor) and a manager for each approved catalog (the checkout catalog or, in a release, the packaged
+// one). When the operating system cannot name the cache folder the registry says why and holds no provider; there is no fallback to the
+// temporary folder. The caller holds h.mu.
 func (h *Host) buildAssetRegistry() *assetRegistry {
-	base, err := assetCacheBase()
+	base, err := assetBaseFor(h.settings)
 	if err != nil {
 		_ = h.log.Report("asset_cache_unavailable", err.Error())
 		return &assetRegistry{unavailable: err.Error()}

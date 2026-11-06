@@ -86,6 +86,8 @@ func runEarlyModes(arguments []string, embedded fs.FS, stdout, stderr io.Writer)
 	case isVersionRequest(arguments):
 		_, _ = fmt.Fprintln(stdout, version)
 		return 0, true
+	case isLogsSummaryRequest(arguments):
+		return runLogsSummary(arguments, stdout, stderr), true
 	case isSmokeRequest(arguments):
 		return runSmoke(context.Background(), arguments, embedded, stdout, stderr), true
 	}

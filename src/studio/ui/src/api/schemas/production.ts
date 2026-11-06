@@ -10,6 +10,7 @@ import type {
   ProductionPlan,
   ProductionReadiness,
   ProductionReportExport,
+  ReportsFolderResult,
   ProductionReportInclude,
   ProductionReportPreview,
   ProductionSession,
@@ -124,6 +125,8 @@ const productionReportIncludeSchema = z.strictObject({
   delivery: z.boolean(),
   money: z.boolean(),
 }) satisfies z.ZodType<ProductionReportInclude>;
+
+export const reportsFolderResultSchema = z.object({ folder: z.string().min(1) }).strict() satisfies z.ZodType<ReportsFolderResult>;
 
 export const productionReportExportSchema = z.object({
   folder: z.string(),

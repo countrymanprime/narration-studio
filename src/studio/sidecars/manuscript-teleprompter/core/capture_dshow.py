@@ -48,7 +48,7 @@ class DshowBackend:
         decoded - a session instead stops it with a sentinel file (`stoppable`, in `live_asr.py`)."""
         import av
 
-        container = av.open(file=f"audio={device}", format="dshow")
+        container = av.open(file=f"audio={devices.open_target(device)}", format="dshow")
         stream = container.streams.audio[0]
         resampler = av.AudioResampler(format="fltp", layout="mono", rate=SAMPLE_RATE)
         chunk_len = max(1, int(chunk_seconds * SAMPLE_RATE))

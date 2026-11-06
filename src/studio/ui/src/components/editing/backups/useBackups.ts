@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { DawBackup, DawCapabilities, DawResult } from '../../../api/contracts/daw';
 import { overlay } from '../../../overlay/overlayService';
+import { retryAction } from '../../primitives/Toast';
 import type { DawClient } from '../../../ports/daw';
 import { usePort } from '../../../ports/usePort';
 import type { Command, Journal } from '../../../studio/journal/createJournal';
@@ -63,7 +64,8 @@ export function useBackups(journal: Pick<Journal, 'act'>, chapterId: string): Ba
     let live = true;
     daw.backups().then(
       (all) => live && setRows(all.filter((b) => b.chapterId === chapterId)),
-      (e) => live && overlay.toast(why(e), { tone: 'error' }),
+      // Reading the table changes nothing, so Retry reads it again (issue #2919).
+      (e) => live && overlay.toast(why(e), { tone: 'error', action: retryAction(() => setVersion((v) => v + 1)) }),
     );
     return () => {
       live = false;

@@ -13,14 +13,14 @@ afterEach(() => {
 
 function renderPicker(
   overrides: Parameters<typeof createMockApi>[0] = {},
-  props: { onCreated?: () => void } = {},
+  props: { onCreated?: () => void; onOpenSettings?: () => void } = {},
   seed: Parameters<typeof createMockApi>[1] = {},
 ) {
   const api = createMockApi(overrides, seed);
   const notify = vi.fn<Notify>();
   render(
     <ApiProvider api={api}>
-      <ProjectPicker notify={notify} onCreated={props.onCreated ?? (() => undefined)} />
+      <ProjectPicker notify={notify} onCreated={props.onCreated ?? (() => undefined)} onOpenSettings={props.onOpenSettings} />
     </ApiProvider>,
   );
   return { api, notify };
@@ -36,6 +36,20 @@ describe('ProjectPicker', () => {
     expect(screen.getByRole('main')).toBeTruthy();
     expect(screen.getByRole('heading', { level: 1, name: 'Choose your project' })).toBeTruthy();
     expect(screen.getByText('Open the book you’re working on, or start a new project.')).toBeTruthy();
+  });
+
+  // Settings has rows that are this computer's, so the picker offers it when no project is open (issue 3024): an icon button with a hint, in the top row.
+  it('offers Settings as an icon button in the top row when it is given a way to open it, and none otherwise', () => {
+    const onOpenSettings = vi.fn();
+    renderPicker({}, { onOpenSettings });
+    const settings = screen.getByRole('button', { name: 'Settings' });
+    expect(settings.textContent).toBe('');
+    expect(settings.closest('.ml-auto')).toBeTruthy();
+    fireEvent.click(settings);
+    expect(onOpenSettings).toHaveBeenCalledTimes(1);
+    cleanup();
+    renderPicker();
+    expect(screen.queryByRole('button', { name: 'Settings' })).toBeNull();
   });
 
   it('draws the app mark and name above the heading, as the mock does', () => {
@@ -154,6 +168,20 @@ describe('ProjectPicker', () => {
 
     expect(await screen.findByText("Couldn't load recent projects.")).toBeTruthy();
     expect(screen.queryByText('No recent projects yet.')).toBeNull();
+  });
+
+  // Before the host answers, the list is unknown, not empty: drawing "No recent projects yet." (and its second New project) for that
+  // moment flashed the wrong state and made a test that looked for the one header button find two (#2848).
+  it('draws no empty-list state and a single New project while the recents are still loading', async () => {
+    let resolve: (value: Awaited<ReturnType<ReturnType<typeof createMockApi>['projectRecents']>>) => void = () => undefined;
+    renderPicker({ projectRecents: () => new Promise((done) => (resolve = done)) });
+
+    expect(screen.queryByText('No recent projects yet.')).toBeNull();
+    expect(screen.getAllByRole('button', { name: 'New project' })).toHaveLength(1);
+
+    await act(async () => resolve([]));
+    expect(await screen.findByText('No recent projects yet.')).toBeTruthy();
+    expect(screen.getAllByRole('button', { name: 'New project' })).toHaveLength(2);
   });
 
   it('keeps New project and Browse available when there are no recent projects', async () => {

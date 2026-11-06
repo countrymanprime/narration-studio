@@ -1,31 +1,40 @@
-import { Button } from '../../primitives/Button';
 import { Icon } from '../../primitives/Icon';
+import { SplitMain } from '../../primitives/SplitButton';
 import type { RecordControlState } from './useRecordControl';
 
 /**
- * The Booth footer's Record / Stop button (the mock's `brec`). The label is "Record" and "Stop" in every setup; which DAW records
+ * The Booth footer's Record / Stop button (the mock's `brec`), the main part of the footer's split button. The label is "Record" and "Stop" in every setup; which DAW records
  * is the setup chip's to say. While Record cannot start it looks off (`aria-disabled`) and is described by the reason, which the footer
  * draws as `#brec-why` beside it, but it stays pressable: the press opens the dialog that fixes the reason, or says it with an action.
  */
 export function RecordControl({
   control,
+  cold,
   describedBy = 'brec-why',
 }: {
   control: Pick<RecordControlState, 'recording' | 'disabled' | 'reason'> & { toggle: () => Promise<unknown> };
+  /** The side menu picked Cold read: the button reads it and starts one (`on` while it listens: Stop); Record's own reasons do not apply. */
+  cold?: { mode: boolean; on: boolean };
   describedBy?: string;
 }) {
-  const { recording, disabled, reason, toggle } = control;
+  const { recording, toggle } = control;
+  const coldMode = Boolean(cold?.mode) && !recording;
+  // A cold read needs a microphone, not a recorder: Record's reasons leave it alone.
+  const disabled = coldMode ? false : control.disabled;
+  const reason = coldMode ? undefined : control.reason;
+  const stop = recording || (coldMode && cold?.on);
   return (
-    // As wide as "Record" in both states, so the timer and the controls beside it do not move when it becomes Stop (alignment audit XBO-25).
-    <Button
+    // `SplitMain` is as wide as "Record" in both states, so the timer beside it does not move when it becomes Stop (alignment audit XBO-25).
+    <SplitMain
       id="brec"
-      className="min-w-[5.75rem]"
+      tone={coldMode ? 'cold' : 'primary'}
+      hint={coldMode ? (stop ? 'Stop the cold read (Space)' : 'Start a cold read (Space). Nothing is recorded.') : undefined}
       {...(disabled ? { 'aria-disabled': true } : {})}
       aria-describedby={reason ? describedBy : undefined}
       onClick={() => void toggle()}
     >
-      <Icon name={recording ? 'stop' : 'record'} />
-      {recording ? 'Stop' : 'Record'}
-    </Button>
+      <Icon name={stop ? 'stop' : coldMode ? 'microphone' : 'record'} />
+      {stop ? 'Stop' : coldMode ? 'Cold read' : 'Record'}
+    </SplitMain>
   );
 }

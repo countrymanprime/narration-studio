@@ -2,12 +2,19 @@
 // the chapter links and the saved project's tracks. In a Voice folders project a chapter linked to a folder records on one of its
 // direct children: the one chosen, else the first named Narrator, else the first. A take this app started switches voice live.
 import type { NarrationApi } from '../types';
-import type { BoothVoice } from './contracts/voiceTracks';
+import type { BoothPunch, BoothVoice, BoothVoiceAdded, BoothVoiceTrack } from './contracts/voiceTracks';
 import type { Track } from './contracts/tracks';
 
 type Deps = Pick<
   NarrationApi,
-  'voiceTracksGet' | 'chapterTrackMapList' | 'tracksList' | 'readAloudRecordStart' | 'readAloudRecordStartAt' | 'readAloudRecordStop' | 'readAloudReaperState'
+  | 'voiceTracksGet'
+  | 'voiceTracksSetCharacters'
+  | 'chapterTrackMapList'
+  | 'tracksList'
+  | 'readAloudRecordStart'
+  | 'readAloudRecordStartAt'
+  | 'readAloudRecordStop'
+  | 'readAloudReaperState'
 >;
 
 const FLAT =
@@ -40,14 +47,31 @@ function voiceFor(voices: readonly Track[], chosen: string): string {
 export function createBoothVoiceMock(api: Deps) {
   // The voice chosen in each chapter this session, as the host keeps it (Host.boothVoices).
   const chosen = new Map<string, string>();
+  // The voices BoothVoiceAdd added, by folder GUID (upper case): REAPER has them, the saved project does not until the narrator saves.
+  const added = new Map<string, BoothVoiceTrack[]>();
+  let addedCount = 0;
   let recording: { chapterId: string; since: number; from: number } | undefined;
 
   /** The chapter's one link and, in a Voice folders project with that link a folder, its voices. */
   const voicesOf = async (chapterId: string) => {
     const [setup, map, project] = await Promise.all([api.voiceTracksGet(), api.chapterTrackMapList(), api.tracksList()]);
     const links = map.mappings.filter((mapping) => mapping.chapterId === chapterId).map((mapping) => mapping.trackGuid);
-    const voices = setup.layout === 'folders' && links.length === 1 ? childrenOf(project.tracks, links[0]) : null;
-    return { links, voices };
+    const saved = setup.layout === 'folders' && links.length === 1 ? childrenOf(project.tracks, links[0]) : null;
+    const unsaved = saved ? (added.get(links[0].toUpperCase()) ?? []).filter((voice) => !project.tracks.some((track) => track.guid === voice.guid)) : [];
+    const folder = saved ? project.tracks.find((track) => track.guid === links[0]) : undefined;
+    const extra: Track[] = unsaved.map((voice, at) => ({
+      guid: voice.guid,
+      name: voice.name,
+      index: project.tracks.length + at,
+      color: '',
+      muted: false,
+      soloed: false,
+      items: [],
+      depth: (folder?.depth ?? 0) + 1,
+      isFolder: false,
+    }));
+    const voices = saved ? [...saved, ...extra] : null;
+    return { links, voices, unsaved };
   };
   const chosenFor = (chapterId: string) => chosen.get(chapterId) ?? '';
 
@@ -74,6 +98,11 @@ export function createBoothVoiceMock(api: Deps) {
   };
 
   return {
+    // The mock has no recording check to read a passage from: nothing of it was heard, so a start from here continues (the host's
+    // answer for a passage no word of which was heard).
+    async boothPunchTarget(_chapterId: string, _paragraphId: string, _fromWord: number, _toWord: number): Promise<BoothPunch> {
+      return { outcome: 'never_recorded' };
+    },
     async boothVoiceGet(chapterId: string): Promise<BoothVoice> {
       const { links, voices } = await voicesOf(chapterId);
       const notOne = linkRefusal(links);
@@ -81,7 +110,42 @@ export function createBoothVoiceMock(api: Deps) {
       if (!voices) return refused('flat', 'This chapter records on one track.');
       if (voices.length === 0)
         return refused('no_voices', 'This chapter is linked to a folder with no voice tracks in it. Add a track inside the folder in REAPER, and save.');
-      return { outcome: 'selected', trackGuid: voiceFor(voices, chosenFor(chapterId)) };
+      const { unsaved } = await voicesOf(chapterId);
+      return { outcome: 'selected', trackGuid: voiceFor(voices, chosenFor(chapterId)), ...(unsaved.length ? { added: unsaved } : {}) };
+    },
+    // As BoothVoiceAdd does (src/studio/desktop/boothvoiceadd.go): a child at the end of the chapter's folder, its characters added
+    // to its name's, and chosen. Refused during this app's take, for a blank name or one a voice of the folder has.
+    async boothVoiceAdd(chapterId: string, name: string, characterIds: string[]): Promise<BoothVoiceAdded> {
+      const { links, voices } = await voicesOf(chapterId);
+      const notOne = linkRefusal(links);
+      if (notOne) return { ...notOne, outcome: 'refused' };
+      if (!voices) return { outcome: 'refused', reason: 'flat', message: FLAT };
+      const clean = name.split(/\s+/).filter(Boolean).join(' ');
+      if (!clean) return { outcome: 'refused', reason: 'no_name', message: 'The new track needs a name.' };
+      if ([...clean].length > 120)
+        return {
+          outcome: 'refused',
+          reason: 'invalid',
+          message: 'That track name or list of characters is too long (at most 120 characters in a name and 200 characters on a track).',
+        };
+      const taken = voices.find((voice) => voice.name.split(/\s+/).filter(Boolean).join(' ').toLowerCase() === clean.toLowerCase());
+      if (taken)
+        return {
+          outcome: 'refused',
+          reason: 'name_taken',
+          message: `This chapter already has a track named “${taken.name.trim()}”. Choose it, or give the new track another name.`,
+        };
+      if (recording) return { outcome: 'refused', reason: 'recording', message: 'REAPER is recording. Stop the take, then add the track.' };
+      addedCount += 1;
+      const voice = { guid: `{ADDED000-0000-4000-8000-${String(addedCount).padStart(12, '0')}}`, name: clean };
+      const key = links[0].toUpperCase();
+      added.set(key, [...(added.get(key) ?? []), voice]);
+      if (characterIds.length) {
+        const had = (await api.voiceTracksGet()).tracks.find((entry) => entry.track === clean)?.characters ?? [];
+        await api.voiceTracksSetCharacters(clean, [...had, ...characterIds.filter((id) => !had.includes(id))]);
+      }
+      chosen.set(chapterId, voice.guid);
+      return { outcome: 'added', trackGuid: voice.guid, name: clean };
     },
     async boothVoiceSet(chapterId: string, trackGuid: string): Promise<BoothVoice> {
       const { links, voices } = await voicesOf(chapterId);

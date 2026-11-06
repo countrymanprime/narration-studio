@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { CUSTOM } from '../controls/registry';
 import { ROWS } from '../registry/rows';
 import { BROWSER_CHANGED } from './browserValues';
-import { CHANGED_EXEMPT, CUSTOM_CHANGED, changedIsCovered } from './customChanged';
+import { CHANGED_EXEMPT, CUSTOM_CHANGED, LIVE_CHANGED, changedIsCovered } from './customChanged';
 
 // The class guard for issue 2636: the Changed filter must be able to see every row of every scope and kind. A row it cannot see must say why.
 describe('Changed covers every row', () => {
@@ -13,17 +13,23 @@ describe('Changed covers every row', () => {
 
   it('a row is covered one way only', () => {
     for (const row of ROWS) {
-      const ways = [Boolean(row.field && !CUSTOM[row.id]), row.id in BROWSER_CHANGED, row.id in CUSTOM_CHANGED, row.id in CHANGED_EXEMPT];
+      const ways = [
+        Boolean(row.field && !CUSTOM[row.id]),
+        row.id in BROWSER_CHANGED,
+        row.id in CUSTOM_CHANGED,
+        row.id in LIVE_CHANGED,
+        row.id in CHANGED_EXEMPT,
+      ];
       expect(ways.filter(Boolean).length, row.id).toBeLessThanOrEqual(1);
     }
   });
 
-  it('an exemption is for a row with a custom body, names one of the three kinds and gives a specific reason', () => {
+  it('an exemption is for a row with a custom body, names one of the four kinds and gives a specific reason', () => {
     for (const [id, { kind, reason }] of Object.entries(CHANGED_EXEMPT)) {
       const row = ROWS.find((candidate) => candidate.id === id);
       expect(row, id).toBeTruthy();
       expect(row?.field, id).toBeUndefined();
-      expect(['report', 'action', 'unmarked-default'], id).toContain(kind);
+      expect(['report', 'action', 'unmarked-default', 'data'], id).toContain(kind);
       expect(reason.length, id).toBeGreaterThan(40);
       // A reason for a setting nobody can compare names what the default is.
       if (kind === 'unmarked-default') expect(reason, id).toMatch(/default|shipped/);
@@ -32,7 +38,17 @@ describe('Changed covers every row', () => {
 
   // The list shrinks as rows get probes. A new entry needs this number raised in the same change, which a reviewer sees.
   it('the exemption list does not grow silently', () => {
-    expect(Object.keys(CHANGED_EXEMPT).length).toBeLessThanOrEqual(9);
+    expect(Object.keys(CHANGED_EXEMPT).length).toBeLessThanOrEqual(8);
+  });
+
+  // Closed list (issue 2605): what the narrator entered is not a value with a default, so Changed does not count it and the header Reset does not
+  // delete it. Each is removed in its own row. A new kind of entry here is the owner's decision, not a test edit.
+  it('the data exemptions are exactly the Voices assignments, the narrator’s own delivery profiles and the Merriam-Webster key', () => {
+    const data = Object.entries(CHANGED_EXEMPT)
+      .filter(([, { kind }]) => kind === 'data')
+      .map(([id]) => id)
+      .sort();
+    expect(data).toEqual(['daw.voices', 'delivery.custom', 'voice.mwKey']);
   });
 
   it('a probe or a window reader names a row that exists', () => {

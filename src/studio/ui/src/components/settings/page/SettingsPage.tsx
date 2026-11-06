@@ -4,6 +4,7 @@ import { useBrowserSettingsVersion } from '../../../browserSettings';
 import { useProjectDaw } from '../data/useProjectDaw';
 import type { Bootstrap } from '../../../types';
 import { Button } from '../../primitives/Button';
+import { IconButton } from '../../primitives/IconButton';
 import { InsetCard } from '../../primitives/InsetCard';
 import { Heading } from '../../primitives/Heading';
 import { Icon } from '../../primitives/Icon';
@@ -14,6 +15,7 @@ import type { Notify } from '../../primitives/Toast';
 import { SettingsFormsProvider } from '../data/settingsForms';
 import { SettingsStoreProvider, useSettingsStore } from '../data/SettingsStore';
 import { isAnyChanged, isBrowserChanged, overrideValue } from '../data/values';
+import { isResettable, useRowResets, type RowReset } from '../data/rowResets';
 import { AssetsStoreProvider } from '../models/AssetsStore';
 import { AboutSection } from '../controls/AboutSection';
 import { CATEGORIES, categoryLabel } from '../registry/categories';
@@ -21,7 +23,8 @@ import { PAGE_SETTINGS } from '../registry/pageSettings';
 import { ROWS } from '../registry/rows';
 import { search, type Hit } from '../registry/search';
 import { PAGE_LABEL, PAGE_PATH, type CategoryId, type SettingMeta, type UsedPage } from '../registry/types';
-import { SettingsHostProvider, useSettingsHost, type SettingsHost } from '../row/SettingsHost';
+import { RowResetContext } from '../row/RowResetContext';
+import { SettingsHostProvider, useHasProject, useSettingsHost, type SettingsHost } from '../row/SettingsHost';
 import { SettingsNavProvider } from '../row/SettingsNav';
 import { ANCHOR_TARGETS } from './anchors';
 import { CategoryNav } from './CategoryNav';
@@ -71,6 +74,7 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
   // A window-kept setting is written outside the store: redraw the Changed counts when one is.
   const browserVersion = useBrowserSettingsVersion();
   const { data, go } = useSettingsHost();
+  const hasProject = useHasProject();
   const target = initialCategory ? ANCHOR_TARGETS[initialCategory] : undefined;
   const [cat, setCat] = useState<CategoryId>(target?.cat ?? 'recording');
   const [query, setQuery] = useState('');
@@ -120,7 +124,7 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
     [store, flagged],
   );
   const inProject = useCallback(
-    (row: SettingMeta): boolean => row.scope === 'project' || overrideValue(row, store.fieldsOf(row).project) !== undefined,
+    (row: SettingMeta): boolean => (row.scope === 'project' && !row.field) || overrideValue(row, store.fieldsOf(row).project) !== undefined,
     [store],
   );
   const passes = useCallback(
@@ -138,6 +142,19 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
 
   const categoryRows = (id: CategoryId) => ROWS.filter((row) => row.cat === id && shown(row));
   const changedIn = (id: CategoryId) => categoryRows(id).filter(changed).length;
+  const resets = useRowResets();
+  // One reset at a time (a second press would write every row twice), and none after the page is gone.
+  const resetting = useRef(false);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  const { notify } = useSettingsHost();
+  // What the header's Reset to defaults puts back: the changed rows it knows how to reset (the others are undone in their own row).
+  const resettableChangedIn = (id: CategoryId) => categoryRows(id).filter((row) => changed(row) && isResettable(row)).length;
 
   const showCategory = useCallback((id: CategoryId) => {
     setCat(id);
@@ -236,7 +253,7 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
       </fieldset>
     );
   } else if (cat === 'models') {
-    content = <ModelsPane category={category!} />;
+    content = <ModelsPane category={category!} lit={lit} />;
   } else {
     content = (
       <fieldset disabled={broken} className="m-0 flex min-w-0 flex-col gap-4 border-0 p-0 disabled:opacity-55">
@@ -246,10 +263,16 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
           <CategoryPane
             category={category!}
             rows={categoryRows(cat)}
-            changed={changedIn(cat)}
+            changed={resettableChangedIn(cat)}
             advancedOpen={Boolean(advanced[cat])}
             onToggleAdvanced={() => setAdvanced((current) => ({ ...current, [cat]: !current[cat] }))}
-            onReset={() => void resetCategory(categoryRows(cat), store)}
+            onReset={() => {
+              if (resetting.current) return;
+              resetting.current = true;
+              void resetCategory(categoryRows(cat).filter(changed), store, resets, notify, () => mounted.current).finally(() => {
+                resetting.current = false;
+              });
+            }}
             lit={lit}
             extra={cat === 'app' ? <AboutSection /> : undefined}
           />
@@ -259,90 +282,116 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
   }
 
   return (
-    <SettingsNavProvider value={{ go, showCategory }}>
-      <div className="@container flex w-full flex-col gap-4" data-testid="settings-page">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <Heading title="Settings" />
-          {cameFrom && (
-            <Button variant="secondary" size="sm" id="settings-back" onClick={() => go(cameFrom)}>
-              <Icon name="previous" /> Back to {pageNameOf(cameFrom)}
-            </Button>
-          )}
-          <span className="flex-1" />
-          <div role="search" className="flex flex-wrap items-center gap-2.5 @max-[760px]:w-full">
-            <div className="w-[260px] min-w-0 flex-[1_1_180px]">
-              <SearchField
-                leadingIcon
-                label="Search settings"
-                placeholder="Search settings"
-                value={query}
-                onChange={setQuery}
-                onKeyDown={(event) => {
-                  if (event.key === 'Escape' && query) {
-                    event.stopPropagation();
-                    setQuery('');
-                  }
-                }}
+    <RowResetContext.Provider value={resets}>
+      <SettingsNavProvider value={{ go, showCategory }}>
+        <div className="@container flex w-full flex-col gap-4" data-testid="settings-page">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <Heading title="Settings" />
+            {cameFrom && (
+              <Button variant="secondary" size="sm" id="settings-back" onClick={() => go(cameFrom)}>
+                <Icon name="previous" /> Back to {hasProject ? pageNameOf(cameFrom) : 'project picker'}
+              </Button>
+            )}
+            <span className="flex-1" />
+            <div role="search" className="flex flex-wrap items-center gap-2.5 @max-[760px]:w-full">
+              <div className="w-[260px] min-w-0 flex-[1_1_180px]">
+                <SearchField
+                  leadingIcon
+                  label="Search settings"
+                  placeholder="Search settings"
+                  value={query}
+                  onChange={setQuery}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Escape' && query) {
+                      event.stopPropagation();
+                      setQuery('');
+                    }
+                  }}
+                />
+              </div>
+              <ToggleGroup
+                label="Show"
+                look="segmented"
+                value={filter}
+                onChange={(next) => setFilter(next as Filter)}
+                options={[
+                  { value: 'all', label: 'All' },
+                  { value: 'changed', label: 'Changed' },
+                  { value: 'project', label: 'In this project', disabledReason: hasProject ? undefined : 'Open a project to see what it sets' },
+                ]}
               />
             </div>
-            <ToggleGroup
-              label="Show"
-              look="segmented"
-              value={filter}
-              onChange={(next) => setFilter(next as Filter)}
-              options={[
-                { value: 'all', label: 'All' },
-                { value: 'changed', label: 'Changed' },
-                { value: 'project', label: 'In this project' },
-              ]}
-            />
+            <span className="sr-only" role="status" aria-live="polite">
+              {store.announcement}
+            </span>
           </div>
+          <div className="grid items-start gap-5 @min-[761px]:grid-cols-[236px_minmax(0,1fr)]">
+            <CategoryNav
+              current={cat}
+              browsing={searching}
+              open={navOpen}
+              onToggle={() => setNavOpen((current) => !current)}
+              onPick={showCategory}
+              changedIn={changedIn}
+              pageSettingCount={PAGE_SETTINGS.length}
+            />
+            <section aria-labelledby="settings-heading" id="settings-pane" className="flex min-w-0 scroll-mt-3 flex-col gap-4">
+              {store.failing && (
+                <InsetCard tone="warn" role="status" className="flex flex-col items-start gap-1.5 text-[0.875rem]">
+                  <b>Changes cannot be saved right now.</b>
+                  <span>The last change was not kept and the previous value is still in use. The setting says why.</span>
+                </InsetCard>
+              )}
+              {broken && (
+                <InsetCard tone="danger" role="alert" className="flex flex-col items-start gap-1.5 text-[0.875rem]">
+                  <b>Your settings could not be read.</b>
+                  <span>{store.readError.global}. Nothing can be changed until the file can be read.</span>
+                  <IconButton action="retry" size="sm" onClick={() => void store.reload()} />
+                </InsetCard>
+              )}
+              {content}
+            </section>
+          </div>
+          <span className="sr-only" role="status" aria-live="polite">
+            {store.announcement}
+          </span>
         </div>
-        <div className="grid items-start gap-5 @min-[761px]:grid-cols-[236px_minmax(0,1fr)]">
-          <CategoryNav
-            current={cat}
-            browsing={searching}
-            open={navOpen}
-            onToggle={() => setNavOpen((current) => !current)}
-            onPick={showCategory}
-            changedIn={changedIn}
-            pageSettingCount={PAGE_SETTINGS.length}
-          />
-          <section aria-labelledby="settings-heading" id="settings-pane" className="flex min-w-0 scroll-mt-3 flex-col gap-4">
-            {store.failing && (
-              <InsetCard tone="warn" role="status" className="flex flex-col items-start gap-1.5 text-[0.875rem]">
-                <b>Changes cannot be saved right now.</b>
-                <span>The last change was not kept and the previous value is still in use. The setting says why.</span>
-              </InsetCard>
-            )}
-            {broken && (
-              <InsetCard tone="danger" role="alert" className="flex flex-col items-start gap-1.5 text-[0.875rem]">
-                <b>Your settings could not be read.</b>
-                <span>{store.readError.global}. Nothing can be changed until the file can be read.</span>
-                <Button variant="secondary" size="sm" onClick={() => void store.reload()}>
-                  Retry
-                </Button>
-              </InsetCard>
-            )}
-            {content}
-          </section>
-        </div>
-        <span className="sr-only" role="status" aria-live="polite">
-          {store.announcement}
-        </span>
-      </div>
-    </SettingsNavProvider>
+      </SettingsNavProvider>
+    </RowResetContext.Provider>
   );
 }
 
-/** Puts every row of a category back to its default: the computer's values and this project's overrides. */
-async function resetCategory(rows: readonly SettingMeta[], store: ReturnType<typeof useSettingsStore>): Promise<void> {
+/**
+ * Puts every changed row of a category back to its default: the computer's values and this project's overrides for a row with a host field,
+ * and the setter the row's own Reset uses for a row with none (`useRowResets`). A row it cannot reset is left to its own control. Rows reset
+ * one after another; the ones the host refused are named in one message.
+ */
+async function resetCategory(
+  rows: readonly SettingMeta[],
+  store: ReturnType<typeof useSettingsStore>,
+  resets: Readonly<Record<string, RowReset>>,
+  notify: (message: string, tone?: 'error') => void,
+  alive: () => boolean,
+): Promise<void> {
+  const failed: string[] = [];
   for (const row of rows) {
-    if (!row.field) continue;
-    const { global, project } = store.fieldsOf(row);
-    if (global?.isSet && global.value !== row.def) await store.write(row, 'global', null);
-    if (row.scope === 'both' && project?.isSet) await store.write(row, 'project', null);
+    // A page that was closed (or a project that was switched) stops the reset: the rest would be written to whatever is open by then.
+    if (!alive()) return;
+    try {
+      let done = true;
+      if (row.field) {
+        const { global, project } = store.fieldsOf(row);
+        if (global?.isSet && global.value !== row.def) done = (await store.write(row, 'global', null)) !== false && done;
+        if (row.scope === 'both' && project?.isSet) done = (await store.write(row, 'project', null)) !== false && done;
+      } else if (row.id in resets) {
+        await resets[row.id]!();
+      }
+      if (!done) failed.push(row.label);
+    } catch {
+      failed.push(row.label);
+    }
   }
+  if (failed.length > 0 && alive()) notify(`Could not reset ${failed.join(', ')}.`, 'error');
 }
 
 /**

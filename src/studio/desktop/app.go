@@ -17,6 +17,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"desktop/internal/assetmove"
 	"desktop/internal/audacitybridge"
 	"desktop/internal/bridge"
 	"desktop/internal/character"
@@ -74,7 +75,7 @@ import (
 // Keep this in lockstep with src/studio/ui/src/hostApi.ts.  The frontend rejects
 // an older host before bootstrapping so a partial update cannot run against a
 // binding contract it does not understand.
-const hostAPIVersion = 152
+const hostAPIVersion = 159
 
 // Host is the Wails binding boundary. The frontend invokes only this bound
 // object; it never receives a loopback port or an HTTP capability.
@@ -416,7 +417,12 @@ type Host struct {
 	quitApp       func()
 	executable    func() (string, error)
 	openFolder    func(dir string) error
-	pendingPath   string
+	// modelsMove is the move of the models folder that may be running (assetfolder.go); moveModels and pickModelsFolder are seams for
+	// tests: nil means the real mover and the real folder dialog.
+	modelsMove       modelsMoveState
+	moveModels       func(context.Context, assetmove.Plan, func(assetmove.Progress)) error
+	pickModelsFolder func() (string, error)
+	pendingPath      string
 	// reaperLaunch and reaperLocate are seams for tests (dawlaunch.go): nil means daw.Launch and
 	// daw.LocateReaperExecutable, the real detached spawn and the real registry lookup.
 	reaperLaunch func(program string, args []string) error
@@ -547,6 +553,7 @@ func NewHost() *Host {
 		runLog.SetDebug(true)
 	}
 	host.sidecars.SetFallbackRun(runLog.App)
+	host.sidecars.SetTracer(tracer)
 	host.timeline = newPressTimeline(host)
 	return host
 }
@@ -628,12 +635,15 @@ func (h *Host) ServiceStartup(ctx context.Context, _ application.ServiceOptions)
 // cleanStaleDownloads removes the leftovers of a download or repair that was interrupted long ago. It never runs while a download of this
 // session could be using them: it only touches folders older than a week (or an hour for the aside copy of a repair).
 func (h *Host) cleanStaleDownloads() {
-	base, err := assetCacheBase()
+	base, err := assetBaseFor(h.settingsStore())
 	if err != nil {
 		return
 	}
 	for _, removed := range cleanAssetCaches(base) {
 		_ = h.log.Report("asset_cache_cleaned", removed)
+	}
+	for _, removed := range assetmove.SweepStale(base) {
+		_ = h.log.Report("asset_cache_cleaned", filepath.Join(base, removed))
 	}
 }
 
@@ -682,6 +692,8 @@ func (h *Host) configureLocked(next config) {
 	h.guide.SetFindings(h.findings)
 	// Asked when a lookup starts, not now: h.mu is held here, and an install made after the project opens counts.
 	h.guide.SetWiktextractIndex(h.wiktextractIndexPath)
+	// An older project's Script page words move to their Story Bible names before anything reads either file (scriptwords_migrate.go).
+	migrateScriptWordsOnOpen(h.config.projectFolder, h.manuscript, h.guide, h.persist, h.log)
 	// The session directory is REAPER's file bridge (the launcher script makes it). An Audacity launch never opens it,
 	// even when one is passed, so nothing on that launch writes REAPER bridge commands.
 	// The project's DAW (projectdaw.go): the launch's --daw, else the project's own choice or what its folder holds.
@@ -909,7 +921,7 @@ func (h *Host) configureLocked(next config) {
 	// The retake-lane service is one more consumer of the
 	// same bridge client, over its retake_lanes role. It only ever asks REAPER to make one listed
 	// retake's lane the only one playing.
-	h.retakeLanes = retakelanes.New(retakelanes.Config{SessionDir: h.config.sessionDir}, retakePicker, h.emitRetakeLanes)
+	h.retakeLanes = retakelanes.New(retakelanes.Config{SessionDir: h.config.sessionDir}, retakePicker, nil)
 	// The project-state service (the change-driven re-compare indicator) is the bridge's fifth real
 	// consumer, over its project_state role: pollTranscript's Drain call already pumps its events
 	// too, the same way it does above. It is a Could-tier, on-demand check (Check/ProjectStateCheck), not a poll of
@@ -1216,17 +1228,6 @@ func (h *Host) emitRenderConfig(state map[string]any) {
 	h.mu.RUnlock()
 	if ctx != nil {
 		emitEvent("renderconfig:state", state)
-	}
-}
-
-// emitRetakeLanes relays a retakelanes.Service snapshot to the frontend (the retake-lane pick), the same
-// simple relay emitCleanupTools uses.
-func (h *Host) emitRetakeLanes(state map[string]any) {
-	h.mu.RLock()
-	ctx := h.ctx
-	h.mu.RUnlock()
-	if ctx != nil {
-		emitEvent("retakelanes:state", state)
 	}
 }
 
@@ -1735,7 +1736,7 @@ var fieldSchemas = map[string][]fieldSchema{
 	// defaulting to 0, since published room-tone guidance disagrees.
 	// debug_logging turns on the run log's debug-level decision records: global only (saveSettings refuses it at project scope), a machine switch like NARRATION_DEBUG=1, not a
 	// per-project preference.
-	"General":    {{"log_verbosity", "Log verbosity", "choice", []string{"quiet", "normal", "verbose"}}, {"notifications", "Notify me when a long task finishes while I'm away", "bool", nil}, {"close_import_when_done", "Close the manuscript import when it finishes", "bool", nil}, {"narrator_name", "Narrator name (default for credits)", "text", nil}, {"credits_room_tone_seconds", "Room tone per credits file (seconds)", "choice", []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"}}, {"debug_logging", "Debug logging (writes decision records to the run log)", "bool", nil}},
+	"General":    {{"log_verbosity", "Log verbosity", "choice", []string{"quiet", "normal", "verbose"}}, {"notifications", "Notify me when a long task finishes while I'm away", "bool", nil}, {"close_import_when_done", "Close the manuscript import when it finishes", "bool", nil}, {"narrator_name", "Narrator name (default for credits)", "text", nil}, {"credits_room_tone_seconds", "Room tone per credits file (seconds)", "choice", []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"}}, {"debug_logging", "Debug logging (writes decision records to the run log)", "bool", nil}, {"activity_trace", "Activity trace (writes how the app behaved, never your content, to logs/trace.jsonl)", "bool", nil}},
 	"Manuscript": {{"color_note", "Note color", "color", nil}},
 	// default_pronunciation_source is which pronunciation source a new
 	// name's pronunciation prefers, both at build time and when the narrator adds an alias: "" (Automatic) keeps the
@@ -1922,15 +1923,6 @@ var fieldSchemas = map[string][]fieldSchema{
 	// generic Settings fields form: KeyboardPanel reads and writes it. saveSettings caps its size and keeps it
 	// global-only.
 	"Keymap": {{"overrides", "Keyboard shortcut overrides", "text", nil}},
-	// ReadAloud.record_in_reaper and record_confirmed are the Record-in-REAPER toggle's own memory: whether the narrator turned recording
-	// on for this project, and whether they have already seen the first-time confirm naming the track and what Play
-	// and Stop do. Project scope only (saveSettings below), because a global memory
-	// would carry the choice into a project with no REAPER link. Like Keymap, no Settings category names this tool,
-	// so it stays off the generic Settings page; the read-aloud control bar's own toggle is where a narrator sets it.
-	"ReadAloud": {
-		{"record_in_reaper", "Record in REAPER", "bool", nil},
-		{"record_confirmed", "Seen the Record in REAPER confirm", "bool", nil},
-	},
 	// Cleanup is the silence cleanup analyzer's own thresholds: measure.CleanupOptions field for field, read by cleanupSettings
 	// (cleanup_settings.go) and passed to measure.DiagnosticInput.Cleanup when a diagnostics check runs. Every key has
 	// a config/defaults.json entry mirroring measure.DefaultCleanupOptions, so an untouched store already answers the
@@ -2017,6 +2009,9 @@ func (h *Host) settingsForScope(scope string) (map[string]any, error) {
 	return result, nil
 }
 func (h *Host) saveSettings(tool, scope string, values map[string]*string) error {
+	if tool == assetsSettingsTool {
+		return fmt.Errorf("the models folder is changed only by Change location in Models & downloads, which moves the files with it")
+	}
 	schemas, ok := h.settingsSchemas()[tool]
 	if !ok {
 		return fmt.Errorf("unsupported settings tool")
@@ -2033,12 +2028,12 @@ func (h *Host) saveSettings(tool, scope string, values map[string]*string) error
 	if tool == "Keymap" && scope != "global" {
 		return fmt.Errorf("keymap overrides are global: a narrator's pedal belongs to the booth, not the project")
 	}
-	if tool == "ReadAloud" && scope != "project" {
-		return fmt.Errorf("record in REAPER is a per-project choice: open a project to change it")
-	}
 	if tool == "General" && scope != "global" {
 		if _, ok := values["debug_logging"]; ok {
 			return fmt.Errorf("debug logging is global: it is a switch for this machine, not this project")
+		}
+		if _, ok := values["activity_trace"]; ok {
+			return fmt.Errorf("the activity trace is global: it is a switch for this machine, not this project")
 		}
 	}
 	if tool == "ManuscriptGuide" && scope != "global" {
@@ -2072,6 +2067,9 @@ func (h *Host) saveSettings(tool, scope string, values map[string]*string) error
 	if tool == "General" {
 		if value, ok := values["debug_logging"]; ok && value != nil {
 			h.runLog.SetDebug(*value == "true")
+		}
+		if value, ok := values["activity_trace"]; ok && value != nil {
+			h.setActivityTrace(*value == "true")
 		}
 	}
 	if tool == "DAW" {
