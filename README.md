@@ -1,5 +1,119 @@
 # <!-- brand:name -->Narration Studio<!-- /brand -->
 
+A free Windows app for audiobook narrators. Import the book's manuscript, prepare the text, and record each chapter
+while the app follows your voice through the words. Then check the recording against the text, collect the lines to
+pick up, and check the finished files against a platform's delivery rules. It works with REAPER, with Audacity 3, or
+with its own built-in recorder.
+
+This page is for narrators, authors and rights holders deciding whether to use it, and for contributors.
+[For contributors](#for-contributors) has the developer setup.
+
+![Production, the figures, the chapter pipeline and Next up](docs/images/ui/production-home.webp)
+
+## What it does
+
+The app's sidebar follows a narrator's week, and so does the [user guide](docs/guides/using-the-app/README.md):
+
+- **Production**: the book at a glance, the hours logged, whether you will make the due date, and what to work on next
+  ([Production](docs/guides/using-the-app/production.md), [Schedule](docs/guides/using-the-app/schedule.md)).
+- **Prep**: the script with your marks, speakers and bookmarks, and a Story Bible of the characters, places and how you
+  say each name ([Script](docs/guides/using-the-app/script.md), [Story Bible](docs/guides/using-the-app/story-bible.md)).
+- **Record**: the Booth shows the chapter's text large, follows your voice with a speech engine that runs on your
+  computer, and starts and stops the take in your DAW ([Booth](docs/guides/using-the-app/booth.md)).
+- **Edit**: what was heard set against each word, the takes of each line, and clean-up
+  ([Editing](docs/guides/using-the-app/editing.md)).
+- **Review**: every check's notes in one list, and the lines to record again
+  ([Proof](docs/guides/using-the-app/proof.md), [Pickups](docs/guides/using-the-app/pickups.md)).
+- **Finish**: rendered files checked against a delivery profile, mastering, and the package for each platform
+  ([Master & QC](docs/guides/using-the-app/master-and-qc.md), [Delivery](docs/guides/using-the-app/delivery.md)).
+
+## Install on Windows
+
+The supported way to get the app is a GitHub release. From the [releases page](https://github.com/countrymanprime/narration-studio/releases):
+
+1. Download the setup program, the file whose name ends in `-windows-x64-setup.exe`, for example <!-- brand:identity.releaseAssetPrefix -->narration-studio<!-- /brand -->-0.2.7-windows-x64-setup.exe (and,
+   to check it, the `.sha256` file of the same name). Every file on a release carries its version in its name.
+2. Run it. It installs for your user account only, so it asks for no administrator rights, puts the program in
+   %LOCALAPPDATA%\Programs\\<!-- brand:identity.installFolder -->Narration Studio<!-- /brand -->, adds a Start Menu entry and, if you leave it ticked, a desktop shortcut, and
+   installs the Microsoft WebView2 runtime only if your computer does not have it yet. A second Start Menu entry,
+   **<!-- brand:name -->Narration Studio<!-- /brand --> for Audacity**, opens the app ready for a project you record in Audacity 3.x.
+3. **The release is unsigned**, so Windows SmartScreen may say it "prevented an unrecognized app from starting". Choose
+   **More info**, then **Run anyway**. The warning is about the missing signature, not about anything found in the file. To
+   check the file yourself before you run it:
+   - the checksum, which only detects a damaged download: `(Get-FileHash .\<setup file>).Hash` in
+     PowerShell, `<setup file>` being the file you downloaded, must equal the hash in the `.sha256` file;
+   - where it was built, with the [GitHub CLI](https://cli.github.com):
+     `gh attestation verify <setup file> --repo countrymanprime/narration-studio`. Success names the
+     workflow, commit and run that built it (see [CI and releases](docs/operations/ci-and-releases.md#build-provenance)).
+4. Start **<!-- brand:name -->Narration Studio<!-- /brand -->** from the Start Menu. Nothing is downloaded until a feature that needs a model asks you first.
+
+The app updates itself from these releases after you click (Settings > App & updates); it never installs an update on its
+own. That works because the install folder is yours to write to. The `.zip` file on the release is
+the update package the app fetches, not something to run by hand. A copy installed before the version was in the file names
+cannot find the new names: install the next release by hand once, and it updates itself from then on.
+
+**Uninstall** from Settings > Apps > Installed apps. That removes the program and its shortcuts and **leaves your settings**
+(%APPDATA%\\<!-- brand:identity.dataFolder -->narration-studio<!-- /brand -->), **the voices and models you downloaded** (%LOCALAPPDATA%\\<!-- brand:identity.dataFolder -->narration-studio<!-- /brand -->, also where the
+update staging lives) **and everything in your project folders** alone; the uninstall page says so. Delete those folders by hand
+if you want them gone.
+
+## First steps
+
+[Getting started](docs/guides/using-the-app/getting-started.md) takes you from a fresh install to your first recorded
+take: create a project, import the manuscript, choose how you record, and record. The rest of the
+[user guide](docs/guides/using-the-app/README.md) has one page per app page, with screenshots.
+
+## What stays on your computer
+
+Your manuscript, recordings and projects stay in the folders you choose. The speech engines that follow your voice and
+check your recordings run on your computer, and the app sends nothing you say anywhere. There is no telemetry, no
+analytics, no crash upload and no account.
+
+The app goes online in four cases only:
+
+- once a day at most, to ask GitHub whether a newer release exists (you can switch this off in Settings > App & updates);
+- to download a model or voice, only after you confirm it;
+- to download an update, only after you click;
+- to look up a name in Merriam-Webster, only when you press **Look up online** with your own key.
+
+The full list, with what each request carries, is in
+[what the app sends off the machine](docs/architecture/threat-model.md#what-the-app-sends-off-the-machine).
+
+## Supported DAWs
+
+- **REAPER**: supported. You set nothing up inside REAPER: the app puts its bridge, a small script, in REAPER's Scripts
+  folder, and REAPER starts it each time it opens ([Settings: Recording & DAW](docs/guides/using-the-app/settings.md#recording--daw)).
+- **Audacity 3.x**: works through Audacity's scripting pipe, with its own Start Menu entry
+  ([If you record in Audacity](docs/guides/using-the-app/getting-started.md#if-you-record-in-audacity)). Recording from
+  the Booth is not available in Audacity yet, and the owner's check in a running Audacity is pending
+  ([verification pass](docs/operations/audacity-verification-pass.md)).
+- **Audacity 4.0**: not supported. It has no scripting pipe ([DAW reference](docs/reference/daw/README.md)).
+- **No DAW**: the built-in recorder records on Windows and saves each take as a file in the project
+  ([Recording without a DAW](docs/guides/using-the-app/booth.md#recording-without-a-daw)).
+
+What each DAW can do, capability by capability, is in the [DAW reference](docs/reference/daw/README.md).
+
+## Supported platforms
+
+Windows x64 only, for now. That is about timing and maturity, not a design limit: the app is still changing quickly, and the
+owner has no Mac or Linux machine to test on, so macOS and Linux builds were removed rather than shipped untested. The Go code still
+builds on Linux as a development host. If you use macOS or Linux and want to help find and fix bugs there, say so in an issue:
+with someone testing on those systems, non-Windows builds can come back.
+
+## Getting help
+
+- A bug, or something the guide gets wrong: open an
+  [issue](https://github.com/countrymanprime/narration-studio/issues) with what you did, what you expected and what
+  happened. Settings > App & updates shows the version to include.
+- A security problem: report it privately, as [SECURITY.md](SECURITY.md) describes.
+
+## For contributors
+
+How to set up, change and test the code is in [Contributing](CONTRIBUTING.md); the docs map is
+[docs/README.md](docs/README.md).
+
+### The tools inside
+
 A group of utilities and plugins to assist with audio narration workflows. Each tool's business
 logic is DAW-agnostic; a thin per-DAW driver wires it into a specific host.
 
@@ -17,7 +131,6 @@ logic is DAW-agnostic; a thin per-DAW driver wires it into a specific host.
   Teleprompter page) — first cut: listens to a microphone with a local Whisper model and highlights the word you are
   reading in a chosen chapter.
 
-The tools share one native UI, shown below on the Production page, plus a manuscript reader and a Settings page that also lists,
 verifies and removes the voices and models the app has downloaded (Settings > Models & downloads). See
 [Using the app](docs/guides/using-the-app/README.md) for a full screenshot walkthrough. The UI's component library is a
 Storybook atlas (`pnpm --dir src/studio/ui run storybook`, checked in CI by the `ui-unit` jobs); its generated reference is in
@@ -26,9 +139,7 @@ The public website (a landing page, the condensed guides, a live demo of the app
 [`src/web`](docs/operations/public-demo-site.md) and deployed to GitHub Pages from `main` by
 [the Pages workflow](docs/operations/ci-and-releases.md#the-pages-workflow); the full docs are here in `docs/`.
 
-![Production, the figures, the chapter pipeline and Next up](docs/images/ui/production-home.webp)
-
-## Layout
+### Layout
 
 ```text
 ./
@@ -61,55 +172,16 @@ from each script's own location at runtime, so a checkout works unmodified at an
 The layout and its test rule are recorded in
 [`docs/architecture/codebase-map.md`](docs/architecture/codebase-map.md).
 
-## Supported DAWs
+### REAPER and Audacity integration
 
-- **Reaper** — supported. Load the launcher script, `src/studio/integrations/reaper/<launcher script>` (the file named by
-  `identity.reaperLauncher` in `config/brand.json`), as the one action; it opens the centered app workspace with every tool (Proof,
-  Story Bible, Teleprompter, Tracks and the manuscript reader) and their global/project settings.
-- **Audacity 3.x** — adapter built from the published `mod-script-pipe` spec and tested against a fake pipe server; the
-  owner's check in a running Audacity is pending ([verification pass](docs/operations/audacity-verification-pass.md)). The
-  pipe client and adapter are in `src/studio/desktop/internal/audacitybridge` and `src/studio/desktop/internal/dawport/audacity`;
-  `src/studio/integrations/audacity/` holds placeholder notes only. Audacity 4.0 has no scripting pipe
-  ([DAW reference](docs/reference/daw/README.md)).
+- REAPER: the launcher script, `src/studio/integrations/reaper/<launcher script>` (the file named by
+  `identity.reaperLauncher` in `config/brand.json`), runs the bridge inside REAPER. The app copies it into REAPER's
+  Scripts folder and REAPER starts it each time it opens (Settings, **Start the launcher script with REAPER**).
+- Audacity 3.x: the adapter is built from the published `mod-script-pipe` spec and tested against a fake pipe server.
+  The pipe client and adapter are in `src/studio/desktop/internal/audacitybridge` and
+  `src/studio/desktop/internal/dawport/audacity`; `src/studio/integrations/audacity/` holds placeholder notes only.
 
-## Supported platforms
-
-Windows x64 only, for now. That is about timing and maturity, not a design limit: the app is still changing quickly, and the
-owner has no Mac or Linux machine to test on, so macOS and Linux builds were removed rather than shipped untested. The Go code still
-builds on Linux as a development host. If you use macOS or Linux and want to help find and fix bugs there, say so in an issue:
-with someone testing on those systems, non-Windows builds can come back.
-
-## Install on Windows
-
-The supported way to get the app is a GitHub release. From the [releases page](https://github.com/countrymanprime/narration-studio/releases):
-
-1. Download the setup program, the file whose name ends in `-windows-x64-setup.exe`, for example <!-- brand:identity.releaseAssetPrefix -->narration-studio<!-- /brand -->-0.2.7-windows-x64-setup.exe (and,
-   to check it, the `.sha256` file of the same name). Every file on a release carries its version in its name.
-2. Run it. It installs for your user account only, so it asks for no administrator rights, puts the program in
-   %LOCALAPPDATA%\Programs\\<!-- brand:identity.installFolder -->Narration Studio<!-- /brand -->, adds a Start Menu entry and, if you leave it ticked, a desktop shortcut, and
-   installs the Microsoft WebView2 runtime only if your computer does not have it yet. A second Start Menu entry,
-   **<!-- brand:name -->Narration Studio<!-- /brand --> for Audacity**, opens the app ready for a project you record in Audacity 3.x.
-3. **The release is unsigned**, so Windows SmartScreen may say it "prevented an unrecognized app from starting". Choose
-   **More info**, then **Run anyway**. The warning is about the missing signature, not about anything found in the file. To
-   check the file yourself before you run it:
-   - the checksum, which only detects a damaged download: `(Get-FileHash .\<setup file>).Hash` in
-     PowerShell, `<setup file>` being the file you downloaded, must equal the hash in the `.sha256` file;
-   - where it was built, with the [GitHub CLI](https://cli.github.com):
-     `gh attestation verify <setup file> --repo countrymanprime/narration-studio`. Success names the
-     workflow, commit and run that built it (see [CI and releases](docs/operations/ci-and-releases.md#build-provenance)).
-4. Start **<!-- brand:name -->Narration Studio<!-- /brand -->** from the Start Menu. Nothing is downloaded until a feature that needs a model asks you first.
-
-The app updates itself from these releases after you click (Settings > App & updates); it never installs an update on its
-own. That works because the install folder is yours to write to. The `.zip` file on the release is
-the update package the app fetches, not something to run by hand. A copy installed before the version was in the file names
-cannot find the new names: install the next release by hand once, and it updates itself from then on.
-
-**Uninstall** from Settings > Apps > Installed apps. That removes the program and its shortcuts and **leaves your settings**
-(%APPDATA%\\<!-- brand:identity.dataFolder -->narration-studio<!-- /brand -->), **the voices and models you downloaded** (%LOCALAPPDATA%\\<!-- brand:identity.dataFolder -->narration-studio<!-- /brand -->, also where the
-update staging lives) **and everything in your project folders** alone; the uninstall page says so. Delete those folders by hand
-if you want them gone.
-
-## Developer bootstrap
+### Developer bootstrap
 
 The UI is a local React + Tailwind workspace, shown in its own native window
 (`src/studio/desktop/`, a Go/Wails app) with generated native bindings. Python is
@@ -181,7 +253,7 @@ list (adding, finding and resolving pickup markers), configuring a per-chapter
 render, adding a take, and reporting the open project's state. See
 [the REAPER bridge](docs/architecture/reaper-bridge.md).
 
-## Shared library
+### Shared library
 
 The tools keep their own DAW-agnostic Python backends. What they share:
 
@@ -202,7 +274,7 @@ The tools keep their own DAW-agnostic Python backends. What they share:
 See [`docs/architecture/codebase-map.md`](docs/architecture/codebase-map.md) for runtime
 ownership and the staged module boundaries.
 
-## Dependencies
+### Dependencies
 
 All first-party Python tools (the three sidecars) share one
 gitignored virtual environment at the repo root (`.venv/`), built from the
