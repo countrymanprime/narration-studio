@@ -44,7 +44,7 @@ describe('decision-buttons-stay-at-the-panel-bottom', () => {
     setup();
     const band = document.querySelector('[data-decision-band]') as HTMLElement;
     expect(band.className).toMatch(/\bsticky\b/);
-    expect(band.className).toMatch(/\bbottom-0\b/);
+    expect(band.className).toContain('bottom-[calc(var(--page-gutter)*-1)]');
     expect(within(band).getByText('Decision')).toBeTruthy();
     expect(within(band).getAllByRole('button')).toHaveLength(4);
   });
