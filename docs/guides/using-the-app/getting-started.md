@@ -109,8 +109,9 @@ If Record looks off, the footer says why, and pressing it anyway opens the dialo
 
 ## What next
 
-- Build the [Story Bible](story-bible.md): the import does not fill it, so use **Scan the manuscript** there to list the
-  characters, places and organizations, and note how you say each name.
+- Check the [Story Bible](story-bible.md): the import filled it with the characters and places the book shows clearly
+  ([Built after an import](story-bible.md#built-after-an-import)); file the names under **Needs review**, and note how
+  you say each name. **Scan the manuscript** there suggests more.
 - Prepare the text on [Script](script.md): marks, speakers and bookmarks before you record.
 - Learn the rest of the [Booth](booth.md): where you stopped, pickups, voice samples and companion mode.
 - Find your way around with [Navigation](navigation.md): the sidebar, the jump menu and the audio engine panel.

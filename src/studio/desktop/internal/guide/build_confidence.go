@@ -82,7 +82,15 @@ func (e confidenceEvidence) confidentCategory() (string, string) {
 // confidentCandidates are the scan's names as the build reads them (scanCandidates), each labelled with the kind the confidence rule
 // files it under: PERSON, GPE, or confidenceReview. spans are the language model's, nil when it is not installed.
 func confidentCandidates(paragraphs []ruleParagraph, spans [][]entitySpan) []ruleCandidate {
+	candidates, _ := confidentBuild(paragraphs, spans)
+	return candidates
+}
+
+// confidentBuild is confidentCandidates and the names the build leaves out: those named fewer than confidentMinMentions times, which
+// buildEntities makes no entry for, each by its most used spelling, in the scan's order (the strongest evidence first).
+func confidentBuild(paragraphs []ruleParagraph, spans [][]entitySpan) ([]ruleCandidate, []string) {
 	labels := map[string]string{}
+	leftOut := []string{}
 	groups := scanGroupsAccepting(paragraphs, confidentAccepts(paragraphs))
 	for _, group := range groups {
 		kind, _ := confidenceOf(group, paragraphs, spans).confidentCategory()
@@ -94,12 +102,16 @@ func confidentCandidates(paragraphs []ruleParagraph, spans [][]entitySpan) []rul
 		default:
 			labels[group.key] = confidenceReview
 		}
+		if len(group.mentions) < confidentMinMentions {
+			spellings, _ := spellingsOf(group)
+			leftOut = append(leftOut, spellings[0])
+		}
 	}
 	candidates := candidatesOf(groups)
 	for i := range candidates {
 		candidates[i].label = labels[candidates[i].group]
 	}
-	return candidates
+	return candidates, leftOut
 }
 
 // The evidence that makes a single word a name although the scan's test (scanAccepts) turns it down for being written in lower case

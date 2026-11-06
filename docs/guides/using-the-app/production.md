@@ -355,8 +355,9 @@ under the box, a fixed size so it never jumps, set in the same title and subtitl
 The footer has one secondary action, **Back**, and the import itself. The Close button at the top
 cancels. **Close when the import finishes** (on by default, an app setting also under Settings, App &
 updates) closes the import window as soon as the manuscript is written; turn it off to read the
-activity log until you press Close. The import does not build the Story Bible: open
-[Story Bible](story-bible.md) and use **Scan the manuscript** or **Import entries**.
+activity log until you press Close. When the project's Story Bible has no entries yet, the import then builds
+it ([Story Bible](story-bible.md#built-after-an-import)) and a message says what it made; turn **Build the
+Story Bible after import** off in [Settings](settings.md) to start from an empty Story Bible instead.
 
 Every dialog in the app can be used from the keyboard. Focus starts inside the dialog (on its
 message, outlined when you opened it with the keyboard), Tab and Shift+Tab stay inside it, and the
