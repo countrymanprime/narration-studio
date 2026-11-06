@@ -10,6 +10,7 @@ import { usePort } from '../../ports/usePort';
 import { useJournal } from '../../studio/StudioProvider';
 import { useCapability } from '../../useCapability';
 import { useDawKind } from '../../useDawKind';
+import { DawConnectionChip } from '../connection/DawConnectionChip';
 import { boothQuery } from '../booth/page/boothQuery';
 import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
 import { NeedManuscript } from '../layout/NeedManuscript';
@@ -369,6 +370,7 @@ export function PickupsPage({
             onGoToProof={(findingId) => goTo(findingId ? `/proof?finding=${encodeURIComponent(findingId)}` : '/proof')}
             onFine={fine}
             where={(pickup) => <PickupWhere pickup={pickup} manuscript={manuscriptApi} />}
+            dawChip={<DawConnectionChip stillWorks={(name) => `You can read and edit the list. Markers and checks wait until ${name} is running.`} />}
           />
           <SessionPanel
             pickups={inView}

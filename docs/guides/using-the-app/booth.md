@@ -158,7 +158,7 @@ footer does not repeat the reason, and the setup chip on the top bar warns too:
   above the footer says so, and a dialog opens by itself once, after the app has had a few seconds to connect on its own; the X
   closes it, and the mark or a press of Record opens it again. The dialog gives the host's reason, what still works, and what
   the app does. **Open in REAPER and connect** opens the linked project in REAPER, or connects the REAPER you already have open.
-  If no REAPER project is linked yet it is off, with **Link in Settings** beside the reason. A refusal or a start that never
+  If no REAPER project is linked yet, **Start REAPER** is off and **Link project file…** is the main button: it is the same link action as the one in [Settings > Recording & DAW](settings.md), and every page follows it without a reload. A refusal or a start that never
   answers is written in the dialog. The Booth never offers the built-in recorder while REAPER is linked.
 
   ![Booth - the REAPER not connected dialog, with the two steps, Open in REAPER and connect and Check again](../../images/ui/booth-record-setup.webp)

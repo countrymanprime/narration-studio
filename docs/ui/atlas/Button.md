@@ -2,8 +2,6 @@
 
 Storybook title: `Primitives/Button`. Source: `src/components/primitives/Button.tsx`.
 
-![Button, Primary, light theme](../images/button.webp)
-
 ## Stories
 
 - Primary
@@ -40,7 +38,6 @@ Storybook title: `Primitives/Button`. Source: `src/components/primitives/Button.
 - `src/components/booth/voices/VoiceControl.tsx`
 - `src/components/booth/voices/WhoIsInDialog.tsx`
 - `src/components/connection/ChapterLinkDialog.tsx`
-- `src/components/connection/ReaperOffDialog.tsx`
 - `src/components/connection/ResolveShell.tsx`
 - `src/components/credits/CreditsSetupBanner.tsx`
 - `src/components/credits/CreditsSetupDialog.tsx`

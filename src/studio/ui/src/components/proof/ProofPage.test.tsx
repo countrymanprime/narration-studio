@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
+import { DAW_SETUPS } from '../../fixtures/daw';
 import { createMockApi } from '../../api/mockApi';
 import { WIRE_CHAPTERS, WIRE_TRANSCRIPT } from '../../api/mockFixtures';
 import { CommandRouter } from '../../input/router';
@@ -617,8 +618,16 @@ describe('page-level-checks', () => {
     });
     renderPage({ api });
     await noteRows();
-    const check = screen.getByRole('button', { name: 'Check recordings…' });
+    // Late in a long file the connect grace has passed and the not-connected dialog is up over the page, so the button is found hidden.
+    const check = screen.getByRole('button', { name: 'Check recordings…', hidden: true });
     await waitFor(() => expect(check.getAttribute('aria-disabled') === 'true' || (check as HTMLButtonElement).disabled).toBe(true));
+  });
+
+  it('shows the shared REAPER-not-connected chip in the header while the DAW is away (#2823)', async () => {
+    const api = createMockApi({ dawCapabilities: async () => DAW_SETUPS['reaper-off'], subscribeDawCapabilities: () => () => undefined });
+    renderPage({ api });
+    await noteRows();
+    expect(await screen.findByRole('button', { name: /REAPER not connected/, hidden: true })).toBeTruthy();
   });
 
   it('Alt with an arrow does not step the chapter', async () => {
