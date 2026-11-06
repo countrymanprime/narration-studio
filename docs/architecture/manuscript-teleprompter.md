@@ -610,9 +610,9 @@ the exact commit ported from. The LocalAgreement policy added later comes from
   `script` event's spans (a paragraph that disagrees is shown untracked), and
   the chapter is chosen from a picker that starts on the reader's active chapter
   ([usePacedCursor.ts](../../src/studio/ui/src/components/booth/usePacedCursor.ts)).
-- Tracker limits: word matching is normalization plus
-  a close-spelling check, without Transcript Compare's homophone, number-word
-  and hyphenation handling; invented names and spoken numbers are the likely
-  misses. Flags forgive those forms (`internal/compare`'s spoken forms, see
-  "Flags" above), but position matching still does not; flags reach the
+- Tracker limits: the Booth's tracker (`scripttrack.Tracker.SpokenForms`) matches a heard word to a script word by
+  normalization, a close-spelling check, or a shared spoken form for a single word (a homophone, a possessive, a number as
+  digits or as a word: `compare.SpokenKey`), the forms the flags forgive. A heard stretch over several script words
+  ("twenty three" for "23", "daisy chain" for "daisy-chain") still misses; invented names are the likely misses. The
+  frozen booth-parity goldens pin the spelling-only tracker, which placement and word timing keep. Flags reach the
   findings contract through `internal/liveflags`.
