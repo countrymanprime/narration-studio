@@ -148,6 +148,12 @@ jobs:
           targets: knip
           projects: workspace
           always: 'true'
+      - name: deliberate failure
+        id: deliberate
+        if: ${{ !cancelled() }}
+        run: |
+          echo "::error::deliberate failure (scratch branch for #3065): CI passed must go red"
+          exit 1
       - name: repo-scripts
         id: repo-scripts
         if: ${{ !cancelled() && needs.scope.outputs.quickubuntu == 'true' }}
@@ -192,7 +198,7 @@ jobs:
             "web static": "${{ steps.web-static.outcome }}", "knip": "${{ steps.knip.outcome }}",
             "repo-scripts": "${{ steps.repo-scripts.outcome }}", "docs-site": "${{ steps.docs-site.outcome }}",
             "python": "${{ steps.python.outcome }}", "reaper (Lua)": "${{ steps.reaper.outcome }}",
-            "rename rehearsal": "${{ steps.rename.outcome }}"}
+            "rename rehearsal": "${{ steps.rename.outcome }}", "deliberate failure": "${{ steps.deliberate.outcome }}"}
         run: node scripts/ci/step-summary.mjs
 
   ui-unit:
