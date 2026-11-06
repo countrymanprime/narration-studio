@@ -182,7 +182,8 @@ The message when it ends says what it did, for example "Story Bible built from t
 open the list on **Needs review**. It uses the language model when it is installed, and the rules alone when it is not
 (the message then ends "Built without the language model"); it never downloads anything. A Story Bible that already
 has entries is never rebuilt by an import: **Scan the manuscript** suggests what is new instead. On five public-domain
-books, 99 of every 100 characters it filed were real characters, and it filed about three in four of the main cast
+books, 99 of the 100 characters it filed were real characters, and it filed about three in four of the main cast; on
+the one book it was not tuned on, 18 of 19 without the language model and 23 of 24 with it
 ([the benchmark](../../research/story-bible-build-benchmark.md)).
 
 ## Voice references and dialogue cue attribution
