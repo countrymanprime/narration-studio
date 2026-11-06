@@ -585,7 +585,8 @@ const MaxReplaceGainDB = bridge.MaxReplaceGainDB
 // ReplaceRangeRequest replaces a range's words with a stretch of another narrator's audio already in the project: RangeRequest is
 // the narrator's words; SourceItemGUID is the item on the other narrator's own track and SourceStart..SourceEnd the stretch of it,
 // in project seconds. FadeMs (0 to MaxCutFadeMs) is the fade at each seam, GainDB (-MaxReplaceGainDB to MaxReplaceGainDB) the level
-// change on their stretch, ID the host's record of the replacement and Narrator whose audio it is, for the message.
+// change on their stretch, ID the host's record of the replacement and Narrator whose audio it is, for the message. ChapterTrack is the
+// engine's id of the chapter's folder of voices, or empty: with it the audio after the words moves on every voice inside the folder.
 type ReplaceRangeRequest struct {
 	RangeRequest
 	SourceItemGUID string
@@ -595,6 +596,7 @@ type ReplaceRangeRequest struct {
 	GainDB         float64
 	ID             string
 	Narrator       string
+	ChapterTrack   string
 }
 
 // RangeReplaced is what ReplaceRange did. Result is the call's answer; ReplacementItem is the engine's id of the new audio, what
@@ -608,11 +610,12 @@ type RangeReplaced struct {
 }
 
 // RestoreRequest puts the narrator's audio back in place of a replacement: ReplacementItem and ID as ReplaceRange made and recorded
-// them; Words is how many words it held, for the message.
+// them; Words is how many words it held, for the message; ChapterTrack as on ReplaceRangeRequest.
 type RestoreRequest struct {
 	ReplacementItem string
 	ID              string
 	Words           int
+	ChapterTrack    string
 }
 
 // TheirAudio is what ImportTheirAudio did. Result is the call's answer; Track and Item are the engine's ids of the new track and of the

@@ -1,8 +1,7 @@
 -- The item-editing commands on a chapter whose audio is on voice tracks inside a folder (#3043). Every one of them names its item by GUID and
 -- acts on that item's own track, so an item on a child of the chapter folder, or of a folder inside it, is edited where it is and the other
 -- voices are not touched. The commands that move the audio after the edit (delete_range in close mode, replace_range, stack_takes) shift the
--- later items of THAT track only: the other voices stay where they were, which is why the host refuses them while a chapter's audio is on
--- more than one track (src/studio/desktop/bindings_daw_ripple.go). The last test pins that behaviour so a change to it is a decision.
+-- later items of THAT track only unless the chapter's folder is named (#3043); the host names it for a folder-linked chapter. The last test pins that behaviour so a change to it is a decision.
 
 local H = require('harness')
 
@@ -158,4 +157,112 @@ H.test('delete_range in gap mode with a folder moves nothing, as without it', fu
   H.eq(s:events()[1][1], 'RANGE_CUT')
   H.eq(span(p.later), { 24, 6 })
   H.eq(span(p.other_hero), { 24, 6 })
+end)
+
+-- replace_range and restore_replacement ripple the whole folder when it is named (#3043 part 3): the folder GUID is a sixth part of replace_range's
+-- last field (source_start|source_end|fade_ms|gain_db|id|folder) and the id field of restore_replacement (id|folder).
+local REPLACE_ID = 'r-0001'
+
+-- Their file on a track outside the chapter folder (a co-narrator's), 0-200 s, from 2 s into the file.
+local function with_their_audio(s)
+  local eric = s.fake:add_track('Eric Leach')
+  local source = s.fake:add_item(eric, { position = 0, length = 200, source = 'leach_01.mp3', startoffs = 2 })
+  s.fake.calls = {}
+  return source
+end
+
+local function replace_with_folder(s, p, source, folder)
+  s:send('replace_range', 'r1', ITEM, '14', '16', source.guid, '164.2|167.2|10|0|' .. REPLACE_ID .. '|' .. (folder or p.folder.guid))
+end
+
+for _, where in ipairs({ 'narrator', 'guard', 'hero' }) do
+  H.test(
+    'replace_range with the folder moves the later items of every voice by the difference in length (the words are on ' .. where .. '), one undo block',
+    function()
+      local s, p = project(where)
+      local source = with_their_audio(s)
+      local guard_later = s.fake:add_item(p.guard, { position = 30, length = 2, source = 'guard-later.wav' })
+      local hero_item = where == 'hero' and p.later or p.other_hero
+      replace_with_folder(s, p, source)
+      H.eq(s:events()[1][1], 'RANGE_REPLACED')
+      H.eq(span(p.later), { 25, 6 }, 'the replaced voice’s later item moves 1 s later (their read is 1 s longer)')
+      H.eq(span(hero_item), { 25, 6 }, 'so does the hero’s')
+      H.eq(span(guard_later), { 31, 2 }, 'and the nested folder’s voice')
+      H.eq(span(p.after_item), { 0, 5 }, 'the next chapter is not in the folder')
+      H.eq(#s.fake:undo_labels(), 1, 'one undo block for every track')
+      H.eq(s.fake.open_undo_blocks, 0)
+    end
+  )
+end
+
+H.test('replace_range without the folder moves only the item’s own track (why the host sends it)', function()
+  local s, p = project('narrator')
+  local source = with_their_audio(s)
+  s:send('replace_range', 'r1', ITEM, '14', '16', source.guid, '164.2|167.2|10|0|' .. REPLACE_ID)
+  H.eq(s:events()[1][1], 'RANGE_REPLACED')
+  H.eq(span(p.later), { 25, 6 })
+  H.eq(span(p.other_hero), { 24, 6 })
+end)
+
+H.test('replace_range with the folder refuses when another voice has audio under the words, and changes nothing', function()
+  local s, p = project('narrator')
+  local source = with_their_audio(s)
+  s.fake:add_item(p.hero, { position = 15, length = 3, source = 'hero-line.wav' })
+  s.fake.calls = {}
+  replace_with_folder(s, p, source)
+  H.eq(s:events(), { { 'ERROR', 'r1', 'Another voice in the folder has audio under the words to replace, so nothing changed.' } })
+  H.eq(span(p.item), { 10, 10 })
+  H.eq(span(p.later), { 24, 6 })
+  H.eq(#s.fake.undo, 0)
+  H.eq(s.fake.sources_created, s.fake.sources_destroyed, 'no source is left open')
+end)
+
+H.test('replace_range with a folder that is gone is stale, and one the item is not inside is refused; nothing changes', function()
+  local s, p = project('narrator')
+  local source = with_their_audio(s)
+  replace_with_folder(s, p, source, '{FFFFFFFF-0000-4000-8000-00000000FFFF}')
+  H.eq(s:events(), { { 'TRACK_STALE', 'r1', '{FFFFFFFF-0000-4000-8000-00000000FFFF}' } })
+  replace_with_folder(s, p, source, p.hero.guid)
+  H.eq(s:events(), { { 'ERROR', 'r1', 'The item is not inside the chapter folder, so nothing changed.' } })
+  H.eq(span(p.later), { 24, 6 })
+  H.eq(#s.fake.undo, 0)
+end)
+
+H.test('replace_range with more than six parts in the last field is refused as a bad id', function()
+  local s, p = project('narrator')
+  local source = with_their_audio(s)
+  s:send('replace_range', 'r1', ITEM, '14', '16', source.guid, '164.2|167.2|10|0|' .. REPLACE_ID .. '|' .. p.folder.guid .. '|x')
+  H.eq(s:events()[1][1], 'ERROR')
+  H.eq(#s.fake.undo, 0)
+end)
+
+H.test('restore_replacement with the folder moves every voice back, and refuses when another voice has audio where the replacement is', function()
+  local s, p = project('narrator')
+  local source = with_their_audio(s)
+  replace_with_folder(s, p, source)
+  local new_guid = s:events()[1][3]
+  -- A voice with audio under the replacement: refused, nothing moves.
+  local clash = s.fake:add_item(p.hero, { position = 15, length = 1, source = 'hero-line.wav' })
+  s.fake.calls = {}
+  s:send('restore_replacement', 'p1', new_guid, REPLACE_ID .. '|' .. p.folder.guid)
+  H.eq(s:events(), { { 'ERROR', 'p1', 'Another voice in the folder has audio where the replacement is, so nothing changed.' } })
+  H.eq(span(p.later), { 25, 6 })
+  H.eq(#s.fake.undo, 1, 'only the replace has an undo point')
+  clash.position = 100 -- it moves away
+  s:send('restore_replacement', 'p2', new_guid, REPLACE_ID .. '|' .. p.folder.guid)
+  H.eq(s:events()[1][1], 'REPLACEMENT_RESTORED')
+  H.eq(span(p.later), { 24, 6 }, 'the replaced voice’s later item is back')
+  H.eq(span(p.other_hero), { 24, 6 }, 'and so is the hero’s')
+  H.eq(#s.fake:undo_labels(), 2, 'one undo block for the restore')
+end)
+
+H.test('restore_replacement with a folder that is gone is stale; nothing changes', function()
+  local s, p = project('narrator')
+  local source = with_their_audio(s)
+  replace_with_folder(s, p, source)
+  local new_guid = s:events()[1][3]
+  s:send('restore_replacement', 'p1', new_guid, REPLACE_ID .. '|{FFFFFFFF-0000-4000-8000-00000000FFFF}')
+  H.eq(s:events(), { { 'TRACK_STALE', 'p1', '{FFFFFFFF-0000-4000-8000-00000000FFFF}' } })
+  H.eq(span(p.later), { 25, 6 })
+  H.eq(#s.fake.undo, 1)
 end)

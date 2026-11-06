@@ -98,7 +98,7 @@ func (a *Actions) DeleteRangeInFolder(ctx context.Context, folderGUID, itemGUID 
 			args = append(args, folderGUID)
 		}
 	}
-	events, err := a.request(ctx, "delete_range", []string{"RANGE_CUT", "ITEM_STALE"}, args...)
+	events, err := a.request(ctx, "delete_range", []string{"RANGE_CUT", "ITEM_STALE", "TRACK_STALE"}, args...)
 	var refusal *RefusalError
 	if extended && errors.As(err, &refusal) && refusal.Sentence == cutBadFade {
 		return RangeCut{}, fmt.Errorf("%w: it cannot pad a cut or fill it with room tone, so nothing was cut", ErrScriptOutdated)
@@ -110,6 +110,9 @@ func (a *Actions) DeleteRangeInFolder(ctx context.Context, folderGUID, itemGUID 
 		return RangeCut{}, err
 	}
 	event := events[len(events)-1]
+	if event.Tag == "TRACK_STALE" {
+		return RangeCut{}, &TrackStaleError{GUID: event.Fields[2]}
+	}
 	if event.Tag == "ITEM_STALE" {
 		return RangeCut{}, &StaleError{GUID: event.Fields[2], Reason: event.Fields[3]}
 	}

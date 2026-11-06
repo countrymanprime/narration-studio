@@ -12,10 +12,10 @@
     "replace": "      if false then"
   },
   {
-    "name": "a cut with a folder accepts an item that is not inside it",
-    "file": "narration_range.lua",
-    "find": "  if not inside then\n    event(session_dir, 'ERROR', run_id, 'The item is not inside the chapter folder, so nothing was cut.')",
-    "replace": "  if false then\n    event(session_dir, 'ERROR', run_id, 'The item is not inside the chapter folder, so nothing was cut.')"
+    "name": "a ripple with a folder accepts an item that is not inside it",
+    "file": "narration_bridge_core.lua",
+    "find": "  if not inside then\n    event(session_dir, 'ERROR', run_id, 'The item is not inside the chapter folder, so ' .. unchanged .. '.')",
+    "replace": "  if false then\n    event(session_dir, 'ERROR', run_id, 'The item is not inside the chapter folder, so ' .. unchanged .. '.')"
   },
   {
     "name": "a stale GUID resolves to another item",
@@ -3410,5 +3410,29 @@
     "file": "narration_voice_sample_region.lua",
     "find": "first >= 0 and last > first and name:match('%S')",
     "replace": "first >= 0 and name:match('%S')"
+  },
+  {
+    "name": "replace_range with the folder moves only the item's own track",
+    "file": "narration_replace.lua",
+    "find": "    for _, moved in ipairs(items_from(peer, nil, last_cut)) do",
+    "replace": "    for _, moved in ipairs({}) do"
+  },
+  {
+    "name": "replace_range with the folder lets another voice's audio sit under the words",
+    "file": "narration_replace.lua",
+    "find": "    if overlapping(peer, nil, first_cut, last_cut) then",
+    "replace": "    if false then"
+  },
+  {
+    "name": "restore_replacement with the folder moves only the item's own track",
+    "file": "narration_replace.lua",
+    "find": "    for _, moved in ipairs(items_from(peer, nil, at + length)) do",
+    "replace": "    for _, moved in ipairs({}) do"
+  },
+  {
+    "name": "restore_replacement with the folder lets another voice's audio sit where the replacement is",
+    "file": "narration_replace.lua",
+    "find": "    if overlapping(peer, nil, at, at + length) then",
+    "replace": "    if false then"
   }
 ]

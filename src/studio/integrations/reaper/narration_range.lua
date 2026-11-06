@@ -405,41 +405,6 @@ local function lay_room_tone(track, tone, spans, sources, fade)
   end
 end
 
--- The tracks a close cut ripples besides the item's own: with the chapter's folder GUID, every other track inside it except the Cuts track (a chapter
--- of several voices keeps them in step), none without. Answers the list, or nil after the refusal it has already sent (a folder that does not
--- resolve is TRACK_STALE; an item that is not inside it is an ERROR; both before anything changes).
-local function ripple_peers(session_dir, run_id, folder_text, track, cuts)
-  if folder_text == nil or folder_text == '' then
-    return {}
-  end
-  local wanted = normalize_guid(folder_text)
-  local folder
-  for index = 0, reaper.CountTracks(0) - 1 do
-    local candidate = reaper.GetTrack(0, index)
-    if normalize_guid(reaper.GetTrackGUID(candidate)) == wanted then
-      folder = candidate
-      break
-    end
-  end
-  if not folder then
-    event(session_dir, 'TRACK_STALE', run_id, folder_text)
-    return nil
-  end
-  local peers, inside = {}, false
-  for _, member in ipairs(core.with_descendants(folder)) do
-    if member == track then
-      inside = true
-    elseif member ~= cuts and member ~= folder then
-      peers[#peers + 1] = member
-    end
-  end
-  if not inside then
-    event(session_dir, 'ERROR', run_id, 'The item is not inside the chapter folder, so nothing was cut.')
-    return nil
-  end
-  return peers
-end
-
 local function delete_range(session_dir, run_id, guid_text, start_text, end_text, mode, fade_text, pad_text, tone_text, folder_text)
   local first_cut, last_cut = finite(start_text), finite(end_text)
   if not first_cut or not last_cut or last_cut - first_cut <= EDGE_TOLERANCE then
@@ -544,7 +509,7 @@ local function delete_range(session_dir, run_id, guid_text, start_text, end_text
     end
   end
   local length = last_cut - first_cut
-  local peers = ripple_peers(session_dir, run_id, folder_text, track, cuts)
+  local peers = core.ripple_peers(session_dir, run_id, folder_text, track, cuts, 'nothing was cut')
   if not peers then
     return
   end

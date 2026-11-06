@@ -487,8 +487,11 @@ func (r rangeCutter) DeleteRange(ctx context.Context, request dawport.DeleteRang
 	got, err := r.actions.DeleteRangeInFolder(ctx, request.ChapterTrack, request.ItemGUID, request.Start, request.End, bridge.CutMode(request.Mode), request.FadeMs,
 		request.PadMs, request.RoomTone)
 	var stale *bridge.StaleError
+	var folderGone *bridge.TrackStaleError
 	var refusal *bridge.RefusalError
 	switch {
+	case errors.As(err, &folderGone):
+		return dawport.RefusedStale(messageFolderStale), nil
 	case errors.As(err, &stale):
 		return dawport.RefusedStale("That passage's item is no longer in the REAPER project. Read the project again."), nil
 	case errors.Is(err, bridge.ErrRecording):
@@ -504,6 +507,9 @@ func (r rangeCutter) DeleteRange(ctx context.Context, request dawport.DeleteRang
 	}
 	return dawport.OK(cutMessage(request.Words), true).WithUndoSteps(got.UndoPoints), nil
 }
+
+// messageFolderStale answers an edit that names the chapter's folder of voices when REAPER no longer has it.
+const messageFolderStale = "That chapter's folder is no longer in the REAPER project. Read the project again."
 
 // messageCutScriptOutdated answers a pad or room tone sent to a script older than them, which refused and cut nothing.
 const messageCutScriptOutdated = "The app's script in REAPER is older than this app and cannot pad a cut or fill it with room tone, so nothing was cut. Import the script again from this app's REAPER folder."

@@ -199,3 +199,34 @@ func TestImportTheirAudioRefusals(t *testing.T) {
 		}
 	}
 }
+
+const stalledFolder = "{F0000000-0000-4000-8000-0000000000F1}"
+
+// A chapter's folder REAPER no longer has is stale for a cut, a replacement and a put-back alike, and the replacement and the put-back carry the
+// folder to the script.
+func TestAnEditNamingAFolderThatIsGoneIsStale(t *testing.T) {
+	var sent [][]string
+	answer := func(command []string) [][]string {
+		sent = append(sent, command)
+		return [][]string{{"TRACK_STALE", command[1], stalledFolder}}
+	}
+	replacer := rangeReplacerAnswering(t, answer)
+	request := replaceRequest(2, "Eric")
+	request.ChapterTrack = stalledFolder
+	got, err := replacer.ReplaceRange(t.Context(), request)
+	if err != nil || got.Result.OK || got.Result.Refused != messageFolderStale {
+		t.Errorf("replace = %+v, %v; want the stale-folder sentence", got.Result, err)
+	}
+	cutRequest := cutRequest(2, dawport.CutClose)
+	cutRequest.ChapterTrack = stalledFolder
+	if cut, err := rangeCutterAnswering(t, answer).DeleteRange(t.Context(), cutRequest); err != nil || cut.OK || cut.Refused != messageFolderStale {
+		t.Errorf("cut = %+v, %v; want the stale-folder sentence", cut, err)
+	}
+	back, err := replacer.RestoreReplacement(t.Context(), dawport.RestoreRequest{ReplacementItem: replaceNew, ID: "r-0001", Words: 2, ChapterTrack: stalledFolder})
+	if err != nil || back.OK || back.Refused != messageFolderStale {
+		t.Errorf("restore = %+v, %v", back, err)
+	}
+	if last := sent[len(sent)-1]; last[len(last)-1] != "r-0001|"+stalledFolder {
+		t.Errorf("restore sent %v; want the folder after the id", last)
+	}
+}
