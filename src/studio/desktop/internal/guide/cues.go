@@ -409,7 +409,7 @@ func writePyDocument(path string, document *pyObject) error {
 	if err := os.WriteFile(temporary, []byte(text), 0o644); err != nil { //nolint:gosec // G306: the mode the sidecar wrote the file with; it is the narrator's own data
 		return err
 	}
-	if err := os.Rename(temporary, path); err != nil {
+	if err := persist.Rename(temporary, path); err != nil {
 		_ = os.Remove(temporary)
 		return err
 	}

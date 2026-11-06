@@ -1,6 +1,7 @@
 package recording
 
 import (
+	"desktop/internal/persist"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -128,7 +129,7 @@ func finish(partial, final string) error {
 	if _, err := os.Lstat(final); err == nil {
 		return fmt.Errorf("%s already exists, so the take stays as %s", filepath.Base(final), filepath.Base(partial))
 	}
-	return os.Rename(partial, final)
+	return persist.Rename(partial, final)
 }
 
 type wavFormat struct {

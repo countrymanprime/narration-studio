@@ -375,7 +375,7 @@ func (s *Service) renameFile(from, to string) error {
 	if s.rename != nil {
 		return s.rename(from, to)
 	}
-	return os.Rename(from, to)
+	return persist.Rename(from, to)
 }
 
 // writeStore replaces samples.json through a temporary file and a rename; the caller holds the file's lock.
