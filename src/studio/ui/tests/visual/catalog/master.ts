@@ -250,35 +250,6 @@ export const masterStates: StateEntry[] = [
       'Master & QC, a running Master & encode cancelled (?mockRenderExport=running) - each file Cancelled, its role and title editable again, Add files…, Master before encoding and Master & encode back to run it again (#2935)',
     ...KEEPS_DESKTOP_SCROLL,
   },
-  // Master & QC, multi-platform export: several profiles' packages from one mastered/encoded source, in one action (no mock
-  // equivalent, kept as built, in the column beside the files)
-  {
-    page: 'master',
-    state: 'multi-export-empty',
-    description: 'Master & QC, Multi-platform export with nothing checked - a checkbox per delivery platform and "Build 0 packages" disabled',
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  {
-    page: 'master',
-    state: 'multi-export-selected',
-    description:
-      'Master & QC, Multi-platform export with the files already mastered and encoded and one platform checked (?mockDeliveryProfile=custom for a second platform to choose from) - "Build 1 package" enabled',
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  {
-    page: 'master',
-    state: 'multi-export-running',
-    description:
-      'Master & QC, a multi-platform build part way through (?mockPackageMulti=running) - Building… under the checked platform, Cancel, and a progress indicator',
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  {
-    page: 'master',
-    state: 'multi-export-results',
-    description:
-      'Master & QC, a finished multi-platform build (?mockDeliveryProfile=custom, both platforms checked) - under each checked platform its result: Built, the output folder and how many files it wrote',
-    ...KEEPS_DESKTOP_SCROLL,
-  },
   {
     page: 'master',
     state: 'no-manuscript',

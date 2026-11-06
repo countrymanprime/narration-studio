@@ -1729,18 +1729,18 @@
     "caption": "Pickups - a line marked recorded while the DAW has not taken the change yet"
   },
   {
-    "page": "master",
+    "page": "delivery",
     "state": "multi-export-selected",
     "viewport": "desktop",
-    "docName": "master-multi-export",
-    "caption": "Master & QC - Multi-platform export with one platform checked"
+    "docName": "delivery-multi-export",
+    "caption": "Delivery - Multi-platform export with one platform checked"
   },
   {
-    "page": "master",
+    "page": "delivery",
     "state": "multi-export-results",
     "viewport": "desktop",
-    "docName": "master-multi-export-results",
-    "caption": "Master & QC - a finished multi-platform build: a row per platform with its folder or why it was not built"
+    "docName": "delivery-multi-export-results",
+    "caption": "Delivery - a finished multi-platform build: a row per platform with its folder or why it was not built"
   },
   {
     "page": "proof",

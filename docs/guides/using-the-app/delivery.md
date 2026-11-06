@@ -125,6 +125,29 @@ The tags icon button, **Embed chapter tags**, beside **Build**, adds ID3 chapter
 
 ![Delivery - Embed chapter tags ready to embed: the combined book MP3, the chapters from the last render and the confirmation](../../images/ui/delivery-chapter-tags.webp)
 
+## Building packages for several platforms at once
+
+If you deliver to more than one platform, **Multi-platform export** (under Output) lets you build
+all of them from the one source you already mastered and encoded, without re-encoding unless a platform
+needs a different file format. Under **Build packages for**, check the box for each profile you want a
+package for, then **Build N packages**; it stays off, with "Master and encode a chapter first." beside it, until files are mastered and encoded. This does not change which profile the page's checks are judged against (that is the project's profile,
+chosen in the profile card above); the checkboxes only choose what to build packages for.
+
+![Delivery - Multi-platform export with one platform checked](../../images/ui/delivery-multi-export.webp)
+
+You are asked for one folder once, and each platform's package goes into its own correctly named subfolder
+of it. Two platforms that both take the same file format (most do: MP3 at the same bitrate) share the one
+set of already-encoded files; a platform that needs a different format (an M4B audiobook file, say) is
+encoded for just that once, however many platforms need it, not once per platform. Cancel stops the build
+before its next platform starts; platforms already built keep their packages, and one not yet reached is
+left waiting.
+
+![Delivery - a finished multi-platform build: a row per platform with its folder or why it was not built](../../images/ui/delivery-multi-export-results.webp)
+
+While it builds, and once it finishes, each platform says how it went under its own checkbox: **Building…**,
+**Built** with its folder and how many files it wrote, or why it could not be built (such as a required file being
+missing for that platform).
+
 ## Profile rules
 
 **Profile rules**, below Output, says where the rules come from and how many of them the app checks, how many

@@ -5,6 +5,34 @@ import type { StateEntry } from '../lib/types';
 import { KEEPS_DESKTOP_SCROLL, REFLOW, wholePage } from './shared';
 
 export const deliveryStates: StateEntry[] = [
+  // The multi-platform build (#2824), on Output beside the single-profile build; it left Master & QC.
+  {
+    page: 'delivery',
+    state: 'multi-export-empty',
+    description:
+      'Delivery with nothing encoded yet - Output with the Multi-platform export panel under it: a checkbox per delivery platform, "Build 0 packages" off, and "Master and encode a chapter first." beside it',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'delivery',
+    state: 'multi-export-selected',
+    description: 'Delivery with the files mastered and encoded (?mockDelivery=ready) and one platform checked in Multi-platform export - "Build 1 package" on',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'delivery',
+    state: 'multi-export-running',
+    description:
+      'Delivery with a multi-platform build part way through (?mockPackageMulti=running) - Building… under the checked platform, Cancel, and a progress indicator',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'delivery',
+    state: 'multi-export-results',
+    description:
+      'Delivery after a finished multi-platform build (?mockDeliveryProfile=custom, both platforms checked) - under each checked platform its result: Built, the output folder and how many files it wrote',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
   {
     page: 'delivery',
     state: 'default',

@@ -14,7 +14,7 @@ const DANGER = { color: 'var(--danger-text)' };
 const OK = { color: 'var(--ok-text)' };
 const MONO = "font-['IBM_Plex_Mono',ui-monospace,monospace]";
 
-/** The label a checkbox gives a profile: its platform for a built-in, its own name for a custom profile (docs/guides/using-the-app/master-and-qc.md#building-packages-for-several-platforms-at-once: the
+/** The label a checkbox gives a profile: its platform for a built-in, its own name for a custom profile (docs/guides/using-the-app/delivery.md#building-packages-for-several-platforms-at-once: the
  * project's own single delivery-profile choice is Delivery's profile card; this list is a separate, multi-select export-platform picker). */
 const platformNameFor = (profile: DeliveryProfile) => (profile.builtIn ? profile.platform : profile.name);
 
