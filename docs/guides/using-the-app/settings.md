@@ -374,7 +374,7 @@ replacing the manuscript keeps it; if its lines are gone, the panel says so and 
 
 ### Diagnostics
 
-Under **This version**, the **Diagnostics bundle** section has one row, **File for a bug report**, with two icon buttons. **Preview the
+Below **This version**, the **Diagnostics bundle** section has one row, **File for a bug report**, with two icon buttons. **Preview the
 diagnostics bundle** opens a window that lists the files the bundle would hold, what it leaves out and why (sidecar
 output, the host log and the REAPER bridge's log are not included), and how many lines the leak check dropped for naming
 you or your project. It writes nothing. **Save the diagnostics bundle** asks for a folder, saves one zip there and copies its path;
