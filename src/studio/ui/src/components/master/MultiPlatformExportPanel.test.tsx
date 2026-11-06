@@ -30,6 +30,7 @@ const jobs = (results: MultiPackageResult[], running = false): MultiPackageSourc
   problem: undefined,
   encoded: 1,
   blocked: false,
+  ready: true,
   start: vi.fn(async () => undefined),
   cancel: vi.fn(),
 });

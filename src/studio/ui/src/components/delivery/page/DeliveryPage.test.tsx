@@ -331,5 +331,14 @@ describe('DeliveryPage', () => {
       await waitFor(() => expect(single.getAttribute('aria-disabled')).toBe('true'));
       expect(screen.getAllByText('Another build is running.').length).toBeGreaterThan(0);
     });
+
+    it('is off while chapters fail or are not ready, like the single build, and says why (qa-breaker B9)', async () => {
+      mount(BLOCKED, { packageMultiState: async () => MULTI_IDLE });
+      await screen.findByRole('heading', { name: 'All platforms' });
+      await userEvent.click(await screen.findByRole('checkbox', { name: 'ACX' }));
+      const build = screen.getByRole('button', { name: 'Build 1 package' });
+      await waitFor(() => expect(build.getAttribute('aria-disabled')).toBe('true'));
+      expect(within(screen.getByRole('region', { name: 'All platforms' })).getByText('Every chapter has to pass first.')).toBeTruthy();
+    });
   });
 });

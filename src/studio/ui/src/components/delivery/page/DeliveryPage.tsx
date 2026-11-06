@@ -95,7 +95,7 @@ function LoadedDelivery({ onOpenInMaster, onOpenMaster }: { onOpenInMaster: (cha
             build={{ ...build, build: start }}
             showBuilt={built}
             onOpenMaster={onOpenMaster}
-            extra={<MultiPlatformExportPanel profiles={platforms} multi={build.multi} />}
+            extra={<MultiPlatformExportPanel profiles={platforms} multi={{ ...build.multi, ready: ready && !measuring }} />}
           />
         )}
       </div>

@@ -61,6 +61,9 @@ export const deliveryDrivers: Record<string, Driver> = {
   },
   'multi-export-results': async (page) => {
     await openDelivery(page, '?mockDelivery=ready&mockDeliveryProfile=custom');
+    // The custom profile fails chapters (the build is off then, like the single one); the project is judged against ACX and both are still listed.
+    await page.getByRole('combobox', { name: /^Delivery profile:/ }).selectOption('acx@2026-09');
+    await page.getByText('Every chapter passes.').waitFor();
     const panel = multiPanel(page);
     await panel.getByRole('checkbox', { name: 'ACX', exact: true }).click();
     await panel.getByRole('checkbox', { name: /^My ACX/ }).click();

@@ -90,6 +90,8 @@ export interface MultiPackageSource {
   encoded: number;
   /** Another job (the export, the single-profile build) is using the files. */
   blocked: boolean;
+  /** Every chapter passes the project's profile: the same gate as the single build (Delivery's own verdict, not the platforms'). */
+  ready: boolean;
   start: (profiles: DeliveryProfile[]) => Promise<void>;
   cancel: () => void;
 }
@@ -126,16 +128,18 @@ export function MultiPlatformExportPanel({ profiles, multi }: { profiles: Delive
     });
 
   const chosen = profiles.filter((profile) => selected.has(profile.id));
-  const canBuild = chosen.length > 0 && multi.encoded > 0 && !multi.blocked && !multiPackageRunning;
+  const canBuild = chosen.length > 0 && multi.encoded > 0 && multi.ready && !multi.blocked && !multiPackageRunning;
   // Why Build is off, said beside it: nothing encoded is the reason the owner's mock draws; a job in the way, or nothing checked, follow.
   const why =
     multi.encoded === 0
       ? 'Master and encode a chapter first.'
-      : multi.blocked
-        ? 'Another build or export is using the files.'
-        : chosen.length === 0 && profiles.length > 0
-          ? 'Check a platform to build for.'
-          : undefined;
+      : !multi.ready
+        ? 'Every chapter has to pass first.'
+        : multi.blocked
+          ? 'Another build or export is using the files.'
+          : chosen.length === 0 && profiles.length > 0
+            ? 'Check a platform to build for.'
+            : undefined;
   const results = multiPackageJob && multiPackageJob.phase !== 'idle' ? multiPackageJob.results : [];
 
   return (
