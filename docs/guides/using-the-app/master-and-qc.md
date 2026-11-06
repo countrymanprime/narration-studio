@@ -16,7 +16,7 @@ While the profile and the chapters are being read, the **Delivery package** pane
 The header of the files panel holds the title, the chapter bar, a pill naming the profile the files are
 judged against (**ACX** for the built-in profile, a custom profile by its name) and one refresh icon,
 **Check the files again**. Pressing the pill opens [Delivery](delivery.md), where the profile is chosen and
-edited. The run buttons are icon buttons beside it, named by their tooltips (**Master all to spec…**, **Check files…**). The main column holds the files and their checks, **Book consistency**, the
+edited. The run buttons are icon buttons beside it, named by their tooltips (**Master all to spec…**, **Check files…**; the same button is on [Delivery](delivery.md#before-you-build), over the same measurement). The main column holds the files and their checks, **Book consistency**, the
 [mastering chain](#the-mastering-chain), [Diagnostics](#diagnostics) and the [report](#exporting-a-report);
 the column on the right holds the [delivery package](#the-delivery-package). Building the packages, for one platform or several, is on [Delivery](delivery.md#building-packages-for-several-platforms-at-once); this page keeps the package counts and **Open Delivery**.
 
@@ -29,7 +29,7 @@ This page is a reference to everything Master & QC shows. To do one thing, start
 - **See how far the chapters' levels spread across the book**: [Book consistency](#book-consistency).
 - **Set up the mastering chain, then master and encode to spec**: [The mastering chain](#the-mastering-chain) and
   [Mastering to spec](#mastering-to-spec).
-- **Build packages for more than one platform**: [Building packages for several platforms at once](#building-packages-for-several-platforms-at-once).
+- **Build packages for more than one platform**: [Building packages for several platforms at once](delivery.md#building-packages-for-several-platforms-at-once).
 - **Check for clipping, level shifts, room-tone changes and long pauses**: [Diagnostics](#diagnostics).
 - **Save the last check and diagnostics to files**, to send to a producer or QA checker: [Exporting a report](#exporting-a-report).
 

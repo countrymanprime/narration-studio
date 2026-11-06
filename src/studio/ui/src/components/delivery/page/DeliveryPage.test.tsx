@@ -341,4 +341,29 @@ describe('DeliveryPage', () => {
       expect(within(screen.getByRole('region', { name: 'All platforms' })).getByText('Every chapter has to pass first.')).toBeTruthy();
     });
   });
+
+  describe('Check files on the preflight (#2825)', () => {
+    it('picks and measures files from Delivery with the same button Master has, and shows the result in the list', async () => {
+      const measurePickFiles = vi.fn(async () => ({ paths: ['C:/files/Chapter 01.wav'] }));
+      const measureAnalyze = vi.fn(async () => measureJob([passing('Chapter 01.wav')]));
+      mount([], { measurePickFiles, measureAnalyze, measureState: async () => ({ ...measureJob([]), phase: 'idle' }) as unknown as MeasureJob });
+      const preflight = await screen.findByRole('region', { name: 'Before you build' });
+      await userEvent.click(await within(preflight).findByRole('button', { name: 'Check files…' }));
+      await waitFor(() => expect(measureAnalyze).toHaveBeenCalledWith(['C:/files/Chapter 01.wav']));
+      expect(measurePickFiles).toHaveBeenCalledOnce();
+      // Once files were measured the same button is Re-check, as on Master.
+      expect(await within(preflight).findByRole('button', { name: /^Re-check 1 file$/ })).toBeTruthy();
+    });
+
+    it('shows a running measurement with its progress and Cancel, and Cancel stops it', async () => {
+      const running = { ...measureJob([]), phase: 'running', percent: 40, message: 'Reading Chapter 01.wav' } as unknown as MeasureJob;
+      const measureCancel = vi.fn(async () => ({ ...measureJob([]), phase: 'cancelled', message: 'Stopped at 1 of 4.' }) as unknown as MeasureJob);
+      mount([], { measureState: async () => running, measureCancel });
+      const preflight = await screen.findByRole('region', { name: 'Before you build' });
+      expect(await within(preflight).findByRole('progressbar', { name: 'Measuring' })).toBeTruthy();
+      await userEvent.click(within(preflight).getByRole('button', { name: 'Cancel' }));
+      expect(measureCancel).toHaveBeenCalledOnce();
+      expect(await within(preflight).findByText('Stopped at 1 of 4.')).toBeTruthy();
+    });
+  });
 });

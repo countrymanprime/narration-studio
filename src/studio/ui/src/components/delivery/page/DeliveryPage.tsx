@@ -104,7 +104,7 @@ function LoadedDelivery({ onOpenInMaster, onOpenMaster }: { onOpenInMaster: (cha
         <Preflight
           states={states}
           known={known}
-          measuring={measuring}
+          run={checks.run}
           problem={checks.jobError ?? checks.chaptersError}
           onCheckAgain={checks.checkAgain}
           onOpen={onOpenInMaster}

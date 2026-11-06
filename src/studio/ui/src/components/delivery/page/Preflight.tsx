@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { MeasureJob } from '../../../types';
+import { hasMeasureProgress, MeasureControls, MeasureProgress, type MeasureRun } from '../../masterqc/page/MeasureRun';
 import { Button } from '../../primitives/Button';
 import { IconButton } from '../../primitives/IconButton';
 import { Panel } from '../../primitives/Panel';
@@ -30,7 +30,7 @@ const SCROLL_AFTER = 10;
 export function Preflight({
   states,
   known,
-  measuring,
+  run,
   problem,
   onCheckAgain,
   onOpen,
@@ -39,8 +39,8 @@ export function Preflight({
   states: readonly ChapterState[];
   /** The chapters and the measurement have both been read at least once. */
   known: boolean;
-  /** A measurement that is running now. */
-  measuring?: MeasureJob;
+  /** The measurement: Master's own run, so Check files here starts, shows and cancels the same job Master does (#2825). */
+  run: MeasureRun;
   /** Why the latest read failed, in the host's words. */
   problem?: string;
   onCheckAgain: () => void;
@@ -50,14 +50,26 @@ export function Preflight({
   const [all, setAll] = useState(false);
   // A read that failed is a toast with Check again as its Retry, not a red paragraph that opens above the list (rule 7, #2632); the card
   // says what it can still say (the list below, marked possibly out of date) without moving.
+  // A start the host refused and a measurement that ended in error are told here, as Master tells them; a read that failed is the toast above.
+  useErrorToast(run.problem);
+  useErrorToast(run.job?.phase === 'error' ? `${run.job.message} Choose the files again to measure them.` : undefined);
   useErrorToast(problem && `Can't tell which chapters pass: ${problem}${known ? ' The list below may be out of date.' : ''}`, onCheckAgain);
   const shown = all ? states : states.slice(0, FIRST_ROWS);
   return (
-    <Panel title="Before you build" actions={onOpenMaster && <IconButton action="goTo" label="Open in Master & QC" onClick={onOpenMaster} />}>
+    <Panel
+      title="Before you build"
+      actions={
+        <span className="flex flex-wrap items-center gap-2">
+          <MeasureControls run={run} />
+          {onOpenMaster && <IconButton action="goTo" label="Open in Master & QC" onClick={onOpenMaster} />}
+        </span>
+      }
+    >
       <div className="flex flex-col gap-1">
-        {measuring && (
+        {hasMeasureProgress(run) && <MeasureProgress run={run} />}
+        {run.job?.phase === 'cancelled' && (
           <p role="status" className="text-sm" style={MUTED}>
-            {measuring.message || 'Measuring the files'} ({measuring.percent}%)
+            {run.job.message}
           </p>
         )}
         {/* The blocks are the list's own rows: a name and a pill on the list's pitch and rules (XDL-12). */}

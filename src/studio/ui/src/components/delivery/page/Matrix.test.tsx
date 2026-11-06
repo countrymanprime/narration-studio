@@ -158,7 +158,9 @@ describe('D5 Build: what it waits for', () => {
   it('a measurement that is running: says so with its progress, and Build stays off', async () => {
     mount({ measureState: async () => measureJob(PASSING, { phase: 'running', percent: 40, message: 'Measuring Chapter 02.wav' }) });
     expect(await screen.findByText('Measuring the files in Master & QC.')).toBeTruthy();
-    expect(screen.getByText('Measuring Chapter 02.wav (40%)')).toBeTruthy();
+    // The progress is Master's own (MeasureProgress, #2825): the bar, its message and Cancel, in place of the old one-line percent.
+    expect(screen.getByRole('progressbar', { name: 'Measuring' })).toBeTruthy();
+    expect(screen.getByText('Measuring Chapter 02.wav')).toBeTruthy();
     expect((await buildButton()).getAttribute('aria-disabled')).toBe('true');
   });
 
