@@ -121,6 +121,7 @@ export function PickupsTable({
   onGoToProof,
   onFine,
   where,
+  dawChip,
 }: {
   /** Every pickup the host lists. */
   pickups: readonly PickupItem[];
@@ -159,6 +160,8 @@ export function PickupsTable({
   onFine?: (pickup: PickupItem) => Promise<{ undo: RemoveUndo; entry: number } | undefined>;
   /** Show where for the selected line: its paragraph and the ones around it (research note A4). */
   where?: (pickup: PickupItem) => ReactNode;
+  /** The page's DAW connection chip, drawn at the header's right edge while the DAW is not answering (#2823). */
+  dawChip?: ReactNode;
 }) {
   const overlay = useOverlay();
   const body = useRef<HTMLDivElement>(null);
@@ -321,6 +324,7 @@ export function PickupsTable({
         </div>
         {/* One group at the right edge: in a narrow card it wraps under the title as a whole, at the right, not under the title's start (XPK-8). */}
         <div className="ml-auto flex items-center gap-2">
+          {dawChip}
           <IconButton
             action="checkRecordings"
             label="Check recordings"

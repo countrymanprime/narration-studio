@@ -56,6 +56,7 @@ import { useProofPageCommands } from './useProofPageCommands';
 import { useNoteContextMenu } from './useNoteContextMenu';
 import { hasRecording } from './checkcard/cardSelectors';
 import { announcePickupListChanged } from '../pickups/pickupListChanged';
+import { DawConnectionChip } from '../connection/DawConnectionChip';
 import { DawToolsButton } from '../engine/DawToolsButton';
 
 /** A pin's ink is its note type's kind colour (kinds/kindMap.ts); a take comparison has no hue, so it is muted. */
@@ -460,7 +461,16 @@ export function ProofPage({
             aria-label="Proof"
             className="flex min-w-0 flex-col gap-3 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-4"
           >
-            <ProofHeader progress={progress} chapterBar={stepper} tools={<DawToolsButton groups={['structure']} />} />
+            <ProofHeader
+              progress={progress}
+              chapterBar={stepper}
+              tools={
+                <>
+                  <DawConnectionChip stillWorks={(name) => `You can read notes and play recordings. Checks that use ${name} wait until it is running.`} />
+                  <DawToolsButton groups={['structure']} />
+                </>
+              }
+            />
             {all || !chapter ? (
               <div className="flex flex-col gap-1">
                 <SectionLabel>Open notes, by chapter</SectionLabel>

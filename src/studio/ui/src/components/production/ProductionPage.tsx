@@ -1,7 +1,6 @@
 import { headingName } from '../../chapterHeading';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiErrorMessage, describeApiError } from '../../api/errorMessage';
-import type { DawCapabilities } from '../../api/contracts/daw';
 import type { ChapterStatus } from '../../api/contracts/manuscript';
 import type { ProductionOverview, ProductionPlan, ProductionTotals } from '../../api/contracts/production';
 import { useOpenPickups } from '../pickups/useOpenPickups';
@@ -37,9 +36,8 @@ import { bookFigures, checkCounts, deliveryCounts, stageSegments, type OverviewT
 import { ProgressChart } from './overview/ProgressChart';
 import { StageBar } from './overview/StageBar';
 import { WeekCard } from './overview/WeekCard';
-import { ConnectionResolveDialog } from '../connection/ConnectionResolveDialog';
-import { useOpenOnce } from '../connection/useOpenOnce';
-import { DawIndicator } from './pipeline/DawIndicator';
+import { useDawConnection } from '../connection/useDawConnection';
+import { useDawStatus } from '../connection/useDawStatus';
 import { DAW_CONNECT_GRACE_MS, useConnectGrace } from './pipeline/dawConnectGrace';
 import { NextUp } from './pipeline/NextUp';
 import { NoManuscript } from './pipeline/NoManuscript';
@@ -142,14 +140,13 @@ export function ProductionPage({
   const production = usePort('production');
   const chapterSyncPort = usePort('chapterSync');
   const measurements = usePort('measurements');
-  const daw = usePort('daw');
   const found = Boolean(data.manuscript);
   const manuscriptKey = data.manuscript ? `${data.manuscript.id}:${data.manuscript.importedAt}` : 'no-manuscript';
   const manuscriptImport = useManuscriptImport({ data, go, notify, refreshBootstrap });
   const [load, setLoad] = useState<Load>({ status: 'loading' });
   const [plan, setPlan] = useState<ProductionPlan>();
   const rateBasis = useRateBasis(plan?.rateBasis);
-  const [caps, setCaps] = useState<DawCapabilities>();
+  const caps = useDawStatus().caps ?? undefined;
   const today = useMemo(() => new Date(), []);
 
   const read = useCallback(async () => {
@@ -168,31 +165,11 @@ export function ProductionPage({
     void read();
   }, [manuscriptKey, read]);
 
-  const readCaps = useCallback(() => {
-    daw.capabilities().then(setCaps, () => setCaps(undefined));
-  }, [daw]);
-  useEffect(() => readCaps(), [readCaps]);
-  // The host pushes the DAW picture whenever it changes (a heartbeat starts or stops, a bridge session is attached), so the banner
-  // follows without the narrator pressing Retry.
-  useEffect(() => daw.subscribeCapabilities?.(setCaps), [daw]);
-  // Check again reads the DAW now; the connect dialog says when it last looked and what it heard.
-  const [checkedAt, setCheckedAt] = useState<number | null>(null);
-  const [readFailed, setReadFailed] = useState(false);
-  const takeCaps = useCallback((next: DawCapabilities) => {
-    setCaps(next);
-    setCheckedAt(Date.now());
-    setReadFailed(false);
-  }, []);
-  const checkDaw = useCallback(
-    () =>
-      daw.capabilities().then(takeCaps, () => {
-        setReadFailed(true);
-      }),
-    [daw, takeCaps],
-  );
-  const dawOff = Boolean(caps && !caps.reachable && caps.daw !== 'none');
-  // The dialog opens by itself once per connection loss, after the app has had its time to connect on its own.
-  const dawDialog = useOpenOnce(dawOff && caps ? `reaper-off:${caps.daw}` : null, settling);
+  // The DAW is the app's one session (`useDawStatus`) and its one connection mark (`useDawConnection`): this page keeps no copy of the capability report.
+  const connection = useDawConnection({
+    graceMs: dawConnectGraceMs,
+    stillWorks: (name) => `Progress that comes from ${name} may be out of date until it is running again.`,
+  });
 
   // The open lines of the Pickups page's list, so the tile, Next up and the pickup hours count what that page lists.
   const openLines = useOpenPickups();
@@ -364,26 +341,18 @@ export function ProductionPage({
 
   return (
     <div className="flex flex-col gap-4">
-      {caps && !caps.reachable && caps.daw !== 'none' && (
-        <>
-          <div className="flex">
-            <DawIndicator daw={caps.daw} settling={settling} onOpen={dawDialog.reopen} />
-          </div>
-          {dawDialog.open && !settling && (
-            <ConnectionResolveDialog
-              variant="reaper-off"
-              daw={caps.daw}
-              sentence={`${caps.daw} is not running.`}
-              stillWorks={`Progress that comes from ${caps.daw} may be out of date until it is running again.`}
-              checkedAt={checkedAt}
-              readFailed={readFailed}
-              onCheckAgain={checkDaw}
-              onCaps={takeCaps}
-              onClose={dawDialog.close}
-            />
+      {connection.off && (
+        <div className="flex">
+          {settling ? (
+            <p role="status" className="m-0 text-[0.875rem] text-[var(--text-muted)]">
+              Connecting to {caps?.daw ?? 'the DAW'}…
+            </p>
+          ) : (
+            connection.indicator
           )}
-        </>
+        </div>
       )}
+      {connection.dialog}
       <PageHeader
         loading={load.status === 'loading'}
         chapters={narrated.length}

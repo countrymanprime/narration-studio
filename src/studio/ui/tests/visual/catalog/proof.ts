@@ -5,6 +5,12 @@ import { KEEPS_DESKTOP_SCROLL, POPUP_ANCHORED_AT_FIRST_WIDTH, REFLOW, wholePage 
 export const proofStates: StateEntry[] = [
   {
     page: 'proof',
+    state: 'daw-off-closed',
+    description:
+      'Proof with the DAW not connected (?mockDaw=Audacity), after the dialog that opens by itself was closed with its X - the quiet "not connected" mark in the head, before the DAW tools button, reopens it',
+  },
+  {
+    page: 'proof',
     state: 'load-error',
     description:
       'Proof when the chapters it loads on opening could not be read (?mockInvalidPayload=manuscript): the title, "This page could not be loaded" with Retry; navigation still works',

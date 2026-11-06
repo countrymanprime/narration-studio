@@ -19,6 +19,7 @@ export function ResolveShell({
   description,
   primary,
   secondary,
+  extra,
   onClose,
   returnFocus,
   children,
@@ -27,6 +28,8 @@ export function ResolveShell({
   description: string;
   primary: ResolveAction;
   secondary: ResolveAction;
+  /** A third action between Check again and the primary one: Start while the primary is Link project file…. */
+  extra?: ResolveAction;
   onClose: () => void;
   returnFocus?: () => HTMLElement | null;
   children: ReactNode;
@@ -52,6 +55,7 @@ export function ResolveShell({
       actions={
         <>
           {button(secondary, 'secondary')}
+          {extra ? button(extra, 'secondary') : null}
           {button(primary, 'primary')}
         </>
       }

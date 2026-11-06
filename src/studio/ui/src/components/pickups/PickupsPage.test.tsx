@@ -8,6 +8,7 @@ import { StudioProvider } from '../../studio/StudioProvider';
 import { createJournal, type Journal } from '../../studio/journal/createJournal';
 import type { PickupList } from '../../api/contracts/pickups';
 import { createMockApi } from '../../api/mockApi';
+import { DAW_SETUPS } from '../../fixtures/daw';
 import { CommandRouter } from '../../input/router';
 import { OverlayHost } from '../../overlay/OverlayHost';
 import type { NarrationApi } from '../../types';
@@ -51,6 +52,19 @@ function renderPage(
   );
   return { api, goTo, goToScript };
 }
+
+describe('the DAW connection chip (#2823)', () => {
+  it('shows the shared REAPER-not-connected chip in the list header while the DAW is away', async () => {
+    renderPage(
+      createMockApi({
+        pickupsList: () => Promise.resolve(LIST),
+        dawCapabilities: async () => DAW_SETUPS['reaper-off'],
+        subscribeDawCapabilities: () => () => undefined,
+      }),
+    );
+    expect(await screen.findByRole('button', { name: /REAPER not connected/, hidden: true })).toBeTruthy();
+  });
+});
 
 describe('pickups-route-draws-the-mock-page', () => {
   it('draws the list grouped by chapter and the pickup session panel', async () => {

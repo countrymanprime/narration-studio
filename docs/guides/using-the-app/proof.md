@@ -94,6 +94,8 @@ opens with the panel closed. Starting a comparison needs a linked project file; 
 
 ## The DAW tools menu
 
+When REAPER is not answering, a **REAPER not connected** mark sits just before the wrench icon button. It opens the same dialog as on [Production](production.md), where **Link project file…** and **Check again** live.
+
 The wrench icon button at the end of the header opens the same **Structure** menu as [Editing's](editing.md#the-daw-tools-menu): **Prepare chapter render…** and **Create chapter regions…**, for when proofing is done and the chapters are next rendered. When a tool cannot be used it stays in the menu, greyed, with the reason under its name: the DAW is not answering, the DAW has a different project open than the one linked here, the REAPER project has no tracks yet, no chapter is linked to a REAPER track yet (link one on [Production](production.md)), or the project records in Audacity, which has neither regions nor render setup to write. The menu reads the project the first time you open it, so for a moment both entries say **Reading the REAPER project…**.
 
 ![Proof - the DAW tools menu open at the end of the head: the Structure heading over Prepare chapter render and Create chapter regions](../../images/ui/proof-daw-tools.webp)
