@@ -1018,7 +1018,7 @@ func materializeResources(source fs.FS, userCache, executable string) (string, e
 		_ = os.RemoveAll(staging)
 		return "", err
 	}
-	if err := os.Rename(staging, target); err != nil {
+	if err := persist.Rename(staging, target); err != nil {
 		return "", err
 	}
 	// The REAPER scripts are materialized beside the immutable sidecars and in the stable launcher folder, each with the app's
@@ -1073,7 +1073,7 @@ func writeIfChanged(target string, content []byte) error {
 	if err := os.WriteFile(temporary, content, 0o600); err != nil {
 		return err
 	}
-	return os.Rename(temporary, target)
+	return persist.Rename(temporary, target)
 }
 
 func executablePath() string {
@@ -1095,7 +1095,7 @@ func writeCheckoutLauncherPointer(launcher, executable string) error {
 	if err := os.WriteFile(temporary, []byte(executable+"\n"), 0o600); err != nil {
 		return err
 	}
-	return os.Rename(temporary, target)
+	return persist.Rename(temporary, target)
 }
 
 func writeReaperLauncherPath(root, executable string) error {
@@ -1111,7 +1111,7 @@ func writeReaperLauncherPath(root, executable string) error {
 	if err := os.WriteFile(temporary, []byte(executable+"\n"), 0o600); err != nil {
 		return err
 	}
-	return os.Rename(temporary, target)
+	return persist.Rename(temporary, target)
 }
 
 // resourceKeyFor changes whenever any embedded release resource changes. Keeping

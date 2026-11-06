@@ -3,6 +3,7 @@ package audacity
 import (
 	"context"
 	"desktop/internal/brand"
+	"desktop/internal/persist"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -136,7 +137,7 @@ func WriteSnapshot(path string, snap Snapshot) error {
 		_ = os.Remove(tmp.Name())
 		return err
 	}
-	if err := os.Rename(tmp.Name(), path); err != nil {
+	if err := persist.Rename(tmp.Name(), path); err != nil {
 		_ = os.Remove(tmp.Name())
 		return err
 	}
