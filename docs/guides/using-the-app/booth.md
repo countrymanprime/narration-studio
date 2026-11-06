@@ -20,10 +20,11 @@ Before you start: a manuscript is imported, and the project records with REAPER,
 1. **Open the Booth on the chapter.** On [Production](production.md), **Start session** opens it on the chapter being
    recorded. **Record in Booth** on a chapter's card on [Script](script.md) opens it on that chapter, and **Booth** in
    the sidebar opens it too.
-2. **Check the chip at the top right.** It names the recording setup: **REAPER** once connected, or **REAPER · not
-   linked** or **REAPER · not running** while it is not. Click it to fix the link in the
-   [audio engine panel](navigation.md#the-audio-engine-panel).
-3. **The first time you open a chapter, choose its track.** The **Not linked to a track** dialog offers **Link track**,
+2. **Check the chip at the top right.** It names the recording setup: **REAPER** once connected, with a note such as
+   **REAPER · not running** while it is not ready. Click it to open the
+   [audio engine panel](navigation.md#the-audio-engine-panel), where you link the project.
+3. **The first time you open a chapter, choose its track.** A dialog titled with the chapter's name and "is not linked
+   to a track" offers **Link track**,
    with the best match by name chosen, or **Create a new track**, which adds one named after the chapter. Save the
    REAPER project afterwards so a new track is kept. The built-in recorder needs no track.
 4. **Press Record** (or Space, or Enter, or a foot pedal mapped to Space) and read. The text follows your voice, dims the
@@ -31,7 +32,8 @@ Before you start: a manuscript is imported, and the project records with REAPER,
    downloads until you press **Download model**.
 5. **Press Record again to stop.** In a DAW, a **Take saved** message offers **Undo**. The highlight stays on the last word the
    Booth heard, and the next take starts from there.
-6. **Fix a mistake as you go.** **R** punches and rolls from the word you are on: the DAW's cursor goes there and
+6. **Fix a mistake as you go.** Punch and roll is the narrator's retake: the DAW plays a moment of what you read before
+   and records again from a chosen word. **R** does it from the word you are on: the DAW's cursor goes there and
    recording starts. Click a word, or use **Start from here**, to choose where.
 7. **Leave** with Escape, which goes to Script. During a take, every way out asks **Stop recording?** first.
 
@@ -590,7 +592,7 @@ when you came in, the Booth did not start that take and does not stop it, and th
 | --- | --- |
 | Record looks off and the footer says why | Press it anyway: it opens the dialog that fixes the problem, or a message with **Check again**. Nothing records. |
 | **Not linked to a track** | The chapter has no track in the DAW project, or several. **Link track** or **Create a new track** ([Recording](#recording)). |
-| **REAPER not connected** or **REAPER not answering** | REAPER is closed or its bridge has not answered. **Open in REAPER and connect** starts it on the linked project; with no project linked it is off, with **Link in Settings** beside it. |
+| **REAPER not connected** or **REAPER not answering** | REAPER is closed or its bridge has not answered. **Open in REAPER and connect** starts it on the linked project. With no project linked yet, **Link project file…** is the main button and links one. |
 | **REAPER has a different project open** | **Link the open project**, or open the linked project in REAPER and press **Check again**. **DAW settings** shows which file is linked. |
 | "REAPER is already recording. Stop it in REAPER before recording here." | A take you started in REAPER is running. Stop it there; Record is ready again at once. |
 | "The text cannot follow your voice yet" | The speech model is not downloaded, or no microphone is listed. The first take asks to download the model; see [The microphone the Booth listens to](#the-microphone-the-booth-listens-to). |
