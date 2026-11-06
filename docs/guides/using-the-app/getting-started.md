@@ -6,8 +6,8 @@ This page takes you from a freshly installed app to your first recorded take. It
 never opened the app; if you have, skip to [The project picker](#the-project-picker) for what each part of the first
 screen does.
 
-By the end you will have a project for your book, the manuscript imported into it, the project linked to REAPER, and
-one take recorded in the [Booth](booth.md). The example below uses a book called *The Lighthouse Keeper*; use your own.
+By the end you will have a project for your book, the manuscript imported into it, a recorder chosen for it, and one
+take recorded in the [Booth](booth.md). The example below uses a book called *The Lighthouse Keeper*; use your own.
 
 ## Before you start
 
@@ -16,10 +16,16 @@ You need:
 - **The app**, installed from a release ([Install on Windows](../../../README.md#install-on-windows)). It runs on Windows x64.
 - **The manuscript** as a Word (`.docx`), Markdown (`.md`) or plain-text (`.txt`) file. The app keeps a copy in your
   project and never changes the original.
-- **REAPER**, if you record in it. You do not set anything up inside REAPER: the app puts its bridge, a small script, in
-  REAPER's Scripts folder by itself. If you record in Audacity 3, see [If you record in Audacity](#if-you-record-in-audacity).
-  With neither, the app's built-in recorder can record on Windows; see
-  [Recording without a DAW](booth.md#recording-without-a-daw).
+- **A recorder.** The app works with REAPER, with Audacity 3, or with neither:
+  - **REAPER**: you set nothing up inside it. The app puts its bridge, a small script, in REAPER's Scripts folder by
+    itself.
+  - **Audacity 3**: see [If you record in Audacity](#if-you-record-in-audacity) for its own Start Menu entry and what
+    it can do yet.
+  - **Neither**: the app's built-in recorder records on Windows and saves each take as a file in the project; see
+    [Recording without a DAW](booth.md#recording-without-a-daw).
+
+The steps below use REAPER as the worked example, since it is the recorder the app does most with. Where Audacity or
+the built-in recorder works differently, the step says so.
 
 ## Your first project, step by step
 
@@ -39,7 +45,7 @@ your user folder) unless you choose another with **Change location…**. Press *
 ![New Project - the name rules, and the location line showing the default projects folder with Change location](../../images/ui/project-new-dialog.webp)
 
 The app makes a folder named after the project, here `The Lighthouse Keeper`, and opens it. That folder is the project:
-the book's project files stay in it. The app does not make a REAPER project for you; that is step 4.
+the book's project files stay in it. The app does not make a project in your DAW for you; that is step 4.
 
 ### 3. Import the manuscript
 
@@ -54,30 +60,38 @@ Press **Import manuscript**. It takes you to [Production](production.md), where 
 option. Until a manuscript is in, the sidebar shows the pages that need one off, with a lock; after the import they all
 open.
 
-### 4. Link the project to REAPER
+### 4. Choose how you record
 
-The app records into a REAPER project file (`.rpp`) that you link to the book once.
+Open [Settings](settings.md) (at the bottom of the sidebar) and go to **Recording & DAW**. **Record with** chooses
+**REAPER**, **Audacity** or the **Built-in recorder** for this project, and each option says whether that program was
+found on this computer.
 
-1. In REAPER, start a new project and save it into the book's folder from step 2, for example as
-   `The Lighthouse Keeper.rpp`.
-2. In the app, open [Settings](settings.md) (at the bottom of the sidebar) and go to **Recording & DAW**.
-3. With one `.rpp` in the project folder, the card reads **REAPER not linked** and offers **Link** with the file's name
-   (**Link The Lighthouse Keeper.rpp**). Press it. A REAPER file kept somewhere else works too: **Choose a project file** picks it.
+Until you choose, a project with no REAPER file in its folder records with the built-in recorder, and a REAPER file in
+the folder makes the project start on REAPER.
+
+- **Built-in recorder**: choose it and you are done; there is nothing to link. Go to step 5.
+- **Audacity**: choose it and follow the **Set up Audacity** checklist on the card; see
+  [Recording & DAW](settings.md#recording--daw) for each step.
+- **REAPER**: the app records into a REAPER project file (`.rpp`) that you link to the book once. Linking also
+  chooses REAPER.
+  1. In REAPER, start a new project and save it into the book's folder from step 2, for example as
+     `The Lighthouse Keeper.rpp`.
+  2. Back in **Recording & DAW**, with one `.rpp` in the project folder, the card reads **REAPER not linked** and
+     offers **Link** with the file's name (**Link The Lighthouse Keeper.rpp**). Press it. A REAPER file kept somewhere
+     else works too: **Choose a project file** picks it.
 
 [Link your REAPER project](settings.md#link-your-reaper-project) shows the card before and after. Once linked, it reads
 **REAPER linked** while REAPER answers, or **Not running** with **Start REAPER** while REAPER is closed. From now on,
 opening this project in the app opens REAPER on the linked file if REAPER is not running.
 
-Until a project is linked to REAPER (or another recorder is chosen), a project with no REAPER file in its folder records
-with the built-in recorder. A REAPER file in the folder makes the project start on REAPER.
-
 ### 5. Record your first take
 
 On Production, press **Start session**. The Booth opens on the chapter being recorded.
 
-1. The first time you open a chapter, the Booth asks which REAPER track it records on. A new REAPER project has no
-   tracks, so press **Create a new track**: REAPER adds a track named after the chapter and links it. Save the REAPER
-   project afterwards so the track is kept.
+1. With REAPER, the first time you open a chapter the Booth asks which track it records on. A new REAPER project has
+   no tracks, so press **Create a new track**: REAPER adds a track named after the chapter and links it. Save the
+   REAPER project afterwards so the track is kept. The built-in recorder needs no track. The Booth cannot start a take
+   in Audacity yet.
 2. Press **Record** (or Space) and read. The text follows your voice with a speech model that runs on this computer.
    If the model is not downloaded yet, the first take asks to download it, says how large it is, and downloads nothing
    until you press **Download model**.
@@ -156,7 +170,7 @@ install.
 | "a project named … already exists in that location" | A folder with that name is already in **Location**. Pick another name or location, or open the existing project with **Open folder…**. |
 | "Couldn't load recent projects." | The app could not read its list of recent projects. **Open folder…** and **New project** still work. |
 | A project is missing from the list | Its folder was moved or deleted, or it was removed with **×**. Open it with **Open folder…**; it returns to the list. |
-| No **Link** button in Settings, Recording & DAW | The project folder has no `.rpp`, or several. Save the REAPER project into the folder, or use **Choose a project file**. |
+| No **Link** button in Settings, Recording & DAW (REAPER) | The project folder has no `.rpp`, or several. Save the REAPER project into the folder, or use **Choose a project file**. |
 | **REAPER not connected** in the Booth | REAPER is closed or its bridge has not answered yet. **Open in REAPER and connect** in the dialog starts it; see [Recording](booth.md#recording). |
 
 ---
