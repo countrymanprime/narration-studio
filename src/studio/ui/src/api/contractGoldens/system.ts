@@ -1,7 +1,15 @@
 // The golden payloads for the handshake, bootstrap, notices, job ends and the system bindings: which schema owns each file in tests/fixtures/contracts/ (see index.ts).
 import { z } from 'zod';
 import { dictionaryLookupResultSchema } from '../schemas/dictionary';
-import { bootstrapSchema, diagnosticsPreviewSchema, jobEndedSchema, noticeSchema, saveDiagnosticsResultSchema, windowZoomSchema } from '../schemas/system';
+import {
+  bootstrapSchema,
+  diagnosticsPreviewSchema,
+  jobEndedSchema,
+  noticeSchema,
+  saveDiagnosticsResultSchema,
+  traceBatchResultSchema,
+  windowZoomSchema,
+} from '../schemas/system';
 
 export const systemGoldens: Record<string, z.ZodType> = {
   'bootstrap-manuscript.json': bootstrapSchema,
@@ -10,6 +18,7 @@ export const systemGoldens: Record<string, z.ZodType> = {
   'system-lookup-found.json': dictionaryLookupResultSchema,
   'system-lookup-asset-required.json': dictionaryLookupResultSchema,
   'system-save-diagnostics.json': saveDiagnosticsResultSchema,
+  'system-trace-batch.json': traceBatchResultSchema,
   'system-diagnostics-preview.json': diagnosticsPreviewSchema,
   'window-zoom.json': windowZoomSchema,
   'system-notice.json': noticeSchema,
