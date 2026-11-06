@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ActivityPanel } from '../primitives/ActivityPanel';
-import { clock, PHASE_LABEL, type ActivityView } from './activityView';
+import { clock } from '../editing/bar/clock';
+import { PHASE_LABEL, type ActivityView } from './activityView';
 
 /** Seconds since `startedAt`, once a second while `ticking`. */
 function useElapsed(startedAt: number | undefined, ticking: boolean, now: () => number): number {

@@ -6,7 +6,6 @@ import (
 	"os"
 	"strings"
 	"testing"
-	"time"
 )
 
 func newLevelMatchSession(t *testing.T) (*LevelMatchClient, *Client, string) {
@@ -17,7 +16,7 @@ func newLevelMatchSession(t *testing.T) (*LevelMatchClient, *Client, string) {
 		t.Fatal(err)
 	}
 	levelMatch := NewLevelMatchClient(client)
-	levelMatch.SetTimeout(2 * time.Second)
+	levelMatch.SetTimeout(fakeAnswersWithin)
 	return levelMatch, client, dir
 }
 

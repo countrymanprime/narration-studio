@@ -1,19 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { headingName } from '../../../chapterHeading';
 import { useApi } from '../../../api/ApiContext';
-import { useCanRecord } from '../record/useCanRecord';
 import { CommandScope } from '../../../input/router';
 import type { GuideEntity, GuideType, ManuscriptNote } from '../../../types';
 import type { BoothSource } from '../page/useBoothData';
 import { CompanionShell } from '../CompanionShell';
-import { RecordInReaperConfirm } from '../RecordInReaperConfirm';
 import { ResumePrompt } from '../ResumePrompt';
+import { recordedStart } from './companionResume';
+import { useRecordedThrough } from './useRecordedThrough';
 import { UnresolvedCreditsWarning } from '../UnresolvedCreditsWarning';
 import { flagMarks, flagSaves, visibleFlags, withMarks } from '../readerFlags';
 import { CREDITS_LABEL, readerMarks, type ReaderMark } from '../readerModel';
 import { loadFlagVisibility } from '../readerPreferences';
 import { useFollowCursor } from '../useFollowCursor';
-import { useRecordInReaper } from '../useRecordInReaper';
 import { useListeningMic } from '../listening/useListeningMic';
 import { useTeleprompterSession } from '../useTeleprompterSession';
 
@@ -63,8 +62,6 @@ export function CompanionHost({ source, entities = NO_ENTITIES, types = NO_TYPES
     listenOn: session.listenOn,
   });
   const follow = useFollowCursor({ active: session.active, cursor: session.cursor });
-  const record = useCanRecord();
-  const recording = useRecordInReaper(source.chapter.id, record.ok);
   const chapterTitle = source.kind === 'chapter' ? headingName(source.chapter) : CREDITS_LABEL[source.credits];
   const { paragraphs, rows } = session;
   const { flags } = session.session;
@@ -97,9 +94,21 @@ export function CompanionHost({ source, entities = NO_ENTITIES, types = NO_TYPES
   });
   useEffect(() => () => keepOnLeave.current(), []);
 
+  const { recorded: recordedThrough, reading: readingRecorded } = useRecordedThrough(source.chapter.id, session.active);
+  const recorded = useMemo(
+    () => (chapter ? recordedStart({ chapter, paragraphs, spans: session.session.script?.spans, recorded: recordedThrough }) : null),
+    [chapter, paragraphs, session.session.script, recordedThrough],
+  );
   const header: ReactNode =
     source.kind === 'chapter' ? (
-      <ResumePrompt chapterId={source.chapter.id} model={session.model} active={session.active} onStartWord={(word) => session.setStartWord(word)} />
+      <ResumePrompt
+        chapterId={source.chapter.id}
+        model={session.model}
+        active={session.active}
+        recorded={recorded}
+        recordedPending={readingRecorded || (recordedThrough !== undefined && paragraphs === undefined)}
+        onStartWord={(word) => session.setStartWord(word)}
+      />
     ) : source.preview.unresolved.length > 0 ? (
       <UnresolvedCreditsWarning kind={source.credits} tokens={source.preview.unresolved} onFix={onFixCredits} />
     ) : undefined;
@@ -107,17 +116,7 @@ export function CompanionHost({ source, entities = NO_ENTITIES, types = NO_TYPES
   return (
     // Booth scope: `reading.toggle` (Space) resolves here ahead of `global`.
     <CommandScope kind="booth">
-      <CompanionShell
-        session={session}
-        follow={follow}
-        chapterTitle={chapterTitle}
-        chapterId={chapterId}
-        recording={recording}
-        marks={marks}
-        header={header}
-        onFullApp={onFullApp}
-      />
-      {recording.confirmPending && <RecordInReaperConfirm chapterTitle={chapterTitle} confirm={recording.confirm} cancel={recording.cancelConfirm} />}
+      <CompanionShell session={session} follow={follow} chapterTitle={chapterTitle} chapterId={chapterId} marks={marks} header={header} onFullApp={onFullApp} />
     </CommandScope>
   );
 }

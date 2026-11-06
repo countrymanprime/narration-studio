@@ -24,7 +24,7 @@ describe('the kept take after a reload', () => {
       {
         chapterId: passage.chapterId,
         passageId: passage.id,
-        candidates: passage.takes.map((t) => ({ ...t, source: 'item_take', action: 'make_active', confirm: false, detail: '', itemGuid: '', takeGuid: '' })),
+        candidates: passage.takes.map((t) => ({ ...t, source: 'item_take', action: 'make_active', detail: '', itemGuid: '', takeGuid: '' })),
       } as never,
       { script: passage.script, at: 0 },
     );

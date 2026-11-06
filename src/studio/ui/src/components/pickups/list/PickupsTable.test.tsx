@@ -223,6 +223,26 @@ describe('PickupsTable', () => {
     expect(play.getAttribute('aria-disabled')).toBe('true');
   });
 
+  it('a double click on Remove removes one line, not the line that moves up under the pointer', async () => {
+    const { onRemove, user } = setup();
+    const first = within(rowOf('05:12.0')).getByRole('button', { name: 'Remove from pickups' });
+    await user.dblClick(first);
+    expect(onRemove).toHaveBeenCalledTimes(1);
+  });
+
+  it('describes an off Play with its reason for a screen reader', () => {
+    setup();
+    const play = within(rowOf('05:12.0')).getByRole('button', { name: 'Hear the original in context' });
+    const ids = (play.getAttribute('aria-describedby') ?? '').split(' ');
+    expect(document.getElementById(ids[0])?.textContent).toMatch(/not available here/);
+  });
+
+  it('announces Mark recorded and Mark open again, since only the row changes', async () => {
+    const { user, service } = setup();
+    await user.click(within(rowOf('05:12.0')).getByRole('button', { name: 'Mark recorded' }));
+    await waitFor(() => expect(service.getSnapshot().announcement).toBe('05:12.0 marked recorded. It leaves the session.'));
+  });
+
   it('status-is-a-word-and-a-shape: Recorded and Open, and Mark recorded calls onSetDone', async () => {
     const { onSetDone, user } = setup();
     expect(within(rowOf('05:12.0')).getByText('Open')).toBeTruthy();
@@ -244,12 +264,13 @@ describe('PickupsTable', () => {
   it('remove-is-one-undoable-step', async () => {
     const undo = vi.fn().mockResolvedValue({ ok: true });
     const { onRemove, user, toasts } = setup();
-    onRemove.mockResolvedValueOnce(undo);
+    onRemove.mockResolvedValueOnce({ undo, entry: 4 });
     await user.click(within(rowOf('05:12.0')).getByRole('button', { name: 'Remove from pickups' }));
     expect(onRemove).toHaveBeenCalledWith(SPEECH.id);
     await waitFor(() => expect(toasts()).toHaveLength(1));
     expect(toasts()[0].text).toBe('Removed 05:12.0 from pickups.');
     expect(toasts()[0].action?.label).toBe('Undo');
+    expect(toasts()[0].undo?.entry).toBe(4);
     act(() => toasts()[0].action?.onAction());
     expect(undo).toHaveBeenCalledOnce();
   });
@@ -401,7 +422,9 @@ describe('PickupsTable', () => {
     const { user } = setup();
     await user.click(screen.getByRole('button', { name: 'Add a pickup by hand' }));
     expect(await screen.findByRole('textbox', { name: 'Time in the recording' })).toBeTruthy();
-    expect(screen.getByText('Chapter 1 · The Orchard', { selector: 'span' })).toBeTruthy();
+    /* Every chapter is showing, so the line's chapter is the narrator's to pick; it starts on the chapter the page is on. */
+    const chapter = screen.getByRole('combobox', { name: 'Chapter' }) as HTMLSelectElement;
+    expect(chapter.selectedOptions[0].textContent).toBe('Chapter 1 · The Orchard');
   });
 });
 

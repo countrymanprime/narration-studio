@@ -13,12 +13,12 @@ for (const size of [
 ]) {
   test(`Engine / Chapter links rows share one grid and fit the panel / ${size.name} ${size.width}x${size.height}`, async ({ page }) => {
     await page.setViewportSize({ width: size.width, height: size.height });
-    // An unset seed boots Chapter 1 linked, so the table holds a linked row beside the unlinked ones.
+    // An unset seed boots every chapter with its Record ticked linked, so the table holds linked rows beside the unlinked ones.
     await page.goto('/');
     await settlePage(page);
     const panel = await openEnginePanel(page);
     const table = panel.getByRole('table', { name: 'Chapter links' });
-    await table.getByRole('button', { name: 'Change' }).waitFor();
+    await table.getByRole('button', { name: 'Change' }).first().waitFor();
 
     const measured = await table.evaluate((element) => {
       const panelBox = element.closest('[role="dialog"]')!.getBoundingClientRect();

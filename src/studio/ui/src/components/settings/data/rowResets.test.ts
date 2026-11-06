@@ -1,0 +1,56 @@
+import { describe, expect, it } from 'vitest';
+import { ROWS } from '../registry/rows';
+import { BROWSER_CHANGED } from './browserValues';
+import { CHANGED_EXEMPT, CUSTOM_CHANGED, LIVE_CHANGED } from './customChanged';
+import { isResettable, LEFT_TO_THEIR_PANEL, RESETTABLE_ROWS } from './rowResets';
+
+const changedReadable = [...Object.keys(BROWSER_CHANGED), ...Object.keys(CUSTOM_CHANGED), ...Object.keys(LIVE_CHANGED)];
+
+describe('the header Reset to defaults and the Changed marks (issue 2605)', () => {
+  it('every row Changed can mark is put back by the header Reset, and every row Reset puts back is one Changed can mark', () => {
+    const resettable = [...RESETTABLE_ROWS] as string[];
+    expect(
+      changedReadable.filter((id) => !resettable.includes(id) && !(id in LEFT_TO_THEIR_PANEL)),
+      'a Changed row the header Reset does not reset',
+    ).toEqual([]);
+    expect(
+      resettable.filter((id) => !changedReadable.includes(id)),
+      'a Reset the Changed filter cannot see',
+    ).toEqual([]);
+  });
+
+  // Closed list: a row left to its own panel is a decision about the narrator's data, not a gap, so a new entry is the owner's call.
+  it('the rows left to their own panel are exactly these, are read by Changed and are not reset by the header', () => {
+    expect(Object.keys(LEFT_TO_THEIR_PANEL).sort()).toEqual(['delivery.default', 'models.folder', 'project.credits', 'project.marks', 'project.types']);
+    for (const id of Object.keys(LEFT_TO_THEIR_PANEL)) {
+      expect(changedReadable, `${id} is left to its panel but Changed does not read it`).toContain(id);
+      expect(RESETTABLE_ROWS as readonly string[], `${id} is left to its panel but also reset`).not.toContain(id);
+    }
+  });
+
+  it('a row Changed does not count is one nothing resets', () => {
+    for (const id of Object.keys(CHANGED_EXEMPT)) {
+      expect(changedReadable, `${id} is exempt from Changed but read`).not.toContain(id);
+      expect(RESETTABLE_ROWS as readonly string[], `${id} is exempt from Changed but reset`).not.toContain(id);
+    }
+  });
+
+  it('resets only rows that exist, and counts a row with a host field as reset', () => {
+    const ids = new Set(ROWS.map((row) => row.id));
+    for (const id of RESETTABLE_ROWS) expect(ids.has(id), `${id} is not a Settings row`).toBe(true);
+    expect(isResettable({ id: 'app.channel', field: { tool: 'Updates', key: 'channel' } })).toBe(true);
+    expect(isResettable({ id: 'daw.voices' })).toBe(false);
+    expect(isResettable({ id: 'look.theme' })).toBe(true);
+  });
+
+  it('a reset of the project delivery profile that cannot find the global default says so instead of doing nothing', async () => {
+    const { deliveryProfileReset } = await import('./rowResets');
+    const calls: string[] = [];
+    const port = {
+      deliveryProfiles: async () => ({ profiles: [{ id: 'x', builtIn: true, version: '1' }], globalDefault: { id: 'gone', version: '' } }),
+      deliverySelectProfile: async (...args: unknown[]) => void calls.push(args.join()),
+    };
+    await expect(deliveryProfileReset(port as never)).rejects.toThrow(/global default/);
+    expect(calls).toEqual([]);
+  });
+});

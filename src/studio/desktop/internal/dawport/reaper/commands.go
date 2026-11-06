@@ -36,8 +36,6 @@ func (p pickupList) ExportPickups(runID, outputPath string) error {
 	return p.send("export_pickups", runID, outputPath)
 }
 
-func (p pickupList) NextPickup(runID string) error { return p.send("next_pickup", runID) }
-
 func (p pickupList) ResolvePickup(runID string, position float64) error {
 	return p.send("resolve_pickup", runID, strconv.FormatFloat(position, 'f', 6, 64))
 }
@@ -93,11 +91,4 @@ type projectStateReader struct{ events }
 
 func (p projectStateReader) RequestProjectState(runID string) error {
 	return p.send("project_state", runID)
-}
-
-// takeCreator is internal/takereview's create_take command.
-type takeCreator struct{ events }
-
-func (t takeCreator) CreateTake(runID, payloadPath string) error {
-	return t.send("create_take", runID, payloadPath)
 }

@@ -2,6 +2,7 @@ package coverage
 
 import (
 	"desktop/internal/brand"
+	"desktop/internal/tracks"
 	"errors"
 	"os"
 	"path/filepath"
@@ -706,5 +707,43 @@ func TestNoUnsureFlagIsSentWhenNoDoubtIsAsked(t *testing.T) {
 	}
 	if _, given := args["--chunk-seconds"]; given {
 		t.Fatalf("a zero Parallel is the sidecar's own default, so nothing is sent: %v", args)
+	}
+}
+
+// A chapter linked to a REAPER folder of voices (docs/prds/booth-voice-tracks.prd.md, phase 2b): the recording check covers the
+// items on every track inside the folder, in play order, and none on the track after the folder.
+func TestThePlanOfAFolderOfVoicesCoversEveryTrackInsideIt(t *testing.T) {
+	p := newTestProject(t)
+	p.items = []testItem{
+		{guid: "{NARRATOR}", source: "media/a.wav", position: 0, length: 10, playrate: 1},
+		{guid: "{VEYRA}", source: "media/b.wav", position: 10, length: 4, playrate: 1},
+	}
+	p.writeRPP()
+	service := p.service(&fakeSidecar{})
+	saved, _, err := service.savedProject()
+	if err != nil {
+		t.Fatal(err)
+	}
+	only := saved.Tracks[0]
+	narrator, veyra, after := only, only, only
+	narrator.GUID, narrator.Depth, narrator.Items = "{N}", 1, only.Items[:1]
+	veyra.GUID, veyra.Depth, veyra.Items = "{V}", 1, only.Items[1:]
+	after.GUID = "{AFTER}"
+	project := saved
+	project.Tracks = []tracks.Track{{GUID: "{FOLDER}", Name: "Chapter 3", IsFolder: true}, veyra, narrator, after}
+
+	planned, err := buildPlan(project, "{FOLDER}", memoIdentify(p.dir))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, item := range planned.manifest().Items {
+		got = append(got, item.ItemGUID)
+	}
+	if strings.Join(got, ",") != "{NARRATOR},{VEYRA}" {
+		t.Fatalf("items = %v, want the two voices' items in play order and none from the track after the folder", got)
+	}
+	if planned.trackGUID != "{FOLDER}" {
+		t.Fatalf("plan track = %q, want the folder the chapter is linked to", planned.trackGUID)
 	}
 }

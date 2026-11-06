@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
 import { wireSettings } from '../../api/mockFixtures';
 import type { ScopedSettingField } from '../../types';
@@ -26,16 +27,18 @@ describe('RecordingCheckSummary', () => {
     expect(recordingRule(withValue('min_paragraph_present', ''))).toContain('at least (not set) of its words');
   });
 
-  it('labels the values Proposed and uncalibrated and says which settings make earlier checks out of date', () => {
+  it('labels the values Proposed and uncalibrated and says which settings make earlier checks out of date', async () => {
     render(<RecordingCheckSummary fields={fields()} scope="global" />);
     expect(screen.getByText('Proposed values, not yet calibrated')).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: 'About these values' }));
     expect(screen.getByText(/chosen on synthetic test recordings and have not been checked against real recordings yet/)).toBeTruthy();
     expect(screen.getByText(/makes earlier checks out of date/)).toBeTruthy();
     expect(screen.queryByText(/uses the Global one/)).toBeNull();
   });
 
-  it('tells a project that a blank value uses the Global one', () => {
+  it('tells a project that a blank value uses the Global one', async () => {
     render(<RecordingCheckSummary fields={fields()} scope="project" />);
+    await userEvent.click(screen.getByRole('button', { name: 'About these values' }));
     expect(screen.getByText(/A value left blank here uses the Global one/)).toBeTruthy();
   });
 

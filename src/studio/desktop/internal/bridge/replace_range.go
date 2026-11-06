@@ -31,8 +31,10 @@ var badReplacement = map[string]bool{
 	"The stretch of their audio is not a usable pair of times.":      true,
 	"The fade must be a whole number of milliseconds from 0 to 500.": true,
 	"The level change must be from -24 to 24 dB.":                    true,
-	"The replacement has no usable name.":                            true,
+	replacementBadID: true,
 }
+
+const replacementBadID = "The replacement has no usable name."
 
 // ReplaceRangeRequest names the narrator's words (project seconds Start..End of ItemGUID) and their stretch (project seconds
 // SourceStart..SourceEnd of SourceGUID, an item on a track of its own). FadeMs (0 to MaxCutFadeMs) is the fade at each seam, GainDB
@@ -45,6 +47,8 @@ type ReplaceRangeRequest struct {
 	FadeMs                 int
 	GainDB                 float64
 	ID                     string
+	// Folder is the GUID of the chapter's folder of voices, or empty: with it the later items of every track inside the folder move too.
+	Folder string
 }
 
 // RangeReplaced is what replace_range did: the new item playing their stretch, the narrator's piece moved to the Cuts track (the
@@ -97,12 +101,18 @@ func (a *Actions) ReplaceRange(ctx context.Context, request ReplaceRangeRequest)
 	}
 	tail := fmt.Sprintf("%s|%s|%d|%s|%s", formatSeconds(request.SourceStart), formatSeconds(request.SourceEnd), request.FadeMs,
 		strconv.FormatFloat(request.GainDB, 'f', 2, 64), request.ID)
-	events, err := a.request(ctx, "replace_range", []string{"RANGE_REPLACED", "ITEM_STALE"}, request.ItemGUID, formatSeconds(request.Start),
+	if request.Folder != "" {
+		tail += "|" + request.Folder
+	}
+	events, err := a.request(ctx, "replace_range", []string{"RANGE_REPLACED", "ITEM_STALE", "TRACK_STALE"}, request.ItemGUID, formatSeconds(request.Start),
 		formatSeconds(request.End), request.SourceGUID, tail)
-	if err := replacementRefusal(err); err != nil {
+	if err := replacementRefusal(err, request.Folder != ""); err != nil {
 		return RangeReplaced{}, err
 	}
 	event := events[len(events)-1]
+	if event.Tag == "TRACK_STALE" {
+		return RangeReplaced{}, &TrackStaleError{GUID: event.Fields[2]}
+	}
 	if event.Tag == "ITEM_STALE" {
 		return RangeReplaced{}, &StaleError{GUID: event.Fields[2], Reason: event.Fields[3]}
 	}
@@ -120,22 +130,41 @@ func (a *Actions) ReplaceRange(ctx context.Context, request ReplaceRangeRequest)
 // works after a save and reopen. A new item that is gone, carries another id, or whose parked piece left the Cuts track is a
 // *StaleError (Reason "item", "replacement" or "cut").
 func (a *Actions) RestoreReplacement(ctx context.Context, newItemGUID, id string) (ReplacementRestored, error) {
+	return a.RestoreReplacementInFolder(ctx, "", newItemGUID, id)
+}
+
+// RestoreReplacementInFolder is RestoreReplacement for a chapter linked to a folder of voices: folderGUID rides after the id in the id field
+// (id|folder), and the later items of every track inside the folder move back with the narrator's. A script that does not know it reads the
+// field as an id it cannot use and refuses (ErrScriptOutdated), so a folder is never dropped. An empty folderGUID is RestoreReplacement.
+func (a *Actions) RestoreReplacementInFolder(ctx context.Context, folderGUID, newItemGUID, id string) (ReplacementRestored, error) {
 	if normalizeGUID(newItemGUID) == "" || !replacementID.MatchString(id) {
 		return ReplacementRestored{}, fmt.Errorf("%w: item %q, id %q", ErrBadReplacement, newItemGUID, id)
 	}
-	events, err := a.request(ctx, "restore_replacement", []string{"REPLACEMENT_RESTORED", "ITEM_STALE"}, newItemGUID, id)
-	if err := replacementRefusal(err); err != nil {
+	field := id
+	if folderGUID != "" {
+		field += "|" + folderGUID
+	}
+	events, err := a.request(ctx, "restore_replacement", []string{"REPLACEMENT_RESTORED", "ITEM_STALE", "TRACK_STALE"}, newItemGUID, field)
+	if err := replacementRefusal(err, folderGUID != ""); err != nil {
 		return ReplacementRestored{}, err
 	}
 	event := events[len(events)-1]
+	if event.Tag == "TRACK_STALE" {
+		return ReplacementRestored{}, &TrackStaleError{GUID: event.Fields[2]}
+	}
 	if event.Tag == "ITEM_STALE" {
 		return ReplacementRestored{}, &StaleError{GUID: event.Fields[2], Reason: event.Fields[3]}
 	}
 	return ReplacementRestored{ItemGUID: event.Fields[2], Shift: numberAt(event.Fields, 3), UndoPoints: int(numberAt(event.Fields, 4))}, nil
 }
 
-func replacementRefusal(err error) error {
+// replacementRefusal maps the script's sentences for a request it cannot use. With a folder sent, "no usable name" is a script that does not
+// know the folder (it read the extra part as a bad id), not a bad request.
+func replacementRefusal(err error, folderSent bool) error {
 	var refusal *RefusalError
+	if folderSent && errors.As(err, &refusal) && refusal.Sentence == replacementBadID {
+		return fmt.Errorf("%w: it cannot move every voice of a folder, so nothing changed", ErrScriptOutdated)
+	}
 	if errors.As(err, &refusal) && badReplacement[refusal.Sentence] {
 		return fmt.Errorf("%w: %s", ErrBadReplacement, refusal.Sentence)
 	}

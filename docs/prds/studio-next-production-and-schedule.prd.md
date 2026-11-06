@@ -1,6 +1,6 @@
 # Studio Next Production and Schedule: Contract, Milestones, Sourced Numbers, Readiness and the Status Report
 
-**Source:** owner request of 2026-10-10 ([Studio Next Rebuild](studio-next-rebuild.prd.md)); the Production and Schedule rulings and the sketch review in `studio-next/research/repo-compare-decisions.md`; the owner's rulings of 2026-10-11 (see Decisions); the mock's `studio-next/src/pages/Production.tsx`, `studio-next/src/pages/Schedule.tsx` and `studio-next/src/pages/production/`.
+**Source:** owner request of 2026-10-10 (Studio Next Rebuild); the Production and Schedule rulings and the sketch review in `studio-next/research/repo-compare-decisions.md`; the owner's rulings of 2026-10-11 (see Decisions); the mock's `studio-next/src/pages/Production.tsx`, `studio-next/src/pages/Schedule.tsx` and `studio-next/src/pages/production/`.
 
 **Builds on:** Production Tracking and Stage Recommendations (both delivered; their steady state is `src/studio/desktop/internal/production/`, `src/studio/desktop/internal/stages/` and [manifest.go](../../src/studio/desktop/internal/project/manifest.go), [overview.go](../../src/studio/desktop/internal/production/overview.go), [Status report](../guides/using-the-app/production.md#status-report), [The engine](../architecture/stage-recommendations.md#the-engine), [The narrator's decisions](../architecture/stage-recommendations.md#the-narrators-decisions)), the delivery profiles ([ACX delivery requirements](../reference/acx-delivery-requirements.md), [Data files](../reference/data-files.md), [The mastering chain](../guides/using-the-app/master-and-qc.md#the-mastering-chain)), the chapter-track sync host work. It inherits the unfinished UI halves of the old chapter-track auto-sync PRD (see the carried-over table in the overview).
 
@@ -98,7 +98,7 @@ A narrator planning a book against a deadline and a contract; the owner reviewin
 
 ### Supersedes / depends on ADRs
 
-On conflict this PRD, and the ADR written when its phase lands, is the source of truth for the rebuild; an old ADR stays in force for unmigrated code until the superseding ADR merges ([register](studio-next-adr-register.prd.md)).
+On conflict this PRD, and the ADR written when its phase lands, is the source of truth for the rebuild; an old ADR stays in force for unmigrated code until the superseding ADR merges (register).
 
 | ADR | Class | Note |
 | --- | --- | --- |

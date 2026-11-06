@@ -1,5 +1,14 @@
 import { z } from 'zod';
-import type { AssetCatalog, AssetInstallJob, AssetInstallState, AssetJobPhase, AssetVerifyResult } from '../contracts/assets';
+import type {
+  AssetCatalog,
+  AssetFolderPick,
+  AssetInstallJob,
+  AssetInstallState,
+  AssetJobPhase,
+  AssetMovePhase,
+  AssetMoveState,
+  AssetVerifyResult,
+} from '../contracts/assets';
 import { listFromNull } from './base';
 
 const assetJobPhaseSchema = z.enum(['downloading', 'verifying', 'success', 'cancelled', 'error']) satisfies z.ZodType<AssetJobPhase>;
@@ -25,6 +34,10 @@ export const assetInstallStateSchema = z.enum(['installed', 'not_installed', 've
 
 export const assetCatalogSchema = z.object({
   cacheRoot: z.string(),
+  defaultRoot: z.string(),
+  custom: z.boolean(),
+  previousRoot: z.string(),
+  folderNote: z.string(),
   totalInstalledBytes: z.number(),
   assets: listFromNull(
     z.object({
@@ -65,3 +78,19 @@ export const assetVerifyResultSchema = z.object({
 }) satisfies z.ZodType<AssetVerifyResult>;
 
 export const assetInstallJobSchema = z.object(assetInstallJobShape) satisfies z.ZodType<AssetInstallJob>;
+
+const assetMovePhaseSchema = z.enum(['idle', 'copying', 'verifying', 'switching', 'success', 'cancelled', 'error']) satisfies z.ZodType<AssetMovePhase>;
+
+export const assetMoveStateSchema = z.object({
+  id: z.string(),
+  startedAt: z.string(),
+  phase: assetMovePhaseSchema,
+  target: z.string(),
+  message: z.string(),
+  percent: z.number(),
+  bytesDone: z.number(),
+  bytesTotal: z.number(),
+  error: z.string(),
+}) satisfies z.ZodType<AssetMoveState>;
+
+export const assetFolderPickSchema = z.object({ path: z.string() }) satisfies z.ZodType<AssetFolderPick>;

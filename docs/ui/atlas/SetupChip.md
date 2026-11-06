@@ -11,6 +11,7 @@ Storybook title: `Booth/SetupChip`. Source: `src/components/booth/record/SetupCh
 - Linked Not Started
 - Not Running
 - Records In The App
+- Other Project Open
 
 ## Used by
 

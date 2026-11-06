@@ -7,17 +7,13 @@ import (
 	"testing"
 
 	"desktop/internal/bridge"
-	"desktop/internal/takereview"
 )
 
 type fakeActors struct {
 	calls      []string
 	setChanged bool
 	setErr     error
-	createErr  error
 	pickErr    error
-	newTake    string
-	createReq  takereview.CreateTakeRequest
 }
 
 func (f *fakeActors) actors() Actors {
@@ -25,11 +21,6 @@ func (f *fakeActors) actors() Actors {
 		SetActiveTake: func(_ context.Context, item, take string) (bool, error) {
 			f.calls = append(f.calls, "set "+item+" "+take)
 			return f.setChanged, f.setErr
-		},
-		CreateTake: func(_ context.Context, req takereview.CreateTakeRequest) (takereview.CreateTakeResult, error) {
-			f.calls = append(f.calls, "create "+req.TargetItemGUID+" "+req.CandidateItemGUID)
-			f.createReq = req
-			return takereview.CreateTakeResult{TargetItemGUID: req.TargetItemGUID, NewTakeGUID: f.newTake}, f.createErr
 		},
 		PickLane: func(line, item string) error {
 			f.calls = append(f.calls, "pick "+line+" "+item)
@@ -43,7 +34,6 @@ func choiceFor(t *testing.T, source string, mutate func(*Input)) Choice {
 	resolved := resolve(t, func(in *Input) {
 		if source == SourceLaneRetake {
 			in.View.Items[0].ItemGUID, in.View.Items[0].TakeGUID = guidB, take3
-			in.Groups = nil
 		}
 		if mutate != nil {
 			mutate(in)
@@ -99,35 +89,6 @@ func TestUsingALaneRetakeAsksForTheLanePick(t *testing.T) {
 	}
 }
 
-func TestUsingAReadFromAnotherItemAddsItThenMakesItActive(t *testing.T) {
-	newTake := "{99999999-0000-0000-0000-000000000009}"
-	fake := &fakeActors{newTake: newTake, setChanged: true}
-	got := Use(context.Background(), fake.actors(), choiceFor(t, SourceTakeReview, nil))
-	want := "create " + guidA + " " + guidD + ";set " + guidA + " " + newTake
-	if got.Outcome != OutcomeDone || !got.Changed || strings.Join(fake.calls, ";") != want {
-		t.Fatalf("got %+v, calls %v, want %s", got, fake.calls, want)
-	}
-	if fake.createReq.FindingID != "g-1" || fake.createReq.SourceFile != "pickup.wav" || fake.createReq.SourceRangeStart != 3 || fake.createReq.SourceRangeEnd != 11 {
-		t.Fatalf("create request = %+v", fake.createReq)
-	}
-}
-
-func TestIfTheNewTakeCannotBeMadeActiveTheNarratorIsToldItWasAdded(t *testing.T) {
-	fake := &fakeActors{newTake: "{99999999-0000-0000-0000-000000000009}", setErr: bridge.ErrRecording}
-	got := Use(context.Background(), fake.actors(), choiceFor(t, SourceTakeReview, nil))
-	if got.Outcome != OutcomeRefused || got.Reason != ReasonRecording || !strings.Contains(got.Message, "was added as a new take") {
-		t.Fatalf("got %+v", got)
-	}
-}
-
-func TestIfTheTakeCannotBeAddedNothingIsActivated(t *testing.T) {
-	fake := &fakeActors{createErr: &bridge.StaleError{GUID: guidD, Reason: "item"}}
-	got := Use(context.Background(), fake.actors(), choiceFor(t, SourceTakeReview, nil))
-	if got.Outcome != OutcomeRefused || got.Reason != ReasonStale || len(fake.calls) != 1 {
-		t.Fatalf("got %+v, calls %v", got, fake.calls)
-	}
-}
-
 func TestATakeThatCannotBeHeardIsRefusedBeforeAnythingIsSent(t *testing.T) {
 	fake := &fakeActors{}
 	choice := choiceFor(t, SourceItemTake, func(in *Input) { in.Project.Tracks[0].Items[0].Takes[1].SourceAvailable = false })
@@ -161,7 +122,7 @@ func TestREAPERsRefusalsAreWordedAndNothingIsClaimedChanged(t *testing.T) {
 }
 
 func TestAMissingActorIsTheStandaloneRefusal(t *testing.T) {
-	for _, source := range []string{SourceItemTake, SourceLaneRetake, SourceTakeReview} {
+	for _, source := range []string{SourceItemTake, SourceLaneRetake} {
 		got := Use(context.Background(), Actors{}, choiceFor(t, source, nil))
 		if got.Outcome != OutcomeRefused || got.Reason != ReasonStandalone {
 			t.Errorf("%s: got %+v", source, got)

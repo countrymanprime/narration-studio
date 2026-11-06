@@ -1,6 +1,6 @@
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import { appExtension } from './appExtension';
-import { announceBrowserSettingChange } from './browserSettings';
+import { announceBrowserSettingChange, useBrowserSetting } from './browserSettings';
 
 /**
  * Whether motion should stop: Windows asked for reduced motion, or `<html data-motion="reduce">` is set, and the public demo's
@@ -75,16 +75,19 @@ export function setPlayAnimations(on: boolean): void {
 
 /** The Motion choice and its setter, which applies it at once and keeps it for the next start. */
 export function useMotionPreference(): [MotionPreference, (next: MotionPreference) => void] {
-  const [preference, setPreference] = useState<MotionPreference>(readStoredMotion);
-  const choose = useCallback((next: MotionPreference) => {
-    applyMotion(next);
-    try {
-      localStorage.setItem(MOTION_STORAGE_KEY, next);
-      announceBrowserSettingChange();
-    } catch {
-      // Storage unavailable: the choice holds for this window only.
-    }
-    setPreference(next);
-  }, []);
+  const [preference, setPreference] = useBrowserSetting<MotionPreference>(readStoredMotion);
+  const choose = useCallback(
+    (next: MotionPreference) => {
+      applyMotion(next);
+      try {
+        localStorage.setItem(MOTION_STORAGE_KEY, next);
+        announceBrowserSettingChange();
+      } catch {
+        // Storage unavailable: the choice holds for this window only.
+      }
+      setPreference(next);
+    },
+    [setPreference],
+  );
   return [preference, choose];
 }

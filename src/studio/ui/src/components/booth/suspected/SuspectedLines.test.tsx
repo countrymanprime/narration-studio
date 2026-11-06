@@ -9,6 +9,8 @@ import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
 import type { TeleprompterFlagFinding, TeleprompterFlagSave } from '../../../api/contracts/teleprompter';
 import { overlay } from '../../../overlay/overlayService';
+import { createJournal } from '../../../studio/journal/createJournal';
+import { StudioProvider } from '../../../studio/StudioProvider';
 import { SuspectedLines } from './SuspectedLines';
 import type { SuspectedFlag } from './suspectedLinesModel';
 import { useSuspectedPickups } from './useSuspectedPickups';
@@ -93,11 +95,30 @@ describe('SuspectedLines', () => {
     expect(dismissedSaves).toHaveLength(1);
     expect(dismissedSaves[0]).toMatchObject({ paragraphId: 'p9', kind: 'skipped' });
     expect(screen.getByText('Suspected · 1')).toBeTruthy();
-    expect(toastUndo).toHaveBeenCalledWith('Dismissed.', expect.any(Function), { offJournal: expect.any(String) });
+    expect(toastUndo).toHaveBeenCalledWith('Dismissed.', expect.any(Function), { entry: expect.any(Number) });
     const result = await toastUndo.mock.calls[0][1]();
     expect(result.ok).toBe(true);
     expect(review).toHaveBeenCalledWith(expect.objectContaining({ status: 'unreviewed' }));
     await waitFor(() => expect(screen.queryByText('Dismissed')).toBeNull());
+  });
+
+  it('a dismissal is one journal entry, and Ctrl+Z brings the line back', async () => {
+    const { review, wrapper } = host();
+    const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
+    vi.spyOn(overlay, 'toastUndo').mockImplementation(() => undefined);
+    render(
+      <StudioProvider journal={journal}>
+        <SuspectedLines chapterId="c8" flags={[skipped, again]} />
+      </StudioProvider>,
+      { wrapper },
+    );
+    await userEvent.click(await screen.findByRole('button', { name: 'Dismiss: down the hole' }));
+    await waitFor(() => expect(screen.getByText('Dismissed')).toBeTruthy());
+    const [row] = await journal.entries();
+    expect(row).toMatchObject({ label: 'Dismissed a suspected line', undoable: true });
+    expect((await journal.undoLast()).ok).toBe(true);
+    expect(review).toHaveBeenLastCalledWith(expect.objectContaining({ status: 'unreviewed' }));
+    await waitFor(() => expect(screen.getByText('Suspected · 2')).toBeTruthy());
   });
 
   it('the-key-is-stable-and-a-dismissed-line-stays-dismissed: a re-read comes back dismissed, once', async () => {
@@ -122,6 +143,22 @@ describe('SuspectedLines', () => {
 describe('suspected lines feed Pickups', () => {
   const read = (...ids: string[]) => ({ paragraphIds: new Set(ids) });
 
+  it('the accepted lines are one journal entry, and Ctrl+Z puts them back', async () => {
+    const { review, wrapper, accepted } = host();
+    const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
+    vi.spyOn(overlay, 'toastUndo').mockImplementation(() => undefined);
+    const inJournal = ({ children }: { children: ReactNode }) => wrapper({ children: <StudioProvider journal={journal}>{children}</StudioProvider> });
+    const { result } = renderHook(() => useSuspectedPickups({ chapterId: 'c8', flags: [skipped, again] }), { wrapper: inJournal });
+    await act(async () => {
+      await result.current.takeStopped(read('p9'));
+    });
+    const [row] = await journal.entries();
+    expect(row).toMatchObject({ label: '1 suspected line added to Pickups', touches: ['pickups', 'proof/finding/c8:p9:skipped:2-5'], undoable: true });
+    expect([...accepted]).toEqual(['c8:p9:skipped:2-5']);
+    expect((await journal.undoLast()).ok).toBe(true);
+    expect(review).toHaveBeenLastCalledWith({ id: 'c8:p9:skipped:2-5', evidenceVersion: 'v2', status: 'unreviewed', note: '' });
+  });
+
   it('a take that read over a flagged place adds a Speech pickup with Undo', async () => {
     const { review, wrapper, accepted } = host();
     const toastUndo = vi.spyOn(overlay, 'toastUndo').mockImplementation(() => undefined);
@@ -134,7 +171,7 @@ describe('suspected lines feed Pickups', () => {
     expect(added).toBe(1);
     expect(review).toHaveBeenCalledExactlyOnceWith({ id: 'c8:p9:skipped:2-5', evidenceVersion: 'v1', status: 'accepted', note: '' });
     expect([...accepted]).toEqual(['c8:p9:skipped:2-5']);
-    expect(toastUndo).toHaveBeenCalledWith('Take saved · 1 suspected line added to Pickups', expect.any(Function), { offJournal: expect.any(String) });
+    expect(toastUndo).toHaveBeenCalledWith('Take saved · 1 suspected line added to Pickups', expect.any(Function), { entry: expect.any(Number) });
     const undone = await toastUndo.mock.calls[0][1]();
     expect(undone.ok).toBe(true);
     expect(review).toHaveBeenLastCalledWith({ id: 'c8:p9:skipped:2-5', evidenceVersion: 'v2', status: 'unreviewed', note: '' });
@@ -163,7 +200,7 @@ describe('suspected lines feed Pickups', () => {
     await act(async () => {
       await result.current.takeStopped({ ...read('p9'), saidSaved: true, undoTake, entry: 3 });
     });
-    expect(toastUndo).toHaveBeenCalledWith('1 suspected line added to Pickups', expect.any(Function), { offJournal: expect.any(String) });
+    expect(toastUndo).toHaveBeenCalledWith('1 suspected line added to Pickups', expect.any(Function), { entry: expect.any(Number) });
     expect((await toastUndo.mock.calls[0][1]()).ok).toBe(true);
     expect(undoTake).not.toHaveBeenCalled();
   });
@@ -182,7 +219,7 @@ describe('suspected lines feed Pickups', () => {
     });
     expect(review).toHaveBeenCalledTimes(2);
     expect(toastUndo).toHaveBeenCalledExactlyOnceWith('Take saved · 2 suspected lines added to Pickups', expect.any(Function), {
-      offJournal: expect.any(String),
+      entry: expect.any(Number),
     });
   });
 
@@ -217,7 +254,7 @@ describe('suspected lines feed Pickups', () => {
     await act(async () => {
       await result.current.takeStopped({ ...read('p9'), saidSaved: true });
     });
-    expect(toastUndo).toHaveBeenCalledWith('1 suspected line added to Pickups', expect.any(Function), { offJournal: expect.any(String) });
+    expect(toastUndo).toHaveBeenCalledWith('1 suspected line added to Pickups', expect.any(Function), { entry: expect.any(Number) });
   });
 });
 
@@ -235,5 +272,19 @@ describe('there-is-no-way-to-flag-by-hand and the-provider-decides', () => {
 
   it('names no speech engine: the host decides', () => {
     for (const [name, text] of sources) expect(text, name).not.toMatch(/moonshine|whisper/i);
+  });
+
+  // Issue #2919: reading the same place again changes nothing, so the failed read's toast carries Retry, which reads it again.
+  it('Retry on the failed read of the decisions reads them again', async () => {
+    const toast = vi.spyOn(overlay, 'toast').mockImplementation(() => undefined);
+    const { save, view } = host();
+    save.mockRejectedValueOnce(new Error('The teleprompter file is locked.'));
+    render(view([skipped]));
+    await waitFor(() => expect(toast).toHaveBeenCalled());
+    const [text, options] = toast.mock.calls[0];
+    expect(text).toContain('locked');
+    expect(options).toMatchObject({ tone: 'error', action: { label: 'Retry' } });
+    await act(async () => options!.action!.onAction());
+    expect(save).toHaveBeenCalledTimes(2);
   });
 });

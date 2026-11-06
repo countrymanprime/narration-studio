@@ -11,9 +11,12 @@ export type LocateState = { kind: 'loading' } | { kind: 'failed'; message: strin
  * again for a track the narrator picks, and again after the Whisper model it needed was downloaded. It only reads; the
  * model download it may need waits for the narrator's confirm (`modelInstall` behind `WhisperModelPrompt`).
  *
+ * `enabled` false holds every lookup back (the Companion offers the recorded position first and asks the recording only when the narrator
+ * wants a different start); `locate` and `retry` do nothing until it is true.
+ *
  * `model` is the session's Whisper model, read when a lookup starts: changing it later does not re-run the transcription.
  */
-export function useResumeLocate(chapterId: string, model: string) {
+export function useResumeLocate(chapterId: string, model: string, enabled = true) {
   const api = useApi();
   const [state, setState] = useState<LocateState>({ kind: 'loading' });
   const [asking, setAsking] = useState(false);
@@ -26,8 +29,11 @@ export function useResumeLocate(chapterId: string, model: string) {
   const latest = useRef(0);
   const trackRef = useRef<string | undefined>(undefined);
 
+  const enabledRef = useRef(enabled);
+  enabledRef.current = enabled;
   const locate = useCallback(
     (trackGuid?: string) => {
+      if (!enabledRef.current) return;
       const id = ++latest.current;
       trackRef.current = trackGuid;
       setState({ kind: 'loading' });
@@ -45,7 +51,7 @@ export function useResumeLocate(chapterId: string, model: string) {
     return () => {
       latest.current += 1;
     };
-  }, [locate]);
+  }, [locate, enabled]);
 
   const prompt = state.kind === 'answered' && state.result.status === 'asset_required' ? state.result : undefined;
   const modelInstall = useAssetInstall<WhisperInstallJob>({

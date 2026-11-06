@@ -37,7 +37,15 @@ export const PAGE_PATH: Record<UsedPage, string> = {
 
 export type CategoryId = 'recording' | 'speech' | 'voice' | 'models' | 'delivery' | 'project' | 'appearance' | 'app' | 'pages';
 
-export type Category = { id: CategoryId; label: string; group: CategoryGroup; icon: IconName; blurb: string };
+export type Category = {
+  id: CategoryId;
+  label: string;
+  group: CategoryGroup;
+  icon: IconName;
+  blurb: string;
+  /** What the category is for while no project is open, when `blurb` speaks of the open project. */
+  blurbWithoutProject?: string;
+};
 export type CategoryGroup = 'Shared tools' | 'This project' | 'This computer';
 
 /**
@@ -56,7 +64,7 @@ export type OptionNote = { label?: string; asset?: AssetRef };
 
 export type SettingMeta = {
   id: string;
-  cat: Exclude<CategoryId, 'models' | 'pages'>;
+  cat: Exclude<CategoryId, 'pages'>;
   section: string;
   /** The label shown; the host's own label is the fallback. */
   label: string;
@@ -87,6 +95,9 @@ export type SettingMeta = {
   /** A line under the control that the host works out for the value shown: `workerPlan` is how many transcriptions a recording check
    * would run at once on this computer and why (CoverageWorkerPlan). */
   live?: 'workerPlan';
+  /** An icon button drawn beside the control that acts on what the setting is about: `logFolder` opens the run log's folder, beside Debug
+   * logging (issue 2730). */
+  beside?: 'logFolder';
   /** A warning for a value that costs this computer a lot (a large model, most of the processors), or `undefined`. Shown under the
    * control while that value is chosen; it does not stop the choice. */
   heavy?: (value: string) => string | undefined;

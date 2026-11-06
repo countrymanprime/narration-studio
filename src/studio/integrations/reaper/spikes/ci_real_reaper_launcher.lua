@@ -23,7 +23,7 @@ local function write(path, text)
   handle:close()
 end
 
-assert(norm(reaper.GetResourcePath()) == norm(cfg), 'resource path is not the scratch cfg: ' .. reaper.GetResourcePath())
+assert(norm(reaper.GetResourcePath()) == norm(cfg), 'resource path is not the scratch cfg: ' .. reaper.GetResourcePath() .. ' (expected ' .. cfg .. ')')
 -- NARRATION_CI_AUDIO_MODE=jack-dummy (Linux): the driver started `jackd -d dummy`, REAPER connects to it on its own, and the
 -- run has a device that plays and records silence, so transport, recording and monitoring rows can run. Anything else closes the device.
 local audio_mode = os.getenv('NARRATION_CI_AUDIO_MODE') or 'closed'

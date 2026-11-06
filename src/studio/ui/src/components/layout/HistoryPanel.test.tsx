@@ -124,7 +124,7 @@ describe('HistoryPanel', () => {
     expect(within(dialog).queryByText(/older changes can no longer be undone/)).toBeNull();
     await act(async () => void (await add('One more', false, ['more'])));
     await waitFor(() => expect(within(dialog).getAllByRole('listitem')).toHaveLength(JOURNAL_LIMIT));
-    expect(within(dialog).getByText(`History keeps the newest ${JOURNAL_LIMIT} changes; older changes can no longer be undone.`)).toBeTruthy();
+    expect(within(dialog).getByText(`History keeps the newest ${JOURNAL_LIMIT} changes.`)).toBeTruthy();
     await act(async () => void (await add('Past the limit', false, ['past'])));
     await waitFor(() => expect(within(dialog).queryByText('Change 0')).toBeNull());
     expect(within(dialog).getAllByRole('listitem')).toHaveLength(JOURNAL_LIMIT);

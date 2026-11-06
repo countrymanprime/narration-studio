@@ -1,5 +1,5 @@
 // The Booth's speaker picker and Levels popover (#2251, alignment audit docs/research/alignment-audit/findings/booth.md): a status
-// column with one right edge, a search box that says what it is for, and one label style and rhythm in Levels.
+// column with one right edge, a search box that says what it is for, and one label style and rhythm in Record options.
 import { expect, test, type Page } from '@playwright/test';
 import { boothDrivers } from './drivers/booth';
 
@@ -44,5 +44,30 @@ for (const size of [
     });
     expect.soft(g.labelled, 'every section starts with a section label').toBe(g.count);
     expect.soft(new Set(g.gaps).size, 'one gap between sections').toBe(1);
+  });
+}
+
+// ux-reviewer on #2802: a refusal that wrapped made the Levels menu taller, so the popover jumped. With the built-in recorder, the menu is
+// one height whatever its meter is doing: reading, opening, paused, refused or with no microphone chosen.
+for (const size of [
+  { width: 1440, height: 900 },
+  { width: 390, height: 844 },
+]) {
+  test(`levels-menu-builtin at ${size.width}: the menu keeps one height across the meter's states`, async ({ page }) => {
+    // Five states, each from a fresh load.
+    test.setTimeout(150_000);
+    const heights: Record<string, number> = {};
+    for (const state of [
+      'levels-menu-builtin',
+      'levels-menu-builtin-opening',
+      'levels-menu-builtin-paused',
+      'levels-menu-builtin-refused',
+      'levels-menu-builtin-no-mic',
+    ]) {
+      await drive(page, state, size);
+      const box = await page.getByRole('dialog', { name: 'Record options' }).boundingBox();
+      heights[state] = Math.round(box!.height);
+    }
+    expect(new Set(Object.values(heights)).size, JSON.stringify(heights)).toBe(1);
   });
 }

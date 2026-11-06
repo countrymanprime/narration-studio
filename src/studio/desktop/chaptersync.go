@@ -91,8 +91,7 @@ type chapterSyncState struct {
 // track's items last changed (chaptersync.TrackState.ChangedAt; null until a sync after the first sees a change), and
 // NewestSourceAt, the newest modification time of an audio file the track plays (a new recording writes a new file).
 // PickupTrackGUID and PickupTrackName name the chapter's pickup track ("Chapter 6 (pickups)": recognised by name, never
-// a link); PickupsScannedAt is the last take-review scan that included it, and PickupsChanged says the track has items
-// that scan has not seen (it changed since, or was never scanned).
+// a link).
 type chapterSyncChapter struct {
 	ChapterID      string     `json:"chapterId"`
 	ChapterTitle   string     `json:"chapterTitle"`
@@ -107,10 +106,8 @@ type chapterSyncChapter struct {
 	NewestSourceAt *time.Time `json:"newestSourceAt"`
 	LastChanged    *time.Time `json:"lastChanged"`
 
-	PickupTrackGUID  string     `json:"pickupTrackGuid"`
-	PickupTrackName  string     `json:"pickupTrackName"`
-	PickupsScannedAt *time.Time `json:"pickupsScannedAt"`
-	PickupsChanged   bool       `json:"pickupsChanged"`
+	PickupTrackGUID string `json:"pickupTrackGuid"`
+	PickupTrackName string `json:"pickupTrackName"`
 }
 
 // chapterSyncPreview is ChapterSyncPreview's payload: the plan a sync would carry out now, and the links it keeps.
@@ -271,7 +268,7 @@ func (in chapterSyncInputs) stateOf(plan chaptersync.Plan, kept []evidence.Track
 		synced := snapshot.SyncedAt
 		state.LastSync = &synced
 	}
-	state.Chapters = in.chapterRows(snapshot, plan.PickupTracks, store.PickupScans())
+	state.Chapters = in.chapterRows(snapshot, plan.PickupTracks)
 	if planned {
 		state.Counts = chapterSyncCounts{
 			Linked: len(kept) + len(plan.AutoLink), NeedsYou: len(plan.NeedsYou), NoTrack: len(plan.NoTrack),
@@ -283,7 +280,7 @@ func (in chapterSyncInputs) stateOf(plan chaptersync.Plan, kept []evidence.Track
 
 // chapterRows is Chapters for in, from the links stored now (after any sync this call made), the saved project plan
 // read, and the stored snapshot. Without a readable manuscript and project it is empty.
-func (in chapterSyncInputs) chapterRows(snapshot chaptersync.Snapshot, pickups []chaptersync.PickupTrack, scans []chaptersync.PickupScan) []chapterSyncChapter {
+func (in chapterSyncInputs) chapterRows(snapshot chaptersync.Snapshot, pickups []chaptersync.PickupTrack) []chapterSyncChapter {
 	rows := []chapterSyncChapter{}
 	if in.store == nil || !in.parsed {
 		return rows
@@ -310,10 +307,6 @@ func (in chapterSyncInputs) chapterRows(snapshot chaptersync.Snapshot, pickups [
 			pickupOf[pickup.ChapterID] = pickup
 		}
 	}
-	scanOf := map[string]chaptersync.PickupScan{}
-	for _, scan := range scans {
-		scanOf[scan.TrackGUID] = scan
-	}
 	projectFile := evidence.LedgerProjectFile{Path: in.parsedProject.Path}
 	if info, err := os.Stat(in.parsedProject.Path); err == nil {
 		projectFile.ModTime = info.ModTime().UTC()
@@ -333,13 +326,6 @@ func (in chapterSyncInputs) chapterRows(snapshot chaptersync.Snapshot, pickups [
 		row.LastChanged = later(row.TrackChangedAt, row.NewestSourceAt)
 		if pickup, ok := pickupOf[chapter.ID]; ok {
 			row.PickupTrackGUID, row.PickupTrackName = pickup.TrackGUID, pickup.TrackName
-			track := trackOf[pickup.TrackGUID]
-			scan, scanned := scanOf[pickup.TrackGUID]
-			if scanned {
-				at := scan.ScannedAt
-				row.PickupsScannedAt = &at
-			}
-			row.PickupsChanged = len(track.Items) > 0 && (!scanned || scan.Fingerprint != chaptersync.Fingerprint(track))
 		}
 		if check != nil {
 			row.Checking = check.Checking(chapter.ID)

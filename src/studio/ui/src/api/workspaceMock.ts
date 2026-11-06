@@ -2,9 +2,10 @@
 // coverage mock's state, reasons and basis (an alignment is only ever as current as the coverage result it came
 // from) and builds tokens from the mock manuscript's real paragraph text, one per whitespace word, read in order at
 // a narration pace. It never runs anything. The played-range join (WorkspaceItem.live) is real when the
-// chapter has a confirmed, still-live track link (mockChapterLink=confirmed, or chapterTrackMappings seeded some
-// other way): the workspace's own player needs a real item GUID and source file to seek the mock's fake WAV
+// chapter has a confirmed, still-live track link (the default boot's mockChapterLink=recorded, mockChapterLink=confirmed,
+// or chapterTrackMappings seeded some other way): the workspace's own player needs a real item GUID and source file to seek the mock's fake WAV
 // (mockAudioSource, src/studio/ui/src/api/mockApi.ts) against, same as Tracks' player does.
+import { chapterTrackOf } from './chapterTrackItems';
 import type {
   CoverageReport,
   CoverageResult,
@@ -119,8 +120,9 @@ function regionParagraphIds(report: CoverageReport, kind: CoverageReport['region
  * chapter has no confirmed link, or its link points at a track no longer in the project (as ChapterTrackButton shows it). */
 function mockLiveItem(deps: Deps, chapterId: string): WorkspaceItem | undefined {
   const mapping = deps.mappings().find((entry) => entry.chapterId === chapterId);
-  const track = mapping ? deps.project.tracks.find((candidate) => candidate.guid === mapping.trackGuid) : undefined;
-  const item = track?.items.find((candidate) => candidate.supported && candidate.sourceAvailable);
+  // As the host reads it: a folder of voices has its audio on its children (chapterTrackOf).
+  const found = mapping ? chapterTrackOf(deps.project.tracks, mapping.trackGuid) : undefined;
+  const item = found?.items.find((candidate) => candidate.supported && candidate.sourceAvailable);
   if (!item) return undefined;
   return {
     index: 0,
@@ -268,9 +270,7 @@ function mockPeaksFor(item: WorkspaceItem): WorkspacePeaks {
   return { startSeconds: 0, bucketsPerSecond: MOCK_BUCKETS_PER_SECOND, buckets, minMax: btoa(binary), sampleRate: 48000, channels: 1 };
 }
 
-export function createWorkspaceMock(
-  deps: Deps,
-): Omit<WorkspaceApi, 'workspaceTakes' | 'workspaceTakesCompareStart' | 'workspaceUseTake' | 'workspacePreviewTake'> {
+export function createWorkspaceMock(deps: Deps): Omit<WorkspaceApi, 'workspaceTakes' | 'workspaceUseTake' | 'workspacePreviewTake'> {
   const mode = deps.reaper ?? 'connected';
   const target = (chapterId: string, tokenIndex: number): WorkspaceToken | undefined => tokensFor(deps, chapterId).tokens[tokenIndex];
 

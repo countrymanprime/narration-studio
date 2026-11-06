@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from 'react';
+import { useEffect, useState, useSyncExternalStore, type Dispatch, type SetStateAction } from 'react';
 
 // Settings that this browser window keeps (start tone, theme, motion, the waveform arrow step, reader text) are written straight to storage by
 // their own owners, and the window zoom goes to the host, with nothing to tell the Settings page. Each writer calls `announceBrowserSettingChange`, and the page reads
@@ -18,3 +18,16 @@ function subscribe(listener: () => void): () => void {
 
 /** A number that changes whenever a window-kept setting is written. Read it to redraw on a change. */
 export const useBrowserSettingsVersion = (): number => useSyncExternalStore(subscribe, () => version);
+
+/**
+ * A window-kept setting's value for a control that also sets it: the value the control holds, read again whenever any writer announces a
+ * change (the header's Reset to defaults, another control for the same key), so the control never shows what the setting was.
+ */
+export function useBrowserSetting<T>(read: () => T): [T, Dispatch<SetStateAction<T>>] {
+  const version = useBrowserSettingsVersion();
+  const [value, setValue] = useState(read);
+  useEffect(() => {
+    setValue(read());
+  }, [version, read]);
+  return [value, setValue];
+}

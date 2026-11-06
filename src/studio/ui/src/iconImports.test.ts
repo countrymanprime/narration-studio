@@ -26,7 +26,6 @@ const CEILING: Record<string, number> = {
   'src/components/production/useChapterSyncToast.ts': 1,
   'src/components/production/ChapterTrackPanel.tsx': 5,
   'src/components/project/ProjectPicker.tsx': 3,
-  'src/components/proof/AuditionDialog.tsx': 3,
   'src/components/proof/CompareRun.tsx': 6,
   'src/components/proof/NativeTakesPanel.tsx': 3,
   'src/components/proof/PreviewPanel.tsx': 9,

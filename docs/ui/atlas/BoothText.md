@@ -15,5 +15,7 @@ Storybook title: `Booth/BoothText`. Source: `src/components/booth/reading/BoothT
 
 - `src/components/booth/frame/BoothTop.tsx`
 - `src/components/booth/page/BoothNextPage.tsx`
+- `src/components/booth/page/boothSize.ts`
 - `src/components/booth/page/useBoothPage.ts`
 - `src/components/booth/page/useTextChoices.ts`
+- `src/components/settings/controls/AppearanceBodies.tsx`

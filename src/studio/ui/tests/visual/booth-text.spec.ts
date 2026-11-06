@@ -103,9 +103,9 @@ test('setup: every paragraph is left-aligned with no first-line indent and no ba
   }
 });
 
-// The Booth reads the Script's own setting through the same rule (`readerColumn`: the characters a line or the share of the container,
-// whichever is less), so Narrow, Medium and Full stay three different widths at any window size. tests/visual/reader-column-width.spec.ts
-// holds both pages at three window widths.
+// The Booth reads the Script's own setting through the same rule (`readerColumn`: the characters a line or the whole container, whichever
+// is less), so a choice never narrows the column below the one before it and widens it while the container has room.
+// tests/visual/reader-column-width.spec.ts holds both pages at three window widths.
 for (const size of [
   { width: 1920, height: 1080 },
   { width: 1440, height: 900 },
@@ -119,6 +119,8 @@ for (const size of [
     const narrow = await width('text-width-narrow');
     const full = await width('text-width-full');
     expect(narrow).toBeLessThan(medium);
-    expect(full).toBeGreaterThan(medium);
+    // The Booth's larger type can fill the container at Medium already (1440), which Full cannot exceed.
+    expect(full).toBeGreaterThanOrEqual(medium);
+    expect(full).toBeGreaterThan(narrow);
   });
 }

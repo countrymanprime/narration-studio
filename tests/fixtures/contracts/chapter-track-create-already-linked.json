@@ -1,0 +1,5 @@
+{
+  "message": "This chapter is already linked to “Chapter II: The Pool of Tears” in REAPER. Change or clear that link instead of adding another track.",
+  "outcome": "refused",
+  "reason": "already_linked"
+}

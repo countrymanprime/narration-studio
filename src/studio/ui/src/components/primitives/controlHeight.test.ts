@@ -15,7 +15,7 @@ describe('one control height', () => {
   });
 
   // Each one-line control takes its height from the token, never a literal of its own.
-  for (const file of ['Select.tsx', 'TextField.tsx', 'DateField.tsx', 'Field.tsx']) {
+  for (const file of ['selectBox.ts', 'TextField.tsx', 'DateField.tsx', 'Field.tsx']) {
     test(`${file} uses --control-height`, () => {
       const source = read(file);
       expect(source).toContain('h-[var(--control-height)]');

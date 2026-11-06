@@ -24,6 +24,32 @@ export const Information: Story = { args: { messages: [info(1, 'Entry saved.')] 
 // An error stays until it is dismissed, and carries an icon and a coloured edge so it is not told apart by colour alone.
 export const ErrorMessage: Story = { args: { messages: [failure(1, 'The Story Bible file could not be read. It was kept next to the original.')] } };
 
+// One long word (a Windows path) wraps inside the toast and the window instead of running off both edges (#2793).
+export const LongUnbrokenMessage: Story = {
+  args: { messages: [failure(1, `C:\\Users\\narrator\\Documents\\${'VeryLongProjectFolderName\\'.repeat(16)}schedule.json`)] },
+};
+
+// The same long word on an information toast and on one with an action: the button keeps its size and the words give way (#2793).
+export const LongUnbrokenWithAction: Story = {
+  args: {
+    messages: [
+      info(1, `Saved to C:\\Users\\narrator\\Documents\\${'VeryLongProjectFolderName\\'.repeat(16)}notes.json`),
+      {
+        id: 2,
+        text: `Removed C:\\Users\\narrator\\${'VeryLongProjectFolderName\\'.repeat(16)}take.wav`,
+        tone: 'info',
+        action: { label: 'Undo', onAction: fn() },
+      },
+      {
+        id: 3,
+        text: `Could not read C:\\Users\\narrator\\${'VeryLongProjectFolderName\\'.repeat(16)}take.wav`,
+        tone: 'error',
+        action: { label: 'Retry', onAction: fn() },
+      },
+    ],
+  },
+};
+
 // Messages queue up instead of replacing each other; errors sit above the information messages.
 export const Queue: Story = {
   args: {
@@ -59,6 +85,20 @@ export const LongMessage: Story = {
         'The comparison could not read the REAPER audio for the selected track because the source file was not found at C:/Users/author/Documents/REAPER Media/Projects/Book Three/Audio Files/Chapter twenty seven take 4.wav',
       ),
     ],
+  },
+};
+
+// A word with no place to break, 10,000 letters long, wraps inside the toast, which stays inside the window (qa B3 on #2807: it once
+// made the toast 121,864 px wide). The atlas measures it at its narrow viewport; jsdom lays nothing out, so the check bails there.
+export const UnbreakableWord: Story = {
+  args: { messages: [info(1, `Added equivalence: ${'a'.repeat(10_000)} = b`)] },
+  play: async ({ canvasElement }) => {
+    // The region is portalled to <body>, outside the story's canvas.
+    const toast = within(canvasElement.ownerDocument.body).getByRole('status').firstElementChild;
+    const box = toast?.getBoundingClientRect();
+    if (!box || box.width === 0) return;
+    await expect(box.left).toBeGreaterThanOrEqual(0);
+    await expect(box.right).toBeLessThanOrEqual(window.innerWidth);
   },
 };
 

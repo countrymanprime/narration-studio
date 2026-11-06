@@ -8,9 +8,7 @@ import (
 
 	"desktop/internal/contractfile"
 	"desktop/internal/coverage"
-	"desktop/internal/findings"
 	"desktop/internal/passagemap"
-	"desktop/internal/takecompare"
 )
 
 // pin writes (UPDATE_CONTRACTS=1) or checks the payload the host really sends for a binding, as
@@ -32,23 +30,16 @@ func pin(t *testing.T, name string, value any) {
 	contractfile.Check(t, name, stable)
 }
 
-// What WorkspaceTakes sends: a passage with a take from each of the three sources (the item itself,
-// fixed-lane retakes and a take-review group) and a saved comparison covering some of them, then a passage nothing was
-// heard on.
+// What WorkspaceTakes sends: a passage with a take from each source (the item itself and fixed-lane retakes), then a
+// passage nothing was heard on.
 func TestContractWorkspaceTakes(t *testing.T) {
-	saved := findings.Finding{ID: "cmp-1", Analyzer: takecompare.AnalyzerName, Evidence: map[string]any{"members": []any{
-		map[string]any{"item_guid": guidB, "take_guid": take3, "compared": true, "fidelity": 0.75},
-		map[string]any{"item_guid": guidD, "take_guid": take5, "compared": false, "not_compared_reason": "None of this part of the script was heard in this take, so it is not compared with the others."},
-	}}}
-	// The passage was heard on item B, a retake on a fixed lane with a second take of its own; a take-review group sets
-	// item D's read beside it: one candidate from each of EP6's sources.
+	// The passage was heard on item B, a retake on a fixed lane with a second take of its own: a candidate from each of
+	// EP6's sources.
 	mixed := resolve(t, func(in *Input) {
 		in.View.Items[0] = coverage.AlignmentItem{Index: 0, ItemGUID: guidB, Live: true, TakeGUID: take3}
 		second := take("lane-b-second.wav", "lane-b-second.wav", 1, false)
 		second.GUID = "{66666666-0000-0000-0000-000000000006}"
 		in.Project.Tracks[1].Items[0].Takes = append(in.Project.Tracks[1].Items[0].Takes, second)
-		in.Groups = []findings.Finding{group("g-1", member(guidB, take3, "lane-b.wav", 0), member(guidD, take5, "pickup.wav", 3))}
-		in.Comparison = func(string) (findings.Finding, bool) { return saved, true }
 	})
 	pin(t, "workspace-takes", mixed.View)
 
@@ -66,7 +57,7 @@ func TestContractWorkspaceUseTake(t *testing.T) {
 }
 
 // What WorkspaceTakeEvidence sends (SNE-5a): every figure measured on two readable takes, some figures as reasons (a
-// take never aligned, a lane retake whose file is gone, the take review's read of a file never written), and a passage
+// take never aligned, a lane retake whose file is gone, a take whose file was never written), and a passage
 // nothing was heard on.
 func TestContractWorkspaceTakeEvidence(t *testing.T) {
 	dir := t.TempDir()
@@ -79,7 +70,7 @@ func TestContractWorkspaceTakeEvidence(t *testing.T) {
 	pin(t, "workspace-take-evidence-full", full)
 
 	partial := evidenceOf(t, cache, fourWords, recorded(t, dir), func(in *Input) {
-		in.Groups = []findings.Finding{group("g-1", member(guidA, take1, "read-1.wav", 0), member(guidD, take5, filepath.Join(dir, "never.wav"), 3))}
+		in.Project.Tracks[0].Items[0].Takes[1].SourceFile = filepath.Join(dir, "never.wav")
 	})
 	pin(t, "workspace-take-evidence-partial", partial)
 

@@ -2,6 +2,7 @@ package main
 
 import (
 	"desktop/internal/brand"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -47,4 +48,27 @@ func TestMarksContractGoldens(t *testing.T) {
 	if saved := decodeMarks(t)(payload, err); len(saved.Types) != 7 || saved.Types[1].Name != "Breathe" {
 		t.Fatalf("types = %s", payload)
 	}
+}
+
+// What MarksTypesChanged sends: a JSON boolean. It reads the file only, so a project with old notes and no marks.json stays without one.
+func TestContractMarksTypesChangedIsABooleanAndNeverCreatesTheFile(t *testing.T) {
+	host, project := bookmarksHost(t)
+	file := marks.File(project)
+	answer, err := host.MarksTypesChanged()
+	if err != nil || answer != "false" {
+		t.Fatalf("no file: %q, %v", answer, err)
+	}
+	if _, err := os.Stat(file); !os.IsNotExist(err) {
+		t.Fatalf("MarksTypesChanged created marks.json: %v", err)
+	}
+	checkBindingContract(t, "marks-types-changed-default", answer)
+	types := append(marks.DefaultTypes(), marks.MarkType{Key: "accent", Name: "Accent", Colour: "violet", Style: "box"})
+	if _, err := host.MarksSaveTypes(types, false); err != nil {
+		t.Fatal(err)
+	}
+	answer, err = host.MarksTypesChanged()
+	if err != nil || answer != "true" {
+		t.Fatalf("after adding a type: %q, %v", answer, err)
+	}
+	checkBindingContract(t, "marks-types-changed", answer)
 }

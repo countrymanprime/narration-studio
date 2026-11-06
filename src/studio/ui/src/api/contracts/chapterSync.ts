@@ -47,13 +47,9 @@ export type ChapterSyncChapter = {
   trackChangedAt: string | null;
   newestSourceAt: string | null;
   lastChanged: string | null;
-  /** The chapter's pickup track ("Chapter 6 (pickups)": recognised by name, never a link; '' when none). Prefill the
-   * take-review scan's pickup track with `pickupTrackName`. `pickupsScannedAt`: the last scan that included it.
-   * `pickupsChanged`: it has items that scan has not seen, so offer the scan. */
+  /** The chapter's pickup track ("Chapter 6 (pickups)": recognised by name, never a link; '' when none). */
   pickupTrackGuid: string;
   pickupTrackName: string;
-  pickupsScannedAt: string | null;
-  pickupsChanged: boolean;
 };
 
 /**
