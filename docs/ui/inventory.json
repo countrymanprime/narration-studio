@@ -2726,6 +2726,7 @@
         "Click Selects",
         "Arrow Keys Move",
         "Disabled Option",
+        "Disabled Option With Reason",
         "Standalone"
       ],
       "consumers": [
@@ -4302,7 +4303,6 @@
         "src/components/primitives/IconButton.tsx",
         "src/components/primitives/NavButton.tsx",
         "src/components/primitives/Pill.tsx",
-        "src/components/primitives/RadioGroup.tsx",
         "src/components/primitives/SearchField.tsx",
         "src/components/primitives/SplitButton.tsx",
         "src/components/primitives/Table.tsx",

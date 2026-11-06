@@ -55,7 +55,6 @@ Storybook title: `Primitives/Tooltip`. Source: `src/components/primitives/Toolti
 - `src/components/primitives/IconButton.tsx`
 - `src/components/primitives/NavButton.tsx`
 - `src/components/primitives/Pill.tsx`
-- `src/components/primitives/RadioGroup.tsx`
 - `src/components/primitives/SearchField.tsx`
 - `src/components/primitives/SplitButton.tsx`
 - `src/components/primitives/Table.tsx`
