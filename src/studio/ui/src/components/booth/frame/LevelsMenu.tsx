@@ -527,13 +527,16 @@ export function LevelsMenu({
     <Popover
       label="Record options"
       side="top"
+      // In a window as small as 320x300 the Booth's own bars leave a strip a few lines tall: the popup is measured against the window and scrolls
+      // inside itself instead of being cut down to that strip.
+      fitToWindow
       // A control in the menu can leave the Booth (Turn on in Settings): a footswitch Enter right after opening must not press it.
       focusPopup
       open={open}
       onOpenChange={onOpenChange}
       trigger={<SplitSide label="Record options" id="blevels" aria-haspopup="dialog" tone={mainButton?.cold && !recording ? 'cold' : 'primary'} badge={warn} />}
     >
-      <div className="flex w-max max-w-[min(26rem,calc(100vw-4rem))] min-w-72 flex-col gap-4">
+      <div className="flex w-max max-w-[min(26rem,calc(100vw-5.5rem))] min-w-[min(18rem,100%)] flex-col gap-4">
         {mainButton ? (
           <div className="flex flex-col gap-1.5">
             <span className={SECTION_LABEL}>Main button</span>
