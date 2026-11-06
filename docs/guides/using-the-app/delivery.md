@@ -19,8 +19,9 @@ sections after it have the detail. The example builds for ACX.
 
 1. **Choose the profile.** The **Profile** menu lists **ACX (built in)** and your own profiles. The one you choose is
    the project's ([The delivery profile](#the-delivery-profile)).
-2. **Master and encode the files** in [Master & QC](master-and-qc.md). Delivery judges the files Master & QC measured
-   against the profile.
+2. **Master and check the files** in [Master & QC](master-and-qc.md): master them with **Master all to spec…**, then
+   measure them with **Check files…** ([Checking files](master-and-qc.md#checking-files)). Delivery judges the files
+   **Check files…** measured. **Diagnostics** does not count, and nor does a prepared copy until you check it.
 3. **Read Before you build.** Each chapter shows **Pass**, **Fails N checks**, **Not mastered**, or **Waiting on N
    pickups**. While Build is off, the line beside it names the first chapter in the way and why, for example "Chapter 8:
    noise floor −57.8 dBFS (limit ≤ −60 dBFS)" ([Before you build](#before-you-build)).
