@@ -242,6 +242,38 @@ describe('the not-connected dialog', () => {
       expect(link).toHaveBeenCalledTimes(1);
     });
 
+    it('scrolls a refused link into view, so a small window shows why nothing linked (#2823 break B1)', async () => {
+      const scrollIntoView = vi.fn();
+      const original = Element.prototype.scrollIntoView;
+      Element.prototype.scrollIntoView = scrollIntoView;
+      try {
+        const link = vi.fn(async () => ({ kind: 'refused' as const, message: 'That is not a REAPER project file.' }));
+        view(
+          <LinkDawFileContext.Provider value={link}>
+            <ConnectionResolveDialog {...off} />
+          </LinkDawFileContext.Provider>,
+          { dawChoice: notLinked },
+        );
+        await userEvent.click(await screen.findByRole('button', { name: 'Link project file…' }));
+        await screen.findByText('That is not a REAPER project file.');
+        expect(scrollIntoView).toHaveBeenCalled();
+      } finally {
+        Element.prototype.scrollIntoView = original;
+      }
+    });
+
+    it('says so when the app is already choosing a project file, instead of doing nothing (#2823 break B2)', async () => {
+      const link = vi.fn(async () => ({ kind: 'busy' as const }));
+      view(
+        <LinkDawFileContext.Provider value={link}>
+          <ConnectionResolveDialog {...off} />
+        </LinkDawFileContext.Provider>,
+        { dawChoice: notLinked },
+      );
+      await userEvent.click(await screen.findByRole('button', { name: 'Link project file…' }));
+      expect((await screen.findByRole('alert')).textContent).toMatch(/already choosing a project file/);
+    });
+
     it('says nothing when the narrator closes the file picker', async () => {
       const onCheckAgain = vi.fn();
       const link = vi.fn(async () => ({ kind: 'cancelled' as const }));
@@ -279,7 +311,7 @@ describe('the not-connected dialog', () => {
       expect((await screen.findByRole('alert')).textContent).toContain('the host went away');
     });
 
-    it('does nothing while another link is open (the host’s picker is modal)', async () => {
+    it('does not check again while another link is open (the host’s picker is modal)', async () => {
       const onCheckAgain = vi.fn();
       const busy = vi.fn(async () => ({ kind: 'busy' as const }));
       view(
@@ -291,7 +323,6 @@ describe('the not-connected dialog', () => {
       await userEvent.click(await screen.findByRole('button', { name: 'Link project file…' }));
       await waitFor(() => expect(busy).toHaveBeenCalledTimes(1));
       expect(onCheckAgain).not.toHaveBeenCalled();
-      expect(screen.queryByRole('alert')).toBeNull();
     });
   });
 

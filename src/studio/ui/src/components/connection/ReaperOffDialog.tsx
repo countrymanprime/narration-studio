@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { apiErrorMessage } from '../../api/errorMessage';
 import type { DawCapabilities, DawChoice, DawKind } from '../../api/contracts/daw';
 import { usePort } from '../../ports/usePort';
@@ -103,6 +103,11 @@ export function ReaperOffDialog({
   const linkFile = useLinkDawFile();
   const [linking, setLinking] = useState(false);
   const [linkProblem, setLinkProblem] = useState('');
+  const problemRef = useRef<HTMLParagraphElement>(null);
+  // In a small window the dialog body scrolls and the sentence lands under the fold: bring it into view when it appears.
+  useEffect(() => {
+    if (linkProblem) problemRef.current?.scrollIntoView?.({ block: 'nearest' });
+  }, [linkProblem]);
   const checkedFor = useSecondsSince(checkedAt);
   const heardFor = useSecondsSince(heardAt);
   const unlinked = linked === undefined ? choice?.state === 'not_linked' : !linked;
@@ -119,6 +124,7 @@ export function ReaperOffDialog({
       .then((outcome) => {
         if (outcome.kind === 'linked') check();
         else if (outcome.kind === 'refused') setLinkProblem(outcome.message);
+        else if (outcome.kind === 'busy') setLinkProblem('The app is already choosing a project file. Finish or cancel that picker first.');
         else if (outcome.kind === 'failed') setLinkProblem(`The project file could not be linked: ${apiErrorMessage(outcome.error)}`);
       })
       .finally(() => setLinking(false));
@@ -145,7 +151,7 @@ export function ReaperOffDialog({
       {detail && <p>{detail}</p>}
       <p className="text-[var(--text-muted)]">{stillWorks}</p>
       {linkProblem && (
-        <p role="alert" className="text-[var(--danger-text)]">
+        <p ref={problemRef} role="alert" className="text-[var(--danger-text)]">
           {linkProblem}
         </p>
       )}
