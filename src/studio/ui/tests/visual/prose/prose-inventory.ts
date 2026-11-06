@@ -171,11 +171,6 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     class: 'overlay',
   },
   {
-    file: 'components/editing/voicesample/VoiceSampleDialog.tsx',
-    text: 'Copies the raw recording, as it was before editing, into this project. Nothing leaves your computer.',
-    class: 'overlay',
-  },
-  {
     file: 'components/engine/ChapterSyncConsentDialog.tsx',
     text: 'You choose these after syncing, in the audio engine panel or from the chapter&rsquo;s Recorded cell on Production.',
     class: 'overlay',

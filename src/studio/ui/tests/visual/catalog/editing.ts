@@ -117,6 +117,12 @@ export const editingStates: StateEntry[] = [
   },
   {
     page: 'editing',
+    state: 'voice-sample-dialog-unread',
+    description:
+      'Editing, Voice sample when the settings cannot be read (?mockSettings=unreadable): the dialog still opens, says in its note that it could not read where samples are kept, and shows the project folder as where the sample will be kept',
+  },
+  {
+    page: 'editing',
     state: 'voice-sample-refused',
     description:
       'Editing, Voice sample on a word that was said and is not in the script - the dialog says in one sentence that the words were not heard, with Play range and Save sample off',

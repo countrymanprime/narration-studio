@@ -75,7 +75,7 @@ import (
 // Keep this in lockstep with src/studio/ui/src/hostApi.ts.  The frontend rejects
 // an older host before bootstrapping so a partial update cannot run against a
 // binding contract it does not understand.
-const hostAPIVersion = 161
+const hostAPIVersion = 162
 
 // Host is the Wails binding boundary. The frontend invokes only this bound
 // object; it never receives a loopback port or an HTTP capability.
@@ -1758,10 +1758,11 @@ var fieldSchemas = map[string][]fieldSchema{
 	// seen is the first-use tips the narrator has dismissed, as the tips' ids separated by spaces (src/studio/ui/src/tips/): a tip is shown once per
 	// narrator, so it is global only (saveSettings refuses it at project scope). Deleting the value shows every tip again.
 	"Tips": {{"seen", "Tips already shown", "text", nil}},
-	// storage is where a voice sample is kept (internal/voicesample): project copies its clip into the project folder. The DAW choices
-	// (daw, both) come with phase 6 of docs/prds/character-voice-samples.prd.md, so a save of either is refused until then.
+	// storage is where a voice sample is kept (internal/voicesample): project copies its clip into the project folder, daw keeps only a
+	// region in the DAW's project, both does both (docs/prds/character-voice-samples.prd.md, phase 6). A sample the DAW cannot honour
+	// is refused when it is marked (ReasonDawUnavailable); the Settings row offers only what the DAW's voice_sample_region capability allows.
 	"VoiceSamples": {
-		{"storage", "Where voice samples are kept", "choice", []string{"project"}},
+		{"storage", "Where voice samples are kept", "choice", []string{"project", "daw", "both"}},
 		// output_device is the name of the output a voice sample plays on, per project (docs/prds/character-voice-samples.prd.md, phase 7): the
 		// webview's own audio output, chosen in Settings and applied by the page, so the host only keeps the name. Empty is the system default. The
 		// name is free text: only the audio system can say whether an output exists, and a missing one plays on the default with a sentence.
