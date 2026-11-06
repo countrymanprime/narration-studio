@@ -49,9 +49,7 @@ export function AssetNote({ row, value, kindOf }: { row: SettingMeta; value: str
         {busy ? (
           <IconButton action="cancelDownload" label={`Cancel the download of ${name}`} onClick={() => void store.cancel(item)} />
         ) : view.status === 'failed' ? (
-          <Button variant="secondary" size="sm" onClick={() => void store.install(item)}>
-            Retry
-          </Button>
+          <IconButton action="retry" size="sm" onClick={() => void store.install(item)} />
         ) : view.status === 'unavailable' ? null : (
           <Button
             variant="secondary"

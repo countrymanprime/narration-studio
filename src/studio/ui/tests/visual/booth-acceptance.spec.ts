@@ -3,6 +3,7 @@
 import { expect, test, type Page } from '@playwright/test';
 import { pastStartGuard } from './helpers/startGuard';
 import { settlePage } from './helpers/settle';
+import { showChapterTop } from './helpers/viewTop';
 import { chooseMicrophone, chooseTheme, goToPage } from './drivers/shared';
 
 // The side panel is a drawer below 1360 px; the rows that read it are driven at the desktop size.
@@ -15,7 +16,7 @@ const stop = (page: Page) => page.getByRole('button', { name: /^Stop$/ });
 const chapterButton = (page: Page) => page.getByRole('button', { name: /^Chapter: /, includeHidden: true });
 const cursorWord = (page: Page) => page.locator('[data-current]').first();
 
-// The built-in recorder listens before it records, so a built-in take needs a microphone chosen in Levels; the rows that are about having none
+// The built-in recorder listens before it records, so a built-in take needs a microphone chosen in Record options; the rows that are about having none
 // chosen (row 45) say so with `mic: false`.
 async function open(page: Page, query = '', ready = true, mic = query.includes('mockEngine=builtin')): Promise<void> {
   await page.goto(`/${query}`);
@@ -45,6 +46,8 @@ test('row 1: open the Booth on a chosen chapter', async ({ page }) => {
 
 test('row 2: the text reads whole words, in order', async ({ page }) => {
   await open(page);
+  // Chapter 1 opens at ¶ 14; the browser leaves the paragraphs far from the view undrawn, so look at the top first.
+  await showChapterTop(page);
   const words = await page.locator('[data-booth-text] [data-word]').allTextContents();
   expect(words.length).toBeGreaterThan(50);
   for (const word of words) expect(word, `a word with a space inside: "${word}"`).not.toMatch(/\s\S|\S\s/);
@@ -72,10 +75,10 @@ test('row 5: during a take the reading position follows the voice', async ({ pag
   await expect.poll(() => wordIndex(page), { timeout: 15_000 }).not.toBe(before);
 });
 
-test('row 6: the listening microphone is named in Levels, with the DAW choosing it', async ({ page }) => {
+test('row 6: the listening microphone is named in Record options, with the DAW choosing it', async ({ page }) => {
   await open(page);
-  await page.getByRole('button', { name: 'Levels' }).click();
-  const popup = page.getByRole('dialog', { name: 'Levels' });
+  await page.getByRole('button', { name: 'Record options' }).click();
+  const popup = page.getByRole('dialog', { name: 'Record options' });
   await expect(popup).toContainText('Microphone');
   await expect(popup.getByText(/Same as REAPER|Microphone Array|Headset Microphone/).first()).toBeVisible();
 });
@@ -127,6 +130,7 @@ test('row 10: the arrow keys move a phrase and a word', async ({ page }) => {
 
 test('row 11: a click on a word moves the reading position to it', async ({ page }) => {
   await open(page);
+  await showChapterTop(page);
   await page.locator('[data-booth-text] [data-word]').nth(60).click();
   await expect(cursorWord(page)).toHaveText(await page.locator('[data-booth-text] [data-word]').nth(60).innerText());
 });
@@ -163,8 +167,8 @@ test('row 13: the text settings apply at once and are the same after a reload', 
 
 test('row 14: the Levels menu has the meter, the microphone and its sliders', async ({ page }) => {
   await open(page);
-  await page.getByRole('button', { name: 'Levels' }).click();
-  const popup = page.getByRole('dialog', { name: 'Levels' });
+  await page.getByRole('button', { name: 'Record options' }).click();
+  const popup = page.getByRole('dialog', { name: 'Record options' });
   await expect(popup.getByText('Input', { exact: true }).first()).toBeVisible();
   await expect(popup.getByText('Microphone', { exact: true }).first()).toBeVisible();
   // The mock draws Input level and Monitor level sliders (docs/operations/booth-acceptance.md "Differences from the mock").
@@ -203,6 +207,7 @@ test('row 16: suspected flags show while reading and Dismiss removes one', async
 
 test('row 17: a Story Bible name shows its reference in the side panel', async ({ page }) => {
   await open(page);
+  await showChapterTop(page);
   await page.locator('[data-booth-text] [data-word]', { hasText: 'Alice' }).first().click();
   await expect(page.locator('#booth-reference')).toContainText('Alice');
 });
@@ -290,17 +295,27 @@ test('row 25: R during a take on a DAW that keeps the take rolls without asking,
 
 test('row 26: Resume at ¶ n moves the reading position to where the recording ends', async ({ page }) => {
   await open(page);
+  // Chapter 1 opens at ¶ 14, where its recording ends, so no chip is offered until the narrator looks elsewhere: the next paragraph.
+  await page.locator('[data-booth-text] [data-paragraph]:has([data-current]) + [data-paragraph] [data-word="0"]').click();
   const before = await wordIndex(page);
   await page.getByRole('button', { name: /^Resume at ¶/ }).click();
   await expect.poll(() => wordIndex(page)).not.toBe(before);
 });
 
-// The Booth opens on the chapter title, which is no manuscript paragraph a bookmark can name (#2251 item 7): the reading moves onto
-// the first paragraph's first word first.
+// A chapter that opens on its title (Chapter 2 here) has no manuscript paragraph a bookmark can name (#2251 item 7): the reading moves
+// onto the first paragraph's first word first. Chapter 1 opens at ¶ 14, where its recording ends (#2633), so its reading paragraph is used.
+const toReadingParagraph = (page: Page) =>
+  page.locator('[data-booth-text] [data-paragraph]:has([data-current]):not([data-heading]) [data-word="0"]').first().click();
 const toFirstParagraph = (page: Page) => page.locator('[data-booth-text] [data-paragraph]:not([data-heading]) [data-word="0"]').first().click();
+const nextChapter = async (page: Page) => {
+  await page.getByRole('button', { name: 'Next chapter' }).click();
+  await expect(page.locator('[data-booth-text] [data-heading="title"]')).toHaveText(/Chapter 2/);
+};
 
 test('row 27: B bookmarks the word: a ribbon in the margin, and the toast offers Undo', async ({ page }) => {
   await open(page);
+  // Chapter 2 opens on its title.
+  await nextChapter(page);
   // On the title, B says why it adds nothing.
   await page.keyboard.press('b');
   await expect(page.getByText('A bookmark goes on a line of the text, not on the chapter title.')).toBeVisible();
@@ -314,7 +329,7 @@ test('row 27: B bookmarks the word: a ribbon in the margin, and the toast offers
 
 test('row 28: Alt+[ and Alt+] step between bookmarks', async ({ page }) => {
   await open(page);
-  await toFirstParagraph(page);
+  await toReadingParagraph(page);
   await page.keyboard.press('b');
   await page.keyboard.press('ArrowDown');
   await page.keyboard.press('ArrowDown');
@@ -348,6 +363,7 @@ test('row 30: F11 asks for full screen', async ({ page }) => {
 
 test('row 31: right-click offers Start from here, Bookmark here, roll, text size and Exit Booth', async ({ page }) => {
   await open(page);
+  await showChapterTop(page);
   await page.locator('[data-booth-text] [data-word]').nth(40).click({ button: 'right' });
   const menu = page.getByRole('menu').last();
   for (const item of [/Start from here/, /Bookmark here/, /Exit/]) await expect(menu.getByRole('menuitem', { name: item }).first()).toBeVisible();
@@ -356,6 +372,7 @@ test('row 31: right-click offers Start from here, Bookmark here, roll, text size
 // Punch has no switch since #2251: with REAPER linked and answering, Start from here sets the next roll at once.
 test('row 31: Start from here sets the next roll at once, and Space records', async ({ page }) => {
   await open(page);
+  await showChapterTop(page);
   await page.locator('[data-booth-text] [data-word]').nth(40).click({ button: 'right' });
   await page
     .getByRole('menuitem', { name: /Start from here/ })
@@ -461,10 +478,10 @@ test('row 44: the built-in recorder records with nothing to switch on', async ({
 
 test('row 45: with several microphones and none chosen, none listed, or one that will not open, Record says why and records nothing', async ({ page }) => {
   // Behaviour change (#2251): with nothing chosen the Booth listens on the first microphone listed instead of refusing, so the take is refused by the
-  // built-in recorder itself, which records on a microphone chosen in Levels and never guesses among several.
+  // built-in recorder itself, which records on a microphone chosen in Record options and never guesses among several.
   await open(page, `${BUILTIN}&mockRecorder=empty`, true, false);
   await record(page).click();
-  await expect(page.getByRole('alert').getByText('Choose the microphone in Levels, then press Record.').first()).toBeVisible();
+  await expect(page.getByRole('alert').getByText('Choose the microphone in Record options, then press Record.').first()).toBeVisible();
   await expect(page.locator('#blisten-why')).toHaveCount(0);
   await expect(stop(page)).toHaveCount(0);
 

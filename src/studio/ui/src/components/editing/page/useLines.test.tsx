@@ -55,7 +55,6 @@ const candidate = (take: string): PassageTake => ({
   id: `take:{ITEM}:${take}`,
   source: 'item_take',
   action: 'make_active',
-  confirm: false,
   label: take,
   detail: '',
   active: take === '{T2}',
@@ -65,7 +64,6 @@ const candidate = (take: string): PassageTake => ({
   sourceStart: 0,
   sourceLength: 8,
   usable: true,
-  compared: false,
 });
 
 function setup(marks: PassageMark[] | Error) {

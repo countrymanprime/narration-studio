@@ -81,13 +81,20 @@ A chapter with no recording yet says **No recording for this chapter yet** where
 
 ![Proof - a note whose spot has several takes, the playing take marked on the waveform](../../images/ui/proof-takes.webp)
 
+## The DAW tools menu
+
+The wrench icon button at the end of the header opens the same **Structure** menu as [Editing's](editing.md#the-daw-tools-menu): **Prepare chapter render…** and **Create chapter regions…**, for when proofing is done and the chapters are next rendered. When a tool cannot be used it stays in the menu, greyed, with the reason under its name: the DAW is not answering, the DAW has a different project open than the one linked here, the REAPER project has no tracks yet, no chapter is linked to a REAPER track yet (link one on [Production](production.md)), or the project records in Audacity, which has neither regions nor render setup to write. The menu reads the project the first time you open it, so for a moment both entries say **Reading the REAPER project…**.
+
+![Proof - the DAW tools menu open at the end of the head: the Structure heading over Prepare chapter render and Create chapter regions](../../images/ui/proof-daw-tools.webp)
+
 ## The notes
 
 The notes panel lists the notes in view, **Notes · 14** for example, with:
 
 - chips that narrow the list: **All**, **To review**, **Open**, **Pickups** and **Decided**, each with its count;
 - **In view**, on one chapter while the waveform window shows only part of it, set apart after the chips because it works
-  with any of them. It starts on, so the list keeps to the notes in the window; press it to list the whole chapter;
+  with any of them. It starts on, so the list keeps to the notes in the window, and a note with no time in its recording
+  always stays listed; press it to list the whole chapter;
 - the sort: **By time**, **By confidence** (lowest first, so the least certain come up first) or **By severity** (most
   serious first);
 - **Check recordings…**, the same check the card runs, starting with the chapter in view;
@@ -141,8 +148,9 @@ The Inspector shows:
   [Editing](editing.md) with the note's words selected and the takes of its line open, where takes are chosen;
 - **Trim the gap to 1.2 s**, on a gap note not decided yet (see [Trimming a gap](#trimming-a-gap));
 - **Hear it** (Space), which plays the note with 3 s either side (see [Hearing a note](#hearing-a-note)), **Show in** and
-  **Add marker in** your DAW, each followed by your DAW's name (see [Going to a note in the DAW](#going-to-a-note-in-the-daw)), **Open this chapter in Script** and **Open this chapter in Booth**, and **Reopen**
-  once the note is decided;
+  **Add marker in** your DAW, each followed by your DAW's name (see [Going to a note in the DAW](#going-to-a-note-in-the-daw)), on a
+  misread of one word for one word the equals button (see [The same word, said your way](#the-same-word-said-your-way)), **Open this
+  chapter in Script** and **Open this chapter in Booth**, and **Reopen** once the note is decided;
 - the decisions, **Needs pickup**, **Fix in edit**, **Fine as read** and **Defer** (keys P, E, W and D) as four equal buttons in two
   columns, each with its key, the decision taken outlined; an optional note with the decision (a box with a placeholder,
   up to 2,000 characters), and the check's confidence, or why it has none. All four work on any note. Whether a note
@@ -168,6 +176,19 @@ and decide.
 
 Right-click a note in the table, or its pin, for the same actions: **Hear it**, the four decisions (the one that does not fit the note
 says why), **Reopen**, **Go to** your DAW, **Trim the gap** on a gap note, and open its chapter in Script or the Booth.
+
+## The same word, said your way
+
+When the check hears one word as another every time, a name you say your own way or a word your accent changes, the equals button
+on that note, **Treat these two words as the same in later checks**, stops the next comparisons flagging it. It shows on a recording
+check note where one word was heard as one other word. The two words are added to the project's word equivalences
+(`TranscriptCompare/equivalences.csv`), and a message says which, "Added equivalence: Dinah = Dina", and that later checks count
+them as one word. A pair already there is not added again, and the message says so. Either way the button is then off, with "Already
+treated as the same" as its tooltip. The note itself keeps whatever you decided about it: mark it **Fine as read** too if this reading
+is right. It shows only for words the equivalences file can hold: not for a word with a comma, a # or a space in it, nor for the same
+word in another case.
+
+![Proof - the equals button, Treat these two words as the same in later checks, on a one-word misread](../../images/ui/proof-treat-as-same.webp)
 
 ## Notes on a finding
 
@@ -207,11 +228,17 @@ export](#comparing-the-recording-with-the-script) adds, so Export markers does n
 already has one nothing is added. Apart from **Trim the gap**, it is the only control here that changes your project, and one Undo in
 the DAW removes it.
 
-With Audacity there are no items: **Show in Audacity** selects the compared track and puts the cursor at the note's time, and a note
-from a take review's grouped reads cannot be played read by read (Audacity keeps no takes).
+With Audacity there are no items: **Show in Audacity** selects the compared track and puts the cursor at the note's time.
+
+### Repairing a click, breath or plosive in REAPER
+
+On a note whose type is **mouth** (a click), **plosive** or **breath**, **Repair in REAPER** (an icon button in the Inspector's row) opens a menu headed **Repair** with **Cleanup tools…**, the dialog that is also in the audio engine panel's REAPER tools. Press **Show in REAPER** first: it selects the note's item, and the repair tools open on the items selected in REAPER. Choosing the type of a note yourself changes whether the button is there. The repair is REAPER's own, and you apply or cancel it there. The entry is off, with the reason under it, when the project records in Audacity, the DAW is not answering or has another project open, or the project has no tracks. Which item is selected, whether Magnolius DeClick is installed and whether REAPER has the Repair Pops/Clicks dialog (REAPER 7.80 or later) are only known when you press **Open**, so the dialog says so there.
+
+![Proof - a click note: Repair in REAPER in the Inspector's row, its menu open on Cleanup tools](../../images/ui/proof-repair-in-reaper.webp)
 
 Each follows what your DAW offers: when it does not offer one, or is not answering, the control is off and the reason is
-under the row. A note found by an older check that did not record its item cannot be placed; run the check again. When
+under the row. A note found by an older check that did not record its item cannot be placed; run the check again. A note
+with no time in its recording has no spot to show, so **Show in** is off too. When
 the DAW refuses (the note's item was deleted or trimmed, or the DAW is recording), nothing changes and the Inspector says
 why.
 

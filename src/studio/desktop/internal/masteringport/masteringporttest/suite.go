@@ -114,6 +114,42 @@ func Problems(entry port.Entry[masteringport.Mastering], dir string) []string {
 		defer restore()
 	}
 
+	// A row whose steps live in the DAW lists them, and its approval binds the chain shown (threat model row 5o): every request
+	// below carries the digest of the chain listed now; one without it, or with another chain's, is refused and renders nothing.
+	lister, lists := row.(masteringport.ChainLister)
+	if slices.Contains(caps.Needs, dawport.CapMasterChainRead) && !lists {
+		report("%q needs master_chain_read but does not list its chain (masteringport.ChainLister)", entry.Name)
+	}
+	if lists {
+		chain, err := lister.Chain(context.Background())
+		if err != nil {
+			report("%q could not list its chain: %v", entry.Name, err)
+			return problems
+		}
+		digest := masteringport.ChainDigest(chain)
+		plain := request
+		request = func(dst string) masteringport.Request {
+			req := plain(dst)
+			req.ChainDigest = digest
+			return req
+		}
+		for name, wrong := range map[string]struct {
+			digest string
+			want   error
+		}{
+			"no-digest.wav":   {"", masteringport.ErrNoChainDigest},
+			"other-chain.wav": {masteringport.ChainDigest(append(chain, masteringport.ChainTrack{Name: "Extra"})), masteringport.ErrChainChanged},
+		} {
+			dst := filepath.Join(dir, name)
+			req := request(dst)
+			req.ChainDigest = wrong.digest
+			if _, err := row.Master(context.Background(), req); !errors.Is(err, wrong.want) {
+				report("%q, asked with %s, answered %v, not %v", entry.Name, name, err, wrong.want)
+			}
+			leftNothing(dst, "a request whose approval does not bind the chain it would run")
+		}
+	}
+
 	if caps.NeedsApproval {
 		dst := filepath.Join(dir, "unapproved.wav")
 		req := request(dst)

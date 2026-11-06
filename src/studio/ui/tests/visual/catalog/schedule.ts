@@ -1,5 +1,6 @@
 // The `schedule` rows of STATE_CATALOG (see state-catalog.ts), in the order they are captured.
 import type { StateEntry } from '../lib/types';
+import { REFLOW } from './shared';
 import { wholePage } from './shared';
 
 export const scheduleStates: StateEntry[] = [
@@ -13,6 +14,7 @@ export const scheduleStates: StateEntry[] = [
     page: 'schedule',
     state: 'on-pace',
     reloadPerViewport: true,
+    ...REFLOW,
     description:
       'Schedule with a due date the pace meets (?mockProduction=on-pace) - the verdict, how the book pays, the work left worked out and the milestones',
   },
@@ -20,7 +22,8 @@ export const scheduleStates: StateEntry[] = [
     page: 'schedule',
     state: 'at-risk',
     reloadPerViewport: true,
-    description: 'Schedule with a due date the pace misses (?mockProduction=at-risk) - the at-risk verdict and the work left worked out',
+    description:
+      'Schedule with a due date the pace misses (?mockProduction=at-risk) - the Behind verdict (the seed name is older than the wording) and the work left worked out',
   },
   {
     page: 'schedule',
@@ -40,7 +43,16 @@ export const scheduleStates: StateEntry[] = [
     state: 'long-text',
     reloadPerViewport: true,
     description:
-      'Schedule with milestones named in a 200-character word, in right-to-left text and with emoji - the table wraps them and does not widen the page',
+      'Schedule with milestones named in a 200-character word, in right-to-left text and with emoji, and a late one - the table wraps them and does not widen the page',
+    ...REFLOW,
+  },
+  {
+    page: 'schedule',
+    state: 'milestone-statuses',
+    reloadPerViewport: true,
+    description:
+      'Schedule milestones after three adds (?mockProduction=on-pace, the table brought up): a custom milestone whose date has passed reads "Past due", a done one reads Done, a custom one ahead reads a dash, and Final delivery reads its estimate',
+    ...REFLOW,
   },
   {
     page: 'schedule',
@@ -55,4 +67,6 @@ export const scheduleStates: StateEntry[] = [
       'Schedule while the plan is still being read (?mockPlan=loading): the page title, a block for its due-date line and verdict, a chart block, two panel blocks and the milestones block, with one polite "Loading the schedule…" status',
   },
 ];
-scheduleStates.push(wholePage(scheduleStates, 'on-pace'));
+scheduleStates.push(wholePage(scheduleStates, 'on-pace', ['desktop']));
+// The long-text rows seen whole (`fullPage`) at 390, 768, 1024 and 1440 px, so the stacked or scrolling milestone table is in the picture.
+scheduleStates.push({ ...wholePage(scheduleStates, 'long-text'), state: 'long-text-whole-page' });

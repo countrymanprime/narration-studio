@@ -1,4 +1,4 @@
-import type { CSSProperties, FocusEvent, KeyboardEvent, MouseEvent, ReactNode } from 'react';
+import type { CSSProperties, FocusEvent, KeyboardEvent, MouseEvent, ReactNode, Ref } from 'react';
 import { TABLE_CELL_CLASS, TABLE_EDGES, TABLE_FLUSH_EDGES, TABLE_HEADER_CLASS, TABLE_TEXT_CLASS, TABLE_TEXT_EDGES } from './tableStyles';
 import { Tooltip } from './Tooltip';
 
@@ -74,9 +74,14 @@ export function TableBody({
   navigable = false,
   onKeyDown,
   onFocus,
+  onBlur,
+  bodyRef,
   children,
 }: {
   navigable?: boolean;
+  /** The `tbody` element, for a caller that measures it (a windowed list). */
+  bodyRef?: Ref<HTMLTableSectionElement>;
+  onBlur?: (event: FocusEvent<HTMLTableSectionElement>) => void;
   onKeyDown?: (event: KeyboardEvent<HTMLTableSectionElement>) => void;
   /** Hears the focus of any row or control in the body (focus bubbles), to follow which row it rests on. */
   onFocus?: (event: FocusEvent<HTMLTableSectionElement>) => void;
@@ -95,7 +100,7 @@ export function TableBody({
     rows[to]?.focus();
   };
   return (
-    <tbody onKeyDown={navigable || onKeyDown ? onKey : undefined} onFocus={onFocus}>
+    <tbody ref={bodyRef} onKeyDown={navigable || onKeyDown ? onKey : undefined} onFocus={onFocus} onBlur={onBlur}>
       {children}
     </tbody>
   );
@@ -110,36 +115,43 @@ const ROW_EMPHASIS = { current: 'font-semibold', highlight: 'bg-[var(--row-selec
 // current one (`aria-selected`) and fills it with `--row-selected`; `tabStop={false}` takes it out of the tab order (the rows of a
 // `navigable` body share one stop and the arrow keys reach the rest). Without `onActivate` it is a plain row. `data-row` marks a pressable row for the
 // visual suite's drivers.
-export function TableRow({
-  onActivate,
-  tabStop = true,
-  rowIndex,
-  selected = false,
-  emphasis,
-  tree,
-  className = '',
-  style,
-  data,
-  children,
-}: {
-  onActivate?: () => void;
-  /**
-   * A row of a tree table: `id` keys it for the tree keys, `level` is `aria-level` (1 at the top), `posInSet` and `setSize` its place among its siblings,
-   * `expanded` is set on a folder only, and `active` is the one row in the tab order (the others are reached with the arrow keys).
-   */
-  tree?: { id: string; level: number; posInSet: number; setSize: number; expanded?: boolean; active: boolean };
-  tabStop?: boolean;
-  rowIndex?: number;
+type TreePlace = { id: string; level: number; posInSet: number; setSize: number; expanded?: boolean; active: boolean };
+
+type RowShared = {
   /** `data-*` attributes for the row, such as the key a right-click menu reads (`data-w` on the Script page's Words rows). */
   data?: Record<`data-${string}`, string>;
-  selected?: boolean;
   emphasis?: keyof typeof ROW_EMPHASIS;
   className?: string;
   style?: CSSProperties;
   children: ReactNode;
-}) {
+};
+
+// Two kinds of row, told apart by `tree`, so a tree row cannot be given what it would ignore: it is not pressable (`onActivate`), has no
+// selected state or tab-stop choice of its own (`active` is its stop) and is placed by the tree, not by `rowIndex`.
+type PlainRowProps = RowShared & {
+  tree?: undefined;
+  onActivate?: () => void;
+  tabStop?: boolean;
+  rowIndex?: number;
+  selected?: boolean;
+};
+type TreeRowProps = RowShared & {
+  /**
+   * A row of a tree table: `id` keys it for the tree keys, `level` is `aria-level` (1 at the top), `posInSet` and `setSize` its place among its siblings,
+   * `expanded` is set on a folder only, and `active` is the one row in the tab order (the others are reached with the arrow keys).
+   */
+  tree: TreePlace;
+  onActivate?: never;
+  tabStop?: never;
+  rowIndex?: never;
+  selected?: never;
+};
+
+export function TableRow(props: PlainRowProps | TreeRowProps) {
+  const { emphasis, className = '', style, data, children } = props;
   const emphasisClass = emphasis ? ROW_EMPHASIS[emphasis] : '';
-  if (tree) {
+  if (props.tree) {
+    const { tree } = props;
     return (
       <tr
         {...data}
@@ -157,6 +169,7 @@ export function TableRow({
       </tr>
     );
   }
+  const { onActivate, tabStop = true, rowIndex, selected = false } = props;
   if (!onActivate) {
     return (
       <tr {...data} aria-rowindex={rowIndex} className={`${emphasisClass} ${className}`} style={style}>

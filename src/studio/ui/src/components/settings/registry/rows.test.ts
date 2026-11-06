@@ -76,6 +76,16 @@ describe('the Parallel processes row (#2251)', () => {
   });
 });
 
+describe('app.debug', () => {
+  it('is found by the words a narrator uses for the log and its folder (#2730)', () => {
+    for (const query of ['logs', 'log folder', 'file manager', 'run.jsonl', 'explorer'])
+      expect(
+        search(query).some((hit) => hit.row?.id === 'app.debug'),
+        query,
+      ).toBe(true);
+  });
+});
+
 describe('search', () => {
   it('finds a setting by a word that is not in its name', () => {
     expect(search('whisper').some((hit) => hit.row?.id === 'stt.model')).toBe(true);
@@ -139,5 +149,11 @@ describe('the background check rows (#2251)', () => {
   it('default to tiny with small as the double-check', () => {
     expect(row('stt.backgroundModel').def).toBe('tiny');
     expect(row('stt.backgroundRecheck').def).toBe('small');
+  });
+});
+
+describe('the Models folder row is found by the words a narrator uses for moving it', () => {
+  it.each(['move', 'keep', 'bigger drive', 'location', 'download location', 'drive', 'change location'])('"%s" lists it first', (words) => {
+    expect(search(words)[0]?.row?.id).toBe('models.folder');
   });
 });

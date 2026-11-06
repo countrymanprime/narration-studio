@@ -81,8 +81,9 @@ describe('production-page-commands', () => {
     const scrolled = vi.spyOn(Element.prototype, 'scrollIntoView');
     const last = rows.length - 1;
     act(() => chapters[last].run());
+    // Focus lands after the jump menu has closed (it gives focus back to its opener as it closes), a frame or two later.
+    await waitFor(() => expect(rows[last].contains(document.activeElement)).toBe(true));
     expect(scrolled).toHaveBeenCalled();
-    expect(rows[last].contains(document.activeElement)).toBe(true);
   });
 
   it('check-recordings-follows-the-recording-check-card', async () => {

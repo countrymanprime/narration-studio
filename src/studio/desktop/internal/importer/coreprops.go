@@ -27,8 +27,9 @@ func ReadCoreProps(path string) (title, author string, ok bool) {
 		return "", "", false
 	}
 	defer func() { _ = archive.Close() }() // read-only
-	content, found := docxEntry(archive, "docProps/core.xml")
-	if !found {
+	budget := docxMaxTotalSize
+	content, err := docxEntry(archive, "docProps/core.xml", &budget)
+	if err != nil {
 		return "", "", false
 	}
 	var props coreProperties

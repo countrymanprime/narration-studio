@@ -60,6 +60,8 @@ function TextPopover({ font, size, width, onFont, onSize, onWidth }: BoothTextCh
 }
 
 // The REC tokens.
+// A cold read is the info colour, as the main button is: never the red of a take.
+const COLD_COLORS = { fill: 'var(--info-soft)', text: 'var(--info-text)', line: 'var(--info)' };
 const REC_COLORS = { fill: 'var(--rec-fill)', text: 'var(--rec-text)', line: 'var(--rec-text)' };
 
 /**
@@ -120,7 +122,7 @@ export function BoothTop({
       {/* The bar's tools are one group kept at the right edge: when the bar wraps they move to the next row together, never under Previous. */}
       <div data-booth-tools="" className="ml-auto flex flex-none items-center gap-2.5 whitespace-nowrap">
         {recording ? <Badge shape="pill" label={paused ? 'REC · reading paused' : 'REC'} colors={REC_COLORS} /> : null}
-        {coldRead && !recording ? <Badge shape="pill" label="Mic on · cold read" colors={REC_COLORS} look="dashed" /> : null}
+        {coldRead && !recording ? <Badge shape="pill" label="Mic on · cold read" colors={COLD_COLORS} look="outline" /> : null}
         {setup}
         {text ? <TextPopover {...text} /> : null}
         <IconButton

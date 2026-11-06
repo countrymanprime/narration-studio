@@ -4,7 +4,8 @@
     "notifications": "true",
     "close_import_when_done": "true",
     "credits_room_tone_seconds": "0",
-    "debug_logging": "false"
+    "debug_logging": "false",
+    "activity_trace": "false"
   },
   "ManuscriptGuide": {
     "spacy_model": "en_core_web_sm",
@@ -81,13 +82,6 @@
     "proofing.delivery.head_room_tone_seconds": "required",
     "proofing.delivery.tail_room_tone_seconds": "required",
     "proofing.delivery.render_length": "required"
-  },
-  "TakeReview": {
-    "full_coverage_threshold": "0.9",
-    "near_duplicate_quality_threshold": "0.97",
-    "pickup_track_name": "",
-    "pickup_range_start_seconds": "",
-    "pickup_range_end_seconds": ""
   },
   "Preview": {
     "target_seconds": "300",

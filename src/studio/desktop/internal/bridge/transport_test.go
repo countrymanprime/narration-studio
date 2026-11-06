@@ -118,6 +118,26 @@ func TestRecordStartAtEndSendsTheStartRuleAndNothingWithoutIt(t *testing.T) {
 	}
 }
 
+func TestRecordStartChapterEndSendsTheRuleAndTheFolder(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	var mu sync.Mutex
+	var sent []string
+	startFakeReaper(t, client, dir, func(command []string) [][]string {
+		mu.Lock()
+		defer mu.Unlock()
+		sent = command
+		return [][]string{{"RECORD_STARTED", run(command), testTrack, "9.000000"}}
+	})
+	if _, err := actions.RecordStart(context.Background(), testTrack, RecordOptions{Start: ChapterEnd, Folder: "{F}"}); err != nil {
+		t.Fatal(err)
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if n := len(sent); n < 3 || sent[n-2] != "chapter_end" || sent[n-1] != "{F}" {
+		t.Fatalf("sent = %v, want the rule then the folder as the last two arguments", sent)
+	}
+}
+
 func TestRecordStartRefusesAnAnswerForAnotherTrack(t *testing.T) {
 	actions, client, dir := newActionsSession(t, true)
 	startFakeReaper(t, client, dir, func(command []string) [][]string {
@@ -217,5 +237,49 @@ func TestAnOlderScriptsRecordStopHasNoUndoPoints(t *testing.T) {
 	got, err := actions.RecordStop(context.Background())
 	if err != nil || got != (RecordStopped{Restored: 1}) {
 		t.Fatalf("got %+v, %v", got, err)
+	}
+}
+
+func TestSwitchVoiceMovesTheTakeToAnotherVoiceAndTellsTheRefusalsApart(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	var mu sync.Mutex
+	answer := []string{"VOICE_SWITCHED", "", testTrack, "3.600000"}
+	fake := startFakeReaper(t, client, dir, func(command []string) [][]string {
+		mu.Lock()
+		defer mu.Unlock()
+		reply := append([]string(nil), answer...)
+		reply[1] = run(command)
+		return [][]string{reply}
+	})
+	got, err := actions.SwitchVoice(context.Background(), testTrack)
+	if err != nil || got != (VoiceSwitched{TrackGUID: testTrack, At: 3.6}) {
+		t.Fatalf("got %+v, %v", got, err)
+	}
+	if command := fake.commands()[0]; command[1] != "switch_voice" || command[3] != testTrack {
+		t.Fatalf("command = %v", command)
+	}
+	if !Experimental("switch_voice") {
+		t.Error("switch_voice must stay experimental until it is verified in a real REAPER")
+	}
+	for _, refusal := range []struct {
+		answer []string
+		want   error
+	}{
+		{[]string{"RECORD_NOT_OURS", ""}, ErrNotOurRecording},
+		{[]string{"ERROR", "", "REAPER has not started recording yet."}, ErrRecordingNotStarted},
+		{[]string{"TRACK_STALE", "", testTrack}, ErrStale},
+	} {
+		mu.Lock()
+		answer = refusal.answer
+		mu.Unlock()
+		if _, err := actions.SwitchVoice(context.Background(), testTrack); !errors.Is(err, refusal.want) {
+			t.Fatalf("answer %v: err = %v, want %v", refusal.answer, err, refusal.want)
+		}
+	}
+	mu.Lock()
+	answer = []string{"VOICE_SWITCHED", "", "{00000000-0000-0000-0000-000000000099}", "3.600000"}
+	mu.Unlock()
+	if _, err := actions.SwitchVoice(context.Background(), testTrack); err == nil {
+		t.Fatal("an answer for another track must be an error")
 	}
 }

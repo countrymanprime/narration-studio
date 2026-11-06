@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState, type ComponentProps } from 'react';
-import { expect, fn, userEvent, within } from 'storybook/test';
+import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
 import { ToggleGroup } from './ToggleGroup';
 
 const OPTIONS = [
@@ -57,6 +57,29 @@ export const DisabledChipIsNotChosen: Story = {
     await expect(large).toBeDisabled();
     large.click();
     await expect(args.onChange).not.toHaveBeenCalled();
+  },
+};
+
+// A chip off with a reason (`disabledReason`) stays focusable and says why on focus; a press does nothing and the choice does not move.
+export const ChipDisabledWithReason: Story = {
+  args: {
+    look: 'segmented',
+    options: [
+      { value: 'tiny', label: 'Tiny' },
+      { value: 'project', label: 'In this project', disabledReason: 'Open a project to see what it sets' },
+    ],
+  },
+  play: async ({ args, canvasElement }) => {
+    const chip = within(canvasElement).getByRole('button', { name: 'In this project' });
+    await expect(chip).toHaveAttribute('aria-disabled', 'true');
+    await expect(chip).not.toBeDisabled();
+    await userEvent.tab();
+    await userEvent.tab();
+    await expect(chip).toHaveFocus();
+    await waitFor(() => expect(within(document.body).getByRole('tooltip')).toHaveTextContent('Open a project to see what it sets'));
+    await userEvent.click(chip);
+    await expect(args.onChange).not.toHaveBeenCalled();
+    await expect(chip).toHaveAttribute('aria-pressed', 'false');
   },
 };
 

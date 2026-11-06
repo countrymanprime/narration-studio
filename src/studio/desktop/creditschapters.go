@@ -2,6 +2,7 @@ package main
 
 import (
 	"desktop/internal/credits"
+	"desktop/internal/creditsid"
 	"desktop/internal/manuscript"
 	"desktop/internal/project"
 )
@@ -25,7 +26,7 @@ func (h *Host) creditsChapters() []manuscript.CreditsChapter {
 	}
 	tokens := h.creditTokens()
 	listed := []manuscript.CreditsChapter{}
-	for _, kind := range []string{"opening", "closing"} {
+	for _, kind := range creditsid.Kinds {
 		for _, template := range templates {
 			if template.Kind == kind {
 				rendered := credits.Render(template.Body, tokens)

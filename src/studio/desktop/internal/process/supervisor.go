@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"desktop/internal/runlog"
+	"desktop/internal/trace"
 )
 
 type Child struct {
@@ -42,6 +43,7 @@ func (c *Child) ExitCode() (int, bool) {
 type Supervisor struct {
 	jobs     jobSet
 	fallback func() *runlog.Run
+	tracer   *trace.Tracer
 }
 
 func NewSupervisor() *Supervisor { return &Supervisor{jobs: newJobSet()} }
@@ -69,38 +71,37 @@ func (s *Supervisor) Start(ctx context.Context, program string, args ...string) 
 		configureLowPriority(command)
 	}
 	command.Env = runEnv(ctx)
-	stdout, err := command.StdoutPipe()
-	if err != nil {
-		return nil, err
-	}
-	stderr, err := command.StderrPipe()
-	if err != nil {
-		return nil, err
-	}
 	first := &firstOutput{started: time.Now()}
+	stderrSink := runlog.FromContext(ctx).StderrWriter()
+	// exec copies both streams itself and Wait returns only once they are read to the end (or runWaitDelay after the exit, for a
+	// descendant that kept a pipe open). Reading a pipe by hand while Wait closes it can lose the last bytes the program printed.
+	command.Stdout, command.Stderr = first, stderrSink
+	command.WaitDelay = runWaitDelay
 	if err := command.Start(); err != nil {
+		s.traceStartFailed("start", program, err)
+		_ = stderrSink.Close()
 		return nil, fmt.Errorf("could not start %s: %w", program, err)
 	}
 	if err := s.jobs.assign(command.Process.Pid); err != nil {
 		_ = command.Process.Kill()
+		_ = command.Wait()
+		_ = stderrSink.Close()
 		return nil, err
 	}
+	s.traceStart("start", program)
 	if low {
 		lowerStarted(command.Process.Pid)
 	}
 	child := &Child{pid: command.Process.Pid}
-	stderrSink := runlog.FromContext(ctx).StderrWriter()
-	go func() { _, _ = io.Copy(first, stdout) }()
-	go func() { defer func() { _ = stderrSink.Close() }(); _, _ = io.Copy(stderrSink, stderr) }()
 	go func() {
 		err := command.Wait()
+		_ = stderrSink.Close()
 		code := 0
-		if err != nil {
-			if exit, ok := err.(*exec.ExitError); ok {
-				code = exit.ExitCode()
-			} else {
-				code = -1
-			}
+		var exit *exec.ExitError
+		if errors.As(err, &exit) {
+			code = exit.ExitCode()
+		} else if err != nil && !errors.Is(err, exec.ErrWaitDelay) {
+			code = -1
 		}
 		child.mu.Lock()
 		child.exitCode = &code
@@ -128,6 +129,7 @@ func (s *Supervisor) Run(ctx context.Context, program string, args ...string) (i
 	command.Stdout, command.Stderr = io.MultiWriter(&out, first), io.MultiWriter(&failure, stderrSink)
 	command.WaitDelay = runWaitDelay
 	if err := command.Start(); err != nil {
+		s.traceStartFailed("run", program, err)
 		return 0, "", "", fmt.Errorf("could not start %s: %w", program, err)
 	}
 	if err := s.jobs.assign(command.Process.Pid); err != nil {
@@ -135,6 +137,7 @@ func (s *Supervisor) Run(ctx context.Context, program string, args ...string) (i
 		_ = command.Wait()
 		return 0, "", "", err
 	}
+	s.traceStart("run", program)
 	waitErr := command.Wait()
 	code := 0
 	if waitErr != nil && !errors.Is(waitErr, exec.ErrWaitDelay) {

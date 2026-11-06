@@ -5,11 +5,11 @@
 -- This file owns the command loop and the registry that dispatches to the
 -- commands; every command lives in a feature file listed in FEATURE_FILES
 -- (narration_cleanup.lua, narration_compare.lua, narration_line_identity.lua, narration_pickups.lua,
--- narration_render.lua, narration_project_state.lua, narration_retake_lanes.lua, narration_take_review.lua, narration_navigation.lua,
+-- narration_render.lua, narration_project_state.lua, narration_retake_lanes.lua, narration_navigation.lua,
 -- narration_track_state.lua, narration_transport.lua, narration_workspace.lua, narration_regions.lua,
--- narration_punch.lua, narration_track_select.lua, narration_track_create.lua, narration_master_render.lua, narration_takes.lua,
+-- narration_punch.lua, narration_track_select.lua, narration_track_create.lua, narration_tracks_read.lua, narration_master_render.lua, narration_takes.lua,
 -- narration_roll.lua, narration_range.lua, narration_replace.lua, narration_media_file.lua, narration_undo.lua, narration_levels.lua,
--- narration_meters.lua).
+-- narration_meters.lua, narration_voice_sample_region.lua).
 -- To add a command, put it in a new narration_<feature>.lua that returns
 -- `function(registry)` and calls `registry.register(name, function(ctx, args) ... end)`,
 -- list the file below and in scripts/release/reaper-files.mjs, and write its
@@ -28,15 +28,16 @@ M.FEATURE_FILES = {
   'narration_render.lua',
   'narration_project_state.lua',
   'narration_retake_lanes.lua',
-  'narration_take_review.lua',
   'narration_navigation.lua',
   'narration_track_state.lua',
   'narration_transport.lua',
   'narration_workspace.lua',
   'narration_punch.lua',
   'narration_regions.lua',
+  'narration_voice_sample_region.lua',
   'narration_track_select.lua',
   'narration_track_create.lua',
+  'narration_tracks_read.lua',
   'narration_master_render.lua',
   'narration_takes.lua',
   'narration_roll.lua',
@@ -209,7 +210,13 @@ function M.run(session_dir, registry)
     -- The fifth and sixth fields are the transport: GetPlayState's bit field (1 playing, 2 paused, 4 recording)
     -- and GetPlayPosition in seconds. wire.go treats both as optional, so an older script's heartbeat still passes.
     local play_position = string.format('%.6f', reaper.GetPlayPosition() or 0)
-    ctx.event('PROJECT_STATUS', '', rpp, rpp == '' and '1' or '0', change_count, play_state, play_position)
+    -- A seventh field, 1, only while the timing diagnostic is on: the host then writes its record-press timeline too
+    -- (docs/research/record-press-timeline.md). Off, the heartbeat keeps the six fields an older host expects.
+    if timing then
+      ctx.event('PROJECT_STATUS', '', rpp, rpp == '' and '1' or '0', change_count, play_state, play_position, '1')
+    else
+      ctx.event('PROJECT_STATUS', '', rpp, rpp == '' and '1' or '0', change_count, play_state, play_position)
+    end
   end
   local function check_timing()
     if not last_now or (timing_checked_at and last_now - timing_checked_at < M.TIMING_CHECK_SECONDS) then

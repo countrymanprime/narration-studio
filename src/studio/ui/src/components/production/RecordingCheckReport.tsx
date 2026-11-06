@@ -12,7 +12,7 @@ import { openPickups } from '../pickups/list/pickupRows';
 import { usePickupList } from '../pickups/useOpenPickups';
 import { PickupListCount } from './PickupListCount';
 import { REGION_LABEL, describePosition, describeRegion, formatAudioTime, paragraphRefs, plural, recordedTo, verdict } from './recordingCheckText';
-import { TakeReviewPickups } from './TakeReviewPickups';
+import { ProofPickupNotes } from './ProofPickupNotes';
 
 // A pickup is one of the check's own interior gaps: a place worth reading
 // on its own. An unread start or end is unfinished recording, not a pickup - recordedTo() states it in the
@@ -59,8 +59,8 @@ export function RecordingCheckReport({
   const [paragraphsOpen, setParagraphsOpen] = useState(false);
   const pickups = report.regions.filter((region) => PICKUP_KINDS.has(region.kind));
   const api = useApi();
-  // The chapter's other pickups - take review's unreviewed repeated
-  // reads, a different kind from the check's own gaps above. A background count with nothing to guard or retry, so
+  // The chapter's other pickups - its unreviewed pickup notes on Proof (the Booth's read-aloud restarts, and any group the
+  // retired take review saved), a different kind from the check's own gaps above. A background count with nothing to guard or retry, so
   // a failure is silent (SILENT_CATCHES) and just leaves it out of the list.
   const [otherPickups, setOtherPickups] = useState<number>();
   useEffect(() => {
@@ -168,7 +168,7 @@ export function RecordingCheckReport({
             })}
           </ul>
         )}
-        <TakeReviewPickups count={otherPickups ?? 0} />
+        <ProofPickupNotes chapterId={chapter.id} count={otherPickups ?? 0} />
         <PickupListCount available={pickupsCapability.available} remaining={pickupsRemaining} />
       </section>
       {report.paragraphs.length > 0 && (

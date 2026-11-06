@@ -113,6 +113,16 @@ H.test('the Cuts track is created once, at the end, and a second cut reuses it',
   H.eq(#cuts_track(s).items, 2)
 end)
 
+H.test('the Cuts track goes at the top level even when the project ends inside an open folder, and no track changes folder', function()
+  local s, p = project()
+  p.chapter.folder_depth = 1 -- Chapter 2 is Chapter 1's child and the folder is left open at the end
+  local before = H.parents(s)
+  s:send('delete_range', 'c1', p.item.guid, '14', '16', 'close', '0')
+  H.eq(s:events()[1][1], 'RANGE_CUT')
+  local after = H.same_parents(before, s)
+  H.eq(after.Cuts, '')
+end)
+
 H.test('a track named Cuts without the key is used, keyed and muted; a keyed Cuts track the narrator unmuted is muted again', function()
   local s, p = project()
   local named = s.fake:add_track('Cuts')
@@ -484,9 +494,10 @@ H.test('delete_range without pad or room tone is unchanged', function()
   H.eq(#room_tone_pieces(p.chapter), 0)
 end)
 
-H.test('a fade field with more than fade, pad and room tone is refused as a fade', function()
+-- The fourth part is the chapter's folder (folder_edit_test.lua); a fifth is nothing the command knows.
+H.test('a fade field with more than fade, pad, room tone and folder is refused as a fade', function()
   local s, p = with_room_tone()
-  refused(s, p, 'The fade must be a whole number of milliseconds from 0 to 500.', p.item.guid, '14', '16', 'gap', '0', '', '1', 'x')
+  refused(s, p, 'The fade must be a whole number of milliseconds from 0 to 500.', p.item.guid, '14', '16', 'gap', '0', '', '1', 'x', 'y')
 end)
 
 -- 8. gap trims by item and seconds (SN-E112) ---------------------------------------------------------------------------

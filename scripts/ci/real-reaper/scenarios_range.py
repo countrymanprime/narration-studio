@@ -250,6 +250,9 @@ def fx_range_edit(env: Env) -> str:
     mix = env.render_mix("param", 0.0, 12.0)
     near(db(mix.tone(4.2, 5.8, 440.0) / mix.tone(1.0, 3.0, 440.0)), -6.0, 0.4, "the changed setting is heard (dB)")
     assert env.snapshot()["undo"] == undo_label("change effect setting"), env.snapshot()["undo"]
+    # Editing's Undo (#3016): the setting is the set_fx_param kind, and no other kind reads it.
+    assert env.ok("last_action", "set_fx_param", until="LAST_ACTION")[3] == "this", "set_fx_param is not REAPER's last action"
+    assert env.ok("last_action", "add_range_fx", until="LAST_ACTION")[3] == "other", "the add kind reads a setting change"
     same = env.ok("fx_range_set_param", item, take, CHAIN, "0", str(first_param), str(value), until="RANGE_FX_PARAM_SET")
     assert same[8] == "0", f"setting it again opened {same[8]} undo points"
     env.refused("fx_range_set_param", item, take, CHAIN, "0", str(first_param), "999999")
@@ -270,6 +273,8 @@ def fx_range_edit(env: Env) -> str:
     assert again[6] == "0", f"bypassing again opened {again[6]} undo points"
     on = env.ok("fx_range_bypass", item, take, CHAIN, "0", until="RANGE_FX_BYPASSED")
     assert on[6] == "1"
+    assert env.ok("last_action", "enable_fx", until="LAST_ACTION")[3] == "this", "enable_fx is not REAPER's last action"
+    assert env.ok("last_action", "bypass_fx", until="LAST_ACTION")[3] == "other", "the bypass kind reads a turn-on"
     env.refused("fx_range_params", GUID_NONE, "", CHAIN, tag="ITEM_STALE")
     return f"setting {first_param} range {low}..{high} set to {value}; bypass and un-bypass each one point; both heard"
 

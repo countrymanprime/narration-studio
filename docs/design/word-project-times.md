@@ -8,7 +8,7 @@ The follow-along used to map the play head through each item's position, trim, r
 
 ## The table
 
-`internal/wordtimes.Compute` takes the alignment's tokens (each: the alignment item, the start and end in that item's source file, in seconds) and the items on the chapter's linked track as the DAW has them now (`chapter_track_state`: GUID, position, length, source offset, play rate, source file, muted). Each word becomes a row:
+`internal/wordtimes.Compute` takes the alignment's tokens (each: the alignment item, the start and end in that item's source file, in seconds) and the items on the chapter's linked track as the DAW has them now (`chapter_track_state`: GUID, position, length, source offset, play rate, source file, muted), and on every track inside it when the link is a REAPER folder of voices. Each word becomes a row:
 
 | Field | Meaning |
 | --- | --- |

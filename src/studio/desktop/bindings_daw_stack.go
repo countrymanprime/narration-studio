@@ -76,9 +76,21 @@ type stackSources struct {
 	saved    func() (tracks.Project, error)
 }
 
-// stackSourcesIn reads svc's passage map against the current manuscript, the chapter's one linked track through the
+// stackSourcesIn reads svc's passage map against the current manuscript, the chapter's audio (its linked track, or the voices inside its linked folder) through the
 // track_state role (trackState is that capability's support), and the selected .rpp.
 func (h *Host) stackSourcesIn(svc hostServices, trackState dawport.Support) stackSources {
+	return h.stackSourcesReading(svc, trackState, chapterItemsRead)
+}
+
+// chapterItemsRead is the live read an edit plans from: the linked track's items, and for a chapter linked to a folder of voices the items of
+// every track inside it, each carrying its track (dawport.ChapterAudioState). The Lua edit commands name an item by GUID and act on that item's
+// own track, so a voice's item is edited where it is (#3043).
+func chapterItemsRead(ctx context.Context, reader trackStateReader, guid string) (dawport.TrackState, error) {
+	return dawport.ChapterAudioState(ctx, reader, guid)
+}
+
+// stackSourcesReading is stackSourcesIn with the live read given, so a test can pass its own.
+func (h *Host) stackSourcesReading(svc hostServices, trackState dawport.Support, read func(context.Context, trackStateReader, string) (dawport.TrackState, error)) stackSources {
 	return stackSources{
 		passages: func(chapterID string) ([]passagetakes.StackPassage, error) {
 			book, err := passageMapBook(svc.manuscript)()
@@ -108,7 +120,7 @@ func (h *Host) stackSourcesIn(svc hostServices, trackState dawport.Support) stac
 				}
 				return nil, nil, bridge.ErrUnavailable
 			}
-			state, err := reader.ChapterTrackState(ctx, guid)
+			state, err := read(ctx, reader, guid)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -163,6 +175,7 @@ func dawRestackIn(ctx context.Context, svc hostServices, support dawport.Support
 	if refusedPlan != nil {
 		return *refusedPlan, nil
 	}
+	request.ChapterTrack = chapterFolderOf(svc, chapterID)
 	result, err := act(ctx, request)
 	if err != nil {
 		return stackRefusal(name, err), nil

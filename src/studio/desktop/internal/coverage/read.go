@@ -1,6 +1,7 @@
 package coverage
 
 import (
+	"desktop/internal/creditsid"
 	"desktop/internal/evidence"
 	"desktop/internal/tracks"
 )
@@ -185,7 +186,7 @@ func (s *Service) evaluate(project tracks.Project, projectFile evidence.LedgerPr
 	if stored.DocumentID != basis.DocumentID || stored.ManuscriptHash != basis.Hash || evaluation.Record.Scope.DocumentID != basis.DocumentID {
 		answer.State = evidence.StateStale
 		reason := ReasonManuscriptChanged
-		if _, isCredits := CreditsKind(basis.ChapterID); isCredits {
+		if _, isCredits := creditsid.Kind(basis.ChapterID); isCredits {
 			reason = ReasonCreditsChanged
 		}
 		answer.Reasons = append(answer.Reasons, string(reason))

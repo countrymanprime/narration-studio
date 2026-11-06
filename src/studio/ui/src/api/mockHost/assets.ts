@@ -2,7 +2,7 @@
 import type { NarrationApi } from '../../types';
 import { createTeleprompterMock } from '../teleprompterMock';
 import { createInstallMock, installSeedFor, LOCAL_ASSETS_SEEDS } from '../assetInstallMock';
-import type { AssetInstallState } from '../contracts/assets';
+import type { AssetInstallState, AssetMoveState } from '../contracts/assets';
 import type { CoverageEngines } from '../contracts/coverage';
 import { MOCK_DICTIONARY, MOCK_DICTIONARY_DISK_SIZE, MOCK_DICTIONARY_DOWNLOAD_SIZE } from '../dictionaryMock';
 import { MOCK_ANALYSIS_TOOLS } from './analysisTools';
@@ -48,6 +48,12 @@ const MOCK_OTHER_VOICES: ReadonlyArray<AssetFactsSource & { locale: string }> = 
 /** Where the mock says downloaded assets are kept. */
 export const MOCK_ASSET_ROOT = `C:/Users/narrator/AppData/Local/${brand.identity.dataFolder}/assets`;
 
+/** The folder the mock's picker answers with, and where `?mockMove=moved` boots. */
+export const MOCK_MOVED_ROOT = 'D:/Audio/Narration models';
+
+const IDLE_MOVE: AssetMoveState = { id: '', startedAt: '', phase: 'idle', target: '', message: '', percent: 0, bytesDone: 0, bytesTotal: 0, error: '' };
+const MOVE_FAILURE = 'The disk filled up while the models were being copied. Free some space or choose another folder. Your models are still where they were.';
+
 /** The asset bindings: the preview voice, the Whisper and Moonshine models, the language model and the dictionary. */
 export function createAssetsMock(initial: MockApiSeed) {
   let ttsInstalled = false;
@@ -84,7 +90,7 @@ export function createAssetsMock(initial: MockApiSeed) {
   const otherVoice = (id: string) => otherVoices.find(({ voice }) => voice.id === id);
   const otherVoiceJob = (jobId: string) => otherVoices.find(({ voice }) => jobId.startsWith(`mock-other-voice-${voice.id}-`));
   // Whisper defaults to already installed so existing setup/run flows are not
-  // gated in every test; a dedicated scenario calls whisperRemove first to
+  // gated in every test; a dedicated scenario removes it first (assetsRemove) to
   // exercise the asset_required prompt.
   // A download seed boots without the model, so a page that needs it asks to download it.
   // The seeds for the Local assets page (installing, checking, damaged) keep it installed, so the page shows a mix of states.
@@ -192,6 +198,24 @@ export function createAssetsMock(initial: MockApiSeed) {
       dictionaryState = 'installed';
     },
   });
+  // Moving the downloads: the folder in use, the old copy awaiting an answer, and the one move. One step for each time it is asked how it is
+  // going, as the scripted installs are; the seeds hold it at copying or checking, or fail it.
+  let root = initial.assetMove === 'moved' ? MOCK_MOVED_ROOT : MOCK_ASSET_ROOT;
+  let previousRoot = initial.assetMove === 'moved' ? MOCK_ASSET_ROOT : '';
+  let move: AssetMoveState = IDLE_MOVE;
+  let moveStep = 0;
+  // What the move copies: what the page says is used, set when a move starts (listUsed).
+  let moveBytes = 495_000_000;
+  let listUsed: () => Promise<number> = async () => moveBytes;
+  const moveAt = (phase: AssetMoveState['phase'], percent: number, message: string, error = ''): AssetMoveState => ({
+    ...move,
+    phase,
+    percent,
+    message,
+    error,
+    bytesDone: Math.floor((moveBytes * percent) / 100),
+    bytesTotal: moveBytes,
+  });
   const installMockFor = (jobId: string) =>
     otherVoiceJob(jobId)?.install ??
     (jobId.startsWith('mock-voice')
@@ -203,7 +227,18 @@ export function createAssetsMock(initial: MockApiSeed) {
           : jobId.startsWith('mock-dictionary')
             ? dictionaryInstall
             : modelInstall);
-  const mockWhisperModel = { ...mockWhisperIdentity, downloadSize: 483546902 + 2370 + 2203239 + 459861, installState: 'not_installed' as const };
+  const mockWhisperModel = {
+    ...mockWhisperIdentity,
+    ...(initial.assetNames === 'long'
+      ? { displayName: 'Small, multilingual, int8 weights for CTranslate2 (faster-whisper-small-ct2-int8-multilingual-2026-release)' }
+      : {}),
+    downloadSize: 483546902 + 2370 + 2203239 + 459861,
+    installState: 'not_installed' as const,
+  };
+  // What Check the files found, by `kind/id`, over the state the booleans above give: `?mockAssetsVerify=damaged|absent` sets it, and an
+  // install that succeeds or a removal clears it. The time of the last check that found the files whole, for `verifiedAt`.
+  const found = new Map<string, AssetInstallState>();
+  const checkedAt = new Map<string, string>();
   // The first-use gate every Whisper start has (teleprompter, recording coverage): undefined once the model is installed.
   const whisperAssetRequired = () =>
     whisperInstalled
@@ -243,20 +278,18 @@ export function createAssetsMock(initial: MockApiSeed) {
           installPath: MOCK_ASSET_ROOT + '/whisper/faster-whisper/small',
         };
   };
+  // What a check of every byte finds on this mock computer.
+  const whatIsThere = (kind: string, id: string): AssetInstallState => {
+    const earlier = found.get(`${kind}/${id}`);
+    if (earlier) return earlier;
+    if (kind === 'dictionary') return dictionaryState;
+    const other = kind === 'tts' ? otherVoice(id) : undefined;
+    if (other) return other.voice.installed ? 'installed' : 'not_installed';
+    if (kind === 'whisper') return whisperState();
+    const installed = kind === 'tts' ? ttsInstalled : kind === 'spacy' ? spacyInstalled : kind === 'moonshine' && moonshineInstalled;
+    return installed ? 'installed' : 'not_installed';
+  };
   const bindings = {
-    ttsCatalog: async () => ({
-      catalogVersion: 1,
-      provider: { id: 'piper', effectiveSource: 'repo_default' },
-      voice: { id: mockVoice.id, effectiveSource: 'repo_default' },
-      voices: [
-        { ...mockVoice, installState: ttsInstalled ? 'installed' : 'not_installed' },
-        ...otherVoices.map(({ voice: { installed, ...voice } }) => ({
-          ...voice,
-          provider: 'piper',
-          installState: installed ? ('installed' as const) : ('not_installed' as const),
-        })),
-      ],
-    }),
     ttsInstall: async (voiceId) => {
       const other = otherVoice(voiceId);
       if (other) return { ...(await other.install.start()), voiceId };
@@ -271,51 +304,38 @@ export function createAssetsMock(initial: MockApiSeed) {
       const other = otherVoiceJob(jobId);
       return other ? { ...(await other.install.cancel(jobId)), voiceId: other.voice.id } : { ...(await voiceInstall.cancel(jobId)), voiceId: mockVoice.id };
     },
-    ttsRemove: async (voiceId) => {
-      const other = otherVoice(voiceId);
-      if (other) other.voice.installed = false;
-      if (voiceId === mockVoice.id) ttsInstalled = false;
-    },
-    whisperCatalog: async () => ({
-      catalogVersion: 1,
-      model: { id: mockWhisperModel.id, effectiveSource: 'repo_default' },
-      models: [{ ...mockWhisperModel, installState: whisperState() }],
-    }),
     whisperInstall: async (modelId) => {
       if (modelId !== mockWhisperModel.id) throw new Error('Unknown approved Whisper model.');
       return { ...(await modelInstall.start()), modelId };
     },
     whisperInstallState: async (jobId) => ({ ...(await modelInstall.state(jobId)), modelId: mockWhisperModel.id }),
     whisperInstallCancel: async (jobId) => ({ ...(await modelInstall.cancel(jobId)), modelId: mockWhisperModel.id }),
-    whisperRemove: async (modelId) => {
-      if (modelId === mockWhisperModel.id) {
-        whisperInstalled = false;
-        whisperDamaged = false;
-      }
-    },
     assetsList: async () => {
       if (initial.assetsList === 'loading') return new Promise<never>(() => {});
       if (initial.assetsList === 'fails') throw new Error('The list of downloads could not be read from this computer.');
-      const item = (kind: string, kindLabel: string, model: AssetFactsSource, installState: AssetInstallState, activeJobId: string) => ({
-        kind,
-        kindLabel,
-        id: model.id,
-        displayName: model.displayName,
-        version: model.version,
-        publisher: model.publisher,
-        license: model.license,
-        licenseUrl: model.licenseUrl,
-        modelCardUrl: model.modelCardUrl,
-        provenanceUrl: model.provenanceUrl,
-        attribution: model.attribution,
-        downloadSize: model.downloadSize,
-        installState,
-        diskSize: kind === 'spacy' ? 15251718 : model.downloadSize,
-        path: `${MOCK_ASSET_ROOT}/${kind}/${model.id}`,
-        installedAt: installState === 'not_installed' ? '' : '2026-09-20T09:30:00Z',
-        verifiedAt: installState === 'installed' ? '2026-09-20T09:30:00Z' : '',
-        activeJobId,
-      });
+      const item = (kind: string, kindLabel: string, model: AssetFactsSource, listed: AssetInstallState, activeJobId: string) => {
+        const installState = found.get(`${kind}/${model.id}`) ?? listed;
+        return {
+          kind,
+          kindLabel,
+          id: model.id,
+          displayName: model.displayName,
+          version: model.version,
+          publisher: model.publisher,
+          license: model.license,
+          licenseUrl: model.licenseUrl,
+          modelCardUrl: model.modelCardUrl,
+          provenanceUrl: model.provenanceUrl,
+          attribution: model.attribution,
+          downloadSize: model.downloadSize,
+          installState,
+          diskSize: kind === 'spacy' ? 15251718 : model.downloadSize,
+          path: `${MOCK_ASSET_ROOT}/${kind}/${model.id}`,
+          installedAt: installState === 'not_installed' ? '' : '2026-09-20T09:30:00Z',
+          verifiedAt: installState === 'installed' ? (checkedAt.get(`${kind}/${model.id}`) ?? '2026-09-20T09:30:00Z') : '',
+          activeJobId,
+        };
+      };
       const voice = item('tts', 'Preview voice', mockVoice, ttsInstalled ? 'installed' : 'not_installed', voiceInstall.activeId());
       const others = otherVoices.map(({ voice: other, install }) =>
         item('tts', 'Preview voice', other, other.installed ? 'installed' : 'not_installed', install.activeId()),
@@ -344,14 +364,15 @@ export function createAssetsMock(initial: MockApiSeed) {
         activeJobId: '',
       }));
       return {
-        cacheRoot: MOCK_ASSET_ROOT,
-        // Only what verifies counts: a damaged asset is not one the app can use.
-        totalInstalledBytes:
-          (ttsInstalled ? voice.diskSize : 0) +
-          others.reduce((sum, other) => sum + (other.installState === 'installed' ? other.diskSize : 0), 0) +
-          (whisperInstalled && !whisperDamaged ? model.diskSize : 0) +
-          (spacyInstalled ? language.diskSize : 0) +
-          (dictionaryState === 'installed' ? dictionary.diskSize : 0),
+        cacheRoot: root,
+        defaultRoot: MOCK_ASSET_ROOT,
+        custom: root !== MOCK_ASSET_ROOT,
+        previousRoot,
+        folderNote: '', // Only what verifies counts: a damaged asset is not one the app can use.
+        totalInstalledBytes: [voice, ...others, model, language, dictionary].reduce(
+          (sum, listed) => sum + (listed.installState === 'installed' ? listed.diskSize : 0),
+          0,
+        ),
         assets: [voice, ...others, model, language, dictionary, ...analysis],
       };
     },
@@ -364,18 +385,75 @@ export function createAssetsMock(initial: MockApiSeed) {
       if (kind === 'dictionary' && id === MOCK_DICTIONARY.id) return dictionaryInstall.start();
       throw new Error(`"${id}" is not in the approved catalog of ${kind}`);
     },
-    assetsInstallState: async (jobId) => installMockFor(jobId).state(jobId),
+    assetsInstallState: async (jobId) => {
+      const job = await installMockFor(jobId).state(jobId);
+      if (job.phase === 'success') found.delete(`${job.kind}/${job.assetId}`);
+      return job;
+    },
     assetsInstallCancel: async (jobId) => installMockFor(jobId).cancel(jobId),
     assetsVerify: async (kind, id) => {
-      if (kind === 'dictionary') return { kind, id, installState: dictionaryState };
-      const other = kind === 'tts' ? otherVoice(id) : undefined;
-      if (other) return { kind, id, installState: other.voice.installed ? ('installed' as const) : ('not_installed' as const) };
-      const installed = kind === 'tts' ? ttsInstalled : kind === 'spacy' ? spacyInstalled : kind === 'moonshine' ? moonshineInstalled : whisperInstalled;
-      if (kind === 'whisper' && whisperDamaged) return { kind, id, installState: 'verification_failed' as const };
-      return { kind, id, installState: installed ? ('installed' as const) : ('not_installed' as const) };
+      const key = `${kind}/${id}`;
+      const seed = initial.assetsVerify;
+      if (seed === 'hangs') return new Promise<never>(() => {});
+      // A real check reads every byte; a short wait lets the busy row be seen.
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      if (seed === 'fails') throw new Error('Access is denied to model.bin.');
+      if (seed === 'silent') throw new Error('');
+      if (seed === 'damaged' || seed === 'absent') {
+        found.set(key, seed === 'damaged' ? 'verification_failed' : 'not_installed');
+        return { kind, id, installState: found.get(key)! };
+      }
+      const answer = { kind, id, installState: whatIsThere(kind, id) };
+      if (answer.installState === 'installed') checkedAt.set(key, new Date().toISOString());
+      return answer;
     },
     assetsOpenFolder: async () => {},
+    assetsFolderPick: async () => ({ path: initial.assetMove === 'cancel' ? '' : MOCK_MOVED_ROOT }),
+    assetsMoveStart: async (target) => {
+      if (previousRoot) throw new Error(`The old copy in ${previousRoot} is still on this computer: delete it or keep it before moving the models again.`);
+      if (move.phase === 'copying' || move.phase === 'verifying') throw new Error('The models are already being moved.');
+      const to = target === '' ? MOCK_ASSET_ROOT : target;
+      if (!/^([A-Za-z]:[\\/]|\/)/.test(to)) throw new Error('Choose a folder by its full path.');
+      if (to === root) throw new Error('The models are already in that folder.');
+      moveStep = 0;
+      moveBytes = await listUsed();
+      move = { ...IDLE_MOVE, id: `mock-move-${Date.now()}`, startedAt: new Date().toISOString(), target: to };
+      move = moveAt('copying', 0, 'Copying the models…');
+      return move;
+    },
+    assetsMoveState: async () => {
+      if (move.phase !== 'copying' && move.phase !== 'verifying') return move;
+      moveStep += 1;
+      const seed = initial.assetMove;
+      if (seed === 'copying') move = moveAt('copying', 40, 'Copying the models…');
+      else if (seed === 'verifying') move = moveAt('verifying', 80, 'Checking the copy…');
+      else if (seed === 'fails') move = moveAt('error', 40, MOVE_FAILURE, MOVE_FAILURE);
+      else if (moveStep === 1) move = moveAt('copying', 30, 'Copying the models…');
+      else if (moveStep === 2) move = moveAt('verifying', 70, 'Checking the copy…');
+      else {
+        previousRoot = root;
+        root = move.target;
+        // Moving back to the default folder is no longer a custom location.
+        move = moveAt('success', 100, 'The models are in the new folder and in use.');
+      }
+      return move;
+    },
+    assetsMoveCancel: async () => {
+      if (move.phase === 'copying' || move.phase === 'verifying') {
+        move = moveAt('cancelled', 0, 'The move was cancelled. Your models are still where they were.');
+      }
+      return move;
+    },
+    assetsMoveDeleteOld: async () => {
+      if (!previousRoot) throw new Error('There is no old copy to answer for.');
+      previousRoot = '';
+    },
+    assetsMoveKeepOld: async () => {
+      if (!previousRoot) throw new Error('There is no old copy to answer for.');
+      previousRoot = '';
+    },
     assetsRemove: async (kind, id) => {
+      found.delete(`${kind}/${id}`);
       const other = kind === 'tts' ? otherVoice(id) : undefined;
       if (other) other.voice.installed = false;
       else if (kind === 'tts') ttsInstalled = false;
@@ -388,6 +466,7 @@ export function createAssetsMock(initial: MockApiSeed) {
       }
     },
   } satisfies Partial<NarrationApi>;
+  listUsed = async () => (await bindings.assetsList()).totalInstalledBytes;
   return {
     bindings,
     ttsInstalled: () => ttsInstalled,

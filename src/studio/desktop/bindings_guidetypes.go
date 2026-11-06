@@ -17,6 +17,16 @@ func (h *Host) GuideTypes() (string, error) {
 	return encodeBinding(types, err)
 }
 
+// GuideTypesChanged is whether the Story Bible's types differ from the default six: a type added, renamed, recoloured, set to
+// speak or not, removed or moved. Settings > Changed reads it (guide.Service.TypesChanged). It answers a JSON boolean.
+func (h *Host) GuideTypesChanged() (string, error) {
+	service := h.services().guide
+	if service == nil {
+		return "", fmt.Errorf("the Story Bible is unavailable")
+	}
+	return encodeBinding(service.TypesChanged())
+}
+
 // GuideTypeAdd adds a type at the end, with the next colour, that does not speak. An empty, taken or reserved name is refused.
 func (h *Host) GuideTypeAdd(name string) (string, error) {
 	service := h.services().guide

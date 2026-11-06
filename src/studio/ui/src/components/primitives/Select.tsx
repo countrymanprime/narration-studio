@@ -1,5 +1,6 @@
 import type { ComponentPropsWithRef } from 'react';
 import type { ControlNaming } from './controlNaming';
+import { SELECT_BOX_CLASSES } from './selectBox';
 
 // `group` heads an `<optgroup>`: consecutive options with the same group sit under one heading, and an option with none sits outside any.
 type SelectOption = { value: string; label: string; group?: string };
@@ -15,13 +16,6 @@ type Props = Omit<ComponentPropsWithRef<'select'>, 'aria-label' | 'id' | 'value'
     placeholder?: string;
   };
 
-// The placeholder option's own value: a string no caller's option can have, so `onChange` can never report it.
-// The closed select is drawn by us, not the operating system: its own caret (two gradients in --text-muted, so it follows the theme) in 2 rem
-// kept clear at the right, so it looks like the app's other pickers beside it (the Booth's chapter picker, alignment audit XBO-20) and a long
-// label stops before the caret (R3MS-19). The list it opens stays the native one.
-const SELECT_CLASSES =
-  'box-border h-[var(--control-height)] appearance-none rounded-[var(--control-radius)] border border-[var(--line-strong)] bg-[var(--surface)] bg-no-repeat py-0 pr-8 pl-3 text-[0.88rem] leading-[1.35] text-[var(--text)] [background-image:linear-gradient(45deg,transparent_50%,var(--text-muted)_50%),linear-gradient(135deg,var(--text-muted)_50%,transparent_50%)] [background-position:calc(100%-1rem)_50%,calc(100%-0.6875rem)_50%] [background-size:0.3125rem_0.3125rem,0.3125rem_0.3125rem]';
-
 /**
  * The width limits Select adds when its caller sets none: it stays inside its container (`max-w-full`) and may shrink in a flex row (`min-w-0`), so a very long name
  * ends in an ellipsis instead of widening the box. A caller's own `max-w-*` or `min-w-*` replaces it: the stylesheet orders `max-w-full` after `max-w-80` and
@@ -32,6 +26,7 @@ function limits(className: string): string {
   return `${own('max') ? '' : 'max-w-full'} ${own('min') ? '' : 'min-w-0'}`.trim();
 }
 
+// The placeholder option's own value: a string no caller's option can have, so `onChange` can never report it.
 const PLACEHOLDER_VALUE = '\u0000placeholder';
 
 const SelectOptionRow = ({ option }: { option: SelectOption }) => <option value={option.value}>{option.label}</option>;
@@ -62,7 +57,7 @@ export function Select({ label, value, onChange, options, fullWidth = false, pla
       onChange={(event) => event.target.value !== PLACEHOLDER_VALUE && onChange(event.target.value)}
       // A fixed height, not a minimum: a native <select> doesn't resolve `leading-[1.35]` the way an <input> or a styled
       // div does, so pinning the height is what makes it match TextField and Button (`--control-height`, 36px).
-      className={`${SELECT_CLASSES} truncate ${limits(className)} ${fullWidth ? 'w-full' : ''} ${className}`}
+      className={`${SELECT_BOX_CLASSES} truncate ${limits(className)} ${fullWidth ? 'w-full' : ''} ${className}`}
       title={shown}
     >
       {showPlaceholder && (
@@ -82,16 +77,5 @@ export function Select({ label, value, onChange, options, fullWidth = false, pla
         ),
       )}
     </select>
-  );
-}
-
-// The select's closed box as a button, for a picker whose list is not a native `<select>`'s (the track picker's tree in a popover). It
-// is drawn as `Select` is, with the same caret, height and edge, so the two read as one control; `children` is the shown value. It
-// forwards its props and ref, so a `Popover` trigger or any `render` can use it. The caller names it (`aria-label`).
-export function SelectTrigger({ fullWidth = false, className = '', children, ...rest }: ComponentPropsWithRef<'button'> & { fullWidth?: boolean }) {
-  return (
-    <button type="button" {...rest} className={`${SELECT_CLASSES} flex items-center overflow-hidden text-left ${fullWidth ? 'w-full' : ''} ${className}`}>
-      {children}
-    </button>
   );
 }

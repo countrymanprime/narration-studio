@@ -29,6 +29,11 @@ export function noAudioText(audio: Exclude<ChapterAudio, { kind: 'ready' }>, cha
         next: 'The script is shown without what was heard.',
       };
     case 'empty':
+      if (audio.folder)
+        return {
+          headline: `${chapter}’s folder has no audio on any of its voice tracks, so there is nothing to edit.`,
+          next: `Record the chapter onto a voice track inside that folder in ${daw}, then save the project.`,
+        };
       return {
         headline: `${chapter}’s track has no audio on it, so there is nothing to edit.`,
         next: `Record or import the chapter onto that track in ${daw}, then save the project.`,

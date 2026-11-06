@@ -1,7 +1,6 @@
 import type { DawCapabilities, DawChoice, DawProjectState } from '../../../api/contracts/daw';
 import { recordsInApp } from '../../../studio/dawNames';
-import { HeaderChip } from '../../primitives/HeaderChip';
-import { TooltipTarget } from '../../primitives/Tooltip';
+import { EngineChipButton } from '../../engine/EngineChipButton';
 
 const UNSAVED = 'unsaved changes in the project';
 
@@ -21,13 +20,11 @@ function stateDetail(choice: DawChoice): string {
     case 'starting':
       return `${linked} · opening ${daw}, connecting on its own`;
     case 'linked':
-      return `${linked} · not running · start it from Recording settings`;
+      return `${linked} · not running · start it in the DAW`;
     case 'not_running':
       return `${linked} · not running`;
     case 'not_linked':
-      return foundFiles.length === 1
-        ? `${daw} not linked · link ${foundFiles[0]} in Recording settings`
-        : `${daw} not linked · link its project file in Recording settings`;
+      return foundFiles.length === 1 ? `${daw} not linked · link ${foundFiles[0]}` : `${daw} not linked · link its project file`;
     case 'app':
       return 'Recording happens in the app';
     default:
@@ -37,8 +34,8 @@ function stateDetail(choice: DawChoice): string {
 
 /**
  * The Booth top bar's recording-setup chip (the mock's `bsetup`): the name of what records, read from the capabilities. A setup
- * with no DAW has no name of its own to read, so the page passes the one it words. The chip is a button when `onClick` opens the
- * recording settings, where the project's engine is chosen. With the project's DAW choice (`choice`), the chip's text, tooltip and
+ * with no DAW has no name of its own to read, so the page passes the one it words. A DAW's chip is a button: like the header's engine chip it opens the Audio engine panel (`EngineChipButton`),
+ * whose Recording settings link is where the project's engine is chosen. The app's own recorder's chip opens Recording settings instead. With the project's DAW choice (`choice`), the chip's text, tooltip and
  * name say whether that DAW is linked, connected or not running, and the tone warns until it is connected. When the host reports
  * that the DAW's project has changes its saved file does not have (`DawProjectState`), the chip says so in its tooltip and its name.
  * `otherProject` is the setup notice's own finding that the DAW has another project open: connected, but not ready, so the chip warns
@@ -50,14 +47,12 @@ export function SetupChip({
   project,
   choice,
   otherProject = false,
-  onClick,
 }: {
   capabilities: DawCapabilities;
   standaloneName: string;
   project?: DawProjectState | null;
   choice?: DawChoice | null;
   otherProject?: boolean;
-  onClick?: () => void;
 }) {
   const standalone = choice ? choice.state === 'app' || choice.state === 'none' : capabilities.daw === 'none' || recordsInApp(capabilities.daw);
   const name = standalone ? standaloneName : (choice?.daw ?? capabilities.daw);
@@ -72,18 +67,21 @@ export function SetupChip({
         : `${name} linked`;
   const unsaved = capabilities.reachable && !!project?.unsavedChanges;
   // The project's DAW short of connected says how far it got in the chip itself, not only in the tooltip.
-  const stateWords = otherProject ? 'other project' : choice && !standalone && choice.state !== 'connected' ? choice.state.replace('_', ' ') : '';
+  const stateWords = otherProject
+    ? 'other project'
+    : choice && !standalone && choice.state !== 'connected'
+      ? choice.state === 'linked'
+        ? 'not running'
+        : choice.state.replace('_', ' ')
+      : '';
   const state = stateWords ? `, ${stateWords}` : '';
+  const tooltip = `${otherProject ? `${detail} · ${name} has a different project open` : detail}${unsaved ? ` · ${UNSAVED}` : ''}`;
+  const aria = `Recording setup: ${name}${state}${unsaved ? `, ${UNSAVED}` : ''}`;
+  // The app's own recorder has no DAW to link, so, as in the header, its chip goes straight to Recording settings.
+  const destination = standalone ? 'recording-settings' : 'engine-panel';
   return (
-    <TooltipTarget text={`Recording settings · ${otherProject ? `${detail} · ${name} has a different project open` : detail}${unsaved ? ` · ${UNSAVED}` : ''}`}>
-      <HeaderChip
-        tone={tone}
-        onClick={onClick}
-        role={onClick ? undefined : 'group'}
-        aria-label={`Recording setup: ${name}${state}${unsaved ? `, ${UNSAVED}` : ''}`}
-      >
-        {stateWords ? `${name} · ${stateWords}` : name}
-      </HeaderChip>
-    </TooltipTarget>
+    <EngineChipButton destination={destination} tooltip={tooltip} tone={tone} label={aria}>
+      {stateWords ? `${name} · ${stateWords}` : name}
+    </EngineChipButton>
   );
 }

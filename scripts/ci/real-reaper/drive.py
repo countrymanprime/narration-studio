@@ -40,6 +40,8 @@ SUITES = [
     "scenarios_replace",
     "scenarios_playtrack",
     "scenarios_wordtimes",
+    "scenarios_booth_voices",
+    "scenarios_tracks_read",
     "scenarios_perf",
 ]  # modules that register scenarios with scenario.scenario()
 REGIONS = [(0.0, 20.0, "Chapter 1"), (20.0, 40.0, "Chapter 2"), (40.0, 60.0, "Chapter 3")]

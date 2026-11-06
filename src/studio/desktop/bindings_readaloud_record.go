@@ -9,6 +9,7 @@ import (
 
 	"desktop/internal/bridge"
 	"desktop/internal/dawport"
+	"desktop/internal/presstimeline"
 )
 
 // Record in REAPER: arming a chapter's linked track, and starting and stopping a REAPER recording alongside a reading
@@ -27,15 +28,13 @@ const (
 // starts listening and the bar says why, the same as any other refusal.
 const readAloudRecordStartTimeout = 3 * time.Second
 
-// ReadAloudRecording is what an arm, a record start or a record stop did, in the shape the control bar reads. Outcome
-// is "armed", "started", "stopped" or "refused" (Reason and Message say why; nothing in REAPER changed for a refusal).
+// ReadAloudRecording is what a record start or a record stop did, in the shape the control bar reads. Outcome
+// is "started", "stopped" or "refused" (Reason and Message say why; nothing in REAPER changed for a refusal).
 type ReadAloudRecording struct {
 	Outcome   string   `json:"outcome"`
 	Reason    string   `json:"reason,omitempty"`
 	Message   string   `json:"message,omitempty"`
 	TrackGUID string   `json:"trackGuid,omitempty"`
-	Disarmed  *int     `json:"disarmed,omitempty"`
-	Changed   *bool    `json:"changed,omitempty"`
 	Position  *float64 `json:"position,omitempty"`
 	Restored  *int     `json:"restored,omitempty"`
 	Kept      *int     `json:"kept,omitempty"`
@@ -139,37 +138,6 @@ func readAloudRecordRefusal(name string, err error) ReadAloudRecording {
 	return readAloudRefused(refusedFailed, fmt.Sprintf("%s could not do that: %s.", name, err.Error()))
 }
 
-// readAloudArmOnlyIn arms chapterID's linked track and disarms every other one (the "Arm Chapter N only" action),
-// refusing while the DAW records. It changes nothing in the reading session. recorder is nil exactly when
-// recorderFrom would answer nil (no resolver, a DAW that does not report record, or the DAW not reachable).
-func readAloudArmOnlyIn(ctx context.Context, svc hostServices, recorder dawport.Recorder, chapterID string) (ReadAloudRecording, error) {
-	name := readAloudAdapterName(svc)
-	if status := reaperStatus(svc); status.Connection != reaperConnected {
-		return readAloudConnectionRefusal(name, status.Connection), nil
-	}
-	if recorder == nil {
-		return readAloudUnsupportedRefusal(name), nil
-	}
-	guid, refused, err := readAloudTrackGUID(svc, chapterID)
-	if err != nil {
-		return ReadAloudRecording{}, err
-	}
-	if refused != nil {
-		return *refused, nil
-	}
-	armed, err := recorder.ArmOnly(ctx, guid)
-	if err != nil {
-		return readAloudRecordRefusal(name, err), nil
-	}
-	disarmed, changed := armed.Disarmed, armed.Changed
-	return ReadAloudRecording{Outcome: "armed", TrackGUID: armed.TrackGUID, Disarmed: &disarmed, Changed: &changed}, nil
-}
-
-func (h *Host) ReadAloudArmOnly(chapterID string) (string, error) {
-	svc := h.services()
-	return encodeBinding(readAloudArmOnlyIn(context.Background(), svc, recorderFrom(svc), chapterID))
-}
-
 // readAloudRecordStartIn is Record: it arms chapterID's linked track alone (the narrator's other arms are remembered
 // and come back on stop), then starts recording at the end of the track's last item, and waits for ctx's
 // deadline for the DAW to confirm. A precondition that fails first - playing, already recording - refuses before
@@ -194,8 +162,24 @@ func readAloudRecordStartAtIn(ctx context.Context, svc hostServices, recorder da
 }
 
 // readAloudRecordStartFrom is both starts: from the end of the track's last item when at is nil, else from *at, placed
-// with puncher.
+// with puncher. Each step is stamped on the record-press timeline, which ends with what the start answered.
 func readAloudRecordStartFrom(ctx context.Context, svc hostServices, recorder dawport.Recorder, puncher dawport.Puncher, reader trackStateReader, chapterID string, at *float64) (ReadAloudRecording, error) {
+	timeline := presstimeline.From(ctx)
+	timeline.Mark("record_call")
+	result, err := readAloudRecordStartSteps(ctx, svc, recorder, puncher, reader, chapterID, at)
+	outcome := result.Outcome
+	switch {
+	case err != nil:
+		outcome = "error"
+	case outcome == "refused":
+		outcome = result.Reason
+	}
+	timeline.Finish("answered", outcome)
+	return result, err
+}
+
+func readAloudRecordStartSteps(ctx context.Context, svc hostServices, recorder dawport.Recorder, puncher dawport.Puncher, reader trackStateReader, chapterID string, at *float64) (ReadAloudRecording, error) {
+	timeline := presstimeline.From(ctx)
 	name := readAloudAdapterName(svc)
 	if status := reaperStatus(svc); status.Connection != reaperConnected {
 		return readAloudConnectionRefusal(name, status.Connection), nil
@@ -203,7 +187,15 @@ func readAloudRecordStartFrom(ctx context.Context, svc hostServices, recorder da
 	if recorder == nil || (at != nil && puncher == nil) {
 		return readAloudUnsupportedRefusal(name), nil
 	}
-	guid, refused, err := readAloudTrackGUID(svc, chapterID)
+	link, refused, err := readAloudTrackGUID(svc, chapterID)
+	if err != nil {
+		return ReadAloudRecording{}, err
+	}
+	if refused != nil {
+		return *refused, nil
+	}
+	// In a Voice folders chapter the link is a folder: the take records on one of its voices (bindings_booth_voice.go).
+	guid, refused, err := recordTarget(svc, chapterID, link)
 	if err != nil {
 		return ReadAloudRecording{}, err
 	}
@@ -212,6 +204,7 @@ func readAloudRecordStartFrom(ctx context.Context, svc hostServices, recorder da
 	}
 	if reader != nil {
 		state, err := reader.ChapterTrackState(ctx, guid)
+		timeline.Mark("track_state")
 		if err != nil {
 			return readAloudRecordRefusal(name, err), nil
 		}
@@ -223,12 +216,19 @@ func readAloudRecordStartFrom(ctx context.Context, svc hostServices, recorder da
 		}
 	}
 	armed, err := recorder.ArmOnly(ctx, guid)
+	timeline.Mark("armed")
 	if err != nil {
 		return readAloudRecordRefusal(name, err), nil
 	}
 	opts, message := dawport.RecordOptions{Start: bridge.AtEnd}, ""
+	if !sameTrackID(guid, link) {
+		// A voice of the chapter's folder: the take goes on after the latest item of the whole folder, not of this voice alone (#3025).
+		opts = dawport.RecordOptions{Start: bridge.ChapterEnd, Folder: link}
+	}
 	if at != nil {
-		if _, err := puncher.PunchTo(ctx, *at, 0); err != nil {
+		_, err := puncher.PunchTo(ctx, *at, 0)
+		timeline.Mark("punched")
+		if err != nil {
 			if armed.Changed {
 				putArmsBack(recorder)
 			}
@@ -237,6 +237,8 @@ func readAloudRecordStartFrom(ctx context.Context, svc hostServices, recorder da
 		opts, message = dawport.RecordOptions{Start: bridge.StartHere}, readAloudRecordingFrom(*at)
 	}
 	started, err := recorder.RecordStart(ctx, guid, opts)
+	// RecordStart answers once REAPER reports recording, which with its pre-roll on record is when the pre-roll begins.
+	timeline.Mark("recording")
 	if err != nil {
 		if armed.Changed {
 			putArmsBack(recorder)
@@ -270,9 +272,9 @@ func (h *Host) ReadAloudRecordStart(chapterID string) (string, error) {
 		return encodeBinding(h.builtinRecordStart(ctx, svc), nil)
 	}
 	recorder := recorderFrom(svc)
-	ctx, cancel := context.WithTimeout(context.Background(), readAloudRecordStartTimeout)
+	ctx, cancel := context.WithTimeout(presstimeline.With(context.Background(), h.timeline), readAloudRecordStartTimeout)
 	defer cancel()
-	result, err := readAloudRecordStartIn(ctx, svc, recorder, trackStateReaderFrom(svc), chapterID)
+	result, err := readAloudRecordStartIn(ctx, h.services(), recorder, trackStateReaderFrom(svc), chapterID)
 	if err == nil && result.Outcome == "started" {
 		h.setReadAloudRecording(chapterID, recorder)
 	}
@@ -300,9 +302,9 @@ func (h *Host) ReadAloudRecordStartAt(chapterID string, at float64) (string, err
 		return encodeBinding(builtinPunchRefusal(svc, at), nil)
 	}
 	recorder := recorderFrom(svc)
-	ctx, cancel := context.WithTimeout(context.Background(), readAloudRecordStartTimeout)
+	ctx, cancel := context.WithTimeout(presstimeline.With(context.Background(), h.timeline), readAloudRecordStartTimeout)
 	defer cancel()
-	result, err := readAloudRecordStartAtIn(ctx, svc, recorder, puncherFrom(svc), trackStateReaderFrom(svc), chapterID, at)
+	result, err := readAloudRecordStartAtIn(ctx, h.services(), recorder, puncherFrom(svc), trackStateReaderFrom(svc), chapterID, at)
 	if err == nil && result.Outcome == "started" {
 		h.setReadAloudRecording(chapterID, recorder)
 	}

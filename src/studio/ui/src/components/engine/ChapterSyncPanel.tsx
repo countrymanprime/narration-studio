@@ -4,7 +4,9 @@ import { describeApiError } from '../../api/errorMessage';
 import { useChapterSync } from '../../hooks/useChapterSync';
 import type { ChapterSyncPreview } from '../../api/contracts/chapterSync';
 import type { Notify } from '../primitives/Toast';
+import { retryAction } from '../primitives/Toast';
 import { Button } from '../primitives/Button';
+import { IconButton } from '../primitives/IconButton';
 import { Panel } from '../primitives/Panel';
 import { InsetCard } from '../primitives/InsetCard';
 import { SectionLabel } from '../primitives/SectionLabel';
@@ -24,7 +26,21 @@ import {
  * Settings (Recording & DAW › Advanced). Nothing here shows before the consent dialog has been answered (`ask`) - that is the narrator's first
  * decision, not a second copy of it here. `daw` is the DAW the project records with, which its text names.
  */
-export function ChapterSyncPanel({ notify, onChanged, daw }: { notify: Notify; onChanged: () => void; daw: ChapterSyncDaw }) {
+export function ChapterSyncPanel({
+  notify,
+  onChanged,
+  daw,
+  layout,
+  onLayoutShown,
+}: {
+  notify: Notify;
+  onChanged: () => void;
+  daw: ChapterSyncDaw;
+  /** The project's chapter layout control (docs/research/mockups/booth-voices/), drawn as the card's Layout row in both states. */
+  layout?: ReactNode;
+  /** Whether this card is drawing `layout`, so the Voices card draws it instead while Chapter sync shows nothing. */
+  onLayoutShown?: (shown: boolean) => void;
+}) {
   const api = useApi();
   const state = useChapterSync(api);
   const [preview, setPreview] = useState<ChapterSyncPreview>();
@@ -32,11 +48,16 @@ export function ChapterSyncPanel({ notify, onChanged, daw }: { notify: Notify; o
   const [picked, setPicked] = useState<Record<string, string>>({});
   const [linkingChapterId, setLinkingChapterId] = useState('');
 
-  const loadPreview = useCallback(async () => {
+  // Reading the preview changes nothing, so a failed read is an error toast with Retry (issue #2919).
+  const loadPreview = useCallback(async (): Promise<void> => {
     try {
       setPreview(await api.chapterSyncPreview());
     } catch (error) {
-      notify(describeApiError(error), 'error');
+      notify(
+        describeApiError(error),
+        'error',
+        retryAction(() => void loadPreview()),
+      );
     }
   }, [api, notify]);
 
@@ -44,7 +65,13 @@ export function ChapterSyncPanel({ notify, onChanged, daw }: { notify: Notify; o
     if (state?.consent === 'on' && state.project === 'ready') void loadPreview();
   }, [state?.consent, state?.project, state?.lastSync, loadPreview]);
 
-  if (!state || state.project !== 'ready' || state.consent === 'undecided') return null;
+  const drawn = Boolean(state && state.project === 'ready' && state.consent !== 'undecided');
+  const hasLayout = Boolean(layout);
+  useEffect(() => {
+    onLayoutShown?.(drawn && hasLayout);
+  }, [drawn, hasLayout, onLayoutShown]);
+
+  if (!state || !drawn) return null;
 
   const toggle = async (on: boolean) => {
     setToggling(true);
@@ -60,9 +87,12 @@ export function ChapterSyncPanel({ notify, onChanged, daw }: { notify: Notify; o
 
   // The on/off button is in the card's header in both states, so it never moves and the card keeps its header (alignment audit ENX-8).
   const toggleButton = (on: boolean) => (
-    <Button variant="secondary" pending={toggling} onClick={() => void toggle(on)}>
-      {on ? 'Turn on' : 'Turn off'}
-    </Button>
+    <IconButton
+      action={on ? 'turnOn' : 'turnOff'}
+      label={on ? 'Turn on chapter sync' : 'Turn off chapter sync'}
+      pending={toggling}
+      onClick={() => void toggle(on)}
+    />
   );
 
   if (state.consent === 'off') {
@@ -71,6 +101,11 @@ export function ChapterSyncPanel({ notify, onChanged, daw }: { notify: Notify; o
         <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
           Chapter sync is off.
         </p>
+        {layout && (
+          <div className="mt-2">
+            <SyncFacts rows={[{ label: 'Layout', value: layout }]} />
+          </div>
+        )}
       </Panel>
     );
   }
@@ -110,6 +145,7 @@ export function ChapterSyncPanel({ notify, onChanged, daw }: { notify: Notify; o
       <SyncFacts
         rows={[
           { label: 'Status', value: <StatusBadge tone="success" label="On" /> },
+          ...(layout ? [{ label: 'Layout', value: layout }] : []),
           { label: 'Last synced', value: facts.synced },
           { label: 'Links', value: facts.links },
           ...(background ? [{ label: 'Background checks', value: background }] : []),

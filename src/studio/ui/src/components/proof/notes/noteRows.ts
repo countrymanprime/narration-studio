@@ -137,8 +137,9 @@ export type NoteWindow = { start: number; len: number; total: number };
 /** The "In view" chip exists only while the waveform window is narrower than the chapter. */
 export const windowIsNarrow = (window: NoteWindow | undefined): window is NoteWindow => !!window && window.len < window.total;
 
+/** Whether the row is in the waveform window. A note with no time has no place in the waveform, so no window leaves it out. */
 export const inWindow = (row: NoteRow, window: NoteWindow): boolean =>
-  row.seconds !== null && row.seconds >= window.start && row.seconds <= window.start + window.len;
+  row.seconds === null || (row.seconds >= window.start && row.seconds <= window.start + window.len);
 
 /** Find in notes: what was written (the script) or said (heard), case-insensitive. */
 export function matchesFind(row: NoteRow, query: string): boolean {

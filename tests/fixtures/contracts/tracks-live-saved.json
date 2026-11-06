@@ -1,0 +1,71 @@
+{
+  "message": "REAPER is not answering, so these are the tracks as of the last save.",
+  "project": {
+    "path": "C:/Projects/Alice/Alice.rpp",
+    "tracks": [
+      {
+        "color": "",
+        "depth": 0,
+        "guid": "{11111111-1111-4111-8111-111111111111}",
+        "index": 0,
+        "isFolder": false,
+        "items": [
+          {
+            "guid": "{21111111-1111-4111-8111-111111111111}",
+            "length": 10,
+            "name": "",
+            "playRate": 1,
+            "position": 0,
+            "sourceAvailable": true,
+            "sourceFile": "C:/Projects/Alice/media/ch1.wav",
+            "sourceKind": "WAVE",
+            "sourceStart": 0,
+            "supported": true,
+            "takeGuid": "{31111111-1111-4111-8111-111111111111}"
+          },
+          {
+            "guid": "{22222222-1111-4111-8111-111111111111}",
+            "length": 5,
+            "name": "",
+            "playRate": 1.5,
+            "position": 12,
+            "sourceAvailable": true,
+            "sourceFile": "C:/Projects/Alice/media/ch1.wav",
+            "sourceKind": "WAVE",
+            "sourceStart": 2,
+            "supported": true,
+            "takeGuid": "{32222222-1111-4111-8111-111111111111}"
+          }
+        ],
+        "muted": false,
+        "name": "Chapter I",
+        "soloed": false
+      },
+      {
+        "color": "",
+        "depth": 0,
+        "guid": "{22222222-2222-4222-8222-222222222222}",
+        "index": 1,
+        "isFolder": false,
+        "items": null,
+        "muted": false,
+        "name": "Chapter II",
+        "soloed": false
+      },
+      {
+        "color": "",
+        "depth": 0,
+        "guid": "{33333333-3333-4333-8333-333333333333}",
+        "index": 2,
+        "isFolder": false,
+        "items": null,
+        "muted": false,
+        "name": "Chapter II",
+        "soloed": false
+      }
+    ]
+  },
+  "readAt": "2026-09-21T10:00:00Z",
+  "reason": "not_running",
+  "source": "saved"
+}

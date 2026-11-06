@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useBrowserSetting } from '../../../browserSettings';
 import { playTakeTone, readStoredTakeTone, writeStoredTakeTone } from '../../booth/takeTone';
 import { RadioGroup } from '../../primitives/RadioGroup';
 
@@ -9,7 +9,7 @@ const OPTIONS = [
 
 /** Start tone: a short beep before a Booth take starts, kept by this browser window. Turning it on plays it once, so it can be heard. */
 export function TakeToneRowBody() {
-  const [on, setOn] = useState(readStoredTakeTone);
+  const [on, setOn] = useBrowserSetting(readStoredTakeTone);
   const choose = (next: string) => {
     const value = next === 'on';
     writeStoredTakeTone(value);

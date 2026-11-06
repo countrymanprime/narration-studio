@@ -656,6 +656,39 @@ describe('over the cap or on top of an effect', () => {
     expect(dawStub.applyFxToRange).not.toHaveBeenCalled();
   });
 
+  // #3016: the journal asks the DAW whether its last action is this one before it runs the inverse; a command that named no kind was refused every time.
+  it('adding and taking off an effect name the DAW action they left, by the undo points the DAW reports', async () => {
+    const { applyFxCommand, removeFxCommand } = await import('./fxCommand');
+    const done = (undoSteps: number) => async () => ({ ok: true, changed: true, message: 'Done.', undoSteps });
+    const range = summarize(marksDoc(), ['p-1:0', 'p-1:1'], [], (t) => t).ranges[0];
+    const add = applyFxCommand(
+      { daw: { applyFxToRange: done(1), removeFxFromRange: done(1) }, log, onEffects: () => {} },
+      { kind: 'daw', dawName: 'REAPER' },
+      { chapterId: 'chapter-1', range, chain: { id: 'x', name: 'x' }, source: SOURCE, locator, needsOver: false, confirmedOver: false },
+    );
+    expect(add.dawAction?.({ id: '', message: '' })).toBeUndefined();
+    const added = await add.run();
+    expect(added.ok).toBe(true);
+    expect(add.dawAction?.({ id: '', message: '' })).toEqual({ kind: 'add_range_fx', steps: 1 });
+    const fx = log.effects[0];
+    const remove = removeFxCommand(
+      { daw: { applyFxToRange: done(1), removeFxFromRange: done(1) }, log, onEffects: () => {} },
+      { kind: 'daw', dawName: 'REAPER' },
+      { chapterId: 'chapter-1', fx, locator },
+    );
+    expect(remove.dawAction?.(fx)).toBeUndefined();
+    await remove.run();
+    expect(remove.dawAction?.(fx)).toEqual({ kind: 'remove_range_fx', steps: 1 });
+    // The recorder asks no DAW, so there is no last action to name.
+    const own = removeFxCommand(
+      { daw: { applyFxToRange: done(1), removeFxFromRange: done(1) }, log, onEffects: () => {} },
+      { kind: 'recorder', dawName: 'REAPER' },
+      { chapterId: 'chapter-1', fx, locator },
+    );
+    expect(own.daw).toBe(false);
+    expect(own.dawAction?.(fx)).toBeUndefined();
+  });
+
   it('a range drawn on the waveform with an edge inside a word is a labelled preview in the question and in the answer, and the DAW still gets tokens', async () => {
     mount();
     await flush();

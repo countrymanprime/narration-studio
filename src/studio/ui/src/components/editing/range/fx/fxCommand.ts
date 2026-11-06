@@ -1,4 +1,4 @@
-import { DAW_CHOSEN_CHAIN, type DawResult } from '../../../../api/contracts/daw';
+import { DAW_CHOSEN_CHAIN, DAW_RESULT_MAX_UNDO_STEPS, type DawActionKind, type DawResult } from '../../../../api/contracts/daw';
 import type { EditWordFxApi, WordFx, WordFxRequest } from '../../../../api/contracts/wordFx';
 import type { DawClient, FxChoice } from '../../../../ports/daw';
 import type { Command, Result } from '../../../../studio/journal/createJournal';
@@ -147,6 +147,10 @@ const recordOf = (a: FxAsk, daw: string, backupId?: string): WordFxRequest => ({
 const tokenSpan = (locator: RangeLocator, keys: readonly string[]): { firstToken: number; lastToken: number } | null =>
   tokensOf(locator, { keys: [...keys] } as Range);
 
+/** The action the DAW's call left on top of its undo history: its kind, once for each undo point it added, or none when it added none. */
+const dawActionOf = (kind: DawActionKind, undoSteps: number) =>
+  undoSteps >= 1 && undoSteps <= DAW_RESULT_MAX_UNDO_STEPS ? { kind, steps: undoSteps } : undefined;
+
 /** The DAW's `changed: false` after an accepted call: nothing happened, so nothing is recorded. */
 const nothingChanged = (res: DawResult): Result<never> => refusal('nothing_changed', res.message);
 
@@ -159,11 +163,15 @@ export function applyFxCommand(deps: FxDeps, plan: Acting, ask: FxAsk): Command<
   const { chapterId, range, chain, locator } = ask;
   const label = addLabel(chain.name, range.items.length, range.start);
   const viaDaw = plan.kind !== 'recorder';
+  // What the DAW's call added to its undo history, read by `dawAction` as soon as `run` has answered.
+  let dawSteps = 0;
   return {
     label,
     touches: [`editing/${chapterId}/wordfx`],
     daw: viaDaw,
+    dawAction: () => (viaDaw ? dawActionOf('add_range_fx', dawSteps) : undefined),
     async run() {
+      dawSteps = 0;
       if (ask.needsOver && !ask.confirmedOver) return refusal('needs_confirm', NEEDS_CONFIRM);
       const tokens = tokensOf(locator, range);
       if (!tokens) return refusal('only_said', ONLY_SAID);
@@ -183,6 +191,7 @@ export function applyFxCommand(deps: FxDeps, plan: Acting, ask: FxAsk): Command<
         if (!res.ok) return refusal(res.code ?? 'daw_refused', res.refused ?? res.message);
         if (!res.changed) return nothingChanged(res);
         message = res.message;
+        dawSteps = res.undoSteps;
       }
       try {
         const change = await deps.log.editingWordFxRecord(chapterId, {
@@ -241,7 +250,9 @@ export function keepChosenCommand(
   return {
     label: addLabel(label, range.items.length, range.start),
     touches: [`editing/${chapterId}/wordfx`],
-    daw: true,
+    // The narrator's own edits in the DAW's FX window sit on top of the choose point by the time this is recorded, so the DAW has no last
+    // action of the app's to be asked about; the inverse takes the chosen plug-ins off by name and the DAW answers if they are gone.
+    daw: false,
     async run() {
       const tokens = tokensOf(locator, range);
       if (!tokens) return refusal('only_said', ONLY_SAID);
@@ -308,16 +319,20 @@ function requestOf(fx: WordFx): WordFxRequest {
 export function removeFxCommand(deps: FxDeps, plan: Acting, ask: RemoveFxAsk): Command<WordFx> {
   const { chapterId, fx, locator } = ask;
   const viaDaw = plan.kind !== 'recorder';
+  let dawSteps = 0;
   return {
     label: `Took ${fx.chainName} off ${fx.text}`,
     touches: [`editing/${chapterId}/wordfx`],
     daw: viaDaw,
+    dawAction: () => (viaDaw ? dawActionOf('remove_range_fx', dawSteps) : undefined),
     async run() {
+      dawSteps = 0;
       if (viaDaw) {
         const tokens = tokenSpan(locator, fx.keys);
         if (!tokens) return refusal('only_said', ONLY_SAID);
         const res = await deps.daw.removeFxFromRange({ chapterId, ...tokens, chainName: fx.chainId }).catch(failed);
         if (!res.ok) return refusal(res.code ?? 'daw_refused', res.refused ?? res.message);
+        dawSteps = res.undoSteps;
       }
       try {
         deps.onEffects((await deps.log.editingWordFxRemove(chapterId, fx.id)).effects);

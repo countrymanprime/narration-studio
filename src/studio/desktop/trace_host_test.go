@@ -160,3 +160,46 @@ func TestNoCanaryReachesTheHostTrace(t *testing.T) {
 		}
 	}
 }
+
+func TestTheActivityTraceSwitchTurnsTheFileOnAndOffAndIsRecorded(t *testing.T) {
+	host := newTestHostForDawCapabilities(t, "")
+	host.version = "0.5.1"
+	defer host.tracer.Close()
+	host.setActivityTrace(true)
+	if !host.tracer.Enabled() {
+		t.Fatal("the switch did not turn the trace on")
+	}
+	host.setActivityTrace(false)
+	if host.tracer.Enabled() {
+		t.Fatal("the switch did not turn the trace off")
+	}
+	switched := traceRecords(t, host, "app.trace_switched")
+	if len(switched) != 2 || switched[0]["enabled"] != true || switched[1]["enabled"] != false {
+		t.Errorf("trace_switched = %v, want on then off", switched)
+	}
+}
+
+func TestASavedActivityTraceSettingTurnsTheTraceOnForAPublishedBuild(t *testing.T) {
+	host := newTestHostForDawCapabilities(t, "")
+	host.version = "0.5.1"
+	defer host.tracer.Close()
+	if err := host.saveSettings("General", "global", map[string]*string{"activity_trace": ptr("true")}); err != nil {
+		t.Fatal(err)
+	}
+	if !host.tracer.Enabled() {
+		t.Error("saving activity_trace=true left the trace off")
+	}
+	host.tracer.SetEnabled(false)
+	host.startTrace()
+	defer host.tracer.Close()
+	if !host.tracer.Enabled() {
+		t.Error("a saved activity_trace=true left the trace off after launch")
+	}
+}
+
+func TestTheActivityTraceIsGlobalOnly(t *testing.T) {
+	host := newTestHostForDawCapabilities(t, "")
+	if err := host.saveSettings("General", "project", map[string]*string{"activity_trace": ptr("true")}); err == nil {
+		t.Error("a project-scope save of activity_trace was accepted")
+	}
+}

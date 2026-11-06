@@ -3,14 +3,16 @@ import { apiErrorMessage } from '../../api/errorMessage';
 import { useApi } from '../../api/ApiContext';
 import { previewParts } from '../../creditsPreviewParts';
 import type { CreditsRenderResult, CreditTemplate, CreditValues, DetectedCandidate } from '../../types';
+import { projectDataChanged } from './data/projectDataSignal';
 import { CREDITS_FIELDS, CREDITS_HEADING, CREDITS_SECTION } from './creditsLayout';
 import { RetailSamplePanel } from './RetailSamplePanel';
 import { Button } from '../primitives/Button';
+import { IconButton } from '../primitives/IconButton';
 import { ConfirmDialog } from '../primitives/ConfirmDialog';
 import { Field } from '../primitives/Field';
 import { Select } from '../primitives/Select';
 import { Highlight } from '../primitives/Highlight';
-import type { Notify } from '../primitives/Toast';
+import { type Notify, retryAction } from '../primitives/Toast';
 
 const KIND_LABEL: Record<string, string> = { opening: 'Opening', closing: 'Closing', chapter_announcement: 'Chapter announcement' };
 
@@ -159,10 +161,16 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
     try {
       const saved = await api.saveCreditsTemplate(selected?.id ?? '', draftKind, draftName, draftBody);
       notify('Credit template saved.');
+      projectDataChanged();
       await load();
       setSelectedId(saved.id);
     } catch (error) {
-      notify(apiErrorMessage(error), 'error');
+      // Saving the same template again writes the same body, so it is safe to repeat.
+      notify(
+        apiErrorMessage(error),
+        'error',
+        retryAction(() => void saveTemplate()),
+      );
     } finally {
       setBusy(false);
     }
@@ -180,6 +188,7 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
     try {
       const duplicate = await api.duplicateCreditsTemplate(selected.id);
       notify(`Duplicated as "${duplicate.name}".`);
+      projectDataChanged();
       await load();
       setSelectedId(duplicate.id);
     } catch (error) {
@@ -194,6 +203,7 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
     try {
       await api.deleteCreditsTemplate(selected.id);
       notify('Credit template deleted.');
+      projectDataChanged();
       await load();
     } catch (error) {
       notify(apiErrorMessage(error), 'error');
@@ -208,8 +218,14 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
     setSavingKey(key);
     try {
       await api.saveCreditsProjectValues(next);
+      projectDataChanged();
     } catch (error) {
-      notify(apiErrorMessage(error), 'error');
+      // The same save again writes the same values.
+      notify(
+        apiErrorMessage(error),
+        'error',
+        retryAction(() => void saveValue(key, value)),
+      );
     } finally {
       setSavingKey((current) => (current === key ? undefined : current));
     }
@@ -220,10 +236,16 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
     setClearing(true);
     try {
       setValues(await api.saveCreditsProjectValues({}));
+      projectDataChanged();
       notify('Credits cleared for this project.');
       setConfirmingClear(false);
     } catch (error) {
-      notify(apiErrorMessage(error), 'error');
+      // Clearing is a save of empty values, so doing it again is the same save.
+      notify(
+        apiErrorMessage(error),
+        'error',
+        retryAction(() => void clearValues()),
+      );
     } finally {
       setClearing(false);
     }
@@ -353,9 +375,7 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
                     <span>
                       Detected from {candidate.source}: “{candidate.value}”{candidate.confidence === 'low' ? ' (check this)' : ''}.
                     </span>
-                    <Button size="sm" variant="secondary" type="button" className="flex-none whitespace-nowrap" onClick={() => acceptDetected(key, candidate)}>
-                      Use suggestion
-                    </Button>
+                    <IconButton action="useSuggestion" size="sm" className="flex-none" onClick={() => acceptDetected(key, candidate)} />
                   </p>
                 )}
               </div>

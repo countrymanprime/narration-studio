@@ -1,6 +1,7 @@
 package main
 
 import (
+	"desktop/internal/creditsid"
 	"fmt"
 	"time"
 
@@ -12,9 +13,6 @@ import (
 // the chapter table shows get a status of their own, one of the same five a manuscript chapter has, stored on the project
 // manifest beside Credits and RetailSample so it survives Replace manuscript and Clear derived data, unlike a chapter's
 // status in manuscript-notes.json (which resetDerived wipes).
-
-// creditsStatusKinds are the two credits rows a status can belong to, matching creditsScriptTitles's kinds.
-var creditsStatusKinds = map[string]bool{"opening": true, "closing": true}
 
 // CreditsStatuses reads this project's credits row statuses. A kind never set is simply absent from the map; the UI
 // treats that the same way it treats a manuscript chapter with no note: "not_started".
@@ -48,7 +46,7 @@ func (h *Host) CreditsSetStatus(kind, status string) (string, error) {
 // setCreditsStatus is CreditsSetStatus's write, shared with the chapter list: a credits entry is set through ManuscriptSetChapterStatus
 // and the stage Confirm and Revert like any chapter, and lands here.
 func (h *Host) setCreditsStatus(kind, status string) (map[string]string, error) {
-	if !creditsStatusKinds[kind] {
+	if creditsid.Title(kind) == "" {
 		return nil, fmt.Errorf("credits status kind must be opening or closing, not %q", kind)
 	}
 	if !credits.ValidStatus(status) {

@@ -445,6 +445,7 @@ export function createDeliveryProfilesMock(
     wireClone({
       profiles: all(),
       globalDefault,
+      shippedDefault: refOf(MOCK_ACX),
       hasProject: true,
       projectChoice,
       projectProfile: deliveryProfileKey(current()),
