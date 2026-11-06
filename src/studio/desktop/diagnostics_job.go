@@ -5,6 +5,7 @@ import (
 	"desktop/internal/trace"
 	"fmt"
 	"log/slog"
+	"math"
 	"os"
 	"path/filepath"
 	"sync"
@@ -205,6 +206,14 @@ func (j *diagnosticsJob) finish(cancelled bool, broken error) {
 		// Each file is judged against the others only once the whole check ran: a cancelled or broken check compares nothing.
 		for index, raised := range measure.LevelConsistencyFindings(j.loudness) {
 			j.files[index].Findings = append(j.files[index].Findings, raised...)
+			for _, finding := range raised {
+				delta, _ := finding.Evidence["delta_lu"].(float64)
+				side := "louder"
+				if delta < 0 {
+					side = "quieter"
+				}
+				j.logs = append(j.logs, fmt.Sprintf("%s: loudness is %.1f LU %s than the other files.", j.files[index].Name, math.Abs(delta), side))
+			}
 		}
 		j.phase, j.percent, j.message = "success", 100, checkedMessage(checked, failed)
 	}

@@ -405,6 +405,11 @@ func TestDiagnosticsRaisesLevelConsistencyForAFileFarFromTheOthers(t *testing.T)
 		}
 	}
 	loud := job.Files[3].Findings
+	// The per-file line says 0 findings the moment the file is checked; the comparison runs after the last file, so the log says
+	// what it added.
+	if !strings.Contains(strings.Join(job.Logs, "\n"), "d.wav: loudness is 11.0 LU quieter than the other files") {
+		t.Fatalf("the log never says the level finding d.wav ended with: %q", job.Logs)
+	}
 	if len(loud) != 1 || loud[0].Category != findings.CategoryLevelConsistency || loud[0].Review.Status != findings.StatusUnreviewed {
 		t.Fatalf("the quiet chapter's findings = %+v, want one unreviewed level_consistency candidate", loud)
 	}

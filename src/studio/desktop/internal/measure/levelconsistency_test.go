@@ -1,6 +1,7 @@
 package measure
 
 import (
+	"encoding/json"
 	"math"
 	"strings"
 	"testing"
@@ -64,5 +65,45 @@ func TestLevelConsistencyNeverFlagsAFileItCouldNotMeasure(t *testing.T) {
 	files := []Diagnostics{loudFile("a.wav", -20), loudFile("b.wav", -20), loudFile("c.wav", -20), {File: "silent.wav"}}
 	if got := LevelConsistencyFindings(files); len(got) != 0 {
 		t.Fatalf("%v", got)
+	}
+}
+
+// A level or duration that is not a finite number must never reach a finding: the evidence would not marshal, which fails the
+// whole job snapshot.
+func TestLevelConsistencyNeverRaisesANonFiniteLevel(t *testing.T) {
+	for name, files := range map[string][]Diagnostics{
+		"one file overflows to +Inf":     {loudFile("a.wav", 4000), loudFile("b.wav", -20), loudFile("c.wav", -20), loudFile("d.wav", -20)},
+		"every file underflows to -Inf":  {loudFile("a.wav", -4000), loudFile("b.wav", -4000), loudFile("c.wav", -4000), loudFile("d.wav", -4000)},
+		"two files overflow, two do not": {loudFile("a.wav", 4000), loudFile("b.wav", 4000), loudFile("c.wav", -20), loudFile("d.wav", -20)},
+	} {
+		t.Run(name, func(t *testing.T) {
+			for index, raised := range LevelConsistencyFindings(files) {
+				for _, finding := range raised {
+					if _, err := json.Marshal(finding); err != nil {
+						t.Fatalf("file %d: %v", index, err)
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestLevelConsistencyNeedsAUsableDurationToRaiseAFinding(t *testing.T) {
+	for name, duration := range map[string]float64{"zero": 0, "negative": -5, "NaN": math.NaN(), "infinite": math.Inf(1)} {
+		t.Run(name, func(t *testing.T) {
+			odd := loudFile("d.wav", -30, -30)
+			odd.DurationSeconds = duration
+			got := LevelConsistencyFindings([]Diagnostics{loudFile("a.wav", -20), loudFile("b.wav", -20), loudFile("c.wav", -20), odd})
+			for _, raised := range got {
+				for _, finding := range raised {
+					if _, err := json.Marshal(finding); err != nil {
+						t.Fatalf("%v", err)
+					}
+					if finding.TimeRange == nil || finding.TimeRange.End < finding.TimeRange.Start {
+						t.Fatalf("range %+v is not ordered", finding.TimeRange)
+					}
+				}
+			}
+		})
 	}
 }

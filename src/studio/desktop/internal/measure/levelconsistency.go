@@ -17,8 +17,13 @@ const minLevelFiles = 3
 
 const kindLevelConsistency = "level_consistency"
 
-// fileLoudness is the file's loudness in LUFS: the energy mean of its short-term loudness, nil when none was measured.
+// fileLoudness is the file's loudness in LUFS: the energy mean of its short-term loudness, nil when none was measured, when the
+// mean is not a finite number (an extreme reading overflows the energy sum) or when the file has no usable length: a finding
+// holds the level and spans the file, and a NaN, an infinity or an inverted range cannot be written out.
 func fileLoudness(d Diagnostics) *float64 {
+	if !finite(d.DurationSeconds) || d.DurationSeconds <= 0 {
+		return nil
+	}
 	var energy float64
 	var count int
 	for _, point := range d.ShortTermLoudness {
@@ -31,6 +36,9 @@ func fileLoudness(d Diagnostics) *float64 {
 		return nil
 	}
 	level := 10 * math.Log10(energy/float64(count))
+	if !finite(level) {
+		return nil
+	}
 	return &level
 }
 
