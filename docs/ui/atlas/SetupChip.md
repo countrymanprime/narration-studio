@@ -14,6 +14,9 @@ Storybook title: `Booth/SetupChip`. Source: `src/components/booth/record/SetupCh
 - Other Project Open
 - Chapter Has No Track
 - Chapter Has Several Tracks
+- Not Connected
+- Recording Elsewhere
+- No Track Armed
 
 ## Used by
 

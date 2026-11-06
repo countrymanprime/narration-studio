@@ -3317,7 +3317,10 @@
         "Records In The App",
         "Other Project Open",
         "Chapter Has No Track",
-        "Chapter Has Several Tracks"
+        "Chapter Has Several Tracks",
+        "Not Connected",
+        "Recording Elsewhere",
+        "No Track Armed"
       ],
       "consumers": [
         "src/components/booth/page/BoothNextPage.tsx"
