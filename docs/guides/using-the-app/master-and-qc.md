@@ -21,6 +21,19 @@ edited. The run buttons are icon buttons beside it, named by their tooltips (**M
 the column on the right holds the [delivery package](#the-delivery-package) and
 [Multi-platform export](#building-packages-for-several-platforms-at-once).
 
+## Common tasks
+
+This page is a reference to everything Master & QC shows. To do one thing, start here:
+
+- **Check rendered chapter files against the profile**: [Checking files](#checking-files).
+- **Find out why a file fails**: [Why it fails](#why-it-fails).
+- **See how far the chapters' levels spread across the book**: [Book consistency](#book-consistency).
+- **Set up the mastering chain, then master and encode to spec**: [The mastering chain](#the-mastering-chain) and
+  [Mastering to spec](#mastering-to-spec).
+- **Build packages for more than one platform**: [Building packages for several platforms at once](#building-packages-for-several-platforms-at-once).
+- **Check for clipping, level shifts, room-tone changes and long pauses**: [Diagnostics](#diagnostics).
+- **Save the last check and diagnostics to files**, to send to a producer or QA checker: [Exporting a report](#exporting-a-report).
+
 ## Checking files
 
 When REAPER is not answering, a **REAPER not connected** mark sits in the header's controls. It opens the dialog described on [Production](production.md), with **Link project file…** and **Check again**. Measuring files and reading reports keep working.
@@ -269,6 +282,12 @@ no manuscript text is ever written into the report. Export needs a project open 
 is refused while a check or diagnostics run is running.
 
 ![Export report wrote an HTML and a JSON report into the project's delivery folder, with file names only](../../images/ui/master-report-exported.webp)
+
+## What next
+
+- [Delivery](delivery.md): build the platform's package from the files you mastered here.
+- [Pickups](pickups.md): record the lines a failing chapter is waiting on.
+- [ACX delivery requirements](../../reference/acx-delivery-requirements.md): what ACX asks for, rule by rule, with its sources.
 
 ---
 
