@@ -1,16 +1,16 @@
 # The worker procedure
 
-What a train worker, resume session or fixer reads: the protocol, serial points, lanes, the guide rule and which mocks are the spec. The coordinator's procedure is in [coordinator.md](coordinator.md); the owner's standing rules are in [owner-rules.md](owner-rules.md); the prompts are in [templates.md](templates.md).
+What a train worker, resume session or fixer reads: the protocol, the order of work, serial points, lanes, the guide rule and what a job builds to. The coordinator's procedure is in [coordinator.md](coordinator.md); the owner's standing rules are in [owner-rules.md](owner-rules.md); the prompts are in [templates.md](templates.md).
 
 ## The worker protocol
 
 A worker is one cloud session for one stream. It opens one PR per phase, stacked on the previous one, and never merges.
 
-- **Smoke test first.** Before new work, run the one cheapest check that covers the area you start from, on the branch tip: for a resume or a stacked phase, the fastest targeted test of the previous phase's package or page (one `go test` package, one Vitest file or one pytest module); for a fresh slice off `main`, `git status` and the slice's own named first test. If it is red, the break is not yours: record it in the Handoff comment and, when it is on your branch, fix it first; when it is on `main`, comment on #989 and carry on with your slice. Run one check, not the set.
+- **Smoke test first.** Before new work, run the one cheapest check that covers the area you start from, on the branch tip: for a resume or a stacked phase, the fastest targeted test of the previous phase's package or page (one `go test` package, one Vitest file or one pytest module); for a fresh slice off `main`, `git status` and the slice's own named first test. If it is red, the break is not yours: record it in the Handoff comment and, when it is on your branch, fix it first; when it is on `main`, comment on the train issue and carry on with your slice. Run one check, not the set.
 - **Read your slice of the PRD, not all of it.** Start from the slice issue (or the prompt's `SCOPE`) and read the PRD sections it links. With no links, read only: the phase's row in the phase table (its `Depends` and Ports used), its Phase Details paragraph, the Visual Spec section and the open questions that name your phase. List the headings first (`grep -n '^#' <prd>`) and read by line range. Read another section when the work needs it, not up front. If a constraint your slice needs is missing from the sections it cites, say so in the slice's Handoff comment.
 - **Commit and push after every green step,** not just at the end. A session that dies on a usage limit loses only the work since its last push.
 - **Checkpoints:** before each phase, and before any expensive step (the visual states of a page, a full Go race run, the atlas). At each checkpoint:
-  1. Read #989's switches and the decisions register #993, and call `get_session` for your own `rate_limit_info` if the tool is available.
+  1. Read the train issue's switches and Owner queue, and call `get_session` for your own `rate_limit_info` if the tool is available.
   2. On `HOLD`, `HOLD-UNTIL-RESET`, or RED in your own reading, or `DRAIN` unless you are lane K and the band is not RED: **pause.**
      - Commit your work in progress as `chore(<scope>): wip, paused at <step>` and push.
      - Open or update the phase's PR as a **draft** with a `## Resume notes` block:
@@ -19,19 +19,27 @@ A worker is one cloud session for one stream. It opens one PR per phase, stacked
        - Next: the exact next step
        - Failing: any failing check, with its output
        - Checks run: the local checks already passed
-     - Comment `<ID>: PAUSED at <step>, PR #<n>` on #989, then end the session.
-  3. On AMBER in your own reading (`allowed_warning`), **unless #989's `WARNING_POLICY` is `ignore`** (then a warning counts as GREEN, D63): **yield.** Finish the current PR to green, don't start the next phase, comment `<ID>: yielded after p<N>` on #989, and end.
+     - Comment `<ID>: PAUSED at <step>, PR #<n>` on the train issue, then end the session.
+  3. On AMBER in your own reading (`allowed_warning`), **unless the train issue's `WARNING_POLICY` is `ignore`** (then a warning counts as GREEN, D63): **yield.** Finish the current PR to green, don't start the next phase, comment `<ID>: yielded after p<N>` on #989, and end.
   4. Otherwise, continue.
+- **Order of work.** Plan, build the feature set, then test it together, with a cap on fix rounds:
+  1. **Plan.** Start from the plan in the slice issue (the groomer writes one and has a fresh subagent review it). With none, write a short one in the Handoff comment: the files, the behaviours the issue asks for and the checks that prove them. For more than a small change, have a fresh subagent review the plan against the issue before you build; it reports gaps, not style.
+  2. **Build** the whole feature set the plan lists, not one test at a time.
+  3. **Test.** Write the tests for every behaviour the issue lists. A bug fix is the exception: write the test that reproduces the bug first, because it proves the fix and costs one run.
+  4. **Run the targeted checks once, together,** fix every failure they show, and run them again. Stop after three fix-and-run rounds: push what is green, put the failing check and its output in the Handoff comment and the PR body, and end; a fixer takes it.
+  5. Never delete, skip or loosen a test to get green. When a test must go (the code it covered was removed or rewritten), say why in the PR body; the intent reviewer checks the reason.
+
+  Tests are the definition of done, not a step-by-step ritual: published guidance asks for a check the agent runs itself, a separate reviewer and a stopping condition, not red-green per test ([Claude Code best practices](https://code.claude.com/docs/en/best-practices), [Building effective agents](https://www.anthropic.com/engineering/building-effective-agents)).
 - **Open the PR as soon as the change is pushed (owner rule, 2026-10-18).** Do not wait for local checks to finish or for the owner to ask: open the PR (a draft only if the work is genuinely incomplete), list the checks still running as pending in the body, and update the body as they finish. The owner reviews from the PR, not from the session.
 - **Finishing (D99, one-shot):**
   - Push and open the PR as soon as the change is pushed, report in one short message and end. Do not subscribe to the PR, wait for CI or answer review rounds.
   - Run only the one or two fastest targeted checks. CI is the source of truth.
-  - Comment `<ID>: PRs #… opened` on #989, then end the turn.
+  - Comment `<ID>: PRs #… opened` on the train issue, then end the turn.
   - A red check, a conflict or a review comment gets a new one-PR fixer session started by the coordinator, never a message into your session.
 - **No resume-in-place:** there is no tool to send a follow-up task into a session that has already finished and gone idle. A stream's next PRD phase (D62) is always a **new** session, branched fresh off the current `main` tip — never a message into the old one. The gain from D62 is launching that new session the moment the phase is ready, not batching it to the next tick; it is not session reuse.
-- **Owner steps:** anything needing the owner, REAPER, audio hardware or owner input goes on #992 as a comment and is marked pending in the PR. Never wait for a human.
+- **Owner steps:** anything needing the owner, REAPER, audio hardware or owner input goes in the train issue's Owner queue as a comment and is marked pending in the PR; the coordinator puts it on the owner board. Never wait for a human.
 - **A missing tool or library is yours to install, not a blocker.** Cloud sessions run as root with `apt-get`, `npm`, `pip`/`uv` and `go` working through the proxy. If a check, hook or build fails because something is not installed, install it and re-run; do not report the check as impossible, skip it, or use `--no-verify`. Example: the pre-commit `check-go` hook and any Go build of `src/studio/desktop` need the Wails GTK libraries; run `apt-get update && apt-get install -y libglib2.0-dev libgtk-4-dev libwebkitgtk-6.0-dev libsoup-3.0-dev librsvg2-dev patchelf` (the same line as `.github/actions/setup-toolchain/action.yml`). Only when the install itself fails, say which package and quote the error (and read `read_documentation` `environment.network` if a host is denied) before you hand the step to someone else.
-- **Tooling:** the repo's `SessionStart` hook (`scripts/cloud/session-start.sh`, registered in `.claude/settings.json`) installs the pinned toolchain. `.claude/settings.json` allows the build, test and git commands and denies force-pushes and rebases. Workers never edit `.claude/settings.json`; auto mode refuses that as self-modification, so any change to it goes on #992 for the owner.
+- **Tooling:** the repo's `SessionStart` hook (`scripts/cloud/session-start.sh`, registered in `.claude/settings.json`) installs the pinned toolchain. `.claude/settings.json` allows the build, test and git commands and denies force-pushes and rebases. Workers never edit `.claude/settings.json`; auto mode refuses that as self-modification, so any change to it goes in the Owner queue for the owner.
 
 ## Serial points
 
@@ -59,7 +67,7 @@ A lane is a territory of files. Two workers may share a lane only when their sli
 | **B: adapters and sidecars** | `src/studio/integrations/reaper/**`, `internal/bridge`, `internal/daw*`, `internal/dawport/reaper`, `internal/dawport/audacity`, the consumer migrations, `src/studio/sidecars/**`, the rest of `src/studio/libs/python/**` | Sonnet (Opus for new Lua commands) |
 | **U: primitives and input** | `src/studio/ui/src/components/primitives/**`, `src/studio/ui/src/input/**`, `src/studio/ui/src/studio/**`, `src/studio/ui/src/ports/**`, `src/studio/ui/src/overlay/**`, `src/studio/ui/src/registries/**` (D-7), design tokens (in one PR, running alone) | Sonnet |
 | **C: UI features** | `src/studio/ui/src/components/<feature>/**`, `hooks/**`, `tests/visual/**` rows of its pages, `docs/guides/using-the-app/**` | Sonnet |
-| **D: documents** | PRDs, steady-state docs, ADR bookkeeping, PRD close-outs | Sonnet for PRDs, Haiku for bookkeeping |
+| **D: documents** | PRDs, steady-state docs, ADR bookkeeping, PRD close-outs | Opus for PRDs, Haiku for bookkeeping |
 | **X: exclusive** | Refactors of shared files (see [Serial points](#serial-points)) | Opus |
 
 A lane-X stream runs with no other stream that touches the same files. Lanes have no ADR blocks: a slice does not write an ADR.
@@ -72,42 +80,28 @@ The rule and the commands are in [CONTRIBUTING.md](../../../../CONTRIBUTING.md#u
 - **Coordinator.** Accepts a UI PR when its guide page and images are updated (or the body carries a specific `No guide change:` reason), the body states the real-app and Storybook results, and the `Guide impact` step of `Docs / Docs checks` is green. It never merges or counts ready a UI PR without them, whatever the rest of CI says.
 - **Sweep.** A periodic docs sweep runs `node scripts/dev/guide-screenshots.mjs --all` and commits what moved, as a safety net for changes to shared components.
 
-## Which mocks are the spec
+## What a job builds to
 
-The Studio Next mock was the only spec for every page it covers (D98). It is deleted from the tree and read from git history ([Reading the deleted mock](../../../../docs/operations/verification-tooling.md#reading-the-deleted-studio-next-mock)). The rules are in the rebuild PRD's Which mocks are the spec and, for primitives and the theme, in [the design system](../../../../docs/design/design-system.md#which-mocks-are-the-spec).
+There is no standing mock: the rebuild mock and the benchmark mocks are retired. Build to what the prompt's `REFERENCES` field names (a mock, a design draft, a guide page or a doc, each with what it is for). With none named, build to the issue, the PRD and the page's current guide in `docs/guides/using-the-app/`. Need a reference the prompt does not name? Say so in the Handoff comment and build to the issue; do not go looking for an old mock.
 
 ## Rules for every worker
 
-The worker prompt carries only the fields that change. These rules were in every prompt; they live here once.
+The prompt carries only the fields that change, and this file does not copy rules the repo already holds. They reach you the way they reach any session:
 
-### Building to the mock (D46, D98)
+- **CLAUDE.md** loads at the start: the workflow, the impact scan, issues and `Closes` lines, cleanup.
+- **The area rules** in `.claude/rules/` load when you read or edit their paths: the product rules (mock-first behind ports, one theme, development data, outbound data, Settings), wire contracts, the REAPER bridge, the UI guide and the visual checks.
+- **The skills** CLAUDE.md names, loaded when the task needs them: `full-verification-gate` for which checks, `wire-contract-change`, `reaper-command-add`, `frontend-primitives`, `docs-style`.
 
-Open the mock page named in the prompt and the running mock before coding and build to match. The Studio Next mock is the only spec (D98): if it is not in the mock, don't build it; if the repo already has an equivalent of something in it, the old one is removed in the swap. Compare light to light and dark to dark by the theme the mock page is drawn in. Layout and style are the spec, never the mock's sample data.
-
-Drive the app to the mock's state and data, capture at the mock's own size and theme, and look at it beside the mock. There is no match % for Studio Next pages: build the features and styles the mock shows and look at the images.
-
-No reasons to write, no region tables, no Mockup check table. New primitives and tokens are in scope; existing styles are not a reason: when a primitive, token or style doesn't draw what the mock shows, change the primitive (its `<Name>.stories.tsx` too, with `design-spec-guard` and an ADR for a changed design decision), don't restyle it locally on the page. The spec per primitive is `docs/design/design-system.md`.
-
-### Pull request, issues, ADRs and docs
+What only the train adds:
 
 - **Branches.** The first PR is based on the latest `main`; one PR per phase, each based on the previous branch; branch `<type>/<prd-slug>-p<N>-<slug>`.
-- **PR body.** A Conventional Commit title; goal, what changed, local checks run with results, the real-app (Playwright) and Storybook results of the pages touched (`pnpm --dir src/studio/ui visual:page <page>` and `atlas:page <page>`; never run `playwright install`, the runs find this container's Chromium). For any change to what a page draws or how it is used, that page's guide updated in the same PR: `docs/guides/using-the-app/<page>.md` and its images (`node scripts/dev/guide-screenshots.mjs <page>`), linked from the body, or `No guide change: <reason>`; commit no other images (see "UI PRs update the how-to guide" in CONTRIBUTING.md). Then `Base: <branch>`, `Closes #<slice>` for a slice, else `Part of #<PRD issue>` (find it or create it per `docs/operations/github-workflow.md`; the PRD's last phase says `Closes #<n>`), and `New ADRs for review`.
-- **Issues.** Before you open the PR, list every open issue your change resolves (the slice, plus any bug or triage issue it fixes: search `gh issue list` for the symptom). Write one `Closes #<n>` line per issue the PR fully resolves; `Refs #<n>` only for an issue it resolves in part, never for a fix; `Issue: none — <reason>` when there is none. A fix or feat PR with none of these fails the advisory Issue link check. A PR based on another branch does not close its issues on merge; the coordinator closes them. Set each phase's Status cell in its own PR. The PR delivering a PRD's last phase writes the steady-state docs and deletes the PRD.
-- **ADR numbers.** An ADR takes the next free number in `docs/adr/`; check it at write time and again before your last push.
-- **Docs.** Do not write agent vocabulary (coordinator, worker, slice, session, skill) into files under `docs/`, except `docs/operations/` runbooks that a person follows. A spike's research note has a date and a question and no slice, stream or lane header; an audit or checklist for one PR is a comment on the PR or its issue, not a file.
-
-### Method and checks
-
-- **Method.** Impact scan before touching shared code (list every consumer of what you change and its tests); tests first.
-- **Settings.** The Settings page always keeps every setting; a working page may add a compact modal or side-panel entry, never remove or replace the Settings control.
-- **SOLID.** Depend on the ports (`internal/dawport` roles, provider ports, `NarrationApi`), never on concrete adapters.
-- **Testing (D43, D44).** Targeted checks only: Go tests of changed packages plus `go vet`, the Lua harness for Lua, Vitest of changed UI, pytest of changed sidecars, lint and typecheck of touched projects, and the visual states of pages you changed (`cd src/studio/ui && npx playwright test tests/visual/app.spec.ts -g "<page>.*<state>"`), looking at every viewport's PNG. Not the full `pnpm check`, the full visual suite or the atlas (a primitive's own atlas story is fine). Regenerate only your pages' guide images (`guide-screenshots.mjs <page>`), never all of `docs/images/ui`, and never `docs/ui`.
-- **Wire contracts.** A new binding or event gets a Zod schema, a golden (`UPDATE_CONTRACTS=1`), a `wireContracts` row and a mock that passes it, plus a `hostAPIVersion` bump to `main` + 1. New REAPER commands: harness tests first, `wire.go` row, threat-model and `SECURITY.md` rows, declared as Experimental capabilities.
-
-### Owner rules a worker repeats
-
-D67 mock-first behind every port; D69 one app-wide theme, never force light or dark on a page; D70/D71 development audio from LibriVox (provenance recorded, audio kept out of git) or synthetic, results provisional; D72 fetch reference data freely, but never send the narrator's or authors' data out. The full rows are in [owner-rules.md](owner-rules.md).
-
-### Usage and finish (D99)
-
-Follow [the worker protocol](#the-worker-protocol) exactly: push after every green step, check #989 and your `rate_limit_info` at every checkpoint, pause or yield as it says. The session is one-shot: push, open the PR as soon as it is pushed, comment `<ID>: PR #… opened` on #989, reply with one short report (PR link, what you did, what you did not exercise) and end. Do not subscribe to the PR, wait for CI or answer review rounds: CI is the source of truth and the coordinator sends a fresh fixer for anything red. Never use `send_later` or any scheduling tool. Never merge. End every GitHub comment with a blank line, `---`, then `_Generated by [Claude Code](https://claude.ai/code)_`.
+- **PR body.** A Conventional Commit title; goal, what changed, the checks run with results, `Base: <branch>`, and `Closes #<slice>` for a slice, else `Part of #<PRD issue>`. A PR based on another branch does not close its issues on merge; the coordinator closes them. Set each phase's Status cell in its own PR; the PR delivering a PRD's last phase writes the steady-state docs and deletes the PRD.
+- **Checks (D43, D44).** Targeted checks only. Not the full `pnpm check`, the full visual suite or the atlas; regenerate only your own pages' guide images.
+- **Docs.** No agent vocabulary (coordinator, worker, slice, session, skill) in files under `docs/`, except `docs/operations/` runbooks that a person follows. An audit or checklist for one PR is a comment on the PR or its issue, not a file.
+- **Lessons of the 2026-11 overnight run.**
+  - Never use `HUSKY=0` or `--no-verify`. If the Go hook cannot build Wails, install the GTK libs; only if that fails, publish the files with the GitHub tools (`push_files`, `create_or_update_file`) and say so in the PR.
+  - Add no allowlist or exempt entry to make a check pass: those lists only shrink. Fix the cause.
+  - A green job is not a pass when its `ui-visual` or `ui-atlas` shard was skipped or empty: check that they ran.
+  - A lowered floor in `coverage-floors.json` needs a reason in the PR body, as a deleted test does.
+  - A docs-only PR runs `node --test scripts/ci/layout.test.mjs scripts/ci/old-name.test.mjs` and markdownlint on the changed files by hand.
+- **Never** merge, use `send_later` or any scheduling tool, or send a message into another session. End every GitHub comment with a blank line, `---`, then `_Generated by [Claude Code](https://claude.ai/code)_`.
