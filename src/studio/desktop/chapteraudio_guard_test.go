@@ -17,7 +17,6 @@ var oneTrackReads = map[string]string{
 	"bindings_readaloud_record.go":   "the record precondition reads the voice the take arms, never the folder (recordTarget)",
 	"readaloudreaper.go":             "the arm state of the voice the take records on",
 	"teleprompterinput.go":           "the input device of the track a take records on",
-	"bindings_passagemap.go":         "known gap (#3041 follow-up): the passage map's stamp reads the linked track's last item, empty for a folder of voices; the Booth page maps passages by text so it still works",
 	"chapteraudio_guard_test.go":     "this file names the call",
 	"internal/bridge/track_state.go": "the bridge's own read",
 	"internal/dawport/roles.go":      "the role definitions",
