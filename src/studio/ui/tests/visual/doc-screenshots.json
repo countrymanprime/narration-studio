@@ -449,6 +449,13 @@
   },
   {
     "page": "settings",
+    "state": "diagnostics-preview",
+    "viewport": "desktop",
+    "docName": "settings-diagnostics-preview",
+    "caption": "Settings - App & updates: the diagnostics bundle preview with the files it holds, what it leaves out and the leak check"
+  },
+  {
+    "page": "settings",
     "state": "recording-sync-activity",
     "viewport": "desktop",
     "docName": "settings-sync-activity",
