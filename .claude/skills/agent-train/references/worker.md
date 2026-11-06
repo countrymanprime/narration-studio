@@ -73,3 +73,39 @@ The rule and the commands are in [CONTRIBUTING.md](../../../../CONTRIBUTING.md#u
 ## Which mocks are the spec
 
 The Studio Next mock was the only spec for every page it covers (D98). It is deleted from the tree and read from git history ([Reading the deleted mock](../../../../docs/operations/verification-tooling.md#reading-the-deleted-studio-next-mock)). The rules are in the rebuild PRD's Which mocks are the spec and, for primitives and the theme, in [the design system](../../../../docs/design/design-system.md#which-mocks-are-the-spec).
+
+## Rules for every worker
+
+The worker prompt carries only the fields that change. These rules were in every prompt; they live here once.
+
+### Building to the mock (D46, D98)
+
+Open the mock page named in the prompt and the running mock before coding and build to match. The Studio Next mock is the only spec (D98): if it is not in the mock, don't build it; if the repo already has an equivalent of something in it, the old one is removed in the swap. Compare light to light and dark to dark by the theme the mock page is drawn in. Layout and style are the spec, never the mock's sample data.
+
+Drive the app to the mock's state and data, capture at the mock's own size and theme, and look at it beside the mock. There is no match % for Studio Next pages: build the features and styles the mock shows and look at the images.
+
+No reasons to write, no region tables, no Mockup check table. New primitives and tokens are in scope; existing styles are not a reason: when a primitive, token or style doesn't draw what the mock shows, change the primitive (its `<Name>.stories.tsx` too, with `design-spec-guard` and an ADR for a changed design decision), don't restyle it locally on the page. The spec per primitive is `docs/design/design-system.md`.
+
+### Pull request, issues, ADRs and docs
+
+- **Branches.** The first PR is based on the latest `main`; one PR per phase, each based on the previous branch; branch `<type>/<prd-slug>-p<N>-<slug>`.
+- **PR body.** A Conventional Commit title; goal, what changed, local checks run with results, the real-app (Playwright) and Storybook results of the pages touched (`pnpm --dir src/studio/ui visual:page <page>` and `atlas:page <page>`; never run `playwright install`, the runs find this container's Chromium). For any change to what a page draws or how it is used, that page's guide updated in the same PR: `docs/guides/using-the-app/<page>.md` and its images (`node scripts/dev/guide-screenshots.mjs <page>`), linked from the body, or `No guide change: <reason>`; commit no other images (see "UI PRs update the how-to guide" in CONTRIBUTING.md). Then `Base: <branch>`, `Closes #<slice>` for a slice, else `Part of #<PRD issue>` (find it or create it per `docs/operations/github-workflow.md`; the PRD's last phase says `Closes #<n>`), and `New ADRs for review`.
+- **Issues.** Before you open the PR, list every open issue your change resolves (the slice, plus any bug or triage issue it fixes: search `gh issue list` for the symptom). Write one `Closes #<n>` line per issue the PR fully resolves; `Refs #<n>` only for an issue it resolves in part, never for a fix; `Issue: none — <reason>` when there is none. A fix or feat PR with none of these fails the advisory Issue link check. A PR based on another branch does not close its issues on merge; the coordinator closes them. Set each phase's Status cell in its own PR. The PR delivering a PRD's last phase writes the steady-state docs and deletes the PRD.
+- **ADR numbers.** An ADR takes the next free number in `docs/adr/`; check it at write time and again before your last push.
+- **Docs.** Do not write agent vocabulary (coordinator, worker, slice, session, skill) into files under `docs/`, except `docs/operations/` runbooks that a person follows. A spike's research note has a date and a question and no slice, stream or lane header; an audit or checklist for one PR is a comment on the PR or its issue, not a file.
+
+### Method and checks
+
+- **Method.** Impact scan before touching shared code (list every consumer of what you change and its tests); tests first.
+- **Settings.** The Settings page always keeps every setting; a working page may add a compact modal or side-panel entry, never remove or replace the Settings control.
+- **SOLID.** Depend on the ports (`internal/dawport` roles, provider ports, `NarrationApi`), never on concrete adapters.
+- **Testing (D43, D44).** Targeted checks only: Go tests of changed packages plus `go vet`, the Lua harness for Lua, Vitest of changed UI, pytest of changed sidecars, lint and typecheck of touched projects, and the visual states of pages you changed (`cd src/studio/ui && npx playwright test tests/visual/app.spec.ts -g "<page>.*<state>"`), looking at every viewport's PNG. Not the full `pnpm check`, the full visual suite or the atlas (a primitive's own atlas story is fine). Regenerate only your pages' guide images (`guide-screenshots.mjs <page>`), never all of `docs/images/ui`, and never `docs/ui`.
+- **Wire contracts.** A new binding or event gets a Zod schema, a golden (`UPDATE_CONTRACTS=1`), a `wireContracts` row and a mock that passes it, plus a `hostAPIVersion` bump to `main` + 1. New REAPER commands: harness tests first, `wire.go` row, threat-model and `SECURITY.md` rows, declared as Experimental capabilities.
+
+### Owner rules a worker repeats
+
+D67 mock-first behind every port; D69 one app-wide theme, never force light or dark on a page; D70/D71 development audio from LibriVox (provenance recorded, audio kept out of git) or synthetic, results provisional; D72 fetch reference data freely, but never send the narrator's or authors' data out. The full rows are in [owner-rules.md](owner-rules.md).
+
+### Usage and finish (D99)
+
+Follow [the worker protocol](#the-worker-protocol) exactly: push after every green step, check #989 and your `rate_limit_info` at every checkpoint, pause or yield as it says. The session is one-shot: push, open the PR as soon as it is pushed, comment `<ID>: PR #… opened` on #989, reply with one short report (PR link, what you did, what you did not exercise) and end. Do not subscribe to the PR, wait for CI or answer review rounds: CI is the source of truth and the coordinator sends a fresh fixer for anything red. Never use `send_later` or any scheduling tool. Never merge. End every GitHub comment with a blank line, `---`, then `_Generated by [Claude Code](https://claude.ai/code)_`.
