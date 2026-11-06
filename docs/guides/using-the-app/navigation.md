@@ -461,6 +461,12 @@ project, so it picks them up when you save.
 
 The log of what each sync did, with an **Undo** icon on a link sync made, is in Settings: [Recording & DAW > Sync activity](settings.md).
 
+## What next
+
+- [Production](production.md): the page a project opens on, with the import and what to work on next.
+- [Settings: Link your REAPER project](settings.md#link-your-reaper-project): link the project the audio engine panel reads.
+- [Booth](booth.md): record a chapter.
+
 ---
 
 [← Getting started](getting-started.md) · [Index](README.md) · [Production →](production.md)
