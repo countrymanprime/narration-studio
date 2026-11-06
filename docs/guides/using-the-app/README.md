@@ -32,18 +32,27 @@ Read them in order the first time, or jump straight to the page you need. They f
 
 Pick the line that sounds like you. Each path is a few pages in the order you will need them.
 
-- **New to the app:** [Getting started](getting-started.md), then [Production](production.md) for importing the
-  manuscript, then [Booth](booth.md) to record.
-- **An experienced narrator coming from REAPER:** [Booth: Recording](booth.md#recording) for how takes, punches and the
-  edit cursor behave, then [Navigation: the audio engine panel](navigation.md#the-audio-engine-panel) for tracks and
-  chapter sync, then [Pickups](pickups.md).
-- **An editor:** [Editing](editing.md) for a chapter's takes and clean-up, then [Proof](proof.md) for the notes on it.
+- **New to the app:** [Getting started](getting-started.md) takes you from a fresh install to your first take: the
+  project, the manuscript import, choosing how you record, and the first take in the Booth. Then prepare the text on
+  [Script](script.md) and the names in the [Story Bible](story-bible.md), and come back to the [Booth](booth.md) for
+  the rest of recording.
+- **An experienced narrator coming from REAPER:** [Booth: Recording](booth.md#recording) for where a take starts and
+  stops, Undo, and punch and roll (**R**); [Settings: Recording & DAW](settings.md#recording--daw) for linking the
+  REAPER project; [Navigation: the audio engine panel](navigation.md#the-audio-engine-panel) for tracks and chapter
+  sync; [Editing: Takes](editing.md#takes) for retakes; then [Pickups](pickups.md).
+- **An editor:** [Editing](editing.md) for a chapter's [takes](editing.md#takes) and
+  [clean-up](editing.md#cleaning-up), [Proof](proof.md) for the notes on it, and [Pickups](pickups.md), where the lines
+  to record again end up.
 - **A proofer or QA checker:** [Proof](proof.md) for the notes and your decision on each, [Pickups](pickups.md), then
-  [Master & QC](master-and-qc.md) and [Delivery](delivery.md) for the files against a platform's rules
-  ([ACX delivery requirements](../../reference/acx-delivery-requirements.md) lists ACX's).
-- **An author or rights holder:** what leaves the narrator's computer is in
-  [what the app sends off the machine](../../architecture/threat-model.md#what-the-app-sends-off-the-machine), and the
-  downloads it asks for are in [Settings: Models and downloads](settings.md#models-and-downloads).
+  [Master & QC](master-and-qc.md) for the files against a delivery profile and [Delivery](delivery.md), where the
+  profile is chosen and the package built ([ACX delivery requirements](../../reference/acx-delivery-requirements.md)
+  lists ACX's).
+- **An author or rights holder:** the [status report](production.md#status-report) on Production is what a narrator
+  can send you. What the app keeps, and where, is in [data files](../../reference/data-files.md); what leaves the
+  narrator's computer is in
+  [what the app sends off the machine](../../architecture/threat-model.md#what-the-app-sends-off-the-machine), a
+  technical page whose first lines and table answer it; the downloads it asks for are in
+  [Settings: Models and downloads](settings.md#models-and-downloads).
 
 ---
 
