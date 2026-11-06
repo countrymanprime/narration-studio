@@ -20,8 +20,8 @@ below; each line goes to the section that has the steps.
 ## Common tasks
 
 - **Record in REAPER**: [link your REAPER project](#link-your-reaper-project). Choose **REAPER**, **Audacity** or the
-  **Built-in recorder** under **Record with** in [Recording & DAW](#recording--daw).
-- **Choose the microphone** the Booth listens to: **Microphone** in [Recording & DAW](#recording--daw). With a DAW it
+  **Built-in recorder** under **Record with** in the Recording & DAW category ([Choose REAPER](#choose-reaper)).
+- **Choose the microphone** the Booth listens to: **Microphone** in the Recording & DAW category. With a DAW it
   follows the DAW's own input and needs nothing set.
 - **Download a speech model, a voice or the Story Bible language model**: [Models and downloads](#models-and-downloads).
   Nothing downloads until you press **Download**.
@@ -29,7 +29,7 @@ below; each line goes to the section that has the steps.
   [Speech to text](#speech-to-text).
 - **Replace the manuscript**: **Replace manuscript…** in [Project](#project).
 - **Set up the opening and closing credits**: [Credits](#credits).
-- **Change the theme, or the reader's font and text size**: [Appearance & keys](#appearance--keys).
+- **Change the theme, or the reader's font and text size**: Appearance & keys, under **This computer** in the category list.
 - **Check for an update**: **Check now** in [About and updates](#about-and-updates).
 - **Move the downloaded models to another disk**: [Models folder](#models-folder).
 - **Find any other setting**: type in **Search settings** at the top right ([Find a setting](#find-a-setting)).
