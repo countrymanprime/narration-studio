@@ -372,6 +372,18 @@ replacing the manuscript keeps it; if its lines are gone, the panel says so and 
 
 ![Settings - First-use tips under Tips after a tip was dismissed: 1 dismissed, and Show tips again](../../images/ui/settings-first-use-tips.webp)
 
+### Diagnostics
+
+Below **This version**, the **Diagnostics bundle** section has one row, **File for a bug report**, with two icon buttons. **Preview the
+diagnostics bundle** opens a window that lists the files the bundle would hold, what it leaves out and why (sidecar
+output, the host log and the REAPER bridge's log are not included), and how many lines the leak check dropped for naming
+you or your project. It writes nothing. **Save the diagnostics bundle** asks for a folder, saves one zip there and copies its path;
+attach the zip to a GitHub issue yourself, since the app sends nothing. The bundle holds how the app behaved (screens,
+tool runs, the DAW connection, failures) and never your text, names or file paths. The **Activity trace** row above records
+it to disk; with it off, the bundle holds only what the app kept in memory since it started.
+
+![Settings - the diagnostics bundle preview](../../images/ui/settings-diagnostics-preview.webp)
+
 ### About and updates
 
 Under the rows of **App & updates**, the **This version** section has two rows: the version of the app you are running,

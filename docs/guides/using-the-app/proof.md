@@ -75,6 +75,17 @@ A chapter shows its **Recording check** card and its recording:
 
 A chapter with no recording yet says **No recording for this chapter yet** where the waveform goes.
 
+**Compare with the script**, beside **Check recordings** in the card, opens the **Compare** panel under it for the chapter in
+view; press it again to close it. The panel has three tabs, shown one at a time: **Differences** (the comparison of the
+recording with the chapter's text: set up, start, watch its progress, cancel, and read what it found), **Preview** (the chapter's
+audio against the script) and **Native takes** (the takes the app's own recorder made for the chapter; it says so when there are none). They are the same
+panels the [chapter view](#the-chapter-view) draws one under the other, so a comparison you start here is the one that view shows, and the
+other way round. **Compare with the script** is off, with the check's reason, when the chapter has no measured recording. Another chapter
+opens with the panel closed. Starting a comparison needs a linked project file; the panel says so when there is none
+([Comparing the recording with the script](#comparing-the-recording-with-the-script) has the setup and the options).
+
+![Proof - Compare opened under the check card: its three tabs and the comparison's setup](../../images/ui/proof-compare-panel.webp)
+
 ![Proof on Chapter 1: the recording check card, the waveform and the chapter's notes](../../images/ui/proof-chapter-linked.webp)
 
 ![Proof - a recording check marked out of date: the recording changed since this check](../../images/ui/proof-check-stale.webp)
@@ -276,8 +287,9 @@ last measurement again, and the list follows it.
 A chapter's Proof view, at `/proof/:chapterId`, holds what the chapter page had besides its workspace, which the
 [Editing](editing.md) page replaced: the recording check's state, the comparison with the manuscript, the Preview
 panel, the readiness panel and, with the built-in recorder, the native takes. It has no nav item of its own; open it from a
-linked chapter's **Open in Proof** link in the [audio engine panel](navigation.md#linking-chapters-to-tracks), a chapter's
-Proof cell or **Open Proof** in its row's menu on [Production](production.md). Its
+linked chapter's **Open in Proof** in the [audio engine panel](navigation.md#linking-chapters-to-tracks), or by its address. A
+chapter's Proof cell or **Open Proof** in its row's menu on [Production](production.md) opens [Proof](#one-chapter) at that chapter
+(`/proof?chapter=`), where **Compare with the script** draws the same panels. Its
 notes and its recording check card are on [Proof](#one-chapter); listening to the chapter against its script, its flags, effects and
 takes are on [Editing](editing.md).
 The view runs the full width of the page, like Proof, with its breadcrumb and title in the same place in every state.
@@ -299,7 +311,7 @@ the DAW right now. **Check recordings…** checks it again; when the dialog clos
 
 ## Comparing the recording with the script
 
-**Compare the recording with the script**, on the chapter view, transcribes the chapter's recording and
+**Compare the recording with the script**, on the chapter view and in Proof's Compare panel, transcribes the chapter's recording and
 compares it against this chapter's text. The Setup step picks the transcription model, chunk length,
 and number of parallel workers before starting a comparison.
 

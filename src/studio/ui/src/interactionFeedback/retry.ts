@@ -45,6 +45,8 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   ),
   'src/components/settings/controls/ProjectBodies.tsx#2': no(BT),
   'src/components/settings/controls/SyncEnabledBody.tsx#1': no(BT),
+  'src/components/settings/controls/DiagnosticsSection.tsx#1': no(BT),
+  'src/components/settings/controls/DiagnosticsSection.tsx#2': no(BT),
   'src/components/settings/controls/VoicesBody.tsx#1': no(
     'The tracks are read again every time the window is focused, so the next focus repeats the read; the narrator is in REAPER when it matters.',
   ),
