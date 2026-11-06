@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { creditsKindOfId } from '../credits/creditsEntries';
 import { chapterName } from '../../chapterName';
 import { useApi } from '../../api/ApiContext';
-import { chapterTrackOf } from '../../api/chapterTrackItems';
+import { chapterItemsByNearestLink, chapterTrackOf } from '../../api/chapterTrackItems';
 import { Button } from '../primitives/Button';
 import { IconButton } from '../primitives/IconButton';
 import { Checkbox } from '../primitives/Checkbox';
@@ -17,7 +17,7 @@ import { LiveTracksRefresh, LiveTracksStatus } from './LiveTracksStatus';
 import type { LiveTracks } from './useLiveTracks';
 import type { ChapterTrackRow } from './chapterTrackRows';
 import type { ChapterLinks } from './useChapterLinks';
-import type { LineIdentityLine, LineIdentityRowStatus, LineIdentityState, LineIdentityStampRow, Track } from '../../types';
+import type { LineIdentityLine, LineIdentityRowStatus, LineIdentityState, LineIdentityStampRow, Track, TrackItem } from '../../types';
 
 const STATUS_LABEL: Record<LineIdentityRowStatus, string> = {
   ok: 'OK',
@@ -42,13 +42,22 @@ const STATUS_TONE: Record<LineIdentityRowStatus, StatusTone> = {
 const MAPPING_COLUMNS = ['auto', '13rem', '6rem'] as const;
 const STAMPED_COLUMNS = ['15rem', '5.5rem', '13rem', 'auto'] as const;
 
-/** Every item on a linked chapter's track (for a folder of voices, on every voice inside it), stamped with that chapter's identity (chapter-level granularity). The opening and closing credits are
- * linked here but not stamped: they are not in the manuscript, so a stamp with their id would read back as a chapter that is no longer in it. */
-function stampRows(rows: ChapterTrackRow[], tracks: Track[]): LineIdentityStampRow[] {
-  const stamped: LineIdentityStampRow[] = [];
+/** The items each linked chapter owns (chapterItemsByNearestLink), so an item under two linked tracks is counted and stamped for the nearer one. The
+ * opening and closing credits are linked here but own nothing: they are not in the manuscript, so a stamp with their id would read back as a
+ * chapter that is no longer in it. */
+function itemsOwnedByChapter(rows: ChapterTrackRow[], tracks: Track[]): Map<string, TrackItem[]> {
+  const links = new Map<string, string>();
   for (const { chapter, mapping, state } of rows) {
-    const linked = mapping && state === 'linked' && !creditsKindOfId(chapter.id) ? chapterTrackOf(tracks, mapping.trackGuid) : undefined;
-    for (const item of linked?.items ?? []) stamped.push({ itemGuid: item.guid, lineId: chapter.id, text: chapter.title });
+    if (mapping && state === 'linked' && !creditsKindOfId(chapter.id)) links.set(chapter.id, mapping.trackGuid);
+  }
+  return chapterItemsByNearestLink(tracks, links);
+}
+
+/** Every item a linked chapter owns, stamped with that chapter's identity (chapter-level granularity). */
+function stampRows(rows: ChapterTrackRow[], owned: Map<string, TrackItem[]>): LineIdentityStampRow[] {
+  const stamped: LineIdentityStampRow[] = [];
+  for (const { chapter } of rows) {
+    for (const item of owned.get(chapter.id) ?? []) stamped.push({ itemGuid: item.guid, lineId: chapter.id, text: chapter.title });
   }
   return stamped;
 }
@@ -152,7 +161,8 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
   const stampError = lastAction === 'stamp' ? failure : '';
   const readError = lastAction === 'read' ? failure : '';
 
-  const preview = useMemo(() => stampRows(rows, tracks), [rows, tracks]);
+  const owned = useMemo(() => itemsOwnedByChapter(rows, tracks), [rows, tracks]);
+  const preview = useMemo(() => stampRows(rows, owned), [rows, owned]);
   const running = state.phase === 'stamping';
   // A name is an option's whole text, so a direction override in it reaches nothing past the name: an option needs no isolate (breaker 7).
   const trackOptions = [{ value: '', label: 'Not linked' }, ...tracks.map((track) => ({ value: track.guid, label: track.name || `Track ${track.index + 1}` }))];
@@ -232,7 +242,10 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
         </TableHead>
         <TableBody>
           {rows.map(({ chapter, mapping, state }) => {
-            const linked = state === 'linked' ? chapterTrackOf(tracks, mapping?.trackGuid) : undefined;
+            const count =
+              state === 'linked' && !creditsKindOfId(chapter.id) && chapterTrackOf(tracks, mapping?.trackGuid)
+                ? (owned.get(chapter.id)?.length ?? 0)
+                : undefined;
             // A link whose track is gone is shown as the section shows it, not as "Not linked".
             const options = state === 'missing_track' && mapping ? [...trackOptions, { value: mapping.trackGuid, label: 'Track missing' }] : trackOptions;
             return (
@@ -248,7 +261,7 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
                     fullWidth
                   />
                 </TableCell>
-                <TableCell numeric>{linked && !creditsKindOfId(chapter.id) ? linked.items.length : '–'}</TableCell>
+                <TableCell numeric>{count ?? '–'}</TableCell>
               </TableRow>
             );
           })}

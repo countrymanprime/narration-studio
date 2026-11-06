@@ -77,6 +77,39 @@ describe('LinkChaptersDialog', () => {
     );
   });
 
+  it('counts and stamps an item once when an outer folder and a track inside it are both linked, for the chapter linked nearest', async () => {
+    const user = userEvent.setup();
+    const item = (guid: string) => ({ ...WIRE_TRACKS_PROJECT.tracks[0].items[0], guid });
+    const track = (guid: string, name: string, depth: number, isFolder: boolean, items: string[]): Track => ({
+      ...WIRE_TRACKS_PROJECT.tracks[0],
+      guid,
+      name,
+      depth,
+      isFolder,
+      items: items.map(item),
+    });
+    const tracks = [
+      track('{F0000000-0000-4000-8000-0000000000F1}', 'Narration', 0, true, []),
+      track('{F0000000-0000-4000-8000-0000000000F2}', 'Chapter 1', 1, false, ['{I1}', '{I2}']),
+      track('{F0000000-0000-4000-8000-0000000000F3}', 'Chapter 2', 1, false, ['{I3}']),
+    ];
+    const { api } = renderDialog({}, {}, vi.fn(), tracks);
+    const stamp = vi.spyOn(api, 'lineIdentityStamp');
+    const [first, second] = WIRE_CHAPTERS;
+
+    await user.selectOptions(await screen.findByRole('combobox', { name: `Track for ${first.title}` }), tracks[1].guid);
+    await user.selectOptions(await screen.findByRole('combobox', { name: `Track for ${second.title}` }), tracks[0].guid);
+
+    // Chapter 2's folder owns what is not under Chapter 1's own track: 1 item, not 3.
+    const stampButton = await screen.findByRole('button', { name: 'Stamp 3 items' });
+    await user.click(stampButton);
+    await waitFor(() => expect(stamp).toHaveBeenCalled());
+    const rows = stamp.mock.calls[0][0];
+    expect(rows.map((row) => row.itemGuid).sort()).toEqual(['{I1}', '{I2}', '{I3}']);
+    expect(rows.filter((row) => row.lineId === first.id).map((row) => row.itemGuid)).toEqual(['{I1}', '{I2}']);
+    expect(rows.filter((row) => row.lineId === second.id).map((row) => row.itemGuid)).toEqual(['{I3}']);
+  });
+
   it('previews every item of a mapped track and stamps only once approved', async () => {
     const user = userEvent.setup();
     const { api } = renderDialog();
