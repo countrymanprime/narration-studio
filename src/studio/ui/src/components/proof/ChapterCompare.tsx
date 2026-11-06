@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { chapterName } from '../../chapterName';
 import type { ManuscriptChapter, TranscriptState } from '../../types';
 import type { Notify } from '../primitives/Toast';
@@ -34,8 +34,13 @@ export interface ChapterCompareProps {
 export function ChapterCompare({ chapter, transcript, notify, dawFileLinked, goToManuscript }: ChapterCompareProps) {
   const [tab, setTab] = useState<CompareTab>('differences');
   const compare = useChapterCompare(chapter, transcript);
+  // Pressing Compare must show something: in a window narrow enough that the panel opens below the fold, it scrolls itself to the nearest edge.
+  const root = useRef<HTMLElement>(null);
+  useEffect(() => {
+    root.current?.scrollIntoView?.({ block: 'nearest' });
+  }, []);
   return (
-    <section aria-label="Compare" data-chapter-compare="" className="flex flex-col gap-3">
+    <section ref={root} aria-label="Compare" data-chapter-compare="" className="flex flex-col gap-3">
       <ToggleGroup label="Compare view" look="segmented" value={tab} onChange={(value) => setTab(value as CompareTab)} options={TABS} />
       {/* All three stay drawn and the other two are hidden, so the comparison's setup choices and its run survive a look at another tab. */}
       <div hidden={tab !== 'differences'}>

@@ -107,4 +107,11 @@ describe('ChapterCompare (Compare on the Proof page, #2822)', () => {
     await user.click(screen.getByRole('button', { name: 'Differences' }));
     expect(screen.getByRole('button', { name: /^Tiny/ }).getAttribute('aria-pressed')).toBe('true');
   });
+
+  it('scrolls itself into view when it opens, so a narrow window shows what the button did', () => {
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    renderCompare();
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: 'nearest' });
+  });
 });
