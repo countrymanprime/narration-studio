@@ -102,12 +102,14 @@ func (s *Supervisor) StartStream(ctx context.Context, onLine func(string), progr
 	}
 	started := time.Now()
 	if err := command.Start(); err != nil {
+		s.traceStartFailed("stream", program, err)
 		return nil, fmt.Errorf("could not start %s: %w", program, err)
 	}
 	if err := s.jobs.assign(command.Process.Pid); err != nil {
 		_ = command.Process.Kill()
 		return nil, err
 	}
+	s.traceStart("stream", program)
 
 	first := &firstOutput{started: started}
 	child := &StreamChild{Child: &Child{}, command: command, done: make(chan struct{})}

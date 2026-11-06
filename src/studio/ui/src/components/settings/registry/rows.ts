@@ -980,6 +980,20 @@ export const ROWS: readonly SettingMeta[] = [
     beside: 'logFolder',
     syn: 'log logs verbose run log run.jsonl host.log diagnostics folder open file manager explorer',
   },
+  {
+    id: 'app.trace',
+    cat: 'app',
+    section: 'Diagnostics',
+    label: 'Activity trace',
+    scope: 'computer',
+    def: 'false',
+    field: { tool: 'General', key: 'activity_trace' },
+    desc: 'Records how the app behaved, never your content.',
+    more: 'Writes a trace of what the app did (screens, tool runs, the DAW connection) to logs/trace.jsonl. It never holds your text, names or file paths. A build run from source has it on.',
+    used: [],
+    advanced: true,
+    syn: 'trace log diagnostics debug activity',
+  },
 ];
 
 export const rowOf = (id: string): SettingMeta | undefined => ROWS.find((row) => row.id === id);
