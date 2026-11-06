@@ -209,6 +209,21 @@
       "safety_net": "Every run of ci.yml that is not a pull request runs the full harness with mutations on Windows: Main health every 3 hours when main moved, and a red run ticks HOLD on the train issue. The Linux harness runs every mutation check on each pull request (quick-ubuntu/reaper-linux)."
     },
     {
+      "id": "quick-windows/reaper-windows-mutations-on-push",
+      "was": "quality / quick-windows",
+      "tier": "post-merge",
+      "workflow": "post-merge.yml",
+      "job": "reaper-windows",
+      "step": [
+        "targets: lint test",
+        "projects: reaper"
+      ],
+      "job_has": [
+        "runs-on: windows-latest"
+      ],
+      "safety_net": "A red run shows on the main commit about 20 minutes after the merge and notifies whoever merged it; Main health runs the same checks every 3 hours when main moved and ticks HOLD; the coordinator fixes forward or reverts the merge (agent-train Safety net)."
+    },
+    {
       "id": "quick-windows/go-lint",
       "was": "quality / quick-windows",
       "tier": "pr",
@@ -320,7 +335,19 @@
       "job": "govulncheck",
       "step": [
         "govulncheck -C src/studio/desktop"
-      ]
+      ],
+      "note": "On a pull request only when go.mod, go.sum, scripts/toolchain.json, the SARIF dedupe script, the toolchain action or security.yml change; a code-only change is scanned after the merge (the entry below)."
+    },
+    {
+      "id": "govulncheck/code-change",
+      "was": "Security scan / govulncheck",
+      "tier": "post-merge",
+      "workflow": "security.yml",
+      "job": "govulncheck",
+      "step": [
+        "govulncheck -C src/studio/desktop"
+      ],
+      "safety_net": "security.yml runs on each push to main that touches src/studio/desktop and nightly; a finding is a Code scanning alert on main within minutes of the merge. The scan never failed a pull request (SARIF and a continue-on-error print), so on a pull request it was advisory too."
     }
   ]
 }
