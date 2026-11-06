@@ -2,6 +2,7 @@ package trace
 
 import (
 	"bufio"
+	"desktop/internal/persist"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -71,12 +72,12 @@ func (s *sink) rotate() error {
 	for i := maxBackups - 1; i >= 1; i-- {
 		from, to := s.path+"."+strconv.Itoa(i), s.path+"."+strconv.Itoa(i+1)
 		if _, err := os.Stat(from); err == nil {
-			if err := os.Rename(from, to); err != nil {
+			if err := persist.Rename(from, to); err != nil {
 				return err
 			}
 		}
 	}
-	if err := os.Rename(s.path, s.path+".1"); err != nil {
+	if err := persist.Rename(s.path, s.path+".1"); err != nil {
 		return err
 	}
 	return s.open()

@@ -480,7 +480,7 @@ func (s *Service) write(file fileData) error {
 	if err := os.WriteFile(temporary, bytes.TrimSpace(encoded), 0o600); err != nil {
 		return fmt.Errorf("could not write the %s file: %w", what, err)
 	}
-	if err := os.Rename(temporary, path); err != nil {
+	if err := persist.Rename(temporary, path); err != nil {
 		return fmt.Errorf("could not activate the %s file: %w", what, err)
 	}
 	return nil

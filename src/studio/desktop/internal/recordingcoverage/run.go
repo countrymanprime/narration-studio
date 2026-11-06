@@ -1,6 +1,7 @@
 package recordingcoverage
 
 import (
+	"desktop/internal/persist"
 	"os"
 	"path/filepath"
 
@@ -114,5 +115,5 @@ func writeAtomically(path, text string) error {
 	if err := os.WriteFile(temporary, []byte(text), 0o600); err != nil {
 		return err
 	}
-	return os.Rename(temporary, path)
+	return persist.Rename(temporary, path)
 }

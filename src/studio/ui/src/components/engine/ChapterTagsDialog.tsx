@@ -1,3 +1,4 @@
+import { apiErrorMessage } from '../../api/errorMessage';
 import { useEffect, useState } from 'react';
 import { useApi } from '../../api/ApiContext';
 import { Button } from '../primitives/Button';
@@ -34,7 +35,7 @@ export function ChapterTagsDialog({ onClose }: { onClose: () => void }) {
         if (active) setPreview(next);
       })
       .catch((reason: unknown) => {
-        if (active) setPreviewError(String(reason));
+        if (active) setPreviewError(apiErrorMessage(reason));
       });
     return () => {
       active = false;
@@ -50,7 +51,7 @@ export function ChapterTagsDialog({ onClose }: { onClose: () => void }) {
     api
       .chapterTagsEmbed(destPath)
       .then((result) => setOutputPath(result.outputPath))
-      .catch((reason: unknown) => setEmbedError(String(reason)))
+      .catch((reason: unknown) => setEmbedError(apiErrorMessage(reason)))
       .finally(() => setEmbedding(false));
   };
 

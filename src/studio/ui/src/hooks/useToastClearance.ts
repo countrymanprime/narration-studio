@@ -1,4 +1,4 @@
-import { useEffect, type RefObject } from 'react';
+import { useEffect, useRef, type RefObject } from 'react';
 
 /** The CSS variable the toast region adds to its distance from the bottom edge (`ToastRegion`). */
 export const TOAST_CLEAR_VAR = '--toast-clear';
@@ -58,9 +58,19 @@ const SIDE_EDGE_SLACK = 64;
  * page) leaves the toasts where they were. Follows the panel as it is resized, and puts the toasts back on unmount.
  */
 export function useToastSideClearance(panel: RefObject<HTMLElement | null>): void {
+  // The panel can mount after the page does (Proof draws it once its data has arrived), so every commit looks again for the element rather
+  // than reading the ref once; it attaches to whichever element is there and lets go of the one that left.
+  const attached = useRef<HTMLElement | null>(null);
+  const detach = useRef<(() => void) | undefined>(undefined);
   useEffect(() => {
     const element = panel.current;
-    if (!element) return;
+    if (element === attached.current) return;
+    detach.current?.();
+    attached.current = element;
+    if (!element) {
+      detach.current = undefined;
+      return;
+    }
     const root = document.documentElement;
     const apply = (): void => {
       const box = element.getBoundingClientRect();
@@ -72,10 +82,18 @@ export function useToastSideClearance(panel: RefObject<HTMLElement | null>): voi
     const observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(apply);
     observer?.observe(element);
     window.addEventListener('resize', apply);
-    return () => {
+    detach.current = () => {
       observer?.disconnect();
       window.removeEventListener('resize', apply);
       root.style.removeProperty(TOAST_CLEAR_RIGHT_VAR);
     };
-  }, [panel]);
+  });
+  useEffect(
+    () => () => {
+      detach.current?.();
+      detach.current = undefined;
+      attached.current = null;
+    },
+    [],
+  );
 }

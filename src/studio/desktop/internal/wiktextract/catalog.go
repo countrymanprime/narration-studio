@@ -12,6 +12,7 @@ package wiktextract
 
 import (
 	"context"
+	"desktop/internal/persist"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -231,7 +232,7 @@ func deriveIndex(staging string, file File, _ []assets.ExtractedFile) ([]assets.
 	if err := os.MkdirAll(root, 0o755); err != nil {
 		return nil, err
 	}
-	if err := os.Rename(built, filepath.Join(root, IndexName)); err != nil {
+	if err := persist.Rename(built, filepath.Join(root, IndexName)); err != nil {
 		return nil, err
 	}
 	kept, err := assets.RecordFile(staging, file.Extract+"/"+IndexName)

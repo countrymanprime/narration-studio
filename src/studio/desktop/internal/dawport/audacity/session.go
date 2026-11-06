@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"desktop/internal/brand"
+	"desktop/internal/persist"
 	"errors"
 	"fmt"
 	"math"
@@ -536,7 +537,7 @@ func (s *Session) WriteReviewedLabels(ctx context.Context, projectFolder string)
 		_ = os.Remove(tmp.Name())
 		return "", 0, err
 	}
-	if err := os.Rename(tmp.Name(), path); err != nil {
+	if err := persist.Rename(tmp.Name(), path); err != nil {
 		_ = os.Remove(tmp.Name())
 		return "", 0, err
 	}

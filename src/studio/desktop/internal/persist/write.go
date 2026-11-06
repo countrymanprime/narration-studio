@@ -62,6 +62,11 @@ func flushTemporary(file *os.File, data []byte, perm os.FileMode) error {
 	return err
 }
 
+// Rename is os.Rename that, on Windows, retries for a moment when another handle on the destination (or on a folder being moved) makes
+// it fail with "Access is denied" or a sharing violation. Use it for every rename of a file or folder the host owns; WriteFile
+// uses it for the final step of a save.
+func Rename(from, to string) error { return renameWithRetry(from, to) }
+
 func renameWithRetry(from, to string) error {
 	var err error
 	for attempt := 1; attempt <= renameAttempts; attempt++ {
