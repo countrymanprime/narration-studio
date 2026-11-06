@@ -61,43 +61,16 @@ jobs:
     timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
-      - env:
-          RESULTS: ${{ join(needs.*.result, ' ') }}
-        run: |
-          echo "needed jobs: $RESULTS"
-          for result in $RESULTS; do
-            case "$result" in
-              success|skipped) ;;
-              *) echo "::error::a job this run needs ended $result"; exit 1 ;;
-            esac
-          done
-      # The whole-run half of the visual gate (src/studio/ui/tests/visual/whole-run.check.ts) over every shard's capture records: every
-      # capture present, none blank, no two states identical unless declared sameAs, every sameAs still holding, and the shards held
-      # every test of the suite exactly once. It reads records only (no browser), and ran as a job of its own after the shards; here it
-      # saves that job's queueing and start-up on the critical path. A step that fails fails `CI passed`. Skipped when the UI is not
-      # affected (the shards captured nothing). The steps above ran first, so a red shard is reported as that, not as missing records.
-      - if: needs.quality.outputs.ui-affected == 'true'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { persist-credentials: false }
-      - if: needs.quality.outputs.ui-affected == 'true'
-        uses: ./.github/actions/setup-toolchain
+      # Fails unless the three jobs above ended success or skipped, then (when the UI was affected) judges every visual shard's capture
+      # records together (src/studio/ui/tests/visual/whole-run.check.ts). That whole-run check ran as a job of its own after the shards;
+      # here it saves that job's queueing and start-up on the critical path. A step that fails fails `CI passed`.
+      - uses: ./.github/actions/ci-gate
         with:
-          need-go: 'false'
-          need-python: 'false'
-          need-wails-tools: 'false'
-          need-stylua: 'false'
-          need-linux-native-deps: 'false'
-          pnpm-filter: ui
-      - if: needs.quality.outputs.ui-affected == 'true'
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          pattern: ui-visual-records-*
-          merge-multiple: true
-          path: src/studio/ui/screenshots/.run
-      - if: needs.quality.outputs.ui-affected == 'true'
-        env:
-          UI_VISUAL_SHARDS: '4'
-        run: pnpm --dir src/studio/ui run visual:check-run
+          results: ${{ join(needs.*.result, ' ') }}
+          expect: '3'
+          visual-shards: ${{ needs.quality.outputs.ui-affected == 'true' && '4' || '0' }}
 
   # What a draft pull request shows instead of `CI passed`. It sums up only what the light tier ran, and its name says so. It is
   # not a merge condition: marking the pull request ready runs the full tier.
@@ -108,13 +81,10 @@ jobs:
     timeout-minutes: 5
     runs-on: ubuntu-latest
     steps:
-      - env:
-          RESULTS: ${{ join(needs.*.result, ' ') }}
-        run: |
-          echo "light tier (no visual suite, no atlas, no Windows build); needed jobs: $RESULTS"
-          for result in $RESULTS; do
-            case "$result" in
-              success|skipped) ;;
-              *) echo "::error::a job this run needs ended $result"; exit 1 ;;
-            esac
-          done
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      # The light tier: no visual suite, no atlas, no Windows build.
+      - uses: ./.github/actions/ci-gate
+        with:
+          results: ${{ join(needs.*.result, ' ') }}
+          expect: '1'
