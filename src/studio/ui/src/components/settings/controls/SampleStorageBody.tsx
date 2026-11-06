@@ -13,7 +13,7 @@ const HINT_MAX = 80;
 /**
  * Where a new voice sample is kept (docs/prds/character-voice-samples.prd.md, Where a sample is kept): copied into the project folder (the
  * default), as a region in the DAW's project, or both. A choice the project's DAW cannot honour is listed and off, with the capability's
- * sentence under it, so the narrator sees why and what stays available. A region is kept as a REAPER region the app reads back from the
+ * sentence as its tooltip and accessible description (the RadioGroup draws no reason in the page), so the narrator can find out why and what stays available. A region is kept as a REAPER region the app reads back from the
  * saved project, so moving or deleting it in REAPER moves or ends the sample.
  */
 export function SampleStorageBody() {
