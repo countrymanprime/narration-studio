@@ -12,6 +12,12 @@ inputs:
   expect:
     description: How many jobs the caller needs; a different count fails (a `needs:` entry dropped without this being changed)
     required: true
+  vitest-shards:
+    description: >-
+      The number of ui-unit shards whose Vitest blobs to merge (`coverage-gate.mjs vitest src/studio/ui --merge=N`: fails when a blob is
+      missing, reports every test and checks every coverage floor of scripts/ci/coverage-floors.json over the merged coverage, as the
+      unsharded run does); '0' when the Vitest run did not run (the UI not affected)
+    default: '0'
   visual-shards:
     description: >-
       The number of ui-visual shards whose capture records to judge with `visual:check-run`
@@ -27,10 +33,7 @@ runs:
         RESULTS: ${{ inputs.results }}
         EXPECT: ${{ inputs.expect }}
       run: node scripts/ci/needs-results.mjs --expect "$EXPECT"
-    # The whole-run half of the visual gate over every shard's capture records: every capture present, none blank, no two states
-    # identical unless declared sameAs, every sameAs still holding, and the shards held every test of the suite exactly once.
-    # It reads records only (no browser).
-    - if: inputs.visual-shards != '0'
+    - if: inputs.vitest-shards != '0' || inputs.visual-shards != '0'
       uses: ./.github/actions/setup-toolchain
       with:
         need-go: 'false'
@@ -39,6 +42,21 @@ runs:
         need-stylua: 'false'
         need-linux-native-deps: 'false'
         pnpm-filter: ui
+    - if: inputs.vitest-shards != '0'
+      uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+      with:
+        pattern: vitest-blob-*
+        merge-multiple: true
+        path: .cache/coverage/vitest-src-studio-ui-blobs
+    - if: inputs.vitest-shards != '0'
+      name: Merge the Vitest shards and check the coverage floors
+      shell: bash
+      env:
+        SHARDS: ${{ inputs.vitest-shards }}
+      run: node scripts/ci/coverage-gate.mjs vitest src/studio/ui --merge="$SHARDS"
+    # The whole-run half of the visual gate over every shard's capture records: every capture present, none blank, no two states
+    # identical unless declared sameAs, every sameAs still holding, and the shards held every test of the suite exactly once.
+    # It reads records only (no browser).
     - if: inputs.visual-shards != '0'
       uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
       with:

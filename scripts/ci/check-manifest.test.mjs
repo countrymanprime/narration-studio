@@ -94,3 +94,16 @@ test('the guard reports a lost step, a missing job, an aggregate that does not w
   assert.match(problems({ id: 'd', tier: 'post-merge', workflow: 'pr.yml', job: 'a', safety_net: 'a red run on main ticks HOLD within 3 h' }, read)[0], /neither on a push to main nor on a schedule/);
   assert.match(problems({ id: 'p', tier: 'pr', workflow: 'post.yml', job: 'a' }, () => deferred)[0], /no pull_request trigger/);
 });
+
+test('a check inside a composite action is found there, and its loss from the action is reported', () => {
+  const read = () => WORKFLOW;
+  const entry = { id: 'merge', tier: 'pr', workflow: 'ci.yml', job: 'a', step: ['targets: lint'], action_has: { gate: ['--merge='] } };
+  assert.deepEqual(problems(entry, read, () => 'runs:\n  steps:\n    - run: node coverage-gate.mjs --merge=3\n'), []);
+  assert.match(problems(entry, read, () => 'runs:\n  steps:\n    # --merge=3\n    - run: true\n')[0], /action gate does not contain/);
+  assert.match(
+    problems(entry, read, () => {
+      throw new Error('ENOENT');
+    })[0],
+    /action gate does not exist/,
+  );
+});

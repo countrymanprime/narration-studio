@@ -7,7 +7,7 @@ name: Docs
 # GitHub skips stays pending forever. This workflow runs on every pull request, so its job is safe to require later.
 #
 # One job, `docs`, runs the five checks as steps (each step has `if: !cancelled()`, so a red one does not hide the next,
-# the way quick-ubuntu does in _quality.yml). They were five jobs, each paying for its own runner and checkout; the step
+# the way linux-checks does in _quality.yml). They were five jobs, each paying for its own runner and checkout; the step
 # names are the old job names, so a log reads the same. The scheduled online link check stays a job of its own.
 #
 # links-offline reads only the repository (lychee --offline: a relative link must resolve to a file, a `#fragment` to a

@@ -80,9 +80,9 @@ function runsOnPullRequests(file, text) {
 
 /**
  * The problems with one manifest entry, as sentences; none when its check is where the manifest says.
- * @param {object} entry  @param {(file: string) => string} read
+ * @param {object} entry  @param {(file: string) => string} read  @param {(name: string) => string} [readAction]
  */
-export function problems(entry, read) {
+export function problems(entry, read, readAction = readLocalAction) {
   const found = [];
   let text;
   try {
@@ -97,6 +97,17 @@ export function problems(entry, read) {
   }
   for (const needle of entry.job_has ?? []) {
     if (!job.includes(needle)) found.push(`${entry.id}: ${entry.workflow}#${entry.job} does not contain ${JSON.stringify(needle)}`);
+  }
+  // A check that runs inside a local composite action the step uses: the action must still hold it.
+  for (const [action, needles] of Object.entries(entry.action_has ?? {})) {
+    let body;
+    try {
+      body = stripComments(readAction(action));
+    } catch {
+      found.push(`${entry.id}: action ${action} does not exist`);
+      continue;
+    }
+    for (const needle of needles) if (!body.includes(needle)) found.push(`${entry.id}: action ${action} does not contain ${JSON.stringify(needle)}`);
   }
   if (entry.tier === 'pr') {
     if (!runsOnPullRequests(entry.workflow, text)) found.push(`${entry.id}: tier pr, but ${entry.workflow} has no pull_request trigger`);
@@ -118,6 +129,7 @@ export function loadManifest(path = MANIFEST) {
 }
 
 export const readWorkflow = (file) => readFileSync(join(WORKFLOWS, file), 'utf8');
+const readLocalAction = (name) => readFileSync(join(ROOT, '.github', 'actions', name, 'action.yml'), 'utf8');
 
 function main() {
   const checks = loadManifest();
