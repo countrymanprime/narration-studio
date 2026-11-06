@@ -108,11 +108,13 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { fetch-depth: 0, persist-credentials: false }
+      # GTK 4 and WebKitGTK only for the rename rehearsal's `--full` run (not a pull request): it builds and tests the desktop
+      # module, which links them through cgo. A pull request's rehearsal runs `go vet` and the brand tests, which need neither.
       - uses: ./.github/actions/setup-toolchain
         with:
           need-go: 'true'
           need-wails-tools: 'false'
-          need-linux-native-deps: 'false'
+          need-linux-native-deps: ${{ github.event_name != 'pull_request' }}
           python-sync-args: --group docs
       - name: UI bundle
         id: ui-bundle
