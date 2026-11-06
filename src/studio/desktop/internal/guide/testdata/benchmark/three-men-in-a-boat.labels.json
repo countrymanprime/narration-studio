@@ -1,0 +1,1598 @@
+{
+ "book": "Three Men in a Boat (To Say Nothing of the Dog), Jerome K. Jerome, 1889 (Project Gutenberg #308, GITenberg mirror), all 19 chapters",
+ "note": "Required: a named character or place capitalised at least 3 times in the text. Minor: a real one with fewer mentions, including the many people of the narrator's anecdotes and the historical figures of the river towns; it counts as correct when shown and is not missed when absent. Other: a real named thing that is neither (a ship, a newspaper, a people): wrong if shown as a character or place.",
+ "characters": [
+  {
+   "name": "Harris",
+   "aliases": [
+    "Mr. Harris"
+   ],
+   "required": true
+  },
+  {
+   "name": "George",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Montmorency",
+   "aliases": [
+    "MONTMORENCY"
+   ],
+   "required": true
+  },
+  {
+   "name": "Uncle Podger",
+   "aliases": [
+    "Podger"
+   ],
+   "required": true
+  },
+  {
+   "name": "Aunt Podger",
+   "aliases": [
+    "Aunt Maria",
+    "Maria"
+   ],
+   "required": false
+  },
+  {
+   "name": "Biggs",
+   "aliases": [
+    "Biggs's boy"
+   ],
+   "required": true
+  },
+  {
+   "name": "Herr Slossenn Boschen",
+   "aliases": [
+    "Herr Boschen",
+    "Boschen",
+    "Slossenn Boschen"
+   ],
+   "required": true
+  },
+  {
+   "name": "Mrs. Poppets",
+   "aliases": [
+    "Poppets"
+   ],
+   "required": true
+  },
+  {
+   "name": "Tom",
+   "aliases": [
+    "Tom Smith"
+   ],
+   "required": true
+  },
+  {
+   "name": "Jim",
+   "aliases": [
+    "Jim Biffles"
+   ],
+   "required": true
+  },
+  {
+   "name": "Joe",
+   "aliases": [
+    "Joe Buggles"
+   ],
+   "required": true
+  },
+  {
+   "name": "Emily",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Jefferson",
+   "aliases": [
+    "Mr. Jefferson"
+   ],
+   "required": true
+  },
+  {
+   "name": "Stivvings",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Joskins",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Henry",
+   "aliases": [
+    "Mr. Henry"
+   ],
+   "required": false
+  },
+  {
+   "name": "Gladstone",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Caesar",
+   "aliases": [
+    "Julius Caesar"
+   ],
+   "required": true
+  },
+  {
+   "name": "King John",
+   "aliases": [
+    "John"
+   ],
+   "required": true
+  },
+  {
+   "name": "Queen Elizabeth",
+   "aliases": [
+    "Elizabeth",
+    "Queen Bess"
+   ],
+   "required": true
+  },
+  {
+   "name": "Henry VIII",
+   "aliases": [
+    "Henry the Eighth",
+    "King Henry"
+   ],
+   "required": true
+  },
+  {
+   "name": "King Ethelred",
+   "aliases": [
+    "Ethelred"
+   ],
+   "required": true
+  },
+  {
+   "name": "Cromwell",
+   "aliases": [
+    "Oliver Cromwell"
+   ],
+   "required": true
+  },
+  {
+   "name": "Mrs. Thomas",
+   "aliases": [
+    "Thomas"
+   ],
+   "required": true
+  },
+  {
+   "name": "Hector",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Christian",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Lee",
+   "aliases": [
+    "W. Lee"
+   ],
+   "required": true
+  },
+  {
+   "name": "Merton",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Jack",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Bill",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Anne",
+   "aliases": [
+    "Anne Boleyn"
+   ],
+   "required": false
+  },
+  {
+   "name": "Professor",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Lady Blanche",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Lady Holy",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Lord Fitznoodle",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Lord Paget",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Miss Brown",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Miss Smith",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Mr. Goggles",
+   "aliases": [
+    "Goggles"
+   ],
+   "required": false
+  },
+  {
+   "name": "Mr. Jones",
+   "aliases": [
+    "Jones"
+   ],
+   "required": false
+  },
+  {
+   "name": "Mrs. Gippings",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Mrs. Sarah Hill",
+   "aliases": [
+    "Sarah Hill"
+   ],
+   "required": false
+  },
+  {
+   "name": "Captain Cook",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "King Charles",
+   "aliases": [
+    "Charles"
+   ],
+   "required": false
+  },
+  {
+   "name": "King Edwy",
+   "aliases": [
+    "Edwy"
+   ],
+   "required": false
+  },
+  {
+   "name": "King James",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "King Offa",
+   "aliases": [
+    "Offa"
+   ],
+   "required": false
+  },
+  {
+   "name": "King Sebert",
+   "aliases": [
+    "Sebert"
+   ],
+   "required": false
+  },
+  {
+   "name": "Queen Matilda",
+   "aliases": [
+    "Matilda"
+   ],
+   "required": false
+  },
+  {
+   "name": "Sir Francis Drake",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Saxon Algar",
+   "aliases": [
+    "Algar"
+   ],
+   "required": false
+  },
+  {
+   "name": "John Edward",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "German Emperor",
+   "aliases": [
+    "Emperor"
+   ],
+   "required": false
+  },
+  {
+   "name": "Queen",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "William",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Edward",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Earl",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Judge",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Angler",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Pianist",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Mrs. Henderson",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Uncle",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Aunt",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Albert",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Alfred",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Billy Maunders",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Christopher Columbus",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Earl Godwin",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Henry I",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Charles I",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Tennyson",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Shelley",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Fairfax",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Orpheus",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Elgiva",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Odo",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "James",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Jane",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Jenkins",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Jim Bates",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Joe Muggles",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "John Blackwall",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Mary",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Richard",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Sarah Janes",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Susan",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "William Harris",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "William Samuel Harris",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Leslie",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Anne of Cleves",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Earl of Essex",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Hodgson",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Jove",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Apollo",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Faust",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Virgin Queen",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "St. Dunstan",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "St. Helen",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Cassivelaunus",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Great Caesar",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Edward the Confessor",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Banks",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Admiral",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Foxey",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Bradshaw",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Gippings",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Fitznoodle",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Francis Drake",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Gaunt",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Mother Earth",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Regent",
+   "aliases": [],
+   "required": false
+  }
+ ],
+ "places": [
+  {
+   "name": "Thames",
+   "aliases": [
+    "River Thames",
+    "the Thames"
+   ],
+   "required": true
+  },
+  {
+   "name": "Kingston",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Hampton Court",
+   "aliases": [
+    "Hampton"
+   ],
+   "required": true
+  },
+  {
+   "name": "Marlow",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Henley",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Oxford",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Streatley",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Wallingford",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Abingdon",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Dorchester",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Reading",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Sonning",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Wargrave",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Shiplake",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Staines",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Windsor",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Datchet",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Maidenhead",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Cookham",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Pangbourne",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Goring",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Medmenham",
+   "aliases": [
+    "Medmenham Abbey"
+   ],
+   "required": true
+  },
+  {
+   "name": "Iffley",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Sandford",
+   "aliases": [
+    "Sandford lasher"
+   ],
+   "required": true
+  },
+  {
+   "name": "Shepperton",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Walton",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Clifton",
+   "aliases": [
+    "Clifton Hampden",
+    "Clifton Lock"
+   ],
+   "required": true
+  },
+  {
+   "name": "London",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Liverpool",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Kent",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "England",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Bisham Abbey",
+   "aliases": [
+    "Bisham"
+   ],
+   "required": true
+  },
+  {
+   "name": "Magna Charta Island",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Picnic Point",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Moulsey",
+   "aliases": [
+    "Moulsey Lock"
+   ],
+   "required": true
+  },
+  {
+   "name": "Kew",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Waterloo",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Southend",
+   "aliases": [
+    "Southend Pier"
+   ],
+   "required": true
+  },
+  {
+   "name": "Yarmouth",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "St. Albans",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Hampton Maze",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Great Coram Street",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Hever Castle",
+   "aliases": [
+    "Hever"
+   ],
+   "required": false
+  },
+  {
+   "name": "High Street",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "South Pacific Ocean",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Ankerwyke House",
+   "aliases": [
+    "Ankerwyke"
+   ],
+   "required": false
+  },
+  {
+   "name": "Bisham Church",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Hampton Church",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Hardwick House",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Manor House",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Shiplake Church",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "St. Nicholas Church",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Walton Church",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Cleeve",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Culham",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Chertsey",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Weybridge",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Runnymede",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Wittenham",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Scotland",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Switzerland",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Germany",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Ireland",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "France",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Europe",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Ryde",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Moulsford",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Hurley",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Henley Regatta",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Mapledurham",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Whitchurch",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Benson",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Day's Lock",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Teddington",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Hampton Wick",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Surbiton",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Sunbury",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Halliford",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Laleham",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Egham",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Old Windsor",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Boulter's Lock",
+   "aliases": [
+    "Boulter"
+   ],
+   "required": false
+  },
+  {
+   "name": "Cliveden",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Temple",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Hambledon",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Greenlands",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Remenham",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Park Place",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Caversham",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Purley",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Basildon",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Wargrave Church",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Stag",
+   "aliases": [
+    "The Stag"
+   ],
+   "required": false
+  },
+  {
+   "name": "Waterloo Station",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Thames Ditton",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Penton Hook",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Cookham Dean",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Bourne End",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Oxford Club",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Boulogne",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Burgundy",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Crewe",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Euston",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Exeter",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Ely",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Guildford",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Holborn",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Hambledon Lock",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Hurley Weir",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Iffley Lock",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Kew Bridge",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Kyningestun",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Lea",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Quarry Woods",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Runnymead",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Swan Inn",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Victoria Bridge",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Walton Bridge",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Wey",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Yorkshire",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Arctic",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Atlantic",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Basingstoke Canal",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Beaune",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Birmingham",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Buckinghamshire",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Cape Horn",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Castle Street",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Duncroft Hall",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Finchley Churchyard",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Hartz Mountains",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Himalaya Mountains",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Home Park",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Japan",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Kempton Park",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Leicester Square",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Marlow Bridge",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Marlow Manor",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Middlesex",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Monkey Island",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "New Guinea",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Newfoundland",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Nuneham Park",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Paris",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Richmond",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Salisbury",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Sandwich Islands",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "South London",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Southern Europe",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Town Hall",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Wales",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Wessex",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Westminster",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Aldershot",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Alhambra",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Bell Weir",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Boveney",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "British Museum",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Channel",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Cooper's Hill",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Eastbourne",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Eton",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Isle of Wight",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Kennet",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Kensal Green Cemetery",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Lowther Arcade",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Margate",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Marsh Lock",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Nuneham Courteney",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Paddington",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Poitiers",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Culhalm Lock",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Clieveden Woods",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Caer Doren",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Barley Mow",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Bells of Ouseley",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Cleve",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Skiplake",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Corway",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Pier",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Abbey",
+   "aliases": [],
+   "required": false
+  }
+ ],
+ "other": [
+  "North-Western Railway",
+  "Pride of the Thames",
+  "London Journal",
+  "Parliamentary War",
+  "Revolt of Islam",
+  "Pinafore",
+  "Barons",
+  "Danes",
+  "Roman",
+  "Romans",
+  "Scotch",
+  "German",
+  "French",
+  "English",
+  "Irish",
+  "Saxon",
+  "Saxons",
+  "Normans",
+  "Magna Charta",
+  "Royal Barge",
+  "Parliament",
+  "Britons",
+  "Knights Templars",
+  "Earls of Warwick",
+  "Stuarts",
+  "Scots",
+  "Benedictine",
+  "Civil Service Stores",
+  "Committee of the Thames Angler's Association",
+  "Bermondsey Good Templars",
+  "Art Exhibitions",
+  "Midland",
+  "South-Western",
+  "Fahrenheit",
+  "Newfoundlands"
+ ]
+}

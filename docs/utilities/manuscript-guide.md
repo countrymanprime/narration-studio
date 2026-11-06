@@ -123,6 +123,18 @@ and every build with the model's spans still match the sidecar's deleted copy ca
 by `rules/testdata/suggest-lines.json`, which `TestTheSuggestLinesMatchTheContractFile` writes. `go run ./cmd/guide-rules
 --manuscript M --guide G` (from `src/studio/desktop`) prints the same lines; the extraction calibration tool runs it.
 
+## The confidence rule for an unattended build
+
+A build nobody starts by hand (the one a manuscript import is to start, #3092) files the scan's names by
+`confidentCandidates` (`src/studio/desktop/internal/guide/build_confidence.go`) instead of the old `classify`. It keeps a
+single word the scan turns down when the book capitalises it mid-sentence again and again (Portly, or the Hatter beside a
+speech verb), files a name with three mentions or more under Character only on a speech verb, a title or a verb after it,
+under Place only on a place word in its name or place prepositions before it, and puts every other name under Needs Review.
+The spaCy model's labels, when it is installed, are one vote. On five public-domain books 99 of the 100 characters it shows
+are real, against 90.7% for the rules-only build and 57.4% for the spaCy build; `TestStoryBibleBenchmark` pins every figure
+in `testdata/benchmark/golden.json`, and [the benchmark note](../research/story-bible-build-benchmark.md) has the method, the
+held-out book and the names it still gets wrong. The scan's suggestions and the narrator's own builds are unchanged.
+
 ## GLiNER suggestions
 
 `suggest --source gliner --manuscript M --guide G --install DIR` runs the optional GLiNER download
