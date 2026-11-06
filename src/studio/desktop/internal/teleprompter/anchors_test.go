@@ -178,11 +178,11 @@ func TestAppendAnchorReportsAFolderItCannotCreate(t *testing.T) {
 
 func TestAppendAnchorReportsATemporaryFileItCannotWrite(t *testing.T) {
 	project := t.TempDir()
-	// A folder where the temporary file goes makes writing it fail.
-	if err := os.MkdirAll(filepath.Join(AnchorsDir(project), anchorsFileName("c1")+".tmp"), 0o755); err != nil {
+	// A folder with something in it where the file goes makes replacing it fail.
+	if err := os.MkdirAll(filepath.Join(AnchorsDir(project), anchorsFileName("c1"), "keep"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	if err := AppendAnchor(project, "c1", Anchor{Word: 1, Position: 1}); err == nil {
-		t.Fatal("AppendAnchor with a folder in the temporary file's place: want an error, got nil")
+		t.Fatal("AppendAnchor with a folder in the file's place: want an error, got nil")
 	}
 }

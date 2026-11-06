@@ -128,12 +128,8 @@ func (s *CacheStore) Write(key CacheEntryKey, blob []byte) error {
 		return err
 	}
 	path := s.entryPath(key)
-	temp := path + ".tmp"
-	if err := os.WriteFile(temp, bytes, 0o600); err != nil {
+	if err := persist.WriteFile(path, bytes, 0o600); err != nil {
 		return fmt.Errorf("could not write the analysis cache entry: %w", err)
-	}
-	if err := os.Rename(temp, path); err != nil {
-		return fmt.Errorf("could not activate the analysis cache entry: %w", err)
 	}
 	return nil
 }

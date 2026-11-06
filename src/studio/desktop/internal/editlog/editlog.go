@@ -100,12 +100,8 @@ func writeVersioned(path, what string, value any) error {
 	if err != nil {
 		return err
 	}
-	temporary := path + ".tmp"
-	if err := os.WriteFile(temporary, bytes, 0o600); err != nil {
+	if err := persist.WriteFile(path, bytes, 0o600); err != nil {
 		return fmt.Errorf("could not write the %s file: %w", what, err)
-	}
-	if err := os.Rename(temporary, path); err != nil {
-		return fmt.Errorf("could not activate the %s file: %w", what, err)
 	}
 	return nil
 }
