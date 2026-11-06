@@ -23,7 +23,7 @@ On read, the host checks the file before using it: its shape, its version where 
 
 A file that exists but cannot be opened at all (a sharing violation, a permission problem) is logged and left in place by `ReadJSON`. A writer that calls `persist.CanOverwrite` first then refuses to save; the rows say where a writer does not.
 
-Every write is a temp file in the same folder renamed over the old one, unless the row says otherwise.
+Every write is a temp file in the same folder renamed over the old one, unless the row says otherwise. Writers that have moved onto `persist.WriteFile` (settings and recent projects so far) also flush the temp file and the folder to disk, and on Windows retry a rename that fails with "Access is denied" or a sharing violation for about half a second, because a scanner or a reader can hold the old file open.
 
 A hand edit of one of these files can change only the narrator's own data the app shows or judges by: a note, a mark, a status, a verdict. It must not make the app run a program, open or write a path, fetch a URL, or put markup into the page; a file that can is a vulnerability, reported as [SECURITY.md](../../SECURITY.md) says. The exception is a file whose job is to name a path the host opens, a command it runs or a URL it fetches: its row says so, and it also has its own row in the threat model, which bounds what the named target can do.
 
