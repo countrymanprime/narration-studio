@@ -6,7 +6,7 @@ import { ApiProvider } from '../../../api/ApiContext';
 import { findToast, toastTexts } from '../../../fixtures/toasts';
 import { createMockApi } from '../../../api/mockApi';
 import { USER_MESSAGE, WireError } from '../../../api/wire/WireError';
-import type { ExportJob, ManuscriptChapter, MeasureFileResult, MeasureJob, NarrationApi, PackageJob } from '../../../types';
+import type { ExportJob, ManuscriptChapter, MeasureFileResult, MeasureJob, MultiPackageJob, NarrationApi, PackageJob } from '../../../types';
 import { chapterName } from '../../../chapterName';
 import { failingTwo, passing, profile, waiting } from '../../masterqc/files/testFiles';
 import { styledChapters, type HeadingStyle } from '../../script/page/chapters/chapterFixtures';
@@ -99,7 +99,7 @@ describe('DeliveryPage', () => {
 
   it('blocks-the-build-while-chapters-fail-or-are-not-ready-and-says-how-many', async () => {
     mount(BLOCKED);
-    const button = await screen.findByRole('button', { name: /Build .* package/ });
+    const button = await screen.findByRole('button', { name: /^Build [^\d].* package$/ });
     await screen.findByText('1 failing, 1 not ready');
     expect(button).toHaveProperty('disabled', false);
     expect(button.getAttribute('aria-disabled')).toBe('true');
@@ -111,7 +111,7 @@ describe('DeliveryPage', () => {
   it('keeps a blocked Build focusable, described by its reason, and says why a press builds nothing', async () => {
     const packageStart = vi.fn(async () => PACKAGE_DONE);
     mount(BLOCKED, { packageStart });
-    const button = await screen.findByRole('button', { name: /Build .* package/ });
+    const button = await screen.findByRole('button', { name: /^Build [^\d].* package$/ });
     await screen.findByText('1 failing, 1 not ready');
     expect(button).toHaveProperty('disabled', false);
     const why = document.getElementById(button.getAttribute('aria-describedby') ?? '');
@@ -128,12 +128,12 @@ describe('DeliveryPage', () => {
 
   it('says nothing is mastered as the reason when no chapter has been measured, and drops the note once every chapter passes', async () => {
     mount([]);
-    const button = await screen.findByRole('button', { name: /Build .* package/ });
+    const button = await screen.findByRole('button', { name: /^Build [^\d].* package$/ });
     await screen.findByText('0 failing, 4 not ready');
     expect(document.getElementById(button.getAttribute('aria-describedby') ?? '')?.textContent).toBe('0 failing, 4 not ready');
     cleanup();
     mount(PASSING);
-    const ready = await screen.findByRole('button', { name: /Build .* package/ });
+    const ready = await screen.findByRole('button', { name: /^Build [^\d].* package$/ });
     await screen.findByText('Every chapter passes.');
     expect(ready.getAttribute('aria-disabled')).toBeNull();
     expect(ready.getAttribute('aria-describedby')).toBeNull();
@@ -151,7 +151,7 @@ describe('DeliveryPage', () => {
   it('names the first not-ready chapter and why beside the disabled Build when nothing fails, and nothing when nothing was measured', async () => {
     mount([passing('Chapter 01.wav'), passing('Chapter 02.wav')]);
     expect((await screen.findByText('Chapter 03: no measured file yet.')).textContent).toBe('Chapter 03: no measured file yet.');
-    expect(screen.getByRole('button', { name: /Build .* package/ }).getAttribute('aria-disabled')).toBe('true');
+    expect(screen.getByRole('button', { name: /^Build [^\d].* package$/ }).getAttribute('aria-disabled')).toBe('true');
     cleanup();
     mount([]);
     await screen.findByText('0 failing, 4 not ready');
@@ -172,7 +172,7 @@ describe('DeliveryPage', () => {
     const packageStart = vi.fn(async () => PACKAGE_DONE);
     mount(PASSING, { packageStart });
     await screen.findByText('Every chapter passes.');
-    await userEvent.click(screen.getByRole('button', { name: /Build .* package/ }));
+    await userEvent.click(screen.getByRole('button', { name: /^Build [^\d].* package$/ }));
     expect(packageStart).toHaveBeenCalledOnce();
     expect(await screen.findByText('4 files')).toBeTruthy();
     expect(screen.getByText('in C:/Deliver/ACX')).toBeTruthy();
@@ -185,7 +185,7 @@ describe('DeliveryPage', () => {
     await screen.findByText('Every chapter passes.');
     // Before a build there is no button.
     expect(screen.queryByRole('button', { name: 'Open the folder' })).toBeNull();
-    await userEvent.click(screen.getByRole('button', { name: /Build .* package/ }));
+    await userEvent.click(screen.getByRole('button', { name: /^Build [^\d].* package$/ }));
     await userEvent.click(await screen.findByRole('button', { name: 'Open the folder' }));
     expect(deliveryOpenPackageFolder).toHaveBeenCalledOnce();
     expect(screen.queryByRole('alert')).toBeNull();
@@ -235,7 +235,7 @@ describe('DeliveryPage', () => {
       mount(PASSING, both);
       await screen.findByText('4 of 6');
       expect(await screen.findByText('0 failing, 2 not ready')).toBeTruthy();
-      expect(screen.getByRole('button', { name: /Build .* package/ }).getAttribute('aria-disabled')).toBe('true');
+      expect(screen.getByRole('button', { name: /^Build [^\d].* package$/ }).getAttribute('aria-disabled')).toBe('true');
     });
 
     it('draws a kind the list lacks as no row', async () => {
@@ -248,7 +248,7 @@ describe('DeliveryPage', () => {
 
   it('shows a failed package build', async () => {
     mount(PASSING, { packageStart: async () => ({ ...PACKAGE_DONE, phase: 'error', error: 'The folder is not writable.', files: [] }) });
-    await userEvent.click(await screen.findByRole('button', { name: /Build .* package/ }));
+    await userEvent.click(await screen.findByRole('button', { name: /^Build [^\d].* package$/ }));
     expect((await findToast('The folder is not writable.')).text).toContain('The folder is not writable.');
   });
 
@@ -289,5 +289,56 @@ describe('DeliveryPage', () => {
     const row = await screen.findByRole('button', { name: /Chapter 01: Pass/ });
     expect(within(row).getByText('Pass')).toBeTruthy();
     await waitFor(() => expect(screen.getByText('1 of 4')).toBeTruthy());
+  });
+
+  describe('the multi-platform build (#2824)', () => {
+    const MULTI_DONE = {
+      id: 'm1',
+      phase: 'success',
+      message: 'Built 1 package.',
+      results: [{ profile: 'acx@2026-09', platform: 'ACX', phase: 'success', message: '', outputDir: 'C:/Deliver/ACX', files: [], checklist: [] }],
+    } as unknown as MultiPackageJob;
+    const MULTI_IDLE = { id: null, phase: 'idle', message: '', results: [] } as unknown as MultiPackageJob;
+
+    it('sits on the Output panel beside the single-profile build, off with the reason until a chapter is encoded', async () => {
+      mount(PASSING, { exportState: async () => ({ phase: 'idle', files: [] }) as unknown as ExportJob, packageMultiState: async () => MULTI_IDLE });
+      const panel = await screen.findByRole('heading', { name: 'All platforms' });
+      expect(panel).toBeTruthy();
+      const build = screen.getByRole('button', { name: /^Build \d+ packages?$/ });
+      expect(build.getAttribute('aria-disabled') === 'true' || (build as HTMLButtonElement).disabled).toBe(true);
+      expect(screen.getAllByText('Master and encode a chapter first.').length).toBeGreaterThan(0);
+    });
+
+    it('builds the checked platforms from the encoded files, one start, and shows each result under its platform', async () => {
+      const packageStartMulti = vi.fn(async () => MULTI_DONE);
+      mount(PASSING, { packageStartMulti, packageMultiState: async () => MULTI_IDLE });
+      await screen.findByRole('heading', { name: 'All platforms' });
+      await userEvent.click(await screen.findByRole('checkbox', { name: 'ACX' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Build 1 package' }));
+      expect(packageStartMulti).toHaveBeenCalledOnce();
+      expect((packageStartMulti.mock.calls as unknown as unknown[][])[0]![0]).toMatchObject({
+        selections: [expect.objectContaining({ profileId: expect.any(String) })],
+        items: [{ kind: 'chapter', title: 'Chapter 01', path: 'C:/enc/01.mp3' }],
+      });
+      expect(await screen.findByText('Built 1 package.')).toBeTruthy();
+    });
+
+    it('holds the single-profile build while the multi-platform build runs, and says why', async () => {
+      const running = { id: 'm2', phase: 'running', message: 'Building the ACX package (1 of 1).', results: [] } as unknown as MultiPackageJob;
+      mount(PASSING, { packageMultiState: async () => running });
+      await screen.findByText('Building packages…', { exact: false }).catch(() => undefined);
+      const single = await screen.findByRole('button', { name: /^Build [^\d].* package$/ });
+      await waitFor(() => expect(single.getAttribute('aria-disabled')).toBe('true'));
+      expect(screen.getAllByText('Another build is running.').length).toBeGreaterThan(0);
+    });
+
+    it('is off while chapters fail or are not ready, like the single build, and says why (qa-breaker B9)', async () => {
+      mount(BLOCKED, { packageMultiState: async () => MULTI_IDLE });
+      await screen.findByRole('heading', { name: 'All platforms' });
+      await userEvent.click(await screen.findByRole('checkbox', { name: 'ACX' }));
+      const build = screen.getByRole('button', { name: 'Build 1 package' });
+      await waitFor(() => expect(build.getAttribute('aria-disabled')).toBe('true'));
+      expect(within(screen.getByRole('region', { name: 'All platforms' })).getByText('Every chapter has to pass first.')).toBeTruthy();
+    });
   });
 });

@@ -18,8 +18,7 @@ judged against (**ACX** for the built-in profile, a custom profile by its name) 
 **Check the files again**. Pressing the pill opens [Delivery](delivery.md), where the profile is chosen and
 edited. The run buttons are icon buttons beside it, named by their tooltips (**Master all to spec…**, **Check files…**). The main column holds the files and their checks, **Book consistency**, the
 [mastering chain](#the-mastering-chain), [Diagnostics](#diagnostics) and the [report](#exporting-a-report);
-the column on the right holds the [delivery package](#the-delivery-package) and
-[Multi-platform export](#building-packages-for-several-platforms-at-once).
+the column on the right holds the [delivery package](#the-delivery-package). Building the packages, for one platform or several, is on [Delivery](delivery.md#building-packages-for-several-platforms-at-once); this page keeps the package counts and **Open Delivery**.
 
 ## Common tasks
 
@@ -200,29 +199,6 @@ is already listed adds no row, and a message says so.
 ![Master & encode asking approval to master with the DAW's FX chain, naming the regions it renders](../../images/ui/master-to-spec-approve.webp)
 
 ![A cancelled export: each file Cancelled, and the files and Master & encode back to run it again](../../images/ui/master-to-spec-cancelled.webp)
-
-## Building packages for several platforms at once
-
-If you deliver to more than one platform, **Multi-platform export** (under the delivery package) lets you build
-all of them from the one source you already mastered and encoded, without re-encoding unless a platform
-needs a different file format. Under **Build packages for**, check the box for each profile you want a
-package for, then **Build N packages**; it stays off until files are mastered and encoded. This does not change which profile the page's checks are judged against (that is the project's profile,
-chosen on Delivery); the checkboxes only choose what to build packages for.
-
-![Master & QC - Multi-platform export with one platform checked](../../images/ui/master-multi-export.webp)
-
-You are asked for one folder once, and each platform's package goes into its own correctly named subfolder
-of it. Two platforms that both take the same file format (most do: MP3 at the same bitrate) share the one
-set of already-encoded files; a platform that needs a different format (an M4B audiobook file, say) is
-encoded for just that once, however many platforms need it, not once per platform. Cancel stops the build
-before its next platform starts; platforms already built keep their packages, and one not yet reached is
-left waiting.
-
-![Master & QC - a finished multi-platform build: a row per platform with its folder or why it was not built](../../images/ui/master-multi-export-results.webp)
-
-While it builds, and once it finishes, each platform says how it went under its own checkbox: **Building…**,
-**Built** with its folder and how many files it wrote, or why it could not be built (such as a required file being
-missing for that platform).
 
 ## Diagnostics
 

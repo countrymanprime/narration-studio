@@ -69,6 +69,7 @@ Storybook title: `Primitives/StatusBadge`. Source: `src/components/primitives/St
 - `src/components/master/MasterToSpecPanel.tsx`
 - `src/components/master/MasteringApprovalDialog.tsx`
 - `src/components/master/MasteringChain.tsx`
+- `src/components/master/MultiPlatformExportPanel.tsx`
 - `src/components/master/RuleBadges.tsx`
 - `src/components/masterqc/files/FileChecks.tsx`
 - `src/components/masterqc/files/FilesTable.tsx`
