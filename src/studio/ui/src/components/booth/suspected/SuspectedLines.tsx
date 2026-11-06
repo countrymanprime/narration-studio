@@ -26,15 +26,19 @@ export function SuspectedLines({ chapterId, flags: given }: { chapterId: string;
   const [versions, setVersions] = useState<ReadonlyMap<string, { id: string; evidenceVersion: string }>>(new Map());
 
   const keep = useCallback(
-    async (list: readonly SuspectedFlag[], dismissNow: ReadonlySet<string>) => {
+    async (list: readonly SuspectedFlag[], dismissNow: ReadonlySet<string>, retired: readonly SuspectedFlag[] = []) => {
+      // A line the second listen cleared after it was saved is retired the host's way: one more save records it as dismissed.
+      const sent = [...list, ...retired.map(({ check: _check, ...flag }) => flag)];
+      const retiredKeys = new Set(retired.map(suspectedKey));
       const stored = await teleprompter.teleprompterSaveFlags(
         chapterId,
-        list.map((flag) => toFlagSave(flag, dismissNow.has(suspectedKey(flag)))),
+        sent.map((flag) => toFlagSave(flag, retiredKeys.has(suspectedKey(flag)) || dismissNow.has(suspectedKey(flag)))),
       );
       const closed = new Set<string>();
       const ids = new Map<string, { id: string; evidenceVersion: string }>();
       stored.forEach((finding, index) => {
-        const key = suspectedKey(list[index]);
+        const key = suspectedKey(sent[index]);
+        if (retiredKeys.has(key)) return;
         if (finding.review.status === 'dismissed') closed.add(key);
         ids.set(key, { id: finding.id, evidenceVersion: finding.evidence_version ?? '' });
       });
@@ -49,13 +53,24 @@ export function SuspectedLines({ chapterId, flags: given }: { chapterId: string;
   const places = kept.map((flag) => suspectedKey(flag)).join('|');
   const current = useRef(kept);
   current.current = kept;
+  const everySaved = useRef(new Set<string>());
+  const cleared = flags.filter((flag) => flag.check === 'cleared');
+  const clearedKeys = cleared.map(suspectedKey).join('|');
+  const clearedNow = useRef(cleared);
+  clearedNow.current = cleared;
   useEffect(() => {
-    if (places === '') return;
+    const retired = clearedNow.current.filter((flag) => everySaved.current.has(suspectedKey(flag)));
+    if (places === '' && retired.length === 0) return;
     // Reading again is what Retry does (issue #2919).
     const read = (): void =>
-      void keep(current.current, new Set()).catch((reason) => overlay.toast(apiErrorMessage(reason), { tone: 'error', action: retryAction(read) }));
+      void keep(current.current, new Set(), retired)
+        .then(() => {
+          current.current.forEach((flag) => everySaved.current.add(suspectedKey(flag)));
+          retired.forEach((flag) => everySaved.current.delete(suspectedKey(flag)));
+        })
+        .catch((reason) => overlay.toast(apiErrorMessage(reason), { tone: 'error', action: retryAction(read) }));
     read();
-  }, [places, keep]);
+  }, [places, clearedKeys, keep]);
 
   const dismiss = async (flag: SuspectedFlag) => {
     const key = suspectedKey(flag);

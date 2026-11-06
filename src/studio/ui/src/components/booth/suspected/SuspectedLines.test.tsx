@@ -147,6 +147,21 @@ describe('SuspectedLines', () => {
     expect(sent.some((f) => f.check === 'cleared')).toBe(false);
   });
 
+  // Flags are saved as they are raised; the second listen judges them afterwards, so a verdict can reach a line that is already stored.
+  it('a line cleared after it was saved is retired in the store: one more save records it as dismissed, with no check sent', async () => {
+    const { save, view } = host();
+    const { rerender } = render(view([skipped, again]));
+    await waitFor(() => expect(save).toHaveBeenCalledTimes(1));
+    rerender(view([skipped, { ...again, check: 'cleared' }]));
+    await waitFor(() => expect(save).toHaveBeenCalledTimes(2));
+    const retired = save.mock.calls[1][1];
+    expect(retired.map((f) => f.paragraphId)).toEqual(['p9', 'p12']);
+    expect(retired.map((f) => f.dismissed)).toEqual([false, true]);
+    expect(retired.some((f) => f.check)).toBe(false);
+    expect(screen.getByText('Suspected · 1')).toBeTruthy();
+    expect(screen.getByText('Not confirmed')).toBeTruthy();
+  });
+
   it('a line the second listen heard too says Confirmed and keeps its dismiss control', async () => {
     const { save, view } = host();
     render(view([{ ...skipped, check: 'confirmed' }]));
