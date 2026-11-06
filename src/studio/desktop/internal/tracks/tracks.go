@@ -157,9 +157,8 @@ type Track struct {
 	HasFXChain bool `json:"-"`
 
 	// Selected and Armed are the track's selection (SEL 1) and record-arm (the
-	// first REC field) as of the .rpp's last save. The chapter suggestion
-	// (chaptermatch.Suggest) reads them to find the track the
-	// narrator is recording; not on the TracksList wire contract (json:"-").
+	// first REC field) as of the .rpp's last save; not on the TracksList wire
+	// contract (json:"-").
 	Selected bool `json:"-"`
 	Armed    bool `json:"-"`
 	// FixedLanes is true for a track in fixed item lane mode (FREEMODE 2).
@@ -270,4 +269,27 @@ func Discover(folder string) ([]string, error) {
 	}
 	sort.Strings(found)
 	return found, nil
+}
+
+// WithDescendants answers the track guid names followed by every track inside it when it is a folder: the tracks after it whose
+// Depth is greater than its own, up to the first that is not (a chapter linked to a folder of voices). A track that is not a folder
+// answers itself alone; a guid the project does not hold answers false.
+func (p Project) WithDescendants(guid string) ([]Track, bool) {
+	for index, track := range p.Tracks {
+		if track.GUID != guid {
+			continue
+		}
+		out := []Track{track}
+		if !track.IsFolder {
+			return out, true
+		}
+		for _, inner := range p.Tracks[index+1:] {
+			if inner.Depth <= track.Depth {
+				break
+			}
+			out = append(out, inner)
+		}
+		return out, true
+	}
+	return nil, false
 }

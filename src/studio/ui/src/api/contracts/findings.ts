@@ -88,11 +88,12 @@ export type FindingNoteType = (typeof FINDING_NOTE_TYPES)[number];
 
 /**
  * The word shown for a finding while the narrator has not chosen one: its category, refined by evidence.kind where the
- * category covers more than one word. The same mapping as findings.DefaultNoteType; choosing this word
- * again returns the finding to "not chosen".
+ * category covers more than one word. A pickup the retired take review saved is a group of reads of one span, so a repeat.
+ * The same mapping as findings.DefaultNoteType; choosing this word again returns the finding to "not chosen".
  */
-export function defaultFindingNoteType(finding: Pick<Finding, 'category' | 'evidence'>): FindingNoteType {
+export function defaultFindingNoteType(finding: Pick<Finding, 'category' | 'evidence'> & Partial<Pick<Finding, 'analyzer'>>): FindingNoteType {
   const kind = typeof finding.evidence?.kind === 'string' ? finding.evidence.kind.toLowerCase() : '';
+  if (finding.category === 'pickup' && finding.analyzer === 'take-review') return 'repeat';
   switch (finding.category) {
     case 'transcript_discrepancy':
       return kind === 'skipped' ? 'skip' : 'misread';
@@ -121,7 +122,7 @@ export function defaultFindingNoteType(finding: Pick<Finding, 'category' | 'evid
 }
 
 /** The type a note shows everywhere (the table's Type column and the inspector's select): the narrator's choice, else the analyzer's mapped word. */
-export function shownFindingNoteType(finding: Pick<Finding, 'category' | 'evidence' | 'review'>): FindingNoteType {
+export function shownFindingNoteType(finding: Pick<Finding, 'category' | 'evidence' | 'review'> & Partial<Pick<Finding, 'analyzer'>>): FindingNoteType {
   return finding.review.type ?? defaultFindingNoteType(finding);
 }
 
@@ -286,19 +287,10 @@ export interface FindingsApi {
   findingsThread(id: string, change: FindingThreadChange): Promise<Finding>;
   /** Counts by status and the analyzers, categories and chapters present. */
   findingsSummary(): Promise<FindingsSummary>;
-  /** Whether REAPER is there for Go to and Loop; sends REAPER nothing, so the page may poll it. */
-  findingsReaperStatus(): Promise<ReaperStatus>;
   /** Selects the finding's item in REAPER and puts the edit cursor on its spot. */
   findingsGoTo(id: string): Promise<FindingNavigation>;
   /** Loops the finding's context in REAPER: time selection, loop points, repeat on, Play. */
   findingsLoop(id: string): Promise<FindingNavigation>;
-  /**
-   * Go to for one read of a finding that groups several (a take-review pickup or duplicate read): `read` is its index in
-   * `evidence.members`, and REAPER goes to that read's own item and take.
-   */
-  findingsGoToRead(id: string, read: number): Promise<FindingNavigation>;
-  /** Loop for one read of such a finding, over its own range; the loop is the finding's, so Stop loop stops it. */
-  findingsLoopRead(id: string, read: number): Promise<FindingNavigation>;
   /** Stops the loop and puts back the time selection, loop points and repeat the narrator had. */
   findingsStopLoop(): Promise<FindingNavigation>;
   /** Adds one take marker in REAPER at an accepted finding's spot, named like Transcript Compare's. */

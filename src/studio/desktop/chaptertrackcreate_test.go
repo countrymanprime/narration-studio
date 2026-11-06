@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"desktop/internal/creditsid"
 	"encoding/json"
 	"errors"
 	"os"
@@ -11,11 +12,11 @@ import (
 
 	"desktop/internal/bridge"
 	"desktop/internal/contractfile"
-	"desktop/internal/coverage"
 	"desktop/internal/dawport"
 	"desktop/internal/dawport/dawporttest"
 	"desktop/internal/manuscript"
 	"desktop/internal/settings"
+	"desktop/internal/voicetracks"
 )
 
 const createdTrackGUID = "{00000003-0000-4000-8000-000000000003}"
@@ -97,16 +98,6 @@ func TestChapterTrackCreateReplacesTheChaptersOldLink(t *testing.T) {
 	}
 }
 
-func TestChapterTrackCreateTwiceAddsTwoTracks(t *testing.T) {
-	host, ids := newTestHostForChapterMatch(t)
-	creator := &fakeCreator{}
-	createTrack(t, host, creator, createAvailable(), ids[0])
-	createTrack(t, host, creator, createAvailable(), ids[0])
-	if len(creator.names) != 2 {
-		t.Fatalf("asked %d times, want 2: the binding does not dedupe", len(creator.names))
-	}
-}
-
 func TestChapterTrackCreateForAChapterNotInTheManuscriptIsAnError(t *testing.T) {
 	host, _ := newTestHostForChapterMatch(t)
 	creator := &fakeCreator{}
@@ -120,9 +111,10 @@ func TestChapterTrackCreateForAChapterNotInTheManuscriptIsAnError(t *testing.T) 
 
 func TestChapterTrackCreateNamesACreditsTrackAfterItsTitle(t *testing.T) {
 	host, _ := newTestHostForChapterMatch(t)
-	for kind, title := range creditsScriptTitles {
+	for _, kind := range creditsid.Kinds {
+		title := creditsid.Title(kind)
 		creator := &fakeCreator{}
-		id := coverage.CreditsChapterID(kind)
+		id := creditsid.ID(kind)
 		result := createTrack(t, host, creator, createAvailable(), id)
 		if result["outcome"] != "created" || len(creator.names) != 1 || creator.names[0] != title {
 			t.Fatalf("%s: asked %v, result %v", kind, creator.names, result)
@@ -323,10 +315,25 @@ func TestContractChapterTrackCreate(t *testing.T) {
 	}
 	pin(t, "chapter-track-create-created", folder, created)
 
+	// A Voice folders project: the chapter's new folder and its Narrator child (#2840).
+	folders, folderIDs := newTestHostForChapterMatch(t)
+	setLayout(t, folders, voicetracks.LayoutFolders)
+	createdFolder, err := chapterTrackCreateIn(context.Background(), folders.services(), &fakeFolderCreator{fakeCreator: fakeCreator{index: 3}}, createAvailable(), folderIDs[1])
+	if err != nil {
+		t.Fatal(err)
+	}
+	pin(t, "chapter-track-create-folder", folders.config.projectFolder, createdFolder)
+
 	host.dawPortResolver = dawport.NewResolver(dawport.ResolverConfig{Adapter: dawporttest.NewFake(dawport.KindREAPER, dawporttest.Levels(dawport.Experimental))})
-	refused, err := chapterTrackCreateIn(context.Background(), host.services(), &fakeCreator{err: bridge.ErrRecording}, createAvailable(), ids[1])
+	refused, err := chapterTrackCreateIn(context.Background(), host.services(), &fakeCreator{err: bridge.ErrRecording}, createAvailable(), ids[2])
 	if err != nil {
 		t.Fatal(err)
 	}
 	pin(t, "chapter-track-create-refused", folder, refused)
+	// ids[1] was linked by the create above: a second create is refused and names its track (#2958, B2).
+	already, err := chapterTrackCreateIn(context.Background(), host.services(), &fakeCreator{}, createAvailable(), ids[1])
+	if err != nil {
+		t.Fatal(err)
+	}
+	pin(t, "chapter-track-create-already-linked", folder, already)
 }

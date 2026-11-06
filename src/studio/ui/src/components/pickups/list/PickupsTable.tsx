@@ -148,7 +148,7 @@ export function PickupsTable({
   onSetIncluded: (id: string, included: boolean) => Promise<unknown>;
   onSetDone: (id: string, done: boolean) => Promise<unknown>;
   /** Removes the pickup and answers how to put it back; the list offers that as Undo. */
-  onRemove: (id: string) => Promise<RemoveUndo | undefined>;
+  onRemove: (id: string) => Promise<{ undo: RemoveUndo; entry: number } | undefined>;
   /** Plays the original recording around a line; without it the button is off. */
   original?: OriginalPlayer;
   onOpenInBooth: (pickups: PickupItem[]) => void;
@@ -192,16 +192,36 @@ export function PickupsTable({
   const removedRun = useRef<{ count: number; at: number } | null>(null);
   /* A press on a line whose last change has not been answered is ignored: a second Remove would be refused ("not in the list") and a second Mark recorded would flip the first back. */
   const inFlight = useRef(new Set<string>());
-  const once = (id: string, run: () => Promise<void>): void => {
-    if (inFlight.current.has(id)) return;
+  const once = (id: string, run: () => Promise<void>): Promise<void> => {
+    if (inFlight.current.has(id)) return Promise.resolve();
     inFlight.current.add(id);
-    void run().finally(() => inFlight.current.delete(id));
+    return run().finally(() => inFlight.current.delete(id));
   };
   const setIncluded = (id: string, included: boolean) => once(id, () => said(overlay, () => onSetIncluded(id, included)));
-  const setDone = (id: string, done: boolean) => once(id, () => said(overlay, () => onSetDone(id, done)));
-  const remove = (pickup: PickupItem) =>
+  /* Marking a line changes only its row (and clears its session tick), so the change is said as well. */
+  const setDone = (id: string, done: boolean) =>
+    once(id, async () => {
+      const pickup = pickups.find((p) => p.id === id);
+      let changed = false;
+      await said(overlay, async () => {
+        await onSetDone(id, done);
+        changed = true;
+      });
+      if (changed && pickup) overlay.announce(done ? `${clock(pickup.time)} marked recorded. It leaves the session.` : `${clock(pickup.time)} is open again.`);
+    });
+  /* A double click on Remove is one removal: its second click (`detail` 2) lands on the line that moved up into the first one's place, so
+     it is ignored, and so is any removal while another is being answered. */
+  const removing = useRef(false);
+  const remove = (pickup: PickupItem, event?: { detail: number }) => {
+    if (removing.current || (event?.detail ?? 0) > 1) return;
+    removing.current = true;
+    void removeOne(pickup).finally(() => {
+      removing.current = false;
+    });
+  };
+  const removeOne = (pickup: PickupItem) =>
     once(pickup.id, async () => {
-      let undo: RemoveUndo | undefined;
+      let undo: { undo: RemoveUndo; entry: number } | undefined;
       let removed = false;
       /* Focus goes to the line that takes this one's place as the page draws it (grouped by chapter, not in the host's order), so a keyboard user keeps their place instead of starting again from the top. */
       const drawn = [...(body.current?.querySelectorAll<HTMLTableRowElement>(`tr[${PICKUP_ROW}]`) ?? [])].map((row) => row.getAttribute(PICKUP_ROW));
@@ -212,10 +232,7 @@ export function PickupsTable({
         removed = true;
       });
       if (!removed) return;
-      if (undo)
-        overlay.toastUndo(`Removed ${clock(pickup.time)} from pickups.`, undo, {
-          offJournal: 'A removed pickup comes back from the host list, not the journal.',
-        });
+      if (undo) overlay.toastUndo(`Removed ${clock(pickup.time)} from pickups.`, undo.undo, { entry: undo.entry });
       else {
         /* Removals in a row are one message that counts them, so the no-Undo sentence is said once, not on a stack of toasts (R3PK-2, XPK-11). */
         const now = Date.now();
@@ -292,6 +309,7 @@ export function PickupsTable({
 
   const checkReason = daw.available ? undefined : daw.message || 'The DAW is not answering.';
   const checkReasonId = useId();
+  const playOffId = useId();
 
   return (
     /* tabIndex -1: with no line left to focus, the region itself takes focus so the narrator is not dropped to the top of the page. */
@@ -319,7 +337,13 @@ export function PickupsTable({
           {read.kind === 'ready' ? (
             <Popover label="Add a pickup by hand" open={adding} onOpenChange={setAdding} trigger={<IconButton action="add" label="Add a pickup by hand" />}>
               {addTo ? (
-                <AddPickup chapterId={addTo.id} chapterName={addTo.name} onAdd={onAdd} onDone={() => setAdding(false)} />
+                <AddPickup
+                  chapterId={addTo.id}
+                  chapterName={addTo.name}
+                  choices={scope === ALL_SCOPE ? chapters.filter((chapter) => !chapter.credits) : undefined}
+                  onAdd={onAdd}
+                  onDone={() => setAdding(false)}
+                />
               ) : (
                 <p className="m-0 max-w-[18rem] text-[var(--text-muted)]">
                   A pickup can be added once the list has been read. If it could not be read, use Retry.
@@ -448,12 +472,19 @@ export function PickupsTable({
                         </TableCell>
                         <TableCell valign="top" className={`${CELL_TOP} ${NARROW_ACTIONS}`}>
                           <div className="flex flex-nowrap items-center justify-end gap-1">
+                            {/* The reason a line cannot be played is read with the button, not only shown on focus as a hint. */}
                             <IconButton
                               action={original?.playingId === pickup.id ? 'stop' : 'play'}
                               label={original?.playingId === pickup.id ? 'Stop the original' : 'Hear the original in context'}
                               disabledReason={original ? original.unavailable(pickup) : PLAY_OFF}
+                              aria-describedby={(original ? original.unavailable(pickup) : PLAY_OFF) ? `${playOffId}-${pickup.id}` : undefined}
                               onClick={() => original?.play(pickup)}
                             />
+                            {(original ? original.unavailable(pickup) : PLAY_OFF) && (
+                              <span id={`${playOffId}-${pickup.id}`} className="sr-only">
+                                {original ? original.unavailable(pickup) : PLAY_OFF}
+                              </span>
+                            )}
                             <IconButton action="openInBooth" label="Open in Booth at this line" onClick={() => onOpenInBooth([pickup])} />
                             <IconButton
                               action={pickup.done ? 'markedDone' : 'markDone'}
@@ -462,7 +493,7 @@ export function PickupsTable({
                             />
                             {/* Remove, the one action that takes a line away, is set apart from the three beside it by a rule (XPK-16). */}
                             <span aria-hidden className="mx-1 h-6 w-px flex-none bg-[var(--border)]" />
-                            <IconButton action="remove" label="Remove from pickups" variant="danger" onClick={() => remove(pickup)} />
+                            <IconButton action="remove" label="Remove from pickups" variant="danger" onClick={(event) => remove(pickup, event)} />
                           </div>
                         </TableCell>
                       </tr>
@@ -572,7 +603,9 @@ function GroupRows({ name, open, children }: { name: string; open: number; child
     <>
       <TableRow className={NARROW_SPAN_ROW}>
         <TableCell colSpan={7} className="bg-[var(--surface-2)]">
-          <b>{name}</b> <span className="whitespace-nowrap text-[var(--text-muted)]">· {open} open</span>
+          {/* In a narrow table the count takes its own line in every band, so a short name and a long one give bands of one height (alignment rule
+          A5). */}
+          <b>{name}</b> <span className="whitespace-nowrap text-[var(--text-muted)] @max-[46rem]:block">· {open} open</span>
         </TableCell>
       </TableRow>
       {children}

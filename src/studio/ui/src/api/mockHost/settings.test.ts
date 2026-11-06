@@ -32,6 +32,28 @@ describe('createMockApi settings seed', () => {
   });
 });
 
+describe('createMockApi settings inheritance', () => {
+  const capOf = async (api: ReturnType<typeof createMockApi>, scope: 'global' | 'project') =>
+    (await api.settingsForScope(scope)).Editing?.find((field) => field.key === 'fx_cap_pct')?.effectiveValue;
+
+  it('a project that sets nothing follows a change made at the computer scope, as the host does', async () => {
+    const api = createMockApi();
+    expect(await capOf(api, 'project')).toBe('10');
+    await api.saveSettings('Editing', 'global', { fx_cap_pct: '25' });
+    expect(await capOf(api, 'global')).toBe('25');
+    expect(await capOf(api, 'project')).toBe('25');
+  });
+
+  it('a project’s own value is kept when the computer value changes, and clearing it returns to the computer value', async () => {
+    const api = createMockApi();
+    await api.saveSettings('Editing', 'project', { fx_cap_pct: '60' });
+    await api.saveSettings('Editing', 'global', { fx_cap_pct: '25' });
+    expect(await capOf(api, 'project')).toBe('60');
+    await api.saveSettings('Editing', 'project', { fx_cap_pct: null });
+    expect(await capOf(api, 'project')).toBe('25');
+  });
+});
+
 describe('createMockApi assetsList seed', () => {
   it('fails to read the list of downloads', async () => {
     const api = createMockApi({}, { assetsList: 'fails' });

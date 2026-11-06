@@ -96,7 +96,7 @@ jobs:
           path: src/studio/ui/screenshots/.run
       - if: needs.quality.outputs.ui-affected == 'true'
         env:
-          UI_VISUAL_SHARDS: '3'
+          UI_VISUAL_SHARDS: '4'
         run: pnpm --dir src/studio/ui run visual:check-run
 
   # What a draft pull request shows instead of `CI passed`. It sums up only what the light tier ran, and its name says so. It is

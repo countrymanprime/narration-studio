@@ -50,25 +50,6 @@ func TestAppendAnchorCapsTheFileAtMaxAnchorsKeepingTheNewest(t *testing.T) {
 	}
 }
 
-func TestDropAnchorsFromRemovesAWordAndEverythingAfterIt(t *testing.T) {
-	project := t.TempDir()
-	for _, anchor := range []Anchor{{Word: 1, Position: 1}, {Word: 5, Position: 5}, {Word: 9, Position: 9}} {
-		if err := AppendAnchor(project, "c1", anchor); err != nil {
-			t.Fatal(err)
-		}
-	}
-	if err := DropAnchorsFrom(project, "c1", 5); err != nil {
-		t.Fatal(err)
-	}
-	got, err := LoadAnchors(project, "c1")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(got) != 1 || got[0].Word != 1 {
-		t.Fatalf("LoadAnchors after drop = %+v", got)
-	}
-}
-
 func TestLoadAnchorsIsEmptyWithNoFile(t *testing.T) {
 	project := t.TempDir()
 	got, err := LoadAnchors(project, "c1")
@@ -182,9 +163,6 @@ func TestAnchorsReportAFileTheyCannotRead(t *testing.T) {
 	}
 	if err := AppendAnchor(project, "c1", Anchor{Word: 1, Position: 1}); err == nil {
 		t.Fatal("AppendAnchor on an unreadable anchors file: want an error, got nil")
-	}
-	if err := DropAnchorsFrom(project, "c1", 0); err == nil {
-		t.Fatal("DropAnchorsFrom on an unreadable anchors file: want an error, got nil")
 	}
 }
 

@@ -64,11 +64,11 @@ Audacity has no items, takes or extension data. Take creation, line identity and
 
 ## Not yet available
 
-Sixteen capabilities are not yet available ([matrix](matrix.md)): `line_identity`, `render_config`, `cleanup_tools`, `retake_lanes`, `project_state`, `take_create`, `heartbeat`, `record`, `fx_chains`, `item_gain`, `render_with_fx`, `master_chain_read`, `file_preview`, `file_reveal`, `undo_last` and `monitor_level`. Each refuses with the resolver's sentence naming it ("Record is not available with Audacity yet."); the comparison sentence in `audacity.ErrNotAvailable` is only the review workflow's answer on a launch with no pipe.
+Fifteen capabilities are not yet available ([matrix](matrix.md)): `line_identity`, `render_config`, `cleanup_tools`, `retake_lanes`, `project_state`, `heartbeat`, `record`, `fx_chains`, `item_gain`, `render_with_fx`, `master_chain_read`, `file_preview`, `file_reveal`, `undo_last` and `monitor_level`. Each refuses with the resolver's sentence naming it ("Record is not available with Audacity yet."); the comparison sentence in `audacity.ErrNotAvailable` is only the review workflow's answer on a launch with no pipe.
 
 ## What needs backups
 
-Audacity keeps no takes and its edits change the audio itself, so `takes`, `punch`, `stack_takes`, `cut_range` and `fx_range` exist in Audacity only while `backups` is available ([PRD decision DQ-18](../../prds/studio-next-daw-ports-and-capabilities.prd.md#decisions); the Studio Next mock's [`capabilitiesFor`](../../research/mockups/studio-next/src/selectors/daw.ts)). The adapter declares the five Experimental, each requiring `backups` (`src/studio/desktop/internal/dawport/audacity/audacity.go`):
+Audacity keeps no takes and its edits change the audio itself, so `takes`, `punch`, `stack_takes`, `cut_range` and `fx_range` exist in Audacity only while `backups` is available (PRD decision DQ-18; the Studio Next mock's `capabilitiesFor`). The adapter declares the five Experimental, each requiring `backups` (`src/studio/desktop/internal/dawport/audacity/audacity.go`):
 
 - While backups are turned off, takes, stacking, cutting and an effect on words are refused with backups' reason and one sentence, for example "Stacking takes needs Audacity backups. Turn on Audio backups in Settings."
 - A roll stays usable without backups and is destructive, so the page asks first; with backups available it is not destructive.

@@ -32,10 +32,13 @@ var realEvents = map[string][]string{
 	"TAKES_STACKED":         {"TAKES_STACKED", "s1", "1", "2", "-11.000", "1"},
 	"TAKES_UNSTACKED":       {"TAKES_UNSTACKED", "u1", "1", "2", "11.000", "1"},
 	"PROJECT_STATUS":        {"PROJECT_STATUS", "", "C:/p/Book.rpp", "0"},
+	"VOICE_SAMPLE_KEPT":     {"VOICE_SAMPLE_KEPT", "k1", "1", "created"},
+	"VOICE_SAMPLE_STALE":    {"VOICE_SAMPLE_STALE", "k1", "9"},
+	"VOICE_SAMPLE_REGION":   {"VOICE_SAMPLE_REGION", "r1", "3", "40.000000", "45.000000", "Voice sample: Hatter | angry"},
+	"VOICE_SAMPLES_READ":    {"VOICE_SAMPLES_READ", "r1", "2", "7"},
 	"PICKUPS_IMPORTED":      {"PICKUPS_IMPORTED", "t1", "2", "0", "0"},
 	"PICKUPS_EXPORTED":      {"PICKUPS_EXPORTED", "t1", "C:/s/pickups.txt", "2"},
 	"PICKUPS_COUNTED":       {"PICKUPS_COUNTED", "t1", "1", "2"},
-	"PICKUP_NEXT":           {"PICKUP_NEXT", "t1", "9.25", "narrator", "Mispronounced"},
 	"PICKUP_RESOLVED":       {"PICKUP_RESOLVED", "t1", "9.25", "narrator", "Mispronounced"},
 	"PICKUP_REOPENED":       {"PICKUP_REOPENED", "t1", "9.25", "narrator", "Mispronounced"},
 	"PICKUP_MARKERS_LISTED": {"PICKUP_MARKERS_LISTED", "t1", "C:/s/markers.txt", "2", "1"},
@@ -47,8 +50,6 @@ var realEvents = map[string][]string{
 	"GAIN_ITEM":          {"GAIN_ITEM", "g1", "{AAAAAAAA-0000-4000-8000-000000000001}", "1.000000", "1.412538"},
 	"GAIN_APPLIED":       {"GAIN_APPLIED", "g1", "1"},
 	"RETAKE_LANE_PICKED": {"RETAKE_LANE_PICKED", "t1", "line-000004", "{AAAAAAAA-0000-4000-8000-000000000001}", "2"},
-	"TAKE_CREATED":       {"TAKE_CREATED", "t1", "{AAAAAAAA-0000-4000-8000-000000000001}", "{BBBBBBBB-0000-4000-8000-000000000002}"},
-	"TAKE_STALE":         {"TAKE_STALE", "t1", "{AAAAAAAA-0000-4000-8000-000000000001}"},
 	// src/studio/integrations/reaper/tests/navigation_test.lua.
 	"NAVIGATED":     {"NAVIGATED", "n1", "{AAAAAAAA-0000-4000-8000-000000000001}", "102.500000"},
 	"LOOP_STARTED":  {"LOOP_STARTED", "l1", "{AAAAAAAA-0000-4000-8000-000000000001}", "101.000000", "105.000000"},
@@ -64,8 +65,16 @@ var realEvents = map[string][]string{
 	"TRACK_STALE":     {"TRACK_STALE", "t1", "{FFFFFFFF-0000-4000-8000-00000000FFFF}"},
 	// src/studio/integrations/reaper/tests/track_select_test.lua (select_track).
 	"TRACK_SELECTED": {"TRACK_SELECTED", "t1", "{00000001-0000-4000-8000-000000000001}"},
-	// src/studio/integrations/reaper/tests/track_create_test.lua (track_create).
-	"TRACK_CREATED": {"TRACK_CREATED", "c1", "{00000003-0000-4000-8000-000000000003}", "2", "Chapter 2: The Storm"},
+	// src/studio/integrations/reaper/tests/track_create_test.lua (track_create of a chapter folder; a plain track sends the first five).
+	"TRACK_CREATED":    {"TRACK_CREATED", "c1", "{00000003-0000-4000-8000-000000000003}", "2", "Chapter 2: The Storm", "{00000004-0000-4000-8000-000000000004}", "3", "Narrator"},
+	"FOLDER_MOVE":      {"FOLDER_MOVE", "p1", "{00000006-0000-4000-8000-000000000006}", "Chapter 4", "{00000003-0000-4000-8000-000000000003}", "Chapter 3", "", ""},
+	"FOLDERS_PLANNED":  {"FOLDERS_PLANNED", "p1", "3"},
+	"FOLDERS_REPAIRED": {"FOLDERS_REPAIRED", "a1", "3"},
+	"FOLDERS_STALE":    {"FOLDERS_STALE", "a1"},
+	// src/studio/integrations/reaper/tests/tracks_read_test.lua (tracks_read).
+	"TRACKS_READ":     {"TRACKS_READ", "r1", "C:/p/Book.rpp", "0", "12"},
+	"TRACKS_ROW":      {"TRACKS_ROW", "r1", "3", "{00000004-0000-4000-8000-000000000004}", "Guard", "-1"},
+	"TRACKS_READ_END": {"TRACKS_READ_END", "r1", "5", "5"},
 	// src/studio/integrations/reaper/tests/media_file_test.lua (preview_file_range, stop_file_preview, reveal_file).
 	"FILE_PREVIEW_STARTED": {"FILE_PREVIEW_STARTED", "p1", "C:/Renders/Chapter 01.wav", "12.500000", "5.000000"},
 	"FILE_PREVIEW_STOPPED": {"FILE_PREVIEW_STOPPED", "s1", "1"},
@@ -76,6 +85,8 @@ var realEvents = map[string][]string{
 	"RECORD_STOPPED":  {"RECORD_STOPPED", "s1", "3", "0", "1"},
 	"RECORD_ENDED":    {"RECORD_ENDED", "r1", "1", "0", "1"},
 	"RECORD_NOT_OURS": {"RECORD_NOT_OURS", "s1"},
+	// transport_test.lua's switch_voice rows.
+	"VOICE_SWITCHED": {"VOICE_SWITCHED", "v1", "{00000002-0000-4000-8000-000000000002}", "3.600000"},
 	// src/studio/integrations/reaper/tests/workspace_test.lua (set_active_take, list_fx_chains, apply_fx_chain).
 	"ACTIVE_TAKE_SET":  {"ACTIVE_TAKE_SET", "u1", "{AAAAAAAA-0000-4000-8000-000000000001}", "{00000004-0000-4000-8000-000000000004}", "1"},
 	"ITEM_STALE":       {"ITEM_STALE", "x3", "{AAAAAAAA-0000-4000-8000-000000000001}", "range"},
@@ -181,6 +192,14 @@ func TestATruncatedMarkerIsAnErrorThatNamesTheEventAndCountsTheFields(t *testing
 	}
 }
 
+func TestAFolderReadsTrackItemWithMutedAndTrackPassesTheTable(t *testing.T) {
+	// track_state_test.lua: a 'children' read ends each TRACK_ITEM with muted and the item's track GUID.
+	row := append(append([]string{}, realEvents["TRACK_ITEM"]...), "0", "{00000002-0000-4000-8000-000000000002}")
+	if err := CheckEvent(row); err != nil {
+		t.Fatalf("an 11-field TRACK_ITEM: %v", err)
+	}
+}
+
 func TestAnOlderScriptThatSendsFewerOptionalMarkerFieldsIsAccepted(t *testing.T) {
 	// Version skew is real for the Lua script: the user imports it into REAPER, so it can be older than the host. The fields after the
 	// ninth are optional and default when absent, including the three GUIDs a script that predates them does not send.
@@ -188,6 +207,18 @@ func TestAnOlderScriptThatSendsFewerOptionalMarkerFieldsIsAccepted(t *testing.T)
 		if err := CheckEvent(realEvents["COMPARE_MARKER"][:cut]); err != nil {
 			t.Errorf("a marker of %d fields: %v", cut, err)
 		}
+	}
+}
+
+func TestAPlainTrackCreatedWithoutAChildIsAcceptedAndAChildIndexMustBeANumber(t *testing.T) {
+	// A plain track, and every script older than the chapter folder (#2840), answers the first five fields.
+	if err := CheckEvent(realEvents["TRACK_CREATED"][:5]); err != nil {
+		t.Fatalf("a five-field TRACK_CREATED: %v", err)
+	}
+	bad := append([]string{}, realEvents["TRACK_CREATED"]...)
+	bad[6] = "three"
+	if err := CheckEvent(bad); err == nil {
+		t.Fatal("a child index that is not a number was accepted")
 	}
 }
 
@@ -304,6 +335,16 @@ func TestAProjectStatusHeartbeatCarriesAnOptionalTransport(t *testing.T) {
 		if err := CheckEvent(bad); err == nil {
 			t.Fatalf("CheckEvent(%v) = nil, want an error for a transport field that is not a number", bad)
 		}
+	}
+}
+
+// The seventh heartbeat field is the timing switch: 1 while it is on in REAPER, absent otherwise.
+func TestAProjectStatusHeartbeatCarriesAnOptionalTimingSwitch(t *testing.T) {
+	if err := CheckEvent([]string{"PROJECT_STATUS", "", "C:/p/Book.rpp", "0", "3", "5", "12.500000", "1"}); err != nil {
+		t.Fatalf("a heartbeat with the timing switch must be valid: %v", err)
+	}
+	if err := CheckEvent([]string{"PROJECT_STATUS", "", "C:/p/Book.rpp", "0", "3", "5", "12.500000", "on"}); err == nil {
+		t.Fatal("a timing field that is not a whole number must be refused")
 	}
 }
 

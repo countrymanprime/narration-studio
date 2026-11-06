@@ -3,7 +3,9 @@ import type { PickupItem, PickupList } from '../../../api/contracts/pickups';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { useCommand } from '../../../input/useCommand';
 import { useOverlay } from '../../../overlay/OverlayProvider';
+import { retryAction } from '../../primitives/Toast';
 import { usePort } from '../../../ports/usePort';
+import { useJournalOrOwn } from '../../../studio/StudioProvider';
 import type { Result } from '../../../studio/journal/createJournal';
 import type { BoothUnit } from '../reading/boothUnits';
 import { nextLine, openCount, pickupBars, ranOver, sessionLines } from './pickupBars';
@@ -52,10 +54,12 @@ export function usePickupSession(options: PickupSessionOptions): PickupSessionMo
   const { ids, chapterId, units, recording, onJump, initialAt = null } = options;
   const pickups = usePort('pickups');
   const overlay = useOverlay();
+  const journal = useJournalOrOwn();
   const active = ids.length > 0;
   const key = ids.join('\n');
   const [list, setList] = useState<readonly PickupItem[]>([]);
   const [picked, setPicked] = useState<string | null>(initialAt);
+  const [attempt, setAttempt] = useState(0);
 
   // Opening the Booth on a session reads the list again, so a pickup done in the DAW is done here and a reopened one is open here.
   useEffect(() => {
@@ -64,11 +68,12 @@ export function usePickupSession(options: PickupSessionOptions): PickupSessionMo
     pickups
       .pickupsList()
       .then((answer) => live && setList(answer.pickups))
-      .catch((reason) => live && overlay.toast(apiErrorMessage(reason), { tone: 'error' }));
+      // Reading the list changes nothing, so Retry reads it again (issue #2919).
+      .catch((reason) => live && overlay.toast(apiErrorMessage(reason), { tone: 'error', action: retryAction(() => setAttempt((n) => n + 1)) }));
     return () => {
       live = false;
     };
-  }, [pickups, overlay, active, key]);
+  }, [pickups, overlay, active, key, attempt]);
 
   const lines = useMemo(() => (active ? sessionLines(list, ids) : []), [active, list, ids]);
   const at = active ? (lines.find((item) => item.id === picked)?.id ?? lines[0]?.id ?? null) : null;
@@ -116,25 +121,38 @@ export function usePickupSession(options: PickupSessionOptions): PickupSessionMo
       const now = latest.current;
       const targets = ranOver(now.lines, now.chapterId, now.units, began, stopped);
       if (targets.length === 0) return 0;
-      const refused = await setDone(targets, true);
-      if (refused) {
-        if (!quiet) overlay.toast(refused, { tone: 'error' });
+      // The marks are one journal entry, so Ctrl+Z and History take them back as the toast's Undo does.
+      const marked = await journal.act<null>({
+        label: `${targets.length} ${targets.length === 1 ? 'pickup' : 'pickups'} marked recorded`,
+        touches: ['pickups'],
+        run: async () => {
+          const refused = await setDone(targets, true);
+          return refused ? { ok: false, refusal: { code: 'host_refused', reason: refused } } : { ok: true, value: null };
+        },
+        undo: async () => {
+          const failed = await setDone(targets, false);
+          return failed ? { ok: false, refusal: { code: 'host_refused', reason: failed } } : { ok: true, value: null };
+        },
+      });
+      if (!marked.ok) {
+        if (!quiet) overlay.toast(marked.refusal.reason, { tone: 'error' });
         return 0;
       }
       if (!quiet) {
         const text = `Take saved · ${targets.length} ${targets.length === 1 ? 'pickup' : 'pickups'} marked recorded`;
+        const marks = marked.value.id;
         const undo: Parameters<typeof overlay.toastUndo>[1] = async () => {
           // The take goes first: while the DAW keeps it, its pickups stay recorded.
           const take = undoTake ? await undoTake() : null;
           if (take && !take.ok) return take;
-          const failed = await setDone(targets, false);
-          return failed ? { ok: false, refusal: { reason: failed } } : { ok: true };
+          const undone = await journal.undo(marks);
+          return undone.ok ? { ok: true } : undone;
         };
-        overlay.toastUndo(text, undo, entry === undefined ? { offJournal: 'The recorded marks are the pickup list, not the journal.' } : { entry });
+        overlay.toastUndo(text, undo, { entry: entry ?? marks });
       }
       return targets.length;
     },
-    [overlay, setDone],
+    [overlay, setDone, journal],
   );
 
   const dismiss = useCallback(

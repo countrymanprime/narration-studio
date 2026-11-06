@@ -10,7 +10,7 @@ export type PeakColumn = readonly [min: number, max: number];
 const decoded = new WeakMap<object, Int8Array>();
 
 /** Decodes a peaks entry's base64 minMax into signed bytes: index 2k and 2k+1 are bucket k's minimum and maximum. */
-function decodeEntry(peaks: Pick<WorkspacePeaks, 'minMax'>): Int8Array {
+export function decodeEntry(peaks: Pick<WorkspacePeaks, 'minMax'>): Int8Array {
   const known = decoded.get(peaks);
   if (known) return known;
   const binary = atob(peaks.minMax);

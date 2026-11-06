@@ -284,11 +284,14 @@ export function ReaderText({
           />
         );
         const speaker = speakers?.get(row.key);
-        // The gutter (from `lg`; below it the tag sits above its paragraph, so a narrow text column keeps its width).
+        // The gutter (from `lg`; below it the tag sits above its paragraph, so a narrow text column keeps its width). The cell is one line of the
+        // paragraph's type tall (`1lh`, the line height it inherits) with the tag centred in it, so the tag is centred on the first line at any text size.
         if (gutter && row.kind === 'paragraph')
           return (
             <div key={row.key} className="lg:grid lg:grid-cols-[7rem_minmax(0,1fr)] lg:gap-x-5">
-              <div className="leading-none lg:pt-[0.6em]">{speaker && <SpeakerTag label={speaker} size="booth" />}</div>
+              <div className="leading-none lg:flex lg:h-[1lh] lg:items-center lg:leading-[inherit]">
+                {speaker && <SpeakerTag label={speaker} size="booth" />}
+              </div>
               <p className="whitespace-pre-line">{content}</p>
             </div>
           );

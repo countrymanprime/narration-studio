@@ -436,7 +436,16 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
   // binding (nothing is flagged or sent to Pickups from the Booth) and no Ctrl or Meta default, so a modified press is never theirs.
   // Space stays the one record action: a pedal's only default is Space. "+" is Shift+Equal, which would also fire while typing, so
   // the larger-text keys are Equal and the numpad plus.
-  { id: 'reading.toggle', label: 'Record or stop', scope: 'booth', defaults: [key('Space')], group: 'Booth', surfaces: ['help', 'settings'] },
+  // Enter and numpad Enter do what Space does, for a narrator working from the numpad (#3039). A focused button keeps both (it is pressed by them),
+  // a field and an open popup keep them too, so they record only from the page itself; a pedal still sends Space alone.
+  {
+    id: 'reading.toggle',
+    label: 'Record or stop',
+    scope: 'booth',
+    defaults: [key('Space'), key('Enter'), key('NumpadEnter')],
+    group: 'Booth',
+    surfaces: ['help', 'settings'],
+  },
   {
     id: 'booth.phrase.next',
     label: 'Next phrase',
@@ -476,15 +485,37 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
   { id: 'booth.roll', label: 'Punch and roll from here', scope: 'booth', defaults: [key('KeyR')], group: 'Booth', surfaces: ['help', 'settings'] },
   { id: 'booth.view.down', label: 'Scroll the text down', scope: 'booth', defaults: [key('PageDown')], group: 'Booth', surfaces: ['help', 'settings'] },
   { id: 'booth.view.up', label: 'Scroll the text up', scope: 'booth', defaults: [key('PageUp')], group: 'Booth', surfaces: ['help', 'settings'] },
-  { id: 'booth.text.larger', label: 'Larger text', scope: 'booth', defaults: [key('Equal'), key('NumpadAdd')], group: 'Booth', surfaces: ['help', 'settings'] },
+  // Num + and Num − are the next and previous voice (docs/research/2026-10-30-booth-sub-track-recording.md, section 8, decision 4): the text size keeps = and −.
+  { id: 'booth.text.larger', label: 'Larger text', scope: 'booth', defaults: [key('Equal')], group: 'Booth', surfaces: ['help', 'settings'] },
   {
     id: 'booth.text.smaller',
     label: 'Smaller text',
     scope: 'booth',
-    defaults: [key('Minus'), key('NumpadSubtract')],
+    defaults: [key('Minus')],
     group: 'Booth',
     surfaces: ['help', 'settings'],
   },
+  // The voices of a chapter linked to a REAPER folder (Voice folders, docs/prds/booth-voice-tracks.prd.md): Num 0 is the Narrator track,
+  // Num 1 to Num 9 the others in REAPER's order, Num + and Num − the next and previous voice, Num . the list. During a take a voice key
+  // switches the recording live; in a flat chapter the keys say why they do nothing.
+  ...Array.from({ length: 10 }, (_, n) => ({
+    id: `booth.voice.${n}` as const,
+    label: n === 0 ? 'Record the Narrator voice' : `Record voice ${n}`,
+    scope: 'booth' as const,
+    defaults: [key(`Numpad${n}`)],
+    group: 'Booth' as const,
+    surfaces: ['help', 'settings'] as const,
+  })),
+  { id: 'booth.voice.next', label: 'Record the next voice', scope: 'booth', defaults: [key('NumpadAdd')], group: 'Booth', surfaces: ['help', 'settings'] },
+  {
+    id: 'booth.voice.prev',
+    label: 'Record the previous voice',
+    scope: 'booth',
+    defaults: [key('NumpadSubtract')],
+    group: 'Booth',
+    surfaces: ['help', 'settings'],
+  },
+  { id: 'booth.voice.list', label: 'Show the voices', scope: 'booth', defaults: [key('NumpadDecimal')], group: 'Booth', surfaces: ['help', 'settings'] },
   {
     id: 'booth.voice-sample',
     label: "Hear the current speaker's voice sample",

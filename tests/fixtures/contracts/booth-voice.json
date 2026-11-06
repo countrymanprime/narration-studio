@@ -1,0 +1,50 @@
+{
+  "flat": {
+    "outcome": "refused",
+    "reason": "flat",
+    "message": "This chapter records on one track. Voice keys choose a voice in a Voice folders project, for a chapter linked to a folder (the audio engine panel)."
+  },
+  "get_flat": {
+    "outcome": "refused",
+    "reason": "flat",
+    "message": "This chapter records on one track."
+  },
+  "get_selected": {
+    "outcome": "selected",
+    "trackGuid": "{AAAAAAAA-0000-4000-8000-000000000002}"
+  },
+  "not_a_voice": {
+    "outcome": "refused",
+    "reason": "not_a_voice",
+    "message": "That track is not a voice of this chapter's folder. Its tracks may have changed in the saved project."
+  },
+  "record_start_no_voices": {
+    "outcome": "refused",
+    "reason": "no_voices",
+    "message": "\"Chapter II: The Pool of Tears\" is linked to a folder with no voice tracks in it. Add a track inside the folder in REAPER, and save."
+  },
+  "selected": {
+    "outcome": "selected",
+    "trackGuid": "{AAAAAAAA-0000-4000-8000-000000000003}"
+  },
+  "switched": {
+    "outcome": "switched",
+    "trackGuid": "{AAAAAAAA-0000-4000-8000-000000000002}",
+    "at": 42.5
+  },
+  "track_missing": {
+    "outcome": "refused",
+    "reason": "track_missing",
+    "message": "That voice track is no longer in the REAPER project. The take goes on with the voice it had."
+  },
+  "unlinked": {
+    "outcome": "refused",
+    "reason": "unlinked",
+    "message": "\"Chapter III: A Caucus-Race and a Long Tale\" has no linked track. Link it to its REAPER track in the audio engine panel."
+  },
+  "unsupported": {
+    "outcome": "refused",
+    "reason": "unsupported",
+    "message": "REAPER cannot change the recording voice during a take from this app. Stop, then choose the voice."
+  }
+}

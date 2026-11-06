@@ -1,5 +1,5 @@
 import { Menu as BaseMenu } from '@base-ui/react/menu';
-import type { CSSProperties, ReactElement, ReactNode } from 'react';
+import { useId, useState, type CSSProperties, type ReactElement, type ReactNode } from 'react';
 import { POPUP_MOTION_CLASSES } from './overlayMotion';
 
 export type MenuItem = {
@@ -11,6 +11,9 @@ export type MenuItem = {
   trailing?: ReactNode;
   // In a section that chooses, whether this item is chosen.
   checked?: boolean;
+  // Why the item cannot be chosen now. The item stays in the menu, off (`aria-disabled`, still reachable by keyboard), with this sentence
+  // under its label; a press does nothing and the menu stays open. Only for a plain item (a section that chooses has none).
+  disabledReason?: string;
   onSelect: () => void;
 };
 
@@ -55,6 +58,32 @@ function ItemBody({ item, mark }: { item: MenuItem; mark?: 'box' | 'round' }) {
   );
 }
 
+// A plain item. With a `disabledReason` it is drawn muted and answers a press with nothing, and the reason is its description.
+function PlainItem({ item }: { item: MenuItem }) {
+  const reasonId = useId();
+  if (item.disabledReason === undefined)
+    return (
+      <BaseMenu.Item onClick={item.onSelect} className={ITEM_CLASS}>
+        <ItemBody item={item} />
+      </BaseMenu.Item>
+    );
+  return (
+    <BaseMenu.Item
+      closeOnClick={false}
+      disabled
+      aria-describedby={reasonId}
+      className={`${ITEM_CLASS} cursor-default flex-col items-stretch gap-0.5 text-[var(--text-muted)]`}
+    >
+      <span className="flex w-full items-center gap-2">
+        <ItemBody item={item} />
+      </span>
+      <span id={reasonId} className="text-[0.74rem] leading-snug [overflow-wrap:anywhere] whitespace-normal">
+        {item.disabledReason}
+      </span>
+    </BaseMenu.Item>
+  );
+}
+
 function Section({ section, first }: { section: MenuSection; first: boolean }) {
   const heading = section.label && (
     <BaseMenu.GroupLabel className="px-[0.55rem] pt-[0.35rem] pb-[0.2rem] text-[0.7rem] font-semibold tracking-[0.06em] text-[var(--text-muted)] uppercase">
@@ -96,9 +125,7 @@ function Section({ section, first }: { section: MenuSection; first: boolean }) {
               <ItemBody item={item} mark="box" />
             </BaseMenu.CheckboxItem>
           ) : (
-            <BaseMenu.Item key={item.key} onClick={item.onSelect} className={ITEM_CLASS}>
-              <ItemBody item={item} />
-            </BaseMenu.Item>
+            <PlainItem key={item.key} item={item} />
           ),
         )}
       </BaseMenu.Group>
@@ -114,6 +141,8 @@ export function Menu({
   items = [],
   sections,
   disabled,
+  pageMenu = false,
+  onOpenChange,
   label,
   triggerClassName,
   triggerStyle,
@@ -124,6 +153,11 @@ export function Menu({
   // Headed groups of items, drawn after `items` (a filter menu: one section per thing it filters by). The popup widens to hold them.
   sections?: MenuSection[];
   disabled?: boolean;
+  // A menu opened from a page's own header, not from inside a dialog or a slide-over: it is modal (the page behind is inert while it shows, a press outside closes
+  // it) and its popup sits in the page's `<main>`, so it is inside a landmark, as `ContextMenu`'s is. The default menu is not modal and is portalled to the body.
+  pageMenu?: boolean;
+  // Told when the menu opens or closes, for a caller that reads what the menu shows only once it is wanted (the DAW tools menu).
+  onOpenChange?: (open: boolean) => void;
   // An accessible name for the trigger, for an icon-only trigger whose `children` carries no text of its own. Ignored
   // when `render` is given: that element owns its own accessible name (an `IconButton`'s `label`).
   label?: string;
@@ -134,23 +168,35 @@ export function Menu({
   render?: ReactElement;
   children: ReactNode;
 }) {
+  const [main, setMain] = useState<HTMLElement>();
   return (
-    // Not modal: the page behind stays scrollable and clickable, as with the menu this replaced (a press outside closes it).
-    <BaseMenu.Root modal={false}>
+    // Not modal unless it is a page menu: the page behind stays scrollable and clickable, as with the menu this replaced (a press outside closes it).
+    <BaseMenu.Root
+      modal={pageMenu}
+      onOpenChange={(isOpen) => {
+        // Looked up as it opens: the page's `<main>` need not be in the document when the menu is first drawn.
+        if (isOpen && pageMenu) setMain(document.querySelector('main') ?? undefined);
+        onOpenChange?.(isOpen);
+      }}
+    >
       <BaseMenu.Trigger disabled={disabled} {...(render ? { render } : { 'aria-label': label, className: triggerClassName, style: triggerStyle })}>
         {children}
       </BaseMenu.Trigger>
-      <BaseMenu.Portal>
+      <BaseMenu.Portal container={pageMenu ? main : undefined}>
         <BaseMenu.Positioner side="bottom" align="start" sideOffset={6} collisionPadding={8} className="z-[var(--z-popover)]">
           <BaseMenu.Popup
             className={`max-h-[var(--available-height)] ${sections ? 'w-60' : 'w-44'} overflow-y-auto rounded-[0.4rem] border border-[var(--line-strong)] bg-[var(--surface)] p-[0.35rem] shadow-[var(--shadow-lg)] outline-none ${POPUP_MOTION_CLASSES}`}
           >
-            {items.map((item) => (
-              <BaseMenu.Item key={item.key} onClick={item.onSelect} className={ITEM_CLASS}>
-                {item.leading}
-                {item.label}
-              </BaseMenu.Item>
-            ))}
+            {items.map((item) =>
+              item.disabledReason !== undefined ? (
+                <PlainItem key={item.key} item={item} />
+              ) : (
+                <BaseMenu.Item key={item.key} onClick={item.onSelect} className={ITEM_CLASS}>
+                  {item.leading}
+                  {item.label}
+                </BaseMenu.Item>
+              ),
+            )}
             {sections?.map((section, index) => (
               <Section key={section.key} section={section} first={index === 0 && items.length === 0} />
             ))}

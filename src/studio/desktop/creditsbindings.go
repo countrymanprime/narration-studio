@@ -1,6 +1,7 @@
 package main
 
 import (
+	"desktop/internal/creditsid"
 	"fmt"
 	"strings"
 	"time"
@@ -100,6 +101,27 @@ func (h *Host) CreditsSaveProjectValues(title, subtitle, author, series, bookNum
 	return encodeBinding(manifest.Credits, nil)
 }
 
+// CreditsChanged is whether the credits differ from what ships: the template library has a shipped template edited or deleted, or
+// one added (credits.TemplateStore.Changed), or the open project has credits values of its own (credits.Values.IsSet). With no
+// project open only the library counts. Settings > Changed reads it; it answers a JSON boolean and writes nothing. Reading the project's
+// manifest (project.Load) can trigger persist's quarantine of a corrupt file, and with it the narrator's notice, as any read of it does.
+func (h *Host) CreditsChanged() (string, error) {
+	changed, err := h.creditTemplates.Changed()
+	if err != nil {
+		return "", err
+	}
+	if !changed {
+		if folder := h.services().config.projectFolder; folder != "" {
+			manifest, ok, err := project.Load(h.persist, folder)
+			if err != nil {
+				return "", fmt.Errorf("could not read the project manifest: %w", err)
+			}
+			changed = ok && manifest != nil && manifest.Credits != nil && manifest.Credits.IsSet()
+		}
+	}
+	return encodeBinding(changed, nil)
+}
+
 // CreditsPreview renders text (a template body, or an unsaved draft the
 // narrator is still editing) with this project's own credit values, falling
 // back to the global narrator default for [Narrator], exactly as the
@@ -126,16 +148,13 @@ func (h *Host) creditTokens() map[string]string {
 	return values.Resolve(narratorGlobal)
 }
 
-// creditsScriptTitles are the credits kinds the teleprompter reads and the name each is shown under (never read aloud).
-var creditsScriptTitles = map[string]string{"opening": "Opening credits", "closing": "Closing credits"}
-
 // creditsScript is the opening or closing credits as the teleprompter reads them: the first template of
 // that kind in the library (the same one the estimate times and the Manuscript entry shows), rendered with
 // credits.Render exactly as CreditsPreview renders it. An unresolved token stays visible in the text rather than failing:
 // the UI warns about it and Start stays allowed (owner decision 2026-09-23).
 func (h *Host) creditsScript(kind string) (teleprompter.Script, error) {
-	title, ok := creditsScriptTitles[kind]
-	if !ok {
+	title := creditsid.Title(kind)
+	if title == "" {
 		return teleprompter.Script{}, fmt.Errorf("the teleprompter reads opening or closing credits, not %q", kind)
 	}
 	templates, err := h.creditTemplates.List()
@@ -145,7 +164,7 @@ func (h *Host) creditsScript(kind string) (teleprompter.Script, error) {
 	for _, template := range templates {
 		if template.Kind == kind {
 			rendered := credits.Render(template.Body, h.creditTokens())
-			return teleprompter.Script{ID: "credits-" + kind, Title: title, Text: rendered.Text}, nil
+			return teleprompter.Script{ID: creditsid.ID(kind), Title: title, Text: rendered.Text}, nil
 		}
 	}
 	return teleprompter.Script{}, fmt.Errorf("there is no %s template: add one in Settings > Credits", strings.ToLower(title))

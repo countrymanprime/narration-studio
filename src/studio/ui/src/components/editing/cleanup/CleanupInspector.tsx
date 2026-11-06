@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { DawCapabilities } from '../../../api/contracts/daw';
 import { Button } from '../../primitives/Button';
 import { Disclosure } from '../../primitives/Disclosure';
@@ -34,6 +35,8 @@ export interface CleanupInspectorProps {
   onApply: () => void;
   /** An apply is running. */
   busy?: boolean;
+  /** The REAPER repair launchers for the kinds they repair (clicks, breaths, plosives), drawn after Apply. */
+  repairTools?: ReactNode;
 }
 
 /** The DAW's capability report, read once; null until it answers (or if it cannot). */
@@ -122,6 +125,7 @@ export function CleanupInspector(p: CleanupInspectorProps) {
         <Button disabled={!p.selected || reason !== null || p.busy} onClick={p.onApply}>
           Apply to {p.selected} selected
         </Button>
+        {p.repairTools}
       </div>
     </div>
   );

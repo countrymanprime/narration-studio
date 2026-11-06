@@ -33,6 +33,11 @@ RESOURCES = ROOT / RESOURCES_DIR
 RUNTIME = RESOURCES / "runtime"
 # The packages of the optional analysis tools, which a sidecar loads from the asset registry's install folder.
 OPTIONAL_TOOL_MODULES = ("gliner", "booknlp", "transformers", "torch")
+# The development tools the one shared environment carries (pyproject.toml lists runtime and dev tools together). No sidecar runs any
+# of them; PyInstaller followed their imports into every freeze, shipping hypothesis (MPL-2.0), pytest, setuptools and, through
+# huggingface_hub's optional webhook server, fastapi and starlette (#245). httpx is deliberately not here: huggingface_hub imports it.
+# verify-installable.mjs checks none of these is in the tree.
+DEV_TOOL_MODULES = ("hypothesis", "pytest", "_pytest", "pluggy", "iniconfig", "setuptools", "pkg_resources", "fastapi", "starlette", "uvicorn")
 
 
 # What those packages import that the guide itself does not, and the metadata transformers checks: the BookNLP adapter keeps the list
@@ -135,7 +140,7 @@ def freeze(
         args.extend(["--copy-metadata", package])
     for package in collect_binaries:
         args.extend(["--collect-binaries", package])
-    for module in exclude_modules:
+    for module in (*DEV_TOOL_MODULES, *exclude_modules):
         args.extend(["--exclude-module", module])
     for module in hidden_imports:
         args.extend(["--hidden-import", module])
@@ -203,7 +208,7 @@ def main() -> None:
             [shared_python, sidecars_root / "transcript-compare" / "core"],
             ("faster_whisper",),
         ),
-        # live_asr.py imports chapter_script, control_channel, moonshine_engine, locate and align_word
+        # live_asr.py imports chapter_script, control_channel, confirm, moonshine_engine, locate and align_word
         # (siblings) inside functions; PyInstaller finds them because their directory is on --paths, and chapter_script's
         # narration_common modules through the shared one. The Booth's tracker and flags are the host's (internal/scripttrack).
         # The Moonshine engine (moonshine_voice, Windows only in pyproject.toml) loads its native

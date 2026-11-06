@@ -1,6 +1,6 @@
 // The `proof` rows of STATE_CATALOG: the Studio Next Proof page (see state-catalog.ts), in the order they are captured.
 import type { StateEntry } from '../lib/types';
-import { KEEPS_DESKTOP_SCROLL, REFLOW, wholePage } from './shared';
+import { KEEPS_DESKTOP_SCROLL, POPUP_ANCHORED_AT_FIRST_WIDTH, REFLOW, wholePage } from './shared';
 
 export const proofStates: StateEntry[] = [
   {
@@ -19,6 +19,21 @@ export const proofStates: StateEntry[] = [
   },
   {
     page: 'proof',
+    state: 'inspector-repair-menu',
+    description: 'Proof, a click note selected - Repair in REAPER in the inspector icon row, its menu open on Repair with Cleanup tools',
+    ...REFLOW,
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+  },
+  {
+    page: 'proof',
+    state: 'daw-tools-menu',
+    description:
+      'Proof, the DAW tools icon button at the end of the head opened on a linked chapter - the Structure heading over Prepare chapter render and Create chapter regions',
+    ...REFLOW,
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+  },
+  {
+    page: 'proof',
     state: 'default',
     description:
       "Proof, all chapters (Studio Next mock): the head with the chapter stepper and the cleared ring, the chapter strip with each chapter's open notes, the notes queue (chips, sort, find, Check recordings, the proofer sheet icons, the Sources line, the table grouped by chapter), the Inspector on the first note and the key hints",
@@ -33,8 +48,22 @@ export const proofStates: StateEntry[] = [
   },
   {
     page: 'proof',
+    state: 'compare-open',
+    description:
+      'Proof, Chapter 1 linked, Compare with the script pressed beside Check recordings (#2822): the Compare panel under the check card with its Differences, Preview and Native takes tabs, on the comparison’s setup',
+    ...REFLOW,
+  },
+  {
+    page: 'proof',
+    state: 'compare-preview',
+    description: 'Proof, Chapter 1 linked, the Compare panel on its Preview tab (#2822): the same preview panel the chapter view draws',
+    ...REFLOW,
+  },
+  {
+    page: 'proof',
     state: 'chapter-no-recording',
-    description: 'Proof, Chapter 2 with no track linked: the check card with nothing recorded to check and why, and no waveform under it',
+    description:
+      'Proof, Chapter 2 with no track linked: the check card with nothing recorded to check and why (Check recordings and Compare with the script both off), and no waveform under it',
     ...REFLOW,
   },
   {
@@ -49,6 +78,13 @@ export const proofStates: StateEntry[] = [
     state: 'check-stale',
     description:
       'Proof, Chapter 4 whose stored recording check is stale (?mockCoverage=stale): the check card says what changed since and offers to check again',
+    ...REFLOW,
+  },
+  {
+    page: 'proof',
+    state: 'retired-take-review-note',
+    description:
+      'Proof, Chapter 4 with a pickup the retired take review saved (?mockCoverage=pickups): a plain note with no time, listed under In view, worded as its group and typed Repeat, From Take review, with Show in REAPER, Hear it and Add marker off for the note having no time',
     ...REFLOW,
   },
   {
@@ -113,6 +149,38 @@ export const proofStates: StateEntry[] = [
     description:
       'Proof, all chapters, Hear it pressed on the misread at 00:12.4 ("pink eyes"): Stop hearing it in the Inspector\'s row, "Playing in REAPER, 3 s either side" under it, and In the script with the note\'s paragraph, its words marked, between the paragraphs before and after',
     ...REFLOW,
+  },
+  {
+    page: 'proof',
+    state: 'treat-as-same',
+    description:
+      'Proof, a one-word misread selected (?mockFindings=misread: "Dinah" heard as "Dina"): the equals button after Add marker in the Inspector\'s row, with the keyboard focus on it (#2736; its tooltip is checked in TreatAsSame.test.tsx, since a portalled tooltip fails axe\'s region rule on a page capture)',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'proof',
+    state: 'treat-as-same-added',
+    description:
+      'Proof, the equals button pressed on the one-word misread: the information toast "Added equivalence: Dinah = Dina" with what comes next, the button off (its reason "Already treated as the same"), and the note still To review (#2736)',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'proof',
+    state: 'treat-as-same-long',
+    description:
+      'Proof, a one-word misread of a 45-letter word with no place to break, heard one letter off (?mockFindings=misread-long): the words wrap inside the Script and Heard quotes and the notes table, and the equals button stays inside the Inspector, at every width down to 390 px (#2736)',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'proof',
+    state: 'treat-as-same-rtl',
+    description:
+      'Proof, a one-word misread of a Hebrew word with an emoji heard as another Hebrew word (?mockFindings=misread-rtl): the words read right to left in the quotes and the equals button stays in the row (#2736)',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
   },
   {
     page: 'proof',

@@ -30,6 +30,22 @@ describe('traceId', () => {
 });
 
 describe('the batcher', () => {
+  it('keeps a batch the host refused and sends it at the next window', async () => {
+    let fail = true;
+    const got: Batch[] = [];
+    setTraceSink(async (batch) => {
+      if (fail) throw new Error('host away');
+      got.push(JSON.parse(batch) as Batch);
+    });
+    trace('ui.nav', { page: 'script' });
+    await vi.advanceTimersByTimeAsync(FLUSH_MS);
+    expect(got).toHaveLength(0);
+    fail = false;
+    await vi.advanceTimersByTimeAsync(FLUSH_MS);
+    expect(got).toHaveLength(1);
+    expect(got[0].events[0].event).toBe('ui.nav');
+  });
+
   it('sends queued events together after the window, and counts live events once', async () => {
     trace('ui.nav', { page: 'script' });
     trace('ui.nav', { page: 'booth' });

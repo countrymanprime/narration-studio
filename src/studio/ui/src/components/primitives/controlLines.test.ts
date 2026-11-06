@@ -19,7 +19,8 @@ const EDGES: Record<string, { carries: string[]; hairlines: number }> = {
   'Checkbox.tsx': { carries: [`border-2 border-[${BTN}]`, 'data-[checked]:border-[var(--accent)]'], hairlines: 0 },
   'TextField.tsx': { carries: [`border border-[${STRONG}]`], hairlines: 0 },
   'Field.tsx': { carries: [`border border-[${STRONG}]`, 'data-[invalid]:border-[var(--danger)]'], hairlines: 0 },
-  'Select.tsx': { carries: [`border border-[${STRONG}]`], hairlines: 0 },
+  // `Select` and `TreeSelect` draw one closed box from `selectBox.ts`.
+  'selectBox.ts': { carries: [`border border-[${STRONG}]`], hairlines: 0 },
   'Pill.tsx': { carries: [`border-[${STRONG}]`, 'active border-[var(--accent)]'], hairlines: 0 },
   'ToggleGroup.tsx': { carries: [`border border-[${STRONG}]`], hairlines: 0 },
   'TagInput.tsx': { carries: [`1px solid ${STRONG}`, `border-dashed border-[${STRONG}]`], hairlines: 0 },

@@ -1,8 +1,8 @@
 # Studio Next Extraction and Analysis Tools: Suggestions, the 75% Rule, Optional Downloads and Bring-Your-Own LLM
 
-**Source:** owner request of 2026-10-10 ([Studio Next Rebuild](studio-next-rebuild.prd.md)); "Story Bible extraction (owner direction)" and "Extraction tools: distribution decision (owner)" in `studio-next/research/repo-compare-decisions.md`; research in `studio-next/research/story-bible-extraction-research.md`, `studio-next/research/local-llm-research.md` and `studio-next/research/own-model-research.md`; the owner's rulings of 2026-10-11 (see Decisions).
+**Source:** owner request of 2026-10-10 (Studio Next Rebuild); "Story Bible extraction (owner direction)" and "Extraction tools: distribution decision (owner)" in `studio-next/research/repo-compare-decisions.md`; research in `studio-next/research/story-bible-extraction-research.md`, `studio-next/research/local-llm-research.md` and `studio-next/research/own-model-research.md`; the owner's rulings of 2026-10-11 (see Decisions).
 
-**Builds on:** the delivered Story Bible build ([Story Bible entity-extraction accuracy](../architecture/story-bible-entity-accuracy.md), [service.go](../../src/studio/desktop/internal/guide/service.go), [manuscript_guide.py](../../src/studio/sidecars/manuscript-guide/core/manuscript_guide.py), `src/studio/sidecars/manuscript-guide`, `src/studio/desktop/internal/spacy`), the asset registry ([The asset registry (implemented)](../architecture/first-use-dependency-provisioning.md#the-asset-registry-implemented), [The models and downloads list (implemented)](../architecture/first-use-dependency-provisioning.md#the-models-and-downloads-list-implemented), [The asset registry (implemented)](../architecture/first-use-dependency-provisioning.md#the-asset-registry-implemented), [First-Use Dependency Provisioning](../architecture/first-use-dependency-provisioning.md), [The asset manager (implemented)](../architecture/first-use-dependency-provisioning.md#the-asset-manager-implemented)), [model provenance](../architecture/model-provenance.md), the provider ports ([Provider ports](../architecture/provider-ports.md)), the threat model and D72/D70 in [Owner standing rules](../../.claude/skills/agent-train/SKILL.md#owner-standing-rules). UI list and review behaviours are in [Script and Story Bible](studio-next-script-and-story-bible.prd.md).
+**Builds on:** the delivered Story Bible build ([Story Bible entity-extraction accuracy](../architecture/story-bible-entity-accuracy.md), [service.go](../../src/studio/desktop/internal/guide/service.go), [manuscript_guide.py](../../src/studio/sidecars/manuscript-guide/core/manuscript_guide.py), `src/studio/sidecars/manuscript-guide`, `src/studio/desktop/internal/spacy`), the asset registry ([The asset registry (implemented)](../architecture/first-use-dependency-provisioning.md#the-asset-registry-implemented), [The models and downloads list (implemented)](../architecture/first-use-dependency-provisioning.md#the-models-and-downloads-list-implemented), [The asset registry (implemented)](../architecture/first-use-dependency-provisioning.md#the-asset-registry-implemented), [First-Use Dependency Provisioning](../architecture/first-use-dependency-provisioning.md), [The asset manager (implemented)](../architecture/first-use-dependency-provisioning.md#the-asset-manager-implemented)), [model provenance](../architecture/model-provenance.md), the provider ports ([Provider ports](../architecture/provider-ports.md)), the threat model and D72/D70 in [Owner standing rules](../../.claude/skills/agent-train/SKILL.md#owner-standing-rules). UI list and review behaviours are in Script and Story Bible.
 
 **Status (2026-10-11):** draft; the owner's rulings of 2026-10-11 are applied. The Studio Next mock is the only spec for the suggestion list, import and consent screens. Licence and quality spikes come first; nothing is downloaded or bundled before the owner accepts the consent flow.
 
@@ -85,7 +85,7 @@ A narrator opening a manuscript for the first time, a narrator who prefers their
 
 ### Supersedes / depends on ADRs
 
-On conflict this PRD, and the ADR written when its phase lands, is the source of truth; old ADRs stay in force for unmigrated code ([register](studio-next-adr-register.prd.md)).
+On conflict this PRD, and the ADR written when its phase lands, is the source of truth; old ADRs stay in force for unmigrated code (register).
 
 | ADR | Class | Note |
 | --- | --- | --- |
@@ -144,7 +144,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | Phase | Files touched | Collides with |
 | --- | --- | --- |
 | 2 | `internal/guide/*`, schemas, goldens, `hostAPIVersion` | Story Bible slices |
-| 3 | `src/studio/sidecars/manuscript-guide/core/*` | [Script and Story Bible](studio-next-script-and-story-bible.prd.md) pronunciation slice (same file) |
+| 3 | `src/studio/sidecars/manuscript-guide/core/*` | Script and Story Bible pronunciation slice (same file) |
 | 4 | `components/storybible/Suggested*` | Story Bible UI slices |
 | 6 | `internal/assets`, `assetproviders.go`, `components/settings/` | Asset registry streams; Settings rows (append-only) |
 | 7 | new sidecar packages, `scripts/release/` | Release pipeline (serial; `.github/workflows` untouched) |

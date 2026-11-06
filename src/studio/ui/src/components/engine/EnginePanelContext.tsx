@@ -6,8 +6,6 @@ import { Button } from '../primitives/Button';
 // panel and provides this; without a provider (a component test) the pointers render and do nothing.
 const EnginePanelContext = createContext<(() => void) | null>(null);
 
-export const EnginePanelProvider = EnginePanelContext.Provider;
-
 export function useOpenEnginePanel(): () => void {
   return useContext(EnginePanelContext) ?? noop;
 }
@@ -38,4 +36,29 @@ export function EnginePanelLink({
       {children}
     </Button>
   );
+}
+
+// Opens Settings > Recording & DAW, where the project's engine is chosen. App.tsx owns it (it closes the panel and goes through the guarded
+// navigate, so a running take is asked about first); the engine panel's gear and the Built-in chips use it.
+const RecordingSettingsContext = createContext<(() => void) | null>(null);
+
+/** Provides both openers: the engine panel's and Settings > Recording & DAW's. Without `openRecordingSettings` (a component test) that one does nothing. */
+export function EnginePanelProvider({
+  value,
+  openRecordingSettings = null,
+  children,
+}: {
+  value: () => void;
+  openRecordingSettings?: (() => void) | null;
+  children: ReactNode;
+}) {
+  return (
+    <EnginePanelContext.Provider value={value}>
+      <RecordingSettingsContext.Provider value={openRecordingSettings}>{children}</RecordingSettingsContext.Provider>
+    </EnginePanelContext.Provider>
+  );
+}
+
+export function useOpenRecordingSettings(): () => void {
+  return useContext(RecordingSettingsContext) ?? noop;
 }

@@ -7,10 +7,12 @@ import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-rou
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
+import { WIRE_CHAPTERS, WIRE_TRANSCRIPT } from '../../api/mockFixtures';
 import { CommandRouter } from '../../input/router';
 import { createJournal } from '../../studio/journal/createJournal';
 import { StudioProvider } from '../../studio/StudioProvider';
 import { OverlayHost } from '../../overlay/OverlayHost';
+import { findToast, pressToastAction } from '../../fixtures/toasts';
 import { overlay } from '../../overlay/overlayService';
 import { providedCommands } from '../../input/commandProviders';
 import { contextItemsFor } from '../../registries/context';
@@ -77,7 +79,7 @@ function renderPage({
                   path="/proof"
                   element={
                     <PageFooterProvider value={footer}>
-                      <ProofPage hasManuscript={hasManuscript} projectFolder="/p" {...handlers} />
+                      <ProofPage hasManuscript={hasManuscript} projectFolder="/p" transcript={WIRE_TRANSCRIPT} notify={() => {}} dawFileLinked {...handlers} />
                     </PageFooterProvider>
                   }
                 />
@@ -111,6 +113,20 @@ describe('sort-asks-the-host', () => {
     expect(findingsList).toHaveBeenLastCalledWith({ sort: 'time' });
     await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Sort notes' }), 'confidence');
     await waitFor(() => expect(findingsList).toHaveBeenLastCalledWith({ sort: 'confidence' }));
+  });
+});
+
+describe('daw-tools-in-the-header', () => {
+  // #2820: the same menu as Editing's header, over the same registry.
+  it('offers the DAW tools beside the Proof title, with the structure entries', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await noteRows();
+    await user.click(screen.getByRole('button', { name: 'DAW tools' }));
+    const menu = await screen.findByRole('menu');
+    expect(within(menu).getByText('Structure')).toBeTruthy();
+    expect(within(menu).getByRole('menuitem', { name: /Create chapter regions/ })).toBeTruthy();
+    expect(within(menu).getByRole('menuitem', { name: /Prepare chapter render/ })).toBeTruthy();
   });
 });
 
@@ -646,6 +662,28 @@ describe('the jump menu on Proof', () => {
 
 // The loading state (definition-of-done.md state matrix): the title and one busy region while the chapters and the notes are first read, then the
 // page, or the error with Retry; a later re-read does not bring the blocks back. Never an endless skeleton.
+// Issue #2919: a read that fails after the page has loaded is an error toast with Retry, which reads the chapters and the notes again.
+describe('ProofPage later read failures', () => {
+  it('a failed notes read offers Retry, and a failed chapters read after it offers Retry too', async () => {
+    const api = createMockApi();
+    const findingsList = vi.spyOn(api, 'findingsList');
+    const manuscriptChapters = vi.spyOn(api, 'manuscriptChapters');
+    renderPage({ api });
+    await noteRows();
+    findingsList.mockRejectedValueOnce(new Error('the notes are locked'));
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Sort notes' }), 'confidence');
+    const notes = await findToast('the notes are locked');
+    expect(notes.action?.label).toBe('Retry');
+    manuscriptChapters.mockRejectedValueOnce(new Error('the chapters are locked'));
+    pressToastAction(notes);
+    const chapters = await findToast('the chapters are locked');
+    expect(chapters.action?.label).toBe('Retry');
+    const reads = manuscriptChapters.mock.calls.length;
+    pressToastAction(chapters);
+    await waitFor(() => expect(manuscriptChapters.mock.calls.length).toBe(reads + 1));
+  });
+});
+
 describe('ProofPage loading state', () => {
   const never = () => new Promise<never>(() => {});
   const region = () => screen.queryByRole('group', { name: 'Loading Proof' });
@@ -676,5 +714,50 @@ describe('ProofPage loading state', () => {
     renderPage({ api: createMockApi({ manuscriptChapters: () => Promise.reject(new Error('The manuscript could not be read.')) }) });
     expect(await screen.findByRole('button', { name: 'Retry' })).toBeTruthy();
     expect(region()).toBeNull();
+  });
+});
+
+/** The mock's chapters carry no measured recording; Compare, like Check recordings, is off without one. */
+const recordedApi = () => createMockApi({ manuscriptChapters: async () => WIRE_CHAPTERS.map((chapter) => ({ ...chapter, recordedSeconds: 600 })) });
+
+describe('Compare on the Proof page (#2822)', () => {
+  it('opens the Compare panel under the check card from the chapter in view, and closes it again', async () => {
+    const user = userEvent.setup();
+    renderPage({ api: recordedApi(), at: '/proof?chapter=chapter-1' });
+    expect(screen.queryByRole('region', { name: 'Compare' })).toBeNull();
+    const compare = await screen.findByRole('button', { name: 'Compare with the script' });
+    expect(compare.getAttribute('aria-expanded')).toBe('false');
+    await user.click(compare);
+    expect(await screen.findByRole('region', { name: 'Compare' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Compare the recording with the script' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Compare with the script' }).getAttribute('aria-expanded')).toBe('true');
+    // The check card comes first, then the panel.
+    const card = screen.getByRole('region', { name: 'Recording check' });
+    expect(card.compareDocumentPosition(screen.getByRole('region', { name: 'Compare' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Compare with the script' }));
+    expect(screen.queryByRole('region', { name: 'Compare' })).toBeNull();
+  });
+
+  it('does not carry the open panel to another chapter', async () => {
+    const user = userEvent.setup();
+    renderPage({ api: recordedApi(), at: '/proof?chapter=chapter-1' });
+    await user.click(await screen.findByRole('button', { name: 'Compare with the script' }));
+    await screen.findByRole('region', { name: 'Compare' });
+    press('ArrowRight', 'ArrowRight');
+    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-2'));
+    expect(screen.queryByRole('region', { name: 'Compare' })).toBeNull();
+  });
+
+  it("is off with the check's own reason for a chapter with no measured recording", async () => {
+    renderPage({ at: '/proof?chapter=chapter-1' });
+    const compare = await screen.findByRole('button', { name: 'Compare with the script' });
+    expect((compare as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText('This chapter has no recording to check.')).toBeTruthy();
+  });
+
+  it('offers Compare on the all-chapters view nowhere: it belongs to one chapter', async () => {
+    renderPage({ at: '/proof?chapter=all' });
+    await noteRows();
+    expect(screen.queryByRole('button', { name: 'Compare with the script' })).toBeNull();
   });
 });

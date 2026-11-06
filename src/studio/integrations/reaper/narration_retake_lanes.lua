@@ -16,6 +16,9 @@
 local core = ...
 local event = core.event
 
+-- A lane picked to play is a used take: the same fixed label as set_active_take, so one kind (use_take) reaches both.
+local UNDO_USE_TAKE = core.undo_label('use_take')
+
 local LINE_ID_KEY = 'P_EXT:' .. core.brand.identity.reaperExtPrefix .. 'line_id'
 -- REAPER's I_FREEMODE for fixed item lanes (1 is free item positioning).
 local FIXED_LANE_MODE = 2
@@ -98,7 +101,7 @@ local function pick_retake_lane(session_dir, run_id, line_id, raw_guid, host_run
 
   reaper.Undo_BeginBlock2(0)
   reaper.SetMediaTrackInfo_Value(track, 'C_LANEPLAYS:' .. lane, PLAYS_EXCLUSIVELY)
-  reaper.Undo_EndBlock2(0, core.brand.name .. ': play retake lane ' .. (lane + 1), -1)
+  reaper.Undo_EndBlock2(0, UNDO_USE_TAKE, -1)
   if reaper.APIExists('UpdateTimeline') then
     reaper.UpdateTimeline()
   end

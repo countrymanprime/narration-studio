@@ -84,6 +84,15 @@ export function BackgroundChecks({ chapterSync, folded = false }: { chapterSync:
   }, [background?.enabled, paused]);
 
   const save = (values: Record<string, string | null>) => system.saveSettings(TOOL, 'global', values);
+  // The host layers a project's own value over Global, so Pause and Resume clear it too, or the toast would say what the host ignores.
+  const saveOnOff = async (value: string | null) => {
+    await save({ background_checks: value });
+    const project = await system.settingsForScope('project').then(
+      (fields) => fields[TOOL]?.find((field) => field.key === 'background_checks'),
+      () => undefined,
+    );
+    if (project?.isSet) await system.saveSettings(TOOL, 'project', { background_checks: null });
+  };
   const answer = (allow: boolean) => {
     setAnswering(true);
     void save(allow ? { background_checks_confirmed: 'true' } : { background_checks_confirmed: 'true', background_checks: 'false' })
@@ -94,7 +103,7 @@ export function BackgroundChecks({ chapterSync, folded = false }: { chapterSync:
       .finally(() => setAnswering(false));
   };
   const resume = () =>
-    void save({ background_checks: null })
+    void saveOnOff(null)
       .then(() => {
         setPaused(false);
         overlay.toast('Background checks resumed.');
@@ -102,7 +111,7 @@ export function BackgroundChecks({ chapterSync, folded = false }: { chapterSync:
       .catch((error) => overlay.toast(describeApiError(error), { tone: 'error' }));
   const pause = () => {
     const wasRunning = running;
-    void save({ background_checks: 'false' })
+    void saveOnOff('false')
       .then(() => setPaused(true))
       .then(() => (wasRunning ? coverage.coverageCancel() : undefined))
       .then(() =>

@@ -1,26 +1,32 @@
 import { useState } from 'react';
-import { useApi } from '../../../api/ApiContext';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import type { DiagnosticsPreview } from '../../../api/contracts/system';
 import { useOverlay } from '../../../overlay/OverlayProvider';
+import { usePort } from '../../../ports/usePort';
 import { Dialog } from '../../primitives/Dialog';
 import { IconButton } from '../../primitives/IconButton';
 import { Panel } from '../../primitives/Panel';
 import { SectionLabel } from '../../primitives/SectionLabel';
+import { ABOUT_ROW } from './aboutRow';
 
-// The settings row's two columns (row/SettingRowView.tsx), as AboutSection's rows use.
-const ROW =
-  'grid gap-x-8 gap-y-1.5 border-t border-[var(--border)] px-5 py-4 first:border-t-0 @min-[761px]:grid-cols-[12rem_minmax(0,1fr)] @min-[860px]:grid-cols-[minmax(12rem,16rem)_minmax(0,1fr)]';
+// Copies text to the clipboard; false when there is no clipboard or it refuses, so the toast still says where the file is.
+const copyText = async (text: string): Promise<boolean> => {
+  if (!navigator.clipboard) return false;
+  return navigator.clipboard.writeText(text).then(
+    () => true,
+    () => false,
+  );
+};
 
 const kilobytes = (bytes: number): string => `${Math.max(1, Math.round(bytes / 1024))} KB`;
 
 /**
- * Diagnostics under App & updates: look at what a diagnostics bundle would hold, then save it as a zip in a folder the narrator picks. The
+ * The diagnostics bundle under App & updates (named so it is not a second "Diagnostics" beside the Advanced rows of that name): look at what a diagnostics bundle would hold, then save it as a zip in a folder the narrator picks. The
  * path is copied to the clipboard. Nothing is sent anywhere; the narrator attaches the file to an issue by hand. The preview is a
  * dialog, so a long list of files never moves the page.
  */
 export function DiagnosticsSection() {
-  const api = useApi();
+  const api = usePort('system');
   const overlay = useOverlay();
   const [preview, setPreview] = useState<DiagnosticsPreview>();
   const [busy, setBusy] = useState<'preview' | 'save' | ''>('');
@@ -41,13 +47,7 @@ export function DiagnosticsSection() {
     try {
       const { path } = await api.systemSaveDiagnostics();
       if (!path) return; // the narrator closed the folder picker
-      let copied = false;
-      try {
-        await navigator.clipboard.writeText(path);
-        copied = true;
-      } catch {
-        // The clipboard may be unavailable; the toast still says where the file is.
-      }
+      const copied = await copyText(path);
       overlay.toast(copied ? `Saved to ${path}. The path is copied.` : `Saved to ${path}.`);
     } catch (failure) {
       overlay.toast(apiErrorMessage(failure), { tone: 'error' });
@@ -57,20 +57,26 @@ export function DiagnosticsSection() {
   };
 
   return (
-    <section aria-label="Diagnostics" className="flex flex-col">
+    <section aria-label="Diagnostics bundle" className="flex flex-col">
       <SectionLabel as="h3" className="mb-1.5">
-        Diagnostics
+        Diagnostics bundle
       </SectionLabel>
       <Panel flush>
-        <div className={ROW} data-about="diagnostics">
+        <div className={ABOUT_ROW} data-about="diagnostics">
           <div className="flex min-w-0 flex-col gap-[3px]">
-            <b className="text-[0.9375rem] font-semibold">Diagnostics bundle</b>
+            <b className="text-[0.9375rem] font-semibold">File for a bug report</b>
             <span className="max-w-[60ch] text-[0.8125rem] text-[var(--text-muted)]">
               A zip of how the app behaved, with no text, names or file paths from your books. Nothing is sent anywhere.
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <IconButton action="list" label="Preview the diagnostics bundle" pending={busy === 'preview'} onClick={() => void showPreview()} />
+            <IconButton
+              action="list"
+              label="Preview the diagnostics bundle"
+              aria-haspopup="dialog"
+              pending={busy === 'preview'}
+              onClick={() => void showPreview()}
+            />
             <IconButton action="export" label="Save the diagnostics bundle" pending={busy === 'save'} onClick={() => void save()} />
           </div>
         </div>

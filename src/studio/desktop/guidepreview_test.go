@@ -34,6 +34,13 @@ func runFakeGuideRender() int {
 	if path := os.Getenv("SHELL_FAKE_GUIDE_ARGS"); path != "" {
 		// A test that wants to see how the sidecar was started: the arguments, one per line.
 		_ = os.WriteFile(path, []byte(strings.Join(os.Args[1:], "\n")+"\n"), 0o600)
+		// And the Story Bible file it was given, which a one-name preview deletes once the run ends.
+		for index, arg := range os.Args {
+			if arg == "--guide" && index+1 < len(os.Args) {
+				guideFile, _ := os.ReadFile(os.Args[index+1])
+				_ = os.WriteFile(path+".guide", guideFile, 0o600)
+			}
+		}
 	}
 	if os.Getenv(fakeGuideRenderEnv) == "fail" {
 		_, _ = os.Stderr.WriteString("ERROR: \"Dawnspire\" could not be spoken: the voice produced no audio for it.\n")

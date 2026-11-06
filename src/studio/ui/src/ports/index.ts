@@ -6,7 +6,6 @@ import type { SystemApi } from '../api/contracts/system';
 import type { ManuscriptApi } from '../api/contracts/manuscript';
 import type { StoryBibleApi } from '../api/contracts/storyBible';
 import type { CharacterApi } from '../api/contracts/character';
-import type { SeriesApi } from '../api/contracts/series';
 import type { TranscriptApi } from '../api/contracts/transcript';
 import type { TtsApi } from '../api/contracts/tts';
 import type { WhisperApi } from '../api/contracts/whisper';
@@ -24,9 +23,7 @@ import type { PickupsApi } from '../api/contracts/pickups';
 import type { RenderConfigApi } from '../api/contracts/renderconfig';
 import type { CleanupToolsApi } from '../api/contracts/cleanuptools';
 import type { ProjectStateApi } from '../api/contracts/projectstate';
-import type { RetakeLanesApi } from '../api/contracts/retakelanes';
 import type { ChapterTagsApi } from '../api/contracts/chaptertags';
-import type { TakeReviewApi } from '../api/contracts/takeReview';
 import type { CoverageApi } from '../api/contracts/coverage';
 import type { StagesApi } from '../api/contracts/stages';
 import type { DictionaryApi } from '../api/contracts/dictionary';
@@ -38,6 +35,7 @@ import type { EditingApi } from '../api/contracts/editing';
 import type { CleanupActionApi } from '../api/contracts/cleanup';
 import type { BookmarksApi } from '../api/contracts/bookmarks';
 import type { VoiceSamplesApi } from '../api/contracts/voiceSamples';
+import type { VoiceTracksApi } from '../api/contracts/voiceTracks';
 import type { PassageMapApi } from '../api/contracts/passageMap';
 import type { EditLogApi } from '../api/contracts/editLog';
 import type { MarksApi } from '../api/contracts/marks';
@@ -93,7 +91,6 @@ export type {
   ManuscriptApi,
   StoryBibleApi,
   CharacterApi,
-  SeriesApi,
   TranscriptApi,
   TtsApi,
   WhisperApi,
@@ -111,9 +108,7 @@ export type {
   RenderConfigApi,
   CleanupToolsApi,
   ProjectStateApi,
-  RetakeLanesApi,
   ChapterTagsApi,
-  TakeReviewApi,
   CoverageApi,
   StagesApi,
   DictionaryApi,
@@ -125,6 +120,7 @@ export type {
   CleanupActionApi,
   BookmarksApi,
   VoiceSamplesApi,
+  VoiceTracksApi,
   PassageMapApi,
   EditLogApi,
   MarksApi,
@@ -174,7 +170,6 @@ export interface PortMap {
   manuscript: ManuscriptApi;
   storyBible: StoryBibleApi;
   character: CharacterApi;
-  series: SeriesApi;
   transcript: TranscriptApi;
   tts: TtsApi;
   whisper: WhisperApi;
@@ -192,9 +187,7 @@ export interface PortMap {
   renderConfig: RenderConfigApi;
   cleanupTools: CleanupToolsApi;
   projectState: ProjectStateApi;
-  retakeLanes: RetakeLanesApi;
   chapterTags: ChapterTagsApi;
-  takeReview: TakeReviewApi;
   coverage: CoverageApi;
   stages: StagesApi;
   dictionary: DictionaryApi;
@@ -206,6 +199,7 @@ export interface PortMap {
   cleanupAction: CleanupActionApi;
   bookmarks: BookmarksApi;
   voiceSamples: VoiceSamplesApi;
+  voiceTracks: VoiceTracksApi;
   passageMap: PassageMapApi;
   editLog: EditLogApi;
   marks: MarksApi;

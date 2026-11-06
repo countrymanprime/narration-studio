@@ -38,11 +38,30 @@ const paste = (value: string) => fireEvent.change(textbox(), { target: { value }
 const addButton = () => screen.getByRole('button', { name: /to the Story Bible$/ }) as HTMLButtonElement;
 const input = () => document.querySelector('input[type="file"]') as HTMLInputElement;
 const settle = (ms = 30) => act(async () => void (await new Promise((r) => setTimeout(r, ms))));
+// Chooses a file and waits for the dialog's read of it to end (the FileReader's loadend), not for a fixed time, so the result does not depend
+// on how busy the machine is. A file the dialog refuses before reading it never starts a read, and a test that holds the read on purpose is
+// let go after a generous cap, since its read never ends.
+const READ_CAP_MS = 2000;
 const choose = async (file: File) => {
-  await act(async () => {
-    fireEvent.change(input(), { target: { files: [file] } });
-    await new Promise((r) => setTimeout(r, 30));
-  });
+  const Real = FileReader;
+  const reads: Promise<void>[] = [];
+  class Tracked extends Real {
+    constructor() {
+      super();
+      reads.push(new Promise((done) => this.addEventListener('loadend', () => done(), { once: true })));
+    }
+  }
+  vi.stubGlobal('FileReader', Tracked);
+  try {
+    await act(async () => {
+      fireEvent.change(input(), { target: { files: [file] } });
+      await Promise.race([Promise.all(reads), new Promise((r) => setTimeout(r, READ_CAP_MS))]);
+      await new Promise((r) => setTimeout(r, 0));
+      await new Promise((r) => setTimeout(r, 0));
+    });
+  } finally {
+    vi.stubGlobal('FileReader', Real);
+  }
 };
 const sized = (file: File, size: number) => (Object.defineProperty(file, 'size', { value: size }), file);
 const plan = (over: Partial<ExtractionImportPlan> = {}): ExtractionImportPlan => ({ format: 'json', lines: [], errors: [], offered: 0, ...over });

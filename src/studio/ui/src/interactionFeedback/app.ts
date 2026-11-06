@@ -22,6 +22,7 @@ export const appFeedback: Record<string, FeedbackRow> = {
   'src/App.tsx::reportClientDiagnostic#1': row('effect', 'file-io', 'na', 'na', 'na', 'silent', 'na', 'exempt', 'A diagnostic must never throw or show a second error while one is already being reported.'),
   'src/App.tsx::reportClientDiagnostic#2': row('event', 'file-io', 'na', 'na', 'na', 'silent', 'na', 'exempt', 'A diagnostic must never throw or show a second error while one is already being reported.'),
   'src/App.tsx::reportClientDiagnostic#3': row('event', 'file-io', 'na', 'na', 'na', 'silent', 'na', 'exempt', 'A diagnostic must never throw or show a second error while one is already being reported.'),
+  'src/trace/installTracing.ts::systemTraceBatch#1': row('effect', 'file-io', 'na', 'na', 'na', 'silent', 'na', 'exempt', 'The activity trace is a record of the app, not a narrator action: a failed send is kept and retried at the next window (api/tracing.ts), and tracing must never show an error of its own.'),
   'src/App.tsx::subscribeTranscript#1': subscription('The transcript state event.'),
   'src/App.tsx::subscribeJobEnded#1': subscription('A host job that ends becomes a toast for the jobs that can finish elsewhere.'),
   'src/App.tsx::systemNotify#1': row('event', 'os-dialog', 'na', 'na', 'na', 'silent', 'na', 'exempt', 'An OS notification is a courtesy, not load-bearing: the host already swallows a failed or unavailable sender (N1-N4), and the app-level toast from the same job:ended event is the record of what happened.'),

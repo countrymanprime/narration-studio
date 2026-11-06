@@ -98,6 +98,13 @@ field, a source tag, and beside the play button **Record my own clip** (for your
   Merriam-Webster online. The source is asked for that name alone; one with nothing for it says so and the value stays.
 - When you replace a dictionary's answer with your own, or the other way round, the one replaced is kept: the tag's
   menu offers **Use mine** or **Use the dictionary's** to switch back.
+- **From the dictionaries** lists what each local source says for the name, each with its source: the CMU dictionary, Wiktionary (when
+  it is installed), eSpeak NG, and your own dictionary (**My dictionary**, and **Script (imported)** for words an older version kept on the
+  Script page). **Hear** plays a value before you choose it; **Use** makes it the name's.
+- Each change is one step in the history: **Undo** puts the name's earlier pronunciation back.
+
+This row is also the **How I will say it** row on the [Script](script.md#the-rail) page's **Words** card, and both edit the same value: a change
+made on either page shows on the other. The Story Bible holds story elements only: a word that is none goes to your own dictionary instead.
 
 A new scan keeps all of this. Which source a *fresh* pronunciation tries first (at scan time, or when you add an alias)
 follows **Settings > Voice & pronunciation > Pronunciation source for new names**. A note written on a pronunciation shows under its
@@ -215,7 +222,7 @@ A row says what is wrong with it:
 | **Audio file missing** or **Audio file changed** | The sample's audio in the project's <!-- brand:identity.projectFolder -->narration-studio<!-- /brand -->/voice-samples folder is gone or is not the file that was saved. It cannot play. | **Check again** reads the folder again. Then **Mark again in Editing** (offered while the words are as they were), or delete it: after **Edit** on the entry, or from **Voice data** on any entry, a locked one too. |
 | "Couldn't read the voice samples." | The host could not read the list. The last list that was read stays. | **Check again**. |
 
-An entry with none says "No voice samples yet" with **Open Editing**. **Check again** beside the heading looks at every sample's file
+An entry with none says "No voice samples yet" with **Open Editing**; its **?** tells how to mark one (in Editing, select words you voiced well and press V). **Check again** beside the heading looks at every sample's file
 again. The list also follows the project by itself: a sample marked in Editing, or deleted from another window, appears or goes without
 you doing anything.
 

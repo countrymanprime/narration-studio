@@ -114,6 +114,9 @@ const guideTypeSchema = z.object({ name: z.string().min(1), colour: z.enum(GUIDE
 /** The Story Bible types: never empty, since the host sends the defaults for a Story Bible without a list. */
 export const guideTypesSchema = z.array(guideTypeSchema).min(1);
 
+/** GuideTypesChanged: a JSON boolean. */
+export const guideTypesChangedSchema = z.boolean();
+
 /** The list as the Story Bible file keeps it: each default row also names the extracted category it stands for (`builtin`), so a
  * rebuild files a new entry under the type it was renamed to. The host does not send it. */
 export const guideTypesFileSchema = z.array(guideTypeSchema.extend({ builtin: z.string().optional() })).min(1);

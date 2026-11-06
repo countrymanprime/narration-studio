@@ -9,6 +9,7 @@ import { CommandRouter } from '../../input/router';
 import { createMockApi } from '../../api/mockApi';
 import { WIRE_ENTITIES } from '../../api/mockFixtures';
 import { overlay } from '../../overlay/overlayService';
+import { createJournal, type Journal } from '../../studio/journal/createJournal';
 import { StudioProvider } from '../../studio/StudioProvider';
 import { entryRows, rowName, rowNames } from './entryTableTestKit';
 import { Guide } from './Guide';
@@ -19,7 +20,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-async function renderGuide() {
+async function renderGuide(journal?: Journal) {
   window.localStorage.clear();
   const api = createMockApi();
   const merge = vi.spyOn(api, 'guideMerge');
@@ -29,7 +30,7 @@ async function renderGuide() {
   render(
     <MemoryRouter>
       <ApiProvider api={api}>
-        <StudioProvider>
+        <StudioProvider journal={journal}>
           <CommandRouter>
             <Guide notify={vi.fn()} goToManuscript={vi.fn()} />
           </CommandRouter>
@@ -54,6 +55,21 @@ const offerFor = (text: string) => {
 };
 
 describe('merging an entry into this one', () => {
+  it('a merge is one journal entry, and Ctrl+Z unmerges it', async () => {
+    const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
+    const { merge, unmerge } = await renderGuide(journal);
+    await open('Cheshire Cat');
+    offerFor('Queen’s garden');
+    fireEvent.click(await screen.findByRole('button', { name: 'Merge into this entry' }));
+    await waitFor(() => expect(merge).toHaveBeenCalledWith('queens-garden', 'cheshire-cat'));
+    await waitFor(async () => expect(await journal.entries()).toHaveLength(1));
+    const [row] = await journal.entries();
+    expect(row).toMatchObject({ touches: ['storyBible/entities/queens-garden', 'storyBible/entities/cheshire-cat'], undoable: true });
+    expect(row?.label).toMatch(/^Merged “Queen’s garden” into “Cheshire Cat”/);
+    expect((await journal.undoLast()).ok).toBe(true);
+    expect(unmerge).toHaveBeenCalledOnce();
+  });
+
   it('a merge combines names, re-points relationships and unions Appears in', async () => {
     const { api, merge } = await renderGuide();
     await open('Cheshire Cat');
@@ -100,7 +116,7 @@ describe('merging an entry into this one', () => {
     await waitFor(() => expect(toast).toHaveBeenCalledTimes(1));
     await api.guideEdit('cheshire-cat', { description: 'Edited after the merge.' });
     const result = await toast.mock.calls[0][1]();
-    expect(result).toEqual({ ok: false, refusal: { reason: 'Cheshire Cat changed after the merge, so it cannot be undone.' } });
+    expect(result).toMatchObject({ ok: false, refusal: { reason: 'Cheshire Cat changed after the merge, so it cannot be undone.' } });
     expect(rowNames()).not.toContain('Queen’s garden');
   });
 

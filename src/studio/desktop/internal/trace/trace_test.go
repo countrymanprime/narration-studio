@@ -340,3 +340,24 @@ func TestTheRingSizeAnOptionAsksForIsBounded(t *testing.T) {
 		t.Fatalf("ring length = %d, want %d", got, maxRingSize)
 	}
 }
+
+func TestTurningTheTraceOffLetsGoOfTheFileAndTurningItOnOpensItAgain(t *testing.T) {
+	tracer, path := newTestTracer(t, Options{})
+	tracer.SetEnabled(true)
+	tracer.Emit(testNote, IntValue("count", 1))
+	tracer.SetEnabled(false)
+	// The narrator can move the file away while the trace is off; on Windows an open file would refuse this.
+	moved := path + ".moved"
+	if err := os.Rename(path, moved); err != nil {
+		t.Fatalf("the file is still held after the trace was turned off: %v", err)
+	}
+	if got := readLines(t, moved); len(got) != 1 {
+		t.Fatalf("the moved file holds %d records, want the 1 written before the switch", len(got))
+	}
+	tracer.SetEnabled(true)
+	tracer.Emit(testNote, IntValue("count", 2))
+	tracer.Flush()
+	if got := readLines(t, path); len(got) != 1 || got[0]["count"] != float64(2) {
+		t.Fatalf("a new file holds %v, want only the record written after the trace was turned on again", got)
+	}
+}

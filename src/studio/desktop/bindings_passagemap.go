@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"desktop/internal/dawport"
 	"desktop/internal/manuscript"
 	"desktop/internal/passagemap"
 )
@@ -71,8 +72,8 @@ func (h *Host) passageMapIn(svc hostServices, reader trackStateReader) *passagem
 }
 
 // passageMapStamp reads the ids a run that just ended was recorded under. With the built-in recorder it is the take's name
-// (the item and its one take are the same file). With the DAW it is the last item on the chapter's one linked track and
-// that item's active take, read through the track state role; a chapter with no link, or a DAW that does not answer,
+// (the item and its one take are the same file). With the DAW it is the last item on the chapter's one linked track (or folder) and
+// that item's active take, read through the track state role (for a folder of voices, across the voices inside it); a chapter with no link, or a DAW that does not answer,
 // leaves the run unstamped.
 func (h *Host) passageMapStamp(svc hostServices, reader trackStateReader, chapterID string) (passagemap.Stamp, error) {
 	if h.recordingEngine(svc) == engineBuiltin {
@@ -95,16 +96,38 @@ func (h *Host) passageMapStamp(svc hostServices, reader trackStateReader, chapte
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), passageMapStampTimeout)
 	defer cancel()
-	state, err := reader.ChapterTrackState(ctx, links[0])
-	if err != nil || len(state.Items) == 0 {
+	return stampFromChapter(ctx, reader, links[0])
+}
+
+// stampFromChapter is the stamp of the last item recorded in the chapter linked to guid: for a folder of voices the item that starts latest on
+// any voice inside it, since the linked folder track holds none of its own (#3043). No items, or a DAW that does not answer, is no stamp.
+func stampFromChapter(ctx context.Context, reader trackStateReader, guid string) (passagemap.Stamp, error) {
+	state, err := dawport.ChapterAudioState(ctx, reader, guid)
+	if err != nil {
 		return passagemap.Stamp{}, err
 	}
-	item := state.Items[len(state.Items)-1]
+	item, ok := lastRecordedItem(state.Items)
+	if !ok {
+		return passagemap.Stamp{}, nil
+	}
 	stamp := passagemap.Stamp{ItemGUID: item.ItemGUID}
 	if item.TakeGUID != "" {
 		stamp.TakeGUIDs = []string{item.TakeGUID}
 	}
 	return stamp, nil
+}
+
+// lastRecordedItem is the item that starts latest, the later one of a tie: the last item of a single track, and across the voices of a folder
+// the one a run that just ended recorded.
+func lastRecordedItem(items []dawport.TrackItem) (dawport.TrackItem, bool) {
+	var best dawport.TrackItem
+	found := false
+	for _, item := range items {
+		if !found || item.Position >= best.Position {
+			best, found = item, true
+		}
+	}
+	return best, found
 }
 
 // passageMapBook reads the current manuscript's chapter ids and each paragraph's word count.

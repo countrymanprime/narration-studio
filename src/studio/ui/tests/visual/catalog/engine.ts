@@ -5,14 +5,14 @@
 // a chapter is heard in its Proof chapter view. `tracks/sync-consent` went too: the same dialog over the Production home is
 // `production/chapter-sync-consent`.
 import type { StateEntry } from '../lib/types';
-import { KEEPS_DESKTOP_SCROLL } from './shared';
+import { KEEPS_DESKTOP_SCROLL, POPUP_ANCHORED_AT_FIRST_WIDTH } from './shared';
 
 export const engineStates: StateEntry[] = [
   {
     page: 'engine',
     state: 'default',
     description:
-      'The engine panel opened from the header chip over the Production home: the linked Alice.rpp and "Change file…", the six REAPER tools on a three-column grid, Chapter sync (its facts as label and value rows, "Not chapters" among them), the track list with each track\'s chapter and its unplayable items flagged, and Chapter links',
+      'The engine panel opened from the header chip over the Production home: the linked Alice.rpp and a "Change the linked file" icon, the six REAPER tools as icon buttons, Chapter sync (its facts as label and value rows, "Not chapters" among them), the track list with each track\'s chapter and its unplayable items flagged, and Chapter links',
   },
   {
     page: 'engine',
@@ -63,13 +63,62 @@ export const engineStates: StateEntry[] = [
     page: 'engine',
     state: 'no-daw-link',
     description:
-      'The engine panel with no linked REAPER project file (?mockNoDaw=1): the panel’s own DAW-link control reads "Link file…" instead of "Change file…" and the header chip reading REAPER with a quiet dot - the panel stays usable since it reads its .rpp through its own discovery flow',
+      'The engine panel with no linked REAPER project file (?mockNoDaw=1): the panel’s own DAW-link control is a "Link a project file" icon instead of "Change the linked file" and the header chip reading REAPER with a quiet dot - the panel stays usable since it reads its .rpp through its own discovery flow',
   },
   {
     page: 'engine',
     state: 'wrong-project',
     description:
       'The engine panel with REAPER answering on a different project than the linked one (?mockDawMismatch=1): the REAPER project card’s warning callout says so, then "Waiting for REAPER to open the linked project.", "Last checked N s ago.", Link the open project… and Check again',
+  },
+  {
+    page: 'engine',
+    state: 'voice-folders',
+    description:
+      'The engine panel for a Voice folders project (?mockVoiceFolders=1): Chapter sync\'s Layout row on Voice folders, Chapter links\' Folder column naming "Chapter 1 · 3 voices", and below it the Voices card with Chapter 1 picked in its header and its voices - Narrator on key 0, White Rabbit on 1 matched by name, Extras on 2 with the two characters assigned to it - each with its edit button',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'engine',
+    state: 'voice-folders-picker',
+    description:
+      "The engine panel's Voices card with the Extras track's character popover open (?mockVoiceFolders=1): the Story Bible's characters as checkboxes, Hatter and Cheshire Cat checked, each other character with the voice it is already on",
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+  },
+  {
+    page: 'engine',
+    state: 'voice-folders-sync',
+    description:
+      'A Voice folders project (?mockVoiceFolders=1) scrolled to Chapter sync: its Layout row with Voice folders pressed and the help button, and below it the Tracks card, where the Chapter 1 folder names its chapter and its Narrator, White Rabbit and Extras tracks sit inside it',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'engine',
+    state: 'voice-folders-links',
+    description:
+      'A Voice folders project (?mockVoiceFolders=1) scrolled to Chapter links: the Folder column header, Chapter 1 linked to "Chapter 1 · 3 voices", the other chapters on "Choose a folder"',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'engine',
+    state: 'nested-chapters',
+    description:
+      "Chapter links when two linked chapters' tracks sit inside another linked chapter's folder in REAPER (?mockNestedChapters=1, #2838): the panel header's warning badge, 2 chapters nested, and Move them out…",
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'engine',
+    state: 'nested-chapters-confirm',
+    description:
+      "The nested-chapters repair's confirmation (?mockNestedChapters=1): the question, the sentence on what changes in REAPER and the list of every track that moves, each out of the chapter's folder to the top level",
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+  },
+  {
+    page: 'engine',
+    state: 'voice-folders-link-picker',
+    description:
+      'A Voice folders project (?mockVoiceFolders=1) with Chapter 2\'s folder picker open: the Chapter 1 folder can be chosen (linked to Chapter 1), its Narrator, White Rabbit and Extras tracks are off with "A voice of its folder"',
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
   },
   {
     page: 'engine',
@@ -97,6 +146,41 @@ export const engineStates: StateEntry[] = [
     state: 'chapter-link-confirmed',
     description:
       'The engine panel, the Chapter links list at the foot of the page - the first chapter confirmed to a track shows Linked with the track name, Change and Clear',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'engine',
+    state: 'chapter-track-created',
+    description:
+      'The engine panel with no chapter linked (?mockChapterLink=none) after Chapter 1\'s "Create a track for this chapter" press (#2840): its Chapter links row Linked to the new track named after the chapter, with Change and Clear, the unlinked rows below still offering the create button, and the toast saying the track was made and the project is not saved',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'engine',
+    state: 'chapter-folder-created',
+    description:
+      'A Voice folders project (?mockVoiceFolders=1) after the first unlinked chapter\'s "Create a folder for this chapter" press (#2840): the row Linked to the new folder "<title> · 1 voice", the other unlinked rows offering the folder button, and the toast naming the folder and its Narrator track',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'engine',
+    state: 'chapter-track-create-refused',
+    description:
+      'The engine panel with REAPER recording (?mockReaperState=recording_elsewhere&mockChapterLink=none) after a create press on the first Chapter links row: the refusal as an error toast, the row still Not linked with its create button',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'engine',
+    state: 'live-tracks-saved',
+    description:
+      'The engine panel with REAPER not answering (?mockLiveTracks=saved): Chapter links\' header says on one line "Saved project · read N s ago", beside the Refresh button',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'engine',
+    state: 'live-tracks-stale',
+    description:
+      'The engine panel after a Refresh that REAPER did not answer (?mockLiveTracks=failing): Chapter links\' header says on one line "REAPER did not answer · last read N s ago", the tracks still listed, and the failure as a toast with Retry',
     ...KEEPS_DESKTOP_SCROLL,
   },
   {
@@ -191,41 +275,6 @@ export const engineStates: StateEntry[] = [
   },
   {
     page: 'engine',
-    state: 'chapter-tags-idle',
-    description:
-      'The engine panel, "Embed chapter tags" dialog open before any chapter render is configured - "Prepare chapter render first" message, Embed disabled',
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  {
-    page: 'engine',
-    state: 'chapter-tags-ready',
-    description:
-      'The engine panel, "Embed chapter tags" dialog with two rendered chapters known - the chapter list, destination field and confirm checkbox, Embed enabled once both are filled in (reached via the ?mockChapterTags=ready mock seam)',
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  {
-    page: 'engine',
-    state: 'chapter-tags-not-rendered',
-    description:
-      'The engine panel, "Embed chapter tags" dialog with a chapter configured but not yet rendered - a "Not rendered yet" badge and the press-Render-first warning, Embed disabled (reached via the ?mockChapterTags=not-rendered mock seam)',
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  {
-    page: 'engine',
-    state: 'chapter-tags-success',
-    description:
-      'The engine panel, "Embed chapter tags" dialog after a completed embed - the new tagged file\'s path shown, the original file unmentioned as changed',
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  {
-    page: 'engine',
-    state: 'chapter-tags-error',
-    description:
-      'The engine panel, "Embed chapter tags" dialog when the embed fails - inline error message (reached via the ?mockChapterTags=ready&mockChapterTagsEmbedError=1 mock seam)',
-    ...KEEPS_DESKTOP_SCROLL,
-  },
-  {
-    page: 'engine',
     state: 'cleanup-tools-idle',
     description: 'The engine panel, "Cleanup tools" dialog open before any launch - Repair Pops/Clicks and Magnolius DeClick, each with its own Open button',
   },
@@ -240,29 +289,5 @@ export const engineStates: StateEntry[] = [
     state: 'cleanup-tools-error',
     description:
       'The engine panel, "Cleanup tools" dialog when REAPER refuses a launch - "Magnolius DeClick is not installed" inline alert, nothing opened (reached via the ?mockCleanupTools=error mock seam)',
-  },
-  {
-    page: 'engine',
-    state: 'retake-lanes-list',
-    description:
-      'The engine panel, "Retakes on lanes" dialog - two lines of Chapter 1 with their retakes by lane, which lane plays in the saved project, and a "Play this lane" button per retake',
-  },
-  {
-    page: 'engine',
-    state: 'retake-lanes-picked',
-    description:
-      'The engine panel, "Retakes on lanes" dialog after REAPER confirmed a pick - lane 2 now plays for both lines of the track, "Undo in REAPER" status line (reached via the ?mockRetakeLanes=picked mock seam)',
-  },
-  {
-    page: 'engine',
-    state: 'retake-lanes-none',
-    description:
-      'The engine panel, "Retakes on lanes" dialog for a project with no fixed-lane track - says why nothing is listed (reached via the ?mockRetakeLanes=none mock seam)',
-  },
-  {
-    page: 'engine',
-    state: 'retake-lanes-error',
-    description:
-      'The engine panel, "Retakes on lanes" dialog when REAPER refuses a pick - "not in fixed item lane mode" inline alert, nothing changed (reached via the ?mockRetakeLanes=error mock seam)',
   },
 ];

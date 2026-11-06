@@ -22,4 +22,4 @@ Section 1b is a draft for [#2046](https://github.com/countrymanprime/narration-s
 
 ## Lifecycle
 
-This folder is deleted in the pull request that merges the last of phases 3 to 5, as the Studio Next mock's rule says ([Which mocks are the spec](../../../prds/studio-next-rebuild.prd.md#which-mocks-are-the-spec)). Nothing links to it from outside this PRD.
+This folder is deleted in the pull request that merges the last of phases 3 to 5, as the Studio Next mock's rule says (Which mocks are the spec). Nothing links to it from outside this PRD.

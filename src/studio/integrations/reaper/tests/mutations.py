@@ -13,11 +13,15 @@ reported, not counted, where it is equivalent.
 from __future__ import annotations
 
 import json
+import multiprocessing
+import os
 import re
 import shutil
 import sys
 import tempfile
+import time
 from collections.abc import Callable
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
 from lupa.lua54 import LuaError, LuaRuntime
@@ -61,33 +65,49 @@ def _own_tests(tests_dir: Path, reaper_dir: Path, lua_file: str) -> tuple[str, .
     return (f"{stem}_test.lua", *senders)
 
 
-def run_mutations(tests_dir: Path, reaper_dir: Path, run_suite: SuiteRunner) -> int:
-    entries = json.loads((tests_dir / "mutations.json").read_text(encoding="utf-8"))
-    scratch = Path(tempfile.mkdtemp(prefix="reaper-mutations-"))
-    survivors: list[str] = []
-    equivalent = 0
+def _check(tests_dir: Path, reaper_dir: Path, run_suite: SuiteRunner, entry: dict) -> tuple[str, str]:
+    """One mutation in its own scratch copy: ("caught", line) or ("survived", line). Runs in a worker process."""
+    scratch = Path(tempfile.mkdtemp(prefix="reaper-mutation-"))
     try:
-        for entry in entries:
-            if sys.platform in entry.get("equivalent_on", ()):
-                if not entry.get("why"):
-                    raise ValueError(f"mutation {entry['name']!r}: equivalent_on needs a why")
-                equivalent += 1
-                print(f"  equivalent on {sys.platform}, not counted: {entry['name']} ({entry['why']})")
-                continue
-            mutated = _mutated_copy(reaper_dir, scratch, entry)
-            try:
-                _, failed, _ = run_suite(mutated, verbose=False, first=_own_tests(tests_dir, reaper_dir, entry["file"]), stop_at_failure=True)
-            except (LuaError, RuntimeError) as error:  # a mutation that breaks loading is caught too
-                failed = 1
-                print(f"  caught (suite raised {type(error).__name__}): {entry['name']}")
-                continue
-            if failed:
-                print(f"  caught ({failed} failing): {entry['name']}")
-            else:
-                survivors.append(entry["name"])
-                print(f"  SURVIVED: {entry['name']}")
+        mutated = _mutated_copy(reaper_dir, scratch, entry)
+        try:
+            _, failed, _ = run_suite(mutated, verbose=False, first=_own_tests(tests_dir, reaper_dir, entry["file"]), stop_at_failure=True)
+        except (LuaError, RuntimeError) as error:  # a mutation that breaks loading is caught too
+            return "caught", f"  caught (suite raised {type(error).__name__}): {entry['name']}"
+        if failed:
+            return "caught", f"  caught ({failed} failing): {entry['name']}"
+        return "survived", f"  SURVIVED: {entry['name']}"
     finally:
         shutil.rmtree(scratch, ignore_errors=True)
+
+
+def run_mutations(tests_dir: Path, reaper_dir: Path, run_suite: SuiteRunner, jobs: int | None = None) -> int:
+    """Checks every mutation, `jobs` at a time in worker processes (one per CPU by default): each has its own copy of the
+    Lua source and its own Lua states, so they share nothing. The lines print in mutations.json order whatever order
+    they finish in. An entry whose `find` does not apply still fails the whole run."""
+    entries = json.loads((tests_dir / "mutations.json").read_text(encoding="utf-8"))
+    counted: list[dict] = []
+    equivalent = 0
+    for entry in entries:
+        if sys.platform in entry.get("equivalent_on", ()):
+            if not entry.get("why"):
+                raise ValueError(f"mutation {entry['name']!r}: equivalent_on needs a why")
+            equivalent += 1
+            print(f"  equivalent on {sys.platform}, not counted: {entry['name']} ({entry['why']})")
+            continue
+        counted.append(entry)
+    workers = max(1, jobs if jobs is not None else (os.cpu_count() or 1))
+    started = time.monotonic()
+    print(f"  checking {len(counted)} mutations on {workers} worker(s) ({sys.platform}, {os.cpu_count()} CPUs)", flush=True)
+    if workers == 1:
+        results = [_check(tests_dir, reaper_dir, run_suite, entry) for entry in counted]
+    else:
+        # spawn on every platform: Windows has only spawn, so the path CI checks on Linux is the one Windows runs.
+        with ProcessPoolExecutor(max_workers=workers, mp_context=multiprocessing.get_context("spawn")) as pool:
+            results = list(pool.map(_check, *zip(*[(tests_dir, reaper_dir, run_suite, entry) for entry in counted])))
+    survivors = [entry["name"] for entry, (outcome, _) in zip(counted, results) if outcome == "survived"]
+    for _, line in results:
+        print(line)
     checked = len(entries) - equivalent
-    print(f"{checked - len(survivors)} of {checked} mutations caught")
+    print(f"{checked - len(survivors)} of {checked} mutations caught in {time.monotonic() - started:.0f} s")
     return 1 if survivors else 0

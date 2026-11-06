@@ -2,6 +2,7 @@
 // The Schedule page's dates (state matrix: docs/research/schedule-page-state-matrix.md, "Due date and the verdict"): none, past, today, far
 // away, impossible, mistyped, cleared, refused by the host, committed twice, and a plan edited by hand to hold something that is not a date.
 import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { overlay } from '../../overlay/overlayService';
 import { REC, mountSchedule, stored, toasts, installKit } from './scheduleKit.test';
@@ -234,6 +235,30 @@ describe('the pace is an estimate', () => {
     await dueField();
     expect(screen.getByText('Your pace (estimate)')).toBeTruthy();
     expect(screen.getByText('At your pace, done (estimate)')).toBeTruthy();
-    expect(document.body.textContent).toMatch(/not measured from your sessions.*assumes 1\.5 h of work a day/);
+    await userEvent.click(screen.getByRole('button', { name: 'About these figures' }));
+    expect(await screen.findByText(/not measured from your sessions.*assumes 1\.5 h of work a day/)).toBeTruthy();
+  });
+});
+
+describe('a due date past the last year (issue 1943)', () => {
+  it('refuses 9999-12-31 with a toast, keeps what was typed marked invalid, saves nothing, and puts the saved date back on leaving again', async () => {
+    const calls = vi.fn();
+    await mountSchedule({ wrap: (base) => ({ setProductionDeadline: async (d, a) => (calls(d, a), base.setProductionDeadline(d, a)) }) });
+    const field = await dueField();
+    fireEvent.change(field, { target: { value: '9999-12-31' } });
+    await waitFor(() => expect(toasts().join(' ')).toMatch(/no later than Dec 31, 2100/));
+    expect(calls).not.toHaveBeenCalled();
+    await waitFor(() => expect(field.getAttribute('aria-invalid')).toBe('true'));
+    expect(field.value).toBe('9999-12-31');
+    expect(document.getElementById(field.getAttribute('aria-describedby') ?? '')?.textContent).toMatch(/not saved/);
+    fireEvent.blur(field);
+    expect(field.getAttribute('aria-invalid')).toBeNull();
+    expect(field.value).not.toBe('9999-12-31');
+  });
+
+  it('accepts the last day of the last year', async () => {
+    await mountSchedule();
+    await commit('2100-12-31');
+    await waitFor(async () => expect((await stored()).deadline).toBe('2100-12-31'));
   });
 });

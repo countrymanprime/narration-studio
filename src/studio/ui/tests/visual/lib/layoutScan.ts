@@ -164,6 +164,9 @@ export function scanLayout(): LayoutHit[] {
     if (!clipsX && !clipsY) continue;
     if (style.textOverflow === 'ellipsis' || style.webkitLineClamp !== 'none') continue;
     if (element.clientWidth <= 2 || element.clientHeight <= 2) continue;
+    // The Booth's teleprompter moves its column under a fixed window with a transform and fades its ends: it is a window by design, whatever
+    // the text's length (a short chapter's credits wrap to a few lines and would otherwise be judged by that length).
+    if (element.hasAttribute('data-booth-text')) continue;
     const overX = clipsX ? element.scrollWidth - element.clientWidth : 0;
     const overY = clipsY ? element.scrollHeight - element.clientHeight : 0;
     if (overX <= TOL && overY <= TOL) continue;
