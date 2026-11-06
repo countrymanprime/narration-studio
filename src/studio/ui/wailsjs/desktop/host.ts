@@ -2868,6 +2868,14 @@ export function SystemSaveDiagnostics(): $CancellablePromise<string> {
     return $Call.ByID(2984472618);
 }
 
+export function SystemSaveSettings(tool: string, scope: string, values: { [_ in string]?: string | null }): $CancellablePromise<string> {
+    return $Call.ByID(2824066503, tool, scope, values);
+}
+
+export function SystemSettingsForScope(scope: string): $CancellablePromise<string> {
+    return $Call.ByID(675135303, scope);
+}
+
 /**
  * SystemTraceBatch takes the activity-trace events the page collected (screen changes, host calls, live events, overlays, caught
  * errors) as `{"events":[{"event":"ui.nav","fields":{"page":"settings"}}]}` and writes each through the trace's registry
@@ -2877,14 +2885,6 @@ export function SystemSaveDiagnostics(): $CancellablePromise<string> {
  */
 export function SystemTraceBatch(batch: string): $CancellablePromise<string> {
     return $Call.ByID(82054732, batch);
-}
-
-export function SystemSaveSettings(tool: string, scope: string, values: { [_ in string]?: string | null }): $CancellablePromise<string> {
-    return $Call.ByID(2824066503, tool, scope, values);
-}
-
-export function SystemSettingsForScope(scope: string): $CancellablePromise<string> {
-    return $Call.ByID(675135303, scope);
 }
 
 /**
