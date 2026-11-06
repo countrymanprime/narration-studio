@@ -1,6 +1,6 @@
 # The agent train (moved)
 
-The agent train's procedure moved to [`.claude/skills/agent-train/SKILL.md`](../../.claude/skills/agent-train/SKILL.md) on 2026-10-12: instructions that only automated coding tools follow live in `.claude/` ([Which document](../README.md#which-document)). Its templates are in [`references/templates.md`](../../.claude/skills/agent-train/references/templates.md) beside it, and the Studio Next delivery model (the removed PRD `docs/prds/studio-next-agent-delivery.prd.md`) is in [`references/studio-next-delivery.md`](../../.claude/skills/agent-train/references/studio-next-delivery.md).
+The agent train's procedure moved to [`.claude/skills/agent-train/SKILL.md`](../../.claude/skills/agent-train/SKILL.md) on 2026-10-12: instructions that only automated coding tools follow live in `.claude/` ([Which document](../README.md#which-document)). Its templates are in [`references/templates.md`](../../.claude/skills/agent-train/references/templates.md) beside it, and the Studio Next delivery model (the removed PRD `docs/prds/studio-next-agent-delivery.prd.md`) is in [`references/slice-delivery.md`](../../.claude/skills/agent-train/references/slice-delivery.md).
 
 A Routine or prompt that says to read this file and run one pass: read `.claude/skills/agent-train/SKILL.md` on `main` instead, and run one pass from it (its index sends the coordinator to `references/coordinator.md`).
 
