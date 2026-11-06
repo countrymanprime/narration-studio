@@ -6,16 +6,9 @@ paths:
 
 # UI spec and screenshots
 
-## Which mocks are the spec
+## What a page builds to
 
-The rule is the rebuild PRD's Which mocks are the spec (owner ruling D98, 2026-10-11, amended 2026-10-18; [Which mocks are the spec](../../docs/design/design-system.md#which-mocks-are-the-spec)). Read it before building or changing a page. In short:
-
-- The Studio Next mock was deleted from the tree ([Reading the deleted mock](../../docs/operations/verification-tooling.md#reading-the-deleted-studio-next-mock)). It was a frozen reference: build a page it covers to it unless a PRD or doc supersedes the mock's line.
-- The mock is gone, so there is nothing to edit. To depart from it, supersede the line in the PRD or doc that covers the page, naming what it replaces and why. A control, state or feature the mock lacks may be added the same way, through an issue or PRD that says so.
-- In the PR that swaps a page in, remove the repo's old equivalent of anything in the mock.
-- Leave the features with no equivalent in the mock as built (the PRD lists them).
-- Do not target the benchmark mocks for a page the Studio Next mock covers.
-- Compare light to light and dark to dark by the mock's theme, and match layout and style, not the mock's sample data.
+There is no standing mock: the rebuild mock and the benchmark mocks are retired (2026-11-06), and nothing here asks you to read them. A page builds to its issue or PRD, its current guide in `docs/guides/using-the-app/`, and any mock or design draft the issue, the PRD or the agent train's coordinator names for that job. Compare light to light and dark to dark, and match layout and style, not a mock's sample data. In the PR that replaces a page, remove the old equivalent of what it replaces.
 
 ## A UI change updates its page's guide
 
