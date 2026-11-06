@@ -25,6 +25,31 @@ Inspector will be, and says **Reading the chapters and notes…**. A link to a c
 If the page's chapters or notes cannot be read when it opens, Proof keeps its title and says "This page could not be
 loaded" with the reason and a **Retry** button, which reads them again. The rest of the app keeps working.
 
+## Work through a note
+
+This page is a reference to everything Proof shows. Here is one note from finding to decision, as an example; the
+sections after it have the detail.
+
+Say the recording check heard "the white rabbit hurries" in Chapter 3, where the script says "the White Rabbit
+hurried".
+
+1. **Select the note** in the list, or its pin on the waveform. The Inspector on the right shows what the script says
+   and what was heard, with the difference marked: "hurried" struck through on red, "hurries" on green, and the
+   paragraph around it under **In the script**.
+2. **Listen.** **Hear it** (or Space) plays the spot with 3 seconds either side.
+3. **Decide**, with a button or its key:
+   - **Needs pickup** (P): you will record the line again. It goes on the [Pickups](pickups.md) list.
+   - **Fix in edit** (E): the audio can be fixed in the edit. A misread or a skipped word still counts as a pickup.
+   - **Fine as read** (W): you heard it and the line stays as it was read.
+   - **Defer** (D): decide later.
+
+   Add an optional note in the box first if the reason helps later ("tense changed; author wants past").
+4. **The next note is selected** and a message says what was saved. Ctrl+Z, or **Undo the last change** in the jump
+   menu, takes the decision back.
+
+If the check runs again while you look and the evidence changes, the decision is not saved: Proof shows **Before** and
+**Now**, and you decide again after **Use the new evidence** ([A note and your decision](#a-note-and-your-decision)).
+
 ## All chapters or one chapter
 
 The chapter stepper beside the title shows **All chapters** or one chapter. On **All chapters** the notes run in book order, chapter by chapter, and **J**/**K** follow that order. Choose a chapter from it, or step with its
@@ -414,6 +439,12 @@ and every delivery check reads unknown until you choose the file again and measu
 never counts as a pass.
 
 ![Proof chapter view - the readiness panel's Rendered file section with a render chosen: Change, Clear and Measure](../../images/ui/proof-chapter-render-chosen.webp)
+
+## What next
+
+- [Pickups](pickups.md): every line marked **Needs pickup**, grouped by chapter, and the pickup session that records them.
+- [Editing](editing.md): fix in the edit what you marked **Fix in edit**.
+- [Master & QC](master-and-qc.md): check the finished files once the notes are cleared.
 
 ---
 
