@@ -9,6 +9,7 @@ import { TableRow } from '../../primitives/Table';
 import { TABLE_CELL_CLASS } from '../../primitives/tableStyles';
 import { formatSize } from '../../assets/AssetFacts';
 import { PAGE_LABEL, PAGE_PATH, type UsedPage } from '../registry/types';
+import { useHasProject } from '../row/SettingsHost';
 import type { AssetView } from './AssetsStore';
 
 /**
@@ -64,6 +65,8 @@ function installedLabel(verifiedAt: string, unchecked: boolean, now = new Date()
 
 /** One asset of the Models & downloads list: what it is, where it stands, who reads it, and the one action its status allows. Props only. */
 export function AssetRow({ view, pages, inUse, go, install, cancel, remove, dismiss, verify }: AssetRowProps) {
+  // With no project open the pages that use a model are named, not linked: there is no page to go to.
+  const hasProject = useHasProject();
   const { item, status, checking } = view;
   useErrorToast(status === 'failed' ? view.failure : undefined);
   const name = item.displayName;
@@ -121,17 +124,23 @@ export function AssetRow({ view, pages, inUse, go, install, cancel, remove, dism
       </Cell>
       <Cell label="Used by" className={CARD_WIDE}>
         <span className="inline-flex flex-wrap gap-x-2.5">
-          {pages.map((page) => (
-            <Button
-              key={page}
-              variant="link"
-              size="sm"
-              aria-label={`Used by ${PAGE_LABEL[page]}. Go to ${PAGE_LABEL[page]}`}
-              onClick={() => go(PAGE_PATH[page])}
-            >
-              {PAGE_LABEL[page]}
-            </Button>
-          ))}
+          {pages.map((page) =>
+            hasProject ? (
+              <Button
+                key={page}
+                variant="link"
+                size="sm"
+                aria-label={`Used by ${PAGE_LABEL[page]}. Go to ${PAGE_LABEL[page]}`}
+                onClick={() => go(PAGE_PATH[page])}
+              >
+                {PAGE_LABEL[page]}
+              </Button>
+            ) : (
+              <span key={page} className="text-[0.8125rem]">
+                {PAGE_LABEL[page]}
+              </span>
+            ),
+          )}
         </span>
       </Cell>
       <Cell className="col-start-2 row-start-1 whitespace-nowrap">

@@ -29,6 +29,9 @@ especially welcome:
   Story Bible analysis tools (GLiNER and BookNLP weights and their Python wheels): a download that starts without the narrator's
   install, a row that installs before every file is pinned, a wheel that is run or imported at download time, or a scan that starts a
   tool's sidecar from anything but the registry's verified install of a pinned row is in scope.
+  Moving the models folder (Settings > Models & downloads > Change location) is in scope too: a move that writes outside the folder the narrator chose, copies into itself,
+  mixes with or overwrites files already there, follows a link out of the folder, switches to a copy that was not verified, or an offer to delete the old copy
+  that removes anything but the downloads in it or the folder in use.
 - The in-app update ([ADR 0002](docs/adr/0002-local-models-and-tools-come-first-so-the-app-is-free-to-use.md)): once a day the app asks GitHub for the list of releases of this repository (it sends no identifier beyond the program name and version, and it can be switched off in Settings). Reports about that request revealing more than that, about the app trusting the release list beyond what it validates, or about an update being applied without the narrator's click are in scope.
 - Path traversal, command injection or unsafe file handling when the app opens a project, a manuscript, an archive, a REAPER
   project or the audio it names, or when a sidecar reads the audio and writes the files an analysis manifest names: a read or

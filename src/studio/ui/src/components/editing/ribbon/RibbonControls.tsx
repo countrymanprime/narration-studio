@@ -13,18 +13,22 @@ export function ZoomRow({ t0, ribbon, head, gestures }: { t0: number; ribbon: Ri
   const { view, canZoomIn, canZoomOut, zoom } = ribbon;
   const range = `${fineClock(t0 + view.start)} to ${fineClock(t0 + view.start + view.len)}`;
   return (
-    <div className="flex h-8 min-w-0 flex-none items-center gap-2 px-3 text-xs text-[var(--text-muted)]">
+    <div className="@container/zoom flex h-8 min-w-0 flex-none items-center gap-2 px-3 text-xs text-[var(--text-muted)]">
       {head}
-      <span className="flex min-w-0 items-center gap-1.5" title={`Showing ${range}`}>
+      {/* The range being shown is secondary: in a row narrower than 30rem it gives way, so the head and the controls beside it are never squeezed or overlapped. It follows the row's own width, not the window's, so a dock in a narrow box in a wide window gives way too. */}
+      <span className="flex min-w-0 items-center gap-1.5 @max-[30rem]/zoom:hidden" title={`Showing ${range}`}>
         <span className="flex-none">Showing</span>
         <span className="min-w-0 truncate font-mono text-[var(--text)]" data-view-label>
           {range}
         </span>
       </span>
       <span className="flex-1" />
-      {gestures ? <Tooltip text={gestures} label="Waveform gestures" icon="?" /> : null}
-      <IconButton action="zoomOut" size="sm" disabledReason={canZoomOut ? undefined : 'The whole recording is showing'} onClick={() => zoom(1)} />
-      <IconButton action="zoomIn" size="sm" disabledReason={canZoomIn ? undefined : 'One second is the closest view'} onClick={() => zoom(-1)} />
+      {/* The hint and the zoom buttons keep their size: only the head and the range text may shrink. */}
+      <span className="flex flex-none items-center gap-2">
+        {gestures ? <Tooltip text={gestures} label="Waveform gestures" icon="?" /> : null}
+        <IconButton action="zoomOut" size="sm" disabledReason={canZoomOut ? undefined : 'The whole recording is showing'} onClick={() => zoom(1)} />
+        <IconButton action="zoomIn" size="sm" disabledReason={canZoomIn ? undefined : 'One second is the closest view'} onClick={() => zoom(-1)} />
+      </span>
     </div>
   );
 }

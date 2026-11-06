@@ -56,7 +56,7 @@ describe('CreditsPanel', () => {
     renderPanel();
     const detected = await screen.findAllByText(/Detected from/);
     expect(detected.length).toBeGreaterThanOrEqual(2);
-    fireEvent.click(screen.getAllByRole('button', { name: 'Use suggestion' })[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Use this suggestion' })[0]);
     await waitFor(() => expect((screen.getByLabelText('Title') as HTMLInputElement).value).not.toBe(''));
   });
 

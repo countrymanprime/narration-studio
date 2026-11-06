@@ -7,6 +7,8 @@ Launching the app without a project folder attached shows **Choose your project*
 
 ![Choose your project - Open folder and New project, the pinned and recent projects with Open, Pin and Remove](../../images/ui/project-picker.webp)
 
+- The **Settings** button at the top right opens [Settings](settings.md#before-a-project-is-open) without a project, to download
+  models, check for an update or change what belongs to this computer. Its **Back to project picker** returns here.
 - **Open** opens that project. The date is when you last opened it.
 - **Open folder…**, beside **New project**, opens a folder chooser for a project that is not in the list.
 - The pin on a row moves that project under a **Pinned** heading at the top of the list, above **Recent**, and keeps it on the list

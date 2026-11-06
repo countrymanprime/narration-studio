@@ -1,5 +1,23 @@
 [
   {
+    "name": "a close cut with the folder moves only the item's own track",
+    "file": "narration_range.lua",
+    "find": "      for _, moved in ipairs(items_from(peer, nil, last_cut)) do",
+    "replace": "      for _, moved in ipairs({}) do"
+  },
+  {
+    "name": "a close cut with the folder lets another voice's audio sit inside the range removed",
+    "file": "narration_range.lua",
+    "find": "      if overlapping(peer, nil, first_cut, last_cut) then",
+    "replace": "      if false then"
+  },
+  {
+    "name": "a ripple with a folder accepts an item that is not inside it",
+    "file": "narration_bridge_core.lua",
+    "find": "  if not inside then\n    event(session_dir, 'ERROR', run_id, 'The item is not inside the chapter folder, so ' .. unchanged .. '.')",
+    "replace": "  if false then\n    event(session_dir, 'ERROR', run_id, 'The item is not inside the chapter folder, so ' .. unchanged .. '.')"
+  },
+  {
     "name": "a stale GUID resolves to another item",
     "file": "narration_line_identity.lua",
     "find": "local item = items[row.guid]\n    if not item then",
@@ -356,7 +374,7 @@
   {
     "name": "pick_retake_lane changes the play state outside an undo block",
     "file": "narration_retake_lanes.lua",
-    "find": "  reaper.Undo_BeginBlock2(0)\n  reaper.SetMediaTrackInfo_Value(track, 'C_LANEPLAYS:' .. lane, PLAYS_EXCLUSIVELY)\n  reaper.Undo_EndBlock2(0, core.brand.name .. ': play retake lane ' .. (lane + 1), -1)",
+    "find": "  reaper.Undo_BeginBlock2(0)\n  reaper.SetMediaTrackInfo_Value(track, 'C_LANEPLAYS:' .. lane, PLAYS_EXCLUSIVELY)\n  reaper.Undo_EndBlock2(0, UNDO_USE_TAKE, -1)",
     "replace": "  reaper.SetMediaTrackInfo_Value(track, 'C_LANEPLAYS:' .. lane, PLAYS_EXCLUSIVELY)"
   },
   {
@@ -1376,8 +1394,8 @@
   {
     "name": "stack_takes: every item on the track moves, not only the audio after the reads",
     "file": "narration_takes.lua",
-    "find": "      if group.track == reaper.GetMediaItem_Track(entry.item) and entry.position >= group.after - EDGE_TOLERANCE then",
-    "replace": "      if group.track == reaper.GetMediaItem_Track(entry.item) then"
+    "find": "      if (members or group.track == reaper.GetMediaItem_Track(entry.item)) and entry.position >= group.after - EDGE_TOLERANCE then",
+    "replace": "      if members or group.track == reaper.GetMediaItem_Track(entry.item) then"
   },
   {
     "name": "stack_takes: a shift the reads do not add up to is applied",
@@ -2812,15 +2830,27 @@
     "replace": "local stop = record and (stopped_at(record) or 0)"
   },
   {
+    "name": "chapter_end continues after the armed voice only, not the whole folder",
+    "file": "narration_transport.lua",
+    "find": "    last = math.max(last, track_end(track))",
+    "replace": "    last = math.max(last, track_end(folder))"
+  },
+  {
+    "name": "chapter_end accepts a target outside the chapter folder",
+    "file": "narration_transport.lua",
+    "find": "      inside = inside or member == target",
+    "replace": "      inside = true"
+  },
+  {
     "name": "the end rule ignores where the last take stopped",
     "file": "narration_transport.lua",
-    "find": "    if not here then\n      reaper.SetEditCurPos(track_end(target), true, false)",
+    "find": "    if not here then\n      reaper.SetEditCurPos(folder and folder_end(folder) or track_end(target), true, false)",
     "replace": "    if true then\n      reaper.SetEditCurPos(track_end(target), true, false)"
   },
   {
     "name": "the end rule keeps any cursor, so a take records over later audio",
     "file": "narration_transport.lua",
-    "find": "    if not here then\n      reaper.SetEditCurPos(track_end(target), true, false)",
+    "find": "    if not here then\n      reaper.SetEditCurPos(folder and folder_end(folder) or track_end(target), true, false)",
     "replace": "    if false then\n      reaper.SetEditCurPos(track_end(target), true, false)"
   },
   {
@@ -3380,5 +3410,59 @@
     "file": "narration_voice_sample_region.lua",
     "find": "first >= 0 and last > first and name:match('%S')",
     "replace": "first >= 0 and name:match('%S')"
+  },
+  {
+    "name": "replace_range with the folder moves only the item's own track",
+    "file": "narration_replace.lua",
+    "find": "    for _, moved in ipairs(items_from(peer, nil, last_cut)) do",
+    "replace": "    for _, moved in ipairs({}) do"
+  },
+  {
+    "name": "replace_range with the folder lets another voice's audio sit under the words",
+    "file": "narration_replace.lua",
+    "find": "    if overlapping(peer, nil, first_cut, last_cut) then",
+    "replace": "    if false then"
+  },
+  {
+    "name": "restore_replacement with the folder moves only the item's own track",
+    "file": "narration_replace.lua",
+    "find": "    for _, moved in ipairs(items_from(peer, nil, at + length)) do",
+    "replace": "    for _, moved in ipairs({}) do"
+  },
+  {
+    "name": "restore_replacement with the folder lets another voice's audio sit where the replacement is",
+    "file": "narration_replace.lua",
+    "find": "    if overlapping(peer, nil, at, at + length) then",
+    "replace": "    if false then"
+  },
+  {
+    "name": "stack_takes with the folder moves only the passages' own tracks",
+    "file": "narration_takes.lua",
+    "find": "      if (members or group.track == reaper.GetMediaItem_Track(entry.item)) and entry.position >= group.after - EDGE_TOLERANCE then",
+    "replace": "      if group.track == reaper.GetMediaItem_Track(entry.item) and entry.position >= group.after - EDGE_TOLERANCE then"
+  },
+  {
+    "name": "stack_takes with the folder lets another voice's audio sit where the reads are",
+    "file": "narration_takes.lua",
+    "find": "          if position_of(other) < to - EDGE_TOLERANCE and position_of(other) + length_of(other) > from + EDGE_TOLERANCE then",
+    "replace": "          if false then"
+  },
+  {
+    "name": "stack_takes with the folder takes reads from outside it",
+    "file": "narration_takes.lua",
+    "find": "    if not inside[group.track] then",
+    "replace": "      if false then"
+  },
+  {
+    "name": "stack_takes accepts a folder line after the groups",
+    "file": "narration_takes.lua",
+    "find": "    elseif kind == 'folder' and #fields == 2 and not request.folder and #request.groups == 0 then",
+    "replace": "    elseif kind == 'folder' and #fields == 2 and not request.folder then"
+  },
+  {
+    "name": "stack_takes accepts a folder line twice",
+    "file": "narration_takes.lua",
+    "find": "    elseif kind == 'folder' and #fields == 2 and not request.folder and #request.groups == 0 then",
+    "replace": "    elseif kind == 'folder' and #fields == 2 and #request.groups == 0 then"
   }
 ]

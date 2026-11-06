@@ -19,6 +19,7 @@ import re
 import shutil
 import sys
 import tempfile
+import time
 from collections.abc import Callable
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
@@ -96,6 +97,8 @@ def run_mutations(tests_dir: Path, reaper_dir: Path, run_suite: SuiteRunner, job
             continue
         counted.append(entry)
     workers = max(1, jobs if jobs is not None else (os.cpu_count() or 1))
+    started = time.monotonic()
+    print(f"  checking {len(counted)} mutations on {workers} worker(s) ({sys.platform}, {os.cpu_count()} CPUs)", flush=True)
     if workers == 1:
         results = [_check(tests_dir, reaper_dir, run_suite, entry) for entry in counted]
     else:
@@ -106,5 +109,5 @@ def run_mutations(tests_dir: Path, reaper_dir: Path, run_suite: SuiteRunner, job
     for _, line in results:
         print(line)
     checked = len(entries) - equivalent
-    print(f"{checked - len(survivors)} of {checked} mutations caught")
+    print(f"{checked - len(survivors)} of {checked} mutations caught in {time.monotonic() - started:.0f} s")
     return 1 if survivors else 0

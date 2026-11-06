@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { usePort } from '../../../ports/usePort';
 import { isNarrationChapter } from '../../../chapterKinds';
 import type { CoverageResult, ManuscriptChapter, MeasureFileResult } from '../../../types';
+import { chapterForFile } from '../../master/chapterFile';
 import type { TextMatch } from './rows';
 
 /**
@@ -25,47 +26,6 @@ const READ_AT_ONCE = 8;
 
 /** The measured files the Text column can name: the retail sample is no chapter's. */
 const isChapterFile = (file: MeasureFileResult): boolean => file.status === 'measured' && !/sample/i.test(file.name);
-
-const WORD = /[\p{L}\p{N}]/u;
-const stem = (name: string): string => name.replace(/\.[^.]+$/, '').toLowerCase();
-
-/** Whether `title` is in `name` as whole words: a non-letter, non-digit (or an end of the name) on both sides, so "chapter 1" is not in "chapter 10". */
-function hasTitle(name: string, title: string): boolean {
-  for (let at = name.indexOf(title); at !== -1; at = name.indexOf(title, at + 1)) {
-    const before = name.slice(0, at).at(-1);
-    const after = name[at + title.length];
-    if ((before === undefined || !WORD.test(before)) && (after === undefined || !WORD.test(after))) return true;
-  }
-  return false;
-}
-
-/**
- * The chapter a file belongs to: the chapter whose whole-word title is in the file's name, else the one its number names (the only number in
- * the name is the chapter's, counting from 1; the page's pairing rule, `chapterOfFile`, read with word boundaries). When several chapters fit,
- * the longest title wins ("Chapter 10" over "Chapter 1"); when two fit equally well, or none, the file belongs to no chapter and its row
- * says "Not checked" rather than another chapter's figure.
- */
-export function chapterForFile(file: Pick<MeasureFileResult, 'name'>, chapters: readonly ManuscriptChapter[]): ManuscriptChapter | undefined {
-  const name = stem(file.name);
-  const digits = name.match(/\d+/g);
-  const number = digits?.length === 1 ? Number(digits[0]) : undefined;
-  let best: ManuscriptChapter | undefined;
-  let bestLength = -1;
-  let tied = false;
-  for (const chapter of chapters) {
-    const title = chapter.title.trim().toLowerCase();
-    const length = title && hasTitle(name, title) ? title.length : number !== undefined && number === chapter.index + 1 ? 0 : -1;
-    if (length < 0) continue;
-    if (length > bestLength) {
-      best = chapter;
-      bestLength = length;
-      tied = false;
-    } else if (length === bestLength) {
-      tied = true;
-    }
-  }
-  return tied ? undefined : best;
-}
 
 /**
  * The Text figure of each measured file, by the file's path: the current Recording Check of the one chapter the file belongs to, read from the

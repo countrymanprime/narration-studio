@@ -28,6 +28,7 @@ Storybook title: `Primitives/Skeleton`. Source: `src/components/primitives/Skele
 - `src/components/proof/frame/ProofSkeleton.tsx`
 - `src/components/schedule/ScheduleSkeleton.tsx`
 - `src/components/script/page/layout/ScriptSkeleton.tsx`
+- `src/components/settings/controls/modelsControls.tsx`
 - `src/components/settings/page/ModelsPane.tsx`
 - `src/components/settings/page/SettingsPage.tsx`
 - `src/components/storybible/GuideSkeleton.tsx`
