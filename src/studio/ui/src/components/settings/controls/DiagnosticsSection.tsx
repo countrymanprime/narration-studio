@@ -7,10 +7,7 @@ import { Dialog } from '../../primitives/Dialog';
 import { IconButton } from '../../primitives/IconButton';
 import { Panel } from '../../primitives/Panel';
 import { SectionLabel } from '../../primitives/SectionLabel';
-
-// The settings row's two columns (row/SettingRowView.tsx), as AboutSection's rows use.
-const ROW =
-  'grid gap-x-8 gap-y-1.5 border-t border-[var(--border)] px-5 py-4 first:border-t-0 @min-[761px]:grid-cols-[12rem_minmax(0,1fr)] @min-[860px]:grid-cols-[minmax(12rem,16rem)_minmax(0,1fr)]';
+import { ABOUT_ROW } from './aboutRow';
 
 // Copies text to the clipboard; false when there is no clipboard or it refuses, so the toast still says where the file is.
 const copyText = async (text: string): Promise<boolean> => {
@@ -65,7 +62,7 @@ export function DiagnosticsSection() {
         Diagnostics bundle
       </SectionLabel>
       <Panel flush>
-        <div className={ROW} data-about="diagnostics">
+        <div className={ABOUT_ROW} data-about="diagnostics">
           <div className="flex min-w-0 flex-col gap-[3px]">
             <b className="text-[0.9375rem] font-semibold">File for a bug report</b>
             <span className="max-w-[60ch] text-[0.8125rem] text-[var(--text-muted)]">
