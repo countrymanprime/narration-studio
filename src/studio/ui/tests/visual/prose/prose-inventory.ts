@@ -348,6 +348,11 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     class: 'empty',
   },
   {
+    file: 'components/proof/ChapterCompare.tsx',
+    text: "The app's recorder has no takes for this chapter. Takes it records and puts on a line are listed here.",
+    class: 'empty',
+  },
+  {
     file: 'components/proof/ProofChapterPage.tsx',
     text: 'This chapter was last checked before the app could read its word alignment. Run Check again to edit it word by word on the Editing page.',
     class: 'state',

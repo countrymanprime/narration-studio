@@ -1087,6 +1087,9 @@ function AppRoutes() {
                           goToScript={(chapterId) => goToScript(chapterId)}
                           goToBooth={(chapterId) => goToBooth({ chapter: chapterId })}
                           goToEditing={goToEditing}
+                          transcript={data.transcript}
+                          notify={setNotice}
+                          dawFileLinked={data.dawFileLinked}
                         />,
                       )}
                     />
