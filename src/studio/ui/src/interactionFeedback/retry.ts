@@ -81,10 +81,11 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/booth/page/BoothNextPage.tsx#4': yes("The Booth's setup notice: Check again reads the DAW afresh, which changes nothing."),
   'src/components/booth/page/useBoothPage.ts#1': no(RC),
   'src/components/booth/page/useBoothPage.ts#2': no(RC),
-  'src/components/booth/page/useBoothPage.ts#3': yes(
+  'src/components/booth/page/useBoothPage.ts#3': no(RF),
+  'src/components/booth/page/useBoothPage.ts#4': yes(
     'Recording did not start because the text could not follow the voice and nothing was kept: Retry takes the same start again once the narrator has fixed the microphone or the model (there before this change).',
   ),
-  'src/components/booth/page/useBoothPage.ts#4': no(RC),
+  'src/components/booth/page/useBoothPage.ts#5': no(RC),
   'src/components/booth/passagemap/usePassageMapWriter.ts#1': no(AU),
   'src/components/booth/pickups/usePickupSession.ts#1': yes("The Booth's pickups list read changes nothing; Retry reads it again."),
   'src/components/booth/pickups/usePickupSession.ts#2': no(RF),

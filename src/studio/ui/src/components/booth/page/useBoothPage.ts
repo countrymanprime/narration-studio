@@ -88,6 +88,8 @@ export type BoothPageOptions = {
   escapeStoppedSample?: () => boolean;
   /** A press of Record (or R, or a roll) that could not start a take, and why: the page opens the dialog that fixes it or says it with an action. */
   onRecordBlocked?: (block: RecordBlock) => void;
+  /** With the app's own recorder: the sentence for why no microphone can be used right now (none chosen among several, none listed, the chosen one gone), or null. A take does not begin while it is set. */
+  micProblem?: () => string | null;
 };
 
 /**
@@ -330,6 +332,13 @@ export function useBoothPage(options: BoothPageOptions) {
     // The live speech model is checked before anything records: a missing one opens its install question here, and no take begins
     // behind it (the DAW would otherwise record while the narrator is still being asked, and while it downloads).
     if (!(await latest.current.session.ensureModel())) return false;
+    // With the app's own recorder the page knows, from the one list Record options shows, when no microphone can be used (none chosen among several, none listed, the
+    // chosen one unplugged): the take does not begin on a guess, and the sentence is the one the host gives (#2810).
+    const micProblem = options.micProblem?.();
+    if (micProblem) {
+      overlay.toast(micProblem, { tone: 'error' });
+      return false;
+    }
     // A cold read ends first: its session is not the take's (it keeps no reading and its flags are not the take's), and the take
     // starts from the real cursor, never from the ghost.
     const from = realWord();
