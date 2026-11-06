@@ -106,7 +106,7 @@ Each file in `.github/workflows`, what starts it, and the checks it shows on a p
 | `labeler.yml` | `pull_request_target` (opened, synchronize, reopened, ready for review) | `label` | not a check that gates anything |
 | `pages.yml` (`Pages`) | push to `main` and pull requests that touch the site's paths, manual | `build`, `deploy` ([below](#the-pages-workflow)); `deploy` runs only off a pull request, on `main` | `build` on a pull request that touches the site: it builds `dist-site/` and checks its links, and uploads and deploys nothing |
 | `train-health.yml` (`Train health`) | hourly (minute 23), manual | `heartbeat`: warns on #510 when #509's `Last pass:` line is over two hours old | not a pull request check |
-| `main-health.yml` (`Main health`) | every three hours (minute 37), manual | `Has main moved since the last run` (skips the run when the last finished run was on the same commit; a manual run always runs), the whole of `ci.yml` run on `main`, then `Tick HOLD when main is red` on a failure | not a pull request check |
+| `main-health.yml` (`Main health`) | scheduled every three hours (minute 37), observed 2 to 3 runs a day, often an hour or two late (GitHub delays and drops scheduled runs; 2026-11-04 to 11-06); manual | `Has main moved since the last run` (skips the run when the last finished run was on the same commit; a manual run always runs), the whole of `ci.yml` run on `main`, then `Tick HOLD when main is red` on a failure | not a pull request check |
 | `test-ratchet.yml` (`Test ratchet`) | pull request (opened, synchronize, reopened) | `Test ratchet`: prints each deleted test file, added skip or focus marker and lowered coverage floor, and raises a warning annotation. It never fails, and no label clears or changes it | no ruleset requires it; it is read before merging ([merge safety checks](verification-tooling.md#merge-safety-checks)) |
 | `pr-risk.yml` (`PR risk`) | same-repository pull request (opened, synchronize, reopened) | `rate`: adds or removes the `risk:high` label | not a check that gates anything; a `risk:high` pull request is not merged without the owner |
 | `sync-labels.yml`, `sync-milestones.yml` | push to `main` that changes `.github/labels.json`, `config/roadmap.json` or `scripts/github/**`, and the workflow file; manual | `sync` | run after a merge, never on a pull request |
@@ -863,8 +863,10 @@ run before it; the cost is the pushes. Rules for whoever pushes:
 - **Open as a draft** and mark ready when the targeted checks pass ([Draft and ready tiers](#draft-and-ready-tiers)).
 
 `main-health` catches what a pull request run cannot: two pull requests that are each green alone and break together once both are merged
-(`startupRequests.spec.ts` on 2026-10-18; the nightly run was red in 3 of its last 8 runs). It runs the full tier on `main` every three hours,
-only when `main` has moved since the last finished run, so a semantic conflict is found within hours and a quiet day costs nothing. Running
+(`startupRequests.spec.ts` on 2026-10-18; the nightly run was red in 3 of its last 8 runs). It is scheduled to run the full tier on `main` every three hours,
+only when `main` has moved since the last finished run, so a quiet day costs nothing. GitHub ran the schedule 2 to 3 times a day from 2026-11-04 to
+11-06, often an hour or two late, so a semantic conflict can sit on `main` for up to about ten hours before this run finds it. The checks a pull request
+leaves to `main` also run on each push that touches them (`post-merge.yml`), within about 20 minutes. Running
 CI on every push to `main` (with `cancel-in-progress`, so a burst of merges is one run) would find it within about 20 minutes of the merge, at
 ~90 job-minutes per settled burst; it is not turned on. Adding it is a `push: branches: [main]` trigger on `main-health.yml` with `cancel-in-progress: true`.
 
