@@ -65,7 +65,7 @@ A lane is a territory of files. Two workers may share a lane only when their sli
 | **B: adapters and sidecars** | `src/studio/integrations/reaper/**`, `internal/bridge`, `internal/daw*`, `internal/dawport/reaper`, `internal/dawport/audacity`, the consumer migrations, `src/studio/sidecars/**`, the rest of `src/studio/libs/python/**` | Sonnet (Opus for new Lua commands) |
 | **U: primitives and input** | `src/studio/ui/src/components/primitives/**`, `src/studio/ui/src/input/**`, `src/studio/ui/src/studio/**`, `src/studio/ui/src/ports/**`, `src/studio/ui/src/overlay/**`, `src/studio/ui/src/registries/**` (D-7), design tokens (in one PR, running alone) | Sonnet |
 | **C: UI features** | `src/studio/ui/src/components/<feature>/**`, `hooks/**`, `tests/visual/**` rows of its pages, `docs/guides/using-the-app/**` | Sonnet |
-| **D: documents** | PRDs, steady-state docs, ADR bookkeeping, PRD close-outs | Sonnet for PRDs, Haiku for bookkeeping |
+| **D: documents** | PRDs, steady-state docs, ADR bookkeeping, PRD close-outs | Opus for PRDs, Haiku for bookkeeping |
 | **X: exclusive** | Refactors of shared files (see [Serial points](#serial-points)) | Opus |
 
 A lane-X stream runs with no other stream that touches the same files. Lanes have no ADR blocks: a slice does not write an ADR.
