@@ -176,6 +176,18 @@ func (s *Service) Mark(ctx context.Context, request MarkRequest) (Sample, error)
 	}
 	expected := source.ClipBytes(win.count)
 
+	// A sample kept in the DAW asks the DAW for a region, and the DAW cannot tell two presses apart (each has its own id, so its own
+	// region name): the store lock is held from here, so a double press asks the DAW once and the second press finds the first's row.
+	var release func()
+	defer func() {
+		if release != nil {
+			release()
+		}
+	}()
+	if storage != StorageProject {
+		release = lockFile(storePath(s.config.Project))
+	}
+
 	// Cheap early answers from a read of the file; the same checks run again under the lock, once the clip is written.
 	current, err := s.readStore()
 	if err != nil {
@@ -218,8 +230,9 @@ func (s *Service) Mark(ctx context.Context, request MarkRequest) (Sample, error)
 		stored.Storage, stored.DawRegion = storage, region
 	}
 
-	unlock := lockFile(storePath(s.config.Project))
-	defer unlock()
+	if release == nil {
+		release = lockFile(storePath(s.config.Project))
+	}
 	current, err = s.readStore()
 	if err == nil {
 		if existing, ok := sameStretch(current.Samples, stored); ok {

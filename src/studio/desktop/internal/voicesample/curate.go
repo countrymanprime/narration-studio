@@ -211,7 +211,12 @@ func (s *Service) Remove(id string) (Removed, error) {
 			s.config.Reporter.Warn("voice_sample_clip_left", fmt.Sprintf("clip %s.wav could not be deleted: %v", id, err))
 		}
 	}
-	return Removed{Removed: 1, Bytes: gone.Clip.Bytes}, nil
+	// A sample kept only in the DAW had no file, so its row's clip bytes are a size, not bytes the project held.
+	freed := gone.Clip.Bytes
+	if gone.Storage == StorageDAW {
+		freed = 0
+	}
+	return Removed{Removed: 1, Bytes: freed}, nil
 }
 
 // RemoveAll deletes every sample and every clip in the clips folder, a clip no row names included.

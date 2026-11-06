@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"strings"
+	"unicode"
 
 	"desktop/internal/bridge"
 	"desktop/internal/dawport"
@@ -87,12 +88,28 @@ func (s *Service) regionName(id, characterID, label string) string {
 	if label == "" {
 		label = "sample"
 	}
-	name := RegionPrefix + oneLine(character) + " - " + oneLine(label) + " [" + id[:6] + "]"
-	return name
+	return RegionPrefix + oneLine(character, maxRegionPart) + " - " + oneLine(label, maxRegionPart) + " [" + id[:6] + "]"
 }
 
-func oneLine(text string) string {
-	return strings.Join(strings.Fields(text), " ")
+// maxRegionPart caps the character and the label in a region name. The Story Bible does not cap a character's name, and the store
+// rejects a region name over maxText bytes, which would set the whole store aside as corrupt on its next read.
+const maxRegionPart = 80
+
+// oneLine is text a person reads on a DAW marker: broken UTF-8 and control characters dropped, white space collapsed to single
+// spaces, and at most limit characters, so the name the DAW saves is the name the store holds.
+func oneLine(text string, limit int) string {
+	text = strings.ToValidUTF8(text, "")
+	text = strings.Map(func(r rune) rune {
+		if unicode.IsControl(r) && !unicode.IsSpace(r) {
+			return -1
+		}
+		return r
+	}, text)
+	text = strings.Join(strings.Fields(text), " ")
+	if runes := []rune(text); len(runes) > limit {
+		text = strings.TrimSpace(string(runes[:limit]))
+	}
+	return text
 }
 
 // projectTime is where source time t falls on the project's timeline for an item and take, and sourceTime is the way back.
@@ -134,6 +151,11 @@ func (s *Service) dawRegion(stored Stored) (DawView, tracks.Region, tracks.Item,
 		if s.config.Unsaved != nil && s.config.Unsaved() {
 			view.State = DawNotSaved
 		}
+		return view, tracks.Region{}, tracks.Item{}, tracks.Take{}
+	}
+	// The saved project is a file another program wrote: a region end like "inf" parses, and could not be encoded for the page.
+	if !finite(found.Start) || !finite(found.End) {
+		view.State = DawProjectUnreadable
 		return view, tracks.Region{}, tracks.Item{}, tracks.Take{}
 	}
 	view.Start, view.End = found.Start, found.End

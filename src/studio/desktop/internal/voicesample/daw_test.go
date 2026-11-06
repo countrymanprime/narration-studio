@@ -24,11 +24,15 @@ package voicesample
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 	"testing"
+	"unicode"
+	"unicode/utf8"
 
 	"desktop/internal/bridge"
 	"desktop/internal/dawport"
@@ -295,5 +299,103 @@ func TestADawSampleWithoutARegionIsCorrupt(t *testing.T) {
 	}
 	if err := validClip(StoredClip{Bytes: 10, DurationMs: 600, SampleRate: 8000, Channels: 1, BitsPerSample: 16}, false); err == nil {
 		t.Fatal("a project clip without a checksum was accepted")
+	}
+}
+
+// syncRegions is a DAW that can be asked from several goroutines at once, as a double press is.
+type syncRegions struct {
+	mu    sync.Mutex
+	calls []string
+}
+
+func (f *syncRegions) AddVoiceSampleRegion(_ context.Context, start, end float64, name string) (dawport.VoiceSampleRegionKept, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.calls = append(f.calls, fmt.Sprintf("%.3f-%.3f %s", start, end, name))
+	return dawport.VoiceSampleRegionKept{Number: len(f.calls), Outcome: "created"}, nil
+}
+
+// Every press of a double press is its own call with its own id, so the DAW cannot tell them apart by name: only one may reach it.
+func TestConcurrentDawMarksAddOneRegion(t *testing.T) {
+	for _, storage := range []string{StorageDAW, StorageBoth} {
+		t.Run(storage, func(t *testing.T) {
+			r := newRig(t)
+			regions := &syncRegions{}
+			r.config.Storage = func() string { return storage }
+			r.config.Regions = regions
+			r.service = r.build()
+			var group sync.WaitGroup
+			for range 8 {
+				group.Add(1)
+				go func() {
+					defer group.Done()
+					_, _ = r.mark(request(10, 12))
+				}()
+			}
+			group.Wait()
+			if samples := len(r.stored().Samples); samples != 1 || len(regions.calls) != 1 {
+				t.Fatalf("samples = %d, regions asked of the DAW = %d: %q", samples, len(regions.calls), regions.calls)
+			}
+		})
+	}
+}
+
+// A character's name is the Story Bible's, and nothing caps it: the region name must stay short enough that the store stays readable,
+// or the next read sets every sample in the project aside as corrupt.
+func TestARegionNameIsCappedSoTheStoreStaysReadable(t *testing.T) {
+	r := newRig(t)
+	r.useDaw(StorageDAW, &fakeRegions{})
+	r.config.CharacterName = func(string) string { return strings.Repeat("x", 10001) }
+	r.service = r.build()
+	r.mustMark(request(10, 12))
+	if listed := r.list(); len(listed.Samples) != 1 {
+		t.Fatalf("the sample is gone after a long name: %+v", listed)
+	}
+	entries, _ := os.ReadDir(Dir(r.project))
+	for _, entry := range entries {
+		if strings.Contains(entry.Name(), ".corrupt") {
+			t.Fatalf("the store was set aside as corrupt: %s", entry.Name())
+		}
+	}
+}
+
+// What reaches the DAW is text a person reads on a marker: no control characters, and bytes that are not UTF-8 are dropped, so the
+// name the DAW saves is the name the store holds and the read-back can find it.
+func TestARegionNameHasNoControlCharactersOrBrokenUTF8(t *testing.T) {
+	r := newRig(t)
+	regions := &fakeRegions{}
+	r.useDaw(StorageDAW, regions)
+	r.config.CharacterName = func(string) string { return "Ha\x00t\x1b[31mter\xff" }
+	r.service = r.build()
+	r.mustMark(request(10, 12))
+	name := r.stored().Samples[0].DawRegion.Name
+	if !utf8.ValidString(name) || strings.ContainsFunc(name, unicode.IsControl) || !strings.Contains(regions.calls[0], name) {
+		t.Fatalf("name = %q, DAW was asked %q", name, regions.calls)
+	}
+}
+
+// A saved project can hold a region end that is not a finite number (parseFloat reads "inf"): the list must still encode.
+func TestARegionWithAnInfiniteEndStillEncodes(t *testing.T) {
+	r := newRig(t)
+	r.useDaw(StorageDAW, &fakeRegions{})
+	r.mustMark(request(10, 12))
+	r.saveProject(20, [3]any{5, "inf", nameOf(r, "")})
+	listed := r.list()
+	if _, err := json.Marshal(listed); err != nil {
+		t.Fatalf("the list does not encode: %v", err)
+	}
+	if state := listed.Samples[0].Daw.State; state != DawProjectUnreadable && state != DawLabelMissing {
+		t.Fatalf("state = %s", state)
+	}
+}
+
+// A sample kept only in the DAW has no file: removing it frees no bytes.
+func TestRemovingADawOnlySampleFreesNoBytes(t *testing.T) {
+	r := newRig(t)
+	r.useDaw(StorageDAW, &fakeRegions{})
+	sample := r.mustMark(request(10, 12))
+	removed, err := r.service.Remove(sample.ID)
+	if err != nil || removed.Removed != 1 || removed.Bytes != 0 {
+		t.Fatalf("removed = %+v, err = %v", removed, err)
 	}
 }
