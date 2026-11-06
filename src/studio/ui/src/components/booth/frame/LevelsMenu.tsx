@@ -536,7 +536,7 @@ export function LevelsMenu({
       onOpenChange={onOpenChange}
       trigger={<SplitSide label="Record options" id="blevels" aria-haspopup="dialog" tone={mainButton?.cold && !recording ? 'cold' : 'primary'} badge={warn} />}
     >
-      <div className="flex w-max max-w-[min(26rem,100%)] min-w-[min(18rem,100%)] flex-col gap-4">
+      <div className="flex w-max max-w-[min(26rem,calc(100vw-5.5rem))] min-w-[min(18rem,100%)] flex-col gap-4">
         {mainButton ? (
           <div className="flex flex-col gap-1.5">
             <span className={SECTION_LABEL}>Main button</span>
