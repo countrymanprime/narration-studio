@@ -36,6 +36,13 @@ export type TeleprompterFlagKind = 'misread' | 'extra' | 'skipped' | 'restart';
 export type TeleprompterFlag = { type: 'flag'; id: number; kind: TeleprompterFlagKind; start: number; end: number; heard: string };
 
 /**
+ * The trailing confirmation pass's verdict on one earlier flag (internal/scripttrack, `flagcheck.go`), seconds after the
+ * flag: `confirmed` when a Whisper model heard the same discrepancy in the segment's audio, `cleared` when it read the script
+ * there. A flag no check reaches keeps neither.
+ */
+export type TeleprompterFlagCheck = { type: 'flag_check'; id: number; state: 'confirmed' | 'cleared' };
+
+/**
  * One flag as the read-aloud dialog sends it to be kept (`TeleprompterSaveFlags`): its words within one
  * manuscript paragraph (`[wordStart, wordEnd)`, the reader's own word split; an `extra` covers the one word it was heard
  * before), the event's chapter word indices as evidence, what was heard, and whether the narrator dismissed it. The host
@@ -50,6 +57,8 @@ export type TeleprompterFlagSave = {
   scriptEnd: number;
   heard: string;
   dismissed: boolean;
+  /** What the confirmation pass found, when a check reached the flag; a `cleared` flag is not kept. */
+  check?: 'confirmed' | 'cleared';
 };
 
 /**
@@ -96,6 +105,7 @@ export type TeleprompterEvent =
   | TeleprompterScript
   | TeleprompterPosition
   | TeleprompterFlag
+  | TeleprompterFlagCheck
   | TeleprompterLevel
   | TeleprompterMeterStopped
   | { type: 'partial'; segment: number; words: HeardWord[] }

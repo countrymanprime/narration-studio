@@ -250,8 +250,8 @@ alike the script's and the heard words sound (`internal/soundalike`, as for Tran
 opened mid-session reads. The host's `cmd/booth-replay` replays a printed `live_asr.py` session (`--stream`), or a
 Moonshine probe recording through `replay.py --events X`, through the host's own tracker
 (`internal/boothreplay`, held to the reports Python's replay wrote before its tracking was deleted), and reports flags per 100 heard words by kind, which on a
-clean read is the false-flag rate. Nothing confirms a
-flag after the session.
+clean read is the false-flag rate. A trailing
+confirmation pass rechecks a flag after its segment closes ([The trailing confirmation pass](#the-trailing-confirmation-pass)).
 
 ## The trailing confirmation pass
 
@@ -263,7 +263,16 @@ word start to last word end, 0.3 s either side) and has faster-whisper read it o
 the input ends (waiting at most 5 s). The model loads on that thread at the first check, so the first chunk is not delayed.
 A segment whose audio has left the ring, or that has no timed words, is skipped; a decode or a model load that fails prints
 `segment_check` with an `error` for that segment and the session goes on. With `--engine whisper` or no `--confirm-model`
-the pass is off. The host half, comparing the words with the live reading to confirm or clear a flag, is not built yet.
+the pass is off.
+**Host half.** `TeleprompterStart` resolves the tiny Whisper model (`confirmModelID`) like the locate model and, for an
+engine whose registry row says it is rechecked (`asrport.NeedsRecheck`: Moonshine), passes `--confirm-model` and the
+verified `--confirm-model-dir`; a model that is not installed leaves the pass off, with no first-use gate. The follower keeps
+each flagged segment's reading (the last 32). A `segment_check` line is consumed, never relayed: its words are read as a
+segment against the same anchor and script with the same flag rules (`scripttrack.FlaggingTracker.Check`), and each live
+flag of that segment becomes a `flag_check` event, `confirmed` when the check raises a flag of the same kind over the same
+words, `cleared` when it does not. A check with no words, an error, an unknown segment or a second check for a segment says
+nothing. When the narrator saves the session's flags, `liveflags` drops a `cleared` flag and marks a `confirmed` one in its
+evidence (`recheck`) and reason. The Booth page shows the verdicts in the next change.
 
 ## Streaming subprocess support
 
