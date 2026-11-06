@@ -99,6 +99,13 @@ describe('suspectedFrom', () => {
     ]);
     expect(suspectedFrom([{ ...flag, start: 0, end: 1 }], spans, reading, 'c1')).toEqual([]);
   });
+
+  it('lists a flag the second listen confirmed with that said, and none it cleared', () => {
+    const reading = readingParagraphsOf(paragraphs, [], []);
+    const flag: TeleprompterFlag = { type: 'flag', id: 1, kind: 'skipped', start: 7, end: 9, heard: '' };
+    expect(suspectedFrom([{ ...flag, check: 'confirmed' }], spans, reading, 'c1')[0]).toMatchObject({ check: 'confirmed' });
+    expect(suspectedFrom([{ ...flag, check: 'cleared' }], spans, reading, 'c1')).toEqual([]);
+  });
 });
 
 describe('estimatedSpans', () => {

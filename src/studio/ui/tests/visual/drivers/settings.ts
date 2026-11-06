@@ -583,6 +583,12 @@ export const settingsDrivers: Record<string, Driver> = {
     await openUpdates(page, 'available');
     await page.getByText('Version 0.2.7 is available').waitFor();
   },
+  'diagnostics-preview': async (page) => {
+    await openSettings(page, 'App & updates');
+    await page.getByRole('region', { name: 'Diagnostics bundle' }).evaluate((panel) => panel.scrollIntoView({ block: 'start' }));
+    await page.getByRole('button', { name: 'Preview the diagnostics bundle' }).click();
+    await page.getByRole('dialog', { name: 'Diagnostics bundle' }).waitFor();
+  },
   'about-download-confirm': async (page) => {
     await openUpdates(page, 'available');
     await page.getByRole('button', { name: 'Download update' }).click();

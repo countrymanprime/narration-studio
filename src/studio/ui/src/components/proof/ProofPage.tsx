@@ -16,7 +16,8 @@ import { useOverlay } from '../../overlay/OverlayProvider';
 import { usePort } from '../../ports/usePort';
 import { useJournal } from '../../studio/StudioProvider';
 import { useCapability } from '../../useCapability';
-import type { ManuscriptChapter } from '../../types';
+import type { ManuscriptChapter, TranscriptState } from '../../types';
+import type { Notify } from '../primitives/Toast';
 import { ALL_CHAPTERS, ChapterStepper } from '../primitives/ChapterStepper';
 import { IconButton } from '../primitives/IconButton';
 import { KeyHints } from '../primitives/KeyHints';
@@ -26,6 +27,7 @@ import { LoadError } from '../layout/LoadError';
 import { ProofSkeleton } from './frame/ProofSkeleton';
 import { NeedManuscript } from '../layout/NeedManuscript';
 import { CheckCard } from './checkcard/CheckCard';
+import { ChapterCompare } from './ChapterCompare';
 import { SectionLabel } from '../primitives/SectionLabel';
 import { ChapterStrip, type StripChapter } from './frame/ChapterStrip';
 import type { Band, Pin } from './frame/pins';
@@ -100,6 +102,9 @@ export function ProofPage({
   goToScript,
   goToBooth,
   goToEditing,
+  transcript,
+  notify,
+  dawFileLinked,
 }: {
   hasManuscript: boolean;
   /** Keys the remembered chapter. */
@@ -109,6 +114,11 @@ export function ProofPage({
   goToBooth: (chapterId: string) => void;
   /** The takes' "Manage takes in Editing": the Editing page at the note's chapter, its flagged word selected and the passage's takes open. */
   goToEditing: (chapterId: string, findingId?: string, passageId?: string) => void;
+  /** The app-wide Transcript Compare state, for the Compare panel under the check card (#2822). */
+  transcript: TranscriptState;
+  notify: Notify;
+  /** Starting a comparison and exporting its markers need a linked DAW project file. */
+  dawFileLinked: boolean;
 }) {
   const findingsApi = usePort('findings');
   const pickupsApi = usePort('pickups');
@@ -124,6 +134,8 @@ export function ProofPage({
   const [summary, setSummary] = useState<FindingsSummary>();
   const [sort, setSort] = useState<NoteSort>('time');
   const [reload, setReload] = useState(0);
+  // The chapter whose Compare panel is open under the check card: another chapter opens with it closed.
+  const [compareFor, setCompareFor] = useState<string | null>(null);
   // The page's data could not be read on opening: the host's sentence for the first failure of the chapters or the notes, and which have
   // been read once (a later failure is a toast, the page stays). Retry bumps `attempt`, which both reads depend on.
   const [chaptersProblem, setChaptersProblem] = useState<string>();
@@ -458,7 +470,14 @@ export function ProofPage({
               <>
                 {/* The check card and the waveform sit under the page's h1 and before the notes' h2: a heading of their own keeps the outline in order. */}
                 <h2 className="sr-only">{`Recording of ${headingName(chapter)}`}</h2>
-                <CheckCard chapter={chapter} onCheck={(id) => openCheckRecordings([id])} />
+                <CheckCard
+                  chapter={chapter}
+                  onCheck={(id) => openCheckRecordings([id])}
+                  compare={{ onOpen: () => setCompareFor((open) => (open === chapter.id ? null : chapter.id)), open: compareFor === chapter.id }}
+                />
+                {compareFor === chapter.id && (
+                  <ChapterCompare chapter={chapter} transcript={transcript} notify={notify} dawFileLinked={dawFileLinked} goToManuscript={goToScript} />
+                )}
                 {timeline && total > 0 ? (
                   <>
                     <WaveformWindow

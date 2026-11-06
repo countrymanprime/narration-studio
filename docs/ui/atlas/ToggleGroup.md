@@ -25,6 +25,7 @@ Storybook title: `Primitives/ToggleGroup`. Source: `src/components/primitives/To
 - `src/components/master/DiagnosticsSection.tsx`
 - `src/components/production/report/ReportDialog.tsx`
 - `src/components/production/target/TargetPopover.tsx`
+- `src/components/proof/ChapterCompare.tsx`
 - `src/components/proof/CompareRun.tsx`
 - `src/components/proof/inspector/FindingThread.tsx`
 - `src/components/script/page/chapters/PrepSegment.tsx`
