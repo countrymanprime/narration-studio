@@ -448,13 +448,8 @@ func (s *Store) writeLocked(file storeFile) error {
 	if err != nil {
 		return err
 	}
-	temporary := s.path + ".tmp"
-	if err := os.WriteFile(temporary, bytes, 0o600); err != nil {
+	if err := persist.WriteFile(s.path, bytes, 0o600); err != nil {
 		return fmt.Errorf("could not write %s: %w", FileName, err)
-	}
-	if err := os.Rename(temporary, s.path); err != nil {
-		_ = os.Remove(temporary) // best effort: the rename's error is the one the narrator needs
-		return fmt.Errorf("could not activate %s: %w", FileName, err)
 	}
 	return nil
 }
