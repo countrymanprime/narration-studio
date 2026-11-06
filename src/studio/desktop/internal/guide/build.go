@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"desktop/internal/persist"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -324,7 +325,7 @@ func (r *buildRun) stage(stage string, percent int, message string) {
 	temporary := r.progress + ".tmp"
 	for range 8 {
 		// The reader polls the file several times a second; on Windows the rename fails while it holds it open, so it is retried.
-		if os.WriteFile(temporary, line, 0o644) == nil && os.Rename(temporary, r.progress) == nil { //nolint:gosec // G306: as the sidecar wrote it
+		if os.WriteFile(temporary, line, 0o644) == nil && persist.Rename(temporary, r.progress) == nil { //nolint:gosec // G306: as the sidecar wrote it
 			return
 		}
 		time.Sleep(30 * time.Millisecond)
@@ -563,7 +564,7 @@ func writeWords(path string, words []string) error {
 	if err := os.WriteFile(path+".tmp", encoded, 0o600); err != nil {
 		return err
 	}
-	return os.Rename(path+".tmp", path)
+	return persist.Rename(path+".tmp", path)
 }
 
 // entitiesHead reads the first line `entities` prints: whether the model loaded.

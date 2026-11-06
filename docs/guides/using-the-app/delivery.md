@@ -75,8 +75,12 @@ button for the rest, and the list is 20 rem tall at most and scrolls inside the 
 
 ![Delivery with the book checked: the chapters that pass counted in Before you build, and Output waiting on the rest](../../images/ui/delivery-measured.webp)
 
+The icon button at the right of the panel's header, **Check files…**, starts a measurement from here: it is the same control Master & QC has over the same measurement, so you do not have to leave the page that blocks the build. It opens the file picker, measures what you choose and, while it runs, shows a progress bar with its message and **Cancel** under the title. Once files have been measured it reads **Re-check N files**, with **Choose other files…** beside it. Cancelling says where it stopped ("Measurement cancelled. 0 of 3 files were measured."). A result shows on both pages.
+
+![Delivery with Check files… pressed: the measurement part way through, with its progress bar and Cancel under Before you build](../../images/ui/delivery-check-running.webp)
+
 The list is read when the page opens, when you return to the window and when a measurement ends. While a
-measurement is still running in Master & QC the panel says so and Build stays off. Nothing is judged until the
+measurement is running, from here or from Master & QC, the panel says so and Build stays off. Nothing is judged until the
 chapters, the credits and the measurement have each been read.
 
 If any of them cannot be read, Delivery does not guess. It shows an error message at the bottom right of the window,
@@ -99,7 +103,7 @@ names the first chapter in the way, so you do not have to open Master & QC to le
 chapter it gives the rule it misses, its value and the limit ("Chapter 8: noise floor −57.8 dBFS (limit ≤ −60
 dBFS), and 1 more rule."). When no chapter fails, it names the first chapter that is not ready and why: it has no
 measured file, its file is not measured yet or could not be read, or part of it could not be measured. Until
-anything is measured, it says "Nothing is measured yet. Measure the files in Master & QC." with **Open Master & QC**
+anything is measured, it says "Nothing is measured yet. Use Check files… above." with **Open Master & QC**
 beside it, in the same row, so nothing under Output moves.
 
 While Build is off it is dimmed but still reachable with Tab, and a screen reader reads the reason beside it as

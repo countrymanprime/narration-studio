@@ -12,6 +12,7 @@ How the repository keeps documentation current and free of filler. How each chec
 | Docs prose (`scripts/ci/docs-slop.mjs`) | Changed Markdown has an `error` phrase from `docs-slop-phrases.json` | `pnpm check`, the `Docs prose` steps of `Docs / Docs checks` | Cut the sentence. Do not edit the list to pass |
 | Docs references (`scripts/ci/docs-references.mjs`) | A doc names, in backticks, a repo path or root `pnpm` script that does not exist | `pnpm check`, the `Docs prose` steps of `Docs / Docs checks` | Fix the path, or say it was deleted next to the path |
 | Doc comments (`scripts/ci/doc-comments.mjs`) | The change adds a public Python name without a docstring or an exported Go name without a doc comment | Python `lint` targets, `quality.mjs go-lint` | `# noqa: D1xx` for a Python name that needs none |
+| Guide structure (`src/studio/ui/src/docsGuide.test.ts`) | A page of the [how-to guide](../guides/using-the-app/README.md) lacks its breadcrumb, its Previous / Index / Next footer in index order, or a `## What next` section with at least two links; a relative link or anchor does not resolve, or resolves to a different heading id on the docs site; a curated screenshot is not embedded as `doc-screenshots.json` lists it | the `Guide structure` step of `Docs / Docs checks`, and the UI unit tests (`ui-unit`) | Fix the page |
 | Markdown style and links | markdownlint on changed files; lychee offline on all | the `Markdown lint` and `Links (offline)` steps of `Docs / Docs checks` | Fix the file |
 
 ## Not used, and why

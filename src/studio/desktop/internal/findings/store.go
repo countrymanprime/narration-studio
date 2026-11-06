@@ -511,6 +511,9 @@ func (s *Store) appendHistory(add func(*reviewHistory)) (reviewHistory, error) {
 	return history, nil
 }
 
+// writeFile is persist.WriteFile; tests replace it to make a save fail.
+var writeFile = persist.WriteFile
+
 func writeJSONFile(path string, value any) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return fmt.Errorf("could not create the findings directory: %w", err)
@@ -519,12 +522,8 @@ func writeJSONFile(path string, value any) error {
 	if err != nil {
 		return err
 	}
-	temporary := path + ".tmp"
-	if err := os.WriteFile(temporary, encoded, 0o600); err != nil {
+	if err := writeFile(path, encoded, 0o600); err != nil {
 		return fmt.Errorf("could not write findings: %w", err)
-	}
-	if err := os.Rename(temporary, path); err != nil {
-		return fmt.Errorf("could not activate findings: %w", err)
 	}
 	return nil
 }

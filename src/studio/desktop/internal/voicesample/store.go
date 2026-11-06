@@ -95,6 +95,16 @@ type StoredSource struct {
 	SourceEnd   float64 `json:"sourceEnd"`
 }
 
+// StoredRegion is the region kept in the DAW for a sample: its name (the host wrote it, with the sample id's first characters so
+// two samples never share one), its number when it was added, and its range in project seconds as it was added. The DAW's saved
+// project is the truth: the region is found there by name, and a range that differs there is the narrator having moved it.
+type StoredRegion struct {
+	Name   string  `json:"name"`
+	Number int     `json:"number"`
+	Start  float64 `json:"start"`
+	End    float64 `json:"end"`
+}
+
 // StoredMerge says that a sample was moved to another character by a Story Bible merge, so an undo of that merge can move it back.
 // It is host-only: the page never sees it. It is cleared when the narrator moves the sample by hand.
 type StoredMerge struct {
@@ -117,6 +127,12 @@ type Stored struct {
 	CreatedAt   time.Time    `json:"createdAt"`
 	Clip        StoredClip   `json:"clip"`
 	Source      StoredSource `json:"source"`
+	// Storage is where the sample is kept: StorageProject (or empty, on every sample made before phase 6) copies the clip into the
+	// project folder, StorageDAW keeps only a region in the DAW's project and plays the labelled range of the source, and StorageBoth
+	// does both.
+	Storage string `json:"storage,omitempty"`
+	// DawRegion is the region the host added to the DAW's project for a StorageDAW or StorageBoth sample.
+	DawRegion *StoredRegion `json:"dawRegion,omitempty"`
 	// Merge is set while the sample sits where a Story Bible merge put it (nil otherwise and on every sample made before merges were followed).
 	Merge *StoredMerge `json:"merge,omitempty"`
 }
@@ -222,7 +238,10 @@ func valid(file storeFile) error {
 		if sample.CreatedAt.IsZero() {
 			return errors.New("a sample has no time")
 		}
-		if err := validClip(sample.Clip); err != nil {
+		if err := validStorage(sample); err != nil {
+			return err
+		}
+		if err := validClip(sample.Clip, sample.Storage == StorageDAW); err != nil {
 			return err
 		}
 		if err := validSource(sample.Source); err != nil {
@@ -253,7 +272,32 @@ func validMerge(sample Stored) error {
 	return nil
 }
 
-func validClip(clip StoredClip) error {
+// validStorage checks a sample's storage choice and its DAW region: a DAW-kept sample has a region, a project-kept one has none.
+func validStorage(sample Stored) error {
+	switch sample.Storage {
+	case "", StorageProject:
+		if sample.DawRegion != nil {
+			return errors.New("a sample kept in the project has a DAW region")
+		}
+	case StorageDAW, StorageBoth:
+		region := sample.DawRegion
+		if region == nil || !strings.HasPrefix(region.Name, RegionPrefix) || !utf8.ValidString(region.Name) || len(region.Name) > maxText ||
+			strings.ContainsAny(region.Name, "\r\n") || region.Number < 1 || !finite(region.Start) || !finite(region.End) || region.Start < 0 || region.End <= region.Start {
+			return errors.New("a sample kept in the DAW has a bad region")
+		}
+	default:
+		return errors.New("a sample has a storage this app does not know")
+	}
+	return nil
+}
+
+// validClip checks a clip's record. A sample kept only in the DAW has no file, so it has no checksum; its size is what the window
+// would take and counts for nothing against the project's limit.
+func validClip(clip StoredClip, noFile bool) error {
+	sum := sha256Pattern.MatchString(clip.SHA256)
+	if noFile {
+		sum = clip.SHA256 == ""
+	}
 	switch {
 	case clip.Bytes < 1 || clip.Bytes > MaxProjectBytes:
 		return errors.New("a clip's size is outside the limits")
@@ -261,7 +305,7 @@ func validClip(clip StoredClip) error {
 		return errors.New("a clip's length is outside the limits")
 	case clip.SampleRate < 1 || clip.SampleRate > maxSampleRate || clip.Channels < 1 || clip.Channels > 2 || clip.BitsPerSample < 1 || clip.BitsPerSample > 64:
 		return errors.New("a clip's format is not one the host writes")
-	case !sha256Pattern.MatchString(clip.SHA256):
+	case !sum:
 		return errors.New("a clip's checksum is not a SHA-256")
 	}
 	return nil
@@ -331,7 +375,7 @@ func (s *Service) renameFile(from, to string) error {
 	if s.rename != nil {
 		return s.rename(from, to)
 	}
-	return os.Rename(from, to)
+	return persist.Rename(from, to)
 }
 
 // writeStore replaces samples.json through a temporary file and a rename; the caller holds the file's lock.
@@ -392,6 +436,9 @@ func countFor(samples []Stored, characterID string) int {
 func totalBytes(samples []Stored) int64 {
 	var total int64
 	for _, sample := range samples {
+		if sample.Storage == StorageDAW {
+			continue // no file in the project folder
+		}
 		total += sample.Clip.Bytes
 	}
 	return total

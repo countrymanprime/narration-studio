@@ -10,7 +10,7 @@ Production is the page a project opens on. Its **Chapter pipeline** has one row 
 With no manuscript imported yet, the page is the import.
 
 1. Press **Import manuscript**.
-2. On step 1 of 2, **Choose your manuscript**, drop a .docx, .md or .txt file on the zone or press **Choose a file…**. A copy is kept in your project.
+2. On step 1 of 2, **Choose your manuscript**, drop a .docx, .epub, .md or .txt file on the zone or press **Choose a file…**. A copy is kept in your project.
 3. On step 2 of 2, **Check the chapter outline**, check the proposed chapters. Press a heading's title to preview how it begins.
 4. Change a row's kind if a section is **Front matter** or **Reference material** rather than a narration chapter.
 5. Confirm. The import runs in the background with a live activity log. Press Close when it finishes.

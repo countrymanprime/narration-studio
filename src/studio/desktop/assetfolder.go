@@ -182,8 +182,9 @@ func (h *Host) startModelsMove(target string) (map[string]any, error) {
 	m.started = time.Now()
 	m.mu.Unlock()
 	h.mu.Unlock()
+	started := h.modelsMoveSnapshot()
 	go h.runModelsMove(ctx, plan, toDefault, folders)
-	return h.modelsMoveSnapshot(), nil
+	return started, nil
 }
 
 // planMoveLocked checks that a move may start and makes its plan from the folders as they are now. The caller holds h.mu and m.mu.

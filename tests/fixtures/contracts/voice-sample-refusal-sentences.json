@@ -1,5 +1,7 @@
 {
   "character_limit": "This character already has 20 samples. Delete one first.",
+  "daw_refused": "The DAW did not add the voice sample's region. Stop recording if it is, then try again.",
+  "daw_unavailable": "The DAW cannot keep a voice sample. Choose In the project folder in Settings, or link a DAW that can.",
   "not_found": "That voice sample is no longer there.",
   "not_heard": "These words were not heard in the recording.",
   "project_limit": "Voice samples already use the 200 MiB a project may hold. Delete one first.",

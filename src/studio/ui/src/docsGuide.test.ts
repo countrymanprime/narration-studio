@@ -62,6 +62,48 @@ function indexOrder(): string[] {
   return seen;
 }
 
+// One entry of tests/visual/doc-screenshots.json, as far as the embed rule reads it.
+type ScreenshotEntry = { docName: string; alsoOn?: string[] };
+type Embed = { file: string; name: string };
+
+// Each image is embedded once on one page of its own and once on each guide page its entry names in `alsoOn` (a
+// tutorial showing a reference page's picture of a step), and nowhere else; every embed is a manifest entry.
+function screenshotEmbedProblems(entries: readonly ScreenshotEntry[], embeds: readonly Embed[], pages: readonly string[]): string[] {
+  const problems: string[] = [];
+  for (const { docName, alsoOn = [] } of entries) {
+    const embedding = embeds.filter((embed) => embed.name === docName).map((embed) => embed.file);
+    for (const page of alsoOn) {
+      if (!pages.includes(page)) problems.push(`${docName} names ${page} in alsoOn, which is not a guide page`);
+      else if (!embedding.includes(page)) problems.push(`${docName} names ${page} in alsoOn, but ${page} does not embed it`);
+    }
+    const own = [...embedding];
+    for (const page of alsoOn) {
+      const at = own.indexOf(page);
+      if (at !== -1) own.splice(at, 1);
+    }
+    if (own.length === 1) continue;
+    if (own.length === 0 && embedding.length > 0) problems.push(`${docName} is embedded only on its alsoOn pages; embed it on one page of its own`);
+    else problems.push(`${docName} is embedded ${embedding.length} times (${embedding.join(', ')}); embed it on one page, or name the others in its alsoOn`);
+  }
+  const curated = new Set(entries.map((entry) => entry.docName));
+  for (const embed of embeds) {
+    if (!curated.has(embed.name)) problems.push(`${embed.file} embeds ${embed.name}.webp, which is not in doc-screenshots.json`);
+  }
+  return problems;
+}
+
+// A page leads somewhere: a `## What next` section with at least two links, so a reader who finished the page has a
+// choice of where to go besides the Previous / Next footer. The section runs to the next `## ` heading or the footer rule.
+function whatNextProblem(file: string, markdown: string): string | undefined {
+  const lines = markdown.split('\n');
+  const start = lines.findIndex((line) => /^## What next\s*$/.test(line));
+  if (start === -1) return `${file} has no "## What next" section`;
+  const rest = lines.slice(start + 1);
+  const end = rest.findIndex((line) => /^## /.test(line) || /^---\s*$/.test(line));
+  const links = linkTargets(rest.slice(0, end === -1 ? undefined : end).join('\n'), LINK_PATTERN).length;
+  return links >= 2 ? undefined : `${file}: "## What next" has ${links} link${links === 1 ? '' : 's'}; give the reader at least two places to go`;
+}
+
 describe('docs/guides/using-the-app', () => {
   test('has an index and at least one page', () => {
     expect(guideFiles, `${guideDir} needs a ${INDEX}`).toContain(INDEX);
@@ -87,6 +129,31 @@ describe('docs/guides/using-the-app', () => {
         : [`${file}: footer links ${JSON.stringify(actual)}, expected ${JSON.stringify(expected)}`];
     });
     expect(wrong).toEqual([]);
+  });
+
+  test('every page ends its content with a What next section of at least two links', () => {
+    const problems = pageFiles.map((file) => whatNextProblem(file, read(file))).filter((problem) => problem !== undefined);
+    expect(problems).toEqual([]);
+  });
+
+  describe('the What next rule', () => {
+    test('two links under the heading pass', () => {
+      expect(whatNextProblem('a.md', '# A\n\n## What next\n\n- [B](b.md)\n- [C](c.md)\n\n---\n\n[Index](README.md)')).toBeUndefined();
+    });
+
+    test('a page without the section fails', () => {
+      expect(whatNextProblem('a.md', '# A\n\n## Related\n\n- [B](b.md)\n- [C](c.md)')).toBe('a.md has no "## What next" section');
+    });
+
+    test('links after the section, in the next section or the footer, do not count', () => {
+      expect(whatNextProblem('a.md', '# A\n\n## What next\n\n- [B](b.md)\n\n## The picker\n\n[C](c.md)\n\n---\n\n[Index](README.md)')).toBe(
+        'a.md: "## What next" has 1 link; give the reader at least two places to go',
+      );
+    });
+
+    test('a What next heading at a lower level does not count', () => {
+      expect(whatNextProblem('a.md', '# A\n\n### What next\n\n- [B](b.md)\n- [C](c.md)')).toBe('a.md has no "## What next" section');
+    });
   });
 
   test('every relative link and image resolves to a real file and heading', () => {
@@ -135,17 +202,57 @@ describe('docs/guides/using-the-app', () => {
     expect(differs).toEqual([]);
   });
 
-  test('every curated doc screenshot is embedded on exactly one page, and every embed is curated', () => {
+  test('every curated doc screenshot is embedded on its page and the pages it names, and every embed is curated', () => {
     const embeds = pageFiles.flatMap((file) => linkTargets(read(file), EMBED_PATTERN).map((target) => ({ file, name: basename(target, '.webp') })));
-    const problems: string[] = [];
-    for (const { docName } of docScreenshots) {
-      const pages = embeds.filter((embed) => embed.name === docName).map((embed) => embed.file);
-      if (pages.length !== 1) problems.push(`${docName} is embedded ${pages.length} times (${pages.join(', ')})`);
-    }
-    const curated = new Set(docScreenshots.map((entry) => entry.docName));
-    for (const embed of embeds) {
-      if (!curated.has(embed.name)) problems.push(`${embed.file} embeds ${embed.name}.webp, which is not in doc-screenshots.json`);
-    }
-    expect(problems).toEqual([]);
+    expect(screenshotEmbedProblems(docScreenshots, embeds, pageFiles)).toEqual([]);
+  });
+
+  describe('the screenshot embed rule', () => {
+    const entry = (docName: string, alsoOn?: string[]): ScreenshotEntry => ({ docName, ...(alsoOn ? { alsoOn } : {}) });
+    const pages = ['booth.md', 'getting-started.md', 'proof.md'];
+
+    test('one embed on one page passes', () => {
+      expect(screenshotEmbedProblems([entry('booth-setup')], [{ file: 'booth.md', name: 'booth-setup' }], pages)).toEqual([]);
+    });
+
+    test('a second embed fails unless the entry names that page in alsoOn', () => {
+      const embeds = [
+        { file: 'booth.md', name: 'booth-setup' },
+        { file: 'getting-started.md', name: 'booth-setup' },
+      ];
+      expect(screenshotEmbedProblems([entry('booth-setup')], embeds, pages)).toEqual([
+        'booth-setup is embedded 2 times (booth.md, getting-started.md); embed it on one page, or name the others in its alsoOn',
+      ]);
+      expect(screenshotEmbedProblems([entry('booth-setup', ['getting-started.md'])], embeds, pages)).toEqual([]);
+    });
+
+    test('a page named in alsoOn that does not embed the image, or does not exist, fails', () => {
+      expect(screenshotEmbedProblems([entry('booth-setup', ['proof.md', 'gone.md'])], [{ file: 'booth.md', name: 'booth-setup' }], pages)).toEqual([
+        'booth-setup names proof.md in alsoOn, but proof.md does not embed it',
+        'booth-setup names gone.md in alsoOn, which is not a guide page',
+      ]);
+    });
+
+    test('an image embedded only on its alsoOn pages has no page of its own, and fails', () => {
+      expect(screenshotEmbedProblems([entry('booth-setup', ['getting-started.md'])], [{ file: 'getting-started.md', name: 'booth-setup' }], pages)).toEqual([
+        'booth-setup is embedded only on its alsoOn pages; embed it on one page of its own',
+      ]);
+    });
+
+    test('an embed twice on the same page fails', () => {
+      const embeds = [
+        { file: 'booth.md', name: 'booth-setup' },
+        { file: 'booth.md', name: 'booth-setup' },
+      ];
+      expect(screenshotEmbedProblems([entry('booth-setup')], embeds, pages)).toEqual([
+        'booth-setup is embedded 2 times (booth.md, booth.md); embed it on one page, or name the others in its alsoOn',
+      ]);
+    });
+
+    test('an embed the manifest does not list fails', () => {
+      expect(screenshotEmbedProblems([], [{ file: 'booth.md', name: 'booth-old' }], pages)).toEqual([
+        'booth.md embeds booth-old.webp, which is not in doc-screenshots.json',
+      ]);
+    });
   });
 });

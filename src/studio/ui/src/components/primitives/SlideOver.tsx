@@ -1,3 +1,4 @@
+import { justClosedDialog } from './dialogClosed';
 import { Drawer } from '@base-ui/react/drawer';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faXmark } from '@fortawesome/free-solid-svg-icons';
@@ -55,7 +56,7 @@ export function SlideOver({
       swipeDirection="right"
       onOpenChange={(next, eventDetails) => {
         if (next) return;
-        if (eventDetails.reason === 'outside-press' && Date.now() - openedAt.current < 400) {
+        if (eventDetails.reason === 'outside-press' && (Date.now() - openedAt.current < 400 || justClosedDialog())) {
           eventDetails.cancel();
           return;
         }

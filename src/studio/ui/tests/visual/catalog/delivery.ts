@@ -41,6 +41,20 @@ export const deliveryStates: StateEntry[] = [
   },
   {
     page: 'delivery',
+    state: 'check-running',
+    description:
+      'Delivery after Check files… was pressed on "Before you build" (?mockMeasure=running) - the measurement part way through: the progress bar with its message and Cancel under the card title, and Check files off beside it',
+    ...REFLOW,
+  },
+  {
+    page: 'delivery',
+    state: 'check-cancelled',
+    description:
+      'Delivery after that measurement was cancelled - "Before you build" says where it stopped ("Measurement cancelled. 0 of 3 files were measured."), and the button reads Re-check 3 files',
+    ...REFLOW,
+  },
+  {
+    page: 'delivery',
     state: 'measured',
     description:
       'Delivery with the book already checked (?mockMeasure=spread) - "Before you build" counting the chapters that pass, each row opening the chapter in Master & QC, and Output with Build off, counting the chapters not ready and naming the first of them in red ("Opening credits: no measured file yet.")',

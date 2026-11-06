@@ -3,6 +3,7 @@ import { cleanup, render, screen, waitFor, within } from '@testing-library/react
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { Dialog } from './Dialog';
 import { SlideOver } from './SlideOver';
 import { tabInsideTrap } from './tabInsideTrap';
 
@@ -121,6 +122,34 @@ describe('SlideOver is a real modal panel', () => {
     const onClose = vi.fn();
     const { user } = await openPanel(onClose);
     await user.click(document.querySelector('[data-slide-over-backdrop]') as HTMLElement);
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  // The Link chapters dialog opens over the Audio engine panel: a double click on its Cancel closed the dialog on the first click and the panel on the second.
+  it('ignores a backdrop press in the instant after a dialog opened over the panel closes: the second press of a double click on its button', async () => {
+    const onClose = vi.fn();
+    function Over() {
+      const [dialog, setDialog] = useState(false);
+      return (
+        <SlideOver open title="Audio engine" onClose={onClose}>
+          <button onClick={() => setDialog(true)}>Open dialog</button>
+          {dialog && (
+            <Dialog title="Link chapters" dismissOnOutsidePress={false} onClose={() => setDialog(false)} actions={<span />}>
+              <p>Body</p>
+            </Dialog>
+          )}
+        </SlideOver>
+      );
+    }
+    const user = userEvent.setup();
+    render(<Over />);
+    await new Promise((resolve) => setTimeout(resolve, 450));
+    await user.click(screen.getByRole('button', { name: 'Open dialog' }));
+    await user.click(await screen.findByRole('button', { name: 'Close' }));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Link chapters' })).toBeNull());
+
+    await user.click(document.querySelector('[data-slide-over-backdrop]') as HTMLElement);
+
     expect(onClose).not.toHaveBeenCalled();
   });
 

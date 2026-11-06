@@ -76,7 +76,7 @@ import (
 // Keep this in lockstep with src/studio/ui/src/hostApi.ts.  The frontend rejects
 // an older host before bootstrapping so a partial update cannot run against a
 // binding contract it does not understand.
-const hostAPIVersion = 161
+const hostAPIVersion = 162
 
 // Host is the Wails binding boundary. The frontend invokes only this bound
 // object; it never receives a loopback port or an HTTP capability.
@@ -1019,7 +1019,7 @@ func materializeResources(source fs.FS, userCache, executable string) (string, e
 		_ = os.RemoveAll(staging)
 		return "", err
 	}
-	if err := os.Rename(staging, target); err != nil {
+	if err := persist.Rename(staging, target); err != nil {
 		return "", err
 	}
 	// The REAPER scripts are materialized beside the immutable sidecars and in the stable launcher folder, each with the app's
@@ -1074,7 +1074,7 @@ func writeIfChanged(target string, content []byte) error {
 	if err := os.WriteFile(temporary, content, 0o600); err != nil {
 		return err
 	}
-	return os.Rename(temporary, target)
+	return persist.Rename(temporary, target)
 }
 
 func executablePath() string {
@@ -1096,7 +1096,7 @@ func writeCheckoutLauncherPointer(launcher, executable string) error {
 	if err := os.WriteFile(temporary, []byte(executable+"\n"), 0o600); err != nil {
 		return err
 	}
-	return os.Rename(temporary, target)
+	return persist.Rename(temporary, target)
 }
 
 func writeReaperLauncherPath(root, executable string) error {
@@ -1112,7 +1112,7 @@ func writeReaperLauncherPath(root, executable string) error {
 	if err := os.WriteFile(temporary, []byte(executable+"\n"), 0o600); err != nil {
 		return err
 	}
-	return os.Rename(temporary, target)
+	return persist.Rename(temporary, target)
 }
 
 // resourceKeyFor changes whenever any embedded release resource changes. Keeping
@@ -1759,10 +1759,11 @@ var fieldSchemas = map[string][]fieldSchema{
 	// seen is the first-use tips the narrator has dismissed, as the tips' ids separated by spaces (src/studio/ui/src/tips/): a tip is shown once per
 	// narrator, so it is global only (saveSettings refuses it at project scope). Deleting the value shows every tip again.
 	"Tips": {{"seen", "Tips already shown", "text", nil}},
-	// storage is where a voice sample is kept (internal/voicesample): project copies its clip into the project folder. The DAW choices
-	// (daw, both) come with phase 6 of docs/prds/character-voice-samples.prd.md, so a save of either is refused until then.
+	// storage is where a voice sample is kept (internal/voicesample): project copies its clip into the project folder, daw keeps only a
+	// region in the DAW's project, both does both (docs/prds/character-voice-samples.prd.md, phase 6). A sample the DAW cannot honour
+	// is refused when it is marked (ReasonDawUnavailable); the Settings row offers only what the DAW's voice_sample_region capability allows.
 	"VoiceSamples": {
-		{"storage", "Where voice samples are kept", "choice", []string{"project"}},
+		{"storage", "Where voice samples are kept", "choice", []string{"project", "daw", "both"}},
 		// output_device is the name of the output a voice sample plays on, per project (docs/prds/character-voice-samples.prd.md, phase 7): the
 		// webview's own audio output, chosen in Settings and applied by the page, so the host only keeps the name. Empty is the system default. The
 		// name is free text: only the audio system can say whether an output exists, and a missing one plays on the default with a sentence.
@@ -2272,6 +2273,8 @@ func (h *Host) runGuideJob(svc hostServices, model string, rulesOnly, afterImpor
 	}
 	progress := filepath.Join(dir, "guide_progress_"+job.id+".txt")
 	log := filepath.Join(dir, "guide_log_"+job.id+".txt")
+	// The snapshot is taken before the job starts, so a fast build cannot report a finished job as the one it started (#3076).
+	started := snapshotWork(job)
 	go func() {
 		if temporary {
 			defer func() { _ = os.Remove(progress); _ = os.Remove(log) }()
@@ -2337,7 +2340,7 @@ func (h *Host) runGuideJob(svc hostServices, model string, rulesOnly, afterImpor
 			h.publishJobEnded(event)
 		}
 	}()
-	return map[string]any{"status": "started", "job": snapshotWork(job)}, nil
+	return map[string]any{"status": "started", "job": started}, nil
 }
 
 // pollWorkJob folds the sidecar's latest progress line and any new log lines

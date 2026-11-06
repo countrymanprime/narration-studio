@@ -346,6 +346,8 @@ describe('proof-keys-follow-the-visible-list', () => {
     await user.click(all[all.length - 1]);
     press('w', 'KeyW');
     await waitFor(async () => expect(await journal.entries()).toHaveLength(1));
+    // A press for another note within the quiet window after a decision is ignored on purpose (#3114); a narrator who navigates takes longer.
+    await new Promise((resolve) => setTimeout(resolve, 400));
     await user.click(within(notes).getByRole('button', { name: /To review/ }));
     const shown = () => [...notes.querySelectorAll<HTMLElement>('tr[data-row]')];
     await waitFor(() => expect(shown().length).toBeLessThan(all.length));
@@ -375,6 +377,63 @@ describe('proof-decisions-and-undo', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  // #3114 (qa-breaker): a double press decided the note and then the next one, which the first press had just moved to. A held key does the same.
+  it('a second press right after a decision does not decide the note it moved to', async () => {
+    const api = createMockApi();
+    const review = vi.spyOn(api, 'findingsReview');
+    renderPage({ api, at: '/proof?chapter=chapter-1' });
+    const user = userEvent.setup();
+    const rows = await noteRows();
+    await user.click(rows[rows.findIndex((row) => row.textContent?.includes('To review'))]);
+
+    await user.click(await screen.findByRole('button', { name: /Needs pickup/ }));
+    await waitFor(() => expect(review).toHaveBeenCalledTimes(1));
+    // The pointer has not moved: the second press lands on the button of the note the first one advanced to.
+    await user.click(screen.getByRole('button', { name: /Needs pickup/ }));
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    expect(review).toHaveBeenCalledTimes(1);
+  });
+
+  // #3115: the saved-decision message was in the Inspector's status line and in the toast's live region, so a screen reader said it twice.
+  it('announces a saved decision once: one live region carries its text', async () => {
+    const api = createMockApi();
+    const review = vi.spyOn(api, 'findingsReview');
+    const { journal } = renderPage({ api, at: '/proof?chapter=chapter-1' });
+    const user = userEvent.setup();
+    const rows = await noteRows();
+    await user.click(rows[rows.findIndex((row) => row.textContent?.includes('To review'))]);
+    press('p', 'KeyP');
+    await waitFor(() => expect(review).toHaveBeenCalledTimes(1));
+    await waitFor(async () => expect(await journal.entries()).toHaveLength(1));
+    await screen.findByRole('button', { name: 'Undo' });
+
+    const live = [...document.querySelectorAll('[role="status"],[role="alert"],[aria-live="polite"],[aria-live="assertive"]')];
+    const saying = live.filter((region) => /Needs pickup/.test(region.textContent ?? ''));
+    expect(saying.map((region) => region.outerHTML.slice(0, 120))).toHaveLength(1);
+  });
+
+  // #3116: a walkthrough saw the Inspector show another note after Hear it. Nothing in Proof follows the playhead, so the selection must stay.
+  it('Hear it leaves the selected note selected', async () => {
+    const api = createMockApi();
+    const loop = vi.spyOn(api, 'findingsLoop');
+    renderPage({ api, at: '/proof?chapter=chapter-1' });
+    const user = userEvent.setup();
+    const rows = await noteRows();
+    const at = rows.findIndex((row) => row.textContent?.includes('To review'));
+    await user.click(rows[at]);
+    const selected = () =>
+      [...screen.getByRole('region', { name: 'Notes' }).querySelectorAll('tr[data-row][aria-selected="true"]')].map((row) => row.getAttribute('data-row'));
+    const before = selected();
+    expect(before).toHaveLength(1);
+
+    await user.click(await screen.findByRole('button', { name: /Hear it/ }));
+    await waitFor(() => expect(loop).toHaveBeenCalledTimes(1));
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    expect(selected()).toEqual(before);
   });
 
   it('a decision moves to the next note, and Undo takes back the decision and the selection', async () => {

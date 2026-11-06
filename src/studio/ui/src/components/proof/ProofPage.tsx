@@ -158,6 +158,7 @@ export function ProofPage({
   const opening = useRef(false);
   // Toasts stay left of the Inspector while it is beside the notes, so a decision's message never covers the next decision button.
   const inspectorPanel = useRef<HTMLDivElement>(null);
+  const decisionClock = useRef({ id: '', at: 0 });
   // Under 1180 px the Inspector stacks under the queue, a page or more down: a pressed note brings it into view, so the press shows its
   // result (alignment audit XPF-9). A note stepped to with the keys does not move the page.
   const stacked = useLayoutClass().narrow;
@@ -567,6 +568,7 @@ export function ProofPage({
                 order={order}
                 onSelect={select}
                 onChanged={changed}
+                decisionClock={decisionClock}
                 onOpenScript={goToScript}
                 onOpenBooth={goToBooth}
                 onOpenEditing={(chapterId, findingId) => goToEditing(chapterId, findingId)}

@@ -502,7 +502,9 @@ describe('step 1: choose your manuscript (the Studio Next mock)', () => {
     const { api, dialog } = await openStep1();
     const select = vi.spyOn(api, 'selectManuscript');
     expect(within(dialog).getByRole('heading', { name: 'Choose your manuscript' })).toBeTruthy();
-    expect(within(dialog).getByText('Use a .docx, .md or .txt file. A copy is kept in your project.')).toBeTruthy();
+    expect(
+      within(dialog).getByText('Use a Word (.docx), EPUB (.epub), Markdown (.md) or plain-text (.txt) file. A copy is kept in your project.'),
+    ).toBeTruthy();
     expect(within(dialog).queryByText(/read-only/)).toBeNull();
     expect(within(dialog).getByText('Drop a manuscript here')).toBeTruthy();
     expect(select).not.toHaveBeenCalled();

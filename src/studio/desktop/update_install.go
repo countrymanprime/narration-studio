@@ -99,8 +99,9 @@ func (h *Host) installDownloadedUpdate(id string) (map[string]any, error) {
 		return nil, update.UserError(update.UserMessage(err, "The update could not be installed. The running version was not changed."))
 	}
 	job.endInstall(true)
+	installed := snapshotUpdateJob(job)
 	go h.closeForUpdate()
-	return snapshotUpdateJob(job), nil
+	return installed, nil
 }
 
 // closeForUpdate closes the app after a successful install: the new program is already started and waiting for this process to exit.

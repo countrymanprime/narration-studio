@@ -4,6 +4,7 @@
 package bridge
 
 import (
+	"desktop/internal/persist"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -84,7 +85,7 @@ func (c *Client) Send(action string, fields []string) (string, error) {
 	if err := os.WriteFile(temporary, []byte(EncodeFields(values)+"\n"), 0o600); err != nil {
 		return "", fmt.Errorf("could not write bridge command: %w", err)
 	}
-	if err := os.Rename(temporary, target); err != nil {
+	if err := persist.Rename(temporary, target); err != nil {
 		return "", fmt.Errorf("could not activate bridge command: %w", err)
 	}
 	return target, nil

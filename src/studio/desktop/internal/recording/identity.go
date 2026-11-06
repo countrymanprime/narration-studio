@@ -1,6 +1,7 @@
 package recording
 
 import (
+	"desktop/internal/persist"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -89,7 +90,7 @@ func writeIdentities(folder string, identities map[string]string) error {
 		_ = os.Remove(tmpPath)
 		return err
 	}
-	if err := os.Rename(tmpPath, identityPath(folder)); err != nil {
+	if err := persist.Rename(tmpPath, identityPath(folder)); err != nil {
 		_ = os.Remove(tmpPath)
 		return err
 	}

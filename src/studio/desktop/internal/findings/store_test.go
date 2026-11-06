@@ -3,6 +3,7 @@ package findings
 import (
 	"desktop/internal/brand"
 	"encoding/json"
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -601,15 +602,10 @@ func TestRecordDecisionFailsWhenWritingTheUpdatedScopeFileFails(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	scopePath := filepath.Join(project, brand.ProjectFolder, "findings", "transcript_compare", "c-0001.json")
-	// writeJSONFile writes to path+".tmp" before renaming it into place; make
-	// that temporary path a directory so the write itself fails.
-	if err := os.MkdirAll(scopePath+".tmp", 0o755); err != nil {
-		t.Fatal(err)
-	}
+	failWrites(t)
 
 	if _, _, err := store.RecordDecision("f1", "v1", StatusAccepted, "", "2026-09-19T10:00:00Z"); err == nil {
-		t.Fatal("expected an error: the .tmp write target is a directory")
+		t.Fatal("expected an error: the write fails")
 	}
 }
 
@@ -872,4 +868,12 @@ func TestRemoveAnalyzerDeletesOnlyThatAnalyzersFindings(t *testing.T) {
 	if err := store.RemoveAnalyzer(".."); err == nil {
 		t.Fatal(`RemoveAnalyzer("..") was not refused`)
 	}
+}
+
+// failWrites makes every save in the findings package fail until the test ends.
+func failWrites(t *testing.T) {
+	t.Helper()
+	previous := writeFile
+	writeFile = func(string, []byte, os.FileMode) error { return errors.New("disk full") }
+	t.Cleanup(func() { writeFile = previous })
 }

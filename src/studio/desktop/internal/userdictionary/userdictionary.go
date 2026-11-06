@@ -388,12 +388,8 @@ func (s *Service) write(file dictionaryFile) error {
 	if len(bytes) > MaxFileBytes {
 		return errors.New("the user dictionary file would be too large, so nothing was saved")
 	}
-	temporary := path + ".tmp"
-	if err := os.WriteFile(temporary, bytes, 0o600); err != nil {
+	if err := persist.WriteFile(path, bytes, 0o600); err != nil {
 		return fmt.Errorf("could not write the %s file: %w", what, err)
-	}
-	if err := os.Rename(temporary, path); err != nil {
-		return fmt.Errorf("could not activate the %s file: %w", what, err)
 	}
 	return nil
 }

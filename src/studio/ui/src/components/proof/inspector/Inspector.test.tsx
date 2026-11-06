@@ -38,6 +38,18 @@ function setup(initial: Finding = inspectorFinding(), props: Partial<React.Compo
 
 const decision = (name: RegExp) => screen.getByRole('button', { name });
 
+// #3114: jsdom has no layout, so this pins the structure; the real-page position is measured in the PR (Playwright, mock app).
+describe('decision-buttons-stay-at-the-panel-bottom', () => {
+  it('holds the Decision label and its four buttons in one band that sticks to the bottom edge', () => {
+    setup();
+    const band = document.querySelector('[data-decision-band]') as HTMLElement;
+    expect(band.className).toMatch(/\bsticky\b/);
+    expect(band.className).toContain('bottom-[calc(var(--page-gutter)*-1)]');
+    expect(within(band).getByText('Decision')).toBeTruthy();
+    expect(within(band).getAllByRole('button')).toHaveLength(4);
+  });
+});
+
 describe('quotes-show-script-and-heard-with-the-diff', () => {
   it('draws the Script and Heard quotes with the difference struck and underlined, and no quotes without evidence', () => {
     setup();
