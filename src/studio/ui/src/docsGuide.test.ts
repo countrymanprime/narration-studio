@@ -107,6 +107,34 @@ describe('docs/guides/using-the-app', () => {
     expect(broken).toEqual([]);
   });
 
+  // The public docs site (MkDocs, tools/docs-site) builds heading ids with Python-Markdown's slugify, which collapses a run of
+  // spaces and hyphens into one hyphen; GitHub keeps one hyphen per space. "Recording & DAW" is recording--daw on GitHub and
+  // recording-daw on the site, so a link to it breaks in one of the two. A fragment must be the same id under both rules.
+  test('every link fragment is the same heading id on GitHub and on the docs site', () => {
+    const siteSlug = (heading: string): string =>
+      heading
+        .trim()
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}\s_-]/gu, '')
+        .trim()
+        .replace(/[-\s]+/g, '-');
+    const differs: string[] = [];
+    for (const file of guideFiles) {
+      for (const target of linkTargets(read(file)).filter(isLocal)) {
+        const [path, fragment] = target.split('#');
+        if (!fragment) continue;
+        const resolved = path === '' ? join(guideDir, file) : resolve(guideDir, dirname(file), path);
+        if (!resolved.endsWith('.md') || !existsSync(resolved)) continue;
+        const headings = [...readFileSync(resolved, 'utf8').matchAll(/^#{1,6}\s+(.+?)\s*#*$/gm)].map((match) => match[1]);
+        const heading = headings.find((candidate) => slug(candidate) === fragment);
+        if (heading !== undefined && siteSlug(heading) !== fragment) {
+          differs.push(`${file}: ${target} is #${siteSlug(heading)} on the docs site; link the page, or a heading without punctuation`);
+        }
+      }
+    }
+    expect(differs).toEqual([]);
+  });
+
   test('every curated doc screenshot is embedded on exactly one page, and every embed is curated', () => {
     const embeds = pageFiles.flatMap((file) => linkTargets(read(file), EMBED_PATTERN).map((target) => ({ file, name: basename(target, '.webp') })));
     const problems: string[] = [];

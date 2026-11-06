@@ -72,7 +72,7 @@ the folder makes the project start on REAPER.
 
 - **Built-in recorder**: choose it and you are done; there is nothing to link. Go to step 5.
 - **Audacity**: choose it and follow the **Set up Audacity** checklist on the card; see
-  [Recording & DAW](settings.md#recording--daw) for each step.
+  [Settings: Recording & DAW](settings.md) for each step.
 - **REAPER**: the app records into a REAPER project file (`.rpp`) that you link to the book once. Linking also
   chooses REAPER.
   1. In REAPER, start a new project and save it into the book's folder from step 2, for example as
