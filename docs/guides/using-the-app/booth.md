@@ -479,10 +479,11 @@ words or a restart. They are listed in the side panel as cards, a chip naming wh
 one is only suspected: Transcript Compare over the recording is the authority.
 
 With Moonshine as the listening engine and the tiny Whisper model installed, a second listen rechecks each stretch you finish
-reading a few seconds later. A suspicion it also hears keeps its card, and its hint says "A second listen heard it too." A
-suspicion it does not hear, because it read the script there, leaves the list and the text, and a take you stop does not put it
-on Pickups. Nothing waits on the second listen: the highlight follows you as before, and without the model or with the Whisper
-engine a suspicion stays as listening raised it.
+reading a few seconds later. A suspicion it also hears gets a **Confirmed** chip, and its hint in the text says "A second listen
+heard it too." A suspicion it does not hear, because it read the script there, gets a **Not confirmed** chip and a dimmed card
+with no Dismiss button, leaves the count, and is no longer marked in the text. A stopped take does not put it on Pickups, and it is
+not kept as a finding. Nothing waits on the second listen: the highlight follows you as before, and without the model or with the
+Whisper engine a suspicion stays as listening raised it.
 
 A dismissal, and the suspected lines a stopped take puts on Pickups, are each one entry in History, so **Undo** in the toast, Ctrl+Z
 and History all take them back.

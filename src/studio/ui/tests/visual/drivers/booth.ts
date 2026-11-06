@@ -599,6 +599,14 @@ export const boothDrivers: Record<string, Driver> = {
     await page.getByRole('region', { name: 'Where you stopped' }).waitFor();
     await page.getByText('Playhead stopped').waitFor();
   },
+  // A session the host kept running, whose suspected flags the confirmation pass judged: one confirmed, one cleared (api/teleprompterMock.ts `checked`).
+  'suspected-second-listen': async (page) => {
+    await openBooth(page, '?mockTeleprompter=checked');
+    await boothChapterReady(page);
+    await openSidePanel(page);
+    await page.getByText('Not confirmed', { exact: true }).waitFor();
+    await page.getByText('Confirmed', { exact: true }).waitFor();
+  },
   'no-manuscript': async (page) => {
     await openWithoutManuscript(page, 'Booth');
   },

@@ -764,6 +764,19 @@ describe('answers of the mock client (it must pass the schemas the real host ans
     expect(new Set(events.map((event) => (event as { kind: string }).kind))).toEqual(new Set(['misread', 'skipped', 'restart', 'extra']));
   });
 
+  it('a teleprompter session whose suspected flags the confirmation pass has judged (checked)', async () => {
+    const api = createMockApi({}, { teleprompter: 'checked' });
+    const events: { type: string; id?: number; state?: string }[] = [];
+    api.subscribeTeleprompterEvent((event) => events.push(event));
+    expectMatches(teleprompterStateSchema, await api.teleprompterState(), 'mock teleprompter checked');
+    await vi.waitFor(() => expect(events.some((event) => event.type === 'flag_check')).toBe(true));
+    for (const event of events) expectMatches(teleprompterEventSchema, event, 'mock teleprompter checked event');
+    const flagIds = new Set(events.filter((event) => event.type === 'flag').map((event) => event.id));
+    const verdicts = events.filter((event) => event.type === 'flag_check');
+    expect(verdicts.map((event) => event.state)).toEqual(['confirmed', 'cleared']);
+    for (const verdict of verdicts) expect(flagIds.has(verdict.id)).toBe(true);
+  });
+
   it('the teleprompter device list', async () => {
     const api = createMockApi();
     expectMatches(teleprompterDevicesResultSchema, await api.teleprompterDevices(), 'mock teleprompter devices');
