@@ -112,6 +112,35 @@ describe('an unlinked chapter in the Booth', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
+  it('the top-bar setup chip drops what REAPER last said about the chapter once the DAW stops answering', async () => {
+    const base = dawFor('reaper');
+    let gone = false;
+    const notAnswering = { level: 'experimental' as const, available: false, message: 'REAPER is not answering.' };
+    const daw = {
+      ...base,
+      capabilities: async () => {
+        const capabilities = await base.capabilities();
+        return gone
+          ? { ...capabilities, reachable: false, capabilities: { ...capabilities.capabilities, track_state: notAnswering, record: notAnswering } }
+          : capabilities;
+      },
+    };
+    const api = pageApi({
+      readAloudReaperState: async () => ({ status: 'not_armed' as const, message: 'No track is armed in REAPER.', playing: false, recording: false }),
+    } as Partial<NarrationApi>);
+    render(
+      <BoothHost api={api} daw={daw} journal={newJournal()} overlay={createOverlayService()}>
+        <PortOverrides clients={{ daw }}>
+          <BoothNextPage hasManuscript navigate={vi.fn()} />
+        </PortOverrides>
+      </BoothHost>,
+    );
+    expect(await screen.findByRole('button', { name: 'Recording setup: REAPER, not armed', hidden: true })).toBeTruthy();
+    gone = true;
+    window.dispatchEvent(new Event('focus'));
+    await waitFor(() => expect(screen.queryByRole('button', { name: /not armed/, hidden: true })).toBeNull());
+  });
+
   it('creates a track for the chapter, links it, says so, and Record then starts a take', async () => {
     const { daw, overlay, chapterTrackCreate } = renderUnlinked();
     const dialog = await screen.findByRole('dialog', { name: 'Chapter One is not linked to a track' });

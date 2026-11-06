@@ -386,7 +386,12 @@ export function useRecordControl({
   }, [daw, recording, reads]);
 
   useEffect(() => {
-    if (!readsTracks) return;
+    if (!readsTracks) {
+      // What the DAW last said about this chapter is not kept once the setup stops reading tracks (the DAW stopped answering, or this setup
+      // has none): the chip and the gate must not name a cause that was true before.
+      setMatch(null);
+      return;
+    }
     let current = true;
     teleprompter
       .readAloudReaperState(chapterId)
