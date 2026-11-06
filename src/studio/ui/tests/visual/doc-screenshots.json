@@ -1183,6 +1183,13 @@
     "caption": "Delivery with the book checked: the chapters passing in Before you build, and Output waiting on the rest"
   },
   {
+    "page": "delivery",
+    "state": "check-running",
+    "viewport": "desktop",
+    "docName": "delivery-check-running",
+    "caption": "Delivery with Check files… pressed: the measurement part way through, with its progress bar and Cancel under Before you build"
+  },
+  {
     "page": "shell",
     "state": "jump-menu-open",
     "viewport": "desktop",
