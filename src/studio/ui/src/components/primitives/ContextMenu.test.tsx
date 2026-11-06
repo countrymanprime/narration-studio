@@ -211,7 +211,15 @@ describe('ContextMenu', () => {
     const jump = await screen.findByRole('menuitem', { name: /^Jump menu…/ });
     expect(within(jump).getByText('Ctrl')).toBeTruthy();
     expect(within(jump).getByText('K')).toBeTruthy();
-    await userEvent.setup().keyboard('{ArrowDown}{ArrowRight}');
+    // Each key waits for the state it acts on (#3075): under load the menu takes focus, and then highlights a row, a little
+    // after its items render, and a key that lands before that is lost (the run that failed showed the menu open, nothing
+    // highlighted and the submenu closed).
+    const user = userEvent.setup();
+    await waitFor(() => expect(screen.getByRole('menu').contains(document.activeElement)).toBe(true));
+    await user.keyboard('{ArrowDown}');
+    const goTo = screen.getByRole('menuitem', { name: /^Go to/ });
+    await waitFor(() => expect(goTo.hasAttribute('data-highlighted')).toBe(true));
+    await user.keyboard('{ArrowRight}');
     const rows = await screen.findAllByRole('menuitemcheckbox');
     expect(rows.map((row) => row.getAttribute('aria-checked'))).toEqual(['true', 'false', 'false']);
     expect(rows[2].getAttribute('aria-disabled')).toBe('true');
