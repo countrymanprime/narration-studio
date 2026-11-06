@@ -290,8 +290,9 @@ func (h *Host) startDiagnostics(requested []string, sourceKind string) (Diagnost
 	if diagnose == nil {
 		diagnose = measure.DiagnoseFile
 	}
+	started := job.snapshot()
 	go h.runDiagnostics(ctx, job, paths, diagnose)
-	return job.snapshot(), nil
+	return started, nil
 }
 
 // runDiagnostics checks each file in turn, then records how the check ended and says so. A panic in the

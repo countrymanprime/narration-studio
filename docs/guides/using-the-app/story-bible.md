@@ -202,6 +202,10 @@ first. **Open in Editing** goes to the sample's chapter.
 
 ![Story Bible - the Queen of Hearts entry with four voice samples: the primary, one whose passage changed, one whose audio file is missing](../../images/ui/storybible-voice-samples.webp)
 
+A sample kept in REAPER (**Voice sample storage**, in the Recording & DAW section of [Settings](settings.md)) is a region in REAPER's project. A badge on the row says what REAPER's saved project holds, and hovering it says why: **Region removed** (the sample has ended), **Not saved in REAPER yet** (it plays once you save in REAPER), **Audio missing** or **Project unreadable**. A region you moved plays the audio now under it. A sample kept in both places keeps playing its copy and shows **Region moved**, **Region removed**, **Not saved in REAPER yet** or **Region unchecked**. A character's list scrolls inside its own box once it is long.
+
+![Story Bible - the Queen of Hearts with samples kept in REAPER: Not saved in REAPER yet, Region removed and Region moved](../../images/ui/storybible-voice-samples-daw.webp)
+
 The **⋯** menu on a row has **Rename…** (the label and the note) and **Make primary**, and both work on any entry, locked or not. **Move to a
 character…** and **Delete…** appear only after you press **Edit** on the entry, so a stray click cannot remove a sample; unlock a locked
 entry first. Delete asks first and says that the sample's audio is

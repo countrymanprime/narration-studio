@@ -171,11 +171,6 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     class: 'overlay',
   },
   {
-    file: 'components/editing/voicesample/VoiceSampleDialog.tsx',
-    text: 'Copies the raw recording, as it was before editing, into this project. Nothing leaves your computer.',
-    class: 'overlay',
-  },
-  {
     file: 'components/engine/ChapterSyncConsentDialog.tsx',
     text: 'You choose these after syncing, in the audio engine panel or from the chapter&rsquo;s Recorded cell on Production.',
     class: 'overlay',
@@ -197,7 +192,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   },
   {
     file: 'components/engine/ChapterTagsDialog.tsx',
-    text: 'No chapter render is configured yet. Use &ldquo;Prepare chapter render…&rdquo; in DAW tools on Editing, Proof or Master first.',
+    text: 'No chapter render is configured yet. Use &ldquo;Prepare chapter render…&rdquo; in DAW tools on Editing, Proof or Master &amp; QC first.',
     class: 'overlay',
   },
   {

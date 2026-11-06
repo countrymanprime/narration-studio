@@ -280,10 +280,10 @@ const mockProfileRead = (['fails'] as const).find((seed) => seed === mockParams.
 // `?mockSettings=loading|unreadable|save-fails` makes the settings file never answer a read, fail every read, or refuse every save as read-only,
 // so Settings can be seen loading, unreadable and failing to save.
 const mockSettings = (['loading', 'unreadable', 'save-fails'] as const).find((seed) => seed === mockParams.get('mockSettings'));
-// `?mockVoiceSamples=bible|full` boots with voice samples already saved (api/voiceSamplesMock.ts): `bible` is the Story Bible's states (a Queen of
+// `?mockVoiceSamples=bible|full|daw` boots with voice samples already saved (api/voiceSamplesMock.ts): `bible` is the Story Bible's states (a Queen of
 // Hearts with four samples, one whose passage changed and one whose audio file is missing, the Hatter's, Narration's, and one for a character who left
-// the Story Bible); `full` is a Queen with the 20 a character may have.
-const mockVoiceSamples = (['bible', 'full'] as const).find((seed) => seed === mockParams.get('mockVoiceSamples'));
+// the Story Bible); `full` is a Queen with the 20 a character may have; `daw` is a Queen with samples kept in REAPER (the region's states).
+const mockVoiceSamples = (['bible', 'full', 'daw'] as const).find((seed) => seed === mockParams.get('mockVoiceSamples'));
 // `?mockDictionary=missing|damaged` boots without the offline dictionary, or with one whose index fails its check, so the reader's Look up asks to
 // download it (or to download it again) first.
 const mockDictionary = (['missing', 'damaged'] as const).find((seed) => seed === mockParams.get('mockDictionary'));

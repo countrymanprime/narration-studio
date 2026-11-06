@@ -331,8 +331,9 @@ func (h *Host) startMeasure(requested []string) (MeasureJob, error) {
 	if measureFile == nil {
 		measureFile = measure.MeasureFile
 	}
+	started := job.snapshot()
 	go h.runMeasure(ctx, job, paths, measureFile)
-	return job.snapshot(), nil
+	return started, nil
 }
 
 type measureFileFunc func(ctx context.Context, path string, opts measure.Options) (measure.FileMeasurement, error)

@@ -50,6 +50,7 @@ export function useVoiceSample({ chapterId, workspace, items, mediaUrl, stopPlay
   const { doc, selected } = useEditingPage();
   const storyBible = usePort('storyBible');
   const samples = usePort('voiceSamples');
+  const system = usePort('system');
   const journal = useJournalOrOwn();
 
   // Read from the latest render inside open(), so a page playback that changes does not rebuild the registered actions.
@@ -69,11 +70,14 @@ export function useVoiceSample({ chapterId, workspace, items, mediaUrl, stopPlay
             unread.push(what);
             return fallback;
           });
-        const [entities, cues, list] = await Promise.all([
+        const [entities, cues, list, fields] = await Promise.all([
           read(storyBible.guideEntities(), [], "the Story Bible's characters"),
           read(storyBible.guideDialogueCues(), [], "the Story Bible's speakers"),
           read<VoiceSamples | undefined>(samples.voiceSamplesList(), undefined, 'how many samples each character has'),
+          read<Awaited<ReturnType<typeof system.settingsForScope>> | undefined>(system.settingsForScope('project'), undefined, 'where samples are kept'),
         ]);
+        const kept = fields?.VoiceSamples?.find((f) => f.key === 'storage')?.effectiveValue;
+        const storage = kept === 'daw' || kept === 'both' ? kept : 'project';
         const result = voiceSampleRange(workspace, picked);
         const choices = characterChoices(entities, cues, chapterId);
         const counts: Record<string, number> = {};
@@ -103,6 +107,7 @@ export function useVoiceSample({ chapterId, workspace, items, mediaUrl, stopPlay
               choices={choices}
               counts={counts}
               limit={list?.limits.perCharacter ?? DEFAULT_LIMIT}
+              storage={storage}
               initialCharacterId={speaker ?? choices[0].id}
               onCancel={close}
               onSave={async (values) => {
@@ -172,7 +177,7 @@ export function useVoiceSample({ chapterId, workspace, items, mediaUrl, stopPlay
         });
       })();
     },
-    [selected, doc, workspace, items, mediaUrl, stopPlayback, chapterId, storyBible, samples, journal],
+    [selected, doc, workspace, items, mediaUrl, stopPlayback, chapterId, storyBible, samples, system, journal],
   );
 
   const latest = useRef(open);

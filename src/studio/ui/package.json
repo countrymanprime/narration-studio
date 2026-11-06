@@ -25,7 +25,8 @@
     "build-storybook": "storybook build --output-dir storybook-static",
     "atlas": "pnpm run build-storybook && playwright test -c playwright.atlas.config.ts",
     "atlas:page": "node scripts/atlas-page.mjs",
-    "visual:page": "node scripts/visual-page.mjs"
+    "visual:page": "node scripts/visual-page.mjs",
+    "test:guide": "vitest run src/docsGuide.test.ts src/docScreenshots.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
