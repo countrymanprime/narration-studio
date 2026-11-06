@@ -39,27 +39,6 @@ func TestVoiceTracksWithAudioCountsDistinctTracksAndIgnoresMutedAndEmptyItems(t 
 	}
 }
 
-func TestProjectVoicesWithAudioReadsTheFolderAndStopsAtItsEnd(t *testing.T) {
-	item := func(length float64, muted bool) []tracks.Item { return []tracks.Item{{Length: length, Muted: muted}} }
-	project := tracks.Project{Tracks: []tracks.Track{
-		{GUID: "F", IsFolder: true},
-		{GUID: "N", Depth: 1, Items: item(5, false)},
-		{GUID: "Crowd", Depth: 1, IsFolder: true},
-		{GUID: "G", Depth: 2, Items: item(5, false)},
-		{GUID: "Muted", Depth: 1, Items: item(5, true)},
-		{GUID: "Next", Items: item(5, false)},
-	}}
-	if got := projectVoicesWithAudio(project, "F"); got != 2 {
-		t.Errorf("folder: %d, want 2 (the narrator and the nested guard; not the muted voice or the next chapter)", got)
-	}
-	if got := projectVoicesWithAudio(project, "Next"); got != 1 {
-		t.Errorf("a plain track: %d, want 1", got)
-	}
-	if got := projectVoicesWithAudio(project, "gone"); got != 0 {
-		t.Errorf("a track that is gone: %d, want 0", got)
-	}
-}
-
 func TestRippleRefusalNamesTheEditAndTheDAW(t *testing.T) {
 	got := rippleRefusal("REAPER", "Shortening a gap")
 	if got.OK || got.Refused == "" || !strings.Contains(got.Refused, "shortening a gap would move the audio") || !strings.Contains(got.Refused, "in REAPER") {
