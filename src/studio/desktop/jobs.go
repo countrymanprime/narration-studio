@@ -105,8 +105,14 @@ func (h *Host) importJobEnded(job manuscript.ImportJob) {
 		h.publishJobEnded(event)
 	}
 	if job.Phase == "success" {
-		h.chapterSyncTrigger(syncTriggerImport)  // a manuscript arrived: ask, or sync (chaptersync.go)
-		h.goBackground(h.refreshCuesAfterImport) // the quoted lines and who speaks them (extraction_cues.go)
+		h.chapterSyncTrigger(syncTriggerImport) // a manuscript arrived: ask, or sync (chaptersync.go)
+		h.goBackground(func() {
+			// Build the Story Bible after import (app.go), whose build finds the quoted lines too; else only the quoted lines and who speaks
+			// them (extraction_cues.go).
+			if !h.buildGuideAfterImport() {
+				h.refreshCuesAfterImport()
+			}
+		})
 	}
 }
 

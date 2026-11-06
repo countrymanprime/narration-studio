@@ -87,3 +87,7 @@ tests/fixtures/guide-build/** -text
 # The Generate/Replace runs' recorded cases hold Story Bible files' exact text and bytes (CRLF ones among them) and the hashes of the
 # files the sidecar's pronounce wrote, which internal/guide's pronounce_parity_test.go compares byte for byte.
 tests/fixtures/guide-pronounce/** -text
+
+# The Story Bible benchmark's golden result is compared byte for byte (internal/guide/benchmark_test.go): a CRLF checkout on a
+# Windows runner (autocrlf=true) would fail it, so nothing in the folder is converted.
+src/studio/desktop/internal/guide/testdata/benchmark/** -text

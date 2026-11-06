@@ -641,7 +641,7 @@ export const ROWS: readonly SettingMeta[] = [
     def: 'true',
     field: { tool: 'ManuscriptGuide', key: 'build_after_import' },
     desc: 'Builds the Story Bible when a manuscript is imported.',
-    more: 'Starts the Story Bible build when a manuscript is imported. The import dialog can still turn it off for one import.',
+    more: 'When an import ends and the Story Bible has no entries yet, builds it: a name becomes a character or a place only when the book shows it (it speaks, has a title, or is somewhere people go), the rest wait under Needs review, and names mentioned once or twice are left out. A Story Bible that has entries is left as it is. Uses the language model when it is installed, and the rules alone when it is not.',
     used: ['bible', 'production'],
     syn: 'automatic scan',
   },

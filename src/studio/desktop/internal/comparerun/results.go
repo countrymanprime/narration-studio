@@ -1,6 +1,7 @@
 package comparerun
 
 import (
+	"desktop/internal/persist"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -334,7 +335,7 @@ func Run(req Request) (int, error) {
 	if err := os.WriteFile(tmp, []byte(out.Results), 0o600); err != nil {
 		return 0, sentence("The comparison's results could not be written: %v", err)
 	}
-	if err := os.Rename(tmp, req.Out); err != nil {
+	if err := persist.Rename(tmp, req.Out); err != nil {
 		_ = os.Remove(tmp)
 		return 0, sentence("The comparison's results could not be written: %v", err)
 	}

@@ -80,7 +80,7 @@ import { ErrorBoundary } from './components/primitives/ErrorBoundary';
 import { trace, traceId } from './api/tracing';
 import { DESKTOP_HOST_API_VERSION } from './hostApi';
 import { isWireError } from './api/wire/WireError';
-import { describeApiError } from './api/errorMessage';
+import { apiErrorMessage, describeApiError } from './api/errorMessage';
 import { useCommand } from './input/useCommand';
 import { useRecordingEngine } from './components/booth/useRecorder';
 
@@ -383,7 +383,7 @@ function AppRoutes() {
         // A payload that did not match its schema says so in plain words and keeps the technical text for "Copy details"
         // the client has already written it to the host log, so it is not reported a second time.
         const wire = isWireError(error);
-        const message = wire ? error.userMessage : String(error);
+        const message = apiErrorMessage(error);
         if (!wire) void api.reportClientDiagnostic('bootstrap_failed', message).catch(() => {});
         failed = true;
         if (active) {

@@ -14,6 +14,7 @@ package assets
 import (
 	"context"
 	"crypto/sha256"
+	"desktop/internal/persist"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -256,14 +257,14 @@ func resumable(ctx context.Context, err error) bool {
 // only once the new one is in place, and put back if that fails, so there is never a moment with neither.
 func swapIn(staging, target string) error {
 	if _, err := os.Stat(target); err != nil {
-		return os.Rename(staging, target)
+		return persist.Rename(staging, target)
 	}
 	aside := fmt.Sprintf("%s%s%d", target, asideMarker, time.Now().UnixNano())
-	if err := os.Rename(target, aside); err != nil {
+	if err := persist.Rename(target, aside); err != nil {
 		return err
 	}
-	if err := os.Rename(staging, target); err != nil {
-		if restoreErr := os.Rename(aside, target); restoreErr != nil {
+	if err := persist.Rename(staging, target); err != nil {
+		if restoreErr := persist.Rename(aside, target); restoreErr != nil {
 			// Neither is in place. The aside copy is still there and CleanStale puts it back at the next start.
 			return fmt.Errorf("%w (and the previous copy could not be put back: %v)", err, restoreErr)
 		}

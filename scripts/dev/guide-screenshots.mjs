@@ -33,20 +33,29 @@ const PIXEL_DELTA = 16;
 
 const EMBED = /!\[[^\]]*\]\(\.\.\/\.\.\/images\/ui\/([^)\s]+)\.webp\)/g;
 
-/** docName -> guide page (file name without .md), from the embeds in the guide's Markdown. */
+/**
+ * docName -> the guide pages (file names without .md) that embed it, from the guide's Markdown. An image is on one page,
+ * plus any its manifest entry names in `alsoOn`; docsGuide.test.ts holds the guide to that.
+ */
 export function guidePages(files) {
   const pages = new Map();
   for (const [file, markdown] of files) {
-    for (const match of markdown.matchAll(EMBED)) pages.set(match[1], basename(file, '.md'));
+    for (const match of markdown.matchAll(EMBED)) {
+      const page = basename(file, '.md');
+      const embedding = pages.get(match[1]) ?? [];
+      if (!embedding.includes(page)) embedding.push(page);
+      pages.set(match[1], embedding);
+    }
   }
   return pages;
 }
 
-/** The manifest entries the named pages own: a name matches an entry's state-catalog page or the guide page embedding it. */
+/** The manifest entries the named pages own: a name matches an entry's state-catalog page or a guide page embedding it. */
 export function selectEntries(manifest, pages, names) {
-  const unknown = names.filter((name) => !manifest.some((entry) => entry.page === name || pages.get(entry.docName) === name));
+  const owns = (entry, name) => entry.page === name || (pages.get(entry.docName) ?? []).includes(name);
+  const unknown = names.filter((name) => !manifest.some((entry) => owns(entry, name)));
   if (unknown.length > 0) throw new Error(`no guide image belongs to ${unknown.join(', ')}: name a guide page or a state-catalog page`);
-  return manifest.filter((entry) => names.includes(entry.page) || names.includes(pages.get(entry.docName)));
+  return manifest.filter((entry) => names.some((name) => owns(entry, name)));
 }
 
 /** Images in docs/images/ui that no manifest entry names. */

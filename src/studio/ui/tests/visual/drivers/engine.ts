@@ -303,7 +303,7 @@ export const engineDrivers: Record<string, Driver> = {
     await settlePage(page);
     await openEnginePanel(page);
     await clickVisible(page, 'button', 'Link chapters to tracks');
-    const message = page.getByText('Read 5 stamped lines.');
+    const message = page.getByText('Read 5 stamped items.');
     await message.waitFor();
     await message.scrollIntoViewIfNeeded();
   },
@@ -312,7 +312,7 @@ export const engineDrivers: Record<string, Driver> = {
     await settlePage(page);
     await openEnginePanel(page);
     await clickVisible(page, 'button', 'Link chapters to tracks');
-    const message = page.getByText(/Stamped 1 line, 1 stale item, 1 conflict\./);
+    const message = page.getByText(/Stamped 1 item, 1 stale item, 1 conflict\./);
     await message.waitFor();
     await message.scrollIntoViewIfNeeded();
   },

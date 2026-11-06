@@ -50,7 +50,7 @@ func (t *jobRuns) end(id string) *runlog.Run {
 // TestEveryJobKindHasARegisteredBeginSiteThatCallsIt (runlog_jobs_test.go) is the guard: a job kind added to jobs.go
 // without an entry here, or a registered function whose body stops calling begin/Begin, fails it.
 var jobKindBeginSites = map[string][]string{
-	jobKindStoryBible:         {"startGuideBuild"},
+	jobKindStoryBible:         {"runGuideJob"},
 	jobKindManuscriptImport:   {"ManuscriptSelectFile", "ManuscriptBeginImport"},
 	jobKindTtsInstall:         {"startInstall"},
 	jobKindWhisperInstall:     {"startInstall"},

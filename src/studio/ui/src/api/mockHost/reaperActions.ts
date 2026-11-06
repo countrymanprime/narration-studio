@@ -147,7 +147,7 @@ export function createReaperActionsMock(initial: MockApiSeed, projectFolder: () 
         ...wireClone(WIRE_LINE_IDENTITY_IDLE),
         runId: String(Date.now()),
         phase: 'stamping',
-        message: 'Stamping manuscript line identity in REAPER…',
+        message: 'Stamping chapter identity onto REAPER items…',
       };
       publishLineIdentity();
       setTimeout(() => {
@@ -156,7 +156,7 @@ export function createReaperActionsMock(initial: MockApiSeed, projectFolder: () 
         lineIdentity = {
           ...lineIdentity,
           phase: 'success',
-          message: `Stamped ${applied} line${applied === 1 ? '' : 's'}.`,
+          message: `Stamped ${applied} item${applied === 1 ? '' : 's'}.`,
           stamp: { applied, unchanged: 0, missingCount: 0, conflictsCount: 0, missing: [], conflicts: [] },
         };
         publishLineIdentity();
