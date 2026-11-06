@@ -47,16 +47,21 @@ export function SetupChip({
   project,
   choice,
   otherProject = false,
+  trackProblem,
 }: {
   capabilities: DawCapabilities;
   standaloneName: string;
   project?: DawProjectState | null;
   choice?: DawChoice | null;
   otherProject?: boolean;
+  /** The Booth's own finding that the chapter has no track in the DAW project (`none`) or several (`several`): connected, but Record cannot start, so the chip warns. */
+  trackProblem?: 'none' | 'several';
 }) {
   const standalone = choice ? choice.state === 'app' || choice.state === 'none' : capabilities.daw === 'none' || recordsInApp(capabilities.daw);
   const name = standalone ? standaloneName : (choice?.daw ?? capabilities.daw);
-  const ready = !otherProject && (choice ? choice.state === 'connected' || choice.state === 'app' : capabilities.reachable);
+  // The app's own recorder has no track to link.
+  const trackIssue = standalone ? undefined : trackProblem;
+  const ready = !otherProject && !trackIssue && (choice ? choice.state === 'connected' || choice.state === 'app' : capabilities.reachable);
   const tone = !ready ? 'warning' : standalone ? 'neutral' : 'success';
   const detail = choice
     ? choiceDetail(choice)
@@ -67,15 +72,12 @@ export function SetupChip({
         : `${name} linked`;
   const unsaved = capabilities.reachable && !!project?.unsavedChanges;
   // The project's DAW short of connected says how far it got in the chip itself, not only in the tooltip.
-  const stateWords = otherProject
-    ? 'other project'
-    : choice && !standalone && choice.state !== 'connected'
-      ? choice.state === 'linked'
-        ? 'not running'
-        : choice.state.replace('_', ' ')
-      : '';
+  const dawShort = choice && !standalone && choice.state !== 'connected' ? (choice.state === 'linked' ? 'not running' : choice.state.replace('_', ' ')) : '';
+  const stateWords = otherProject ? 'other project' : dawShort || (trackIssue === 'none' ? 'no track' : trackIssue === 'several' ? 'several tracks' : '');
   const state = stateWords ? `, ${stateWords}` : '';
-  const tooltip = `${otherProject ? `${detail} · ${name} has a different project open` : detail}${unsaved ? ` · ${UNSAVED}` : ''}`;
+  const trackSentence = trackIssue === 'none' ? 'this chapter has no track to record on' : 'this chapter is linked to several tracks';
+  const problem = otherProject ? ` · ${name} has a different project open` : !dawShort && trackIssue ? ` · ${trackSentence}` : '';
+  const tooltip = `${detail}${problem}${unsaved ? ` · ${UNSAVED}` : ''}`;
   const aria = `Recording setup: ${name}${state}${unsaved ? `, ${UNSAVED}` : ''}`;
   // The app's own recorder has no DAW to link, so, as in the header, its chip goes straight to Recording settings.
   const destination = standalone ? 'recording-settings' : 'engine-panel';

@@ -697,6 +697,15 @@ function BoothSession({
                     project={control.project}
                     choice={dawChoice}
                     otherProject={setupPlan?.kind === 'other-project'}
+                    trackProblem={
+                      !control.recording
+                        ? control.gate?.cause === 'no_track'
+                          ? 'none'
+                          : control.gate?.cause === 'several_tracks'
+                            ? 'several'
+                            : undefined
+                        : undefined
+                    }
                   />
                 ) : undefined
               }

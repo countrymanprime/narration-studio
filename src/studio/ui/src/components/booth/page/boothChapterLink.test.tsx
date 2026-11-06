@@ -90,6 +90,15 @@ describe('an unlinked chapter in the Booth', () => {
     expect(daw.recordStart).not.toHaveBeenCalled();
   });
 
+  it('the top-bar setup chip warns while the chapter has no track, and is plain again once a track is linked', async () => {
+    renderUnlinked();
+    const dialog = await screen.findByRole('dialog', { name: 'Chapter One is not linked to a track' });
+    expect(screen.getByRole('button', { name: 'Recording setup: REAPER, no track', hidden: true })).toBeTruthy();
+    await userEvent.click(await within(dialog).findByRole('button', { name: 'Create a new track' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Recording setup: REAPER', hidden: true })).toBeTruthy());
+  });
+
   it('creates a track for the chapter, links it, says so, and Record then starts a take', async () => {
     const { daw, overlay, chapterTrackCreate } = renderUnlinked();
     const dialog = await screen.findByRole('dialog', { name: 'Chapter One is not linked to a track' });
