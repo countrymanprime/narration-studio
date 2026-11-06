@@ -4,6 +4,10 @@ Use the pull request title that you want GitHub to use for the squash commit:
 `feat: ...`, `fix(scope): ...`, `chore: ...`, and so on. Add `!` or a
 `BREAKING CHANGE:` footer for a breaking change.
 
+## Release notes
+
+The release page lists this title, grouped by type. Add lines to this description only when a narrator must act or know something (each on its own line, written for a narrator): `BREAKING CHANGE: <what breaks>` (or a `!` in the title), `Migration: <what to do>`, `Known issue: <what still fails>`. They appear under **Important**.
+
 ## Related issue
 
 <!-- One line per issue. `Closes #n` for each issue this fully resolves (merging closes it). `Refs #n` only if it is a partial fix. Or `Issue: none — <reason>`. -->
