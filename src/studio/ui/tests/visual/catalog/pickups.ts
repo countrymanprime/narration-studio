@@ -8,6 +8,7 @@ export const pickupsStates: StateEntry[] = [
     state: 'daw-off-closed',
     description:
       'Pickups with the DAW not connected (?mockDaw=Audacity), after the dialog that opens by itself was closed with its X - the quiet "not connected" mark at the right of the list header, before Check recordings, reopens it',
+    ...REFLOW,
   },
   {
     page: 'pickups',

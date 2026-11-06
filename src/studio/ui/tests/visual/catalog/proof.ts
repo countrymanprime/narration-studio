@@ -8,6 +8,7 @@ export const proofStates: StateEntry[] = [
     state: 'daw-off-closed',
     description:
       'Proof with the DAW not connected (?mockDaw=Audacity), after the dialog that opens by itself was closed with its X - the quiet "not connected" mark in the head, before the DAW tools button, reopens it',
+    ...REFLOW,
   },
   {
     page: 'proof',
