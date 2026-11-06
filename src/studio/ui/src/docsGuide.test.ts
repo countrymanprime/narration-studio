@@ -126,6 +126,11 @@ describe('docs/guides/using-the-app', () => {
     });
   });
 
+  test('every page shows at least one screenshot of the app', () => {
+    const bare = pageFiles.filter((file) => linkTargets(read(file), EMBED_PATTERN).length === 0);
+    expect(bare, 'each page of the how-to guide embeds at least one ../../images/ui/<docName>.webp').toEqual([]);
+  });
+
   test('every relative link and image resolves to a real file and heading', () => {
     const broken: string[] = [];
     for (const file of guideFiles) {
