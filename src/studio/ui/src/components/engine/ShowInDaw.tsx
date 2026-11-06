@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useApi } from '../../api/ApiContext';
-import type { NarrationApi } from '../../types';
+import type { ChapterTrackMapApi } from '../../api/contracts/chapterTrackMap';
+import type { FindingsApi } from '../../api/contracts/findings';
+import type { WorkspaceApi } from '../../api/contracts/workspace';
+import { usePort } from '../../ports/usePort';
 import type { DawCapabilities } from '../../api/contracts/daw';
 import { apiErrorMessage } from '../../api/errorMessage';
 import { useDawCapabilities } from '../../hooks/useDawCapabilities';
@@ -61,12 +63,15 @@ export type ShowInDawResult = { message: string; failed: boolean };
 /** The label every Show in {DAW} control carries, a button's and a menu entry's alike. */
 export const showInDawLabel = (dawName: string): string => `Show in ${dawName}`;
 
+/** The three host calls a Show in {DAW} press can make, one per kind of target. */
+export type ShowInDawApi = Pick<WorkspaceApi, 'workspaceGoTo'> & Pick<FindingsApi, 'findingsGoTo'> & Pick<ChapterTrackMapApi, 'trackSelectInReaper'>;
+
 /**
  * The one place a Show in {DAW} press reaches the host (#2826): the call the target's kind has, and the sentence that says where the DAW went or why
  * it did not. Null when the host answered with nothing to say. A menu entry that cannot render the button calls this directly; nothing else
  * calls `workspaceGoTo`, `findingsGoTo` or `trackSelectInReaper` for a "show me" (`showInDawGuard.test.ts`).
  */
-export async function showInDaw(api: NarrationApi, target: ShowInDawTarget, dawName: string): Promise<ShowInDawResult | null> {
+export async function showInDaw(api: ShowInDawApi, target: ShowInDawTarget, dawName: string): Promise<ShowInDawResult | null> {
   try {
     if (target.kind === 'chapter') {
       const result = await api.trackSelectInReaper(target.trackGuid!);
@@ -96,7 +101,9 @@ function useShowInDaw(
   target: ShowInDawTarget,
   onResult?: (result: ShowInDawResult) => void,
 ): { label: string; reason: string | null; pending: boolean; hidden: boolean; go: () => void } {
-  const api = useApi();
+  const workspace = usePort('workspace');
+  const findings = usePort('findings');
+  const chapterTrackMap = usePort('chapterTrackMap');
   const { caps, failed } = useDawCapabilities();
   const [pending, setPending] = useState(false);
   const name = dawNameOf(caps);
@@ -128,6 +135,11 @@ function useShowInDaw(
       live.current = '';
     };
   }, [key]);
+  const calls: ShowInDawApi = {
+    workspaceGoTo: (chapterId, token) => workspace.workspaceGoTo(chapterId, token),
+    findingsGoTo: (id) => findings.findingsGoTo(id),
+    trackSelectInReaper: (trackGuid) => chapterTrackMap.trackSelectInReaper(trackGuid),
+  };
   const go = (): void => {
     if (reason !== null || pending) return;
     const mine = key;
@@ -136,7 +148,7 @@ function useShowInDaw(
     const deadline = new Promise<ShowInDawResult>((resolve) => {
       timer = setTimeout(() => resolve({ message: `${name} did not answer. Press Show in again to try once more.`, failed: true }), ASK_DEADLINE_MS);
     });
-    void Promise.race([showInDaw(api, target, name), deadline])
+    void Promise.race([showInDaw(calls, target, name), deadline])
       .then((result) => {
         if (result && live.current === mine) say(result);
       })
@@ -162,17 +174,17 @@ export function ShowInDawButton({
   disabled?: boolean;
   onResult?: (result: ShowInDawResult) => void;
 }) {
-  const show = useShowInDaw(target, onResult);
-  if (show.hidden) return null;
+  const place = useShowInDaw(target, onResult);
+  if (place.hidden) return null;
   return (
     <IconButton
       action="showInReaper"
-      label={show.label}
+      label={place.label}
       size={size}
       disabled={disabled}
-      disabledReason={show.reason ?? undefined}
-      pending={show.pending}
-      onClick={show.go}
+      disabledReason={place.reason ?? undefined}
+      pending={place.pending}
+      onClick={place.go}
     />
   );
 }
