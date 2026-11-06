@@ -27,7 +27,7 @@ What the train already gives (all cited from the train's procedure, then `docs/o
 | Territories | Lanes K, A, B, U, C, D, X with ADR blocks ([Lanes](../SKILL.md#lanes)) | The new directories of this series have no lane (`src/studio/ui/src/studio/`, `ports/`, `overlay/`) |
 | Serial points | `hostAPIVersion`, ADR numbers, index rows, append-only rows, nav, workflows, token batch, hot UI files ([Serial points](../SKILL.md#serial-points)) | Fine; slices must name which they touch |
 | Ready list | A phase is ready when `Status` is pending, `Depends` complete, no unmet gate, no file collision, wave reached ([step 5](../SKILL.md#the-coordinators-pass)) | Computed from PRD tables the coordinator does not read in depth |
-| Worker protocol | Push after every green step; checkpoints; pause or yield; own PRs until merged (D82); no `send_later` or scheduling tools ([The worker protocol](../SKILL.md#the-worker-protocol)) | Resume depends on the PR body, which exists only after the first push |
+| Worker protocol | Push after every green step; checkpoints; pause or yield; one-shot finish (D99): open the PR, report, end; no `send_later` or scheduling tools ([The worker protocol](../SKILL.md#the-worker-protocol)) | Resume depends on the PR body, which exists only after the first push |
 | Templates | Worker, resume and fixer templates ([Templates](templates.md)) | No slice fields (the mock reference in the worker template now names the Studio Next page, D98) |
 | Quality | D43 targeted checks, D44 full gate at the end; D46 and D97 benchmark mock comparison (the target becomes the Studio Next mock page); the guide rule ([UI PRs update the how-to guide](../../../../CONTRIBUTING.md#ui-prs-update-the-how-to-guide)) | CLAUDE.md step 4 and the `full-verification-gate` skill ask for the targeted checks for what changed, with the PR pipeline as the full gate; the train allows the same per phase. This series keeps that |
 | Mock-first | D67: build against a mock that passes the schema; swap behind the port | Exactly the series' provider principle; used as is |
@@ -153,11 +153,11 @@ The train's worker template ([Worker template](templates.md#worker-template)) wi
 4. Targeted checks per D43; `full-verification-gate` when the slice ends the stream (D44); look at every viewport's PNG; atlas for primitives; aria for dialogs.
 5. `design-spec-guard`, `feature-cleanup` (threat model and diagrams where a boundary moved).
 6. PR title a Conventional Commit; body: `Closes #<slice>`, `Part of #<PRD>`, what changed, checks run with the real-app (Playwright) and Storybook results, the guide diff for UI ([UI PRs update the how-to guide](../../../../CONTRIBUTING.md#ui-prs-update-the-how-to-guide)), "New ADRs for review", "Base:". Ends with the attribution lines.
-7. Subscribe; stay the owner of the PR until it merges (D82): merge `main` in on conflict, never rebase; fix red checks; answer review threads; no `send_later` or scheduling tools.
+7. Do not subscribe (D99): report in one short message and end. A conflict, a red check or a review thread gets a new one-PR fixer from the coordinator; no `send_later` or scheduling tools.
 
 ### PR babysitting as a standing duty
 
-Per D82 the worker babysits its own PR. The coordinator covers the cases the worker cannot: an archived or failed session with an open PR gets a one-PR fixer; a base recovered after a squash merge of its parent: the dependent slice's branch is stacked on the parent's, so after the parent squashes, the coordinator (or the worker) merges `main` into the child and retargets the PR base to `main` ("base recovered"), then waits for green. Red CI that is not the slice's fault (flaky test, a red `main`) is recorded on #509 and not retried more than twice.
+Per D99 the worker does not babysit its PR; the coordinator does. A conflict, a red check or a review comment gets a one-PR fixer, including for an archived or failed session. A base recovered after a squash merge of its parent: the dependent slice's branch is stacked on the parent's, so after the parent squashes, the coordinator (or the worker) merges `main` into the child and retargets the PR base to `main` ("base recovered"), then waits for green. Red CI that is not the slice's fault (flaky test, a red `main`) is recorded on #509 and not retried more than twice.
 
 ### Cadence and budget controls
 
