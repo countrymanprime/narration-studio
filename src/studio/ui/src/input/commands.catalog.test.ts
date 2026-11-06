@@ -94,8 +94,13 @@ describe('the Booth rows', () => {
       'booth.roll': ['KeyR'],
       'booth.view.down': ['PageDown'],
       'booth.view.up': ['PageUp'],
-      'booth.text.larger': ['Equal', 'NumpadAdd'],
-      'booth.text.smaller': ['Minus', 'NumpadSubtract'],
+      // Num + and Num − moved to the next and previous voice (docs/research/2026-10-30-booth-sub-track-recording.md, section 8, decision 4).
+      'booth.text.larger': ['Equal'],
+      'booth.text.smaller': ['Minus'],
+      ...Object.fromEntries(Array.from({ length: 10 }, (_, n) => [`booth.voice.${n}`, [`Numpad${n}`]])),
+      'booth.voice.next': ['NumpadAdd'],
+      'booth.voice.prev': ['NumpadSubtract'],
+      'booth.voice.list': ['NumpadDecimal'],
       'booth.exit': ['Escape'],
       'booth.voice-sample': ['KeyV'],
       'booth.pickup.next': ['KeyN'],
@@ -110,11 +115,17 @@ describe('the Booth rows', () => {
     }
   });
 
-  it('space-stays-one-action: reading.toggle keeps Space as "Record or stop" and no other booth row binds it', () => {
+  it('space-stays-one-action: reading.toggle is "Record or stop", Space first, and no other booth row binds Space, Enter or numpad Enter', () => {
     expect(findCommand('reading.toggle')?.label).toBe('Record or stop');
-    expect(codes('reading.toggle')).toEqual(['Space']);
-    const spaceRows = COMMAND_CATALOG.filter((row) => row.scope === 'booth' && row.defaults.some((gesture) => gesture.code === 'Space'));
-    expect(spaceRows.map((row) => row.id)).toEqual(['reading.toggle']);
+    // Space stays the first gesture (the footer hint draws it); Enter and numpad Enter are the same action for the numpad (#3039).
+    expect(codes('reading.toggle')).toEqual(['Space', 'Enter', 'NumpadEnter']);
+    for (const code of ['Space', 'Enter', 'NumpadEnter']) {
+      const rows = COMMAND_CATALOG.filter((row) => row.scope === 'booth' && row.defaults.some((gesture) => gesture.code === code));
+      expect(
+        rows.map((row) => row.id),
+        code,
+      ).toEqual(['reading.toggle']);
+    }
     expect(findConflicts(COMMAND_CATALOG, defaultKeymap(COMMAND_CATALOG, false))).toEqual([]);
   });
 
@@ -127,7 +138,8 @@ describe('the Booth rows', () => {
   it('pedal-is-space-only: no booth row has a pedal or MIDI default, so the keyboard Space is the one record key', () => {
     const boothDefaults = COMMAND_CATALOG.filter((row) => row.scope === 'booth').flatMap((row) => row.defaults);
     expect(boothDefaults.filter((gesture) => gesture.source !== 'keyboard')).toEqual([]);
-    expect(codes('reading.toggle')).toEqual(['Space']);
+    // A pedal sends Space; Enter and numpad Enter are keyboard keys added for the numpad (#3039), and neither is a pedal's.
+    expect(codes('reading.toggle')?.at(0)).toBe('Space');
   });
 
   it('typing-and-ctrl-are-ignored: no booth row defaults to Ctrl or Meta', () => {

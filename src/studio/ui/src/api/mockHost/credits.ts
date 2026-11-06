@@ -15,7 +15,7 @@ import type {
 } from '../../types';
 import { STATUS_ORDER } from '../../chapterStatus';
 import { mockRecordedLength } from '../chapterTrackMatchMock';
-import { WIRE_TRACKS_PROJECT, wireClone } from '../mockFixtures';
+import { mockTracksProject, wireClone } from '../mockFixtures';
 import { type MockApiSeed, mockDocumentId, type MockState } from './state';
 import type { MockSettings } from './settings';
 
@@ -167,6 +167,7 @@ export function createCreditsMock(
       builtIn: true,
     },
   ];
+  const shippedTemplates = wireClone(creditTemplates);
   if (initial.creditsMissingClosing) creditTemplates = creditTemplates.filter((template) => template.kind !== 'closing');
   if (initial.chapterAnnouncement !== undefined)
     creditTemplates.push({ id: 'mock-chapter-announcement', kind: 'chapter_announcement', name: 'Chapter announcement', body: initial.chapterAnnouncement });
@@ -249,6 +250,12 @@ export function createCreditsMock(
   };
   const bindings = {
     creditsTemplates: async () => wireClone(creditTemplates),
+    creditsChanged: async () =>
+      creditTemplates.length !== shippedTemplates.length ||
+      shippedTemplates.some((shipped) =>
+        creditTemplates.every((have) => have.id !== shipped.id || have.kind !== shipped.kind || have.name !== shipped.name || have.body !== shipped.body),
+      ) ||
+      Object.values(creditValues).some((value) => (value ?? '').trim() !== ''),
     saveCreditsTemplate: async (id, kind, name, body) => {
       if (id) {
         const index = creditTemplates.findIndex((template) => template.id === id);
@@ -339,8 +346,8 @@ export function createCreditsMock(
     creditsRecordedLengths: async () => {
       const readable = Boolean(s.tracksDiscovery.selected);
       return {
-        opening: mockRecordedLength('credits-opening', WIRE_TRACKS_PROJECT, s.chapterTrackMappings, readable),
-        closing: mockRecordedLength('credits-closing', WIRE_TRACKS_PROJECT, s.chapterTrackMappings, readable),
+        opening: mockRecordedLength('credits-opening', mockTracksProject(initial), s.chapterTrackMappings, readable),
+        closing: mockRecordedLength('credits-closing', mockTracksProject(initial), s.chapterTrackMappings, readable),
       };
     },
   } satisfies Partial<NarrationApi>;
@@ -363,7 +370,7 @@ export function createCreditsMock(
           contentKind: 'narration',
           isCredits: true,
           paragraphIds: [],
-          ...mockRecordedLength(id, WIRE_TRACKS_PROJECT, s.chapterTrackMappings, readable),
+          ...mockRecordedLength(id, mockTracksProject(initial), s.chapterTrackMappings, readable),
         },
       ];
     };

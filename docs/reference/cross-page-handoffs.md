@@ -35,7 +35,7 @@ One owner per seam: the destination page owns reading the address; the source pa
 | T1 | Chapter list (`slots.chapters`) | Manuscript import, re-split | `App.tsx` (jump menu), Script, Booth, Editing, Proof, Pickups | Store slot: stale on `job:ended`, reloaded on focus (30 s throttle). Booth and Editing read `manuscriptChapters()` themselves on mount and do not use the slot. | `slots.test.ts`, `createStudioStore.test.ts`; the pages that bypass the slot: **none** |
 | T2 | `data.manuscript` / `projectFolder` (bootstrap) | `refreshBootstrap` in `App.tsx` | every route's `hasManuscript` | The bootstrap is passed down; `refreshBootstrap` is called by Production and Settings. | `App.test.tsx` |
 | T3 | Bookmarks (`slots.bookmarks`) | bookmark commands | Script | Slot reloaded by each command and on focus. | `bookmarks.test.ts` |
-| T4 | Findings | Proof, Editing, take review | Proof, Editing, Pickups, Production | Each page re-reads on mount. No shared invalidation. | per page |
+| T4 | Findings | Proof, Editing | Proof, Editing, Pickups, Production | Each page re-reads on mount. No shared invalidation. | per page |
 | T5 | Notices and toasts | `setNotice` in `App.tsx` | `ToastRegion` | Held in `App`, outlive a route change. | `App.test.tsx` |
 
 ## What the contract does

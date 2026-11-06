@@ -3,10 +3,10 @@ import type { EntityColour } from '../../../kinds/entityColour';
 import { kindChipColors, kindDef, type KindId } from '../../../kinds/kindMap';
 import { IconButton } from '../../primitives/IconButton';
 import { Icon } from '../../primitives/Icon';
-import { Listbox, listboxOptionId, type ListboxOption } from '../../primitives/Listbox';
+import { type ListboxOption } from '../../primitives/Listbox';
 import { Popover } from '../../primitives/Popover';
 import { badgeStyle } from '../../primitives/StatusBadge';
-import { SearchField } from '../../primitives/SearchField';
+import { SearchList } from '../../primitives/SearchList';
 import { useBoothSamplesContext } from '../samples/BoothSamplesContext';
 import { UNKNOWN_SPEAKER } from './boothUnits';
 
@@ -30,7 +30,6 @@ const listId = (phraseKey: string) => `speakers-${phraseKey.replace(/[^\w-]/g, '
 export function SpeakerChip({ phraseKey, speaker, confirmed, colour, speakers, onSetSpeaker }: Props) {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
-  const [active, setActive] = useState(0);
   const samples = useBoothSamplesContext();
   const unknown = speaker === UNKNOWN_SPEAKER;
   const id = listId(phraseKey);
@@ -72,8 +71,6 @@ export function SpeakerChip({ phraseKey, speaker, confirmed, colour, speakers, o
     const confirm = !confirmed && !unknown && !needle ? [{ id: `confirm:${speaker}`, label: `Confirm “${speaker}”` }] : [];
     return [...confirm, ...found];
   }, [query, speakers, confirmed, unknown, speaker, samples]);
-  const activeIndex = Math.min(active, Math.max(0, options.length - 1));
-  const activeOption = options[activeIndex];
 
   // The chip is the registry's: the speaker in its entry's colour, a suggestion dashed, an unknown speaker neutral and dashed (D6).
   const kind: KindId = unknown ? 'speaker-unknown' : confirmed ? 'speaker' : 'speaker-suggested';
@@ -100,44 +97,33 @@ export function SpeakerChip({ phraseKey, speaker, confirmed, colour, speakers, o
     setQuery('');
   };
 
-  // The search box drives the list: the arrow keys move the highlighted row, Enter chooses it, Control Enter hears the speaker's primary sample without choosing,
-  // and Escape stops a sample that is playing (the popover closes on the same key).
-  const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.nativeEvent.isComposing) return;
-    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+  // The search box drives the list (SearchList): the arrow keys move the highlighted row and Enter chooses it. Control Enter hears the
+  // highlighted speaker's primary sample without choosing, and Escape stops a sample that is playing (the popover closes on the same key).
+  const onKey = (event: KeyboardEvent<HTMLInputElement>, active: ListboxOption | undefined) => {
+    if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
       event.preventDefault();
-      setActive(Math.max(0, Math.min(options.length - 1, activeIndex + (event.key === 'ArrowDown' ? 1 : -1))));
-    } else if (event.key === 'Enter' && activeOption) {
-      event.preventDefault();
-      const speakerName = activeOption.id.slice(activeOption.id.indexOf(':') + 1);
-      // Control Enter never chooses: on a speaker's row (or on the row that confirms the suggested one) it hears that speaker's primary sample, if there is one.
-      if (event.ctrlKey || event.metaKey) {
-        if (samples?.primaryOf(speakerName)) samples.playPrimary(speakerName);
-      } else pick(activeOption.id);
-    } else if (event.key === 'Escape' && samples?.activeId) samples.stop();
+      const speakerName = active ? active.id.slice(active.id.indexOf(':') + 1) : '';
+      if (speakerName && samples?.primaryOf(speakerName)) samples.playPrimary(speakerName);
+      return true;
+    }
+    if (event.key === 'Escape' && samples?.activeId) samples.stop();
+    return false;
   };
 
   return (
     <Popover trigger={trigger} label="Speaker" align="start" open={open} onOpenChange={setOpen}>
-      <div className="flex min-w-60 flex-col gap-2 text-base">
-        <SearchField
-          label="Search speakers"
-          placeholder="Search speakers"
-          value={query}
-          onChange={(value) => {
-            setQuery(value);
-            setActive(0);
-          }}
-          autoFocus
-          onKeyDown={onKeyDown}
-          combobox={{
-            role: 'combobox',
-            'aria-controls': id,
-            'aria-expanded': true,
-            'aria-activedescendant': activeOption ? listboxOptionId(id, activeOption.id) : undefined,
-          }}
+      <div className="min-w-60">
+        <SearchList
+          id={id}
+          label="Speakers"
+          searchLabel="Search speakers"
+          query={query}
+          onQueryChange={setQuery}
+          options={options}
+          onPick={pick}
+          onKey={onKey}
+          empty="No one matches."
         />
-        <Listbox id={id} label="Speakers" options={options} activeIndex={activeIndex} flush onPick={pick} empty="No one matches." />
       </div>
     </Popover>
   );

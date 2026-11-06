@@ -85,6 +85,13 @@ describe('in-view-chip-only-when-the-window-is-narrower', () => {
     expect(windowIsNarrow(win)).toBe(true);
     expect(rows.filter((r) => inWindow(r, win)).map((r) => r.id)).toEqual(['a', 'b', 'd']);
   });
+  // #2800 (qa B1): a note with no time has no place in the waveform, so no window can leave it out. A retired take-review note
+  // and an untimed Story Bible note are always in view.
+  it('keeps a note with no time in every window', () => {
+    const untimed = noteRow({ ...notesFixture()[0], id: 'untimed', time_range: undefined });
+    expect(inWindow(untimed, { start: 10, len: 100, total: 760 })).toBe(true);
+    expect(inWindow(untimed, { start: 600, len: 100, total: 760 })).toBe(true);
+  });
 });
 
 describe('find-in-notes-filters-script-and-heard', () => {

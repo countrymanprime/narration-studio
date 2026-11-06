@@ -28,7 +28,7 @@ picker (see [Importing the manuscript](#importing-the-manuscript)), and the cale
 The app connects to the REAPER you have open by itself. For the first ten seconds after it opens, an
 engine that is not connected yet shows a quiet "Connecting to REAPER…" line. If it has not connected by
 then, a **REAPER not connected** mark takes its place, and a dialog opens once: the DAW's reason ("REAPER is not running."),
-that progress that comes from it may be out of date until it is running again, and when the app last checked.
+that progress that comes from it may be out of date until it is running again, and when the app last checked. The mark is a problem notice that reopens this dialog, not the DAW chip: the engine chip in the header is the one that opens the [audio engine panel](navigation.md#the-audio-engine-panel).
 **Start REAPER** starts REAPER on the linked project, and **Check again** asks the DAW now. The X closes the dialog and the
 mark opens it again; both go by themselves as soon as the engine connects. It never offers the built-in recorder:
 switching recorders is a choice in [Settings > Recording & DAW](settings.md). Whether Record could work at all
@@ -45,7 +45,7 @@ The six figures are one card; each opens the page it counts.
   the book's finished length estimated from its words. It is the same count as the stage bar's
   segments above **Not recorded yet**, and the finished length is the one every figure on the page is out of.
 - **Recording**, **Editing + proof**: the hours of work left at each stage, estimated from the
-  words still to do, and out of the hours of work the whole book needs (a multiple of its finished length, named in the tooltip). The info icon on **Recording** opens the target pace: the standard rate or
+  words still to do. Under each is the multiple of the book's finished length that stage is estimated at (**est. 3.0× the book**), so the strip names one length, the book's. The info icon on **Recording** opens the target pace: the standard rate or
   your own, once enough chapters are measured. The basis you choose there sets the hours on this page and on
   [Schedule](schedule.md).
 - **Open pickups**: the open lines of the [Pickups](pickups.md) list, and the booth time to redo
@@ -90,13 +90,17 @@ narration chapters only: a chapter removed from recording, and reference materia
 
 ## Chapter pipeline
 
-The pipeline has one row per narration chapter. In a narrow window the stages scroll sideways under the chapter names, which stay in view, with a shadow on the side that has more. **Rec.** is the audio
+The pipeline has one row per narration chapter. The cells are one stop in the Tab order (the scroll area and the two column-info marks in the header come before them): Tab enters them on the cell you last used, the arrow keys move between cells (Left and Right along a row, Up and Down in a column), Home and End go to the ends of a row, and the next Tab leaves it. A book of more than 150 chapters draws only the rows near the window, one row height each with the name held to two lines (the full name is in its tip), so a book of thousands of chapters opens in seconds; scrolling draws the rest, and the browser's find-in-page only finds rows that are drawn. In a narrow window the stages scroll sideways under the chapter names, which stay in view, with a shadow on the side that has more. **Rec.** is the audio
 on the chapter's confirmed track in the saved project (`1:12`, or `<0:01` for under a minute), and **Est.** beside it (`1:20`) is the
 chapter's finished length estimated from its words. Every column header is centred over its cells. When Rec. has no length, it says why: **None yet** (linked, nothing recorded),
-**Not linked**, **2+ tracks** (keep one in the track panel), **Track gone** (the linked track is no longer in the project), **No
+**No track**, **2+ tracks** (keep one in the track panel), **Track gone** (the linked track is no longer in the project), **No
 project** (no saved project could be read) or **Not read**. The Rec. cell's tip and its name for a screen reader also say how far the
 chapter is recorded, the place the [Booth](booth.md#where-you-stopped) reopens it at: *Recorded through ¶ 12 (38%)*, or *Recorded to
 the end*, with *about* when the figure comes only from the track's length.
+
+A ✓ in **Record** beside **No track** is not a contradiction: the tick is the chapter's stage, and you can set a stage by hand
+on a chapter that has no track, or keep it after unlinking the track. Nothing measures that chapter's audio until you link a track
+in its track panel, and the Record cell's tip says so.
 
 **Record**, **Edit** and **Proof** follow the chapter's stage, which you set (the row's status, or **Confirm** on its
 [readiness](#stage-readiness)); the app does not move a stage on by itself. They show a check mark (✓) for a stage done, a half
@@ -190,7 +194,7 @@ look is missing, the question also offers **Check with … only**, which checks 
 larger model** for the same choice up front).
 
 The chapters list each recorded chapter with its check state and last result. The options and the chapters scroll together when they do not fit, with a shadow at the edge that has more; **Audio to check** (the recorded time of the ticked chapters, or **Not measured**), the line that says what a check adds (skipped, changed or unclear lines become pickups) and **Cancel** and **Check** (it names how many chapters, as in **Check 1 chapter**) stay in view
-under them. It gives no estimate of how long the check will take. While it runs, a box of fixed size shows what the check is doing, and each chapter has its bar under its name with its own count (its chunks done, and the passages its re-check has finished). The box holds the overall bar, the phase (**First pass**, **First pass and re-check**, **Re-check**, **Finishing**), the models, the time so far and three figures; hover or focus a figure's icon for what it means. **Chunks** is the pieces of audio transcribed so far out of all of them; a recording shorter than the chunk length is one piece, and the tooltip says so, because one piece cannot run side by side with anything. **Workers** is the transcriptions running now out of the number the check really runs (what **Automatic** chose, or the number you set when fewer can be used). **Re-check** is the passages the larger model has looked at out of those sent to it so far (a trailing **+** means more may still come while the first pass runs), **None** when nothing was doubtful, **Waiting** before the first pass has found any, and **Off** when the check has no second look. Its tooltip names the model and why: words the first model was unsure of, places where it heard nothing, or, when so much was in doubt, whole recordings. The time is a clock, not an estimate: the passages for the larger model are only known as the first pass goes, so no end time is shown. A run of one chapter keeps the box, stopped, above that chapter's result. **Stop checking**, beside the line naming the model, stops the run; the chapter's Recording check card on Proof has the same **Stop checking**. Escape while it runs asks first. A run of one chapter ends on that chapter's result in the dialog; a run of several closes it with a message giving the totals. A chapter with a stored check has **Show result** in its row. Opened with no chapter in mind (Proof's all-chapters view), the dialog ticks the chapters whose check is not up to date.
+under them. It gives no estimate of how long the check will take. While it runs, a box of fixed size shows what the check is doing, and each chapter has its bar under its name with its own count (its chunks done, and the passages its re-check has finished). The box holds the overall bar, the phase (**First pass**, **First pass and re-check**, **Re-check**, **Finishing**), the models, the time so far and three figures; hover or focus a figure for what it means. **Chunks** is the pieces of audio transcribed so far out of all of them; a recording shorter than the chunk length is one piece, and the tooltip says so, because one piece cannot run side by side with anything. **Workers** is the transcriptions running now out of the number the check really runs (what **Automatic** chose, or the number you set when fewer can be used). **Re-check** is the passages the larger model has looked at out of those sent to it so far (a trailing **+** means more may still come while the first pass runs), **None** when nothing was doubtful, **Waiting** before the first pass has found any, and **Off** when the check has no second look. Its tooltip names the model and why: words the first model was unsure of, places where it heard nothing, or, when so much was in doubt, whole recordings. The time is a clock, not an estimate: the passages for the larger model are only known as the first pass goes, so no end time is shown. A run of one chapter keeps the box, stopped, above that chapter's result. **Stop checking**, beside the line naming the model, stops the run; the chapter's Recording check card on Proof has the same **Stop checking**. Escape while it runs asks first. A run of one chapter ends on that chapter's result in the dialog; a run of several closes it with a message giving the totals. A chapter with a stored check has **Show result** in its row. Opened with no chapter in mind (Proof's all-chapters view), the dialog ticks the chapters whose check is not up to date.
 
 ![Proof - a recording check running: the activity box with the chunks done, the workers busy and the larger model's re-check](../../images/ui/proof-check-recordings-running.webp)
 
@@ -210,8 +214,8 @@ chapter's own figures (text present, paragraphs fully read, audio checked, pace 
 again** and **Open in Editing**. Under that, **Pickups** lists only the check's own interior gaps worth reading again on their own —
 a skipped block, a short read or different text read — each with its paragraphs, word count, first and last missing words, where
 the gap sits in the audio, and **Go to paragraph** to open the manuscript there. An unread start or end is unfinished recording, not
-a pickup, so it never appears in that list. Below the check's own gaps, **Repeated reads (Proof)** shows the chapter's unreviewed
-take-review pickups as a count with **Open Proof**, or "none waiting", and **Pickup list** shows the open lines of the Pickups list
+a pickup, so it never appears in that list. Below the check's own gaps, **Pickup notes (Proof)** shows the chapter's other unreviewed
+pickup notes as a count with **Open Proof**, which opens Proof on that chapter, or "none waiting", and **Pickup list** shows the open lines of the Pickups list
 as one project-wide count with **Open pickups** ("open REAPER to count" when REAPER is not running). **Paragraph detail** stays
 folded by default. **Back to chapters** returns to the form and **Done** closes the dialog. On Proof the same check's findings are
 on the [Recording check card](proof.md#one-chapter), each to accept or ignore. Misreads, false starts, retakes and a spoken chapter
@@ -290,7 +294,9 @@ ticked: a section you leave out is missing from both the HTML page and the JSON 
 ticked, so a reader can tell a section left out from one that is empty.
 
 **Export** writes the HTML page and the JSON file into this project's <!-- brand:identity.projectFolder -->narration-studio<!-- /brand -->/production/reports folder, under a name built
-from when you exported it, and an export never overwrites an earlier one.
+from when you exported it, and an export never overwrites an earlier one. Once it is written, the open-folder button beside the file names shows that folder in your file manager.
+
+![The Export status report dialog after Export: the written files and the open-folder button beside them](../../images/ui/production-report-written.webp)
 
 The contracted amount and effective rate are left out unless you tick their box: a
 status report is often handed to someone else — a publisher, a collaborator, a rights holder

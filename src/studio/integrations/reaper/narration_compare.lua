@@ -247,6 +247,7 @@ return function(registry)
       reaper.SelectAllMediaItems(0, false)
       reaper.SetMediaItemSelected(row.item, true)
       reaper.SetEditCurPos(row.project_time, true, false)
+      core.cursor_moved()
       reaper.UpdateArrange()
     else
       event(ctx.session_dir, 'ERROR', args[1] or '', 'Marker location is no longer available.')

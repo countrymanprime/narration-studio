@@ -11,10 +11,10 @@ import (
 
 // The punch-and-roll anchor poll (owner decision
 // 2026-09-23: live anchors first). While a live session is reading a manuscript chapter, this loop asks REAPER's
-// play position (dawport.Puncher, the same role "Punch from here" resolves through) every punchAnchorPollInterval and
-// pairs it with the word the reader is on (teleprompter.Service.CurrentWord), so a later punch can resolve any word's
-// project time from teleprompter.ResolveWordTime. It changes nothing in REAPER (PlayPosition is read-only) and never
-// surfaces a failure to the narrator: a missed poll just leaves that stretch of the chapter to the alignment fallback.
+// play position (dawport.Puncher) every punchAnchorPollInterval and pairs it with the word the reader is on
+// (teleprompter.Service.CurrentWord), recording an anchor teleprompter.ResolveWordTime can place a word from. The
+// anchor-based punch that read them was removed (#2754), so nothing reads the anchors now. It changes nothing in
+// REAPER (PlayPosition is read-only) and never surfaces a failure to the narrator.
 
 // punchAnchorPollInterval bounds how often the loop asks REAPER: each call costs about 50-100ms through the file
 // bridge (bridge/punch.go), so this stays well above that, at a granularity that still brackets most punch targets

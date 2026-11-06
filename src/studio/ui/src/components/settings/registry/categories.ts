@@ -31,6 +31,7 @@ export const CATEGORIES: readonly Category[] = [
     group: 'Shared tools',
     icon: 'delivery',
     blurb: 'The standard this project is judged against, and the limits it carries.',
+    blurbWithoutProject: 'The standard a project is judged against, and the limits it carries.',
   },
   {
     id: 'project',
@@ -38,6 +39,7 @@ export const CATEGORIES: readonly Category[] = [
     group: 'This project',
     icon: 'book',
     blurb: 'The open project’s manuscript, vocabulary, narrator and credits.',
+    blurbWithoutProject: 'Settings for a project. Open a project to change them.',
   },
   {
     id: 'appearance',

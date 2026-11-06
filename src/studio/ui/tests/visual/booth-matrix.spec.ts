@@ -2,9 +2,11 @@
 // Booth can be given. Not a screenshot test. Each case names what it drives and asserts what the narrator sees and what the DAW holds; any page
 // error or console error fails it.
 import { expect, test, type Page } from '@playwright/test';
+import { showChapterTop } from './helpers/viewTop';
 import { pastStartGuard } from './helpers/startGuard';
 import { settlePage } from './helpers/settle';
 import { goToPage } from './drivers/shared';
+import { assertOverlayIsTopmost } from './helpers/overlayGuard';
 
 const record = (page: Page) => page.getByRole('button', { name: /^Record$/ });
 const stop = (page: Page) => page.getByRole('button', { name: /^Stop$/ });
@@ -106,8 +108,8 @@ test.describe('with a take running', () => {
   test("Levels: Input level is off and says why; Monitor level moves the DAW's level, and a refusal puts it back with the DAW's sentence", async ({ page }) => {
     const errors = watch(page);
     await openBooth(page, ``);
-    await page.getByRole('button', { name: 'Levels' }).click();
-    const popup = page.getByRole('dialog', { name: 'Levels' });
+    await page.getByRole('button', { name: 'Record options' }).click();
+    const popup = page.getByRole('dialog', { name: 'Record options' });
     const input = popup.getByRole('slider', { name: 'Input level' });
     await expect(input).toBeDisabled();
     await expect(popup.getByText(/cannot set an audio interface's input gain/)).toBeVisible();
@@ -140,11 +142,11 @@ test.describe('with a take running', () => {
       const errors = watch(page);
       await page.setViewportSize(size);
       await openBooth(page, ``);
-      await page.getByRole('button', { name: 'Levels' }).click();
-      const popup = page.getByRole('dialog', { name: 'Levels' });
+      await page.getByRole('button', { name: 'Record options' }).click();
+      const popup = page.getByRole('dialog', { name: 'Record options' });
       await expect(popup.getByRole('slider', { name: 'Monitor level (output)' })).toBeVisible();
       const result = await page.evaluate(() => {
-        const el = document.querySelector('[role="dialog"][aria-label="Levels"], [role="dialog"]')!;
+        const el = document.querySelector('[role="dialog"][aria-label="Record options"], [role="dialog"]')!;
         const dialogs = [...document.querySelectorAll<HTMLElement>('[role="dialog"]')].find((d) => d.textContent?.includes('Monitor level'))!;
         const r = (dialogs ?? el).getBoundingClientRect();
         const points = [
@@ -171,6 +173,57 @@ test.describe('with a take running', () => {
       expect(result.right).toBeLessThanOrEqual(result.vw + 1);
       expect(result.bottom).toBeLessThanOrEqual(result.vh + 1);
       await page.keyboard.press('Escape');
+      await expect(popup).toBeHidden();
+      expect(errors).toEqual([]);
+    });
+  }
+
+  // Every control of the record bar stays inside a narrow window, in a flat chapter and with the voice control (qa-breaker B2).
+  for (const [size, query] of [
+    [{ width: 360, height: 500 }, ''],
+    [{ width: 320, height: 300 }, ''],
+    [{ width: 360, height: 500 }, '?mockVoiceFolders=1'],
+    [{ width: 320, height: 300 }, '?mockVoiceFolders=1'],
+  ] as const) {
+    test(`the record bar's controls are inside a ${size.width}x${size.height} window${query ? ' with the voice control' : ''}`, async ({ page }) => {
+      const errors = watch(page);
+      await page.setViewportSize(size);
+      await openBooth(page, query);
+      if (query) await expect(page.locator('#bvoice')).toBeVisible();
+      const outside = await page.evaluate(() =>
+        [...(document.getElementById('btimer')?.parentElement?.querySelectorAll<HTMLElement>('button') ?? [])]
+          .filter((el) => {
+            const r = el.getBoundingClientRect();
+            return r.width > 0 && (r.left < -1 || r.right > innerWidth + 1);
+          })
+          .map((el) => `${el.id || el.textContent?.trim()} at ${Math.round(el.getBoundingClientRect().left)}-${Math.round(el.getBoundingClientRect().right)}`),
+      );
+      expect(outside, 'controls leaving the window').toEqual([]);
+      expect(errors).toEqual([]);
+    });
+  }
+
+  // The voice list opens upward from the record bar, beside Cold read, and lists every voice of the chapter's folder (phase 4b, #2251).
+  for (const size of [
+    { width: 1440, height: 900 },
+    { width: 400, height: 700 },
+    { width: 360, height: 500 },
+    { width: 320, height: 300 },
+  ]) {
+    test(`the voice list is the topmost layer and fully on screen at ${size.width}x${size.height}`, async ({ page }) => {
+      const errors = watch(page);
+      await page.setViewportSize(size);
+      await openBooth(page, '?mockVoiceFolders=1');
+      const opener = page.getByRole('button', { name: /^Voice:.*Narrator/ });
+      const popup = page.getByRole('dialog', { name: 'Voices' });
+      await assertOverlayIsTopmost(
+        page,
+        async () => {
+          await opener.click();
+          await expect(popup.getByRole('option', { name: /Extras/ })).toBeVisible();
+        },
+        { root: popup, label: 'the voice list' },
+      );
       await expect(popup).toBeHidden();
       expect(errors).toEqual([]);
     });
@@ -203,15 +256,22 @@ test.describe('with a take running', () => {
     expect(errors).toEqual([]);
   });
 
-  test('the setup chip asks before it leaves, and Keep recording changes nothing', async ({ page }) => {
+  test('the setup chip opens the Audio engine panel over the take, and its Recording settings asks before it leaves; Keep recording changes nothing', async ({
+    page,
+  }) => {
     const errors = watch(page);
     await takeRunning(page);
     await page.getByRole('button', { name: /^Recording setup: REAPER/ }).click();
+    const panel = page.getByRole('dialog', { name: 'Audio engine' });
+    await expect(panel).toBeVisible();
+    expect((await daw(page))?.recording).toBe(true);
+    await panel.getByRole('button', { name: 'Recording settings' }).click();
     const question = page.getByRole('alertdialog', { name: 'Stop recording?' });
     await expect(question).toBeVisible();
     await question.getByRole('button', { name: 'Keep recording' }).click();
     await expect(question).toBeHidden();
     await expect(stop(page)).toBeVisible();
+    expect((await daw(page))?.recording).toBe(true);
     expect(errors).toEqual([]);
   });
 
@@ -244,6 +304,7 @@ test.describe('with a take running', () => {
   test('the right-click menu holds the take while it is open and lets go when it closes', async ({ page }) => {
     const errors = watch(page);
     await takeRunning(page);
+    await showChapterTop(page);
     await page.locator('[data-word]').nth(40).click({ button: 'right' });
     await expect(page.getByRole('menu').last()).toBeVisible();
     await expect(page.getByText('REC · reading paused', { exact: true })).toBeVisible();
@@ -542,11 +603,11 @@ test.describe('the worst inputs', () => {
   });
 
   for (const mics of ['0', '1', '50', 'weird', 'long', 'unbroken'] as const) {
-    test(`${mics} microphone(s) in Levels: listed or explained, inside the window, and the popover closes`, async ({ page }) => {
+    test(`${mics} microphone(s) in Record options: listed or explained, inside the window, and the popover closes`, async ({ page }) => {
       const errors = watch(page);
       await openBooth(page, `?mockMics=${mics}`);
-      await page.getByRole('button', { name: 'Levels' }).click();
-      const popup = page.getByRole('dialog', { name: 'Levels' });
+      await page.getByRole('button', { name: 'Record options' }).click();
+      const popup = page.getByRole('dialog', { name: 'Record options' });
       await expect(popup).toBeVisible();
       const box = await popup.boundingBox();
       const viewport = page.viewportSize()!;

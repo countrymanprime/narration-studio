@@ -136,6 +136,16 @@ end
 
 -- 1. stack-makes-later-reads-takes-of-the-first-item --------------------------------------------------------------
 
+H.test('the Cuts track goes at the top level even when the project ends inside an open folder, and no track changes folder', function()
+  local s, p = project()
+  p.chapter.folder_depth = 1
+  local before = H.parents(s)
+  s:send('stack_takes', 's1', payload(s, 'stack.txt', stack_lines()))
+  H.eq(s:events()[1][1], 'TAKES_STACKED')
+  local after = H.same_parents(before, s)
+  H.eq(after.Cuts, '')
+end)
+
 H.test('stack-makes-later-reads-takes-of-the-first-item: each retry is a take of the first item, in one undo block', function()
   local s, p = project()
   s:send('stack_takes', 's1', payload(s, 'stack.txt', stack_lines()))

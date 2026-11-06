@@ -321,6 +321,16 @@
       "kind": "bool",
       "label": "Debug logging (writes decision records to the run log)",
       "value": ""
+    },
+    {
+      "choices": null,
+      "effectiveSource": "repo_default",
+      "effectiveValue": "false",
+      "isSet": false,
+      "key": "activity_trace",
+      "kind": "bool",
+      "label": "Activity trace (writes how the app behaved, never your content, to logs/trace.jsonl)",
+      "value": ""
     }
   ],
   "Keymap": [
@@ -507,28 +517,6 @@
         "step": 0.1,
         "unit": "s"
       },
-      "value": ""
-    }
-  ],
-  "ReadAloud": [
-    {
-      "choices": null,
-      "effectiveSource": "hardcoded",
-      "effectiveValue": "",
-      "isSet": false,
-      "key": "record_in_reaper",
-      "kind": "bool",
-      "label": "Record in REAPER",
-      "value": ""
-    },
-    {
-      "choices": null,
-      "effectiveSource": "hardcoded",
-      "effectiveValue": "",
-      "isSet": false,
-      "key": "record_confirmed",
-      "kind": "bool",
-      "label": "Seen the Record in REAPER confirm",
       "value": ""
     }
   ],

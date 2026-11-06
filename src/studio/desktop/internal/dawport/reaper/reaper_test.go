@@ -109,15 +109,20 @@ var experimentalCapability = map[string]dawport.Capability{
 	"chapter_track_state": dawport.CapTrackState,
 	"select_track":        dawport.CapTrackSelect,
 	"track_create":        dawport.CapTrackCreate,
+	"chapter_folders":     dawport.CapTrackCreate,
+	"tracks_read":         dawport.CapTracksRead,
 	"arm_only":            dawport.CapRecord,
 	"record_start":        dawport.CapRecord,
 	"record_stop":         dawport.CapRecord,
+	"switch_voice":        dawport.CapRecord,
 	"set_active_take":     dawport.CapTakes,
 	"hide_takes":          dawport.CapTakes,
 	"split_take":          dawport.CapTakes,
 	"list_fx_chains":      dawport.CapFXChains,
 	"apply_fx_chain":      dawport.CapFXChains,
 	"create_regions":      dawport.CapRegions,
+	"keep_voice_sample":   dawport.CapVoiceSampleRegion,
+	"read_voice_samples":  dawport.CapVoiceSampleRegion,
 	"play_position":       dawport.CapPunch,
 	"roll":                dawport.CapPunch,
 	"punch_to":            dawport.CapPunch,
@@ -158,14 +163,13 @@ var experimentalCapability = map[string]dawport.Capability{
 var supportedCommands = map[string]dawport.Capability{
 	"prepare_compare": dawport.CapReview, "inspect_compare_results": dawport.CapReview,
 	"jump_to_compare_marker": dawport.CapReview, "export_compare_markers": dawport.CapReview,
-	"import_pickups": dawport.CapPickups, "export_pickups": dawport.CapPickups, "next_pickup": dawport.CapPickups,
+	"import_pickups": dawport.CapPickups, "export_pickups": dawport.CapPickups,
 	"resolve_pickup": dawport.CapPickups, "count_pickups": dawport.CapPickups,
 	"stamp_item_lines": dawport.CapLineIdentity, "read_line_ids": dawport.CapLineIdentity,
 	"configure_chapter_render": dawport.CapRenderConfig,
 	"launch_cleanup_tool":      dawport.CapCleanupTools,
 	"pick_retake_lane":         dawport.CapRetakeLanes,
 	"project_state":            dawport.CapProjectState,
-	"create_take":              dawport.CapTakeCreate,
 }
 
 // experimentalCommandsInSource reads the keys of bridge.experimentalCommands from actions.go itself, so a command added to (or
@@ -258,17 +262,18 @@ func TestTheDeclarationMatchesTodaysGating(t *testing.T) {
 func TestTheSynchronousRolesAreTodaysTypes(t *testing.T) {
 	adapter, _ := newAdapter(t, nil)
 	for c, want := range map[dawport.Capability]string{
-		dawport.CapReview:     "reaper.review",
-		dawport.CapNavigate:   "*bridge.Navigator",
-		dawport.CapMarkers:    "*bridge.Navigator",
-		dawport.CapHeartbeat:  "*daw.Reachability",
-		dawport.CapTrackState: "*bridge.Actions",
-		dawport.CapRecord:     "*bridge.Actions",
-		dawport.CapPunch:      "reaper.puncher",
-		dawport.CapRegions:    "*bridge.Actions",
-		dawport.CapTakes:      "reaper.takeSelector",
-		dawport.CapFXChains:   "*bridge.Actions",
-		dawport.CapItemGain:   "*bridge.LevelMatchClient",
+		dawport.CapReview:            "reaper.review",
+		dawport.CapNavigate:          "*bridge.Navigator",
+		dawport.CapMarkers:           "*bridge.Navigator",
+		dawport.CapHeartbeat:         "*daw.Reachability",
+		dawport.CapTrackState:        "*bridge.Actions",
+		dawport.CapRecord:            "*bridge.Actions",
+		dawport.CapPunch:             "reaper.puncher",
+		dawport.CapRegions:           "*bridge.Actions",
+		dawport.CapVoiceSampleRegion: "*bridge.Actions",
+		dawport.CapTakes:             "reaper.takeSelector",
+		dawport.CapFXChains:          "*bridge.Actions",
+		dawport.CapItemGain:          "*bridge.LevelMatchClient",
 	} {
 		if got := typeName(adapter.Role(c)); got != want {
 			t.Errorf("%s's role is %s, want %s", c, got, want)
@@ -276,6 +281,13 @@ func TestTheSynchronousRolesAreTodaysTypes(t *testing.T) {
 	}
 	if adapter.Role(dawport.CapNavigate) != adapter.Role(dawport.CapMarkers) {
 		t.Error("navigate and markers have different navigators: one client subscription each is enough")
+	}
+	// A Voice folders chapter is a folder (#2840): REAPER's track_create role adds one, and a voice inside one.
+	if _, ok := adapter.Role(dawport.CapTrackCreate).(dawport.FolderTrackCreator); !ok {
+		t.Error("REAPER's track_create role cannot add a chapter folder")
+	}
+	if _, ok := adapter.Role(dawport.CapTrackCreate).(dawport.ChildTrackCreator); !ok {
+		t.Error("REAPER's track_create role cannot add a voice inside a folder")
 	}
 }
 
@@ -1394,5 +1406,32 @@ func TestFXRangeEditsAreGatedByTheResolverAndSendNothingWhenRefused(t *testing.T
 	}
 	if n := len(sentCommands(t, dir)); n != 0 {
 		t.Errorf("a refused edit wrote %d commands", n)
+	}
+}
+
+// A stack or un-stack that names the chapter's folder carries it to the script, and a folder REAPER no longer has is stale.
+func TestStackingInAFolderCarriesItAndAGoneFolderIsStale(t *testing.T) {
+	client, dir := newClient(t)
+	adapter, err := New(client, func(dawport.Capability) error { return nil })
+	if err != nil {
+		t.Fatal(err)
+	}
+	var payload string
+	answerCommands(t, client, dir, func(command []string) [][]string {
+		content, _ := os.ReadFile(command[2])
+		payload = string(content)
+		return [][]string{{"TRACK_STALE", command[1], "{F0000000-0000-4000-8000-0000000000F1}"}}
+	})
+	stacker := adapter.Role(dawport.CapStackTakes).(dawport.TakeStacker)
+	request := dawport.StackRequest{ChapterID: "ch-1", Shift: -5, ChapterTrack: "{F0000000-0000-4000-8000-0000000000F1}", Groups: []dawport.StackGroup{{
+		ItemGUID: "{A0000001-0000-4000-8000-000000000001}", Base: "{A0000002-0000-4000-8000-000000000002}",
+		Moves: []dawport.StackMove{{TakeID: "{A0000004-0000-4000-8000-000000000004}", From: 16, To: 10, Len: 4}},
+	}}}
+	got, err := stacker.StackTakes(t.Context(), request)
+	if err != nil || got.OK || got.Refused != messageFolderStale {
+		t.Fatalf("StackTakes = %+v, %v; want the stale-folder sentence", got, err)
+	}
+	if !strings.Contains(payload, "folder|{F0000000-0000-4000-8000-0000000000F1}") {
+		t.Errorf("payload = %q; want the folder line", payload)
 	}
 }

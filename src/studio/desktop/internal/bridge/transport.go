@@ -19,15 +19,17 @@ var (
 	ErrAlreadyRecording     = errors.New("REAPER is already recording")
 	ErrRecordingDidNotStart = errors.New("REAPER did not start recording")
 	ErrNotOurRecording      = errors.New("REAPER is not recording anything this app started, so nothing was stopped")
+	ErrRecordingNotStarted  = errors.New("REAPER has not started recording yet")
 )
 
 var refusals = map[string]error{
-	"No track is armed.":                ErrNoTrackArmed,
-	"More than one track is armed.":     ErrSeveralTracksArmed,
-	"Another track is armed.":           ErrOtherTrackArmed,
-	"REAPER is playing. Stop it first.": ErrPlaying,
-	"REAPER is already recording.":      ErrAlreadyRecording,
-	"REAPER did not start recording.":   ErrRecordingDidNotStart,
+	"No track is armed.":                    ErrNoTrackArmed,
+	"More than one track is armed.":         ErrSeveralTracksArmed,
+	"Another track is armed.":               ErrOtherTrackArmed,
+	"REAPER is playing. Stop it first.":     ErrPlaying,
+	"REAPER is already recording.":          ErrAlreadyRecording,
+	"REAPER did not start recording.":       ErrRecordingDidNotStart,
+	"REAPER has not started recording yet.": ErrRecordingNotStarted,
 }
 
 // Armed is what arm_only did: the track it armed, how many others it disarmed, and whether anything changed.
@@ -46,11 +48,16 @@ type StartRule string
 const (
 	StartHere StartRule = ""
 	AtEnd     StartRule = "end"
+	// ChapterEnd is AtEnd for a chapter linked to a folder of voices (RecordOptions.Folder names it): the end is the latest item of the
+	// folder and every track inside it, and the cursor stays where the chapter last stopped, on whichever voice.
+	ChapterEnd StartRule = "chapter_end"
 )
 
 // RecordOptions is what RecordStart is asked besides the track.
 type RecordOptions struct {
 	Start StartRule
+	// Folder is the chapter's folder track GUID, sent with ChapterEnd and ignored by every other rule.
+	Folder string
 }
 
 // RecordStarted is the track REAPER records on and the edit cursor where recording began, in seconds.
@@ -98,6 +105,9 @@ func (a *Actions) RecordStart(ctx context.Context, trackGUID string, opts Record
 	args := []string{trackGUID}
 	if opts.Start != StartHere {
 		args = append(args, string(opts.Start))
+		if opts.Start == ChapterEnd {
+			args = append(args, opts.Folder)
+		}
 	}
 	events, err := a.request(ctx, "record_start", []string{"RECORD_STARTED", "TRACK_STALE"}, args...)
 	if err != nil {
@@ -131,6 +141,35 @@ func (a *Actions) RecordStop(ctx context.Context) (RecordStopped, error) {
 		return RecordStopped{}, ErrNotOurRecording
 	}
 	return RecordStopped{Restored: int(numberAt(event.Fields, 2)), Kept: int(numberAt(event.Fields, 3)), UndoPoints: int(numberAt(event.Fields, 4))}, nil
+}
+
+// VoiceSwitched is the voice track REAPER records on after SwitchVoice and the play position of the switch, in seconds.
+type VoiceSwitched struct {
+	TrackGUID string
+	At        float64
+}
+
+// SwitchVoice moves the recording the app started to the voice track trackGUID names while REAPER keeps recording
+// (switch_voice in narration_transport.lua, decision E1 of docs/research/2026-10-30-booth-sub-track-recording.md): the
+// new track is armed and the old one disarmed together, and the take stays one undo point. A recording the app did not
+// start is ErrNotOurRecording, one REAPER has not started yet is ErrRecordingNotStarted, and a track that is gone is a
+// *TrackStaleError, the old voice still recording.
+func (a *Actions) SwitchVoice(ctx context.Context, trackGUID string) (VoiceSwitched, error) {
+	events, err := a.request(ctx, "switch_voice", []string{"VOICE_SWITCHED", "RECORD_NOT_OURS", "TRACK_STALE"}, trackGUID)
+	if err != nil {
+		return VoiceSwitched{}, err
+	}
+	event := events[len(events)-1]
+	switch event.Tag {
+	case "RECORD_NOT_OURS":
+		return VoiceSwitched{}, ErrNotOurRecording
+	case "TRACK_STALE":
+		return VoiceSwitched{}, &TrackStaleError{GUID: event.Fields[2]}
+	}
+	if event.Fields[2] != normalizeGUID(trackGUID) {
+		return VoiceSwitched{}, fmt.Errorf("REAPER switched to another track than the one this app asked for")
+	}
+	return VoiceSwitched{TrackGUID: event.Fields[2], At: numberAt(event.Fields, 3)}, nil
 }
 
 // OnRecordEnded sets the function told when a recording the app started stops without RecordStop. It runs on its own

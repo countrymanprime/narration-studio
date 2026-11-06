@@ -32,7 +32,7 @@ Details, including the Git hooks and CI, are in [CI and releases](docs/operation
    viewport and run `pnpm --dir src/studio/ui atlas`. If you changed `src/studio/integrations/reaper` (Lua), the bridge harness in `pnpm run check` covers its protocol, but
    REAPER's own API behaviour is only checked by hand inside REAPER.
 3. Open a pull request whose **title is a Conventional Commit** (`feat: …`, `fix(scope): …`). It becomes the squash
-   commit and decides the next version. Put `Closes #<issue>` in the description and fill in the template.
+   commit and decides the next version. Put `Closes #<issue>` in the description for every issue it fully resolves (`Refs #<issue>` for one it only touches, `Issue: none — <reason>` for none) and fill in the template.
 4. Update the docs your change owes. CI fails a change to mapped code that touches none of its docs, unless the description says `Docs: none — <reason>` ([Documentation gates](docs/operations/documentation-gates.md)).
    [Which document](docs/README.md#which-document) says where each kind of fact goes: a file the app writes and reads
    back goes in [data files](docs/reference/data-files.md), a new way untrusted data reaches the app goes in the
@@ -71,9 +71,9 @@ images the repository keeps, and a pull request does not carry a set of its own:
   it names, and links the guide diff. A change to a page that owes the guide nothing says
   `No guide change: <specific reason>`; the `Guide impact` step of `Docs / Docs checks` fails without one of the two
   ([Documentation gates](docs/operations/documentation-gates.md)).
-- **Compared with the mock.** A page built to the Studio Next mock (`docs/research/mockups/studio-next/`) is compared with
-  the mock's page in the same state and theme; the mock's `e2e/` Playwright scripts capture it. Put that comparison in a
-  comment on the pull request when the owner asks for it.
+- **Compared with the mock.** The Studio Next mock was deleted from the tree. A page built to it is compared with the
+  mock's page in the same state and theme, read from history ([Reading the deleted mock](docs/operations/verification-tooling.md#reading-the-deleted-studio-next-mock)).
+  Put that comparison in a comment on the pull request when the owner asks for it.
 - **The sweep.** `node scripts/dev/guide-screenshots.mjs --all` also runs as a periodic sweep, to catch an image that a
   change to a shared component moved on a page it did not name.
 

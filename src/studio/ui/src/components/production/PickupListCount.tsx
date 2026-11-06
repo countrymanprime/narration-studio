@@ -8,7 +8,7 @@ import { PICKUP_SOURCE_ROW } from './pickupSourceRow';
  * ambiguous when chapter tracks overlap in time, and needs the owner's real project layout to be safe. `remaining`
  * is the same figure the Pickups page (`/pickups`) shows, from the bridge's `pickupsCount`/`pickupsState`; that needs
  * REAPER running, so `available` false (the `pickups` DAW capability) reads a plain instruction instead of a stale
- * or wrong number. Always shown, like `TakeReviewPickups` above it, so the narrator can tell there is nothing to
+ * or wrong number. Always shown, like `ProofPickupNotes` above it, so the narrator can tell there is nothing to
  * chase rather than a missing line (RS8: its own label, a different pickup source from the check's own gaps).
  */
 export function PickupListCount({ available, remaining }: { available: boolean; remaining?: number }) {

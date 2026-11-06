@@ -117,7 +117,6 @@ export function simulateDaw(base: NarrationApi): SimulatedDaw {
     },
     pickupsExport: () => note('pickup', 'Pickup markers read out of the project'),
     pickupsListMarkers: () => note('pickup', 'Pickup markers listed from the project'),
-    pickupsNext: () => note('pickup', 'Cursor moved to the next open pickup'),
     pickupsResolve: ([position]) => note('pickup', `Pickup at ${clock(Number(position))} marked done in the project`),
     pickupsReopen: ([position]) => note('pickup', `Pickup at ${clock(Number(position))} put back to open`),
     pickupsImport: () => note('pickup', 'Pickup markers imported into the project'),

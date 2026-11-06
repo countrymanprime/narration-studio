@@ -110,7 +110,7 @@ var builtinDefaults = map[string]Values{
 	// docs/architecture/native-notifications.md). debug_logging defaults
 	// off: decision records are opt-in, on the Settings page or with
 	// NARRATION_DEBUG=1.
-	"General": {"log_verbosity": "normal", "notifications": "true", "close_import_when_done": "true", "credits_room_tone_seconds": "0", "debug_logging": "false"},
+	"General": {"log_verbosity": "normal", "notifications": "true", "close_import_when_done": "true", "credits_room_tone_seconds": "0", "debug_logging": "false", "activity_trace": "false"},
 	// build_after_import defaults on: the Story Bible is built after import unless the narrator opts out.
 	// analysis_prompt defaults to ask: the optional analysis tools are offered until the narrator chooses "Don't ask again" (basic).
 	"ManuscriptGuide": {"spacy_model": "en_core_web_sm", "build_after_import": "true", "analysis_prompt": "ask"},
@@ -160,20 +160,6 @@ var builtinDefaults = map[string]Values{
 		"proofing.delivery.noise_floor_dbfs": "required", "proofing.delivery.sample_rate": "required",
 		"proofing.delivery.duration_seconds": "required", "proofing.delivery.head_room_tone_seconds": "required",
 		"proofing.delivery.tail_room_tone_seconds": "required", "proofing.delivery.render_length": "required",
-	},
-	// TakeReview holds the pickup/duplicate detector's thresholds and
-	// scan-scope settings (internal/takereview), layered like every
-	// other tool here. Thresholds mirror repeats.DefaultThresholds();
-	// pickup_track_name and the pickup_range pair are mutually exclusive
-	// narrator-designated additions to the chapter track's own items
-	// and both default empty (no pickup scope beyond the
-	// chapter track).
-	"TakeReview": {
-		"full_coverage_threshold":          "0.9",
-		"near_duplicate_quality_threshold": "0.97",
-		"pickup_track_name":                "",
-		"pickup_range_start_seconds":       "",
-		"pickup_range_end_seconds":         "",
 	},
 	// Preview mirrors preview.DefaultSettings (docs/architecture/preview-suggestion.md):
 	// 5:00 target, 10% tolerance, the Sample preset, ending exclusion off.

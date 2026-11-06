@@ -9,11 +9,14 @@ site_url: https://countrymanprime.github.io/narration-studio/
 docs_dir: ../../docs
 # The mocks are web apps (each index.html collides with its README.md); they are never published (include.txt).
 exclude_docs: |
-  research/mockups/studio-next/
   research/mockups/voice-samples/
   research/mockups/story-bible-entry-list/
   research/mockups/replace-audio/
   research/mockups/booth-cold-read/
+  research/mockups/booth-voices/
+  research/mockups/master-to-spec-entry/
+  research/mockups/approval-fx-chain/
+  research/mockups/settings-parity/
 site_dir: build/site
 strict: true
 

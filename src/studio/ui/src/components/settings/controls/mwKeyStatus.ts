@@ -2,8 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { usePort } from '../../../ports/usePort';
 import type { PronunciationOnlineKeyStatus } from '../../../types';
 
-export const MW_KEY_CHANGED = 'narration:mw-key-changed';
-const CHANGED = MW_KEY_CHANGED;
+const CHANGED = 'narration:mw-key-changed';
 
 /** Tells the other bodies on the page that the Merriam-Webster key was saved or removed. */
 export const announceKeyChanged = () => window.dispatchEvent(new Event(CHANGED));

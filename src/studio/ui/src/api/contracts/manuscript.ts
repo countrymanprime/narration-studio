@@ -85,18 +85,24 @@ export type ManuscriptNote = {
   anchorText?: string;
 };
 export type ReaderState = { activeChapter?: string; activeSourceLine?: number; expandedChapters?: string[] };
-// `matchStart` is the excerpt's own match offset (UTF-16 code units), added for the windowing helper
-// - additive, so no hostAPIVersion bump (this shape carries inside a map[string]any-style payload, not a fixed
-// binding signature).
-export type SearchHit = {
+/** The longest term `manuscriptSearch` takes, in UTF-16 units (a JS string's length) after trimming: the host's MaxSearchTermLength. */
+export const MANUSCRIPT_SEARCH_TERM_MAX = 500;
+/** One place a search term appears in a hit's excerpt: JS string indices (UTF-16 code units), end exclusive. */
+export type ManuscriptSearchMatch = { start: number; end: number };
+/** A paragraph that holds the term (manuscript/search.go), with every match in it that the result sends. `excerpt` is the paragraph's text. */
+export type ManuscriptSearchHit = {
   chapter: string;
-  chapterId?: string;
+  chapterId: string;
   paragraph: number;
-  paragraphId?: string;
-  sourceLine?: number;
+  paragraphId: string;
   excerpt: string;
-  matchStart?: number;
+  matches: ManuscriptSearchMatch[];
 };
+/**
+ * The whole book's matches in book order, skipping front matter and reference chapters. `total` counts every match; `truncated` is
+ * true when `hits` hold fewer than `total` because the host stopped at its cap.
+ */
+export type ManuscriptSearchResult = { hits: ManuscriptSearchHit[]; total: number; truncated: boolean };
 export type ManuscriptImportSection = {
   id: string;
   title: string;
@@ -148,11 +154,10 @@ export type ManuscriptImportPreview = {
 export type ManuscriptFileSelection = { selected: boolean; jobId?: string };
 /** The `manuscript:dropped` event: what became of a file dropped on the import's drop zone. The host checks the file and starts the import itself, so it names the file and the job, never the path. */
 export type ManuscriptDropped = { jobId: string; name: string } | { message: string };
-export type ManuscriptReader = { chapters: ManuscriptChapter[]; paragraphs: ManuscriptParagraph[]; notes: ManuscriptNote[] };
 export type WorkJob = {
   id: string | null;
-  /** The wire kinds are the first two; the others are client-side jobs shown in the same work dialog (a download, the update, a recording check, the pickup and duplicate scan, the take comparison). */
-  kind: 'manuscript_import' | 'story_bible' | 'app_update' | 'asset_install' | 'recording_coverage' | 'take_review' | 'take_comparison';
+  /** The wire kinds are the first two; the others are client-side jobs shown in the same work dialog (a download, the update, a recording check). */
+  kind: 'manuscript_import' | 'story_bible' | 'app_update' | 'asset_install' | 'recording_coverage';
   phase: 'idle' | 'preparing' | 'ready' | 'committing' | 'running' | 'success' | 'cancelled' | 'error';
   message: string;
   percent: number;
@@ -179,7 +184,8 @@ export interface ManuscriptApi {
   clearProjectData(): Promise<void>;
   manuscriptChapters(): Promise<ManuscriptChapter[]>;
   manuscriptParagraphs(chapter: string): Promise<ManuscriptParagraph[]>;
-  manuscriptSearch(query: string): Promise<SearchHit[]>;
+  /** Searches the whole book, ignoring case; refused for a term over MANUSCRIPT_SEARCH_TERM_MAX characters after trimming. */
+  manuscriptSearch(query: string): Promise<ManuscriptSearchResult>;
   manuscriptSetChapterStatus(chapter: string, status: ChapterStatus): Promise<ManuscriptChapter>;
   /**
    * Remove a chapter from recording (`reference`, or `opening` for Front Matter) or Restore it (`narration`). Nothing is
@@ -187,6 +193,5 @@ export interface ManuscriptApi {
    */
   manuscriptSetChapterKind(chapterId: string, kind: ManuscriptContentKind): Promise<ManuscriptChapterKindResult>;
   noteList(chapter?: string): Promise<ManuscriptNote[]>;
-  manuscriptReader(): Promise<ManuscriptReader>;
   readerState(): Promise<ReaderState>;
 }

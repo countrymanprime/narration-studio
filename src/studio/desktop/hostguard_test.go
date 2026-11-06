@@ -38,7 +38,7 @@ var swappableHostFields = map[string]bool{
 	"reachability":     true,
 	"bridge":           true,
 	"navigation":       true,
-	"takeCreator":      true,
+	"boothVoices":      true,
 	"takeSelector":     true,
 	"puncher":          true,
 	"rangeCutter":      true,
@@ -67,11 +67,12 @@ var swappableHostFields = map[string]bool{
 // fields with a composite literal before any other goroutine can see the Host,
 // which the guard cannot flag, so it needs no entry.)
 var permanentDirectReaders = map[string]string{
-	"configureLocked": "the only writer of the fields; its caller holds h.mu",
-	"canAttachLocked": "runs inside attachProjectLocked, whose caller holds h.mu",
-	"idleLocked":      "the body of canAttachLocked (and of idle, which takes the read lock first); its caller holds h.mu",
-	"idleLockedFor":   "idleLocked's body, and idleForBackground's under the read lock; its caller holds h.mu",
-	"services":        "the accessor: the one place that reads the fields under the lock",
+	"configureLocked":    "the only writer of the fields; its caller holds h.mu",
+	"canAttachLocked":    "runs inside attachProjectLocked, whose caller holds h.mu",
+	"idleLocked":         "the body of canAttachLocked (and of idle, which takes the read lock first); its caller holds h.mu",
+	"idleLockedFor":      "idleLocked's body, and idleForBackground's under the read lock; its caller holds h.mu",
+	"buildAssetRegistry": "reads h.settings for the models folder; its callers (ServiceStartup, switchModelsFolder) hold h.mu",
+	"services":           "the accessor: the one place that reads the fields under the lock",
 }
 
 type directRead struct {

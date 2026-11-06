@@ -162,6 +162,18 @@ describe('Escape while focus is still in the layer under a confirm', () => {
   });
 });
 
+describe('overlay.toast with no words (issue 2899)', () => {
+  it.each(['', ' ', '   ', '\n', '\n\n\n\n', '\t \n \u00A0'])('raises no toast for the text %j', (text) => {
+    service.toast(text);
+    service.toast(text, { tone: 'error' });
+    expect(service.getSnapshot().toasts).toEqual([]);
+  });
+  it('still raises one for a word', () => {
+    service.toast('x');
+    expect(service.getSnapshot().toasts.map((t) => t.text)).toEqual(['x']);
+  });
+});
+
 describe('overlay.toast', () => {
   it('toast-shows-and-expires: an information toast follows Toast timing', () => {
     vi.useFakeTimers();
@@ -175,7 +187,7 @@ describe('overlay.toast', () => {
   it('an Undo toast with its own duration outlasts the usual time and is gone after it', () => {
     vi.useFakeTimers();
     mount();
-    act(() => service.toastUndo('Saved voice sample.', () => Promise.resolve({ ok: true }), { durationMs: 10_000, offJournal: 'a test toast' }));
+    act(() => service.toastUndo('Saved voice sample.', () => Promise.resolve({ ok: true }), { durationMs: 10_000, entry: 1 }));
     act(() => void vi.advanceTimersByTime(TOAST_INFO_MS + 1000));
     expect(screen.getByText('Saved voice sample.')).toBeTruthy();
     act(() => void vi.advanceTimersByTime(10_000 - TOAST_INFO_MS - 1000));
@@ -198,7 +210,7 @@ describe('overlay.toastUndo', () => {
   it('runs the given function once and closes the toast on { ok: true }', async () => {
     mount();
     const undo = vi.fn().mockResolvedValue({ ok: true });
-    act(() => service.toastUndo('Added a bookmark', undo, { offJournal: 'a test toast' }));
+    act(() => service.toastUndo('Added a bookmark', undo, { entry: 1 }));
     const button = screen.getByRole('button', { name: 'Undo' });
     fireEvent.click(button);
     expect(undo).toHaveBeenCalledOnce();
@@ -210,7 +222,7 @@ describe('overlay.toastUndo', () => {
   it('shows the refusal reason as a toast when the undo refuses, and nothing else', async () => {
     mount();
     const undo = vi.fn().mockResolvedValue({ ok: false, refusal: { reason: 'Something newer changed the DAW.' } });
-    act(() => service.toastUndo('Moved the marker', undo, { offJournal: 'a test toast' }));
+    act(() => service.toastUndo('Moved the marker', undo, { entry: 1 }));
     fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
     expect(await screen.findByText('Something newer changed the DAW.')).toBeTruthy();
     expect(screen.queryByText('Moved the marker')).toBeNull();
@@ -230,19 +242,17 @@ describe('an Undo toast goes when its change is no longer there to undo', () => 
     expect(screen.getByText('Waived 00:20')).toBeTruthy();
   });
 
-  it('settleUndo leaves a toast with no entry, and a plain message, alone', () => {
+  it('settleUndo leaves a plain message alone', () => {
     mount();
-    act(() => service.toastUndo('Deleted the note', ok, { offJournal: 'a test toast' }));
     act(() => service.toast('Saved.'));
     act(() => service.settleUndo(() => false));
-    expect(screen.getByText('Deleted the note')).toBeTruthy();
     expect(screen.getByText('Saved.')).toBeTruthy();
   });
 
   it('dismissUndo takes away every Undo toast (the page, the chapter or the project it was about is gone) and nothing else', () => {
     mount();
     act(() => service.toastUndo('Waived 00:10', ok, { entry: 1 }));
-    act(() => service.toastUndo('Deleted the note', ok, { offJournal: 'a test toast' }));
+    act(() => service.toastUndo('Deleted the note', ok, { entry: 1 }));
     act(() => service.toast('REAPER is starting', { topic: 'start' }));
     act(() => service.toast('Could not save.', { tone: 'error' }));
     act(() => service.dismissUndo());
@@ -332,6 +342,34 @@ describe('toast queue', () => {
     service.toast('boom', { tone: 'error' });
     for (const n of [1, 2, 3, 4]) service.toast(`info ${n}`);
     expect(service.getSnapshot().toasts.map((t) => t.text)).toEqual(['boom', 'info 2', 'info 3', 'info 4']);
+  });
+
+  // qa-breaker B1b: the app's notices and the Undo toasts used to be two queues of four; one queue must not lose the Undo to a burst of notices.
+  it('four plain notices do not push out an Undo toast: the oldest plain notice goes first', () => {
+    service.toastUndo('Milestone added.', async () => ({ ok: true }), { entry: 1 });
+    for (const n of [1, 2, 3, 4]) service.toast(`info ${n}`);
+    const toasts = service.getSnapshot().toasts;
+    expect(toasts).toHaveLength(4);
+    expect(toasts.map((t) => t.text)).toEqual(['Milestone added.', 'info 2', 'info 3', 'info 4']);
+  });
+
+  it('a toast with an action outlasts plain notices, and an error outlasts both kinds of information', () => {
+    service.toast('Saved.', { action: { label: 'Retry', onAction: () => undefined } });
+    service.toast('boom', { tone: 'error' });
+    for (const n of [1, 2, 3]) service.toast(`info ${n}`);
+    expect(service.getSnapshot().toasts.map((t) => t.text)).toEqual(['Saved.', 'boom', 'info 2', 'info 3']);
+    // Nothing plain is left to push out but one: with only actions and errors showing, the oldest information toast goes, never past four.
+    const full = createOverlayService();
+    for (const n of [1, 2, 3, 4, 5]) full.toast(`act ${n}`, { action: { label: 'Undo', onAction: () => undefined } });
+    expect(full.getSnapshot().toasts.map((t) => t.text)).toEqual(['act 2', 'act 3', 'act 4', 'act 5']);
+  });
+
+  // qa-breaker B1: kept on purpose, the PR body says so. The label is part of what a toast says, so the same sentence with another action is another toast.
+  it('the same sentence with a different action label stacks: Saved, Saved + Retry and Saved + Undo are three toasts', () => {
+    service.toast('Saved', { action: { label: 'Retry', onAction: () => undefined } });
+    service.toast('Saved');
+    service.toast('Saved', { action: { label: 'Undo', onAction: () => undefined } });
+    expect(service.getSnapshot().toasts.map((t) => t.action?.label)).toEqual(['Retry', undefined, 'Undo']);
   });
 
   it('a message that says what one on screen already says replaces it: thirty presses make one toast, and its timer starts again', () => {

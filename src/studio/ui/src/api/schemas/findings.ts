@@ -14,7 +14,6 @@ import type {
   FindingsSummary,
   FindingMarker,
   FindingNavigation,
-  ReaperStatus,
 } from '../contracts/findings';
 import { FINDING_NOTE_TYPES, FINDING_THREAD_AUTHORS } from '../contracts/findings';
 import { listFromNull } from './base';
@@ -121,12 +120,6 @@ export const findingsSummarySchema = z.object({
   categories: listFromNull(z.string()),
   chapters: listFromNull(findingChapterFacetSchema),
 }) satisfies z.ZodType<FindingsSummary>;
-
-export const reaperStatusSchema = z.object({
-  connection: z.enum(['connected', 'not_running', 'standalone']),
-  message: z.string().optional(),
-  loopingFindingId: z.string().optional(),
-}) satisfies z.ZodType<ReaperStatus>;
 
 const navigationRefusals = ['standalone', 'not_running', 'no_item', 'no_source_time', 'stale', 'recording', 'script_outdated', 'failed'] as const;
 

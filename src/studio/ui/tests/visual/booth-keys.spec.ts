@@ -5,6 +5,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { pastStartGuard } from './helpers/startGuard';
 import { settlePage } from './helpers/settle';
+import { boothChapterReady, showChapterTop } from './helpers/viewTop';
 import { goToPage } from './drivers/shared';
 
 const record = (page: Page) => page.getByRole('button', { name: /^Record$/ });
@@ -13,7 +14,7 @@ async function openBooth(page: Page, query = '', recordReady = true): Promise<vo
   await page.goto(`/${query}`);
   await settlePage(page);
   await goToPage(page, 'Booth');
-  await page.getByRole('button', { name: /^Resume at ¶/, includeHidden: true }).waitFor();
+  await boothChapterReady(page);
   if (recordReady) await expect(record(page)).toBeEnabled();
 }
 
@@ -71,9 +72,9 @@ const OVERLAYS: Overlay[] = [
   {
     name: 'Levels popover',
     open: async (page) => {
-      const opener = page.getByRole('button', { name: 'Levels' });
+      const opener = page.getByRole('button', { name: 'Record options' });
       await opener.click();
-      return { popup: page.getByRole('dialog', { name: 'Levels' }), opener };
+      return { popup: page.getByRole('dialog', { name: 'Record options' }), opener };
     },
   },
   {
@@ -87,9 +88,9 @@ const OVERLAYS: Overlay[] = [
         .getByRole('dialog', { name: /is not connected/ })
         .getByRole('button', { name: 'Close' })
         .click();
-      const opener = page.getByRole('button', { name: 'Levels' });
+      const opener = page.getByRole('button', { name: 'Record options' });
       await opener.click();
-      return { popup: page.getByRole('dialog', { name: 'Levels' }), opener };
+      return { popup: page.getByRole('dialog', { name: 'Record options' }), opener };
     },
   },
   {
@@ -101,10 +102,23 @@ const OVERLAYS: Overlay[] = [
     },
   },
   {
+    name: 'voice list (a chapter linked to a folder of voices)',
+    // Enter picks the highlighted voice and closes the list, as a menu closes on the item it chose; focus opens in its search box.
+    menu: true,
+    typesSpace: true,
+    query: '?mockVoiceFolders=1',
+    open: async (page) => {
+      const opener = page.getByRole('button', { name: /^Voice:.*Narrator/ });
+      await opener.click();
+      return { popup: page.getByRole('dialog', { name: 'Voices' }), opener };
+    },
+  },
+  {
     name: 'speaker popover (a named speaker)',
     typesSpace: true,
     open: async (page) => {
       const opener = page.getByRole('button', { name: /^Speaker Hatter\. Change speaker/ });
+      await showChapterTop(page, opener);
       await opener.click();
       return { popup: page.locator('[data-popover-popup]').last(), opener };
     },
@@ -131,6 +145,7 @@ const OVERLAYS: Overlay[] = [
     name: 'right-click menu on a word',
     menu: true,
     open: async (page) => {
+      await showChapterTop(page);
       await page.locator('[data-word]').nth(40).click({ button: 'right' });
       return { popup: page.getByRole('menu').last(), opener: null };
     },
@@ -276,11 +291,11 @@ test.describe('the pedal works after an overlay closes', () => {
 
   test('Levels, Escape, Space toggles the take instead of opening Levels again', async ({ page }) => {
     await openBooth(page);
-    await page.getByRole('button', { name: 'Levels' }).click();
+    await page.getByRole('button', { name: 'Record options' }).click();
     await page.keyboard.press('Escape');
     await page.keyboard.press('Space');
     await expect(page.getByRole('button', { name: /^Stop$/ })).toBeVisible();
-    await expect(page.getByRole('dialog', { name: 'Levels' })).toHaveCount(0);
+    await expect(page.getByRole('dialog', { name: 'Record options' })).toHaveCount(0);
     await pastStartGuard(page);
     await page.keyboard.press('Space');
     await expect(record(page)).toBeVisible();
@@ -317,6 +332,7 @@ test.describe('a pedal Space with a popup open, by the control that has focus', 
     await openBooth(page);
     await record(page).click();
     await page.getByRole('button', { name: /^Stop$/ }).waitFor();
+    await showChapterTop(page);
     await page.locator('[data-word]').nth(40).click({ button: 'right' });
     const menu = page.getByRole('menu').last();
     await expect(menu).toBeVisible();
@@ -329,8 +345,8 @@ test.describe('a pedal Space with a popup open, by the control that has focus', 
 
   test('a text field inside a popup keeps its Space', async ({ page }) => {
     await openBooth(page);
-    await page.getByRole('button', { name: 'Levels' }).click();
-    const popup = page.getByRole('dialog', { name: 'Levels' });
+    await page.getByRole('button', { name: 'Record options' }).click();
+    const popup = page.getByRole('dialog', { name: 'Record options' });
     await focusSettled(page, popup);
     await popup.evaluate((el) => {
       const field = document.createElement('input');

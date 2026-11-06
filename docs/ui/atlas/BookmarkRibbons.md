@@ -10,6 +10,7 @@ Storybook title: `Booth/BookmarkRibbons`. Source: `src/components/booth/bookmark
 - Three
 - With A Stale One
 - Flashing After A Jump
+- Stopping Place
 
 ## Used by
 

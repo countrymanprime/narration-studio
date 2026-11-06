@@ -83,6 +83,8 @@ test.describe('the top bar', () => {
 // R4BO1-3, R4BO2-10: the resume chip is not offered while the reading position already is the offered place.
 test('choosing the resume place takes the chip away', async ({ page }) => {
   await drive(page, 'setup', { width: 1440, height: 900 });
+  // The chapter opens at the place the chip offers, so it is drawn once the narrator looks elsewhere: the next paragraph.
+  await page.locator('[data-booth-text] [data-paragraph]:has([data-current]) + [data-paragraph] [data-word="0"]').click();
   const chip = page.getByRole('button', { name: /^Resume at ¶/ });
   await chip.click();
   await expect(chip).toHaveCount(0);

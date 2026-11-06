@@ -98,14 +98,12 @@ export const SILENT_CATCHES: Record<string, string> = {
     'onRemoveFromRecording already shows the failure (its own toast, in useChapterTools) before rethrowing; this catch only stops that rejection from going unhandled and skips closing the confirm, so the narrator can retry.',
   'src/api/wailsClient.ts#1': 'The diagnostic report itself: a report that fails must not raise a second error over the one being reported.',
   'src/api/wailsClient.ts#2': 'The host binding is missing (not running inside the desktop app), so there is nothing to report to.',
-  'src/components/editing/bar/useScriptPlayback.ts#1':
+  'src/components/editing/bar/usePlayStopReport.ts#1':
     'The play-stop line for host.log (reportClientDiagnostic); a failed write must not raise a second error over the play it describes.',
   'src/App.tsx#1': 'A diagnostic report while showing the startup error; it must not throw over it.',
   'src/App.tsx#2': 'The window error handler reports a diagnostic; a failing report must not raise another window error.',
   'src/App.tsx#3': 'The unhandled-rejection handler reports a diagnostic; a failing report must not raise another rejection.',
   'src/App.tsx#4': "Cosmetic: the narrator's entity colours. The built-in colours stay if the settings cannot be read, and Settings reports the real error.",
-  'src/components/storybible/entryTable.ts#1':
-    "Saving the Story Bible table's sort choice to localStorage: with storage unavailable the choice lasts until the page closes, and the table is already sorted as asked.",
   'src/components/production/ManuscriptImport.tsx#1':
     "Only sets where the review's 'Close when the import finishes' box starts; a failed read leaves it on, its default.",
   'src/components/editing/ribbon/useRibbonPeaks.ts#1':
@@ -149,7 +147,7 @@ export const SILENT_CATCHES: Record<string, string> = {
   'src/components/booth/CompanionShell.tsx#1':
     "Companion mode's exit on unmount: nothing is left mounted to tell, and the host's exit is a no-op when companion mode was never entered, so there is no state it could leave wrong that a retry would fix.",
   'src/components/booth/listening/useListeningMic.ts#1':
-    'Asking the DAW which microphone it records with, only to preselect it: a failed ask leaves the choice to the narrator in Levels, exactly as an answer that is not a sure match does.',
+    'Asking the DAW which microphone it records with, only to preselect it: a failed ask leaves the choice to the narrator in Record options, exactly as an answer that is not a sure match does.',
   'src/components/booth/useRecorder.ts#1': "Only the engine chip's first reading; without it the chip stays on REAPER until the next recording:state.",
   'src/components/engine/outputPrefs.ts#1':
     "Saving Editing's volume, mute, speed and output to browser storage: when storage is unavailable the choice holds for this window, which is all a per-window setting promises.",
@@ -185,7 +183,7 @@ export const SILENT_CATCHES: Record<string, string> = {
     "Remembering the Booth's last chapter and place in localStorage, per project; with storage blocked or full the next visit opens on the DAW's chapter or the first, as it did before the place was kept.",
   'src/components/booth/page/lastPlace.ts#2':
     'Remembering the place in each chapter of the project in localStorage; with storage blocked or full a chapter the narrator comes back to opens where its recording ends, or at its top.',
-  'src/components/booth/page/useTextChoices.ts#1':
+  'src/components/booth/page/boothSize.ts#1':
     "Remembering the Booth's text size in localStorage; with storage blocked or full the size lasts for this visit and the next one opens at 40 px.",
   'src/components/script/page/tools/text/readerText.ts#1':
     'Per-viewer reading choices in localStorage (the booth rail does the same): storage can be blocked or full, and the page then keeps the choice for the session and reads with the defaults.',
@@ -198,8 +196,6 @@ export const SILENT_CATCHES: Record<string, string> = {
     'Re-reads a finding after the host refused a decision, only to tell changed evidence apart; when the re-read fails too, the inline alert still shows the host reason for the refusal, so nothing is hidden (the same reading the Proof Inspector makes).',
   'src/components/editing/EditingCheckPanel.tsx#1':
     "Reads the chapter's stored analysis-source choice on open; a failed read just leaves the default (items) selected, which is already correct for a chapter with no choice made yet, so there is nothing to guard or retry.",
-  'src/components/engine/RetakeLanesDialog.tsx#1':
-    'Hydrates whatever pick was already in flight when the dialog reopened; the list still loads and every pick shows its own failure inline.',
   'src/components/engine/CleanupToolsDialog.tsx#1':
     'Hydrates whatever launch was already in flight when the dialog reopened; the narrator can press Open either way, and a launch shows its own failure inline.',
   'src/components/engine/RenderConfigDialog.tsx#1':
@@ -244,3 +240,5 @@ export const SILENT_CATCHES: Record<string, string> = {
   'src/components/booth/page/useBoothPage.ts#1':
     'The resume lookup only offers where the recording ends; a failure offers nothing and Record still starts at the end of the last item.',
 };
+
+export { ERROR_TOAST_RETRY, RETRY_TODO_ERROR_TOASTS } from './interactionFeedback/retry';

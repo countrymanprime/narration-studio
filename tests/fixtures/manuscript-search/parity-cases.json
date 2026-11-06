@@ -1,0 +1,28 @@
+{
+  "_about": "Where a search term is found in one paragraph's text (issue #2775). Each match is [start, end): JS string indices (UTF-16 code units) into the original text, end exclusive. Case is folded one code point at a time to its simple lowercase (U+0130 to i, not i + U+0307), matches do not overlap, the term is trimmed, and text is not Unicode-normalized. The host (manuscript.Service.Search, search_test.go) and the mock (manuscriptSearchMock.ts, manuscriptSearchMock.test.ts) both read this file. termMax (UTF-16 units, after trimming), its refusal and matchesMax (the matches one result sends) are the two sides' caps. Hand-written: add a case when a real text is found in the wrong place.",
+  "termMax": 500,
+  "termTooLong": "the search term is longer than 500 characters",
+  "matchesMax": 1000,
+  "cases": [
+    { "name": "ASCII, twice, in either case", "text": "Alice was beginning; alice sat.", "query": "alice", "matches": [[0, 5], [21, 26]] },
+    { "name": "an upper-case term finds lower-case text", "text": "the rabbit ran", "query": "RABBIT", "matches": [[4, 10]] },
+    { "name": "the term is trimmed", "text": "the rabbit ran", "query": "  rabbit  ", "matches": [[4, 10]] },
+    { "name": "an emoji (two code units) before the match", "text": "🐇 The rabbit ran.", "query": "rabbit", "matches": [[7, 13]] },
+    { "name": "an emoji inside the term", "text": "A 🐇 the end", "query": "🐇 the", "matches": [[2, 8]] },
+    { "name": "Turkish dotted capital I before the match", "text": "İİ rabbit", "query": "rabbit", "matches": [[3, 9]] },
+    { "name": "Turkish dotted capital I in the text folds to i", "text": "İstanbul and istanbul", "query": "istanbul", "matches": [[0, 8], [13, 21]] },
+    { "name": "Turkish dotted capital I in the term folds to i", "text": "İstanbul and istanbul", "query": "İSTANBUL", "matches": [[0, 8], [13, 21]] },
+    { "name": "an emoji and a dotted capital I before the match", "text": "🐇İ the end", "query": "end", "matches": [[8, 11]] },
+    { "name": "accented letters fold with their case", "text": "Café au lait. CAFÉ!", "query": "café", "matches": [[0, 4], [14, 18]] },
+    { "name": "curly quotes and an em dash before the match", "text": "‘Well,’ she thought — a café with rabbits in it.", "query": "rabbits", "matches": [[34, 41]] },
+    { "name": "a decomposed accent is not the composed letter", "text": "Café", "query": "café", "matches": [] },
+    { "name": "Hebrew, right to left", "text": "שלום עולם שלום", "query": "שלום", "matches": [[0, 4], [10, 14]] },
+    { "name": "Arabic, right to left, after a Latin word", "text": "Say مرحبا twice: مرحبا", "query": "مرحبا", "matches": [[4, 9], [17, 22]] },
+    { "name": "regular-expression characters are plain text", "text": "Is it (a+b)*? Yes (a+b)*.", "query": "(a+b)*", "matches": [[6, 12], [18, 24]] },
+    { "name": "a dot is a dot", "text": "a.c abc", "query": "a.c", "matches": [[0, 3]] },
+    { "name": "matches do not overlap", "text": "aaaa", "query": "aa", "matches": [[0, 2], [2, 4]] },
+    { "name": "an empty term finds nothing", "text": "the rabbit", "query": "", "matches": [] },
+    { "name": "a blank term finds nothing", "text": "the rabbit", "query": "   ", "matches": [] },
+    { "name": "a term longer than the text finds nothing", "text": "rabbit", "query": "rabbits", "matches": [] }
+  ]
+}

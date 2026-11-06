@@ -75,7 +75,8 @@ export function useListeningMic({ dawRecords, chapterId, chosen, source, setting
       void recording
         .recorderState()
         .then((state) => live && setRecordsOn(state.device.trim()))
-        .catch(() => {});
+        // A read that fails is no remembered microphone: nothing is named on a guess, and Record asks for one.
+        .catch(() => live && setRecordsOn(''));
       void recording
         .recorderDevices()
         .then((list) => live && setRecorderMics(list.devices.map((d) => d.name)))

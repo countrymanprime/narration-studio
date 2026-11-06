@@ -94,8 +94,6 @@ describe('shouldNotifyForJobEnd', () => {
       'transcript_compare',
       'manuscript_import',
       'recording_coverage',
-      'take_review',
-      'take_comparison',
       'measurement',
       'diagnostics',
     ]) {

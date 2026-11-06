@@ -131,12 +131,35 @@ describe('the Output popover', () => {
     expect(within(dialog).queryByRole('button', { name: 'Check again' })).toBeNull();
   });
 
-  it('turns the choice off with a sentence and a way out when the computer lists no outputs', async () => {
-    render(<Host devices={{ phase: 'ready', checkedAt: 0, status: 'unavailable', message: 'x' }} start={{ device: 'Gone' }} />);
+  // Changed for qa-breaker B2: with a saved output and no list, the choice stays on so System default can be picked; it is off only when there is nothing to clear.
+  it('says it would not list the outputs and offers a way out; a saved output can still be cleared to the system default', async () => {
+    const onChangeSpy = vi.fn();
+    render(<Host devices={{ phase: 'ready', checkedAt: 0, status: 'unavailable', message: 'x' }} start={{ device: 'Gone' }} onChangeSpy={onChangeSpy} />);
     const dialog = await openOutput();
-    expect((within(dialog).getByRole('combobox', { name: 'Output device' }) as HTMLInputElement).disabled).toBe(true);
+    const select = within(dialog).getByRole('combobox', { name: 'Output device' }) as HTMLSelectElement;
+    expect(select.disabled).toBe(false);
     expect(within(dialog).getByRole('alert').textContent).toMatch(/would not list its outputs/);
     expect(within(dialog).getByRole('button', { name: 'Check again' })).toBeTruthy();
+    await userEvent.selectOptions(select, 'System default');
+    expect(onChangeSpy).toHaveBeenCalledWith({ device: '' });
+  });
+
+  it('turns the choice off when no outputs can be listed and none is saved', async () => {
+    render(<Host devices={{ phase: 'ready', checkedAt: 0, status: 'unavailable', message: 'x' }} />);
+    const dialog = await openOutput();
+    expect((within(dialog).getByRole('combobox', { name: 'Output device' }) as HTMLInputElement).disabled).toBe(true);
+  });
+
+  it('lists two outputs with the same name once, with no duplicate-key error (qa-breaker B3)', async () => {
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    render(<Host devices={ready(['Speakers', 'Speakers', 'Headphones'])} />);
+    const dialog = await openOutput();
+    const options = within(within(dialog).getByRole('combobox', { name: 'Output device' }))
+      .getAllByRole('option')
+      .map((o) => o.textContent);
+    expect(options).toEqual(['System default', 'Speakers', 'Headphones']);
+    expect(errors).not.toHaveBeenCalled();
+    errors.mockRestore();
   });
 
   it('shows why the chosen output could not be used', async () => {

@@ -116,6 +116,10 @@ export function createFakeTools(options: { tools?: AssetItem[]; installs?: Recor
   const port: ComponentsPort = {
     assetsList: async (): Promise<AssetCatalog> => ({
       cacheRoot: ROOT,
+      defaultRoot: ROOT,
+      custom: false,
+      previousRoot: '',
+      folderNote: '',
       totalInstalledBytes: 0,
       assets: tools.map((item) => {
         const active = [...jobs.values()].find((job) => job.assetId === item.id && running(job));

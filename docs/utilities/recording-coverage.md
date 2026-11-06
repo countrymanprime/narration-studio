@@ -105,7 +105,8 @@ flowchart LR
 ```
 
 - **The manifest comes from the saved project, not from REAPER.** `src/studio/desktop/internal/coverage` reads the `.rpp`
-  the audio engine panel selected, the chapter's one confirmed track (`chapter-track-map.json`, analysis evidence ledger), and
+  the audio engine panel selected, the chapter's one confirmed track (`chapter-track-map.json`, analysis evidence ledger) and,
+  when that track is a REAPER folder of voices, every track inside it (`tracks.Project.WithDescendants`), and
   each item's active take and played range, `[SOFFS, SOFFS + LENGTH × PLAYRATE]`, in position order. Muted items are
   listed and skipped. A chapter that cannot be checked gets a typed reason and nothing runs: not linked, several
   tracks, the linked track missing, a missing or non-audio source, an empty range, not a narration chapter, or no
@@ -299,7 +300,7 @@ flowchart LR
 - **Live progress** (`coverage:state`'s `pass`, `firstPassModel`, `recheckModel`, `recheckWindows`) names which of
   the up to four stages is running, ahead of the sidecar's own message: "First pass (tiny)", "First pass (tiny), re-checking as it goes (large-v3-turbo)" (`pipeline`), "Re-checking 3
   passages (large-v3-turbo)", "Re-checking the whole chapter (large-v3-turbo)" or "Combining the two passes".
-- **Activity** (`coverage:state`'s `activity`) is what the check is doing, as counts the sidecar writes to `<progress>.activity.json` (`core/coverage_activity.py`, read by `internal/coverage/activity.go`): `firstPass` and `recheck` each hold `workers` (the transcriptions at once the sidecar planned, never more than there are units), `busy`, `total` and `done` units and `final` (false while the larger model's total can still grow); `recheck.reasons` is `low_confidence` (words under the score line), `missing_words` (the host's second stage) or `widespread` (whole items redone); `requested` is the narrator's worker count, 0 for Automatic. A unit is an item, or a chunk of an item longer than the chunk length. The host adds a re-check stage's counts to what the first stage ended with. The file is best-effort: a check without it shows the percent alone. The dialog's activity panel draws it; it gives no estimate of the time left.
+- **Activity** (`coverage:state`'s `activity`) is what the check is doing, as counts the sidecar writes to `<progress>.activity.json` (`core/coverage_activity.py`, read by `internal/coverage/activity.go`): `firstPass` and `recheck` each hold `workers` (the transcriptions at once the sidecar planned, never more than there are units), `busy`, `total` and `done` units and `final` (false while the larger model's total can still grow); `recheck.reasons` is `low_confidence` (words under the score line), `missing_words` (the host's second stage) or `widespread` (whole items redone); `requested` is the narrator's worker count, 0 for Automatic. A unit is an item, or a chunk of an item longer than the chunk length. A first-stage file holds `firstPass`, and `recheck` when the larger model has been handed passages; the windows-only re-check stage's file holds `recheck` alone, with `reason` null, and the host adds its counts to what the first stage ended with, giving the passages the stage's own reason (`missing_words`, or `widespread` for a whole-chapter pass) unless the file names one. The file is listed in [Data files](../reference/data-files.md). The file is best-effort: a check without it shows the percent alone. The dialog's activity panel draws it; it gives no estimate of the time left.
 - **Staleness and caching are unchanged in kind.** A cascade result is judged, evaluated for staleness and read
   back exactly like a plain one (Q13); the words cache key gains the re-check model (empty for a plain check), so
   a cascade's spliced words are never silently reused by, or reused from, a plain check of the same first-pass
@@ -441,8 +442,7 @@ This table is the key to the labels that code comments, tests and the text above
 
 The check judges presence, not performance. It never edits the project, moves audio, activates a take or changes a
 status. It does not use forced alignment or any PyTorch model ([Alignment and confidence](transcript-compare.md#alignment-and-confidence)),
-send audio anywhere, or run in the background. It does not move a pickup back to its place, which is take review's
-job. It does not use Lua or a running REAPER, and does not handle multi-track chapters. The trust boundary (the
+send audio anywhere, or run in the background. It does not move a pickup back to its place. It does not use Lua or a running REAPER, and does not handle multi-track chapters. The trust boundary (the
 manifest names the audio the sidecar reads and the words files it writes) is row 4e of the
 [threat model](../architecture/threat-model.md).
 

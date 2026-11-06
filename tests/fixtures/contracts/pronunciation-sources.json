@@ -30,6 +30,18 @@
     },
     {
       "available": true,
+      "id": "user_dictionary",
+      "kind": "lookup",
+      "label": "My dictionary"
+    },
+    {
+      "available": true,
+      "id": "script_imported",
+      "kind": "lookup",
+      "label": "Script (imported)"
+    },
+    {
+      "available": true,
       "id": "manual",
       "kind": "manual",
       "label": "Entered by me"
