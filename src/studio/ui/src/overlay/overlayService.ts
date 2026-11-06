@@ -125,7 +125,7 @@ export function createOverlayService(): OverlayService {
   };
 
   const toast = (text: string, options: ToastOptions = {}, undo?: ToastMessage['undo']) => {
-    if (!text) return;
+    if (text.trim() === '') return;
     const tone = options.tone ?? 'info';
     const message: ToastMessage = {
       id: ++lastId,
