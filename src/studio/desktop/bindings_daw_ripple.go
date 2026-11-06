@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"desktop/internal/dawport"
-	"desktop/internal/tracks"
 )
 
 // Edits that move the audio after them (closing a cut, shortening a gap, stacking takes, replacing words with a different length) shift every
@@ -33,27 +32,6 @@ func voiceTracksWithAudio(items []dawport.TrackItem) int {
 	return len(seen)
 }
 
-// savedVoicesWithAudio is how many of the tracks inside the chapter's linked folder hold an unmuted item in the saved project (a plain track: 1 or
-// 0). It is the count the commands that read no live items use; a project that cannot be read counts as 0, which refuses nothing.
-func savedVoicesWithAudio(svc hostServices, chapterID string) int {
-	return savedVoiceCount(svc, chapterID)
-}
-
-// savedVoiceCount is the saved-project read behind savedVoicesWithAudio; a test swaps it (and restores it) to stand in for a project file.
-var savedVoiceCount = readSavedVoiceCount
-
-func readSavedVoiceCount(svc hostServices, chapterID string) int {
-	link, refused, err := readAloudTrackGUID(svc, chapterID)
-	if err != nil || refused != nil {
-		return 0
-	}
-	project, err := selectedProject(svc)
-	if err != nil {
-		return 0
-	}
-	return projectVoicesWithAudio(project, link)
-}
-
 // chapterFolderTrack is the GUID of the chapter's linked track when it is a folder in the saved project (a chapter of voices), else "". An edit that
 // moves the audio after it sends it so the script moves the later items of every voice inside, not only the item's own track.
 func chapterFolderTrack(svc hostServices, chapterID string) string {
@@ -76,22 +54,4 @@ func readChapterFolderTrack(svc hostServices, chapterID string) string {
 		return link
 	}
 	return ""
-}
-
-// projectVoicesWithAudio counts the tracks of the folder link names (or link itself) that hold audio.
-func projectVoicesWithAudio(project tracks.Project, link string) int {
-	members, ok := project.WithDescendants(link)
-	if !ok {
-		return 0
-	}
-	count := 0
-	for _, member := range members {
-		for _, item := range member.Items {
-			if !item.Muted && item.Length > 0 {
-				count++
-				break
-			}
-		}
-	}
-	return count
 }

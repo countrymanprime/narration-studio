@@ -7,7 +7,6 @@ import (
 
 	"desktop/internal/bridge"
 	"desktop/internal/dawport"
-	"desktop/internal/tracks"
 )
 
 // #3043: the edit commands plan from the chapter's audio read through its folder, and the ones that move the audio after the edit are refused while
@@ -35,27 +34,6 @@ func TestVoiceTracksWithAudioCountsDistinctTracksAndIgnoresMutedAndEmptyItems(t 
 		if got := voiceTracksWithAudio(c.items); got != c.want {
 			t.Errorf("%s: %d, want %d", name, got, c.want)
 		}
-	}
-}
-
-func TestProjectVoicesWithAudioReadsTheFolderAndStopsAtItsEnd(t *testing.T) {
-	item := func(length float64, muted bool) []tracks.Item { return []tracks.Item{{Length: length, Muted: muted}} }
-	project := tracks.Project{Tracks: []tracks.Track{
-		{GUID: "F", IsFolder: true},
-		{GUID: "N", Depth: 1, Items: item(5, false)},
-		{GUID: "Crowd", Depth: 1, IsFolder: true},
-		{GUID: "G", Depth: 2, Items: item(5, false)},
-		{GUID: "Muted", Depth: 1, Items: item(5, true)},
-		{GUID: "Next", Items: item(5, false)},
-	}}
-	if got := projectVoicesWithAudio(project, "F"); got != 2 {
-		t.Errorf("folder: %d, want 2 (the narrator and the nested guard; not the muted voice or the next chapter)", got)
-	}
-	if got := projectVoicesWithAudio(project, "Next"); got != 1 {
-		t.Errorf("a plain track: %d, want 1", got)
-	}
-	if got := projectVoicesWithAudio(project, "gone"); got != 0 {
-		t.Errorf("a track that is gone: %d, want 0", got)
 	}
 }
 
