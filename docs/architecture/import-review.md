@@ -69,7 +69,7 @@ The preview log ("Preview activity") is not on the review screen; the commit dia
 | `importReviewModel.ts` | `components/production/` | The pure half: the kind a section will be written as, the counts, which group starts open, and plurals. The message, the group headers and the rows all read the same function, so they cannot disagree. |
 | `Disclosure` | `components/primitives/Disclosure.tsx` | The group: the whole title row is the button and its summary is part of its name; `panelClassName` lets the open group fill the room and scroll. |
 
-**No build after import.** The review draws no "Build the Story Bible after import" checkbox and an import starts no build: the narrator scans the manuscript or imports entries from the Story Bible page. `ImportReview` keeps an optional `buildStoryBible` prop that nothing passes. ([Story Bible build after import](story-bible-concurrent-build.md), history.)
+**Build after import.** The review draws no "Build the Story Bible after import" checkbox: the setting decides. When an import succeeds the host starts the unattended Story Bible build (`buildGuideAfterImport`, `src/studio/desktop/app.go`; `guide.Service.BuildUnattended`) if the setting is on and the Story Bible has no entries. `ImportReview` keeps an optional `buildStoryBible` prop that nothing passes. ([Story Bible build after import](story-bible-concurrent-build.md), history.)
 
 ## Tests and states
 
