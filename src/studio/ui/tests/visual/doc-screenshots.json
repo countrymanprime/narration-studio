@@ -162,6 +162,13 @@
   },
   {
     "page": "proof",
+    "state": "compare-open",
+    "viewport": "desktop",
+    "docName": "proof-compare-panel",
+    "caption": "Proof - Compare opened under the check card: its three tabs and the comparison's setup"
+  },
+  {
+    "page": "proof",
     "state": "check-recordings-dialog",
     "viewport": "desktop",
     "docName": "proof-check-recordings-dialog",

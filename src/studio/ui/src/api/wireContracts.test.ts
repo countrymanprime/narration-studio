@@ -4893,6 +4893,16 @@ describe('one deliberately broken sample per boundary fails with a specific mess
     expect(failure(teleprompterEventSchema, { ...position, read: 'four' }, 'teleprompter:event').issues.map((issue) => issue.path)).toEqual(['read']);
   });
 
+  it('a live event (the confirmation pass settling a flag): the golden parses and a state the UI does not know does not', () => {
+    const events = readGolden('teleprompter-flag-check.json') as Array<{ type: string }>;
+    for (const event of events) expectMatches(teleprompterEventSchema, event, 'teleprompter flag and flag_check golden');
+    const check = events.find((event) => event.type === 'flag_check');
+    expect(new Set(events.filter((event) => event.type === 'flag_check').map((event) => (event as { state?: string }).state))).toEqual(
+      new Set(['confirmed', 'cleared']),
+    );
+    expect(failure(teleprompterEventSchema, { ...check, state: 'maybe' }, 'teleprompter:event').issues.map((issue) => issue.path)).toEqual(['state']);
+  });
+
   it('a live event (a flag of a kind the UI does not know)', () => {
     const flags = (readGolden('teleprompter-events.json') as Array<{ type: string; kind?: string }>).filter((event) => event.type === 'flag');
     expect(new Set(flags.map((flag) => flag.kind))).toEqual(new Set(['misread', 'extra', 'skipped', 'restart']));

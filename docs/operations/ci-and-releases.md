@@ -308,11 +308,11 @@ A narrator installs from `<asset prefix>-<version>-windows-x64-setup.exe` (the p
 - **The WebView2 bootstrapper** the setup program embeds comes from inside the pinned `wails3` CLI (Wails v2 downloaded it from
   Microsoft while it built and nothing pinned it; the CLI is verified by the Go checksum database). The build still checks that
   `installer/MicrosoftEdgeWebview2Setup.exe` has a valid Authenticode signature from Microsoft Corporation before the release is packaged.
-- **Unsigned.** The setup program is not signed (the owner's decision); the release notes say so and tell a narrator to choose **More info**
-  then **Run anyway** on the SmartScreen warning (`scripts/release/generate-notes.mjs`). No workflow here signs anything.
-- **What the notes list.** The changes since the release before this one: a candidate lists since the previous tag of either kind (the last
+- **Unsigned.** The setup program is not signed (the owner's decision); the README's [Install on Windows](../../README.md#install-on-windows) says so and tells a narrator to choose **More info**
+  then **Run anyway** on the SmartScreen warning. The release page does not repeat it. No workflow here signs anything.
+- **What the notes list.** Only the changes and one line that links to the README (install, update, licences, how to verify), never install or licence text. The changes since the release before this one: a candidate lists since the previous tag of either kind (the last
   candidate, or its promotion, which sits on the same commit); a stable release lists since the previous stable release, so a narrator on the
-  stable channel sees everything since the version they had. The first release lists the whole history (`scripts/release/generate-notes.mjs`).
+  stable channel sees everything since the version they had. The first release lists the whole history (`scripts/release/generate-notes.mjs`). It reads the squash-merged pull requests in that range and `scripts/release/changelog.mjs` builds the page from them (the same builder is for the in-app update changelog, #3023): **Important** first (a `!` title or a `BREAKING CHANGE:`, `Migration:` or `Known issue:` line in the pull request description), then **Added** (`feat`), **Changed** (`perf`, `refactor`, untyped) and **Fixed** (`fix`), one line per pull request as `title (#number, closes #issue)`. `docs`, `ci`, `chore`, `test`, `build` and `style` titles are left out. Write the `BREAKING CHANGE:`, `Migration:` and `Known issue:` lines for a narrator, not a developer.
 - **Tests.** `scripts/release/installer.test.mjs` holds the definition to the decisions of the ADR (the file names, per user, what the
   uninstaller deletes, no network, no signing, that the file is tracked); `assets.test.mjs` and `wails-build.test.mjs` cover packaging, the
   checksum, the promote checks and the missing-installer failure. `makensis` is not on a development machine as a rule (it can be: NSIS runs on Linux,
@@ -436,7 +436,7 @@ Success prints the workflow, commit and run that built the file; a modified or u
 release workflow and `main`, add `--signer-workflow countrymanprime/narration-studio/.github/workflows/prerelease.yml --source-ref refs/heads/main`.
 `gh attestation download <file> --repo ...` saves the attestation as a
 `.jsonl` bundle that `--bundle <file>` then verifies without asking GitHub for it. The same works for the executable
-inside the zip after extracting it, which is what an in-app update can check. The release notes say the same in one line.
+inside the zip after extracting it, which is what an in-app update can check. The README says the same in one line.
 The `.sha256` beside a file only detects a damaged download: it is not evidence of where the file came from.
 
 ## The docs link check
