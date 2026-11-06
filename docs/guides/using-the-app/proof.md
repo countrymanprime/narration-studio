@@ -213,7 +213,7 @@ and decide.
 ![Proof - a decision refused because the evidence changed since the note was shown: before and now, with the typed note kept](../../images/ui/proof-evidence-changed.webp)
 
 Right-click a note in the table, or its pin, for the same actions: **Hear it**, the four decisions (the one that does not fit the note
-says why), **Reopen**, **Go to** your DAW, **Trim the gap** on a gap note, and open its chapter in Script or the Booth.
+says why), **Reopen**, **Show in** your DAW, **Trim the gap** on a gap note, and open its chapter in Script or the Booth.
 
 ## The same word, said your way
 

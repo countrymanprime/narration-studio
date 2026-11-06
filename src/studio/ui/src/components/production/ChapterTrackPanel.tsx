@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { ShowInDawButton } from '../engine/ShowInDaw';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBackward, faForward, faPause, faPlay } from '@fortawesome/free-solid-svg-icons';
 import { chapterName, context } from '../../chapterName';
@@ -68,7 +69,6 @@ export function ChapterTrackPanel({
   const [tracksError, setTracksError] = useState('');
   const [busy, setBusy] = useState(false);
   const [removeOpen, setRemoveOpen] = useState(false);
-  const [selecting, setSelecting] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -92,20 +92,6 @@ export function ChapterTrackPanel({
   const player = useTrackPlayback(tracks ?? [], trackIndex < 0 ? 0 : trackIndex, noop, api.mediaUrl);
   const canPlay = trackIndex >= 0 && player.canPlay;
   const shortName = chapterName({ title: chapterTitle, subtitle }, 'short');
-
-  const selectInReaper = async () => {
-    if (!linkedTrackGuid) return;
-    setSelecting(true);
-    try {
-      const result = await api.trackSelectInReaper(linkedTrackGuid);
-      if (result.outcome === 'selected') notify('Selected in REAPER.');
-      else notify(result.message || 'REAPER could not select that track.', 'error');
-    } catch (error) {
-      notify(describeApiError(error), 'error');
-    } finally {
-      setSelecting(false);
-    }
-  };
 
   const link_ = async (trackGuid: string) => {
     setBusy(true);
@@ -223,9 +209,10 @@ export function ChapterTrackPanel({
                   </span>
                 )}
               </div>
-              <Button variant="secondary" className="w-full" disabled={selecting} pending={selecting} onClick={() => void selectInReaper()}>
-                Select in REAPER
-              </Button>
+              <ShowInDawButton
+                target={{ kind: 'chapter', trackGuid: linkedTrackGuid }}
+                onResult={({ message, failed }) => (failed ? notify(message, 'error') : notify(message))}
+              />
             </section>
           )}
           {conflict && (

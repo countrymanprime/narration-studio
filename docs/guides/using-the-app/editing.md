@@ -393,7 +393,7 @@ why it is suggested and the steps that would make the comparison surer: **Trim w
 **Normalise**, each asking before it changes anything in the DAW. Then each take, with its waveform, what share of the
 script it read as written, and its pause, level, noise, clarity and breaths. A take's second line says where it begins, how long it lasts and what the DAW calls it
 (a REAPER take, an Audacity clip or a recorder take). A take reads **Kept**, **Active**, **Muted** or, once you hide the others and look at them again, **Hidden**; the first read of a stacked line wears **First read**. Play a take to hear it: with REAPER linked it plays through REAPER, outside the project and without changing it, so you hear its output and level; if REAPER cannot preview it now, the app plays it and a message says why. With the built-in recorder or Audacity the app plays it. Nothing plays while REAPER is recording. A take longer than a minute plays its first minute. **Keep take**
-(Enter) makes it the one that plays, and **Hide others** (H) hides the other takes from the lanes. **Show in the DAW**
+(Enter) makes it the one that plays, and **Hide others** (H) hides the other takes from the lanes. **Show in REAPER** (it names your DAW)
 moves the DAW to the line, on a DAW that can move to a place in the project.
 
 Retakes recorded into REAPER's fixed item lanes are listed with the line's other takes, each as **Retake on lane N**, and are chosen the same way. **Keep take**
@@ -447,7 +447,7 @@ the take's state (**Active** or **Muted**) under the name.
 
 ![Editing - the Effects tab with a DAW that lists its chains: each has a Favourite button, and the favourites are listed first](../../images/ui/editing-drawer-effects-chains.webp)
 
-![Editing - the Effects tab with two effects on words: the inspector with its Previous and Next arrows and Show in the DAW](../../images/ui/editing-drawer-effects-inspector.webp)
+![Editing - the Effects tab with two effects on words: the inspector with its Previous and Next arrows and Show in REAPER](../../images/ui/editing-drawer-effects-inspector.webp)
 
 ![Editing - the Timeline strip under the text: the takes of the line the cursor is on](../../images/ui/editing-drawer-timeline.webp)
 

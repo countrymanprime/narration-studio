@@ -12,6 +12,7 @@ import { DAW_SETUPS } from '../../fixtures/daw';
 import { CommandRouter } from '../../input/router';
 import { OverlayHost } from '../../overlay/OverlayHost';
 import type { NarrationApi } from '../../types';
+import { createMockDawClient } from '../../ports/daw';
 import { PortOverrides } from '../../ports/usePort';
 import { TooltipProvider } from '../primitives/Tooltip';
 import * as checkRecordings from '../recordingcheck/openCheckRecordings';
@@ -447,7 +448,11 @@ describe('narrator-walkthrough-fixes-2', () => {
 
 describe('adding-lines-as-markers-says-what-happened', () => {
   const markersDaw = (changed: boolean) =>
-    ({ addPickupMarkers: vi.fn().mockResolvedValue({ ok: true, changed, message: 'Imported 2 pickups.', undoSteps: changed ? 1 : 0 }) }) as never;
+    ({
+      // The rows' Show in REAPER reads what the DAW can do (#2826).
+      ...createMockDawClient(DAW_SETUPS.reaper, { chapterIds: [], candidateIds: [], findingIds: [] }),
+      addPickupMarkers: vi.fn().mockResolvedValue({ ok: true, changed, message: 'Imported 2 pickups.', undoSteps: changed ? 1 : 0 }),
+    }) as never;
   const renderWith = (changed: boolean, list: PickupList = LIST) => {
     const api = createMockApi({ pickupsList: () => Promise.resolve(list) });
     vi.spyOn(api, 'manuscriptChapters').mockResolvedValue(

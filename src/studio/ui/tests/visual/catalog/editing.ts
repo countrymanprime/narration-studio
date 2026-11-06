@@ -102,7 +102,7 @@ export const editingStates: StateEntry[] = [
     state: 'drawer-effects-inspector',
     // The FX in the DAW section says when the DAW last answered, which is a different clock time on every run.
     mask: ['[data-projectfx-read]'],
-    description: 'Editing, the Effects tab with two effects on words - the inspector with Previous and Next effect and Show in the DAW',
+    description: 'Editing, the Effects tab with two effects on words - the inspector with Previous and Next effect and Show in REAPER',
   },
   {
     page: 'editing',

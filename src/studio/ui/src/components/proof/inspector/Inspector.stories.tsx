@@ -23,7 +23,6 @@ const api: InspectorHostApi = {
   findingsGet: async (id) => inspectorFinding({ id }),
   transcriptAddEquivalence: async () => 'Added equivalence: Dinah = Dina',
   findingsReview: async (request) => inspectorFinding({ id: request.id, review: { status: request.status, note: request.note } }),
-  findingsGoTo: async () => ({ outcome: 'navigated', projectTime: 134.6 }),
   findingsLoop: async () => ({ outcome: 'looping', loopStart: 131.6, loopEnd: 139 }),
   findingsStopLoop: async () => ({ outcome: 'stopped', restored: 3, kept: 0 }),
   findingsThread: async (id, change) =>
