@@ -29,7 +29,7 @@ The app connects to the REAPER you have open by itself. For the first ten second
 engine that is not connected yet shows a quiet "Connecting to REAPER…" line. If it has not connected by
 then, a **REAPER not connected** mark takes its place, and a dialog opens once: the DAW's reason ("REAPER is not running."),
 that progress that comes from it may be out of date until it is running again, and when the app last checked. The mark is a problem notice that reopens this dialog, not the DAW chip: the engine chip in the header is the one that opens the [audio engine panel](navigation.md#the-audio-engine-panel).
-**Start REAPER** starts REAPER on the linked project, and **Check again** asks the DAW now. The X closes the dialog and the
+**Start REAPER** starts REAPER on the linked project, and **Check again** asks the DAW now. While no REAPER project file is linked to the project, **Start REAPER** is off and **Link project file…** is the main button; it links the file and the dialog reads the answer again. The same mark and dialog appear, worded the same, on [Editing](editing.md), [Proof](proof.md), [Pickups](pickups.md), [Master & QC](master-and-qc.md) and the [Booth](booth.md): a **Check again** or a link on one is the answer on all of them, with no reload. The X closes the dialog and the
 mark opens it again; both go by themselves as soon as the engine connects. It never offers the built-in recorder:
 switching recorders is a choice in [Settings > Recording & DAW](settings.md). Whether Record could work at all
 is one answer on Production, the Booth and the Companion: the DAW's own sentence when it cannot.
@@ -306,7 +306,7 @@ checking on progress — who has no need to know what the book pays.
 
 **Import manuscript** (or **Replace manuscript…** in Settings, Project) first opens step 1 of 2, **Choose your
 manuscript**: drop a file on the zone or press **Choose a file…** to pick a .docx, .md or .txt file. A copy is
-kept in your project, and the original is read-only. The app checks a dropped file before it reads it: one file at a time, in a format
+kept in your project, and the original is read-only. [Manuscript formats](../../reference/manuscript-formats.md) says how each format's chapters are found and what to fix in a file before you import it. The app checks a dropped file before it reads it: one file at a time, in a format
 it can import. If it cannot use the file, it says why under the zone; press **Choose a file…** instead.
 
 ![Replace manuscript, step 1 of 2: Choose your manuscript, with the drop zone and Choose a file…](../../images/ui/production-import-choose.webp)

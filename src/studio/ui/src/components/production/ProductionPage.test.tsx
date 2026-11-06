@@ -282,7 +282,7 @@ describe('daw-dialog-check-again', () => {
     await renderPage({ overrides: { dawCapabilities } });
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByText('REAPER is not connected')).toBeTruthy();
-    expect(dialog.textContent).toContain('REAPER is not running.');
+    expect(dialog.textContent).toContain('REAPER is not answering. Check that REAPER is open');
     expect(dialog.textContent).toContain('Progress that comes from REAPER may be out of date until it is running again.');
     const before = dawCapabilities.mock.calls.length;
     await userEvent.click(within(dialog).getByRole('button', { name: 'Check again' }));

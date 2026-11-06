@@ -599,3 +599,19 @@ export async function chooseMicrophone(page: Page): Promise<void> {
   await page.keyboard.press('Escape');
   await menu.waitFor({ state: 'detached' });
 }
+
+/**
+ * A page with the DAW not connected, after its not-connected dialog opened by itself (once the connect grace has passed) and was closed with its X:
+ * what stays is the quiet mark in the page's header (#2823). `ready` waits for the page's own content, which the dialog hides from the accessibility tree.
+ */
+export async function closeDawDialogOnArrival(page: Page, name: AppPage): Promise<void> {
+  await page.goto('/?mockDaw=Audacity');
+  await settlePage(page);
+  await clickNav(page, name);
+  const dialog = page.getByRole('dialog', { name: /is not connected/ });
+  await dialog.waitFor({ timeout: 20_000 });
+  await dialog.getByRole('button', { name: 'Close' }).click();
+  await dialog.waitFor({ state: 'detached' });
+  await page.getByRole('heading', { level: 1, name: PAGE_HEADING[name], exact: true }).waitFor();
+  await page.getByRole('button', { name: /not connected/ }).waitFor();
+}

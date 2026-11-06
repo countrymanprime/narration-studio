@@ -108,6 +108,8 @@ words it heard show the next time you open the chapter.
 
 ## The DAW tools menu
 
+When REAPER is not answering, the header shows **REAPER not connected** before the wrench; its dialog has **Link project file…** while no REAPER project file is linked, then **Start REAPER** and **Check again** ([Production](production.md) describes it).
+
 The wrench icon button at the right end of the header (its tooltip is **DAW tools**) opens a menu headed **Structure** with **Prepare chapter render…** and **Create chapter regions…**. They are the same two dialogs as in the audio engine panel's REAPER tools: create the chapter regions REAPER renders one file per chapter from, then set up the render. When a tool cannot be used it stays in the menu, greyed, with the reason under its name: the DAW is not answering, the DAW has a different project open than the one linked here, the REAPER project has no tracks yet, no chapter is linked to a REAPER track yet (link one on [Production](production.md)), or the project records in Audacity, which has neither regions nor render setup to write. The menu reads the project the first time you open it, so for a moment both entries say **Reading the REAPER project…**.
 
 ![Editing - the DAW tools menu open on a linked chapter: the Structure heading over Prepare chapter render and Create chapter regions](../../images/ui/editing-daw-tools.webp)

@@ -14,6 +14,26 @@ list. **Settings** is the page's one title; the category you are in is named by 
 a "fix credits" link, Master's silence cleanup), Settings opens on the setting, lights it up for a moment and
 offers **Back to** the page you came from.
 
+This page is a reference to every setting, category by category. If you came to do one thing, start from the list
+below; each line goes to the section that has the steps.
+
+## Common tasks
+
+- **Record in REAPER**: [link your REAPER project](#link-your-reaper-project). Choose **REAPER**, **Audacity** or the
+  **Built-in recorder** under **Record with** in the Recording & DAW category ([Choose REAPER](#choose-reaper)).
+- **Choose the microphone** the Booth listens to: **Microphone** in the Recording & DAW category. With a DAW it
+  follows the DAW's own input and needs nothing set.
+- **Download a speech model, a voice or the Story Bible language model**: [Models and downloads](#models-and-downloads).
+  Nothing downloads until you press **Download**.
+- **Change the model that checks your recordings, or the one the Booth follows you with**:
+  [Speech to text](#speech-to-text).
+- **Replace the manuscript**: **Replace manuscript…** in [Project](#project).
+- **Set up the opening and closing credits**: [Credits](#credits).
+- **Change the theme, or the reader's font and text size**: Appearance & keys, under **This computer** in the category list.
+- **Check for an update**: **Check now** in [About and updates](#about-and-updates).
+- **Move the downloaded models to another disk**: [Models folder](#models-folder).
+- **Find any other setting**: type in **Search settings** at the top right ([Find a setting](#find-a-setting)).
+
 ## Before a project is open
 
 Settings does not wait for a project. On **Choose your project** the **Settings** button (the gear at the top right) opens
@@ -431,6 +451,12 @@ Some settings only change what one page does, so they belong on that page, next 
 - If a change cannot be saved, the page says **Changes cannot be saved right now** and the row says why; the previous value is still in use.
 - If the list of downloads cannot be read, Models & downloads says so with **Retry**; your downloads are not touched.
 - If moving the models folder fails or you cancel it, your models are still in the folder they were in. The dialog says why; choose another folder, or free some space, and try again. If the new folder is on a disk that is later unplugged, the models read as not downloaded until it is back.
+
+## What next
+
+- [Getting started](getting-started.md): the first project from install to the first take, if you came here to set up.
+- [Booth](booth.md): record with the recorder and microphone you chose.
+- [Using the app](README.md): every page of the guide, and where each reader starts.
 
 ---
 

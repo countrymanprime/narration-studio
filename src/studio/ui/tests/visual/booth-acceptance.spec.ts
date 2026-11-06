@@ -221,21 +221,14 @@ test('row 18: with REAPER linked and answering, Record is ready: nothing to swit
 test('row 19: Record with no project linked and no bridge: disabled, with the reason and the link step', async ({ page }) => {
   await open(page, '?mockDaw=live', false);
   await expect(record(page)).toBeDisabled();
-  await expect(page.getByRole('dialog', { name: /is not connected/ }).getByRole('button', { name: 'Link in Settings' })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: /is not connected/ }).getByRole('button', { name: 'Link project file…' })).toBeVisible();
   await expect(page.locator('#brec-why')).not.toHaveText('');
 });
 
 test('row 20: Record with REAPER not answering, and with another project open, is disabled with the reason', async ({ page }) => {
   await open(page, '?mockDaw=quiet', false);
-  await page
-    .getByRole('dialog', { name: /is not connected/ })
-    .getByRole('button', { name: 'Link in Settings' })
-    .click();
-  await page.getByRole('button', { name: /^Link Alice\.rpp/ }).click();
-  await goToPage(page, 'Booth');
-  // The project is linked now, so the dialog waits for the connect grace; its mark opens it at once.
-  await page.locator('#brec-setup').getByRole('button').click();
   const connect = page.getByRole('dialog', { name: /is not connected/ });
+  await connect.getByRole('button', { name: 'Link project file…' }).click();
   await connect.getByRole('button', { name: 'Open in REAPER and connect' }).click();
   await expect(connect.getByRole('alert')).toContainText('was started and has not answered yet', { timeout: 20_000 });
   await expect(record(page)).toBeDisabled();

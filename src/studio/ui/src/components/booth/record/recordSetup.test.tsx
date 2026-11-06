@@ -128,8 +128,7 @@ describe('RecordSetup while a linked project connects on its own', () => {
     );
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByRole('button', { name: 'Open in REAPER and connect' }).getAttribute('aria-disabled')).toBe('true');
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Link in Settings' }));
-    expect(onSettings).toHaveBeenCalled();
+    expect(within(dialog).getByRole('button', { name: 'Link project file…' })).toBeTruthy();
   });
 });
 
@@ -206,12 +205,11 @@ describe('RecordSetup', () => {
     await waitFor(() => expect(say).toHaveBeenCalledWith('Launcher file path copied.'));
   });
 
-  it('connect-cannot-open-reaper-while-no-project-is-linked-and-links-from-settings', async () => {
-    const { onSettings } = mount(recordRefused('standalone', 'none'), { dawFileLinked: false, launcherPath: LAUNCHER });
+  it('connect-cannot-open-reaper-while-no-project-is-linked-and-links-the-file-from-the-dialog', async () => {
+    mount(recordRefused('standalone', 'none'), { dawFileLinked: false, launcherPath: LAUNCHER });
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getAllByRole('listitem')).toHaveLength(2);
-    await userEvent.click(within(dialog).getByRole('button', { name: 'Link in Settings' }));
-    expect(onSettings).toHaveBeenCalled();
+    expect(within(dialog).getByRole('button', { name: 'Link project file…' })).toBeTruthy();
     expect(within(dialog).getByRole('button', { name: 'Open in REAPER and connect' }).getAttribute('aria-disabled')).toBe('true');
   });
 
@@ -363,7 +361,7 @@ describe('RecordSetup says what it waits for and when it last looked', () => {
 
   it('does-not-claim-the-project-is-unlinked-when-the-link-state-could-not-be-read', () => {
     mountChecked(recordRefused('standalone'), { facts: { dawFileLinked: false, launcherPath: '' }, factsFailed: true });
-    expect(screen.queryByRole('button', { name: 'Link in Settings' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Link project file…' })).toBeNull();
     expect(screen.getByText(/Could not read whether a project file is linked/)).toBeTruthy();
   });
 

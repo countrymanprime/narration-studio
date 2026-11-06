@@ -292,7 +292,6 @@
         "src/components/booth/voices/VoiceControl.tsx",
         "src/components/booth/voices/WhoIsInDialog.tsx",
         "src/components/connection/ChapterLinkDialog.tsx",
-        "src/components/connection/ReaperOffDialog.tsx",
         "src/components/connection/ResolveShell.tsx",
         "src/components/credits/CreditsSetupBanner.tsx",
         "src/components/credits/CreditsSetupDialog.tsx",
@@ -783,8 +782,7 @@
       ],
       "consumers": [
         "src/components/booth/record/RecordSetup.tsx",
-        "src/components/editing/EditingPage.tsx",
-        "src/components/production/ProductionPage.tsx"
+        "src/components/connection/useDawConnection.tsx"
       ],
       "a11yDebt": false
     },
@@ -882,19 +880,6 @@
       "source": "src/components/production/pipeline/DawBanner.tsx",
       "stories": [
         "Daw Down"
-      ],
-      "consumers": [
-        "src/components/production/ProductionPage.tsx"
-      ],
-      "a11yDebt": false
-    },
-    {
-      "title": "Production/DawIndicator",
-      "name": "DawIndicator",
-      "source": "src/components/production/pipeline/DawIndicator.tsx",
-      "stories": [
-        "Not Connected",
-        "Connecting"
       ],
       "consumers": [
         "src/components/production/ProductionPage.tsx"
