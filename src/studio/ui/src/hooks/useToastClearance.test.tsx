@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { render } from '@testing-library/react';
-import { useRef } from 'react';
+import { render, waitFor } from '@testing-library/react';
+import { useEffect, useRef, useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { TOAST_CLEAR_RIGHT_VAR, TOAST_CLEAR_VAR, useToastClearance, useToastSideClearance } from './useToastClearance';
 
@@ -94,6 +94,21 @@ describe('useToastSideClearance', () => {
     expect(read()).toBe('392px');
     unmount();
     expect(read()).toBe('');
+  });
+
+  // #3113: Proof draws its page after the data arrives, so the panel is not there when the hook first runs; the toasts then covered its decision buttons.
+  it('moves the toasts left of a panel that mounts after the page does', async () => {
+    vi.stubGlobal('innerWidth', 1440);
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ width: 380, right: 1440 } as DOMRect);
+    function Late() {
+      const ref = useRef<HTMLDivElement>(null);
+      const [ready, setReady] = useState(false);
+      useEffect(() => setReady(true), []);
+      useToastSideClearance(ref);
+      return ready ? <div ref={ref}>panel</div> : <p>loading</p>;
+    }
+    render(<Late />);
+    await waitFor(() => expect(read()).toBe('392px'));
   });
 
   it('leaves the toasts alone when the panel spans the window (the layout stacked it under the page)', () => {
