@@ -33,7 +33,16 @@ export type TeleprompterFlagKind = 'misread' | 'extra' | 'skipped' | 'restart';
  * `extra` is zero-width (`start === end`), sitting before the word at `start`. `heard` is what was heard in their place ('' for
  * `skipped`). `id` counts a session's flags from 1. The kind is carried so a view can choose which kinds to show.
  */
-export type TeleprompterFlag = { type: 'flag'; id: number; kind: TeleprompterFlagKind; start: number; end: number; heard: string };
+export type TeleprompterFlag = {
+  type: 'flag';
+  id: number;
+  kind: TeleprompterFlagKind;
+  start: number;
+  end: number;
+  heard: string;
+  /** Set by the page, never on the wire: the verdict of the `flag_check` that later reached this flag (`TeleprompterFlagCheck`). */
+  check?: 'confirmed' | 'cleared';
+};
 
 /**
  * The trailing confirmation pass's verdict on one earlier flag (internal/scripttrack, `flagcheck.go`), seconds after the
