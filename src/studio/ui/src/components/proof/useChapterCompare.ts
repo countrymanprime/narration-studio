@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useApi } from '../../api/ApiContext';
+import { usePort } from '../../ports/usePort';
 import type { ManuscriptChapter, TranscriptState } from '../../types';
 
 /**
@@ -8,16 +8,16 @@ import type { ManuscriptChapter, TranscriptState } from '../../types';
  * chapter view (`/proof/:chapterId`) both read it here, so the two routes tell the same story.
  */
 export function useChapterCompare(chapter: ManuscriptChapter | undefined, transcript: TranscriptState) {
-  const api = useApi();
+  const transcriptPort = usePort('transcript');
   const [lastCompleted, setLastCompleted] = useState<TranscriptState>();
   const [reviewingLast, setReviewingLast] = useState(false);
 
   useEffect(() => {
-    void api
+    void transcriptPort
       .transcriptLastCompleted()
       .then(setLastCompleted)
       .catch(() => {});
-  }, [api]);
+  }, [transcriptPort]);
 
   // A run covers the selected REAPER audio, so rows for other chapters are left out.
   const results = reviewingLast ? lastCompleted : transcript.phase === 'success' ? transcript : undefined;
