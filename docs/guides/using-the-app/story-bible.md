@@ -166,8 +166,8 @@ Script; a quote whose line the book no longer has is plain text that says so). A
 ## Built after an import
 
 When you import a manuscript into a project whose Story Bible has no entries, the app builds it for you, unless
-**Build the Story Bible after import** is off in [Settings](settings.md). It would rather leave a name for you than
-file it wrongly:
+**Build the Story Bible after import** is off ([Settings](settings.md), **Project**, under **Story Bible**). It reads
+English, and it would rather leave a name for you than file it wrongly:
 
 - A name is a **Character** only when the book shows it is one: it speaks ("said the Hatter"), it has a title (Mr. Darcy),
   or a verb follows it ("Montmorency barked").
@@ -181,7 +181,8 @@ The message when it ends says what it did, for example "Story Bible built from t
 4 names to check under Needs review. Left out, named only once or twice: Bill, Pat and 6 more." Press **Show them** to
 open the list on **Needs review**. It uses the language model when it is installed, and the rules alone when it is not
 (the message then ends "Built without the language model"); it never downloads anything. A Story Bible that already
-has entries is never rebuilt by an import: **Scan the manuscript** suggests what is new instead. On five public-domain
+has entries is never rebuilt by an import (the message says so): **Scan the manuscript** suggests what is new instead.
+A book it finds no clear names in says so, and a Story Bible file it cannot read is left as it is, with a message. On five public-domain
 books, 99 of the 100 characters it filed were real characters, and it filed about three in four of the main cast; on
 the one book it was not tuned on, 18 of 19 without the language model and 23 of 24 with it
 ([the benchmark](../../research/story-bible-build-benchmark.md)).

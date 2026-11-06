@@ -15,6 +15,10 @@ import (
 // ErrBibleNotEmpty is BuildUnattended's answer for a Story Bible that already has entries: nothing was built or written.
 var ErrBibleNotEmpty = errors.New("the Story Bible already has entries")
 
+// ErrBibleUnreadable is BuildUnattended's answer for a Story Bible file it cannot read as one (damaged JSON, or JSON of another shape):
+// nothing was built, and the file is left byte for byte, for the narrator to restore or remove.
+var ErrBibleUnreadable = errors.New("the Story Bible file could not be read")
+
 // UnattendedReport is what an unattended build did.
 type UnattendedReport struct {
 	Characters, Places, Review, Other int
@@ -25,11 +29,20 @@ type UnattendedReport struct {
 	Model bool
 }
 
-// maxLeftOutNamed is how many left-out names the report's sentence names; the log has them all.
-const maxLeftOutNamed = 8
+// maxLeftOutNamed is how many left-out names the report's sentence names, and maxNameRunes how much of each; the log has them all.
+const (
+	maxLeftOutNamed = 8
+	maxNameRunes    = 40
+)
+
+// noNamesSentence is the report of a build that filed nothing.
+const noNamesSentence = "Story Bible built from the import, but the book named no character or place clearly enough to file. Add them yourself on the Story Bible page, or use Scan the manuscript there."
 
 // Sentence is the report as the narrator reads it when the build ends.
 func (r UnattendedReport) Sentence() string {
+	if r.Characters+r.Places+r.Review+r.Other == 0 {
+		return noNamesSentence
+	}
 	var b strings.Builder
 	fmt.Fprintf(&b, "Story Bible built from the import: %s and %s", plural(r.Characters, "character", "characters"), plural(r.Places, "place", "places"))
 	if r.Other > 0 {
@@ -40,7 +53,13 @@ func (r UnattendedReport) Sentence() string {
 	}
 	b.WriteString(".")
 	if n := len(r.LeftOut); n > 0 {
-		named := r.LeftOut[:min(n, maxLeftOutNamed)]
+		named := make([]string, 0, maxLeftOutNamed)
+		for _, name := range r.LeftOut[:min(n, maxLeftOutNamed)] {
+			if runes := []rune(name); len(runes) > maxNameRunes {
+				name = string(runes[:maxNameRunes-1]) + "…"
+			}
+			named = append(named, name)
+		}
 		fmt.Fprintf(&b, " Left out, named only once or twice: %s", strings.Join(named, ", "))
 		if n > len(named) {
 			fmt.Fprintf(&b, " and %d more", n-len(named))
@@ -73,6 +92,10 @@ func (s *Service) BuildUnattended(progress, log, model string) (UnattendedReport
 		run.say("The Story Bible already has entries, so this build left it as it was.")
 		return UnattendedReport{}, err
 	}
+	if errors.Is(err, ErrBibleUnreadable) {
+		run.say("The Story Bible file could not be read, so this build left it as it was.")
+		return UnattendedReport{}, err
+	}
 	if err != nil {
 		run.fail(err)
 		return UnattendedReport{}, err
@@ -85,6 +108,27 @@ func (s *Service) BuildUnattended(progress, log, model string) (UnattendedReport
 	}
 	_ = s.SaveFindings() // best-effort, as for Build
 	return *report, nil
+}
+
+// unattendedRefusal is why a build nobody asked for must not write over the Story Bible file as readPrevious read it (raw nil: no
+// file), or nil: a file that is not a JSON object with an entities list (or none) is unreadable, and one with an entry is not empty.
+func unattendedRefusal(raw []byte, bible any) error {
+	if raw == nil {
+		return nil
+	}
+	document, ok := bible.(*pyObject)
+	if !ok {
+		return ErrBibleUnreadable
+	}
+	if entries, present := document.values["entities"]; present {
+		if _, ok := entries.([]any); !ok {
+			return ErrBibleUnreadable
+		}
+	}
+	if bibleHasEntries(bible) {
+		return ErrBibleNotEmpty
+	}
+	return nil
 }
 
 // bibleHasEntries is whether a Story Bible file, as readPrevious read it, holds at least one entry.

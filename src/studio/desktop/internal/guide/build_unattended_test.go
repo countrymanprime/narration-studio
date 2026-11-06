@@ -114,7 +114,6 @@ func TestUnattendedSentence(t *testing.T) {
 		report UnattendedReport
 		want   string
 	}{
-		{UnattendedReport{Model: true}, "Story Bible built from the import: 0 characters and 0 places."},
 		{UnattendedReport{Characters: 1, Places: 2, Other: 1, Model: true}, "Story Bible built from the import: 1 character and 2 places, 1 other entry."},
 		{UnattendedReport{Characters: 3, Review: 2, LeftOut: many, Model: true},
 			"Story Bible built from the import: 3 characters and 0 places; 2 names to check under Needs review. Left out, named only once or twice: A1, B2, C3, D4, E5, F6, G7, H8 and 2 more."},
@@ -131,6 +130,43 @@ func mapKeys[V any](m map[string]V) func(func(string) bool) {
 			if !yield(k) {
 				return
 			}
+		}
+	}
+}
+
+// A left-out name of any length stays short in the sentence, which is also the toast and the OS notification.
+func TestUnattendedSentenceCapsAHugeLeftOutName(t *testing.T) {
+	huge := strings.Repeat("A", 10_000)
+	got := UnattendedReport{Characters: 1, LeftOut: []string{huge, "Bob"}, Model: true}.Sentence()
+	if n := len([]rune(got)); n > 400 {
+		t.Fatalf("the sentence is %d characters long", n)
+	}
+	if !strings.Contains(got, "…") || !strings.Contains(got, "Bob") {
+		t.Errorf("sentence %q", got)
+	}
+}
+
+// A book the build files nothing from says so and says what to do, rather than "0 characters and 0 places".
+func TestUnattendedSentenceForABookWithNoNames(t *testing.T) {
+	want := "Story Bible built from the import, but the book named no character or place clearly enough to file. Add them yourself on the Story Bible page, or use Scan the manuscript there."
+	if got := (UnattendedReport{Model: true}).Sentence(); got != want {
+		t.Errorf("sentence %q", got)
+	}
+}
+
+// A Story Bible file the build cannot read as one is never replaced by a build nobody asked for: its bytes stay, and the answer says
+// why.
+func TestBuildUnattendedNeverOverwritesADamagedStoryBible(t *testing.T) {
+	for _, damaged := range []string{`{"entities": [ {`, `[]`, `null`, "\x00\x01", `{"entities": "x"}`} {
+		s := unattendedBook(t, damaged)
+		s.buildModel = &stubModel{}
+		_, err := s.BuildUnattended("", "", RulesOnly)
+		// A file every build refuses ({"entities": "x"}) keeps its own error; the rest are refused by the unattended build alone.
+		if err == nil || (damaged != `{"entities": "x"}` && !errors.Is(err, ErrBibleUnreadable)) {
+			t.Errorf("%q: err %v, want ErrBibleUnreadable", damaged, err)
+		}
+		if raw, _ := os.ReadFile(s.guidePath()); string(raw) != damaged {
+			t.Errorf("%q: the file became %q", damaged, raw)
 		}
 	}
 }

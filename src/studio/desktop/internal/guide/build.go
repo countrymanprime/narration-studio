@@ -78,8 +78,10 @@ func (s *Service) build(ctx context.Context, run *buildRun, model string, refres
 	if err != nil {
 		return "", nil, err
 	}
-	if run.unattended != nil && bibleHasEntries(seen) {
-		return "", nil, ErrBibleNotEmpty
+	if run.unattended != nil {
+		if err := unattendedRefusal(seenRaw, seen); err != nil {
+			return "", nil, err
+		}
 	}
 	fresh, err := s.extract(ctx, run, manuscriptPath, model, paragraphs)
 	if err != nil {
@@ -92,12 +94,17 @@ func (s *Service) build(ctx context.Context, run *buildRun, model string, refres
 	s.editMu.Lock()
 	defer s.editMu.Unlock()
 	s.held = nil
+	if run.unattended != nil {
+		// The file as it is now: the narrator may have added an entry while the model ran.
+		raw, _ := os.ReadFile(guidePath)
+		value, _ := pyLoadBible(raw, errBuildShape)
+		if err := unattendedRefusal(raw, value); err != nil {
+			return "", nil, err
+		}
+	}
 	previous, err := rereadPrevious(guidePath, seenRaw, seen)
 	if err != nil {
 		return "", nil, err
-	}
-	if run.unattended != nil && bibleHasEntries(previous) {
-		return "", nil, ErrBibleNotEmpty // the narrator added an entry while the model ran
 	}
 	types, err := buildTypes(previous)
 	if err != nil {

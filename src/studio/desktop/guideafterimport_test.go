@@ -156,7 +156,7 @@ func TestAnImportWithTheSettingOffBuildsNothing(t *testing.T) {
 	}
 }
 
-// A Story Bible the narrator already has is never rebuilt by an import: nothing starts and the file is as it was.
+// A Story Bible the narrator already has is never rebuilt by an import: the file is as it was, and the job's end says why.
 func TestAnImportLeavesAStoryBibleWithEntriesAsItWas(t *testing.T) {
 	f := afterImportFixture(t)
 	path := filepath.Join(f.project, "ManuscriptGuide", "manuscript_guide.json")
@@ -164,8 +164,12 @@ func TestAnImportLeavesAStoryBibleWithEntriesAsItWas(t *testing.T) {
 	if err := os.WriteFile(path, []byte(previous), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if f.host.buildGuideAfterImport() {
-		t.Fatal("a build started over a Story Bible with entries")
+	events := collectJobEnds(f.host)
+	if !f.host.buildGuideAfterImport() {
+		t.Fatal("no job started, so the narrator is told nothing")
+	}
+	if event := nextJobEnd(t, events); event.Outcome != jobOutcomeSuccess || !strings.Contains(event.Message, "already has entries") {
+		t.Errorf("event %+v", event)
 	}
 	if raw, _ := os.ReadFile(path); string(raw) != previous {
 		t.Errorf("the Story Bible changed: %s", raw)
@@ -180,4 +184,30 @@ func TestAnImportDuringARunningBuildStartsNoSecondOne(t *testing.T) {
 		t.Fatal("a second build started")
 	}
 	f.host.guideJob = nil
+}
+
+// A Story Bible file the build cannot read is left byte for byte, and the narrator is told: the job ends in an error that says so.
+func TestAnImportOverADamagedStoryBibleLeavesItAndSaysSo(t *testing.T) {
+	for _, damaged := range []string{`null`, `{"entities": [ {`, `{"entities":[1]}`} {
+		f := afterImportFixture(t)
+		path := filepath.Join(f.project, "ManuscriptGuide", "manuscript_guide.json")
+		if err := os.WriteFile(path, []byte(damaged), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		events := collectJobEnds(f.host)
+		if !f.host.buildGuideAfterImport() {
+			t.Fatalf("%q: no job started, so the narrator is told nothing", damaged)
+		}
+		event := nextJobEnd(t, events)
+		if event.Kind != jobKindStoryBible || event.Message == "" {
+			t.Fatalf("%q: event %+v", damaged, event)
+		}
+		// An entries list the build cannot read keeps the build's own words; the rest say the file could not be read.
+		if event.Outcome != jobOutcomeError || (damaged != `{"entities":[1]}` && !strings.Contains(event.Message, "could not be read")) {
+			t.Errorf("%q: event %+v, want an error that says why", damaged, event)
+		}
+		if raw, _ := os.ReadFile(path); string(raw) != damaged {
+			t.Errorf("%q: the file became %q", damaged, raw)
+		}
+	}
 }

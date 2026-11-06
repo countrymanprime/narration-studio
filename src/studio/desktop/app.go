@@ -2222,8 +2222,10 @@ func (h *Host) startGuideBuild(rulesOnly bool) (map[string]any, error) {
 // buildGuideAfterImport is Build the Story Bible after import (ManuscriptGuide.build_after_import, on unless the narrator turns it off),
 // run when an import succeeds: the unattended build (guide.Service.BuildUnattended) of a Story Bible with no entries, which files a name
 // under a kind only on the evidence of the confidence rule and ends with a sentence saying what it made, what waits under Needs review
-// and what it left out. Nobody is there to answer the language model's first-use gate, so without an installed model it builds from the
-// rules alone and says so. It reports whether it started a build; a build refreshes the dialogue cues itself.
+// and what it left out. A Story Bible with entries, or a file it cannot read, is left as it is, and the job's end says so; the file is
+// never read through Entities here, which would move a damaged file aside. Nobody is there to answer the language model's first-use
+// gate, so without an installed model it builds from the rules alone and says so. It reports whether it started a job; a build
+// refreshes the dialogue cues itself.
 func (h *Host) buildGuideAfterImport() bool {
 	svc := h.services()
 	if svc.guide == nil || svc.settings == nil {
@@ -2231,9 +2233,6 @@ func (h *Host) buildGuideAfterImport() bool {
 	}
 	if on, _ := svc.settings.Effective("ManuscriptGuide", "build_after_import", "true"); on != "true" {
 		return false
-	}
-	if entries, err := svc.guide.Entities(); err != nil || len(entries) > 0 {
-		return false // a Story Bible the narrator has: an unattended build never regenerates it
 	}
 	model, gate, err := h.spacyForBuild(svc.settings, false)
 	rulesOnly := err != nil || gate != nil
@@ -2301,8 +2300,11 @@ func (h *Host) runGuideJob(svc hostServices, model string, rulesOnly, afterImpor
 			var report guide.UnattendedReport
 			report, err = svc.guide.BuildUnattended(progress, log, model)
 			built = report.Sentence()
-			if errors.Is(err, guide.ErrBibleNotEmpty) {
-				err, built = nil, "The Story Bible already has entries, so the import left it as it was."
+			switch {
+			case errors.Is(err, guide.ErrBibleNotEmpty):
+				err, built = nil, "The Story Bible already has entries, so the import left it as it was. Scan the manuscript on the Story Bible page to add what is new."
+			case errors.Is(err, guide.ErrBibleUnreadable):
+				err = errors.New("The Story Bible file could not be read, so the import left it as it was and built nothing. Open the Story Bible page to see what happened to it.")
 			}
 		} else {
 			_, err = svc.guide.Build(progress, log, model)
