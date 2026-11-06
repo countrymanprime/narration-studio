@@ -7,21 +7,21 @@ import { useChapterLinks } from './useChapterLinks';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import { WIRE_CHAPTERS, WIRE_LINE_IDENTITY_LINES, WIRE_TRACKS_PROJECT } from '../../api/mockFixtures';
-import type { NarrationApi } from '../../types';
+import type { NarrationApi, Track } from '../../types';
 
 afterEach(cleanup);
 
 // The dialog as the engine panel mounts it: drawn from the one chapter-links reader.
-function Dialog({ onClose }: { onClose: () => void }) {
-  const links = useChapterLinks(WIRE_TRACKS_PROJECT.tracks, 0, () => {});
+function Dialog({ onClose, tracks = WIRE_TRACKS_PROJECT.tracks }: { onClose: () => void; tracks?: Track[] }) {
+  const links = useChapterLinks(tracks, 0, () => {});
   return <LinkChaptersDialog links={links} onClose={onClose} />;
 }
 
-function renderDialog(overrides: Partial<NarrationApi> = {}, initial: Parameters<typeof createMockApi>[1] = {}, onClose = vi.fn()) {
+function renderDialog(overrides: Partial<NarrationApi> = {}, initial: Parameters<typeof createMockApi>[1] = {}, onClose = vi.fn(), tracks?: Track[]) {
   const api = createMockApi(overrides, initial);
   render(
     <ApiProvider api={api}>
-      <Dialog onClose={onClose} />
+      <Dialog onClose={onClose} tracks={tracks} />
     </ApiProvider>,
   );
   return { api, onClose };
@@ -35,6 +35,79 @@ describe('LinkChaptersDialog', () => {
       expect(await screen.findByRole('combobox', { name: `Track for ${chapter.title}` })).toBeTruthy();
     }
     expect(screen.getByRole('button', { name: 'Stamp 0 items' })).toBeTruthy();
+  });
+
+  // #3043: a chapter linked to a folder of voices has its audio on the folder's children.
+  it('counts and stamps the items of every voice inside a folder linked to a chapter', async () => {
+    const user = userEvent.setup();
+    const item = (guid: string) => ({ ...WIRE_TRACKS_PROJECT.tracks[0].items[0], guid });
+    const track = (guid: string, name: string, depth: number, isFolder: boolean, items: string[]): Track => ({
+      ...WIRE_TRACKS_PROJECT.tracks[0],
+      guid,
+      name,
+      depth,
+      isFolder,
+      items: items.map(item),
+    });
+    const voices = [
+      track('{F0000000-0000-4000-8000-0000000000F1}', 'Chapter 1', 0, true, []),
+      track('{F0000000-0000-4000-8000-0000000000F2}', 'Narrator', 1, false, ['{I1}', '{I2}']),
+      track('{F0000000-0000-4000-8000-0000000000F3}', 'Hero', 1, false, ['{I3}']),
+      track('{F0000000-0000-4000-8000-0000000000F4}', 'Chapter 2', 0, false, ['{I4}']),
+    ];
+    const { api } = renderDialog({}, {}, vi.fn(), voices);
+    const stamp = vi.spyOn(api, 'lineIdentityStamp');
+    const chapter = WIRE_CHAPTERS[0];
+
+    await user.selectOptions(await screen.findByRole('combobox', { name: `Track for ${chapter.title}` }), voices[0].guid);
+
+    const stampButton = await screen.findByRole('button', { name: 'Stamp 3 items' });
+    const mapping = screen.getByRole('table', { name: 'Chapter to track mapping' });
+    expect(
+      within(mapping)
+        .getAllByRole('cell')
+        .some((cell) => cell.textContent === '3'),
+    ).toBe(true);
+    await user.click(stampButton);
+    await waitFor(() =>
+      expect(stamp).toHaveBeenCalledWith(
+        ['{I1}', '{I2}', '{I3}'].map((guid) => ({ itemGuid: guid, lineId: chapter.id, text: chapter.title })),
+        false,
+      ),
+    );
+  });
+
+  it('counts and stamps an item once when an outer folder and a track inside it are both linked, for the chapter linked nearest', async () => {
+    const user = userEvent.setup();
+    const item = (guid: string) => ({ ...WIRE_TRACKS_PROJECT.tracks[0].items[0], guid });
+    const track = (guid: string, name: string, depth: number, isFolder: boolean, items: string[]): Track => ({
+      ...WIRE_TRACKS_PROJECT.tracks[0],
+      guid,
+      name,
+      depth,
+      isFolder,
+      items: items.map(item),
+    });
+    const tracks = [
+      track('{F0000000-0000-4000-8000-0000000000F1}', 'Narration', 0, true, []),
+      track('{F0000000-0000-4000-8000-0000000000F2}', 'Chapter 1', 1, false, ['{I1}', '{I2}']),
+      track('{F0000000-0000-4000-8000-0000000000F3}', 'Chapter 2', 1, false, ['{I3}']),
+    ];
+    const { api } = renderDialog({}, {}, vi.fn(), tracks);
+    const stamp = vi.spyOn(api, 'lineIdentityStamp');
+    const [first, second] = WIRE_CHAPTERS;
+
+    await user.selectOptions(await screen.findByRole('combobox', { name: `Track for ${first.title}` }), tracks[1].guid);
+    await user.selectOptions(await screen.findByRole('combobox', { name: `Track for ${second.title}` }), tracks[0].guid);
+
+    // Chapter 2's folder owns what is not under Chapter 1's own track: 1 item, not 3.
+    const stampButton = await screen.findByRole('button', { name: 'Stamp 3 items' });
+    await user.click(stampButton);
+    await waitFor(() => expect(stamp).toHaveBeenCalled());
+    const rows = stamp.mock.calls[0][0];
+    expect(rows.map((row) => row.itemGuid).sort()).toEqual(['{I1}', '{I2}', '{I3}']);
+    expect(rows.filter((row) => row.lineId === first.id).map((row) => row.itemGuid)).toEqual(['{I1}', '{I2}']);
+    expect(rows.filter((row) => row.lineId === second.id).map((row) => row.itemGuid)).toEqual(['{I3}']);
   });
 
   it('previews every item of a mapped track and stamps only once approved', async () => {

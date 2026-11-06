@@ -14,7 +14,26 @@ export const scriptStates: StateEntry[] = [
     description:
       'Script, the continuous reader on Chapter 1: the chapter list with its prep dots, the chapter card, the marks and speaker chips in the text, and the rail on its Words tab',
   },
-  railTab('rail-words', 'Script, the rail on its Words tab with a word chosen: how to say it, its source and the web look-ups'),
+  {
+    ...railTab('rail-words', 'Script, the rail on its Words tab with a word chosen: how to say it, its source and the web look-ups'),
+    // A word no dictionary has: its Save to my dictionary field is judged at a phone's width too (#2595).
+    extraViewports: [...RAIL_DEPENDS_ON_WIDTH.extraViewports, ...REFLOW.extraViewports],
+  },
+  {
+    ...railTab(
+      'rail-words-name',
+      "Script, the rail on its Words tab with a Story Bible name chosen: its card edits the name's pronunciation with the Story Bible's own row (#2595)",
+    ),
+    // The card's row wraps below 32 rem; it is also judged at a phone's width (#2595).
+    extraViewports: [...RAIL_DEPENDS_ON_WIDTH.extraViewports, ...REFLOW.extraViewports],
+  },
+  {
+    ...railTab(
+      'rail-words-candidates',
+      "Script, a Story Bible name's Words card with From the dictionaries open: each source's value with its source, Hear and Use (#2595)",
+    ),
+    extraViewports: [...RAIL_DEPENDS_ON_WIDTH.extraViewports, ...REFLOW.extraViewports],
+  },
   railTab('rail-story-bible', "Script, the rail on its Story Bible tab: the book's entries by kind, one opened"),
   railTab('rail-notes', "Script, the rail on its Notes tab: the chapter's notes, each with where it is"),
   {
@@ -29,6 +48,12 @@ export const scriptStates: StateEntry[] = [
       'Script, Chapter 3 chosen from the chapter list: the column at 1440, the drawer from the left with its scrim below 1180 px (the header’s Chapters button)',
     // The driver opens the drawer only where the width shows its button, so each width loads afresh.
     reloadPerViewport: true,
+  },
+  {
+    page: 'script',
+    state: 'chapter-jump-focus',
+    description:
+      'Script, a chapter chosen from the jump menu: the reader scrolled to it with keyboard focus on its heading, which shows the focus ring (#2902)',
   },
   {
     page: 'script',
@@ -74,6 +99,24 @@ export const scriptStates: StateEntry[] = [
     page: 'script',
     state: 'search-shown',
     description: 'Script, a match chosen in the menu: every match of "Alice" lit in the text and the chosen one ringed and in view',
+  },
+  {
+    page: 'script',
+    state: 'search-current',
+    description:
+      'Script, a search for "Alice" stepped with F3 to its third match, the menu closed: every match lit in the search hue and the current one in its own warn fill and ring, in view',
+  },
+  {
+    page: 'script',
+    state: 'search-steps',
+    description:
+      'Script, Find\'s own controls while "Alice" shows: Ctrl+F, then the Search group: Next match and Previous match with "1 of N for “alice”" (the whole book\'s count from the host), and Clear the search',
+  },
+  {
+    page: 'script',
+    state: 'search-steps-capped',
+    description:
+      'Script, Find\'s count for "the", which the book holds more than 1,000 times: "1 of the first 1000 of N for “the”", the host\'s exact total past the matches it sent',
   },
   {
     page: 'script',

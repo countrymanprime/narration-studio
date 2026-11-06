@@ -61,11 +61,11 @@ function menu(
   );
   return {
     reads,
-    open: () => userEvent.click(screen.getByRole('button', { name: 'Levels' })),
+    open: () => userEvent.click(screen.getByRole('button', { name: 'Record options' })),
     close: () => userEvent.keyboard('{Escape}'),
   };
 }
-const popup = () => screen.getByRole('dialog', { name: 'Levels' });
+const popup = () => screen.getByRole('dialog', { name: 'Record options' });
 const meter = (name: string) => within(popup()).getByRole('meter', { name });
 
 describe("the DAW's meters in the Levels menu", () => {

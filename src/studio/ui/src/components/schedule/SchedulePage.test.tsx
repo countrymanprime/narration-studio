@@ -66,7 +66,14 @@ async function mount({ seed = {}, statuses = ['not_started', 'not_started'], pro
   api = createMockApi(
     {
       productionOverview: async () => overview(statuses),
-      deliveryProfiles: async () => ({ profiles: [], globalDefault: { id: 'acx' }, hasProject: true, projectChoice: null, projectProfile: profile }),
+      deliveryProfiles: async () => ({
+        profiles: [],
+        globalDefault: { id: 'acx' },
+        shippedDefault: { id: 'acx' },
+        hasProject: true,
+        projectChoice: null,
+        projectProfile: profile,
+      }),
     },
     { production: { deadline: '2026-10-31', contractedAmount: 250, payment: 'per_finished_hour', milestones: [REC, CUSTOM_DONE, CUSTOM], ...seed } },
   );
@@ -154,6 +161,12 @@ describe('the milestones table', () => {
   it('shows a late milestone as late, with the days', async () => {
     await mount({ seed: { milestones: [{ ...REC, dueDate: '2026-10-01' }] } });
     expect(await within(rowOf('All chapters recorded')).findByRole('img', { name: /^Late by \d+ d/ })).toBeTruthy();
+  });
+
+  it('says "Past due" on an undone custom milestone whose date has passed', async () => {
+    await mount({ seed: { milestones: [{ name: 'Retail sample', dueDate: '2026-09-01' }] } });
+    const cell = await within(rowOf('Retail sample')).findByRole('img', { name: /^Past due by \d+ d/ });
+    expect(cell.textContent).toBe('Past due');
   });
 
   it('is read-only: no input in a milestone row, and the measure reads as its value', async () => {
@@ -283,6 +296,51 @@ describe('the milestone dialog', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Undo' }));
     await waitFor(async () => expect((await stored()).map((m) => m.name)).toContain('Retail sample'));
     await screen.findByText('Retail sample');
+  });
+
+  it('gives focus to the milestone that came back after Undo, instead of dropping it on the page', async () => {
+    await mount();
+    await screen.findByText('Retail sample');
+    fireEvent.click(within(rowOf('Retail sample')).getByRole('button', { name: 'Remove Retail sample' }));
+    const undo = await screen.findByRole('button', { name: 'Undo' });
+    // Let the focus that follows the removal settle before the narrator reaches the toast.
+    await new Promise((resolve) => window.setTimeout(resolve, 60));
+    undo.focus();
+    fireEvent.click(undo);
+    await waitFor(async () => expect((await stored()).map((m) => m.name)).toContain('Retail sample'));
+    await waitFor(() => expect(document.activeElement?.getAttribute('aria-label')).toBe('Edit Retail sample'));
+  });
+
+  it('does not drop focus to the page when an older Undo is refused', async () => {
+    await mount({ seed: { milestones: [CUSTOM] } });
+    await screen.findByText('Retail sample');
+    fireEvent.click(within(rowOf('Retail sample')).getByRole('button', { name: 'Remove Retail sample' }));
+    const first = await screen.findByRole('button', { name: 'Undo' });
+    first.focus();
+    fireEvent.click(first);
+    await waitFor(() => expect(document.activeElement).not.toBe(document.body));
+  });
+
+  it('keeps focus in the list after Remove, and on Add milestone when no milestone is left', async () => {
+    await mount({ seed: { milestones: [CUSTOM] } });
+    await screen.findByText('Retail sample');
+    const remove = within(rowOf('Retail sample')).getByRole('button', { name: 'Remove Retail sample' });
+    remove.focus();
+    fireEvent.click(remove);
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Add milestone' })));
+  });
+
+  it('saves from the note box with Ctrl+Enter, and a plain Enter there is a new line', async () => {
+    await mount();
+    await screen.findByText('Retail sample');
+    fireEvent.click(rowOf('Retail sample').querySelector('[data-note]')!);
+    const note = within(dialog()).getByLabelText('Note') as HTMLTextAreaElement;
+    fireEvent.change(note, { target: { value: 'Sent to the retailer' } });
+    fireEvent.keyDown(note, { key: 'Enter' });
+    expect(screen.queryByRole('dialog')).not.toBeNull();
+    fireEvent.keyDown(note, { key: 'Enter', ctrlKey: true });
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await waitFor(async () => expect((await stored()).find((m) => m.name === 'Retail sample')?.note).toBe('Sent to the retailer'));
   });
 
   it('opens at the note from the note button', async () => {

@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useApi } from '../../api/ApiContext';
 import { apiErrorMessage } from '../../api/errorMessage';
 import { dawShortName } from '../../studio/StudioProvider';
@@ -152,10 +152,18 @@ export function DiagnosticsSection({ measuredPaths, openSettings }: { measuredPa
   const [job, setJob] = useState<DiagnosticsJob>();
   const [jobError, setJobError] = useState<string>();
   const [problem, setProblem] = useState<string>();
+  const [attempt, setAttempt] = useState(0);
   const [picking, setPicking] = useState(false);
   const [sourceKind, setSourceKind] = useState<DiagnosticsSourceKind>('processed_render');
   // What went wrong is a toast, not text that opens above the tables and pushes them down (rule 7, #2632).
-  useErrorToast(jobError && `The diagnostics could not be read: ${jobError}`);
+  // Reading the check's state changes nothing, so Retry reads it again (issue #2919).
+  useErrorToast(
+    jobError && `The diagnostics could not be read: ${jobError}`,
+    useCallback(() => {
+      setJobError(undefined);
+      setAttempt((n) => n + 1);
+    }, []),
+  );
   useErrorToast(problem);
   useErrorToast(job?.phase === 'error' ? `${job.message} Choose the files again to check them.` : undefined);
 
@@ -172,7 +180,7 @@ export function DiagnosticsSection({ measuredPaths, openSettings }: { measuredPa
     return () => {
       active = false;
     };
-  }, [api]);
+  }, [api, attempt]);
 
   // A running check is read until it ends; an answer after the tab closed is dropped.
   const running = job?.phase === 'running';

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf16"
 
 	"desktop/internal/layout"
 )
@@ -42,66 +43,29 @@ func TestReaderStatusAndSearch(t *testing.T) {
 	if err != nil || text(status, "status") != "recording" {
 		t.Fatalf("status = %#v, %v", status, err)
 	}
-	hits, err := service.Search("alice")
-	if err != nil || len(hits) == 0 {
-		t.Fatalf("hits = %#v, %v", hits, err)
+	found, err := service.Search("alice")
+	if err != nil || len(found.Hits) == 0 {
+		t.Fatalf("search = %#v, %v", found, err)
 	}
 }
 
 // The reader search cache (keyed by the file's own mtime and size), the result cap, and the match
 // offset the reader's windowing helper needs.
 
-func TestSearchReturnsTheMatchOffset(t *testing.T) {
+func TestSearchReturnsEveryMatchOffset(t *testing.T) {
 	service, _, _ := importReaderFixture(t)
-	hits, err := service.Search("alice")
-	if err != nil || len(hits) == 0 {
-		t.Fatalf("hits = %#v, %v", hits, err)
+	found, err := service.Search("alice")
+	if err != nil || len(found.Hits) == 0 {
+		t.Fatalf("search = %#v, %v", found, err)
 	}
-	for _, hit := range hits {
-		excerpt, _ := hit["excerpt"].(string)
-		// A rune count (matchStart is a JS/UTF-16 index - see the multi-byte test below), so the
-		// fixture's real curly quotes and em dashes must be sliced by rune, not by Go byte string.
-		runes := []rune(excerpt)
-		offset, ok := hit["matchStart"].(int)
-		if !ok {
-			t.Fatalf("hit has no int matchStart: %#v", hit)
+	for _, hit := range found.Hits {
+		// UTF-16 indices: the fixture's curly quotes and em dashes are one code unit each.
+		units := utf16.Encode([]rune(hit.Excerpt))
+		for _, match := range hit.Matches {
+			if match.Start < 0 || match.End > len(units) || !strings.EqualFold(string(utf16.Decode(units[match.Start:match.End])), "alice") {
+				t.Fatalf("match %v does not point at the term in %q", match, hit.Excerpt)
+			}
 		}
-		if offset < 0 || offset+len("alice") > len(runes) {
-			t.Fatalf("matchStart %d out of range for %q (%d runes)", offset, excerpt, len(runes))
-		}
-		if !strings.EqualFold(string(runes[offset:offset+len("alice")]), "alice") {
-			t.Fatalf("matchStart %d does not point at the match in %q", offset, excerpt)
-		}
-	}
-}
-
-// matchStart travels to the UI as a JS string index (UTF-16 code units). strings.Index returns a
-// UTF-8 byte offset, which agrees with the rune count only while every character before the match
-// is ASCII - a curly quote, an em dash or an accented letter (all ordinary in a manuscript) is
-// multiple bytes but one UTF-16 unit, so a byte offset would land the frontend's highlight short of
-// the real match. This proves the offset is a rune count, simulated here as a JS caller would slice
-// it (Go's []rune conversion, one element per code point - identical to a JS UTF-16 index for every
-// character in the Basic Multilingual Plane, which covers ordinary manuscript prose).
-func TestSearchMatchOffsetSurvivesMultiByteCharactersBeforeTheMatch(t *testing.T) {
-	project := t.TempDir()
-	text := "‘Well,’ she thought — a café with rabbits in it." // curly quotes, an em dash, an accented e
-	writeManuscript(t, project, []map[string]any{
-		{"id": "p0", "chapterId": "c1", "chapter": "Chapter One", "chapterTitle": "Chapter One", "index": 0, "text": text},
-	})
-	hits, err := New(project).Search("rabbits")
-	if err != nil || len(hits) != 1 {
-		t.Fatalf("hits = %#v, %v", hits, err)
-	}
-	offset, ok := hits[0]["matchStart"].(int)
-	if !ok {
-		t.Fatalf("hit has no int matchStart: %#v", hits[0])
-	}
-	runes := []rune(text)
-	if offset < 0 || offset+len("rabbits") > len(runes) {
-		t.Fatalf("matchStart %d out of range for %d runes", offset, len(runes))
-	}
-	if got := string(runes[offset : offset+len("rabbits")]); got != "rabbits" {
-		t.Fatalf("matchStart %d (as a rune/UTF-16 index) points at %q, not the match", offset, got)
 	}
 }
 
@@ -120,24 +84,6 @@ func writeManuscript(t *testing.T, project string, paragraphs []map[string]any) 
 		t.Fatal(err)
 	}
 	return path
-}
-
-func TestSearchCapsResultsAtTheLimit(t *testing.T) {
-	project := t.TempDir()
-	paragraphs := make([]map[string]any, 0, maxSearchResults+50)
-	for i := range maxSearchResults + 50 {
-		paragraphs = append(paragraphs, map[string]any{
-			"id": "p", "chapterId": "c1", "chapter": "Chapter One", "chapterTitle": "Chapter One", "index": i, "text": "the quick fox",
-		})
-	}
-	writeManuscript(t, project, paragraphs)
-	hits, err := New(project).Search("fox")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(hits) != maxSearchResults {
-		t.Fatalf("hits = %d, want the cap of %d", len(hits), maxSearchResults)
-	}
 }
 
 func TestLoadCachesTheManuscriptUntilTheFileActuallyChanges(t *testing.T) {

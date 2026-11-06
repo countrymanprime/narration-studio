@@ -10,7 +10,7 @@ import { providedCommands } from '../../input/commandProviders';
 import { diagnosticsJobSchema } from '../../api/schemas/diagnostics';
 import type { Bootstrap, DiagnosticsJob, NarrationApi } from '../../types';
 import { MasterPage } from '../masterqc/page/MasterPage';
-import { findToast } from '../../fixtures/toasts';
+import { findToast, pressToastAction } from '../../fixtures/toasts';
 import { PageHost } from '../masterqc/page/testPage';
 
 afterEach(cleanup);
@@ -214,5 +214,18 @@ describe('Master & QC, Diagnostics', () => {
     await user.click(screen.getByRole('button', { name: 'Choose files to check…' }));
     expect((await findToast('a diagnostics check is already running')).tone).toBe('error');
     expect(screen.queryByRole('alert')).toBeNull();
+  });
+});
+
+// Issue #2919: reading the check's state changes nothing, so a failed read is an error toast with Retry, which reads it again.
+describe('a failed read of the diagnostics state', () => {
+  it('offers Retry, which reads the state again', async () => {
+    const diagnosticsState = vi
+      .fn<NarrationApi['diagnosticsState']>()
+      .mockRejectedValueOnce(new Error('the host did not answer'))
+      .mockResolvedValue(contract('diagnostics-idle.json'));
+    await openDiagnostics({ overrides: { diagnosticsState } });
+    pressToastAction(await findToast('The diagnostics could not be read'));
+    await waitFor(() => expect(diagnosticsState).toHaveBeenCalledTimes(2));
   });
 });

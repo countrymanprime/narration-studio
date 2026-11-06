@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -226,6 +227,25 @@ func TestAChapterFolderWithNoVoicesIsRefusedBeforeAnythingIsArmed(t *testing.T) 
 	}
 }
 
+func TestARecordStartInAVoiceFolderContinuesAfterTheWholeFolderNotTheVoice(t *testing.T) {
+	host, ids := newVoiceFolderHost(t, voicetracks.LayoutFolders)
+	fake := &fakeRecorder{}
+	recordStartWithVoice(t, host, fake, ids[0])
+	if fake.startOpts.Start != bridge.ChapterEnd || fake.startOpts.Folder != voiceFolderTrack {
+		t.Fatalf("start options %+v; want the chapter_end rule naming the chapter's folder", fake.startOpts)
+	}
+}
+
+func TestAPlainChapterTrackStillContinuesFromItsOwnEnd(t *testing.T) {
+	host, ids := newVoiceFolderHost(t, voicetracks.LayoutFolders)
+	linkChapter(t, host, ids[1], "{22222222-2222-4222-8222-222222222222}")
+	fake := &fakeRecorder{}
+	recordStartWithVoice(t, host, fake, ids[1])
+	if fake.startOpts.Start != bridge.AtEnd || fake.startOpts.Folder != "" {
+		t.Fatalf("start options %+v; want the plain end rule", fake.startOpts)
+	}
+}
+
 func TestAPlainTrackLinkInAVoiceFoldersProjectRecordsOnThatTrack(t *testing.T) {
 	host, ids := newVoiceFolderHost(t, voicetracks.LayoutFolders)
 	linkChapter(t, host, ids[1], "{22222222-2222-4222-8222-222222222222}")
@@ -343,5 +363,27 @@ func TestREAPERsArmStateIsReadOnTheChaptersVoiceNotItsFolder(t *testing.T) {
 	}
 	if len(reader.asked) != 1 || reader.asked[0] != voiceQueenTrack || got.TrackGUID != voiceQueenTrack {
 		t.Fatalf("asked %v, answered %+v; want the chosen Queen voice", reader.asked, got)
+	}
+}
+
+func TestARollInAVoiceFolderRollsTheVoiceTheTakeRecordsOnNotTheFolder(t *testing.T) {
+	t.Setenv("APPDATA", t.TempDir())
+	host, ids := newVoiceFolderHost(t, voicetracks.LayoutFolders)
+	client, err := bridge.New(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	role := &fakeRoller{answer: rolledFrom(40), position: recordingAt(52)}
+	host.mu.Lock()
+	host.config.daw = "REAPER"
+	host.bridge = client
+	host.reachability, host.puncher = liveReachability(), role
+	host.mu.Unlock()
+	host.boothVoices.choose(ids[0], voiceQueenTrack)
+
+	decodeDawResult(t)(host.DawRoll(ids[0], 40, false))
+
+	if want := []rollCall{{voiceQueenTrack, 40}}; !reflect.DeepEqual(role.rolled, want) {
+		t.Fatalf("rolled %v, want the chosen voice %s (the track the bridge records on), never the folder", role.rolled, voiceQueenTrack)
 	}
 }

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { headingName } from '../../../chapterHeading';
 import { useApi } from '../../../api/ApiContext';
-import { useCanRecord } from '../record/useCanRecord';
 import { CommandScope } from '../../../input/router';
 import type { GuideEntity, GuideType, ManuscriptNote } from '../../../types';
 import type { BoothSource } from '../page/useBoothData';
@@ -14,7 +13,6 @@ import { flagMarks, flagSaves, visibleFlags, withMarks } from '../readerFlags';
 import { CREDITS_LABEL, readerMarks, type ReaderMark } from '../readerModel';
 import { loadFlagVisibility } from '../readerPreferences';
 import { useFollowCursor } from '../useFollowCursor';
-import { useRecordInReaper } from '../useRecordInReaper';
 import { useListeningMic } from '../listening/useListeningMic';
 import { useTeleprompterSession } from '../useTeleprompterSession';
 
@@ -64,8 +62,6 @@ export function CompanionHost({ source, entities = NO_ENTITIES, types = NO_TYPES
     listenOn: session.listenOn,
   });
   const follow = useFollowCursor({ active: session.active, cursor: session.cursor });
-  const record = useCanRecord();
-  const recording = useRecordInReaper(source.chapter.id, record.ok);
   const chapterTitle = source.kind === 'chapter' ? headingName(source.chapter) : CREDITS_LABEL[source.credits];
   const { paragraphs, rows } = session;
   const { flags } = session.session;
@@ -120,16 +116,7 @@ export function CompanionHost({ source, entities = NO_ENTITIES, types = NO_TYPES
   return (
     // Booth scope: `reading.toggle` (Space) resolves here ahead of `global`.
     <CommandScope kind="booth">
-      <CompanionShell
-        session={session}
-        follow={follow}
-        chapterTitle={chapterTitle}
-        chapterId={chapterId}
-        recording={recording}
-        marks={marks}
-        header={header}
-        onFullApp={onFullApp}
-      />
+      <CompanionShell session={session} follow={follow} chapterTitle={chapterTitle} chapterId={chapterId} marks={marks} header={header} onFullApp={onFullApp} />
     </CommandScope>
   );
 }

@@ -43,7 +43,7 @@ func readLiveTrack(ctx context.Context, reader trackStateReader, projectPath, tr
 	}
 	ctx, cancel := context.WithTimeout(ctx, liveTrackStateTimeout)
 	defer cancel()
-	state, err := reader.ChapterTrackState(ctx, trackGUID)
+	state, err := dawport.ChapterAudioState(ctx, reader, trackGUID)
 	if err != nil || state.Unsaved || state.ProjectPath == "" {
 		return dawport.TrackState{}, false
 	}

@@ -81,6 +81,12 @@ A chapter with no recording yet says **No recording for this chapter yet** where
 
 ![Proof - a note whose spot has several takes, the playing take marked on the waveform](../../images/ui/proof-takes.webp)
 
+## The DAW tools menu
+
+The wrench icon button at the end of the header opens the same **Structure** menu as [Editing's](editing.md#the-daw-tools-menu): **Prepare chapter render…** and **Create chapter regions…**, for when proofing is done and the chapters are next rendered. When a tool cannot be used it stays in the menu, greyed, with the reason under its name: the DAW is not answering, the DAW has a different project open than the one linked here, the REAPER project has no tracks yet, no chapter is linked to a REAPER track yet (link one on [Production](production.md)), or the project records in Audacity, which has neither regions nor render setup to write. The menu reads the project the first time you open it, so for a moment both entries say **Reading the REAPER project…**.
+
+![Proof - the DAW tools menu open at the end of the head: the Structure heading over Prepare chapter render and Create chapter regions](../../images/ui/proof-daw-tools.webp)
+
 ## The notes
 
 The notes panel lists the notes in view, **Notes · 14** for example, with:
@@ -223,6 +229,12 @@ already has one nothing is added. Apart from **Trim the gap**, it is the only co
 the DAW removes it.
 
 With Audacity there are no items: **Show in Audacity** selects the compared track and puts the cursor at the note's time.
+
+### Repairing a click, breath or plosive in REAPER
+
+On a note whose type is **mouth** (a click), **plosive** or **breath**, **Repair in REAPER** (an icon button in the Inspector's row) opens a menu headed **Repair** with **Cleanup tools…**, the dialog that is also in the audio engine panel's REAPER tools. Press **Show in REAPER** first: it selects the note's item, and the repair tools open on the items selected in REAPER. Choosing the type of a note yourself changes whether the button is there. The repair is REAPER's own, and you apply or cancel it there. The entry is off, with the reason under it, when the project records in Audacity, the DAW is not answering or has another project open, or the project has no tracks. Which item is selected, whether Magnolius DeClick is installed and whether REAPER has the Repair Pops/Clicks dialog (REAPER 7.80 or later) are only known when you press **Open**, so the dialog says so there.
+
+![Proof - a click note: Repair in REAPER in the Inspector's row, its menu open on Cleanup tools](../../images/ui/proof-repair-in-reaper.webp)
 
 Each follows what your DAW offers: when it does not offer one, or is not answering, the control is off and the reason is
 under the row. A note found by an older check that did not record its item cannot be placed; run the check again. A note
