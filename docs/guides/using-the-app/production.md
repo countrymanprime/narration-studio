@@ -305,7 +305,7 @@ checking on progress — who has no need to know what the book pays.
 ## Importing the manuscript
 
 **Import manuscript** (or **Replace manuscript…** in Settings, Project) first opens step 1 of 2, **Choose your
-manuscript**: drop a file on the zone or press **Choose a file…** to pick a .docx, .md or .txt file. A copy is
+manuscript**: drop a file on the zone or press **Choose a file…** to pick a .docx, .epub, .md or .txt file. A copy is
 kept in your project, and the original is read-only. The app checks a dropped file before it reads it: one file at a time, in a format
 it can import. If it cannot use the file, it says why under the zone; press **Choose a file…** instead.
 
