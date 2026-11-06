@@ -222,7 +222,7 @@ bridge in REAPER and connects to it without you running anything in REAPER.
 items that hold its recording. It reads REAPER's tracks again when it opens, and has its own **Refresh**, so a track you
 have just added in REAPER can be picked. It opens with the links the **Chapter links** list shows, the opening and
 closing credits included, and the two stay in step: choosing a track here links the chapter, **Not linked**
-clears the link, and either shows in the other at once. A track links to one chapter: choosing a track another chapter holds moves it, and the dialog says which chapter is now not linked. **To stamp** shows how many of that track's items (for a folder of voices, the items on every voice inside it, except those on a track linked to another chapter) will
+clears the link, and either shows in the other at once. A track links to one chapter: choosing a track another chapter holds moves it, and the dialog says which chapter is now not linked. A folder in the track list reads "name · N voices", the way the Chapter links list names it, so it is not taken for a single track. **To stamp** shows how many of that track's items (for a folder of voices, the items on every voice inside it, except those on a track linked to another chapter) will
 carry the chapter's identity, and **Stamp N items** writes it. The credits are linked here but not stamped. What the stamp did, or why it failed, shows at the top
 of the dialog. An item already stamped with a
 different chapter is left alone unless you tick **Overwrite items already stamped with a different

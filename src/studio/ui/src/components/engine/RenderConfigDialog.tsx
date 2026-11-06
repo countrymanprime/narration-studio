@@ -1,3 +1,4 @@
+import { apiErrorMessage } from '../../api/errorMessage';
 import { useEffect, useState } from 'react';
 import { useApi } from '../../api/ApiContext';
 import { Button } from '../primitives/Button';
@@ -37,7 +38,7 @@ export function RenderConfigDialog({ onClose, onCreateRegions }: { onClose: () =
 
   const configure = () => {
     setRequestError('');
-    api.renderConfigConfigure(folder).catch((reason: unknown) => setRequestError(String(reason)));
+    api.renderConfigConfigure(folder).catch((reason: unknown) => setRequestError(apiErrorMessage(reason)));
   };
 
   return (
