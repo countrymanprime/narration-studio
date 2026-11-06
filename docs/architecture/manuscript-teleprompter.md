@@ -409,13 +409,13 @@ through the exact `av.open(file=f"audio={name}", format="dshow")` call
 name that is listed is the name that opens, so no separate device-id mapping
 is needed for Start.
 
-**Duplicate device names.** ffmpeg disambiguates same-named devices with an
-"Alternative name" line (a stable `@device_...` path); `devices.py` records
-it (`Device.alternative_name`) but nothing opens a device by that path
-instead of its friendly name, and no duplicate audio device names existed
-on the development machine to test the collision case against. The
-alternative name is not exposed over the wire (`Device.to_json()` returns only
-`name`).
+**Duplicate device names.** ffmpeg disambiguates same-named devices with an "Alternative name" line (a stable `@device_...`
+path); `devices.py` records it (`Device.alternative_name`). Devices that share a friendly name are listed as "Name (1)",
+"Name (2)" in ffmpeg's order, and `open_target` turns such a name back into the alternative name that `audio=` accepts, when
+the capture opens it. A name that is alone is listed and opened as ffmpeg names it. The collision case is tested over log
+entries in the recorded format only: no duplicate audio device names existed on the development machine, so opening a real
+pair is a check for a machine that has one ([Windows QA checklist](../operations/windows-qa-checklist.md)). The alternative
+name is not exposed over the wire (`Device.to_json()` returns only `name`).
 
 The Go binding (`src/studio/desktop/internal/teleprompter/service.go`'s `Devices`,
 exposed as the `TeleprompterDevices` host binding) runs
