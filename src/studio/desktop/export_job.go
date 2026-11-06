@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"desktop/internal/brand"
+	"desktop/internal/trace"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -401,6 +402,7 @@ func (h *Host) runExport(
 		var broken error
 		if recovered := recover(); recovered != nil {
 			broken = fmt.Errorf("%v", recovered)
+			h.tracer.Emit(trace.AppPanic, trace.EnumValue("where", "export_job"))
 			runlog.FromContext(ctx).Event(slog.LevelError, "export.panic", "the export stopped unexpectedly: "+broken.Error())
 		}
 		job.finish(ctx.Err() != nil && broken == nil, broken)
