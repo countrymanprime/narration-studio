@@ -77,6 +77,23 @@ async function openMisread(page: Page, seed: 'misread' | 'misread-long' | 'misre
 }
 
 export const proofDrivers: Record<string, Driver> = {
+  // A click note's inspector with the Repair in REAPER menu open (#2821): the repair launchers act on the item Show in REAPER selects.
+  'inspector-repair-menu': async (page) => {
+    await openProof(page, 'mockChapterLink=confirmed&mockFindings=click', false);
+    await notes(page).locator('tr[data-row]').filter({ hasText: /mouth/i }).first().click();
+    await page.getByRole('button', { name: 'Repair in REAPER' }).click();
+    const menu = page.getByRole('menu');
+    await menu.waitFor();
+    await expect(menu.getByText('Reading the REAPER project…')).toHaveCount(0);
+  },
+  // The DAW tools menu in the header (#2820), opened: the structure entries, live for a project whose chapter is linked.
+  'daw-tools-menu': async (page) => {
+    await openProof(page, 'mockChapterLink=confirmed');
+    await page.getByRole('button', { name: 'DAW tools' }).click();
+    const menu = page.getByRole('menu');
+    await menu.waitFor();
+    await expect(menu.getByText('Reading the REAPER project…')).toHaveCount(0);
+  },
   'address-checking': async (page) => {
     await openCheckingLink(page, '/proof?chapter=gone');
   },
@@ -153,6 +170,21 @@ export const proofDrivers: Record<string, Driver> = {
   'treat-as-same-rtl': async (page) => {
     await openMisread(page, 'misread-rtl', /שלם/);
     await inspector(page).locator('[data-quote="script"]').scrollIntoViewIfNeeded();
+  },
+  // Compare opened under the check card of a chapter with a measured recording (#2822): its three tabs on Differences, and the run's setup.
+  'compare-open': async (page) => {
+    await openProof(page, 'mockChapterLink=confirmed');
+    await openChapter(page, 'Chapter 1');
+    await page.getByRole('button', { name: 'Compare with the script' }).click();
+    await page.getByRole('region', { name: 'Compare' }).getByRole('heading', { name: 'Compare the recording with the script' }).waitFor();
+  },
+  'compare-preview': async (page) => {
+    await openProof(page, 'mockChapterLink=confirmed');
+    await openChapter(page, 'Chapter 1');
+    await page.getByRole('button', { name: 'Compare with the script' }).click();
+    const panel = page.getByRole('region', { name: 'Compare' });
+    await panel.getByRole('button', { name: 'Preview' }).click();
+    await panel.getByRole('heading', { name: 'Preview' }).waitFor();
   },
   'chapter-no-recording': async (page) => {
     await openProof(page, 'mockChapterLink=confirmed');

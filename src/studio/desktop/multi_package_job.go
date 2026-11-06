@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"desktop/internal/trace"
 	"errors"
 	"fmt"
 	"os"
@@ -320,6 +321,7 @@ func (h *Host) runMultiPackage(
 		var broken error
 		if recovered := recover(); recovered != nil {
 			broken = fmt.Errorf("%v", recovered)
+			h.tracer.Emit(trace.AppPanic, trace.EnumValue("where", "multi_package_job"))
 		}
 		h.finishMultiPackage(job, broken, ctx.Err() != nil)
 	}()

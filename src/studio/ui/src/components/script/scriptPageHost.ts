@@ -8,6 +8,7 @@ import type { CreditsRenderResult, CreditsSetupState, CreditTemplate, RetailSamp
 import type { MarkType } from '../../api/contracts/marks';
 import { apiErrorMessage } from '../../api/errorMessage';
 import { overlay } from '../../overlay/overlayService';
+import { retryAction } from '../primitives/Toast';
 import { usePort } from '../../ports/usePort';
 import { definitionSourceOf, definitionSourceSchema } from '../../api/schemas/settings';
 import type { DefinitionSource, WordsHost } from './page/rail/words/wordsHost';
@@ -100,7 +101,7 @@ function forgetLegacyDefinitionSource() {
  * there. It is read on mount and whenever the window comes back into focus. A source this viewer kept in localStorage before is written to
  * the host once, when the host holds none; the key is removed once the host holds a source, so a failed write is tried again next time.
  */
-function useDefinitionSource(): [DefinitionSource, (source: DefinitionSource) => void] {
+export function useDefinitionSource(): [DefinitionSource, (source: DefinitionSource) => void] {
   const system = usePort('system');
   const [source, setSource] = useState<DefinitionSource>('web');
   const shown = useRef<DefinitionSource>('web');
@@ -139,14 +140,18 @@ function useDefinitionSource(): [DefinitionSource, (source: DefinitionSource) =>
     };
   }, [system, show]);
 
+  // Retry chooses the same source again (issue #2919): the menu went back to the old one, so the choice is made afresh.
   const choose = useCallback(
-    (next: DefinitionSource) => {
+    (next: DefinitionSource): void => {
       const before = shown.current;
       const mine = ++turn.current;
       show(next);
       system.saveSettings(DEFINITION_TOOL, 'global', { [DEFINITION_KEY]: next }).catch((error: unknown) => {
         if (mine === turn.current) show(before);
-        overlay.toast(`The definition source could not be saved: ${apiErrorMessage(error)}`, { tone: 'error' });
+        overlay.toast(`The definition source could not be saved: ${apiErrorMessage(error)}`, {
+          tone: 'error',
+          action: retryAction(() => choose(next)),
+        });
       });
     },
     [system, show],
@@ -154,9 +159,9 @@ function useDefinitionSource(): [DefinitionSource, (source: DefinitionSource) =>
   return [source, choose];
 }
 
-/** The Words tab's host: the narrator's definition source (a host setting), a source's candidate, the online entry and the web look-ups. */
+/** The Words tab's host: the narrator's definition source (a host setting), the online entry and the web look-ups. A source's candidate is asked
+ * by the Story Bible's own row (`NamePronunciation`), which the Words card renders (#2595). */
 export function useWordsHost(): WordsHost {
-  const sources = usePort('pronunciationSources');
   const online = usePort('pronunciationOnline');
   const lookup = usePort('pronunciationLookup');
   const [definitionSource, setDefinitionSource] = useDefinitionSource();
@@ -164,9 +169,6 @@ export function useWordsHost(): WordsHost {
     () => ({
       definitionSource,
       setDefinitionSource,
-      // The tab reads a miss as a result (`WordsHost.candidate`), so a refused call becomes one with the host's sentence.
-      candidate: (word, sourceId) =>
-        sources.pronunciationCandidate(word, sourceId).catch((error: unknown) => ({ ok: false as const, reason: apiErrorMessage(error) })),
       onlineDefinition: (word) => online.pronunciationOnlineLookup(word),
       async openLookup(source, word) {
         try {
@@ -176,7 +178,7 @@ export function useWordsHost(): WordsHost {
         }
       },
     }),
-    [definitionSource, setDefinitionSource, sources, online, lookup],
+    [definitionSource, setDefinitionSource, online, lookup],
   );
 }
 

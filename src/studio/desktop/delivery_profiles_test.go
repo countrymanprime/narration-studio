@@ -135,9 +135,32 @@ func TestContractDeliveryProfiles(t *testing.T) {
 	custom.Rules[5].Off = true
 	contractfile.Check(t, "delivery-profile-saved", custom)
 	contractfile.Check(t, "delivery-profiles-no-project", DeliveryProfilesState{
-		Profiles: deliveryprofile.BuiltIns(), GlobalDefault: deliveryprofile.Ref{ID: "acx", Version: "2026-09"}, ProjectProfile: "acx@2026-09",
+		Profiles: deliveryprofile.BuiltIns(), GlobalDefault: deliveryprofile.Ref{ID: "acx", Version: "2026-09"}, ShippedDefault: deliveryprofile.Ref{ID: "acx", Version: "2026-09"}, ProjectProfile: "acx@2026-09",
 		Notice: "Your custom delivery profiles could not be read (your delivery profiles file could not be read); the built-in profiles still work.",
 	})
+}
+
+func TestShippedDefaultStaysTheBuiltInWhenTheNarratorChoosesAnotherGlobalDefault(t *testing.T) {
+	host, _ := profileHost(t)
+	want := deliveryprofile.Ref{ID: "acx", Version: "2026-09"}
+	state, err := host.deliveryProfilesState()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if state.ShippedDefault != want || state.GlobalDefault != want {
+		t.Fatalf("fresh: shipped %+v, global %+v", state.ShippedDefault, state.GlobalDefault)
+	}
+	copied := answered[deliveryprofile.Profile](t)(host.DeliveryDuplicateProfile("acx", "2026-09"))
+	if _, err := host.DeliverySelectProfile("global", copied.ID, ""); err != nil {
+		t.Fatal(err)
+	}
+	state, err = host.deliveryProfilesState()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if state.ShippedDefault != want || state.GlobalDefault.ID != copied.ID {
+		t.Fatalf("after choosing a custom default: shipped %+v, global %+v", state.ShippedDefault, state.GlobalDefault)
+	}
 }
 
 func TestSelectingACXGivesAnUnsetPaymentPerFinishedHourAndKeepsOneTheNarratorSet(t *testing.T) {

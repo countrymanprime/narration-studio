@@ -9,6 +9,6 @@ import { VoicesInChapter } from './VoicesInChapter';
 registerBoothSection('reference', ({ data }) => <Reference reference={data.reference} onOpenEntry={data.onOpenEntry} />, 10);
 registerBoothSection('suspected', ({ data }) => <SuspectedLines chapterId={data.chapterId} flags={data.flags} />, 30);
 registerBoothSection('last-punch', ({ data }) => <LastPunch numbers={data.numbers} />, 40);
-registerBoothSection('voices', ({ data }) => <VoicesInChapter voices={data.voices} />, 50);
+registerBoothSection('voices', ({ data }) => <VoicesInChapter voices={data.voices} voiceKeys={data.voiceKeys} />, 50);
 registerBoothSection('coming-up', ({ data }) => <ComingUp words={data.comingUp} />, 60);
 registerBoothSection('numbers', ({ data }) => <SessionNumbers numbers={data.numbers} />, 70);

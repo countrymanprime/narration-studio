@@ -925,6 +925,10 @@ func (h *Host) TracksSelect(path string) (string, error) {
 }
 func (h *Host) TracksList() (string, error) { return encodeBinding(h.tracksList()) }
 
+// TracksLive is TracksList's tracks as REAPER has them now, saved or not, when REAPER has the linked project open (tracks_live.go):
+// source "live". Otherwise it is the saved .rpp, source "saved", with the reason and a sentence saying why. It changes nothing.
+func (h *Host) TracksLive() (string, error) { return encodeBinding(h.tracksLive()) }
+
 // ChapterTrackMatch finds the track holding chapterID and where its recorded
 // audio ends: a
 // confirmed link first, then the shared chapter-to-track matcher over track

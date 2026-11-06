@@ -22,7 +22,7 @@ import { useTheme } from './theme/ThemeContext';
 import { useUserKeymap } from './input/useUserKeymap';
 import { useNavCounts } from './components/layout/useNavCounts';
 import { StartupScreen, type StartupState } from './components/layout/StartupScreen';
-import { ToastRegion, type ToastTone } from './components/primitives/Toast';
+import type { ToastTone } from './components/primitives/Toast';
 import { useProjectPicker } from './hooks/useProjectPicker';
 import { useToasts } from './hooks/useToasts';
 import { attachRefusalClaimed } from './components/connection/attachRefusal';
@@ -47,6 +47,7 @@ import { registerCommandProvider } from './input/commandProviders';
 import { ProjectPicker } from './components/project/ProjectPicker';
 import { Guide } from './components/storybible/Guide';
 import { SettingsPage } from './components/settings/page/SettingsPage';
+import { NoProjectSettings } from './components/settings/page/NoProjectSettings';
 import { categoryAnchorKey } from './components/settings/page/anchors';
 import { CATEGORIES } from './components/settings/registry/categories';
 import { BoothNextPage } from './components/booth/page/BoothNextPage';
@@ -206,7 +207,7 @@ function AppRoutes() {
   const hasManuscript = Boolean(data?.manuscript);
   // One queue for the whole app: messages stack instead of replacing each other, an identical one that is showing starts its time again, and
   // an error stays until it is dismissed. `notify` and `dismiss` keep their identity, so a page effect that lists them never re-runs.
-  const { messages, notify: setNotice, dismiss: dismissMessage } = useToasts();
+  const { notify: setNotice } = useToasts(overlay);
   // Chapter sync's consent: read here, once, so "Sync chapters to
   // tracks?" shows from every link path (the engine panel, an import, an attach) wherever the narrator happens to be.
   const chapterSync = useChapterSync(api);
@@ -252,6 +253,19 @@ function AppRoutes() {
   }, [location.pathname]);
   const settingsActions = useRef<{ save: () => Promise<void>; discard: () => Promise<void> } | undefined>(undefined);
   const hasBootstrap = data !== undefined;
+  // Settings drawn without a project (issue 3024). Once it is open in its own frame it stays in that frame until the narrator leaves `/settings`,
+  // even if a project attaches meanwhile (a REAPER launch): swapping to the shell would remount the page and drop an unsaved edit and the open
+  // category without asking. Back then goes to the shell.
+  const noProject = data !== undefined && !data.projectFolder;
+  const settingsFrameKept = useRef(false);
+  const settingsFrame = location.pathname === '/settings' && (noProject || settingsFrameKept.current);
+  // Back to the picker puts focus on its Settings button, where the narrator came from; the picker's own effect runs first, then this clears it.
+  const cameFromSettings = useRef(false);
+  useEffect(() => {
+    settingsFrameKept.current = settingsFrame;
+    if (settingsFrame) cameFromSettings.current = true;
+    else cameFromSettings.current = false;
+  }, [settingsFrame]);
 
   // Importing changes data that is deliberately held at the application
   // boundary (the active manuscript affects several pages).  Refresh this
@@ -763,24 +777,6 @@ function AppRoutes() {
       />
     );
 
-  // A standalone launch (Start Menu shortcut, taskbar pin) has no
-  // REAPER-supplied project, so Bootstrap() returns a populated payload with
-  // an empty projectFolder rather than null. subscribeProjectAttach (above)
-  // already refreshes `data` once ProjectPicker's switch/create succeeds, so
-  // no callback needs to be threaded through here.
-  // A project made from the picker opens on Script, as the mock's New project does; the Script page offers the import when it has no manuscript.
-  if (!data.projectFolder || projectPickerOpen)
-    return (
-      <>
-        <ProjectPicker
-          notify={setNotice}
-          onCreated={() => navigate('/script')}
-          onBack={data.projectFolder ? () => setProjectPickerOpen(false) : undefined}
-          currentName={data.projectFolder ? data.projectName : undefined}
-        />
-        <ToastRegion messages={messages} dismiss={dismissMessage} />
-      </>
-    );
   transcriptPhaseRef.current = data.transcript.phase;
 
   // Deep links are expressed as a URL anchor on the fixed page path, not as
@@ -823,6 +819,11 @@ function AppRoutes() {
   };
   // The one-argument form is what pages receive as a prop, so a caller that passes it on as a callback never hands it a second argument as state.
   const guardedNavigate = (next: string) => guardedMove(next);
+  // Settings > Recording & DAW, from the engine panel's gear and the Built-in chips: the panel closes behind it.
+  const openRecordingSettings = () => {
+    setEnginePanelOpen(false);
+    guardedNavigate(addressPath({ page: 'settings', anchor: 'recording' }));
+  };
   guardedNavigateRef.current = guardedMove;
   goToScriptRef.current = (chapter) => goToScript(chapter);
 
@@ -869,10 +870,82 @@ function AppRoutes() {
   guardedBackRef.current = guardedBack;
   guardedForwardRef.current = guardedForward;
 
+  // A standalone launch (Start Menu shortcut, taskbar pin) has no
+  // REAPER-supplied project, so Bootstrap() returns a populated payload with
+  // an empty projectFolder rather than null. subscribeProjectAttach (above)
+  // already refreshes `data` once ProjectPicker's switch/create succeeds, so
+  // no callback needs to be threaded through here.
+  // A project made from the picker opens on Script, as the mock's New project does; the Script page offers the import when it has no manuscript.
+  // Settings is reachable before a project is open (issue 3024): the picker's Settings button, Ctrl+, and the jump menu's Settings rows all go to
+  // /settings, and with no project that route draws the Settings page in the picker's frame instead of the shell. Its Back returns to the picker.
+  const settingsWithoutProject = settingsFrame;
+  const settingsPageProps = {
+    data,
+    notify: setNotice,
+    onDirtyChange: setSettingsDirty,
+    registerActions: (actions: { save: () => Promise<void>; discard: () => Promise<void> }) => {
+      settingsActions.current = actions;
+    },
+    onProjectDataCleared: async () => {
+      await refreshBootstrap();
+      guardedNavigate('/');
+    },
+    onLinkDawFile: () => void linkDawFile(),
+    go: guardedNavigate,
+    refreshBootstrap,
+    initialCategory: SETTINGS_ANCHORS[location.hash],
+  };
+  // Leaving Settings with an edit not yet saved asks first, wherever Settings is drawn (the shell, or the frame for no project).
+  const unsavedSettings = pendingMove && (
+    <ConfirmDialog
+      title="Unsaved settings"
+      body="Save or discard changes before leaving Settings?"
+      confirmLabel="Save & continue"
+      confirm={() =>
+        void settingsActions.current?.save().then(() => {
+          setSettingsDirty(false);
+          resolvePendingMove(pendingMove);
+          setPendingMove(undefined);
+        })
+      }
+      dangerLabel="Discard & continue"
+      danger={() =>
+        void settingsActions.current?.discard().then(() => {
+          setSettingsDirty(false);
+          resolvePendingMove(pendingMove);
+          setPendingMove(undefined);
+        })
+      }
+      cancel={() => setPendingMove(undefined)}
+    />
+  );
+
+  if (settingsWithoutProject)
+    return (
+      <div className="relative h-full">
+        <NoProjectSettings>
+          {/* The Back always has somewhere to go: the picker, which is what `/` draws with no project. */}
+          <SettingsPage {...settingsPageProps} cameFrom={settingsOrigin.origin ?? '/'} />
+        </NoProjectSettings>
+        {unsavedSettings}
+      </div>
+    );
+  if (!data.projectFolder || projectPickerOpen)
+    return (
+      <ProjectPicker
+        notify={setNotice}
+        onCreated={() => navigate('/script')}
+        onBack={data.projectFolder ? () => setProjectPickerOpen(false) : undefined}
+        currentName={data.projectFolder ? data.projectName : undefined}
+        onOpenSettings={data.projectFolder ? undefined : openSettings}
+        focusSettings={cameFromSettings.current}
+      />
+    );
+
   return (
     <div className="relative h-full overflow-hidden" style={{ background: 'var(--bg)' }}>
       <LinkDawFileContext.Provider value={linkDawFileOutcome}>
-        <EnginePanelProvider value={openEnginePanel}>
+        <EnginePanelProvider value={openEnginePanel} openRecordingSettings={openRecordingSettings}>
           <VoiceSetupProvider projectFolder={data.projectFolder}>
             <TooltipProvider>
               <AppShell
@@ -883,7 +956,6 @@ function AppRoutes() {
                 dawFileLinked={data.dawFileLinked}
                 dawReachable={data.dawReachable}
                 dawProjectMatches={data.dawProjectMatches}
-                onOpenEnginePanel={openEnginePanel}
                 linkingDawFile={dawLink.isBusy}
                 engine={engine}
                 daw={dawKind}
@@ -1015,6 +1087,9 @@ function AppRoutes() {
                           goToScript={(chapterId) => goToScript(chapterId)}
                           goToBooth={(chapterId) => goToBooth({ chapter: chapterId })}
                           goToEditing={goToEditing}
+                          transcript={data.transcript}
+                          notify={setNotice}
+                          dawFileLinked={data.dawFileLinked}
                         />,
                       )}
                     />
@@ -1022,7 +1097,12 @@ function AppRoutes() {
                     <Route
                       path="/pickups"
                       element={
-                        <PickupsPage hasManuscript={Boolean(data.manuscript)} goTo={guardedNavigate} goToScript={(chapterId) => goToScript(chapterId)} />
+                        <PickupsPage
+                          hasManuscript={Boolean(data.manuscript)}
+                          dawFileLinked={data.dawFileLinked}
+                          goTo={guardedNavigate}
+                          goToScript={(chapterId) => goToScript(chapterId)}
+                        />
                       }
                     />
                     {/* Retired by Proof: old links land, query and hash kept. */}
@@ -1066,36 +1146,15 @@ function AppRoutes() {
                         )
                       }
                     />
-                    <Route
-                      path="/settings"
-                      element={
-                        <SettingsPage
-                          data={data}
-                          notify={setNotice}
-                          onDirtyChange={setSettingsDirty}
-                          registerActions={(actions) => {
-                            settingsActions.current = actions;
-                          }}
-                          onProjectDataCleared={async () => {
-                            await refreshBootstrap();
-                            guardedNavigate('/');
-                          }}
-                          onLinkDawFile={() => void linkDawFile()}
-                          go={guardedNavigate}
-                          refreshBootstrap={refreshBootstrap}
-                          initialCategory={SETTINGS_ANCHORS[location.hash]}
-                          cameFrom={settingsOrigin.origin}
-                        />
-                      }
-                    />
+                    <Route path="/settings" element={<SettingsPage {...settingsPageProps} cameFrom={settingsOrigin.origin} />} />
                     <Route path="*" element={<NotFoundPage />} />
                   </Routes>
                 </ErrorBoundary>
-                <ToastRegion messages={messages} dismiss={dismissMessage} />
                 <EnginePanel
                   open={enginePanelOpen}
                   onClose={() => setEnginePanelOpen(false)}
                   notify={setNotice}
+                  onOpenRecordingSettings={openRecordingSettings}
                   link={{
                     dawFileLinked: data.dawFileLinked,
                     dawReachable: data.dawReachable,
@@ -1128,29 +1187,7 @@ function AppRoutes() {
           </VoiceSetupProvider>
         </EnginePanelProvider>
       </LinkDawFileContext.Provider>
-      {pendingMove && (
-        <ConfirmDialog
-          title="Unsaved settings"
-          body="Save or discard changes before leaving Settings?"
-          confirmLabel="Save & continue"
-          confirm={() =>
-            void settingsActions.current?.save().then(() => {
-              setSettingsDirty(false);
-              resolvePendingMove(pendingMove);
-              setPendingMove(undefined);
-            })
-          }
-          dangerLabel="Discard & continue"
-          danger={() =>
-            void settingsActions.current?.discard().then(() => {
-              setSettingsDirty(false);
-              resolvePendingMove(pendingMove);
-              setPendingMove(undefined);
-            })
-          }
-          cancel={() => setPendingMove(undefined)}
-        />
-      )}
+      {unsavedSettings}
       {shortcutsOpen && (
         <ShortcutSheet
           onClose={() => setShortcutsOpen(false)}

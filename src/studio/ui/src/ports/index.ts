@@ -23,7 +23,6 @@ import type { PickupsApi } from '../api/contracts/pickups';
 import type { RenderConfigApi } from '../api/contracts/renderconfig';
 import type { CleanupToolsApi } from '../api/contracts/cleanuptools';
 import type { ProjectStateApi } from '../api/contracts/projectstate';
-import type { RetakeLanesApi } from '../api/contracts/retakelanes';
 import type { ChapterTagsApi } from '../api/contracts/chaptertags';
 import type { CoverageApi } from '../api/contracts/coverage';
 import type { StagesApi } from '../api/contracts/stages';
@@ -109,7 +108,6 @@ export type {
   RenderConfigApi,
   CleanupToolsApi,
   ProjectStateApi,
-  RetakeLanesApi,
   ChapterTagsApi,
   CoverageApi,
   StagesApi,
@@ -189,7 +187,6 @@ export interface PortMap {
   renderConfig: RenderConfigApi;
   cleanupTools: CleanupToolsApi;
   projectState: ProjectStateApi;
-  retakeLanes: RetakeLanesApi;
   chapterTags: ChapterTagsApi;
   coverage: CoverageApi;
   stages: StagesApi;

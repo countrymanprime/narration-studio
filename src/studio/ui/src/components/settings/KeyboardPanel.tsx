@@ -3,11 +3,12 @@ import { describeApiError } from '../../api/errorMessage';
 import { useApi } from '../../api/ApiContext';
 import type { ScopedSettingField } from '../../types';
 import { Button } from '../primitives/Button';
+import { IconButton } from '../primitives/IconButton';
 import { InsetCard } from '../primitives/InsetCard';
 import { Kbd } from '../primitives/Kbd';
 import { SectionLabel } from '../primitives/SectionLabel';
 import { StatusBadge } from '../primitives/StatusBadge';
-import type { Notify } from '../primitives/Toast';
+import { type Notify, retryAction } from '../primitives/Toast';
 import type { CommandDescriptor, CommandId } from '../../input/commands.catalog';
 import { findConflicts, type Conflict } from '../../input/findConflicts';
 import { serializeGesture, type Gesture } from '../../input/gestures';
@@ -217,7 +218,12 @@ export function KeyboardPanel({
         refreshUserKeymap();
         await reload();
       } catch (error) {
-        notify(describeApiError(error), 'error');
+        // The same keymap saved again sets the same values, so it is safe to repeat.
+        notify(
+          describeApiError(error),
+          'error',
+          retryAction(() => void persist(nextKeymap)),
+        );
       } finally {
         setBusy(false);
       }
@@ -271,9 +277,12 @@ export function KeyboardPanel({
                           Reset
                         </Button>
                       )}
-                      <Button variant="secondary" disabled={busy} onClick={() => setRecordingId(recordingId === command.id ? undefined : command.id)}>
-                        Change
-                      </Button>
+                      <IconButton
+                        action="changeShortcut"
+                        label={`Change the shortcut for ${command.label}`}
+                        disabledReason={busy ? 'Saving the shortcut' : undefined}
+                        onClick={() => setRecordingId(recordingId === command.id ? undefined : command.id)}
+                      />
                     </span>
                   </div>
                   {recordingId === command.id && (

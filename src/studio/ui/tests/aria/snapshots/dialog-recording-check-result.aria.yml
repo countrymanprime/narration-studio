@@ -9,8 +9,6 @@
 - status
 - alert
 - status
-- alert
-- status
 - dialog "Check recordings":
   - heading "Check recordings" [level=2]
   - button "Close"

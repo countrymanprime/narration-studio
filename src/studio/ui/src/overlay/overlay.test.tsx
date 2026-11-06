@@ -162,6 +162,18 @@ describe('Escape while focus is still in the layer under a confirm', () => {
   });
 });
 
+describe('overlay.toast with no words (issue 2899)', () => {
+  it.each(['', ' ', '   ', '\n', '\n\n\n\n', '\t \n \u00A0'])('raises no toast for the text %j', (text) => {
+    service.toast(text);
+    service.toast(text, { tone: 'error' });
+    expect(service.getSnapshot().toasts).toEqual([]);
+  });
+  it('still raises one for a word', () => {
+    service.toast('x');
+    expect(service.getSnapshot().toasts.map((t) => t.text)).toEqual(['x']);
+  });
+});
+
 describe('overlay.toast', () => {
   it('toast-shows-and-expires: an information toast follows Toast timing', () => {
     vi.useFakeTimers();
@@ -330,6 +342,34 @@ describe('toast queue', () => {
     service.toast('boom', { tone: 'error' });
     for (const n of [1, 2, 3, 4]) service.toast(`info ${n}`);
     expect(service.getSnapshot().toasts.map((t) => t.text)).toEqual(['boom', 'info 2', 'info 3', 'info 4']);
+  });
+
+  // qa-breaker B1b: the app's notices and the Undo toasts used to be two queues of four; one queue must not lose the Undo to a burst of notices.
+  it('four plain notices do not push out an Undo toast: the oldest plain notice goes first', () => {
+    service.toastUndo('Milestone added.', async () => ({ ok: true }), { entry: 1 });
+    for (const n of [1, 2, 3, 4]) service.toast(`info ${n}`);
+    const toasts = service.getSnapshot().toasts;
+    expect(toasts).toHaveLength(4);
+    expect(toasts.map((t) => t.text)).toEqual(['Milestone added.', 'info 2', 'info 3', 'info 4']);
+  });
+
+  it('a toast with an action outlasts plain notices, and an error outlasts both kinds of information', () => {
+    service.toast('Saved.', { action: { label: 'Retry', onAction: () => undefined } });
+    service.toast('boom', { tone: 'error' });
+    for (const n of [1, 2, 3]) service.toast(`info ${n}`);
+    expect(service.getSnapshot().toasts.map((t) => t.text)).toEqual(['Saved.', 'boom', 'info 2', 'info 3']);
+    // Nothing plain is left to push out but one: with only actions and errors showing, the oldest information toast goes, never past four.
+    const full = createOverlayService();
+    for (const n of [1, 2, 3, 4, 5]) full.toast(`act ${n}`, { action: { label: 'Undo', onAction: () => undefined } });
+    expect(full.getSnapshot().toasts.map((t) => t.text)).toEqual(['act 2', 'act 3', 'act 4', 'act 5']);
+  });
+
+  // qa-breaker B1: kept on purpose, the PR body says so. The label is part of what a toast says, so the same sentence with another action is another toast.
+  it('the same sentence with a different action label stacks: Saved, Saved + Retry and Saved + Undo are three toasts', () => {
+    service.toast('Saved', { action: { label: 'Retry', onAction: () => undefined } });
+    service.toast('Saved');
+    service.toast('Saved', { action: { label: 'Undo', onAction: () => undefined } });
+    expect(service.getSnapshot().toasts.map((t) => t.action?.label)).toEqual(['Retry', undefined, 'Undo']);
   });
 
   it('a message that says what one on screen already says replaces it: thirty presses make one toast, and its timer starts again', () => {

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
@@ -60,6 +60,8 @@ const audio = (id: string, kind: string, at: number, status: Finding['review']['
 const caps = (available: boolean): DawCapabilities => ({ capabilities: { review: { level: 'supported', available } } }) as unknown as DawCapabilities;
 
 type Setup = {
+  /** Draws the Compare button beside Check recordings; 'open' when the Compare panel is open. */
+  compare?: 'closed' | 'open';
   result?: CoverageResult;
   audio?: Finding[];
   state?: CoverageState;
@@ -73,7 +75,8 @@ function mount(setup: Setup = {}) {
   let reviews: CoverageGapReviews = setup.reviews ?? {};
   let listener: (state: CoverageState) => void = () => undefined;
   let current = setup.result ?? result('current', [gap('g1', 'missing', 20), gap('g2', 'misread', 10)]);
-  const calls = { accept: vi.fn(), ignore: vi.fn(), review: vi.fn(), cancel: vi.fn(), onCheck: vi.fn() };
+  const calls = { accept: vi.fn(), ignore: vi.fn(), review: vi.fn(), cancel: vi.fn(), onCheck: vi.fn(), onCompare: vi.fn() };
+  const compare = setup.compare ? { onOpen: calls.onCompare, open: setup.compare === 'open' } : undefined;
   const api: NarrationApi = createMockApi({
     coverageResult: async () => current,
     coverageGapReviews: async () => reviews,
@@ -107,10 +110,10 @@ function mount(setup: Setup = {}) {
     <ApiProvider api={api}>
       {setup.journal ? (
         <StudioProvider journal={setup.journal}>
-          <CheckCard chapter={chapter(setup.chapter)} onCheck={calls.onCheck} />
+          <CheckCard chapter={chapter(setup.chapter)} onCheck={calls.onCheck} {...(compare ? { compare } : {})} />
         </StudioProvider>
       ) : (
-        <CheckCard chapter={chapter(setup.chapter)} onCheck={calls.onCheck} />
+        <CheckCard chapter={chapter(setup.chapter)} onCheck={calls.onCheck} {...(compare ? { compare } : {})} />
       )}
     </ApiProvider>,
   );
@@ -284,6 +287,42 @@ describe('the Check recordings button', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Stop checking' }));
     expect(calls.cancel).toHaveBeenCalled();
     expect(screen.queryByRole('button', { name: 'Check recordings' })).toBeNull();
+  });
+});
+
+describe('the Compare with the script button (#2822)', () => {
+  it('is not drawn unless the page offers it', async () => {
+    mount();
+    await screen.findByRole('button', { name: 'Check recordings' });
+    expect(screen.queryByRole('button', { name: 'Compare with the script' })).toBeNull();
+  });
+  it('sits beside Check recordings and tells the page to open the Compare panel', async () => {
+    const { calls } = mount({ compare: 'closed' });
+    const compare = await screen.findByRole('button', { name: 'Compare with the script' });
+    expect(compare.getAttribute('aria-expanded')).toBe('false');
+    expect(compare.parentElement).toBe(screen.getByRole('button', { name: 'Check recordings' }).parentElement);
+    await userEvent.click(compare);
+    expect(calls.onCompare).toHaveBeenCalledTimes(1);
+  });
+  it('is pressed once by a held Enter, not toggled by each key repeat', async () => {
+    const { calls } = mount({ compare: 'closed' });
+    const compare = await screen.findByRole('button', { name: 'Compare with the script' });
+    const repeated = fireEvent.keyDown(compare, { key: 'Enter', code: 'Enter', repeat: true });
+    expect(repeated).toBe(false);
+    expect(calls.onCompare).not.toHaveBeenCalled();
+  });
+  it('says the Compare panel is open', async () => {
+    mount({ compare: 'open' });
+    expect((await screen.findByRole('button', { name: 'Compare with the script' })).getAttribute('aria-expanded')).toBe('true');
+  });
+  it('stays while a check runs (a comparison is not a check)', async () => {
+    mount({ compare: 'closed', state: { phase: 'running', chapterId: 'c1', percent: 5, message: '' } });
+    expect(await screen.findByRole('button', { name: 'Compare with the script' })).toBeTruthy();
+  });
+  it('is off with the reason when the chapter has no recording', async () => {
+    mount({ compare: 'closed', chapter: { recordedSeconds: 0 } });
+    expect(await screen.findByText('This chapter has no recording to check.')).toBeTruthy();
+    expect((screen.getByRole('button', { name: 'Compare with the script' }) as HTMLButtonElement).disabled).toBe(true);
   });
 });
 

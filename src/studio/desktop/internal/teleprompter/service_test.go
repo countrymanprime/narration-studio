@@ -766,6 +766,7 @@ func TestAwaitReadyAnswersOnceTheSidecarIsListening(t *testing.T) {
 
 // The record-press timeline (internal/presstimeline) is told when the sidecar was launched, when it first spoke and when it listens.
 func TestAStartReportsItsStepsToTheStepHookInOrder(t *testing.T) {
+	dumpStacksIfStillRunning(t, 20*time.Second)
 	f := newFixture(t, "stream")
 	var mu sync.Mutex
 	var steps []string

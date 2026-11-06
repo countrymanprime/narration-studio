@@ -2,7 +2,7 @@
   "choose a microphone": {
     "outcome": "refused",
     "reason": "choose_microphone",
-    "message": "Choose the microphone in Levels, then press Record."
+    "message": "Choose the microphone in Record options, then press Record."
   },
   "device will not open": {
     "outcome": "refused",

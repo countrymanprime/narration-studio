@@ -29,6 +29,9 @@ especially welcome:
   Story Bible analysis tools (GLiNER and BookNLP weights and their Python wheels): a download that starts without the narrator's
   install, a row that installs before every file is pinned, a wheel that is run or imported at download time, or a scan that starts a
   tool's sidecar from anything but the registry's verified install of a pinned row is in scope.
+  Moving the models folder (Settings > Models & downloads > Change location) is in scope too: a move that writes outside the folder the narrator chose, copies into itself,
+  mixes with or overwrites files already there, follows a link out of the folder, switches to a copy that was not verified, or an offer to delete the old copy
+  that removes anything but the downloads in it or the folder in use.
 - The in-app update ([ADR 0002](docs/adr/0002-local-models-and-tools-come-first-so-the-app-is-free-to-use.md)): once a day the app asks GitHub for the list of releases of this repository (it sends no identifier beyond the program name and version, and it can be switched off in Settings). Reports about that request revealing more than that, about the app trusting the release list beyond what it validates, or about an update being applied without the narrator's click are in scope.
 - Path traversal, command injection or unsafe file handling when the app opens a project, a manuscript, an archive, a REAPER
   project or the audio it names, or when a sidecar reads the audio and writes the files an analysis manifest names: a read or
@@ -38,7 +41,7 @@ especially welcome:
   folder it is meant for, overwrites an existing file, carries a path, an amount or text the narrator did not choose to include,
   or holds a cell that runs as a formula in a spreadsheet (row 6h;
   [Status report](docs/guides/using-the-app/production.md#status-report)).
-- The run log every tool run writes (`logs/run.jsonl`, `logs/runs/*.stderr.jsonl`; [Reading a run](docs/operations/verification-tooling.md#reading-a-run)) and the diagnostics bundle Settings can save from it (`SystemCopyDiagnostics`) or the folder it can open (`SystemOpenLogFolder`): manuscript, audio or transcript text reaching either is in scope, as is the export landing anywhere but the folder the narrator picked in that session's file picker.
+- The run log every tool run writes (`logs/run.jsonl`, `logs/runs/*.stderr.jsonl`; [Reading a run](docs/operations/verification-tooling.md#reading-a-run)) and the diagnostics bundle Settings can save (`SystemSaveDiagnostics`, a zip of the activity trace and an allow-listed run log) or the folder it can open (`SystemOpenLogFolder`): manuscript, audio or transcript text, a user name or a file path reaching either is in scope, as is the export landing anywhere but the folder the narrator picked in that session's file picker.
 - A file the app keeps in a project or user folder (the Editing records in `<app>/editing/`, `stacks.json` among them, are
   such files) that makes it run, open, fetch or write anything else, or puts markup into
   the page ([data files](docs/reference/data-files.md); threat model row 6i, and rows 6m and 6zc for a file that names a path

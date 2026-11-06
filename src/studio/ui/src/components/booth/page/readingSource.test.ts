@@ -12,6 +12,7 @@ import {
   scriptWordAt,
   secondsBefore,
   suspectedFrom,
+  wordRangeOf,
 } from './readingSource';
 import { typeHueColour } from '../../../kinds/entityColour';
 
@@ -208,5 +209,21 @@ describe('entityAtWord', () => {
     expect(entityAtWord(reading, [tint], 'p1', 1)).toBe('Garden');
     expect(entityAtWord(reading, [tint], 'p1', 2)).toBeNull();
     expect(entityAtWord(reading, [tint], 'p1', 9)).toBeNull();
+  });
+});
+
+describe('wordRangeOf', () => {
+  it('gives a phrase its words inside its paragraph, counted from the paragraph start', () => {
+    const paragraphs = [{ id: 'p1', text: 'One two three. Four five six seven.' }];
+    const units = boothUnits(paragraphs);
+    expect(units).toHaveLength(2);
+    expect(wordRangeOf(paragraphs, units[0])).toEqual({ paragraphId: 'p1', from: 0, to: 2 });
+    expect(wordRangeOf(paragraphs, units[1])).toEqual({ paragraphId: 'p1', from: 3, to: 6 });
+  });
+  it('counts emoji and right-to-left words as words, and says nothing for a paragraph that is gone', () => {
+    const paragraphs = [{ id: 'p1', text: 'שלום עולם. Party 🎉 time.' }];
+    const units = boothUnits(paragraphs);
+    expect(wordRangeOf(paragraphs, units[1])).toEqual({ paragraphId: 'p1', from: 2, to: 4 });
+    expect(wordRangeOf([], units[0])).toBeNull();
   });
 });

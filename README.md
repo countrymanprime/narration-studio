@@ -218,7 +218,7 @@ copy as a network service, must offer the corresponding source under the same te
 including v0.2.7-rc were published under the MIT license and remain available under it.
 
 Every release carries its notices, as a release asset and inside the zip: the third-party licences
-and the AGPL text with a source offer, generated from what the release contains
+and the AGPL text with a source offer, generated from what the release contains (the complete source of a release is this repository at the tag it was built from)
 ([third-party notices](docs/operations/ci-and-releases.md#third-party-notices)). Every model has a
 recorded licence and commercial-use finding, and one with an unclear licence stays out of the
 catalog ([model provenance](docs/architecture/model-provenance.md)). `moonshine-voice` (MIT) ships

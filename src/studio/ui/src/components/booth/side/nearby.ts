@@ -70,6 +70,17 @@ export function voicesInChapter(
   return found.sort((a, b) => a.at - b.at).map((row) => row.voice);
 }
 
+/** How many lines (quotations, each counted once however many sentences it runs to) each character speaks in the chapter, by entity id. */
+export function linesInChapter(units: readonly BoothUnit[], entities: readonly GuideEntity[]): Map<string, number> {
+  const lines = new Map<string, number>();
+  for (const unit of units) {
+    if (!unit.quoted || unit.cont || unit.speaker.trim() === '') continue;
+    const entity = entityOfSpeaker(entities, unit.speaker);
+    if (entity) lines.set(entity.id, (lines.get(entity.id) ?? 0) + 1);
+  }
+  return lines;
+}
+
 export type ComingUpWord = { word: string; say: string; set: boolean };
 
 /** Names of the Story Bible in the next phrases, with how each is said (its IPA) and whether it has one. */

@@ -19,12 +19,25 @@ import (
 // (a later change) is the only way on there. The in-memory ring records either way.
 func (h *Host) startTrace() {
 	dev := h.version == developmentVersion
-	if dev {
+	saved, _ := h.services().settings.Effective("General", "activity_trace", "false")
+	if dev || saved == "true" {
 		h.tracer.SetEnabled(true)
 	}
 	h.tracer.Emit(trace.AppStart,
 		trace.IDValue("version", h.version), trace.EnumValue("os", runtime.GOOS), trace.EnumValue("arch", runtime.GOARCH),
 		trace.BoolValue("dev", dev), trace.IntValue("host_api", hostAPIVersion))
+}
+
+// setActivityTrace is the narrator's switch (General.activity_trace). Off wins even in a build run from source, until the
+// next launch, which starts it on again.
+func (h *Host) setActivityTrace(on bool) {
+	if on {
+		h.tracer.SetEnabled(true)
+		h.tracer.Emit(trace.TraceSwitched, trace.BoolValue("enabled", true))
+		return
+	}
+	h.tracer.Emit(trace.TraceSwitched, trace.BoolValue("enabled", false))
+	h.tracer.SetEnabled(false)
 }
 
 // stopTrace records a clean shutdown and flushes the file.

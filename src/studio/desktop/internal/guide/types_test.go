@@ -102,3 +102,34 @@ func TestContractTypes(t *testing.T) {
 	}
 	contractfile.Check(t, "guide-types", got)
 }
+
+func TestTypesChangedIsTrueForAnyListThatIsNotTheDefaults(t *testing.T) {
+	defaults := `[{"name":"Character","colour":"green","speaks":true},{"name":"Place","colour":"blue","speaks":false},{"name":"Organization","colour":"violet","speaks":false},` +
+		`{"name":"Lore","colour":"amber","speaks":false},{"name":"Item","colour":"teal","speaks":false},{"name":"Event","colour":"rose","speaks":false}]`
+	for name, tc := range map[string]struct {
+		content string
+		want    bool
+	}{
+		"no list":              {`{"schema_version": 2, "entities": []}`, false},
+		"the default list":     {`{"schema_version": 2, "types": ` + defaults + `}`, false},
+		"a type added":         {`{"schema_version": 2, "types": ` + defaults[:len(defaults)-1] + `,{"name":"Creature","colour":"amber","speaks":true}]}`, true},
+		"a type removed":       {`{"schema_version": 2, "types": [{"name":"Character","colour":"green","speaks":true}]}`, true},
+		"a colour changed":     {`{"schema_version": 2, "types": ` + strings.Replace(defaults, `"blue"`, `"rose"`, 1) + `}`, true},
+		"a type now speaks":    {`{"schema_version": 2, "types": ` + strings.Replace(defaults, `"Place","colour":"blue","speaks":false`, `"Place","colour":"blue","speaks":true`, 1) + `}`, true},
+		"a type renamed":       {`{"schema_version": 2, "types": ` + strings.Replace(defaults, `"Lore"`, `"Legend"`, 1) + `}`, true},
+		"a stored builtin key": {`{"schema_version": 2, "types": ` + strings.Replace(defaults, `"speaks":false}`, `"speaks":false,"builtin":"Place"}`, 1) + `}`, false},
+	} {
+		service, _, _ := guideFile(t, tc.content)
+		got, err := service.TypesChanged()
+		if err != nil || got != tc.want {
+			t.Errorf("%s: TypesChanged = %v, %v; want %v", name, got, err, tc.want)
+		}
+	}
+	if got, err := New(t.TempDir(), "", "", nil, nil).TypesChanged(); err != nil || got {
+		t.Errorf("no Story Bible: %v, %v", got, err)
+	}
+	service, _, _ := guideFile(t, `{"schema_version": 2, "types": "Character"}`)
+	if _, err := service.TypesChanged(); err == nil {
+		t.Error("a malformed list is refused")
+	}
+}

@@ -56,6 +56,8 @@ This folder documents a local-first audiobook narration toolkit: how it is built
    To rename the product itself, use [Renaming the app](operations/renaming-the-app.md).
    For the checks the recent Studio Next work could not run off Windows (recording, linking a project, delivery),
    use the [Windows QA checklist](operations/windows-qa-checklist.md).
+   For the owner's steps to the first stable release (settings, a clean Windows install, first use, Promote), use the
+   [owner checklist](operations/owner-release-checklist.md).
    To confirm a REAPER bridge command that is still on the unverified list in REAPER itself, run
    [the REAPER verification pass](operations/reaper-verification-pass.md); the calls each command makes are in
    [the ReaScript calls behind the planned commands](research/reaper-api-for-planned-commands.md).
@@ -86,7 +88,7 @@ This folder documents a local-first audiobook narration toolkit: how it is built
 | How to add a binding, an engine or a command | a doc comment or README beside the code | an architecture doc |
 | How the parts fit and why: structure, runtime flows, cross-cutting concepts | [architecture/](architecture/) | PRD sections, UI behaviour, how-tos |
 | Instructions that only automated coding tools read | `CLAUDE.md` and `.claude/`, linking the docs here for facts | `docs/` |
-| What changed in a release | the release notes, generated from the Conventional Commit titles (`scripts/release/generate-notes.mjs`) | a document's Status line |
+| What changed in a release | the release notes, generated from the merged pull requests (`scripts/release/generate-notes.mjs`, `changelog.mjs`) | a document's Status line |
 
 [The docs placement audit](research/docs-placement-audit.md#1-industry-standards-by-document-type) has the practice behind each row.
 

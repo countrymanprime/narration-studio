@@ -9,6 +9,7 @@ Storybook title: `Primitives/Panel`. Source: `src/components/primitives/Panel.ts
 - Text Only
 - Title And Description
 - Long Title Wraps
+- Title Keeps Its Width Beside Wide Actions
 - With Header And Actions
 - With Header No Actions
 - With Form Fields
@@ -28,8 +29,7 @@ Storybook title: `Primitives/Panel`. Source: `src/components/primitives/Panel.ts
 ## Used by
 
 - `src/components/booth/ReadAlongView.tsx`
-- `src/components/booth/page/BoothNextPage.tsx`
-- `src/components/booth/page/BoothUnavailable.tsx`
+- `src/components/booth/page/BoothMessage.tsx`
 - `src/components/credits/CreditsSetupBanner.tsx`
 - `src/components/delivery/page/OutputPanel.tsx`
 - `src/components/delivery/page/Preflight.tsx`
@@ -38,6 +38,8 @@ Storybook title: `Primitives/Panel`. Source: `src/components/primitives/Panel.ts
 - `src/components/engine/ChapterLinksTable.tsx`
 - `src/components/engine/ChapterSyncPanel.tsx`
 - `src/components/engine/EnginePanel.tsx`
+- `src/components/engine/TrackList.tsx`
+- `src/components/engine/VoicesCard.tsx`
 - `src/components/layout/AddressGate.tsx`
 - `src/components/layout/LoadError.tsx`
 - `src/components/layout/NeedManuscript.tsx`
@@ -47,6 +49,7 @@ Storybook title: `Primitives/Panel`. Source: `src/components/primitives/Panel.ts
 - `src/components/master/DiagnosticsSection.tsx`
 - `src/components/master/FileRulesPanel.tsx`
 - `src/components/master/MasterToSpecPanel.tsx`
+- `src/components/master/MasteringApprovalDialog.tsx`
 - `src/components/master/MasteringChain.tsx`
 - `src/components/master/MultiPlatformExportPanel.tsx`
 - `src/components/master/ReportExportPanel.tsx`
@@ -72,15 +75,14 @@ Storybook title: `Primitives/Panel`. Source: `src/components/primitives/Panel.ts
 - `src/components/schedule/SchedulePage.tsx`
 - `src/components/schedule/WorkedOut.tsx`
 - `src/components/script/page/chapters/ChapterList.tsx`
-- `src/components/script/page/tools/find/FindBar.tsx`
 - `src/components/settings/ManuscriptSection.tsx`
 - `src/components/settings/analysis/AnalysisToolsSection.tsx`
 - `src/components/settings/controls/AboutSection.tsx`
+- `src/components/settings/controls/DiagnosticsSection.tsx`
 - `src/components/settings/page/CategoryPane.tsx`
 - `src/components/settings/page/MarksPanel.tsx`
 - `src/components/settings/page/ModelsPane.tsx`
 - `src/components/settings/page/PagesPane.tsx`
-- `src/components/settings/page/ProjectDataPanel.tsx`
 - `src/components/settings/page/ReaderTextPanel.tsx`
 - `src/components/settings/page/Results.tsx`
 - `src/components/settings/page/ScopedFieldsPanel.tsx`

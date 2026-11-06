@@ -24,7 +24,7 @@ function parseMockProperties(text: string): GuideProperty[] {
  * A real, silent 22.05 kHz mono WAV (a 44-byte header and 200 bytes of samples). The Story Bible preview hook
  * rejects an empty payload (the host never sends one), so the mock must send audio.
  */
-const MOCK_PREVIEW_WAV_BASE64 =
+export const MOCK_PREVIEW_WAV_BASE64 =
   'UklGRuwAAABXQVZFZm10IBAAAAABAAEAIlYAAESsAAACABAAZGF0YcgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==';
 
 // A pronunciation the narrator typed: `manual`, or `user` in a file written before it.
@@ -311,7 +311,14 @@ export function createStoryBibleMock(
         return setPronunciation(prior, { ...prior.alternate, chosen: true });
       });
     },
-    guideDialogueCues: async () => wireClone(s.dialogueCues),
+    guidePronunciationRestore: async (id, value, aliasIndex) => {
+      changePronunciation(id, aliasIndex, () => wireClone(value));
+    },
+    guideDialogueCues: async () => {
+      // The cues are placed in the loaded text: a read before it is in waits for it, as the host reads cues of the manuscript it has.
+      await manuscriptReady;
+      return wireClone(s.dialogueCues);
+    },
     guideAttributeSpeakers: async () => {
       // The tag names the speaker, as the host's attribution reads it; a confirmed or edited line is never touched.
       const named = (tag: string) =>
@@ -390,6 +397,8 @@ export function createStoryBibleMock(
       );
     },
     guideTypes: async () => wireClone(types),
+    guideTypesChanged: async () =>
+      types.length !== MOCK_DEFAULT_TYPES.length || types.some((row, index) => JSON.stringify(row) !== JSON.stringify(MOCK_DEFAULT_TYPES[index])),
     guideTypeAdd: async (name) => {
       const value = mockTypeName(types, name);
       types = [...types, { name: value, colour: GUIDE_TYPE_COLOURS[types.length % GUIDE_TYPE_COLOURS.length], speaks: false }];

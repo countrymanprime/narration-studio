@@ -66,6 +66,8 @@ export const BackdropClickInvokesOnClose: Story = {
     await screen.findByRole('dialog', { name: 'Entry details' });
     const backdrop = document.querySelector('[data-slide-over-backdrop]');
     if (!backdrop) throw new Error('an open SlideOver renders its click-away backdrop');
+    // A press on the backdrop in the first 400 ms is ignored (the second press of a double click on its opener), so wait that out.
+    await new Promise((resolve) => setTimeout(resolve, 450));
     await userEvent.click(backdrop);
     await expect(args.onClose).toHaveBeenCalledOnce();
   },

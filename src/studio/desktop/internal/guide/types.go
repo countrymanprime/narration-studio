@@ -22,7 +22,8 @@ type Type struct {
 var TypeColours = []string{"green", "blue", "violet", "amber", "teal", "rose"}
 
 // DefaultTypes are the types of a file without a list: the fixed categories of before, in the colours the app drew them in, and
-// only Character speaking (manuscript_guide.py DEFAULT_TYPES; TestDefaultTypesMatchTheSidecar pins the two together).
+// only Character speaking (manuscript_guide.py DEFAULT_TYPES). The build's defaultTypeRows are made from this list;
+// TestDefaultTypesMatchTheSidecar pins it to the golden that build test writes.
 func DefaultTypes() []Type {
 	return []Type{
 		{"Character", "green", true}, {"Place", "blue", false}, {"Organization", "violet", false},
@@ -58,6 +59,16 @@ func (s *Service) Types() ([]Type, error) {
 		}
 	}
 	return types, nil
+}
+
+// TypesChanged is whether the Story Bible's types differ from DefaultTypes in any name, colour or speaks flag, or in order or count:
+// a type added, renamed, recoloured, removed or moved. A Story Bible without a list has the defaults. Settings > Changed reads it.
+func (s *Service) TypesChanged() (bool, error) {
+	types, err := s.Types()
+	if err != nil {
+		return false, err
+	}
+	return !slices.Equal(types, DefaultTypes()), nil
 }
 
 // errTypeName is the sidecar's refusal of a name that is blank, more than one line or longer than maxTypeName.

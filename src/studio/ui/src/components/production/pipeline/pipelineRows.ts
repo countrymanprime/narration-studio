@@ -287,6 +287,10 @@ export function buildPipelineRows(chapters: readonly ProductionChapter[], source
   });
 }
 
+/** The longest name a tip shows: a name of 10,000 characters made a tip taller than the window. */
+export const NAME_TIP_LIMIT = 240;
+export const nameTip = (name: string): string => (name.length > NAME_TIP_LIMIT ? `${name.slice(0, NAME_TIP_LIMIT - 1).trimEnd()}…` : name);
+
 /** The accessible name of a cell: "<chapter>: <stage> <state>". */
 // A cell's state starts with the text it draws (a count, a percent, PASS), so its name holds that text: axe fails a name that
 // leaves out what the button draws.

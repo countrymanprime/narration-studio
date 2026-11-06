@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
 import { GUIDE_TYPE_COLOURS, type GuideType, type GuideTypeColour } from '../../../types';
+import { projectDataChanged } from '../data/projectDataSignal';
 import { kindSwatch } from '../../storybible/entryList';
 import { Checkbox } from '../../primitives/Checkbox';
 import { IconButton } from '../../primitives/IconButton';
@@ -228,6 +229,7 @@ export function useStoryBibleTypes(): StoryBibleTypesViewProps {
     try {
       await call();
       await read();
+      projectDataChanged();
       setError(undefined);
       return true;
     } catch (failure) {

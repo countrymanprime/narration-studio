@@ -1,5 +1,5 @@
 import { Popover as BasePopover } from '@base-ui/react/popover';
-import { useRef, type ReactElement, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactElement, type ReactNode } from 'react';
 import { POPUP_MOTION_CLASSES } from './overlayMotion';
 
 // A layer above a dialog carries this attribute on its popup, so Dialog.tsx's Escape handler can tell that a key is
@@ -11,6 +11,23 @@ export const POPOVER_POPUP_SELECTOR = `[${POPOVER_POPUP_ATTRIBUTE}]`;
 
 // Measured on read-aloud-control-bar/03 and 04: at least 336 px wide; never wider than the window less its gutters.
 const WIDTH = 'max-w-[min(32rem,calc(100vw-2rem))] min-w-[min(21rem,calc(100vw-2rem))]';
+const POPUP_GUTTER = 16;
+const MIN_POPUP_ROOM = 120;
+/** How much of the window's bottom the bars fixed along it keep from a popup: all of them, unless that would leave the popup under `MIN_POPUP_ROOM` to read in. */
+export function popupBottomReserve(bars: number, windowHeight: number): number {
+  return Math.max(0, Math.min(bars, windowHeight - 2 * POPUP_GUTTER - MIN_POPUP_ROOM));
+}
+/** The window's inner height, kept current: a popover open while the window is resized (or its bars change) is placed again for the new size. */
+export function useWindowHeight(): number {
+  const [height, setHeight] = useState(() => window.innerHeight);
+  useEffect(() => {
+    const read = () => setHeight(window.innerHeight);
+    read();
+    window.addEventListener('resize', read);
+    return () => window.removeEventListener('resize', read);
+  }, []);
+  return height;
+}
 const COMPACT_WIDTH = 'max-w-[min(20rem,calc(100vw-2rem))]';
 
 // An interactive popup over other content: a click opens it, focus moves into it, Escape closes it and returns focus to
@@ -58,10 +75,14 @@ export function Popover({
   children: ReactNode;
 }) {
   const popup = useRef<HTMLDivElement>(null);
+  const windowHeight = useWindowHeight();
   // The bars fixed along the bottom of the page (the Booth's footer and its setup notice) count as the window's edge: a popup opened above them
   // stops short of them and scrolls inside itself rather than covering Record and the timer (alignment audit XBO-8). Their height is the one the
   // toasts keep clear of, `--toast-clear` on <html> (useToastClearance).
-  const bottomBars = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--toast-clear')) || 0;
+  // In a window so short that the bars would leave the popup a strip of a few lines (320x300: 210 px of bars, 58 px left), the reserve is cut so the
+  // popup keeps `MIN_POPUP_ROOM` to read in, and it may then lie over the top of the bars while it is open.
+  const bars = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--toast-clear')) || 0;
+  const bottomBars = popupBottomReserve(bars, windowHeight);
   return (
     // Focus stays inside while it is open (Tab cycles, it never walks out to a page that would keep the popover up); the page behind stays clickable.
     <BasePopover.Root open={open} defaultOpen={defaultOpen} onOpenChange={onOpenChange} modal="trap-focus">
@@ -73,7 +94,7 @@ export function Popover({
           align={align}
           sideOffset={sideOffset}
           // The page gutter (16 px) from the window's sides, so at 390 px the popup sits evenly in the page rather than 4 px from one edge (XSC-33).
-          collisionPadding={{ top: 16, right: 16, left: 16, bottom: 16 + bottomBars }}
+          collisionPadding={{ top: POPUP_GUTTER, right: POPUP_GUTTER, left: POPUP_GUTTER, bottom: POPUP_GUTTER + bottomBars }}
           collisionBoundary={fitToWindow ? document.documentElement : undefined}
           sticky={fitToWindow}
           className="z-[var(--z-dialog-popover)]"
