@@ -360,7 +360,7 @@ Under **Make primary** a short line says where the sample will be kept ("Kept in
 Saving copies the raw recording of those words, as it was before editing, with a short margin either side cut at a quiet point,
 into <!-- brand:identity.projectFolder -->narration-studio<!-- /brand -->/voice-samples in the project folder. Nothing leaves your computer, and the clip does not change if you
 later cut, re-record or move the chapter. A message says "Saved voice sample for" the character, with **Undo** for ten seconds, which removes
-the sample again. Marking the same words again for the same character says it is already a sample instead of making a second. If you changed **Voice sample storage** since, that sample gains what it lacked (the region in the DAW, or the clip in the project folder), keeps what it had, and is then kept in both.
+the sample again. Marking the same words again for the same character says it is already a sample instead of making a second. If you changed **Voice sample storage** since, that sample gains what it lacked (the region in the DAW, or the clip in the project folder), keeps what it had, and is then kept in both; the message says "is now kept in the project folder and the DAW" and has no **Undo**.
 
 The dialog says why it cannot save, in one sentence, and saves nothing: the words are not in the recording, they run across two
 takes ("Choose words inside one take"), the recording changed since the chapter was checked ("Check it again, then mark the
