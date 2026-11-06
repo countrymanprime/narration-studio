@@ -68,7 +68,7 @@ jobs:
         # docsGuide.test.ts holds the how-to guide's breadcrumbs, footers, links, What next sections and screenshot embeds.
         # ci.yml ignores Markdown-only changes, so without this step a guide-only pull request would never run it.
         if: ${{ !cancelled() }}
-        run: pnpm --dir src/studio/ui exec vitest run src/docsGuide.test.ts src/docScreenshots.test.ts
+        run: pnpm --dir src/studio/ui run test:guide
       - name: Issue link (advisory)
         if: ${{ !cancelled() && github.event_name == 'pull_request' }}
         env:
