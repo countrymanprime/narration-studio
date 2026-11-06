@@ -10,7 +10,7 @@ type TraceEvent = { event: string; fields: TraceFields };
 /** How long events wait for company before they are sent. */
 export const FLUSH_MS = 1000;
 /** The most events one call carries (the host refuses more than 200). */
-export const BATCH_SIZE = 100;
+const BATCH_SIZE = 100;
 /** Events kept while a send is failing; older ones are dropped first. */
 const QUEUE_CAP = 500;
 

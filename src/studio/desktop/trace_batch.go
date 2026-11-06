@@ -23,7 +23,7 @@ type traceBatch struct {
 // errors) as `{"events":[{"event":"ui.nav","fields":{"page":"settings"}}]}` and writes each through the trace's registry
 // (docs/prds/activity-trace.prd.md). An event the registry does not list under `ui`, or a field of the wrong shape, is dropped and
 // counted; the page cannot write a host event or a path. It answers how many events were written and how many were refused. The
-// page sends nothing while the trace is off and the ring is the only reader, so a call costs one JSON parse.
+// page sends every batch, because the in-memory ring always records; a call costs one JSON parse.
 func (h *Host) SystemTraceBatch(batch string) (string, error) {
 	if len(batch) > maxTraceBatchBytes {
 		return encodeBinding(nil, fmt.Errorf("trace batch is larger than %d bytes", maxTraceBatchBytes))

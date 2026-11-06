@@ -77,10 +77,10 @@ import { ProductionPage } from './components/production/ProductionPage';
 import { SchedulePage } from './components/schedule/SchedulePage';
 import { TooltipProvider } from './components/primitives/Tooltip';
 import { ErrorBoundary } from './components/primitives/ErrorBoundary';
+import { trace, traceId } from './api/tracing';
 import { DESKTOP_HOST_API_VERSION } from './hostApi';
 import { isWireError } from './api/wire/WireError';
 import { describeApiError } from './api/errorMessage';
-import { trace, traceId } from './api/tracing';
 import { useCommand } from './input/useCommand';
 import { useRecordingEngine } from './components/booth/useRecorder';
 
