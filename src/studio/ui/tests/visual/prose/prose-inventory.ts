@@ -348,6 +348,11 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     class: 'empty',
   },
   {
+    file: 'components/proof/ChapterCompare.tsx',
+    text: "The app's recorder has no takes for this chapter. Takes it records and puts on a line are listed here.",
+    class: 'empty',
+  },
+  {
     file: 'components/proof/ProofChapterPage.tsx',
     text: 'This chapter was last checked before the app could read its word alignment. Run Check again to edit it word by word on the Editing page.',
     class: 'state',
@@ -457,6 +462,16 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   {
     file: 'components/settings/UpdatesPanel.tsx',
     text: 'This platform does not update itself. Open the release notes to download it from the release page.',
+    class: 'state',
+  },
+  {
+    file: 'components/settings/controls/DiagnosticsSection.tsx',
+    text: 'A zip of how the app behaved, with no text, names or file paths from your books. Nothing is sent anywhere.',
+    class: 'state',
+  },
+  {
+    file: 'components/settings/controls/DiagnosticsSection.tsx',
+    text: 'Leak check: … … dropped for naming you or your project.',
     class: 'state',
   },
   {

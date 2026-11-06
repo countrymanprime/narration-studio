@@ -162,6 +162,13 @@
   },
   {
     "page": "proof",
+    "state": "compare-open",
+    "viewport": "desktop",
+    "docName": "proof-compare-panel",
+    "caption": "Proof - Compare opened under the check card: its three tabs and the comparison's setup"
+  },
+  {
+    "page": "proof",
     "state": "check-recordings-dialog",
     "viewport": "desktop",
     "docName": "proof-check-recordings-dialog",
@@ -439,6 +446,13 @@
     "viewport": "desktop",
     "docName": "engine-panel",
     "caption": "The audio engine panel, opened from the header chip - the linked REAPER project, the REAPER tools, chapter sync, the tracks with their chapters, and chapter links"
+  },
+  {
+    "page": "settings",
+    "state": "diagnostics-preview",
+    "viewport": "desktop",
+    "docName": "settings-diagnostics-preview",
+    "caption": "Settings - App & updates: the diagnostics bundle preview with the files it holds, what it leaves out and the leak check"
   },
   {
     "page": "settings",

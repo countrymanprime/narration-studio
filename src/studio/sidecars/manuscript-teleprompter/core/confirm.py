@@ -24,6 +24,14 @@ from narration_common.ports.capture import SAMPLE_RATE
 # Larger than any stream time (a day of audio is 86,400 s); a time past it is garbage, not a place in the ring.
 _MAX_SECONDS = 1e7
 
+
+def _seconds(value: object) -> float | None:
+    """`value` as a time in seconds when it is a finite number of sane size (not a bool), else None."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or abs(value) >= _MAX_SECONDS:
+        return None
+    return float(value)
+
+
 Word = tuple[str, float, float]
 Decoder = Callable[[np.ndarray], list[Word]]
 
@@ -73,8 +81,8 @@ class Confirmer:
         if isinstance(segment, bool) or not isinstance(segment, (int, float, str)):
             return
         if kind == "word":
-            start, end = event.get("start"), event.get("end")
-            if not all(isinstance(t, (int, float)) and not isinstance(t, bool) and math.isfinite(t) and abs(t) < _MAX_SECONDS for t in (start, end)):
+            start, end = _seconds(event.get("start")), _seconds(event.get("end"))
+            if start is None or end is None:
                 return
             span = self._spans.setdefault(segment, [start, end])
             span[0], span[1] = min(span[0], start), max(span[1], end)
