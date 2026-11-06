@@ -253,6 +253,18 @@ Moonshine probe recording through `replay.py --events X`, through the host's own
 clean read is the false-flag rate. Nothing confirms a
 flag after the session.
 
+## The trailing confirmation pass
+
+With a non-Whisper live engine (Moonshine), `--confirm-model` (and `--confirm-model-dir`, a verified catalog install; it never
+downloads) turns on a second opinion on every closed segment ([#1476](https://github.com/countrymanprime/narration-studio/issues/1476)).
+`core/confirm.py` keeps the last 60 s of the audio the engine heard, and on a `segment_end` cuts the segment's span (first
+word start to last word end, 0.3 s either side) and has faster-whisper read it on its own thread. The result is a
+`segment_check` event with Whisper's words in the engine's stream time, printed on the next chunk or event and once more when
+the input ends (waiting at most 5 s). The model loads on that thread at the first check, so the first chunk is not delayed.
+A segment whose audio has left the ring, or that has no timed words, is skipped; a decode or a model load that fails prints
+`segment_check` with an `error` for that segment and the session goes on. With `--engine whisper` or no `--confirm-model`
+the pass is off. The host half, comparing the words with the live reading to confirm or clear a flag, is not built yet.
+
 ## Streaming subprocess support
 
 `src/studio/desktop/internal/process.Supervisor.Start` drains stdout/stderr to `io.Discard`
