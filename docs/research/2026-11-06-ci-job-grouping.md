@@ -101,4 +101,15 @@ The `Pull Request` ruleset (id 23521923) requires no status check on 2026-11-06 
 
 ## After
 
-Pending: measured on the regroup pull request and recorded there.
+Measured 2026-11-06 with `ci-load.mjs` and the Actions API, `ci.yml` only (the other workflows do not change), every project affected:
+
+| Run | Tier | Jobs that held a runner | Most running at once | Linux / Windows min | Note |
+| --- | --- | --- | --- | --- | --- |
+| [42236631709](https://github.com/countrymanprime/narration-studio/actions/runs/42236631709), before (#3074) | full | 20 (4 Windows) | 16 | 136 / 52 | first job start to last job end 28.7 min, longest queue 1.7 min |
+| [42238010497](https://github.com/countrymanprime/narration-studio/actions/runs/42238010497), after (manual run, #3079 plus a deliberate failing step) | full | 13 (3 Windows) | 10 | 132 / 51 | a manual run is not a pull request: the rename rehearsal ran `--full` (linux-checks 16 min) and the Windows mutation checks ran (905 s), so it costs more than a pull request would. Jobs queued up to 16.3 min behind other pull requests, so its 41.9 min wall clock measures the queue, not the shape |
+| [42155413333](https://github.com/countrymanprime/narration-studio/actions/runs/42155413333), before | light (draft) | 12 | 8 | 55 / 32 | first start to last end 31.9 min |
+| [42241288606](https://github.com/countrymanprime/narration-studio/actions/runs/42241288606), after (#3079) | light (draft) | 8 | 6 | 29 / 22 | both `go-test` jobs were cancelled at about 10 min by a newer push, so the Windows minutes are low |
+
+In the after run, by job: the visual shards took 14.2 to 18.2 min, `ui-unit` 8.1 to 16.4 (with the atlas), `go-test (root)` 13.4, `linux-checks` 16.4 with the `--full` rehearsal (6.9 to 9.1 min on the light pull-request runs of #3079), `Build (Windows)` 4.8, starting when `linux-checks` ended. On a pull request the visual shards remain the critical path.
+
+The ready pull request, #3079 at `0d898a65`, [run 42247829658](https://github.com/countrymanprime/narration-studio/actions/runs/42247829658), full tier, every job green and `CI passed`: 13 jobs that held a runner (3 Windows), at most **10** running at once, **134 Linux / 34 Windows** minutes (before: 136 / 52), first job start to last job end 30.4 min (before: 28.7). Its jobs queued up to 6.0 min (before: 1.7), and visual shards 1, 2 and 4 started 4.5 to 5.2 min after shard 3; shard 1 then ran 24.6 min, longer than the usual 15 to 18, and set the end. `linux-checks` took 6.5 min and `Build (Windows)` 4.4, finished by minute 12; both `go-test` jobs took 14.4.

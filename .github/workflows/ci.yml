@@ -1,6 +1,7 @@
 name: CI
 # Two tiers (docs/operations/ci-and-releases.md#draft-and-ready-tiers). A draft pull request runs the light tier: the Quality jobs
-# except the Playwright suites (js, quick-ubuntu, quick-windows, go-test) and a `CI light passed` check. Everything else (a ready pull
+# without the Playwright suites, the UI bundle and the Windows build (linux-checks, the Vitest half of ui-unit, go-test) and a
+# `CI light passed` check. Everything else (a ready pull
 # request, a manual run, main-health) runs the full tier and `CI passed`. `CI passed` is never produced by a light run, so a draft
 # cannot show a green that means less than the full gate.
 on:
@@ -21,33 +22,6 @@ jobs:
     uses: ./.github/workflows/_quality.yml
     with:
       full: ${{ github.event.pull_request.draft != true }}
-  ui-dist:
-    if: github.event.pull_request.draft != true
-    uses: ./.github/workflows/_ui-dist.yml
-  # Windows is the only supported platform, so it is the only native build.
-  # This job needs only the UI bundle, so it runs alongside the quality jobs rather than after them.
-  build-windows:
-    name: Build (Windows)
-    needs: ui-dist
-    if: github.event.pull_request.draft != true
-    timeout-minutes: 30
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: ./.github/actions/build-native
-        with:
-          platform: windows-x64
-      # The packaged program, setup program, notices and checksums of this pull request, for a by-hand launch on Windows (the owner's
-      # check of a shell change, for example the Wails v3 migration). Never a release: releases are built by prerelease.yml.
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: app-windows-x64
-          path: release-assets/
-          if-no-files-found: error
-          retention-days: 7
-
   # One check that sums up the run, for a ruleset to require (#544) instead of every job by name: sharding, folding or
   # renaming a job then changes nothing a ruleset lists, and a job skipped because Nx found nothing affected counts as
   # passed. `always()` so it reports red, not skipped, when a job it needs fails. A documentation-only pull request does
@@ -56,20 +30,22 @@ jobs:
   # agent-train/SKILL.md require it). A skipped job inside the full run (the UI not affected) still counts as passed.
   ci-passed:
     name: CI passed
-    needs: [quality, ui-dist, build-windows]
+    needs: [quality]
     if: always() && github.event.pull_request.draft != true
     timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { persist-credentials: false }
-      # Fails unless the three jobs above ended success or skipped, then (when the UI was affected) judges every visual shard's capture
-      # records together (src/studio/ui/tests/visual/whole-run.check.ts). That whole-run check ran as a job of its own after the shards;
-      # here it saves that job's queueing and start-up on the critical path. A step that fails fails `CI passed`.
+      # Fails unless quality (every job of _quality.yml, Build (Windows) included) ended success or skipped, then, when the UI was
+      # affected, merges the three Vitest blobs and checks every coverage floor over the whole run, and judges every visual shard's
+      # capture records together (src/studio/ui/tests/visual/whole-run.check.ts). Both were jobs of their own; here they save a job's
+      # queueing and start-up each. A step that fails fails `CI passed`.
       - uses: ./.github/actions/ci-gate
         with:
           results: ${{ join(needs.*.result, ' ') }}
-          expect: '3'
+          expect: '1'
+          vitest-shards: ${{ needs.quality.outputs.vitest-affected == 'true' && '3' || '0' }}
           visual-shards: ${{ needs.quality.outputs.ui-affected == 'true' && '4' || '0' }}
 
   # What a draft pull request shows instead of `CI passed`. It sums up only what the light tier ran, and its name says so. It is
@@ -78,13 +54,14 @@ jobs:
     name: CI light passed
     needs: [quality]
     if: always() && github.event.pull_request.draft == true
-    timeout-minutes: 5
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { persist-credentials: false }
-      # The light tier: no visual suite, no atlas, no Windows build.
+      # The light tier: no visual suite, no atlas, no Windows build. The Vitest run is in it, so its coverage merge is too.
       - uses: ./.github/actions/ci-gate
         with:
           results: ${{ join(needs.*.result, ' ') }}
           expect: '1'
+          vitest-shards: ${{ needs.quality.outputs.vitest-affected == 'true' && '3' || '0' }}

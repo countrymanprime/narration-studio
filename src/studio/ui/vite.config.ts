@@ -7,7 +7,7 @@ import { brand } from './src/brand.gen';
 // index.html's <title> is the product name from the brand module (config/brand.json), written in at dev and build time.
 const brandTitle = { name: 'brand-title', transformIndexHtml: (html: string) => html.replaceAll('%BRAND_NAME%', brand.name) };
 
-// `vitest --shard=i/N` (the `js-test` CI jobs) splits the files by cost instead of by a hash of their paths: see
+// `vitest --shard=i/N` (the `ui-unit` CI jobs) splits the files by cost instead of by a hash of their paths: see
 // scripts/vitest-shards.mjs. Only a Vitest run loads Vitest; dev, build and Storybook do not.
 async function costBalancedSequencer() {
   const { BaseSequencer } = await import('vitest/node');
