@@ -11,7 +11,6 @@ import { DiagnosticsSection } from '../../master/DiagnosticsSection';
 import { FileRulesPanel } from '../../master/FileRulesPanel';
 import { MasteringChain, useMasteringProviders } from '../../master/MasteringChain';
 import { MasterToSpecPanel } from '../../master/MasterToSpecPanel';
-import { MultiPlatformExportPanel } from '../../master/MultiPlatformExportPanel';
 import { ReportExportPanel } from '../../master/ReportExportPanel';
 import { useExportJobs } from '../../master/useExportJobs';
 import { Button } from '../../primitives/Button';
@@ -102,7 +101,6 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
   useMeasureErrors(run);
   const jobs = useExportJobs();
   const mastering = useMasteringProviders();
-  const [all, setAll] = useState<DeliveryProfile[]>([]);
   const [chosen, setChosen] = useState<DeliveryProfile>();
   const [profileProblem, setProfileProblem] = useState<string>();
   // Whether that problem is a read that failed (Retry reads again) or a profile the project names that the list lacks (reading again would not change it).
@@ -124,7 +122,6 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
     profilesPort.deliveryProfiles().then(
       (state) => {
         if (!active) return;
-        setAll(state.profiles);
         const found = state.profiles.find((candidate) => deliveryProfileKey(candidate) === state.projectProfile);
         if (found) setChosen(found);
         else setProfileProblem(`the profile ${state.projectProfile} is not in the list`);
@@ -335,9 +332,13 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
             chapters={chapters}
             files={run.files}
             loading={!chaptersRead || (!profile && !profileProblem)}
+            encoded={
+              chaptersRead
+                ? { done: jobs.exportJob?.files.filter((file) => file.status === 'done' && file.encodedPath).length ?? 0, total: chapters.length }
+                : undefined
+            }
             onOpenDelivery={onOpenDelivery}
           />
-          <MultiPlatformExportPanel profiles={all} jobs={jobs} />
         </div>
       </div>
     </div>

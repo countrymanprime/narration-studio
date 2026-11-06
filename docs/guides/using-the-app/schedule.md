@@ -75,6 +75,12 @@ had and says so: **Couldn't read the schedule again**, why, how long ago it was 
 starts from what the project holds at that moment: a change to a row that was edited somewhere else since you saw it is refused with a
 message instead of overwriting it, and two quick presses on the same row are one change.
 
+## What next
+
+- [Production](production.md): the hours logged, the figures and what to work on next.
+- [Settings: Project](settings.md#project): the schedule basis, standard pace or your own.
+- [Booth](booth.md): record the chapters the plan needs.
+
 ---
 
 [← Production](production.md) · [Index](README.md) · [Script →](script.md)

@@ -745,7 +745,7 @@ Categories as in section 2.2. "Suggested home" is where the content would go if 
 | [0460](../reference/daw/capabilities.md#macro_render) | IMPL | N | Proposed | package doc in internal/masteringport | A registry row and its macro flow within existing ports. |
 | [0465](../design/design-system.md) | IMPL | N | Proposed | code comment in src/studio/ui/tests/visual/catalog/shell.ts | Extra viewport for three visual test states. |
 | [0470](../guides/using-the-app/proof.md#a-note-and-your-decision) | UX | Y | Proposed | PRD proof page | Mock-driven labels, header chips and sources line bundled. |
-| [0480](../guides/using-the-app/master-and-qc.md#building-packages-for-several-platforms-at-once) | UX | Y | Proposed | PRD multi-platform export | Checkbox list UX, format suffix convention and sequential build bundled. |
+| [0480](../guides/using-the-app/delivery.md#building-packages-for-several-platforms-at-once) | UX | Y | Proposed | PRD multi-platform export | Checkbox list UX, format suffix convention and sequential build bundled. |
 | [0485](../reference/data-files.md) | DATA | N | Accepted | reference/data-files | line-identity.json file location and shape. |
 | [0495](../guides/using-the-app/production.md#the-credits) | IMPL | N | Proposed | code comments in recordingCheckText.ts / mapping.go | Reuse via synthetic chapter id and title lookup. |
 | [0510](../../src/studio/desktop/internal/editing/validation.go) | ENG | N | Proposed | docs/testing/editing-ground-truth.md | Release bar for detector signals on a held-out run: evaluation gate. |

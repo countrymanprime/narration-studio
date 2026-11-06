@@ -7,6 +7,21 @@ under **Review** in the sidebar, after [Proof](proof.md). The page records nothi
 move the DAW's cursor. Each line opens in the Booth, where you record it.
 While the list is being read, the table shows grey rows shaped like its lines under the page title, **Add a pickup by hand** is off, and the Pickup session panel shows blocks for **Lines** and **Length**, not a count; if it cannot be read, the page says so with **Check again**.
 
+## Record your pickups
+
+This page is a reference to the Pickups list. Here is the usual round, start to finish; the sections after it have the
+detail.
+
+1. **Collect the lines.** Mark a note **Needs pickup** on [Proof](proof.md#a-note-and-your-decision), let the recording
+   check find gaps, or press **Add a pickup by hand**. Each one appears here, grouped by chapter, and the **From** column
+   says where it came from ([Where the lines come from](#where-the-lines-come-from)).
+2. **Choose what goes in this session.** Every open line is in it unless you clear its box (or press Space on it). The
+   **Pickup session** panel counts the **Lines** and the **Length**, about how many minutes they take to record.
+3. **Record them.** **Open N in Booth** opens the Booth on those lines, starting with the first line's chapter. Record
+   each one there ([A pickup session](booth.md#a-pickup-session)).
+4. **If you work in the DAW instead,** **Add N as markers in** your DAW puts a pickup marker at each line's place, and
+   **Copy the pickup script** copies the lines as "chapter · time: line" to paste elsewhere.
+
 ## Where the lines come from
 
 The list is built each time the page opens, and again whenever you come back to the window, from four places. The **From** column says which:
@@ -135,6 +150,12 @@ under the list at its own width. From there:
 
 The companion panel's **Pickups** section shows how many of the DAW's pickup markers are still open, out of the total. It
 does not change them: jump to a pickup or mark it done on this page in the full app.
+
+## What next
+
+- [Booth: A pickup session](booth.md#a-pickup-session): recording the lines you sent from here.
+- [Proof](proof.md): mark more notes **Needs pickup**, or check the recording again after the session.
+- [Master & QC](master-and-qc.md): check the finished files once the pickups are in.
 
 ---
 

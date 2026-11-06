@@ -44,6 +44,7 @@ export function OutputPanel({
   build,
   showBuilt,
   onOpenMaster,
+  extra,
 }: {
   profile: DeliveryProfile;
   ready: boolean;
@@ -55,10 +56,13 @@ export function OutputPanel({
   showBuilt: boolean;
   /** Opens Master & QC: offered when nothing is measured yet (R4DL-2). */
   onOpenMaster?: () => void;
+  /** More builds that belong on Output, drawn under the single-profile build (the multi-platform build, #2824). */
+  extra?: ReactNode;
 }) {
   const built = showBuilt && ready ? build.built : undefined;
   // Busy is shown with `pending`, not `disabled`, so the Build button keeps keyboard focus while it works.
-  const canBuild = ready && build.encoded > 0;
+  // The multi-platform build uses the same files: while it runs this one waits, with the reason beside it.
+  const canBuild = ready && build.encoded > 0 && !build.multi.running;
   const buildButton = useRef<HTMLButtonElement>(null);
   // While a build runs and the host has stopped answering, "Every chapter passes." would be a stale fact; the toast says what is known.
   const stale = build.running && build.quiet !== undefined;
@@ -75,15 +79,17 @@ export function OutputPanel({
     ? "Can't tell how the build is going."
     : build.running
       ? 'Building the package…'
-      : ready && lastFailed
-        ? 'The last build did not finish.'
-        : !ready
-          ? waiting
-          : build.encoded === 0
-            ? 'Master all to spec in Master & QC first.'
-            : build.exportRunning
-              ? 'Master & QC is still preparing the files.'
-              : waiting;
+      : build.multi.running
+        ? 'Another build is running.'
+        : ready && lastFailed
+          ? 'The last build did not finish.'
+          : !ready
+            ? waiting
+            : build.encoded === 0
+              ? 'Master all to spec in Master & QC first.'
+              : build.exportRunning
+                ? 'Master & QC is still preparing the files.'
+                : waiting;
   // A press on a blocked Build builds nothing; this says so, with the reason, to a screen reader as well as the eye. It goes when Build is live.
   const [refused, setRefused] = useState(false);
   // Embed chapter tags: its dialog, and the button that opened it, which gets focus back when the dialog closes.
@@ -190,6 +196,7 @@ export function OutputPanel({
             </ul>
           </div>
         )}
+        {extra}
       </div>
     </Panel>
   );

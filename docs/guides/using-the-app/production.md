@@ -37,6 +37,20 @@ is one answer on Production, the Booth and the Companion: the DAW's own sentence
 If the production overview cannot be read when the page opens, Production keeps its title and says "This page could not
 be loaded" with the reason and a **Retry** button, which reads it again.
 
+## Common tasks
+
+This page is a reference to everything Production shows. To do one thing, start here:
+
+- **Import the manuscript**: with none imported yet, the page is the import; press **Import manuscript**
+  ([Importing the manuscript](#importing-the-manuscript)).
+- **Start recording**: **Start session** opens the [Booth](booth.md) on the chapter being recorded.
+- **See what to work on next**: [Next up](#next-up).
+- **Time a stage of work**: [The stage timer](#the-stage-timer).
+- **Check a chapter's recording against its text**: [Checking a chapter's recording](#checking-a-chapters-recording).
+- **Link a chapter to its track**: [A chapter's track](#a-chapters-track).
+- **Set the due date**: on [Schedule](schedule.md). Before a manuscript is imported, the calendar icon here opens it.
+- **Send a progress report to the author or publisher**: **Export status report** ([Status report](#status-report)).
+
 ## The figures
 
 The six figures are one card; each opens the page it counts.
@@ -376,6 +390,12 @@ detected starts empty. Save only writes the fields you confirm — nothing alrea
 **Don't ask for this project** stops it until you replace the manuscript. Either way, a banner
 stays above the figures — and above the [Script](script.md) page's own Opening credits
 card — with **Fill in** to reopen the same dialog for as long as a token stays unresolved.
+
+## What next
+
+- [Schedule](schedule.md): whether the book will be done by its due date, and how it pays.
+- [Script](script.md): prepare the text you import here.
+- [Booth](booth.md): record the chapter Production says is next.
 
 ---
 
