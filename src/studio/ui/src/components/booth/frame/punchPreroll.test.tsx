@@ -35,7 +35,7 @@ function menu(engine: 'daw' | 'builtin', over: Partial<NarrationApi> = {}, prero
       />
     </ApiProvider>,
   );
-  return { save, open: () => userEvent.click(screen.getByRole('button', { name: 'Levels' })) };
+  return { save, open: () => userEvent.click(screen.getByRole('button', { name: 'Record options' })) };
 }
 
 describe('the Levels menu punch pre-roll', () => {
@@ -61,7 +61,7 @@ describe('the Levels menu punch pre-roll', () => {
   it('is not offered with the built-in recorder, which has no punch', async () => {
     const { open } = menu('builtin');
     await open();
-    await screen.findByRole('dialog', { name: 'Levels' });
+    await screen.findByRole('dialog', { name: 'Record options' });
     expect(screen.queryByRole('textbox', { name: 'Punch pre-roll (seconds)' })).toBeNull();
   });
 

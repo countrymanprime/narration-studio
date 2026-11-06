@@ -36,10 +36,13 @@ func deliveryProfilesPath() string {
 
 // DeliveryProfilesState is what Master & QC and Settings read: every profile the narrator can choose (built-ins
 // first), the Global default, the current project's own choice (nil: the Global default; absent without a project),
-// the key of the profile it is judged against, and a notice when a choice could not be used.
+// the key of the profile it is judged against, and a notice when a choice could not be used. ShippedDefault is the profile
+// the Global default is before the narrator chooses another (deliveryprofile.Default()); the Global default differs from it
+// when the narrator chose another profile, which Settings > Changed reads.
 type DeliveryProfilesState struct {
 	Profiles       []deliveryprofile.Profile `json:"profiles"`
 	GlobalDefault  deliveryprofile.Ref       `json:"globalDefault"`
+	ShippedDefault deliveryprofile.Ref       `json:"shippedDefault"`
 	HasProject     bool                      `json:"hasProject"`
 	ProjectChoice  *deliveryprofile.Ref      `json:"projectChoice"`
 	ProjectProfile string                    `json:"projectProfile"`
@@ -150,8 +153,9 @@ func (h *Host) deliveryProfilesState() (DeliveryProfilesState, error) {
 	if err != nil {
 		notice = joinNotices([]string{notice, "Your custom delivery profiles could not be read (" + err.Error() + "); the built-in profiles still work."})
 	}
+	shipped := deliveryprofile.Default()
 	return DeliveryProfilesState{
-		Profiles: catalog.Profiles, GlobalDefault: catalog.Default, HasProject: svc.config.projectFolder != "",
+		Profiles: catalog.Profiles, GlobalDefault: catalog.Default, ShippedDefault: deliveryprofile.Ref{ID: shipped.ID, Version: shipped.Version}, HasProject: svc.config.projectFolder != "",
 		ProjectChoice: choice, ProjectProfile: profile.Key(), Notice: notice,
 	}, nil
 }

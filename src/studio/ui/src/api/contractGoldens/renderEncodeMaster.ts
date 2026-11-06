@@ -1,12 +1,14 @@
 // The golden payloads for the Master & QC export flow: which schema owns each file in
 // tests/fixtures/contracts/ (see index.ts).
 import type { z } from 'zod';
-import { exportJobSchema, multiPackageJobSchema, packageFolderResultSchema, packageJobSchema } from '../schemas/renderEncodeMaster';
+import { exportJobSchema, exportPlanSchema, multiPackageJobSchema, packageFolderResultSchema, packageJobSchema } from '../schemas/renderEncodeMaster';
 import { measurePickResultSchema } from '../schemas/measure';
 
 export const renderEncodeMasterGoldens: Record<string, z.ZodType> = {
   'export-pick.json': measurePickResultSchema,
   'export-idle.json': exportJobSchema,
+  'export-plan-daw.json': exportPlanSchema,
+  'export-plan-audacity.json': exportPlanSchema,
   'export-running.json': exportJobSchema,
   'export-error.json': exportJobSchema,
   'export-cancelled.json': exportJobSchema,

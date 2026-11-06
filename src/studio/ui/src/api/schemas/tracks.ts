@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { Track, TrackItem, TracksDiscovery, TracksProject } from '../contracts/tracks';
+import type { Track, TrackItem, TracksDiscovery, TracksLive, TracksProject } from '../contracts/tracks';
 import { listFromNull } from './base';
 
 const trackItemSchema = z.object({
@@ -29,6 +29,14 @@ const trackSchema = z.object({
 }) satisfies z.ZodType<Track>;
 
 export const tracksProjectSchema = z.object({ path: z.string(), tracks: listFromNull(trackSchema) }) satisfies z.ZodType<TracksProject>;
+
+export const tracksLiveSchema = z.object({
+  source: z.enum(['live', 'saved']),
+  reason: z.enum(['', 'standalone', 'not_running', 'unsupported', 'other_project', 'outdated', 'too_many', 'failed']),
+  message: z.string(),
+  readAt: z.string(),
+  project: tracksProjectSchema,
+}) satisfies z.ZodType<TracksLive>;
 
 /** No REAPER project file found is a null list on the wire; `selected` is empty while the choice is still to be made. */
 export const tracksDiscoverySchema = z.object({ candidates: listFromNull(z.string()), selected: z.string() }) satisfies z.ZodType<TracksDiscovery>;

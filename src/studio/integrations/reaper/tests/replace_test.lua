@@ -88,6 +88,16 @@ end
 
 -- 1. replace-moves-mine-to-cuts-and-lays-theirs -------------------------------------------------------------------
 
+H.test('the Cuts track goes at the top level even when the project ends inside an open folder, and no track changes folder', function()
+  local s, p = project()
+  p.chapter.folder_depth = 1 -- their track is Chapter 1's child and the folder is left open at the end
+  local before = H.parents(s)
+  replace(s, p)
+  H.eq(#s:events(), 1)
+  local after = H.same_parents(before, s)
+  H.eq(after.Cuts, '')
+end)
+
 H.test('replace-moves-mine-to-cuts-and-lays-theirs: the narrator piece is parked on Cuts and their stretch plays in its place', function()
   local s, p = project()
   replace(s, p)
@@ -193,7 +203,7 @@ H.test('a range, a stretch, a fade, a level or a name out of shape is refused be
   refused(s, p, 'The level change must be from -24 to 24 dB.', nil, nil, nil, nil, tail('164.2', '167.2', '10', 'loud', ID))
   refused(s, p, 'The replacement has no usable name.', nil, nil, nil, nil, tail('164.2', '167.2', '10', '0', ''))
   refused(s, p, 'The replacement has no usable name.', nil, nil, nil, nil, tail('164.2', '167.2', '10', '0', 'r 1'))
-  refused(s, p, 'The replacement has no usable name.', nil, nil, nil, nil, '164.2|167.2|10|0|' .. ID .. '|extra')
+  refused(s, p, 'The replacement has no usable name.', nil, nil, nil, nil, '164.2|167.2|10|0|' .. ID .. '|extra|more')
   refused(s, p, 'The replacement has no usable name.', nil, nil, nil, nil, '164.2|167.2')
 end)
 
@@ -383,6 +393,18 @@ H.test('import-their-audio: the file goes on a new muted track named for them, a
   H.eq(events, { { 'AUDIO_TRACK_ADDED', 'i1', track.guid, item.guid, '796.500000', '1' } })
   H.eq(s.fake:undo_labels(), { IMPORT_LABEL })
   H.eq(s.fake.open_undo_blocks, 0)
+end)
+
+H.test('their track goes at the top level even when the project ends inside an open folder, and no track changes folder', function()
+  local s, path = importable()
+  local chapter = s.fake.tracks[1]
+  s.fake:add_track('Narrator')
+  chapter.folder_depth = 1
+  local before = H.parents(s)
+  s:send('import_audio_track', 'i1', 'Eric Leach', path)
+  H.eq(s:events()[1][1], 'AUDIO_TRACK_ADDED')
+  local after = H.same_parents(before, s)
+  H.eq(after['Eric Leach'], '')
 end)
 
 H.test('the new track can be their source for a replacement straight away', function()

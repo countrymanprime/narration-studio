@@ -12,20 +12,25 @@ Storybook title: `Primitives/Table`. Source: `src/components/primitives/Table.ts
 - Rows Activate From The Keyboard
 - In A Card
 - Matches The Mock
+- Fixed Columns
+- Tree
 
 ## Used by
 
 - `src/components/editing/backups/BackupsList.tsx`
 - `src/components/editing/cleanup/CleanupList.tsx`
 - `src/components/editing/effects/EffectsList.tsx`
+- `src/components/editing/effects/ProjectFx.tsx`
 - `src/components/engine/ChapterLinksTable.tsx`
 - `src/components/engine/CreateChapterRegionsDialog.tsx`
-- `src/components/engine/EnginePanel.tsx`
 - `src/components/engine/LinkChaptersDialog.tsx`
+- `src/components/engine/TrackList.tsx`
+- `src/components/engine/VoicesCard.tsx`
 - `src/components/master/DeliveryProfilePanel.tsx`
 - `src/components/master/DiagnosticsTables.tsx`
 - `src/components/master/FileRulesPanel.tsx`
 - `src/components/master/MasterToSpecPanel.tsx`
+- `src/components/master/MasteringApprovalDialog.tsx`
 - `src/components/masterqc/files/FilesTable.tsx`
 - `src/components/pickups/list/PickupsTable.tsx`
 - `src/components/production/RecordingCheckReport.tsx`
@@ -33,11 +38,13 @@ Storybook title: `Primitives/Table`. Source: `src/components/primitives/Table.ts
 - `src/components/proof/PreviewPanel.tsx`
 - `src/components/proof/notes/NotesTable.tsx`
 - `src/components/schedule/MilestoneTable.tsx`
-- `src/components/script/page/rail/words/WordsTab.tsx`
+- `src/components/script/page/rail/InThisChapter.tsx`
 - `src/components/settings/DeliveryProfileEditor.tsx`
 - `src/components/settings/controls/CapabilitiesBody.tsx`
 - `src/components/settings/models/AssetRow.tsx`
 - `src/components/settings/page/ModelsPane.tsx`
-- `src/components/storybible/GuideDetail.tsx`
+- `src/components/storybible/EntryTable.tsx`
 - `src/components/storybible/PropertiesSection.tsx`
+- `src/components/storybible/Relationships.tsx`
 - `src/components/storybible/suggested/import/ImportDialog.tsx`
+- `src/components/storybible/suggested/panel/LooseSuggestionRows.tsx`

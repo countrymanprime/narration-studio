@@ -143,21 +143,21 @@ describe('recordCheck', () => {
 describe('SetupChip', () => {
   it('the-control-wording-comes-from-the-capability', () => {
     const { rerender } = render(<SetupChip capabilities={setupCapabilities('reaper')} standaloneName="Recorder" />);
-    expect(screen.getByRole('group').textContent).toBe('REAPER');
+    expect(screen.getByRole('button').textContent).toBe('REAPER');
     rerender(<SetupChip capabilities={setupCapabilities('audacity')} standaloneName="Recorder" />);
-    expect(screen.getByRole('group').textContent).toBe('Audacity');
+    expect(screen.getByRole('button').textContent).toBe('Audacity');
     rerender(<SetupChip capabilities={setupCapabilities('builtin')} standaloneName="Recorder" />);
-    expect(screen.getByRole('group').textContent).toBe('Recorder');
+    expect(screen.getByRole('button').textContent).toBe('Recorder');
   });
 
   it('unsaved-changes-chip-text', async () => {
     const saved = { savedAt: '2026-09-26T08:40', unsavedChanges: false, playState: 'stopped' as const, playPosition: 0 };
     const { rerender } = render(<SetupChip capabilities={setupCapabilities('reaper')} standaloneName="Recorder" project={saved} />);
-    expect(screen.getByRole('group').getAttribute('aria-label')).toBe('Recording setup: REAPER');
+    expect(screen.getByRole('button').getAttribute('aria-label')).toBe('Recording setup: REAPER');
     rerender(<SetupChip capabilities={setupCapabilities('reaper')} standaloneName="Recorder" project={{ ...saved, unsavedChanges: true }} />);
-    expect(screen.getByRole('group').getAttribute('aria-label')).toBe('Recording setup: REAPER, unsaved changes in the project');
-    await userEvent.hover(screen.getByRole('group'));
-    expect((await screen.findByRole('tooltip')).textContent).toBe('Recording settings · REAPER linked · unsaved changes in the project');
+    expect(screen.getByRole('button').getAttribute('aria-label')).toBe('Recording setup: REAPER, unsaved changes in the project');
+    await userEvent.hover(screen.getByRole('button'));
+    expect((await screen.findByRole('tooltip')).textContent).toBe('REAPER linked · unsaved changes in the project · Opens the Audio engine panel');
   });
 });
 
@@ -176,26 +176,26 @@ describe('SetupChip with the project DAW choice', () => {
     bridge: null,
   };
   const tooltipOf = async () => {
-    await userEvent.hover(screen.getByRole('group'));
+    await userEvent.hover(screen.getByRole('button'));
     return (await screen.findByRole('tooltip')).textContent;
   };
 
   it('daw-chip-states: not linked, linked, not running and connected, each worded from the payload', async () => {
     const capabilities = setupCapabilities('reaper');
     const { rerender, unmount } = render(<SetupChip capabilities={capabilities} standaloneName="Recorder" choice={{ ...base, state: 'not_linked' }} />);
-    expect(screen.getByRole('group').getAttribute('aria-label')).toBe('Recording setup: REAPER, not linked');
-    expect(screen.getByRole('group').textContent).toBe('REAPER · not linked');
-    expect(await tooltipOf()).toBe('Recording settings · REAPER not linked · link Book.rpp in Recording settings');
+    expect(screen.getByRole('button').getAttribute('aria-label')).toBe('Recording setup: REAPER, not linked');
+    expect(screen.getByRole('button').textContent).toBe('REAPER · not linked');
+    expect(await tooltipOf()).toBe('REAPER not linked · link Book.rpp · Opens the Audio engine panel');
     rerender(<SetupChip capabilities={capabilities} standaloneName="Recorder" choice={{ ...base, state: 'linked', linkedFile: 'Book.rpp' }} />);
-    expect(screen.getByRole('group').getAttribute('aria-label')).toBe('Recording setup: REAPER, linked');
+    expect(screen.getByRole('button').getAttribute('aria-label')).toBe('Recording setup: REAPER, not running');
     rerender(<SetupChip capabilities={capabilities} standaloneName="Recorder" choice={{ ...base, state: 'not_running', linkedFile: 'Book.rpp' }} />);
-    expect(screen.getByRole('group').getAttribute('aria-label')).toBe('Recording setup: REAPER, not running');
+    expect(screen.getByRole('button').getAttribute('aria-label')).toBe('Recording setup: REAPER, not running');
     unmount();
     render(
       <SetupChip capabilities={capabilities} standaloneName="Recorder" choice={{ ...base, state: 'connected', reachable: true, linkedFile: 'Book.rpp' }} />,
     );
-    expect(screen.getByRole('group').getAttribute('aria-label')).toBe('Recording setup: REAPER');
-    expect(await tooltipOf()).toBe('Recording settings · REAPER linked: Book.rpp');
+    expect(screen.getByRole('button').getAttribute('aria-label')).toBe('Recording setup: REAPER');
+    expect(await tooltipOf()).toBe('REAPER linked: Book.rpp · Opens the Audio engine panel');
   });
 
   it('connected to another project than the one linked here: the chip warns and says so, as the setup notice does (R4BO2-1)', async () => {
@@ -207,19 +207,19 @@ describe('SetupChip with the project DAW choice', () => {
         choice={{ ...base, state: 'connected', reachable: true, linkedFile: 'Book.rpp' }}
       />,
     );
-    const chip = screen.getByRole('group');
+    const chip = screen.getByRole('button');
     expect(chip.getAttribute('aria-label')).toBe('Recording setup: REAPER, other project');
     expect(chip.textContent).toBe('REAPER · other project');
     expect(chip.style.background).toBe('var(--warn-soft)');
-    expect(await tooltipOf()).toBe('Recording settings · REAPER linked: Book.rpp · REAPER has a different project open');
+    expect(await tooltipOf()).toBe('REAPER linked: Book.rpp · REAPER has a different project open · Opens the Audio engine panel');
   });
 
   it('daw-chip-starting: the app opening REAPER says so, and a bridge problem is the host sentence in the tooltip', async () => {
     const capabilities = setupCapabilities('reaper');
     const starting = { ...base, state: 'starting' as const, linkedFile: 'Book.rpp', starting: { since: '2026-10-23T09:30:00Z' } };
     const { unmount } = render(<SetupChip capabilities={capabilities} standaloneName="Recorder" choice={starting} />);
-    expect(screen.getByRole('group').getAttribute('aria-label')).toBe('Recording setup: REAPER, starting');
-    expect(await tooltipOf()).toBe('Recording settings · REAPER linked: Book.rpp · opening REAPER, connecting on its own');
+    expect(screen.getByRole('button').getAttribute('aria-label')).toBe('Recording setup: REAPER, starting');
+    expect(await tooltipOf()).toBe('REAPER linked: Book.rpp · opening REAPER, connecting on its own · Opens the Audio engine panel');
     unmount();
     const problem = 'The app opened REAPER, but REAPER’s bridge has not answered.';
     render(
@@ -229,14 +229,14 @@ describe('SetupChip with the project DAW choice', () => {
         choice={{ ...base, state: 'linked', linkedFile: 'Book.rpp', bridge: { installed: true, startsWithReaper: true, problem } }}
       />,
     );
-    expect(await tooltipOf()).toContain(`not running · start it from Recording settings · ${problem}`);
+    expect(await tooltipOf()).toContain(`not running · start it in the DAW · ${problem}`);
   });
 
   it('names the project choice even when the capability report names none, and the page name when it records in the app', () => {
     const { rerender } = render(<SetupChip capabilities={setupCapabilities('builtin')} standaloneName="Recorder" choice={{ ...base, state: 'connected' }} />);
-    expect(screen.getByRole('group').textContent).toBe('REAPER');
+    expect(screen.getByRole('button').textContent).toBe('REAPER');
     rerender(<SetupChip capabilities={setupCapabilities('builtin')} standaloneName="Recorder" choice={{ ...base, daw: 'Built-in', state: 'app' }} />);
-    expect(screen.getByRole('group').textContent).toBe('Recorder');
+    expect(screen.getByRole('button').textContent).toBe('Recorder');
   });
 });
 
@@ -263,5 +263,24 @@ describe('useRecordControl', () => {
     expect(result.current.recording).toBe(true);
     unmount();
     expect(stop).not.toHaveBeenCalled();
+  });
+});
+
+describe('the main button in Cold read mode', () => {
+  it("reads Cold read in the cold tone with a hint that names Space, then Stop while it listens, and ignores Record's reasons", async () => {
+    const toggle = vi.fn(async () => {});
+    const { rerender } = render(
+      <RecordControl control={{ recording: false, disabled: true, reason: 'The recorder is not running', toggle }} cold={{ mode: true, on: false }} />,
+    );
+    const button = screen.getByRole('button', { name: 'Cold read' });
+    expect(button.className).toContain('border-[var(--info)]');
+    expect(button.getAttribute('aria-disabled')).toBeNull();
+    expect(button.getAttribute('aria-describedby')).toBeNull();
+    await userEvent.hover(button);
+    expect((await screen.findAllByText(/Start a cold read \(Space\)/)).length).toBeGreaterThan(0);
+    rerender(<RecordControl control={{ recording: false, disabled: true, reason: 'x', toggle }} cold={{ mode: true, on: true }} />);
+    expect(screen.getByRole('button', { name: 'Stop' }).className).toContain('border-[var(--info)]');
+    rerender(<RecordControl control={{ recording: false, disabled: false, reason: '', toggle }} cold={{ mode: false, on: false }} />);
+    expect(screen.getByRole('button', { name: 'Record' }).className).toContain('bg-[var(--accent)]');
   });
 });

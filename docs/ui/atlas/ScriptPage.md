@@ -9,8 +9,6 @@ Storybook title: `Script/Page`. Source: `src/components/script/page/ScriptPage.t
 - Reader With Marks
 - Story Bible Tab
 - Notes Tab
-- Queries Tab
-- Bookmarks Tab
 - Rail Drawer
 - Chapter Drawer
 - No Manuscript

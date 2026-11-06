@@ -206,6 +206,15 @@ func locateTrack(match chapterTrackMatch, project tracks.Project, trackGUID stri
 func savedTrack(project tracks.Project, guid string) *tracks.Track {
 	for i := range project.Tracks {
 		if strings.EqualFold(project.Tracks[i].GUID, guid) {
+			if members, _ := project.WithDescendants(project.Tracks[i].GUID); len(members) > 1 {
+				// A folder of voices: one track holding every voice's items, which is how the live read lists them.
+				merged := project.Tracks[i]
+				merged.Items = nil
+				for _, member := range members {
+					merged.Items = append(merged.Items, member.Items...)
+				}
+				return &merged
+			}
 			return &project.Tracks[i]
 		}
 	}

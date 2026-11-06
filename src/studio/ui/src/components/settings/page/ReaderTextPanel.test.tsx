@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, renderHook, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { BOOTH_SIZE_STORAGE_KEY } from '../../booth/page/useTextChoices';
+import { BOOTH_SIZE_STORAGE_KEY } from '../../booth/page/boothSize';
 import { TEXT_PREFS_STORAGE_KEY, loadTextPrefs } from '../../script/page/tools/text/readerText';
 import { useTextPrefs } from '../../script/page/tools/text/useTextPrefs';
 import { TooltipProvider } from '../../primitives/Tooltip';

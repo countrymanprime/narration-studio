@@ -12,6 +12,7 @@ Storybook title: `Primitives/Dialog`. Source: `src/components/primitives/Dialog.
 - Without Close Button
 - Long Unbroken Token
 - Long Scrolling Content
+- Sticky Table Head
 - Close Button Invokes On Close
 - Hides The Page Behind It
 - Focus Starts On The Body
@@ -28,6 +29,8 @@ Storybook title: `Primitives/Dialog`. Source: `src/components/primitives/Dialog.
 
 ## Used by
 
+- `src/components/booth/voices/WhoIsInDialog.tsx`
+- `src/components/connection/ResolveShell.tsx`
 - `src/components/credits/CreditsSetupDialog.tsx`
 - `src/components/engine/ChapterSyncConsentDialog.tsx`
 - `src/components/engine/ChapterTagsDialog.tsx`
@@ -35,7 +38,6 @@ Storybook title: `Primitives/Dialog`. Source: `src/components/primitives/Dialog.
 - `src/components/engine/CreateChapterRegionsDialog.tsx`
 - `src/components/engine/LinkChaptersDialog.tsx`
 - `src/components/engine/RenderConfigDialog.tsx`
-- `src/components/engine/RetakeLanesDialog.tsx`
 - `src/components/help/ShortcutSheet.tsx`
 - `src/components/primitives/ConfirmDialog.tsx`
 - `src/components/primitives/WorkDialog.tsx`
@@ -43,10 +45,14 @@ Storybook title: `Primitives/Dialog`. Source: `src/components/primitives/Dialog.
 - `src/components/production/ManuscriptImport.tsx`
 - `src/components/project/NewProjectDialog.tsx`
 - `src/components/proof/proofOptions/ProofOptions.tsx`
+- `src/components/recordingcheck/background/BackgroundChecksNotice.tsx`
 - `src/components/script/page/tools/select/MarkComposer.tsx`
 - `src/components/script/page/tools/select/MarksDialog.tsx`
 - `src/components/settings/DeliveryProfileEditor.tsx`
 - `src/components/settings/analysis/ConsentDialog.tsx`
+- `src/components/settings/models/MoveEndedDialog.tsx`
+- `src/components/storybible/Relationships.tsx`
 - `src/components/storybible/voicesamples/EditVoiceSampleDialog.tsx`
 - `src/components/storybible/voicesamples/MoveVoiceSampleDialog.tsx`
 - `src/overlay/OverlayHost.tsx`
+- `src/overlay/overlayService.ts`

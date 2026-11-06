@@ -239,3 +239,26 @@ describe('the pace is an estimate', () => {
     expect(await screen.findByText(/not measured from your sessions.*assumes 1\.5 h of work a day/)).toBeTruthy();
   });
 });
+
+describe('a due date past the last year (issue 1943)', () => {
+  it('refuses 9999-12-31 with a toast, keeps what was typed marked invalid, saves nothing, and puts the saved date back on leaving again', async () => {
+    const calls = vi.fn();
+    await mountSchedule({ wrap: (base) => ({ setProductionDeadline: async (d, a) => (calls(d, a), base.setProductionDeadline(d, a)) }) });
+    const field = await dueField();
+    fireEvent.change(field, { target: { value: '9999-12-31' } });
+    await waitFor(() => expect(toasts().join(' ')).toMatch(/no later than Dec 31, 2100/));
+    expect(calls).not.toHaveBeenCalled();
+    await waitFor(() => expect(field.getAttribute('aria-invalid')).toBe('true'));
+    expect(field.value).toBe('9999-12-31');
+    expect(document.getElementById(field.getAttribute('aria-describedby') ?? '')?.textContent).toMatch(/not saved/);
+    fireEvent.blur(field);
+    expect(field.getAttribute('aria-invalid')).toBeNull();
+    expect(field.value).not.toBe('9999-12-31');
+  });
+
+  it('accepts the last day of the last year', async () => {
+    await mountSchedule();
+    await commit('2100-12-31');
+    await waitFor(async () => expect((await stored()).deadline).toBe('2100-12-31'));
+  });
+});

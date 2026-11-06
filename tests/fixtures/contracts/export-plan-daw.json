@@ -1,0 +1,48 @@
+{
+  "chain": [
+    {
+      "fx": [
+        {
+          "enabled": true,
+          "name": "VST: ReaEQ (Cockos)"
+        },
+        {
+          "enabled": false,
+          "name": "JS: De-esser"
+        }
+      ],
+      "master": false,
+      "name": "Voice"
+    },
+    {
+      "fx": [
+        {
+          "enabled": true,
+          "name": "VST: ReaLimit (Cockos)"
+        }
+      ],
+      "master": true,
+      "name": "Master"
+    }
+  ],
+  "chainDigest": "sha256:838197b9d15711f92a9cb18ebfc1c0ed5853724d35ccbf749de0de83fce9f59d",
+  "items": [
+    {
+      "kind": "credits_opening",
+      "path": "C:/Renders/00 Opening credits.wav",
+      "region": "Opening credits",
+      "title": ""
+    },
+    {
+      "kind": "chapter",
+      "path": "C:/Renders/Chapter 01.wav",
+      "region": "Chapter 1",
+      "title": "Chapter 1"
+    }
+  ],
+  "label": "Your DAW's FX chain",
+  "master": true,
+  "needsApproval": true,
+  "needsMacro": false,
+  "provider": "daw"
+}

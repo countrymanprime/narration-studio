@@ -7,8 +7,8 @@ const apply = (state: ScriptViewState, patch: (s: ScriptViewState) => Partial<Sc
 
 describe('search state changes', () => {
   it('a search is shown with its term, at the first match unless the menu chose another', () => {
-    expect(apply(initial(), openFind('king')).find).toEqual({ open: true, q: 'king', i: 0 });
-    expect(apply(initial(), openFind('king', 4)).find).toEqual({ open: true, q: 'king', i: 4 });
+    expect(apply(initial(), openFind('king')).find).toEqual({ open: true, q: 'king', i: 0, asked: 1 });
+    expect(apply(apply(initial(), openFind('king')), openFind('king', 4)).find).toEqual({ open: true, q: 'king', i: 4, asked: 2 });
   });
 
   it('closes without losing the query', () => {

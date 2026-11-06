@@ -3,7 +3,6 @@
 
 import type { ManuscriptChapter, ManuscriptParagraph } from '../../../../api/contracts/manuscript';
 import type { Mark, MarkType } from '../../../../api/contracts/marks';
-import type { ScriptWord } from '../../../../api/contracts/scriptPrep';
 import type { GuideType } from '../../../../types';
 import type { GuideDialogueCue, GuideDialogueCueSpeakerSource, GuideEntity } from '../../../../api/contracts/storyBible';
 
@@ -96,12 +95,4 @@ export const mark = (id: string, paragraphId: string, span: Span, type: string, 
   createdAt: '2026-10-11T00:00:00Z',
   stale: false,
   ...extra,
-});
-
-export const flaggedWord = (word: string, paragraphId: string, span: Span, status: ScriptWord['status'] = 'not_set'): ScriptWord => ({
-  word,
-  say: '',
-  source: '',
-  status,
-  flags: [{ id: `f-${word}`, chapterId: 'c1', paragraphId, paragraph: 0, ...span, quote: word, createdAt: '2026-10-11T00:00:00Z', stale: false }],
 });

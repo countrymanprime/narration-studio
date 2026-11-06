@@ -1,5 +1,7 @@
 package credits
 
+import "strings"
+
 // Values is a project's own credit token values, owned per project for
 // everything except the narrator name. It is stored on the project manifest
 // (project.Manifest.Credits) rather than in a dedicated file.
@@ -16,6 +18,16 @@ type Values struct {
 	// Narrator overrides the global narrator default (General.narrator_name)
 	// for this project only; empty means "use the global default".
 	Narrator string `json:"narrator,omitempty"`
+}
+
+// IsSet is whether any value has text: the project has credits values of its own. Settings > Changed reads it.
+func (v Values) IsSet() bool {
+	for _, value := range []string{v.Title, v.Subtitle, v.Author, v.Series, v.BookNumber, v.Copyright, v.Year, v.CopyrightHolder, v.Publisher, v.Narrator} {
+		if strings.TrimSpace(value) != "" {
+			return true
+		}
+	}
+	return false
 }
 
 // Resolve builds the token map Render consumes: project values first, the

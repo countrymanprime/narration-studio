@@ -28,7 +28,7 @@ function renderEngine(api: NarrationApi) {
   render(
     <MemoryRouter>
       <ApiProvider api={api}>
-        <EnginePanel open onClose={() => {}} notify={() => {}} link={LINK} />
+        <EnginePanel open onClose={() => {}} notify={() => {}} link={LINK} onOpenRecordingSettings={() => {}} />
       </ApiProvider>
     </MemoryRouter>,
   );
@@ -59,7 +59,7 @@ function modalState(): Map<string, string> {
 }
 
 async function openModal() {
-  await userEvent.setup().click(await screen.findByRole('button', { name: 'Link chapters…' }));
+  await userEvent.setup().click(await screen.findByRole('button', { name: 'Link chapters to tracks' }));
   await screen.findByRole('dialog', { name: 'Link chapters to REAPER' });
 }
 

@@ -52,6 +52,37 @@ func TestDeleteRangeSendsTheItemRangeModeAndFadeAndReadsRANGE_CUT(t *testing.T) 
 	}
 }
 
+func TestDeleteRangeInAFolderSendsTheFolderAsTheFourthPartOfTheFadeField(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	fake := startFakeReaper(t, client, dir, func(command []string) [][]string {
+		return [][]string{{"RANGE_CUT", run(command), cutItem, "{00000009-0000-4000-8000-000000000009}", "1"}}
+	})
+	if _, err := actions.DeleteRangeInFolder(context.Background(), "{F0000000-0000-4000-8000-0000000000F1}", cutItem, 14, 16, CutClose, 10, 0, false); err != nil {
+		t.Fatal(err)
+	}
+	command := fake.commands()[0]
+	tail := command[len(command)-3:]
+	if tail[0] != "0.000000" || tail[1] != "0" || tail[2] != "{F0000000-0000-4000-8000-0000000000F1}" {
+		t.Fatalf("command = %v, want pad, room tone and the folder after the fade", command)
+	}
+	if _, err := actions.DeleteRange(context.Background(), cutItem, 14, 16, CutClose, 10, 0, false); err != nil {
+		t.Fatal(err)
+	}
+	if plain := fake.commands()[1]; len(plain) != len(command)-3 {
+		t.Fatalf("without a folder the command is unchanged: %v", plain)
+	}
+}
+
+func TestDeleteRangeInAFolderAScriptThatDoesNotKnowItIsOutdatedNotACut(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	startFakeReaper(t, client, dir, func(command []string) [][]string {
+		return [][]string{{"ERROR", run(command), cutBadFade}}
+	})
+	if _, err := actions.DeleteRangeInFolder(context.Background(), "{F0000000-0000-4000-8000-0000000000F1}", cutItem, 14, 16, CutClose, 10, 0, false); !errors.Is(err, ErrScriptOutdated) {
+		t.Fatalf("err = %v, want ErrScriptOutdated: an older script reads the fourth part as a bad fade", err)
+	}
+}
+
 func TestDeleteRangeAtTheItemStartAnswersTheItemAsTheCutPiece(t *testing.T) {
 	actions, client, dir := newActionsSession(t, true)
 	startFakeReaper(t, client, dir, func(command []string) [][]string {

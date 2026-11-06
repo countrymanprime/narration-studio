@@ -11,7 +11,7 @@ Storybook title: `Editing/TimelineStrip`. Source: `src/components/editing/strip/
 - Stacked
 - Selection
 - Playing
-- No Audio
+- No Takes
 - Narrow
 
 ## Used by

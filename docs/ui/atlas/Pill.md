@@ -9,6 +9,7 @@ Storybook title: `Primitives/Pill`. Source: `src/components/primitives/Pill.tsx`
 - Inactive
 - Active
 - Disabled
+- Disabled With Reason
 - With Tooltip
 - Click Selects
 - Announces Its Pressed State
