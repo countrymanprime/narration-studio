@@ -1,6 +1,6 @@
 # The worker procedure
 
-What a train worker, resume session or fixer reads: the protocol, serial points, lanes, the guide rule and which mocks are the spec. The coordinator's procedure is in [coordinator.md](coordinator.md); the owner's standing rules are in [owner-rules.md](owner-rules.md); the prompts are in [templates.md](templates.md).
+What a train worker, resume session or fixer reads: the protocol, the order of work, serial points, lanes, the guide rule and what a job builds to. The coordinator's procedure is in [coordinator.md](coordinator.md); the owner's standing rules are in [owner-rules.md](owner-rules.md); the prompts are in [templates.md](templates.md).
 
 ## The worker protocol
 
@@ -8,7 +8,7 @@ A worker is one cloud session for one stream. It opens one PR per phase, stacked
 
 - **Commit and push after every green step,** not just at the end. A session that dies on a usage limit loses only the work since its last push.
 - **Checkpoints:** before each phase, and before any expensive step (the visual states of a page, a full Go race run, the atlas). At each checkpoint:
-  1. Read #989's switches and the decisions register #993, and call `get_session` for your own `rate_limit_info` if the tool is available.
+  1. Read the train issue's switches and Owner queue, and call `get_session` for your own `rate_limit_info` if the tool is available.
   2. On `HOLD`, `HOLD-UNTIL-RESET`, or RED in your own reading, or `DRAIN` unless you are lane K and the band is not RED: **pause.**
      - Commit your work in progress as `chore(<scope>): wip, paused at <step>` and push.
      - Open or update the phase's PR as a **draft** with a `## Resume notes` block:
@@ -17,19 +17,27 @@ A worker is one cloud session for one stream. It opens one PR per phase, stacked
        - Next: the exact next step
        - Failing: any failing check, with its output
        - Checks run: the local checks already passed
-     - Comment `<ID>: PAUSED at <step>, PR #<n>` on #989, then end the session.
-  3. On AMBER in your own reading (`allowed_warning`), **unless #989's `WARNING_POLICY` is `ignore`** (then a warning counts as GREEN, D63): **yield.** Finish the current PR to green, don't start the next phase, comment `<ID>: yielded after p<N>` on #989, and end.
+     - Comment `<ID>: PAUSED at <step>, PR #<n>` on the train issue, then end the session.
+  3. On AMBER in your own reading (`allowed_warning`), **unless the train issue's `WARNING_POLICY` is `ignore`** (then a warning counts as GREEN, D63): **yield.** Finish the current PR to green, don't start the next phase, comment `<ID>: yielded after p<N>` on #989, and end.
   4. Otherwise, continue.
+- **Order of work.** Plan, build the feature set, then test it together, with a cap on fix rounds:
+  1. **Plan.** Start from the plan in the slice issue (the groomer writes one and has a fresh subagent review it). With none, write a short one in the Handoff comment: the files, the behaviours the issue asks for and the checks that prove them. For more than a small change, have a fresh subagent review the plan against the issue before you build; it reports gaps, not style.
+  2. **Build** the whole feature set the plan lists, not one test at a time.
+  3. **Test.** Write the tests for every behaviour the issue lists. A bug fix is the exception: write the test that reproduces the bug first, because it proves the fix and costs one run.
+  4. **Run the targeted checks once, together,** fix every failure they show, and run them again. Stop after three fix-and-run rounds: push what is green, put the failing check and its output in the Handoff comment and the PR body, and end; a fixer takes it.
+  5. Never delete, skip or loosen a test to get green. When a test must go (the code it covered was removed or rewritten), say why in the PR body; the intent reviewer checks the reason.
+
+  Tests are the definition of done, not a step-by-step ritual: published guidance asks for a check the agent runs itself, a separate reviewer and a stopping condition, not red-green per test ([Claude Code best practices](https://code.claude.com/docs/en/best-practices), [Building effective agents](https://www.anthropic.com/engineering/building-effective-agents)).
 - **Open the PR as soon as the change is pushed (owner rule, 2026-10-18).** Do not wait for local checks to finish or for the owner to ask: open the PR (a draft only if the work is genuinely incomplete), list the checks still running as pending in the body, and update the body as they finish. The owner reviews from the PR, not from the session.
 - **Finishing (D99, one-shot):**
   - Push and open the PR as soon as the change is pushed, report in one short message and end. Do not subscribe to the PR, wait for CI or answer review rounds.
   - Run only the one or two fastest targeted checks. CI is the source of truth.
-  - Comment `<ID>: PRs #… opened` on #989, then end the turn.
+  - Comment `<ID>: PRs #… opened` on the train issue, then end the turn.
   - A red check, a conflict or a review comment gets a new one-PR fixer session started by the coordinator, never a message into your session.
 - **No resume-in-place:** there is no tool to send a follow-up task into a session that has already finished and gone idle. A stream's next PRD phase (D62) is always a **new** session, branched fresh off the current `main` tip — never a message into the old one. The gain from D62 is launching that new session the moment the phase is ready, not batching it to the next tick; it is not session reuse.
-- **Owner steps:** anything needing the owner, REAPER, audio hardware or owner input goes on #992 as a comment and is marked pending in the PR. Never wait for a human.
+- **Owner steps:** anything needing the owner, REAPER, audio hardware or owner input goes in the train issue's Owner queue as a comment and is marked pending in the PR; the coordinator puts it on the owner board. Never wait for a human.
 - **A missing tool or library is yours to install, not a blocker.** Cloud sessions run as root with `apt-get`, `npm`, `pip`/`uv` and `go` working through the proxy. If a check, hook or build fails because something is not installed, install it and re-run; do not report the check as impossible, skip it, or use `--no-verify`. Example: the pre-commit `check-go` hook and any Go build of `src/studio/desktop` need the Wails GTK libraries; run `apt-get update && apt-get install -y libglib2.0-dev libgtk-4-dev libwebkitgtk-6.0-dev libsoup-3.0-dev librsvg2-dev patchelf` (the same line as `.github/actions/setup-toolchain/action.yml`). Only when the install itself fails, say which package and quote the error (and read `read_documentation` `environment.network` if a host is denied) before you hand the step to someone else.
-- **Tooling:** the repo's `SessionStart` hook (`scripts/cloud/session-start.sh`, registered in `.claude/settings.json`) installs the pinned toolchain. `.claude/settings.json` allows the build, test and git commands and denies force-pushes and rebases. Workers never edit `.claude/settings.json`; auto mode refuses that as self-modification, so any change to it goes on #992 for the owner.
+- **Tooling:** the repo's `SessionStart` hook (`scripts/cloud/session-start.sh`, registered in `.claude/settings.json`) installs the pinned toolchain. `.claude/settings.json` allows the build, test and git commands and denies force-pushes and rebases. Workers never edit `.claude/settings.json`; auto mode refuses that as self-modification, so any change to it goes in the Owner queue for the owner.
 
 ## Serial points
 
@@ -70,6 +78,6 @@ The rule and the commands are in [CONTRIBUTING.md](../../../../CONTRIBUTING.md#u
 - **Coordinator.** Accepts a UI PR when its guide page and images are updated (or the body carries a specific `No guide change:` reason), the body states the real-app and Storybook results, and the `Guide impact` step of `Docs / Docs checks` is green. It never merges or counts ready a UI PR without them, whatever the rest of CI says.
 - **Sweep.** A periodic docs sweep runs `node scripts/dev/guide-screenshots.mjs --all` and commits what moved, as a safety net for changes to shared components.
 
-## Which mocks are the spec
+## What a job builds to
 
-The Studio Next mock was the only spec for every page it covers (D98). It is deleted from the tree and read from git history ([Reading the deleted mock](../../../../docs/operations/verification-tooling.md#reading-the-deleted-studio-next-mock)). The rules are in the rebuild PRD's Which mocks are the spec and, for primitives and the theme, in [the design system](../../../../docs/design/design-system.md#which-mocks-are-the-spec).
+There is no standing mock: the rebuild mock and the benchmark mocks are retired. Build to what the prompt's `REFERENCES` field names (a mock, a design draft, a guide page or a doc, each with what it is for). With none named, build to the issue, the PRD and the page's current guide in `docs/guides/using-the-app/`. Need a reference the prompt does not name? Say so in the Handoff comment and build to the issue; do not go looking for an old mock.

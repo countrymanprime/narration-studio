@@ -1,8 +1,8 @@
-# Studio Next Agent Delivery: Slices, Lanes and a Coordinator That Never Idles
+# Slice delivery: history of the 2026-10 rebuild
 
-This was the PRD `docs/prds/studio-next-agent-delivery.prd.md` (code SNA), removed from `docs/prds/` when it moved here with the rest of the train's procedure (owner decision O3, 2026-10-12). It keeps its PRD sections; the rules it settled are in [the train's procedure](../SKILL.md).
+A record, not a rule: the live rules are in [groomer.md](groomer.md) and [coordinator.md](coordinator.md), and the rebuild mock it names is retired (2026-11-06). This was a PRD (code SNA), removed from `docs/prds/` when it moved here with the rest of the train's procedure (owner decision O3, 2026-10-12). It keeps its PRD sections; the rules it settled are in [the train's procedure](../SKILL.md).
 
-**Source:** owner requirement of 2026-10-10 for the Studio Next PRD series: "I want the design to include agents and sessions running constantly", clarified as: coordinator and worker sessions must be able to run continuously on the rebuild; this is about how the work is delivered, not an in-app feature.
+**Source:** owner requirement of 2026-10-10 for the rebuild PRD series: "I want the design to include agents and sessions running constantly", clarified as: coordinator and worker sessions must be able to run continuously on the rebuild; this is about how the work is delivered, not an in-app feature.
 
 **Builds on:** [The agent train](../SKILL.md) (the coordinator's procedure, switches, lanes, serial points, owner standing rules, worker protocol and templates), [Tracking work on GitHub](../../../../docs/operations/github-workflow.md), [CLAUDE.md](../../../../CLAUDE.md), and the implementation plan (deleted PRD `implementation-plan`) sections 3 and 8. It does not replace the train; it fits the series into it and lists every place it would extend or change it.
 
@@ -10,7 +10,7 @@ This was the PRD `docs/prds/studio-next-agent-delivery.prd.md` (code SNA), remov
 
 ## Problem Statement
 
-The train already runs continuously, but it is tuned for PRDs whose phases are 1 to 3 per stream and whose tracking issue is one per PRD. The Studio Next series has about 14 PRDs and, in all, roughly 150 units of work. At that size three things fail without more structure:
+The train already runs continuously, but it is tuned for PRDs whose phases are 1 to 3 per stream and whose tracking issue is one per PRD. The rebuild series has about 14 PRDs and, in all, roughly 150 units of work. At that size three things fail without more structure:
 
 1. **Work units are not sized or specified for a cold session.** A "phase" can be a week of work. A worker that dies on a usage limit loses context, and the next session has only a draft PR's `## Resume notes`.
 2. **Collisions are checked by reading PRD tables.** The coordinator "doesn't read the codebase" ([The coordinator's pass](coordinator.md#the-coordinators-pass)), so file ownership has to be a machine-readable fact, not a judgement.
@@ -23,13 +23,13 @@ What the train already gives (all cited from the train's procedure, then `docs/o
 | Need | The train today | Gap for this series |
 | --- | --- | --- |
 | Live state | Issue #509 "Train control" (body rewritten by the coordinator); #510 "Owner queue" ([Where state lives](coordinator.md#where-state-lives)) | One body for 8 workers is fine; for 150 slices it needs a per-program status view |
-| Stop and scale | `HOLD`, `HOLD-UNTIL-RESET`, `DRAIN`, `MAX_WORKERS`, `MAX_OPUS_WORKERS`, `TARGET`, usage bands ([Switches](coordinator.md#switches-on-989), [Usage and autoscaling](coordinator.md#usage-and-autoscaling)) | No way to pause only this program |
+| Stop and scale | `HOLD`, `HOLD-UNTIL-RESET`, `DRAIN`, `MAX_WORKERS`, `MAX_OPUS_WORKERS`, `TARGET`, usage bands ([Switches](coordinator.md#switches), [Usage and autoscaling](coordinator.md#usage-and-autoscaling)) | No way to pause only this program |
 | Territories | Lanes K, A, B, U, C, D, X with ADR blocks ([Lanes](worker.md#lanes)) | The new directories of this series have no lane (`src/studio/ui/src/studio/`, `ports/`, `overlay/`) |
 | Serial points | `hostAPIVersion`, ADR numbers, index rows, append-only rows, nav, workflows, token batch, hot UI files ([Serial points](worker.md#serial-points)) | Fine; slices must name which they touch |
 | Ready list | A phase is ready when `Status` is pending, `Depends` complete, no unmet gate, no file collision, wave reached ([step 5](coordinator.md#the-coordinators-pass)) | Computed from PRD tables the coordinator does not read in depth |
 | Worker protocol | Push after every green step; checkpoints; pause or yield; one-shot finish (D99): open the PR, report, end; no `send_later` or scheduling tools ([The worker protocol](worker.md#the-worker-protocol)) | Resume depends on the PR body, which exists only after the first push |
-| Templates | Worker, resume and fixer templates ([Templates](templates.md)) | No slice fields (the mock reference in the worker template now names the Studio Next page, D98) |
-| Quality | D43 targeted checks, D44 full gate at the end; D46 and D97 benchmark mock comparison (the target becomes the Studio Next mock page); the guide rule ([UI PRs update the how-to guide](../../../../CONTRIBUTING.md#ui-prs-update-the-how-to-guide)) | CLAUDE.md step 4 and the `full-verification-gate` skill ask for the targeted checks for what changed, with the PR pipeline as the full gate; the train allows the same per phase. This series keeps that |
+| Templates | Worker, resume and fixer templates ([Templates](templates.md)) | No slice fields (the mock reference in the worker template now names the rebuild mock page, D98) |
+| Quality | D43 targeted checks, D44 full gate at the end; D46 and D97 benchmark mock comparison (the target becomes the rebuild mock page); the guide rule ([UI PRs update the how-to guide](../../../../CONTRIBUTING.md#ui-prs-update-the-how-to-guide)) | CLAUDE.md step 4 and the `full-verification-gate` skill ask for the targeted checks for what changed, with the PR pipeline as the full gate; the train allows the same per phase. This series keeps that |
 | Mock-first | D67: build against a mock that passes the schema; swap behind the port | Exactly the series' provider principle; used as is |
 | Issue forms | `.github/ISSUE_TEMPLATE/bug_report.yml`, `feature_request.yml`; blank issues off | No slice form |
 
@@ -38,7 +38,7 @@ What the train already gives (all cited from the train's procedure, then `docs/o
 Keep the train and add four things: a **slice** (the unit of work), a **groomer** session type that cuts slices just in time, a **decisions register** the agents poll, and a **status issue**. Everything else is the train.
 
 1. **Slices.** Every PRD in the series ends with a "Slices" table (id, scope, depends on, parallel-safe, verification). One slice is one PR by one worker in one lane, small enough to finish in one session. Each slice has one GitHub issue created by the groomer shortly before it becomes ready.
-2. **Lanes and the graph.** Slices carry a lane and dependency list. The overview's graph (Studio Next Rebuild) fixes the serial spine; the rest fans out.
+2. **Lanes and the graph.** Slices carry a lane and dependency list. The overview's graph (the rebuild PRD) fixes the serial spine; the rest fans out.
 3. **A coordinator that never idles.** The existing pass (merge, reconcile, launch) plus a groomer launch whenever the ready queue is shallower than twice `TARGET`, and a stall rule.
 4. **Workers that can be replaced mid-slice.** A slice issue carries a `## Handoff` comment the worker updates at every checkpoint, so a fresh session resumes from the repo and the issue alone.
 5. **Decisions by register.** One issue holds each decision: the rulings of 2026-10-11 as decided, and any new question with options, recommendation and default date; agents poll it at checkpoints; a non-ADR question takes its default after seven days.
@@ -70,7 +70,7 @@ If every unit of work is sized for one session, specified in a machine-readable 
 
 ## Decisions
 
-The owner ruled on 2026-10-11 (see Studio Next Rebuild). The process choices below were accepted as recommended, by the owner's standing instruction to take reasonable defaults. No question is open.
+The owner ruled on 2026-10-11 (see the rebuild PRD). The process choices below were accepted as recommended, by the owner's standing instruction to take reasonable defaults. No question is open.
 
 | Id | Decision | Consequence |
 | --- | --- | --- |
@@ -80,7 +80,7 @@ The owner ruled on 2026-10-11 (see Studio Next Rebuild). The process choices bel
 | SNA-Q4 | Lane U territory adds `src/studio/ui/src/studio/**`, `ports/**` and `overlay/**`. | D-7. |
 | SNA-Q5 | A recommended default applies silently after 7 days for questions that do not change an accepted ADR. Superseding ADRs (A1..A17 of the overview) stay Proposed until the owner accepts them. | D-8. |
 | SNA-Q6 | Session cap per slice: 1 planned, 1 resume, 1 fixer, then escalate. | D-6. |
-| SNA-Q7 | A page is compared against the Studio Next mock page (SN0-Q8). A worker with network runs the mock (`npm ci` in the mock folder) and captures it; without network the PR says so and the owner supplies it from #510. The slice is not blocked. Since 2026-10-13 the images a UI slice commits are its page's guide screenshots, not a per-PR set. | D-10 and the PR template. |
+| SNA-Q7 | A page is compared against the rebuild mock page (SN0-Q8). A worker with network runs the mock (`npm ci` in the mock folder) and captures it; without network the PR says so and the owner supplies it from #510. The slice is not blocked. Since 2026-10-13 the images a UI slice commits are its page's guide screenshots, not a per-PR set. | D-10 and the PR template. |
 
 ## Users & Context
 
@@ -108,7 +108,7 @@ PRD: studio-next-<name>.prd.md, slice SN-<code><n>   Parent: #<PRD issue>
 Lane / model: <K|A|B|U|C|D|X> / <Sonnet|Opus|Haiku>   Kind: <spike|adr|seam|page|swap|host|lua|docs>
 Depends on: #<issues>      Blocks: #<issues>      Serial points used: <hostAPIVersion|ADR number|nav|...>
 Owns (globs):          Must not touch (globs):
-Spec: <the Studio Next mock page file and state under studio-next/src/pages/, the only spec>; ruling rows: <repo-compare-decisions.md bullets, register DQ rows>
+Spec: <the rebuild mock page file and state under studio-next/src/pages/, the only spec>; ruling rows: <repo-compare-decisions.md bullets, register DQ rows>
 Acceptance tests (named, written first):
 Ports used: <DawClient, Pronunciation, ...>      Contracts: <schema names, golden files, wire.go rows>
 Verification commands:          Guide: <none | guide pages and images to update>
@@ -165,7 +165,7 @@ Per D99 the worker does not babysit its PR; the coordinator does. A conflict, a 
 | --- | --- | --- |
 | Concurrency | `MAX_WORKERS`, `MAX_OPUS_WORKERS`, `TARGET` | Existing |
 | Usage bands | GREEN, AMBER-5H, AMBER-7D, RED | Existing |
-| Program pause | `SN_HOLD`: stop launching studio-next slices only | D-5 |
+| Program pause | `SLICE_HOLD` (was `SN_HOLD`): stop launching slices only | D-5 |
 | Daily cap | `SN_DAILY_CAP` slices launched per day, default 12 | D-4 |
 | Per-slice budget | Session cap 1 + 1 resume + 1 fixer; a `spike` or `adr` slice 1 session | D-6 |
 | Model spend | Sonnet by default; Opus for lane K, new Lua commands, semantic fixers | Existing |
@@ -195,13 +195,13 @@ Each ratchet is a test that fails when a slice regresses it, so continuous mergi
 
 ### Observability
 
-- **Status issue** "Studio Next status" (a new issue, rewritten by the coordinator when something changed): per PRD the counts of slices ready, in progress, blocked, merged; PR states; the session count as the cost proxy; the usage band and `TARGET`; the oldest ready slice; the critical path.
+- **Status issue** "Train status" (a new issue, rewritten by the coordinator when something changed): per PRD the counts of slices ready, in progress, blocked, merged; PR states; the session count as the cost proxy; the usage band and `TARGET`; the oldest ready slice; the critical path.
 - **Daily summary** is the train's existing 09:00 America/New_York comment on #509, extended with slices merged, blocked and the forecast against the estimates.
 - **Weekly report** to the owner on the status issue: velocity per lane, estimate versus actual, the list of waiting decisions.
 
 ### Owner decisions arriving
 
-A **decisions register** issue ("Studio Next decisions"), one comment per decision: id (for example SN0-Q2), the ruling, the date and the slices it affects. It is seeded with the rulings of 2026-10-11 as decided and with `repo-compare-decisions.md`, whose rulings are indexed once into the Cutover ruling table and are not re-asked. A question that arises later is a comment with the options, the recommendation and the default date; the owner answers by replying `decided: A` or with text, and agents read it at every checkpoint (as they read #509). After seven days an unanswered question takes its recommendation, unless it would change an accepted ADR or is one of A1..A17; the coordinator comments the default and unblocks the slices. An answer that contradicts work already merged becomes a new slice, not a revert by an agent.
+A **decisions register** issue ("Train decisions"), one comment per decision: id (for example SN0-Q2), the ruling, the date and the slices it affects. It is seeded with the rulings of 2026-10-11 as decided and with `repo-compare-decisions.md`, whose rulings are indexed once into the Cutover ruling table and are not re-asked. A question that arises later is a comment with the options, the recommendation and the default date; the owner answers by replying `decided: A` or with text, and agents read it at every checkpoint (as they read #509). After seven days an unanswered question takes its recommendation, unless it would change an accepted ADR or is one of A1..A17; the coordinator comments the default and unblocks the slices. An answer that contradicts work already merged becomes a new slice, not a revert by an agent.
 
 ### Deviations from the agent train
 
@@ -216,7 +216,7 @@ A **decisions register** issue ("Studio Next decisions"), one comment per decisi
 | D-7 | Lane U territory adds `studio/`, `ports/`, `overlay/` | New directories have no lane | Accepted (SNA-Q4); train edit |
 | D-8 | Decisions register issue and 7-day defaults | Later questions need one place and a default | Accepted (SNA-Q5); ADR for the default rule |
 | D-9 | Status issue | 150 slices do not fit #509 | Accepted 2026-10-11 |
-| D-10 | The worker template names the Studio Next mock page file as the spec and no longer tells workers the benchmark is the spec (SN0-Q1, decided) | The template names only the benchmark; the owner ruled the Studio Next mock is the only spec for pages it covers, and the benchmark stays only for the Series voice bible and Companion, which no slice touches | Train edit in SNA-3 |
+| D-10 | The worker template names the rebuild mock page file as the spec and no longer tells workers the benchmark is the spec (SN0-Q1, decided) | The template names only the benchmark; the owner ruled the rebuild mock is the only spec for pages it covers, and the benchmark stays only for the Series voice bible and Companion, which no slice touches | Train edit in SNA-3 |
 | D-11 | A `slice` issue form and labels in `.github/` | Slice header must be uniform | Accepted 2026-10-11; `.github` is serial |
 
 ### Supersedes / depends on ADRs
@@ -233,7 +233,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 ## Technical Approach
 
-Nothing here is application code. The changes are: a `slice.yml` issue form and label rows (`.github/ISSUE_TEMPLATE/`, `.github/labels.json`), edits to the train's procedure (templates, lanes, switches, a "Studio Next" queue wave), and prompts for the groomer and the slice worker kept in the same file. The slice header is parsed by the coordinator's prompt, not by new tooling; a small checker `scripts/dev/slice-lint.mjs` validates a pasted header (required keys, glob syntax, dependency issue numbers exist) and is run by the groomer. Risks: header drift (the linter), glob over-claiming that serialises everything (the groomer is told to claim narrow globs and to split slices instead), and the coordinator's own context size (it reads labels, not bodies).
+Nothing here is application code. The changes are: a `slice.yml` issue form and label rows (`.github/ISSUE_TEMPLATE/`, `.github/labels.json`), edits to the train's procedure (templates, lanes, switches, a "slices" queue wave), and prompts for the groomer and the slice worker kept in the same file. The slice header is parsed by the coordinator's prompt, not by new tooling; a small checker `scripts/dev/slice-lint.mjs` validates a pasted header (required keys, glob syntax, dependency issue numbers exist) and is run by the groomer. Risks: header drift (the linter), glob over-claiming that serialises everything (the groomer is told to claim narrow globs and to split slices instead), and the coordinator's own context size (it reads labels, not bodies).
 
 ## Implementation Phases
 

@@ -1,5 +1,5 @@
 // Checks the `slice-meta` header of a Studio Next slice issue, so the coordinator can compute collisions without opening code.
-// The spec is .claude/skills/agent-train/references/studio-next-delivery.md ("The slice issue"); this comment is the one home of the header's keys.
+// The spec is .claude/skills/agent-train/references/slice-delivery.md ("The slice issue"); this comment is the one home of the header's keys.
 //
 //   node scripts/dev/slice-lint.mjs <file | ->                paste an issue body (or just the block) into a file, or pipe it
 //   node scripts/dev/slice-lint.mjs body.md --issue 1002      also check the cycle through the issues this one depends on
