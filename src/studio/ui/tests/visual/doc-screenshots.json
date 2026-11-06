@@ -1733,7 +1733,7 @@
     "state": "multi-export-selected",
     "viewport": "desktop",
     "docName": "delivery-multi-export",
-    "caption": "Delivery - Multi-platform export with one platform checked"
+    "caption": "Delivery - All platforms with one platform checked"
   },
   {
     "page": "delivery",

@@ -76,9 +76,7 @@ function LoadedDelivery({ onOpenInMaster, onOpenMaster }: { onOpenInMaster: (cha
        track at every width, so a long row never pushes a card past the window (XDL-11). The cards are siblings in one grid: side by side
        the aside spans the left column's rows and ends where its list ends (XDL-4, XDL-12); in one column it comes straight after Output,
        next to the Build button its counts explain, before Profile rules (XDL-6). */
-    <div
-      className={`${PAGE_COLUMN_CLASS} grid grid-cols-[minmax(0,1fr)] items-start gap-4 lg:grid-cols-[minmax(0,1fr)_22.5rem] lg:grid-rows-[auto_auto_auto_1fr]`}
-    >
+    <div className={`${PAGE_COLUMN_CLASS} grid grid-cols-[minmax(0,1fr)] items-start gap-4 lg:grid-cols-[minmax(0,1fr)_22.5rem] lg:grid-rows-[auto_auto_1fr]`}>
       <div className="min-w-0 lg:col-start-1">
         <ProfileCard onChange={onChange} onProfile={onProfile} onProfiles={setPlatforms} locked={build.running || build.starting} />
       </div>
@@ -92,15 +90,12 @@ function LoadedDelivery({ onOpenInMaster, onOpenMaster }: { onOpenInMaster: (cha
             build={{ ...build, build: start }}
             showBuilt={built}
             onOpenMaster={onOpenMaster}
+            extra={<MultiPlatformExportPanel profiles={platforms} multi={build.multi} />}
           />
         )}
       </div>
-      {profile && (
-        <div className="min-w-0 lg:col-start-1">
-          <MultiPlatformExportPanel profiles={platforms} multi={build.multi} />
-        </div>
-      )}
-      <div className="min-w-0 lg:col-start-2 lg:row-span-4 lg:row-start-1">
+
+      <div className="min-w-0 lg:col-start-2 lg:row-span-3 lg:row-start-1">
         <Preflight
           states={states}
           known={known}

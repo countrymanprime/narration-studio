@@ -302,7 +302,7 @@ describe('DeliveryPage', () => {
 
     it('sits on the Output panel beside the single-profile build, off with the reason until a chapter is encoded', async () => {
       mount(PASSING, { exportState: async () => ({ phase: 'idle', files: [] }) as unknown as ExportJob, packageMultiState: async () => MULTI_IDLE });
-      const panel = await screen.findByRole('heading', { name: 'Multi-platform export' });
+      const panel = await screen.findByRole('heading', { name: 'All platforms' });
       expect(panel).toBeTruthy();
       const build = screen.getByRole('button', { name: /^Build \d+ packages?$/ });
       expect(build.getAttribute('aria-disabled') === 'true' || (build as HTMLButtonElement).disabled).toBe(true);
@@ -312,7 +312,7 @@ describe('DeliveryPage', () => {
     it('builds the checked platforms from the encoded files, one start, and shows each result under its platform', async () => {
       const packageStartMulti = vi.fn(async () => MULTI_DONE);
       mount(PASSING, { packageStartMulti, packageMultiState: async () => MULTI_IDLE });
-      await screen.findByRole('heading', { name: 'Multi-platform export' });
+      await screen.findByRole('heading', { name: 'All platforms' });
       await userEvent.click(await screen.findByRole('checkbox', { name: 'ACX' }));
       await userEvent.click(screen.getByRole('button', { name: 'Build 1 package' }));
       expect(packageStartMulti).toHaveBeenCalledOnce();
@@ -321,6 +321,15 @@ describe('DeliveryPage', () => {
         items: [{ kind: 'chapter', title: 'Chapter 01', path: 'C:/enc/01.mp3' }],
       });
       expect(await screen.findByText('Built 1 package.')).toBeTruthy();
+    });
+
+    it('holds the single-profile build while the multi-platform build runs, and says why', async () => {
+      const running = { id: 'm2', phase: 'running', message: 'Building the ACX package (1 of 1).', results: [] } as unknown as MultiPackageJob;
+      mount(PASSING, { packageMultiState: async () => running });
+      await screen.findByText('Building packages…', { exact: false }).catch(() => undefined);
+      const single = await screen.findByRole('button', { name: /^Build [^\d].* package$/ });
+      await waitFor(() => expect(single.getAttribute('aria-disabled')).toBe('true'));
+      expect(screen.getAllByText('Another build is running.').length).toBeGreaterThan(0);
     });
   });
 });

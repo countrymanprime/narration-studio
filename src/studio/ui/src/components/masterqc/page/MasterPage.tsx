@@ -332,6 +332,11 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
             chapters={chapters}
             files={run.files}
             loading={!chaptersRead || (!profile && !profileProblem)}
+            encoded={
+              chaptersRead
+                ? { done: jobs.exportJob?.files.filter((file) => file.status === 'done' && file.encodedPath).length ?? 0, total: chapters.length }
+                : undefined
+            }
             onOpenDelivery={onOpenDelivery}
           />
         </div>

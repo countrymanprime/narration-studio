@@ -14,7 +14,7 @@ async function openDelivery(page: Parameters<Driver>[0], query = ''): Promise<vo
     .waitFor();
 }
 
-const multiPanel = (page: Parameters<Driver>[0]) => page.getByRole('region', { name: 'Multi-platform export' });
+const multiPanel = (page: Parameters<Driver>[0]) => page.getByRole('region', { name: 'All platforms' });
 
 const buildButton = (page: Parameters<Driver>[0]) => page.getByRole('button', { name: /^Build .* package$/ });
 

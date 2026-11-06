@@ -127,13 +127,13 @@ The tags icon button, **Embed chapter tags**, beside **Build**, adds ID3 chapter
 
 ## Building packages for several platforms at once
 
-If you deliver to more than one platform, **Multi-platform export** (under Output) lets you build
+If you deliver to more than one platform, **All platforms** (inside Output, under the build) lets you build
 all of them from the one source you already mastered and encoded, without re-encoding unless a platform
 needs a different file format. Under **Build packages for**, check the box for each profile you want a
 package for, then **Build N packages**; it stays off, with "Master and encode a chapter first." beside it, until files are mastered and encoded. This does not change which profile the page's checks are judged against (that is the project's profile,
 chosen in the profile card above); the checkboxes only choose what to build packages for.
 
-![Delivery - Multi-platform export with one platform checked](../../images/ui/delivery-multi-export.webp)
+![Delivery - All platforms with one platform checked](../../images/ui/delivery-multi-export.webp)
 
 You are asked for one folder once, and each platform's package goes into its own correctly named subfolder
 of it. Two platforms that both take the same file format (most do: MP3 at the same bitrate) share the one

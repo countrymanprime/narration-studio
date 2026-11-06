@@ -10,13 +10,13 @@ export const deliveryStates: StateEntry[] = [
     page: 'delivery',
     state: 'multi-export-empty',
     description:
-      'Delivery with nothing encoded yet - Output with the Multi-platform export panel under it: a checkbox per delivery platform, "Build 0 packages" off, and "Master and encode a chapter first." beside it',
+      'Delivery with nothing encoded yet - Output with the All platforms panel inside it: a checkbox per delivery platform, "Build 0 packages" off, and "Master and encode a chapter first." beside it',
     ...KEEPS_DESKTOP_SCROLL,
   },
   {
     page: 'delivery',
     state: 'multi-export-selected',
-    description: 'Delivery with the files mastered and encoded (?mockDelivery=ready) and one platform checked in Multi-platform export - "Build 1 package" on',
+    description: 'Delivery with the files mastered and encoded (?mockDelivery=ready) and one platform checked in All platforms - "Build 1 package" on',
     ...KEEPS_DESKTOP_SCROLL,
   },
   {

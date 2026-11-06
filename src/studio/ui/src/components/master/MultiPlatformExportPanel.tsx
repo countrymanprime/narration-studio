@@ -6,6 +6,7 @@ import { Checkbox } from '../primitives/Checkbox';
 import { Panel } from '../primitives/Panel';
 import { ProgressBar } from '../primitives/ProgressBar';
 import { SectionLabel } from '../primitives/SectionLabel';
+import { StatusBadge } from '../primitives/StatusBadge';
 import { deliveryProfileKey } from './deliveryProfile';
 import { ResultIcon } from './RuleBadges';
 
@@ -128,7 +129,7 @@ export function MultiPlatformExportPanel({ profiles, multi }: { profiles: Delive
   const results = multiPackageJob && multiPackageJob.phase !== 'idle' ? multiPackageJob.results : [];
 
   return (
-    <Panel title="Multi-platform export">
+    <Panel title="All platforms" actions={chosen.length > 0 ? <StatusBadge tone="neutral" label={`${chosen.length} selected`} /> : undefined}>
       {profiles.length === 0 ? (
         <p className="text-sm" style={MUTED}>
           No delivery platforms are set up yet.
@@ -142,7 +143,11 @@ export function MultiPlatformExportPanel({ profiles, multi }: { profiles: Delive
             const result = results.find((candidate) => resultIsFor(candidate, profile));
             return (
               <div key={profile.id}>
-                <Checkbox checked={selected.has(profile.id)} onChange={(checked) => toggle(profile.id, checked)} disabled={multiPackageRunning}>
+                <Checkbox
+                  checked={selected.has(profile.id)}
+                  onChange={(checked) => toggle(profile.id, checked)}
+                  disabled={multiPackageRunning || multi.encoded === 0}
+                >
                   {platformNameFor(profile)}
                 </Checkbox>
                 {result && <ResultLine result={result} />}

@@ -345,8 +345,10 @@ describe('Master & QC page body', () => {
     for (const title of ['Mastering chain', 'Diagnostics']) {
       expect(await screen.findByRole('heading', { name: new RegExp(title) })).toBeTruthy();
     }
+    // The package card says how many chapters are encoded, the count Delivery builds from (#2824).
+    expect(screen.getByText(/^\d+ of \d+ encoded$/)).toBeTruthy();
     // The multi-platform build moved to Delivery's Output panel (#2824): Master keeps measure, master and encode, and the package counts card.
-    expect(screen.queryByRole('heading', { name: 'Multi-platform export' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'All platforms' })).toBeNull();
     expect(screen.getByRole('button', { name: /report/i })).toBeTruthy();
   });
 
