@@ -1,8 +1,12 @@
 # Using the app
 
-A screenshot walkthrough of the narration workspace, one page per app page. The screenshots
-are generated from the same mock data used by the app's Playwright visual test suite
-(`src/studio/ui/tests/visual/`) and are refreshed from its captures when the UI changes.
+How to use each page of the app, with screenshots of the app itself. It is for narrators, and for the editors,
+proofers and authors who work on a book with them. New to the app? Start with the first page, Getting started; it
+takes you from a fresh install to your first recorded take. Other readers: see [Where to start](#where-to-start)
+below the list.
+
+The screenshots come from the app running on sample data (a book of *Alice's Adventures in Wonderland*), so your own
+book's names and numbers will differ. They are taken again whenever the app's pages change.
 
 ## Pages
 
@@ -23,6 +27,23 @@ Read them in order the first time, or jump straight to the page you need. They f
 | [Master & QC](master-and-qc.md) | Finish: checking rendered files against a platform's delivery profile, why a file fails, the book's consistency, the mastering chain, mastering and encoding to spec, building packages for several platforms, diagnostics, and exporting a report. |
 | [Delivery](delivery.md) | Finish: choosing and editing the project's delivery profile, its rules and their sources, which chapters pass, building the platform's package, embedding chapter tags in the finished book MP3, and what Delivery says when a build stops or the host does not answer. |
 | [Settings](settings.md) | Global and per-project settings, appearance, and clearing project data. |
+
+## Where to start
+
+Pick the line that sounds like you. Each path is a few pages in the order you will need them.
+
+- **New to the app:** [Getting started](getting-started.md), then [Production](production.md) for importing the
+  manuscript, then [Booth](booth.md) to record.
+- **An experienced narrator coming from REAPER:** [Booth: Recording](booth.md#recording) for how takes, punches and the
+  edit cursor behave, then [Navigation: the audio engine panel](navigation.md#the-audio-engine-panel) for tracks and
+  chapter sync, then [Pickups](pickups.md).
+- **An editor:** [Editing](editing.md) for a chapter's takes and clean-up, then [Proof](proof.md) for the notes on it.
+- **A proofer or QA checker:** [Proof](proof.md) for the notes and your decision on each, [Pickups](pickups.md), then
+  [Master & QC](master-and-qc.md) and [Delivery](delivery.md) for the files against a platform's rules
+  ([ACX delivery requirements](../../reference/acx-delivery-requirements.md) lists ACX's).
+- **An author or rights holder:** what leaves the narrator's computer is in
+  [what the app sends off the machine](../../architecture/threat-model.md#what-the-app-sends-off-the-machine), and the
+  downloads it asks for are in [Settings: Models and downloads](settings.md#models-and-downloads).
 
 ---
 
