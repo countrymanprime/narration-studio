@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import type { DawFxRangeCompare, DawFxSetting, DawResult } from '../../../api/contracts/daw';
+import { DAW_RESULT_MAX_UNDO_STEPS, type DawActionKind, type DawFxRangeCompare, type DawFxSetting, type DawResult } from '../../../api/contracts/daw';
 import type { EditWordFxApi, WordFx } from '../../../api/contracts/wordFx';
 import { overlay } from '../../../overlay/overlayService';
 import type { FxRangeTarget } from '../../../ports/daw';
@@ -105,6 +105,10 @@ async function recordBypass(log: Log, onEffects: EffectHost['onEffects'], fx: Wo
   }
 }
 
+/** The DAW action a change that added `undoSteps` undo points is, or none when it added none (a setting already at the value). */
+const actionOf = (kind: DawActionKind, { undoSteps }: DawResult) =>
+  undoSteps >= 1 && undoSteps <= DAW_RESULT_MAX_UNDO_STEPS ? { kind, steps: undoSteps } : undefined;
+
 /** One setting changed as one history entry: the DAW sets it (one undo step of its own), and Undo sets it back. */
 function setCommand(daw: Daw, target: FxRangeTarget, fx: WordFx, setting: DawFxSetting, value: number, previous: number): Command<DawResult> {
   const change = (to: number) => daw.setFxRangeParam({ ...target, fx: setting.fx, index: setting.index, value: to }).catch(failed);
@@ -112,6 +116,7 @@ function setCommand(daw: Daw, target: FxRangeTarget, fx: WordFx, setting: DawFxS
     label: `Set ${setting.name} of ${fx.chainName} to ${value}`,
     touches: [`editing/${target.chapterId}/wordfx`],
     daw: true,
+    dawAction: (res) => actionOf('set_fx_param', res),
     async run() {
       const res = okOrRefusal(await change(value));
       return res.ok && !res.value.changed ? refusal('nothing_changed', res.value.message) : res;
@@ -137,6 +142,7 @@ function bypassCommand(daw: Daw, log: Log, onEffects: EffectHost['onEffects'], t
     label: `${bypass ? 'Bypassed' : 'Turned on'} ${fx.chainName}`,
     touches: [`editing/${target.chapterId}/wordfx`],
     daw: true,
+    dawAction: (res) => actionOf(bypass ? 'bypass_fx' : 'enable_fx', res),
     run: () => to(bypass, true),
     undo: () => to(!bypass, false),
   };
@@ -150,7 +156,8 @@ function compareCommand(daw: Daw, log: Log, onEffects: EffectHost['onEffects'], 
   return {
     label: `Compared ${fx.chainName} with and without`,
     touches: [`editing/${target.chapterId}/wordfx`],
-    daw: true,
+    // The DAW adds no undo point for a Compare, so it has no last action to be asked about; Undo stops the play and puts the effect back as it was.
+    daw: false,
     async run() {
       const answer = await daw.compareFxRange(target).catch((e: unknown) => ({ result: failed(e), pass: 0 }));
       const res = okOrRefusal(answer.result);

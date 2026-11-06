@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { expect, fn, userEvent, within } from 'storybook/test';
+import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
 import { Pill } from './Pill';
 
 const meta = {
@@ -15,6 +15,22 @@ export const Inactive: Story = {};
 // The selected pill: accent fill, so its label must use the contrast colour.
 export const Active: Story = { args: { active: true } };
 export const Disabled: Story = { args: { disabled: true } };
+// Off with a reason: the chip stays focusable and hoverable (a native `disabled` takes neither), says why on focus, and a press does nothing.
+export const DisabledWithReason: Story = {
+  args: { disabledReason: 'Open a project to see what it sets' },
+  play: async ({ args, canvasElement }) => {
+    const canvas = within(canvasElement);
+    const chip = canvas.getByRole('button', { name: '10m' });
+    await expect(chip.getAttribute('aria-disabled')).toBe('true');
+    await expect(chip.hasAttribute('disabled')).toBe(false);
+    await expect(document.getElementById(chip.getAttribute('aria-describedby')!)?.textContent).toBe('Open a project to see what it sets');
+    await userEvent.tab();
+    await expect(chip).toHaveFocus();
+    await waitFor(() => expect(within(document.body).getByRole('tooltip')).toHaveTextContent('Open a project to see what it sets'));
+    await userEvent.click(chip);
+    await expect(args.onClick).not.toHaveBeenCalled();
+  },
+};
 export const WithTooltip: Story = { args: { title: 'Jump ten minutes ahead' } };
 
 export const ClickSelects: Story = {

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ZOOM_STEPS } from '../../../hooks/useZoom';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
-import { announceBrowserSettingChange, useBrowserSettingsVersion } from '../../../browserSettings';
+import { announceBrowserSettingChange, useBrowserSetting, useBrowserSettingsVersion } from '../../../browserSettings';
 import { useTheme } from '../../../theme/ThemeContext';
 import type { ThemePreference } from '../../../theme/theme';
 import { useMotionPreference, type MotionPreference } from '../../../motion';
@@ -11,6 +11,7 @@ import { RadioGroup } from '../../primitives/RadioGroup';
 import { Select } from '../../primitives/Select';
 import { retryAction } from '../../primitives/Toast';
 import { InsetCard } from '../../primitives/InsetCard';
+import { Button } from '../../primitives/Button';
 import { Checkbox } from '../../primitives/Checkbox';
 import { Slider } from '../../primitives/Slider';
 import { ToggleGroup } from '../../primitives/ToggleGroup';
@@ -24,6 +25,7 @@ import { useOutputDevices } from '../../editing/output/useOutputDevices';
 import { TEXT_SIZE, textSizePx } from '../../booth/reading/BoothText';
 import { changeReaderText, useReaderText } from './readerText';
 import { useSettingsHost } from '../row/SettingsHost';
+import { useTips } from '../../../tips/useFirstUseTip';
 
 const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
   { value: 'system', label: 'Match my system' },
@@ -79,7 +81,7 @@ export function ReaderSizeBody() {
 
 /** Waveform arrow step: 15 to 30 seconds, kept by this browser window and read by the Editing waveform's arrows at each press. */
 export function WaveScrollStepBody() {
-  const [seconds, setSeconds] = useState(readScrollStep);
+  const [seconds, setSeconds] = useBrowserSetting(readScrollStep);
   return (
     <Slider
       aria-label="Waveform arrow step"
@@ -99,7 +101,7 @@ export function WaveScrollStepBody() {
 
 /** Booth text size: 24 to 72 px in steps of 4, kept by this browser window and read by the Booth; the Booth's Text settings write the same size. */
 export function BoothTextSizeBody() {
-  const [size, setSize] = useState(readBoothSize);
+  const [size, setSize] = useBrowserSetting(readBoothSize);
   return (
     <Slider
       aria-label="Booth text size"
@@ -219,11 +221,13 @@ export function ZoomRowBody() {
       .then((result) => setLevel(result.level))
       .catch(() => undefined);
   }, [system]);
+  // Read again when a window-kept write is announced too (the header's Reset to defaults sets the zoom through the host, not the resize).
+  const browserVersion = useBrowserSettingsVersion();
   useEffect(() => {
     read();
     window.addEventListener('resize', read);
     return () => window.removeEventListener('resize', read);
-  }, [read]);
+  }, [read, browserVersion]);
 
   // A failed set or save is an error toast with Retry: setting the same level and saving it again writes the same value (issue #2919).
   const choose = (next: number): void =>
@@ -308,6 +312,32 @@ export function EntrySortBody() {
       />
       {changed && (
         <IconButton action="undo" label="Reset Story Bible order to Name, A to Z" className="border-transparent" onClick={() => choose(DEFAULT_ENTRY_ORDER)} />
+      )}
+    </div>
+  );
+}
+
+/** First-use tips: how many were dismissed with Got it, and Show tips again, which forgets them all (the host keeps them in Tips.seen). */
+export function TipsBody() {
+  const { notify } = useSettingsHost();
+  const { seen, failed, reset, retry } = useTips();
+  const [busy, setBusy] = useState(false);
+  const count = seen?.size ?? 0;
+  const showAgain = async () => {
+    setBusy(true);
+    const problem = await reset();
+    setBusy(false);
+    if (problem) notify(`The tips could not be shown again: ${problem}`, 'error');
+  };
+  return (
+    <div className="flex items-center gap-3">
+      <span className="text-sm">{seen === null ? (failed ? 'Could not be read' : 'Reading…') : count === 0 ? 'None dismissed' : `${count} dismissed`}</span>
+      {seen === null && failed ? (
+        <IconButton action="retry" size="sm" onClick={retry} />
+      ) : (
+        <Button variant="secondary" size="sm" disabled={busy || count === 0} onClick={() => void showAgain()}>
+          Show tips again
+        </Button>
       )}
     </div>
   );

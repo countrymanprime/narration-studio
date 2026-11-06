@@ -46,6 +46,7 @@ export const jobOf = (files: readonly MeasureFileResult[], profile: DeliveryProf
 const profilesOf = (profile: DeliveryProfile): DeliveryProfilesState => ({
   profiles: [profile],
   globalDefault: { id: profile.id, version: profile.version },
+  shippedDefault: { id: profile.id, version: profile.version },
   hasProject: true,
   projectChoice: { id: profile.id, version: profile.version },
   projectProfile: deliveryProfileKey(profile),

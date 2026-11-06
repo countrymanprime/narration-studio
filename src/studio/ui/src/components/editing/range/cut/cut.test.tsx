@@ -177,7 +177,8 @@ describe('Delete words and audio', () => {
     expect(footer.className).toContain('[&>:first-child:not(:only-child)]:mr-auto');
     expect([...footer.querySelectorAll('button')].map((b) => b.textContent)).toEqual(['Cancel', 'Delete 2 words and audio']);
     const selects = within(dialog()).getAllByRole('combobox');
-    expect(new Set(selects.map((s) => s.className.match(/\bw-\d+\b/)?.[0]))).toEqual(new Set(['w-28']));
+    // The whole class token: `\bw-\d+\b` also matches inside `min-w-0`, which Select adds.
+    expect(new Set(selects.map((s) => s.className.match(/(?:^|\s)(w-\d+)(?=\s|$)/)?.[1]))).toEqual(new Set(['w-28']));
   });
 
   it('asks-first-and-never-cuts-at-once: the bar, the key, the menu and the card open the question; Cancel and Escape change nothing', async () => {

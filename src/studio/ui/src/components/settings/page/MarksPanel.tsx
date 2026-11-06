@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import type { MarkType } from '../../../api/contracts/marks';
 import { useMarks } from '../../script/page/data/useScriptData';
 import { MarksDialog } from '../../script/page/tools/select/MarksDialog';
 import { markSwatch } from '../../script/page/rail/threads/markSwatch';
 import { useSaveMarkTypes } from '../../script/scriptPageHost';
+import { projectDataChanged } from '../data/projectDataSignal';
 import { IconButton } from '../../primitives/IconButton';
 import { Panel } from '../../primitives/Panel';
 import { StatusBadge } from '../../primitives/StatusBadge';
@@ -56,7 +57,12 @@ export function MarksList({ types, error }: Pick<MarksViewProps, 'types' | 'erro
 export function MarksPanel() {
   const marks = useMarks();
   const [editing, setEditing] = useState(false);
-  const saveMarkTypes = useSaveMarkTypes(marks.retry);
+  const { retry } = marks;
+  const saved = useCallback(() => {
+    retry();
+    projectDataChanged();
+  }, [retry]);
+  const saveMarkTypes = useSaveMarkTypes(saved);
   return (
     <>
       <MarksView

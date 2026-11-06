@@ -1,8 +1,8 @@
 # Studio Next Proof and Pickups: Cleared Versus Decided, History, the Stale Guard, the Recording Check and Takes at a Spot
 
-**Source:** owner request of 2026-10-10 ([Studio Next Rebuild](studio-next-rebuild.prd.md)); "Proof rulings" and "Pickups and speech check rulings" in `studio-next/research/repo-compare-decisions.md`; the mock's `studio-next/src/pages/Proof.tsx`, `studio-next/src/pages/Pickups.tsx`, `studio-next/src/pages/proof/`, `studio-next/src/pages/pickups/`.
+**Source:** owner request of 2026-10-10 (Studio Next Rebuild); "Proof rulings" and "Pickups and speech check rulings" in `studio-next/research/repo-compare-decisions.md`; the mock's `studio-next/src/pages/Proof.tsx`, `studio-next/src/pages/Pickups.tsx`, `studio-next/src/pages/proof/`, `studio-next/src/pages/pickups/`.
 
-**Builds on:** the delivered Proof and Review work ([Shared Findings Contract](../architecture/findings-contract.md), [A note and your decision](../guides/using-the-app/proof.md#a-note-and-your-decision), [pickups.go](../../src/studio/desktop/internal/proofing/pickups.go), to), the recording check ([Recording Check (recording coverage)](../utilities/recording-coverage.md) to [Settings](../utilities/recording-coverage.md#settings), [Checking a chapter's recording](../guides/using-the-app/production.md#checking-a-chapters-recording)), the workspace takes panel ([From the Takes panel](../architecture/reaper-bridge.md#from-the-takes-panel)), the Pickups page, take review ([Take review](../utilities/take-review.md), [Codebase map](../architecture/codebase-map.md)). It carries over the unfinished REAPER checks of the old review-dashboard PRD (overview table). The word-level script editor moves to [Script-Based Editing](studio-next-script-based-editing.prd.md); this PRD keeps the Proof notes page and the Pickups page.
+**Builds on:** the delivered Proof and Review work ([Shared Findings Contract](../architecture/findings-contract.md), [A note and your decision](../guides/using-the-app/proof.md#a-note-and-your-decision), [pickups.go](../../src/studio/desktop/internal/proofing/pickups.go), to), the recording check ([Recording Check (recording coverage)](../utilities/recording-coverage.md) to [Settings](../utilities/recording-coverage.md#settings), [Checking a chapter's recording](../guides/using-the-app/production.md#checking-a-chapters-recording)), the workspace takes panel ([From the Takes panel](../architecture/reaper-bridge.md#from-the-takes-panel)), the Pickups page, take review ([Take review](../utilities/take-review.md), [Codebase map](../architecture/codebase-map.md)). It carries over the unfinished REAPER checks of the old review-dashboard PRD (overview table). The word-level script editor moves to Script-Based Editing; this PRD keeps the Proof notes page and the Pickups page.
 
 **Status (2026-10-10):** draft.
 
@@ -76,7 +76,7 @@ Decided by the owner on 2026-10-11; nothing here waits for an answer, so G0 has 
 - **SN0-Q8.** Screenshots are compared against the Studio Next mock page.
 - **Applied by the SN-Q9 swap (2026-10-12).** The Studio Next mock replaced the old pages: (DQ-1), [pickups.go](../../src/studio/desktop/internal/proofing/pickups.go) (DQ-16), [Codebase map](../architecture/codebase-map.md) (DQ-15) and (DQ-18) are superseded by the mock to the extent above. The proofer CSV import and export stay on Proof's notes, by the owner's "all defaults" ruling on #992.
 - **Hear it, Show where and Fine as read (2026-10-23, [#2251](https://github.com/countrymanprime/narration-studio/issues/2251) item 26).** The owner's test found that Proof could not play a flagged note, so a note that sounded right could not be judged by ear. This supersedes the "play ±3 s (owner unclear)" line of What We're NOT Building and labels the mock's Waive. Proof decides, Pickups queues, Editing fixes, and a finding has the same three verbs on all three pages ([research note, section A](../research/proof-pickups-editing-split.md#a-what-each-page-can-do-with-a-finding-item-26)): **Hear it** plays the note with 3 s either side (Space, as the mock's Play ±3 s), looped in the DAW through `FindingsLoop` and in the app's player when the DAW cannot; **Show where** gives the time and the note's paragraph with the ones before and after; **Fine as read** is the mock's Waive, writing `dismissed`. Pickups, whose mock has neither, gains Show where under the selected line and **Fine, not a pickup** (the line's note dismissed, so the line leaves the list), beside the mock's "Go to the note in Proof"; this supersedes DQ-6's "only points to the Booth" to that extent.
-- **Process defaults, taken as recommended (2026-10-11).** "Waived" maps to `dismissed` with reason `waived` (no new status, no migration); "as of last save" is the DAW's `savedAt` ([DAW Ports and Capabilities](studio-next-daw-ports-and-capabilities.prd.md)).
+- **Process defaults, taken as recommended (2026-10-11).** "Waived" maps to `dismissed` with reason `waived` (no new status, no migration); "as of last save" is the DAW's `savedAt` (DAW Ports and Capabilities).
 
 ## Users & Context
 
@@ -99,7 +99,7 @@ A narrator proofing a chapter note by note and a proofer-like pass after recordi
 
 ### Supersedes / depends on ADRs
 
-On conflict this PRD, and the ADR written when its phase lands, is the source of truth; old ADRs stay in force for unmigrated code ([register](studio-next-adr-register.prd.md)).
+On conflict this PRD, and the ADR written when its phase lands, is the source of truth; old ADRs stay in force for unmigrated code (register).
 
 | ADR | Class | Note |
 | --- | --- | --- |

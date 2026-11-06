@@ -270,14 +270,10 @@ func findCandidate(candidates []Candidate, trackGUID string) (Candidate, bool) {
 // several chapters), over the whole track otherwise. It reports false when
 // the track is gone or holds nothing audible there.
 func RecordedEnd(project tracks.Project, candidate Candidate) (tracks.RecordedEnd, bool) {
-	for _, track := range project.Tracks {
-		if track.GUID != candidate.TrackGUID {
-			continue
-		}
-		if candidate.Region != nil {
-			return track.RecordedEnd(&tracks.Span{Start: candidate.Region.Start, End: candidate.Region.End})
-		}
-		return track.RecordedEnd(nil)
+	var within *tracks.Span
+	if candidate.Region != nil {
+		within = &tracks.Span{Start: candidate.Region.Start, End: candidate.Region.End}
 	}
-	return tracks.RecordedEnd{}, false
+	// A track linked as a folder of voices is read across the folder (Project.ChapterRecordedEnd).
+	return project.ChapterRecordedEnd(candidate.TrackGUID, within)
 }

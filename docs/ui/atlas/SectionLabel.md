@@ -37,7 +37,6 @@ Storybook title: `Primitives/SectionLabel`. Source: `src/components/primitives/S
 - `src/components/engine/ChapterTagsDialog.tsx`
 - `src/components/engine/CreateChapterRegionsDialog.tsx`
 - `src/components/engine/LinkChaptersDialog.tsx`
-- `src/components/engine/RetakeLanesDialog.tsx`
 - `src/components/master/MasteringApprovalDialog.tsx`
 - `src/components/master/MultiPlatformExportPanel.tsx`
 - `src/components/pickups/PickupsCompanionSummary.tsx`

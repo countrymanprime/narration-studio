@@ -24,10 +24,10 @@ describe('defaultKeymap', () => {
     expect(keymap['nav.forward'].map(serializeGesture).sort()).toEqual(['Alt+ArrowRight', 'BrowserForward', 'Ctrl+BracketRight'].sort());
   });
 
-  it("today's exact gestures: the workspace and reading Space", () => {
+  it("today's exact gestures: the workspace Space, and the reading Space with Enter and numpad Enter beside it (#3039)", () => {
     const keymap = defaultKeymap(COMMAND_CATALOG, false);
     expect(keymap['workspace.play'].map(serializeGesture)).toEqual(['Space']);
-    expect(keymap['reading.toggle'].map(serializeGesture)).toEqual(['Space']);
+    expect(keymap['reading.toggle'].map(serializeGesture)).toEqual(['Space', 'Enter', 'NumpadEnter']);
   });
 });
 

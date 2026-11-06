@@ -16,7 +16,7 @@ const stop = (page: Page) => page.getByRole('button', { name: /^Stop$/ });
 const chapterButton = (page: Page) => page.getByRole('button', { name: /^Chapter: /, includeHidden: true });
 const cursorWord = (page: Page) => page.locator('[data-current]').first();
 
-// The built-in recorder listens before it records, so a built-in take needs a microphone chosen in Levels; the rows that are about having none
+// The built-in recorder listens before it records, so a built-in take needs a microphone chosen in Record options; the rows that are about having none
 // chosen (row 45) say so with `mic: false`.
 async function open(page: Page, query = '', ready = true, mic = query.includes('mockEngine=builtin')): Promise<void> {
   await page.goto(`/${query}`);
@@ -75,10 +75,10 @@ test('row 5: during a take the reading position follows the voice', async ({ pag
   await expect.poll(() => wordIndex(page), { timeout: 15_000 }).not.toBe(before);
 });
 
-test('row 6: the listening microphone is named in Levels, with the DAW choosing it', async ({ page }) => {
+test('row 6: the listening microphone is named in Record options, with the DAW choosing it', async ({ page }) => {
   await open(page);
-  await page.getByRole('button', { name: 'Levels' }).click();
-  const popup = page.getByRole('dialog', { name: 'Levels' });
+  await page.getByRole('button', { name: 'Record options' }).click();
+  const popup = page.getByRole('dialog', { name: 'Record options' });
   await expect(popup).toContainText('Microphone');
   await expect(popup.getByText(/Same as REAPER|Microphone Array|Headset Microphone/).first()).toBeVisible();
 });
@@ -167,8 +167,8 @@ test('row 13: the text settings apply at once and are the same after a reload', 
 
 test('row 14: the Levels menu has the meter, the microphone and its sliders', async ({ page }) => {
   await open(page);
-  await page.getByRole('button', { name: 'Levels' }).click();
-  const popup = page.getByRole('dialog', { name: 'Levels' });
+  await page.getByRole('button', { name: 'Record options' }).click();
+  const popup = page.getByRole('dialog', { name: 'Record options' });
   await expect(popup.getByText('Input', { exact: true }).first()).toBeVisible();
   await expect(popup.getByText('Microphone', { exact: true }).first()).toBeVisible();
   // The mock draws Input level and Monitor level sliders (docs/operations/booth-acceptance.md "Differences from the mock").
@@ -477,20 +477,20 @@ test('row 44: the built-in recorder records with nothing to switch on', async ({
 });
 
 test('row 45: with several microphones and none chosen, none listed, or one that will not open, Record says why and records nothing', async ({ page }) => {
-  // Behaviour change (#2251): with nothing chosen the Booth listens on the first microphone listed instead of refusing, so the take is refused by the
-  // built-in recorder itself, which records on a microphone chosen in Levels and never guesses among several.
+  // Behaviour change (#2810, which reverses #2251 for the built-in recorder): with several microphones and none chosen the Booth names none (it no longer listens
+  // on the first one listed), says so in the footer before Record is pressed, and the press refuses with the host's own sentence and begins nothing.
   await open(page, `${BUILTIN}&mockRecorder=empty`, true, false);
+  await expect(page.locator('#blisten-why')).toContainText('Choose the microphone the Booth listens to in Record options, so the text follows your voice.');
   await record(page).click();
-  await expect(page.getByRole('alert').getByText('Choose the microphone in Levels, then press Record.').first()).toBeVisible();
-  await expect(page.locator('#blisten-why')).toHaveCount(0);
+  await expect(page.getByRole('alert').getByText('Choose the microphone in Record options, then press Record.').first()).toBeVisible();
   await expect(stop(page)).toHaveCount(0);
 
-  // The listening side lists no microphone either (`mockNoDevices`), which is what the Booth listens with before it records. The footer says so
-  // before Record is pressed; the press is still sent to the host, whose refusal is the notice, and no take begins.
+  // The recorder lists no microphone either (`mockNoDevices`). The footer says so before Record is pressed, and the press refuses on the page with the
+  // same sentence the host gives, without asking the host to start or the speech listener to listen; no take begins.
   await open(page, `${BUILTIN}&mockRecorder=no-devices&mockNoDevices=1`, true, false);
   await expect(page.locator('#blisten-why')).toContainText('The text cannot follow your voice: No microphone found.');
   await record(page).click();
-  await expect(page.getByText(/Recording did not start/).first()).toBeVisible();
+  await expect(page.getByRole('alert').getByText('No microphone found. Plug one in, then press Record again.').first()).toBeVisible();
   await expect(stop(page)).toHaveCount(0);
 
   await open(page, `${BUILTIN}&mockRecorder=start-fails`);

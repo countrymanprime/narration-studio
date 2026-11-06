@@ -354,7 +354,8 @@ describe('ReplaceDialog: remove a narrator', () => {
     await waitFor(() => expect([...narratorSelect().options].map((o) => o.textContent)).toEqual(['Choose the other narrator', 'Eric Leach']));
     expect(narratorSelect().value).not.toBe('n-1');
     expect(screen.queryByRole('button', { name: /^Remove / })).toBeNull();
-    expect(document.activeElement).toBe(narratorSelect());
+    // The focus moves in an effect after the list renders, so the list changing does not mean it has moved yet.
+    await waitFor(() => expect(document.activeElement).toBe(narratorSelect()));
     expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Add a file of theirs…' }).disabled).toBe(true);
   });
 
@@ -454,7 +455,8 @@ describe('ReplaceDialog: remove a narrator', () => {
     renderDialog({ ...host, replaceNarratorRemove: vi.fn(host.replaceNarratorRemove) });
     fireEvent.click(await screen.findByRole('button', { name: 'Remove Jon Doe' }));
     await screen.findByText(/Name the other narrator once for this project/);
-    expect(document.activeElement).toBe(screen.getByLabelText('Name another narrator'));
+    // The focus moves in an effect after the hint renders, so the hint showing does not mean it has moved yet.
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText('Name another narrator')));
   });
 
   it("says the host's refusal or error in a toast and keeps the list", async () => {

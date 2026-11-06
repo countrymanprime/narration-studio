@@ -14,6 +14,12 @@ const commit = async (text: string) => {
   fireEvent.change(field, { target: { value: text } });
   fireEvent.blur(field);
 };
+/** Focuses the box and leaves it without an edit: a refused amount then gives way to the stored one. */
+const leaveAgain = async () => {
+  const field = await amountField();
+  fireEvent.focus(field);
+  fireEvent.blur(field);
+};
 const value = () => document.querySelector('[data-contract-value]')?.textContent;
 
 describe('an amount as typed', () => {
@@ -35,6 +41,7 @@ describe('an amount as typed', () => {
     await commit('99999999999999999999');
     await waitFor(() => expect(toasts().join(' ')).toMatch(/too large\. Write it as 1,000,000,000,000 or less/));
     expect(calls).not.toHaveBeenCalled();
+    await leaveAgain();
     expect((await amountField()).value).toBe('250');
     expect(document.body.textContent).not.toMatch(/Infinity|e\+|NaN/);
   });
@@ -69,6 +76,8 @@ describe('an amount as typed', () => {
     await commit(text);
     await waitFor(() => expect(toasts().join(' ')).toMatch(/Write the rate as a number|Write a decimal with a point/));
     expect(calls).not.toHaveBeenCalled();
+    // The refused text stays, marked, until the narrator leaves the box again: then the stored amount is back.
+    await leaveAgain();
     expect((await amountField()).value).toBe('250');
   });
 
@@ -165,5 +174,38 @@ describe('how the book pays', () => {
     fireEvent.change(select, { target: { value: 'none' } });
     await waitFor(async () => expect((await stored()).payment).toBe('none'));
     expect(document.querySelector('[data-contract-value]')).toBeNull();
+  });
+});
+
+describe('the sentence for a refused amount fits what was typed (issue 1943)', () => {
+  it('says "could mean 1.5 or 15" only for a single decimal comma, not for 1 250,5', async () => {
+    await mountSchedule();
+    await commit('1 250,5');
+    await waitFor(() => expect(toasts().join(' ')).toMatch(/Write the rate as a number/));
+    expect(toasts().join(' ')).not.toMatch(/could mean/);
+  });
+});
+
+describe('a refused amount stays in the box, marked invalid (issue 1943)', () => {
+  it('keeps `1,5` marked aria-invalid with the sentence for a screen reader, and puts the stored amount back on leaving again', async () => {
+    await mountSchedule();
+    await commit('1,5');
+    const field = await amountField();
+    await waitFor(() => expect(field.getAttribute('aria-invalid')).toBe('true'));
+    expect(field.value).toBe('1,5');
+    expect(document.getElementById(field.getAttribute('aria-describedby') ?? '')?.textContent).toMatch(/could mean 1\.5 or 15/);
+    fireEvent.focus(field);
+    fireEvent.blur(field);
+    await waitFor(() => expect(field.getAttribute('aria-invalid')).toBeNull());
+    expect(field.value).toBe('250');
+  });
+
+  it('clears the mark as soon as the narrator edits it', async () => {
+    await mountSchedule();
+    await commit('abc');
+    const field = await amountField();
+    await waitFor(() => expect(field.getAttribute('aria-invalid')).toBe('true'));
+    fireEvent.change(field, { target: { value: '12' } });
+    expect(field.getAttribute('aria-invalid')).toBeNull();
   });
 });

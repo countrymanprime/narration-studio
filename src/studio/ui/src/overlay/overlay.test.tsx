@@ -162,6 +162,18 @@ describe('Escape while focus is still in the layer under a confirm', () => {
   });
 });
 
+describe('overlay.toast with no words (issue 2899)', () => {
+  it.each(['', ' ', '   ', '\n', '\n\n\n\n', '\t \n \u00A0'])('raises no toast for the text %j', (text) => {
+    service.toast(text);
+    service.toast(text, { tone: 'error' });
+    expect(service.getSnapshot().toasts).toEqual([]);
+  });
+  it('still raises one for a word', () => {
+    service.toast('x');
+    expect(service.getSnapshot().toasts.map((t) => t.text)).toEqual(['x']);
+  });
+});
+
 describe('overlay.toast', () => {
   it('toast-shows-and-expires: an information toast follows Toast timing', () => {
     vi.useFakeTimers();

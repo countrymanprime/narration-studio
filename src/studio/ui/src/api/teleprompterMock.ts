@@ -100,21 +100,21 @@ function mockReaperInput(seed: MockReaperInputSeed, devices: string[]): Teleprom
         status: 'no_match',
         reaperDevice: 'ASIO4ALL v2',
         candidates: [],
-        message: 'REAPER records from "ASIO4ALL v2", which does not match a microphone here. Choose the microphone in Levels.',
+        message: 'REAPER records from "ASIO4ALL v2", which does not match a microphone here. Choose the microphone in Record options.',
       };
     case 'reaper_no_device':
       return {
         status: 'unavailable',
         reason: 'reaper_no_device',
         candidates: [],
-        message: 'REAPER did not say which input device it has open. Choose the microphone in Levels.',
+        message: 'REAPER did not say which input device it has open. Choose the microphone in Record options.',
       };
     case 'daw_cannot_report':
       return {
         status: 'unavailable',
         reason: 'daw_cannot_report',
         candidates: [],
-        message: 'Audacity cannot report which microphone it records from, so the Booth listens to the one chosen in Levels.',
+        message: 'Audacity cannot report which microphone it records from, so the Booth listens to the one chosen in Record options.',
       };
   }
 }

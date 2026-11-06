@@ -3,6 +3,7 @@ import { describeApiError } from '../../api/errorMessage';
 import { useApi } from '../../api/ApiContext';
 import type { ScopedSettingField } from '../../types';
 import { Button } from '../primitives/Button';
+import { IconButton } from '../primitives/IconButton';
 import { InsetCard } from '../primitives/InsetCard';
 import { Kbd } from '../primitives/Kbd';
 import { SectionLabel } from '../primitives/SectionLabel';
@@ -276,9 +277,12 @@ export function KeyboardPanel({
                           Reset
                         </Button>
                       )}
-                      <Button variant="secondary" disabled={busy} onClick={() => setRecordingId(recordingId === command.id ? undefined : command.id)}>
-                        Change
-                      </Button>
+                      <IconButton
+                        action="changeShortcut"
+                        label={`Change the shortcut for ${command.label}`}
+                        disabledReason={busy ? 'Saving the shortcut' : undefined}
+                        onClick={() => setRecordingId(recordingId === command.id ? undefined : command.id)}
+                      />
                     </span>
                   </div>
                   {recordingId === command.id && (

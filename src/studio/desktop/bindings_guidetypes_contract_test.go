@@ -22,6 +22,26 @@ func TestContractGuideTypesBeforeAnyEditAreTheDefaults(t *testing.T) {
 	contractfile.Check(t, "guide-types-default", value)
 }
 
+// What GuideTypesChanged sends: a JSON boolean, false for the default list and true once a type is added.
+func TestContractGuideTypesChangedIsABoolean(t *testing.T) {
+	service, _, project := countingGuideIn(t)
+	writeStoryBible(t, project)
+	host := hostWithoutCueRefresh(service)
+	before, err := host.GuideTypesChanged()
+	if err != nil || before != "false" {
+		t.Fatalf("default list: %q, %v", before, err)
+	}
+	contractfile.Check(t, "guide-types-changed-default", false)
+	if _, err := host.GuideTypeAdd("Creature"); err != nil {
+		t.Fatal(err)
+	}
+	after, err := host.GuideTypesChanged()
+	if err != nil || after != "true" {
+		t.Fatalf("after adding a type: %q, %v", after, err)
+	}
+	contractfile.Check(t, "guide-types-changed", true)
+}
+
 func TestContractGuideTypeEditsReturnNothing(t *testing.T) {
 	for name, call := range map[string]func(*Host) (string, error){
 		"GuideTypeAdd":       func(h *Host) (string, error) { return h.GuideTypeAdd("Creature") },
