@@ -51,7 +51,7 @@ the book's project files stay in it. The app does not make a project in your DAW
 ### 3. Import the manuscript
 
 The new project opens on [Script](script.md), which says "This project has no manuscript yet. Import one to begin."
-Press **Import manuscript**. It takes you to [Production](production.md), where the import runs in two steps:
+Press **Import manuscript**. The import opens over Script, in two steps:
 
 1. **Choose your manuscript**: drop the file on the zone, or press **Choose a file…** and pick it.
 2. Review what the app found: the chapters, each with a switch to leave it out of the recording, and the character
@@ -81,13 +81,19 @@ the folder makes the project start on REAPER.
      offers **Link** with the file's name (**Link The Lighthouse Keeper.rpp**). Press it. A REAPER file kept somewhere
      else works too: **Choose a project file** picks it.
 
+  The bridge is the app's launcher script. **Start the launcher script with REAPER**, on by default in the same
+  category, keeps it in REAPER's Scripts folder so REAPER starts it each time it opens; leave it on.
+
 [Link your REAPER project](settings.md#link-your-reaper-project) shows the card before and after. Once linked, it reads
 **REAPER linked** while REAPER answers, or **Not running** with **Start REAPER** while REAPER is closed. From now on,
-opening this project in the app opens REAPER on the linked file if REAPER is not running.
+opening this project in the app opens REAPER on the linked file if REAPER is not running. Choosing the **Built-in
+recorder** later asks **Stop recording with REAPER?** first; the link is kept, so choosing REAPER again brings its takes
+back.
 
 ### 5. Record your first take
 
-On Production, press **Start session**. The Booth opens on the chapter being recorded.
+On [Production](production.md), press **Start session**. The Booth opens on the chapter being
+recorded.
 
 1. With REAPER, the first time you open a chapter the Booth asks which track it records on. A new REAPER project has
    no tracks, so press **Create a new track**: REAPER adds a track named after the chapter and links it. Save the
@@ -145,8 +151,8 @@ under the field as you type, and **Create** stays off until it is fixed. **Locat
 in: the default projects folder (<!-- brand:identity.defaultProjectsFolder -->NarrationStudio<!-- /brand --> in your
 user folder) until you pick another with **Change location…**.
 
-A new project opens on [Script](script.md), which says it has no manuscript yet. **Import manuscript** takes you to
-[Production](production.md), where the import runs.
+A new project opens on [Script](script.md), which says it has no manuscript yet. **Import manuscript** there opens the
+import over Script; Production has the same button.
 
 ## If you record in Audacity
 
