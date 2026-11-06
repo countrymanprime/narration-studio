@@ -74,3 +74,35 @@ describe('the Booth listens on the linked DAW’s input unless the narrator chos
     expect(dawInputLabel({ ...matched, reaperDevice: 'מיקרופון 🎙️', inputChannel: 'In 1 / In 2' })).toBe('מיקרופון 🎙️ · In 1 / In 2');
   });
 });
+
+describe('with the built-in recorder, the microphone named is the one Record uses (issue 2810)', () => {
+  const app = (over: Partial<Parameters<typeof resolveListeningMic>[0]>) =>
+    resolveListeningMic({ dawRecords: false, appRecords: true, recordsOn: '', answer: null, source: 'daw', chosen: '', devices, ...over });
+
+  it('names the narrator’s choice', () => {
+    expect(app({ chosen: devices[1]!, recordsOn: devices[2]! })).toMatchObject({ device: devices[1], origin: 'chosen' });
+  });
+  it('names the microphone this project last recorded with, not the first listed', () => {
+    expect(app({ recordsOn: devices[2]! })).toMatchObject({ device: devices[2], origin: 'last' });
+  });
+  it('names the only microphone when just one is listed', () => {
+    expect(app({ devices: [devices[1]!] })).toMatchObject({ device: devices[1], origin: 'first' });
+  });
+  it('names none when several are listed and none was chosen, so nothing is guessed', () => {
+    expect(app({})).toMatchObject({ device: '', origin: 'none' });
+  });
+  it('does not name a remembered microphone that is no longer listed: it resolves like none was remembered', () => {
+    expect(app({ recordsOn: 'Unplugged mic' })).toMatchObject({ device: '', origin: 'none' });
+    expect(app({ recordsOn: 'Unplugged mic', devices: [devices[0]!] })).toMatchObject({ device: devices[0], origin: 'first' });
+  });
+  it('names none when no microphone is listed', () => {
+    expect(app({ devices: [] })).toMatchObject({ device: '', origin: 'none' });
+  });
+  it('leaves a DAW’s resolution alone', () => {
+    expect(resolve({ dawRecords: true, answer: null })).toMatchObject({ device: devices[0], origin: 'first' });
+  });
+  it('treats a chosen name of only spaces as no choice', () => {
+    expect(app({ chosen: '   ' })).toMatchObject({ device: '', origin: 'none' });
+    expect(app({ chosen: '   ', recordsOn: devices[1]! })).toMatchObject({ device: devices[1], origin: 'last' });
+  });
+});

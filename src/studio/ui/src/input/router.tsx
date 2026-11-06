@@ -125,13 +125,13 @@ export function CommandRouter({ children, source, catalog = COMMAND_CATALOG, key
   useEffect(() => {
     const activeSource = source ?? createKeyboardSource();
     return activeSource.subscribe((event: GestureEvent) => {
-      // A focused button owns Space and Enter (they press it) and nothing else: Escape, B or an arrow pressed with focus on a toolbar button still
+      // A focused button owns Space, Enter and the numpad's Enter (they press it) and nothing else: Escape, B or an arrow pressed with focus on a toolbar button still
       // reach the page. Fields and widgets keep every plain key.
       const onlyButton =
         event.target instanceof Element &&
         !event.target.closest(EDITABLE) &&
         !KEY_ROLE_TARGET(event.target) &&
-        !['Space', 'Enter'].includes(event.gesture.code);
+        !['Space', 'Enter', 'NumpadEnter'].includes(event.gesture.code);
       if (event.gesture.modifiers.length === 0 && isGuardedTarget(event.target) && !onlyButton) return;
       // A key a button's own list already used (the Story Bible's rows walk with the arrows) is not also the page's.
       if (event.gesture.modifiers.length === 0 && isGuardedTarget(event.target) && event.consumed?.()) return;

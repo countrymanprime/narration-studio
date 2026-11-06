@@ -4,8 +4,6 @@
 - status
 - alert
 - status
-- alert
-- status
 - dialog "Audacity is not connected":
   - heading "Audacity is not connected" [level=2]
   - button "Close"

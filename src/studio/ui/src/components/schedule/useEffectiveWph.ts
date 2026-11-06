@@ -17,6 +17,12 @@ export function announceRateBasis(basis: Basis): void {
   for (const listener of [...listeners]) listener(basis);
 }
 
+/** Calls `listener` with each basis saved from now on, from any page; returns how to stop. The Settings row follows the popover through it. */
+export function subscribeRateBasis(listener: (basis: Basis) => void): () => void {
+  listeners.add(listener);
+  return () => void listeners.delete(listener);
+}
+
 /** The chapters the pace is worked out over: the narrated ones, as the target popover lists them. */
 export const paceChapters = (chapters: readonly ProductionChapter[]): PaceChapter[] =>
   chapters.filter(isNarrationChapter).map((c) => ({ id: c.id, tag: c.title, words: c.wordCount }));
@@ -25,9 +31,7 @@ export const paceChapters = (chapters: readonly ProductionChapter[]): PaceChapte
 export function useRateBasis(planBasis: Basis): Basis {
   const [saved, setSaved] = useState<{ over: Basis; basis: Basis }>();
   useEffect(() => {
-    const listener = (basis: Basis) => setSaved({ over: planBasis, basis });
-    listeners.add(listener);
-    return () => void listeners.delete(listener);
+    return subscribeRateBasis((basis) => setSaved({ over: planBasis, basis }));
   }, [planBasis]);
   return saved && saved.over === planBasis ? saved.basis : planBasis;
 }

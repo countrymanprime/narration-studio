@@ -7,6 +7,7 @@ import { useSecondsSince } from '../layout/CheckLine';
 import { bestChoice, trackChoices } from '../mapping/trackChoices';
 import { TrackSelect } from '../mapping/TrackSelect';
 import { ResolveShell } from './ResolveShell';
+import { useVoiceLayout } from '../engine/voiceLayout';
 
 type Read = { status: 'loading' } | { status: 'failed'; message: string } | { status: 'ready'; match: ChapterTrackMatch; links: TrackMapping[]; at: number };
 
@@ -54,6 +55,8 @@ export function ChapterLinkDialog({
   const [linking, setLinking] = useState(false);
   const [refused, setRefused] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  // In a Voice folders project the host makes a folder with a Narrator track for the chapter (ChapterTrackCreate), so the words say folder.
+  const folders = useVoiceLayout() === 'folders';
 
   useEffect(() => {
     let live = true;
@@ -124,7 +127,9 @@ export function ChapterLinkDialog({
   const noTracks = read.status === 'ready' && choices.length === 0;
   // Nothing to choose from (no tracks, or the saved project could not be read): adding a track is the fix, and the primary action.
   const createFirst = noTracks || read.status === 'failed';
-  const createLabel = 'Create a new track';
+  const createLabel = folders ? 'Create a new folder' : 'Create a new track';
+  const createWhat = folders ? 'folder' : 'track';
+  const withNarrator = folders ? ', with a Narrator track in it,' : '';
   const createOff = create?.available === false;
   const createAction = { label: createLabel, onPress: createTrack, pending: creating, disabled: createOff || linking };
   const title = missing
@@ -148,7 +153,8 @@ export function ChapterLinkDialog({
       )}
       {noTracks && (
         <p>
-          The saved {dawName} project has no tracks yet. {createFirst && !createOff ? `${createLabel} adds one named after the chapter and links it.` : ''}
+          The saved {dawName} project has no tracks yet.{' '}
+          {createFirst && !createOff ? `${createLabel} adds one named after the chapter${withNarrator} and links it.` : ''}
         </p>
       )}
       {read.status === 'ready' && !noTracks && (
@@ -160,7 +166,9 @@ export function ChapterLinkDialog({
             </p>
           )}
           <div className="flex flex-wrap items-center gap-2 border-t border-[var(--border)] pt-3">
-            <span className="text-[var(--text-muted)]">Or have {dawName} add a new track for this chapter, named after it, and link it:</span>
+            <span className="text-[var(--text-muted)]">
+              Or have {dawName} add a new {createWhat} for this chapter, named after it{folders ? ' with a Narrator track in it' : ''}, and link it:
+            </span>
             <Button
               variant="secondary"
               size="sm"

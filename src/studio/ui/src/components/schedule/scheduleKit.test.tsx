@@ -81,6 +81,7 @@ export async function mountSchedule({ seed = {}, statuses = ['not_started', 'not
       deliveryProfiles: async () => ({
         profiles: [],
         globalDefault: { id: PLATFORM_PROFILES[0].id },
+        shippedDefault: { id: PLATFORM_PROFILES[0].id },
         hasProject: true,
         projectChoice: null,
         projectProfile: `${PLATFORM_PROFILES[0].id}@2026-09`,

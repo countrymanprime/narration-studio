@@ -58,7 +58,7 @@ runs:
       uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
       with: { python-version: '3.12' }
     - if: inputs.need-python == 'true'
-      uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+      uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
       with:
         version: 0.12.15
         enable-cache: true
@@ -69,7 +69,7 @@ runs:
     # The key hashes scripts/toolchain.json, which pins the versions installed below (keep them in step).
     - if: inputs.need-wails-tools == 'true'
       id: wails-cache
-      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ~/go/bin/wails3${{ runner.os == 'Windows' && '.exe' || '' }}
         key: go-tool-wails3-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('scripts/toolchain.json') }}
@@ -84,7 +84,7 @@ runs:
     # binary: a prebuilt binary is compiled with one Go version and refuses to lint a module that targets a newer one.
     - if: inputs.need-golangci-lint == 'true'
       id: golangci-lint-cache
-      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ~/go/bin/golangci-lint${{ runner.os == 'Windows' && '.exe' || '' }}
         key: go-tool-golangci-lint-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('scripts/toolchain.json') }}
@@ -96,7 +96,7 @@ runs:
     # pseudo-version pins a commit of gVisor's `go` branch.
     - if: inputs.need-golangci-lint == 'true'
       id: checklocks-cache
-      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ~/go/bin/checklocks${{ runner.os == 'Windows' && '.exe' || '' }}
         key: go-tool-checklocks-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('scripts/toolchain.json') }}

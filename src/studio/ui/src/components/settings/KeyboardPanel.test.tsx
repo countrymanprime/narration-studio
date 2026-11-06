@@ -57,7 +57,7 @@ async function openRecorderFor(label: string) {
   // header row, which also holds this row's (and only this row's) Change button.
   const heading = await screen.findByText(label);
   const headerRow = heading.closest('div')!;
-  fireEvent.click(within(headerRow).getByRole('button', { name: 'Change' }));
+  fireEvent.click(within(headerRow).getByRole('button', { name: /^Change the shortcut/ }));
   return within(await screen.findByRole('group', { name: `Change "${label}"` }));
 }
 
@@ -74,7 +74,7 @@ describe('KeyboardPanel', () => {
     );
     await screen.findByText('A fake settings row');
     expect(screen.queryByText('Not in Settings')).toBeNull();
-    expect(screen.getAllByRole('button', { name: 'Change' })).toHaveLength(commandsFor('settings', catalog).length);
+    expect(screen.getAllByRole('button', { name: /^Change the shortcut/ })).toHaveLength(commandsFor('settings', catalog).length);
   });
 
   it('groups the catalog by scope, with each hint from the Visual Spec', async () => {
@@ -243,7 +243,28 @@ describe('KeyboardPanel', () => {
     keydown({ code: 'KeyJ' });
     fireEvent.click(group.getByRole('button', { name: 'Replace' }));
 
-    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringContaining('the host refused it'), 'error'));
+    await waitFor(() =>
+      expect(notify).toHaveBeenCalledWith(expect.stringContaining('the host refused it'), 'error', expect.objectContaining({ label: 'Retry' })),
+    );
     expect(screen.getByRole('group', { name: /Change/ })).toBeTruthy();
+  });
+
+  it('offers Retry on a failed save, and Retry saves the same shortcut again (a save sets the same values, so it is safe to repeat)', async () => {
+    let refuse = true;
+    const base = createMockApi();
+    const saveSettings = vi.fn(async (...args: Parameters<NarrationApi['saveSettings']>) => {
+      if (refuse) throw new Error('the host refused it');
+      return base.saveSettings(...args);
+    });
+    const { notify } = renderPanel({ saveSettings });
+    const group = await openRecorderFor('Record or stop');
+    keydown({ code: 'KeyJ' });
+    fireEvent.click(group.getByRole('button', { name: 'Replace' }));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.any(String), 'error', expect.objectContaining({ label: 'Retry' })));
+    refuse = false;
+    const retry = notify.mock.calls.find((call) => call[1] === 'error')![2] as { onAction: () => void };
+    act(() => retry.onAction());
+    await waitFor(() => expect(notify).toHaveBeenCalledWith('Keyboard shortcut saved.'));
+    expect(saveSettings.mock.calls[1]).toEqual(saveSettings.mock.calls[0]);
   });
 });

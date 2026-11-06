@@ -1,6 +1,6 @@
 import { faLayerGroup } from '@fortawesome/free-solid-svg-icons';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { useState } from 'react';
+import { useLayoutEffect, useState, type ReactNode } from 'react';
 import { expect, fn, userEvent, within } from 'storybook/test';
 import { ToastRegion, type ToastMessage } from './Toast';
 
@@ -128,5 +128,138 @@ export const DismissRemovesOne: Story = {
     await userEvent.click(within(first).getByRole('button', { name: 'Dismiss message' }));
     await expect(canvas.queryByText('First failure.')).toBeNull();
     await expect(canvas.getByText('Second failure.')).toBeInTheDocument();
+  },
+};
+
+// One word with no spaces, 10,000 letters long, on a toast that has an action (#2899): the text wraps inside a box that is never taller than the window,
+// scrolls inside itself, and the action and Dismiss stay on screen and reachable. In a real browser this fails if the toast grows past the window.
+export const HugeWord: Story = {
+  args: { messages: [{ ...failure(1, 'x'.repeat(10_000)), action: { label: 'Retry', onAction: fn() } }] },
+  play: async ({ canvasElement }) => {
+    const toast = document.body.querySelector<HTMLElement>('[data-toast-region] [data-tone]');
+    await expect(toast).not.toBeNull();
+    const box = toast!.getBoundingClientRect();
+    await expect(box.top).toBeGreaterThanOrEqual(0);
+    await expect(box.bottom).toBeLessThanOrEqual(window.innerHeight);
+    await expect(box.right).toBeLessThanOrEqual(window.innerWidth);
+    for (const name of ['Retry', 'Dismiss message']) {
+      const button = within(document.body).getByRole('button', { name }).getBoundingClientRect();
+      await expect(button.top).toBeGreaterThanOrEqual(0);
+      await expect(button.bottom).toBeLessThanOrEqual(window.innerHeight);
+      await expect(button.right).toBeLessThanOrEqual(window.innerWidth);
+    }
+    // The text is all reachable: it wraps inside the box (nothing cut off sideways) and, being taller than the box allows, scrolls inside itself. A browser
+    // with layout only: the unit run has none (every size is 0), where this is skipped.
+    const text = toast!.querySelector<HTMLElement>('[data-toast-text]');
+    await expect(text).not.toBeNull();
+    if (text!.clientHeight > 0) {
+      await expect(text!.scrollWidth).toBeLessThanOrEqual(text!.clientWidth + 1);
+      await expect(['auto', 'scroll']).toContain(getComputedStyle(text!).overflowY);
+    }
+    void canvasElement;
+  },
+};
+
+const action = { label: 'Retry', onAction: fn() };
+// Several toasts at once share the window: each one's text is capped to its share, so no toast's Retry or Dismiss ends up above the window (#2899).
+export const TwoHugeWords: Story = {
+  args: {
+    messages: [
+      { ...failure(1, 'x'.repeat(10_000)), action },
+      { ...failure(2, 'y'.repeat(10_000)), action },
+    ],
+  },
+};
+export const FiveLongMessages: Story = {
+  args: {
+    messages: [1, 2, 3, 4, 5].map((id) => ({
+      ...failure(id, `${id}: Could not save the setting because the host did not answer, and the reason is long enough to wrap.`),
+      action,
+    })),
+  },
+};
+// A very long action label wraps inside a share of the toast (three lines at most); the message keeps room and Dismiss stays on screen.
+export const LongActionLabel: Story = {
+  args: {
+    messages: [
+      { ...failure(1, 'Failed'), action: { label: `Retry the whole export again from the very beginning ${'and again '.repeat(30)}`, onAction: fn() } },
+    ],
+  },
+};
+
+/** Stands in for the Booth: its footer and setup notice keep the toasts 210 px clear of the bottom, which is most of a 300 px window. */
+function WithBoothBars({ children }: { children: ReactNode }) {
+  useLayoutEffect(() => {
+    document.documentElement.style.setProperty('--toast-clear', '210px');
+    return () => {
+      document.documentElement.style.removeProperty('--toast-clear');
+    };
+  }, []);
+  return <>{children}</>;
+}
+export const TwoToastsAboveTheBoothBars: Story = {
+  decorators: [(Story) => <WithBoothBars>{Story()}</WithBoothBars>],
+  args: {
+    messages: [
+      { ...failure(1, 'x'.repeat(10_000)), action },
+      { ...failure(2, 'Could not save the setting because the host did not answer.'), action },
+    ],
+  },
+};
+
+/** Every button of every toast is on screen: the story runs in the 320 x 300 window (the `tiny-window` tag), so the window is the one measured. */
+async function everyButtonOnScreen(toasts: number) {
+  // Let the layout settle (the bars' variable, the toasts' share of the window) before measuring.
+  await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+  const buttons = [...document.body.querySelectorAll<HTMLElement>('[data-toast-region] [data-tone] button')];
+  await expect(buttons).toHaveLength(toasts * 2);
+  // The unit run has no layout (every size is 0, the window is its own): the measuring below is for the browser, where the story runs in the 320 x 300 window.
+  if (buttons[0]!.getBoundingClientRect().width === 0) return false;
+  await expect([window.innerWidth, window.innerHeight]).toEqual([320, 300]);
+  for (const el of buttons) {
+    const b = el.getBoundingClientRect();
+    const name = el.getAttribute('aria-label') ?? el.textContent?.slice(0, 20) ?? 'button';
+    await expect(b.left, `${name} is left of the window`).toBeGreaterThanOrEqual(0);
+    await expect(b.top, `${name} is above the window`).toBeGreaterThanOrEqual(0);
+    await expect(b.bottom, `${name} is below the window`).toBeLessThanOrEqual(300);
+    await expect(b.right, `${name} is right of the window`).toBeLessThanOrEqual(320);
+  }
+  return true;
+}
+export const HugeWordInTinyWindow: Story = {
+  ...HugeWord,
+  tags: ['tiny-window'],
+  play: async () => {
+    if ((await everyButtonOnScreen(1)) === false) return;
+    const text = document.body.querySelector<HTMLElement>('[data-toast-text]')!;
+    await expect(text.scrollWidth).toBeLessThanOrEqual(text.clientWidth + 1);
+  },
+};
+export const TwoHugeWordsInTinyWindow: Story = {
+  ...TwoHugeWords,
+  tags: ['tiny-window'],
+  play: async () => {
+    await everyButtonOnScreen(2);
+  },
+};
+export const FiveLongMessagesInTinyWindow: Story = {
+  ...FiveLongMessages,
+  tags: ['tiny-window'],
+  play: async () => {
+    await everyButtonOnScreen(5);
+  },
+};
+export const LongActionLabelInTinyWindow: Story = {
+  ...LongActionLabel,
+  tags: ['tiny-window'],
+  play: async () => {
+    await everyButtonOnScreen(1);
+  },
+};
+export const TwoToastsAboveTheBoothBarsInTinyWindow: Story = {
+  ...TwoToastsAboveTheBoothBars,
+  tags: ['tiny-window'],
+  play: async () => {
+    await everyButtonOnScreen(2);
   },
 };
