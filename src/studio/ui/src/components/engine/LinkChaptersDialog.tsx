@@ -225,6 +225,11 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
           <ToolResult tone="danger" message={links.error} />
         </div>
       )}
+      {links.notice && (
+        <div className="mb-3">
+          <ToolResult tone="warning" message={links.notice} />
+        </div>
+      )}
       {state.phase === 'stamping' && (
         <p className="mb-3 text-sm" style={{ color: 'var(--text-muted)' }}>
           {state.message}

@@ -62,6 +62,18 @@ function indexOrder(): string[] {
   return seen;
 }
 
+// A page leads somewhere: a `## What next` section with at least two links, so a reader who finished the page has a
+// choice of where to go besides the Previous / Next footer. The section runs to the next `## ` heading or the footer rule.
+function whatNextProblem(file: string, markdown: string): string | undefined {
+  const lines = markdown.split('\n');
+  const start = lines.findIndex((line) => /^## What next\s*$/.test(line));
+  if (start === -1) return `${file} has no "## What next" section`;
+  const rest = lines.slice(start + 1);
+  const end = rest.findIndex((line) => /^## /.test(line) || /^---\s*$/.test(line));
+  const links = linkTargets(rest.slice(0, end === -1 ? undefined : end).join('\n'), LINK_PATTERN).length;
+  return links >= 2 ? undefined : `${file}: "## What next" has ${links} link${links === 1 ? '' : 's'}; give the reader at least two places to go`;
+}
+
 describe('docs/guides/using-the-app', () => {
   test('has an index and at least one page', () => {
     expect(guideFiles, `${guideDir} needs a ${INDEX}`).toContain(INDEX);
@@ -87,6 +99,31 @@ describe('docs/guides/using-the-app', () => {
         : [`${file}: footer links ${JSON.stringify(actual)}, expected ${JSON.stringify(expected)}`];
     });
     expect(wrong).toEqual([]);
+  });
+
+  test('every page ends its content with a What next section of at least two links', () => {
+    const problems = pageFiles.map((file) => whatNextProblem(file, read(file))).filter((problem) => problem !== undefined);
+    expect(problems).toEqual([]);
+  });
+
+  describe('the What next rule', () => {
+    test('two links under the heading pass', () => {
+      expect(whatNextProblem('a.md', '# A\n\n## What next\n\n- [B](b.md)\n- [C](c.md)\n\n---\n\n[Index](README.md)')).toBeUndefined();
+    });
+
+    test('a page without the section fails', () => {
+      expect(whatNextProblem('a.md', '# A\n\n## Related\n\n- [B](b.md)\n- [C](c.md)')).toBe('a.md has no "## What next" section');
+    });
+
+    test('links after the section, in the next section or the footer, do not count', () => {
+      expect(whatNextProblem('a.md', '# A\n\n## What next\n\n- [B](b.md)\n\n## The picker\n\n[C](c.md)\n\n---\n\n[Index](README.md)')).toBe(
+        'a.md: "## What next" has 1 link; give the reader at least two places to go',
+      );
+    });
+
+    test('a What next heading at a lower level does not count', () => {
+      expect(whatNextProblem('a.md', '# A\n\n### What next\n\n- [B](b.md)\n- [C](c.md)')).toBe('a.md has no "## What next" section');
+    });
   });
 
   test('every relative link and image resolves to a real file and heading', () => {

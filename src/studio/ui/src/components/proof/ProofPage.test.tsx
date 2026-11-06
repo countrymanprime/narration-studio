@@ -377,6 +377,45 @@ describe('proof-decisions-and-undo', () => {
     }
   });
 
+  // #3115: the saved-decision message was in the Inspector's status line and in the toast's live region, so a screen reader said it twice.
+  it('announces a saved decision once: one live region carries its text', async () => {
+    const api = createMockApi();
+    const review = vi.spyOn(api, 'findingsReview');
+    const { journal } = renderPage({ api, at: '/proof?chapter=chapter-1' });
+    const user = userEvent.setup();
+    const rows = await noteRows();
+    await user.click(rows[rows.findIndex((row) => row.textContent?.includes('To review'))]);
+    press('p', 'KeyP');
+    await waitFor(() => expect(review).toHaveBeenCalledTimes(1));
+    await waitFor(async () => expect(await journal.entries()).toHaveLength(1));
+    await screen.findByRole('button', { name: 'Undo' });
+
+    const live = [...document.querySelectorAll('[role="status"],[role="alert"],[aria-live="polite"],[aria-live="assertive"]')];
+    const saying = live.filter((region) => /Needs pickup/.test(region.textContent ?? ''));
+    expect(saying.map((region) => region.outerHTML.slice(0, 120))).toHaveLength(1);
+  });
+
+  // #3116: a walkthrough saw the Inspector show another note after Hear it. Nothing in Proof follows the playhead, so the selection must stay.
+  it('Hear it leaves the selected note selected', async () => {
+    const api = createMockApi();
+    const loop = vi.spyOn(api, 'findingsLoop');
+    renderPage({ api, at: '/proof?chapter=chapter-1' });
+    const user = userEvent.setup();
+    const rows = await noteRows();
+    const at = rows.findIndex((row) => row.textContent?.includes('To review'));
+    await user.click(rows[at]);
+    const selected = () =>
+      [...screen.getByRole('region', { name: 'Notes' }).querySelectorAll('tr[data-row][aria-selected="true"]')].map((row) => row.getAttribute('data-row'));
+    const before = selected();
+    expect(before).toHaveLength(1);
+
+    await user.click(await screen.findByRole('button', { name: /Hear it/ }));
+    await waitFor(() => expect(loop).toHaveBeenCalledTimes(1));
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    expect(selected()).toEqual(before);
+  });
+
   it('a decision moves to the next note, and Undo takes back the decision and the selection', async () => {
     const api = createMockApi();
     const review = vi.spyOn(api, 'findingsReview');

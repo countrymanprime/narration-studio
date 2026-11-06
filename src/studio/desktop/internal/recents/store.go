@@ -214,13 +214,5 @@ func (s *Store) writeLocked(entries []Entry) error {
 	if err != nil {
 		return err
 	}
-	temporary := s.path + ".tmp"
-	if err := os.WriteFile(temporary, bytes, 0o600); err != nil {
-		return err
-	}
-	if err := os.Rename(temporary, s.path); err != nil {
-		_ = os.Remove(temporary)
-		return err
-	}
-	return nil
+	return persist.WriteFile(s.path, bytes, 0o600)
 }
