@@ -18,7 +18,14 @@ SLICE: #<slice issue>, for a Studio Next slice. The issue is the spec; read its 
 MOCKUPS (D46, D98): <per phase: the exact src/pages/... file of the Studio Next mock in git history and its state, or "none">.
 YOUR FILES: <the slice issue's owns, or for an older PRD the phases' rows from its Parallel-session table>. NEVER TOUCH: files owned by other lanes or listed for
 a running stream on #989. If you need another lane's change, comment on #989.
-MISSING TOOLS: install them (you are root); the pre-commit check-go hook needs the Wails GTK libs. Never skip a check or use --no-verify.
+MISSING TOOLS: install them (you are root); the pre-commit check-go hook needs the Wails GTK libs.
+LESSONS (2026-11 overnight run):
+- Never use HUSKY=0 or --no-verify. If the Go hook cannot build Wails, install the GTK libs; only if that fails, publish the files with the GitHub tools (push_files, create_or_update_file) and say so in the PR.
+- Add no allowlist or exempt entry to make a check pass: those lists only shrink. Fix the cause.
+- Verify the ui-visual and ui-atlas shards actually ran, not just that the job is green: a skipped or empty shard is not a pass.
+- Read the diff of coverage-floors.json; a lowered floor needs a reason in the PR body.
+- A docs-only PR needs scripts/ci/layout.test.mjs and scripts/ci/old-name.test.mjs run by hand (`node --test scripts/ci/layout.test.mjs scripts/ci/old-name.test.mjs`), plus markdownlint on the changed files.
+- Every issue the PR resolves gets a `Closes #<n>` line; Refs does not close.
 ```
 
 ## Resume template
