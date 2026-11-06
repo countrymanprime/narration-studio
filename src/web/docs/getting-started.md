@@ -28,5 +28,5 @@ Launching the app without a project folder attached shows **Choose your project*
 
 ## Import the manuscript
 
-1. On Script, press **Import manuscript**. It takes you to [Production](production.md#import-the-manuscript), where the import runs.
+1. On Script, press **Import manuscript**. The import opens over Script; [Production](production.md#import-the-manuscript) has the same steps.
 2. Once the manuscript is in, use the [sidebar](navigation.md) to reach each page.
