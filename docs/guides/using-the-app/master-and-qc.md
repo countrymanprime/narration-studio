@@ -29,7 +29,7 @@ This page is a reference to everything Master & QC shows. To do one thing, start
 - **See how far the chapters' levels spread across the book**: [Book consistency](#book-consistency).
 - **Set up the mastering chain, then master and encode to spec**: [The mastering chain](#the-mastering-chain) and
   [Mastering to spec](#mastering-to-spec).
-- **Build packages for more than one platform**: [Building packages for several platforms at once](#building-packages-for-several-platforms-at-once).
+- **Build packages for more than one platform**: [Building packages for several platforms at once](delivery.md#building-packages-for-several-platforms-at-once), on the Delivery page.
 - **Check for clipping, level shifts, room-tone changes and long pauses**: [Diagnostics](#diagnostics).
 - **Save the last check and diagnostics to files**, to send to a producer or QA checker: [Exporting a report](#exporting-a-report).
 
