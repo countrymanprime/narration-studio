@@ -196,6 +196,12 @@ export const editingStates: StateEntry[] = [
   },
   {
     page: 'editing',
+    state: 'takes-footer',
+    description: 'Editing, the first line’s takes opened and scrolled to their footer - Show in REAPER beside the take actions (#2826)',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'editing',
     state: 'suggestion-step',
     description: 'Editing, Normalise pressed in the suggestion’s steps - the question lists the takes it would bring to the same level',
   },
