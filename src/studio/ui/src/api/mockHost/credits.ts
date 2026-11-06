@@ -167,6 +167,7 @@ export function createCreditsMock(
       builtIn: true,
     },
   ];
+  const shippedTemplates = wireClone(creditTemplates);
   if (initial.creditsMissingClosing) creditTemplates = creditTemplates.filter((template) => template.kind !== 'closing');
   if (initial.chapterAnnouncement !== undefined)
     creditTemplates.push({ id: 'mock-chapter-announcement', kind: 'chapter_announcement', name: 'Chapter announcement', body: initial.chapterAnnouncement });
@@ -249,6 +250,12 @@ export function createCreditsMock(
   };
   const bindings = {
     creditsTemplates: async () => wireClone(creditTemplates),
+    creditsChanged: async () =>
+      creditTemplates.length !== shippedTemplates.length ||
+      shippedTemplates.some((shipped) =>
+        creditTemplates.every((have) => have.id !== shipped.id || have.kind !== shipped.kind || have.name !== shipped.name || have.body !== shipped.body),
+      ) ||
+      Object.values(creditValues).some((value) => (value ?? '').trim() !== ''),
     saveCreditsTemplate: async (id, kind, name, body) => {
       if (id) {
         const index = creditTemplates.findIndex((template) => template.id === id);

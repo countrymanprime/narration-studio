@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"desktop/internal/trace"
 	"fmt"
 	"log/slog"
 	"os"
@@ -344,6 +345,7 @@ func (h *Host) runMeasure(ctx context.Context, job *measureJob, paths []string, 
 		var broken error
 		if recovered := recover(); recovered != nil {
 			broken = fmt.Errorf("%v", recovered)
+			h.tracer.Emit(trace.AppPanic, trace.EnumValue("where", "measure_job"))
 			runlog.FromContext(ctx).Event(slog.LevelError, "measure.panic", "the measurement stopped unexpectedly: "+broken.Error())
 		}
 		// Save before finish() flips the job's phase to a terminal one: every file this loop measured already carries

@@ -10,6 +10,7 @@ import (
 
 	"desktop/internal/evidence"
 	"desktop/internal/settings"
+	"desktop/internal/tracks"
 )
 
 // chapterRecorded reads each chapter's recorded length the way Home does: through ManuscriptChapters.
@@ -137,4 +138,16 @@ func BenchmarkRecordedLengths(b *testing.B) {
 			_ = recordedLengthsFor(chapters, mappings, project, ok)
 		}
 	})
+}
+
+func TestAFolderOfVoicesIsAsLongAsTheUnionOfItsVoices(t *testing.T) {
+	project := tracks.Project{Tracks: []tracks.Track{
+		{GUID: "F", IsFolder: true},
+		{GUID: "N", Depth: 1, Items: []tracks.Item{{Position: 0, Length: 30}}},
+		{GUID: "H", Depth: 1, Items: []tracks.Item{{Position: 30, Length: 20}}},
+	}}
+	lengths := recordedLengthsFor([]string{"c1"}, []evidence.TrackMapping{{ChapterID: "c1", TrackGUID: "F"}}, project, true)
+	if got := lengths["c1"]; got.Unavailable != "" || got.Seconds != 50 {
+		t.Fatalf("length = %+v, want 50 seconds across both voices", got)
+	}
 }

@@ -110,3 +110,11 @@ func TestOnlyMoonshineNeedsAnInstalledModel(t *testing.T) {
 		t.Error("an engine that does not implement InstalledModelOnly must not need an installed model")
 	}
 }
+
+func TestOnlyMoonshineIsRecheckedAndAnUnknownEngineIsNot(t *testing.T) {
+	for engine, want := range map[string]bool{asrport.Whisper: false, asrport.Moonshine: true, "nonesuch": false} {
+		if got := asrport.NeedsRecheck(engine); got != want {
+			t.Errorf("NeedsRecheck(%q) = %v, want %v", engine, got, want)
+		}
+	}
+}

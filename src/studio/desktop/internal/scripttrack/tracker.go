@@ -50,7 +50,7 @@ func NormalizeWord(word string) string {
 // indices refer to.
 func ScriptWords(text string) []string { return compare.PySplit(text) }
 
-// WordsMatch is words_match: equal normalized words, or a close spelling
+// WordsMatch is words_match: equal normalized words or a close spelling
 // (SequenceMatcher ratio at least FuzzyRatio, autojunk on) of two words of
 // at least FuzzyMinLength code points each.
 func WordsMatch(heard, script string) bool {
@@ -72,6 +72,20 @@ func WordsMatch(heard, script string) bool {
 	}
 	matches.seen[key] = match
 	return match
+}
+
+// LiveWordsMatch is the live cursor's match: WordsMatch, or two words said alike (saidAlike). Placement and word timing keep
+// WordsMatch alone, which the frozen booth-parity goldens pin.
+func LiveWordsMatch(heard, script string) bool {
+	return WordsMatch(heard, script) || saidAlike(heard, script)
+}
+
+// saidAlike is whether two single words are one spoken form: a homophone, a possessive, or a number as digits and as a word
+// ("12" and "twelve"), the single-word cases of compare.SpokenKey that Transcript Compare and the flags forgive. A heard
+// stretch that spans several script words ("twenty three" for "23") still goes through the flags' multi-word check.
+func saidAlike(heard, script string) bool {
+	key := compare.SpokenKey(heard)
+	return key != "" && key == compare.SpokenKey(script)
 }
 
 // maxCachedMatches bounds the fuzzy-match cache, words_match's lru_cache size: Locate tries every start near the
@@ -99,6 +113,15 @@ type Alignment struct{ Read, Matched, First int }
 // the MaxSkip after it, stepping over those; a heard word that matches none
 // is ignored.
 func Advance(heard, script []string, start int) Alignment {
+	return advance(heard, script, start, WordsMatch)
+}
+
+// liveAdvance is Advance with LiveWordsMatch: the live cursor's walk.
+func liveAdvance(heard, script []string, start int) Alignment {
+	return advance(heard, script, start, LiveWordsMatch)
+}
+
+func advance(heard, script []string, start int, match func(heard, script string) bool) Alignment {
 	position, matched, first := start, 0, None
 	for _, word := range heard {
 		for skip := 0; skip <= MaxSkip; skip++ {
@@ -106,7 +129,7 @@ func Advance(heard, script []string, start int) Alignment {
 			if index >= len(script) {
 				break
 			}
-			if WordsMatch(word, script[index]) {
+			if match(word, script[index]) {
 				if first == None {
 					first = index
 				}
@@ -159,7 +182,13 @@ type Location struct {
 // unless a clearly better alignment exists nearby (a restart behind or a skip
 // ahead), which is reported as a jump.
 func Locate(heard, script []string, anchor int) Location {
-	near := Advance(heard, script, anchor)
+	return locate(heard, script, anchor, Advance)
+}
+
+// locate is Locate over the walk that decides what counts as a match: Advance, or liveAdvance for a tracker that forgives
+// words said alike.
+func locate(heard, script []string, anchor int, walk func(heard, script []string, start int) Alignment) Location {
+	near := walk(heard, script, anchor)
 	if len(heard) < MinJumpMatches {
 		return Location{near.Read, near.Matched, "", nil, anchor, near.First}
 	}
@@ -169,7 +198,7 @@ func Locate(heard, script []string, anchor int) Location {
 		if anchor <= start && start <= anchor+MaxSkip {
 			continue
 		}
-		candidate := Advance(heard, script, start)
+		candidate := walk(heard, script, start)
 		if candidate.Matched < MinJumpMatches || candidate.Matched < near.Matched+JumpMargin {
 			continue
 		}

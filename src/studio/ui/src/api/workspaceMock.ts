@@ -5,6 +5,7 @@
 // chapter has a confirmed, still-live track link (the default boot's mockChapterLink=recorded, mockChapterLink=confirmed,
 // or chapterTrackMappings seeded some other way): the workspace's own player needs a real item GUID and source file to seek the mock's fake WAV
 // (mockAudioSource, src/studio/ui/src/api/mockApi.ts) against, same as Tracks' player does.
+import { chapterTrackOf } from './chapterTrackItems';
 import type {
   CoverageReport,
   CoverageResult,
@@ -119,8 +120,9 @@ function regionParagraphIds(report: CoverageReport, kind: CoverageReport['region
  * chapter has no confirmed link, or its link points at a track no longer in the project (as ChapterTrackButton shows it). */
 function mockLiveItem(deps: Deps, chapterId: string): WorkspaceItem | undefined {
   const mapping = deps.mappings().find((entry) => entry.chapterId === chapterId);
-  const track = mapping ? deps.project.tracks.find((candidate) => candidate.guid === mapping.trackGuid) : undefined;
-  const item = track?.items.find((candidate) => candidate.supported && candidate.sourceAvailable);
+  // As the host reads it: a folder of voices has its audio on its children (chapterTrackOf).
+  const found = mapping ? chapterTrackOf(deps.project.tracks, mapping.trackGuid) : undefined;
+  const item = found?.items.find((candidate) => candidate.supported && candidate.sourceAvailable);
   if (!item) return undefined;
   return {
     index: 0,

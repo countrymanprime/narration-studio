@@ -3,23 +3,28 @@ package main
 import (
 	"context"
 	"desktop/internal/brand"
+	"desktop/internal/trace"
 	"errors"
 	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
+	"unicode"
 
 	"desktop/internal/deliveryprofile"
 	"desktop/internal/encodeport"
 	"desktop/internal/mastering"
+	"desktop/internal/masteringport"
 	"desktop/internal/packager"
+	"desktop/internal/port"
 	"desktop/internal/runlog"
 )
 
 // The Master & QC export flow: the narrator picks rendered chapter (and credits, and retail sample) WAV files,
-// optionally masters them (internal/mastering, narrator-triggered, writes a new file), encodes them
+// optionally masters them (the project's mastering row, internal/masteringport: narrator-triggered, writes a new file), encodes them
 // (internal/encodeport), then assembles one profile's package (internal/packager). Mastering and encoding run
 // together as one job (ExportStart/ExportState/ExportCancel), a single "Master & encode" action; packaging is its own
 // job (PackageStart/PackageState/PackageCancel) so the narrator can build several platforms' packages from one export
@@ -55,15 +60,19 @@ type ExportItem struct {
 	Path  string `json:"path"`
 }
 
-// ExportRequest is what ExportStart is asked to master (optionally) and encode.
+// ExportRequest is what ExportStart is asked to master (optionally) and encode. Approval is the narrator's yes, given in the
+// UI's approval dialog just before this call, to master these files with a row that needs it (MasteringProvider.NeedsApproval);
+// nil when they gave none.
 type ExportRequest struct {
-	Items  []ExportItem `json:"items"`
-	Master bool         `json:"master"`
-	Format string       `json:"format"`
+	Items    []ExportItem       `json:"items"`
+	Master   bool               `json:"master"`
+	Format   string             `json:"format"`
+	Approval *MasteringApproval `json:"approval"`
 }
 
-// MasteringSummary is the mastering chain's own report (mastering.Result), narrowed to what the Master & QC page
-// shows per file: the chain's settings and the RMS/peak it measured before and after. It leaves out the full
+// MasteringSummary is the built-in chain's own report (mastering.Result), narrowed to what the Master & QC page
+// shows per file: the chain's settings and the RMS/peak it measured before and after. A row other than the built-in chain
+// sets no gain or high-pass of the app's, so its files carry none (ExportFileResult.Mastering is nil). It leaves out the full
 // before/after reports and deliveryprofile.Judgement, which mastering.Result carries for a caller judging the file
 // itself; the export job's own per-file status (done/failed) and the package job's own checklist already cover that
 // for the UI.
@@ -84,8 +93,8 @@ func summarizeMastering(result mastering.Result) MasteringSummary {
 }
 
 // ExportFileResult is one item's progress through the export job. MasteredPath and EncodedPath are the new files it
-// wrote (empty until that stage finishes); Mastering summarizes the mastering chain's own report, when Master was
-// asked for.
+// wrote (empty until that stage finishes); Mastering summarizes the built-in chain's own report, when Master was
+// asked for and the project masters with the built-in chain.
 type ExportFileResult struct {
 	Kind         string            `json:"kind"`
 	Title        string            `json:"title"`
@@ -99,17 +108,19 @@ type ExportFileResult struct {
 
 // ExportJob is the export as the UI sees it, in the shape of the other host jobs.
 type ExportJob struct {
-	ID      *string            `json:"id"`
-	Kind    string             `json:"kind"`
-	Phase   string             `json:"phase"`
-	Message string             `json:"message"`
-	Percent int                `json:"percent"`
-	Master  bool               `json:"master"`
-	Format  string             `json:"format"`
-	Logs    []string           `json:"logs"`
-	Elapsed float64            `json:"elapsed"`
-	Error   string             `json:"error,omitempty"`
-	Files   []ExportFileResult `json:"files"`
+	ID      *string `json:"id"`
+	Kind    string  `json:"kind"`
+	Phase   string  `json:"phase"`
+	Message string  `json:"message"`
+	Percent int     `json:"percent"`
+	Master  bool    `json:"master"`
+	// Provider is the mastering row the job masters with, by name; empty when it does not master.
+	Provider string             `json:"provider"`
+	Format   string             `json:"format"`
+	Logs     []string           `json:"logs"`
+	Elapsed  float64            `json:"elapsed"`
+	Error    string             `json:"error,omitempty"`
+	Files    []ExportFileResult `json:"files"`
 }
 
 type exportJob struct {
@@ -133,6 +144,8 @@ type exportJob struct {
 	// +checklocks:mu
 	format string
 	// +checklocks:mu
+	provider string
+	// +checklocks:mu
 	files []ExportFileResult
 	// +checklocks:mu
 	weights []int64
@@ -140,7 +153,10 @@ type exportJob struct {
 	totalWeight int64
 	// +checklocks:mu
 	doneWeight int64
-	cancel     context.CancelFunc
+	// stopped is why the export ended early at a file (stop), naming it: the files after it are not started.
+	// +checklocks:mu
+	stopped string
+	cancel  context.CancelFunc
 }
 
 func (j *exportJob) running() bool {
@@ -154,7 +170,7 @@ func (j *exportJob) snapshot() ExportJob {
 	defer j.mu.RUnlock()
 	id := j.id
 	return ExportJob{
-		ID: &id, Kind: jobKindRenderExport, Phase: j.phase, Message: j.message, Percent: j.percent, Master: j.master, Format: j.format,
+		ID: &id, Kind: jobKindRenderExport, Phase: j.phase, Message: j.message, Percent: j.percent, Master: j.master, Provider: j.provider, Format: j.format,
 		Logs: append([]string{}, j.logs...), Elapsed: time.Since(j.started).Seconds(), Error: j.errorText,
 		Files: append([]ExportFileResult{}, j.files...),
 	}
@@ -197,6 +213,18 @@ func (j *exportJob) fail(index int, err error) {
 	j.doneWeight += j.weights[index]
 }
 
+// stop fails the file at index with err and ends the export there: the files already prepared keep their results and the rest are
+// not started. It is how a render that refuses the chain it would run (it changed since the narrator approved it, threat model row
+// 5o) ends the export, rather than refusing the same way for every file after it.
+func (j *exportJob) stop(index int, err error) {
+	j.mu.Lock()
+	defer j.mu.Unlock()
+	j.files[index].Status, j.files[index].Error = exportFileFailed, err.Error()
+	j.stopped = fmt.Sprintf("Stopped at %s: %s.", filepath.Base(j.files[index].Path), err.Error())
+	j.logs = append(j.logs, j.stopped)
+	j.doneWeight += j.weights[index]
+}
+
 func (j *exportJob) succeed(index int, masteredPath string, mastering *MasteringSummary, encodedPath string) {
 	j.mu.Lock()
 	defer j.mu.Unlock()
@@ -223,7 +251,7 @@ func (j *exportJob) finish(cancelled bool, broken error) {
 			}
 			j.files[i].Status = exportFileCancelled
 		default:
-			if cancelled || broken != nil {
+			if cancelled || broken != nil || j.stopped != "" {
 				j.files[i].Status = exportFileCancelled
 			}
 		}
@@ -231,6 +259,9 @@ func (j *exportJob) finish(cancelled bool, broken error) {
 	switch {
 	case broken != nil:
 		j.phase, j.message, j.errorText = "error", "The export stopped unexpectedly.", "The export stopped unexpectedly."
+	case j.stopped != "":
+		j.phase = "error"
+		j.message = fmt.Sprintf("%s %d of %d files were prepared.", j.stopped, done, len(j.files))
 	case cancelled:
 		j.phase = "cancelled"
 		j.message = fmt.Sprintf("Export cancelled. %d of %d files were prepared.", done, len(j.files))
@@ -242,13 +273,12 @@ func (j *exportJob) finish(cancelled bool, broken error) {
 	j.logs = append(j.logs, j.message)
 }
 
-// masterFileFunc and encodeFileFunc are seams for tests: nil means mastering.Master and the real encoder registry.
-type masterFileFunc func(ctx context.Context, req mastering.Request, opts mastering.Options) (mastering.Result, error)
+// encodeFileFunc is a seam for tests: nil means the real encoder registry.
 type encodeFileFunc func(ctx context.Context, wav, dst string, spec encodeport.Spec) error
 
 // exportPaths checks what ExportStart was sent: at least one item, each picked in this session (docs/architecture/threat-model.md's own
 // discipline, applied to the export flow's own picker), each once, every kind but "chapter" at most once, and every
-// chapter with a title (packager.Assemble needs one to name its file).
+// chapter with a title that is more than spaces (packager.Assemble needs one to name its file). Titles come back trimmed.
 func (h *Host) exportPaths(items []ExportItem) ([]ExportItem, error) {
 	if len(items) == 0 {
 		return nil, errors.New("choose at least one file to export")
@@ -267,8 +297,11 @@ func (h *Host) exportPaths(items []ExportItem) ([]ExportItem, error) {
 			item.Kind != string(packager.KindCreditsClosing) && item.Kind != string(packager.KindRetailSample) {
 			return nil, fmt.Errorf("%q is not a package item kind", item.Kind)
 		}
-		if item.Kind == string(packager.KindChapter) && item.Title == "" {
-			return nil, fmt.Errorf("%q has no chapter title", item.Path)
+		// A title is a file name in the package and the DAW region a chapter renders from: one with no character a narrator can see
+		// (spaces, a zero-width space, a direction mark) is none. The refusal names the file, not its whole path.
+		title := strings.TrimSpace(item.Title)
+		if item.Kind == string(packager.KindChapter) && !hasVisibleRune(title) {
+			return nil, fmt.Errorf("%q has no chapter title", filepath.Base(clean))
 		}
 		if item.Kind != string(packager.KindChapter) && seenKind[item.Kind] {
 			return nil, fmt.Errorf("only one %s file is expected", item.Kind)
@@ -277,33 +310,48 @@ func (h *Host) exportPaths(items []ExportItem) ([]ExportItem, error) {
 			continue
 		}
 		seenPath[clean], seenKind[item.Kind] = true, true
-		out = append(out, ExportItem{Kind: item.Kind, Title: item.Title, Path: clean})
+		out = append(out, ExportItem{Kind: item.Kind, Title: title, Path: clean})
 	}
 	return out, nil
 }
 
+// hasVisibleRune is whether s has a character a reader can see: not a space, a control or a format character (U+200B, U+202E).
+func hasVisibleRune(s string) bool {
+	for _, r := range s {
+		if !unicode.IsSpace(r) && !unicode.Is(unicode.Cf, r) && !unicode.IsControl(r) {
+			return true
+		}
+	}
+	return false
+}
+
 // startExport masters (if requested) and encodes every item in the background; only one export runs at once.
 func (h *Host) startExport(req ExportRequest) (ExportJob, error) {
-	items, err := h.exportPaths(req.Items)
+	svc := h.services()
+	plan, err := h.planExport(svc, req)
 	if err != nil {
 		return ExportJob{}, err
 	}
+	approval, err := h.approvalFor(plan, req.Approval)
+	if err != nil {
+		return ExportJob{}, err
+	}
+	items, row := plan.items, plan.row
 	format := req.Format
 	if format == "" {
 		format = "mp3"
-	}
-	svc := h.services()
-	if svc.config.projectFolder == "" {
-		return ExportJob{}, errors.New("open a project before exporting")
 	}
 	profile, _, _ := h.selectedDeliveryProfile(svc)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	id := fmt.Sprintf("export-%d", time.Now().UnixNano())
 	ctx = runlog.WithRun(ctx, h.jobRuns.begin(h.runLog, id, jobKindRenderExport, "file_count", len(items), "master", req.Master))
-	job := &exportJob{id: id, phase: "running", started: time.Now(), cancel: cancel, master: req.Master, format: format}
+	job := &exportJob{id: id, phase: "running", started: time.Now(), cancel: cancel, master: req.Master, provider: row.Name, format: format}
 	job.message = fmt.Sprintf("Preparing %d files.", len(items))
 	job.logs = []string{job.message}
+	if req.Master {
+		job.logs = append(job.logs, fmt.Sprintf("Mastering with %s.", row.Descriptor.Label))
+	}
 	for _, item := range items {
 		weight := int64(1)
 		if info, err := os.Stat(item.Path); err == nil {
@@ -323,15 +371,11 @@ func (h *Host) startExport(req ExportRequest) (ExportJob, error) {
 	h.exportJob = job
 	h.mu.Unlock()
 
-	masterFile := h.masterFile
-	if masterFile == nil {
-		masterFile = mastering.Master
-	}
 	encodeFile := h.encodeFile
 	if encodeFile == nil {
 		encodeFile = encodeFor(format)
 	}
-	go h.runExport(ctx, job, items, svc.config.projectFolder, profile, req.Master, format, masterFile, encodeFile)
+	go h.runExport(ctx, job, items, plan.regions, svc.config.projectFolder, profile, req.Master, row, approval, format, encodeFile)
 	return job.snapshot(), nil
 }
 
@@ -350,14 +394,15 @@ func encodeFor(format string) encodeFileFunc {
 // runExport masters (if asked) then encodes each item in turn. A panic ends the job as an error rather than taking
 // the app down, matching runMeasure.
 func (h *Host) runExport(
-	ctx context.Context, job *exportJob, items []ExportItem, projectFolder string, profile deliveryprofile.Profile,
-	master bool, format string, masterFile masterFileFunc, encodeFile encodeFileFunc,
+	ctx context.Context, job *exportJob, items []ExportItem, regions []string, projectFolder string, profile deliveryprofile.Profile,
+	master bool, row port.Entry[masteringport.Mastering], approval masteringApproved, format string, encodeFile encodeFileFunc,
 ) {
 	defer job.cancel()
 	defer func() {
 		var broken error
 		if recovered := recover(); recovered != nil {
 			broken = fmt.Errorf("%v", recovered)
+			h.tracer.Emit(trace.AppPanic, trace.EnumValue("where", "export_job"))
 			runlog.FromContext(ctx).Event(slog.LevelError, "export.panic", "the export stopped unexpectedly: "+broken.Error())
 		}
 		job.finish(ctx.Err() != nil && broken == nil, broken)
@@ -366,6 +411,10 @@ func (h *Host) runExport(
 	masteredDir, encodedDir := exportScratchDir(projectFolder, "mastered"), exportScratchDir(projectFolder, "encoded")
 	if err := os.MkdirAll(encodedDir, 0o755); err != nil {
 		panic(err)
+	}
+	var chain masteringport.Mastering
+	if master {
+		chain = row.New()
 	}
 	for index, item := range items {
 		if ctx.Err() != nil {
@@ -380,19 +429,32 @@ func (h *Host) runExport(
 				job.fail(index, err)
 				continue
 			}
+			region := regions[index]
 			masteredPath = filepath.Join(masteredDir, fmt.Sprintf("%02d-%s.wav", index+1, string(item.Kind)))
 			_ = os.Remove(masteredPath) // a rerun's earlier scratch file is never the narrator's own data
-			mastered, err := masterFile(ctx, mastering.Request{Source: source, Destination: masteredPath, Profile: profile},
-				mastering.Options{Progress: func(done, total int64) { job.progress(index, done, total) }})
+			mastered, err := chain.Master(ctx, masteringport.Request{
+				Source: source, Region: region, Macro: approval.macro, Approved: approval.approved, ChainDigest: approval.chainDigest,
+				Destination: masteredPath, Profile: profile,
+				Progress: func(done, total int64) { job.progress(index, done, total) },
+			})
 			if ctx.Err() != nil {
+				return
+			}
+			// A chain the narrator did not approve, or a REAPER that does not answer the read, would refuse every later file the same
+			// way (and, for the read, after the same wait): the export stops at this file.
+			if errors.Is(err, masteringport.ErrChainChanged) || errors.Is(err, masteringport.ErrNoChainDigest) || errors.Is(err, masteringport.ErrChainNoAnswer) {
+				job.stop(index, err)
 				return
 			}
 			if err != nil {
 				job.fail(index, err)
 				continue
 			}
-			summary := summarizeMastering(mastered)
-			result, source = &summary, masteredPath
+			if mastered.BuiltinReport != nil {
+				summary := summarizeMastering(*mastered.BuiltinReport)
+				result = &summary
+			}
+			source = masteredPath
 			job.completeStage(index, 0.5)
 		}
 		job.begin(index, exportFileEncoding)

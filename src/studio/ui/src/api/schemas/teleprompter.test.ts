@@ -29,6 +29,8 @@ describe('teleprompterEventSchema', () => {
     ['zero-width extra flag', { type: 'flag', id: 2, kind: 'extra', start: 4, end: 4, heard: 'slowly' }],
     ['skipped flag', { type: 'flag', id: 3, kind: 'skipped', start: 10, end: 22, heard: '' }],
     ['restart flag', { type: 'flag', id: 4, kind: 'restart', start: 24, end: 29, heard: 'at sea a small boat' }],
+    ['confirmed flag check', { type: 'flag_check', id: 4, state: 'confirmed' }],
+    ['cleared flag check', { type: 'flag_check', id: 2, state: 'cleared' }],
   ])('accepts a %s event', (_name, event) => {
     expect(parseWire(teleprompterEventSchema, event, ctx)).toEqual(event);
   });
@@ -56,6 +58,8 @@ describe('teleprompterEventSchema', () => {
     ['a script span with a bad kind', { ...script, spans: [{ kind: 'heading', id: 'x', index: 0, start: 0, count: 1 }] }, 'spans[0].kind'],
     ['a flag of a kind the UI does not know', { type: 'flag', id: 1, kind: 'mumbled', start: 1, end: 2, heard: 'x' }, 'kind'],
     ['a flag that ends before it starts', { type: 'flag', id: 1, kind: 'misread', start: 5, end: 4, heard: 'x' }, 'end'],
+    ['a flag check with a state the UI does not know', { type: 'flag_check', id: 1, state: 'maybe' }, 'state'],
+    ['a flag check with no id', { type: 'flag_check', state: 'cleared' }, 'id'],
     ['a flag with no heard text', { type: 'flag', id: 1, kind: 'skipped', start: 1, end: 2 }, 'heard'],
   ])('rejects %s and names the path', (_name, event, path) => {
     try {
@@ -68,7 +72,17 @@ describe('teleprompterEventSchema', () => {
   });
 
   it('lists the event types the UI understands, so an unknown one can be told from a malformed one', () => {
-    expect([...TELEPROMPTER_EVENT_TYPES].sort()).toEqual(['flag', 'level', 'meter_stopped', 'partial', 'position', 'script', 'segment_end', 'word']);
+    expect([...TELEPROMPTER_EVENT_TYPES].sort()).toEqual([
+      'flag',
+      'flag_check',
+      'level',
+      'meter_stopped',
+      'partial',
+      'position',
+      'script',
+      'segment_end',
+      'word',
+    ]);
   });
 });
 

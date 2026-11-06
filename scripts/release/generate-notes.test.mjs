@@ -30,54 +30,30 @@ function releaseNotes(env) {
   return readFileSync(destination, 'utf8');
 }
 
-// The program is AGPL-3.0-or-later and bundles GPL-family code (owner decision D17): the licences and the source offer travel as their own
-// release asset, so the notes point at it.
-test('the release notes point at the third-party notices and the source offer', () => {
-  const notes = releaseNotes({});
+// Install, the unsigned warning, licences and verification live in the README (one place); the release page shows the changes and
+// a single line that links there.
+test('the release notes show the changes and one line linking to the README, and none of the install or licence text', () => {
+  const notes = releaseNotes({ GITHUB_REPOSITORY: `${BRAND.repository.slug}` });
+  const slug = BRAND.repository.slug;
 
-  assert.match(notes, /## Licences and source/);
-  assert.match(notes, new RegExp(`\`${esc(PREFIX)}-0\\.1\\.0-THIRD-PARTY-NOTICES\\.txt\``));
-  assert.match(notes, /AGPL-3\.0-or-later/);
+  assert.match(notes, /## Added\n\n- a thing \([0-9a-f]+\)/);
+  assert.match(notes, new RegExp(`\\[README\\]\\(https://github\\.com/${esc(slug)}#install-on-windows\\)`));
+  assert.match(notes, new RegExp(`\\[licences\\]\\(https://github\\.com/${esc(slug)}#license\\)`));
+  assert.equal(notes.trim().split('\n').filter((line) => /README/.test(line)).length, 1);
+  for (const gone of ['Installing on Windows', 'Licences and source', 'Verifying this download', 'SmartScreen', 'THIRD-PARTY-NOTICES', 'gh attestation', '-setup.exe', '.zip', EXE]) {
+    assert.ok(!notes.includes(gone), `still in the notes: ${gone}`);
+  }
 });
 
-test('the release notes tell a narrator how to verify a download against the repository that built it', () => {
+test('the changes come first and the link line is last', () => {
   const notes = releaseNotes({ GITHUB_REPOSITORY: `${BRAND.repository.slug}` });
 
-  assert.match(notes, /## Verifying this download/);
-  assert.match(notes, new RegExp(`gh attestation verify <file> --repo countrymanprime\\/${esc(PREFIX)}`));
+  assert.ok(notes.indexOf('## Added') === 0);
+  assert.ok(notes.trim().split('\n').at(-1).startsWith('Install, update, licences'));
 });
 
-test('the changes still come first and the verification section last', () => {
-  const notes = releaseNotes({ GITHUB_REPOSITORY: `${BRAND.repository.slug}` });
-
-  assert.ok(notes.indexOf('## Features') > 0);
-  assert.ok(notes.indexOf('## Features') < notes.indexOf('## Verifying this download'));
-});
-
-test('the verification section names a placeholder when the repository is not known', () => {
-  const notes = releaseNotes({ GITHUB_REPOSITORY: '' });
-
-  assert.match(notes, /--repo <owner>\/<repo>/);
-});
-
-// The first stable release is unsigned (owner decision D7): the notes say so and say what a narrator will see, instead of leaving the
-// SmartScreen warning to look like a fault.
-test('the release notes say how to install on Windows and that the download is unsigned', () => {
-  const notes = releaseNotes({ GITHUB_REPOSITORY: `${BRAND.repository.slug}` });
-
-  assert.match(notes, /## Installing on Windows/);
-  assert.match(notes, new RegExp(`\`${esc(PREFIX)}-0\\.1\\.0-windows-x64-setup\\.exe\``));
-  assert.match(notes, /unsigned/i);
-  assert.match(notes, /More info/);
-  assert.match(notes, /Run anyway/);
-  assert.match(notes, new RegExp(`\`${esc(PREFIX)}-0\\.1\\.0-windows-x64\\.zip\``));
-});
-
-test('the install section comes after the changes and before the verification section', () => {
-  const notes = releaseNotes({ GITHUB_REPOSITORY: `${BRAND.repository.slug}` });
-
-  assert.ok(notes.indexOf('## Features') < notes.indexOf('## Installing on Windows'));
-  assert.ok(notes.indexOf('## Installing on Windows') < notes.indexOf('## Verifying this download'));
+test('the link names the repository the workflow runs in', () => {
+  assert.match(releaseNotes({ GITHUB_REPOSITORY: 'someone/else' }), /https:\/\/github\.com\/someone\/else#install-on-windows/);
 });
 
 // Runs the script for `tag` in a throwaway repository built from `history`: each step makes an empty commit and/or creates a tag,

@@ -101,6 +101,33 @@ describe('continuous scroll with the spy', () => {
     expect(said).toHaveLength(1);
   });
 
+  it('moves focus to the chapter heading it jumped to, so the next Tab and a screen reader start there (#2902)', () => {
+    vi.spyOn(overlay, 'announce').mockImplementation(() => undefined);
+    const { rerender } = render(<Reader {...props()} />);
+    rerender(<Reader {...props({ pendingJump: 'c2' })} />);
+    const heading = document.querySelector<HTMLElement>('[data-ch="c2"] h2');
+    expect(heading?.getAttribute('tabindex')).toBe('-1');
+    expect(document.activeElement).toBe(heading);
+    rerender(<Reader {...props({ pendingJump: null })} />);
+    expect(document.activeElement).toBe(heading);
+  });
+
+  it('leaves focus in the chapter list when the jump came from it, so Down still steps to the next chapter (#2902)', () => {
+    vi.spyOn(overlay, 'announce').mockImplementation(() => undefined);
+    render(
+      <ul aria-label="Chapters">
+        <li>
+          <button>Chapter 2</button>
+        </li>
+      </ul>,
+    );
+    const item = screen.getByRole('button', { name: 'Chapter 2' });
+    const { rerender } = render(<Reader {...props()} />);
+    item.focus();
+    rerender(<Reader {...props({ pendingJump: 'c2' })} />);
+    expect(document.activeElement).toBe(item);
+  });
+
   it('tells its owner which chapter is in view, once per change', () => {
     const onChapterInView = vi.fn();
     render(<Reader {...props({ onChapterInView })} />);
@@ -358,6 +385,24 @@ describe('Find', () => {
     const { container } = render(<Reader {...props({ find })} />);
     expect(container.querySelectorAll('mark')).toHaveLength(2);
     expect(container.querySelector('.a-find-cur')?.textContent).toBe('line');
+  });
+
+  it('choosing the match that is already current scrolls it into view again', () => {
+    // The current match sits 600 px below the reader's top; the reader brings it to a third of its height (0 here).
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
+      const top = this.classList.contains('a-find-cur') ? 600 - (scrolls.get(scroller()) ?? 0) : 0;
+      return { top, left: 0, right: 0, bottom: top, width: 0, height: 0, x: 0, y: top, toJSON: () => ({}) } as DOMRect;
+    });
+    const matches = [{ paragraphId: 'p4', start: 2, end: 6 }];
+    const { rerender } = render(<Reader {...props({ find: { matches, current: 0, request: 1 } })} />);
+    expect(scrolls.get(scroller())).toBe(600);
+    scrollTo(0);
+    // The same match, not chosen again: the narrator's scroll stands.
+    rerender(<Reader {...props({ find: { matches, current: 0, request: 1 } })} />);
+    expect(scrolls.get(scroller())).toBe(0);
+    // Chosen again from the menu: back into view.
+    rerender(<Reader {...props({ find: { matches, current: 0, request: 2 } })} />);
+    expect(scrolls.get(scroller())).toBe(600);
   });
 });
 

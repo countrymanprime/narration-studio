@@ -1,6 +1,6 @@
 # GLiNER spike: licence, pins, footprint and quality
 
-**Date:** 2026-10-11. **Issue:** [#1139](https://github.com/countrymanprime/narration-studio/issues/1139), Phase 1 of the [Studio Next extraction PRD](../prds/studio-next-extraction-and-analysis-tools.prd.md). **Answers:** can the app offer GLiNER as an optional download, which exact artifact, under which licence, at what cost.
+**Date:** 2026-10-11. **Issue:** [#1139](https://github.com/countrymanprime/narration-studio/issues/1139), Phase 1 of the Studio Next extraction PRD. **Answers:** can the app offer GLiNER as an optional download, which exact artifact, under which licence, at what cost.
 
 **Verdict: ship behind "not yet available"** (2026-10-11; every file was pinned on 2026-10-26, [below](#pinned-and-loaded-2026-10-26)). The artifact `urchade/gliner_small-v2.1` is Apache-2.0 and its bytes are pinned below, but two things stay open until an owner run: the footprint and quality on this repo's fixture were not measured in this session, and the only published weight format for the small model is a pickle. The adapter (SNX-7a) can start from these pins; the consent screen should wait for the numbers in [Owner steps](#owner-steps).
 
@@ -35,7 +35,7 @@ The unversioned `urchade/gliner_small`, `gliner_medium` and `gliner_large` are l
 
 ## Pins
 
-All files of the install, for the PyTorch route (the route the 2026-10-10 trial ran, [`local-llm-research.md` section 9](mockups/studio-next/research/local-llm-research.md)). Host: `huggingface.co`, path `/urchade/gliner_small-v2.1/resolve/4e091416cf7c3481db542c2a3d26156916f3a47f/<file>`.
+All files of the install, for the PyTorch route (the route the 2026-10-10 trial ran, `local-llm-research.md` section 9). Host: `huggingface.co`, path `/urchade/gliner_small-v2.1/resolve/4e091416cf7c3481db542c2a3d26156916f3a47f/<file>`.
 
 | File | Size (bytes) | SHA-256 |
 | --- | --- | --- |
@@ -83,7 +83,7 @@ The `gliner` wheel, `transformers` and `torch` are Python packages. They go thro
 
 ## Runtime footprint
 
-**Not measured here.** The session has 4 vCPU and 16 GB but no PyTorch environment, and installing the 5.6 GB stack was out of proportion for a docs slice. The figures below are the 2026-10-10 trial's, on a 4-vCPU CPU, with `gliner_small-v2.1`, threshold 0.5, Alice chapters V to VIII ([`local-llm-research.md` sections 9.2 and 9.3](mockups/studio-next/research/local-llm-research.md)). They were measured by another session and are not re-checked here.
+**Not measured here.** The session has 4 vCPU and 16 GB but no PyTorch environment, and installing the 5.6 GB stack was out of proportion for a docs slice. The figures below are the 2026-10-10 trial's, on a 4-vCPU CPU, with `gliner_small-v2.1`, threshold 0.5, Alice chapters V to VIII (`local-llm-research.md` sections 9.2 and 9.3). They were measured by another session and are not re-checked here.
 
 | Measure | Trial figure |
 | --- | --- |

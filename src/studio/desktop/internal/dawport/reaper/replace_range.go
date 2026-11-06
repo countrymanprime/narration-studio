@@ -63,10 +63,13 @@ func (r rangeReplacer) ReplaceRange(ctx context.Context, request dawport.Replace
 	}
 	got, err := r.actions.ReplaceRange(ctx, bridge.ReplaceRangeRequest{ItemGUID: request.ItemGUID, Start: request.Start, End: request.End,
 		SourceGUID: request.SourceItemGUID, SourceStart: request.SourceStart, SourceEnd: request.SourceEnd, FadeMs: request.FadeMs,
-		GainDB: request.GainDB, ID: request.ID})
+		GainDB: request.GainDB, ID: request.ID, Folder: request.ChapterTrack})
 	var stale *bridge.StaleError
+	var folderGone *bridge.TrackStaleError
 	var refusal *bridge.RefusalError
 	switch {
+	case errors.As(err, &folderGone):
+		return dawport.RangeReplaced{Result: dawport.RefusedStale(messageFolderStale)}, nil
 	case errors.As(err, &stale) && stale.Reason == "source":
 		return dawport.RangeReplaced{Result: dawport.RefusedStale(messageReplaceSourceStale)}, nil
 	case errors.As(err, &stale):
@@ -93,10 +96,13 @@ func (r rangeReplacer) RestoreReplacement(ctx context.Context, request dawport.R
 			return refused, nil
 		}
 	}
-	got, err := r.actions.RestoreReplacement(ctx, request.ReplacementItem, request.ID)
+	got, err := r.actions.RestoreReplacementInFolder(ctx, request.ChapterTrack, request.ReplacementItem, request.ID)
 	var stale *bridge.StaleError
+	var folderGone *bridge.TrackStaleError
 	var refusal *bridge.RefusalError
 	switch {
+	case errors.As(err, &folderGone):
+		return dawport.RefusedStale(messageFolderStale), nil
 	case errors.As(err, &stale):
 		return dawport.RefusedStale(messageRestoreStale), nil
 	case errors.Is(err, bridge.ErrBadReplacement):

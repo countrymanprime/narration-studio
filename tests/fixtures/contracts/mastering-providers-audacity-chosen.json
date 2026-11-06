@@ -26,6 +26,7 @@
       "name": "builtin",
       "needs": [],
       "needsApproval": false,
+      "needsMacro": false,
       "support": {
         "available": true,
         "level": "supported"
@@ -44,6 +45,7 @@
         "master_chain_read"
       ],
       "needsApproval": true,
+      "needsMacro": false,
       "support": {
         "available": true,
         "level": "experimental"
@@ -61,6 +63,7 @@
         "macro_render"
       ],
       "needsApproval": true,
+      "needsMacro": true,
       "support": {
         "available": true,
         "level": "experimental"

@@ -2,6 +2,7 @@ package main
 
 import (
 	"desktop/internal/brand"
+	"desktop/internal/trace"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -127,20 +128,28 @@ func TestContractDictionaryLookup(t *testing.T) {
 	contractfile.Check(t, "system-lookup-asset-required", dictionaryAssetRequired(entry, "not_installed", "C:/Users/narrator/AppData/Local/"+brand.DataFolder+"/assets/dictionary/oewn/oewn-2025/2025"))
 }
 
-// TestContractCopyDiagnostics pins SystemCopyDiagnostics's answer shape.
-func TestContractCopyDiagnostics(t *testing.T) {
+// TestContractSaveDiagnostics pins SystemSaveDiagnostics's and SystemDiagnosticsPreview's answer shapes.
+func TestContractSaveDiagnostics(t *testing.T) {
 	t.Setenv("APPDATA", t.TempDir())
 	host := newTestHost(t)
+	host.version = "0.0.0-test"
+	host.tracer = trace.New(trace.Options{})
 	host.diagnosticsNow = func() time.Time { return time.Date(2026, 9, 26, 12, 0, 0, 0, time.UTC) }
-	host.runLog.Begin("guide").End("ok")
 	folder := t.TempDir()
 	host.pickDiagnosticsFolder = func() (string, error) { return folder, nil }
-	path, err := host.copyDiagnostics(CopyDiagnosticsLastRun)
+	path, err := host.saveDiagnostics()
 	if err != nil {
 		t.Fatal(err)
 	}
 	fixed := strings.ReplaceAll(filepath.ToSlash(path), filepath.ToSlash(folder), "C:/Users/narrator/Documents")
-	contractfile.Check(t, "system-copy-diagnostics", map[string]any{"path": fixed})
+	contractfile.Check(t, "system-save-diagnostics", map[string]any{"path": fixed})
+	bundle, err := host.buildDiagnostics()
+	if err != nil {
+		t.Fatal(err)
+	}
+	preview := bundle.Preview()
+	preview.LeakCheck.Terms = 0 // the account and home folder names differ by machine
+	contractfile.Check(t, "system-diagnostics-preview", preview)
 }
 
 // The approved catalogs, built from the repository's real config files with nothing installed, and the install jobs.
@@ -198,6 +207,7 @@ func TestContractAssetsListAndVerify(t *testing.T) {
 	}
 	// The cache folder is a per-machine path; the golden holds a fixed one so the file is the same everywhere.
 	list["cacheRoot"] = "C:/Users/narrator/AppData/Local/" + brand.DataFolder + "/assets"
+	list["defaultRoot"] = "C:/Users/narrator/AppData/Local/" + brand.DataFolder + "/assets"
 	for _, entry := range list["assets"].([]map[string]any) {
 		entry["path"] = "C:/Users/narrator/AppData/Local/" + brand.DataFolder + "/assets/" + entry["kind"].(string) + "/" + entry["id"].(string)
 	}
@@ -207,6 +217,24 @@ func TestContractAssetsListAndVerify(t *testing.T) {
 	contractfile.Check(t, "asset-install-unpack-error", snapshotInstall(&installJob{id: "analysis-1", kind: installKindAnalysis, assetID: "booknlp-small", phase: installPhaseError, message: unpack, errorText: unpack,
 		errorDetail: "Unpacking torch-2.14.1-cp312-cp312-win_amd64.whl: open: Access is denied.", done: 220000000, total: 220000000}))
 	contractfile.Check(t, "assets-verify", map[string]any{"kind": "tts", "id": "en_US-ljspeech-high", "installState": "verification_failed"})
+}
+
+// Moving the downloads to another folder: the job the three move bindings answer with, while it copies and when it failed, and the list of a
+// host whose downloads were moved and whose old copy has not been answered for.
+func TestContractAssetsMove(t *testing.T) {
+	copying := &Host{}
+	copying.modelsMove.phase, copying.modelsMove.id, copying.modelsMove.target = movePhaseCopying, "move-1", "D:/Audio/Narration models"
+	copying.modelsMove.started = time.Date(2026, 11, 4, 12, 0, 0, 0, time.UTC)
+	copying.modelsMove.message, copying.modelsMove.done, copying.modelsMove.total = "Copying the models…", 600000000, 2400000000
+	contractfile.Check(t, "assets-move-copying", copying.modelsMoveSnapshot())
+	failed := &Host{}
+	failed.modelsMove.phase, failed.modelsMove.id, failed.modelsMove.target = movePhaseError, "move-1", "D:/Audio/Narration models"
+	failed.modelsMove.started = time.Date(2026, 11, 4, 12, 0, 0, 0, time.UTC)
+	failed.modelsMove.errorText = moveFailureText(&assets.InsufficientSpaceError{Need: 2_500_000_000, Free: 1_000_000_000})
+	failed.modelsMove.message, failed.modelsMove.done, failed.modelsMove.total = failed.modelsMove.errorText, 600000000, 2400000000
+	contractfile.Check(t, "assets-move-error", failed.modelsMoveSnapshot())
+	contractfile.Check(t, "assets-move-idle", (&Host{}).modelsMoveSnapshot())
+	contractfile.Check(t, "assets-folder-pick", map[string]any{"path": "D:/Audio/Narration models"})
 }
 
 func TestContractAFirstUseGateForAModel(t *testing.T) {
@@ -704,4 +732,45 @@ func TestContractRetiredTakeFindings(t *testing.T) {
 func TestContractManuscriptDropped(t *testing.T) {
 	contractfile.Check(t, "manuscript-dropped-begun", map[string]any{"jobId": "import-1", "name": "Alice in Wonderland.docx"})
 	contractfile.Check(t, "manuscript-dropped-refused", NewHost().beginDropped([]string{"/a.txt", "/b.txt"}))
+}
+
+// What CreditsChanged sends: a JSON boolean. False for the shipped library, true once a shipped template is edited, and true for a
+// project that has credits values of its own although the library is untouched.
+func TestContractCreditsChangedIsABooleanForTheLibraryAndTheProjectValues(t *testing.T) {
+	t.Setenv("APPDATA", t.TempDir())
+	folder := t.TempDir()
+	host := newTestHost(t)
+	host.config.projectFolder = folder
+	host.config.projectName = "Alice"
+	host.settings = settings.New(layout.FindRoot("."), folder)
+	asked := func(want string) {
+		t.Helper()
+		got, err := host.CreditsChanged()
+		if err != nil || got != want {
+			t.Fatalf("CreditsChanged = %q, %v; want %s", got, err, want)
+		}
+	}
+	templates, err := host.creditTemplates.List()
+	if err != nil {
+		t.Fatal(err)
+	}
+	asked("false")
+	contractfile.Check(t, "credits-changed-default", false)
+	if _, err := host.CreditsSaveProjectValues("", "", "", "", "", "", "", "", "", "   "); err != nil {
+		t.Fatal(err)
+	}
+	asked("false")
+	if _, err := host.CreditsSaveProjectValues("Alice", "", "", "", "", "", "", "", "", ""); err != nil {
+		t.Fatal(err)
+	}
+	asked("true")
+	if _, err := host.CreditsSaveProjectValues("", "", "", "", "", "", "", "", "", ""); err != nil {
+		t.Fatal(err)
+	}
+	asked("false")
+	if _, err := host.CreditsSaveTemplate(templates[0].ID, templates[0].Kind, templates[0].Name, templates[0].Body+" Thank you."); err != nil {
+		t.Fatal(err)
+	}
+	asked("true")
+	contractfile.Check(t, "credits-changed", true)
 }

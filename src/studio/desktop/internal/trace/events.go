@@ -35,3 +35,23 @@ var (
 	// DawEventRejected is an event from the REAPER script that the app could not read.
 	DawEventRejected = Define("daw", "event_rejected", LevelWarn, EnumField("kind", "reaper_event_invalid"))
 )
+
+var (
+	// AppPanic is a panic the host caught and survived, and where it was caught.
+	AppPanic = Define("app", "panic", LevelError,
+		EnumField("where", "measure_job", "multi_package_job", "export_job", "install_job", "diagnostics_job", "package_job"))
+	// TraceSwitched is the narrator turning the disk trace on or off.
+	TraceSwitched = Define("app", "trace_switched", LevelInfo, BoolField("enabled"))
+
+	// SidecarStart is a sidecar process launched: its program kind (the executable's name, never its arguments) and how.
+	SidecarStart = Define("sidecar", "start", LevelInfo,
+		IDField("kind"), EnumField("mode", "run", "start", "stream"))
+	// SidecarExit is a sidecar process that ended: milliseconds to its first output (-1 when it wrote none), its total
+	// time and its exit code.
+	SidecarExit = Define("sidecar", "exit", LevelInfo,
+		IDField("kind"), EnumField("mode", "run", "start", "stream"),
+		IntField("first_output_ms"), DurField("total"), IntField("exit_code"))
+	// SidecarStartFailed is a sidecar that could not be launched.
+	SidecarStartFailed = Define("sidecar", "start_failed", LevelWarn,
+		IDField("kind"), EnumField("mode", "run", "start", "stream"), ErrField("err"))
+)

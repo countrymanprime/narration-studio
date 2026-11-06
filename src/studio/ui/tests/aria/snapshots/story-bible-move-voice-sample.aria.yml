@@ -3,8 +3,6 @@
 - status
 - alert
 - status
-- alert
-- status
 - dialog "Move voice sample":
   - heading "Move voice sample" [level=2]
   - button "Close"

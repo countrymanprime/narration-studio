@@ -83,6 +83,31 @@ func TestWordsMatchCloseSpellingsOfLongerWordsButNotShortOrUnrelatedOnes(t *test
 	}
 }
 
+// The engine writes a spoken word its own way: a homophone, a number as digits or a possessive. Position matching forgives the
+// same single-word forms Transcript Compare and the flags do (compare.SpokenKey), so the cursor does not stall on them.
+func TestWordsMatchForgivesTheSpokenFormsOfASingleWord(t *testing.T) {
+	for _, pair := range [][2]string{{"their", "there"}, {"youre", "your"}, {"12", "twelve"}, {"twelve", "12"}, {"kings", "king's"}, {"nite", "nite"}} {
+		if !LiveWordsMatch(NormalizeWord(pair[0]), NormalizeWord(pair[1])) {
+			t.Errorf("%q and %q are said alike but differ", pair[0], pair[1])
+		}
+	}
+	for _, pair := range [][2]string{{"their", "them"}, {"12", "13"}, {"twelve", "thirteen"}, {"'", "'"}} {
+		if pair[0] != pair[1] && LiveWordsMatch(pair[0], pair[1]) {
+			t.Errorf("%q and %q are said differently but match", pair[0], pair[1])
+		}
+	}
+}
+
+func TestATrackerWithSpokenFormsFollowsAHomophoneAndANumberInTheScript(t *testing.T) {
+	script := norm("they left their keys at 12 Main Street")
+	if got := Locate(norm("they left there keys at twelve main street"), script, 0); got.Matched == len(script) {
+		t.Fatalf("a tracker without spoken forms matches by spelling alone: %+v", got)
+	}
+	if got := New(script).SpokenForms().locate(norm("they left there keys at twelve main street"), script, 0); got.Read != len(script) || got.Matched != len(script) {
+		t.Fatalf("%+v", got)
+	}
+}
+
 func TestAdvanceFollowsTheScriptInOrder(t *testing.T) {
 	if got := Advance(norm("the old lighthouse keeper"), norm(lighthouseScript), 0); got != (Alignment{4, 4, 0}) {
 		t.Fatalf("%+v", got)

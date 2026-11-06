@@ -2,12 +2,15 @@ import { useEffect, useState } from 'react';
 import type { DawCapabilitySupport } from '../../../api/contracts/daw';
 import type { RecordingEngine, RecorderDevice } from '../../../api/contracts/recording';
 import type { TeleprompterDevice } from '../../../api/contracts/teleprompter';
+import { apiErrorMessage } from '../../../api/errorMessage';
 import { useErrorToast } from '../../../hooks/useErrorToast';
 import { usePort } from '../../../ports/usePort';
 import { Button } from '../../primitives/Button';
 import { IconButton } from '../../primitives/IconButton';
 import { LevelMeter } from '../../primitives/LevelMeter';
 import { Popover } from '../../primitives/Popover';
+import { RadioGroup } from '../../primitives/RadioGroup';
+import { SplitSide } from '../../primitives/SplitButton';
 import { Select } from '../../primitives/Select';
 import { NumberInput } from '../../primitives/NumberInput';
 import { Slider } from '../../primitives/Slider';
@@ -49,6 +52,8 @@ export type LevelsMenuProps = {
    * why. `device` is the microphone listened on.
    */
   listen?: ListenProps;
+  /** With the built-in recorder: why the microphone shown is the one shown, when the narrator did not choose it (it is the one this project last recorded with). */
+  micNote?: string;
   /**
    * What the DAW says about setting the levels (its `monitor_level` and `input_level` capabilities): the two sliders the mock's menu has, and
    * about reading its own meters (`daw_meters`), shown under them. Absent until the capabilities are read, and then there are no sliders to
@@ -67,6 +72,13 @@ export type LevelsMenuProps = {
   recorderMeter?: boolean;
   /** A take records: the built-in meter is not started, and the take's own level moves its row. */
   recording?: boolean;
+  /**
+   * What the main button does, chosen at the top of the menu: Record, or a cold read (listen and follow with the ghost, record nothing). The
+   * side button takes the cold read's outline while it is chosen. Absent, the menu offers no choice. `locked` while a take or a cold read runs.
+   */
+  mainButton?: { cold: boolean; onChange: (cold: boolean) => void; locked: boolean };
+  /** Something about listening needs attention: a dot on the side button, so it is seen with the menu closed. */
+  warn?: boolean;
   level: InputLevel | null;
   error: string | null;
   open: boolean;
@@ -79,11 +91,22 @@ function useRecorderDevices(): { devices: RecorderDevice[] | null; problem: stri
   const [listed, setListed] = useState<{ devices: RecorderDevice[] | null; problem: string | null }>({ devices: null, problem: null });
   useEffect(() => {
     let cancelled = false;
-    void recording.recorderDevices().then((result) => {
-      if (!cancelled) setListed({ devices: result.devices, problem: result.error });
-    });
+    const read = () =>
+      void recording
+        .recorderDevices()
+        .then((result) => {
+          if (!cancelled) setListed({ devices: result.devices, problem: result.error });
+        })
+        .catch((reason: unknown) => {
+          // A listing that fails says why, with an empty list, rather than leaving "Listing microphones…" up for good.
+          if (!cancelled) setListed({ devices: [], problem: apiErrorMessage(reason) });
+        });
+    read();
+    // The narrator may plug a microphone in or out and come back: the window's focus lists them again.
+    window.addEventListener('focus', read);
     return () => {
       cancelled = true;
+      window.removeEventListener('focus', read);
     };
   }, [recording]);
   return listed;
@@ -109,7 +132,7 @@ function Devices({
     );
   const options = [
     ...(device === '' ? [{ value: '', label: 'Choose a microphone…' }] : []),
-    ...devices.map((d) => ({ value: d.name, label: d.name })),
+    ...devices.filter((d) => d.name.trim() !== '').map((d) => ({ value: d.name, label: d.name })),
     ...(device !== '' && !devices.some((d) => d.name === device) ? [{ value: device, label: `${device} (not found)` }] : []),
   ];
   return <Select label="Microphone" fullWidth value={device} options={options} onChange={onDevice} />;
@@ -501,9 +524,12 @@ export function LevelsMenu({
   device,
   onDevice,
   listen,
+  micNote,
   levels,
   recorderMeter = false,
   recording = false,
+  mainButton,
+  warn = false,
   level,
   error,
   open,
@@ -514,17 +540,37 @@ export function LevelsMenu({
   const ownMeter = engine === 'builtin' && recorderMeter;
   return (
     <Popover
-      label="Levels"
+      label="Record options"
       side="top"
+      // In a window as small as 320x300 the Booth's own bars leave a strip a few lines tall: the popup is measured against the window and scrolls
+      // inside itself instead of being cut down to that strip.
+      fitToWindow
       // A control in the menu can leave the Booth (Turn on in Settings): a footswitch Enter right after opening must not press it.
       focusPopup
       open={open}
       onOpenChange={onOpenChange}
-      trigger={<IconButton action="levels" label="Levels" id="blevels" aria-haspopup="dialog" />}
+      trigger={<SplitSide label="Record options" id="blevels" aria-haspopup="dialog" tone={mainButton?.cold && !recording ? 'cold' : 'primary'} badge={warn} />}
     >
-      <div className="flex w-max max-w-[min(26rem,calc(100vw-4rem))] min-w-72 flex-col gap-4">
+      <div className="flex w-max max-w-[min(26rem,calc(100vw-5.5rem))] min-w-[min(18rem,100%)] flex-col gap-4">
+        {mainButton ? (
+          <div className="flex flex-col gap-1.5">
+            <span className={SECTION_LABEL}>Main button</span>
+            <RadioGroup
+              label="Main button"
+              value={mainButton.cold ? 'cold' : 'record'}
+              onChange={(next) => mainButton.onChange(next === 'cold')}
+              options={[
+                { value: 'record', label: 'Record', disabled: mainButton.locked },
+                { value: 'cold', label: 'Cold read', disabled: mainButton.locked },
+              ]}
+            />
+          </div>
+        ) : null}
         {ownMeter ? (
-          <BuiltinInput device={device} onDevice={onDevice} recording={recording} />
+          <>
+            <BuiltinInput device={device} onDevice={onDevice} recording={recording} />
+            {micNote ? <p className={MUTED}>{micNote}</p> : null}
+          </>
         ) : (
           <>
             <div className="flex flex-col gap-1.5">
@@ -534,7 +580,10 @@ export function LevelsMenu({
             <div className="flex flex-col gap-1.5">
               <span className={SECTION_LABEL}>Microphone</span>
               {engine === 'builtin' ? (
-                <BuiltinDevices device={device} onDevice={onDevice} />
+                <>
+                  <BuiltinDevices device={device} onDevice={onDevice} />
+                  {micNote ? <p className={MUTED}>{micNote}</p> : null}
+                </>
               ) : (
                 <>
                   {off ? <div className="text-sm text-[var(--text)]">{offReason ?? `${dawName} is not running`}</div> : null}

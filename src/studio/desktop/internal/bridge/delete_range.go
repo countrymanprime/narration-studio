@@ -62,6 +62,13 @@ type RangeCut struct {
 // padMs and roomTone travel after the fade in delete_range's last field, and only when either is asked for. A script older
 // than them reads that field as a fade that is not a number and refuses, cutting nothing: that refusal is ErrScriptOutdated.
 func (a *Actions) DeleteRange(ctx context.Context, itemGUID string, start, end float64, mode CutMode, fadeMs, padMs int, roomTone bool) (RangeCut, error) {
+	return a.DeleteRangeInFolder(ctx, "", itemGUID, start, end, mode, fadeMs, padMs, roomTone)
+}
+
+// DeleteRangeInFolder is DeleteRange for a chapter linked to a folder of voices: folderGUID rides after the room tone choice, and a close cut then
+// moves the later items of every track inside the folder, not only the item's own, so the voices stay in step. The script refuses an item that
+// is not inside the folder, and a range another voice has audio in. An empty folderGUID is DeleteRange.
+func (a *Actions) DeleteRangeInFolder(ctx context.Context, folderGUID, itemGUID string, start, end float64, mode CutMode, fadeMs, padMs int, roomTone bool) (RangeCut, error) {
 	pad := float64(padMs) / 1000
 	switch {
 	case normalizeGUID(itemGUID) == "":
@@ -80,15 +87,18 @@ func (a *Actions) DeleteRange(ctx context.Context, itemGUID string, start, end f
 		return RangeCut{}, fmt.Errorf("%w: room tone with mode %q", ErrBadRange, mode)
 	}
 	args := []string{itemGUID, formatSeconds(start), formatSeconds(end), string(mode), strconv.Itoa(fadeMs)}
-	extended := padMs > 0 || roomTone
+	extended := padMs > 0 || roomTone || folderGUID != ""
 	if extended {
 		tone := "0"
 		if roomTone {
 			tone = "1"
 		}
 		args = append(args, formatSeconds(pad), tone)
+		if folderGUID != "" {
+			args = append(args, folderGUID)
+		}
 	}
-	events, err := a.request(ctx, "delete_range", []string{"RANGE_CUT", "ITEM_STALE"}, args...)
+	events, err := a.request(ctx, "delete_range", []string{"RANGE_CUT", "ITEM_STALE", "TRACK_STALE"}, args...)
 	var refusal *RefusalError
 	if extended && errors.As(err, &refusal) && refusal.Sentence == cutBadFade {
 		return RangeCut{}, fmt.Errorf("%w: it cannot pad a cut or fill it with room tone, so nothing was cut", ErrScriptOutdated)
@@ -100,6 +110,9 @@ func (a *Actions) DeleteRange(ctx context.Context, itemGUID string, start, end f
 		return RangeCut{}, err
 	}
 	event := events[len(events)-1]
+	if event.Tag == "TRACK_STALE" {
+		return RangeCut{}, &TrackStaleError{GUID: event.Fields[2]}
+	}
 	if event.Tag == "ITEM_STALE" {
 		return RangeCut{}, &StaleError{GUID: event.Fields[2], Reason: event.Fields[3]}
 	}

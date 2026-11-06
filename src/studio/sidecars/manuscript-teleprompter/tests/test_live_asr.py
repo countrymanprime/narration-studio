@@ -1162,3 +1162,57 @@ def test_an_unknown_chapter_is_refused_with_the_chapters_there_are(tmp_path, mon
         live_asr._load_script(ap, args)
 
     assert "Chapter 'c9' was not found among the narration chapters. Choose one of: Chapter One" in capsys.readouterr().err
+
+
+def test_a_session_with_a_confirmer_prints_each_segments_check_after_its_events_and_the_last_when_input_ends(capsys):
+    confirm = pytest.importorskip("confirm")
+    args = live_asr.build_parser().parse_args(["--wav", "r.wav", "--engine", "moonshine", "--confirm-model", "tiny"])
+
+    def stream(chunks):
+        for _chunk in chunks:
+            pass
+        yield {"type": "word", "segment": 0, "word": "hi", "start": 0.0, "end": 0.4}
+        yield {"type": "segment_end", "segment": 0}
+
+    confirmer = confirm.Confirmer(lambda: lambda audio: [("hi", 0.0, 0.3)])
+    live_asr._run(args, stream, _chunks(2), confirmer)
+
+    printed = [json.loads(line) for line in capsys.readouterr().out.splitlines() if '"level"' not in line]
+    checks = [event for event in printed if event["type"] == "segment_check"]
+    assert checks == [{"type": "segment_check", "segment": 0, "words": [{"word": "hi", "start": 0.0, "end": 0.3}]}]
+    assert printed.index(checks[0]) > [e["type"] for e in printed].index("segment_end")
+
+
+def test_the_confirmation_pass_is_off_without_a_model_and_with_the_whisper_engine():
+    parse = live_asr.build_parser().parse_args
+    assert live_asr._load_confirmer(parse(["--wav", "r.wav", "--engine", "moonshine"])) is None
+    assert live_asr._load_confirmer(parse(["--wav", "r.wav", "--engine", "whisper", "--confirm-model", "tiny"])) is None
+
+
+def test_a_confirmer_that_fails_never_stops_the_live_session(capsys):
+    class Broken:
+        def tee(self, chunks):
+            return chunks
+
+        def observe(self, event):
+            raise RuntimeError("boom")
+
+        def poll(self):
+            raise RuntimeError("boom")
+
+        def finish(self):
+            raise RuntimeError("boom")
+
+        def close(self):
+            pass
+
+    args = live_asr.build_parser().parse_args(["--wav", "r.wav"])
+
+    def stream(chunks):
+        for _chunk in chunks:
+            pass
+        yield {"type": "segment_end", "segment": 0}
+
+    live_asr._run(args, stream, _chunks(1), Broken())
+
+    assert '"segment_end"' in capsys.readouterr().out

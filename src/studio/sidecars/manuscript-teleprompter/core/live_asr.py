@@ -55,6 +55,10 @@ turns them into these three event types:
         only with --locate or --align-word: the words decoded from the
         stretch of --wav, each with its seconds into the stretch, for the
         host to place (locate.py, align_word.py)
+    {"type": "segment_check", "segment": 3, "words": [{"word": "hello", "start": 2.1, "end": 2.4}]}
+        only with --confirm-model and a non-Whisper engine (confirm.py): a Whisper reading of the audio of the closed
+        segment `segment`, in the same stream time as the engine's words, printed some time after its segment_end;
+        {"type": "segment_check", "segment": 3, "error": "..."} when the check could not run. Never delays the cursor.
     {"type": "devices", "devices": [{"name": "Microphone Array (Realtek(R) Audio)"}], "error": null}
         only with --list-devices: the input devices the --mic capture path
         (iter_microphone_chunks, below) can open, by the same name dshow
@@ -722,9 +726,42 @@ def _emit(event: dict) -> None:
     print(json.dumps(event), flush=True)
 
 
-def _run(args, stream: EventStream, chunks: Iterator[np.ndarray]) -> None:
+def _load_confirmer(args):
+    """The trailing confirmation pass for this session (confirm.py), or None when it is off: no --confirm-model, or the
+    Whisper engine, which already is the second opinion. The model loads on the pass's own thread, on its first check."""
+    if not args.confirm_model or args.engine == "whisper":
+        return None
+    from confirm import Confirmer
+    from faster_whisper import WhisperModel
+
+    def load():
+        directory = args.confirm_model_dir
+        log(f"Loading the confirmation model '{args.confirm_model}'{' from the locally verified asset cache' if directory else ''}...")
+        compute_type = "int8" if args.device == "cpu" else "float16"
+        model = WhisperModel(directory or args.confirm_model, device=args.device, compute_type=compute_type, local_files_only=bool(directory))
+        return make_decoder(model, args.language, args.hotwords)
+
+    return Confirmer(load)
+
+
+def _guarded(call, *arguments):
+    """Run a confirmation-pass call; whatever it raises is logged and dropped, because the pass never stops the live read."""
+    try:
+        return call(*arguments)
+    except Exception as error:  # noqa: BLE001 - the confirmation pass is optional, the live session is not
+        log(f"The confirmation pass failed: {type(error).__name__}: {error}")
+        return None
+
+
+def _checks(confirmer, which: str) -> list[dict]:
+    """The finished checks of `confirmer` (`poll` or `finish`), none when asking fails."""
+    return _guarded(getattr(confirmer, which)) or [] if confirmer else []
+
+
+def _run(args, stream: EventStream, chunks: Iterator[np.ndarray], confirmer=None) -> None:
     """Stream engine events (with --clock, and a clock line per chunk and before each event) to stdout until the input
-    ends or Ctrl+C."""
+    ends or Ctrl+C. With a `confirmer`, each closed segment is rechecked on its own thread and the result printed as a
+    `segment_check` event, on the next chunk or event and once more when the input ends."""
     from control_channel import ControlChannel, pause_state
     from narration_common.recording import LevelMeter, metered
 
@@ -747,18 +784,31 @@ def _run(args, stream: EventStream, chunks: Iterator[np.ndarray]) -> None:
                         clock.pause() if paused else clock.resume()
                 if args.clock:
                     _emit({"type": "clock", "t": clock.now()})
+                for check in _checks(confirmer, "poll"):
+                    _emit(check)
 
             chunks = gated(ticking(chunks, clock, on_tick), lambda: clock.paused)
+        if confirmer:
+            chunks = confirmer.tee(chunks)
         for event in stream(chunks):
             if args.clock:
                 _emit({"type": "clock", "t": clock.now(), "event": True})
             _emit(event)
+            if confirmer:
+                _guarded(confirmer.observe, event)
+                for check in _checks(confirmer, "poll"):
+                    _emit(check)
             if args.timing and capture_started is not None:
                 lag = event_lag_seconds(event, clock.now())
                 if lag is not None:
                     log(f"lag {lag:.2f}s behind ({event['type']})")
     except KeyboardInterrupt:
         log("Stopped.")
+    finally:
+        if confirmer:
+            for check in _checks(confirmer, "finish"):
+                _emit(check)
+            _guarded(confirmer.close)
 
 
 # What --meter cannot be combined with: it opens a microphone and reports its level, nothing else.
@@ -912,6 +962,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="Local, already-verified model directory from the engine's asset catalog (src/studio/desktop/internal/whisper or internal/moonshine); "
         "omit to let the engine's library resolve --model itself for direct/manual CLI use (Moonshine: source runs only, the frozen sidecar requires it)",
     )
+    ap.add_argument(
+        "--confirm-model",
+        default=None,
+        help="Whisper model size (tiny/base/small) that rechecks each closed segment after the live engine (the trailing confirmation pass, "
+        "confirm.py); ignored with --engine whisper",
+    )
+    ap.add_argument("--confirm-model-dir", default=None, help="Local, already-verified directory of the --confirm-model Whisper model; never downloads")
     ap.add_argument("--language", default=None, help="Force language code, e.g. 'en' (default: auto-detect)")
     ap.add_argument("--hotwords", default=None, help="Comma-separated vocabulary hints (faster-whisper hotwords, or Moonshine key terms)")
     ap.add_argument("--context", default=None, help="Text file (e.g. the script passage) whose unusual words Moonshine is biased toward; moonshine only")
@@ -1018,7 +1075,7 @@ def main() -> None:
     stream = _load_engine(args)
     chunks = iter_wav_chunks(args.wav) if args.wav else iter_microphone_chunks(args.mic, args.chunk_seconds)
     log("Listening..." if args.mic else f"Replaying {args.wav}...")
-    _run(args, stream, chunks)
+    _run(args, stream, chunks, _load_confirmer(args))
 
 
 if __name__ == "__main__":

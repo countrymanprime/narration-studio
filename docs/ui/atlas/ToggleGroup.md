@@ -10,6 +10,7 @@ Storybook title: `Primitives/ToggleGroup`. Source: `src/components/primitives/To
 - Second Chosen
 - Choosing Moves The Press
 - Disabled Chip Is Not Chosen
+- Chip Disabled With Reason
 - Segmented
 - Segmented Measured Shapes
 
@@ -18,15 +19,18 @@ Storybook title: `Primitives/ToggleGroup`. Source: `src/components/primitives/To
 - `src/components/editing/EditingCheckPanel.tsx`
 - `src/components/editing/cleanup/CleanupHeader.tsx`
 - `src/components/editing/cleanup/CleanupInspector.tsx`
+- `src/components/editing/output/OutputControls.tsx`
 - `src/components/editing/stack/RetryBar.tsx`
+- `src/components/engine/VoicesCard.tsx`
 - `src/components/master/DiagnosticsSection.tsx`
 - `src/components/production/report/ReportDialog.tsx`
 - `src/components/production/target/TargetPopover.tsx`
+- `src/components/proof/ChapterCompare.tsx`
 - `src/components/proof/CompareRun.tsx`
 - `src/components/proof/inspector/FindingThread.tsx`
 - `src/components/script/page/chapters/PrepSegment.tsx`
 - `src/components/script/page/rail/threads/NoteCard.tsx`
-- `src/components/script/page/rail/threads/ThreadsPanel.tsx`
+- `src/components/settings/controls/AppearanceBodies.tsx`
 - `src/components/settings/page/ModelsPane.tsx`
 - `src/components/settings/page/ScopedFieldsPanel.tsx`
 - `src/components/settings/page/SettingsPage.tsx`

@@ -21,4 +21,5 @@ Storybook title: `Primitives/NumberInput`. Source: `src/components/primitives/Nu
 - `src/components/editing/cleanup/CleanupInspector.tsx`
 - `src/components/editing/effects/CoverageStrip.tsx`
 - `src/components/editing/effects/EffectSettings.tsx`
+- `src/components/editing/range/replace/ReplaceDialog.tsx`
 - `src/components/proof/proofOptions/ProofOptions.tsx`

@@ -102,3 +102,10 @@ test('labels.json holds no two labels that differ only by an area: prefix', () =
     bare.set(key, name);
   }
 });
+
+test('the github-actions entry in .github/dependabot.yml also scans the composite actions (#233)', () => {
+  const text = readFileSync(new URL('../../.github/dependabot.yml', import.meta.url), 'utf8');
+  const entry = text.split(/^\s+- package-ecosystem: /m).find((part) => part.startsWith('github-actions'));
+  assert.ok(entry, 'no github-actions entry');
+  assert.match(entry, /directories:\s*\n\s+- \/\n\s+- \/\.github\/actions\/\*/);
+});

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
-import { chapterName, type ChapterNameInput } from '../../chapterName';
+import type { ChapterNameInput } from '../../chapterName';
+import { headingName } from '../../chapterHeading';
 import { registerCommandProvider, type ProvidedCommand } from '../../input/commandProviders';
 
 export type GoToPage = {
@@ -44,7 +45,7 @@ export function useGoToCommands({
           ...chapterList.map((chapter) => ({
             id: `goto.chapter.${chapter.id}`,
             group: 'Chapters',
-            label: `Go to ${chapterName(chapter, 'full')}`,
+            label: `Go to ${headingName(chapter)}`,
             run: () => open({ kind: 'chapter', id: chapter.id }),
           })),
         ];
