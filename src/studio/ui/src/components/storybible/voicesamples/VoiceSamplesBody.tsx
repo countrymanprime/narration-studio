@@ -176,9 +176,11 @@ export function VoiceSamplesBody({
               {characterName} has {limit} samples, the most a character can have.
             </p>
           ) : null}
-          {/* Twenty samples is a character's most; the list scrolls inside this cap (rule 6) and is a stop of its own for the keyboard. */}
+          {/* Twenty samples is a character's most; the list scrolls inside this cap (rule 6) and is a stop of its own for the keyboard. The
+              padding that keeps the rows' focus rings inside the box is taken back by the margin, and the bar's gutter is not kept while
+              nothing scrolls, so the rows' menus end where Check again ends (SBX-15, R4SB-10). */}
           <div
-            className="max-h-[26rem] overflow-y-auto p-0.5"
+            className="-mx-0.5 max-h-[26rem] [scrollbar-gutter:auto] overflow-y-auto p-0.5"
             tabIndex={0}
             role="group"
             aria-label={`Voice samples of ${characterName}`}
