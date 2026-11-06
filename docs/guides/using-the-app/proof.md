@@ -44,8 +44,8 @@ hurried".
    - **Defer** (D): decide later.
 
    Add an optional note in the box first if the reason helps later ("tense changed; author wants past").
-4. **The next note is selected** and a message says what was saved. Ctrl+Z, or **Undo the last change** in the jump
-   menu, takes the decision back.
+4. **The next note is selected** and a message says what was saved ("00:12.4 · Needs pickup") with **Undo**. Ctrl+Z,
+   or **Undo the last change** in the jump menu, takes the decision back too.
 
 If the check runs again while you look and the evidence changes, the decision is not saved: Proof shows **Before** and
 **Now**, and you decide again after **Use the new evidence** ([A note and your decision](#a-note-and-your-decision)).
