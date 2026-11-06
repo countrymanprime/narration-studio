@@ -225,8 +225,9 @@ func (h *Host) startExtractionScan(ids []string) (ExtractionScanJob, error) {
 	h.mu.Unlock()
 
 	ctx = runlog.WithRun(ctx, h.jobRuns.begin(h.runLog, id, jobKindExtractionScan, "sources", order))
+	started := job.snapshot()
 	go h.runExtractionScan(ctx, job, run)
-	return job.snapshot(), nil
+	return started, nil
 }
 
 // extractionWorkers is how many chapters GLiNER reads at once in a scan of sources: the Parallel processes setting
