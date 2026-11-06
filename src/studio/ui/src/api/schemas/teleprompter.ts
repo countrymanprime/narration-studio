@@ -71,7 +71,7 @@ const teleprompterFlagSchema = z
 // The confirmation pass's verdict on an earlier flag, by its id (internal/scripttrack flagcheck.go).
 const teleprompterFlagCheckSchema = z.object({
   type: z.literal('flag_check'),
-  id: z.number(),
+  id: z.number().int().nonnegative(),
   state: z.enum(['confirmed', 'cleared']),
 }) satisfies z.ZodType<TeleprompterFlagCheck>;
 

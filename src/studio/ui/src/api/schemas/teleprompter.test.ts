@@ -59,6 +59,8 @@ describe('teleprompterEventSchema', () => {
     ['a flag of a kind the UI does not know', { type: 'flag', id: 1, kind: 'mumbled', start: 1, end: 2, heard: 'x' }, 'kind'],
     ['a flag that ends before it starts', { type: 'flag', id: 1, kind: 'misread', start: 5, end: 4, heard: 'x' }, 'end'],
     ['a flag check with a state the UI does not know', { type: 'flag_check', id: 1, state: 'maybe' }, 'state'],
+    ['a flag check with a negative id', { type: 'flag_check', id: -1, state: 'cleared' }, 'id'],
+    ['a flag check with a fractional id', { type: 'flag_check', id: 1.5, state: 'cleared' }, 'id'],
     ['a flag check with no id', { type: 'flag_check', state: 'cleared' }, 'id'],
     ['a flag with no heard text', { type: 'flag', id: 1, kind: 'skipped', start: 1, end: 2 }, 'heard'],
   ])('rejects %s and names the path', (_name, event, path) => {
