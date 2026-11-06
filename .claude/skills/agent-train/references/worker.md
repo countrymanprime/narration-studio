@@ -6,6 +6,7 @@ What a train worker, resume session or fixer reads: the protocol, serial points,
 
 A worker is one cloud session for one stream. It opens one PR per phase, stacked on the previous one, and never merges.
 
+- **Read your slice of the PRD, not all of it.** Start from the slice issue (or the prompt's `SCOPE`) and read the PRD sections it links. With no links, read only: the phase's row in the phase table (its `Depends` and Ports used), its Phase Details paragraph, the Visual Spec section and the open questions that name your phase. List the headings first (`grep -n '^#' <prd>`) and read by line range. Read another section when the work needs it, not up front. If a constraint your slice needs is missing from the sections it cites, say so in the slice's Handoff comment.
 - **Commit and push after every green step,** not just at the end. A session that dies on a usage limit loses only the work since its last push.
 - **Checkpoints:** before each phase, and before any expensive step (the visual states of a page, a full Go race run, the atlas). At each checkpoint:
   1. Read #989's switches and the decisions register #993, and call `get_session` for your own `rate_limit_info` if the tool is available.
