@@ -404,12 +404,13 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { fetch-depth: 0, persist-credentials: false }
+      # No Python for the Go steps: Go tests that need the real sidecars skip themselves when the checkout has no `.venv`, and a
+      # half-synced one (the Lua group only) would make them run and fail. The Lua harness's Python comes after them.
       - uses: ./.github/actions/setup-toolchain
         with:
-          need-python: ${{ matrix.lua }}
-          python-sync-args: --only-group lua
+          need-python: 'false'
           need-wails-tools: 'false'
-          need-stylua: ${{ matrix.lua }}
+          need-stylua: 'false'
           need-golangci-lint: ${{ matrix.lint }}
           pnpm-filter: workspace
       - name: go test
@@ -434,6 +435,15 @@ jobs:
           targets: lint
           projects: desktop
           configuration: ci
+      - name: Python and StyLua for the Lua harness
+        if: ${{ matrix.lua && !cancelled() }}
+        uses: ./.github/actions/setup-toolchain
+        with:
+          need-node: 'false'
+          need-pnpm: 'false'
+          need-go: 'false'
+          need-wails-tools: 'false'
+          python-sync-args: --only-group lua
       - name: reaper (Lua)
         id: reaper
         if: ${{ matrix.lua && !cancelled() }}
