@@ -23,12 +23,12 @@ function apply(): void {
  * Keeps toasts clear of a bar fixed along the bottom of the page (the Booth's footer, and the setup notice above it): while `bar` is
  * mounted, a message rises above it by the bar's height and its bottom margin instead of covering its chips or its words. Bars add up,
  * so the notice stays visible above the footer and the toasts above both. Follows each bar as it grows or shrinks, and puts the toasts
- * back when the last one unmounts.
+ * back when the last one unmounts. `active` false leaves the bar out (a bar that only needs clearing in one layout).
  */
-export function useToastClearance(bar: RefObject<HTMLElement | null>): void {
+export function useToastClearance(bar: RefObject<HTMLElement | null>, active = true): void {
   useEffect(() => {
     const element = bar.current;
-    if (!element) return;
+    if (!element || !active) return;
     bars.add(element);
     apply();
     const observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(apply);
@@ -40,7 +40,7 @@ export function useToastClearance(bar: RefObject<HTMLElement | null>): void {
       bars.delete(element);
       apply();
     };
-  }, [bar]);
+  }, [bar, active]);
 }
 
 /** The CSS variable the toast region adds to its distance from the right edge (`ToastRegion`). */

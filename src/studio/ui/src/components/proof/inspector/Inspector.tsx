@@ -1,4 +1,6 @@
-import { useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
+import { useMediaQuery } from '../../../hooks/useMediaQuery';
+import { useToastClearance } from '../../../hooks/useToastClearance';
 import { MAX_REVIEW_NOTE_LENGTH, shownFindingNoteType } from '../../../api/contracts/findings';
 import type { Finding, FindingReviewStatus } from '../../../types';
 import { Button } from '../../primitives/Button';
@@ -95,6 +97,9 @@ export function Inspector({
   const evidence = useShownEvidence({ api, finding, order, onSelect, onChanged });
   const [outcome, setOutcome] = useState<{ message: string; failed: boolean }>();
   const [saving, setSaving] = useState<FindingReviewStatus>();
+  // Side by side with the list (1180 px and up) the page keeps toasts left of this panel; stacked under it, a toast would cover the pinned band.
+  const band = useRef<HTMLDivElement>(null);
+  useToastClearance(band, !useMediaQuery('(min-width: 1180px)', true));
   const shown = evidence.shown;
   const inert = evidence.change !== null || evidence.isBusy;
   const fix = fixKindOf(shown);
@@ -159,6 +164,7 @@ export function Inspector({
       />
       {/* The decision is the note's main action, so it stays at the panel's bottom edge while the evidence and the takes above it scroll past (#3114). The aside's scroll margin keeps a control above the band, a focused one or one scrolled into view, clear of it, not under it. */}
       <div
+        ref={band}
         data-decision-band
         className="sticky bottom-[calc(var(--page-gutter)*-1)] z-[1] -mb-3 flex flex-col gap-3 border-t border-[var(--border)] bg-[var(--surface)] py-3 shadow-[-1rem_0_0_var(--surface),1rem_0_0_var(--surface)]"
       >

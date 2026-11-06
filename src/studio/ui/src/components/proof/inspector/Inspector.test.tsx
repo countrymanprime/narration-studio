@@ -49,6 +49,35 @@ describe('decision-buttons-stay-at-the-panel-bottom', () => {
   });
 });
 
+// qa-breaker on #3154: below 1180 px the Inspector stacks under the list, and a saved-decision toast covered the pinned band. Side by side, the page's
+// side clearance keeps toasts left of the panel, so the band needs none.
+describe('toasts-clear-the-decision-band-when-the-panel-is-stacked', () => {
+  const clear = () => document.documentElement.style.getPropertyValue('--toast-clear');
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+    document.documentElement.style.removeProperty('--toast-clear');
+  });
+  const stub = (wide: boolean) => {
+    vi.stubGlobal('matchMedia', () => ({ matches: wide, addEventListener: () => undefined, removeEventListener: () => undefined }));
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ height: 140 } as DOMRect);
+  };
+
+  it('raises toasts above the band by its height while the panel is stacked, and puts them back when it goes', () => {
+    stub(false);
+    const { unmount } = setup();
+    expect(clear()).toBe('140px');
+    unmount();
+    expect(clear()).toBe('');
+  });
+
+  it('leaves toasts where they are when the panel sits beside the list', () => {
+    stub(true);
+    setup();
+    expect(clear()).toBe('');
+  });
+});
+
 describe('quotes-show-script-and-heard-with-the-diff', () => {
   it('draws the Script and Heard quotes with the difference struck and underlined, and no quotes without evidence', () => {
     setup();
