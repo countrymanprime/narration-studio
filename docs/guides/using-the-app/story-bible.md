@@ -244,6 +244,12 @@ The Story Bible page deletes nothing in bulk. To delete this project's Story Bib
 | "The preview took longer than 2m0s and was stopped" | The helper that speaks the name did not finish. | Try again. If it keeps happening, restart the app. |
 | "configure the Manuscript Guide executable" | The helper that builds the Story Bible was not found. | Reinstall the app. A build run from source needs its Manuscript Guide sidecar built first. |
 
+## What next
+
+- [Script](script.md): mark the text and confirm who speaks each line.
+- [Booth](booth.md): record, with each character's notes beside the text.
+- [Settings: Models and downloads](settings.md#models-and-downloads): the language model the scan uses, and the preview voices.
+
 ---
 
 [← Script](script.md) · [Index](README.md) · [Booth →](booth.md)
