@@ -145,9 +145,9 @@ export function createSystemMock(
         { name: 'run.jsonl', lines: 38, bytes: 4120, source: 'logs/run.jsonl, allow-listed keys only' },
       ],
       excluded: [
-        { name: 'sidecar stderr', reason: 'free text from the Python tools; it can hold manuscript text until the sidecars log typed events' },
+        { name: 'sidecar stderr (plain lines)', reason: 'free text from the Python tools; only the lines a sidecar wrote as typed events are kept' },
         { name: 'host.log', reason: 'free-text messages; folded in when the host logs through the trace' },
-        { name: 'bridge.jsonl', reason: "the REAPER bridge's own log; not included until its events are typed" },
+        { name: 'bridge.jsonl (free-text values)', reason: "a record's value that is not a number, a flag or a single word is dropped" },
       ],
       leakCheck: { terms: 6, linesDropped: 0 },
       note: 'Nothing is sent anywhere. Attach this file to a GitHub issue by hand.',

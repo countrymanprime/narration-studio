@@ -28,7 +28,7 @@ from pathlib import Path
 from typing import Any, Protocol
 
 import manuscript_guide as guide
-from narration_common.logging_utils import log
+from narration_common.logging_utils import event, log
 from narration_common.ports.extraction import AVAILABLE, BUILT_IN, GLINER, Availability, Book, RawSuggestion
 
 # What GLiNER is asked to find, and the Story Bible category each label becomes. The labels are the prompts the model
@@ -159,7 +159,7 @@ class GlinerExtractor:
                 start, end = offset + int(item["start"]), offset + int(item["end"])
                 name = str(item.get("text", "")).strip()
                 if not name or text[start:end].strip() != name:
-                    self.log(f"Dropped a GLiNER name: {name!r} is not at the place it was found in paragraph {paragraph['id']!r}.")
+                    event("gliner.name_dropped", reason="not_at_span")
                     continue
                 found.append((item, start, end))
         return found
@@ -334,7 +334,7 @@ def read_chunks(
             except Exception as exc:  # noqa: BLE001 (any reader failure costs one chunk, not the scan)
                 chapter = chunk[0].get("chapterId", "")
                 problems.append(f"{type(exc).__name__}: {exc}")
-                log(f"GLiNER could not read a part of chapter {chapter!r}: {exc}", level="warn")
+                event("gliner.chunk_failed", chapter=str(chapter), err=type(exc).__name__)
                 if chapter not in failed:
                     failed.append(chapter)
             report(progress_line(done, len(chunks), failed))
@@ -379,7 +379,7 @@ def suggest(args: argparse.Namespace, loader: Callable[[Path], Model] = load_mod
         try:
             found = read_chunks(paragraphs, workers, lambda n: process_pool(n, str(args.install), max(1, budget // n)))
         except Exception as exc:  # noqa: BLE001 (workers that cannot start, or die: the book is read whole instead)
-            log(f"GLiNER's workers failed: {type(exc).__name__}: {exc}", level="warn")
+            event("gliner.workers_failed", err=type(exc).__name__)
             print(note_line("GLiNER could not run its workers side by side, so it read the book in one piece."), flush=True)
             found = read_whole(args, paragraphs, loader)
     else:
