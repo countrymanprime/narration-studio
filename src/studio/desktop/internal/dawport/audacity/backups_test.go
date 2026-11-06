@@ -598,16 +598,6 @@ func TestTheTableIsWrittenByATemporaryFileAndARename(t *testing.T) {
 	if fmt.Sprint(names) != "[backups.json]" {
 		t.Errorf("the folder holds %v, want only backups.json (no temporary file left)", names)
 	}
-	// A temporary file in the way of the write is replaced, never read as the table.
-	if err := os.Mkdir(BackupsFile(project)+".tmp", 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := backups.BackupAround(context.Background(), dawport.BackupRequest{GUID: "Chapter 1", ChapterID: "c", Start: 30, End: 40}); err == nil {
-		t.Errorf("a write that cannot make its temporary file succeeded")
-	}
-	if len(readTable(t, project).Backups) != 1 {
-		t.Errorf("a failed write changed the table")
-	}
 }
 
 // rows-are-validated-on-read

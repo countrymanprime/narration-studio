@@ -13,6 +13,7 @@ package proofing
 import (
 	"bytes"
 	"desktop/internal/brand"
+	"desktop/internal/persist"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -163,11 +164,7 @@ func (s *RenderStore) update(change func(*rendersFileShape)) error {
 		return fmt.Errorf("could not create the proofing folder: %w", err)
 	}
 	path := RendersFile(s.project)
-	temp := path + ".tmp"
-	if err := os.WriteFile(temp, encoded, 0o600); err != nil {
-		return fmt.Errorf("could not save the render choice: %w", err)
-	}
-	if err := os.Rename(temp, path); err != nil {
+	if err := persist.WriteFile(path, encoded, 0o600); err != nil {
 		return fmt.Errorf("could not save the render choice: %w", err)
 	}
 	return nil

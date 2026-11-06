@@ -185,12 +185,8 @@ func (s *LedgerStore) Write(record LedgerRecord) (LedgerRecord, error) {
 		return LedgerRecord{}, err
 	}
 	path := s.recordPath(record.ID)
-	temp := path + ".tmp"
-	if err := os.WriteFile(temp, bytes, 0o600); err != nil {
+	if err := persist.WriteFile(path, bytes, 0o600); err != nil {
 		return LedgerRecord{}, fmt.Errorf("could not write the analysis ledger record: %w", err)
-	}
-	if err := os.Rename(temp, path); err != nil {
-		return LedgerRecord{}, fmt.Errorf("could not activate the analysis ledger record: %w", err)
 	}
 	return record, nil
 }
