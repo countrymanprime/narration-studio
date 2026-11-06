@@ -99,6 +99,19 @@ describe('an unlinked chapter in the Booth', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Recording setup: REAPER', hidden: true })).toBeTruthy());
   });
 
+  it.each([
+    ['unavailable', 'Recording setup: REAPER, not connected'],
+    ['not_armed', 'Recording setup: REAPER, not armed'],
+    ['recording_elsewhere', 'Recording setup: REAPER, recording elsewhere'],
+    ['other_armed', 'Recording setup: REAPER'],
+    ['several_armed', 'Recording setup: REAPER'],
+    ['ready', 'Recording setup: REAPER'],
+  ] as const)('with REAPER saying %s the top-bar setup chip reads %j', async (status, name) => {
+    renderUnlinked({ readAloudReaperState: async () => ({ status, message: 'REAPER says so.', playing: false, recording: false }) });
+    expect(await screen.findByRole('button', { name, hidden: true })).toBeTruthy();
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
   it('creates a track for the chapter, links it, says so, and Record then starts a take', async () => {
     const { daw, overlay, chapterTrackCreate } = renderUnlinked();
     const dialog = await screen.findByRole('dialog', { name: 'Chapter One is not linked to a track' });

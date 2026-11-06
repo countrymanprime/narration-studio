@@ -48,7 +48,7 @@ import { ChapterLinkNotice } from '../record/ChapterLinkNotice';
 import { recordSetupFor } from '../record/recordSetupModel';
 import type { RecordBlock } from '../record/useRecordControl';
 import { useStaleToasts } from './useStaleToasts';
-import { SetupChip } from '../record/SetupChip';
+import { SetupChip, type SetupProblem } from '../record/SetupChip';
 import { useDawChoice } from '../record/useDawChoice';
 import { ResumeOfferLine } from '../resume/ResumeOffer';
 import { offerAwayFrom, saveNote } from '../resume/resumeOfferModel';
@@ -596,6 +596,21 @@ function BoothSession({
   const recordName = pickerChapters.find((item) => item.id === pickerValue)?.name ?? title;
   const linkProblem = !control.recording && (control.gate?.cause === 'no_track' || control.gate?.cause === 'several_tracks');
   const setupPlan = capabilities && control.factsLoaded && !control.recording ? recordSetupFor(capabilities, control.facts) : null;
+  // What the top-bar chip says besides the DAW's own state: the Booth's gate first (the same finding its notices and footer word), then what
+  // the DAW answered for the chapter. A state in which Record still works (another track armed) is not shown.
+  const setupProblem: SetupProblem | undefined = control.recording
+    ? undefined
+    : control.gate?.cause === 'no_track'
+      ? 'no_track'
+      : control.gate?.cause === 'several_tracks'
+        ? 'several_tracks'
+        : control.gate?.cause === 'recording_elsewhere' || control.dawStatus === 'recording_elsewhere'
+          ? 'recording_elsewhere'
+          : control.dawStatus === 'unavailable'
+            ? 'not_connected'
+            : control.dawStatus === 'not_armed'
+              ? 'not_armed'
+              : undefined;
   const noticeShown = (linkProblem && !!capabilities) || !!setupPlan;
   parts.current.recordBlocked = (block) => {
     const noticeUp =
@@ -697,15 +712,7 @@ function BoothSession({
                     project={control.project}
                     choice={dawChoice}
                     otherProject={setupPlan?.kind === 'other-project'}
-                    trackProblem={
-                      !control.recording
-                        ? control.gate?.cause === 'no_track'
-                          ? 'none'
-                          : control.gate?.cause === 'several_tracks'
-                            ? 'several'
-                            : undefined
-                        : undefined
-                    }
+                    problem={setupProblem}
                   />
                 ) : undefined
               }

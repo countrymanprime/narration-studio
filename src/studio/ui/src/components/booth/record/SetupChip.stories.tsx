@@ -66,7 +66,7 @@ export const OtherProjectOpen: Story = {
 
 // Connected, but the chapter has no track in the DAW project (or several): the chip warns and says so, as the "Not linked to a track" notice does.
 export const ChapterHasNoTrack: Story = {
-  args: { trackProblem: 'none' },
+  args: { problem: 'no_track' },
   play: async ({ canvasElement }) => {
     await expect(within(canvasElement).getByRole('button', { name: 'Recording setup: REAPER, no track' })).toHaveTextContent('REAPER · no track');
   },
@@ -74,8 +74,34 @@ export const ChapterHasNoTrack: Story = {
 
 // Connected, but the chapter is linked to several tracks: the chip warns with its own words.
 export const ChapterHasSeveralTracks: Story = {
-  args: { trackProblem: 'several' },
+  args: { problem: 'several_tracks' },
   play: async ({ canvasElement }) => {
     await expect(within(canvasElement).getByRole('button', { name: 'Recording setup: REAPER, several tracks' })).toHaveTextContent('REAPER · several tracks');
+  },
+};
+
+// REAPER answers that it is not connected to the app, though the choice payload still reads connected: the chip warns instead of staying green.
+export const NotConnected: Story = {
+  args: { problem: 'not_connected' },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByRole('button', { name: 'Recording setup: REAPER, not connected' })).toHaveTextContent('REAPER · not connected');
+  },
+};
+
+// The DAW is already recording a take this app did not start.
+export const RecordingElsewhere: Story = {
+  args: { problem: 'recording_elsewhere' },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByRole('button', { name: 'Recording setup: REAPER, recording elsewhere' })).toHaveTextContent(
+      'REAPER · recording elsewhere',
+    );
+  },
+};
+
+// No track is armed in the DAW, so a press of Record would be refused.
+export const NoTrackArmed: Story = {
+  args: { problem: 'not_armed' },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByRole('button', { name: 'Recording setup: REAPER, not armed' })).toHaveTextContent('REAPER · not armed');
   },
 };
