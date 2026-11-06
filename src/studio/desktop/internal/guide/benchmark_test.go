@@ -155,7 +155,7 @@ func benchmarkParagraphs(t *testing.T, book string) []ruleParagraph {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	reader, err := gzip.NewReader(file)
 	if err != nil {
 		t.Fatal(err)
@@ -185,7 +185,7 @@ func benchmarkSpans(t *testing.T, book string, paragraphs int) [][]entitySpan {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	reader, err := gzip.NewReader(file)
 	if err != nil {
 		t.Fatal(err)
