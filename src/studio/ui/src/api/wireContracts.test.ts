@@ -202,6 +202,7 @@ import {
   projectAttachStateSchema,
   readySchema,
   saveDiagnosticsResultSchema,
+  traceBatchResultSchema,
   windowZoomSchema,
 } from './schemas/system';
 import {
@@ -1222,6 +1223,7 @@ describe('answers of the mock client for the manuscript, Story Bible and project
   it('save diagnostics answers the saved path and the preview answers the manifest', async () => {
     const api = createMockApi();
     expectMatches(saveDiagnosticsResultSchema, await api.systemSaveDiagnostics(), 'mock save diagnostics');
+    expectMatches(traceBatchResultSchema, await api.systemTraceBatch('{"events":[]}'), 'mock trace batch');
     expectMatches(diagnosticsPreviewSchema, await api.systemDiagnosticsPreview(), 'mock diagnostics preview');
   });
 
@@ -4449,6 +4451,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'systemLookup',
       'systemDiagnosticsPreview',
       'systemSaveDiagnostics',
+      'systemTraceBatch',
       'windowZoom',
       'windowSetZoom',
       'saveSettings',
