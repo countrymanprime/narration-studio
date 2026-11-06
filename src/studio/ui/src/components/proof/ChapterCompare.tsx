@@ -37,7 +37,8 @@ export function ChapterCompare({ chapter, transcript, notify, dawFileLinked, goT
   return (
     <section aria-label="Compare" data-chapter-compare="" className="flex flex-col gap-3">
       <ToggleGroup label="Compare view" look="segmented" value={tab} onChange={(value) => setTab(value as CompareTab)} options={TABS} />
-      {tab === 'differences' ? (
+      {/* All three stay drawn and the other two are hidden, so the comparison's setup choices and its run survive a look at another tab. */}
+      <div hidden={tab !== 'differences'}>
         <CompareRun
           chapterTitle={chapterName(chapter, 'short')}
           state={transcript}
@@ -49,9 +50,11 @@ export function ChapterCompare({ chapter, transcript, notify, dawFileLinked, goT
           onCloseLast={() => compare.setReviewingLast(false)}
           foundHere={compare.foundHere}
         />
-      ) : tab === 'preview' ? (
+      </div>
+      <div hidden={tab !== 'preview'}>
         <PreviewPanel notify={notify} goToManuscript={goToManuscript} />
-      ) : (
+      </div>
+      <div hidden={tab !== 'native'}>
         <NativeTakesPanel
           chapter={chapter}
           whenEmpty={
@@ -60,7 +63,7 @@ export function ChapterCompare({ chapter, transcript, notify, dawFileLinked, goT
             </p>
           }
         />
-      )}
+      </div>
     </section>
   );
 }

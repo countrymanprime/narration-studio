@@ -96,4 +96,15 @@ describe('ChapterCompare (Compare on the Proof page, #2822)', () => {
     await user.click(await screen.findByRole('button', { name: /Review last run/i }));
     expect(await screen.findByRole('button', { name: /New comparison/i })).toBeTruthy();
   });
+
+  it('keeps the setup choices when the narrator looks at another tab and comes back', async () => {
+    const user = userEvent.setup();
+    renderCompare();
+    const model = await screen.findByRole('button', { name: /^Tiny/ });
+    await user.click(model);
+    expect(screen.getByRole('button', { name: /^Tiny/ }).getAttribute('aria-pressed')).toBe('true');
+    await user.click(screen.getByRole('button', { name: 'Native takes' }));
+    await user.click(screen.getByRole('button', { name: 'Differences' }));
+    expect(screen.getByRole('button', { name: /^Tiny/ }).getAttribute('aria-pressed')).toBe('true');
+  });
 });

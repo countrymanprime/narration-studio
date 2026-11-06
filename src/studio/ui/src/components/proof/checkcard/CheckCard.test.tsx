@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
@@ -303,6 +303,13 @@ describe('the Compare with the script button (#2822)', () => {
     expect(compare.parentElement).toBe(screen.getByRole('button', { name: 'Check recordings' }).parentElement);
     await userEvent.click(compare);
     expect(calls.onCompare).toHaveBeenCalledTimes(1);
+  });
+  it('is pressed once by a held Enter, not toggled by each key repeat', async () => {
+    const { calls } = mount({ compare: 'closed' });
+    const compare = await screen.findByRole('button', { name: 'Compare with the script' });
+    const repeated = fireEvent.keyDown(compare, { key: 'Enter', code: 'Enter', repeat: true });
+    expect(repeated).toBe(false);
+    expect(calls.onCompare).not.toHaveBeenCalled();
   });
   it('says the Compare panel is open', async () => {
     mount({ compare: 'open' });

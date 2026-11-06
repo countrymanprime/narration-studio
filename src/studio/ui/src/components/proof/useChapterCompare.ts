@@ -12,12 +12,15 @@ export function useChapterCompare(chapter: ManuscriptChapter | undefined, transc
   const [lastCompleted, setLastCompleted] = useState<TranscriptState>();
   const [reviewingLast, setReviewingLast] = useState(false);
 
+  // Read again when a run ends, so "Review last run" offers the run just made and not the one before it.
+  const phase = transcript.phase;
+  const ended = phase === 'success' || phase === 'cancelled' || phase === 'error';
   useEffect(() => {
     void transcriptPort
       .transcriptLastCompleted()
       .then(setLastCompleted)
       .catch(() => {});
-  }, [transcriptPort]);
+  }, [transcriptPort, ended]);
 
   // A run covers the selected REAPER audio, so rows for other chapters are left out.
   const results = reviewingLast ? lastCompleted : transcript.phase === 'success' ? transcript : undefined;

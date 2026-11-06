@@ -262,6 +262,10 @@ export function CheckCard({
             disabled={!hasRecording(chapter.recordedSeconds)}
             aria-describedby={whyNot ? 'check-why-not' : undefined}
             onClick={compare.onOpen}
+            // A held Enter repeats keydown and so repeats the press: one press toggles once.
+            onKeyDown={(event) => {
+              if (event.repeat) event.preventDefault();
+            }}
           >
             Compare with the script
           </Button>
