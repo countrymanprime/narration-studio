@@ -2304,7 +2304,7 @@ func (h *Host) runGuideJob(svc hostServices, model string, rulesOnly, afterImpor
 			case errors.Is(err, guide.ErrBibleNotEmpty):
 				err, built = nil, "The Story Bible already has entries, so the import left it as it was. Scan the manuscript on the Story Bible page to add what is new."
 			case errors.Is(err, guide.ErrBibleUnreadable):
-				err = errors.New("The Story Bible file could not be read, so the import left it as it was and built nothing. Open the Story Bible page to see what happened to it.")
+				built = "The Story Bible file could not be read, so the import left it as it was and built nothing. Open the Story Bible page to see what happened to it."
 			}
 		} else {
 			_, err = svc.guide.Build(progress, log, model)
@@ -2317,6 +2317,9 @@ func (h *Host) runGuideJob(svc hostServices, model string, rulesOnly, afterImpor
 			job.phase = "error"
 			job.errorText = err.Error()
 			job.message = err.Error()
+			if afterImport && errors.Is(err, guide.ErrBibleUnreadable) {
+				job.message = built // what the narrator does about it, not only what went wrong
+			}
 		} else {
 			job.phase = "success"
 			job.percent = 100
