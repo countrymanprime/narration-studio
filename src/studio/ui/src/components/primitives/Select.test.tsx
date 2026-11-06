@@ -83,9 +83,9 @@ describe('Select', () => {
 
   it('fills its container only when asked', () => {
     const { rerender } = render(<Select label="x" value="a" options={OPTIONS} onChange={() => undefined} />);
-    expect(screen.getByLabelText('x').className).not.toContain('w-full');
+    expect(screen.getByLabelText('x').className).not.toMatch(/(^|\s)w-full(\s|$)/);
     rerender(<Select label="x" fullWidth value="a" options={OPTIONS} onChange={() => undefined} />);
-    expect(screen.getByLabelText('x').className).toContain('w-full');
+    expect(screen.getByLabelText('x').className).toMatch(/(^|\s)w-full(\s|$)/);
   });
 
   it('cannot be changed when disabled', async () => {
@@ -150,5 +150,63 @@ describe('Select', () => {
     expect(select.className).toContain('appearance-none');
     expect(select.className).toContain('pr-8');
     expect(select.className).toContain('[background-image:linear-gradient(45deg,transparent_50%,var(--text-muted)_50%)');
+  });
+});
+
+describe('Select with a long name (issue 2898)', () => {
+  const LONG = `Microphone (${'x'.repeat(200)})`;
+  const EMOJI_RTL = 'Mikrofon \u{1F3A4} \u05DE\u05D9\u05E7\u05E8\u05D5\u05E4\u05D5\u05DF '.repeat(8);
+
+  it.each([
+    ['200 letters', LONG],
+    ['emoji and right-to-left text', EMOJI_RTL],
+  ])('ends a closed box holding %s in an ellipsis, inside its container, and keeps the full name as its tooltip', (_name, label) => {
+    render(<Select label="Microphone" value="long" options={[{ value: 'long', label }, ...OPTIONS]} onChange={() => undefined} />);
+    const select = screen.getByRole('combobox', { name: 'Microphone' });
+    // Tailwind's `truncate` is overflow-hidden, text-ellipsis and whitespace-nowrap together.
+    expect(select.className).toMatch(/(^|\s)truncate(\s|$)/);
+    expect(select.className).toMatch(/(^|\s)max-w-full(\s|$)/);
+    expect(select.getAttribute('title')).toBe(label);
+  });
+
+  it('follows the choice: the tooltip is the label of the option showing', async () => {
+    render(<Controlled />);
+    const select = screen.getByRole('combobox', { name: 'Chapter status' });
+    expect(select.getAttribute('title')).toBe('Alpha');
+    await userEvent.selectOptions(select, 'b');
+    expect(select.getAttribute('title')).toBe('Beta');
+  });
+
+  it('shows the placeholder as the tooltip while no option is chosen', () => {
+    render(<Select label="Chapter status" value="none" options={OPTIONS} placeholder="Choose one" onChange={() => undefined} />);
+    expect(screen.getByRole('combobox', { name: 'Chapter status' }).getAttribute('title')).toBe('Choose one');
+  });
+});
+
+describe('Select keeps a caller’s own width limits (issue 2898, found by the QA pass)', () => {
+  const classes = (extra?: string) => {
+    render(<Select label="x" value="a" options={OPTIONS} onChange={() => undefined} {...(extra ? { className: extra } : {})} />);
+    return screen.getByLabelText('x').className;
+  };
+  afterEach(cleanup);
+
+  it('adds its own max-w-full and min-w-0 only when the caller sets no limit of that kind (the stylesheet puts max-w-full after max-w-80 and max-w-[260px], so both would fight)', () => {
+    const own = classes();
+    expect(own).toMatch(/(^|\s)max-w-full(\s|$)/);
+    expect(own).toMatch(/(^|\s)min-w-0(\s|$)/);
+    cleanup();
+    const capped = classes('max-w-[260px]');
+    expect(capped).toContain('max-w-[260px]');
+    expect(capped).not.toMatch(/(^|\s)max-w-full(\s|$)/);
+    cleanup();
+    expect(classes('w-full max-w-80')).not.toMatch(/(^|\s)max-w-full(\s|$)/);
+    cleanup();
+    const floored = classes('min-w-[8rem]');
+    expect(floored).toContain('min-w-[8rem]');
+    expect(floored).not.toMatch(/(^|\s)min-w-0(\s|$)/);
+  });
+
+  it('takes a caller that already says max-w-full as its own, once', () => {
+    expect(classes('max-w-full').match(/max-w-full/g)).toHaveLength(1);
   });
 });

@@ -4,7 +4,6 @@ export * from './api/contracts/system';
 export * from './api/contracts/manuscript';
 export * from './api/contracts/storyBible';
 export * from './api/contracts/character';
-export * from './api/contracts/series';
 export * from './api/contracts/transcript';
 export * from './api/contracts/assets';
 export * from './api/contracts/tts';
@@ -22,9 +21,7 @@ export * from './api/contracts/pickups';
 export * from './api/contracts/renderconfig';
 export * from './api/contracts/cleanuptools';
 export * from './api/contracts/projectstate';
-export * from './api/contracts/retakelanes';
 export * from './api/contracts/chaptertags';
-export * from './api/contracts/takeReview';
 export * from './api/contracts/coverage';
 export * from './api/contracts/stages';
 export * from './api/contracts/dictionary';
@@ -36,6 +33,7 @@ export * from './api/contracts/editing';
 export * from './api/contracts/cleanup';
 export * from './api/contracts/prepMarkup';
 export * from './api/contracts/bookmarks';
+export * from './api/contracts/voiceTracks';
 export * from './api/contracts/voiceSamples';
 export * from './api/contracts/passageMap';
 export * from './api/contracts/editLog';
@@ -66,9 +64,7 @@ import type { ManuscriptApi } from './api/contracts/manuscript';
 import type { ProjectApi } from './api/contracts/project';
 import type { StoryBibleApi } from './api/contracts/storyBible';
 import type { CharacterApi } from './api/contracts/character';
-import type { SeriesApi } from './api/contracts/series';
 import type { SystemApi } from './api/contracts/system';
-import type { TakeReviewApi } from './api/contracts/takeReview';
 import type { TeleprompterApi } from './api/contracts/teleprompter';
 import type { TracksApi } from './api/contracts/tracks';
 import type { TranscriptApi } from './api/contracts/transcript';
@@ -82,7 +78,6 @@ import type { PickupsApi } from './api/contracts/pickups';
 import type { RenderConfigApi } from './api/contracts/renderconfig';
 import type { CleanupToolsApi } from './api/contracts/cleanuptools';
 import type { ProjectStateApi } from './api/contracts/projectstate';
-import type { RetakeLanesApi } from './api/contracts/retakelanes';
 import type { ChapterTagsApi } from './api/contracts/chaptertags';
 import type { CoverageApi } from './api/contracts/coverage';
 import type { StagesApi } from './api/contracts/stages';
@@ -95,6 +90,7 @@ import type { EditingApi } from './api/contracts/editing';
 import type { CleanupActionApi } from './api/contracts/cleanup';
 import type { BookmarksApi } from './api/contracts/bookmarks';
 import type { VoiceSamplesApi } from './api/contracts/voiceSamples';
+import type { VoiceTracksApi } from './api/contracts/voiceTracks';
 import type { PassageMapApi } from './api/contracts/passageMap';
 import type { EditLogApi } from './api/contracts/editLog';
 import type { MarksApi } from './api/contracts/marks';
@@ -143,7 +139,6 @@ export interface NarrationApi
     ManuscriptApi,
     StoryBibleApi,
     CharacterApi,
-    SeriesApi,
     TranscriptApi,
     TtsApi,
     WhisperApi,
@@ -161,9 +156,7 @@ export interface NarrationApi
     RenderConfigApi,
     CleanupToolsApi,
     ProjectStateApi,
-    RetakeLanesApi,
     ChapterTagsApi,
-    TakeReviewApi,
     CoverageApi,
     StagesApi,
     DictionaryApi,
@@ -175,6 +168,7 @@ export interface NarrationApi
     CleanupActionApi,
     BookmarksApi,
     VoiceSamplesApi,
+    VoiceTracksApi,
     PassageMapApi,
     EditLogApi,
     MarksApi,

@@ -62,9 +62,9 @@ func TestPassageMapBindingsRecordARunAndListIt(t *testing.T) {
 // With the built-in recorder there is no DAW item: the stamp is the take's name, read from the recorder, never the UI.
 func TestPassageMapStampIsTheBuiltinRecordersTakeName(t *testing.T) {
 	host := recorderHost(t, &recordingtest.Fake{})
-	recorderOf(t)(host.RecorderChooseEngine(engineBuiltin))
-	recorderOf(t)(host.RecorderStart("Mic"))
-	recorderOf(t)(host.RecorderStop())
+	chooseEngine(t, host, engineBuiltin)
+	recordTake(t, host, "Mic")
+	stopTake(t, host)
 	waitRecorderIdle(t, host)
 	marks := decodePassageMarks(t)(host.PassageMapRecordRun("c-0001", passageMapRun()))
 	for _, mark := range marks {

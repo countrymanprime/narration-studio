@@ -5,6 +5,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
 import { OverlayHost } from '../../../overlay/OverlayHost';
+import { createJournal, type Journal } from '../../../studio/journal/createJournal';
+import { StudioProvider } from '../../../studio/StudioProvider';
 import type { Finding, NarrationApi } from '../../../types';
 import { TooltipProvider } from '../../primitives/Tooltip';
 import { FindingThread } from './FindingThread';
@@ -19,13 +21,19 @@ function Host({ api, initial }: { api: NarrationApi; initial: Finding }) {
   return <FindingThread finding={finding} api={api} onChanged={setFinding} />;
 }
 
-async function setup() {
+async function setup(journal?: Journal) {
   const api = createMockApi();
   const [first] = (await api.findingsList({})).findings;
   render(
     <ApiProvider api={api}>
       <TooltipProvider>
-        <Host api={api} initial={first!} />
+        {journal ? (
+          <StudioProvider journal={journal}>
+            <Host api={api} initial={first!} />
+          </StudioProvider>
+        ) : (
+          <Host api={api} initial={first!} />
+        )}
         <OverlayHost />
       </TooltipProvider>
     </ApiProvider>,
@@ -69,6 +77,19 @@ describe('notes-on-this-finding', () => {
     await waitFor(() => expect(messages()).toHaveLength(2));
     expect(messages()[0]).toContain('one, edited');
     expect((await api.findingsGet(id)).review.thread?.map((m) => m.text)).toEqual(['one, edited', 'two']);
+  });
+
+  it('a deleted note is one journal entry, and Ctrl+Z brings it back', async () => {
+    const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
+    const { api, id } = await setup(journal);
+    await addNote('one', 'My note');
+    fireEvent.click(within(document.querySelector<HTMLElement>('[data-message="m1"]')!).getByRole('button', { name: 'Delete note' }));
+    await waitFor(() => expect(messages()).toHaveLength(0));
+    const [row] = await journal.entries();
+    expect(row).toMatchObject({ label: 'Deleted a note', touches: [`proof/finding/${id}`], undoable: true });
+    await act(async () => void (await journal.undoLast()));
+    await waitFor(() => expect(messages()).toHaveLength(1));
+    expect((await api.findingsGet(id)).review.thread?.map((m) => m.text)).toEqual(['one']);
   });
 
   it('keeps Add note off for an empty note and says why a refused change was not saved', async () => {

@@ -19,8 +19,11 @@ export type ScriptViewState = {
   miss: string | null;
   missSel: LineRange | null;
   drawer: 'ch' | 'rail' | null;
-  /** The search the jump menu chose, showing in the reader while `open`. */
-  find: { open: boolean; q: string; i: number };
+  /**
+   * The search the jump menu chose, showing in the reader while `open`. `asked` counts the times a match was chosen, so choosing the
+   * current one again brings it back into view.
+   */
+  find: { open: boolean; q: string; i: number; asked?: number };
   /** Reader scroll requests, consumed once by the reader. */
   pendingJump: string | null;
   pendingPid: string | null;

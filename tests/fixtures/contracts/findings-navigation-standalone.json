@@ -1,0 +1,5 @@
+{
+  "message": "REAPER is not connected to this app. To go to findings in REAPER, open REAPER; the app connects to it by itself.",
+  "outcome": "refused",
+  "reason": "standalone"
+}

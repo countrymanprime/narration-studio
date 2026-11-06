@@ -7,6 +7,8 @@ import { createMockApi } from '../../api/mockApi';
 import { WIRE_ENTITIES } from '../../api/mockFixtures';
 import type { GuideEntity } from '../../types';
 import { overlay } from '../../overlay/overlayService';
+import { StudioProvider } from '../../studio/StudioProvider';
+import { createJournal, type Journal } from '../../studio/journal/createJournal';
 import type { Notify } from '../primitives/Toast';
 import { GuideDetail } from './GuideDetail';
 
@@ -464,14 +466,23 @@ describe('mark-reviewed-in-the-detail', () => {
     review: { entry: true, aliases: ['Cat'] },
     ...over,
   });
-  function renderReview(entity: GuideEntity, { toVerify = 0, notify = vi.fn<Notify>() }: { toVerify?: number; notify?: Notify } = {}) {
+  function renderReview(
+    entity: GuideEntity,
+    { toVerify = 0, notify = vi.fn<Notify>(), journal }: { toVerify?: number; notify?: Notify; journal?: Journal } = {},
+  ) {
     const api = createMockApi();
     const calls = { mark: vi.spyOn(api, 'guideMarkReviewed'), flag: vi.spyOn(api, 'guideFlagReview') };
     const reload = vi.fn().mockResolvedValue(undefined);
     const toast = vi.spyOn(overlay, 'toastUndo').mockImplementation(() => undefined);
     render(
       <ApiProvider api={api}>
-        <GuideDetail entity={entity} entities={WIRE_ENTITIES} reload={reload} notify={notify} goToManuscript={vi.fn()} toVerify={toVerify} />
+        {journal ? (
+          <StudioProvider journal={journal}>
+            <GuideDetail entity={entity} entities={WIRE_ENTITIES} reload={reload} notify={notify} goToManuscript={vi.fn()} toVerify={toVerify} />
+          </StudioProvider>
+        ) : (
+          <GuideDetail entity={entity} entities={WIRE_ENTITIES} reload={reload} notify={notify} goToManuscript={vi.fn()} toVerify={toVerify} />
+        )}
       </ApiProvider>,
     );
     return { ...calls, reload, toast, notify };
@@ -560,7 +571,20 @@ describe('mark-reviewed-in-the-detail', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Mark reviewed' }));
     await waitFor(() => expect(toast).toHaveBeenCalledTimes(1));
     flag.mockRejectedValueOnce(new Error('This entity is locked. Unlock it before editing.'));
-    await expect(toast.mock.calls[0][1]()).resolves.toEqual({ ok: false, refusal: { reason: 'This entity is locked. Unlock it before editing.' } });
+    await expect(toast.mock.calls[0][1]()).resolves.toMatchObject({ ok: false, refusal: { reason: 'This entity is locked. Unlock it before editing.' } });
+  });
+
+  it('marking reviewed is one journal entry, and Ctrl+Z flags the entry back', async () => {
+    const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
+    const { mark, flag, reload } = renderReview(cat({ review: { entry: true, aliases: ['Cat'] } }), { journal });
+    fireEvent.click(screen.getByRole('button', { name: 'Mark reviewed' }));
+    await waitFor(() => expect(mark).toHaveBeenCalled());
+    await waitFor(async () => expect(await journal.entries()).toHaveLength(1));
+    const [row] = await journal.entries();
+    expect(row).toMatchObject({ label: 'Reviewed “Cheshire Cat”', touches: ['storyBible/entities/cheshire-cat'], undoable: true });
+    expect((await journal.undoLast()).ok).toBe(true);
+    expect(flag).toHaveBeenCalled();
+    expect(reload).toHaveBeenLastCalledWith('cheshire-cat');
   });
 
   it('a refusal is the host sentence in a toast, with no Undo offered', async () => {

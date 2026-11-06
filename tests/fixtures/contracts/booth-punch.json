@@ -1,0 +1,42 @@
+{
+  "found": {
+    "outcome": "found",
+    "trackGuid": "{A0000000-0000-4000-8000-000000000001}",
+    "trackName": "Narrator",
+    "start": 101,
+    "end": 102
+  },
+  "never_recorded": {
+    "outcome": "never_recorded"
+  },
+  "no_alignment": {
+    "outcome": "refused",
+    "reason": "no_alignment",
+    "message": "This passage cannot be found in the earlier recording because the chapter has not been checked yet. Run the recording check in Proof, or record on from the end."
+  },
+  "no_daw": {
+    "outcome": "refused",
+    "reason": "no_daw",
+    "message": "The audio engine is not answering, so where this passage was recorded cannot be read. Check that it is open, then try again."
+  },
+  "no_words": {
+    "outcome": "refused",
+    "reason": "no_words",
+    "message": "That passage is not in the chapter's last recording check, so where it was recorded is not known."
+  },
+  "not_in_project": {
+    "outcome": "refused",
+    "reason": "not_in_project",
+    "message": "Part of this passage was cut, trimmed or muted in the project, so there is no single spot to record over. Place the cursor yourself and record from there."
+  },
+  "several_voices": {
+    "outcome": "refused",
+    "reason": "several_voices",
+    "message": "This passage was recorded on more than one voice track, so there is no single track to record over. Pick the line on one voice, or place the cursor yourself."
+  },
+  "stale": {
+    "outcome": "refused",
+    "reason": "stale",
+    "message": "The recording or the text has changed since the chapter was last checked, so where this passage was recorded is not known. Run the recording check in Proof again."
+  }
+}

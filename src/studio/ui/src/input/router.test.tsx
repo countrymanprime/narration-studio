@@ -155,6 +155,28 @@ describe('CommandRouter', () => {
     expect(preventDefault).not.toHaveBeenCalled();
   });
 
+  it.each(['Enter', 'NumpadEnter'])('a focused button owns %s as it owns Space: the page command does not also run', (code) => {
+    const source = fakeSource();
+    const onFire = vi.fn();
+    const enterKeymap: Keymap = { 'test.page': [gesture('keyboard', code)] };
+    render(
+      <CommandRouter source={source} catalog={[PAGE_COMMAND]} keymap={enterKeymap}>
+        <CommandScope kind="page">
+          <Registrar id="test.page" onFire={onFire} />
+        </CommandScope>
+      </CommandRouter>,
+    );
+    const button = document.createElement('button');
+    document.body.appendChild(button);
+
+    act(() => source.emit({ gesture: gesture('keyboard', code), target: button }));
+    expect(onFire).not.toHaveBeenCalled();
+    // From the page itself, the same gesture runs it.
+    act(() => source.emit({ gesture: gesture('keyboard', code), target: document.body }));
+    expect(onFire).toHaveBeenCalledTimes(1);
+    button.remove();
+  });
+
   it('applies the target guard to a modifier-less gesture: an editable target keeps its key', () => {
     const source = fakeSource();
     const onFire = vi.fn();

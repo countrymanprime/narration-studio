@@ -17,10 +17,30 @@ import (
 	"desktop/internal/dawport"
 )
 
-// DawPreviewFileRange, DawStopFilePreview and DawRevealFile (SN-B98) over a host with a bridge, fake file roles standing in for
-// REAPER. What REAPER answers is bridge's and the harness's own
-// (media_file_test.go, media_file_test.lua); these cover the host's wiring: the resolver first, then a path the narrator
-// picked to measure, then the role.
+// The file actions (SN-B98) over a host with a bridge, fake file roles standing in for REAPER: DawStopFilePreview, and the
+// shared dawPreviewFileIn and dawRevealFileIn that MasterPlayQuietest, MasterOpenInDaw and WorkspacePreviewTake answer through.
+// What REAPER answers is bridge's and the harness's own (media_file_test.go, media_file_test.lua); these cover the host's
+// wiring: the resolver first, then a path the narrator picked to measure, then the role.
+
+// previewFile and revealFile reach dawPreviewFileIn and dawRevealFileIn by a path, as the path-taking bindings did before the
+// id-taking ones replaced them (#2749, #2750): the resolver's support, then the picked-path check, then the role.
+func previewFile(h *Host, path string, start, length float64) (string, error) {
+	svc := h.services()
+	resolver, _ := h.dawResolverFor(svc)
+	ctx, cancel := context.WithTimeout(context.Background(), fileActionTimeout)
+	defer cancel()
+	clean, picked := h.pickedFile(path)
+	return encodeBinding(dawPreviewFileIn(ctx, svc, resolver.Support(dawport.CapFilePreview), svc.filePreviewer, clean, picked, start, length), nil)
+}
+
+func revealFile(h *Host, path string) (string, error) {
+	svc := h.services()
+	resolver, _ := h.dawResolverFor(svc)
+	ctx, cancel := context.WithTimeout(context.Background(), fileActionTimeout)
+	defer cancel()
+	clean, picked := h.pickedFile(path)
+	return encodeBinding(dawRevealFileIn(ctx, svc, resolver.Support(dawport.CapFileReveal), svc.fileRevealer, clean, picked), nil)
+}
 
 type fakeFiles struct {
 	previews []dawport.FilePreview
@@ -78,15 +98,15 @@ func filesHost(t *testing.T, kind string, reach *daw.Reachability, role *fakeFil
 	return host, path
 }
 
-func TestDawPreviewFileRangePlaysAPickedFileAndAnswersADawResult(t *testing.T) {
+func TestPreviewFilePlaysAPickedFileAndAnswersADawResult(t *testing.T) {
 	role := &fakeFiles{}
 	host, path := filesHost(t, "REAPER", liveReachability(), role)
 
-	got := decodeDawResult(t)(host.DawPreviewFileRange(path, 12.5, 5))
+	got := decodeDawResult(t)(previewFile(host, path, 12.5, 5))
 
 	want := dawport.OK("Playing 5.0 s of Chapter 01.wav from 12.5 s.", false)
 	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("DawPreviewFileRange = %+v, want %+v", got, want)
+		t.Fatalf("preview = %+v, want %+v", got, want)
 	}
 	if wantSent := []dawport.FilePreview{{Path: path, Start: 12.5, Length: 5}}; !reflect.DeepEqual(role.previews, wantSent) {
 		t.Fatalf("sent %v, want %v", role.previews, wantSent)
@@ -105,12 +125,12 @@ func TestDawStopFilePreviewSaysWhetherAnythingWasPlaying(t *testing.T) {
 	}
 }
 
-func TestDawRevealFileShowsAPickedFileInTheEngine(t *testing.T) {
+func TestRevealFileShowsAPickedFileInTheEngine(t *testing.T) {
 	role := &fakeFiles{}
 	host, path := filesHost(t, "REAPER", liveReachability(), role)
-	got := decodeDawResult(t)(host.DawRevealFile(path))
+	got := decodeDawResult(t)(revealFile(host, path))
 	if want := dawport.OK("Showing Chapter 01.wav in REAPER.", false); !reflect.DeepEqual(got, want) {
-		t.Fatalf("DawRevealFile = %+v, want %+v", got, want)
+		t.Fatalf("reveal = %+v, want %+v", got, want)
 	}
 	if !reflect.DeepEqual(role.reveals, []string{path}) {
 		t.Fatalf("sent %v", role.reveals)
@@ -132,8 +152,8 @@ func TestTheFileBindingsRefuseWithTheResolversSentenceAndSendNothing(t *testing.
 			host, path := filesHost(t, c.kind, c.reach, role)
 			resolver, _ := host.dawResolverFor(host.services())
 			for capability, call := range map[dawport.Capability]func() (string, error){
-				dawport.CapFilePreview: func() (string, error) { return host.DawPreviewFileRange(path, 0, 5) },
-				dawport.CapFileReveal:  func() (string, error) { return host.DawRevealFile(path) },
+				dawport.CapFilePreview: func() (string, error) { return previewFile(host, path, 0, 5) },
+				dawport.CapFileReveal:  func() (string, error) { return revealFile(host, path) },
 			} {
 				support := resolver.Support(capability)
 				if support.Available || support.Reason != c.reason {
@@ -179,15 +199,15 @@ func TestTheFileBindingsCheckThePathAndStretchOnTheHostAndSendNothing(t *testing
 		gone:                   fileGoneSentence,
 	}
 	for p, sentence := range paths {
-		if got := decodeDawResult(t)(host.DawPreviewFileRange(p, 0, 5)); !reflect.DeepEqual(got, dawport.Refused(sentence)) {
+		if got := decodeDawResult(t)(previewFile(host, p, 0, 5)); !reflect.DeepEqual(got, dawport.Refused(sentence)) {
 			t.Errorf("preview %q = %+v, want Refused(%q)", p, got, sentence)
 		}
-		if got := decodeDawResult(t)(host.DawRevealFile(p)); !reflect.DeepEqual(got, dawport.Refused(sentence)) {
+		if got := decodeDawResult(t)(revealFile(host, p)); !reflect.DeepEqual(got, dawport.Refused(sentence)) {
 			t.Errorf("reveal %q = %+v, want Refused(%q)", p, got, sentence)
 		}
 	}
 	for _, stretch := range [][2]float64{{-1, 5}, {math.NaN(), 5}, {math.Inf(1), 5}, {0, 0}, {0, -1}, {0, 61}, {0, math.Inf(1)}} {
-		if got := decodeDawResult(t)(host.DawPreviewFileRange(path, stretch[0], stretch[1])); !reflect.DeepEqual(got, dawport.Refused(fileBadStretchSentence)) {
+		if got := decodeDawResult(t)(previewFile(host, path, stretch[0], stretch[1])); !reflect.DeepEqual(got, dawport.Refused(fileBadStretchSentence)) {
 			t.Errorf("stretch %v = %+v", stretch, got)
 		}
 	}
@@ -211,14 +231,14 @@ func TestTheFileBindingsWordWhatTheEngineRefused(t *testing.T) {
 	for err, sentence := range cases {
 		role := &fakeFiles{err: err}
 		host, path := filesHost(t, "REAPER", liveReachability(), role)
-		if got := decodeDawResult(t)(host.DawPreviewFileRange(path, 0, 5)); !reflect.DeepEqual(got, dawport.Refused(sentence)) {
-			t.Errorf("%v: DawPreviewFileRange = %+v, want Refused(%q)", err, got, sentence)
+		if got := decodeDawResult(t)(previewFile(host, path, 0, 5)); !reflect.DeepEqual(got, dawport.Refused(sentence)) {
+			t.Errorf("%v: preview = %+v, want Refused(%q)", err, got, sentence)
 		}
 	}
 	role := &fakeFiles{err: bridge.ErrRevealUnsupported}
 	host, path := filesHost(t, "REAPER", liveReachability(), role)
-	if got := decodeDawResult(t)(host.DawRevealFile(path)); got.Refused != "This version of REAPER cannot show a file in its own file browser." {
-		t.Fatalf("DawRevealFile = %+v", got)
+	if got := decodeDawResult(t)(revealFile(host, path)); got.Refused != "This version of REAPER cannot show a file in its own file browser." {
+		t.Fatalf("reveal = %+v", got)
 	}
 }
 
@@ -226,9 +246,9 @@ func TestTheFileBindingsWordWhatTheEngineRefused(t *testing.T) {
 func TestTheFileBindingsWithNoRoleAreRefused(t *testing.T) {
 	host, path := filesHost(t, "REAPER", liveReachability(), nil)
 	for name, raw := range map[string]func() (string, error){
-		"preview": func() (string, error) { return host.DawPreviewFileRange(path, 0, 5) },
+		"preview": func() (string, error) { return previewFile(host, path, 0, 5) },
 		"stop":    host.DawStopFilePreview,
-		"reveal":  func() (string, error) { return host.DawRevealFile(path) },
+		"reveal":  func() (string, error) { return revealFile(host, path) },
 	} {
 		if got := decodeDawResult(t)(raw()); got.OK || got.Refused == "" {
 			t.Errorf("%s = %+v, want a refusal", name, got)
@@ -240,11 +260,11 @@ func TestTheFileBindingsWithNoRoleAreRefused(t *testing.T) {
 // tests/fixtures/contracts/daw-file-*.json.
 func TestDawFileContractGoldenIsCurrent(t *testing.T) {
 	cases := map[string]func(host *Host, path string) (string, error){
-		"daw-file-preview-playing":     func(h *Host, p string) (string, error) { return h.DawPreviewFileRange(p, 12.5, 5) },
+		"daw-file-preview-playing":     func(h *Host, p string) (string, error) { return previewFile(h, p, 12.5, 5) },
 		"daw-file-preview-stopped":     func(h *Host, _ string) (string, error) { return h.DawStopFilePreview() },
-		"daw-file-revealed":            func(h *Host, p string) (string, error) { return h.DawRevealFile(p) },
-		"daw-file-refused-not-picked":  func(h *Host, p string) (string, error) { return h.DawRevealFile(p + ".other.wav") },
-		"daw-file-refused-bad-stretch": func(h *Host, p string) (string, error) { return h.DawPreviewFileRange(p, 0, 90) },
+		"daw-file-revealed":            func(h *Host, p string) (string, error) { return revealFile(h, p) },
+		"daw-file-refused-not-picked":  func(h *Host, p string) (string, error) { return revealFile(h, p+".other.wav") },
+		"daw-file-refused-bad-stretch": func(h *Host, p string) (string, error) { return previewFile(h, p, 0, 90) },
 	}
 	for _, name := range slices.Sorted(maps.Keys(cases)) {
 		t.Run(name, func(t *testing.T) {

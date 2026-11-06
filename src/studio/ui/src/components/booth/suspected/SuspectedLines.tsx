@@ -1,7 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { overlay } from '../../../overlay/overlayService';
+import { retryAction } from '../../primitives/Toast';
 import { usePort } from '../../../ports/usePort';
+import { putBack } from '../../../studio/commands/reviewFinding';
+import { useJournalOrOwn } from '../../../studio/StudioProvider';
 import { IconButton } from '../../primitives/IconButton';
 import { InsetCard } from '../../primitives/InsetCard';
 import { StatusBadge } from '../../primitives/StatusBadge';
@@ -16,6 +19,7 @@ export function SuspectedLines({ chapterId, flags: given }: { chapterId: string;
   const flags = useMemo(() => suspectedLines(given), [given]);
   const teleprompter = usePort('teleprompter');
   const findings = usePort('findings');
+  const journal = useJournalOrOwn();
   const [dismissed, setDismissed] = useState<ReadonlySet<string>>(new Set());
   const [versions, setVersions] = useState<ReadonlyMap<string, { id: string; evidenceVersion: string }>>(new Map());
 
@@ -38,41 +42,60 @@ export function SuspectedLines({ chapterId, flags: given }: { chapterId: string;
     [teleprompter, chapterId],
   );
 
-  // Reading the same place again changes nothing: the host answers each flag with its stored decision.
+  // Reading the same place again changes nothing: the host answers each flag with its stored decision. The save follows the places, not the
+  // array: the page rebuilds the same flags when a take stops, and that must not save them a second time (#2538).
+  const places = flags.map((flag) => suspectedKey(flag)).join('|');
+  const current = useRef(flags);
+  current.current = flags;
   useEffect(() => {
-    if (flags.length === 0) return;
-    keep(flags, new Set()).catch((reason) => overlay.toast(apiErrorMessage(reason), { tone: 'error' }));
-  }, [flags, keep]);
+    if (places === '') return;
+    // Reading again is what Retry does (issue #2919).
+    const read = (): void =>
+      void keep(current.current, new Set()).catch((reason) => overlay.toast(apiErrorMessage(reason), { tone: 'error', action: retryAction(read) }));
+    read();
+  }, [places, keep]);
 
   const dismiss = async (flag: SuspectedFlag) => {
     const key = suspectedKey(flag);
-    try {
-      await keep(flags, new Set([...dismissed, key]));
-    } catch (reason) {
-      overlay.toast(apiErrorMessage(reason), { tone: 'error' });
-      return;
-    }
-    overlay.toastUndo(
-      'Dismissed.',
-      async () => {
+    const refuse = (reason: unknown) => ({ ok: false as const, refusal: { code: 'host_refused', reason: apiErrorMessage(reason) } });
+    // The dismissal is one journal entry, so Ctrl+Z and History take it back as the toast's Undo does.
+    const done = await journal.act<null>({
+      label: 'Dismissed a suspected line',
+      touches: [`proof/finding/${versions.get(key)?.id ?? key}`],
+      run: async () => {
+        try {
+          await keep(flags, new Set([...dismissed, key]));
+          return { ok: true, value: null };
+        } catch (reason) {
+          return refuse(reason);
+        }
+      },
+      undo: async () => {
         const kept = versions.get(key);
         try {
           // Reload so the Undo reaches the stored finding even when the answer above changed its version.
           const latest = await teleprompter.teleprompterSaveFlags(chapterId, [toFlagSave(flag, false)]);
           const target = latest[0] ?? kept;
-          await findings.findingsReview({
-            id: target.id,
-            evidenceVersion: target.evidence_version ?? kept?.evidenceVersion ?? '',
-            status: 'unreviewed',
-            note: '',
-          });
+          await putBack(findings, { id: target.id, evidenceVersion: target.evidence_version ?? kept?.evidenceVersion ?? '' }, 'unreviewed');
           setDismissed((current) => new Set([...current].filter((entry) => entry !== key)));
-          return { ok: true };
+          return { ok: true, value: null };
         } catch (reason) {
-          return { ok: false, refusal: { reason: apiErrorMessage(reason) } };
+          return refuse(reason);
         }
       },
-      { offJournal: 'A dismissed suspected line goes through the host review call; no journal command yet (audit cluster 17).' },
+    });
+    if (!done.ok) {
+      overlay.toast(done.refusal.reason, { tone: 'error' });
+      return;
+    }
+    const entry = done.value.id;
+    overlay.toastUndo(
+      'Dismissed.',
+      async () => {
+        const undone = await journal.undo(entry);
+        return undone.ok ? { ok: true } : undone;
+      },
+      { entry },
     );
   };
 

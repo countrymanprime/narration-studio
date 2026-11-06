@@ -2,7 +2,7 @@
 // measured, so a rule the profile lacks (or has turned off) has no row and nothing here is typed in by hand.
 import type { DeliveryProfile, DeliveryRule, ManuscriptChapter, MeasureFileResult } from '../../../types';
 import { chapterStates, readinessCounts, stateOf, type ChapterState } from '../../delivery/page/chapterStates';
-import { chapterOfFile } from '../../master/chapterFile';
+import { chapterForFile } from '../../master/chapterFile';
 import { formatLength } from '../../master/deliveryFormat';
 import { formatBound, formatRuleValue } from '../../master/deliveryProfile';
 
@@ -81,7 +81,7 @@ export function packageItems(profile: DeliveryProfile | undefined, files: readon
  * nothing in the manuscript still fails the package if it fails its checks).
  */
 function packageStates(chapters: readonly ManuscriptChapter[], files: readonly MeasureFileResult[]): ChapterState[] {
-  const stray = files.filter((file) => !isSample(file) && !chapterOfFile(file, chapters)).map((file) => stateOf({ id: file.path, name: file.name }, file));
+  const stray = files.filter((file) => !isSample(file) && !chapterForFile(file, chapters)).map((file) => stateOf({ id: file.path, name: file.name }, file));
   return [...chapterStates(chapters, files), ...stray];
 }
 

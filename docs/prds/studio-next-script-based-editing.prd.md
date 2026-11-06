@@ -1,10 +1,10 @@
 # Studio Next Script-Based Editing: The Chapter's Words as the Editor
 
-**Source:** owner request of 2026-10-10 ([Studio Next Rebuild](studio-next-rebuild.prd.md)); "Editing page: script-based audio editing (owner ruling)", the takes and Audacity follow-ups and the "FX exception" in `studio-next/research/repo-compare-decisions.md`; research in `studio-next/research/editing-page-research.md` and `studio-next/research/editing-fx-research.md`; the mock's `studio-next/src/pages/Editing.tsx` and `studio-next/src/pages/editing/`.
+**Source:** owner request of 2026-10-10 (Studio Next Rebuild); "Editing page: script-based audio editing (owner ruling)", the takes and Audacity follow-ups and the "FX exception" in `studio-next/research/repo-compare-decisions.md`; research in `studio-next/research/editing-page-research.md` and `studio-next/research/editing-fx-research.md`; the mock's `studio-next/src/pages/Editing.tsx` and `studio-next/src/pages/editing/`.
 
-**Builds on / replaces (the old workspace is deleted in the swap, SNE-9):** the delivered workspace inside the Proof chapter page (word-level player, flags, takes panel, FX on a passage: [workspace.go](../../src/studio/desktop/internal/coverage/workspace.go), [Recording Check (recording coverage)](../utilities/recording-coverage.md), [playing.ts](../../src/studio/ui/src/components/editing/script/playing.ts), [From the Takes panel](../architecture/reaper-bridge.md#from-the-takes-panel), , [cache.go](../../src/studio/desktop/internal/measure/cache.go)), the editing readiness work ([Editing check](../guides/using-the-app/navigation.md#editing-check), [cleanup.go](../../src/studio/desktop/internal/measure/cleanup.go)) and the DAW commands of [DAW Ports and Capabilities](studio-next-daw-ports-and-capabilities.prd.md). The old Edit and Proof Workspace PRD is superseded in its remaining parts here (follow REAPER, takes panel, consolidation); see the overview's carried-over table.
+**Builds on / replaces (the old workspace is deleted in the swap, SNE-9):** the delivered workspace inside the Proof chapter page (word-level player, flags, takes panel, FX on a passage: [workspace.go](../../src/studio/desktop/internal/coverage/workspace.go), [Recording Check (recording coverage)](../utilities/recording-coverage.md), [playing.ts](../../src/studio/ui/src/components/editing/script/playing.ts), [From the Takes panel](../architecture/reaper-bridge.md#from-the-takes-panel), , [cache.go](../../src/studio/desktop/internal/measure/cache.go)), the editing readiness work ([Editing check](../guides/using-the-app/navigation.md#editing-check), [cleanup.go](../../src/studio/desktop/internal/measure/cleanup.go)) and the DAW commands of DAW Ports and Capabilities. The old Edit and Proof Workspace PRD is superseded in its remaining parts here (follow REAPER, takes panel, consolidation); see the overview's carried-over table.
 
-**Status (2026-10-12):** in progress: the page is routed and the old workspace deleted (SN-E9); the Go host surface only the old workspace used is removed (#1308); its Lua half (#1311) and Phase 10 remain. The largest PRD of the series (12 people-weeks); its swap waits for the DAW range commands and for the take lanes of [Proof and Pickups](studio-next-proof-and-pickups.prd.md).
+**Status (2026-10-12):** in progress: the page is routed and the old workspace deleted (SN-E9); the Go host surface only the old workspace used is removed (#1308); its Lua half (#1311) and Phase 10 remain. The largest PRD of the series (12 people-weeks); its swap waits for the DAW range commands and for the take lanes of Proof and Pickups.
 
 ## Problem Statement
 
@@ -37,7 +37,7 @@ The owner chose design E: the chapter's own text is the editor. Words are read-o
 6. **Duplicate reads** (a take that reads the line twice) are found and split into takes, in the DAW when the `takes` capability allows, else the built-in recorder.
 7. **Stacking** as the mock does it (`studio-next/src/selectors/stacking.ts`, `StackDialog.tsx`): the plan is shown first, later reads move onto the first read, the chapter shifts; un-stack restores by offsets (DQ-7).
 8. **Delete words and audio** and **Add FX to a range** through `DawClient.deleteRange` and `applyFxToRange`, behind `cut_range` and `fx_range`, always confirmed with a preview, one undo step, never deleting (a trim hides or mutes; it goes to the muted Cuts track as `delete_range` does, DQ-8), struck words kept, an underline and an FX marker with a way to remove, the DAW's own saved chains listed from the DAW (`studio-next/src/providers/fxchains.ts`).
-9. **Strip and drawer.** The timeline strip of take lanes at the mock's width rule (1360 px and wider, implemented as the container query of [Foundations](studio-next-foundations.prd.md), SN0-Q7); the drawer with Clean up, Effects and Backups (and Timeline where the strip does not fit); Backups tab only for DAWs with the capability.
+9. **Strip and drawer.** The timeline strip of take lanes at the mock's width rule (1360 px and wider, implemented as the container query of Foundations, SN0-Q7); the drawer with Clean up, Effects and Backups (and Timeline where the strip does not fit); Backups tab only for DAWs with the capability.
 10. **Cleanup placement.** Editing owns cleanup plus take prep, take suggestion and backups (owner: "confirmed"); cleanup trims use the Cuts-track mechanism: they hide or mute, deletion is the DAW's job (DQ-8; superseded).
 11. **Carried over** from the old workspace PRD: follow REAPER's transport (Could, depends on the play-position spike) and the clause split that `src/studio/integrations/reaper/narration_level_normalize.lua` deferred for lack of persisted word times (Could).
 
@@ -98,7 +98,7 @@ A narrator doing the edit pass: reading the script while listening, deleting ret
 
 ### Supersedes / depends on ADRs
 
-On conflict this PRD, and the ADR written when its phase lands, is the source of truth; old ADRs stay in force for unmigrated code until then ([register](studio-next-adr-register.prd.md)).
+On conflict this PRD, and the ADR written when its phase lands, is the source of truth; old ADRs stay in force for unmigrated code until then (register).
 
 | ADR | Class | Note |
 | --- | --- | --- |

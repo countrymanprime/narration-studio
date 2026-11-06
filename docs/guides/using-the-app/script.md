@@ -13,15 +13,14 @@ three parts side by side:
   the one before ("End of chapter 1 · 2,140 words", the same dashed line the [Booth](booth.md) draws at each page break), then a card with the chapter's title in larger type and its subtitle under it, smaller and dimmer (a chapter with no subtitle has no empty line), its word count,
   its finished audio, its notes, and **My prep**, where you set the chapter's prep state.
   Your marks are drawn in the text in their own colours and lines. A Story Bible name is tinted and underlined in its
-  type's colour, the same as in the Booth, and a name still marked Needs Review or Draft is amber. A word flagged for
-  pronunciation has a blue dotted underline. A speaker's lines carry a chip with their name in the speaker's own
+  type's colour, the same as in the Booth, and a name still marked Needs Review or Draft is amber. A speaker's lines carry a chip with their name in the speaker's own
   colour: a dashed border means the speaker is only suggested, and a grey dashed chip with a question mark means nobody
   is set. Speakers are the Story Bible's characters (the entries whose type speaks), and every speaker the app finds is
   a suggestion: a speech tag ("Ada said"), the other of two people taking turns, or a character's name within a few words
   of the line. It turns solid once you confirm it or pick someone in the chip's menu; confirming adds nothing to the Story
   Bible. Confirming who speaks a line is one history entry (**Confirmed a speaker**), the same one the Story Bible's cue list and the Booth's speaker chip make. The **Find who speaks each line** button in the header runs the search again whenever you like, the first time or
   after you add a character: it fills the lines nobody has confirmed, never changes one you confirmed or picked, and says
-  how many lines it attributed, with **Undo**. Run again with nothing new, it says so and changes nothing. A name still in Needs Review is never a speaker until you file it under a type that speaks. Search matches are lit in their own yellow-green, and the current match has a ring. The header names the chapter in view and the line you are on, and has the **text settings** (font, size, line spacing, 1.7 at first, and column width: **Narrow**, **Medium**, **Wide** or **Full**, each the width's characters a line or its share of the text area, whichever is less, in a column centred in the text area, the same column the [Booth](booth.md) reads in, so Narrow stays narrower than Full in a half-width window). There is no search button: `Ctrl+F` searches the page through the [jump menu](navigation.md#jump-to-or-run) (see [Searching the script](#searching-the-script)).
+  how many lines it attributed, with **Undo**. Run again with nothing new, it says so and changes nothing. A name still in Needs Review is never a speaker until you file it under a type that speaks. Search matches are lit in their own yellow-green, and the current match has a ring. The header names the chapter in view and the line you are on, and has the **text settings** (font, size, line spacing, 1.7 at first, and column width: **Narrow**, **Medium**, **Wide** or **Full**, each the width's characters a line or the whole text area, whichever is less, in a column centred in the text area, the same column the [Booth](booth.md) reads in; the column grows and shrinks with the window up to that width and fills a text area too narrow for it). There is no search button: `Ctrl+F` searches the page through the [jump menu](navigation.md#jump-to-or-run) (see [Searching the script](#searching-the-script)).
 - **The rail** on the right, with three tabs: **Words**, **Story Bible** and **Notes**. Bookmarks are not a tab: go to one from the [jump menu](navigation.md#jump-to-or-run) (`Ctrl+F`, then type *bookmark*), and add, edit or delete one from the right-click menu (see [Bookmarks](#bookmarks)).
 
 While the manuscript is being read, the page shows the same three columns as grey blocks; if it cannot be read, the page says so with **Retry**.
@@ -35,6 +34,8 @@ bookmarks the line, says "Bookmark added." and opens the bookmark's label and no
 the previous or next bookmark; **Ctrl+F** searches the script; **F3** **Shift+F3** step the matches. A key you rebind
 under **Keyboard & pedals** in [Settings](settings.md) shows its new key here.
 
+When you go to a chapter from the [jump menu](navigation.md#jump-to-or-run) or with **Alt+↑** **Alt+↓**, focus moves to that chapter's heading in the reader and the place is announced, so the next **Tab** and a screen reader start there. The heading shows a focus ring while you are using the keyboard. A chapter chosen in the chapter list leaves focus in the list, so **↓** steps to the next chapter.
+
 Each chapter card has its own prep buttons and **Record in Booth**, so a keyboard user would pass four stops per chapter on the
 way to the rail. The first Tab stop after the reader's header is **Skip to the side panel**, which is seen only while it has focus:
 Enter moves focus to the open tab of the rail (or opens the rail, where it is a drawer).
@@ -44,15 +45,20 @@ Enter moves focus to the open tab of the rail (or opens the rail, where it is a 
 ## Searching the script
 
 `Ctrl+F` opens the [jump menu](navigation.md#jump-to-or-run) searching only this page. Type at least two letters and the menu lists, in this order:
-what the page offers that matches (**On this page**: chapters, Story Bible entries and the mark types), then **In the script**, **My marks** and **My words**.
-Each match in the script shows the words around it with the matched part marked, and the chapter and paragraph it is in (**Chapter 3 · ¶ 12**);
-the first 50 are listed and a last row says how many more there are. It reads the chapters the page has loaded.
+what the page offers that matches (**On this page**: chapters, Story Bible entries and the mark types), then **In the script** and **My marks**.
+**In the script** searches the whole book, including chapters you have not scrolled to yet, but not front matter or chapters taken out of recording.
+Until the answer comes, **Searching…** holds its place. Each match is its own row, with the words around it, the matched part marked, and its chapter and
+paragraph (**Chapter 3 · ¶ 12**). The first 50 are listed, and a last row gives the exact number of the rest. Case does not matter, and accented
+letters, right-to-left text, emoji and characters such as `(` `*` `.` are matched as typed. A term longer than 500 characters is refused with a message.
 
-Choose a match (`Enter` or a click) and the menu closes: every match of the word is lit in the text, the one you chose is ringed and brought into view.
-**F3** and **Shift+F3** move to the next and previous match, wrapping at the ends; the same steps, with "3 of 12 for “alice”", and **Clear the search** are under **Search** in
-the jump menu while a search is showing. `Esc` clears the search. `Ctrl+K` opens the whole menu, with **On this page** first, and `Backspace` on an empty field in `Ctrl+F` widens the search to every page and command.
+Choose a match (`Enter` or a click) and the menu closes. Every match of the word is lit in the text, and the one you chose is ringed and brought into
+view, even in a chapter the page had not read yet. **F3** and **Shift+F3** move to the next and previous match, wrapping at the ends. While a search is
+showing, the jump menu has the same steps under **Search**, with "3 of 12 for “alice”", and **Clear the search**. A screen reader hears the same count.
+A word found more than 1,000 times lights and steps through the first 1,000, and the count says so ("3 of the first 1000 of 4210"). `Esc` clears the search. `Ctrl+K` opens the whole menu, with **On this page** first, and `Backspace` on an empty field in `Ctrl+F` widens the search to every page and command.
 
 ![Script - Ctrl+F then "Alice": the menu lists the matches under In the script, the matched word marked](../../images/ui/script-search.webp)
+
+![Script - a search showing, then Ctrl+F and Search: Next match and Previous match with where you are (1 of 397 for “alice”), and Clear the search](../../images/ui/script-search-steps.webp)
 
 **Find in the manuscript** on a Story Bible entry and **Find** in the right-click menu light the matches in the text the same way, without opening the menu.
 
@@ -73,8 +79,8 @@ page at the same place, as do the links from Proof and the Story Bible.
 
 Select words in the reader and a dark toolbar appears over them:
 
-- **Mark** puts one of your marks on them, with a note (a question for the author is a note you can reply to), marks a word for its
-  pronunciation (**Pronunciation (a word)**), or opens **Define marks…**, where you name your marks and choose each
+- **Mark** puts one of your marks on them, with a note (a question for the author is a note you can reply to), adds a word for its
+  pronunciation (**Pronunciation (a word)**, below), or opens **Define marks…**, where you name your marks and choose each
   one's colour, its line and whether it **Asks** (tracks a reply), and **Add a mark** adds one. The note dialog is titled
   **Mark** and the words you selected.
 - **Story Bible** makes a new entry of the kind you choose from the words; the kinds are the Story Bible's own types,
@@ -82,7 +88,11 @@ Select words in the reader and a dark toolbar appears over them:
 - **Bookmark here** (the bookmark button).
 - **Record from here** (the record button) opens the [Booth](booth.md) on the chapter, starting at the words you selected.
 - **Look up** opens the words in the rail: a Story Bible name on its **Story Bible** tab, any other word on **Words**.
-  A word you have not marked yet gets **Add to my words** on its card, which marks the word you selected.
+
+**Pronunciation (a word)** opens the words on **Words**, with what the dictionaries say for them. Only a character, place or other story
+element is in the Story Bible: add one with **Story Bible** (above). Any other word is never added there. Its card lists what each
+dictionary says, each with its source and **Hear**. When no dictionary has the word, **Save to my dictionary** keeps how you say it in your
+own dictionary for this project, which then offers it as a candidate labelled **My dictionary**.
 
 ![Script - Define how you mark up: each mark type with its name, colour and line](../../images/ui/script-define-marks.webp)
 
@@ -90,10 +100,8 @@ Right-click the text for the same actions. The menu opens just under the words y
 below), so it never hides them. **Mark as** (your marks and **Pronunciation (a word)**) and
 **Add to the Story Bible as** open their choices beside the menu (left out when the words are already an entry's name or alias, where the entry's own row finds them),
 then **Look up**, **Find** (lights the matches in the text), **Copy**, **Bookmark here** and **Record from here**. Where you click adds more: on a speaker's line, **Speaker: …** to change who
-speaks it (an alias such as "Rabbit" is its own row, with its entry, "White Rabbit", beneath it; picking either row sets the same speaker); on one of your marks, open it, change its type (**Change type** opens the types beside it), resolve or reopen its thread, or delete it; on a marked word,
-**Show in Words** or **Remove from my words**. Right-click a chapter in the list or its card in the reader to go to it,
-record it in the Booth or set its prep state (**My prep** opens the states beside it), and a word on the **Words** tab to show it or remove it. Click a marked
-word in the text to open it on the **Words** tab.
+speaks it (an alias such as "Rabbit" is its own row, with its entry, "White Rabbit", beneath it; picking either row sets the same speaker); on one of your marks, open it, change its type (**Change type** opens the types beside it), resolve or reopen its thread, or delete it; Right-click a chapter in the list or its card in the reader to go to it,
+record it in the Booth or set its prep state (**My prep** opens the states beside it), and a word on the **Words** tab to show it.
 
 ![Script - the selection toolbar on one word: Mark, Story Bible, Bookmark here, Record from here and Look up](../../images/ui/script-selection-popup.webp)
 
@@ -105,10 +113,11 @@ word in the text to open it on the **Words** tab.
 
 - **In this chapter** is the same list on **Words** and on **Story Bible**: who and what the chapter has, one row each with the name, its
   kind where it has one, and a **Hear** button where there is a pronunciation to play. It lists who is in the chapter, not who speaks,
-  and it has no status column: a row without a **Hear** button has no pronunciation yet, or is a word you marked (the app can only speak a Story Bible name). **Hear** plays the same preview as the Story Bible's list and stops on a second press; if the preview voice is not installed yet, a message says to open the name in the Story Bible and press play there to install it.
+  and it has no status column: a row without a **Hear** button has no pronunciation yet. **Hear** plays the name itself (an alias plays the alias) and plays the same preview as the Story Bible's list and stops on a second press; if the preview voice is not installed yet, a message says to open the name in the Story Bible and press play there to install it.
 - The names, kinds and speakers on this page are read again each time you open it, so an entry you renamed or retyped in the [Story Bible](story-bible.md) shows here at once.
-- **Words** lists the words marked for pronunciation in the chapter in view. A word's card has **How I will say it**
-  with its source (a dictionary, eSpeak or the one you typed), the **Definition**, **Forvo** and **YouGlish** pages for
+- **Words** lists every Story Bible name that appears in the chapter in view. A row opens its card: **How I will say it** is the same row as
+  in the Story Bible entry, with the value, its source (a dictionary, eSpeak or the one you typed), **From the dictionaries** (each source's
+  value with **Hear** and **Use**) and **Look up elsewhere**, and a change made there is one step **Undo** takes back. The card also has the **Definition**, **Forvo** and **YouGlish** pages for
   it, and its definition from where **Definitions from** says: the web page (the default), the offline dictionary
   ([Settings, Models and downloads](settings.md#models-and-downloads)) or the online service on your own key. The choice is saved
   for every project, and Settings' **Definitions and pronunciations** panel changes the same one.
@@ -119,11 +128,11 @@ word in the text to open it on the **Words** tab.
 - **Notes** lists the chapter's marks, each a thread you can reply to, resolve or reopen, with the note and the replies; one goes to its
   place in the text. A question for the author is a note like the others.
 
-A Story Bible name met in the chapter is listed on **Words** too, marked with the Story Bible icon and read-only there: its pronunciation is the entry's, edited in the Story Bible.
-
 ![Script - the rail's Story Bible tab: the entries met in this chapter](../../images/ui/script-rail-story-bible.webp)
 
-![Script - a word looked up in the rail's Words tab: a box for how to say it, its source and the web look-ups](../../images/ui/script-word-lookup.webp)
+![Script - a word looked up in the rail's Words tab that is no story element: what the dictionaries say, or Save to my dictionary, and the web look-ups](../../images/ui/script-word-lookup.webp)
+
+![Script - a Story Bible name chosen on the Words tab: How I will say it is the entry's own row, the same as in the Story Bible](../../images/ui/script-word-name.webp)
 
 ![Script - the rail's Notes tab](../../images/ui/script-note-sidebar.webp)
 

@@ -145,4 +145,26 @@ describe('Disclosure', () => {
       expect(panel.hasAttribute('data-more-below')).toBe(false);
     });
   });
+
+  it('keepMounted keeps what is typed in a closed panel, hidden; without it the panel leaves the page', async () => {
+    function Typing({ keep }: { keep: boolean }) {
+      const [open, setOpen] = useState(true);
+      return (
+        <Disclosure title="Group" open={open} onOpenChange={setOpen} keepMounted={keep}>
+          <input aria-label="Value" defaultValue="" />
+        </Disclosure>
+      );
+    }
+    for (const keep of [true, false]) {
+      render(<Typing keep={keep} />);
+      await userEvent.type(screen.getByLabelText('Value'), 'abc');
+      await userEvent.click(screen.getByRole('button', { name: 'Group' }));
+      const closed = document.querySelector<HTMLInputElement>('input');
+      if (keep) expect(closed?.value).toBe('abc');
+      else expect(closed).toBeNull();
+      await userEvent.click(screen.getByRole('button', { name: 'Group' }));
+      if (keep) expect((screen.getByLabelText('Value') as HTMLInputElement).value).toBe('abc');
+      cleanup();
+    }
+  });
 });

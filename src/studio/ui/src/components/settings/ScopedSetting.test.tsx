@@ -215,8 +215,10 @@ describe('ScopedSetting layout', () => {
 
   it("keeps the hint icon on the line of the label's last word", () => {
     renderSetting(number());
+    // From `md` the last word and the icon share one nowrap span, so no line breaks between them; below `md` the icon is pinned to the
+    // row's right edge (the alignment audit's A4 at 390 px).
     const last = screen.getByText(/^read$/);
-    expect(last.className).toContain('whitespace-nowrap');
+    expect(last.className).toContain('md:whitespace-nowrap');
     expect(last.querySelector('button, [role="button"], svg')).toBeTruthy();
   });
 });

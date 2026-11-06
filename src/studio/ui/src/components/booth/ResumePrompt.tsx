@@ -7,6 +7,7 @@ import { EnginePanelLink } from '../engine/EnginePanelContext';
 import { useApi } from '../../api/ApiContext';
 import { Button } from '../primitives/Button';
 import { InsetCard } from '../primitives/InsetCard';
+import type { RecordedStart } from './companion/companionResume';
 import { useResumeLocate, type LocateState } from './useResumeLocate';
 import { WhisperModelPrompt } from './WhisperModelPrompt';
 import type { ChapterTrackMatch, TeleprompterLocateResult, TeleprompterReading, TeleprompterResumePlace } from '../../types';
@@ -45,6 +46,13 @@ type Props = {
    * absent when the choice is "from the top" (word is null).
    */
   onStartWord: (word: number | null, label?: string) => void;
+  /**
+   * The place the chapter's recording reaches (`recordedStart`, the Booth's own resume point): offered first, and Start begins there. The
+   * recording is asked (`teleprompterLocate`) only when the narrator presses Change. Absent when nothing is recorded or it is all recorded.
+   */
+  recorded?: RecordedStart | null;
+  /** The recorded place is still being read: the lookup waits for it, so a recorded chapter never starts a Whisper pass first. */
+  recordedPending?: boolean;
 };
 
 /** The start-point chip's text: a short quote beginning at the resume word, truncated with an ellipsis. */
@@ -169,6 +177,26 @@ function AgreeNotice({
       }
     >
       Continuing at {label ? <span className="italic">&lsquo;{label}&rsquo;</span> : <PlaceQuote place={daw} />} — REAPER and your last reading agree
+    </NoticeHeader>
+  );
+}
+
+/** The recorded place offered first (#2601): where the chapter's recording ends, the value the Booth resumes at, with the way to a different start. */
+function RecordedNotice({ recorded, onChange, onTop }: { recorded: RecordedStart; onChange: () => void; onTop: () => void }) {
+  return (
+    <NoticeHeader
+      icon={faLocationCrosshairs}
+      iconColor="var(--accent)"
+      links={
+        <>
+          <TextLink onClick={onChange}>Change</TextLink>
+          <span aria-hidden="true">·</span>
+          <TextLink onClick={onTop}>Start from the top</TextLink>
+        </>
+      }
+    >
+      Continuing at <span className="italic">&lsquo;{recorded.label}&rsquo;</span> — recorded {recorded.estimate ? 'about ' : ''}
+      {recorded.percent}% through
     </NoticeHeader>
   );
 }
@@ -478,9 +506,12 @@ function unreadableText(result: Located): string {
  * from a fresh lookup with the earlier choice cleared (Start begins at the top until one is made), so the narrator who
  * stopped reading can resume from where that session left the recording (#2649, which reverses #2553's "does not come back").
  */
-export function ResumePrompt({ chapterId, model, active, onStartWord }: Props) {
+export function ResumePrompt({ chapterId, model, active, onStartWord, recorded = null, recordedPending = false }: Props) {
   const api = useApi();
-  const lookup = useResumeLocate(chapterId, model);
+  // The recorded place is the first offer; Change hands over to the lookup of the recording itself.
+  const [changed, setChanged] = useState(false);
+  const offerRecorded = recorded !== null && !changed;
+  const lookup = useResumeLocate(chapterId, model, !offerRecorded && !recordedPending);
   const [settled, setSettled] = useState(false);
   const preset = useRef(false);
   const wasActive = useRef(active);
@@ -494,11 +525,19 @@ export function ResumePrompt({ chapterId, model, active, onStartWord }: Props) {
       preset.current = false;
       onStartWord(null);
       setSettled(false);
+      setChanged(false);
       retry();
     }
     wasActive.current = active;
   }, [active, onStartWord, retry]);
   const shown = !settled && !active;
+  // Start begins at the recorded place while it is offered, again each time the recording moves (a take ended) or the offer comes back.
+  const recordedWord = recorded?.word ?? null;
+  const recordedLabel = recorded?.label;
+  useEffect(() => {
+    if (!shown || !offerRecorded || recordedWord === null) return;
+    onStartWord(recordedWord, recordedLabel);
+  }, [shown, offerRecorded, recordedWord, recordedLabel, onStartWord]);
 
   // REAPER starting to play or record makes the prompt go away:
   // the narrator is working in REAPER. The heartbeat's transport push says so within a tick, with no request;
@@ -553,7 +592,11 @@ export function ResumePrompt({ chapterId, model, active, onStartWord }: Props) {
   return (
     // A compact bordered notice, not a Panel.
     <InsetCard role="region" aria-label="Where you stopped" className="flex flex-wrap items-start gap-x-3 gap-y-2 text-sm">
-      <PromptBody state={lookup.state} onChoose={choose} onRetry={lookup.retry} onAskForModel={lookup.askForModel} />
+      {offerRecorded && recorded ? (
+        <RecordedNotice recorded={recorded} onChange={() => setChanged(true)} onTop={() => choose(null)} />
+      ) : (
+        <PromptBody state={lookup.state} onChoose={choose} onRetry={lookup.retry} onAskForModel={lookup.askForModel} />
+      )}
       {lookup.prompt && (
         <WhisperModelPrompt
           prompt={lookup.prompt}

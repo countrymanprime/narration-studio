@@ -8,8 +8,8 @@ import { CreditsPanel } from './CreditsPanel';
 
 afterEach(cleanup);
 
-function renderPanel() {
-  const api = createMockApi();
+function renderPanel(overrides: Parameters<typeof createMockApi>[0] = {}) {
+  const api = createMockApi(overrides);
   const notify = vi.fn();
   render(
     <ApiProvider api={api}>
@@ -56,7 +56,7 @@ describe('CreditsPanel', () => {
     renderPanel();
     const detected = await screen.findAllByText(/Detected from/);
     expect(detected.length).toBeGreaterThanOrEqual(2);
-    fireEvent.click(screen.getAllByRole('button', { name: 'Use suggestion' })[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Use this suggestion' })[0]);
     await waitFor(() => expect((screen.getByLabelText('Title') as HTMLInputElement).value).not.toBe(''));
   });
 
@@ -219,5 +219,46 @@ describe('CreditsPanel layout', () => {
     const picker = await screen.findByRole('combobox', { name: 'Template' });
     await waitFor(() => expect([...picker.querySelectorAll('option')].map((option) => option.textContent)).toContain('Chapter announcement'));
     expect([...picker.querySelectorAll('option')].map((option) => option.textContent)).not.toContain('Chapter announcement (Chapter announcement)');
+  });
+});
+
+// Issue #1845: a failed save is an error toast with Retry where repeating it is safe. Each of these writes the same values again.
+describe('CreditsPanel failed saves offer Retry', () => {
+  const retryOf = (notify: ReturnType<typeof vi.fn>) => notify.mock.calls.find((call) => call[1] === 'error')?.[2] as { label: string; onAction: () => void };
+
+  it('Retry on a failed template save saves the same template again', async () => {
+    const base = createMockApi();
+    let refuse = true;
+    const saveCreditsTemplate = vi.fn(async (...args: Parameters<typeof base.saveCreditsTemplate>) => {
+      if (refuse) throw new Error('The host refused it.');
+      return base.saveCreditsTemplate(...args);
+    });
+    const { notify } = renderPanel({ saveCreditsTemplate });
+    await screen.findByRole('combobox', { name: 'Template' });
+    fireEvent.click(screen.getByRole('button', { name: 'New' }));
+    fireEvent.change(screen.getByLabelText('Body'), { target: { value: '[Title], read by [Narrator].' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save template' }));
+    await waitFor(() => expect(retryOf(notify)?.label).toBe('Retry'));
+    refuse = false;
+    retryOf(notify).onAction();
+    await waitFor(() => expect(notify).toHaveBeenCalledWith('Credit template saved.'));
+    expect(saveCreditsTemplate.mock.calls[1]).toEqual(saveCreditsTemplate.mock.calls[0]);
+  });
+
+  it('Retry on a failed value save saves that value again', async () => {
+    const base = createMockApi();
+    let refuse = true;
+    const saveCreditsProjectValues = vi.fn(async (...args: Parameters<typeof base.saveCreditsProjectValues>) => {
+      if (refuse) throw new Error('The host refused it.');
+      return base.saveCreditsProjectValues(...args);
+    });
+    const { notify } = renderPanel({ saveCreditsProjectValues });
+    await screen.findByText(/unresolved token/);
+    fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Alice in Wonderland' } });
+    await waitFor(() => expect(retryOf(notify)?.label).toBe('Retry'));
+    refuse = false;
+    retryOf(notify).onAction();
+    await waitFor(() => expect(saveCreditsProjectValues).toHaveBeenCalledTimes(2));
+    expect(saveCreditsProjectValues.mock.calls[1]).toEqual(saveCreditsProjectValues.mock.calls[0]);
   });
 });

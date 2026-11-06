@@ -61,7 +61,7 @@ func TestContractImportJobsAndReaderPayloads(t *testing.T) {
 		t.Fatal(err)
 	}
 	pin(t, "manuscript-paragraphs", paragraphs)
-	hits, err := service.Search("paragraph")
+	hits, err := service.Search("re")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,11 +89,6 @@ func TestContractImportJobsAndReaderPayloads(t *testing.T) {
 		t.Fatal(err)
 	}
 	pin(t, "manuscript-chapter-status", status)
-	reader, err := service.Reader()
-	if err != nil {
-		t.Fatal(err)
-	}
-	pin(t, "manuscript-reader", reader)
 
 	// A chapter the recording coverage measured carries recordedFraction (docs/utilities/recording-coverage.md);
 	// the others still carry none.

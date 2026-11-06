@@ -125,6 +125,63 @@ H.test('record_start with end on an empty track starts at the project start', fu
   H.eq(s.fake.cursor, 0)
 end)
 
+-- chapter_end: a chapter linked to a folder of voices continues after the latest item of the WHOLE folder (#3025).
+local function voices_session()
+  local s = H.session({ project_path = H.join(host.tmpdir(), 'Book.rpp') })
+  local folder = s.fake:add_track('Chapter 1')
+  local narrator = s.fake:add_track('Narrator')
+  local hero = s.fake:add_track('Hero')
+  local after = s.fake:add_track('Chapter 2')
+  folder.folder_depth = 1
+  hero.folder_depth = -1
+  return s, folder, narrator, hero, after
+end
+
+H.test('record_start with chapter_end continues after the latest item on any voice of the folder', function()
+  local s, folder, narrator, hero = voices_session()
+  narrator.armed = true
+  s.fake:add_item(narrator, { position = 10, length = 30 })
+  s.fake:add_item(hero, { position = 50, length = 20 })
+  s:send('record_start', 'r1', narrator.guid, 'chapter_end', folder.guid)
+  H.eq(s:events(), { { 'RECORD_STARTED', 'r1', narrator.guid, '70.000000' } })
+  H.eq(s.fake.cursor, 70)
+end)
+
+H.test('record_start with chapter_end ignores tracks outside the folder and counts muted tracks', function()
+  local s, folder, narrator, hero, after = voices_session()
+  narrator.armed = true
+  s.fake:add_item(after, { position = 500, length = 5 })
+  s.fake:add_item(hero, { position = 20, length = 10 })
+  hero.muted = true
+  s:send('record_start', 'r1', narrator.guid, 'chapter_end', folder.guid)
+  H.eq(s:events(), { { 'RECORD_STARTED', 'r1', narrator.guid, '30.000000' } })
+end)
+
+H.test('record_start with chapter_end on an empty folder starts at the project start', function()
+  local s, folder, narrator = voices_session()
+  narrator.armed = true
+  s.fake.cursor = 12
+  s:send('record_start', 'r1', narrator.guid, 'chapter_end', folder.guid)
+  H.eq(s:events(), { { 'RECORD_STARTED', 'r1', narrator.guid, '0.000000' } })
+end)
+
+H.test('record_start with chapter_end refuses a target that is not inside the folder and moves nothing', function()
+  local s, folder, _, _, after = voices_session()
+  after.armed = true
+  s.fake.cursor = 12
+  s:send('record_start', 'r1', after.guid, 'chapter_end', folder.guid)
+  H.eq(s:events()[1][1], 'ERROR')
+  H.eq(s.fake.cursor, 12)
+  H.eq(calls_named(s, 'CSurf_OnRecord'), 0)
+end)
+
+H.test('record_start with chapter_end refuses a folder that is not there', function()
+  local s, _, narrator = voices_session()
+  narrator.armed = true
+  s:send('record_start', 'r1', narrator.guid, 'chapter_end', '{FFFFFFFF-0000-4000-8000-00000000FFFF}')
+  H.eq(s:events()[1][1], 'TRACK_STALE')
+end)
+
 H.test('a refused record_start with end leaves the cursor where it was', function()
   local cases = {
     {
@@ -553,6 +610,32 @@ H.test('the end rule starts at the end of the track when the cursor is no longer
   H.eq(s:events(), { { 'RECORD_STARTED', 'r2', chapter.guid, '20.000000' } }, 'an unknown place never records over later audio')
 end)
 
+H.test('chapter_end goes on from where the chapter last stopped, on any voice of the folder', function()
+  local s, folder, narrator, hero = voices_session()
+  s.fake:add_item(narrator, { position = 0, length = 60, source = 'earlier.wav' })
+  hero.armed = true
+  s.fake.cursor, s.fake.record_seconds = 5, 3
+  s:send('record_start', 'r1', hero.guid)
+  s:send('record_stop', 's1')
+  s:events()
+  narrator.armed, hero.armed = true, false
+  s:send('record_start', 'r2', narrator.guid, 'chapter_end', folder.guid)
+  H.eq(s:events(), { { 'RECORD_STARTED', 'r2', narrator.guid, '8.000000' } }, 'where the hero stopped, as the narrator picks up')
+end)
+
+H.test('chapter_end ignores a stop outside the folder and goes to the end of the whole folder', function()
+  local s, folder, narrator, hero, after = voices_session()
+  s.fake:add_item(hero, { position = 0, length = 40, source = 'earlier.wav' })
+  after.armed = true
+  s.fake.cursor, s.fake.record_seconds = 5, 3
+  s:send('record_start', 'r1', after.guid)
+  s:send('record_stop', 's1')
+  s:events()
+  after.armed, narrator.armed = false, true
+  s:send('record_start', 'r2', narrator.guid, 'chapter_end', folder.guid)
+  H.eq(s:events(), { { 'RECORD_STARTED', 'r2', narrator.guid, '40.000000' } })
+end)
+
 H.test('the end rule ignores a stop on another track', function()
   local s, chapter, other = new_session()
   s.fake:add_item(chapter, { position = 0, length = 20, source = 'earlier.wav' })
@@ -598,4 +681,231 @@ H.test('the guard after a stop lasts about half a second and then leaves the cur
   s.fake.cursor = 2
   s:tick()
   H.eq(s.fake.cursor, 2)
+end)
+
+-- The stop guard and the app's own cursor moves (docs/research/2026-10-30-booth-sub-track-recording.md, section 6b) -----
+
+H.test('set_cursor sent at once after a stop ends the guard, so a re-take from the same place holds', function()
+  local s, chapter = new_session()
+  chapter.armed = true
+  s.fake.cursor, s.fake.record_seconds = 2, 5
+  s:send('record_start', 'r1', chapter.guid)
+  s:send('record_stop', 's1')
+  s:send('set_cursor', 'c1', '2')
+  s:events()
+  for _ = 1, 3 do
+    s:tick()
+  end
+  H.eq(s.fake.cursor, 2, 'the app asked for the take start; the guard is for REAPER seeking there, not the app')
+end)
+
+H.test('punch_to sent at once after a stop ends the guard too', function()
+  local s, chapter = new_session()
+  chapter.armed = true
+  s.fake.cursor, s.fake.record_seconds = 2, 5
+  s:send('record_start', 'r1', chapter.guid)
+  s:send('record_stop', 's1')
+  s:send('punch_to', 'p1', '3', '1')
+  s:events()
+  for _ = 1, 3 do
+    s:tick()
+  end
+  H.eq(s.fake.cursor, 2)
+end)
+
+H.test('go_to and play_from sent at once after a stop end the guard too', function()
+  for _, send in ipairs({
+    function(s, track)
+      s:send('go_to', 'g1', track.guid, 'at', '2')
+    end,
+    function(s)
+      s:send('play_from', 'p1', '2')
+      s.fake.play_state = 0
+    end,
+  }) do
+    local s, chapter = new_session()
+    chapter.armed = true
+    s.fake.cursor, s.fake.record_seconds = 2, 5
+    s:send('record_start', 'r1', chapter.guid)
+    s:send('record_stop', 's1')
+    send(s, chapter)
+    s:events()
+    for _ = 1, 3 do
+      s:tick()
+    end
+    H.eq(s.fake.cursor, 2)
+  end
+end)
+
+-- switch_voice --------------------------------------------------------------------------------------------------
+
+-- A chapter folder of voices: Narrator and Queen, with the narrator's own arms on Pickups before the app armed anything.
+local function voice_session()
+  local s = H.session({ project_path = H.join(host.tmpdir(), 'Book.rpp') })
+  local narrator = s.fake:add_track('Narrator')
+  local queen = s.fake:add_track('Queen')
+  local pickups = s.fake:add_track('Pickups')
+  pickups.armed = true
+  s:send('arm_only', 'a1', narrator.guid)
+  s.fake.cursor, s.fake.record_seconds = 2, 3
+  s:send('record_start', 'r1', narrator.guid)
+  s:events()
+  return s, narrator, queen, pickups
+end
+
+H.test('switch_voice during a take arms the new voice and disarms the old one, and REAPER keeps recording', function()
+  local s, narrator, queen = voice_session()
+  s.fake.play_position = 3.6
+  s:send('switch_voice', 'v1', queen.guid)
+  H.eq(s:events(), { { 'VOICE_SWITCHED', 'v1', queen.guid, '3.600000' } })
+  H.eq({ narrator.armed, queen.armed }, { false, true })
+  H.eq(s.fake.play_state, 5)
+  H.eq(#s.fake.undo, 0, 'an arm is not in the undo history; the take stays one point')
+end)
+
+H.test('a take with a switch stops as one undo point, one item per voice, the cursor at the end of the last voice', function()
+  local s, narrator, queen, pickups = voice_session()
+  s.fake.play_position = 3.6
+  s:send('switch_voice', 'v1', queen.guid)
+  s.fake.play_position = 4.9
+  s:tick()
+  s:send('record_stop', 's1')
+  H.eq(s:events(), { { 'VOICE_SWITCHED', 'v1', queen.guid, '3.600000' }, { 'RECORD_STOPPED', 's1', '2', '0', '1' } })
+  local spans = {}
+  for _, item in ipairs(s.fake.items) do
+    spans[#spans + 1] = { item.track.name, item.position, item.position + item.length }
+  end
+  H.eq(spans, { { 'Narrator', 2, 3.6 }, { 'Queen', 3.664, 5 } })
+  H.eq(s.fake.cursor, 5, 'where the last voice stopped')
+  H.eq({ narrator.armed, queen.armed, pickups.armed }, { false, false, true }, "the narrator's own arms are back")
+end)
+
+H.test('after a switch, the end rule goes on from where the last voice stopped, on that voice', function()
+  local s, _, queen, pickups = voice_session()
+  s.fake.play_position = 3.6
+  s:send('switch_voice', 'v1', queen.guid)
+  s:send('record_stop', 's1')
+  s:events()
+  queen.armed, pickups.armed = true, false
+  s:send('record_start', 'r2', queen.guid, 'end')
+  H.eq(s:events(), { { 'RECORD_STARTED', 'r2', queen.guid, '5.000000' } })
+end)
+
+H.test('a take with a switch the narrator stops in REAPER ends the same way', function()
+  local s, narrator, queen, pickups = voice_session()
+  s.fake.play_position = 3.6
+  s:send('switch_voice', 'v1', queen.guid)
+  s:events()
+  s.fake:stop_recording()
+  s:tick()
+  H.eq(s:events(), { { 'RECORD_ENDED', 'r1', '2', '0', '1' } }, 'Queen back off, Pickups back on')
+  H.eq({ narrator.armed, queen.armed, pickups.armed }, { false, false, true })
+end)
+
+H.test('switch_voice back to the voice already armed changes nothing and says so', function()
+  local s, narrator = voice_session()
+  s.fake.play_position = 3
+  s:send('switch_voice', 'v1', narrator.guid)
+  local before = calls_named(s, 'SetMediaTrackInfo_Value')
+  s:send('switch_voice', 'v2', narrator.guid)
+  H.eq(s:events(), { { 'VOICE_SWITCHED', 'v1', narrator.guid, '3.000000' }, { 'VOICE_SWITCHED', 'v2', narrator.guid, '3.000000' } })
+  H.eq(calls_named(s, 'SetMediaTrackInfo_Value'), before, 'no arm written')
+  H.eq(narrator.armed, true)
+end)
+
+H.test('two switches in one take make three items, each voice where it was armed', function()
+  local s, narrator, queen, pickups = voice_session()
+  s.fake.play_position = 2.5
+  s:send('switch_voice', 'v1', queen.guid)
+  s.fake.play_position = 3.5
+  s:send('switch_voice', 'v2', narrator.guid)
+  s:send('record_stop', 's1')
+  s:events()
+  local spans = {}
+  for _, item in ipairs(s.fake.items) do
+    spans[#spans + 1] = { item.track.name, item.position, item.position + item.length }
+  end
+  H.eq(spans, { { 'Narrator', 2, 2.5 }, { 'Queen', 2.564, 3.5 }, { 'Narrator', 3.564, 5 } })
+  H.eq(s.fake.cursor, 5)
+  H.eq({ narrator.armed, queen.armed, pickups.armed }, { false, false, true }, "the narrator's own arms are back")
+end)
+
+H.test('switch_voice after the narrator stopped REAPER, before the watch noticed, changes nothing', function()
+  local registry
+  local s = H.session({
+    project_path = H.join(host.tmpdir(), 'Book.rpp'),
+    setup = function(r)
+      registry = r
+    end,
+  })
+  local narrator, queen = s.fake:add_track('Narrator'), s.fake:add_track('Queen')
+  s:send('arm_only', 'a1', narrator.guid)
+  s:send('record_start', 'r1', narrator.guid)
+  s:events()
+  s.fake:stop_recording()
+  -- The command runs in the same defer cycle as the stop, before the watch's tick sees it.
+  registry.lookup('switch_voice')({ session_dir = s.dir }, { 'v1', queen.guid })
+  H.eq(s:events(), { { 'RECORD_NOT_OURS', 'v1' } })
+  H.eq({ narrator.armed, queen.armed }, { true, false })
+end)
+
+H.test('a switch in a take started without arm_only remembers the arms then, and puts them back at the stop', function()
+  local s = H.session({ project_path = H.join(host.tmpdir(), 'Book.rpp') })
+  local narrator, queen, pickups = s.fake:add_track('Narrator'), s.fake:add_track('Queen'), s.fake:add_track('Pickups')
+  narrator.armed = true
+  s.fake.cursor, s.fake.record_seconds = 2, 3
+  s:send('record_start', 'r1', narrator.guid)
+  s.fake.play_position = 3
+  s:send('switch_voice', 'v1', queen.guid)
+  s:send('record_stop', 's1')
+  H.eq(s:events()[3], { 'RECORD_STOPPED', 's1', '2', '0', '1' })
+  H.eq({ narrator.armed, queen.armed, pickups.armed }, { true, false, false }, 'as before the take')
+end)
+
+H.test('a voice track added after arm_only is put back to unarmed at the stop', function()
+  local s, narrator, queen, pickups = voice_session()
+  local crowd = s.fake:add_track('Crowd')
+  s.fake.play_position = 3
+  s:send('switch_voice', 'v1', crowd.guid)
+  s:send('record_stop', 's1')
+  s:events()
+  H.eq({ narrator.armed, queen.armed, pickups.armed, crowd.armed }, { false, false, true, false })
+end)
+
+H.test('switch_voice is refused with no recording this bridge started, and nothing changes', function()
+  local s = H.session({ project_path = H.join(host.tmpdir(), 'Book.rpp') })
+  local narrator, queen = s.fake:add_track('Narrator'), s.fake:add_track('Queen')
+  narrator.armed = true
+  s.fake.play_state = 5 -- the narrator recording in REAPER on their own
+  s:send('switch_voice', 'v1', queen.guid)
+  H.eq(s:events(), { { 'RECORD_NOT_OURS', 'v1' } })
+  H.eq({ narrator.armed, queen.armed }, { true, false })
+end)
+
+H.test('switch_voice is refused while REAPER has not started the recording yet', function()
+  local s = H.session({ project_path = H.join(host.tmpdir(), 'Book.rpp') })
+  local narrator, queen = s.fake:add_track('Narrator'), s.fake:add_track('Queen')
+  narrator.armed = true
+  s.fake.record_delay_ticks = 3
+  s:send('record_start', 'r1', narrator.guid)
+  s:send('switch_voice', 'v1', queen.guid)
+  H.eq(s:events(), { { 'ERROR', 'v1', 'REAPER has not started recording yet.' } })
+  H.eq({ narrator.armed, queen.armed }, { true, false })
+end)
+
+H.test('switch_voice to a track that is gone answers TRACK_STALE and keeps recording the voice it was', function()
+  local s, narrator = voice_session()
+  s:send('switch_voice', 'v1', '{00000000-0000-0000-0000-000000000000}')
+  H.eq(s:events(), { { 'TRACK_STALE', 'v1', '{00000000-0000-0000-0000-000000000000}' } })
+  H.eq(narrator.armed, true)
+end)
+
+H.test('after a switch, audio already on the new voice later in the project does not move where the take stopped', function()
+  local s, _, queen = voice_session()
+  s.fake:add_item(queen, { position = 10, length = 2, source = 'later.wav' })
+  s.fake.play_position = 3.6
+  s:send('switch_voice', 'v1', queen.guid)
+  s:send('record_stop', 's1')
+  s:events()
+  H.eq(s.fake.cursor, 5, 'the end of the item the switch began, not of the later one')
 end)

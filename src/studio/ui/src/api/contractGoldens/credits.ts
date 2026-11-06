@@ -7,12 +7,15 @@ import {
   creditsRenderResultSchema,
   creditsSetupStateSchema,
   creditsStatusesSchema,
+  creditsChangedSchema,
   creditTemplatesSchema,
   retailSampleAnswerSchema,
 } from '../schemas/credits';
 
 export const creditsGoldens: Record<string, z.ZodType> = {
   'credits-templates.json': creditTemplatesSchema,
+  'credits-changed-default.json': creditsChangedSchema,
+  'credits-changed.json': creditsChangedSchema,
   'credits-project-values-empty.json': creditsProjectValuesResultSchema,
   'credits-setup-state-needed.json': creditsSetupStateSchema,
   'credits-setup-state-dismissed.json': creditsSetupStateSchema,

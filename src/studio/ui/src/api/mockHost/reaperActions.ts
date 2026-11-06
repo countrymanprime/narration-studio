@@ -12,7 +12,6 @@ import type {
   PickupsState,
   ProjectStateState,
   RenderConfigState,
-  RetakeLanesState,
 } from '../../types';
 import {
   WIRE_CHAPTERS,
@@ -39,11 +38,6 @@ import {
   WIRE_RENDER_CONFIG_IDLE,
   WIRE_RENDER_CONFIG_NO_REGIONS,
   WIRE_RENDER_CONFIG_SUCCESS,
-  WIRE_RETAKE_LANES_ERROR,
-  WIRE_RETAKE_LANES_IDLE,
-  WIRE_RETAKE_LANES_LIST,
-  WIRE_RETAKE_LANES_NONE,
-  WIRE_RETAKE_LANES_PICKED,
   wireClone,
 } from '../mockFixtures';
 import { defaultFindingNoteType } from '../contracts/findings';
@@ -90,7 +84,7 @@ export function createReaperActionsMock(initial: MockApiSeed, projectFolder: () 
   let pickupsDone: PickupsMoment[] = [];
   // The 'error' seed models a broken REAPER script (the recurring cause a real ERROR event reports), not a
   // one-off: every action keeps failing the same way until the narrator fixes REAPER and reopens, the same as
-  // a real session import_pickups/next_pickup/etc. would if the script itself is what's wrong.
+  // a real session import_pickups/resolve_pickup/etc. would if the script itself is what's wrong.
   const pickupsAlwaysErrors = initial.pickups === 'error';
   const pickupsSubscribers = new Set<(state: PickupsState) => void>();
   const publishPickups = () => pickupsSubscribers.forEach((fn) => fn(wireClone(pickups)));
@@ -135,13 +129,6 @@ export function createReaperActionsMock(initial: MockApiSeed, projectFolder: () 
   let projectState: ProjectStateState = wireClone(WIRE_PROJECT_STATE_IDLE);
   const projectStateSubscribers = new Set<(state: ProjectStateState) => void>();
   const publishProjectState = () => projectStateSubscribers.forEach((fn) => fn(wireClone(projectState)));
-  const retakeLanesList = wireClone(initial.retakeLanes === 'none' ? WIRE_RETAKE_LANES_NONE : WIRE_RETAKE_LANES_LIST);
-  let retakeLanes: RetakeLanesState = wireClone(
-    initial.retakeLanes === 'picked' ? WIRE_RETAKE_LANES_PICKED : initial.retakeLanes === 'error' ? WIRE_RETAKE_LANES_ERROR : WIRE_RETAKE_LANES_IDLE,
-  );
-  const retakeLanesAlwaysErrors = initial.retakeLanes === 'error';
-  const retakeLanesSubscribers = new Set<(state: RetakeLanesState) => void>();
-  const publishRetakeLanes = () => retakeLanesSubscribers.forEach((fn) => fn(wireClone(retakeLanes)));
   // Chapter tag embedding never talks to REAPER: its preview is a fixed seed, not derived from
   // renderConfig's live state, since the two are independent bindings on the real host too (ChapterTagsPreview
   // reads renderConfig.Snapshot() itself, server-side).
@@ -250,21 +237,6 @@ export function createReaperActionsMock(initial: MockApiSeed, projectFolder: () 
             remaining: pickupsOpen.length,
             total: pickupsOpen.length + pickupsDone.length,
           };
-        });
-      }, 300);
-      return { status: 'started' };
-    },
-    pickupsNext: async () => {
-      beginPickups('jumping', 'Jumping to the next pickup…');
-      publishPickups();
-      setTimeout(() => {
-        if (pickups.phase !== 'jumping') return;
-        settlePickups(() => {
-          if (pickupsOpen.length === 0) {
-            pickups = { ...pickups, phase: 'error', message: 'No pickups remain.' };
-          } else {
-            pickups = { ...pickups, phase: 'success', message: 'Jumped to the next pickup.', next: pickupsOpen[0] };
-          }
         });
       }, 300);
       return { status: 'started' };
@@ -435,47 +407,10 @@ export function createReaperActionsMock(initial: MockApiSeed, projectFolder: () 
       return { status: 'started' as const };
     },
     projectStateChangedSince: async (current, baseline) => ({ changed: current !== baseline }),
-    projectStateState: async () => wireClone(projectState),
     subscribeProjectState: (onUpdate) => {
       projectStateSubscribers.add(onUpdate);
       onUpdate(wireClone(projectState));
       return () => projectStateSubscribers.delete(onUpdate);
-    },
-    retakeLanesList: async () => wireClone(retakeLanesList),
-    retakeLanesPick: async (lineId, itemGuid) => {
-      const line = retakeLanesList.lines.find((candidate) => candidate.lineId === lineId);
-      const retake = line?.retakes.find((candidate) => candidate.itemGuid === itemGuid);
-      if (!line || !retake)
-        throw new Error('that retake is not on a fixed-lane track in the saved project; save the project in REAPER and open the list again');
-      retakeLanes = {
-        ...wireClone(WIRE_RETAKE_LANES_IDLE),
-        runId: String(Date.now()),
-        phase: 'picking',
-        lineId,
-        itemGuid,
-        trackName: line.trackName,
-        message: `Asking REAPER to play this retake on ${line.trackName}…`,
-      };
-      publishRetakeLanes();
-      setTimeout(() => {
-        if (retakeLanes.phase !== 'picking') return;
-        retakeLanes = retakeLanesAlwaysErrors
-          ? { ...retakeLanes, phase: 'error', message: WIRE_RETAKE_LANES_ERROR.message }
-          : {
-              ...retakeLanes,
-              phase: 'picked',
-              lane: retake.lane,
-              message: `Lane ${retake.lane + 1} is now the only lane playing on ${line.trackName}. To go back, use Undo in REAPER: it restores what played before.`,
-            };
-        publishRetakeLanes();
-      }, 300);
-      return { status: 'started' };
-    },
-    retakeLanesState: async () => wireClone(retakeLanes),
-    subscribeRetakeLanes: (onUpdate) => {
-      retakeLanesSubscribers.add(onUpdate);
-      onUpdate(wireClone(retakeLanes));
-      return () => retakeLanesSubscribers.delete(onUpdate);
     },
     chapterTagsPreview: async () => wireClone(chapterTagsPreview),
     chapterTagsEmbed: async (destPath) => {

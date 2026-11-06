@@ -35,14 +35,6 @@ on request, take markers) plus a unified diff file of the script text against wh
 - `core/compare.py` — the backend. Runs locally via faster-whisper (no cloud, no API key) +
   a word-level diff against the project's canonical manuscript. Runs under the repo-root shared venv (`.venv/`) so it doesn't
   depend on REAPER's or the system's Python.
-- `core/take_divergence_mode.py` — `compare.py --take-divergence`, an additive mode for Take
-  Intelligence: it transcribes every take in a JSON manifest and writes their words
-  (`TAKE_TRANSCRIPTION` and `TAKE_WORDS` lines). The host aligns them to the span with the same diff
-  the markers use and writes each span word's status and time and every divergence as span words plus
-  source seconds (`src/studio/desktop/internal/takedivergence`). The manifest, output and exit codes
-  are in the module docstring; [Alignment and confidence](../../../../docs/utilities/transcript-compare.md#alignment-and-confidence)
-  explains why ASR word timestamps are precise enough. `tests/divergence_harness.py` scores the host's
-  alignment (through `tests/go_divergence.py`) against the constructed takes in `tests/fixtures/divergence/`.
 - `src/studio/desktop/internal/compare/spoken.go` and `homophones.csv` beside it — the built-in homophone
   list (your/you're, its/it's, etc.), the number words and the filler words, shared with the Booth's live
   flags so both forgive the same spellings. Add a globally-useful pair to `homophones.csv` (for something manuscript-specific, use the per-project equivalence
@@ -67,8 +59,7 @@ Per-project inputs and outputs live in `<project folder>\TranscriptCompare\`:
 
 One track is one chapter: the host matches the track name (exact, then closest fuzzy match) against the
 manuscript's chapter headings before it starts the run (`internal/comparerun`'s `Choose`), and asks for a
-pick when no heading matches confidently. The pickup and duplicate scan chooses its chapter the same way, and
-`--find-repeats` only transcribes each read; the host groups them ([Take review](../../../../docs/utilities/take-review.md)).
+pick when no heading matches confidently.
 
 ## Notes / limitations
 

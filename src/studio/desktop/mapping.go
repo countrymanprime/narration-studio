@@ -1,9 +1,9 @@
 package main
 
 import (
+	"desktop/internal/creditsid"
 	"fmt"
 
-	"desktop/internal/coverage"
 	"desktop/internal/evidence"
 )
 
@@ -71,24 +71,6 @@ func (h *Host) mappingConfirm(trackGUID, chapterID string) (evidence.TrackMappin
 	return store.Confirm(documentID, trackGUID, chapterID, title)
 }
 
-// mappingClear removes trackGUID's confirmed link, if any, and returns the
-// links that remain.
-func (h *Host) mappingClear(trackGUID string) (map[string]any, error) {
-	svc := h.services()
-	documentID, store, err := mappingContext(svc)
-	if err != nil {
-		return nil, err
-	}
-	if err := store.Clear(documentID, trackGUID); err != nil {
-		return nil, err
-	}
-	mappings, err := store.List(documentID)
-	if err != nil {
-		return nil, err
-	}
-	return map[string]any{"documentId": documentID, "mappings": mappings}, nil
-}
-
 // chapterTitle looks up chapterID's title among the current manuscript's
 // chapters, reporting false when chapterID is not one of them.
 func chapterTitle(svc hostServices, chapterID string) (string, bool, error) {
@@ -96,8 +78,8 @@ func chapterTitle(svc hostServices, chapterID string) (string, bool, error) {
 	// credits row's link goes through the same ChapterTrackSet/ChapterTrackMapConfirm/Unlink bindings a manuscript
 	// chapter's does (src/studio/desktop/internal/coverage/credits.go: one chapter-track-map.json), and each calls this to validate the id and stamp the
 	// stored link with a real title, so it needs the credits titles too, not just the manuscript's own.
-	if kind, ok := coverage.CreditsKind(chapterID); ok {
-		return creditsScriptTitles[kind], true, nil
+	if kind, ok := creditsid.Kind(chapterID); ok {
+		return creditsid.Title(kind), true, nil
 	}
 	chapters, err := svc.manuscript.Chapters()
 	if err != nil {

@@ -10,7 +10,7 @@ type TraceEvent = { event: string; fields: TraceFields };
 /** How long events wait for company before they are sent. */
 export const FLUSH_MS = 1000;
 /** The most events one call carries (the host refuses more than 200). */
-export const BATCH_SIZE = 100;
+const BATCH_SIZE = 100;
 /** Events kept while a send is failing; older ones are dropped first. */
 const QUEUE_CAP = 500;
 
@@ -65,7 +65,7 @@ export function traceHostEvent(name: string): void {
   schedule();
 }
 
-/** Sends what is queued now. A failed send drops the batch: the trace is a record, not a promise. */
+/** Sends what is queued now. A failed send puts its batch back (newest kept, within the cap) and tries again at the next window, so a host that is briefly away loses nothing. */
 export async function flushTrace(): Promise<void> {
   const send = sink;
   if (!send) return;
@@ -76,7 +76,10 @@ export async function flushTrace(): Promise<void> {
     try {
       await send(JSON.stringify({ events: batch }));
     } catch {
-      // The host may be gone or the trace refused; tracing must not become the failure.
+      // Tracing must not become the failure: keep the batch for the next window and stop for now.
+      queue = [...batch, ...queue].slice(-QUEUE_CAP);
+      schedule();
+      return;
     }
   }
 }

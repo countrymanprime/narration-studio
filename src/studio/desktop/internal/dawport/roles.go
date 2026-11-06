@@ -30,12 +30,18 @@ type (
 	TrackItem     = bridge.TrackItem
 	SelectedTrack = bridge.SelectedTrack
 	CreatedTrack  = bridge.CreatedTrack
+	CreatedFolder = bridge.CreatedFolder
+	LiveTracks    = bridge.LiveTracks
+	LiveTrack     = bridge.LiveTrack
 	Armed         = bridge.Armed
 	RecordStarted = bridge.RecordStarted
 	RecordOptions = bridge.RecordOptions
 	StartRule     = bridge.StartRule
 	RecordStopped = bridge.RecordStopped
 	RecordEnded   = bridge.RecordEnded
+	VoiceSwitched = bridge.VoiceSwitched
+	FolderMove    = bridge.FolderMove
+	FolderPlan    = bridge.FolderPlan
 	PlayPosition  = bridge.PlayPosition
 	PunchPreroll  = bridge.PunchPreroll
 	DawMeters     = bridge.DawMeters
@@ -43,6 +49,10 @@ type (
 	Region         = bridge.Region
 	RegionsCreated = bridge.RegionsCreated
 	ActiveTakeSet  = bridge.ActiveTakeSet
+
+	VoiceSampleRegionKept = bridge.VoiceSampleRegionKept
+	VoiceSampleRegions    = bridge.VoiceSampleRegions
+	VoiceSampleRegion     = bridge.VoiceSampleRegion
 
 	FXChains       = bridge.FXChains
 	FXChainApplied = bridge.FXChainApplied
@@ -167,12 +177,11 @@ type ReviewSession interface {
 	ExportFindings(runID, findingsPath string, colors MarkerColors) error
 }
 
-// PickupList imports, exports, walks, resolves, reopens and lists the pickup list (PICKUPS_* and PICKUP_* events).
+// PickupList imports, exports, resolves, reopens, lists and counts the pickup list (PICKUPS_* and PICKUP_* events).
 type PickupList interface {
 	Events
 	ImportPickups(runID, payloadPath string) error
 	ExportPickups(runID, outputPath string) error
-	NextPickup(runID string) error
 	ResolvePickup(runID string, position float64) error
 	// ReopenPickup puts the resolved pickup nearest position back to open (PICKUP_REOPENED).
 	ReopenPickup(runID string, position float64) error
@@ -210,12 +219,6 @@ type RetakeLanePicker interface {
 type ProjectStateReader interface {
 	Events
 	RequestProjectState(runID string) error
-}
-
-// TakeCreator creates a take from a request payload file (TAKE_CREATED or TAKE_STALE).
-type TakeCreator interface {
-	Events
-	CreateTake(runID, payloadPath string) error
 }
 
 // FXRenderer renders regions through the project's own FX into a folder the host chose (the mastering port's DAW row).
@@ -262,6 +265,23 @@ type TrackStateReader interface {
 	ChapterTrackState(ctx context.Context, trackGUID string) (TrackState, error)
 }
 
+// FolderStateReader is a TrackStateReader that can also read a chapter linked to a folder of voices: the folder's items and every
+// track's inside it, each item with its TrackGUID. Only an engine with folder tracks (REAPER) has it; a caller that wants a chapter's
+// audio uses ChapterAudioState, which falls back to the one-track read.
+type FolderStateReader interface {
+	ChapterFolderState(ctx context.Context, trackGUID string) (TrackState, error)
+}
+
+// ChapterAudioState reads the audio of the chapter linked to trackGUID: the folder union when reader is a FolderStateReader, else the
+// linked track's own items. It is for readers of a chapter's audio (the Editing page's live items, word times); a command that edits an
+// item keeps the one-track read.
+func ChapterAudioState(ctx context.Context, reader TrackStateReader, trackGUID string) (TrackState, error) {
+	if folder, ok := reader.(FolderStateReader); ok {
+		return folder.ChapterFolderState(ctx, trackGUID)
+	}
+	return reader.ChapterTrackState(ctx, trackGUID)
+}
+
 // TrackSelector selects one track in REAPER ("Select in REAPER"), deselecting
 // every other one. It changes nothing else.
 type TrackSelector interface {
@@ -273,6 +293,26 @@ type TrackSelector interface {
 // refuses while the engine records, and is not idempotent: each call adds a track.
 type TrackCreator interface {
 	CreateTrack(ctx context.Context, name string) (CreatedTrack, error)
+}
+
+// TrackLister lists the open project's tracks in order as the engine has them now, saved or not: each track's id (a GUID in
+// REAPER), name and folder depth change, with the open project's file and edit counter. It changes nothing.
+type TrackLister interface {
+	ReadTracks(ctx context.Context) (LiveTracks, error)
+}
+
+// ChildTrackCreator adds a track inside a folder, as a direct child after the folder's last descendant (a voice in a chapter's folder). Only
+// an engine with folder tracks (REAPER) has it. A parent that is gone is a stale error and nothing is added.
+type ChildTrackCreator interface {
+	CreateChildTrack(ctx context.Context, name, parentGUID string) (CreatedTrack, error)
+}
+
+// FolderTrackCreator adds a chapter folder for a Voice folders project (#2840): a folder named name holding one child named childName, after
+// every other track, in one undo point, closing a folder left open at the end first so the new folder is not nested in the chapter before
+// it. Only an engine with folder tracks (REAPER) has it, on the same role as TrackCreator. A zero Child means the engine added Folder as a
+// plain track (a script older than the chapter folder). Like CreateTrack, it changes no other track, never saves and refuses while recording.
+type FolderTrackCreator interface {
+	CreateFolderTrack(ctx context.Context, name, childName string) (CreatedFolder, error)
 }
 
 // Place is where the narrator is in the project, in terms every engine can answer: TrackID is the engine's id for the one selected
@@ -345,6 +385,21 @@ type Recorder interface {
 	OnRecordEnded(handler func(RecordEnded))
 }
 
+// VoiceSwitcher is a Recorder that can move the recording the app started to another voice track while the engine keeps
+// recording (a chapter folder of voices, docs/prds/booth-voice-tracks.prd.md). Only an engine with folder tracks (REAPER) has it. A
+// recording the app did not start is an error the caller tells apart (the take is over); a track that is gone is a stale error, the
+// old voice still recording.
+type VoiceSwitcher interface {
+	SwitchVoice(ctx context.Context, trackGUID string) (VoiceSwitched, error)
+}
+
+// FolderRepairer is an optional role of the track_create capability: it moves chapter tracks out of another chapter's folder (#2838),
+// with a preview that writes nothing and an apply that writes only the folder depths the confirmed moves need, in one undo point.
+// chapterGUIDs are the tracks the app links to chapters; expected are the chapters a preview listed and the narrator confirmed.
+type FolderRepairer interface {
+	ChapterFolders(ctx context.Context, apply bool, chapterGUIDs, expected []string) (FolderPlan, error)
+}
+
 // Puncher punches in at a word, reads the play position, and rolls again while recording.
 type Puncher interface {
 	PunchTo(ctx context.Context, wordTime, preRoll float64) (float64, error)
@@ -359,6 +414,22 @@ type Puncher interface {
 // RegionWriter creates (or updates) chapter regions.
 type RegionWriter interface {
 	CreateRegions(ctx context.Context, rows []Region, colour string, update bool) (RegionsCreated, error)
+}
+
+// VoiceSampleRegionPrefix starts every region name the app keeps a voice sample under.
+const VoiceSampleRegionPrefix = bridge.VoiceSampleRegionPrefix
+
+// VoiceSampleRegionKeeper keeps a character voice sample in the engine's project as a region named for the character and label
+// (docs/prds/character-voice-samples.prd.md, phase 6), and reads the regions back. Names start with VoiceSampleRegionPrefix. A
+// region is in project time and does not follow its item, so the host keeps the source range beside it.
+type VoiceSampleRegionKeeper interface {
+	// AddVoiceSampleRegion adds the region in one undo point, or answers "existing" for one with the same name and bounds.
+	AddVoiceSampleRegion(ctx context.Context, start, end float64, name string) (VoiceSampleRegionKept, error)
+	// MoveVoiceSampleRegion moves and renames region number, keeping its number and colour. A number that is not a voice sample
+	// region any more is a stale error (errors.Is ErrStale) and nothing changes.
+	MoveVoiceSampleRegion(ctx context.Context, number int, start, end float64, name string) (VoiceSampleRegionKept, error)
+	// ReadVoiceSampleRegions lists the voice sample regions in the open project and the engine's change count. It changes nothing.
+	ReadVoiceSampleRegions(ctx context.Context) (VoiceSampleRegions, error)
 }
 
 // TakeSelector makes one take of an item the active one, and hides (mutes, never deletes) the item's other takes.
@@ -443,6 +514,8 @@ type DeleteRangeRequest struct {
 	FadeMs   int
 	PadMs    int
 	RoomTone bool
+	// ChapterTrack is the GUID of the chapter's folder track when its audio is on voice tracks inside it: a close cut then moves the later items of every one of them.
+	ChapterTrack string
 }
 
 // Padded is the request's range with PadMs taken off each end, and false when the pad leaves nothing of it, for an engine
@@ -482,11 +555,13 @@ type StackGroup struct {
 }
 
 // StackRequest stacks (or unstacks) the retries of a chapter's passages. Shift is how far the audio that follows moves, summed over
-// the groups (negative: earlier).
+// the groups (negative: earlier). ChapterTrack is the engine's id of the chapter's folder of voices, or empty: with it the audio after each
+// passage moves on every voice inside the folder.
 type StackRequest struct {
-	ChapterID string
-	Groups    []StackGroup
-	Shift     float64
+	ChapterID    string
+	Groups       []StackGroup
+	Shift        float64
+	ChapterTrack string
 }
 
 // BackupRequest asks the engine to clone the audio from Start to End seconds of a chapter's track before it is changed. GUID is the
@@ -512,7 +587,8 @@ const MaxReplaceGainDB = bridge.MaxReplaceGainDB
 // ReplaceRangeRequest replaces a range's words with a stretch of another narrator's audio already in the project: RangeRequest is
 // the narrator's words; SourceItemGUID is the item on the other narrator's own track and SourceStart..SourceEnd the stretch of it,
 // in project seconds. FadeMs (0 to MaxCutFadeMs) is the fade at each seam, GainDB (-MaxReplaceGainDB to MaxReplaceGainDB) the level
-// change on their stretch, ID the host's record of the replacement and Narrator whose audio it is, for the message.
+// change on their stretch, ID the host's record of the replacement and Narrator whose audio it is, for the message. ChapterTrack is the
+// engine's id of the chapter's folder of voices, or empty: with it the audio after the words moves on every voice inside the folder.
 type ReplaceRangeRequest struct {
 	RangeRequest
 	SourceItemGUID string
@@ -522,6 +598,7 @@ type ReplaceRangeRequest struct {
 	GainDB         float64
 	ID             string
 	Narrator       string
+	ChapterTrack   string
 }
 
 // RangeReplaced is what ReplaceRange did. Result is the call's answer; ReplacementItem is the engine's id of the new audio, what
@@ -535,11 +612,12 @@ type RangeReplaced struct {
 }
 
 // RestoreRequest puts the narrator's audio back in place of a replacement: ReplacementItem and ID as ReplaceRange made and recorded
-// them; Words is how many words it held, for the message.
+// them; Words is how many words it held, for the message; ChapterTrack as on ReplaceRangeRequest.
 type RestoreRequest struct {
 	ReplacementItem string
 	ID              string
 	Words           int
+	ChapterTrack    string
 }
 
 // TheirAudio is what ImportTheirAudio did. Result is the call's answer; Track and Item are the engine's ids of the new track and of the
@@ -770,9 +848,24 @@ const (
 	ActionRestoreReplacement ActionKind = "restore_replacement"
 )
 
+// ActionUseTake is a take made the one that plays (Keep Take, Use this take): set_active_take on an item's takes, or a retake
+// lane picked to play. Both close their undo block with the same label, so one kind reaches either.
+const ActionUseTake ActionKind = "use_take"
+
+// The chain edits of Editing's effects (#3016), each the one undo point its REAPER command closes its block with: an effect put on
+// the words, taken off, one of its settings changed, and the effect bypassed or turned back on.
+const (
+	ActionAddRangeFX    ActionKind = "add_range_fx"
+	ActionRemoveRangeFX ActionKind = "remove_range_fx"
+	ActionSetFXParam    ActionKind = "set_fx_param"
+	ActionBypassFX      ActionKind = "bypass_fx"
+	ActionEnableFX      ActionKind = "enable_fx"
+)
+
 // Valid is whether k is a kind this build knows.
 func (k ActionKind) Valid() bool {
-	return k == ActionCutRange || k == ActionRecordTake || k == ActionReplaceRange || k == ActionRestoreReplacement
+	return k == ActionCutRange || k == ActionRecordTake || k == ActionReplaceRange || k == ActionRestoreReplacement || k == ActionUseTake ||
+		k == ActionAddRangeFX || k == ActionRemoveRangeFX || k == ActionSetFXParam || k == ActionBypassFX || k == ActionEnableFX
 }
 
 // ErrActionKind is an ActionKind this build does not know: nothing is read or undone.

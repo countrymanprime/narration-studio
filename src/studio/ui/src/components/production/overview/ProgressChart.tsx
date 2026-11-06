@@ -1,17 +1,29 @@
 import { useEffect, useId, useRef, useState } from 'react';
+import { HelpButton } from '../../primitives/HelpButton';
 import { IconButton } from '../../primitives/IconButton';
 import { Panel } from '../../primitives/Panel';
 import type { Measured } from '../../../api/schemas/base';
-import { addDays, diffDays, fmtD } from '../../schedule/dates';
+import { addDays, diffDays, fmtD, fmtDY } from '../../schedule/dates';
 import type { Calc } from '../../schedule/progress';
 import { NOT_MEASURED } from '../measured/measured.selectors';
+import { keepInside, labelRect, leaderEnd, placeLabel, type Bounds, type Placement, type Seg, type Side } from './chartLabels';
 
 const MIN_WIDTH = 280;
 const DAY = 86_400_000;
 // The axis labels ("3h", right-aligned 6 px before the plot) start about as far in from the card's content edge as the plot ends before its
 // right edge, and the plot starts 6 px under the card's body padding, so no empty band sits under the header (alignment audit XSH-16).
 const PAD = { left: 28, right: 12, top: 6, bottom: 28 };
+/** A thin line from a point to its label when the label could not sit beside it. */
+function Leader({ from, to }: { from: { x: number; y: number }; to: { x: number; y: number } }) {
+  return <line x1={from.x} y1={from.y} x2={to.x} y2={to.y} stroke="var(--text-muted)" strokeWidth="1" data-leader />;
+}
+
+/** A band of the card's colour round a label, so a line that still passes behind it does not strike it through. */
+const HALO = { stroke: 'var(--surface)', strokeWidth: 4, paintOrder: 'stroke' } as const;
+const monthYear = (d: Date): string => d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 const MONO = 'IBM Plex Mono, monospace';
+/** One character of the axis font at 11 px. */
+const MONO_PX = 6.6;
 /** The least room, in px, between two date labels on the axis. */
 const TICK_GAP = 72;
 
@@ -33,11 +45,6 @@ type Props = {
   fill?: boolean;
   /** The panel's title: Production says "Recorded vs plan", the Schedule page "Recorded audio vs plan" (the mock). */
   title?: string;
-  /** Put the "today" label on the side of the dot away from the plan and projection lines (the Schedule page); off, it is centred above the dot as Production draws it. */
-  clearTodayLabel?: boolean;
-  /** Says "Recorded days not measured yet" as a caption under the plot instead of inside it, where a narrow card puts it on a gridline and under
-   * the "today" label (Production's 360 px card; alignment audit R4TA-2). */
-  noteBelow?: boolean;
   /** Draws the header's "Open schedule" calendar button (Production's panel, the mock's `side-chart`); the Schedule page is already there and passes nothing. */
   onOpenSchedule?: () => void;
 };
@@ -54,8 +61,6 @@ export function ProgressChart({
   height: minHeight = 200,
   fill = false,
   title = 'Recorded vs plan',
-  clearTodayLabel = false,
-  noteBelow = false,
   onOpenSchedule,
 }: Props) {
   const box = useRef<HTMLDivElement>(null);
@@ -90,13 +95,46 @@ export function ProgressChart({
   const pxPerDay = (width - PAD.left - PAD.right) / span;
   const step = Math.max(7, Math.ceil(TICK_GAP / pxPerDay / 7) * 7);
   for (let d = 0; d <= span; d += step) weeks.push(d);
+  /* Over about a year the same month would label two ticks: name the year instead of the day. */
+  const longSpan = span > 330;
   const planDays = due ? diffDays(due, start) : 0;
   const aheadOfPlan = planDays > 0 && y(recordedHours) < y((finishedHours * nowDay) / planDays);
-  const todayBelow = !aheadOfPlan || x(today) < PAD.left + 40;
-  /* A due line close to the right of the dot would run through a label put on that side, so the label goes to the left of the dot instead. */
-  const dueGap = due ? x(due) - x(today) : Infinity;
-  const todayLeft = !todayBelow || (dueGap > -6 && dueGap < 46 && x(today) >= PAD.left + 40);
-  const todayY = Math.min(y(recordedHours) + (todayBelow ? 18 : -14), height - PAD.bottom - 6);
+  /* Each label goes beside its point on a side no line or other label crosses (chartLabels.ts): the due label first, where it is, then "today", then the estimated finish. */
+  const bounds: Bounds = { left: PAD.left, right: width - 2, top: PAD.top, bottom: height - PAD.bottom };
+  const lines: Seg[] = [];
+  if (due) {
+    lines.push({ x1: x(due), y1: PAD.top, x2: x(due), y2: height - PAD.bottom });
+    if (planDays > 0) lines.push({ x1: x(start), y1: y(0), x2: x(due), y2: y(finishedHours) });
+  }
+  lines.push({ x1: x(today), y1: y(recordedHours), x2: x(k.finish), y2: y(finishedHours) });
+  for (let i = 1; i < actual.length; i++) {
+    lines.push({ x1: x(addDays(start, actual[i - 1][0])), y1: y(actual[i - 1][1]), x2: x(addDays(start, actual[i][0])), y2: y(actual[i][1]) });
+  }
+  // A date in another year says so, so a due date years away is not read as this year's.
+  const dueText = due ? `due ${fmtDY(due, today)}` : '';
+  const dueLabel: Placement | null = due
+    ? keepInside({ x: x(due) + (x(due) < 96 ? 4 : -4), y: PAD.top + 10, anchor: x(due) < 96 ? 'start' : 'end' }, dueText, bounds)
+    : null;
+  const todayDot = { x: x(today), y: y(recordedHours) };
+  // The dot itself is taken too, so a label that slides along its row never lands on it.
+  const taken = [{ x1: todayDot.x - 6, y1: todayDot.y - 6, x2: todayDot.x + 6, y2: todayDot.y + 6 }];
+  if (dueLabel) taken.push(labelRect(dueLabel, dueText));
+  // Behind the plan (or with no room on the left) the plan runs above the dot, so below and right first; ahead of it the plan passes below, so above and left.
+  const todaySides: Side[] =
+    !aheadOfPlan || todayDot.x < PAD.left + 40
+      ? ['right-below', 'left-below', 'right-above', 'left-above']
+      : ['left-above', 'right-above', 'left-below', 'right-below'];
+  const todayLabel = placeLabel('today', todayDot, bounds, lines, taken, todaySides);
+  taken.push(labelRect(todayLabel, 'today'));
+  if (todayLabel.leader) {
+    const end = leaderEnd(todayDot, todayLabel, 'today');
+    lines.push({ x1: todayDot.x, y1: todayDot.y, x2: end.x, y2: end.y });
+  }
+  const doneText = `done ${fmtD(k.finish)} (est.)`;
+  const doneAt = { x: x(k.finish), y: y(finishedHours) };
+  const doneSides: Side[] =
+    doneAt.x < 130 ? ['right-above', 'left-above', 'right-below', 'left-below'] : ['left-above', 'right-above', 'left-below', 'right-below'];
+  const doneLabel = placeLabel(doneText, doneAt, bounds, lines, taken, doneSides);
   // Gridlines up to the top of the scale (at most five), so the plot's top is a labelled line, not an empty band over the last one (XSH-16).
   const rowStep = Math.max(1, Math.ceil(yMax / 4));
   const rows = Array.from({ length: Math.floor(yMax / rowStep) + 1 }, (_, i) => i * rowStep);
@@ -107,7 +145,14 @@ export function ProgressChart({
       title={title}
       className="min-w-0"
       fill={fill}
-      actions={onOpenSchedule && <IconButton action="calendar" label="Open schedule" onClick={onOpenSchedule} />}
+      actions={
+        (onOpenSchedule || !due) && (
+          <div className="flex items-center gap-2">
+            {!due && <HelpButton label="About the plan line">Set a due date to see the plan line.</HelpButton>}
+            {onOpenSchedule && <IconButton action="calendar" label="Open schedule" onClick={onOpenSchedule} />}
+          </div>
+        )
+      }
     >
       {/* Filling, the svg is laid over the box so what it draws never sets the card's height: the cell does. */}
       <div className={fill ? 'flex h-full flex-col' : undefined}>
@@ -127,21 +172,34 @@ export function ProgressChart({
                 <text x={PAD.left - 6} y={y(v) + 4} textAnchor="end" fontSize="11" fill="var(--text-muted)" fontFamily={MONO}>{`${v}h`}</text>
               </g>
             ))}
-            {weeks.map((d) => (
-              <text key={d} x={x(addDays(start, d))} y={height - 8} textAnchor="middle" fontSize="11" fill="var(--text-muted)" fontFamily={MONO}>
-                {fmtD(addDays(start, d))}
-              </text>
-            ))}
+            {weeks.map((d) => {
+              const text = longSpan ? monthYear(addDays(start, d)) : fmtD(addDays(start, d));
+              // The last date would run past the card's edge centred on its tick, so it ends at the edge instead.
+              const edge = width - 2;
+              const half = (text.length * MONO_PX) / 2;
+              const atEdge = x(addDays(start, d)) + half > edge;
+              return (
+                <text
+                  key={d}
+                  x={atEdge ? edge : x(addDays(start, d))}
+                  y={height - 8}
+                  textAnchor={atEdge ? 'end' : 'middle'}
+                  fontSize="11"
+                  fill="var(--text-muted)"
+                  fontFamily={MONO}
+                >
+                  {text}
+                </text>
+              );
+            })}
             {due && (
               <>
                 <line x1={x(due)} x2={x(due)} y1={PAD.top} y2={height - PAD.bottom} stroke="var(--danger)" strokeDasharray="2 4" data-line="due" />
-                <text
-                  x={x(due) + (x(due) < 96 ? 4 : -4)}
-                  y={PAD.top + 10}
-                  textAnchor={x(due) < 96 ? 'start' : 'end'}
-                  fontSize="11"
-                  fill="var(--danger-text)"
-                >{`due ${fmtD(due)}`}</text>
+                {dueLabel && (
+                  <text x={dueLabel.x} y={dueLabel.y} textAnchor={dueLabel.anchor} fontSize="11" fill="var(--danger-text)" {...HALO}>
+                    {dueText}
+                  </text>
+                )}
                 {/* A due date on or before the plan's first day leaves no plan to draw. */}
                 {diffDays(due, start) > 0 && (
                   <line
@@ -166,10 +224,6 @@ export function ProgressChart({
                 points={actual.map((p) => `${x(addDays(start, p[0]))},${y(p[1])}`).join(' ')}
               />
             )}
-            {/* Mid-height at the left, clear of the "done" label at the top right and the "today" marker at the bottom. */}
-            {!series.ok && !noteBelow && (
-              <text x={PAD.left + 8} y={(PAD.top + y(0)) / 2} fontSize="11" fill="var(--text-muted)">{`Recorded days ${NOT_MEASURED}`}</text>
-            )}
             <line
               x1={x(today)}
               y1={y(recordedHours)}
@@ -183,28 +237,20 @@ export function ProgressChart({
             />
             <circle cx={x(today)} cy={y(recordedHours)} r="5" fill="var(--accent)" stroke="var(--surface)" strokeWidth="2" data-marker="today" />
             {/* Beside the dot, on the side the plan line is not: above and left when the recording is ahead of the plan (the plan passes below), below and right otherwise. The projection runs up and right from the dot, so the right side is only taken below it. */}
-            {clearTodayLabel ? (
-              <text x={todayLeft ? x(today) - 7 : x(today) + 9} y={todayY} textAnchor={todayLeft ? 'end' : 'start'} fontSize="11" fill="var(--text)">
-                today
-              </text>
-            ) : (
-              <text x={x(today)} y={y(recordedHours) - 10} textAnchor="middle" fontSize="11" fill="var(--text)">
-                today
-              </text>
-            )}
-            <text
-              x={x(k.finish)}
-              y={y(finishedHours) - 8}
-              textAnchor={x(k.finish) < 130 ? 'start' : 'end'}
-              fontSize="11"
-              fill="var(--text)"
-            >{`done ${fmtD(k.finish)} (est.)`}</text>
+            {todayLabel.leader && <Leader from={todayDot} to={leaderEnd(todayDot, todayLabel, 'today')} />}
+            <text x={todayLabel.x} y={todayLabel.y} textAnchor={todayLabel.anchor} fontSize="11" fill="var(--text)" {...HALO}>
+              today
+            </text>
+            {doneLabel.leader && <Leader from={doneAt} to={leaderEnd(doneAt, doneLabel, doneText)} />}
+            <text x={doneLabel.x} y={doneLabel.y} textAnchor={doneLabel.anchor} fontSize="11" fill="var(--text)" {...HALO}>
+              {doneText}
+            </text>
           </svg>
         </div>
-        {((!series.ok && noteBelow) || !due) && (
+        {!series.ok && (
           <p className="mt-1 flex-none text-[0.75rem] text-[var(--text-muted)]" data-chart-note>
-            {/* With no due date there is no plan line and the projection alone looks like a glitch: say what draws the plan (XSH-18). */}
-            {[!due && 'Set a due date to see the plan line.', !series.ok && noteBelow && `Recorded days ${NOT_MEASURED}`].filter(Boolean).join(' ')}
+            {/* With no due date the plan line is missing; the "?" in the header says what draws it (XSH-18). */}
+            {`Recorded days ${NOT_MEASURED}`}
           </p>
         )}
       </div>

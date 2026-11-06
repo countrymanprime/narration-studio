@@ -127,7 +127,10 @@ export function createSystemMock(
     reportClientDiagnostic: async () => {},
     systemNotify: async () => {},
     systemLookup: async (word) => mockDictionaryLookup(word, dictionaryState()),
-    systemOpenLogFolder: async () => {},
+    systemOpenLogFolder: async () => {
+      // update.OpenFolder's refusal when explorer.exe cannot be started.
+      if (initial.logFolderRefused) throw new Error('The folder could not be opened.');
+    },
     // The mock has no window to resize or pin (the browser's own is the whole viewport): both succeed and do nothing.
     companionModeEnter: async () => {},
     companionModeExit: async () => {},

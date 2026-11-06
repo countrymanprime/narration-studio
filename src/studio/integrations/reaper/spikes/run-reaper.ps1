@@ -1,7 +1,7 @@
 # Runs one scripted REAPER session in an isolated resource directory and leaves no REAPER process of its own behind.
 #
 #   pwsh run-reaper.ps1 -Cfg <temp dir> -Out <temp dir> -Script <file.lua> [-Project <copy of a .rpp>] [-TimeoutSec 90]
-#                       [-Done <file the script writes when it has finished>] [-ReaperDir <src/studio/integrations/reaper>] [-IgnoreErrors]
+#                       [-Done <file the script writes when it has finished>] [-ReaperDir <src/studio/integrations/reaper>] [-LogFile <file>] [-IgnoreErrors]
 #
 # Safety rules, enforced here:
 #   - -Cfg, -Out and -Project must all be under the user's temp folder, and none may be under a "REAPER Media" folder, so
@@ -18,6 +18,7 @@ param(
   [int]$TimeoutSec = 90,
   [string]$Done = '',
   [string]$ReaperDir = (Join-Path $PSScriptRoot '..'),
+  [string]$LogFile = '',
   [switch]$IgnoreErrors
 )
 $ErrorActionPreference = 'Stop'
@@ -50,9 +51,21 @@ $p = Start-Process -FilePath $exe -ArgumentList $argText -PassThru
 $deadline = (Get-Date).AddSeconds($TimeoutSec)
 $log = @()
 $finished = $false
+$flushed = 0
+$seen = @{}
+function Write-LiveLog {
+  if (-not $LogFile) { return }
+  while ($script:flushed -lt $log.Count) {
+    $line = $log[$script:flushed]; $script:flushed++
+    if (-not $seen.ContainsKey($line)) { $seen[$line] = $true; "$((Get-Date).ToString('HH:mm:ss')) $line" | Add-Content $LogFile }
+  }
+}
+$deadlineText = "started pid $($p.Id), timeout $TimeoutSec s"
+if ($LogFile) { "$((Get-Date).ToString('HH:mm:ss')) $deadlineText" | Add-Content $LogFile }
 try {
 while ((Get-Date) -lt $deadline) {
   Start-Sleep -Milliseconds 700
+  Write-LiveLog
   $p.Refresh()
   if ($p.HasExited) { $log += 'exited by itself'; break }
   # The script is done: give REAPER a few more seconds to quit on its own (answering its close-time prompts) before closing it.
@@ -65,6 +78,9 @@ while ((Get-Date) -lt $deadline) {
       elseif ($w -match "title='Error opening devices'") { [void][W3]::PostMessage([IntPtr]$hwnd, 0x111, [IntPtr]1, [IntPtr]0); $log += 'dismissed Error opening devices (no audio hardware)' }
       elseif ($text -match 'REAPER IS NOT FREE') { [void][W3]::PostMessage([IntPtr]$hwnd, 0x111, [IntPtr]1, [IntPtr]0); $log += 'dismissed the evaluation notice' }
       elseif ($text -match 'ReaScript Error' -or $w -match "title='ReaScript Error'") { $log += "ReaScript error dialog: $text"; [void][W3]::PostMessage([IntPtr]$hwnd, 0x111, [IntPtr]1, [IntPtr]0) }
+      elseif ($w -match "title='REAPER New Version Notification'") { [void][W3]::PostMessage([IntPtr]$hwnd, 0x111, [IntPtr]2, [IntPtr]0); $log += 'closed the new-version notice' }
+      elseif ($w -match "title='Scanning VST plugins") { $log += 'plug-in scan dialog (ignored)' }
+      elseif ($w -match "title='Rendering to file") { $log += 'render progress window (ignored)' }
       elseif ($text -match 'Analyzing') { $log += 'peak building dialog (ignored)' }
       elseif ($text -match 'before closing') { [void][W3]::PostMessage([IntPtr]$hwnd, 0x111, [IntPtr]7, [IntPtr]0); $log += 'answered No to a save prompt on close (the scratch copy is not kept)' }
       else { $log += "UNKNOWN DIALOG: $w :: $text" }
@@ -81,4 +97,5 @@ if (-not $p.HasExited) {
 $p.Refresh()
 if (-not $p.HasExited) { $log += 'closed by force after the timeout (a save prompt or another dialog kept it open)'; $p.Kill() }
 }
+Write-LiveLog
 $log | Select-Object -Unique

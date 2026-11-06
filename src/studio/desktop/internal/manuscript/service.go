@@ -34,6 +34,7 @@ import (
 	"desktop/internal/recordedthrough"
 	"desktop/internal/scriptprep"
 	"desktop/internal/stages"
+	"desktop/internal/userdictionary"
 	"desktop/internal/voicesample"
 )
 
@@ -684,7 +685,12 @@ func sourceMetadataFields(metadata *importer.SourceMetadata) map[string]any {
 func resetDerived(project string) error {
 	// Findings are anchored to manuscript chapter and paragraph ids, so a
 	// replace or Clear that invalidates those ids clears findings too.
-	for _, path := range []string{filepath.Join(project, "ManuscriptGuide"), filepath.Join(project, "TranscriptCompare"), filepath.Join(project, brand.ProjectFolder, "manuscript-notes.json"), filepath.Join(project, ".narration-last-comparison.json"), filepath.Join(project, filepath.FromSlash(findings.Dir)), evidence.LedgerDir(project), evidence.CacheDir(project), evidence.MappingFile(project), chaptersync.File(project), coverage.Dir(project), stages.DecisionsFile(project), character.Dir(project), proofing.Dir(project), preview.PinFile(project), editing.ChoiceDir(project), editlog.AcceptedFile(project), editlog.CutsFile(project), editlog.WordFxFile(project), editlog.StacksFile(project), editlog.ReplacementsFile(project), bookmarks.File(project), gapreview.File(project), pickuplist.File(project), passagemap.File(project), marks.File(project), scriptprep.File(project)} {
+	paths := []string{filepath.Join(project, "ManuscriptGuide"), filepath.Join(project, "TranscriptCompare"), filepath.Join(project, brand.ProjectFolder, "manuscript-notes.json"), filepath.Join(project, ".narration-last-comparison.json"), filepath.Join(project, filepath.FromSlash(findings.Dir)), evidence.LedgerDir(project), evidence.CacheDir(project), evidence.MappingFile(project), chaptersync.File(project), coverage.Dir(project), stages.DecisionsFile(project), character.Dir(project), proofing.Dir(project), preview.PinFile(project), editing.ChoiceDir(project), editlog.AcceptedFile(project), editlog.CutsFile(project), editlog.WordFxFile(project), editlog.StacksFile(project), editlog.ReplacementsFile(project), bookmarks.File(project), gapreview.File(project), pickuplist.File(project), passagemap.File(project), marks.File(project), scriptprep.File(project), scriptprep.BackupFile(project)}
+	backups, err := scriptprep.BackupFiles(project)
+	if err != nil {
+		return fmt.Errorf("could not clear project data: %w", err)
+	}
+	for _, path := range append(paths, backups...) {
 		if err := os.RemoveAll(path); err != nil {
 			return fmt.Errorf("could not clear project data: %w", err)
 		}
@@ -704,6 +710,10 @@ func (s *Service) Clear() error {
 	// Voice samples are the narrator's own audio and survive a manuscript replace, so resetDerived leaves them; Clear project data
 	// is the one action that removes them (docs/reference/data-files.md, Retention terms: Cleared on Clear).
 	if err := os.RemoveAll(voicesample.Dir(project)); err != nil {
+		return fmt.Errorf("could not clear project data: %w", err)
+	}
+	// The user dictionary is how the narrator decided to say words, which a new manuscript does not undo; Clear removes it.
+	if err := os.RemoveAll(userdictionary.File(project)); err != nil {
 		return fmt.Errorf("could not clear project data: %w", err)
 	}
 	// The old script markup file (prep/markup.json) is no longer read since marks replaced it; an explicit clear still

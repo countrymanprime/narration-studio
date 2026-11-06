@@ -29,16 +29,19 @@ call `iter_microphone_chunks` uses, and closes cleanly - the name that is
 listed is the name that opens.
 
 Duplicate device names: FFmpeg disambiguates same-named devices with a
-device-manager "Alternative name" (a stable `@device_...` path). This module
-records it per device (`Device.alternative_name`) but nothing yet opens a
-device by that path instead of its friendly name - no duplicate audio
-device names were observed on the development machine to test the collision
-case against.
+device-manager "Alternative name" (a stable `@device_...` path). The listing
+gives devices that share a friendly name distinct names ("Name (1)", "Name
+(2)", in FFmpeg's order) and `open_target` turns such a name back into the
+alternative name, which `audio=` accepts in place of the friendly name. A name
+that is alone is listed and opened exactly as FFmpeg names it, the form verified
+on real hardware. The collision case is covered by tests over recorded-format
+log entries only: no duplicate audio device names existed on the development
+machine.
 """
 
 import re
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 # One captured FFmpeg log record: (level, context, message). `context` is the
 # component name FFmpeg logs under ("dshow" for this device lister); PyAV
@@ -54,10 +57,11 @@ class Device:
     name: str
     kind: str  # "audio" | "video" | "none", ffmpeg's own dshow categories
     alternative_name: str | None = None
+    shared_name: bool = False  # another device has this friendly name, so `name` carries a "(n)" suffix
 
     def to_json(self) -> dict:
-        # Only the name is exposed today: it is the one value the capture path (`iter_microphone_chunks`) needs, and the
-        # only one guaranteed to open the device it names (see module docstring on `alternative_name`).
+        # Only the name is exposed: it is the one value the capture path needs, and `open_target` maps it back to what
+        # dshow opens (see the module docstring on duplicate names).
         return {"name": self.name}
 
 
@@ -118,5 +122,31 @@ def list_input_devices(capture: Callable[[], list[LogEntry]] = capture_dshow_log
         entries = capture()
     except Exception as error:  # noqa: BLE001 - defensive: a missing ffmpeg/dshow backend (e.g. off Windows) must not crash the sidecar
         return [], f"Could not list input devices: {error}"
-    devices = [device for device in parse_device_list(entries) if device.kind == "audio"]
+    devices = _distinct_names([device for device in parse_device_list(entries) if device.kind == "audio"])
     return devices, None
+
+
+def _distinct_names(devices: list[Device]) -> list[Device]:
+    """Suffix the devices that share a friendly name with "(1)", "(2)", ... in listing order, and leave the rest alone."""
+    totals: dict[str, int] = {}
+    for device in devices:
+        totals[device.name] = totals.get(device.name, 0) + 1
+    seen: dict[str, int] = {}
+    distinct: list[Device] = []
+    for device in devices:
+        if totals[device.name] == 1:
+            distinct.append(device)
+            continue
+        seen[device.name] = seen.get(device.name, 0) + 1
+        distinct.append(replace(device, name=f"{device.name} ({seen[device.name]})", shared_name=True))
+    return distinct
+
+
+def open_target(name: str, capture: Callable[[], list[LogEntry]] = capture_dshow_log) -> str:
+    """What dshow opens for a listed `name`: the alternative name of a device that shares its friendly name with another,
+    otherwise `name` itself. A name nobody lists, or a listing that fails, opens as given, so this never blocks Start."""
+    devices, _error = list_input_devices(capture)
+    for device in devices:
+        if device.name == name and device.shared_name and device.alternative_name:
+            return device.alternative_name
+    return name

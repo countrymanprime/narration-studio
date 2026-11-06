@@ -554,6 +554,7 @@ local function isolated_session()
   fake:add_item(chapter1, { position = 0, length = 100, source = 'c1.wav' })
   fake:add_item(chapter2, { position = 0, length = 100, source = 'c2.wav' })
   fake:add_item(child, { position = 200, length = 50, source = 'c3.wav' })
+  folder.folder_depth, child.folder_depth = 1, -1
   return s, { c1 = chapter1, c2 = chapter2, folder = folder, child = child }
 end
 
@@ -628,6 +629,28 @@ H.test('play_range plays a track that is a folder child by itself', function()
   H.eq(s:events(), { { 'RANGE_PLAYING', 'r1', '210.000000', '212.000000' } })
   H.eq(t.child.solo, 2)
   H.eq(t.folder.solo or 0, 0, 'REAPER keeps the folder parent audible when its child is soloed, so it is not soloed itself')
+end)
+
+-- A chapter linked to a folder of voices has its audio on the children only: the folder plays when a descendant has audio at the start, and
+-- soloing the folder in place plays its children (REAPER 7.82, docs/research/2026-10-30-booth-sub-track-recording.md, section 6a, row 13).
+H.test('play_range plays a folder whose audio is on a child, soloing the folder in place', function()
+  local s, t = isolated_session()
+  s:send('play_range', 'r1', '210', '212', t.folder.guid)
+  H.eq(s:events(), { { 'RANGE_PLAYING', 'r1', '210.000000', '212.000000' } })
+  H.eq({ t.folder.solo, t.child.solo or 0, t.c1.solo or 0 }, { 2, 0, 0 })
+end)
+
+H.test('play_range refuses a folder none of whose tracks has audio at that time', function()
+  local s, t = isolated_session()
+  s:send('play_range', 'r1', '10', '12', t.folder.guid)
+  H.eq(s:events(), { { 'ERROR', 'r1', "The chapter's track has no audio at that time in the REAPER project." } })
+end)
+
+H.test("play_range on a track after a closed folder does not count the folder's children as its own", function()
+  local s, t = isolated_session()
+  local after = s.fake:add_track('After the folder')
+  s:send('play_range', 'r1', '210', '212', after.guid)
+  H.eq(s:events(), { { 'ERROR', 'r1', "The chapter's track has no audio at that time in the REAPER project." } })
 end)
 
 H.test('stop_play puts everything back', function()

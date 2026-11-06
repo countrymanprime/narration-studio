@@ -313,7 +313,6 @@ func TestLatency(t *testing.T) {
 	var goNative []sample
 	goNative = append(goNative, measure(t, "manuscript Chapters (full)", runs, nil, func(int) error { _, err := notes.Chapters(); return err }))
 	goNative = append(goNative, measure(t, "manuscript Search, common word (full)", runs, nil, func(int) error { _, err := notes.Search("the"); return err }))
-	goNative = append(goNative, measure(t, "manuscript Reader (full)", runs, nil, func(int) error { _, err := notes.Reader(); return err }))
 	if rpp := os.Getenv("LATENCY_RPP"); rpp != "" {
 		raw, err := os.ReadFile(rpp)
 		if err != nil {

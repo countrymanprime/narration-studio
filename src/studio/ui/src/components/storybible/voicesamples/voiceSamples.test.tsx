@@ -320,6 +320,27 @@ describe('the host, and the other window', () => {
     expect(screen.getByText('Furious, to the court')).toBeTruthy();
   });
 
+  // Issue #2919: reading the list changes nothing, so the failed read's toast carries Retry, which reads the list again.
+  it('a failed read is a toast with Retry, which reads the list again', async () => {
+    const toast = vi.spyOn(overlay, 'toast');
+    const api = createMockApi({}, { voiceSamples: 'bible' });
+    const real = api.voiceSamplesList.bind(api);
+    let fail = true;
+    api.voiceSamplesList = async () => {
+      if (fail) throw new Error('the project is busy');
+      return real();
+    };
+    setup({}, api);
+    await waitFor(() =>
+      expect(toast).toHaveBeenCalledWith(expect.stringContaining("Couldn't read the voice samples. "), expect.objectContaining({ tone: 'error' })),
+    );
+    const options = toast.mock.calls.find((call) => String(call[0]).includes("Couldn't read"))![1] as { action: { label: string; onAction: () => void } };
+    expect(options.action.label).toBe('Retry');
+    fail = false;
+    act(() => options.action.onAction());
+    await screen.findByText('Furious, to the court');
+  });
+
   it('follows the host: a sample marked elsewhere appears, one deleted elsewhere goes', async () => {
     const { api } = setup();
     await screen.findByText('Sulking');

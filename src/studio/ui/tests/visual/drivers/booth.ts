@@ -2,6 +2,7 @@
 // It opens on Chapter 1 (the mock's last chapter read) unless a state picks otherwise. The Companion rows open `/companion`.
 import type { Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
+import { boothChapterReady, readFromStart, showChapterTop } from '../helpers/viewTop';
 import { type Driver, chooseMicrophone, openCheckingLink, chooseTheme, clickNav, goToPage, openBooth, selectReaderWord, openWithoutManuscript } from './shared';
 
 // Where the page clock stops once Record is pressed, so the timer reads 00:00 at every viewport.
@@ -23,7 +24,7 @@ const UNLINKED = '?mockReaperState=no_link';
 async function readyToRecord(page: Page, query = ''): Promise<void> {
   // Always a fresh load: a spec that calls a driver on a blank page has no app to navigate in until one is loaded.
   await openBooth(page, query || '?');
-  await page.getByRole('button', { name: /^Resume at ¶/, includeHidden: true }).waitFor();
+  await boothChapterReady(page);
   await record(page).and(page.locator(':enabled:not([aria-disabled="true"])')).waitFor();
 }
 
@@ -49,6 +50,16 @@ async function startTake(page: Page, query = ''): Promise<void> {
   await page.getByRole('button', { name: /^Stop$/ }).waitFor();
   await page.getByText('REC', { exact: true }).waitFor();
   await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+}
+
+// The Booth recording with the built-in recorder, the microphone `name` chosen in Record options and the menu left open on the built-in meter,
+// its level the mock recorder's steady −14.2 dB peak.
+async function openBuiltinLevels(page: Page, query: string, name: string): Promise<void> {
+  await readyToRecord(page, query);
+  await page.getByRole('button', { name: 'Record options' }).click();
+  const menu = page.getByRole('dialog', { name: 'Record options' });
+  await menu.getByRole('combobox', { name: 'Microphone' }).selectOption({ label: name });
+  await menu.getByRole('meter', { name: 'Input level' }).and(page.locator('[aria-valuenow="-25"]')).waitFor();
 }
 
 // The Companion has no rail item: the jump menu's Open Companion opens it (commands.catalog.ts `companion.open`).
@@ -103,6 +114,34 @@ export const boothDrivers: Record<string, Driver> = {
     await page.getByRole('button', { name: 'Dismiss message' }).click();
   },
   setup: (page) => readyToRecord(page),
+  voices: async (page) => {
+    await readyToRecord(page, '?mockVoiceFolders=1');
+    await page.getByRole('button', { name: /^Voice:.*Narrator/ }).waitFor();
+  },
+  'voices-list': async (page) => {
+    await readyToRecord(page, '?mockVoiceFolders=1');
+    await page.getByRole('button', { name: /^Voice:.*Narrator/ }).click();
+    await page
+      .getByRole('listbox', { name: 'Voices of this chapter' })
+      .getByRole('option', { name: /Extras/ })
+      .waitFor();
+  },
+  'voices-who-is-in': async (page) => {
+    await readyToRecord(page, '?mockVoiceFolders=1');
+    await page.getByRole('button', { name: /^Voice:.*Narrator/ }).waitFor();
+    await page.keyboard.press('Numpad7');
+    await page.getByRole('dialog', { name: 'Who is in Num 7?' }).getByRole('textbox', { name: 'Track name' }).waitFor();
+  },
+  'voices-who-records': async (page) => {
+    await readyToRecord(page, '?mockVoiceFolders=1');
+    await page.getByRole('button', { name: /^Voice:.*Narrator/ }).click();
+    const list = page.getByRole('listbox', { name: 'Voices of this chapter' });
+    await list.getByRole('option').last().click();
+    await page
+      .getByRole('dialog', { name: /^Who records / })
+      .getByRole('textbox', { name: 'Track name' })
+      .waitFor();
+  },
   // The mixed manuscript's second chapter has a title and no subtitle, its third a subtitle long enough to wrap (applyMixedManuscriptMock).
   'heading-title-only': async (page) => {
     await openHeadings(page, 'A Message from the Author');
@@ -263,7 +302,7 @@ export const boothDrivers: Record<string, Driver> = {
     await record(page).click();
     await page.getByRole('button', { name: /^Stop$/ }).waitFor();
     await page.clock.runFor(30_000);
-    await page.getByText(/^(At )?¶ [2-9] of 24/).waitFor();
+    await page.getByText(/^¶ (1[4-9]|2[0-4]) of 24/).waitFor();
     if (await page.locator('#blisten-why').count()) throw new Error('the footer says the text cannot follow during a take that follows');
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
   },
@@ -272,16 +311,21 @@ export const boothDrivers: Record<string, Driver> = {
     await readyToRecord(page);
     await page.clock.install({ time: REC_START });
     await page.clock.pauseAt(REC_START + 1_000);
+    // Option B: the side menu picks what the main button does, then the main button starts the cold read.
+    await page.getByRole('button', { name: 'Record options' }).click();
+    await page.getByRole('radio', { name: 'Cold read' }).click();
+    await page.keyboard.press('Escape');
     await page.getByRole('button', { name: 'Cold read' }).click();
     await page.getByText('Mic on · cold read', { exact: true }).waitFor();
     await page.clock.runFor(30_000);
     await page.locator('[data-paragraph]:not(:first-child) [data-ghost]').waitFor();
-    await page.getByText(/^(At )?¶ 1 of 24/).waitFor();
+    await page.getByText(/^¶ 14 of 24/).waitFor();
     if (await page.getByText('REC', { exact: true }).count()) throw new Error('a cold read shows REC: it records nothing');
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
   },
   'voice-samples-picker': async (page) => {
     await readyToRecord(page, SAMPLES);
+    await showChapterTop(page);
     await page.locator('[data-speaker-chip]').first().click();
     await page.getByRole('combobox', { name: 'Search speakers' }).waitFor();
     await page
@@ -324,16 +368,14 @@ export const boothDrivers: Record<string, Driver> = {
     await page.clock.runFor(2_000);
     await page.getByRole('alertdialog', { name: /^Download local \w+ model\?$/ }).waitFor();
   },
-  // The chip is not offered at the place it would take the narrator to, so once chosen it goes; a page opened again (the next
-  // viewport) returns to the remembered ¶ 14 and offers no chip at all.
+  // Chapter 1 opens at ¶ 14, where its recording ends, so the chip is not offered; looking elsewhere (a word in the next paragraph)
+  // offers the way back, and the chip is left in view. A page opened again (the next viewport) returns to the remembered place, so each
+  // viewport looks away again.
   resume: async (page) => {
     await openBooth(page, '');
-    const chip = page.getByRole('button', { name: /^Resume at ¶/ });
-    const there = page.getByText(/¶ 14 of 24/);
-    await chip.or(there).first().waitFor();
-    if (await chip.isVisible()) await chip.click();
-    await there.waitFor();
-    await chip.waitFor({ state: 'detached' });
+    await page.getByText(/¶ 14 of 24/).waitFor();
+    await page.locator('[data-booth-text] [data-paragraph]:has([data-current]) + [data-paragraph] [data-word="0"]').click();
+    await page.getByRole('button', { name: /^Resume at ¶ 14/ }).waitFor();
     await record(page).and(page.locator(':enabled:not([aria-disabled="true"])')).waitFor();
   },
   'recorded-partly': async (page) => {
@@ -350,8 +392,8 @@ export const boothDrivers: Record<string, Driver> = {
   },
   'levels-menu': async (page) => {
     await readyToRecord(page);
-    await page.getByRole('button', { name: 'Levels' }).click();
-    const menu = page.getByRole('dialog', { name: 'Levels' });
+    await page.getByRole('button', { name: 'Record options' }).click();
+    const menu = page.getByRole('dialog', { name: 'Record options' });
     await menu.getByText('Same as REAPER').waitFor();
     // The microphone the DAW records from is named (the mock's first listed microphone), not left blank, with REAPER's device and channel.
     await menu.getByText('Microphone Array (Realtek(R) Audio)', { exact: true }).waitFor();
@@ -359,18 +401,53 @@ export const boothDrivers: Record<string, Driver> = {
     // REAPER's meters, and the monitor slider, show whenever REAPER is linked and answering (#2251).
     await menu.getByText('Heard on “Chapter 1 Narration” in REAPER.').waitFor();
   },
+  // The built-in recorder's own level (#2732) as the menu's one Input meter: started on the chosen microphone when Levels opens, moving with the
+  // mock's steady level.
+  'levels-menu-builtin': (page) => openBuiltinLevels(page, '?mockEngine=builtin', 'Analogue 1 + 2 (Focusrite USB Audio)'),
+  'levels-menu-builtin-refused': async (page) => {
+    await readyToRecord(page, '?mockEngine=builtin&mockRecorder=start-fails');
+    await page.getByRole('button', { name: 'Record options' }).click();
+    const menu = page.getByRole('dialog', { name: 'Record options' });
+    await menu.getByRole('combobox', { name: 'Microphone' }).selectOption({ label: 'Analogue 1 + 2 (Focusrite USB Audio)' });
+    await menu.getByText('The meter did not start.').waitFor();
+    await menu.getByRole('button', { name: 'Check again' }).waitFor();
+    // The recorder's own words come as an error toast beside the menu.
+    await page
+      .getByText(/could not open/)
+      .first()
+      .waitFor();
+  },
+  'levels-menu-builtin-opening': async (page) => {
+    await readyToRecord(page, '?mockEngine=builtin&mockRecorder=meter-hangs');
+    await page.getByRole('button', { name: 'Record options' }).click();
+    const menu = page.getByRole('dialog', { name: 'Record options' });
+    await menu.getByRole('combobox', { name: 'Microphone' }).selectOption({ label: 'Analogue 1 + 2 (Focusrite USB Audio)' });
+    await menu.getByText('Opening the microphone…').waitFor();
+  },
+  'levels-menu-builtin-paused': async (page) => {
+    await openBuiltinLevels(page, '?mockEngine=builtin', 'Analogue 1 + 2 (Focusrite USB Audio)');
+    await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+    await page.getByRole('dialog', { name: 'Record options' }).getByText('Paused while the app is in the background.').waitFor();
+  },
+  'levels-menu-builtin-no-mic': async (page) => {
+    await readyToRecord(page, '?mockEngine=builtin&mockRecorder=mic-gone');
+    await page.getByRole('button', { name: 'Record options' }).click();
+    await page.getByRole('dialog', { name: 'Record options' }).getByText('No microphone chosen.').waitFor();
+  },
+  'levels-menu-builtin-long-name': (page) => openBuiltinLevels(page, '?mockEngine=builtin&mockMics=long', `Long ${'microphone name '.repeat(19)}end`),
+  'levels-menu-builtin-rtl-name': (page) => openBuiltinLevels(page, '?mockEngine=builtin&mockMics=weird', 'ميكروفون 🎤 (USB)'),
   // REAPER's input fits two microphones (#2251): Levels says so with one button each, and listens on the first meanwhile.
   'levels-menu-mic-uncertain': async (page) => {
     await readyToRecord(page, '?mockReaperInput=uncertain');
-    await page.getByRole('button', { name: 'Levels' }).click();
-    const menu = page.getByRole('dialog', { name: 'Levels' });
+    await page.getByRole('button', { name: 'Record options' }).click();
+    const menu = page.getByRole('dialog', { name: 'Record options' });
     await menu.getByRole('group', { name: 'Which microphone REAPER records from' }).waitFor();
   },
   // The narrator chose a different microphone than REAPER's (#2251): the picker, the sentence that says so, and the way back.
   'levels-menu-mic-chosen': async (page) => {
     await readyToRecord(page);
-    await page.getByRole('button', { name: 'Levels' }).click();
-    const menu = page.getByRole('dialog', { name: 'Levels' });
+    await page.getByRole('button', { name: 'Record options' }).click();
+    const menu = page.getByRole('dialog', { name: 'Record options' });
     await menu.getByRole('button', { name: 'Choose a different one' }).click();
     await menu.getByRole('combobox', { name: 'Microphone' }).selectOption({ index: 1 });
     await menu.getByRole('button', { name: "Use REAPER's input" }).waitFor();
@@ -379,16 +456,16 @@ export const boothDrivers: Record<string, Driver> = {
   // With no track armed in REAPER, so the meters say so (#2251 item 11) and this state differs from levels-menu.
   'levels-menu-preroll': async (page) => {
     await readyToRecord(page, `?mockDawMeters=unarmed`);
-    await page.getByRole('button', { name: 'Levels' }).click();
-    const menu = page.getByRole('dialog', { name: 'Levels' });
+    await page.getByRole('button', { name: 'Record options' }).click();
+    const menu = page.getByRole('dialog', { name: 'Record options' });
     await menu.getByText('Pre-roll off · 2 measures (4.0 s)').waitFor();
     await menu.getByText('No track is armed in REAPER: its input level shows once one is.').waitFor();
   },
   // The pre-roll's "i" opened from the keyboard: the note, inside the menu, says what the pre-roll does and where to change it in REAPER.
   'levels-menu-preroll-about': async (page) => {
     await readyToRecord(page, `?mockDawMeters=unarmed`);
-    await page.getByRole('button', { name: 'Levels' }).click();
-    const menu = page.getByRole('dialog', { name: 'Levels' });
+    await page.getByRole('button', { name: 'Record options' }).click();
+    const menu = page.getByRole('dialog', { name: 'Record options' });
     await menu.getByText('Pre-roll off · 2 measures (4.0 s)').waitFor();
     const info = menu.getByRole('button', { name: 'About REAPER’s pre-roll' });
     // Reached with the keyboard and opened with Enter, as a narrator without a mouse would.
@@ -429,15 +506,16 @@ export const boothDrivers: Record<string, Driver> = {
     // The Script's "Marked …" toast would otherwise sit over the Booth's footer.
     await page.getByRole('button', { name: 'Dismiss message' }).click();
     await goToPage(page, 'Booth');
-    await page.getByRole('button', { name: /^Resume at ¶/, includeHidden: true }).waitFor();
+    await boothChapterReady(page);
+    await showChapterTop(page);
     await page.locator('[data-booth-text] [data-word][title]', { hasText: 'tired' }).click();
     await page.locator('#booth-reference').getByText('Lean on it: she is bored, not sleepy.').waitFor();
   },
   // B on the word being read: the ribbon in the margin beside its line (the toast is dismissed so the shot shows the margin).
   'bookmarks-ribbon': async (page) => {
     await readyToRecord(page);
-    // On the first paragraph's first word: the chapter title and subtitle above it are no manuscript paragraph a bookmark can name.
-    await page.locator('[data-booth-text] [data-paragraph]:not([data-heading]) [data-word="0"]').first().click();
+    // On the reading paragraph's first word (Chapter 1 opens at ¶ 14): the chapter title above is no manuscript paragraph a bookmark can name.
+    await page.locator('[data-booth-text] [data-paragraph]:has([data-current]):not([data-heading]) [data-word="0"]').first().click();
     await page.keyboard.press('b');
     await page.locator('[data-bmk-margin] [data-bm]').first().waitFor();
     await page.getByText('Bookmark added.').waitFor();
@@ -446,6 +524,8 @@ export const boothDrivers: Record<string, Driver> = {
   // menu's Read to here marks the stopping place there (a chequered-flag ribbon beside the line).
   'page-break-stop': async (page) => {
     await readyToRecord(page);
+    // Chapter 1 opens at ¶ 14, past the Page 2 break: the reading goes back to the chapter's start to step down to it.
+    await readFromStart(page);
     const label = page.locator('[data-page-breaks] [data-page-break="2"]');
     const height = page.viewportSize()?.height ?? 800;
     for (let step = 0; step < 80; step++) {
@@ -500,7 +580,7 @@ export const boothDrivers: Record<string, Driver> = {
     await settlePage(page);
     await chooseTheme(page, 'Dark');
     await goToPage(page, 'Booth');
-    await page.getByRole('button', { name: /^Resume at ¶/, includeHidden: true }).waitFor();
+    await boothChapterReady(page);
     await record(page).and(page.locator(':enabled:not([aria-disabled="true"])')).waitFor();
   },
   'companion-default': async (page) => {

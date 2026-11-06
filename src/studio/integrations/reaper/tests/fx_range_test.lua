@@ -742,6 +742,48 @@ H.test('fx_range_set_param and fx_range_bypass change one thing as one undo poin
   H.eq(s.fake.open_undo_blocks, 0)
 end)
 
+-- #3016: Undo of each of these edits asks last_action for its kind, so each has one of its own, and no other kind reaches it.
+H.test('each chain edit is a kind of its own: last_action says this for its kind only, and one undo_last takes it back', function()
+  local s, p = project()
+  s.fake.chain_fx_count = 2
+  local kinds = { 'add_range_fx', 'remove_range_fx', 'set_fx_param', 'bypass_fx', 'enable_fx' }
+  local function only(expected)
+    for _, kind in ipairs(kinds) do
+      s:send('last_action', 'k', kind)
+      local want = kind == expected and 'this' or 'other'
+      H.eq(s:events(), { { 'LAST_ACTION', 'k', kind, want } }, expected .. ' is on top, so ' .. kind .. ' is ' .. want)
+    end
+  end
+  local middle = applied(s, p)
+  local take = middle.takes[1]
+  only('add_range_fx')
+  s:send('fx_range_set_param', 's1', middle.guid, take.guid, CHAIN, '1', '0', '-6.5')
+  H.eq(s:events()[1][1], 'RANGE_FX_PARAM_SET')
+  only('set_fx_param')
+  s:send('fx_range_bypass', 'b1', middle.guid, take.guid, CHAIN, '1')
+  s:events()
+  only('bypass_fx')
+  s:send('fx_range_bypass', 'b2', middle.guid, take.guid, CHAIN, '0')
+  s:events()
+  only('enable_fx')
+  s:send('undo_last', 'u1', 'bypass_fx', '1')
+  H.eq(s:events(), { { 'UNDONE_LAST', 'u1', 'bypass_fx', '1', '0' } }, 'a turn-on is not a bypass')
+  s:send('undo_last', 'u2', 'enable_fx', '1')
+  H.eq(s:events(), { { 'UNDONE_LAST', 'u2', 'enable_fx', '1', '1' } })
+  s:send('undo_last', 'u3', 'bypass_fx', '1')
+  s:send('undo_last', 'u4', 'set_fx_param', '1')
+  s:send('undo_last', 'u5', 'add_range_fx', '1')
+  H.eq(s:events(), {
+    { 'UNDONE_LAST', 'u3', 'bypass_fx', '1', '1' },
+    { 'UNDONE_LAST', 'u4', 'set_fx_param', '1', '1' },
+    { 'UNDONE_LAST', 'u5', 'add_range_fx', '1', '1' },
+  })
+  middle = applied(s, p)
+  s:send('remove_fx_range', 'r1', middle.guid, CHAIN)
+  s:events()
+  only('remove_range_fx')
+end)
+
 H.test('the edits leave the item, its neighbours and an FX outside the chain as they were', function()
   local s, p = project()
   local middle, take = applied_clean(s, p)

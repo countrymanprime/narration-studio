@@ -3,6 +3,8 @@ import { apiErrorMessage } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
 import { formatSize } from '../../assets/AssetFacts';
 import { Button } from '../../primitives/Button';
+import { IconButton } from '../../primitives/IconButton';
+import { HelpButton } from '../../primitives/HelpButton';
 import { InsetCard } from '../../primitives/InsetCard';
 import { ConfirmDialog } from '../../primitives/ConfirmDialog';
 import { Panel } from '../../primitives/Panel';
@@ -16,9 +18,11 @@ import { assetKey, useAssetsStore, type AssetView } from '../models/AssetsStore'
 import { planRemoval, settingLabel, usesOf } from '../models/assetUse';
 import { ASSET_FILTERS, assetPages, GROUP_OF_KIND, RECOMMENDED_SET, type AssetGroup } from '../registry/assets';
 import { ANALYSIS_KIND } from '../analysis/components';
+import { rowOf } from '../registry/rows';
 import type { Category } from '../registry/types';
 import { useSettingsNav } from '../row/SettingsNav';
 import { PaneTitle } from './PaneTitle';
+import { RowOf } from './RowOf';
 
 type Filter = 'all' | AssetGroup;
 type Notice = { tone: 'alert' | 'status'; text: string };
@@ -34,7 +38,8 @@ function Heading({ category }: { category: Category }) {
  * section that uses it; here a download is started, followed, cancelled, repaired or removed. Removing one a setting has chosen moves that
  * setting to the smallest other installed choice, or is refused when there is none. The table becomes cards below 1020px of the page.
  */
-export function ModelsPane({ category }: { category: Category }) {
+export function ModelsPane({ category, lit = null }: { category: Category; lit?: string | null }) {
+  const folderRow = rowOf('models.folder');
   const assets = useAssetsStore();
   const api = usePort('assets');
   const settings = useSettingsStore();
@@ -83,12 +88,8 @@ export function ModelsPane({ category }: { category: Category }) {
           <b>The list of models could not be read.</b>
           <span>{loadError} Your downloads are not touched.</span>
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
-            <Button variant="secondary" size="sm" onClick={() => void assets.refresh()}>
-              Retry
-            </Button>
-            <Button variant="secondary" size="sm" onClick={openFolder}>
-              Open the folder
-            </Button>
+            <IconButton action="retry" size="sm" onClick={() => void assets.refresh()} />
+            <IconButton action="openFolder" size="sm" onClick={openFolder} />
           </div>
         </InsetCard>
         {noticeCard}
@@ -160,23 +161,24 @@ export function ModelsPane({ category }: { category: Category }) {
               <b>{catalog.totalInstalledBytes > 0 ? formatSize(catalog.totalInstalledBytes) : '0 MB'}</b> used by {installed}{' '}
               {installed === 1 ? 'item' : 'items'}
             </span>
-            <span className="min-w-0 text-[0.8125rem] text-[var(--text-muted)]">
-              Stored in <code className="font-['IBM_Plex_Mono',ui-monospace,monospace] text-[0.75rem] [overflow-wrap:anywhere]">{catalog.cacheRoot}</code>
-            </span>
           </div>
-          <Button variant="secondary" size="sm" className="flex-none" onClick={openFolder}>
-            Open folder
-          </Button>
         </div>
       </Panel>
+      {folderRow && (
+        <Panel flush>
+          <RowOf row={folderRow} flash={lit === folderRow.id} />
+        </Panel>
+      )}
       {noticeCard}
       {rows.every((view) => view.status !== 'installed') && (
         <Panel label="Nothing is downloaded yet">
           <div className="flex flex-col items-start gap-2.5">
-            <b>Nothing is downloaded yet</b>
-            <p className="m-0 max-w-[62ch]">
-              The app needs a transcription model to check recordings and a voice to preview names. The recommended pair is about 600 MB.
-            </p>
+            <span className="flex items-center gap-2">
+              <b>Nothing is downloaded yet</b>
+              <HelpButton label="About the recommended set">
+                The app needs a transcription model to check recordings and a voice to preview names. The recommended pair is about 600 MB.
+              </HelpButton>
+            </span>
             <Button pending={recommendedBusy} onClick={downloadRecommended}>
               Download the recommended set
             </Button>
@@ -221,6 +223,7 @@ export function ModelsPane({ category }: { category: Category }) {
                   setRemoving(view);
                 }}
                 dismiss={() => assets.dismissFailure(view.item)}
+                verify={() => void assets.verify(view.item)}
               />
             );
           })}

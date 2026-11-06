@@ -25,6 +25,7 @@ import (
 	"desktop/internal/proofing"
 	"desktop/internal/scriptprep"
 	"desktop/internal/stages"
+	"desktop/internal/userdictionary"
 	"desktop/internal/voicesample"
 )
 
@@ -63,11 +64,15 @@ func TestCommittedManuscriptKeepsLineBreaksAndFormattingSpans(t *testing.T) {
 	if committed, err := service.Commit(job.ID, false, Choices{}); err != nil || committed.Phase != "success" {
 		t.Fatalf("commit = %#v, %v", committed, err)
 	}
-	reader, err := service.Reader()
+	chapters, err := service.Chapters()
 	if err != nil {
 		t.Fatal(err)
 	}
-	paragraph := reader["paragraphs"].([]map[string]any)[0]
+	paragraphs, err := service.Paragraphs(text(chapters[0], "id"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	paragraph := paragraphs[0]
 	if got, want := paragraph["text"], "Roses are red,\nviolets are blue."; got != want {
 		t.Fatalf("text = %q want %q", got, want)
 	}
@@ -1001,13 +1006,30 @@ func TestReplaceAndClearRemoveTheScriptPrepFile(t *testing.T) {
 		}
 		return committed
 	}
+	// A schema-1 file backed up in a later cycle sits beside the first backup.
+	secondBackup := filepath.Join(filepath.Dir(scriptprep.BackupFile(project)), "script-prep.v1-2.json")
 	writePrep := func() {
 		t.Helper()
 		if err := os.MkdirAll(filepath.Dir(scriptprep.File(project)), 0o755); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.WriteFile(scriptprep.File(project), []byte(`{"schemaVersion":1,"chapters":{},"flags":[],"says":{}}`), 0o600); err != nil {
+		if err := os.WriteFile(scriptprep.File(project), []byte(`{"schemaVersion":2,"chapters":{}}`), 0o600); err != nil {
 			t.Fatal(err)
+		}
+		// The schema-1 file the migration kept (#2595) holds the old words' quotes: it goes with the manuscript too.
+		if err := os.WriteFile(scriptprep.BackupFile(project), []byte(`{"schemaVersion":1,"chapters":{},"flags":[],"says":{}}`), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(secondBackup, []byte(`{"schemaVersion":1,"chapters":{},"flags":[],"says":{}}`), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	gone := func(when string) {
+		t.Helper()
+		for _, path := range []string{scriptprep.File(project), scriptprep.BackupFile(project), secondBackup} {
+			if _, err := os.Stat(path); !os.IsNotExist(err) {
+				t.Fatalf("%s left %s behind: %v", when, filepath.Base(path), err)
+			}
 		}
 	}
 	writePrep()
@@ -1020,16 +1042,12 @@ func TestReplaceAndClearRemoveTheScriptPrepFile(t *testing.T) {
 	if committed := importAlice(true); committed.Phase != "success" {
 		t.Fatalf("confirmed replace = %#v", committed)
 	}
-	if _, err := os.Stat(scriptprep.File(project)); !os.IsNotExist(err) {
-		t.Fatalf("a confirmed replace left the script prep behind: %v", err)
-	}
+	gone("a confirmed replace")
 	writePrep()
 	if err := service.Clear(); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(scriptprep.File(project)); !os.IsNotExist(err) {
-		t.Fatalf("Clear project data left the script prep behind: %v", err)
-	}
+	gone("Clear project data")
 }
 
 // The extraction suggestions name entries and quote paragraphs of the manuscript, so a confirmed replace and Clear project data remove
@@ -1208,6 +1226,32 @@ func TestAReplaceKeepsVoiceSamplesAndClearRemovesThem(t *testing.T) {
 	}
 	if _, err := os.Stat(voicesample.Dir(project)); !os.IsNotExist(err) {
 		t.Fatalf("Clear project data left the voice samples behind: %v", err)
+	}
+}
+
+// The user dictionary is how the narrator decided to say words, and names no chapter or line: a manuscript replace keeps it, and only
+// Clear project data removes it (#2595).
+func TestAReplaceKeepsTheUserDictionaryAndClearRemovesIt(t *testing.T) {
+	project := t.TempDir()
+	service := New(project)
+	file := userdictionary.File(project)
+	if err := os.MkdirAll(filepath.Dir(file), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(file, []byte(`{"schemaVersion":1,"words":{}}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := resetDerived(project); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(file); err != nil {
+		t.Fatalf("a manuscript replace removed the user dictionary: %v", err)
+	}
+	if err := service.Clear(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(file); !os.IsNotExist(err) {
+		t.Fatalf("Clear project data left the user dictionary behind: %v", err)
 	}
 }
 

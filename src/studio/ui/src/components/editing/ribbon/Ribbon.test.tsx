@@ -263,6 +263,30 @@ describe('the waveform header', () => {
     });
     expect(head.textContent).toBe('T-7active take');
   });
+  it('lets a long take name (emoji, right-to-left, 200 letters) shrink with the full name on hover, and never shrinks the word Recording', async () => {
+    const long = `T-\u{1F3A4}-\u05E9\u05DC\u05D5\u05DD-${'x'.repeat(200)}`;
+    const heads: Array<{ name: HTMLElement; head: HTMLElement }> = [];
+    for (const take of [long, null]) {
+      cleanup();
+      render(
+        <ApiProvider api={withPeaks(peaks(0, 20))}>
+          <EditingPageProvider doc={marksDoc()}>
+            <WaveDock chapterId="chapter-1" take={take} clocks={sameClock([0])} />
+          </EditingPageProvider>
+        </ApiProvider>,
+      );
+      const head = await waitFor(() => document.querySelector('[data-ribbon-head]') as HTMLElement);
+      heads.push({ head, name: head.firstElementChild as HTMLElement });
+    }
+    const [taken, recording] = heads;
+    expect(taken!.name.className).toMatch(/\btruncate\b/);
+    expect(taken!.name.getAttribute('title')).toBe(long);
+    // The head keeps its natural width up to a cap, so a short name is never squeezed by its neighbours.
+    expect(taken!.head.className).toMatch(/\bflex-none\b/);
+    expect(taken!.head.className).toMatch(/max-w-\[60%\]/);
+    expect(recording!.name.className).not.toMatch(/truncate/);
+    expect(recording!.head.className).toMatch(/\bflex-none\b/);
+  });
   it('says recording when the line has no take', async () => {
     const doc = marksDoc();
     render(

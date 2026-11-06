@@ -2,7 +2,7 @@
   "daw_cannot_report": {
     "status": "unavailable",
     "reason": "daw_cannot_report",
-    "message": "Audacity cannot report which microphone it records from, so the Booth listens to the one chosen in Levels.",
+    "message": "Audacity cannot report which microphone it records from, so the Booth listens to the one chosen in Record options.",
     "candidates": []
   },
   "matched": {
@@ -23,14 +23,14 @@
   },
   "no_match": {
     "status": "no_match",
-    "message": "REAPER records from \"ASIO4ALL v2\", which does not match a microphone here. Choose the microphone in Levels.",
+    "message": "REAPER records from \"ASIO4ALL v2\", which does not match a microphone here. Choose the microphone in Record options.",
     "reaperDevice": "ASIO4ALL v2",
     "candidates": []
   },
   "reaper_no_device": {
     "status": "unavailable",
     "reason": "reaper_no_device",
-    "message": "REAPER did not say which input device it has open. Choose the microphone in Levels.",
+    "message": "REAPER did not say which input device it has open. Choose the microphone in Record options.",
     "candidates": []
   },
   "uncertain": {

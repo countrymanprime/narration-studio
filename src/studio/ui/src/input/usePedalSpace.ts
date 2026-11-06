@@ -15,6 +15,7 @@ export function usePedalSpace(toggle: () => unknown): void {
     const plain = (event: KeyboardEvent) => event.code === 'Space' && !event.ctrlKey && !event.altKey && !event.metaKey;
     const mine = (event: KeyboardEvent) => {
       if (!plain(event) || takesTypedText(event.target) || modalLayerOpen()) return false;
+      if (event.target instanceof Element && event.target.closest('[role="radio"], input[type="radio"]')) return false;
       if (softLayerOpen()) return true;
       const target = event.target;
       return target instanceof HTMLButtonElement && !/^(Record|Stop)$/.test(target.textContent?.trim() ?? '') && !keyLayerOpen();

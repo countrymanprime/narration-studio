@@ -155,9 +155,8 @@ end
 -- Inside the undo block: the Cuts track found, keyed and muted, or added (narration_range.lua's ensure_cuts).
 local function ensure_cuts(track, keyed)
   if not track then
-    local index = reaper.CountTracks(0)
-    reaper.InsertTrackAtIndex(index, false)
-    track = reaper.GetTrack(0, index)
+    -- At the top level, never inside a folder left open at the end of the project (core.append_track).
+    track = core.append_track()
     reaper.GetSetMediaTrackInfo_String(track, 'P_NAME', CUTS_NAME, true)
   end
   if not keyed then
@@ -198,13 +197,14 @@ local function shift_items(items, by)
   end
 end
 
--- source_start|source_end|fade_ms|gain_db|id, or nil when it has another number of parts.
+-- source_start|source_end|fade_ms|gain_db|id, or source_start|source_end|fade_ms|gain_db|id|folder (the chapter's folder GUID: the later items of every
+-- track inside it move too), or nil when it has another number of parts.
 local function replace_tail(field)
   local parts = {}
   for part in (tostring(field or '') .. '|'):gmatch('([^|]*)|') do
     parts[#parts + 1] = part
   end
-  if #parts ~= 5 then
+  if #parts ~= 5 and #parts ~= 6 then
     return nil
   end
   return parts
@@ -317,6 +317,24 @@ local function replace_range(session_dir, run_id, guid_text, start_text, end_tex
     event(session_dir, 'ERROR', run_id, 'Another item on the track overlaps the words to replace, so nothing changed.')
     return
   end
+  local peers = core.ripple_peers(session_dir, run_id, parts[6], track, cuts, 'nothing changed')
+  if not peers then
+    return
+  end
+  local later = items_from(track, item, last_cut)
+  -- Every other voice in the folder moves with it, so none may have audio under the words that are replaced.
+  for _, peer in ipairs(peers) do
+    if overlapping(peer, nil, first_cut, last_cut) then
+      event(session_dir, 'ERROR', run_id, 'Another voice in the folder has audio under the words to replace, so nothing changed.')
+      return
+    end
+  end
+  for _, peer in ipairs(peers) do
+    for _, moved in ipairs(items_from(peer, nil, last_cut)) do
+      later[#later + 1] = moved
+    end
+  end
+
   local opened = reaper.PCM_Source_CreateFromFile(theirs.file)
   if not opened then
     event(session_dir, 'ERROR', run_id, 'REAPER could not open their audio.')
@@ -325,8 +343,6 @@ local function replace_range(session_dir, run_id, guid_text, start_text, end_tex
   local length = source_end - source_start
   local shift = length - (last_cut - first_cut)
   local fade = fade_ms / 1000
-  local later = items_from(track, item, last_cut)
-
   reaper.Undo_BeginBlock2(0)
   local right = split_end and reaper.SplitMediaItem(item, last_cut) or nil
   local middle, left = item, nil
@@ -387,7 +403,10 @@ local function seam_piece(text, track, at, field)
   return piece
 end
 
-local function restore_replacement(session_dir, run_id, guid_text, id)
+-- restore_replacement's last field: the replacement's id, or id|folder (the chapter's folder GUID: the later items of every track inside it move
+-- back too). An older script reads the whole field as an id and refuses it, so a folder is never silently dropped.
+local function restore_replacement(session_dir, run_id, guid_text, field)
+  local id, folder_text = tostring(field or ''):match('^([^|]*)|?(.*)$')
   if not valid_id(id) then
     event(session_dir, 'ERROR', run_id, BAD_ID)
     return
@@ -420,7 +439,22 @@ local function restore_replacement(session_dir, run_id, guid_text, id)
   local at, length = start_of(new), reaper.GetMediaItemInfo_Value(new, 'D_LENGTH')
   local cut_length = reaper.GetMediaItemInfo_Value(cut, 'D_LENGTH')
   local shift = cut_length - length
+  local peers = core.ripple_peers(session_dir, run_id, folder_text, track, cuts, 'nothing changed')
+  if not peers then
+    return
+  end
   local later = items_from(track, new, at + length)
+  for _, peer in ipairs(peers) do
+    if overlapping(peer, nil, at, at + length) then
+      event(session_dir, 'ERROR', run_id, 'Another voice in the folder has audio where the replacement is, so nothing changed.')
+      return
+    end
+  end
+  for _, peer in ipairs(peers) do
+    for _, moved in ipairs(items_from(peer, nil, at + length)) do
+      later[#later + 1] = moved
+    end
+  end
   local seams = item_ext(new, REPLACEMENT_SEAMS_KEY)
   local left_text, right_text = seams:match('^(%S+) (%S+)$')
   local left = seam_piece(left_text, track, at, 'end')
@@ -536,9 +570,8 @@ local function import_audio_track(session_dir, run_id, name, path, extra)
   end
 
   reaper.Undo_BeginBlock2(0)
-  local index = reaper.CountTracks(0)
-  reaper.InsertTrackAtIndex(index, false)
-  local track = reaper.GetTrack(0, index)
+  -- At the top level, never inside a folder left open at the end of the project (core.append_track).
+  local track = core.append_track()
   reaper.GetSetMediaTrackInfo_String(track, 'P_NAME', name, true)
   reaper.GetSetMediaTrackInfo_String(track, CO_NARRATOR_KEY, '1', true)
   reaper.SetMediaTrackInfo_Value(track, 'B_MUTE', 1)

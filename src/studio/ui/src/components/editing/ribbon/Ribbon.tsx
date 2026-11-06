@@ -330,9 +330,14 @@ export function RibbonView({
   }
 
   const headRow = head ? (
-    <span data-ribbon-head className="flex flex-none items-baseline gap-1.5">
-      <span className="font-mono font-semibold text-[var(--text)]">{head.take ?? 'Recording'}</span>
-      {head.take ? <span>active take</span> : null}
+    <span
+      data-ribbon-head
+      className={`flex items-baseline gap-1.5 ${head.take ? 'max-w-[60%] flex-none max-[30rem]:min-w-0 max-[30rem]:shrink' : 'flex-none'}`}
+    >
+      <span className={`font-mono font-semibold text-[var(--text)] ${head.take ? 'min-w-0 truncate' : ''}`} title={head.take ?? undefined}>
+        {head.take ?? 'Recording'}
+      </span>
+      {head.take ? <span className="flex-none">active take</span> : null}
     </span>
   ) : null;
   // Nothing to choose or zoom yet: the empty lane, or the placeholder bars while the peaks are read.

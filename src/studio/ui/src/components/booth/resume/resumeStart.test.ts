@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { RecordedThrough } from '../../../api/contracts/manuscript';
 import type { ReadingParagraph } from '../reading/boothUnits';
-import { resumeStart } from './resumeStart';
+import { openedResume, resumeStart } from './resumeStart';
 
 const PARAGRAPHS: ReadingParagraph[] = [
   { id: 'p1', text: 'Alice was beginning to get very tired.' },
@@ -72,5 +72,18 @@ describe('where the Booth opens a chapter', () => {
 
   it('has nowhere to go in a chapter with no paragraphs', () => {
     expect(resumeStart({ paragraphs: [], recorded: through(), kept: { paragraphId: 'p1', word: 0 } })).toEqual({ place: null, reason: 'start' });
+  });
+});
+
+describe('the start as the resume line offers it back', () => {
+  const place = { paragraphId: 'p2', word: 3 };
+  it('names a place after the recording "recording" and one the narrator left "left"', () => {
+    expect(openedResume({ place, reason: 'recorded' })).toEqual({ ...place, why: 'recording' });
+    expect(openedResume({ place, reason: 'kept' })).toEqual({ ...place, why: 'left' });
+  });
+
+  it('offers nothing back for the top of the chapter or a target the narrator came with', () => {
+    expect(openedResume({ place: null, reason: 'start' })).toBeNull();
+    expect(openedResume({ place: null, reason: 'explicit' })).toBeNull();
   });
 });
