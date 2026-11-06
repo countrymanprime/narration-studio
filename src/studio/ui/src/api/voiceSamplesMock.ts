@@ -14,6 +14,7 @@ import {
   type VoiceSampleClipState,
   type VoiceSampleDawState,
   type VoiceSampleRefusalReason,
+  type VoiceSampleStorage,
   type VoiceSamples,
   type VoiceSampleSourceState,
   type VoiceSamplesApi,
@@ -260,6 +261,8 @@ export function createVoiceSamplesMock(
   paragraphs: () => ManuscriptParagraph[],
   seed?: VoiceSamplesSeed,
   merges?: MergeEvents,
+  /** Where a new sample is kept now (the `VoiceSamples.storage` setting); a mock built without one keeps every sample in the project. */
+  storageNow: () => Promise<VoiceSampleStorage> = () => Promise.resolve('project'),
 ): VoiceSamplesApi {
   let stored: Stored[] = [];
   let nextId = seed ? SEED_ROWS[seed].length + 1 : 1;
@@ -481,7 +484,19 @@ export function createVoiceSamplesMock(
           sample.start === start &&
           sample.durationMs === durationMs,
       );
-      if (existing) return { status: 'saved', sample: wireClone(view(existing)) };
+      const kept = await storageNow();
+      if (existing) {
+        // As the host does: a sample that keeps less than the storage asks for gains what it lacked, and is then kept in both.
+        const hasClip = existing.storage !== 'daw';
+        const hasRegion = existing.storage === 'daw' || existing.storage === 'both';
+        if ((kept !== 'daw' && !hasClip) || (kept !== 'project' && !hasRegion)) {
+          const upgraded: Stored = { ...existing, storage: 'both', dawState: 'ok' };
+          stored = stored.map((sample) => (sample.id === existing.id ? upgraded : sample));
+          changed();
+          return { status: 'saved', sample: wireClone(view(upgraded)) };
+        }
+        return { status: 'saved', sample: wireClone(view(existing)) };
+      }
       if (stored.filter((sample) => sample.characterId === characterId).length >= PER_CHARACTER) return refused('character_limit');
       if (stored.reduce((total, sample) => total + sample.bytes, 0) + bytes > PROJECT_BYTES) return refused('project_limit');
       const primary = request.makePrimary || !stored.some((sample) => sample.characterId === characterId);
@@ -498,6 +513,7 @@ export function createVoiceSamplesMock(
         source: { chapterId: request.chapterId, text: span.text, startKey: request.startKey, endKey: request.endKey },
         itemGuid: request.itemGuid,
         start,
+        ...(kept === 'project' ? {} : { storage: kept, dawState: 'ok' as const }),
       };
       stored = [...stored.map((other) => (primary && other.characterId === characterId ? { ...other, primary: false } : other)), sample];
       changed();

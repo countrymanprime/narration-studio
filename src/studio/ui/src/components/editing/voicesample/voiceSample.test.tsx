@@ -530,6 +530,21 @@ describe('marking a voice sample', () => {
     expect(toastUndo).not.toHaveBeenCalled();
   });
 
+  it('marking the same stretch again after the storage changed says the sample was extended and offers no Undo', async () => {
+    existing = list([sample('a'.repeat(32), 'e-queen')]);
+    mark.mockResolvedValueOnce({
+      status: 'saved',
+      sample: { ...sample('a'.repeat(32), 'e-queen'), storage: 'both', daw: { state: 'ok', name: 'Voice sample: x', start: 0, end: 1 } },
+    });
+    mount();
+    await select('p-1:0', 'p-1:1');
+    await openDialog();
+    enter();
+    await flush();
+    expect(toast).toHaveBeenCalledWith('That stretch’s voice sample for The Queen of Hearts is now kept in the project folder and the DAW.');
+    expect(toastUndo).not.toHaveBeenCalled();
+  });
+
   it('a failed read is a note and the dialog still opens, with Narration to choose', async () => {
     entities = () => Promise.reject(new Error('no story bible'));
     cues = () => Promise.reject(new Error('no cues'));

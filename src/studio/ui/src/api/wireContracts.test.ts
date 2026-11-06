@@ -5261,6 +5261,30 @@ describe('the voice samples bindings', () => {
     };
   };
 
+  it('the mock keeps a sample as the storage setting says, and marking its stretch again under another setting adds what it lacked', async () => {
+    const api = createMockApi();
+    const request = await requestFor(api, 'hatter');
+    await api.saveSettings('VoiceSamples', 'project', { storage: 'daw' });
+    const first = await api.voiceSampleMark(request);
+    expectMatches(voiceSampleAnswerSchema, first, 'mock voice sample mark (daw)');
+    if (first.status !== 'saved') throw new Error(`refused: ${first.message}`);
+    expect(first.sample).toMatchObject({ storage: 'daw', daw: { state: 'ok' } });
+
+    await api.saveSettings('VoiceSamples', 'project', { storage: 'project' });
+    const again = await api.voiceSampleMark(request);
+    expectMatches(voiceSampleAnswerSchema, again, 'mock voice sample mark (upgraded)');
+    if (again.status !== 'saved') throw new Error(`refused: ${again.message}`);
+    expect(again.sample.id).toBe(first.sample.id);
+    expect(again.sample).toMatchObject({ storage: 'both', daw: { state: 'ok' } });
+
+    // Already kept in both: another storage changes nothing and makes no second sample.
+    await api.saveSettings('VoiceSamples', 'project', { storage: 'daw' });
+    const third = await api.voiceSampleMark(request);
+    if (third.status !== 'saved') throw new Error(`refused: ${third.message}`);
+    expect(third.sample).toMatchObject({ id: first.sample.id, storage: 'both' });
+    expect((await api.voiceSamplesList()).samples).toHaveLength(1);
+  });
+
   it('the mock answers every binding through its schema, and sorts primary first then newest', async () => {
     const api = createMockApi();
     const seen: number[] = [];
