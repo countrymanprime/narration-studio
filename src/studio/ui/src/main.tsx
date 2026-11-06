@@ -130,9 +130,10 @@ const mockManuscriptCandidate = mockParams.has('mockManuscriptCandidate');
 // the same way everywhere it is drawn.
 const mockManuscriptMixed = mockParams.get('mockManuscript') === 'mixed';
 // `?mockTeleprompter=listening|waiting|done|flagged` boots the teleprompter already part-way
-// through the first chapter, as a session the host kept running (`flagged`: further in, with suspected flags raised);
+// through the first chapter, as a session the host kept running (`flagged`: further in, with suspected flags raised; `checked`: the same, after the
+// confirmation pass confirmed the first and cleared the last);
 // `ended` boots one that already stopped itself at the end of the chapter (the host's auto-stop).
-const mockTeleprompter = (['listening', 'waiting', 'done', 'ended', 'flagged'] as const).find((seed) => seed === mockParams.get('mockTeleprompter'));
+const mockTeleprompter = (['listening', 'waiting', 'done', 'ended', 'flagged', 'checked'] as const).find((seed) => seed === mockParams.get('mockTeleprompter'));
 // `?mockLevel=-18` makes every microphone level the teleprompter mock sends that RMS in dBFS (-100 to 0), so the level meter
 // holds still for a capture.
 const mockLevelParam = Number(mockParams.get('mockLevel') ?? Number.NaN);
