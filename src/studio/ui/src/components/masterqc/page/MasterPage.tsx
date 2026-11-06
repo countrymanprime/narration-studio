@@ -34,6 +34,7 @@ import { profileName } from './packageItems';
 import { saveSharedChapter } from './sharedChapter';
 import { PAGE_COLUMN_CLASS } from '../../primitives/pageColumn';
 import { useFileActions } from './useFileActions';
+import { DawConnectionChip } from '../../connection/DawConnectionChip';
 import { DawToolsButton } from '../../engine/DawToolsButton';
 
 const MUTED = { color: 'var(--text-muted)' };
@@ -261,6 +262,7 @@ function MasterBody({ projectFolder, onOpenDelivery, openSettings, fileActions, 
                   pending={jobs.picking}
                   disabledReason={jobs.exportRunning ? 'An export is running' : undefined}
                 />
+                <DawConnectionChip stillWorks={(name) => `You can measure files and read reports. Chapters that live in ${name} wait until it is running.`} />
                 <MeasureControls run={run} />
                 {/* #2820: with nothing measured the next step is to render the chapters in the DAW, so its structure tools sit beside Check files. */}
                 {run.files.length === 0 && <DawToolsButton groups={['structure']} />}

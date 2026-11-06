@@ -292,7 +292,6 @@
         "src/components/booth/voices/VoiceControl.tsx",
         "src/components/booth/voices/WhoIsInDialog.tsx",
         "src/components/connection/ChapterLinkDialog.tsx",
-        "src/components/connection/ReaperOffDialog.tsx",
         "src/components/connection/ResolveShell.tsx",
         "src/components/credits/CreditsSetupBanner.tsx",
         "src/components/credits/CreditsSetupDialog.tsx",
@@ -783,8 +782,7 @@
       ],
       "consumers": [
         "src/components/booth/record/RecordSetup.tsx",
-        "src/components/editing/EditingPage.tsx",
-        "src/components/production/ProductionPage.tsx"
+        "src/components/connection/useDawConnection.tsx"
       ],
       "a11yDebt": false
     },
@@ -889,19 +887,6 @@
       "a11yDebt": false
     },
     {
-      "title": "Production/DawIndicator",
-      "name": "DawIndicator",
-      "source": "src/components/production/pipeline/DawIndicator.tsx",
-      "stories": [
-        "Not Connected",
-        "Connecting"
-      ],
-      "consumers": [
-        "src/components/production/ProductionPage.tsx"
-      ],
-      "a11yDebt": false
-    },
-    {
       "title": "Settings/Page/DefinitionsPanel",
       "name": "DefinitionsPanel",
       "source": "src/components/settings/page/DefinitionsPanel.tsx",
@@ -999,6 +984,7 @@
         "src/components/script/page/tools/select/MarksDialog.tsx",
         "src/components/settings/DeliveryProfileEditor.tsx",
         "src/components/settings/analysis/ConsentDialog.tsx",
+        "src/components/settings/controls/DiagnosticsSection.tsx",
         "src/components/settings/models/MoveEndedDialog.tsx",
         "src/components/storybible/Relationships.tsx",
         "src/components/storybible/voicesamples/EditVoiceSampleDialog.tsx",
@@ -1673,6 +1659,7 @@
         "src/components/settings/controls/CapabilitiesBody.tsx",
         "src/components/settings/controls/ChapterLayoutBody.tsx",
         "src/components/settings/controls/DefinitionsBody.tsx",
+        "src/components/settings/controls/DiagnosticsSection.tsx",
         "src/components/settings/controls/ProjectBodies.tsx",
         "src/components/settings/controls/SyncEnabledBody.tsx",
         "src/components/settings/controls/modelsControls.tsx",
@@ -2486,6 +2473,7 @@
         "src/components/settings/ManuscriptSection.tsx",
         "src/components/settings/analysis/AnalysisToolsSection.tsx",
         "src/components/settings/controls/AboutSection.tsx",
+        "src/components/settings/controls/DiagnosticsSection.tsx",
         "src/components/settings/page/CategoryPane.tsx",
         "src/components/settings/page/MarksPanel.tsx",
         "src/components/settings/page/ModelsPane.tsx",
@@ -3192,6 +3180,7 @@
         "src/components/settings/analysis/AnalysisToolsSection.tsx",
         "src/components/settings/analysis/ConsentDialog.tsx",
         "src/components/settings/controls/AboutSection.tsx",
+        "src/components/settings/controls/DiagnosticsSection.tsx",
         "src/components/settings/page/CategoryPane.tsx",
         "src/components/settings/page/Results.tsx",
         "src/components/storybible/suggested/import/ImportDialog.tsx",
@@ -3774,6 +3763,7 @@
         "None",
         "Two Open",
         "One Dismissed",
+        "Second Listen",
         "Added To Pickups"
       ],
       "consumers": [
@@ -4156,6 +4146,7 @@
         "src/components/production/useChapterSyncToast.ts",
         "src/components/production/useChapterTools.tsx",
         "src/components/project/ProjectPicker.tsx",
+        "src/components/proof/ChapterCompare.tsx",
         "src/components/proof/CompareRun.tsx",
         "src/components/proof/PreviewPanel.tsx",
         "src/components/proof/ProofChapterPage.tsx",
@@ -4223,6 +4214,7 @@
         "src/components/master/DiagnosticsSection.tsx",
         "src/components/production/report/ReportDialog.tsx",
         "src/components/production/target/TargetPopover.tsx",
+        "src/components/proof/ChapterCompare.tsx",
         "src/components/proof/CompareRun.tsx",
         "src/components/proof/inspector/FindingThread.tsx",
         "src/components/script/page/chapters/PrepSegment.tsx",

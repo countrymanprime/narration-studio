@@ -1,5 +1,5 @@
-import type { DawCapabilities } from '../../../api/contracts/daw';
-import { useDawSession, useDawState } from '../../../daw/useDawSession';
+import type { DawCapabilities } from '../../api/contracts/daw';
+import { useDawSession, useDawState } from '../../daw/useDawSession';
 
 export interface DawStatus {
   /** What the DAW said it can do, or null until it has answered (or when it could not). */

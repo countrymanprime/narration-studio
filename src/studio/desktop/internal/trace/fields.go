@@ -143,8 +143,9 @@ func ErrorClass(err error) string {
 
 // LengthBucket sizes text as "0", "1-9", "10-99", "100-999" or "1000+" bytes, so a record says how much was typed and not
 // what.
-func LengthBucket(text string) string {
-	n := len(text)
+func LengthBucket(text string) string { return lengthBucketOf(len(text)) }
+
+func lengthBucketOf(n int) string {
 	switch {
 	case n == 0:
 		return "0"

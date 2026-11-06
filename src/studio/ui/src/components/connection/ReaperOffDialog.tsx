@@ -1,10 +1,11 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { apiErrorMessage } from '../../api/errorMessage';
 import type { DawCapabilities, DawChoice, DawKind } from '../../api/contracts/daw';
 import { usePort } from '../../ports/usePort';
 import { recorderName } from '../../studio/dawNames';
-import { Button } from '../primitives/Button';
 import { useSecondsSince } from '../layout/CheckLine';
 import { ResolveShell } from './ResolveShell';
+import { useLinkDawFile } from './linkDawFile';
 import { useReaperLaunch } from './useReaperLaunch';
 
 /** What the host knows about the project's DAW beyond "not answering": closed, open with no bridge, or answered once and went quiet. */
@@ -47,8 +48,6 @@ export type ReaperOffDialogProps = {
   startLabel?: string;
   /** Whether the project's DAW file is linked, when the page knows it; absent, the host's choice (`dawChoice`) says. Start is off while it is not. */
   linked?: boolean;
-  /** Opens the place the project file is linked (Settings), offered beside "Link the project file first". */
-  onLink?: () => void;
   /** The host started the DAW (`DawLaunch` answered) with this executable path. */
   onLaunched?: (path: string) => void;
   /** How often, and how many times, the DAW is asked after Start before the dialog says it has not answered (stories and tests shorten it). */
@@ -77,7 +76,6 @@ export function ReaperOffDialog({
   waitingFor = 'answer',
   startLabel,
   linked,
-  onLink,
   onLaunched,
   pollMs,
   polls,
@@ -100,6 +98,16 @@ export function ReaperOffDialog({
   }, [choiceApi, checkedAt]);
   const launch = useReaperLaunch({ daw, name, onCaps, onLaunched, pollMs, polls });
   const [checking, setChecking] = useState(false);
+  // "Link project file…" is the app's one link action (the same one the engine panel and Settings press); the dialog follows it with a check, so the page
+  // and every other page that draws this dialog read the new link without a reload.
+  const linkFile = useLinkDawFile();
+  const [linking, setLinking] = useState(false);
+  const [linkProblem, setLinkProblem] = useState('');
+  const problemRef = useRef<HTMLParagraphElement>(null);
+  // In a small window the dialog body scrolls and the sentence lands under the fold: bring it into view when it appears.
+  useEffect(() => {
+    if (linkProblem) problemRef.current?.scrollIntoView?.({ block: 'nearest' });
+  }, [linkProblem]);
   const checkedFor = useSecondsSince(checkedAt);
   const heardFor = useSecondsSince(heardAt);
   const unlinked = linked === undefined ? choice?.state === 'not_linked' : !linked;
@@ -109,7 +117,25 @@ export function ReaperOffDialog({
     setChecking(true);
     void Promise.resolve(onCheckAgain()).finally(() => setChecking(false));
   };
+  const link = () => {
+    setLinking(true);
+    setLinkProblem('');
+    void linkFile()
+      .then((outcome) => {
+        if (outcome.kind === 'linked') check();
+        else if (outcome.kind === 'refused') setLinkProblem(outcome.message);
+        else if (outcome.kind === 'busy') setLinkProblem('The app is already choosing a project file. Finish or cancel that picker first.');
+        else if (outcome.kind === 'failed') setLinkProblem(`The project file could not be linked: ${apiErrorMessage(outcome.error)}`);
+      })
+      .finally(() => setLinking(false));
+  };
   const busy = launch.state.phase === 'starting' || launch.state.phase === 'waiting';
+  const start = {
+    label: launch.state.phase === 'waiting' ? 'Connecting…' : (startLabel ?? `Start ${name}`),
+    onPress: launch.start,
+    pending: busy,
+    disabled: unlinked,
+  };
   const last = checkedFor === null ? 'Not checked yet.' : `Last checked ${checkedFor} s ago.`;
   const heard = heardFor === null ? '' : ` Last heard ${heardFor} s ago.`;
 
@@ -118,24 +144,15 @@ export function ReaperOffDialog({
       title={`${name === 'the DAW' ? 'The DAW' : name} is not connected`}
       description={sentence}
       onClose={onClose}
-      primary={{
-        label: launch.state.phase === 'waiting' ? 'Connecting…' : (startLabel ?? `Start ${name}`),
-        onPress: launch.start,
-        pending: busy,
-        disabled: unlinked,
-      }}
+      primary={unlinked ? { label: 'Link project file…', onPress: link, pending: linking } : start}
+      extra={unlinked ? start : undefined}
       secondary={{ label: 'Check again', onPress: check, pending: checking }}
     >
       {detail && <p>{detail}</p>}
       <p className="text-[var(--text-muted)]">{stillWorks}</p>
-      {unlinked && (
-        <p className="text-[var(--text-muted)]">
-          Link the project file first.{' '}
-          {onLink && (
-            <Button variant="link" onClick={onLink}>
-              Link in Settings
-            </Button>
-          )}
+      {linkProblem && (
+        <p ref={problemRef} role="alert" className="text-[var(--danger-text)]">
+          {linkProblem}
         </p>
       )}
       {launch.state.phase === 'refused' && (

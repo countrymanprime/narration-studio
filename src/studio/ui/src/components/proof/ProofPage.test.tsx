@@ -6,7 +6,9 @@ import { join } from 'node:path';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
+import { DAW_SETUPS } from '../../fixtures/daw';
 import { createMockApi } from '../../api/mockApi';
+import { WIRE_CHAPTERS, WIRE_TRANSCRIPT } from '../../api/mockFixtures';
 import { CommandRouter } from '../../input/router';
 import { createJournal } from '../../studio/journal/createJournal';
 import { StudioProvider } from '../../studio/StudioProvider';
@@ -78,7 +80,7 @@ function renderPage({
                   path="/proof"
                   element={
                     <PageFooterProvider value={footer}>
-                      <ProofPage hasManuscript={hasManuscript} projectFolder="/p" {...handlers} />
+                      <ProofPage hasManuscript={hasManuscript} projectFolder="/p" transcript={WIRE_TRANSCRIPT} notify={() => {}} dawFileLinked {...handlers} />
                     </PageFooterProvider>
                   }
                 />
@@ -616,8 +618,16 @@ describe('page-level-checks', () => {
     });
     renderPage({ api });
     await noteRows();
-    const check = screen.getByRole('button', { name: 'Check recordings…' });
+    // Late in a long file the connect grace has passed and the not-connected dialog is up over the page, so the button is found hidden.
+    const check = screen.getByRole('button', { name: 'Check recordings…', hidden: true });
     await waitFor(() => expect(check.getAttribute('aria-disabled') === 'true' || (check as HTMLButtonElement).disabled).toBe(true));
+  });
+
+  it('shows the shared REAPER-not-connected chip in the header while the DAW is away (#2823)', async () => {
+    const api = createMockApi({ dawCapabilities: async () => DAW_SETUPS['reaper-off'], subscribeDawCapabilities: () => () => undefined });
+    renderPage({ api });
+    await noteRows();
+    expect(await screen.findByRole('button', { name: /REAPER not connected/, hidden: true })).toBeTruthy();
   });
 
   it('Alt with an arrow does not step the chapter', async () => {
@@ -713,5 +723,50 @@ describe('ProofPage loading state', () => {
     renderPage({ api: createMockApi({ manuscriptChapters: () => Promise.reject(new Error('The manuscript could not be read.')) }) });
     expect(await screen.findByRole('button', { name: 'Retry' })).toBeTruthy();
     expect(region()).toBeNull();
+  });
+});
+
+/** The mock's chapters carry no measured recording; Compare, like Check recordings, is off without one. */
+const recordedApi = () => createMockApi({ manuscriptChapters: async () => WIRE_CHAPTERS.map((chapter) => ({ ...chapter, recordedSeconds: 600 })) });
+
+describe('Compare on the Proof page (#2822)', () => {
+  it('opens the Compare panel under the check card from the chapter in view, and closes it again', async () => {
+    const user = userEvent.setup();
+    renderPage({ api: recordedApi(), at: '/proof?chapter=chapter-1' });
+    expect(screen.queryByRole('region', { name: 'Compare' })).toBeNull();
+    const compare = await screen.findByRole('button', { name: 'Compare with the script' });
+    expect(compare.getAttribute('aria-expanded')).toBe('false');
+    await user.click(compare);
+    expect(await screen.findByRole('region', { name: 'Compare' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Compare the recording with the script' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Compare with the script' }).getAttribute('aria-expanded')).toBe('true');
+    // The check card comes first, then the panel.
+    const card = screen.getByRole('region', { name: 'Recording check' });
+    expect(card.compareDocumentPosition(screen.getByRole('region', { name: 'Compare' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Compare with the script' }));
+    expect(screen.queryByRole('region', { name: 'Compare' })).toBeNull();
+  });
+
+  it('does not carry the open panel to another chapter', async () => {
+    const user = userEvent.setup();
+    renderPage({ api: recordedApi(), at: '/proof?chapter=chapter-1' });
+    await user.click(await screen.findByRole('button', { name: 'Compare with the script' }));
+    await screen.findByRole('region', { name: 'Compare' });
+    press('ArrowRight', 'ArrowRight');
+    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-2'));
+    expect(screen.queryByRole('region', { name: 'Compare' })).toBeNull();
+  });
+
+  it("is off with the check's own reason for a chapter with no measured recording", async () => {
+    renderPage({ at: '/proof?chapter=chapter-1' });
+    const compare = await screen.findByRole('button', { name: 'Compare with the script' });
+    expect((compare as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText('This chapter has no recording to check.')).toBeTruthy();
+  });
+
+  it('offers Compare on the all-chapters view nowhere: it belongs to one chapter', async () => {
+    renderPage({ at: '/proof?chapter=all' });
+    await noteRows();
+    expect(screen.queryByRole('button', { name: 'Compare with the script' })).toBeNull();
   });
 });

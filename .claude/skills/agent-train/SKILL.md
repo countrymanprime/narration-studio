@@ -102,6 +102,7 @@ Nobody watches the train live, so these checks run without a person and none of 
 | Check | Where | What it does |
 | --- | --- | --- |
 | **Train health** | `.github/workflows/train-health.yml`, `scripts/ci/train-health.mjs` | Hourly. Warns on #510 once per stall when #509's `Last pass:` line is more than two hours old and `HOLD` is not ticked |
+| **Post-merge checks** | `.github/workflows/post-merge.yml` | On each push to `main` that touches what they read, the checks a pull request leaves to `main` (the bridge harness's mutation checks on Windows). A red run shows on the `main` commit; `Main health` runs the same checks and ticks `HOLD`. Fix it forward in one PR, or revert the merge that turned it red when no fix is ready within a pass |
 | **Main health** | `.github/workflows/main-health.yml` | Nightly. Runs the whole of `ci.yml` on `main` (quality, every visual shard, UI bundle, Windows build). On a red run, ticks `HOLD` on #509 and says why. The owner or the coordinator clears it once `main` is green |
 | **Test ratchet** | `.github/workflows/test-ratchet.yml`, `scripts/ci/test-ratchet.mjs` | Advisory. Prints, and raises a warning for, a PR that deletes a test file, adds a skip or focus marker to one, or lowers a coverage floor in `scripts/ci/coverage-floors.json`; it never fails. Runs the base branch's copy of the script |
 | **PR risk** | `.github/workflows/pr-risk.yml`, `scripts/ci/pr-risk.mjs` | Labels a PR `risk:high` when it touches a trust boundary or a file that decides what runs unattended: the workflows, agent config, the threat model, the REAPER bridge, the update and sidecar launch, the release scripts, the pinned toolchain and lockfiles, and these checks. Runs the base branch's copy of the script |
@@ -245,7 +246,7 @@ The Routine fires every 30 minutes (two hourly Routines, 30 minutes apart; D50).
 4. **Merge (D40).** Take bottom PRs (base `main`), oldest first. Merge one only when all of these hold:
    - it is not a draft;
    - it merges cleanly into `main` (D73: it need not contain `main`'s tip). If GitHub reports a conflict, merge `main` into it with `update_pull_request_branch`, or start a fixer when that fails, and wait for its checks on the next pass;
-   - `Build (Windows)` and `ui-dist` succeeded on the head. A docs-only PR needs `Docs / Docs checks` (the link check and the other four docs checks, which run on every PR) instead;
+   - `quality / Build (Windows)` and `quality / linux-checks` (which builds the UI bundle; it was `ui-dist` before #3065) succeeded on the head. A docs-only PR needs `Docs / Docs checks` (the link check and the other four docs checks, which run on every PR) instead;
    - there is no `CHANGES_REQUESTED` review and no unresolved thread whose first comment starts with 🔴;
    - a Claude Approvals check, if present, passes;
    - a UI PR updates its pages' guide text and images, or carries a specific `No guide change:` reason, and states the real-app and Storybook results ([UI PRs update the how-to guide](#ui-prs-update-the-how-to-guide)). There is no match % bar to check (D97);
@@ -302,7 +303,7 @@ A worker is one cloud session for one stream. It opens one PR per phase, stacked
   4. Otherwise, continue.
 - **Open the PR as soon as the change is pushed (owner rule, 2026-10-18).** Do not wait for local checks to finish or for the owner to ask: open the PR (a draft only if the work is genuinely incomplete), list the checks still running as pending in the body, and update the body as they finish. The owner reviews from the PR, not from the session.
 - **Finishing:**
-  - Subscribe to your PRs, and drive `Build (Windows)` and `ui-dist` to green.
+  - Subscribe to your PRs, and drive `Build (Windows)` and `linux-checks` to green.
   - Answer every red-circle thread.
   - Comment `<ID>: PRs #… green` on #989, then end the turn, **staying subscribed** (D82).
   - **Until each PR merges or closes, you own it (D82).** On a merge-conflict notice, a red check or a review comment: merge `main` into your branch (never rebase or force-push), resolve keeping both sides' intent (the rules in the fixer template), re-run your targeted checks, push, and end the turn again. Never use `send_later` or any scheduling tool (they block on permission prompts): end the turn and stay subscribed. Stop once every PR is merged or closed.

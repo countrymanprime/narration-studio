@@ -439,6 +439,13 @@ export const boothStates: StateEntry[] = [
   },
   {
     page: 'booth',
+    state: 'suspected-second-listen',
+    description:
+      'Booth on a session whose suspected flags the trailing confirmation pass has judged (?mockTeleprompter=checked), the side panel open on "Suspected": the first line, which the second listen heard too, has a Confirmed chip beside its kind and keeps its Dismiss button; the last, which it did not hear because it read the script there, has a Not confirmed chip on a dimmed card with no Dismiss button, and the count in the heading leaves it out (5 of the 6 cards)',
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
     state: 'no-manuscript',
     description: 'Booth with no manuscript imported (?mockNoManuscript=1): the page asks for the manuscript and keeps the rail, which a recording would hide',
     ...REFLOW,

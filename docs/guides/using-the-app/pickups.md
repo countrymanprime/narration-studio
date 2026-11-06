@@ -79,6 +79,10 @@ Removing a line hides it from this list only; its note or check keeps its own re
 back with **Undo** on the message that follows; a line from a check or a note cannot, and its message says so. Several such
 removals in a row are one message that counts them ("Removed 3 lines from pickups."). After a removal the focus moves to the next line as the page draws it (the previous one after the last), and to the Pickups region when no line is left.
 
+### When REAPER is not connected
+
+A **REAPER not connected** mark appears at the right end of the list's header, before **Check recordings**. It opens the dialog described on [Production](production.md): **Link project file…** when no REAPER project is linked yet, **Start REAPER**, and **Check again**. The list stays readable and editable; markers and checks wait until REAPER is running.
+
 ### When the list cannot be read
 
 If the list cannot be read, the page says why and offers **Retry**; it never shows "No pickups queued" for a list

@@ -158,7 +158,7 @@ footer does not repeat the reason, and the setup chip on the top bar warns too:
   above the footer says so, and a dialog opens by itself once, after the app has had a few seconds to connect on its own; the X
   closes it, and the mark or a press of Record opens it again. The dialog gives the host's reason, what still works, and what
   the app does. **Open in REAPER and connect** opens the linked project in REAPER, or connects the REAPER you already have open.
-  If no REAPER project is linked yet it is off, with **Link in Settings** beside the reason. A refusal or a start that never
+  If no REAPER project is linked yet, **Start REAPER** is off and **Link project file…** is the main button: it is the same link action as the one in [Settings > Recording & DAW](settings.md), and every page follows it without a reload. A refusal or a start that never
   answers is written in the dialog. The Booth never offers the built-in recorder while REAPER is linked.
 
   ![Booth - the REAPER not connected dialog, with the two steps, Open in REAPER and connect and Check again](../../images/ui/booth-record-setup.webp)
@@ -477,6 +477,13 @@ recorded") with **Undo**. With a DAW, that **Undo** takes the take back in the D
 While you read, the Booth marks places where listening suspects something went differently from the script, such as skipped
 words or a restart. They are listed in the side panel as cards, a chip naming what was suspected above the line, where **Dismiss** removes one from the list. Every
 one is only suspected: Transcript Compare over the recording is the authority.
+
+With Moonshine as the listening engine and the tiny Whisper model installed, a second listen rechecks each stretch you finish
+reading a few seconds later. A suspicion it also hears gets a **Confirmed** chip, and its hint in the text says "A second listen
+heard it too." A suspicion it does not hear, because it read the script there, gets a **Not confirmed** chip and a dimmed card
+with no Dismiss button, leaves the count, and is no longer marked in the text. A stopped take does not put it on Pickups, and it is
+not kept as a finding. Nothing waits on the second listen: the highlight follows you as before, and without the model or with the
+Whisper engine a suspicion stays as listening raised it.
 
 A dismissal, and the suspected lines a stopped take puts on Pickups, are each one entry in History, so **Undo** in the toast, Ctrl+Z
 and History all take them back.

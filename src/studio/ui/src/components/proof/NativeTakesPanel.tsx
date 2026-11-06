@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlay, faStop } from '@fortawesome/free-solid-svg-icons';
 import { useApi } from '../../api/ApiContext';
@@ -63,7 +63,7 @@ const TAKE_NAME = 'w-48 max-w-full min-w-0 truncate';
  * line) and can assign a not-yet-assigned take to one of this chapter's paragraphs (SetTakeLine, first
  * reachable from the UI here). No editing: this only organizes takes already on disk.
  */
-export function NativeTakesPanel({ chapter }: { chapter: ManuscriptChapter }) {
+export function NativeTakesPanel({ chapter, whenEmpty }: { chapter: ManuscriptChapter; whenEmpty?: ReactNode }) {
   const api = useApi();
   const [state, setState] = useState<RecorderState>();
   const [pendingAssign, setPendingAssign] = useState<Record<string, string>>({});
@@ -84,7 +84,8 @@ export function NativeTakesPanel({ chapter }: { chapter: ManuscriptChapter }) {
     };
   }, [api]);
 
-  if (!state || state.takes.length === 0) return null;
+  if (!state) return null;
+  if (state.takes.length === 0) return <>{whenEmpty}</>;
 
   const paragraphIds = chapter.paragraphIds ?? [];
   const chapterEntityIds = new Set([chapter.id, ...paragraphIds.map((paragraph) => paragraph.id)]);
@@ -115,7 +116,7 @@ export function NativeTakesPanel({ chapter }: { chapter: ManuscriptChapter }) {
       .finally(() => setBusy(undefined));
   };
 
-  if (assigned.length === 0 && (unassigned.length === 0 || paragraphIds.length === 0)) return null;
+  if (assigned.length === 0 && (unassigned.length === 0 || paragraphIds.length === 0)) return <>{whenEmpty}</>;
 
   return (
     <Panel title="Native takes">
