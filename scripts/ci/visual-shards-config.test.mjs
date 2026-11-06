@@ -5,7 +5,7 @@ import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 // The shard count of the visual suite is written in three places that must agree: the job's matrix and its `/N` labels in
-// _quality.yml, and UI_VISUAL_SHARDS in ci.yml (which `CI passed` checks the manifests against). A mismatch would leave a shard
+// _quality.yml, and the `visual-shards` ci.yml's `CI passed` gives .github/actions/ci-gate (which checks the manifests against it). A mismatch would leave a shard
 // unrun or fail the whole-run check, so this reads them all.
 const WORKFLOWS = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '.github', 'workflows');
 const quality = readFileSync(join(WORKFLOWS, '_quality.yml'), 'utf8');
@@ -25,7 +25,7 @@ test('the matrix, the job name, the split and ci.yml agree on the number of visu
   assert.deepEqual(shards, Array.from({ length: n }, (_, i) => i + 1), 'the matrix must be 1..n');
   assert.match(jobBlock, new RegExp(`name: ui-visual \\(shard \\$\\{\\{ matrix\\.shard \\}\\}/${n}\\)`));
   assert.match(jobBlock, new RegExp(`--shard "\\$SHARD/${n}"`));
-  assert.match(ci, new RegExp(`UI_VISUAL_SHARDS: '${n}'`));
+  assert.ok(ci.includes(`visual-shards: ${'$'}{{ needs.quality.outputs.ui-affected == 'true' && '${n}' || '0' }}`), `ci.yml must pass visual-shards '${n}' to ci-gate`);
 });
 
 test('the suite is split into at least four shards', () => {

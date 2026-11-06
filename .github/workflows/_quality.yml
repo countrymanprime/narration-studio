@@ -368,6 +368,7 @@ jobs:
           python-sync-args: --group docs
           pnpm-filter: workspace ui
       - name: repo-scripts
+        id: repo-scripts
         if: ${{ !cancelled() }}
         uses: ./.github/actions/nx-run
         with:
@@ -375,6 +376,7 @@ jobs:
           projects: repo-scripts
           always: 'true'
       - name: docs-site
+        id: docs-site
         if: ${{ !cancelled() }}
         uses: ./.github/actions/nx-run
         with:
@@ -382,17 +384,28 @@ jobs:
           projects: docs-site
           always: 'true'
       - name: python
+        id: python
         if: ${{ !cancelled() }}
         uses: ./.github/actions/nx-run
         with:
           targets: lint test typecheck
           projects: tag:toolchain:python,fixtures
       - name: reaper (Lua)
+        id: reaper
         if: ${{ !cancelled() }}
         uses: ./.github/actions/nx-run
         with:
           targets: lint test
           projects: reaper
+      # One line per check in the job summary, so a red step does not hide how the others ended. Report only: a red step above
+      # already fails the job.
+      - name: Summary
+        if: always()
+        env:
+          OUTCOMES: >-
+            {"repo-scripts": "${{ steps.repo-scripts.outcome }}", "docs-site": "${{ steps.docs-site.outcome }}",
+            "python": "${{ steps.python.outcome }}", "reaper (Lua)": "${{ steps.reaper.outcome }}"}
+        run: node scripts/ci/step-summary.mjs
 
   rename-rehearsal:
     # Renames a throwaway git worktree of this commit (in the temp folder, with its own node_modules and .venv from the store and
@@ -446,18 +459,26 @@ jobs:
           python-sync-args: --only-group lua
           pnpm-filter: workspace
       - name: reaper (Lua)
+        id: reaper
         if: ${{ !cancelled() }}
         uses: ./.github/actions/nx-run
         with:
           targets: lint test
           projects: reaper
       - name: go lint
+        id: go-lint
         if: ${{ !cancelled() }}
         uses: ./.github/actions/nx-run
         with:
           targets: lint
           projects: desktop
           configuration: ci
+      - name: Summary
+        if: always()
+        shell: bash
+        env:
+          OUTCOMES: '{"reaper (Lua)": "${{ steps.reaper.outcome }}", "go lint": "${{ steps.go-lint.outcome }}"}'
+        run: node scripts/ci/step-summary.mjs
 
   go-test:
     # The tests, with the race detector on the packages that have concurrency (the `ci` configuration of the test target;

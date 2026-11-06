@@ -694,6 +694,10 @@ exactly that. What the suites do so that timing is not a variable:
 - **Go tests** that guard an ordering between goroutines run on one and on four CPUs (`test-schedules`), because the
   default scheduler hid the shutdown bug that failed four CI runs. Tests do not assert a wall-clock duration: the
   monotonic clock ticks every 0.5 to 15.6 ms on Windows, so a fast operation can measure exactly zero.
+- **Jobs that run several checks** (`quick-ubuntu`, `quick-windows`) run each as a step with `if: ${{ !cancelled() }}`, so a red step
+  fails the job without hiding the steps after it, and end with a summary step (`scripts/ci/step-summary.mjs`) that lists each check's
+  result in the job summary. The aggregate checks `CI passed` and `CI light passed` run `.github/actions/ci-gate`, which fails unless
+  every job they need ended success or skipped and the number of results matches the number of jobs they need.
 - **Classifying a red run**: `gh run view <id> --log-failed`. `identical screenshots` or `sameAs no longer holds` is a
   driver (or a real duplicate); `Unable to find` or `Test timed out` in a frontend test is a wait that does not match the
   state, or a genuinely slow test; a Go failure that comes and goes with the CPU count is an ordering bug.
@@ -817,6 +821,15 @@ a state with extra viewports is more, and the `aria` step ran on the shard that 
 was created, how long it ran and on which runner, as a Markdown table (with `--steps`, every step too). It reads the
 Actions API through `gh`. Queueing shows up as a large "Started after": the repository is public on the free plan, 20
 hosted jobs at once across the account.
+
+`node scripts/ci/ci-load.mjs pr <number>...` (or `sha <sha>...`, or `merged [count]`) prints what a pull request's head commit held
+across every workflow: check entries, jobs that got a runner, the most running at once, billed minutes per OS and the `CI` wall clock.
+A skipped job is a check entry that holds no runner. The 2026-11-06 baseline is in
+[CI job grouping](../research/2026-11-06-ci-job-grouping.md).
+
+**Where each check runs.** `scripts/ci/check-manifest.json` names the job and step of every check the pull-request CI ran on
+2026-11-06, and `scripts/ci/check-manifest.test.mjs` fails when a check is lost from its job or moved off the pull request without a
+safety net. Moving a step to another job updates its entry in the same pull request.
 
 ### Draft and ready tiers
 
