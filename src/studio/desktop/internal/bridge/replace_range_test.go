@@ -257,3 +257,84 @@ func TestImportAudioTrackPassesTheScriptsRefusalOn(t *testing.T) {
 		t.Fatalf("got %v", err)
 	}
 }
+
+const replaceFolder = "{F0000000-0000-4000-8000-0000000000F1}"
+
+func TestReplaceRangeInAFolderSendsTheFolderAsTheSixthPartOfTheTail(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	fake := startFakeReaper(t, client, dir, func(command []string) [][]string {
+		return [][]string{{"RANGE_REPLACED", run(command), replaceNew, replaceCut, replaceItem, "1.000000", "1"}}
+	})
+	request := replaceRequest()
+	request.Folder = replaceFolder
+	if _, err := actions.ReplaceRange(context.Background(), request); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := actions.ReplaceRange(context.Background(), replaceRequest()); err != nil {
+		t.Fatal(err)
+	}
+	commands := fake.commands()
+	if tail := commands[0][len(commands[0])-1]; tail != "164.200000|167.200000|10|-3.50|r-0001|"+replaceFolder {
+		t.Errorf("tail with a folder = %q", tail)
+	}
+	if tail := commands[1][len(commands[1])-1]; tail != "164.200000|167.200000|10|-3.50|r-0001" {
+		t.Errorf("tail without a folder = %q, want the line an older script reads", tail)
+	}
+}
+
+func TestRestoreReplacementInAFolderSendsTheFolderAfterTheID(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	fake := startFakeReaper(t, client, dir, func(command []string) [][]string {
+		return [][]string{{"REPLACEMENT_RESTORED", run(command), replaceCut, "-1.000000", "1"}}
+	})
+	if _, err := actions.RestoreReplacementInFolder(context.Background(), replaceFolder, replaceNew, "r-0001"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := actions.RestoreReplacement(context.Background(), replaceNew, "r-0001"); err != nil {
+		t.Fatal(err)
+	}
+	commands := fake.commands()
+	if id := commands[0][len(commands[0])-1]; id != "r-0001|"+replaceFolder {
+		t.Errorf("id field with a folder = %q", id)
+	}
+	if id := commands[1][len(commands[1])-1]; id != "r-0001" {
+		t.Errorf("id field without a folder = %q", id)
+	}
+}
+
+func TestAReplaceOrRestoreInAFolderAnsweredByAnOlderScriptIsErrScriptOutdated(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	startFakeReaper(t, client, dir, func(command []string) [][]string {
+		return [][]string{{"ERROR", run(command), "The replacement has no usable name."}}
+	})
+	request := replaceRequest()
+	request.Folder = replaceFolder
+	if _, err := actions.ReplaceRange(context.Background(), request); !errors.Is(err, ErrScriptOutdated) {
+		t.Errorf("replace: %v, want ErrScriptOutdated", err)
+	}
+	if _, err := actions.RestoreReplacementInFolder(context.Background(), replaceFolder, replaceNew, "r-0001"); !errors.Is(err, ErrScriptOutdated) {
+		t.Errorf("restore: %v, want ErrScriptOutdated", err)
+	}
+	if _, err := actions.ReplaceRange(context.Background(), replaceRequest()); !errors.Is(err, ErrBadReplacement) {
+		t.Errorf("replace without a folder: %v, want ErrBadReplacement", err)
+	}
+}
+
+func TestAFolderThatIsGoneIsATrackStaleErrorOnCutReplaceAndRestore(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	startFakeReaper(t, client, dir, func(command []string) [][]string {
+		return [][]string{{"TRACK_STALE", run(command), replaceFolder}}
+	})
+	request := replaceRequest()
+	request.Folder = replaceFolder
+	var stale *TrackStaleError
+	if _, err := actions.ReplaceRange(context.Background(), request); !errors.As(err, &stale) || stale.GUID != replaceFolder {
+		t.Errorf("replace: %v", err)
+	}
+	if _, err := actions.RestoreReplacementInFolder(context.Background(), replaceFolder, replaceNew, "r-0001"); !errors.As(err, &stale) {
+		t.Errorf("restore: %v", err)
+	}
+	if _, err := actions.DeleteRangeInFolder(context.Background(), replaceFolder, cutItem, 14, 16, CutClose, 10, 0, false); !errors.As(err, &stale) {
+		t.Errorf("cut: %v", err)
+	}
+}

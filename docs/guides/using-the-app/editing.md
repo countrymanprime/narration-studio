@@ -466,6 +466,8 @@ word as not read, and the dialog described above lists the tracks to link.
 
 A chapter linked to a folder of voice tracks (the Voice folders layout) has its audio on the folder's tracks, nested folders included, so the page reads and plays what is on any of them. Only when none of them holds audio does it say the folder has no audio on any of its voice tracks, and to record the chapter onto a voice track inside the folder and save the project.
 
+In that layout the edits that act on a take where it is (splitting a double read into takes, lowering breaths, repairing a click, an effect on a range, a cut that leaves a gap) work on the voice that read the words. Closing a cut, shortening a gap, replacing words, putting them back, stacking takes and unstacking them move the audio after them on every voice of the folder together, in one undo step, and are refused when another voice has audio inside the stretch that would be removed or replaced, or where stacked reads sit.
+
 ![Editing with no track linked - the dialog naming the chapter and with its track dropdown, the best match chosen](../../images/ui/editing-unlinked.webp)
 
 ![Editing with no track linked, dialog closed - the Not linked to a track mark, and the legend](../../images/ui/editing-unlinked-closed.webp)

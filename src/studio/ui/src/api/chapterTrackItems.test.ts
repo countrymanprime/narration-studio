@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Track, TrackItem } from './contracts/tracks';
-import { chapterTrackOf } from './chapterTrackItems';
+import { chapterItemsByNearestLink, chapterTrackOf } from './chapterTrackItems';
 
 const item = (guid: string, position: number): TrackItem => ({
   guid,
@@ -92,5 +92,63 @@ describe('chapterTrackOf: the audio of the track a chapter is linked to', () => 
   it('does not reorder the voices: track order, then the order the track lists its items', () => {
     const tracks = [track('F', 0, true), track('V1', 1, false, [item('late', 90)]), track('V2', 1, false, [item('early', 1)])];
     expect(chapterTrackOf(tracks, 'F')?.items.map((i) => i.guid)).toEqual(['late', 'early']);
+  });
+});
+
+describe('chapterItemsByNearestLink: an item belongs to the chapter linked to the nearest linked track above it', () => {
+  // Narration > Chapters > (Ch1, Ch2), Narration > Credits > Open; then Next.
+  const tracks = [
+    track('Narration', 0, true),
+    track('Chapters', 1, true),
+    track('Ch1', 2, false, [item('c1', 0)]),
+    track('Ch2', 2, false, [item('c2', 10)]),
+    track('Credits', 1, true),
+    track('Open', 2, false, [item('o1', 50)]),
+    track('Next', 0, false, [item('x1', 90)]),
+  ];
+  const byChapter = (links: [string, string][]) =>
+    Object.fromEntries([...chapterItemsByNearestLink(tracks, new Map(links))].map(([chapter, items]) => [chapter, items.map((i) => i.guid)]));
+
+  it('a folder takes every voice inside it, nested folders included, and not the next track', () => {
+    expect(byChapter([['a', 'Narration']])).toEqual({ a: ['c1', 'c2', 'o1'] });
+  });
+
+  it('a track linked inside an outer folder keeps its own items: the outer folder does not count them again', () => {
+    expect(
+      byChapter([
+        ['outer', 'Narration'],
+        ['one', 'Ch1'],
+      ]),
+    ).toEqual({ outer: ['c2', 'o1'], one: ['c1'] });
+  });
+
+  it('two folders, one inside the other: the inner takes what is inside it, the outer the rest', () => {
+    expect(
+      byChapter([
+        ['outer', 'Narration'],
+        ['inner', 'Chapters'],
+      ]),
+    ).toEqual({ outer: ['o1'], inner: ['c1', 'c2'] });
+  });
+
+  it('no item is answered for two chapters, whatever is linked', () => {
+    const all = byChapter([
+      ['a', 'Narration'],
+      ['b', 'Chapters'],
+      ['c', 'Ch1'],
+      ['d', 'Next'],
+    ]);
+    const guids = Object.values(all).flat();
+    expect(new Set(guids).size).toBe(guids.length);
+    expect(all).toEqual({ a: ['o1'], b: ['c2'], c: ['c1'], d: ['x1'] });
+  });
+
+  it('a link to a track the project does not hold answers nothing, and nothing is linked answers nothing', () => {
+    expect(byChapter([['gone', 'Missing']])).toEqual({});
+    expect(byChapter([])).toEqual({});
+  });
+
+  it('a plain track answers its own items only', () => {
+    expect(byChapter([['n', 'Next']])).toEqual({ n: ['x1'] });
   });
 });
