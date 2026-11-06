@@ -79,7 +79,7 @@ describe('DeliveryPage', () => {
     expect(embed.getAttribute('aria-disabled')).toBeNull();
     await user.click(embed);
     const dialog = await screen.findByRole('dialog', { name: 'Embed chapter tags' });
-    expect(await within(dialog).findByText(/Prepare chapter render….? in DAW tools on Editing, Proof or Master/)).toBeTruthy();
+    expect(await within(dialog).findByText(/Prepare chapter render….? in DAW tools on Editing, Proof or Master & QC first/)).toBeTruthy();
     await user.keyboard('{Escape}');
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     await waitFor(() => expect(document.activeElement).toBe(embed));
