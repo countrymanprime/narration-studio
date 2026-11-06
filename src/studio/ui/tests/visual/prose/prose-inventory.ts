@@ -171,11 +171,6 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     class: 'overlay',
   },
   {
-    file: 'components/editing/voicesample/VoiceSampleDialog.tsx',
-    text: 'Copies the raw recording, as it was before editing, into this project. Nothing leaves your computer.',
-    class: 'overlay',
-  },
-  {
     file: 'components/engine/ChapterSyncConsentDialog.tsx',
     text: 'You choose these after syncing, in the audio engine panel or from the chapter&rsquo;s Recorded cell on Production.',
     class: 'overlay',
@@ -660,7 +655,11 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     class: 'empty',
   },
   { file: 'components/pickups/list/SessionPanel.tsx', text: 'No lines in the session: tick a line to include it.', class: 'empty' },
-  { file: 'components/production/ImportChooseDialog.tsx', text: 'Use a .docx, .md or .txt file. A copy is kept in your project.', class: 'overlay' },
+  {
+    file: 'components/production/ImportChooseDialog.tsx',
+    text: 'Use a Word (.docx), EPUB (.epub), Markdown (.md) or plain-text (.txt) file. A copy is kept in your project.',
+    class: 'overlay',
+  },
   { file: 'components/production/RecordingCheckReport.tsx', text: 'Start not read: paragraphs 1 to … (…).', class: 'state' },
   { file: 'components/production/target/TargetPopover.tsx', text: '… … a measured length: … words in ….', class: 'overlay' },
   { file: 'components/proof/CompareRun.tsx', text: 'Marker export is available only for results from this active … session', class: 'state' },

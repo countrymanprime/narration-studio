@@ -164,4 +164,24 @@ describe('RadioGroup', () => {
     expect(onCheckedChange).toHaveBeenCalledTimes(1);
     expect(radio.getAttribute('aria-checked')).toBe('true');
   });
+
+  it('a disabled option with a reason carries it as a tooltip and as its accessible description, and draws no text of its own', () => {
+    render(
+      <RadioGroup
+        label="Where"
+        value="a"
+        onChange={() => undefined}
+        options={[
+          { value: 'a', label: 'Here' },
+          { value: 'b', label: 'There', disabled: true, reason: 'There is not available yet.' },
+        ]}
+      />,
+    );
+    const there = screen.getByRole('radio', { name: 'There' });
+    expect(there.getAttribute('aria-disabled')).toBe('true');
+    const described = document.getElementById(there.getAttribute('aria-describedby') ?? '');
+    expect(described?.textContent).toBe('There is not available yet.');
+    expect(described?.className).toContain('sr-only');
+    expect(screen.queryByText('There is not available yet.', { selector: ':not(.sr-only)' })).toBeNull();
+  });
 });

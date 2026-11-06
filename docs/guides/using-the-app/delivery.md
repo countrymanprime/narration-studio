@@ -12,6 +12,27 @@ build** straight after **Output**, so the list that explains the Build button is
 
 ![Delivery judged against ACX with nothing measured: the profile, its checks and files, Output with Build off, and Before you build with every chapter waiting](../../images/ui/delivery-default.webp)
 
+## Build the package for a platform
+
+This page is a reference to everything Delivery shows. Here is the round from mastered files to a package; the
+sections after it have the detail. The example builds for ACX.
+
+1. **Choose the profile.** The **Profile** menu lists **ACX (built in)** and your own profiles. The one you choose is
+   the project's ([The delivery profile](#the-delivery-profile)).
+2. **Master and check the files** in [Master & QC](master-and-qc.md): master them with **Master all to spec…**, then
+   measure them with **Check files…** ([Checking files](master-and-qc.md#checking-files)). Delivery judges the files
+   **Check files…** measured. **Diagnostics** does not count, and nor does a prepared copy until you check it.
+3. **Read Before you build.** Each chapter shows **Pass**, **Fails N checks**, **Not mastered**, or **Waiting on N
+   pickups**. While Build is off, the line beside it names the first chapter in the way and why, for example "Chapter 8:
+   noise floor −57.8 dBFS (limit ≤ −60 dBFS)" ([Before you build](#before-you-build)).
+4. **Build.** Once every chapter passes, **Build ACX package** opens Windows' folder window; choose where the package
+   goes. It cannot go inside the project's own folder ([Output](#output)).
+5. **Optional: chapter tags.** **Embed chapter tags** adds chapter markers to an MP3 of the whole book you have
+   rendered ([Embedding chapter tags](#embedding-chapter-tags)).
+
+Where each rule comes from, and which ones you check by ear, is in [Profile rules](#profile-rules) and
+[ACX delivery requirements](../../reference/acx-delivery-requirements.md).
+
 ## The delivery profile
 
 The first panel's header holds the page title, **Delivery**, and on the right the **Profile** label, the profile menu
@@ -164,6 +185,12 @@ judged, rule by rule, and that a rule the app cannot check is listed and never c
 measurement, not ACX's approval.
 
 ![The ACX profile's rules and their sources](../../images/ui/delivery-profile-rules.webp)
+
+## What next
+
+- [Master & QC](master-and-qc.md): fix a chapter that fails a check, and master it again.
+- [Pickups](pickups.md): record the lines a chapter is waiting on.
+- [Settings: Delivery](settings.md#delivery): the render length tolerance and the default profile for new projects.
 
 ---
 

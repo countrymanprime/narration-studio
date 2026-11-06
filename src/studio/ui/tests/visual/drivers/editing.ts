@@ -189,6 +189,14 @@ export const editingDrivers: Record<string, Driver> = {
     await bar(page).getByRole('button', { name: 'Voice sample' }).click();
     await page.getByRole('dialog', { name: 'Voice sample' }).waitFor();
   },
+  'voice-sample-dialog-unread': async (page) => {
+    await openEditing(page, `${LINKED}&mockSettings=unreadable`);
+    await selectWords(page);
+    await bar(page).getByRole('button', { name: 'Voice sample' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Voice sample' });
+    await dialog.waitFor();
+    await dialog.getByText(/where samples are kept/).waitFor();
+  },
   'voice-sample-refused': async (page) => {
     await openEditing(page, LINKED);
     // The extra word at the start of the first line was heard and is not in the script: nothing there can be a sample.

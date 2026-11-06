@@ -26,10 +26,21 @@ func (s *Service) view(stored Stored, book Book) Sample {
 		}
 		break
 	}
-	return Sample{
+	sample := Sample{
 		ID: stored.ID, CharacterID: stored.CharacterID, Label: stored.Label, Note: stored.Note, Primary: stored.Primary, CreatedAt: stored.CreatedAt,
 		DurationMs: stored.Clip.DurationMs, Bytes: stored.Clip.Bytes, ClipState: s.clipSize(stored), Source: source,
 	}
+	if keptInDaw(stored) && stored.DawRegion != nil {
+		daw, _, _, _ := s.dawRegion(stored)
+		sample.Storage, sample.Daw = stored.Storage, &daw
+		if stored.Storage == StorageDAW {
+			sample.ClipState = ClipMissing
+			if playable(daw.State) {
+				sample.ClipState = ClipOK
+			}
+		}
+	}
+	return sample
 }
 
 // clipSize is the clip's state from a look at the file the id names: there, and of the saved size. The hash is checked by Clip.
@@ -200,7 +211,12 @@ func (s *Service) Remove(id string) (Removed, error) {
 			s.config.Reporter.Warn("voice_sample_clip_left", fmt.Sprintf("clip %s.wav could not be deleted: %v", id, err))
 		}
 	}
-	return Removed{Removed: 1, Bytes: gone.Clip.Bytes}, nil
+	// A sample kept only in the DAW had no file, so its row's clip bytes are a size, not bytes the project held.
+	freed := gone.Clip.Bytes
+	if gone.Storage == StorageDAW {
+		freed = 0
+	}
+	return Removed{Removed: 1, Bytes: freed}, nil
 }
 
 // RemoveAll deletes every sample and every clip in the clips folder, a clip no row names included.
@@ -243,6 +259,16 @@ func (s *Service) Clip(id string) (ClipFile, error) {
 		return ClipFile{}, ErrNotFound
 	}
 	stored := file.Samples[index]
+	if stored.Storage == StorageDAW {
+		data, err := s.dawAudio(stored)
+		if errors.Is(err, errNoDawAudio) {
+			return ClipFile{State: ClipMissing}, nil
+		}
+		if err != nil {
+			return ClipFile{}, err
+		}
+		return ClipFile{Data: data, Bytes: int64(len(data)), State: ClipOK}, nil
+	}
 	path, _ := ClipPath(s.config.Project, id)
 	if state := s.clipSize(stored); state != ClipOK {
 		return ClipFile{State: state}, nil
