@@ -88,7 +88,7 @@ export const ROWS: readonly SettingMeta[] = [
     def: 'project',
     field: { tool: 'VoiceSamples', key: 'storage' },
     desc: 'Where a new voice sample is kept.',
-    more: 'In the project folder copies the sample’s audio into the project. In the DAW keeps it as a region in the DAW’s project, named for the character and label, and plays the audio under that region; moving the region moves the sample and deleting it ends the sample. Both does both. A choice the recording tool cannot honour is off.',
+    more: 'Kept for every project on this computer. In the project folder copies the sample’s audio into the project. In the DAW keeps it as a region in the DAW’s project, named for the character and label, and plays the audio under that region; moving the region moves the sample and deleting it ends the sample. Both does both. A choice the recording tool cannot honour is off.',
     used: ['editing', 'bible'],
     syn: 'voice sample region marker label reaper save store',
   },
