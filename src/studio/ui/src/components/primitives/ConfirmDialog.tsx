@@ -32,6 +32,8 @@ type ConfirmDialogProps = {
   focusCancel?: boolean;
   // Closing leaves focus on <body> when that is where it was, rather than in the page's <main> (see `Dialog`).
   stayOnBody?: boolean;
+  // Where focus goes on close when the button that opened the dialog is gone (the confirmed action removed it): see `Dialog`.
+  returnFocus?: () => HTMLElement | null;
   children?: ReactNode;
 } & DangerAction &
   SecondaryAction;
@@ -54,6 +56,7 @@ export function ConfirmDialog({
   pending = false,
   focusCancel = false,
   stayOnBody = false,
+  returnFocus,
   children,
 }: ConfirmDialogProps) {
   return (
@@ -64,6 +67,7 @@ export function ConfirmDialog({
       onClose={pending ? undefined : cancel}
       escapeCloses={escapeCancels && !pending}
       stayOnBody={stayOnBody}
+      returnFocus={returnFocus}
       description={body}
       actions={
         <>

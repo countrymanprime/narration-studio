@@ -54,7 +54,7 @@ class _HypothesesTranscriber:
 class WhisperEngine:
     """faster-whisper, live only in this sidecar (batch is Transcript Compare's own adapter)."""
 
-    descriptor = AsrDescriptor(name="whisper", label="Whisper", modes=(LIVE,), asset_kind="whisper")
+    descriptor = AsrDescriptor(name="whisper", label="Whisper", modes=(LIVE,), asset_kind="whisper", second_opinion=True)
 
     def check(self, ap: Any, args: Any) -> None:
         if args.context:

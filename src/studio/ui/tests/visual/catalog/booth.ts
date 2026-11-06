@@ -22,8 +22,22 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'voices-list',
     description:
-      "Booth's voice list open from the voice control (?mockVoiceFolders=1, Num . or a press): a search box over the folder's voices in REAPER's order with their keys, Narrator (checked, the voice the take records on), White Rabbit (its character by name) and Extras (Hatter and Cheshire Cat, assigned)",
+      "Booth's voice list open from the voice control (?mockVoiceFolders=1, Num . or a press): a search box over the folder's voices in REAPER's order with their keys, Narrator (checked, the voice the take records on), White Rabbit (its character by name) and Extras (Hatter and Cheshire Cat, assigned), then under No track the chapter's speakers no voice records, each with its lines (#2839)",
     ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'voices-who-is-in',
+    description:
+      "Booth's \"Who is in Num 7?\" (?mockVoiceFolders=1, Num 7 pressed with three voices, #2839): how to record them (A new track, its key Num 3; An existing track; The Narrator, this time, Num 0), the chapter's characters with their lines or their key and the speakers with no track ticked, the rest of the book in its own capped group, and the track name (the one character's, or Extras); Cancel and Add track",
+    ...REFLOW,
+  },
+  {
+    page: 'booth',
+    state: 'voices-who-records',
+    description:
+      'Booth\'s "Who records …?" for a character with no track (?mockVoiceFolders=1, a "No track" row picked in the voice list while stopped): the same three answers for that one character, the new track named after it; Cancel and Add track',
     ...REFLOW,
   },
   {
@@ -154,7 +168,7 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'cold-read',
     description:
-      'Booth, thirty seconds into a cold read (#2251 item 13; Cold read pressed, the page clock run on, then held): the ghost - a dashed outline and muted wash with a dashed tick - on the word the mock teleprompter has reached, and the view resting on it; the real cursor still on the first word, the progress line still at ¶ 1, no REC and no timer running; the dashed REC-tone "Mic on · cold read" badge in the top bar and Cold read pressed in the footer beside Levels',
+      'Booth, thirty seconds into a cold read (#2251 item 13; Cold read chosen in the side menu and the main button pressed, the page clock run on, then held): the ghost - a dashed outline and muted wash with a dashed tick - on the word the mock teleprompter has reached, and the view resting on it; the real cursor still on the first word, the progress line still at ¶ 1, no REC and no timer running; the dashed REC-tone "Mic on · cold read" badge in the top bar and the main button reading Stop in the cold-read blue outline (never the red of a take), beside its Levels caret',
     ...FREEZES_THE_CLOCK,
     ...REFLOW,
   },
@@ -422,6 +436,13 @@ export const boothStates: StateEntry[] = [
     description:
       'The Companion after Stop reading on a running session (?mockTeleprompter=listening, then the Stop reading icon button): the header badge is back to REAPER\'s own "Playhead stopped" (it reads "Reading" while the session runs), Stop reading is dimmed, and the "Where you stopped" prompt with Resume from here and Start from the top is back above the text',
     ...COMPANION,
+  },
+  {
+    page: 'booth',
+    state: 'suspected-second-listen',
+    description:
+      'Booth on a session whose suspected flags the trailing confirmation pass has judged (?mockTeleprompter=checked), the side panel open on "Suspected": the first line, which the second listen heard too, has a Confirmed chip beside its kind and keeps its Dismiss button; the last, which it did not hear because it read the script there, has a Not confirmed chip on a dimmed card with no Dismiss button, and the count in the heading leaves it out (5 of the 6 cards)',
+    ...REFLOW,
   },
   {
     page: 'booth',

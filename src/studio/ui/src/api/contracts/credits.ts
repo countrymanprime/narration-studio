@@ -112,6 +112,8 @@ export type CreditsSetupState = {
 export interface CreditsApi {
   /** Lists the narrator's credit template library, seeding shipped defaults on first use. */
   creditsTemplates(): Promise<CreditTemplate[]>;
+  /** Whether the credits differ from what ships: a shipped template edited or deleted, one added, or this project's own values set. Settings > Changed reads it. */
+  creditsChanged(): Promise<boolean>;
   /** Creates a template (empty id) or updates one in place (an id already in the library). */
   saveCreditsTemplate(id: string, kind: string, name: string, body: string): Promise<CreditTemplate>;
   /** Copies an existing template (including a shipped default) as a new, editable entry named "<name> copy". */

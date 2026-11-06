@@ -134,7 +134,26 @@ export function createSystemMock(
     // The mock has no window to resize or pin (the browser's own is the whole viewport): both succeed and do nothing.
     companionModeEnter: async () => {},
     companionModeExit: async () => {},
-    systemCopyDiagnostics: async () => ({ path: 'C:/Users/narrator/Documents/diagnostics-20260926T120000.jsonl' }),
+    systemDiagnosticsPreview: async () => ({
+      format: 1,
+      createdAt: '2026-09-26T12:00:00Z',
+      appVersion: '0.0.0-dev',
+      redactionVersion: 1,
+      traceEnabled: true,
+      files: [
+        { name: 'trace.jsonl', lines: 412, bytes: 61234, source: 'logs/trace.jsonl and its backups' },
+        { name: 'run.jsonl', lines: 38, bytes: 4120, source: 'logs/run.jsonl, allow-listed keys only' },
+      ],
+      excluded: [
+        { name: 'sidecar stderr (plain lines)', reason: 'free text from the Python tools; only the lines a sidecar wrote as typed events are kept' },
+        { name: 'host.log', reason: 'free-text messages; folded in when the host logs through the trace' },
+        { name: 'bridge.jsonl (free-text values)', reason: "a record's value that is not a number, a flag or a single word is dropped" },
+      ],
+      leakCheck: { terms: 6, linesDropped: 0 },
+      note: 'Nothing is sent anywhere. Attach this file to a GitHub issue by hand.',
+    }),
+    systemTraceBatch: async () => ({ accepted: 0, refused: 0 }),
+    systemSaveDiagnostics: async () => ({ path: 'C:/Users/narrator/Documents/diagnostics-20260926T120000.zip' }),
     // The mock has no real webview zoom to read, so it keeps its own level in memory (`?mockZoom=`). Unlike the real host it does not snap to the header's steps: the mock only ever
     // sees the exact values the UI's own hook computes.
     windowZoom: async () => ({ level: zoom }),

@@ -1,6 +1,6 @@
 // The `proof` rows of STATE_CATALOG: the Studio Next Proof page (see state-catalog.ts), in the order they are captured.
 import type { StateEntry } from '../lib/types';
-import { KEEPS_DESKTOP_SCROLL, REFLOW, wholePage } from './shared';
+import { KEEPS_DESKTOP_SCROLL, POPUP_ANCHORED_AT_FIRST_WIDTH, REFLOW, wholePage } from './shared';
 
 export const proofStates: StateEntry[] = [
   {
@@ -19,6 +19,21 @@ export const proofStates: StateEntry[] = [
   },
   {
     page: 'proof',
+    state: 'inspector-repair-menu',
+    description: 'Proof, a click note selected - Repair in REAPER in the inspector icon row, its menu open on Repair with Cleanup tools',
+    ...REFLOW,
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+  },
+  {
+    page: 'proof',
+    state: 'daw-tools-menu',
+    description:
+      'Proof, the DAW tools icon button at the end of the head opened on a linked chapter - the Structure heading over Prepare chapter render and Create chapter regions',
+    ...REFLOW,
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
+  },
+  {
+    page: 'proof',
     state: 'default',
     description:
       "Proof, all chapters (Studio Next mock): the head with the chapter stepper and the cleared ring, the chapter strip with each chapter's open notes, the notes queue (chips, sort, find, Check recordings, the proofer sheet icons, the Sources line, the table grouped by chapter), the Inspector on the first note and the key hints",
@@ -33,8 +48,22 @@ export const proofStates: StateEntry[] = [
   },
   {
     page: 'proof',
+    state: 'compare-open',
+    description:
+      'Proof, Chapter 1 linked, Compare with the script pressed beside Check recordings (#2822): the Compare panel under the check card with its Differences, Preview and Native takes tabs, on the comparison’s setup',
+    ...REFLOW,
+  },
+  {
+    page: 'proof',
+    state: 'compare-preview',
+    description: 'Proof, Chapter 1 linked, the Compare panel on its Preview tab (#2822): the same preview panel the chapter view draws',
+    ...REFLOW,
+  },
+  {
+    page: 'proof',
     state: 'chapter-no-recording',
-    description: 'Proof, Chapter 2 with no track linked: the check card with nothing recorded to check and why, and no waveform under it',
+    description:
+      'Proof, Chapter 2 with no track linked: the check card with nothing recorded to check and why (Check recordings and Compare with the script both off), and no waveform under it',
     ...REFLOW,
   },
   {

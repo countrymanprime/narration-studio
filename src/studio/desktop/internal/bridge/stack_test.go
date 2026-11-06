@@ -280,3 +280,58 @@ func TestStackTakesPayloadFitsTheScriptsBound(t *testing.T) {
 }
 
 func testGUID(n int) string { return fmt.Sprintf("{%08X-0000-4000-8000-%012X}", n, n) }
+
+const stackFolder = "{F0000000-0000-4000-8000-0000000000F1}"
+
+func TestStackTakesInAFolderWritesTheFolderLineRightAfterTheShift(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	var payloads []string
+	startFakeReaper(t, client, dir, func(command []string) [][]string {
+		content, _ := os.ReadFile(command[3])
+		payloads = append(payloads, string(content))
+		return [][]string{{"TAKES_STACKED", run(command), "1", "2", "-11.000", "1"}}
+	})
+	request := stackRequest()
+	request.Folder = strings.ToLower(stackFolder)
+	if _, err := actions.StackTakes(context.Background(), request); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := actions.StackTakes(context.Background(), stackRequest()); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasPrefix(payloads[0], "shift|-11.000000\nfolder|"+stackFolder+"\ngroup|") {
+		t.Errorf("payload with a folder =\n%s", payloads[0])
+	}
+	if strings.Contains(payloads[1], "folder|") {
+		t.Errorf("payload without a folder names one:\n%s", payloads[1])
+	}
+}
+
+func TestStackTakesInAFolderRefusesABadFolderWithoutWritingAndMapsAnOlderScriptAndAStaleFolder(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	answer := []string{"ERROR", "The stacking request is not readable, so nothing changed."}
+	startFakeReaper(t, client, dir, func(command []string) [][]string {
+		return [][]string{append([]string{answer[0], run(command)}, answer[1:]...)}
+	})
+	bad := stackRequest()
+	bad.Folder = "folder"
+	if _, err := actions.StackTakes(context.Background(), bad); !errors.Is(err, ErrBadStack) {
+		t.Errorf("a folder that is not a GUID: %v, want ErrBadStack", err)
+	}
+	request := stackRequest()
+	request.Folder = stackFolder
+	if _, err := actions.StackTakes(context.Background(), request); !errors.Is(err, ErrScriptOutdated) {
+		t.Errorf("older script: %v, want ErrScriptOutdated", err)
+	}
+	if _, err := actions.StackTakes(context.Background(), stackRequest()); !errors.Is(err, ErrBadStack) || errors.Is(err, ErrScriptOutdated) {
+		t.Errorf("without a folder the same answer is a bad request: %v", err)
+	}
+	answer = []string{"TRACK_STALE", stackFolder}
+	var stale *TrackStaleError
+	if _, err := actions.UnstackTakes(context.Background(), func() StackRequest { r := unstackRequest(); r.Folder = stackFolder; return r }()); !errors.As(err, &stale) || stale.GUID != stackFolder {
+		t.Errorf("a folder that is gone: %v", err)
+	}
+	if files := payloadFiles(t, dir); len(files) != 0 {
+		t.Errorf("payloads left behind: %v", files)
+	}
+}

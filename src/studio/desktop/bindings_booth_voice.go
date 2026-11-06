@@ -33,6 +33,9 @@ type BoothVoice struct {
 	Message   string   `json:"message,omitempty"`
 	TrackGUID string   `json:"trackGuid,omitempty"`
 	At        *float64 `json:"at,omitempty"`
+	// Added is BoothVoiceGet's list of the voices the Booth added to the chapter's folder this session that the saved project does not
+	// hold yet (BoothVoiceAdd): the page lists them after the folder's saved children.
+	Added []BoothVoiceTrack `json:"added,omitempty"`
 }
 
 func boothVoiceRefused(reason, message string) BoothVoice {
@@ -63,7 +66,22 @@ func chapterVoices(svc hostServices, link string) ([]tracks.Track, bool, error) 
 			voices = append(voices, member)
 		}
 	}
+	for _, added := range unsavedVoices(svc, project, link) {
+		voices = append(voices, tracks.Track{GUID: added.GUID, Name: added.Name, Depth: members[0].Depth + 1})
+	}
 	return voices, true, nil
+}
+
+// unsavedVoices is the voices the Booth added to the folder link this session (BoothVoiceAdd) that project, as saved, does not hold:
+// REAPER has them, and the narrator has not saved since. Once saved they are read from the project like any other track.
+func unsavedVoices(svc hostServices, project tracks.Project, link string) []BoothVoiceTrack {
+	var unsaved []BoothVoiceTrack
+	for _, added := range svc.boothVoices.addedTo(link) {
+		if _, saved := project.WithDescendants(added.GUID); !saved {
+			unsaved = append(unsaved, added)
+		}
+	}
+	return unsaved
 }
 
 // voiceFor is the voice a take records on: chosen when it is one of voices, else the first named Narrator (as the Engine panel's
@@ -107,13 +125,50 @@ func recordTarget(svc hostServices, chapterID, link string) (string, *ReadAloudR
 // arms, and the one a take switched to. It holds only GUIDs the host checked are voices of the chapter, for the session only. A nil
 // one (a Host never configured) holds nothing.
 type boothVoiceChoices struct {
-	mu sync.Mutex
+	// adding serialises BoothVoiceAdd from its checks to its answer, so two adds of one name cannot both pass the name check.
+	adding sync.Mutex
+	mu     sync.Mutex
 	// +checklocks:mu
 	byChapter map[string]string
+	// The voices BoothVoiceAdd added, by the folder's GUID (upper case), in the order added.
+	// +checklocks:mu
+	added map[string][]BoothVoiceTrack
 }
 
 func newBoothVoiceChoices() *boothVoiceChoices {
-	return &boothVoiceChoices{byChapter: map[string]string{}}
+	return &boothVoiceChoices{byChapter: map[string]string{}, added: map[string][]BoothVoiceTrack{}}
+}
+
+// whileAdding runs one add's checks, its track_create and its answer while no other add runs. A nil one runs it unguarded.
+func (c *boothVoiceChoices) whileAdding(run func()) {
+	if c == nil {
+		run()
+		return
+	}
+	c.adding.Lock()
+	defer c.adding.Unlock()
+	run()
+}
+
+// add remembers that the Booth added voice to the folder folderGUID.
+func (c *boothVoiceChoices) add(folderGUID string, voice BoothVoiceTrack) {
+	if c == nil {
+		return
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	key := strings.ToUpper(folderGUID)
+	c.added[key] = append(c.added[key], voice)
+}
+
+// addedTo is the voices the Booth added to the folder folderGUID this session, oldest first.
+func (c *boothVoiceChoices) addedTo(folderGUID string) []BoothVoiceTrack {
+	if c == nil {
+		return nil
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return append([]BoothVoiceTrack(nil), c.added[strings.ToUpper(folderGUID)]...)
 }
 
 // For is the voice chosen for chapterID, "" when none was.
@@ -230,6 +285,11 @@ func boothVoiceGetIn(svc hostServices, chapterID string) (BoothVoice, error) {
 	if !folder {
 		return boothVoiceRefused(boothVoiceFlat, "This chapter records on one track."), nil
 	}
+	project, err := selectedProject(svc)
+	if err != nil {
+		return BoothVoice{}, err
+	}
+	added := unsavedVoices(svc, project, link)
 	guid, refusedStart, err := recordTarget(svc, chapterID, link)
 	if err != nil {
 		return BoothVoice{}, err
@@ -237,7 +297,7 @@ func boothVoiceGetIn(svc hostServices, chapterID string) (BoothVoice, error) {
 	if refusedStart != nil {
 		return boothVoiceRefused(refusedStart.Reason, refusedStart.Message), nil
 	}
-	return BoothVoice{Outcome: "selected", TrackGUID: guid}, nil
+	return BoothVoice{Outcome: "selected", TrackGUID: guid, Added: added}, nil
 }
 
 // BoothVoiceGet is the voice the Booth records chapterID on, as the host holds it: the page shows this, never a voice it assumed,

@@ -1,0 +1,106 @@
+[
+  {
+    "id": "layout",
+    "issue": 2815,
+    "pr": 2890,
+    "title": "Chapter layout",
+    "what": "The Engine panel's choice between one flat track per chapter and a folder with a track per voice now also sits in Settings, under Recording & DAW, with a Reset beside it.",
+    "why": "The setting lived only on the Engine panel. Both places now change the same value, live: change it in one and the other follows.",
+    "caption": "Settings › Recording & DAW › Chapter sync: Chapter layout set to Voice folders, marked Changed, with its Reset.",
+    "images": {
+      "1440": "images/layout-1440.webp",
+      "390": "images/layout-390.webp"
+    }
+  },
+  {
+    "id": "voices",
+    "issue": 2815,
+    "pr": 2906,
+    "title": "Chapter sync and Voices",
+    "what": "Chapter sync on or off, and which character each voice track records, now also sit in Settings, one row each under Chapter sync.",
+    "why": "Both were only on the Engine panel. The Voices table appears only when the layout is Voice folders, so a flat project is not shown a table it cannot use.",
+    "caption": "Settings › Recording & DAW › Chapter sync: Sync chapters to tracks On, and the Voices table for Chapter 1 with its keys, tracks and characters.",
+    "images": {
+      "1440": "images/voices-1440.webp",
+      "390": "images/voices-390.webp"
+    }
+  },
+  {
+    "id": "booth-text-size",
+    "issue": 2815,
+    "pr": 2939,
+    "title": "Booth text size",
+    "what": "How large the chapter is drawn in the Booth, from 24 to 72 px, is now a slider in Settings, under Appearance & keys › Look.",
+    "why": "The size was only changed inside the Booth. Settings and the Booth now change the same size.",
+    "caption": "Settings › Appearance & keys › Look: the Booth text size slider.",
+    "images": {
+      "1440": "images/booth-text-size-1440.webp",
+      "390": "images/booth-text-size-390.webp"
+    }
+  },
+  {
+    "id": "playback",
+    "issue": 2815,
+    "pr": 2952,
+    "title": "Editing playback",
+    "what": "The Editing page's playback speed, volume, silence and output device are now in Settings, under Appearance & keys › Listening.",
+    "why": "These were only in the Editing page's Output popover. A saved output that is not connected stays chosen, with a note.",
+    "caption": "Settings › Appearance & keys › Listening: Editing playback with speed, volume, silence and the output device.",
+    "images": {
+      "1440": "images/playback-1440.webp",
+      "390": "images/playback-390.webp"
+    }
+  },
+  {
+    "id": "effects-cap",
+    "issue": 2815,
+    "pr": 2952,
+    "title": "Effects coverage cap",
+    "what": "The share of a chapter's audio that effects may cover (10% until changed) is now a number in Settings, under Recording & DAW › Effects, for the computer or for one project.",
+    "why": "The cap was only editable on the Editing page. Settings now offers the same value, with Override for this project.",
+    "caption": "Settings › Recording & DAW › Effects: the effects coverage cap.",
+    "images": {
+      "1440": "images/effects-cap-1440.webp",
+      "390": "images/effects-cap-390.webp"
+    }
+  },
+  {
+    "id": "story-bible-order",
+    "issue": 2815,
+    "pr": 2966,
+    "title": "Story Bible order",
+    "what": "Which entries the Story Bible lists first (name, kind, book order, most or least mentioned) is now a select in Settings, under Appearance & keys › Look, with a Reset.",
+    "why": "The order was kept from the Story Bible's headers and Sort menu and had no Settings row. All three change the same order.",
+    "caption": "Settings › Appearance & keys › Look: Story Bible order set to Most mentioned, marked Changed, with its Reset.",
+    "images": {
+      "1440": "images/story-bible-order-1440.webp",
+      "390": "images/story-bible-order-390.webp"
+    }
+  },
+  {
+    "id": "tips",
+    "issue": 2815,
+    "pr": 2969,
+    "title": "First-use tips",
+    "what": "How many of the short tips you have dismissed is shown in Settings, under App & updates › Tips, with Show tips again, which brings every tip back.",
+    "why": "Dismissing a tip was permanent and could not be undone anywhere. Show tips again forgets them all, with no restart.",
+    "caption": "Settings › App & updates › Tips: 1 dismissed, marked Changed, with Show tips again.",
+    "images": {
+      "1440": "images/tips-1440.webp",
+      "390": "images/tips-390.webp"
+    }
+  },
+  {
+    "id": "schedule-basis",
+    "issue": 2815,
+    "pr": 2971,
+    "title": "Schedule basis",
+    "what": "Whether the hours on Production and Schedule use the standard pace or your own measured pace is now a choice in Settings, under Project › Schedule.",
+    "why": "The choice was only in the Production target popover. Settings and the popover now change the same choice.",
+    "caption": "Settings › Project › Schedule: Schedule basis set to Your own pace, marked Changed.",
+    "images": {
+      "1440": "images/schedule-basis-1440.webp",
+      "390": "images/schedule-basis-390.webp"
+    }
+  }
+]

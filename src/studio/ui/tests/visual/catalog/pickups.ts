@@ -1,6 +1,6 @@
 // The `pickups` rows of STATE_CATALOG: the Studio Next Pickups page (see state-catalog.ts), in the order they are captured.
 import type { StateEntry } from '../lib/types';
-import { REFLOW } from './shared';
+import { REFLOW, TOAST_FADES_OUT } from './shared';
 
 export const pickupsStates: StateEntry[] = [
   {
@@ -44,6 +44,21 @@ export const pickupsStates: StateEntry[] = [
   },
   {
     page: 'pickups',
+    state: 'add-popover-too-long',
+    description:
+      'Pickups with Add a pickup by hand submitted with a 505-character line: "A line can be at most 500 characters." once, under the line box, no toast; the Chapter list above the time box',
+    ...REFLOW,
+  },
+  {
+    page: 'pickups',
+    state: 'markers-partial-toast',
+    description:
+      'Pickups after Add 3 as markers (the button counts only the lines with a place) with one line added by hand (it has no place in the recording): the toast says "Pickup markers for 3 of 4 lines are in REAPER. 1 line has no place in the recording yet and was left out."',
+    ...REFLOW,
+    ...TOAST_FADES_OUT,
+  },
+  {
+    page: 'pickups',
     state: 'empty',
     description: 'Pickups after every line is removed: "No pickups queued", the way to Proof, and an empty session',
     ...REFLOW,
@@ -73,6 +88,13 @@ export const pickupsStates: StateEntry[] = [
     state: 'loading',
     description:
       'Pickups while the list is still being read (?mockPickupList=loading): the page title, chapter stepper and header buttons, and grey blocks where the table rows will be, with one polite "Reading the pickup list…" status; the Pickup session panel beside it shows blocks for Lines and Length, and no "no pickups yet" line',
+    ...REFLOW,
+  },
+  {
+    page: 'pickups',
+    state: 'markers-not-linked',
+    description:
+      'Pickups with no REAPER project file linked (?mockNoDaw=1): Add N as markers is off, its tooltip and screen-reader description say "Link a REAPER project (.rpp) file to add markers.", the same ask as the top bar badge, and the session card does not grow',
     ...REFLOW,
   },
 ];

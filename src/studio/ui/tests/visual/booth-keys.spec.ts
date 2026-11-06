@@ -72,9 +72,9 @@ const OVERLAYS: Overlay[] = [
   {
     name: 'Levels popover',
     open: async (page) => {
-      const opener = page.getByRole('button', { name: 'Levels' });
+      const opener = page.getByRole('button', { name: 'Record options' });
       await opener.click();
-      return { popup: page.getByRole('dialog', { name: 'Levels' }), opener };
+      return { popup: page.getByRole('dialog', { name: 'Record options' }), opener };
     },
   },
   {
@@ -88,9 +88,9 @@ const OVERLAYS: Overlay[] = [
         .getByRole('dialog', { name: /is not connected/ })
         .getByRole('button', { name: 'Close' })
         .click();
-      const opener = page.getByRole('button', { name: 'Levels' });
+      const opener = page.getByRole('button', { name: 'Record options' });
       await opener.click();
-      return { popup: page.getByRole('dialog', { name: 'Levels' }), opener };
+      return { popup: page.getByRole('dialog', { name: 'Record options' }), opener };
     },
   },
   {
@@ -291,11 +291,11 @@ test.describe('the pedal works after an overlay closes', () => {
 
   test('Levels, Escape, Space toggles the take instead of opening Levels again', async ({ page }) => {
     await openBooth(page);
-    await page.getByRole('button', { name: 'Levels' }).click();
+    await page.getByRole('button', { name: 'Record options' }).click();
     await page.keyboard.press('Escape');
     await page.keyboard.press('Space');
     await expect(page.getByRole('button', { name: /^Stop$/ })).toBeVisible();
-    await expect(page.getByRole('dialog', { name: 'Levels' })).toHaveCount(0);
+    await expect(page.getByRole('dialog', { name: 'Record options' })).toHaveCount(0);
     await pastStartGuard(page);
     await page.keyboard.press('Space');
     await expect(record(page)).toBeVisible();
@@ -345,8 +345,8 @@ test.describe('a pedal Space with a popup open, by the control that has focus', 
 
   test('a text field inside a popup keeps its Space', async ({ page }) => {
     await openBooth(page);
-    await page.getByRole('button', { name: 'Levels' }).click();
-    const popup = page.getByRole('dialog', { name: 'Levels' });
+    await page.getByRole('button', { name: 'Record options' }).click();
+    const popup = page.getByRole('dialog', { name: 'Record options' });
     await focusSettled(page, popup);
     await popup.evaluate((el) => {
       const field = document.createElement('input');

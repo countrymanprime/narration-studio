@@ -9,14 +9,17 @@ import {
   chapterTrackMatchSchema,
   chapterTrackSetSchema,
   chapterTrackCreateSchema,
+  chapterFoldersSchema,
   trackMappingSchema,
   trackSelectResultSchema,
 } from '../schemas/chapterTrackMap';
-import { tracksDiscoverySchema, tracksProjectSchema } from '../schemas/tracks';
+import { tracksDiscoverySchema, tracksLiveSchema, tracksProjectSchema } from '../schemas/tracks';
 
 export const chapterTracksGoldens: Record<string, z.ZodType> = {
   'tracks-project.json': tracksProjectSchema,
   'tracks-project-folders.json': tracksProjectSchema,
+  'tracks-live-live.json': tracksLiveSchema,
+  'tracks-live-saved.json': tracksLiveSchema,
   'tracks-discovery-none.json': tracksDiscoverySchema,
   'tracks-discovery-several.json': tracksDiscoverySchema,
   'tracks-discovery-selected.json': tracksDiscoverySchema,
@@ -39,7 +42,10 @@ export const chapterTracksGoldens: Record<string, z.ZodType> = {
   'chapter-regions-created.json': chapterRegionsCreatedSchema,
   'chapter-track-set-displaced.json': chapterTrackSetSchema,
   'chapter-track-create-created.json': chapterTrackCreateSchema,
+  'chapter-track-create-folder.json': chapterTrackCreateSchema,
+  'chapter-track-create-already-linked.json': chapterTrackCreateSchema,
   'chapter-track-create-refused.json': chapterTrackCreateSchema,
+  'chapter-folders.json': z.record(z.string(), chapterFoldersSchema),
   'chapter-track-unlink.json': chapterTrackMappingSchema,
   'track-select-results.json': z.record(z.string(), trackSelectResultSchema),
 };

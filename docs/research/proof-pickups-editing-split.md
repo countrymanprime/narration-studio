@@ -2,7 +2,7 @@
 
 Date: 2026-10-23. Code read at `063dc83`. Questions from the owner's test findings, [#2251](https://github.com/countrymanprime/narration-studio/issues/2251) items 26, 22 and 30.
 
-Method: read the code, the tests, the Studio Next mock (`docs/research/mockups/studio-next/`, the spec per [Which mocks are the spec](../prds/studio-next-rebuild.prd.md#which-mocks-are-the-spec)), the PRDs, the [findings contract](../architecture/findings-contract.md) and the guides. One test was added to reproduce item 30. Nothing was run in REAPER for this note.
+Method: read the code, the tests, the Studio Next mock (`docs/research/mockups/studio-next/`, the spec per Which mocks are the spec), the PRDs, the [findings contract](../architecture/findings-contract.md) and the guides. One test was added to reproduce item 30. Nothing was run in REAPER for this note.
 
 Path prefixes: `ui/` is `src/studio/ui/src/components/`, `mock/` is `docs/research/mockups/studio-next/src/`, `tc/` is `src/studio/sidecars/transcript-compare/`.
 
@@ -27,7 +27,7 @@ Tests that cover these: `proof/inspector/DecisionButtons.test.tsx`, `proof/Proof
 | Source | Proof | Pickups | Editing |
 | - | - | - | - |
 | Mock | Play ±3 s on Space through the DAW (`mock/pages/proof/Inspector.tsx:73`, `mock/state/commands/proof.ts:57-63`); Pickup, Edit, Waive and Defer kept apart (`Inspector.tsx:83-85`) | Hear the original (a toast in the mock, `mock/pages/Pickups.tsx:125`), Open in Booth, Mark recorded, Remove; "Go to the note in Proof" in the context menu (`Pickups.tsx:174-180`). No mark fine | Hear, accept, Mark for pickup (`mock/pages/editing/FlagCard.tsx:42-84`). Keeping a take and applying a cleanup row also mark the Proof note `keep` or `fixed` (`mock/state/commands/editing.ts:53-79, 272-282`) |
-| [Proof and Pickups PRD](../prds/studio-next-proof-and-pickups.prd.md) | Line 50, "Not building": "a full chapter player on Proof (Editing plays the whole chapter), play ±3 s and go-to-by-id (owner unclear)". This supersedes the mock's Play | "Only points to the Booth" (DQ-6) | Takes are edited on Editing (line 37) |
+| Proof and Pickups PRD | Line 50, "Not building": "a full chapter player on Proof (Editing plays the whole chapter), play ±3 s and go-to-by-id (owner unclear)". This supersedes the mock's Play | "Only points to the Booth" (DQ-6) | Takes are edited on Editing (line 37) |
 | [Findings contract](../architecture/findings-contract.md) | States `unreviewed`, `accepted`, `dismissed`, `deferred`. `accepted` means "real and needs fixing"; only `dismissed` clears a finding. It does not say which page may set a status | | |
 
 No PRD, guide, mock or UI file uses "mark fine", "sounded right" or "not an error". The verdict exists only as Proof's "Waive".
@@ -36,7 +36,7 @@ No PRD, guide, mock or UI file uses "mark fine", "sounded right" or "not an erro
 
 1. **Proof can't play: specified, not drift.** The PRD dropped the mock's Play ±3 s and marked it "owner unclear". The owner's report answers that question: supersede PRD line 50.
 2. **Pickups can't show context or mark fine: specified.** The mock's Pickups page has neither. Its "Go to the note in Proof" is not built: drift.
-3. **Editing's accept and keep never reach the finding: drift.** The mock writes the Proof note; the code writes only `accepted.json`. The parity note left it open ([parity Q1](studio-next-parity-proof-and-pickups.md)). As a result, a word accepted in Editing stays open on Proof, and its pickup has no `findingId`.
+3. **Editing's accept and keep never reach the finding: drift.** The mock writes the Proof note; the code writes only `accepted.json`. The parity note left it open (parity Q1). As a result, a word accepted in Editing stays open on Proof, and its pickup has no `findingId`.
 4. **Editing's cleanup list counts `accepted` as done** (`ui/editing/cleanup/cleanupRows.ts:63`). This contradicts the contract, where `accepted` is still open: a bug.
 5. **Pickup and edit are not stored apart.** The code stores `accepted` and derives the fix from the category (`proof/resolution.ts`, ruling D85 #7). That is a recorded ruling, not drift.
 
@@ -58,7 +58,7 @@ Keep three pages: **Proof decides, Pickups queues, Editing fixes.** Do not fold 
 | A6 | Label "Waive" as "Fine as read" on Proof, and update the guides (`docs/guides/using-the-app/proof.md`, `pickups.md`, `editing.md`) | all | S | 6 |
 | A7 | Pickups "Hear" plays through the DAW when linked (with item 32) | Pickups | M | 7 |
 
-A1 and A6 change the PRD's lines; per the [mock rule](../prds/studio-next-rebuild.prd.md#which-mocks-are-the-spec), the PR supersedes them in the PRD.
+A1 and A6 change the PRD's lines; per the mock rule, the PR supersedes them in the PRD.
 
 ## B. Speaker attribution (item 22)
 
@@ -66,8 +66,8 @@ A1 and A6 change the PRD's lines; per the [mock rule](../prds/studio-next-rebuil
 
 | Source | What it says |
 | - | - |
-| [Extraction PRD](../prds/studio-next-extraction-and-analysis-tools.prd.md) | The Story Bible "fills itself"; under 75 % confidence the narrator verifies, at 75 % and above it is accepted and reviewable (line 11). `speaker` is a suggestion kind (21); a speaker with no quote is never accepted automatically (38, DQ-10). Phases: Ph3 rules, Ph4 Suggested UI ("with no route"), Ph6 consent, Ph7 BookNLP in progress; Ph8 calibration not run |
-| [Script and Story Bible PRD](../prds/studio-next-script-and-story-bible.prd.md) | Speaker colours and chips in the reader |
+| Extraction PRD | The Story Bible "fills itself"; under 75 % confidence the narrator verifies, at 75 % and above it is accepted and reviewable (line 11). `speaker` is a suggestion kind (21); a speaker with no quote is never accepted automatically (38, DQ-10). Phases: Ph3 rules, Ph4 Suggested UI ("with no route"), Ph6 consent, Ph7 BookNLP in progress; Ph8 calibration not run |
+| Script and Story Bible PRD | Speaker colours and chips in the reader |
 | [BookNLP spike](studio-next-booknlp-spike.md) | Ship behind "not yet available"; large model attributed 61 of 61 quotes. BookNLP gives no score, so confidence must come from the code |
 | Mock | **No prompt.** Ambiguity shows passively: every quote gets a suggested speaker or "?" (`mock/selectors/phrases.ts:15-46`), the chapter card says "N without a speaker" (`mock/pages/script/Reader.tsx:238`), suggested chips are dashed (`mock/pages/script/Para.tsx:19`, `mock/pages/booth/Teleprompter.tsx:20`, `mock/pages/editing/ScriptDoc.tsx:99`), the picker confirms (`mock/ui/SpeakerPicker.tsx:34`). Its rule is looser than the code's: any speaking name within 70 characters (`phrases.ts:34-37`) |
 

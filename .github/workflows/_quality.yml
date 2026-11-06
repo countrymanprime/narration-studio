@@ -5,11 +5,14 @@ on:
       ui-affected:
         description: "'true' when Nx found ui affected, so the visual shards ran and ci.yml's `CI passed` judges their records"
         value: ${{ jobs.scope.outputs.ui }}
+      vitest-affected:
+        description: "'true' when the ui-unit shards ran the Vitest run and uploaded its blobs, which ci.yml's aggregate merges"
+        value: ${{ jobs.ui-unit.outputs.affected }}
     inputs:
       full:
         description: >-
           true runs every job. false is the light tier of a draft pull request (ci.yml): the Playwright suites (ui-visual,
-          ui-atlas) are skipped and the rest runs. Only ci.yml's `CI passed` may sum up a full run; a light run reports as
+          the atlas steps of ui-unit), the UI bundle and Build (Windows) are skipped and the rest runs. Only ci.yml's `CI passed` may sum up a full run; a light run reports as
           `CI light passed`.
         type: boolean
         default: true
@@ -21,29 +24,29 @@ permissions: { contents: read }
 # job is the one check that sums them up (no ruleset requires any check yet, #544). Checkouts fetch full history so Nx
 # can diff against the base branch.
 #
-# The shape trades job slots against the critical path (docs/operations/ci-and-releases.md#ci-performance: the free plan
-# runs 20 jobs at a time and queueing is the slow case). The two Playwright suites are most of a UI pull request's wait,
-# so they are sharded; the jobs under a minute share a runner per OS instead of each paying for its own toolchain setup.
+# The shape trades job slots against the critical path (docs/research/2026-11-06-ci-job-grouping.md, #3065): a pull request
+# should hold about 10 runners at once so two can run side by side. The visual suite is most of a UI pull request's wait, so it is
+# sharded and sets the critical path; every other check shares a runner with checks that need the same toolchain, one check per
+# step with `if: ${{ !cancelled() }}` so a red step hides none after it, and a summary step (scripts/ci/step-summary.mjs) that
+# reports each. scripts/ci/check-manifest.json records which job and step runs each check.
 jobs:
   scope:
     # Which job families the change reaches, decided once on a cheap Linux runner so the others are skipped (no runner, no
     # toolchain setup) instead of starting, installing and finding nothing to do. Same rule as every nx-run / nx-affected step
     # (scripts/ci/nx-scope.sh: everything on a manual run or a workspace-wide file, else `nx show projects --affected`).
-    #   - ui: the Vitest shards, the visual shards and the atlas.
-    #   - shell: the Go tests (go-test).
-    #   - winquick: quick-windows (the Lua harness on Windows and go lint), so the reaper project or the shell.
+    #   - ui: the ui-unit shards (Vitest and the atlas) and the visual shards.
+    #   - shell: go-test (the Go tests and lint, and the Lua harness on Windows), so the reaper project or the shell.
     # A skipped job counts as passed in ci.yml's `CI passed`; the steps inside those jobs keep their own scope check.
     # A pull request whose workflow changes are only `uses:` pin bumps (Dependabot) is not `all` here: the nx-affected steps run
     # nx-scope.sh --pins, and the `pins` step (scripts/ci/workflow-pins.mjs, pin-flags.mjs) ORs in the families of the jobs that contain a
-    # changed pin (a changed local action: every job that uses it). On a pure pin bump js-static and quick-ubuntu start only when
-    # reached (`static`, `quickubuntu`); on any other change they start as before. A job that starts runs in full. Any other change
+    # changed pin (a changed local action: every job that uses it). On a pure pin bump the static and quick steps of linux-checks run
+    # only when that job is reached (`static`, `quickubuntu`); on any other change they run as before. A job that starts runs in full. Any other change
     # under .github/workflows or .github/actions (a `run:`, `if:`, `with:` or `needs:` line, a step, job or file added or removed) is `all`.
     timeout-minutes: 10
     runs-on: ubuntu-latest
     outputs:
       ui: ${{ steps.ui.outputs.affected == 'true' || steps.pins.outputs.ui == 'true' }}
       shell: ${{ steps.shell.outputs.affected == 'true' || steps.pins.outputs.shell == 'true' }}
-      winquick: ${{ steps.winquick.outputs.affected == 'true' || steps.pins.outputs.winquick == 'true' }}
       static: ${{ steps.pins.outputs.static }}
       quickubuntu: ${{ steps.pins.outputs.quickubuntu }}
     steps:
@@ -65,11 +68,6 @@ jobs:
       - id: shell
         uses: ./.github/actions/nx-affected
         with:
-          projects: desktop
-          pins: 'true'
-      - id: winquick
-        uses: ./.github/actions/nx-affected
-        with:
           projects: reaper,desktop
           pins: 'true'
       # Only a pull request can be a pin bump; elsewhere the classifier is skipped and the self-scoped jobs start.
@@ -86,50 +84,133 @@ jobs:
           fi
           node scripts/ci/pin-flags.mjs --github-output < "$RUNNER_TEMP/pins.json"
 
-  js-static:
+  linux-checks:
+    # Every Linux check under a few minutes, on one runner with one toolchain install (Go, Python with the docs group, every pnpm
+    # project, StyLua). These were four jobs (js-static, quick-ubuntu, rename rehearsal, ui-dist / build), each paying for its own setup.
+    #   - UI bundle (full tier): `pnpm --dir src/studio/ui run build`, uploaded as `ui-dist` for Build (Windows), which waits for this job
+    #     instead of starting with the fan-out, so the two take one runner slot in turn. First, so a red check below cannot hold it back.
+    #   - ui static, web static, Knip (`static`): lint, format, architecture and node:test of the UI and site projects, the site's
+    #     typecheck and Vitest run; Knip reads every workspace, so `always`.
+    #   - repo-scripts, docs-site, python, reaper (`quickubuntu`): the plain-Node scripts (`always`: the layout and project guards read every
+    #     tracked file), the docs site's unit tests (`always`: docs/ belongs to no project; Pages runs the built site's link check), ruff and
+    #     pytest of the Python projects (Go is installed for the transcript-compare tests), StyLua and the bridge harness with its mutation
+    #     checks under Lua 5.4.
+    #   - rename rehearsal, every pull request: renames a throwaway worktree of this commit to a made-up name and runs the brand sync, both
+    #     name guards and the tests that read the name (scripts/brand/rehearse-rename.mjs, #2251 item 41). main-health runs `--full`.
+    # 45 min, the rename rehearsal's own limit: its `--full` run (main-health, a manual run) took up to 36 min alone; on a pull request
+    # the four jobs it replaces ran 9.7 min together on run 41966422733, each setup included.
+    name: linux-checks
     needs: scope
-    if: needs.scope.outputs.static == 'true'
-    # The static checks of the UI and site projects and Knip, about a minute: they used to share a runner with the Vitest run, which is
-    # 90% of the old `js` job's 13 minutes and now has jobs of its own (js-test-shard, js-test).
-    timeout-minutes: 10
+    timeout-minutes: 45
     runs-on: ubuntu-latest
+    outputs:
+      ui-dist: ${{ steps.ui-dist.outcome == 'success' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { fetch-depth: 0, persist-credentials: false }
+      # GTK 4 and WebKitGTK only for the rename rehearsal's `--full` run (not a pull request): it builds and tests the desktop
+      # module, which links them through cgo. A pull request's rehearsal runs `go vet` and the brand tests, which need neither.
       - uses: ./.github/actions/setup-toolchain
         with:
-          need-go: 'false'
-          need-python: 'false'
+          need-go: 'true'
           need-wails-tools: 'false'
-          need-stylua: 'false'
-          need-linux-native-deps: 'false'
-      - uses: ./.github/actions/nx-run
+          need-linux-native-deps: ${{ github.event_name != 'pull_request' }}
+          python-sync-args: --group docs
+      - name: UI bundle
+        id: ui-bundle
+        if: inputs.full
+        run: pnpm --dir src/studio/ui run build
+      - id: ui-dist
+        if: inputs.full
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ui-dist
+          path: src/studio/ui/dist
+          if-no-files-found: error
+          retention-days: 1
+      - name: ui static
+        id: ui-static
+        if: ${{ !cancelled() && needs.scope.outputs.static == 'true' }}
+        uses: ./.github/actions/nx-run
         with:
           targets: lint format architecture test-node
           projects: ui
-      # The public site (src/web) is its own Nx project: its static checks, typecheck, node:test suites (the build scripts) and its Vitest run (the
-      # extension code it plugs into the app) used to run inside the UI project and `repo-scripts`. It is affected by a change to the UI, which it builds on.
-      - uses: ./.github/actions/nx-run
+      - name: web static
+        id: web-static
+        if: ${{ !cancelled() && needs.scope.outputs.static == 'true' }}
+        uses: ./.github/actions/nx-run
         with:
           targets: lint format architecture typecheck test-node test
           projects: web
-      # Knip reads every workspace, so a change anywhere can leave an unused file or export: `always`.
-      - uses: ./.github/actions/nx-run
+      - name: knip
+        id: knip
+        if: ${{ !cancelled() && needs.scope.outputs.static == 'true' }}
+        uses: ./.github/actions/nx-run
         with:
           targets: knip
           projects: workspace
           always: 'true'
+      - name: repo-scripts
+        id: repo-scripts
+        if: ${{ !cancelled() && needs.scope.outputs.quickubuntu == 'true' }}
+        uses: ./.github/actions/nx-run
+        with:
+          targets: test-node
+          projects: repo-scripts
+          always: 'true'
+      - name: docs-site
+        id: docs-site
+        if: ${{ !cancelled() && needs.scope.outputs.quickubuntu == 'true' }}
+        uses: ./.github/actions/nx-run
+        with:
+          targets: lint test
+          projects: docs-site
+          always: 'true'
+      - name: python
+        id: python
+        if: ${{ !cancelled() && needs.scope.outputs.quickubuntu == 'true' }}
+        uses: ./.github/actions/nx-run
+        with:
+          targets: lint test typecheck
+          projects: tag:toolchain:python,fixtures
+      - name: reaper (Lua)
+        id: reaper
+        if: ${{ !cancelled() && needs.scope.outputs.quickubuntu == 'true' }}
+        uses: ./.github/actions/nx-run
+        with:
+          targets: lint test
+          projects: reaper
+      - name: rename rehearsal
+        id: rename
+        if: ${{ !cancelled() }}
+        env:
+          FULL: ${{ github.event_name != 'pull_request' && '--full' || '' }}
+        run: node scripts/brand/rehearse-rename.mjs $FULL
+      - name: Summary
+        if: always()
+        env:
+          OUTCOMES: >-
+            {"UI bundle": "${{ steps.ui-bundle.outcome }}", "ui static": "${{ steps.ui-static.outcome }}",
+            "web static": "${{ steps.web-static.outcome }}", "knip": "${{ steps.knip.outcome }}",
+            "repo-scripts": "${{ steps.repo-scripts.outcome }}", "docs-site": "${{ steps.docs-site.outcome }}",
+            "python": "${{ steps.python.outcome }}", "reaper (Lua)": "${{ steps.reaper.outcome }}",
+            "rename rehearsal": "${{ steps.rename.outcome }}"}
+        run: node scripts/ci/step-summary.mjs
 
-  js-test-shard:
-    # The Vitest run of src/studio/ui (the `test` target of ui: every test, coverage on the gated logic files), a third
-    # of it per job. One job took 11 m 44 s on a 2-vCPU runner. `vitest --shard=i/3` splits the files by cost
-    # (src/studio/ui/scripts/vitest-shards.mjs: Vitest's own split is by a hash of the path and left one of three shards with 48% of the
-    # time). A shard checks no coverage floor, since it covers a third of the files: it uploads a blob of its results and
-    # coverage, and the `js-test` job below merges the three and checks the floors over the whole run.
-    name: js-test (shard ${{ matrix.shard }}/3)
+  ui-unit:
+    # The Vitest run of src/studio/ui (every test, coverage on the gated logic files) and, in the full tier, the component library atlas
+    # (every Storybook story x light/dark x wide/narrow, with play() interactions, axe and overflow checks; src/studio/ui/tests/atlas), a
+    # third of each per job. These were five jobs (three Vitest shards, two atlas shards): one setup now serves both.
+    #   - Vitest: `vitest --shard=i/3` split by cost (src/studio/ui/scripts/vitest-shards.mjs). A shard checks no coverage floor; it uploads
+    #     a blob of its results and coverage, and ci.yml's aggregate (`.github/actions/ci-gate`) merges the three and checks the floors of
+    #     scripts/ci/coverage-floors.json over the whole run. No Nx cache and no retry.
+    #   - atlas (full tier, after the Vitest step so a red one hides neither): `pnpm atlas --shard=i/3`; shard 1 also checks docs/ui equals a
+    #     fresh generation (fix with `pnpm --dir src/studio/ui docs:atlas`).
+    # 30 min: 3.3 to 6.7 min of Vitest and about 6 of atlas per shard, behind a `setup-playwright` that took up to 9 min on a slow runner.
+    name: ui-unit (shard ${{ matrix.shard }}/3)
     needs: scope
     if: needs.scope.outputs.ui == 'true'
-    timeout-minutes: 15
+    timeout-minutes: 30
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -151,14 +232,14 @@ jobs:
         uses: ./.github/actions/nx-affected
         with:
           projects: ui
-      # No Nx cache and no retry: a green shard means its tests ran. Not through `nx run-many`, whose `test` target is the
-      # whole run (`pnpm check` and a developer's machine run that).
-      - if: steps.scope.outputs.affected == 'true'
+      - name: vitest
+        id: vitest
+        if: steps.scope.outputs.affected == 'true'
         env:
           SHARD: ${{ matrix.shard }}
         run: node scripts/ci/coverage-gate.mjs vitest src/studio/ui --shard="$SHARD/3"
       # `.cache` is a hidden directory, which upload-artifact leaves out unless told.
-      - if: steps.scope.outputs.affected == 'true'
+      - if: steps.scope.outputs.affected == 'true' && !cancelled()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: vitest-blob-${{ matrix.shard }}
@@ -166,36 +247,35 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 1
-
-  js-test:
-    # The whole-run half of the Vitest gate: merges the three shards' blobs (`coverage-gate.mjs vitest src/studio/ui --merge=3`, which
-    # fails when one is missing), reports the tests of all three, and checks every coverage floor of scripts/ci/coverage-floors.json
-    # over the merged coverage, exactly as the unsharded run does. Reads blobs only: no test runs here. Skipped when the UI is not affected.
-    needs: js-test-shard
-    if: needs.js-test-shard.outputs.affected == 'true'
-    timeout-minutes: 10
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with: { persist-credentials: false }
-      - uses: ./.github/actions/setup-toolchain
+      - if: inputs.full && steps.scope.outputs.affected == 'true' && !cancelled()
+        uses: ./.github/actions/setup-playwright
+      - name: atlas
+        id: atlas
+        if: inputs.full && steps.scope.outputs.affected == 'true' && !cancelled()
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: pnpm --dir src/studio/ui run atlas --shard="$SHARD/3"
+      - name: atlas docs
+        id: atlas-docs
+        if: inputs.full && steps.scope.outputs.affected == 'true' && matrix.shard == 1 && !cancelled()
+        run: pnpm exec nx run ui:atlas-docs --skip-nx-cache
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
         with:
-          need-go: 'false'
-          need-python: 'false'
-          need-wails-tools: 'false'
-          need-stylua: 'false'
-          need-linux-native-deps: 'false'
-          pnpm-filter: ui
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          pattern: vitest-blob-*
-          merge-multiple: true
-          path: .cache/coverage/vitest-src-studio-ui-blobs
-      - run: node scripts/ci/coverage-gate.mjs vitest src/studio/ui --merge=3
+          name: ui-atlas-screenshots-${{ matrix.shard }}
+          path: src/studio/ui/screenshots/atlas
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Summary
+        if: always()
+        env:
+          OUTCOMES: >-
+            {"vitest": "${{ steps.vitest.outcome }}", "atlas": "${{ steps.atlas.outcome }}", "atlas docs": "${{ steps.atlas-docs.outcome }}"}
+        run: node scripts/ci/step-summary.mjs
 
   ui-visual-shard:
     # Captures every {page, state, viewport} of the mock-backed app and fails on errors, sideways overflow and collapsed
-    # controls per capture (src/studio/ui/tests/visual/lib/capture.ts). Not a pixel-diff gate. A third of the suite per job. The checks
+    # controls per capture (src/studio/ui/tests/visual/lib/capture.ts). Not a pixel-diff gate. A quarter of the suite per job. The checks
     # that need the whole run (blank, undeclared duplicate, stale sameAs, and that the shards held every test) cannot run in a
     # shard (UI_VISUAL_SHARDED=1 defers them), so each shard uploads its capture records and a manifest of what it was given, and
     # `CI passed` (ci.yml) judges them together.
@@ -206,7 +286,10 @@ jobs:
     # (a test per overlay, window size and position, for every page that adopts it) grew. A 20 minute limit then cancelled passing
     # shards on 2026-10-23: `setup-playwright` (the system libraries, `playwright install --with-deps`) took 7.5 minutes on a slow
     # runner and left about 12 for the screenshots.
-    name: ui-visual (shard ${{ matrix.shard }}/3)
+    # Four shards (#3054): the suite grew to about 2360 tests, and three balanced shards (1338 to 1368 s of tests each on run 42182391318,
+    # 22.8 min by Playwright's clock) left a slow runner, with `setup-playwright` at 9 minutes, past the 30 minute limit on shards that
+    # failed no test. A quarter each is about 17 minutes of tests. The limit stays 30: the balance was not the problem.
+    name: ui-visual (shard ${{ matrix.shard }}/4)
     needs: scope
     if: inputs.full && needs.scope.outputs.ui == 'true'
     timeout-minutes: 30
@@ -214,7 +297,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
+        shard: [1, 2, 3, 4]
     outputs:
       affected: ${{ steps.scope.outputs.affected }}
     steps:
@@ -239,9 +322,9 @@ jobs:
         if: steps.scope.outputs.affected == 'true'
         env:
           SHARD: ${{ matrix.shard }}
-        run: node scripts/ci/visual-shards.mjs split --shard "$SHARD/3" --out "$RUNNER_TEMP/shard.txt" --manifest "$RUNNER_TEMP/shard-$SHARD.json" --github-output
+        run: node scripts/ci/visual-shards.mjs split --shard "$SHARD/4" --out "$RUNNER_TEMP/shard.txt" --manifest "$RUNNER_TEMP/shard-$SHARD.json" --github-output
       # The JSON report is the profile (time per test); a shard uploads it as ui-visual-timings-<i> and `visual-shards.mjs weights` rebuilds
-      # shard-weights.json from the three.
+      # shard-weights.json from the four.
       - if: steps.scope.outputs.affected == 'true'
         env:
           UI_VISUAL_SHARDED: '1'
@@ -292,170 +375,23 @@ jobs:
           path: src/studio/ui/test-results
           if-no-files-found: ignore
           retention-days: 3
-
-  ui-atlas:
-    # The component library: every Storybook story x light/dark x wide/narrow, with play() interactions, axe accessibility
-    # and overflow checks (src/studio/ui/tests/atlas). Half the stories per job (Playwright --shard): one job took 6.4 min. Each
-    # story is judged on its own, so the shards need nothing merged. `pnpm atlas` builds Storybook first (seconds).
-    # 25 minutes: the same slow `setup-playwright` as the visual shards (up to 7.5 minutes) cancelled passing runs at 15.
-    name: ui-atlas (shard ${{ matrix.shard }}/2)
-    needs: scope
-    if: inputs.full && needs.scope.outputs.ui == 'true'
-    timeout-minutes: 25
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [1, 2]
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with: { fetch-depth: 0, persist-credentials: false }
-      - uses: ./.github/actions/setup-toolchain
-        with:
-          need-go: 'false'
-          need-python: 'false'
-          need-wails-tools: 'false'
-          need-stylua: 'false'
-          need-linux-native-deps: 'false'
-      - id: scope
-        uses: ./.github/actions/nx-affected
-        with:
-          projects: ui
-      - if: steps.scope.outputs.affected == 'true'
-        uses: ./.github/actions/setup-playwright
-      - if: steps.scope.outputs.affected == 'true'
-        env:
-          SHARD: ${{ matrix.shard }}
-        run: pnpm --dir src/studio/ui run atlas --shard="$SHARD/2"
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: always()
-        with:
-          name: ui-atlas-screenshots-${{ matrix.shard }}
-          path: src/studio/ui/screenshots/atlas
-          if-no-files-found: ignore
-          retention-days: 7
-
-  quick-ubuntu:
-    needs: scope
-    if: needs.scope.outputs.quickubuntu == 'true'
-    # The sub-minute Linux checks, one step each on one runner (their own jobs spent more on setup than on checking).
-    # `!cancelled()` on every step: a red step does not hide the ones after it.
-    #   - repo-scripts: the plain-Node scripts (GitHub metadata, release, the layout guard, the guide-screenshots tests,
-    #     which need the UI project's `sharp`, so it installs too). `always`: the layout and
-    #     project guards read every tracked file.
-    #   - docs-site (tools/docs-site): unit tests only - Pages publishes src/web, so the strict MkDocs build
-    #     is not run in CI, and the built site's link check (check_site.py) runs from pages.yml. `always`: docs/ belongs to no Nx project.
-    #   - python: ruff and pytest for src/studio/libs/python, the sidecars, scripts/ and tests/fixtures. Go is installed for the
-    #     transcript-compare tests, whose coverage harness and calibration measure the host's aligner through cmd/proof-align.
-    #   - reaper: stylua, then the bridge harness (src/studio/integrations/reaper/tests: Lua 5.4 from lupa, a fake `reaper` driven
-    #     through the file protocol, the mutation checks). quick-windows runs it on Windows too.
-    timeout-minutes: 20
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with: { fetch-depth: 0, persist-credentials: false }
-      - uses: ./.github/actions/setup-toolchain
-        with:
-          need-go: 'true'
-          need-wails-tools: 'false'
-          need-linux-native-deps: 'false'
-          python-sync-args: --group docs
-          pnpm-filter: workspace ui
-      - name: repo-scripts
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/nx-run
-        with:
-          targets: test-node
-          projects: repo-scripts
-          always: 'true'
-      - name: docs-site
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/nx-run
-        with:
-          targets: lint test
-          projects: docs-site
-          always: 'true'
-      - name: python
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/nx-run
-        with:
-          targets: lint test
-          projects: tag:toolchain:python,fixtures
-      - name: reaper (Lua)
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/nx-run
-        with:
-          targets: lint test
-          projects: reaper
-
-  rename-rehearsal:
-    # Renames a throwaway git worktree of this commit (in the temp folder, with its own node_modules and .venv from the store and
-    # cache setup-toolchain filled) to a made-up name and runs the brand sync, both name guards and the tests that read the name
-    # (scripts/brand/rehearse-rename.mjs), so a file that spells the product's name instead of reading it from
-    # config/brand.json fails here, not at the next real rename (#2251 item 41). Every pull request, whatever it touches: any file
-    # can spell the name. A pull request runs the targeted set; main-health (a scheduled or manual run) runs `--full`: every Go,
-    # UI, shared-library Python and Lua test, the built site and the strict docs build. The checkout is never written to, and the job adds no permission or secret.
-    needs: scope
-    name: rename rehearsal
-    timeout-minutes: 45
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with: { persist-credentials: false }
-      - uses: ./.github/actions/setup-toolchain
-        with:
-          need-wails-tools: 'false'
-          need-stylua: 'false'
-          python-sync-args: --group docs
-          pnpm-filter: workspace ui web
-      - env:
-          FULL: ${{ github.event_name != 'pull_request' && '--full' || '' }}
-        run: node scripts/brand/rehearse-rename.mjs $FULL
-
-  quick-windows:
-    # The sub-minute Windows checks on one runner:
-    #   - reaper: the bridge harness again, because the bridge builds paths from package.config and REAPER's own Lua
-    #     writes CRLF on Windows.
-    #   - go lint: gofmt, go vet, golangci-lint and checklocks (the `ci` configuration of the lint target). Windows, like
-    #     go-test: it is the only supported platform, and Linux's native libraries are not installed
-    #     on the Linux runners. Here rather than in go-test so the tests do not wait behind it.
-    # 25 min: the reaper step's mutation checks alone ran 12 of the 15 on Windows once the undo_last mutations joined
-    # (two cancelled runs), and go lint follows them.
-    needs: scope
-    if: needs.scope.outputs.winquick == 'true'
-    timeout-minutes: 25
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with: { fetch-depth: 0, persist-credentials: false }
-      - uses: ./.github/actions/setup-toolchain
-        with:
-          need-wails-tools: 'false'
-          need-golangci-lint: 'true'
-          python-sync-args: --only-group lua
-          pnpm-filter: workspace
-      - name: reaper (Lua)
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/nx-run
-        with:
-          targets: lint test
-          projects: reaper
-      - name: go lint
-        if: ${{ !cancelled() }}
-        uses: ./.github/actions/nx-run
-        with:
-          targets: lint
-          projects: desktop
-          configuration: ci
-
   go-test:
-    # The tests, with the race detector on the packages that have concurrency (the `ci` configuration of the test target;
-    # docs/operations/verification-tooling.md#go-lint-and-the-race-detector), then the teleprompter and shutdown tests on one and on four CPUs (`test-schedules`): an ordering bug
-    # between goroutines that hides on the default scheduler fails there on demand. Lint runs in quick-windows.
-    # Two parallel jobs, split by what each package cost on the Windows runner (run 39138316593): the raced packages took 10 m 22 s,
-    # 405 s of it the module's root package alone (the other raced packages ran beside it), the plain packages 33 s and
-    # `test-schedules` 118 s. `root` runs the root package; `rest` the other raced packages, the plain ones and `test-schedules`.
-    # Each job checks the coverage floors of the packages it ran (scripts/ci/coverage-gate.mjs --group); together they run every package once.
+    # The Windows checks, two jobs split by what each package cost on the Windows runner (run 39138316593): the raced root package
+    # took 405 s, the other raced packages ran beside it, the plain packages 33 s and `test-schedules` 118 s.
+    #   - root: the module's root package with the race detector (the `ci-root` configuration of the test target), then go lint
+    #     (gofmt, go vet, golangci-lint and checklocks: the `ci` configuration of the lint target).
+    #   - rest: the other raced packages and the plain ones (`ci-rest`), then the teleprompter and shutdown tests on one and on four CPUs
+    #     (`test-schedules`: an ordering bug between goroutines that hides on the default scheduler fails there on demand), then the
+    #     bridge harness under Lua 5.4 on Windows, because the bridge builds paths from package.config and REAPER's own Lua writes CRLF.
+    # Each job checks the coverage floors of the packages it ran (scripts/ci/coverage-gate.mjs --group); together they run every package
+    # once. These were three jobs: go lint and the Windows harness had a runner of their own (quick-windows), whose 20 minutes were 15.6
+    # of the harness's mutation checks.
+    # The mutation checks on Windows: a pull request runs the harness's `pr` configuration (the characterization tests, about a minute),
+    # because the Linux harness in linux-checks runs every mutation check on the same Lua source; every other run (main-health, a manual
+    # run) runs them on Windows too. Windows is the only supported platform and Linux's native libraries are not installed on the
+    # Linux runners, so Go is tested and linted here.
+    # 30 min: the median was 11 (root) and 15 (rest) min, the longest 16.1, plus about 2 for lint or the harness; a main-health run's
+    # mutation checks add up to 15 to `rest`.
     needs: scope
     if: needs.scope.outputs.shell == 'true'
     name: go-test (${{ matrix.part }})
@@ -463,27 +399,92 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { part: root, configuration: ci-root, schedules: false }
-          - { part: rest, configuration: ci-rest, schedules: true }
-    # 25 min: the median is 12 min and the longest run seen was 15.0, so a 15 min limit cancelled runs that were passing.
-    timeout-minutes: 25
+          - { part: root, configuration: ci-root, schedules: false, lint: true, lua: false }
+          - { part: rest, configuration: ci-rest, schedules: true, lint: false, lua: true }
+    timeout-minutes: 40
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { fetch-depth: 0, persist-credentials: false }
+      # No Python for the Go steps: Go tests that need the real sidecars skip themselves when the checkout has no `.venv`, and a
+      # half-synced one (the Lua group only) would make them run and fail. The Lua harness's Python comes after them.
       - uses: ./.github/actions/setup-toolchain
         with:
           need-python: 'false'
           need-wails-tools: 'false'
           need-stylua: 'false'
+          need-golangci-lint: ${{ matrix.lint }}
           pnpm-filter: workspace
-      - uses: ./.github/actions/nx-run
+      - name: go test
+        id: go-test
+        uses: ./.github/actions/nx-run
         with:
           targets: test
           projects: desktop
           configuration: ${{ matrix.configuration }}
-      - if: ${{ matrix.schedules && !cancelled() }}
+      - name: go test-schedules
+        id: schedules
+        if: ${{ matrix.schedules && !cancelled() }}
         uses: ./.github/actions/nx-run
         with:
           targets: test-schedules
           projects: desktop
+      - name: go lint
+        id: go-lint
+        if: ${{ matrix.lint && !cancelled() }}
+        uses: ./.github/actions/nx-run
+        with:
+          targets: lint
+          projects: desktop
+          configuration: ci
+      - name: Python and StyLua for the Lua harness
+        if: ${{ matrix.lua && !cancelled() }}
+        uses: ./.github/actions/setup-toolchain
+        with:
+          need-node: 'false'
+          need-pnpm: 'false'
+          need-go: 'false'
+          need-wails-tools: 'false'
+          python-sync-args: --only-group lua
+      - name: reaper (Lua)
+        id: reaper
+        if: ${{ matrix.lua && !cancelled() }}
+        uses: ./.github/actions/nx-run
+        with:
+          targets: lint test
+          projects: reaper
+          configuration: ${{ github.event_name == 'pull_request' && 'pr' || '' }}
+      - name: Summary
+        if: always()
+        shell: bash
+        env:
+          OUTCOMES: >-
+            {"go test": "${{ steps.go-test.outcome }}", "go test-schedules": "${{ steps.schedules.outcome }}",
+            "go lint": "${{ steps.go-lint.outcome }}", "reaper (Lua)": "${{ steps.reaper.outcome }}"}
+        run: node scripts/ci/step-summary.mjs
+
+  # Windows is the only supported platform, so it is the only native build. It needs only the UI bundle, which linux-checks builds
+  # first, so it starts when that job ends rather than with the fan-out: the two hold one runner slot in turn, and the build still ends
+  # well before the visual shards. It runs when the bundle was uploaded even if a later check of linux-checks failed, so a red lint
+  # does not also hide the build's result.
+  build-windows:
+    name: Build (Windows)
+    needs: linux-checks
+    if: ${{ inputs.full && !cancelled() && needs.linux-checks.outputs.ui-dist == 'true' }}
+    timeout-minutes: 30
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/build-native
+        with:
+          platform: windows-x64
+      # The packaged program, setup program, notices and checksums of this pull request, for a by-hand launch on Windows (the owner's
+      # check of a shell change, for example the Wails v3 migration). Never a release: releases are built by prerelease.yml.
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: app-windows-x64
+          path: release-assets/
+          if-no-files-found: error
+          retention-days: 7

@@ -52,12 +52,12 @@ async function startTake(page: Page, query = ''): Promise<void> {
   await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
 }
 
-// The Booth recording with the built-in recorder, the microphone `name` chosen in Levels and the menu left open on the built-in meter,
+// The Booth recording with the built-in recorder, the microphone `name` chosen in Record options and the menu left open on the built-in meter,
 // its level the mock recorder's steady −14.2 dB peak.
 async function openBuiltinLevels(page: Page, query: string, name: string): Promise<void> {
   await readyToRecord(page, query);
-  await page.getByRole('button', { name: 'Levels' }).click();
-  const menu = page.getByRole('dialog', { name: 'Levels' });
+  await page.getByRole('button', { name: 'Record options' }).click();
+  const menu = page.getByRole('dialog', { name: 'Record options' });
   await menu.getByRole('combobox', { name: 'Microphone' }).selectOption({ label: name });
   await menu.getByRole('meter', { name: 'Input level' }).and(page.locator('[aria-valuenow="-25"]')).waitFor();
 }
@@ -124,6 +124,22 @@ export const boothDrivers: Record<string, Driver> = {
     await page
       .getByRole('listbox', { name: 'Voices of this chapter' })
       .getByRole('option', { name: /Extras/ })
+      .waitFor();
+  },
+  'voices-who-is-in': async (page) => {
+    await readyToRecord(page, '?mockVoiceFolders=1');
+    await page.getByRole('button', { name: /^Voice:.*Narrator/ }).waitFor();
+    await page.keyboard.press('Numpad7');
+    await page.getByRole('dialog', { name: 'Who is in Num 7?' }).getByRole('textbox', { name: 'Track name' }).waitFor();
+  },
+  'voices-who-records': async (page) => {
+    await readyToRecord(page, '?mockVoiceFolders=1');
+    await page.getByRole('button', { name: /^Voice:.*Narrator/ }).click();
+    const list = page.getByRole('listbox', { name: 'Voices of this chapter' });
+    await list.getByRole('option').last().click();
+    await page
+      .getByRole('dialog', { name: /^Who records / })
+      .getByRole('textbox', { name: 'Track name' })
       .waitFor();
   },
   // The mixed manuscript's second chapter has a title and no subtitle, its third a subtitle long enough to wrap (applyMixedManuscriptMock).
@@ -295,6 +311,10 @@ export const boothDrivers: Record<string, Driver> = {
     await readyToRecord(page);
     await page.clock.install({ time: REC_START });
     await page.clock.pauseAt(REC_START + 1_000);
+    // Option B: the side menu picks what the main button does, then the main button starts the cold read.
+    await page.getByRole('button', { name: 'Record options' }).click();
+    await page.getByRole('radio', { name: 'Cold read' }).click();
+    await page.keyboard.press('Escape');
     await page.getByRole('button', { name: 'Cold read' }).click();
     await page.getByText('Mic on · cold read', { exact: true }).waitFor();
     await page.clock.runFor(30_000);
@@ -372,8 +392,8 @@ export const boothDrivers: Record<string, Driver> = {
   },
   'levels-menu': async (page) => {
     await readyToRecord(page);
-    await page.getByRole('button', { name: 'Levels' }).click();
-    const menu = page.getByRole('dialog', { name: 'Levels' });
+    await page.getByRole('button', { name: 'Record options' }).click();
+    const menu = page.getByRole('dialog', { name: 'Record options' });
     await menu.getByText('Same as REAPER').waitFor();
     // The microphone the DAW records from is named (the mock's first listed microphone), not left blank, with REAPER's device and channel.
     await menu.getByText('Microphone Array (Realtek(R) Audio)', { exact: true }).waitFor();
@@ -386,8 +406,8 @@ export const boothDrivers: Record<string, Driver> = {
   'levels-menu-builtin': (page) => openBuiltinLevels(page, '?mockEngine=builtin', 'Analogue 1 + 2 (Focusrite USB Audio)'),
   'levels-menu-builtin-refused': async (page) => {
     await readyToRecord(page, '?mockEngine=builtin&mockRecorder=start-fails');
-    await page.getByRole('button', { name: 'Levels' }).click();
-    const menu = page.getByRole('dialog', { name: 'Levels' });
+    await page.getByRole('button', { name: 'Record options' }).click();
+    const menu = page.getByRole('dialog', { name: 'Record options' });
     await menu.getByRole('combobox', { name: 'Microphone' }).selectOption({ label: 'Analogue 1 + 2 (Focusrite USB Audio)' });
     await menu.getByText('The meter did not start.').waitFor();
     await menu.getByRole('button', { name: 'Check again' }).waitFor();
@@ -399,35 +419,35 @@ export const boothDrivers: Record<string, Driver> = {
   },
   'levels-menu-builtin-opening': async (page) => {
     await readyToRecord(page, '?mockEngine=builtin&mockRecorder=meter-hangs');
-    await page.getByRole('button', { name: 'Levels' }).click();
-    const menu = page.getByRole('dialog', { name: 'Levels' });
+    await page.getByRole('button', { name: 'Record options' }).click();
+    const menu = page.getByRole('dialog', { name: 'Record options' });
     await menu.getByRole('combobox', { name: 'Microphone' }).selectOption({ label: 'Analogue 1 + 2 (Focusrite USB Audio)' });
     await menu.getByText('Opening the microphone…').waitFor();
   },
   'levels-menu-builtin-paused': async (page) => {
     await openBuiltinLevels(page, '?mockEngine=builtin', 'Analogue 1 + 2 (Focusrite USB Audio)');
     await page.evaluate(() => window.dispatchEvent(new Event('blur')));
-    await page.getByRole('dialog', { name: 'Levels' }).getByText('Paused while the app is in the background.').waitFor();
+    await page.getByRole('dialog', { name: 'Record options' }).getByText('Paused while the app is in the background.').waitFor();
   },
   'levels-menu-builtin-no-mic': async (page) => {
     await readyToRecord(page, '?mockEngine=builtin&mockRecorder=mic-gone');
-    await page.getByRole('button', { name: 'Levels' }).click();
-    await page.getByRole('dialog', { name: 'Levels' }).getByText('No microphone chosen.').waitFor();
+    await page.getByRole('button', { name: 'Record options' }).click();
+    await page.getByRole('dialog', { name: 'Record options' }).getByText('No microphone chosen.').waitFor();
   },
   'levels-menu-builtin-long-name': (page) => openBuiltinLevels(page, '?mockEngine=builtin&mockMics=long', `Long ${'microphone name '.repeat(19)}end`),
   'levels-menu-builtin-rtl-name': (page) => openBuiltinLevels(page, '?mockEngine=builtin&mockMics=weird', 'ميكروفون 🎤 (USB)'),
   // REAPER's input fits two microphones (#2251): Levels says so with one button each, and listens on the first meanwhile.
   'levels-menu-mic-uncertain': async (page) => {
     await readyToRecord(page, '?mockReaperInput=uncertain');
-    await page.getByRole('button', { name: 'Levels' }).click();
-    const menu = page.getByRole('dialog', { name: 'Levels' });
+    await page.getByRole('button', { name: 'Record options' }).click();
+    const menu = page.getByRole('dialog', { name: 'Record options' });
     await menu.getByRole('group', { name: 'Which microphone REAPER records from' }).waitFor();
   },
   // The narrator chose a different microphone than REAPER's (#2251): the picker, the sentence that says so, and the way back.
   'levels-menu-mic-chosen': async (page) => {
     await readyToRecord(page);
-    await page.getByRole('button', { name: 'Levels' }).click();
-    const menu = page.getByRole('dialog', { name: 'Levels' });
+    await page.getByRole('button', { name: 'Record options' }).click();
+    const menu = page.getByRole('dialog', { name: 'Record options' });
     await menu.getByRole('button', { name: 'Choose a different one' }).click();
     await menu.getByRole('combobox', { name: 'Microphone' }).selectOption({ index: 1 });
     await menu.getByRole('button', { name: "Use REAPER's input" }).waitFor();
@@ -436,16 +456,16 @@ export const boothDrivers: Record<string, Driver> = {
   // With no track armed in REAPER, so the meters say so (#2251 item 11) and this state differs from levels-menu.
   'levels-menu-preroll': async (page) => {
     await readyToRecord(page, `?mockDawMeters=unarmed`);
-    await page.getByRole('button', { name: 'Levels' }).click();
-    const menu = page.getByRole('dialog', { name: 'Levels' });
+    await page.getByRole('button', { name: 'Record options' }).click();
+    const menu = page.getByRole('dialog', { name: 'Record options' });
     await menu.getByText('Pre-roll off · 2 measures (4.0 s)').waitFor();
     await menu.getByText('No track is armed in REAPER: its input level shows once one is.').waitFor();
   },
   // The pre-roll's "i" opened from the keyboard: the note, inside the menu, says what the pre-roll does and where to change it in REAPER.
   'levels-menu-preroll-about': async (page) => {
     await readyToRecord(page, `?mockDawMeters=unarmed`);
-    await page.getByRole('button', { name: 'Levels' }).click();
-    const menu = page.getByRole('dialog', { name: 'Levels' });
+    await page.getByRole('button', { name: 'Record options' }).click();
+    const menu = page.getByRole('dialog', { name: 'Record options' });
     await menu.getByText('Pre-roll off · 2 measures (4.0 s)').waitFor();
     const info = menu.getByRole('button', { name: 'About REAPER’s pre-roll' });
     // Reached with the keyboard and opened with Enter, as a narrator without a mouse would.
@@ -578,6 +598,14 @@ export const boothDrivers: Record<string, Driver> = {
     await page.getByRole('button', { name: 'Stop reading' }).click();
     await page.getByRole('region', { name: 'Where you stopped' }).waitFor();
     await page.getByText('Playhead stopped').waitFor();
+  },
+  // A session the host kept running, whose suspected flags the confirmation pass judged: one confirmed, one cleared (api/teleprompterMock.ts `checked`).
+  'suspected-second-listen': async (page) => {
+    await openBooth(page, '?mockTeleprompter=checked');
+    await boothChapterReady(page);
+    await openSidePanel(page);
+    await page.getByText('Not confirmed', { exact: true }).waitFor();
+    await page.getByText('Confirmed', { exact: true }).waitFor();
   },
   'no-manuscript': async (page) => {
     await openWithoutManuscript(page, 'Booth');

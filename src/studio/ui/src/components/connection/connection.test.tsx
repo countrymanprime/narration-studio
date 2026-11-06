@@ -11,6 +11,7 @@ import { TooltipProvider } from '../primitives/Tooltip';
 import { trackChoices } from '../mapping/trackChoices';
 import { ConnectionResolveDialog } from './ConnectionResolveDialog';
 import { resetOpenOnce, useOpenOnce } from './useOpenOnce';
+import { VoiceLayoutContext } from '../engine/voiceLayout';
 
 beforeEach(resetOpenOnce);
 afterEach(cleanup);
@@ -305,6 +306,25 @@ describe('the not-linked dialog', () => {
     expect(chapterTrackCreate).toHaveBeenCalledTimes(1);
     await act(async () => finish(created()));
     await waitFor(() => expect(onLinked).toHaveBeenCalledOnce());
+  });
+
+  it('in a Voice folders project says folder: the button, the line beside the list and the empty-project line (#2958)', async () => {
+    const folders = (ui: React.ReactElement, api: Partial<NarrationApi>) =>
+      render(
+        <ApiProvider api={createMockApi(api)}>
+          <TooltipProvider>
+            <VoiceLayoutContext.Provider value="folders">{ui}</VoiceLayoutContext.Provider>
+          </TooltipProvider>
+        </ApiProvider>,
+      );
+    const listed = folders(<ConnectionResolveDialog {...link()} />, { chapterTrackMatch: async () => match() });
+    await screen.findByRole('combobox', { name: 'Track for Chapter 3' });
+    expect(screen.getByRole('button', { name: 'Create a new folder' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Create a new track' })).toBeNull();
+    expect(screen.getByText(/Or have REAPER add a new folder for this chapter, named after it with a Narrator track in it, and link it:/)).toBeTruthy();
+    listed.unmount();
+    folders(<ConnectionResolveDialog {...link()} />, { chapterTrackMatch: async () => match({ tracks: [], track: null, candidates: [] }) });
+    expect(await screen.findByText(/Create a new folder adds one named after the chapter, with a Narrator track in it, and links it/)).toBeTruthy();
   });
 
   it("says the DAW's refusal in the dialog and links nothing; a failed call says why", async () => {

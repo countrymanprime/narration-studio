@@ -38,7 +38,7 @@ What the train already gives (all cited from the train's procedure, then `docs/o
 Keep the train and add four things: a **slice** (the unit of work), a **groomer** session type that cuts slices just in time, a **decisions register** the agents poll, and a **status issue**. Everything else is the train.
 
 1. **Slices.** Every PRD in the series ends with a "Slices" table (id, scope, depends on, parallel-safe, verification). One slice is one PR by one worker in one lane, small enough to finish in one session. Each slice has one GitHub issue created by the groomer shortly before it becomes ready.
-2. **Lanes and the graph.** Slices carry a lane and dependency list. The overview's graph ([Studio Next Rebuild](../../../../docs/prds/studio-next-rebuild.prd.md)) fixes the serial spine; the rest fans out.
+2. **Lanes and the graph.** Slices carry a lane and dependency list. The overview's graph (Studio Next Rebuild) fixes the serial spine; the rest fans out.
 3. **A coordinator that never idles.** The existing pass (merge, reconcile, launch) plus a groomer launch whenever the ready queue is shallower than twice `TARGET`, and a stall rule.
 4. **Workers that can be replaced mid-slice.** A slice issue carries a `## Handoff` comment the worker updates at every checkpoint, so a fresh session resumes from the repo and the issue alone.
 5. **Decisions by register.** One issue holds each decision: the rulings of 2026-10-11 as decided, and any new question with options, recommendation and default date; agents poll it at checkpoints; a non-ADR question takes its default after seven days.
@@ -70,7 +70,7 @@ If every unit of work is sized for one session, specified in a machine-readable 
 
 ## Decisions
 
-The owner ruled on 2026-10-11 (see [Studio Next Rebuild](../../../../docs/prds/studio-next-rebuild.prd.md#decisions)). The process choices below were accepted as recommended, by the owner's standing instruction to take reasonable defaults. No question is open.
+The owner ruled on 2026-10-11 (see Studio Next Rebuild). The process choices below were accepted as recommended, by the owner's standing instruction to take reasonable defaults. No question is open.
 
 | Id | Decision | Consequence |
 | --- | --- | --- |
@@ -138,7 +138,7 @@ The train's pass is unchanged: switches, usage, reconcile, merge, launch, housek
 1. **Pick.** The ready list is computed from labels: `slice` and `ready`, every `depends` closed by a merged PR, no open slice whose `owns` overlaps (glob intersection), no unanswered `owner-decision` blocker, the program's wave reached. Order: the train's order (contracts first, resumes, unblockers, leaf features, docs, filler).
 2. **Spawn.** `create_session` exactly as step 5.3 of the pass, with the worker template plus a `SLICE:` block that holds the issue number and says "the issue is the spec; read its Handoff comment first". Title `"N-<lane><n> SN-<code><n> <scope>"`, tags `["agent-train", "lane-<L>", "studio-next"]`.
 3. **Monitor.** `get_session` buckets as in step 3. New: a session in `working` with no push, no issue comment and no PR event for 3 hours is stalled (D-3).
-4. **Merge and queue.** The train's merge rules unchanged (not draft, mergeable, `Build (Windows)` and `ui-dist` green, no 🔴 thread, for UI the guide page and images updated and the real-app and Storybook results stated, squash with `expectedHeadSha`). After a merge the coordinator immediately re-checks the slices that depended on it (D62) and launches in the same pass.
+4. **Merge and queue.** The train's merge rules unchanged (not draft, mergeable, `Build (Windows)` and `linux-checks` green, no 🔴 thread, for UI the guide page and images updated and the real-app and Storybook results stated, squash with `expectedHeadSha`). After a merge the coordinator immediately re-checks the slices that depended on it (D62) and launches in the same pass.
 5. **Stalls and failures.** Stalled: `interrupt_session`, then a resume session from the Handoff comment (resume template). Failed on usage: the train's pause path. Three failed CI rounds (the train's rule): draft PR, label `blocked`, one Opus fixer; a second failure goes to #510 with the failure pasted. A slice that exhausts its session cap is relabelled `blocked` and re-groomed (it was too big: split it).
 6. **Groom.** If fewer than `2 x TARGET` ready slices exist and a PRD has slices in the table without an issue, launch a groomer: it opens the issues from the PRD's table, fills the header from the code (it may read it), marks `ready` those whose dependencies are merged, and ends.
 7. **Hand-off.** Every slice issue ends with a `## Handoff` comment the worker rewrites at each checkpoint: done (SHAs), next step, failing check, commands run, files touched, decisions assumed. A fresh session needs only `CLAUDE.md`, the PRD slice row, the issue and the branch.
@@ -221,7 +221,7 @@ A **decisions register** issue ("Studio Next decisions"), one comment per decisi
 
 ### Supersedes / depends on ADRs
 
-On conflict this PRD, and the ADR written when its phase lands, is the source of truth for the rebuild; an old ADR stays in force for code not yet migrated until the superseding ADR is merged ([register](../../../../docs/prds/studio-next-adr-register.prd.md)).
+On conflict this PRD, and the ADR written when its phase lands, is the source of truth for the rebuild; an old ADR stays in force for code not yet migrated until the superseding ADR is merged (register).
 
 | ADR | Class | Note |
 | --- | --- | --- |

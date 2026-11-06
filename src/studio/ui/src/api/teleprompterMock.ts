@@ -22,6 +22,7 @@ import type {
   TeleprompterEngine,
   TeleprompterEvent,
   TeleprompterFlag,
+  TeleprompterFlagCheck,
   TeleprompterFlagFinding,
   TeleprompterFlagSave,
   TeleprompterLocateResult,
@@ -62,9 +63,10 @@ const SENTENCE_END = /[.!?…]["'”’)\]]*$/;
 
 /**
  * `ended` is a session that stopped itself at the end of the chapter (the host's auto-stop); `flagged` is `listening`
- * further into the text, with a session's suspected flags already raised.
+ * further into the text, with a session's suspected flags already raised; `checked` is `flagged` after the trailing
+ * confirmation pass has judged two of them: the first confirmed, the last cleared.
  */
-export type TeleprompterSeed = 'listening' | 'waiting' | 'done' | 'ended' | 'flagged';
+export type TeleprompterSeed = 'listening' | 'waiting' | 'done' | 'ended' | 'flagged' | 'checked';
 
 /** `?mockReaperState=`: what `readAloudReaperState` answers for every chapter (each status). */
 export const MOCK_REAPER_SEEDS = ['ready', 'not_armed', 'other_armed', 'several_armed', 'no_link', 'recording_elsewhere', 'unavailable'] as const;
@@ -100,21 +102,21 @@ function mockReaperInput(seed: MockReaperInputSeed, devices: string[]): Teleprom
         status: 'no_match',
         reaperDevice: 'ASIO4ALL v2',
         candidates: [],
-        message: 'REAPER records from "ASIO4ALL v2", which does not match a microphone here. Choose the microphone in Levels.',
+        message: 'REAPER records from "ASIO4ALL v2", which does not match a microphone here. Choose the microphone in Record options.',
       };
     case 'reaper_no_device':
       return {
         status: 'unavailable',
         reason: 'reaper_no_device',
         candidates: [],
-        message: 'REAPER did not say which input device it has open. Choose the microphone in Levels.',
+        message: 'REAPER did not say which input device it has open. Choose the microphone in Record options.',
       };
     case 'daw_cannot_report':
       return {
         status: 'unavailable',
         reason: 'daw_cannot_report',
         candidates: [],
-        message: 'Audacity cannot report which microphone it records from, so the Booth listens to the one chosen in Levels.',
+        message: 'Audacity cannot report which microphone it records from, so the Booth listens to the one chosen in Record options.',
       };
   }
 }
@@ -607,6 +609,8 @@ export function createTeleprompterMock(deps: Deps): TeleprompterApi {
   // The flags a `flagged` session raised: the recorded ones (the recording's word numbers counted from the chapter's first
   // paragraph, which is where its 100 words were read), plus an extra, which the recorded session did not raise.
   let seededFlags: TeleprompterFlag[] = [];
+  // What the confirmation pass of a `checked` session said about them (a `flag_check` each), heard after the flags.
+  let seededVerdicts: TeleprompterFlagCheck[] = [];
   const seedState = async () => {
     await deps.ready;
     const chapter = deps.chapters()[0];
@@ -615,19 +619,25 @@ export function createTeleprompterMock(deps: Deps): TeleprompterApi {
     sessionWords = words;
     const firstParagraph = script.spans[1]?.start ?? 0;
     const atEnd = deps.seed === 'done' || deps.seed === 'ended';
-    const into = deps.seed === 'flagged' ? FLAGGED_WORDS_INTO_TEXT : SEED_WORDS_INTO_TEXT;
+    const raisesFlags = deps.seed === 'flagged' || deps.seed === 'checked';
+    const into = raisesFlags ? FLAGGED_WORDS_INTO_TEXT : SEED_WORDS_INTO_TEXT;
     const read = atEnd ? script.tokens : Math.min(firstParagraph + into, script.tokens - 1);
-    const status = deps.seed === 'ended' ? 'done' : deps.seed === 'flagged' ? 'listening' : deps.seed;
+    const status = deps.seed === 'ended' ? 'done' : deps.seed === 'flagged' || deps.seed === 'checked' ? 'listening' : deps.seed;
     state =
       deps.seed === 'ended'
         ? { phase: 'stopped', message: AUTO_STOPPED, engine: 'whisper', chapter: chapter.id, script, position: position(read, status) }
         : { phase: 'running', message: LISTENING, engine: 'whisper', chapter: chapter.id, script, position: position(read, status) };
-    if (deps.seed !== 'flagged') return;
+    if (!raisesFlags) return;
     const recorded = recording.events.flatMap(({ event }) => (event.type === 'flag' ? [event] : []));
     const extra: TeleprompterFlag = { type: 'flag', id: recorded.length + 1, kind: 'extra', start: 55, end: 55, heard: 'um, so' };
     seededFlags = [...recorded, extra]
       .map((flag) => ({ ...flag, start: flag.start + firstParagraph, end: flag.end + firstParagraph }))
       .filter((flag) => flag.end <= read);
+    if (deps.seed === 'checked' && seededFlags.length >= 2)
+      seededVerdicts = [
+        { type: 'flag_check', id: seededFlags[0]!.id, state: 'confirmed' },
+        { type: 'flag_check', id: seededFlags[seededFlags.length - 1]!.id, state: 'cleared' },
+      ];
   };
 
   return {
@@ -757,9 +767,11 @@ export function createTeleprompterMock(deps: Deps): TeleprompterApi {
     subscribeTeleprompterEvent: (onEvent) => {
       eventSubscribers.add(onEvent);
       // A view that opens on a `flagged` session hears the flags it raised so far, as it would have while listening.
-      if (deps.seed === 'flagged')
+      if (deps.seed === 'flagged' || deps.seed === 'checked')
         void (seeding ??= seedState()).then(() => {
-          if (eventSubscribers.has(onEvent)) seededFlags.forEach((flag) => onEvent({ ...flag }));
+          if (!eventSubscribers.has(onEvent)) return;
+          seededFlags.forEach((flag) => onEvent({ ...flag }));
+          seededVerdicts.forEach((verdict) => onEvent({ ...verdict }));
         });
       return () => eventSubscribers.delete(onEvent);
     },

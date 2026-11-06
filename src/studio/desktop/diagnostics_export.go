@@ -2,17 +2,20 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"os/user"
 	"path/filepath"
+	"strings"
 	"time"
 
-	"desktop/internal/runlog"
+	"desktop/internal/diagexport"
 	"desktop/internal/update"
 )
 
-// copyDiagnosticsWindow is the "last 30 minutes" scope of the copied diagnostics.
-const copyDiagnosticsWindow = 30 * time.Minute
+// maxLeakFileNames bounds how many names from the project folder the leak check learns.
+const maxLeakFileNames = 500
 
-// SystemOpenLogFolder shows the run log's folder (logs/run.jsonl, host.log and logs/runs/) in the file manager, the
+// SystemOpenLogFolder shows the run log's folder (logs/run.jsonl, trace.jsonl, host.log and logs/runs/) in the file manager, the
 // way TeleprompterStop's sibling bindings already do for the update cache (update_install.go's showDownloadedUpdate).
 func (h *Host) SystemOpenLogFolder() (string, error) {
 	dir := filepath.Dir(h.runLog.Path())
@@ -22,25 +25,26 @@ func (h *Host) SystemOpenLogFolder() (string, error) {
 	return encodeBinding(nil, update.OpenFolder(dir))
 }
 
-// CopyDiagnosticsScope is the choice Settings offers: the last run's own host and sidecar records, or
-// everything from the last 30 minutes.
-type CopyDiagnosticsScope string
+// SystemDiagnosticsPreview answers what a saved diagnostics bundle would hold: each file with its size, what is left out and why,
+// and what the leak check dropped. Nothing is written. The narrator reads it before saving (docs/prds/activity-trace.prd.md).
+func (h *Host) SystemDiagnosticsPreview() (string, error) {
+	bundle, err := h.buildDiagnostics()
+	if err != nil {
+		return encodeBinding(nil, err)
+	}
+	return encodeBinding(bundle.Preview(), nil)
+}
 
-const (
-	CopyDiagnosticsLastRun   CopyDiagnosticsScope = "last_run"
-	CopyDiagnosticsLast30Min CopyDiagnosticsScope = "last_30_minutes"
-)
-
-// SystemCopyDiagnostics saves scope's records as one .jsonl file in a folder the narrator chooses, and answers its
-// path (the UI copies it to the clipboard). "last_run" with no run yet logged is refused rather than saving an
-// empty file with nothing to show for it.
-func (h *Host) SystemCopyDiagnostics(scope string) (string, error) {
-	path, err := h.copyDiagnostics(CopyDiagnosticsScope(scope))
+// SystemSaveDiagnostics saves the diagnostics bundle (a zip with a manifest) in a folder the narrator chooses and answers its path,
+// which the UI copies to the clipboard. The answer's path is empty when the narrator cancelled the folder picker. Nothing is sent
+// anywhere: the narrator attaches the file to an issue by hand.
+func (h *Host) SystemSaveDiagnostics() (string, error) {
+	path, err := h.saveDiagnostics()
 	return encodeBinding(map[string]any{"path": path}, err)
 }
 
-func (h *Host) copyDiagnostics(scope CopyDiagnosticsScope) (string, error) {
-	runLogScope, err := h.diagnosticsRunlogScope(scope)
+func (h *Host) saveDiagnostics() (string, error) {
+	bundle, err := h.buildDiagnostics()
 	if err != nil {
 		return "", err
 	}
@@ -55,31 +59,64 @@ func (h *Host) copyDiagnostics(scope CopyDiagnosticsScope) (string, error) {
 	if folder == "" {
 		return "", nil
 	}
-	now := time.Now
-	if h.diagnosticsNow != nil {
-		now = h.diagnosticsNow
-	}
-	dest := filepath.Join(folder, fmt.Sprintf("diagnostics-%s.jsonl", now().UTC().Format("20060102T150405")))
-	if _, err := h.runLog.ExportDiagnostics(runLogScope, dest); err != nil {
+	dest := filepath.Join(folder, fmt.Sprintf("diagnostics-%s.zip", h.diagnosticsClock()().UTC().Format("20060102T150405")))
+	if err := bundle.WriteZip(dest); err != nil {
 		return "", err
 	}
 	return dest, nil
 }
 
-func (h *Host) diagnosticsRunlogScope(scope CopyDiagnosticsScope) (runlog.DiagnosticsScope, error) {
-	switch scope {
-	case CopyDiagnosticsLastRun:
-		runID, err := h.runLog.LastRunID()
-		if err != nil {
-			return runlog.DiagnosticsScope{}, err
-		}
-		if runID == "" {
-			return runlog.DiagnosticsScope{}, fmt.Errorf("no tool has run yet in this session")
-		}
-		return runlog.DiagnosticsScope{RunID: runID}, nil
-	case CopyDiagnosticsLast30Min:
-		return runlog.DiagnosticsScope{Since: copyDiagnosticsWindow}, nil
-	default:
-		return runlog.DiagnosticsScope{}, fmt.Errorf("unsupported diagnostics scope %q", scope)
+func (h *Host) diagnosticsClock() func() time.Time {
+	if h.diagnosticsNow != nil {
+		return h.diagnosticsNow
 	}
+	return time.Now
+}
+
+func (h *Host) buildDiagnostics() (*diagexport.Bundle, error) {
+	bridgeLog := ""
+	if dir := h.services().config.sessionDir; dir != "" {
+		bridgeLog = filepath.Join(dir, "bridge.jsonl")
+	}
+	return diagexport.Build(diagexport.Options{
+		Tracer: h.tracer, TracePath: h.tracer.Path(), RunLogPath: h.runLog.Path(), RunsDir: filepath.Join(filepath.Dir(h.runLog.Path()), "runs"),
+		BridgeLogPath: bridgeLog, AppVersion: h.version,
+		LeakTerms: h.diagnosticsLeakTerms(), Now: h.diagnosticsClock(),
+	})
+}
+
+// diagnosticsLeakTerms are the strings no line of an export may contain: the account's user name, the home folder's name, the open
+// project's folder name and the names of the files in it (without their extensions, and leaving out folders and JSON or log files).
+func (h *Host) diagnosticsLeakTerms() []string {
+	var terms []string
+	if account, err := user.Current(); err == nil {
+		name := account.Username
+		if slash := strings.LastIndexAny(name, `\/`); slash >= 0 {
+			name = name[slash+1:]
+		}
+		terms = append(terms, name, account.Name)
+	}
+	if home, err := os.UserHomeDir(); err == nil {
+		terms = append(terms, filepath.Base(home))
+	}
+	terms = append(terms, os.Getenv("USERNAME"), os.Getenv("USER"))
+	folder := h.services().config.projectFolder
+	if folder == "" {
+		return terms
+	}
+	terms = append(terms, filepath.Base(folder))
+	if entries, err := os.ReadDir(folder); err == nil {
+		for i, entry := range entries {
+			if i >= maxLeakFileNames {
+				break
+			}
+			name := entry.Name()
+			// Generic file names (manifest.json, a log) say nothing about the project and would drop ordinary lines.
+			if entry.IsDir() || strings.HasSuffix(name, ".json") || strings.HasSuffix(name, ".jsonl") || strings.HasSuffix(name, ".log") {
+				continue
+			}
+			terms = append(terms, strings.TrimSuffix(name, filepath.Ext(name)))
+		}
+	}
+	return terms
 }

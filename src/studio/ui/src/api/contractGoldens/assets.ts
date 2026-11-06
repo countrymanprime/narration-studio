@@ -1,6 +1,6 @@
 // The golden payloads for downloaded assets (voice, Whisper, the asset list): which schema owns each file in tests/fixtures/contracts/ (see index.ts).
 import type { z } from 'zod';
-import { assetCatalogSchema, assetInstallJobSchema, assetVerifyResultSchema } from '../schemas/assets';
+import { assetCatalogSchema, assetFolderPickSchema, assetInstallJobSchema, assetMoveStateSchema, assetVerifyResultSchema } from '../schemas/assets';
 import { ttsInstallJobSchema } from '../schemas/tts';
 import { whisperInstallJobSchema } from '../schemas/whisper';
 
@@ -13,6 +13,10 @@ export const assetsGoldens: Record<string, z.ZodType> = {
   'asset-install-unpack-error.json': assetInstallJobSchema,
   'assets-list.json': assetCatalogSchema,
   'assets-verify.json': assetVerifyResultSchema,
+  'assets-move-idle.json': assetMoveStateSchema,
+  'assets-move-copying.json': assetMoveStateSchema,
+  'assets-move-error.json': assetMoveStateSchema,
+  'assets-folder-pick.json': assetFolderPickSchema,
   'whisper-install-downloading.json': whisperInstallJobSchema,
   'tts-install-verifying.json': ttsInstallJobSchema,
   'whisper-install-success.json': whisperInstallJobSchema,

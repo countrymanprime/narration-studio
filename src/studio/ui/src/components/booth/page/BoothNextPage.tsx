@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { FLAT_VOICE_KEYS, useBoothVoices } from '../voices/useBoothVoices';
 import { VoiceControl } from '../voices/VoiceControl';
+import { WhoIsInDialog, type WhoAsk } from '../voices/WhoIsInDialog';
+import { castOf } from '../voices/whoIsIn';
 import type { PickupItem } from '../../../api/contracts/pickups';
 import { useSearchParams } from 'react-router-dom';
 import { headingName } from '../../../chapterHeading';
@@ -19,6 +21,7 @@ import { usePort } from '../../../ports/usePort';
 import { recordsInApp } from '../../../studio/dawNames';
 import { dawShortName, useJournal } from '../../../studio/StudioProvider';
 import { ContextMenuHost } from '../../layout/ContextMenuHost';
+import type { ToastAction } from '../../primitives/Toast';
 import type { ContextMenuItem } from '../../primitives/ContextMenu';
 import { ChapterStepper } from '../../primitives/ChapterStepper';
 import { NeedManuscript } from '../../layout/NeedManuscript';
@@ -52,7 +55,7 @@ import { offerAwayFrom, saveNote } from '../resume/resumeOfferModel';
 import { useSuspectedPickups } from '../suspected/useSuspectedPickups';
 import { BoothSidePanel, useBoothSideOpen } from '../side/BoothSidePanel';
 import { boothDecorations, markAtWord } from '../side/decorations';
-import { comingUpWords } from '../side/nearby';
+import { comingUpWords, linesInChapter } from '../side/nearby';
 import { useBoothMarks } from '../side/useBoothMarks';
 import { referenceOf } from '../side/referenceOf';
 import { useBoothReference } from '../side/useBoothReference';
@@ -63,9 +66,9 @@ import { BoothSkeleton } from './BoothSkeleton';
 import { BoothUnavailable } from './BoothUnavailable';
 import { BoothGutter, BoothMessage } from './BoothMessage';
 import { CreditsWarning } from './CreditsWarning';
-import { bodyParagraphIndex, creditsParagraphs, entityAtWord, headingParagraphs, positionAtOffset, readingParagraphsOf, secondsBefore } from './readingSource';
+import { bodyParagraphIndex, creditsParagraphs, entityAtWord, headingParagraphs, readingParagraphsOf } from './readingSource';
+import { useMoveTarget } from './useMoveTarget';
 import { useFollowDawOnOpen, useMoveDawOnOpen } from './useDawFollow';
-import { unitAtPosition } from '../reading/readingPosition';
 import { useBoothData, type BoothSource } from './useBoothData';
 import { useBoothPage } from './useBoothPage';
 import type { StoppedTake } from '../pickups/usePickupSession';
@@ -317,7 +320,11 @@ function BoothSession({
     escapeStoppedSample?: () => boolean;
     recordBlocked?: (block: RecordBlock) => void;
   }>({});
+  // Set below, once the listening microphone is known (it is built after the page): why Record cannot begin on a microphone, or null.
+  const micProblem = useRef<string | null>(null);
   const page = useBoothPage({
+    micProblem: () => micProblem.current,
+    projectFolder,
     recordId,
     title,
     credits: source.kind === 'credits',
@@ -430,13 +437,7 @@ function BoothSession({
   const reference = useMemo(() => referenceOf(referenced.target, entities, marks, types), [referenced.target, entities, marks, types]);
 
   // Opened at a chapter, the DAW goes there too: to the end of its track, or to the line the Booth opened at, so the narrator can punch from it.
-  const moveTarget = useMemo(() => {
-    if (units.length === 0) return null;
-    // The credits have no line to start from: the DAW goes to the end of their track.
-    const position = chapter && from ? positionAtOffset(paragraphs, from.paragraphId, from.offset) : null;
-    const unit = position && unitAtPosition(paragraphs, units, position);
-    return unit ? ({ where: 'at', seconds: secondsBefore(units, unit.cur) } as const) : ({ where: 'end' } as const);
-  }, [chapter, from, paragraphs, units]);
+  const moveTarget = useMoveTarget({ chapterId, paragraphs, units, line: chapter && from ? from : undefined });
   useMoveDawOnOpen({
     enabled: moveDaw,
     chapterId,
@@ -478,9 +479,50 @@ function BoothSession({
 
   // The chapter's voices in a Voice folders project (docs/prds/booth-voice-tracks.prd.md): Num 0 to Num 9 choose one, Num + and Num −
   // step through them, Num . opens the list; during a take the choice switches the recording live.
-  const voiceToast = useCallback((text: string, tone?: 'error' | 'info') => overlay.toast(text, tone === 'error' ? { tone } : undefined), [overlay]);
-  const voices = useBoothVoices({ chapterId: recordId, recording: control.recording, notify: voiceToast });
+  const voiceToast = useCallback(
+    (text: string, tone?: 'error' | 'info', action?: ToastAction) => overlay.toast(text, tone === 'error' ? { tone, action } : undefined),
+    [overlay],
+  );
+  // "Who is in Num N?" (phase 5, #2839): a key with no track behind it asks, after stopping a take this app runs as Stop does.
+  const [whoAsk, setWhoAsk] = useState<WhoAsk | null>(null);
+  const voices = useBoothVoices({
+    chapterId: recordId,
+    recording: control.recording,
+    notify: voiceToast,
+    stopTake: page.stopTake,
+    onNoTrack: (key) => setWhoAsk({ kind: 'key', key }),
+    asking: whoAsk !== null,
+  });
   const [voiceListOpen, setVoiceListOpen] = useState(false);
+  const lines = useMemo(() => linesInChapter(units, entities), [units, entities]);
+  const cast = useMemo(
+    () =>
+      castOf({
+        inThisChapter: inThisChapter.map((voice) => ({ id: voice.id, name: voice.name })),
+        characters: characters.map((entity) => ({ id: entity.id, name: entity.canonical_name })),
+        lines,
+        voices: voices.voices,
+      }),
+    [inThisChapter, characters, lines, voices.voices],
+  );
+  // Another chapter is another folder: a question about this one's voices goes.
+  useEffect(() => setWhoAsk(null), [recordId]);
+  const askFor = useCallback(
+    (characterId: string, choice?: 'new' | 'existing') => {
+      const character = [...cast.inChapter, ...cast.elsewhere].find((each) => each.id === characterId);
+      if (character) setWhoAsk({ kind: 'character', character, choice });
+    },
+    [cast],
+  );
+  const voiceKeys =
+    voices.voices.length > 0
+      ? {
+          keyOf: (id: string) => cast.inChapter.find((character) => character.id === id)?.key,
+          speaks: (id: string) => (lines.get(id) ?? 0) > 0,
+          add: (id: string) => askFor(id, 'new'),
+          addWhy: control.recording ? 'Not while recording. Stop the take first.' : undefined,
+        }
+      : undefined;
   useCommand('booth.voice.0', () => voices.byKey(0));
   useCommand('booth.voice.1', () => voices.byKey(1));
   useCommand('booth.voice.2', () => voices.byKey(2));
@@ -577,7 +619,10 @@ function BoothSession({
     );
   };
   // The host's sentence for an unlinked chapter points at the audio engine panel; the chip and its dialog are that fix now.
-  const footerWhy = linkProblem ? `${recordName} has no track to record on. Press Record to link one.` : control.reason;
+  // Record's reason is about Record: while the main button reads Cold read (no take runs) the footer does not blame Record for it.
+  const coldMode = page.coldRead.mode && !control.recording;
+  const recordWhy = linkProblem ? `${recordName} has no track to record on. Press Record to link one.` : control.reason;
+  const footerWhy = coldMode ? '' : recordWhy;
   const roomTone = useRoomTone(measurements, session.device);
   // The app's own recorder is what records (the project chose it, or no DAW is linked): the microphone is chosen here, not in a DAW.
   const standalone = capabilities?.daw === 'none' || recordsInApp(capabilities?.daw);
@@ -585,6 +630,7 @@ function BoothSession({
   // linked DAW's own input unless the narrator chose a different one.
   const listening = useListeningMic({
     dawRecords: !!capabilities && !standalone,
+    appRecords: !!capabilities && standalone,
     chapterId,
     chosen: session.chosenDevice,
     source: session.inputSource,
@@ -592,6 +638,16 @@ function BoothSession({
     devices: session.devices,
     listenOn: session.listenOn,
   });
+  micProblem.current =
+    !capabilities || !standalone
+      ? null
+      : listening.device.trim() === ''
+        ? listening.micNames.length === 0
+          ? 'No microphone found. Plug one in, then press Record again.'
+          : 'Choose the microphone in Record options, then press Record.'
+        : listening.origin === 'chosen' && !listening.micNames.includes(listening.device)
+          ? `${listening.device} was not found. Choose another microphone in Record options, then press Record.`
+          : null;
 
   return (
     <CommandScope kind="booth">
@@ -641,7 +697,6 @@ function BoothSession({
                     project={control.project}
                     choice={dawChoice}
                     otherProject={setupPlan?.kind === 'other-project'}
-                    onClick={() => void page.goTo(`${BOOTH_LINKS.settings}#recording`)}
                   />
                 ) : undefined
               }
@@ -757,6 +812,7 @@ function BoothSession({
                     numbers: page.numbers,
                     flags: page.flags,
                     onOpenEntry: (id) => void page.goTo(`${BOOTH_LINKS.storyBible}#${encodeURIComponent(id)}`),
+                    voiceKeys,
                   }}
                 />
               </PickupSessionProvider>
@@ -764,7 +820,9 @@ function BoothSession({
           </BoothSamplesProvider>
           <SamplePlayerAnnouncement text={samples.announcement} />
           <BoothFooter
-            record={<RecordControl control={{ ...control, reason: footerWhy, toggle: page.toggleTake }} />}
+            record={
+              <RecordControl control={{ ...control, reason: footerWhy, toggle: page.pressMain }} cold={{ mode: page.coldRead.mode, on: page.coldRead.on }} />
+            }
             seconds={page.seconds}
             recording={control.recording}
             why={footerWhy || undefined}
@@ -780,6 +838,7 @@ function BoothSession({
               offReason: capabilities?.capabilities.record?.message,
               device: session.device,
               onDevice: session.changeDevice,
+              micNote: standalone && listening.origin === 'last' ? 'The microphone this project last recorded with, until you choose one.' : undefined,
               listen: standalone
                 ? undefined
                 : {
@@ -817,9 +876,30 @@ function BoothSession({
                   if (next) voices.reload();
                   setVoiceListOpen(next);
                 }}
+                noTrack={cast.noTrack}
+                // A character with no track: while stopped, who records it; during a take the Narrator voice does at once (decision 5).
+                onPickCharacter={(character) => (control.recording ? voices.standInFor(character) : setWhoAsk({ kind: 'character', character }))}
+                standIn={voices.standIn}
+                recording={control.recording}
+                onAddFor={(character) => setWhoAsk({ kind: 'character', character, choice: 'new' })}
+                onUseFor={(character) => setWhoAsk({ kind: 'character', character, choice: 'existing' })}
               />
             }
           />
+          {whoAsk && voices.voices.length > 0 ? (
+            <WhoIsInDialog
+              ask={whoAsk}
+              voices={voices.voices}
+              cast={cast}
+              onAdd={voices.add}
+              onUse={voices.use}
+              onNarrator={(narrator) => {
+                voices.choose(narrator);
+                setWhoAsk(null);
+              }}
+              onClose={() => setWhoAsk(null)}
+            />
+          ) : null}
         </div>
         <ListeningModelPrompt session={session} />
       </ContextMenuHost>

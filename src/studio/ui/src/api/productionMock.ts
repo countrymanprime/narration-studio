@@ -18,6 +18,7 @@ import type {
   ProductionPlan,
   ProductionReadiness,
   ProductionReportExport,
+  ReportsFolderResult,
   ProductionReportPreview,
   ProductionSession,
 } from './contracts/production';
@@ -400,6 +401,11 @@ export function createProductionMock(deps: Deps): ProductionApi & { applyProfile
       if (!current) return { stopped: false, session: null };
       current.endedAt = new Date().toISOString();
       return { stopped: true, session: { ...current } };
+    },
+    // The host shows <app>/production/reports and refuses before a report was exported.
+    productionOpenReportsFolder: async (): Promise<ReportsFolderResult> => {
+      if (reportExports === 0) throw new Error('export a report first; there is no reports folder to open yet');
+      return { folder: `${brand.identity.projectFolder}/production/reports` };
     },
     // The host's writeProductionReport (production_report.go): the mock writes nothing, but names the file the same
     // way (a stem from the export time, -2, -3, ... within the same second) and echoes the narrator's own choice.

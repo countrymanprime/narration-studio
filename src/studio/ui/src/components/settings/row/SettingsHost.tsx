@@ -25,3 +25,13 @@ export function useSettingsHost(): SettingsHost {
   if (!value) throw new Error('useSettingsHost needs a SettingsHostProvider');
   return value;
 }
+
+/**
+ * Whether a project is open. The host sends an empty project folder when the app started with none, and the project picker is all there is
+ * until one is chosen; Settings is then opened from the picker (issue 3024). Outside a host (a panel on its own) a project is taken as open,
+ * so a panel keeps its old behaviour.
+ */
+export function useHasProject(): boolean {
+  const value = useContext(Context);
+  return value ? value.data.projectFolder !== '' : true;
+}

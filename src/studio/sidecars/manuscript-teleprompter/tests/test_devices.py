@@ -241,3 +241,43 @@ def test_capture_dshow_log_really_receives_ffmpegs_device_list_through_pyav():
     listed, error = devices.list_input_devices(capture=lambda: entries)
     assert error is None
     assert listed, "Windows reports an active microphone but the dshow listing found no audio device"
+
+
+def _two_microphones_with_one_name():
+    return [
+        (32, "dshow", '"USB Microphone" (audio)\n'),
+        (32, "dshow", '  Alternative name "@device_cm_{A}\\wave_{1}"\n'),
+        (32, "dshow", '"USB Microphone" (audio)\n'),
+        (32, "dshow", '  Alternative name "@device_cm_{A}\\wave_{2}"\n'),
+        (32, "dshow", '"Studio Interface" (audio)\n'),
+        (32, "dshow", '  Alternative name "@device_cm_{B}\\wave_{3}"\n'),
+    ]
+
+
+def test_two_microphones_that_share_a_name_are_listed_under_distinct_names():
+    listed, error = devices.list_input_devices(_two_microphones_with_one_name)
+
+    assert error is None
+    assert [device.to_json()["name"] for device in listed] == ["USB Microphone (1)", "USB Microphone (2)", "Studio Interface"]
+
+
+def test_a_name_that_is_alone_is_listed_as_ffmpeg_names_it():
+    entries = [(32, "dshow", '"Studio Interface" (audio)\n'), (32, "dshow", '  Alternative name "@device_cm_{B}\\wave_{3}"\n')]
+
+    assert [device.to_json()["name"] for device in devices.list_input_devices(lambda: entries)[0]] == ["Studio Interface"]
+
+
+def test_a_listed_name_opens_by_the_alternative_name_when_it_shares_its_friendly_name():
+    assert devices.open_target("USB Microphone (2)", _two_microphones_with_one_name) == "@device_cm_{A}\\wave_{2}"
+
+
+def test_a_name_that_is_alone_opens_by_the_friendly_name_that_was_verified_on_hardware():
+    assert devices.open_target("Studio Interface", _two_microphones_with_one_name) == "Studio Interface"
+
+
+def test_a_name_nobody_lists_opens_as_given_and_a_failed_listing_does_not_block_it():
+    def broken():
+        raise RuntimeError("no dshow")
+
+    assert devices.open_target("Some Mic", _two_microphones_with_one_name) == "Some Mic"
+    assert devices.open_target("Some Mic", broken) == "Some Mic"

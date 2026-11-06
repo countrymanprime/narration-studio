@@ -137,6 +137,14 @@ export function positionAtOffset(paragraphs: readonly ReadingParagraph[], paragr
   return { paragraphId, word: Math.min(before, Math.max(0, wordCount(paragraph.text) - 1)) };
 }
 
+/** The words of a phrase inside its paragraph, 0-based and inclusive (the host finds them in the recording check); null when the paragraph is not there. */
+export function wordRangeOf(paragraphs: readonly ReadingParagraph[], unit: BoothUnit): { paragraphId: string; from: number; to: number } | null {
+  const paragraph = paragraphs.find((item) => item.id === unit.paragraphId);
+  if (!paragraph) return null;
+  const from = wordCount(paragraph.text.slice(0, unit.start));
+  return { paragraphId: paragraph.id, from, to: from + Math.max(unit.words, 1) - 1 };
+}
+
 /** Where a phrase starts in the chapter's audio, in seconds, read at the standard rate (`WPH` words an hour). An estimate. */
 export function secondsBefore(units: readonly BoothUnit[], phrase: number): number {
   const words = units.slice(0, Math.max(0, phrase)).reduce((sum, unit) => sum + unit.words, 0);
@@ -173,6 +181,7 @@ export function suspectedFrom(
         scriptEnd: flag.end,
         script: words.slice(wordStart, wordEnd).join(' '),
         heard: flag.heard,
+        ...(flag.check ? { check: flag.check } : {}),
       },
     ];
   });

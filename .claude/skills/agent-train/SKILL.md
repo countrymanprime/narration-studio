@@ -151,7 +151,7 @@ A lane-X stream runs with no other stream that touches the same files. Lanes hav
 
 ## Studio Next slices
 
-The [Studio Next series](../../../docs/prds/studio-next-rebuild.prd.md) is delivered as slices, one PR by one worker each. This section is the operating rule. [Agent Delivery](references/studio-next-delivery.md#deviations-from-the-agent-train) holds the deviations D-1 to D-11 and the reasons, and [the slice issue](references/studio-next-delivery.md#the-slice-issue) holds the header's fields.
+The Studio Next series is delivered as slices, one PR by one worker each. This section is the operating rule. [Agent Delivery](references/studio-next-delivery.md#deviations-from-the-agent-train) holds the deviations D-1 to D-11 and the reasons, and [the slice issue](references/studio-next-delivery.md#the-slice-issue) holds the header's fields.
 
 - **One issue per slice (D-1).** It is a sub-issue of its PRD's issue, titled `SN-<code><n> <verb phrase>`. The PR body says `Closes #<slice>`, and one more `Closes` line for any other issue it fully resolves.
 - **The header.** A fenced `slice-meta` block with `id`, `lane`, `kind`, `depends`, `owns` and `serial`, checked by `scripts/dev/slice-lint.mjs`. The issue form is `.github/ISSUE_TEMPLATE/slice.yml`. The coordinator reads the header and the labels, never the code.
@@ -182,7 +182,7 @@ When a phase is otherwise ready (`Depends` complete, no file collision) but bloc
 - **Launch a mockup-drafting session instead**, as its own lane entry, not a phase worker: `create_session` with `tags: ["agent-train", "mockup-design"]`, a model picked like any other lane (Opus for a screen with real interaction states — a recorder, conflict or error messaging, anything with more than static layout; Sonnet for a mostly-static screen), and a prompt that:
   - names the exact states the PRD's Phase Details and Visual Spec section describe;
   - points it at `docs/design/design-system.md` and the real tokens/primitives, never a generic style;
-  - points it at the Studio Next mock in `docs/research/mockups/studio-next/` for tone and format precedent ([D98](#which-mocks-are-the-spec));
+  - points it at the Studio Next mock in git history ([Reading the deleted mock](../../../docs/operations/verification-tooling.md#reading-the-deleted-studio-next-mock)) for tone and format precedent ([D98](#which-mocks-are-the-spec));
   - says explicitly: **drafts only**, no product code for the gated phase, and the PRD's Visual Spec section is updated to list the new files as drafts pending the owner's approval — the session never marks its own work owner-approved;
   - tells it to open its own tracking issue and a normal PR, same as any worker, and never merge itself.
 - **Record it on #989** as its own lane entry. It counts toward `TARGET` like any running session, but is tracked separately from the phase queue until the owner approves it.
@@ -191,7 +191,7 @@ When a phase is otherwise ready (`Depends` complete, no file collision) but bloc
 
 ## Which mocks are the spec
 
-The Studio Next mock (`docs/research/mockups/studio-next/`) is the only spec for every page it covers (D98). The rules are in the rebuild PRD's [Which mocks are the spec](../../../docs/prds/studio-next-rebuild.prd.md#which-mocks-are-the-spec) and, for primitives and the theme, in [the design system](../../../docs/design/design-system.md#which-mocks-are-the-spec).
+The Studio Next mock was the only spec for every page it covers (D98). It is deleted from the tree and read from git history ([Reading the deleted mock](../../../docs/operations/verification-tooling.md#reading-the-deleted-studio-next-mock)). The rules are in the rebuild PRD's Which mocks are the spec and, for primitives and the theme, in [the design system](../../../docs/design/design-system.md#which-mocks-are-the-spec).
 
 ## UI PRs update the how-to guide
 
@@ -213,7 +213,7 @@ Decisions the owner made while the train ran (logged on the retired #509). D69 a
 | **D66** | Check the lane count on every pass, including passes spent mostly on merges or fixers, and launch before babysitting in-flight PRs |
 | **D67** | Mock-first behind every port. A feature builds against a mock that passes the schema; going to production is a swap behind the port; the mocks stay for the demo build and the tests. A UI phase blocked only by an unbuilt backend phase is ready once that contract is pinned. Serial points, nav entries among them, still land one at a time |
 | **D68** | A concept mock never blocks. Build against the PRD's recommended concept and pivot later if the owner asks. |
-| **D69** | One app-wide theme: no page or surface forces light or dark. A product rule, now in [the design system](../../../docs/design/design-system.md#theme) and the rebuild PRD's [Which mocks are the spec](../../../docs/prds/studio-next-rebuild.prd.md#which-mocks-are-the-spec). Its other half, the benchmark mocks as the build spec, is superseded by D98 |
+| **D69** | One app-wide theme: no page or surface forces light or dark. A product rule, now in [the design system](../../../docs/design/design-system.md#theme) and the rebuild PRD's Which mocks are the spec. Its other half, the benchmark mocks as the build spec, is superseded by D98 |
 | **D70** | Features still in development use public-domain or synthetic data instead of waiting for the owner's recordings. Results calibrated on it are **provisional**, and a re-run on the owner's own material goes on #992 as a QA item before it ships to users |
 | **D71** | **LibriVox** is the default source for real speech audio: public domain, many readers, and solo readings where one reader voices several characters. Record the source URL, reader, book and the public-domain statement; keep the audio out of git as ignored local data. Synthetic audio is the fallback |
 | **D72** | The privacy line is outbound user data, not inbound reference data. The app may call external APIs to **fetch** dictionary or pronunciation data (local first, online optional), but never sends the narrator's or authors' data out. An online lookup sends a single word, never passages, file names or project identifiers; it is narrator-initiated, or opt-in with a notice for a batch; results are cached locally; there is no telemetry and no project-run proxy. A service that needs a key uses the narrator's own key, stored locally and never logged |
@@ -225,7 +225,7 @@ Decisions the owner made while the train ran (logged on the retired #509). D69 a
 | **D91** | *(Amended by D97 below; superseded by D98 for every page the Studio Next mock covers.)* The approved mocks win, measured (2026-09-28): a screen an approved mock covers is built to that mock, captured at the mock's own size and theme with the app driven to the mock's state (the seven benchmark mocks; `pnpm --dir src/studio/ui mock-match`, [verification tooling](../../../docs/operations/verification-tooling.md#mock-match)). New primitives, tokens and style changes are in scope, and "the existing style is close enough" is not a reason: a difference a primitive causes is fixed in the primitive, so every consumer inherits it, never restyled locally. The 90% bar and the "reason the owner accepts" it required are gone (D97) |
 | **D96** | *(Superseded by D98.)* Only `docs/research/mockups/audiobook-studio-benchmark/` counted (2026-09-29). Every other mock is deleted from the repo and so is anything pointing at it. Keep only mocks for work actively in development, plus the current-state screenshots in `docs/images/ui/` ([Which mocks are the spec](#which-mocks-are-the-spec)) |
 | **D97** | The 90% bar is no longer a gate (2026-09-29). Match % is a diagnostic, and it scores features and styles, not pixel-exact text or sample data (the tool paints glyphs out of both images first). No D91 reasons, no region-attribution tables, no Mockup check table. Finish building the pages; the owner does a fix-up pass afterwards. The screenshots-in-PR rule it kept is replaced by the guide rule below |
-| **D98** | The Studio Next mock is the only spec for every page it covers (2026-10-11). A product rule, now in the rebuild PRD's [Which mocks are the spec](../../../docs/prds/studio-next-rebuild.prd.md#which-mocks-are-the-spec) and [the design system](../../../docs/design/design-system.md#which-mocks-are-the-spec) |
+| **D98** | The Studio Next mock is the only spec for every page it covers (2026-10-11). A product rule, now in the rebuild PRD's Which mocks are the spec and [the design system](../../../docs/design/design-system.md#which-mocks-are-the-spec) |
 | **Guide** | UI images live in the how-to guide, not per pull request (2026-10-13). A PR that changes what a page draws or how it is used updates that page's guide text and screenshots in the same PR; no `pr-screenshots/` folder, no image set per PR ([UI PRs update the how-to guide](#ui-prs-update-the-how-to-guide)) |
 
 ## The coordinator's pass
@@ -245,7 +245,7 @@ The Routine fires every 30 minutes (two hourly Routines, 30 minutes apart; D50).
 4. **Merge (D40).** Take bottom PRs (base `main`), oldest first. Merge one only when all of these hold:
    - it is not a draft;
    - it merges cleanly into `main` (D73: it need not contain `main`'s tip). If GitHub reports a conflict, merge `main` into it with `update_pull_request_branch`, or start a fixer when that fails, and wait for its checks on the next pass;
-   - `Build (Windows)` and `ui-dist` succeeded on the head. A docs-only PR needs `Docs / Docs checks` (the link check and the other four docs checks, which run on every PR) instead;
+   - `quality / Build (Windows)` and `quality / linux-checks` (which builds the UI bundle; it was `ui-dist` before #3065) succeeded on the head. A docs-only PR needs `Docs / Docs checks` (the link check and the other four docs checks, which run on every PR) instead;
    - there is no `CHANGES_REQUESTED` review and no unresolved thread whose first comment starts with 🔴;
    - a Claude Approvals check, if present, passes;
    - a UI PR updates its pages' guide text and images, or carries a specific `No guide change:` reason, and states the real-app and Storybook results ([UI PRs update the how-to guide](#ui-prs-update-the-how-to-guide)). There is no match % bar to check (D97);
@@ -302,7 +302,7 @@ A worker is one cloud session for one stream. It opens one PR per phase, stacked
   4. Otherwise, continue.
 - **Open the PR as soon as the change is pushed (owner rule, 2026-10-18).** Do not wait for local checks to finish or for the owner to ask: open the PR (a draft only if the work is genuinely incomplete), list the checks still running as pending in the body, and update the body as they finish. The owner reviews from the PR, not from the session.
 - **Finishing:**
-  - Subscribe to your PRs, and drive `Build (Windows)` and `ui-dist` to green.
+  - Subscribe to your PRs, and drive `Build (Windows)` and `linux-checks` to green.
   - Answer every red-circle thread.
   - Comment `<ID>: PRs #… green` on #989, then end the turn, **staying subscribed** (D82).
   - **Until each PR merges or closes, you own it (D82).** On a merge-conflict notice, a red check or a review comment: merge `main` into your branch (never rebase or force-push), resolve keeping both sides' intent (the rules in the fixer template), re-run your targeted checks, push, and end the turn again. Never use `send_later` or any scheduling tool (they block on permission prompts): end the turn and stay subscribed. Stop once every PR is merged or closed.
@@ -316,10 +316,10 @@ A worker is one cloud session for one stream. It opens one PR per phase, stacked
 
 Waves order the work, and the coordinator doesn't start a wave until everything it depends on has merged. Inside a wave, the ready-list rules above decide.
 
-The waves that ordered the earlier PRDs (the DAW port, the studio UI primitives, input commands and pedals, the booth, proofing, production and delivery PRDs, and the filler) are retired: those PRDs are deleted ([Lifecycle of a PRD](../../../docs/prds/README.md#lifecycle-of-a-prd)) and the Studio Next series in `docs/prds/` is the plan. The series' dependency order is the graph in [Studio Next Rebuild](../../../docs/prds/studio-next-rebuild.prd.md#technical-approach); no wave has been accepted for it yet.
+The waves that ordered the earlier PRDs (the DAW port, the studio UI primitives, input commands and pedals, the booth, proofing, production and delivery PRDs, and the filler) are retired: those PRDs are deleted ([Lifecycle of a PRD](../../../docs/prds/README.md#lifecycle-of-a-prd)) and the Studio Next series in `docs/prds/` is the plan. The series' dependency order is the graph in Studio Next Rebuild; no wave has been accepted for it yet.
 
 **Rules for PRD writers:**
 - Use the template in `docs/prds/README.md`.
 - Add a **Ports used** column to the phase table, naming the capabilities and roles of the DAW port, the provider ports and the UI primitives each phase needs. That column is how the coordinator knows when a phase is unblocked.
-- Link the Studio Next mock page the PRD builds to from `docs/research/mockups/studio-next/src/pages/`; don't copy it into the PRD (D98). A PRD never asks for something the mock lacks.
+- Name the Studio Next mock page the PRD builds to by its path in history; don't copy it into the PRD (D98). A PRD never asks for something the mock lacks.
 - Give every open question a recommendation.

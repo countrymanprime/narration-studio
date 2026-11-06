@@ -47,8 +47,20 @@ export function SessionPanel({
   const picked = sessionPickups(pickups);
   const minutes = sessionMinutes(seconds);
   const count = picked.length;
+  /* A line the host cannot place in the recording gets no marker, so the markers button counts only the others. */
+  const placeable = picked.filter((pickup) => pickup.at !== null).length;
+  /* The count is known once the list is read; until then the buttons name no number (R3PK-3, XPK-15). */
+  const known = !loading && !unreadable;
 
-  const markersReason = !markers.available ? markers.message || `${dawName} cannot add markers now.` : count === 0 ? 'No lines in the session.' : undefined;
+  const markersReason = !markers.available
+    ? markers.message || `${dawName} cannot add markers now.`
+    : unreadable
+      ? 'The list could not be read, so there is nothing to add yet.'
+      : count === 0
+        ? 'No lines in the session.'
+        : placeable === 0
+          ? 'None of these lines has a place in the recording yet.'
+          : undefined;
   /* Why the session is empty, said for what is true: nothing listed, nothing readable, all recorded, or all left out. */
   const showEmptyReason = count === 0 && !loading;
   const emptyReason = unreadable
@@ -90,8 +102,6 @@ export function SessionPanel({
       });
   };
 
-  /* The count is known once the list is read; until then the button names no number (R3PK-3, XPK-15). */
-  const known = !loading && !unreadable;
   return (
     <Panel title="Pickup session" actions={<IconButton action="copy" label="Copy the pickup script" onClick={() => void copy()} />} className="min-w-0">
       <div className="flex flex-col gap-3" aria-busy={loading || undefined}>
@@ -112,6 +122,7 @@ export function SessionPanel({
         <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
           <Button
             variant={count === 0 ? 'secondary' : 'primary'}
+            data-pickup-session-open=""
             aria-disabled={count === 0 || undefined}
             aria-describedby={showEmptyReason ? emptyId : undefined}
             onClick={() => count > 0 && onOpenInBooth(picked)}
@@ -120,9 +131,9 @@ export function SessionPanel({
           </Button>
           <IconButton
             action="addMarker"
-            label={`Add ${count} as markers in ${dawName}`}
+            label={known ? `Add ${placeable} as markers in ${dawName}` : `Add as markers in ${dawName}`}
             disabledReason={markersReason}
-            aria-describedby={!markers.available ? markersId : showEmptyReason ? emptyId : undefined}
+            aria-describedby={!markers.available || (count > 0 && placeable === 0) ? markersId : showEmptyReason ? emptyId : undefined}
             pending={adding}
             onClick={addMarkers}
           />
@@ -133,10 +144,11 @@ export function SessionPanel({
             {emptyReason}
           </p>
         )}
-        {!markers.available && (
-          <p id={markersId} className="text-[0.8125rem] text-pretty text-[var(--text-muted)]">
+        {/* The DAW's reason is the button's tooltip and, for a screen reader, its description: not a line of the card, so the card never grows (rule 8). */}
+        {(!markers.available || (count > 0 && placeable === 0)) && (
+          <span id={markersId} className="sr-only">
             {markersReason}
-          </p>
+          </span>
         )}
       </div>
     </Panel>

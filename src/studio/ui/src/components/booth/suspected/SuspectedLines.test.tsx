@@ -133,6 +133,51 @@ describe('SuspectedLines', () => {
     expect(screen.getAllByText(/down the hole/)).toHaveLength(1);
   });
 
+  // The second listen (the confirmation pass) judged each line a few seconds after it was suspected.
+  it('a line the second listen cleared stays in the list as Not confirmed: dimmed, not counted, nothing to dismiss and never saved', async () => {
+    const { save, view } = host();
+    render(view([skipped, { ...again, check: 'cleared' }]));
+    const cards = await screen.findAllByRole('listitem');
+    expect(within(cards[1]).getByText('Not confirmed')).toBeTruthy();
+    expect(within(cards[1]).queryByRole('button')).toBeNull();
+    expect(screen.getByText('Suspected · 1')).toBeTruthy();
+    await waitFor(() => expect(save).toHaveBeenCalled());
+    const sent = save.mock.calls.flatMap(([, flags]) => flags);
+    expect(sent.map((f) => f.paragraphId)).toEqual(['p9']);
+    expect(sent.some((f) => f.check === 'cleared')).toBe(false);
+  });
+
+  // Flags are saved as they are raised; the second listen judges them afterwards, so a verdict can reach a line that is already stored.
+  it('a line cleared after it was saved is retired in the store: one more save records it as dismissed, with no check sent', async () => {
+    const { save, view } = host();
+    const { rerender } = render(view([skipped, again]));
+    await waitFor(() => expect(save).toHaveBeenCalledTimes(1));
+    rerender(view([skipped, { ...again, check: 'cleared' }]));
+    await waitFor(() => expect(save).toHaveBeenCalledTimes(2));
+    const retired = save.mock.calls[1][1];
+    expect(retired.map((f) => f.paragraphId)).toEqual(['p9', 'p12']);
+    expect(retired.map((f) => f.dismissed)).toEqual([false, true]);
+    expect(retired.some((f) => f.check)).toBe(false);
+    expect(screen.getByText('Suspected · 1')).toBeTruthy();
+    expect(screen.getByText('Not confirmed')).toBeTruthy();
+  });
+
+  it('a line the second listen heard too says Confirmed and keeps its dismiss control', async () => {
+    const { save, view } = host();
+    render(view([{ ...skipped, check: 'confirmed' }]));
+    const [card] = await screen.findAllByRole('listitem');
+    expect(within(card).getByText('Confirmed')).toBeTruthy();
+    expect(within(card).getByRole('button', { name: 'Dismiss: down the hole' })).toBeTruthy();
+    await waitFor(() => expect(save.mock.calls.flatMap(([, flags]) => flags)[0]).toMatchObject({ check: 'confirmed' }));
+  });
+
+  it('a list of only cleared lines saves nothing and counts none open', async () => {
+    const { save, view } = host();
+    render(view([{ ...skipped, check: 'cleared' }]));
+    expect(await screen.findByText('Suspected · 0')).toBeTruthy();
+    expect(save).not.toHaveBeenCalled();
+  });
+
   it('shows nothing when there are no flags', () => {
     const { view } = host();
     const { container } = render(view([]));
@@ -205,6 +250,17 @@ describe('suspected lines feed Pickups', () => {
     expect(undoTake).not.toHaveBeenCalled();
   });
 
+  it('a line the second listen cleared never becomes a pickup', async () => {
+    const { review, wrapper, save } = host();
+    vi.spyOn(overlay, 'toastUndo').mockImplementation(() => undefined);
+    const { result } = renderHook(() => useSuspectedPickups({ chapterId: 'c8', flags: [{ ...skipped, check: 'cleared' }, again] }), { wrapper });
+    await act(async () => {
+      await result.current.takeStopped(read('p9', 'p12'));
+    });
+    expect(save.mock.calls.flatMap(([, flags]) => flags).map((f) => f.paragraphId)).toEqual(['p12']);
+    expect(review).toHaveBeenCalledTimes(1);
+  });
+
   it('a take that does not reach a flagged place adds nothing, and the same place read again is added once', async () => {
     const { review, wrapper } = host();
     const toastUndo = vi.spyOn(overlay, 'toastUndo').mockImplementation(() => undefined);
@@ -272,5 +328,19 @@ describe('there-is-no-way-to-flag-by-hand and the-provider-decides', () => {
 
   it('names no speech engine: the host decides', () => {
     for (const [name, text] of sources) expect(text, name).not.toMatch(/moonshine|whisper/i);
+  });
+
+  // Issue #2919: reading the same place again changes nothing, so the failed read's toast carries Retry, which reads it again.
+  it('Retry on the failed read of the decisions reads them again', async () => {
+    const toast = vi.spyOn(overlay, 'toast').mockImplementation(() => undefined);
+    const { save, view } = host();
+    save.mockRejectedValueOnce(new Error('The teleprompter file is locked.'));
+    render(view([skipped]));
+    await waitFor(() => expect(toast).toHaveBeenCalled());
+    const [text, options] = toast.mock.calls[0];
+    expect(text).toContain('locked');
+    expect(options).toMatchObject({ tone: 'error', action: { label: 'Retry' } });
+    await act(async () => options!.action!.onAction());
+    expect(save).toHaveBeenCalledTimes(2);
   });
 });
