@@ -235,6 +235,12 @@ export const boothDrivers: Record<string, Driver> = {
     const connect = page.getByRole('dialog', { name: /is not connected/ });
     // The dialog links the project file itself (#2823); once linked, the same dialog offers the start.
     await connect.getByRole('button', { name: 'Link project file…' }).click();
+    await connect.getByRole('button', { name: 'Open in REAPER and connect' }).waitFor();
+    // Back to the Booth as the narrator comes back to it, so the page reads the new link afresh; the mark opens the dialog.
+    await connect.getByRole('button', { name: 'Close' }).click();
+    await goToPage(page, 'Script');
+    await goToPage(page, 'Booth');
+    await page.locator('#brec-setup').getByRole('button').click();
     await connect.getByRole('button', { name: 'Open in REAPER and connect' }).click();
     // It opens by itself: a take would land in the wrong project.
     const other = page.getByRole('dialog', { name: 'REAPER has a different project open' });
