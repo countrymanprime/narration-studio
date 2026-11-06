@@ -64,25 +64,29 @@ export type ShowInDawResult = { message: string; failed: boolean };
 export const showInDawLabel = (dawName: string): string => `Show in ${dawName}`;
 
 /** The three host calls a Show in {DAW} press can make, one per kind of target. */
-export type ShowInDawApi = Pick<WorkspaceApi, 'workspaceGoTo'> & Pick<FindingsApi, 'findingsGoTo'> & Pick<ChapterTrackMapApi, 'trackSelectInReaper'>;
+export type ShowInDawPorts = {
+  workspace: Pick<WorkspaceApi, 'workspaceGoTo'>;
+  findings: Pick<FindingsApi, 'findingsGoTo'>;
+  chapterTrackMap: Pick<ChapterTrackMapApi, 'trackSelectInReaper'>;
+};
 
 /**
  * The one place a Show in {DAW} press reaches the host (#2826): the call the target's kind has, and the sentence that says where the DAW went or why
  * it did not. Null when the host answered with nothing to say. A menu entry that cannot render the button calls this directly; nothing else
  * calls `workspaceGoTo`, `findingsGoTo` or `trackSelectInReaper` for a "show me" (`showInDawGuard.test.ts`).
  */
-export async function showInDaw(api: ShowInDawApi, target: ShowInDawTarget, dawName: string): Promise<ShowInDawResult | null> {
+export async function showInDaw(ports: ShowInDawPorts, target: ShowInDawTarget, dawName: string): Promise<ShowInDawResult | null> {
   try {
     if (target.kind === 'chapter') {
-      const result = await api.trackSelectInReaper(target.trackGuid!);
+      const result = await ports.chapterTrackMap.trackSelectInReaper(target.trackGuid!);
       return result.outcome === 'selected'
         ? { message: `Selected in ${dawName}.`, failed: false }
         : { message: result.message || `${dawName} could not select that track.`, failed: true };
     }
     const went =
       target.kind === 'passage'
-        ? await api.workspaceGoTo(target.chapterId, target.token!)
-        : await api.findingsGoTo(target.kind === 'finding' ? target.id : target.findingId!);
+        ? await ports.workspace.workspaceGoTo(target.chapterId, target.token!)
+        : await ports.findings.findingsGoTo(target.kind === 'finding' ? target.id : target.findingId!);
     if (went.outcome === 'refused') return { message: went.message, failed: true };
     const when = target.kind === 'finding' ? noteTime : clock;
     if (went.outcome !== 'navigated') return null;
@@ -135,11 +139,7 @@ function useShowInDaw(
       live.current = '';
     };
   }, [key]);
-  const calls: ShowInDawApi = {
-    workspaceGoTo: (chapterId, token) => workspace.workspaceGoTo(chapterId, token),
-    findingsGoTo: (id) => findings.findingsGoTo(id),
-    trackSelectInReaper: (trackGuid) => chapterTrackMap.trackSelectInReaper(trackGuid),
-  };
+  const ports: ShowInDawPorts = { workspace, findings, chapterTrackMap };
   const go = (): void => {
     if (reason !== null || pending) return;
     const mine = key;
@@ -148,7 +148,7 @@ function useShowInDaw(
     const deadline = new Promise<ShowInDawResult>((resolve) => {
       timer = setTimeout(() => resolve({ message: `${name} did not answer. Press Show in again to try once more.`, failed: true }), ASK_DEADLINE_MS);
     });
-    void Promise.race([showInDaw(calls, target, name), deadline])
+    void Promise.race([showInDaw(ports, target, name), deadline])
       .then((result) => {
         if (result && live.current === mine) say(result);
       })

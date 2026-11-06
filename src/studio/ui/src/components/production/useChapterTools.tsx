@@ -117,7 +117,7 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
   const selectTrack = useCallback(
     async (trackGuid: string, dawName: string) => {
       try {
-        const result = await showInDaw(api, { kind: 'chapter', trackGuid }, dawName);
+        const result = await showInDaw({ workspace: api, findings: api, chapterTrackMap: api }, { kind: 'chapter', trackGuid }, dawName);
         if (result?.failed) notify(result.message, 'error');
         else if (result) notify(result.message);
       } catch (error) {
