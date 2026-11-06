@@ -138,7 +138,8 @@ import { updateJobSchema, updateStatusSchema } from './schemas/update';
 import { startResultSchema, whisperInstallJobSchema } from './schemas/whisper';
 import {
   bootstrapSchema,
-  copyDiagnosticsResultSchema,
+  diagnosticsPreviewSchema,
+  saveDiagnosticsResultSchema,
   jobEndedSchema,
   noticeSchema,
   projectAttachStateSchema,
@@ -446,7 +447,8 @@ export const wailsClient: NarrationApi = {
   companionModeExit: async () => {
     await hostResult(host.CompanionModeExit());
   },
-  systemCopyDiagnostics: (scope) => decode(copyDiagnosticsResultSchema, 'SystemCopyDiagnostics', host.SystemCopyDiagnostics(scope)),
+  systemDiagnosticsPreview: () => decode(diagnosticsPreviewSchema, 'SystemDiagnosticsPreview', host.SystemDiagnosticsPreview()),
+  systemSaveDiagnostics: () => decode(saveDiagnosticsResultSchema, 'SystemSaveDiagnostics', host.SystemSaveDiagnostics()),
   windowZoom: () => decode(windowZoomSchema, 'WindowZoom', host.WindowZoom()),
   windowSetZoom: (factor) => decode(windowZoomSchema, 'WindowSetZoom', host.WindowSetZoom(factor)),
   windowSaveZoom: (level) => decode(voidResult, 'WindowSaveZoom', host.WindowSaveZoom(level)),

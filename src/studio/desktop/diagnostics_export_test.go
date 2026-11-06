@@ -1,6 +1,8 @@
 package main
 
 import (
+	"archive/zip"
+	"desktop/internal/trace"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -22,16 +24,15 @@ func TestSystemOpenLogFolderOpensTheRunLogsDirectory(t *testing.T) {
 	}
 }
 
-func TestSystemCopyDiagnosticsSavesTheLastRunAndReturnsItsPath(t *testing.T) {
+func TestSystemSaveDiagnosticsWritesAZipWithAManifestAndReturnsItsPath(t *testing.T) {
 	t.Setenv("APPDATA", t.TempDir())
 	host := newTestHost(t)
-	run := host.runLog.Begin("guide")
-	run.End("ok")
-
+	host.runLog.Begin("guide").End("ok")
+	host.tracer.Emit(trace.AppStart, trace.IDValue("version", "0.0.0-test"))
 	destFolder := t.TempDir()
 	host.pickDiagnosticsFolder = func() (string, error) { return destFolder, nil }
 
-	raw, err := host.SystemCopyDiagnostics(string(CopyDiagnosticsLastRun))
+	raw, err := host.SystemSaveDiagnostics()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -39,61 +40,71 @@ func TestSystemCopyDiagnosticsSavesTheLastRunAndReturnsItsPath(t *testing.T) {
 		Path string `json:"path"`
 	}
 	if err := json.Unmarshal([]byte(raw), &result); err != nil {
-		t.Fatalf("SystemCopyDiagnostics did not return valid JSON: %v (%q)", err, raw)
+		t.Fatalf("SystemSaveDiagnostics did not return valid JSON: %v (%q)", err, raw)
 	}
-	if filepath.Dir(result.Path) != destFolder {
-		t.Fatalf("saved to %q, want inside %q", result.Path, destFolder)
+	if filepath.Dir(result.Path) != destFolder || !strings.HasSuffix(result.Path, ".zip") {
+		t.Fatalf("saved to %q, want a .zip inside %q", result.Path, destFolder)
 	}
-	if !strings.HasSuffix(result.Path, ".jsonl") {
-		t.Fatalf("saved path %q does not look like a .jsonl file", result.Path)
-	}
-	data, err := os.ReadFile(result.Path)
+	reader, err := zip.OpenReader(result.Path)
 	if err != nil {
-		t.Fatalf("the saved diagnostics file could not be read: %v", err)
+		t.Fatalf("the saved bundle is not a zip: %v", err)
 	}
-	if !strings.Contains(string(data), run.ID()) {
-		t.Fatalf("the saved diagnostics file does not mention the run: %s", data)
+	defer func() { _ = reader.Close() }()
+	names := map[string]bool{}
+	for _, file := range reader.File {
+		names[file.Name] = true
 	}
-}
-
-func TestSystemCopyDiagnosticsRefusesLastRunWithNothingLoggedYet(t *testing.T) {
-	t.Setenv("APPDATA", t.TempDir())
-	host := newTestHost(t)
-	host.pickDiagnosticsFolder = func() (string, error) { return t.TempDir(), nil }
-
-	if _, err := host.copyDiagnostics(CopyDiagnosticsLastRun); err == nil {
-		t.Fatal("expected an error when nothing has run yet")
+	if !names["manifest.json"] || !names["run.jsonl"] {
+		t.Errorf("bundle holds %v, want manifest.json and run.jsonl", names)
 	}
 }
 
-func TestSystemCopyDiagnosticsWithNoFolderChosenSavesNothing(t *testing.T) {
+func TestSystemSaveDiagnosticsWithNoFolderChosenSavesNothing(t *testing.T) {
 	t.Setenv("APPDATA", t.TempDir())
 	host := newTestHost(t)
-	host.runLog.Begin("guide").End("ok")
 	host.pickDiagnosticsFolder = func() (string, error) { return "", nil }
-
-	path, err := host.copyDiagnostics(CopyDiagnosticsLastRun)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if path != "" {
-		t.Fatalf("path = %q, want empty when the narrator cancelled the folder picker", path)
+	path, err := host.saveDiagnostics()
+	if err != nil || path != "" {
+		t.Fatalf("saveDiagnostics() = %q, %v, want an empty path and no error when the narrator cancelled", path, err)
 	}
 }
 
-func TestSystemCopyDiagnosticsLast30MinutesUsesTheWindowScope(t *testing.T) {
+func TestSystemDiagnosticsPreviewWritesNothingAndSaysWhatIsLeftOut(t *testing.T) {
 	t.Setenv("APPDATA", t.TempDir())
 	host := newTestHost(t)
-	host.runLog.Begin("guide").End("ok")
-	destFolder := t.TempDir()
-	host.pickDiagnosticsFolder = func() (string, error) { return destFolder, nil }
-
-	path, err := host.copyDiagnostics(CopyDiagnosticsLast30Min)
+	host.pickDiagnosticsFolder = func() (string, error) { t.Fatal("the preview opened the folder picker"); return "", nil }
+	raw, err := host.SystemDiagnosticsPreview()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if filepath.Dir(path) != destFolder {
-		t.Fatalf("saved to %q, want inside %q", path, destFolder)
+	if !strings.Contains(raw, "sidecar stderr") || !strings.Contains(raw, "bridge.jsonl") {
+		t.Errorf("preview = %s, want the excluded sources named", raw)
+	}
+}
+
+func TestTheLeakTermsNameTheOpenProjectButNotItsGenericFiles(t *testing.T) {
+	t.Setenv("APPDATA", t.TempDir())
+	host := newTestHost(t)
+	folder := filepath.Join(t.TempDir(), "The Obsidian Orchard")
+	if err := os.MkdirAll(folder, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"Orchard Book.docx", "project.json", "notes.log"} {
+		if err := os.WriteFile(filepath.Join(folder, name), nil, 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	host.mu.Lock()
+	host.config.projectFolder = folder
+	host.mu.Unlock()
+	terms := strings.Join(host.diagnosticsLeakTerms(), "|")
+	for _, want := range []string{"The Obsidian Orchard", "Orchard Book"} {
+		if !strings.Contains(terms, want) {
+			t.Errorf("leak terms %q lack %q", terms, want)
+		}
+	}
+	if strings.Contains(terms, "project|") || strings.Contains(terms, "notes") {
+		t.Errorf("leak terms %q include a generic file", terms)
 	}
 }
 

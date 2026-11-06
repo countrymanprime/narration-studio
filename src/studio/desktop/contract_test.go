@@ -2,6 +2,7 @@ package main
 
 import (
 	"desktop/internal/brand"
+	"desktop/internal/trace"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -127,20 +128,28 @@ func TestContractDictionaryLookup(t *testing.T) {
 	contractfile.Check(t, "system-lookup-asset-required", dictionaryAssetRequired(entry, "not_installed", "C:/Users/narrator/AppData/Local/"+brand.DataFolder+"/assets/dictionary/oewn/oewn-2025/2025"))
 }
 
-// TestContractCopyDiagnostics pins SystemCopyDiagnostics's answer shape.
-func TestContractCopyDiagnostics(t *testing.T) {
+// TestContractSaveDiagnostics pins SystemSaveDiagnostics's and SystemDiagnosticsPreview's answer shapes.
+func TestContractSaveDiagnostics(t *testing.T) {
 	t.Setenv("APPDATA", t.TempDir())
 	host := newTestHost(t)
+	host.version = "0.0.0-test"
+	host.tracer = trace.New(trace.Options{})
 	host.diagnosticsNow = func() time.Time { return time.Date(2026, 9, 26, 12, 0, 0, 0, time.UTC) }
-	host.runLog.Begin("guide").End("ok")
 	folder := t.TempDir()
 	host.pickDiagnosticsFolder = func() (string, error) { return folder, nil }
-	path, err := host.copyDiagnostics(CopyDiagnosticsLastRun)
+	path, err := host.saveDiagnostics()
 	if err != nil {
 		t.Fatal(err)
 	}
 	fixed := strings.ReplaceAll(filepath.ToSlash(path), filepath.ToSlash(folder), "C:/Users/narrator/Documents")
-	contractfile.Check(t, "system-copy-diagnostics", map[string]any{"path": fixed})
+	contractfile.Check(t, "system-save-diagnostics", map[string]any{"path": fixed})
+	bundle, err := host.buildDiagnostics()
+	if err != nil {
+		t.Fatal(err)
+	}
+	preview := bundle.Preview()
+	preview.LeakCheck.Terms = 0 // the account and home folder names differ by machine
+	contractfile.Check(t, "system-diagnostics-preview", preview)
 }
 
 // The approved catalogs, built from the repository's real config files with nothing installed, and the install jobs.
