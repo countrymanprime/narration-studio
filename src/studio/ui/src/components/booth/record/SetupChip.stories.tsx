@@ -71,3 +71,11 @@ export const ChapterHasNoTrack: Story = {
     await expect(within(canvasElement).getByRole('button', { name: 'Recording setup: REAPER, no track' })).toHaveTextContent('REAPER · no track');
   },
 };
+
+// Connected, but the chapter is linked to several tracks: the chip warns with its own words.
+export const ChapterHasSeveralTracks: Story = {
+  args: { trackProblem: 'several' },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByRole('button', { name: 'Recording setup: REAPER, several tracks' })).toHaveTextContent('REAPER · several tracks');
+  },
+};
