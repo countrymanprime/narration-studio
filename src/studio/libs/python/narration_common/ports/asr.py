@@ -45,10 +45,12 @@ class Hypothesis:
 @dataclass(frozen=True)
 class AsrDescriptor(Descriptor):
     """A speech engine's row: its roles (``live``, ``batch``), the languages it speaks (none means every language Whisper
-    does) and the asset kind its models are installed as (``whisper``, ``moonshine``; empty when it needs none)."""
+    does), the asset kind its models are installed as (``whisper``, ``moonshine``; empty when it needs none) and whether it is
+    already the second opinion on a live reading, so the trailing Whisper recheck would only repeat it."""
 
     languages: tuple[str, ...] = field(default=())
     asset_kind: str = ""
+    second_opinion: bool = False
 
     def __post_init__(self) -> None:
         super().__post_init__()
