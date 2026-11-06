@@ -465,10 +465,10 @@ export function ProofPage({
               progress={progress}
               chapterBar={stepper}
               tools={
-                <>
+                <div className="flex items-center gap-2">
                   <DawConnectionChip stillWorks={(name) => `You can read notes and play recordings. Checks that use ${name} wait until it is running.`} />
                   <DawToolsButton groups={['structure']} />
-                </>
+                </div>
               }
             />
             {all || !chapter ? (
