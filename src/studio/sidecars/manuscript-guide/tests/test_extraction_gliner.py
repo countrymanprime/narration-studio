@@ -298,9 +298,13 @@ class QuotesAreVerbatimTests(unittest.TestCase):
         logged: list[str] = []
         source = gliner.GlinerSource(_complete_install(Path(tempfile.mkdtemp())), loader=lambda path: FakeModel(answer), log=logged.append)
 
-        self.assertEqual([], source.extractor().extract(BOOK))
-        self.assertEqual(1, len(logged))
-        self.assertIn("Arelian", logged[0])
+        with contextlib.redirect_stderr(io.StringIO()) as stderr:
+            self.assertEqual([], source.extractor().extract(BOOK))
+        # The drop is a typed event; the name found in the manuscript is in no log line (docs/prds/activity-trace.prd.md).
+        record = json.loads(stderr.getvalue().strip())
+        self.assertEqual("gliner.name_dropped", record["event"])
+        self.assertNotIn("Arelian", stderr.getvalue())
+        self.assertEqual([], logged)
 
     def test_a_long_paragraph_is_read_in_chunks_whose_offsets_land_in_the_paragraph(self):
         words = ["word"] * (gliner.CHUNK_WORDS * 2) + ["Arelian", "rode", "on."]

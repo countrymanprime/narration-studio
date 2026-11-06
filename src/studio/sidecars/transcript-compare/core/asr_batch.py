@@ -7,7 +7,7 @@ existing signature: it builds a ``BatchRequest`` (translating its own ``progress
 see no change.
 """
 
-from narration_common.logging_utils import log
+from narration_common.logging_utils import event, log
 from narration_common.ports.asr import BATCH, ENGINES, LIVE, AsrDescriptor, BatchRequest, BatchResult, BatchTranscriber
 
 
@@ -19,7 +19,7 @@ class _FasterWhisperTranscriber:
 
     def transcribe(self, audio, request: BatchRequest) -> BatchResult:
         if request.hotwords:
-            log(f"Using vocabulary hints: {request.hotwords}")
+            event("asr.hotwords_used", count=len(request.hotwords.split()))
         log("Transcribing audio (this can take a while for long tracks)...")
         segments, info = self._model.transcribe(
             audio,
