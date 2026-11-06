@@ -56,16 +56,12 @@ export function Preflight({
   useErrorToast(problem && `Can't tell which chapters pass: ${problem}${known ? ' The list below may be out of date.' : ''}`, onCheckAgain);
   const shown = all ? states : states.slice(0, FIRST_ROWS);
   return (
-    <Panel
-      title="Before you build"
-      actions={
-        <span className="flex flex-wrap items-center gap-2">
-          <MeasureControls run={run} />
-          {onOpenMaster && <IconButton action="goTo" label="Open in Master & QC" onClick={onOpenMaster} />}
-        </span>
-      }
-    >
+    <Panel title="Before you build" actions={onOpenMaster && <IconButton action="goTo" label="Open in Master & QC" onClick={onOpenMaster} />}>
       <div className="flex flex-col gap-1">
+        {/* Their own row under the title, as the mock draws it and Master keeps them: the buttons never wrap the header or change its height between states. */}
+        <div className="pb-1">
+          <MeasureControls run={run} />
+        </div>
         {hasMeasureProgress(run) && <MeasureProgress run={run} />}
         {run.job?.phase === 'cancelled' && (
           <p role="status" className="text-sm" style={MUTED}>
