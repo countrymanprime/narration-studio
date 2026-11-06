@@ -7,6 +7,8 @@ import (
 
 	"desktop/internal/bridge"
 	"desktop/internal/dawport"
+	"desktop/internal/passagetakes"
+	"desktop/internal/tracks"
 )
 
 // #3043: the edit commands plan from the chapter's audio read through its folder, and the ones that move the audio after the edit are refused while
@@ -104,23 +106,37 @@ func TestShorteningAGapOnAFlatChapterSendsNoFolder(t *testing.T) {
 	}
 }
 
-func TestStackingAndUnstackingAreRefusedOnSeveralVoicesAndSendNothing(t *testing.T) {
-	for _, unstack := range []bool{false, true} {
-		stacker := &fakeStacker{answer: stackedInREAPER()}
-		sources := newFakeStackSources()
-		sources.live[0].TrackGUID, sources.live[1].TrackGUID = voiceA, voiceB
-		got := restack(t, stacker, sources, []string{stackPassage}, unstack)
-		if got.OK || !strings.Contains(got.Refused, "more than one voice track") || len(stacker.stacked)+len(stacker.unstacked) != 0 {
-			t.Errorf("unstack %v: %+v, sent %+v %+v", unstack, got, stacker.stacked, stacker.unstacked)
-		}
+func TestStackingAndUnstackingOnSeveralVoicesSendTheChaptersFolder(t *testing.T) {
+	was := chapterFolderOf
+	chapterFolderOf = func(hostServices, string) string { return voiceFolderTrack }
+	t.Cleanup(func() { chapterFolderOf = was })
+	stacker := &fakeStacker{answer: stackedInREAPER()}
+	sources := newFakeStackSources()
+	sources.live[0].TrackGUID, sources.live[1].TrackGUID = voiceA, voiceB
+	if got := restack(t, stacker, sources, []string{stackPassage}, false); !got.OK || len(stacker.stacked) != 1 || stacker.stacked[0].ChapterTrack != voiceFolderTrack {
+		t.Errorf("stack: %+v, sent %+v; want the folder", got, stacker.stacked)
+	}
+	stacker = &fakeStacker{answer: unstackedInREAPER()}
+	sources = newFakeStackSources()
+	sources.live = sources.live[:1]
+	sources.saved = tracks.Project{Tracks: []tracks.Track{
+		{Items: []tracks.Item{{GUID: stackFirstItem, Position: 10, Length: 6, Takes: []tracks.Take{
+			{GUID: stackFirstTake},
+			{GUID: "{B0000009-0000-4000-8000-000000000009}", Ext: map[string]string{passagetakes.StackedFromKey: stackRetryItem + "|" + stackRetryTake + "|{T}|16.000000|6.000000"}},
+		}}}},
+		{Name: "Cuts", Items: []tracks.Item{{GUID: stackRetryItem, Length: 4}}},
+	}}
+	if got := restack(t, stacker, sources, []string{stackPassage}, true); !got.OK || len(stacker.unstacked) != 1 || stacker.unstacked[0].ChapterTrack != voiceFolderTrack {
+		t.Errorf("unstack: %+v, sent %+v; want the folder", got, stacker.unstacked)
 	}
 }
 
-func TestStackingOnOneVoiceOfAFolderGoesThrough(t *testing.T) {
+func TestStackingOnAPlainChapterSendsNoFolder(t *testing.T) {
+	was := chapterFolderOf
+	chapterFolderOf = func(hostServices, string) string { return "" }
+	t.Cleanup(func() { chapterFolderOf = was })
 	stacker := &fakeStacker{answer: stackedInREAPER()}
-	sources := newFakeStackSources()
-	sources.live[0].TrackGUID, sources.live[1].TrackGUID = voiceA, voiceA
-	if got := restack(t, stacker, sources, []string{stackPassage}, false); !got.OK || len(stacker.stacked) != 1 {
+	if got := restack(t, stacker, newFakeStackSources(), []string{stackPassage}, false); !got.OK || stacker.stacked[0].ChapterTrack != "" {
 		t.Fatalf("%+v, sent %+v", got, stacker.stacked)
 	}
 }

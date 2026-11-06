@@ -555,11 +555,13 @@ type StackGroup struct {
 }
 
 // StackRequest stacks (or unstacks) the retries of a chapter's passages. Shift is how far the audio that follows moves, summed over
-// the groups (negative: earlier).
+// the groups (negative: earlier). ChapterTrack is the engine's id of the chapter's folder of voices, or empty: with it the audio after each
+// passage moves on every voice inside the folder.
 type StackRequest struct {
-	ChapterID string
-	Groups    []StackGroup
-	Shift     float64
+	ChapterID    string
+	Groups       []StackGroup
+	Shift        float64
+	ChapterTrack string
 }
 
 // BackupRequest asks the engine to clone the audio from Start to End seconds of a chapter's track before it is changed. GUID is the
