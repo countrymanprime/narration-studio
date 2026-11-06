@@ -14,7 +14,8 @@ take recorded in the [Booth](booth.md). The example below uses a book called *Th
 You need:
 
 - **The app**, installed from a release ([Install on Windows](../../../README.md#install-on-windows)). It runs on Windows x64.
-- **The manuscript** as a Word (`.docx`), Markdown (`.md`) or plain-text (`.txt`) file. The app keeps a copy in your
+- **The manuscript** as a Word (`.docx`), EPUB (`.epub`), Markdown (`.md`) or plain-text (`.txt`) file. PDF is not
+  supported yet. The app keeps a copy in your
   project and never changes the original.
 - **A recorder.** The app works with REAPER, with Audacity 3, or with neither:
   - **REAPER**: you set nothing up inside it. The app puts its bridge, a small script, in REAPER's Scripts folder by
