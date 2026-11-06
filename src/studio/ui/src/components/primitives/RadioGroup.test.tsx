@@ -165,7 +165,7 @@ describe('RadioGroup', () => {
     expect(radio.getAttribute('aria-checked')).toBe('true');
   });
 
-  it('a disabled option with a reason carries it as a tooltip and as its accessible description, and draws no text of its own', () => {
+  it('a disabled option with a reason draws it under its label and is described by it', () => {
     render(
       <RadioGroup
         label="Where"
@@ -179,9 +179,13 @@ describe('RadioGroup', () => {
     );
     const there = screen.getByRole('radio', { name: 'There' });
     expect(there.getAttribute('aria-disabled')).toBe('true');
-    const described = document.getElementById(there.getAttribute('aria-describedby') ?? '');
-    expect(described?.textContent).toBe('There is not available yet.');
-    expect(described?.className).toContain('sr-only');
-    expect(screen.queryByText('There is not available yet.', { selector: ':not(.sr-only)' })).toBeNull();
+    const drawn = screen.getByText('There is not available yet.');
+    expect(drawn.className).not.toContain('sr-only');
+    expect(there.getAttribute('aria-describedby')).toBe(drawn.id);
+  });
+
+  it('an enabled option never draws its reason', () => {
+    render(<RadioGroup label="Where" value="a" onChange={() => undefined} options={[{ value: 'a', label: 'Here', reason: 'Not drawn: it is on.' }]} />);
+    expect(screen.queryByText('Not drawn: it is on.')).toBeNull();
   });
 });

@@ -194,7 +194,20 @@ func (s *Service) Mark(ctx context.Context, request MarkRequest) (Sample, error)
 		return Sample{}, err
 	}
 	if existing, ok := sameStretch(current.Samples, stored); ok {
-		return s.view(existing, book), nil
+		if covers(existing, storage) {
+			return s.view(existing, book), nil
+		}
+		// The stretch has a sample that keeps less than is asked: it is brought up to it, under the lock, from a fresh read.
+		if release == nil {
+			release = lockFile(storePath(s.config.Project))
+		}
+		current, err = s.readStore()
+		if err != nil {
+			return Sample{}, err
+		}
+		if existing, ok = sameStretch(current.Samples, stored); ok {
+			return s.upgradeLocked(ctx, current, existing, storage, req, item, take, source, file, win, rate, book)
+		}
 	}
 	// A sample kept only in the DAW has no file, so it adds nothing to the project's clip bytes.
 	limitBytes := expected
@@ -237,7 +250,10 @@ func (s *Service) Mark(ctx context.Context, request MarkRequest) (Sample, error)
 	if err == nil {
 		if existing, ok := sameStretch(current.Samples, stored); ok {
 			_ = os.Remove(clipPath)
-			return s.view(existing, book), nil
+			if covers(existing, storage) {
+				return s.view(existing, book), nil
+			}
+			return s.upgradeLocked(ctx, current, existing, storage, req, item, take, source, file, win, rate, book)
 		}
 		err = checkLimits(current.Samples, req.CharacterID, limitBytes)
 	}
@@ -384,6 +400,71 @@ func (s *Service) cutWindow(ctx context.Context, path string, source zerocross.S
 		return window{}, refuse(ReasonTooLong)
 	}
 	return window{first: first, count: count}, nil
+}
+
+// covers says whether a stored sample already keeps what the storage asks for: the clip in the project folder for project and both,
+// the region in the DAW for daw and both. A sample stored as project has no storage value.
+func covers(have Stored, want string) bool {
+	hasClip := have.Storage != StorageDAW
+	hasRegion := have.Storage == StorageDAW || have.Storage == StorageBoth
+	return (want == StorageDAW || hasClip) && (want == StorageProject || hasRegion)
+}
+
+// upgradeLocked brings a sample already stored for the stretch up to the storage now asked for, with the store lock held and current
+// read under it. It only adds, never takes away: the clip a sample lacks, or the region it lacks, so a repeat press with another
+// storage is not ignored and an earlier choice is never undone. The window is the sample's own (a stretch is the same frames), so
+// the clip is cut from the same audio. The clip goes first, since it can be taken back, and a refusal by the DAW leaves the sample as
+// it was.
+func (s *Service) upgradeLocked(ctx context.Context, current storeFile, existing Stored, storage string, req checked, item tracks.Item, take tracks.Take,
+	source zerocross.Source, file io.ReadSeeker, win window, rate float64, book Book) (Sample, error) {
+	index := indexOf(current.Samples, existing.ID)
+	if index < 0 {
+		return Sample{}, errors.New("the voice sample is gone")
+	}
+	upgraded := current.Samples[index]
+	wantClip := storage != StorageDAW && upgraded.Storage == StorageDAW
+	wantRegion := storage != StorageProject && (upgraded.Storage == "" || upgraded.Storage == StorageProject)
+	var clipPath string
+	if wantClip {
+		expected := source.ClipBytes(win.count)
+		if totalBytes(current.Samples)+expected > MaxProjectBytes {
+			return Sample{}, refuse(ReasonProjectLimit)
+		}
+		path, ok := ClipPath(s.config.Project, upgraded.ID)
+		if !ok {
+			return Sample{}, fmt.Errorf("could not make a voice sample id")
+		}
+		clip, err := s.writeClip(path, source, file, win, rate)
+		if err != nil {
+			return Sample{}, err
+		}
+		clipPath, upgraded.Clip = path, clip
+	}
+	if wantRegion {
+		if s.config.Regions == nil {
+			return Sample{}, refuse(ReasonDawUnavailable)
+		}
+		named := req
+		named.CharacterID, named.label = upgraded.CharacterID, upgraded.Label
+		region, err := s.addRegion(ctx, upgraded.ID, named, item, take, upgraded.Source.SourceStart, upgraded.Source.SourceEnd)
+		if err != nil {
+			if clipPath != "" {
+				_ = os.Remove(clipPath)
+			}
+			return Sample{}, err
+		}
+		upgraded.DawRegion = region
+	}
+	// A project sample only ever gains a region and a DAW sample only a clip, so what an upgrade makes is always both.
+	upgraded.Storage = StorageBoth
+	current.Samples[index] = upgraded
+	if err := s.writeStore(current); err != nil {
+		if clipPath != "" {
+			_ = os.Remove(clipPath)
+		}
+		return Sample{}, err
+	}
+	return s.view(upgraded, book), nil
 }
 
 // sameStretch finds a sample of the same character cut from the same frames of the same take: a repeated mark (a double press)

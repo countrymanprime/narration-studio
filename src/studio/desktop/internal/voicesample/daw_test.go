@@ -399,3 +399,105 @@ func TestRemovingADawOnlySampleFreesNoBytes(t *testing.T) {
 		t.Fatalf("removed = %+v, err = %v", removed, err)
 	}
 }
+
+// Marking a stretch that already has a sample, with another storage than the sample has, brings the sample up to what is asked: it
+// adds the clip or the region it lacks and never takes one away, so a repeat press is never silently ignored.
+func TestMarkingAKeptStretchWithAnotherStorageUpgradesTheSample(t *testing.T) {
+	cases := []struct {
+		name         string
+		first, again string
+		storage      string // what the sample holds after
+		regions      int    // regions asked of the DAW in all
+		clip         bool
+	}{
+		{"project then DAW adds the region and keeps the clip", StorageProject, StorageDAW, StorageBoth, 1, true},
+		{"project then both adds the region", StorageProject, StorageBoth, StorageBoth, 1, true},
+		{"DAW then project adds the clip and keeps the region", StorageDAW, StorageProject, StorageBoth, 1, true},
+		{"DAW then both adds the clip", StorageDAW, StorageBoth, StorageBoth, 1, true},
+		{"both then DAW changes nothing", StorageBoth, StorageDAW, StorageBoth, 1, true},
+		{"both then project changes nothing", StorageBoth, StorageProject, StorageBoth, 1, true},
+		{"DAW twice changes nothing", StorageDAW, StorageDAW, StorageDAW, 1, false},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			r := newRig(t)
+			regions := &fakeRegions{}
+			current := c.first
+			r.config.Storage = func() string { return current }
+			r.config.Regions = regions
+			r.service = r.build()
+			first := r.mustMark(request(10, 12))
+			current = c.again
+			second := r.mustMark(request(10, 12))
+			if first.ID != second.ID {
+				t.Fatalf("a second sample was made: %s then %s", first.ID, second.ID)
+			}
+			stored := r.stored().Samples
+			want := c.storage
+			if want == StorageProject {
+				want = ""
+			}
+			if len(stored) != 1 || stored[0].Storage != want || len(regions.calls) != c.regions {
+				t.Fatalf("samples = %d, storage = %q (want %q), regions asked = %d (want %d)", len(stored), stored[0].Storage, want, len(regions.calls), c.regions)
+			}
+			if _, err := os.Stat(r.clipPath(first.ID)); (err == nil) != c.clip {
+				t.Fatalf("clip on disk = %v, want %v", err == nil, c.clip)
+			}
+			if c.storage != StorageProject && stored[0].Storage != StorageProject && (stored[0].Storage == StorageDAW || stored[0].Storage == StorageBoth) && stored[0].DawRegion == nil {
+				t.Fatal("a sample kept in the DAW has no region")
+			}
+			if c.clip && stored[0].Clip.SHA256 == "" {
+				t.Fatalf("a sample with a clip has no checksum: %+v", stored[0].Clip)
+			}
+			if listed := r.list(); len(listed.Samples) != 1 {
+				t.Fatalf("the store does not read back: %+v", listed)
+			}
+		})
+	}
+}
+
+// The DAW refusing the region of an upgrade leaves the sample as it was, and no clip the upgrade wrote.
+func TestAnUpgradeTheDawRefusesLeavesTheSampleAsItWas(t *testing.T) {
+	r := newRig(t)
+	current := StorageProject
+	regions := &fakeRegions{}
+	r.config.Storage = func() string { return current }
+	r.config.Regions = regions
+	r.service = r.build()
+	first := r.mustMark(request(10, 12))
+	regions.err = bridge.ErrRecording
+	current = StorageDAW
+	if _, err := r.mark(request(10, 12)); err == nil {
+		t.Fatal("the upgrade was accepted while the DAW refused")
+	}
+	stored := r.stored().Samples
+	if len(stored) != 1 || stored[0].Storage != "" || stored[0].DawRegion != nil || stored[0].ID != first.ID {
+		t.Fatalf("the sample changed: %+v", stored)
+	}
+}
+
+// An upgrade that adds a clip counts it against the project's 200 MiB, and one that would pass it is refused, leaving the sample.
+func TestAnUpgradeThatAddsAClipIsHeldToTheProjectLimit(t *testing.T) {
+	r := newRig(t)
+	current := StorageDAW
+	r.config.Storage = func() string { return current }
+	r.config.Regions = &fakeRegions{}
+	r.service = r.build()
+	r.mustMark(request(10, 12))
+	file := r.stored()
+	file.Samples = append(file.Samples, Stored{
+		ID: fmt.Sprintf("%032x", 99), CharacterID: "queen", CreatedAt: file.Samples[0].CreatedAt,
+		Source: file.Samples[0].Source,
+		Clip:   StoredClip{Bytes: MaxProjectBytes, DurationMs: 600, SampleRate: 8000, Channels: 1, BitsPerSample: 16, SHA256: strings.Repeat("a", 64)},
+	})
+	file.Samples[1].Source.ItemGUID = "other"
+	r.seed(file.Samples...)
+	current = StorageProject
+	_, err := r.mark(request(10, 12))
+	if refusal := refusalOf(t, err); refusal.Reason != ReasonProjectLimit {
+		t.Fatalf("err = %v, want project_limit", err)
+	}
+	if stored := r.stored().Samples; stored[0].Storage != StorageDAW {
+		t.Fatalf("the sample changed: %+v", stored[0])
+	}
+}
