@@ -212,7 +212,11 @@ merging with a red one is the owner's call ([#544](https://github.com/countryman
 uses the squash commit title to calculate the synchronized application version:
 `feat` is minor; `fix`, `perf`, `refactor`, `docs`, `test`, `build`, `ci`,
 `chore`, and `revert` are patch. Pre-1.0 breaking changes are handled as the
-next minor release. The workflow tags `v<version>-rc`, builds the Windows
+next minor release. The commit types only ever bump the number, so a version such as 1.0.0 is named by hand: run **Prerelease**
+manually with its `version` input (`gh workflow run prerelease.yml -f version=1.0.0`). The input must be a plain X.Y.Z, higher than every
+candidate so far and not tagged yet (`scripts/release/explicit-version.mjs` refuses anything else before `nx release version` writes it), and
+it reaches the shell only through an environment variable. Later pushes bump from the new candidate (`v1.0.0-rc`, then 1.0.1 or 1.1.0).
+The workflow tags `v<version>-rc`, builds the Windows
 package, and its `publish` job creates the GitHub pre-release with the Windows
 zip and the Windows setup program ([The Windows setup program](#the-windows-setup-program)). No other platform is built or
 attached: the macOS and Linux preview builds were removed ([Supported platforms](../../README.md#supported-platforms)).

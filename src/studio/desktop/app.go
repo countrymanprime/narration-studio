@@ -2234,6 +2234,8 @@ func (h *Host) startGuideBuild(rulesOnly bool) (map[string]any, error) {
 	// belong to one project; the goroutine never re-reads h.guide.
 	progress := filepath.Join(svc.config.sessionDir, "guide_progress_"+job.id+".txt")
 	log := filepath.Join(svc.config.sessionDir, "guide_log_"+job.id+".txt")
+	// The snapshot is taken before the job starts, so a fast build cannot report a finished job as the one it started (#3076).
+	started := snapshotWork(job)
 	go func() {
 		// The sidecar writes a stage|pct|message progress file and an
 		// append-only log while it works; tail both so the dialog shows real
@@ -2276,7 +2278,7 @@ func (h *Host) startGuideBuild(rulesOnly bool) (map[string]any, error) {
 			h.publishJobEnded(event)
 		}
 	}()
-	return map[string]any{"status": "started", "job": snapshotWork(job)}, nil
+	return map[string]any{"status": "started", "job": started}, nil
 }
 
 // pollWorkJob folds the sidecar's latest progress line and any new log lines
