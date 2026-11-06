@@ -340,6 +340,10 @@
     "id": "acx",
     "version": "2026-09"
   },
+  "shippedDefault": {
+    "id": "acx",
+    "version": "2026-09"
+  },
   "hasProject": false,
   "projectChoice": null,
   "projectProfile": "acx@2026-09",

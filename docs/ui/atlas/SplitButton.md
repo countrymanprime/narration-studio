@@ -5,7 +5,7 @@ Storybook title: `Primitives/SplitButton`. Source: `src/components/primitives/Sp
 ## Stories
 
 - Default
-- With Switch
+- Cold Read
 - Stopping
 
 ## Used by

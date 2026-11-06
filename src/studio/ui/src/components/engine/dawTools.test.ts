@@ -5,14 +5,7 @@ const READY: DawToolFacts = { forAudacity: false, trackCount: 3, chapterCount: 4
 
 describe('the DAW tools registry', () => {
   it('lists the tools in the order the Engine panel has always drawn them, each with a unique id and label', () => {
-    expect(DAW_TOOLS.map((tool) => tool.label)).toEqual([
-      'Link chapters…',
-      'Prepare chapter render…',
-      'Create chapter regions…',
-      'Embed chapter tags…',
-      'Cleanup tools…',
-      'Retakes on lanes…',
-    ]);
+    expect(DAW_TOOLS.map((tool) => tool.label)).toEqual(['Link chapters…', 'Prepare chapter render…', 'Create chapter regions…', 'Cleanup tools…']);
     expect(new Set(DAW_TOOLS.map((tool) => tool.id)).size).toBe(DAW_TOOLS.length);
   });
 

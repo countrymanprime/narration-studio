@@ -42,7 +42,8 @@ const takesGroupId = (passageId: string): string => `takes-${passageId}`;
 /** How the take stands: kept (the DAW said so), the one playing in the DAW, or muted. */
 function stateOf(take: LineTake, keptId: string | null, hidden: boolean): StatusId {
   if (keptId === take.id) return 'kept_take';
-  if (take.active) return 'active_take';
+  // Once a take is kept the others are muted, whatever the lines read last said was active (a keep made here shows before they are read again).
+  if (take.active && keptId === null) return 'active_take';
   return hidden ? 'hidden_take' : 'muted';
 }
 
@@ -93,7 +94,7 @@ function TakeRow({ passage, take, suggestedId, ...rest }: TakeLinesProps & { tak
             data-tplay={take.id}
             onClick={() => onPlay(take)}
           />
-          {kept ? null : (
+          {kept || passage.takes.length < 2 ? null : (
             <IconButton
               action="keepTake"
               size="sm"

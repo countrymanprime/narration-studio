@@ -37,7 +37,6 @@ Storybook title: `Primitives/SectionLabel`. Source: `src/components/primitives/S
 - `src/components/engine/ChapterTagsDialog.tsx`
 - `src/components/engine/CreateChapterRegionsDialog.tsx`
 - `src/components/engine/LinkChaptersDialog.tsx`
-- `src/components/engine/RetakeLanesDialog.tsx`
 - `src/components/master/MasteringApprovalDialog.tsx`
 - `src/components/master/MultiPlatformExportPanel.tsx`
 - `src/components/pickups/PickupsCompanionSummary.tsx`
@@ -73,6 +72,7 @@ Storybook title: `Primitives/SectionLabel`. Source: `src/components/primitives/S
 - `src/components/settings/analysis/AnalysisToolsSection.tsx`
 - `src/components/settings/analysis/ConsentDialog.tsx`
 - `src/components/settings/controls/AboutSection.tsx`
+- `src/components/settings/controls/DiagnosticsSection.tsx`
 - `src/components/settings/page/CategoryPane.tsx`
 - `src/components/settings/page/Results.tsx`
 - `src/components/storybible/suggested/import/ImportDialog.tsx`

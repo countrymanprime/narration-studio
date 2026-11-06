@@ -195,7 +195,7 @@ jobs:
 
   ui-visual-shard:
     # Captures every {page, state, viewport} of the mock-backed app and fails on errors, sideways overflow and collapsed
-    # controls per capture (src/studio/ui/tests/visual/lib/capture.ts). Not a pixel-diff gate. A third of the suite per job. The checks
+    # controls per capture (src/studio/ui/tests/visual/lib/capture.ts). Not a pixel-diff gate. A quarter of the suite per job. The checks
     # that need the whole run (blank, undeclared duplicate, stale sameAs, and that the shards held every test) cannot run in a
     # shard (UI_VISUAL_SHARDED=1 defers them), so each shard uploads its capture records and a manifest of what it was given, and
     # `CI passed` (ci.yml) judges them together.
@@ -206,7 +206,10 @@ jobs:
     # (a test per overlay, window size and position, for every page that adopts it) grew. A 20 minute limit then cancelled passing
     # shards on 2026-10-23: `setup-playwright` (the system libraries, `playwright install --with-deps`) took 7.5 minutes on a slow
     # runner and left about 12 for the screenshots.
-    name: ui-visual (shard ${{ matrix.shard }}/3)
+    # Four shards (#3054): the suite grew to about 2360 tests, and three balanced shards (1338 to 1368 s of tests each on run 42182391318,
+    # 22.8 min by Playwright's clock) left a slow runner, with `setup-playwright` at 9 minutes, past the 30 minute limit on shards that
+    # failed no test. A quarter each is about 17 minutes of tests. The limit stays 30: the balance was not the problem.
+    name: ui-visual (shard ${{ matrix.shard }}/4)
     needs: scope
     if: inputs.full && needs.scope.outputs.ui == 'true'
     timeout-minutes: 30
@@ -214,7 +217,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
+        shard: [1, 2, 3, 4]
     outputs:
       affected: ${{ steps.scope.outputs.affected }}
     steps:
@@ -239,9 +242,9 @@ jobs:
         if: steps.scope.outputs.affected == 'true'
         env:
           SHARD: ${{ matrix.shard }}
-        run: node scripts/ci/visual-shards.mjs split --shard "$SHARD/3" --out "$RUNNER_TEMP/shard.txt" --manifest "$RUNNER_TEMP/shard-$SHARD.json" --github-output
+        run: node scripts/ci/visual-shards.mjs split --shard "$SHARD/4" --out "$RUNNER_TEMP/shard.txt" --manifest "$RUNNER_TEMP/shard-$SHARD.json" --github-output
       # The JSON report is the profile (time per test); a shard uploads it as ui-visual-timings-<i> and `visual-shards.mjs weights` rebuilds
-      # shard-weights.json from the three.
+      # shard-weights.json from the four.
       - if: steps.scope.outputs.affected == 'true'
         env:
           UI_VISUAL_SHARDED: '1'
@@ -426,6 +429,9 @@ jobs:
     # (two cancelled runs), and go lint follows them.
     # The mutation checks run one per CPU (tests/mutations.py, spawn workers) since the folder-depth mutations took the
     # Windows reaper step to 19 min and cancelled this job (run 41654984217); on four CPUs they take a quarter of that.
+    # They were cancelled again at 25 min with 563 entries (run 41828167325): every test builds sessions that reload the
+    # bridge's ~35 Lua files, so the harness now compiles each file once per Lua state (tests/harness.lua) and a mutation
+    # check stops at its first failing test. The run prints its CPU count and elapsed seconds.
     needs: scope
     if: needs.scope.outputs.winquick == 'true'
     timeout-minutes: 25

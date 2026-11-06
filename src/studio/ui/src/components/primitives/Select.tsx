@@ -16,6 +16,16 @@ type Props = Omit<ComponentPropsWithRef<'select'>, 'aria-label' | 'id' | 'value'
     placeholder?: string;
   };
 
+/**
+ * The width limits Select adds when its caller sets none: it stays inside its container (`max-w-full`) and may shrink in a flex row (`min-w-0`), so a very long name
+ * ends in an ellipsis instead of widening the box. A caller's own `max-w-*` or `min-w-*` replaces it: the stylesheet orders `max-w-full` after `max-w-80` and
+ * `max-w-[260px]`, so adding it beside theirs would override the limit they asked for.
+ */
+function limits(className: string): string {
+  const own = (kind: 'max' | 'min') => new RegExp(`(^|\\s)${kind}-w-`).test(className);
+  return `${own('max') ? '' : 'max-w-full'} ${own('min') ? '' : 'min-w-0'}`.trim();
+}
+
 // The placeholder option's own value: a string no caller's option can have, so `onChange` can never report it.
 const PLACEHOLDER_VALUE = '\u0000placeholder';
 
@@ -37,6 +47,8 @@ function grouped(options: readonly SelectOption[]): { group: string | undefined;
 // working, and no option needs rich content. Controlled, and `onChange` reports the chosen value, not the event.
 export function Select({ label, value, onChange, options, fullWidth = false, placeholder, className = '', ...rest }: Props) {
   const showPlaceholder = placeholder !== undefined && !options.some((option) => option.value === value);
+  // The full name of what the closed box shows: a long one ends in an ellipsis there, and this is how to read the rest.
+  const shown = showPlaceholder ? placeholder : options.find((option) => option.value === value)?.label;
   return (
     <select
       {...rest}
@@ -45,7 +57,8 @@ export function Select({ label, value, onChange, options, fullWidth = false, pla
       onChange={(event) => event.target.value !== PLACEHOLDER_VALUE && onChange(event.target.value)}
       // A fixed height, not a minimum: a native <select> doesn't resolve `leading-[1.35]` the way an <input> or a styled
       // div does, so pinning the height is what makes it match TextField and Button (`--control-height`, 36px).
-      className={`${SELECT_BOX_CLASSES} ${fullWidth ? 'w-full' : ''} ${className}`}
+      className={`${SELECT_BOX_CLASSES} truncate ${limits(className)} ${fullWidth ? 'w-full' : ''} ${className}`}
+      title={shown}
     >
       {showPlaceholder && (
         <option value={PLACEHOLDER_VALUE} disabled hidden>

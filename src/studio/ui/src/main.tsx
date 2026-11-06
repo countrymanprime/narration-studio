@@ -261,6 +261,9 @@ const mockAssetsList = (['loading', 'fails'] as const).find((seed) => seed === m
 // `?mockAssetsVerify=damaged|absent|fails|silent|hangs` sets what Settings > Models & downloads' Check the files answers: the asset damaged,
 // gone, a refusal in the host's words, a refusal with no words, or no answer. `?mockAssetNames=long` gives the Whisper model a long name.
 const mockAssetsVerify = (['damaged', 'absent', 'fails', 'silent', 'hangs'] as const).find((seed) => seed === mockParams.get('mockAssetsVerify'));
+// `?mockMove=copying|verifying|fails|moved|cancel` sets how Settings > Models & downloads' Change location behaves: the move holds while copying or
+// checking, fails, boots already moved with the old copy awaiting an answer, or the folder dialog is closed without a choice.
+const mockMove = (['copying', 'verifying', 'fails', 'moved', 'cancel'] as const).find((seed) => seed === mockParams.get('mockMove'));
 const mockAssetNames = mockParams.get('mockAssetNames') === 'long' ? ('long' as const) : undefined;
 // `?mockHold=overview,entities` makes those reads never answer, so Production and the Story Bible show their loading skeleton.
 const mockHold = (mockParams.get('mockHold') ?? '').split(',').filter((name): name is 'overview' | 'entities' => name === 'overview' || name === 'entities');
@@ -310,9 +313,6 @@ const mockRenderConfig = (['success', 'no-regions', 'error'] as const).find((see
 // `?mockCleanupTools=launched|error` boots the audio engine panel's "Cleanup tools" dialog with CleanupToolsState already at
 // that result (error: Magnolius DeClick not installed), so both can be seen without a real REAPER round trip.
 const mockCleanupTools = (['launched', 'error'] as const).find((seed) => seed === mockParams.get('mockCleanupTools'));
-// `?mockRetakeLanes=picked|error|none` boots the audio engine panel's "Retakes on lanes" dialog at that result (none: a project
-// with no fixed-lane track), so each can be seen without a real REAPER round trip.
-const mockRetakeLanes = (['picked', 'error', 'none'] as const).find((seed) => seed === mockParams.get('mockRetakeLanes'));
 // `?mockChapterTags=ready|not-rendered` boots the audio engine panel's "Embed chapter tags" dialog with ChapterTagsPreview
 // already at that result, so the ready and not-yet-rendered states can be seen without a real chapter render.
 // `?mockChapterTagsEmbedError=1` makes the embed action always fail, so the error state can be seen too.
@@ -544,6 +544,7 @@ const mockInitial = {
   ...(mockAssetsList ? { assetsList: mockAssetsList } : {}),
   ...(mockAssetsVerify ? { assetsVerify: mockAssetsVerify } : {}),
   ...(mockAssetNames ? { assetNames: mockAssetNames } : {}),
+  ...(mockMove ? { assetMove: mockMove } : {}),
   ...(mockChapters ? { chaptersRead: mockChapters } : {}),
   ...(mockChapterRead ? { chapterRead: mockChapterRead } : {}),
   ...(mockProfileRead ? { profileRead: mockProfileRead } : {}),
@@ -642,7 +643,6 @@ const mockInitial = {
   ...(mockPickups ? { pickups: mockPickups } : {}),
   ...(mockRenderConfig ? { renderConfig: mockRenderConfig } : {}),
   ...(mockCleanupTools ? { cleanupTools: mockCleanupTools } : {}),
-  ...(mockRetakeLanes ? { retakeLanes: mockRetakeLanes } : {}),
   ...(mockChapterTags ? { chapterTags: mockChapterTags } : {}),
   ...(mockChapterTagsEmbedError ? { chapterTagsEmbedAlwaysErrors: true } : {}),
   ...(mockRegionsCreateError ? { regionsCreateAlwaysErrors: true } : {}),

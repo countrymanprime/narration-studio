@@ -34,7 +34,6 @@ const CEILING: Record<string, number> = {
   'src/components/engine/EnginePanel.tsx': 1,
   'src/components/engine/LinkChaptersDialog.tsx': 1,
   'src/components/engine/RenderConfigDialog.tsx': 1,
-  'src/components/engine/RetakeLanesDialog.tsx': 1,
   'src/components/layout/useNavCounts.ts': 1,
   'src/components/master/DiagnosticsSection.tsx': 1,
   'src/components/master/MasteringChain.tsx': 1,

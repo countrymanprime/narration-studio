@@ -136,7 +136,7 @@ export function WaveDock({ chapterId, clocks, take, playFrom, reason }: WaveDock
 
   const entry = pickEntries(peaks, clocks, 0, end);
   return (
-    <section aria-label="Waveform of the chapter" className="flex-none border-t border-[var(--border)] bg-[var(--surface-2)]" id="wavedock">
+    <section aria-label="Waveform of the chapter" className="relative z-10 flex-none border-t border-[var(--border)] bg-[var(--surface-2)]" id="wavedock">
       <RibbonView
         layout={layout}
         head={{ take }}

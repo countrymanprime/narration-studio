@@ -149,7 +149,7 @@ export const SILENT_CATCHES: Record<string, string> = {
   'src/components/booth/CompanionShell.tsx#1':
     "Companion mode's exit on unmount: nothing is left mounted to tell, and the host's exit is a no-op when companion mode was never entered, so there is no state it could leave wrong that a retry would fix.",
   'src/components/booth/listening/useListeningMic.ts#1':
-    'Asking the DAW which microphone it records with, only to preselect it: a failed ask leaves the choice to the narrator in Levels, exactly as an answer that is not a sure match does.',
+    'Asking the DAW which microphone it records with, only to preselect it: a failed ask leaves the choice to the narrator in Record options, exactly as an answer that is not a sure match does.',
   'src/components/booth/useRecorder.ts#1': "Only the engine chip's first reading; without it the chip stays on REAPER until the next recording:state.",
   'src/components/engine/outputPrefs.ts#1':
     "Saving Editing's volume, mute, speed and output to browser storage: when storage is unavailable the choice holds for this window, which is all a per-window setting promises.",
@@ -198,8 +198,6 @@ export const SILENT_CATCHES: Record<string, string> = {
     'Re-reads a finding after the host refused a decision, only to tell changed evidence apart; when the re-read fails too, the inline alert still shows the host reason for the refusal, so nothing is hidden (the same reading the Proof Inspector makes).',
   'src/components/editing/EditingCheckPanel.tsx#1':
     "Reads the chapter's stored analysis-source choice on open; a failed read just leaves the default (items) selected, which is already correct for a chapter with no choice made yet, so there is nothing to guard or retry.",
-  'src/components/engine/RetakeLanesDialog.tsx#1':
-    'Hydrates whatever pick was already in flight when the dialog reopened; the list still loads and every pick shows its own failure inline.',
   'src/components/engine/CleanupToolsDialog.tsx#1':
     'Hydrates whatever launch was already in flight when the dialog reopened; the narrator can press Open either way, and a launch shows its own failure inline.',
   'src/components/engine/RenderConfigDialog.tsx#1':

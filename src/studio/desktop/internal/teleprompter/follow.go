@@ -38,7 +38,7 @@ type follower struct {
 
 func newFollower(script scripttrack.ChapterScript, startWord *int) *follower {
 	return &follower{
-		tracker: scripttrack.NewFlagging(script.Tokens, script.Heading), startWord: startWord,
+		tracker: spokenFlagging(script), startWord: startWord,
 		script: compactLine(scripttrack.ScriptEvent(script)),
 	}
 }
@@ -159,4 +159,12 @@ func (s *Service) sendScript(follow *follower) {
 	if script := follow.takeScript(); script != nil {
 		s.relay("script", script)
 	}
+}
+
+// spokenFlagging is the Booth's tracker: it follows a word said like the script's (a homophone, a possessive, "twelve" for
+// "12") as well as one spelt like it.
+func spokenFlagging(script scripttrack.ChapterScript) *scripttrack.FlaggingTracker {
+	tracker := scripttrack.NewFlagging(script.Tokens, script.Heading)
+	tracker.SpokenForms()
+	return tracker
 }

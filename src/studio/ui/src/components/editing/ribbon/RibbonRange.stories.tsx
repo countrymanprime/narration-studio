@@ -24,11 +24,13 @@ function Chooser({
   pid = 'p-1',
   range: first = null,
   view,
+  take = null,
 }: {
   doc: ChapterDoc;
   pid?: string;
   range?: Span | null;
   view?: { start: number; len: number };
+  take?: string | null;
 }) {
   const [range, setRange] = useState<Span | null>(first);
   const words = doc.paras.find((p) => p.p.id === pid)?.items ?? [];
@@ -39,7 +41,7 @@ function Chooser({
       <RibbonView
         layout={layout}
         peaks={peaks}
-        head={{ take: null }}
+        head={{ take }}
         initialView={view}
         choose={{ words, range, onRange: (span) => setRange(span), onTap: () => setRange(null) }}
       />
@@ -59,6 +61,52 @@ export const NoRange: Story = {
   play: async ({ canvasElement }) => {
     await expect(within(canvasElement).getByRole('button', { name: 'Waveform gestures' })).toBeTruthy();
     await expect(within(canvasElement).queryByRole('slider', { name: 'Start of range' })).toBeNull();
+  },
+};
+
+// A take name far longer than the row (200 letters, emoji, right-to-left text) at the width of a small window (#2804): the name truncates with the whole name as its
+// tooltip, and in a browser nothing in the head row overlaps its neighbours or runs past the row. The layout checks need a browser: the unit run has no layout and skips them.
+export const LongTakeName: Story = {
+  args: { doc, take: `T-\u{1F3A4}-\u05E9\u05DC\u05D5\u05DD-${'x'.repeat(200)}` },
+  decorators: [
+    (Story) => (
+      <div style={{ width: '20rem' }}>
+        <Story />
+      </div>
+    ),
+  ],
+  play: async ({ canvasElement, args }) => {
+    const head = canvasElement.querySelector<HTMLElement>('[data-ribbon-head]');
+    await expect(head).not.toBeNull();
+    await expect(head!.firstElementChild?.getAttribute('title')).toBe(args.take);
+    const row = head!.parentElement!;
+    if (row.clientWidth === 0) return;
+    const boxes = [...row.children].map((child) => child.getBoundingClientRect());
+    for (let i = 0; i < boxes.length; i++)
+      for (let j = i + 1; j < boxes.length; j++) await expect(boxes[i]!.right <= boxes[j]!.left + 0.5 || boxes[j]!.right <= boxes[i]!.left + 0.5).toBe(true);
+    await expect(row.scrollWidth).toBeLessThanOrEqual(row.clientWidth + 1);
+  },
+};
+
+// A short take name ("Take 1") in the same small window with the zoom row's range text beside it (#2804): the name keeps its natural width and is never squeezed
+// to a few pixels by its neighbours; they give way instead. A browser only: the unit run has no layout and skips the measuring.
+export const ShortTakeName: Story = {
+  args: { doc, take: 'Take 1' },
+  decorators: [
+    (Story) => (
+      <div style={{ width: '20rem' }}>
+        <Story />
+      </div>
+    ),
+  ],
+  play: async ({ canvasElement }) => {
+    const head = canvasElement.querySelector<HTMLElement>('[data-ribbon-head]');
+    await expect(head).not.toBeNull();
+    const name = head!.firstElementChild as HTMLElement;
+    await expect(name.textContent).toBe('Take 1');
+    if (name.clientWidth === 0) return;
+    await expect(name.scrollWidth).toBeLessThanOrEqual(name.clientWidth + 1);
+    await expect(head!.getBoundingClientRect().width).toBeGreaterThanOrEqual(name.scrollWidth);
   },
 };
 

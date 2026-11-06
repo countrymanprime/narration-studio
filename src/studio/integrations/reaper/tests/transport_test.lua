@@ -125,6 +125,63 @@ H.test('record_start with end on an empty track starts at the project start', fu
   H.eq(s.fake.cursor, 0)
 end)
 
+-- chapter_end: a chapter linked to a folder of voices continues after the latest item of the WHOLE folder (#3025).
+local function voices_session()
+  local s = H.session({ project_path = H.join(host.tmpdir(), 'Book.rpp') })
+  local folder = s.fake:add_track('Chapter 1')
+  local narrator = s.fake:add_track('Narrator')
+  local hero = s.fake:add_track('Hero')
+  local after = s.fake:add_track('Chapter 2')
+  folder.folder_depth = 1
+  hero.folder_depth = -1
+  return s, folder, narrator, hero, after
+end
+
+H.test('record_start with chapter_end continues after the latest item on any voice of the folder', function()
+  local s, folder, narrator, hero = voices_session()
+  narrator.armed = true
+  s.fake:add_item(narrator, { position = 10, length = 30 })
+  s.fake:add_item(hero, { position = 50, length = 20 })
+  s:send('record_start', 'r1', narrator.guid, 'chapter_end', folder.guid)
+  H.eq(s:events(), { { 'RECORD_STARTED', 'r1', narrator.guid, '70.000000' } })
+  H.eq(s.fake.cursor, 70)
+end)
+
+H.test('record_start with chapter_end ignores tracks outside the folder and counts muted tracks', function()
+  local s, folder, narrator, hero, after = voices_session()
+  narrator.armed = true
+  s.fake:add_item(after, { position = 500, length = 5 })
+  s.fake:add_item(hero, { position = 20, length = 10 })
+  hero.muted = true
+  s:send('record_start', 'r1', narrator.guid, 'chapter_end', folder.guid)
+  H.eq(s:events(), { { 'RECORD_STARTED', 'r1', narrator.guid, '30.000000' } })
+end)
+
+H.test('record_start with chapter_end on an empty folder starts at the project start', function()
+  local s, folder, narrator = voices_session()
+  narrator.armed = true
+  s.fake.cursor = 12
+  s:send('record_start', 'r1', narrator.guid, 'chapter_end', folder.guid)
+  H.eq(s:events(), { { 'RECORD_STARTED', 'r1', narrator.guid, '0.000000' } })
+end)
+
+H.test('record_start with chapter_end refuses a target that is not inside the folder and moves nothing', function()
+  local s, folder, _, _, after = voices_session()
+  after.armed = true
+  s.fake.cursor = 12
+  s:send('record_start', 'r1', after.guid, 'chapter_end', folder.guid)
+  H.eq(s:events()[1][1], 'ERROR')
+  H.eq(s.fake.cursor, 12)
+  H.eq(calls_named(s, 'CSurf_OnRecord'), 0)
+end)
+
+H.test('record_start with chapter_end refuses a folder that is not there', function()
+  local s, _, narrator = voices_session()
+  narrator.armed = true
+  s:send('record_start', 'r1', narrator.guid, 'chapter_end', '{FFFFFFFF-0000-4000-8000-00000000FFFF}')
+  H.eq(s:events()[1][1], 'TRACK_STALE')
+end)
+
 H.test('a refused record_start with end leaves the cursor where it was', function()
   local cases = {
     {
@@ -551,6 +608,32 @@ H.test('the end rule starts at the end of the track when the cursor is no longer
   s.fake.cursor = 12 -- moved in REAPER to listen back
   s:send('record_start', 'r2', chapter.guid, 'end')
   H.eq(s:events(), { { 'RECORD_STARTED', 'r2', chapter.guid, '20.000000' } }, 'an unknown place never records over later audio')
+end)
+
+H.test('chapter_end goes on from where the chapter last stopped, on any voice of the folder', function()
+  local s, folder, narrator, hero = voices_session()
+  s.fake:add_item(narrator, { position = 0, length = 60, source = 'earlier.wav' })
+  hero.armed = true
+  s.fake.cursor, s.fake.record_seconds = 5, 3
+  s:send('record_start', 'r1', hero.guid)
+  s:send('record_stop', 's1')
+  s:events()
+  narrator.armed, hero.armed = true, false
+  s:send('record_start', 'r2', narrator.guid, 'chapter_end', folder.guid)
+  H.eq(s:events(), { { 'RECORD_STARTED', 'r2', narrator.guid, '8.000000' } }, 'where the hero stopped, as the narrator picks up')
+end)
+
+H.test('chapter_end ignores a stop outside the folder and goes to the end of the whole folder', function()
+  local s, folder, narrator, hero, after = voices_session()
+  s.fake:add_item(hero, { position = 0, length = 40, source = 'earlier.wav' })
+  after.armed = true
+  s.fake.cursor, s.fake.record_seconds = 5, 3
+  s:send('record_start', 'r1', after.guid)
+  s:send('record_stop', 's1')
+  s:events()
+  after.armed, narrator.armed = false, true
+  s:send('record_start', 'r2', narrator.guid, 'chapter_end', folder.guid)
+  H.eq(s:events(), { { 'RECORD_STARTED', 'r2', narrator.guid, '40.000000' } })
 end)
 
 H.test('the end rule ignores a stop on another track', function()
