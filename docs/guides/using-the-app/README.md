@@ -37,7 +37,7 @@ Pick the line that sounds like you. Each path is a few pages in the order you wi
   [Script](script.md) and the names in the [Story Bible](story-bible.md), and come back to the [Booth](booth.md) for
   the rest of recording.
 - **An experienced narrator coming from REAPER:** [Booth: Recording](booth.md#recording) for where a take starts and
-  stops, Undo, and punch and roll (**R**); [Settings: Recording & DAW](settings.md#recording--daw) for linking the
+  stops, Undo, and punch and roll (**R**); [Settings: Link your REAPER project](settings.md#link-your-reaper-project) for linking the
   REAPER project; [Navigation: the audio engine panel](navigation.md#the-audio-engine-panel) for tracks and chapter
   sync; [Editing: Takes](editing.md#takes) for retakes; then [Pickups](pickups.md).
 - **An editor:** [Editing](editing.md) for a chapter's [takes](editing.md#takes) and
