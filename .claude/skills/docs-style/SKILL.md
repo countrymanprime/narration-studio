@@ -30,6 +30,8 @@ Agent-written docs drift three ways: they go stale when code changes, they fill 
 9. **Say what is pending.** A check not run, a result awaiting the owner or audio hardware: write "pending" with who owns it. Never imply it passed.
 10. **Write for a named reader.** The first sentence or two of a user-facing page say who it is for and what it gets them. Give that reader what they lack: what they need before they start, a worked example with concrete values, the result of each step (a screenshot where the result is visual), the exact message of a likely failure with its fix, and a `## What next` list of two to five links before the footer. The readers and what each comes with are in [references/readers-and-types.md](references/readers-and-types.md#readers). Before calling a guide page done, run [references/review-checklist.md](references/review-checklist.md).
 
+11. **Describe what exists.** Write what a thing is and does now, or what it will do once the change is done. Leave out what it lacks, what it replaced and any state that is gone ("no longer", "there is no", "retired", "formerly", "used to"): git history and dated research hold the past. Keep a negation only where it is the rule itself, a prohibition the reader must follow ("never merge", "commit no other images"). `docs-slop` warns on the phrases.
+
 ## Code comments by language
 
 Comment the contract and the non-obvious why. Do not narrate what the code shows. Details and checks in `references/`:
