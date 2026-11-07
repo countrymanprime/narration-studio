@@ -26,9 +26,8 @@ test('a bump in Test (Windows) starts the shell family; a bump in lint runs its 
   assert.deepEqual(pinFlags({ kind: 'pins', pure: true, jobs: ['_quality.yml#lint'] }), { ui: false, shell: false, static: true, quickubuntu: false });
 });
 
-test('both aggregates belong to the ui family, so their download-artifact pins run the shards whose uploads they read', () => {
+test('the gate job belongs to the ui family, so its download-artifact pins run the shards whose uploads it reads', () => {
   assert.equal(pinFlags({ kind: 'pins', pure: true, jobs: ['ci.yml#ci-passed'] }).ui, true);
-  assert.equal(pinFlags({ kind: 'pins', pure: true, jobs: ['ci.yml#ci-light-passed'] }).ui, true);
 });
 
 test('a pin bump beside other changes keeps the self-scoped jobs', () => {

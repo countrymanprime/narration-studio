@@ -382,6 +382,10 @@
       "step": [
         "uses: ./.github/actions/ci-gate",
         "results: ${{ join(needs.*.result, ' ') }}"
+      ],
+      "job_has": [
+        "name: ${{ github.event.pull_request.draft == true && 'CI light passed' || 'CI passed' }}",
+        "if: always()"
       ]
     },
     {
@@ -389,11 +393,16 @@
       "was": "CI light passed",
       "tier": "pr",
       "workflow": "ci.yml",
-      "job": "ci-light-passed",
+      "job": "ci-passed",
       "step": [
         "uses: ./.github/actions/ci-gate",
         "results: ${{ join(needs.*.result, ' ') }}"
-      ]
+      ],
+      "job_has": [
+        "name: ${{ github.event.pull_request.draft == true && 'CI light passed' || 'CI passed' }}",
+        "if: always()"
+      ],
+      "note": "One gate job serves both tiers: on a draft its check is named `CI light passed` and judges no visual records (the draft runs no visual suite)."
     },
     {
       "id": "govulncheck",
