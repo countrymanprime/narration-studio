@@ -33,10 +33,13 @@ const activeProfile = (state: DeliveryProfilesState): DeliveryProfile | undefine
 export function ProfileCard({
   onChange,
   onProfile,
+  onProfiles,
   locked = false,
 }: {
   onChange?: () => void;
   onProfile?: (profile: DeliveryProfile, limits: Limit[]) => void;
+  /** The platforms the host lists, for the page's multi-platform build; given again when the list changes. */
+  onProfiles?: (profiles: DeliveryProfile[]) => void;
   /** A build is running under this profile: it cannot be changed or edited until the build ends. */
   locked?: boolean;
 }) {
@@ -57,6 +60,10 @@ export function ProfileCard({
   useEffect(() => {
     if (profile) onProfile?.(profile, limitsOf(profile));
   }, [profile, onProfile]);
+  const profiles = state?.profiles;
+  useEffect(() => {
+    if (profiles) onProfiles?.(profiles);
+  }, [profiles, onProfiles]);
 
   const run = useCallback(
     async (action: () => Promise<void>) => {

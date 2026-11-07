@@ -1,6 +1,7 @@
 package teleprompter
 
 import (
+	"desktop/internal/persist"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -84,12 +85,8 @@ func writeAnchors(project, chapterID string, anchors []Anchor) error {
 		return fmt.Errorf("could not create the teleprompter folder: %w", err)
 	}
 	path := filepath.Join(dir, anchorsFileName(chapterID))
-	temp := path + ".tmp"
-	if err := os.WriteFile(temp, bytes, 0o600); err != nil {
+	if err := persist.WriteFile(path, bytes, 0o600); err != nil {
 		return fmt.Errorf("could not write the punch anchors: %w", err)
-	}
-	if err := os.Rename(temp, path); err != nil {
-		return fmt.Errorf("could not activate the punch anchors: %w", err)
 	}
 	return nil
 }

@@ -28,6 +28,7 @@
     "narration-common",
     "reaper",
     "repo-scripts",
+    "story-bible-benchmark",
     "transcript-compare"
   ]
 }

@@ -200,6 +200,7 @@ type FlaggingTracker struct {
 	heading int
 	written []string
 	nextID  int
+	checks  []pendingCheck
 }
 
 // NewFlagging is FlaggingTracker(tokens, heading): heading is how many tokens open the script as the chapter
@@ -230,6 +231,7 @@ func (f *FlaggingTracker) Feed(event Event, now float64) ([]Position, []FlagEven
 		f.nextID++
 		kept = append(kept, event)
 	}
+	f.remember(reading, kept)
 	return positions, kept
 }
 

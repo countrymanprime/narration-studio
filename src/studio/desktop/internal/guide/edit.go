@@ -373,7 +373,7 @@ func writeDocument(path string, document map[string]any) ([]byte, error) {
 	if err := os.WriteFile(temporary, buffer.Bytes(), 0o644); err != nil { //nolint:gosec // G306: the mode the sidecar writes the file with; it is the narrator's own data
 		return nil, err
 	}
-	if err := os.Rename(temporary, path); err != nil {
+	if err := persist.Rename(temporary, path); err != nil {
 		_ = os.Remove(temporary)
 		return nil, err
 	}

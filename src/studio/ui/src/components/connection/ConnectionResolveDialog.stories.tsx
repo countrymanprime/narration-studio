@@ -103,12 +103,13 @@ export const WentQuiet: Story = {
   },
 };
 
-/** No project file is linked, so the host would refuse to start it: Start is off and the reason is on the page. */
+/** No project file is linked, so the host would refuse to start it: Start is off, the reason is on the page, and Link project file… is the main button. */
 export const NotLinked: Story = {
   args: { props: off, api: { dawChoice: async () => choice({ state: 'not_linked', linkedFile: null }) } },
   play: async () => {
     const open = await dialog();
-    await within(open).findByText(/Link the project file first/);
+    await within(open).findByText(/No REAPER project file is linked to this project yet/);
+    await within(open).findByRole('button', { name: 'Link project file…' });
     await expect(within(open).getByRole('button', { name: 'Start REAPER' })).toHaveAttribute('aria-disabled', 'true');
   },
 };

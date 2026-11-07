@@ -64,9 +64,19 @@ type Loaded = { result: CoverageResult; reviews: CoverageGapReviews; audio: Find
 /**
  * The recording check for the chapter in view (Studio Next mock: pages/proof/CheckCard.tsx): the check's state, the recorded length against
  * the script estimate, what the check found by category, and its findings with Accept and Ignore. It decides nothing by itself: a run
- * and a load only read. "Check recordings" hands the chapter to `onCheck` (the dialog is the caller's).
+ * and a load only read. "Check recordings" hands the chapter to `onCheck` (the dialog is the caller's); "Compare with the script" asks the page for
+ * its Compare panel (`compare`), and is off when there is nothing recorded to compare.
  */
-export function CheckCard({ chapter, onCheck }: { chapter: ManuscriptChapter; onCheck: (chapterId: string) => void }) {
+export function CheckCard({
+  chapter,
+  onCheck,
+  compare,
+}: {
+  chapter: ManuscriptChapter;
+  onCheck: (chapterId: string) => void;
+  /** The page offers Compare beside Check recordings (#2822): pressing it opens the Compare panel under the card, which `open` reports. */
+  compare?: { onOpen: () => void; open: boolean };
+}) {
   const coverage = usePort('coverage');
   const findings = usePort('findings');
   const journal = useJournalOrOwn();
@@ -243,6 +253,21 @@ export function CheckCard({ chapter, onCheck }: { chapter: ManuscriptChapter; on
             onClick={() => onCheck(chapterId)}
           >
             Check recordings
+          </Button>
+        )}
+        {compare && (
+          <Button
+            variant="secondary"
+            aria-expanded={compare.open}
+            disabled={!hasRecording(chapter.recordedSeconds)}
+            aria-describedby={whyNot ? 'check-why-not' : undefined}
+            onClick={compare.onOpen}
+            // A held Enter repeats keydown and so repeats the press: one press toggles once.
+            onKeyDown={(event) => {
+              if (event.repeat) event.preventDefault();
+            }}
+          >
+            Compare with the script
           </Button>
         )}
       </div>

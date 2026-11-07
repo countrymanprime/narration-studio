@@ -42,8 +42,8 @@ export function Drawer({ doc, chapterId, tab, tabs, counts = {}, onTab, onClose,
     body = (
       <>
         {tab === 'cleanup' ? <FoundList doc={doc} activeKind={flagKind} onReview={onReview} /> : null}
-        {sections.map(({ section, node }, i) => (
-          <section key={`${section.order}-${i}`} aria-label={section.label} className="border-b border-[var(--border)] p-3 last:border-b-0">
+        {sections.map(({ section, node }) => (
+          <section key={`${section.order}-${section.label}`} aria-label={section.label} className="border-b border-[var(--border)] p-3 last:border-b-0">
             {node}
           </section>
         ))}

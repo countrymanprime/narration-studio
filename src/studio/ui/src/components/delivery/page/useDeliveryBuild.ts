@@ -24,16 +24,26 @@ export function useDeliveryBuild(profile: DeliveryProfile | undefined) {
     () => port.packageState(),
     (job) => job.phase === 'running',
   );
+  // The multi-platform build is the same kind of job, read the same way: the one export poll above feeds both builds' "files encoded".
+  const multiPackaged = useHostRead(
+    () => port.packageMultiState(),
+    (job) => job.phase === 'running',
+  );
   const { again: readExport } = exported;
   const { again: readPackage } = packaged;
+  const { again: readMulti } = multiPackaged;
   useEffect(
     () =>
       system.subscribeJobEnded(() => {
         readExport();
         readPackage();
+        readMulti();
       }),
-    [system, readExport, readPackage],
+    [system, readExport, readPackage, readMulti],
   );
+  const [multiProblem, setMultiProblem] = useState<string>();
+  const multiPressed = useRef(false);
+  const [multiStarting, setMultiStarting] = useState(false);
 
   const [starting, setStarting] = useState(false);
   const pressed = useRef(false);
@@ -74,6 +84,30 @@ export function useDeliveryBuild(profile: DeliveryProfile | undefined) {
       setStarting(false);
     }
   }, [profile, port, packaged, encodedFiles]);
+
+  const buildMulti = useCallback(
+    async (profiles: DeliveryProfile[]) => {
+      if (multiPressed.current || profiles.length === 0) return;
+      multiPressed.current = true;
+      setMultiStarting(true);
+      setMultiProblem(undefined);
+      const items: PackageItem[] = encodedFiles.map((file) => ({ kind: file.kind, title: file.title, path: file.encodedPath as string }));
+      try {
+        multiPackaged.set(
+          await port.packageStartMulti({ selections: profiles.map((profile) => ({ profileId: profile.id, profileVersion: profile.version })), items }),
+        );
+      } catch (failure) {
+        setMultiProblem(apiErrorMessage(failure));
+      } finally {
+        multiPressed.current = false;
+        setMultiStarting(false);
+      }
+    },
+    [port, multiPackaged, encodedFiles],
+  );
+  const cancelMulti = useCallback(() => {
+    port.packageMultiCancel().then(multiPackaged.set, (failure) => setMultiProblem(apiErrorMessage(failure)));
+  }, [port, multiPackaged]);
 
   const cancel = useCallback(() => {
     setCancelUnanswered(false);
@@ -132,6 +166,18 @@ export function useDeliveryBuild(profile: DeliveryProfile | undefined) {
     /** Why the built package's folder could not be shown, in the host's words. */
     openProblem,
     openFolder,
+    /** The multi-platform build over the same encoded files: the job, whether it is going, and what went wrong, in the host's words. */
+    multi: {
+      job: multiPackaged.value,
+      running: multiPackaged.value?.phase === 'running',
+      starting: multiStarting,
+      problem: multiProblem,
+      encoded: encodedFiles.length,
+      /** Another job (the export, the single-profile build) is using the files. */
+      blocked: exportRunning || running,
+      start: buildMulti,
+      cancel: cancelMulti,
+    },
   };
 }
 

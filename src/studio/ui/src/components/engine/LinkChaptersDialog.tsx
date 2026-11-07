@@ -1,3 +1,4 @@
+import { apiErrorMessage } from '../../api/errorMessage';
 import { headingName } from '../../chapterHeading';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { creditsKindOfId } from '../credits/creditsEntries';
@@ -17,6 +18,7 @@ import { LiveTracksRefresh, LiveTracksStatus } from './LiveTracksStatus';
 import type { LiveTracks } from './useLiveTracks';
 import type { ChapterTrackRow } from './chapterTrackRows';
 import type { ChapterLinks } from './useChapterLinks';
+import { folderChildren, folderLinkLabel } from './voices';
 import type { LineIdentityLine, LineIdentityRowStatus, LineIdentityState, LineIdentityStampRow, Track, TrackItem } from '../../types';
 
 const STATUS_LABEL: Record<LineIdentityRowStatus, string> = {
@@ -100,7 +102,7 @@ function CurrentStamps({ state, error, onRead, pending }: { state: LineIdentityS
       )}
       {error && <ToolResult tone="danger" message={error} />}
       {state.lines.length > 0 && (
-        <Table label="Stamped lines" columns={STAMPED_COLUMNS}>
+        <Table label="Stamped items" columns={STAMPED_COLUMNS}>
           <TableHead sticky>
             <TableRow>
               <TableHeader>Item</TableHeader>
@@ -165,17 +167,24 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
   const preview = useMemo(() => stampRows(rows, owned), [rows, owned]);
   const running = state.phase === 'stamping';
   // A name is an option's whole text, so a direction override in it reaches nothing past the name: an option needs no isolate (breaker 7).
-  const trackOptions = [{ value: '', label: 'Not linked' }, ...tracks.map((track) => ({ value: track.guid, label: track.name || `Track ${track.index + 1}` }))];
+  const trackOptions = [
+    { value: '', label: 'Not linked' },
+    ...tracks.map((track) => {
+      const name = track.name || `Track ${track.index + 1}`;
+      // A folder reads as the Chapter links list names it, so it is not taken for a track.
+      return { value: track.guid, label: track.isFolder ? folderLinkLabel(name, folderChildren(tracks, track.guid).length) : name };
+    }),
+  ];
 
   const approve = () => {
     setLastAction('stamp');
     setRequestError('');
-    api.lineIdentityStamp(preview, overwrite).catch((reason: unknown) => setRequestError(String(reason)));
+    api.lineIdentityStamp(preview, overwrite).catch((reason: unknown) => setRequestError(apiErrorMessage(reason)));
   };
   const read = () => {
     setLastAction('read');
     setRequestError('');
-    api.lineIdentityRead().catch((reason: unknown) => setRequestError(String(reason)));
+    api.lineIdentityRead().catch((reason: unknown) => setRequestError(apiErrorMessage(reason)));
   };
 
   return (
@@ -214,6 +223,11 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
       {links.error && (
         <div className="mb-3">
           <ToolResult tone="danger" message={links.error} />
+        </div>
+      )}
+      {links.notice && (
+        <div className="mb-3">
+          <ToolResult tone="warning" message={links.notice} />
         </div>
       )}
       {state.phase === 'stamping' && (

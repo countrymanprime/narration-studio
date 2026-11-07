@@ -9,6 +9,7 @@ import (
 	"context"
 	"crypto/rand"
 	"desktop/internal/brand"
+	"desktop/internal/persist"
 	"encoding/hex"
 	"fmt"
 	"log/slog"
@@ -259,12 +260,12 @@ func (l *Logger) rotateLocked(next int64) error {
 		from := fmt.Sprintf("%s.%d", l.path, i)
 		to := fmt.Sprintf("%s.%d", l.path, i+1)
 		if _, err := os.Stat(from); err == nil {
-			if err := os.Rename(from, to); err != nil {
+			if err := persist.Rename(from, to); err != nil {
 				return fmt.Errorf("could not rotate the run log: %w", err)
 			}
 		}
 	}
-	if err := os.Rename(l.path, l.path+".1"); err != nil {
+	if err := persist.Rename(l.path, l.path+".1"); err != nil {
 		return fmt.Errorf("could not rotate the run log: %w", err)
 	}
 	return nil

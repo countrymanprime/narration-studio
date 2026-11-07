@@ -111,7 +111,7 @@ func (s *Service) Stamp(rows []Row, overwrite bool) error {
 	}
 	s.mu.Lock()
 	s.state = empty()
-	s.state["runId"], s.state["phase"], s.state["message"] = runID, "stamping", "Stamping manuscript line identity in REAPER…"
+	s.state["runId"], s.state["phase"], s.state["message"] = runID, "stamping", "Stamping chapter identity onto REAPER items…"
 	s.mu.Unlock()
 	if err := s.role.StampLines(runID, path, overwrite); err != nil {
 		s.fail(err.Error())
@@ -263,7 +263,7 @@ func (s *Service) Handle(fields []string) {
 				s.state["phase"], s.state["message"] = "error", err.Error()
 			} else {
 				s.state["lines"], s.state["linesRead"] = lines, count
-				s.state["phase"], s.state["message"] = "success", fmt.Sprintf("Read %d stamped line%s.", count, plural(count))
+				s.state["phase"], s.state["message"] = "success", fmt.Sprintf("Read %d stamped item%s.", count, plural(count))
 			}
 			changed = true
 		}
@@ -458,7 +458,7 @@ func plural(value int) string {
 	return "s"
 }
 func stampSummary(applied, unchanged, missing, conflicts int) string {
-	summary := fmt.Sprintf("Stamped %d line%s", applied, plural(applied))
+	summary := fmt.Sprintf("Stamped %d item%s", applied, plural(applied))
 	if unchanged > 0 {
 		summary += fmt.Sprintf(", %d already stamped", unchanged)
 	}

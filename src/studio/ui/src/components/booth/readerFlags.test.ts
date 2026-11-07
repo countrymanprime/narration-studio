@@ -131,3 +131,37 @@ describe('flagHint', () => {
     expect(flagHint(flag(4, 'restart', 5, 9, 'beginning to get'))).toBe('Suspected restart: read again from here. Heard “beginning to get”.');
   });
 });
+
+// The confirmation pass: a second listen settles a flag the live engine raised (the host's `flag_check`).
+describe('flags the confirmation pass settled', () => {
+  const confirmed: TeleprompterFlag = { ...flag(1, 'skipped', 7, 9), check: 'confirmed' };
+  const cleared: TeleprompterFlag = { ...flag(2, 'skipped', 3, 4), check: 'cleared' };
+  const unchecked = flag(3, 'restart', 5, 9, 'beginning to get');
+
+  it('stops drawing a flag the second listen cleared, and keeps the confirmed and the unchecked', () => {
+    expect(visibleFlags([confirmed, cleared, unchecked], DEFAULT_FLAG_VISIBILITY, new Set()).map((item) => item.id)).toEqual([1, 3]);
+  });
+
+  it('says in the hint that a second listen heard a confirmed flag too, and nothing of the kind otherwise', () => {
+    expect(flagHint(confirmed)).toBe('Suspected skipped words. Nothing was heard for them. A second listen heard it too.');
+    expect(flagHint({ ...flag(4, 'misread', 5, 6, 'begging'), check: 'confirmed' })).toBe('Suspected misread. Heard “begging”. A second listen heard it too.');
+    expect(flagHint(unchecked)).not.toMatch(/second listen/);
+  });
+
+  it('keeps the verdict on the save', () => {
+    const { saves } = flagSaves(rows, [confirmed, unchecked], new Set());
+    expect(saves[0]).toMatchObject({ kind: 'skipped', check: 'confirmed' });
+    expect(saves[1]).not.toHaveProperty('check');
+  });
+});
+
+describe('flagSaves and the confirmation pass', () => {
+  it('leaves out a flag the second listen cleared, dismissed or not', () => {
+    const cleared: TeleprompterFlag = { ...flag(1, 'skipped', 7, 9), check: 'cleared' };
+    expect(flagSaves(rows, [cleared], new Set()).saves).toEqual([]);
+    expect(flagSaves(rows, [cleared], new Set([1])).saves).toEqual([]);
+    const { saves, flagIds } = flagSaves(rows, [cleared, flag(3, 'skipped', 7, 9)], new Set());
+    expect(saves).toHaveLength(1);
+    expect(flagIds).toEqual([3]);
+  });
+});

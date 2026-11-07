@@ -3,6 +3,7 @@ import json
 import os
 import sys
 import unittest
+import unittest.mock
 from contextlib import redirect_stderr
 from pathlib import Path
 
@@ -71,6 +72,50 @@ class LoggingUtilsTests(unittest.TestCase):
         self.assertEqual(buffer.getvalue(), mirror.getvalue())
         record = json.loads(mirror.getvalue().strip())
         self.assertEqual("mirrored", record["msg"])
+
+
+class EventTests(unittest.TestCase):
+    def _lines(self, call):
+        buffer = io.StringIO()
+        with redirect_stderr(buffer):
+            result = call()
+        return result, [json.loads(line) for line in buffer.getvalue().splitlines()]
+
+    def test_a_registered_event_with_typed_fields_is_written(self):
+        written, lines = self._lines(lambda: logging_utils.event("asr.hotwords_used", count=3))
+        self.assertTrue(written)
+        self.assertEqual(1, len(lines))
+        self.assertEqual({"event": "asr.hotwords_used", "count": 3, "level": "info"}, {k: lines[0][k] for k in ("event", "count", "level")})
+        self.assertNotIn("msg", lines[0])
+
+    def test_an_unknown_event_or_field_or_value_is_dropped_whole(self):
+        canary = "CANARY Arelian Brightwater"
+        for call in (
+            lambda: logging_utils.event("asr.not_registered", count=1),
+            lambda: logging_utils.event("asr.hotwords_used", count=1, text=canary),
+            lambda: logging_utils.event("asr.hotwords_used", count=canary),
+            lambda: logging_utils.event("gliner.name_dropped", reason=canary),
+            lambda: logging_utils.event("gliner.chunk_failed", chapter=canary, err="ValueError"),
+            lambda: logging_utils.event("gliner.chunk_failed", chapter="ch-1", err=f"ValueError: {canary}"),
+            lambda: logging_utils.event("asr.hotwords_used", count=True),
+            lambda: logging_utils.event("not a name", count=1),
+        ):
+            written, lines = self._lines(call)
+            self.assertFalse(written)
+            self.assertEqual([], lines)
+
+    def test_every_registered_event_name_and_field_is_well_formed(self):
+        for name, (level, fields) in logging_utils.EVENTS.items():
+            self.assertRegex(name, r"^[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*$")
+            self.assertIn(level, ("debug", "info", "warn", "error"))
+            for key, kind in fields.items():
+                self.assertRegex(key, r"^[a-z][a-z0-9_]{0,31}$")
+                self.assertTrue(kind in ("int", "bool", "id", "err") or isinstance(kind, tuple), (name, key))
+
+    def test_a_debug_threshold_still_gates_the_event(self):
+        with unittest.mock.patch.dict(os.environ, {"NARRATION_LOG_LEVEL": "error"}):
+            _, lines = self._lines(lambda: logging_utils.event("asr.hotwords_used", count=1))
+        self.assertEqual([], lines)
 
 
 if __name__ == "__main__":

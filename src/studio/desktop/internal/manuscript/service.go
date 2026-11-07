@@ -562,11 +562,7 @@ func commit(project, source string, draft importer.Draft, kinds map[string]strin
 	if err != nil {
 		return nil, err
 	}
-	temporary := target + ".tmp"
-	if err := os.WriteFile(temporary, encoded, 0o600); err != nil {
-		return nil, err
-	}
-	if err := os.Rename(temporary, target); err != nil {
+	if err := persist.WriteFile(target, encoded, 0o600); err != nil {
 		return nil, err
 	}
 	return canonical, nil

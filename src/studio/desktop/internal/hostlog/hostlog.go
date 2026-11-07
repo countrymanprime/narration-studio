@@ -6,6 +6,7 @@ package hostlog
 
 import (
 	"desktop/internal/brand"
+	"desktop/internal/persist"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -94,7 +95,7 @@ func (l *Log) rotateLocked(next int64) error {
 	}
 	backup := l.path + ".1"
 	_ = os.Remove(backup)
-	if err := os.Rename(l.path, backup); err != nil {
+	if err := persist.Rename(l.path, backup); err != nil {
 		return fmt.Errorf("could not rotate the host log: %w", err)
 	}
 	return nil

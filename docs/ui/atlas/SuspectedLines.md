@@ -9,6 +9,7 @@ Storybook title: `Booth/SuspectedLines`. Source: `src/components/booth/suspected
 - None
 - Two Open
 - One Dismissed
+- Second Listen
 - Added To Pickups
 
 ## Used by

@@ -84,6 +84,8 @@ export function useMeasureRun() {
     try {
       if (reuse && paths.length > 0) return await analyze(paths);
       const picked = await measure.measurePickFiles();
+      // A picker that answers after the page was left starts nothing: the run would be going with no page to show it or cancel it.
+      if (!live.current) return;
       if (picked.paths.length > 0) await analyze(picked.paths);
     } catch (error) {
       setProblem(apiErrorMessage(error));

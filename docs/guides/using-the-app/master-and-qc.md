@@ -16,12 +16,26 @@ While the profile and the chapters are being read, the **Delivery package** pane
 The header of the files panel holds the title, the chapter bar, a pill naming the profile the files are
 judged against (**ACX** for the built-in profile, a custom profile by its name) and one refresh icon,
 **Check the files again**. Pressing the pill opens [Delivery](delivery.md), where the profile is chosen and
-edited. The run buttons are icon buttons beside it, named by their tooltips (**Master all to spec…**, **Check files…**). The main column holds the files and their checks, **Book consistency**, the
+edited. The run buttons are icon buttons beside it, named by their tooltips (**Master all to spec…**, **Check files…**; the same button is on [Delivery](delivery.md#before-you-build), over the same measurement). The main column holds the files and their checks, **Book consistency**, the
 [mastering chain](#the-mastering-chain), [Diagnostics](#diagnostics) and the [report](#exporting-a-report);
-the column on the right holds the [delivery package](#the-delivery-package) and
-[Multi-platform export](#building-packages-for-several-platforms-at-once).
+the column on the right holds the [delivery package](#the-delivery-package). Building the packages, for one platform or several, is on [Delivery](delivery.md#building-packages-for-several-platforms-at-once); this page keeps the package counts and **Open Delivery**.
+
+## Common tasks
+
+This page is a reference to everything Master & QC shows. To do one thing, start here:
+
+- **Check rendered chapter files against the profile**: [Checking files](#checking-files).
+- **Find out why a file fails**: [Why it fails](#why-it-fails).
+- **See how far the chapters' levels spread across the book**: [Book consistency](#book-consistency).
+- **Set up the mastering chain, then master and encode to spec**: [The mastering chain](#the-mastering-chain) and
+  [Mastering to spec](#mastering-to-spec).
+- **Build packages for more than one platform**: [Building packages for several platforms at once](delivery.md#building-packages-for-several-platforms-at-once), on the Delivery page.
+- **Check for clipping, level shifts, room-tone changes and long pauses**: [Diagnostics](#diagnostics).
+- **Save the last check and diagnostics to files**, to send to a producer or QA checker: [Exporting a report](#exporting-a-report).
 
 ## Checking files
+
+When REAPER is not answering, a **REAPER not connected** mark sits in the header's controls. It opens the dialog described on [Production](production.md), with **Link project file…** and **Check again**. Measuring files and reading reports keep working.
 
 Before any file has been measured, a wrench icon button (**DAW tools**) sits beside **Check files…** with the same **Structure** menu as [Editing's](editing.md#the-daw-tools-menu): **Create chapter regions…** and **Prepare chapter render…** are what come before there are rendered files to check. When a tool cannot be used it stays in the menu, greyed, with the reason under its name: the DAW is not answering, the DAW has a different project open than the one linked here, the REAPER project has no tracks yet, no chapter is linked to a REAPER track yet (link one on [Production](production.md)), or the project records in Audacity, which has neither regions nor render setup to write. The menu reads the project the first time you open it, so for a moment both entries say **Reading the REAPER project…**.
 
@@ -186,29 +200,6 @@ is already listed adds no row, and a message says so.
 
 ![A cancelled export: each file Cancelled, and the files and Master & encode back to run it again](../../images/ui/master-to-spec-cancelled.webp)
 
-## Building packages for several platforms at once
-
-If you deliver to more than one platform, **Multi-platform export** (under the delivery package) lets you build
-all of them from the one source you already mastered and encoded, without re-encoding unless a platform
-needs a different file format. Under **Build packages for**, check the box for each profile you want a
-package for, then **Build N packages**; it stays off until files are mastered and encoded. This does not change which profile the page's checks are judged against (that is the project's profile,
-chosen on Delivery); the checkboxes only choose what to build packages for.
-
-![Master & QC - Multi-platform export with one platform checked](../../images/ui/master-multi-export.webp)
-
-You are asked for one folder once, and each platform's package goes into its own correctly named subfolder
-of it. Two platforms that both take the same file format (most do: MP3 at the same bitrate) share the one
-set of already-encoded files; a platform that needs a different format (an M4B audiobook file, say) is
-encoded for just that once, however many platforms need it, not once per platform. Cancel stops the build
-before its next platform starts; platforms already built keep their packages, and one not yet reached is
-left waiting.
-
-![Master & QC - a finished multi-platform build: a row per platform with its folder or why it was not built](../../images/ui/master-multi-export-results.webp)
-
-While it builds, and once it finishes, each platform says how it went under its own checkbox: **Building…**,
-**Built** with its folder and how many files it wrote, or why it could not be built (such as a required file being
-missing for that platform).
-
 ## Diagnostics
 
 **Diagnostics**, below the chain, checks the same kind of files for clipping, level shifts, room-tone
@@ -267,6 +258,12 @@ no manuscript text is ever written into the report. Export needs a project open 
 is refused while a check or diagnostics run is running.
 
 ![Export report wrote an HTML and a JSON report into the project's delivery folder, with file names only](../../images/ui/master-report-exported.webp)
+
+## What next
+
+- [Delivery](delivery.md): build the platform's package from the files you mastered here.
+- [Pickups](pickups.md): record the lines a failing chapter is waiting on.
+- [ACX delivery requirements](../../reference/acx-delivery-requirements.md): what ACX asks for, rule by rule, with its sources.
 
 ---
 
