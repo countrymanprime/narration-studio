@@ -140,7 +140,7 @@ Nothing blocks on the stamp; `pnpm check` is not a precondition for pushing, bec
 Scripts in `scripts/ci/` check what merges while no person watches each pull request (the reasons are in [CI and releases](ci-and-releases.md)). Each exports pure functions with a `node --test` file beside it. `test-ratchet.mjs` runs from the base branch in CI, so a pull request cannot edit its own check.
 
 - `train-health.mjs heartbeat` reads `Last pass:` from the body of each open issue labelled `agent-train` and comments once per stall on that issue when it is over two hours old and `HOLD` is not ticked. `train-health.mjs hold <reason>` ticks `HOLD` on each of them and says why. `TRAIN_ISSUE=<n>` limits either to one issue. Both need `gh` and a token with `issues: write`.
-- `test-ratchet.mjs <base-ref>` diffs `HEAD` against the merge base and prints one line per deleted test file, test file moved to a non-test path, added skip, focus or xfail marker in a test file, and coverage floor in `coverage-floors.json` that fell or was removed. It exits 1 on any; the `Test ratchet` workflow turns that into a warning annotation, not a failure. Run it locally before pushing a test change.
+- `test-ratchet.mjs <base-ref>` diffs `HEAD` against the merge base and prints one line per deleted test file, test file moved to a non-test path, added skip, focus or xfail marker in a test file, and coverage floor in `coverage-floors.json` that fell or was removed. It exits 1 on any; the `test ratchet` step of `quality / lint` turns that into a warning annotation, not a failure. Run it locally before pushing a test change.
 
 ## Latency measurements (manual, Windows)
 

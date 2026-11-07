@@ -9,8 +9,8 @@ name: Pages
 # sub-path /narration-studio/ to prove nothing reaches for the host's root. SITE_PUBLISHED=1 drops the "preview, not
 # published" notice that other builds of the site carry (src/web/build/shell.mjs).
 #
-# A pull request builds and checks the site but uploads nothing and never reaches the deploy job, which also refuses any
-# ref but main (a manual start from a branch builds and stops). The token is read-only everywhere except the deploy job,
+# A pull request never starts it: docs.yml builds and checks the site there. The deploy job refuses any ref but main (a manual
+# start from a branch builds and stops). The token is read-only everywhere except the deploy job,
 # which alone holds `pages: write` (create the deployment) and `id-token: write` (prove to Pages that the artifact came
 # from this workflow run).
 on:
@@ -27,25 +27,12 @@ on:
       - tools/docs-site/check_site.py
       - pnpm-lock.yaml
       - .github/workflows/pages.yml
-  pull_request:
-    paths:
-      - src/web/**
-      - src/studio/ui/src/**
-      - src/studio/ui/.storybook/**
-      - src/studio/ui/package.json
-      - src/studio/ui/vite.config.ts
-      - docs/images/ui/**
-      - docs/guides/**
-      - tools/docs-site/check_site.py
-      - pnpm-lock.yaml
-      - .github/workflows/pages.yml
   workflow_dispatch:
 permissions: {}
-# One deployment at a time, and a running one finishes: cancelling a deploy half way leaves the site stale. A pull request
-# run only builds, so a newer push to the same pull request cancels the older run.
+# One deployment at a time, and a running one finishes: cancelling a deploy half way leaves the site stale.
 concurrency:
-  group: pages-${{ github.event_name == 'pull_request' && github.ref || 'deploy' }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: pages-deploy
+  cancel-in-progress: false
 jobs:
   build:
     timeout-minutes: 20
@@ -83,13 +70,12 @@ jobs:
             --site-url "https://$OWNER.github.io/$REPOSITORY/" \
             --require index.html --require docs/index.html --require demo/index.html --require demo/app.html \
             --require storybook/index.html --require storybook/sb/index.html
-      - if: github.event_name != 'pull_request'
-        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: dist-site
   deploy:
     needs: build
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    if: github.ref == 'refs/heads/main'
     timeout-minutes: 10
     runs-on: ubuntu-latest
     permissions:
