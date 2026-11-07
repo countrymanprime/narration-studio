@@ -6,7 +6,7 @@
       "was": "quality / js-static",
       "tier": "pr",
       "workflow": "_quality.yml",
-      "job": "linux-checks",
+      "job": "lint",
       "step": [
         "targets: lint format architecture test-node",
         "projects: ui"
@@ -17,7 +17,7 @@
       "was": "quality / js-static",
       "tier": "pr",
       "workflow": "_quality.yml",
-      "job": "linux-checks",
+      "job": "lint",
       "step": [
         "targets: lint format architecture typecheck test-node test",
         "projects: web"
@@ -28,7 +28,7 @@
       "was": "quality / js-static",
       "tier": "pr",
       "workflow": "_quality.yml",
-      "job": "linux-checks",
+      "job": "lint",
       "step": [
         "targets: knip",
         "projects: workspace"
@@ -134,9 +134,21 @@
       "workflow": "_quality.yml",
       "job": "linux-checks",
       "step": [
-        "targets: lint test",
+        "targets: test",
         "projects: docs-site"
       ]
+    },
+    {
+      "id": "lint/docs-site",
+      "was": "quality / quick-ubuntu",
+      "tier": "pr",
+      "workflow": "_quality.yml",
+      "job": "lint",
+      "step": [
+        "targets: lint",
+        "projects: docs-site"
+      ],
+      "note": "The docs site's lint, split from its tests (quick-ubuntu/docs-site) into the lint job."
     },
     {
       "id": "quick-ubuntu/python",
@@ -145,9 +157,21 @@
       "workflow": "_quality.yml",
       "job": "linux-checks",
       "step": [
-        "targets: lint test typecheck",
+        "targets: test",
         "projects: tag:toolchain:python,fixtures"
       ]
+    },
+    {
+      "id": "lint/python",
+      "was": "quality / quick-ubuntu",
+      "tier": "pr",
+      "workflow": "_quality.yml",
+      "job": "lint",
+      "step": [
+        "targets: lint typecheck",
+        "projects: tag:toolchain:python,fixtures"
+      ],
+      "note": "Ruff and the typecheck of the Python projects, split from their tests (quick-ubuntu/python) into the lint job."
     },
     {
       "id": "quick-ubuntu/reaper-linux",
@@ -156,7 +180,7 @@
       "workflow": "_quality.yml",
       "job": "linux-checks",
       "step": [
-        "targets: lint test",
+        "targets: test",
         "projects: reaper",
         "configuration: ${{ github.event_name == 'pull_request' && 'pr' || '' }}"
       ],
@@ -172,7 +196,7 @@
       "workflow": "_quality.yml",
       "job": "linux-checks",
       "step": [
-        "targets: lint test",
+        "targets: test",
         "projects: reaper",
         "configuration: ${{ github.event_name == 'pull_request' && 'pr' || '' }}"
       ],
@@ -195,6 +219,18 @@
         "runs-on: ubuntu-latest"
       ],
       "safety_net": "A red run shows on the main commit about 5 minutes after the merge and notifies whoever merged it; Main health runs the same checks when main moved and ticks HOLD; the coordinator fixes forward or reverts the merge (agent-train Safety net)."
+    },
+    {
+      "id": "lint/reaper",
+      "was": "quality / quick-ubuntu",
+      "tier": "pr",
+      "workflow": "_quality.yml",
+      "job": "lint",
+      "step": [
+        "targets: lint",
+        "projects: reaper"
+      ],
+      "note": "StyLua and ruff on the bridge, split from its harness (quick-ubuntu/reaper-linux) into the lint job."
     },
     {
       "id": "rename-rehearsal",
