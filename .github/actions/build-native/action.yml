@@ -16,7 +16,7 @@ inputs:
     default: 'true'
 
 # The caller checks the repository out and runs on the matching OS; the `ui-dist`
-# artifact must already exist in this workflow run (see _ui-dist.yml).
+# artifact must already exist in this workflow run (_ui-dist.yml in prerelease.yml, the UI bundle step of _quality.yml's linux-checks).
 runs:
   using: composite
   steps:

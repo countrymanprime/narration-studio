@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"desktop/internal/brand"
+	"desktop/internal/persist"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -336,7 +337,7 @@ func writeAtomic(path string, content []byte) error {
 	if err := os.WriteFile(temporary, content, 0o644); err != nil { //nolint:gosec // G306: REAPER, the narrator's own program, reads these scripts
 		return err
 	}
-	if err := os.Rename(temporary, path); err != nil {
+	if err := persist.Rename(temporary, path); err != nil {
 		_ = os.Remove(temporary)
 		return err
 	}

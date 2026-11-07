@@ -1,6 +1,6 @@
 # In-REAPER check: the voice sample region commands
 
-**Status: not run.** The harness (`src/studio/integrations/reaper/tests/voice_sample_region_test.lua`) proves the logic of `keep_voice_sample` and `read_voice_samples` against the fake. This page lists what the fake cannot prove, so the owner's run (REAPER isolated on a copy of a project with its own `-cfgfile`, [the rules](../operations/reaper-verification-pass.md#rules)) knows what to read back. It builds on [spike S8](reaper-spike-s8-voice-sample-labels.md), which asks the same questions about the saved file and the item; run both in one session. Nothing here needs audio hardware. The commands stay Experimental until the table has results (`voice_sample_region` in [the capability reference](../reference/daw/capabilities.md#voice_sample_region)).
+**Status: not run.** The harness (`src/studio/integrations/reaper/tests/voice_sample_region_test.lua`) proves the logic of `keep_voice_sample`, `delete_voice_sample_region` and `read_voice_samples` against the fake. This page lists what the fake cannot prove, so the owner's run (REAPER isolated on a copy of a project with its own `-cfgfile`, [the rules](../operations/reaper-verification-pass.md#rules)) knows what to read back. It builds on [spike S8](reaper-spike-s8-voice-sample-labels.md), which asks the same questions about the saved file and the item; run both in one session. Nothing here needs audio hardware. The commands stay Experimental until the table has results (`voice_sample_region` in [the capability reference](../reference/daw/capabilities.md#voice_sample_region)).
 
 ## What the fake assumes
 
@@ -15,6 +15,9 @@
 | V7 | A project with 500 or more sample regions answers 500 and the host treats it as a failed read. | Add 520 regions by script and read. | pending |
 | V8 | A region does not follow its item (project time). | Spike S8, question C. | pending |
 | V9 | The region's GUID is only in the saved `.rpp`. | Spike S8, question A. | pending |
+| V10 | `DeleteProjectMarker(0, number, true)` removes the region that number names, returns true, and does not renumber the regions after it (the fake removes it and keeps the others' numbers, and the host holds numbers across a removal). | Delete the middle of three sample regions and a chapter region's neighbour; re-enumerate; read the numbers and the saved `.rpp`'s `MARKER` lines. | pending |
+| V11 | One `Undo_BeginBlock2` / `Undo_EndBlock2(..., -1)` pair around the delete is one undo point, and the undo brings the region back with its name, bounds, colour and number. The fake makes a point for a closed block and does not model the undo of a delete. | Undo once after a delete; read the label and the region. | pending |
+| V12 | `DeleteProjectMarker` with a plain marker's number and `isrgn` true removes nothing (the Lua enumerates regions only, so it never asks, but a number shared by a marker and a region must pick the region). | Add a marker and a region that share a number; delete the region's number. | pending |
 
 ## What it does not cover
 

@@ -10,6 +10,7 @@ package mastering
 
 import (
 	"context"
+	"desktop/internal/persist"
 	"errors"
 	"fmt"
 	"io"
@@ -288,7 +289,7 @@ func (m *master) write(ctx context.Context, dest string, gain float64) (report m
 	if err := checkDestination(m.source, dest); err != nil {
 		return measure.Report{}, err
 	}
-	if err := os.Rename(tempPath, dest); err != nil {
+	if err := persist.Rename(tempPath, dest); err != nil {
 		return measure.Report{}, err
 	}
 	return report, nil

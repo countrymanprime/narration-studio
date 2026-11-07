@@ -233,12 +233,8 @@ func (s *TemplateStore) writeLocked(file templatesFile) error {
 	if err != nil {
 		return err
 	}
-	temporary := s.path + ".tmp"
-	if err := os.WriteFile(temporary, bytes, 0o600); err != nil {
+	if err := persist.WriteFile(s.path, bytes, 0o600); err != nil {
 		return fmt.Errorf("could not write credit-templates.json: %w", err)
-	}
-	if err := os.Rename(temporary, s.path); err != nil {
-		return fmt.Errorf("could not activate credit-templates.json: %w", err)
 	}
 	return nil
 }

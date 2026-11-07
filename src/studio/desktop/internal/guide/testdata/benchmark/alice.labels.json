@@ -1,0 +1,393 @@
+{
+ "book": "Alice's Adventures in Wonderland, Lewis Carroll, 1865 (Project Gutenberg #11, from tests/fixtures/alice_raw.txt), all 12 chapters",
+ "note": "Required: a named character or place capitalised at least 3 times in the text. Minor: a real one with fewer mentions, or one named only inside a poem or a lesson; it counts as correct when shown and is not missed when absent. Other: a real named thing that is neither (a dance, a song, a book): wrong if shown as a character or place.",
+ "characters": [
+  {
+   "name": "Alice",
+   "aliases": [
+    "Miss Alice"
+   ],
+   "required": true
+  },
+  {
+   "name": "White Rabbit",
+   "aliases": [
+    "Rabbit",
+    "the White Rabbit",
+    "the Rabbit"
+   ],
+   "required": true
+  },
+  {
+   "name": "Mouse",
+   "aliases": [
+    "O Mouse",
+    "the Mouse"
+   ],
+   "required": true
+  },
+  {
+   "name": "Dodo",
+   "aliases": [
+    "the Dodo"
+   ],
+   "required": true
+  },
+  {
+   "name": "Lory",
+   "aliases": [
+    "the Lory"
+   ],
+   "required": true
+  },
+  {
+   "name": "Duck",
+   "aliases": [
+    "the Duck"
+   ],
+   "required": true
+  },
+  {
+   "name": "Eaglet",
+   "aliases": [
+    "the Eaglet"
+   ],
+   "required": true
+  },
+  {
+   "name": "Bill",
+   "aliases": [
+    "Lizard",
+    "the Lizard",
+    "Bill the Lizard"
+   ],
+   "required": true
+  },
+  {
+   "name": "Caterpillar",
+   "aliases": [
+    "the Caterpillar"
+   ],
+   "required": true
+  },
+  {
+   "name": "Pigeon",
+   "aliases": [
+    "the Pigeon"
+   ],
+   "required": true
+  },
+  {
+   "name": "Duchess",
+   "aliases": [
+    "the Duchess"
+   ],
+   "required": true
+  },
+  {
+   "name": "Cheshire Cat",
+   "aliases": [
+    "Cat",
+    "the Cat",
+    "Cheshire Puss",
+    "Cheshire"
+   ],
+   "required": true
+  },
+  {
+   "name": "Footman",
+   "aliases": [
+    "Fish-Footman",
+    "Frog-Footman",
+    "the Footman"
+   ],
+   "required": true
+  },
+  {
+   "name": "March Hare",
+   "aliases": [
+    "the March Hare",
+    "Hare"
+   ],
+   "required": true
+  },
+  {
+   "name": "Hatter",
+   "aliases": [
+    "the Hatter"
+   ],
+   "required": true
+  },
+  {
+   "name": "Dormouse",
+   "aliases": [
+    "the Dormouse"
+   ],
+   "required": true
+  },
+  {
+   "name": "Queen of Hearts",
+   "aliases": [
+    "Queen",
+    "the Queen"
+   ],
+   "required": true
+  },
+  {
+   "name": "King of Hearts",
+   "aliases": [
+    "King",
+    "the King"
+   ],
+   "required": true
+  },
+  {
+   "name": "Knave of Hearts",
+   "aliases": [
+    "Knave",
+    "the Knave"
+   ],
+   "required": true
+  },
+  {
+   "name": "Gryphon",
+   "aliases": [
+    "the Gryphon"
+   ],
+   "required": true
+  },
+  {
+   "name": "Mock Turtle",
+   "aliases": [
+    "the Mock Turtle",
+    "Turtle"
+   ],
+   "required": true
+  },
+  {
+   "name": "Dinah",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Mary Ann",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Pat",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Mabel",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Father William",
+   "aliases": [
+    "William"
+   ],
+   "required": true
+  },
+  {
+   "name": "Five",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Two",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Seven",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Ada",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Magpie",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Canary",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Crab",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Panther",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Owl",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Lobster",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Tortoise",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Puppy",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Elsie",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Lacie",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Tillie",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "William the Conqueror",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Edwin",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Morcar",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Stigand",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Edgar Atheling",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Shakespeare",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Time",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Kings",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Queens",
+   "aliases": [],
+   "required": false
+  }
+ ],
+ "places": [
+  {
+   "name": "Wonderland",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "London",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Paris",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Rome",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "New Zealand",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Australia",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "England",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "France",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Canterbury",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Northumbria",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Mercia",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Nile",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Geography",
+   "aliases": [],
+   "required": false
+  }
+ ],
+ "other": [
+  "Lobster Quadrille",
+  "Beautiful Soup",
+  "Mock Turtle Soup",
+  "Turtle Soup",
+  "Multiplication Table",
+  "Latin Grammar",
+  "Caucus",
+  "Uglification",
+  "Seaography"
+ ]
+}

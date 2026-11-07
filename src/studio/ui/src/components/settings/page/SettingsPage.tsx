@@ -18,6 +18,7 @@ import { isAnyChanged, isBrowserChanged, overrideValue } from '../data/values';
 import { isResettable, useRowResets, type RowReset } from '../data/rowResets';
 import { AssetsStoreProvider } from '../models/AssetsStore';
 import { AboutSection } from '../controls/AboutSection';
+import { DiagnosticsSection } from '../controls/DiagnosticsSection';
 import { CATEGORIES, categoryLabel } from '../registry/categories';
 import { PAGE_SETTINGS } from '../registry/pageSettings';
 import { ROWS } from '../registry/rows';
@@ -274,7 +275,14 @@ function Body({ initialCategory, cameFrom }: { initialCategory?: string; cameFro
               });
             }}
             lit={lit}
-            extra={cat === 'app' ? <AboutSection /> : undefined}
+            extra={
+              cat === 'app' ? (
+                <>
+                  <AboutSection />
+                  <DiagnosticsSection />
+                </>
+              ) : undefined
+            }
           />
         )}
       </fieldset>

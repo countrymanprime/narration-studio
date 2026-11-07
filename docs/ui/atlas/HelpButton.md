@@ -12,6 +12,7 @@ Storybook title: `Primitives/HelpButton`. Source: `src/components/primitives/Hel
 
 - `src/components/editing/effects/ChooseInDaw.tsx`
 - `src/components/editing/effects/ProjectFx.tsx`
+- `src/components/editing/voicesample/VoiceSampleDialog.tsx`
 - `src/components/engine/VoicesCard.tsx`
 - `src/components/master/DeliveryProfilePanel.tsx`
 - `src/components/master/FileRulesPanel.tsx`

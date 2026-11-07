@@ -10,6 +10,7 @@ import type {
   TeleprompterEngine,
   TeleprompterEvent,
   TeleprompterFlag,
+  TeleprompterFlagCheck,
   TeleprompterFlagFinding,
   TeleprompterLevel,
   TeleprompterLocateResult,
@@ -67,6 +68,13 @@ const teleprompterFlagSchema = z
   })
   .refine((flag) => flag.start <= flag.end, { message: 'a flag cannot end before it starts', path: ['end'] }) satisfies z.ZodType<TeleprompterFlag>;
 
+// The confirmation pass's verdict on an earlier flag, by its id (internal/scripttrack flagcheck.go).
+const teleprompterFlagCheckSchema = z.object({
+  type: z.literal('flag_check'),
+  id: z.number().int().nonnegative(),
+  state: z.enum(['confirmed', 'cleared']),
+}) satisfies z.ZodType<TeleprompterFlagCheck>;
+
 // The input level (narration_common.recording.meter): dBFS, from the floor of -100 up to 0.
 const dbfsSchema = z.number().min(-100).max(0);
 const teleprompterLevelSchema = z.object({ type: z.literal('level'), peak: dbfsSchema, rms: dbfsSchema }) satisfies z.ZodType<TeleprompterLevel>;
@@ -83,6 +91,7 @@ export const teleprompterEventSchema = z.discriminatedUnion('type', [
   teleprompterScriptSchema,
   teleprompterPositionSchema,
   teleprompterFlagSchema,
+  teleprompterFlagCheckSchema,
   teleprompterLevelSchema,
   teleprompterMeterStoppedSchema,
   z.object({ type: z.literal('partial'), segment: z.number(), words: z.array(heardWordSchema) }),
@@ -95,6 +104,7 @@ export const TELEPROMPTER_EVENT_TYPES: ReadonlySet<string> = new Set([
   'script',
   'position',
   'flag',
+  'flag_check',
   'level',
   'meter_stopped',
   'partial',

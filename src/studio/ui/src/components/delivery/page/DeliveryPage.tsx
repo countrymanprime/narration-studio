@@ -5,6 +5,7 @@ import { useOpenPickups } from '../../pickups/useOpenPickups';
 import type { DeliveryProfile } from '../../../types';
 import { ProfileCard } from '../profile/ProfileCard';
 import { chapterStates, firstFailure, firstNotReady, readiness } from './chapterStates';
+import { MultiPlatformExportPanel } from '../../master/MultiPlatformExportPanel';
 import { OutputPanel } from './OutputPanel';
 import { Preflight } from './Preflight';
 import { PAGE_COLUMN_CLASS } from '../../primitives/pageColumn';
@@ -37,6 +38,7 @@ export function DeliveryPage({
 function LoadedDelivery({ onOpenInMaster, onOpenMaster }: { onOpenInMaster: (chapterId: string) => void; onOpenMaster?: () => void }) {
   const checks = useDeliveryChecks();
   const [profile, setProfile] = useState<DeliveryProfile>();
+  const [platforms, setPlatforms] = useState<DeliveryProfile[]>([]);
   const [built, setBuilt] = useState(true);
   const build = useDeliveryBuild(profile);
 
@@ -76,26 +78,33 @@ function LoadedDelivery({ onOpenInMaster, onOpenMaster }: { onOpenInMaster: (cha
        next to the Build button its counts explain, before Profile rules (XDL-6). */
     <div className={`${PAGE_COLUMN_CLASS} grid grid-cols-[minmax(0,1fr)] items-start gap-4 lg:grid-cols-[minmax(0,1fr)_22.5rem] lg:grid-rows-[auto_auto_1fr]`}>
       <div className="min-w-0 lg:col-start-1">
-        <ProfileCard onChange={onChange} onProfile={onProfile} locked={build.running || build.starting} />
+        <ProfileCard
+          onChange={onChange}
+          onProfile={onProfile}
+          onProfiles={setPlatforms}
+          locked={build.running || build.starting || build.multi.running || build.multi.starting}
+        />
       </div>
       <div className="min-w-0 empty:hidden lg:col-start-1">
         {profile && (
           <OutputPanel
             profile={profile}
             ready={ready && !measuring}
-            waiting={measuring ? 'Measuring the files in Master & QC.' : text}
+            waiting={measuring ? 'Measuring the files.' : text}
             failure={measuring ? undefined : failure}
             build={{ ...build, build: start }}
             showBuilt={built}
             onOpenMaster={onOpenMaster}
+            extra={<MultiPlatformExportPanel profiles={platforms} multi={{ ...build.multi, ready: ready && !measuring }} />}
           />
         )}
       </div>
+
       <div className="min-w-0 lg:col-start-2 lg:row-span-3 lg:row-start-1">
         <Preflight
           states={states}
           known={known}
-          measuring={measuring}
+          run={checks.run}
           problem={checks.jobError ?? checks.chaptersError}
           onCheckAgain={checks.checkAgain}
           onOpen={onOpenInMaster}

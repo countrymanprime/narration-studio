@@ -8,7 +8,9 @@ import (
 	"strings"
 
 	"desktop/internal/coverage"
+	"desktop/internal/dawport"
 	"desktop/internal/editlog"
+	"desktop/internal/guide"
 	"desktop/internal/manuscript"
 	"desktop/internal/voicesample"
 )
@@ -160,6 +162,21 @@ func (h *Host) voiceSamples() *voicesample.Service {
 	if svc.settings != nil {
 		folder, store := svc.config.projectFolder, svc.settings
 		config.ProjectFile = func() (string, error) { return selectedProjectFile(folder, store) }
+		config.Storage = func() string {
+			value, _ := store.Effective("VoiceSamples", "storage", voicesample.StorageProject)
+			return value
+		}
+	}
+	// A sample kept in the DAW needs the DAW to label a range: the role is nil, and a mark that asks for it is refused, when the
+	// resolver does not offer it (no DAW, the DAW is not answering, or an engine that cannot).
+	if svc.dawPortResolver != nil {
+		if keeper, err := dawport.Role[dawport.VoiceSampleRegionKeeper](svc.dawPortResolver, dawport.CapVoiceSampleRegion); err == nil {
+			config.Regions = keeper
+		}
+	}
+	config.Unsaved = func() bool { return h.dawProjectState().UnsavedChanges }
+	if svc.guide != nil {
+		config.CharacterName = characterNamer(svc.guide)
 	}
 	if svc.coverage != nil && svc.settings != nil {
 		reader := &voiceChapterReader{
@@ -174,6 +191,25 @@ func (h *Host) voiceSamples() *voicesample.Service {
 		config.Alignment, config.Cuts = reader, reader
 	}
 	return voicesample.New(config)
+}
+
+// characterNamer names a character by its Story Bible entry, reading the entries once: a region's name carries the character's name
+// where the DAW's narrator sees it. An id no entry has is answered as empty, and the store falls back to the id.
+func characterNamer(service *guide.Service) func(string) string {
+	var names map[string]string
+	return func(id string) string {
+		if names == nil {
+			names = map[string]string{}
+			if entities, err := service.Entities(); err == nil {
+				for _, entity := range entities {
+					entityID, _ := entity["id"].(string)
+					name, _ := entity["name"].(string)
+					names[entityID] = name
+				}
+			}
+		}
+		return names[id]
+	}
 }
 
 // voiceSamplesBook reads the current manuscript's chapters, with their titles, and its lines in reading order.

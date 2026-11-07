@@ -58,7 +58,7 @@ if str(_CORE) not in sys.path:
 
 from narration_common import manuscript as canonical_manuscript
 from narration_common.config import get_default
-from narration_common.logging_utils import log, set_log_file
+from narration_common.logging_utils import event, log, set_log_file
 from narration_common.ports.asr import ENGINES
 from narration_common.progress import write_progress
 
@@ -195,7 +195,7 @@ def build_concatenated_audio(segments, progress_path=None):
     for i, seg in enumerate(segments):
         check_cancelled(progress_path)
         write_progress(progress_path, "DECODE", 2 + int(13 * i / max(1, n)), f"Decoding item {i + 1}/{n}")
-        log(f"Decoding item {seg['item_index']}: {seg['source_file']} [{seg['start_offset']:.2f}s, {seg['length']:.2f}s]")
+        event("compare.item_decoded", item=int(seg["item_index"]), start_ms=seg["start_offset"] * 1000, length_ms=seg["length"] * 1000)
         audio = decode_segment(seg["source_file"], seg["start_offset"], seg["length"])
         pieces.append(audio)
         seg = dict(seg)
@@ -537,7 +537,7 @@ def run(args):
     check_cancelled(progress_path)
     write_progress(progress_path, "WRITE", 99, "Writing the words...")
     _write_atomically(args.out, _words_report(segments, transcript_words))
-    log(f"Wrote the words of {len(segments)} item(s) to {args.out}")
+    log(f"Wrote the words of {len(segments)} item(s).")
     write_progress(progress_path, "DONE", 100, "Finished")
 
 

@@ -1,0 +1,546 @@
+{
+ "book": "Pride and Prejudice, Jane Austen, 1813 (Project Gutenberg #1342, GITenberg mirror), chapters 1 to 24 (the first of its two parts, cut to keep the fixture small)",
+ "note": "Required: a named character or place capitalised at least 3 times in the text. Minor: a real one with fewer mentions; it counts as correct when shown and is not missed when absent. Other: a real named thing that is neither: wrong if shown as a character or place. Miss Bennet is Jane, the eldest daughter, as the book uses it.",
+ "characters": [
+  {
+   "name": "Elizabeth Bennet",
+   "aliases": [
+    "Elizabeth",
+    "Lizzy",
+    "Eliza",
+    "Miss Elizabeth",
+    "Miss Elizabeth Bennet",
+    "Miss Eliza Bennet",
+    "Miss Eliza",
+    "Miss Lizzy",
+    "Eliza Bennet"
+   ],
+   "required": true
+  },
+  {
+   "name": "Jane Bennet",
+   "aliases": [
+    "Jane",
+    "Miss Bennet",
+    "Miss Jane Bennet",
+    "Miss Jane"
+   ],
+   "required": true
+  },
+  {
+   "name": "Mr. Bennet",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Mrs. Bennet",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Mary Bennet",
+   "aliases": [
+    "Mary",
+    "Miss Mary"
+   ],
+   "required": true
+  },
+  {
+   "name": "Kitty Bennet",
+   "aliases": [
+    "Kitty",
+    "Catherine Bennet",
+    "Miss Kitty"
+   ],
+   "required": true
+  },
+  {
+   "name": "Lydia Bennet",
+   "aliases": [
+    "Lydia",
+    "Miss Lydia",
+    "Miss Lydia Bennet"
+   ],
+   "required": true
+  },
+  {
+   "name": "Mr. Bingley",
+   "aliases": [
+    "Bingley",
+    "Charles Bingley",
+    "Charles"
+   ],
+   "required": true
+  },
+  {
+   "name": "Miss Bingley",
+   "aliases": [
+    "Caroline Bingley",
+    "Caroline",
+    "Miss Caroline Bingley"
+   ],
+   "required": true
+  },
+  {
+   "name": "Mr. Darcy",
+   "aliases": [
+    "Darcy",
+    "Fitzwilliam Darcy"
+   ],
+   "required": true
+  },
+  {
+   "name": "Mr. Hurst",
+   "aliases": [
+    "Hurst"
+   ],
+   "required": true
+  },
+  {
+   "name": "Mrs. Hurst",
+   "aliases": [
+    "Louisa",
+    "Louisa Hurst"
+   ],
+   "required": true
+  },
+  {
+   "name": "Sir William Lucas",
+   "aliases": [
+    "Sir William",
+    "William Lucas"
+   ],
+   "required": true
+  },
+  {
+   "name": "Lady Lucas",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Charlotte Lucas",
+   "aliases": [
+    "Charlotte",
+    "Miss Lucas",
+    "Miss Charlotte Lucas"
+   ],
+   "required": true
+  },
+  {
+   "name": "Maria Lucas",
+   "aliases": [
+    "Maria"
+   ],
+   "required": false
+  },
+  {
+   "name": "Mr. Collins",
+   "aliases": [
+    "Collins",
+    "William Collins"
+   ],
+   "required": true
+  },
+  {
+   "name": "Mr. Wickham",
+   "aliases": [
+    "Wickham",
+    "George Wickham"
+   ],
+   "required": true
+  },
+  {
+   "name": "Lady Catherine de Bourgh",
+   "aliases": [
+    "Lady Catherine",
+    "Catherine",
+    "Lady Catherine de Bourgh's"
+   ],
+   "required": true
+  },
+  {
+   "name": "Miss de Bourgh",
+   "aliases": [
+    "Anne de Bourgh"
+   ],
+   "required": true
+  },
+  {
+   "name": "Mrs. Phillips",
+   "aliases": [
+    "Phillips",
+    "Mrs. Philips"
+   ],
+   "required": true
+  },
+  {
+   "name": "Mr. Phillips",
+   "aliases": [
+    "Mr. Phillip"
+   ],
+   "required": false
+  },
+  {
+   "name": "Mr. Denny",
+   "aliases": [
+    "Denny"
+   ],
+   "required": true
+  },
+  {
+   "name": "Colonel Forster",
+   "aliases": [
+    "Forster",
+    "Mrs. Forster"
+   ],
+   "required": true
+  },
+  {
+   "name": "Mrs. Long",
+   "aliases": [
+    "Long"
+   ],
+   "required": true
+  },
+  {
+   "name": "Miss Darcy",
+   "aliases": [
+    "Georgiana Darcy",
+    "Georgiana"
+   ],
+   "required": true
+  },
+  {
+   "name": "Mr. Jones",
+   "aliases": [
+    "Jones"
+   ],
+   "required": true
+  },
+  {
+   "name": "Captain Carter",
+   "aliases": [
+    "Carter"
+   ],
+   "required": true
+  },
+  {
+   "name": "Mr. Robinson",
+   "aliases": [
+    "Robinson"
+   ],
+   "required": true
+  },
+  {
+   "name": "Mrs. Jenkinson",
+   "aliases": [
+    "Jenkinson"
+   ],
+   "required": false
+  },
+  {
+   "name": "Sir Lewis de Bourgh",
+   "aliases": [
+    "Lewis de Bourgh"
+   ],
+   "required": false
+  },
+  {
+   "name": "Lady Anne Darcy",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Miss Grantley",
+   "aliases": [
+    "Grantley"
+   ],
+   "required": false
+  },
+  {
+   "name": "Miss Watson",
+   "aliases": [
+    "Watson"
+   ],
+   "required": false
+  },
+  {
+   "name": "Mr. Morris",
+   "aliases": [
+    "Morris"
+   ],
+   "required": false
+  },
+  {
+   "name": "Miss King",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Mrs. Gardiner",
+   "aliases": [
+    "Gardiner"
+   ],
+   "required": false
+  },
+  {
+   "name": "Mr. Gardiner",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Mrs. Nicholls",
+   "aliases": [
+    "Nicholls"
+   ],
+   "required": false
+  },
+  {
+   "name": "Colonel Fitzwilliam",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Pratt",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Chamberlayne",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Harriet Harrington",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Pen Harrington",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Mrs. Annesley",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Mr. Jones's shop-boy",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Fordyce",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Richard",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Clarke",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "William",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Bingleys",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Bennets",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Hursts",
+   "aliases": [],
+   "required": false
+  }
+ ],
+ "places": [
+  {
+   "name": "Longbourn",
+   "aliases": [
+    "Longbourn House"
+   ],
+   "required": true
+  },
+  {
+   "name": "Netherfield",
+   "aliases": [
+    "Netherfield Park",
+    "Netherfield House"
+   ],
+   "required": true
+  },
+  {
+   "name": "Meryton",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Hertfordshire",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "London",
+   "aliases": [
+    "town"
+   ],
+   "required": true
+  },
+  {
+   "name": "Derbyshire",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Pemberley",
+   "aliases": [
+    "Pemberley House"
+   ],
+   "required": true
+  },
+  {
+   "name": "Rosings",
+   "aliases": [
+    "Rosings Park"
+   ],
+   "required": true
+  },
+  {
+   "name": "Hunsford",
+   "aliases": [
+    "Hunsford Parsonage",
+    "Hunsford parsonage"
+   ],
+   "required": true
+  },
+  {
+   "name": "Lucas Lodge",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Kent",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Grosvenor Street",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Gracechurch Street",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "St. James",
+   "aliases": [
+    "St. James's"
+   ],
+   "required": false
+  },
+  {
+   "name": "Scarborough",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Brighton",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Westerham",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Bromley",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "England",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Ashworth",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Haye-Park",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Stoke",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Cheapside",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Purvis Lodge",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Oakham Mount",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "North",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Newcastle",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Bath",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Kympton",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "York",
+   "aliases": [],
+   "required": false
+  }
+ ],
+ "other": [
+  "Church of England",
+  "Fordyce's Sermons",
+  "Sermons",
+  "Militia",
+  "Michaelmas",
+  "Vingt-un",
+  "Commerce"
+ ]
+}

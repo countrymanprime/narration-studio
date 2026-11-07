@@ -7,7 +7,7 @@ name: Docs
 # GitHub skips stays pending forever. This workflow runs on every pull request, so its job is safe to require later.
 #
 # One job, `docs`, runs the five checks as steps (each step has `if: !cancelled()`, so a red one does not hide the next,
-# the way quick-ubuntu does in _quality.yml). They were five jobs, each paying for its own runner and checkout; the step
+# the way linux-checks does in _quality.yml). They were five jobs, each paying for its own runner and checkout; the step
 # names are the old job names, so a log reads the same. The scheduled online link check stays a job of its own.
 #
 # links-offline reads only the repository (lychee --offline: a relative link must resolve to a file, a `#fragment` to a
@@ -47,7 +47,8 @@ jobs:
           need-wails-tools: 'false'
           need-stylua: 'false'
           need-linux-native-deps: 'false'
-          pnpm-filter: workspace
+          # ui: the guide structure step runs src/studio/ui's Vitest.
+          pnpm-filter: workspace ui
       - name: Markdown lint (changed files)
         if: ${{ !cancelled() && github.event_name == 'pull_request' }}
         run: node scripts/ci/lint-markdown-changed.mjs --summary
@@ -63,6 +64,11 @@ jobs:
           # The description may carry the `No guide change: <reason>` opt-out. Read through env, never interpolated into the script.
           PR_BODY: ${{ github.event.pull_request.body }}
         run: node scripts/ci/guide-impact.mjs --summary
+      - name: Guide structure
+        # docsGuide.test.ts holds the how-to guide's breadcrumbs, footers, links, What next sections and screenshot embeds.
+        # ci.yml ignores Markdown-only changes, so without this step a guide-only pull request would never run it.
+        if: ${{ !cancelled() }}
+        run: pnpm --dir src/studio/ui run test:guide
       - name: Issue link (advisory)
         if: ${{ !cancelled() && github.event_name == 'pull_request' }}
         env:

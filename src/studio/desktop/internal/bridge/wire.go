@@ -83,11 +83,13 @@ var eventSpecs = map[string]eventSpec{
 	"TAKES_STACKED":   {required: []fieldSpec{text("run"), count("groups"), count("takes"), number("shift"), count("undoPoints")}},
 	"TAKES_UNSTACKED": {required: []fieldSpec{text("run"), count("groups"), count("takes"), number("shift"), count("undoPoints")}},
 	"REGIONS_CREATED": {required: []fieldSpec{text("run"), count("created"), count("existing"), count("invalid")}, optional: []fieldSpec{count("updated"), count("ambiguous"), count("failed")}},
-	// keep_voice_sample and read_voice_samples (narration_voice_sample_region.lua): the region's number and what was done (created,
-	// existing, moved or unchanged), a number the project no longer has as a voice sample region, and the regions read back (name last)
-	// with the count and REAPER's change count.
+	// keep_voice_sample, delete_voice_sample_region and read_voice_samples (narration_voice_sample_region.lua): the region's number and
+	// what was done (created, existing, moved or unchanged), what a delete did (deleted, or unchanged when the number was gone), a
+	// number that is not a voice sample region in the open project, and the regions read back (name last) with the count and
+	// REAPER's change count.
 	"VOICE_SAMPLE_KEPT":     {required: []fieldSpec{text("run"), count("number"), text("outcome")}},
 	"VOICE_SAMPLE_STALE":    {required: []fieldSpec{text("run"), count("number")}},
+	"VOICE_SAMPLE_REMOVED":  {required: []fieldSpec{text("run"), count("number"), text("outcome")}},
 	"VOICE_SAMPLE_REGION":   {required: []fieldSpec{text("run"), count("number"), number("start"), number("end"), text("name")}},
 	"VOICE_SAMPLES_READ":    {required: []fieldSpec{text("run"), count("count"), count("changeCount")}},
 	"PICKUPS_IMPORTED":      {required: []fieldSpec{text("run"), count("added"), count("existing"), count("invalid")}},

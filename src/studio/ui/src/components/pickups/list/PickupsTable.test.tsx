@@ -2,9 +2,14 @@
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { ApiProvider } from '../../../api/ApiContext';
+import { createMockApi } from '../../../api/mockApi';
+import { DAW_SETUPS } from '../../../fixtures/daw';
+import { createMockDawClient } from '../../../ports/daw';
+import { PortOverrides } from '../../../ports/usePort';
 import { contextItemsFor } from '../../../registries/context';
 import { OverlayProvider } from '../../../overlay/OverlayProvider';
-import { createOverlayService } from '../../../overlay/overlayService';
+import { createOverlayService, overlay } from '../../../overlay/overlayService';
 import { TooltipProvider } from '../../primitives/Tooltip';
 import { AUDIO, BY_HAND, CHAPTERS, DONE, EXTRA, MIXED, NO_SCORE, PROOF, SPEECH } from './pickupFixtures';
 import { PickupsTable } from './PickupsTable';
@@ -15,6 +20,9 @@ type Props = Parameters<typeof PickupsTable>[0];
 
 function setup(over: Partial<Props> = {}) {
   const service = createOverlayService();
+  const host = createMockApi();
+  const goTo = vi.spyOn(host, 'findingsGoTo').mockResolvedValue({ outcome: 'navigated', projectTime: 221 });
+  const daw = createMockDawClient(DAW_SETUPS.reaper, { chapterIds: [], candidateIds: [], findingIds: [] });
   const fns = {
     onScope: vi.fn(),
     onStep: vi.fn(),
@@ -29,24 +37,28 @@ function setup(over: Partial<Props> = {}) {
     onReload: vi.fn(),
   };
   render(
-    <TooltipProvider>
-      <OverlayProvider service={service}>
-        <PickupsTable
-          pickups={MIXED}
-          read={{ kind: 'ready', readAt: 0 }}
-          chapters={CHAPTERS}
-          scope="all"
-          currentChapterId="c1"
-          chaptersToCheck={['c2', 'c3']}
-          daw={{ available: true }}
-          {...fns}
-          {...over}
-        />
-      </OverlayProvider>
-    </TooltipProvider>,
+    <ApiProvider api={host}>
+      <PortOverrides clients={{ daw }}>
+        <TooltipProvider>
+          <OverlayProvider service={service}>
+            <PickupsTable
+              pickups={MIXED}
+              read={{ kind: 'ready', readAt: 0 }}
+              chapters={CHAPTERS}
+              scope="all"
+              currentChapterId="c1"
+              chaptersToCheck={['c2', 'c3']}
+              daw={{ available: true }}
+              {...fns}
+              {...over}
+            />
+          </OverlayProvider>
+        </TooltipProvider>
+      </PortOverrides>
+    </ApiProvider>,
   );
   const toasts = () => service.getSnapshot().toasts;
-  return { ...fns, service, toasts, user: userEvent.setup() };
+  return { ...fns, goTo, service, toasts, user: userEvent.setup() };
 }
 
 /** The From cell's source: its name and, on the line under it, a speech check's score, read as one ("Speech · 0.91"). */
@@ -195,6 +207,7 @@ describe('PickupsTable', () => {
       .getAllByRole('button')
       .map((button) => button.getAttribute('aria-label'));
     expect(buttons.slice(0, 2)).toEqual(['Hear the original in context', 'Open in Booth at this line']);
+    expect(buttons[2]).toMatch(/^Show in /);
     // A chip is the badge primitive: the type a tag (capitals), the status a pill (fully rounded).
     expect(within(row).getByText('Misread').className).toContain('uppercase');
     expect(within(row).getByText('Open').className).toContain('rounded-full');
@@ -314,6 +327,25 @@ describe('PickupsTable', () => {
     onRemove.mockRejectedValueOnce(new Error('That line is not in the list.'));
     await user.click(within(rowOf('05:12.0')).getByRole('button', { name: 'Remove from pickups' }));
     await waitFor(() => expect(toasts().map((t) => t.text)).toEqual(['That line is not in the list.']));
+  });
+
+  // #2826: the shared Show in {DAW} button, over the note the pickup came from.
+  it('Show in REAPER goes to the pickup’s note in the DAW', async () => {
+    const toast = vi.spyOn(overlay, 'toast').mockImplementation(() => '' as never);
+    const { user, goTo } = setup();
+    await user.click(await within(rowOf('00:12.0')).findByRole('button', { name: 'Show in REAPER' }));
+    expect(goTo).toHaveBeenCalledWith('f9');
+    await waitFor(() => expect(toast).toHaveBeenCalledWith('Moved to 3:41 in REAPER.'));
+    toast.mockRestore();
+  });
+
+  it('Show in REAPER is off for a line with no note, and asks the DAW nothing', async () => {
+    const { user, goTo } = setup();
+    const row = within(rowOf('00:44.0'));
+    const button = await row.findByRole('button', { name: 'Show in REAPER' });
+    expect(button.getAttribute('aria-disabled')).toBe('true');
+    await user.click(button);
+    expect(goTo).not.toHaveBeenCalled();
   });
 
   it('Open in Booth at this line passes that pickup', async () => {

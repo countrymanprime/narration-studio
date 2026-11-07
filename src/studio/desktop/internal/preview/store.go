@@ -109,12 +109,8 @@ func (s *PinStore) writeLocked(file pinFileShape) error {
 	if err != nil {
 		return err
 	}
-	temp := s.path + ".tmp"
-	if err := os.WriteFile(temp, bytes, 0o600); err != nil {
+	if err := persist.WriteFile(s.path, bytes, 0o600); err != nil {
 		return fmt.Errorf("could not write the preview pin: %w", err)
-	}
-	if err := os.Rename(temp, s.path); err != nil {
-		return fmt.Errorf("could not activate the preview pin: %w", err)
 	}
 	return nil
 }

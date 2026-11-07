@@ -14,6 +14,13 @@ import (
 // pauses for a microphone, audio consumed for a file). The host consumes it and never relays it.
 const clockEventType = "clock"
 
+// segmentCheckEventType is the sidecar's line carrying the confirmation pass's words for a closed segment, consumed by the
+// host and never relayed; flagCheckEventType is the line the host relays in its place, one per settled flag.
+const (
+	segmentCheckEventType = "segment_check"
+	flagCheckEventType    = "flag_check"
+)
+
 // follower follows the read in the host, as the sidecar once did (docs/research/sidecar-go-vs-python.md, step 2):
 // the Booth's script tracker runs on the engine events the host relays, at the sidecar's own clock, and its position
 // and flag events go out right after the engine event that caused them, in the order the sidecar printed them.
@@ -103,6 +110,34 @@ func (f *follower) event(raw json.RawMessage) []json.RawMessage {
 			{Key: "type", Value: "flag"}, {Key: "id", Value: flag.ID}, {Key: "kind", Value: flag.Kind},
 			{Key: "start", Value: flag.Start}, {Key: "end", Value: flag.End}, {Key: "heard", Value: flag.Heard},
 		}))
+	}
+	return lines
+}
+
+// check settles the flags of a closed segment from a `segment_check` line: one `flag_check` per flag, confirmed or cleared.
+// A check that carries an error, or no words, settles nothing, and a line the host cannot read is not followed.
+func (f *follower) check(raw json.RawMessage) []json.RawMessage {
+	var line struct {
+		Segment *float64 `json:"segment"`
+		Error   string   `json:"error"`
+		Words   []struct {
+			Word  string  `json:"word"`
+			Start float64 `json:"start"`
+			End   float64 `json:"end"`
+		} `json:"words"`
+	}
+	if json.Unmarshal(raw, &line) != nil || line.Error != "" || line.Segment == nil {
+		return nil
+	}
+	words := make([]scripttrack.CheckedWord, 0, len(line.Words))
+	for _, w := range line.Words {
+		words = append(words, scripttrack.CheckedWord{Word: w.Word, Start: w.Start, End: w.End})
+	}
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	var lines []json.RawMessage
+	for _, settled := range f.tracker.Check(*line.Segment, words) {
+		lines = append(lines, compactLine(compare.PyOrdered{{Key: "type", Value: flagCheckEventType}, {Key: "id", Value: settled.ID}, {Key: "state", Value: settled.State}}))
 	}
 	return lines
 }

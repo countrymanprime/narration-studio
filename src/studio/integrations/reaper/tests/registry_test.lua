@@ -47,6 +47,7 @@ H.test('the bridge registers exactly the commands the host and the docs know abo
     'create_regions',
     'daw_meters',
     'delete_range',
+    'delete_voice_sample_region',
     'export_compare_markers',
     'export_pickups',
     'fx_range_bypass',

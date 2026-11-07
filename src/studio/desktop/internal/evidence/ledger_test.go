@@ -334,11 +334,11 @@ func TestLedgerWriteReportsAFolderItCannotCreate(t *testing.T) {
 
 func TestLedgerWriteReportsARecordFileItCannotWrite(t *testing.T) {
 	store := NewLedgerStore(t.TempDir())
-	// A folder where the temporary record file goes makes writing it fail.
-	if err := os.MkdirAll(store.recordPath("r1")+".tmp", 0o755); err != nil {
+	// A folder with something in it where the record file goes makes replacing it fail.
+	if err := os.MkdirAll(filepath.Join(store.recordPath("r1"), "keep"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := store.Write(LedgerRecord{ID: "r1"}); err == nil {
-		t.Fatal("Write with a folder in the temporary file's place: want an error, got nil")
+		t.Fatal("Write with a folder in the file's place: want an error, got nil")
 	}
 }

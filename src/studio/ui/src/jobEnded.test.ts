@@ -13,6 +13,17 @@ const ended = (patch: Partial<JobEnded>): JobEnded => ({
 });
 
 describe('toastForJobEnd', () => {
+  it("offers the Needs review filter when the import's Story Bible build left names to check, and not otherwise", () => {
+    const follow = { label: 'Show them', to: '/story-bible', state: { show: 'review' } };
+    const toCheck = 'Story Bible built from the import: 12 characters and 3 places; 4 names to check under Needs review.';
+    expect(toastForJobEnd(ended({ message: toCheck }))).toEqual({ text: toCheck, tone: 'info', follow, durationMs: TOAST_ACTION_MS });
+    const one = 'Story Bible built from the import: 1 character and 0 places; 1 name to check under Needs review.';
+    expect(toastForJobEnd(ended({ message: one }))?.follow).toEqual(follow);
+    const none = 'Story Bible built from the import: 2 characters and 1 place. Built without the language model.';
+    expect(toastForJobEnd(ended({ message: none }))).toEqual({ text: none, tone: 'info' });
+    expect(toastForJobEnd(ended({}))).toEqual({ text: 'Story Bible rebuild complete.', tone: 'info' });
+  });
+
   it('leaves a failed package build to the Delivery page, which writes it under Build, but not when the narrator is elsewhere', () => {
     const failed = ended({ kind: 'render_package', outcome: 'error', message: 'The package could not be built.' });
     expect(toastForJobEnd(failed, '/delivery')).toBeUndefined();

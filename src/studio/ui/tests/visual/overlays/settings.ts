@@ -4,6 +4,7 @@ import { fromState, type OverlayCase } from '../helpers/overlayGuardFor';
 export const settingsCases: OverlayCase[] = [
   fromState('settings', 'marks-dialog'),
   fromState('settings', 'delivery-profile-editor'),
+  fromState('settings', 'diagnostics-preview'),
   fromState('settings', 'about-download-confirm'),
   fromState('settings', 'about-download-progress'),
   fromState('settings', 'about-install-confirm'),

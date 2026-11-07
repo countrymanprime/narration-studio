@@ -1,0 +1,28 @@
+[
+  {
+    "type": "flag",
+    "id": 1,
+    "kind": "misread",
+    "start": 7,
+    "end": 8,
+    "heard": "chairs"
+  },
+  {
+    "type": "flag_check",
+    "id": 1,
+    "state": "cleared"
+  },
+  {
+    "type": "flag",
+    "id": 2,
+    "kind": "misread",
+    "start": 14,
+    "end": 15,
+    "heard": "stove"
+  },
+  {
+    "type": "flag_check",
+    "id": 2,
+    "state": "confirmed"
+  }
+]

@@ -60,12 +60,12 @@ describe('ChapterTrackPanel playback and Select in REAPER', () => {
     expect(await screen.findByRole('button', { name: 'Pause' })).toBeTruthy();
   });
 
-  it('sends Select in REAPER with the linked track and shows a toast on success', async () => {
+  it('sends Show in REAPER with the linked track and shows a toast on success', async () => {
     const api = createMockApi();
     const { link, track } = await confirmedFixture(api);
     const { notify } = renderPanel(api, link, track);
 
-    const button = await screen.findByRole('button', { name: 'Select in REAPER' });
+    const button = await screen.findByRole('button', { name: 'Show in REAPER' });
     await userEvent.click(button);
 
     await waitFor(() => expect(notify).toHaveBeenCalledWith('Selected in REAPER.'));
@@ -77,7 +77,7 @@ describe('ChapterTrackPanel playback and Select in REAPER', () => {
     const standaloneApi = createMockApi({}, { reaperState: 'unavailable' });
     const { notify } = renderPanel(standaloneApi, link, track);
 
-    const button = await screen.findByRole('button', { name: 'Select in REAPER' });
+    const button = await screen.findByRole('button', { name: 'Show in REAPER' });
     await userEvent.click(button);
 
     await waitFor(() =>
@@ -96,7 +96,7 @@ describe('ChapterTrackPanel states (alignment audit)', () => {
     renderPanel(api, { ...link, warnings: [...link.warnings, 'confirmed-track-missing'] }, track);
     expect(await screen.findByRole('alert')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Play' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Select in REAPER' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Show in REAPER' })).toBeNull();
     expect(screen.getByRole('heading', { name: /^Last known, as of save/ })).toBeTruthy();
   });
 

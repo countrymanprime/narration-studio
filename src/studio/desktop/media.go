@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
+	"time"
 
 	"desktop/internal/voicesample"
 )
@@ -104,8 +106,15 @@ func (h *Host) serveSampleClip(w http.ResponseWriter, r *http.Request, query url
 		return
 	}
 	clip, err := h.voiceSamples().Clip(ids[0])
-	if err != nil || clip.State != voicesample.ClipOK || clip.Path == "" {
+	if err != nil || clip.State != voicesample.ClipOK || (clip.Path == "" && clip.Data == nil) {
 		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+	if clip.Data != nil {
+		// A sample kept only in the DAW: the audio under its region, cut in memory from the take the saved project names for the
+		// sample's item (voicesample.Service.Clip), so nothing is written to the project folder and no path from the page is opened.
+		w.Header().Set("Content-Type", "audio/wav")
+		http.ServeContent(w, r, ids[0]+".wav", time.Time{}, bytes.NewReader(clip.Data))
 		return
 	}
 	file, err := os.Open(clip.Path)

@@ -59,6 +59,17 @@ export const editingDrivers: Record<string, Driver> = {
     for (let step = 0; step < 10 && (await card.count()) === 0; step++) await page.keyboard.press(']');
     await card.getByRole('button', { name: /Hear both reads/ }).waitFor();
   },
+  // A flagged word's card with Add marker, the icon button every page's Add marker is (#2830): the flag keys step to a word and Enter opens its card.
+  'flag-card': async (page) => {
+    await openEditing(page, LINKED);
+    const card = page.locator('[data-flagcard]:not([data-flagcard="dup"])');
+    await page.getByRole('textbox', { name: 'Script with what was heard' }).focus();
+    for (let step = 0; step < 10 && (await card.count()) === 0; step++) {
+      await page.keyboard.press(']');
+      await page.keyboard.press('Enter');
+    }
+    await card.getByRole('button', { name: /^Add marker in / }).waitFor();
+  },
   // The menu knows the page: with nothing selected the selection actions are listed off, each with its reason.
   'jump-menu': async (page) => {
     await openEditing(page, LINKED);
@@ -189,6 +200,14 @@ export const editingDrivers: Record<string, Driver> = {
     await bar(page).getByRole('button', { name: 'Voice sample' }).click();
     await page.getByRole('dialog', { name: 'Voice sample' }).waitFor();
   },
+  'voice-sample-dialog-unread': async (page) => {
+    await openEditing(page, `${LINKED}&mockSettings=unreadable`);
+    await selectWords(page);
+    await bar(page).getByRole('button', { name: 'Voice sample' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Voice sample' });
+    await dialog.waitFor();
+    await dialog.getByText(/where samples are kept/).waitFor();
+  },
   'voice-sample-refused': async (page) => {
     await openEditing(page, LINKED);
     // The extra word at the start of the first line was heard and is not in the script: nothing there can be a sample.
@@ -284,6 +303,13 @@ export const editingDrivers: Record<string, Driver> = {
     await openTakes(page, LINKED);
     await expectPanelTextSize(page, 'Suggested take');
   },
+  // The opened takes scrolled to their footer, where Show in {DAW} sits beside the take actions (#2826).
+  'takes-footer': async (page) => {
+    await openTakes(page, LINKED);
+    const footer = page.locator('[data-takes] [data-takes-footer]').first();
+    await footer.scrollIntoViewIfNeeded();
+    await footer.getByRole('button', { name: /^Show in / }).waitFor();
+  },
   'suggestion-step': async (page) => {
     await openTakes(page, LINKED);
     await page.getByRole('button', { name: 'Normalise' }).first().click();
@@ -292,6 +318,13 @@ export const editingDrivers: Record<string, Driver> = {
   'drawer-cleanup': async (page) => {
     await openDrawer(page);
     await page.getByRole('region', { name: 'Clean up findings' }).waitFor();
+  },
+  // The drawer's Clean up tab scrolled to Match levels… (#2827), the one action the editing check panel has too.
+  'drawer-cleanup-levels': async (page) => {
+    await openDrawer(page);
+    const levels = page.getByRole('region', { name: 'Match levels' });
+    await levels.scrollIntoViewIfNeeded();
+    await levels.getByRole('button', { name: 'Match levels…' }).waitFor();
   },
   // The Clicks list with Repair in REAPER beside Apply, its menu open (#2821).
   'drawer-cleanup-repair': async (page) => {

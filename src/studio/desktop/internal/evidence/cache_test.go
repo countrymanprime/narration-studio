@@ -624,11 +624,11 @@ func TestWriteReportsACacheFolderItCannotCreate(t *testing.T) {
 func TestWriteReportsAnEntryFileItCannotWrite(t *testing.T) {
 	store := NewCacheStore(t.TempDir())
 	key := baseCacheKey()
-	// A folder where the temporary entry file goes makes writing it fail.
-	if err := os.MkdirAll(store.entryPath(key)+".tmp", 0o755); err != nil {
+	// A folder with something in it where the entry file goes makes replacing it fail.
+	if err := os.MkdirAll(filepath.Join(store.entryPath(key), "keep"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	if err := store.Write(key, []byte("blob")); err == nil {
-		t.Fatal("Write with a folder in the temporary file's place: want an error, got nil")
+		t.Fatal("Write with a folder in the file's place: want an error, got nil")
 	}
 }

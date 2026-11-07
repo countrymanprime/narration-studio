@@ -5,6 +5,13 @@ import { REFLOW, TOAST_FADES_OUT } from './shared';
 export const pickupsStates: StateEntry[] = [
   {
     page: 'pickups',
+    state: 'daw-off-closed',
+    description:
+      'Pickups with the DAW not connected (?mockDaw=Audacity), after the dialog that opens by itself was closed with its X - the quiet "not connected" mark at the right of the list header, before Check recordings, reopens it',
+    ...REFLOW,
+  },
+  {
+    page: 'pickups',
     state: 'list',
     description:
       'Pickups, all chapters (Studio Next mock): the head with the chapter stepper, Check recordings and Add a pickup by hand, the lines grouped by chapter with include, time, type, line, source and status, and the Pickup session panel with Open N in Booth',
