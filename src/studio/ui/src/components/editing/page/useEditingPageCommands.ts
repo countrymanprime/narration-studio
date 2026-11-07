@@ -1,3 +1,4 @@
+import { CHECK_RECORDINGS_LABEL } from '../../recordingcheck/CheckRecordingsButton';
 import { gestureKeys } from '../../../input/hints';
 import type { Keymap } from '../../../input/keymap';
 import type { CommandId } from '../../../input/commands.catalog';
@@ -93,7 +94,7 @@ export function useEditingActionCommands(page: EditingActionCommands): void {
       },
       {
         id: 'check.recording',
-        label: 'Check the recording of this chapter',
+        label: `${CHECK_RECORDINGS_LABEL} of this chapter`,
         group: 'Checks',
         icon: 'checkRecordings',
         disabledReason: checkRecording ? checkReason : 'The chapter list is still loading. Try again in a moment.',

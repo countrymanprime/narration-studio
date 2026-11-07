@@ -40,6 +40,7 @@ describe('CreditsRowPanel', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Check recordings' }).getAttribute('aria-disabled')).toBeNull());
     expect(screen.getByText('about 3s').className).toContain('whitespace-nowrap');
     const script = screen.getByRole('link', { name: 'Open in Script' });
-    expect(script.parentElement).toBe(screen.getByRole('button', { name: 'Check recordings' }).parentElement);
+    // The icon button sits in its tooltip target: the row that holds the link holds the button too.
+    expect(script.parentElement!.contains(screen.getByRole('button', { name: 'Check recordings' }))).toBe(true);
   });
 });

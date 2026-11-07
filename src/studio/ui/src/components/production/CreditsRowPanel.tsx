@@ -81,7 +81,7 @@ export function CreditsRowPanel({
         {/* The two ways on, on one row and apart: a link beside the status select touched it (XPR1-25). The check stays offered with no
             track linked, because its refusal is where the row is linked to one. */}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <CheckRecordingsButton chapterIds={[`credits-${row.kind}`]} onOpen={onClose} />
+          <CheckRecordingsButton variant="icon" chapterIds={[`credits-${row.kind}`]} onOpen={onClose} />
           <Link className={`font-semibold underline ${HIT_AREA}`} to={addressPath({ page: 'script', credits: row.kind })}>
             Open in Script
           </Link>
