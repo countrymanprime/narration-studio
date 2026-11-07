@@ -232,7 +232,20 @@ H.test('delete_voice_sample_region never removes a region that is not a voice sa
   H.eq(#s.fake.undo, 0)
 end)
 
-H.test('delete_voice_sample_region does not remove a plain marker that shares the number and the prefix', function()
+H.test('delete_voice_sample_region removes the region, not a plain marker that shares its number and the prefix', function()
+  local s = new_session()
+  s.fake:insert_marker({ is_region = false, pos = 3, rgnend = 0, name = PREFIX .. 'Hatter - angry', color = 0 })
+  s:send('keep_voice_sample', 'k1', '', '40', '45', PREFIX .. 'Hatter - angry')
+  s:events()
+  H.eq(regions(s), { { 1, 40, 45, PREFIX .. 'Hatter - angry' } })
+  s:send('delete_voice_sample_region', 'd1', '1')
+  H.eq(s:events(), { { 'VOICE_SAMPLE_REMOVED', 'd1', '1', 'deleted' } })
+  H.eq(regions(s), {})
+  H.eq(#s.fake.markers, 1)
+  H.eq(s.fake.markers[1].is_region, false)
+end)
+
+H.test('delete_voice_sample_region with only a marker of that number removes nothing and is unchanged', function()
   local s = new_session()
   s.fake:insert_marker({ is_region = false, pos = 3, rgnend = 0, name = PREFIX .. 'Hatter - angry', color = 0 })
   s:send('delete_voice_sample_region', 'd1', '1')
@@ -245,7 +258,7 @@ H.test('delete_voice_sample_region refuses a number that is not a positive whole
   local s = new_session()
   s:send('keep_voice_sample', 'k1', '', '40', '45', PREFIX .. 'Hatter - angry')
   s:events()
-  for _, number in ipairs({ '', '0', '-1', '1.5', 'x', 'nan', 'inf' }) do
+  for _, number in ipairs({ '', '0', '-1', '1.5', '1.0', '1e0', '0x1', ' 1', '+1', '01x', 'x', 'nan', 'inf', '99999999999999999999' }) do
     s:send('delete_voice_sample_region', 'd1', number)
     H.eq(s:events(), { { 'ERROR', 'd1', 'The voice sample region number is not valid.' } }, number)
   end

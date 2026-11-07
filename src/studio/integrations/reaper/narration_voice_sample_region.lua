@@ -131,9 +131,10 @@ local function delete(ctx, args)
     event(session_dir, 'ERROR', run_id, NO_DELETE_API)
     return
   end
+  -- Plain decimal digits only: tonumber would also take 1.0, 1e0, 0x1 and a leading space, and the answer must echo the number the host sent.
   local wanted = tostring(args[2] or '')
-  local number = tonumber(wanted)
-  if not number or number ~= number or number < 1 or number % 1 ~= 0 or number == math.huge then
+  local number = wanted:match('^[1-9]%d*$') and math.tointeger(tonumber(wanted))
+  if not number then
     event(session_dir, 'ERROR', run_id, BAD_NUMBER)
     return
   end
@@ -148,11 +149,11 @@ local function delete(ctx, args)
     end
   end
   if not target then
-    event(session_dir, 'VOICE_SAMPLE_REMOVED', run_id, wanted, 'unchanged')
+    event(session_dir, 'VOICE_SAMPLE_REMOVED', run_id, number, 'unchanged')
     return
   end
   if not starts_with(target.name, SAMPLE_PREFIX) then
-    event(session_dir, 'VOICE_SAMPLE_STALE', run_id, wanted)
+    event(session_dir, 'VOICE_SAMPLE_STALE', run_id, number)
     return
   end
   reaper.Undo_BeginBlock2(0)
