@@ -1,6 +1,6 @@
 ---
 name: systematic-debugging
-description: A red test, a CI failure, a flaky check or a behaviour that differs between the app, the harness and REAPER? Find the root cause before changing code; reproduce, localise to a layer, form one hypothesis at a time, and pin the fix with a failing test first.
+description: A red test, a CI failure, a flaky check or a behaviour that differs between the app, the harness and REAPER? Find the root cause before changing code; reproduce, localise to a layer, form one hypothesis at a time, and pin the fix with a test that guards it.
 ---
 
 # systematic-debugging
@@ -26,7 +26,7 @@ Any failure you do not yet understand: a failing `pnpm check`, a red CI job, a t
    - A Go failure that comes and goes with CPU count: an ordering bug between goroutines. Run on one and four CPUs; do not assert wall-clock time (monotonic clock ticks up to 15.6 ms on Windows).
    - Passes against the fake `reaper`, fails in REAPER: the fake is wrong or the Lua differs from the app's version. Fix the fake to match observed REAPER behaviour, with a harness test, and re-run the scripted REAPER check (`reaper-command-add`, [reaper verification pass](../../../docs/operations/reaper-verification-pass.md)).
    - A sidecar result differs from the golden payload: regenerate nothing by hand. Contract goldens come from `UPDATE_CONTRACTS=1` after you know why the shape changed.
-7. **Pin the root cause with a failing test first**, at the layer that owns the bug, then fix it (`tdd-guide`). A fix with no test that fails without it is a guess.
+7. **Pin the root cause with a test** at the layer that owns the bug, one that would catch it coming back, written before or after the fix. A fix that no test guards is a guess.
 8. **Look for the same cause elsewhere.** Search for the pattern in other consumers (`change-impact-scan`). Say in the PR what you checked.
 9. **Verify, then stop digging.** Re-run the original failing command, then the full gate (`full-verification-gate`). If three hypotheses in a row are wrong, stop and re-read step 1 and 3 instead of trying a fourth fix.
 

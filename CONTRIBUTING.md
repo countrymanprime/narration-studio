@@ -25,7 +25,7 @@ Details, including the Git hooks and CI, are in [CI and releases](docs/operation
 
 ## Making a change
 
-1. Work on a branch and write tests first; the repository expects them alongside behaviour changes.
+1. Work on a branch; every behaviour change brings the tests that guard it.
    Put code in the folder that names its role (see the [codebase map](docs/architecture/codebase-map.md)); tests follow
    the toolchain, with one `tests/` folder per project where it does not want them beside the code.
 2. Run `pnpm run check` before you push. If you changed `src/studio/ui`, also review the visual-suite screenshots at every
