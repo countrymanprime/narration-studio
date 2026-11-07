@@ -232,3 +232,18 @@ func TestConcurrentReadersOfACorruptFileKeepItOnceAndTellTheNarratorOnce(t *test
 		t.Fatalf("notices = %v, want exactly one", recorded.notices)
 	}
 }
+
+// Tell is for a thing that went on without failing what the narrator asked: the host log gets the line and the narrator gets the
+// sentence, and a Reporter with neither way set, or none, is a valid one that says nothing.
+func TestTellWritesTheLogLineAndTellsTheNarratorAndIsSafeWithoutEither(t *testing.T) {
+	reporter, recorded := newReporter()
+	reporter.Tell("voice_sample_region_stays", "1 voice sample region(s) left", "The region stays in the DAW's project.")
+	if len(recorded.logs) != 1 || recorded.logs[0] != "voice_sample_region_stays 1 voice sample region(s) left" {
+		t.Fatalf("logs = %q", recorded.logs)
+	}
+	if len(recorded.notices) != 1 || recorded.notices[0] != "The region stays in the DAW's project." {
+		t.Fatalf("notices = %q", recorded.notices)
+	}
+	(*Reporter)(nil).Tell("kind", "message", "sentence")
+	(&Reporter{}).Tell("kind", "message", "sentence")
+}
