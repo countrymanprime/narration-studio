@@ -1,9 +1,15 @@
 // @vitest-environment jsdom
-import { act, cleanup, render, screen } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactElement } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { ApiProvider } from '../../../api/ApiContext';
+import { createMockApi } from '../../../api/mockApi';
+import { DAW_SETUPS } from '../../../fixtures/daw';
+import { createMockDawClient } from '../../../ports/daw';
+import { PortOverrides } from '../../../ports/usePort';
 import { TooltipProvider } from '../../primitives/Tooltip';
+import * as opener from '../../recordingcheck/openCheckRecordings';
 import { CheckCountsCard } from './CheckCountsCard';
 import { KpiRow } from './KpiRow';
 import { ProgressChart } from './ProgressChart';
@@ -323,24 +329,35 @@ describe('ProgressChart', () => {
 });
 
 describe('CheckCountsCard', () => {
+  // The card's Check recordings is the shared button (#2833): it opens the one dialog with what needs checking, and the DAW's gate is its own.
+  const withApi = (ui: ReactElement, setup: 'reaper' | 'reaper-off' = 'reaper') => {
+    const daw = createMockDawClient(DAW_SETUPS[setup], { chapterIds: [], candidateIds: [], findingIds: [] });
+    return view(
+      <ApiProvider api={createMockApi()}>
+        <PortOverrides clients={{ daw }}>{ui}</PortOverrides>
+      </ApiProvider>,
+    );
+  };
+
   it('check-counts-from-the-sync-state', async () => {
-    const onCheck = vi.fn();
-    view(<CheckCountsCard counts={COUNTS} nameOf={nameOf} onCheck={onCheck} />);
+    const open = vi.spyOn(opener, 'openCheckRecordings').mockReturnValue(() => {});
+    withApi(<CheckCountsCard counts={COUNTS} nameOf={nameOf} />);
     expect(screen.getByRole('group', { name: /^Checked, as of last save: 2/ })).toBeTruthy();
     expect(screen.getByRole('group', { name: /^Out of date: 1\. Chapter 3/ })).toBeTruthy();
     expect(screen.getByRole('group', { name: /^Not checked yet: 2\. Chapter 4, Chapter 5/ })).toBeTruthy();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Check recordings' }).getAttribute('aria-disabled')).toBeNull());
     await userEvent.click(screen.getByRole('button', { name: 'Check recordings' }));
-    expect(onCheck).toHaveBeenCalledWith(['c3', 'c4', 'c5']);
+    expect(open).toHaveBeenCalledWith(['c3', 'c4', 'c5'], expect.anything());
   });
 
-  it('is disabled with a reason when the DAW is unreachable or nothing needs a check', async () => {
-    const onCheck = vi.fn();
-    view(<CheckCountsCard counts={COUNTS} nameOf={nameOf} unavailable="REAPER is not running." onCheck={onCheck} />);
+  it('is disabled when the DAW cannot review, or nothing needs a check', async () => {
+    const open = vi.spyOn(opener, 'openCheckRecordings').mockReturnValue(() => {});
+    withApi(<CheckCountsCard counts={COUNTS} nameOf={nameOf} />, 'reaper-off');
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Check recordings' }).getAttribute('aria-disabled')).toBe('true'));
     await userEvent.click(screen.getByRole('button', { name: 'Check recordings' }));
-    expect(onCheck).not.toHaveBeenCalled();
-    expect(screen.getByRole('button', { name: 'Check recordings' }).getAttribute('aria-disabled')).toBe('true');
+    expect(open).not.toHaveBeenCalled();
     cleanup();
-    view(<CheckCountsCard counts={{ current: ['c1'], stale: [], never: [] }} nameOf={nameOf} onCheck={onCheck} />);
+    withApi(<CheckCountsCard counts={{ current: ['c1'], stale: [], never: [] }} nameOf={nameOf} />);
     expect(screen.getByRole('button', { name: 'Check recordings' }).getAttribute('aria-disabled')).toBe('true');
   });
 });

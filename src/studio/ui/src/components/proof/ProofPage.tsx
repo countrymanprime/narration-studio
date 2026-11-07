@@ -15,12 +15,11 @@ import { useUserKeymap } from '../../input/useUserKeymap';
 import { useOverlay } from '../../overlay/OverlayProvider';
 import { usePort } from '../../ports/usePort';
 import { useJournal } from '../../studio/StudioProvider';
-import { useCapability } from '../../useCapability';
 import type { ManuscriptChapter, TranscriptState } from '../../types';
 import type { Notify } from '../primitives/Toast';
 import { ALL_CHAPTERS, ChapterStepper } from '../primitives/ChapterStepper';
-import { IconButton } from '../primitives/IconButton';
 import { KeyHints } from '../primitives/KeyHints';
+import { useCheckRecordingsGate } from '../recordingcheck/CheckRecordingsButton';
 import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
 import { isCreditsChapter, isNarrationChapter } from '../../chapterKinds';
 import { LoadError } from '../layout/LoadError';
@@ -128,7 +127,7 @@ export function ProofPage({
   const overlay = useOverlay();
   const journal = useJournal();
   const keymap = useUserKeymap();
-  const review = useCapability('review');
+  const checkGate = useCheckRecordingsGate();
   const [params, setParams] = useSearchParams();
   const [chapters, setChapters] = useState<ManuscriptChapter[]>([]);
   const [listed, setFindings] = useState<Finding[]>([]);
@@ -411,7 +410,7 @@ export function ProofPage({
     openIn: (id) => strip.find((tile) => tile.id === id)?.open ?? 0,
     selectedId,
     choose,
-    review: { available: review.available, message: review.message },
+    checkReason: checkGate,
     onCheck: (ids) => openCheckRecordings(ids),
   });
   useNoteContextMenu({
@@ -483,7 +482,6 @@ export function ProofPage({
                 <h2 className="sr-only">{`Recording of ${headingName(chapter)}`}</h2>
                 <CheckCard
                   chapter={chapter}
-                  onCheck={(id) => openCheckRecordings([id])}
                   compare={{ onOpen: () => setCompareFor((open) => (open === chapter.id ? null : chapter.id)), open: compareFor === chapter.id }}
                 />
                 {compareFor === chapter.id && (
@@ -539,15 +537,6 @@ export function ProofPage({
                 if (open && all && note && chapterOf(note)) choose(chapterOf(note));
               }}
               window={chapter && total > 0 ? { start: win.start, len: Math.min(win.len, total), total } : undefined}
-              lead={
-                <IconButton
-                  action="checkRecordings"
-                  label="Check recordings…"
-                  aria-haspopup="dialog"
-                  disabledReason={review.available ? undefined : review.message || 'The DAW is not reachable.'}
-                  onClick={() => openCheckRecordings(chapter ? [chapter.id] : [])}
-                />
-              }
               actions={<ProoferSheet />}
               badge={(row) => {
                 const count = spots.counts.get(row.id);

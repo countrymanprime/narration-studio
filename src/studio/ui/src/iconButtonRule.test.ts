@@ -19,7 +19,6 @@ const EXCEPTIONS: Record<string, string> = {
   'master/MasterToSpecPanel.tsx|Remove': 'queued: Master PR (#2836); a file row, `remove`',
   'pickups/list/PickupsTable.tsx|Go to the note in Proof': 'queued: Pickups PR (#2836); a page link',
   'production/ChapterTrackPanel.tsx|Keep this one': 'queued: Production PR (#2836); a candidate row',
-  'production/CreditsRowPanel.tsx|Check recordings…': 'queued: Production PR (#2836); `checkRecordings`',
   'production/RecordingCheckReport.tsx|Go to paragraph {first.number}': 'queued: Production PR (#2836); `locate`',
   'project/ProjectPicker.tsx|Open': 'queued: Project PR (#2836); a project row',
   'proof/checkcard/FindingRow.tsx|Accept': 'queued: Proof PR (#2836); `accept`',

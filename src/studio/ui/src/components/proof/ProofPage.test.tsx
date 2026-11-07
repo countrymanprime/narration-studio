@@ -675,11 +675,10 @@ describe('page-level-checks', () => {
       onUpdate(away);
       return () => {};
     });
-    renderPage({ api });
+    renderPage({ api, at: '/proof?chapter=chapter-1' });
     await noteRows();
     // Late in a long file the connect grace has passed and the not-connected dialog is up over the page, so the button is found hidden.
-    const check = screen.getByRole('button', { name: 'Check recordings…', hidden: true });
-    await waitFor(() => expect(check.getAttribute('aria-disabled') === 'true' || (check as HTMLButtonElement).disabled).toBe(true));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Check recordings', hidden: true }).getAttribute('aria-disabled')).toBe('true'));
   });
 
   it('shows the shared REAPER-not-connected chip in the header while the DAW is away (#2823)', async () => {
@@ -712,10 +711,22 @@ describe('one-cleared-number', () => {
 describe('check-recordings-opens-from-proof', () => {
   it('opens the Check recordings dialog with the chapter in view preselected', async () => {
     const open = vi.spyOn(checkRecordings, 'openCheckRecordings').mockReturnValue(() => {});
+    const api = createMockApi();
+    // The card checks a chapter that has a recording and text.
+    const chapters = await api.manuscriptChapters();
+    vi.spyOn(api, 'manuscriptChapters').mockResolvedValue(chapters.map((c) => ({ ...c, recordedSeconds: 120, wordCount: Math.max(c.wordCount, 100) })));
+    renderPage({ api, at: '/proof?chapter=chapter-1' });
+    await noteRows();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Check recordings' }).getAttribute('aria-disabled')).toBeNull());
+    fireEvent.click(screen.getByRole('button', { name: 'Check recordings' }));
+    expect(open).toHaveBeenCalledWith(['chapter-1'], expect.anything());
+  });
+
+  // #2833: one button per screen. The notes panel used to draw a second Check recordings icon beside the check card's button.
+  it('draws one Check recordings button on a chapter, not two', async () => {
     renderPage({ at: '/proof?chapter=chapter-1' });
     await noteRows();
-    fireEvent.click(screen.getByRole('button', { name: 'Check recordings…' }));
-    expect(open).toHaveBeenCalledWith(['chapter-1']);
+    expect(screen.getAllByRole('button', { name: /^Check recordings/ })).toHaveLength(1);
   });
 });
 

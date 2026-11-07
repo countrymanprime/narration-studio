@@ -1,8 +1,15 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_TEXT_PREFS } from '../../script/page/tools/text/readerText';
 import { overlay } from '../../../overlay/overlayService';
+import { ApiProvider } from '../../../api/ApiContext';
+import { createMockApi } from '../../../api/mockApi';
+import { DAW_SETUPS } from '../../../fixtures/daw';
+import { createMockDawClient } from '../../../ports/daw';
+import { PortOverrides } from '../../../ports/usePort';
+import { TooltipProvider } from '../../primitives/Tooltip';
+import * as checkRecordings from '../../recordingcheck/openCheckRecordings';
 import { EditingPageProvider, useEditingPage } from './EditingPageState';
 import { EDITING_GUTTER_PX, NO_TEXT, ScriptDoc, type ScriptDocProps } from './ScriptDoc';
 import { docFromHeard } from './docFromHeard';
@@ -21,11 +28,18 @@ function Probe() {
 const state = (): PageState => page.state;
 
 function show(doc: ChapterDoc, props: ScriptDocProps = {}) {
+  const daw = createMockDawClient(DAW_SETUPS.reaper, { chapterIds: [], candidateIds: [], findingIds: [] });
   return render(
-    <EditingPageProvider doc={doc}>
-      <Probe />
-      <ScriptDoc {...props} />
-    </EditingPageProvider>,
+    <ApiProvider api={createMockApi()}>
+      <PortOverrides clients={{ daw }}>
+        <TooltipProvider>
+          <EditingPageProvider doc={doc}>
+            <Probe />
+            <ScriptDoc {...props} />
+          </EditingPageProvider>
+        </TooltipProvider>
+      </PortOverrides>
+    </ApiProvider>,
   );
 }
 const word = (key: string): HTMLElement => document.querySelector<HTMLElement>(`[data-k="${key}"]`)!;
@@ -131,23 +145,25 @@ describe('not-transcribed-state', () => {
     show(marksDoc());
     expect(screen.queryByText('Not transcribed yet')).toBeNull();
   });
-  it('offers Check recording beside the pill, and a press asks the page to check', () => {
-    const onCheckRecording = vi.fn();
+  it('offers Check recording beside the pill, and a press asks the page to check', async () => {
+    const open = vi.spyOn(checkRecordings, 'openCheckRecordings').mockReturnValue(() => {});
+    const onClosed = vi.fn();
     const answer = notTranscribed();
-    show(docFromHeard(PARAS, answer), { reason: answer.heard ? null : answer.reason, onCheckRecording });
-    fireEvent.click(screen.getByRole('button', { name: 'Check recordings…' }));
-    expect(onCheckRecording).toHaveBeenCalledTimes(1);
+    show(docFromHeard(PARAS, answer), { reason: answer.heard ? null : answer.reason, checkRecording: { chapterIds: ['c1'], onClosed } });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Check recordings' }).getAttribute('aria-disabled')).toBeNull());
+    fireEvent.click(screen.getByRole('button', { name: 'Check recordings' }));
+    expect(open).toHaveBeenCalledWith(['c1'], { onClosed });
   });
   it('offers no check without a way to run one, once words were heard, or when the page already says there is no audio', () => {
     const answer = notTranscribed();
     show(docFromHeard(PARAS, answer));
-    expect(screen.queryByRole('button', { name: 'Check recordings…' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Check recordings' })).toBeNull();
     cleanup();
-    show(marksDoc(), { onCheckRecording: vi.fn() });
-    expect(screen.queryByRole('button', { name: 'Check recordings…' })).toBeNull();
+    show(marksDoc(), { checkRecording: { chapterIds: ['c1'], onClosed: vi.fn() } });
+    expect(screen.queryByRole('button', { name: 'Check recordings' })).toBeNull();
     cleanup();
-    show(docFromHeard(PARAS, answer), { explained: true, onCheckRecording: vi.fn() });
-    expect(screen.queryByRole('button', { name: 'Check recordings…' })).toBeNull();
+    show(docFromHeard(PARAS, answer), { explained: true, checkRecording: { chapterIds: ['c1'], onClosed: vi.fn() } });
+    expect(screen.queryByRole('button', { name: 'Check recordings' })).toBeNull();
   });
 });
 

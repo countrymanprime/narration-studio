@@ -135,9 +135,8 @@ The notes panel lists the notes in view, **Notes · 14** for example, with:
   always stays listed; press it to list the whole chapter;
 - the sort: **By time**, **By confidence** (lowest first, so the least certain come up first) or **By severity** (most
   serious first);
-- **Check recordings…**, the same check the card runs, starting with the chapter in view;
 - **Find in notes**, which keeps only the notes whose text matches what you type; Esc closes it;
-- **Import proofer sheet** and **Export for proofer** (the sort, Check recordings, Find and these two sit at the right of the
+- **Import proofer sheet** and **Export for proofer** (the sort, Find and these two sit at the right of the
   panel; the sort and Find are left out while there are no notes): the proofer's CSV sheet. Import adds each row as a pickup marker in
   the DAW and, when the DAW has answered, says how many pickups it added, how many were there already and how many rows
   it skipped. Export saves the pickups still open as `pickups-for-proofer.csv` and says how many it wrote; a pickup on the Pickups page with no
@@ -322,7 +321,7 @@ takes are on [Editing](editing.md).
 The view runs the full width of the page, like Proof, with its breadcrumb and title in the same place in every state.
 While the chapter is being read, the view shows the breadcrumb, the page title and grey blocks; an address for a chapter the manuscript does not have says so instead. If the chapter or its check cannot be read, the view says "This page could not be loaded" with the reason, **Retry** and **Back to Proof**; Retry shows the grey blocks again while it reads, then the chapter or the reason again.
 
-If the chapter hasn't been checked yet, the title row says **Not checked yet**. **Check recordings…** beside it opens
+If the chapter hasn't been checked yet, the title row says **Not checked yet**. **Check recordings** beside it opens
 [Check recordings](production.md#checking-a-chapters-recording), the same dialog every page opens, with this chapter ticked. A chapter with no linked REAPER track says so in a line
 under the title, with the way to the audio engine panel.
 
@@ -330,7 +329,7 @@ under the title, with the way to the audio engine panel.
 
 Under the heading "Proof · <chapter name>" the header names the check's state (current, or stale if an item changed
 since) and **as of last save**: the check reads the DAW project as it was last saved, not whatever is open live in
-the DAW right now. **Check recordings…** checks it again; when the dialog closes the state is read again.
+the DAW right now. **Check recordings** checks it again; when the dialog closes the state is read again.
 
 ![Proof chapter view - the recording check's state with Check again, above the compare run](../../images/ui/proof-chapter-default.webp)
 

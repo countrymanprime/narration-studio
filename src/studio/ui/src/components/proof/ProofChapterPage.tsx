@@ -7,14 +7,13 @@ import { apiErrorMessage } from '../../api/errorMessage';
 import { chapterName } from '../../chapterName';
 import { formatWhen } from '../production/recordingCheckText';
 import { LoadErrorPanel } from '../layout/LoadError';
-import { Button } from '../primitives/Button';
 import { Heading } from '../primitives/Heading';
 import { Panel } from '../primitives/Panel';
 import { LoadingRegion, Skeleton } from '../primitives/Skeleton';
 import { SectionLabel } from '../primitives/SectionLabel';
 import type { Notify } from '../primitives/Toast';
 import type { ManuscriptChapter, TranscriptState } from '../../types';
-import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
+import { CheckRecordingsButton } from '../recordingcheck/CheckRecordingsButton';
 import type { WorkspaceAlignmentResult } from '../../api/contracts/workspace';
 import { CommandScope } from '../../input/router';
 import { CompareRun } from './CompareRun';
@@ -204,9 +203,7 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
       <div className="flex flex-wrap items-center gap-2 text-sm" style={{ color: 'var(--text-muted)' }}>
         {alignment && <SectionLabel>{CHECK_STATE_LABEL[alignment.state]}</SectionLabel>}
         {alignment?.basis && <span>as of last save {formatWhen(alignment.basis.modifiedAt)}</span>}
-        <Button variant="secondary" onClick={() => openCheckRecordings([chapterId], { onClosed: () => setReload((n) => n + 1) })}>
-          Check recordings…
-        </Button>
+        <CheckRecordingsButton chapterIds={[chapterId]} onClosed={() => setReload((n) => n + 1)} />
       </div>,
     );
   }

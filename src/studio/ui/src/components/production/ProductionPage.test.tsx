@@ -400,7 +400,7 @@ describe('the row menu keeps the features the mock has none for', () => {
     const row = within(table).getAllByRole('row')[2];
     await waitFor(() => expect(contextItemsFor(row)?.find((item) => item.key === 'recording')?.unavailable).toBeUndefined());
     const labels = (contextItemsFor(row) ?? []).map((item) => item.label);
-    for (const label of ['Open prep in Script', 'Open in Booth', 'Open Proof', 'Open Master & QC', 'Chapter track…', 'Check recordings…', 'Editing check…']) {
+    for (const label of ['Open prep in Script', 'Open in Booth', 'Open Proof', 'Open Master & QC', 'Chapter track…', 'Check recordings', 'Editing check…']) {
       expect(labels).toContain(label);
     }
     expect(labels.some((label) => label.startsWith('Set status: '))).toBe(true);
@@ -513,7 +513,7 @@ describe('the pipeline lists the credits as the mock does (issue 1705)', () => {
     const table = await pipeline();
     const opening = await within(table).findByRole('row', { name: /Opening credits/ });
     const labels = (contextItemsFor(opening) ?? []).map((item) => item.label);
-    for (const label of ['Open prep in Script', 'Open in Booth', 'Open Proof', 'Editing check…', 'Check recordings…', 'Chapter track…', 'Credits…'])
+    for (const label of ['Open prep in Script', 'Open in Booth', 'Open Proof', 'Editing check…', 'Check recordings', 'Chapter track…', 'Credits…'])
       expect(labels).toContain(label);
     expect(labels.some((label) => label.startsWith('Set status: '))).toBe(true);
   });

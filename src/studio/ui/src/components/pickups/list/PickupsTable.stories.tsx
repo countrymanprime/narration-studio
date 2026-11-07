@@ -18,10 +18,8 @@ const meta = {
     scope: 'all',
     currentChapterId: 'c1',
     chaptersToCheck: ['c2'],
-    daw: { available: true },
     onScope: fn(),
     onStep: fn(),
-    onCheck: fn(),
     onAdd: fn(),
     onSetIncluded: fn(),
     onSetDone: fn(),
@@ -40,7 +38,7 @@ const meta = {
           chapters={args.chapters}
           seconds={{ ok: true, value: 330 }}
           dawName="REAPER"
-          markers={{ available: args.daw.available }}
+          markers={{ available: true }}
           onOpenInBooth={args.onOpenInBooth}
           onMarkersAdded={fn()}
         />
@@ -65,4 +63,3 @@ export const ScopedToOneChapter: Story = { args: { scope: 'c2' } };
 export const NothingQueued: Story = { args: { pickups: [] } };
 export const NoneInThisChapter: Story = { args: { pickups: [SPEECH], scope: 'c3' } };
 // Without the DAW the recording check and the markers are off.
-export const DawWithoutMarkers: Story = { args: { daw: { available: false, message: 'REAPER is not open.' } } };

@@ -42,6 +42,8 @@ export interface EditingActionCommands {
   fx: Pick<FxWords, 'fx' | 'refusalOf'>;
   /** Opens the recording check; absent until the chapter's record is read. */
   checkRecording: (() => void) | undefined;
+  /** Why the DAW cannot check recordings now (the shared button's gate), or undefined. */
+  checkReason?: string;
   /** The drawer tabs the DAW offers, with their names. */
   tabs: ReadonlyArray<readonly [DrawerTab, string]>;
   openTab: (tab: DrawerTab) => void;
@@ -54,7 +56,7 @@ export interface EditingActionCommands {
  */
 export function useEditingActionCommands(page: EditingActionCommands): void {
   usePageCommands(PAGE, () => {
-    const { doc, selected, cuts, cut, fx, checkRecording, tabs, openTab, keymap } = page;
+    const { doc, selected, cuts, cut, fx, checkRecording, checkReason, tabs, openTab, keymap } = page;
     const keyOf = (id: CommandId): string | undefined => {
       const first = keymap[id]?.[0];
       return first ? gestureKeys(first).join('+') : undefined;
@@ -94,7 +96,7 @@ export function useEditingActionCommands(page: EditingActionCommands): void {
         label: 'Check the recording of this chapter',
         group: 'Checks',
         icon: 'checkRecordings',
-        disabledReason: checkRecording ? undefined : 'The chapter list is still loading. Try again in a moment.',
+        disabledReason: checkRecording ? checkReason : 'The chapter list is still loading. Try again in a moment.',
         run: () => checkRecording?.(),
       },
     ];

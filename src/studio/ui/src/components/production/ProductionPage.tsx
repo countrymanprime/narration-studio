@@ -14,6 +14,7 @@ import { StatStrip } from '../primitives/StatStrip';
 import { retryAction } from '../primitives/Toast';
 import type { Notify } from '../primitives/Toast';
 import { canRecord } from '../booth/record/useCanRecord';
+import { useCheckRecordingsGate } from '../recordingcheck/CheckRecordingsButton';
 import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
 import { fmtD, parseIso } from '../schedule/dates';
 import { isNarrationChapter } from '../../chapterKinds';
@@ -292,11 +293,13 @@ export function ProductionPage({
 
   const recordingChapter = narrated.find((c) => c.status === 'recording');
 
+  // The jump menu's Check recordings is off for the same reason the buttons are (#2833).
+  const checkGate = useCheckRecordingsGate();
   useProductionPageCommands({
     found,
     rows: pipelineRows,
     ready: Boolean(overview),
-    check: { chapterIds: toCheck, unavailable: caps && !caps.reachable ? `${caps.daw} is not running.` : undefined, open: (ids) => openCheckRecordings(ids) },
+    check: { chapterIds: toCheck, unavailable: checkGate, open: (ids) => openCheckRecordings(ids) },
     stages: { reading: stages.state.phase === 'loading', refresh: () => void refreshStages() },
     report: () => openReportDialog({ projectName: data.projectName, asOf: fmtD(today) }),
     session: { run: () => goToBooth(recordingChapter?.id), disabledReason: record.ok ? undefined : record.reason },
@@ -401,12 +404,7 @@ export function ProductionPage({
           <div className="grid grid-cols-[minmax(0,1fr)] items-stretch gap-4 min-[640px]:grid-cols-2 min-[1281px]:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_22.5rem] min-[640px]:max-[1281px]:[&>:first-child]:col-span-2">
             <StageBar segments={stageSegments(narrated, wph, pipelineSources.master)} wph={wph} />
             <WeekCard figures={weekFigures(log, today, start, due, book.finishedHours)} />
-            <CheckCountsCard
-              counts={counts}
-              nameOf={nameOf}
-              unavailable={caps && !caps.reachable ? `${caps.daw} is not running.` : undefined}
-              onCheck={(ids) => openCheckRecordings(ids)}
-            />
+            <CheckCountsCard counts={counts} nameOf={nameOf} />
           </div>
           {/* Both columns run to the same foot: the chart card takes what the right column has left. At 1280 and below the Next up and
               chart pair comes first, under the figures, so what to do next is not 2000 px down the page (alignment audit R4TA-3). */}
@@ -419,7 +417,7 @@ export function ProductionPage({
                     recommendations={recommendations}
                     onGo={(target, chapterId) => onGo(target, chapterId)}
                     notify={notify}
-                    onCheckRecording={tools.openRecordingCheck}
+                    offerCheck
                     justChanged={changedRow.changed}
                     onStatus={(chapterId) => {
                       changedRow.mark(chapterId);

@@ -32,7 +32,7 @@ async function openChapter(page: Page, chapterTitle: string): Promise<void> {
 async function checkHeld(page: Page, seed: 'hold' | 'hold-recheck' | 'hold-none' | 'hold-all'): Promise<void> {
   await openProof(page, `mockCoverage=${seed}`);
   await openChapter(page, 'Chapter 4');
-  await notes(page).getByRole('button', { name: 'Check recordings…' }).click();
+  await page.getByRole('button', { name: 'Check recordings', exact: true }).click();
   const dialog = page.getByRole('dialog');
   await dialog
     .getByRole('button', { name: /^Check / })
@@ -232,7 +232,7 @@ export const proofDrivers: Record<string, Driver> = {
   'check-recordings-dialog': async (page) => {
     await openProof(page);
     await openChapter(page, 'Chapter 4');
-    await notes(page).getByRole('button', { name: 'Check recordings…' }).click();
+    await page.getByRole('button', { name: 'Check recordings', exact: true }).click();
     await page.getByRole('dialog').getByRole('combobox', { name: 'Chapters at once' }).waitFor();
   },
   'check-checking': async (page) => checkHeld(page, 'hold-recheck'),
@@ -240,7 +240,7 @@ export const proofDrivers: Record<string, Driver> = {
   'check-finished': async (page) => {
     await openProof(page, 'mockCoverage=cascade');
     await openChapter(page, 'Chapter 4');
-    await notes(page).getByRole('button', { name: 'Check recordings…' }).click();
+    await page.getByRole('button', { name: 'Check recordings', exact: true }).click();
     const dialog = page.getByRole('dialog');
     await dialog
       .getByRole('button', { name: /^Check / })

@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import * as checkRecordings from '../../recordingcheck/openCheckRecordings';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -1769,6 +1770,30 @@ describe('a-pedals-space-records-and-stops-with-a-popup-open', () => {
     await spaceOn(within(dialog).getAllByRole('button')[0]);
     await settle();
     expect(page.daw.recordStop).not.toHaveBeenCalled();
+  });
+});
+
+describe('the Booth offers Check recordings once a take has stopped (#2833)', () => {
+  const offer = (page: ReturnType<typeof renderPage>) => page.overlay.getSnapshot().toasts.find((toast) => toast.action?.label === 'Check recordings');
+
+  it('offers nothing while a take runs, then one Check recordings action once it stops, opening the dialog with this chapter', async () => {
+    const open = vi.spyOn(checkRecordings, 'openCheckRecordings').mockReturnValue(() => {});
+    const page = renderPage();
+    await record(page);
+    expect(offer(page)).toBeUndefined();
+    await space();
+    await waitFor(() => expect(offer(page)).toBeTruthy());
+    expect(page.overlay.getSnapshot().toasts.filter((toast) => toast.action?.label === 'Check recordings')).toHaveLength(1);
+    await act(async () => offer(page)?.action?.onAction());
+    expect(open).toHaveBeenCalledWith([expect.any(String)]);
+  });
+
+  it('offers nothing while the DAW cannot check recordings', async () => {
+    const page = renderPage({ setup: 'reaper-off' });
+    await ready();
+    await space();
+    await settle();
+    expect(offer(page)).toBeUndefined();
   });
 });
 

@@ -165,7 +165,7 @@ describe('EditingPage', () => {
     mount({ api });
     await script();
     const first = workspaceAlignment.mock.calls.length;
-    fireEvent.click(await screen.findByRole('button', { name: 'Check recordings…' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Check recordings' }));
     // The one recording check: the Check recordings dialog, the same one Proof, Pickups and Production open.
     const panel = await screen.findByRole('dialog', { name: 'Check recordings' });
     fireEvent.click(await within(panel).findByRole('button', { name: 'Cancel' }));

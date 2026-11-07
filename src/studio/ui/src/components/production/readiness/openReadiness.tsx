@@ -11,15 +11,15 @@ type Options = {
   notify: Notify;
   /** Hears the chapter status a Confirm or Revert set, so the caller's own chapter list follows. */
   onStatus: (chapterId: string, status: ChapterStatus) => void;
-  /** Opens the chapter's recording check, offered when its readiness cannot be told because nothing has checked the recording yet. */
-  onCheckRecording?: () => void;
+  /** Offers the chapter's recording check when its readiness cannot be told because nothing has checked the recording yet. */
+  offerCheck?: boolean;
 };
 
 /**
  * The panel as the overlay holds it: it reads the suggestions itself, because the overlay renders a spec made once. It keeps the suggestion
  * it first read, so Confirm sends the basis the narrator saw: if the evidence moved, the host refuses, the panel reads again and says so.
  */
-function ReadinessContent({ chapterId, notify, onStatus, onCheckRecording }: Options) {
+function ReadinessContent({ chapterId, notify, onStatus, checkRecording }: Options & { checkRecording?: { chapterIds: string[]; onOpen: () => void } }) {
   const { state, refresh, decide, isPending, busy } = useStageRecommendations({ refreshKey: chapterId, notify, onStatus });
   const recommendation = state.byChapter.get(chapterId);
   const [seen, setSeen] = useState<StageChapterRecommendation>();
@@ -40,7 +40,7 @@ function ReadinessContent({ chapterId, notify, onStatus, onCheckRecording }: Opt
       busy={busy}
       onDecide={onDecide}
       onCheckNow={() => void refresh()}
-      onCheckRecording={onCheckRecording}
+      checkRecording={checkRecording}
     />
   );
 }
@@ -48,16 +48,11 @@ function ReadinessContent({ chapterId, notify, onStatus, onCheckRecording }: Opt
 /** Opens the readiness slide-over of a chapter through the overlay service; the chip that called it gets focus back when it closes. */
 export function openReadiness(options: Options): () => void {
   // The recording check is a slide-over of its own: this one closes first, so the two never stack.
-  const onCheckRecording =
-    options.onCheckRecording &&
-    (() => {
-      close();
-      options.onCheckRecording?.();
-    });
+  const checkRecording = options.offerCheck ? { chapterIds: [options.chapterId], onOpen: () => close() } : undefined;
   const close = overlay.open({
     kind: 'slideOver',
     title: 'Stage readiness',
-    render: () => <ReadinessContent {...options} onCheckRecording={onCheckRecording} />,
+    render: () => <ReadinessContent {...options} checkRecording={checkRecording} />,
   });
   return close;
 }

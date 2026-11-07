@@ -24,6 +24,8 @@ import type { BrowseView } from '../reading/useBrowseView';
 import { useRecordControl, type RecordBlock } from '../record/useRecordControl';
 import { recordedTakeCommand, TAKE_KIND } from '../record/takeCommand';
 import { retryAction } from '../../primitives/Toast';
+import { CHECK_RECORDINGS_LABEL, useCheckRecordingsGate } from '../../recordingcheck/CheckRecordingsButton';
+import { openCheckRecordings } from '../../recordingcheck/openCheckRecordings';
 import { resumeOfferFor, type KeptResume, type OpenedResume, type ResumeTarget } from '../resume/resumeOfferModel';
 import { useRoll } from '../roll/useRoll';
 import type { TeleprompterSession } from '../useTeleprompterSession';
@@ -35,6 +37,9 @@ import { useTextChoices } from './useTextChoices';
 
 const START: UnitPosition = { cur: 0, wcur: 0 };
 const TAKE_SAVED = 'Take saved';
+const CHECK_OFFER = 'Check this recording against the script?';
+/** The offer stays long enough to Tab to its button, then goes: the narrator is reading on. */
+const CHECK_OFFER_MS = 10_000;
 /** Something open over the Booth that Escape closes first: a dialog, a menu or a popover. */
 const OPEN_OVER = '[role="dialog"],[role="alertdialog"],[role="menu"]';
 /** How long after the shell's question closed a page still mounted means the narrator stayed. */
@@ -210,8 +215,23 @@ export function useBoothPage(options: BoothPageOptions) {
   const [coldMode, setColdMode] = useState(false);
   // Another project is another book: the choice does not follow it, so a lone Space records there.
   useEffect(() => setColdMode(false), [projectFolder]);
-  const latest = useRef({ at, position, units, paragraphs, spans, listening, following, coldRead, coldMode, session, recording, elapsed: takeClock.read });
-  latest.current = { at, position, units, paragraphs, spans, listening, following, coldRead, coldMode, session, recording, elapsed: takeClock.read };
+  const checkGate = useCheckRecordingsGate();
+  const latest = useRef({
+    checkGate,
+    at,
+    position,
+    units,
+    paragraphs,
+    spans,
+    listening,
+    following,
+    coldRead,
+    coldMode,
+    session,
+    recording,
+    elapsed: takeClock.read,
+  });
+  latest.current = { checkGate, at, position, units, paragraphs, spans, listening, following, coldRead, coldMode, session, recording, elapsed: takeClock.read };
 
   /** Puts the reading position on a sentence and word; a listening session for a take is moved there too (a cold read's ghost is not). */
   const moveTo = useCallback((next: UnitPosition) => {
@@ -474,9 +494,16 @@ export function useBoothPage(options: BoothPageOptions) {
       if (marked > 0) return;
       if (take.undoTake && take.entry !== undefined) overlay.toastUndo(TAKE_SAVED, take.undoTake, { entry: take.entry });
       else if (said) notify(TAKE_SAVED);
+      // One low-key offer once the take has stopped, never while one runs (#2833): the same Check recordings the other pages open, off for the same reasons.
+      if (!latest.current.checkGate) {
+        overlay.toast(CHECK_OFFER, {
+          action: { label: CHECK_RECORDINGS_LABEL, onAction: () => void openCheckRecordings([recordId]) },
+          durationMs: CHECK_OFFER_MS,
+        });
+      }
     });
     if (now.position) setKept({ paragraphId: now.position.paragraphId, word: now.position.word });
-  }, [recording, writer, tellStopped, notify, overlay, realWord, endColdRead]);
+  }, [recording, writer, tellStopped, notify, overlay, realWord, endColdRead, recordId]);
 
   // The end of the chapter (BO-1 item 2): the listening session heard the last word ("done") and then stopped itself, and
   // the take stops with it, through the Record control's own stop. Reading on past the end clears "done", and a session that stops

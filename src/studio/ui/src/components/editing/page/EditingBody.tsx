@@ -84,6 +84,7 @@ import { NoAudioBanner } from './NoAudioBanner';
 import { noAudioText } from './noAudioText';
 import { useChapterLink } from './useChapterLink';
 import { useEditingActionCommands } from './useEditingPageCommands';
+import { useCheckRecordingsGate } from '../../recordingcheck/CheckRecordingsButton';
 import { useRecordingCheck } from './useRecordingCheck';
 import { ScriptNotesProvider } from '../script/paragraphNotes';
 import { useEntries, useMarks, useSpeakers } from '../../script/page/data/useScriptData';
@@ -480,7 +481,19 @@ export function EditingBody(props: EditingBodyProps) {
     },
   });
 
-  useEditingActionCommands({ doc, selected, cuts: read.cuts, cut, fx, checkRecording, tabs: offered, openTab, keymap });
+  const checkGate = useCheckRecordingsGate();
+  useEditingActionCommands({
+    doc,
+    selected,
+    cuts: read.cuts,
+    cut,
+    fx,
+    checkRecording: checkRecording?.open,
+    checkReason: checkGate,
+    tabs: offered,
+    openTab,
+    keymap,
+  });
 
   // The keys hook binds nothing for a chapter with no text, so the page keeps the chapter step working there.
   const empty = doc.items.length === 0;
@@ -581,7 +594,7 @@ export function EditingBody(props: EditingBodyProps) {
                     <SampleMarksContext.Provider value={sampleMarks}>
                       <SamplePlayerContext.Provider value={samplePlayer}>
                         <ScriptNotesProvider sources={noteSources} chapterId={chapterId}>
-                          <ScriptDoc reason={reason} explained={read.audio.kind !== 'ready'} onCheckRecording={checkRecording} />
+                          <ScriptDoc reason={reason} explained={read.audio.kind !== 'ready'} checkRecording={checkRecording} />
                         </ScriptNotesProvider>
                       </SamplePlayerContext.Provider>
                     </SampleMarksContext.Provider>
