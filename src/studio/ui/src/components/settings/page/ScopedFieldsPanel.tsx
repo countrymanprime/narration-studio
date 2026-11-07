@@ -11,6 +11,13 @@ import { ToggleGroup } from '../../primitives/ToggleGroup';
 import { ScopedSetting } from '../ScopedSetting';
 import { useScopedFields, useSettingsForms } from '../data/settingsForms';
 
+// Two tools share the key `chunk_seconds`, and the host words their labels alike ("Default chunk length", "Chunk length in seconds"). The page names
+// each for what it chunks (issue 2980); the host's label is the fallback for every other field.
+const LABELS: Record<string, string> = {
+  'TranscriptCompare.chunk_seconds': 'Compare chunk length',
+  'RecordingCoverage.chunk_seconds': 'Coverage chunk length (0 = each item whole)',
+};
+
 const SCOPE_LABEL: Record<Scope, string> = { global: 'Global', project: 'This project' };
 const SCOPE_SUBTITLE: Record<Scope, string> = { global: 'Global defaults', project: 'This project, falling back to Global where unset' };
 
@@ -64,7 +71,16 @@ export function ScopedFieldsPanel({ id, title, tool, scopes, filter, notify, bef
   const [scope, setScope] = useState<Scope>(scopes[0]!);
   const { fields: read, error, reload } = useScopedFields(tool, scope);
   // `filter` is a module-level function, so the list keeps its identity between reads.
-  const fields = useMemo(() => (read ?? []).filter((field) => !filter || filter(field)), [read, filter]);
+  const fields = useMemo(
+    () =>
+      (read ?? [])
+        .filter((field) => !filter || filter(field))
+        .map((field) => {
+          const label = tool ? LABELS[`${tool}.${field.key}`] : undefined;
+          return label ? { ...field, label } : field;
+        }),
+    [read, filter, tool],
+  );
   const [values, setValues] = useState<Record<string, string>>({});
   const [dirty, setDirtyState] = useState(false);
   // The flag as of now, not as of the last render: an edit typed before this panel copied a fresh read into the form
@@ -175,6 +191,7 @@ export function ScopedFieldsPanel({ id, title, tool, scopes, filter, notify, bef
                   <ScopedSetting
                     key={field.key}
                     field={field}
+                    tool={tool}
                     scope={scope}
                     value={values[field.key] ?? ''}
                     change={(value) => {

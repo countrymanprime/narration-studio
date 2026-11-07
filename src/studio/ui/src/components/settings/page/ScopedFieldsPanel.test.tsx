@@ -47,3 +47,21 @@ it('keeps an edit typed before the panel has copied the settings it just read', 
   await act(async () => undefined);
   expect(saved).toHaveBeenCalledTimes(1);
 });
+
+it('names the two chunk_seconds fields for what each one chunks, whatever the host calls them (#2980)', async () => {
+  const draw = (tool: string) =>
+    render(
+      <ApiProvider api={createMockApi()}>
+        <SettingsFormsProvider notify={vi.fn()} onDirtyChange={vi.fn()} registerActions={vi.fn()}>
+          <ScopedFieldsPanel id={tool} title={tool} tool={tool} scopes={['global']} notify={vi.fn()} />
+        </SettingsFormsProvider>
+      </ApiProvider>,
+    );
+  draw('TranscriptCompare');
+  const compare = await screen.findByRole('combobox', { name: 'Compare chunk length' });
+  expect(Array.from((compare as HTMLSelectElement).options).map((option) => option.value)).toEqual(['30', '60', '300', '600']);
+  cleanup();
+  draw('RecordingCoverage');
+  const coverage = await screen.findByRole('combobox', { name: 'Coverage chunk length (0 = each item whole)' });
+  expect(Array.from((coverage as HTMLSelectElement).options).map((option) => option.value)).toContain('0');
+});
