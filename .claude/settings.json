@@ -47,6 +47,9 @@
     "SessionStart": [
       { "matcher": "startup", "hooks": [{ "type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR/scripts/cloud/session-start.sh\"", "timeout": 600 }] }
     ],
+    "PreToolUse": [
+      { "matcher": "Bash", "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/scripts/ci/log-digest.mjs\" --hook", "timeout": 10 }] }
+    ],
     "Stop": [
       { "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/scripts/ci/docs-impact.mjs\" --hook", "timeout": 30 }] }
     ],

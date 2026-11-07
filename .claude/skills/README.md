@@ -10,9 +10,10 @@ It makes real model calls (about $0.06 a case, $0.71 for the 12 cases of the fou
 
 ## Hooks
 
-`.claude/settings.json` registers three hooks.
+`.claude/settings.json` registers four hooks.
 
 - **`SessionStart`** runs `scripts/cloud/session-start.sh`, which installs the pinned toolchain in a cloud session.
+- **`PreToolUse` on `Bash`** runs `scripts/ci/log-digest.mjs --hook`. It rewrites a simple `pnpm check`, `pnpm nx`, `go test`, `go vet`, Playwright, `uv run pytest` or `golangci-lint run` command to run through the digest wrapper, which writes the full output to `.runtime/log-digest/` and prints the failure lines, the tail and the log path. The exit code is unchanged. A command with a pipe, `&&`, `;` or a redirect, and a command containing `# raw`, runs untouched. Output now arrives when the command ends, not as it runs.
 - **`Stop` and `SubagentStop`** run `scripts/ci/docs-impact.mjs --hook` ([the docs-impact check](../../docs/operations/ci-and-releases.md#the-docs-impact-check)). A failure exits 2, which stops the agent from finishing and shows it the reason. It lets the stop through when `stop_hook_active` is set, so an agent that cannot satisfy it is asked once and not trapped, and when git cannot compare (no `origin/main`). It diffs the whole branch, so it also asks an agent that stopped on a branch with an existing gap, once per stop. In a session the agent states the `Docs: none — <reason>` line in its last message.
 
 `scripts/ci/gate-stamp.mjs --hook` (exit 2 when a file outside `docs/`, `*.md`, `.claude/` and `.cache/` changed against `origin/main` and the [gate stamp](../../docs/operations/verification-tooling.md#gate-stamp) does not match) was a `Stop` and `SubagentStop` hook until the full gate stopped being a precondition for pushing: the pull-request pipeline runs it, and a session pushes after its targeted checks and watches the PR instead of waiting about 15 minutes for a local run. To bring the hook back, add `node "$CLAUDE_PROJECT_DIR/scripts/ci/gate-stamp.mjs" --hook` to the `Stop` and `SubagentStop` lists in `.claude/settings.json`.
