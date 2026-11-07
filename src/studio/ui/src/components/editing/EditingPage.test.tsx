@@ -4,6 +4,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import axe from 'axe-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { USER_MESSAGE, WireError } from '../../api/wire/WireError';
+import type { DawCapabilities } from '../../api/contracts/daw';
 import { DAW_SETUPS, type DawSetupId } from '../../fixtures/daw';
 import { resetOpenOnce } from '../connection/useOpenOnce';
 import { providedCommands } from '../../input/commandProviders';

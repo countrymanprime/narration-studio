@@ -428,7 +428,7 @@ the DAW cannot do is off, with the DAW's reason.
 
 ![Editing - the drawer on Clean up: what was found in the chapter and the findings by kind](../../images/ui/editing-drawer-cleanup.webp)
 
-Under the findings, **Match levels…** brings the items on this chapter's linked track onto one level. It is the same action as in the editing check on [Production](production.md): it first lists how many items differ from -20 dBFS RMS by more than 2 dB, and **Match** then changes each item's volume in REAPER, in one undo step. A toast says how many items it matched. It is off, with the DAW's reason under the button, while REAPER is not answering or the DAW cannot change an item's gain.
+Under the findings, **Match levels…** brings the items on this chapter's linked track onto one level. It is the same action as in the editing check on [Production](production.md): it first lists how many items differ from -20 dBFS RMS by more than 2 dB, and **Match** then changes each item's volume in REAPER, in one undo step. A toast says how many items it matched; when every item is already within 2 dB of the target it says so and changes nothing, and when the items moved on in REAPER since the preview it says that nothing was changed and to match again. It is off, with the DAW's reason under the button, while REAPER is not answering or the DAW cannot change an item's gain.
 
 ![Editing - the drawer on Clean up scrolled to Match levels, under the findings](../../images/ui/editing-drawer-cleanup-levels.webp)
 
