@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 
 export const FAMILIES = {
   ui: ['_quality.yml#test-linux', 'ci.yml#ci-passed', 'ci.yml#ci-light-passed'],
-  shell: ['_quality.yml#go-test'],
+  shell: ['_quality.yml#test-windows'],
 };
 export const SELF_SCOPED = { static: '_quality.yml#lint', quickubuntu: '_quality.yml#test-linux' };
 

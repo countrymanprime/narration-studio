@@ -20,8 +20,8 @@ test('a pure pin bump starts only the families of the jobs it reaches', () => {
   assert.deepEqual(pinFlags(ciOnly), { ui: true, shell: false, static: false, quickubuntu: false });
 });
 
-test('a bump in go-test starts the shell family; a bump in lint runs its steps; a bump in Test (Linux) starts its shards and quick tests', () => {
-  assert.deepEqual(pinFlags({ kind: 'pins', pure: true, jobs: ['_quality.yml#go-test'] }), { ui: false, shell: true, static: false, quickubuntu: false });
+test('a bump in Test (Windows) starts the shell family; a bump in lint runs its steps; a bump in Test (Linux) starts its shards and quick tests', () => {
+  assert.deepEqual(pinFlags({ kind: 'pins', pure: true, jobs: ['_quality.yml#test-windows'] }), { ui: false, shell: true, static: false, quickubuntu: false });
   assert.deepEqual(pinFlags({ kind: 'pins', pure: true, jobs: ['_quality.yml#test-linux'] }), { ui: true, shell: false, static: false, quickubuntu: true });
   assert.deepEqual(pinFlags({ kind: 'pins', pure: true, jobs: ['_quality.yml#lint'] }), { ui: false, shell: false, static: true, quickubuntu: false });
 });
@@ -36,7 +36,7 @@ test('a pin bump beside other changes keeps the self-scoped jobs', () => {
 });
 
 test('the command line reads the classifier output from stdin', () => {
-  const out = execFileSync('node', ['scripts/ci/pin-flags.mjs'], { input: '{"kind":"pins","jobs":["_quality.yml#go-test"],"pure":true}' }).toString();
+  const out = execFileSync('node', ['scripts/ci/pin-flags.mjs'], { input: '{"kind":"pins","jobs":["_quality.yml#test-windows"],"pure":true}' }).toString();
   assert.equal(out.trim(), 'ui=false\nshell=true\nstatic=false\nquickubuntu=false');
 });
 
