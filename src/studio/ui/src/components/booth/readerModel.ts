@@ -254,13 +254,18 @@ export function reduceEvent(session: Session, event: TeleprompterEvent): Session
       const early = session.early?.[event.id];
       return { ...session, flags: [...session.flags, early ? { ...event, check: early } : event] };
     }
-    // The confirmation pass settled a flag the live engine raised: remember the verdict on the flag (a second one for it changes nothing).
-    // A verdict can be heard before its flag; it waits for the flag (the first one for an id counts).
+    // The confirmation pass settled a flag the live engine raised: remember the verdict on the flag. A problem is never hidden by a
+    // second verdict: "confirmed" wins over "cleared" whichever came first (a "cleared" greys the card and drops its dismiss button, so
+    // wrongly keeping it hides a real problem, while wrongly keeping "confirmed" costs the narrator one more listen), and a repeated
+    // verdict changes nothing. A verdict can be heard before its flag; it waits for the flag.
     case 'flag_check': {
       if (event.state !== 'confirmed' && event.state !== 'cleared') return session;
       const known = session.flags.find((flag) => flag.id === event.id);
-      if (!known) return session.early?.[event.id] ? session : { ...session, early: { ...session.early, [event.id]: event.state } };
-      if (known.check !== undefined) return session;
+      if (!known) {
+        const heard = session.early?.[event.id];
+        return heard === 'confirmed' || heard === event.state ? session : { ...session, early: { ...session.early, [event.id]: event.state } };
+      }
+      if (known.check === 'confirmed' || known.check === event.state) return session;
       return { ...session, flags: session.flags.map((flag) => (flag.id === event.id ? { ...flag, check: event.state } : flag)) };
     }
     default:
