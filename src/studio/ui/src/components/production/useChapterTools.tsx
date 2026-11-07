@@ -12,7 +12,9 @@ import type { ContextMenuItem } from '../primitives/ContextMenu';
 import type { Notify } from '../primitives/Toast';
 import { creditsCheckKind } from './recordingCheckText';
 import { ChapterTrackPanel } from './ChapterTrackPanel';
+import { showInDaw, showInDawLabel } from '../engine/ShowInDaw';
 import { CreditsRowPanel } from './CreditsRowPanel';
+import { CHECK_RECORDINGS_LABEL, useCheckRecordingsGate } from '../recordingcheck/CheckRecordingsButton';
 import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
 import { RemovedFromRecordingList } from './RemovedFromRecordingList';
 import type { CreditsKind, CreditsRow } from '../credits/useCreditsRows';
@@ -42,7 +44,7 @@ type Options = {
   onChanged: () => void;
   /** Hears the chapter a Restore brought back, so its pipeline row can show what changed. */
   onRestored?: (chapterId: string) => void;
-  /** The DAW the row menu's "Go to this chapter in …" names, and why selecting a track there is off (its `track_select` capability). */
+  /** The DAW the row menu's "Show in …" names, and why selecting a track there is off (its `track_select` capability). */
   daw: { name: string; unavailable?: string };
 };
 
@@ -112,13 +114,13 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
     [api, notify, onChanged],
   );
 
-  // The mock's "Go to this chapter in <DAW>": selects the chapter's linked track there, the chapter track panel's Select call.
+  // The row menu's "Show in <DAW>" (#2826): selects the chapter's linked track there, the chapter track panel's Select call.
   const selectTrack = useCallback(
     async (trackGuid: string, dawName: string) => {
       try {
-        const result = await api.trackSelectInReaper(trackGuid);
-        if (result.outcome === 'selected') notify(`Selected in ${dawName}.`);
-        else notify(result.message || `${dawName} could not select that track.`, 'error');
+        const result = await showInDaw({ workspace: api, findings: api, chapterTrackMap: api }, { kind: 'chapter', trackGuid }, dawName);
+        if (result?.failed) notify(result.message, 'error');
+        else if (result) notify(result.message);
       } catch (error) {
         notify(describeApiError(error), 'error');
       }
@@ -164,21 +166,21 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
     [manuscriptChapter],
   );
 
-  // The chapter's recording check (the row menu, and the readiness panel of a chapter whose recording nothing has checked yet): Check recordings with
-  // the chapter ticked, the dialog every page opens. The board reads its checks again as each one completes (above).
-  const openRecordingCheck = useCallback((chapterId: string) => void openCheckRecordings([chapterId]), []);
+  // The row menu's Check recordings (#2833): the shared label and gate, with the chapter ticked, in the dialog every page opens. The board reads its
+  // checks again as each one completes (above).
+  const checkGate = useCheckRecordingsGate();
 
   // The items close over the latest state, read when the menu opens.
-  const latest = useRef({ rows, go, manuscriptChapter, trackLinks, setStatus, daw, selectTrack, openRecordingCheck });
-  latest.current = { rows, go, manuscriptChapter, trackLinks, setStatus, daw, selectTrack, openRecordingCheck };
+  const latest = useRef({ rows, go, manuscriptChapter, trackLinks, setStatus, daw, selectTrack, checkGate });
+  latest.current = { rows, go, manuscriptChapter, trackLinks, setStatus, daw, selectTrack, checkGate };
   const provider = useMemo<ContextProvider>(
     () => ({
       match: (target) => target.closest(`[${PIPELINE_AREA}] tbody tr`) !== null,
       items: (target): ContextMenuItem[] => {
         const { rows: list, go: open_, manuscriptChapter: find, trackLinks: links, setStatus: set, daw: dawTarget, selectTrack: select } = latest.current;
         const tr = target.closest('tr');
-        const index = tr ? Array.from(tr.parentElement?.children ?? []).indexOf(tr) : -1;
-        const row = list[index];
+        // The row is named by the chapter it draws: a windowed list draws only some of its rows, so the place in the body is not the place in the list.
+        const row = list.find((entry) => entry.id === tr?.dataset.chapterId);
         if (!row) return [];
         // The credits are chapters: the same items, and the template's panel besides.
         const credits = creditsCheckKind(row.id);
@@ -195,7 +197,7 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
           { key: 'master', label: 'Open Master & QC', onSelect: () => open_.master() },
           {
             key: 'goto',
-            label: `Go to this chapter in ${dawTarget.name}`,
+            label: showInDawLabel(dawTarget.name),
             unavailable:
               dawTarget.unavailable ?? (trackGuid ? undefined : 'No chapter track is linked to this chapter yet: link one from the audio engine panel'),
             onSelect: () => trackGuid && void select(trackGuid, dawTarget.name),
@@ -207,7 +209,12 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
             onSelect: () => setOpen({ kind: 'track', chapterId: row.id }),
           },
           ...(credits ? [{ key: 'credits', label: 'Credits…', onSelect: () => setOpen({ kind: 'credits' as const, credits }) }] : []),
-          { key: 'recording', label: 'Check recordings…', unavailable: missing, onSelect: () => chapter && latest.current.openRecordingCheck(chapter.id) },
+          {
+            key: 'recording',
+            label: CHECK_RECORDINGS_LABEL,
+            unavailable: missing ?? latest.current.checkGate,
+            onSelect: () => chapter && void openCheckRecordings([chapter.id]),
+          },
           { key: 'editing', label: 'Editing check…', unavailable: missing, onSelect: () => chapter && setOpen({ kind: 'editing', chapter }) },
           ...STATUS_ORDER.filter((status) => status !== row.status).map((status) => ({
             key: `status-${status}`,
@@ -255,15 +262,11 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
           label={CREDITS_TITLE[open.credits]}
           onStatus={(status) => void setStatus(`credits-${open.credits}`, status)}
           // Close this slide-over, then open the check, never nested over it.
-          onCheck={() => {
-            close();
-            openRecordingCheck(`credits-${open.credits}`);
-          }}
           onClose={close}
         />
       )}
     </>
   );
 
-  return { panels, trackLinks, reload, openEditingCheck, openRecordingCheck };
+  return { panels, trackLinks, reload, openEditingCheck };
 }

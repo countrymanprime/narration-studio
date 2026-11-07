@@ -41,38 +41,35 @@ repository (read with `gh api repos/{owner}/{repo}/rulesets`, and `.../environme
   no job reads it: the maintainer does, prompted by the pull request template. A title-check job was considered and not added: with
   no required checks it could only advise, and a new action or script in the release path is a change to review on its own.
   Adding one later means a small, SHA-pinned job in `ci.yml`.
-- **Draft pull requests run a light tier** ([Draft and ready tiers](#draft-and-ready-tiers)). A draft runs `js`, `quick-ubuntu`,
-  `quick-windows` and `go-test` and reports `CI light passed`; it skips the visual suite, the atlas, the UI bundle and `Build (Windows)`, and it
+- **Draft pull requests run a light tier** ([Draft and ready tiers](#draft-and-ready-tiers)). A draft runs `linux-checks` (without
+  the UI bundle), the Vitest half of `ui-unit` and `go-test`, and reports `CI light passed`; it skips the visual suite, the atlas, the UI bundle and `Build (Windows)`, and it
   shows no `CI passed`. Marking the pull request ready runs the full tier. No other workflow has a draft condition.
 - **A pull request's runs stop when they stop mattering.** Every workflow a pull request starts has a `concurrency` group
   with `cancel-in-progress`, so a newer push cancels the run before it. Nothing cancels the runs of a pull request that is
-  merged or closed: the coordinator cancels them by hand (`.claude/skills/agent-train/SKILL.md`). Runs on
+  merged or closed: the coordinator cancels them by hand (`.claude/skills/agent-train/references/coordinator.md`). Runs on
   `main` and the release workflows are never cancelled. A push cancels the run before it, so a refresh push that changes nothing a
   reviewer needs ("merge `main` into the branch" with no conflict) throws away a run that was part way through ([Wasted runs](#wasted-runs)).
 - **Windows is the only platform the app is built for** (a timing and maturity choice, not a design limit; see [Supported platforms](../../README.md#supported-platforms)). `Build (Windows)` is the only native
   build, on pull requests and in releases. The Linux runners that run the docs, Lua, UI, Python and lint checks host those
   checks; they build no Linux app.
 
-The checks a pull request shows, by the name GitHub displays (`ci.yml` calls `_quality.yml` as `quality` and
-`_ui-dist.yml` as `ui-dist`):
+The checks a pull request shows, by the name GitHub displays (`ci.yml` calls `_quality.yml` as `quality`). A job that runs several
+checks runs each as a step with `if: ${{ !cancelled() }}`, so a red step fails the job and hides none after it, and ends with a summary
+step that lists each check's result in the job summary ([Keeping a red run meaningful](#keeping-a-red-run-meaningful)). The grouping and
+its measurements are in [CI job grouping](../research/2026-11-06-ci-job-grouping.md); `scripts/ci/check-manifest.json` says which job and
+step run each check that ran on 2026-11-06.
 
 | Check | What it runs |
 | --- | --- |
-| `quality / scope` | Ubuntu, about a minute: asks Nx (`scripts/ci/nx-scope.sh`, the rule every `nx-run` step uses) whether the change affects `ui`, `desktop`, or `reaper` or the shell. `go-test` runs only when the shell is affected, `quick-windows` when `reaper` or the shell is, and the `js-test`, `ui-visual` and `ui-atlas` jobs only when the UI is. A job that does not run is skipped, takes no runner, and passes in `CI passed`. Its UI answer is `ui-affected`. A pull request whose workflow changes are only `uses:` pin bumps is the one case where a change under `.github/workflows` is not `all` ([Nx projects and the quality gate](#nx-projects-and-the-quality-gate)): it starts the jobs that contain a changed pin, and `js-static` and `quick-ubuntu` start unless the bump is the whole change and does not reach them |
-| `quality / js-static` | `lint`, `format`, `architecture` (the import rules) and `test-node` (the node:test suites of `src/studio/ui/scripts`) of `ui`; `lint`, `format`, `architecture`, `typecheck`, `test-node` (the build scripts of the public site) and `test` (Vitest over its extension code) of `web`; then Knip over the whole repository |
-| `quality / js-test (shard 1/3)` to `(shard 3/3)` | the Vitest run of `src/studio/ui` with coverage on the gated logic files (`node scripts/ci/coverage-gate.mjs vitest src/studio/ui --shard=i/3`), a third of the files each, split by cost (`src/studio/ui/scripts/vitest-shards.mjs`; Vitest's own split by path hash gave one shard 48% of the time). A shard checks no coverage floor; it uploads a blob of its results and coverage |
-| `quality / js-test` | merges the three blobs (`coverage-gate.mjs vitest src/studio/ui --merge=3`: fails when one is missing) and checks every Vitest floor of `scripts/ci/coverage-floors.json` over the merged coverage, the same numbers as the unsharded run `pnpm check` does. Skipped when the UI is not affected |
-| `quality / ui-visual (shard 1/3)` to `(shard 3/3)` | the Playwright visual suite of the mock-backed app, a third each by estimated time, not by test count ([Visual shards](#visual-shards)), with the per-capture checks; one shard, the one the split names, also runs `aria`. Each uploads its capture records and shard manifest, its screenshots, a timing report, and traces when it fails |
-| `quality / ui-atlas (shard 1/2)`, `(shard 2/2)` | the Storybook component atlas, half the stories each: every story in light and dark at a wide and a narrow viewport, with axe. Shard 1 also runs `ui:atlas-docs`, which fails when `docs/ui` differs from a fresh generation (`pnpm --dir src/studio/ui docs:atlas` fixes it) |
-| `quality / quick-ubuntu` | one step each, every step runs even after a red one: `repo-scripts` (the plain-Node tests of `scripts/`: labels, milestones, release tooling, the layout and project guards); `docs-site` (the public docs site, [below](#the-public-docs-site): ruff and pytest of `tools/docs-site` only: Pages publishes `src/web`, so the MkDocs build is not run in CI); `python` (ruff and pytest for `src/studio/libs/python`, the sidecars, `scripts/` and `tests/fixtures`; the job installs Go too, because the transcript-compare tests measure the host's recording-check aligner through `src/studio/desktop/cmd/proof-align`); `reaper (Lua)` (StyLua and ruff on `src/studio/integrations/reaper`, then its bridge harness under Lua 5.4: a fake `reaper` driven through the file protocol, and the mutation checks, one per CPU in spawned worker processes (`tests/mutations.py`); [The DAW port](../architecture/daw-integration.md#the-daw-port)) |
-| `quality / rename rehearsal` | Ubuntu, every pull request: makes a detached git worktree of the commit in the temp folder, installs its dependencies from the store and cache the job filled, renames it to a made-up name with `rename-app`, runs the brand sync check, both name guards (`scripts/ci/brand-name.mjs`, `scripts/ci/old-name.mjs`), the Node script and site build tests, the docs-site tests, `go vet ./...` and the Go, Python, Lua and UI tests that read the brand (`scripts/brand/rehearse-rename.mjs`), and removes the worktree; the checkout is never written to. A file that spells the product's name instead of reading it from `config/brand.json` fails here. A run that is not a pull request (main-health) adds `--full`: every Go, UI, shared-library Python and Lua test, the built site with its old-name check and the strict MkDocs build |
-| `quality / quick-windows` | Windows, one step each: `reaper (Lua)` again (paths from `package.config`, CRLF), then `go lint` (gofmt, go vet, golangci-lint, checklocks) |
-| `quality / go-test (root)` | Windows: the Go tests of the module's root package (`src/studio/desktop`) under the race detector, alone because it is most of the cost (405 s of the 622 s the raced packages took on run 39138316593). `coverage-gate.mjs go src/studio/desktop -race --group=root` |
-| `quality / go-test (rest)` | Windows: the Go tests of every other package (the race detector on those with concurrency, the rest without), then `test-schedules`. `--group=race,plain`. Each of the two jobs checks the coverage floors of the packages it ran; together they run every package once. The job limit stays 25 minutes, the limit set before the split |
-| `ui-dist / build` | builds the UI bundle the Windows build reuses |
-| `Build (Windows)` | the native Windows build, starting as soon as `ui-dist / build` finishes |
-| `CI passed` | the full tier only (a ready pull request, a manual run, `main-health`): needs every job above and fails if any failed or was cancelled (skipped passes); then, when the UI is affected, runs the whole-run checks over the three shards' records (`pnpm --dir src/studio/ui run visual:check-run`, which was the `quality / ui-visual` job): every expected capture present, none blank, no undeclared duplicate, no stale `sameAs`, and the shards held every test of the suite exactly once: the one check for a ruleset to require ([#544](https://github.com/countrymanprime/narration-studio/issues/544)). A draft pull request shows no `CI passed`. Documentation-only pull requests do not run `CI`, so requiring it also needs `ci.yml`'s `paths-ignore` changed |
-| `CI light passed` | a draft pull request only: sums up the four light-tier jobs. It is not `CI passed` and never a merge condition |
+| `quality / scope` | Ubuntu, about a minute: asks Nx (`scripts/ci/nx-scope.sh`, the rule every `nx-run` step uses) whether the change affects `ui`, or `reaper` or the shell. `go-test` runs only when `reaper` or the shell is affected, and the `ui-unit` and `ui-visual` jobs only when the UI is. A job that does not run is skipped, takes no runner, and passes in `CI passed`. Its UI answer is `ui-affected`. A pull request whose workflow changes are only `uses:` pin bumps is the one case where a change under `.github/workflows` is not `all` ([Nx projects and the quality gate](#nx-projects-and-the-quality-gate)): it starts the jobs that contain a changed pin, and the static and quick steps of `linux-checks` run unless the bump is the whole change and does not reach that job |
+| `quality / linux-checks` | Ubuntu, one toolchain install for every short Linux check, one step each: `UI bundle` (full tier: builds `src/studio/ui` and uploads it as `ui-dist` for `Build (Windows)`); `ui static` (`lint`, `format`, `architecture` and `test-node` of `ui`); `web static` (`lint`, `format`, `architecture`, `typecheck`, `test-node` and `test` of `web`); `knip` (the whole repository); `repo-scripts` (the plain-Node tests of `scripts/`: labels, milestones, release tooling, the layout and project guards, the CI scripts); `docs-site` (ruff and pytest of `tools/docs-site` only: Pages publishes `src/web`, so the MkDocs build is not run here); `python` (ruff, pytest and pyright for `src/studio/libs/python`, the sidecars, `scripts/` and `tests/fixtures`; Go is installed because the transcript-compare tests measure the host's recording-check aligner through `src/studio/desktop/cmd/proof-align`); `reaper (Lua)` (StyLua and ruff on `src/studio/integrations/reaper`, then its bridge harness under Lua 5.4 with every mutation check, one per CPU in spawned worker processes (`tests/mutations.py`); [The DAW port](../architecture/daw-integration.md#the-daw-port)); and `rename rehearsal`: makes a detached git worktree of the commit in the temp folder, installs its dependencies from the store and cache the job filled, renames it to a made-up name with `rename-app`, runs the brand sync check, both name guards (`scripts/ci/brand-name.mjs`, `scripts/ci/old-name.mjs`), the Node script and site build tests, the docs-site tests, `go vet ./...` and the Go, Python, Lua and UI tests that read the brand (`scripts/brand/rehearse-rename.mjs`), and removes the worktree; the checkout is never written to. A file that spells the product's name instead of reading it from `config/brand.json` fails there. A run that is not a pull request (main-health) adds `--full`: the UI typecheck and the built site with its old-name check. The suites themselves run in their own jobs, not again under the new name (#3078) |
+| `quality / ui-unit (shard 1/3)` to `(shard 3/3)` | Ubuntu, a third each of two suites behind one setup. The Vitest run of `src/studio/ui` with coverage on the gated logic files (`node scripts/ci/coverage-gate.mjs vitest src/studio/ui --shard=i/3`), split by cost (`src/studio/ui/scripts/vitest-shards.mjs`; Vitest's own split by path hash gave one shard 48% of the time); a shard checks no coverage floor, it uploads a blob of its results and coverage. Then, in the full tier, the Storybook component atlas (`pnpm atlas --shard=i/3`): every story in light and dark at a wide and a narrow viewport, with axe; shard 1 also runs `ui:atlas-docs`, which fails when `docs/ui` differs from a fresh generation (`pnpm --dir src/studio/ui docs:atlas` fixes it) |
+| `quality / ui-visual (shard 1/4)` to `(shard 4/4)` | the Playwright visual suite of the mock-backed app, a quarter each by estimated time, not by test count ([Visual shards](#visual-shards)), with the per-capture checks; one shard, the one the split names, also runs `aria`. Each uploads its capture records and shard manifest, its screenshots, a timing report, and traces when it fails |
+| `quality / go-test (root)` | Windows: the Go tests of the module's root package (`src/studio/desktop`) under the race detector, alone because it is most of the cost (405 s of the 622 s the raced packages took on run 39138316593), `coverage-gate.mjs go src/studio/desktop -race --group=root`; then `go lint` (gofmt, go vet, golangci-lint, checklocks) |
+| `quality / go-test (rest)` | Windows: the Go tests of every other package (the race detector on those with concurrency, the rest without; `--group=race,plain`), then `test-schedules`, then `reaper (Lua)` again on Windows (paths from `package.config`, CRLF). On a pull request the Windows harness runs its `pr` configuration, the tests without the mutation checks, which the Linux harness in `linux-checks` runs on the same Lua; every other run (main-health, a manual run) runs them on Windows too. Each of the two jobs checks the coverage floors of the packages it ran; together they run every package once |
+| `quality / Build (Windows)` | the full tier: the native Windows build from the `ui-dist` bundle, starting when `linux-checks` ends (so the two hold one runner slot in turn), and only when that job uploaded the bundle |
+| `CI passed` | the full tier only (a ready pull request, a manual run, `main-health`): needs `quality`, which holds every job above, and fails if any failed or was cancelled (skipped passes) (`.github/actions/ci-gate`); then, when the UI is affected, merges the three Vitest blobs (`coverage-gate.mjs vitest src/studio/ui --merge=3`: fails when one is missing) and checks every Vitest floor of `scripts/ci/coverage-floors.json` over the merged coverage, the same numbers as the unsharded run `pnpm check` does, and runs the whole-run checks over the four shards' records (`pnpm --dir src/studio/ui run visual:check-run`, which was the `quality / ui-visual` job): every expected capture present, none blank, no undeclared duplicate, no stale `sameAs`, and the shards held every test of the suite exactly once: the one check for a ruleset to require ([#544](https://github.com/countrymanprime/narration-studio/issues/544)). A draft pull request shows no `CI passed`. Documentation-only pull requests do not run `CI`, so requiring it also needs `ci.yml`'s `paths-ignore` changed |
+| `CI light passed` | a draft pull request only: sums up the light-tier jobs and merges the Vitest blobs as `CI passed` does. It is not `CI passed` and never a merge condition |
 
 `codeql.yml`, `dependency-review.yml`, `docs.yml`, `security.yml` and `zizmor.yml` run their own checks and are advisory too
 ([every workflow](#every-workflow), [Tracking work on GitHub](github-workflow.md)). A pull request that changes only `docs/**` or
@@ -80,7 +77,7 @@ Markdown runs none of the `CI` checks, and not CodeQL either, so a docs-only cha
 ([The docs link check](#the-docs-link-check)); `docs.yml` and the labeler have no path filter and always run. `zizmor.yml`,
 `dependency-review.yml`, `security.yml`, `osv-scanner.yml` and `codeql.yml` start on a pull request only when it changes
 what they read ([every workflow](#every-workflow) lists the paths), so they show no check at all on a pull request that
-changes none of it. That leaves nothing pending: `CI passed` needs only `quality`, `ui-dist` and `build-windows`, and no
+changes none of it. That leaves nothing pending: `CI passed` needs only `quality`, and no
 ruleset requires any other check. If the owner ever requires one of the path-filtered checks, a pull request that
 does not start it waits on it forever, which is the reason given above for `ci.yml`.
 
@@ -96,24 +93,25 @@ Each file in `.github/workflows`, what starts it, and the checks it shows on a p
 
 | Workflow | Starts on | Jobs and check names | Blocking? |
 | --- | --- | --- | --- |
-| `ci.yml` (`CI`) | pull request (opened, synchronize, reopened, ready for review) that is not docs- or Markdown-only; manual; called by `main-health.yml` | `quality / *` and `ui-dist / build` (the reusable `_quality.yml` and `_ui-dist.yml`), `Build (Windows)`, `CI passed` (full tier), `CI light passed` (draft) | no ruleset requires it |
+| `ci.yml` (`CI`) | pull request (opened, synchronize, reopened, ready for review) that is not docs- or Markdown-only; manual; called by `main-health.yml` | `quality / *` (the reusable `_quality.yml`, `Build (Windows)` included), `CI passed` (full tier), `CI light passed` (draft) | no ruleset requires it |
 | `prerelease.yml` (`Prerelease`) | push to `main` that is not docs- or Markdown-only; manual | `ui-dist / build`, `version`, `Windows build` (needs `ui-dist` and `version`) and `Windows release` (needs the build); no quality jobs, the pull request's `CI` run is the quality gate ([#544](https://github.com/countrymanprime/narration-studio/issues/544) tracks making it a required one); both run only when `version` found a releasable change. A manual run can tick `cold-freeze` to freeze the sidecars without the [freeze cache](#the-sidecar-freeze-cache) | not a pull request check |
 | `promote-release.yml` | manual, with an RC tag; behind the `production` environment | `promote` | not a pull request check |
-| `docs.yml` (`Docs`) | every pull request (no path filter), weekly (Monday 07:17 UTC), manual | `Docs checks`, one job whose steps are `Markdown lint (changed files)`, `Docs impact`, `Guide impact`, `Issue link (advisory)` and `Docs prose` (pull requests only, [below](#the-docs-impact-check)) and `Links (offline)` (pull requests and manual), each running even after a red one; and `Links (online, advisory)` (weekly and manual) ([below](#the-docs-link-check)) | a red step fails `Docs checks` (every step runs, so one run lists every finding); no ruleset requires it (owner-only setting) |
+| `docs.yml` (`Docs`) | every pull request (no path filter), weekly (Monday 07:17 UTC), manual | `Docs checks`, one job whose steps are `Markdown lint (changed files)`, `Docs impact`, `Guide impact`, `Guide structure`, `Issue link (advisory)` and `Docs prose` (pull requests only, [below](#the-docs-impact-check)) and `Links (offline)` (pull requests and manual), each running even after a red one; and `Links (online, advisory)` (weekly and manual) ([below](#the-docs-link-check)) | a red step fails `Docs checks` (every step runs, so one run lists every finding); no ruleset requires it (owner-only setting) |
 | `zizmor.yml` | pull request that changes a file under `.github/`, push to `main`, manual | `zizmor` | advisory in GitHub terms (not required); a finding at the `regular` persona fails the run |
-| `security.yml` (`Security scan`) | pull request that changes `src/studio/desktop/`, `scripts/toolchain.json`, the SARIF dedupe script, the toolchain action or this file; nightly (06:41 UTC); manual | `govulncheck` | advisory: it does not fail on a finding |
+| `security.yml` (`Security scan`) | pull request that changes `src/studio/desktop/go.mod` or `go.sum`, `scripts/toolchain.json`, the SARIF dedupe script, the toolchain action or this file; push to `main` that changes `src/studio/desktop/` or those files (a code change is scanned after the merge, [#3065](https://github.com/countrymanprime/narration-studio/issues/3065)); nightly (06:41 UTC); manual | `govulncheck` | advisory: it does not fail on a finding |
+| `post-merge.yml` (`Post-merge checks`) | push to `main` that changes `src/studio/integrations/reaper/`, `config/`, the Python lock, the toolchain pin or the actions it uses; manual. A burst of merges is one run | `reaper (Lua) on Windows, with mutation checks`: the checks a pull request leaves to `main` ([CI job grouping](../research/2026-11-06-ci-job-grouping.md#moved-after-the-merge)). A red run shows on the `main` commit; `Main health` runs the same checks and ticks HOLD | not a pull request check |
 | `osv-scanner.yml` (`OSV scan`) | pull request that changes `pnpm-lock.yaml`, `uv.lock`, `src/studio/desktop/go.mod` or this file; nightly (06:41 UTC); manual | `osv-scanner (pull request)` (only for a same-repository pull request that is not Dependabot's) or `osv-scanner` (every other trigger) | advisory: it does not fail on a finding |
 | `codeql.yml` (`CodeQL`) | pull request to `main` that is not docs- or Markdown-only (same-repository, not Dependabot), nightly (05:23 UTC), manual | `CodeQL scope` (reads the diff), then `Analyze (go)`, `Analyze (javascript-typescript)` and `Analyze (python)` for the languages the pull request changes files of (`scripts/ci/codeql-scope.mjs`: Go for `src/studio/desktop/` and `scripts/toolchain.json`; JavaScript and TypeScript for `.js`, `.mjs`, `.ts`, `.tsx`, `.vue` and `.html` files; Python for `.py` files); all three on the nightly and manual runs, and for a change to the workflow, the toolchain action or an unreadable diff | advisory |
 | `dependency-review.yml` | pull request to `main` that changes a lockfile (`pnpm-lock.yaml`, `uv.lock`, `src/studio/desktop/go.sum`, any `package-lock.json`), a manifest (`src/studio/desktop/go.mod`, any `package.json` or `pyproject.toml`), a workflow or a composite action | `review` (fails on a high-severity advisory, or on a licence outside the allow-list, that a pull request adds to a **runtime** dependency; needs the dependency graph; [the licence policy](github-workflow.md#the-dependency-licence-allow-list)) | advisory |
 | `labeler.yml` | `pull_request_target` (opened, synchronize, reopened, ready for review) | `label` | not a check that gates anything |
 | `pages.yml` (`Pages`) | push to `main` and pull requests that touch the site's paths, manual | `build`, `deploy` ([below](#the-pages-workflow)); `deploy` runs only off a pull request, on `main` | `build` on a pull request that touches the site: it builds `dist-site/` and checks its links, and uploads and deploys nothing |
-| `train-health.yml` (`Train health`) | hourly (minute 23), manual | `heartbeat`: warns on #510 when #509's `Last pass:` line is over two hours old | not a pull request check |
-| `main-health.yml` (`Main health`) | every three hours (minute 37), manual | `Has main moved since the last run` (skips the run when the last finished run was on the same commit; a manual run always runs), the whole of `ci.yml` run on `main`, then `Tick HOLD when main is red` on a failure | not a pull request check |
+| `train-health.yml` (`Train health`) | hourly (minute 23), manual | `heartbeat`: warns on each open `agent-train` issue whose `Last pass:` line is over two hours old | not a pull request check |
+| `main-health.yml` (`Main health`) | scheduled every three hours (minute 37), observed 2 to 3 runs a day, often an hour or two late (GitHub delays and drops scheduled runs; 2026-11-04 to 11-06); manual | `Has main moved since the last run` (skips the run when the last finished run was on the same commit; a manual run always runs), the whole of `ci.yml` run on `main`, then `Tick HOLD when main is red` on a failure | not a pull request check |
 | `test-ratchet.yml` (`Test ratchet`) | pull request (opened, synchronize, reopened) | `Test ratchet`: prints each deleted test file, added skip or focus marker and lowered coverage floor, and raises a warning annotation. It never fails, and no label clears or changes it | no ruleset requires it; it is read before merging ([merge safety checks](verification-tooling.md#merge-safety-checks)) |
 | `pr-risk.yml` (`PR risk`) | same-repository pull request (opened, synchronize, reopened) | `rate`: adds or removes the `risk:high` label | not a check that gates anything; a `risk:high` pull request is not merged without the owner |
 | `sync-labels.yml`, `sync-milestones.yml` | push to `main` that changes `.github/labels.json`, `config/roadmap.json` or `scripts/github/**`, and the workflow file; manual | `sync` | run after a merge, never on a pull request |
 
-The tests of `scripts/github/*.test.mjs` (the label and milestone sync) run in the `repo-scripts` step of `quality / quick-ubuntu`. Nothing runs on a schedule except
+The tests of `scripts/github/*.test.mjs` (the label and milestone sync) run in the `repo-scripts` step of `quality / linux-checks`. Nothing runs on a schedule except
 CodeQL, the two security scans, the online link check, and the two health checks (`train-health.yml`, `main-health.yml`). There is no `github-scripts` job and no changed-file classification: Nx `affected` decides what a pull
 request runs (see [Nx projects and the quality gate](#nx-projects-and-the-quality-gate)).
 
@@ -214,7 +212,11 @@ merging with a red one is the owner's call ([#544](https://github.com/countryman
 uses the squash commit title to calculate the synchronized application version:
 `feat` is minor; `fix`, `perf`, `refactor`, `docs`, `test`, `build`, `ci`,
 `chore`, and `revert` are patch. Pre-1.0 breaking changes are handled as the
-next minor release. The workflow tags `v<version>-rc`, builds the Windows
+next minor release. The commit types only ever bump the number, so a version such as 1.0.0 is named by hand: run **Prerelease**
+manually with its `version` input (`gh workflow run prerelease.yml -f version=1.0.0`). The input must be a plain X.Y.Z, higher than every
+candidate so far and not tagged yet (`scripts/release/explicit-version.mjs` refuses anything else before `nx release version` writes it), and
+it reaches the shell only through an environment variable. Later pushes bump from the new candidate (`v1.0.0-rc`, then 1.0.1 or 1.1.0).
+The workflow tags `v<version>-rc`, builds the Windows
 package, and its `publish` job creates the GitHub pre-release with the Windows
 zip and the Windows setup program ([The Windows setup program](#the-windows-setup-program)). No other platform is built or
 attached: the macOS and Linux preview builds were removed ([Supported platforms](../../README.md#supported-platforms)).
@@ -308,11 +310,11 @@ A narrator installs from `<asset prefix>-<version>-windows-x64-setup.exe` (the p
 - **The WebView2 bootstrapper** the setup program embeds comes from inside the pinned `wails3` CLI (Wails v2 downloaded it from
   Microsoft while it built and nothing pinned it; the CLI is verified by the Go checksum database). The build still checks that
   `installer/MicrosoftEdgeWebview2Setup.exe` has a valid Authenticode signature from Microsoft Corporation before the release is packaged.
-- **Unsigned.** The setup program is not signed (the owner's decision); the release notes say so and tell a narrator to choose **More info**
-  then **Run anyway** on the SmartScreen warning (`scripts/release/generate-notes.mjs`). No workflow here signs anything.
-- **What the notes list.** The changes since the release before this one: a candidate lists since the previous tag of either kind (the last
+- **Unsigned.** The setup program is not signed (the owner's decision); the README's [Install on Windows](../../README.md#install-on-windows) says so and tells a narrator to choose **More info**
+  then **Run anyway** on the SmartScreen warning. The release page does not repeat it. No workflow here signs anything.
+- **What the notes list.** Only the changes and one line that links to the README (install, update, licences, how to verify), never install or licence text. The changes since the release before this one: a candidate lists since the previous tag of either kind (the last
   candidate, or its promotion, which sits on the same commit); a stable release lists since the previous stable release, so a narrator on the
-  stable channel sees everything since the version they had. The first release lists the whole history (`scripts/release/generate-notes.mjs`).
+  stable channel sees everything since the version they had. The first release lists the whole history (`scripts/release/generate-notes.mjs`). It reads the squash-merged pull requests in that range and `scripts/release/changelog.mjs` builds the page from them (the same builder is for the in-app update changelog, #3023): **Important** first (a `!` title or a `BREAKING CHANGE:`, `Migration:` or `Known issue:` line in the pull request description), then **Added** (`feat`), **Changed** (`perf`, `refactor`, untyped) and **Fixed** (`fix`), one line per pull request as `title (#number, closes #issue)`. `docs`, `ci`, `chore`, `test`, `build` and `style` titles are left out. Write the `BREAKING CHANGE:`, `Migration:` and `Known issue:` lines for a narrator, not a developer.
 - **Tests.** `scripts/release/installer.test.mjs` holds the definition to the decisions of the ADR (the file names, per user, what the
   uninstaller deletes, no network, no signing, that the file is tracked); `assets.test.mjs` and `wails-build.test.mjs` cover packaging, the
   checksum, the promote checks and the missing-installer failure. `makensis` is not on a development machine as a rule (it can be: NSIS runs on Linux,
@@ -436,20 +438,20 @@ Success prints the workflow, commit and run that built the file; a modified or u
 release workflow and `main`, add `--signer-workflow countrymanprime/narration-studio/.github/workflows/prerelease.yml --source-ref refs/heads/main`.
 `gh attestation download <file> --repo ...` saves the attestation as a
 `.jsonl` bundle that `--bundle <file>` then verifies without asking GitHub for it. The same works for the executable
-inside the zip after extracting it, which is what an in-app update can check. The release notes say the same in one line.
+inside the zip after extracting it, which is what an in-app update can check. The README says the same in one line.
 The `.sha256` beside a file only detects a damaged download: it is not evidence of where the file came from.
 
 ## The docs link check
 
-`docs.yml` (workflow `Docs`) runs [lychee](https://github.com/lycheeverse/lychee) (`lycheeverse/lychee-action`, pinned to a commit, lychee 0.24.2) over every Markdown file in the repository, configured by `.lychee.toml` and `.lycheeignore` at the root. Its pull request checks are one job, `Docs checks`, whose steps run one after another and each even after a red one (`if: !cancelled()`, as `quick-ubuntu` does), so a run lists every finding. They were five jobs with a runner and a checkout each; the step names are the old job names. The weekly online check is a job of its own.
+`docs.yml` (workflow `Docs`) runs [lychee](https://github.com/lycheeverse/lychee) (`lycheeverse/lychee-action`, pinned to a commit, lychee 0.24.2) over every Markdown file in the repository, configured by `.lychee.toml` and `.lycheeignore` at the root. Its pull request checks are one job, `Docs checks`, whose steps run one after another and each even after a red one (`if: !cancelled()`, as `linux-checks` does), so a run lists every finding. They were five jobs with a runner and a checkout each; the step names are the old job names. The weekly online check is a job of its own.
 
 - **`Links (offline)`** (a step of `Docs / Docs checks`) runs on **every** pull request: the trigger has no `paths` filter, on purpose. `ci.yml` skips documentation-only pull requests, so a docs job that shared its filter would also skip a _code_ change that renames a file a document links to, and a check that GitHub skips because of a path filter stays pending if it is ever required (see the note at the top of this document). Offline mode reads only the tree and never opens a network connection: a relative link must resolve to a file, and a `#fragment` to a heading of that file (checked; `include_fragments = "anchor-only"` works with `--offline`). A local run over the 227 Markdown files and 1,356 links takes 0.13 seconds (the Actions run adds the runner set-up), so it is cheap enough to block on, and it is deterministic. **It blocks in the sense that a dead link turns the check red**; a red check does not stop a merge while no ruleset requires it, so the maintainer reads it like the others, and adding `Docs / Docs checks` to the `Pull Request` ruleset's required checks is an owner-only setting that is safe to make. `Pages / build` also link-checks the built site on a pull request that touches `src/web` or the UI; `src/studio/ui/src/docsGuide.test.ts` checks the guide's own anchors regardless.
 - **`Markdown lint (changed files)`** (a step of `Docs / Docs checks`) also runs on every pull request, and also fails the run on a finding, but checks Markdown _style_, not links: heading levels, list marker and indent consistency, trailing whitespace, multiple blank lines, fenced code language, bare URLs, and the rest of `.markdownlint-cli2.jsonc`'s starter rule set (`markdownlint-cli2`, exact version pinned in the root `devDependencies`). It scopes itself to only the `.md` files the pull request adds or changes against the merge base with its base branch (`scripts/ci/changed-markdown.mjs`, `scripts/ci/lint-markdown-changed.mjs`) — not a full-repo baseline, so pre-existing debt in an untouched file never blocks an unrelated change, only in one a pull request itself touches. A rename lands on its new path; a deletion has nothing left to lint. The job writes a job summary naming the fix command on a failure. `pnpm lint:md` runs the same check locally against `origin/main` (or `--base <ref>`), and `pnpm lint:md:fix` adds `--fix`; lint-staged also runs `markdownlint-cli2 --fix` on staged `*.md` files on commit, so most violations never reach a pull request at all. See CI and releases for why this replaced building the docs site on every pull request, and why the rule set turns off line length, table style and a handful of rules that fired only on the repo's own deliberate style (template formatting, angle-bracket placeholders, bold lead-in labels, footnote-style citation markers).
 - **`Links (online, advisory)`** starts weekly and by hand. It also follows the `http(s)` links (with `actions/cache` on `.lycheecache`, one day), reports the ones that rotted in the job summary, and **never fails**: a link on someone else's server is not a regression in this repository. `429 Too Many Requests` is accepted. The `GITHUB_TOKEN` is passed only to lift GitHub's anonymous rate limit.
 
-**Diagrams.** lychee reads a Mermaid block as text, so `scripts/ci/mermaid-diagrams.test.mjs` (in the `repo-scripts` step of `quality / quick-ubuntu`, and so in `pnpm check`) hands every ` ```mermaid ` block of every tracked Markdown file to Mermaid's own parser (`mermaid.parse`, the `mermaid` devDependency of the root package) and fails with the file, the line and the parser's message. It needs no browser: Mermaid's sanitizer only wants a DOM, and the test gives it jsdom (already a dependency of the UI's tests) before it imports Mermaid. It proves the syntax, not that the names in a picture are still true; the five diagrams of [the codebase map](../architecture/codebase-map.md#how-the-parts-connect) and the four flows each say which files they were checked against, and the test fails if one of the five owning docs loses its diagram.
+**Diagrams.** lychee reads a Mermaid block as text, so `scripts/ci/mermaid-diagrams.test.mjs` (in the `repo-scripts` step of `quality / linux-checks`, and so in `pnpm check`) hands every ` ```mermaid ` block of every tracked Markdown file to Mermaid's own parser (`mermaid.parse`, the `mermaid` devDependency of the root package) and fails with the file, the line and the parser's message. It needs no browser: Mermaid's sanitizer only wants a DOM, and the test gives it jsdom (already a dependency of the UI's tests) before it imports Mermaid. It proves the syntax, not that the names in a picture are still true; the five diagrams of [the codebase map](../architecture/codebase-map.md#how-the-parts-connect) and the four flows each say which files they were checked against, and the test fails if one of the five owning docs loses its diagram.
 
-What it does not see: a path in a code comment (a path to a planning document in a Go or Python file) is not a Markdown link, so `scripts/ci/prd-references.test.mjs` (in the `repo-scripts` step of `quality / quick-ubuntu`) fails when a source file cites a PRD that is not in the tree ([Lifecycle of a PRD](../prds/README.md#lifecycle-of-a-prd) deletes them by design). Mermaid diagrams are text to lychee.
+What it does not see: a path in a code comment (a path to a planning document in a Go or Python file) is not a Markdown link, so `scripts/ci/prd-references.test.mjs` (in the `repo-scripts` step of `quality / linux-checks`) fails when a source file cites a PRD that is not in the tree ([Lifecycle of a PRD](../prds/README.md#lifecycle-of-a-prd) deletes them by design). Mermaid diagrams are text to lychee.
 
 The baseline on 2026-09-21: 0 dead repository links; 7 external links rotted or unreachable, six of them pull requests of the owner's private repositories cited as history in the UI atlas kit's rollout ledger (deleted with the kit, [Visual bug fixes require screenshot verification](../../.claude/rules/ui-visual-verification.md)) and one real finding, the README's link to the published site `https://countrymanprime.github.io/narration-studio/`, which answers 404 until the owner enables GitHub Pages ([#231](https://github.com/countrymanprime/narration-studio/issues/231)). To add a link the checker should not chase, add a regular expression to `.lycheeignore` with its reason; to run the check locally, install lychee (`cargo install lychee --locked`) and run `lychee --config .lychee.toml --offline .` (drop `--offline` for the online run).
 
@@ -469,6 +471,8 @@ A change to code that `docs/` describes has to touch one of those docs, or say w
 The `Guide impact` step of `Docs / Docs checks` runs `scripts/ci/guide-impact.mjs` the same way: on every pull request and on `edited`, and in `pnpm check` against `origin/main`. `scripts/ci/guide-impact-map.json` maps each folder under `src/studio/ui/src/components/` to the pages of the how-to guide it draws. A change to a folder's code (tests, stories and fixtures aside) fails when it touches neither one of those pages nor any image in `docs/images/ui/`. The opt-out is a line `No guide change: <reason>`, with the same length and vagueness rules as `Docs: none`. `primitives` and `devtools` have no rule; the periodic guide sweep catches what a shared component moves ([UI PRs update the how-to guide](../../CONTRIBUTING.md#ui-prs-update-the-how-to-guide)).
 
 ### The issue-link check
+
+The `Guide structure` step of `Docs / Docs checks` runs `src/studio/ui/src/docsGuide.test.ts` and `src/studio/ui/src/docScreenshots.test.ts` with Vitest on every pull request and manual run, which is why the job installs the `ui` workspace project. `ci.yml` ignores Markdown-only changes, so without this step a pull request that edits only the guide would never run them, and a broken breadcrumb, footer, anchor, `## What next` section or screenshot embed would first fail on `main` or on someone else's UI pull request. [Documentation gates](documentation-gates.md#the-checks) lists what they fail on.
 
 The `Issue link (advisory)` step of `Docs / Docs checks` runs `scripts/ci/pr-issue-link.mjs` on every pull request and on `edited`. It warns, in an annotation and the job summary, and always exits 0, because a title cannot prove that an issue exists. It warns when a `fix` or `feat` title has no `Closes #<n>` (or `Fixes`, `Resolves`), `Refs #<n>` (or `Part of`) or `Issue: none — <reason>` line outside a code fence, and when a description has `Closes #<n>` but the base is not the default branch, where GitHub will not close the issue. `pnpm check` does not run it: it needs the description.
 
@@ -566,7 +570,7 @@ fails if it gains one, or if `docs_dir` stops being `docs/`.
 - **The link check.** `mkdocs build --strict` fails on any warning (a missing page, a `#heading` that is not on the page it names, a link it
   cannot place), then `tools/docs-site/check_site.py` reads the built HTML and fails on any internal `href`, `src` or `#fragment` that does not
   resolve, under the `/narration-studio/` base. Both run in `nx run docs-site:build-site`, which no workflow calls now that `pages.yml` publishes `src/web`: neither
-  `pnpm check` nor the `docs-site` step of `quality / quick-ubuntu` runs it (they run only `lint` and `test` there); run it by hand. This is the first link check the
+  `pnpm check` nor the `docs-site` step of `quality / linux-checks` runs it (they run only `lint` and `test` there); run it by hand. This is the first link check the
   repository had (`Docs / Docs checks` (its `Links (offline)` and `Markdown lint (changed files)` steps) are what a pull request runs instead). Proof it fails:
   `tools/docs-site/tests/test_build.py` builds a tiny tree in which a dead page link, a dead heading link and a stale include line each fail
   the build.
@@ -629,12 +633,12 @@ runner called:
   folders is a `uses: <owner>/<repo>@<40-hex sha> # v<version>` line replaced by one for the same action, in a file that was only
   modified, and nothing else is a workspace-wide file, the change is not `all`. The jobs that contain a changed pin start (written
   `<workflow file>#<job id>`; a changed local action maps to every job that uses it and to the users of any action that uses it),
-  through the `ui`, `shell` and `winquick` outputs of `scope`, ORed with what Nx says is affected (`scripts/ci/pin-flags.mjs`; the
-  families are in that file, and `ci.yml#ci-passed` belongs to `ui` so that its download-artifact pin runs the visual shards). When nothing
-  outside those folders changed either, `js-static` and `quick-ubuntu` start only if a changed pin is in them. A job that starts runs in
+  through the `ui` and `shell` outputs of `scope`, ORed with what Nx says is affected (`scripts/ci/pin-flags.mjs`; the
+  families are in that file, and both aggregates belong to `ui` so that their download-artifact pins run the shards whose uploads they read).
+  When nothing outside those folders changed either, the static and quick steps of `linux-checks` run only if a changed pin is in that job. A job that starts runs in
   full. Anything else is `all`: a `run:`, `if:`, `with:` or `needs:` line, a step, job or file added, removed or renamed, a changed line
   outside any job, a pin swapped for another action or an unversioned one, a diff that does not parse. The families are coarse: a bump in one
-  UI job starts all four. `ui-dist`, `Build (Windows)` and the other workflows are not gated and run on their own triggers.
+  UI job starts both. `linux-checks` (its rename rehearsal), `Build (Windows)` and the other workflows are not gated and run on their own triggers.
 - **No changed-file classifier.** `scripts/ci/changed-files.mjs` (and its test, both deleted) sorted a pull request into `bootstrap` and
   `package` scopes for a four-platform bootstrap and installer matrix that no longer exists. No workflow, script, Nx target or
   document called it, and Nx `affected` with `nx-scope.sh` does the job, so both files were deleted (2026-09-21) rather than wired
@@ -642,7 +646,7 @@ runner called:
 - **Failure diagnostics.** A failing visual test leaves `src/studio/ui/test-results/<test>/trace.zip` (Playwright
   `trace: 'retain-on-failure'`: DOM snapshots, network and console for every action; a passing test keeps nothing,
   and no retry is involved, [What the suites do not prove](../design/design-system.md#what-the-suites-do-not-prove)). When a step of the
-  `ui-visual (shard i/3)` job fails, the job uploads that folder as the `ui-visual-traces-<i>` artifact for three days. Open a trace
+  `ui-visual (shard i/4)` job fails, the job uploads that folder as the `ui-visual-traces-<i>` artifact for three days. Open a trace
   with `pnpm exec playwright show-trace <trace.zip>` from `src/studio/ui`, or drop it on trace.playwright.dev. The atlas
   config (`playwright.atlas.config.ts`) keeps no trace yet.
 - **Dependencies** are `implicitDependencies` in each `project.json`: the desktop app reads the sidecars,
@@ -694,6 +698,10 @@ exactly that. What the suites do so that timing is not a variable:
 - **Go tests** that guard an ordering between goroutines run on one and on four CPUs (`test-schedules`), because the
   default scheduler hid the shutdown bug that failed four CI runs. Tests do not assert a wall-clock duration: the
   monotonic clock ticks every 0.5 to 15.6 ms on Windows, so a fast operation can measure exactly zero.
+- **Jobs that run several checks** (`linux-checks`, `ui-unit`, `go-test`) run each as a step with `if: ${{ !cancelled() }}`, so a red step
+  fails the job without hiding the steps after it, and end with a summary step (`scripts/ci/step-summary.mjs`) that lists each check's
+  result in the job summary. The aggregate checks `CI passed` and `CI light passed` run `.github/actions/ci-gate`, which fails unless
+  every job they need ended success or skipped and the number of results matches the number of jobs they need.
 - **Classifying a red run**: `gh run view <id> --log-failed`. `identical screenshots` or `sameAs no longer holds` is a
   driver (or a real duplicate); `Unable to find` or `Test timed out` in a frontend test is a wait that does not match the
   state, or a genuinely slow test; a Go failure that comes and goes with the CPU count is an ordering bug.
@@ -715,7 +723,7 @@ suite has been stable for 50 runs, [#153](https://github.com/countrymanprime/nar
 
 `nx run workspace:knip` (also `pnpm knip`) runs [Knip](https://knip.dev) over `src/studio/ui`, `src/web`, `src/studio/desktop`, `scripts/`
 and `tools/`, configured in `knip.jsonc`. It fails on an unused file, export or dependency, and on an unlisted
-dependency or binary; the repository is at zero, and CI runs it on every pull request in the `js-static` job. Fix a finding
+dependency or binary; the repository is at zero, and CI runs it on every pull request in the `knip` step of `linux-checks`. Fix a finding
 by deleting the code or dropping the `export`. Add an `ignore`, `ignoreIssues`, `ignoreDependencies` or
 `ignoreBinaries` entry only with a written reason in the file (generated code, external tools). It does not read Go,
 Python or Lua. The standing exceptions are the generated `src/studio/ui/wailsjs`, the wire-contract types, `@nx/js` (loaded by
@@ -751,9 +759,10 @@ removed, fails the run.
 
 ## CI performance
 
-Pull requests run the quality jobs and the UI bundle build in parallel. The
-Windows native build needs only the UI bundle, so it starts as soon as that
-finishes instead of waiting for lint and tests. No other platform is built
+A pull request holds about ten runners at once ([CI job grouping](../research/2026-11-06-ci-job-grouping.md)): the
+checks that need the same toolchain share a job, and the visual shards set the critical path. The Windows native build needs only the
+UI bundle, which `linux-checks` builds first, so it starts when that job ends and takes its runner slot, and still ends before the
+visual shards. No other platform is built
 ([Supported platforms](../../README.md#supported-platforms)), and the Go quality job runs on Windows only. pnpm's
 content-addressable store, uv's package cache, Go's module/build caches, the
 compiled `wails3` and golangci-lint binaries (keyed on `scripts/toolchain.json`), and
@@ -797,15 +806,19 @@ a state with extra viewports is more, and the `aria` step ran on the shard that 
 - It lists the suite (`playwright test --list`, a few seconds, no browser) and estimates each test from `src/studio/ui/tests/visual/shard-weights.json`: the mean
   time of tests with the same spec file and the same first two parts of the title (page and state, or page and overlay), else the mean of its spec file.
 - It gives each test, longest first, to the shard with the least estimated time so far, with `aria` (49 s) placed like one more test. The result depends only
-  on the listed tests and the weights file, so the three shard jobs agree without talking to each other. It fails if the shards do not hold every test exactly once.
+  on the listed tests and the weights file, so the shard jobs agree without talking to each other. It fails if the shards do not hold every test exactly once.
 - A shard runs its list with `playwright test --test-list`. Each shard records `shard-<i>.json` (its count, the suite's total, a digest of the list) in the records
   it uploads, and `CI passed` fails unless all three exist, split the same list and add up to it. A test that fell between shards would otherwise only be missed
   if it wrote a capture record, which the overlay guard and the other specs do not.
-- A stale weight makes a shard slower, never a test unrun. Rebuild the weights when the shards drift apart by more than a minute: download the three
+- Four shards, not three (#3054): the suite grew to about 2360 tests, and three shards balanced to within 30 s (1338 to 1368 s of tests on run 42182391318) still ran
+  about 23 minutes of tests each, so a runner whose `setup-playwright` took 9 minutes hit the 30 minute limit with no test failing. Balance was not the
+  problem, so the fix is the count; the limit stays 30. The shard count is in `_quality.yml` (matrix, job name, `split`) and `ci.yml` (the `visual-shards` that `CI passed` gives `.github/actions/ci-gate`);
+  `scripts/ci/visual-shards-config.test.mjs` fails if they disagree or fall below four.
+- A stale weight makes a shard slower, never a test unrun. Rebuild the weights when the shards drift apart by more than a minute: download the four
   `ui-visual-timings-<i>` artifacts of a recent green run (each is the shard's `--reporter=json` report) and run
-  `node scripts/ci/visual-shards.mjs weights timings-1.json timings-2.json timings-3.json`. The `Visual shards` line of each job's log prints the estimate per shard
+  `node scripts/ci/visual-shards.mjs weights timings-1.json timings-2.json timings-3.json timings-4.json`. The `Visual shards` line of each job's log prints the estimate per shard
   to compare with the actual times.
-- `playwright --shard` stays available locally; the CI split is only for the three-job run. `pnpm check` and a developer's run are one process and need no split.
+- `playwright --shard` stays available locally; the CI split is only for the four-job run. `pnpm check` and a developer's run are one process and need no split.
 
 ### Measuring a run
 
@@ -814,6 +827,15 @@ was created, how long it ran and on which runner, as a Markdown table (with `--s
 Actions API through `gh`. Queueing shows up as a large "Started after": the repository is public on the free plan, 20
 hosted jobs at once across the account.
 
+`node scripts/ci/ci-load.mjs pr <number>...` (or `sha <sha>...`, or `merged [count]`) prints what a pull request's head commit held
+across every workflow: check entries, jobs that got a runner, the most running at once, billed minutes per OS and the `CI` wall clock.
+A skipped job is a check entry that holds no runner. The 2026-11-06 baseline is in
+[CI job grouping](../research/2026-11-06-ci-job-grouping.md).
+
+**Where each check runs.** `scripts/ci/check-manifest.json` names the job and step of every check the pull-request CI ran on
+2026-11-06, and `scripts/ci/check-manifest.test.mjs` fails when a check is lost from its job or moved off the pull request without a
+safety net. Moving a step to another job updates its entry in the same pull request.
+
 ### Draft and ready tiers
 
 `ci.yml` decides the tier from the pull request's draft flag (`github.event.pull_request.draft`); a manual run, `main-health` and every
@@ -821,14 +843,15 @@ non-pull-request trigger are the full tier.
 
 | | Draft pull request | Ready pull request (and everything else) |
 | --- | --- | --- |
-| Runs | `quality / js`, `quick-ubuntu`, `quick-windows`, `go-test` | all of those, `ui-visual` (3 shards and the whole-run check), `ui-atlas` (2 shards), `ui-dist / build`, `Build (Windows)` |
+| Runs | `linux-checks` without the UI bundle, `ui-unit` without the atlas, `go-test` | all of those in full, `ui-visual` (4 shards, and the whole-run check in `CI passed`), `Build (Windows)` |
 | Summary check | `CI light passed` | `CI passed` |
 | Starts again on | each push | each push, and when the draft is marked ready (`ready_for_review`) |
 
 `CI passed` is reserved for the full tier. A draft shows a differently named check, so a green on a draft cannot be read as the full gate, and
-the merge conditions ([agent train, step 4](../../.claude/skills/agent-train/SKILL.md)) keep asking for the full run: `Build (Windows)` and
-`ui-dist` succeeded on the head, which a draft's run never produces. Nothing in the light tier is weaker than the same job in the full tier:
-the Nx cache stays off, nothing is retried and no test is skipped. The light tier only leaves out whole jobs. Marking a pull request ready runs
+the merge conditions ([agent train, step 4](../../.claude/skills/agent-train/references/coordinator.md#the-coordinators-pass)) keep asking for the full run: `Build (Windows)` and
+`CI passed` succeeded on the head, which a draft's run never produces. Nothing in the light tier is weaker than the same check in the full tier:
+the Nx cache stays off, nothing is retried and no test is skipped. The light tier only leaves out whole checks (jobs, or the atlas and
+UI bundle steps). Marking a pull request ready runs
 the light jobs again next to the heavy ones; that repeat is the price of keeping one definition of the full run.
 
 The intended use: open the pull request as a draft, push until the targeted checks pass, then mark it ready.
@@ -846,8 +869,10 @@ run before it; the cost is the pushes. Rules for whoever pushes:
 - **Open as a draft** and mark ready when the targeted checks pass ([Draft and ready tiers](#draft-and-ready-tiers)).
 
 `main-health` catches what a pull request run cannot: two pull requests that are each green alone and break together once both are merged
-(`startupRequests.spec.ts` on 2026-10-18; the nightly run was red in 3 of its last 8 runs). It runs the full tier on `main` every three hours,
-only when `main` has moved since the last finished run, so a semantic conflict is found within hours and a quiet day costs nothing. Running
+(`startupRequests.spec.ts` on 2026-10-18; the nightly run was red in 3 of its last 8 runs). It is scheduled to run the full tier on `main` every three hours,
+only when `main` has moved since the last finished run, so a quiet day costs nothing. GitHub ran the schedule 2 to 3 times a day from 2026-11-04 to
+11-06, often an hour or two late, so a semantic conflict can sit on `main` for up to about ten hours before this run finds it. The checks a pull request
+leaves to `main` also run on each push that touches them (`post-merge.yml`), within about 20 minutes. Running
 CI on every push to `main` (with `cancel-in-progress`, so a burst of merges is one run) would find it within about 20 minutes of the merge, at
 ~90 job-minutes per settled burst; it is not turned on. Adding it is a `push: branches: [main]` trigger on `main-health.yml` with `cancel-in-progress: true`.
 

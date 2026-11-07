@@ -104,7 +104,7 @@ const linkChapterOne = async () => {
   // Option 0 is the "Choose a track" placeholder; option 1 is the first track.
   fireEvent.change(select, { target: { value: select.options[1].value } });
   fireEvent.click(within(row).getByRole('button', { name: 'Confirm' }));
-  await within(row).findByRole('button', { name: 'Change' });
+  await within(row).findByRole('button', { name: /^Change the track/ });
   return row;
 };
 
@@ -642,7 +642,9 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
       window.history.replaceState(null, '', `/settings${anchor}`);
       renderApp();
       expect(await screen.findByRole('heading', { level: 2, name: 'Recording & DAW' })).toBeTruthy();
-      expect(await screen.findByRole('combobox', { name: /Microphone/ })).toBeTruthy();
+      // The Microphone row is drawn once the page is open: the picker before the recorder's state is known, the DAW's own input after. A
+      // combobox is only the first of the two, which the test used to catch by timing.
+      await waitFor(() => expect(document.querySelector('[data-row="daw.mic"]')).toBeTruthy());
       cleanup();
     }
   });
@@ -660,7 +662,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     const tracks = await within(panel).findByRole('table', { name: 'Tracks' });
     expect(within(tracks).getByText('Chapter 1')).toBeTruthy();
     expect(within(tracks).getByText('Click Track')).toBeTruthy();
-    expect(within(panel).getByRole('button', { name: 'Change file…' })).toBeTruthy();
+    expect(within(panel).getByRole('button', { name: 'Change the linked file' })).toBeTruthy();
     expect(window.location.pathname).toBe('/');
   });
 
@@ -1272,7 +1274,8 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     renderApp({}, { projectFolder: '' });
     await screen.findByRole('heading', { level: 1, name: 'Choose your project' });
 
-    fireEvent.click(screen.getByRole('button', { name: 'New project' }));
+    // The header's New project is there at once; the empty state adds a second one when the host's project list comes back empty. Either opens the same dialog, so take the first rather than race the list.
+    fireEvent.click((await screen.findAllByRole('button', { name: 'New project' }))[0]);
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Fresh Book' } });
     fireEvent.click(screen.getByRole('button', { name: 'Create' }));
 

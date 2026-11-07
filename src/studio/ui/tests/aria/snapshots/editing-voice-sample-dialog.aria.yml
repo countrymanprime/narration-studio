@@ -24,7 +24,7 @@
   - textbox "Note (optional)":
     - /placeholder: "How you did it: pitch up, clipped, no breaths"
   - checkbox "Make primary for Hatter" [checked]
-  - text: Make primary for Hatter
-  - paragraph: Copies the raw recording, as it was before editing, into this project. Nothing leaves your computer.
+  - text: Make primary for Hatter Kept in the project folder
+  - button "About where the sample is kept": "?"
   - button "Cancel"
   - button "Save sample"

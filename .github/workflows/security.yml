@@ -4,10 +4,21 @@ name: Security scan
 # Security > Code scanning and in the run log.
 #   - govulncheck (this file): Go vulnerabilities that the code can actually reach (the Go module in src/studio/desktop).
 #   - OSV-Scanner (osv-scanner.yml): every known advisory in the three lockfiles (Go, npm, Python).
-# A pull request runs govulncheck when it changes the Go module, its toolchain pin or this workflow. The baseline on main
-# is the nightly run, not a push: a new advisory can land against an unchanged module, so the nightly run is what catches it.
+# A pull request runs govulncheck when it changes the module's dependencies (go.mod, go.sum), its toolchain pin or this workflow:
+# that is where a new vulnerable package comes in, and dependency review gates it there too. A change to the module's code is scanned
+# after the merge, on the push to main (#3065): a scan never fails a run, so on a pull request its findings were advisory too, and on
+# main they are Code scanning alerts within minutes. The nightly run catches a new advisory against an unchanged module.
 on:
   pull_request:
+    paths:
+      - 'src/studio/desktop/go.mod'
+      - 'src/studio/desktop/go.sum'
+      - 'scripts/toolchain.json'
+      - 'scripts/ci/dedupe-sarif-stacks.mjs'
+      - '.github/actions/setup-toolchain/**'
+      - '.github/workflows/security.yml'
+  push:
+    branches: [main]
     paths:
       - 'src/studio/desktop/**'
       - 'scripts/toolchain.json'

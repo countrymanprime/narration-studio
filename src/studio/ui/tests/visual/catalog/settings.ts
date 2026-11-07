@@ -35,6 +35,22 @@ export const settingsStates: StateEntry[] = [
   },
   {
     page: 'settings',
+    state: 'recording-sample-storage',
+    description:
+      'Settings, Recording & DAW with REAPER: the Voice sample storage row with In the project folder, In the DAW and Both all on and Both chosen, each with a line under it',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
+    state: 'recording-sample-storage-unavailable',
+    description:
+      'Settings, Recording & DAW with Audacity (?mockDaw=Audacity), which cannot keep a region: the Voice sample storage row with In the project folder chosen and In the DAW and Both off, each with its reason as a tooltip (hover or focus)',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
     state: 'recording-sample-output-builtin',
     description:
       'Settings, Recording & DAW with the built-in recorder chosen on a computer with two named outputs: the Voice sample output row with Headphones chosen, Refresh the list, Test sound and what the choice changes',
@@ -121,6 +137,13 @@ export const settingsStates: StateEntry[] = [
   },
   {
     page: 'settings',
+    state: 'recording-chapter-voices',
+    description:
+      'Settings, Recording & DAW (?mockVoiceFolders=1): Sync chapters to tracks and the Voices row with a chapter folder’s voices and their characters',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
     state: 'recording-reaper-path-invalid',
     description:
       'Settings, Recording & DAW, Advanced: a REAPER program path that does not end in reaper.exe is refused in the row with "This is not the path to reaper.exe..." and the old value stays',
@@ -180,6 +203,14 @@ export const settingsStates: StateEntry[] = [
   },
   {
     page: 'settings',
+    state: 'editing-checks',
+    description:
+      'Settings, Recording & DAW scrolled to Editing checks: the longest empty gap, leading silence and trailing silence, each a box in seconds, empty until chosen',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
     state: 'models',
     description:
       'Settings, Models & downloads: the disk use panel, the Show filter, and the table of every model, voice and tool with its size, state, who uses it and the one action its state allows',
@@ -226,6 +257,34 @@ export const settingsStates: StateEntry[] = [
     page: 'settings',
     state: 'models-remove-confirm',
     description: 'Settings, Models & downloads: the danger confirm before a model is removed, with the settings that use it and what it frees',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
+    state: 'models-folder-asking',
+    description:
+      'Settings, Models & downloads: the question Change location asks on the Models folder row before the system folder dialog opens, with Cancel as the default',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
+    state: 'models-moving',
+    description:
+      'Settings, Models & downloads while the downloads are moved to another folder (?mockMove=copying): the work dialog with a progress bar, the bytes of both passes and Cancel',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
+    state: 'models-moved',
+    description:
+      'Settings, Models & downloads after a move (?mockMove=moved): the Models folder row marked Changed with the new folder, the reset button, and the old copy waiting with Delete old copy and Keep it',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
+    state: 'models-move-failed',
+    description:
+      'Settings, Models & downloads after a move failed (?mockMove=fails): the work dialog says the disk filled up and that the models are still where they were, with Close',
     ...REFLOW,
   },
   {
@@ -369,6 +428,79 @@ export const settingsStates: StateEntry[] = [
   },
   {
     page: 'settings',
+    state: 'booth-text-size',
+    description: 'Settings, Appearance & keys scrolled to Booth text size: a slider from 24 to 72 px, 40 px by default, with its row in full view',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
+    state: 'story-bible-order',
+    description:
+      'Settings, Appearance & keys scrolled to Story Bible order under Look: a select of eight orders, Name, A to Z by default, with its row in full view',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
+    state: 'story-bible-order-changed',
+    description: 'Settings, Appearance & keys at Story Bible order after Most mentioned is chosen: the select and its Reset button beside it, in full view',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
+    state: 'first-use-tips',
+    description: 'Settings, App & updates scrolled to First-use tips under Tips: how many are dismissed and Show tips again, with its row in full view',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
+    state: 'first-use-tips-dismissed',
+    description:
+      'Settings, App & updates at First-use tips after the Script tip was dismissed: "1 dismissed" and an enabled Show tips again, with its row in full view',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
+    state: 'schedule-basis',
+    description: 'Settings, Project scrolled to Schedule basis: Standard chosen, Your pace beside it, with its row in full view',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
+    state: 'schedule-basis-own',
+    description: 'Settings, Project at Schedule basis with Your pace chosen: the row is marked Changed',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
+    state: 'category-reset',
+    description: 'Settings, Appearance & keys with the theme changed: the category title line with Reset to defaults beside it, and the count in the list',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
+    state: 'editing-playback',
+    description:
+      'Settings, Appearance & keys scrolled to Editing playback under Listening: speed, volume, silence and the output device, with the row in full view',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
+    state: 'effects-cap',
+    description:
+      'Settings, Recording & DAW scrolled to Effects coverage cap under Effects: 10 % after Override for this project, with its own project box, the row in full view',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
     state: 'wave-scroll-step',
     description:
       'Settings, Appearance & keys scrolled to the Editing section: Waveform arrow step, a slider from 15 to 30 seconds reading 20 s, with the rows around it',
@@ -435,6 +567,12 @@ export const settingsStates: StateEntry[] = [
     description: 'Settings, App & updates after a check that could not reach GitHub (?mockUpdate=failed)',
     ...REFLOW,
     ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
+    state: 'diagnostics-preview',
+    description: 'Settings, App & updates: the diagnostics bundle preview dialog, with the files it holds, what it leaves out and the leak check',
+    ...REFLOW,
   },
   {
     page: 'settings',
@@ -582,6 +720,20 @@ export const settingsStates: StateEntry[] = [
     state: 'save-failed',
     description:
       'Settings after a change could not be saved (?mockSettings=save-fails): "Changes cannot be saved right now." above the pane, and the row names the reason and keeps the old value',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
+    state: 'no-project',
+    description:
+      'Settings opened from the project picker with no project open (?mockNoProject=1): Recording & DAW with "Record with" and the other project rows held back, each saying "Open a project to change this." with its control off, the Microphone and the other computer rows live, and Back to project picker beside the heading; no navigation rail',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
+    state: 'no-project-models',
+    description:
+      'Settings with no project open, Models & downloads: the list of speech models and voices with Download on each, as it is with a project open; nothing waits for a project',
     ...REFLOW,
   },
   {

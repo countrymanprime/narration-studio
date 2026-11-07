@@ -8,10 +8,13 @@ import { StudioProvider } from '../../studio/StudioProvider';
 import { createJournal, type Journal } from '../../studio/journal/createJournal';
 import type { PickupList } from '../../api/contracts/pickups';
 import { createMockApi } from '../../api/mockApi';
+import { DAW_SETUPS } from '../../fixtures/daw';
 import { CommandRouter } from '../../input/router';
 import { OverlayHost } from '../../overlay/OverlayHost';
 import type { NarrationApi } from '../../types';
+import { createMockDawClient } from '../../ports/daw';
 import { PortOverrides } from '../../ports/usePort';
+import { DawFileLinkedContext } from '../connection/dawFileLinked';
 import { TooltipProvider } from '../primitives/Tooltip';
 import * as checkRecordings from '../recordingcheck/openCheckRecordings';
 import { onPickupListChanged } from './pickupListChanged';
@@ -30,6 +33,7 @@ function renderPage(
   api: NarrationApi = createMockApi({ pickupsList: () => Promise.resolve(LIST) }),
   chapters: readonly object[] = CHAPTERS.map((chapter, index) => ({ id: chapter.id, title: chapter.name, index, wordCount: 100, status: 'recording' })),
   journal: Journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' }),
+  dawFileLinked = true,
 ) {
   vi.spyOn(api, 'manuscriptChapters').mockResolvedValue(chapters as never);
   const goTo = vi.fn();
@@ -40,7 +44,9 @@ function renderPage(
         <StudioProvider journal={journal}>
           <TooltipProvider>
             <CommandRouter>
-              <PickupsPage hasManuscript goTo={goTo} goToScript={goToScript} />
+              <DawFileLinkedContext.Provider value={dawFileLinked}>
+                <PickupsPage hasManuscript goTo={goTo} goToScript={goToScript} />
+              </DawFileLinkedContext.Provider>
             </CommandRouter>
             <OverlayHost />
           </TooltipProvider>
@@ -50,6 +56,19 @@ function renderPage(
   );
   return { api, goTo, goToScript };
 }
+
+describe('the DAW connection chip (#2823)', () => {
+  it('shows the shared REAPER-not-connected chip in the list header while the DAW is away', async () => {
+    renderPage(
+      createMockApi({
+        pickupsList: () => Promise.resolve(LIST),
+        dawCapabilities: async () => DAW_SETUPS['reaper-off'],
+        subscribeDawCapabilities: () => () => undefined,
+      }),
+    );
+    expect(await screen.findByRole('button', { name: /REAPER not connected/, hidden: true })).toBeTruthy();
+  });
+});
 
 describe('pickups-route-draws-the-mock-page', () => {
   it('draws the list grouped by chapter and the pickup session panel', async () => {
@@ -182,7 +201,7 @@ describe('check-recordings-opens-from-pickups', () => {
     const user = userEvent.setup();
     const head = await screen.findByRole('heading', { name: 'Pickups' });
     await user.click(within(head.closest('section') ?? document.body).getByRole('button', { name: /Check recordings/ }));
-    expect(open).toHaveBeenCalledWith(['c2']);
+    expect(open).toHaveBeenCalledWith(['c2'], expect.anything());
   });
 });
 
@@ -432,9 +451,13 @@ describe('narrator-walkthrough-fixes-2', () => {
 
 describe('adding-lines-as-markers-says-what-happened', () => {
   const markersDaw = (changed: boolean) =>
-    ({ addPickupMarkers: vi.fn().mockResolvedValue({ ok: true, changed, message: 'Imported 2 pickups.', undoSteps: changed ? 1 : 0 }) }) as never;
-  const renderWith = (changed: boolean) => {
-    const api = createMockApi({ pickupsList: () => Promise.resolve(LIST) });
+    ({
+      // The rows' Show in REAPER reads what the DAW can do (#2826).
+      ...createMockDawClient(DAW_SETUPS.reaper, { chapterIds: [], candidateIds: [], findingIds: [] }),
+      addPickupMarkers: vi.fn().mockResolvedValue({ ok: true, changed, message: 'Imported 2 pickups.', undoSteps: changed ? 1 : 0 }),
+    }) as never;
+  const renderWith = (changed: boolean, list: PickupList = LIST) => {
+    const api = createMockApi({ pickupsList: () => Promise.resolve(list) });
     vi.spyOn(api, 'manuscriptChapters').mockResolvedValue(
       CHAPTERS.map((c, index) => ({ id: c.id, title: c.name, index, wordCount: 100, status: 'recording' })) as never,
     );
@@ -463,10 +486,45 @@ describe('adding-lines-as-markers-says-what-happened', () => {
     expect(screen.queryByText(/Imported/)).toBeNull();
   });
 
+  it('says how many lines had no place in the recording, so the count matches the button', async () => {
+    const placed = pickup({ id: 'a', at: 10, time: 10 });
+    const unplaced = pickup({ id: 'b', at: null, time: 20 });
+    renderWith(true, { pickups: [placed, unplaced], leftOut: [] });
+    await userEvent.setup().click(await screen.findByRole('button', { name: 'Add 1 as markers in REAPER' }));
+    expect(await screen.findByText('Pickup marker for 1 of 2 lines is in REAPER. 1 line has no place in the recording yet and was left out.')).toBeTruthy();
+  });
+
+  it('turns the markers button off, saying why, when no line has a place', async () => {
+    renderWith(true, { pickups: [pickup({ id: 'b', at: null, time: 20 })], leftOut: [] });
+    const add = await screen.findByRole('button', { name: 'Add 0 as markers in REAPER' });
+    expect(add.getAttribute('aria-disabled')).toBe('true');
+    await userEvent.hover(add);
+    expect(await screen.findByText('None of these lines has a place in the recording yet.')).toBeTruthy();
+  });
+
   it('says the markers were already there when nothing changed', async () => {
     renderWith(false);
     await userEvent.setup().click(await screen.findByRole('button', { name: /^Add \d+ as markers in / }));
     expect(await screen.findByText(/^Those markers were already in .+\.$/)).toBeTruthy();
+  });
+});
+
+describe('adding-markers-needs-a-linked-project', () => {
+  const NOT_LINKED = 'Link a REAPER project (.rpp) file to add markers.';
+
+  it('turns the markers button off with the same ask the top bar makes when no project file is linked', async () => {
+    renderPage(undefined, undefined, undefined, false);
+    const add = await screen.findByRole('button', { name: /^Add \d+ as markers in / });
+    expect(add.getAttribute('aria-disabled')).toBe('true');
+    await userEvent.hover(add);
+    expect(await screen.findByText(NOT_LINKED)).toBeTruthy();
+  });
+
+  it('keeps the button on when a project file is linked', async () => {
+    renderPage();
+    const add = await screen.findByRole('button', { name: /^Add \d+ as markers in / });
+    expect(add.getAttribute('aria-disabled')).toBeNull();
+    expect(screen.queryByText(NOT_LINKED)).toBeNull();
   });
 });
 
@@ -484,5 +542,31 @@ describe('coming-back-from-the-booth', () => {
     renderPage();
     await waitFor(() => expect(document.activeElement?.getAttribute('data-pk')).toBe(id));
     expect(document.activeElement?.getAttribute('aria-selected')).toBe('true');
+  });
+
+  it('returns to the chapter the narrator had picked, not to all chapters', async () => {
+    const first = renderPage();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: /^Chapter: .*\. Change chapter$/ }));
+    await user.click(await screen.findByRole('menuitemradio', { name: /^Chapter 3(: | |$)/ }));
+    const line = (await screen.findAllByRole('row')).find((row) => row.hasAttribute('data-pk'))!;
+    line.focus();
+    await user.keyboard('{Enter}');
+    expect(first.goTo).toHaveBeenCalled();
+    cleanup();
+    renderPage();
+    const stepper = await screen.findByRole('button', { name: /^Chapter: .*\. Change chapter$/ });
+    expect(stepper.getAttribute('aria-label')).toMatch(/Chapter 3/);
+    expect(document.activeElement?.getAttribute('data-pk')).toBe(line.getAttribute('data-pk'));
+  });
+
+  it('puts focus back on Open N in Booth after the whole session was opened', async () => {
+    const first = renderPage();
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: /^Open \d+ in Booth$/ }));
+    expect(first.goTo).toHaveBeenCalled();
+    cleanup();
+    renderPage();
+    await waitFor(() => expect(document.activeElement?.textContent).toMatch(/^Open \d+ in Booth$/));
   });
 });

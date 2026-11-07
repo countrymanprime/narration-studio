@@ -1,7 +1,6 @@
 import { headingName } from '../../chapterHeading';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { apiErrorMessage, describeApiError } from '../../api/errorMessage';
-import type { DawCapabilities } from '../../api/contracts/daw';
 import type { ChapterStatus } from '../../api/contracts/manuscript';
 import type { ProductionOverview, ProductionPlan, ProductionTotals } from '../../api/contracts/production';
 import { useOpenPickups } from '../pickups/useOpenPickups';
@@ -12,8 +11,10 @@ import { useCreditsRows } from '../credits/useCreditsRows';
 import { LoadError } from '../layout/LoadError';
 import { Panel } from '../primitives/Panel';
 import { StatStrip } from '../primitives/StatStrip';
+import { retryAction } from '../primitives/Toast';
 import type { Notify } from '../primitives/Toast';
 import { canRecord } from '../booth/record/useCanRecord';
+import { useCheckRecordingsGate } from '../recordingcheck/CheckRecordingsButton';
 import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
 import { fmtD, parseIso } from '../schedule/dates';
 import { isNarrationChapter } from '../../chapterKinds';
@@ -36,9 +37,8 @@ import { bookFigures, checkCounts, deliveryCounts, stageSegments, type OverviewT
 import { ProgressChart } from './overview/ProgressChart';
 import { StageBar } from './overview/StageBar';
 import { WeekCard } from './overview/WeekCard';
-import { ConnectionResolveDialog } from '../connection/ConnectionResolveDialog';
-import { useOpenOnce } from '../connection/useOpenOnce';
-import { DawIndicator } from './pipeline/DawIndicator';
+import { useDawConnection } from '../connection/useDawConnection';
+import { useDawStatus } from '../connection/useDawStatus';
 import { DAW_CONNECT_GRACE_MS, useConnectGrace } from './pipeline/dawConnectGrace';
 import { NextUp } from './pipeline/NextUp';
 import { NoManuscript } from './pipeline/NoManuscript';
@@ -141,14 +141,13 @@ export function ProductionPage({
   const production = usePort('production');
   const chapterSyncPort = usePort('chapterSync');
   const measurements = usePort('measurements');
-  const daw = usePort('daw');
   const found = Boolean(data.manuscript);
   const manuscriptKey = data.manuscript ? `${data.manuscript.id}:${data.manuscript.importedAt}` : 'no-manuscript';
   const manuscriptImport = useManuscriptImport({ data, go, notify, refreshBootstrap });
   const [load, setLoad] = useState<Load>({ status: 'loading' });
   const [plan, setPlan] = useState<ProductionPlan>();
   const rateBasis = useRateBasis(plan?.rateBasis);
-  const [caps, setCaps] = useState<DawCapabilities>();
+  const caps = useDawStatus().caps ?? undefined;
   const today = useMemo(() => new Date(), []);
 
   const read = useCallback(async () => {
@@ -167,31 +166,11 @@ export function ProductionPage({
     void read();
   }, [manuscriptKey, read]);
 
-  const readCaps = useCallback(() => {
-    daw.capabilities().then(setCaps, () => setCaps(undefined));
-  }, [daw]);
-  useEffect(() => readCaps(), [readCaps]);
-  // The host pushes the DAW picture whenever it changes (a heartbeat starts or stops, a bridge session is attached), so the banner
-  // follows without the narrator pressing Retry.
-  useEffect(() => daw.subscribeCapabilities?.(setCaps), [daw]);
-  // Check again reads the DAW now; the connect dialog says when it last looked and what it heard.
-  const [checkedAt, setCheckedAt] = useState<number | null>(null);
-  const [readFailed, setReadFailed] = useState(false);
-  const takeCaps = useCallback((next: DawCapabilities) => {
-    setCaps(next);
-    setCheckedAt(Date.now());
-    setReadFailed(false);
-  }, []);
-  const checkDaw = useCallback(
-    () =>
-      daw.capabilities().then(takeCaps, () => {
-        setReadFailed(true);
-      }),
-    [daw, takeCaps],
-  );
-  const dawOff = Boolean(caps && !caps.reachable && caps.daw !== 'none');
-  // The dialog opens by itself once per connection loss, after the app has had its time to connect on its own.
-  const dawDialog = useOpenOnce(dawOff && caps ? `reaper-off:${caps.daw}` : null, settling);
+  // The DAW is the app's one session (`useDawStatus`) and its one connection mark (`useDawConnection`): this page keeps no copy of the capability report.
+  const connection = useDawConnection({
+    graceMs: dawConnectGraceMs,
+    stillWorks: (name) => `Progress that comes from ${name} may be out of date until it is running again.`,
+  });
 
   // The open lines of the Pickups page's list, so the tile, Next up and the pickup hours count what that page lists.
   const openLines = useOpenPickups();
@@ -235,7 +214,7 @@ export function ProductionPage({
 
   // The credits are chapters of the overview, so they are rows, counts and hours like any chapter. The credits rows are read only for what a chapter
   // does not carry: the credits panel.
-  const credits = useCreditsRows(manuscriptKey, (error) => notify(describeApiError(error), 'error'));
+  const credits = useCreditsRows(manuscriptKey, (error, retry) => notify(describeApiError(error), 'error', retryAction(retry)));
   const pipelineRows = narrated;
 
   // The pipeline row a Confirm, a Revert or a Restore just changed is highlighted once (changeHighlight.ts).
@@ -276,6 +255,37 @@ export function ProductionPage({
     onChanged();
   }, stages.busy);
 
+  // The pipeline's rows, built once per input that changes rather than on every render: a 5000-chapter book re-rendered all of them each time
+  // any hook of the page resolved (#1764). The lookups are indexed, so building is linear in the chapters, not quadratic.
+  const trackLinkRows = tools.trackLinks?.chapters;
+  const syncRows = sync?.chapters;
+  const { proof: proofSource, master: masterSource, prep: prepSource } = pipelineSources;
+  const rows = useMemo(() => {
+    // Open lines per chapter from the Pickups list, so a chapter's Pickups cell and the tile above add up. Nothing is claimed until the list is read.
+    let pickupsByChapter: Record<string, number> | undefined;
+    if (openLines) {
+      pickupsByChapter = {};
+      for (const line of openLines) pickupsByChapter[line.chapterId] = (pickupsByChapter[line.chapterId] ?? 0) + 1;
+      for (const c of narrated) pickupsByChapter[c.id] ??= 0;
+    }
+    const linkOf = new Map((trackLinkRows ?? []).map((entry) => [entry.chapterId, entry]));
+    const syncOf = new Map((syncRows ?? []).map((entry) => [entry.chapterId, entry]));
+    return buildPipelineRows(pipelineRows, {
+      proof: proofSource,
+      master: masterSource,
+      wph,
+      pickups: pickupsByChapter,
+      // A chapter's Prep is the Script page's prep record, the credits' included ("My prep" on their card). Absent until read: "Not measured yet".
+      prep: prepSource,
+      checks: Object.fromEntries(
+        narrated.map((c) => {
+          const syncRow = syncOf.get(c.id);
+          return [c.id, chapterCheckStatus(linkOf.get(c.id), syncRow, syncRow?.checking ?? false)];
+        }),
+      ),
+    });
+  }, [openLines, narrated, pipelineRows, trackLinkRows, syncRows, proofSource, masterSource, prepSource, wph]);
+
   const record = canRecord(caps);
   const narrationIds = new Set(narrated.map((c) => c.id));
   const counts = checkCounts(sync?.chapters ?? [], narrationIds);
@@ -283,11 +293,13 @@ export function ProductionPage({
 
   const recordingChapter = narrated.find((c) => c.status === 'recording');
 
+  // The jump menu's Check recordings is off for the same reason the buttons are (#2833).
+  const checkGate = useCheckRecordingsGate();
   useProductionPageCommands({
     found,
     rows: pipelineRows,
     ready: Boolean(overview),
-    check: { chapterIds: toCheck, unavailable: caps && !caps.reachable ? `${caps.daw} is not running.` : undefined, open: (ids) => openCheckRecordings(ids) },
+    check: { chapterIds: toCheck, unavailable: checkGate, open: (ids) => openCheckRecordings(ids) },
     stages: { reading: stages.state.phase === 'loading', refresh: () => void refreshStages() },
     report: () => openReportDialog({ projectName: data.projectName, asOf: fmtD(today) }),
     session: { run: () => goToBooth(recordingChapter?.id), disabledReason: record.ok ? undefined : record.reason },
@@ -312,23 +324,6 @@ export function ProductionPage({
   const book = bookFigures(narrated, wph, pipelineSources.master);
   const recordedHours = narrated.reduce((a, c) => a + (c.recordedSeconds ?? 0), 0) / 3600;
   const recommendations = stages.state.byChapter;
-  // Open lines per chapter from the Pickups list, so a chapter's Pickups cell and the tile above add up. Nothing is claimed until the list is read.
-  const pickupsByChapter = openLines ? Object.fromEntries(narrated.map((c) => [c.id, openLines.filter((line) => line.chapterId === c.id).length])) : undefined;
-  const rows = buildPipelineRows(pipelineRows, {
-    proof: pipelineSources.proof,
-    master: pipelineSources.master,
-    wph,
-    pickups: pickupsByChapter,
-    // A chapter's Prep is the Script page's prep record, the credits' included ("My prep" on their card). Absent until read: "Not measured yet".
-    prep: pipelineSources.prep,
-    checks: Object.fromEntries(
-      narrated.map((c) => {
-        const link = tools.trackLinks?.chapters.find((entry) => entry.chapterId === c.id);
-        const syncRow = sync?.chapters.find((entry) => entry.chapterId === c.id);
-        return [c.id, chapterCheckStatus(link, syncRow, syncRow?.checking ?? false)];
-      }),
-    ),
-  });
   const pickupMinutes = measured.answers
     ? measured.answers.pickupSessionSeconds.ok
       ? { ok: true as const, value: Math.round(measured.answers.pickupSessionSeconds.value / 60) }
@@ -349,26 +344,18 @@ export function ProductionPage({
 
   return (
     <div className="flex flex-col gap-4">
-      {caps && !caps.reachable && caps.daw !== 'none' && (
-        <>
-          <div className="flex">
-            <DawIndicator daw={caps.daw} settling={settling} onOpen={dawDialog.reopen} />
-          </div>
-          {dawDialog.open && !settling && (
-            <ConnectionResolveDialog
-              variant="reaper-off"
-              daw={caps.daw}
-              sentence={`${caps.daw} is not running.`}
-              stillWorks={`Progress that comes from ${caps.daw} may be out of date until it is running again.`}
-              checkedAt={checkedAt}
-              readFailed={readFailed}
-              onCheckAgain={checkDaw}
-              onCaps={takeCaps}
-              onClose={dawDialog.close}
-            />
+      {connection.off && (
+        <div className="flex">
+          {settling ? (
+            <p role="status" className="m-0 text-[0.875rem] text-[var(--text-muted)]">
+              Connecting to {caps?.daw ?? 'the DAW'}…
+            </p>
+          ) : (
+            connection.indicator
           )}
-        </>
+        </div>
       )}
+      {connection.dialog}
       <PageHeader
         loading={load.status === 'loading'}
         chapters={narrated.length}
@@ -417,12 +404,7 @@ export function ProductionPage({
           <div className="grid grid-cols-[minmax(0,1fr)] items-stretch gap-4 min-[640px]:grid-cols-2 min-[1281px]:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_22.5rem] min-[640px]:max-[1281px]:[&>:first-child]:col-span-2">
             <StageBar segments={stageSegments(narrated, wph, pipelineSources.master)} wph={wph} />
             <WeekCard figures={weekFigures(log, today, start, due, book.finishedHours)} />
-            <CheckCountsCard
-              counts={counts}
-              nameOf={nameOf}
-              unavailable={caps && !caps.reachable ? `${caps.daw} is not running.` : undefined}
-              onCheck={(ids) => openCheckRecordings(ids)}
-            />
+            <CheckCountsCard counts={counts} nameOf={nameOf} />
           </div>
           {/* Both columns run to the same foot: the chart card takes what the right column has left. At 1280 and below the Next up and
               chart pair comes first, under the figures, so what to do next is not 2000 px down the page (alignment audit R4TA-3). */}
@@ -435,7 +417,7 @@ export function ProductionPage({
                     recommendations={recommendations}
                     onGo={(target, chapterId) => onGo(target, chapterId)}
                     notify={notify}
-                    onCheckRecording={tools.openRecordingCheck}
+                    offerCheck
                     justChanged={changedRow.changed}
                     onStatus={(chapterId) => {
                       changedRow.mark(chapterId);
@@ -482,8 +464,6 @@ export function ProductionPage({
                   series={recordedSeries(log, start)}
                   onOpenSchedule={() => go('/schedule')}
                   fill
-                  clearTodayLabel
-                  noteBelow
                 />
               </div>
             </div>

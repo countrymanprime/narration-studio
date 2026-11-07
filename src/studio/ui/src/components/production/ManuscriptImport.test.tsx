@@ -24,14 +24,18 @@ function ImportHarness(props: Parameters<typeof useManuscriptImport>[0]) {
 
 // The import with the mock host, at the point the narrator has chosen a manuscript and the host has answered with its preview.
 // `prepare` runs before the file is chosen, so a test can spy on the host's answers (the mock keeps its job in its own closure).
-async function openReview(prepare: (api: NarrationApi) => void = () => {}, importPreview: MockImportKind = 'docx') {
+async function openReview(
+  prepare: (api: NarrationApi) => void = () => {},
+  importPreview: MockImportKind = 'docx',
+  notify: (text: string, tone?: 'info' | 'error', action?: { label: string; onAction: () => void }) => void = () => {},
+) {
   const api = createMockApi({}, { noManuscript: true, importPreview });
   prepare(api);
   const data: Bootstrap = await api.bootstrap();
   render(
     <MemoryRouter>
       <ApiProvider api={api}>
-        <ImportHarness data={data} go={() => {}} notify={() => {}} refreshBootstrap={async () => {}} />
+        <ImportHarness data={data} go={() => {}} notify={notify} refreshBootstrap={async () => {}} />
       </ApiProvider>
     </MemoryRouter>,
   );
@@ -498,7 +502,9 @@ describe('step 1: choose your manuscript (the Studio Next mock)', () => {
     const { api, dialog } = await openStep1();
     const select = vi.spyOn(api, 'selectManuscript');
     expect(within(dialog).getByRole('heading', { name: 'Choose your manuscript' })).toBeTruthy();
-    expect(within(dialog).getByText('Use a .docx, .md or .txt file. A copy is kept in your project.')).toBeTruthy();
+    expect(
+      within(dialog).getByText('Use a Word (.docx), EPUB (.epub), Markdown (.md) or plain-text (.txt) file. A copy is kept in your project.'),
+    ).toBeTruthy();
     expect(within(dialog).queryByText(/read-only/)).toBeNull();
     expect(within(dialog).getByText('Drop a manuscript here')).toBeTruthy();
     expect(select).not.toHaveBeenCalled();
@@ -623,6 +629,24 @@ describe('closing the import when it finishes', () => {
     expect(await screen.findByRole('dialog', { name: 'Import manuscript' })).toBeTruthy();
     await new Promise((resolve) => setTimeout(resolve, 400));
     expect(screen.getByRole('dialog', { name: 'Import manuscript' })).toBeTruthy();
+  });
+
+  // Issue #2919: the box saves at once and the narrator has moved on, so a failed save offers Retry, which writes the same value again.
+  it('a failed save of the box is an error toast with Retry, which saves the same value again', async () => {
+    let save = vi.fn();
+    const notify = vi.fn();
+    const { dialog } = await openReview(
+      (api) => {
+        save = vi.spyOn(api, 'saveSettings').mockRejectedValueOnce(new Error('the settings file is read-only'));
+      },
+      'docx',
+      notify,
+    );
+    fireEvent.click(await checkbox(dialog));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringContaining('read-only'), 'error', expect.objectContaining({ label: 'Retry' })));
+    notify.mock.calls.find((call) => call[1] === 'error')![2].onAction();
+    await waitFor(() => expect(save).toHaveBeenCalledTimes(2));
+    expect(save).toHaveBeenLastCalledWith('General', 'global', { close_import_when_done: 'false' });
   });
 
   it('starts unchecked when the saved setting is off', async () => {

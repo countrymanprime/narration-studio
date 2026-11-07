@@ -179,11 +179,8 @@ func TestRecordThreadFailsWhenTheHistoryOrTheScopeFileCannotBeWritten(t *testing
 	}
 
 	store := threadStore(t)
-	scopePath := filepath.Join(store.project, brand.ProjectFolder, "findings", "transcript_compare", "c-0001.json")
-	if err := os.MkdirAll(scopePath+".tmp", 0o755); err != nil {
-		t.Fatal(err)
-	}
+	failWrites(t)
 	if _, _, err := store.RecordThread("f1", ThreadEntry{Op: ThreadAdd, Who: ThreadYou, Text: "hi"}, "t"); err == nil {
-		t.Fatal("expected an error: the scope file's .tmp write target is a directory")
+		t.Fatal("expected an error: the write fails")
 	}
 }

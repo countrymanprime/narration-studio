@@ -1,7 +1,7 @@
 // How to reach each `proof` state (the Studio Next Proof page) in STATE_CATALOG (see app.drivers.ts).
 import { expect, type Locator, type Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
-import { type Driver, openCheckingLink, clickNav, goToPage, openWithoutManuscript } from './shared';
+import { type Driver, closeDawDialogOnArrival, openCheckingLink, clickNav, goToPage, openWithoutManuscript } from './shared';
 
 const notes = (page: Page): Locator => page.getByRole('region', { name: 'Notes' });
 const inspector = (page: Page): Locator => page.getByRole('complementary', { name: 'Note' });
@@ -30,9 +30,10 @@ async function openChapter(page: Page, chapterTitle: string): Promise<void> {
 
 // A recording check held at its last transcribing step (?mockCoverage=<seed>), so the dialog reads the same at every viewport; it stays open while it runs.
 async function checkHeld(page: Page, seed: 'hold' | 'hold-recheck' | 'hold-none' | 'hold-all'): Promise<void> {
-  await openProof(page, `mockCoverage=${seed}`);
-  await openChapter(page, 'Chapter 4');
-  await notes(page).getByRole('button', { name: 'Check recordings…' }).click();
+  // Chapter 1 has a linked track: the card's Check recordings is the only button for the check on this page, and it is off for a chapter with none.
+  await openProof(page, `mockCoverage=${seed}&mockChapterLink=confirmed`);
+  await openChapter(page, 'Chapter 1');
+  await page.getByRole('button', { name: 'Check recordings', exact: true }).click();
   const dialog = page.getByRole('dialog');
   await dialog
     .getByRole('button', { name: /^Check / })
@@ -77,6 +78,24 @@ async function openMisread(page: Page, seed: 'misread' | 'misread-long' | 'misre
 }
 
 export const proofDrivers: Record<string, Driver> = {
+  'daw-off-closed': (page) => closeDawDialogOnArrival(page, 'Proof'),
+  // A click note's inspector with the Repair in REAPER menu open (#2821): the repair launchers act on the item Show in REAPER selects.
+  'inspector-repair-menu': async (page) => {
+    await openProof(page, 'mockChapterLink=confirmed&mockFindings=click', false);
+    await notes(page).locator('tr[data-row]').filter({ hasText: /mouth/i }).first().click();
+    await page.getByRole('button', { name: 'Repair in REAPER' }).click();
+    const menu = page.getByRole('menu');
+    await menu.waitFor();
+    await expect(menu.getByText('Reading the REAPER project…')).toHaveCount(0);
+  },
+  // The DAW tools menu in the header (#2820), opened: the structure entries, live for a project whose chapter is linked.
+  'daw-tools-menu': async (page) => {
+    await openProof(page, 'mockChapterLink=confirmed');
+    await page.getByRole('button', { name: 'DAW tools' }).click();
+    const menu = page.getByRole('menu');
+    await menu.waitFor();
+    await expect(menu.getByText('Reading the REAPER project…')).toHaveCount(0);
+  },
   'address-checking': async (page) => {
     await openCheckingLink(page, '/proof?chapter=gone');
   },
@@ -154,6 +173,21 @@ export const proofDrivers: Record<string, Driver> = {
     await openMisread(page, 'misread-rtl', /שלם/);
     await inspector(page).locator('[data-quote="script"]').scrollIntoViewIfNeeded();
   },
+  // Compare opened under the check card of a chapter with a measured recording (#2822): its three tabs on Differences, and the run's setup.
+  'compare-open': async (page) => {
+    await openProof(page, 'mockChapterLink=confirmed');
+    await openChapter(page, 'Chapter 1');
+    await page.getByRole('button', { name: 'Compare with the script' }).click();
+    await page.getByRole('region', { name: 'Compare' }).getByRole('heading', { name: 'Compare the recording with the script' }).waitFor();
+  },
+  'compare-preview': async (page) => {
+    await openProof(page, 'mockChapterLink=confirmed');
+    await openChapter(page, 'Chapter 1');
+    await page.getByRole('button', { name: 'Compare with the script' }).click();
+    const panel = page.getByRole('region', { name: 'Compare' });
+    await panel.getByRole('button', { name: 'Preview' }).click();
+    await panel.getByRole('heading', { name: 'Preview' }).waitFor();
+  },
   'chapter-no-recording': async (page) => {
     await openProof(page, 'mockChapterLink=confirmed');
     await openChapter(page, 'Chapter 2');
@@ -197,17 +231,17 @@ export const proofDrivers: Record<string, Driver> = {
     await page.getByText('Not checked yet').waitFor();
   },
   'check-recordings-dialog': async (page) => {
-    await openProof(page);
-    await openChapter(page, 'Chapter 4');
-    await notes(page).getByRole('button', { name: 'Check recordings…' }).click();
+    await openProof(page, 'mockChapterLink=confirmed');
+    await openChapter(page, 'Chapter 1');
+    await page.getByRole('button', { name: 'Check recordings', exact: true }).click();
     await page.getByRole('dialog').getByRole('combobox', { name: 'Chapters at once' }).waitFor();
   },
   'check-checking': async (page) => checkHeld(page, 'hold-recheck'),
   // The mock's check runs on its own to the end: the dialog then shows that chapter's result under the stopped activity box.
   'check-finished': async (page) => {
-    await openProof(page, 'mockCoverage=cascade');
-    await openChapter(page, 'Chapter 4');
-    await notes(page).getByRole('button', { name: 'Check recordings…' }).click();
+    await openProof(page, 'mockCoverage=cascade&mockChapterLink=confirmed');
+    await openChapter(page, 'Chapter 1');
+    await page.getByRole('button', { name: 'Check recordings', exact: true }).click();
     const dialog = page.getByRole('dialog');
     await dialog
       .getByRole('button', { name: /^Check / })

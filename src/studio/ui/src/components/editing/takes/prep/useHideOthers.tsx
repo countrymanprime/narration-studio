@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { DawResult } from '../../../../api/contracts/daw';
+import { apiErrorMessage } from '../../../../api/errorMessage';
 import { overlay } from '../../../../overlay/overlayService';
 import { usePort } from '../../../../ports/usePort';
 import type { DawClient } from '../../../../ports/daw';
 import type { Command, Journal, Result } from '../../../../studio/journal/createJournal';
 import type { EditingKeyHandlers } from '../../keys/useEditingKeys';
 import { registerWordMenuSection, type WordMenuSelection } from '../../menu/wordMenuRegistry';
+import { LINE_BUSY, createLineBusy, type LineBusy } from '../keepTake';
 import { registerTakeControl } from '../takeControls';
-import type { LinePassage, TakesGate } from '../types';
+import type { LinePassage, LineTake, TakesGate } from '../types';
 import { useTakesGate } from '../useTakesGate';
 import { HideOthersConfirmBody } from './HideOthersConfirm';
 import { HideButton } from './PrepControls';
@@ -24,6 +26,8 @@ export interface HideOthersOptions {
   current: () => LinePassage | null;
   /** The line a word-menu selection is in, or null. */
   passageOf: (selection: WordMenuSelection) => LinePassage | null;
+  /** The lines a Keep or a Hide is changing, shared with `useKeepTakes` so neither starts under the other. */
+  busy?: LineBusy;
 }
 
 export interface HideOthers {
@@ -39,7 +43,10 @@ export interface HideOthers {
   handlers: Required<Pick<EditingKeyHandlers, 'hideOthers'>>;
 }
 
-const refusal = (r: DawResult): Result<never> => ({ ok: false, refusal: { code: r.code ?? 'daw_refused', reason: r.refused ?? r.message } });
+const refusal = (r: DawResult): Result<never> => {
+  const sentence = (r.refused ?? r.message ?? '').trim();
+  return { ok: false, refusal: { code: r.code ?? 'daw_refused', reason: sentence || 'Could not hide the other takes.' } };
+};
 
 /** Mutes the other takes in the DAW (one undo step there). Nothing is deleted. A DAW that muted nothing is a refusal, so no entry is made. */
 function hideCommand(daw: DawClient, passage: LinePassage, keptId: string, count: number, dawName: string): Command<DawResult> {
@@ -48,7 +55,12 @@ function hideCommand(daw: DawClient, passage: LinePassage, keptId: string, count
     touches: [`takes/${passage.id}`],
     daw: true,
     async run() {
-      const result = await daw.hideTakes(passage.chapterId, passage.firstToken, passage.lastToken, keptId);
+      let result: DawResult;
+      try {
+        result = await daw.hideTakes(passage.chapterId, passage.firstToken, passage.lastToken, keptId);
+      } catch (error) {
+        return { ok: false, refusal: { code: 'daw_failed', reason: `Could not hide the other takes: ${apiErrorMessage(error)}` } };
+      }
       if (!result.ok || !result.changed) return refusal(result);
       return { ok: true, value: result };
     },
@@ -63,7 +75,9 @@ const plural = (n: number) => (n === 1 ? 'take' : 'takes');
  * page without a DAW call. Registers the "Hide the other takes" and "Look at hidden takes" controls in the footer of the line's takes and the word
  * menu item.
  */
-export function useHideOthers({ journal, kept, current, passageOf }: HideOthersOptions): HideOthers {
+export function useHideOthers({ journal, kept, current, passageOf, busy: shared }: HideOthersOptions): HideOthers {
+  const own = useRef<LineBusy>(createLineBusy());
+  const busy = shared ?? own.current;
   const daw = usePort('daw');
   const gate = useTakesGate();
   const [hidden, setHidden] = useState<Record<string, readonly string[]>>({});
@@ -85,13 +99,8 @@ export function useHideOthers({ journal, kept, current, passageOf }: HideOthersO
     [hidden, revealed],
   );
 
-  const hideOthers = useCallback(
-    async (passage: LinePassage) => {
-      const keptId = kept[passage.id];
-      const keptTake = passage.takes.find((t) => t.id === keptId);
-      if (!keptTake) return void overlay.toast(KEEP_FIRST);
-      const others = othersOf(passage);
-      if (others.length === 0) return void overlay.toast(NO_OTHERS);
+  const hideAsked = useCallback(
+    async (passage: LinePassage, keptTake: LineTake, others: string[]) => {
       const yes = await overlay.confirm({
         title: 'Hide the other takes?',
         body: <HideOthersConfirmBody keptLabel={keptTake.label} count={others.length} dawName={dawName} />,
@@ -104,9 +113,32 @@ export function useHideOthers({ journal, kept, current, passageOf }: HideOthersO
       setRevealed((r) => ({ ...r, [passage.id]: false }));
       overlay.toast(`Hid ${others.length} other ${plural(others.length)}: hidden, not deleted. They are still in the project. ${result.value.value.message}`);
     },
+    [daw, dawName, journal],
+  );
+
+  const hideOthers = useCallback(
+    async (passage: LinePassage) => {
+      const keptId = kept[passage.id];
+      const keptTake = passage.takes.find((t) => t.id === keptId);
+      if (!keptTake) return void overlay.toast(KEEP_FIRST);
+      const others = othersOf(passage);
+      if (others.length === 0) return void overlay.toast(NO_OTHERS);
+      const doing = busy.get(passage.id);
+      if (doing) {
+        // The same Hide pressed again is already on its way; a Keep still pending would change which take the others are the others of.
+        if (doing === 'keep') overlay.toast(LINE_BUSY);
+        return;
+      }
+      busy.set(passage.id, 'hide');
+      try {
+        await hideAsked(passage, keptTake, others);
+      } finally {
+        busy.delete(passage.id);
+      }
+    },
     // `othersOf` reads `kept` and `hidden`, both listed.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [daw, dawName, journal, kept, hidden],
+    [dawName, kept, hidden, busy, hideAsked],
   );
 
   const toggle = useCallback(

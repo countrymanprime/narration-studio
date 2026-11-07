@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { expect, fn, within } from 'storybook/test';
+import { expect, fn, userEvent, within } from 'storybook/test';
 import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
 import { DAW_SETUPS, type DawSetupId } from '../../../fixtures/daw';
@@ -23,7 +23,6 @@ const api: InspectorHostApi = {
   findingsGet: async (id) => inspectorFinding({ id }),
   transcriptAddEquivalence: async () => 'Added equivalence: Dinah = Dina',
   findingsReview: async (request) => inspectorFinding({ id: request.id, review: { status: request.status, note: request.note } }),
-  findingsGoTo: async () => ({ outcome: 'navigated', projectTime: 134.6 }),
   findingsLoop: async () => ({ outcome: 'looping', loopStart: 131.6, loopEnd: 139 }),
   findingsStopLoop: async () => ({ outcome: 'stopped', restored: 3, kept: 0 }),
   findingsThread: async (id, change) =>
@@ -110,6 +109,9 @@ export const DawUnavailable: Story = {
   parameters: { daw: 'builtin' },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(await canvas.findByText(DAW_SETUPS.builtin.capabilities.navigate.message!)).toBeTruthy();
+    // The built-in recorder has no DAW to show in; Add marker stays, off, and its hint says why (the shared button, #2830).
+    const marker = await canvas.findByRole('button', { name: /^Add marker in/ });
+    await userEvent.hover(marker);
+    await expect(await within(document.body).findByText(DAW_SETUPS.builtin.capabilities.markers.message!)).toBeTruthy();
   },
 };

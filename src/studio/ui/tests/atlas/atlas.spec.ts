@@ -38,12 +38,18 @@ const VIEWPORTS = [
 const THEMES = (process.env.UI_ATLAS_THEMES ?? 'light,dark').split(',').map((theme) => theme.trim()) as Array<'light' | 'dark'>;
 const READY_TIMEOUT_MS = 15_000;
 
+// A story tagged `tiny-window` is the guard for the smallest supported window: it runs at 320 x 300 in each theme instead of at the two sizes above, so its play()
+// measures against that window (a fixed-position overlay such as the toasts cannot be shown that small any other way).
+const TINY_WINDOW = { name: 'tiny', width: 320, height: 300 };
+
 interface Variant {
   theme: 'light' | 'dark';
   viewport: (typeof VIEWPORTS)[number];
 }
 // theme outer, viewport inner - keeps screenshot filenames and their order the same as before this grouping.
 const VARIANTS: Variant[] = THEMES.flatMap((theme) => VIEWPORTS.map((viewport) => ({ theme, viewport })));
+const variantsOf = (entry: { tags?: string[] }): Variant[] =>
+  (entry.tags ?? []).includes('tiny-window') ? THEMES.map((theme) => ({ theme, viewport: TINY_WINDOW })) : VARIANTS;
 
 const index = JSON.parse(readFileSync('storybook-static/index.json', 'utf8')) as { entries: Record<string, IndexEntry> };
 const allStories = Object.values(index.entries).filter((entry) => entry.type === 'story');
@@ -236,7 +242,8 @@ for (const entry of stories) {
   const reloadEveryVariant = (entry.tags ?? []).includes('play-fn') || needsFreshLoad(entry.title);
 
   test(`${entry.title} / ${entry.name}`, async ({ page }) => {
-    test.setTimeout(test.info().timeout * VARIANTS.length);
+    const variants = variantsOf(entry);
+    test.setTimeout(test.info().timeout * variants.length);
     const problems: string[] = [];
     page.on('pageerror', (error) => problems.push(`uncaught error: ${error.message}`));
     page.on('console', (message) => {
@@ -244,7 +251,7 @@ for (const entry of stories) {
     });
 
     const failures: string[] = [];
-    for (const [index, variant] of VARIANTS.entries()) {
+    for (const [index, variant] of variants.entries()) {
       await test.step(`${variant.theme}/${variant.viewport.name}`, async () => {
         const state = index === 0 || reloadEveryVariant ? await loadStory(page, entry, variant) : await switchVariant(page, variant);
         await checkVariant(page, entry, variant, state, problems, failures);

@@ -2,6 +2,7 @@ package encodeport
 
 import (
 	"context"
+	"desktop/internal/persist"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -116,7 +117,7 @@ func (f *FFmpeg) DecodeToWAV(ctx context.Context, src, dst string) error {
 	if _, err := os.Lstat(dst); err == nil {
 		return ErrDestinationExists
 	}
-	if err := os.Rename(partial, dst); err != nil {
+	if err := persist.Rename(partial, dst); err != nil {
 		return err
 	}
 	keep = true

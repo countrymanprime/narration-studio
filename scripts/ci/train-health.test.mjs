@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { evaluateHeartbeat, isHoldTicked, parseLastPass, tickHold } from './train-health.mjs';
+import { evaluateHeartbeat, isHoldTicked, parseLastPass, tickHold, trainIssues } from './train-health.mjs';
 
 const HOUR = 60 * 60 * 1000;
 const now = new Date('2026-10-10T12:00:00Z');
@@ -55,4 +55,17 @@ test('tickHold leaves an already ticked body unchanged and does not touch HOLD-U
   assert.equal(tickHold(already), already);
   const other = '- [ ] HOLD-UNTIL-RESET\n';
   assert.equal(tickHold(other), other);
+});
+
+test('trainIssues lists every open train issue from gh issue list output', () => {
+  assert.deepEqual(trainIssues('[{"number":3200},{"number":3201}]'), ['3200', '3201']);
+});
+
+test('trainIssues watches nothing when no train issue is open', () => {
+  assert.deepEqual(trainIssues('[]'), []);
+  assert.deepEqual(trainIssues(''), []);
+});
+
+test('trainIssues takes TRAIN_ISSUE over the list, for a manual run', () => {
+  assert.deepEqual(trainIssues('[{"number":3200}]', '3205'), ['3205']);
 });

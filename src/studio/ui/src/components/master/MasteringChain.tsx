@@ -120,6 +120,7 @@ export function MasteringChain({
   saving = false,
   locked = false,
   onChoose,
+  retry,
 }: {
   providers?: MasteringProviders;
   problem?: string;
@@ -127,8 +128,10 @@ export function MasteringChain({
   saving?: boolean;
   locked?: boolean;
   onChoose?: (name: string) => void;
+  /** Reads the chains again: the failed read's toast offers it as Retry (issue #2919). */
+  retry?: () => void;
 }) {
-  useErrorToast(problem && `The mastering chain could not be read: ${problem}`);
+  useErrorToast(problem && `The mastering chain could not be read: ${problem}`, retry);
   useErrorToast(saveProblem);
   const row = providers?.providers.find((candidate) => candidate.name === providers.effective);
   return (

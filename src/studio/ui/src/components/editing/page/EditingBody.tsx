@@ -6,6 +6,7 @@ import type { FindingsApi } from '../../../api/contracts/findings';
 import type { Keymap } from '../../../input/keymap';
 import { useCommand } from '../../../input/useCommand';
 import { overlay } from '../../../overlay/overlayService';
+import { retryAction } from '../../primitives/Toast';
 import { useJournal } from '../../../studio/StudioProvider';
 import { useOutputPrefs } from '../../engine/outputPrefs';
 import { useTakeAudition } from '../takes/useTakeAudition';
@@ -16,6 +17,7 @@ import { SelToolbar } from '../bar/SelToolbar';
 import { useAnnouncePlayback } from '../bar/useAnnouncePlayback';
 import { useScriptPlayback } from '../bar/useScriptPlayback';
 import { registerCleanupSection } from '../cleanup/registerCleanupSection';
+import { registerLevelsSection } from '../cleanup/registerLevelsSection';
 import { useCleanupDeps } from '../cleanup/useCleanupDeps';
 import { Drawer, flagTotal } from '../drawer/Drawer';
 import { DrawerLayout } from '../drawer/DrawerLayout';
@@ -52,7 +54,7 @@ import { ReplacementMarksContext } from '../range/replace/replacementMarks';
 import { useReplaceAudio } from '../range/replace/useReplaceAudio';
 import { useVoiceSample } from '../voicesample/useVoiceSample';
 import { TimelineStrip, type TimelineStripProps } from '../strip/TimelineStrip';
-import { useKeepTakes } from '../takes/keepTake';
+import { createLineBusy, useKeepTakes } from '../takes/keepTake';
 import { useHideOthers } from '../takes/prep/useHideOthers';
 import { usePrepSteps } from '../takes/prep/usePrepSteps';
 import { dawSplitter } from '../takes/split/splitCommand';
@@ -73,7 +75,7 @@ import { installBackupSteps, tokensIn } from '../backups/backupBefore';
 import { FxMarkersContext } from '../range/fx/fxMarkers';
 import { registerSelectionAction } from '../bar/selectionActions';
 import { SelectionActionButton } from '../bar/SelectionActionButton';
-import { useShowInDaw } from '../takes/useShowInDaw';
+import { useShowInDawTakeControl } from '../takes/useShowInDaw';
 import { escapeClosesPanel } from '../../primitives/focusReturn';
 import { IconButton } from '../../primitives/IconButton';
 import { registerTakeControl } from '../takes/takeControls';
@@ -82,6 +84,7 @@ import { NoAudioBanner } from './NoAudioBanner';
 import { noAudioText } from './noAudioText';
 import { useChapterLink } from './useChapterLink';
 import { useEditingActionCommands } from './useEditingPageCommands';
+import { useCheckRecordingsGate } from '../../recordingcheck/CheckRecordingsButton';
 import { useRecordingCheck } from './useRecordingCheck';
 import { ScriptNotesProvider } from '../script/paragraphNotes';
 import { useEntries, useMarks, useSpeakers } from '../../script/page/data/useScriptData';
@@ -238,11 +241,12 @@ export function EditingBody(props: EditingBodyProps) {
   const current = activePid(doc, state);
   const currentLine = current ? (lines.byId.get(current) ?? null) : null;
   const dockTake = currentLine?.takes.find((t) => t.active)?.label ?? null;
-  const keep = useKeepTakes(journal, lines.byId);
+  const lineBusy = useMemo(createLineBusy, []);
+  const keep = useKeepTakes(journal, lines.byId, lineBusy);
   const passageOf = useCallback((sel: WordMenuSelection) => lineOfKey(sel.doc, lines.byId, sel.keys[0]), [lines.byId]);
   const currentRef = useRef(currentLine);
   currentRef.current = currentLine;
-  const hide = useHideOthers({ journal, kept: keep.kept, current: () => currentRef.current, passageOf });
+  const hide = useHideOthers({ journal, kept: keep.kept, current: () => currentRef.current, passageOf, busy: lineBusy });
   const prep = usePrepSteps({ journal, hidden: hide.hiddenIds });
   const lineTakes = useLineTakes(currentLine, keep.keep);
   const [openLines, setOpenLines] = useState<ReadonlySet<string>>(new Set());
@@ -355,7 +359,7 @@ export function EditingBody(props: EditingBodyProps) {
       }),
     [],
   );
-  useShowInDaw(chapterId, caps);
+  useShowInDawTakeControl(chapterId);
   // Undo choice in the footer of a line whose take was kept here.
   useEffect(
     () =>
@@ -409,6 +413,7 @@ export function EditingBody(props: EditingBodyProps) {
     () => registerCleanupSection({ journal, playback: previewPlayback, ...(cleanupDeps ? { deps: cleanupDeps } : {}) }),
     [journal, cleanupDeps, previewPlayback],
   );
+  useEffect(() => registerLevelsSection(), []);
   // What the inspector needs to change, bypass and compare an effect through the DAW and the history, and to hear its words through the
   // page's playback (stopped while the DAW plays a Compare).
   const { onEffects } = props;
@@ -476,7 +481,19 @@ export function EditingBody(props: EditingBodyProps) {
     },
   });
 
-  useEditingActionCommands({ doc, selected, cuts: read.cuts, cut, fx, checkRecording, tabs: offered, openTab, keymap });
+  const checkGate = useCheckRecordingsGate();
+  useEditingActionCommands({
+    doc,
+    selected,
+    cuts: read.cuts,
+    cut,
+    fx,
+    checkRecording: checkRecording?.open,
+    checkReason: checkGate,
+    tabs: offered,
+    openTab,
+    keymap,
+  });
 
   // The keys hook binds nothing for a chapter with no text, so the page keeps the chapter step working there.
   const empty = doc.items.length === 0;
@@ -551,7 +568,7 @@ export function EditingBody(props: EditingBodyProps) {
       {chapterLink.dialog}
       <div className="min-h-0 flex-1 pb-3 [&>div]:h-full">
         <DrawerLayout open={drawerOpen} onClose={closeDrawer} drawer={drawer}>
-          <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[10px] border border-[var(--border)] bg-[var(--surface)]">
+          <div className="flex h-full min-h-0 flex-col overflow-x-hidden overflow-y-auto rounded-[10px] border border-[var(--border)] bg-[var(--surface)]">
             <EditingHeader
               stepper={props.stepper}
               legend={<Legend doc={doc} noAudio={read.audio.kind !== 'ready'} />}
@@ -566,6 +583,7 @@ export function EditingBody(props: EditingBodyProps) {
               drawerOpen={drawerOpen}
               onDrawer={panels.drawer.toggle}
               onDrawerKeyDown={drawerOpen ? drawerEscape : undefined}
+              dawTools
             />
             {/* Under the header, so the title stays where it is on every state (XED-7). */}
             <NoAudioBanner audio={read.audio} chapterName={chapterName} daw={dawName} onReread={props.onReread} />
@@ -576,7 +594,7 @@ export function EditingBody(props: EditingBodyProps) {
                     <SampleMarksContext.Provider value={sampleMarks}>
                       <SamplePlayerContext.Provider value={samplePlayer}>
                         <ScriptNotesProvider sources={noteSources} chapterId={chapterId}>
-                          <ScriptDoc reason={reason} explained={read.audio.kind !== 'ready'} onCheckRecording={checkRecording} />
+                          <ScriptDoc reason={reason} explained={read.audio.kind !== 'ready'} checkRecording={checkRecording} />
                         </ScriptNotesProvider>
                       </SamplePlayerContext.Provider>
                     </SampleMarksContext.Provider>
@@ -631,6 +649,7 @@ export function EditingBody(props: EditingBodyProps) {
             {flagPara && flagPid === pid && state.flag ? (
               <FlagCard
                 doc={doc}
+                chapterId={chapterId}
                 dp={flagPara}
                 flag={state.flag}
                 score={scoreOf(read, state.flag)}
@@ -691,7 +710,8 @@ function ScriptHost({ box, root, children }: { box: RefObject<HTMLElement | null
   useEffect(() => {
     box.current = root.current?.querySelector<HTMLElement>('[data-script]') ?? null;
   });
-  return <div className="relative flex min-h-0 flex-1 flex-col">{children}</div>;
+  // The script keeps room to read in a window too short for the header, the dock and the bar around it; the card scrolls then, so the dock sits under the script and not over it (#2804).
+  return <div className="relative flex min-h-32 flex-1 flex-col">{children}</div>;
 }
 
 /**
@@ -733,6 +753,8 @@ function useOpenAt(
     done.current.passage = true;
     setLineOpen(id, true);
   }, [link.passageId, doc, lines, dispatch, setLineOpen]);
+  // A failed read of the finding a link names is an error toast with Retry, which reads it again (issue #2919).
+  const [findingAttempt, setFindingAttempt] = useState(0);
   useEffect(() => {
     if (!link.findingId || done.current.finding) return;
     let live = true;
@@ -768,11 +790,17 @@ function useOpenAt(
       (e: unknown) => {
         if (!live) return;
         done.current.finding = true;
-        overlay.toast(`The finding this link names could not be read: ${e instanceof Error ? e.message : String(e)}`, { tone: 'error' });
+        overlay.toast(`The finding this link names could not be read: ${e instanceof Error ? e.message : String(e)}`, {
+          tone: 'error',
+          action: retryAction(() => {
+            done.current.finding = false;
+            setFindingAttempt((n) => n + 1);
+          }),
+        });
       },
     );
     return () => {
       live = false;
     };
-  }, [link.findingId, doc, dispatch, findings]);
+  }, [link.findingId, doc, dispatch, findings, findingAttempt]);
 }

@@ -175,4 +175,44 @@ describe('saving the voice setup', () => {
     await act(async () => {});
     expect(entities).not.toHaveBeenCalled();
   });
+
+  // Issue #2919: the character list is a read the panel needs, so a failed read is an error toast with Retry, which reads it again.
+  it('a failed read of the characters offers Retry, which reads them again', async () => {
+    const api = createMockApi();
+    let reads = 0;
+    api.guideEntities = async () => {
+      reads += 1;
+      if (reads === 1) throw new Error('the Story Bible is busy');
+      return [];
+    };
+    api.voiceTracksGet = async () => state({});
+    const notify = vi.fn();
+    const stable = (message: string, tone?: string, action?: { onAction: () => void }) => notify(message, tone, action);
+    mount(api, stable as never);
+    await act(async () => {});
+    const failed = notify.mock.calls.find(([, tone]) => tone === 'error');
+    expect(failed?.[0]).toContain('busy');
+    expect(failed?.[2]).toMatchObject({ label: 'Retry' });
+    await act(async () => failed![2].onAction());
+    expect(reads).toBe(2);
+  });
+
+  it('a failed read of the project voice setup offers Retry, which reads it again', async () => {
+    const api = createMockApi();
+    api.guideEntities = async () => [];
+    let reads = 0;
+    api.voiceTracksGet = async () => {
+      reads += 1;
+      if (reads === 1) throw new Error('the voice tracks file is unreadable');
+      return state({});
+    };
+    const notify = vi.fn();
+    const stable = (message: string, tone?: string, action?: { onAction: () => void }) => notify(message, tone, action);
+    mount(api, stable as never);
+    await act(async () => {});
+    const failed = notify.mock.calls.find(([message]) => String(message).includes('unreadable'));
+    expect(failed?.[2]).toMatchObject({ label: 'Retry' });
+    await act(async () => failed![2].onAction());
+    expect(reads).toBe(2);
+  });
 });

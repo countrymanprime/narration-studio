@@ -2,8 +2,6 @@
 
 Storybook title: `Primitives/Button`. Source: `src/components/primitives/Button.tsx`.
 
-![Button, Primary, light theme](../images/button.webp)
-
 ## Stories
 
 - Primary
@@ -40,7 +38,6 @@ Storybook title: `Primitives/Button`. Source: `src/components/primitives/Button.
 - `src/components/booth/voices/VoiceControl.tsx`
 - `src/components/booth/voices/WhoIsInDialog.tsx`
 - `src/components/connection/ChapterLinkDialog.tsx`
-- `src/components/connection/ReaperOffDialog.tsx`
 - `src/components/connection/ResolveShell.tsx`
 - `src/components/credits/CreditsSetupBanner.tsx`
 - `src/components/credits/CreditsSetupDialog.tsx`
@@ -66,7 +63,6 @@ Storybook title: `Primitives/Button`. Source: `src/components/primitives/Button.
 - `src/components/editing/range/fx/FxDialog.tsx`
 - `src/components/editing/range/replace/ReplaceDialog.tsx`
 - `src/components/editing/range/replace/ReplacementMark.tsx`
-- `src/components/editing/script/ScriptDoc.tsx`
 - `src/components/editing/stack/RetryBar.tsx`
 - `src/components/editing/stack/StackControls.tsx`
 - `src/components/editing/stack/StackDialog.tsx`
@@ -83,13 +79,10 @@ Storybook title: `Primitives/Button`. Source: `src/components/primitives/Button.
 - `src/components/engine/ChapterTagsDialog.tsx`
 - `src/components/engine/CleanupToolsDialog.tsx`
 - `src/components/engine/CreateChapterRegionsDialog.tsx`
-- `src/components/engine/DawToolsMenu.tsx`
-- `src/components/engine/EnginePanel.tsx`
 - `src/components/engine/EnginePanelContext.tsx`
 - `src/components/engine/LinkChaptersDialog.tsx`
+- `src/components/engine/NestedChaptersNotice.tsx`
 - `src/components/engine/RenderConfigDialog.tsx`
-- `src/components/engine/RetakeLanesDialog.tsx`
-- `src/components/engine/SyncActivityLog.tsx`
 - `src/components/help/ShortcutSheet.tsx`
 - `src/components/layout/AddressGate.tsx`
 - `src/components/layout/CheckLine.tsx`
@@ -116,7 +109,6 @@ Storybook title: `Primitives/Button`. Source: `src/components/primitives/Button.
 - `src/components/primitives/ErrorBoundary.tsx`
 - `src/components/primitives/WorkDialog.tsx`
 - `src/components/production/ChapterTrackPanel.tsx`
-- `src/components/production/CreditsRowPanel.tsx`
 - `src/components/production/ImportChooseDialog.tsx`
 - `src/components/production/ImportReview.tsx`
 - `src/components/production/ManuscriptImport.tsx`
@@ -131,7 +123,6 @@ Storybook title: `Primitives/Button`. Source: `src/components/primitives/Button.
 - `src/components/proof/CompareRun.tsx`
 - `src/components/proof/NativeTakesPanel.tsx`
 - `src/components/proof/PreviewPanel.tsx`
-- `src/components/proof/ProofChapterPage.tsx`
 - `src/components/proof/RenderAssociationSection.tsx`
 - `src/components/proof/checkcard/CheckCard.tsx`
 - `src/components/proof/checkcard/FindingRow.tsx`
@@ -142,6 +133,7 @@ Storybook title: `Primitives/Button`. Source: `src/components/primitives/Button.
 - `src/components/proof/inspector/InspectorActions.tsx`
 - `src/components/proof/notes/NotesTable.tsx`
 - `src/components/proof/proofOptions/ProofOptions.tsx`
+- `src/components/recordingcheck/CheckRecordingsButton.tsx`
 - `src/components/recordingcheck/CheckRecordingsDialog.tsx`
 - `src/components/recordingcheck/CheckResult.tsx`
 - `src/components/recordingcheck/RunningView.tsx`
@@ -162,8 +154,6 @@ Storybook title: `Primitives/Button`. Source: `src/components/primitives/Button.
 - `src/components/script/page/tools/select/MarkComposer.tsx`
 - `src/components/script/page/tools/select/MarksDialog.tsx`
 - `src/components/script/page/tools/select/SelectionTool.tsx`
-- `src/components/settings/BackupsSection.tsx`
-- `src/components/settings/CapabilitySection.tsx`
 - `src/components/settings/CreditsPanel.tsx`
 - `src/components/settings/DeliveryProfileEditor.tsx`
 - `src/components/settings/DeliveryProfilesPanel.tsx`
@@ -171,21 +161,20 @@ Storybook title: `Primitives/Button`. Source: `src/components/primitives/Button.
 - `src/components/settings/RetailSamplePanel.tsx`
 - `src/components/settings/ScopedSetting.tsx`
 - `src/components/settings/UpdatesPanel.tsx`
-- `src/components/settings/analysis/AnalysisToolsSection.tsx`
 - `src/components/settings/analysis/ConsentDialog.tsx`
-- `src/components/settings/controls/CapabilitiesBody.tsx`
+- `src/components/settings/controls/AppearanceBodies.tsx`
 - `src/components/settings/controls/CreditsBody.tsx`
 - `src/components/settings/controls/EngineBody.tsx`
 - `src/components/settings/controls/MicBody.tsx`
 - `src/components/settings/controls/MwKeyBody.tsx`
 - `src/components/settings/controls/SampleOutputBody.tsx`
 - `src/components/settings/models/AssetRow.tsx`
+- `src/components/settings/models/ModelsFolder.tsx`
+- `src/components/settings/models/MoveEndedDialog.tsx`
 - `src/components/settings/page/CategoryPane.tsx`
 - `src/components/settings/page/DeleteStoryBibleData.tsx`
 - `src/components/settings/page/ModelsPane.tsx`
-- `src/components/settings/page/PagesPane.tsx`
 - `src/components/settings/page/ProjectDataPanel.tsx`
-- `src/components/settings/page/Results.tsx`
 - `src/components/settings/page/ScopedFieldsPanel.tsx`
 - `src/components/settings/page/SettingsPage.tsx`
 - `src/components/settings/row/AssetNote.tsx`
@@ -202,6 +191,7 @@ Storybook title: `Primitives/Button`. Source: `src/components/primitives/Button.
 - `src/components/storybible/VoiceDataPanel.tsx`
 - `src/components/storybible/VoiceReferencesSection.tsx`
 - `src/components/storybible/source/PronSourceTag.tsx`
+- `src/components/storybible/source/PronunciationCandidates.tsx`
 - `src/components/storybible/source/SourceMenu.tsx`
 - `src/components/storybible/suggested/import/ImportDialog.tsx`
 - `src/components/storybible/suggested/panel/ScanStatus.tsx`

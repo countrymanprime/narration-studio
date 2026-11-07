@@ -1,6 +1,7 @@
 package voicesample
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
@@ -26,10 +27,21 @@ func (s *Service) view(stored Stored, book Book) Sample {
 		}
 		break
 	}
-	return Sample{
+	sample := Sample{
 		ID: stored.ID, CharacterID: stored.CharacterID, Label: stored.Label, Note: stored.Note, Primary: stored.Primary, CreatedAt: stored.CreatedAt,
 		DurationMs: stored.Clip.DurationMs, Bytes: stored.Clip.Bytes, ClipState: s.clipSize(stored), Source: source,
 	}
+	if keptInDaw(stored) && stored.DawRegion != nil {
+		daw, _, _, _ := s.dawRegion(stored)
+		sample.Storage, sample.Daw = stored.Storage, &daw
+		if stored.Storage == StorageDAW {
+			sample.ClipState = ClipMissing
+			if playable(daw.State) {
+				sample.ClipState = ClipOK
+			}
+		}
+	}
+	return sample
 }
 
 // clipSize is the clip's state from a look at the file the id names: there, and of the saved size. The hash is checked by Clip.
@@ -172,19 +184,35 @@ func (s *Service) SetPrimary(id string) (List, error) {
 
 // Remove deletes a sample and its clip. A sample that is not there is not an error: Removed is then 0. Deleting a primary promotes
 // the newest sample the character keeps.
+//
+// A sample kept in the DAW takes its region with it, once the store no longer holds the row and the store's lock is let go. A DAW that
+// will not delete it (recording, a refusal, no answer, none connected) never fails the removal: the region stays, and the narrator is
+// told so in a plain sentence.
 func (s *Service) Remove(id string) (Removed, error) {
+	removed, region, err := s.removeRow(id)
+	if err != nil || removed.Removed == 0 {
+		return removed, err
+	}
+	if why := s.dropRegion(context.Background(), region); why != "" {
+		s.tellRegionsStay(1, why, false)
+	}
+	return removed, nil
+}
+
+// removeRow takes the sample's row and clip out under the store's lock and answers the region it was kept as, for Remove to delete.
+func (s *Service) removeRow(id string) (Removed, *StoredRegion, error) {
 	if s.config.Project == "" || !idPattern.MatchString(id) {
-		return Removed{}, nil
+		return Removed{}, nil, nil
 	}
 	unlock := lockFile(storePath(s.config.Project))
 	defer unlock()
 	file, err := s.readStore()
 	if err != nil {
-		return Removed{}, err
+		return Removed{}, nil, err
 	}
 	index := indexOf(file.Samples, id)
 	if index < 0 {
-		return Removed{}, nil
+		return Removed{}, nil, nil
 	}
 	gone := file.Samples[index]
 	file.Samples = append(file.Samples[:index:index], file.Samples[index+1:]...)
@@ -192,7 +220,7 @@ func (s *Service) Remove(id string) (Removed, error) {
 		promoteNewest(file.Samples, gone.CharacterID)
 	}
 	if err := s.writeStore(file); err != nil {
-		return Removed{}, err
+		return Removed{}, nil, err
 	}
 	// The row is gone, so the sample is gone; a clip that will not delete is only a file nothing lists.
 	if path, ok := ClipPath(s.config.Project, id); ok {
@@ -200,31 +228,63 @@ func (s *Service) Remove(id string) (Removed, error) {
 			s.config.Reporter.Warn("voice_sample_clip_left", fmt.Sprintf("clip %s.wav could not be deleted: %v", id, err))
 		}
 	}
-	return Removed{Removed: 1, Bytes: gone.Clip.Bytes}, nil
+	// A sample kept only in the DAW had no file, so its row's clip bytes are a size, not bytes the project held.
+	freed := gone.Clip.Bytes
+	if gone.Storage == StorageDAW {
+		freed = 0
+	}
+	return Removed{Removed: 1, Bytes: freed}, gone.DawRegion, nil
 }
 
-// RemoveAll deletes every sample and every clip in the clips folder, a clip no row names included.
+// RemoveAll deletes every sample and every clip in the clips folder, a clip no row names included. The regions of samples kept in the
+// DAW are deleted too (Remove says how a DAW that will not is told).
 func (s *Service) RemoveAll() (Removed, error) {
+	removed, regions, err := s.removeAllRows()
+	if err != nil || removed.Removed == 0 {
+		return removed, err
+	}
+	// A DAW that says no (recording, not connected, no answer) is not asked again for each of the others: thirty samples and a silent
+	// DAW would otherwise hold the binding for thirty timeouts. The rest stay with the same reason, and the narrator is told once.
+	ctx := context.Background()
+	stay, why := 0, ""
+	for position, region := range regions {
+		if reason := s.dropRegion(ctx, region); reason != "" {
+			stay, why = len(regions)-position, reason
+			break
+		}
+	}
+	s.tellRegionsStay(stay, why, false)
+	return removed, nil
+}
+
+// removeAllRows empties the store and the clips folder under the store's lock and answers the regions the samples were kept as.
+func (s *Service) removeAllRows() (Removed, []*StoredRegion, error) {
 	if s.config.Project == "" {
-		return Removed{}, nil
+		return Removed{}, nil, nil
 	}
 	unlock := lockFile(storePath(s.config.Project))
 	defer unlock()
 	file, err := s.readStore()
 	if err != nil {
-		return Removed{}, err
+		return Removed{}, nil, err
 	}
 	removed := Removed{Removed: len(file.Samples), Bytes: totalBytes(file.Samples)}
+	var regions []*StoredRegion
+	for _, sample := range file.Samples {
+		if sample.DawRegion != nil {
+			regions = append(regions, sample.DawRegion)
+		}
+	}
 	_, statErr := os.Stat(storePath(s.config.Project))
 	if removed.Removed > 0 || statErr == nil {
 		if err := s.writeStore(storeFile{SchemaVersion: Version, Samples: []Stored{}}); err != nil {
-			return Removed{}, err
+			return Removed{}, nil, err
 		}
 	}
 	if err := os.RemoveAll(clipsDir(s.config.Project)); err != nil {
 		s.config.Reporter.Warn("voice_sample_clip_left", fmt.Sprintf("the clips folder could not be deleted: %v", err))
 	}
-	return removed, nil
+	return removed, regions, nil
 }
 
 // Clip locates a sample's audio for playback: the file the id names, only when it is the file that was saved (its size and its
@@ -243,6 +303,16 @@ func (s *Service) Clip(id string) (ClipFile, error) {
 		return ClipFile{}, ErrNotFound
 	}
 	stored := file.Samples[index]
+	if stored.Storage == StorageDAW {
+		data, err := s.dawAudio(stored)
+		if errors.Is(err, errNoDawAudio) {
+			return ClipFile{State: ClipMissing}, nil
+		}
+		if err != nil {
+			return ClipFile{}, err
+		}
+		return ClipFile{Data: data, Bytes: int64(len(data)), State: ClipOK}, nil
+	}
 	path, _ := ClipPath(s.config.Project, id)
 	if state := s.clipSize(stored); state != ClipOK {
 		return ClipFile{State: state}, nil

@@ -34,6 +34,7 @@ var realEvents = map[string][]string{
 	"PROJECT_STATUS":        {"PROJECT_STATUS", "", "C:/p/Book.rpp", "0"},
 	"VOICE_SAMPLE_KEPT":     {"VOICE_SAMPLE_KEPT", "k1", "1", "created"},
 	"VOICE_SAMPLE_STALE":    {"VOICE_SAMPLE_STALE", "k1", "9"},
+	"VOICE_SAMPLE_REMOVED":  {"VOICE_SAMPLE_REMOVED", "d1", "3", "deleted"},
 	"VOICE_SAMPLE_REGION":   {"VOICE_SAMPLE_REGION", "r1", "3", "40.000000", "45.000000", "Voice sample: Hatter | angry"},
 	"VOICE_SAMPLES_READ":    {"VOICE_SAMPLES_READ", "r1", "2", "7"},
 	"PICKUPS_IMPORTED":      {"PICKUPS_IMPORTED", "t1", "2", "0", "0"},
@@ -65,8 +66,16 @@ var realEvents = map[string][]string{
 	"TRACK_STALE":     {"TRACK_STALE", "t1", "{FFFFFFFF-0000-4000-8000-00000000FFFF}"},
 	// src/studio/integrations/reaper/tests/track_select_test.lua (select_track).
 	"TRACK_SELECTED": {"TRACK_SELECTED", "t1", "{00000001-0000-4000-8000-000000000001}"},
-	// src/studio/integrations/reaper/tests/track_create_test.lua (track_create).
-	"TRACK_CREATED": {"TRACK_CREATED", "c1", "{00000003-0000-4000-8000-000000000003}", "2", "Chapter 2: The Storm"},
+	// src/studio/integrations/reaper/tests/track_create_test.lua (track_create of a chapter folder; a plain track sends the first five).
+	"TRACK_CREATED":    {"TRACK_CREATED", "c1", "{00000003-0000-4000-8000-000000000003}", "2", "Chapter 2: The Storm", "{00000004-0000-4000-8000-000000000004}", "3", "Narrator"},
+	"FOLDER_MOVE":      {"FOLDER_MOVE", "p1", "{00000006-0000-4000-8000-000000000006}", "Chapter 4", "{00000003-0000-4000-8000-000000000003}", "Chapter 3", "", ""},
+	"FOLDERS_PLANNED":  {"FOLDERS_PLANNED", "p1", "3"},
+	"FOLDERS_REPAIRED": {"FOLDERS_REPAIRED", "a1", "3"},
+	"FOLDERS_STALE":    {"FOLDERS_STALE", "a1"},
+	// src/studio/integrations/reaper/tests/tracks_read_test.lua (tracks_read).
+	"TRACKS_READ":     {"TRACKS_READ", "r1", "C:/p/Book.rpp", "0", "12"},
+	"TRACKS_ROW":      {"TRACKS_ROW", "r1", "3", "{00000004-0000-4000-8000-000000000004}", "Guard", "-1"},
+	"TRACKS_READ_END": {"TRACKS_READ_END", "r1", "5", "5"},
 	// src/studio/integrations/reaper/tests/media_file_test.lua (preview_file_range, stop_file_preview, reveal_file).
 	"FILE_PREVIEW_STARTED": {"FILE_PREVIEW_STARTED", "p1", "C:/Renders/Chapter 01.wav", "12.500000", "5.000000"},
 	"FILE_PREVIEW_STOPPED": {"FILE_PREVIEW_STOPPED", "s1", "1"},
@@ -199,6 +208,18 @@ func TestAnOlderScriptThatSendsFewerOptionalMarkerFieldsIsAccepted(t *testing.T)
 		if err := CheckEvent(realEvents["COMPARE_MARKER"][:cut]); err != nil {
 			t.Errorf("a marker of %d fields: %v", cut, err)
 		}
+	}
+}
+
+func TestAPlainTrackCreatedWithoutAChildIsAcceptedAndAChildIndexMustBeANumber(t *testing.T) {
+	// A plain track, and every script older than the chapter folder (#2840), answers the first five fields.
+	if err := CheckEvent(realEvents["TRACK_CREATED"][:5]); err != nil {
+		t.Fatalf("a five-field TRACK_CREATED: %v", err)
+	}
+	bad := append([]string{}, realEvents["TRACK_CREATED"]...)
+	bad[6] = "three"
+	if err := CheckEvent(bad); err == nil {
+		t.Fatal("a child index that is not a number was accepted")
 	}
 }
 

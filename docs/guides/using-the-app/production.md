@@ -28,14 +28,28 @@ picker (see [Importing the manuscript](#importing-the-manuscript)), and the cale
 The app connects to the REAPER you have open by itself. For the first ten seconds after it opens, an
 engine that is not connected yet shows a quiet "Connecting to REAPER…" line. If it has not connected by
 then, a **REAPER not connected** mark takes its place, and a dialog opens once: the DAW's reason ("REAPER is not running."),
-that progress that comes from it may be out of date until it is running again, and when the app last checked.
-**Start REAPER** starts REAPER on the linked project, and **Check again** asks the DAW now. The X closes the dialog and the
+that progress that comes from it may be out of date until it is running again, and when the app last checked. The mark is a problem notice that reopens this dialog, not the DAW chip: the engine chip in the header is the one that opens the [audio engine panel](navigation.md#the-audio-engine-panel).
+**Start REAPER** starts REAPER on the linked project, and **Check again** asks the DAW now. While no REAPER project file is linked to the project, **Start REAPER** is off and **Link project file…** is the main button; it links the file and the dialog reads the answer again. The same mark and dialog appear, worded the same, on [Editing](editing.md), [Proof](proof.md), [Pickups](pickups.md), [Master & QC](master-and-qc.md) and the [Booth](booth.md): a **Check again** or a link on one is the answer on all of them, with no reload. The X closes the dialog and the
 mark opens it again; both go by themselves as soon as the engine connects. It never offers the built-in recorder:
 switching recorders is a choice in [Settings > Recording & DAW](settings.md). Whether Record could work at all
 is one answer on Production, the Booth and the Companion: the DAW's own sentence when it cannot.
 
 If the production overview cannot be read when the page opens, Production keeps its title and says "This page could not
 be loaded" with the reason and a **Retry** button, which reads it again.
+
+## Common tasks
+
+This page is a reference to everything Production shows. To do one thing, start here:
+
+- **Import the manuscript**: with none imported yet, the page is the import; press **Import manuscript**
+  ([Importing the manuscript](#importing-the-manuscript)).
+- **Start recording**: **Start session** opens the [Booth](booth.md) on the chapter being recorded.
+- **See what to work on next**: [Next up](#next-up).
+- **Time a stage of work**: [The stage timer](#the-stage-timer).
+- **Check a chapter's recording against its text**: [Checking a chapter's recording](#checking-a-chapters-recording).
+- **Link a chapter to its track**: [A chapter's track](#a-chapters-track).
+- **Set the due date**: on [Schedule](schedule.md). Before a manuscript is imported, the calendar icon here opens it.
+- **Send a progress report to the author or publisher**: **Export status report** ([Status report](#status-report)).
 
 ## The figures
 
@@ -90,7 +104,7 @@ narration chapters only: a chapter removed from recording, and reference materia
 
 ## Chapter pipeline
 
-The pipeline has one row per narration chapter. In a narrow window the stages scroll sideways under the chapter names, which stay in view, with a shadow on the side that has more. **Rec.** is the audio
+The pipeline has one row per narration chapter. The cells are one stop in the Tab order (the scroll area and the two column-info marks in the header come before them): Tab enters them on the cell you last used, the arrow keys move between cells (Left and Right along a row, Up and Down in a column), Home and End go to the ends of a row, and the next Tab leaves it. A book of more than 150 chapters draws only the rows near the window, one row height each with the name held to two lines (the full name is in its tip), so a book of thousands of chapters opens in seconds; scrolling draws the rest, and the browser's find-in-page only finds rows that are drawn. In a narrow window the stages scroll sideways under the chapter names, which stay in view, with a shadow on the side that has more. **Rec.** is the audio
 on the chapter's confirmed track in the saved project (`1:12`, or `<0:01` for under a minute), and **Est.** beside it (`1:20`) is the
 chapter's finished length estimated from its words. Every column header is centred over its cells. When Rec. has no length, it says why: **None yet** (linked, nothing recorded),
 **No track**, **2+ tracks** (keep one in the track panel), **Track gone** (the linked track is no longer in the project), **No
@@ -139,8 +153,8 @@ track no longer in the saved project says it may have been deleted or the projec
 shows its figures as last known and offers no playback.
 
 When the panel knows the chapter's track, it can play that track's recorded audio right there -
-Play/Pause and skip 30 seconds back or forward - and **Select in REAPER** brings the track into
-view in REAPER itself. Selecting needs REAPER linked and answering, and
+Play/Pause and skip 30 seconds back or forward - and **Show in REAPER** (the icon button, the same one the chapter's row menu has) brings the track into
+view in your DAW itself. Selecting needs REAPER linked and answering, and
 changes nothing else: no undo point, and REAPER's own selection is all it touches.
 
 ![Production - a chapter's track slide-over on a confirmed link, with how the track was found](../../images/ui/production-track-panel.webp)
@@ -162,7 +176,7 @@ lists that chapter in the opening row's place. Prep is the state you set under *
 Edit and Proof follow the row's status, and a stage nothing measures yet is a dash. Right-click a credits row for the same menu as a chapter's (**Open Proof**, **Editing check…**, **Chapter track…** and the rest) plus **Credits…**, which shows the template's name, words and estimated length (including
 room tone), a warning for an unresolved token (`[Author]` never filled in) with **Fill in under
 Settings > Credits**, its status, its Recorded length (once its own track is linked - never an
-estimate), and **Check recordings…** beside **Open in Script**. A kind with no template has no row; add one in [Settings, Credits](settings.md#credits).
+estimate), and a **Check recordings** icon beside **Open in Script**. A kind with no template has no row; add one in [Settings, Credits](settings.md#credits).
 Checking credits works the same as [checking a chapter's recording](#checking-a-chapters-recording)
 below, against the credits template's rendered text rather than a manuscript chapter.
 
@@ -172,8 +186,8 @@ below, against the credits template's rendered text rather than a manuscript cha
 
 The recording check transcribes the audio items on a chapter's REAPER track with Whisper, then compares the words with the
 chapter's text in order. Every way to start it opens the same **Check recordings** dialog, with the same options and the same
-settings: the Recording check card's icon (with the out-of-date and unchecked chapters ticked), a row's **Check recordings…** in
-the pipeline's row menu, a credits row's check, **Check recordings…** in a chapter's readiness, and the matching buttons on
+settings: the Recording check card's icon (with the out-of-date and unchecked chapters ticked), a row's **Check recordings** in
+the pipeline's row menu, a credits row's check, **Check recordings** in a chapter's readiness, and the matching buttons on
 [Proof](proof.md#one-chapter), [Pickups](pickups.md) and [Editing](editing.md) (each with its chapter ticked). Nothing runs until
 you press **Check**. Save the project in REAPER before checking, because the check reads the saved file, not the open session.
 
@@ -249,7 +263,7 @@ counts as done: a chapter nobody has checked reads as not checked, not ready.
 
 The chip on a chapter's current-stage cell says the verdict; it opens the chapter's readiness at the
 side of the page: the verdict in a sentence, each check with its state and reason, and the saved
-REAPER project it was read from. Only the decisions that can be taken are shown, under the evidence. A chapter in Recording that nothing has checked yet reads as not checked and offers **Check recordings…**, which opens [Check recordings](#checking-a-chapters-recording) with that chapter ticked. **Confirm** moves the chapter to the next stage and records what
+REAPER project it was read from. Only the decisions that can be taken are shown, under the evidence. A chapter in Recording that nothing has checked yet reads as not checked and offers a **Check recordings** icon, which opens [Check recordings](#checking-a-chapters-recording) with that chapter ticked. **Confirm** moves the chapter to the next stage and records what
 the evidence was, with **Revert** to move it back; **Dismiss** hides the suggestion until the
 evidence changes. **Check now** reads the evidence again; it never starts a check. The readiness is
 read again when the page opens, after an import, when a recording check ends, after you change a
@@ -294,7 +308,9 @@ ticked: a section you leave out is missing from both the HTML page and the JSON 
 ticked, so a reader can tell a section left out from one that is empty.
 
 **Export** writes the HTML page and the JSON file into this project's <!-- brand:identity.projectFolder -->narration-studio<!-- /brand -->/production/reports folder, under a name built
-from when you exported it, and an export never overwrites an earlier one.
+from when you exported it, and an export never overwrites an earlier one. Once it is written, the open-folder button beside the file names shows that folder in your file manager.
+
+![The Export status report dialog after Export: the written files and the open-folder button beside them](../../images/ui/production-report-written.webp)
 
 The contracted amount and effective rate are left out unless you tick their box: a
 status report is often handed to someone else — a publisher, a collaborator, a rights holder
@@ -303,8 +319,10 @@ checking on progress — who has no need to know what the book pays.
 ## Importing the manuscript
 
 **Import manuscript** (or **Replace manuscript…** in Settings, Project) first opens step 1 of 2, **Choose your
-manuscript**: drop a file on the zone or press **Choose a file…** to pick a .docx, .md or .txt file. A copy is
-kept in your project, and the original is read-only. The app checks a dropped file before it reads it: one file at a time, in a format
+manuscript**: drop a file on the zone or press **Choose a file…** to pick a .docx, .epub, .md or .txt file. A copy is
+kept in your project, and the original is read-only. [Manuscript formats](../../reference/manuscript-formats.md) says how each
+format's chapters are found and what to fix in a file before you import it. The app checks a dropped file before it reads it: one
+file at a time, in a format
 it can import. If it cannot use the file, it says why under the zone; press **Choose a file…** instead.
 
 ![Replace manuscript, step 1 of 2: Choose your manuscript, with the drop zone and Choose a file…](../../images/ui/production-import-choose.webp)
@@ -337,8 +355,9 @@ under the box, a fixed size so it never jumps, set in the same title and subtitl
 The footer has one secondary action, **Back**, and the import itself. The Close button at the top
 cancels. **Close when the import finishes** (on by default, an app setting also under Settings, App &
 updates) closes the import window as soon as the manuscript is written; turn it off to read the
-activity log until you press Close. The import does not build the Story Bible: open
-[Story Bible](story-bible.md) and use **Scan the manuscript** or **Import entries**.
+activity log until you press Close. When the project's Story Bible has no entries yet, the import then builds
+it ([Story Bible](story-bible.md#built-after-an-import)) and a message says what it made; turn **Build the
+Story Bible after import** off in [Settings](settings.md) to start from an empty Story Bible instead.
 
 Every dialog in the app can be used from the keyboard. Focus starts inside the dialog (on its
 message, outlined when you opened it with the keyboard), Tab and Shift+Tab stay inside it, and the
@@ -374,6 +393,12 @@ detected starts empty. Save only writes the fields you confirm — nothing alrea
 **Don't ask for this project** stops it until you replace the manuscript. Either way, a banner
 stays above the figures — and above the [Script](script.md) page's own Opening credits
 card — with **Fill in** to reopen the same dialog for as long as a token stays unresolved.
+
+## What next
+
+- [Schedule](schedule.md): whether the book will be done by its due date, and how it pays.
+- [Script](script.md): prepare the text you import here.
+- [Booth](booth.md): record the chapter Production says is next.
 
 ---
 

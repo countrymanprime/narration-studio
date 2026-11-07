@@ -1,4 +1,5 @@
 import { usePageCommands, type PageItem } from '../../input/pageCommands';
+import { addMarkersLabel } from '../engine/AddMarkers';
 import type { PickupItem } from '../../api/contracts/pickups';
 import { ALL_SCOPE, clock, lineText, sessionPickups, type ChapterRef } from './list/pickupRows';
 
@@ -13,7 +14,8 @@ export function usePickupsPageCommands(page: {
   inView: readonly PickupItem[];
   /** The chapters whose recording check is not current: what Check recordings opens with. */
   chaptersToCheck: readonly string[];
-  daw: Gate;
+  /** Why Check recordings cannot start now (the shared gate), or undefined. */
+  checkReason?: string;
   markers: Gate;
   dawName: string;
   onScope: (scope: string) => void;
@@ -61,6 +63,7 @@ export function usePickupsPageCommands(page: {
     }
 
     const session = sessionPickups(page.inView);
+    const placeable = session.filter((pickup) => pickup.at !== null).length;
     const none = session.length === 0 ? 'No lines in the session.' : undefined;
     items.push(
       {
@@ -68,7 +71,7 @@ export function usePickupsPageCommands(page: {
         label: 'Check recordings',
         group: 'Actions',
         icon: 'checkRecordings',
-        disabledReason: page.daw.available ? undefined : page.daw.message || 'The DAW is not answering.',
+        disabledReason: page.checkReason,
         run: () => page.onCheck([...page.chaptersToCheck]),
       },
       {
@@ -81,10 +84,12 @@ export function usePickupsPageCommands(page: {
       },
       {
         id: 'session.markers',
-        label: `Add ${session.length} as markers in ${page.dawName}`,
+        label: addMarkersLabel(page.dawName, { kind: 'pickups', pickups: session }, placeable),
         group: 'Actions',
         icon: 'addMarker',
-        disabledReason: page.markers.available ? none : page.markers.message || `${page.dawName} cannot add markers now.`,
+        disabledReason: page.markers.available
+          ? (none ?? (placeable === 0 ? 'None of these lines has a place in the recording yet.' : undefined))
+          : page.markers.message || `${page.dawName} cannot add markers now.`,
         run: () => void page.onAddMarkers(session).catch(page.onError),
       },
     );

@@ -1,5 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, fn, userEvent, within } from 'storybook/test';
+import { ApiProvider } from '../../../api/ApiContext';
+import { createMockApi } from '../../../api/mockApi';
 import { ALL_DONE, CHAPTERS, MIXED, SPEECH } from './pickupFixtures';
 import { PickupsTable } from './PickupsTable';
 import { SessionPanel } from './SessionPanel';
@@ -16,10 +18,8 @@ const meta = {
     scope: 'all',
     currentChapterId: 'c1',
     chaptersToCheck: ['c2'],
-    daw: { available: true },
     onScope: fn(),
     onStep: fn(),
-    onCheck: fn(),
     onAdd: fn(),
     onSetIncluded: fn(),
     onSetDone: fn(),
@@ -28,19 +28,22 @@ const meta = {
     onOpenInScript: fn(),
     onGoToProof: fn(),
   },
+  // Each row's Show in {DAW} reads the host's DAW capabilities (#2826).
   render: (args) => (
-    <div className="grid grid-cols-1 items-start gap-4 min-[1100px]:grid-cols-[minmax(0,1fr)_18rem]">
-      <PickupsTable {...args} />
-      <SessionPanel
-        pickups={args.scope === 'all' ? args.pickups : args.pickups.filter((p) => p.chapterId === args.scope)}
-        chapters={args.chapters}
-        seconds={{ ok: true, value: 330 }}
-        dawName="REAPER"
-        markers={{ available: args.daw.available }}
-        onOpenInBooth={args.onOpenInBooth}
-        onAddMarkers={fn()}
-      />
-    </div>
+    <ApiProvider api={createMockApi()}>
+      <div className="grid grid-cols-1 items-start gap-4 min-[1100px]:grid-cols-[minmax(0,1fr)_18rem]">
+        <PickupsTable {...args} />
+        <SessionPanel
+          pickups={args.scope === 'all' ? args.pickups : args.pickups.filter((p) => p.chapterId === args.scope)}
+          chapters={args.chapters}
+          seconds={{ ok: true, value: 330 }}
+          dawName="REAPER"
+          markers={{ available: true }}
+          onOpenInBooth={args.onOpenInBooth}
+          onMarkersAdded={fn()}
+        />
+      </div>
+    </ApiProvider>
   ),
 } satisfies Meta<typeof PickupsTable>;
 
@@ -60,4 +63,3 @@ export const ScopedToOneChapter: Story = { args: { scope: 'c2' } };
 export const NothingQueued: Story = { args: { pickups: [] } };
 export const NoneInThisChapter: Story = { args: { pickups: [SPEECH], scope: 'c3' } };
 // Without the DAW the recording check and the markers are off.
-export const DawWithoutMarkers: Story = { args: { daw: { available: false, message: 'REAPER is not open.' } } };

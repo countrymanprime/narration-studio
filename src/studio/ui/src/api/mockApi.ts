@@ -19,7 +19,7 @@ import { createAudacityLinkMock } from './audacityLinkMock';
 import { createDawChoiceMock } from './dawChoiceMock';
 import { createDawMock } from './dawMock';
 import { createProvidersMock } from './providersMock';
-import { createMasteringMock } from './masteringMock';
+import { createMasteringMock, mockMasterChain } from './masteringMock';
 import { createBuiltinBoothRecordMock } from './builtinBoothMock';
 import { createRecordingMock, type RecorderMockControl } from './recordingMock';
 import { createFindingsMock } from './findingsMock';
@@ -117,6 +117,7 @@ import {
   trimRangeAnswerOf,
   repairClickAnswerOf,
 } from '../fixtures/daw';
+import { withNoProjectAnswers } from './mockHost/noProject';
 import { knownActionKind, MOCK_DAW_UNDO_LABELS, MockUndoHistory } from '../fixtures/dawUndo';
 
 export { applyMixedManuscriptMock } from './mockHost/manuscript';
@@ -193,8 +194,12 @@ export function createMockApi(
     paragraphs: () => s.paragraphs,
     proofNotes: () => proofNotes.read(),
   });
+  const voiceTracks = createVoiceTracksMock(
+    initial.voiceFolders ? { layout: 'folders', tracks: [{ track: 'Extras', characters: ['mad-hatter', 'cheshire-cat'] }] } : undefined,
+  );
   const chapterTracks = createChapterTracksMock(s, initial, {
     manuscriptReady,
+    voiceLayout: async () => (await voiceTracks.voiceTracksGet()).layout,
     chaptersWithCredits: () => credits.withCreditsChapters(s.chapters),
     dawFileLinked: project.dawFileLinked,
     peekCoverage: (chapterId) => peekCoverage(chapterId),
@@ -219,6 +224,11 @@ export function createMockApi(
     ...(initial.reaperState ? { reaper: initial.reaperState } : {}),
     ...(initial.reaperInput ? { reaperInput: initial.reaperInput } : {}),
     resume: initial.resume,
+    keepFlagFinding: async (finding, dismissed) => {
+      saveFinding(finding);
+      if (dismissed) await findings.findingsReview({ id: finding.id, evidenceVersion: finding.evidence_version ?? '', status: 'dismissed', note: '' });
+      return (await findings.findingsGet(finding.id)).review;
+    },
     dawRecord: (kind) => dawControl.record(kind),
     dawRecording: () => dawControl.recording(),
     // Only a link made during this session: the seeded project already links its chapters, which `?mockReaperState=no_link` overrides.
@@ -331,6 +341,17 @@ export function createMockApi(
   // `?mockPlan=loading|fails`: the Schedule's read of the plan never answers, or fails.
   // `?mockHold=overview,entities`: those reads never answer, so Production and the Story Bible stay on their loading skeleton.
   const held = new Set(initial.held ?? []);
+  // The real host opens the file manager, which the page cannot show, so the mock records each ask (window.__NARRATION_MOCK_REPORTS__) and
+  // can refuse it (`?mockOpenFolder=fail`).
+  const openReportsFolder = production.productionOpenReportsFolder;
+  const reportFolder = { folderOpens: 0 };
+  if (typeof window !== 'undefined') window.__NARRATION_MOCK_REPORTS__ = reportFolder;
+  production.productionOpenReportsFolder = async () => {
+    reportFolder.folderOpens += 1;
+    const answer = await openReportsFolder();
+    if (initial.openFolder === 'fail') throw new Error('the file manager could not open the reports folder');
+    return answer;
+  };
   const never = <T>() => new Promise<T>(() => {});
   if (held.has('overview')) production.productionOverview = never;
   if (held.has('entities')) storyBible.bindings.guideEntities = never;
@@ -379,6 +400,7 @@ export function createMockApi(
     initial.renderPackageMulti,
     mastering.masteringProviders,
     initial.renderExportPick === 'many' ? MOCK_EXPORT_MANY_PATHS : initial.renderExportPick === 'long' ? MOCK_EXPORT_LONG_PATHS : MOCK_EXPORT_PATHS,
+    () => mockMasterChain(initial.mastering?.chain),
   );
   const system = createSystemMock(s, initial, {
     version: update.version,
@@ -401,6 +423,10 @@ export function createMockApi(
     boothVoiceGet: (chapterId) => {
       if (!late.boothVoices) throw new Error('the mock is still being built');
       return late.boothVoices.boothVoiceGet(chapterId);
+    },
+    boothPunchTarget: (chapterId, paragraphId, fromWord, toWord) => {
+      if (!late.boothVoices) throw new Error('the mock is still being built');
+      return late.boothVoices.boothPunchTarget(chapterId, paragraphId, fromWord, toWord);
     },
     boothVoiceAdd: (chapterId, name, characterIds) => {
       if (!late.boothVoices) throw new Error('the mock is still being built');
@@ -448,9 +474,7 @@ export function createMockApi(
     // editingCandidateFor in mockFixtures.ts), so Accept/Dismiss/Defer on it go through the real review binding.
     editingCandidates: async (chapterId) => (await findings.findingsList({ analyzer: 'editing', chapterId })).findings,
     ...cleanupAction,
-    ...createVoiceTracksMock(
-      initial.voiceFolders ? { layout: 'folders', tracks: [{ track: 'Extras', characters: ['mad-hatter', 'cheshire-cat'] }] } : undefined,
-    ),
+    ...voiceTracks,
     ...createBookmarksMock(
       manuscriptReady,
       () => s.chapters,
@@ -462,6 +486,10 @@ export function createMockApi(
       () => s.paragraphs,
       initial.voiceSamples,
       merges,
+      async () => {
+        const kept = (await settings.bindings.settingsForScope('project')).VoiceSamples?.find((field) => field.key === 'storage')?.effectiveValue;
+        return kept === 'daw' || kept === 'both' ? kept : 'project';
+      },
     ),
     ...createEditLogMock(
       manuscriptReady,
@@ -473,11 +501,7 @@ export function createMockApi(
       () => s.chapters,
       () => s.paragraphs,
     ),
-    ...createScriptPrepMock(
-      manuscriptReady,
-      () => s.chapters,
-      () => s.paragraphs,
-    ),
+    ...createScriptPrepMock(manuscriptReady, () => s.chapters),
     ...extraction,
     // The host refuses the whole entry while a suggestion about it still needs verification (GuideMarkReviewed); one name is not refused.
     guideMarkReviewed: async (id, aliasIndex) => {
@@ -591,7 +615,7 @@ export function createMockApi(
   const undone: NarrationApi = { ...withAudacityFacts, ...recordingUndo(withAudacityFacts, undoHistory) };
   // The Booth's voice choice over the mock's own voice setup, links and tracks; a record start in a voice folder answers its voice.
   late.boothVoices = createBoothVoiceMock(undone);
-  const recorded: NarrationApi = { ...undone, ...late.boothVoices };
+  const recorded: NarrationApi = withNoProjectAnswers({ ...undone, ...late.boothVoices }, project.projectFolder);
   const api = initial.invalidPayload ? { ...recorded, ...invalidPayloadOverrides(initial.invalidPayload, recorded) } : recorded;
   const final: NarrationApi = { ...api, ...overrides };
   // A driver (Playwright, a console) plays REAPER's side of the mock DAW from here: kill it, restart it, open another project.

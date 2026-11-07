@@ -8,18 +8,20 @@ import { useCommand } from '../../input/useCommand';
 import { useOverlay } from '../../overlay/OverlayProvider';
 import { usePort } from '../../ports/usePort';
 import { useJournal } from '../../studio/StudioProvider';
-import { useCapability } from '../../useCapability';
 import { useDawKind } from '../../useDawKind';
+import { DawConnectionChip } from '../connection/DawConnectionChip';
 import { boothQuery } from '../booth/page/boothQuery';
+import { useCheckRecordingsGate } from '../recordingcheck/CheckRecordingsButton';
 import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
 import { NeedManuscript } from '../layout/NeedManuscript';
 import { reviewFinding } from '../../studio/commands/reviewFinding';
-import { ALL_SCOPE, clock, inScope, lineText, reasonSentence, type ChapterRef } from './list/pickupRows';
+import { ALL_SCOPE, clock, inScope, reasonSentence, type ChapterRef } from './list/pickupRows';
 import { PickupWhere } from './list/PickupWhere';
 import { announcePickupListChanged } from './pickupListChanged';
-import { pickupToReturnTo, rememberPickupLeft } from './pickupReturn';
+import { pickupToReturnTo, rememberPickupLeft, rememberSessionLeft } from './pickupReturn';
 import { usePlayOriginal } from './list/usePlayOriginal';
 import { PickupsTable, type PickupsRead, type RemoveUndo } from './list/PickupsTable';
+import { addMarkers as addMarkersFor, useMarkersGate } from '../engine/AddMarkers';
 import { SessionPanel } from './list/SessionPanel';
 import { PAGE_COLUMN_CLASS } from '../primitives/pageColumn';
 import { usePickupsPageCommands } from './usePickupsPageCommands';
@@ -64,18 +66,22 @@ export function PickupsPage({
     (sentence) => overlay.toast(sentence, { tone: 'error' }),
     (sentence) => overlay.toast(sentence),
   );
-  const review = useCapability('review');
-  const markers = useCapability('markers');
+  // The jump menu's Check recordings is off for the same reason the button is (#2833).
+  const checkReason = useCheckRecordingsGate();
   const dawKind = useDawKind();
+  /* One answer for the button, the jump menu and every other page's Add marker: the DAW's capability and, for REAPER, a linked project file (#2830, #1939). */
+  const markers = useMarkersGate();
   const [chapters, setChapters] = useState<ChapterRef[]>([]);
   const [list, setList] = useState<PickupList>({ pickups: [], leftOut: [] });
   const [read, setRead] = useState<PickupsRead>({ kind: 'loading' });
-  const [scopeChoice, setScope] = useState(ALL_SCOPE);
-  const [current, setCurrent] = useState('');
+  /* Back from the Booth: the page returns to what the narrator left, the chapter the stepper was on included. */
+  const [back] = useState(pickupToReturnTo);
+  const [scopeChoice, setScope] = useState(back?.scope ?? ALL_SCOPE);
+  const [current, setCurrent] = useState(back && back.scope !== ALL_SCOPE ? back.scope : '');
   /* The jump menu's pick of a line: the table selects it. `n` makes a second pick of the same line count. */
   const [reveal, setReveal] = useState<{ id: string; n: number } | null>(null);
   /* Back from the Booth lands on the line that was opened (the table selects it once the list is there). */
-  const [returnTo] = useState(pickupToReturnTo);
+  const returnTo = back?.kind === 'line' ? back.id : null;
   const [seconds, setSeconds] = useState<Measured<number>>(LOADING);
   /* Answers come back in any order and can be late: each request takes a number as it starts, and an answer older than one already shown is dropped. */
   const started = useRef(0);
@@ -268,17 +274,20 @@ export function PickupsPage({
   };
 
   const dawName = !dawKind ? 'the DAW' : dawKind === 'none' ? 'the built-in recorder' : dawKind;
+  /* The jump menu's Add markers goes through the same one call and the same sentences as the session panel's button (#2830). */
   const addMarkers = async (picked: PickupItem[]) => {
-    const placed = picked.filter((p): p is PickupItem & { at: number } => p.at !== null);
-    const result = await daw.addPickupMarkers(placed.map((p) => ({ ref: p.id, start: p.at, tag: p.type, note: lineText(p) })));
-    if (!result.ok) throw new Error(result.message);
-    const lines = placed.length === 1 ? '1 line' : `${placed.length} lines`;
-    overlay.toast(
-      result.changed
-        ? `Pickup ${placed.length === 1 ? 'marker' : 'markers'} for ${lines} ${placed.length === 1 ? 'is' : 'are'} in ${dawName}.`
-        : `Those markers were already in ${dawName}.`,
-    );
+    const result = await addMarkersFor(daw, { kind: 'pickups', pickups: picked }, dawName);
+    if (result.failed) throw new Error(result.message);
+    overlay.toast(result.message);
     await changing(pickupsApi.pickupsList());
+  };
+  const markersAdded = () => void changing(pickupsApi.pickupsList());
+
+  /* One way into the Booth for the button, a row and the jump menu, so Back keeps the chapter and focus whichever was used. */
+  const openInBooth = (picked: PickupItem[]) => {
+    if (picked.length === 1) rememberPickupLeft(picked[0].id, scope);
+    else rememberSessionLeft(scope);
+    goTo(boothSessionPath(picked));
   };
 
   usePickupsPageCommands({
@@ -287,23 +296,28 @@ export function PickupsPage({
     scope,
     inView,
     chaptersToCheck: list.leftOut.map((chapter) => chapter.chapterId),
-    daw: { available: review.available, message: review.message },
-    markers: { available: markers.available, message: markers.message },
+    checkReason,
+    markers,
     dawName,
     onScope: choose,
     onReveal: (id) => setReveal((before) => ({ id, n: (before?.n ?? 0) + 1 })),
     onCheck: (ids) => openCheckRecordings(ids),
-    onOpenInBooth: (picked) => goTo(boothSessionPath(picked)),
+    onOpenInBooth: openInBooth,
     onAddMarkers: addMarkers,
     onError: (error) => overlay.toast(reasonSentence(error), { tone: 'error' }),
   });
 
-  if (!hasManuscript) return <NeedManuscript title="Pickups" onImport={() => goTo('/')} />;
+  /* Back from a whole session: focus goes to the button that opened it, once the list is read. */
+  const sessionFocused = useRef(false);
+  useEffect(() => {
+    if (back?.kind !== 'session' || sessionFocused.current || read.kind !== 'ready') return;
+    const button = document.querySelector<HTMLElement>('[data-pickup-session-open]');
+    if (!button) return;
+    sessionFocused.current = true;
+    button.focus();
+  });
 
-  const openInBooth = (picked: PickupItem[]) => {
-    if (picked.length === 1) rememberPickupLeft(picked[0].id);
-    goTo(boothSessionPath(picked));
-  };
+  if (!hasManuscript) return <NeedManuscript title="Pickups" onImport={() => goTo('/')} />;
 
   return (
     <CommandScope kind="page">
@@ -326,10 +340,8 @@ export function PickupsPage({
             scope={scope}
             currentChapterId={current || firstWithText?.id || chapters[0]?.id || ''}
             chaptersToCheck={list.leftOut.map((chapter) => chapter.chapterId)}
-            daw={{ available: review.available, message: review.message }}
             onScope={choose}
             onStep={step}
-            onCheck={(ids) => openCheckRecordings(ids)}
             onAdd={add}
             onSetIncluded={(id, included) => changing(pickupsApi.pickupsSetIncluded(id, included))}
             onSetDone={(id, done) => changing(pickupsApi.pickupsSetDone(id, done))}
@@ -340,6 +352,7 @@ export function PickupsPage({
             onGoToProof={(findingId) => goTo(findingId ? `/proof?finding=${encodeURIComponent(findingId)}` : '/proof')}
             onFine={fine}
             where={(pickup) => <PickupWhere pickup={pickup} manuscript={manuscriptApi} />}
+            dawChip={<DawConnectionChip stillWorks={(name) => `You can read and edit the list. Markers and checks wait until ${name} is running.`} />}
           />
           <SessionPanel
             pickups={inView}
@@ -348,9 +361,9 @@ export function PickupsPage({
             loading={read.kind === 'loading'}
             seconds={seconds}
             dawName={dawName}
-            markers={{ available: markers.available, message: markers.message }}
+            markers={markers}
             onOpenInBooth={openInBooth}
-            onAddMarkers={addMarkers}
+            onMarkersAdded={markersAdded}
           />
         </div>
       </div>

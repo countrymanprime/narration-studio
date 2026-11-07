@@ -11,7 +11,7 @@ Each entry has its names and aliases, how you say each, a description, its relat
 2. Or press **Import entries** to add entries from a CSV or JSON file you made elsewhere. The dialog shows what the file would add before it adds anything.
 3. Add an unusual name by hand with the **+** button. The scan favours missing a name over listing ordinary words.
 
-Nothing builds the Story Bible on its own, not even a manuscript import.
+A manuscript import builds the Story Bible when it has no entries yet (unless **Build the Story Bible after import** is off in Settings): a name becomes a character or a place only when the book shows it, the rest wait under Needs review, and the message at the end says what it made and what it left out.
 
 ## Review what the scan suggested
 

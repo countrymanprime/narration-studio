@@ -1,6 +1,7 @@
 import { chapterName } from '../../../chapterName';
 import type { StageChapterRecommendation } from '../../../types';
 import { Button } from '../../primitives/Button';
+import { CheckRecordingsButton } from '../../recordingcheck/CheckRecordingsButton';
 import { InsetCard } from '../../primitives/InsetCard';
 import { SectionLabel } from '../../primitives/SectionLabel';
 import { StatusBadge } from '../../primitives/StatusBadge';
@@ -18,8 +19,8 @@ type Props = {
   busy: boolean;
   onDecide: (decision: StageDecision) => void;
   onCheckNow: () => void;
-  /** Opens the chapter's recording check. Offered while a chapter in Recording cannot be judged because nothing has checked it (XPR2-35). */
-  onCheckRecording?: () => void;
+  /** The chapter's recording check (the shared Check recordings button). Offered while a chapter in Recording cannot be judged because nothing has checked it (XPR2-35); `onOpen` closes the slide-over first. */
+  checkRecording?: { chapterIds: string[]; onOpen: () => void };
 };
 
 // `partial` is a row whose evidence moved since the suggestion: neither met nor unmet, as in the mock.
@@ -48,7 +49,7 @@ function Evidence({ row }: { row: RowView }) {
  * since, the evidence the app measured, and Confirm, Dismiss or Revert. The host reports no decision history, so no Decisions list is
  * drawn (D98: nothing without a wire).
  */
-export function ReadinessPanel({ recommendation, seen, phase, error, isPending, busy, onDecide, onCheckNow, onCheckRecording }: Props) {
+export function ReadinessPanel({ recommendation, seen, phase, error, isPending, busy, onDecide, onCheckNow, checkRecording }: Props) {
   if (!recommendation) {
     if (phase === 'loading') return <p role="status">Checking…</p>;
     if (phase === 'ready') return <p className="text-[var(--text-muted)]">No stage suggestion for this chapter.</p>;
@@ -79,10 +80,8 @@ export function ReadinessPanel({ recommendation, seen, phase, error, isPending, 
     model.verdict !== 'confirmed' && model.canDismiss && action('dismiss', 'Dismiss', true),
     model.verdict !== 'confirmed' && model.canConfirm && action('confirm', 'Confirm', true, 'primary'),
     // "Can't tell yet" for a chapter in Recording means nothing has checked its recording: the way on is to check it.
-    model.verdict === 'notchecked' && recommendation.from === 'recording' && onCheckRecording && (
-      <Button key="check" variant="secondary" onClick={onCheckRecording}>
-        Check recordings…
-      </Button>
+    model.verdict === 'notchecked' && recommendation.from === 'recording' && checkRecording && (
+      <CheckRecordingsButton key="check" variant="icon" chapterIds={checkRecording.chapterIds} onOpen={checkRecording.onOpen} />
     ),
   ].filter((node) => node !== false && node !== undefined);
   return (

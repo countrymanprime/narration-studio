@@ -20,8 +20,6 @@ import type {
   RenderConfigState,
   CleanupToolsState,
   ProjectStateState,
-  RetakeLanesList,
-  RetakeLanesState,
   ScopedSettingField,
   TeleprompterDevice,
   TextSpan,
@@ -634,6 +632,7 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
     bool('notifications', "Notify me when a long task finishes while I'm away", 'true'),
     bool('close_import_when_done', 'Close the manuscript import when it finishes', 'true'),
     bool('debug_logging', 'Debug logging', 'false'),
+    bool('activity_trace', 'Activity trace', 'false'),
     {
       key: 'narrator_name',
       label: 'Narrator name (default for credits)',
@@ -693,6 +692,22 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
   ],
   // Editing.fx_cap_pct unset, so it reads as the default, 10 (tests/fixtures/contracts/settings-fx-cap.json); the Effects tab's cap.
   Editing: [
+    // The empty-space check's three limits are unset by default, and an unset limit is not checked (internal/editing).
+    ...(['max_gap_seconds', 'head_max_seconds', 'tail_max_seconds'] as const).map((key) => ({
+      key,
+      label: {
+        max_gap_seconds: "Maximum gap before it's flagged (empty space)",
+        head_max_seconds: 'Maximum leading silence (head)',
+        tail_max_seconds: 'Maximum trailing silence (tail)',
+      }[key],
+      kind: 'number' as const,
+      choices: [],
+      value: '',
+      isSet: false,
+      effectiveValue: '',
+      effectiveSource: 'hardcoded' as const,
+      number: { min: 0, max: null, step: 0.1, unit: 's' },
+    })),
     {
       key: 'fx_cap_pct',
       label: 'Most of a chapter effects may cover (%)',
@@ -703,6 +718,20 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
       effectiveValue: '10',
       effectiveSource: 'repo_default',
       number: { min: 1, max: 100, step: 1, unit: '%' },
+    },
+  ],
+  // Proofing.render_length_tolerance_seconds unset: the render length check is not required (no default is proposed until real renders are measured).
+  Proofing: [
+    {
+      key: 'render_length_tolerance_seconds',
+      label: 'Render length tolerance',
+      kind: 'number',
+      choices: [],
+      value: '',
+      isSet: false,
+      effectiveValue: '',
+      effectiveSource: 'hardcoded',
+      number: { min: 0, max: null, step: 0.1, unit: 's' },
     },
   ],
   // Booth.words_per_page unset, so it reads as the default, 250 (tests/fixtures/contracts/settings-words-per-page.json); the Booth's page size.
@@ -719,13 +748,13 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
       number: { min: 50, max: 1000, step: 1, unit: 'words' },
     },
   ],
-  // VoiceSamples.storage unset, so it reads as the default, project: the host accepts only project until the DAW label is built.
+  // VoiceSamples.storage unset, so it reads as the default, project; daw and both are offered where the DAW declares voice_sample_region.
   VoiceSamples: [
     {
       key: 'storage',
       label: 'Where voice samples are kept',
       kind: 'choice',
-      choices: ['project'],
+      choices: ['project', 'daw', 'both'],
       value: '',
       isSet: false,
       effectiveValue: 'project',
@@ -1211,7 +1240,7 @@ export const WIRE_LINE_IDENTITY_LINES: LineIdentityLine[] = [
 export const WIRE_LINE_IDENTITY_READ_SUCCESS: LineIdentityState = {
   runId: '1790000000000000',
   phase: 'success',
-  message: `Read ${WIRE_LINE_IDENTITY_LINES.length} stamped lines.`,
+  message: `Read ${WIRE_LINE_IDENTITY_LINES.length} stamped items.`,
   stamp: { ...idleLineIdentityStamp },
   lines: WIRE_LINE_IDENTITY_LINES,
   linesRead: WIRE_LINE_IDENTITY_LINES.length,
@@ -1221,7 +1250,7 @@ export const WIRE_LINE_IDENTITY_READ_SUCCESS: LineIdentityState = {
 export const WIRE_LINE_IDENTITY_STAMP_CONFLICT: LineIdentityState = {
   runId: '1790000000000001',
   phase: 'success',
-  message: 'Stamped 1 line, 1 stale item, 1 conflict.',
+  message: 'Stamped 1 item, 1 stale item, 1 conflict.',
   stamp: {
     applied: 1,
     unchanged: 0,
@@ -1372,61 +1401,6 @@ export const WIRE_CLEANUP_TOOLS_ERROR: CleanupToolsState = {
   message: 'Magnolius DeClick is not installed in REAPER. Install it yourself (ReaPack, or Actions > Load ReaScript); The app never installs it.',
   tool: 'magnolius_declick',
   action: '',
-};
-
-/** Two lines of Chapter 1 recorded as retakes on fixed lanes, lane 1 (index 0) playing in the saved project. Same shape
- * as tests/fixtures/contracts/retake-lanes-list.json, which is built from a REAPER 7.80 fixture project (src/studio/desktop/internal/tracks/testdata/reaper/README.md) and so has test-case track names. */
-export const WIRE_RETAKE_LANES_LIST: RetakeLanesList = {
-  laneTracks: 1,
-  lines: [
-    {
-      lineId: 'line-000012',
-      trackGuid: '{0E4D1D7F-D039-674D-87E6-719376DE95EC}',
-      trackName: 'Chapter 1',
-      retakes: [
-        { itemGuid: '{3A1F0C2E-5B6D-4E7F-8091-A2B3C4D5E601}', name: 'ch1_pass1.wav', lane: 0, plays: true, position: 42.5, length: 6.2 },
-        { itemGuid: '{3A1F0C2E-5B6D-4E7F-8091-A2B3C4D5E602}', name: 'ch1_pass2.wav', lane: 1, plays: false, position: 42.5, length: 5.9 },
-        { itemGuid: '{3A1F0C2E-5B6D-4E7F-8091-A2B3C4D5E603}', name: 'ch1_pass3.wav', lane: 2, plays: false, position: 42.5, length: 6.0 },
-      ],
-    },
-    {
-      lineId: 'line-000013',
-      trackGuid: '{0E4D1D7F-D039-674D-87E6-719376DE95EC}',
-      trackName: 'Chapter 1',
-      retakes: [
-        { itemGuid: '{3A1F0C2E-5B6D-4E7F-8091-A2B3C4D5E611}', name: 'ch1_pass1.wav', lane: 0, plays: true, position: 49.1, length: 4.4 },
-        { itemGuid: '{3A1F0C2E-5B6D-4E7F-8091-A2B3C4D5E612}', name: 'ch1_pass2.wav', lane: 1, plays: false, position: 49.1, length: 4.1 },
-      ],
-    },
-  ],
-};
-
-/** A project with no track in fixed-lane mode (the list answer, e.g. tests/fixtures/contracts/basic.rpp's). */
-export const WIRE_RETAKE_LANES_NONE: RetakeLanesList = { laneTracks: 0, lines: [] };
-
-/** The Go host's RetakeLanesState before any pick (mirrors tests/fixtures/contracts/retake-lanes-idle.json). */
-export const WIRE_RETAKE_LANES_IDLE: RetakeLanesState = { phase: 'idle', message: '', lineId: '', itemGuid: '', trackName: '' };
-
-/** A pick REAPER confirmed: lane 2 of Chapter 1 now plays alone (same shape as tests/fixtures/contracts/retake-lanes-picked.json). */
-export const WIRE_RETAKE_LANES_PICKED: RetakeLanesState = {
-  runId: '1790000000000000',
-  phase: 'picked',
-  message: 'Lane 2 is now the only lane playing on Chapter 1. To go back, use Undo in REAPER: it restores what played before.',
-  lineId: 'line-000012',
-  itemGuid: '{3A1F0C2E-5B6D-4E7F-8091-A2B3C4D5E602}',
-  trackName: 'Chapter 1',
-  lane: 1,
-};
-
-/** REAPER refused the pick: the narrator turned lanes off since the project was saved (narration_retake_lanes.lua's message). */
-export const WIRE_RETAKE_LANES_ERROR: RetakeLanesState = {
-  runId: '1790000000000001',
-  phase: 'error',
-  message:
-    'The track "Chapter 1" is not in fixed item lane mode, so it has no lanes to choose from. The app never turns lanes on or converts takes to lanes: do that in REAPER if you want to.',
-  lineId: 'line-000012',
-  itemGuid: '{3A1F0C2E-5B6D-4E7F-8091-A2B3C4D5E602}',
-  trackName: 'Chapter 1',
 };
 
 /** No chapter render has been configured yet (mirrors tests/fixtures/contracts/chapter-tags-preview-idle.json). */

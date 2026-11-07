@@ -63,6 +63,13 @@ func (r *Reporter) log(kind, message string) {
 // Warn writes a line to the host log for something worth a trace that is not a corrupt file. It is safe on a nil Reporter.
 func (r *Reporter) Warn(kind, message string) { r.log(kind, message) }
 
+// Tell writes a line to the host log and tells the narrator in a plain sentence, for a thing that went on without failing what they asked
+// for (a voice sample removed while its region stays in the DAW's project). It is safe on a nil Reporter.
+func (r *Reporter) Tell(kind, message, sentence string) {
+	r.log(kind, message)
+	r.notify(sentence)
+}
+
 func (r *Reporter) notify(text string) {
 	if r != nil && r.Notify != nil {
 		r.Notify(text)

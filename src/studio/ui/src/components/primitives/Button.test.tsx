@@ -175,3 +175,19 @@ describe('IconButton pending', () => {
     expect(onClick).toHaveBeenCalledOnce();
   });
 });
+
+// #3053: a double click on Stamp selected the word "STAMP". A button's label is a control, not text to copy; a link-styled button reads as text and stays selectable.
+describe('Button label selection', () => {
+  it.each(['primary', 'secondary', 'ghost', 'danger', 'danger-solid', 'inverse'] as const)(
+    'a %s button does not select its label on a double click',
+    (variant) => {
+      render(<Button variant={variant}>Stamp</Button>);
+      expect(screen.getByRole('button', { name: 'Stamp' }).className).toMatch(/\bselect-none\b/);
+    },
+  );
+
+  it('a link-styled button stays selectable like the text around it', () => {
+    render(<Button variant="link">Stamp</Button>);
+    expect(screen.getByRole('button', { name: 'Stamp' }).className).not.toMatch(/\bselect-none\b/);
+  });
+});

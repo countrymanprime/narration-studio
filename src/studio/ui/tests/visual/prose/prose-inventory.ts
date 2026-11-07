@@ -70,7 +70,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   { file: 'components/booth/record/RecordSetup.tsx', text: 'Link the open project asks you to choose the project file … has open.', class: 'overlay' },
   { file: 'components/booth/record/RecordSetup.tsx', text: 'Could not read whether a project file is linked. Press Check again.', class: 'error' },
   { file: 'components/connection/ChapterLinkDialog.tsx', text: 'is linked to …. Linking it here moves it.', class: 'overlay' },
-  { file: 'components/connection/ChapterLinkDialog.tsx', text: 'Or have … add a new track for this chapter, named after it, and link it:', class: 'overlay' },
+  { file: 'components/connection/ChapterLinkDialog.tsx', text: 'Or have … add a new … for this chapter, named after it…, and link it:', class: 'overlay' },
   {
     file: 'components/credits/CreditsSetupDialog.tsx',
     text: 'Your opening and closing credits need … value…. We filled in what the manuscript already says; check them and save.',
@@ -171,18 +171,13 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     class: 'overlay',
   },
   {
-    file: 'components/editing/voicesample/VoiceSampleDialog.tsx',
-    text: 'Copies the raw recording, as it was before editing, into this project. Nothing leaves your computer.',
-    class: 'overlay',
-  },
-  {
     file: 'components/engine/ChapterSyncConsentDialog.tsx',
     text: 'You choose these after syncing, in the audio engine panel or from the chapter&rsquo;s Recorded cell on Production.',
     class: 'overlay',
   },
   {
     file: 'components/engine/ChapterSyncConsentDialog.tsx',
-    text: 'You can turn chapter sync on or off later in the audio engine panel (the … chip at the top of the window).',
+    text: 'You can turn chapter sync on or off later in Settings, or in the audio engine panel (the … chip at the top of the window).',
     class: 'overlay',
   },
   {
@@ -197,7 +192,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   },
   {
     file: 'components/engine/ChapterTagsDialog.tsx',
-    text: 'No chapter render is configured yet. Use &ldquo;Prepare chapter render…&rdquo; first.',
+    text: 'No chapter render is configured yet. Use &ldquo;Prepare chapter render…&rdquo; in DAW tools on Editing, Proof or Master &amp; QC first.',
     class: 'overlay',
   },
   {
@@ -251,11 +246,6 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     class: 'overlay',
   },
   { file: 'components/engine/RenderConfigDialog.tsx', text: 'or File &gt; Render to create them.', class: 'overlay' },
-  {
-    file: 'components/engine/RetakeLanesDialog.tsx',
-    text: 'Choose which lane plays for a line. A lane plays across its whole track, so choosing one silences the other lanes of that track everywhere, not only for this line. … changes nothing else, and Undo in REAPER puts the previous lanes back.',
-    class: 'overlay',
-  },
   { file: 'components/layout/NeedManuscript.tsx', text: 'This project has no manuscript yet. Import one to begin.', class: 'empty' },
   {
     file: 'components/layout/NotFoundPage.tsx',
@@ -350,6 +340,11 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   {
     file: 'components/proof/PreviewPanel.tsx',
     text: 'No eligible text was found for a preview. Narration chapters with at least one paragraph are needed.',
+    class: 'empty',
+  },
+  {
+    file: 'components/proof/ChapterCompare.tsx',
+    text: "The app's recorder has no takes for this chapter. Takes it records and puts on a line are listed here.",
     class: 'empty',
   },
   {
@@ -462,6 +457,16 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   {
     file: 'components/settings/UpdatesPanel.tsx',
     text: 'This platform does not update itself. Open the release notes to download it from the release page.',
+    class: 'state',
+  },
+  {
+    file: 'components/settings/controls/DiagnosticsSection.tsx',
+    text: 'A zip of how the app behaved, with no text, names or file paths from your books. Nothing is sent anywhere.',
+    class: 'state',
+  },
+  {
+    file: 'components/settings/controls/DiagnosticsSection.tsx',
+    text: 'Leak check: … … dropped for naming you or your project.',
     class: 'state',
   },
   {
@@ -627,16 +632,6 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   { file: 'components/engine/EnginePanel.tsx', text: 'One chapter can’t get a stage suggestion until its track link is confirmed below.', class: 'state' },
   { file: 'components/engine/EnginePanel.tsx', text: '… chapters can’t get a stage suggestion until their track links are confirmed below.', class: 'state' },
   {
-    file: 'components/engine/RetakeLanesDialog.tsx',
-    text: 'No track in the saved project uses fixed item lanes. Record retakes into lanes in REAPER first: The app never turns lanes on or converts takes to lanes.',
-    class: 'overlay',
-  },
-  {
-    file: 'components/engine/RetakeLanesDialog.tsx',
-    text: 'No line has retakes on more than one lane of a track, so there is nothing to choose. Only items linked to manuscript lines are listed.',
-    class: 'overlay',
-  },
-  {
     file: 'components/engine/VoicesCard.tsx',
     text: 'Flat: a chapter is one track. Voice folders: a chapter is a folder, one child track per voice.',
     class: 'overlay',
@@ -660,7 +655,11 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     class: 'empty',
   },
   { file: 'components/pickups/list/SessionPanel.tsx', text: 'No lines in the session: tick a line to include it.', class: 'empty' },
-  { file: 'components/production/ImportChooseDialog.tsx', text: 'Use a .docx, .md or .txt file. A copy is kept in your project.', class: 'overlay' },
+  {
+    file: 'components/production/ImportChooseDialog.tsx',
+    text: 'Use a Word (.docx), EPUB (.epub), Markdown (.md) or plain-text (.txt) file. A copy is kept in your project.',
+    class: 'overlay',
+  },
   { file: 'components/production/RecordingCheckReport.tsx', text: 'Start not read: paragraphs 1 to … (…).', class: 'state' },
   { file: 'components/production/target/TargetPopover.tsx', text: '… … a measured length: … words in ….', class: 'overlay' },
   { file: 'components/proof/CompareRun.tsx', text: 'Marker export is available only for results from this active … session', class: 'state' },

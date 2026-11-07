@@ -1,0 +1,49 @@
+name: Post-merge checks
+# The checks that moved off the pull request (#3065, docs/research/2026-11-06-ci-job-grouping.md#moved-after-the-merge), run on each
+# push to `main` that touches what they read. A burst of merges is one run (`cancel-in-progress`: the newest commit holds every earlier
+# one). A red run shows on the `main` commit and notifies whoever merged it; `Main health` runs the same checks every three hours when
+# `main` moved and ticks HOLD on a red run. The coordinator fixes a red run forward, or reverts the merge that turned it red
+# (.claude/skills/agent-train/SKILL.md, "Safety net").
+#   - The bridge harness's mutation checks on Windows. A pull request runs the harness on Windows without them (go-test (rest),
+#     the reaper project's `pr` configuration) and runs every mutation check on Linux (linux-checks); this is the Windows half.
+# scripts/ci/check-manifest.json lists each check here with its safety net.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/studio/integrations/reaper/**'
+      - 'config/**'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - 'stylua.toml'
+      - 'scripts/quality.mjs'
+      - 'scripts/toolchain.json'
+      - '.github/actions/setup-toolchain/**'
+      - '.github/actions/nx-run/**'
+      - '.github/workflows/post-merge.yml'
+  workflow_dispatch: {}
+permissions: { contents: read }
+concurrency:
+  group: post-merge-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  reaper-windows:
+    name: reaper (Lua) on Windows, with mutation checks
+    # The Windows run of the mutation checks took 15.6 min of quick-windows' 20.2 on run 41966422733 (one per CPU, tests/mutations.py).
+    timeout-minutes: 30
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-toolchain
+        with:
+          need-go: 'false'
+          need-wails-tools: 'false'
+          python-sync-args: --only-group lua
+          pnpm-filter: workspace
+      - uses: ./.github/actions/nx-run
+        with:
+          targets: lint test
+          projects: reaper
+          always: 'true'

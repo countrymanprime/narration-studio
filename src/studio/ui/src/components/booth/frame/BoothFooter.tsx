@@ -3,12 +3,13 @@ import type { Measured } from '../../../api/schemas/base';
 import type { Keymap } from '../../../input/keymap';
 import { footerHints } from '../../../input/hints';
 import { useToastClearance } from '../../../hooks/useToastClearance';
-import { SplitButton, SplitToggle } from '../../primitives/SplitButton';
+import { SplitButton } from '../../primitives/SplitButton';
 import { KeyHints } from '../../primitives/KeyHints';
 import { useDawMeterLease } from '../../../daw/useDawSession';
 import { LevelsInline, LevelsMenu, type LevelsMenuProps } from './LevelsMenu';
 import { timerText } from './progressLine';
 import { useLevels } from './useLevels';
+import { GIVES_WAY_IN_A_SHORT_WINDOW } from './shortWindow';
 
 /**
  * "Room −58.6 dB" (a real minus sign, one decimal), or "Room not measured yet": the mock's room tone label. A read that failed says
@@ -57,10 +58,10 @@ export function useRoomTone(port: { roomTone(mic: string): Promise<Measured<numb
   return { label: roomToneLabel(answer, current?.failed ?? false), ok: answer.ok, ...(hint ? { hint } : {}) };
 }
 
-/** The Cold read toggle (#2251 item 13): pressed while a cold read runs; `disabledReason` while it cannot start (a take records). */
-export type ColdReadToggle = { on: boolean; toggle: () => void; disabledReason?: string };
+/** Cold read (#2251 item 13): `on` while one runs; `mode` is whether the main button reads cold (chosen in the side menu), `setMode` changes it. */
+export type ColdReadToggle = { on: boolean; mode: boolean; setMode: (cold: boolean) => void; starting?: boolean };
 
-type Mic = Pick<LevelsMenuProps, 'engine' | 'dawName' | 'reachable' | 'offReason' | 'device' | 'onDevice' | 'listen' | 'levels' | 'recorderMeter'>;
+type Mic = Pick<LevelsMenuProps, 'engine' | 'dawName' | 'reachable' | 'offReason' | 'device' | 'onDevice' | 'listen' | 'micNote' | 'levels' | 'recorderMeter'>;
 
 /**
  * The Booth's footer (the mock's `bfoot`): the voice control, then one split button (the Record control from SN-O23 as a slot, the Cold read switch and the Levels menu) and the take timer, why Record
@@ -102,7 +103,7 @@ export function BoothFooter({
   roomToneHint?: string;
   keymap: Keymap;
   pickupSession?: boolean;
-  /** A switch inside the split button, between Record and Levels; absent, the footer has no Cold read. */
+  /** The main button's mode, in the Levels menu on the split button's side; absent, the footer has no Cold read. */
   coldRead?: ColdReadToggle;
   /** The voice control, left of Record (a chapter linked to a folder of voices draws one; otherwise it draws nothing). */
   voice?: ReactNode;
@@ -141,19 +142,18 @@ export function BoothFooter({
           {voice}
           <SplitButton label="Recording">
             {record}
-            {coldRead ? (
-              <SplitToggle
-                id="bcold"
-
-                pressed={coldRead.on}
-                aria-disabled={coldRead.disabledReason ? true : undefined}
-                hint={coldRead.disabledReason ?? (coldRead.on ? 'Stop following your voice' : 'Follow your voice without recording')}
-                onClick={() => (coldRead.disabledReason ? undefined : coldRead.toggle())}
-              >
-                Cold read
-              </SplitToggle>
-            ) : null}
-            <LevelsMenu {...mic} recording={recording} warn={Boolean(listenWhy)} level={level} error={error} open={open} onOpenChange={setOpen} />
+            <LevelsMenu
+              {...mic}
+              recording={recording}
+              mainButton={
+                coldRead ? { cold: coldRead.mode, onChange: coldRead.setMode, locked: recording || coldRead.on || Boolean(coldRead.starting) } : undefined
+              }
+              warn={Boolean(listenWhy)}
+              level={level}
+              error={error}
+              open={open}
+              onOpenChange={setOpen}
+            />
           </SplitButton>
           <span id="btimer" className="font-mono text-lg text-[var(--text)]">
             {timerText(seconds)}
@@ -181,7 +181,11 @@ export function BoothFooter({
           </div>
         ) : null}
       </div>
-      <KeyHints id="bkeys" hints={hints} />
+      {/* In a short window (see shortWindow.ts) the hints are cut off at the bottom anyway, and the rows they take are what the side panel needs to be readable:
+          like the shell's footer below 860 px wide, they are not drawn, though a screen reader still has them (the side panel at 320x300 was 32 px tall). */}
+      <div className={GIVES_WAY_IN_A_SHORT_WINDOW}>
+        <KeyHints id="bkeys" hints={hints} />
+      </div>
     </div>
   );
 }

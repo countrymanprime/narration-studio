@@ -7,6 +7,7 @@ import (
 	"desktop/internal/brand"
 	"desktop/internal/presstimeline"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/fs"
 	"log/slog"
@@ -17,6 +18,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"desktop/internal/assetmove"
 	"desktop/internal/audacitybridge"
 	"desktop/internal/bridge"
 	"desktop/internal/character"
@@ -74,7 +76,7 @@ import (
 // Keep this in lockstep with src/studio/ui/src/hostApi.ts.  The frontend rejects
 // an older host before bootstrapping so a partial update cannot run against a
 // binding contract it does not understand.
-const hostAPIVersion = 153
+const hostAPIVersion = 162
 
 // Host is the Wails binding boundary. The frontend invokes only this bound
 // object; it never receives a loopback port or an HTTP capability.
@@ -416,7 +418,12 @@ type Host struct {
 	quitApp       func()
 	executable    func() (string, error)
 	openFolder    func(dir string) error
-	pendingPath   string
+	// modelsMove is the move of the models folder that may be running (assetfolder.go); moveModels and pickModelsFolder are seams for
+	// tests: nil means the real mover and the real folder dialog.
+	modelsMove       modelsMoveState
+	moveModels       func(context.Context, assetmove.Plan, func(assetmove.Progress)) error
+	pickModelsFolder func() (string, error)
+	pendingPath      string
 	// reaperLaunch and reaperLocate are seams for tests (dawlaunch.go): nil means daw.Launch and
 	// daw.LocateReaperExecutable, the real detached spawn and the real registry lookup.
 	reaperLaunch func(program string, args []string) error
@@ -547,6 +554,7 @@ func NewHost() *Host {
 		runLog.SetDebug(true)
 	}
 	host.sidecars.SetFallbackRun(runLog.App)
+	host.sidecars.SetTracer(tracer)
 	host.timeline = newPressTimeline(host)
 	return host
 }
@@ -628,12 +636,15 @@ func (h *Host) ServiceStartup(ctx context.Context, _ application.ServiceOptions)
 // cleanStaleDownloads removes the leftovers of a download or repair that was interrupted long ago. It never runs while a download of this
 // session could be using them: it only touches folders older than a week (or an hour for the aside copy of a repair).
 func (h *Host) cleanStaleDownloads() {
-	base, err := assetCacheBase()
+	base, err := assetBaseFor(h.settingsStore())
 	if err != nil {
 		return
 	}
 	for _, removed := range cleanAssetCaches(base) {
 		_ = h.log.Report("asset_cache_cleaned", removed)
+	}
+	for _, removed := range assetmove.SweepStale(base) {
+		_ = h.log.Report("asset_cache_cleaned", filepath.Join(base, removed))
 	}
 }
 
@@ -682,6 +693,8 @@ func (h *Host) configureLocked(next config) {
 	h.guide.SetFindings(h.findings)
 	// Asked when a lookup starts, not now: h.mu is held here, and an install made after the project opens counts.
 	h.guide.SetWiktextractIndex(h.wiktextractIndexPath)
+	// An older project's Script page words move to their Story Bible names before anything reads either file (scriptwords_migrate.go).
+	migrateScriptWordsOnOpen(h.config.projectFolder, h.manuscript, h.guide, h.persist, h.log)
 	// The session directory is REAPER's file bridge (the launcher script makes it). An Audacity launch never opens it,
 	// even when one is passed, so nothing on that launch writes REAPER bridge commands.
 	// The project's DAW (projectdaw.go): the launch's --daw, else the project's own choice or what its folder holds.
@@ -909,7 +922,7 @@ func (h *Host) configureLocked(next config) {
 	// The retake-lane service is one more consumer of the
 	// same bridge client, over its retake_lanes role. It only ever asks REAPER to make one listed
 	// retake's lane the only one playing.
-	h.retakeLanes = retakelanes.New(retakelanes.Config{SessionDir: h.config.sessionDir}, retakePicker, h.emitRetakeLanes)
+	h.retakeLanes = retakelanes.New(retakelanes.Config{SessionDir: h.config.sessionDir}, retakePicker, nil)
 	// The project-state service (the change-driven re-compare indicator) is the bridge's fifth real
 	// consumer, over its project_state role: pollTranscript's Drain call already pumps its events
 	// too, the same way it does above. It is a Could-tier, on-demand check (Check/ProjectStateCheck), not a poll of
@@ -1006,7 +1019,7 @@ func materializeResources(source fs.FS, userCache, executable string) (string, e
 		_ = os.RemoveAll(staging)
 		return "", err
 	}
-	if err := os.Rename(staging, target); err != nil {
+	if err := persist.Rename(staging, target); err != nil {
 		return "", err
 	}
 	// The REAPER scripts are materialized beside the immutable sidecars and in the stable launcher folder, each with the app's
@@ -1061,7 +1074,7 @@ func writeIfChanged(target string, content []byte) error {
 	if err := os.WriteFile(temporary, content, 0o600); err != nil {
 		return err
 	}
-	return os.Rename(temporary, target)
+	return persist.Rename(temporary, target)
 }
 
 func executablePath() string {
@@ -1083,7 +1096,7 @@ func writeCheckoutLauncherPointer(launcher, executable string) error {
 	if err := os.WriteFile(temporary, []byte(executable+"\n"), 0o600); err != nil {
 		return err
 	}
-	return os.Rename(temporary, target)
+	return persist.Rename(temporary, target)
 }
 
 func writeReaperLauncherPath(root, executable string) error {
@@ -1099,7 +1112,7 @@ func writeReaperLauncherPath(root, executable string) error {
 	if err := os.WriteFile(temporary, []byte(executable+"\n"), 0o600); err != nil {
 		return err
 	}
-	return os.Rename(temporary, target)
+	return persist.Rename(temporary, target)
 }
 
 // resourceKeyFor changes whenever any embedded release resource changes. Keeping
@@ -1216,17 +1229,6 @@ func (h *Host) emitRenderConfig(state map[string]any) {
 	h.mu.RUnlock()
 	if ctx != nil {
 		emitEvent("renderconfig:state", state)
-	}
-}
-
-// emitRetakeLanes relays a retakelanes.Service snapshot to the frontend (the retake-lane pick), the same
-// simple relay emitCleanupTools uses.
-func (h *Host) emitRetakeLanes(state map[string]any) {
-	h.mu.RLock()
-	ctx := h.ctx
-	h.mu.RUnlock()
-	if ctx != nil {
-		emitEvent("retakelanes:state", state)
 	}
 }
 
@@ -1735,7 +1737,7 @@ var fieldSchemas = map[string][]fieldSchema{
 	// defaulting to 0, since published room-tone guidance disagrees.
 	// debug_logging turns on the run log's debug-level decision records: global only (saveSettings refuses it at project scope), a machine switch like NARRATION_DEBUG=1, not a
 	// per-project preference.
-	"General":    {{"log_verbosity", "Log verbosity", "choice", []string{"quiet", "normal", "verbose"}}, {"notifications", "Notify me when a long task finishes while I'm away", "bool", nil}, {"close_import_when_done", "Close the manuscript import when it finishes", "bool", nil}, {"narrator_name", "Narrator name (default for credits)", "text", nil}, {"credits_room_tone_seconds", "Room tone per credits file (seconds)", "choice", []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"}}, {"debug_logging", "Debug logging (writes decision records to the run log)", "bool", nil}},
+	"General":    {{"log_verbosity", "Log verbosity", "choice", []string{"quiet", "normal", "verbose"}}, {"notifications", "Notify me when a long task finishes while I'm away", "bool", nil}, {"close_import_when_done", "Close the manuscript import when it finishes", "bool", nil}, {"narrator_name", "Narrator name (default for credits)", "text", nil}, {"credits_room_tone_seconds", "Room tone per credits file (seconds)", "choice", []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"}}, {"debug_logging", "Debug logging (writes decision records to the run log)", "bool", nil}, {"activity_trace", "Activity trace (writes how the app behaved, never your content, to logs/trace.jsonl)", "bool", nil}},
 	"Manuscript": {{"color_note", "Note color", "color", nil}},
 	// default_pronunciation_source is which pronunciation source a new
 	// name's pronunciation prefers, both at build time and when the narrator adds an alias: "" (Automatic) keeps the
@@ -1757,10 +1759,11 @@ var fieldSchemas = map[string][]fieldSchema{
 	// seen is the first-use tips the narrator has dismissed, as the tips' ids separated by spaces (src/studio/ui/src/tips/): a tip is shown once per
 	// narrator, so it is global only (saveSettings refuses it at project scope). Deleting the value shows every tip again.
 	"Tips": {{"seen", "Tips already shown", "text", nil}},
-	// storage is where a voice sample is kept (internal/voicesample): project copies its clip into the project folder. The DAW choices
-	// (daw, both) come with phase 6 of docs/prds/character-voice-samples.prd.md, so a save of either is refused until then.
+	// storage is where a voice sample is kept (internal/voicesample): project copies its clip into the project folder, daw keeps only a
+	// region in the DAW's project, both does both (docs/prds/character-voice-samples.prd.md, phase 6). A sample the DAW cannot honour
+	// is refused when it is marked (ReasonDawUnavailable); the Settings row offers only what the DAW's voice_sample_region capability allows.
 	"VoiceSamples": {
-		{"storage", "Where voice samples are kept", "choice", []string{"project"}},
+		{"storage", "Where voice samples are kept", "choice", []string{"project", "daw", "both"}},
 		// output_device is the name of the output a voice sample plays on, per project (docs/prds/character-voice-samples.prd.md, phase 7): the
 		// webview's own audio output, chosen in Settings and applied by the page, so the host only keeps the name. Empty is the system default. The
 		// name is free text: only the audio system can say whether an output exists, and a missing one plays on the default with a sentence.
@@ -2008,6 +2011,9 @@ func (h *Host) settingsForScope(scope string) (map[string]any, error) {
 	return result, nil
 }
 func (h *Host) saveSettings(tool, scope string, values map[string]*string) error {
+	if tool == assetsSettingsTool {
+		return fmt.Errorf("the models folder is changed only by Change location in Models & downloads, which moves the files with it")
+	}
 	schemas, ok := h.settingsSchemas()[tool]
 	if !ok {
 		return fmt.Errorf("unsupported settings tool")
@@ -2027,6 +2033,9 @@ func (h *Host) saveSettings(tool, scope string, values map[string]*string) error
 	if tool == "General" && scope != "global" {
 		if _, ok := values["debug_logging"]; ok {
 			return fmt.Errorf("debug logging is global: it is a switch for this machine, not this project")
+		}
+		if _, ok := values["activity_trace"]; ok {
+			return fmt.Errorf("the activity trace is global: it is a switch for this machine, not this project")
 		}
 	}
 	if tool == "ManuscriptGuide" && scope != "global" {
@@ -2060,6 +2069,9 @@ func (h *Host) saveSettings(tool, scope string, values map[string]*string) error
 	if tool == "General" {
 		if value, ok := values["debug_logging"]; ok && value != nil {
 			h.runLog.SetDebug(*value == "true")
+		}
+		if value, ok := values["activity_trace"]; ok && value != nil {
+			h.setActivityTrace(*value == "true")
 		}
 	}
 	if tool == "DAW" {
@@ -2205,6 +2217,38 @@ func (h *Host) startGuideBuild(rulesOnly bool) (map[string]any, error) {
 	if err != nil || gate != nil {
 		return gate, err
 	}
+	return h.runGuideJob(svc, model, rulesOnly, false)
+}
+
+// buildGuideAfterImport is Build the Story Bible after import (ManuscriptGuide.build_after_import, on unless the narrator turns it off),
+// run when an import succeeds: the unattended build (guide.Service.BuildUnattended) of a Story Bible with no entries, which files a name
+// under a kind only on the evidence of the confidence rule and ends with a sentence saying what it made, what waits under Needs review
+// and what it left out. A Story Bible with entries, or a file it cannot read, is left as it is, and the job's end says so; the file is
+// never read through Entities here, which would move a damaged file aside. Nobody is there to answer the language model's first-use
+// gate, so without an installed model it builds from the rules alone and says so. It reports whether it started a job; a build
+// refreshes the dialogue cues itself.
+func (h *Host) buildGuideAfterImport() bool {
+	svc := h.services()
+	if svc.guide == nil || svc.settings == nil {
+		return false
+	}
+	if on, _ := svc.settings.Effective("ManuscriptGuide", "build_after_import", "true"); on != "true" {
+		return false
+	}
+	model, gate, err := h.spacyForBuild(svc.settings, false)
+	rulesOnly := err != nil || gate != nil
+	if rulesOnly {
+		model = guide.RulesOnly
+	}
+	if _, err := h.runGuideJob(svc, model, rulesOnly, true); err != nil {
+		_ = h.log.Report("story_bible_after_import", "The Story Bible was not built after the import: "+err.Error())
+		return false
+	}
+	return true
+}
+
+// runGuideJob runs a Story Bible build as the story_bible job, the narrator's (Build) or, with afterImport, the unattended one.
+func (h *Host) runGuideJob(svc hostServices, model string, rulesOnly, afterImport bool) (map[string]any, error) {
 	h.mu.Lock()
 	if h.guideJob != nil {
 		h.guideJob.mu.RLock()
@@ -2216,14 +2260,25 @@ func (h *Host) startGuideBuild(rulesOnly bool) (map[string]any, error) {
 		}
 	}
 	job := &workJob{id: fmt.Sprintf("guide-%d", time.Now().UnixNano()), kind: "story_bible", phase: "running", message: "Story Bible rebuild started.", percent: 1, started: time.Now(), report: func(kind, message string) { _ = h.log.Report(kind, message) }}
-	h.jobRuns.begin(h.runLog, job.id, jobKindStoryBible, "rules_only", rulesOnly)
+	h.jobRuns.begin(h.runLog, job.id, jobKindStoryBible, "rules_only", rulesOnly, "after_import", afterImport)
 	h.guideJob = job
 	h.mu.Unlock()
 	// The build runs on the snapshot's Story Bible and session directory, which
 	// belong to one project; the goroutine never re-reads h.guide.
-	progress := filepath.Join(svc.config.sessionDir, "guide_progress_"+job.id+".txt")
-	log := filepath.Join(svc.config.sessionDir, "guide_log_"+job.id+".txt")
+	// A project not linked to a DAW session yet (an import usually comes first) has no session folder: the two files then go to the temporary
+	// folder, never the app's working directory, and are removed once the job has read them.
+	dir, temporary := svc.config.sessionDir, svc.config.sessionDir == ""
+	if temporary {
+		dir = os.TempDir()
+	}
+	progress := filepath.Join(dir, "guide_progress_"+job.id+".txt")
+	log := filepath.Join(dir, "guide_log_"+job.id+".txt")
+	// The snapshot is taken before the job starts, so a fast build cannot report a finished job as the one it started (#3076).
+	started := snapshotWork(job)
 	go func() {
+		if temporary {
+			defer func() { _ = os.Remove(progress); _ = os.Remove(log) }()
+		}
 		// The sidecar writes a stage|pct|message progress file and an
 		// append-only log while it works; tail both so the dialog shows real
 		// activity instead of sitting at 1% until the build finishes.
@@ -2242,7 +2297,21 @@ func (h *Host) startGuideBuild(rulesOnly bool) (map[string]any, error) {
 				}
 			}
 		}()
-		_, err := svc.guide.Build(progress, log, model)
+		var err error
+		var built string
+		if afterImport {
+			var report guide.UnattendedReport
+			report, err = svc.guide.BuildUnattended(progress, log, model)
+			built = report.Sentence()
+			switch {
+			case errors.Is(err, guide.ErrBibleNotEmpty):
+				err, built = nil, "The Story Bible already has entries, so the import left it as it was. Scan the manuscript on the Story Bible page to add what is new."
+			case errors.Is(err, guide.ErrBibleUnreadable):
+				built = "The Story Bible file could not be read, so the import left it as it was and built nothing. Open the Story Bible page to see what happened to it."
+			}
+		} else {
+			_, err = svc.guide.Build(progress, log, model)
+		}
 		close(stop)
 		<-stopped
 		pollWorkJob(job, progress, log, &logAt)
@@ -2251,11 +2320,17 @@ func (h *Host) startGuideBuild(rulesOnly bool) (map[string]any, error) {
 			job.phase = "error"
 			job.errorText = err.Error()
 			job.message = err.Error()
+			if afterImport && errors.Is(err, guide.ErrBibleUnreadable) {
+				job.message = built // what the narrator does about it, not only what went wrong
+			}
 		} else {
 			job.phase = "success"
 			job.percent = 100
 			job.message = "Story Bible rebuild complete."
-			if rulesOnly {
+			switch {
+			case afterImport:
+				job.message = built
+			case rulesOnly:
 				job.message = "Story Bible rebuild complete with the rules-only extraction, which is lower quality than a language model."
 			}
 		}
@@ -2265,7 +2340,7 @@ func (h *Host) startGuideBuild(rulesOnly bool) (map[string]any, error) {
 			h.publishJobEnded(event)
 		}
 	}()
-	return map[string]any{"status": "started", "job": snapshotWork(job)}, nil
+	return map[string]any{"status": "started", "job": started}, nil
 }
 
 // pollWorkJob folds the sidecar's latest progress line and any new log lines

@@ -1,7 +1,8 @@
-import { chapterName } from '../../chapterName';
+import { headingName } from '../../chapterHeading';
 import { usePageCommands, type PageItem } from '../../input/pageCommands';
 import type { ManuscriptChapter } from '../../types';
 import { ALL_CHAPTERS } from '../primitives/ChapterStepper';
+import { CHECK_RECORDINGS_LABEL } from '../recordingcheck/CheckRecordingsButton';
 import { DECISIONS, press } from './useProofKeys';
 
 const DECIDE = [
@@ -23,7 +24,8 @@ export function useProofPageCommands(page: {
   openIn: (chapterId: string) => number;
   selectedId: string | null;
   choose: (chapterId: string) => void;
-  review: { available: boolean; message?: string };
+  /** Why the DAW cannot check recordings now (the shared button's gate), or undefined. */
+  checkReason?: string;
   onCheck: (chapterIds: string[]) => void;
 }): void {
   usePageCommands({ id: 'proof', label: 'Proof', supersedes: ['Chapters'] }, () => {
@@ -42,7 +44,7 @@ export function useProofPageCommands(page: {
       const open = page.openIn(chapter.id);
       items.push({
         id: `chapter.${chapter.id}`,
-        label: chapterName(chapter),
+        label: headingName(chapter),
         group: 'Chapters',
         hint: open === 1 ? '1 open note' : `${open} open notes`,
         icon: 'goToChapter',
@@ -66,10 +68,10 @@ export function useProofPageCommands(page: {
     const shown = all ? undefined : page.chapters.find((c) => c.id === page.scope);
     items.push({
       id: 'check',
-      label: shown ? `Check recordings of ${chapterName(shown)}` : 'Check recordings',
+      label: shown ? `${CHECK_RECORDINGS_LABEL} of ${headingName(shown)}` : CHECK_RECORDINGS_LABEL,
       group: 'Checks',
       icon: 'checkRecordings',
-      disabledReason: page.review.available ? undefined : page.review.message || 'The DAW is not reachable.',
+      disabledReason: page.checkReason,
       run: () => page.onCheck(shown ? [shown.id] : []),
     });
     return items;

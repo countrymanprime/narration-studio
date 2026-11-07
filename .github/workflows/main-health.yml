@@ -2,7 +2,7 @@ name: Main health
 # The full CI run (quality, the sharded visual suites, the UI bundle, the Windows build) on `main` every three hours, when `main`
 # has a commit it has not run on. The agent train merges on the light gate (D43) and runs the full suite only at the end (D44), and two
 # pull requests that were each green alone can break together once both are merged (startupRequests.spec.ts did, 2026-10-18), so a
-# regression can sit on `main` unseen. When this run fails it ticks HOLD on #509, so no new worker launches onto a red `main`
+# regression can sit on `main` unseen. When this run fails it ticks HOLD on every open train issue, so no new worker launches onto a red `main`
 # (docs/operations/agent-train.md, "Safety net"). The owner or the coordinator clears HOLD once `main` is green.
 #
 # Every three hours, not on every push: a push-to-main run costs ~90 job-minutes and merges arrive in bursts, so a run per merge
@@ -62,7 +62,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read # to check out the script
-      issues: write # to edit #509
+      issues: write # to edit the train issues
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

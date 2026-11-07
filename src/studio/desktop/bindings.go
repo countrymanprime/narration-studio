@@ -590,6 +590,13 @@ func (h *Host) TeleprompterStart(options map[string]string) (string, error) {
 		started[key] = value
 	}
 	started["engine"], started["model"], started["modelDir"] = engine, modelID, modelDir
+	// A Whisper-class model rechecks what a non-Whisper live engine heard (the trailing confirmation pass). It is optional: not
+	// installed, or the Whisper engine itself, means no recheck and no first-use gate.
+	if asrport.NeedsRecheck(engine) {
+		if id, dir, _, err := h.teleprompterModel(confirmModelID); err == nil && dir != "" {
+			started["confirmModel"], started["confirmModelDir"] = id, dir
+		}
+	}
 	// teleprompterSessionRunID is a fixed key, not a per-run id: at most one session runs at a time (like MeterStart),
 	// so ending a stale entry (a previous session that exited without TeleprompterStop) before beginning this one
 	// guarantees every run.start still gets a run.end, if only an approximate "cancelled".
@@ -620,6 +627,9 @@ func (h *Host) TeleprompterStart(options map[string]string) (string, error) {
 	}
 	return encodeBinding(map[string]any{"status": "started"}, awaitListening(svc.teleprompter, svc.teleprompter.Start(started)))
 }
+
+// confirmModelID is the Whisper model the trailing confirmation pass uses: the smallest, since it runs beside the live engine.
+const confirmModelID = "tiny"
 
 // listeningWait is how long a start waits for the sidecar to say it is listening before it answers anyway: a slow model load is not a failure.
 const listeningWait = 20 * time.Second
@@ -914,6 +924,10 @@ func (h *Host) TracksSelect(path string) (string, error) {
 	return encodeBinding(h.tracksSelect(path))
 }
 func (h *Host) TracksList() (string, error) { return encodeBinding(h.tracksList()) }
+
+// TracksLive is TracksList's tracks as REAPER has them now, saved or not, when REAPER has the linked project open (tracks_live.go):
+// source "live". Otherwise it is the saved .rpp, source "saved", with the reason and a sentence saying why. It changes nothing.
+func (h *Host) TracksLive() (string, error) { return encodeBinding(h.tracksLive()) }
 
 // ChapterTrackMatch finds the track holding chapterID and where its recorded
 // audio ends: a

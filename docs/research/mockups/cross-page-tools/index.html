@@ -1,0 +1,685 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cross-page tools mock</title>
+<style>
+/* Cross-page function audit (#2251, PR #2834): where the DAW tools, compare run, connection state, package build, file checks, Show in DAW,
+   Match levels, Add marker and Check recordings appear. Tokens copied from docs/research/mockups/studio-next/src/styles/app.css, as the booth-voices mock does. */
+:root{
+  --bg:#EFEDE7; --surface:#FBFAF7; --raised:#F4F2EC; --line:#DCD7CB; --line-strong:#BDB6A6; --btn-line:#2B2723;
+  --ink:#23201B; --muted:#5C564B; --faint:#766F60;
+  --copper:#B04F17; --copper-ink:#FFFFFF; --copper-soft:#F1DDC9; --copper-text:#8F3F0F;
+  --ok:#2F6B3E; --ok-soft:#D9EAD9; --warn:#8A5A00; --warn-soft:#F5E6BF; --bad:#A3302A; --bad-soft:#F4D6D2; --info:#2A5C86; --info-soft:#D8E5F2; --violet:#6B4C9A; --violet-soft:#E6DDF3;
+  --page:#F3F1EB; --focus:#1F5FBF; --shadow:0 1px 2px rgba(36,33,28,.08),0 10px 28px rgba(36,33,28,.14);
+  --f-display:'Barlow Condensed','Arial Narrow',sans-serif; --f-body:'IBM Plex Sans',system-ui,sans-serif; --f-mono:'IBM Plex Mono',ui-monospace,monospace; --f-read:Georgia,'Times New Roman',serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#14120E; --surface:#1D1A15; --raised:#26221C; --line:#38332A; --line-strong:#51493C; --btn-line:#7A7060;
+  --ink:#EDE8DE; --muted:#B0A797; --faint:#968D7D;
+  --copper:#D9803F; --copper-ink:#1A0F05; --copper-soft:#3A2617; --copper-text:#F0A06A;
+  --ok:#7DC08A; --ok-soft:#1E3324; --warn:#E3B04F; --warn-soft:#3A2D10; --bad:#F09088; --bad-soft:#40201D; --info:#8DBBE6; --info-soft:#1B2F42; --violet:#B79DE0; --violet-soft:#2E2545;
+  --page:#181611; --focus:#7FB0FF; --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.55); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#14120E; --surface:#1D1A15; --raised:#26221C; --line:#38332A; --line-strong:#51493C; --btn-line:#7A7060;
+  --ink:#EDE8DE; --muted:#B0A797; --faint:#968D7D;
+  --copper:#D9803F; --copper-ink:#1A0F05; --copper-soft:#3A2617; --copper-text:#F0A06A;
+  --ok:#7DC08A; --ok-soft:#1E3324; --warn:#E3B04F; --warn-soft:#3A2D10; --bad:#F09088; --bad-soft:#40201D; --info:#8DBBE6; --info-soft:#1B2F42; --violet:#B79DE0; --violet-soft:#2E2545;
+  --page:#181611; --focus:#7FB0FF; --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.55); color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 var(--f-body);margin:0;padding-block:16px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+h1,h2,h3,h4{font-family:var(--f-display);font-weight:600;margin:0;letter-spacing:.01em;text-wrap:balance}
+h1{font-size:30px} h2{font-size:22px;margin:40px 0 4px} h3{font-size:18px;margin:0} h4{font-size:15px;margin:0}
+p{margin:0}
+code{font:12px var(--f-mono);background:var(--raised);padding:0 4px;border-radius:3px}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.stack{display:flex;flex-direction:column;gap:12px}
+.sub{color:var(--muted);font-size:13px;max-width:80ch}
+.label{font:600 12px var(--f-display);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.spacer{flex:1}
+.tag{display:inline-block;font:600 11px var(--f-display);letter-spacing:.12em;text-transform:uppercase;border-radius:4px;padding:1px 6px;vertical-align:middle;background:var(--copper-soft);color:var(--copper-text)}
+svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.toc{display:flex;gap:6px 16px;flex-wrap:wrap;font-size:13px}
+.toc a{color:var(--copper-text)}
+.seg{display:inline-flex;border:1px solid var(--btn-line);border-radius:6px;overflow:hidden}
+.seg button{border:0;background:var(--surface);padding:0 12px;height:30px;font:600 12px var(--f-display);letter-spacing:.09em;text-transform:uppercase}
+.seg button+button{border-left:1px solid var(--btn-line)}
+.seg button[aria-pressed="true"]{background:var(--copper);color:var(--copper-ink)}
+.sr{position:absolute;left:-9999px}
+
+/* what an item (one issue) is: a heading, one sentence, frames, captions. The screenshots are taken of .item. */
+.item{display:flex;flex-direction:column;gap:12px;padding:16px;background:var(--bg);border:1px solid var(--line);border-radius:12px;min-width:0;scroll-margin-top:12px}
+.item>.head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.item>.head a.iss{font:600 13px var(--f-mono);color:var(--copper-text)}
+.frames{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;min-width:0}
+.frame{display:flex;flex-direction:column;gap:6px;max-width:100%;min-width:0;flex:1 1 360px;container-type:inline-size}
+.frame.wide{flex-basis:100%}
+.frame.half{flex-basis:calc(50% - 8px)}
+@media (max-width:760px){.frame.half{flex-basis:100%}}
+.cap{font-size:12px;color:var(--muted);max-width:90ch}
+.cap b{color:var(--ink);font-weight:600}
+.new{outline:2px dashed var(--copper);outline-offset:2px;border-radius:6px}
+.newtag{font:600 10px var(--f-display);letter-spacing:.12em;text-transform:uppercase;background:var(--copper);color:var(--copper-ink);border-radius:3px;padding:0 5px;margin-left:6px;vertical-align:middle}
+
+/* the app's TooltipTarget, drawn with CSS, and one drawn open */
+[data-tip]{position:relative}
+[data-tip]:hover::after,[data-tip]:focus-visible::after{content:attr(data-tip);position:absolute;z-index:30;bottom:calc(100% + 6px);left:0;background:var(--ink);color:var(--bg);font:500 12px var(--f-body);padding:4px 8px;border-radius:5px;white-space:nowrap;pointer-events:none;box-shadow:var(--shadow)}
+.tipshown{position:absolute;z-index:40;background:var(--ink);color:var(--bg);font:500 12px/1.35 var(--f-body);padding:5px 9px;border-radius:5px;box-shadow:var(--shadow);max-width:260px;white-space:normal}
+
+/* primitives as drawn here */
+.btn{height:32px;border:1px solid var(--btn-line);border-radius:6px;background:var(--surface);padding:0 14px;font:600 12px var(--f-display);letter-spacing:.1em;text-transform:uppercase;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn.sm{height:28px;padding:0 10px}
+.btn.primary{background:var(--copper);border-color:var(--copper);color:var(--copper-ink)}
+.btn.quiet{border-color:transparent;background:none}
+.btn[aria-disabled="true"]{opacity:.5;cursor:not-allowed}
+.btn[aria-busy="true"]{opacity:.8}
+.ibtn{width:32px;height:32px;border-radius:6px;border:1px solid var(--btn-line);background:var(--surface);display:inline-grid;place-items:center;flex:none;padding:0}
+.ibtn.sm{width:28px;height:28px}
+.ibtn.ghost{border-color:transparent;background:none}
+.ibtn[aria-disabled="true"]{opacity:.5;cursor:not-allowed}
+.ibtn:hover:not([aria-disabled="true"]){background:var(--raised)}
+.kc{display:inline-grid;place-items:center;min-width:22px;height:20px;padding:0 5px;border:1px solid var(--line-strong);border-bottom-width:2px;border-radius:4px;font:500 11px var(--f-mono);color:var(--muted);background:var(--surface);white-space:nowrap}
+.spk{display:inline-block;line-height:1.35;border-radius:99px;padding:2px 9px;font:600 12px var(--f-display);letter-spacing:.04em;background:color-mix(in srgb,var(--c,#5C564B) 16%,var(--surface));color:color-mix(in srgb,var(--c,#5C564B) 70%,var(--ink));border:1px solid color-mix(in srgb,var(--c,#5C564B) 30%,transparent);white-space:nowrap}
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:99px;padding:1px 8px;font-size:12px;font-weight:500;white-space:nowrap;flex:none}
+.pill.n{background:var(--raised);color:var(--muted);border:1px solid var(--line)}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.info{background:var(--info-soft);color:var(--info)}
+.pill.violet{background:var(--violet-soft);color:var(--violet)}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;flex:none}
+.toast{display:flex;align-items:center;gap:10px;background:var(--ink);color:var(--bg);border-radius:8px;padding:10px 12px;box-shadow:var(--shadow);max-width:420px;font-size:13px}
+.toast .btn{border-color:var(--bg);background:none;color:var(--bg);height:26px}
+.banner{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line-strong);background:var(--warn-soft);color:var(--ink);border-radius:8px;padding:8px 10px;font-size:13px}
+.banner svg{color:var(--warn);margin-top:2px}
+.banner.info{background:var(--info-soft)} .banner.info svg{color:var(--info)}
+.banner.bad{background:var(--bad-soft)} .banner.bad svg{color:var(--bad)}
+.box{width:16px;height:16px;border:1.5px solid var(--btn-line);border-radius:3px;display:grid;place-items:center;background:var(--surface);flex:none}
+.box.on{background:var(--copper);border-color:var(--copper);color:var(--copper-ink)}
+.box.on svg{width:12px;height:12px;stroke-width:3}
+.radio{width:16px;height:16px;border:1.5px solid var(--btn-line);border-radius:50%;display:grid;place-items:center;flex:none}
+.radio.on::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--copper)}
+.prog{height:6px;border-radius:3px;background:var(--line);overflow:hidden;flex:1;min-width:60px}.prog i{display:block;height:100%;background:var(--copper)}
+
+/* menu, as the app's Menu primitive */
+.menu{background:var(--surface);border:1px solid var(--line-strong);border-radius:10px;box-shadow:var(--shadow);min-width:250px;max-width:340px;padding:4px;display:flex;flex-direction:column;z-index:20}
+.menu .msec{font:600 11px var(--f-display);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);padding:6px 8px 2px}
+.mi{display:flex;flex-direction:column;gap:1px;padding:6px 8px;border-radius:6px;text-align:left;border:0;background:none;width:100%}
+.mi .t{display:flex;align-items:center;gap:8px;font-weight:500}
+.mi .why{font-size:12px;color:var(--muted);padding-left:24px;line-height:1.35}
+.mi:hover:not([aria-disabled="true"]),.mi.hot{background:var(--raised)}
+.mi[aria-disabled="true"]{cursor:not-allowed}
+.mi[aria-disabled="true"] .t{color:var(--faint)}
+.mi svg{color:var(--muted)}
+.menu hr{border:0;border-top:1px solid var(--line);margin:4px 0;width:100%}
+.anchor{position:relative;display:inline-block}
+.anchor>.menu,.anchor>.tipshown{position:absolute;top:calc(100% + 6px);left:0}
+.anchor.r>.menu,.anchor.r>.tipshown{left:auto;right:0}
+
+/* dialog */
+.dlg{background:var(--surface);border:1px solid var(--line-strong);border-radius:12px;box-shadow:var(--shadow);width:100%;max-width:520px;display:flex;flex-direction:column}
+.dlg-h{display:flex;align-items:center;gap:8px;padding:14px 16px 6px}
+.dlg-h h3{margin-right:auto}
+.dlg-b{padding:6px 16px 12px;display:flex;flex-direction:column;gap:10px;font-size:13px}
+.dlg-f{display:flex;gap:8px;justify-content:flex-end;padding:12px 16px;border-top:1px solid var(--line);flex-wrap:wrap}
+.fld{display:flex;flex-direction:column;gap:4px}
+.fld .lb{font-size:12px;font-weight:500;color:var(--muted)}
+.fld .in,.selbox{height:32px;border:1px solid var(--btn-line);border-radius:6px;background:var(--bg);padding:0 8px;display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0;font-size:13px}
+.fld .in span,.selbox span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.scrim{background:color-mix(in srgb,var(--ink) 38%,transparent);border-radius:10px;padding:18px;display:grid;place-items:center}
+
+/* panels and tables, as the app draws them */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;min-width:0}
+.ph{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line);min-height:48px;flex-wrap:wrap}
+.ph h1,.ph h2{margin-right:auto}
+.ph h1{font-size:24px} .ph h2{font-size:18px;margin-top:0}
+.pb{padding:10px 12px;display:flex;flex-direction:column;gap:10px}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{font:600 12px var(--f-display);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);text-align:center;padding:8px 10px;background:var(--raised);border-bottom:1px solid var(--line)}
+.tbl td{padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:0}
+.tbl .c{text-align:center}
+.tbl .m,.mono{font-family:var(--f-mono);font-size:12px}
+.tbl tr[aria-selected="true"] td{background:var(--copper-soft)}
+.optrow{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;min-height:28px}
+.empty{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;padding:26px 14px;color:var(--muted)}
+.empty h3{color:var(--ink)}
+.skel{height:8px;border-radius:4px;background:var(--line)}
+.wave{height:44px;border-radius:6px;background:var(--raised);border:1px solid var(--line);position:relative;overflow:hidden}
+.wave::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,var(--line-strong) 0 2px,transparent 2px 5px);mask:linear-gradient(transparent 30%,#000 30% 70%,transparent 70%);opacity:.7}
+.wave i{position:absolute;top:0;bottom:0;width:3px;background:var(--bad)}
+.script p{margin:0 0 8px;font:15px/1.6 var(--f-read)}
+.script mark{background:var(--copper-soft);color:inherit;border-radius:3px;padding:0 2px}
+.script .flagw{border-bottom:2px dotted var(--warn)}
+.flagcard{border:1px solid var(--line-strong);border-radius:8px;background:var(--surface);padding:10px 12px;display:flex;flex-direction:column;gap:8px;margin:2px 0 10px;font:13px var(--f-body);max-width:520px}
+
+/* the app frame: rail, top bar, page. It reflows on the frame's own width, so 390 px shows the app's narrow form */
+.app{display:grid;grid-template-columns:150px minmax(0,1fr);background:var(--page);border:1px solid var(--line);border-radius:10px;overflow:visible;min-height:0;position:relative}
+.rail{border-right:1px solid var(--line);background:var(--surface);padding:10px 8px;display:flex;flex-direction:column;gap:1px;font-size:13px;border-radius:10px 0 0 10px}
+.rail .brand{font:600 14px var(--f-display);letter-spacing:.12em;padding:2px 8px 10px;line-height:1.1}
+.rail .brand span{display:block;color:var(--copper-text)}
+.rail .grp{font:600 10px var(--f-display);letter-spacing:.16em;color:var(--faint);padding:8px 8px 2px}
+.rail .nv{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:6px;color:var(--muted);white-space:nowrap}
+.rail .nv[aria-current="page"]{background:var(--copper-soft);color:var(--copper-text);font-weight:600}
+.rail .nv svg{width:15px;height:15px}
+.main{min-width:0;display:flex;flex-direction:column}
+.top{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line);background:var(--surface);border-radius:0 10px 0 0;min-height:48px}
+.top .proj{font-weight:600;font-size:13px}
+.top .crumb{color:var(--faint);font-size:12px}
+.top .search{display:inline-flex;align-items:center;gap:6px;height:28px;border:1px solid var(--line-strong);border-radius:6px;padding:0 8px;color:var(--muted);font-size:12px;background:var(--bg)}
+.top .hb{display:none}
+.chip{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:99px;font-size:12px;font-weight:500;border:1px solid transparent;white-space:nowrap}
+.chip.ok{background:var(--ok-soft);color:var(--ok)}
+.chip.warn{background:var(--warn-soft);color:var(--warn);border-color:color-mix(in srgb,var(--warn) 40%,transparent)}
+.chip.n{background:var(--raised);color:var(--muted);border-color:var(--line)}
+.page{padding:12px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.two{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:12px;align-items:start}
+.nowrap{flex-wrap:nowrap}
+@container (max-width:640px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  .rail{display:none}
+  .top{border-radius:10px 10px 0 0}
+  .top .hb{display:inline-grid}
+  .top .crumb,.top .search .hide-sm,.top .search kbd{display:none}
+  .two{grid-template-columns:minmax(0,1fr)}
+  .hide-sm{display:none!important}
+  .tbl.stackrows thead{position:absolute;left:-9999px}
+  .tbl.stackrows tr{display:flex;flex-wrap:wrap;gap:2px 10px;padding:6px 8px;border-bottom:1px solid var(--line);align-items:center}
+  .tbl.stackrows td{border:0;padding:0}
+  .menu{max-width:min(340px,100%)}
+}
+.matrix{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.matrix .st{display:flex;flex-direction:column;gap:6px;min-width:0}
+.matrix .st>.label{color:var(--ink)}
+.states{display:grid;grid-template-columns:minmax(0,1fr);gap:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface);font-size:13px}
+.states .r{display:grid;grid-template-columns:minmax(120px,170px) minmax(0,1fr);gap:10px;padding:7px 10px;border-bottom:1px solid var(--line);align-items:center}
+.states .r:last-child{border-bottom:0}
+.states .r>b{font-weight:600}
+@container (max-width:520px){.states .r{grid-template-columns:minmax(0,1fr)}}
+.pad{padding-bottom:150px}
+.pad2{padding-bottom:70px}
+.pad3{padding-bottom:230px}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-tools" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></symbol>
+  <symbol id="i-wand" viewBox="0 0 24 24"><path d="M21.6 3.6l-1.3-1.3a1.2 1.2 0 0 0-1.7 0L2.4 18.6a1.2 1.2 0 0 0 0 1.7l1.3 1.3a1.2 1.2 0 0 0 1.7 0L21.6 5.3a1.2 1.2 0 0 0 0-1.7zM14 7l3 3M5 6v4M19 14v4M10 2v2M7 8H3M21 16h-4M11 3H9"/></symbol>
+  <symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></symbol>
+  <symbol id="i-ext" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4l12 8-12 8z"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1"/></symbol>
+  <symbol id="i-listen" viewBox="0 0 24 24"><path d="M4 14v-2a8 8 0 0 1 16 0v2"/><rect x="3" y="14" width="4" height="6" rx="1"/><rect x="17" y="14" width="4" height="6" rx="1"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 6 0l3-3a4 4 0 0 0-6-6l-1 1"/><path d="M14 10a4 4 0 0 0-6 0l-3 3a4 4 0 0 0 6 6l1-1"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.01"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4-4"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></symbol>
+  <symbol id="i-cut" viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.5 8l11 9M8.5 16l11-9"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9H4z"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></symbol>
+  <symbol id="i-script" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M9 11h7M9 15h7"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></symbol>
+  <symbol id="i-wave" viewBox="0 0 24 24"><path d="M3 12h2M7 8v8M11 5v14M15 8v8M19 10v4M21 12h0"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></symbol>
+  <symbol id="i-gauge" viewBox="0 0 24 24"><path d="M4 18a8 8 0 1 1 16 0"/><path d="M12 18l4-6"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  <symbol id="i-plug" viewBox="0 0 24 24"><path d="M9 3v5M15 3v5M6 8h12v3a6 6 0 0 1-12 0zM12 17v4"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-dots" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14-4M4 4v4h4M4 13a8 8 0 0 0 14 4M20 20v-4h-4"/></symbol>
+  <symbol id="i-pkg" viewBox="0 0 24 24"><path d="M3 8l9-5 9 5v8l-9 5-9-5zM3 8l9 5 9-5M12 13v8"/></symbol>
+  <symbol id="i-tag" viewBox="0 0 24 24"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.2"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5zM3 13l9 5 9-5"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-compare" viewBox="0 0 24 24"><path d="M8 4v16M16 4v16M4 8h8M12 16h8"/></symbol>
+</svg>
+
+<div class="wrap" id="top">
+  <header class="stack" style="gap:8px">
+    <div class="row"><h1>Cross-page tools</h1><span class="tag">Draft</span><span class="spacer"></span>
+      <span class="seg" role="group" aria-label="Theme"><button data-theme-set="system" aria-pressed="true">System</button><button data-theme-set="light" aria-pressed="false">Light</button><button data-theme-set="dark" aria-pressed="false">Dark</button></span></div>
+    <p class="sub">Mockups for the twelve placement issues filed from the <a href="../../2026-11-cross-page-function-audit.md">cross-page function audit</a> (PR #2834, Refs #2251): where the DAW tools, the compare run, the connection state, the package build, the file check, Show in DAW, Match levels, Add marker and Check recordings appear. Every placement mounts the same shared component the Engine panel or another page already draws; a dashed copper outline marks what is new on a page. Fake data: chapter 8 of the sample book, REAPER project "Alice.rpp". #2819, #2828 and #2832 need no mock (a registry, a dialog that already exists, and jump-menu entries).</p>
+    <nav class="toc" aria-label="Sections"><a href="#tools">DAW tools menu</a><a href="#compare">Proof: Compare</a><a href="#connection">DAW connection</a><a href="#delivery">Delivery: package and check</a><a href="#showdaw">Show in DAW</a><a href="#levels">Match levels</a><a href="#markers">Add marker</a><a href="#check">Check recordings</a></nav>
+  </header>
+
+  <!-- ===================================================================================================== DAW TOOLS -->
+  <section class="stack" id="tools" aria-label="DAW tools menu">
+    <h2>DAW tools menu</h2>
+    <p class="sub">One <code>DawToolsMenu</code> (#2819), fed by one registry, mounted in four places: the page header of Editing and Proof and Master's empty state (structure tools, #2820), the Clean up tab and the Proof inspector (repair tools, #2821), and, as a plain dialog opener, Delivery (chapter tags, #2829). Retakes on lanes leave the registry for the Editing takes list (#2831). The Engine panel keeps drawing its REAPER tools card from the same registry. A tool the DAW cannot run is off with the DAW's own reason, never hidden.</p>
+
+    <!-- ------------------------------------------------------------------------------ #2820 -->
+    <div class="item" id="i2820">
+      <div class="head"><h3>Chapter regions and render prep where the chapter is finished</h3><a class="iss" href="https://github.com/countrymanprime/narration-studio/issues/2820">#2820</a></div>
+      <p class="sub">A <b>DAW tools</b> icon button in the Editing and Proof headers opens a menu of <b>Create chapter regions…</b> and <b>Prepare chapter render…</b>, the same two dialogs the Engine panel opens. Master gets the same button in its "no files yet" state, where the next step is rendering the chapters.</p>
+      <div class="frames">
+        <div class="frame wide"><span class="cap"><b>Editing</b> header, menu open</span>
+          <div class="app" data-page="Editing" data-chip="ok">
+            <div class="panel"><div class="ph nowrap"><h1>Editing</h1><span class="btn sm hide-sm">Chapter 8 ▾</span><span class="spacer"></span><span class="ibtn" data-tip="Undo"><ic n="refresh"></ic></span>
+              <span class="anchor r"><span class="ibtn new" aria-haspopup="menu" aria-expanded="true" aria-label="DAW tools" data-tip="DAW tools"><ic n="tools"></ic></span>
+                <div class="menu" role="menu"><div class="msec">Structure</div>
+                  <button class="mi hot" role="menuitem"><span class="t"><ic n="layers"></ic>Create chapter regions…</span></button>
+                  <button class="mi" role="menuitem"><span class="t"><ic n="upload"></ic>Prepare chapter render…</span></button></div></span></div>
+              <div class="pb script"><p>‘Off with her head!’ the Queen shouted at the top of her voice.</p><p><span class="flagw">Nobody</span> moved.</p><div class="skel" style="width:70%"></div><div class="skel" style="width:55%"></div><div class="skel" style="width:80%"></div><div class="skel" style="width:40%"></div></div></div>
+          </div></div>
+        <div class="frame half"><span class="cap"><b>Proof</b> header, menu open</span>
+          <div class="app" data-page="Proof" data-chip="ok">
+            <div class="panel"><div class="ph nowrap"><h1>Proof</h1><span class="btn sm hide-sm">Chapter 8 ▾</span><span class="spacer"></span><span class="btn sm"><ic n="listen"></ic><span class="hide-sm">Check recordings</span></span>
+              <span class="anchor r"><span class="ibtn new" aria-haspopup="menu" aria-expanded="true" aria-label="DAW tools" data-tip="DAW tools"><ic n="tools"></ic></span>
+                <div class="menu" role="menu"><div class="msec">Structure</div>
+                  <button class="mi hot" role="menuitem"><span class="t"><ic n="layers"></ic>Create chapter regions…</span></button>
+                  <button class="mi" role="menuitem"><span class="t"><ic n="upload"></ic>Prepare chapter render…</span></button></div></span></div>
+              <div class="pb"><div class="row"><span class="pill warn">3 open</span><span class="pill ok">9 decided</span></div><div class="skel" style="width:90%"></div><div class="skel" style="width:60%"></div><div class="skel" style="width:75%"></div><div class="skel" style="width:35%"></div></div></div>
+          </div></div>
+        <div class="frame half"><span class="cap"><b>Master &amp; QC</b>, no files yet. Master has no DAW chip, so the menu carries the reason itself.</span>
+          <div class="app" data-page="Master &amp; QC" data-chip="none">
+            <div class="panel"><div class="ph nowrap"><h1>Master &amp; QC</h1><span class="spacer"></span></div>
+              <div class="empty"><h3>No files to check yet</h3><span>Render the chapters in REAPER, then check them here.</span>
+                <div class="row" style="justify-content:center"><span class="btn primary">Check files…</span>
+                  <span class="anchor r"><span class="ibtn new" aria-haspopup="menu" aria-expanded="true" aria-label="DAW tools" data-tip="DAW tools"><ic n="tools"></ic></span>
+                    <div class="menu" role="menu"><div class="msec">Structure</div>
+                      <button class="mi hot" role="menuitem"><span class="t"><ic n="layers"></ic>Create chapter regions…</span></button>
+                      <button class="mi" role="menuitem"><span class="t"><ic n="upload"></ic>Prepare chapter render…</span></button></div></span></div><div style="height:96px"></div></div></div>
+          </div></div>
+      </div>
+      <span class="label">States of the menu: always the same entries, off with the DAW's reason</span>
+      <div class="matrix">
+        <div class="st"><span class="label">Ready</span><div class="menu" style="position:static"><div class="msec">Structure</div><button class="mi"><span class="t"><ic n="layers"></ic>Create chapter regions…</span></button><button class="mi"><span class="t"><ic n="upload"></ic>Prepare chapter render…</span></button></div></div>
+        <div class="st"><span class="label">REAPER not running</span><div class="menu" style="position:static"><div class="msec">Structure</div>
+          <button class="mi" aria-disabled="true"><span class="t"><ic n="layers"></ic>Create chapter regions…</span><span class="why">REAPER is not connected. Start it from the chip in the top bar.</span></button>
+          <button class="mi" aria-disabled="true"><span class="t"><ic n="upload"></ic>Prepare chapter render…</span><span class="why">REAPER is not connected. Start it from the chip in the top bar.</span></button></div></div>
+        <div class="st"><span class="label">No chapter linked to a track</span><div class="menu" style="position:static"><div class="msec">Structure</div>
+          <button class="mi" aria-disabled="true"><span class="t"><ic n="layers"></ic>Create chapter regions…</span><span class="why">No chapter is linked to a REAPER track yet. Link one on Production.</span></button>
+          <button class="mi" aria-disabled="true"><span class="t"><ic n="upload"></ic>Prepare chapter render…</span><span class="why">No chapter is linked to a REAPER track yet. Link one on Production.</span></button></div></div>
+        <div class="st"><span class="label">Audacity, or the built-in recorder</span><div class="menu" style="position:static"><div class="msec">Structure</div>
+          <button class="mi" aria-disabled="true"><span class="t"><ic n="layers"></ic>Create chapter regions…</span><span class="why">Chapter regions are written in REAPER. This project records in Audacity.</span></button>
+          <button class="mi" aria-disabled="true"><span class="t"><ic n="upload"></ic>Prepare chapter render…</span><span class="why">Render setup is written in REAPER. This project records in Audacity.</span></button></div></div>
+      </div>
+    </div>
+
+    <!-- ------------------------------------------------------------------------------ #2821 -->
+    <div class="item" id="i2821">
+      <div class="head"><h3>Repair tools beside the defect</h3><a class="iss" href="https://github.com/countrymanprime/narration-studio/issues/2821">#2821</a></div>
+      <p class="sub">The two REAPER launchers (<b>Repair Pops/Clicks</b>, <b>Magnolius DeClick</b>) get a <b>Repair in REAPER</b> button where the defect is: beside Apply in Editing's Clean up tab, and in Proof's inspector for click, breath and plosive notes. Both act on the item selected in REAPER, which Proof's <b>Show in REAPER</b> has just selected. Not built until the five in-REAPER checks in <code>docs/research/reaper-cleanup-launchers.md</code> are recorded.</p>
+      <div class="frames">
+        <div class="frame half"><span class="cap"><b>Editing</b> drawer, Clean up tab, Clicks. The tooltip says how it differs from Apply.</span>
+          <div class="app" data-page="Editing" data-chip="ok">
+            <div class="panel"><div class="ph"><h2>Clicks</h2><span class="sub">3 to fix</span></div>
+              <table class="tbl stackrows"><thead><tr><th>Time</th><th>Measured</th><th>Proposed</th><th></th></tr></thead><tbody>
+                <tr aria-selected="true"><td class="c m">3:41</td><td class="c m">+9 dB, 4 ms</td><td class="c">Repair the click</td><td class="c"><span class="ibtn sm ghost"><ic n="play"></ic></span></td></tr>
+                <tr><td class="c m">5:12</td><td class="c m">+7 dB, 3 ms</td><td class="c">Repair the click</td><td class="c"><span class="ibtn sm ghost"><ic n="play"></ic></span></td></tr>
+                <tr><td class="c m">8:03</td><td class="c m">+6 dB, 5 ms</td><td class="c">Repair the click</td><td class="c"><span class="ibtn sm ghost"><ic n="play"></ic></span></td></tr></tbody></table>
+              <div class="pb"><div class="row" style="position:relative;padding-top:70px"><span class="btn">Preview</span><span class="btn primary">Apply 3</span><span class="spacer"></span>
+                  <span class="anchor r" style="position:static"><span class="btn new" aria-haspopup="menu"><ic n="wand"></ic>Repair in REAPER<ic n="down"></ic></span>
+                    <span class="tipshown" style="top:auto;bottom:calc(100% + 6px);right:0;left:auto;width:250px">Opens REAPER’s own repair dialog on the items selected in REAPER. Apply repairs in the app instead.</span></span></div></div></div>
+          </div></div>
+        <div class="frame half"><span class="cap"><b>Editing</b>, the same button pressed</span>
+          <div class="app" data-page="Editing" data-chip="ok">
+            <div class="panel"><div class="ph"><h2>Clicks</h2><span class="sub">3 to fix</span></div>
+              <div class="pb"><div class="row"><span class="label">Strength</span><span class="seg"><button aria-pressed="false">Light</button><button aria-pressed="true">Standard</button><button aria-pressed="false">Heavy</button></span></div>
+                <div class="row"><span class="btn">Preview</span><span class="btn primary">Apply 3</span><span class="spacer"></span>
+                  <span class="anchor r"><span class="btn new" aria-haspopup="menu" aria-expanded="true"><ic n="wand"></ic>Repair in REAPER<ic n="down"></ic></span>
+                    <div class="menu" role="menu"><div class="msec">Repair</div>
+                      <button class="mi hot" role="menuitem"><span class="t"><ic n="wand"></ic>Repair Pops/Clicks</span></button>
+                      <button class="mi" role="menuitem"><span class="t"><ic n="wand"></ic>Magnolius DeClick</span></button></div></span></div><div style="height:100px"></div></div></div>
+          </div></div>
+        <div class="frame wide"><span class="cap"><b>Proof</b> inspector, a click note. <b>Show in REAPER</b> selects the item; the repair button then opens the tool on it. Toast after the launch.</span>
+          <div class="app" data-page="Proof" data-chip="ok">
+            <div class="two"><div class="panel"><div class="ph"><h2>Notes</h2><span class="pill warn">3 open</span></div><table class="tbl stackrows"><thead><tr><th>Time</th><th>Type</th><th>Heard</th></tr></thead><tbody>
+                <tr><td class="c m">1:20</td><td class="c"><span class="pill n">pacing</span></td><td>…a long gap…</td></tr><tr aria-selected="true"><td class="c m">3:41</td><td class="c"><span class="pill bad">click</span></td><td>click before “Off”</td></tr><tr><td class="c m">6:07</td><td class="c"><span class="pill violet">breath</span></td><td>breath before “Nobody”</td></tr></tbody></table></div>
+              <div class="panel"><div class="ph"><h2 class="mono">3:41</h2><span class="pill bad">click</span></div>
+                <div class="pb"><div class="wave"><i style="left:46%"></i></div>
+                  <div class="row"><span class="ibtn" data-tip="Play ±3 s"><ic n="play"></ic></span><span class="ibtn" data-tip="Show in REAPER"><ic n="ext"></ic></span><span class="ibtn" data-tip="Add marker in REAPER"><ic n="flag"></ic></span>
+                    <span class="anchor r"><span class="ibtn new" aria-haspopup="menu" aria-expanded="true" aria-label="Repair in REAPER" data-tip="Repair in REAPER"><ic n="wand"></ic></span>
+                      <div class="menu" role="menu"><div class="msec">Repair</div><button class="mi hot" role="menuitem"><span class="t"><ic n="wand"></ic>Repair Pops/Clicks</span></button><button class="mi" role="menuitem"><span class="t"><ic n="wand"></ic>Magnolius DeClick</span></button></div></span></div>
+                  <div style="height:104px"></div>
+                  <div class="toast"><ic n="check"></ic>Repair Pops/Clicks is open in REAPER on the selected item. Apply or cancel it there.</div></div></div></div>
+          </div></div>
+      </div>
+      <span class="label">States of the repair entries</span>
+      <div class="matrix">
+        <div class="st"><span class="label">Item selected in REAPER</span><div class="menu" style="position:static"><div class="msec">Repair</div><button class="mi"><span class="t"><ic n="wand"></ic>Repair Pops/Clicks</span></button><button class="mi"><span class="t"><ic n="wand"></ic>Magnolius DeClick</span></button></div></div>
+        <div class="st"><span class="label">Nothing selected in REAPER</span><div class="menu" style="position:static"><div class="msec">Repair</div>
+          <button class="mi" aria-disabled="true"><span class="t"><ic n="wand"></ic>Repair Pops/Clicks</span><span class="why">Select the item in REAPER first. Show in REAPER selects it.</span></button>
+          <button class="mi" aria-disabled="true"><span class="t"><ic n="wand"></ic>Magnolius DeClick</span><span class="why">Select the item in REAPER first. Show in REAPER selects it.</span></button></div></div>
+        <div class="st"><span class="label">Magnolius not installed</span><div class="menu" style="position:static"><div class="msec">Repair</div>
+          <button class="mi"><span class="t"><ic n="wand"></ic>Repair Pops/Clicks</span></button>
+          <button class="mi" aria-disabled="true"><span class="t"><ic n="wand"></ic>Magnolius DeClick</span><span class="why">Not found in this REAPER. The app never installs it.</span></button></div></div>
+        <div class="st"><span class="label">REAPER has no such dialog (before 7.80)</span><div class="menu" style="position:static"><div class="msec">Repair</div>
+          <button class="mi" aria-disabled="true"><span class="t"><ic n="wand"></ic>Repair Pops/Clicks</span><span class="why">This REAPER has no Repair Pops/Clicks dialog. It needs 7.80 or later.</span></button>
+          <button class="mi"><span class="t"><ic n="wand"></ic>Magnolius DeClick</span></button></div></div>
+        <div class="st"><span class="label">REAPER not running</span><div class="menu" style="position:static"><div class="msec">Repair</div>
+          <button class="mi" aria-disabled="true"><span class="t"><ic n="wand"></ic>Repair Pops/Clicks</span><span class="why">REAPER is not connected. Start it from the chip in the top bar.</span></button>
+          <button class="mi" aria-disabled="true"><span class="t"><ic n="wand"></ic>Magnolius DeClick</span><span class="why">REAPER is not connected. Start it from the chip in the top bar.</span></button></div></div>
+        <div class="st"><span class="label">Audacity, or the built-in recorder</span><div class="menu" style="position:static"><div class="msec">Repair</div>
+          <button class="mi" aria-disabled="true"><span class="t"><ic n="wand"></ic>Repair Pops/Clicks</span><span class="why">These tools open in REAPER. Apply repairs in the app instead.</span></button>
+          <button class="mi" aria-disabled="true"><span class="t"><ic n="wand"></ic>Magnolius DeClick</span><span class="why">These tools open in REAPER. Apply repairs in the app instead.</span></button></div></div>
+      </div>
+    </div>
+
+    <!-- ------------------------------------------------------------------------------ #2829 -->
+    <div class="item" id="i2829">
+      <div class="head"><h3>Embed chapter tags next to the package build</h3><a class="iss" href="https://github.com/countrymanprime/narration-studio/issues/2829">#2829</a></div>
+      <p class="sub">Embedding ID3 chapters into the finished book MP3 never talks to REAPER, so it leaves the REAPER tools card and sits on Delivery's Output panel beside the build, for any DAW or none. The dialog is the existing one, unchanged except that its "no render yet" line points to DAW tools. The Engine panel loses the button.</p>
+      <div class="frames">
+        <div class="frame half"><span class="cap"><b>Delivery</b> Output panel (no DAW linked)</span>
+          <div class="app" data-page="Delivery" data-chip="builtin">
+            <div class="panel"><div class="ph"><h2>Output</h2></div><div class="pb"><div class="fld"><span class="lb">FOLDER</span><span class="in"><span>C:\Audiobooks\Alice\package</span></span></div>
+              <div class="row"><span class="btn primary">Build ACX package</span><span class="btn new"><ic n="tag"></ic>Embed chapter tags…</span><span class="spacer"></span><span class="ibtn" data-tip="Open the folder"><ic n="folder"></ic></span></div>
+              <div class="row"><span class="pill ok">Built</span><b>13 files</b><span class="sub">in C:\Audiobooks\Alice\package</span></div></div></div>
+          </div></div>
+        <div class="frame half"><span class="cap">The dialog, ready to embed</span>
+          <div class="scrim"><div class="dlg"><div class="dlg-h"><h3>Embed chapter tags</h3><span class="ibtn sm ghost"><ic n="x"></ic></span></div>
+            <div class="dlg-b"><p class="sub">Add ID3 chapter markers to a copy of an already-rendered MP3, using the chapter names and lengths from your last chapter render. The file you choose below is never changed; a new, tagged copy is written beside it.</p>
+              <div class="fld"><span class="lb">Combined book MP3 to add chapters to</span><span class="in"><span>C:\Audiobooks\Alice\Alice-book.mp3</span><span class="btn sm">Choose…</span></span></div>
+              <span class="label">Chapters from your last chapter render</span>
+              <div class="optrow"><span>1. Down the Rabbit-Hole</span><span class="pill ok">0:00</span></div><div class="optrow"><span>2. The Pool of Tears</span><span class="pill ok">11:42</span></div><div class="optrow"><span>3. A Caucus-Race</span><span class="pill ok">23:05</span></div>
+              <div class="row"><span class="box on"><ic n="check"></ic></span><span>I understand this writes a new file beside the one above; the original file is not changed.</span></div></div>
+            <div class="dlg-f"><span class="btn">Close</span><span class="btn primary">Embed chapter tags</span></div></div></div></div>
+      </div>
+      <span class="label">States of the dialog</span>
+      <div class="matrix">
+        <div class="st"><span class="label">No chapter render yet</span><div class="banner info"><ic n="info"></ic><span>No chapter render is configured yet. Use <b>Prepare chapter render…</b> in DAW tools on Editing, Proof or Master first.</span></div></div>
+        <div class="st"><span class="label">A chapter not rendered</span><div class="optrow"><span>4. Advice from a Caterpillar</span><span class="pill bad">Not rendered yet</span></div><div class="banner"><ic n="warn"></ic><span>Press Render in REAPER first: every chapter file must exist before chapter tags can be timed from them.</span></div></div>
+        <div class="st"><span class="label">Written</span><div class="banner info"><ic n="check"></ic><span>Wrote <span class="mono">Alice-book-tagged.mp3</span> with 12 chapters beside the original.</span></div><div class="row"><span class="btn sm">Open the folder</span><span class="btn sm primary">Close</span></div></div>
+      </div>
+    </div>
+
+    <!-- ------------------------------------------------------------------------------ #2831 -->
+    <div class="item" id="i2831">
+      <div class="head"><h3>Retakes on lanes inside the takes list</h3><a class="iss" href="https://github.com/countrymanprime/narration-studio/issues/2831">#2831</a></div>
+      <p class="sub">The lane choice is the decision the takes list already makes for takes, so a line that has retakes on fixed lanes shows them under its takes: lane, item, and a <b>Play this lane</b> icon button. Choosing one is the dialog's single Undo step with its refusals; the Engine dialog and its registry entry go.</p>
+      <div class="frames">
+        <div class="frame half"><span class="cap"><b>Editing</b> takes for the line “Off with her head!”, lane rows below the takes</span>
+          <div class="app" data-page="Editing" data-chip="ok">
+            <div class="panel"><div class="ph"><h2>Takes</h2><span class="sub">line 14 · Queen</span></div>
+              <div class="pb"><div class="optrow"><span class="row nowrap"><span class="radio on"></span>Take 2</span><span class="mono">0:04.2</span><span class="ibtn sm ghost"><ic n="play"></ic></span></div>
+                <div class="optrow"><span class="row nowrap"><span class="radio"></span>Take 1</span><span class="mono">0:04.9</span><span class="ibtn sm ghost"><ic n="play"></ic></span></div>
+                <hr style="border:0;border-top:1px solid var(--line);width:100%;margin:2px 0">
+                <div class="row"><span class="label">Retakes on lanes</span><span class="ibtn sm ghost" data-tip="A lane plays across its whole track, so choosing one silences the other lanes of that track everywhere, not only for this line."><ic n="info"></ic></span></div>
+                <div class="optrow new" style="padding:2px 4px"><span class="row nowrap"><b>Lane 1</b><span class="sub">Queen · item 4</span></span><span class="row nowrap"><span class="pill ok">Plays</span><span class="ibtn sm" aria-disabled="true"><ic n="play"></ic></span></span></div>
+                <div class="optrow new" style="padding:2px 4px"><span class="row nowrap"><b>Lane 2</b><span class="sub">Queen · item 6</span></span><span class="row nowrap"><span class="ibtn sm" data-tip="Play this lane"><ic n="play"></ic></span></span></div>
+                <div class="optrow new" style="padding:2px 4px"><span class="row nowrap"><b>Lane 3</b><span class="sub">Queen · item 9</span></span><span class="row nowrap"><span class="ibtn sm" data-tip="Play this lane"><ic n="play"></ic></span></span></div></div></div>
+          </div></div>
+        <div class="frame half"><span class="cap">After pressing lane 2: one Undo step</span>
+          <div class="app" data-page="Editing" data-chip="ok">
+            <div class="panel"><div class="ph"><h2>Takes</h2><span class="sub">line 14 · Queen</span></div>
+              <div class="pb"><div class="row"><span class="label">Retakes on lanes</span></div>
+                <div class="optrow" style="padding:2px 4px"><span class="row nowrap"><b>Lane 1</b><span class="sub">Queen · item 4</span></span><span class="ibtn sm" data-tip="Play this lane"><ic n="play"></ic></span></div>
+                <div class="optrow" style="padding:2px 4px;background:var(--copper-soft);border-radius:6px"><span class="row nowrap"><b>Lane 2</b><span class="sub">Queen · item 6</span></span><span class="row nowrap"><span class="pill ok">Plays</span><span class="ibtn sm" aria-disabled="true"><ic n="play"></ic></span></span></div>
+                <div class="optrow" style="padding:2px 4px"><span class="row nowrap"><b>Lane 3</b><span class="sub">Queen · item 9</span></span><span class="ibtn sm" data-tip="Play this lane"><ic n="play"></ic></span></div>
+                <div class="toast"><ic n="check"></ic><span>Lane 2 plays on Queen. Lanes 1 and 3 are silent everywhere on this track.</span><span class="btn">Undo</span></div></div></div>
+          </div></div>
+      </div>
+      <span class="label">States</span>
+      <div class="states">
+        <div class="r"><b>Line has one lane</b><span>No lane section. Only lines with retakes on more than one lane of a track list them.</span></div>
+        <div class="r"><b>Project has no lanes</b><span>No lane section on any line; the takes list is as today. The app never turns lanes on.</span></div>
+        <div class="r"><b>REAPER not running</b><span>Lane rows show, their buttons off with the connection reason. What plays is read from the project as last saved.</span></div>
+        <div class="r"><b>List is stale</b><span>A refusal under the line: "The project changed in REAPER since this list was read." with a Reload action; nothing is changed.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================================================== COMPARE -->
+  <section class="stack" id="compare" aria-label="Proof compare tools">
+    <h2>Proof: Compare, Preview, Native takes</h2>
+    <div class="item" id="i2822">
+      <div class="head"><h3>Compare the recording with the script on the Proof page</h3><a class="iss" href="https://github.com/countrymanprime/narration-studio/issues/2822">#2822</a></div>
+      <p class="sub">Today these live only on <code>/proof/:chapterId</code>, reached from the Engine panel's "Open in Proof". They move onto the Proof page for the selected chapter, below the check card, as the same components (<code>CompareRun</code>, <code>PreviewPanel</code>, <code>NativeTakesPanel</code>, <code>RenderAssociationSection</code>). The chapter view stays as a deep link and draws the same components.</p>
+      <div class="frames">
+        <div class="frame wide"><span class="cap"><b>Proof</b>, chapter 8. <b>Compare</b> sits beside <b>Check recordings</b> in the check card; its result, the preview and native takes follow as tabs of one panel.</span>
+          <div class="app" data-page="Proof" data-chip="ok">
+            <div class="panel"><div class="ph"><h2>Recording check</h2><span class="pill ok">Current</span><span class="spacer"></span><span class="btn">Check recordings</span><span class="btn new"><ic n="compare"></ic>Compare with the script</span></div>
+              <div class="pb"><div class="row"><span class="label">Recorded</span><b class="mono">9:41</b><span class="label">Script estimate</span><b class="mono">9:10</b></div></div></div>
+            <div class="panel new"><div class="ph"><h2>Compare</h2><span class="seg"><button aria-pressed="true">Differences</button><button aria-pressed="false">Preview</button><button aria-pressed="false">Native takes</button></span></div>
+              <div class="pb"><div class="row"><span class="pill warn">4 differences</span><span class="sub">Compared 2 min ago · recording unchanged since</span><span class="spacer"></span><span class="btn sm">Compare again</span></div>
+                <table class="tbl stackrows"><thead><tr><th>Time</th><th>Script</th><th>Heard</th><th></th></tr></thead><tbody>
+                  <tr><td class="c m">3:41</td><td>“Off with her head!”</td><td>“Off with her <mark style="background:var(--bad-soft)">hat</mark>!”</td><td class="c"><span class="ibtn sm ghost"><ic n="play"></ic></span></td></tr>
+                  <tr><td class="c m">6:07</td><td>Nobody moved.</td><td><i>not heard</i></td><td class="c"><span class="ibtn sm ghost"><ic n="play"></ic></span></td></tr></tbody></table></div></div>
+          </div></div>
+      </div>
+      <span class="label">States of the compare run</span>
+      <div class="matrix">
+        <div class="st"><span class="label">Not compared yet</span><div class="row"><span class="btn primary">Compare with the script</span></div></div>
+        <div class="st"><span class="label">Comparing</span><div class="row nowrap"><div class="prog"><i style="width:40%"></i></div><span class="mono">40%</span><span class="btn sm">Cancel</span></div></div>
+        <div class="st"><span class="label">Done, no differences</span><div class="row"><span class="pill ok">Matches the script</span><span class="btn sm">Compare again</span></div></div>
+        <div class="st"><span class="label">Stale: text or recording changed</span><div class="row"><span class="pill warn">Out of date</span><span class="btn sm primary">Compare again</span></div></div>
+        <div class="st"><span class="label">No recording for this chapter</span><div class="row"><span class="btn" aria-disabled="true">Compare with the script</span></div><span class="sub">Nothing recorded for this chapter yet.</span></div>
+        <div class="st"><span class="label">Cancelled or failed</span><div class="banner bad"><ic n="warn"></ic><span>The comparison stopped before it finished. Nothing was changed.</span></div></div>
+      </div>
+      <p class="cap"><b>Route parity:</b> every state above is the same on <code>/proof?chapter=8</code> and <code>/proof/8</code>; the Proof guide's sentence about Production's Proof cell is corrected in the build.</p>
+    </div>
+  </section>
+
+  <!-- ===================================================================================================== CONNECTION -->
+  <section class="stack" id="connection" aria-label="DAW connection">
+    <h2>One DAW connection state</h2>
+    <div class="item" id="i2823">
+      <div class="head"><h3>The same chip and dialog on every page that needs the DAW</h3><a class="iss" href="https://github.com/countrymanprime/narration-studio/issues/2823">#2823</a></div>
+      <p class="sub">One <code>useDawConnection()</code> feeds the existing chip and <b>REAPER is not connected</b> dialog. Proof, Pickups and Master gain the chip; the dialog's <b>Link project file</b> now works on Editing and Production, where today it says "Link the project file first." and offers nothing. Linking on one page updates the others with no reload.</p>
+      <div class="frames">
+        <div class="frame half"><span class="cap"><b>Proof</b>, <b>Pickups</b> and <b>Master</b> top bars, REAPER not running (Master has no chip today)</span>
+          <div class="app" data-page="Proof" data-chip="off" data-chipnew="1"><div class="skel" style="width:60%"></div></div>
+          <div class="app" data-page="Pickups" data-chip="off" data-chipnew="1"><div class="skel" style="width:60%"></div></div>
+          <div class="app" data-page="Master &amp; QC" data-chip="off" data-chipnew="1"><div class="skel" style="width:60%"></div></div></div>
+        <div class="frame half"><span class="cap">Pressing the chip, project file not linked (Editing, Production, Proof…)</span>
+          <div class="scrim"><div class="dlg"><div class="dlg-h"><h3>REAPER is not connected</h3><span class="ibtn sm ghost"><ic n="x"></ic></span></div>
+            <div class="dlg-b"><p>No REAPER project file is linked. Link the file Alice.rpp lives in, then start REAPER.</p></div>
+            <div class="dlg-f"><span class="btn">Check again</span><span class="btn" aria-disabled="true">Start REAPER</span><span class="btn primary new"><ic n="link"></ic>Link project file…</span></div></div></div></div>
+      </div>
+      <span class="label">States of the dialog (one for every page)</span>
+      <div class="matrix">
+        <div class="st"><span class="label">Linked, REAPER closed</span><div class="dlg"><div class="dlg-b"><p>The project is linked, but REAPER has not connected: it is closed, or its bridge has not started yet.</p></div><div class="dlg-f"><span class="btn">Check again</span><span class="btn primary">Start REAPER</span></div></div></div>
+        <div class="st"><span class="label">Starting</span><div class="dlg"><div class="dlg-b"><p>Waiting for REAPER to answer…</p></div><div class="dlg-f"><span class="btn">Check again</span><span class="btn primary" aria-busy="true">Connecting…</span></div></div></div>
+        <div class="st"><span class="label">Started, never answered</span><div class="dlg"><div class="dlg-b"><div class="banner"><ic n="warn"></ic><span>REAPER started but has not answered. Open it and check the bridge script is loaded.</span></div></div><div class="dlg-f"><span class="btn">Check again</span><span class="btn primary">Start REAPER</span></div></div></div>
+        <div class="st"><span class="label">Link chosen on another page</span><div class="row"><span class="chip ok"><span class="dot"></span>REAPER</span><span class="sub">The chip turns on every open page at once; the dialog closes by itself.</span></div></div>
+        <div class="st"><span class="label">Open project is a different file</span><div class="banner"><ic n="warn"></ic><span>REAPER has Other.rpp open, not Alice.rpp.</span></div><div class="row"><span class="btn sm">Link the open project</span><span class="btn sm">Check again</span></div></div>
+        <div class="st"><span class="label">Audacity or built-in recorder</span><div class="row"><span class="chip n"><span class="dot"></span>Audacity</span><span class="sub">Same chip, its own words; no Link project file.</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================================================== DELIVERY -->
+  <section class="stack" id="delivery" aria-label="Delivery: package build and file check">
+    <h2>Delivery: package build and Check files</h2>
+    <div class="item" id="i2824">
+      <div class="head"><h3>Both package builds on Delivery</h3><a class="iss" href="https://github.com/countrymanprime/narration-studio/issues/2824">#2824</a></div>
+      <p class="sub">The multi-platform build leaves Master &amp; QC, which keeps measure, master and encode and shows its package counts card with <b>Open Delivery</b>. Delivery's Output panel gets the multi-platform builder beside the single-profile build; both are off, with the reason, until a chapter is encoded.</p>
+      <div class="frames">
+        <div class="frame wide"><span class="cap"><b>Delivery</b> Output panel, files encoded</span>
+          <div class="app" data-page="Delivery" data-chip="ok"><div class="two">
+            <div class="panel"><div class="ph"><h2>Output</h2></div><div class="pb"><div class="fld"><span class="lb">FOLDER</span><span class="in"><span>C:\Audiobooks\Alice\package</span></span></div>
+              <div class="row"><span class="btn primary">Build ACX package</span><span class="btn"><ic n="tag"></ic>Embed chapter tags…</span></div>
+              <div class="panel new"><div class="ph"><h2>All platforms</h2><span class="pill n">3 selected</span></div><div class="pb">
+                <div class="optrow"><span class="row nowrap"><span class="box on"><ic n="check"></ic></span>ACX / Audible</span><span class="pill ok">Ready</span></div>
+                <div class="optrow"><span class="row nowrap"><span class="box on"><ic n="check"></ic></span>Findaway Voices</span><span class="pill ok">Ready</span></div>
+                <div class="optrow"><span class="row nowrap"><span class="box on"><ic n="check"></ic></span>Spotify</span><span class="pill ok">Ready</span></div>
+                <div class="row"><span class="btn primary"><ic n="pkg"></ic>Build 3 packages</span></div></div></div></div></div>
+            <div class="panel"><div class="ph"><h2>Before you build</h2></div><div class="pb"><div class="optrow"><span>Chapters passing</span><b class="mono">12 of 12</b></div></div></div></div></div></div>
+      </div>
+      <span class="label">States</span>
+      <div class="matrix">
+        <div class="st"><span class="label">Nothing encoded yet</span><div class="row"><span class="btn" aria-disabled="true">Build 3 packages</span></div><span class="sub">Master and encode a chapter first.</span></div>
+        <div class="st"><span class="label">Building</span><div class="row nowrap"><div class="prog"><i style="width:55%"></i></div><span class="mono">2 of 3</span><span class="btn sm">Cancel</span></div></div>
+        <div class="st"><span class="label">Built</span><div class="row"><span class="pill ok">Built</span><b>3 packages</b><span class="ibtn sm ghost" data-tip="Open the folder"><ic n="folder"></ic></span></div></div>
+        <div class="st"><span class="label">One platform failed</span><div class="banner bad"><ic n="warn"></ic><span>Spotify was not built: chapter 4 is above its length limit.</span></div></div>
+        <div class="st"><span class="label">Master after the move</span><div class="row"><span class="pill n">3 of 12 encoded</span><span class="btn sm">Open Delivery<ic n="arrow"></ic></span></div><span class="sub">The count card stays; the build button is gone.</span></div>
+      </div>
+    </div>
+
+    <div class="item" id="i2825">
+      <div class="head"><h3>Check files on Delivery's preflight</h3><a class="iss" href="https://github.com/countrymanprime/narration-studio/issues/2825">#2825</a></div>
+      <p class="sub">Delivery lists each chapter's result but can only re-read it. <b>Check files</b>, the same <code>MeasureRun</code> Master uses (one label, one picker), starts a measurement from the page that blocks the build. Results show on both pages.</p>
+      <div class="frames">
+        <div class="frame wide"><span class="cap"><b>Delivery</b> "Before you build", two chapters failing</span>
+          <div class="app" data-page="Delivery" data-chip="ok"><div class="two">
+            <div class="panel"><div class="ph"><h2>Output</h2></div><div class="pb"><div class="row"><span class="btn primary" aria-disabled="true">Build ACX package</span><span class="sub">2 failing, 1 not ready</span></div></div></div>
+            <div class="panel"><div class="ph"><h2>Before you build</h2><span class="spacer"></span><span class="btn sm new"><ic n="check"></ic>Check files</span></div><div class="pb">
+              <div class="optrow"><span>Chapters passing</span><b class="mono">9 of 12</b></div>
+              <div class="optrow"><span>Ch 3 · A Caucus-Race</span><span class="pill bad">Peak −2.9 dB</span></div>
+              <div class="optrow"><span>Ch 7 · A Mad Tea-Party</span><span class="pill bad">Noise −54 dB</span></div>
+              <div class="optrow"><span>Ch 12 · Alice's Evidence</span><span class="pill n">Not checked</span></div></div></div></div></div></div>
+      </div>
+      <span class="label">States</span>
+      <div class="matrix">
+        <div class="st"><span class="label">No files yet</span><div class="row"><span class="btn sm" aria-disabled="true">Check files</span></div><span class="sub">Render the chapters first (DAW tools on Editing, Proof or Master).</span></div>
+        <div class="st"><span class="label">Checking</span><div class="row nowrap"><div class="prog"><i style="width:33%"></i></div><span class="mono">4 of 12</span><span class="btn sm">Cancel</span></div></div>
+        <div class="st"><span class="label">Everything checked</span><div class="row"><span class="btn sm">Re-check 12 files</span><span class="pill ok">12 of 12 pass</span></div></div>
+        <div class="st"><span class="label">Cancelled</span><div class="row"><span class="pill n">Stopped at 4 of 12</span><span class="btn sm">Check files</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================================================== SHOW IN DAW -->
+  <section class="stack" id="showdaw" aria-label="Show in DAW">
+    <h2>Show in DAW</h2>
+    <div class="item" id="i2826">
+      <div class="head"><h3>One Show in {DAW} button, now on Pickups rows</h3><a class="iss" href="https://github.com/countrymanprime/narration-studio/issues/2826">#2826</a></div>
+      <p class="sub">Four labels for one idea become one icon button, <b>Show in REAPER</b>, taking a target (chapter, passage, finding, pickup). Pickups rows have a spot in the recording and gain it. Master's <b>Open in REAPER</b> (a file) is a different action and keeps its label.</p>
+      <div class="frames">
+        <div class="frame wide"><span class="cap"><b>Pickups</b> table</span>
+          <div class="app" data-page="Pickups" data-chip="ok"><div class="panel"><div class="ph"><h2>Pickups</h2><span class="pill warn">3 to record</span></div>
+            <table class="tbl stackrows"><thead><tr><th>Time</th><th>Type</th><th>Line to re-record</th><th>Status</th><th></th></tr></thead><tbody>
+              <tr><td class="c m">3:41</td><td class="c"><span class="pill bad">click</span></td><td>“Off with her head!”</td><td class="c"><span class="pill warn">To record</span></td><td class="c"><span class="ibtn sm new" data-tip="Show in REAPER"><ic n="ext"></ic></span></td></tr>
+              <tr><td class="c m">6:07</td><td class="c"><span class="pill n">pacing</span></td><td>Nobody moved.</td><td class="c"><span class="pill warn">To record</span></td><td class="c"><span class="ibtn sm new" data-tip="Show in REAPER"><ic n="ext"></ic></span></td></tr>
+              <tr><td class="c m">8:30</td><td class="c"><span class="pill violet">misread</span></td><td>“The trial begins.”</td><td class="c"><span class="pill ok">Recorded</span></td><td class="c"><span class="ibtn sm new" aria-disabled="true"><ic n="ext"></ic></span></td></tr></tbody></table></div></div></div>
+      </div>
+      <span class="label">States, the same on every page that mounts it</span>
+      <div class="states">
+        <div class="r"><b>Ready</b><span>Selects the item and moves the cursor to the spot in REAPER.</span></div>
+        <div class="r"><b>REAPER not running</b><span>Off; tooltip "REAPER is not connected. Start it from the chip in the top bar."</span></div>
+        <div class="r"><b>Project not linked</b><span>Off; tooltip "Link the project file first." (the dialog's Link action, #2823).</span></div>
+        <div class="r"><b>No spot (never recorded)</b><span>Off; tooltip "This line has no recording to show."</span></div>
+        <div class="r"><b>Audacity, built-in</b><span>Label follows the engine ("Show in Audacity"); the built-in recorder has none and hides it.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================================================== LEVELS -->
+  <section class="stack" id="levels" aria-label="Match levels">
+    <h2>Match levels in the Editing drawer</h2>
+    <div class="item" id="i2827">
+      <div class="head"><h3>Match levels where the other clean-up actions are</h3><a class="iss" href="https://github.com/countrymanprime/narration-studio/issues/2827">#2827</a></div>
+      <p class="sub">The existing <code>CleanupAction</code> (preview, then apply) is mounted in the drawer's Clean up tab as <b>Match levels…</b> beside the other kinds. The check panel keeps using the same component.</p>
+      <div class="frames">
+        <div class="frame half"><span class="cap"><b>Editing</b> drawer, Clean up tab</span>
+          <div class="app" data-page="Editing" data-chip="ok"><div class="panel"><div class="ph"><h2>Clean up</h2></div><div class="pb">
+            <div class="row"><span class="pill n">Clicks 3</span><span class="pill n">Breaths 5</span><span class="pill n">Gaps 2</span><span class="pill info new">Levels</span></div>
+            <div class="optrow"><span>Chapter 8 against the book</span><span class="mono">−21.4 dB RMS · target −20</span></div>
+            <div class="row"><span class="btn new"><ic n="gauge"></ic>Match levels…</span></div></div></div></div></div>
+        <div class="frame half"><span class="cap">Its preview, then Apply</span>
+          <div class="scrim"><div class="dlg"><div class="dlg-h"><h3>Match levels</h3><span class="ibtn sm ghost"><ic n="x"></ic></span></div>
+            <div class="dlg-b"><table class="tbl"><thead><tr><th>Item</th><th>Now</th><th>Change</th></tr></thead><tbody><tr><td>Queen · take 2</td><td class="c m">−22.8</td><td class="c m">+2.8 dB</td></tr><tr><td>Alice · take 1</td><td class="c m">−19.6</td><td class="c m">−0.4 dB</td></tr></tbody></table><span class="sub">One Undo step in REAPER.</span></div>
+            <div class="dlg-f"><span class="btn">Cancel</span><span class="btn primary">Apply</span></div></div></div></div>
+      </div>
+      <span class="label">States</span>
+      <div class="states">
+        <div class="r"><b>Ready</b><span>Preview lists each item and its change; Apply is one Undo step.</span></div>
+        <div class="r"><b>No item gain</b><span>Off with the DAW's reason (the capability <code>item_gain</code> is missing): "This DAW can't change item gain."</span></div>
+        <div class="r"><b>REAPER not running</b><span>Off with the connection reason.</span></div>
+        <div class="r"><b>Already level</b><span>Preview says "Every item is within 0.5 dB of the target"; Apply is off.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================================================== MARKERS -->
+  <section class="stack" id="markers" aria-label="Add marker">
+    <h2>Add marker</h2>
+    <div class="item" id="i2830">
+      <div class="head"><h3>One Add marker on Proof, Pickups and Editing's flag card</h3><a class="iss" href="https://github.com/countrymanprime/narration-studio/issues/2830">#2830</a></div>
+      <p class="sub">One <code>AddMarkersButton</code> takes one finding or a list of pickups, with one label, tooltip and gate. Editing's flag card gains it; Proof's context menu gains <b>Add marker in REAPER</b>. Pickups keeps <b>Add 3 as markers</b>, drawn by the same component. Sharing the gate fixes #1939.</p>
+      <div class="frames">
+        <div class="frame half"><span class="cap"><b>Editing</b> flag card</span>
+          <div class="app" data-page="Editing" data-chip="ok"><div class="panel"><div class="pb script"><p><span class="flagw">Nobody</span> moved.</p>
+            <div class="flagcard"><div class="row"><span class="pill bad">Not in the script</span><b>Heard “um”</b></div><div class="row"><span class="btn sm"><ic n="play"></ic>Hear it</span><span class="btn sm">Keep this addition</span><span class="btn sm new"><ic n="flag"></ic>Add marker</span><span class="btn sm">Delete words and audio…</span></div></div></div></div></div></div>
+        <div class="frame half"><span class="cap"><b>Proof</b> note context menu</span>
+          <div class="app" data-page="Proof" data-chip="ok"><div class="panel"><table class="tbl stackrows"><thead><tr><th>Time</th><th>Type</th><th>Heard</th></tr></thead><tbody><tr aria-selected="true"><td class="c m">3:41</td><td class="c"><span class="pill bad">click</span></td><td>click before “Off”</td></tr></tbody></table>
+            <div style="padding:0 12px 12px"><div class="menu" style="position:static"><button class="mi"><span class="t"><ic n="ext"></ic>Show in REAPER</span></button><button class="mi hot new"><span class="t"><ic n="flag"></ic>Add marker in REAPER</span></button><button class="mi"><span class="t"><ic n="cut"></ic>Open in Editing</span></button></div></div></div></div></div>
+        <div class="frame wide"><span class="cap"><b>Pickups</b> session panel, many at once</span>
+          <div class="row"><span class="ibtn" data-tip="Add 3 as markers in REAPER"><ic n="flag"></ic></span><span class="sub">Same component, same label pattern, same gate as the single-finding button.</span></div></div>
+      </div>
+      <span class="label">States</span>
+      <div class="states">
+        <div class="r"><b>Ready</b><span>Writes the marker at the finding's time; one Undo step per press.</span></div>
+        <div class="r"><b>Project not linked</b><span>Off: "Link the project file first." Pickups no longer says markers are in REAPER when none are (#1939).</span></div>
+        <div class="r"><b>REAPER not running</b><span>Off: "REAPER is not connected. Start it from the chip in the top bar."</span></div>
+        <div class="r"><b>Marker already there</b><span>Toast "A marker is already at 3:41." Nothing is added twice.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================================================== CHECK RECORDINGS -->
+  <section class="stack" id="check" aria-label="Check recordings">
+    <h2>Check recordings</h2>
+    <div class="item" id="i2833">
+      <div class="head"><h3>One Check recordings button, and an offer after a take</h3><a class="iss" href="https://github.com/countrymanprime/narration-studio/issues/2833">#2833</a></div>
+      <p class="sub">One <code>CheckRecordingsButton</code>, one label and one gate on every page; Proof keeps the check card's button and loses the duplicate icon in the notes panel. The Booth offers the check once, as a toast action after Stop, and never while recording. The owner may drop the Booth part.</p>
+      <div class="frames">
+        <div class="frame half"><span class="cap"><b>Proof</b>: one button per screen</span>
+          <div class="app" data-page="Proof" data-chip="ok"><div class="panel"><div class="ph"><h2>Recording check</h2><span class="pill n">Not checked</span><span class="spacer"></span><span class="btn primary new"><ic n="listen"></ic>Check recordings</span></div>
+            <div class="ph"><h2>Notes</h2><span class="pill warn">3 open</span><span class="spacer"></span><span class="sub">(the second Check recordings icon is gone)</span></div></div></div></div>
+        <div class="frame half"><span class="cap"><b>Booth</b> just after Stop</span>
+          <div class="app" data-page="Booth" data-chip="ok"><div class="panel"><div class="pb"><div class="row"><span class="btn primary">Record</span><span class="mono">00:00</span><span class="pill n">Take 3 saved · 1:42</span></div>
+            <div class="toast new"><ic n="check"></ic><span>Take saved. Check chapter 8 against the script?</span><span class="btn">Check recordings</span><span class="ibtn sm ghost"><ic n="x"></ic></span></div></div></div></div></div>
+      </div>
+      <span class="label">States</span>
+      <div class="states">
+        <div class="r"><b>While recording</b><span>No offer; nothing appears over the take.</span></div>
+        <div class="r"><b>After Stop</b><span>Toast with one action for about 10 s, then gone; the Booth shows nothing else.</span></div>
+        <div class="r"><b>REAPER not running, or no recording</b><span>Button off, same reason on every page; the Booth toast has no action.</span></div>
+        <div class="r"><b>Already checked, unchanged</b><span>Button reads the same; the dialog opens on the current result.</span></div>
+      </div>
+    </div>
+  </section>
+</div>
+<script>
+// The app frame (rail and top bar) is drawn once here so every frame shows the same shell. Page content stays in the HTML above.
+(function () {
+  var ic = function (n) { return '<svg class="i"><use href="#i-' + n + '"/></svg>'; };
+  // <ic n="tools"></ic> is shorthand for the svg symbol of that name
+  document.querySelectorAll('ic[n]').forEach(function (e) { var s = document.createElement('span'); s.innerHTML = ic(e.getAttribute('n')); e.replaceWith(s.firstChild); });
+  var NAV = [['Production','home'],['Schedule','cal'],'PREP',['Script','script'],['Story Bible','book'],'RECORD',['Booth','mic'],'EDIT',['Editing','cut'],'REVIEW',['Proof','wave'],['Pickups','list'],'FINISH',['Master & QC','gauge'],['Delivery','upload']];
+  var CHIP = {
+    ok: ['ok', 'REAPER', true], off: ['warn', 'REAPER · not running', false], unlinked: ['warn', 'REAPER · no project linked', false],
+    audacity: ['n', 'Audacity', true], builtin: ['n', 'Built-in recorder', false], none: null
+  };
+  document.querySelectorAll('.app').forEach(function (app) {
+    var cur = app.dataset.page, chipKey = app.dataset.chip || 'ok', c = CHIP[chipKey];
+    var rail = '<nav class="rail" aria-label="Main"><div class="brand">NARRATION<span>STUDIO</span></div>' + NAV.map(function (n) {
+      if (typeof n === 'string') return '<div class="grp">' + n + '</div>';
+      return '<span class="nv"' + (n[0] === cur ? ' aria-current="page"' : '') + '>' + ic(n[1]) + n[0] + '</span>';
+    }).join('') + '</nav>';
+    var chip = c ? '<span class="chip ' + c[0] + (app.dataset.chipnew ? ' new' : '') + '">' + (c[2] ? '<span class="dot"></span>' : ic('plug')) + c[1] + '</span>' : '';
+    var top = '<header class="top"><span class="hb ibtn sm ghost">' + ic('menu') + '</span><span class="crumb">Project</span><span class="proj">Alice in Wonderland</span><span class="spacer"></span>' +
+      '<span class="search">' + ic('search') + '<span class="hide-sm">Jump to or run…</span><kbd class="kc">Ctrl K</kbd></span>' + chip + '</header>';
+    var kids = Array.prototype.slice.call(app.childNodes);
+    var page = document.createElement('div'); page.className = 'page'; kids.forEach(function (k) { page.appendChild(k); });
+    app.innerHTML = rail + '<div class="main">' + top + '</div>';
+    app.querySelector('.main').appendChild(page);
+  });
+  // theme: System, Light, Dark (?theme=dark also works)
+  var root = document.documentElement;
+  function setTheme(t) {
+    if (t === 'system') root.removeAttribute('data-theme'); else root.setAttribute('data-theme', t);
+    document.querySelectorAll('[data-theme-set]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.themeSet === t)); });
+  }
+  document.querySelectorAll('[data-theme-set]').forEach(function (b) { b.addEventListener('click', function () { setTheme(b.dataset.themeSet); }); });
+  var q = new URLSearchParams(location.search).get('theme');
+  if (q === 'light' || q === 'dark') setTheme(q);
+})();
+</script>
+</body>
+</html>

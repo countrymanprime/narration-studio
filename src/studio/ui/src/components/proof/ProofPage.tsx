@@ -1,3 +1,4 @@
+import { retryAction } from '../primitives/Toast';
 import { headingName } from '../../chapterHeading';
 import { chapterRecordedDetail } from '../../recordedThrough';
 import { useToastSideClearance } from '../../hooks/useToastClearance';
@@ -14,17 +15,18 @@ import { useUserKeymap } from '../../input/useUserKeymap';
 import { useOverlay } from '../../overlay/OverlayProvider';
 import { usePort } from '../../ports/usePort';
 import { useJournal } from '../../studio/StudioProvider';
-import { useCapability } from '../../useCapability';
-import type { ManuscriptChapter } from '../../types';
+import type { ManuscriptChapter, TranscriptState } from '../../types';
+import type { Notify } from '../primitives/Toast';
 import { ALL_CHAPTERS, ChapterStepper } from '../primitives/ChapterStepper';
-import { IconButton } from '../primitives/IconButton';
 import { KeyHints } from '../primitives/KeyHints';
+import { CheckRecordingsButton, useCheckRecordingsGate } from '../recordingcheck/CheckRecordingsButton';
 import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
 import { isCreditsChapter, isNarrationChapter } from '../../chapterKinds';
 import { LoadError } from '../layout/LoadError';
 import { ProofSkeleton } from './frame/ProofSkeleton';
 import { NeedManuscript } from '../layout/NeedManuscript';
 import { CheckCard } from './checkcard/CheckCard';
+import { ChapterCompare } from './ChapterCompare';
 import { SectionLabel } from '../primitives/SectionLabel';
 import { ChapterStrip, type StripChapter } from './frame/ChapterStrip';
 import type { Band, Pin } from './frame/pins';
@@ -53,6 +55,8 @@ import { useProofPageCommands } from './useProofPageCommands';
 import { useNoteContextMenu } from './useNoteContextMenu';
 import { hasRecording } from './checkcard/cardSelectors';
 import { announcePickupListChanged } from '../pickups/pickupListChanged';
+import { DawConnectionChip } from '../connection/DawConnectionChip';
+import { DawToolsButton } from '../engine/DawToolsButton';
 
 /** A pin's ink is its note type's kind colour (kinds/kindMap.ts); a take comparison has no hue, so it is muted. */
 const pinColour = (type: FindingNoteType): string => {
@@ -98,6 +102,9 @@ export function ProofPage({
   goToScript,
   goToBooth,
   goToEditing,
+  transcript,
+  notify,
+  dawFileLinked,
 }: {
   hasManuscript: boolean;
   /** Keys the remembered chapter. */
@@ -107,6 +114,11 @@ export function ProofPage({
   goToBooth: (chapterId: string) => void;
   /** The takes' "Manage takes in Editing": the Editing page at the note's chapter, its flagged word selected and the passage's takes open. */
   goToEditing: (chapterId: string, findingId?: string, passageId?: string) => void;
+  /** The app-wide Transcript Compare state, for the Compare panel under the check card (#2822). */
+  transcript: TranscriptState;
+  notify: Notify;
+  /** Starting a comparison and exporting its markers need a linked DAW project file. */
+  dawFileLinked: boolean;
 }) {
   const findingsApi = usePort('findings');
   const pickupsApi = usePort('pickups');
@@ -115,13 +127,15 @@ export function ProofPage({
   const overlay = useOverlay();
   const journal = useJournal();
   const keymap = useUserKeymap();
-  const review = useCapability('review');
+  const checkGate = useCheckRecordingsGate();
   const [params, setParams] = useSearchParams();
   const [chapters, setChapters] = useState<ManuscriptChapter[]>([]);
   const [listed, setFindings] = useState<Finding[]>([]);
   const [summary, setSummary] = useState<FindingsSummary>();
   const [sort, setSort] = useState<NoteSort>('time');
   const [reload, setReload] = useState(0);
+  // The chapter whose Compare panel is open under the check card: another chapter opens with it closed.
+  const [compareFor, setCompareFor] = useState<string | null>(null);
   // The page's data could not be read on opening: the host's sentence for the first failure of the chapters or the notes, and which have
   // been read once (a later failure is a toast, the page stays). Retry bumps `attempt`, which both reads depend on.
   const [chaptersProblem, setChaptersProblem] = useState<string>();
@@ -143,6 +157,7 @@ export function ProofPage({
   const opening = useRef(false);
   // Toasts stay left of the Inspector while it is beside the notes, so a decision's message never covers the next decision button.
   const inspectorPanel = useRef<HTMLDivElement>(null);
+  const decisionClock = useRef({ id: '', at: 0 });
   // Under 1180 px the Inspector stacks under the queue, a page or more down: a pressed note brings it into view, so the press shows its
   // result (alignment audit XPF-9). A note stepped to with the keys does not move the page.
   const stacked = useLayoutClass().narrow;
@@ -181,7 +196,7 @@ export function ProofPage({
       })
       .catch((error: unknown) => {
         if (!live) return;
-        if (read.current.chapters) overlay.toast(describeApiError(error), { tone: 'error' });
+        if (read.current.chapters) overlay.toast(describeApiError(error), { tone: 'error', action: retryAction(() => setAttempt((n) => n + 1)) });
         else setChaptersProblem(describeApiError(error));
       });
     return () => {
@@ -216,7 +231,7 @@ export function ProofPage({
       })
       .catch((error: unknown) => {
         if (!live) return;
-        if (read.current.notes) overlay.toast(describeApiError(error), { tone: 'error' });
+        if (read.current.notes) overlay.toast(describeApiError(error), { tone: 'error', action: retryAction(() => setAttempt((n) => n + 1)) });
         else setNotesProblem(describeApiError(error));
       });
     return () => {
@@ -395,7 +410,7 @@ export function ProofPage({
     openIn: (id) => strip.find((tile) => tile.id === id)?.open ?? 0,
     selectedId,
     choose,
-    review: { available: review.available, message: review.message },
+    checkReason: checkGate,
     onCheck: (ids) => openCheckRecordings(ids),
   });
   useNoteContextMenu({
@@ -446,7 +461,16 @@ export function ProofPage({
             aria-label="Proof"
             className="flex min-w-0 flex-col gap-3 rounded-[var(--radius-card)] border border-[var(--border)] bg-[var(--surface)] p-4"
           >
-            <ProofHeader progress={progress} chapterBar={stepper} />
+            <ProofHeader
+              progress={progress}
+              chapterBar={stepper}
+              tools={
+                <div className="flex items-center gap-2">
+                  <DawConnectionChip stillWorks={(name) => `You can read notes and play recordings. Checks that use ${name} wait until it is running.`} />
+                  <DawToolsButton groups={['structure']} />
+                </div>
+              }
+            />
             {all || !chapter ? (
               <div className="flex flex-col gap-1">
                 <SectionLabel>Open notes, by chapter</SectionLabel>
@@ -456,7 +480,13 @@ export function ProofPage({
               <>
                 {/* The check card and the waveform sit under the page's h1 and before the notes' h2: a heading of their own keeps the outline in order. */}
                 <h2 className="sr-only">{`Recording of ${headingName(chapter)}`}</h2>
-                <CheckCard chapter={chapter} onCheck={(id) => openCheckRecordings([id])} />
+                <CheckCard
+                  chapter={chapter}
+                  compare={{ onOpen: () => setCompareFor((open) => (open === chapter.id ? null : chapter.id)), open: compareFor === chapter.id }}
+                />
+                {compareFor === chapter.id && (
+                  <ChapterCompare chapter={chapter} transcript={transcript} notify={notify} dawFileLinked={dawFileLinked} goToManuscript={goToScript} />
+                )}
                 {timeline && total > 0 ? (
                   <>
                     <WaveformWindow
@@ -507,15 +537,9 @@ export function ProofPage({
                 if (open && all && note && chapterOf(note)) choose(chapterOf(note));
               }}
               window={chapter && total > 0 ? { start: win.start, len: Math.min(win.len, total), total } : undefined}
-              lead={
-                <IconButton
-                  action="checkRecordings"
-                  label="Check recordings…"
-                  aria-haspopup="dialog"
-                  disabledReason={review.available ? undefined : review.message || 'The DAW is not reachable.'}
-                  onClick={() => openCheckRecordings(chapter ? [chapter.id] : [])}
-                />
-              }
+              // Over all chapters there is no check card, so the notes panel carries the one Check recordings (the dialog opens with the unchecked chapters ticked);
+              // on one chapter the card has it, so a second never shows (#2833).
+              lead={all ? <CheckRecordingsButton variant="icon" chapterIds={[]} /> : undefined}
               actions={<ProoferSheet />}
               badge={(row) => {
                 const count = spots.counts.get(row.id);
@@ -536,6 +560,7 @@ export function ProofPage({
                 order={order}
                 onSelect={select}
                 onChanged={changed}
+                decisionClock={decisionClock}
                 onOpenScript={goToScript}
                 onOpenBooth={goToBooth}
                 onOpenEditing={(chapterId, findingId) => goToEditing(chapterId, findingId)}

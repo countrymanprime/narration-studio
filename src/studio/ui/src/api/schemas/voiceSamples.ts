@@ -3,6 +3,7 @@ import {
   VOICE_SAMPLE_LABEL_MAX,
   VOICE_SAMPLE_NOTE_MAX,
   type VoiceSample,
+  type VoiceSampleDaw,
   type VoiceSampleAnswer,
   type VoiceSampleLimits,
   type VoiceSampleSource,
@@ -22,6 +23,15 @@ const voiceSampleSourceSchema = z
   })
   .strict() satisfies z.ZodType<VoiceSampleSource>;
 
+const voiceSampleDawSchema = z
+  .object({
+    state: z.enum(['ok', 'label_moved', 'label_missing', 'not_saved', 'source_missing', 'project_unreadable']),
+    name: z.string(),
+    start: z.number().nonnegative(),
+    end: z.number().nonnegative(),
+  })
+  .strict() satisfies z.ZodType<VoiceSampleDaw>;
+
 const voiceSampleSchema = z
   .object({
     id: z.string().min(1),
@@ -34,6 +44,8 @@ const voiceSampleSchema = z
     bytes: z.number().int().positive(),
     clipState: z.enum(['ok', 'missing', 'size_changed', 'hash_changed']),
     source: voiceSampleSourceSchema,
+    storage: z.enum(['project', 'daw', 'both']).optional(),
+    daw: voiceSampleDawSchema.optional(),
   })
   .strict() satisfies z.ZodType<VoiceSample>;
 
@@ -74,6 +86,8 @@ export const voiceSampleAnswerSchema = z.discriminatedUnion('status', [
         'character_limit',
         'project_limit',
         'not_found',
+        'daw_unavailable',
+        'daw_refused',
       ]),
       message: z.string().min(1),
     })

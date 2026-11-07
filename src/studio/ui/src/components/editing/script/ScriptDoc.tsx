@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, type MouseEvent } from 'react';
-import { Button } from '../../primitives/Button';
+import { CheckRecordingsButton } from '../../recordingcheck/CheckRecordingsButton';
 import { ReaderColumn } from '../../primitives/ReaderColumn';
 import { DEFAULT_TEXT_PREFS, readerColumnWithGutter } from '../../script/page/tools/text/readerText';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import { flagged, type ChapterDoc } from '../model';
+import type { EditingRecordingCheck } from '../page/useRecordingCheck';
 import { useEditingPage } from './EditingPageState';
 import { MovedSampleMarks } from '../voicesample/SampleMark';
 import { Paragraph } from './Paragraph';
@@ -29,7 +30,7 @@ export interface ScriptDocProps {
   /** The page says above why there is nothing heard (no audio to edit), so the "Not transcribed yet" strip is not drawn. */
   explained?: boolean;
   /** Runs the recording check for the chapter; the strip offers it beside the pill. Absent: no way to run one from here. */
-  onCheckRecording?: () => void;
+  checkRecording?: EditingRecordingCheck;
   /** Called after each paragraph that rendered, so a test can count the paragraphs a change drew. Keep its identity stable: it is a prop of every memoised paragraph. */
   onParagraphRender?: (pid: string) => void;
 }
@@ -38,7 +39,7 @@ export interface ScriptDocProps {
 export const EDITING_GUTTER_PX = 82;
 
 /** The script, one row for each paragraph, with what was heard marked on its words. Reads and writes the page state through `useEditingPage`. */
-export function ScriptDoc({ reason, explained = false, onCheckRecording, onParagraphRender }: ScriptDocProps) {
+export function ScriptDoc({ reason, explained = false, checkRecording, onParagraphRender }: ScriptDocProps) {
   const { doc, state, dispatch, selected } = useEditingPage();
   // The word a press began on and where, until the button is up. The press becomes a drag only once the pointer has moved DRAG_SLOP_PX.
   const drag = useRef<{ key: string; x: number; y: number; moved: boolean } | null>(null);
@@ -116,11 +117,7 @@ export function ScriptDoc({ reason, explained = false, onCheckRecording, onParag
         <div className="flex flex-wrap items-center gap-3 px-4 py-2" id="notaligned">
           <StatusBadge tone="neutral" label="Not transcribed yet" />
           {reason ? <span className="text-sm text-[var(--text-muted)]">{reason}</span> : null}
-          {onCheckRecording ? (
-            <Button variant="secondary" size="sm" onClick={onCheckRecording}>
-              Check recordings…
-            </Button>
-          ) : null}
+          {checkRecording ? <CheckRecordingsButton variant="icon" size="sm" chapterIds={checkRecording.chapterIds} onClosed={checkRecording.onClosed} /> : null}
         </div>
       )}
       <div

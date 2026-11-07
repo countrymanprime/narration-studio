@@ -54,7 +54,7 @@ describe('every-narrator-check-takes-the-session-route', () => {
   it('the screens that offer a connection check call checkConnection, never refreshCapabilities', () => {
     const root = join(__dirname, '..');
     const files = [
-      'components/editing/page/useDawStatus.ts',
+      'components/connection/useDawStatus.ts',
       'components/settings/CapabilitySection.tsx',
       'components/settings/controls/EngineBody.tsx',
       'App.tsx',

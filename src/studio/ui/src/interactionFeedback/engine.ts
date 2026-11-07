@@ -1,15 +1,22 @@
 // The interaction feedback rows for the engine panel's call sites (see interactionFeedback.catalog.ts for what a row says).
-import { type FeedbackRow, row, startup, subscription } from './row';
+import { type FeedbackRow, row, subscription } from './row';
 
 // prettier-ignore
 export const engineFeedback: Record<string, FeedbackRow> = {
   // The engine panel
+  'src/components/engine/ShowInDaw.tsx::workspaceGoTo#1': row('click', 'file-io', 'pending', 'pending', 'toast', 'toast', 'no', 'ok', 'Show in {DAW} on a take or an effect (#2826): moves the DAW to the first word; busy until it answers; where it went, a refusal in the DAW\'s words or a failed ask is a toast (a page that shows its own status line takes the sentence there). Off with the navigate capability\'s sentence on a DAW that cannot move, or when the words are not in the script.'),
+  'src/components/engine/ShowInDaw.tsx::findingsGoTo#1': row('click', 'file-io', 'pending', 'pending', 'toast', 'toast', 'no', 'ok', 'Show in {DAW} on a Proof note or a Pickups line (#2826): a round trip through the DAW bridge, busy while it runs; where the DAW put the cursor is announced (Proof\'s inspector in its status line, Pickups as a toast), and a refusal or a failed ask is said in plain words. Off with the reason when the DAW cannot navigate, or the note has no place in the recording.'),
+  'src/components/engine/ShowInDaw.tsx::trackSelectInReaper#1': row('click', 'file-io', 'pending', 'pending', 'toast', 'toast', 'na', 'ok', 'Show in {DAW} on a chapter (#2826): selects the chapter\'s linked track in the DAW, from the row menu and the chapter track panel; busy until the DAW answers; a toast confirms or, for a refusal (the DAW not there, a DAW that cannot select a track, or the track gone), says why. Off, with the reason, while the DAW cannot select a track or the chapter has no linked track.'),
   'src/components/engine/EnginePanel.tsx::tracksDiscover#1': row('mount', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'Runs when the panel opens; an inline error.'),
-  'src/components/engine/EnginePanel.tsx::tracksList#1': row('effect', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'Parsing a 100 KB project file takes about 2 ms (docs/research/interaction-latency-baseline.md).'),
+  'src/components/engine/EnginePanel.tsx::tracksList#1': row('effect', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'An Audacity project\'s tracks, from the snapshot the host takes while Audacity answers. Parsing a 100 KB project file takes about 2 ms (docs/research/interaction-latency-baseline.md).'),
+  'src/components/engine/useDawToolsSource.ts::tracksList#1': row('effect', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'Read when the DAW tools menu in a page header is first opened, and again when the DAW answers differently; until it answers the menu says "Reading the REAPER project…" on both entries, and a failed read says the project could not be read, in the menu, so an entry is never silently live.'),
+  'src/components/engine/useDawToolsSource.ts::bootstrap#1': row('effect', 'instant', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'Read with the project each time the DAW tools menu opens, to tell whether the DAW has the linked project open; a failed read is said in the menu, on both entries, so an entry is never silently live.'),
+  'src/components/engine/useLiveTracks.ts::tracksLive#1': row('click', 'file-io', 'pending', 'none', 'ui', 'toast', 'na', 'ok', 'A REAPER project\'s tracks as REAPER has them now (#2840): read on open, on Check again or a relink, on focus, every 5 s while the window is visible, and by the Refresh in Chapter links and Link chapters, which spins until its read answers. A second press sends a newer read and only the newest answer is kept; the timer and focus wait while one is in flight. The header line says whose tracks they are and when they were read; a failure before any read is the panel\'s error, a later one a toast (once per run of failures, and on every Refresh press) with the tracks marked "can\'t tell".'),
   'src/components/engine/EnginePanel.tsx::tracksSelect#1': row('click', 'file-io', 'none', 'none', 'ui', 'inline', 'na', 'ok', 'A small file write.'),
   'src/components/engine/useChapterLinks.ts::manuscriptChapters#1': row('effect', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'Loaded beside the confirmed mappings, once for the engine panel: the Chapter links list, the Link chapters dialog, the Tracks card and the Link chapters button all draw from it; a failure is an inline error in the list and in the dialog.'),
   'src/components/engine/useChapterLinks.ts::chapterTrackMapList#1': row('effect', 'file-io', 'na', 'na', 'ui', 'inline', 'na', 'ok', 'The confirmed links for the current manuscript document, the one read every surface of the engine panel shares.'),
   'src/components/engine/useChapterLinks.ts::chapterTrackSet#1': row('click', 'file-io', 'pending', 'pending', 'ui', 'inline', 'no', 'ok', 'Confirm on a Chapter links row or a pick in the Link chapters dialog; the row is busy until the link replaces the chapter\'s old one and is re-listed, and a refusal (an unknown chapter) is written inline.'),
+  'src/components/engine/useChapterLinks.ts::chapterTrackCreate#1': row('click', 'file-io', 'pending', 'pending', 'toast', 'toast', 'no', 'ok', 'The create button on a Chapter links row with no link (#2840): the DAW adds a track, or a folder with a Narrator track in Voice folders, named after the chapter, and the chapter is linked to it. The button spins, every other row\'s create button is off, and a press within 600 ms of an answer is ignored (the rows move); the guard is the hook module\'s, so a panel opened again while a create runs cannot press again, and the host serialises creates too, so one press adds one track. The DAW\'s or the host\'s refusal (recording, not connected, already linked, name taken, link not saved) or a failed call is a toast and the row is unchanged; on success the row shows the link at once, a toast says what was made, and the live track list is read again.'),
   'src/components/engine/useChapterLinks.ts::chapterTrackUnlink#1': row('click', 'file-io', 'pending', 'pending', 'ui', 'inline', 'no', 'ok', 'Clear on a Chapter links row, or Not linked in the Link chapters dialog; the row is busy until every link the chapter holds is removed and re-listed.'),
   // The Voices card (components/engine/VoicesCard.tsx, useVoiceTracks.ts; src/studio/desktop/bindings_voicetracks.go)
   'src/components/engine/voiceLayout.tsx::voiceTracksGet#1': row('mount', 'file-io', 'na', 'na', 'ui', 'toast', 'na', 'ok', 'The layout and the assignments, read once per open project for every track picker; until it answers the project is flat, and a failed read (a file from a newer app) is a toast when the Engine panel opens.'),
@@ -62,20 +69,6 @@ export const engineFeedback: Record<string, FeedbackRow> = {
     'no',
     'ok',
     'Opens an allow-listed repair dialog in REAPER and changes nothing itself. The pressed tool shows pending and the other is disabled until REAPER answers; the opened state or REAPER\'s refusal (no selection, not installed) shows inline.',
-  ),
-  'src/components/engine/RetakeLanesDialog.tsx::subscribeRetakeLanes#1': subscription('The retake-lane state event, for the pick this dialog starts.'),
-  'src/components/engine/RetakeLanesDialog.tsx::retakeLanesState#1': row('mount', 'instant', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'Hydrates whatever pick was already in flight when the dialog reopened; the live event follows anyway.'),
-  'src/components/engine/RetakeLanesDialog.tsx::retakeLanesList#1': startup('Reads the saved .rpp for lines with retakes on fixed lanes; a failure shows inline as an alert instead of the list.'),
-  'src/components/engine/RetakeLanesDialog.tsx::retakeLanesPick#1': row(
-    'click',
-    'job',
-    'pending',
-    'pending',
-    'ui',
-    'inline',
-    'no',
-    'ok',
-    'Makes one retake\'s lane the only one playing on its track, one REAPER undo step and nothing else. The pressed lane shows pending and every other lane and Close are disabled until REAPER answers; the new play state or REAPER\'s refusal (stale retake, lanes off) shows inline.',
   ),
   'src/components/engine/ChapterTagsDialog.tsx::chapterTagsPreview#1': row('mount', 'instant', 'na', 'na', 'ui', 'inline', 'na', 'exempt', 'Loads the known chapters from the last chapter render; a failure shows inline instead of the chapter list.'),
   'src/components/engine/ChapterTagsDialog.tsx::chapterTagsEmbed#1': row(

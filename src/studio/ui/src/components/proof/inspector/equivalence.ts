@@ -2,6 +2,7 @@ import { useCallback, useSyncExternalStore } from 'react';
 import { equivalencePair } from '../../../api/equivalenceWords';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { overlay } from '../../../overlay/overlayService';
+import { retryAction } from '../../primitives/Toast';
 import type { Finding, NarrationApi } from '../../../types';
 
 /** What "Treat these two words as the same" asks of the host: the add, and the note read again after a refusal. */
@@ -102,12 +103,16 @@ export async function addEquivalence(api: EquivalenceApi, finding: Finding, onNo
     }
   } catch (error) {
     overlay.toast(apiErrorMessage(error), { tone: 'error' });
-    try {
-      onNoteRead(await api.findingsGet(findingId));
-    } catch (reread) {
-      // The note stays as shown; the failed re-read is said too, so a stale button is not trusted silently.
-      overlay.toast(apiErrorMessage(reread), { tone: 'error' });
-    }
+    // Reading the note again changes nothing, so the failed re-read's toast offers Retry (issue #2919).
+    const reread = async (): Promise<void> => {
+      try {
+        onNoteRead(await api.findingsGet(findingId));
+      } catch (again) {
+        // The note stays as shown; the failed re-read is said too, so a stale button is not trusted silently.
+        overlay.toast(apiErrorMessage(again), { tone: 'error', action: retryAction(() => void reread()) });
+      }
+    };
+    await reread();
   } finally {
     clearTimeout(timer);
     if (inFlight.get(findingId) === token) inFlight.delete(findingId);

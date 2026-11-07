@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"desktop/internal/brand"
+	"desktop/internal/trace"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -152,7 +153,10 @@ type exportJob struct {
 	totalWeight int64
 	// +checklocks:mu
 	doneWeight int64
-	cancel     context.CancelFunc
+	// stopped is why the export ended early at a file (stop), naming it: the files after it are not started.
+	// +checklocks:mu
+	stopped string
+	cancel  context.CancelFunc
 }
 
 func (j *exportJob) running() bool {
@@ -209,6 +213,18 @@ func (j *exportJob) fail(index int, err error) {
 	j.doneWeight += j.weights[index]
 }
 
+// stop fails the file at index with err and ends the export there: the files already prepared keep their results and the rest are
+// not started. It is how a render that refuses the chain it would run (it changed since the narrator approved it, threat model row
+// 5o) ends the export, rather than refusing the same way for every file after it.
+func (j *exportJob) stop(index int, err error) {
+	j.mu.Lock()
+	defer j.mu.Unlock()
+	j.files[index].Status, j.files[index].Error = exportFileFailed, err.Error()
+	j.stopped = fmt.Sprintf("Stopped at %s: %s.", filepath.Base(j.files[index].Path), err.Error())
+	j.logs = append(j.logs, j.stopped)
+	j.doneWeight += j.weights[index]
+}
+
 func (j *exportJob) succeed(index int, masteredPath string, mastering *MasteringSummary, encodedPath string) {
 	j.mu.Lock()
 	defer j.mu.Unlock()
@@ -235,7 +251,7 @@ func (j *exportJob) finish(cancelled bool, broken error) {
 			}
 			j.files[i].Status = exportFileCancelled
 		default:
-			if cancelled || broken != nil {
+			if cancelled || broken != nil || j.stopped != "" {
 				j.files[i].Status = exportFileCancelled
 			}
 		}
@@ -243,6 +259,9 @@ func (j *exportJob) finish(cancelled bool, broken error) {
 	switch {
 	case broken != nil:
 		j.phase, j.message, j.errorText = "error", "The export stopped unexpectedly.", "The export stopped unexpectedly."
+	case j.stopped != "":
+		j.phase = "error"
+		j.message = fmt.Sprintf("%s %d of %d files were prepared.", j.stopped, done, len(j.files))
 	case cancelled:
 		j.phase = "cancelled"
 		j.message = fmt.Sprintf("Export cancelled. %d of %d files were prepared.", done, len(j.files))
@@ -356,8 +375,11 @@ func (h *Host) startExport(req ExportRequest) (ExportJob, error) {
 	if encodeFile == nil {
 		encodeFile = encodeFor(format)
 	}
+	// The snapshot is taken before the job starts: a fast encode could finish before a snapshot taken after `go`, and the
+	// binding would report a job that is already over instead of the one it started (#3076).
+	started := job.snapshot()
 	go h.runExport(ctx, job, items, plan.regions, svc.config.projectFolder, profile, req.Master, row, approval, format, encodeFile)
-	return job.snapshot(), nil
+	return started, nil
 }
 
 // encodeFor is the real encodeFileFunc: the first registered Encoder row that writes format.
@@ -383,6 +405,7 @@ func (h *Host) runExport(
 		var broken error
 		if recovered := recover(); recovered != nil {
 			broken = fmt.Errorf("%v", recovered)
+			h.tracer.Emit(trace.AppPanic, trace.EnumValue("where", "export_job"))
 			runlog.FromContext(ctx).Event(slog.LevelError, "export.panic", "the export stopped unexpectedly: "+broken.Error())
 		}
 		job.finish(ctx.Err() != nil && broken == nil, broken)
@@ -413,10 +436,17 @@ func (h *Host) runExport(
 			masteredPath = filepath.Join(masteredDir, fmt.Sprintf("%02d-%s.wav", index+1, string(item.Kind)))
 			_ = os.Remove(masteredPath) // a rerun's earlier scratch file is never the narrator's own data
 			mastered, err := chain.Master(ctx, masteringport.Request{
-				Source: source, Region: region, Macro: approval.macro, Approved: approval.approved, Destination: masteredPath, Profile: profile,
+				Source: source, Region: region, Macro: approval.macro, Approved: approval.approved, ChainDigest: approval.chainDigest,
+				Destination: masteredPath, Profile: profile,
 				Progress: func(done, total int64) { job.progress(index, done, total) },
 			})
 			if ctx.Err() != nil {
+				return
+			}
+			// A chain the narrator did not approve, or a REAPER that does not answer the read, would refuse every later file the same
+			// way (and, for the read, after the same wait): the export stops at this file.
+			if errors.Is(err, masteringport.ErrChainChanged) || errors.Is(err, masteringport.ErrNoChainDigest) || errors.Is(err, masteringport.ErrChainNoAnswer) {
+				job.stop(index, err)
 				return
 			}
 			if err != nil {

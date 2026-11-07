@@ -7,6 +7,7 @@ import { Slider } from '../../primitives/Slider';
 import { Badge } from '../../primitives/StatusBadge';
 import { READER_FONTS, READER_WIDTHS, widthName } from '../../script/page/tools/text/readerText';
 import { TEXT_SIZE } from '../reading/BoothText';
+import { GIVES_WAY_IN_A_SHORT_WINDOW } from './shortWindow';
 
 /** At the reported width 1280 and below the side panel is a drawer, not a column (the layout class's `medium`). */
 function useSidePanelDrawer(): boolean {
@@ -60,6 +61,8 @@ function TextPopover({ font, size, width, onFont, onSize, onWidth }: BoothTextCh
 }
 
 // The REC tokens.
+// A cold read is the info colour, as the main button is: never the red of a take.
+const COLD_COLORS = { fill: 'var(--info-soft)', text: 'var(--info-text)', line: 'var(--info)' };
 const REC_COLORS = { fill: 'var(--rec-fill)', text: 'var(--rec-text)', line: 'var(--rec-text)' };
 
 /**
@@ -113,14 +116,15 @@ export function BoothTop({
           className="whitespace-nowrap"
         />
       ) : null}
-      <span id="bprog" className="min-w-0 font-mono text-sm text-[var(--text-muted)]">
+      {/* Not drawn in a short window (still read by a screen reader): it wraps to two rows there, and those rows are what the side panel needs to be readable. */}
+      <span id="bprog" className={`min-w-0 font-mono text-sm text-[var(--text-muted)] ${GIVES_WAY_IN_A_SHORT_WINDOW}`}>
         {progress}
       </span>
       {resume}
       {/* The bar's tools are one group kept at the right edge: when the bar wraps they move to the next row together, never under Previous. */}
       <div data-booth-tools="" className="ml-auto flex flex-none items-center gap-2.5 whitespace-nowrap">
         {recording ? <Badge shape="pill" label={paused ? 'REC · reading paused' : 'REC'} colors={REC_COLORS} /> : null}
-        {coldRead && !recording ? <Badge shape="pill" label="Mic on · cold read" colors={REC_COLORS} look="dashed" /> : null}
+        {coldRead && !recording ? <Badge shape="pill" label="Mic on · cold read" colors={COLD_COLORS} look="outline" /> : null}
         {setup}
         {text ? <TextPopover {...text} /> : null}
         <IconButton

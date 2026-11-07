@@ -16,7 +16,7 @@ type Listed = Pick<ManuscriptChapter, 'id' | 'title' | 'subtitle' | 'index'>;
  * has any. Without it (the list is not read) every such chapter reads "Not mastered".
  */
 export function chapterStates(chapters: readonly Listed[], files: readonly MeasureFileResult[], pickups?: Readonly<Record<string, number>>): ChapterState[] {
-  return chapters.map((chapter) => stateOf({ id: chapter.id, name: chapterName(chapter) }, fileOf(chapter, files), pickups?.[chapter.id]));
+  return chapters.map((chapter) => stateOf({ id: chapter.id, name: chapterName(chapter) }, fileOf(chapter, files, chapters), pickups?.[chapter.id]));
 }
 
 /**
@@ -25,7 +25,7 @@ export function chapterStates(chapters: readonly Listed[], files: readonly Measu
  */
 export function firstFailure(chapters: readonly Listed[], files: readonly MeasureFileResult[], profile: DeliveryProfile): string | undefined {
   for (const chapter of chapters) {
-    const file = fileOf(chapter, files);
+    const file = fileOf(chapter, files, chapters);
     if (!file || fileVerdict(file) !== 'fail') continue;
     const [first, ...rest] = missesWithLimit(file, profile);
     if (first === undefined) continue;
@@ -35,7 +35,7 @@ export function firstFailure(chapters: readonly Listed[], files: readonly Measur
 }
 
 /** Why Build is off on a book none of whose files is measured: said where the first unready chapter would be (alignment audit R4DL-2). */
-export const NOTHING_MEASURED = 'Nothing is measured yet. Measure the files in Master & QC.';
+export const NOTHING_MEASURED = 'Nothing is measured yet. Use Check files… above.';
 
 /**
  * When no chapter fails but some are not ready, the first of them in the rows' order and why: "Chapter 8: no measured file yet." (no file
@@ -46,7 +46,7 @@ export const NOTHING_MEASURED = 'Nothing is measured yet. Measure the files in M
 export function firstNotReady(chapters: readonly Listed[], files: readonly MeasureFileResult[]): string | undefined {
   if (files.length === 0) return chapters.length > 0 ? NOTHING_MEASURED : undefined;
   for (const chapter of chapters) {
-    const file = fileOf(chapter, files);
+    const file = fileOf(chapter, files, chapters);
     if (file && fileVerdict(file) !== 'none') continue;
     return `${chapterName(chapter)}: ${notReadyWhy(file)}.`;
   }

@@ -1,13 +1,14 @@
-import { useId, useRef, useState, type ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 import type { PickupItem } from '../../../api/contracts/pickups';
 import type { Measured } from '../../../api/schemas/base';
 import { useOverlay } from '../../../overlay/OverlayProvider';
 import { Button } from '../../primitives/Button';
 import { IconButton } from '../../primitives/IconButton';
 import { Panel } from '../../primitives/Panel';
+import { AddMarkersButton } from '../../engine/AddMarkers';
 import { Skeleton } from '../../primitives/Skeleton';
 import { NOT_MEASURED, sessionMinutes } from '../../production/measured/measured.selectors';
-import { pickupScript, reasonSentence, sessionPickups, type ChapterRef } from './pickupRows';
+import { pickupScript, sessionPickups, type ChapterRef } from './pickupRows';
 
 /** What the DAW's capability setup says about one thing the panel does (`useCapability('markers')`): whether it can, and the host's sentence when it cannot. */
 export type Gate = { available: boolean; message?: string };
@@ -25,7 +26,7 @@ export function SessionPanel({
   dawName,
   markers,
   onOpenInBooth,
-  onAddMarkers,
+  onMarkersAdded,
 }: {
   /** The pickups in view; the session is the open ones among them that are not left out. */
   pickups: readonly PickupItem[];
@@ -40,15 +41,16 @@ export function SessionPanel({
   dawName: string;
   markers: Gate;
   onOpenInBooth: (pickups: PickupItem[]) => void;
-  /** Rejects with the host's words when the DAW refuses. */
-  onAddMarkers: (pickups: PickupItem[]) => Promise<unknown>;
+  /** The markers were written: the page reads its list again, which the DAW's markers decide. The button itself makes the call (`AddMarkersButton`). */
+  onMarkersAdded: () => void;
 }) {
   const overlay = useOverlay();
   const picked = sessionPickups(pickups);
   const minutes = sessionMinutes(seconds);
   const count = picked.length;
+  /* The count is known once the list is read; until then the buttons name no number (R3PK-3, XPK-15). */
+  const known = !loading && !unreadable;
 
-  const markersReason = !markers.available ? markers.message || `${dawName} cannot add markers now.` : count === 0 ? 'No lines in the session.' : undefined;
   /* Why the session is empty, said for what is true: nothing listed, nothing readable, all recorded, or all left out. */
   const showEmptyReason = count === 0 && !loading;
   const emptyReason = unreadable
@@ -60,7 +62,6 @@ export function SessionPanel({
         : 'No lines in the session: tick a line to include it.';
   /* A button that is off stays focusable and names its reason, so the keyboard reaches the why as well as the sighted. */
   const emptyId = useId();
-  const markersId = useId();
 
   const copy = async () => {
     if (picked.length === 0) {
@@ -75,23 +76,6 @@ export function SessionPanel({
     }
   };
 
-  /* A second press while the markers are being written would add them twice. */
-  const [adding, setAdding] = useState(false);
-  const addingNow = useRef(false);
-  const addMarkers = () => {
-    if (addingNow.current) return;
-    addingNow.current = true;
-    setAdding(true);
-    onAddMarkers(picked)
-      .catch((error: unknown) => overlay.toast(reasonSentence(error), { tone: 'error' }))
-      .finally(() => {
-        addingNow.current = false;
-        setAdding(false);
-      });
-  };
-
-  /* The count is known once the list is read; until then the button names no number (R3PK-3, XPK-15). */
-  const known = !loading && !unreadable;
   return (
     <Panel title="Pickup session" actions={<IconButton action="copy" label="Copy the pickup script" onClick={() => void copy()} />} className="min-w-0">
       <div className="flex flex-col gap-3" aria-busy={loading || undefined}>
@@ -112,30 +96,27 @@ export function SessionPanel({
         <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
           <Button
             variant={count === 0 ? 'secondary' : 'primary'}
+            data-pickup-session-open=""
             aria-disabled={count === 0 || undefined}
             aria-describedby={showEmptyReason ? emptyId : undefined}
             onClick={() => count > 0 && onOpenInBooth(picked)}
           >
             {known ? `Open ${count} in Booth` : 'Open in Booth'}
           </Button>
-          <IconButton
-            action="addMarker"
-            label={`Add ${count} as markers in ${dawName}`}
-            disabledReason={markersReason}
-            aria-describedby={!markers.available ? markersId : showEmptyReason ? emptyId : undefined}
-            pending={adding}
-            onClick={addMarkers}
+          <AddMarkersButton
+            target={{ kind: 'pickups', pickups: picked }}
+            gate={markers}
+            reason={!known ? 'The list could not be read, so there is nothing to add yet.' : count === 0 ? 'No lines in the session.' : undefined}
+            dawName={dawName}
+            countKnown={known}
+            describedBy={showEmptyReason && markers.available ? emptyId : undefined}
+            onDone={onMarkersAdded}
           />
         </div>
         {/* `text-pretty`: a note never ends on one word alone (R3PK-6). */}
         {showEmptyReason && (
           <p id={emptyId} className="text-[0.8125rem] text-pretty text-[var(--text-muted)]">
             {emptyReason}
-          </p>
-        )}
-        {!markers.available && (
-          <p id={markersId} className="text-[0.8125rem] text-pretty text-[var(--text-muted)]">
-            {markersReason}
           </p>
         )}
       </div>

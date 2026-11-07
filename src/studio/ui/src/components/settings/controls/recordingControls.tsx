@@ -6,8 +6,11 @@ import { EngineBody } from './EngineBody';
 import { ChapterLayoutBody } from './ChapterLayoutBody';
 import { MicBody } from './MicBody';
 import { SampleOutputBody } from './SampleOutputBody';
+import { SampleStorageBody } from './SampleStorageBody';
 import { MwKeyBody } from './MwKeyBody';
 import { SyncActivityBody } from './SyncActivityBody';
+import { SyncEnabledBody } from './SyncEnabledBody';
+import { VoicesBody } from './VoicesBody';
 import { TakeToneRowBody } from './TakeToneBody';
 
 /** Bodies for Recording & DAW, Voice & pronunciation and Delivery rows, by registry row id. */
@@ -15,9 +18,12 @@ export const RECORDING_CONTROLS: Record<string, ComponentType> = {
   'daw.engine': EngineBody,
   'daw.mic': MicBody,
   'daw.sampleOutput': SampleOutputBody,
+  'daw.sampleStorage': SampleStorageBody,
   'daw.startTone': TakeToneRowBody,
   'daw.capabilities': CapabilitiesBody,
   'daw.layout': ChapterLayoutBody,
+  'daw.sync': SyncEnabledBody,
+  'daw.voices': VoicesBody,
   'daw.syncActivity': SyncActivityBody,
   'voice.dict': DefinitionsBody,
   'voice.mwKey': MwKeyBody,

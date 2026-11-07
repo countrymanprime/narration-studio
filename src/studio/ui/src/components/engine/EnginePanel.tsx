@@ -1,8 +1,9 @@
+import { apiErrorMessage } from '../../api/errorMessage';
 import { useEffect, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTriangleExclamation } from '@fortawesome/free-solid-svg-icons';
 import { useApi } from '../../api/ApiContext';
-import { Button } from '../primitives/Button';
+import { IconButton } from '../primitives/IconButton';
 import { InsetCard } from '../primitives/InsetCard';
 import { Panel } from '../primitives/Panel';
 import { SlideOver } from '../primitives/SlideOver';
@@ -20,6 +21,8 @@ import { DAW_TOOL_GROUPS } from './dawTools';
 import { DawToolsMenu } from './DawToolsMenu';
 import { useChapterLinks } from './useChapterLinks';
 import { useAudacityLink } from './useAudacityLink';
+import { useLiveTracks } from './useLiveTracks';
+import { LiveTracksRefresh, LiveTracksStatus } from './LiveTracksStatus';
 import type { Track, TracksDiscovery, TracksProject } from '../../types';
 
 function basename(path: string): string {
@@ -56,15 +59,28 @@ export type EngineLinkState = {
  * is gone: a chapter is heard in its Proof chapter view. Everything loads when the panel opens (a closed SlideOver is not
  * mounted), so the panel costs nothing on a page that never opens it.
  */
-export function EnginePanel({ open, onClose, notify, link }: { open: boolean; onClose: () => void; notify: Notify; link: EngineLinkState }) {
+export function EnginePanel({
+  open,
+  onClose,
+  notify,
+  link,
+  onOpenRecordingSettings,
+}: {
+  open: boolean;
+  onClose: () => void;
+  notify: Notify;
+  link: EngineLinkState;
+  /** Opens Settings > Recording & DAW, where the project's engine is chosen. The panel is the one place every DAW chip leads, so it carries this way on. */
+  onOpenRecordingSettings: () => void;
+}) {
   return (
     <SlideOver open={open} title="Audio engine" closeLabel="Close the engine panel" size="wide" headingLevel={2} onClose={onClose}>
-      <EnginePanelBody notify={notify} link={link} />
+      <EnginePanelBody notify={notify} link={link} onOpenRecordingSettings={onOpenRecordingSettings} />
     </SlideOver>
   );
 }
 
-function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkState }) {
+function EnginePanelBody({ notify, link, onOpenRecordingSettings }: { notify: Notify; link: EngineLinkState; onOpenRecordingSettings: () => void }) {
   const api = useApi();
   // An Audacity project has no .rpp: its card replaces the REAPER project section, the REAPER tools are not shown, and the tracks come
   // from the snapshot the host takes while Audacity answers.
@@ -74,16 +90,25 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
   // from is taken while Audacity answers.
   const audacityHeard = forAudacity ? audacity.receivedAt : undefined;
   const [discovery, setDiscovery] = useState<TracksDiscovery>();
-  const [project, setProject] = useState<TracksProject>();
+  // An Audacity project's tracks: the snapshot the host takes while Audacity answers.
+  const [audacityProject, setAudacityProject] = useState<TracksProject>();
   const [error, setError] = useState('');
   // Bumped by the chapter-sync panel's own actions (toggle, Link, Undo), so the track list and the Chapter links table re-read
   // the mapping they don't otherwise hear about (chapterTrackSet and chapterSyncSetEnabled send no event of their own).
   const [refresh, setRefresh] = useState(0);
+  // A REAPER project's tracks as REAPER has them now, saved or not (#2840): read when the panel opens, when the linked file or the link
+  // facts change (Check again, a relink), on focus and on a timer, and by the Refresh in Chapter links and the Link chapters dialog.
+  const live = useLiveTracks({
+    enabled: !forAudacity && !!discovery?.selected,
+    readKey: `${discovery?.selected ?? ''}|${link.checkedAt ?? ''}|${link.dawFileLinked}|${link.dawProjectMatches}`,
+    notify,
+  });
+  const project = forAudacity ? audacityProject : live.project;
   const voices = useVoiceTracks(notify);
   // Chapter sync draws the layout switch as its Layout row while it is drawn at all; otherwise the Voices card does.
   const [layoutInSync, setLayoutInSync] = useState(false);
   // The one reader of the chapter links: the Link chapters button and dialog, the Tracks card and the Chapter links section all use it.
-  const links = useChapterLinks(project?.tracks ?? NO_TRACKS, refresh, () => setRefresh((count) => count + 1));
+  const links = useChapterLinks(project?.tracks ?? NO_TRACKS, refresh, () => setRefresh((count) => count + 1), forAudacity ? null : live.readAt);
   // Read-only here, so onStatus is a no-op; a Link or a Change below is exactly
   // what resolves an unmapped_track/unconfirmed_mapping cause.
   const stages = useStageRecommendations({ refreshKey: String(refresh), notify, onStatus: () => {} });
@@ -99,7 +124,7 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
         if (active) setDiscovery(next);
       })
       .catch((reason) => {
-        if (active) setError(String(reason));
+        if (active) setError(apiErrorMessage(reason));
       });
     return () => {
       active = false;
@@ -107,38 +132,44 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
   }, [api, audacityHeard]);
 
   useEffect(() => {
-    if (!discovery?.selected) return;
+    if (!forAudacity || !discovery?.selected) return;
     let active = true;
     void api
       .tracksList()
       .then((next) => {
         if (active) {
-          setProject(next);
+          setAudacityProject(next);
           setError('');
         }
       })
       .catch((reason) => {
-        if (active) setError(String(reason));
+        if (active) setError(apiErrorMessage(reason));
       });
     return () => {
       active = false;
     };
-  }, [api, discovery?.selected, audacityHeard]);
+  }, [api, forAudacity, discovery?.selected, audacityHeard]);
 
   const selectRpp = (path: string) => {
     setError('');
     void api
       .tracksSelect(path)
       .then((next) => setDiscovery(next))
-      .catch((reason) => setError(String(reason)));
+      .catch((reason) => setError(apiErrorMessage(reason)));
   };
 
   const hasTracks = !!project && project.tracks.length > 0;
+  // A REAPER project whose tracks have not been read yet (the first read is running, or failed and was a toast with Retry): Chapter links'
+  // header holds the status and the Refresh until they are, so the narrator always has a way to read them again (UX rule 7, breaker B1).
+  const awaitingTracks = !forAudacity && !!discovery?.selected && !project;
 
   return (
     // The gap between cards is the slide-over body's own padding (1.1rem), so the space above the first card and between cards match (R3EN2-16).
     <VoiceLayoutContext.Provider value={forAudacity ? 'flat' : null}>
       <div className="space-y-[1.1rem]">
+        <div className="flex justify-end">
+          <IconButton action="gear" label="Recording settings" onClick={onOpenRecordingSettings} />
+        </div>
         {forAudacity ? (
           <Panel title="Audacity project">
             <AudacityLinkCard view={audacity} notify={notify} />
@@ -159,7 +190,7 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
         {hasTracks && !forAudacity && (
           <Panel title="REAPER tools">
             {/* The tools, their gates and their dialogs come from the DAW tools registry; Link chapters stays out while the book has no chapters (ENX-9: equal cells). */}
-            <DawToolsMenu label="REAPER tools" groups={DAW_TOOL_GROUPS} links={links} forAudacity={forAudacity} whenUnsupported="hide" />
+            <DawToolsMenu label="REAPER tools" groups={DAW_TOOL_GROUPS} links={links} live={live} forAudacity={forAudacity} whenUnsupported="hide" />
           </Panel>
         )}
         <ChapterSyncPanel
@@ -184,7 +215,12 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
               : `${unmappedCount} chapters can’t get a stage suggestion until their track links are confirmed below.`}
           </p>
         )}
-        {project && <ChapterLinksTable links={links} notify={notify} />}
+        {project && <ChapterLinksTable links={links} notify={notify} live={forAudacity ? undefined : live} />}
+        {awaitingTracks && (
+          <Panel title="Chapter links" flush subtitle={<LiveTracksStatus live={live} />} actions={<LiveTracksRefresh live={live} />}>
+            {null}
+          </Panel>
+        )}
         {hasTracks && !forAudacity && (
           <VoicesCard
             tracks={project.tracks}
@@ -208,6 +244,7 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
 // action beside it, not a gate (one binding, three call sites: here, Settings' DAW category, an import).
 function ProjectSection({ discovery, link, onSelectRpp }: { discovery?: TracksDiscovery; link: EngineLinkState; onSelectRpp: (path: string) => void }) {
   const mismatch = link.dawFileLinked && link.dawReachable && !link.dawProjectMatches;
+  const notRunning = link.dawFileLinked && !link.dawReachable;
   // While the picker asks which of several files to read, the list is the choice: a second "link a file" route above it is left out (R3EN2-5).
   const picking = !!discovery && !discovery.selected && discovery.candidates.length > 1;
   return (
@@ -216,9 +253,7 @@ function ProjectSection({ discovery, link, onSelectRpp }: { discovery?: TracksDi
       actions={
         picking ? undefined : (
           // A short label of one width either way (ENX-25); the card's title already says it is the REAPER project file.
-          <Button variant="secondary" pending={link.linkingDawFile} onClick={link.onLinkDawFile}>
-            {link.dawFileLinked ? 'Change file…' : 'Link file…'}
-          </Button>
+          <IconButton action={link.dawFileLinked ? 'changeLink' : 'linkFile'} pending={link.linkingDawFile} onClick={link.onLinkDawFile} />
         )
       }
     >
@@ -231,6 +266,19 @@ function ProjectSection({ discovery, link, onSelectRpp }: { discovery?: TracksDi
             </div>
           </div>
         )}
+        {notRunning && (
+          // The panel opens from a chip that says "Not running", so it says so too, with when the app last checked and a way to ask again.
+          <InsetCard tone="warn" fill className="space-y-2">
+            <p role="status" className="flex items-start gap-2" style={{ color: 'var(--warn-text)' }}>
+              <FontAwesomeIcon icon={faTriangleExclamation} className="mt-[0.2rem] flex-none" aria-hidden="true" />
+              <span>REAPER is not running.</span>
+            </p>
+            <CheckLine waiting="Waiting for REAPER to start" unknown="REAPER is not running" checkedAt={link.checkedAt} />
+            <div className="flex flex-wrap gap-2">
+              <IconButton action="checkAgain" onClick={link.onCheckAgain} />
+            </div>
+          </InsetCard>
+        )}
         {mismatch && (
           // A problem, so a callout with its two ways out beside it, not coloured body text (R3EN2-4, ENX-25). Link the open project is the
           // shared link action, as the Booth's same notice names it.
@@ -241,12 +289,8 @@ function ProjectSection({ discovery, link, onSelectRpp }: { discovery?: TracksDi
             </p>
             <CheckLine waiting="Waiting for REAPER to open the linked project" unknown="REAPER has the linked project open" checkedAt={link.checkedAt} />
             <div className="flex flex-wrap gap-2">
-              <Button variant="secondary" pending={link.linkingDawFile} onClick={link.onLinkDawFile}>
-                Link the open project…
-              </Button>
-              <Button variant="secondary" onClick={link.onCheckAgain}>
-                Check again
-              </Button>
+              <IconButton action="linkFile" label="Link the open project" pending={link.linkingDawFile} onClick={link.onLinkDawFile} />
+              <IconButton action="checkAgain" onClick={link.onCheckAgain} />
             </div>
           </InsetCard>
         )}

@@ -16,12 +16,30 @@ While the profile and the chapters are being read, the **Delivery package** pane
 The header of the files panel holds the title, the chapter bar, a pill naming the profile the files are
 judged against (**ACX** for the built-in profile, a custom profile by its name) and one refresh icon,
 **Check the files again**. Pressing the pill opens [Delivery](delivery.md), where the profile is chosen and
-edited. The run buttons are icon buttons beside it, named by their tooltips (**Master all to spec…**, **Check files…**). The main column holds the files and their checks, **Book consistency**, the
+edited. The run buttons are icon buttons beside it, named by their tooltips (**Master all to spec…**, **Check files…**; the same button is on [Delivery](delivery.md#before-you-build), over the same measurement). The main column holds the files and their checks, **Book consistency**, the
 [mastering chain](#the-mastering-chain), [Diagnostics](#diagnostics) and the [report](#exporting-a-report);
-the column on the right holds the [delivery package](#the-delivery-package) and
-[Multi-platform export](#building-packages-for-several-platforms-at-once).
+the column on the right holds the [delivery package](#the-delivery-package). Building the packages, for one platform or several, is on [Delivery](delivery.md#building-packages-for-several-platforms-at-once); this page keeps the package counts and **Open Delivery**.
+
+## Common tasks
+
+This page is a reference to everything Master & QC shows. To do one thing, start here:
+
+- **Check rendered chapter files against the profile**: [Checking files](#checking-files).
+- **Find out why a file fails**: [Why it fails](#why-it-fails).
+- **See how far the chapters' levels spread across the book**: [Book consistency](#book-consistency).
+- **Set up the mastering chain, then master and encode to spec**: [The mastering chain](#the-mastering-chain) and
+  [Mastering to spec](#mastering-to-spec).
+- **Build packages for more than one platform**: [Building packages for several platforms at once](delivery.md#building-packages-for-several-platforms-at-once), on the Delivery page.
+- **Check for clipping, level shifts, room-tone changes and long pauses**: [Diagnostics](#diagnostics).
+- **Save the last check and diagnostics to files**, to send to a producer or QA checker: [Exporting a report](#exporting-a-report).
 
 ## Checking files
+
+When REAPER is not answering, a **REAPER not connected** mark sits in the header's controls. It opens the dialog described on [Production](production.md), with **Link project file…** and **Check again**. Measuring files and reading reports keep working.
+
+Before any file has been measured, a wrench icon button (**DAW tools**) sits beside **Check files…** with the same **Structure** menu as [Editing's](editing.md#the-daw-tools-menu): **Create chapter regions…** and **Prepare chapter render…** are what come before there are rendered files to check. When a tool cannot be used it stays in the menu, greyed, with the reason under its name: the DAW is not answering, the DAW has a different project open than the one linked here, the REAPER project has no tracks yet, no chapter is linked to a REAPER track yet (link one on [Production](production.md)), or the project records in Audacity, which has neither regions nor render setup to write. The menu reads the project the first time you open it, so for a moment both entries say **Reading the REAPER project…**.
+
+![Master & QC with nothing measured and REAPER not answering: the DAW tools menu beside Check files, both entries off with REAPER's own sentence under each](../../images/ui/master-daw-tools.webp)
 
 Press the **Check files…** icon button and pick one or more rendered chapter files. Only WAV files are measured for now;
 a file in another format, or one that cannot be read, is listed with the reason and does not stop the
@@ -44,10 +62,13 @@ before any check, then lines such as **12 rows marked Waiting: no file measured 
 after a check that stopped, **2 rows marked Not measured: the check stopped before these files**. A row
 whose reason is its own (its pickups, a file that could not be read) keeps it in the row.
 A row with a file shows its **Length**, **RMS**, **Peak**, **Noise floor** and the room
-tone at its **Head / tail** in seconds, then its **Result**: **Pass**, **Fail**, **Not judged** (a value the
-profile needs could not be measured), or **Waiting** / **Not measured**. The table has no
-Clicks or Text column: the measurement reports clipping, not clicks, and does not compare the audio with the text, so
-nothing is drawn for them. A value that misses the
+tone at its **Head / tail** in seconds, then its **Text** and its **Result**: **Pass**, **Fail**, **Not judged** (a value the
+profile needs could not be measured), or **Waiting** / **Not measured**. **Text** is the share
+of the chapter's words the [recording check](production.md) found in its recording ("Text present"), judged by that
+check's own thresholds; a figure under them is red with a cross. The measurement itself does not compare the audio with
+the text: the figure is the chapter's current check, read back, and Master & QC never runs one. A file is paired with a chapter by its name, a chapter's title as whole words or its number, the longest title
+winning ("Chapter 10.wav" is Chapter 10, not Chapter 1). A file that fits no chapter, or two equally well, or whose chapter has no current check (never run, or out of date since the recording changed), says **Not checked**,
+never a guess. A red Text figure does not change **Pass** or **Fail**, which come from the profile's rules alone. The table has no Clicks column. A value that misses the
 profile's rule is red with a cross; a value the app could not measure (a silent render, or a file too
 short) is a dash, never a number, and never counted as met. A file not measured yet, or one that could not
 be read, says so in place of its values. If the measurement itself breaks on a file, its row says the
@@ -57,6 +78,8 @@ If the chapters or the delivery profile cannot be read, an error message at the 
 selects one. Right-click a row for the same actions as the buttons below it.
 
 ![Three files checked against ACX: a 48 kHz render selected with why it fails](../../images/ui/master-measured.webp)
+
+![The Text column: 100%, a red 65% under the recording check's thresholds, and Not checked](../../images/ui/master-text-column.webp)
 
 ### Why it fails
 
@@ -125,54 +148,57 @@ and the built-in chain is used until it can.
 
 ## Mastering to spec
 
-The **Master all to spec…** icon button, beside **Check files…**, picks the rendered files to master and encode and opens
-**Master to spec** with a row per file; **Add files…** adds more and **Remove** drops one. Give each its
+The **Master to spec** card is always on the page. Before you pick anything it holds **Choose files to master…** and the
+**Master before encoding** checkbox; with the checkbox off the button reads **Choose files to encode…**. The button picks
+the rendered files to master and encode; the **Master all to spec…** icon beside **Check files…** at the top of the page
+does the same. The card then lists a row per file; **Add files…** adds more and **Remove** drops one. Give each its
 **Role** in the package (**Chapter**, **Opening credits**, **Closing credits** or **Retail sample**) and
 each chapter its **Title** (the other roles take none, shown as a dash), then press **Master & encode**, at the top
 of the panel beside **Add files…**: with **Master before encoding** on (the
 default; its **?** says the file is brought to the platform's RMS window and peak limit) each file is mastered by the [chain](#the-mastering-chain) to the chosen platform's numbers, then
-encoded; turn it off and the button reads **Encode**. When the project masters with your DAW's FX chain or an Audacity effect
-macro, **Master & encode** first asks your approval for this export. **Approve this render?** names the chain and lists the files
-it masters; for your DAW's FX chain, each file is listed with the region it renders from (a chapter's title, **Opening credits** or
-**Closing credits**). A retail sample has no region, so an export through your DAW's FX chain that includes one is refused before
-the dialog opens, naming the file: remove it, or encode it without mastering. A chapter with no title is refused the same way. For
-Audacity, type the macro's name as Audacity's Macro Manager lists it (letters, digits, spaces, hyphens and underscores); a name
-Audacity cannot run is refused in the dialog. **Approve and master** starts the export; **Cancel** sends nothing. The approval
-covers this one export, so the next one asks again. If the project's chain changed after the dialog opened, the export is refused
-with a message saying so, and pressing **Master & encode** again asks about the chain it now uses. The bar shows the files' progress, **Cancel** stops
-it, and each row's **Status** pill says whether it waits, is mastering, is encoding, is ready or failed, with the
-reason under a failure. Every stage writes a new file next to the app's own output: your renders are never changed.
-When it ends, the line under the bar says how many files were prepared. They are new copies, so the chapter table
-and [Delivery](delivery.md) still go by the files you checked: the check icon beside that line (its tooltip reads
-"Check the prepared files so Delivery counts them") opens the file picker to check the copies, and a chapter counts as
-mastered once its file passes.
+encoded; turn it off and the button reads **Encode**.
+
+When the project masters with your DAW's FX chain or an Audacity effect macro, **Master & encode** first asks your approval for
+this export. For your DAW's FX chain, **Approve this render?** lists first the effects that render runs, as your DAW names them:
+a line says how many effects on how many tracks and how many are switched off, then a numbered row per effect in signal order,
+each track's top to bottom and then the master's (marked **Master**). A switched-off effect is dimmed and has an **Off** badge.
+The **i** beside the count says what your approval covers: each effect's name, whether it is on, and the order, not its
+settings, routing or mute. In a small window the effects can be below what the dialog shows; a button beside **Approve and
+master** then says how many are above and brings the first one into view (at the smallest window sizes, about 320x300,
+only a strip of it shows, #2998); it comes and goes as you resize the window. Under the effects, each file is listed with the region it renders
+from (a chapter's title, **Opening credits** or **Closing credits**).
+
+If the app cannot read the chain from your DAW, or your DAW is not connected, the export is refused before the dialog opens,
+with what to do instead. A retail sample has no region, so an export through your DAW's FX chain that includes one is refused
+the same way, naming the file: remove it, or untick **Master before encoding** to encode it without mastering. A chapter with
+no title is refused too. For Audacity, type the macro's name as Audacity's Macro Manager lists it (letters, digits, spaces,
+hyphens and underscores); a name Audacity cannot run is refused in the dialog.
+
+**Approve and master** starts the export; **Cancel** sends nothing. The approval covers this one export and the chain you were
+shown, so the next export asks again. If the chain changes in your DAW after you approve, the export stops at the next file,
+keeps the files already prepared, and a message names the file; if your DAW stops answering, it stops the same way. Press
+**Master & encode** to approve the chain as it is now. If the project's mastering row changed after the dialog opened, the
+export is refused with a message saying so. The bar shows the files' progress, **Cancel** stops it, and each row's **Status**
+pill says whether it waits, is mastering, is encoding, is ready or failed, with the reason under a failure. Every stage writes a
+new file next to the app's own output: your renders are never changed. When it ends, the line under the bar says how many
+files were prepared. They are new copies, so the chapter table and [Delivery](delivery.md) still go by the files you checked:
+the check icon beside that line (its tooltip reads "Check the prepared files so Delivery counts them") opens the file picker to
+check the copies, and a chapter counts as mastered once its file passes.
+
+From the press of **Master & encode** until the export ends, the files, **Add files…** and **Master before encoding**
+are locked, and **Cancel** shows it is busy until the app answers. When the export ends, finished, cancelled or failed,
+they unlock: each row keeps its **Status** from that run until you remove it, and you can change the files, the roles,
+the titles or the checkbox and press **Master & encode** again. If you come back to Master & QC while the app is still
+open, the last export's files are listed again with their status. Remove them to dismiss that run. Picking a file that
+is already listed adds no row, and a message says so.
+
+![The Master to spec card before any file is picked: Choose files to master… and Master before encoding](../../images/ui/master-to-spec-empty.webp)
 
 ![Master all to spec with five files picked and given a role](../../images/ui/master-to-spec-picked.webp)
 
 ![Master & encode asking approval to master with the DAW's FX chain, naming the regions it renders](../../images/ui/master-to-spec-approve.webp)
 
-## Building packages for several platforms at once
-
-If you deliver to more than one platform, **Multi-platform export** (under the delivery package) lets you build
-all of them from the one source you already mastered and encoded, without re-encoding unless a platform
-needs a different file format. Under **Build packages for**, check the box for each profile you want a
-package for, then **Build N packages**; it stays off until files are mastered and encoded. This does not change which profile the page's checks are judged against (that is the project's profile,
-chosen on Delivery); the checkboxes only choose what to build packages for.
-
-![Master & QC - Multi-platform export with one platform checked](../../images/ui/master-multi-export.webp)
-
-You are asked for one folder once, and each platform's package goes into its own correctly named subfolder
-of it. Two platforms that both take the same file format (most do: MP3 at the same bitrate) share the one
-set of already-encoded files; a platform that needs a different format (an M4B audiobook file, say) is
-encoded for just that once, however many platforms need it, not once per platform. Cancel stops the build
-before its next platform starts; platforms already built keep their packages, and one not yet reached is
-left waiting.
-
-![Master & QC - a finished multi-platform build: a row per platform with its folder or why it was not built](../../images/ui/master-multi-export-results.webp)
-
-While it builds, and once it finishes, each platform says how it went under its own checkbox: **Building…**,
-**Built** with its folder and how many files it wrote, or why it could not be built (such as a required file being
-missing for that platform).
+![A cancelled export: each file Cancelled, and the files and Master & encode back to run it again](../../images/ui/master-to-spec-cancelled.webp)
 
 ## Diagnostics
 
@@ -232,6 +258,12 @@ no manuscript text is ever written into the report. Export needs a project open 
 is refused while a check or diagnostics run is running.
 
 ![Export report wrote an HTML and a JSON report into the project's delivery folder, with file names only](../../images/ui/master-report-exported.webp)
+
+## What next
+
+- [Delivery](delivery.md): build the platform's package from the files you mastered here.
+- [Pickups](pickups.md): record the lines a failing chapter is waiting on.
+- [ACX delivery requirements](../../reference/acx-delivery-requirements.md): what ACX asks for, rule by rule, with its sources.
 
 ---
 

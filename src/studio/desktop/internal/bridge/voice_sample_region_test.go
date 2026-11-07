@@ -3,6 +3,7 @@ package bridge
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 )
@@ -138,5 +139,75 @@ func TestReadVoiceSampleRegionsWithNoneKeptIsEmpty(t *testing.T) {
 	got, err := actions.ReadVoiceSampleRegions(context.Background())
 	if err != nil || len(got.Regions) != 0 {
 		t.Fatalf("got %+v, %v", got, err)
+	}
+}
+
+func TestDeleteVoiceSampleRegionSendsTheNumberAndReadsTheOutcome(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	fake := startFakeReaper(t, client, dir, func(command []string) [][]string {
+		switch command[3] {
+		case "9":
+			return [][]string{{"VOICE_SAMPLE_REMOVED", run(command), "9", "unchanged"}}
+		case "5":
+			return [][]string{{"VOICE_SAMPLE_STALE", run(command), "5"}}
+		}
+		return [][]string{{"VOICE_SAMPLE_REMOVED", run(command), command[3], "deleted"}}
+	})
+	got, err := actions.DeleteVoiceSampleRegion(context.Background(), 3)
+	if err != nil || got != (VoiceSampleRegionRemoved{Number: 3, Outcome: "deleted"}) {
+		t.Fatalf("got %+v, %v", got, err)
+	}
+	gone, err := actions.DeleteVoiceSampleRegion(context.Background(), 9)
+	if err != nil || gone != (VoiceSampleRegionRemoved{Number: 9, Outcome: "unchanged"}) {
+		t.Fatalf("a region that is already gone: got %+v, %v", gone, err)
+	}
+	_, err = actions.DeleteVoiceSampleRegion(context.Background(), 5)
+	var stale *VoiceSampleRegionStaleError
+	if !errors.As(err, &stale) || stale.Number != 5 || !errors.Is(err, ErrStale) {
+		t.Fatalf("err = %v, want a stale region 5 (a region that is not a voice sample)", err)
+	}
+	commands := fake.commands()
+	if len(commands) != 3 || commands[0][1] != "delete_voice_sample_region" || commands[0][3] != "3" {
+		t.Fatalf("commands = %q", commands)
+	}
+}
+
+func TestDeleteVoiceSampleRegionRefusesANumberThatIsNotAPositiveWholeNumberBeforeSending(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	fake := startFakeReaper(t, client, dir, func(command []string) [][]string {
+		return [][]string{{"VOICE_SAMPLE_REMOVED", run(command), "1", "deleted"}}
+	})
+	for _, number := range []int{0, -1} {
+		if _, err := actions.DeleteVoiceSampleRegion(context.Background(), number); !errors.Is(err, ErrBadVoiceSampleRegion) {
+			t.Fatalf("Delete(%d) err = %v", number, err)
+		}
+	}
+	time.Sleep(20 * time.Millisecond)
+	if got := fake.commands(); len(got) != 0 {
+		t.Fatalf("a bad number was sent: %v", got)
+	}
+}
+
+func TestDeleteVoiceSampleRegionIsRefusedWhenTheGateRefusesAndReportsREAPERsError(t *testing.T) {
+	refused, client, dir := newActionsSession(t, false)
+	fake := startFakeReaper(t, client, dir, func(command []string) [][]string {
+		return [][]string{{"VOICE_SAMPLE_REMOVED", run(command), "1", "deleted"}}
+	})
+	if _, err := refused.DeleteVoiceSampleRegion(context.Background(), 1); !errors.Is(err, errGateRefused) {
+		t.Fatalf("err = %v, want errGateRefused", err)
+	}
+	time.Sleep(20 * time.Millisecond)
+	if got := fake.commands(); len(got) != 0 {
+		t.Fatalf("a command was written while the gate refuses: %v", got)
+	}
+	if !Experimental("delete_voice_sample_region") {
+		t.Fatal("the delete command stays experimental until the in-REAPER check has run")
+	}
+	actions, client2, dir2 := newActionsSession(t, true)
+	startFakeReaper(t, client2, dir2, func(command []string) [][]string {
+		return [][]string{{"ERROR", run(command), "REAPER is recording. Stop recording first."}}
+	})
+	if _, err := actions.DeleteVoiceSampleRegion(context.Background(), 1); err == nil || !strings.Contains(err.Error(), "recording") {
+		t.Fatalf("err = %v, want REAPER's recording refusal", err)
 	}
 }

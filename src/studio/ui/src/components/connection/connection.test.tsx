@@ -10,7 +10,9 @@ import type { NarrationApi } from '../../types';
 import { TooltipProvider } from '../primitives/Tooltip';
 import { trackChoices } from '../mapping/trackChoices';
 import { ConnectionResolveDialog } from './ConnectionResolveDialog';
+import { LinkDawFileContext } from './linkDawFile';
 import { resetOpenOnce, useOpenOnce } from './useOpenOnce';
+import { VoiceLayoutContext } from '../engine/voiceLayout';
 
 beforeEach(resetOpenOnce);
 afterEach(cleanup);
@@ -202,8 +204,126 @@ describe('the not-connected dialog', () => {
     expect(await screen.findByText(/connected before and has stopped answering/)).toBeTruthy();
     cleanup();
     view(<ConnectionResolveDialog {...off} />, { dawChoice: choice('not_linked') });
-    expect(await screen.findByText(/Link the project file first/)).toBeTruthy();
+    expect(await screen.findByText(/No REAPER project file is linked to this project yet/)).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Start REAPER' }).getAttribute('aria-disabled')).toBe('true');
+  });
+
+  describe('Link project file…', () => {
+    const notLinked = async () => ({ hasProject: true, daw: 'REAPER', state: 'not_linked', linkedFile: null, foundFiles: [], options: [] }) as never;
+    const linkedChoice = async () => ({ hasProject: true, daw: 'REAPER', state: 'linked', linkedFile: 'Alice.rpp', foundFiles: [], options: [] }) as never;
+
+    it('is the primary action while no project file is linked, with Start off beside it', async () => {
+      view(<ConnectionResolveDialog {...off} />, { dawChoice: notLinked });
+      const link = await screen.findByRole('button', { name: 'Link project file…' });
+      expect(link).toBeTruthy();
+      expect(screen.getByRole('button', { name: 'Start REAPER' }).getAttribute('aria-disabled')).toBe('true');
+      expect(screen.getByRole('button', { name: 'Check again' })).toBeTruthy();
+      expect(screen.queryByText(/Link the project file first/)).toBeNull();
+    });
+
+    it('is not offered once the project file is linked', async () => {
+      view(<ConnectionResolveDialog {...off} />, { dawChoice: linkedChoice });
+      await screen.findByText(/The project is linked, but REAPER has not connected/);
+      expect(screen.queryByRole('button', { name: 'Link project file…' })).toBeNull();
+      expect(screen.getByRole('button', { name: 'Start REAPER' }).getAttribute('aria-disabled')).toBeNull();
+    });
+
+    it('runs the app’s one link action, then checks again so the page and every other page follow', async () => {
+      const onCheckAgain = vi.fn();
+      const link = vi.fn(async () => ({ kind: 'linked' as const }));
+      view(
+        <LinkDawFileContext.Provider value={link}>
+          <ConnectionResolveDialog {...off} onCheckAgain={onCheckAgain} />
+        </LinkDawFileContext.Provider>,
+        { dawChoice: notLinked },
+      );
+      await userEvent.click(await screen.findByRole('button', { name: 'Link project file…' }));
+      await waitFor(() => expect(onCheckAgain).toHaveBeenCalledTimes(1));
+      expect(link).toHaveBeenCalledTimes(1);
+    });
+
+    it('scrolls a refused link into view, so a small window shows why nothing linked (#2823 break B1)', async () => {
+      const scrollIntoView = vi.fn();
+      const original = Element.prototype.scrollIntoView;
+      Element.prototype.scrollIntoView = scrollIntoView;
+      try {
+        const link = vi.fn(async () => ({ kind: 'refused' as const, message: 'That is not a REAPER project file.' }));
+        view(
+          <LinkDawFileContext.Provider value={link}>
+            <ConnectionResolveDialog {...off} />
+          </LinkDawFileContext.Provider>,
+          { dawChoice: notLinked },
+        );
+        await userEvent.click(await screen.findByRole('button', { name: 'Link project file…' }));
+        await screen.findByText('That is not a REAPER project file.');
+        expect(scrollIntoView).toHaveBeenCalled();
+      } finally {
+        Element.prototype.scrollIntoView = original;
+      }
+    });
+
+    it('says so when the app is already choosing a project file, instead of doing nothing (#2823 break B2)', async () => {
+      const link = vi.fn(async () => ({ kind: 'busy' as const }));
+      view(
+        <LinkDawFileContext.Provider value={link}>
+          <ConnectionResolveDialog {...off} />
+        </LinkDawFileContext.Provider>,
+        { dawChoice: notLinked },
+      );
+      await userEvent.click(await screen.findByRole('button', { name: 'Link project file…' }));
+      expect((await screen.findByRole('alert')).textContent).toMatch(/already choosing a project file/);
+    });
+
+    it('says nothing when the narrator closes the file picker', async () => {
+      const onCheckAgain = vi.fn();
+      const link = vi.fn(async () => ({ kind: 'cancelled' as const }));
+      view(
+        <LinkDawFileContext.Provider value={link}>
+          <ConnectionResolveDialog {...off} onCheckAgain={onCheckAgain} />
+        </LinkDawFileContext.Provider>,
+        { dawChoice: notLinked },
+      );
+      await userEvent.click(await screen.findByRole('button', { name: 'Link project file…' }));
+      await waitFor(() => expect(link).toHaveBeenCalledTimes(1));
+      expect(screen.queryByRole('alert')).toBeNull();
+      expect(onCheckAgain).not.toHaveBeenCalled();
+    });
+
+    it('shows the host’s sentence when it will not link the file, and a failed link in words', async () => {
+      const refuse = vi.fn(async () => ({ kind: 'refused' as const, message: 'That file is not a REAPER project.' }));
+      view(
+        <LinkDawFileContext.Provider value={refuse}>
+          <ConnectionResolveDialog {...off} />
+        </LinkDawFileContext.Provider>,
+        { dawChoice: notLinked },
+      );
+      await userEvent.click(await screen.findByRole('button', { name: 'Link project file…' }));
+      expect((await screen.findByRole('alert')).textContent).toContain('That file is not a REAPER project.');
+      cleanup();
+      const fail = vi.fn(async () => ({ kind: 'failed' as const, error: new Error('the host went away') }));
+      view(
+        <LinkDawFileContext.Provider value={fail}>
+          <ConnectionResolveDialog {...off} />
+        </LinkDawFileContext.Provider>,
+        { dawChoice: notLinked },
+      );
+      await userEvent.click(await screen.findByRole('button', { name: 'Link project file…' }));
+      expect((await screen.findByRole('alert')).textContent).toContain('the host went away');
+    });
+
+    it('does not check again while another link is open (the host’s picker is modal)', async () => {
+      const onCheckAgain = vi.fn();
+      const busy = vi.fn(async () => ({ kind: 'busy' as const }));
+      view(
+        <LinkDawFileContext.Provider value={busy}>
+          <ConnectionResolveDialog {...off} onCheckAgain={onCheckAgain} />
+        </LinkDawFileContext.Provider>,
+        { dawChoice: notLinked },
+      );
+      await userEvent.click(await screen.findByRole('button', { name: 'Link project file…' }));
+      await waitFor(() => expect(busy).toHaveBeenCalledTimes(1));
+      expect(onCheckAgain).not.toHaveBeenCalled();
+    });
   });
 
   it('has the header X as its way out and no Cancel', async () => {
@@ -305,6 +425,25 @@ describe('the not-linked dialog', () => {
     expect(chapterTrackCreate).toHaveBeenCalledTimes(1);
     await act(async () => finish(created()));
     await waitFor(() => expect(onLinked).toHaveBeenCalledOnce());
+  });
+
+  it('in a Voice folders project says folder: the button, the line beside the list and the empty-project line (#2958)', async () => {
+    const folders = (ui: React.ReactElement, api: Partial<NarrationApi>) =>
+      render(
+        <ApiProvider api={createMockApi(api)}>
+          <TooltipProvider>
+            <VoiceLayoutContext.Provider value="folders">{ui}</VoiceLayoutContext.Provider>
+          </TooltipProvider>
+        </ApiProvider>,
+      );
+    const listed = folders(<ConnectionResolveDialog {...link()} />, { chapterTrackMatch: async () => match() });
+    await screen.findByRole('combobox', { name: 'Track for Chapter 3' });
+    expect(screen.getByRole('button', { name: 'Create a new folder' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Create a new track' })).toBeNull();
+    expect(screen.getByText(/Or have REAPER add a new folder for this chapter, named after it with a Narrator track in it, and link it:/)).toBeTruthy();
+    listed.unmount();
+    folders(<ConnectionResolveDialog {...link()} />, { chapterTrackMatch: async () => match({ tracks: [], track: null, candidates: [] }) });
+    expect(await screen.findByText(/Create a new folder adds one named after the chapter, with a Narrator track in it, and links it/)).toBeTruthy();
   });
 
   it("says the DAW's refusal in the dialog and links nothing; a failed call says why", async () => {

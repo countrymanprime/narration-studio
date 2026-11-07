@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"desktop/internal/brand"
+	"desktop/internal/trace"
 	"errors"
 	"fmt"
 	"os"
@@ -225,8 +226,9 @@ func (h *Host) startPackage(req PackageRequest) (PackageJob, error) {
 	if assemble == nil {
 		assemble = packager.Assemble
 	}
+	started := job.snapshot()
 	go h.runPackage(ctx, job, packageRequest(profile, items, outputDir), assemble)
-	return job.snapshot(), nil
+	return started, nil
 }
 
 func (h *Host) runPackage(ctx context.Context, job *packageJobState, req packager.Request, assemble assembleFunc) {
@@ -236,6 +238,7 @@ func (h *Host) runPackage(ctx context.Context, job *packageJobState, req package
 		var broken error
 		if recovered := recover(); recovered != nil {
 			broken = fmt.Errorf("%v", recovered)
+			h.tracer.Emit(trace.AppPanic, trace.EnumValue("where", "package_job"))
 		}
 		h.finishPackage(job, manifest, err, broken, ctx.Err() != nil)
 	}()

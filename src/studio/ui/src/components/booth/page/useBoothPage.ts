@@ -24,10 +24,12 @@ import type { BrowseView } from '../reading/useBrowseView';
 import { useRecordControl, type RecordBlock } from '../record/useRecordControl';
 import { recordedTakeCommand, TAKE_KIND } from '../record/takeCommand';
 import { retryAction } from '../../primitives/Toast';
+import { CHECK_RECORDINGS_LABEL, useCheckRecordingsGate } from '../../recordingcheck/CheckRecordingsButton';
+import { openCheckRecordings } from '../../recordingcheck/openCheckRecordings';
 import { resumeOfferFor, type KeptResume, type OpenedResume, type ResumeTarget } from '../resume/resumeOfferModel';
 import { useRoll } from '../roll/useRoll';
 import type { TeleprompterSession } from '../useTeleprompterSession';
-import { bodyParagraphIndex, estimatedSpans, positionAtOffset, positionInScript, scriptWordAt, secondsBefore, suspectedFrom } from './readingSource';
+import { bodyParagraphIndex, estimatedSpans, positionAtOffset, positionInScript, scriptWordAt, suspectedFrom, wordRangeOf } from './readingSource';
 import type { BoothStart } from './boothQuery';
 import { timerText } from '../frame/progressLine';
 import { useTakeClock } from './useTakeClock';
@@ -35,6 +37,10 @@ import { useTextChoices } from './useTextChoices';
 
 const START: UnitPosition = { cur: 0, wcur: 0 };
 const TAKE_SAVED = 'Take saved';
+const CHECK_OFFER = 'Check this recording against the script?';
+/** The offer stays long enough to Tab to its button, then goes: the narrator is reading on. */
+const CHECK_OFFER_MS = 10_000;
+const CHECK_OFFER_TOPIC = 'booth-check-offer';
 /** Something open over the Booth that Escape closes first: a dialog, a menu or a popover. */
 const OPEN_OVER = '[role="dialog"],[role="alertdialog"],[role="menu"]';
 /** How long after the shell's question closed a page still mounted means the narrator stayed. */
@@ -53,6 +59,8 @@ const MENU_GRACE_MS = 1000;
 type Punch = { paragraph: number; seconds: number };
 
 export type BoothPageOptions = {
+  /** The open project's folder; another project puts the main button back on Record. */
+  projectFolder?: string;
   /** The id the take, the passage map and the resume offer use: the chapter's, or `credits-<kind>`. */
   recordId: string;
   title: string;
@@ -63,7 +71,7 @@ export type BoothPageOptions = {
   guard: Pick<LeaveGuardStore, 'setLeaveGuard'>;
   /** The shell's history: a take a DAW stopped is one entry there, which Undo takes back in the DAW (`recordedTakeCommand`). */
   journal?: Pick<Journal, 'act' | 'undo'> & Partial<Pick<Journal, 'has' | 'subscribe'>>;
-  overlay: Pick<OverlayService, 'confirm' | 'toast' | 'toastUndo' | 'dismissUndo' | 'getSnapshot' | 'subscribe'>;
+  overlay: Pick<OverlayService, 'confirm' | 'toast' | 'toastUndo' | 'dismissUndo' | 'dismissTopic' | 'getSnapshot' | 'subscribe'>;
   /** Where Record from here opened the Booth. */
   from?: BoothStart;
   /** Goes to `next`; called only once the leave guard let the narrator go. */
@@ -86,6 +94,8 @@ export type BoothPageOptions = {
   escapeStoppedSample?: () => boolean;
   /** A press of Record (or R, or a roll) that could not start a take, and why: the page opens the dialog that fixes it or says it with an action. */
   onRecordBlocked?: (block: RecordBlock) => void;
+  /** With the app's own recorder: the sentence for why no microphone can be used right now (none chosen among several, none listed, the chosen one gone), or null. A take does not begin while it is set. */
+  micProblem?: () => string | null;
 };
 
 /**
@@ -94,7 +104,7 @@ export type BoothPageOptions = {
  * line, the keys (`useCommand`, none listened for here), the right-click menu, and every way out through `useBoothLeaveGuard`.
  */
 export function useBoothPage(options: BoothPageOptions) {
-  const { recordId, title, credits, paragraphs, session, daw, guard, overlay, from, navigate, exitTo } = options;
+  const { recordId, title, credits, paragraphs, session, daw, guard, overlay, from, navigate, exitTo, projectFolder = '' } = options;
   const extras = useRef({
     onTakeStopped: options.onTakeStopped,
     menuItems: options.menuItems,
@@ -109,6 +119,11 @@ export function useBoothPage(options: BoothPageOptions) {
   };
   // The Booth changes chapter without changing its address: an Undo toast about the last one's take or pickups is no longer true.
   useEffect(() => overlay.dismissUndo(), [overlay, recordId]);
+  // The Check recordings offer is about the take just stopped: another chapter, leaving the Booth and the next take make it untrue (#2833).
+  useEffect(() => {
+    overlay.dismissTopic(CHECK_OFFER_TOPIC);
+    return () => overlay.dismissTopic(CHECK_OFFER_TOPIC);
+  }, [overlay, recordId]);
   const notify = useCallback((sentence: string, topic?: string) => overlay.toast(sentence, topic ? { topic } : undefined), [overlay]);
   const units = useMemo(() => boothUnits(paragraphs), [paragraphs]);
   const script = session.session.script;
@@ -202,8 +217,31 @@ export function useBoothPage(options: BoothPageOptions) {
   // The take is stopping because the reading reached the end of the chapter: its stop says the take is saved.
   const endOfChapter = useRef(false);
 
-  const latest = useRef({ at, position, units, paragraphs, spans, listening, following, coldRead, session, recording, elapsed: takeClock.read });
-  latest.current = { at, position, units, paragraphs, spans, listening, following, coldRead, session, recording, elapsed: takeClock.read };
+  // Which job the main button does (record, or a cold read): chosen in the side menu, kept until the narrator picks the other.
+  const [coldMode, setColdMode] = useState(false);
+  // Another project is another book: the choice does not follow it, so a lone Space records there.
+  useEffect(() => setColdMode(false), [projectFolder]);
+  const checkGate = useCheckRecordingsGate();
+  // The offer was made while the DAW could check; once it cannot, the offer goes, as the other pages' buttons go off at once.
+  useEffect(() => {
+    if (checkGate) overlay.dismissTopic(CHECK_OFFER_TOPIC);
+  }, [checkGate, overlay]);
+  const latest = useRef({
+    checkGate,
+    at,
+    position,
+    units,
+    paragraphs,
+    spans,
+    listening,
+    following,
+    coldRead,
+    coldMode,
+    session,
+    recording,
+    elapsed: takeClock.read,
+  });
+  latest.current = { checkGate, at, position, units, paragraphs, spans, listening, following, coldRead, coldMode, session, recording, elapsed: takeClock.read };
 
   /** Puts the reading position on a sentence and word; a listening session for a take is moved there too (a cold read's ghost is not). */
   const moveTo = useCallback((next: UnitPosition) => {
@@ -250,6 +288,7 @@ export function useBoothPage(options: BoothPageOptions) {
 
   // The resume line: one lookup per chapter while no take runs; it also says where the recording ends, for the punch rule.
   const teleprompter = usePort('teleprompter');
+  const voiceTracks = usePort('voiceTracks');
   const model = useRef(session.model);
   model.current = session.model;
   const [located, setLocated] = useState<{ id: string; result: TeleprompterLocateResult } | null>(null);
@@ -323,6 +362,13 @@ export function useBoothPage(options: BoothPageOptions) {
     // The live speech model is checked before anything records: a missing one opens its install question here, and no take begins
     // behind it (the DAW would otherwise record while the narrator is still being asked, and while it downloads).
     if (!(await latest.current.session.ensureModel())) return false;
+    // With the app's own recorder the page knows, from the one list Record options shows, when no microphone can be used (none chosen among several, none listed, the
+    // chosen one unplugged): the take does not begin on a guess, and the sentence is the one the host gives (#2810).
+    const micProblem = options.micProblem?.();
+    if (micProblem) {
+      overlay.toast(micProblem, { tone: 'error' });
+      return false;
+    }
     // A cold read ends first: its session is not the take's (it keeps no reading and its flags are not the take's), and the take
     // starts from the real cursor, never from the ghost.
     const from = realWord();
@@ -365,8 +411,13 @@ export function useBoothPage(options: BoothPageOptions) {
       phrase: at.cur,
       punchAt,
       paragraphOf: (phrase) => bodyParagraphIndex(paragraphs, units[phrase]?.paragraphIndex ?? 0),
-      secondsOf: (phrase) => secondsBefore(units, phrase),
-      recordedEnd,
+      punchTarget: (phrase) => {
+        // The words of the phrase (a sentence) in its paragraph: where the host finds them in the last recording check.
+        const unit = latest.current.units[phrase];
+        const range = unit && wordRangeOf(latest.current.paragraphs, unit);
+        if (!range) return Promise.resolve({ outcome: 'refused' as const, message: 'That phrase is not in the chapter.' });
+        return voiceTracks.boothPunchTarget(recordId, range.paragraphId, range.from, range.to);
+      },
       takeSeconds: seconds,
     },
     {
@@ -384,6 +435,15 @@ export function useBoothPage(options: BoothPageOptions) {
           starting.current = null;
           kept(false);
         }
+      },
+      chooseVoice: async (trackGuid) => {
+        const answer = await voiceTracks.boothVoiceSet(recordId, trackGuid).catch(() => null);
+        // A flat chapter has one track and nothing to choose; anything else the host refused is said, and no take starts over the wrong voice.
+        if (!answer || (answer.outcome === 'refused' && answer.reason !== 'flat')) {
+          notify(answer?.message ?? 'The voice this passage was recorded on could not be chosen, so no take was started.');
+          return false;
+        }
+        return true;
       },
       clearStart: () => setPunchAt(null),
       chooseStart: (phrase, move) => {
@@ -412,6 +472,7 @@ export function useBoothPage(options: BoothPageOptions) {
     const now = latest.current;
     const place = placeOf(now.paragraphs, now.units, now.at);
     if (recording) {
+      overlay.dismissTopic(CHECK_OFFER_TOPIC);
       setTakeNote('');
       setPaused(false);
       setBrowse(false);
@@ -444,9 +505,17 @@ export function useBoothPage(options: BoothPageOptions) {
       if (marked > 0) return;
       if (take.undoTake && take.entry !== undefined) overlay.toastUndo(TAKE_SAVED, take.undoTake, { entry: take.entry });
       else if (said) notify(TAKE_SAVED);
+      // One low-key offer once the take has stopped, never while one runs (#2833): the same Check recordings the other pages open, off for the same reasons.
+      if (!latest.current.checkGate) {
+        overlay.toast(CHECK_OFFER, {
+          topic: CHECK_OFFER_TOPIC,
+          action: { label: CHECK_RECORDINGS_LABEL, onAction: () => void openCheckRecordings([recordId]) },
+          durationMs: CHECK_OFFER_MS,
+        });
+      }
     });
     if (now.position) setKept({ paragraphId: now.position.paragraphId, word: now.position.word });
-  }, [recording, writer, tellStopped, notify, overlay, realWord, endColdRead]);
+  }, [recording, writer, tellStopped, notify, overlay, realWord, endColdRead, recordId]);
 
   // The end of the chapter (BO-1 item 2): the listening session heard the last word ("done") and then stopped itself, and
   // the take stops with it, through the Record control's own stop. Reading on past the end clears "done", and a session that stops
@@ -570,6 +639,8 @@ export function useBoothPage(options: BoothPageOptions) {
   // toggle, a take or leaving the Booth ends it (it never stops itself).
   const coldReadReason = recording ? COLD_READ_WHILE_RECORDING : undefined;
   const coldReadStarting = useRef(false);
+  // The same fact as a state, so the Main button choice locks from the press, not only once the listening is up.
+  const [coldStarting, setColdStarting] = useState(false);
   const toggleColdRead = useCallback(async () => {
     const now = latest.current;
     if (now.recording) return notify(COLD_READ_WHILE_RECORDING);
@@ -581,6 +652,7 @@ export function useBoothPage(options: BoothPageOptions) {
     if (coldReadStarting.current) return;
     if (now.session.active) return notify('The Booth is already listening. Stop reading first.');
     coldReadStarting.current = true;
+    setColdStarting(true);
     try {
       if (!(await now.session.ensureModel())) return;
       // As Record does, an empty microphone is the host's to refuse: its sentence is the message.
@@ -588,6 +660,7 @@ export function useBoothPage(options: BoothPageOptions) {
       if (!started.ok) overlay.toast(`Cold read did not start: ${started.reason || 'listening failed'}.`, { tone: 'error' });
     } finally {
       coldReadStarting.current = false;
+      setColdStarting(false);
     }
   }, [notify, overlay, realWord]);
   // Another chapter is another text: the cold read of this one ends. Leaving the Booth ends it too, however the Booth is left.
@@ -614,6 +687,18 @@ export function useBoothPage(options: BoothPageOptions) {
     else await roll.startTake();
   }, [control, roll, blocked]);
   retryTake.current = toggleTake;
+  // The jump menu's cold read: it picks the Cold read mode and starts one (or stops the one that listens), so the button says what is happening.
+  const coldReadFromJump = useCallback(async () => {
+    const now = latest.current;
+    if (!now.coldRead && !now.recording) setColdMode(true);
+    await toggleColdRead();
+  }, [toggleColdRead]);
+  // The main button's press, and Space's: a take, or, while the mode is Cold read, a cold read (a take that already runs is always stopped).
+  const pressMain = useCallback(async () => {
+    const now = latest.current;
+    if (now.coldMode && !now.recording) await toggleColdRead();
+    else await toggleTake();
+  }, [toggleColdRead, toggleTake]);
   // A voice key with no track behind it stops the take before it asks who is in it (#2839): the narrator's own Stop, so the take is kept as
   // a Stop press keeps it. Answers whether no take runs afterwards.
   const stopTake = useCallback(async (): Promise<boolean> => {
@@ -627,8 +712,8 @@ export function useBoothPage(options: BoothPageOptions) {
     if (!latest.current.recording && control.gate) return blocked(control.gate);
     void roll.punchAndRoll();
   }, [control.gate, roll, blocked]);
-  useCommand('reading.toggle', () => void toggleTake());
-  usePedalSpace(toggleTake);
+  useCommand('reading.toggle', () => void pressMain());
+  usePedalSpace(pressMain);
   useCommand('booth.phrase.next', () => moveTo(nextPhrase(latest.current.units, latest.current.at)));
   useCommand('booth.phrase.prev', () => moveTo(backPhrase(latest.current.at)));
   useCommand('booth.word.next', () => moveTo(stepWord(latest.current.units, latest.current.at, 1)));
@@ -694,7 +779,7 @@ export function useBoothPage(options: BoothPageOptions) {
     position,
     /** Where a cold read hears the narrator; absent when none runs. */
     ghost,
-    coldRead: { on: coldRead, toggle: toggleColdRead, disabledReason: coldReadReason },
+    coldRead: { on: coldRead, toggle: coldReadFromJump, disabledReason: coldReadReason, mode: coldMode, setMode: setColdMode, starting: coldStarting },
     browse,
     setBrowse,
     punchAt,
@@ -723,6 +808,7 @@ export function useBoothPage(options: BoothPageOptions) {
     goTo,
     leave,
     toggleTake,
+    pressMain,
     stopTake,
     /** R: roll again from the chosen phrase, or the current one; says why when no take runs. */
     punchAndRoll,

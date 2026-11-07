@@ -152,8 +152,18 @@ function Inner() {
 const Journalled = ({ journal, children }: { journal?: Journal; children: ReactNode }) =>
   journal ? <StudioProvider journal={journal}>{children}</StudioProvider> : <>{children}</>;
 
+/** The Settings row "Voice sample storage" as the dialog reads it; undefined leaves the mock's default, the project folder. */
+let storageSetting: string | undefined;
+
 function mount(journal?: Journal) {
-  const api = Object.assign(createMockApi(), {
+  const base = createMockApi();
+  const readSettings = base.settingsForScope.bind(base);
+  const api = Object.assign(base, {
+    settingsForScope: async (scope: Parameters<typeof base.settingsForScope>[0]) => {
+      const fields = await readSettings(scope);
+      if (!storageSetting) return fields;
+      return { ...fields, VoiceSamples: (fields.VoiceSamples ?? []).map((f) => (f.key === 'storage' ? { ...f, effectiveValue: storageSetting! } : f)) };
+    },
     guideEntities: () => entities(),
     guideDialogueCues: () => cues(),
     voiceSamplesList: () => Promise.resolve(existing),
@@ -209,6 +219,7 @@ class FakeAudio extends EventTarget {
 }
 
 beforeEach(() => {
+  storageSetting = undefined;
   throughDaw = null;
   current = workspace();
   existing = list([]);
@@ -400,6 +411,38 @@ describe('marking a voice sample', () => {
     expect(saveButton().getAttribute('disabled')).toBeNull();
   });
 
+  it('the line under Make primary says where the sample will be kept: the project, the DAW, or both', async () => {
+    const line = () => dialog().querySelector<HTMLElement>('[data-voice-sample-storage]')!;
+    const open = async () => {
+      mount();
+      await select('p-1:0', 'p-1:1');
+      await openDialog();
+    };
+    await open();
+    expect(line().dataset.voiceSampleStorage).toBe('project');
+    // The line is a short status; what it means is in the "?" beside it, so the dialog holds no instruction in its flow.
+    expect(line().textContent).toBe('Kept in the project folder?');
+    fireEvent.click(within(line()).getByRole('button', { name: 'About where the sample is kept' }));
+    expect(await screen.findByText(/Copies the raw recording, as it was before editing, into this project\. Nothing leaves your computer\./)).toBeTruthy();
+    closeOverlays();
+    cleanup();
+    storageSetting = 'daw';
+    await open();
+    expect(line().textContent).toBe('Kept in the DAW?');
+    fireEvent.click(within(line()).getByRole('button', { name: 'About where the sample is kept' }));
+    expect(await screen.findByText(/with no copy of the audio/)).toBeTruthy();
+    closeOverlays();
+    cleanup();
+    storageSetting = 'both';
+    await open();
+    expect(line().textContent).toBe('Kept in the project folder and the DAW?');
+    closeOverlays();
+    cleanup();
+    storageSetting = 'elsewhere';
+    await open();
+    expect(line().dataset.voiceSampleStorage).toBe('project');
+  });
+
   it("Make primary is on for a character's first sample and the narrator's choice stays", async () => {
     existing = list([sample('b'.repeat(32), 'e-alice')]);
     mount();
@@ -478,6 +521,44 @@ describe('marking a voice sample', () => {
 
   it('marking the same stretch again says so and offers no Undo', async () => {
     existing = list([sample('a'.repeat(32), 'e-queen')]);
+    mount();
+    await select('p-1:0', 'p-1:1');
+    await openDialog();
+    enter();
+    await flush();
+    expect(toast).toHaveBeenCalledWith('That stretch is already a voice sample for The Queen of Hearts.');
+    expect(toastUndo).not.toHaveBeenCalled();
+  });
+
+  it('marking the same stretch again after the storage changed says the sample was extended and offers no Undo', async () => {
+    existing = list([sample('a'.repeat(32), 'e-queen')]);
+    mark.mockResolvedValueOnce({
+      status: 'saved',
+      sample: { ...sample('a'.repeat(32), 'e-queen'), storage: 'both', daw: { state: 'ok', name: 'Voice sample: x', start: 0, end: 1 } },
+    });
+    mount();
+    await select('p-1:0', 'p-1:1');
+    await openDialog();
+    enter();
+    await flush();
+    expect(toast).toHaveBeenCalledWith('That stretch’s voice sample for The Queen of Hearts is now kept in the project folder and the DAW.');
+    expect(toastUndo).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['its clip', { clipState: 'missing' }],
+    ['its region', { daw: { state: 'label_missing', name: 'Voice sample: x', start: 0, end: 1 } }],
+  ] as const)('marking the same stretch again does not say it is kept when the sample reads %s as gone', async (_what, gone) => {
+    existing = list([sample('a'.repeat(32), 'e-queen')]);
+    mark.mockResolvedValueOnce({
+      status: 'saved',
+      sample: {
+        ...sample('a'.repeat(32), 'e-queen'),
+        storage: 'both',
+        daw: { state: 'ok', name: 'Voice sample: x', start: 0, end: 1 },
+        ...gone,
+      } as VoiceSample,
+    });
     mount();
     await select('p-1:0', 'p-1:1');
     await openDialog();

@@ -37,7 +37,15 @@ export const PAGE_PATH: Record<UsedPage, string> = {
 
 export type CategoryId = 'recording' | 'speech' | 'voice' | 'models' | 'delivery' | 'project' | 'appearance' | 'app' | 'pages';
 
-export type Category = { id: CategoryId; label: string; group: CategoryGroup; icon: IconName; blurb: string };
+export type Category = {
+  id: CategoryId;
+  label: string;
+  group: CategoryGroup;
+  icon: IconName;
+  blurb: string;
+  /** What the category is for while no project is open, when `blurb` speaks of the open project. */
+  blurbWithoutProject?: string;
+};
 export type CategoryGroup = 'Shared tools' | 'This project' | 'This computer';
 
 /**
@@ -56,7 +64,7 @@ export type OptionNote = { label?: string; asset?: AssetRef };
 
 export type SettingMeta = {
   id: string;
-  cat: Exclude<CategoryId, 'models' | 'pages'>;
+  cat: Exclude<CategoryId, 'pages'>;
   section: string;
   /** The label shown; the host's own label is the fallback. */
   label: string;

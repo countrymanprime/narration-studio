@@ -62,9 +62,8 @@ func (s *Store) Effective(tool, key, fallback string) (string, string) {
 var closedChoices = map[string]map[string][]string{
 	"Script": {"definition_source": {"web", "local", "api"}},
 	// VoiceSamples.storage is where a voice sample is kept: the clip in the project folder (project), a label in the DAW (daw) or both
-	// (docs/prds/character-voice-samples.prd.md, Where a sample is kept). Only project is offered until phase 6 builds the DAW
-	// label, so a stored daw or both reads as project.
-	"VoiceSamples": {"storage": {"project"}},
+	// (docs/prds/character-voice-samples.prd.md, Where a sample is kept). A stored value outside the three reads as project.
+	"VoiceSamples": {"storage": {"project", "daw", "both"}},
 	// Teleprompter.input_source is whose microphone the Booth listens to while a DAW records (app.go's settings schema).
 	"Teleprompter": {"input_source": {"daw", "chosen"}},
 }
@@ -110,7 +109,7 @@ var builtinDefaults = map[string]Values{
 	// docs/architecture/native-notifications.md). debug_logging defaults
 	// off: decision records are opt-in, on the Settings page or with
 	// NARRATION_DEBUG=1.
-	"General": {"log_verbosity": "normal", "notifications": "true", "close_import_when_done": "true", "credits_room_tone_seconds": "0", "debug_logging": "false"},
+	"General": {"log_verbosity": "normal", "notifications": "true", "close_import_when_done": "true", "credits_room_tone_seconds": "0", "debug_logging": "false", "activity_trace": "false"},
 	// build_after_import defaults on: the Story Bible is built after import unless the narrator opts out.
 	// analysis_prompt defaults to ask: the optional analysis tools are offered until the narrator chooses "Don't ask again" (basic).
 	"ManuscriptGuide": {"spacy_model": "en_core_web_sm", "build_after_import": "true", "analysis_prompt": "ask"},
@@ -354,12 +353,8 @@ func writeDocument(path string, document map[string]any) error {
 	if err != nil {
 		return err
 	}
-	temporary := path + ".tmp"
-	if err := os.WriteFile(temporary, bytes, 0o600); err != nil {
+	if err := persist.WriteFile(path, bytes, 0o600); err != nil {
 		return fmt.Errorf("could not write settings: %w", err)
-	}
-	if err := os.Rename(temporary, path); err != nil {
-		return fmt.Errorf("could not activate settings: %w", err)
 	}
 	return nil
 }

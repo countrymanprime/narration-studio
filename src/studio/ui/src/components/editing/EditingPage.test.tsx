@@ -4,6 +4,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import axe from 'axe-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { USER_MESSAGE, WireError } from '../../api/wire/WireError';
+import type { DawCapabilities } from '../../api/contracts/daw';
 import { DAW_SETUPS, type DawSetupId } from '../../fixtures/daw';
 import { resetOpenOnce } from '../connection/useOpenOnce';
 import { providedCommands } from '../../input/commandProviders';
@@ -113,6 +114,19 @@ describe('EditingPage', () => {
     expect(document.querySelector('#timeline')).toBeNull();
   });
 
+  // #2820: the DAW tools menu is in the header, where a chapter is finished: its structure entries open the same dialogs as the Engine panel.
+  it('offers the DAW tools in the header, with the structure entries', async () => {
+    const user = userEvent.setup();
+    mount();
+    await script();
+    const header = screen.getByRole('heading', { level: 1, name: 'Editing' }).closest('header')!;
+    await user.click(within(header as HTMLElement).getByRole('button', { name: 'DAW tools' }));
+    const menu = await screen.findByRole('menu');
+    expect(within(menu).getByText('Structure')).toBeTruthy();
+    expect(within(menu).getByRole('menuitem', { name: /Create chapter regions/ })).toBeTruthy();
+    expect(within(menu).getByRole('menuitem', { name: /Prepare chapter render/ })).toBeTruthy();
+  });
+
   // #2251 item 35: the key hints are the shell's page footer, full width under the page, not a row inside the page's card.
   it('the key hints are drawn in the shell page footer', async () => {
     const footer = document.body.appendChild(document.createElement('div'));
@@ -151,7 +165,7 @@ describe('EditingPage', () => {
     mount({ api });
     await script();
     const first = workspaceAlignment.mock.calls.length;
-    fireEvent.click(await screen.findByRole('button', { name: 'Check recordings…' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Check recordings' }));
     // The one recording check: the Check recordings dialog, the same one Proof, Pickups and Production open.
     const panel = await screen.findByRole('dialog', { name: 'Check recordings' });
     fireEvent.click(await within(panel).findByRole('button', { name: 'Cancel' }));
@@ -758,6 +772,20 @@ describe('EditingPage', () => {
       expect(within(screen.getByRole('toolbar', { name: 'Playback and selection' })).getByText('1 word')).toBeTruthy();
       expect(document.querySelector('[data-flagcard]')).not.toBeNull();
     });
+    // Issue #2919: reading the finding a link names changes nothing, so the failed read's toast carries Retry, which reads it again.
+    it('a failed read of the finding is an error toast with Retry, which reads it again and opens the finding', async () => {
+      const toast = vi.spyOn(overlay, 'toast');
+      const findingsGet = vi.fn().mockRejectedValueOnce(new Error('the findings are locked'));
+      findingsGet.mockImplementation(async () => FINDING);
+      mount({ findingId: FINDING.id, api: { findingsGet } as never });
+      await script();
+      await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.stringContaining('the findings are locked'), expect.objectContaining({ tone: 'error' })));
+      const options = toast.mock.calls.find((call) => String(call[0]).includes('locked'))![1] as { action: { label: string; onAction: () => void } };
+      expect(options.action.label).toBe('Retry');
+      act(() => options.action.onAction());
+      await waitFor(() => expect(findingsGet).toHaveBeenCalledTimes(2));
+      await waitFor(() => expect(cursorKey()).toBe('w-p1:3'));
+    });
     it('opens a finding on all the words it names: its expected text in its paragraph, not the first word', async () => {
       const named = { id: 'f-run', manuscript: { chapter_id: 'c1', expected: 'turned and walked', span: { paragraph_id: 'p2' } } };
       mount({ findingId: 'f-run', api: { findingsGet: async () => named } as never });
@@ -824,6 +852,41 @@ describe('EditingPage', () => {
       await script();
       expect(drawerButton().getAttribute('aria-pressed')).toBe('true');
       expect(await screen.findByRole('region', { name: 'Clean up findings' })).toBeTruthy();
+    });
+    // #2827: Match levels is where the other clean-up actions are, the same preview and apply the editing check has. The preview stays open while the
+    // page re-registers the Clean up findings section (the drawer keys its sections by name, not by place, so a later section is not remounted).
+    it('the Clean up tab offers Match levels, previews then matches through the same two calls', async () => {
+      const levelMatchPreview = vi.fn(async () => ({ candidates: [{ item: 'g1' }] }) as never);
+      const levelMatchApply = vi.fn(async () => ({ changed: [{ item: 'g1' }] }) as never);
+      mount({ drawer: 'cleanup', api: { levelMatchPreview, levelMatchApply } });
+      await script();
+      const match = await screen.findByRole('button', { name: 'Match levels…' });
+      await waitFor(() => expect(match.getAttribute('aria-disabled')).toBeNull());
+      fireEvent.click(match);
+      await waitFor(() => expect(levelMatchPreview).toHaveBeenCalledWith('c1', 'rms_dbfs', -20, 2));
+      const dialog = await screen.findByRole('alertdialog', { name: 'Match levels' });
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Match' }));
+      await waitFor(() => expect(levelMatchApply).toHaveBeenCalledWith('c1', 'rms_dbfs', -20, 2));
+    });
+    it('Match levels is off, with the DAW’s sentence under it, while the DAW is not answering', async () => {
+      mount({ drawer: 'cleanup', setup: 'reaper-off' });
+      await script();
+      const match = await screen.findByRole('button', { name: 'Match levels…' });
+      await waitFor(() => expect(match.getAttribute('aria-disabled')).toBe('true'));
+      const reason = document.getElementById(match.getAttribute('aria-describedby')!)!.textContent!;
+      expect(reason).toBeTruthy();
+    });
+    it('Match levels is off with the DAW’s own sentence when the DAW cannot change item gain', async () => {
+      const sentence = 'This DAW can’t change item gain.';
+      const caps = {
+        ...DAW_SETUPS.reaper,
+        capabilities: { ...DAW_SETUPS.reaper.capabilities, item_gain: { level: 'unavailable', available: false, message: sentence } },
+      } as unknown as DawCapabilities;
+      mount({ drawer: 'cleanup', daw: createMockDawClient(caps) });
+      await script();
+      const match = await screen.findByRole('button', { name: 'Match levels…' });
+      await waitFor(() => expect(match.getAttribute('aria-disabled')).toBe('true'));
+      expect(screen.getAllByText(sentence).length).toBeGreaterThan(0);
     });
     it('Clean up Apply is on for Breaths with a DAW that reports range_gain', async () => {
       const breath = finding({ id: 'b1', start: 20, end: 20.4, cls: 'breath', db: -22 });
@@ -1022,9 +1085,9 @@ describe('EditingPage', () => {
         expect(el).not.toBeNull();
         return el!;
       });
-      fireEvent.click(await within(footer).findByRole('button', { name: 'Show in the DAW' }));
+      fireEvent.click(await within(footer).findByRole('button', { name: /^Show in / }));
       await waitFor(() => expect(goTo).toHaveBeenCalledWith('c1', expect.any(Number)));
-      await waitFor(() => expect(toast).toHaveBeenCalledWith('Moved to 1:05 in the DAW.'));
+      await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.stringMatching(/^Moved to 1:05 in /)));
     });
 
     it("the Clean up tab starts with the chapter's retry bar", async () => {
@@ -1139,6 +1202,14 @@ describe('EditingPage loading state', () => {
     expect(region('Loading the editor')?.getAttribute('aria-busy')).toBe('true');
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(region('Loading the editor')).toBeTruthy();
+  });
+
+  // QA break B1 of #2820: the loading header and the loaded header are different trees, so a DAW tools menu opened while the chapters load would be
+  // closed when they arrived. The button is drawn with the loaded page, where it stays.
+  it('does not draw the DAW tools button until the chapters have been read, so a menu is never closed by their arrival', async () => {
+    mount({ api: { manuscriptChapters: never } });
+    await screen.findByRole('heading', { level: 1, name: 'Editing' });
+    expect(screen.queryByRole('button', { name: 'DAW tools' })).toBeNull();
   });
 
   it('is replaced by the script when the chapters and lines arrive', async () => {

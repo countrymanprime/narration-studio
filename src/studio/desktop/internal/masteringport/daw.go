@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"desktop/internal/brand"
+	"desktop/internal/persist"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -15,6 +16,7 @@ import (
 	"sync"
 	"time"
 
+	"desktop/internal/bridge"
 	"desktop/internal/dawport"
 	"desktop/internal/port"
 )
@@ -113,6 +115,10 @@ func (dawChain) Master(ctx context.Context, req Request) (Result, error) {
 	if !req.Approved {
 		return Result{}, ErrNotApproved
 	}
+	// The approval binds the chain the narrator was shown (threat model row 5o): without its digest it binds nothing.
+	if req.ChainDigest == "" {
+		return Result{}, ErrNoChainDigest
+	}
 	dest, err := newDestination(req.Source, req.Destination)
 	if err != nil {
 		return Result{}, err
@@ -136,9 +142,21 @@ func (dawChain) Master(ctx context.Context, req Request) (Result, error) {
 		return Result{}, err
 	}
 	progress(req, 0)
-	chain, err := reader.ReadMasterChain(ctx)
+	// The read has its own bound, like ExportPlan's, so a DAW that never answers fails this file instead of holding the export.
+	readCtx, cancelRead := context.WithTimeout(ctx, renderChainWait)
+	chain, err := reader.ReadMasterChain(readCtx)
+	cancelRead()
 	if err != nil {
+		// The narrator's Cancel stays a cancel. REAPER not answering is the read's own bound running out, or the bridge giving up
+		// first with bridge.ErrNoAnswer (its DefaultAnswerTimeout is shorter than renderChainWait; round 4 qa, N1).
+		if ctx.Err() == nil && (errors.Is(err, context.DeadlineExceeded) || errors.Is(err, bridge.ErrNoAnswer)) {
+			return Result{}, chainNoAnswer{cause: err}
+		}
 		return Result{}, err
+	}
+	// The chain this render runs is read here anyway, for the report: it must be the one approved, or nothing renders.
+	if ChainDigest(listedChain(chain)) != req.ChainDigest {
+		return Result{}, ErrChainChanged
 	}
 
 	runID, err := randomHex(8)
@@ -328,7 +346,7 @@ func placeNew(file, dest string) error {
 		}
 	}
 	if err == nil {
-		err = os.Rename(tempPath, dest)
+		err = persist.Rename(tempPath, dest)
 	}
 	if err != nil {
 		_ = os.Remove(tempPath)
@@ -336,15 +354,41 @@ func placeNew(file, dest string) error {
 	return err
 }
 
+var _ ChainLister = dawChain{}
+
+// renderChainWait bounds the chain read each DAW master makes before it renders.
+var renderChainWait = 10 * time.Second
+
+// UseRenderChainWait sets renderChainWait, for a test that must not wait the whole bound; it returns the restore.
+func UseRenderChainWait(wait time.Duration) (restore func()) {
+	previous := renderChainWait
+	renderChainWait = wait
+	return func() { renderChainWait = previous }
+}
+
+// Chain lists the FX a render would run now, through the DAW port's master_chain_read: each track with FX in order, then the
+// master. A chain the DAW cannot list whole, or no DAW, is an error, so the narrator never approves a chain they were not shown.
+func (dawChain) Chain(ctx context.Context) ([]ChainTrack, error) {
+	session, err := dawSession()
+	if err != nil {
+		return nil, err
+	}
+	reader, err := dawport.Role[dawport.MasterChainReader](session.Resolver, dawport.CapMasterChainRead)
+	if err != nil {
+		return nil, err
+	}
+	chain, err := reader.ReadMasterChain(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return listedChain(chain), nil
+}
+
 // chainSteps words what ran for the narrator's report: each track's FX, the master's, then the render itself.
 func chainSteps(chain dawport.MasterChain, region string) []Step {
 	var steps []Step
 	for _, track := range chain.Tracks {
-		name := track.Name
-		if name == "" {
-			name = "Track"
-		}
-		steps = append(steps, Step{Name: name, Detail: slotList(track.FX)})
+		steps = append(steps, Step{Name: trackName(track.Name), Detail: slotList(track.FX)})
 	}
 	if len(chain.Master) > 0 {
 		steps = append(steps, Step{Name: "Master", Detail: slotList(chain.Master)})
@@ -360,9 +404,9 @@ func slotList(slots []dawport.FXSlot) string {
 	names := make([]string, 0, len(slots))
 	for _, slot := range slots {
 		if slot.Enabled {
-			names = append(names, slot.Name)
+			names = append(names, chainName(slot.Name))
 		} else {
-			names = append(names, slot.Name+" (off)")
+			names = append(names, chainName(slot.Name)+" (off)")
 		}
 	}
 	return strings.Join(names, ", ")

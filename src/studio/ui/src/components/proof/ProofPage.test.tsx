@@ -6,11 +6,14 @@ import { join } from 'node:path';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
+import { DAW_SETUPS } from '../../fixtures/daw';
 import { createMockApi } from '../../api/mockApi';
+import { WIRE_CHAPTERS, WIRE_TRANSCRIPT } from '../../api/mockFixtures';
 import { CommandRouter } from '../../input/router';
 import { createJournal } from '../../studio/journal/createJournal';
 import { StudioProvider } from '../../studio/StudioProvider';
 import { OverlayHost } from '../../overlay/OverlayHost';
+import { findToast, pressToastAction } from '../../fixtures/toasts';
 import { overlay } from '../../overlay/overlayService';
 import { providedCommands } from '../../input/commandProviders';
 import { contextItemsFor } from '../../registries/context';
@@ -77,7 +80,7 @@ function renderPage({
                   path="/proof"
                   element={
                     <PageFooterProvider value={footer}>
-                      <ProofPage hasManuscript={hasManuscript} projectFolder="/p" {...handlers} />
+                      <ProofPage hasManuscript={hasManuscript} projectFolder="/p" transcript={WIRE_TRANSCRIPT} notify={() => {}} dawFileLinked {...handlers} />
                     </PageFooterProvider>
                   }
                 />
@@ -111,6 +114,20 @@ describe('sort-asks-the-host', () => {
     expect(findingsList).toHaveBeenLastCalledWith({ sort: 'time' });
     await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Sort notes' }), 'confidence');
     await waitFor(() => expect(findingsList).toHaveBeenLastCalledWith({ sort: 'confidence' }));
+  });
+});
+
+describe('daw-tools-in-the-header', () => {
+  // #2820: the same menu as Editing's header, over the same registry.
+  it('offers the DAW tools beside the Proof title, with the structure entries', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await noteRows();
+    await user.click(screen.getByRole('button', { name: 'DAW tools' }));
+    const menu = await screen.findByRole('menu');
+    expect(within(menu).getByText('Structure')).toBeTruthy();
+    expect(within(menu).getByRole('menuitem', { name: /Create chapter regions/ })).toBeTruthy();
+    expect(within(menu).getByRole('menuitem', { name: /Prepare chapter render/ })).toBeTruthy();
   });
 });
 
@@ -329,6 +346,8 @@ describe('proof-keys-follow-the-visible-list', () => {
     await user.click(all[all.length - 1]);
     press('w', 'KeyW');
     await waitFor(async () => expect(await journal.entries()).toHaveLength(1));
+    // A press for another note within the quiet window after a decision is ignored on purpose (#3114); a narrator who navigates takes longer.
+    await new Promise((resolve) => setTimeout(resolve, 400));
     await user.click(within(notes).getByRole('button', { name: /To review/ }));
     const shown = () => [...notes.querySelectorAll<HTMLElement>('tr[data-row]')];
     await waitFor(() => expect(shown().length).toBeLessThan(all.length));
@@ -358,6 +377,63 @@ describe('proof-decisions-and-undo', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  // #3114 (qa-breaker): a double press decided the note and then the next one, which the first press had just moved to. A held key does the same.
+  it('a second press right after a decision does not decide the note it moved to', async () => {
+    const api = createMockApi();
+    const review = vi.spyOn(api, 'findingsReview');
+    renderPage({ api, at: '/proof?chapter=chapter-1' });
+    const user = userEvent.setup();
+    const rows = await noteRows();
+    await user.click(rows[rows.findIndex((row) => row.textContent?.includes('To review'))]);
+
+    await user.click(await screen.findByRole('button', { name: /Needs pickup/ }));
+    await waitFor(() => expect(review).toHaveBeenCalledTimes(1));
+    // The pointer has not moved: the second press lands on the button of the note the first one advanced to.
+    await user.click(screen.getByRole('button', { name: /Needs pickup/ }));
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    expect(review).toHaveBeenCalledTimes(1);
+  });
+
+  // #3115: the saved-decision message was in the Inspector's status line and in the toast's live region, so a screen reader said it twice.
+  it('announces a saved decision once: one live region carries its text', async () => {
+    const api = createMockApi();
+    const review = vi.spyOn(api, 'findingsReview');
+    const { journal } = renderPage({ api, at: '/proof?chapter=chapter-1' });
+    const user = userEvent.setup();
+    const rows = await noteRows();
+    await user.click(rows[rows.findIndex((row) => row.textContent?.includes('To review'))]);
+    press('p', 'KeyP');
+    await waitFor(() => expect(review).toHaveBeenCalledTimes(1));
+    await waitFor(async () => expect(await journal.entries()).toHaveLength(1));
+    await screen.findByRole('button', { name: 'Undo' });
+
+    const live = [...document.querySelectorAll('[role="status"],[role="alert"],[aria-live="polite"],[aria-live="assertive"]')];
+    const saying = live.filter((region) => /Needs pickup/.test(region.textContent ?? ''));
+    expect(saying.map((region) => region.outerHTML.slice(0, 120))).toHaveLength(1);
+  });
+
+  // #3116: a walkthrough saw the Inspector show another note after Hear it. Nothing in Proof follows the playhead, so the selection must stay.
+  it('Hear it leaves the selected note selected', async () => {
+    const api = createMockApi();
+    const loop = vi.spyOn(api, 'findingsLoop');
+    renderPage({ api, at: '/proof?chapter=chapter-1' });
+    const user = userEvent.setup();
+    const rows = await noteRows();
+    const at = rows.findIndex((row) => row.textContent?.includes('To review'));
+    await user.click(rows[at]);
+    const selected = () =>
+      [...screen.getByRole('region', { name: 'Notes' }).querySelectorAll('tr[data-row][aria-selected="true"]')].map((row) => row.getAttribute('data-row'));
+    const before = selected();
+    expect(before).toHaveLength(1);
+
+    await user.click(await screen.findByRole('button', { name: /Hear it/ }));
+    await waitFor(() => expect(loop).toHaveBeenCalledTimes(1));
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    expect(selected()).toEqual(before);
   });
 
   it('a decision moves to the next note, and Undo takes back the decision and the selection', async () => {
@@ -599,10 +675,17 @@ describe('page-level-checks', () => {
       onUpdate(away);
       return () => {};
     });
+    renderPage({ api, at: '/proof?chapter=chapter-1' });
+    await noteRows();
+    // Late in a long file the connect grace has passed and the not-connected dialog is up over the page, so the button is found hidden.
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Check recordings', hidden: true }).getAttribute('aria-disabled')).toBe('true'));
+  });
+
+  it('shows the shared REAPER-not-connected chip in the header while the DAW is away (#2823)', async () => {
+    const api = createMockApi({ dawCapabilities: async () => DAW_SETUPS['reaper-off'], subscribeDawCapabilities: () => () => undefined });
     renderPage({ api });
     await noteRows();
-    const check = screen.getByRole('button', { name: 'Check recordings…' });
-    await waitFor(() => expect(check.getAttribute('aria-disabled') === 'true' || (check as HTMLButtonElement).disabled).toBe(true));
+    expect(await screen.findByRole('button', { name: /REAPER not connected/, hidden: true })).toBeTruthy();
   });
 
   it('Alt with an arrow does not step the chapter', async () => {
@@ -628,10 +711,33 @@ describe('one-cleared-number', () => {
 describe('check-recordings-opens-from-proof', () => {
   it('opens the Check recordings dialog with the chapter in view preselected', async () => {
     const open = vi.spyOn(checkRecordings, 'openCheckRecordings').mockReturnValue(() => {});
+    const api = createMockApi();
+    // The card checks a chapter that has a recording and text.
+    const chapters = await api.manuscriptChapters();
+    vi.spyOn(api, 'manuscriptChapters').mockResolvedValue(chapters.map((c) => ({ ...c, recordedSeconds: 120, wordCount: Math.max(c.wordCount, 100) })));
+    renderPage({ api, at: '/proof?chapter=chapter-1' });
+    await noteRows();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Check recordings' }).getAttribute('aria-disabled')).toBeNull());
+    fireEvent.click(screen.getByRole('button', { name: 'Check recordings' }));
+    expect(open).toHaveBeenCalledWith(['chapter-1'], expect.anything());
+  });
+
+  // #2833: one button per screen. The notes panel used to draw a second Check recordings icon beside the check card's button.
+  it('draws one Check recordings button on a chapter, not two', async () => {
     renderPage({ at: '/proof?chapter=chapter-1' });
     await noteRows();
-    fireEvent.click(screen.getByRole('button', { name: 'Check recordings…' }));
-    expect(open).toHaveBeenCalledWith(['chapter-1']);
+    expect(screen.getAllByRole('button', { name: /^Check recordings/ })).toHaveLength(1);
+  });
+
+  // The narrator walkthrough found no visible control over All chapters, where there is no check card: the notes panel carries the one button there.
+  it('draws one Check recordings button over all chapters too, opening with the unchecked ones ticked', async () => {
+    const open = vi.spyOn(checkRecordings, 'openCheckRecordings').mockReturnValue(() => {});
+    renderPage({ at: '/proof' });
+    await noteRows();
+    expect(screen.getAllByRole('button', { name: /^Check recordings/ })).toHaveLength(1);
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Check recordings' }).getAttribute('aria-disabled')).toBeNull());
+    fireEvent.click(screen.getByRole('button', { name: 'Check recordings' }));
+    expect(open).toHaveBeenCalledWith([], expect.anything());
   });
 });
 
@@ -646,6 +752,28 @@ describe('the jump menu on Proof', () => {
 
 // The loading state (definition-of-done.md state matrix): the title and one busy region while the chapters and the notes are first read, then the
 // page, or the error with Retry; a later re-read does not bring the blocks back. Never an endless skeleton.
+// Issue #2919: a read that fails after the page has loaded is an error toast with Retry, which reads the chapters and the notes again.
+describe('ProofPage later read failures', () => {
+  it('a failed notes read offers Retry, and a failed chapters read after it offers Retry too', async () => {
+    const api = createMockApi();
+    const findingsList = vi.spyOn(api, 'findingsList');
+    const manuscriptChapters = vi.spyOn(api, 'manuscriptChapters');
+    renderPage({ api });
+    await noteRows();
+    findingsList.mockRejectedValueOnce(new Error('the notes are locked'));
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Sort notes' }), 'confidence');
+    const notes = await findToast('the notes are locked');
+    expect(notes.action?.label).toBe('Retry');
+    manuscriptChapters.mockRejectedValueOnce(new Error('the chapters are locked'));
+    pressToastAction(notes);
+    const chapters = await findToast('the chapters are locked');
+    expect(chapters.action?.label).toBe('Retry');
+    const reads = manuscriptChapters.mock.calls.length;
+    pressToastAction(chapters);
+    await waitFor(() => expect(manuscriptChapters.mock.calls.length).toBe(reads + 1));
+  });
+});
+
 describe('ProofPage loading state', () => {
   const never = () => new Promise<never>(() => {});
   const region = () => screen.queryByRole('group', { name: 'Loading Proof' });
@@ -676,5 +804,50 @@ describe('ProofPage loading state', () => {
     renderPage({ api: createMockApi({ manuscriptChapters: () => Promise.reject(new Error('The manuscript could not be read.')) }) });
     expect(await screen.findByRole('button', { name: 'Retry' })).toBeTruthy();
     expect(region()).toBeNull();
+  });
+});
+
+/** The mock's chapters carry no measured recording; Compare, like Check recordings, is off without one. */
+const recordedApi = () => createMockApi({ manuscriptChapters: async () => WIRE_CHAPTERS.map((chapter) => ({ ...chapter, recordedSeconds: 600 })) });
+
+describe('Compare on the Proof page (#2822)', () => {
+  it('opens the Compare panel under the check card from the chapter in view, and closes it again', async () => {
+    const user = userEvent.setup();
+    renderPage({ api: recordedApi(), at: '/proof?chapter=chapter-1' });
+    expect(screen.queryByRole('region', { name: 'Compare' })).toBeNull();
+    const compare = await screen.findByRole('button', { name: 'Compare with the script' });
+    expect(compare.getAttribute('aria-expanded')).toBe('false');
+    await user.click(compare);
+    expect(await screen.findByRole('region', { name: 'Compare' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Compare the recording with the script' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Compare with the script' }).getAttribute('aria-expanded')).toBe('true');
+    // The check card comes first, then the panel.
+    const card = screen.getByRole('region', { name: 'Recording check' });
+    expect(card.compareDocumentPosition(screen.getByRole('region', { name: 'Compare' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Compare with the script' }));
+    expect(screen.queryByRole('region', { name: 'Compare' })).toBeNull();
+  });
+
+  it('does not carry the open panel to another chapter', async () => {
+    const user = userEvent.setup();
+    renderPage({ api: recordedApi(), at: '/proof?chapter=chapter-1' });
+    await user.click(await screen.findByRole('button', { name: 'Compare with the script' }));
+    await screen.findByRole('region', { name: 'Compare' });
+    press('ArrowRight', 'ArrowRight');
+    await waitFor(() => expect(where()).toBe('/proof?chapter=chapter-2'));
+    expect(screen.queryByRole('region', { name: 'Compare' })).toBeNull();
+  });
+
+  it("is off with the check's own reason for a chapter with no measured recording", async () => {
+    renderPage({ at: '/proof?chapter=chapter-1' });
+    const compare = await screen.findByRole('button', { name: 'Compare with the script' });
+    expect((compare as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText('This chapter has no recording to check.')).toBeTruthy();
+  });
+
+  it('offers Compare on the all-chapters view nowhere: it belongs to one chapter', async () => {
+    renderPage({ at: '/proof?chapter=all' });
+    await noteRows();
+    expect(screen.queryByRole('button', { name: 'Compare with the script' })).toBeNull();
   });
 });

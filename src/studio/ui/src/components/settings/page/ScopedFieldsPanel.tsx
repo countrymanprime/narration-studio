@@ -3,6 +3,7 @@ import { describeApiError } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
 import type { Scope, ScopedSettingField } from '../../../types';
 import { Button } from '../../primitives/Button';
+import { IconButton } from '../../primitives/IconButton';
 import { ConfirmDialog } from '../../primitives/ConfirmDialog';
 import { Panel } from '../../primitives/Panel';
 import { type Notify, retryAction } from '../../primitives/Toast';
@@ -171,9 +172,7 @@ export function ScopedFieldsPanel({ id, title, tool, scopes, filter, notify, bef
             style={{ background: 'var(--review-soft)', color: 'var(--danger-text)' }}
           >
             <span>Settings could not be loaded: {error}.</span>
-            <Button variant="secondary" onClick={() => void reload()}>
-              Retry
-            </Button>
+            <IconButton action="retry" onClick={() => void reload()} />
           </div>
         )}
         {replaced ?? (

@@ -2,7 +2,7 @@
 import type { NarrationApi } from '../../types';
 import { createTeleprompterMock } from '../teleprompterMock';
 import { createInstallMock, installSeedFor, LOCAL_ASSETS_SEEDS } from '../assetInstallMock';
-import type { AssetInstallState } from '../contracts/assets';
+import type { AssetInstallState, AssetMoveState } from '../contracts/assets';
 import type { CoverageEngines } from '../contracts/coverage';
 import { MOCK_DICTIONARY, MOCK_DICTIONARY_DISK_SIZE, MOCK_DICTIONARY_DOWNLOAD_SIZE } from '../dictionaryMock';
 import { MOCK_ANALYSIS_TOOLS } from './analysisTools';
@@ -47,6 +47,12 @@ const MOCK_OTHER_VOICES: ReadonlyArray<AssetFactsSource & { locale: string }> = 
 
 /** Where the mock says downloaded assets are kept. */
 export const MOCK_ASSET_ROOT = `C:/Users/narrator/AppData/Local/${brand.identity.dataFolder}/assets`;
+
+/** The folder the mock's picker answers with, and where `?mockMove=moved` boots. */
+export const MOCK_MOVED_ROOT = 'D:/Audio/Narration models';
+
+const IDLE_MOVE: AssetMoveState = { id: '', startedAt: '', phase: 'idle', target: '', message: '', percent: 0, bytesDone: 0, bytesTotal: 0, error: '' };
+const MOVE_FAILURE = 'The disk filled up while the models were being copied. Free some space or choose another folder. Your models are still where they were.';
 
 /** The asset bindings: the preview voice, the Whisper and Moonshine models, the language model and the dictionary. */
 export function createAssetsMock(initial: MockApiSeed) {
@@ -191,6 +197,24 @@ export function createAssetsMock(initial: MockApiSeed) {
     onInstalled: () => {
       dictionaryState = 'installed';
     },
+  });
+  // Moving the downloads: the folder in use, the old copy awaiting an answer, and the one move. One step for each time it is asked how it is
+  // going, as the scripted installs are; the seeds hold it at copying or checking, or fail it.
+  let root = initial.assetMove === 'moved' ? MOCK_MOVED_ROOT : MOCK_ASSET_ROOT;
+  let previousRoot = initial.assetMove === 'moved' ? MOCK_ASSET_ROOT : '';
+  let move: AssetMoveState = IDLE_MOVE;
+  let moveStep = 0;
+  // What the move copies: what the page says is used, set when a move starts (listUsed).
+  let moveBytes = 495_000_000;
+  let listUsed: () => Promise<number> = async () => moveBytes;
+  const moveAt = (phase: AssetMoveState['phase'], percent: number, message: string, error = ''): AssetMoveState => ({
+    ...move,
+    phase,
+    percent,
+    message,
+    error,
+    bytesDone: Math.floor((moveBytes * percent) / 100),
+    bytesTotal: moveBytes,
   });
   const installMockFor = (jobId: string) =>
     otherVoiceJob(jobId)?.install ??
@@ -340,8 +364,11 @@ export function createAssetsMock(initial: MockApiSeed) {
         activeJobId: '',
       }));
       return {
-        cacheRoot: MOCK_ASSET_ROOT,
-        // Only what verifies counts: a damaged asset is not one the app can use.
+        cacheRoot: root,
+        defaultRoot: MOCK_ASSET_ROOT,
+        custom: root !== MOCK_ASSET_ROOT,
+        previousRoot,
+        folderNote: '', // Only what verifies counts: a damaged asset is not one the app can use.
         totalInstalledBytes: [voice, ...others, model, language, dictionary].reduce(
           (sum, listed) => sum + (listed.installState === 'installed' ? listed.diskSize : 0),
           0,
@@ -381,6 +408,50 @@ export function createAssetsMock(initial: MockApiSeed) {
       return answer;
     },
     assetsOpenFolder: async () => {},
+    assetsFolderPick: async () => ({ path: initial.assetMove === 'cancel' ? '' : MOCK_MOVED_ROOT }),
+    assetsMoveStart: async (target) => {
+      if (previousRoot) throw new Error(`The old copy in ${previousRoot} is still on this computer: delete it or keep it before moving the models again.`);
+      if (move.phase === 'copying' || move.phase === 'verifying') throw new Error('The models are already being moved.');
+      const to = target === '' ? MOCK_ASSET_ROOT : target;
+      if (!/^([A-Za-z]:[\\/]|\/)/.test(to)) throw new Error('Choose a folder by its full path.');
+      if (to === root) throw new Error('The models are already in that folder.');
+      moveStep = 0;
+      moveBytes = await listUsed();
+      move = { ...IDLE_MOVE, id: `mock-move-${Date.now()}`, startedAt: new Date().toISOString(), target: to };
+      move = moveAt('copying', 0, 'Copying the models…');
+      return move;
+    },
+    assetsMoveState: async () => {
+      if (move.phase !== 'copying' && move.phase !== 'verifying') return move;
+      moveStep += 1;
+      const seed = initial.assetMove;
+      if (seed === 'copying') move = moveAt('copying', 40, 'Copying the models…');
+      else if (seed === 'verifying') move = moveAt('verifying', 80, 'Checking the copy…');
+      else if (seed === 'fails') move = moveAt('error', 40, MOVE_FAILURE, MOVE_FAILURE);
+      else if (moveStep === 1) move = moveAt('copying', 30, 'Copying the models…');
+      else if (moveStep === 2) move = moveAt('verifying', 70, 'Checking the copy…');
+      else {
+        previousRoot = root;
+        root = move.target;
+        // Moving back to the default folder is no longer a custom location.
+        move = moveAt('success', 100, 'The models are in the new folder and in use.');
+      }
+      return move;
+    },
+    assetsMoveCancel: async () => {
+      if (move.phase === 'copying' || move.phase === 'verifying') {
+        move = moveAt('cancelled', 0, 'The move was cancelled. Your models are still where they were.');
+      }
+      return move;
+    },
+    assetsMoveDeleteOld: async () => {
+      if (!previousRoot) throw new Error('There is no old copy to answer for.');
+      previousRoot = '';
+    },
+    assetsMoveKeepOld: async () => {
+      if (!previousRoot) throw new Error('There is no old copy to answer for.');
+      previousRoot = '';
+    },
     assetsRemove: async (kind, id) => {
       found.delete(`${kind}/${id}`);
       const other = kind === 'tts' ? otherVoice(id) : undefined;
@@ -395,6 +466,7 @@ export function createAssetsMock(initial: MockApiSeed) {
       }
     },
   } satisfies Partial<NarrationApi>;
+  listUsed = async () => (await bindings.assetsList()).totalInstalledBytes;
   return {
     bindings,
     ttsInstalled: () => ttsInstalled,

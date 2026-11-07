@@ -282,7 +282,7 @@ describe('daw-dialog-check-again', () => {
     await renderPage({ overrides: { dawCapabilities } });
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByText('REAPER is not connected')).toBeTruthy();
-    expect(dialog.textContent).toContain('REAPER is not running.');
+    expect(dialog.textContent).toContain('REAPER is not answering. Check that REAPER is open');
     expect(dialog.textContent).toContain('Progress that comes from REAPER may be out of date until it is running again.');
     const before = dawCapabilities.mock.calls.length;
     await userEvent.click(within(dialog).getByRole('button', { name: 'Check again' }));
@@ -400,7 +400,7 @@ describe('the row menu keeps the features the mock has none for', () => {
     const row = within(table).getAllByRole('row')[2];
     await waitFor(() => expect(contextItemsFor(row)?.find((item) => item.key === 'recording')?.unavailable).toBeUndefined());
     const labels = (contextItemsFor(row) ?? []).map((item) => item.label);
-    for (const label of ['Open prep in Script', 'Open in Booth', 'Open Proof', 'Open Master & QC', 'Chapter track…', 'Check recordings…', 'Editing check…']) {
+    for (const label of ['Open prep in Script', 'Open in Booth', 'Open Proof', 'Open Master & QC', 'Chapter track…', 'Check recordings', 'Editing check…']) {
       expect(labels).toContain(label);
     }
     expect(labels.some((label) => label.startsWith('Set status: '))).toBe(true);
@@ -443,20 +443,20 @@ describe('the row menu keeps the features the mock has none for', () => {
     return setup;
   };
 
-  it("goes to a linked chapter's track in the DAW, as the mock's Go to this chapter in REAPER", async () => {
+  it("goes to a linked chapter's track in the DAW, as Show in REAPER", async () => {
     const trackSelectInReaper = vi.fn(async (trackGuid: string) => ({ outcome: 'selected' as const, trackGuid }));
     const { notify } = await renderPage({ overrides: { trackSelectInReaper, dawCapabilities: selecting }, initial: { chapterSync: 'activity' } });
     const table = await pipeline();
     const row = within(table).getAllByRole('row')[2];
     const goto = () => contextItemsFor(row)?.find((item) => item.key === 'goto');
     await waitFor(() => expect(goto()?.unavailable).toBeUndefined());
-    expect(goto()?.label).toBe('Go to this chapter in REAPER');
+    expect(goto()?.label).toBe('Show in REAPER');
     act(() => goto()?.onSelect());
     await waitFor(() => expect(trackSelectInReaper).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(notify).toHaveBeenCalledWith('Selected in REAPER.'));
   });
 
-  it('says why Go to this chapter is off: the DAW cannot select a track, or the chapter has no linked track', async () => {
+  it('says why Show in REAPER is off: the DAW cannot select a track, or the chapter has no linked track', async () => {
     const cannot = 'REAPER could not select the track.';
     const noSelect = async () => {
       const caps = structuredClone(DAW_SETUPS.reaper);
@@ -513,7 +513,7 @@ describe('the pipeline lists the credits as the mock does (issue 1705)', () => {
     const table = await pipeline();
     const opening = await within(table).findByRole('row', { name: /Opening credits/ });
     const labels = (contextItemsFor(opening) ?? []).map((item) => item.label);
-    for (const label of ['Open prep in Script', 'Open in Booth', 'Open Proof', 'Editing check…', 'Check recordings…', 'Chapter track…', 'Credits…'])
+    for (const label of ['Open prep in Script', 'Open in Booth', 'Open Proof', 'Editing check…', 'Check recordings', 'Chapter track…', 'Credits…'])
       expect(labels).toContain(label);
     expect(labels.some((label) => label.startsWith('Set status: '))).toBe(true);
   });

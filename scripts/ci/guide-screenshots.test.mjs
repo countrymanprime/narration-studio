@@ -16,8 +16,18 @@ const pages = guidePages([
   ['delivery.md', '![Delivery](../../images/ui/delivery-default.webp) and a [link](../../images/ui/not-an-embed.webp)'],
 ]);
 
-test('guidePages maps each embedded docName to the guide page that embeds it', () => {
-  assert.deepEqual(Object.fromEntries(pages), { 'booth-setup': 'booth', 'storybible-characters': 'story-bible', 'delivery-default': 'delivery' });
+test('guidePages maps each embedded docName to the guide pages that embed it', () => {
+  assert.deepEqual(Object.fromEntries(pages), { 'booth-setup': ['booth'], 'storybible-characters': ['story-bible'], 'delivery-default': ['delivery'] });
+});
+
+test('an image a second page also embeds (alsoOn) is selected by either page', () => {
+  const shared = guidePages([
+    ['booth.md', '![Booth before a take](../../images/ui/booth-setup.webp)'],
+    ['getting-started.md', '![Booth before a take](../../images/ui/booth-setup.webp)'],
+  ]);
+  assert.deepEqual(shared.get('booth-setup'), ['booth', 'getting-started']);
+  assert.deepEqual(selectEntries(manifest, shared, ['getting-started']).map((e) => e.docName), ['booth-setup']);
+  assert.deepEqual(selectEntries(manifest, shared, ['booth']).map((e) => e.docName), ['booth-setup']);
 });
 
 test('selectEntries takes a guide page or a state-catalog page', () => {

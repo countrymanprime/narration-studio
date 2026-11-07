@@ -321,6 +321,16 @@
       "kind": "bool",
       "label": "Debug logging (writes decision records to the run log)",
       "value": ""
+    },
+    {
+      "choices": null,
+      "effectiveSource": "repo_default",
+      "effectiveValue": "false",
+      "isSet": false,
+      "key": "activity_trace",
+      "kind": "bool",
+      "label": "Activity trace (writes how the app behaved, never your content, to logs/trace.jsonl)",
+      "value": ""
     }
   ],
   "Keymap": [
@@ -1171,7 +1181,9 @@
   "VoiceSamples": [
     {
       "choices": [
-        "project"
+        "project",
+        "daw",
+        "both"
       ],
       "effectiveSource": "repo_default",
       "effectiveValue": "project",

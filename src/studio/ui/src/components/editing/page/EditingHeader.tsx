@@ -2,6 +2,7 @@ import type { KeyboardEventHandler, ReactNode } from 'react';
 import { Heading } from '../../primitives/Heading';
 import { IconButton } from '../../primitives/IconButton';
 import { TooltipTarget } from '../../primitives/Tooltip';
+import { DawToolsButton } from '../../engine/DawToolsButton';
 import { StripToggle } from '../strip/TimelineStrip';
 
 export interface EditingHeaderProps {
@@ -18,17 +19,19 @@ export interface EditingHeaderProps {
   onDrawer: () => void;
   /** Escape on the drawer's toggle while the drawer is open: closes it, focus stays on the toggle. */
   onDrawerKeyDown?: KeyboardEventHandler<HTMLButtonElement>;
+  /** Draws the DAW tools menu. Only the loaded page does: the loading and error headers are other trees, so a menu opened in one would close when the page arrived. */
+  dawTools?: boolean;
 }
 
 /**
  * The page's header (the Studio Next mock's `.ph.sx-ph`): the title, the chapter step, the legend, and the two header buttons, the timeline
- * strip (S) where it fits and the clean-up and effects drawer (Ctrl+Shift+C).
+ * strip (S) where it fits and the clean-up and effects drawer (Ctrl+Shift+C), then the DAW tools menu.
  */
-export function EditingHeader({ stepper, legend, status, strip, stripFits, drawerOpen, onDrawer, onDrawerKeyDown }: EditingHeaderProps) {
+export function EditingHeader({ stepper, legend, status, strip, stripFits, drawerOpen, onDrawer, onDrawerKeyDown, dawTools = false }: EditingHeaderProps) {
   return (
     <header className="@container/hd flex flex-wrap items-center gap-x-3 gap-y-2 px-4 pt-3 pb-2">
       <Heading title="Editing" />
-      <div className="contents @max-[36rem]/hd:order-2 @max-[36rem]/hd:flex">{stepper}</div>
+      <div className="contents @max-[36rem]/hd:order-2 @max-[36rem]/hd:flex @max-[36rem]/hd:max-w-full @max-[36rem]/hd:min-w-0">{stepper}</div>
       <div className="min-w-0 flex-1 @max-[36rem]/hd:order-3 @max-[36rem]/hd:basis-full">{legend}</div>
       <div className="flex items-center gap-2 @max-[36rem]/hd:order-1 @max-[36rem]/hd:ml-auto">
         {status}
@@ -44,6 +47,8 @@ export function EditingHeader({ stepper, legend, status, strip, stripFits, drawe
             onKeyDown={onDrawerKeyDown}
           />
         </TooltipTarget>
+        {/* #2820: the DAW's structure tools (chapter regions, render prep) where a chapter is finished; the same menu as the Engine panel's tools. */}
+        {dawTools && <DawToolsButton groups={['structure']} />}
       </div>
     </header>
   );

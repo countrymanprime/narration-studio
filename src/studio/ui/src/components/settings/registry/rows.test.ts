@@ -196,3 +196,9 @@ describe('the background check rows (#2251)', () => {
     expect(row('stt.backgroundRecheck').def).toBe('small');
   });
 });
+
+describe('the Models folder row is found by the words a narrator uses for moving it', () => {
+  it.each(['move', 'keep', 'bigger drive', 'location', 'download location', 'drive', 'change location'])('"%s" lists it first', (words) => {
+    expect(search(words)[0]?.row?.id).toBe('models.folder');
+  });
+});

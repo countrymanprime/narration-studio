@@ -9,6 +9,9 @@ Storybook title: `Primitives/Select`. Source: `src/components/primitives/Select.
 - Default
 - Full Width
 - Grouped
+- Long Name
+- Long Name In Flex Row
+- Long Name With Own Max Width
 - Disabled
 - With Placeholder Option
 - With Placeholder
@@ -35,6 +38,7 @@ Storybook title: `Primitives/Select`. Source: `src/components/primitives/Select.
 - `src/components/engine/VoicesCard.tsx`
 - `src/components/mapping/TrackSelect.tsx`
 - `src/components/master/MasterToSpecPanel.tsx`
+- `src/components/pickups/list/AddPickup.tsx`
 - `src/components/production/CreditsRowPanel.tsx`
 - `src/components/production/ImportReview.tsx`
 - `src/components/proof/NativeTakesPanel.tsx`

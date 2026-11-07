@@ -106,55 +106,58 @@ func TestNewRefusesANilClient(t *testing.T) {
 
 // experimentalCapability is the capability each of bridge.Actions' experimental commands belongs to.
 var experimentalCapability = map[string]dawport.Capability{
-	"chapter_track_state": dawport.CapTrackState,
-	"select_track":        dawport.CapTrackSelect,
-	"track_create":        dawport.CapTrackCreate,
-	"arm_only":            dawport.CapRecord,
-	"record_start":        dawport.CapRecord,
-	"record_stop":         dawport.CapRecord,
-	"switch_voice":        dawport.CapRecord,
-	"set_active_take":     dawport.CapTakes,
-	"hide_takes":          dawport.CapTakes,
-	"split_take":          dawport.CapTakes,
-	"list_fx_chains":      dawport.CapFXChains,
-	"apply_fx_chain":      dawport.CapFXChains,
-	"create_regions":      dawport.CapRegions,
-	"keep_voice_sample":   dawport.CapVoiceSampleRegion,
-	"read_voice_samples":  dawport.CapVoiceSampleRegion,
-	"play_position":       dawport.CapPunch,
-	"roll":                dawport.CapPunch,
-	"punch_to":            dawport.CapPunch,
-	"master_chain_read":   dawport.CapMasterChainRead,
-	"delete_range":        dawport.CapCutRange,
-	"replace_range":       dawport.CapReplaceRange,
-	"restore_replacement": dawport.CapReplaceRange,
-	"import_audio_track":  dawport.CapReplaceRange,
-	"apply_fx_range":      dawport.CapFXRange,
-	"remove_fx_range":     dawport.CapFXRange,
-	"stack_takes":         dawport.CapStackTakes,
-	"unstack_takes":       dawport.CapStackTakes,
-	"preview_file_range":  dawport.CapFilePreview,
-	"stop_file_preview":   dawport.CapFilePreview,
-	"reveal_file":         dawport.CapFileReveal,
-	"reduce_range_gain":   dawport.CapRangeGain,
-	"repair_click":        dawport.CapClickRepair,
-	"last_action":         dawport.CapUndoLast,
-	"undo_last":           dawport.CapUndoLast,
-	"monitor_level":       dawport.CapMonitorLevel,
-	"read_place":          dawport.CapFollowPosition,
-	"go_to":               dawport.CapFollowPosition,
-	"set_cursor":          dawport.CapTransportSync,
-	"play_from":           dawport.CapTransportSync,
-	"play_range":          dawport.CapTransportSync,
-	"stop_play":           dawport.CapTransportSync,
-	"watch_transport":     dawport.CapTransportSync,
-	"fx_range_params":     dawport.CapFXRange,
-	"fx_range_set_param":  dawport.CapFXRange,
-	"fx_range_bypass":     dawport.CapFXRange,
-	"fx_range_compare":    dawport.CapFXRange,
-	"stop_fx_compare":     dawport.CapFXRange,
-	"choose_range_fx":     dawport.CapFXRange,
-	"range_fx_chosen":     dawport.CapFXRange,
+	"chapter_track_state":        dawport.CapTrackState,
+	"select_track":               dawport.CapTrackSelect,
+	"track_create":               dawport.CapTrackCreate,
+	"chapter_folders":            dawport.CapTrackCreate,
+	"tracks_read":                dawport.CapTracksRead,
+	"arm_only":                   dawport.CapRecord,
+	"record_start":               dawport.CapRecord,
+	"record_stop":                dawport.CapRecord,
+	"switch_voice":               dawport.CapRecord,
+	"set_active_take":            dawport.CapTakes,
+	"hide_takes":                 dawport.CapTakes,
+	"split_take":                 dawport.CapTakes,
+	"list_fx_chains":             dawport.CapFXChains,
+	"apply_fx_chain":             dawport.CapFXChains,
+	"create_regions":             dawport.CapRegions,
+	"keep_voice_sample":          dawport.CapVoiceSampleRegion,
+	"delete_voice_sample_region": dawport.CapVoiceSampleRegion,
+	"read_voice_samples":         dawport.CapVoiceSampleRegion,
+	"play_position":              dawport.CapPunch,
+	"roll":                       dawport.CapPunch,
+	"punch_to":                   dawport.CapPunch,
+	"master_chain_read":          dawport.CapMasterChainRead,
+	"delete_range":               dawport.CapCutRange,
+	"replace_range":              dawport.CapReplaceRange,
+	"restore_replacement":        dawport.CapReplaceRange,
+	"import_audio_track":         dawport.CapReplaceRange,
+	"apply_fx_range":             dawport.CapFXRange,
+	"remove_fx_range":            dawport.CapFXRange,
+	"stack_takes":                dawport.CapStackTakes,
+	"unstack_takes":              dawport.CapStackTakes,
+	"preview_file_range":         dawport.CapFilePreview,
+	"stop_file_preview":          dawport.CapFilePreview,
+	"reveal_file":                dawport.CapFileReveal,
+	"reduce_range_gain":          dawport.CapRangeGain,
+	"repair_click":               dawport.CapClickRepair,
+	"last_action":                dawport.CapUndoLast,
+	"undo_last":                  dawport.CapUndoLast,
+	"monitor_level":              dawport.CapMonitorLevel,
+	"read_place":                 dawport.CapFollowPosition,
+	"go_to":                      dawport.CapFollowPosition,
+	"set_cursor":                 dawport.CapTransportSync,
+	"play_from":                  dawport.CapTransportSync,
+	"play_range":                 dawport.CapTransportSync,
+	"stop_play":                  dawport.CapTransportSync,
+	"watch_transport":            dawport.CapTransportSync,
+	"fx_range_params":            dawport.CapFXRange,
+	"fx_range_set_param":         dawport.CapFXRange,
+	"fx_range_bypass":            dawport.CapFXRange,
+	"fx_range_compare":           dawport.CapFXRange,
+	"stop_fx_compare":            dawport.CapFXRange,
+	"choose_range_fx":            dawport.CapFXRange,
+	"range_fx_chosen":            dawport.CapFXRange,
 }
 
 // supportedCommands are the commands the Supported capabilities send, none of which is gated today.
@@ -279,6 +282,13 @@ func TestTheSynchronousRolesAreTodaysTypes(t *testing.T) {
 	}
 	if adapter.Role(dawport.CapNavigate) != adapter.Role(dawport.CapMarkers) {
 		t.Error("navigate and markers have different navigators: one client subscription each is enough")
+	}
+	// A Voice folders chapter is a folder (#2840): REAPER's track_create role adds one, and a voice inside one.
+	if _, ok := adapter.Role(dawport.CapTrackCreate).(dawport.FolderTrackCreator); !ok {
+		t.Error("REAPER's track_create role cannot add a chapter folder")
+	}
+	if _, ok := adapter.Role(dawport.CapTrackCreate).(dawport.ChildTrackCreator); !ok {
+		t.Error("REAPER's track_create role cannot add a voice inside a folder")
 	}
 }
 
@@ -1397,5 +1407,32 @@ func TestFXRangeEditsAreGatedByTheResolverAndSendNothingWhenRefused(t *testing.T
 	}
 	if n := len(sentCommands(t, dir)); n != 0 {
 		t.Errorf("a refused edit wrote %d commands", n)
+	}
+}
+
+// A stack or un-stack that names the chapter's folder carries it to the script, and a folder REAPER no longer has is stale.
+func TestStackingInAFolderCarriesItAndAGoneFolderIsStale(t *testing.T) {
+	client, dir := newClient(t)
+	adapter, err := New(client, func(dawport.Capability) error { return nil })
+	if err != nil {
+		t.Fatal(err)
+	}
+	var payload string
+	answerCommands(t, client, dir, func(command []string) [][]string {
+		content, _ := os.ReadFile(command[2])
+		payload = string(content)
+		return [][]string{{"TRACK_STALE", command[1], "{F0000000-0000-4000-8000-0000000000F1}"}}
+	})
+	stacker := adapter.Role(dawport.CapStackTakes).(dawport.TakeStacker)
+	request := dawport.StackRequest{ChapterID: "ch-1", Shift: -5, ChapterTrack: "{F0000000-0000-4000-8000-0000000000F1}", Groups: []dawport.StackGroup{{
+		ItemGUID: "{A0000001-0000-4000-8000-000000000001}", Base: "{A0000002-0000-4000-8000-000000000002}",
+		Moves: []dawport.StackMove{{TakeID: "{A0000004-0000-4000-8000-000000000004}", From: 16, To: 10, Len: 4}},
+	}}}
+	got, err := stacker.StackTakes(t.Context(), request)
+	if err != nil || got.OK || got.Refused != messageFolderStale {
+		t.Fatalf("StackTakes = %+v, %v; want the stale-folder sentence", got, err)
+	}
+	if !strings.Contains(payload, "folder|{F0000000-0000-4000-8000-0000000000F1}") {
+		t.Errorf("payload = %q; want the folder line", payload)
 	}
 }

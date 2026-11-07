@@ -44,7 +44,7 @@ Docs pages carry no publication date; they are cited as "docs, fetched 2026-11-0
 | Five `.claude/rules/*.md` | 3.3k tokens in all | By path; a UI worker meets three or four |
 | `agent-train/SKILL.md` | 324 lines, 11.0k tokens | Whole body when a worker or the coordinator loads it |
 | `agent-train/references/templates.md` | 2.0k tokens; worker block 1.7k | Coordinator at each launch; the worker block is pasted into every brief |
-| `agent-train/references/studio-next-delivery.md` | 7.5k tokens | When followed from a link |
+| `agent-train/references/slice-delivery.md` | 7.5k tokens | When followed from a link |
 | All 29 skill bodies | 40.3k tokens | On demand |
 | The 11 skills `CLAUDE.md` steps 1–6 name | 12.3k tokens | A worker doing a full feature loads most of them |
 | All 7 agent definitions | 4.6k tokens | Per invocation |

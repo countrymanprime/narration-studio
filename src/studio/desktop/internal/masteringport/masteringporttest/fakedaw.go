@@ -35,6 +35,39 @@ type FakeDAW struct {
 	next int
 	// +checklocks:mu
 	queue []dawport.Event
+	// +checklocks:mu
+	chain *dawport.MasterChain
+	// +checklocks:mu
+	chainErr error
+	// +checklocks:mu
+	swapAfter int
+	// +checklocks:mu
+	swapTo *dawport.MasterChain
+	// +checklocks:mu
+	chainWaits bool
+}
+
+// SwapChainAfter makes master_chain_read answer chain once the fake has been asked for renders renders, as a narrator who changes
+// a plug-in in REAPER part way through an export would.
+func (f *FakeDAW) SwapChainAfter(renders int, chain dawport.MasterChain) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.swapAfter, f.swapTo = renders, &chain
+}
+
+// ChainNeverAnswers makes master_chain_read wait for its context to end and answer that context's error, as a DAW that never answers.
+func (f *FakeDAW) ChainNeverAnswers() {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.chainWaits = true
+}
+
+// SetChain sets what master_chain_read answers: chain, or err. Without it the fake answers one voice track's EQ and the master's
+// limiter.
+func (f *FakeDAW) SetChain(chain dawport.MasterChain, err error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.chain, f.chainErr = &chain, err
 }
 
 // Misbehaviour is how a FakeDAW answers a render wrongly, to show a row does not trust the DAW's answer.
@@ -99,15 +132,31 @@ func (f *FakeDAW) Role(c dawport.Capability) any {
 	case dawport.CapRenderWithFX:
 		return fakeRenderer{f}
 	case dawport.CapMasterChainRead:
-		return fakeChainReader{}
+		return fakeChainReader{f}
 	default:
 		return nil
 	}
 }
 
-type fakeChainReader struct{}
+type fakeChainReader struct{ f *FakeDAW }
 
-func (fakeChainReader) ReadMasterChain(context.Context) (dawport.MasterChain, error) {
+func (r fakeChainReader) ReadMasterChain(ctx context.Context) (dawport.MasterChain, error) {
+	r.f.mu.Lock()
+	chain, err, waits := r.f.chain, r.f.chainErr, r.f.chainWaits
+	if r.f.swapTo != nil && len(r.f.renders) >= r.f.swapAfter {
+		chain = r.f.swapTo
+	}
+	r.f.mu.Unlock()
+	if waits {
+		<-ctx.Done()
+		return dawport.MasterChain{}, ctx.Err()
+	}
+	if err != nil {
+		return dawport.MasterChain{}, err
+	}
+	if chain != nil {
+		return *chain, nil
+	}
 	return dawport.MasterChain{
 		Tracks: []dawport.TrackFX{{TrackGUID: "{00000001-0000-4000-8000-000000000001}", Name: "Voice",
 			FX: []dawport.FXSlot{{Name: "VST: ReaEQ (Cockos)", Enabled: true}}}},

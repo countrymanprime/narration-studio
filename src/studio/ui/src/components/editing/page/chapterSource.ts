@@ -32,7 +32,7 @@ function heardSpans(answer: HeardAnswer, firstParagraph: string | undefined): Ma
  * Whether the chapter has audio the page can edit. When it has none, why: no track is linked to it (`unlinked`), the linked track is not in the
  * saved project (`missing`), or the track holds nothing (`empty`).
  */
-export type ChapterAudio = { kind: 'ready' } | { kind: 'unlinked' | 'missing' | 'empty' };
+export type ChapterAudio = { kind: 'ready' } | { kind: 'unlinked' | 'missing' } | { kind: 'empty'; folder?: boolean };
 
 /** Everything the page reads for one chapter, as the ports answered. */
 export interface ChapterRead {
@@ -56,9 +56,9 @@ const NO_AUDIO_REASON = 'There is no audio for this chapter.';
  * (`live`; the built-in recorder has no track to link). With neither, the link says why. `unknown` is a project that could not be read, which says
  * nothing about the link, so the page does not claim there is no audio.
  */
-export function audioOf(link: 'linked' | 'unlinked' | 'missing' | 'unknown', trackItems: number, liveItems: number): ChapterAudio {
+export function audioOf(link: 'linked' | 'unlinked' | 'missing' | 'unknown', trackItems: number, liveItems: number, folder = false): ChapterAudio {
   if (link === 'unknown' || trackItems > 0 || liveItems > 0) return { kind: 'ready' };
-  return { kind: link === 'linked' ? 'empty' : link };
+  return link === 'linked' ? { kind: 'empty', ...(folder ? { folder } : {}) } : { kind: link };
 }
 
 /**

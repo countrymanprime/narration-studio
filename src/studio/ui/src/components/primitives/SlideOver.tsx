@@ -1,7 +1,8 @@
+import { justClosedDialog } from './dialogClosed';
 import { Drawer } from '@base-ui/react/drawer';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faXmark } from '@fortawesome/free-solid-svg-icons';
-import type { ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { useReturnFocusTarget } from './focusReturn';
 import { IconButton } from './IconButton';
 import { OVERLAY_TITLE_CLASS } from './panelStyles';
@@ -42,6 +43,12 @@ export function SlideOver({
   children: ReactNode;
 }) {
   const finalFocus = useReturnFocusTarget(open, returnFocus);
+  // A double press on the control that opened the panel lands its second press on the scrim as the panel slides in; a press that soon is the
+  // same gesture, not a wish to dismiss.
+  const openedAt = useRef(0);
+  useEffect(() => {
+    if (open) openedAt.current = Date.now();
+  }, [open]);
   return (
     <Drawer.Root
       open={open}
@@ -49,6 +56,10 @@ export function SlideOver({
       swipeDirection="right"
       onOpenChange={(next, eventDetails) => {
         if (next) return;
+        if (eventDetails.reason === 'outside-press' && (Date.now() - openedAt.current < 400 || justClosedDialog())) {
+          eventDetails.cancel();
+          return;
+        }
         if (eventDetails.reason === 'escape-key' && onEscape?.()) {
           eventDetails.cancel();
           return;

@@ -6,6 +6,14 @@ import { type Driver, openCheckingLink, clickNav, goToPage, openWithoutManuscrip
 /** Chapter 1 linked to its track, so its words carry their heard times. */
 const LINKED = '?mockChapterLink=confirmed';
 
+// Opens the header's DAW tools menu once the page has read the project: the menu says it is reading until then.
+async function openDawTools(page: Page): Promise<void> {
+  await page.getByRole('button', { name: 'DAW tools' }).click();
+  const menu = page.getByRole('menu');
+  await menu.waitFor();
+  await expect(menu.getByText('Reading the REAPER project…')).toHaveCount(0);
+}
+
 export const editingDrivers: Record<string, Driver> = {
   'address-checking': async (page) => {
     await openCheckingLink(page, '/editing/gone');
@@ -50,6 +58,17 @@ export const editingDrivers: Record<string, Driver> = {
     await page.getByRole('textbox', { name: 'Script with what was heard' }).focus();
     for (let step = 0; step < 10 && (await card.count()) === 0; step++) await page.keyboard.press(']');
     await card.getByRole('button', { name: /Hear both reads/ }).waitFor();
+  },
+  // A flagged word's card with Add marker, the icon button every page's Add marker is (#2830): the flag keys step to a word and Enter opens its card.
+  'flag-card': async (page) => {
+    await openEditing(page, LINKED);
+    const card = page.locator('[data-flagcard]:not([data-flagcard="dup"])');
+    await page.getByRole('textbox', { name: 'Script with what was heard' }).focus();
+    for (let step = 0; step < 10 && (await card.count()) === 0; step++) {
+      await page.keyboard.press(']');
+      await page.keyboard.press('Enter');
+    }
+    await card.getByRole('button', { name: /^Add marker in / }).waitFor();
   },
   // The menu knows the page: with nothing selected the selection actions are listed off, each with its reason.
   'jump-menu': async (page) => {
@@ -181,6 +200,14 @@ export const editingDrivers: Record<string, Driver> = {
     await bar(page).getByRole('button', { name: 'Voice sample' }).click();
     await page.getByRole('dialog', { name: 'Voice sample' }).waitFor();
   },
+  'voice-sample-dialog-unread': async (page) => {
+    await openEditing(page, `${LINKED}&mockSettings=unreadable`);
+    await selectWords(page);
+    await bar(page).getByRole('button', { name: 'Voice sample' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Voice sample' });
+    await dialog.waitFor();
+    await dialog.getByText(/where samples are kept/).waitFor();
+  },
   'voice-sample-refused': async (page) => {
     await openEditing(page, LINKED);
     // The extra word at the start of the first line was heard and is not in the script: nothing there can be a sample.
@@ -276,6 +303,13 @@ export const editingDrivers: Record<string, Driver> = {
     await openTakes(page, LINKED);
     await expectPanelTextSize(page, 'Suggested take');
   },
+  // The opened takes scrolled to their footer, where Show in {DAW} sits beside the take actions (#2826).
+  'takes-footer': async (page) => {
+    await openTakes(page, LINKED);
+    const footer = page.locator('[data-takes] [data-takes-footer]').first();
+    await footer.scrollIntoViewIfNeeded();
+    await footer.getByRole('button', { name: /^Show in / }).waitFor();
+  },
   'suggestion-step': async (page) => {
     await openTakes(page, LINKED);
     await page.getByRole('button', { name: 'Normalise' }).first().click();
@@ -284,6 +318,23 @@ export const editingDrivers: Record<string, Driver> = {
   'drawer-cleanup': async (page) => {
     await openDrawer(page);
     await page.getByRole('region', { name: 'Clean up findings' }).waitFor();
+  },
+  // The drawer's Clean up tab scrolled to Match levels… (#2827), the one action the editing check panel has too.
+  'drawer-cleanup-levels': async (page) => {
+    await openDrawer(page);
+    const levels = page.getByRole('region', { name: 'Match levels' });
+    await levels.scrollIntoViewIfNeeded();
+    await levels.getByRole('button', { name: 'Match levels…' }).waitFor();
+  },
+  // The Clicks list with Repair in REAPER beside Apply, its menu open (#2821).
+  'drawer-cleanup-repair': async (page) => {
+    await openDrawer(page);
+    await page.getByRole('region', { name: 'Clean up findings' }).waitFor();
+    await page.getByRole('button', { name: /^Clicks/ }).click();
+    await page.getByRole('button', { name: 'Repair in REAPER' }).click();
+    const menu = page.getByRole('menu');
+    await menu.waitFor();
+    await expect(menu.getByText('Reading the REAPER project…')).toHaveCount(0);
   },
   'drawer-effects': async (page) => {
     await openDrawer(page);
@@ -369,6 +420,16 @@ export const editingDrivers: Record<string, Driver> = {
     await page.getByRole('button', { name: /Not linked to a track/ }).waitFor();
   },
   // The DAW is not answering: the dialog opens once the app has had its time to connect on its own.
+  // The DAW tools menu in the header (#2820), opened: the structure entries, live for a chapter that is linked.
+  'daw-tools-menu': async (page) => {
+    await openEditing(page, LINKED);
+    await openDawTools(page);
+  },
+  // The same menu for an Audacity project: both entries stay, off, each with what Audacity cannot do.
+  'daw-tools-menu-audacity': async (page) => {
+    await openEditing(page, `${LINKED}&mockDaw=Audacity&mockAudacityLink=linked`);
+    await openDawTools(page);
+  },
   'daw-off': async (page) => {
     await openEditing(page, `${LINKED}&mockDaw=Audacity`);
     await page.getByRole('dialog', { name: /is not connected/ }).waitFor({ timeout: 20_000 });

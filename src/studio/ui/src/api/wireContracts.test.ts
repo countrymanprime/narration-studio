@@ -36,6 +36,9 @@ import {
   takesUnstackedAnswer,
 } from '../fixtures/daw';
 import { notLastAnswer, undoneAnswer } from '../fixtures/dawUndo';
+import { DAW_SETUPS } from '../fixtures/daw';
+import { createMockDawClient } from '../ports/daw';
+import { withFxRange } from '../components/editing/range/fx/fxFixtures';
 import { createExtractionMock } from './extractionMock';
 import type { JobEnded, ScopedSettingField } from './contracts/system';
 import type { ProjectStateState } from './contracts/projectstate';
@@ -44,7 +47,7 @@ import type { WordFxRequest } from './contracts/wordFx';
 import type { ExportRequest } from './contracts/renderEncodeMaster';
 import { WIRE_CHAPTERS, WIRE_FINDINGS, WIRE_ONE_WORD_MISREAD, WIRE_TAKE_REVIEW_FINDINGS, WIRE_TRACKS_PROJECT, WIRE_TRANSCRIPT } from './mockFixtures';
 import { bookmarkSchema as spotBookmarkSchema, bookmarksSchema } from './schemas/bookmarks';
-import { boothVoiceAddedSchema, boothVoiceSchema, voiceTracksStateSchema } from './schemas/voiceTracks';
+import { boothPunchSchema, boothVoiceAddedSchema, boothVoiceSchema, voiceTracksStateSchema } from './schemas/voiceTracks';
 import { createVoiceTracksMock } from './voiceTracksMock';
 import { voiceSampleAnswerSchema, voiceSamplesChangedSchema, voiceSamplesRemovedSchema, voiceSamplesSchema } from './schemas/voiceSamples';
 import { VOICE_SAMPLE_SENTENCES, type VoiceSampleMarkRequest } from './contracts/voiceSamples';
@@ -64,8 +67,8 @@ import {
 import { wordFxChangeSchema, wordFxListSchema, wordFxSchema } from './schemas/wordFx';
 import type { EditStackRecordRequest } from './contracts/editStacks';
 import { passageStackSchema, retryModeAnswerSchema, stackChangeSchema, stackListSchema } from './schemas/editStacks';
-import { markSchema, markThreadDeletedSchema, markTypeSchema, marksSchema, threadMessageSchema } from './schemas/marks';
-import { scriptPrepChapterSchema, scriptPrepSchema, scriptWordFlagSchema, scriptWordSchema } from './schemas/scriptPrep';
+import { markSchema, markThreadDeletedSchema, markTypeSchema, marksSchema, marksTypesChangedSchema, threadMessageSchema } from './schemas/marks';
+import { scriptPrepChapterSchema, scriptPrepSchema } from './schemas/scriptPrep';
 import {
   extractionDecisionSchema,
   extractionImportPlanSchema,
@@ -90,6 +93,7 @@ import { MOCK_REAPER_INPUT_SEEDS, MOCK_REAPER_SEEDS, mockLastReading } from './t
 import { deliveryQcEvidenceSchema, deliveryReportExportSchema, measureJobSchema, measurePickResultSchema } from './schemas/measure';
 import { exportJobSchema, exportPlanSchema, multiPackageJobSchema, packageFolderResultSchema, packageJobSchema } from './schemas/renderEncodeMaster';
 import { MOCK_EXPORT_ITEMS, MOCK_EXPORT_PATHS, createRenderEncodeMasterMock } from './renderEncodeMasterMock';
+import { isIgnorable, mockChainDigest, mockChainName } from './masteringMock';
 import { deliveryProfileSchema, deliveryProfilesStateSchema } from './schemas/deliveryProfiles';
 import { MOCK_ACX, evaluateMockFile, mockCustomProfile } from './deliveryProfilesMock';
 import { diagnosticsJobSchema } from './schemas/diagnostics';
@@ -105,7 +109,7 @@ import {
   workJobSchema,
 } from './schemas/manuscript';
 import { chapterSyncPreviewSchema, chapterSyncStateSchema } from './schemas/chapterSync';
-import { assetCatalogSchema, assetInstallJobSchema, assetVerifyResultSchema } from './schemas/assets';
+import { assetCatalogSchema, assetFolderPickSchema, assetInstallJobSchema, assetMoveStateSchema, assetVerifyResultSchema } from './schemas/assets';
 import { definitionSourceOf, definitionSourceSchema, settingsForScopeSchema } from './schemas/settings';
 import { keymapOverridesSchema } from './schemas/keymap';
 import {
@@ -134,13 +138,14 @@ import {
   productionOverviewSchema,
   productionPlanSchema,
   productionReportExportSchema,
+  reportsFolderResultSchema,
   productionReportPreviewSchema,
   productionStartResultSchema,
   productionStopResultSchema,
 } from './schemas/production';
 import { PRODUCTION_SCENARIOS } from './productionMock';
 import { findingMarkerSchema, findingNavigationSchema, findingSchema, findingsPageSchema, findingsSummarySchema } from './schemas/findings';
-import { tracksDiscoverySchema, tracksProjectSchema } from './schemas/tracks';
+import { tracksDiscoverySchema, tracksLiveSchema, tracksProjectSchema } from './schemas/tracks';
 import {
   chapterRegionPlanSchema,
   chapterRegionsCreatedSchema,
@@ -149,6 +154,7 @@ import {
   chapterTrackMatchSchema,
   chapterTrackSetSchema,
   chapterTrackCreateSchema,
+  chapterFoldersSchema,
   trackMappingSchema,
   trackSelectResultSchema,
 } from './schemas/chapterTrackMap';
@@ -166,6 +172,7 @@ import {
 } from './schemas/project';
 import {
   creditsAnnouncementsSchema,
+  creditsChangedSchema,
   creditsProjectValuesResultSchema,
   creditsRecordedLengthsSchema,
   creditsSetupStateSchema,
@@ -184,11 +191,20 @@ import {
   guideEntitiesSchema,
   guideMergeResultSchema,
   guidePreviewSchema,
+  guideTypesChangedSchema,
   guideTypesSchema,
   guidePronunciationSchema,
 } from './schemas/storyBible';
 import { approvedCharacterReferencesSchema, characterRegionsSchema, characterReferenceSchema } from './schemas/character';
-import { bootstrapSchema, copyDiagnosticsResultSchema, projectAttachStateSchema, readySchema, windowZoomSchema } from './schemas/system';
+import {
+  bootstrapSchema,
+  diagnosticsPreviewSchema,
+  projectAttachStateSchema,
+  readySchema,
+  saveDiagnosticsResultSchema,
+  traceBatchResultSchema,
+  windowZoomSchema,
+} from './schemas/system';
 import {
   readAloudReaperStateSchema,
   readAloudRecordingSchema,
@@ -229,10 +245,9 @@ import {
   audacityLinkSchema,
 } from './schemas/daw';
 import { providerCapabilitiesSchema } from './schemas/providers';
-import { masteringProvidersSchema } from './schemas/mastering';
+import { chainNamesSchema, masteringProvidersSchema } from './schemas/mastering';
 import { recorderDevicesResultSchema, recorderLevelSchema, recorderStateSchema } from './schemas/recording';
 import { projectStateChangedSchema, projectStateStartResultSchema, projectStateStateSchema } from './schemas/projectstate';
-import { retakeLanesListSchema, retakeLanesStartResultSchema, retakeLanesStateSchema } from './schemas/retakelanes';
 import { chapterTagsEmbedResultSchema, chapterTagsPreviewSchema } from './schemas/chaptertags';
 import { dictionaryLookupResultSchema } from './schemas/dictionary';
 import { unknownKeys } from './schemas/strictness';
@@ -749,6 +764,19 @@ describe('answers of the mock client (it must pass the schemas the real host ans
     expect(new Set(events.map((event) => (event as { kind: string }).kind))).toEqual(new Set(['misread', 'skipped', 'restart', 'extra']));
   });
 
+  it('a teleprompter session whose suspected flags the confirmation pass has judged (checked)', async () => {
+    const api = createMockApi({}, { teleprompter: 'checked' });
+    const events: { type: string; id?: number; state?: string }[] = [];
+    api.subscribeTeleprompterEvent((event) => events.push(event));
+    expectMatches(teleprompterStateSchema, await api.teleprompterState(), 'mock teleprompter checked');
+    await vi.waitFor(() => expect(events.some((event) => event.type === 'flag_check')).toBe(true));
+    for (const event of events) expectMatches(teleprompterEventSchema, event, 'mock teleprompter checked event');
+    const flagIds = new Set(events.filter((event) => event.type === 'flag').map((event) => event.id));
+    const verdicts = events.filter((event) => event.type === 'flag_check');
+    expect(verdicts.map((event) => event.state)).toEqual(['confirmed', 'cleared']);
+    for (const verdict of verdicts) expect(flagIds.has(verdict.id)).toBe(true);
+  });
+
   it('the teleprompter device list', async () => {
     const api = createMockApi();
     expectMatches(teleprompterDevicesResultSchema, await api.teleprompterDevices(), 'mock teleprompter devices');
@@ -892,6 +920,30 @@ describe('answers of the mock client (it must pass the schemas the real host ans
     await expect(
       api.teleprompterSaveFlags(chapter?.id ?? '', [{ ...base, kind: 'misread', paragraphId: 'nope', wordStart: 0, wordEnd: 1, heard: '' }]),
     ).rejects.toThrow(/nope/);
+  });
+
+  it('a finding saved by teleprompterSaveFlags is one the findings port knows, so a dismissal can be undone and shows as decided', async () => {
+    const api = createMockApi();
+    const chapter = (await ownChapters(api))[0];
+    const paragraph = (await api.manuscriptParagraphs(chapter?.id ?? ''))[0];
+    const flag = {
+      paragraphId: paragraph?.id ?? '',
+      kind: 'skipped' as const,
+      wordStart: 0,
+      wordEnd: 1,
+      scriptStart: 0,
+      scriptEnd: 1,
+      heard: '',
+      dismissed: true,
+    };
+    const [saved] = await api.teleprompterSaveFlags(chapter?.id ?? '', [flag]);
+    expect(saved.review.status).toBe('dismissed');
+    expect((await api.findingsGet(saved.id)).review.status).toBe('dismissed');
+    const undone = await api.findingsReview({ id: saved.id, evidenceVersion: saved.evidence_version ?? '', status: 'unreviewed', note: '' });
+    expect(undone.review.status).toBe('unreviewed');
+    // The undo is what the findings store says, so saving the same flag again does not dismiss it a second time.
+    const [again] = await api.teleprompterSaveFlags(chapter?.id ?? '', [{ ...flag, dismissed: false }]);
+    expect(again.review.status).toBe('unreviewed');
   });
 
   it('teleprompterSeek rejects when no session is running', async () => {
@@ -1142,7 +1194,11 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     const defaults = await api.guideTypes();
     expectMatches(guideTypesSchema, defaults, 'mock Story Bible types');
     expect(defaults.filter((row) => row.speaks).map((row) => row.name)).toEqual(['Character']);
+    expect(await api.guideTypesChanged()).toBe(false);
+    expect(guideTypesChangedSchema.parse(readGolden('guide-types-changed-default.json'))).toBe(false);
     await api.guideTypeAdd(' Creature ');
+    expect(await api.guideTypesChanged()).toBe(true);
+    expect(guideTypesChangedSchema.parse(readGolden('guide-types-changed.json'))).toBe(true);
     await expect(api.guideTypeAdd('creature')).rejects.toThrow('already');
     await expect(api.guideTypeAdd('Needs Review')).rejects.toThrow('own use');
     await api.guideTypeSetColour('Creature', 'rose');
@@ -1155,6 +1211,7 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     if (character) await expect(api.guideTypeRemove('Person')).rejects.toThrow('in use');
     await api.guideTypeRemove('Creature');
     await expect(api.guideTypeRemove('Creature')).rejects.toThrow('no type');
+    if (!character) expect(await api.guideTypesChanged()).toBe(false);
     expectMatches(guideTypesSchema, await api.guideTypes(), 'mock Story Bible types after edits');
   });
 
@@ -1200,9 +1257,11 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     await expect(api.systemLookup('two words')).rejects.toThrow(/single word/);
   });
 
-  it('copy diagnostics answers the saved path', async () => {
+  it('save diagnostics answers the saved path and the preview answers the manifest', async () => {
     const api = createMockApi();
-    expectMatches(copyDiagnosticsResultSchema, await api.systemCopyDiagnostics('last_run'), 'mock copy diagnostics');
+    expectMatches(saveDiagnosticsResultSchema, await api.systemSaveDiagnostics(), 'mock save diagnostics');
+    expectMatches(traceBatchResultSchema, await api.systemTraceBatch('{"events":[]}'), 'mock trace batch');
+    expectMatches(diagnosticsPreviewSchema, await api.systemDiagnosticsPreview(), 'mock diagnostics preview');
   });
 
   it('the window zoom binding reads and sets a level', async () => {
@@ -1248,19 +1307,26 @@ describe('answers of the mock client for the manuscript, Story Bible and project
     const templates = await api.creditsTemplates();
     expectMatches(creditTemplatesSchema, templates, 'mock credit templates');
     expect(templates.length).toBeGreaterThan(0);
+    expect(await api.creditsChanged()).toBe(false);
+    expect(creditsChangedSchema.parse(readGolden('credits-changed-default.json'))).toBe(false);
     const created = await api.saveCreditsTemplate('', 'opening', 'My opening', '[Title], by [Author].');
     expectMatches(creditTemplateSchema, created, 'mock saved credit template');
     const updated = await api.saveCreditsTemplate(created.id, 'opening', 'My opening (edited)', '[Title].');
     expect(updated.id).toBe(created.id);
     const duplicated = await api.duplicateCreditsTemplate(templates[0].id);
     expectMatches(creditTemplateSchema, duplicated, 'mock duplicated credit template');
+    expect(await api.creditsChanged()).toBe(true);
+    expect(creditsChangedSchema.parse(readGolden('credits-changed.json'))).toBe(true);
     expect(duplicated.id).not.toBe(templates[0].id);
     await api.deleteCreditsTemplate(created.id);
+    await api.deleteCreditsTemplate(duplicated.id);
+    expect(await api.creditsChanged()).toBe(false);
     expect((await api.creditsTemplates()).some((template) => template.id === created.id)).toBe(false);
 
     const values = await api.creditsProjectValues();
     expectMatches(creditsProjectValuesResultSchema, values, 'mock credits project values');
     const saved = await api.saveCreditsProjectValues({ title: 'Neon', author: 'A. Writer' });
+    expect(await api.creditsChanged()).toBe(true);
     expectMatches(creditsProjectValuesResultSchema.shape.values, saved, 'mock saved credits project values');
     const preview = await api.creditsPreview('[Title], written by [Author], narrated by [Narrator].');
     expectMatches(creditsRenderResultSchema, preview, 'mock credits preview');
@@ -1428,6 +1494,42 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     }
   });
 
+  it('moving the downloads: the folder picker and the move job, from start to the end, as the mock answers them', async () => {
+    const api = createMockApi();
+    expectMatches(assetFolderPickSchema, await api.assetsFolderPick(), 'mock folder pick');
+    expectMatches(assetMoveStateSchema, await api.assetsMoveState(), 'mock move, idle');
+    const started = await api.assetsMoveStart('D:/Audio/Models');
+    expectMatches(assetMoveStateSchema, started, 'mock move, started');
+    const phases = new Set<string>();
+    for (let step = 0; step < 6; step += 1) {
+      const state = await api.assetsMoveState();
+      expectMatches(assetMoveStateSchema, state, 'mock move, polled');
+      phases.add(state.phase);
+    }
+    expect([...phases]).toEqual(['copying', 'verifying', 'success']);
+    const moved = await api.assetsList();
+    expectMatches(assetCatalogSchema, moved, 'mock asset list after a move');
+    expect([moved.cacheRoot, moved.custom, moved.previousRoot === moved.defaultRoot]).toEqual(['D:/Audio/Models', true, true]);
+    await expect(api.assetsMoveStart('E:/Other')).rejects.toThrow(/old copy/);
+    await api.assetsMoveKeepOld();
+    expect((await api.assetsList()).previousRoot).toBe('');
+    await expect(api.assetsMoveStart('relative')).rejects.toThrow(/full path/);
+    await api.assetsMoveStart('');
+    for (let step = 0; step < 3; step += 1) await api.assetsMoveState();
+    const back = await api.assetsList();
+    expect([back.cacheRoot === back.defaultRoot, back.custom, back.previousRoot]).toEqual([true, false, 'D:/Audio/Models']);
+    await api.assetsMoveDeleteOld();
+    await expect(api.assetsMoveDeleteOld()).rejects.toThrow(/no old copy/i);
+  });
+
+  it('a move can be cancelled and the folder stays', async () => {
+    const api = createMockApi({}, { assetMove: 'copying' });
+    await api.assetsMoveStart('D:/Audio/Models');
+    expectMatches(assetMoveStateSchema, await api.assetsMoveCancel(), 'mock move, cancelled');
+    const list = await api.assetsList();
+    expect([list.custom, list.previousRoot]).toEqual([false, '']);
+  });
+
   it('the list of every approved asset, its install job and a verify', async () => {
     const api = createMockApi();
     const catalog = await api.assetsList();
@@ -1541,8 +1643,10 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const api = createMockApi();
     expectMatches(tracksDiscoverySchema, await api.tracksDiscover(), 'mock tracks discovery');
     expectMatches(tracksProjectSchema, await api.tracksList(), 'mock tracks project');
+    expectMatches(tracksLiveSchema, await api.tracksLive(), 'mock live tracks');
     const folders = createMockApi({}, { trackFolders: true });
     expectMatches(tracksProjectSchema, await folders.tracksList(), 'mock tracks project in folders');
+    expectMatches(tracksLiveSchema, await folders.tracksLive(), 'mock live tracks in folders');
     expectMatches(chapterTrackLinksSchema, await folders.chapterTrackLinks(), 'mock chapter links in folders');
     expectMatches(chapterTrackMatchSchema, await folders.chapterTrackMatch((await ownChapters(folders))[0].id), 'mock chapter match in folders');
     const several = createMockApi({}, { tracksCandidates: ['C:/A/A.rpp', 'C:/A/B.rpp'] });
@@ -1572,6 +1676,25 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     await expect(api.chapterTrackMapConfirm('{0E4D1D7F-D039-674D-87E6-719376DE95EC}', 'not-a-real-chapter')).rejects.toThrow();
   });
 
+  it('the ChapterFolders answers: clean, nested with its moves, repaired, stale and refused, each through the schema (#2838)', async () => {
+    expectMatches(chapterFoldersSchema, await createMockApi().chapterFoldersCheck(), 'mock chapter folders, clean');
+    const api = createMockApi({}, { nestedChapters: true });
+    const nested = await api.chapterFoldersCheck();
+    expectMatches(chapterFoldersSchema, nested, 'mock chapter folders, nested');
+    expect(nested.outcome).toBe('nested');
+    expect(nested.expected.length).toBeGreaterThan(0);
+    const stale = await api.chapterFoldersRepair([]);
+    expectMatches(chapterFoldersSchema, stale, 'mock chapter folders, stale');
+    expect(stale.outcome).toBe('stale');
+    const repaired = await api.chapterFoldersRepair(nested.expected);
+    expectMatches(chapterFoldersSchema, repaired, 'mock chapter folders, repaired');
+    expect(repaired.outcome).toBe('repaired');
+    expect((await api.chapterFoldersCheck()).outcome).toBe('clean');
+    const refused = await createMockApi({}, { nestedChapters: true, reaperState: 'recording_elsewhere' }).chapterFoldersCheck();
+    expectMatches(chapterFoldersSchema, refused, 'mock chapter folders, refused');
+    expect(refused.outcome).toBe('refused');
+  });
+
   it('the ChapterTrackCreate answers: created and linked, each refusal, and a chapter the manuscript does not have', async () => {
     const api = createMockApi({}, { reaperState: 'no_link' });
     const chapters = await ownChapters(api);
@@ -1583,15 +1706,47 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(created.mappings.filter((mapping) => mapping.chapterId === chapters[0].id)).toHaveLength(1);
     // The host reads the new link: the chapter that had no track is ready to record.
     expect((await api.readAloudReaperState(chapters[0].id)).status).toBe('ready');
+    // A second create for the chapter is refused, naming its track (#2958, B2); after Clear, the track's name is taken (F2).
     const second = await api.chapterTrackCreate(chapters[0].id);
-    if (second.outcome !== 'created') throw new Error('expected a created track');
-    expect(second.track.guid).not.toBe(created.track.guid);
+    expectMatches(chapterTrackCreateSchema, second, 'mock chapter track create, already linked');
+    expect(second).toMatchObject({ outcome: 'refused', reason: 'already_linked' });
+    await api.chapterTrackUnlink(chapters[0].id);
+    const taken = await api.chapterTrackCreate(chapters[0].id);
+    expectMatches(chapterTrackCreateSchema, taken, 'mock chapter track create, name taken');
+    expect(taken).toMatchObject({ outcome: 'refused', reason: 'name_taken' });
     await expect(api.chapterTrackCreate('not-a-real-chapter')).rejects.toThrow();
+    // `?mockReaperState=no_link` is a chapter with no link: a link chapter sync made on its own does not count, so the Booth's Create a new
+    // track adds and links one (the visual state booth / record-unlinked-created).
+    const noLink = createMockApi({}, { reaperState: 'no_link', chapterSync: 'ask' });
+    await noLink.chapterSyncSetEnabled(true);
+    expect((await noLink.chapterTrackMapList()).mappings.some((link) => link.chapterId === 'chapter-1' && link.origin === 'auto')).toBe(true);
+    const unlinked = await noLink.chapterTrackCreate('chapter-1');
+    expectMatches(chapterTrackCreateSchema, unlinked, 'mock chapter track create, no_link scene');
+    expect(unlinked.outcome).toBe('created');
     for (const reaperState of ['unavailable', 'recording_elsewhere'] as const) {
       const refused = await createMockApi({}, { reaperState }).chapterTrackCreate(chapters[0].id);
       expectMatches(chapterTrackCreateSchema, refused, `mock chapter track create, refused (${reaperState})`);
       expect(refused.outcome).toBe('refused');
     }
+  });
+
+  it('the ChapterTrackCreate answer in a Voice folders project: a folder with a Narrator, both in the live track list at once', async () => {
+    const api = createMockApi({}, { reaperState: 'no_link', voiceFolders: true });
+    const chapters = await ownChapters(api);
+    const created = await api.chapterTrackCreate(chapters[1].id);
+    expectMatches(chapterTrackCreateSchema, created, 'mock chapter track create, folder');
+    if (created.outcome !== 'created' || !created.voice) throw new Error('expected a created folder with a voice');
+    expect(created.voice.name).toBe('Narrator');
+    expect(created.link.trackGuid).toBe(created.track.guid);
+    const live = await api.tracksLive();
+    const folder = live.project.tracks.find((track) => track.guid === created.track.guid);
+    const voice = live.project.tracks.find((track) => track.guid === created.voice?.guid);
+    expect(folder).toMatchObject({ isFolder: true, depth: 0, name: created.track.name });
+    expect(voice).toMatchObject({ isFolder: false, depth: 1, name: 'Narrator', index: (folder?.index ?? -1) + 1 });
+    await api.voiceTracksSetLayout('flat');
+    const plain = await api.chapterTrackCreate(chapters[2].id);
+    if (plain.outcome !== 'created') throw new Error('expected a created track');
+    expect(plain.voice).toBeUndefined();
   });
 
   it('the ChapterTrackSet, ChapterTrackUnlink and ChapterTrackLinks answers', async () => {
@@ -1806,32 +1961,6 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     for (const seed of ['launched', 'error'] as const) {
       expectMatches(cleanupToolsStateSchema, await createMockApi({}, { cleanupTools: seed }).cleanupToolsState(), `mock cleanup-tools seed ${seed}`);
     }
-  });
-
-  it('the retake-lane list and state through a pick, and their seeded states', async () => {
-    vi.useFakeTimers();
-    const api = createMockApi();
-    const seen: unknown[] = [];
-    api.subscribeRetakeLanes((state) => seen.push(structuredClone(state)));
-    const list = await api.retakeLanesList();
-    expectMatches(retakeLanesListSchema, list, 'mock retake-lanes list');
-    const [line] = list.lines;
-    expectMatches(retakeLanesStartResultSchema, await api.retakeLanesPick(line.lineId, line.retakes[1].itemGuid), 'mock retake-lane pick start');
-    await vi.advanceTimersByTimeAsync(300);
-    expect(seen.length).toBeGreaterThan(2);
-    for (const state of seen) expectMatches(retakeLanesStateSchema, state, 'mock retakelanes:state');
-    expectMatches(retakeLanesStateSchema, await api.retakeLanesState(), 'mock retake-lanes state');
-    for (const seed of ['picked', 'error', 'none'] as const) {
-      const seeded = createMockApi({}, { retakeLanes: seed });
-      expectMatches(retakeLanesStateSchema, await seeded.retakeLanesState(), `mock retake-lanes seed ${seed}`);
-      expectMatches(retakeLanesListSchema, await seeded.retakeLanesList(), `mock retake-lanes list seed ${seed}`);
-    }
-  });
-
-  it('retakeLanesPick refuses a retake the list does not hold, the way the Go service does', async () => {
-    const api = createMockApi();
-    const [line] = (await api.retakeLanesList()).lines;
-    await expect(api.retakeLanesPick('line-000099', line.retakes[0].itemGuid)).rejects.toThrow(/not on a fixed-lane track/);
   });
 
   it('the project-state check against the last comparison baseline', async () => {
@@ -2353,6 +2482,57 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const plan = await daw.exportPlan({ items: withRegions, master: true, format: 'mp3', approval: null });
     expectMatches(exportPlanSchema, plan, 'mock export plan, daw row');
     expect([plan.provider, plan.needsApproval, plan.needsMacro]).toEqual(['daw', true, false]);
+    // The chain the render runs, as dawChain.Chain answers it over masteringporttest's FakeDAW (#2932): each track with FX, then the master.
+    expect(plan.chain).toEqual([
+      { name: 'Voice', master: false, fx: [{ name: 'VST: ReaEQ (Cockos)', enabled: true }] },
+      { name: 'Master', master: true, fx: [{ name: 'VST: ReaLimit (Cockos)', enabled: true }] },
+    ]);
+    const cut = createMockApi({}, { mastering: { choice: 'daw', chain: 'unreadable' } });
+    await cut.exportPickFiles();
+    await expect(cut.exportPlan({ items: withRegions, master: true, format: 'mp3', approval: null })).rejects.toThrow(
+      /couldn't be read, so it can't be approved\. Choose the built-in chain, or untick Master before encoding\./,
+    );
+    const plainRow = createMockApi();
+    await plainRow.exportPickFiles();
+    expect((await plainRow.exportPlan({ items: withRegions, master: true, format: 'mp3', approval: null })).chain).toEqual([]);
+    // The digest binds the approval to the chain shown (#2932's review): the mock computes masteringport.ChainDigest's lines, pinned
+    // against the Go golden, and its start refuses an approval of the DAW row without one, as approvalFor does.
+    const golden = parseWire(exportPlanSchema, readGolden('export-plan-daw.json'), ctx('export plan golden'));
+    expect(await mockChainDigest(golden.chain)).toBe(golden.chainDigest);
+    // The mock cleans names exactly as chain.go does, over the host's own cases (qa round 2 on #2932, N5), and digests a chain with a
+    // missing list or name without throwing (N3).
+    const names = chainNamesSchema.parse(readGolden('chain-names.json'));
+    for (const { raw, track, fx } of names.cases) {
+      expect([mockChainName(raw, 'track'), mockChainName(raw, 'fx')], JSON.stringify(raw)).toEqual([track, fx]);
+    }
+    // The mock's \p{Default_Ignorable_Code_Point} is the host's derived set, code point for code point (round 4, N7).
+    const mockIgnorable: [number, number][] = [];
+    for (let point = 0; point <= 0x10ffff; point++) {
+      if (point >= 0xd800 && point <= 0xdfff) continue;
+      if (!isIgnorable(String.fromCodePoint(point))) continue;
+      const last = mockIgnorable.at(-1);
+      if (last && last[1] === point - 1) last[1] = point;
+      else mockIgnorable.push([point, point]);
+    }
+    expect(mockIgnorable).toEqual(names.ignorable);
+    // No default-ignorable character survives inside a name, as none survives in the host's (round 5, B1), except the Hangul
+    // fillers, which a font draws as a blank and are kept inside a name (round 6).
+    const fillers = new Set([0x115f, 0x1160, 0x3164, 0xffa0]);
+    for (const [first, last] of names.ignorable) {
+      for (let point = first; point <= last; point++) {
+        const char = String.fromCodePoint(point);
+        const inside = fillers.has(point) ? `E${char}Q` : 'EQ';
+        expect([mockChainName(`E${char}Q`, 'fx'), mockChainName(`${char}EQ${char}`, 'fx')], point.toString(16)).toEqual([inside, 'EQ']);
+      }
+    }
+    // Every cleaned name is NFC, as the host's are (round 6, qa B3).
+    for (const { raw } of names.cases) expect(mockChainName(raw, 'fx'), JSON.stringify(raw)).toBe(mockChainName(raw, 'fx').normalize('NFC'));
+    expect(await mockChainDigest([{ name: 'Voice', master: false, fx: null as never }])).toBe(
+      await mockChainDigest([{ name: 'Voice', master: false, fx: [] }]),
+    );
+    expect(await mockChainDigest([{ name: null as never, master: false, fx: [{ name: null as never, enabled: true }] }])).toMatch(/^sha256:/);
+    expect(plan.chainDigest).toBe(await mockChainDigest(plan.chain));
+    await expect(start(daw, { provider: 'daw', macro: '', chainDigest: '' })).rejects.toThrow(/does not say which FX chain you were shown/);
     expect(plan.items.map((item) => item.region)).toEqual(
       withRegions.map((item) => (item.kind === 'chapter' ? item.title : item.kind === 'credits_opening' ? 'Opening credits' : 'Closing credits')),
     );
@@ -2370,11 +2550,22 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       /you approved Audacity's effect macro, but this project now masters with Your DAW's FX chain/,
     );
     expect((await daw.exportState()).phase).toBe('idle');
-    let job = await start(daw, { provider: 'daw', macro: '' });
+    let job = await start(daw, { provider: 'daw', macro: '', chainDigest: plan.chainDigest });
     expectMatches(exportJobSchema, job, 'mock export, daw row approved');
     expect(job.provider).toBe('daw');
     while (job.phase === 'running') job = await daw.exportState();
     expect(job.files.every((file) => file.mastering === undefined)).toBe(true);
+    // An approval of another chain: the first render refuses it, so the export stops there naming the file, nothing prepared.
+    const other = createMockApi({}, { mastering: { choice: 'daw' } });
+    await other.exportPickFiles();
+    let stale = await start(other, { provider: 'daw', macro: '', chainDigest: `sha256:${'0'.repeat(64)}` });
+    while (stale.phase === 'running') stale = await other.exportState();
+    expectMatches(exportJobSchema, stale, 'mock export, daw row, chain changed since the approval');
+    expect([stale.phase, stale.message]).toEqual([
+      'error',
+      'Stopped at 00 Opening credits.wav: the FX chain in your DAW changed after you approved it: approve the render again. 0 of 4 files were prepared.',
+    ]);
+    expect(stale.files.map((file) => file.status)).toEqual(['failed', 'cancelled', 'cancelled', 'cancelled']);
 
     const audacity = createMockApi({}, { mastering: { choice: 'audacity' } });
     await audacity.exportPickFiles();
@@ -2592,6 +2783,9 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     const state = await api.deliveryProfiles();
     expectMatches(deliveryProfilesStateSchema, state, 'mock delivery profiles');
     expect(state).toMatchObject({ globalDefault: pinned.globalDefault, projectProfile: 'acx@2026-09', projectChoice: null });
+    expect(pinned.shippedDefault).toEqual({ id: 'acx', version: '2026-09' });
+    expect(state.shippedDefault).toEqual(pinned.shippedDefault);
+    expect((await api.deliverySelectProfile('global', 'acx', '2026-09')).shippedDefault).toEqual(pinned.shippedDefault);
     const copy = await api.deliveryDuplicateProfile('acx', '2026-09');
     expectMatches(deliveryProfileSchema, copy, 'mock duplicate');
     expect(copy).toMatchObject({ builtIn: false, revision: 1, basedOn: 'acx@2026-09', name: 'ACX (September 2026) copy' });
@@ -3698,6 +3892,54 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(await api.dawLastAction('record_take')).toBe('other');
   });
 
+  // #2945: Keep Take's Undo needs a kind for "use take" (narration_workspace.lua's set_active_take closes its block with it).
+  it('a used take is use_take: it is the last action until the DAW changes again, and the mock undoes it as the host answers', async () => {
+    const client = createMockDawClient(DAW_SETUPS.reaper, { chapterIds: ['5'], candidateIds: ['t-7', 't-8'], findingIds: [] });
+    expect(await client.lastAction('use_take')).toBe('other');
+    expect((await client.useTake('5', 1, 2, 't-8')).undoSteps).toBe(1);
+    expect(await client.lastAction('use_take')).toBe('this');
+    const undone = await client.undoLast('use_take', 1);
+    expectMatches(dawResultSchema, undone, 'mock undo of use_take');
+    expect(undone).toMatchObject({ ok: true, changed: true, message: 'Undid the choice of take in REAPER.' });
+    expect(await client.lastAction('use_take')).toBe('other');
+    // Any later point of the DAW's own makes it refuse with the DAW's sentence, and changes nothing.
+    await client.useTake('5', 1, 2, 't-8');
+    await client.hideTakes('5', 1, 2, 't-8');
+    expect(await client.lastAction('use_take')).toBe('other');
+    expect(await client.undoLast('use_take', 1)).toMatchObject({
+      ok: false,
+      refused: "REAPER's last action is not this one, so it was left alone. Use Edit > Undo in REAPER.",
+    });
+  });
+
+  // #3016: the chain edits of Editing's effects are kinds of their own, each the label its REAPER command closes its undo block with.
+  it('the chain edits are add_range_fx, remove_range_fx, set_fx_param, bypass_fx and enable_fx: each is the last action until the DAW changes again', async () => {
+    const client = createMockDawClient(withFxRange(DAW_SETUPS.reaper, 'native'), {
+      chapterIds: ['5'],
+      candidateIds: [],
+      findingIds: [],
+      fxChains: ['Voice.RfxChain'],
+    });
+    const target = { chapterId: '5', firstToken: 1, lastToken: 2, chainName: 'Voice.RfxChain' };
+    const kinds = ['add_range_fx', 'remove_range_fx', 'set_fx_param', 'bypass_fx', 'enable_fx'] as const;
+    const onlyThis = async (expected: (typeof kinds)[number]) => {
+      for (const kind of kinds) expect(await client.lastAction(kind), `${expected} is on top, so ${kind}`).toBe(kind === expected ? 'this' : 'other');
+    };
+    const first = await client.applyFxToRange({ ...target, fadeMs: 10 });
+    expect(first, JSON.stringify(first)).toMatchObject({ ok: true, undoSteps: 1 });
+    await onlyThis('add_range_fx');
+    await client.setFxRangeParam({ ...target, fx: 0, index: 0, value: 1 });
+    await onlyThis('set_fx_param');
+    await client.bypassFxRange(target, true);
+    await onlyThis('bypass_fx');
+    await client.bypassFxRange(target, false);
+    await onlyThis('enable_fx');
+    expect(await client.undoLast('bypass_fx', 1)).toMatchObject({ ok: false });
+    expect(await client.undoLast('enable_fx', 1)).toMatchObject({ ok: true, message: 'Undid the turning an effect back on in REAPER.' });
+    await client.removeFxFromRange(target);
+    await onlyThis('remove_range_fx');
+  });
+
   it('dawLastAction and dawUndoLast answer a dawLastAction and a dawResult: the host goldens parse, and the mock answers as the host does', async () => {
     expect(dawLastActionSchema.parse(readGolden('daw-last-action-this.json'))).toBe('this');
     expect(dawLastActionSchema.parse(readGolden('daw-last-action-unknown.json'))).toBe('unknown');
@@ -4244,7 +4486,9 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'ready',
       'bootstrap',
       'systemLookup',
-      'systemCopyDiagnostics',
+      'systemDiagnosticsPreview',
+      'systemSaveDiagnostics',
+      'systemTraceBatch',
       'windowZoom',
       'windowSetZoom',
       'saveSettings',
@@ -4272,6 +4516,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'boothVoiceSet',
       'boothVoiceGet',
       'boothVoiceAdd',
+      'boothPunchTarget',
       'voiceSamplesList',
       'voiceSampleMark',
       'voiceSampleUpdate',
@@ -4306,6 +4551,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'editingReplacementRemove',
       'replaceFilePeaks',
       'marksList',
+      'marksTypesChanged',
       'marksAdd',
       'marksRemove',
       'marksSaveTypes',
@@ -4316,9 +4562,6 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'marksSetStatus',
       'scriptPrepList',
       'scriptPrepSetChapter',
-      'scriptWordFlag',
-      'scriptWordSay',
-      'scriptWordUnflag',
       'extractionList',
       'extractionAccept',
       'extractionReject',
@@ -4334,6 +4577,10 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'extractionImportPrompt',
       'pronunciationSources',
       'pronunciationCandidate',
+      'pronunciationCandidates',
+      'pronunciationPreview',
+      'userDictionarySave',
+      'userDictionaryRemove',
       'readerState',
       'guideEntities',
       'guideCreate',
@@ -4343,7 +4590,9 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'guideDialogueCues',
       'guideAttributeSpeakers',
       'guideRestoreSpeakers',
+      'guidePronunciationRestore',
       'guideTypes',
+      'guideTypesChanged',
       'characterListRegions',
       'characterApprove',
       'characterReferences',
@@ -4352,6 +4601,10 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'assetsInstallState',
       'assetsInstallCancel',
       'assetsVerify',
+      'assetsFolderPick',
+      'assetsMoveStart',
+      'assetsMoveState',
+      'assetsMoveCancel',
       'ttsInstall',
       'ttsInstallState',
       'ttsInstallCancel',
@@ -4388,10 +4641,13 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'tracksDiscover',
       'tracksSelect',
       'tracksList',
+      'tracksLive',
       'chapterTrackMapList',
       'chapterTrackMapConfirm',
       'chapterTrackSet',
       'chapterTrackCreate',
+      'chapterFoldersCheck',
+      'chapterFoldersRepair',
       'chapterTrackUnlink',
       'chapterSyncState',
       'chapterSyncPreview',
@@ -4424,9 +4680,6 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'cleanupToolsState',
       'projectStateCheck',
       'projectStateChangedSince',
-      'retakeLanesList',
-      'retakeLanesPick',
-      'retakeLanesState',
       'chapterTagsPreview',
       'chapterTagsEmbed',
       'coverageStart',
@@ -4498,6 +4751,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'productionStartTimer',
       'productionStopTimer',
       'productionStatusReport',
+      'productionOpenReportsFolder',
       'productionStatusReportPreview',
       'measurePickFiles',
       'measureAnalyze',
@@ -4549,6 +4803,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'updateJobCancel',
       'updateInstall',
       'creditsTemplates',
+      'creditsChanged',
       'saveCreditsTemplate',
       'duplicateCreditsTemplate',
       'creditsProjectValues',
@@ -4593,6 +4848,8 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'characterRevoke',
       'characterRemoveVoiceData',
       'assetsOpenFolder',
+      'assetsMoveDeleteOld',
+      'assetsMoveKeepOld',
       'assetsRemove',
       'transcriptCancel',
       'coverageCancel',
@@ -4640,7 +4897,6 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'subscribeRenderConfig',
       'subscribeCleanupTools',
       'subscribeProjectState',
-      'subscribeRetakeLanes',
       'subscribeDawCapabilities',
       'subscribeDawTransport',
       'subscribeDawPosition',
@@ -4672,6 +4928,16 @@ describe('one deliberately broken sample per boundary fails with a specific mess
   it('a live event (a position with a text read index)', () => {
     const position = (readGolden('teleprompter-events.json') as Array<{ type: string }>).find((event) => event.type === 'position');
     expect(failure(teleprompterEventSchema, { ...position, read: 'four' }, 'teleprompter:event').issues.map((issue) => issue.path)).toEqual(['read']);
+  });
+
+  it('a live event (the confirmation pass settling a flag): the golden parses and a state the UI does not know does not', () => {
+    const events = readGolden('teleprompter-flag-check.json') as Array<{ type: string }>;
+    for (const event of events) expectMatches(teleprompterEventSchema, event, 'teleprompter flag and flag_check golden');
+    const check = events.find((event) => event.type === 'flag_check');
+    expect(new Set(events.filter((event) => event.type === 'flag_check').map((event) => (event as { state?: string }).state))).toEqual(
+      new Set(['confirmed', 'cleared']),
+    );
+    expect(failure(teleprompterEventSchema, { ...check, state: 'maybe' }, 'teleprompter:event').issues.map((issue) => issue.path)).toEqual(['state']);
   });
 
   it('a live event (a flag of a kind the UI does not know)', () => {
@@ -4731,6 +4997,13 @@ describe('the production tracking mock', () => {
 
   it('the status report export follows the ticked sections, leaves out the money unless asked, and never repeats a file name', async () => {
     const pinned = productionReportExportSchema.parse(readGolden('production-status-report.json'));
+    const folder = reportsFolderResultSchema.parse(readGolden('production-open-reports-folder.json'));
+    const fresh = createMockApi();
+    await expect(fresh.productionOpenReportsFolder()).rejects.toThrow(/export a report first/);
+    await fresh.productionStatusReport(pinned.include);
+    expect(await fresh.productionOpenReportsFolder()).toEqual(folder);
+    expect(reportsFolderResultSchema.safeParse({ folder: '' }).success).toBe(false);
+    expect(reportsFolderResultSchema.safeParse({ folder: 'a', path: 'b' }).success).toBe(false);
     expect(() => productionReportExportSchema.parse({ ...pinned, include: { ...pinned.include, extra: true } })).toThrow();
     const api = createMockApi();
     const left = await api.productionStatusReport(pinned.include);
@@ -5011,6 +5284,30 @@ describe('the voice samples bindings', () => {
       alignmentRecordId: 'record-1',
     };
   };
+
+  it('the mock keeps a sample as the storage setting says, and marking its stretch again under another setting adds what it lacked', async () => {
+    const api = createMockApi();
+    const request = await requestFor(api, 'hatter');
+    await api.saveSettings('VoiceSamples', 'project', { storage: 'daw' });
+    const first = await api.voiceSampleMark(request);
+    expectMatches(voiceSampleAnswerSchema, first, 'mock voice sample mark (daw)');
+    if (first.status !== 'saved') throw new Error(`refused: ${first.message}`);
+    expect(first.sample).toMatchObject({ storage: 'daw', daw: { state: 'ok' } });
+
+    await api.saveSettings('VoiceSamples', 'project', { storage: 'project' });
+    const again = await api.voiceSampleMark(request);
+    expectMatches(voiceSampleAnswerSchema, again, 'mock voice sample mark (upgraded)');
+    if (again.status !== 'saved') throw new Error(`refused: ${again.message}`);
+    expect(again.sample.id).toBe(first.sample.id);
+    expect(again.sample).toMatchObject({ storage: 'both', daw: { state: 'ok' } });
+
+    // Already kept in both: another storage changes nothing and makes no second sample.
+    await api.saveSettings('VoiceSamples', 'project', { storage: 'daw' });
+    const third = await api.voiceSampleMark(request);
+    if (third.status !== 'saved') throw new Error(`refused: ${third.message}`);
+    expect(third.sample).toMatchObject({ id: first.sample.id, storage: 'both' });
+    expect((await api.voiceSamplesList()).samples).toHaveLength(1);
+  });
 
   it('the mock answers every binding through its schema, and sorts primary first then newest', async () => {
     const api = createMockApi();
@@ -5436,6 +5733,8 @@ describe('the marks bindings', () => {
     const empty = await api.marksList();
     expectMatches(marksSchema, empty, 'mock marks list (empty)');
     expect(empty.types.map((type) => type.key)).toEqual(['stress', 'breath', 'pace', 'emo', 'note', 'ask']);
+    expect(await api.marksTypesChanged()).toBe(false);
+    expect(marksTypesChangedSchema.parse(readGolden('marks-types-changed-default.json'))).toBe(false);
     const later = await api.marksAdd(chapterId, line.id, 6, 10, 'stress', '');
     const question = await api.marksAdd(chapterId, line.id, 0, 4, 'ask', '  Is this right?  ');
     expectMatches(markSchema, question, 'mock marks add');
@@ -5452,6 +5751,8 @@ describe('the marks bindings', () => {
     expectMatches(marksSchema, saved, 'mock marks types');
     expect(saved.marks).toEqual([]);
     expect(saved.types.at(-1)?.key).not.toBe('');
+    expect(await api.marksTypesChanged()).toBe(true);
+    expect(marksTypesChangedSchema.parse(readGolden('marks-types-changed.json'))).toBe(true);
   });
 
   it('the mock refuses what the host refuses and saves nothing', async () => {
@@ -5986,75 +6287,38 @@ describe('the script prep bindings', () => {
       second: wordy[1] ?? { id: '', text: '', index: 0 },
     };
   };
-  const firstWord = (text: string) => text.indexOf(' ');
 
-  it('the mock answers the prep list, a chapter state, a flag, a say-value and an unflag through their schemas', async () => {
-    const { api, chapterId, first, second } = await firstLines();
+  it('the mock answers the prep list and a chapter state through their schemas', async () => {
+    const { api, chapterId } = await firstLines();
     const empty = await api.scriptPrepList();
     expectMatches(scriptPrepSchema, empty, 'mock script prep list (empty)');
-    expect(empty.words).toEqual([]);
     expect(empty.chapters.every((chapter) => chapter.state === 'none')).toBe(true);
     const chapter = await api.scriptPrepSetChapter(chapterId, 'prepped');
     expectMatches(scriptPrepChapterSchema, chapter, 'mock script prep chapter');
-    const word = first.text.slice(0, firstWord(first.text));
-    const flagged = await api.scriptWordFlag(chapterId, first.id, 0, firstWord(first.text));
-    expectMatches(scriptWordSchema, flagged, 'mock script word flag');
-    expect(flagged).toMatchObject({ word: word.toLowerCase(), say: '', source: '', status: 'not_set' });
-    expect((await api.scriptWordFlag(chapterId, first.id, 0, firstWord(first.text))).flags).toHaveLength(1);
-    const said = await api.scriptWordSay(word.toUpperCase(), '  say-it  ', 'espeak');
-    expectMatches(scriptWordSchema, said, 'mock script word say');
-    expect(said).toMatchObject({ say: 'say-it', source: 'espeak', status: 'set' });
-    expect(await api.scriptWordSay(word, 'typed', '')).toMatchObject({ source: 'manual' });
-    const other = await api.scriptWordFlag(chapterId, second.id, 0, firstWord(second.text));
     const listed = await api.scriptPrepList();
     expectMatches(scriptPrepSchema, listed, 'mock script prep list');
     expect(listed.chapters.find((entry) => entry.chapterId === chapterId)?.state).toBe('prepped');
-    expect(listed.words.map((entry) => entry.word)).toEqual([...new Set([word.toLowerCase(), other.word])]);
-    const gone = await api.scriptWordUnflag(flagged.flags[0]?.id ?? '');
-    expectMatches(scriptWordSchema, gone, 'mock script word unflag');
-    if (other.word !== gone.word) expect(gone).toMatchObject({ status: 'not_flagged', say: '', source: '', flags: [] });
   });
 
   it('the mock refuses what the host refuses and saves nothing', async () => {
-    const { api, chapterId, otherId, first } = await firstLines();
+    const { api } = await firstLines();
     await expect(api.scriptPrepSetChapter('no-such-chapter', 'prepped')).rejects.toThrow('not in the manuscript');
-    await expect(api.scriptWordFlag('no-such-chapter', first.id, 0, 3)).rejects.toThrow('not in the manuscript');
-    await expect(api.scriptWordFlag(otherId, first.id, 0, 3)).rejects.toThrow('not in this chapter');
-    await expect(api.scriptWordFlag(chapterId, first.id, 3, 3)).rejects.toThrow('choose a word');
-    await expect(api.scriptWordFlag(chapterId, first.id, 0, first.text.length + 1)).rejects.toThrow('not in the line');
-    await expect(api.scriptWordSay('never-flagged', 'x', '')).rejects.toThrow('flag the word');
-    await expect(api.scriptWordUnflag('no-such-flag')).rejects.toThrow('no longer there');
-    await api.scriptWordFlag(chapterId, first.id, 0, firstWord(first.text));
-    const word = first.text.slice(0, firstWord(first.text));
-    await expect(api.scriptWordSay(word, 'a\nb', '')).rejects.toThrow('one line');
-    await expect(api.scriptWordSay(word, 'a\u0000b', '')).rejects.toThrow('one line');
-    await expect(api.scriptWordSay(word, 'x'.repeat(201), '')).rejects.toThrow('at most 200');
-    await expect(api.scriptWordSay(word, 'x', 'made-up')).rejects.toThrow('not one of yours');
     const listed = await api.scriptPrepList();
-    expect(listed.words.map((entry) => entry.status)).toEqual(['not_set']);
     expect(listed.chapters.every((chapter) => chapter.state === 'none')).toBe(true);
   });
 
-  it('the schemas read the goldens and refuse an unknown state, status, stale reason or key', () => {
+  it('the schemas read the goldens and refuse an unknown state, a key, or words beside the chapters (#2595)', () => {
     const list = parseWire(scriptPrepSchema, readGolden('script-prep-list.json'), ctx('script prep list'));
-    expect(list.chapters.map((chapter) => chapter.state)).toEqual(['progress', 'none']);
-    expect(list.words.map((word) => word.status)).toEqual(['set', 'not_set', 'not_set']);
-    expect(list.words.map((word) => word.flags[0]?.staleReason ?? null)).toEqual([null, 'text_changed', null]);
+    expect(list.chapters.map((chapter) => [chapter.chapterId, chapter.state])).toEqual([
+      ['c-0001', 'progress'],
+      ['c-0002', 'none'],
+      ['credits:opening', 'prepped'],
+    ]);
     const chapter = parseWire(scriptPrepChapterSchema, readGolden('script-prep-chapter.json'), ctx('script prep chapter'));
-    const word = parseWire(scriptWordSchema, readGolden('script-prep-word.json'), ctx('script prep word'));
-    expect(word).toMatchObject({ word: 'queen', say: 'kween', source: 'cmu', status: 'set' });
-    const flag = word.flags[0];
     expect(scriptPrepChapterSchema.safeParse({ ...chapter, state: 'done' }).success).toBe(false);
     expect(scriptPrepChapterSchema.safeParse({ ...chapter, extra: true }).success).toBe(false);
-    expect(scriptWordSchema.safeParse({ ...word, status: 'maybe' }).success).toBe(false);
-    expect(scriptWordSchema.safeParse({ ...word, path: '/etc/passwd' }).success).toBe(false);
-    expect(scriptWordSchema.safeParse({ ...word, status: 'not_set' }).success).toBe(false);
-    expect(scriptWordSchema.safeParse({ ...word, source: '' }).success).toBe(false);
-    expect(scriptWordSchema.safeParse({ ...word, status: 'not_flagged' }).success).toBe(false);
-    expect(scriptWordSchema.safeParse({ word: 'queen', say: '', source: '', status: 'not_flagged', flags: [] }).success).toBe(true);
-    expect(scriptWordFlagSchema.safeParse({ ...flag, staleReason: 'moved' }).success).toBe(false);
-    expect(scriptWordFlagSchema.safeParse({ ...flag, start: 9, end: 2 }).success).toBe(false);
     expect(scriptPrepSchema.safeParse({ ...list, extra: [] }).success).toBe(false);
+    expect(scriptPrepSchema.safeParse({ ...list, words: [] }).success).toBe(false);
   });
 });
 
@@ -6165,6 +6429,12 @@ describe('the voice tracks bindings', () => {
     const narrator = await api.voiceTracksSetNarrator('alice');
     expectMatches(voiceTracksStateSchema, narrator, 'mock voice tracks narrator');
     expect((await api.voiceTracksSetCharacters('Queen', [])).tracks.map((entry) => entry.track)).toEqual(['Gardeners']);
+  });
+
+  it("the mock's punch target is a passage nobody recorded, through the schema", async () => {
+    const answer = await createMockApi().boothPunchTarget(WIRE_CHAPTERS[0].id, 'p1', 0, 3);
+    expectMatches(boothPunchSchema, answer, 'mock booth punch target');
+    expect(answer.outcome).toBe('never_recorded');
   });
 
   it('the mock refuses what the host refuses, and keeps nothing of it', async () => {

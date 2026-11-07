@@ -83,11 +83,13 @@ var eventSpecs = map[string]eventSpec{
 	"TAKES_STACKED":   {required: []fieldSpec{text("run"), count("groups"), count("takes"), number("shift"), count("undoPoints")}},
 	"TAKES_UNSTACKED": {required: []fieldSpec{text("run"), count("groups"), count("takes"), number("shift"), count("undoPoints")}},
 	"REGIONS_CREATED": {required: []fieldSpec{text("run"), count("created"), count("existing"), count("invalid")}, optional: []fieldSpec{count("updated"), count("ambiguous"), count("failed")}},
-	// keep_voice_sample and read_voice_samples (narration_voice_sample_region.lua): the region's number and what was done (created,
-	// existing, moved or unchanged), a number the project no longer has as a voice sample region, and the regions read back (name last)
-	// with the count and REAPER's change count.
+	// keep_voice_sample, delete_voice_sample_region and read_voice_samples (narration_voice_sample_region.lua): the region's number and
+	// what was done (created, existing, moved or unchanged), what a delete did (deleted, or unchanged when the number was gone), a
+	// number that is not a voice sample region in the open project, and the regions read back (name last) with the count and
+	// REAPER's change count.
 	"VOICE_SAMPLE_KEPT":     {required: []fieldSpec{text("run"), count("number"), text("outcome")}},
 	"VOICE_SAMPLE_STALE":    {required: []fieldSpec{text("run"), count("number")}},
+	"VOICE_SAMPLE_REMOVED":  {required: []fieldSpec{text("run"), count("number"), text("outcome")}},
 	"VOICE_SAMPLE_REGION":   {required: []fieldSpec{text("run"), count("number"), number("start"), number("end"), text("name")}},
 	"VOICE_SAMPLES_READ":    {required: []fieldSpec{text("run"), count("count"), count("changeCount")}},
 	"PICKUPS_IMPORTED":      {required: []fieldSpec{text("run"), count("added"), count("existing"), count("invalid")}},
@@ -153,8 +155,21 @@ var eventSpecs = map[string]eventSpec{
 	// opens no undo block.
 	"TRACK_SELECTED": {required: []fieldSpec{text("run"), text("guid")}},
 	// track_create (narration_track_create.lua): the track added at the end of the track list, its 0-based index and the name it
-	// was given, in one undo point.
-	"TRACK_CREATED": {required: []fieldSpec{text("run"), text("guid"), count("index"), text("name")}},
+	// was given, in one undo point. A chapter folder (#2840) appends its one child: optional, so a plain track's answer, and an older
+	// script's, still reads.
+	"TRACK_CREATED": {required: []fieldSpec{text("run"), text("guid"), count("index"), text("name")}, optional: []fieldSpec{text("childGuid"), count("childIndex"), text("childName")}},
+	// chapter_folders (narration_track_create.lua, #2838): each track whose folder a move of nested chapters out of another chapter's
+	// folder changes (the folders' GUIDs and names, '' for the top level), then the closing line with how many chapters move;
+	// FOLDERS_STALE when the moves are not the ones confirmed, so nothing was written.
+	"FOLDER_MOVE":      {required: []fieldSpec{text("run"), text("guid"), text("name"), text("fromGuid"), text("fromName"), text("toGuid"), text("toName")}},
+	"FOLDERS_PLANNED":  {required: []fieldSpec{text("run"), count("chapters")}},
+	"FOLDERS_REPAIRED": {required: []fieldSpec{text("run"), count("chapters")}},
+	"FOLDERS_STALE":    {required: []fieldSpec{text("run")}},
+	// tracks_read (narration_tracks_read.lua): the open project's track list as REAPER has it now, saved or not, read-only. rpp is empty
+	// for a project never saved; one TRACKS_ROW per track (folderDelta is I_FOLDERDEPTH), then TRACKS_READ_END (listed, and the total).
+	"TRACKS_READ":     {required: []fieldSpec{text("run"), text("rpp"), count("unsaved"), count("changeCount")}},
+	"TRACKS_ROW":      {required: []fieldSpec{text("run"), count("index"), text("guid"), text("name"), count("folderDelta")}},
+	"TRACKS_READ_END": {required: []fieldSpec{text("run"), count("listed"), count("total")}},
 	// arm_only, record_start, record_stop (narration_transport.lua). changed is 0 or 1; position is the edit cursor
 	// where recording began; restored/kept count the track arms put back and kept. RECORD_ENDED carries the run of the
 	// record_start whose recording the narrator stopped in REAPER. undoPoints, the points REAPER's undo history gained during

@@ -1,3 +1,4 @@
+import { CHECK_RECORDINGS_LABEL } from '../recordingcheck/CheckRecordingsButton';
 import type { ReactNode } from 'react';
 import { EnginePanelLink } from '../engine/EnginePanelContext';
 import { chapterName, context } from '../../chapterName';
@@ -187,7 +188,7 @@ function SignalCard({
           </p>
           <CauseAction
             resolve={cause.resolve}
-            openLabel={isEditingSignal(signal.id) ? 'Open editing check' : 'Check recordings…'}
+            openLabel={isEditingSignal(signal.id) ? 'Open editing check' : CHECK_RECORDINGS_LABEL}
             onCheckNow={onCheckNow}
             onOpenCheck={isEditingSignal(signal.id) ? onOpenEditingCheck : onOpenCheck}
           />

@@ -152,7 +152,7 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'take-saved',
     description:
-      'Booth right after a take stopped in the DAW (Stop pressed): Record is back, and the message "Take saved" offers Undo, which takes the take back in the DAW; the take is in the undo history as "Recorded a take of <chapter>"',
+      'Booth right after a take stopped in the DAW (Stop pressed): Record is back, and the message "Take saved" offers Undo, which takes the take back in the DAW; a second, quieter message offers Check recordings for the chapter; the take is in the undo history as "Recorded a take of <chapter>"',
     ...FREEZES_THE_CLOCK,
     ...REFLOW,
   },
@@ -168,7 +168,7 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'cold-read',
     description:
-      'Booth, thirty seconds into a cold read (#2251 item 13; Cold read pressed, the page clock run on, then held): the ghost - a dashed outline and muted wash with a dashed tick - on the word the mock teleprompter has reached, and the view resting on it; the real cursor still on the first word, the progress line still at ¶ 1, no REC and no timer running; the dashed REC-tone "Mic on · cold read" badge in the top bar and Cold read pressed in the footer beside Levels',
+      'Booth, thirty seconds into a cold read (#2251 item 13; Cold read chosen in the side menu and the main button pressed, the page clock run on, then held): the ghost - a dashed outline and muted wash with a dashed tick - on the word the mock teleprompter has reached, and the view resting on it; the real cursor still on the first word, the progress line still at ¶ 1, no REC and no timer running; the dashed REC-tone "Mic on · cold read" badge in the top bar and the main button reading Stop in the cold-read blue outline (never the red of a take), beside its Levels caret',
     ...FREEZES_THE_CLOCK,
     ...REFLOW,
   },
@@ -436,6 +436,13 @@ export const boothStates: StateEntry[] = [
     description:
       'The Companion after Stop reading on a running session (?mockTeleprompter=listening, then the Stop reading icon button): the header badge is back to REAPER\'s own "Playhead stopped" (it reads "Reading" while the session runs), Stop reading is dimmed, and the "Where you stopped" prompt with Resume from here and Start from the top is back above the text',
     ...COMPANION,
+  },
+  {
+    page: 'booth',
+    state: 'suspected-second-listen',
+    description:
+      'Booth on a session whose suspected flags the trailing confirmation pass has judged (?mockTeleprompter=checked), the side panel open on "Suspected": the first line, which the second listen heard too, has a Confirmed chip beside its kind and keeps its Dismiss button; the last, which it did not hear because it read the script there, has a Not confirmed chip on a dimmed card with no Dismiss button, and the count in the heading leaves it out (5 of the 6 cards)',
+    ...REFLOW,
   },
   {
     page: 'booth',

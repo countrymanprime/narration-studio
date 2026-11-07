@@ -1,3 +1,4 @@
+import { chapterTrackOf } from './chapterTrackItems';
 import type { ChapterSyncPreview } from './contracts/chapterSync';
 import type {
   ChapterRegionKind,
@@ -118,7 +119,8 @@ export function mockChapterTrackMatch(chapterId: string, chapters: ManuscriptCha
     track: chosen,
     candidates,
     warnings: [],
-    recordedEnd: mockRecordedEnd(track),
+    // As the host reads it (tracks.Project.ChapterRecordedEnd): a folder of voices ends where its latest voice item ends.
+    recordedEnd: mockRecordedEnd({ ...track, items: chapterTrackOf(project.tracks, track.guid)?.items ?? track.items }),
   });
 
   if (linked.length === 1) return withTrack(linked[0], candidate(linked[0], 1, 'confirmed'), 'confirmed');
@@ -214,9 +216,9 @@ export function mockRecordedLength(
   if (links.length === 0) return { recordedUnavailable: 'unlinked' };
   if (!projectReadable) return { recordedUnavailable: 'no_project' };
   if (links.length > 1) return { recordedUnavailable: 'multiple_tracks' };
-  const track = project.tracks.find((candidate) => candidate.guid === links[0].trackGuid);
-  if (!track) return { recordedUnavailable: 'track_missing' };
-  const spans = track.items.map((item) => [item.position, item.position + item.length]).sort((a, b) => a[0] - b[0]);
+  const found = chapterTrackOf(project.tracks, links[0].trackGuid);
+  if (!found) return { recordedUnavailable: 'track_missing' };
+  const spans = found.items.map((item) => [item.position, item.position + item.length]).sort((a, b) => a[0] - b[0]);
   let total = 0;
   let current: number[] | null = null;
   for (const span of spans) {

@@ -1,4 +1,5 @@
-import { useId, useState, type ReactNode } from 'react';
+import { useId, useRef, useState, type ReactNode } from 'react';
+import { describeApiError } from '../../../api/errorMessage';
 import { Button } from '../../primitives/Button';
 import { ConfirmDialog } from '../../primitives/ConfirmDialog';
 import { HelpButton } from '../../primitives/HelpButton';
@@ -9,8 +10,12 @@ import { useBrowserSettingsVersion } from '../../../browserSettings';
 import { choiceLabel, computerValue, isAnyChanged, isBrowserChanged, isChanged, overrideValue, projectValue } from '../data/values';
 import { PAGE_LABEL, PAGE_PATH, type Scope, type SettingMeta } from '../registry/types';
 import { rowOf } from '../registry/rows';
+import { needsProject, NEEDS_PROJECT_REASON } from '../registry/projectNeeds';
+import { useHasProject } from './SettingsHost';
 import { AssetNote } from './AssetNote';
 import { OpenLogFolderButton } from './OpenLogFolderButton';
+import { useRowReset } from './RowResetContext';
+import { useSettingsHost } from './SettingsHost';
 import { useSettingsNav } from './SettingsNav';
 import { ValueControl } from './ValueControl';
 import { WorkerPlanNote } from './WorkerPlanNote';
@@ -19,9 +24,12 @@ const SCOPE_LABEL: Record<Scope, string> = { computer: 'This computer', project:
 
 /** Whose the setting is, and where this project differs. */
 function ScopeBadge({ row, overridden }: { row: SettingMeta; overridden: boolean }) {
+  // A row drawn for the project that is saved with a host field is written at the computer scope (the control has no project layer to write), so
+  // it says so: the value is kept for every project until a project-scope write exists (issue 2605).
+  const forAll = row.scope === 'project' && Boolean(row.field);
   return (
-    <span data-scope={row.scope} className={row.scope === 'project' ? 'text-[var(--accent-strong)]' : ''}>
-      {SCOPE_LABEL[row.scope]}
+    <span data-scope={row.scope} className={row.scope === 'project' && !forAll ? 'text-[var(--accent-strong)]' : ''}>
+      {forAll ? SCOPE_LABEL.both : SCOPE_LABEL[row.scope]}
       {overridden && <b className="font-semibold text-[var(--accent-strong)]"> · overridden here</b>}
     </span>
   );
@@ -30,7 +38,10 @@ function ScopeBadge({ row, overridden }: { row: SettingMeta; overridden: boolean
 /** The pages that read this setting; each link goes there. The setting is changed here, once. */
 function UsedBy({ row }: { row: SettingMeta }) {
   const { go } = useSettingsNav();
+  const hasProject = useHasProject();
   if (row.used.length === 0) return null;
+  // With no project open the pages are not there to go to: they are named, not linked.
+  if (!hasProject) return <span>Used by {row.used.map((page) => PAGE_LABEL[page]).join(', ')}</span>;
   return (
     <span className="inline-flex flex-wrap items-center gap-x-1">
       <span>Used by</span>
@@ -68,14 +79,27 @@ const CELL = `${SETTING_ROW_GRID} border-t border-[var(--border)] px-5 py-4 firs
  * that control instead of the host field's (the setting is more than one value); a `wide` one draws it under the label across the whole row,
  * for a table or a form that needs the width (alignment audit XSE2-4, XSE2-11).
  */
+// Rows whose body already carries its own way back: the layout, sync, zoom and order controls draw a Reset beside them, the tips row's button is
+// the reset, and the shortcut list has Reset all to defaults.
+const OWN_RESET = new Set(['daw.layout', 'daw.sync', 'look.zoom', 'look.entrySort', 'app.tips', 'keys.map']);
+
 export function SettingRowView({ row, children, flash, wide }: { row: SettingMeta; children?: ReactNode; flash?: boolean; wide?: boolean }) {
   const store = useSettingsStore();
+  const hasProject = useHasProject();
+  // No project open: the row stays, says what it waits for, and its control is off. Its body is not drawn at all, so nothing in it can ask the
+  // host for a project that is not there.
+  const waiting = !hasProject && needsProject(row);
   const uid = useId();
   const [asking, setAsking] = useState<string>();
+  // An Override on a number that is not set yet has no value to copy, so it opens an empty project box and saves nothing until one is typed.
+  const [opening, setOpening] = useState(false);
   const { global, project } = store.fieldsOf(row);
   const controlId = `set-${row.id}`;
   const error = store.rowErrors[row.id];
   const hasCustom = children !== undefined;
+  const rowEl = useRef<HTMLDivElement>(null);
+  const reset = useRowReset(row.id);
+  const { notify } = useSettingsHost();
   const comp = computerValue(row, global);
   const own = overrideValue(row, project);
   // A custom body has no host field to compare, except a row this window keeps, which has its own reader.
@@ -83,7 +107,7 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
   const changed = hasCustom ? isBrowserChanged(row) || store.customChanged.has(row.id) : isAnyChanged(row, global, project, store.customChanged);
   const saved = store.saved?.row === row.id;
   const heavy = hasCustom || !global ? undefined : row.heavy?.(comp);
-  const describedBy = `${uid}d${error ? ` ${uid}e` : ''}`;
+  const describedBy = `${uid}d${waiting ? ` ${uid}p` : ''}${error ? ` ${uid}e` : ''}`;
 
   /** What the host is sent: a value equal to the default clears the setting instead of pinning it, an emptied number is "not set". */
   const toSend = (value: string, scope: 'global' | 'project'): string | null => {
@@ -106,10 +130,13 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
 
   return (
     <div
-      className={`${CELL} relative scroll-mt-24 ${flash ? 'bg-[var(--accent-soft)]' : ''}`}
+      className={`${CELL} relative scroll-mt-24 outline-none ${flash ? 'bg-[var(--accent-soft)]' : ''}`}
+      ref={rowEl}
+      tabIndex={-1}
       data-row={row.id}
       data-changed={changed ? 'true' : undefined}
       data-scope={row.scope}
+      data-needs-project={waiting ? 'true' : undefined}
     >
       {/* The bar runs the row's full height, so it marks the row instead of interrupting the card's edge (R3SE1-16, XSE2-34). */}
       {changed && <span aria-hidden="true" data-changed-bar className="absolute inset-y-0 left-0 w-[3px] bg-[var(--info)]" />}
@@ -123,17 +150,43 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
           {changed && <StatusBadge tone="info" label="Changed" />}
         </span>
         <span id={`${uid}d`} className="max-w-[60ch] text-[0.8125rem] text-[var(--text-muted)]">
-          {row.desc}
+          {waiting ? row.desc.replace(/\bthis project(?:’|')s\b/gi, 'a project’s').replace(/\bthis project\b/gi, 'a project') : row.desc}
         </span>
         <span className="mt-1.5 flex flex-wrap items-center gap-x-3.5 gap-y-0.5 text-[0.78rem] text-[var(--text-muted)]">
           <ScopeBadge row={row} overridden={own !== undefined} />
           <UsedBy row={row} />
-          {row.also && <span>Also set in {row.also}</span>}
+          {/* Every "also" is a page's or the shell's control, which a narrator with no project does not have. */}
+          {row.also && hasProject && <span>Also set in {row.also}</span>}
         </span>
       </div>
       <div className={`flex max-w-full min-w-0 flex-col items-start gap-2 ${wide ? 'col-span-full' : ''}`} data-row-body={wide ? 'wide' : undefined}>
-        {hasCustom ? (
-          children
+        {waiting && (
+          <span id={`${uid}p`} className="text-[0.8125rem] text-[var(--text-muted)]">
+            {NEEDS_PROJECT_REASON}
+          </span>
+        )}
+        {waiting ? null : hasCustom ? (
+          reset && !OWN_RESET.has(row.id) ? (
+            // The wrapper stays whether or not the row is changed, so the body keeps its place and its state when the Reset appears.
+            <div data-control-line className="flex w-full min-w-0 flex-wrap items-center gap-1.5">
+              {children}
+              {changed && (
+                <IconButton
+                  action="undo"
+                  label={`Reset ${row.label} to its default`}
+                  className="border-transparent"
+                  onClick={() => {
+                    void Promise.resolve(reset())
+                      .catch((failure: unknown) => notify(`${row.label} could not be reset: ${describeApiError(failure)}`, 'error'))
+                      // The button is gone once the row is back at its default; keep the place instead of dropping to the page.
+                      .finally(() => rowEl.current?.focus());
+                  }}
+                />
+              )}
+            </div>
+          ) : (
+            children
+          )
         ) : global ? (
           <>
             {/* The row of the control and its Reset takes the column's width, so the control's own `w-full` has a width to resolve against.
@@ -168,12 +221,17 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
               {saved && <SavedWord key={store.saved?.n} />}
             </div>
             {global.kind === 'choice' && <AssetNote row={row} value={comp} kindOf={kindOf} />}
-            {row.scope === 'both' && project && (
+            {row.scope === 'both' && !hasProject && (
+              <div className="text-[0.8125rem] text-[var(--text-muted)]" data-override-waits={row.id}>
+                Open a project to give it a value of its own.
+              </div>
+            )}
+            {row.scope === 'both' && project && hasProject && (
               <div
                 className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[0.8125rem] text-[var(--text-muted)]"
                 data-override={own !== undefined ? row.id : undefined}
               >
-                {own !== undefined ? (
+                {own !== undefined || opening ? (
                   <>
                     <span>This project uses</span>
                     <ValueControl
@@ -189,16 +247,24 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
                       variant="link"
                       size="sm"
                       aria-label={`Use computer setting for ${row.label}`}
-                      onClick={() => void store.write(row, 'project', null)}
+                      onClick={() => {
+                        setOpening(false);
+                        void store.write(row, 'project', null);
+                      }}
                     >
                       Use computer setting
                     </Button>
-                    {global.kind === 'choice' && <AssetNote row={row} value={own} kindOf={kindOf} />}
+                    {global.kind === 'choice' && <AssetNote row={row} value={own ?? comp} kindOf={kindOf} />}
                   </>
                 ) : (
                   <>
                     <span>This project uses the computer setting.</span>
-                    <Button variant="link" size="sm" aria-label={`Override for this project: ${row.label}`} onClick={() => commit(comp, 'project')}>
+                    <Button
+                      variant="link"
+                      size="sm"
+                      aria-label={`Override for this project: ${row.label}`}
+                      onClick={() => (comp === '' && global.kind === 'number' ? setOpening(true) : commit(comp, 'project'))}
+                    >
                       Override for this project
                     </Button>
                   </>

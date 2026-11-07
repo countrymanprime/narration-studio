@@ -50,6 +50,7 @@ export function useVoiceSample({ chapterId, workspace, items, mediaUrl, stopPlay
   const { doc, selected } = useEditingPage();
   const storyBible = usePort('storyBible');
   const samples = usePort('voiceSamples');
+  const system = usePort('system');
   const journal = useJournalOrOwn();
 
   // Read from the latest render inside open(), so a page playback that changes does not rebuild the registered actions.
@@ -69,11 +70,14 @@ export function useVoiceSample({ chapterId, workspace, items, mediaUrl, stopPlay
             unread.push(what);
             return fallback;
           });
-        const [entities, cues, list] = await Promise.all([
+        const [entities, cues, list, fields] = await Promise.all([
           read(storyBible.guideEntities(), [], "the Story Bible's characters"),
           read(storyBible.guideDialogueCues(), [], "the Story Bible's speakers"),
           read<VoiceSamples | undefined>(samples.voiceSamplesList(), undefined, 'how many samples each character has'),
+          read<Awaited<ReturnType<typeof system.settingsForScope>> | undefined>(system.settingsForScope('project'), undefined, 'where samples are kept'),
         ]);
+        const kept = fields?.VoiceSamples?.find((f) => f.key === 'storage')?.effectiveValue;
+        const storage = kept === 'daw' || kept === 'both' ? kept : 'project';
         const result = voiceSampleRange(workspace, picked);
         const choices = characterChoices(entities, cues, chapterId);
         const counts: Record<string, number> = {};
@@ -103,6 +107,7 @@ export function useVoiceSample({ chapterId, workspace, items, mediaUrl, stopPlay
               choices={choices}
               counts={counts}
               limit={list?.limits.perCharacter ?? DEFAULT_LIMIT}
+              storage={storage}
               initialCharacterId={speaker ?? choices[0].id}
               onCancel={close}
               onSave={async (values) => {
@@ -137,7 +142,21 @@ export function useVoiceSample({ chapterId, workspace, items, mediaUrl, stopPlay
                     if (answer.status === 'refused') return refuse('refused', answer.message);
                     const id = answer.sample.id;
                     // The host answers the sample that exists when the same frames are marked twice; Undo must not remove an earlier save.
-                    if (list?.samples.some((s) => s.id === id)) return refuse('duplicate', `That stretch is already a voice sample for ${name}.`);
+                    // When the storage changed in between, the host added what the sample lacked to it: say so, with no Undo (nothing takes
+                    // an addition back, and removing the sample would lose the earlier save).
+                    const before = list?.samples.find((s) => s.id === id);
+                    if (before) {
+                      // "Kept" only when the sample reads whole: a clip or a region that is gone is not kept, whatever the row says.
+                      const { clipState, daw } = answer.sample;
+                      const whole = clipState === 'ok' && (daw === undefined || daw.state === 'ok' || daw.state === 'label_moved');
+                      const extended = whole && (before.storage ?? 'project') !== (answer.sample.storage ?? 'project');
+                      return refuse(
+                        'duplicate',
+                        extended
+                          ? `That stretch’s voice sample for ${name} is now kept in the project folder and the DAW.`
+                          : `That stretch is already a voice sample for ${name}.`,
+                      );
+                    }
                     return { ok: true as const, value: id };
                   },
                   undo: async (id) => {
@@ -172,7 +191,7 @@ export function useVoiceSample({ chapterId, workspace, items, mediaUrl, stopPlay
         });
       })();
     },
-    [selected, doc, workspace, items, mediaUrl, stopPlayback, chapterId, storyBible, samples, journal],
+    [selected, doc, workspace, items, mediaUrl, stopPlayback, chapterId, storyBible, samples, system, journal],
   );
 
   const latest = useRef(open);

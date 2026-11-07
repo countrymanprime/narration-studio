@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"desktop/internal/brand"
+	"desktop/internal/persist"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -329,7 +330,7 @@ func (s *Stager) unpack(ctx context.Context, release Release, zipSum string) (St
 		_ = os.Remove(partial)
 		return Staged{}, err
 	}
-	if err := os.Rename(partial, final); err != nil {
+	if err := persist.Rename(partial, final); err != nil {
 		_ = os.Remove(partial)
 		return Staged{}, userError("The update's program could not be put in place.")
 	}

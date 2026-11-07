@@ -29,6 +29,26 @@ async function focusSettled(page: Page, popup: Locator): Promise<void> {
 }
 
 /** What the page behind would show if a key had reached it: a take, a bookmark, a moved cursor, a chapter change. */
+/**
+ * Where focus is once a Tab has settled. The dialog library ends a modal popup with a focus guard (`data-base-ui-focus-guard`, an empty
+ * focusable span): a Tab that lands on it is moved back inside on the next frame, so a single read right after the key press can catch
+ * the guard under load and call a settled trap a leak. Poll for a moment; a guard that never hands focus back is still reported, with its markup.
+ */
+async function focusInside(page: Page, popup: Locator): Promise<{ inside: boolean; active: string }> {
+  const read = () =>
+    popup.evaluate((el) => {
+      const active = document.activeElement as HTMLElement | null;
+      return { inside: el.contains(active), active: active ? active.outerHTML.slice(0, 240) : 'none' };
+    });
+  const deadline = Date.now() + 1500;
+  let where = await read();
+  while (!where.inside && (await popup.isVisible()) && Date.now() < deadline) {
+    await page.waitForTimeout(50);
+    where = await read();
+  }
+  return where;
+}
+
 async function behindTheOverlay(page: Page) {
   return page.evaluate(() => ({
     recording: !!Array.from(document.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Stop'),
@@ -72,9 +92,9 @@ const OVERLAYS: Overlay[] = [
   {
     name: 'Levels popover',
     open: async (page) => {
-      const opener = page.getByRole('button', { name: 'Levels' });
+      const opener = page.getByRole('button', { name: 'Record options' });
       await opener.click();
-      return { popup: page.getByRole('dialog', { name: 'Levels' }), opener };
+      return { popup: page.getByRole('dialog', { name: 'Record options' }), opener };
     },
   },
   {
@@ -88,9 +108,9 @@ const OVERLAYS: Overlay[] = [
         .getByRole('dialog', { name: /is not connected/ })
         .getByRole('button', { name: 'Close' })
         .click();
-      const opener = page.getByRole('button', { name: 'Levels' });
+      const opener = page.getByRole('button', { name: 'Record options' });
       await opener.click();
-      return { popup: page.getByRole('dialog', { name: 'Levels' }), opener };
+      return { popup: page.getByRole('dialog', { name: 'Record options' }), opener };
     },
   },
   {
@@ -256,8 +276,9 @@ for (const overlay of OVERLAYS) {
       for (let i = 0; i < 8; i++) {
         await page.keyboard.press('Tab');
         if (!(await popup.isVisible())) break;
-        const inside = await popup.evaluate((el) => el.contains(document.activeElement));
-        expect(inside, `Tab ${i + 1} left the open ${overlay.name}`).toBe(true);
+        const where = await focusInside(page, popup);
+        if (!(await popup.isVisible())) break;
+        expect(where.inside, `Tab ${i + 1} left the open ${overlay.name}: focus is on ${where.active}`).toBe(true);
       }
       if (await popup.isVisible()) {
         await page.keyboard.press('Escape');
@@ -291,11 +312,11 @@ test.describe('the pedal works after an overlay closes', () => {
 
   test('Levels, Escape, Space toggles the take instead of opening Levels again', async ({ page }) => {
     await openBooth(page);
-    await page.getByRole('button', { name: 'Levels' }).click();
+    await page.getByRole('button', { name: 'Record options' }).click();
     await page.keyboard.press('Escape');
     await page.keyboard.press('Space');
     await expect(page.getByRole('button', { name: /^Stop$/ })).toBeVisible();
-    await expect(page.getByRole('dialog', { name: 'Levels' })).toHaveCount(0);
+    await expect(page.getByRole('dialog', { name: 'Record options' })).toHaveCount(0);
     await pastStartGuard(page);
     await page.keyboard.press('Space');
     await expect(record(page)).toBeVisible();
@@ -345,8 +366,8 @@ test.describe('a pedal Space with a popup open, by the control that has focus', 
 
   test('a text field inside a popup keeps its Space', async ({ page }) => {
     await openBooth(page);
-    await page.getByRole('button', { name: 'Levels' }).click();
-    const popup = page.getByRole('dialog', { name: 'Levels' });
+    await page.getByRole('button', { name: 'Record options' }).click();
+    const popup = page.getByRole('dialog', { name: 'Record options' });
     await focusSettled(page, popup);
     await popup.evaluate((el) => {
       const field = document.createElement('input');
