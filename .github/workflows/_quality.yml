@@ -37,7 +37,7 @@ jobs:
     #     installing and finding nothing to do. Same rule as every nx-run / nx-affected step (scripts/ci/nx-scope.sh: everything on a
     #     manual run or a workspace-wide file, else `nx show projects --affected`).
     #       - ui: Test (Linux)'s Vitest, visual and atlas steps, in all five shards (`test-shards`); otherwise shard 1 alone runs.
-    #       - shell: go-test (the Go tests and lint, and the Lua harness on Windows), so the reaper project or the shell.
+    #       - shell: Test (Windows 1/2) and (2/2) (the Go tests and lint, and the Lua harness on Windows), so the reaper project or the shell.
     #     A skipped job counts as passed in ci.yml's `CI passed`; the steps inside those jobs keep their own scope check.
     #     A pull request whose workflow changes are only `uses:` pin bumps (Dependabot) is not `all` here: the nx-affected steps run
     #     nx-scope.sh --pins, and the `pins` step (scripts/ci/workflow-pins.mjs, pin-flags.mjs) ORs in the families of the jobs that
@@ -47,7 +47,7 @@ jobs:
     #   - Lint, one step per project family, each on its affected projects: ui static and web static (lint, format, architecture and
     #     node:test of the UI and site projects, the site's typecheck and Vitest run), Knip (every workspace, so `always`), python lint
     #     (ruff and the typecheck of the Python projects), reaper lint (StyLua and ruff on the bridge), docs-site lint (`always`).
-    #     Go lint runs on Windows in go-test (it needs the Windows build tags). Then the test ratchet (advisory, pull requests only).
+    #     Go lint runs in Test (Windows 1/2) (it needs the Windows build tags). Then the test ratchet (advisory, pull requests only).
     name: lint
     timeout-minutes: 20
     runs-on: ubuntu-latest
@@ -281,13 +281,15 @@ jobs:
       - if: ${{ !cancelled() && inputs.full && steps.scope.outputs.affected == 'true' }}
         uses: ./.github/actions/setup-playwright
       # Lists the suite (no browser), gives this shard its tests and says whether this shard also runs `aria`. Fails if the shards do not
-      # hold every test exactly once. Shard 1 carries the quick tests: about 5 min on a pull request, about 8 with the mutation checks and
-      # the `--full` rehearsal elsewhere.
+      # hold every test exactly once. Shard 1 carries the quick tests (about 4 to 5 min on a pull request), and the reserve is in the
+      # split's estimated seconds. Measured: a 300 s reserve left shard 1 at 19.8 min against 24.75 for the longest other (run
+      # 42397023062); 110 s put it at 28.2 against 23.9 (run 42400723192). 200 s lies between. Elsewhere the mutation checks and the
+      # `--full` rehearsal add about 3 min, so 380 (not yet measured on a main-health run).
       - id: split
         if: ${{ !cancelled() && inputs.full && steps.scope.outputs.affected == 'true' }}
         env:
           SHARD: ${{ matrix.shard }}
-          RESERVE: ${{ github.event_name == 'pull_request' && '300' || '480' }}
+          RESERVE: ${{ github.event_name == 'pull_request' && '200' || '380' }}
         run: node scripts/ci/visual-shards.mjs split --shard "$SHARD/5" --reserve-first "$RESERVE" --out "$RUNNER_TEMP/shard.txt" --manifest "$RUNNER_TEMP/shard-$SHARD.json" --github-output
       # The JSON report is the profile (time per test); a shard uploads it as ui-visual-timings-<i> and `visual-shards.mjs weights` rebuilds
       # shard-weights.json from them.
@@ -370,33 +372,35 @@ jobs:
             "atlas": "${{ steps.atlas.outcome }}", "atlas docs": "${{ steps.atlas-docs.outcome }}"}
         run: node scripts/ci/step-summary.mjs
 
-  go-test:
-    # The Windows checks, two jobs split by what each package cost on the Windows runner (run 39138316593): the raced root package
-    # took 405 s, the other raced packages ran beside it, the plain packages 33 s and `test-schedules` 118 s.
-    #   - root: the module's root package with the race detector (the `ci-root` configuration of the test target), then go lint
-    #     (gofmt, go vet, golangci-lint and checklocks: the `ci` configuration of the lint target).
-    #   - rest: the other raced packages and the plain ones (`ci-rest`), then the teleprompter and shutdown tests on one and on four CPUs
-    #     (`test-schedules`: an ordering bug between goroutines that hides on the default scheduler fails there on demand), then the
-    #     bridge harness under Lua 5.4 on Windows, because the bridge builds paths from package.config and REAPER's own Lua writes CRLF.
-    # Each job checks the coverage floors of the packages it ran (scripts/ci/coverage-gate.mjs --group); together they run every package
-    # once. These were three jobs: go lint and the Windows harness had a runner of their own (quick-windows), whose 20 minutes were 15.6
-    # of the harness's mutation checks.
-    # The mutation checks: a pull request runs the harness's `pr` configuration (the characterization tests, about a minute) here and in
-    # Test (Linux); every other run (main-health, a manual run) and post-merge.yml run the mutation checks on both. Windows is the only supported platform and Linux's native libraries are not installed on the
-    # Linux runners, so Go is tested and linted here.
-    # 30 min: the median was 11 (root) and 15 (rest) min, the longest 16.1, plus about 2 for lint or the harness; a main-health run's
-    # mutation checks add up to 15 to `rest`.
+  test-windows:
+    # Every Windows check, in two shards (owner decision, #3065: Test (Windows 1/2) and (2/2)). These were two jobs, go-test (root) and
+    # go-test (rest); the shards keep that split of the Go packages (scripts/ci/coverage-gate.mjs --group) and share the other steps
+    # between them by time.
+    #   - Shard 1: go test (root), the module's root package with the race detector (the `ci-root` configuration of the test target), then
+    #     go lint (gofmt, go vet, golangci-lint and checklocks, the `ci` configuration of the lint target; here because it needs the
+    #     Windows build tags).
+    #   - Shard 2: go test (rest), the other packages, the race detector on those with concurrency (`ci-rest`); then go test-schedules
+    #     (the teleprompter and shutdown tests on one and on four CPUs: an ordering bug between goroutines that hides on the default
+    #     scheduler fails there on demand); then reaper (Lua), the bridge harness under Lua 5.4 on Windows, because the bridge builds paths
+    #     from package.config and REAPER's own Lua writes CRLF. A pull request runs the harness's `pr` configuration (the characterization
+    #     tests, about a minute) here and in Test (Linux); every other run (main-health, a manual run) and post-merge.yml run the mutation
+    #     checks on both.
+    #   Each go test step checks the coverage floors of the packages it ran; together they run every package once.
+    # Measured on one runner (run 42405595296): root 10.6, rest 10.7, schedules 2.7, lint 1.25, harness 0.6 min, 28.2 with setup, past
+    # the shards of Test (Linux). Root and rest in one `go test` was faster but the root package slowed from 405 s to 539 s competing for
+    # the CPUs and a timing test failed (run 42403486674), so each shard runs one group.
+    # Each step runs even after a red one (`!cancelled()`), and the summary names every step's result. Windows is the only supported
+    # platform and Linux's native libraries are not installed on the Linux runners, so Go is tested and linted here.
+    # 40 min: a main-health run's mutation checks add up to 15 to shard 2.
     needs: lint
     if: needs.lint.outputs.shell == 'true'
-    name: go-test (${{ matrix.part }})
+    name: Test (Windows ${{ matrix.shard }}/2)
+    timeout-minutes: 40
+    runs-on: windows-latest
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - { part: root, configuration: ci-root, schedules: false, lint: true, lua: false }
-          - { part: rest, configuration: ci-rest, schedules: true, lint: false, lua: true }
-    timeout-minutes: 40
-    runs-on: windows-latest
+        shard: [1, 2]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { fetch-depth: 0, persist-credentials: false }
@@ -407,32 +411,41 @@ jobs:
           need-python: 'false'
           need-wails-tools: 'false'
           need-stylua: 'false'
-          need-golangci-lint: ${{ matrix.lint }}
+          need-golangci-lint: ${{ matrix.shard == 1 }}
           pnpm-filter: workspace
-      - name: go test
-        id: go-test
+      - name: go test (root)
+        id: go-test-root
+        if: ${{ matrix.shard == 1 }}
         uses: ./.github/actions/nx-run
         with:
           targets: test
           projects: desktop
-          configuration: ${{ matrix.configuration }}
+          configuration: ci-root
+      - name: go test (rest)
+        id: go-test-rest
+        if: ${{ !cancelled() && matrix.shard == 2 }}
+        uses: ./.github/actions/nx-run
+        with:
+          targets: test
+          projects: desktop
+          configuration: ci-rest
       - name: go test-schedules
         id: schedules
-        if: ${{ matrix.schedules && !cancelled() }}
+        if: ${{ !cancelled() && matrix.shard == 2 }}
         uses: ./.github/actions/nx-run
         with:
           targets: test-schedules
           projects: desktop
       - name: go lint
         id: go-lint
-        if: ${{ matrix.lint && !cancelled() }}
+        if: ${{ !cancelled() && matrix.shard == 1 }}
         uses: ./.github/actions/nx-run
         with:
           targets: lint
           projects: desktop
           configuration: ci
       - name: Python and StyLua for the Lua harness
-        if: ${{ matrix.lua && !cancelled() }}
+        if: ${{ !cancelled() && matrix.shard == 2 }}
         uses: ./.github/actions/setup-toolchain
         with:
           need-node: 'false'
@@ -442,7 +455,7 @@ jobs:
           python-sync-args: --only-group lua
       - name: reaper (Lua)
         id: reaper
-        if: ${{ matrix.lua && !cancelled() }}
+        if: ${{ !cancelled() && matrix.shard == 2 }}
         uses: ./.github/actions/nx-run
         with:
           targets: lint test
@@ -453,7 +466,7 @@ jobs:
         shell: bash
         env:
           OUTCOMES: >-
-            {"go test": "${{ steps.go-test.outcome }}", "go test-schedules": "${{ steps.schedules.outcome }}",
+            {"go test (root)": "${{ steps.go-test-root.outcome }}", "go test (rest)": "${{ steps.go-test-rest.outcome }}", "go test-schedules": "${{ steps.schedules.outcome }}",
             "go lint": "${{ steps.go-lint.outcome }}", "reaper (Lua)": "${{ steps.reaper.outcome }}"}
         run: node scripts/ci/step-summary.mjs
 
