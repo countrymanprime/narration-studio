@@ -352,10 +352,11 @@
       "was": "ui-dist / build",
       "tier": "pr",
       "workflow": "_quality.yml",
-      "job": "linux-checks",
+      "job": "lint",
       "step": [
         "pnpm --dir src/studio/ui run build"
-      ]
+      ],
+      "note": "The lint job builds the UI bundle (full tier) and uploads it as `ui-dist` for Build (Windows); the Windows runner cannot build it (case-insensitive file system)."
     },
     {
       "id": "build-windows",
@@ -368,7 +369,7 @@
       ],
       "job_has": [
         "runs-on: windows-latest",
-        "needs: linux-checks"
+        "needs: lint"
       ]
     },
     {
