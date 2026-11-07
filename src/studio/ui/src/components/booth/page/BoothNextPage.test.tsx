@@ -1788,6 +1788,26 @@ describe('the Booth offers Check recordings once a take has stopped (#2833)', ()
     expect(open).toHaveBeenCalledWith([expect.any(String)]);
   });
 
+  // qa-breaker: the offer is about the take just stopped, so it goes when the next take starts, when the Booth is left, and when the DAW can no longer check.
+  it('the offer goes when the next take starts', async () => {
+    const page = renderPage();
+    await record(page);
+    await space();
+    await waitFor(() => expect(offer(page)).toBeTruthy());
+    await space();
+    await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(2));
+    expect(offer(page)).toBeUndefined();
+  });
+
+  it('the offer goes when the Booth is left', async () => {
+    const page = renderPage();
+    await record(page);
+    await space();
+    await waitFor(() => expect(offer(page)).toBeTruthy());
+    page.view.unmount();
+    expect(offer(page)).toBeUndefined();
+  });
+
   it('offers nothing while the DAW cannot check recordings', async () => {
     const page = renderPage({ setup: 'reaper-off' });
     await ready();
