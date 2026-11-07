@@ -96,9 +96,10 @@ jobs:
     #     pytest of the Python projects (Go is installed for the transcript-compare tests), StyLua and the bridge harness with its mutation
     #     checks under Lua 5.4.
     #   - rename rehearsal, every pull request: renames a throwaway worktree of this commit to a made-up name and runs the brand sync, both
-    #     name guards and the tests that read the name (scripts/brand/rehearse-rename.mjs, #2251 item 41). main-health runs `--full`.
-    # 45 min, the rename rehearsal's own limit: its `--full` run (main-health, a manual run) took up to 36 min alone; on a pull request
-    # the four jobs it replaces ran 9.7 min together on run 41966422733, each setup included.
+    #     name guards and the tests that read the name (scripts/brand/rehearse-rename.mjs, #2251 item 41). main-health runs `--full`,
+    #     which adds the UI typecheck and the built site with its retired-name check (#3078).
+    # 45 min: before #3078 the `--full` rehearsal (main-health, a manual run) re-ran every suite and took up to 36 min alone; on a pull
+    # request the four jobs it replaces ran 9.7 min together on run 41966422733, each setup included.
     name: linux-checks
     needs: scope
     timeout-minutes: 45
@@ -108,13 +109,12 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { fetch-depth: 0, persist-credentials: false }
-      # GTK 4 and WebKitGTK only for the rename rehearsal's `--full` run (not a pull request): it builds and tests the desktop
-      # module, which links them through cgo. A pull request's rehearsal runs `go vet` and the brand tests, which need neither.
+      # No GTK 4 or WebKitGTK: the rename rehearsal, `--full` included, runs `go vet` and the brand tests, which need neither.
       - uses: ./.github/actions/setup-toolchain
         with:
           need-go: 'true'
           need-wails-tools: 'false'
-          need-linux-native-deps: ${{ github.event_name != 'pull_request' }}
+          need-linux-native-deps: 'false'
           python-sync-args: --group docs
       - name: UI bundle
         id: ui-bundle

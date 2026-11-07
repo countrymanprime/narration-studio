@@ -10,8 +10,11 @@
 //   node scripts/brand/rehearse-rename.mjs [--full] [--keep]
 //     (default)  the per-pull-request run (the rename rehearsal step of _quality.yml's linux-checks job): the guards, the Node script tests, the site build's
 //                tests, the docs-site tests, `go vet ./...` and the Go, Python, Lua and UI tests that read the brand
-//     --full     the nightly run (main-health.yml): every Go, UI, shared-library Python and Lua test, the built site and the
-//                strict docs build
+//     --full     the scheduled run (main-health.yml): the same checks, plus the UI typecheck and the built site with its
+//                retired-name check, the one check of the name in rendered output. It no longer re-runs every test suite (#3078):
+//                scripts/ci/brand-name.mjs already fails on the name spelled in any tracked file, tests included, and the
+//                suites run in their own jobs. Over 2026-10-30 to 11-06 the re-runs found no spelled name; their reds were load
+//                and test-quality failures (the seven-day summary on #3078).
 //     --keep     leaves the worktree in place and prints where it is
 
 import { execFileSync } from 'node:child_process';
@@ -39,7 +42,7 @@ function uiBrandTests(root) {
 }
 
 /** The checks after the rename: [label, command, args, cwd]. */
-function steps(root, full = false) {
+export function steps(root, full = false) {
   const always = [
     ['brand sync is clean', ...node('scripts/brand/sync.mjs', '--check')],
     ['the current name is only in the brand file and its outputs', ...node('scripts/ci/brand-name.mjs')],
@@ -52,25 +55,20 @@ function steps(root, full = false) {
     ['docs-site tests', 'uv', ['run', '--locked', '--only-group', 'docs', 'python', '-m', 'pytest', '-q', '-p', 'no:cacheprovider', 'tools/docs-site/tests']],
     ['Go vet (every package and test builds)', 'go', ['vet', './...'], DESKTOP],
   ];
-  if (!full) {
-    return [
-      ...always,
-      ['Go tests that read the brand', 'go', ['test', './internal/brand/...', './internal/contractfile/...', './internal/deliveryreport/...', './internal/productionreport/...'], DESKTOP],
-      ['Python brand tests', ...python('-m', 'pytest', '-q', '-p', 'no:cacheprovider', 'src/studio/libs/python/tests/test_brand.py', 'src/studio/libs/python/tests/test_config_audacity.py')],
-      ['Lua bridge harness', ...python('src/studio/integrations/reaper/tests/run_lua_tests.py')],
-      ['UI tests that read the brand', 'pnpm', ['exec', 'vitest', 'run', ...uiBrandTests(root)], UI],
-    ];
-  }
+  const brandTests = [
+    ['Go tests that read the brand', 'go', ['test', './internal/brand/...', './internal/contractfile/...', './internal/deliveryreport/...', './internal/productionreport/...'], DESKTOP],
+    ['Python brand tests', ...python('-m', 'pytest', '-q', '-p', 'no:cacheprovider', 'src/studio/libs/python/tests/test_brand.py', 'src/studio/libs/python/tests/test_config_audacity.py')],
+    ['Lua bridge harness', ...python('src/studio/integrations/reaper/tests/run_lua_tests.py')],
+    ['UI tests that read the brand', 'pnpm', ['exec', 'vitest', 'run', ...uiBrandTests(root)], UI],
+  ];
+  if (!full) return [...always, ...brandTests];
+  // The docs-site tests above already build the docs strictly, so --full adds no docs build of its own.
   return [
     ...always,
-    ['every Go test', 'go', ['test', './...'], DESKTOP],
-    ['every shared-library Python test', ...python('-m', 'pytest', '-q', '-p', 'no:cacheprovider', 'src/studio/libs/python/tests')],
-    ['Lua bridge harness and mutations', ...python('src/studio/integrations/reaper/tests/run_lua_tests.py', '--mutations')],
-    ['every UI test', 'pnpm', ['exec', 'vitest', 'run'], UI],
+    ...brandTests,
     ['UI typecheck', 'pnpm', ['exec', 'tsc', '--noEmit', '-p', 'tsconfig.json'], UI],
     ['built site', ...node('src/web/build/build-demo-site.mjs')],
     ['the built site never says a retired name', ...node('scripts/ci/old-name.mjs', 'dir', 'dist-site')],
-    ['strict docs build', 'uv', ['run', '--locked', '--only-group', 'docs', 'python', '-m', 'mkdocs', 'build', '--strict', '-f', 'tools/docs-site/mkdocs.yml']],
   ];
 }
 
@@ -101,7 +99,8 @@ function main(args) {
     else run('git', ['worktree', 'remove', '--force', work], REPOSITORY_ROOT);
   }
   if (failed.length) {
-    console.error(`\nAfter a rename to "${REHEARSAL_NAME}", these failed: something spells the name instead of reading it.\n  ${failed.join('\n  ')}`);
+    // A failed check is not always a spelled name: a test can fail in the copy for its own reasons. Its log is in the group above.
+    console.error(`\nAfter a rename to "${REHEARSAL_NAME}", these checks failed (each one's output is in its group above):\n  ${failed.join('\n  ')}`);
     process.exitCode = 1;
   } else {
     console.log(`\nA rename to "${REHEARSAL_NAME}" needs no second edit.`);
