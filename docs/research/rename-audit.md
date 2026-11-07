@@ -182,7 +182,7 @@ See [`wire-contract-change`](../../.claude/skills/wire-contract-change/SKILL.md)
 
 ## Sequencing
 
-Every rename here conflicts with in-flight slices. A folder rename invalidates the `owns` globs in open slice issues, and a binding rename collides with the `hostAPIVersion` serial point. Run them in one quiet window on lane X, per [the agent train's lanes](../../.claude/skills/agent-train/SKILL.md#lanes):
+Every rename here conflicts with in-flight slices. A folder rename invalidates the `owns` globs in open slice issues, and a binding rename collides with the `hostAPIVersion` serial point. Run them in one quiet window on lane X, per [the agent train's lanes](../../.claude/skills/agent-train/references/worker.md#lanes):
 - **Start:** after the last Studio Next swap slice merges (SNB-8, SNP-8, SNQ-9, SNO-10, SNM-5, SNE-9 in the cutover table) and the GLiNER/BookNLP adapters (SNX-7b) land.
 - **End:** before the release-candidate rehearsal.
 
