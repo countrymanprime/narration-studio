@@ -2,9 +2,9 @@
 
 Read by the coordinator only. A worker needs [worker.md](worker.md).
 
-How parallel Claude Code sessions build the planned work around the clock: one **coordinator** and up to eight **workers**. The coordinator starts workers, scales their number to the usage left, merges green pull requests and fixes mechanical conflicts. Each worker delivers one stream of one to three PRD phases, one pull request per phase. This file is the coordinator's procedure. Its Routine prompt says to read the agent-train skill on `main` and run one pass; `docs/operations/agent-train.md` points here, so a prompt that still names that path keeps working. Changing the procedure is a normal pull request (`risk:high`, because it is under `.claude/`).
+How parallel Claude Code sessions build the planned work around the clock: one **coordinator** and up to eight **workers**. The coordinator starts workers, scales their number to the usage left, merges green pull requests and fixes mechanical conflicts. Each worker delivers one stream of one to three PRD phases, one pull request per phase. This file is the coordinator's procedure. Its Routine prompt says to read the agent-train skill on `main` and run one pass; `docs/operations/agent-train.md` points here, so a prompt that names that path reaches this file. Changing the procedure is a normal pull request (`risk:high`, because it is under `.claude/`).
 
-The worker, resume and fixer prompts are in [templates.md](templates.md). The slice rules are in [groomer.md](groomer.md); the history of the slice model (deviations D-1 to D-11) is in [slice-delivery.md](slice-delivery.md).
+The worker, resume and fixer prompts are in [templates.md](templates.md). The slice rules are in [groomer.md](groomer.md).
 
 Decisions D40, D43 and D44 (the merge, the light merge gate, the full visual run at the end) are in [Owner standing rules](owner-rules.md#owner-standing-rules). Lanes are in [worker.md](worker.md#lanes) and usage bands in [Usage and autoscaling](#usage-and-autoscaling).
 
@@ -20,7 +20,7 @@ The work it schedules is the train's goal: the PRDs in `docs/prds/` or the issue
 | Steps only the owner can take, and owner decisions with their defaults | The train issue's `## Owner queue` section, which the owner answers on the [owner board](#the-owner-board) |
 | A paused stream's progress | Its draft PR's `## Resume notes` block |
 
-State never lives in a file on `main`, so recording state can't cause merge conflicts.
+State lives on issues and PRs, so recording it touches no file on `main`.
 
 ### One issue per train
 
@@ -32,11 +32,11 @@ A train is one goal, run by one coordinator, and it has one issue that lives as 
 
 **Several trains at once.** Trains can run side by side, from one account or several. A coordinator reads and writes only its own issue and only sessions tagged `train-<T>`. Before a launch it also reads the running streams' files on every other open `agent-train` issue and the files of open PRs, and treats an overlap as a collision. [Serial points](worker.md#serial-points) hold across all open trains. `rate_limit_info` is per account, so trains on one account share its band; each coordinator counts only its own sessions toward its `TARGET`.
 
-**The old issues.** #989 (Train control), #992 (Owner queue), #993 (decisions), #1119 and the old status issue belong to the train of 2026-10, and #509 and #510 to the one before. Nothing in them is an instruction, and a new train does not write to them. The two checks in the [Safety net](#safety-net) that read an issue still read #509 and #510; until they read the open `agent-train` issues instead, they do not watch a new train.
+**The 2026-10 train's issues.** #989, #992, #993 and #1119 hold that train's record until the cutover in #3145 closes them; each train writes only to its own issue. The Train health and Main health checks read #509 and #510 until #3145 points them at the open `agent-train` issues.
 
 ### The owner board
 
-The owner answers on a board, not in issue threads. When a train starts, the coordinator publishes one private claude.ai Artifact for it, the owner board, and links it from the first line of the train issue. The board lists every open owner item, each with a way to answer:
+The owner answers on a board. When a train starts, the coordinator publishes one private claude.ai Artifact for it, the owner board, and links it from the first line of the train issue. The board lists every open owner item, each with a way to answer:
 
 - a decision: the question, the options, the recommendation and the date it defaults to the recommendation (seven days, D-8);
 - a `risk:high` PR waiting for approval: its number, head SHA and the reasons `pr-risk` printed;
@@ -44,7 +44,7 @@ The owner answers on a board, not in issue threads. When a train starts, the coo
 
 It also shows what is in flight, merged and blocked. Answers are stored on the board. Each pass, the coordinator reads the new ones, acts on them, copies each to the train issue's Owner queue with its date, and marks the item answered on the board. The issue is the durable record; the board is the owner's view of it.
 
-The board's template is not built yet. Until it is, the coordinator lists the same items in the Owner queue section, and the owner answers with a comment on the train issue: `decided: <item> <option or text>` or `approved #<pr> <sha>`.
+While #3145 builds the board's template, the coordinator lists the same items in the Owner queue section, and the owner answers with a comment on the train issue: `decided: <item> <option or text>` or `approved #<pr> <sha>`.
 
 ## Switches
 
@@ -94,7 +94,7 @@ With `WARNING_POLICY: ignore`, warnings count as GREEN.
 
 **The rationale:**
 - The owner allows the whole weekly allowance to be used.
-- The aim is to reach the weekly warning late in the week (`f` near 0.85–1.0), not to stall on day four.
+- The aim is to reach the weekly warning late in the week (`f` near 0.85–1.0).
 - A five-hour warning means bursts were too tight.
 - `TARGET` grows slowly while there's headroom and drops fast when a warning comes.
 
@@ -127,7 +127,7 @@ The agents' models are set in their frontmatter; the coordinator's is set on the
 
 ## Safety net
 
-Nobody watches the train live, so these checks run without a person and none of them relies on a worker's own report. Each one closes a failure the train has had or the [research behind it](../../../../docs/operations/ci-and-releases.md) found: a stopped coordinator that nobody noticed for eleven days, regressions that sit on `main` between full sweeps, a worker weakening its own tests, and a stream relaunched forever.
+These checks run on their own and read the repo and CI, never a worker's report. Each one catches a failure the train has had or the [research behind it](../../../../docs/operations/ci-and-releases.md) found: a stopped coordinator, regressions on `main` between full sweeps, a worker weakening its own tests, and a stream relaunched forever.
 
 | Check | Where | What it does |
 | --- | --- | --- |
@@ -143,7 +143,7 @@ Nobody watches the train live, so these checks run without a person and none of 
 
 **A `risk:high` PR.** Do not merge it. Add it to the [owner board](#the-owner-board) and the train issue's Owner queue with its number, head SHA and the reasons the label's workflow printed, then carry on with other PRs. The owner approves by approving the PR on its current head, on the board, or with `approved #<n> <sha>` on the train issue. A push after that approval needs a new one.
 
-**A ratchet warning.** The check is advisory and needs no label and no owner approval. The PR body says why each deleted or skipped test, or lowered floor, is intended, and the intent reviewer checks the reason against the diff: the code the test covered was removed or rewritten, the test moved, or a flaky test has its own issue. A reason the diff bears out passes. A missing or wrong one is a 🔴 finding, and the coordinator sends a fixer that restores the test or writes the reason. This follows the published pattern for unattended agents: a check flags test edits, an independent reviewer judges them, and a person sees only what the reviewer cannot settle ([EvilGenie](https://arxiv.org/abs/2511.21654); [Claude Code best practices](https://code.claude.com/docs/en/best-practices)).
+**A ratchet warning.** The check is advisory, and the intent reviewer settles it. The PR body says why each deleted or skipped test, or lowered floor, is intended, and the intent reviewer checks the reason against the diff: the code the test covered was removed or rewritten, the test moved, or a flaky test has its own issue. A reason the diff bears out passes. A missing or wrong one is a 🔴 finding, and the coordinator sends a fixer that restores the test or writes the reason. This follows the published pattern for unattended agents: a check flags test edits, an independent reviewer judges them, and a person sees only what the reviewer cannot settle ([EvilGenie](https://arxiv.org/abs/2511.21654); [Claude Code best practices](https://code.claude.com/docs/en/best-practices)).
 
 **The launch limit.** The Launches table in the train issue's body has one row per stream: ID, PRD phases, launches, last launch, PRs merged. A stream's count goes up on every `create_session` for it, resumes and fixers included. At three launches with no PR of the stream merged, mark the stream **blocked**: do not launch it again, add it to the owner board and the Owner queue with its Resume notes and the last failure, and take the next stream in priority order. The owner unblocks it by resetting its count on the board or the train issue. A stream that merges a PR resets its own count to zero.
 
@@ -151,7 +151,7 @@ Nobody watches the train live, so these checks run without a person and none of 
 
 ## The coordinator's pass
 
-The Routine fires every 30 minutes (two hourly Routines, 30 minutes apart; D50). Each firing is one pass. Be brief and cheap: don't read the codebase, and don't run builds or tests yourself. Use the `mcp__github__*` tools for GitHub and `mcp__Claude_Code_Remote__*` for sessions (load them with ToolSearch). There is no `gh` CLI.
+The Routine fires every 30 minutes (two hourly Routines, 30 minutes apart; D50). Each firing is one pass. Be brief and cheap: don't read the codebase, and don't run builds or tests yourself. Use the `mcp__github__*` tools for GitHub and `mcp__Claude_Code_Remote__*` for sessions (load them with ToolSearch); they are the coordinator's only route to GitHub and sessions.
 
 0. **Read the state block, then decide whether anything changed.** Read the train issue's body once. Its [state block](#the-state-block) holds what the last pass saw. Make **one** `list_sessions` call (`tags: ["train-<T>"]`, `limit` 100) and one `list_pull_requests` call for open PRs, and compare them with the block: each session's `status_bucket`, each PR's head SHA and check state, and the switches. **Early exit:** if no session's bucket changed, no PR's head or checks changed, the switches are the same, and there is no free slot with a ready slice, set `Last pass` in the block and the body ([step 6](#the-coordinators-pass)) and end. Read nothing else and call no `get_session`.
 1. **Switches.**
@@ -166,17 +166,17 @@ The Routine fires every 30 minutes (two hourly Routines, 30 minutes apart; D50).
 4. **Merge (D40).** Take bottom PRs (base `main`), oldest first. Merge one only when all of these hold:
    - it is not a draft;
    - it merges cleanly into `main` (D73: it need not contain `main`'s tip). If GitHub reports a conflict, merge `main` into it with `update_pull_request_branch`, or start a fixer when that fails, and wait for its checks on the next pass;
-   - `quality / Build (Windows)` and `quality / linux-checks` (which builds the UI bundle; it was `ui-dist` before #3065) succeeded on the head. A docs-only PR needs `Docs / Docs checks` (the link check and the other four docs checks, which run on every PR) instead;
+   - `quality / Build (Windows)` and `quality / linux-checks` (which builds the UI bundle) succeeded on the head. A docs-only PR needs `Docs / Docs checks` (the link check and the other four docs checks, which run on every PR) instead;
    - there is no `CHANGES_REQUESTED` review and no unresolved thread whose first comment starts with 🔴;
    - a Claude Approvals check, if present, passes;
-   - a UI PR updates its pages' guide text and images, or carries a specific `No guide change:` reason, and states the real-app and Storybook results ([UI PRs update the how-to guide](worker.md#ui-prs-update-the-how-to-guide)). There is no match % bar to check (D97);
+   - a UI PR updates its pages' guide text and images, or carries a specific `No guide change:` reason, and states the real-app and Storybook results ([UI PRs update the how-to guide](worker.md#ui-prs-update-the-how-to-guide)).;
    - the `Test ratchet` check has run on the head, and the intent review judged its warnings ([Safety net](#safety-net));
    - it has no `risk:high` label, or the owner has approved it for the current head ([Safety net](#safety-net));
    - an independent intent review passed on the current head ([Safety net](#safety-net)).
 
-   Merge with `squash` and `expectedHeadSha`, then delete the branch. Don't update the other bottom PRs' branches after a merge (D73); only a PR that no longer merges cleanly gets `main` merged in.
+   Merge with `squash` and `expectedHeadSha`, then delete the branch. Don't update the other bottom PRs' branches after a merge (D73); only a PR that conflicts with `main` gets `main` merged in.
    - **After a merge, verify its issues are closed.** Read the PR body's `Closes`/`Fixes`/`Resolves #<n>` lines (read it again after the merge; the worker may have edited it). For each issue, `issue_read` it. If it is still open, close it with `issue_write` (`state` `closed`, `state_reason` `completed`) and an `add_issue_comment` that says `Fixed by #<pr>, merged at <sha>.` and the Claude Code footer. This is the normal case for a PR whose base was not `main` and for a missing keyword. A `Refs` or `Part of` issue stays open, unless the PR's diff plainly resolves it and the body says so: then close it the same way. If the PR resolved an issue but the body names none, find it with `gh api -X GET search/issues` and close it the same way. Log any issue you had to close by hand on the train issue, so a worker that keeps missing the keyword shows up.
-   - **After a merge or a close, cancel the PR's unfinished runs yourself.** No workflow does it: a workflow that cancels runs needs a runner itself, queued behind the runs it was meant to stop, and was removed on 2026-10-19. List the runs of the PR's branch with `status` `queued` and `in_progress` (`actions_list` `list_workflow_runs`, `workflow_runs_filter`), keep only those whose `head_sha` is the PR's head and whose event is `pull_request` or `pull_request_target`, and cancel each with `actions_run_trigger` `cancel_workflow_run`. Never cancel a `push` run on `main`.
+   - **After a merge or a close, cancel the PR's unfinished runs yourself.** The coordinator does it because a workflow that cancels runs would wait for a runner behind the runs it should stop. List the runs of the PR's branch with `status` `queued` and `in_progress` (`actions_list` `list_workflow_runs`, `workflow_runs_filter`), keep only those whose `head_sha` is the PR's head and whose event is `pull_request` or `pull_request_target`, and cancel each with `actions_run_trigger` `cancel_workflow_run`. Never cancel a `push` run on `main`.
    - **A conflict:** start one **fixer**. Use Sonnet for mechanical files (`hostAPIVersion`, PRD index rows, status cells, regenerated `Host.*`) and Opus otherwise.
    - **A merge turns `main` red:** tick `HOLD`, start an Opus fixer aimed at `main`, and log it.
    - **A merge just unblocked other phases (D62, owner-directed):** don't wait for the next scheduled Routine firing to act on it. The moment a merge lands, re-check every PRD whose `Depends` named the phase that just completed, and if step 5 below would now add something to the ready list, run step 5 immediately, in the same pass. A phase sitting ready while nothing launches until the next tick is exactly the latency this rule removes.
@@ -204,7 +204,7 @@ The Routine fires every 30 minutes (two hourly Routines, 30 minutes apart; D50).
 
 ### The state block
 
-A fenced `json` block in the train issue's body, between `<!-- train-state -->` and `<!-- /train-state -->`, that the coordinator rewrites. It is the coordinator's progress file: a pass diffs against it instead of re-deriving state, and a resumed coordinator starts from it.
+A fenced `json` block in the train issue's body, between `<!-- train-state -->` and `<!-- /train-state -->`, that the coordinator rewrites. It is the coordinator's progress file: a pass diffs against it, and a resumed coordinator starts from it.
 
 ```json
 {"updated": "<UTC ISO 8601>", "band": "GREEN", "target": 4,
@@ -214,7 +214,7 @@ A fenced `json` block in the train issue's body, between `<!-- train-state -->` 
  "oldest_ready_slice": "SN-C3"}
 ```
 
-The Launches table and the switches stay in the body as before; the block repeats only what a pass diffs. It is a cache: it never overrides a live `get_session` or a live check result for a merge or launch decision. If the block is missing, malformed or older than two hours, rebuild it from live reads and write it.
+The Launches table and the switches sit in the body; the block repeats only what a pass diffs. It is a cache: it never overrides a live `get_session` or a live check result for a merge or launch decision. If the block is missing, malformed or older than two hours, rebuild it from live reads and write it.
 
 **IDs** are `<T>-<lane><n>`, for example `T4-K1` or `T4-B5a`. The train prefix keeps several trains' streams apart.
 
@@ -224,7 +224,7 @@ The coordinator decides what each job builds to. Every job builds to its issue, 
 
 ## Mockup gates
 
-Some PRDs gate a phase on **owner-approved mockups** in prose (its Phase Details or its Visual Spec section), not just in the `Depends` column. That gate never shows up in the phase table, so before adding a phase to the ready list, check its Phase Details paragraph and the PRD's Visual Spec section, not only `Depends`.
+Some PRDs gate a phase on **owner-approved mockups** in prose, in its Phase Details paragraph or the PRD's Visual Spec section. Before adding a phase to the ready list, read both as well as `Depends`.
 
 Under D68 (see [Owner standing rules](owner-rules.md#owner-standing-rules)), an existing concept mock is a reference: the coordinator names it in `REFERENCES` and the worker builds against it. The rules below apply when a phase needs a mockup that has not been drawn.
 
@@ -239,7 +239,7 @@ When a phase is otherwise ready (`Depends` complete, no file collision) but bloc
   - tells it to open its own tracking issue and a normal PR, same as any worker, and never merge itself.
 - **Record it on the train issue** as its own lane entry. It counts toward `TARGET` like any running session, but is tracked separately from the phase queue until the owner approves it.
 - **Subscribe to its PR** (`subscribe_pr_activity`). The owner may leave review comments to iterate on the design directly with that session (or a follow-up fixer) before approving — treat that like any other reviewer round: implement the requested visual changes and push, rather than closing the PR out after one draft.
-- The gated phase itself joins the normal ready list only once the owner approves the mockups (a comment or review saying so, or the PRD's Visual Spec section no longer reads "pending"). Approval is the owner's call, never the coordinator's.
+- The gated phase itself joins the normal ready list only once the owner approves the mockups (a comment or review saying so, or the PRD's Visual Spec section lists them as approved). Approval is the owner's call, never the coordinator's.
 
 ## Queue
 
