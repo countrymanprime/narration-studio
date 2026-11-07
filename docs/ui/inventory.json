@@ -622,7 +622,6 @@
       "source": "src/components/production/overview/CheckCountsCard.tsx",
       "stories": [
         "Some Out Of Date",
-        "Daw Unreachable",
         "All Checked"
       ],
       "consumers": [
@@ -2527,8 +2526,7 @@
         "All Recorded",
         "Scoped To One Chapter",
         "Nothing Queued",
-        "None In This Chapter",
-        "Daw Without Markers"
+        "None In This Chapter"
       ],
       "consumers": [
         "src/components/pickups/PickupsPage.tsx"
