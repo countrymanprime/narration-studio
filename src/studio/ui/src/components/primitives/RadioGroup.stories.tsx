@@ -76,23 +76,6 @@ export const DisabledOption: Story = {
   },
 };
 
-// A disabled option can say why it is off: one short sentence under its label, which also describes the radio to a screen reader.
-export const DisabledOptionWithReason: Story = {
-  args: {
-    options: [
-      { value: 'reference', label: 'In the project folder' },
-      { value: 'opening', label: 'In the DAW', disabled: true, reason: 'Not available with this recording tool yet.' },
-    ],
-  },
-  play: async ({ args, canvasElement }) => {
-    const canvas = within(canvasElement);
-    await expect(canvas.getByText('Not available with this recording tool yet.')).toBeVisible();
-    await expect(canvas.getByRole('radio', { name: 'In the DAW' })).toHaveAccessibleDescription(/Not available with this recording tool/);
-    await userEvent.click(canvas.getByText('In the DAW'));
-    await expect(args.onChange).not.toHaveBeenCalled();
-  },
-};
-
 function StandaloneRadio() {
   const [checked, setChecked] = useState(false);
   return (

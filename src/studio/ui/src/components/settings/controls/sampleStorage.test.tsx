@@ -92,13 +92,13 @@ describe('Voice sample storage', () => {
     const daw = await radio('In the DAW');
     await waitFor(() => expect(daw.getAttribute('aria-disabled')).toBe('true'));
     expect((await radio('Both')).getAttribute('aria-disabled')).toBe('true');
-    // The reason is drawn under each off choice, and each is described by it: the narrator sees why without hovering or focusing.
+    // The reason is the off choice's accessible description and its tooltip, and the row draws no text for it.
     for (const name of ['In the DAW', 'Both']) {
       const described = document.getElementById((await radio(name)).getAttribute('aria-describedby') ?? '');
-      expect(described?.textContent).toBe('Not available with this recording tool yet.');
-      expect(described?.className).not.toContain('sr-only');
+      expect(described?.textContent).toMatch(/not available with Audacity yet/);
+      expect(described?.className).toContain('sr-only');
     }
-    expect(within(row()).getAllByText('Not available with this recording tool yet.')).toHaveLength(2);
+    expect(within(row()).queryByText(/not available with Audacity yet/, { selector: ':not(.sr-only)' })).toBeNull();
     expect((await radio('In the project folder')).getAttribute('aria-disabled')).not.toBe('true');
   });
 });

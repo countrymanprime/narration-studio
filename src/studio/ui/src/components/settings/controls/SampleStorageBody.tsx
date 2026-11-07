@@ -6,13 +6,14 @@ import { rowOf } from '../registry/rows';
 
 type Storage = 'project' | 'daw' | 'both';
 
-/** Why a DAW choice is off, drawn under it: the tool declares it cannot keep a region, and the host's own sentence is built from the capability's name. */
-const CANNOT = 'Not available with this recording tool yet.';
+/** Why a DAW choice is off when the project's DAW cannot keep a region and its own sentence is too long for a hint (80 characters, one sentence). */
+const CANNOT = 'This recording tool cannot keep a voice sample.';
+const HINT_MAX = 80;
 
 /**
  * Where a new voice sample is kept (docs/prds/character-voice-samples.prd.md, Where a sample is kept): copied into the project folder (the
  * default), as a region in the DAW's project, or both. A choice the project's DAW cannot honour is listed and off, with the capability's
- * sentence under it, so the narrator sees why and what stays available. A region is kept as a REAPER region the app reads back from the
+ * sentence as its tooltip and accessible description (the RadioGroup draws no reason in the page), so the narrator can find out why and what stays available. A region is kept as a REAPER region the app reads back from the
  * saved project, so moving or deleting it in REAPER moves or ends the sample.
  */
 export function SampleStorageBody() {
@@ -24,8 +25,9 @@ export function SampleStorageBody() {
   const support = voiceSampleRegionSupport(caps);
   // The choice is declared by the tool, not by whether the tool answers right now: an engine that is closed still can, and a mark says so.
   const declared = support !== undefined && support.level !== 'not_yet_available' && support.level !== 'unsupported';
-  // The reason is drawn under each off choice and describes it; what each choice does is the row's "?".
-  const why = support === undefined || declared ? undefined : CANNOT;
+  // The reason is the disabled choice's tooltip and accessible description, not text in the row; what each choice does is the row's "?".
+  const sentence = support?.message ?? '';
+  const why = support === undefined || declared ? undefined : sentence !== '' && sentence.length <= HINT_MAX ? sentence : CANNOT;
   const options: RadioOption<Storage>[] = [
     { value: 'project', label: 'In the project folder' },
     { value: 'daw', label: 'In the DAW', disabled: !declared, reason: why },

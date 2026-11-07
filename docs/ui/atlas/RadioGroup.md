@@ -10,7 +10,6 @@ Storybook title: `Primitives/RadioGroup`. Source: `src/components/primitives/Rad
 - Click Selects
 - Arrow Keys Move
 - Disabled Option
-- Disabled Option With Reason
 - Standalone
 
 ## Used by

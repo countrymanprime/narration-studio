@@ -172,9 +172,9 @@ export const settingsDrivers: Record<string, Driver> = {
   'recording-sample-storage-unavailable': async (page) => {
     await openSettings(page, undefined, '?mockDaw=Audacity');
     const row = await showSettingsRow(page, 'daw.sampleStorage');
-    // Audacity cannot keep a region: In the DAW and Both are off, each with the reason drawn under it.
+    // Audacity cannot keep a region: In the DAW and Both are off, each with the reason as its tooltip (not drawn in the row).
     await row
-      .getByText(/Not available with this recording tool yet/)
+      .getByText(/not available with Audacity yet/)
       .first()
       .waitFor();
   },

@@ -1,13 +1,14 @@
 import { Radio as BaseRadio } from '@base-ui/react/radio';
 import { RadioGroup as BaseRadioGroup } from '@base-ui/react/radio-group';
 import { useId, type ReactNode } from 'react';
+import { TooltipTarget } from './Tooltip';
 
 export type RadioOption<Value extends string> = {
   value: Value;
   label: ReactNode;
   description?: ReactNode;
   disabled?: boolean;
-  /** Why a disabled option is off: one short sentence drawn under its label, which describes the option to a screen reader. The narrator always sees what is missing (definition of done, no state without an exit). */
+  /** Why a disabled option is off: a tooltip over it and its accessible description, with no text drawn in the page (design system, No in-flow instructions). */
   reason?: string;
 };
 
@@ -77,15 +78,21 @@ function RadioItem({ value, label, description, disabled, reason }: RadioOption<
     </label>
   );
   return (
-    // The description and the reason sit outside the <label>, so a screen reader hears just the option's own name ("Front
+    // The description sits outside the <label>, so a screen reader hears just the option's own name ("Front
     // matter"), not the name followed by its help text run together; aria-describedby adds it after the name.
     <div>
-      {choice}
       {why ? (
-        <div id={reasonId} className="ms-[1.65rem] mt-0.5 text-sm" style={{ color: 'var(--text-muted)' }}>
-          {why}
-        </div>
-      ) : null}
+        <>
+          <span id={reasonId} className="sr-only">
+            {why}
+          </span>
+          <TooltipTarget text={why} className="flex">
+            {choice}
+          </TooltipTarget>
+        </>
+      ) : (
+        choice
+      )}
       {description && (
         <div id={descriptionId} className="ms-[1.65rem] mt-0.5" style={{ color: 'var(--text-muted)' }}>
           {description}
