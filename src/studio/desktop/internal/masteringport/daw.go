@@ -152,16 +152,19 @@ func (dawChain) Master(ctx context.Context, req Request) (Result, error) {
 		if ctx.Err() == nil && (errors.Is(err, context.DeadlineExceeded) || errors.Is(err, bridge.ErrNoAnswer)) {
 			return Result{}, chainNoAnswer{cause: err}
 		}
-		return Result{}, err
+		if ctx.Err() != nil {
+			return Result{}, err
+		}
+		return Result{}, chainReadFailed{cause: err}
 	}
 	// A script replaced by an older one since the approval cannot answer what the approval binds (#2995).
 	if chain.SettingsUnread {
-		return Result{}, bridge.ErrScriptOutdated
+		return Result{}, chainReadFailed{cause: bridge.ErrScriptOutdated}
 	}
 	// The chain this render runs is read here anyway, for the report: it must be the one approved, or nothing renders.
 	listed, err := listedChain(chain)
 	if err != nil {
-		return Result{}, err
+		return Result{}, chainReadFailed{cause: err}
 	}
 	if ChainDigest(listed) != req.ChainDigest {
 		return Result{}, ErrChainChanged
@@ -431,3 +434,13 @@ func randomHex(bytes int) (string, error) {
 	}
 	return hex.EncodeToString(b), nil
 }
+
+// ErrChainRead marks a render whose own read of the chain failed (an answer the bridge could not read, a refusal of its shape or
+// settings, an older script): every later file would fail the same way, so the export stops at the first (#3017 qa round 2, B4).
+var ErrChainRead = errors.New("the DAW's FX chain could not be read before this render")
+
+// chainReadFailed is a failed chain read, worded as its cause and matching ErrChainRead as well as the cause.
+type chainReadFailed struct{ cause error }
+
+func (e chainReadFailed) Error() string   { return e.cause.Error() }
+func (e chainReadFailed) Unwrap() []error { return []error{ErrChainRead, e.cause} }

@@ -2500,6 +2500,12 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     await expect(old.exportPlan({ items: withRegions, master: true, format: 'mp3', approval: null })).rejects.toThrow(
       /can't be checked: the app's script in REAPER is older than this app\. Import it again from this app's REAPER folder/,
     );
+    // `?mockMasterChain=toomany`: more plug-in settings than one read takes, so the plan refuses the chain (#3017 qa round 2).
+    const many = createMockApi({}, { mastering: { choice: 'daw', chain: 'toomany' } });
+    await many.exportPickFiles();
+    await expect(many.exportPlan({ items: withRegions, master: true, format: 'mp3', approval: null })).rejects.toThrow(
+      /has too many plug-in settings to check, so it can't be approved\. Choose the built-in chain, or untick Master before encoding\./,
+    );
     // `?mockMasterChain=changes`: a setting moves after every read, so the approved render stops at its first file (#2995).
     const moving = createMockApi({}, { mastering: { choice: 'daw', chain: 'changes' } });
     await moving.exportPickFiles();

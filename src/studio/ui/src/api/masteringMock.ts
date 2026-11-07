@@ -56,8 +56,8 @@ export type MasteringMockSeed = {
   unavailable?: Record<string, string>;
   /** What the DAW's master_chain_read answers (`?mockMasterChain=`): masteringporttest's FakeDAW chain by default, a long one, none,
    * one the bridge cut short, one from a script older than #2995 (`outdated`), or one whose setting moves after every read
-   * (`changes`), so an approved render stops at its first file. */
-  chain?: 'default' | 'long' | 'empty' | 'unreadable' | 'outdated' | 'changes';
+   * (`changes`), so an approved render stops at its first file, or one with more plug-in settings than one read takes (`toomany`). */
+  chain?: 'default' | 'long' | 'empty' | 'unreadable' | 'outdated' | 'changes' | 'toomany';
 };
 
 /** The bridge's refusal of a chain it listed only part of (bridge.ErrChainTooLong), as export_plan.go words it for the DAW row:
@@ -66,6 +66,9 @@ const CHAIN_UNREADABLE = "Your DAW's FX chain couldn't be read, so it can't be a
 /** export_plan.go's refusal of a chain from a script older than #2995 (bridge.ErrScriptOutdated). */
 const CHAIN_OUTDATED =
   "Your DAW's FX chain can't be checked: the app's script in REAPER is older than this app. Import it again from this app's REAPER folder, or choose the built-in chain.";
+/** export_plan.go's refusal of a chain past the script's settings budget (bridge.ErrChainTooManySettings). */
+const CHAIN_TOO_MANY =
+  "Your DAW's FX chain has too many plug-in settings to check, so it can't be approved. Choose the built-in chain, or untick Master before encoding.";
 /** How many times the `changes` chain was read: its EQ's parameters move with each read. */
 let changingReads = 0;
 
@@ -182,6 +185,8 @@ export async function mockMasterChain(seed: MasteringMockSeed['chain'] = 'defaul
       throw new Error(CHAIN_UNREADABLE);
     case 'outdated':
       throw new Error(CHAIN_OUTDATED);
+    case 'toomany':
+      throw new Error(CHAIN_TOO_MANY);
     case 'changes': {
       // A setting the narrator moves in REAPER after every read: the render's own read differs from the one approved.
       changingReads += 1;

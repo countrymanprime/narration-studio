@@ -77,6 +77,10 @@ func (a *Actions) ReadMasterChain(ctx context.Context) (MasterChain, error) {
 	chain := MasterChain{Tracks: []TrackFX{}, Master: []FXSlot{}}
 	masterListed := false
 	trackLines, fxLines := 0, 0
+	// The script lists each track once with its FX right after it, and the master last; seen holds the tracks listed so far, so
+	// an answer out of that shape is refused even when its totals match (#3017 qa round 2, B2 and B3).
+	seen := map[string]bool{}
+	current := ""
 	for _, event := range events {
 		switch event.Tag {
 		case "MASTER_CHAIN_TRACK":
@@ -85,7 +89,12 @@ func (a *Actions) ReadMasterChain(ctx context.Context) (MasterChain, error) {
 				return MasterChain{}, err
 			}
 			trackLines++
-			if event.Fields[2] == MasterTrackGUID {
+			guid := event.Fields[2]
+			if seen[guid] || masterListed {
+				return MasterChain{}, ErrChainIncomplete
+			}
+			seen[guid], current = true, guid
+			if guid == MasterTrackGUID {
 				chain.MasterMix, masterListed = mix, true
 				continue
 			}
@@ -93,6 +102,10 @@ func (a *Actions) ReadMasterChain(ctx context.Context) (MasterChain, error) {
 		case "MASTER_CHAIN_FX":
 			fxLines++
 			guid, name := event.Fields[2], event.Fields[3]
+			// An FX of a track listed earlier than the current one, or of the master before its line, is out of place.
+			if guid != current && (seen[guid] || (guid == MasterTrackGUID && trackLines > 0)) {
+				return MasterChain{}, ErrChainIncomplete
+			}
 			slot := FXSlot{Name: event.Fields[4], Enabled: event.Fields[5] == "1"}
 			if len(event.Fields) > 6 && event.Fields[6] != "" {
 				if !fingerprintPattern.MatchString(event.Fields[6]) {
@@ -112,13 +125,18 @@ func (a *Actions) ReadMasterChain(ctx context.Context) (MasterChain, error) {
 				// An older script sends no track line: the FX opens its track, as it did before #2995.
 				chain.Tracks = append(chain.Tracks, TrackFX{TrackGUID: guid, Name: name, FX: []FXSlot{slot}})
 				chain.SettingsUnread = true
+				seen[guid], current = true, guid
 			}
 		case "MASTER_CHAIN_READ":
 			switch event.Fields[3] {
+			case "0":
 			case "1":
 				return MasterChain{}, ErrChainTooLong
 			case "2":
 				return MasterChain{}, ErrChainTooManySettings
+			default:
+				// Only 0 is a whole answer: a code this app does not know is not read as one (#3017 qa round 2, B1).
+				return MasterChain{}, ErrChainIncomplete
 			}
 			// The close counts the FX lines it sent and, since #2995, the track lines (the master's included): a line the host
 			// did not receive leaves the chain incomplete.

@@ -906,6 +906,18 @@
     "replace": "    if false then\n"
   },
   {
+    "name": "a negative parameter count refills the settings budget",
+    "file": "narration_master_render.lua",
+    "find": "    local count = math.max(0, math.floor(tonumber(reaper.TrackFX_GetNumParams(track, fx)) or 0))\n",
+    "replace": "    local count = math.floor(tonumber(reaper.TrackFX_GetNumParams(track, fx)) or 0)\n"
+  },
+  {
+    "name": "an out-of-range value is written in hundreds of digits",
+    "file": "narration_master_render.lua",
+    "find": "  if value >= 1e15 or value <= -1e15 then\n",
+    "replace": "  if false then\n"
+  },
+  {
     "name": "an FX's offline state is not bound",
     "file": "narration_master_render.lua",
     "find": "local values = { reaper.TrackFX_GetOffline(track, fx) and 1 or 0 }",

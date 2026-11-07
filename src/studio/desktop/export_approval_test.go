@@ -551,6 +551,9 @@ func unansweredChainReadStopsTheExport(t *testing.T, silence func(*masteringport
 // A chain whose settings cannot be bound refuses every later file the same way, so the export stops at the first one with the reason,
 // as it does for a changed chain (#3017 review, G4): an older script's chain, too many settings, a malformed fingerprint, an
 // incomplete answer or a chain cut short.
+// errUnreadableAnswer stands for a read error with no sentinel, such as the bridge's own "could not read" for a dropped line.
+var errUnreadableAnswer = errors.New("REAPER sent an answer this app could not read")
+
 func TestAChainWhoseSettingsCannotBeBoundStopsTheExportAtTheFirstFile(t *testing.T) {
 	for name, c := range map[string]struct {
 		arrange func(*masteringporttest.FakeDAW)
@@ -565,6 +568,9 @@ func TestAChainWhoseSettingsCannotBeBoundStopsTheExportAtTheFirstFile(t *testing
 		}, bridge.ErrChainFingerprint},
 		"an incomplete answer": {func(d *masteringporttest.FakeDAW) { d.SetChain(dawport.MasterChain{}, bridge.ErrChainIncomplete) }, bridge.ErrChainIncomplete},
 		"a chain cut short":    {func(d *masteringporttest.FakeDAW) { d.SetChain(dawport.MasterChain{}, bridge.ErrChainTooLong) }, bridge.ErrChainTooLong},
+		// Any failed read stops it, not only the refusals with a name: an answer the wire table drops, or a REAPER that cannot
+		// list FX, would fail every later file the same way (#3017 qa round 2, B4).
+		"an answer the bridge could not read": {func(d *masteringporttest.FakeDAW) { d.SetChain(dawport.MasterChain{}, errUnreadableAnswer) }, errUnreadableAnswer},
 	} {
 		t.Run(name, func(t *testing.T) {
 			dir := t.TempDir()

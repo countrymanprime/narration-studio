@@ -80,8 +80,8 @@ local SENDS, RECEIVES = 0, -1
 local SETTINGS_LIMIT = 50000
 local TOO_MANY_SETTINGS = 2 -- MASTER_CHAIN_READ's truncated: the settings budget ran out.
 
--- A value as one token: to six decimals, so a move smaller than a millionth is not seen and a large value never wraps; NaN and
--- the infinities by name; anything that is not a number, nil included, as 'n'.
+-- A value as one token: to six decimals, so a move smaller than a millionth is not seen and a large value never wraps, or to 17
+-- significant digits from 1e15; NaN and the infinities by name; anything that is not a number, nil included, as 'n'.
 local function token(value)
   value = tonumber(value)
   if value == nil then
@@ -92,6 +92,11 @@ local function token(value)
     return 'inf'
   elseif value == -math.huge then
     return '-inf'
+  end
+  -- From 1e15 a double's step is past a millionth, and %.6f would write hundreds of digits (1e300): its 17 significant digits are
+  -- exact and short, and with no decimal point never match a %.6f token (#3017 qa round 2, B6).
+  if value >= 1e15 or value <= -1e15 then
+    return string.format('%.17g', value)
   end
   local text = string.format('%.6f', value)
   if text == '-0.000000' then
@@ -141,7 +146,7 @@ local function master_chain_read(session_dir, run_id)
     return true
   end
   local function fx_params(track, fx)
-    local count = math.floor(tonumber(reaper.TrackFX_GetNumParams(track, fx)) or 0)
+    local count = math.max(0, math.floor(tonumber(reaper.TrackFX_GetNumParams(track, fx)) or 0))
     if not spend(count) then
       return nil
     end
@@ -157,7 +162,7 @@ local function master_chain_read(session_dir, run_id)
       add(values, reaper.GetMediaTrackInfo_Value(track, key))
     end
     for _, category in ipairs({ SENDS, RECEIVES }) do
-      local count = math.floor(tonumber(reaper.GetTrackNumSends(track, category)) or 0)
+      local count = math.max(0, math.floor(tonumber(reaper.GetTrackNumSends(track, category)) or 0))
       if not spend(count * #ROUTE_MIX) then
         return nil
       end

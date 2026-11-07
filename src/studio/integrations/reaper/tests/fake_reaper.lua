@@ -1100,7 +1100,8 @@ function Fake:add_item_api(api)
   end
   function api.TrackFX_GetNumParams(track, fx)
     local slot = (track.fx or {})[fx + 1]
-    return slot and #(slot.params or {}) or 0
+    -- slot.num_params overrides the count, so a test can answer one REAPER should never give (a negative count).
+    return slot and (slot.num_params or #(slot.params or {})) or 0
   end
   function api.TrackFX_GetParamNormalized(track, fx, param)
     local slot = (track.fx or {})[fx + 1]

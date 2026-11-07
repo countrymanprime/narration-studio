@@ -303,3 +303,74 @@ func TestReadMasterChainMarksAPartlyNewAnswerAsSettingsUnread(t *testing.T) {
 		t.Fatalf("got %+v, %v; want both tracks, marked SettingsUnread", got, err)
 	}
 }
+
+// Only truncated 0 is a whole answer: a code this app does not know is not read as one (#3017 qa round 2, B1).
+func TestReadMasterChainRefusesAnUnknownTruncatedCode(t *testing.T) {
+	for _, code := range []string{"3", "02", "9"} {
+		actions, client, dir := newActionsSession(t, true)
+		startFakeReaper(t, client, dir, func(command []string) [][]string {
+			return [][]string{
+				{"MASTER_CHAIN_TRACK", run(command), "master", "MASTER", "0", "0", defaultMix},
+				{"MASTER_CHAIN_READ", run(command), "0", code, "1"},
+			}
+		})
+		if _, err := actions.ReadMasterChain(context.Background()); !errors.Is(err, ErrChainIncomplete) {
+			t.Fatalf("truncated %q: err = %v, want ErrChainIncomplete", code, err)
+		}
+	}
+}
+
+// The script lists each track once, its FX right after it, and the master last: an answer out of that shape keeps its totals and
+// still is not the chain REAPER has (#3017 qa round 2, B2 and B3).
+func TestReadMasterChainRefusesLinesOutOfTheirShape(t *testing.T) {
+	const a, b = "{0000000A-0000-4000-8000-00000000000A}", "{0000000B-0000-4000-8000-00000000000B}"
+	for name, lines := range map[string]func(string) [][]string{
+		"the master listed twice": func(r string) [][]string {
+			return [][]string{
+				{"MASTER_CHAIN_TRACK", r, "master", "MASTER", "1", "0", defaultMix},
+				{"MASTER_CHAIN_TRACK", r, "master", "MASTER", "0", "0", defaultMix},
+				{"MASTER_CHAIN_READ", r, "0", "0", "2"},
+			}
+		},
+		"a track listed twice": func(r string) [][]string {
+			return [][]string{
+				{"MASTER_CHAIN_TRACK", r, a, "A", "0", "0", defaultMix},
+				{"MASTER_CHAIN_TRACK", r, a, "A", "1", "0", defaultMix},
+				{"MASTER_CHAIN_TRACK", r, "master", "MASTER", "0", "0", defaultMix},
+				{"MASTER_CHAIN_READ", r, "0", "0", "3"},
+			}
+		},
+		"an FX after the next track's line": func(r string) [][]string {
+			return [][]string{
+				{"MASTER_CHAIN_TRACK", r, a, "A", "0", "0", defaultMix},
+				{"MASTER_CHAIN_TRACK", r, b, "B", "0", "0", defaultMix},
+				{"MASTER_CHAIN_FX", r, a, "A", "VST: ReaEQ (Cockos)", "1", eqParams},
+				{"MASTER_CHAIN_TRACK", r, "master", "MASTER", "0", "0", defaultMix},
+				{"MASTER_CHAIN_READ", r, "1", "0", "3"},
+			}
+		},
+		"an FX before its track's line": func(r string) [][]string {
+			return [][]string{
+				{"MASTER_CHAIN_FX", r, a, "A", "VST: ReaEQ (Cockos)", "1", eqParams},
+				{"MASTER_CHAIN_TRACK", r, a, "A", "0", "0", defaultMix},
+				{"MASTER_CHAIN_TRACK", r, "master", "MASTER", "0", "0", defaultMix},
+				{"MASTER_CHAIN_READ", r, "1", "0", "2"},
+			}
+		},
+		"a track after the master": func(r string) [][]string {
+			return [][]string{
+				{"MASTER_CHAIN_TRACK", r, "master", "MASTER", "0", "0", defaultMix},
+				{"MASTER_CHAIN_TRACK", r, a, "A", "0", "0", defaultMix},
+				{"MASTER_CHAIN_READ", r, "0", "0", "2"},
+			}
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			actions, client, dir := newActionsSession(t, true)
+			startFakeReaper(t, client, dir, func(command []string) [][]string { return lines(run(command)) })
+			if _, err := actions.ReadMasterChain(context.Background()); !errors.Is(err, ErrChainIncomplete) {
+				t.Fatalf("err = %v, want ErrChainIncomplete", err)
+			}
+		})
+	}
+}

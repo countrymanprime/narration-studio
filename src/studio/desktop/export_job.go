@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"desktop/internal/brand"
-	"desktop/internal/bridge"
 	"desktop/internal/trace"
 	"errors"
 	"fmt"
@@ -559,11 +558,9 @@ func (h *Host) pickExportFiles() (MeasurePickResult, error) {
 	return MeasurePickResult{Paths: paths}, nil
 }
 
-// chainStops are the refusals of a render's chain read that every later file would meet too, so the export stops at the first.
-var chainStops = []error{
-	masteringport.ErrChainChanged, masteringport.ErrNoChainDigest, masteringport.ErrChainNoAnswer,
-	bridge.ErrScriptOutdated, bridge.ErrChainTooManySettings, bridge.ErrChainFingerprint, bridge.ErrChainIncomplete, bridge.ErrChainTooLong,
-}
+// chainStops are the refusals of a render's chain read that every later file would meet too, so the export stops at the first:
+// any failed read (masteringport.ErrChainRead, whatever its cause), a chain other than the approved one, no digest, no answer.
+var chainStops = []error{masteringport.ErrChainRead, masteringport.ErrChainChanged, masteringport.ErrNoChainDigest, masteringport.ErrChainNoAnswer}
 
 func stopsTheExport(err error) bool {
 	for _, stop := range chainStops {

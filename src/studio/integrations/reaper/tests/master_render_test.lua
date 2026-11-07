@@ -313,6 +313,52 @@ H.test('master_chain_read refuses a read past its settings budget', function()
   end
 end)
 
+-- A count below zero spends nothing: it never gives the budget back for a later FX to use (#3017 review round 2).
+H.test('master_chain_read does not let a negative count refill its settings budget', function()
+  local s = new_session()
+  local voice = s.fake:add_track('Voice')
+  voice.fx = { { name = 'VST: Odd', params = {}, num_params = -100000 }, { name = 'VST: Big', params = many(50001) } }
+  s:send('master_chain_read', 'c1')
+  local events = s:events()
+  local close = events[#events]
+  H.eq({ close[1], close[4] }, { 'MASTER_CHAIN_READ', '2' }, 'refused as too many settings')
+end)
+
+-- A NaN count spends nothing and leaves the budget a number, so a later FX past it is still refused (#3017 qa round 2, B5).
+H.test('master_chain_read does not let a NaN count switch off its settings budget', function()
+  local s = new_session()
+  local voice = s.fake:add_track('Voice')
+  voice.fx = { { name = 'VST: Odd', params = {}, num_params = 0 / 0 }, { name = 'VST: Big', params = many(50001) } }
+  s:send('master_chain_read', 'c1')
+  local events = s:events()
+  local close = events[#events]
+  H.eq({ close[1], close[4] }, { 'MASTER_CHAIN_READ', '2' }, 'refused as too many settings')
+end)
+
+-- A value too large to count in millionths is written to its 17 significant digits, not as hundreds of digits in %.6f, so a
+-- budget of out-of-range values reads as quickly as ordinary ones and two of them still differ (#3017 qa round 2, B6).
+H.test('master_chain_read stays quick for out-of-range parameter values', function()
+  local huge = {}
+  for index = 1, 50000 do
+    huge[index] = 1.7e308
+  end
+  local s = new_session()
+  local voice = s.fake:add_track('Voice')
+  voice.fx = { { name = 'VST: Huge', params = huge } }
+  s:send('master_chain_read', 'c1')
+  local events = s:events()
+  H.eq({ events[#events][1], events[#events][4] }, { 'MASTER_CHAIN_READ', '0' }, 'the read closes whole')
+  local prints = {}
+  for _, value in ipairs({ 1e20, 1e20 + 16384, 1e300 }) do
+    local each = new_session()
+    local track = each.fake:add_track('Voice')
+    track.fx = { { name = 'JS: Odd', params = { value } } }
+    each:send('master_chain_read', 'c1')
+    prints[#prints + 1] = line(each:events(), 'MASTER_CHAIN_FX', track.guid)[7]
+  end
+  H.truthy(prints[1] ~= prints[2] and prints[2] ~= prints[3] and prints[1] ~= prints[3], 'large values keep fingerprints of their own')
+end)
+
 H.test('master_chain_read needs the track FX API', function()
   local s = new_session()
   s.fake:remove_api('TrackFX_GetFXName')
