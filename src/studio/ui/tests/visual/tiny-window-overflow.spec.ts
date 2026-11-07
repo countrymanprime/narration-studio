@@ -187,3 +187,28 @@ for (const theme of ['light', 'dark'] as const) {
     }
   }
 }
+
+// Issue 3175, found by the breaker: Editing's header kept the stepper in a flex item that could not shrink, so Next chapter ran past the
+// window at 320 px and below even with a short name. Every page that draws the stepper keeps its three buttons inside the window.
+for (const theme of ['light', 'dark'] as const) {
+  for (const path of ['/editing', '/proof', '/pickups']) {
+    for (const size of [
+      { width: 280, height: 500 },
+      { width: 320, height: 300 },
+    ]) {
+      test(`${path}: the chapter stepper's buttons stay inside the window at ${size.width}x${size.height} (${theme})`, async ({ page }) => {
+        await page.setViewportSize(size);
+        await page.emulateMedia({ colorScheme: theme });
+        await page.goto(path);
+        await settlePage(page);
+        const group = page.locator('div[role="group"][aria-label="Chapter"]').first();
+        await group.waitFor();
+        const m = await group.evaluate((el) => ({
+          window: window.innerWidth,
+          buttons: [...el.querySelectorAll('button')].map((b) => ({ name: b.getAttribute('aria-label') ?? '', right: b.getBoundingClientRect().right })),
+        }));
+        for (const b of m.buttons) expect(b.right, `${b.name} inside the window`).toBeLessThanOrEqual(m.window - 8 + 0.5);
+      });
+    }
+  }
+}
