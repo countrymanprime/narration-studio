@@ -115,8 +115,8 @@ export function BoothTop({
           className="whitespace-nowrap"
         />
       ) : null}
-      {/* Not drawn in a window under 26rem tall: it wraps to two rows there, and those rows are what the side panel needs to be readable. */}
-      <span id="bprog" className="min-w-0 font-mono text-sm text-[var(--text-muted)] [@media(max-height:26rem)]:hidden">
+      {/* Not drawn in a window under 26rem tall (still read by a screen reader): it wraps to two rows there, and those rows are what the side panel needs to be readable. */}
+      <span id="bprog" className="min-w-0 font-mono text-sm text-[var(--text-muted)] [@media(max-height:26rem)]:sr-only">
         {progress}
       </span>
       {resume}
