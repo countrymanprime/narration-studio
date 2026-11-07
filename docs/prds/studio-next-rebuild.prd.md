@@ -14,7 +14,7 @@
 | --- | --- | --- | --- |
 | This file | SN0 | Vision, principles, gap analysis, ADR conflicts, strangler strategy, graph, gates, risks | 1 |
 | ADR Supersession Register | SNG | Appendix: every ADR classified keep, extend, supersede or decided, and the 18 rulings | 1 |
-| [Agent Delivery](../../.claude/skills/agent-train/references/slice-delivery.md) | SNA | How slices are cut, issued, built, merged and watched by continuously running coordinator and worker sessions | 4 |
+| [Agent Delivery](../../.claude/skills/agent-train/references/groomer.md#slices) | SNA | How slices are cut, issued, built, merged and watched by continuously running coordinator and worker sessions | 4 |
 | Foundations | SNF | Tokens and layout rules, the missing primitives, the icon vocabulary, key caps and key hints, no raw controls | 6 |
 | App Shell and Registries | SNR | Commands, keys, jump menu, search sources, context menus, help catalogue, overlays, history panel | 8 |
 | Domain, State and Wire Contracts | SNS | Typed UI store with undo journal, selectors, schemas, fixtures, the mock-versus-real parity kit | 7 |
@@ -80,7 +80,7 @@ Three outcomes:
 2. **Pages second.** Each page is rebuilt on the seams in one atomic change (the replacement rule of [Design principles](../architecture/principles.md)), with screenshots against the Studio Next mock, and the owner's rulings turned into tests.
 3. **Cutover last.** When every page has landed and the parity audit is green, the mock folder is deleted and the steady-state docs are written (Studio Next Cutover).
 
-Throughout, the work is cut into **slices** small enough for one worker session, each with its own issue, so coordinator and worker sessions can run without pause ([Agent Delivery](../../.claude/skills/agent-train/references/slice-delivery.md)).
+Throughout, the work is cut into **slices** small enough for one worker session, each with its own issue, so coordinator and worker sessions can run without pause ([Agent Delivery](../../.claude/skills/agent-train/references/groomer.md#slices)).
 
 ## Key Hypothesis
 
@@ -111,7 +111,7 @@ The owner's deferred and rejected list stands (`studio-next/research/repo-compar
 | Raw `button`, `input`, `select`, `textarea`, `table` in `src/studio/ui/src` beyond reasoned ceilings | Ceilings fall to zero per migrated page | `src/studio/ui/src/rawNatives.test.ts` |
 | `main` stays shippable | `Build (Windows)` and `CI passed` green on every merged slice; no slice reverts | Merge log on #509 |
 | Visual evidence | Every UI slice PR updates its page's how-to guide, text and screenshots, and states the real-app and Storybook results | The coordinator's merge check and the `Guide impact` step of `Docs / Docs checks` ([UI PRs update the how-to guide](../../CONTRIBUTING.md#ui-prs-update-the-how-to-guide)) |
-| Continuous delivery | At least `TARGET` workers busy whenever a ready slice exists; no ready slice waits more than one coordinator pass | Status report in [Agent Delivery](../../.claude/skills/agent-train/references/slice-delivery.md) |
+| Continuous delivery | At least `TARGET` workers busy whenever a ready slice exists; no ready slice waits more than one coordinator pass | Status report in [Agent Delivery](../../.claude/skills/agent-train/references/groomer.md#slices) |
 | Owner questions waiting | 0 from the rulings of 2026-10-11; a new question is logged in the decisions register, and a non-ADR one takes its default after 7 days | The decisions register |
 
 ## Decisions
@@ -128,7 +128,7 @@ The owner ruled on 2026-10-11: "The mocks are the gold standard and if it is not
 | SN0-Q6 | Schedule and Delivery are pages with their own rail items, as in the mock. [Design principles](../architecture/principles.md) decision 5 is superseded. | Two navigation items; the panels they replace are deleted in the swaps (Production and Schedule, Master, Delivery and Settings). |
 | SN0-Q7 | Implement the mock's layout rules (rail collapse, medium, narrow, tiny) as container and media queries at the mock's widths. Where a host constraint exists (minimum window 960 px, host zoom) the mock's rules still apply to the reported width. | Decided in Foundations. |
 | SN0-Q8 | Screenshots are compared against the Studio Next mock page. A worker with network runs the mock (`npm ci` in the mock folder) and captures it; without network the PR lists the missing image and the owner supplies it. | A procedure, not a question; Phase 3 builds the capture script. |
-| SN0-Q9 | The agent-delivery process choices are accepted as recommended in [Agent Delivery](../../.claude/skills/agent-train/references/slice-delivery.md), by the owner's standing instruction to take reasonable defaults, dated 2026-10-11. | The train's text changes in SNA-3. |
+| SN0-Q9 | The agent-delivery process choices are accepted as recommended in [Agent Delivery](../../.claude/skills/agent-train/references/groomer.md#slices), by the owner's standing instruction to take reasonable defaults, dated 2026-10-11. | The train's text changes in SNA-3. |
 
 The 18 rulings on the ADR conflicts (DQ-1 to DQ-18) are in the register. Three consequences hold across the series: what the mock lacks is not built; an existing feature with an equivalent in the mock is removed in the slice that swaps the page; an existing feature with no equivalent (the Series voice bible and Series tab, the Companion, the stage timer, PFH and effective rate) is left exactly as it is.
 
@@ -281,7 +281,7 @@ All other old PRDs have every phase complete.
 
 ### Continuous delivery model and the slice graph
 
-The series is built to be delivered by the agent train without a pause. The detailed model is [Agent Delivery](../../.claude/skills/agent-train/references/slice-delivery.md); the facts that shape every PRD are:
+The series is built to be delivered by the agent train without a pause. The detailed model is [Agent Delivery](../../.claude/skills/agent-train/references/groomer.md#slices); the facts that shape every PRD are:
 
 - **Every PRD ends with a "Slices" table** (id, scope, depends on, parallel-safe, verification). A slice is one PR by one worker in one lane, with its own issue created just in time, a machine-readable header (`owns` globs, `depends`, serial points) and a `## Handoff` comment so a fresh session resumes from the repo and the issue alone.
 - **Lanes are the train's lanes** (K contracts, A host, B adapters and sidecars, U primitives and input, C UI features, D documents, X exclusive); the series' new directories (`src/studio/ui/src/studio/`, `ports/`, `overlay/`, `registries/`) are proposed lane U territory.
@@ -332,7 +332,7 @@ Parallel capacity is bounded by file ownership: at most one worker on each lane-
 
 ### Deviations from the agent train
 
-[Agent Delivery](../../.claude/skills/agent-train/references/slice-delivery.md) lists every place the series would extend or change the train (a slice issue per slice, a groomer session type, a stall rule, a daily cap and a program hold switch, a session cap per slice, lane U territory, a decisions register with seven-day defaults, a status issue, the worker template naming Studio Next mock files, an issue form). The owner accepted these on 2026-10-11 (SN0-Q9); each landed in the train's procedure (now `.claude/skills/agent-train/SKILL.md`) in SNA-3, with an ADR where it settles a rule.
+[Agent Delivery](../../.claude/skills/agent-train/references/groomer.md#slices) lists every place the series would extend or change the train (a slice issue per slice, a groomer session type, a stall rule, a daily cap and a program hold switch, a session cap per slice, lane U territory, a decisions register with seven-day defaults, a status issue, the worker template naming Studio Next mock files, an issue form). The owner accepted these on 2026-10-11 (SN0-Q9); each landed in the train's procedure (now `.claude/skills/agent-train/SKILL.md`) in SNA-3, with an ADR where it settles a rule.
 
 ### Strangler strategy
 
@@ -369,7 +369,7 @@ These must be answered in a spike slice (script run on a copy, result written to
 
 ## Technical Approach
 
-**Dependency order.** The graph below is the PRD-level graph; each PRD's "Slices" section holds the slice-level edges and [Agent Delivery](../../.claude/skills/agent-train/references/slice-delivery.md) turns it into the ready list.
+**Dependency order.** The graph below is the PRD-level graph; each PRD's "Slices" section holds the slice-level edges and [Agent Delivery](../../.claude/skills/agent-train/references/groomer.md#slices) turns it into the ready list.
 
 ```mermaid
 flowchart LR
@@ -436,7 +436,7 @@ The phases of this overview are the program-level slices. Page and seam slices a
 | 1 | Record the decisions | Enter the rulings of 2026-10-11 (SN0-Q1..Q9, DQ-1..DQ-18) in the decisions register (SNA-4) as decided; nothing is put to the owner | pending | SNA-1 | - | 0.2 | - |
 | 2 | ADR batch A | Write A1..A17 as Proposed ADRs, one per owning PRD, in their lanes' blocks | in progress | 1 | 1 | 0.5 | - |
 | 3 | Mock capture kit | A script that runs the mock for a named state and viewport and writes a PNG for the PR's Screenshots row (SN0-Q8, decided) | done | 2 | 1 | 0.3 | - |
-| 4 | Agent train amendments | The edits to the train's procedure that [Agent Delivery](../../.claude/skills/agent-train/references/slice-delivery.md) lists, accepted on 2026-10-11 | done | - | 1 | 0.2 | - |
+| 4 | Agent train amendments | The edits to the train's procedure that [Agent Delivery](../../.claude/skills/agent-train/references/groomer.md#slices) lists, accepted on 2026-10-11 | done | - | 1 | 0.2 | - |
 | 5 | Program close-out | Status cells, the series index in `docs/prds/README.md`, hand-over to Cutover | pending | - | all | 0.3 | - |
 
 ### Phase Details
