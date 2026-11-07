@@ -157,7 +157,7 @@ The train's worker template ([Worker template](templates.md#worker-template)) wi
 
 ### PR babysitting as a standing duty
 
-Per D99 the worker does not babysit its PR; the coordinator does. A conflict, a red check or a review comment gets a one-PR fixer, including for an archived or failed session. A base recovered after a squash merge of its parent: the dependent slice's branch is stacked on the parent's, so after the parent squashes, the coordinator (or the worker) merges `main` into the child and retargets the PR base to `main` ("base recovered"), then waits for green. Red CI that is not the slice's fault (flaky test, a red `main`) is recorded on #509 and not retried more than twice.
+Per D99 the coordinator watches each PR. A conflict, a red check or a review comment gets a one-PR fixer, including for an archived or failed session. A base recovered after a squash merge of its parent: the dependent slice's branch is stacked on the parent's, so after the parent squashes, the coordinator (or the worker) merges `main` into the child and retargets the PR base to `main` ("base recovered"), then waits for green. Red CI that is not the slice's fault (flaky test, a red `main`) is recorded on #509 and not retried more than twice.
 
 ### Cadence and budget controls
 
