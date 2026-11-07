@@ -85,7 +85,6 @@ Storybook title: `Primitives/IconButton`. Source: `src/components/primitives/Ico
 - `src/components/primitives/SearchField.tsx`
 - `src/components/primitives/SlideOver.tsx`
 - `src/components/primitives/TreeCaret.tsx`
-- `src/components/production/overview/CheckCountsCard.tsx`
 - `src/components/production/overview/ProgressChart.tsx`
 - `src/components/production/pipeline/NoManuscript.tsx`
 - `src/components/production/pipeline/PageHeader.tsx`
@@ -94,7 +93,6 @@ Storybook title: `Primitives/IconButton`. Source: `src/components/primitives/Ico
 - `src/components/project/ProjectPicker.tsx`
 - `src/components/proof/CompareRun.tsx`
 - `src/components/proof/PreviewPanel.tsx`
-- `src/components/proof/ProofPage.tsx`
 - `src/components/proof/ProoferSheet.tsx`
 - `src/components/proof/checkcard/CheckCard.tsx`
 - `src/components/proof/frame/WaveformWindow.tsx`
@@ -106,6 +104,7 @@ Storybook title: `Primitives/IconButton`. Source: `src/components/primitives/Ico
 - `src/components/proof/inspector/TrimGap.tsx`
 - `src/components/proof/notes/NotesPanel.tsx`
 - `src/components/proof/spot/SpotTakes.tsx`
+- `src/components/recordingcheck/CheckRecordingsButton.tsx`
 - `src/components/schedule/MilestoneTable.tsx`
 - `src/components/schedule/SchedulePage.tsx`
 - `src/components/script/bookmarks/ui/BookmarkEditor.tsx`

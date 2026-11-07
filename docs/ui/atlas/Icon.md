@@ -36,7 +36,6 @@ Storybook title: `Primitives/Icon`. Source: `src/components/primitives/Icon.tsx`
 - `src/components/primitives/StatTile.tsx`
 - `src/components/primitives/TreeCaret.tsx`
 - `src/components/primitives/TreeSelect.tsx`
-- `src/components/production/overview/CheckCountsCard.tsx`
 - `src/components/production/pipeline/PageHeader.tsx`
 - `src/components/proof/checkcard/CheckCard.tsx`
 - `src/components/schedule/MilestoneTable.tsx`
