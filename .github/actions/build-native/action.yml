@@ -24,11 +24,12 @@ runs:
   using: composite
   steps:
     # Windows also writes the third-party notices, which read the UI's production dependencies (`pnpm licenses`), so it installs the UI's
-    # packages (only that project) and the others do not.
+    # packages (only that project) and the others do not. Building the UI bundle here (`ui-bundle: build`) needs the whole workspace: the
+    # bundle's `tsc --noEmit` resolves the root's packages and types too, and fails on the UI project alone.
     - uses: ./.github/actions/setup-toolchain
       with:
         need-pnpm: ${{ inputs.platform == 'windows-x64' && 'true' || 'false' }}
-        pnpm-filter: ui
+        pnpm-filter: ${{ inputs.ui-bundle != 'build' && 'ui' || '' }}
         need-stylua: 'false'
     - if: inputs.version != ''
       name: Apply the computed release version
