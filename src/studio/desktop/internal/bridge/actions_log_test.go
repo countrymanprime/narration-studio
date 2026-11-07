@@ -6,11 +6,15 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 )
+
+// runIDPattern finds an action run ID (Actions.open) in a host-log line.
+var runIDPattern = regexp.MustCompile(`act\d+-\d+`)
 
 // A bridge command that fails (no answer, an ERROR, a refusal) leaves one host-log line naming the command and its run ID, the ID
 // every event answering it carries in the session's events.log, so a narrator's "Record did nothing" can be traced. The line
@@ -24,9 +28,7 @@ func TestAFailedCommandIsLoggedWithItsRunID(t *testing.T) {
 		defer mu.Unlock()
 		lines = append(lines, kind+": "+message)
 	})
-	var runs []string
-	startFakeReaper(t, client, dir, func(command []string) [][]string {
-		runs = append(runs, run(command))
+	fake := startFakeReaper(t, client, dir, func(command []string) [][]string {
 		if command[1] == "arm_only" {
 			return [][]string{{"ERROR", run(command), "Track \"Chapter 1 - Alice\" is locked."}}
 		}
@@ -37,19 +39,38 @@ func TestAFailedCommandIsLoggedWithItsRunID(t *testing.T) {
 	if _, err := actions.ArmOnly(context.Background(), testTrack); err == nil {
 		t.Fatal("ArmOnly: no error")
 	}
+	// A loaded runner can starve the fake past the timeout, so Record Stop is taken back before the fake reads it (#3188). The
+	// stall makes that the case every time: the logged run ID comes from the host, whether or not REAPER saw the command.
+	fake.stall(200 * time.Millisecond)
 	if _, err := actions.RecordStop(context.Background()); !errors.Is(err, ErrNoAnswer) {
 		t.Fatalf("RecordStop: %v, want ErrNoAnswer", err)
 	}
 
 	mu.Lock()
 	defer mu.Unlock()
-	if len(lines) != 2 || len(runs) != 2 {
-		t.Fatalf("lines = %q, runs = %q", lines, runs)
+	received := fake.commands()
+	if len(lines) != 2 || len(received) == 0 || received[0][1] != "arm_only" {
+		t.Fatalf("lines = %q, received = %q", lines, received)
+	}
+	ids := make([]string, len(lines))
+	for i, line := range lines {
+		ids[i] = runIDPattern.FindString(line)
+	}
+	if ids[0] != run(received[0]) {
+		t.Errorf("arm_only line names run %q, the fake received %q", ids[0], run(received[0]))
+	}
+	if ids[1] == "" || ids[1] == ids[0] {
+		t.Errorf("record_stop line names run %q, want its own run ID (arm_only's is %q)", ids[1], ids[0])
+	}
+	for _, command := range received[1:] {
+		if command[1] == "record_stop" && run(command) != ids[1] {
+			t.Errorf("record_stop line names run %q, the fake received %q", ids[1], run(command))
+		}
 	}
 	for i, want := range []struct{ command, kind string }{{"arm_only", "error"}, {"record_stop", "no answer"}} {
 		line := lines[i]
-		if !strings.HasPrefix(line, "reaper_action_failed: ") || !strings.Contains(line, want.command) || !strings.Contains(line, runs[i]) || !strings.Contains(line, want.kind) {
-			t.Errorf("line %d = %q, want %s, run %s and %q", i, line, want.command, runs[i], want.kind)
+		if !strings.HasPrefix(line, "reaper_action_failed: ") || !strings.Contains(line, want.command) || !strings.Contains(line, want.kind) {
+			t.Errorf("line %d = %q, want %s and %q", i, line, want.command, want.kind)
 		}
 		if strings.Contains(line, "Alice") {
 			t.Errorf("line %d = %q carries the answer's text", i, line)

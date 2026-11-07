@@ -2,6 +2,8 @@
 
 Everything between the current release candidates and the first stable release that only the owner can do: a repository setting, a real Windows machine, a narrator's own book, or the Promote click. It replaces the checklist that lived in [#231](https://github.com/countrymanprime/narration-studio/issues/231) (the release-readiness stack, S16). Each item names where its steps are written, so this page holds the order and the status, not a second copy of the steps. Status was read on 2026-11-03.
 
+Sections 2 to 5, with the hardware rows a baseline needs, are put in one sitting's order in [The Windows session before the first stable](first-stable-windows-session.md).
+
 `<asset prefix>` and `<executable>` stand for values in `config/brand.json`.
 
 ## Already done

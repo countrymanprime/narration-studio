@@ -57,7 +57,8 @@ This folder documents a local-first audiobook narration toolkit: how it is built
    For the checks the recent Studio Next work could not run off Windows (recording, linking a project, delivery),
    use the [Windows QA checklist](operations/windows-qa-checklist.md).
    For the owner's steps to the first stable release (settings, a clean Windows install, first use, Promote), use the
-   [owner checklist](operations/owner-release-checklist.md).
+   [owner checklist](operations/owner-release-checklist.md); for its one Windows sitting in order, then the first Promote, use
+   [the Windows session before the first stable](operations/first-stable-windows-session.md).
    To confirm a REAPER bridge command that is still on the unverified list in REAPER itself, run
    [the REAPER verification pass](operations/reaper-verification-pass.md); the calls each command makes are in
    [the ReaScript calls behind the planned commands](research/reaper-api-for-planned-commands.md).
