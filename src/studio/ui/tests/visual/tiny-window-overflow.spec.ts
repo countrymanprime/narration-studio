@@ -137,3 +137,53 @@ for (const theme of ['light', 'dark'] as const) {
     });
   }
 }
+
+// Issue 3175: a long chapter title ("The Rabbit Sends in a Little Bill") took the whole chapter bar at 360 px and below and pushed the Next
+// chapter button off the right edge. The picker's label ellipsizes first; Previous, the picker and Next stay whole inside the bar.
+for (const theme of ['light', 'dark'] as const) {
+  for (const size of [
+    { width: 320, height: 300 },
+    { width: 360, height: 500 },
+  ]) {
+    for (const taking of [false, true]) {
+      test(`Booth: a long chapter title keeps both stepper buttons whole inside the bar at ${size.width}x${size.height}${taking ? ' during a take' : ''} (${theme})`, async ({
+        page,
+      }) => {
+        await page.setViewportSize(size);
+        await page.emulateMedia({ colorScheme: theme });
+        await page.goto('/booth?mockTeleprompter=checked');
+        await settlePage(page);
+        const group = page.locator('div[role="group"][aria-label="Chapter"]');
+        await group.waitFor();
+        await group.getByRole('button', { name: /^Chapter: .*Change chapter$/ }).click();
+        await page.getByRole('menuitemradio', { name: /The Rabbit Sends in a Little Bill/ }).click();
+        const picker = group.getByRole('button', { name: /^Chapter: .*The Rabbit Sends in a Little Bill/ });
+        await expect(picker).toBeVisible();
+        if (taking) {
+          // During a take the picker is off (its hint's wrapper is then the flex item that has to shrink).
+          await page.keyboard.press('Space');
+          await expect(picker).toBeDisabled();
+        }
+        const boxes = await group.evaluate((el) => {
+          const read = (node: Element) => {
+            const r = node.getBoundingClientRect();
+            return { left: r.left, right: r.right, width: r.width, height: r.height };
+          };
+          const buttons = [...el.querySelectorAll('button')].map((b) => ({ name: b.getAttribute('aria-label') ?? '', ...read(b) }));
+          return { group: read(el), buttons, window: window.innerWidth };
+        });
+        for (const b of boxes.buttons) {
+          expect(b.right, `${b.name} inside the window`).toBeLessThanOrEqual(boxes.window + 0.5);
+          expect(b.right, `${b.name} inside the chapter group`).toBeLessThanOrEqual(boxes.group.right + 0.5);
+        }
+        for (const name of ['Previous chapter', 'Next chapter']) {
+          const b = boxes.buttons.find((candidate) => candidate.name === name);
+          expect(b?.width, `${name} keeps its width`).toBeGreaterThanOrEqual(28);
+          expect(b?.width, `${name} stays square`).toBeCloseTo(b?.height ?? 0, 0);
+        }
+        const label = picker.locator('span').first();
+        expect(await label.evaluate((el) => el.scrollWidth > el.clientWidth), 'the title is cut with an ellipsis, not the buttons').toBe(true);
+      });
+    }
+  }
+}
