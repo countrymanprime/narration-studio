@@ -47,6 +47,7 @@ end
 local CHAIN_API = {
   'TrackFX_GetFXName',
   'TrackFX_GetEnabled',
+  'TrackFX_GetOffline',
   'TrackFX_GetNumParams',
   'TrackFX_GetParamNormalized',
   'GetTrackNumSends',
@@ -55,54 +56,71 @@ local CHAIN_API = {
 -- Two polynomial hashes, each modulo a prime under 2^31, so every product stays well inside Lua 5.4's 64-bit integers (no bit
 -- operators: the shared subset).
 local HASH_A, HASH_B = 2147483647, 2147483629
--- A track's own mix values, then the same fields for each of its sends and each of its receives (#2995).
-local TRACK_MIX = { 'D_VOL', 'D_PAN', 'B_PHASE', 'B_MAINSEND', 'I_FOLDERDEPTH' }
+local SEPARATOR = string.byte(';')
+-- A track's own mix values (its FX switch, volume, pan and routing), then the same fields for each of its sends and each of its
+-- receives (#2995).
+local TRACK_MIX = {
+  'D_VOL',
+  'D_PAN',
+  'B_PHASE',
+  'B_MAINSEND',
+  'I_FOLDERDEPTH',
+  'I_FXEN',
+  'I_PANMODE',
+  'D_PANLAW',
+  'D_WIDTH',
+  'D_DUALPANL',
+  'D_DUALPANR',
+  'I_NCHAN',
+}
 local ROUTE_MIX = { 'B_MUTE', 'B_PHASE', 'B_MONO', 'D_VOL', 'D_PAN', 'I_SENDMODE', 'I_SRCCHAN', 'I_DSTCHAN' }
 local SENDS, RECEIVES = 0, -1
+-- The most parameters and send or receive fields one read takes in all, so a project of 500 FX with thousands of parameters each
+-- cannot hold REAPER's defer loop; past it the read is refused, never cut short with the rest unbound (#2995).
+local SETTINGS_LIMIT = 50000
+local TOO_MANY_SETTINGS = 2 -- MASTER_CHAIN_READ's truncated: the settings budget ran out.
 
--- A number to a non-negative integer under HASH_A, to a millionth: a parameter or gain that moves by less is not seen. NaN,
--- infinities and values too large to count in millionths answer one fixed value instead of failing the read.
-local function quantize(value)
-  if value ~= value or value >= 1e12 or value <= -1e12 then
-    return HASH_A - 1
+-- A value as one token: to six decimals, so a move smaller than a millionth is not seen and a large value never wraps; NaN and
+-- the infinities by name; anything that is not a number, nil included, as 'n'.
+local function token(value)
+  value = tonumber(value)
+  if value == nil then
+    return 'n'
+  elseif value ~= value then
+    return 'nan'
+  elseif value == math.huge then
+    return 'inf'
+  elseif value == -math.huge then
+    return '-inf'
   end
-  return math.floor(value * 1000000 + 0.5) % HASH_A
+  local text = string.format('%.6f', value)
+  if text == '-0.000000' then
+    return '0.000000'
+  end
+  return text
 end
 
--- "<count>:<a>:<b>" over the values in order. The host binds it as text and does not recompute it; the harness pins its digits.
+-- "<count>:<a>:<b>" over the values' tokens in order, each followed by ';'. The host binds it as text and does not recompute it;
+-- the harness pins its digits.
 local function fingerprint(values)
   local a, b = 7, 11
   for _, value in ipairs(values) do
-    local q = quantize(value)
-    a = (a * 1000003 + q + 1) % HASH_A
-    b = (b * 999983 + q + 1) % HASH_B
+    local text = token(value)
+    for index = 1, #text + 1 do
+      local byte = string.byte(text, index) or SEPARATOR
+      a = (a * 131 + byte + 1) % HASH_A
+      b = (b * 137 + byte + 1) % HASH_B
+    end
   end
   return string.format('%d:%d:%d', #values, a, b)
 end
 
-local function fx_params(track, fx)
-  local values = {}
-  for param = 0, reaper.TrackFX_GetNumParams(track, fx) - 1 do
-    values[#values + 1] = reaper.TrackFX_GetParamNormalized(track, fx, param)
+-- Appends one answer to a fingerprint's values; nil (a value REAPER does not have) is kept as false, which token answers 'n'.
+local function add(values, value)
+  if value == nil then
+    value = false
   end
-  return fingerprint(values)
-end
-
-local function track_mix(track)
-  local values = {}
-  for _, key in ipairs(TRACK_MIX) do
-    values[#values + 1] = reaper.GetMediaTrackInfo_Value(track, key)
-  end
-  for _, category in ipairs({ SENDS, RECEIVES }) do
-    local count = reaper.GetTrackNumSends(track, category)
-    values[#values + 1] = count
-    for index = 0, count - 1 do
-      for _, key in ipairs(ROUTE_MIX) do
-        values[#values + 1] = reaper.GetTrackSendInfo_Value(track, category, index, key)
-      end
-    end
-  end
-  return fingerprint(values)
+  values[#values + 1] = value
 end
 
 local function master_chain_read(session_dir, run_id)
@@ -112,24 +130,74 @@ local function master_chain_read(session_dir, run_id)
       return
     end
   end
-  local listed, tracks, truncated = 0, 0, false
+  local listed, tracks, truncated, settings = 0, 0, 0, 0
+  -- Takes `count` values from the budget; false once the budget is spent, which refuses the read.
+  local function spend(count)
+    if settings + count > SETTINGS_LIMIT then
+      truncated = TOO_MANY_SETTINGS
+      return false
+    end
+    settings = settings + count
+    return true
+  end
+  local function fx_params(track, fx)
+    local count = math.floor(tonumber(reaper.TrackFX_GetNumParams(track, fx)) or 0)
+    if not spend(count) then
+      return nil
+    end
+    local values = { reaper.TrackFX_GetOffline(track, fx) and 1 or 0 }
+    for param = 0, count - 1 do
+      add(values, reaper.TrackFX_GetParamNormalized(track, fx, param))
+    end
+    return fingerprint(values)
+  end
+  local function track_mix(track)
+    local values = {}
+    for _, key in ipairs(TRACK_MIX) do
+      add(values, reaper.GetMediaTrackInfo_Value(track, key))
+    end
+    for _, category in ipairs({ SENDS, RECEIVES }) do
+      local count = math.floor(tonumber(reaper.GetTrackNumSends(track, category)) or 0)
+      if not spend(count * #ROUTE_MIX) then
+        return nil
+      end
+      values[#values + 1] = count
+      for index = 0, count - 1 do
+        for _, key in ipairs(ROUTE_MIX) do
+          add(values, reaper.GetTrackSendInfo_Value(track, category, index, key))
+        end
+      end
+    end
+    return fingerprint(values)
+  end
   local function list(track, guid, name)
-    if tracks >= MASTER_CHAIN_LIMIT then
-      truncated = true
+    if truncated == TOO_MANY_SETTINGS then
       return
     end
-    local mute = reaper.GetMediaTrackInfo_Value(track, 'B_MUTE') ~= 0 and 1 or 0
-    local solo = math.floor(reaper.GetMediaTrackInfo_Value(track, 'I_SOLO'))
-    event(session_dir, 'MASTER_CHAIN_TRACK', run_id, guid, name, mute, solo, track_mix(track))
+    if tracks >= MASTER_CHAIN_LIMIT then
+      truncated = 1
+      return
+    end
+    local mix = track_mix(track)
+    if not mix then
+      return
+    end
+    local mute = reaper.GetMediaTrackInfo_Value(track, 'B_MUTE') == 1 and 1 or 0
+    local solo = math.floor(tonumber(reaper.GetMediaTrackInfo_Value(track, 'I_SOLO')) or 0)
+    event(session_dir, 'MASTER_CHAIN_TRACK', run_id, guid, name, mute, solo, mix)
     tracks = tracks + 1
     for fx = 0, reaper.TrackFX_GetCount(track) - 1 do
       if listed >= MASTER_CHAIN_LIMIT then
-        truncated = true
+        truncated = 1
         return
       end
       local _, fx_name = reaper.TrackFX_GetFXName(track, fx, '')
       local enabled = reaper.TrackFX_GetEnabled(track, fx) and 1 or 0
-      event(session_dir, 'MASTER_CHAIN_FX', run_id, guid, name, fx_name, enabled, fx_params(track, fx))
+      local params = fx_params(track, fx)
+      if not params then
+        return
+      end
+      event(session_dir, 'MASTER_CHAIN_FX', run_id, guid, name, fx_name, enabled, params)
       listed = listed + 1
     end
   end
@@ -139,7 +207,7 @@ local function master_chain_read(session_dir, run_id)
     list(track, reaper.GetTrackGUID(track), name)
   end
   list(reaper.GetMasterTrack(0), 'master', 'MASTER')
-  event(session_dir, 'MASTER_CHAIN_READ', run_id, listed, truncated and 1 or 0, tracks)
+  event(session_dir, 'MASTER_CHAIN_READ', run_id, listed, truncated, tracks)
 end
 
 -- render_with_fx: checks ---------------------------------------------------------------------------------------------

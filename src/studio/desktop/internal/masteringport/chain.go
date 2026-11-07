@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"regexp"
 	"strconv"
 	"strings"
 	"unicode"
@@ -11,6 +12,7 @@ import (
 
 	"golang.org/x/text/unicode/norm"
 
+	"desktop/internal/bridge"
 	"desktop/internal/dawport"
 )
 
@@ -71,27 +73,34 @@ func chainName(raw string) string {
 
 // listedChain is the DAW port's chain as a row lists it: each track with FX in order, then the master, the names cleaned and an
 // unnamed track called "Track".
-func listedChain(chain dawport.MasterChain) []ChainTrack {
+func listedChain(chain dawport.MasterChain) ([]ChainTrack, error) {
 	out := make([]ChainTrack, 0, len(chain.Tracks)+1)
 	for _, track := range chain.Tracks {
-		out = append(out, ChainTrack{Name: trackName(track.Name), Mute: track.Mix.Mute, Solo: track.Mix.Solo, Mix: fingerprint(track.Mix.Mix),
-			FX: chainFX(track.FX)})
+		fx, err := chainFX(track.FX)
+		if err != nil {
+			return nil, err
+		}
+		if !fingerprintPattern.MatchString(track.Mix.Mix) {
+			return nil, bridge.ErrChainFingerprint
+		}
+		out = append(out, ChainTrack{Name: trackName(track.Name), Mute: track.Mix.Mute, Solo: track.Mix.Solo, Mix: track.Mix.Mix, FX: fx})
 	}
 	// The master is always listed: its own mix and mute shape the render even when it has no plug-ins (#2995).
 	master := chain.MasterMix
-	return append(out, ChainTrack{Name: "Master", Master: true, Mute: master.Mute, Solo: master.Solo, Mix: fingerprint(master.Mix), FX: chainFX(chain.Master)})
+	fx, err := chainFX(chain.Master)
+	if err != nil {
+		return nil, err
+	}
+	if !fingerprintPattern.MatchString(master.Mix) {
+		return nil, bridge.ErrChainFingerprint
+	}
+	return append(out, ChainTrack{Name: "Master", Master: true, Mute: master.Mute, Solo: master.Solo, Mix: master.Mix, FX: fx}), nil
 }
 
-// fingerprint is a DAW's mix or parameter fingerprint as the digest binds it: digits and colons only (the bridge refuses anything
-// else, bridge.ErrChainFingerprint), so no other engine's answer can put a tab or a newline into the digest's lines.
-func fingerprint(raw string) string {
-	return strings.Map(func(r rune) rune {
-		if r == ':' || (r >= '0' && r <= '9') {
-			return r
-		}
-		return -1
-	}, raw)
-}
+// fingerprintPattern is a DAW's mix or parameter fingerprint as the digest binds it: a count and two hashes, in digits, so no
+// engine's answer can put a tab or a newline into the digest's lines. One that is malformed or missing (a chain whose settings
+// were read always has them) is refused, never stripped (#3017 review, G2).
+var fingerprintPattern = regexp.MustCompile(`^[0-9]+:[0-9]+:[0-9]+$`)
 
 // hangulFiller are the Hangul fillers. Unicode calls them default-ignorable, but real fonts draw them as a blank: "E"+U+3164+"Q"
 // shows as "E Q" in REAPER, so inside a name it is kept and does not digest like "EQ" (round 6 Go review).
@@ -144,22 +153,26 @@ func trackName(name string) string {
 // unnamedFX is a plug-in whose name has nothing readable left, so its row is never a blank (qa on #2932, B3).
 const unnamedFX = "(unnamed)"
 
-func chainFX(slots []dawport.FXSlot) []ChainFX {
+func chainFX(slots []dawport.FXSlot) ([]ChainFX, error) {
 	out := make([]ChainFX, 0, len(slots))
 	for _, slot := range slots {
 		name := chainName(slot.Name)
 		if name == "" {
 			name = unnamedFX
 		}
-		out = append(out, ChainFX{Name: name, Enabled: slot.Enabled, Params: fingerprint(slot.Params)})
+		if !fingerprintPattern.MatchString(slot.Params) {
+			return nil, bridge.ErrChainFingerprint
+		}
+		out = append(out, ChainFX{Name: name, Enabled: slot.Enabled, Params: slot.Params})
 	}
-	return out
+	return out, nil
 }
 
 // ChainDigest is the canonical hash of a listed chain, "sha256:" and 64 hex digits: one line per track ("track", its master flag,
 // its name, muted, its solo state, its mix fingerprint) followed by one per plug-in ("fx", on or off, its name, its parameter
 // fingerprint), tab-separated and newline-ended, in chain order (#2995 added the mute, solo, mix and parameters). Names are cleaned
-// first (chainName) and fingerprints are digits and colons (fingerprint), so neither a tab nor a newline can appear inside one. ExportPlan answers it beside the chain, the
+// first (chainName) and listedChain refuses a fingerprint that is not digits and colons (fingerprintPattern), so neither a tab nor a
+// newline can appear inside one. ExportPlan answers it beside the chain, the
 // approval sends it back, and each render refuses a chain whose digest differs. The UI's mock computes the same lines
 // (src/studio/ui/src/api/masteringMock.ts), pinned by the export plan golden.
 func ChainDigest(chain []ChainTrack) string {
@@ -172,9 +185,9 @@ func ChainDigest(chain []ChainTrack) string {
 	}
 	for _, track := range chain {
 		lines.WriteString("track\t" + flag(track.Master) + "\t" + track.Name + "\t" + flag(track.Mute) + "\t" + strconv.Itoa(track.Solo) + "\t" +
-			fingerprint(track.Mix) + "\n")
+			track.Mix + "\n")
 		for _, fx := range track.FX {
-			lines.WriteString("fx\t" + flag(fx.Enabled) + "\t" + fx.Name + "\t" + fingerprint(fx.Params) + "\n")
+			lines.WriteString("fx\t" + flag(fx.Enabled) + "\t" + fx.Name + "\t" + fx.Params + "\n")
 		}
 	}
 	sum := sha256.Sum256([]byte(lines.String()))

@@ -399,3 +399,35 @@ func TestTheDAWRowRefusesAChainWhoseSettingsAnOlderScriptCouldNotRead(t *testing
 		t.Fatalf("rendered a chain whose settings were not read: %+v", renders)
 	}
 }
+
+// The digest binds the DAW's fingerprints as they are: one that is malformed, or missing from a chain whose settings were read,
+// is refused, never stripped or bound empty (#3017 review, G2). Nothing renders.
+func TestTheDAWRowRefusesAFingerprintItCannotBind(t *testing.T) {
+	for name, chain := range map[string]dawport.MasterChain{
+		"a malformed mix":            {Tracks: []dawport.TrackFX{{TrackGUID: "{1}", Name: "Voice", Mix: dawport.TrackMix{Mix: "14:2:x"}}}, MasterMix: dawport.TrackMix{Mix: "14:1:1"}},
+		"a missing mix":              {Tracks: []dawport.TrackFX{{TrackGUID: "{1}", Name: "Voice"}}, MasterMix: dawport.TrackMix{Mix: "14:1:1"}},
+		"the master's missing mix":   {},
+		"malformed parameters":       {Master: []dawport.FXSlot{{Name: "Limit", Enabled: true, Params: "1:1"}}, MasterMix: dawport.TrackMix{Mix: "14:1:1"}},
+		"missing parameters":         {Master: []dawport.FXSlot{{Name: "Limit", Enabled: true}}, MasterMix: dawport.TrackMix{Mix: "14:1:1"}},
+		"a tab inside a fingerprint": {MasterMix: dawport.TrackMix{Mix: "14:1:1\tfx"}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			project := t.TempDir()
+			daw := masteringporttest.NewFakeDAW(project)
+			useSession(t, func() (masteringport.Session, error) { return daw.Session(), nil })
+			digest := shownDigest(t)
+			daw.SetChainExact(chain)
+			if _, err := dawRow(t).(masteringport.ChainLister).Chain(context.Background()); !errors.Is(err, bridge.ErrChainFingerprint) {
+				t.Fatalf("Chain: err = %v, want ErrChainFingerprint", err)
+			}
+			_, err := dawRow(t).Master(context.Background(), masteringport.Request{Region: "Chapter 1", Destination: filepath.Join(project, "out.wav"),
+				Profile: deliveryprofile.ACX(), Approved: true, ChainDigest: digest})
+			if !errors.Is(err, bridge.ErrChainFingerprint) {
+				t.Fatalf("Master: err = %v, want ErrChainFingerprint", err)
+			}
+			if renders := daw.Renders(); len(renders) != 0 {
+				t.Fatalf("rendered: %+v", renders)
+			}
+		})
+	}
+}

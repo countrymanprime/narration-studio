@@ -94,8 +94,8 @@ var realEvents = map[string][]string{
 	"FX_CHAINS_LISTED": {"FX_CHAINS_LISTED", "f1", "3", "0"},
 	"FX_CHAIN_APPLIED": {"FX_CHAIN_APPLIED", "c1", "Voice/Test EQ.RfxChain", "{00000001-0000-4000-8000-000000000001}", "1"},
 	// src/studio/integrations/reaper/tests/master_render_test.lua (master_chain_read, render_with_fx).
-	"MASTER_CHAIN_FX":    {"MASTER_CHAIN_FX", "c1", "{00000001-0000-4000-8000-000000000001}", "Voice", "VST: ReaEQ (Cockos)", "1", "2:1031854743:1991403497"},
-	"MASTER_CHAIN_TRACK": {"MASTER_CHAIN_TRACK", "c1", "{00000001-0000-4000-8000-000000000001}", "Voice", "0", "0", "7:825649450:779707780"},
+	"MASTER_CHAIN_FX":    {"MASTER_CHAIN_FX", "c1", "{00000001-0000-4000-8000-000000000001}", "Voice", "VST: ReaEQ (Cockos)", "1", "3:45416079:345875843"},
+	"MASTER_CHAIN_TRACK": {"MASTER_CHAIN_TRACK", "c1", "{00000001-0000-4000-8000-000000000001}", "Voice", "0", "0", "14:901518076:553555570"},
 	"MASTER_CHAIN_READ":  {"MASTER_CHAIN_READ", "c1", "3", "0", "3"},
 	"FX_RENDER_FILE":     {"FX_RENDER_FILE", "r1", "Chapter 1", "C:/p/" + brand.ProjectFolder + "/mastering/run1/fx-01.wav"},
 	"FX_RENDERED":        {"FX_RENDERED", "r1", "C:/p/" + brand.ProjectFolder + "/mastering/run1", "1"},

@@ -513,7 +513,9 @@ describe('the approval shows the DAW chain it approves (#2932)', () => {
     await mount('daw');
     await openDialog();
     const about = within(dialog()).getByRole('button', { name: 'What this approval covers' });
-    expect(about.getAttribute('aria-description')).toBe("Covers effect settings, order and on/off, and tracks' mute, solo and routing");
+    expect(about.getAttribute('aria-description')).toBe(
+      "Covers effect settings, order and on/off, and tracks' mute, solo and routing; not automation or presets",
+    );
   });
 
   // A fake IntersectionObserver whose first answer says whether the watched element is in view.

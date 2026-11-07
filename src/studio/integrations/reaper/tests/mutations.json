@@ -800,25 +800,25 @@
   {
     "name": "an FX's parameters are not bound",
     "file": "narration_master_render.lua",
-    "find": "    values[#values + 1] = reaper.TrackFX_GetParamNormalized(track, fx, param)\n",
+    "find": "      add(values, reaper.TrackFX_GetParamNormalized(track, fx, param))\n",
     "replace": "\n"
   },
   {
     "name": "a send or receive is not bound",
     "file": "narration_master_render.lua",
-    "find": "        values[#values + 1] = reaper.GetTrackSendInfo_Value(track, category, index, key)\n",
+    "find": "          add(values, reaper.GetTrackSendInfo_Value(track, category, index, key))\n",
     "replace": "\n"
   },
   {
-    "name": "a track's volume and parent send are not bound",
+    "name": "a track's own mix values are not bound",
     "file": "narration_master_render.lua",
-    "find": "    values[#values + 1] = reaper.GetMediaTrackInfo_Value(track, key)\n",
+    "find": "      add(values, reaper.GetMediaTrackInfo_Value(track, key))\n",
     "replace": "\n"
   },
   {
     "name": "a track's mute is not answered",
     "file": "narration_master_render.lua",
-    "find": "local mute = reaper.GetMediaTrackInfo_Value(track, 'B_MUTE') ~= 0 and 1 or 0",
+    "find": "local mute = reaper.GetMediaTrackInfo_Value(track, 'B_MUTE') == 1 and 1 or 0",
     "replace": "local mute = 0"
   },
   {
@@ -828,10 +828,76 @@
     "replace": "    if false then\n"
   },
   {
-    "name": "a NaN parameter fails the read",
+    "name": "NaN collides with infinity",
     "file": "narration_master_render.lua",
-    "find": "  if value ~= value or value >= 1e12 or value <= -1e12 then\n",
-    "replace": "  if false then\n"
+    "find": "    return 'nan'\n",
+    "replace": "    return 'inf'\n"
+  },
+  {
+    "name": "the chain read runs without the calls it needs",
+    "file": "narration_master_render.lua",
+    "find": "  for _, name in ipairs(CHAIN_API) do\n    if not reaper.APIExists(name) then\n",
+    "replace": "  for _, name in ipairs(CHAIN_API) do\n    if false then\n"
+  },
+  {
+    "name": "the second hash is not taken",
+    "file": "narration_master_render.lua",
+    "find": "      b = (b * 137 + byte + 1) % HASH_B\n",
+    "replace": "\n"
+  },
+  {
+    "name": "values are rounded coarser than a millionth",
+    "file": "narration_master_render.lua",
+    "find": "  local text = string.format('%.6f', value)\n",
+    "replace": "  local text = string.format('%.3f', value)\n"
+  },
+  {
+    "name": "a track's phase is not bound",
+    "file": "narration_master_render.lua",
+    "find": "  'B_PHASE',\n  'B_MAINSEND',\n",
+    "replace": "  'B_MAINSEND',\n"
+  },
+  {
+    "name": "a track's folder depth is not bound",
+    "file": "narration_master_render.lua",
+    "find": "  'I_FOLDERDEPTH',\n",
+    "replace": ""
+  },
+  {
+    "name": "a track's FX switch is not bound",
+    "file": "narration_master_render.lua",
+    "find": "  'I_FXEN',\n",
+    "replace": ""
+  },
+  {
+    "name": "a track's receives are not bound",
+    "file": "narration_master_render.lua",
+    "find": "{ SENDS, RECEIVES }",
+    "replace": "{ SENDS }"
+  },
+  {
+    "name": "the close does not count the tracks",
+    "file": "narration_master_render.lua",
+    "find": "event(session_dir, 'MASTER_CHAIN_READ', run_id, listed, truncated, tracks)",
+    "replace": "event(session_dir, 'MASTER_CHAIN_READ', run_id, listed, truncated, 0)"
+  },
+  {
+    "name": "the settings budget is not enforced",
+    "file": "narration_master_render.lua",
+    "find": "    if settings + count > SETTINGS_LIMIT then\n",
+    "replace": "    if false then\n"
+  },
+  {
+    "name": "an FX's offline state is not bound",
+    "file": "narration_master_render.lua",
+    "find": "local values = { reaper.TrackFX_GetOffline(track, fx) and 1 or 0 }",
+    "replace": "local values = { 0 }"
+  },
+  {
+    "name": "a nil answer is dropped from the values",
+    "file": "narration_master_render.lua",
+    "find": "  if value == nil then\n    value = false\n  end\n",
+    "replace": ""
   },
   {
     "name": "record_start end moves the cursor before the refusal checks",

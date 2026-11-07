@@ -1093,6 +1093,11 @@ function Fake:add_item_api(api)
   end
   -- A slot's parameters (master_chain_read, #2995): slot.params, the normalized values, none unless a test sets them. Modelled on
   -- the ReaScript reference text (0 to 1 per parameter), not on a run in REAPER (pending the owner's pass on #2995).
+  -- Whether a slot is offline (slot.offline), which REAPER keeps apart from bypass. Pending a run in REAPER like the rest.
+  function api.TrackFX_GetOffline(track, fx)
+    local slot = (track.fx or {})[fx + 1]
+    return slot ~= nil and slot.offline == true
+  end
   function api.TrackFX_GetNumParams(track, fx)
     local slot = (track.fx or {})[fx + 1]
     return slot and #(slot.params or {}) or 0
@@ -1799,6 +1804,14 @@ end
 function Fake:add_lane_api(api)
   local fake = self
   function api.GetMediaTrackInfo_Value(track, key)
+    -- track.values overrides any key for a test; the string 'nil' answers nil, as a value REAPER does not have may (#2995).
+    local override = (track.values or {})[key]
+    if override ~= nil then
+      if override == 'nil' then
+        return nil
+      end
+      return override
+    end
     if key == 'I_FREEMODE' then
       return track.free_mode or 0
     elseif key == 'I_NUMFIXEDLANES' then
@@ -1828,6 +1841,16 @@ function Fake:add_lane_api(api)
       return track.phase and 1 or 0
     elseif key == 'B_MAINSEND' then
       return track.main_send == false and 0 or 1
+    elseif key == 'I_FXEN' then
+      -- The track's whole FX chain switched on (1) or bypassed (0).
+      return track.fx_enabled == false and 0 or 1
+    elseif key == 'I_PANMODE' or key == 'D_PANLAW' or key == 'D_DUALPANL' then
+      -- -1: the project's default pan mode and law; the left of a dual pan hard left.
+      return -1
+    elseif key == 'D_WIDTH' or key == 'D_DUALPANR' then
+      return 1.0
+    elseif key == 'I_NCHAN' then
+      return 2
     end
     local lane = key:match('^C_LANEPLAYS:(%d+)$')
     if lane then

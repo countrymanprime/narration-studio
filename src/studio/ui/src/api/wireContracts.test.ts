@@ -2421,6 +2421,19 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     await expect(cut.exportPlan({ items: withRegions, master: true, format: 'mp3', approval: null })).rejects.toThrow(
       /couldn't be read, so it can't be approved\. Choose the built-in chain, or untick Master before encoding\./,
     );
+    // `?mockMasterChain=outdated`: a script older than #2995 cannot answer the settings, so the plan says to import it again.
+    const old = createMockApi({}, { mastering: { choice: 'daw', chain: 'outdated' } });
+    await old.exportPickFiles();
+    await expect(old.exportPlan({ items: withRegions, master: true, format: 'mp3', approval: null })).rejects.toThrow(
+      /can't be checked: the app's script in REAPER is older than this app\. Import it again from this app's REAPER folder/,
+    );
+    // `?mockMasterChain=changes`: a setting moves after every read, so the approved render stops at its first file (#2995).
+    const moving = createMockApi({}, { mastering: { choice: 'daw', chain: 'changes' } });
+    await moving.exportPickFiles();
+    const shown = await moving.exportPlan({ items: withRegions, master: true, format: 'mp3', approval: null });
+    let moved = await start(moving, { provider: 'daw', macro: '', chainDigest: shown.chainDigest }, withRegions);
+    while (moved.phase === 'running') moved = await moving.exportState();
+    expect([moved.phase, moved.message]).toEqual(['error', expect.stringMatching(/changed after you approved it: approve the render again/)]);
     const plainRow = createMockApi();
     await plainRow.exportPickFiles();
     expect((await plainRow.exportPlan({ items: withRegions, master: true, format: 'mp3', approval: null })).chain).toEqual([]);

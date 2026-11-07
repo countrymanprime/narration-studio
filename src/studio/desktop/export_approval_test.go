@@ -219,8 +219,9 @@ func TestExportPlanAnswersTheRowAndEachItemsRegion(t *testing.T) {
 		{Kind: string(packager.KindCreditsOpening), Path: opening, Region: "Opening credits"},
 		{Kind: string(packager.KindChapter), Title: "Chapter 1", Path: chapter, Region: "Chapter 1"},
 	}, Chain: []ExportPlanTrack{
-		{Name: "Voice", FX: []ExportPlanFX{{Name: "VST: ReaEQ (Cockos)", Enabled: true}}},
-		{Name: "Master", Master: true, FX: []ExportPlanFX{{Name: "VST: ReaLimit (Cockos)", Enabled: true}}},
+		// The fake DAW's fingerprints, as REAPER's script answers one for every track and FX (#2995).
+		{Name: "Voice", Mix: "14:1:1", FX: []ExportPlanFX{{Name: "VST: ReaEQ (Cockos)", Enabled: true, Params: "1:1:1"}}},
+		{Name: "Master", Master: true, Mix: "14:1:1", FX: []ExportPlanFX{{Name: "VST: ReaLimit (Cockos)", Enabled: true, Params: "1:1:1"}}},
 	}}
 	// TestExportPlanAnswersTheDigestOfTheChainItLists checks the digest itself.
 	want.ChainDigest = plan.ChainDigest
@@ -544,5 +545,73 @@ func unansweredChainReadStopsTheExport(t *testing.T, silence func(*masteringport
 	}
 	if job.Files[1].Status != exportFileCancelled || job.Files[2].Status != exportFileCancelled || len(daw.Renders()) != 0 {
 		t.Fatalf("files %+v, renders %+v", job.Files, daw.Renders())
+	}
+}
+
+// A chain whose settings cannot be bound refuses every later file the same way, so the export stops at the first one with the reason,
+// as it does for a changed chain (#3017 review, G4): an older script's chain, too many settings, a malformed fingerprint, an
+// incomplete answer or a chain cut short.
+func TestAChainWhoseSettingsCannotBeBoundStopsTheExportAtTheFirstFile(t *testing.T) {
+	for name, c := range map[string]struct {
+		arrange func(*masteringporttest.FakeDAW)
+		want    error
+	}{
+		"an older script": {func(d *masteringporttest.FakeDAW) {
+			d.SetChain(dawport.MasterChain{Master: []dawport.FXSlot{{Name: "VST: ReaLimit (Cockos)", Enabled: true}}, SettingsUnread: true}, nil)
+		}, bridge.ErrScriptOutdated},
+		"too many settings": {func(d *masteringporttest.FakeDAW) { d.SetChain(dawport.MasterChain{}, bridge.ErrChainTooManySettings) }, bridge.ErrChainTooManySettings},
+		"a bad fingerprint": {func(d *masteringporttest.FakeDAW) {
+			d.SetChainExact(dawport.MasterChain{MasterMix: dawport.TrackMix{Mix: "1:x"}})
+		}, bridge.ErrChainFingerprint},
+		"an incomplete answer": {func(d *masteringporttest.FakeDAW) { d.SetChain(dawport.MasterChain{}, bridge.ErrChainIncomplete) }, bridge.ErrChainIncomplete},
+		"a chain cut short":    {func(d *masteringporttest.FakeDAW) { d.SetChain(dawport.MasterChain{}, bridge.ErrChainTooLong) }, bridge.ErrChainTooLong},
+	} {
+		t.Run(name, func(t *testing.T) {
+			dir := t.TempDir()
+			paths := []string{filepath.Join(dir, "ch1.wav"), filepath.Join(dir, "ch2.wav"), filepath.Join(dir, "ch3.wav")}
+			items := make([]ExportItem, 0, len(paths))
+			for i, path := range paths {
+				writeFixtureFile(t, path, "wav")
+				items = append(items, ExportItem{Kind: string(packager.KindChapter), Title: fmt.Sprintf("Chapter %d", i+1), Path: path})
+			}
+			host := masteringExportHost(t, masteringport.DAW, paths...)
+			daw := masteringporttest.NewFakeDAW(host.config.projectFolder)
+			t.Cleanup(masteringport.UseSession(func() (masteringport.Session, error) { return daw.Session(), nil }))
+			approval := shownApproval(t, host, items)
+			c.arrange(daw)
+			if _, err := host.startExport(ExportRequest{Master: true, Items: items, Approval: approval}); err != nil {
+				t.Fatal(err)
+			}
+			job := waitExportEnded(t, host)
+			if job.Phase != "error" || !strings.Contains(job.Message, "Stopped at ch1.wav: "+c.want.Error()) {
+				t.Fatalf("phase %q, message %q", job.Phase, job.Message)
+			}
+			failed := 0
+			for _, file := range job.Files {
+				if file.Status == exportFileFailed {
+					failed++
+				}
+			}
+			if failed != 1 || job.Files[1].Status != exportFileCancelled || job.Files[2].Status != exportFileCancelled || len(daw.Renders()) != 0 {
+				t.Fatalf("files %+v, renders %+v", job.Files, daw.Renders())
+			}
+		})
+	}
+}
+
+// Too many settings is said plainly in the plan's toast, with what to do instead (#3017 review, L1).
+func TestExportPlanRefusesAChainWithTooManySettingsWithWhatToDo(t *testing.T) {
+	chapter := filepath.Join(t.TempDir(), "ch1.wav")
+	writeFixtureFile(t, chapter, "wav")
+	host := masteringExportHost(t, masteringport.DAW, chapter)
+	daw := masteringporttest.NewFakeDAW(host.config.projectFolder)
+	daw.SetChain(dawport.MasterChain{}, bridge.ErrChainTooManySettings)
+	t.Cleanup(masteringport.UseSession(func() (masteringport.Session, error) { return daw.Session(), nil }))
+	_, err := host.exportPlan(ExportRequest{Master: true, Items: oneChapter(chapter)})
+	if !errors.Is(err, bridge.ErrChainTooManySettings) {
+		t.Fatalf("err = %v", err)
+	}
+	if want := "Your DAW's FX chain has too many plug-in settings to check, so it can't be approved. Choose the built-in chain, or untick Master before encoding."; err.Error() != want {
+		t.Errorf("refusal = %q\nwant      %q", err, want)
 	}
 }

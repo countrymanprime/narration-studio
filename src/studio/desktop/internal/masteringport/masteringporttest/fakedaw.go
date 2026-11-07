@@ -37,6 +37,8 @@ type FakeDAW struct {
 	queue []dawport.Event
 	// +checklocks:mu
 	chain *dawport.MasterChain
+	// chainExact: answer chain as set, with no fingerprint filled in (SetChainExact).
+	chainExact bool
 	// +checklocks:mu
 	chainErr error
 	// +checklocks:mu
@@ -67,7 +69,50 @@ func (f *FakeDAW) ChainNeverAnswers() {
 func (f *FakeDAW) SetChain(chain dawport.MasterChain, err error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	f.chain, f.chainErr = &chain, err
+	f.chain, f.chainErr, f.chainExact = &chain, err, false
+}
+
+// SetChainExact sets what master_chain_read answers, as it is: no fingerprint is filled in for a track or FX left without one.
+func (f *FakeDAW) SetChainExact(chain dawport.MasterChain) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.chain, f.chainErr, f.chainExact = &chain, nil, true
+}
+
+// The fingerprints the fake answers for a track or an FX a test left without one, as REAPER's script answers one for every track
+// and FX (#2995): any digits do, since the host compares them and never reads them.
+const (
+	fakeMix    = "14:1:1"
+	fakeParams = "1:1:1"
+)
+
+// withFingerprints is chain with a fingerprint for every track, the master and every FX that has none, unless its settings were not
+// read (an older script's chain), which has none.
+func withFingerprints(chain dawport.MasterChain) dawport.MasterChain {
+	if chain.SettingsUnread {
+		return chain
+	}
+	slots := func(in []dawport.FXSlot) []dawport.FXSlot {
+		out := append([]dawport.FXSlot(nil), in...)
+		for i := range out {
+			if out[i].Params == "" {
+				out[i].Params = fakeParams
+			}
+		}
+		return out
+	}
+	tracks := append([]dawport.TrackFX(nil), chain.Tracks...)
+	for i := range tracks {
+		if tracks[i].Mix.Mix == "" {
+			tracks[i].Mix.Mix = fakeMix
+		}
+		tracks[i].FX = slots(tracks[i].FX)
+	}
+	chain.Tracks, chain.Master = tracks, slots(chain.Master)
+	if chain.MasterMix.Mix == "" {
+		chain.MasterMix.Mix = fakeMix
+	}
+	return chain
 }
 
 // Misbehaviour is how a FakeDAW answers a render wrongly, to show a row does not trust the DAW's answer.
@@ -142,7 +187,7 @@ type fakeChainReader struct{ f *FakeDAW }
 
 func (r fakeChainReader) ReadMasterChain(ctx context.Context) (dawport.MasterChain, error) {
 	r.f.mu.Lock()
-	chain, err, waits := r.f.chain, r.f.chainErr, r.f.chainWaits
+	chain, err, waits, exact := r.f.chain, r.f.chainErr, r.f.chainWaits, r.f.chainExact
 	if r.f.swapTo != nil && len(r.f.renders) >= r.f.swapAfter {
 		chain = r.f.swapTo
 	}
@@ -154,14 +199,17 @@ func (r fakeChainReader) ReadMasterChain(ctx context.Context) (dawport.MasterCha
 	if err != nil {
 		return dawport.MasterChain{}, err
 	}
-	if chain != nil {
+	if chain != nil && exact {
 		return *chain, nil
 	}
-	return dawport.MasterChain{
+	if chain != nil {
+		return withFingerprints(*chain), nil
+	}
+	return withFingerprints(dawport.MasterChain{
 		Tracks: []dawport.TrackFX{{TrackGUID: "{00000001-0000-4000-8000-000000000001}", Name: "Voice",
 			FX: []dawport.FXSlot{{Name: "VST: ReaEQ (Cockos)", Enabled: true}}}},
 		Master: []dawport.FXSlot{{Name: "VST: ReaLimit (Cockos)", Enabled: true}},
-	}, nil
+	}), nil
 }
 
 type fakeRenderer struct{ f *FakeDAW }

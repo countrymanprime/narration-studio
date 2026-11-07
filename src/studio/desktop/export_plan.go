@@ -254,6 +254,10 @@ func (e chainUnreadableError) Error() string {
 	if errors.Is(e.cause, bridge.ErrScriptOutdated) {
 		return e.label + " can't be checked: the app's script in REAPER is older than this app. Import it again from this app's REAPER folder, or choose the built-in chain."
 	}
+	// More plug-in settings than one read takes (#3017 review, L1): the chain is refused, never approved with some unbound.
+	if errors.Is(e.cause, bridge.ErrChainTooManySettings) {
+		return e.label + " has too many plug-in settings to check, so it can't be approved. Choose the built-in chain, or untick Master before encoding."
+	}
 	return e.label + " couldn't be read, so it can't be approved. Choose the built-in chain, or untick Master before encoding."
 }
 

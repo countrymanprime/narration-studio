@@ -55,13 +55,19 @@ export type MasteringMockSeed = {
   /** Rows not available on this computer, by name, with the sentence the host refuses them with. */
   unavailable?: Record<string, string>;
   /** What the DAW's master_chain_read answers (`?mockMasterChain=`): masteringporttest's FakeDAW chain by default, a long one, none,
-   * or one the bridge cut short. */
-  chain?: 'default' | 'long' | 'empty' | 'unreadable';
+   * one the bridge cut short, one from a script older than #2995 (`outdated`), or one whose setting moves after every read
+   * (`changes`), so an approved render stops at its first file. */
+  chain?: 'default' | 'long' | 'empty' | 'unreadable' | 'outdated' | 'changes';
 };
 
 /** The bridge's refusal of a chain it listed only part of (bridge.ErrChainTooLong), as export_plan.go words it for the DAW row:
  * what to do next, then the DAW's reason. */
 const CHAIN_UNREADABLE = "Your DAW's FX chain couldn't be read, so it can't be approved. Choose the built-in chain, or untick Master before encoding.";
+/** export_plan.go's refusal of a chain from a script older than #2995 (bridge.ErrScriptOutdated). */
+const CHAIN_OUTDATED =
+  "Your DAW's FX chain can't be checked: the app's script in REAPER is older than this app. Import it again from this app's REAPER folder, or choose the built-in chain.";
+/** How many times the `changes` chain was read: its EQ's parameters move with each read. */
+let changingReads = 0;
 
 /** chain.go's hangulFiller: default-ignorable, but a font draws them as a blank, so they are kept inside a name. */
 const HANGUL_FILLERS = new Set([0x115f, 0x1160, 0x3164, 0xffa0]);
@@ -174,6 +180,14 @@ export async function mockMasterChain(seed: MasteringMockSeed['chain'] = 'defaul
   switch (seed) {
     case 'unreadable':
       throw new Error(CHAIN_UNREADABLE);
+    case 'outdated':
+      throw new Error(CHAIN_OUTDATED);
+    case 'changes': {
+      // A setting the narrator moves in REAPER after every read: the render's own read differs from the one approved.
+      changingReads += 1;
+      const [voice, master] = [mockTrack('Voice', false, [{ name: 'VST: ReaEQ (Cockos)', enabled: true }]), mockTrack('Master', true, [])];
+      return [{ ...voice, fx: voice.fx.map((fx) => ({ ...fx, params: `1:${changingReads}:${changingReads}` })) }, master];
+    }
     case 'empty':
       // The master is always listed, its mix bound even with no plug-ins (#2995).
       return [mockTrack('Master', true, [])];

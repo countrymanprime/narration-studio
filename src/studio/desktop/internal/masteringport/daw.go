@@ -158,7 +158,11 @@ func (dawChain) Master(ctx context.Context, req Request) (Result, error) {
 		return Result{}, bridge.ErrScriptOutdated
 	}
 	// The chain this render runs is read here anyway, for the report: it must be the one approved, or nothing renders.
-	if ChainDigest(listedChain(chain)) != req.ChainDigest {
+	listed, err := listedChain(chain)
+	if err != nil {
+		return Result{}, err
+	}
+	if ChainDigest(listed) != req.ChainDigest {
 		return Result{}, ErrChainChanged
 	}
 
@@ -388,7 +392,7 @@ func (dawChain) Chain(ctx context.Context) ([]ChainTrack, error) {
 	if chain.SettingsUnread {
 		return nil, bridge.ErrScriptOutdated
 	}
-	return listedChain(chain), nil
+	return listedChain(chain)
 }
 
 // chainSteps words what ran for the narrator's report: each track's FX, the master's, then the render itself.

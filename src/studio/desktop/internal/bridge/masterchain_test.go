@@ -25,10 +25,10 @@ func TestReadMasterChainIsExperimentalAndRefusedWhileTheSettingIsOff(t *testing.
 
 // The fingerprints REAPER answers (master_render_test.lua pins how they are made); the host binds them as text.
 const (
-	noParams   = "0:7:11"
-	eqParams   = "2:1031854743:1991403497"
-	defaultMix = "7:825649450:779707780"
-	quietMix   = "7:1741980508:1004297306"
+	noParams   = "1:912281302:1180657038"
+	eqParams   = "3:45416079:345875843"
+	defaultMix = "14:901518076:553555570"
+	quietMix   = "14:424772828:127370515"
 )
 
 func TestReadMasterChainGroupsEveryTracksFXAndKeepsTheMasterApart(t *testing.T) {
@@ -166,15 +166,140 @@ func TestReadMasterChainMarksAnOlderScriptsChainAsSettingsUnread(t *testing.T) {
 // refused.
 func TestReadMasterChainRefusesAFingerprintThatIsNotDigits(t *testing.T) {
 	for _, bad := range []string{"1:2", "1:2:x", "1:2:3\tfx", "-1:2:3", "1:2:3:4"} {
+		for where, lines := range map[string]func(string) [][]string{
+			"a track's mix": func(r string) [][]string {
+				return [][]string{
+					{"MASTER_CHAIN_TRACK", r, "master", "MASTER", "0", "0", bad},
+					{"MASTER_CHAIN_READ", r, "0", "0", "1"},
+				}
+			},
+			"an FX's parameters": func(r string) [][]string {
+				return [][]string{
+					{"MASTER_CHAIN_TRACK", r, "master", "MASTER", "0", "0", defaultMix},
+					{"MASTER_CHAIN_FX", r, "master", "MASTER", "VST: ReaLimit (Cockos)", "1", bad},
+					{"MASTER_CHAIN_READ", r, "1", "0", "1"},
+				}
+			},
+		} {
+			actions, client, dir := newActionsSession(t, true)
+			startFakeReaper(t, client, dir, func(command []string) [][]string { return lines(run(command)) })
+			if _, err := actions.ReadMasterChain(context.Background()); !errors.Is(err, ErrChainFingerprint) {
+				t.Fatalf("%s %q: err = %v, want ErrChainFingerprint", where, bad, err)
+			}
+		}
+	}
+}
+
+// Mute is 0 or 1 and solo is I_SOLO's own range, 0 to 6 (soloed, in place, safe): anything else is not REAPER's answer (#3017
+// review, G3).
+func TestReadMasterChainRefusesAMuteOrSoloOutsideREAPERsValues(t *testing.T) {
+	// Not a number at all is refused before the parse, by the wire table (a count field), with the script's own message.
+	for _, bad := range [][2]string{{"0", "x"}, {"yes", "0"}} {
 		actions, client, dir := newActionsSession(t, true)
 		startFakeReaper(t, client, dir, func(command []string) [][]string {
 			return [][]string{
-				{"MASTER_CHAIN_TRACK", run(command), "master", "MASTER", "0", "0", bad},
+				{"MASTER_CHAIN_TRACK", run(command), "master", "MASTER", bad[0], bad[1], defaultMix},
+				{"MASTER_CHAIN_READ", run(command), "0", "0", "1"},
+			}
+		})
+		if _, err := actions.ReadMasterChain(context.Background()); err == nil {
+			t.Fatalf("mute %q solo %q was read", bad[0], bad[1])
+		}
+	}
+	for _, bad := range [][2]string{{"2", "0"}, {"-1", "0"}, {"0", "-1"}, {"0", "7"}} {
+		actions, client, dir := newActionsSession(t, true)
+		startFakeReaper(t, client, dir, func(command []string) [][]string {
+			return [][]string{
+				{"MASTER_CHAIN_TRACK", run(command), "master", "MASTER", bad[0], bad[1], defaultMix},
 				{"MASTER_CHAIN_READ", run(command), "0", "0", "1"},
 			}
 		})
 		if _, err := actions.ReadMasterChain(context.Background()); !errors.Is(err, ErrChainFingerprint) {
-			t.Fatalf("mix %q: err = %v, want ErrChainFingerprint", bad, err)
+			t.Fatalf("mute %q solo %q: err = %v, want ErrChainFingerprint", bad[0], bad[1], err)
 		}
+	}
+	for _, solo := range []string{"0", "1", "2", "5", "6"} {
+		actions, client, dir := newActionsSession(t, true)
+		startFakeReaper(t, client, dir, func(command []string) [][]string {
+			return [][]string{
+				{"MASTER_CHAIN_TRACK", run(command), "master", "MASTER", "1", solo, defaultMix},
+				{"MASTER_CHAIN_READ", run(command), "0", "0", "1"},
+			}
+		})
+		if got, err := actions.ReadMasterChain(context.Background()); err != nil || !got.MasterMix.Mute {
+			t.Fatalf("solo %q: %+v, %v", solo, got, err)
+		}
+	}
+}
+
+// The close counts what was sent: a line the host never received (dropped as invalid, or lost) leaves the chain incomplete, and
+// an incomplete chain is never approved (#3017 review, G1).
+func TestReadMasterChainRefusesAnAnswerThatDoesNotMatchItsOwnCounts(t *testing.T) {
+	const voice = "{00000001-0000-4000-8000-000000000001}"
+	for name, lines := range map[string]func(string) [][]string{
+		"a track line missing": func(r string) [][]string {
+			return [][]string{
+				{"MASTER_CHAIN_TRACK", r, voice, "Voice", "0", "0", defaultMix},
+				{"MASTER_CHAIN_TRACK", r, "master", "MASTER", "0", "0", defaultMix},
+				{"MASTER_CHAIN_READ", r, "0", "0", "3"},
+			}
+		},
+		"an FX line missing": func(r string) [][]string {
+			return [][]string{
+				{"MASTER_CHAIN_TRACK", r, voice, "Voice", "0", "0", defaultMix},
+				{"MASTER_CHAIN_FX", r, voice, "Voice", "VST: ReaEQ (Cockos)", "1", eqParams},
+				{"MASTER_CHAIN_TRACK", r, "master", "MASTER", "0", "0", defaultMix},
+				{"MASTER_CHAIN_READ", r, "2", "0", "2"},
+			}
+		},
+		"an older script's FX line missing": func(r string) [][]string {
+			return [][]string{
+				{"MASTER_CHAIN_FX", r, voice, "Voice", "VST: ReaEQ (Cockos)", "1"},
+				{"MASTER_CHAIN_READ", r, "2", "0"},
+			}
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			actions, client, dir := newActionsSession(t, true)
+			startFakeReaper(t, client, dir, func(command []string) [][]string { return lines(run(command)) })
+			if _, err := actions.ReadMasterChain(context.Background()); !errors.Is(err, ErrChainIncomplete) {
+				t.Fatalf("err = %v, want ErrChainIncomplete", err)
+			}
+		})
+	}
+}
+
+// Past the bridge's settings budget the script refuses the read (truncated 2): too many plug-in settings to check, never a chain
+// with some of them unbound (#3017 review, L1).
+func TestReadMasterChainRefusesAChainWithTooManySettings(t *testing.T) {
+	actions, client, dir := newActionsSession(t, true)
+	startFakeReaper(t, client, dir, func(command []string) [][]string {
+		return [][]string{
+			{"MASTER_CHAIN_TRACK", run(command), "{1}", "Voice", "0", "0", defaultMix},
+			{"MASTER_CHAIN_READ", run(command), "0", "2", "1"},
+		}
+	})
+	if _, err := actions.ReadMasterChain(context.Background()); !errors.Is(err, ErrChainTooManySettings) {
+		t.Fatalf("err = %v, want ErrChainTooManySettings", err)
+	}
+}
+
+// A script that sends track lines for some tracks and not others (part new, part old) has not read every setting: its chain is
+// SettingsUnread, as an older script's is (#3017 review, G3).
+func TestReadMasterChainMarksAPartlyNewAnswerAsSettingsUnread(t *testing.T) {
+	const a, b = "{0000000A-0000-4000-8000-00000000000A}", "{0000000B-0000-4000-8000-00000000000B}"
+	actions, client, dir := newActionsSession(t, true)
+	startFakeReaper(t, client, dir, func(command []string) [][]string {
+		return [][]string{
+			{"MASTER_CHAIN_TRACK", run(command), a, "A", "0", "0", defaultMix},
+			{"MASTER_CHAIN_FX", run(command), a, "A", "VST: ReaEQ (Cockos)", "1", eqParams},
+			{"MASTER_CHAIN_FX", run(command), b, "B", "VST: ReaComp (Cockos)", "1", noParams},
+			{"MASTER_CHAIN_TRACK", run(command), "master", "MASTER", "0", "0", defaultMix},
+			{"MASTER_CHAIN_READ", run(command), "2", "0", "2"},
+		}
+	})
+	got, err := actions.ReadMasterChain(context.Background())
+	if err != nil || !got.SettingsUnread || len(got.Tracks) != 2 {
+		t.Fatalf("got %+v, %v; want both tracks, marked SettingsUnread", got, err)
 	}
 }

@@ -15,11 +15,18 @@ import (
 const MasterTrackGUID = "master"
 
 var (
-	// ErrChainTooLong: REAPER listed only part of the project's FX or tracks, so the chain cannot be shown whole before a render is
+	// ErrChainTooLong means REAPER listed only part of the project's FX or tracks, so the chain cannot be shown whole before a render is
 	// approved.
 	ErrChainTooLong = errors.New("this project has more FX than this app can list, so it cannot show you the whole chain before a render")
-	// ErrChainFingerprint: a mix or parameter fingerprint that is not "<count>:<a>:<b>" in digits, which the digest cannot bind.
+	// ErrChainFingerprint is a mix or parameter fingerprint that is not "<count>:<a>:<b>" in digits, or a mute or solo outside
+	// REAPER's values, which the digest cannot bind.
 	ErrChainFingerprint = errors.New("REAPER answered FX chain settings this app cannot read")
+	// ErrChainTooManySettings means the script's settings budget ran out (MASTER_CHAIN_READ truncated 2): more plug-in parameters and
+	// sends than one read takes, so the chain is refused rather than approved with some of them unbound (#2995).
+	ErrChainTooManySettings = errors.New("this project has too many plug-in settings for this app to check before a render")
+	// ErrChainIncomplete means the lines received do not match the counts MASTER_CHAIN_READ closed with (a line dropped as invalid, or
+	// lost), so the chain the narrator would see is not the whole one.
+	ErrChainIncomplete = errors.New("REAPER's answer about the FX chain was incomplete")
 )
 
 // fingerprintPattern is how master_chain_read writes a fingerprint: a count and two hashes, in digits.
@@ -69,6 +76,7 @@ func (a *Actions) ReadMasterChain(ctx context.Context) (MasterChain, error) {
 	}
 	chain := MasterChain{Tracks: []TrackFX{}, Master: []FXSlot{}}
 	masterListed := false
+	trackLines, fxLines := 0, 0
 	for _, event := range events {
 		switch event.Tag {
 		case "MASTER_CHAIN_TRACK":
@@ -76,12 +84,14 @@ func (a *Actions) ReadMasterChain(ctx context.Context) (MasterChain, error) {
 			if err != nil {
 				return MasterChain{}, err
 			}
+			trackLines++
 			if event.Fields[2] == MasterTrackGUID {
 				chain.MasterMix, masterListed = mix, true
 				continue
 			}
 			chain.Tracks = append(chain.Tracks, TrackFX{TrackGUID: event.Fields[2], Name: event.Fields[3], Mix: mix, FX: []FXSlot{}})
 		case "MASTER_CHAIN_FX":
+			fxLines++
 			guid, name := event.Fields[2], event.Fields[3]
 			slot := FXSlot{Name: event.Fields[4], Enabled: event.Fields[5] == "1"}
 			if len(event.Fields) > 6 && event.Fields[6] != "" {
@@ -104,25 +114,35 @@ func (a *Actions) ReadMasterChain(ctx context.Context) (MasterChain, error) {
 				chain.SettingsUnread = true
 			}
 		case "MASTER_CHAIN_READ":
-			if event.Fields[3] == "1" {
+			switch event.Fields[3] {
+			case "1":
 				return MasterChain{}, ErrChainTooLong
+			case "2":
+				return MasterChain{}, ErrChainTooManySettings
+			}
+			// The close counts the FX lines it sent and, since #2995, the track lines (the master's included): a line the host
+			// did not receive leaves the chain incomplete.
+			if event.Fields[2] != strconv.Itoa(fxLines) {
+				return MasterChain{}, ErrChainIncomplete
 			}
 			if len(event.Fields) < 5 || event.Fields[4] == "" || !masterListed {
 				chain.SettingsUnread = true
+			} else if event.Fields[4] != strconv.Itoa(trackLines) {
+				return MasterChain{}, ErrChainIncomplete
 			}
 		}
 	}
 	return chain, nil
 }
 
-// trackMix is a MASTER_CHAIN_TRACK line's mute, solo and mix fingerprint.
+// trackMix is a MASTER_CHAIN_TRACK line's mute (0 or 1), solo (I_SOLO, 0 to 6) and mix fingerprint.
 func trackMix(fields []string) (TrackMix, error) {
 	solo, err := strconv.Atoi(fields[1])
-	if err != nil {
-		return TrackMix{}, ErrChainFingerprint
-	}
-	if !fingerprintPattern.MatchString(fields[2]) {
+	if err != nil || solo < 0 || solo > maxSolo || (fields[0] != "0" && fields[0] != "1") || !fingerprintPattern.MatchString(fields[2]) {
 		return TrackMix{}, ErrChainFingerprint
 	}
 	return TrackMix{Mute: fields[0] == "1", Solo: solo, Mix: fields[2]}, nil
 }
+
+// maxSolo is I_SOLO's highest value: 0 not soloed, 1 soloed, 2 soloed in place, 5 and 6 safe-soloed.
+const maxSolo = 6

@@ -66,17 +66,32 @@ end
 
 -- master_chain_read ------------------------------------------------------------------------------------------------
 
--- The fingerprints below were computed outside Lua (two polynomial hashes over the values in a fixed order, each quantized to
--- a millionth): "<count>:<a>:<b>". An FX's is over its normalized parameters; a track's mix is over its volume, pan, phase,
--- parent send and folder depth, then its sends and its receives, each with mute, phase, mono, volume, pan, mode and channels
--- (#2995). The literals pin the algorithm, so a change to it is a change the host's digest sees.
-local NO_PARAMS = '0:7:11'
-local EQ_PARAMS = '2:1031854743:1991403497' -- { 0.5, 0.25 }
-local EQ_PARAMS_MOVED = '2:1031864743:1991413497' -- { 0.5, 0.26 }
-local DEFAULT_MIX = '7:825649450:779707780' -- unity, centre, phase normal, parent send on, no folder, no sends or receives
-local QUIETER_MIX = '7:1741980508:1004297306' -- the same at half volume
-local SENDING_MIX = '15:1512987012:1012841191' -- the default, with one send at unity
-local RECEIVING_MIX = '15:134616856:960716943' -- the default, with that send as its one receive
+-- The fingerprints below were computed outside Lua (scratch Python mirroring the algorithm): "<count>:<a>:<b>", two polynomial
+-- hashes over each value's token and a ';'. A token is the value to six decimals ('%.6f', -0 as 0), or 'nan', 'inf', '-inf', or
+-- 'n' for a missing or non-number answer, so no two of those collide and a large value never wraps. An FX's is over its offline
+-- state and then its normalized parameters; a track's mix is over D_VOL, D_PAN, B_PHASE, B_MAINSEND, I_FOLDERDEPTH, I_FXEN,
+-- I_PANMODE, D_PANLAW, D_WIDTH, D_DUALPANL, D_DUALPANR and I_NCHAN, then its sends and its receives, each with mute, phase,
+-- mono, volume, pan, mode and channels (#2995). The literals pin the algorithm, so a change to it is a change the host's digest
+-- sees.
+local NO_PARAMS = '1:912281302:1180657038' -- online, no parameters
+local EQ_PARAMS = '3:45416079:345875843' -- online, { 0.5, 0.25 }
+local EQ_PARAMS_MOVED = '3:2117683731:1362960462' -- online, { 0.5, 0.26 }
+local EQ_OFFLINE = '3:1076015632:1492863399' -- offline, { 0.5, 0.25 }
+local DEFAULT_MIX = '14:901518076:553555570' -- unity, centre, the default pan mode and law, stereo, FX on, no sends or receives
+local QUIETER_MIX = '14:424772828:127370515' -- the same at half volume
+local FX_OFF_MIX = '14:888714186:288596514' -- the default with the track's FX chain switched off (I_FXEN 0)
+local SENDING_MIX = '22:955495191:887128309' -- the default, with one send at unity
+local RECEIVING_MIX = '22:974159987:443539302' -- the default, with that send as its one receive
+local NIL_MAINSEND_MIX = '14:1787110357:1166252907' -- the default, with B_MAINSEND answering nil
+-- 2147.483647 is the old modulo's period: it must not collide with 0, nor NaN with 2147.483646 (lua review, L3).
+local COLLIDING = {
+  { 0 / 0, '2:1691458664:1638330890' },
+  { 2147.483646, '2:1010942015:325426705' },
+  { 0.0, '2:1123506415:976916890' },
+  { 2147.483647, '2:1010942146:325426842' },
+  { math.huge, '2:1680440254:1625717026' },
+  { -math.huge, '2:593117722:1858032743' },
+}
 
 H.test('master_chain_read lists every track and then the master, each with its mute, solo and mix, and each slot with its parameters', function()
   local s = new_session()
@@ -132,17 +147,55 @@ H.test('master_chain_read answers the same parameters twice, and other ones once
   H.eq(by_run, { c1 = EQ_PARAMS, c2 = EQ_PARAMS, c3 = EQ_PARAMS_MOVED })
 end)
 
-H.test("master_chain_read answers each track's mute and solo, and its mix moves with its volume", function()
+H.test("master_chain_read folds an FX's offline state into its parameters", function()
+  local s = new_session()
+  local voice = s.fake:add_track('Voice')
+  voice.fx = { { name = 'VST: ReaEQ (Cockos)', params = { 0.5, 0.25 }, offline = true } }
+  s:send('master_chain_read', 'c1')
+  H.eq(line(s:events(), 'MASTER_CHAIN_FX', voice.guid)[7], EQ_OFFLINE)
+end)
+
+H.test("master_chain_read answers each track's mute and solo, and its mix moves with its volume and its FX switch", function()
   local s = new_session()
   local voice = s.fake:add_track('Voice')
   voice.muted = true
   voice.solo = 2
   local quiet = s.fake:add_track('Quiet')
   quiet.volume = 0.5
+  local bypassed = s.fake:add_track('Bypassed')
+  bypassed.fx_enabled = false
   s:send('master_chain_read', 'c1')
   local events = s:events()
   H.eq(line(events, 'MASTER_CHAIN_TRACK', voice.guid), { 'MASTER_CHAIN_TRACK', 'c1', voice.guid, 'Voice', '1', '2', DEFAULT_MIX })
   H.eq(line(events, 'MASTER_CHAIN_TRACK', quiet.guid), { 'MASTER_CHAIN_TRACK', 'c1', quiet.guid, 'Quiet', '0', '0', QUIETER_MIX })
+  H.eq(line(events, 'MASTER_CHAIN_TRACK', bypassed.guid)[7], FX_OFF_MIX, "the track's whole FX chain switched off")
+end)
+
+H.test('master_chain_read moves a mix with each value it binds', function()
+  local defaults = {}
+  for _, key in ipairs({
+    'D_VOL',
+    'D_PAN',
+    'B_PHASE',
+    'B_MAINSEND',
+    'I_FOLDERDEPTH',
+    'I_FXEN',
+    'I_PANMODE',
+    'D_PANLAW',
+    'D_WIDTH',
+    'D_DUALPANL',
+    'D_DUALPANR',
+    'I_NCHAN',
+  }) do
+    local s = new_session()
+    local voice = s.fake:add_track('Voice')
+    voice.values = { [key] = 0.75 }
+    s:send('master_chain_read', 'c1')
+    local mix = line(s:events(), 'MASTER_CHAIN_TRACK', voice.guid)[7]
+    H.truthy(mix ~= DEFAULT_MIX, key .. ' is bound')
+    H.truthy(defaults[mix] == nil, key .. ' moves the mix differently from ' .. tostring(defaults[mix]))
+    defaults[mix] = key
+  end
 end)
 
 H.test('master_chain_read folds a send into the mix of the track that sends it and of the track that receives it', function()
@@ -156,12 +209,23 @@ H.test('master_chain_read folds a send into the mix of the track that sends it a
   H.eq(line(events, 'MASTER_CHAIN_TRACK', bus.guid)[7], RECEIVING_MIX)
 end)
 
-H.test('master_chain_read answers a parameter that is not a number without failing', function()
+H.test('master_chain_read gives NaN, the infinities and values a modulo would wrap fingerprints of their own', function()
+  for _, case in ipairs(COLLIDING) do
+    local s = new_session()
+    local voice = s.fake:add_track('Voice')
+    voice.fx = { { name = 'JS: Odd', params = { case[1] } } }
+    s:send('master_chain_read', 'c1')
+    H.eq(line(s:events(), 'MASTER_CHAIN_FX', voice.guid)[7], case[2], tostring(case[1]))
+  end
+end)
+
+H.test('master_chain_read reads a value REAPER answers as nil without failing', function()
   local s = new_session()
-  local voice = s.fake:add_track('Voice')
-  voice.fx = { { name = 'JS: Odd', params = { 0 / 0 } } }
+  s.fake.master.values = { B_MAINSEND = 'nil' }
   s:send('master_chain_read', 'c1')
-  H.eq(line(s:events(), 'MASTER_CHAIN_FX', voice.guid)[7], '1:7000021:10999831')
+  local events = s:events()
+  H.eq(line(events, 'MASTER_CHAIN_TRACK', 'master')[7], NIL_MAINSEND_MIX)
+  H.eq(events[#events], { 'MASTER_CHAIN_READ', 'c1', '0', '0', '1' })
 end)
 
 H.test('master_chain_read reads and changes nothing', function()
@@ -206,6 +270,49 @@ H.test('master_chain_read stops listing tracks at its cap and says the list was 
   H.eq(events[#events], { 'MASTER_CHAIN_READ', 'c1', '0', '1', '500' })
 end)
 
+-- Every parameter and every send or receive field read counts against one budget for the whole read (50000 values), so 500 FX
+-- with thousands of parameters cannot hold REAPER's defer loop. Past it the read is refused (truncated 2), never cut short with
+-- the rest unbound (lua review, L1). A send costs 16: its 8 fields read from the sending track and again from the receiving one.
+local function many(count)
+  local values = {}
+  for index = 1, count do
+    values[index] = (index % 100) / 100
+  end
+  return values
+end
+
+H.test('master_chain_read reads every setting up to its budget', function()
+  local s = new_session()
+  local voice = s.fake:add_track('Voice')
+  voice.fx = { { name = 'VST: Big', params = many(49984) } }
+  s.fake:add_send(voice, s.fake:add_track('Bus'))
+  s:send('master_chain_read', 'c1')
+  local events = s:events()
+  H.truthy(line(events, 'MASTER_CHAIN_FX', voice.guid) ~= nil, 'the FX is listed')
+  H.eq(events[#events], { 'MASTER_CHAIN_READ', 'c1', '1', '0', '3' })
+end)
+
+H.test('master_chain_read refuses a read past its settings budget', function()
+  for _, case in ipairs({
+    { label = 'parameters', params = 50001, sends = 0 },
+    { label = 'a send past the budget', params = 49985, sends = 1 },
+  }) do
+    local s = new_session()
+    local voice = s.fake:add_track('Voice')
+    voice.fx = { { name = 'VST: Big', params = many(case.params) } }
+    if case.sends > 0 then
+      s.fake:add_send(voice, s.fake:add_track('Bus'))
+    end
+    s:send('master_chain_read', 'c1')
+    local events = s:events()
+    local close = events[#events]
+    H.eq({ close[1], close[4] }, { 'MASTER_CHAIN_READ', '2' }, case.label .. ': refused as too many settings')
+    for _, event in ipairs(events) do
+      H.truthy(event[5] ~= 'VST: Big' or case.sends > 0, case.label .. ': the FX past the budget is not listed')
+    end
+  end
+end)
+
 H.test('master_chain_read needs the track FX API', function()
   local s = new_session()
   s.fake:remove_api('TrackFX_GetFXName')
@@ -213,8 +320,16 @@ H.test('master_chain_read needs the track FX API', function()
   H.eq(s:events(), { { 'ERROR', 'c1', 'This REAPER version cannot list FX.' } })
 end)
 
-H.test('master_chain_read needs the FX parameter and send API', function()
-  for _, name in ipairs({ 'TrackFX_GetNumParams', 'TrackFX_GetParamNormalized', 'GetTrackNumSends', 'GetTrackSendInfo_Value' }) do
+H.test('master_chain_read needs every call it reads with', function()
+  for _, name in ipairs({
+    'TrackFX_GetFXName',
+    'TrackFX_GetEnabled',
+    'TrackFX_GetOffline',
+    'TrackFX_GetNumParams',
+    'TrackFX_GetParamNormalized',
+    'GetTrackNumSends',
+    'GetTrackSendInfo_Value',
+  }) do
     local s = new_session()
     s.fake:remove_api(name)
     s:send('master_chain_read', 'c1')

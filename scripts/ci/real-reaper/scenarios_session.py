@@ -7,6 +7,7 @@ Each scenario arranges a scratch project, sends the product's own bridge command
 from __future__ import annotations
 
 import secrets
+import time
 from pathlib import Path
 
 from drive import BRAND, undo_label
@@ -236,8 +237,9 @@ def render_with_fx(env: Env) -> str:
 @scenario(
     "render_with_fx",
     "master_chain_read",
-    "the chain read binds settings: a moved parameter, a mute, a solo, a volume and a send each change what it answers, "
-    "and putting each back answers the first read again (#2995)",
+    "the chain read binds settings: a moved parameter, a mute, a solo, a volume, a send, phase, folder depth, the track FX switch, "
+    "the master's volume and an offline FX each change what it answers, and putting each back answers the first read again; "
+    "records whether a volume envelope makes the read follow the edit cursor, and the read's time (#2995)",
 )
 def master_chain_settings(env: Env) -> str:
     fx = two_chapters(env)
@@ -292,6 +294,30 @@ def master_chain_settings(env: Env) -> str:
             "reaper.RemoveTrackSend(one, 0, 0)",
             lambda r: r["tracks"][fx["ch1"]][2] != base["tracks"][fx["ch1"]][2] and r["tracks"][fx["ch2"]][2] != base["tracks"][fx["ch2"]][2],
         ),
+        (
+            "phase",
+            "reaper.SetMediaTrackInfo_Value(one, 'B_PHASE', 1)",
+            "reaper.SetMediaTrackInfo_Value(one, 'B_PHASE', 0)",
+            lambda r: r["tracks"][fx["ch1"]][2] != base["tracks"][fx["ch1"]][2],
+        ),
+        (
+            "folder depth",
+            "reaper.SetMediaTrackInfo_Value(one, 'I_FOLDERDEPTH', 1)",
+            "reaper.SetMediaTrackInfo_Value(one, 'I_FOLDERDEPTH', 0)",
+            lambda r: r["tracks"][fx["ch1"]][2] != base["tracks"][fx["ch1"]][2],
+        ),
+        (
+            "track FX switch",
+            "reaper.SetMediaTrackInfo_Value(reaper.GetMasterTrack(0), 'I_FXEN', 0)",
+            "reaper.SetMediaTrackInfo_Value(reaper.GetMasterTrack(0), 'I_FXEN', 1)",
+            lambda r: r["tracks"]["master"][2] != base["tracks"]["master"][2],
+        ),
+        (
+            "master volume",
+            "reaper.SetMediaTrackInfo_Value(reaper.GetMasterTrack(0), 'D_VOL', 0.5)",
+            "reaper.SetMediaTrackInfo_Value(reaper.GetMasterTrack(0), 'D_VOL', 1.0)",
+            lambda r: r["tracks"]["master"][2] != base["tracks"]["master"][2],
+        ),
     ]:
         change(do)
         after = read()
@@ -300,7 +326,36 @@ def master_chain_settings(env: Env) -> str:
         change(undo)
         assert read() == base, f"{label} put back answers the first read"
         seen.append(label)
-    return f"{', '.join(seen)} each changed the read and putting them back restored it"
+
+    # An FX taken offline moves its parameters' fingerprint, not the track's mix.
+    env.lua("reaper.TrackFX_SetOffline(reaper.GetMasterTrack(0), 0, true) return true")
+    offline = read()
+    env.lua("reaper.TrackFX_SetOffline(reaper.GetMasterTrack(0), 0, false) return true")
+    assert offline["params"] != base["params"], f"an offline FX: {offline} vs {base}"
+    assert read() == base, "the FX put back online answers the first read"
+    seen.append("FX offline")
+
+    # What the fake cannot say: a volume envelope on a track, read with the edit cursor at two places that the envelope sets
+    # differently. Recorded, not asserted: equal reads mean D_VOL is the fader and automation is outside the binding (as the guide
+    # says); different reads mean moving the cursor would refuse an approved render as changed (#3017 review).
+    env.lua(
+        "local one = ci.track_by_name('Chapter 1') local env = reaper.GetTrackEnvelopeByName(one, 'Volume') "
+        "if not env then reaper.SetOnlyTrackSelected(one) reaper.Main_OnCommand(40406, 0) env = reaper.GetTrackEnvelopeByName(one, 'Volume') end "
+        "reaper.InsertEnvelopePoint(env, 0, 1, 0, 0, false, true) reaper.InsertEnvelopePoint(env, 3, 0.25, 0, 0, false, true) "
+        "reaper.Envelope_SortPoints(env) reaper.SetEditCurPos(0, false, false) return true"
+    )
+    at_start = read()
+    env.lua("reaper.SetEditCurPos(3, false, false) return true")
+    at_three = read()
+    automation = "cursor-independent" if at_start == at_three else "MOVES WITH THE CURSOR"
+    seen.append(f"volume automation read {automation}")
+
+    # One read's round trip, recorded beside the export's 10 s wait (a project with thousands of parameters is the owner's
+    # row M1 in docs/operations/reaper-verification-pass.md).
+    started = time.monotonic()
+    read()
+    seen.append(f"read in {time.monotonic() - started:.2f} s")
+    return f"{', '.join(seen)}; each change was seen and putting it back restored the first read"
 
 
 @scenario("render_with_fx", "render_with_fx", "render with FX: a folder outside the app's mastering folder, a non-empty one and an unknown region are refused")

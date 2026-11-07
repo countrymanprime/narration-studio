@@ -148,17 +148,19 @@ When the project masters with your DAW's FX chain or an Audacity effect macro, *
 this export. For your DAW's FX chain, **Approve this render?** lists first the effects that render runs, as your DAW names them:
 a line says how many effects on how many tracks and how many are switched off, then a numbered row per effect in signal order,
 each track's top to bottom and then the master's (marked **Master**). A switched-off effect is dimmed and has an **Off** badge.
-The **i** beside the count says what your approval covers: each effect's name, whether it is on, its order and its settings,
-and each track's mute, solo, volume, pan and routing (its sends and receives), the master's too, and tracks with no effects as
-well. Automation is not covered: the app reads each setting's value as it is now, not an envelope that moves it during the
-render. In a small window the effects can be below what the dialog shows; a button beside **Approve and
+The **i** beside the count says what your approval covers: each effect's name, whether it is on or offline, its order and its
+settings, and each track's mute, solo, volume, pan and routing (its sends and receives) and whether its effects are switched on,
+the master's too, and tracks with no effects as well. It also says what is not covered: automation (the app reads each setting's
+value as it is now, not an envelope that moves it during the render) and presets, or a file a plug-in has loaded, that the
+plug-in does not show as a setting. In a small window the effects can be below what the dialog shows; a button beside **Approve and
 master** then says how many are above and brings the first one into view (at the smallest window sizes, about 320x300,
 only a strip of it shows, #2998); it comes and goes as you resize the window. Under the effects, each file is listed with the region it renders
 from (a chapter's title, **Opening credits** or **Closing credits**).
 
 If the app cannot read the chain from your DAW, or your DAW is not connected, the export is refused before the dialog opens,
 with what to do instead. If the app's script in REAPER is older than the app, it can't check those settings, so the export is
-refused until you import the script again from the app's REAPER folder. A retail sample has no region, so an export through your DAW's FX chain that includes one is refused
+refused until you import the script again from the app's REAPER folder. A project with more plug-in settings than the app can
+check in one go is refused too, and the message says so. A retail sample has no region, so an export through your DAW's FX chain that includes one is refused
 the same way, naming the file: remove it, or untick **Master before encoding** to encode it without mastering. A chapter with
 no title is refused too. For Audacity, type the macro's name as Audacity's Macro Manager lists it (letters, digits, spaces,
 hyphens and underscores); a name Audacity cannot run is refused in the dialog.

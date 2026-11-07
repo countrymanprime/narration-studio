@@ -199,7 +199,8 @@ var eventSpecs = map[string]eventSpec{
 	// and count.
 	// #2995 appended params to MASTER_CHAIN_FX, added MASTER_CHAIN_TRACK (one per track and the master, before its FX: mute 0
 	// or 1, solo as I_SOLO, mix a fingerprint) and appended tracks to MASTER_CHAIN_READ; they are optional so an older script's
-	// lines still read, and ReadMasterChain refuses such a chain as ErrScriptOutdated.
+	// lines still read: ReadMasterChain marks such a chain SettingsUnread, and the mastering row refuses it (truncated 2 is the
+	// settings budget running out).
 	"MASTER_CHAIN_FX":    {required: []fieldSpec{text("run"), text("track"), text("trackName"), text("name"), count("enabled")}, optional: []fieldSpec{text("params")}},
 	"MASTER_CHAIN_TRACK": {required: []fieldSpec{text("run"), text("track"), text("trackName"), count("mute"), count("solo"), text("mix")}},
 	"MASTER_CHAIN_READ":  {required: []fieldSpec{text("run"), count("count"), count("truncated")}, optional: []fieldSpec{count("tracks")}},
