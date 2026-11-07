@@ -1,5 +1,5 @@
 import { apiErrorMessage } from '../../api/errorMessage';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useApi } from '../../api/ApiContext';
 import { Button } from '../primitives/Button';
 import { Checkbox } from '../primitives/Checkbox';
@@ -11,6 +11,8 @@ import { ToolResult } from './ToolResult';
 import type { ChapterTagsPreview } from '../../types';
 
 const IDLE: ChapterTagsPreview = { chapters: [], ready: false };
+/** How long an Embed waits for the host before it says so and frees the dialog: a copy of one book's MP3 takes seconds, not minutes. */
+const EMBED_DEADLINE_MS = 60_000;
 
 /** Chapter tag embedding. This never talks to REAPER: it reads
  * the last "Prepare chapter render" result (the per-chapter MP3 titles and files) to build a chapter
@@ -20,6 +22,8 @@ const IDLE: ChapterTagsPreview = { chapters: [], ready: false };
 export function ChapterTagsDialog({ onClose }: { onClose: () => void }) {
   const api = useApi();
   const [preview, setPreview] = useState<ChapterTagsPreview>(IDLE);
+  const [reading, setReading] = useState(true);
+  const embedRun = useRef(0);
   const [previewError, setPreviewError] = useState('');
   const [destPath, setDestPath] = useState('');
   const [confirmed, setConfirmed] = useState(false);
@@ -36,30 +40,48 @@ export function ChapterTagsDialog({ onClose }: { onClose: () => void }) {
       })
       .catch((reason: unknown) => {
         if (active) setPreviewError(apiErrorMessage(reason));
+      })
+      .finally(() => {
+        if (active) setReading(false);
       });
     return () => {
       active = false;
     };
   }, [api]);
 
-  const canEmbed = preview.ready && destPath.trim() !== '' && confirmed && !embedding;
+  // Not `embedding` here: a disabled button drops focus, and the pending state already stops a second press.
+  const canEmbed = preview.ready && destPath.trim() !== '' && confirmed;
 
   const embed = () => {
+    if (embedding) return;
+    const run = ++embedRun.current;
     setEmbedError('');
     setOutputPath('');
     setEmbedding(true);
-    api
-      .chapterTagsEmbed(destPath)
-      .then((result) => setOutputPath(result.outputPath))
-      .catch((reason: unknown) => setEmbedError(apiErrorMessage(reason)))
-      .finally(() => setEmbedding(false));
+    // A host that never answers must not trap the dialog: after the deadline it says so and Embed, Close and Escape work again.
+    const deadline = new Promise<never>((_, reject) =>
+      setTimeout(
+        () => reject(new Error('The app did not answer. Check that the file is not open elsewhere, then press Embed chapter tags again.')),
+        EMBED_DEADLINE_MS,
+      ),
+    );
+    Promise.race([api.chapterTagsEmbed(destPath.trim()), deadline])
+      .then((result) => {
+        if (run === embedRun.current) setOutputPath(result.outputPath);
+      })
+      .catch((reason: unknown) => {
+        if (run === embedRun.current) setEmbedError(apiErrorMessage(reason));
+      })
+      .finally(() => {
+        if (run === embedRun.current) setEmbedding(false);
+      });
   };
 
   return (
     <Dialog
       dismissOnOutsidePress={false}
       title="Embed chapter tags"
-      onClose={embedding ? undefined : onClose}
+      onEscape={onClose}
       escapeCloses={!embedding}
       description="Add ID3 chapter markers to a copy of an already-rendered MP3, using the chapter names and lengths from your last chapter render. The file you choose below is never changed; a new, tagged copy is written beside it."
       actions={
@@ -75,7 +97,12 @@ export function ChapterTagsDialog({ onClose }: { onClose: () => void }) {
       }
     >
       {previewError && <ToolResult tone="danger" message={previewError} />}
-      {!previewError && preview.chapters.length === 0 && (
+      {!previewError && reading && (
+        <p className="text-sm" style={{ color: 'var(--text-muted)' }} role="status">
+          Reading your last chapter render&hellip;
+        </p>
+      )}
+      {!previewError && !reading && preview.chapters.length === 0 && (
         <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
           No chapter render is configured yet. Use &ldquo;Prepare chapter render…&rdquo; in DAW tools on Editing, Proof or Master &amp; QC first.
         </p>
