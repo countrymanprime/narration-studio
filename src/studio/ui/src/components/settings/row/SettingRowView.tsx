@@ -193,7 +193,7 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
                 Saved shows beside Reset, where the change was made (XSE1-22). */}
             <div data-control-line className="flex w-full min-w-0 flex-nowrap items-center gap-1.5">
               {row.fact ? (
-                <span id={controlId} data-fact={row.id} className="text-[0.9375rem]">
+                <span id={controlId} data-fact={row.id} className="min-w-0 text-[0.9375rem] [overflow-wrap:anywhere]">
                   {choiceLabel(row, comp)}
                 </span>
               ) : (

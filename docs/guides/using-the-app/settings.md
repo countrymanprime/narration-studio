@@ -243,7 +243,7 @@ for longer.
 ## Voice & pronunciation
 
 - **Preview voice** is the voice that says a name or word when you ask for a [preview](story-bible.md#hearing-a-name). It does not narrate anything. The list holds every approved voice: LJ Speech (US English, the default), Cori (British English), Kristin (US English) and Norman (US English). Choosing one downloads nothing: a voice that is not on this computer shows **Not on this computer** with **Download**, and is also listed under [Models and downloads](#models-and-downloads).
-- **Preview voices are made by** says Piper, the engine that speaks previews. It is the only engine the app has, so it is a fact with nothing to choose, and it is never marked **Changed**. Its **?** says more. It becomes a choice if a second engine is added.
+- **Preview voices are made by** says Piper, the engine that speaks previews. It is the only engine the app has, so it is a fact with nothing to choose. It is marked **Changed** only if a hand-edited settings file stores a different value, so that stray value is not hidden. Its **?** says more. It becomes a choice if a second engine is added.
 - **Show definitions from** chooses where the Script page's **Words** tab shows definitions: the web page (the default), the local dictionary or the online
   service. The choice is the same one as the Words tab's **Definitions from** menu. The local dictionary shows **Installed** or **Not installed** with a button to download or remove it; the online service
   shows **Online**, **Offline**, or **No key saved**.

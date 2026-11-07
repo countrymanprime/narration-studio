@@ -85,6 +85,10 @@ describe('the two chunk length rows (#2980)', () => {
     expect(coverage.field).toEqual({ tool: 'RecordingCoverage', key: 'chunk_seconds' });
     expect(compare.field).toEqual({ tool: 'TranscriptCompare', key: 'chunk_seconds' });
   });
+  it('each names the page panel that edits the same key, so a change made there is not a surprise here', () => {
+    expect(compare.also).toBe('Proof › Compare options');
+    expect(coverage.also).toBe('Production › Recording check rules');
+  });
   it('each shows its own choices and default', () => {
     expect(Object.keys(coverage.options ?? {})).toEqual(['0', '60', '120', '300', '600', '900']);
     expect(Object.keys(compare.options ?? {})).toEqual(['30', '60', '300', '600']);

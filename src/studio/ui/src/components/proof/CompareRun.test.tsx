@@ -594,3 +594,32 @@ describe('CompareRun for an Audacity project', () => {
     expect(document.body.textContent).not.toMatch(/REAPER/);
   });
 });
+
+describe('CompareRun starting values from Settings', () => {
+  it('starts on the longest chunk the stored model allows, never on one it disables', async () => {
+    const field = (key: string, effectiveValue: string) => ({ key, effectiveValue }) as never;
+    const settingsForScope = vi.fn().mockResolvedValue({ TranscriptCompare: [field('model_size', 'large-v3'), field('chunk_seconds', '600')] });
+    render(
+      <ApiProvider api={createMockApi({ settingsForScope })}>
+        <CompareRun
+          chapterTitle="Chapter 1"
+          state={{ ...WIRE_TRANSCRIPT, phase: 'idle' }}
+          notify={vi.fn()}
+          dawFileLinked
+          reviewingLast={false}
+          onReviewLast={vi.fn()}
+          onCloseLast={vi.fn()}
+          foundHere={0}
+        />
+      </ApiProvider>,
+    );
+    const group = await screen.findByRole('group', { name: 'Chunk length' });
+    await waitFor(() => expect(settingsForScope).toHaveBeenCalled());
+    await waitFor(() => {
+      const chosen = within(group)
+        .getAllByRole('button')
+        .filter((button) => button.getAttribute('aria-pressed') === 'true');
+      expect(chosen.map((button) => button.textContent)).toEqual(['1m']);
+    });
+  });
+});
