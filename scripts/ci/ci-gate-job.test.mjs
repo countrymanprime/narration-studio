@@ -27,3 +27,14 @@ test('the gate reports `CI light passed` on a draft and `CI passed` otherwise', 
 test('the gate judges the visual records in the full tier only', () => {
   assert.match(gate, /visual-shards: \$\{\{ github\.event\.pull_request\.draft != true && needs\.quality\.outputs\.ui-affected == 'true' && '\d+' \|\| '0' \}\}/);
 });
+
+test('no other line of ci.yml names a check `CI passed` or `CI light passed`', () => {
+  // Comments aside, the tier expression of the gate's name is the only place either check name may appear: a second job or step
+  // named `CI passed` would be a second gate a draft could turn green.
+  const code = ci
+    .split('\n')
+    .filter((line) => !line.trimStart().startsWith('#'))
+    .join('\n');
+  assert.equal((code.match(/CI light passed/g) ?? []).length, 1, '`CI light passed` appears outside the gate name');
+  assert.equal((code.match(/CI passed/g) ?? []).length, 1, '`CI passed` appears outside the gate name');
+});
