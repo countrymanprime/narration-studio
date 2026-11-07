@@ -805,7 +805,7 @@ a state with extra viewports is more, and the `aria` step ran on the shard that 
   if it wrote a capture record, which the overlay guard and the other specs do not.
 - Five shards, the five of `Test (Linux)` (#3065). Each also runs a fifth of the Vitest run and of the atlas, so a shard holds about 20 minutes of work under the
   30-minute limit, with room for a slow `setup-playwright` (9 to 11 minutes seen). Shard 1 also runs the quick tests, so `split --reserve-first <seconds>`
-  starts it with that much load (300 s on a pull request, 480 elsewhere, where the mutation checks and the `--full` rehearsal add time) and it gets fewer
+  starts it with that much load (110 s on a pull request, 290 elsewhere, where the mutation checks and the `--full` rehearsal add time) and it gets fewer
   visual tests. Fewer than four would leave each over 22 minutes of visual tests alone (#3054). The shard count is in `_quality.yml` (lint's `test-shards`,
   the job name, the Vitest, `split` and atlas steps) and `ci.yml` (the `vitest-shards` and `visual-shards` that `CI passed` gives `.github/actions/ci-gate`);
   `scripts/ci/visual-shards-config.test.mjs` fails if they disagree or fall below four.
