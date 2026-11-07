@@ -6,32 +6,40 @@ import { fileURLToPath } from 'node:url';
 
 import { jobBlock } from './check-manifest.mjs';
 
-// The shard count of the visual suite is written in three places that must agree: the job's matrix and its `/N` labels in
-// _quality.yml, and the `visual-shards` ci.yml's `CI passed` gives .github/actions/ci-gate (which checks the manifests against it). A mismatch would leave a shard
-// unrun or fail the whole-run check, so this reads them all.
+// The shard count of Test (Linux) is written in several places that must agree: the lint job's `test-shards` list (the matrix), the job's
+// `/N` label, the `/N` of its Vitest, visual and atlas steps, and the `vitest-shards` and `visual-shards` ci.yml's `CI passed` gives
+// .github/actions/ci-gate (which merges that many blobs and checks that many manifests). A mismatch would leave a shard unrun, a blob
+// missing or the whole-run check failing, so this reads them all.
 const WORKFLOWS = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '.github', 'workflows');
 const quality = readFileSync(join(WORKFLOWS, '_quality.yml'), 'utf8');
 const ci = readFileSync(join(WORKFLOWS, 'ci.yml'), 'utf8');
 
-const jobText = jobBlock(quality, 'ui-visual-shard') ?? '';
+const testJob = jobBlock(quality, 'test-linux') ?? '';
+const lintJob = jobBlock(quality, 'lint') ?? '';
 
-test('the ui-visual-shard job exists', () => {
-  assert.ok(jobText.length > 100);
+test('the test-linux job exists and takes its matrix from lint', () => {
+  assert.ok(testJob.length > 100);
+  assert.match(testJob, /shard: \$\{\{ fromJSON\(needs\.lint\.outputs\.test-shards\) \}\}/);
 });
 
-test('the matrix, the job name, the split and ci.yml agree on the number of visual shards', () => {
-  const matrix = /shard: \[([\d, ]+)\]/.exec(jobText);
-  assert.ok(matrix, 'no shard matrix');
-  const shards = matrix[1].split(',').map(Number);
+test('test-shards, the job name, the Vitest, visual and atlas splits and ci.yml agree on the number of shards', () => {
+  const list = /test-shards: .*'\[([\d,]+)\]' \|\| '\[1\]'/.exec(lintJob);
+  assert.ok(list, 'lint has no test-shards list');
+  const shards = list[1].split(',').map(Number);
   const n = shards.length;
-  assert.deepEqual(shards, Array.from({ length: n }, (_, i) => i + 1), 'the matrix must be 1..n');
-  assert.match(jobText, new RegExp(`name: ui-visual \\(shard \\$\\{\\{ matrix\\.shard \\}\\}/${n}\\)`));
-  assert.match(jobText, new RegExp(`--shard "\\$SHARD/${n}"`));
+  assert.deepEqual(shards, Array.from({ length: n }, (_, i) => i + 1), 'the list must be 1..n');
+  assert.match(testJob, new RegExp(`name: Test \\(Linux \\$\\{\\{ matrix\\.shard \\}\\}/${n}\\)`));
+  assert.match(testJob, new RegExp(`coverage-gate\\.mjs vitest src/studio/ui --shard="\\$SHARD/${n}"`));
+  assert.match(testJob, new RegExp(`visual-shards\\.mjs split --shard "\\$SHARD/${n}"`));
+  assert.match(testJob, new RegExp(`run atlas --shard="\\$SHARD/${n}"`));
   assert.ok(ci.includes(`visual-shards: ${'$'}{{ needs.quality.outputs.ui-affected == 'true' && '${n}' || '0' }}`), `ci.yml must pass visual-shards '${n}' to ci-gate`);
+  const vitest = ci.match(/vitest-shards: \$\{\{ needs\.quality\.outputs\.vitest-affected == 'true' && '(\d+)' \|\| '0' \}\}/g) ?? [];
+  assert.ok(vitest.length >= 2, 'both aggregates pass vitest-shards');
+  for (const line of vitest) assert.ok(line.includes(`'${n}'`), `${line} must merge ${n} blobs`);
 });
 
 test('the suite is split into at least four shards', () => {
-  const n = /shard: \[([\d, ]+)\]/.exec(jobText)[1].split(',').length;
-  // Three shards ran 22.8 min of tests each (run 42182391318) against a 30 minute limit that a slow setup-playwright (9 min) broke.
-  assert.ok(n >= 4, `ui-visual has ${n} shards; fewer than 4 leaves each over 22 minutes of tests under a 30 minute limit (#3054)`);
+  const n = /test-shards: .*'\[([\d,]+)\]' \|\| '\[1\]'/.exec(lintJob)[1].split(',').length;
+  // Three shards ran 22.8 min of visual tests each (run 42182391318) against a 30 minute limit that a slow setup-playwright (9 min) broke.
+  assert.ok(n >= 4, `Test (Linux) has ${n} shards; fewer than 4 leaves each over 22 minutes of tests under a 30 minute limit (#3054)`);
 });

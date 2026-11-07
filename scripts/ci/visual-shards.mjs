@@ -4,10 +4,11 @@
 // `aria` step as well. This assigns every test to the shard with the least estimated time so far (longest first), from the mean
 // time of tests like it in src/studio/ui/tests/visual/shard-weights.json, and runs the shard with Playwright's `--test-list`.
 //
-//   node scripts/ci/visual-shards.mjs split --shard 2/3 --out shard.txt [--manifest shard-2.json] [--github-output]
+//   node scripts/ci/visual-shards.mjs split --shard 2/3 --out shard.txt [--manifest shard-2.json] [--github-output] [--reserve-first <s>]
 //       Lists the suite (a few seconds, no browser), writes shard 2's tests to shard.txt, prints the plan, and with
 //       --github-output sets `aria=true|false` for the step that runs the aria suite on exactly one shard. --manifest records how
-//       many tests the shard has out of how many there are, which whole-run.check.ts checks across the shards.
+//       many tests the shard has out of how many there are, which whole-run.check.ts checks across the shards. --reserve-first gives shard 1
+//       that many fewer seconds of tests (wall time), for a job that runs other steps there too.
 //   node scripts/ci/visual-shards.mjs weights report.json [more.json ...] [--out src/studio/ui/tests/visual/shard-weights.json]
 //       Rebuilds the weights from Playwright JSON reports (`--reporter=json`; CI uploads one per shard as ui-visual-timings-<i>).
 //
@@ -100,8 +101,9 @@ export function loaderLines(items) {
   return [...loaders].sort();
 }
 
-export function assign(items, shards, ariaSeconds = ARIA_SECONDS) {
-  const loads = Array.from({ length: shards }, () => ({ seconds: 0, tests: [], aria: false }));
+export function assign(items, shards, ariaSeconds = ARIA_SECONDS, reserveFirst = 0) {
+  // `reserveFirst`: test-seconds shard 1 already carries (its job runs the quick Linux tests too), so it is given that much less.
+  const loads = Array.from({ length: shards }, (_, index) => ({ seconds: index === 0 ? reserveFirst : 0, tests: [], aria: false }));
   const ordered = [{ aria: true, estimate: ariaSeconds, line: '' }, ...items].sort((a, b) => b.estimate - a.estimate || a.line.localeCompare(b.line));
   for (const item of ordered) {
     const lightest = loads.reduce((best, load, index) => (load.seconds < loads[best].seconds ? index : best), 0);
@@ -175,7 +177,10 @@ function split(argv) {
   const weights = JSON.parse(readFileSync(WEIGHTS_FILE, 'utf8'));
   const items = planTests(testsOfReport(listSuite()), weights);
   if (items.length === 0) throw new Error('Playwright listed no tests');
-  const loads = assign(items, of);
+  // --reserve-first <seconds>: wall seconds shard 1's job spends on other steps; every shard job passes the same value, so all derive one split.
+  const reserve = Number(option(argv, '--reserve-first') ?? 0);
+  if (!(reserve >= 0)) throw new Error('--reserve-first takes a number of seconds');
+  const loads = assign(items, of, ARIA_SECONDS, reserve * WORKERS);
   assertPartition(items, loads);
   const mine = loads[current - 1];
   const lines = [...loaderLines(mine.tests), ...mine.tests.map((test) => test.line).sort()];

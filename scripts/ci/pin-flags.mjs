@@ -4,16 +4,16 @@
 //
 // Reads workflow-pins.mjs's JSON and prints `ui`, `shell`, `static` and `quickubuntu` as true/false. The first two are true when a pinned
 // job belongs to the family (the lint job ORs them with what Nx says is affected). `static` scopes the lint steps of the lint job and
-// `quickubuntu` the test steps of linux-checks; both jobs start on every change. Each is true except on a pure pin bump (nothing
+// `quickubuntu` the quick test steps of Test (Linux)'s shard 1; both jobs start on every change. Each is true except on a pure pin bump (nothing
 // outside .github/workflows and .github/actions changed) that does not reach its job. Anything that is not `pins` sets the first two false and the last two true.
 import { appendFileSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 export const FAMILIES = {
-  ui: ['_quality.yml#ui-unit', '_quality.yml#ui-visual-shard', 'ci.yml#ci-passed', 'ci.yml#ci-light-passed'],
+  ui: ['_quality.yml#test-linux', 'ci.yml#ci-passed', 'ci.yml#ci-light-passed'],
   shell: ['_quality.yml#go-test'],
 };
-export const SELF_SCOPED = { static: '_quality.yml#lint', quickubuntu: '_quality.yml#linux-checks' };
+export const SELF_SCOPED = { static: '_quality.yml#lint', quickubuntu: '_quality.yml#test-linux' };
 
 export function pinFlags(pins) {
   const reached = new Set(pins?.kind === 'pins' ? pins.jobs : []);

@@ -8,7 +8,7 @@
 // written to. Every check runs, the worktree is removed, and the run fails at the end if any check did.
 //
 //   node scripts/brand/rehearse-rename.mjs [--full] [--keep]
-//     (default)  the per-pull-request run (the rename rehearsal step of _quality.yml's linux-checks job): the guards, the Node script tests, the site build's
+//     (default)  the per-pull-request run (the rename rehearsal step of _quality.yml's Test (Linux) shard 1): the guards, the Node script tests, the site build's
 //                tests, the docs-site tests, `go vet ./...` and the Go, Python, Lua and UI tests that read the brand
 //     --full     the scheduled run (main-health.yml): the same checks, plus the UI typecheck and the built site with its
 //                retired-name check, the one check of the name in rendered output. It no longer re-runs every test suite (#3078):

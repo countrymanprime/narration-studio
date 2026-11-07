@@ -14,13 +14,13 @@ inputs:
     required: true
   vitest-shards:
     description: >-
-      The number of ui-unit shards whose Vitest blobs to merge (`coverage-gate.mjs vitest src/studio/ui --merge=N`: fails when a blob is
+      The number of Test (Linux) shards whose Vitest blobs to merge (`coverage-gate.mjs vitest src/studio/ui --merge=N`: fails when a blob is
       missing, reports every test and checks every coverage floor of scripts/ci/coverage-floors.json over the merged coverage, as the
       unsharded run does); '0' when the Vitest run did not run (the UI not affected)
     default: '0'
   visual-shards:
     description: >-
-      The number of ui-visual shards whose capture records to judge with `visual:check-run`
+      The number of Test (Linux) shards whose visual capture records to judge with `visual:check-run`
       (src/studio/ui/tests/visual/whole-run.check.ts); '0' when the visual suite did not run (light tier, or the UI not affected)
     default: '0'
 
