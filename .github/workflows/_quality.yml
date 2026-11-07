@@ -12,7 +12,7 @@ on:
       full:
         description: >-
           true runs every job. false is the light tier of a draft pull request (ci.yml): the Playwright suites (ui-visual,
-          the atlas steps of ui-unit), the UI bundle and Build (Windows) are skipped and the rest runs. Only ci.yml's `CI passed` may sum up a full run; a light run reports as
+          the atlas steps of ui-unit) and Build (Windows) are skipped and the rest runs. Only ci.yml's `CI passed` may sum up a full run; a light run reports as
           `CI light passed`.
         type: boolean
         default: true
@@ -160,8 +160,6 @@ jobs:
   linux-checks:
     # Every Linux test under a few minutes (the lint job holds the lint), on one runner with one toolchain install (Go, Python with the docs group, every pnpm
     # project, StyLua). These were four jobs (js-static, quick-ubuntu, rename rehearsal, ui-dist / build), each paying for its own setup.
-    #   - UI bundle (full tier): `pnpm --dir src/studio/ui run build`, uploaded as `ui-dist` for Build (Windows), which waits for this job
-    #     instead of starting with the fan-out, so the two take one runner slot in turn. First, so a red check below cannot hold it back.
     #   - repo-scripts, docs-site, python, reaper (`quickubuntu`): the plain-Node scripts (`always`: the layout and project guards read every
     #     tracked file), the docs site's unit tests (`always`: docs/ belongs to no project; Pages runs the built site's link check), pytest of
     #     the Python projects (Go is installed for the transcript-compare tests) and the bridge harness under Lua 5.4:
@@ -175,8 +173,6 @@ jobs:
     needs: lint
     timeout-minutes: 45
     runs-on: ubuntu-latest
-    outputs:
-      ui-dist: ${{ steps.ui-dist.outcome == 'success' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { fetch-depth: 0, persist-credentials: false }
@@ -187,18 +183,6 @@ jobs:
           need-wails-tools: 'false'
           need-linux-native-deps: 'false'
           python-sync-args: --group docs
-      - name: UI bundle
-        id: ui-bundle
-        if: inputs.full
-        run: pnpm --dir src/studio/ui run build
-      - id: ui-dist
-        if: inputs.full
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: ui-dist
-          path: src/studio/ui/dist
-          if-no-files-found: error
-          retention-days: 1
       - name: repo-scripts
         id: repo-scripts
         if: ${{ !cancelled() && needs.lint.outputs.quickubuntu == 'true' }}
@@ -240,8 +224,7 @@ jobs:
         if: always()
         env:
           OUTCOMES: >-
-            {"UI bundle": "${{ steps.ui-bundle.outcome }}",
-            "repo-scripts": "${{ steps.repo-scripts.outcome }}", "docs-site": "${{ steps.docs-site.outcome }}",
+            {"repo-scripts": "${{ steps.repo-scripts.outcome }}", "docs-site": "${{ steps.docs-site.outcome }}",
             "python": "${{ steps.python.outcome }}", "reaper (Lua)": "${{ steps.reaper.outcome }}",
             "rename rehearsal": "${{ steps.rename.outcome }}"}
         run: node scripts/ci/step-summary.mjs
@@ -511,14 +494,13 @@ jobs:
             "go lint": "${{ steps.go-lint.outcome }}", "reaper (Lua)": "${{ steps.reaper.outcome }}"}
         run: node scripts/ci/step-summary.mjs
 
-  # Windows is the only supported platform, so it is the only native build. It needs only the UI bundle, which linux-checks builds
-  # first, so it starts when that job ends rather than with the fan-out: the two hold one runner slot in turn, and the build still ends
-  # well before the visual shards. It runs when the bundle was uploaded even if a later check of linux-checks failed, so a red lint
-  # does not also hide the build's result.
+  # Windows is the only supported platform, so it is the only native build.
   build-windows:
+    # The whole app: the UI bundle, built on this runner, then the Wails build, the setup program and the notices (build-native). It starts
+    # with the other jobs once lint has passed; it no longer waits for a Linux job to upload the bundle.
     name: Build (Windows)
-    needs: linux-checks
-    if: ${{ inputs.full && !cancelled() && needs.linux-checks.outputs.ui-dist == 'true' }}
+    needs: lint
+    if: inputs.full
     timeout-minutes: 30
     runs-on: windows-latest
     steps:
@@ -528,6 +510,7 @@ jobs:
       - uses: ./.github/actions/build-native
         with:
           platform: windows-x64
+          ui-bundle: build
       # The packaged program, setup program, notices and checksums of this pull request, for a by-hand launch on Windows (the owner's
       # check of a shell change, for example the Wails v3 migration). Never a release: releases are built by prerelease.yml.
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
