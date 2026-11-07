@@ -151,6 +151,13 @@ export const settingsStates: StateEntry[] = [
   },
   {
     page: 'settings',
+    state: 'speech-coverage-chunk',
+    description: 'Settings, Speech to text with Advanced open, scrolled to the Coverage chunk length row at the end of the Recording check rows',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
     state: 'speech-model-offer',
     description:
       'Settings, Speech to text where the chosen Transcription model is not on this computer (?mockAssets=missing): the row says "Not on this computer" and offers Download beside a link to Models & downloads',

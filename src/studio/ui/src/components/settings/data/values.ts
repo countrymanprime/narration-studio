@@ -23,8 +23,7 @@ export const projectValue = (row: SettingMeta, global: ScopedSettingField | unde
   overrideValue(row, project) ?? computerValue(row, global);
 
 /** The computer's value differs from the default. */
-export const isChanged = (row: SettingMeta, global: ScopedSettingField | undefined): boolean =>
-  !row.fact && Boolean(global?.isSet) && global!.value !== row.def;
+export const isChanged = (row: SettingMeta, global: ScopedSettingField | undefined): boolean => Boolean(global?.isSet) && global!.value !== row.def;
 
 const NONE: ReadonlySet<string> = new Set();
 
@@ -37,7 +36,7 @@ export const isAnyChanged = (
   global: ScopedSettingField | undefined,
   project: ScopedSettingField | undefined,
   custom: ReadonlySet<string> = NONE,
-): boolean => !row.fact && (isChanged(row, global) || isBrowserChanged(row) || custom.has(row.id) || overrideValue(row, project) !== undefined);
+): boolean => isChanged(row, global) || isBrowserChanged(row) || custom.has(row.id) || overrideValue(row, project) !== undefined;
 
 /** The label of a choice: the registry's word, else what the host sent. */
 export const choiceLabel = (row: SettingMeta, value: string): string => row.options?.[value]?.label ?? (value === '' ? 'Not set' : value);

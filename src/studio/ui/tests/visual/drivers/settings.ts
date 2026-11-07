@@ -205,6 +205,12 @@ export const settingsDrivers: Record<string, Driver> = {
     await openAdvanced(page);
     await page.getByLabel('Coverage chunk length (all projects)', { exact: true }).waitFor();
   },
+  // The Recording check rows sit below the fold of 'speech-advanced', so the Coverage chunk length row is captured on its own.
+  'speech-coverage-chunk': async (page) => {
+    await openSettings(page, 'Speech to text');
+    await openAdvanced(page);
+    await page.getByLabel('Coverage chunk length (all projects)', { exact: true }).scrollIntoViewIfNeeded();
+  },
   'speech-model-offer': async (page) => {
     // Booted without the downloads installed, so the model the row names is not on this computer and the row offers it.
     await openSettings(page, 'Speech to text', '?mockAssets=missing');
