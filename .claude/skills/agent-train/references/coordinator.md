@@ -109,7 +109,7 @@ With `WARNING_POLICY: ignore`, warnings count as GREEN.
 
 ## Models by role
 
-Each role gets the model that does its job best for the money, not a cap on how many sessions may run Opus. List prices per million tokens, input / output ([pricing](https://platform.claude.com/docs/en/about-claude/pricing), read 2026-11-06): Opus 5.5 $4 / $20, Sonnet 5.5 $2 / $10, Haiku 5.5 $0.10 / $0.50 up to 100K tokens of prompt. Opus costs twice Sonnet and Haiku a twentieth of it, so planning and review, which read a lot and write little, can afford Opus, and the pass that runs every 30 minutes should be on Haiku.
+Each role gets the model that does its job best for the money. List prices per million tokens, input / output ([pricing](https://platform.claude.com/docs/en/about-claude/pricing), read 2026-11-06): Opus 5.5 $4 / $20, Sonnet 5.5 $2 / $10, Haiku 5.5 $0.10 / $0.50 up to 100K tokens of prompt. Opus costs twice Sonnet and Haiku a twentieth of it, so planning and review, which read a lot and write little, can afford Opus, and the pass that runs every 30 minutes should be on Haiku.
 
 | Role | Model | Why |
 | --- | --- | --- |
@@ -121,9 +121,9 @@ Each role gets the model that does its job best for the money, not a cap on how 
 | Bookkeeping: index rows, status cells, issue closing | Haiku | Mechanical |
 | `narrator-walkthrough`, `qa-breaker` | Sonnet | They drive the app with many tool calls |
 
-The agents' models are set in their frontmatter; the coordinator's is set on the Routine, not here.
+The agents' models are set in their frontmatter; the coordinator's is set on the Routine.
 
-**Checking the split.** The prices are known; quality per dollar for this repo is not, and public benchmarks do not give it per role. Before changing a row, run a small benchmark: for each role take 10 to 15 finished jobs from the repo's history (issues with their merged PRs, red CI runs with their fixes, reviewed PRs), start each from the parent commit on each candidate model, and score it the same way: the merged PR's tests pass and CI is green for a worker or fixer, the findings match what review or CI later caught for a reviewer, the same merges and launches for a coordinator pass. Record tokens times list price and the wall time, run each cell twice, and keep the cheapest model whose pass rate is within a few points of the best. Results go on the train issue; a changed row is a normal PR.
+**Checking the split.** Quality per dollar for each role is measured here, with a small benchmark (#3147). Before changing a row, run a small benchmark: for each role take 10 to 15 finished jobs from the repo's history (issues with their merged PRs, red CI runs with their fixes, reviewed PRs), start each from the parent commit on each candidate model, and score it the same way: the merged PR's tests pass and CI is green for a worker or fixer, the findings match what review or CI later caught for a reviewer, the same merges and launches for a coordinator pass. Record tokens times list price and the wall time, run each cell twice, and keep the cheapest model whose pass rate is within a few points of the best. Results go on the train issue; a changed row is a normal PR.
 
 ## Safety net
 
