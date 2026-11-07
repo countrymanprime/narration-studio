@@ -14,6 +14,26 @@ list. **Settings** is the page's one title; the category you are in is named by 
 a "fix credits" link, Master's silence cleanup), Settings opens on the setting, lights it up for a moment and
 offers **Back to** the page you came from.
 
+This page is a reference to every setting, category by category. If you came to do one thing, start from the list
+below; each line goes to the section that has the steps.
+
+## Common tasks
+
+- **Record in REAPER**: [link your REAPER project](#link-your-reaper-project). Choose **REAPER**, **Audacity** or the
+  **Built-in recorder** under **Record with** in the Recording & DAW category ([Choose REAPER](#choose-reaper)).
+- **Choose the microphone** the Booth listens to: **Microphone** in the Recording & DAW category. With a DAW it
+  follows the DAW's own input and needs nothing set.
+- **Download a speech model, a voice or the Story Bible language model**: [Models and downloads](#models-and-downloads).
+  Nothing downloads until you press **Download**.
+- **Change the model that checks your recordings, or the one the Booth follows you with**:
+  [Speech to text](#speech-to-text).
+- **Replace the manuscript**: **Replace manuscript…** in [Project](#project).
+- **Set up the opening and closing credits**: [Credits](#credits).
+- **Change the theme, or the reader's font and text size**: Appearance & keys, under **This computer** in the category list.
+- **Check for an update**: **Check now** in [About and updates](#about-and-updates).
+- **Move the downloaded models to another disk**: [Models folder](#models-folder).
+- **Find any other setting**: type in **Search settings** at the top right ([Find a setting](#find-a-setting)).
+
 ## Before a project is open
 
 Settings does not wait for a project. On **Choose your project** the **Settings** button (the gear at the top right) opens
@@ -129,6 +149,10 @@ the Narrator, the one character it also voices. With the **Flat** layout the row
 ![Settings - Recording & DAW, Effects: the Effects coverage cap row after Override for this project, with its own project box](../../images/ui/settings-effects-cap.webp)
 
 **Start tone** (under **Take cues**) is **Off** or **On**. On, the Booth plays a short beep when you press Record, for recording by foot pedal without looking at the screen, and the take starts when the beep ends, a fraction of a second later, so the beep is not on the recording. Turning it on plays it once. It is kept in this window, as Theme and Motion are, and there is no tone to stop a take.
+
+**Voice sample storage** chooses, for every project on this computer, where a new [voice sample](editing.md#marking-a-voice-sample) is kept: **In the project folder** (the default) copies its audio into the project, **In the DAW** keeps only a region in REAPER's project, named for the character and label, and plays the audio under that region, and **Both** does both. Moving the region in REAPER moves the sample; deleting it ends the sample, and a region REAPER has not saved yet reads as "Not saved in REAPER yet". A recording tool that cannot keep a region (Audacity today) shows the two DAW choices off; hover or focus one to see why.
+
+![Settings - Recording & DAW with REAPER: Voice sample storage with In the project folder, In the DAW and Both, and Both chosen](../../images/ui/settings-sample-storage.webp)
 
 **Voice sample output** chooses where [voice samples](editing.md#marking-a-voice-sample) play, and is kept for every project on this computer. With the **Built-in recorder** it lists this computer's outputs after **System default**; **Refresh the list** reads them
 again, and **Test sound** plays a short tone on the one chosen so you can tell where a sample will come from. A sample always plays
@@ -278,7 +302,7 @@ The reset button next to **Change location…** moves the downloads back to the 
 - **Manuscript** says when the manuscript was imported and how many words it has (or **No manuscript yet**), with **Replace manuscript…** (or **Import manuscript** when there is none). **Replace manuscript…** opens the same two steps as the [import](production.md#importing-the-manuscript); step 2 names what the replace clears.
 - **Words per page** (kept for every project on this computer, 250 by default, 50 to 1000) is where the [Booth](booth.md) marks a page break: at the end of the paragraph in which a page reaches that many words, counted from the start of each chapter, so a page never breaks inside a paragraph.
 - **Schedule basis** (this project, **Standard** until you choose) is which pace the hours on [Production](production.md) and [Schedule](schedule.md) use: the standard words per finished hour, or **Your pace**, which takes effect once enough chapters have a measured length (until then the standard is used). It is the same choice as the Schedule basis toggle in Production's target popover, so a change in either shows in the other. If the schedule cannot be read, the row says so and its choices stay off.
-- **Build the Story Bible after import** and **Language model for the Story Bible** are for all projects, and a project may override them.
+- **Build the Story Bible after import** and **Language model for the Story Bible** are for all projects, and a project may override them. **Build the Story Bible after import** (on by default) builds the Story Bible when a manuscript import ends and the Story Bible has no entries yet ([Built after an import](story-bible.md#built-after-an-import)).
 - **Entry types** lists the kinds of [Story Bible](story-bible.md) entry, each with its name, colour (the swatch is the colour the entries of that type are drawn in on every page), a **Can speak** box (entries of that type can be picked as the speaker of a quoted line, and the next Story Bible build attributes dialogue to them) and how many entries it has, on one line in a wide window (in a narrow one the colour, **Can speak**, the count and the remove button take a second line under the name). A type you add with **New type** does not speak until you tick the box. Rename a type in its box and every entry of it moves with it; change its colour; or remove one: the remove button stays off while entries use the type, and the last type cannot go. A taken or reserved name is refused, and says why under the list.
 - **Marks** lists your mark types, each with its colour, and **tracks a reply** on a type that asks for one. **Edit marks…**, the pencil at the right of the marks, opens the same **Define how you mark up** dialog as the Script page.
 - **Narrator name** fills the narrator's name in the credits, for all projects, and a project may override it. Under Advanced, **Room tone per credits file** (0 to 10 seconds, 0 by default) is the silence the [Production](production.md#the-credits) credits estimate adds to the opening and to the closing credits file, head and tail together (ACX asks for 1 to 5 seconds at each end of every file).
@@ -372,6 +396,18 @@ replacing the manuscript keeps it; if its lines are gone, the panel says so and 
 
 ![Settings - First-use tips under Tips after a tip was dismissed: 1 dismissed, and Show tips again](../../images/ui/settings-first-use-tips.webp)
 
+### Diagnostics
+
+Below **This version**, the **Diagnostics bundle** section has one row, **File for a bug report**, with two icon buttons. **Preview the
+diagnostics bundle** opens a window that lists the files the bundle would hold, what it leaves out and why (plain sidecar
+output and the host log are not included), and how many lines the leak check dropped for naming
+you or your project. It writes nothing. **Save the diagnostics bundle** asks for a folder, saves one zip there and copies its path;
+attach the zip to a GitHub issue yourself, since the app sends nothing. The bundle holds how the app behaved (screens,
+tool runs, the DAW connection, failures) and never your text, names or file paths. The **Activity trace** row above records
+it to disk; with it off, the bundle holds only what the app kept in memory since it started.
+
+![Settings - the diagnostics bundle preview](../../images/ui/settings-diagnostics-preview.webp)
+
 ### About and updates
 
 Under the rows of **App & updates**, the **This version** section has two rows: the version of the app you are running,
@@ -415,6 +451,12 @@ Some settings only change what one page does, so they belong on that page, next 
 - If a change cannot be saved, the page says **Changes cannot be saved right now** and the row says why; the previous value is still in use.
 - If the list of downloads cannot be read, Models & downloads says so with **Retry**; your downloads are not touched.
 - If moving the models folder fails or you cancel it, your models are still in the folder they were in. The dialog says why; choose another folder, or free some space, and try again. If the new folder is on a disk that is later unplugged, the models read as not downloaded until it is back.
+
+## What next
+
+- [Getting started](getting-started.md): the first project from install to the first take, if you came here to set up.
+- [Booth](booth.md): record with the recorder and microphone you chose.
+- [Using the app](README.md): every page of the guide, and where each reader starts.
 
 ---
 

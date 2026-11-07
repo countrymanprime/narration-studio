@@ -1,6 +1,7 @@
 package recording
 
 import (
+	"desktop/internal/persist"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -61,7 +62,7 @@ func writeSidecar(path string, value any) error {
 		_ = os.Remove(tmpPath)
 		return err
 	}
-	if err := os.Rename(tmpPath, path); err != nil {
+	if err := persist.Rename(tmpPath, path); err != nil {
 		_ = os.Remove(tmpPath)
 		return err
 	}

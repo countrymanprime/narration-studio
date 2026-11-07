@@ -7,7 +7,7 @@ paths:
 
 # Definition of done
 
-"Done" has meant a happy path in a default position. The owner has found these in minutes: a context menu opened beside the sidebar was drawn under it; a project created outside the starting folder did not find the DAW project inside it; after linking a project and setting up the launcher, the Booth's setup notice never cleared and Record stayed off with no error and no way forward. Green CI only proves the tests that exist. These five rules say what has to exist.
+"Done" has meant a happy path in a default position. The owner has found these in minutes: a context menu opened beside the sidebar was drawn under it; a project created outside the starting folder did not find the DAW project inside it; after linking a project and setting up the launcher, the Booth's setup notice never cleared and Record stayed off with no error and no way forward. Green CI only proves the tests that exist. These six rules say what has to exist.
 
 Test everything, including what nobody expects: zero, negative, huge, empty, emoji and right-to-left text, a lizard asking for a beer, a pop tart in the floppy drive. If a state can happen, a test drives it or a reader can see why none does.
 
@@ -18,6 +18,7 @@ Test everything, including what nobody expects: zero, negative, huge, empty, emo
 3. **Write the state matrix before the code.** For each control: empty, one, many, huge, loading, refused, failed, stale, long text, right-to-left and emoji text, rapid double-fire, reload mid-action, leave mid-action. For anything that talks to a DAW or other integration, also: the other side never answers, answers late, answers out of order, loses an event, repeats an event, has the wrong project open, has the wrong version, restarts mid-session. Each cell is tested, or marked "not tested" with a reason a reader can see.
 4. **Say what was not tested.** A PR body has an "Exercised" and a "Not exercised" section. Anything unexercised is "unverified", never "done".
 5. **A test is deleted only with a one-line statement of what behaviour changed.** A test that covers behaviour that still exists is ported, not dropped.
+6. **A guide page a change touched serves its reader.** It passes the [review checklist](../skills/docs-style/references/review-checklist.md), and a newcomer page (Getting started, a tutorial) was followed step by step by a fresh agent in the real app, given only the page; each place it got stuck is fixed or listed under "Not exercised".
 
 ## Talking to an integration
 

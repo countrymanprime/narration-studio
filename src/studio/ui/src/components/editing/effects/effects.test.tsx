@@ -228,11 +228,11 @@ describe('the inspector header and Show in the DAW', () => {
     const goTo = vi.fn(async () => ({ outcome: 'navigated' as const, projectTime: 100 }));
     const toast = vi.spyOn(overlay, 'toast');
     inspect(undefined, { goTo });
-    const button = screen.getByRole('button', { name: 'Show in REAPER' });
+    const button = await screen.findByRole('button', { name: 'Show in REAPER' });
     await waitFor(() => expect(off(button)).toBe(false));
     fireEvent.click(button);
     await waitFor(() => expect(goTo).toHaveBeenCalledWith('chapter-1', expect.any(Number)));
-    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.stringMatching(/^Moved to .* in the DAW\.$/)));
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.stringMatching(/^Moved to .* in REAPER\.$/)));
     toast.mockRestore();
   });
 
@@ -242,7 +242,7 @@ describe('the inspector header and Show in the DAW', () => {
       capabilities: { ...DAW_SETUPS.reaper.capabilities, navigate: { level: 'unavailable', available: false, message: 'Navigation is off.' } },
     } as unknown as DawCapabilities;
     inspect(undefined, { daw: createMockDawClient(stuck) });
-    const button = screen.getByRole('button', { name: 'Show in REAPER' });
+    const button = await screen.findByRole('button', { name: 'Show in REAPER' });
     await waitFor(() => expect(off(button)).toBe(true));
   });
 });

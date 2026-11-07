@@ -1,8 +1,12 @@
 # Using the app
 
-A screenshot walkthrough of the narration workspace, one page per app page. The screenshots
-are generated from the same mock data used by the app's Playwright visual test suite
-(`src/studio/ui/tests/visual/`) and are refreshed from its captures when the UI changes.
+How to use each page of the app, with screenshots of the app itself. It is for narrators, and for the editors,
+proofers and authors who work on a book with them. New to the app? Start with the first page, Getting started; it
+takes you from a fresh install to your first recorded take. Other readers: see [Where to start](#where-to-start)
+below the list.
+
+The screenshots come from the app running on sample data (a book of *Alice's Adventures in Wonderland*), so your own
+book's names and numbers will differ. They are taken again whenever the app's pages change.
 
 ## Pages
 
@@ -23,6 +27,32 @@ Read them in order the first time, or jump straight to the page you need. They f
 | [Master & QC](master-and-qc.md) | Finish: checking rendered files against a platform's delivery profile, why a file fails, the book's consistency, the mastering chain, mastering and encoding to spec, building packages for several platforms, diagnostics, and exporting a report. |
 | [Delivery](delivery.md) | Finish: choosing and editing the project's delivery profile, its rules and their sources, which chapters pass, building the platform's package, embedding chapter tags in the finished book MP3, and what Delivery says when a build stops or the host does not answer. |
 | [Settings](settings.md) | Global and per-project settings, appearance, and clearing project data. |
+
+## Where to start
+
+Pick the line that sounds like you. Each path is a few pages in the order you will need them.
+
+- **New to the app:** [Getting started](getting-started.md) takes you from a fresh install to your first take: the
+  project, the manuscript import, choosing how you record, and the first take in the Booth. Then prepare the text on
+  [Script](script.md) and the names in the [Story Bible](story-bible.md), and come back to the [Booth](booth.md) for
+  the rest of recording.
+- **An experienced narrator coming from REAPER:** [Booth: Recording](booth.md#recording) for where a take starts and
+  stops, Undo, and punch and roll (**R**); [Settings: Link your REAPER project](settings.md#link-your-reaper-project) for linking the
+  REAPER project; [Navigation: the audio engine panel](navigation.md#the-audio-engine-panel) for tracks and chapter
+  sync; [Editing: Takes](editing.md#takes) for retakes; then [Pickups](pickups.md).
+- **An editor:** [Editing](editing.md) for a chapter's [takes](editing.md#takes) and
+  [clean-up](editing.md#cleaning-up), [Proof](proof.md) for the notes on it, and [Pickups](pickups.md), where the lines
+  to record again end up.
+- **A proofer or QA checker:** [Proof](proof.md) for the notes and your decision on each, [Pickups](pickups.md), then
+  [Master & QC](master-and-qc.md) for the files against a delivery profile and [Delivery](delivery.md), where the
+  profile is chosen and the package built ([ACX delivery requirements](../../reference/acx-delivery-requirements.md)
+  lists ACX's).
+- **An author or rights holder:** the [status report](production.md#status-report) on Production is what a narrator
+  can send you. What the app keeps, and where, is in [data files](../../reference/data-files.md); what leaves the
+  narrator's computer is in
+  [what the app sends off the machine](../../architecture/threat-model.md#what-the-app-sends-off-the-machine), a
+  technical page whose first lines and table answer it; the downloads it asks for are in
+  [Settings: Models and downloads](settings.md#models-and-downloads).
 
 ---
 

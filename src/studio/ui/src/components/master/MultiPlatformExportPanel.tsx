@@ -1,21 +1,21 @@
 import { Fragment, useState } from 'react';
-import type { DeliveryProfile, DeliveryRuleStatus, MultiPackagePhase, MultiPackageResult } from '../../types';
+import type { DeliveryProfile, DeliveryRuleStatus, MultiPackageJob, MultiPackagePhase, MultiPackageResult } from '../../types';
 import { useErrorToast } from '../../hooks/useErrorToast';
 import { Button } from '../primitives/Button';
 import { Checkbox } from '../primitives/Checkbox';
 import { Panel } from '../primitives/Panel';
 import { ProgressBar } from '../primitives/ProgressBar';
 import { SectionLabel } from '../primitives/SectionLabel';
+import { StatusBadge } from '../primitives/StatusBadge';
 import { deliveryProfileKey } from './deliveryProfile';
 import { ResultIcon } from './RuleBadges';
-import type { ExportJobs } from './useExportJobs';
 
 const MUTED = { color: 'var(--text-muted)' };
 const DANGER = { color: 'var(--danger-text)' };
 const OK = { color: 'var(--ok-text)' };
 const MONO = "font-['IBM_Plex_Mono',ui-monospace,monospace]";
 
-/** The label a checkbox gives a profile: its platform for a built-in, its own name for a custom profile (docs/guides/using-the-app/master-and-qc.md#building-packages-for-several-platforms-at-once: the
+/** The label a checkbox gives a profile: its platform for a built-in, its own name for a custom profile (docs/guides/using-the-app/delivery.md#building-packages-for-several-platforms-at-once: the
  * project's own single delivery-profile choice is Delivery's profile card; this list is a separate, multi-select export-platform picker). */
 const platformNameFor = (profile: DeliveryProfile) => (profile.builtIn ? profile.platform : profile.name);
 
@@ -51,8 +51,10 @@ function BreakablePath({ path }: { path: string }) {
  * A platform's result, under its own checkbox and level with the checkbox's label (R4MS2-8, R3MS-14): the status in words with its icon,
  * then the folder and the file count, or what went wrong.
  */
-function ResultLine({ result }: { result: MultiPackageResult }) {
-  const { icon, word } = RESULT_STATUS[result.phase];
+function ResultLine({ result, cancelled = false }: { result: MultiPackageResult; cancelled?: boolean }) {
+  // A cancelled job leaves the profile it was on, and the ones it never reached, as the host last drew them: they were stopped, not building or waiting.
+  const stopped = cancelled && (result.phase === 'running' || result.phase === 'pending');
+  const { icon, word } = stopped ? { icon: 'not_measurable' as const, word: 'Cancelled' } : RESULT_STATUS[result.phase];
   return (
     <div className="pb-1 pl-6 text-[0.8rem]">
       <span className="flex items-center" style={result.phase === 'error' ? DANGER : MUTED}>
@@ -78,16 +80,41 @@ function ResultLine({ result }: { result: MultiPackageResult }) {
   );
 }
 
+/** What the multi-platform build needs from its page: the job, whether it is going, the encoded files it builds from and what is using them. */
+export interface MultiPackageSource {
+  job?: MultiPackageJob;
+  running: boolean;
+  starting: boolean;
+  problem?: string;
+  /** How many chapters are mastered and encoded: nothing builds before there is one. */
+  encoded: number;
+  /** Another job (the export, the single-profile build) is using the files. */
+  blocked: boolean;
+  /** Every chapter passes the project's profile: the same gate as the single build (Delivery's own verdict, not the platforms'). */
+  ready: boolean;
+  start: (profiles: DeliveryProfile[]) => Promise<void>;
+  cancel: () => void;
+}
+
+const WHY_ID = 'multi-build-why';
+
 /**
- * One mastered/encoded source's packages for several platforms in one action:
- * a checkbox per profile the host lists (the same list Master & QC's platform tabs read, docs/guides/using-the-app/master-and-qc.md#building-packages-for-several-platforms-at-once - the tabs
- * themselves stay a single-select choice of the project's own judged profile, never repurposed here), a "Build N
- * packages" action once at least one is checked and the export job has files ready, a progress indicator and Cancel
- * while it runs, and a per-profile result row once it has (or has started to) run.
+ * The packages for several platforms in one action, on Delivery's Output panel (#2824): a checkbox per profile the host lists (the same list
+ * Delivery's profile menu reads, which stays a single-select choice of the project's own judged profile), a "Build N packages" action once at
+ * least one is checked and a chapter is encoded (off, with the reason beside it, until then), a progress indicator and Cancel while it runs,
+ * and a per-profile result row once it has (or has started to) run.
  */
-export function MultiPlatformExportPanel({ profiles, jobs }: { profiles: DeliveryProfile[]; jobs: ExportJobs }) {
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-  const { multiPackageJob, multiPackageRunning, multiPackageProblem } = jobs;
+export function MultiPlatformExportPanel({ profiles, multi }: { profiles: DeliveryProfile[]; multi: MultiPackageSource }) {
+  const { job: multiPackageJob, running: multiPackageRunning, problem: multiPackageProblem } = multi;
+  // Opened again while a build runs: the platforms it is building for are the ones checked, not an empty list over a running job.
+  const [selected, setSelected] = useState<Set<string>>(
+    () =>
+      new Set(
+        multiPackageRunning
+          ? profiles.filter((profile) => multiPackageJob?.results.some((result) => resultIsFor(result, profile))).map((profile) => profile.id)
+          : [],
+      ),
+  );
   // A failed build is a toast, not a red line that opens under the button and pushes the card down (rule 7, #2632).
   useErrorToast(multiPackageProblem);
   useErrorToast(multiPackageJob?.phase === 'error' ? multiPackageJob.message : undefined);
@@ -101,11 +128,22 @@ export function MultiPlatformExportPanel({ profiles, jobs }: { profiles: Deliver
     });
 
   const chosen = profiles.filter((profile) => selected.has(profile.id));
-  const canBuild = chosen.length > 0 && jobs.doneFiles.length > 0 && !jobs.exportRunning && !jobs.packageRunning && !multiPackageRunning;
+  const canBuild = chosen.length > 0 && multi.encoded > 0 && multi.ready && !multi.blocked && !multiPackageRunning;
+  // Why Build is off, said beside it: nothing encoded is the reason the owner's mock draws; a job in the way, or nothing checked, follow.
+  const why =
+    multi.encoded === 0
+      ? 'Master and encode a chapter first.'
+      : !multi.ready
+        ? 'Every chapter has to pass first.'
+        : multi.blocked
+          ? 'Another build or export is using the files.'
+          : chosen.length === 0 && profiles.length > 0
+            ? 'Check a platform to build for.'
+            : undefined;
   const results = multiPackageJob && multiPackageJob.phase !== 'idle' ? multiPackageJob.results : [];
 
   return (
-    <Panel title="Multi-platform export">
+    <Panel title="All platforms" actions={chosen.length > 0 ? <StatusBadge tone="neutral" label={`${chosen.length} selected`} /> : undefined}>
       {profiles.length === 0 ? (
         <p className="text-sm" style={MUTED}>
           No delivery platforms are set up yet.
@@ -119,10 +157,16 @@ export function MultiPlatformExportPanel({ profiles, jobs }: { profiles: Deliver
             const result = results.find((candidate) => resultIsFor(candidate, profile));
             return (
               <div key={profile.id}>
-                <Checkbox checked={selected.has(profile.id)} onChange={(checked) => toggle(profile.id, checked)} disabled={multiPackageRunning}>
-                  {platformNameFor(profile)}
+                <Checkbox
+                  checked={selected.has(profile.id)}
+                  onChange={(checked) => toggle(profile.id, checked)}
+                  disabled={multiPackageRunning || multi.encoded === 0}
+                >
+                  <span dir="auto" className="[overflow-wrap:anywhere]">
+                    {platformNameFor(profile)}
+                  </span>
                 </Checkbox>
-                {result && <ResultLine result={result} />}
+                {result && <ResultLine result={result} cancelled={multiPackageJob?.phase === 'cancelled'} />}
               </div>
             );
           })}
@@ -134,22 +178,33 @@ export function MultiPlatformExportPanel({ profiles, jobs }: { profiles: Deliver
         .map((result) => (
           <div key={result.profile} className="mt-2 text-sm">
             <span className="font-medium">{result.platform}</span>
-            <ResultLine result={result} />
+            <ResultLine result={result} cancelled={multiPackageJob?.phase === 'cancelled'} />
           </div>
         ))}
       <div className="mt-4 flex flex-wrap items-center gap-2">
-        <Button onClick={() => void jobs.startMultiPackage(chosen)} disabled={!canBuild} pending={multiPackageRunning}>
+        <Button
+          onClick={canBuild ? () => void multi.start(chosen) : undefined}
+          // `aria-disabled`, not `disabled`: a Build that goes off the moment it is pressed keeps the keyboard's focus, as the single build does.
+          {...(canBuild ? {} : { 'aria-disabled': true })}
+          pending={multiPackageRunning || multi.starting}
+          aria-describedby={why ? WHY_ID : undefined}
+        >
           Build {plural(chosen.length, 'package')}
         </Button>
         {multiPackageRunning && (
-          <Button variant="secondary" onClick={jobs.cancelMultiPackage}>
+          <Button variant="secondary" onClick={multi.cancel}>
             Cancel
           </Button>
+        )}
+        {why && !canBuild && (
+          <span id={WHY_ID} className="text-sm" style={MUTED}>
+            {why}
+          </span>
         )}
       </div>
       {multiPackageRunning && <ProgressBar label="Building packages" value={null} running className="mt-3" />}
       {multiPackageJob && multiPackageJob.phase !== 'idle' && multiPackageJob.phase !== 'running' && multiPackageJob.phase !== 'error' && (
-        <p aria-live="polite" className="mt-2 text-sm" style={OK}>
+        <p aria-live="polite" className="mt-2 text-sm" style={multiPackageJob.phase === 'success' ? OK : MUTED}>
           {multiPackageJob.message}
         </p>
       )}

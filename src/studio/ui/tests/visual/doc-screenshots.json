@@ -162,6 +162,13 @@
   },
   {
     "page": "proof",
+    "state": "compare-open",
+    "viewport": "desktop",
+    "docName": "proof-compare-panel",
+    "caption": "Proof - Compare opened under the check card: its three tabs and the comparison's setup"
+  },
+  {
+    "page": "proof",
     "state": "check-recordings-dialog",
     "viewport": "desktop",
     "docName": "proof-check-recordings-dialog",
@@ -439,6 +446,13 @@
     "viewport": "desktop",
     "docName": "engine-panel",
     "caption": "The audio engine panel, opened from the header chip - the linked REAPER project, the REAPER tools, chapter sync, the tracks with their chapters, and chapter links"
+  },
+  {
+    "page": "settings",
+    "state": "diagnostics-preview",
+    "viewport": "desktop",
+    "docName": "settings-diagnostics-preview",
+    "caption": "Settings - App & updates: the diagnostics bundle preview with the files it holds, what it leaves out and the leak check"
   },
   {
     "page": "settings",
@@ -897,6 +911,13 @@
   },
   {
     "page": "editing",
+    "state": "flag-card",
+    "viewport": "desktop",
+    "docName": "editing-flag-card",
+    "caption": "Editing - a flagged word's card with its Add marker icon button at the end of the row"
+  },
+  {
+    "page": "editing",
     "state": "read-twice",
     "viewport": "desktop",
     "docName": "editing-read-twice",
@@ -959,6 +980,13 @@
     "caption": "Settings - Recording & DAW: Voice sample output with the built-in recorder and an output chosen, with Refresh the list and Test sound"
   },
   {
+    "page": "settings",
+    "state": "recording-sample-storage",
+    "viewport": "desktop",
+    "docName": "settings-sample-storage",
+    "caption": "Settings - Recording & DAW with REAPER: Voice sample storage with In the project folder, In the DAW and Both, and Both chosen"
+  },
+  {
     "page": "editing",
     "state": "voice-sample-dialog",
     "viewport": "desktop",
@@ -985,6 +1013,13 @@
     "viewport": "desktop",
     "docName": "editing-drawer-cleanup",
     "caption": "Editing - the drawer on Clean up: what was found in the chapter and the findings by kind"
+  },
+  {
+    "page": "editing",
+    "state": "drawer-cleanup-levels",
+    "viewport": "desktop",
+    "docName": "editing-drawer-cleanup-levels",
+    "caption": "Editing - the drawer on Clean up scrolled to Match levels, under the findings"
   },
   {
     "page": "editing",
@@ -1160,6 +1195,13 @@
     "viewport": "desktop",
     "docName": "delivery-measured",
     "caption": "Delivery with the book checked: the chapters passing in Before you build, and Output waiting on the rest"
+  },
+  {
+    "page": "delivery",
+    "state": "check-running",
+    "viewport": "desktop",
+    "docName": "delivery-check-running",
+    "caption": "Delivery with Check files… pressed: the measurement part way through, with its progress bar and Cancel under Before you build"
   },
   {
     "page": "shell",
@@ -1422,6 +1464,13 @@
   },
   {
     "page": "storybible",
+    "state": "voice-samples-daw",
+    "viewport": "desktop",
+    "docName": "storybible-voice-samples-daw",
+    "caption": "Story Bible - the Queen of Hearts with samples kept in REAPER: Not saved in REAPER yet, Region removed and Region moved"
+  },
+  {
+    "page": "storybible",
     "state": "voice-data-samples",
     "viewport": "desktop",
     "docName": "storybible-voice-data-samples",
@@ -1600,7 +1649,7 @@
     "state": "drawer-effects-inspector",
     "viewport": "desktop",
     "docName": "editing-drawer-effects-inspector",
-    "caption": "Editing - the Effects tab with two effects on words: the inspector with its Previous and Next arrows and Show in the DAW"
+    "caption": "Editing - the Effects tab with two effects on words: the inspector with its Previous and Next arrows and Show in REAPER"
   },
   {
     "page": "proof",
@@ -1715,18 +1764,18 @@
     "caption": "Pickups - a line marked recorded while the DAW has not taken the change yet"
   },
   {
-    "page": "master",
+    "page": "delivery",
     "state": "multi-export-selected",
     "viewport": "desktop",
-    "docName": "master-multi-export",
-    "caption": "Master & QC - Multi-platform export with one platform checked"
+    "docName": "delivery-multi-export",
+    "caption": "Delivery - All platforms with one platform checked"
   },
   {
-    "page": "master",
+    "page": "delivery",
     "state": "multi-export-results",
     "viewport": "desktop",
-    "docName": "master-multi-export-results",
-    "caption": "Master & QC - a finished multi-platform build: a row per platform with its folder or why it was not built"
+    "docName": "delivery-multi-export-results",
+    "caption": "Delivery - a finished multi-platform build: a row per platform with its folder or why it was not built"
   },
   {
     "page": "proof",

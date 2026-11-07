@@ -309,14 +309,14 @@ func (s *Service) SaveHints(values []string) error {
 	// The page tells the narrator that saving replaces a list that could not be loaded,
 	// so keep that file beside the new one rather than destroying it.
 	if _, loadErr := s.LoadHints(); loadErr != nil {
-		_ = os.Rename(path, path+".corrupt")
+		_ = persist.Rename(path, path+".corrupt")
 	}
 	bytes, _ := json.Marshal(result)
 	tmp := path + ".tmp"
 	if err := os.WriteFile(tmp, bytes, 0o600); err != nil {
 		return err
 	}
-	return os.Rename(tmp, path)
+	return persist.Rename(tmp, path)
 }
 
 // sentence makes an error whose text is a sentence for the narrator, shown as written in Proof's toast, so it starts with a capital and

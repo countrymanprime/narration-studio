@@ -41,6 +41,7 @@ Storybook title: `Primitives/Toast`. Source: `src/components/primitives/Toast.ts
 - `src/components/editing/CleanupAction.tsx`
 - `src/components/editing/EditingCheckPanel.tsx`
 - `src/components/editing/backups/useBackups.ts`
+- `src/components/editing/cleanup/registerLevelsSection.tsx`
 - `src/components/editing/page/EditingBody.tsx`
 - `src/components/editing/range/replace/ReplaceDialog.tsx`
 - `src/components/engine/AudacityLinkCard.tsx`
@@ -60,6 +61,7 @@ Storybook title: `Primitives/Toast`. Source: `src/components/primitives/Toast.ts
 - `src/components/production/useChapterSyncToast.ts`
 - `src/components/production/useChapterTools.tsx`
 - `src/components/project/ProjectPicker.tsx`
+- `src/components/proof/ChapterCompare.tsx`
 - `src/components/proof/CompareRun.tsx`
 - `src/components/proof/PreviewPanel.tsx`
 - `src/components/proof/ProofChapterPage.tsx`

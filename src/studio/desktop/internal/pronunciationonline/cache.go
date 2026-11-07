@@ -1,6 +1,7 @@
 package pronunciationonline
 
 import (
+	"desktop/internal/persist"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -121,7 +122,7 @@ func writeWhole(path string, bytes []byte) error {
 	if err := temp.Close(); err != nil {
 		return fmt.Errorf("pronunciationonline: the cache could not be written: %w", err)
 	}
-	if err := os.Rename(tempPath, path); err != nil {
+	if err := persist.Rename(tempPath, path); err != nil {
 		return fmt.Errorf("pronunciationonline: the cache could not be written: %w", err)
 	}
 	return nil

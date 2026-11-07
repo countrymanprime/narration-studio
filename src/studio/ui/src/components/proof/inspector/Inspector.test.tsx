@@ -21,7 +21,6 @@ function setup(initial: Finding = inspectorFinding(), props: Partial<React.Compo
     findingsReview,
     findingsGet: vi.fn(async (id: string) => inspectorFinding({ id })),
     transcriptAddEquivalence: vi.fn(async () => 'Added equivalence: Dinah = Dina'),
-    findingsGoTo: vi.fn(async () => ({ outcome: 'navigated' as const, projectTime: 1 })),
     findingsLoop: vi.fn(async () => ({ outcome: 'looping' as const, loopStart: 0, loopEnd: 4 })),
     findingsStopLoop: vi.fn(async () => ({ outcome: 'stopped' as const, restored: 3, kept: 0 })),
     findingsThread: vi.fn(async (id: string) => inspectorFinding({ id })),
@@ -37,6 +36,47 @@ function setup(initial: Finding = inspectorFinding(), props: Partial<React.Compo
 }
 
 const decision = (name: RegExp) => screen.getByRole('button', { name });
+
+// #3114: jsdom has no layout, so this pins the structure; the real-page position is measured in the PR (Playwright, mock app).
+describe('decision-buttons-stay-at-the-panel-bottom', () => {
+  it('holds the Decision label and its four buttons in one band that sticks to the bottom edge', () => {
+    setup();
+    const band = document.querySelector('[data-decision-band]') as HTMLElement;
+    expect(band.className).toMatch(/\bsticky\b/);
+    expect(band.className).toContain('bottom-[calc(var(--page-gutter)*-1)]');
+    expect(within(band).getByText('Decision')).toBeTruthy();
+    expect(within(band).getAllByRole('button')).toHaveLength(4);
+  });
+});
+
+// qa-breaker on #3154: below 1180 px the Inspector stacks under the list, and a saved-decision toast covered the pinned band. Side by side, the page's
+// side clearance keeps toasts left of the panel, so the band needs none.
+describe('toasts-clear-the-decision-band-when-the-panel-is-stacked', () => {
+  const clear = () => document.documentElement.style.getPropertyValue('--toast-clear');
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+    document.documentElement.style.removeProperty('--toast-clear');
+  });
+  const stub = (wide: boolean) => {
+    vi.stubGlobal('matchMedia', () => ({ matches: wide, addEventListener: () => undefined, removeEventListener: () => undefined }));
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ height: 140 } as DOMRect);
+  };
+
+  it('raises toasts above the band by its height while the panel is stacked, and puts them back when it goes', () => {
+    stub(false);
+    const { unmount } = setup();
+    expect(clear()).toBe('140px');
+    unmount();
+    expect(clear()).toBe('');
+  });
+
+  it('leaves toasts where they are when the panel sits beside the list', () => {
+    stub(true);
+    setup();
+    expect(clear()).toBe('');
+  });
+});
 
 describe('quotes-show-script-and-heard-with-the-diff', () => {
   it('draws the Script and Heard quotes with the difference struck and underlined, and no quotes without evidence', () => {

@@ -176,7 +176,7 @@ func (s *Store) Put(device string, reading Reading) error {
 	if err := os.WriteFile(temp, data, 0o600); err != nil {
 		return err
 	}
-	return os.Rename(temp, s.path)
+	return persist.Rename(temp, s.path)
 }
 
 // Meter measures every microphone a capture reports and keeps what it measures in its Store. It is safe for

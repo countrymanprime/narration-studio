@@ -220,7 +220,7 @@ export const SILENT_CATCHES: Record<string, string> = {
     "Starts the bounded REAPER follow for the matched track while the prompt shows; a failure to start just means that poll never begins, and the DAW-transport subscription and the narrator's own choices still settle the prompt.",
   'src/components/booth/ResumePrompt.tsx#2':
     'Stops the follow on cleanup (the prompt settles, a session starts, or the dialog closes); a failure here is unobservable and harmless, since the poll it would have stopped already lost its listener.',
-  'src/components/proof/ProofChapterPage.tsx#1': 'Only offers to review the last compare run; without it the offer is absent (moved from the Proofing page).',
+  'src/components/proof/useChapterCompare.ts#1': 'Only offers to review the last compare run; without it the offer is absent (moved from the Proofing page).',
   'src/components/booth/companion/CompanionHost.tsx#1':
     'Keeps the suspected-line flags as the session ends; a failed save leaves them to be found again by the next check.',
   'src/components/booth/companion/CompanionPage.tsx#1': 'The last-read chapter only picks the default chapter; the first chapter is used without it.',

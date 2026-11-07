@@ -10,7 +10,8 @@ import docScreenshots from '../tests/visual/doc-screenshots.json';
 // "keep the docs in sync": if a page/state referenced there is renamed or
 // removed from STATE_CATALOG, this fails loudly instead of leaving the docs
 // silently pointing at a state that no longer exists. docsGuide.test.ts checks
-// the other side: that every manifest entry is embedded on exactly one page.
+// the other side: that every manifest entry is embedded on one page of its own, plus
+// any guide pages its `alsoOn` names.
 
 describe('docs/guides/using-the-app screenshot manifest', () => {
   test('every entry points at a real STATE_CATALOG row', () => {

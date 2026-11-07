@@ -8,7 +8,7 @@ import type { CutSpan } from '../model';
 import { fxSpan } from '../range/fx/fxCommand';
 import { EffectSettings, OffControls, useEffectHost } from './EffectSettings';
 import { fmtPct, shareOf } from './effectsMath';
-import { useShowEffectInDaw } from './useShowEffectInDaw';
+import { ShowInDawButton } from '../../engine/ShowInDaw';
 
 // A label column and the value beside it, left-aligned, so a short value does not sit 190 px from its name (alignment audit XED-14).
 const Fact = ({ name, children }: { name: string; children: ReactNode }) => (
@@ -40,11 +40,12 @@ export function EffectInspector({
   /** Picks the effect before (-1) or after (1) this one in the list; `at` and `of` place this one, so the arrows are off at the ends. */
   step?: { at: number; of: number; to: (by: -1 | 1) => void };
 }) {
-  const show = useShowEffectInDaw(fx);
   const at = fxSpan(fx, cuts);
   const host = useEffectHost();
+  // The effect's first word that the script still holds: the DAW cannot be asked about words that are not in it.
+  const first = host ? fx.keys.map((k) => host.locator.token(k)).find((t): t is number => t !== undefined) : undefined;
   // Show in the DAW acts on the same effect as Preview and Compare, so it sits in their row (XED-14).
-  const showInDaw = <IconButton action="showInReaper" label={`Show in ${dawName}`} size="sm" disabledReason={show.reason ?? undefined} onClick={show.go} />;
+  const showInDaw = <ShowInDawButton size="sm" target={{ kind: 'passage', chapterId: host?.chapterId ?? '', token: host ? first : undefined }} />;
   return (
     <section aria-label="Effect" className="flex flex-col gap-3">
       {/* The section's header, not a row like the Preview and Compare row under it, whose cells do not line up with its arrows (rule A3). */}

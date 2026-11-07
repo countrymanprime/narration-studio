@@ -8,6 +8,12 @@ import { KEEPS_DESKTOP_SCROLL, POPUP_ANCHORED_AT_FIRST_WIDTH, REFLOW, TOAST_FADE
 export const editingStates: StateEntry[] = [
   {
     page: 'editing',
+    state: 'flag-card',
+    description:
+      'Editing, a flagged word’s card open under its line - Hear the word, It is right accept, Mark for pickup and the Add marker icon button, the one every page has (#2830)',
+  },
+  {
+    page: 'editing',
     state: 'jump-menu',
     description:
       'Editing, the jump menu typed "selected" with no words selected: the selection actions listed under On this page, each off with "Select some words in the script first."',
@@ -102,7 +108,7 @@ export const editingStates: StateEntry[] = [
     state: 'drawer-effects-inspector',
     // The FX in the DAW section says when the DAW last answered, which is a different clock time on every run.
     mask: ['[data-projectfx-read]'],
-    description: 'Editing, the Effects tab with two effects on words - the inspector with Previous and Next effect and Show in the DAW',
+    description: 'Editing, the Effects tab with two effects on words - the inspector with Previous and Next effect and Show in REAPER',
   },
   {
     page: 'editing',
@@ -114,6 +120,12 @@ export const editingStates: StateEntry[] = [
     state: 'voice-sample-dialog',
     description:
       'Editing, Voice sample on four selected words - the character chosen from the chapter’s speakers, the words with Play range, the label and note, Make primary and Save sample',
+  },
+  {
+    page: 'editing',
+    state: 'voice-sample-dialog-unread',
+    description:
+      'Editing, Voice sample when the settings cannot be read (?mockSettings=unreadable): the dialog still opens, says in its note that it could not read where samples are kept, and shows the project folder as where the sample will be kept',
   },
   {
     page: 'editing',
@@ -190,6 +202,12 @@ export const editingStates: StateEntry[] = [
   },
   {
     page: 'editing',
+    state: 'takes-footer',
+    description: 'Editing, the first line’s takes opened and scrolled to their footer - Show in REAPER beside the take actions (#2826)',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'editing',
     state: 'suggestion-step',
     description: 'Editing, Normalise pressed in the suggestion’s steps - the question lists the takes it would bring to the same level',
   },
@@ -197,6 +215,18 @@ export const editingStates: StateEntry[] = [
     page: 'editing',
     state: 'drawer-cleanup',
     description: 'Editing, the drawer open on Clean up - what was found in the chapter and the findings by operation',
+  },
+  {
+    page: 'editing',
+    state: 'drawer-cleanup-levels',
+    description: 'Editing, the drawer on Clean up scrolled to Match levels… under the findings, the action the editing check panel has too (#2827)',
+    sameAs: {
+      of: 'editing/drawer-cleanup',
+      reason:
+        'At the tablet width the drawer is tall enough to show the whole Clean up tab, Match levels… included, so there is nothing to scroll to and the picture is the one the unscrolled state draws.',
+      viewports: ['tablet'],
+    },
+    ...KEEPS_DESKTOP_SCROLL,
   },
   {
     page: 'editing',

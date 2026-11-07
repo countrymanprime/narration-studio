@@ -1,6 +1,7 @@
 package coverage
 
 import (
+	"desktop/internal/persist"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -188,5 +189,5 @@ func writeAtomically(path string, data []byte) error {
 	if err := os.WriteFile(temporary, data, 0o600); err != nil {
 		return err
 	}
-	return os.Rename(temporary, path)
+	return persist.Rename(temporary, path)
 }

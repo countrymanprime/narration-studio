@@ -29,6 +29,26 @@ async function focusSettled(page: Page, popup: Locator): Promise<void> {
 }
 
 /** What the page behind would show if a key had reached it: a take, a bookmark, a moved cursor, a chapter change. */
+/**
+ * Where focus is once a Tab has settled. The dialog library ends a modal popup with a focus guard (`data-base-ui-focus-guard`, an empty
+ * focusable span): a Tab that lands on it is moved back inside on the next frame, so a single read right after the key press can catch
+ * the guard under load and call a settled trap a leak. Poll for a moment; a guard that never hands focus back is still reported, with its markup.
+ */
+async function focusInside(page: Page, popup: Locator): Promise<{ inside: boolean; active: string }> {
+  const read = () =>
+    popup.evaluate((el) => {
+      const active = document.activeElement as HTMLElement | null;
+      return { inside: el.contains(active), active: active ? active.outerHTML.slice(0, 240) : 'none' };
+    });
+  const deadline = Date.now() + 1500;
+  let where = await read();
+  while (!where.inside && (await popup.isVisible()) && Date.now() < deadline) {
+    await page.waitForTimeout(50);
+    where = await read();
+  }
+  return where;
+}
+
 async function behindTheOverlay(page: Page) {
   return page.evaluate(() => ({
     recording: !!Array.from(document.querySelectorAll('button')).find((b) => b.textContent?.trim() === 'Stop'),
@@ -256,8 +276,9 @@ for (const overlay of OVERLAYS) {
       for (let i = 0; i < 8; i++) {
         await page.keyboard.press('Tab');
         if (!(await popup.isVisible())) break;
-        const inside = await popup.evaluate((el) => el.contains(document.activeElement));
-        expect(inside, `Tab ${i + 1} left the open ${overlay.name}`).toBe(true);
+        const where = await focusInside(page, popup);
+        if (!(await popup.isVisible())) break;
+        expect(where.inside, `Tab ${i + 1} left the open ${overlay.name}: focus is on ${where.active}`).toBe(true);
       }
       if (await popup.isVisible()) {
         await page.keyboard.press('Escape');

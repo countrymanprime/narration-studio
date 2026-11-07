@@ -162,6 +162,22 @@ export const settingsDrivers: Record<string, Driver> = {
     await page.getByRole('button', { name: 'About where samples play' }).click();
     await page.getByText("Voice samples play on this computer's default output.", { exact: false }).waitFor();
   },
+  'recording-sample-storage': async (page) => {
+    await openSettings(page);
+    const row = await showSettingsRow(page, 'daw.sampleStorage');
+    // REAPER keeps a region, so all three choices are on; the narrator picks Both.
+    await row.getByRole('radio', { name: /^Both/ }).click();
+    await row.getByRole('radio', { name: /^Both/ }).and(page.locator('[aria-checked="true"]')).waitFor();
+  },
+  'recording-sample-storage-unavailable': async (page) => {
+    await openSettings(page, undefined, '?mockDaw=Audacity');
+    const row = await showSettingsRow(page, 'daw.sampleStorage');
+    // Audacity cannot keep a region: In the DAW and Both are off, each with the reason as its tooltip (not drawn in the row).
+    await row
+      .getByText(/not available with Audacity yet/)
+      .first()
+      .waitFor();
+  },
   'recording-sample-output-builtin': async (page) => {
     await openSampleOutput(page, 'usual', 'Headphones (Focusrite USB Audio)');
   },
@@ -582,6 +598,12 @@ export const settingsDrivers: Record<string, Driver> = {
   'about-update-available': async (page) => {
     await openUpdates(page, 'available');
     await page.getByText('Version 0.2.7 is available').waitFor();
+  },
+  'diagnostics-preview': async (page) => {
+    await openSettings(page, 'App & updates');
+    await page.getByRole('region', { name: 'Diagnostics bundle' }).evaluate((panel) => panel.scrollIntoView({ block: 'start' }));
+    await page.getByRole('button', { name: 'Preview the diagnostics bundle' }).click();
+    await page.getByRole('dialog', { name: 'Diagnostics bundle' }).waitFor();
   },
   'about-download-confirm': async (page) => {
     await openUpdates(page, 'available');

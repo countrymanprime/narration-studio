@@ -2,6 +2,7 @@ package main
 
 import (
 	"desktop/internal/brand"
+	"desktop/internal/persist"
 	"errors"
 	"fmt"
 	"os"
@@ -216,7 +217,7 @@ func writeFileAtomically(path string, data []byte) error {
 	if err := os.WriteFile(temporary, data, 0o600); err != nil {
 		return fmt.Errorf("could not write the report: %w", err)
 	}
-	if err := os.Rename(temporary, path); err != nil {
+	if err := persist.Rename(temporary, path); err != nil {
 		_ = os.Remove(temporary) // best effort: the rename's error is the one the narrator needs
 		return fmt.Errorf("could not write the report: %w", err)
 	}

@@ -95,8 +95,9 @@ func (h *Host) startUpdateDownload() (map[string]any, error) {
 	h.updateJob = job
 	stager := h.stager
 	h.mu.Unlock()
+	started := snapshotUpdateJob(job)
 	go h.runUpdateDownload(ctx, stager, release, job)
-	return snapshotUpdateJob(job), nil
+	return started, nil
 }
 
 // runUpdateDownload stages the release and records how it ended. Closing the app cancels ctx, so a download never outlives it.
