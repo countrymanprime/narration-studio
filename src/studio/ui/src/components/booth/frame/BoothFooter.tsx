@@ -180,7 +180,11 @@ export function BoothFooter({
           </div>
         ) : null}
       </div>
-      <KeyHints id="bkeys" hints={hints} />
+      {/* In a window under 26rem tall the hints are cut off at the bottom anyway, and the rows they take are what the side panel needs to be readable:
+          like the shell's footer below 860 px wide, they are not drawn (the side panel at 320x300 was 32 px tall). */}
+      <div className="[@media(max-height:26rem)]:hidden">
+        <KeyHints id="bkeys" hints={hints} />
+      </div>
     </div>
   );
 }

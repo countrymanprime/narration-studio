@@ -116,6 +116,21 @@ for (const theme of ['light', 'dark'] as const) {
   });
 }
 
+// The side panel is a drawer in a small window. At 320x300 the top bar, Record and the key hints left it 32 px between them, so the Suspected
+// lines it holds could not be read and its edge sat on Record. It keeps room to read (the Levels popup's 110 px), above Record.
+for (const theme of ['light', 'dark'] as const) {
+  test(`Booth: the side panel has room to read and stays above Record at 320x300 (${theme})`, async ({ page }) => {
+    await open(page, '/booth?mockTeleprompter=checked', theme);
+    await page.getByRole('button', { name: /side panel/i }).click();
+    const panel = page.locator('#booth-side');
+    await panel.waitFor();
+    await expect.poll(async () => (await panel.boundingBox())!.height, { message: 'the side panel keeps room to read' }).toBeGreaterThanOrEqual(110);
+    const box = (await panel.boundingBox())!;
+    const record = (await page.getByRole('button', { name: 'Record', exact: true }).boundingBox())!;
+    expect(box.y + box.height, 'the side panel stays above Record').toBeLessThanOrEqual(record.y + 1);
+  });
+}
+
 // The footer's controls (Record, the timer, Levels, Cold read) wrap onto a second line rather than leaving the window (found by the QA pass: Cold read was cut off at 320 px).
 for (const theme of ['light', 'dark'] as const) {
   for (const query of ['', '?mockEngine=builtin']) {
