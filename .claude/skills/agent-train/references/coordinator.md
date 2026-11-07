@@ -131,9 +131,9 @@ These checks run on their own and read the repo and CI, never a worker's report.
 | Check | Where | What it does |
 | --- | --- | --- |
 | **Train health** | `.github/workflows/train-health.yml`, `scripts/ci/train-health.mjs` | Hourly. Warns on each open `agent-train` issue, once per stall, when its `Last pass:` line is more than two hours old and `HOLD` is not ticked |
-| **Post-merge checks** | `.github/workflows/post-merge.yml` | On each push to `main` that touches what they read, the checks a pull request leaves to `main` (the bridge harness's mutation checks on Windows). A red run shows on the `main` commit; `Main health` runs the same checks and ticks `HOLD`. Fix it forward in one PR, or revert the merge that turned it red when no fix is ready within a pass |
-| **Main health** | `.github/workflows/main-health.yml` | Scheduled every three hours; observed 2 to 3 runs a day, often an hour or two late, so up to about ten hours between runs. Runs the whole of `ci.yml` on `main` (quality, every visual shard, UI bundle, Windows build). On a red run, ticks `HOLD` on every open `agent-train` issue and says why. The owner or the coordinator clears it once `main` is green |
-| **Test ratchet** | `.github/workflows/test-ratchet.yml`, `scripts/ci/test-ratchet.mjs` | Advisory. Prints, and raises a warning for, a PR that deletes a test file, adds a skip or focus marker to one, or lowers a coverage floor in `scripts/ci/coverage-floors.json`; it never fails. Runs the base branch's copy of the script. The intent review judges its warnings; the owner never approves a test change |
+| **Post-merge checks** | `.github/workflows/post-merge.yml` | On each push to `main` that touches what they read, the checks a pull request leaves to `main` (the bridge harness's mutation checks on Windows and Linux). A red run shows on the `main` commit; `Main health` runs the same checks and ticks `HOLD`. Fix it forward in one PR, or revert the merge that turned it red when no fix is ready within a pass |
+| **Main health** | `.github/workflows/main-health.yml` | Scheduled every three hours; observed 2 to 3 runs a day, often an hour or two late, so up to about ten hours between runs. Runs the whole of `ci.yml` on `main` (lint, every Test (Linux) and Test (Windows) shard, the Windows build). On a red run, ticks `HOLD` on every open `agent-train` issue and says why. The owner or the coordinator clears it once `main` is green |
+| **Test ratchet** | the `test ratchet` step of `quality / lint` (`.github/workflows/_quality.yml`), `scripts/ci/test-ratchet.mjs` | Advisory. Prints, and raises a warning for, a PR that deletes a test file, adds a skip or focus marker to one, or lowers a coverage floor in `scripts/ci/coverage-floors.json`; it never fails. Runs the base branch's copy of the script. The intent review judges its warnings; the owner never approves a test change |
 | **Intent review** | the coordinator, below | A fresh session, not the worker, traces each merge-ready PR back to its issue or PRD phase |
 | **Launch limit** | the coordinator, below | Stops a stream that keeps being relaunched without delivering |
 
@@ -162,11 +162,11 @@ The Routine fires every 30 minutes (two hourly Routines, 30 minutes apart; D50).
 4. **Merge (D40).** Take bottom PRs (base `main`), oldest first. Merge one only when all of these hold:
    - it is not a draft;
    - it merges cleanly into `main` (D73: it need not contain `main`'s tip). If GitHub reports a conflict, merge `main` into it with `update_pull_request_branch`, or start a fixer when that fails, and wait for its checks on the next pass;
-   - `quality / Build (Windows)` and `quality / linux-checks` (which builds the UI bundle) succeeded on the head. A docs-only PR needs `Docs / Docs checks` (the link check and the other four docs checks, which run on every PR) instead;
+   - `CI passed` succeeded on the head (it fails when any CI job failed or was cancelled). A docs-only PR needs `Docs / Docs checks` (the link check and the other four docs checks, which run on every PR) instead;
    - there is no `CHANGES_REQUESTED` review and no unresolved thread whose first comment starts with 🔴;
    - a Claude Approvals check, if present, passes;
    - a UI PR updates its pages' guide text and images, or carries a specific `No guide change:` reason, and states the real-app and Storybook results ([UI PRs update the how-to guide](worker.md#ui-prs-update-the-how-to-guide)).;
-   - the `Test ratchet` check has run on the head, and the intent review judged its warnings ([Safety net](#safety-net));
+   - the `test ratchet` step of `quality / lint` has run on the head (its result is in the lint job's summary), and the intent review judged its warnings ([Safety net](#safety-net));
    - an independent intent review passed on the current head ([Safety net](#safety-net)).
 
    Merge with `squash` and `expectedHeadSha`, then delete the branch. Don't update the other bottom PRs' branches after a merge (D73); only a PR that conflicts with `main` gets `main` merged in.
