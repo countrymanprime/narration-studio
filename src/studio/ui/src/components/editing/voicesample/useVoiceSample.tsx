@@ -142,7 +142,21 @@ export function useVoiceSample({ chapterId, workspace, items, mediaUrl, stopPlay
                     if (answer.status === 'refused') return refuse('refused', answer.message);
                     const id = answer.sample.id;
                     // The host answers the sample that exists when the same frames are marked twice; Undo must not remove an earlier save.
-                    if (list?.samples.some((s) => s.id === id)) return refuse('duplicate', `That stretch is already a voice sample for ${name}.`);
+                    // When the storage changed in between, the host added what the sample lacked to it: say so, with no Undo (nothing takes
+                    // an addition back, and removing the sample would lose the earlier save).
+                    const before = list?.samples.find((s) => s.id === id);
+                    if (before) {
+                      // "Kept" only when the sample reads whole: a clip or a region that is gone is not kept, whatever the row says.
+                      const { clipState, daw } = answer.sample;
+                      const whole = clipState === 'ok' && (daw === undefined || daw.state === 'ok' || daw.state === 'label_moved');
+                      const extended = whole && (before.storage ?? 'project') !== (answer.sample.storage ?? 'project');
+                      return refuse(
+                        'duplicate',
+                        extended
+                          ? `That stretch’s voice sample for ${name} is now kept in the project folder and the DAW.`
+                          : `That stretch is already a voice sample for ${name}.`,
+                      );
+                    }
                     return { ok: true as const, value: id };
                   },
                   undo: async (id) => {

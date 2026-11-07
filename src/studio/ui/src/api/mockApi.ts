@@ -486,6 +486,10 @@ export function createMockApi(
       () => s.paragraphs,
       initial.voiceSamples,
       merges,
+      async () => {
+        const kept = (await settings.bindings.settingsForScope('project')).VoiceSamples?.find((field) => field.key === 'storage')?.effectiveValue;
+        return kept === 'daw' || kept === 'both' ? kept : 'project';
+      },
     ),
     ...createEditLogMock(
       manuscriptReady,
