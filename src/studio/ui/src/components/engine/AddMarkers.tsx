@@ -25,7 +25,7 @@ export type AddMarkersResult = { message: string; failed: boolean; added: boolea
 export type MarkersGate = { available: boolean; message?: string };
 
 /** REAPER takes markers only into a linked project file, and the top bar's badge asks for the link first, so the button says the same. */
-export const NOT_LINKED = 'Link a REAPER project (.rpp) file to add markers.';
+const NOT_LINKED = 'Link a REAPER project (.rpp) file to add markers.';
 /** How long a press waits for the DAW before it says so and frees the button. */
 const ASK_DEADLINE_MS = 15000;
 const NONE_PLACED = 'None of these lines has a place in the recording yet.';
@@ -50,7 +50,7 @@ export function useMarkersGate(): MarkersGate {
 }
 
 /** How many of the pickups the host can place in the recording: the others get no marker. */
-export const placeableCount = (pickups: readonly PickupItem[]): number => pickups.filter((pickup) => pickup.at !== null).length;
+const placeableCount = (pickups: readonly PickupItem[]): number => pickups.filter((pickup) => pickup.at !== null).length;
 
 /**
  * The one place an Add marker press reaches the host, and the sentence for what came back. A line the host cannot place gets no marker, so the count on
