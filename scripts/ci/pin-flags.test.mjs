@@ -18,9 +18,10 @@ test('a pure pin bump starts only the families of the jobs it reaches', () => {
   assert.deepEqual(pinFlags(pins), { ui: true, shell: false, static: false, quickubuntu: false });
 });
 
-test('a bump in go-test starts the shell family; a bump in linux-checks runs all of its steps', () => {
+test('a bump in go-test starts the shell family; a bump in lint or linux-checks runs that job\'s steps', () => {
   assert.deepEqual(pinFlags({ kind: 'pins', pure: true, jobs: ['_quality.yml#go-test'] }), { ui: false, shell: true, static: false, quickubuntu: false });
-  assert.deepEqual(pinFlags({ kind: 'pins', pure: true, jobs: ['_quality.yml#linux-checks'] }), { ui: false, shell: false, static: true, quickubuntu: true });
+  assert.deepEqual(pinFlags({ kind: 'pins', pure: true, jobs: ['_quality.yml#linux-checks'] }), { ui: false, shell: false, static: false, quickubuntu: true });
+  assert.deepEqual(pinFlags({ kind: 'pins', pure: true, jobs: ['_quality.yml#lint'] }), { ui: false, shell: false, static: true, quickubuntu: false });
 });
 
 test('both aggregates belong to the ui family, so their download-artifact pins run the shards whose uploads they read', () => {

@@ -4,7 +4,7 @@ on:
     outputs:
       ui-affected:
         description: "'true' when Nx found ui affected, so the visual shards ran and ci.yml's `CI passed` judges their records"
-        value: ${{ jobs.scope.outputs.ui }}
+        value: ${{ jobs.lint.outputs.ui }}
       vitest-affected:
         description: "'true' when the ui-unit shards ran the Vitest run and uploaded its blobs, which ci.yml's aggregate merges"
         value: ${{ jobs.ui-unit.outputs.affected }}
@@ -30,19 +30,26 @@ permissions: { contents: read }
 # step with `if: ${{ !cancelled() }}` so a red step hides none after it, and a summary step (scripts/ci/step-summary.mjs) that
 # reports each. scripts/ci/check-manifest.json records which job and step runs each check.
 jobs:
-  scope:
-    # Which job families the change reaches, decided once on a cheap Linux runner so the others are skipped (no runner, no
-    # toolchain setup) instead of starting, installing and finding nothing to do. Same rule as every nx-run / nx-affected step
-    # (scripts/ci/nx-scope.sh: everything on a manual run or a workspace-wide file, else `nx show projects --affected`).
-    #   - ui: the ui-unit shards (Vitest and the atlas) and the visual shards.
-    #   - shell: go-test (the Go tests and lint, and the Lua harness on Windows), so the reaper project or the shell.
-    # A skipped job counts as passed in ci.yml's `CI passed`; the steps inside those jobs keep their own scope check.
-    # A pull request whose workflow changes are only `uses:` pin bumps (Dependabot) is not `all` here: the nx-affected steps run
-    # nx-scope.sh --pins, and the `pins` step (scripts/ci/workflow-pins.mjs, pin-flags.mjs) ORs in the families of the jobs that contain a
-    # changed pin (a changed local action: every job that uses it). On a pure pin bump the static and quick steps of linux-checks run
-    # only when that job is reached (`static`, `quickubuntu`); on any other change they run as before. A job that starts runs in full. Any other change
-    # under .github/workflows or .github/actions (a `run:`, `if:`, `with:` or `needs:` line, a step, job or file added or removed) is `all`.
-    timeout-minutes: 10
+  lint:
+    # Runs first; every other job waits for it, so a lint finding stops the run before the long jobs start (owner decision, #3065).
+    # Two parts:
+    #   - Scope: which job families the change reaches, so the others are skipped (no runner, no toolchain setup) instead of starting,
+    #     installing and finding nothing to do. Same rule as every nx-run / nx-affected step (scripts/ci/nx-scope.sh: everything on a
+    #     manual run or a workspace-wide file, else `nx show projects --affected`).
+    #       - ui: the ui-unit shards (Vitest and the atlas) and the visual shards.
+    #       - shell: go-test (the Go tests and lint, and the Lua harness on Windows), so the reaper project or the shell.
+    #     A skipped job counts as passed in ci.yml's `CI passed`; the steps inside those jobs keep their own scope check.
+    #     A pull request whose workflow changes are only `uses:` pin bumps (Dependabot) is not `all` here: the nx-affected steps run
+    #     nx-scope.sh --pins, and the `pins` step (scripts/ci/workflow-pins.mjs, pin-flags.mjs) ORs in the families of the jobs that
+    #     contain a changed pin (a changed local action: every job that uses it). On a pure pin bump the lint steps run only when this job
+    #     is reached (`static`) and the quick test steps of linux-checks only when that job is (`quickubuntu`). Any other change under
+    #     .github/workflows or .github/actions (a `run:`, `if:`, `with:` or `needs:` line, a step, job or file added or removed) is `all`.
+    #   - Lint, one step per project family, each on its affected projects: ui static and web static (lint, format, architecture and
+    #     node:test of the UI and site projects, the site's typecheck and Vitest run), Knip (every workspace, so `always`), python lint
+    #     (ruff and the typecheck of the Python projects), reaper lint (StyLua and ruff on the bridge), docs-site lint (`always`).
+    #     Go lint runs on Windows in go-test (it needs the Windows build tags).
+    name: lint
+    timeout-minutes: 20
     runs-on: ubuntu-latest
     outputs:
       ui: ${{ steps.ui.outputs.affected == 'true' || steps.pins.outputs.ui == 'true' }}
@@ -55,11 +62,9 @@ jobs:
       - uses: ./.github/actions/setup-toolchain
         with:
           need-go: 'false'
-          need-python: 'false'
           need-wails-tools: 'false'
-          need-stylua: 'false'
           need-linux-native-deps: 'false'
-          pnpm-filter: workspace
+          python-sync-args: --group docs
       - id: ui
         uses: ./.github/actions/nx-affected
         with:
@@ -84,16 +89,66 @@ jobs:
           fi
           node scripts/ci/pin-flags.mjs --github-output < "$RUNNER_TEMP/pins.json"
 
+      - name: ui static
+        id: ui-static
+        if: ${{ !cancelled() && steps.pins.outputs.static == 'true' }}
+        uses: ./.github/actions/nx-run
+        with:
+          targets: lint format architecture test-node
+          projects: ui
+      - name: web static
+        id: web-static
+        if: ${{ !cancelled() && steps.pins.outputs.static == 'true' }}
+        uses: ./.github/actions/nx-run
+        with:
+          targets: lint format architecture typecheck test-node test
+          projects: web
+      - name: knip
+        id: knip
+        if: ${{ !cancelled() && steps.pins.outputs.static == 'true' }}
+        uses: ./.github/actions/nx-run
+        with:
+          targets: knip
+          projects: workspace
+          always: 'true'
+      - name: python lint
+        id: python-lint
+        if: ${{ !cancelled() && steps.pins.outputs.static == 'true' }}
+        uses: ./.github/actions/nx-run
+        with:
+          targets: lint typecheck
+          projects: tag:toolchain:python,fixtures
+      - name: reaper lint
+        id: reaper-lint
+        if: ${{ !cancelled() && steps.pins.outputs.static == 'true' }}
+        uses: ./.github/actions/nx-run
+        with:
+          targets: lint
+          projects: reaper
+      - name: docs-site lint
+        id: docs-site-lint
+        if: ${{ !cancelled() && steps.pins.outputs.static == 'true' }}
+        uses: ./.github/actions/nx-run
+        with:
+          targets: lint
+          projects: docs-site
+          always: 'true'
+      - name: Summary
+        if: always()
+        env:
+          OUTCOMES: >-
+            {"ui static": "${{ steps.ui-static.outcome }}", "web static": "${{ steps.web-static.outcome }}",
+            "knip": "${{ steps.knip.outcome }}", "python lint": "${{ steps.python-lint.outcome }}",
+            "reaper lint": "${{ steps.reaper-lint.outcome }}", "docs-site lint": "${{ steps.docs-site-lint.outcome }}"}
+        run: node scripts/ci/step-summary.mjs
   linux-checks:
-    # Every Linux check under a few minutes, on one runner with one toolchain install (Go, Python with the docs group, every pnpm
+    # Every Linux test under a few minutes (the lint job holds the lint), on one runner with one toolchain install (Go, Python with the docs group, every pnpm
     # project, StyLua). These were four jobs (js-static, quick-ubuntu, rename rehearsal, ui-dist / build), each paying for its own setup.
     #   - UI bundle (full tier): `pnpm --dir src/studio/ui run build`, uploaded as `ui-dist` for Build (Windows), which waits for this job
     #     instead of starting with the fan-out, so the two take one runner slot in turn. First, so a red check below cannot hold it back.
-    #   - ui static, web static, Knip (`static`): lint, format, architecture and node:test of the UI and site projects, the site's
-    #     typecheck and Vitest run; Knip reads every workspace, so `always`.
     #   - repo-scripts, docs-site, python, reaper (`quickubuntu`): the plain-Node scripts (`always`: the layout and project guards read every
-    #     tracked file), the docs site's unit tests (`always`: docs/ belongs to no project; Pages runs the built site's link check), ruff and
-    #     pytest of the Python projects (Go is installed for the transcript-compare tests), StyLua and the bridge harness under Lua 5.4:
+    #     tracked file), the docs site's unit tests (`always`: docs/ belongs to no project; Pages runs the built site's link check), pytest of
+    #     the Python projects (Go is installed for the transcript-compare tests) and the bridge harness under Lua 5.4:
     #     on a pull request its characterization tests (the `pr` configuration), on every other run with its mutation checks too.
     #   - rename rehearsal, every pull request: renames a throwaway worktree of this commit to a made-up name and runs the brand sync, both
     #     name guards and the tests that read the name (scripts/brand/rehearse-rename.mjs, #2251 item 41). main-health runs `--full`,
@@ -101,7 +156,7 @@ jobs:
     # 45 min: before #3078 the `--full` rehearsal (main-health, a manual run) re-ran every suite and took up to 36 min alone; on a pull
     # request the four jobs it replaces ran 9.7 min together on run 41966422733, each setup included.
     name: linux-checks
-    needs: scope
+    needs: lint
     timeout-minutes: 45
     runs-on: ubuntu-latest
     outputs:
@@ -128,31 +183,9 @@ jobs:
           path: src/studio/ui/dist
           if-no-files-found: error
           retention-days: 1
-      - name: ui static
-        id: ui-static
-        if: ${{ !cancelled() && needs.scope.outputs.static == 'true' }}
-        uses: ./.github/actions/nx-run
-        with:
-          targets: lint format architecture test-node
-          projects: ui
-      - name: web static
-        id: web-static
-        if: ${{ !cancelled() && needs.scope.outputs.static == 'true' }}
-        uses: ./.github/actions/nx-run
-        with:
-          targets: lint format architecture typecheck test-node test
-          projects: web
-      - name: knip
-        id: knip
-        if: ${{ !cancelled() && needs.scope.outputs.static == 'true' }}
-        uses: ./.github/actions/nx-run
-        with:
-          targets: knip
-          projects: workspace
-          always: 'true'
       - name: repo-scripts
         id: repo-scripts
-        if: ${{ !cancelled() && needs.scope.outputs.quickubuntu == 'true' }}
+        if: ${{ !cancelled() && needs.lint.outputs.quickubuntu == 'true' }}
         uses: ./.github/actions/nx-run
         with:
           targets: test-node
@@ -160,25 +193,25 @@ jobs:
           always: 'true'
       - name: docs-site
         id: docs-site
-        if: ${{ !cancelled() && needs.scope.outputs.quickubuntu == 'true' }}
+        if: ${{ !cancelled() && needs.lint.outputs.quickubuntu == 'true' }}
         uses: ./.github/actions/nx-run
         with:
-          targets: lint test
+          targets: test
           projects: docs-site
           always: 'true'
       - name: python
         id: python
-        if: ${{ !cancelled() && needs.scope.outputs.quickubuntu == 'true' }}
+        if: ${{ !cancelled() && needs.lint.outputs.quickubuntu == 'true' }}
         uses: ./.github/actions/nx-run
         with:
-          targets: lint test typecheck
+          targets: test
           projects: tag:toolchain:python,fixtures
       - name: reaper (Lua)
         id: reaper
-        if: ${{ !cancelled() && needs.scope.outputs.quickubuntu == 'true' }}
+        if: ${{ !cancelled() && needs.lint.outputs.quickubuntu == 'true' }}
         uses: ./.github/actions/nx-run
         with:
-          targets: lint test
+          targets: test
           projects: reaper
           configuration: ${{ github.event_name == 'pull_request' && 'pr' || '' }}
       - name: rename rehearsal
@@ -191,8 +224,7 @@ jobs:
         if: always()
         env:
           OUTCOMES: >-
-            {"UI bundle": "${{ steps.ui-bundle.outcome }}", "ui static": "${{ steps.ui-static.outcome }}",
-            "web static": "${{ steps.web-static.outcome }}", "knip": "${{ steps.knip.outcome }}",
+            {"UI bundle": "${{ steps.ui-bundle.outcome }}",
             "repo-scripts": "${{ steps.repo-scripts.outcome }}", "docs-site": "${{ steps.docs-site.outcome }}",
             "python": "${{ steps.python.outcome }}", "reaper (Lua)": "${{ steps.reaper.outcome }}",
             "rename rehearsal": "${{ steps.rename.outcome }}"}
@@ -209,8 +241,8 @@ jobs:
     #     fresh generation (fix with `pnpm --dir src/studio/ui docs:atlas`).
     # 30 min: 3.3 to 6.7 min of Vitest and about 6 of atlas per shard, behind a `setup-playwright` that took up to 9 min on a slow runner.
     name: ui-unit (shard ${{ matrix.shard }}/3)
-    needs: scope
-    if: needs.scope.outputs.ui == 'true'
+    needs: lint
+    if: needs.lint.outputs.ui == 'true'
     timeout-minutes: 30
     runs-on: ubuntu-latest
     strategy:
@@ -291,8 +323,8 @@ jobs:
     # 22.8 min by Playwright's clock) left a slow runner, with `setup-playwright` at 9 minutes, past the 30 minute limit on shards that
     # failed no test. A quarter each is about 17 minutes of tests. The limit stays 30: the balance was not the problem.
     name: ui-visual (shard ${{ matrix.shard }}/4)
-    needs: scope
-    if: inputs.full && needs.scope.outputs.ui == 'true'
+    needs: lint
+    if: inputs.full && needs.lint.outputs.ui == 'true'
     timeout-minutes: 30
     runs-on: ubuntu-latest
     strategy:
@@ -392,8 +424,8 @@ jobs:
     # Linux runners, so Go is tested and linted here.
     # 30 min: the median was 11 (root) and 15 (rest) min, the longest 16.1, plus about 2 for lint or the harness; a main-health run's
     # mutation checks add up to 15 to `rest`.
-    needs: scope
-    if: needs.scope.outputs.shell == 'true'
+    needs: lint
+    if: needs.lint.outputs.shell == 'true'
     name: go-test (${{ matrix.part }})
     strategy:
       fail-fast: false
