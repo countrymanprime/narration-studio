@@ -110,7 +110,7 @@ to its window, so a link made in REAPER or the audio engine panel shows without 
 built-in recorder (which has no track to link), a note over the script says to record the chapter, with **Read again**.
 A chapter
 that was never checked has no heard words: the page shows its script plain, with a **Not transcribed yet** note and a
-**Check recordings…** button beside it that opens [Check recordings](production.md#checking-a-chapters-recording), the one recording
+**Check recordings** icon beside it that opens [Check recordings](production.md#checking-a-chapters-recording), the one recording
 check every page opens, with this chapter ticked. When the dialog closes the page reads the chapter again, so
 what the check found shows without a reload. Opening Editing never starts a check.
 

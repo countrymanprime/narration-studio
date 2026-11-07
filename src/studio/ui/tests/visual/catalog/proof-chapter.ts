@@ -10,13 +10,13 @@ export const proofChapterStates: StateEntry[] = [
     page: 'proof-chapter',
     state: 'never',
     description:
-      'Proof chapter view, a chapter with a confirmed track link that has never been checked - Not checked yet in the title row with Check recordings… beside it',
+      'Proof chapter view, a chapter with a confirmed track link that has never been checked - Not checked yet in the title row with Check recordings beside it',
   },
   {
     page: 'proof-chapter',
     state: 'credits-closing',
     description:
-      'Proof chapter view, the Closing credits opened by their address like any chapter - "Proof · Closing credits", never checked, with Check recordings…',
+      'Proof chapter view, the Closing credits opened by their address like any chapter - "Proof · Closing credits", never checked, with Check recordings',
   },
   {
     page: 'proof-chapter',
@@ -173,7 +173,7 @@ export const proofChapterStates: StateEntry[] = [
     page: 'proof-chapter',
     state: 'stage-panel-evidence-unknown',
     description:
-      'Proof chapter view, the stage recommendations panel: Why opened on an unmapped-track cause (?mockProofingSignal=unmapped-track) - "Open the audio engine panel", never "Check recordings…" (stageText.ts PROOFING_CAUSE_TEXT)',
+      'Proof chapter view, the stage recommendations panel: Why opened on an unmapped-track cause (?mockProofingSignal=unmapped-track) - "Open the audio engine panel", never "Check recordings" (stageText.ts PROOFING_CAUSE_TEXT)',
   },
   // The chosen rendered file the delivery checks are about.
   {

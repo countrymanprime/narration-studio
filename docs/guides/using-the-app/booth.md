@@ -153,6 +153,8 @@ in REAPER. REAPER on its own would put it back where the recording began, so the
 REAPER's preferences. Going back is always your own choice: click a word, use **Start from here**, or punch and roll (**R**).
 Audacity cannot record from the Booth yet. The built-in recorder has no edit cursor, so only the highlight stays.
 
+Once a take has stopped, a message offers **Check recordings** for the chapter, which opens [the same check](production.md#checking-a-chapters-recording) the other pages run. It is only an offer: it goes after ten seconds, nothing is checked until you press **Check** in the dialog, and it is not shown while a take is recording or when the DAW cannot check.
+
 When Record cannot start, it looks off and the footer says why, but you can still press it: the press opens the dialog that
 fixes the problem, or, when there is nothing to fix from the Booth, a message that says why with **Check again**. Nothing
 records, and the app does not start listening or play the start tone first. A refusal the DAW gives at the press (a full disk,

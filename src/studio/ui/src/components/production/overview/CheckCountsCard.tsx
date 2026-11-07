@@ -1,5 +1,4 @@
-import { Icon } from '../../primitives/Icon';
-import { IconButton } from '../../primitives/IconButton';
+import { CheckRecordingsButton } from '../../recordingcheck/CheckRecordingsButton';
 import { Panel } from '../../primitives/Panel';
 import { TooltipTarget } from '../../primitives/Tooltip';
 import type { CheckCounts } from './overviewFigures';
@@ -8,9 +7,6 @@ type Props = {
   counts: CheckCounts;
   /** A chapter id's name for the tooltips. */
   nameOf: (chapterId: string) => string;
-  /** Why the check cannot start (the DAW is unreachable); absent when it can. */
-  unavailable?: string;
-  onCheck: (chapterIds: string[]) => void;
 };
 
 function Row({ label, ids, nameOf, warn }: { label: string; ids: readonly string[]; nameOf: (id: string) => string; warn?: boolean }) {
@@ -34,20 +30,15 @@ function Row({ label, ids, nameOf, warn }: { label: string; ids: readonly string
 }
 
 /** "Recording check": how many narration chapters are checked as of the last save, out of date, or never checked; the icon starts the check. */
-export function CheckCountsCard({ counts, nameOf, unavailable, onCheck }: Props) {
+export function CheckCountsCard({ counts, nameOf }: Props) {
   const needs = [...counts.stale, ...counts.never];
-  const reason = unavailable ?? (needs.length ? undefined : 'Every chapter is checked as of the last save');
+  const reason = needs.length ? undefined : 'Every chapter is checked as of the last save';
   return (
     <Panel
       title="Recording check"
       className="min-w-0"
-      actions={
-        <TooltipTarget text={reason ?? 'Check recordings'}>
-          <IconButton label="Check recordings" aria-haspopup="dialog" disabledReason={reason} onClick={() => onCheck(needs)}>
-            <Icon name="checkRecordings" />
-          </IconButton>
-        </TooltipTarget>
-      }
+      // The one Check recordings (#2833), an icon button here for want of room: its DAW gate is shared, the card's own reason is that nothing needs checking.
+      actions={<CheckRecordingsButton variant="icon" chapterIds={needs} reason={reason} />}
     >
       <div className="flex flex-col gap-2">
         <Row label="Checked, as of last save" ids={counts.current} nameOf={nameOf} />

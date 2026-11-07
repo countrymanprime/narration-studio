@@ -276,7 +276,7 @@ export const productionStates: StateEntry[] = [
   {
     page: 'production',
     state: 'stage-evidence-unknown',
-    description: 'Production, the evidence of a chapter that can’t tell yet: the cause (no track linked), what resolves it and Check recordings…',
+    description: 'Production, the evidence of a chapter that can’t tell yet: the cause (no track linked), what resolves it and Check recordings',
   },
   {
     page: 'production',

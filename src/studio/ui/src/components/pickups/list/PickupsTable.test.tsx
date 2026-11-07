@@ -7,6 +7,7 @@ import { createMockApi } from '../../../api/mockApi';
 import { DAW_SETUPS } from '../../../fixtures/daw';
 import { createMockDawClient } from '../../../ports/daw';
 import { PortOverrides } from '../../../ports/usePort';
+import * as checkRecordings from '../../recordingcheck/openCheckRecordings';
 import { contextItemsFor } from '../../../registries/context';
 import { OverlayProvider } from '../../../overlay/OverlayProvider';
 import { createOverlayService, overlay } from '../../../overlay/overlayService';
@@ -18,15 +19,14 @@ afterEach(cleanup);
 
 type Props = Parameters<typeof PickupsTable>[0];
 
-function setup(over: Partial<Props> = {}) {
+function setup(over: Partial<Props> = {}, dawSetup: 'reaper' | 'reaper-off' = 'reaper') {
   const service = createOverlayService();
   const host = createMockApi();
   const goTo = vi.spyOn(host, 'findingsGoTo').mockResolvedValue({ outcome: 'navigated', projectTime: 221 });
-  const daw = createMockDawClient(DAW_SETUPS.reaper, { chapterIds: [], candidateIds: [], findingIds: [] });
+  const daw = createMockDawClient(DAW_SETUPS[dawSetup], { chapterIds: [], candidateIds: [], findingIds: [] });
   const fns = {
     onScope: vi.fn(),
     onStep: vi.fn(),
-    onCheck: vi.fn(),
     onAdd: vi.fn().mockResolvedValue(undefined),
     onSetIncluded: vi.fn().mockResolvedValue(undefined),
     onSetDone: vi.fn().mockResolvedValue(undefined),
@@ -48,7 +48,6 @@ function setup(over: Partial<Props> = {}) {
               scope="all"
               currentChapterId="c1"
               chaptersToCheck={['c2', 'c3']}
-              daw={{ available: true }}
               {...fns}
               {...over}
             />
@@ -368,20 +367,25 @@ describe('PickupsTable', () => {
     expect(screen.queryByText('No pickups queued')).toBeNull();
   });
 
-  it('empty-states-and-chapter-scope: Check recordings passes the chapters whose check is not current', async () => {
-    const { onCheck, user } = setup();
+  // The head's Check recordings is the shared button (#2833): it opens the one dialog with the chapters whose check is not current, off for the DAW's reason.
+  it('empty-states-and-chapter-scope: Check recordings opens the dialog with the chapters whose check is not current', async () => {
+    const open = vi.spyOn(checkRecordings, 'openCheckRecordings').mockReturnValue(() => {});
+    const { user } = setup();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Check recordings' }).getAttribute('aria-disabled')).toBeNull());
     await user.click(screen.getByRole('button', { name: 'Check recordings' }));
-    expect(onCheck).toHaveBeenCalledWith(['c2', 'c3']);
+    expect(open).toHaveBeenCalledWith(['c2', 'c3'], expect.anything());
   });
 
-  it('empty-states-and-chapter-scope: Check recordings is off without the DAW', async () => {
-    const { onCheck, user } = setup({ daw: { available: false, message: 'REAPER is not open.' } });
+  it('empty-states-and-chapter-scope: Check recordings is off without the DAW, saying why', async () => {
+    const open = vi.spyOn(checkRecordings, 'openCheckRecordings').mockReturnValue(() => {});
+    const { user } = setup({}, 'reaper-off');
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Check recordings' }).getAttribute('aria-disabled')).toBe('true'));
     const check = screen.getByRole('button', { name: 'Check recordings' });
-    expect(check.getAttribute('aria-disabled')).toBe('true');
-    // The reason is on the button's own description, so a screen reader that lands on it hears why, not just "dimmed".
-    expect(check.getAttribute('aria-describedby')).toBe(screen.getByText('REAPER is not open.').id);
     await user.click(check);
-    expect(onCheck).not.toHaveBeenCalled();
+    expect(open).not.toHaveBeenCalled();
+    await user.unhover(check);
+    await user.hover(check);
+    expect(await screen.findByText(DAW_SETUPS['reaper-off'].capabilities.review!.message!)).toBeTruthy();
   });
 
   it('the stepper’s changes are reported', async () => {

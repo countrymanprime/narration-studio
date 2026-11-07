@@ -63,7 +63,6 @@ Storybook title: `Primitives/Button`. Source: `src/components/primitives/Button.
 - `src/components/editing/range/fx/FxDialog.tsx`
 - `src/components/editing/range/replace/ReplaceDialog.tsx`
 - `src/components/editing/range/replace/ReplacementMark.tsx`
-- `src/components/editing/script/ScriptDoc.tsx`
 - `src/components/editing/stack/RetryBar.tsx`
 - `src/components/editing/stack/StackControls.tsx`
 - `src/components/editing/stack/StackDialog.tsx`
@@ -110,7 +109,6 @@ Storybook title: `Primitives/Button`. Source: `src/components/primitives/Button.
 - `src/components/primitives/ErrorBoundary.tsx`
 - `src/components/primitives/WorkDialog.tsx`
 - `src/components/production/ChapterTrackPanel.tsx`
-- `src/components/production/CreditsRowPanel.tsx`
 - `src/components/production/ImportChooseDialog.tsx`
 - `src/components/production/ImportReview.tsx`
 - `src/components/production/ManuscriptImport.tsx`
@@ -125,7 +123,6 @@ Storybook title: `Primitives/Button`. Source: `src/components/primitives/Button.
 - `src/components/proof/CompareRun.tsx`
 - `src/components/proof/NativeTakesPanel.tsx`
 - `src/components/proof/PreviewPanel.tsx`
-- `src/components/proof/ProofChapterPage.tsx`
 - `src/components/proof/RenderAssociationSection.tsx`
 - `src/components/proof/checkcard/CheckCard.tsx`
 - `src/components/proof/checkcard/FindingRow.tsx`
@@ -136,6 +133,7 @@ Storybook title: `Primitives/Button`. Source: `src/components/primitives/Button.
 - `src/components/proof/inspector/InspectorActions.tsx`
 - `src/components/proof/notes/NotesTable.tsx`
 - `src/components/proof/proofOptions/ProofOptions.tsx`
+- `src/components/recordingcheck/CheckRecordingsButton.tsx`
 - `src/components/recordingcheck/CheckRecordingsDialog.tsx`
 - `src/components/recordingcheck/CheckResult.tsx`
 - `src/components/recordingcheck/RunningView.tsx`

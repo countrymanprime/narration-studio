@@ -201,7 +201,7 @@ describe('check-recordings-opens-from-pickups', () => {
     const user = userEvent.setup();
     const head = await screen.findByRole('heading', { name: 'Pickups' });
     await user.click(within(head.closest('section') ?? document.body).getByRole('button', { name: /Check recordings/ }));
-    expect(open).toHaveBeenCalledWith(['c2']);
+    expect(open).toHaveBeenCalledWith(['c2'], expect.anything());
   });
 });
 

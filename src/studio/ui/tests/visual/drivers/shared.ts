@@ -342,7 +342,7 @@ export async function openRecordingCheck(page: Page, chapter: string, seed?: str
     await settlePage(page);
   }
   await productionLoaded(page);
-  await rowMenu(page, chapter, 'Check recordings…');
+  await rowMenu(page, chapter, 'Check recordings');
   // Check recordings, the one recording check, with the row's chapter ticked once its chapters and options have loaded.
   const dialog = page.getByRole('dialog', { name: 'Check recordings' });
   await dialog.getByRole('button', { name: 'Check 1 chapter' }).waitFor();

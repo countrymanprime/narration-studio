@@ -138,14 +138,14 @@ type TableProps = {
   onStatus: (chapterId: string, status: ChapterStatus) => void;
   /** The chapter an action just changed: its row is highlighted once (changeHighlight.ts). */
   justChanged?: string | null;
-  /** Opens a chapter's recording check, offered by its readiness panel when nothing has checked the recording yet. */
-  onCheckRecording?: (chapterId: string) => void;
+  /** Its readiness panel offers the chapter's recording check when nothing has checked the recording yet. */
+  offerCheck?: boolean;
 };
 
 type BodyItem = { gap: number; key: string } | { row: PipelineRow; index: number };
 
 /** Every chapter and where it stands in each stage (the mock's PipelineTable). One format for every stage: a tick when done, the percent when under way, a dash when not started. */
-export function PipelineTable({ rows, recommendations, onGo, notify, onStatus, justChanged = null, onCheckRecording }: TableProps) {
+export function PipelineTable({ rows, recommendations, onGo, notify, onStatus, justChanged = null, offerCheck }: TableProps) {
   // A long book draws the rows in view and a margin (rowWindow.ts); the row with focus stays drawn so the keyboard keeps its place.
   const [focusedId, setFocusedId] = useState<string>();
   const focusedIndex = focusedId ? rows.findIndex((row) => row.id === focusedId) : -1;
@@ -241,12 +241,7 @@ export function PipelineTable({ rows, recommendations, onGo, notify, onStatus, j
                         // rule or the next column (XPR2-12, XPR1-34).
                         <span className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-1">
                           <StageCell row={row} cell={row.cells[column]} onGo={onGo} beside />
-                          <ReadinessChip
-                            recommendation={recommendation}
-                            onOpen={() =>
-                              openReadiness({ chapterId: row.id, notify, onStatus, onCheckRecording: onCheckRecording && (() => onCheckRecording(row.id)) })
-                            }
-                          />
+                          <ReadinessChip recommendation={recommendation} onOpen={() => openReadiness({ chapterId: row.id, notify, onStatus, offerCheck })} />
                         </span>
                       ) : (
                         <StageCell row={row} cell={row.cells[column]} onGo={onGo} verdict={verdict} />

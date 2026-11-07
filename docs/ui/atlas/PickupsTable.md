@@ -11,7 +11,6 @@ Storybook title: `Pickups/PickupsTable`. Source: `src/components/pickups/list/Pi
 - Scoped To One Chapter
 - Nothing Queued
 - None In This Chapter
-- Daw Without Markers
 
 ## Used by
 
