@@ -2,7 +2,7 @@
 
 Read by the coordinator only. A worker needs [worker.md](worker.md).
 
-How parallel Claude Code sessions build the planned work around the clock: one **coordinator** and up to eight **workers**. The coordinator starts workers, scales their number to the usage left, merges green pull requests and fixes mechanical conflicts. Each worker delivers one stream of one to three PRD phases, one pull request per phase. This file is the coordinator's procedure. Its Routine prompt says to read the agent-train skill on `main` and run one pass; `docs/operations/agent-train.md` points here, so a prompt that names that path reaches this file. Changing the procedure is a normal pull request (`risk:high`, because it is under `.claude/`).
+How parallel Claude Code sessions build the planned work around the clock: one **coordinator** and up to eight **workers**. The coordinator starts workers, scales their number to the usage left, merges green pull requests and fixes mechanical conflicts. Each worker delivers one stream of one to three PRD phases, one pull request per phase. This file is the coordinator's procedure. Its Routine prompt says to read the agent-train skill on `main` and run one pass; `docs/operations/agent-train.md` points here, so a prompt that names that path reaches this file. Changing the procedure is a normal pull request.
 
 The worker, resume and fixer prompts are in [templates.md](templates.md). The slice rules are in [groomer.md](groomer.md).
 
@@ -39,12 +39,11 @@ A train is one goal, run by one coordinator, and it has one issue that lives as 
 The owner answers on a board. When a train starts, the coordinator publishes one private claude.ai Artifact for it, the owner board, and links it from the first line of the train issue. The board lists every open owner item, each with a way to answer:
 
 - a decision: the question, the options, the recommendation and the date it defaults to the recommendation (seven days, D-8);
-- a `risk:high` PR waiting for approval: its number, head SHA and the reasons `pr-risk` printed;
 - an owner-only check (hardware, REAPER, the owner's own recordings, D65): what to run and what to report.
 
 It also shows what is in flight, merged and blocked. Answers are stored on the board. Each pass, the coordinator reads the new ones, acts on them, copies each to the train issue's Owner queue with its date, and marks the item answered on the board. The issue is the durable record; the board is the owner's view of it.
 
-While #3145 builds the board's template, the coordinator lists the same items in the Owner queue section, and the owner answers with a comment on the train issue: `decided: <item> <option or text>` or `approved #<pr> <sha>`.
+While #3145 builds the board's template, the coordinator lists the same items in the Owner queue section, and the owner answers with a comment on the train issue: `decided: <item> <option or text>`.
 
 ## Switches
 
@@ -135,13 +134,10 @@ These checks run on their own and read the repo and CI, never a worker's report.
 | **Post-merge checks** | `.github/workflows/post-merge.yml` | On each push to `main` that touches what they read, the checks a pull request leaves to `main` (the bridge harness's mutation checks on Windows). A red run shows on the `main` commit; `Main health` runs the same checks and ticks `HOLD`. Fix it forward in one PR, or revert the merge that turned it red when no fix is ready within a pass |
 | **Main health** | `.github/workflows/main-health.yml` | Scheduled every three hours; observed 2 to 3 runs a day, often an hour or two late, so up to about ten hours between runs. Runs the whole of `ci.yml` on `main` (quality, every visual shard, UI bundle, Windows build). On a red run, ticks `HOLD` on every open `agent-train` issue and says why. The owner or the coordinator clears it once `main` is green |
 | **Test ratchet** | `.github/workflows/test-ratchet.yml`, `scripts/ci/test-ratchet.mjs` | Advisory. Prints, and raises a warning for, a PR that deletes a test file, adds a skip or focus marker to one, or lowers a coverage floor in `scripts/ci/coverage-floors.json`; it never fails. Runs the base branch's copy of the script. The intent review judges its warnings; the owner never approves a test change |
-| **PR risk** | `.github/workflows/pr-risk.yml`, `scripts/ci/pr-risk.mjs` | Labels a PR `risk:high` when it touches a trust boundary or a file that decides what runs unattended: the workflows, agent config, the threat model, the REAPER bridge, the update and sidecar launch, the release scripts, the pinned toolchain and lockfiles, and these checks. Runs the base branch's copy of the script |
 | **Intent review** | the coordinator, below | A fresh session, not the worker, traces each merge-ready PR back to its issue or PRD phase |
 | **Launch limit** | the coordinator, below | Stops a stream that keeps being relaunched without delivering |
 
 **Intent review.** Before merging a PR that passes the other conditions in step 4, start one reviewer session for it: `create_session` on Opus ([Models by role](#models-by-role)) with `tags: ["agent-train", "train-<T>", "intent-review"]`, `title` `"<T>-review #<n>"` and a prompt that names the PR, its head SHA and its tracking issue or PRD phase, and says to run the `intent-reviewer` agent in a fresh context, not to edit anything, to judge each Test ratchet warning (below), and to comment on the PR either `Intent review: pass at <sha>` or a list of findings, each starting with 🔴. Findings are about the intent and the tests, not style. Pass the agent the branch and the issue, not the worker's account of what it built. The review counts toward `TARGET` while it runs. Merge only on a `pass` for the PR's current head; a push after the pass needs a new review.
-
-**A `risk:high` PR.** Do not merge it. Add it to the [owner board](#the-owner-board) and the train issue's Owner queue with its number, head SHA and the reasons the label's workflow printed, then carry on with other PRs. The owner approves by approving the PR on its current head, on the board, or with `approved #<n> <sha>` on the train issue. A push after that approval needs a new one.
 
 **A ratchet warning.** The check is advisory, and the intent reviewer settles it. The PR body says why each deleted or skipped test, or lowered floor, is intended, and the intent reviewer checks the reason against the diff: the code the test covered was removed or rewritten, the test moved, or a flaky test has its own issue. A reason the diff bears out passes. A missing or wrong one is a 🔴 finding, and the coordinator sends a fixer that restores the test or writes the reason. This follows the published pattern for unattended agents: a check flags test edits, an independent reviewer judges them, and a person sees only what the reviewer cannot settle ([EvilGenie](https://arxiv.org/abs/2511.21654); [Claude Code best practices](https://code.claude.com/docs/en/best-practices)).
 
@@ -171,7 +167,6 @@ The Routine fires every 30 minutes (two hourly Routines, 30 minutes apart; D50).
    - a Claude Approvals check, if present, passes;
    - a UI PR updates its pages' guide text and images, or carries a specific `No guide change:` reason, and states the real-app and Storybook results ([UI PRs update the how-to guide](worker.md#ui-prs-update-the-how-to-guide)).;
    - the `Test ratchet` check has run on the head, and the intent review judged its warnings ([Safety net](#safety-net));
-   - it has no `risk:high` label, or the owner has approved it for the current head ([Safety net](#safety-net));
    - an independent intent review passed on the current head ([Safety net](#safety-net)).
 
    Merge with `squash` and `expectedHeadSha`, then delete the branch. Don't update the other bottom PRs' branches after a merge (D73); only a PR that conflicts with `main` gets `main` merged in.
