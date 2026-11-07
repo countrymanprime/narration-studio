@@ -23,4 +23,4 @@ Where the rules are:
 | The owner's standing rules for the train (D-numbers); the product rules are in `.claude/rules/product-rules.md` | `references/owner-rules.md` |
 | Slices and the groomer | `references/groomer.md` |
 
-`docs/operations/agent-train.md` points here. A Routine prompt that says to read the procedure reads `references/coordinator.md`. Changing the procedure is a normal pull request (`risk:high`, because it is under `.claude/`).
+`docs/operations/agent-train.md` points here. A Routine prompt that says to read the procedure reads `references/coordinator.md`. Changing the procedure is a normal pull request.
