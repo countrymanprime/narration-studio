@@ -15,8 +15,8 @@ READ FIRST: CLAUDE.md; the agent-train skill, .claude/skills/agent-train/referen
 "Lanes"); then each PRD in scope, in full.
 SCOPE: <PRD path> phases <N…>: <one line each>.
 SLICE: #<slice issue>, for a slice. The issue is the spec; read its Handoff comment first, and rewrite it at every checkpoint.
-REFERENCES: <each mock, design draft, guide page or doc the coordinator chose for this job, and what it is for; or "none":
-build to the issue, the PRD and the page's current guide>. There is no standing mock; read no other.
+REFERENCES: <each mock, design draft, guide page or doc the coordinator chose for this job, and what it is for>. The issue, the PRD and the
+page's current guide are always in scope.
 YOUR FILES: <the slice issue's owns, or for an older PRD the phases' rows from its Parallel-session table>. NEVER TOUCH: files owned by other lanes or listed for
 a running stream on the train issue. If you need another lane's change, comment on the train issue.
 MISSING TOOLS: you run as root and can install what a check needs (`apt-get install -y ...`, npm, uv, go). A hook or build that fails for a missing library, e.g. the GTK 4 / WebKitGTK 6.0 libs behind the pre-commit `check-go` hook, is fixed by installing it (`apt-get update && apt-get install -y libglib2.0-dev libgtk-4-dev libwebkitgtk-6.0-dev libsoup-3.0-dev librsvg2-dev patchelf`), never by skipping the check, `--no-verify`, or handing the commit to someone else. Report an install failure only with the package name and the exact error.
