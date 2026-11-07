@@ -29,3 +29,12 @@ Rules for one area live in `.claude/rules/` and load when Claude reads or edits 
 | `.claude/rules/definition-of-done.md` | What "done" requires: class-wide guards, an independent narrator walkthrough, a state matrix, what was not tested |
 
 A rule loads on a Read, Write or Edit of a matching file, not on a `grep` or a PR description. Read `ui-spec-and-screenshots.md` before writing a PR that changes what `src/studio/ui` draws (it updates the page's guide in `docs/guides/using-the-app/`, or the owner rejects it) and `wire-contracts.md` before changing anything that crosses a binding, event, sidecar output or file the host reads back.
+
+## Context economy
+
+Every turn resends the session so far, so large reads and noisy output cost money on every later turn.
+
+- Send broad searches ("who consumes X", "where is Y handled") to the `Explore` agent, and a long log to the `log-triage` agent. Keep the conclusion, not the file dumps.
+- Gate commands (`pnpm check`, `pnpm exec nx`, Vitest, `tsc`, ESLint, Playwright, `go test`, `go vet`, `uv run pytest`, optionally after one `cd <dir> &&`) run through `scripts/ci/log-digest.mjs` by a hook: you see the failures and the log path, not the full output. Add `# raw` to a command to see everything.
+- Read a file by range when you know the part you need.
+- When a session has run long on a task that is not done, load `handoff` and continue from its note.
