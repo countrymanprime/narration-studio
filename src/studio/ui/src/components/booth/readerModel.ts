@@ -223,6 +223,8 @@ export type Session = {
   heard: string;
   /** Every suspected flag the sidecar raised this session, once each, in arrival order; the view picks which to show. */
   flags: TeleprompterFlag[];
+  /** Verdicts heard before the flag they judge, by flag id, applied when that flag arrives. */
+  early?: Readonly<Record<number, 'confirmed' | 'cleared'>>;
 };
 
 export const initialSession: Session = { script: null, position: null, cursor: 0, skipped: [], heard: '', flags: [] };
@@ -247,8 +249,25 @@ export function reduceEvent(session: Session, event: TeleprompterEvent): Session
     case 'partial':
       return { ...session, heard: event.words.map((word) => word.word).join(' ') };
     // The same suspected problem raised again (a misread repeated the same way after going back) is one flag, not two.
-    case 'flag':
-      return session.flags.some((flag) => flag.id === event.id || sameFlag(flag, event)) ? session : { ...session, flags: [...session.flags, event] };
+    case 'flag': {
+      if (session.flags.some((flag) => flag.id === event.id || sameFlag(flag, event))) return session;
+      const early = session.early?.[event.id];
+      return { ...session, flags: [...session.flags, early ? { ...event, check: early } : event] };
+    }
+    // The confirmation pass settled a flag the live engine raised: remember the verdict on the flag. A problem is never hidden by a
+    // second verdict: "confirmed" wins over "cleared" whichever came first (a "cleared" greys the card and drops its dismiss button, so
+    // wrongly keeping it hides a real problem, while wrongly keeping "confirmed" costs the narrator one more listen), and a repeated
+    // verdict changes nothing. A verdict can be heard before its flag; it waits for the flag.
+    case 'flag_check': {
+      if (event.state !== 'confirmed' && event.state !== 'cleared') return session;
+      const known = session.flags.find((flag) => flag.id === event.id);
+      if (!known) {
+        const heard = session.early?.[event.id];
+        return heard === 'confirmed' || heard === event.state ? session : { ...session, early: { ...session.early, [event.id]: event.state } };
+      }
+      if (known.check === 'confirmed' || known.check === event.state) return session;
+      return { ...session, flags: session.flags.map((flag) => (flag.id === event.id ? { ...flag, check: event.state } : flag)) };
+    }
     default:
       return session;
   }

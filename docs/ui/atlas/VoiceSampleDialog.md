@@ -12,6 +12,8 @@ Storybook title: `Editing/VoiceSampleDialog`. Source: `src/components/editing/vo
 - Refused
 - Refused By The Host
 - With A Notice And Only Narration
+- Kept In The Daw
+- Kept In The Project And The Daw
 - Right To Left And Long Names
 
 ## Used by

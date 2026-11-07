@@ -50,9 +50,10 @@ type (
 	RegionsCreated = bridge.RegionsCreated
 	ActiveTakeSet  = bridge.ActiveTakeSet
 
-	VoiceSampleRegionKept = bridge.VoiceSampleRegionKept
-	VoiceSampleRegions    = bridge.VoiceSampleRegions
-	VoiceSampleRegion     = bridge.VoiceSampleRegion
+	VoiceSampleRegionKept    = bridge.VoiceSampleRegionKept
+	VoiceSampleRegionRemoved = bridge.VoiceSampleRegionRemoved
+	VoiceSampleRegions       = bridge.VoiceSampleRegions
+	VoiceSampleRegion        = bridge.VoiceSampleRegion
 
 	FXChains       = bridge.FXChains
 	FXChainApplied = bridge.FXChainApplied
@@ -428,6 +429,9 @@ type VoiceSampleRegionKeeper interface {
 	// MoveVoiceSampleRegion moves and renames region number, keeping its number and colour. A number that is not a voice sample
 	// region any more is a stale error (errors.Is ErrStale) and nothing changes.
 	MoveVoiceSampleRegion(ctx context.Context, number int, start, end float64, name string) (VoiceSampleRegionKept, error)
+	// DeleteVoiceSampleRegion removes region number in one undo point, only when it is a voice sample region. A number the project no
+	// longer has is answered "unchanged"; a region that is not a voice sample is a stale error and stays. It refuses while recording.
+	DeleteVoiceSampleRegion(ctx context.Context, number int) (VoiceSampleRegionRemoved, error)
 	// ReadVoiceSampleRegions lists the voice sample regions in the open project and the engine's change count. It changes nothing.
 	ReadVoiceSampleRegions(ctx context.Context) (VoiceSampleRegions, error)
 }

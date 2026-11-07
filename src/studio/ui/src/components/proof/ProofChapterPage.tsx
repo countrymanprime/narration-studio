@@ -1,5 +1,5 @@
 import { headingName } from '../../chapterHeading';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { EnginePanelLink } from '../engine/EnginePanelContext';
 import { useApi } from '../../api/ApiContext';
@@ -21,6 +21,7 @@ import { CompareRun } from './CompareRun';
 import { PreviewPanel } from './PreviewPanel';
 import { ProofingStagePanel } from './ProofingStagePanel';
 import { NativeTakesPanel } from './NativeTakesPanel';
+import { useChapterCompare } from './useChapterCompare';
 
 const CHECK_STATE_LABEL: Record<WorkspaceAlignmentResult['state'], string> = {
   current: 'Check current',
@@ -61,19 +62,9 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
   const [loadError, setLoadError] = useState('');
   // False until the chapters and track links have been read, so "no such chapter" is told apart from "still reading".
   const [read, setRead] = useState(false);
-  const [lastCompleted, setLastCompleted] = useState<TranscriptState>();
-  const [reviewingLast, setReviewingLast] = useState(false);
   const [reload, setReload] = useState(0);
   // Retry after a failed read: counted apart from `reload` (which only re-reads the check's state) so both reads run again.
   const [attempt, setAttempt] = useState(0);
-
-  // The last completed comparison, offered for review without running again (it needs no linked project file).
-  useEffect(() => {
-    void api
-      .transcriptLastCompleted()
-      .then(setLastCompleted)
-      .catch(() => {});
-  }, [api]);
 
   // The check's state for the header; read again after Check recordings closes.
   useEffect(() => {
@@ -113,13 +104,8 @@ function ChapterView({ chapterId, notify, transcript, dawFileLinked, goToManuscr
     setAttempt((n) => n + 1);
   };
 
-  // How many of the compare run's results are this chapter's: the live run's once it succeeds, or the last completed one while the
-  // narrator reviews it. A run covers the selected REAPER audio, so rows for other chapters are left out.
-  const compareResults = reviewingLast ? lastCompleted : transcript.phase === 'success' ? transcript : undefined;
-  const foundHere = useMemo(
-    () => (chapter ? (compareResults?.rows ?? []).filter((row) => row.chapter === chapter.title).length : 0),
-    [compareResults?.rows, chapter],
-  );
+  // The last completed comparison and how many results are this chapter's: the same read the Proof page's Compare panel makes.
+  const { lastCompleted, reviewingLast, setReviewingLast, foundHere } = useChapterCompare(chapter, transcript);
 
   // One frame for every state: the breadcrumb and the title row at the page gutter, full width like Proof (alignment audit XPC-12, XPC-17), so
   // the title does not move between loading, failed and loaded.

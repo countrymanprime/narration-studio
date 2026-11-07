@@ -109,7 +109,7 @@ The owner's deferred and rejected list stands (`studio-next/research/repo-compar
 | Rulings with a test in the real app | 100% of agreed rulings in `repo-compare-decisions.md` at cutover | The ruling index in Cutover, checked by a test that fails on an unmapped row |
 | Provider interfaces with a shared contract suite run against mock and real | 100% of the ports in the provider map | `describeProviderContract` (see Domain, State and Wire Contracts) |
 | Raw `button`, `input`, `select`, `textarea`, `table` in `src/studio/ui/src` beyond reasoned ceilings | Ceilings fall to zero per migrated page | `src/studio/ui/src/rawNatives.test.ts` |
-| `main` stays shippable | `Build (Windows)` and `ui-dist` green on every merged slice; no slice reverts | Merge log on #509 |
+| `main` stays shippable | `Build (Windows)` and `CI passed` green on every merged slice; no slice reverts | Merge log on #509 |
 | Visual evidence | Every UI slice PR updates its page's how-to guide, text and screenshots, and states the real-app and Storybook results | The coordinator's merge check and the `Guide impact` step of `Docs / Docs checks` ([UI PRs update the how-to guide](../../CONTRIBUTING.md#ui-prs-update-the-how-to-guide)) |
 | Continuous delivery | At least `TARGET` workers busy whenever a ready slice exists; no ready slice waits more than one coordinator pass | Status report in [Agent Delivery](../../.claude/skills/agent-train/references/studio-next-delivery.md) |
 | Owner questions waiting | 0 from the rulings of 2026-10-11; a new question is logged in the decisions register, and a non-ADR one takes its default after 7 days | The decisions register |

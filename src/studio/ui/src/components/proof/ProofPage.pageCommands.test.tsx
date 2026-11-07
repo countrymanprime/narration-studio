@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import type { DawCapabilities } from '../../api/contracts/daw';
 import { createMockApi } from '../../api/mockApi';
+import { WIRE_TRANSCRIPT } from '../../api/mockFixtures';
 import { headingName } from '../../chapterHeading';
 import { COMMAND_CATALOG } from '../../input/commands.catalog';
 import { defaultKeymap } from '../../input/keymap';
@@ -49,7 +50,10 @@ function renderPage({ api = createMockApi(), at = '/proof' }: { api?: NarrationA
           <CommandRouter>
             <TooltipProvider>
               <Routes>
-                <Route path="/proof" element={<ProofPage hasManuscript projectFolder="/p" {...handlers} />} />
+                <Route
+                  path="/proof"
+                  element={<ProofPage hasManuscript projectFolder="/p" transcript={WIRE_TRANSCRIPT} notify={() => {}} dawFileLinked {...handlers} />}
+                />
               </Routes>
               <Where />
               <OverlayHost />

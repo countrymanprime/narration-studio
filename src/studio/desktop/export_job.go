@@ -375,8 +375,11 @@ func (h *Host) startExport(req ExportRequest) (ExportJob, error) {
 	if encodeFile == nil {
 		encodeFile = encodeFor(format)
 	}
+	// The snapshot is taken before the job starts: a fast encode could finish before a snapshot taken after `go`, and the
+	// binding would report a job that is already over instead of the one it started (#3076).
+	started := job.snapshot()
 	go h.runExport(ctx, job, items, plan.regions, svc.config.projectFolder, profile, req.Master, row, approval, format, encodeFile)
-	return job.snapshot(), nil
+	return started, nil
 }
 
 // encodeFor is the real encodeFileFunc: the first registered Encoder row that writes format.

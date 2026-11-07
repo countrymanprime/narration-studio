@@ -181,6 +181,7 @@ export function suspectedFrom(
         scriptEnd: flag.end,
         script: words.slice(wordStart, wordEnd).join(' '),
         heard: flag.heard,
+        ...(flag.check ? { check: flag.check } : {}),
       },
     ];
   });

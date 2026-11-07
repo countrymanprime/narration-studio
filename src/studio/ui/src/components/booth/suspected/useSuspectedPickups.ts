@@ -5,7 +5,7 @@ import { usePort } from '../../../ports/usePort';
 import { decideLinked, restoreLinked, type LinkedChange } from '../../../studio/commands/reviewFinding';
 import { useJournalOrOwn } from '../../../studio/StudioProvider';
 import type { Result } from '../../../studio/journal/createJournal';
-import { suspectedLines, toFlagSave, type SuspectedFlag } from './suspectedLinesModel';
+import { keptLines, suspectedLines, toFlagSave, type SuspectedFlag } from './suspectedLinesModel';
 
 /**
  * A take that stopped: the paragraphs it read. `quiet`: the narrator is leaving, no toast. `saidSaved`: another toast already said the take is
@@ -40,7 +40,7 @@ export function useSuspectedPickups({ chapterId, flags }: { chapterId: string; f
   const takeStopped = useCallback(
     async ({ paragraphIds, quiet = false, saidSaved = false, undoTake, entry }: SuspectedTake): Promise<number> => {
       const { chapterId: chapter, flags: all } = latest.current;
-      const read = suspectedLines(all, paragraphIds);
+      const read = keptLines(suspectedLines(all, paragraphIds));
       if (read.length === 0) return 0;
       let changed: LinkedChange[] = [];
       let journalEntry = -1;

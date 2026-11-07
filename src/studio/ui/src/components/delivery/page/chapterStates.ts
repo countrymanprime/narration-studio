@@ -35,7 +35,7 @@ export function firstFailure(chapters: readonly Listed[], files: readonly Measur
 }
 
 /** Why Build is off on a book none of whose files is measured: said where the first unready chapter would be (alignment audit R4DL-2). */
-export const NOTHING_MEASURED = 'Nothing is measured yet. Measure the files in Master & QC.';
+export const NOTHING_MEASURED = 'Nothing is measured yet. Use Check files… above.';
 
 /**
  * When no chapter fails but some are not ready, the first of them in the rows' order and why: "Chapter 8: no measured file yet." (no file

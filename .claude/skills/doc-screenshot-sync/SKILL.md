@@ -29,14 +29,16 @@ Any change to what a page draws or how it is used, after `visual-catalog-sync` i
    `<page>` is a guide page (`booth`, `master-and-qc`) or a state-catalog page (`storybible`). It runs the targeted
    real-app run in the light theme, converts each listed state to WebP and replaces the file in place; an image whose
    pixels did not change is left alone. Open every image it updated or added and check it shows what its caption says.
-3. Re-read the guide text around each changed image. A correct picture beside stale text is still a stale guide.
+3. Re-read the guide text around each changed image. A correct picture beside stale text is still a stale guide. Then run the [review checklist](../docs-style/references/review-checklist.md) on each page you changed, and fix what fails or list it in the PR body.
 4. A new interaction or state: add a manifest entry (`page`, `state`, `viewport`, `docName`, `caption`; the state must
    be in `STATE_CATALOG`), embed `../../images/ui/<docName>.webp` on its guide page with a short how-to step, and run
-   step 2.
+   step 2. To show an existing image on a second page too (a tutorial step that a reference page already pictures), embed
+   it there and add that page's file name to the entry's `alsoOn` (`"alsoOn": ["getting-started.md"]`) instead of
+   capturing it twice. Naming either page to the command regenerates it.
 5. A removed state or interaction: delete its manifest entry, its image and its text. The command lists images the
    manifest no longer names.
 6. Run `pnpm --dir src/studio/ui exec vitest run src/docScreenshots.test.ts src/docsGuide.test.ts`: every entry must be a
-   catalogued state and embedded on exactly one page.
+   catalogued state and embedded on one page of its own, plus any page its `alsoOn` names.
 7. Link the guide diff from the PR description, or write `No guide change: <specific reason>` there; the
    `Guide impact` step of `Docs / Docs checks` (`scripts/ci/guide-impact.mjs`) fails a page change with neither.
 

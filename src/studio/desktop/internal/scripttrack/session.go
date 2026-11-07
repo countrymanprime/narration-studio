@@ -128,6 +128,7 @@ type Position struct {
 // was read from, where those words were located (in tracker positions, see
 // Tracker.OriginalIndex) and each word's Times (nil where the event had none).
 type SegmentReading struct {
+	Segment         float64
 	Heard, HeardRaw []string
 	Anchor          int
 	Location        Location
@@ -280,7 +281,7 @@ func (t *Tracker) onSegmentEnd() {
 	}
 	if t.confirmedAt != nil {
 		t.closed = &SegmentReading{
-			Heard: t.confirmed, HeardRaw: t.confirmedRaw, Anchor: t.anchor, Location: *t.confirmedAt, HeardTimes: t.confirmedTimes,
+			Segment: t.segment, Heard: t.confirmed, HeardRaw: t.confirmedRaw, Anchor: t.anchor, Location: *t.confirmedAt, HeardTimes: t.confirmedTimes,
 		}
 	}
 	t.anchor = t.committed

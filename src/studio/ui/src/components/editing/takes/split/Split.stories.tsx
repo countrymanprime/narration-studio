@@ -28,7 +28,7 @@ doc.paras[1].items.slice(0, 2).forEach((i) => {
 function ReadTwiceCard() {
   return (
     <div className="bg-[var(--surface)] p-3 text-[var(--text)]">
-      <FlagCard doc={doc} dp={doc.paras[1]} flag="dup:p-2" hear={null} accept={fn()} onClose={fn()} />
+      <FlagCard doc={doc} chapterId="c1" dp={doc.paras[1]} flag="dup:p-2" hear={null} accept={fn()} onClose={fn()} />
     </div>
   );
 }

@@ -9,7 +9,7 @@ import (
 )
 
 // A character voice sample kept in the project as a REAPER region (narration_voice_sample_region.lua, phase 6 of
-// docs/prds/character-voice-samples.prd.md). The host names the region; the script adds it, moves it and lists it.
+// docs/prds/character-voice-samples.prd.md). The host names the region; the script adds it, moves it, removes it and lists it.
 
 // VoiceSampleRegionPrefix starts the name of every region this app keeps as a voice sample. The script only moves a region
 // whose name starts with it, and the read-back lists only such regions. It is equal to SAMPLE_PREFIX in the script.
@@ -24,6 +24,13 @@ var ErrBadVoiceSampleRegion = errors.New("the voice sample range or name is not 
 // VoiceSampleRegionKept is what keep_voice_sample did: the region's number in the project and one of "created", "existing",
 // "moved" or "unchanged".
 type VoiceSampleRegionKept struct {
+	Number  int
+	Outcome string
+}
+
+// VoiceSampleRegionRemoved is what delete_voice_sample_region did: the region's number and "deleted", or "unchanged" when the
+// project no longer had a region with that number.
+type VoiceSampleRegionRemoved struct {
 	Number  int
 	Outcome string
 }
@@ -80,6 +87,26 @@ func (a *Actions) MoveVoiceSampleRegion(ctx context.Context, number int, start, 
 		return VoiceSampleRegionKept{}, ErrBadVoiceSampleRegion
 	}
 	return a.keepVoiceSample(ctx, append([]string{strconv.Itoa(number)}, args...))
+}
+
+// DeleteVoiceSampleRegion removes region number, in one undo point, only when its name starts with VoiceSampleRegionPrefix. It is
+// idempotent: a number the project no longer has is answered "unchanged" and nothing is removed. A region that is not a voice sample
+// (a chapter region that shares the number) is a *VoiceSampleRegionStaleError and stays. It refuses while REAPER records (REAPER's
+// own sentence, as an error).
+func (a *Actions) DeleteVoiceSampleRegion(ctx context.Context, number int) (VoiceSampleRegionRemoved, error) {
+	if number < 1 {
+		return VoiceSampleRegionRemoved{}, ErrBadVoiceSampleRegion
+	}
+	events, err := a.request(ctx, "delete_voice_sample_region", []string{"VOICE_SAMPLE_REMOVED", "VOICE_SAMPLE_STALE"}, strconv.Itoa(number))
+	if err != nil {
+		return VoiceSampleRegionRemoved{}, err
+	}
+	last := events[len(events)-1]
+	if last.Tag == "VOICE_SAMPLE_STALE" {
+		stale, _ := strconv.Atoi(last.Fields[2])
+		return VoiceSampleRegionRemoved{}, &VoiceSampleRegionStaleError{Number: stale}
+	}
+	return VoiceSampleRegionRemoved{Number: int(numberAt(last.Fields, 2)), Outcome: last.Fields[3]}, nil
 }
 
 func (a *Actions) keepVoiceSample(ctx context.Context, args []string) (VoiceSampleRegionKept, error) {

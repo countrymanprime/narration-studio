@@ -37,7 +37,7 @@ const SIZE_CLASSES: Record<ButtonSize, string> = {
 // secondary button into two washed-out families, and in dark left a ghost looking live (alignment audit R3EN2-14, R3MS-5, R4SE2-10, R3SB2-17); the mock's `.btn[disabled]` is `opacity: .5`. `inverse`, on an ink surface, keeps the 55% dim.
 // A pending button is `aria-disabled` too but keeps its own busy look (60%, `aria-busy`).
 const CHROME =
-  "inline-flex items-center justify-center gap-1.5 rounded-[var(--radius-button)] border px-3 py-1 font-['Barlow_Condensed',sans-serif] text-[length:var(--font-size-sm)] leading-none font-semibold tracking-[var(--tracking-button)] uppercase motion-ok:transition disabled:pointer-events-none aria-busy:pointer-events-none aria-busy:opacity-60 not-aria-busy:aria-disabled:cursor-not-allowed";
+  "inline-flex select-none items-center justify-center gap-1.5 rounded-[var(--radius-button)] border px-3 py-1 font-['Barlow_Condensed',sans-serif] text-[length:var(--font-size-sm)] leading-none font-semibold tracking-[var(--tracking-button)] uppercase motion-ok:transition disabled:pointer-events-none aria-busy:pointer-events-none aria-busy:opacity-60 not-aria-busy:aria-disabled:cursor-not-allowed";
 const DISABLED_LOOK =
   'disabled:bg-[var(--surface-2)] disabled:text-[var(--text-muted)] not-aria-busy:aria-disabled:bg-[var(--surface-2)] not-aria-busy:aria-disabled:text-[var(--text-muted)]';
 const DISABLED_DIM = 'disabled:opacity-55 not-aria-busy:aria-disabled:opacity-55';

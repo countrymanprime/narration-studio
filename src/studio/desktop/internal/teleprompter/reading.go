@@ -3,6 +3,7 @@ package teleprompter
 import (
 	"crypto/sha256"
 	"desktop/internal/brand"
+	"desktop/internal/persist"
 	"desktop/internal/recordedthrough"
 	"encoding/hex"
 	"encoding/json"
@@ -120,12 +121,8 @@ func WriteReadingFrom(project, chapterID string, from, read, tokens int, status 
 		return fmt.Errorf("could not create the teleprompter folder: %w", err)
 	}
 	path := filepath.Join(dir, readingFileName(chapterID))
-	temp := path + ".tmp"
-	if err := os.WriteFile(temp, bytes, 0o600); err != nil {
+	if err := persist.WriteFile(path, bytes, 0o600); err != nil {
 		return fmt.Errorf("could not write the last reading position: %w", err)
-	}
-	if err := os.Rename(temp, path); err != nil {
-		return fmt.Errorf("could not activate the last reading position: %w", err)
 	}
 	return nil
 }

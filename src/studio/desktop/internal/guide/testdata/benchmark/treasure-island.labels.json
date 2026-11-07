@@ -1,0 +1,487 @@
+{
+ "book": "Treasure Island, Robert Louis Stevenson, 1883 (Project Gutenberg #120, GITenberg mirror), chapters 1 to 18 (parts one to three)",
+ "note": "The held-out book: labelled from the text before the confidence rule was ever run on it, and never used to tune the rule. Required: a named character or place capitalised at least 3 times in the text. Minor: a real one with fewer mentions; it counts as correct when shown and is not missed when absent. Other: a real named thing that is neither (a ship, a song): wrong if shown as a character or place. After the first run, the name forms the first labelling had left out (Cap'n Smollett, Alexander Smollett, David Livesey and the like) and minor names it had not listed (Mrs. Crossley, Execution Dock, Old Bailey) were added; which names are required did not change.",
+ "characters": [
+  {
+   "name": "Jim Hawkins",
+   "aliases": [
+    "Jim",
+    "Hawkins",
+    "Master Hawkins",
+    "Mr. Hawkins",
+    "James Hawkins"
+   ],
+   "required": true
+  },
+  {
+   "name": "Long John Silver",
+   "aliases": [
+    "Silver",
+    "Long John",
+    "John Silver",
+    "Barbecue",
+    "John",
+    "Mr. Silver"
+   ],
+   "required": true
+  },
+  {
+   "name": "Captain Smollett",
+   "aliases": [
+    "Smollett",
+    "Captain",
+    "Mr. Smollett",
+    "Cap'n Smollett",
+    "Alexander Smollett"
+   ],
+   "required": true
+  },
+  {
+   "name": "Dr. Livesey",
+   "aliases": [
+    "Livesey",
+    "Doctor Livesey",
+    "Doctor",
+    "Dr Livesey",
+    "David Livesey"
+   ],
+   "required": true
+  },
+  {
+   "name": "Squire Trelawney",
+   "aliases": [
+    "Trelawney",
+    "John Trelawney",
+    "Squire",
+    "Mr. Trelawney",
+    "Cap'n Trelawney"
+   ],
+   "required": true
+  },
+  {
+   "name": "Billy Bones",
+   "aliases": [
+    "Bones",
+    "Bill",
+    "Billy",
+    "Captain Bones",
+    "Master Billy Bones"
+   ],
+   "required": true
+  },
+  {
+   "name": "Black Dog",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Pew",
+   "aliases": [
+    "Blind Pew",
+    "Master Pew"
+   ],
+   "required": true
+  },
+  {
+   "name": "Ben Gunn",
+   "aliases": [
+    "Gunn",
+    "Benjamin Gunn",
+    "Ben"
+   ],
+   "required": true
+  },
+  {
+   "name": "Israel Hands",
+   "aliases": [
+    "Hands",
+    "Israel"
+   ],
+   "required": true
+  },
+  {
+   "name": "Tom Morgan",
+   "aliases": [
+    "Morgan"
+   ],
+   "required": true
+  },
+  {
+   "name": "Abraham Gray",
+   "aliases": [
+    "Gray",
+    "Abraham"
+   ],
+   "required": true
+  },
+  {
+   "name": "Job Anderson",
+   "aliases": [
+    "Anderson",
+    "Job"
+   ],
+   "required": true
+  },
+  {
+   "name": "Tom Redruth",
+   "aliases": [
+    "Redruth",
+    "Tom",
+    "Thomas Redruth"
+   ],
+   "required": true
+  },
+  {
+   "name": "Hunter",
+   "aliases": [
+    "John Hunter"
+   ],
+   "required": true
+  },
+  {
+   "name": "Joyce",
+   "aliases": [
+    "Richard Joyce"
+   ],
+   "required": true
+  },
+  {
+   "name": "Dick",
+   "aliases": [
+    "Dick Johnson"
+   ],
+   "required": true
+  },
+  {
+   "name": "Mr. Arrow",
+   "aliases": [
+    "Arrow"
+   ],
+   "required": true
+  },
+  {
+   "name": "Captain Flint",
+   "aliases": [
+    "Flint",
+    "Cap'n Flint"
+   ],
+   "required": true
+  },
+  {
+   "name": "Blandly",
+   "aliases": [
+    "Mr. Blandly"
+   ],
+   "required": true
+  },
+  {
+   "name": "Mr. Dance",
+   "aliases": [
+    "Dance",
+    "Supervisor Dance"
+   ],
+   "required": true
+  },
+  {
+   "name": "Dogger",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Alan",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Mrs. Hawkins",
+   "aliases": [
+    "Mother"
+   ],
+   "required": false
+  },
+  {
+   "name": "George Merry",
+   "aliases": [
+    "George"
+   ],
+   "required": false
+  },
+  {
+   "name": "Jack",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Dirk",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Allardyce",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "O'Brien",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Darby M'Graw",
+   "aliases": [
+    "Darby"
+   ],
+   "required": false
+  },
+  {
+   "name": "Captain Kidd",
+   "aliases": [
+    "Kidd"
+   ],
+   "required": false
+  },
+  {
+   "name": "Captain England",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Christian",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Mrs. Crossley",
+   "aliases": [
+    "Crossley"
+   ],
+   "required": false
+  },
+  {
+   "name": "King George",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Davis",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Harry",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Noah",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Roberts",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Hawke",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Cap'n England",
+   "aliases": [],
+   "required": false
+  }
+ ],
+ "places": [
+  {
+   "name": "Admiral Benbow",
+   "aliases": [
+    "Benbow",
+    "Admiral Benbow inn",
+    "the Admiral Benbow"
+   ],
+   "required": true
+  },
+  {
+   "name": "Bristol",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Treasure Island",
+   "aliases": [
+    "Island"
+   ],
+   "required": true
+  },
+  {
+   "name": "Skeleton Island",
+   "aliases": [
+    "Skeleton"
+   ],
+   "required": true
+  },
+  {
+   "name": "Spy-glass",
+   "aliases": [
+    "Spy-glass Hill",
+    "Spy-glass inn",
+    "Spy",
+    "Spy-glass tavern"
+   ],
+   "required": true
+  },
+  {
+   "name": "England",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "London",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Kitt's Hole",
+   "aliases": [
+    "Kitt"
+   ],
+   "required": true
+  },
+  {
+   "name": "Savannah",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Offe Caraccas",
+   "aliases": [
+    "Caraccas"
+   ],
+   "required": false
+  },
+  {
+   "name": "Corso Castle",
+   "aliases": [
+    "Corso"
+   ],
+   "required": false
+  },
+  {
+   "name": "North Inlet",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Black Hill Cove",
+   "aliases": [
+    "Black Hill"
+   ],
+   "required": false
+  },
+  {
+   "name": "Captain Kidd's Anchorage",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Spanish Main",
+   "aliases": [
+    "Main"
+   ],
+   "required": false
+  },
+  {
+   "name": "Malabar",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Madagascar",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Portobello",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Goa",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Surinam",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Providence",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Rum Cove",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Haulbowline Head",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Foremast Hill",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Mizzen-mast Hill",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Execution Dock",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Old Bailey",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Bow Street",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Trinidad",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Spain",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Isle of Treasure",
+   "aliases": [],
+   "required": false
+  }
+ ],
+ "other": [
+  "Hispaniola",
+  "Walrus",
+  "Royal George",
+  "Lillibullero",
+  "Bible",
+  "Narrative Continued",
+  "Spanish",
+  "Union Jack",
+  "Jolly Roger"
+ ]
+}

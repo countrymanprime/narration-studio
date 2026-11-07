@@ -9,7 +9,7 @@ import { BoothFooter } from '../components/booth/frame/BoothFooter';
 import { useBoothRecording } from '../components/booth/useBoothRecording';
 import { ProjectFx } from '../components/editing/effects/ProjectFx';
 import { useProjectFx } from '../components/editing/effects/useProjectFx';
-import { useDawStatus } from '../components/editing/page/useDawStatus';
+import { useDawStatus } from '../components/connection/useDawStatus';
 import { useDawCapabilityReport } from '../components/settings/CapabilitySection';
 import { DAW_SETUPS } from '../fixtures/daw';
 import { defaultKeymap } from '../input/keymap';

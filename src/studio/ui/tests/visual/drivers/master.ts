@@ -291,62 +291,6 @@ export const masterDrivers: Record<string, Driver> = {
     await panel.getByRole('button', { name: 'Master & encode' }).waitFor();
     await scrollToTop(page, panel);
   },
-  'multi-export-empty': async (page) => {
-    await openMaster(page);
-    const panel = page.getByRole('region', { name: 'Multi-platform export' });
-    await panel.waitFor();
-    await scrollToTop(page, panel);
-  },
-  'multi-export-selected': async (page) => {
-    await openMaster(page, '?mockDeliveryProfile=custom');
-    await pickFilesToMaster(page);
-    await page.getByRole('button', { name: 'Master & encode' }).click();
-    await page
-      .getByRole('region', { name: 'Master to spec' })
-      .getByText(/^Prepared 5 files\./)
-      .waitFor({ timeout: 15_000 });
-    const dismiss = page.getByRole('button', { name: 'Dismiss message' });
-    while ((await dismiss.count()) > 0) await dismiss.first().click();
-    const panel = page.getByRole('region', { name: 'Multi-platform export' });
-    await panel.getByRole('checkbox', { name: 'ACX', exact: true }).click();
-    await panel.getByRole('button', { name: 'Build 1 package' }).waitFor();
-    await scrollToTop(page, panel);
-  },
-  'multi-export-running': async (page) => {
-    await openMaster(page, '?mockPackageMulti=running');
-    await pickFilesToMaster(page);
-    await page.getByRole('button', { name: 'Master & encode' }).click();
-    await page
-      .getByRole('region', { name: 'Master to spec' })
-      .getByText(/^Prepared 5 files\./)
-      .waitFor({ timeout: 15_000 });
-    const dismiss = page.getByRole('button', { name: 'Dismiss message' });
-    while ((await dismiss.count()) > 0) await dismiss.first().click();
-    const panel = page.getByRole('region', { name: 'Multi-platform export' });
-    await panel.getByRole('checkbox', { name: 'ACX', exact: true }).click();
-    await panel.getByRole('button', { name: 'Build 1 package' }).click();
-    await page.getByRole('progressbar', { name: 'Building packages' }).waitFor();
-    await scrollToTop(page, panel);
-  },
-  'multi-export-results': async (page) => {
-    await openMaster(page, '?mockDeliveryProfile=custom');
-    await pickFilesToMaster(page);
-    await page.getByRole('button', { name: 'Master & encode' }).click();
-    await page
-      .getByRole('region', { name: 'Master to spec' })
-      .getByText(/^Prepared 5 files\./)
-      .waitFor({ timeout: 15_000 });
-    const dismiss = page.getByRole('button', { name: 'Dismiss message' });
-    while ((await dismiss.count()) > 0) await dismiss.first().click();
-    const panel = page.getByRole('region', { name: 'Multi-platform export' });
-    await panel.getByRole('checkbox', { name: 'ACX', exact: true }).click();
-    await panel.getByRole('checkbox', { name: /^My ACX/ }).click();
-    await panel.getByRole('button', { name: /^Build 2 packages/ }).click();
-    // Each platform's result sits under its own checkbox; the job's own line says the build ended.
-    await panel.getByText(/^Built 2 packages/).waitFor();
-    while ((await dismiss.count()) > 0) await dismiss.first().click();
-    await scrollToTop(page, panel);
-  },
   'no-manuscript': async (page) => {
     await openWithoutManuscript(page, 'Master & QC');
     await page.getByRole('button', { name: 'Import manuscript' }).waitFor();

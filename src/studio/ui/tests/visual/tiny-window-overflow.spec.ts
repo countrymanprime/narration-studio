@@ -116,6 +116,56 @@ for (const theme of ['light', 'dark'] as const) {
   });
 }
 
+// The side panel is a drawer in a small window. At 320x300 the top bar, Record and the key hints left it 32 px between them, so the Suspected
+// lines it holds could not be read and its edge sat on Record. It keeps room to read (the Levels popup's 110 px), above Record.
+for (const theme of ['light', 'dark'] as const) {
+  test(`Booth: the side panel has room to read and stays above Record at 320x300 (${theme})`, async ({ page }) => {
+    await open(page, '/booth?mockTeleprompter=checked', theme);
+    await page.getByRole('button', { name: /side panel/i }).click();
+    const panel = page.locator('#booth-side');
+    await panel.waitFor();
+    await expect.poll(async () => (await panel.boundingBox())!.height, { message: 'the side panel keeps room to read' }).toBeGreaterThanOrEqual(110);
+    const box = (await panel.boundingBox())!;
+    const record = (await page.getByRole('button', { name: 'Record', exact: true }).boundingBox())!;
+    expect(box.y + box.height, 'the side panel stays above Record').toBeLessThanOrEqual(record.y + 1);
+  });
+}
+
+// The same room at every height and narrow width a drawer window has, not only at 300: the key hints and the progress line wrap to three rows at
+// 320 px, so a threshold set for the smallest window left the panel at 58 px one pixel above it (the breaker's cliff at 417).
+for (const theme of ['light', 'dark'] as const) {
+  test(`Booth: the side panel keeps room to read at every height from 300 to 520 across the narrow widths (${theme})`, async ({ page }) => {
+    await open(page, '/booth?mockTeleprompter=checked', theme);
+    await page.getByRole('button', { name: /side panel/i }).click();
+    const panel = page.locator('#booth-side');
+    await panel.waitFor();
+    for (const width of [320, 360, 481, 600]) {
+      for (const height of [300, 417, 440, 480, 481, 520]) {
+        await page.setViewportSize({ width, height });
+        await expect
+          .poll(async () => (await panel.boundingBox())!.height, { message: `the side panel keeps room to read at ${width}x${height}` })
+          .toBeGreaterThanOrEqual(110);
+      }
+    }
+  });
+
+  // While a take runs the REC badge adds a row to the top bar, so the smallest window has less: still room for the heading and a card, above Stop.
+  test(`Booth: the side panel keeps room above Stop while a take runs at 320x300 (${theme})`, async ({ page }) => {
+    await open(page, '/booth?mockTeleprompter=checked', theme);
+    await page.keyboard.press('Space');
+    const stop = page.getByRole('button', { name: /^Stop$/ });
+    await stop.waitFor();
+    await page.getByRole('button', { name: /side panel/i }).click();
+    const panel = page.locator('#booth-side');
+    await panel.waitFor();
+    await expect
+      .poll(async () => (await panel.boundingBox())!.height, { message: 'the side panel keeps room to read during a take' })
+      .toBeGreaterThanOrEqual(80);
+    const box = (await panel.boundingBox())!;
+    expect(box.y + box.height, 'the side panel stays above Stop').toBeLessThanOrEqual((await stop.boundingBox())!.y + 1);
+  });
+}
+
 // The footer's controls (Record, the timer, Levels, Cold read) wrap onto a second line rather than leaving the window (found by the QA pass: Cold read was cut off at 320 px).
 for (const theme of ['light', 'dark'] as const) {
   for (const query of ['', '?mockEngine=builtin']) {
@@ -135,5 +185,80 @@ for (const theme of ['light', 'dark'] as const) {
       });
       expect(out).toEqual([]);
     });
+  }
+}
+
+// Issue 3175: a long chapter title ("The Rabbit Sends in a Little Bill") took the whole chapter bar at 360 px and below and pushed the Next
+// chapter button off the right edge. The picker's label ellipsizes first; Previous, the picker and Next stay whole inside the bar.
+for (const theme of ['light', 'dark'] as const) {
+  for (const size of [
+    { width: 320, height: 300 },
+    { width: 360, height: 500 },
+  ]) {
+    for (const taking of [false, true]) {
+      test(`Booth: a long chapter title keeps both stepper buttons whole inside the bar at ${size.width}x${size.height}${taking ? ' during a take' : ''} (${theme})`, async ({
+        page,
+      }) => {
+        await page.setViewportSize(size);
+        await page.emulateMedia({ colorScheme: theme });
+        await page.goto('/booth?mockTeleprompter=checked');
+        await settlePage(page);
+        const group = page.locator('div[role="group"][aria-label="Chapter"]');
+        await group.waitFor();
+        await group.getByRole('button', { name: /^Chapter: .*Change chapter$/ }).click();
+        await page.getByRole('menuitemradio', { name: /The Rabbit Sends in a Little Bill/ }).click();
+        const picker = group.getByRole('button', { name: /^Chapter: .*The Rabbit Sends in a Little Bill/ });
+        await expect(picker).toBeVisible();
+        if (taking) {
+          // During a take the picker is off (its hint's wrapper is then the flex item that has to shrink).
+          await page.keyboard.press('Space');
+          await expect(picker).toBeDisabled();
+        }
+        const boxes = await group.evaluate((el) => {
+          const read = (node: Element) => {
+            const r = node.getBoundingClientRect();
+            return { left: r.left, right: r.right, width: r.width, height: r.height };
+          };
+          const buttons = [...el.querySelectorAll('button')].map((b) => ({ name: b.getAttribute('aria-label') ?? '', ...read(b) }));
+          return { group: read(el), buttons, window: window.innerWidth };
+        });
+        for (const b of boxes.buttons) {
+          expect(b.right, `${b.name} inside the window`).toBeLessThanOrEqual(boxes.window + 0.5);
+          expect(b.right, `${b.name} inside the chapter group`).toBeLessThanOrEqual(boxes.group.right + 0.5);
+        }
+        for (const name of ['Previous chapter', 'Next chapter']) {
+          const b = boxes.buttons.find((candidate) => candidate.name === name);
+          expect(b?.width, `${name} keeps its width`).toBeGreaterThanOrEqual(28);
+          expect(b?.width, `${name} stays square`).toBeCloseTo(b?.height ?? 0, 0);
+        }
+        const label = picker.locator('span').first();
+        expect(await label.evaluate((el) => el.scrollWidth > el.clientWidth), 'the title is cut with an ellipsis, not the buttons').toBe(true);
+      });
+    }
+  }
+}
+
+// Issue 3175, found by the breaker: Editing's header kept the stepper in a flex item that could not shrink, so Next chapter ran past the
+// window at 320 px and below even with a short name. Every page that draws the stepper keeps its three buttons inside the window.
+for (const theme of ['light', 'dark'] as const) {
+  for (const path of ['/editing', '/proof', '/pickups']) {
+    for (const size of [
+      { width: 280, height: 500 },
+      { width: 320, height: 300 },
+    ]) {
+      test(`${path}: the chapter stepper's buttons stay inside the window at ${size.width}x${size.height} (${theme})`, async ({ page }) => {
+        await page.setViewportSize(size);
+        await page.emulateMedia({ colorScheme: theme });
+        await page.goto(path);
+        await settlePage(page);
+        const group = page.locator('div[role="group"][aria-label="Chapter"]').first();
+        await group.waitFor();
+        const m = await group.evaluate((el) => ({
+          window: window.innerWidth,
+          buttons: [...el.querySelectorAll('button')].map((b) => ({ name: b.getAttribute('aria-label') ?? '', right: b.getBoundingClientRect().right })),
+        }));
+        for (const b of m.buttons) expect(b.right, `${b.name} inside the window`).toBeLessThanOrEqual(m.window - 8 + 0.5);
+      });
+    }
   }
 }

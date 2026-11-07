@@ -342,6 +342,9 @@ func (s *Service) planSession(options map[string]string, src source) (launch, er
 	if modelDir := option(options, "modelDir", ""); modelDir != "" {
 		args = append(args, "--model-dir", modelDir)
 	}
+	if confirmDir := option(options, "confirmModelDir", ""); confirmDir != "" && asrport.NeedsRecheck(engine) {
+		args = append(args, "--confirm-model", option(options, "confirmModel", "tiny"), "--confirm-model-dir", confirmDir)
+	}
 	if language := option(options, "language", ""); language != "" {
 		args = append(args, "--language", language)
 	}
@@ -602,6 +605,13 @@ func (s *Service) onLine(line string) {
 			} else if isNumber {
 				s.relayAll(follow.clock(t.Value()))
 			}
+		}
+		return
+	}
+	if kind == segmentCheckEventType {
+		// The trailing confirmation pass's reading of a closed segment: the host settles flags with it, the UI never sees it.
+		if follow != nil {
+			s.relayAll(follow.check(raw))
 		}
 		return
 	}

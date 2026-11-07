@@ -1,5 +1,7 @@
+import { apiErrorMessage } from '../../api/errorMessage';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePort } from '../../ports/usePort';
+import { headingName } from '../../chapterHeading';
 import { chapterTrackRows, type ChapterTrackRow } from './chapterTrackRows';
 import type { ManuscriptChapter, Track, TrackMapping } from '../../types';
 import type { ChapterTrackCreateResult } from '../../api/contracts/chapterTrackMap';
@@ -15,6 +17,8 @@ export type ChapterLinks = {
   rows: ChapterTrackRow[];
   /** Why the last read or change failed; empty when it did not. */
   error: string;
+  /** What the last change did beyond the chapter asked for: the chapter a picked track was taken from and is now not linked; empty otherwise. */
+  notice: string;
   /** The chapter whose link is being changed, or empty. */
   busyChapterId: string;
   /** The chapter whose track `create` is adding, or empty: from any mount, so a panel opened again while a create runs shows it busy. */
@@ -67,6 +71,7 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
   const [chapters, setChapters] = useState<ManuscriptChapter[]>([]);
   const [mappings, setMappings] = useState<TrackMapping[]>([]);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [busyChapterId, setBusyChapterId] = useState('');
   const [creatingChapterId, setCreatingChapterId] = useState(createGuard.pending?.chapterId ?? '');
   // Tracks create added that the caller's track list may not have read yet; dropped once it lists them, or once a read answered after the
@@ -85,7 +90,7 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
     if (!enabled) return;
     let active = true;
     reload().catch((reason) => {
-      if (active) setError(String(reason));
+      if (active) setError(apiErrorMessage(reason));
     });
     return () => {
       active = false;
@@ -98,10 +103,17 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
     inFlight.current = true;
     setBusyChapterId(chapterId);
     setError('');
+    setNotice('');
     write()
+      .then((result) => {
+        // ChapterTrackSet moves a track another chapter holds; say so, or that chapter goes to "Not linked" unseen (#3053).
+        const displaced = (result as { displaced?: { chapterId: string } | null } | undefined)?.displaced;
+        const taken = displaced && chapters.find((chapter) => chapter.id === displaced.chapterId);
+        if (taken) setNotice(`${headingName(taken)} was linked to that track and is now not linked.`);
+      })
       .then(() => reload())
       .then(() => onChanged())
-      .catch((reason) => setError(String(reason)))
+      .catch((reason) => setError(apiErrorMessage(reason)))
       .finally(() => {
         inFlight.current = false;
         setBusyChapterId('');
@@ -124,7 +136,7 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
     const settled = () => {
       if (!active) return;
       setCreatingChapterId('');
-      reload().then(onChanged, (reason: unknown) => setError(String(reason)));
+      reload().then(onChanged, (reason: unknown) => setError(apiErrorMessage(reason)));
     };
     pending.done.then(settled, settled);
     return () => {
@@ -147,7 +159,7 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
       if (result.outcome === 'created') {
         setAdded((previous) => [...previous, ...createdTracks(result, Date.now())]);
         // The track was added and linked: a re-read that fails is the table's error, never a failed create.
-        await reload().then(onChanged, (reason: unknown) => setError(String(reason)));
+        await reload().then(onChanged, (reason: unknown) => setError(apiErrorMessage(reason)));
       }
       return result;
     } finally {
@@ -178,5 +190,5 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
   // The chapter list holds the credits, so they are rows like any chapter.
   const rows = useMemo(() => chapterTrackRows(chapters, shown, mappings), [chapters, shown, mappings]);
 
-  return { tracks: shown, chapters, mappings, rows, error, busyChapterId, creatingChapterId, set, unlink, create };
+  return { tracks: shown, chapters, mappings, rows, error, notice, busyChapterId, creatingChapterId, set, unlink, create };
 }
