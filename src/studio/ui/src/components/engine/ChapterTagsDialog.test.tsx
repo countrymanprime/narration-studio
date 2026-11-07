@@ -85,7 +85,7 @@ describe('ChapterTagsDialog', () => {
   });
 
   // Alignment audit ENX-28: after the copy was written, Embed stayed the full-strength action.
-  it('makes Close the primary once the tagged copy is written', async () => {
+  it('makes Done the primary once the tagged copy is written', async () => {
     const user = userEvent.setup();
     renderDialog({}, { chapterTags: 'ready' });
     await screen.findByText('Chapter 1');
@@ -93,7 +93,7 @@ describe('ChapterTagsDialog', () => {
     await user.click(screen.getByText(/I understand this writes a new file/));
     await user.click(footerButton('Embed chapter tags')!);
     await screen.findByText(/^Wrote /);
-    expect(footerButton('Close')?.className).toContain('bg-[var(--accent)]');
+    expect(footerButton('Done')?.className).toContain('bg-[var(--accent)]');
   });
 
   // Follow-up to #2829 (qa-breaker / narrator findings on the Embed dialog).
@@ -114,10 +114,11 @@ describe('ChapterTagsDialog', () => {
     await waitFor(() => expect(embedSpy).toHaveBeenCalledWith('C:\\Books\\Alice.mp3'));
   });
 
-  it('draws one Close button, in the action row', async () => {
+  it("draws one Close button (the header's); the action row says Cancel", async () => {
     renderDialog({}, { chapterTags: 'ready' });
     await screen.findByText('Chapter 1');
     expect(screen.getAllByRole('button', { name: 'Close' })).toHaveLength(1);
+    expect(footerButton('Cancel')).toBeTruthy();
   });
 
   it('Escape closes the dialog while nothing is being written', async () => {
@@ -151,7 +152,7 @@ describe('ChapterTagsDialog', () => {
       expect(onClose).not.toHaveBeenCalled();
       await act(async () => void vi.advanceTimersByTime(61_000));
       expect((await screen.findAllByRole('alert')).some((alert) => /did not answer/.test(alert.textContent ?? ''))).toBe(true);
-      expect(footerButton('Close')?.hasAttribute('disabled')).toBe(false);
+      expect(footerButton('Cancel')?.hasAttribute('disabled')).toBe(false);
       expect(footerButton('Embed chapter tags')?.getAttribute('aria-busy')).not.toBe('true');
       await user.keyboard('{Escape}');
       expect(onClose).toHaveBeenCalledTimes(1);

@@ -61,7 +61,8 @@ export function ChapterTagsDialog({ onClose }: { onClose: () => void }) {
     // A host that never answers must not trap the dialog: after the deadline it says so and Embed, Close and Escape work again.
     const deadline = new Promise<never>((_, reject) =>
       setTimeout(
-        () => reject(new Error('The app did not answer. Check that the file is not open elsewhere, then press Embed chapter tags again.')),
+        () =>
+          reject(new Error('The app did not answer. The copy may still be written: look in the folder of your MP3 before you press Embed chapter tags again.')),
         EMBED_DEADLINE_MS,
       ),
     );
@@ -81,14 +82,14 @@ export function ChapterTagsDialog({ onClose }: { onClose: () => void }) {
     <Dialog
       dismissOnOutsidePress={false}
       title="Embed chapter tags"
-      onEscape={onClose}
+      onClose={embedding ? undefined : onClose}
       escapeCloses={!embedding}
       description="Add ID3 chapter markers to a copy of an already-rendered MP3, using the chapter names and lengths from your last chapter render. The file you choose below is never changed; a new, tagged copy is written beside it."
       actions={
         <>
-          {/* Once the tagged copy is written, Close is the next step (ENX-28). */}
+          {/* The header's Close is the dialog's only "Close"; this button is Cancel until the tagged copy is written, then Done, the next step (ENX-28). */}
           <Button variant={outputPath ? 'primary' : 'secondary'} onClick={onClose} disabled={embedding}>
-            Close
+            {outputPath ? 'Done' : 'Cancel'}
           </Button>
           <Button variant={outputPath ? 'secondary' : 'primary'} onClick={embed} disabled={!canEmbed} pending={embedding}>
             Embed chapter tags
