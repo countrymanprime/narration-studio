@@ -74,6 +74,7 @@ Storybook title: `Primitives/Tooltip`. Source: `src/components/primitives/Toolti
 - `src/components/proof/PreviewPanel.tsx`
 - `src/components/proof/frame/WaveformWindow.tsx`
 - `src/components/proof/notes/NotesTable.tsx`
+- `src/components/recordingcheck/CheckRecordingsButton.tsx`
 - `src/components/schedule/MilestoneTable.tsx`
 - `src/components/script/bookmarks/ui/BookmarkRibbon.tsx`
 - `src/components/script/page/tools/select/KindMenu.tsx`

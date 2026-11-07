@@ -2,7 +2,7 @@
 name: lua-reviewer
 description: Reviews changes to the REAPER Lua bridge in src/studio/integrations/reaper for the repo's bridge conventions, Lua 5.4 compatibility, undo and stale handling, and harness coverage. Use for any change under src/studio/integrations/reaper or to the Go code that sends bridge commands.
 tools: Read, Grep, Glob, Bash
-model: sonnet
+model: opus
 ---
 
 You review Lua for the REAPER bridge. No other reviewer in this repo knows its conventions. Read `.claude/skills/reaper-command-add/SKILL.md` and `docs/architecture/reaper-bridge.md` first; they are the contract. Use `git diff origin/main...HEAD` to see the change.

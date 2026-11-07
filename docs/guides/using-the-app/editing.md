@@ -110,7 +110,7 @@ to its window, so a link made in REAPER or the audio engine panel shows without 
 built-in recorder (which has no track to link), a note over the script says to record the chapter, with **Read again**.
 A chapter
 that was never checked has no heard words: the page shows its script plain, with a **Not transcribed yet** note and a
-**Check recordings…** button beside it that opens [Check recordings](production.md#checking-a-chapters-recording), the one recording
+**Check recordings** icon beside it that opens [Check recordings](production.md#checking-a-chapters-recording), the one recording
 check every page opens, with this chapter ticked. When the dialog closes the page reads the chapter again, so
 what the check found shows without a reload. Opening Editing never starts a check.
 
@@ -359,7 +359,7 @@ saves from the note, and **Esc** closes. So with the right character already cho
 
 ![Editing - Voice sample on four selected words: the character, the words with Play range, the label and note, and Save sample](../../images/ui/editing-voice-sample-dialog.webp)
 
-Under **Make primary** a short line says where the sample will be kept ("Kept in the project folder", "Kept in the DAW" or "Kept in the project folder and the DAW"), from **Voice sample storage** in the Recording & DAW section of [Settings](settings.md); the **?** beside it says what that means. If Settings cannot be read, the dialog says so and shows the project folder. With a region, saving adds a region named for the character and label to REAPER's project (one undo step in REAPER) and the sample plays whatever lies under it, so save the project in REAPER before expecting it to play; if REAPER cannot add it (it is recording, or not linked) nothing is saved and the dialog says so.
+Under **Make primary** a short line says where the sample will be kept ("Kept in the project folder", "Kept in the DAW" or "Kept in the project folder and the DAW"), from **Voice sample storage** in the Recording & DAW section of [Settings](settings.md); the **?** beside it says what that means. If Settings cannot be read, the dialog says so and shows the project folder. With a region, saving adds a region named for the character and label to REAPER's project (one undo step in REAPER) and the sample plays whatever lies under it, so save the project in REAPER before expecting it to play; if REAPER cannot add it (it is recording, or not linked) nothing is saved and the dialog says so. If the sample cannot be saved after REAPER added the region, the region is deleted again; if REAPER will not delete it, a notice says the region stays.
 
 Saving copies the raw recording of those words, as it was before editing, with a short margin either side cut at a quiet point,
 into <!-- brand:identity.projectFolder -->narration-studio<!-- /brand -->/voice-samples in the project folder. Nothing leaves your computer, and the clip does not change if you

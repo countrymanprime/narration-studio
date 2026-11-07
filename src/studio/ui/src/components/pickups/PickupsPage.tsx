@@ -8,10 +8,10 @@ import { useCommand } from '../../input/useCommand';
 import { useOverlay } from '../../overlay/OverlayProvider';
 import { usePort } from '../../ports/usePort';
 import { useJournal } from '../../studio/StudioProvider';
-import { useCapability } from '../../useCapability';
 import { useDawKind } from '../../useDawKind';
 import { DawConnectionChip } from '../connection/DawConnectionChip';
 import { boothQuery } from '../booth/page/boothQuery';
+import { useCheckRecordingsGate } from '../recordingcheck/CheckRecordingsButton';
 import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
 import { NeedManuscript } from '../layout/NeedManuscript';
 import { reviewFinding } from '../../studio/commands/reviewFinding';
@@ -66,7 +66,8 @@ export function PickupsPage({
     (sentence) => overlay.toast(sentence, { tone: 'error' }),
     (sentence) => overlay.toast(sentence),
   );
-  const review = useCapability('review');
+  // The jump menu's Check recordings is off for the same reason the button is (#2833).
+  const checkReason = useCheckRecordingsGate();
   const dawKind = useDawKind();
   /* One answer for the button, the jump menu and every other page's Add marker: the DAW's capability and, for REAPER, a linked project file (#2830, #1939). */
   const markers = useMarkersGate();
@@ -295,7 +296,7 @@ export function PickupsPage({
     scope,
     inView,
     chaptersToCheck: list.leftOut.map((chapter) => chapter.chapterId),
-    daw: { available: review.available, message: review.message },
+    checkReason,
     markers,
     dawName,
     onScope: choose,
@@ -339,10 +340,8 @@ export function PickupsPage({
             scope={scope}
             currentChapterId={current || firstWithText?.id || chapters[0]?.id || ''}
             chaptersToCheck={list.leftOut.map((chapter) => chapter.chapterId)}
-            daw={{ available: review.available, message: review.message }}
             onScope={choose}
             onStep={step}
-            onCheck={(ids) => openCheckRecordings(ids)}
             onAdd={add}
             onSetIncluded={(id, included) => changing(pickupsApi.pickupsSetIncluded(id, included))}
             onSetDone={(id, done) => changing(pickupsApi.pickupsSetDone(id, done))}

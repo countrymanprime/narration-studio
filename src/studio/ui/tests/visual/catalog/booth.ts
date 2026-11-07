@@ -152,7 +152,7 @@ export const boothStates: StateEntry[] = [
     page: 'booth',
     state: 'take-saved',
     description:
-      'Booth right after a take stopped in the DAW (Stop pressed): Record is back, and the message "Take saved" offers Undo, which takes the take back in the DAW; the take is in the undo history as "Recorded a take of <chapter>"',
+      'Booth right after a take stopped in the DAW (Stop pressed): Record is back, and the message "Take saved" offers Undo, which takes the take back in the DAW; a second, quieter message offers Check recordings for the chapter; the take is in the undo history as "Recorded a take of <chapter>"',
     ...FREEZES_THE_CLOCK,
     ...REFLOW,
   },

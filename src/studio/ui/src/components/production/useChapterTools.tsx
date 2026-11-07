@@ -14,6 +14,7 @@ import { creditsCheckKind } from './recordingCheckText';
 import { ChapterTrackPanel } from './ChapterTrackPanel';
 import { showInDaw, showInDawLabel } from '../engine/ShowInDaw';
 import { CreditsRowPanel } from './CreditsRowPanel';
+import { CHECK_RECORDINGS_LABEL, useCheckRecordingsGate } from '../recordingcheck/CheckRecordingsButton';
 import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
 import { RemovedFromRecordingList } from './RemovedFromRecordingList';
 import type { CreditsKind, CreditsRow } from '../credits/useCreditsRows';
@@ -165,13 +166,13 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
     [manuscriptChapter],
   );
 
-  // The chapter's recording check (the row menu, and the readiness panel of a chapter whose recording nothing has checked yet): Check recordings with
-  // the chapter ticked, the dialog every page opens. The board reads its checks again as each one completes (above).
-  const openRecordingCheck = useCallback((chapterId: string) => void openCheckRecordings([chapterId]), []);
+  // The row menu's Check recordings (#2833): the shared label and gate, with the chapter ticked, in the dialog every page opens. The board reads its
+  // checks again as each one completes (above).
+  const checkGate = useCheckRecordingsGate();
 
   // The items close over the latest state, read when the menu opens.
-  const latest = useRef({ rows, go, manuscriptChapter, trackLinks, setStatus, daw, selectTrack, openRecordingCheck });
-  latest.current = { rows, go, manuscriptChapter, trackLinks, setStatus, daw, selectTrack, openRecordingCheck };
+  const latest = useRef({ rows, go, manuscriptChapter, trackLinks, setStatus, daw, selectTrack, checkGate });
+  latest.current = { rows, go, manuscriptChapter, trackLinks, setStatus, daw, selectTrack, checkGate };
   const provider = useMemo<ContextProvider>(
     () => ({
       match: (target) => target.closest(`[${PIPELINE_AREA}] tbody tr`) !== null,
@@ -208,7 +209,12 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
             onSelect: () => setOpen({ kind: 'track', chapterId: row.id }),
           },
           ...(credits ? [{ key: 'credits', label: 'Credits…', onSelect: () => setOpen({ kind: 'credits' as const, credits }) }] : []),
-          { key: 'recording', label: 'Check recordings…', unavailable: missing, onSelect: () => chapter && latest.current.openRecordingCheck(chapter.id) },
+          {
+            key: 'recording',
+            label: CHECK_RECORDINGS_LABEL,
+            unavailable: missing ?? latest.current.checkGate,
+            onSelect: () => chapter && void openCheckRecordings([chapter.id]),
+          },
           { key: 'editing', label: 'Editing check…', unavailable: missing, onSelect: () => chapter && setOpen({ kind: 'editing', chapter }) },
           ...STATUS_ORDER.filter((status) => status !== row.status).map((status) => ({
             key: `status-${status}`,
@@ -256,15 +262,11 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
           label={CREDITS_TITLE[open.credits]}
           onStatus={(status) => void setStatus(`credits-${open.credits}`, status)}
           // Close this slide-over, then open the check, never nested over it.
-          onCheck={() => {
-            close();
-            openRecordingCheck(`credits-${open.credits}`);
-          }}
           onClose={close}
         />
       )}
     </>
   );
 
-  return { panels, trackLinks, reload, openEditingCheck, openRecordingCheck };
+  return { panels, trackLinks, reload, openEditingCheck };
 }

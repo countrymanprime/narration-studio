@@ -1,43 +1,43 @@
-# The agent train (moved)
+# The agent train
 
-The agent train's procedure moved to [`.claude/skills/agent-train/SKILL.md`](../../.claude/skills/agent-train/SKILL.md) on 2026-10-12: instructions that only automated coding tools follow live in `.claude/` ([Which document](../README.md#which-document)). Its templates are in [`references/templates.md`](../../.claude/skills/agent-train/references/templates.md) beside it, and the Studio Next delivery model (the removed PRD `docs/prds/studio-next-agent-delivery.prd.md`) is in [`references/studio-next-delivery.md`](../../.claude/skills/agent-train/references/studio-next-delivery.md).
+The agent train's procedure is the agent-train skill, [`.claude/skills/agent-train/SKILL.md`](../../.claude/skills/agent-train/SKILL.md): instructions that only automated coding tools follow live in `.claude/` ([Which document](../README.md#which-document)). Its templates are in [`references/templates.md`](../../.claude/skills/agent-train/references/templates.md) beside it, and the slice rules are in [`references/groomer.md`](../../.claude/skills/agent-train/references/groomer.md#slices).
 
-A Routine or prompt that says to read this file and run one pass: read `.claude/skills/agent-train/SKILL.md` on `main` instead, and run one pass from it.
+A Routine or prompt that names this file runs one pass from `.claude/skills/agent-train/SKILL.md` on `main`; its index sends the coordinator to `references/coordinator.md`.
 
-The headings below stay so that older links keep resolving. Delete this file once nothing links it.
+The headings below point to where each part lives.
 
 ## Which mocks are the spec
 
-Now in the rebuild PRD, Which mocks are the spec, and in [the design system](../design/design-system.md#which-mocks-are-the-spec).
+Each job's references are named by the coordinator ([References for a job](../../.claude/skills/agent-train/references/coordinator.md#references-for-a-job)).
 
 ## UI PRs update the how-to guide
 
-Now in [CONTRIBUTING.md](../../CONTRIBUTING.md#ui-prs-update-the-how-to-guide), including the command that regenerates a page's guide images (`node scripts/dev/guide-screenshots.mjs`).
+In [CONTRIBUTING.md](../../CONTRIBUTING.md#ui-prs-update-the-how-to-guide), with the command that regenerates a page's guide images (`node scripts/dev/guide-screenshots.mjs`).
 
 ## Owner standing rules
 
-Now in [the procedure](../../.claude/skills/agent-train/SKILL.md#owner-standing-rules). D69 (one app-wide theme) is in [the design system](../design/design-system.md#theme); D98 is in the rebuild PRD.
+In [the procedure](../../.claude/skills/agent-train/references/owner-rules.md#owner-standing-rules). The product rules are in [`.claude/rules/product-rules.md`](../../.claude/rules/product-rules.md).
 
 ## Safety net
 
-Now in [the procedure](../../.claude/skills/agent-train/SKILL.md#safety-net).
+In [the procedure](../../.claude/skills/agent-train/references/coordinator.md#safety-net).
 
 ## Serial points
 
-Now in [the procedure](../../.claude/skills/agent-train/SKILL.md#serial-points).
+In [the procedure](../../.claude/skills/agent-train/references/worker.md#serial-points).
 
 ## Lanes
 
-Now in [the procedure](../../.claude/skills/agent-train/SKILL.md#lanes).
+In [the procedure](../../.claude/skills/agent-train/references/worker.md#lanes).
 
 ## The coordinator's pass
 
-Now in [the procedure](../../.claude/skills/agent-train/SKILL.md#the-coordinators-pass).
+In [the procedure](../../.claude/skills/agent-train/references/coordinator.md#the-coordinators-pass).
 
 ## The worker protocol
 
-Now in [the procedure](../../.claude/skills/agent-train/SKILL.md#the-worker-protocol).
+In [the procedure](../../.claude/skills/agent-train/references/worker.md#the-worker-protocol).
 
 ## Worker template
 
-Now in [the templates](../../.claude/skills/agent-train/references/templates.md#worker-template).
+In [the templates](../../.claude/skills/agent-train/references/templates.md#worker-template).

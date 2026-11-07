@@ -30,9 +30,10 @@ async function openChapter(page: Page, chapterTitle: string): Promise<void> {
 
 // A recording check held at its last transcribing step (?mockCoverage=<seed>), so the dialog reads the same at every viewport; it stays open while it runs.
 async function checkHeld(page: Page, seed: 'hold' | 'hold-recheck' | 'hold-none' | 'hold-all'): Promise<void> {
-  await openProof(page, `mockCoverage=${seed}`);
-  await openChapter(page, 'Chapter 4');
-  await notes(page).getByRole('button', { name: 'Check recordings…' }).click();
+  // Chapter 1 has a linked track: the card's Check recordings is the only button for the check on this page, and it is off for a chapter with none.
+  await openProof(page, `mockCoverage=${seed}&mockChapterLink=confirmed`);
+  await openChapter(page, 'Chapter 1');
+  await page.getByRole('button', { name: 'Check recordings', exact: true }).click();
   const dialog = page.getByRole('dialog');
   await dialog
     .getByRole('button', { name: /^Check / })
@@ -230,17 +231,17 @@ export const proofDrivers: Record<string, Driver> = {
     await page.getByText('Not checked yet').waitFor();
   },
   'check-recordings-dialog': async (page) => {
-    await openProof(page);
-    await openChapter(page, 'Chapter 4');
-    await notes(page).getByRole('button', { name: 'Check recordings…' }).click();
+    await openProof(page, 'mockChapterLink=confirmed');
+    await openChapter(page, 'Chapter 1');
+    await page.getByRole('button', { name: 'Check recordings', exact: true }).click();
     await page.getByRole('dialog').getByRole('combobox', { name: 'Chapters at once' }).waitFor();
   },
   'check-checking': async (page) => checkHeld(page, 'hold-recheck'),
   // The mock's check runs on its own to the end: the dialog then shows that chapter's result under the stopped activity box.
   'check-finished': async (page) => {
-    await openProof(page, 'mockCoverage=cascade');
-    await openChapter(page, 'Chapter 4');
-    await notes(page).getByRole('button', { name: 'Check recordings…' }).click();
+    await openProof(page, 'mockCoverage=cascade&mockChapterLink=confirmed');
+    await openChapter(page, 'Chapter 1');
+    await page.getByRole('button', { name: 'Check recordings', exact: true }).click();
     const dialog = page.getByRole('dialog');
     await dialog
       .getByRole('button', { name: /^Check / })

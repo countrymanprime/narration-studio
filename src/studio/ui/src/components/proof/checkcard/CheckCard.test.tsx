@@ -6,6 +6,7 @@ import { ApiProvider } from '../../../api/ApiContext';
 import type { CoverageGap, CoverageGapReviews, CoverageResult, CoverageState } from '../../../api/contracts/coverage';
 import type { DawCapabilities } from '../../../api/contracts/daw';
 import type { Finding } from '../../../api/contracts/findings';
+import * as opener from '../../recordingcheck/openCheckRecordings';
 import { createMockApi } from '../../../api/mockApi';
 import { createJournal, type Journal } from '../../../studio/journal/createJournal';
 import { StudioProvider } from '../../../studio/StudioProvider';
@@ -57,7 +58,11 @@ const audio = (id: string, kind: string, at: number, status: Finding['review']['
     time_range: { start: at, end: at + 1 },
     confidence_reason: 'Heard in the recording',
   }) as unknown as Finding;
-const caps = (available: boolean): DawCapabilities => ({ capabilities: { review: { level: 'supported', available } } }) as unknown as DawCapabilities;
+const caps = (available: boolean): DawCapabilities =>
+  ({
+    daw: 'REAPER',
+    capabilities: { review: { level: 'supported', available, ...(available ? {} : { message: 'REAPER is not answering.' }) } },
+  }) as unknown as DawCapabilities;
 
 type Setup = {
   /** Draws the Compare button beside Check recordings; 'open' when the Compare panel is open. */
@@ -75,7 +80,7 @@ function mount(setup: Setup = {}) {
   let reviews: CoverageGapReviews = setup.reviews ?? {};
   let listener: (state: CoverageState) => void = () => undefined;
   let current = setup.result ?? result('current', [gap('g1', 'missing', 20), gap('g2', 'misread', 10)]);
-  const calls = { accept: vi.fn(), ignore: vi.fn(), review: vi.fn(), cancel: vi.fn(), onCheck: vi.fn(), onCompare: vi.fn() };
+  const calls = { accept: vi.fn(), ignore: vi.fn(), review: vi.fn(), cancel: vi.fn(), onCompare: vi.fn() };
   const compare = setup.compare ? { onOpen: calls.onCompare, open: setup.compare === 'open' } : undefined;
   const api: NarrationApi = createMockApi({
     coverageResult: async () => current,
@@ -110,10 +115,10 @@ function mount(setup: Setup = {}) {
     <ApiProvider api={api}>
       {setup.journal ? (
         <StudioProvider journal={setup.journal}>
-          <CheckCard chapter={chapter(setup.chapter)} onCheck={calls.onCheck} {...(compare ? { compare } : {})} />
+          <CheckCard chapter={chapter(setup.chapter)} {...(compare ? { compare } : {})} />
         </StudioProvider>
       ) : (
-        <CheckCard chapter={chapter(setup.chapter)} onCheck={calls.onCheck} {...(compare ? { compare } : {})} />
+        <CheckCard chapter={chapter(setup.chapter)} {...(compare ? { compare } : {})} />
       )}
     </ApiProvider>,
   );
@@ -266,21 +271,28 @@ describe('findings', () => {
 });
 
 describe('the Check recordings button', () => {
-  it('calls onCheck with the chapter id', async () => {
-    const { calls } = mount();
-    const button = await screen.findByRole('button', { name: 'Check recordings' });
-    await waitFor(() => expect((button as HTMLButtonElement).disabled).toBe(false));
-    await userEvent.click(button);
-    expect(calls.onCheck).toHaveBeenCalledWith('c1');
+  // The card's button is the shared one (#2833): it opens the one dialog with this chapter ticked, and the DAW's reason is its own.
+  it('opens the Check recordings dialog with this chapter ticked', async () => {
+    const open = vi.spyOn(opener, 'openCheckRecordings').mockReturnValue(() => {});
+    mount();
+    await screen.findByRole('button', { name: 'Check recordings' });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Check recordings' }).getAttribute('aria-disabled')).toBeNull());
+    await userEvent.click(screen.getByRole('button', { name: 'Check recordings' }));
+    expect(open).toHaveBeenCalledWith(['c1'], expect.anything());
   });
   it.each([
     [{ chapter: { recordedSeconds: 0 } }, 'This chapter has no recording to check.'],
     [{ chapter: { wordCount: 0 } }, 'This chapter has no text to check against.'],
-    [{ available: false }, 'The DAW is not reachable.'],
-  ] as const)('is disabled with a reason: %j', async (setup, reason) => {
+  ] as const)('is disabled with its own reason: %j', async (setup, reason) => {
     mount(setup);
     expect(await screen.findByText(reason)).toBeTruthy();
-    expect((screen.getByRole('button', { name: 'Check recordings' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByRole('button', { name: 'Check recordings' }).getAttribute('aria-disabled')).toBe('true');
+  });
+  it('is disabled with the DAW’s own sentence, the one every page gives, when the DAW cannot review', async () => {
+    mount({ available: false });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Check recordings' }).getAttribute('aria-disabled')).toBe('true'));
+    expect(caps(false).capabilities.review?.message).toBeTruthy();
+    expect(screen.getAllByText(caps(false).capabilities.review!.message!).length).toBeGreaterThan(0);
   });
   it('is replaced by Cancel while checking, and Cancel calls coverageCancel', async () => {
     const { calls } = mount({ state: { phase: 'running', chapterId: 'c1', percent: 5, message: '' } });

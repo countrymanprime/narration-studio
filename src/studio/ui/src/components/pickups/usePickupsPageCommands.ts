@@ -14,7 +14,8 @@ export function usePickupsPageCommands(page: {
   inView: readonly PickupItem[];
   /** The chapters whose recording check is not current: what Check recordings opens with. */
   chaptersToCheck: readonly string[];
-  daw: Gate;
+  /** Why Check recordings cannot start now (the shared gate), or undefined. */
+  checkReason?: string;
   markers: Gate;
   dawName: string;
   onScope: (scope: string) => void;
@@ -70,7 +71,7 @@ export function usePickupsPageCommands(page: {
         label: 'Check recordings',
         group: 'Actions',
         icon: 'checkRecordings',
-        disabledReason: page.daw.available ? undefined : page.daw.message || 'The DAW is not answering.',
+        disabledReason: page.checkReason,
         run: () => page.onCheck([...page.chaptersToCheck]),
       },
       {

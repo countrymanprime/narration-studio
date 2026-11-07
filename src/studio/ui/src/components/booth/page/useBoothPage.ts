@@ -24,6 +24,8 @@ import type { BrowseView } from '../reading/useBrowseView';
 import { useRecordControl, type RecordBlock } from '../record/useRecordControl';
 import { recordedTakeCommand, TAKE_KIND } from '../record/takeCommand';
 import { retryAction } from '../../primitives/Toast';
+import { CHECK_RECORDINGS_LABEL, useCheckRecordingsGate } from '../../recordingcheck/CheckRecordingsButton';
+import { openCheckRecordings } from '../../recordingcheck/openCheckRecordings';
 import { resumeOfferFor, type KeptResume, type OpenedResume, type ResumeTarget } from '../resume/resumeOfferModel';
 import { useRoll } from '../roll/useRoll';
 import type { TeleprompterSession } from '../useTeleprompterSession';
@@ -35,6 +37,10 @@ import { useTextChoices } from './useTextChoices';
 
 const START: UnitPosition = { cur: 0, wcur: 0 };
 const TAKE_SAVED = 'Take saved';
+const CHECK_OFFER = 'Check this recording against the script?';
+/** The offer stays long enough to Tab to its button, then goes: the narrator is reading on. */
+const CHECK_OFFER_MS = 10_000;
+const CHECK_OFFER_TOPIC = 'booth-check-offer';
 /** Something open over the Booth that Escape closes first: a dialog, a menu or a popover. */
 const OPEN_OVER = '[role="dialog"],[role="alertdialog"],[role="menu"]';
 /** How long after the shell's question closed a page still mounted means the narrator stayed. */
@@ -65,7 +71,7 @@ export type BoothPageOptions = {
   guard: Pick<LeaveGuardStore, 'setLeaveGuard'>;
   /** The shell's history: a take a DAW stopped is one entry there, which Undo takes back in the DAW (`recordedTakeCommand`). */
   journal?: Pick<Journal, 'act' | 'undo'> & Partial<Pick<Journal, 'has' | 'subscribe'>>;
-  overlay: Pick<OverlayService, 'confirm' | 'toast' | 'toastUndo' | 'dismissUndo' | 'getSnapshot' | 'subscribe'>;
+  overlay: Pick<OverlayService, 'confirm' | 'toast' | 'toastUndo' | 'dismissUndo' | 'dismissTopic' | 'getSnapshot' | 'subscribe'>;
   /** Where Record from here opened the Booth. */
   from?: BoothStart;
   /** Goes to `next`; called only once the leave guard let the narrator go. */
@@ -113,6 +119,11 @@ export function useBoothPage(options: BoothPageOptions) {
   };
   // The Booth changes chapter without changing its address: an Undo toast about the last one's take or pickups is no longer true.
   useEffect(() => overlay.dismissUndo(), [overlay, recordId]);
+  // The Check recordings offer is about the take just stopped: another chapter, leaving the Booth and the next take make it untrue (#2833).
+  useEffect(() => {
+    overlay.dismissTopic(CHECK_OFFER_TOPIC);
+    return () => overlay.dismissTopic(CHECK_OFFER_TOPIC);
+  }, [overlay, recordId]);
   const notify = useCallback((sentence: string, topic?: string) => overlay.toast(sentence, topic ? { topic } : undefined), [overlay]);
   const units = useMemo(() => boothUnits(paragraphs), [paragraphs]);
   const script = session.session.script;
@@ -210,8 +221,27 @@ export function useBoothPage(options: BoothPageOptions) {
   const [coldMode, setColdMode] = useState(false);
   // Another project is another book: the choice does not follow it, so a lone Space records there.
   useEffect(() => setColdMode(false), [projectFolder]);
-  const latest = useRef({ at, position, units, paragraphs, spans, listening, following, coldRead, coldMode, session, recording, elapsed: takeClock.read });
-  latest.current = { at, position, units, paragraphs, spans, listening, following, coldRead, coldMode, session, recording, elapsed: takeClock.read };
+  const checkGate = useCheckRecordingsGate();
+  // The offer was made while the DAW could check; once it cannot, the offer goes, as the other pages' buttons go off at once.
+  useEffect(() => {
+    if (checkGate) overlay.dismissTopic(CHECK_OFFER_TOPIC);
+  }, [checkGate, overlay]);
+  const latest = useRef({
+    checkGate,
+    at,
+    position,
+    units,
+    paragraphs,
+    spans,
+    listening,
+    following,
+    coldRead,
+    coldMode,
+    session,
+    recording,
+    elapsed: takeClock.read,
+  });
+  latest.current = { checkGate, at, position, units, paragraphs, spans, listening, following, coldRead, coldMode, session, recording, elapsed: takeClock.read };
 
   /** Puts the reading position on a sentence and word; a listening session for a take is moved there too (a cold read's ghost is not). */
   const moveTo = useCallback((next: UnitPosition) => {
@@ -442,6 +472,7 @@ export function useBoothPage(options: BoothPageOptions) {
     const now = latest.current;
     const place = placeOf(now.paragraphs, now.units, now.at);
     if (recording) {
+      overlay.dismissTopic(CHECK_OFFER_TOPIC);
       setTakeNote('');
       setPaused(false);
       setBrowse(false);
@@ -474,9 +505,17 @@ export function useBoothPage(options: BoothPageOptions) {
       if (marked > 0) return;
       if (take.undoTake && take.entry !== undefined) overlay.toastUndo(TAKE_SAVED, take.undoTake, { entry: take.entry });
       else if (said) notify(TAKE_SAVED);
+      // One low-key offer once the take has stopped, never while one runs (#2833): the same Check recordings the other pages open, off for the same reasons.
+      if (!latest.current.checkGate) {
+        overlay.toast(CHECK_OFFER, {
+          topic: CHECK_OFFER_TOPIC,
+          action: { label: CHECK_RECORDINGS_LABEL, onAction: () => void openCheckRecordings([recordId]) },
+          durationMs: CHECK_OFFER_MS,
+        });
+      }
     });
     if (now.position) setKept({ paragraphId: now.position.paragraphId, word: now.position.word });
-  }, [recording, writer, tellStopped, notify, overlay, realWord, endColdRead]);
+  }, [recording, writer, tellStopped, notify, overlay, realWord, endColdRead, recordId]);
 
   // The end of the chapter (BO-1 item 2): the listening session heard the last word ("done") and then stopped itself, and
   // the take stops with it, through the Record control's own stop. Reading on past the end clears "done", and a session that stops

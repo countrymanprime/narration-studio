@@ -317,7 +317,6 @@
         "src/components/editing/range/fx/FxDialog.tsx",
         "src/components/editing/range/replace/ReplaceDialog.tsx",
         "src/components/editing/range/replace/ReplacementMark.tsx",
-        "src/components/editing/script/ScriptDoc.tsx",
         "src/components/editing/stack/RetryBar.tsx",
         "src/components/editing/stack/StackControls.tsx",
         "src/components/editing/stack/StackDialog.tsx",
@@ -364,7 +363,6 @@
         "src/components/primitives/ErrorBoundary.tsx",
         "src/components/primitives/WorkDialog.tsx",
         "src/components/production/ChapterTrackPanel.tsx",
-        "src/components/production/CreditsRowPanel.tsx",
         "src/components/production/ImportChooseDialog.tsx",
         "src/components/production/ImportReview.tsx",
         "src/components/production/ManuscriptImport.tsx",
@@ -379,7 +377,6 @@
         "src/components/proof/CompareRun.tsx",
         "src/components/proof/NativeTakesPanel.tsx",
         "src/components/proof/PreviewPanel.tsx",
-        "src/components/proof/ProofChapterPage.tsx",
         "src/components/proof/RenderAssociationSection.tsx",
         "src/components/proof/checkcard/CheckCard.tsx",
         "src/components/proof/checkcard/FindingRow.tsx",
@@ -390,6 +387,7 @@
         "src/components/proof/inspector/InspectorActions.tsx",
         "src/components/proof/notes/NotesTable.tsx",
         "src/components/proof/proofOptions/ProofOptions.tsx",
+        "src/components/recordingcheck/CheckRecordingsButton.tsx",
         "src/components/recordingcheck/CheckRecordingsDialog.tsx",
         "src/components/recordingcheck/CheckResult.tsx",
         "src/components/recordingcheck/RunningView.tsx",
@@ -624,7 +622,6 @@
       "source": "src/components/production/overview/CheckCountsCard.tsx",
       "stories": [
         "Some Out Of Date",
-        "Daw Unreachable",
         "All Checked"
       ],
       "consumers": [
@@ -1501,7 +1498,6 @@
         "src/components/primitives/StatTile.tsx",
         "src/components/primitives/TreeCaret.tsx",
         "src/components/primitives/TreeSelect.tsx",
-        "src/components/production/overview/CheckCountsCard.tsx",
         "src/components/production/pipeline/PageHeader.tsx",
         "src/components/proof/checkcard/CheckCard.tsx",
         "src/components/schedule/MilestoneTable.tsx",
@@ -1611,7 +1607,6 @@
         "src/components/primitives/SearchField.tsx",
         "src/components/primitives/SlideOver.tsx",
         "src/components/primitives/TreeCaret.tsx",
-        "src/components/production/overview/CheckCountsCard.tsx",
         "src/components/production/overview/ProgressChart.tsx",
         "src/components/production/pipeline/NoManuscript.tsx",
         "src/components/production/pipeline/PageHeader.tsx",
@@ -1620,7 +1615,6 @@
         "src/components/project/ProjectPicker.tsx",
         "src/components/proof/CompareRun.tsx",
         "src/components/proof/PreviewPanel.tsx",
-        "src/components/proof/ProofPage.tsx",
         "src/components/proof/ProoferSheet.tsx",
         "src/components/proof/checkcard/CheckCard.tsx",
         "src/components/proof/frame/WaveformWindow.tsx",
@@ -1632,6 +1626,7 @@
         "src/components/proof/inspector/TrimGap.tsx",
         "src/components/proof/notes/NotesPanel.tsx",
         "src/components/proof/spot/SpotTakes.tsx",
+        "src/components/recordingcheck/CheckRecordingsButton.tsx",
         "src/components/schedule/MilestoneTable.tsx",
         "src/components/schedule/SchedulePage.tsx",
         "src/components/script/bookmarks/ui/BookmarkEditor.tsx",
@@ -2531,8 +2526,7 @@
         "All Recorded",
         "Scoped To One Chapter",
         "Nothing Queued",
-        "None In This Chapter",
-        "Daw Without Markers"
+        "None In This Chapter"
       ],
       "consumers": [
         "src/components/pickups/PickupsPage.tsx"
@@ -4328,6 +4322,7 @@
         "src/components/proof/PreviewPanel.tsx",
         "src/components/proof/frame/WaveformWindow.tsx",
         "src/components/proof/notes/NotesTable.tsx",
+        "src/components/recordingcheck/CheckRecordingsButton.tsx",
         "src/components/schedule/MilestoneTable.tsx",
         "src/components/script/bookmarks/ui/BookmarkRibbon.tsx",
         "src/components/script/page/tools/select/KindMenu.tsx",

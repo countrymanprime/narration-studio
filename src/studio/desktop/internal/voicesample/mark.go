@@ -243,22 +243,36 @@ func (s *Service) Mark(ctx context.Context, request MarkRequest) (Sample, error)
 		stored.Storage, stored.DawRegion = storage, region
 	}
 
+	// A mark that cannot be kept puts the project back: the clip goes, and the region the DAW was asked for is taken back. The store's lock
+	// is let go first (the DAW may take its whole timeout to answer, and every other writer waits for the lock), and the request's own
+	// cancellation does not reach the delete (a cancelled request is a likely reason the mark failed).
+	giveUp := func() {
+		_ = os.Remove(clipPath)
+		if release != nil {
+			release()
+			release = nil
+		}
+		s.takeRegionBack(ctx, stored.DawRegion)
+	}
 	if release == nil {
 		release = lockFile(storePath(s.config.Project))
 	}
 	current, err = s.readStore()
 	if err == nil {
 		if existing, ok := sameStretch(current.Samples, stored); ok {
-			_ = os.Remove(clipPath)
 			if covers(existing, storage) {
+				giveUp()
 				return s.view(existing, book), nil
 			}
+			// A mark that keeps a region holds the store's lock from the start, so only a project mark (with no region of its own to take
+			// back) gets here: the stretch's sample was replaced while it waited for the lock, and it is brought up to what is asked.
+			_ = os.Remove(clipPath)
 			return s.upgradeLocked(ctx, current, existing, storage, req, item, take, source, file, win, rate, book)
 		}
 		err = checkLimits(current.Samples, req.CharacterID, limitBytes)
 	}
 	if err != nil {
-		_ = os.Remove(clipPath)
+		giveUp()
 		return Sample{}, err
 	}
 	// The first sample of a character is its primary; a later one is only when the narrator asked.
@@ -272,7 +286,7 @@ func (s *Service) Mark(ctx context.Context, request MarkRequest) (Sample, error)
 	}
 	current.Samples = append(current.Samples, stored)
 	if err := s.writeStore(current); err != nil {
-		_ = os.Remove(clipPath)
+		giveUp()
 		return Sample{}, err
 	}
 	return s.view(stored, book), nil

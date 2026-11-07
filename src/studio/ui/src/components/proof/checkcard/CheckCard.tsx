@@ -7,9 +7,9 @@ import { statusTone } from '../../../kinds/statusTone';
 import { usePort } from '../../../ports/usePort';
 import { reviewFinding } from '../../../studio/commands/reviewFinding';
 import { useJournalOrOwn } from '../../../studio/StudioProvider';
-import { useCapability } from '../../../useCapability';
 import type { ManuscriptChapter } from '../../../types';
 import { EnginePanelLink } from '../../engine/EnginePanelContext';
+import { CheckRecordingsButton } from '../../recordingcheck/CheckRecordingsButton';
 import { Button } from '../../primitives/Button';
 import { Dot, StatusBadge, type StatusTone } from '../../primitives/StatusBadge';
 import { Icon } from '../../primitives/Icon';
@@ -64,23 +64,20 @@ type Loaded = { result: CoverageResult; reviews: CoverageGapReviews; audio: Find
 /**
  * The recording check for the chapter in view (Studio Next mock: pages/proof/CheckCard.tsx): the check's state, the recorded length against
  * the script estimate, what the check found by category, and its findings with Accept and Ignore. It decides nothing by itself: a run
- * and a load only read. "Check recordings" hands the chapter to `onCheck` (the dialog is the caller's); "Compare with the script" asks the page for
+ * and a load only read. "Check recordings" is the shared button (#2833), which opens the one dialog with this chapter ticked; "Compare with the script" asks the page for
  * its Compare panel (`compare`), and is off when there is nothing recorded to compare.
  */
 export function CheckCard({
   chapter,
-  onCheck,
   compare,
 }: {
   chapter: ManuscriptChapter;
-  onCheck: (chapterId: string) => void;
   /** The page offers Compare beside Check recordings (#2822): pressing it opens the Compare panel under the card, which `open` reports. */
   compare?: { onOpen: () => void; open: boolean };
 }) {
   const coverage = usePort('coverage');
   const findings = usePort('findings');
   const journal = useJournalOrOwn();
-  const dawReview = useCapability('review');
   const [loaded, setLoaded] = useState<Loaded>();
   const [run, setRun] = useState<CoverageState>();
   const [open, setOpen] = useState(false);
@@ -158,9 +155,7 @@ export function CheckCard({
       ? 'This chapter has no recording to check.'
       : chapter.wordCount <= 0
         ? 'This chapter has no text to check against.'
-        : !dawReview.available
-          ? 'The DAW is not reachable.'
-          : '';
+        : '';
 
   const noRecording = !hasRecording(chapter.recordedSeconds) && chapter.recordedUnavailable ? NO_RECORDING_WHY[chapter.recordedUnavailable] : undefined;
 
@@ -246,14 +241,13 @@ export function CheckCard({
             Stop checking
           </Button>
         ) : (
-          <Button
-            variant={state === 'current' ? 'secondary' : 'primary'}
-            disabled={whyNot !== ''}
-            aria-describedby={whyNot ? 'check-why-not' : undefined}
-            onClick={() => onCheck(chapterId)}
-          >
-            Check recordings
-          </Button>
+          // The one Check recordings (#2833): its label and its DAW gate are shared; the chapter's own reasons are this card's.
+          <CheckRecordingsButton
+            chapterIds={[chapterId]}
+            primary={state !== 'current'}
+            reason={whyNot || undefined}
+            describedBy={whyNot ? 'check-why-not' : undefined}
+          />
         )}
         {compare && (
           <Button

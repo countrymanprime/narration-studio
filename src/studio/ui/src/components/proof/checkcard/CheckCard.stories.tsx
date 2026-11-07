@@ -62,7 +62,7 @@ const host = (result: CoverageResult, state?: CoverageState, found: Finding[] = 
 const meta = {
   title: 'Proof/CheckCard',
   component: CheckCard,
-  args: { chapter, onCheck: () => undefined },
+  args: { chapter },
   decorators: [
     (Story, { parameters }) => (
       <ApiProvider api={parameters.api}>

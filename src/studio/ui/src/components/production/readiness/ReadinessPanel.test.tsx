@@ -13,6 +13,7 @@ import { OverlayHost } from '../../../overlay/OverlayHost';
 import type { NarrationApi, StageChapterRecommendation } from '../../../types';
 import { ReadinessChip } from './ReadinessChip';
 import { openReadiness } from './openReadiness';
+import * as checkRecordings from '../../recordingcheck/openCheckRecordings';
 
 afterEach(cleanup);
 
@@ -28,16 +29,16 @@ function Chip({
   api: host,
   notify,
   onStatus,
-  onCheckRecording,
+  offerCheck,
 }: {
   id: string;
   api: NarrationApi;
   notify: () => void;
   onStatus: () => void;
-  onCheckRecording?: () => void;
+  offerCheck?: boolean;
 }) {
   const rec = useRec(host, id);
-  return rec ? <ReadinessChip recommendation={rec} onOpen={() => openReadiness({ chapterId: id, notify, onStatus, onCheckRecording })} /> : null;
+  return rec ? <ReadinessChip recommendation={rec} onOpen={() => openReadiness({ chapterId: id, notify, onStatus, offerCheck })} /> : null;
 }
 
 function useRec(host: NarrationApi, id: string) {
@@ -46,12 +47,12 @@ function useRec(host: NarrationApi, id: string) {
   return rec;
 }
 
-async function open(id: string, host = api(), click: (chip: HTMLElement) => unknown = (chip) => fireEvent.click(chip), onCheckRecording?: () => void) {
+async function open(id: string, host = api(), click: (chip: HTMLElement) => unknown = (chip) => fireEvent.click(chip), offerCheck = false) {
   const notify = vi.fn();
   const onStatus = vi.fn();
   render(
     <ApiProvider api={host}>
-      <Chip id={id} api={host} notify={notify} onStatus={onStatus} onCheckRecording={onCheckRecording} />
+      <Chip id={id} api={host} notify={notify} onStatus={onStatus} offerCheck={offerCheck} />
       <OverlayHost />
     </ApiProvider>,
   );
@@ -111,16 +112,17 @@ describe('panel content', () => {
   });
 
   it('an unmeasured chapter in Recording offers its recording check, which closes this panel first (XPR2-35)', async () => {
-    const onCheckRecording = vi.fn();
-    const { panel } = await open(c5, api(), undefined, onCheckRecording);
-    fireEvent.click(within(panel).getByRole('button', { name: 'Check recordings…' }));
-    expect(onCheckRecording).toHaveBeenCalledOnce();
+    const opened = vi.spyOn(checkRecordings, 'openCheckRecordings').mockReturnValue(() => {});
+    const { panel } = await open(c5, api(), undefined, true);
+    await waitFor(() => expect(within(panel).getByRole('button', { name: 'Check recordings' }).getAttribute('aria-disabled')).toBeNull());
+    fireEvent.click(within(panel).getByRole('button', { name: 'Check recordings' }));
+    expect(opened).toHaveBeenCalledWith([c5], expect.anything());
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Stage readiness' })).toBeNull());
   });
 
   it('a chapter that is ready offers no recording check', async () => {
-    const { panel } = await open(c4, api(), undefined, vi.fn());
-    expect(within(panel).queryByRole('button', { name: 'Check recordings…' })).toBeNull();
+    const { panel } = await open(c4, api(), undefined, true);
+    expect(within(panel).queryByRole('button', { name: 'Check recordings' })).toBeNull();
   });
 
   it('changed evidence shows was and now, and offers Revert, not Confirm', async () => {
