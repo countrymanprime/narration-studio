@@ -443,20 +443,20 @@ describe('the row menu keeps the features the mock has none for', () => {
     return setup;
   };
 
-  it("goes to a linked chapter's track in the DAW, as the mock's Go to this chapter in REAPER", async () => {
+  it("goes to a linked chapter's track in the DAW, as Show in REAPER", async () => {
     const trackSelectInReaper = vi.fn(async (trackGuid: string) => ({ outcome: 'selected' as const, trackGuid }));
     const { notify } = await renderPage({ overrides: { trackSelectInReaper, dawCapabilities: selecting }, initial: { chapterSync: 'activity' } });
     const table = await pipeline();
     const row = within(table).getAllByRole('row')[2];
     const goto = () => contextItemsFor(row)?.find((item) => item.key === 'goto');
     await waitFor(() => expect(goto()?.unavailable).toBeUndefined());
-    expect(goto()?.label).toBe('Go to this chapter in REAPER');
+    expect(goto()?.label).toBe('Show in REAPER');
     act(() => goto()?.onSelect());
     await waitFor(() => expect(trackSelectInReaper).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(notify).toHaveBeenCalledWith('Selected in REAPER.'));
   });
 
-  it('says why Go to this chapter is off: the DAW cannot select a track, or the chapter has no linked track', async () => {
+  it('says why Show in REAPER is off: the DAW cannot select a track, or the chapter has no linked track', async () => {
     const cannot = 'REAPER could not select the track.';
     const noSelect = async () => {
       const caps = structuredClone(DAW_SETUPS.reaper);

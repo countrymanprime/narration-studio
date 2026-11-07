@@ -4,17 +4,17 @@ import { usePendingAction } from '../../../hooks/usePendingAction';
 import { usePort } from '../../../ports/usePort';
 import type { DawCapabilities } from '../../../api/contracts/daw';
 import { shownFindingNoteType } from '../../../api/contracts/findings';
-import type { Finding, NarrationApi } from '../../../types';
+import type { Finding } from '../../../types';
 import { Button } from '../../primitives/Button';
 import { IconButton } from '../../primitives/IconButton';
 import { RepairInReaperButton } from '../../engine/RepairInReaperButton';
-import { noteTime } from '../findingFormat';
+import { dawNameOf, ShowInDawButton } from '../../engine/ShowInDaw';
 import type { EquivalenceApi } from './equivalence';
 import { HearIt, type HearItApi } from './HearIt';
 import { TreatAsSame } from './TreatAsSame';
 
-/** The host calls the icon row makes itself (Go to, Hear it's loop and Treat as the same); the marker goes through the DAW port. */
-export type InspectorActionsApi = Pick<NarrationApi, 'findingsGoTo'> & HearItApi & EquivalenceApi;
+/** The host calls the icon row makes itself (Hear it's loop and Treat as the same; Show in the DAW is the shared button's); the marker goes through the DAW port. */
+export type InspectorActionsApi = HearItApi & EquivalenceApi;
 
 // Why a control is off when the note itself cannot be placed; the host refuses the same notes in the same words
 // (src/studio/desktop/bindings_navigation.go and bindings_marker.go), so a button is never on for a request that can only be refused. Any note
@@ -30,9 +30,7 @@ const REPAIRABLE_TYPES: ReadonlySet<string> = new Set(['mouth', 'plosive', 'brea
 
 type Gate = { ok: true } | { ok: false; reason: string };
 
-/** The DAW the setup names, for the controls' labels (mock "Show in Audacity"), or "the DAW" while it has not answered or names none. */
-export const dawNameOf = (capabilities: DawCapabilities | undefined): string =>
-  !capabilities || capabilities.daw === 'none' || capabilities.daw === 'Built-in' ? 'the DAW' : capabilities.daw;
+export { dawNameOf };
 
 /** The capability's own sentence when the DAW does not offer it. */
 function gateOf(capabilities: DawCapabilities | undefined, name: string): Gate {
@@ -91,8 +89,8 @@ export function InspectorActions({
 
   // A note with an item but no time would only move to the item's start, which says nothing about the note (#2800).
   const placed = Boolean(finding.source.item_guid || finding.time_range);
-  const goto = gateOf(capabilities, 'navigate');
-  const gotoReason = !goto.ok ? goto.reason : !placed ? NO_ITEM : finding.time_range ? undefined : NO_TIME;
+  // The note's own reason it cannot be gone to; the DAW's reason (the capability's sentence) is the shared button's.
+  const noteReason = !placed ? NO_ITEM : finding.time_range ? undefined : NO_TIME;
   const marker = gateOf(capabilities, 'markers');
   const markerReason = !marker.ok ? marker.reason : finding.time_range?.source_start === undefined ? NO_SOURCE_TIME : undefined;
   const dawName = dawNameOf(capabilities);
@@ -100,17 +98,6 @@ export function InspectorActions({
   const decided = finding.review.status !== 'unreviewed';
 
   const show = (message: string, failed = false) => setResult({ message, failed });
-  const showInDaw = () =>
-    action.run('goto', async () => {
-      setResult(undefined);
-      try {
-        const went = await api.findingsGoTo(finding.id);
-        if (went.outcome === 'refused') show(went.message, true);
-        else if (went.outcome === 'navigated') show(`Moved to ${noteTime(went.projectTime)} in ${dawName}.`);
-      } catch (error) {
-        show(`The DAW was not asked: ${apiErrorMessage(error)}`, true);
-      }
-    });
   const addMarker = () =>
     action.run('marker', async () => {
       setResult(undefined);
@@ -123,19 +110,16 @@ export function InspectorActions({
       }
     });
 
-  const reasons = [...new Set([gotoReason, markerReason].filter((reason): reason is string => Boolean(reason)))];
+  const reasons = [...new Set([noteReason, markerReason].filter((reason): reason is string => Boolean(reason)))];
 
   return (
     <div className="flex flex-col gap-2">
       <div role="group" aria-label="Actions" className="flex flex-wrap items-center gap-1">
         <HearIt finding={finding} api={api} dawName={dawName} capabilities={capabilities} capabilitiesFailed={capsFailed} inert={inert} onResult={setResult} />
-        <IconButton
-          action="showInReaper"
-          label={`Show in ${dawName}`}
+        <ShowInDawButton
+          target={{ kind: 'finding', id: finding.id, reason: noteReason }}
           disabled={inert}
-          disabledReason={gotoReason}
-          pending={action.isPending('goto')}
-          onClick={() => void showInDaw()}
+          onResult={({ message, failed }) => show(message, failed)}
         />
         <IconButton
           action="addMarker"

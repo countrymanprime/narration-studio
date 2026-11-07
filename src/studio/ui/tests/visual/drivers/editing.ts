@@ -292,6 +292,13 @@ export const editingDrivers: Record<string, Driver> = {
     await openTakes(page, LINKED);
     await expectPanelTextSize(page, 'Suggested take');
   },
+  // The opened takes scrolled to their footer, where Show in {DAW} sits beside the take actions (#2826).
+  'takes-footer': async (page) => {
+    await openTakes(page, LINKED);
+    const footer = page.locator('[data-takes] [data-takes-footer]').first();
+    await footer.scrollIntoViewIfNeeded();
+    await footer.getByRole('button', { name: /^Show in / }).waitFor();
+  },
   'suggestion-step': async (page) => {
     await openTakes(page, LINKED);
     await page.getByRole('button', { name: 'Normalise' }).first().click();

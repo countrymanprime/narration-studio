@@ -5,10 +5,18 @@ import { HEAR_LABEL, STOP_HEARING_LABEL } from './inspector/HearIt';
 import { TRIM_LABEL, trimmableGap } from './inspector/TrimGap';
 import { DECISIONS, press } from './useProofKeys';
 
-/** The DAW the Inspector's "Show in …" names: the menu says "Go to <DAW>" as the mock does. */
+/** The DAW the Inspector's "Show in …" names: the menu says the same "Show in <DAW>" (#2826). */
 const SHOW_IN = 'Show in ';
 const dawShown = (): string =>
   document.querySelector('aside[aria-label="Note"] button[aria-label^="Show in "]')?.getAttribute('aria-label')?.slice(SHOW_IN.length) ?? 'the DAW';
+
+/** Why the Inspector's Show in button is off, in its own words, or undefined while it is on (the menu entry is off for the same reason). */
+const dawOffReason = (): string | undefined => {
+  const button = document.querySelector('aside[aria-label="Note"] button[aria-label^="Show in "]');
+  if (button?.getAttribute('aria-disabled') !== 'true' && !(button as HTMLButtonElement | null)?.disabled) return undefined;
+  const reason = document.getElementById(button?.getAttribute('aria-describedby') ?? '')?.textContent;
+  return reason || 'The DAW cannot be shown this note now.';
+};
 
 /** A note's row in the notes table, or its pin on the waveform. */
 const NOTE = 'section[aria-label="Notes"] tr[data-row], [data-pin]';
@@ -53,7 +61,7 @@ export function useNoteContextMenu(menu: NoteMenu): void {
           { key: 'note-waive', label: DECISIONS.waive, onSelect: () => press(DECISIONS.waive) },
           { key: 'note-defer', label: 'Defer', onSelect: () => press(DECISIONS.defer) },
           { key: 'note-reopen', label: 'Reopen', unavailable: decided ? undefined : 'Not decided yet.', onSelect: () => press('Reopen') },
-          { key: 'note-goto', label: `Go to ${dawShown()}`, onSelect: () => press(SHOW_IN) },
+          { key: 'note-goto', label: `Show in ${dawShown()}`, unavailable: dawOffReason(), onSelect: () => press(SHOW_IN) },
           ...(trimmableGap(note) ? [{ key: 'note-trim', label: TRIM_LABEL, onSelect: () => press(TRIM_LABEL) }] : []),
           { key: 'note-script', label: 'Open this chapter in Script', unavailable: noChapter, onSelect: () => goToScript(chapterId) },
           { key: 'note-booth', label: 'Open this chapter in Booth', unavailable: noChapter, onSelect: () => goToBooth(chapterId) },

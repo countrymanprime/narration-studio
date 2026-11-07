@@ -1049,9 +1049,9 @@ describe('EditingPage', () => {
         expect(el).not.toBeNull();
         return el!;
       });
-      fireEvent.click(await within(footer).findByRole('button', { name: 'Show in the DAW' }));
+      fireEvent.click(await within(footer).findByRole('button', { name: /^Show in / }));
       await waitFor(() => expect(goTo).toHaveBeenCalledWith('c1', expect.any(Number)));
-      await waitFor(() => expect(toast).toHaveBeenCalledWith('Moved to 1:05 in the DAW.'));
+      await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.stringMatching(/^Moved to 1:05 in /)));
     });
 
     it("the Clean up tab starts with the chapter's retry bar", async () => {
