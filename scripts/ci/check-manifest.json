@@ -171,9 +171,6 @@
       "job": "linux-checks",
       "step": [
         "node scripts/brand/rehearse-rename.mjs"
-      ],
-      "job_has": [
-        "need-linux-native-deps: ${{ github.event_name != 'pull_request' }}"
       ]
     },
     {
