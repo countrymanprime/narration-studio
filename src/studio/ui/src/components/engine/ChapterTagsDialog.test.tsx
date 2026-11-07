@@ -160,4 +160,58 @@ describe('ChapterTagsDialog', () => {
       vi.useRealTimers();
     }
   });
+
+  // qa-breaker findings on the dialog.
+  it('gives up on a silent preview and offers Check again, which asks the host once more', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      const preview = vi.fn(() => new Promise<never>(() => {}));
+      renderDialog({ chapterTagsPreview: preview });
+      expect(preview).toHaveBeenCalledTimes(1);
+      await act(async () => void vi.advanceTimersByTime(16_000));
+      expect((await screen.findAllByRole('alert')).some((alert) => /did not answer/.test(alert.textContent ?? ''))).toBe(true);
+      await user.click(screen.getByRole('button', { name: 'Check again' }));
+      expect(preview).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('after the deadline a late success still shows the written path, and Embed is held while that call is outstanding', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      let answer: (result: { outputPath: string }) => void = () => {};
+      const embed = vi.fn(() => new Promise<{ outputPath: string }>((resolve) => (answer = resolve)));
+      renderDialog({ chapterTagsEmbed: embed }, { chapterTags: 'ready' });
+      await screen.findByText('Chapter 1');
+      await user.type(screen.getByLabelText('Combined book MP3 to add chapters to'), 'C:\\Books\\Alice.mp3');
+      await user.click(screen.getByText(/I understand this writes a new file/));
+      await user.click(screen.getByRole('button', { name: 'Embed chapter tags' }));
+      await act(async () => void vi.advanceTimersByTime(61_000));
+      await screen.findAllByRole('alert');
+      // A second press while the first call is still out would start a second write to the same file.
+      await user.click(screen.getByRole('button', { name: 'Embed chapter tags' }));
+      expect(embed).toHaveBeenCalledTimes(1);
+      await act(async () => answer({ outputPath: 'C:\\Books\\Alice.chapters.mp3' }));
+      expect(await screen.findByText(/Wrote C:\\Books\\Alice\.chapters\.mp3/)).toBeTruthy();
+      expect(screen.queryAllByRole('alert').some((alert) => /did not answer/.test(alert.textContent ?? ''))).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('clears the written path when the destination or the confirmation changes', async () => {
+    const user = userEvent.setup();
+    renderDialog({}, { chapterTags: 'ready' });
+    await screen.findByText('Chapter 1');
+    const path = screen.getByLabelText('Combined book MP3 to add chapters to');
+    await user.type(path, 'C:\\Books\\Alice.mp3');
+    await user.click(screen.getByText(/I understand this writes a new file/));
+    await user.click(screen.getByRole('button', { name: 'Embed chapter tags' }));
+    await screen.findByText(/^Wrote /);
+    await user.type(path, 'x');
+    expect(screen.queryByText(/^Wrote /)).toBeNull();
+  });
 });
