@@ -212,6 +212,11 @@ export const editingStates: StateEntry[] = [
   },
   {
     page: 'editing',
+    state: 'drawer-cleanup-levels',
+    description: 'Editing, the drawer on Clean up scrolled to Match levels… under the findings, the action the editing check panel has too (#2827)',
+  },
+  {
+    page: 'editing',
     state: 'drawer-cleanup-repair',
     description: 'Editing, the drawer on Clean up with Clicks chosen - Repair in REAPER beside Apply, its menu open on Repair with Cleanup tools',
     ...POPUP_ANCHORED_AT_FIRST_WIDTH,

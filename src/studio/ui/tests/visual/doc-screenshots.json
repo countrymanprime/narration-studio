@@ -1009,6 +1009,13 @@
   },
   {
     "page": "editing",
+    "state": "drawer-cleanup-levels",
+    "viewport": "desktop",
+    "docName": "editing-drawer-cleanup-levels",
+    "caption": "Editing - the drawer on Clean up scrolled to Match levels, under the findings"
+  },
+  {
+    "page": "editing",
     "state": "drawer-timeline",
     "viewport": "desktop",
     "docName": "editing-drawer-timeline",
