@@ -17,6 +17,7 @@ import { SelToolbar } from '../bar/SelToolbar';
 import { useAnnouncePlayback } from '../bar/useAnnouncePlayback';
 import { useScriptPlayback } from '../bar/useScriptPlayback';
 import { registerCleanupSection } from '../cleanup/registerCleanupSection';
+import { registerLevelsSection } from '../cleanup/registerLevelsSection';
 import { useCleanupDeps } from '../cleanup/useCleanupDeps';
 import { Drawer, flagTotal } from '../drawer/Drawer';
 import { DrawerLayout } from '../drawer/DrawerLayout';
@@ -411,6 +412,7 @@ export function EditingBody(props: EditingBodyProps) {
     () => registerCleanupSection({ journal, playback: previewPlayback, ...(cleanupDeps ? { deps: cleanupDeps } : {}) }),
     [journal, cleanupDeps, previewPlayback],
   );
+  useEffect(() => registerLevelsSection(), []);
   // What the inspector needs to change, bypass and compare an effect through the DAW and the history, and to hear its words through the
   // page's playback (stopped while the DAW plays a Compare).
   const { onEffects } = props;

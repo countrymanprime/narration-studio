@@ -308,6 +308,13 @@ export const editingDrivers: Record<string, Driver> = {
     await openDrawer(page);
     await page.getByRole('region', { name: 'Clean up findings' }).waitFor();
   },
+  // The drawer's Clean up tab scrolled to Match levels… (#2827), the one action the editing check panel has too.
+  'drawer-cleanup-levels': async (page) => {
+    await openDrawer(page);
+    const levels = page.getByRole('region', { name: 'Match levels' });
+    await levels.scrollIntoViewIfNeeded();
+    await levels.getByRole('button', { name: 'Match levels…' }).waitFor();
+  },
   // The Clicks list with Repair in REAPER beside Apply, its menu open (#2821).
   'drawer-cleanup-repair': async (page) => {
     await openDrawer(page);
