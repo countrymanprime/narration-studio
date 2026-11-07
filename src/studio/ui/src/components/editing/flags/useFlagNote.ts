@@ -6,11 +6,11 @@ import { findingsAt } from './findingLink';
 /**
  * The Proof note that names the flagged words (the one Accept dismisses, research note A2), read from the chapter's notes when the card opens: its id is
  * what a marker is put on, since a marker is the DAW's note of a finding (#2830). `undefined` while the notes are read, `null` when none names the
- * words or they could not be read.
+ * words, `'unreadable'` when they could not be read (not the same answer as none).
  */
-export function useFlagNote(doc: ChapterDoc, chapterId: string, keys: readonly string[]): string | null | undefined {
+export function useFlagNote(doc: ChapterDoc, chapterId: string, keys: readonly string[]): string | null | undefined | 'unreadable' {
   const findings = usePort('findings');
-  const [note, setNote] = useState<string | null | undefined>(undefined);
+  const [note, setNote] = useState<string | null | undefined | 'unreadable'>(undefined);
   const flagged = keys.join('|');
   useEffect(() => {
     let live = true;
@@ -21,7 +21,7 @@ export function useFlagNote(doc: ChapterDoc, chapterId: string, keys: readonly s
     }
     findings.findingsList({ chapterId }).then(
       (listed) => live && setNote(findingsAt(doc, chapterId, listed.findings, keys)[0]?.id ?? null),
-      () => live && setNote(null),
+      () => live && setNote('unreadable'),
     );
     return () => {
       live = false;

@@ -14,6 +14,7 @@ import { OverlayHost } from '../../overlay/OverlayHost';
 import type { NarrationApi } from '../../types';
 import { createMockDawClient } from '../../ports/daw';
 import { PortOverrides } from '../../ports/usePort';
+import { DawFileLinkedContext } from '../connection/dawFileLinked';
 import { TooltipProvider } from '../primitives/Tooltip';
 import * as checkRecordings from '../recordingcheck/openCheckRecordings';
 import { onPickupListChanged } from './pickupListChanged';
@@ -43,7 +44,9 @@ function renderPage(
         <StudioProvider journal={journal}>
           <TooltipProvider>
             <CommandRouter>
-              <PickupsPage hasManuscript dawFileLinked={dawFileLinked} goTo={goTo} goToScript={goToScript} />
+              <DawFileLinkedContext.Provider value={dawFileLinked}>
+                <PickupsPage hasManuscript goTo={goTo} goToScript={goToScript} />
+              </DawFileLinkedContext.Provider>
             </CommandRouter>
             <OverlayHost />
           </TooltipProvider>

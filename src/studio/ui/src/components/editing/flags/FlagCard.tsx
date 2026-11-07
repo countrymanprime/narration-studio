@@ -62,13 +62,15 @@ function FlagMarker({ doc, chapterId, keys }: { doc: ChapterDoc; chapterId: stri
   return (
     <AddMarkersButton
       size="sm"
-      target={{ kind: 'finding', id: note ?? '' }}
+      target={{ kind: 'finding', id: note && note !== 'unreadable' ? note : '' }}
       reason={
         note === undefined
           ? 'Reading the notes on Proof.'
-          : note === null
-            ? 'No note on Proof names these words, so there is nothing to put a marker on.'
-            : undefined
+          : note === 'unreadable'
+            ? 'Could not read the notes on Proof.'
+            : note === null
+              ? 'No note on Proof names these words, so there is nothing to put a marker on.'
+              : undefined
       }
     />
   );

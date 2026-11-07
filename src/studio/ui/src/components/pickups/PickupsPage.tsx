@@ -21,7 +21,7 @@ import { announcePickupListChanged } from './pickupListChanged';
 import { pickupToReturnTo, rememberPickupLeft, rememberSessionLeft } from './pickupReturn';
 import { usePlayOriginal } from './list/usePlayOriginal';
 import { PickupsTable, type PickupsRead, type RemoveUndo } from './list/PickupsTable';
-import { addMarkers as addMarkersFor } from '../engine/AddMarkers';
+import { addMarkers as addMarkersFor, useMarkersGate } from '../engine/AddMarkers';
 import { SessionPanel } from './list/SessionPanel';
 import { PAGE_COLUMN_CLASS } from '../primitives/pageColumn';
 import { usePickupsPageCommands } from './usePickupsPageCommands';
@@ -48,13 +48,10 @@ export function boothSessionPath(pickups: readonly PickupItem[]): string {
  */
 export function PickupsPage({
   hasManuscript,
-  dawFileLinked = true,
   goTo,
   goToScript,
 }: {
   hasManuscript: boolean;
-  /** Whether the project has a DAW project file linked: REAPER takes markers only into a linked file, which the top bar's badge asks for first. */
-  dawFileLinked?: boolean;
   goTo: (path: string) => void;
   goToScript: (chapterId: string) => void;
 }) {
@@ -70,13 +67,9 @@ export function PickupsPage({
     (sentence) => overlay.toast(sentence),
   );
   const review = useCapability('review');
-  const markersCapability = useCapability('markers');
   const dawKind = useDawKind();
-  /* One reason for both messages: the badge says "link a project file", so the button says that too, before the bridge's "not connected". */
-  const markers: { available: boolean; message?: string } =
-    dawKind === 'REAPER' && !dawFileLinked
-      ? { available: false, message: 'Link a REAPER project (.rpp) file to add markers.' }
-      : { available: markersCapability.available, message: markersCapability.message };
+  /* One answer for the button, the jump menu and every other page's Add marker: the DAW's capability and, for REAPER, a linked project file (#2830, #1939). */
+  const markers = useMarkersGate();
   const [chapters, setChapters] = useState<ChapterRef[]>([]);
   const [list, setList] = useState<PickupList>({ pickups: [], leftOut: [] });
   const [read, setRead] = useState<PickupsRead>({ kind: 'loading' });

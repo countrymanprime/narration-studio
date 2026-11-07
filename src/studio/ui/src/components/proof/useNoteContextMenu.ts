@@ -1,6 +1,7 @@
 import { useMemo, useRef } from 'react';
 import { addMarkersLabel } from '../engine/AddMarkers';
 import type { Finding } from '../../api/contracts/findings';
+import { overlay } from '../../overlay/overlayService';
 import { useContextProvider } from '../../registries/context';
 import { HEAR_LABEL, STOP_HEARING_LABEL } from './inspector/HearIt';
 import { TRIM_LABEL, trimmableGap } from './inspector/TrimGap';
@@ -19,6 +20,17 @@ const offReason = (prefix: string): string | undefined => {
   if (button?.getAttribute('aria-disabled') !== 'true' && !button?.disabled) return undefined;
   const reason = document.getElementById(button?.getAttribute('aria-describedby') ?? '')?.textContent;
   return reason || 'The DAW cannot do this for this note now.';
+};
+
+/**
+ * Presses the Inspector's button; when it is off or missing at the moment of the pick, says why instead of doing nothing. The entries are not gated when the menu
+ * opens: the Inspector still shows the note selected before this right click until it re-renders, so its buttons say nothing about this note yet
+ * (qa-breaker, #2830). At the pick the Inspector is on the note.
+ */
+const pressOrSay = (prefix: string): void => {
+  const reason = inspectorButton(prefix) ? offReason(prefix) : 'The note’s panel is not open, so the DAW cannot be asked about it.';
+  if (reason) overlay.toast(reason, { tone: 'error' });
+  else press(prefix);
 };
 
 /** A note's row in the notes table, or its pin on the waveform. */
@@ -64,12 +76,15 @@ export function useNoteContextMenu(menu: NoteMenu): void {
           { key: 'note-waive', label: DECISIONS.waive, onSelect: () => press(DECISIONS.waive) },
           { key: 'note-defer', label: 'Defer', onSelect: () => press(DECISIONS.defer) },
           { key: 'note-reopen', label: 'Reopen', unavailable: decided ? undefined : 'Not decided yet.', onSelect: () => press('Reopen') },
-          { key: 'note-goto', label: `Show in ${dawShown(SHOW_IN)}`, unavailable: offReason(SHOW_IN), onSelect: () => press(SHOW_IN) },
+          {
+            key: 'note-goto',
+            label: `Show in ${dawShown(SHOW_IN)}`,
+            onSelect: () => pressOrSay(SHOW_IN),
+          },
           {
             key: 'note-marker',
             label: addMarkersLabel(dawShown(ADD_MARKER), { kind: 'finding', id: note.id }),
-            unavailable: offReason(ADD_MARKER),
-            onSelect: () => press(ADD_MARKER),
+            onSelect: () => pressOrSay(ADD_MARKER),
           },
           ...(trimmableGap(note) ? [{ key: 'note-trim', label: TRIM_LABEL, onSelect: () => press(TRIM_LABEL) }] : []),
           { key: 'note-script', label: 'Open this chapter in Script', unavailable: noChapter, onSelect: () => goToScript(chapterId) },

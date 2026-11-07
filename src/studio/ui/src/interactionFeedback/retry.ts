@@ -173,6 +173,7 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/engine/ChapterSyncPanel.tsx#2': no(ED),
   'src/components/engine/ChapterSyncPanel.tsx#3': no(ED),
   'src/components/engine/AddMarkers.tsx#1': no(BT),
+  'src/components/proof/useNoteContextMenu.ts#1': no(BT),
   'src/components/engine/ShowInDaw.tsx#1': no(BT),
   'src/components/engine/ChapterLinksTable.tsx#1': no(RF),
   'src/components/engine/ChapterLinksTable.tsx#2': no(

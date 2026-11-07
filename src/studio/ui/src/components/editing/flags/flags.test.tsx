@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import axe from 'axe-core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
@@ -371,5 +372,17 @@ describe('Add marker on the card (#2830)', () => {
     await waitFor(() => expect(button.getAttribute('aria-disabled')).toBe('true'));
     fireEvent.click(button);
     expect(addMarker).not.toHaveBeenCalled();
+  });
+
+  // qa-breaker (#2830): a failed read of the notes is not the same answer as "no note names these words".
+  it('says the notes could not be read when they could not, not that none names the words', async () => {
+    const api = createMockApi();
+    vi.spyOn(api, 'findingsList').mockRejectedValue(new Error('The findings could not be read.'));
+    card({ flag: firstOf(doc, 'mis').key }, doc, api);
+    const button = await screen.findByRole('button', { name: 'Add marker in REAPER' });
+    await waitFor(() => expect(button.getAttribute('aria-disabled')).toBe('true'));
+    await userEvent.hover(button);
+    expect(await screen.findByText('Could not read the notes on Proof.')).toBeTruthy();
+    expect(screen.queryByText(/No note on Proof names these words/)).toBeNull();
   });
 });
