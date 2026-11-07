@@ -1043,7 +1043,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     // host rejects an empty choice or colour ("unsupported value for chunk_seconds"), so only the edited field may go.
     fireEvent.click(within(compare).getByRole('button', { name: 'This project' }));
     await waitFor(() => expect(within(compare).getByRole('button', { name: 'This project' }).getAttribute('aria-pressed')).toBe('true'));
-    fireEvent.change(await within(compare).findByRole('combobox', { name: 'Default chunk length' }), { target: { value: '600' } });
+    fireEvent.change(await within(compare).findByRole('combobox', { name: 'Compare chunk length' }), { target: { value: '600' } });
     fireEvent.click(within(compare).getByRole('button', { name: 'Save' }));
 
     await waitFor(() => expect(saveSettings).toHaveBeenCalledTimes(1));
@@ -1071,7 +1071,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     await waitFor(() => screen.getByRole('heading', { level: 1, name: 'Production' }));
     const compare = await openKeptPanel('ps.compare', 'Compare defaults');
 
-    const chunk = await within(compare).findByRole('combobox', { name: 'Default chunk length' });
+    const chunk = await within(compare).findByRole('combobox', { name: 'Compare chunk length' });
     fireEvent.change(chunk, { target: { value: '600' } });
     fireEvent.change(chunk, { target: { value: '60' } });
     expect(within(compare).getByText('Unsaved changes')).toBeTruthy();
@@ -1091,7 +1091,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     // not pin that value in the project, or a later change to the Global default would no longer reach it.
     fireEvent.click(within(compare).getByRole('button', { name: 'This project' }));
     await waitFor(() => expect(within(compare).getByRole('button', { name: 'This project' }).getAttribute('aria-pressed')).toBe('true'));
-    const chunk = await within(compare).findByRole('combobox', { name: 'Default chunk length' });
+    const chunk = await within(compare).findByRole('combobox', { name: 'Compare chunk length' });
     fireEvent.change(chunk, { target: { value: '600' } });
     fireEvent.change(chunk, { target: { value: '60' } });
     fireEvent.click(within(compare).getByRole('button', { name: 'Save' }));

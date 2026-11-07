@@ -52,7 +52,10 @@ const exportPlanItemSchema = z.object({
 const exportPlanTrackSchema = z.object({
   name: z.string(),
   master: z.boolean(),
-  fx: listFromNull(z.object({ name: z.string(), enabled: z.boolean() }) satisfies z.ZodType<ExportPlanFX>),
+  mute: z.boolean(),
+  solo: z.number().int(),
+  mix: z.string(),
+  fx: listFromNull(z.object({ name: z.string(), enabled: z.boolean(), params: z.string() }) satisfies z.ZodType<ExportPlanFX>),
 }) satisfies z.ZodType<ExportPlanTrack>;
 
 export const exportPlanSchema = z.object({

@@ -66,43 +66,187 @@ end
 
 -- master_chain_read ------------------------------------------------------------------------------------------------
 
-H.test('master_chain_read lists every track with FX, then the master, with each slot on or off', function()
+-- The fingerprints below were computed outside Lua (scratch Python mirroring the algorithm): "<count>:<a>:<b>", two polynomial
+-- hashes over each value's token and a ';'. A token is the value to six decimals ('%.6f', -0 as 0), or 'nan', 'inf', '-inf', or
+-- 'n' for a missing or non-number answer, so no two of those collide and a large value never wraps. An FX's is over its offline
+-- state and then its normalized parameters; a track's mix is over D_VOL, D_PAN, B_PHASE, B_MAINSEND, I_FOLDERDEPTH, I_FXEN,
+-- I_PANMODE, D_PANLAW, D_WIDTH, D_DUALPANL, D_DUALPANR and I_NCHAN, then its sends and its receives, each with mute, phase,
+-- mono, volume, pan, mode and channels (#2995). The literals pin the algorithm, so a change to it is a change the host's digest
+-- sees.
+local NO_PARAMS = '1:912281302:1180657038' -- online, no parameters
+local EQ_PARAMS = '3:45416079:345875843' -- online, { 0.5, 0.25 }
+local EQ_PARAMS_MOVED = '3:2117683731:1362960462' -- online, { 0.5, 0.26 }
+local EQ_OFFLINE = '3:1076015632:1492863399' -- offline, { 0.5, 0.25 }
+local DEFAULT_MIX = '14:901518076:553555570' -- unity, centre, the default pan mode and law, stereo, FX on, no sends or receives
+local QUIETER_MIX = '14:424772828:127370515' -- the same at half volume
+local FX_OFF_MIX = '14:888714186:288596514' -- the default with the track's FX chain switched off (I_FXEN 0)
+local SENDING_MIX = '22:955495191:887128309' -- the default, with one send at unity
+local RECEIVING_MIX = '22:974159987:443539302' -- the default, with that send as its one receive
+local NIL_MAINSEND_MIX = '14:1787110357:1166252907' -- the default, with B_MAINSEND answering nil
+-- 2147.483647 is the old modulo's period: it must not collide with 0, nor NaN with 2147.483646 (lua review, L3).
+local COLLIDING = {
+  { 0 / 0, '2:1691458664:1638330890' },
+  { 2147.483646, '2:1010942015:325426705' },
+  { 0.0, '2:1123506415:976916890' },
+  { 2147.483647, '2:1010942146:325426842' },
+  { math.huge, '2:1680440254:1625717026' },
+  { -math.huge, '2:593117722:1858032743' },
+}
+
+H.test('master_chain_read lists every track and then the master, each with its mute, solo and mix, and each slot with its parameters', function()
   local s = new_session()
   local voice = s.fake:add_track('Voice')
-  voice.fx = { { name = 'VST: ReaEQ (Cockos)' }, { name = 'VST: ReaComp (Cockos)', enabled = false } }
-  s.fake:add_track('Room tone')
+  voice.fx = { { name = 'VST: ReaEQ (Cockos)', params = { 0.5, 0.25 } }, { name = 'VST: ReaComp (Cockos)', enabled = false } }
+  local room = s.fake:add_track('Room tone')
   s.fake.master.fx = { { name = 'VST: ReaLimit (Cockos)' } }
   s:send('master_chain_read', 'c1')
   H.eq(s:events(), {
-    { 'MASTER_CHAIN_FX', 'c1', voice.guid, 'Voice', 'VST: ReaEQ (Cockos)', '1' },
-    { 'MASTER_CHAIN_FX', 'c1', voice.guid, 'Voice', 'VST: ReaComp (Cockos)', '0' },
-    { 'MASTER_CHAIN_FX', 'c1', 'master', 'MASTER', 'VST: ReaLimit (Cockos)', '1' },
-    { 'MASTER_CHAIN_READ', 'c1', '3', '0' },
+    { 'MASTER_CHAIN_TRACK', 'c1', voice.guid, 'Voice', '0', '0', DEFAULT_MIX },
+    { 'MASTER_CHAIN_FX', 'c1', voice.guid, 'Voice', 'VST: ReaEQ (Cockos)', '1', EQ_PARAMS },
+    { 'MASTER_CHAIN_FX', 'c1', voice.guid, 'Voice', 'VST: ReaComp (Cockos)', '0', NO_PARAMS },
+    { 'MASTER_CHAIN_TRACK', 'c1', room.guid, 'Room tone', '0', '0', DEFAULT_MIX },
+    { 'MASTER_CHAIN_TRACK', 'c1', 'master', 'MASTER', '0', '0', DEFAULT_MIX },
+    { 'MASTER_CHAIN_FX', 'c1', 'master', 'MASTER', 'VST: ReaLimit (Cockos)', '1', NO_PARAMS },
+    { 'MASTER_CHAIN_READ', 'c1', '3', '0', '3' },
   })
 end)
 
-H.test('master_chain_read answers an empty chain for a project with no FX', function()
+H.test('master_chain_read lists the tracks and the master of a project with no FX', function()
   local s = new_session()
-  s.fake:add_track('Voice')
+  local voice = s.fake:add_track('Voice')
   s:send('master_chain_read', 'c1')
-  H.eq(s:events(), { { 'MASTER_CHAIN_READ', 'c1', '0', '0' } })
+  H.eq(s:events(), {
+    { 'MASTER_CHAIN_TRACK', 'c1', voice.guid, 'Voice', '0', '0', DEFAULT_MIX },
+    { 'MASTER_CHAIN_TRACK', 'c1', 'master', 'MASTER', '0', '0', DEFAULT_MIX },
+    { 'MASTER_CHAIN_READ', 'c1', '0', '0', '2' },
+  })
+end)
+
+local function line(events, tag, guid, name)
+  for _, event in ipairs(events) do
+    if event[1] == tag and event[3] == guid and (name == nil or event[5] == name) then
+      return event
+    end
+  end
+end
+
+H.test('master_chain_read answers the same parameters twice, and other ones once one parameter moves', function()
+  local s = new_session()
+  local voice = s.fake:add_track('Voice')
+  voice.fx = { { name = 'VST: ReaEQ (Cockos)', params = { 0.5, 0.25 } } }
+  s:send('master_chain_read', 'c1')
+  s:send('master_chain_read', 'c2')
+  voice.fx[1].params[2] = 0.26
+  s:send('master_chain_read', 'c3')
+  local by_run = {}
+  for _, event in ipairs(s:events()) do
+    if event[1] == 'MASTER_CHAIN_FX' then
+      by_run[event[2]] = event[7]
+    end
+  end
+  H.eq(by_run, { c1 = EQ_PARAMS, c2 = EQ_PARAMS, c3 = EQ_PARAMS_MOVED })
+end)
+
+H.test("master_chain_read folds an FX's offline state into its parameters", function()
+  local s = new_session()
+  local voice = s.fake:add_track('Voice')
+  voice.fx = { { name = 'VST: ReaEQ (Cockos)', params = { 0.5, 0.25 }, offline = true } }
+  s:send('master_chain_read', 'c1')
+  H.eq(line(s:events(), 'MASTER_CHAIN_FX', voice.guid)[7], EQ_OFFLINE)
+end)
+
+H.test("master_chain_read answers each track's mute and solo, and its mix moves with its volume and its FX switch", function()
+  local s = new_session()
+  local voice = s.fake:add_track('Voice')
+  voice.muted = true
+  voice.solo = 2
+  local quiet = s.fake:add_track('Quiet')
+  quiet.volume = 0.5
+  local bypassed = s.fake:add_track('Bypassed')
+  bypassed.fx_enabled = false
+  s:send('master_chain_read', 'c1')
+  local events = s:events()
+  H.eq(line(events, 'MASTER_CHAIN_TRACK', voice.guid), { 'MASTER_CHAIN_TRACK', 'c1', voice.guid, 'Voice', '1', '2', DEFAULT_MIX })
+  H.eq(line(events, 'MASTER_CHAIN_TRACK', quiet.guid), { 'MASTER_CHAIN_TRACK', 'c1', quiet.guid, 'Quiet', '0', '0', QUIETER_MIX })
+  H.eq(line(events, 'MASTER_CHAIN_TRACK', bypassed.guid)[7], FX_OFF_MIX, "the track's whole FX chain switched off")
+end)
+
+H.test('master_chain_read moves a mix with each value it binds', function()
+  local defaults = {}
+  for _, key in ipairs({
+    'D_VOL',
+    'D_PAN',
+    'B_PHASE',
+    'B_MAINSEND',
+    'I_FOLDERDEPTH',
+    'I_FXEN',
+    'I_PANMODE',
+    'D_PANLAW',
+    'D_WIDTH',
+    'D_DUALPANL',
+    'D_DUALPANR',
+    'I_NCHAN',
+  }) do
+    local s = new_session()
+    local voice = s.fake:add_track('Voice')
+    voice.values = { [key] = 0.75 }
+    s:send('master_chain_read', 'c1')
+    local mix = line(s:events(), 'MASTER_CHAIN_TRACK', voice.guid)[7]
+    H.truthy(mix ~= DEFAULT_MIX, key .. ' is bound')
+    H.truthy(defaults[mix] == nil, key .. ' moves the mix differently from ' .. tostring(defaults[mix]))
+    defaults[mix] = key
+  end
+end)
+
+H.test('master_chain_read folds a send into the mix of the track that sends it and of the track that receives it', function()
+  local s = new_session()
+  local voice = s.fake:add_track('Voice')
+  local bus = s.fake:add_track('Reverb bus')
+  s.fake:add_send(voice, bus)
+  s:send('master_chain_read', 'c1')
+  local events = s:events()
+  H.eq(line(events, 'MASTER_CHAIN_TRACK', voice.guid)[7], SENDING_MIX)
+  H.eq(line(events, 'MASTER_CHAIN_TRACK', bus.guid)[7], RECEIVING_MIX)
+end)
+
+H.test('master_chain_read gives NaN, the infinities and values a modulo would wrap fingerprints of their own', function()
+  for _, case in ipairs(COLLIDING) do
+    local s = new_session()
+    local voice = s.fake:add_track('Voice')
+    voice.fx = { { name = 'JS: Odd', params = { case[1] } } }
+    s:send('master_chain_read', 'c1')
+    H.eq(line(s:events(), 'MASTER_CHAIN_FX', voice.guid)[7], case[2], tostring(case[1]))
+  end
+end)
+
+H.test('master_chain_read reads a value REAPER answers as nil without failing', function()
+  local s = new_session()
+  s.fake.master.values = { B_MAINSEND = 'nil' }
+  s:send('master_chain_read', 'c1')
+  local events = s:events()
+  H.eq(line(events, 'MASTER_CHAIN_TRACK', 'master')[7], NIL_MAINSEND_MIX)
+  H.eq(events[#events], { 'MASTER_CHAIN_READ', 'c1', '0', '0', '1' })
 end)
 
 H.test('master_chain_read reads and changes nothing', function()
   local s = new_session()
   local voice = s.fake:add_track('Voice')
-  voice.fx = { { name = 'VST: ReaEQ (Cockos)' } }
+  voice.fx = { { name = 'VST: ReaEQ (Cockos)', params = { 0.5 } } }
+  s.fake:add_send(voice, s.fake:add_track('Bus'))
   s:send('master_chain_read', 'c1')
   H.eq(#s.fake.undo, 0, 'no undo point')
   H.eq(render_triggers(s), 0, 'no action run')
   for _, call in ipairs(s.fake.calls) do
     H.truthy(not call.set, 'no project setting written: ' .. tostring(call.key))
     H.truthy(call.name ~= 'TrackFX_AddByName', 'no FX added')
+    H.truthy(call.name ~= 'SetMediaTrackInfo_Value', 'no track value written: ' .. tostring(call.key))
+    H.truthy(call.name ~= 'SetTrackSendInfo_Value', 'no send written')
   end
   H.eq(#voice.fx, 1)
+  H.eq(voice.fx[1].params, { 0.5 })
 end)
 
-H.test('master_chain_read stops listing at its cap and says the list was cut short', function()
+H.test('master_chain_read stops listing FX at its cap and says the list was cut short', function()
   local s = new_session()
   local voice = s.fake:add_track('Voice')
   voice.fx = {}
@@ -111,8 +255,108 @@ H.test('master_chain_read stops listing at its cap and says the list was cut sho
   end
   s:send('master_chain_read', 'c1')
   local events = s:events()
-  H.eq(#events, 501)
-  H.eq(events[#events], { 'MASTER_CHAIN_READ', 'c1', '500', '1' })
+  H.eq(#events, 503, 'the voice track, 500 FX, the master track and the close')
+  H.eq(events[#events], { 'MASTER_CHAIN_READ', 'c1', '500', '1', '2' })
+end)
+
+H.test('master_chain_read stops listing tracks at its cap and says the list was cut short', function()
+  local s = new_session()
+  for index = 1, 501 do
+    s.fake:add_track('Track ' .. index)
+  end
+  s:send('master_chain_read', 'c1')
+  local events = s:events()
+  H.eq(#events, 501, '500 tracks and the close: the master is past the cap')
+  H.eq(events[#events], { 'MASTER_CHAIN_READ', 'c1', '0', '1', '500' })
+end)
+
+-- Every parameter and every send or receive field read counts against one budget for the whole read (50000 values), so 500 FX
+-- with thousands of parameters cannot hold REAPER's defer loop. Past it the read is refused (truncated 2), never cut short with
+-- the rest unbound (lua review, L1). A send costs 16: its 8 fields read from the sending track and again from the receiving one.
+local function many(count)
+  local values = {}
+  for index = 1, count do
+    values[index] = (index % 100) / 100
+  end
+  return values
+end
+
+H.test('master_chain_read reads every setting up to its budget', function()
+  local s = new_session()
+  local voice = s.fake:add_track('Voice')
+  voice.fx = { { name = 'VST: Big', params = many(49984) } }
+  s.fake:add_send(voice, s.fake:add_track('Bus'))
+  s:send('master_chain_read', 'c1')
+  local events = s:events()
+  H.truthy(line(events, 'MASTER_CHAIN_FX', voice.guid) ~= nil, 'the FX is listed')
+  H.eq(events[#events], { 'MASTER_CHAIN_READ', 'c1', '1', '0', '3' })
+end)
+
+H.test('master_chain_read refuses a read past its settings budget', function()
+  for _, case in ipairs({
+    { label = 'parameters', params = 50001, sends = 0 },
+    { label = 'a send past the budget', params = 49985, sends = 1 },
+  }) do
+    local s = new_session()
+    local voice = s.fake:add_track('Voice')
+    voice.fx = { { name = 'VST: Big', params = many(case.params) } }
+    if case.sends > 0 then
+      s.fake:add_send(voice, s.fake:add_track('Bus'))
+    end
+    s:send('master_chain_read', 'c1')
+    local events = s:events()
+    local close = events[#events]
+    H.eq({ close[1], close[4] }, { 'MASTER_CHAIN_READ', '2' }, case.label .. ': refused as too many settings')
+    for _, event in ipairs(events) do
+      H.truthy(event[5] ~= 'VST: Big' or case.sends > 0, case.label .. ': the FX past the budget is not listed')
+    end
+  end
+end)
+
+-- A count below zero spends nothing: it never gives the budget back for a later FX to use (#3017 review round 2).
+H.test('master_chain_read does not let a negative count refill its settings budget', function()
+  local s = new_session()
+  local voice = s.fake:add_track('Voice')
+  voice.fx = { { name = 'VST: Odd', params = {}, num_params = -100000 }, { name = 'VST: Big', params = many(50001) } }
+  s:send('master_chain_read', 'c1')
+  local events = s:events()
+  local close = events[#events]
+  H.eq({ close[1], close[4] }, { 'MASTER_CHAIN_READ', '2' }, 'refused as too many settings')
+end)
+
+-- A NaN count spends nothing and leaves the budget a number, so a later FX past it is still refused (#3017 qa round 2, B5).
+H.test('master_chain_read does not let a NaN count switch off its settings budget', function()
+  local s = new_session()
+  local voice = s.fake:add_track('Voice')
+  voice.fx = { { name = 'VST: Odd', params = {}, num_params = 0 / 0 }, { name = 'VST: Big', params = many(50001) } }
+  s:send('master_chain_read', 'c1')
+  local events = s:events()
+  local close = events[#events]
+  H.eq({ close[1], close[4] }, { 'MASTER_CHAIN_READ', '2' }, 'refused as too many settings')
+end)
+
+-- A value too large to count in millionths is written to its 17 significant digits, not as hundreds of digits in %.6f, so a
+-- budget of out-of-range values reads as quickly as ordinary ones and two of them still differ (#3017 qa round 2, B6).
+H.test('master_chain_read stays quick for out-of-range parameter values', function()
+  local huge = {}
+  for index = 1, 50000 do
+    huge[index] = 1.7e308
+  end
+  local s = new_session()
+  local voice = s.fake:add_track('Voice')
+  voice.fx = { { name = 'VST: Huge', params = huge } }
+  s:send('master_chain_read', 'c1')
+  local events = s:events()
+  H.eq({ events[#events][1], events[#events][4] }, { 'MASTER_CHAIN_READ', '0' }, 'the read closes whole')
+  local prints = {}
+  for _, value in ipairs({ 1e20, 1e20 + 16384, 1e300 }) do
+    local each = new_session()
+    local track = each.fake:add_track('Voice')
+    track.fx = { { name = 'JS: Odd', params = { value } } }
+    each:send('master_chain_read', 'c1')
+    prints[#prints + 1] = line(each:events(), 'MASTER_CHAIN_FX', track.guid)[7]
+  end
+  H.truthy(prints[1] ~= prints[2] and prints[2] ~= prints[3] and prints[1] ~= prints[3], 'large values keep fingerprints of their own')
 end)
 
 H.test('master_chain_read needs the track FX API', function()
@@ -120,6 +364,23 @@ H.test('master_chain_read needs the track FX API', function()
   s.fake:remove_api('TrackFX_GetFXName')
   s:send('master_chain_read', 'c1')
   H.eq(s:events(), { { 'ERROR', 'c1', 'This REAPER version cannot list FX.' } })
+end)
+
+H.test('master_chain_read needs every call it reads with', function()
+  for _, name in ipairs({
+    'TrackFX_GetFXName',
+    'TrackFX_GetEnabled',
+    'TrackFX_GetOffline',
+    'TrackFX_GetNumParams',
+    'TrackFX_GetParamNormalized',
+    'GetTrackNumSends',
+    'GetTrackSendInfo_Value',
+  }) do
+    local s = new_session()
+    s.fake:remove_api(name)
+    s:send('master_chain_read', 'c1')
+    H.eq(s:events(), { { 'ERROR', 'c1', 'This REAPER version cannot list FX.' } }, name)
+  end
 end)
 
 -- render_with_fx: the render -----------------------------------------------------------------------------------------

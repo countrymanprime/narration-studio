@@ -2,7 +2,9 @@
 -- master_chain_read and render_with_fx.
 --
 -- master_chain_read lists the FX a render with FX runs, every track's and then the master track's, so the app can show
--- the narrator the chain before they approve a render. It reads and changes nothing.
+-- the narrator the chain before they approve a render. It reads and changes nothing. Beside each track it answers the track's
+-- mute, solo and a fingerprint of its mix and routing, and beside each FX a fingerprint of its parameters, so an approval binds
+-- those too and a render refuses a chain whose settings moved (#2995).
 --
 -- render_with_fx is the bridge's one render. narration_render.lua only configures a render and never triggers one; this
 -- file does trigger one, and only on these conditions (threat-model row 5o):
@@ -25,7 +27,7 @@ local event = core.event
 local RENDER_ACTION = 42230
 local RENDER_BOUNDS_CUSTOM = 0 -- RENDER_BOUNDSFLAG: custom time bounds, RENDER_STARTPOS to RENDER_ENDPOS.
 local RENDER_MASTER_MIX = 0 -- RENDER_SETTINGS: the master mix, not stems.
-local MASTER_CHAIN_LIMIT = 500 -- The most FX slots master_chain_read lists.
+local MASTER_CHAIN_LIMIT = 500 -- The most FX slots master_chain_read lists, and the most tracks.
 local REGION_LIMIT = 100 -- The most regions one render_with_fx renders.
 
 local NUMBER_KEYS = { 'RENDER_BOUNDSFLAG', 'RENDER_STARTPOS', 'RENDER_ENDPOS', 'RENDER_SETTINGS', 'RENDER_ADDTOPROJ' }
@@ -42,20 +44,165 @@ end
 
 -- master_chain_read ------------------------------------------------------------------------------------------------
 
-local function master_chain_read(session_dir, run_id)
-  if not reaper.APIExists('TrackFX_GetFXName') or not reaper.APIExists('TrackFX_GetEnabled') then
-    event(session_dir, 'ERROR', run_id, 'This REAPER version cannot list FX.')
-    return
+local CHAIN_API = {
+  'TrackFX_GetFXName',
+  'TrackFX_GetEnabled',
+  'TrackFX_GetOffline',
+  'TrackFX_GetNumParams',
+  'TrackFX_GetParamNormalized',
+  'GetTrackNumSends',
+  'GetTrackSendInfo_Value',
+}
+-- Two polynomial hashes, each modulo a prime under 2^31, so every product stays well inside Lua 5.4's 64-bit integers (no bit
+-- operators: the shared subset).
+local HASH_A, HASH_B = 2147483647, 2147483629
+local SEPARATOR = string.byte(';')
+-- A track's own mix values (its FX switch, volume, pan and routing), then the same fields for each of its sends and each of its
+-- receives (#2995).
+local TRACK_MIX = {
+  'D_VOL',
+  'D_PAN',
+  'B_PHASE',
+  'B_MAINSEND',
+  'I_FOLDERDEPTH',
+  'I_FXEN',
+  'I_PANMODE',
+  'D_PANLAW',
+  'D_WIDTH',
+  'D_DUALPANL',
+  'D_DUALPANR',
+  'I_NCHAN',
+}
+local ROUTE_MIX = { 'B_MUTE', 'B_PHASE', 'B_MONO', 'D_VOL', 'D_PAN', 'I_SENDMODE', 'I_SRCCHAN', 'I_DSTCHAN' }
+local SENDS, RECEIVES = 0, -1
+-- The most parameters and send or receive fields one read takes in all, so a project of 500 FX with thousands of parameters each
+-- cannot hold REAPER's defer loop; past it the read is refused, never cut short with the rest unbound (#2995).
+local SETTINGS_LIMIT = 50000
+local TOO_MANY_SETTINGS = 2 -- MASTER_CHAIN_READ's truncated: the settings budget ran out.
+
+-- A value as one token: to six decimals, so a move smaller than a millionth is not seen and a large value never wraps, or to 17
+-- significant digits from 1e15; NaN and the infinities by name; anything that is not a number, nil included, as 'n'.
+local function token(value)
+  value = tonumber(value)
+  if value == nil then
+    return 'n'
+  elseif value ~= value then
+    return 'nan'
+  elseif value == math.huge then
+    return 'inf'
+  elseif value == -math.huge then
+    return '-inf'
   end
-  local listed, truncated = 0, false
+  -- From 1e15 a double's step is past a millionth, and %.6f would write hundreds of digits (1e300): its 17 significant digits are
+  -- exact and short, and with no decimal point never match a %.6f token (#3017 qa round 2, B6).
+  if value >= 1e15 or value <= -1e15 then
+    return string.format('%.17g', value)
+  end
+  local text = string.format('%.6f', value)
+  if text == '-0.000000' then
+    return '0.000000'
+  end
+  return text
+end
+
+-- "<count>:<a>:<b>" over the values' tokens in order, each followed by ';'. The host binds it as text and does not recompute it;
+-- the harness pins its digits.
+local function fingerprint(values)
+  local a, b = 7, 11
+  for _, value in ipairs(values) do
+    local text = token(value)
+    for index = 1, #text + 1 do
+      local byte = string.byte(text, index) or SEPARATOR
+      a = (a * 131 + byte + 1) % HASH_A
+      b = (b * 137 + byte + 1) % HASH_B
+    end
+  end
+  return string.format('%d:%d:%d', #values, a, b)
+end
+
+-- Appends one answer to a fingerprint's values; nil (a value REAPER does not have) is kept as false, which token answers 'n'.
+local function add(values, value)
+  if value == nil then
+    value = false
+  end
+  values[#values + 1] = value
+end
+
+local function master_chain_read(session_dir, run_id)
+  for _, name in ipairs(CHAIN_API) do
+    if not reaper.APIExists(name) then
+      event(session_dir, 'ERROR', run_id, 'This REAPER version cannot list FX.')
+      return
+    end
+  end
+  local listed, tracks, truncated, settings = 0, 0, 0, 0
+  -- Takes `count` values from the budget; false once the budget is spent, which refuses the read.
+  local function spend(count)
+    if settings + count > SETTINGS_LIMIT then
+      truncated = TOO_MANY_SETTINGS
+      return false
+    end
+    settings = settings + count
+    return true
+  end
+  local function fx_params(track, fx)
+    local count = math.max(0, math.floor(tonumber(reaper.TrackFX_GetNumParams(track, fx)) or 0))
+    if not spend(count) then
+      return nil
+    end
+    local values = { reaper.TrackFX_GetOffline(track, fx) and 1 or 0 }
+    for param = 0, count - 1 do
+      add(values, reaper.TrackFX_GetParamNormalized(track, fx, param))
+    end
+    return fingerprint(values)
+  end
+  local function track_mix(track)
+    local values = {}
+    for _, key in ipairs(TRACK_MIX) do
+      add(values, reaper.GetMediaTrackInfo_Value(track, key))
+    end
+    for _, category in ipairs({ SENDS, RECEIVES }) do
+      local count = math.max(0, math.floor(tonumber(reaper.GetTrackNumSends(track, category)) or 0))
+      if not spend(count * #ROUTE_MIX) then
+        return nil
+      end
+      values[#values + 1] = count
+      for index = 0, count - 1 do
+        for _, key in ipairs(ROUTE_MIX) do
+          add(values, reaper.GetTrackSendInfo_Value(track, category, index, key))
+        end
+      end
+    end
+    return fingerprint(values)
+  end
   local function list(track, guid, name)
+    if truncated == TOO_MANY_SETTINGS then
+      return
+    end
+    if tracks >= MASTER_CHAIN_LIMIT then
+      truncated = 1
+      return
+    end
+    local mix = track_mix(track)
+    if not mix then
+      return
+    end
+    local mute = reaper.GetMediaTrackInfo_Value(track, 'B_MUTE') == 1 and 1 or 0
+    local solo = math.floor(tonumber(reaper.GetMediaTrackInfo_Value(track, 'I_SOLO')) or 0)
+    event(session_dir, 'MASTER_CHAIN_TRACK', run_id, guid, name, mute, solo, mix)
+    tracks = tracks + 1
     for fx = 0, reaper.TrackFX_GetCount(track) - 1 do
       if listed >= MASTER_CHAIN_LIMIT then
-        truncated = true
+        truncated = 1
         return
       end
       local _, fx_name = reaper.TrackFX_GetFXName(track, fx, '')
-      event(session_dir, 'MASTER_CHAIN_FX', run_id, guid, name, fx_name, reaper.TrackFX_GetEnabled(track, fx) and 1 or 0)
+      local enabled = reaper.TrackFX_GetEnabled(track, fx) and 1 or 0
+      local params = fx_params(track, fx)
+      if not params then
+        return
+      end
+      event(session_dir, 'MASTER_CHAIN_FX', run_id, guid, name, fx_name, enabled, params)
       listed = listed + 1
     end
   end
@@ -65,7 +212,7 @@ local function master_chain_read(session_dir, run_id)
     list(track, reaper.GetTrackGUID(track), name)
   end
   list(reaper.GetMasterTrack(0), 'master', 'MASTER')
-  event(session_dir, 'MASTER_CHAIN_READ', run_id, listed, truncated and 1 or 0)
+  event(session_dir, 'MASTER_CHAIN_READ', run_id, listed, truncated, tracks)
 end
 
 -- render_with_fx: checks ---------------------------------------------------------------------------------------------

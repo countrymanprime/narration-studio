@@ -28,11 +28,13 @@ export type ExportRequest = { items: ExportItem[]; master: boolean; format: stri
  * from when the mastering row renders regions; `region` is '' with any other row. */
 export type ExportPlanItem = { kind: PackageItemKind; title: string; path: string; region: string };
 
-/** One plug-in in a DAW chain, as the DAW names it, and whether it is switched on. */
-export type ExportPlanFX = { name: string; enabled: boolean };
+/** One plug-in in a DAW chain, as the DAW names it, whether it is switched on, and `params`, the DAW's fingerprint of its parameter
+ * values, which the approval's digest binds (#2995). */
+export type ExportPlanFX = { name: string; enabled: boolean; params: string };
 
-/** One track's plug-ins in the chain a DAW render runs, in chain order: every track with FX, then the master (`master`). */
-export type ExportPlanTrack = { name: string; master: boolean; fx: ExportPlanFX[] };
+/** One track in the chain a DAW render runs, in chain order: every track, with FX or not, then the master (`master`). `mute`, `solo`
+ * and `mix` (the DAW's fingerprint of its volume, pan, routing and sends) are bound by the approval's digest with its FX (#2995). */
+export type ExportPlanTrack = { name: string; master: boolean; mute: boolean; solo: number; mix: string; fx: ExportPlanFX[] };
 
 /**
  * What ExportStart would do with a request, answered by ExportPlan without starting anything: the mastering row (`provider` and

@@ -34,7 +34,7 @@ Scope: **G** global, **P** project, **G+P** global with a project override, **B*
 | `Teleprompter.punch_preroll_seconds` | Pre-roll for punch and roll | G | `teleprompterpunch.go:58` | Booth panel | Page: Booth, record setup |
 | `ReadAloud.record_in_reaper`, `record_confirmed` | Booth's record-in-REAPER toggle ([app.go](../../src/studio/desktop/app.go)) | P | Booth | Booth control bar only | Stays on Booth |
 | `Tracks.selectedRpp` | Which `.rpp` the project links to | P | `tracks.go:52` | Header pill, Recording panel, DAW panel | Recording & DAW (read-only link state) |
-| `Mastering.provider` | Mastering provider ([Provider ports](../architecture/provider-ports.md)) | P | `bindings_mastering.go:131` | **No UI caller** (`masteringChooseProvider` is unused) | Orphan: decide with the mastering PRD |
+| `Mastering.provider` | Mastering provider ([Provider ports](../architecture/provider-ports.md)) | P | `bindings_mastering.go:131` | **No UI caller** (`masteringChooseProvider` is unused) | Orphan on purpose: kept, no row until a second provider exists (issue 2980) |
 
 ### Speech to text
 
@@ -52,7 +52,7 @@ Scope: **G** global, **P** project, **G+P** global with a project override, **B*
 
 | Setting | What it does | Scope | Consumers | Today | Home |
 | --- | --- | --- | --- | --- | --- |
-| `Piper.tts_provider` | Preview voice engine; one option, `piper` | G+P | `internal/ttsport` | TTS panel | Hide: a one-option select says nothing |
+| `Piper.tts_provider` | Preview voice engine; one option, `piper` | G+P | `internal/ttsport` | TTS panel | Shown as a read-only fact, "Preview voices are made by Piper", not a select (issue 2980) |
 | `Piper.tts_voice_id` | Voice for name previews | G+P | `bindings.go:67`, `bindings.go:235` | TTS panel (choices hard-coded in `app.go:1566`, not from the catalogue) | Voice & pronunciation, "Preview voice", from installed voices |
 | `Script.definition_source` | Where a word's definition comes from | G | Script Words tab, Story Bible | Definitions panel; Words tab menu | Voice & pronunciation; the Words tab keeps a quick switch |
 | `ManuscriptGuide.default_pronunciation_source` | Pronunciation source a new name tries first | G+P | `bindings_pronunciationsources.go:84`, `guide/service.go:400` | Story Bible panel | Voice & pronunciation |

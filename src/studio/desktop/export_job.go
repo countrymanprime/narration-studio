@@ -443,9 +443,9 @@ func (h *Host) runExport(
 			if ctx.Err() != nil {
 				return
 			}
-			// A chain the narrator did not approve, or a REAPER that does not answer the read, would refuse every later file the same
-			// way (and, for the read, after the same wait): the export stops at this file.
-			if errors.Is(err, masteringport.ErrChainChanged) || errors.Is(err, masteringport.ErrNoChainDigest) || errors.Is(err, masteringport.ErrChainNoAnswer) {
+			// A chain the narrator did not approve, a REAPER that does not answer the read, or a chain whose settings cannot be bound
+			// (#2995) would refuse every later file the same way (and, for the read, after the same wait): the export stops at this file.
+			if stopsTheExport(err) {
 				job.stop(index, err)
 				return
 			}
@@ -556,4 +556,17 @@ func (h *Host) pickExportFiles() (MeasurePickResult, error) {
 	}
 	h.mu.Unlock()
 	return MeasurePickResult{Paths: paths}, nil
+}
+
+// chainStops are the refusals of a render's chain read that every later file would meet too, so the export stops at the first:
+// any failed read (masteringport.ErrChainRead, whatever its cause), a chain other than the approved one, no digest, no answer.
+var chainStops = []error{masteringport.ErrChainRead, masteringport.ErrChainChanged, masteringport.ErrNoChainDigest, masteringport.ErrChainNoAnswer}
+
+func stopsTheExport(err error) bool {
+	for _, stop := range chainStops {
+		if errors.Is(err, stop) {
+			return true
+		}
+	}
+	return false
 }

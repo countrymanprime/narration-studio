@@ -96,7 +96,7 @@ The steps for adding an engine are in the docstring of `src/studio/libs/python/n
 - One Go package per port (`asrport`, `ttsport`, `pronunciationport`, `captureport`, `encodeport`, `masteringport`, `extractionport`), like `dawport`, so parallel work touched disjoint folders.
 - Go learns a Python engine's capability from a static descriptor plus the probes that exist, not from asking the sidecar.
 - `Word` and `Hypothesis` moved into `narration_common.ports.asr`; `live_asr.py` re-exports them, so every existing import works.
-- The one-choice `Piper.tts_provider` row stays on the Settings page, its choices from the registry.
+- `Piper.tts_provider` shows on the Settings page as a read-only fact row ("Preview voices are made by Piper"), not a select, because it has one choice. It becomes a select when a second engine is registered.
 - Python ports are `typing.Protocol`s with plain registries filled at import, not ABCs or entry-point plugins: existing classes and fakes fit as they are, and plugins would widen the trust boundary.
 
 The trust-boundary side (the engine and pronunciation-source checks before a sidecar starts) is row 4a of the [threat model](threat-model.md).

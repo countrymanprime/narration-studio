@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"desktop/internal/audacitybridge"
+	"desktop/internal/bridge"
 	"desktop/internal/creditsid"
 	"desktop/internal/masteringport"
 	"desktop/internal/packager"
@@ -48,17 +49,23 @@ type ExportPlan struct {
 	ChainDigest   string            `json:"chainDigest"`
 }
 
-// ExportPlanTrack is one track's plug-ins in the chain a DAW render runs, in chain order: every track with FX, then the master.
+// ExportPlanTrack is one track in the chain a DAW render runs, in chain order: every track, with FX or not, then the master. Mute,
+// Solo and Mix (the DAW's fingerprint of its volume, pan, routing and sends) are bound by ChainDigest with the plug-ins (#2995).
 type ExportPlanTrack struct {
 	Name   string         `json:"name"`
 	Master bool           `json:"master"`
+	Mute   bool           `json:"mute"`
+	Solo   int            `json:"solo"`
+	Mix    string         `json:"mix"`
 	FX     []ExportPlanFX `json:"fx"`
 }
 
-// ExportPlanFX is one plug-in as the DAW names it, and whether it is switched on.
+// ExportPlanFX is one plug-in as the DAW names it, whether it is switched on, and Params, the DAW's fingerprint of its parameter
+// values, which ChainDigest binds (#2995).
 type ExportPlanFX struct {
 	Name    string `json:"name"`
 	Enabled bool   `json:"enabled"`
+	Params  string `json:"params"`
 }
 
 // ExportPlanItem is one item as the host will export it: its path cleaned, its title trimmed, and the DAW region it renders from
@@ -213,9 +220,9 @@ func exportPlanPayload(plan exportPlanned) ExportPlan {
 	for _, track := range plan.chain {
 		fx := make([]ExportPlanFX, 0, len(track.FX))
 		for _, slot := range track.FX {
-			fx = append(fx, ExportPlanFX{Name: slot.Name, Enabled: slot.Enabled})
+			fx = append(fx, ExportPlanFX{Name: slot.Name, Enabled: slot.Enabled, Params: slot.Params})
 		}
-		out.Chain = append(out.Chain, ExportPlanTrack{Name: track.Name, Master: track.Master, FX: fx})
+		out.Chain = append(out.Chain, ExportPlanTrack{Name: track.Name, Master: track.Master, Mute: track.Mute, Solo: track.Solo, Mix: track.Mix, FX: fx})
 	}
 	return out
 }
@@ -243,6 +250,14 @@ type chainUnreadableError struct {
 }
 
 func (e chainUnreadableError) Error() string {
+	// A script older than #2995 cannot answer the settings, routing and mute the approval binds: what to do is import it again.
+	if errors.Is(e.cause, bridge.ErrScriptOutdated) {
+		return e.label + " can't be checked: the app's script in REAPER is older than this app. Import it again from this app's REAPER folder, or choose the built-in chain."
+	}
+	// More plug-in settings than one read takes (#3017 review, L1): the chain is refused, never approved with some unbound.
+	if errors.Is(e.cause, bridge.ErrChainTooManySettings) {
+		return e.label + " has too many plug-in settings to check, so it can't be approved. Choose the built-in chain, or untick Master before encoding."
+	}
 	return e.label + " couldn't be read, so it can't be approved. Choose the built-in chain, or untick Master before encoding."
 }
 

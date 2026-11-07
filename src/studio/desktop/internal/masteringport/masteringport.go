@@ -124,17 +124,24 @@ type ChainLister interface {
 	Chain(ctx context.Context) ([]ChainTrack, error)
 }
 
-// ChainTrack is one track's plug-ins in the chain, in chain order: every track that has FX, then the master track's (Master).
+// ChainTrack is one track's plug-ins in the chain, in chain order: every track, with FX or not, then the master track's (Master).
+// Mute, Solo and Mix are what the track does to the render besides its plug-ins: Mix is the DAW's fingerprint of its volume, pan,
+// phase, parent send, folder and sends, compared and never read (#2995).
 type ChainTrack struct {
 	Name   string
 	Master bool
+	Mute   bool
+	Solo   int
+	Mix    string
 	FX     []ChainFX
 }
 
-// ChainFX is one plug-in as the DAW names it, and whether it is switched on.
+// ChainFX is one plug-in as the DAW names it, whether it is switched on, and Params, the DAW's fingerprint of its parameter values
+// (#2995), opaque like ChainTrack.Mix.
 type ChainFX struct {
 	Name    string
 	Enabled bool
+	Params  string
 }
 
 // The refusals every row shares. The first two are internal/mastering's own, so a caller of either package checks one error.

@@ -194,6 +194,27 @@ describe('ScopedSetting controls', () => {
 });
 
 // Alignment audit (XSE2-22): number boxes are one width with or without a unit, and a label's hint icon stays on its last word's line.
+describe('ScopedSetting hints (#2980)', () => {
+  const chunk = (label: string): ScopedSettingField => ({ ...FIELD, key: 'chunk_seconds', label, choices: ['60'], effectiveValue: '60' });
+  const hint = (tool: string, label: string) => {
+    render(
+      <TooltipProvider>
+        <ScopedSetting tool={tool} field={chunk(label)} scope="global" value="" change={vi.fn()} onClearOverride={() => undefined} />
+      </TooltipProvider>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'More information' }));
+    return screen.getByRole('tooltip').textContent ?? '';
+  };
+  it('gives the two chunk_seconds keys each its own hint', () => {
+    const compare = hint('TranscriptCompare', 'Compare chunk length');
+    cleanup();
+    const coverage = hint('RecordingCoverage', 'Coverage chunk length');
+    expect(compare).toMatch(/compar/i);
+    expect(coverage).toMatch(/recording check/i);
+    expect(compare).not.toBe(coverage);
+  });
+});
+
 describe('ScopedSetting layout', () => {
   const number = (unit?: string): ScopedSettingField => ({
     ...FIELD,

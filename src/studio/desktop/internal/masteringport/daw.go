@@ -152,10 +152,21 @@ func (dawChain) Master(ctx context.Context, req Request) (Result, error) {
 		if ctx.Err() == nil && (errors.Is(err, context.DeadlineExceeded) || errors.Is(err, bridge.ErrNoAnswer)) {
 			return Result{}, chainNoAnswer{cause: err}
 		}
-		return Result{}, err
+		if ctx.Err() != nil {
+			return Result{}, err
+		}
+		return Result{}, chainReadFailed{cause: err}
+	}
+	// A script replaced by an older one since the approval cannot answer what the approval binds (#2995).
+	if chain.SettingsUnread {
+		return Result{}, chainReadFailed{cause: bridge.ErrScriptOutdated}
 	}
 	// The chain this render runs is read here anyway, for the report: it must be the one approved, or nothing renders.
-	if ChainDigest(listedChain(chain)) != req.ChainDigest {
+	listed, err := listedChain(chain)
+	if err != nil {
+		return Result{}, chainReadFailed{cause: err}
+	}
+	if ChainDigest(listed) != req.ChainDigest {
 		return Result{}, ErrChainChanged
 	}
 
@@ -366,8 +377,9 @@ func UseRenderChainWait(wait time.Duration) (restore func()) {
 	return func() { renderChainWait = previous }
 }
 
-// Chain lists the FX a render would run now, through the DAW port's master_chain_read: each track with FX in order, then the
-// master. A chain the DAW cannot list whole, or no DAW, is an error, so the narrator never approves a chain they were not shown.
+// Chain lists the FX a render would run now, through the DAW port's master_chain_read: each track in order, then the master. A
+// chain the DAW cannot list whole, or no DAW, is an error, so the narrator never approves a chain they were not shown, and so is a
+// chain whose settings an older script could not read (bridge.ErrScriptOutdated, #2995): the approval binds them.
 func (dawChain) Chain(ctx context.Context) ([]ChainTrack, error) {
 	session, err := dawSession()
 	if err != nil {
@@ -381,7 +393,10 @@ func (dawChain) Chain(ctx context.Context) ([]ChainTrack, error) {
 	if err != nil {
 		return nil, err
 	}
-	return listedChain(chain), nil
+	if chain.SettingsUnread {
+		return nil, bridge.ErrScriptOutdated
+	}
+	return listedChain(chain)
 }
 
 // chainSteps words what ran for the narrator's report: each track's FX, the master's, then the render itself.
@@ -419,3 +434,13 @@ func randomHex(bytes int) (string, error) {
 	}
 	return hex.EncodeToString(b), nil
 }
+
+// ErrChainRead marks a render whose own read of the chain failed (an answer the bridge could not read, a refusal of its shape or
+// settings, an older script): every later file would fail the same way, so the export stops at the first (#3017 qa round 2, B4).
+var ErrChainRead = errors.New("the DAW's FX chain could not be read before this render")
+
+// chainReadFailed is a failed chain read, worded as its cause and matching ErrChainRead as well as the cause.
+type chainReadFailed struct{ cause error }
+
+func (e chainReadFailed) Error() string   { return e.cause.Error() }
+func (e chainReadFailed) Unwrap() []error { return []error{ErrChainRead, e.cause} }

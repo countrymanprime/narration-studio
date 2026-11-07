@@ -55,13 +55,22 @@ export type MasteringMockSeed = {
   /** Rows not available on this computer, by name, with the sentence the host refuses them with. */
   unavailable?: Record<string, string>;
   /** What the DAW's master_chain_read answers (`?mockMasterChain=`): masteringporttest's FakeDAW chain by default, a long one, none,
-   * or one the bridge cut short. */
-  chain?: 'default' | 'long' | 'empty' | 'unreadable';
+   * one the bridge cut short, one from a script older than #2995 (`outdated`), or one whose setting moves after every read
+   * (`changes`), so an approved render stops at its first file, or one with more plug-in settings than one read takes (`toomany`). */
+  chain?: 'default' | 'long' | 'empty' | 'unreadable' | 'outdated' | 'changes' | 'toomany';
 };
 
 /** The bridge's refusal of a chain it listed only part of (bridge.ErrChainTooLong), as export_plan.go words it for the DAW row:
  * what to do next, then the DAW's reason. */
 const CHAIN_UNREADABLE = "Your DAW's FX chain couldn't be read, so it can't be approved. Choose the built-in chain, or untick Master before encoding.";
+/** export_plan.go's refusal of a chain from a script older than #2995 (bridge.ErrScriptOutdated). */
+const CHAIN_OUTDATED =
+  "Your DAW's FX chain can't be checked: the app's script in REAPER is older than this app. Import it again from this app's REAPER folder, or choose the built-in chain.";
+/** export_plan.go's refusal of a chain past the script's settings budget (bridge.ErrChainTooManySettings). */
+const CHAIN_TOO_MANY =
+  "Your DAW's FX chain has too many plug-in settings to check, so it can't be approved. Choose the built-in chain, or untick Master before encoding.";
+/** How many times the `changes` chain was read: its EQ's parameters move with each read. */
+let changingReads = 0;
 
 /** chain.go's hangulFiller: default-ignorable, but a font draws them as a blank, so they are kept inside a name. */
 const HANGUL_FILLERS = new Set([0x115f, 0x1160, 0x3164, 0xffa0]);
@@ -107,33 +116,66 @@ export function mockCleanChain(chain: readonly ExportPlanTrack[]): ExportPlanTra
   return chain.map((track) => ({
     name: track.master ? 'Master' : mockChainName(track.name, 'track'),
     master: track.master,
-    fx: (track.fx ?? []).map((fx) => ({ name: mockChainName(fx.name, 'fx'), enabled: fx.enabled })),
+    mute: track.mute,
+    solo: track.solo,
+    mix: mockFingerprint(track.mix),
+    fx: (track.fx ?? []).map((fx) => ({ name: mockChainName(fx.name, 'fx'), enabled: fx.enabled, params: mockFingerprint(fx.params) })),
   }));
+}
+
+/** chain.go's fingerprint: a DAW's mix or parameter fingerprint as the digest binds it, digits and colons only. */
+function mockFingerprint(raw: string | null | undefined): string {
+  return (raw ?? '').replace(/[^0-9:]/g, '');
 }
 
 /** masteringport.ChainDigest: "sha256:" and the hex of SHA-256 over one tab-separated, newline-ended line per track ("track", its
  * master flag, its name) and per plug-in ("fx", on or off, its name), in chain order. The export plan golden pins it to the host's. */
 export async function mockChainDigest(chain: readonly ExportPlanTrack[]): Promise<string> {
   const flag = (on: boolean) => (on ? '1' : '0');
+  // Null-safe: a track with no list, or a missing name, digests as an empty list or an empty name (qa round 2, N3). Since #2995 a
+  // track's line carries its mute, solo and mix, and a plug-in's its parameters.
+  const fxLine = (fx: ExportPlanTrack['fx'][number]) => `fx\t${flag(fx.enabled)}\t${fx.name ?? ''}\t${mockFingerprint(fx.params)}\n`;
   const lines = chain
-    // Null-safe: a track with no list, or a missing name, digests as an empty list or an empty name (qa round 2, N3).
     .map(
-      (track) => `track\t${flag(track.master)}\t${track.name ?? ''}\n${(track.fx ?? []).map((fx) => `fx\t${flag(fx.enabled)}\t${fx.name ?? ''}\n`).join('')}`,
+      (track) =>
+        `track\t${flag(track.master)}\t${track.name ?? ''}\t${flag(!!track.mute)}\t${track.solo ?? 0}\t${mockFingerprint(track.mix)}\n` +
+        (track.fx ?? []).map(fxLine).join(''),
     )
     .join('');
   const sum = await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode(lines));
   return `sha256:${[...new Uint8Array(sum)].map((byte) => byte.toString(16).padStart(2, '0')).join('')}`;
 }
 
+/** master_chain_read's fingerprints for a track at unity with no sends, and a plug-in with no parameters (master_render_test.lua). */
+const MOCK_MIX = '7:825649450:779707780';
+const MOCK_PARAMS = '0:7:11';
+const mockTrack = (name: string, master: boolean, fx: { name: string; enabled: boolean }[]): ExportPlanTrack => ({
+  name,
+  master,
+  mute: false,
+  solo: 0,
+  mix: MOCK_MIX,
+  fx: fx.map((slot) => ({ ...slot, params: MOCK_PARAMS })),
+});
+
 /** A book's chain long enough to scroll: a voice track and two character tracks with several plug-ins each, one off, then the master. */
 function longChain(): ExportPlanTrack[] {
   const plugins = ['VST3: Pro-Q 3 (FabFilter)', 'VST: ReaComp (Cockos)', 'JS: De-esser', 'VST3: RX 10 Mouth De-click (iZotope)', 'VST: ReaGate (Cockos)'];
-  const tracks = ['Narration', 'Alice', 'The Queen of Hearts', 'Room tone'].map((name, t): ExportPlanTrack => ({
-    name,
-    master: false,
-    fx: plugins.map((plugin, i) => ({ name: plugin, enabled: !(t === 1 && i === 2) })),
-  }));
-  return [...tracks, { name: 'Master', master: true, fx: plugins.slice(0, 3).map((name) => ({ name, enabled: true })) }];
+  const tracks = ['Narration', 'Alice', 'The Queen of Hearts', 'Room tone'].map((name, t) =>
+    mockTrack(
+      name,
+      false,
+      plugins.map((plugin, i) => ({ name: plugin, enabled: !(t === 1 && i === 2) })),
+    ),
+  );
+  return [
+    ...tracks,
+    mockTrack(
+      'Master',
+      true,
+      plugins.slice(0, 3).map((name) => ({ name, enabled: true })),
+    ),
+  ];
 }
 
 /** The chain the mock DAW row would render through, as dawChain.Chain answers it (internal/masteringport/daw.go). */
@@ -141,14 +183,25 @@ export async function mockMasterChain(seed: MasteringMockSeed['chain'] = 'defaul
   switch (seed) {
     case 'unreadable':
       throw new Error(CHAIN_UNREADABLE);
+    case 'outdated':
+      throw new Error(CHAIN_OUTDATED);
+    case 'toomany':
+      throw new Error(CHAIN_TOO_MANY);
+    case 'changes': {
+      // A setting the narrator moves in REAPER after every read: the render's own read differs from the one approved.
+      changingReads += 1;
+      const [voice, master] = [mockTrack('Voice', false, [{ name: 'VST: ReaEQ (Cockos)', enabled: true }]), mockTrack('Master', true, [])];
+      return [{ ...voice, fx: voice.fx.map((fx) => ({ ...fx, params: `1:${changingReads}:${changingReads}` })) }, master];
+    }
     case 'empty':
-      return [];
+      // The master is always listed, its mix bound even with no plug-ins (#2995).
+      return [mockTrack('Master', true, [])];
     case 'long':
       return longChain();
     case 'default':
       return [
-        { name: 'Voice', master: false, fx: [{ name: 'VST: ReaEQ (Cockos)', enabled: true }] },
-        { name: 'Master', master: true, fx: [{ name: 'VST: ReaLimit (Cockos)', enabled: true }] },
+        mockTrack('Voice', false, [{ name: 'VST: ReaEQ (Cockos)', enabled: true }]),
+        mockTrack('Master', true, [{ name: 'VST: ReaLimit (Cockos)', enabled: true }]),
       ];
   }
 }
