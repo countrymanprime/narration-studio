@@ -38,6 +38,7 @@ type FakeDAW struct {
 	// +checklocks:mu
 	chain *dawport.MasterChain
 	// chainExact: answer chain as set, with no fingerprint filled in (SetChainExact).
+	// +checklocks:mu
 	chainExact bool
 	// +checklocks:mu
 	chainErr error
