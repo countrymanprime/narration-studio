@@ -153,8 +153,8 @@ track no longer in the saved project says it may have been deleted or the projec
 shows its figures as last known and offers no playback.
 
 When the panel knows the chapter's track, it can play that track's recorded audio right there -
-Play/Pause and skip 30 seconds back or forward - and **Select in REAPER** brings the track into
-view in REAPER itself. Selecting needs REAPER linked and answering, and
+Play/Pause and skip 30 seconds back or forward - and **Show in REAPER** (the icon button, the same one the chapter's row menu has) brings the track into
+view in your DAW itself. Selecting needs REAPER linked and answering, and
 changes nothing else: no undo point, and REAPER's own selection is all it touches.
 
 ![Production - a chapter's track slide-over on a confirmed link, with how the track was found](../../images/ui/production-track-panel.webp)

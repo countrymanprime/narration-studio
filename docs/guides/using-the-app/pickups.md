@@ -52,8 +52,8 @@ title ("Chapter 3: A Caucus-Race and a Long Tale"). The lines are grouped by cha
   stop; it is off, with the reason, for a line that has no place in the recording yet). With REAPER linked it plays through
   REAPER; when REAPER cannot play now, the app plays the line's recording and a message says why. While REAPER is recording
   nothing plays;
-- **Open in Booth at this line** (Enter on a selected line), **Mark recorded** (or **Mark open again**) and, set apart after a
-  rule, **Remove from pickups**.
+- **Open in Booth at this line** (Enter on a selected line), **Show in REAPER** (**Show in Audacity** with Audacity: the same button as on Editing, Proof and Production), which selects the note the line came from in your DAW and puts the edit cursor on its spot, **Mark recorded** (or **Mark open again**) and, set apart after a
+  rule, **Remove from pickups**. With the built-in recorder there is no DAW, so **Show in** is not drawn. Otherwise it is off, with its reason in the hint, while the DAW cannot move to a place or when the line did not come from a note (a line you added by hand has no recording to show).
 
 On a very wide window the page stays one centred column about 1,500 px wide, the same width as Master & QC and Delivery, so a line's
 status and buttons stay beside its words instead of at the far edge of the screen.

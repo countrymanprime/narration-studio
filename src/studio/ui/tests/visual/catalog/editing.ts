@@ -102,7 +102,7 @@ export const editingStates: StateEntry[] = [
     state: 'drawer-effects-inspector',
     // The FX in the DAW section says when the DAW last answered, which is a different clock time on every run.
     mask: ['[data-projectfx-read]'],
-    description: 'Editing, the Effects tab with two effects on words - the inspector with Previous and Next effect and Show in the DAW',
+    description: 'Editing, the Effects tab with two effects on words - the inspector with Previous and Next effect and Show in REAPER',
   },
   {
     page: 'editing',
@@ -192,6 +192,12 @@ export const editingStates: StateEntry[] = [
     state: 'takes-open',
     description:
       'Editing, the first line’s takes opened under it - the suggested take with the steps that would make it surer, each take’s evidence, and how retries are kept',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'editing',
+    state: 'takes-footer',
+    description: 'Editing, the first line’s takes opened and scrolled to their footer - Show in REAPER beside the take actions (#2826)',
     ...KEEPS_DESKTOP_SCROLL,
   },
   {

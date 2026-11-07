@@ -74,7 +74,7 @@ import { installBackupSteps, tokensIn } from '../backups/backupBefore';
 import { FxMarkersContext } from '../range/fx/fxMarkers';
 import { registerSelectionAction } from '../bar/selectionActions';
 import { SelectionActionButton } from '../bar/SelectionActionButton';
-import { useShowInDaw } from '../takes/useShowInDaw';
+import { useShowInDawTakeControl } from '../takes/useShowInDaw';
 import { escapeClosesPanel } from '../../primitives/focusReturn';
 import { IconButton } from '../../primitives/IconButton';
 import { registerTakeControl } from '../takes/takeControls';
@@ -357,7 +357,7 @@ export function EditingBody(props: EditingBodyProps) {
       }),
     [],
   );
-  useShowInDaw(chapterId, caps);
+  useShowInDawTakeControl(chapterId);
   // Undo choice in the footer of a line whose take was kept here.
   useEffect(
     () =>

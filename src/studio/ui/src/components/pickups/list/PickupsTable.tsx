@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { ShowInDawButton } from '../../engine/ShowInDaw';
 import type { PickupItem } from '../../../api/contracts/pickups';
 import { useOverlay } from '../../../overlay/OverlayProvider';
 import type { OverlayService } from '../../../overlay/overlayService';
@@ -490,6 +491,8 @@ export function PickupsTable({
                               </span>
                             )}
                             <IconButton action="openInBooth" label="Open in Booth at this line" onClick={() => onOpenInBooth([pickup])} />
+                            {/* The one Show in {DAW} every page mounts (#2826), over the note the line came from. */}
+                            <ShowInDawButton target={{ kind: 'pickup', findingId: pickup.findingId }} />
                             <IconButton
                               action={pickup.done ? 'markedDone' : 'markDone'}
                               label={pickup.done ? 'Mark open again' : 'Mark recorded'}
