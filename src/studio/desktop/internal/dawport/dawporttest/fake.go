@@ -553,6 +553,14 @@ func (r voiceSampleRegionRole) MoveVoiceSampleRegion(_ context.Context, number i
 	return dawport.VoiceSampleRegionKept{Number: number, Outcome: "moved"}, nil
 }
 
+// DeleteVoiceSampleRegion answers as delete_voice_sample_region does for a region it removed.
+func (r voiceSampleRegionRole) DeleteVoiceSampleRegion(_ context.Context, number int) (dawport.VoiceSampleRegionRemoved, error) {
+	if err := r.do("DeleteVoiceSampleRegion"); err != nil {
+		return dawport.VoiceSampleRegionRemoved{}, err
+	}
+	return dawport.VoiceSampleRegionRemoved{Number: number, Outcome: "deleted"}, nil
+}
+
 // ReadVoiceSampleRegions answers a project with no voice sample region.
 func (r voiceSampleRegionRole) ReadVoiceSampleRegions(context.Context) (dawport.VoiceSampleRegions, error) {
 	if err := r.do("ReadVoiceSampleRegions"); err != nil {
