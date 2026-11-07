@@ -44,5 +44,6 @@ An installed copy keeps its old Start Menu and desktop shortcuts until it is rei
 - The `rename rehearsal` step of `quality / linux-checks` (`scripts/brand/rehearse-rename.mjs`) renames a throwaway worktree of each pull request's commit
   to a made-up name (`REHEARSAL_NAME`, built from its words; a test that needs a made-up brand uses another name or builds
   it from its words too, so no literal matches it) and runs the sync, both guards and the tests that read the name, so anything that spells the name fails
-  before a real rename needs it. main-health runs it with `--full`. It never writes to the checkout, so it runs locally as is:
+  before a real rename needs it. main-health runs it with `--full`, which adds the UI typecheck and the built site with its
+  retired-name check. It never writes to the checkout, so it runs locally as is:
   `node scripts/brand/rehearse-rename.mjs` (it rehearses `HEAD`, so commit first).
