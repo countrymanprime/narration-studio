@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { jobBlock } from './check-manifest.mjs';
 
 // The shard count of Test (Linux) is written in several places that must agree: the lint job's `test-shards` list (the matrix), the job's
-// `/N` label, the `/N` of its Vitest, visual and atlas steps, and the `vitest-shards` and `visual-shards` ci.yml's `CI passed` gives
+// `/N` label, the `/N` of its Vitest, visual and atlas steps, and the `vitest-shards` and `visual-shards` ci.yml's gate job gives
 // .github/actions/ci-gate (which merges that many blobs and checks that many manifests). A mismatch would leave a shard unrun, a blob
 // missing or the whole-run check failing, so this reads them all.
 const WORKFLOWS = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '.github', 'workflows');
@@ -32,10 +32,13 @@ test('test-shards, the job name, the Vitest, visual and atlas splits and ci.yml 
   assert.match(testJob, new RegExp(`coverage-gate\\.mjs vitest src/studio/ui --shard="\\$SHARD/${n}"`));
   assert.match(testJob, new RegExp(`visual-shards\\.mjs split --shard "\\$SHARD/${n}"`));
   assert.match(testJob, new RegExp(`run atlas --shard="\\$SHARD/${n}"`));
-  assert.ok(ci.includes(`visual-shards: ${'$'}{{ needs.quality.outputs.ui-affected == 'true' && '${n}' || '0' }}`), `ci.yml must pass visual-shards '${n}' to ci-gate`);
+  assert.ok(
+    ci.includes(`visual-shards: ${'$'}{{ github.event.pull_request.draft != true && needs.quality.outputs.ui-affected == 'true' && '${n}' || '0' }}`),
+    `ci.yml must pass visual-shards '${n}' to ci-gate in the full tier`,
+  );
   const vitest = ci.match(/vitest-shards: \$\{\{ needs\.quality\.outputs\.vitest-affected == 'true' && '(\d+)' \|\| '0' \}\}/g) ?? [];
-  assert.ok(vitest.length >= 2, 'both aggregates pass vitest-shards');
-  for (const line of vitest) assert.ok(line.includes(`'${n}'`), `${line} must merge ${n} blobs`);
+  assert.equal(vitest.length, 1, 'the gate job passes vitest-shards once');
+  assert.ok(vitest[0].includes(`'${n}'`), `${vitest[0]} must merge ${n} blobs`);
 });
 
 test('the suite is split into at least four shards', () => {

@@ -1,9 +1,9 @@
 name: CI
 # Two tiers (docs/operations/ci-and-releases.md#draft-and-ready-tiers). A draft pull request runs the light tier: the Quality jobs
-# without the Playwright suites, the UI bundle and the Windows build (lint, Test (Linux) without its visual and atlas steps, Test (Windows)) and a
-# `CI light passed` check. Everything else (a ready pull
-# request, a manual run, main-health) runs the full tier and `CI passed`. `CI passed` is never produced by a light run, so a draft
-# cannot show a green that means less than the full gate.
+# without the Playwright suites, the UI bundle and the Windows build (lint, Test (Linux) without its visual and atlas steps, Test (Windows)),
+# and the gate job reports as `CI light passed`. Everything else (a ready pull request, a manual run, main-health) runs the full tier, and
+# the gate job reports as `CI passed`. A light run never reports `CI passed`, so a draft cannot show a green that means less than the
+# full gate.
 on:
   pull_request:
     # `ready_for_review` starts the full tier when a draft is marked ready; the default three types are kept.
@@ -22,46 +22,29 @@ jobs:
     uses: ./.github/workflows/_quality.yml
     with:
       full: ${{ github.event.pull_request.draft != true }}
-  # One check that sums up the run, for a ruleset to require (#544) instead of every job by name: sharding, folding or
-  # renaming a job then changes nothing a ruleset lists, and a job skipped because Nx found nothing affected counts as
-  # passed. `always()` so it reports red, not skipped, when a job it needs fails. A documentation-only pull request does
-  # not run this workflow (paths-ignore above), so requiring this check also needs that trigger changed.
-  # The full tier only: a draft pull request skips this job, so its check list shows no `CI passed` (the merge conditions in
-  # agent-train/SKILL.md require it). A skipped job inside the full run (the UI not affected) still counts as passed.
+  # One job sums up the run, in both tiers (owner decision, #3065: one gate job). A ruleset requires its check (#544) instead of every
+  # job by name: sharding, folding or renaming a job then changes nothing a ruleset lists, and a job skipped because Nx found nothing
+  # affected counts as passed. `always()` so it reports red, not skipped, when a job it needs fails. A documentation-only pull request
+  # does not run this workflow (paths-ignore above), so requiring this check also needs that trigger changed.
+  # Its check is named by the tier: `CI passed` for the full tier (a ready pull request, a manual run, main-health) and `CI light passed`
+  # for a draft, so a draft never shows a `CI passed` that means less than the full gate (the merge conditions in agent-train/SKILL.md
+  # require `CI passed`). These were two jobs, one per tier.
   ci-passed:
-    name: CI passed
+    name: ${{ github.event.pull_request.draft == true && 'CI light passed' || 'CI passed' }}
     needs: [quality]
-    if: always() && github.event.pull_request.draft != true
+    if: always()
     timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { persist-credentials: false }
-      # Fails unless quality (every job of _quality.yml, Build (Windows) included) ended success or skipped, then, when the UI was
-      # affected, merges the five Vitest blobs and checks every coverage floor over the whole run, and judges every visual shard's
-      # capture records together (src/studio/ui/tests/visual/whole-run.check.ts). Both were jobs of their own; here they save a job's
-      # queueing and start-up each. A step that fails fails `CI passed`.
+      # Fails unless quality (every job of _quality.yml) ended success or skipped, then, when the UI was affected, merges the five Vitest
+      # blobs and checks every coverage floor over the whole run, and, in the full tier, judges every visual shard's capture records
+      # together (src/studio/ui/tests/visual/whole-run.check.ts). A draft runs no visual suite, so it judges none. A step that fails
+      # fails the check.
       - uses: ./.github/actions/ci-gate
         with:
           results: ${{ join(needs.*.result, ' ') }}
           expect: '1'
           vitest-shards: ${{ needs.quality.outputs.vitest-affected == 'true' && '5' || '0' }}
-          visual-shards: ${{ needs.quality.outputs.ui-affected == 'true' && '5' || '0' }}
-
-  # What a draft pull request shows instead of `CI passed`. It sums up only what the light tier ran, and its name says so. It is
-  # not a merge condition: marking the pull request ready runs the full tier.
-  ci-light-passed:
-    name: CI light passed
-    needs: [quality]
-    if: always() && github.event.pull_request.draft == true
-    timeout-minutes: 10
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with: { persist-credentials: false }
-      # The light tier: no visual suite, no atlas, no Windows build. The Vitest run is in it, so its coverage merge is too.
-      - uses: ./.github/actions/ci-gate
-        with:
-          results: ${{ join(needs.*.result, ' ') }}
-          expect: '1'
-          vitest-shards: ${{ needs.quality.outputs.vitest-affected == 'true' && '5' || '0' }}
+          visual-shards: ${{ github.event.pull_request.draft != true && needs.quality.outputs.ui-affected == 'true' && '5' || '0' }}

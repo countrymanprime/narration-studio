@@ -1,6 +1,6 @@
 name: CI gate
 description: >-
-  The body of an aggregate check (ci.yml's `CI passed` and `CI light passed`): fails unless every job the aggregate needs ended
+  The body of ci.yml's gate job (`CI passed`, named `CI light passed` on a draft): fails unless every job the gate needs ended
   success or skipped, then runs the whole-run checks that read the shards' uploads. The results check runs first and a red one
   stops the rest, so a red shard is reported as that, not as missing uploads.
 

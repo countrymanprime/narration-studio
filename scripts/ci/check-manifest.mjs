@@ -111,8 +111,8 @@ export function problems(entry, read, readAction = readLocalAction) {
   }
   if (entry.tier === 'pr') {
     if (!runsOnPullRequests(entry.workflow, text)) found.push(`${entry.id}: tier pr, but ${entry.workflow} has no pull_request trigger`);
-    // A job of ci.yml that is not an aggregate must be one `CI passed` waits for, or its failure would not turn `CI passed` red.
-    if (entry.workflow === 'ci.yml' && !['ci-passed', 'ci-light-passed'].includes(entry.job) && !needsOf(jobBlock(text, 'ci-passed')).includes(entry.job)) {
+    // A job of ci.yml that is not the gate must be one the gate waits for, or its failure would not turn `CI passed` red.
+    if (entry.workflow === 'ci.yml' && entry.job !== 'ci-passed' && !needsOf(jobBlock(text, 'ci-passed')).includes(entry.job)) {
       found.push(`${entry.id}: ci.yml#${entry.job} is not in the needs of ci-passed`);
     }
   } else if (entry.tier === 'post-merge' || entry.tier === 'scheduled') {
