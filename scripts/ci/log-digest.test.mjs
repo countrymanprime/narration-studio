@@ -48,11 +48,21 @@ test('a failing log with no recognisable failure lines says so', () => {
 });
 
 test('wrapCommand wraps known noisy commands only', () => {
-  assert.match(wrapCommand('pnpm check', '/w.mjs'), /^node '\/w\.mjs' -- pnpm check$/);
-  assert.match(wrapCommand('go test ./internal/...', '/w.mjs'), /-- go test \.\/internal\/\.\.\.$/);
+  assert.equal(wrapCommand('pnpm check', '/w.mjs'), "node '/w.mjs' -- 'pnpm check'");
+  assert.equal(wrapCommand('go test ./internal/...', '/w.mjs'), "node '/w.mjs' -- 'go test ./internal/...'");
+  assert.equal(wrapCommand('npx vitest run src/a.test.ts', '/w.mjs'), "node '/w.mjs' -- 'npx vitest run src/a.test.ts'");
+  assert.ok(wrapCommand('pnpm --dir src/studio/ui exec vitest run x', '/w.mjs'));
+  assert.ok(wrapCommand('npx tsc --noEmit', '/w.mjs'));
   assert.equal(wrapCommand('git status', '/w.mjs'), null);
-  assert.match(wrapCommand('pnpm exec nx run desktop:lint', '/w.mjs'), /-- pnpm exec nx run desktop:lint$/);
+  assert.ok(wrapCommand('pnpm exec nx run desktop:lint', '/w.mjs'));
   assert.equal(wrapCommand('pnpm install', '/w.mjs'), null);
+});
+
+test('wrapCommand wraps one leading cd and quotes the whole command', () => {
+  assert.equal(wrapCommand('cd src/studio/ui && npx vitest run a', '/w.mjs'), "node '/w.mjs' -- 'cd src/studio/ui && npx vitest run a'");
+  assert.equal(wrapCommand("go test -run 'A|B' ./x", '/w.mjs'), null);
+  assert.equal(wrapCommand('cd a && cd b && go test ./...', '/w.mjs'), null);
+  assert.equal(wrapCommand('cd a && git status', '/w.mjs'), null);
 });
 
 test('wrapCommand leaves operators, opt-outs and already wrapped commands alone', () => {
@@ -77,6 +87,6 @@ test('the hook rewrites a noisy command and ignores the rest', () => {
   const hook = (command) =>
     spawnSync(process.execPath, [SCRIPT, '--hook'], { input: JSON.stringify({ tool_name: 'Bash', tool_input: { command } }), encoding: 'utf8' });
   const wrapped = JSON.parse(hook('pnpm check').stdout);
-  assert.match(wrapped.hookSpecificOutput.updatedInput.command, /log-digest\.mjs' -- pnpm check$/);
+  assert.match(wrapped.hookSpecificOutput.updatedInput.command, /log-digest\.mjs' -- 'pnpm check'$/);
   assert.equal(hook('ls -la').stdout, '');
 });

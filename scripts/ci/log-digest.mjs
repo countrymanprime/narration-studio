@@ -28,18 +28,17 @@ const CONTEXT_AFTER = 2;
 const FAILURE_LINE =
   /(^|\s)(FAIL|FAILED|ERROR|panic:|--- FAIL)\b|✗|✘|×|\berror TS\d+|AssertionError|^E {3}|^\s*●|npm ERR!|ERR_PNPM|\bfatal:|Traceback \(most recent call last\)|\bTimeout of \d+ms|\bexpect\(|^\s+\d+ failed\b|\b\d+ failed\b/;
 
-// Command prefixes the hook wraps. Each is already allowed in .claude/settings.json.
-const NOISY_PREFIXES = [
-  'pnpm check',
-  'pnpm exec nx ',
-  'pnpm test',
-  'pnpm exec vitest',
-  'pnpm exec playwright test',
-  'npx playwright test',
-  'go test',
-  'go vet',
-  'uv run pytest',
-  'golangci-lint run',
+// Commands the hook wraps, each already allowed in .claude/settings.json or run the same way by agents: the gate, Nx,
+// Vitest, tsc, ESLint and Playwright (through pnpm or npx), Go tests and vet, pytest and golangci-lint.
+const NOISY_COMMANDS = [
+  /^pnpm (check|test)\b/,
+  /^pnpm exec nx /,
+  /^pnpm (--dir \S+ )?exec (vitest|playwright test|tsc|eslint)\b/,
+  /^pnpm --dir \S+ run (test|lint|typecheck|check)\S*/,
+  /^npx (vitest|tsc|eslint|playwright test)\b/,
+  /^go (test|vet)\b/,
+  /^uv run pytest\b/,
+  /^golangci-lint run\b/,
 ];
 
 const SHELL_OPERATORS = /[|&;<>`\n]|\$\(/;
@@ -80,13 +79,15 @@ export function digest({ text, exitCode, durationMs, logPath, tail = DEFAULT_TAI
   return out.join('\n');
 }
 
-// Decides whether the hook wraps a Bash command, and returns the wrapped command or null.
+// Decides whether the hook wraps a Bash command, and returns the wrapped command or null. The command may start with one
+// `cd <dir> &&`; the rest must be a known noisy command with no pipe, redirect or further `&&`.
 export function wrapCommand(command, wrapperPath = join(HERE, 'log-digest.mjs')) {
   const trimmed = command.trim();
   if (/#\s*raw\b/.test(trimmed) || trimmed.includes('log-digest.mjs')) return null;
-  if (SHELL_OPERATORS.test(trimmed)) return null;
-  if (!NOISY_PREFIXES.some((prefix) => trimmed === prefix.trim() || trimmed.startsWith(prefix))) return null;
-  return `node '${wrapperPath}' -- ${trimmed}`;
+  const inner = trimmed.replace(/^cd \S+ && /, '');
+  if (SHELL_OPERATORS.test(inner) || /[|;<>`\n]|\$\(/.test(trimmed)) return null;
+  if (!NOISY_COMMANDS.some((pattern) => pattern.test(inner))) return null;
+  return `node '${wrapperPath}' -- '${trimmed.replaceAll("'", "'\\''")}'`;
 }
 
 function slug(command) {
