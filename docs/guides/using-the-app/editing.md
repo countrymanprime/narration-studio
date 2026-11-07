@@ -165,6 +165,10 @@ leaves Pickups.
 note's own and Pickups can take you back to it; the message says "Added to Pickups, with its note on Proof." A word with no
 such note, or one whose note is fixed in the edit (words said and not written), is added to Pickups as a line of its own.
 
+The flag card's last button, an icon with the flag, is **Add marker in** your DAW: it puts one marker in the DAW on the note Proof has about the flagged words, the same button, label and gate as on [Proof](proof.md#going-to-a-note-in-the-daw) and [Pickups](pickups.md). A word with no note on Proof has nothing to put a marker on, so the button is off and its hint says so; it is off too, with the DAW's reason, while the DAW cannot add markers.
+
+![Editing - a flagged word's card with its Add marker icon button at the end of the row](../../images/ui/editing-flag-card.webp)
+
 ### A line said twice
 
 Words heard that say the script beside them again are a second take, not words outside the script: a retake of the end of a
@@ -393,7 +397,7 @@ why it is suggested and the steps that would make the comparison surer: **Trim w
 **Normalise**, each asking before it changes anything in the DAW. Then each take, with its waveform, what share of the
 script it read as written, and its pause, level, noise, clarity and breaths. A take's second line says where it begins, how long it lasts and what the DAW calls it
 (a REAPER take, an Audacity clip or a recorder take). A take reads **Kept**, **Active**, **Muted** or, once you hide the others and look at them again, **Hidden**; the first read of a stacked line wears **First read**. Play a take to hear it: with REAPER linked it plays through REAPER, outside the project and without changing it, so you hear its output and level; if REAPER cannot preview it now, the app plays it and a message says why. With the built-in recorder or Audacity the app plays it. Nothing plays while REAPER is recording. A take longer than a minute plays its first minute. **Keep take**
-(Enter) makes it the one that plays, and **Hide others** (H) hides the other takes from the lanes. **Show in the DAW**
+(Enter) makes it the one that plays, and **Hide others** (H) hides the other takes from the lanes. **Show in REAPER** (it names your DAW)
 moves the DAW to the line, on a DAW that can move to a place in the project.
 
 Retakes recorded into REAPER's fixed item lanes are listed with the line's other takes, each as **Retake on lane N**, and are chosen the same way. **Keep take**
@@ -428,6 +432,10 @@ the DAW cannot do is off, with the DAW's reason.
 
 ![Editing - the drawer on Clean up: what was found in the chapter and the findings by kind](../../images/ui/editing-drawer-cleanup.webp)
 
+Under the findings, **Match levels…** brings the items on this chapter's linked track onto one level. It is the same action as in the editing check on [Production](production.md): it first lists how many items differ from -20 dBFS RMS by more than 2 dB, and **Match** then changes each item's volume in REAPER, in one undo step. A toast says how many items it matched; when every item is already within 2 dB of the target it says so and changes nothing, and when the items moved on in REAPER since the preview it says that nothing was changed and to match again. It is off, with the DAW's reason under the button, while REAPER is not answering or the DAW cannot change an item's gain.
+
+![Editing - the drawer on Clean up scrolled to Match levels, under the findings](../../images/ui/editing-drawer-cleanup-levels.webp)
+
 For clicks, breaths and plosives, **Repair in REAPER** (an icon button after **Apply**) opens a menu headed **Repair** with **Cleanup tools…**, the dialog that is also in the audio engine panel's REAPER tools. It opens REAPER's own Repair Pops/Clicks or Magnolius DeClick on the items selected in REAPER. **Apply** repairs in the app; these open REAPER's own tool, and you apply or cancel the repair there, where one Undo takes it back. The entry is off, with the reason under it, when the project records in Audacity, the DAW is not answering or has another project open, or the project has no tracks. Which item is selected, whether Magnolius DeClick is installed and whether REAPER has the Repair Pops/Clicks dialog (REAPER 7.80 or later) are only known when you press **Open**, so the dialog says so there.
 
 ![Editing - Clicks chosen in Clean up: Repair in REAPER beside Apply, its menu open on Cleanup tools](../../images/ui/editing-drawer-cleanup-repair.webp)
@@ -447,7 +455,7 @@ the take's state (**Active** or **Muted**) under the name.
 
 ![Editing - the Effects tab with a DAW that lists its chains: each has a Favourite button, and the favourites are listed first](../../images/ui/editing-drawer-effects-chains.webp)
 
-![Editing - the Effects tab with two effects on words: the inspector with its Previous and Next arrows and Show in the DAW](../../images/ui/editing-drawer-effects-inspector.webp)
+![Editing - the Effects tab with two effects on words: the inspector with its Previous and Next arrows and Show in REAPER](../../images/ui/editing-drawer-effects-inspector.webp)
 
 ![Editing - the Timeline strip under the text: the takes of the line the cursor is on](../../images/ui/editing-drawer-timeline.webp)
 

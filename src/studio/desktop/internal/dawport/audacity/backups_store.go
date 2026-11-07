@@ -201,13 +201,8 @@ func writeBackups(path string, table backupsTable) error {
 	if err != nil {
 		return err
 	}
-	temporary := path + ".tmp"
-	if err := os.WriteFile(temporary, raw, 0o600); err != nil {
+	if err := persist.WriteFile(path, raw, 0o600); err != nil {
 		return fmt.Errorf("could not write the %s file: %w", backupsWhat, err)
-	}
-	if err := os.Rename(temporary, path); err != nil {
-		_ = os.Remove(temporary)
-		return fmt.Errorf("could not activate the %s file: %w", backupsWhat, err)
 	}
 	return nil
 }

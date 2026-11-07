@@ -52,8 +52,8 @@ title ("Chapter 3: A Caucus-Race and a Long Tale"). The lines are grouped by cha
   stop; it is off, with the reason, for a line that has no place in the recording yet). With REAPER linked it plays through
   REAPER; when REAPER cannot play now, the app plays the line's recording and a message says why. While REAPER is recording
   nothing plays;
-- **Open in Booth at this line** (Enter on a selected line), **Mark recorded** (or **Mark open again**) and, set apart after a
-  rule, **Remove from pickups**.
+- **Open in Booth at this line** (Enter on a selected line), **Show in REAPER** (**Show in Audacity** with Audacity: the same button as on Editing, Proof and Production), which selects the note the line came from in your DAW and puts the edit cursor on its spot, **Mark recorded** (or **Mark open again**) and, set apart after a
+  rule, **Remove from pickups**. With the built-in recorder there is no DAW, so **Show in** is not drawn. Otherwise it is off, with its reason in the hint, while the DAW cannot move to a place or when the line did not come from a note (a line you added by hand has no recording to show).
 
 On a very wide window the page stays one centred column about 1,500 px wide, the same width as Master & QC and Delivery, so a line's
 status and buttons stay beside its words instead of at the far edge of the screen.
@@ -135,7 +135,7 @@ under the list at its own width. From there:
 - **Open N in Booth** opens the Booth on those lines, starting with the first line's chapter (see
   [A pickup session](booth.md#a-pickup-session)). With no lines in the session it is off (outlined), and the line under the
   buttons says why: there are no pickups yet, every line in view is recorded, or every open line is left out.
-- **Add N as markers in** the DAW, the flag beside it, puts a pickup marker at each line's place and says "Pickup markers for N lines are in
+- **Add N as markers in** the DAW (the same button as **Add marker in** on [Proof](proof.md#going-to-a-note-in-the-daw) and on Editing's flag cards), the flag beside it, puts a pickup marker at each line's place and says "Pickup markers for N lines are in
   REAPER." (or that those markers were already there). It is off, with the reason, when the DAW cannot add markers, and with REAPER when no project file is linked (its tooltip and a screen reader's description say "Link a REAPER project (.rpp) file to add markers.", the same ask as the top bar's badge). With
   Audacity the markers are labels on a label track named "<!-- brand:identity.audacityLabelTrack -->Narration Studio<!-- /brand -->", written `[nu:pickup open] …` (and
   `[nu:pickup done] …` once resolved): one label per line, with no colour. Audacity must be

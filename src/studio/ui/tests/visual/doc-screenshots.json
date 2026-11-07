@@ -911,6 +911,13 @@
   },
   {
     "page": "editing",
+    "state": "flag-card",
+    "viewport": "desktop",
+    "docName": "editing-flag-card",
+    "caption": "Editing - a flagged word's card with its Add marker icon button at the end of the row"
+  },
+  {
+    "page": "editing",
     "state": "read-twice",
     "viewport": "desktop",
     "docName": "editing-read-twice",
@@ -1006,6 +1013,13 @@
     "viewport": "desktop",
     "docName": "editing-drawer-cleanup",
     "caption": "Editing - the drawer on Clean up: what was found in the chapter and the findings by kind"
+  },
+  {
+    "page": "editing",
+    "state": "drawer-cleanup-levels",
+    "viewport": "desktop",
+    "docName": "editing-drawer-cleanup-levels",
+    "caption": "Editing - the drawer on Clean up scrolled to Match levels, under the findings"
   },
   {
     "page": "editing",
@@ -1181,6 +1195,13 @@
     "viewport": "desktop",
     "docName": "delivery-measured",
     "caption": "Delivery with the book checked: the chapters passing in Before you build, and Output waiting on the rest"
+  },
+  {
+    "page": "delivery",
+    "state": "check-running",
+    "viewport": "desktop",
+    "docName": "delivery-check-running",
+    "caption": "Delivery with Check files… pressed: the measurement part way through, with its progress bar and Cancel under Before you build"
   },
   {
     "page": "shell",
@@ -1628,7 +1649,7 @@
     "state": "drawer-effects-inspector",
     "viewport": "desktop",
     "docName": "editing-drawer-effects-inspector",
-    "caption": "Editing - the Effects tab with two effects on words: the inspector with its Previous and Next arrows and Show in the DAW"
+    "caption": "Editing - the Effects tab with two effects on words: the inspector with its Previous and Next arrows and Show in REAPER"
   },
   {
     "page": "proof",

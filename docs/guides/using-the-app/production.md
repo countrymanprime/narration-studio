@@ -153,8 +153,8 @@ track no longer in the saved project says it may have been deleted or the projec
 shows its figures as last known and offers no playback.
 
 When the panel knows the chapter's track, it can play that track's recorded audio right there -
-Play/Pause and skip 30 seconds back or forward - and **Select in REAPER** brings the track into
-view in REAPER itself. Selecting needs REAPER linked and answering, and
+Play/Pause and skip 30 seconds back or forward - and **Show in REAPER** (the icon button, the same one the chapter's row menu has) brings the track into
+view in your DAW itself. Selecting needs REAPER linked and answering, and
 changes nothing else: no undo point, and REAPER's own selection is all it touches.
 
 ![Production - a chapter's track slide-over on a confirmed link, with how the track was found](../../images/ui/production-track-panel.webp)
@@ -355,8 +355,9 @@ under the box, a fixed size so it never jumps, set in the same title and subtitl
 The footer has one secondary action, **Back**, and the import itself. The Close button at the top
 cancels. **Close when the import finishes** (on by default, an app setting also under Settings, App &
 updates) closes the import window as soon as the manuscript is written; turn it off to read the
-activity log until you press Close. The import does not build the Story Bible: open
-[Story Bible](story-bible.md) and use **Scan the manuscript** or **Import entries**.
+activity log until you press Close. When the project's Story Bible has no entries yet, the import then builds
+it ([Story Bible](story-bible.md#built-after-an-import)) and a message says what it made; turn **Build the
+Story Bible after import** off in [Settings](settings.md) to start from an empty Story Bible instead.
 
 Every dialog in the app can be used from the keyboard. Focus starts inside the dialog (on its
 message, outlined when you opened it with the keyboard), Tab and Shift+Tab stay inside it, and the

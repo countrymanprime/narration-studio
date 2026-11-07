@@ -45,7 +45,7 @@ available in Audacity yet.
 
 The top bar holds the chapter stepper (previous chapter, the chapter menu with the opening and closing credits, next chapter),
 where you are (`¶ 14 of 24 · 57% · ~5:53 of audio left`; `At ¶ 14 of 24` once the chapter is recorded to the end), the resume line, and a chip naming the recording setup (the DAW, or the
-built-in recorder). The chip opens the [audio engine panel](navigation.md#the-audio-engine-panel) over the Booth, as the engine chip does on every other page; the take keeps running. The built-in recorder's chip, like the header's **Built-in** chip, opens Settings > Recording & DAW instead, since it has no DAW to link. The chapter is named by its number and title
+built-in recorder). In a window shorter than about 26 rem (416 px), or shorter than 30 rem (480 px) and no wider than 30 rem, the progress line and the key hints under Record are not drawn (a screen reader still has them), so the side panel has room to read. The chip opens the [audio engine panel](navigation.md#the-audio-engine-panel) over the Booth, as the engine chip does on every other page; the take keeps running. The built-in recorder's chip, like the header's **Built-in** chip, opens Settings > Recording & DAW instead, since it has no DAW to link. The chapter is named by its number and title
 (`Chapter 1: Down the Rabbit-Hole`). **Text settings** chooses the font, the same choice as the reader font on
 [Script](script.md), the Booth's text size, 24 to 72 px (the same choice as **Booth text size** in [Settings › Appearance & keys](settings.md)), and the **Column width**, **Narrow**, **Medium**, **Wide** or **Full**,
 the same choice as **Column width** in [Settings › Reader text](settings.md), drawn by the Script's own reading column: centred in the text area, the width's characters a line or the whole text area, whichever is less, so each choice narrows the text equally on both sides and the column follows the window up to that width; **+** and **-** change the size too, and the Booth opens at the size
@@ -166,7 +166,7 @@ caret back brightens those words again.
 ![Booth - six seconds into a take: the words before the caret are dimmed one by one and the text follows the voice](../../images/ui/booth-following.webp)
 
 A chip under the text, above the footer, names each problem the Booth can fix and opens its dialog again. While it is up the
-footer does not repeat the reason, and the setup chip on the top bar warns too:
+footer does not repeat the reason, and the setup chip on the top bar warns too (**REAPER · no track**, **REAPER · several tracks**, **REAPER · other project**, **REAPER · not connected**, **REAPER · not armed** when no track is armed to record on, **REAPER · recording elsewhere** while REAPER records a take this app did not start, or **not running** for a DAW that is not running):
 
 - **Not linked to a track.** The chapter has no track in the DAW project (or several). The dialog opens by itself the first
   time you open the chapter, and again each time you press Record. It offers two fixes:

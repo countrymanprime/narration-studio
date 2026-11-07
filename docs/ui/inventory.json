@@ -1579,8 +1579,8 @@
         "src/components/editing/strip/TimelineStrip.tsx",
         "src/components/editing/takes/TakeCompare.tsx",
         "src/components/editing/takes/TakeLines.tsx",
-        "src/components/editing/takes/useShowInDaw.tsx",
         "src/components/editing/voicesample/VoiceSampleDialog.tsx",
+        "src/components/engine/AddMarkers.tsx",
         "src/components/engine/AudacityLinkCard.tsx",
         "src/components/engine/ChapterLinksTable.tsx",
         "src/components/engine/ChapterSyncPanel.tsx",
@@ -1590,6 +1590,7 @@
         "src/components/engine/LinkChaptersDialog.tsx",
         "src/components/engine/LiveTracksStatus.tsx",
         "src/components/engine/NestedChaptersNotice.tsx",
+        "src/components/engine/ShowInDaw.tsx",
         "src/components/engine/SyncActivityLog.tsx",
         "src/components/engine/TrackList.tsx",
         "src/components/engine/VoicesCard.tsx",
@@ -3316,7 +3317,12 @@
         "Linked Not Started",
         "Not Running",
         "Records In The App",
-        "Other Project Open"
+        "Other Project Open",
+        "Chapter Has No Track",
+        "Chapter Has Several Tracks",
+        "Not Connected",
+        "Recording Elsewhere",
+        "No Track Armed"
       ],
       "consumers": [
         "src/components/booth/page/BoothNextPage.tsx"
@@ -4131,6 +4137,7 @@
         "src/components/editing/CleanupAction.tsx",
         "src/components/editing/EditingCheckPanel.tsx",
         "src/components/editing/backups/useBackups.ts",
+        "src/components/editing/cleanup/registerLevelsSection.tsx",
         "src/components/editing/page/EditingBody.tsx",
         "src/components/editing/range/replace/ReplaceDialog.tsx",
         "src/components/engine/AudacityLinkCard.tsx",

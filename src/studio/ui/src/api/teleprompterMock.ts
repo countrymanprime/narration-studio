@@ -159,6 +159,12 @@ type Deps = {
   dawRecording?: () => boolean;
   /** Whether the chapter has a link now (the narrator linked or created its track during the session): `no_link` then answers as `ready`. */
   linked?: (chapterId: string) => boolean;
+  /**
+   * Keeps a finding `teleprompterSaveFlags` made in the findings store (the host writes it to the chapter's findings file, where
+   * `findingsReview` finds it) and answers the review the store holds: a decision made there, such as an Undo, outlives the save. Unset,
+   * the saved findings are answered from this mock alone.
+   */
+  keepFlagFinding?: (finding: TeleprompterFlagFinding, dismissed: boolean) => Promise<TeleprompterFlagFinding['review']>;
   dawRecord?: (kind: 'start' | 'stop') => { reason: 'standalone' | 'unlinked' | 'unavailable'; message: string } | null;
 };
 
@@ -418,51 +424,54 @@ const MISREAD_CONFIDENCE_REASON =
  * The mock of `TeleprompterSaveFlags` (`src/studio/desktop/teleprompterflags.go`): the same id rule in spirit (chapter,
  * paragraph, kind and words, so a repeat is one finding), a dismissal kept per id and heard text, and the same record shape.
  */
-function createFlagStore(deps: Pick<Deps, 'chapters' | 'paragraphs'>) {
+function createFlagStore(deps: Pick<Deps, 'chapters' | 'paragraphs' | 'keepFlagFinding'>) {
   const dismissed = new Set<string>();
   return async (chapterId: string, flags: TeleprompterFlagSave[]): Promise<TeleprompterFlagFinding[]> => {
     await Promise.resolve();
     const chapter = deps.chapters().find((item) => item.id === chapterId);
-    return flags.map((flag) => {
-      const paragraph = deps.paragraphs().find((item) => item.id === flag.paragraphId && item.chapterId === chapterId);
-      if (!paragraph) throw new Error(`paragraph "${flag.paragraphId}" is not in chapter "${chapterId}"`);
-      const offsets = wordOffsets(paragraph.text);
-      if (flag.wordStart < 0 || flag.wordEnd <= flag.wordStart || flag.wordEnd > offsets.length)
-        throw new Error(`words [${flag.wordStart}, ${flag.wordEnd}) are not within the paragraph`);
-      const words = offsets.slice(flag.wordStart, flag.wordEnd).map(([from, to]) => paragraph.text.slice(from, to));
-      const extra = flag.kind === 'extra';
-      const start = offsets[flag.wordStart][0];
-      const id = `${chapterId}:${paragraph.id}:${flag.kind}:${flag.wordStart}-${flag.wordEnd}`;
-      const version = flag.heard.trim().toLowerCase();
-      if (flag.dismissed) dismissed.add(`${id}\u001f${version}`);
-      return {
-        schema_version: 1,
-        id,
-        analyzer: 'teleprompter',
-        project: { path: 'C:/Projects/Alice', output_path: `${brand.identity.projectFolder}/findings/teleprompter/${chapterId}.json` },
-        source: {},
-        manuscript: {
-          chapter_id: chapterId,
-          ...(chapter ? { chapter_title: chapter.title } : {}),
-          ...(extra ? {} : { expected: words.join(' ') }),
-          ...(flag.heard ? { recorded: flag.heard } : {}),
-          span: { paragraph_id: paragraph.id, start, end: extra ? start : offsets[flag.wordEnd - 1][1] },
-        },
-        category: flag.kind === 'restart' ? 'pickup' : 'transcript_discrepancy',
-        severity: flag.kind === 'misread' || flag.kind === 'skipped' ? 'warning' : 'info',
-        confidence: flag.kind === 'misread' && flag.heard.trim() ? MOCK_MISREAD_CONFIDENCE : null,
-        evidence_version: `mock:${version}`,
-        confidence_reason: flag.kind === 'misread' && flag.heard.trim() ? MISREAD_CONFIDENCE_REASON : FLAG_CONFIDENCE_REASON,
-        evidence: {
-          kind: flag.kind,
-          heard: flag.heard,
-          suspected: true,
-          script_words: [flag.scriptStart, flag.scriptEnd],
-          ...(extra ? { before: words.join(' ') } : {}),
-        },
-        review: { status: dismissed.has(`${id}\u001f${version}`) ? 'dismissed' : 'unreviewed' },
-      };
-    });
+    return Promise.all(
+      flags.map(async (flag) => {
+        const paragraph = deps.paragraphs().find((item) => item.id === flag.paragraphId && item.chapterId === chapterId);
+        if (!paragraph) throw new Error(`paragraph "${flag.paragraphId}" is not in chapter "${chapterId}"`);
+        const offsets = wordOffsets(paragraph.text);
+        if (flag.wordStart < 0 || flag.wordEnd <= flag.wordStart || flag.wordEnd > offsets.length)
+          throw new Error(`words [${flag.wordStart}, ${flag.wordEnd}) are not within the paragraph`);
+        const words = offsets.slice(flag.wordStart, flag.wordEnd).map(([from, to]) => paragraph.text.slice(from, to));
+        const extra = flag.kind === 'extra';
+        const start = offsets[flag.wordStart][0];
+        const id = `${chapterId}:${paragraph.id}:${flag.kind}:${flag.wordStart}-${flag.wordEnd}`;
+        const version = flag.heard.trim().toLowerCase();
+        if (flag.dismissed && !deps.keepFlagFinding) dismissed.add(`${id}\u001f${version}`);
+        const finding: TeleprompterFlagFinding = {
+          schema_version: 1,
+          id,
+          analyzer: 'teleprompter',
+          project: { path: 'C:/Projects/Alice', output_path: `${brand.identity.projectFolder}/findings/teleprompter/${chapterId}.json` },
+          source: {},
+          manuscript: {
+            chapter_id: chapterId,
+            ...(chapter ? { chapter_title: chapter.title } : {}),
+            ...(extra ? {} : { expected: words.join(' ') }),
+            ...(flag.heard ? { recorded: flag.heard } : {}),
+            span: { paragraph_id: paragraph.id, start, end: extra ? start : offsets[flag.wordEnd - 1][1] },
+          },
+          category: flag.kind === 'restart' ? 'pickup' : 'transcript_discrepancy',
+          severity: flag.kind === 'misread' || flag.kind === 'skipped' ? 'warning' : 'info',
+          confidence: flag.kind === 'misread' && flag.heard.trim() ? MOCK_MISREAD_CONFIDENCE : null,
+          evidence_version: `mock:${version}`,
+          confidence_reason: flag.kind === 'misread' && flag.heard.trim() ? MISREAD_CONFIDENCE_REASON : FLAG_CONFIDENCE_REASON,
+          evidence: {
+            kind: flag.kind,
+            heard: flag.heard,
+            suspected: true,
+            script_words: [flag.scriptStart, flag.scriptEnd],
+            ...(extra ? { before: words.join(' ') } : {}),
+          },
+          review: { status: dismissed.has(`${id}\u001f${version}`) ? 'dismissed' : 'unreviewed' },
+        };
+        return deps.keepFlagFinding ? { ...finding, review: await deps.keepFlagFinding(finding, flag.dismissed) } : finding;
+      }),
+    );
   };
 }
 

@@ -1,3 +1,4 @@
+import { apiErrorMessage } from '../../api/errorMessage';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePort } from '../../ports/usePort';
 import { headingName } from '../../chapterHeading';
@@ -89,7 +90,7 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
     if (!enabled) return;
     let active = true;
     reload().catch((reason) => {
-      if (active) setError(String(reason));
+      if (active) setError(apiErrorMessage(reason));
     });
     return () => {
       active = false;
@@ -112,7 +113,7 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
       })
       .then(() => reload())
       .then(() => onChanged())
-      .catch((reason) => setError(String(reason)))
+      .catch((reason) => setError(apiErrorMessage(reason)))
       .finally(() => {
         inFlight.current = false;
         setBusyChapterId('');
@@ -135,7 +136,7 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
     const settled = () => {
       if (!active) return;
       setCreatingChapterId('');
-      reload().then(onChanged, (reason: unknown) => setError(String(reason)));
+      reload().then(onChanged, (reason: unknown) => setError(apiErrorMessage(reason)));
     };
     pending.done.then(settled, settled);
     return () => {
@@ -158,7 +159,7 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
       if (result.outcome === 'created') {
         setAdded((previous) => [...previous, ...createdTracks(result, Date.now())]);
         // The track was added and linked: a re-read that fails is the table's error, never a failed create.
-        await reload().then(onChanged, (reason: unknown) => setError(String(reason)));
+        await reload().then(onChanged, (reason: unknown) => setError(apiErrorMessage(reason)));
       }
       return result;
     } finally {

@@ -38,6 +38,19 @@ async function fillEmbed(page: Parameters<Driver>[0]): Promise<void> {
 }
 
 export const deliveryDrivers: Record<string, Driver> = {
+  'check-running': async (page) => {
+    await openDelivery(page, '?mockMeasure=running');
+    await panelTitled(page, 'Before you build').getByRole('button', { name: 'Check files…' }).click();
+    await page.getByRole('progressbar', { name: 'Measuring' }).waitFor();
+  },
+  'check-cancelled': async (page) => {
+    await openDelivery(page, '?mockMeasure=running');
+    const card = panelTitled(page, 'Before you build');
+    await card.getByRole('button', { name: 'Check files…' }).click();
+    await card.getByRole('button', { name: 'Cancel', exact: true }).click();
+    await card.getByRole('status').waitFor();
+    await card.getByRole('button', { name: /^Re-check \d+ files$/ }).waitFor();
+  },
   'multi-export-empty': async (page) => {
     await openDelivery(page);
     const panel = multiPanel(page);

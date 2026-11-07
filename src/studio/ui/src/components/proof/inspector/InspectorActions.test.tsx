@@ -27,21 +27,22 @@ function setup(finding: Finding, setupId: DawSetupId = 'reaper', props: { inert?
   const daw: DawClient = createMockDawClient(DAW_SETUPS[setupId], { chapterIds: [], candidateIds: [], findingIds: ['f1'] });
   const addMarker = vi.spyOn(daw, 'addMarker');
   const api: InspectorActionsApi = {
-    findingsGoTo: vi.fn(async () => ({ outcome: 'navigated' as const, projectTime: 12.4 })),
     findingsLoop: vi.fn(async () => ({ outcome: 'looping' as const, loopStart: 7, loopEnd: 14 })),
     findingsStopLoop: vi.fn(async () => ({ outcome: 'stopped' as const, restored: 3, kept: 0 })),
     transcriptAddEquivalence: vi.fn(async () => 'Added equivalence: Dinah = Dina'),
     findingsGet: vi.fn(async () => finding),
   };
+  const host = createMockApi();
+  const goTo = vi.spyOn(host, 'findingsGoTo').mockResolvedValue({ outcome: 'navigated', projectTime: 12.4 });
   const handlers = { onOpenScript: vi.fn(), onOpenBooth: vi.fn(), onReopen: vi.fn(), onNoteRead: vi.fn() };
   render(
-    <ApiProvider api={createMockApi()}>
+    <ApiProvider api={host}>
       <PortOverrides clients={{ daw }}>
         <InspectorActions finding={finding} api={api} {...props} {...handlers} />
       </PortOverrides>
     </ApiProvider>,
   );
-  return { api, addMarker, ...handlers };
+  return { api, addMarker, goTo, ...handlers };
 }
 
 const button = (name: string) => screen.getByRole('button', { name });
@@ -63,7 +64,7 @@ describe('actions-follow-the-daw-capability', () => {
     const t = setup(placed());
     await waitFor(() => expect(enabled('Show in REAPER')).toBe(true));
     await userEvent.click(button('Show in REAPER'));
-    expect(t.api.findingsGoTo).toHaveBeenCalledWith('f1');
+    expect(t.goTo).toHaveBeenCalledWith('f1');
     expect((await screen.findByRole('status')).textContent).toBe('Moved to 00:12.4 in REAPER.');
   });
 
@@ -88,17 +89,20 @@ describe('actions-follow-the-daw-capability', () => {
     expect(screen.getByRole('button', { name: /^Add marker in Audacity/ })).toBeTruthy();
   });
 
-  it('turns both off with the capability’s own sentence when the DAW offers neither', async () => {
+  // The built-in recorder is not a DAW: Show in is not drawn (the approved mock, #2826); Add marker stays, off, with the capability's sentence.
+  it('draws no Show in and turns Add marker off with the capability’s own sentence when the DAW offers neither', async () => {
     setup(accepted(), 'builtin');
-    const sentence = DAW_SETUPS.builtin.capabilities.navigate.message!;
-    await waitFor(() => expect(screen.getByText(sentence)).toBeTruthy());
-    expect(enabled('Show in the DAW')).toBe(false);
-    expect(enabled('Add marker in the DAW')).toBe(false);
+    const sentence = DAW_SETUPS.builtin.capabilities.markers.message!;
+    // The sentence is the shared Add marker button's reason (#2830), read from its hint, not printed beside the row.
+    await waitFor(() => expect(enabled('Add marker in the DAW')).toBe(false));
+    expect(screen.queryByRole('button', { name: /^Show in / })).toBeNull();
+    await userEvent.hover(button('Add marker in the DAW'));
+    expect(await screen.findByText(sentence)).toBeTruthy();
   });
 
   it('shows a refusal from the DAW as an alert', async () => {
     const t = setup(placed());
-    vi.mocked(t.api.findingsGoTo).mockResolvedValue({ outcome: 'refused', reason: 'no_item', message: 'Nothing to go to.' });
+    t.goTo.mockResolvedValue({ outcome: 'refused', reason: 'no_item', message: 'Nothing to go to.' });
     await waitFor(() => expect(enabled('Show in REAPER')).toBe(true));
     await userEvent.click(button('Show in REAPER'));
     expect((await screen.findByRole('alert')).textContent).toBe('Nothing to go to.');
@@ -123,7 +127,7 @@ describe('open-in-script-and-booth-are-links-not-moves', () => {
     );
     expect(screen.getByText('This note has no time in its audio to go to.')).toBeTruthy();
     await userEvent.click(button('Show in REAPER'));
-    expect(t.api.findingsGoTo).not.toHaveBeenCalled();
+    expect(t.goTo).not.toHaveBeenCalled();
   });
 
   it('turns both off for a note with no chapter', () => {

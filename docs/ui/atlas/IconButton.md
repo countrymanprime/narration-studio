@@ -53,8 +53,8 @@ Storybook title: `Primitives/IconButton`. Source: `src/components/primitives/Ico
 - `src/components/editing/strip/TimelineStrip.tsx`
 - `src/components/editing/takes/TakeCompare.tsx`
 - `src/components/editing/takes/TakeLines.tsx`
-- `src/components/editing/takes/useShowInDaw.tsx`
 - `src/components/editing/voicesample/VoiceSampleDialog.tsx`
+- `src/components/engine/AddMarkers.tsx`
 - `src/components/engine/AudacityLinkCard.tsx`
 - `src/components/engine/ChapterLinksTable.tsx`
 - `src/components/engine/ChapterSyncPanel.tsx`
@@ -64,6 +64,7 @@ Storybook title: `Primitives/IconButton`. Source: `src/components/primitives/Ico
 - `src/components/engine/LinkChaptersDialog.tsx`
 - `src/components/engine/LiveTracksStatus.tsx`
 - `src/components/engine/NestedChaptersNotice.tsx`
+- `src/components/engine/ShowInDaw.tsx`
 - `src/components/engine/SyncActivityLog.tsx`
 - `src/components/engine/TrackList.tsx`
 - `src/components/engine/VoicesCard.tsx`

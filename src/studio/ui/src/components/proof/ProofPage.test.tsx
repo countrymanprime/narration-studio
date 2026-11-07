@@ -346,6 +346,8 @@ describe('proof-keys-follow-the-visible-list', () => {
     await user.click(all[all.length - 1]);
     press('w', 'KeyW');
     await waitFor(async () => expect(await journal.entries()).toHaveLength(1));
+    // A press for another note within the quiet window after a decision is ignored on purpose (#3114); a narrator who navigates takes longer.
+    await new Promise((resolve) => setTimeout(resolve, 400));
     await user.click(within(notes).getByRole('button', { name: /To review/ }));
     const shown = () => [...notes.querySelectorAll<HTMLElement>('tr[data-row]')];
     await waitFor(() => expect(shown().length).toBeLessThan(all.length));
@@ -375,6 +377,24 @@ describe('proof-decisions-and-undo', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  // #3114 (qa-breaker): a double press decided the note and then the next one, which the first press had just moved to. A held key does the same.
+  it('a second press right after a decision does not decide the note it moved to', async () => {
+    const api = createMockApi();
+    const review = vi.spyOn(api, 'findingsReview');
+    renderPage({ api, at: '/proof?chapter=chapter-1' });
+    const user = userEvent.setup();
+    const rows = await noteRows();
+    await user.click(rows[rows.findIndex((row) => row.textContent?.includes('To review'))]);
+
+    await user.click(await screen.findByRole('button', { name: /Needs pickup/ }));
+    await waitFor(() => expect(review).toHaveBeenCalledTimes(1));
+    // The pointer has not moved: the second press lands on the button of the note the first one advanced to.
+    await user.click(screen.getByRole('button', { name: /Needs pickup/ }));
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    expect(review).toHaveBeenCalledTimes(1);
   });
 
   // #3115: the saved-decision message was in the Inspector's status line and in the toast's live region, so a screen reader said it twice.

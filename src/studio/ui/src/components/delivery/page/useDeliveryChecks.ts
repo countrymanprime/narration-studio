@@ -2,8 +2,7 @@ import { useEffect } from 'react';
 import { apiErrorMessage } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
 import { useStoreHandle, useStudio } from '../../../studio/StudioProvider';
-import type { MeasureJob } from '../../../types';
-import { useHostRead } from './useHostRead';
+import { useMeasureRun } from '../../masterqc/page/MeasureRun';
 
 /** The store records a failed read in `errors.chapters`, which the page shows with Check again; the call itself has nothing more to do. */
 const recorded = (_failure: unknown): void => undefined;
@@ -15,16 +14,14 @@ const recorded = (_failure: unknown): void => undefined;
  * "Not mastered": the page says it cannot tell.
  */
 export function useDeliveryChecks() {
-  const measure = usePort('measure');
   const system = usePort('system');
   const studio = useStoreHandle();
   const chapters = useStudio((state) => state.slots.chapters);
   const chaptersError = useStudio((state) => state.errors.chapters);
-  const job = useHostRead<MeasureJob>(
-    () => measure.measureState(),
-    (value) => value.phase === 'running',
-  );
-  const { again } = job;
+  // The measurement is Master's own run (`useMeasureRun`): one read of the host's job, one start, one cancel, so Delivery's Check files and
+  // Master's are the same control over the same job, and a result shows on both pages (#2825).
+  const run = useMeasureRun();
+  const again = run.checkAgain;
 
   useEffect(() => {
     void studio.load('chapters').catch(recorded);
@@ -34,9 +31,10 @@ export function useDeliveryChecks() {
   return {
     chapters,
     chaptersError: chaptersError === undefined ? undefined : apiErrorMessage(chaptersError),
-    job: job.value,
-    jobError: job.error,
-    lastHeard: job.lastHeard,
+    run,
+    job: run.job,
+    jobError: run.jobError,
+    lastHeard: run.lastHeard,
     /** Reads the measurement again: the host judges it against the profile as it is now, so a profile change or edit needs this. */
     reread: again,
     /** Reads the chapters and the measurement now. */

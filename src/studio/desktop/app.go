@@ -7,6 +7,7 @@ import (
 	"desktop/internal/brand"
 	"desktop/internal/presstimeline"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/fs"
 	"log/slog"
@@ -1018,7 +1019,7 @@ func materializeResources(source fs.FS, userCache, executable string) (string, e
 		_ = os.RemoveAll(staging)
 		return "", err
 	}
-	if err := os.Rename(staging, target); err != nil {
+	if err := persist.Rename(staging, target); err != nil {
 		return "", err
 	}
 	// The REAPER scripts are materialized beside the immutable sidecars and in the stable launcher folder, each with the app's
@@ -1073,7 +1074,7 @@ func writeIfChanged(target string, content []byte) error {
 	if err := os.WriteFile(temporary, content, 0o600); err != nil {
 		return err
 	}
-	return os.Rename(temporary, target)
+	return persist.Rename(temporary, target)
 }
 
 func executablePath() string {
@@ -1095,7 +1096,7 @@ func writeCheckoutLauncherPointer(launcher, executable string) error {
 	if err := os.WriteFile(temporary, []byte(executable+"\n"), 0o600); err != nil {
 		return err
 	}
-	return os.Rename(temporary, target)
+	return persist.Rename(temporary, target)
 }
 
 func writeReaperLauncherPath(root, executable string) error {
@@ -1111,7 +1112,7 @@ func writeReaperLauncherPath(root, executable string) error {
 	if err := os.WriteFile(temporary, []byte(executable+"\n"), 0o600); err != nil {
 		return err
 	}
-	return os.Rename(temporary, target)
+	return persist.Rename(temporary, target)
 }
 
 // resourceKeyFor changes whenever any embedded release resource changes. Keeping
@@ -2216,6 +2217,38 @@ func (h *Host) startGuideBuild(rulesOnly bool) (map[string]any, error) {
 	if err != nil || gate != nil {
 		return gate, err
 	}
+	return h.runGuideJob(svc, model, rulesOnly, false)
+}
+
+// buildGuideAfterImport is Build the Story Bible after import (ManuscriptGuide.build_after_import, on unless the narrator turns it off),
+// run when an import succeeds: the unattended build (guide.Service.BuildUnattended) of a Story Bible with no entries, which files a name
+// under a kind only on the evidence of the confidence rule and ends with a sentence saying what it made, what waits under Needs review
+// and what it left out. A Story Bible with entries, or a file it cannot read, is left as it is, and the job's end says so; the file is
+// never read through Entities here, which would move a damaged file aside. Nobody is there to answer the language model's first-use
+// gate, so without an installed model it builds from the rules alone and says so. It reports whether it started a job; a build
+// refreshes the dialogue cues itself.
+func (h *Host) buildGuideAfterImport() bool {
+	svc := h.services()
+	if svc.guide == nil || svc.settings == nil {
+		return false
+	}
+	if on, _ := svc.settings.Effective("ManuscriptGuide", "build_after_import", "true"); on != "true" {
+		return false
+	}
+	model, gate, err := h.spacyForBuild(svc.settings, false)
+	rulesOnly := err != nil || gate != nil
+	if rulesOnly {
+		model = guide.RulesOnly
+	}
+	if _, err := h.runGuideJob(svc, model, rulesOnly, true); err != nil {
+		_ = h.log.Report("story_bible_after_import", "The Story Bible was not built after the import: "+err.Error())
+		return false
+	}
+	return true
+}
+
+// runGuideJob runs a Story Bible build as the story_bible job, the narrator's (Build) or, with afterImport, the unattended one.
+func (h *Host) runGuideJob(svc hostServices, model string, rulesOnly, afterImport bool) (map[string]any, error) {
 	h.mu.Lock()
 	if h.guideJob != nil {
 		h.guideJob.mu.RLock()
@@ -2227,16 +2260,25 @@ func (h *Host) startGuideBuild(rulesOnly bool) (map[string]any, error) {
 		}
 	}
 	job := &workJob{id: fmt.Sprintf("guide-%d", time.Now().UnixNano()), kind: "story_bible", phase: "running", message: "Story Bible rebuild started.", percent: 1, started: time.Now(), report: func(kind, message string) { _ = h.log.Report(kind, message) }}
-	h.jobRuns.begin(h.runLog, job.id, jobKindStoryBible, "rules_only", rulesOnly)
+	h.jobRuns.begin(h.runLog, job.id, jobKindStoryBible, "rules_only", rulesOnly, "after_import", afterImport)
 	h.guideJob = job
 	h.mu.Unlock()
 	// The build runs on the snapshot's Story Bible and session directory, which
 	// belong to one project; the goroutine never re-reads h.guide.
-	progress := filepath.Join(svc.config.sessionDir, "guide_progress_"+job.id+".txt")
-	log := filepath.Join(svc.config.sessionDir, "guide_log_"+job.id+".txt")
+	// A project not linked to a DAW session yet (an import usually comes first) has no session folder: the two files then go to the temporary
+	// folder, never the app's working directory, and are removed once the job has read them.
+	dir, temporary := svc.config.sessionDir, svc.config.sessionDir == ""
+	if temporary {
+		dir = os.TempDir()
+	}
+	progress := filepath.Join(dir, "guide_progress_"+job.id+".txt")
+	log := filepath.Join(dir, "guide_log_"+job.id+".txt")
 	// The snapshot is taken before the job starts, so a fast build cannot report a finished job as the one it started (#3076).
 	started := snapshotWork(job)
 	go func() {
+		if temporary {
+			defer func() { _ = os.Remove(progress); _ = os.Remove(log) }()
+		}
 		// The sidecar writes a stage|pct|message progress file and an
 		// append-only log while it works; tail both so the dialog shows real
 		// activity instead of sitting at 1% until the build finishes.
@@ -2255,7 +2297,21 @@ func (h *Host) startGuideBuild(rulesOnly bool) (map[string]any, error) {
 				}
 			}
 		}()
-		_, err := svc.guide.Build(progress, log, model)
+		var err error
+		var built string
+		if afterImport {
+			var report guide.UnattendedReport
+			report, err = svc.guide.BuildUnattended(progress, log, model)
+			built = report.Sentence()
+			switch {
+			case errors.Is(err, guide.ErrBibleNotEmpty):
+				err, built = nil, "The Story Bible already has entries, so the import left it as it was. Scan the manuscript on the Story Bible page to add what is new."
+			case errors.Is(err, guide.ErrBibleUnreadable):
+				built = "The Story Bible file could not be read, so the import left it as it was and built nothing. Open the Story Bible page to see what happened to it."
+			}
+		} else {
+			_, err = svc.guide.Build(progress, log, model)
+		}
 		close(stop)
 		<-stopped
 		pollWorkJob(job, progress, log, &logAt)
@@ -2264,11 +2320,17 @@ func (h *Host) startGuideBuild(rulesOnly bool) (map[string]any, error) {
 			job.phase = "error"
 			job.errorText = err.Error()
 			job.message = err.Error()
+			if afterImport && errors.Is(err, guide.ErrBibleUnreadable) {
+				job.message = built // what the narrator does about it, not only what went wrong
+			}
 		} else {
 			job.phase = "success"
 			job.percent = 100
 			job.message = "Story Bible rebuild complete."
-			if rulesOnly {
+			switch {
+			case afterImport:
+				job.message = built
+			case rulesOnly:
 				job.message = "Story Bible rebuild complete with the rules-only extraction, which is lower quality than a language model."
 			}
 		}

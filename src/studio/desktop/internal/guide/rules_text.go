@@ -368,6 +368,8 @@ func classify(candidate ruleCandidate, lowered []rune) string {
 		return categoryPlace
 	case "ORG":
 		return categoryOrganization
+	case confidenceReview:
+		return categoryNeedsReview
 	}
 	words := asciiWords([]rune(compare.PyLower(candidate.name)))
 	has := func(set map[string]bool, words []string) bool {

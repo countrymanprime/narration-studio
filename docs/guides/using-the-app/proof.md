@@ -197,7 +197,7 @@ The Inspector shows:
 - **Notes on this finding**, the conversation about the spot (see [Notes on a finding](#notes-on-a-finding)).
 
 A decision is saved at once and the next note is selected. If focus was on a note, it moves to that next note too, so the focused row, the panel and a screen reader agree; a decision made with focus elsewhere leaves focus where it is. A message says what was saved, with **Undo** to put the
-note back as it was. On a window wide enough to show the panel beside the notes, the messages sit left of it, so they do not cover the decision buttons. The decision is also in the app's undo history, so Ctrl+Z, **Undo the last change** in the jump menu and the
+note back as it was. On a window wide enough to show the panel beside the notes, the messages sit left of it, so they do not cover the decision buttons. On a narrower window, where the panel sits under the notes, the messages rise above the decision buttons instead. The four decision buttons stay at the bottom of the panel while you scroll the evidence and the takes above them, so a decision is always one click or key away. The decision is also in the app's undo history, so Ctrl+Z, **Undo the last change** in the jump menu and the
 [undo history](navigation.md) take it back too, as "Decision “Fine as read” at 00:12.4"; from another chapter, the undo opens the note's own chapter and selects the note. **Fine as read** says you heard it and the line stays as it was read: the note is cleared, and it is no longer a pickup. **Reopen** puts a decided note back
 to review.
 
@@ -213,7 +213,7 @@ and decide.
 ![Proof - a decision refused because the evidence changed since the note was shown: before and now, with the typed note kept](../../images/ui/proof-evidence-changed.webp)
 
 Right-click a note in the table, or its pin, for the same actions: **Hear it**, the four decisions (the one that does not fit the note
-says why), **Reopen**, **Go to** your DAW, **Trim the gap** on a gap note, and open its chapter in Script or the Booth.
+says why), **Reopen**, **Show in** your DAW, **Add marker in** your DAW, **Trim the gap** on a gap note, and open its chapter in Script or the Booth.
 
 ## The same word, said your way
 
@@ -263,7 +263,7 @@ recording cannot be heard, and the button says why.
 went. **Add marker in** your DAW puts one marker on the note's spot, whatever you decided about the note. The marker is
 named like the ones a chapter's [comparison
 export](#comparing-the-recording-with-the-script) adds, so Export markers does not add it a second time, and if the spot
-already has one nothing is added. Apart from **Trim the gap**, it is the only control here that changes your project, and one Undo in
+already has one nothing is added: the Inspector says "A marker is already at 3:41." It is the one button the Editing flag card and the Pickups panel use too, so its label and its reason when it is off are the same on all three; in the right-click menu the entry is off for the reason the button is. Apart from **Trim the gap**, it is the only control here that changes your project, and one Undo in
 the DAW removes it.
 
 With Audacity there are no items: **Show in Audacity** selects the compared track and puts the cursor at the note's time.
