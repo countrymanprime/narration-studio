@@ -302,7 +302,7 @@
       ],
       "job_has": [
         "runs-on: windows-latest",
-        "need-golangci-lint: 'true'"
+        "need-golangci-lint: ${{ matrix.shard == 1 }}"
       ]
     },
     {
@@ -319,7 +319,7 @@
       "job_has": [
         "runs-on: windows-latest"
       ],
-      "note": "Test (Windows) runs it as its first step, `go test (root)`, instead of in a job of its own."
+      "note": "Test (Windows 1/2) runs it (`go test (root)`), with go lint, instead of a job of its own."
     },
     {
       "id": "go-test/rest",
@@ -335,7 +335,7 @@
       "job_has": [
         "runs-on: windows-latest"
       ],
-      "note": "Test (Windows) runs it as its `go test (rest)` step, after the root package, instead of in a job of its own."
+      "note": "Test (Windows 2/2) runs it (`go test (rest)`), with test-schedules and the Windows harness."
     },
     {
       "id": "go-test/schedules",

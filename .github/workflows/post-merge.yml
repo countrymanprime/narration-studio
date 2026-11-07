@@ -5,7 +5,7 @@ name: Post-merge checks
 # `main` moved and ticks HOLD on a red run. The coordinator fixes a red run forward, or reverts the merge that turned it red
 # (.claude/skills/agent-train/SKILL.md, "Safety net").
 #   - The bridge harness's mutation checks, on Windows and on Linux. A pull request runs the harness's characterization tests on both
-#     (the reaper project's `pr` configuration, in Test (Windows) and Test (Linux 1/5)) and no mutation check.
+#     (the reaper project's `pr` configuration, in Test (Windows 2/2) and Test (Linux 1/5)) and no mutation check.
 # scripts/ci/check-manifest.json lists each check here with its safety net.
 on:
   push:
