@@ -352,17 +352,11 @@
       "was": "ui-dist / build",
       "tier": "pr",
       "workflow": "_quality.yml",
-      "job": "build-windows",
+      "job": "lint",
       "step": [
-        "uses: ./.github/actions/build-native",
-        "ui-bundle: build"
+        "pnpm --dir src/studio/ui run build"
       ],
-      "action_has": {
-        "build-native": [
-          "pnpm --dir src/studio/ui run build"
-        ]
-      },
-      "note": "Build (Windows) builds the UI bundle on its own runner (build-native with `ui-bundle: build`) instead of downloading it from linux-checks."
+      "note": "The lint job builds the UI bundle (full tier) and uploads it as `ui-dist` for Build (Windows); the Windows runner cannot build it (case-insensitive file system)."
     },
     {
       "id": "build-windows",
