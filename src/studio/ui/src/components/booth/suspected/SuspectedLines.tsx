@@ -138,7 +138,14 @@ export function SuspectedLines({ chapterId, flags: given }: { chapterId: string;
                   {unconfirmed ? <StatusBadge tone="neutral" label="Not confirmed" /> : null}
                   {done ? <span className="text-xs text-[var(--text-muted)]">Dismissed</span> : null}
                   <span className="flex-1" />
-                  {done || unconfirmed ? null : <IconButton action="close" label={`Dismiss: ${flag.script}`} size="sm" onClick={() => void dismiss(flag)} />}
+                  {done || unconfirmed ? null : (
+                    <IconButton
+                      action="close"
+                      label={`Dismiss: ${flag.script.trim() || KIND_LABELS[flag.kind]}`}
+                      size="sm"
+                      onClick={() => void dismiss(flag)}
+                    />
+                  )}
                 </div>
                 <span className={`line-clamp-2 ${done || unconfirmed ? 'text-[var(--text-muted)]' : ''}`}>
                   {flag.script}
