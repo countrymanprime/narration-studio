@@ -4,6 +4,10 @@ Use the pull request title that you want GitHub to use for the squash commit:
 `feat: ...`, `fix(scope): ...`, `chore: ...`, and so on. Add `!` or a
 `BREAKING CHANGE:` footer for a breaking change.
 
+## Release notes
+
+The release page lists this title, grouped by type. Add lines to this description only when a narrator must act or know something (each on its own line, written for a narrator): `BREAKING CHANGE: <what breaks>` (or a `!` in the title), `Migration: <what to do>`, `Known issue: <what still fails>`. They appear under **Important**.
+
 ## Related issue
 
 <!-- One line per issue. `Closes #n` for each issue this fully resolves (merging closes it). `Refs #n` only if it is a partial fix. Or `Issue: none — <reason>`. -->
@@ -20,5 +24,5 @@ Closes #
 - [ ] If `src/studio/integrations/reaper` changed: I ran the bridge harness and verified REAPER's own API behaviour by hand inside REAPER (the harness fakes `reaper`).
 - [ ] If this adds or changes a trust boundary (untrusted input crossing in: a download, the update, a sidecar's arguments, the DAW bridge, a file from someone else, the release pipeline; or a new privilege or network egress): I re-read its row in `docs/architecture/threat-model.md`, updated it and bumped its review date, and updated `SECURITY.md` if the reporter-facing scope changed.
 - [ ] If this adds or changes a file the app writes and reads back: I updated its row in `docs/reference/data-files.md` (location, schema link, retention). It has a threat-model row only if it names a path the host opens, a command it runs or a URL it fetches.
-- [ ] Docs: I updated the docs the change owes (`doc-impact-check` lists them), or the description says `Docs: none — <specific reason>`.
+- [ ] Docs: I updated the docs the change owes (`doc-impact-check` lists them) and ran the review checklist (`.claude/skills/docs-style/references/review-checklist.md`) on each guide page changed, or the description says `Docs: none — <specific reason>`.
 - [ ] If this settles or changes an architecturally significant decision (`docs/adr/README.md`, "When to write an ADR"): I added an ADR in `docs/adr/`, or a superseding one.

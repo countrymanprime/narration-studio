@@ -46,6 +46,7 @@ export const teleprompterGoldens: Record<string, z.ZodType> = {
   'teleprompter-save-flags.json': teleprompterFlagFindingsSchema,
   // The per-chapter reading file the host writes at session end and reads back.
   'teleprompter-reading.json': teleprompterReadingSchema,
+  'teleprompter-flag-check.json': teleprompterEventSchema.array(),
   'teleprompter-level.json': teleprompterEventSchema.array(),
   'teleprompter-meter-stopped.json': teleprompterEventSchema.array(),
   'read-aloud-reaper-states.json': z.record(z.string(), readAloudReaperStateSchema),

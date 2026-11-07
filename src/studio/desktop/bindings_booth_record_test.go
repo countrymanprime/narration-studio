@@ -105,8 +105,11 @@ func TestBuiltinBoothRecordPicksTheMicrophone(t *testing.T) {
 	}{
 		{name: "the chosen microphone wins over the last one", devices: []recording.Device{{Name: micOne}, {Name: micTwo}}, saved: micOne, chosen: micTwo, want: micTwo},
 		{name: "the last microphone when none is chosen", devices: []recording.Device{{Name: micOne}, {Name: micTwo}}, saved: micTwo, want: micTwo},
+		{name: "a last microphone that is no longer listed is not used, several listed", devices: []recording.Device{{Name: micOne}, {Name: micTwo}}, saved: "Unplugged USB Mic", refusal: "Choose the microphone in Record options"},
+		{name: "a last microphone that is no longer listed gives way to the only one listed", devices: []recording.Device{{Name: micOne}}, saved: "Unplugged USB Mic", want: micOne},
+		{name: "a last microphone with nothing listed", saved: "Unplugged USB Mic", refusal: "No microphone found"},
 		{name: "the only microphone", devices: []recording.Device{{Name: micOne}}, want: micOne},
-		{name: "several and none chosen", devices: []recording.Device{{Name: micOne}, {Name: micTwo}}, refusal: "Choose the microphone in Levels"},
+		{name: "several and none chosen", devices: []recording.Device{{Name: micOne}, {Name: micTwo}}, refusal: "Choose the microphone in Record options"},
 		{name: "none listed", refusal: "No microphone found"},
 		{name: "none listed, with the sidecar's reason", message: "PortAudio library not found", refusal: "PortAudio library not found"},
 	}

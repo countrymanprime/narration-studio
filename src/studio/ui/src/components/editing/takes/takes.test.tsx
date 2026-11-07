@@ -132,6 +132,15 @@ describe('chip-under-a-line-with-more-than-one-take', () => {
     fireEvent.click(chip());
     expect(document.querySelectorAll('[data-takes] [data-take]')).toHaveLength(1);
   });
+  it('offers no Keep on a line with one take: there is nothing to choose and such a line never reads Kept', () => {
+    mount(singleTakePassage());
+    fireEvent.click(chip());
+    expect(document.querySelectorAll('[data-take]')).toHaveLength(1);
+    expect(document.querySelector('[data-tkeep]')).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Keep / })).toBeNull();
+    // Play is still there.
+    expect(document.querySelector('[data-tplay]')).not.toBeNull();
+  });
   it('says Stacked or Duplicate read where the line is, and Kept above both', () => {
     const base = { passage: measuredPassage(), open: false, onToggle: () => {} };
     const { rerender } = render(<TakeChip {...base} keptId={null} stacked />);
@@ -263,6 +272,54 @@ describe('keep-calls-the-daw-and-offers-undo', () => {
       expect(r.ok).toBe(false);
       expect(r.refusal!.reason).toContain("Undo 'Later change' first");
     });
+  });
+  // #2945: the entry named no DAW action, so the journal asked the DAW about nothing and always refused with "last action is not this one".
+  it('Undo asks the DAW whether its last action is a use_take of one step, and goes through when it is', async () => {
+    const asked: unknown[] = [];
+    journal = createJournal({
+      dawName: () => 'REAPER',
+      dawLastAction: async (action) => {
+        asked.push(action);
+        return action?.kind === 'use_take' ? 'this' : 'other';
+      },
+    });
+    mount();
+    await flush();
+    fireEvent.click(chip());
+    fireEvent.click(screen.getByRole('button', { name: 'Keep T-8' }));
+    await flush();
+    const undo = toastUndo.mock.calls[0][1] as () => Promise<{ ok: boolean }>;
+    await act(async () => {
+      expect((await undo()).ok).toBe(true);
+    });
+    expect(asked).toEqual([{ kind: 'use_take', steps: 1 }]);
+    expect(useTake).toHaveBeenLastCalledWith('5', 10, 20, 't-7');
+  });
+  it('Undo is refused with the DAW’s sentence once the DAW’s last action is another one, and the take stays kept', async () => {
+    journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async (action) => (action?.kind === 'use_take' ? 'other' : 'this') });
+    mount();
+    await flush();
+    fireEvent.click(chip());
+    fireEvent.click(screen.getByRole('button', { name: 'Keep T-8' }));
+    await flush();
+    const undo = toastUndo.mock.calls[0][1] as () => Promise<{ ok: boolean; refusal?: { reason: string } }>;
+    await act(async () => {
+      const r = await undo();
+      expect(r.ok).toBe(false);
+      expect(r.refusal!.reason).toBe("REAPER's last action is not this one, so it was left alone. Use Edit > Undo in REAPER.");
+    });
+    expect(useTake).toHaveBeenCalledTimes(1);
+    expect(chip().textContent).toContain('Kept');
+  });
+  it('after a keep exactly one row reads Kept and none still reads Active (the lines have not been read again)', async () => {
+    mount();
+    await flush();
+    fireEvent.click(chip());
+    fireEvent.click(screen.getByRole('button', { name: 'Keep T-8' }));
+    await flush();
+    const rows = [...document.querySelectorAll('[data-take]')].map((row) => ({ id: row.getAttribute('data-take'), text: row.textContent ?? '' }));
+    expect(rows.filter((r) => /Kept/i.test(r.text)).map((r) => r.id)).toEqual(['t-8']);
+    expect(rows.filter((r) => /Active/i.test(r.text))).toEqual([]);
   });
   it('a refusal shows the DAW’s own sentence and changes nothing', async () => {
     mount(measuredPassage(), 'reaper', 'The take is no longer in the project.');

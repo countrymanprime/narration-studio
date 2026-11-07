@@ -12,7 +12,9 @@ import {
   type VoiceSample,
   type VoiceSampleAnswer,
   type VoiceSampleClipState,
+  type VoiceSampleDawState,
   type VoiceSampleRefusalReason,
+  type VoiceSampleStorage,
   type VoiceSamples,
   type VoiceSampleSourceState,
   type VoiceSamplesApi,
@@ -34,7 +36,9 @@ const MOCK_FRAME_BYTES = 2;
 const WAV_HEADER_BYTES = 44;
 
 /** A stored sample: what a list sends, less the two states read on every list, plus the item and the start the host keeps and never sends. */
-type Stored = Omit<VoiceSample, 'clipState' | 'source'> & {
+type Stored = Omit<VoiceSample, 'clipState' | 'source' | 'daw'> & {
+  /** A seeded sample's region state, as the host would read it from the saved project. */
+  dawState?: VoiceSampleDawState;
   source: Omit<VoiceSample['source'], 'chapterTitle' | 'state'>;
   itemGuid: string;
   start: number;
@@ -47,9 +51,12 @@ type Stored = Omit<VoiceSample, 'clipState' | 'source'> & {
 /**
  * Samples a page can boot with (`?mockVoiceSamples=`), for the Story Bible's states: `bible` is a Queen of Hearts with a primary, a
  * playing-length one, a sample whose passage changed and one whose audio file is missing, the Hatter with one, Narration with one and a
- * sample for a character who is no longer in the Story Bible; `full` is a Queen with the 20 a character may have.
+ * sample for a character who is no longer in the Story Bible; `full` is a Queen with the 20 a character may have; `daw` is a Queen with samples kept
+ * in REAPER (phase 6): one whose region is in the saved project, one whose region was deleted, one not saved in REAPER yet, one kept in both places
+ * whose region was moved, and each of the other states (region removed or not saved on a sample kept in both places, no audio under the region, an
+ * unreadable project).
  */
-export type VoiceSamplesSeed = 'bible' | 'full';
+export type VoiceSamplesSeed = 'bible' | 'full' | 'daw';
 
 type SeedRow = {
   characterId: string;
@@ -62,6 +69,8 @@ type SeedRow = {
   to: number;
   changed?: true;
   clip?: VoiceSampleClipState;
+  storage?: 'daw' | 'both';
+  dawState?: VoiceSampleDawState;
 };
 
 const SEED_ROWS: Record<VoiceSamplesSeed, SeedRow[]> = {
@@ -82,6 +91,121 @@ const SEED_ROWS: Record<VoiceSamplesSeed, SeedRow[]> = {
     { characterId: 'mad-hatter', label: 'Tea party, quick', note: 'Runs the words together.', primary: true, seconds: 6.1, chapter: 2, from: 0, to: 4 },
     { characterId: 'narration', label: 'Narration, calm', note: '', primary: true, seconds: 9, chapter: 1, from: 0, to: 6 },
     { characterId: 'bill-the-lizard', label: 'Growling', note: '', primary: true, seconds: 4, chapter: 4, from: 0, to: 2 },
+  ],
+  daw: [
+    {
+      characterId: 'queen-of-hearts',
+      label: 'Furious, to the court',
+      note: '',
+      primary: true,
+      seconds: 7.4,
+      chapter: 1,
+      from: 0,
+      to: 5,
+      storage: 'daw',
+      dawState: 'ok',
+    },
+    {
+      characterId: 'queen-of-hearts',
+      label: 'Sulking',
+      note: '',
+      primary: false,
+      seconds: 12,
+      chapter: 2,
+      from: 1,
+      to: 6,
+      storage: 'both',
+      dawState: 'label_moved',
+    },
+    {
+      characterId: 'queen-of-hearts',
+      label: 'Whispering',
+      note: '',
+      primary: false,
+      seconds: 5,
+      chapter: 3,
+      from: 0,
+      to: 3,
+      storage: 'daw',
+      dawState: 'label_missing',
+      clip: 'missing',
+    },
+    {
+      characterId: 'queen-of-hearts',
+      label: 'Laughing',
+      note: '',
+      primary: false,
+      seconds: 3.2,
+      chapter: 1,
+      from: 2,
+      to: 4,
+      storage: 'daw',
+      dawState: 'not_saved',
+      clip: 'missing',
+    },
+    {
+      characterId: 'queen-of-hearts',
+      label: 'Muttering',
+      note: '',
+      primary: false,
+      seconds: 4,
+      chapter: 1,
+      from: 0,
+      to: 2,
+      storage: 'both',
+      dawState: 'label_missing',
+    },
+    {
+      characterId: 'queen-of-hearts',
+      label: 'Humming',
+      note: '',
+      primary: false,
+      seconds: 6,
+      chapter: 2,
+      from: 0,
+      to: 3,
+      storage: 'both',
+      dawState: 'not_saved',
+    },
+    {
+      characterId: 'queen-of-hearts',
+      label: 'Shrieking',
+      note: '',
+      primary: false,
+      seconds: 5,
+      chapter: 3,
+      from: 1,
+      to: 4,
+      storage: 'daw',
+      dawState: 'source_missing',
+      clip: 'missing',
+    },
+    {
+      characterId: 'queen-of-hearts',
+      label: 'Counting',
+      note: '',
+      primary: false,
+      seconds: 8,
+      chapter: 1,
+      from: 1,
+      to: 5,
+      storage: 'daw',
+      dawState: 'project_unreadable',
+      clip: 'missing',
+    },
+    {
+      characterId: 'queen-of-hearts',
+      label: 'Pleading',
+      note: '',
+      primary: false,
+      seconds: 3,
+      chapter: 2,
+      from: 2,
+      to: 4,
+      storage: 'both',
+      dawState: 'project_unreadable',
+    },
+    { characterId: 'mad-hatter', label: 'Tea party, quick', note: '', primary: true, seconds: 6.1, chapter: 2, from: 0, to: 4 },
   ],
   full: Array.from({ length: 20 }, (_, index) => ({
     characterId: 'queen-of-hearts',
@@ -137,6 +261,8 @@ export function createVoiceSamplesMock(
   paragraphs: () => ManuscriptParagraph[],
   seed?: VoiceSamplesSeed,
   merges?: MergeEvents,
+  /** Where a new sample is kept now (the `VoiceSamples.storage` setting); a mock built without one keeps every sample in the project. */
+  storageNow: () => Promise<VoiceSampleStorage> = () => Promise.resolve('project'),
 ): VoiceSamplesApi {
   let stored: Stored[] = [];
   let nextId = seed ? SEED_ROWS[seed].length + 1 : 1;
@@ -207,6 +333,8 @@ export function createVoiceSamplesMock(
         itemGuid: `{5EED0000-0000-0000-0000-${String(index + 1).padStart(12, '0')}}`,
         start: 0,
         ...(row.clip ? { clip: row.clip } : {}),
+        ...(row.storage ? { storage: row.storage } : {}),
+        ...(row.dawState ? { dawState: row.dawState } : {}),
       };
     });
   };
@@ -228,6 +356,9 @@ export function createVoiceSamplesMock(
       durationMs,
       bytes,
       clipState: sample.clip ?? 'ok',
+      ...(sample.storage && sample.dawState
+        ? { storage: sample.storage, daw: { state: sample.dawState, name: `Voice sample: ${characterId} - ${label} [${id.slice(0, 6)}]`, start: 0, end: 0 } }
+        : {}),
       source: { ...sample.source, chapterTitle: chapter?.title ?? '', state },
     };
   };
@@ -353,7 +484,19 @@ export function createVoiceSamplesMock(
           sample.start === start &&
           sample.durationMs === durationMs,
       );
-      if (existing) return { status: 'saved', sample: wireClone(view(existing)) };
+      const kept = await storageNow();
+      if (existing) {
+        // As the host does: a sample that keeps less than the storage asks for gains what it lacked, and is then kept in both.
+        const hasClip = existing.storage !== 'daw';
+        const hasRegion = existing.storage === 'daw' || existing.storage === 'both';
+        if ((kept !== 'daw' && !hasClip) || (kept !== 'project' && !hasRegion)) {
+          const upgraded: Stored = { ...existing, storage: 'both', dawState: 'ok' };
+          stored = stored.map((sample) => (sample.id === existing.id ? upgraded : sample));
+          changed();
+          return { status: 'saved', sample: wireClone(view(upgraded)) };
+        }
+        return { status: 'saved', sample: wireClone(view(existing)) };
+      }
       if (stored.filter((sample) => sample.characterId === characterId).length >= PER_CHARACTER) return refused('character_limit');
       if (stored.reduce((total, sample) => total + sample.bytes, 0) + bytes > PROJECT_BYTES) return refused('project_limit');
       const primary = request.makePrimary || !stored.some((sample) => sample.characterId === characterId);
@@ -370,6 +513,7 @@ export function createVoiceSamplesMock(
         source: { chapterId: request.chapterId, text: span.text, startKey: request.startKey, endKey: request.endKey },
         itemGuid: request.itemGuid,
         start,
+        ...(kept === 'project' ? {} : { storage: kept, dawState: 'ok' as const }),
       };
       stored = [...stored.map((other) => (primary && other.characterId === characterId ? { ...other, primary: false } : other)), sample];
       changed();

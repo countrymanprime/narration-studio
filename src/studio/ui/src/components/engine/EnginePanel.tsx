@@ -1,8 +1,9 @@
+import { apiErrorMessage } from '../../api/errorMessage';
 import { useEffect, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTriangleExclamation } from '@fortawesome/free-solid-svg-icons';
 import { useApi } from '../../api/ApiContext';
-import { Button } from '../primitives/Button';
+import { IconButton } from '../primitives/IconButton';
 import { InsetCard } from '../primitives/InsetCard';
 import { Panel } from '../primitives/Panel';
 import { SlideOver } from '../primitives/SlideOver';
@@ -58,15 +59,28 @@ export type EngineLinkState = {
  * is gone: a chapter is heard in its Proof chapter view. Everything loads when the panel opens (a closed SlideOver is not
  * mounted), so the panel costs nothing on a page that never opens it.
  */
-export function EnginePanel({ open, onClose, notify, link }: { open: boolean; onClose: () => void; notify: Notify; link: EngineLinkState }) {
+export function EnginePanel({
+  open,
+  onClose,
+  notify,
+  link,
+  onOpenRecordingSettings,
+}: {
+  open: boolean;
+  onClose: () => void;
+  notify: Notify;
+  link: EngineLinkState;
+  /** Opens Settings > Recording & DAW, where the project's engine is chosen. The panel is the one place every DAW chip leads, so it carries this way on. */
+  onOpenRecordingSettings: () => void;
+}) {
   return (
     <SlideOver open={open} title="Audio engine" closeLabel="Close the engine panel" size="wide" headingLevel={2} onClose={onClose}>
-      <EnginePanelBody notify={notify} link={link} />
+      <EnginePanelBody notify={notify} link={link} onOpenRecordingSettings={onOpenRecordingSettings} />
     </SlideOver>
   );
 }
 
-function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkState }) {
+function EnginePanelBody({ notify, link, onOpenRecordingSettings }: { notify: Notify; link: EngineLinkState; onOpenRecordingSettings: () => void }) {
   const api = useApi();
   // An Audacity project has no .rpp: its card replaces the REAPER project section, the REAPER tools are not shown, and the tracks come
   // from the snapshot the host takes while Audacity answers.
@@ -110,7 +124,7 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
         if (active) setDiscovery(next);
       })
       .catch((reason) => {
-        if (active) setError(String(reason));
+        if (active) setError(apiErrorMessage(reason));
       });
     return () => {
       active = false;
@@ -129,7 +143,7 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
         }
       })
       .catch((reason) => {
-        if (active) setError(String(reason));
+        if (active) setError(apiErrorMessage(reason));
       });
     return () => {
       active = false;
@@ -141,7 +155,7 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
     void api
       .tracksSelect(path)
       .then((next) => setDiscovery(next))
-      .catch((reason) => setError(String(reason)));
+      .catch((reason) => setError(apiErrorMessage(reason)));
   };
 
   const hasTracks = !!project && project.tracks.length > 0;
@@ -153,6 +167,9 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
     // The gap between cards is the slide-over body's own padding (1.1rem), so the space above the first card and between cards match (R3EN2-16).
     <VoiceLayoutContext.Provider value={forAudacity ? 'flat' : null}>
       <div className="space-y-[1.1rem]">
+        <div className="flex justify-end">
+          <IconButton action="gear" label="Recording settings" onClick={onOpenRecordingSettings} />
+        </div>
         {forAudacity ? (
           <Panel title="Audacity project">
             <AudacityLinkCard view={audacity} notify={notify} />
@@ -227,6 +244,7 @@ function EnginePanelBody({ notify, link }: { notify: Notify; link: EngineLinkSta
 // action beside it, not a gate (one binding, three call sites: here, Settings' DAW category, an import).
 function ProjectSection({ discovery, link, onSelectRpp }: { discovery?: TracksDiscovery; link: EngineLinkState; onSelectRpp: (path: string) => void }) {
   const mismatch = link.dawFileLinked && link.dawReachable && !link.dawProjectMatches;
+  const notRunning = link.dawFileLinked && !link.dawReachable;
   // While the picker asks which of several files to read, the list is the choice: a second "link a file" route above it is left out (R3EN2-5).
   const picking = !!discovery && !discovery.selected && discovery.candidates.length > 1;
   return (
@@ -235,9 +253,7 @@ function ProjectSection({ discovery, link, onSelectRpp }: { discovery?: TracksDi
       actions={
         picking ? undefined : (
           // A short label of one width either way (ENX-25); the card's title already says it is the REAPER project file.
-          <Button variant="secondary" pending={link.linkingDawFile} onClick={link.onLinkDawFile}>
-            {link.dawFileLinked ? 'Change file…' : 'Link file…'}
-          </Button>
+          <IconButton action={link.dawFileLinked ? 'changeLink' : 'linkFile'} pending={link.linkingDawFile} onClick={link.onLinkDawFile} />
         )
       }
     >
@@ -250,6 +266,19 @@ function ProjectSection({ discovery, link, onSelectRpp }: { discovery?: TracksDi
             </div>
           </div>
         )}
+        {notRunning && (
+          // The panel opens from a chip that says "Not running", so it says so too, with when the app last checked and a way to ask again.
+          <InsetCard tone="warn" fill className="space-y-2">
+            <p role="status" className="flex items-start gap-2" style={{ color: 'var(--warn-text)' }}>
+              <FontAwesomeIcon icon={faTriangleExclamation} className="mt-[0.2rem] flex-none" aria-hidden="true" />
+              <span>REAPER is not running.</span>
+            </p>
+            <CheckLine waiting="Waiting for REAPER to start" unknown="REAPER is not running" checkedAt={link.checkedAt} />
+            <div className="flex flex-wrap gap-2">
+              <IconButton action="checkAgain" onClick={link.onCheckAgain} />
+            </div>
+          </InsetCard>
+        )}
         {mismatch && (
           // A problem, so a callout with its two ways out beside it, not coloured body text (R3EN2-4, ENX-25). Link the open project is the
           // shared link action, as the Booth's same notice names it.
@@ -260,12 +289,8 @@ function ProjectSection({ discovery, link, onSelectRpp }: { discovery?: TracksDi
             </p>
             <CheckLine waiting="Waiting for REAPER to open the linked project" unknown="REAPER has the linked project open" checkedAt={link.checkedAt} />
             <div className="flex flex-wrap gap-2">
-              <Button variant="secondary" pending={link.linkingDawFile} onClick={link.onLinkDawFile}>
-                Link the open project…
-              </Button>
-              <Button variant="secondary" onClick={link.onCheckAgain}>
-                Check again
-              </Button>
+              <IconButton action="linkFile" label="Link the open project" pending={link.linkingDawFile} onClick={link.onLinkDawFile} />
+              <IconButton action="checkAgain" onClick={link.onCheckAgain} />
             </div>
           </InsetCard>
         )}

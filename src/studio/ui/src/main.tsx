@@ -8,6 +8,8 @@ import { App } from './App';
 import { ApiProvider } from './api/ApiContext';
 import { wailsClient } from './api/wailsClient';
 import { enableUiLog } from './api/uiLog';
+import { installTracing } from './trace/installTracing';
+import { withTracing } from './api/withTracing';
 import type { RecordingMockSeed } from './api/recordingMock';
 import { createMockApi } from './api/mockApi';
 import { installMockAudioOutputs, MOCK_AUDIO_OUTPUT_MODES } from './api/mockHost/audioOutputs';
@@ -130,9 +132,10 @@ const mockManuscriptCandidate = mockParams.has('mockManuscriptCandidate');
 // the same way everywhere it is drawn.
 const mockManuscriptMixed = mockParams.get('mockManuscript') === 'mixed';
 // `?mockTeleprompter=listening|waiting|done|flagged` boots the teleprompter already part-way
-// through the first chapter, as a session the host kept running (`flagged`: further in, with suspected flags raised);
+// through the first chapter, as a session the host kept running (`flagged`: further in, with suspected flags raised; `checked`: the same, after the
+// confirmation pass confirmed the first and cleared the last);
 // `ended` boots one that already stopped itself at the end of the chapter (the host's auto-stop).
-const mockTeleprompter = (['listening', 'waiting', 'done', 'ended', 'flagged'] as const).find((seed) => seed === mockParams.get('mockTeleprompter'));
+const mockTeleprompter = (['listening', 'waiting', 'done', 'ended', 'flagged', 'checked'] as const).find((seed) => seed === mockParams.get('mockTeleprompter'));
 // `?mockLevel=-18` makes every microphone level the teleprompter mock sends that RMS in dBFS (-100 to 0), so the level meter
 // holds still for a capture.
 const mockLevelParam = Number(mockParams.get('mockLevel') ?? Number.NaN);
@@ -259,6 +262,9 @@ const mockAssetsList = (['loading', 'fails'] as const).find((seed) => seed === m
 // `?mockAssetsVerify=damaged|absent|fails|silent|hangs` sets what Settings > Models & downloads' Check the files answers: the asset damaged,
 // gone, a refusal in the host's words, a refusal with no words, or no answer. `?mockAssetNames=long` gives the Whisper model a long name.
 const mockAssetsVerify = (['damaged', 'absent', 'fails', 'silent', 'hangs'] as const).find((seed) => seed === mockParams.get('mockAssetsVerify'));
+// `?mockMove=copying|verifying|fails|moved|cancel` sets how Settings > Models & downloads' Change location behaves: the move holds while copying or
+// checking, fails, boots already moved with the old copy awaiting an answer, or the folder dialog is closed without a choice.
+const mockMove = (['copying', 'verifying', 'fails', 'moved', 'cancel'] as const).find((seed) => seed === mockParams.get('mockMove'));
 const mockAssetNames = mockParams.get('mockAssetNames') === 'long' ? ('long' as const) : undefined;
 // `?mockHold=overview,entities` makes those reads never answer, so Production and the Story Bible show their loading skeleton.
 const mockHold = (mockParams.get('mockHold') ?? '').split(',').filter((name): name is 'overview' | 'entities' => name === 'overview' || name === 'entities');
@@ -274,10 +280,10 @@ const mockProfileRead = (['fails'] as const).find((seed) => seed === mockParams.
 // `?mockSettings=loading|unreadable|save-fails` makes the settings file never answer a read, fail every read, or refuse every save as read-only,
 // so Settings can be seen loading, unreadable and failing to save.
 const mockSettings = (['loading', 'unreadable', 'save-fails'] as const).find((seed) => seed === mockParams.get('mockSettings'));
-// `?mockVoiceSamples=bible|full` boots with voice samples already saved (api/voiceSamplesMock.ts): `bible` is the Story Bible's states (a Queen of
+// `?mockVoiceSamples=bible|full|daw` boots with voice samples already saved (api/voiceSamplesMock.ts): `bible` is the Story Bible's states (a Queen of
 // Hearts with four samples, one whose passage changed and one whose audio file is missing, the Hatter's, Narration's, and one for a character who left
-// the Story Bible); `full` is a Queen with the 20 a character may have.
-const mockVoiceSamples = (['bible', 'full'] as const).find((seed) => seed === mockParams.get('mockVoiceSamples'));
+// the Story Bible); `full` is a Queen with the 20 a character may have; `daw` is a Queen with samples kept in REAPER (the region's states).
+const mockVoiceSamples = (['bible', 'full', 'daw'] as const).find((seed) => seed === mockParams.get('mockVoiceSamples'));
 // `?mockDictionary=missing|damaged` boots without the offline dictionary, or with one whose index fails its check, so the reader's Look up asks to
 // download it (or to download it again) first.
 const mockDictionary = (['missing', 'damaged'] as const).find((seed) => seed === mockParams.get('mockDictionary'));
@@ -308,9 +314,6 @@ const mockRenderConfig = (['success', 'no-regions', 'error'] as const).find((see
 // `?mockCleanupTools=launched|error` boots the audio engine panel's "Cleanup tools" dialog with CleanupToolsState already at
 // that result (error: Magnolius DeClick not installed), so both can be seen without a real REAPER round trip.
 const mockCleanupTools = (['launched', 'error'] as const).find((seed) => seed === mockParams.get('mockCleanupTools'));
-// `?mockRetakeLanes=picked|error|none` boots the audio engine panel's "Retakes on lanes" dialog at that result (none: a project
-// with no fixed-lane track), so each can be seen without a real REAPER round trip.
-const mockRetakeLanes = (['picked', 'error', 'none'] as const).find((seed) => seed === mockParams.get('mockRetakeLanes'));
 // `?mockChapterTags=ready|not-rendered` boots the audio engine panel's "Embed chapter tags" dialog with ChapterTagsPreview
 // already at that result, so the ready and not-yet-rendered states can be seen without a real chapter render.
 // `?mockChapterTagsEmbedError=1` makes the embed action always fail, so the error state can be seen too.
@@ -381,7 +384,7 @@ const MOCK_EDITING_SIGNAL_SEED: Record<NonNullable<typeof mockEditingSignal>, { 
 // (Not ready), so the panel's summary and its evidence view can be seen without a host.
 const mockProofingStages = mockParams.get('mockProofingStages') === 'mixed';
 // `?mockProofingSignal=unmapped-track` seeds Chapter 9's pickups signal directly with an unknown cause that needs a track link, so
-// the evidence view's cause action ("Open Tracks", never "Check recordings…" - stageText.ts's `PROOFING_CAUSE_TEXT`) can be seen
+// the evidence view's cause action ("Open Tracks", never "Check recordings" - stageText.ts's `PROOFING_CAUSE_TEXT`) can be seen
 // without a host.
 const mockProofingSignal = mockParams.get('mockProofingSignal') === 'unmapped-track';
 // `?mockProofingRender=chapter-9-stale` seeds Chapter 9's chosen render as stale, so the "Rendered file" section's
@@ -403,14 +406,15 @@ const MOCK_STAGES_SEEDS = {
 // `?mockFindings=empty|changed` boots the Review page with no findings at all, or with an analyzer that runs again right after the page
 // lists its findings, so the empty queue and a decision refused on changed evidence can be seen without a host.
 // `misread` adds a one-word misread (Dinah heard as Dina) for "Treat these two words as the same" (#2736); `misread-long` and `misread-rtl`
-// give it a 45-letter word with no place to break, and Hebrew and emoji words, so the button's place can be seen with them.
-const mockFindings = (['empty', 'changed', 'misread', 'misread-long', 'misread-rtl'] as const).find((seed) => seed === mockParams.get('mockFindings'));
+// give it a 45-letter word with no place to break, and Hebrew and emoji words, so the button's place can be seen with them. `click` adds one click
+// note (an audio finding), for the Repair in REAPER button the inspector draws on a click, a breath or a plosive (#2821).
+const mockFindings = (['empty', 'changed', 'misread', 'misread-long', 'misread-rtl', 'click'] as const).find((seed) => seed === mockParams.get('mockFindings'));
 const MISREAD_WORDS = {
   misread: ['Dinah', 'Dina'],
   'misread-long': ['Pneumonoultramicroscopicsilicovolcanoconiosis', 'Pneumonoultramicroscopicsilicovolcanokoniosis'],
   'misread-rtl': ['שָׁלוֹם👋🏽', 'שלם'],
 } as const;
-const misreadWords = mockFindings && mockFindings !== 'empty' && mockFindings !== 'changed' ? MISREAD_WORDS[mockFindings] : undefined;
+const misreadWords = mockFindings && mockFindings in MISREAD_WORDS ? MISREAD_WORDS[mockFindings as keyof typeof MISREAD_WORDS] : undefined;
 // `?mockReaper=standalone|not-running|stale|recording|outdated` sets what the Review page's REAPER does for Go to, Loop and Stop:
 // not there at all, gone quiet, or connected and refusing for that reason. Connected when absent.
 const mockReaper = (['standalone', 'not-running', 'stale', 'recording', 'outdated'] as const).find((seed) => seed === mockParams.get('mockReaper'));
@@ -522,11 +526,27 @@ const mockInitial = {
         ],
       }
     : {}),
+  ...(mockFindings === 'click'
+    ? {
+        findings: [
+          ...WIRE_FINDINGS,
+          {
+            ...WIRE_ONE_WORD_MISREAD,
+            id: 'mock-click-1',
+            analyzer: 'audio-qa',
+            category: 'audio_quality',
+            evidence: { kind: 'mouth_click' },
+            manuscript: { ...WIRE_ONE_WORD_MISREAD.manuscript, expected: '', recorded: '' },
+          },
+        ],
+      }
+    : {}),
   ...(mockImportPreview ? { importPreview: mockImportPreview } : {}),
   ...(mockAssets ? { assets: mockAssets } : {}),
   ...(mockAssetsList ? { assetsList: mockAssetsList } : {}),
   ...(mockAssetsVerify ? { assetsVerify: mockAssetsVerify } : {}),
   ...(mockAssetNames ? { assetNames: mockAssetNames } : {}),
+  ...(mockMove ? { assetMove: mockMove } : {}),
   ...(mockChapters ? { chaptersRead: mockChapters } : {}),
   ...(mockChapterRead ? { chapterRead: mockChapterRead } : {}),
   ...(mockProfileRead ? { profileRead: mockProfileRead } : {}),
@@ -625,7 +645,6 @@ const mockInitial = {
   ...(mockPickups ? { pickups: mockPickups } : {}),
   ...(mockRenderConfig ? { renderConfig: mockRenderConfig } : {}),
   ...(mockCleanupTools ? { cleanupTools: mockCleanupTools } : {}),
-  ...(mockRetakeLanes ? { retakeLanes: mockRetakeLanes } : {}),
   ...(mockChapterTags ? { chapterTags: mockChapterTags } : {}),
   ...(mockChapterTagsEmbedError ? { chapterTagsEmbedAlwaysErrors: true } : {}),
   ...(mockRegionsCreateError ? { regionsCreateAlwaysErrors: true } : {}),
@@ -695,9 +714,12 @@ const mockInitial = {
 };
 if (import.meta.env.VITE_USE_MOCK_API === '1') installMockAudioOutputs(mockAudioOutputs);
 const hostApi = import.meta.env.VITE_USE_MOCK_API === '1' ? createMockApi(window.__NARRATION_MOCK_OVERRIDES__, mockInitial) : wailsClient;
-if (hostApi === wailsClient) enableUiLog();
+if (hostApi === wailsClient) {
+  enableUiLog();
+  installTracing(wailsClient);
+}
 // An embedding build (appExtension.ts) may wrap the mock API; the Wails client is never wrapped.
-const api = hostApi === wailsClient ? hostApi : (appExtension().wrapApi?.(hostApi) ?? hostApi);
+const api = hostApi === wailsClient ? withTracing(hostApi) : (appExtension().wrapApi?.(hostApi) ?? hostApi);
 appExtension().start?.(api);
 
 createRoot(document.getElementById('root')!).render(

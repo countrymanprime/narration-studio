@@ -72,7 +72,7 @@ func inputTrackFor(svc hostServices, chapterID string) string {
 
 func teleprompterReaperInputIn(ctx context.Context, svc hostServices, reader trackStateReader, lister deviceLister, chapterID string) teleprompterReaperInput {
 	if svc.audacity != nil {
-		return inputUnavailable(inputDawCannotReport, "Audacity cannot report which microphone it records from, so the Booth listens to the one chosen in Levels.")
+		return inputUnavailable(inputDawCannotReport, "Audacity cannot report which microphone it records from, so the Booth listens to the one chosen in Record options.")
 	}
 	if status := reaperStatus(svc); status.Connection != reaperConnected {
 		return inputUnavailable(status.Connection, readAloudConnectionMessage(status.Connection))
@@ -90,7 +90,7 @@ func teleprompterReaperInputIn(ctx context.Context, svc hostServices, reader tra
 		return inputUnavailable(refusal.Reason, refusal.Message)
 	}
 	if state.InputDevice == "" {
-		answer := inputUnavailable(inputReaperNoDevice, "REAPER did not say which input device it has open. Choose the microphone in Levels.")
+		answer := inputUnavailable(inputReaperNoDevice, "REAPER did not say which input device it has open. Choose the microphone in Record options.")
 		answer.OutputDevice = state.OutputDevice
 		return answer
 	}
@@ -122,7 +122,7 @@ func teleprompterReaperInputIn(ctx context.Context, svc hostServices, reader tra
 		answer.Candidates = match.Candidates
 		answer.Message = fmt.Sprintf("REAPER records from %q, which could be any of %d microphones here. Pick the one REAPER uses.", state.InputDevice, len(match.Candidates))
 	default:
-		answer.Message = fmt.Sprintf("REAPER records from %q, which does not match a microphone here. Choose the microphone in Levels.", state.InputDevice)
+		answer.Message = fmt.Sprintf("REAPER records from %q, which does not match a microphone here. Choose the microphone in Record options.", state.InputDevice)
 	}
 	return answer
 }

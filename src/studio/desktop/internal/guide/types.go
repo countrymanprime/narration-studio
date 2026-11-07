@@ -61,6 +61,16 @@ func (s *Service) Types() ([]Type, error) {
 	return types, nil
 }
 
+// TypesChanged is whether the Story Bible's types differ from DefaultTypes in any name, colour or speaks flag, or in order or count:
+// a type added, renamed, recoloured, removed or moved. A Story Bible without a list has the defaults. Settings > Changed reads it.
+func (s *Service) TypesChanged() (bool, error) {
+	types, err := s.Types()
+	if err != nil {
+		return false, err
+	}
+	return !slices.Equal(types, DefaultTypes()), nil
+}
+
 // errTypeName is the sidecar's refusal of a name that is blank, more than one line or longer than maxTypeName.
 var errTypeName = fmt.Errorf("A type's name is one line of 1 to %d characters.", maxTypeName) //nolint:staticcheck // the sidecar's own words, shown to the narrator
 

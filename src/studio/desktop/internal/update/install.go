@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"desktop/internal/brand"
+	"desktop/internal/persist"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -113,7 +114,7 @@ func writePending(path string, pending Pending) error {
 	if err := os.WriteFile(temporary, bytes, 0o600); err != nil {
 		return err
 	}
-	return os.Rename(temporary, path)
+	return persist.Rename(temporary, path)
 }
 
 // InstallOptions say what to install and where; the fields after Now are seams for tests and default to the real thing.
@@ -147,7 +148,7 @@ func (o *InstallOptions) rename(oldPath, newPath string) error {
 	if o.Rename != nil {
 		return o.Rename(oldPath, newPath)
 	}
-	return os.Rename(oldPath, newPath)
+	return persist.Rename(oldPath, newPath)
 }
 
 // WritableDir reports nil when a file can be created, written and removed in dir.

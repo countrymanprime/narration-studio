@@ -1,4 +1,6 @@
-import { useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
+import { useMediaQuery } from '../../../hooks/useMediaQuery';
+import { useToastClearance } from '../../../hooks/useToastClearance';
 import { MAX_REVIEW_NOTE_LENGTH, shownFindingNoteType } from '../../../api/contracts/findings';
 import type { Finding, FindingReviewStatus } from '../../../types';
 import { Button } from '../../primitives/Button';
@@ -50,6 +52,9 @@ function Quote({ label, markup, which }: { label: string; markup: string; which:
   );
 }
 
+/** How long after a saved decision another one is ignored. The Inspector remounts for the next note, so the page holds the clock. */
+const DECISION_QUIET_MS = 350;
+
 /**
  * The Studio Next Inspector for one note: the time and type, the steps, what the script says against what was heard, the DAW and link
  * actions, the decision with its optional note, and the check's confidence. It reads no store and imports no router: the note, the host
@@ -70,6 +75,7 @@ export function Inspector({
   onOpenEditing,
   spot,
   typeControl,
+  decisionClock,
 }: {
   finding: Finding;
   api: InspectorHostApi;
@@ -85,10 +91,15 @@ export function Inspector({
   onOpenEditing?: (chapterId: string, findingId: string) => void;
   spot?: ReactNode;
   typeControl?: ReactNode;
+  /** The note the page last saved a decision for and when, so a press for another note just after is ignored (a double press, a held key); absent, nothing is ignored. */
+  decisionClock?: { current: { id: string; at: number } };
 }) {
   const evidence = useShownEvidence({ api, finding, order, onSelect, onChanged });
   const [outcome, setOutcome] = useState<{ message: string; failed: boolean }>();
   const [saving, setSaving] = useState<FindingReviewStatus>();
+  // Side by side with the list (1180 px and up) the page keeps toasts left of this panel; stacked under it, a toast would cover the pinned band.
+  const band = useRef<HTMLDivElement>(null);
+  useToastClearance(band, !useMediaQuery('(min-width: 1180px)', true));
   const shown = evidence.shown;
   const inert = evidence.change !== null || evidence.isBusy;
   const fix = fixKindOf(shown);
@@ -96,10 +107,14 @@ export function Inspector({
   const noteLength = [...evidence.note].length;
 
   const decide = async (status: FindingReviewStatus) => {
+    // A press right after a saved decision is the second half of a double press or a held key: the page has already moved to the next note, so it
+    // would decide that one too (#3114).
+    if (decisionClock && decisionClock.current.id !== shown.id && Date.now() - decisionClock.current.at < DECISION_QUIET_MS) return;
     setOutcome(undefined);
     setSaving(status);
     const result = await evidence.decide(status);
     setSaving(undefined);
+    if (result.ok && decisionClock) decisionClock.current = { id: shown.id, at: Date.now() };
     setOutcome(result.ok ? { message: savedMessage(status, fix), failed: false } : { message: result.message, failed: true });
   };
   const step = (delta: -1 | 1) => {
@@ -111,8 +126,8 @@ export function Inspector({
   const saidTwice = onOpenEditing && repeatOf(shown) ? shown.manuscript?.chapter_id : undefined;
 
   return (
-    <aside aria-label="Note" className="flex flex-col gap-3">
-      <div className="flex items-center gap-2">
+    <aside aria-label="Note" className="flex flex-col gap-3 [&>:not([data-decision-band])_:is(button,a,input,select,textarea)]:scroll-mb-40">
+      <div className="flex flex-wrap items-center gap-2">
         <h2 className="font-['IBM_Plex_Mono',ui-monospace,monospace] text-base font-semibold">
           {shown.time_range ? noteTime(shown.time_range.start) : repeatOf(shown) ? 'Said twice' : categoryLabel(shown.category)}
         </h2>
@@ -147,8 +162,15 @@ export function Inspector({
         onReopen={() => void decide('unreviewed')}
         onNoteRead={(next) => onChanged(next, false)}
       />
-      <SectionLabel>Decision</SectionLabel>
-      <DecisionButtons status={shown.review.status} fix={fix} disabled={inert} pendingStatus={saving} onDecide={(status) => void decide(status)} />
+      {/* The decision is the note's main action, so it stays at the panel's bottom edge while the evidence and the takes above it scroll past (#3114). The aside's scroll margin keeps a control above the band, a focused one or one scrolled into view, clear of it, not under it. */}
+      <div
+        ref={band}
+        data-decision-band
+        className="sticky bottom-[calc(var(--page-gutter)*-1)] z-[1] -mb-3 flex flex-col gap-3 border-t border-[var(--border)] bg-[var(--surface)] py-3 shadow-[-1rem_0_0_var(--surface),1rem_0_0_var(--surface)]"
+      >
+        <SectionLabel>Decision</SectionLabel>
+        <DecisionButtons status={shown.review.status} fix={fix} disabled={inert} pendingStatus={saving} onDecide={(status) => void decide(status)} />
+      </div>
       <Field
         label="Note with the decision (optional)"
         placeholder="Note with the decision (optional)"

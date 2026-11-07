@@ -342,7 +342,7 @@ export async function openRecordingCheck(page: Page, chapter: string, seed?: str
     await settlePage(page);
   }
   await productionLoaded(page);
-  await rowMenu(page, chapter, 'Check recordings…');
+  await rowMenu(page, chapter, 'Check recordings');
   // Check recordings, the one recording check, with the row's chapter ticked once its chapters and options have loaded.
   const dialog = page.getByRole('dialog', { name: 'Check recordings' });
   await dialog.getByRole('button', { name: 'Check 1 chapter' }).waitFor();
@@ -440,7 +440,7 @@ function settingsCategories(page: Page): Locator {
 }
 
 /** Opens a row of the category list by its label, opening the folded list first when that is how the width shows it. */
-async function openSettingsCategory(page: Page, label: string): Promise<void> {
+export async function openSettingsCategory(page: Page, label: string): Promise<void> {
   const nav = settingsCategories(page);
   const choice = nav.getByRole('button', { name: new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`) });
   if (!(await choice.isVisible())) await nav.getByRole('button', { name: /^Category/ }).click();
@@ -591,11 +591,27 @@ export async function openCheckingLink(page: Page, path: string): Promise<void> 
 }
 
 // The built-in recorder listens before it records (the Booth starts listening first and a take never begins without it), so a take needs a microphone
-// chosen in Levels, as a narrator does it: the first one the mock lists. In REAPER the DAW chooses it, so this is for the built-in recorder only.
+// chosen in Record options, as a narrator does it: the first one the mock lists. In REAPER the DAW chooses it, so this is for the built-in recorder only.
 export async function chooseMicrophone(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'Levels' }).click();
-  const menu = page.getByRole('dialog', { name: 'Levels' });
+  await page.getByRole('button', { name: 'Record options' }).click();
+  const menu = page.getByRole('dialog', { name: 'Record options' });
   await menu.getByRole('combobox', { name: 'Microphone' }).selectOption({ index: 1 });
   await page.keyboard.press('Escape');
   await menu.waitFor({ state: 'detached' });
+}
+
+/**
+ * A page with the DAW not connected, after its not-connected dialog opened by itself (once the connect grace has passed) and was closed with its X:
+ * what stays is the quiet mark in the page's header (#2823). `ready` waits for the page's own content, which the dialog hides from the accessibility tree.
+ */
+export async function closeDawDialogOnArrival(page: Page, name: AppPage): Promise<void> {
+  await page.goto('/?mockDaw=Audacity');
+  await settlePage(page);
+  await clickNav(page, name);
+  const dialog = page.getByRole('dialog', { name: /is not connected/ });
+  await dialog.waitFor({ timeout: 20_000 });
+  await dialog.getByRole('button', { name: 'Close' }).click();
+  await dialog.waitFor({ state: 'detached' });
+  await page.getByRole('heading', { level: 1, name: PAGE_HEADING[name], exact: true }).waitFor();
+  await page.getByRole('button', { name: /not connected/ }).waitFor();
 }

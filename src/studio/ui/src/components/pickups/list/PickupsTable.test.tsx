@@ -2,9 +2,15 @@
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { ApiProvider } from '../../../api/ApiContext';
+import { createMockApi } from '../../../api/mockApi';
+import { DAW_SETUPS } from '../../../fixtures/daw';
+import { createMockDawClient } from '../../../ports/daw';
+import { PortOverrides } from '../../../ports/usePort';
+import * as checkRecordings from '../../recordingcheck/openCheckRecordings';
 import { contextItemsFor } from '../../../registries/context';
 import { OverlayProvider } from '../../../overlay/OverlayProvider';
-import { createOverlayService } from '../../../overlay/overlayService';
+import { createOverlayService, overlay } from '../../../overlay/overlayService';
 import { TooltipProvider } from '../../primitives/Tooltip';
 import { AUDIO, BY_HAND, CHAPTERS, DONE, EXTRA, MIXED, NO_SCORE, PROOF, SPEECH } from './pickupFixtures';
 import { PickupsTable } from './PickupsTable';
@@ -13,12 +19,14 @@ afterEach(cleanup);
 
 type Props = Parameters<typeof PickupsTable>[0];
 
-function setup(over: Partial<Props> = {}) {
+function setup(over: Partial<Props> = {}, dawSetup: 'reaper' | 'reaper-off' = 'reaper') {
   const service = createOverlayService();
+  const host = createMockApi();
+  const goTo = vi.spyOn(host, 'findingsGoTo').mockResolvedValue({ outcome: 'navigated', projectTime: 221 });
+  const daw = createMockDawClient(DAW_SETUPS[dawSetup], { chapterIds: [], candidateIds: [], findingIds: [] });
   const fns = {
     onScope: vi.fn(),
     onStep: vi.fn(),
-    onCheck: vi.fn(),
     onAdd: vi.fn().mockResolvedValue(undefined),
     onSetIncluded: vi.fn().mockResolvedValue(undefined),
     onSetDone: vi.fn().mockResolvedValue(undefined),
@@ -29,24 +37,27 @@ function setup(over: Partial<Props> = {}) {
     onReload: vi.fn(),
   };
   render(
-    <TooltipProvider>
-      <OverlayProvider service={service}>
-        <PickupsTable
-          pickups={MIXED}
-          read={{ kind: 'ready', readAt: 0 }}
-          chapters={CHAPTERS}
-          scope="all"
-          currentChapterId="c1"
-          chaptersToCheck={['c2', 'c3']}
-          daw={{ available: true }}
-          {...fns}
-          {...over}
-        />
-      </OverlayProvider>
-    </TooltipProvider>,
+    <ApiProvider api={host}>
+      <PortOverrides clients={{ daw }}>
+        <TooltipProvider>
+          <OverlayProvider service={service}>
+            <PickupsTable
+              pickups={MIXED}
+              read={{ kind: 'ready', readAt: 0 }}
+              chapters={CHAPTERS}
+              scope="all"
+              currentChapterId="c1"
+              chaptersToCheck={['c2', 'c3']}
+              {...fns}
+              {...over}
+            />
+          </OverlayProvider>
+        </TooltipProvider>
+      </PortOverrides>
+    </ApiProvider>,
   );
   const toasts = () => service.getSnapshot().toasts;
-  return { ...fns, service, toasts, user: userEvent.setup() };
+  return { ...fns, goTo, service, toasts, user: userEvent.setup() };
 }
 
 /** The From cell's source: its name and, on the line under it, a speech check's score, read as one ("Speech · 0.91"). */
@@ -195,6 +206,7 @@ describe('PickupsTable', () => {
       .getAllByRole('button')
       .map((button) => button.getAttribute('aria-label'));
     expect(buttons.slice(0, 2)).toEqual(['Hear the original in context', 'Open in Booth at this line']);
+    expect(buttons[2]).toMatch(/^Show in /);
     // A chip is the badge primitive: the type a tag (capitals), the status a pill (fully rounded).
     expect(within(row).getByText('Misread').className).toContain('uppercase');
     expect(within(row).getByText('Open').className).toContain('rounded-full');
@@ -316,6 +328,25 @@ describe('PickupsTable', () => {
     await waitFor(() => expect(toasts().map((t) => t.text)).toEqual(['That line is not in the list.']));
   });
 
+  // #2826: the shared Show in {DAW} button, over the note the pickup came from.
+  it('Show in REAPER goes to the pickup’s note in the DAW', async () => {
+    const toast = vi.spyOn(overlay, 'toast').mockImplementation(() => '' as never);
+    const { user, goTo } = setup();
+    await user.click(await within(rowOf('00:12.0')).findByRole('button', { name: 'Show in REAPER' }));
+    expect(goTo).toHaveBeenCalledWith('f9');
+    await waitFor(() => expect(toast).toHaveBeenCalledWith('Moved to 3:41 in REAPER.'));
+    toast.mockRestore();
+  });
+
+  it('Show in REAPER is off for a line with no note, and asks the DAW nothing', async () => {
+    const { user, goTo } = setup();
+    const row = within(rowOf('00:44.0'));
+    const button = await row.findByRole('button', { name: 'Show in REAPER' });
+    expect(button.getAttribute('aria-disabled')).toBe('true');
+    await user.click(button);
+    expect(goTo).not.toHaveBeenCalled();
+  });
+
   it('Open in Booth at this line passes that pickup', async () => {
     const { onOpenInBooth, user } = setup();
     await user.click(within(rowOf('01:35.2')).getByRole('button', { name: 'Open in Booth at this line' }));
@@ -336,20 +367,25 @@ describe('PickupsTable', () => {
     expect(screen.queryByText('No pickups queued')).toBeNull();
   });
 
-  it('empty-states-and-chapter-scope: Check recordings passes the chapters whose check is not current', async () => {
-    const { onCheck, user } = setup();
+  // The head's Check recordings is the shared button (#2833): it opens the one dialog with the chapters whose check is not current, off for the DAW's reason.
+  it('empty-states-and-chapter-scope: Check recordings opens the dialog with the chapters whose check is not current', async () => {
+    const open = vi.spyOn(checkRecordings, 'openCheckRecordings').mockReturnValue(() => {});
+    const { user } = setup();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Check recordings' }).getAttribute('aria-disabled')).toBeNull());
     await user.click(screen.getByRole('button', { name: 'Check recordings' }));
-    expect(onCheck).toHaveBeenCalledWith(['c2', 'c3']);
+    expect(open).toHaveBeenCalledWith(['c2', 'c3'], expect.anything());
   });
 
-  it('empty-states-and-chapter-scope: Check recordings is off without the DAW', async () => {
-    const { onCheck, user } = setup({ daw: { available: false, message: 'REAPER is not open.' } });
+  it('empty-states-and-chapter-scope: Check recordings is off without the DAW, saying why', async () => {
+    const open = vi.spyOn(checkRecordings, 'openCheckRecordings').mockReturnValue(() => {});
+    const { user } = setup({}, 'reaper-off');
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Check recordings' }).getAttribute('aria-disabled')).toBe('true'));
     const check = screen.getByRole('button', { name: 'Check recordings' });
-    expect(check.getAttribute('aria-disabled')).toBe('true');
-    // The reason is on the button's own description, so a screen reader that lands on it hears why, not just "dimmed".
-    expect(check.getAttribute('aria-describedby')).toBe(screen.getByText('REAPER is not open.').id);
     await user.click(check);
-    expect(onCheck).not.toHaveBeenCalled();
+    expect(open).not.toHaveBeenCalled();
+    await user.unhover(check);
+    await user.hover(check);
+    expect(await screen.findByText(DAW_SETUPS['reaper-off'].capabilities.review!.message!)).toBeTruthy();
   });
 
   it('the stepper’s changes are reported', async () => {

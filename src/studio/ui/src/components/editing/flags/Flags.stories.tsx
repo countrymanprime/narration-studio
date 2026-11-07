@@ -1,3 +1,5 @@
+import { ApiProvider } from '../../../api/ApiContext';
+import { createMockApi } from '../../../api/mockApi';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, within } from 'storybook/test';
 import { flagged, type ChapterDoc } from '../model';
@@ -16,13 +18,18 @@ const card = (flag: string, d: ChapterDoc = doc, hear: ((a: number, b: number) =
   const dp = flag.startsWith('dup:') ? d.paras[1] : (d.paras.find((p) => p.items.some((i) => i.key === flag)) ?? d.paras[0]);
   return (
     <div className="bg-[var(--surface)] p-3 text-[var(--text)]">
-      <FlagCard doc={d} dp={dp} flag={flag} score={{ conf: 0.62 }} hear={hear} accept={noop} onClose={noop} />
+      <FlagCard doc={d} chapterId="c1" dp={dp} flag={flag} score={{ conf: 0.62 }} hear={hear} accept={noop} onClose={noop} />
     </div>
   );
 };
 const first = (kind: 'extra' | 'miss' | 'mis' | 'low'): string => flagged(doc, kind)[0].key;
 
-const meta = { title: 'Editing/Flags', parameters: { layout: 'padded' } } satisfies Meta;
+// Each word card's Add marker reads the chapter's notes and the DAW (#2830).
+const meta = {
+  title: 'Editing/Flags',
+  parameters: { layout: 'padded' },
+  decorators: [(Story) => <ApiProvider api={createMockApi()}>{Story()}</ApiProvider>],
+} satisfies Meta;
 export default meta;
 type Story = StoryObj<typeof meta>;
 
@@ -40,7 +47,16 @@ export const NoAudio: Story = { render: () => card(first('mis'), doc, null) };
 export const NotScored: Story = {
   render: () => (
     <div className="bg-[var(--surface)] p-3 text-[var(--text)]">
-      <FlagCard doc={doc} dp={doc.paras[0]} flag={first('mis')} score={{ conf: null, reason: 'no_word_scores' }} hear={noop} accept={noop} onClose={noop} />
+      <FlagCard
+        doc={doc}
+        chapterId="c1"
+        dp={doc.paras[0]}
+        flag={first('mis')}
+        score={{ conf: null, reason: 'no_word_scores' }}
+        hear={noop}
+        accept={noop}
+        onClose={noop}
+      />
     </div>
   ),
 };

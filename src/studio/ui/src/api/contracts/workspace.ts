@@ -168,7 +168,7 @@ export type WorkspaceTakesResult = {
 export type UseTakeRefusal = 'not_offered' | 'unusable' | 'stale' | 'recording' | 'script_outdated' | 'standalone' | 'not_running' | 'failed';
 
 /** What "Use this take" did: `done` (changed says whether the active take changed), `started` (a lane pick, whose end
- * retakeLanesState reports) or `refused`. */
+ * the retake-lane event once reported) or `refused`. */
 export type WorkspaceUseTakeResult = {
   outcome: 'done' | 'started' | 'refused';
   reason?: UseTakeRefusal;

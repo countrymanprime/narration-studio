@@ -33,7 +33,23 @@ export type TeleprompterFlagKind = 'misread' | 'extra' | 'skipped' | 'restart';
  * `extra` is zero-width (`start === end`), sitting before the word at `start`. `heard` is what was heard in their place ('' for
  * `skipped`). `id` counts a session's flags from 1. The kind is carried so a view can choose which kinds to show.
  */
-export type TeleprompterFlag = { type: 'flag'; id: number; kind: TeleprompterFlagKind; start: number; end: number; heard: string };
+export type TeleprompterFlag = {
+  type: 'flag';
+  id: number;
+  kind: TeleprompterFlagKind;
+  start: number;
+  end: number;
+  heard: string;
+  /** Set by the page, never on the wire: the verdict of the `flag_check` that later reached this flag (`TeleprompterFlagCheck`). */
+  check?: 'confirmed' | 'cleared';
+};
+
+/**
+ * The trailing confirmation pass's verdict on one earlier flag (internal/scripttrack, `flagcheck.go`), seconds after the
+ * flag: `confirmed` when a Whisper model heard the same discrepancy in the segment's audio, `cleared` when it read the script
+ * there. A flag no check reaches keeps neither.
+ */
+export type TeleprompterFlagCheck = { type: 'flag_check'; id: number; state: 'confirmed' | 'cleared' };
 
 /**
  * One flag as the read-aloud dialog sends it to be kept (`TeleprompterSaveFlags`): its words within one
@@ -50,6 +66,8 @@ export type TeleprompterFlagSave = {
   scriptEnd: number;
   heard: string;
   dismissed: boolean;
+  /** What the confirmation pass found, when a check reached the flag; a `cleared` flag is not kept. */
+  check?: 'confirmed' | 'cleared';
 };
 
 /**
@@ -96,6 +114,7 @@ export type TeleprompterEvent =
   | TeleprompterScript
   | TeleprompterPosition
   | TeleprompterFlag
+  | TeleprompterFlagCheck
   | TeleprompterLevel
   | TeleprompterMeterStopped
   | { type: 'partial'; segment: number; words: HeardWord[] }

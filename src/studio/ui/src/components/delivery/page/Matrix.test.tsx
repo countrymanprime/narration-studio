@@ -157,8 +157,10 @@ describe('D5 Build: what it waits for', () => {
 
   it('a measurement that is running: says so with its progress, and Build stays off', async () => {
     mount({ measureState: async () => measureJob(PASSING, { phase: 'running', percent: 40, message: 'Measuring Chapter 02.wav' }) });
-    expect(await screen.findByText('Measuring the files in Master & QC.')).toBeTruthy();
-    expect(screen.getByText('Measuring Chapter 02.wav (40%)')).toBeTruthy();
+    expect(await screen.findByText('Measuring the files.')).toBeTruthy();
+    // The progress is Master's own (MeasureProgress, #2825): the bar, its message and Cancel, in place of the old one-line percent.
+    expect(screen.getByRole('progressbar', { name: 'Measuring' })).toBeTruthy();
+    expect(screen.getByText('Measuring Chapter 02.wav')).toBeTruthy();
     expect((await buildButton()).getAttribute('aria-disabled')).toBe('true');
   });
 
@@ -434,6 +436,7 @@ describe('D5 and the profile while it builds', () => {
     const profiles = {
       profiles: [MOCK_ACX, custom],
       globalDefault: { id: MOCK_ACX.id },
+      shippedDefault: { id: MOCK_ACX.id },
       hasProject: true,
       projectChoice: null,
       projectProfile: 'acx@2026-09',
@@ -579,9 +582,9 @@ describe('output-panel-alignment', () => {
   it('a book nobody has measured says so where the first unready chapter would be, with the way to Master & QC (R4DL-2)', async () => {
     const onOpenMaster = vi.fn();
     mount({ measureState: async () => measureJob([]) }, { onOpenMaster });
-    expect(await screen.findByText('Nothing is measured yet. Measure the files in Master & QC.')).toBeTruthy();
+    expect(await screen.findByText('Nothing is measured yet. Use Check files… above.')).toBeTruthy();
     // It sits in the row that holds Build and its reason, not in a block of its own under it (#2632).
-    expect(screen.getByText('Nothing is measured yet. Measure the files in Master & QC.').closest('[role="alert"]')).toBeNull();
+    expect(screen.getByText('Nothing is measured yet. Use Check files… above.').closest('[role="alert"]')).toBeNull();
     await userEvent.click(screen.getByRole('button', { name: 'Open Master & QC' }));
     expect(onOpenMaster).toHaveBeenCalled();
   });

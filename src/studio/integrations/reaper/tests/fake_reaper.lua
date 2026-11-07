@@ -1759,6 +1759,21 @@ function Fake:add_marker_api(api)
     end
     return false
   end
+  -- DeleteProjectMarker(proj, markrgnindexnumber, isrgn): removes the marker or region with that number and kind, true when one was
+  -- there. Numbers are not reused for a later marker (the next one is the highest plus one; see insert_marker).
+  function api.DeleteProjectMarker(_, markrgnindexnumber, is_region)
+    fake.calls[#fake.calls + 1] = { name = 'DeleteProjectMarker', index = markrgnindexnumber }
+    if fake.delete_marker_fails then
+      return false
+    end
+    for position, marker in ipairs(fake.markers) do
+      if marker.index == markrgnindexnumber and marker.is_region == is_region then
+        table.remove(fake.markers, position)
+        return true
+      end
+    end
+    return false
+  end
   function api.SetProjectMarker3(_, markrgnindexnumber, is_region, pos, rgnend, name, color)
     for _, marker in ipairs(fake.markers) do
       if marker.index == markrgnindexnumber and marker.is_region == is_region then

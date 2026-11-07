@@ -1,5 +1,14 @@
 import { z } from 'zod';
-import type { Bootstrap, CopyDiagnosticsResult, HostReady, JobEnded, ProjectAttachState, WindowZoom } from '../contracts/system';
+import type {
+  Bootstrap,
+  DiagnosticsPreview,
+  HostReady,
+  JobEnded,
+  ProjectAttachState,
+  SaveDiagnosticsResult,
+  TraceBatchResult,
+  WindowZoom,
+} from '../contracts/system';
 import { transcriptStateSchema } from './transcript';
 
 /**
@@ -50,8 +59,24 @@ export const jobEndedSchema = z.object({
   durationMs: z.number(),
 }) satisfies z.ZodType<JobEnded>;
 
-/** SystemCopyDiagnostics's answer. */
-export const copyDiagnosticsResultSchema = z.object({ path: z.string() }) satisfies z.ZodType<CopyDiagnosticsResult>;
+/** SystemTraceBatch's answer. */
+export const traceBatchResultSchema = z.object({ accepted: z.number(), refused: z.number() }) satisfies z.ZodType<TraceBatchResult>;
+
+/** SystemSaveDiagnostics's answer. */
+export const saveDiagnosticsResultSchema = z.object({ path: z.string() }) satisfies z.ZodType<SaveDiagnosticsResult>;
+
+/** SystemDiagnosticsPreview's answer, and the manifest inside the saved zip. */
+export const diagnosticsPreviewSchema = z.object({
+  format: z.number(),
+  createdAt: z.string(),
+  appVersion: z.string(),
+  redactionVersion: z.number(),
+  traceEnabled: z.boolean(),
+  files: z.array(z.object({ name: z.string(), lines: z.number(), bytes: z.number(), source: z.string() })),
+  excluded: z.array(z.object({ name: z.string(), reason: z.string() })),
+  leakCheck: z.object({ terms: z.number(), linesDropped: z.number() }),
+  note: z.string(),
+}) satisfies z.ZodType<DiagnosticsPreview>;
 
 /** WindowZoom's and WindowSetZoom's answer. */
 export const windowZoomSchema = z.object({ level: z.number() }) satisfies z.ZodType<WindowZoom>;

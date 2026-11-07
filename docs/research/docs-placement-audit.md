@@ -244,8 +244,8 @@ About 5 are close to pure architecture description: `codebase-map.md`, `wire-con
 ### 2.7 PRDs (`docs/prds/`, 15 plus README)
 
 - All 15 carry "Parallel-session compatibility" (files each phase touches and which agent sessions collide), "Slices", "Supersedes / depends on ADRs", and both "Decisions" and "Decisions Log". The template in `docs/prds/README.md` requires them: item 11, "a Parallel-session compatibility table of the files each phase touches and who else collides with them", and a `PRP Plan` column. These are delivery-plan and tracker content (section 1.3).
-- [Studio Next Agent Delivery](../../.claude/skills/agent-train/references/studio-next-delivery.md) is not a product requirement: "The worker contract", "PR babysitting as a standing duty", "Session cap per slice". It is agent operating procedure.
-- [Studio Next ADR Register](../prds/studio-next-adr-register.prd.md) is a register of 143 ADR keep/extend/yield verdicts and 18 owner rulings: an ADR supersession plan, not a PRD.
+- [Studio Next Agent Delivery](../../.claude/skills/agent-train/references/groomer.md#slices) is not a product requirement: "The worker contract", "PR babysitting as a standing duty", "Session cap per slice". It is agent operating procedure.
+- Studio Next ADR Register is a register of 143 ADR keep/extend/yield verdicts and 18 owner rulings: an ADR supersession plan, not a PRD.
 - Several PRDs name agents as their users: "The owner, the coordinator and the last workers" (Cutover), "Page workers (consumers) ... the coordinator" (Domain state).
 - Product rules that PRDs cite live in the agent runbook: D69 (dark mode is one theme) and D98 (the mock is the only spec) are in `agent-train.md` "Owner standing rules".
 
@@ -745,7 +745,7 @@ Categories as in section 2.2. "Suggested home" is where the content would go if 
 | [0460](../reference/daw/capabilities.md#macro_render) | IMPL | N | Proposed | package doc in internal/masteringport | A registry row and its macro flow within existing ports. |
 | [0465](../design/design-system.md) | IMPL | N | Proposed | code comment in src/studio/ui/tests/visual/catalog/shell.ts | Extra viewport for three visual test states. |
 | [0470](../guides/using-the-app/proof.md#a-note-and-your-decision) | UX | Y | Proposed | PRD proof page | Mock-driven labels, header chips and sources line bundled. |
-| [0480](../guides/using-the-app/master-and-qc.md#building-packages-for-several-platforms-at-once) | UX | Y | Proposed | PRD multi-platform export | Checkbox list UX, format suffix convention and sequential build bundled. |
+| [0480](../guides/using-the-app/delivery.md#building-packages-for-several-platforms-at-once) | UX | Y | Proposed | PRD multi-platform export | Checkbox list UX, format suffix convention and sequential build bundled. |
 | [0485](../reference/data-files.md) | DATA | N | Accepted | reference/data-files | line-identity.json file location and shape. |
 | [0495](../guides/using-the-app/production.md#the-credits) | IMPL | N | Proposed | code comments in recordingCheckText.ts / mapping.go | Reuse via synthetic chapter id and title lookup. |
 | [0510](../../src/studio/desktop/internal/editing/validation.go) | ENG | N | Proposed | docs/testing/editing-ground-truth.md | Release bar for detector signals on a held-out run: evaluation gate. |

@@ -104,8 +104,6 @@ export const SILENT_CATCHES: Record<string, string> = {
   'src/App.tsx#2': 'The window error handler reports a diagnostic; a failing report must not raise another window error.',
   'src/App.tsx#3': 'The unhandled-rejection handler reports a diagnostic; a failing report must not raise another rejection.',
   'src/App.tsx#4': "Cosmetic: the narrator's entity colours. The built-in colours stay if the settings cannot be read, and Settings reports the real error.",
-  'src/components/storybible/entryTable.ts#1':
-    "Saving the Story Bible table's sort choice to localStorage: with storage unavailable the choice lasts until the page closes, and the table is already sorted as asked.",
   'src/components/production/ManuscriptImport.tsx#1':
     "Only sets where the review's 'Close when the import finishes' box starts; a failed read leaves it on, its default.",
   'src/components/editing/ribbon/useRibbonPeaks.ts#1':
@@ -149,7 +147,7 @@ export const SILENT_CATCHES: Record<string, string> = {
   'src/components/booth/CompanionShell.tsx#1':
     "Companion mode's exit on unmount: nothing is left mounted to tell, and the host's exit is a no-op when companion mode was never entered, so there is no state it could leave wrong that a retry would fix.",
   'src/components/booth/listening/useListeningMic.ts#1':
-    'Asking the DAW which microphone it records with, only to preselect it: a failed ask leaves the choice to the narrator in Levels, exactly as an answer that is not a sure match does.',
+    'Asking the DAW which microphone it records with, only to preselect it: a failed ask leaves the choice to the narrator in Record options, exactly as an answer that is not a sure match does.',
   'src/components/booth/useRecorder.ts#1': "Only the engine chip's first reading; without it the chip stays on REAPER until the next recording:state.",
   'src/components/engine/outputPrefs.ts#1':
     "Saving Editing's volume, mute, speed and output to browser storage: when storage is unavailable the choice holds for this window, which is all a per-window setting promises.",
@@ -198,8 +196,6 @@ export const SILENT_CATCHES: Record<string, string> = {
     'Re-reads a finding after the host refused a decision, only to tell changed evidence apart; when the re-read fails too, the inline alert still shows the host reason for the refusal, so nothing is hidden (the same reading the Proof Inspector makes).',
   'src/components/editing/EditingCheckPanel.tsx#1':
     "Reads the chapter's stored analysis-source choice on open; a failed read just leaves the default (items) selected, which is already correct for a chapter with no choice made yet, so there is nothing to guard or retry.",
-  'src/components/engine/RetakeLanesDialog.tsx#1':
-    'Hydrates whatever pick was already in flight when the dialog reopened; the list still loads and every pick shows its own failure inline.',
   'src/components/engine/CleanupToolsDialog.tsx#1':
     'Hydrates whatever launch was already in flight when the dialog reopened; the narrator can press Open either way, and a launch shows its own failure inline.',
   'src/components/engine/RenderConfigDialog.tsx#1':
@@ -224,7 +220,7 @@ export const SILENT_CATCHES: Record<string, string> = {
     "Starts the bounded REAPER follow for the matched track while the prompt shows; a failure to start just means that poll never begins, and the DAW-transport subscription and the narrator's own choices still settle the prompt.",
   'src/components/booth/ResumePrompt.tsx#2':
     'Stops the follow on cleanup (the prompt settles, a session starts, or the dialog closes); a failure here is unobservable and harmless, since the poll it would have stopped already lost its listener.',
-  'src/components/proof/ProofChapterPage.tsx#1': 'Only offers to review the last compare run; without it the offer is absent (moved from the Proofing page).',
+  'src/components/proof/useChapterCompare.ts#1': 'Only offers to review the last compare run; without it the offer is absent (moved from the Proofing page).',
   'src/components/booth/companion/CompanionHost.tsx#1':
     'Keeps the suspected-line flags as the session ends; a failed save leaves them to be found again by the next check.',
   'src/components/booth/companion/CompanionPage.tsx#1': 'The last-read chapter only picks the default chapter; the first chapter is used without it.',

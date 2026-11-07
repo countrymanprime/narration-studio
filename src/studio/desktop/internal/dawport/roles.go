@@ -50,9 +50,10 @@ type (
 	RegionsCreated = bridge.RegionsCreated
 	ActiveTakeSet  = bridge.ActiveTakeSet
 
-	VoiceSampleRegionKept = bridge.VoiceSampleRegionKept
-	VoiceSampleRegions    = bridge.VoiceSampleRegions
-	VoiceSampleRegion     = bridge.VoiceSampleRegion
+	VoiceSampleRegionKept    = bridge.VoiceSampleRegionKept
+	VoiceSampleRegionRemoved = bridge.VoiceSampleRegionRemoved
+	VoiceSampleRegions       = bridge.VoiceSampleRegions
+	VoiceSampleRegion        = bridge.VoiceSampleRegion
 
 	FXChains       = bridge.FXChains
 	FXChainApplied = bridge.FXChainApplied
@@ -443,6 +444,9 @@ type VoiceSampleRegionKeeper interface {
 	// MoveVoiceSampleRegion moves and renames region number, keeping its number and colour. A number that is not a voice sample
 	// region any more is a stale error (errors.Is ErrStale) and nothing changes.
 	MoveVoiceSampleRegion(ctx context.Context, number int, start, end float64, name string) (VoiceSampleRegionKept, error)
+	// DeleteVoiceSampleRegion removes region number in one undo point, only when it is a voice sample region. A number the project no
+	// longer has is answered "unchanged"; a region that is not a voice sample is a stale error and stays. It refuses while recording.
+	DeleteVoiceSampleRegion(ctx context.Context, number int) (VoiceSampleRegionRemoved, error)
 	// ReadVoiceSampleRegions lists the voice sample regions in the open project and the engine's change count. It changes nothing.
 	ReadVoiceSampleRegions(ctx context.Context) (VoiceSampleRegions, error)
 }
@@ -529,6 +533,8 @@ type DeleteRangeRequest struct {
 	FadeMs   int
 	PadMs    int
 	RoomTone bool
+	// ChapterTrack is the GUID of the chapter's folder track when its audio is on voice tracks inside it: a close cut then moves the later items of every one of them.
+	ChapterTrack string
 }
 
 // Padded is the request's range with PadMs taken off each end, and false when the pad leaves nothing of it, for an engine
@@ -568,11 +574,13 @@ type StackGroup struct {
 }
 
 // StackRequest stacks (or unstacks) the retries of a chapter's passages. Shift is how far the audio that follows moves, summed over
-// the groups (negative: earlier).
+// the groups (negative: earlier). ChapterTrack is the engine's id of the chapter's folder of voices, or empty: with it the audio after each
+// passage moves on every voice inside the folder.
 type StackRequest struct {
-	ChapterID string
-	Groups    []StackGroup
-	Shift     float64
+	ChapterID    string
+	Groups       []StackGroup
+	Shift        float64
+	ChapterTrack string
 }
 
 // BackupRequest asks the engine to clone the audio from Start to End seconds of a chapter's track before it is changed. GUID is the
@@ -598,7 +606,8 @@ const MaxReplaceGainDB = bridge.MaxReplaceGainDB
 // ReplaceRangeRequest replaces a range's words with a stretch of another narrator's audio already in the project: RangeRequest is
 // the narrator's words; SourceItemGUID is the item on the other narrator's own track and SourceStart..SourceEnd the stretch of it,
 // in project seconds. FadeMs (0 to MaxCutFadeMs) is the fade at each seam, GainDB (-MaxReplaceGainDB to MaxReplaceGainDB) the level
-// change on their stretch, ID the host's record of the replacement and Narrator whose audio it is, for the message.
+// change on their stretch, ID the host's record of the replacement and Narrator whose audio it is, for the message. ChapterTrack is the
+// engine's id of the chapter's folder of voices, or empty: with it the audio after the words moves on every voice inside the folder.
 type ReplaceRangeRequest struct {
 	RangeRequest
 	SourceItemGUID string
@@ -608,6 +617,7 @@ type ReplaceRangeRequest struct {
 	GainDB         float64
 	ID             string
 	Narrator       string
+	ChapterTrack   string
 }
 
 // RangeReplaced is what ReplaceRange did. Result is the call's answer; ReplacementItem is the engine's id of the new audio, what
@@ -621,11 +631,12 @@ type RangeReplaced struct {
 }
 
 // RestoreRequest puts the narrator's audio back in place of a replacement: ReplacementItem and ID as ReplaceRange made and recorded
-// them; Words is how many words it held, for the message.
+// them; Words is how many words it held, for the message; ChapterTrack as on ReplaceRangeRequest.
 type RestoreRequest struct {
 	ReplacementItem string
 	ID              string
 	Words           int
+	ChapterTrack    string
 }
 
 // TheirAudio is what ImportTheirAudio did. Result is the call's answer; Track and Item are the engine's ids of the new track and of the
@@ -856,9 +867,24 @@ const (
 	ActionRestoreReplacement ActionKind = "restore_replacement"
 )
 
+// ActionUseTake is a take made the one that plays (Keep Take, Use this take): set_active_take on an item's takes, or a retake
+// lane picked to play. Both close their undo block with the same label, so one kind reaches either.
+const ActionUseTake ActionKind = "use_take"
+
+// The chain edits of Editing's effects (#3016), each the one undo point its REAPER command closes its block with: an effect put on
+// the words, taken off, one of its settings changed, and the effect bypassed or turned back on.
+const (
+	ActionAddRangeFX    ActionKind = "add_range_fx"
+	ActionRemoveRangeFX ActionKind = "remove_range_fx"
+	ActionSetFXParam    ActionKind = "set_fx_param"
+	ActionBypassFX      ActionKind = "bypass_fx"
+	ActionEnableFX      ActionKind = "enable_fx"
+)
+
 // Valid is whether k is a kind this build knows.
 func (k ActionKind) Valid() bool {
-	return k == ActionCutRange || k == ActionRecordTake || k == ActionReplaceRange || k == ActionRestoreReplacement
+	return k == ActionCutRange || k == ActionRecordTake || k == ActionReplaceRange || k == ActionRestoreReplacement || k == ActionUseTake ||
+		k == ActionAddRangeFX || k == ActionRemoveRangeFX || k == ActionSetFXParam || k == ActionBypassFX || k == ActionEnableFX
 }
 
 // ErrActionKind is an ActionKind this build does not know: nothing is read or undone.

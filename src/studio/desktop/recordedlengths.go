@@ -63,7 +63,7 @@ func recordedLengthsFor(chapters []string, mappings []evidence.TrackMapping, pro
 				lengths[id] = manuscript.RecordedLength{Unavailable: manuscript.RecordedTrackMissing}
 				continue
 			}
-			lengths[id] = manuscript.RecordedLength{Seconds: track.RecordedSeconds()}
+			lengths[id] = manuscript.RecordedLength{Seconds: project.ChapterRecordedSeconds(track.GUID)}
 		}
 	}
 	return lengths

@@ -18,7 +18,10 @@
 -- stack_takes(run, payload_path) puts the later reads of passages on the first read's spot as takes (docs/reference/daw/capabilities.md,
 -- the PRD's DQ-7). The payload is a file the host wrote under the session folder: a `shift|seconds` line, then for
 -- each passage a `group|first item GUID|first read's take GUID` line followed by one `move|take GUID|from|to|length`
--- line per later read (seconds into the project). It is read line by line and refused whole when it is larger than
+-- line per later read (seconds into the project). An optional `folder|GUID` line right after the `shift` line names the chapter's folder of
+-- voices: the audio after each passage then moves on every track inside it (the Cuts track excluded) by time, not only on the passage's own
+-- track, a folder REAPER no longer has answers TRACK_STALE, reads outside it are refused, and so is another voice's audio where the reads sit.
+-- An older script reads that line as an unreadable request and changes nothing. It is read line by line and refused whole when it is larger than
 -- MAX_PAYLOAD_BYTES, holds more than MAX_GROUPS groups or MAX_MOVES moves, or has any field out of shape: a GUID not
 -- shaped like one, a time that is not a plain decimal number, a negative time, a length that is not positive, a group
 -- with no move, a GUID named twice, or a shift of the wrong sign. Every item and take is resolved by GUID and checked
@@ -242,6 +245,12 @@ local function read_stack_payload(path, sign)
         break
       end
       request.shift = shift
+    elseif kind == 'folder' and #fields == 2 and not request.folder and #request.groups == 0 then
+      request.folder = guid_field(fields[2])
+      if not request.folder then
+        problem = UNREADABLE
+        break
+      end
     elseif kind == 'group' and #fields == 3 then
       local item, base = named(guid_field(fields[2])), named(guid_field(fields[3]))
       if not item or not base then
@@ -364,22 +373,32 @@ end
 -- How far each item on the groups' tracks moves: the sum of the shifts of the groups on its track whose `from` (the
 -- end of what moves, for a stack; the first read's end, for an un-stack) it starts at or after. Read before any
 -- change. Items in `skip` (the reads that move to or from the Cuts track) are left out.
-local function following(groups, skip)
+local function following(groups, skip, members)
   local out, tracks = {}, {}
-  for _, group in ipairs(groups) do
-    if not tracks[group.track] then
-      tracks[group.track] = true
-      for index = 0, reaper.CountTrackMediaItems(group.track) - 1 do
-        local item = reaper.GetTrackMediaItem(group.track, index)
+  local function read(track)
+    if not tracks[track] then
+      tracks[track] = true
+      for index = 0, reaper.CountTrackMediaItems(track) - 1 do
+        local item = reaper.GetTrackMediaItem(track, index)
         if not skip[item] then
           out[#out + 1] = { item = item, position = position_of(item), delta = 0 }
         end
       end
     end
   end
+  if members then
+    for _, track in ipairs(members) do
+      read(track)
+    end
+  else
+    for _, group in ipairs(groups) do
+      read(group.track)
+    end
+  end
   for _, entry in ipairs(out) do
     for _, group in ipairs(groups) do
-      if group.track == reaper.GetMediaItem_Track(entry.item) and entry.position >= group.after - EDGE_TOLERANCE then
+      -- With the chapter's folder every voice follows every passage by time; without it only the passage's own track does.
+      if (members or group.track == reaper.GetMediaItem_Track(entry.item)) and entry.position >= group.after - EDGE_TOLERANCE then
         entry.delta = entry.delta + group.shift
       end
     end
@@ -418,6 +437,49 @@ local function stack_record(take)
     return nil
   end
   return { item = normalize_guid(fields[1]), take = normalize_guid(fields[2]), track = normalize_guid(fields[3]), offset = offset }
+end
+
+-- With the chapter's folder GUID: every track inside it besides the Cuts track (the tracks whose later items move with the passages), after checking the
+-- reads are inside it and that no track but a group's own has audio in the stretch its reads occupy, since that audio would be moved over or left
+-- behind. Answers nil after the refusal it has sent (TRACK_STALE, or an ERROR), {} without a folder. Changes nothing. `opens` is how far past the
+-- first read's end each group's stretch reaches (the reads that leave, or the reads that come back).
+local function folder_members(session_dir, run_id, folder_text, groups, cuts)
+  if folder_text == nil or folder_text == '' then
+    return nil, true
+  end
+  local peers = core.ripple_peers(session_dir, run_id, folder_text, groups[1].track, cuts, 'nothing changed')
+  if not peers then
+    return nil, false
+  end
+  local members = { groups[1].track }
+  for _, peer in ipairs(peers) do
+    members[#members + 1] = peer
+  end
+  local inside = {}
+  for _, track in ipairs(members) do
+    inside[track] = true
+  end
+  for _, group in ipairs(groups) do
+    if not inside[group.track] then
+      event(session_dir, 'ERROR', run_id, 'The item is not inside the chapter folder, so nothing changed.')
+      return nil, false
+    end
+  end
+  for _, group in ipairs(groups) do
+    local from, to = group.first + length_of(group.item), math.max(group.after, group.first + length_of(group.item) + math.abs(group.shift))
+    for _, track in ipairs(members) do
+      if track ~= group.track then
+        for index = 0, reaper.CountTrackMediaItems(track) - 1 do
+          local other = reaper.GetTrackMediaItem(track, index)
+          if position_of(other) < to - EDGE_TOLERANCE and position_of(other) + length_of(other) > from + EDGE_TOLERANCE then
+            event(session_dir, 'ERROR', run_id, 'Another voice in the folder has audio where the stacked reads sit, so nothing changed.')
+            return nil, false
+          end
+        end
+      end
+    end
+  end
+  return members, true
 end
 
 -- Every group resolved and checked, or nil after answering the refusal. Changes nothing.
@@ -534,7 +596,11 @@ local function stack_takes(session_dir, run_id, payload_path)
   if not plan then
     return
   end
-  local later = following(plan.groups, plan.moving)
+  local members, folder_ok = folder_members(session_dir, run_id, request.folder, plan.groups, found)
+  if not folder_ok then
+    return
+  end
+  local later = following(plan.groups, plan.moving, members)
 
   reaper.Undo_BeginBlock2(0)
   local cuts = ensure_cuts(found, keyed)
@@ -703,7 +769,11 @@ local function unstack_takes(session_dir, run_id, payload_path)
   if not plan then
     return
   end
-  local later = following(plan.groups, plan.moving)
+  local members, folder_ok = folder_members(session_dir, run_id, request.folder, plan.groups, (find_cuts()))
+  if not folder_ok then
+    return
+  end
+  local later = following(plan.groups, plan.moving, members)
   local moved = {}
   for _, entry in ipairs(later) do
     moved[entry.item] = entry.delta

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"desktop/internal/trace"
 	"errors"
 	"fmt"
 	"strings"
@@ -90,7 +91,10 @@ type installSpec struct {
 	// endedKind is the job:ended kind (jobs.go); noun is the asset in the narrator's words ("voice", "Whisper model").
 	endedKind, noun string
 	files           []assets.File
-	run             func(ctx context.Context, options assets.Options) error
+	// registry is the asset registry the caller looked the asset up in. A move of the models folder replaces the registry, so a spec
+	// looked up before it finished is refused after it: it would install into the folder the move left.
+	registry *assetRegistry
+	run      func(ctx context.Context, options assets.Options) error
 }
 
 // startInstall starts the install of one approved asset, or joins the one already running for it: a second press, a second window or a
@@ -107,6 +111,14 @@ func (h *Host) startInstall(spec installSpec) (map[string]any, error) {
 	}
 	for {
 		h.mu.Lock()
+		if h.modelsMoving() {
+			h.mu.Unlock()
+			return nil, errModelsMoving
+		}
+		if spec.registry != nil && h.assets != nil && spec.registry != h.assets {
+			h.mu.Unlock()
+			return nil, errModelsMoved
+		}
 		if h.removing[spec.kind+"/"+spec.assetID] {
 			h.mu.Unlock()
 			return nil, errBeingRemoved(spec.noun)
@@ -141,8 +153,9 @@ func (h *Host) startInstall(spec installSpec) (map[string]any, error) {
 			message: downloading, downloadingText: downloading, total: total, received: map[string]int64{}, ctx: ctx, cancel: cancel, finished: make(chan struct{}), started: time.Now()}
 		h.installJobs[job.id] = job
 		h.mu.Unlock()
+		started := snapshotInstall(job)
 		go h.runInstall(ctx, spec, job)
-		return snapshotInstall(job), nil
+		return started, nil
 	}
 }
 
@@ -178,6 +191,7 @@ func (h *Host) runGuarded(ctx context.Context, spec installSpec, job *installJob
 	defer func() {
 		if recovered := recover(); recovered != nil {
 			err = fmt.Errorf("the install stopped unexpectedly: %v", recovered)
+			h.tracer.Emit(trace.AppPanic, trace.EnumValue("where", "install_job"))
 		}
 	}()
 	return spec.run(ctx, assets.Options{

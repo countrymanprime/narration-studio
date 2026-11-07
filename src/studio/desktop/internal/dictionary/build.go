@@ -2,6 +2,7 @@ package dictionary
 
 import (
 	"bufio"
+	"desktop/internal/persist"
 	"encoding/binary"
 	"encoding/json"
 	"errors"
@@ -329,5 +330,5 @@ func writeAtomically(out string, parts ...[]byte) error {
 		_ = os.Remove(temp)
 		return err
 	}
-	return os.Rename(temp, out)
+	return persist.Rename(temp, out)
 }

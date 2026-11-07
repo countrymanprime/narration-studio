@@ -1,8 +1,16 @@
 import { Radio as BaseRadio } from '@base-ui/react/radio';
 import { RadioGroup as BaseRadioGroup } from '@base-ui/react/radio-group';
 import { useId, type ReactNode } from 'react';
+import { TooltipTarget } from './Tooltip';
 
-export type RadioOption<Value extends string> = { value: Value; label: ReactNode; description?: ReactNode; disabled?: boolean };
+export type RadioOption<Value extends string> = {
+  value: Value;
+  label: ReactNode;
+  description?: ReactNode;
+  disabled?: boolean;
+  /** Why a disabled option is off: a tooltip over it and its accessible description, with no text drawn in the page (design system, No in-flow instructions). */
+  reason?: string;
+};
 
 /**
  * A labelled choice of one from a short, named list (docs/design/design-system.md#base-ui-wrappers: Base UI styled with the app's tokens, never imported
@@ -51,26 +59,42 @@ export function Radio({
   );
 }
 
-function RadioItem({ value, label, description, disabled }: RadioOption<string>) {
+function RadioItem({ value, label, description, disabled, reason }: RadioOption<string>) {
   const descriptionId = useId();
+  const reasonId = useId();
+  const why = disabled ? reason : undefined;
+  const choice = (
+    <label className={`flex items-center gap-2.5 text-sm ${disabled ? 'cursor-not-allowed opacity-60' : ''}`}>
+      <BaseRadio.Root
+        value={value}
+        disabled={disabled}
+        aria-describedby={[why ? reasonId : '', description ? descriptionId : ''].filter(Boolean).join(' ') || undefined}
+        // Unselected fill is --surface-3 with the --border rim, not --surface, as the benchmark mocks draw it.
+        className="inline-flex size-4 flex-none items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface-3)] data-[checked]:border-[var(--accent)]"
+      >
+        <BaseRadio.Indicator className="size-2 rounded-full bg-[var(--accent)] data-[unchecked]:hidden" />
+      </BaseRadio.Root>
+      <span className="font-medium">{label}</span>
+    </label>
+  );
   return (
     // The description sits outside the <label>, so a screen reader hears just the option's own name ("Front
     // matter"), not the name followed by its help text run together; aria-describedby adds it after the name.
     <div>
-      <label className={`flex items-center gap-2.5 text-sm ${disabled ? 'cursor-not-allowed opacity-60' : ''}`}>
-        <BaseRadio.Root
-          value={value}
-          disabled={disabled}
-          aria-describedby={description ? descriptionId : undefined}
-          // Unselected fill is --surface-3 with the --border rim, not --surface, as the benchmark mocks draw it.
-          className="inline-flex size-4 flex-none items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface-3)] data-[checked]:border-[var(--accent)]"
-        >
-          <BaseRadio.Indicator className="size-2 rounded-full bg-[var(--accent)] data-[unchecked]:hidden" />
-        </BaseRadio.Root>
-        <span className="font-medium">{label}</span>
-      </label>
+      {why ? (
+        <>
+          <span id={reasonId} className="sr-only">
+            {why}
+          </span>
+          <TooltipTarget text={why} className="flex">
+            {choice}
+          </TooltipTarget>
+        </>
+      ) : (
+        choice
+      )}
       {description && (
-        <div id={descriptionId} className="mt-0.5 ml-[1.65rem]" style={{ color: 'var(--text-muted)' }}>
+        <div id={descriptionId} className="ms-[1.65rem] mt-0.5" style={{ color: 'var(--text-muted)' }}>
           {description}
         </div>
       )}

@@ -104,8 +104,10 @@ describe('production-page-commands', () => {
   it('check-recordings-says-the-DAW-is-not-running', async () => {
     const caps: DawCapabilities = { daw: 'REAPER', reachable: false, capabilities: {} };
     await renderPage({ overrides: { dawCapabilities: async () => caps, subscribeDawCapabilities: () => () => undefined } });
-    await pipelineRows();
-    await waitFor(() => expect(reason('check.recordings')).toBe('REAPER is not running.'));
+    // The not-connected dialog opens by itself and hides the page from the reader, so the table is found by its name alone.
+    await screen.findByRole('table', { name: 'Chapter pipeline', hidden: true });
+    // The jump menu is off for the same sentence the Check recordings buttons give (#2833; it used to word its own).
+    await waitFor(() => expect(reason('check.recordings')).toBe('REAPER is not reachable.'));
   });
 
   it('start-session-is-off-with-the-reason-the-header-gives-and-goes-to-the-Booth-when-it-can', async () => {

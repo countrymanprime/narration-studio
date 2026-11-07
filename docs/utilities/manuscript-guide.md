@@ -39,6 +39,7 @@ The host writes the dialogue cues (`dialogue_cues`) itself (`src/studio/desktop/
 The file may carry `types`, the narrator's ordered list of `{name, colour, speaks}` ([Settings](../guides/using-the-app/settings.md)). Without it the types are the defaults: Character (speaks), Place, Organization, Lore, Item and Event, in the hues they have always had. An entry's `category` is a type's name, or `Needs Review` or `Draft`.
 
 - **Add**, **rename**, **colour** (green, blue, violet, amber, teal or rose), **can speak** and **remove** (`GuideTypeAdd`, `GuideTypeRename`, `GuideTypeSetColour`, `GuideTypeSetSpeaks`, `GuideTypeRemove`, in `src/studio/desktop/internal/guide/types.go`) each write the whole list. A rename moves every entry of the type; a type in use and the last type cannot be removed.
+- `GuideTypesChanged` answers a JSON boolean (`guide-types-changed.json`): true when the list differs from the defaults in any name, colour or can-speak flag, or in order or count. Settings > Changed reads it.
 - Only an entry whose type speaks takes a speaker colour, and a build's dialogue cues resolve only to such entries. A rebuild keeps the list and files a new entry under the type its built-in category was renamed to (`builtin`), or under Needs Review when that type was removed.
 
 ## Merge and its undo
@@ -122,6 +123,18 @@ and every build with the model's spans still match the sidecar's deleted copy ca
 by `rules/testdata/suggest-lines.json`, which `TestTheSuggestLinesMatchTheContractFile` writes. `go run ./cmd/guide-rules
 --manuscript M --guide G` (from `src/studio/desktop`) prints the same lines; the extraction calibration tool runs it.
 
+## The confidence rule for an unattended build
+
+A build nobody starts by hand (the one a manuscript import is to start, #3092) files the scan's names by
+`confidentCandidates` (`src/studio/desktop/internal/guide/build_confidence.go`) instead of the old `classify`. It keeps a
+single word the scan turns down when the book capitalises it mid-sentence again and again (Portly, or the Hatter beside a
+speech verb), files a name with three mentions or more under Character only on a speech verb, a title or a verb after it,
+under Place only on a place word in its name or place prepositions before it, and puts every other name under Needs Review.
+The spaCy model's labels, when it is installed, are one vote. On five public-domain books 99 of the 100 characters it shows
+are real, against 90.7% for the rules-only build and 57.4% for the spaCy build; `TestStoryBibleBenchmark` pins every figure
+in `testdata/benchmark/golden.json`, and [the benchmark note](../research/story-bible-build-benchmark.md) has the method, the
+held-out book and the names it still gets wrong. The scan's suggestions and the narrator's own builds are unchanged.
+
 ## GLiNER suggestions
 
 `suggest --source gliner --manuscript M --guide G --install DIR` runs the optional GLiNER download
@@ -139,7 +152,7 @@ line: the installed version, or "not installed", which passes.
 `--workers N` (2 or more) reads the manuscript chapter by chapter in a pool of N processes, each loading the model once, with a
 chapter over 1500 words cut between paragraphs (`CHAPTER_WORDS`). The results are merged in manuscript order by the whole-book
 rule (highest score per name, the first on a tie), so the offers equal a one-process read's up to float noise in the scores. A
-chunk that cannot be read is logged and left out; the rest are kept, and the scan fails only if no chunk could be read. After each
+chunk that cannot be read is logged (a typed `gliner.chunk_failed` event with the chapter id and the exception class, never the error text or a name from the book) and left out; the rest are kept, and the scan fails only if no chunk could be read. After each
 chunk the sidecar prints a progress record, `{"progress": {"done": 3, "total": 18, "failed": ["c-0002"]}}`, before the entry
 lines, pinned by `gliner/testdata/suggest-progress.json`; the host shows it in the scan's result box and does not take it for a
 suggestion. Workers are started by `spawn` (the only start Windows has) from top-level functions, `main` calls `multiprocessing.freeze_support()` for the frozen build, and each worker loads the model, which puts the install's wheels on `sys.path`, before it imports torch. If the pool cannot start or dies, the sidecar prints `{"note": "GLiNER could not run its workers side by side, so it read the book in one piece."}` (pinned by `gliner/testdata/suggest-note.json`), reads the book whole and the host shows the sentence in the result box. `--threads N` (also on BookNLP) limits torch to N threads across the processes; the host sets it to half the

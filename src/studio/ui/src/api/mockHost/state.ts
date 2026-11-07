@@ -116,6 +116,12 @@ export type MockApiSeed = {
    * `fails` refuses with the host's sentence, `silent` refuses with no words, `hangs` never answers. Unset, a check finds the files whole.
    */
   assetsVerify?: 'damaged' | 'absent' | 'fails' | 'silent' | 'hangs';
+  /**
+   * `?mockMove=`: how moving the downloads behaves. `copying` and `verifying` hold the move there (40 and 80 percent) until it is cancelled,
+   * `fails` ends it in a failure sentence, `moved` boots with the downloads already moved and the old copy not yet answered for. Unset, a
+   * move runs through its steps to the end. `cancel` makes the folder dialog answer as if the narrator closed it.
+   */
+  assetMove?: 'copying' | 'verifying' | 'fails' | 'moved' | 'cancel';
   /** `?mockAssetNames=long`: the Whisper model's name is a long one, to see a row hold its actions at 390 px. */
   assetNames?: 'long';
   /** `?mockHold=`: the reads named here never answer, so the page that makes them stays on its loading skeleton: the Production overview, the Story Bible's entries. */
@@ -193,8 +199,6 @@ export type MockApiSeed = {
   /** How a project-state check answers 'changed' (count 42, one more than the last
    * comparison's 41, the default), 'unchanged' (41), or 'error' (REAPER is not open from this app). */
   projectState?: 'changed' | 'unchanged' | 'error';
-  /** Boots the retake-lane list and RetakeLanesState at this result, so "Retakes on lanes" states can be seen without a pick. 'none' lists a project with no lane tracks; 'error' also makes every pick fail. */
-  retakeLanes?: 'picked' | 'error' | 'none';
   /** Boots ChapterTagsPreview already at this result, so "Embed chapter tags" states can be seen without a real render. */
   chapterTags?: 'idle' | 'ready' | 'not-rendered';
   /** Makes chapterTagsEmbed always reject, to review the error state. */

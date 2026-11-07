@@ -48,7 +48,7 @@ import { ChapterLinkNotice } from '../record/ChapterLinkNotice';
 import { recordSetupFor } from '../record/recordSetupModel';
 import type { RecordBlock } from '../record/useRecordControl';
 import { useStaleToasts } from './useStaleToasts';
-import { SetupChip } from '../record/SetupChip';
+import { SetupChip, type SetupProblem } from '../record/SetupChip';
 import { useDawChoice } from '../record/useDawChoice';
 import { ResumeOfferLine } from '../resume/ResumeOffer';
 import { offerAwayFrom, saveNote } from '../resume/resumeOfferModel';
@@ -66,9 +66,9 @@ import { BoothSkeleton } from './BoothSkeleton';
 import { BoothUnavailable } from './BoothUnavailable';
 import { BoothGutter, BoothMessage } from './BoothMessage';
 import { CreditsWarning } from './CreditsWarning';
-import { bodyParagraphIndex, creditsParagraphs, entityAtWord, headingParagraphs, positionAtOffset, readingParagraphsOf, secondsBefore } from './readingSource';
+import { bodyParagraphIndex, creditsParagraphs, entityAtWord, headingParagraphs, readingParagraphsOf } from './readingSource';
+import { useMoveTarget } from './useMoveTarget';
 import { useFollowDawOnOpen, useMoveDawOnOpen } from './useDawFollow';
-import { unitAtPosition } from '../reading/readingPosition';
 import { useBoothData, type BoothSource } from './useBoothData';
 import { useBoothPage } from './useBoothPage';
 import type { StoppedTake } from '../pickups/usePickupSession';
@@ -320,7 +320,11 @@ function BoothSession({
     escapeStoppedSample?: () => boolean;
     recordBlocked?: (block: RecordBlock) => void;
   }>({});
+  // Set below, once the listening microphone is known (it is built after the page): why Record cannot begin on a microphone, or null.
+  const micProblem = useRef<string | null>(null);
   const page = useBoothPage({
+    micProblem: () => micProblem.current,
+    projectFolder,
     recordId,
     title,
     credits: source.kind === 'credits',
@@ -433,13 +437,7 @@ function BoothSession({
   const reference = useMemo(() => referenceOf(referenced.target, entities, marks, types), [referenced.target, entities, marks, types]);
 
   // Opened at a chapter, the DAW goes there too: to the end of its track, or to the line the Booth opened at, so the narrator can punch from it.
-  const moveTarget = useMemo(() => {
-    if (units.length === 0) return null;
-    // The credits have no line to start from: the DAW goes to the end of their track.
-    const position = chapter && from ? positionAtOffset(paragraphs, from.paragraphId, from.offset) : null;
-    const unit = position && unitAtPosition(paragraphs, units, position);
-    return unit ? ({ where: 'at', seconds: secondsBefore(units, unit.cur) } as const) : ({ where: 'end' } as const);
-  }, [chapter, from, paragraphs, units]);
+  const moveTarget = useMoveTarget({ chapterId, paragraphs, units, line: chapter && from ? from : undefined });
   useMoveDawOnOpen({
     enabled: moveDaw,
     chapterId,
@@ -598,6 +596,21 @@ function BoothSession({
   const recordName = pickerChapters.find((item) => item.id === pickerValue)?.name ?? title;
   const linkProblem = !control.recording && (control.gate?.cause === 'no_track' || control.gate?.cause === 'several_tracks');
   const setupPlan = capabilities && control.factsLoaded && !control.recording ? recordSetupFor(capabilities, control.facts) : null;
+  // What the top-bar chip says besides the DAW's own state: the Booth's gate first (the same finding its notices and footer word), then what
+  // the DAW answered for the chapter. A state in which Record still works (another track armed) is not shown.
+  const setupProblem: SetupProblem | undefined = control.recording
+    ? undefined
+    : control.gate?.cause === 'no_track'
+      ? 'no_track'
+      : control.gate?.cause === 'several_tracks'
+        ? 'several_tracks'
+        : control.gate?.cause === 'recording_elsewhere' || control.dawStatus === 'recording_elsewhere'
+          ? 'recording_elsewhere'
+          : control.dawStatus === 'unavailable'
+            ? 'not_connected'
+            : control.dawStatus === 'not_armed'
+              ? 'not_armed'
+              : undefined;
   const noticeShown = (linkProblem && !!capabilities) || !!setupPlan;
   parts.current.recordBlocked = (block) => {
     const noticeUp =
@@ -621,7 +634,10 @@ function BoothSession({
     );
   };
   // The host's sentence for an unlinked chapter points at the audio engine panel; the chip and its dialog are that fix now.
-  const footerWhy = linkProblem ? `${recordName} has no track to record on. Press Record to link one.` : control.reason;
+  // Record's reason is about Record: while the main button reads Cold read (no take runs) the footer does not blame Record for it.
+  const coldMode = page.coldRead.mode && !control.recording;
+  const recordWhy = linkProblem ? `${recordName} has no track to record on. Press Record to link one.` : control.reason;
+  const footerWhy = coldMode ? '' : recordWhy;
   const roomTone = useRoomTone(measurements, session.device);
   // The app's own recorder is what records (the project chose it, or no DAW is linked): the microphone is chosen here, not in a DAW.
   const standalone = capabilities?.daw === 'none' || recordsInApp(capabilities?.daw);
@@ -629,6 +645,7 @@ function BoothSession({
   // linked DAW's own input unless the narrator chose a different one.
   const listening = useListeningMic({
     dawRecords: !!capabilities && !standalone,
+    appRecords: !!capabilities && standalone,
     chapterId,
     chosen: session.chosenDevice,
     source: session.inputSource,
@@ -636,6 +653,16 @@ function BoothSession({
     devices: session.devices,
     listenOn: session.listenOn,
   });
+  micProblem.current =
+    !capabilities || !standalone
+      ? null
+      : listening.device.trim() === ''
+        ? listening.micNames.length === 0
+          ? 'No microphone found. Plug one in, then press Record again.'
+          : 'Choose the microphone in Record options, then press Record.'
+        : listening.origin === 'chosen' && !listening.micNames.includes(listening.device)
+          ? `${listening.device} was not found. Choose another microphone in Record options, then press Record.`
+          : null;
 
   return (
     <CommandScope kind="booth">
@@ -685,7 +712,7 @@ function BoothSession({
                     project={control.project}
                     choice={dawChoice}
                     otherProject={setupPlan?.kind === 'other-project'}
-                    onClick={() => void page.goTo(`${BOOTH_LINKS.settings}#recording`)}
+                    problem={setupProblem}
                   />
                 ) : undefined
               }
@@ -809,7 +836,9 @@ function BoothSession({
           </BoothSamplesProvider>
           <SamplePlayerAnnouncement text={samples.announcement} />
           <BoothFooter
-            record={<RecordControl control={{ ...control, reason: footerWhy, toggle: page.toggleTake }} />}
+            record={
+              <RecordControl control={{ ...control, reason: footerWhy, toggle: page.pressMain }} cold={{ mode: page.coldRead.mode, on: page.coldRead.on }} />
+            }
             seconds={page.seconds}
             recording={control.recording}
             why={footerWhy || undefined}
@@ -825,6 +854,7 @@ function BoothSession({
               offReason: capabilities?.capabilities.record?.message,
               device: session.device,
               onDevice: session.changeDevice,
+              micNote: standalone && listening.origin === 'last' ? 'The microphone this project last recorded with, until you choose one.' : undefined,
               listen: standalone
                 ? undefined
                 : {

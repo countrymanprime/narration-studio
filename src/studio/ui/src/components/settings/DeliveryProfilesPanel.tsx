@@ -13,7 +13,7 @@ import { DeliveryProfileEditor } from './DeliveryProfileEditor';
 const MUTED = { color: 'var(--text-muted)' };
 
 /** A select option's value: a built-in at its version, a custom profile by its id alone (it always judges with its latest revision). */
-const optionValue = (ref: DeliveryProfileRef | DeliveryProfile) =>
+export const optionValue = (ref: DeliveryProfileRef | DeliveryProfile) =>
   'builtIn' in ref ? (ref.builtIn ? `${ref.id}@${ref.version}` : ref.id) : ref.version ? `${ref.id}@${ref.version}` : ref.id;
 
 /** How many of a custom profile's numbers differ from the built-in it is based on, and how many rules are off. */

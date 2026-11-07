@@ -4,6 +4,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import axe from 'axe-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { USER_MESSAGE, WireError } from '../../api/wire/WireError';
+import type { DawCapabilities } from '../../api/contracts/daw';
 import { DAW_SETUPS, type DawSetupId } from '../../fixtures/daw';
 import { resetOpenOnce } from '../connection/useOpenOnce';
 import { providedCommands } from '../../input/commandProviders';
@@ -164,7 +165,7 @@ describe('EditingPage', () => {
     mount({ api });
     await script();
     const first = workspaceAlignment.mock.calls.length;
-    fireEvent.click(await screen.findByRole('button', { name: 'Check recordings…' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Check recordings' }));
     // The one recording check: the Check recordings dialog, the same one Proof, Pickups and Production open.
     const panel = await screen.findByRole('dialog', { name: 'Check recordings' });
     fireEvent.click(await within(panel).findByRole('button', { name: 'Cancel' }));
@@ -852,6 +853,41 @@ describe('EditingPage', () => {
       expect(drawerButton().getAttribute('aria-pressed')).toBe('true');
       expect(await screen.findByRole('region', { name: 'Clean up findings' })).toBeTruthy();
     });
+    // #2827: Match levels is where the other clean-up actions are, the same preview and apply the editing check has. The preview stays open while the
+    // page re-registers the Clean up findings section (the drawer keys its sections by name, not by place, so a later section is not remounted).
+    it('the Clean up tab offers Match levels, previews then matches through the same two calls', async () => {
+      const levelMatchPreview = vi.fn(async () => ({ candidates: [{ item: 'g1' }] }) as never);
+      const levelMatchApply = vi.fn(async () => ({ changed: [{ item: 'g1' }] }) as never);
+      mount({ drawer: 'cleanup', api: { levelMatchPreview, levelMatchApply } });
+      await script();
+      const match = await screen.findByRole('button', { name: 'Match levels…' });
+      await waitFor(() => expect(match.getAttribute('aria-disabled')).toBeNull());
+      fireEvent.click(match);
+      await waitFor(() => expect(levelMatchPreview).toHaveBeenCalledWith('c1', 'rms_dbfs', -20, 2));
+      const dialog = await screen.findByRole('alertdialog', { name: 'Match levels' });
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Match' }));
+      await waitFor(() => expect(levelMatchApply).toHaveBeenCalledWith('c1', 'rms_dbfs', -20, 2));
+    });
+    it('Match levels is off, with the DAW’s sentence under it, while the DAW is not answering', async () => {
+      mount({ drawer: 'cleanup', setup: 'reaper-off' });
+      await script();
+      const match = await screen.findByRole('button', { name: 'Match levels…' });
+      await waitFor(() => expect(match.getAttribute('aria-disabled')).toBe('true'));
+      const reason = document.getElementById(match.getAttribute('aria-describedby')!)!.textContent!;
+      expect(reason).toBeTruthy();
+    });
+    it('Match levels is off with the DAW’s own sentence when the DAW cannot change item gain', async () => {
+      const sentence = 'This DAW can’t change item gain.';
+      const caps = {
+        ...DAW_SETUPS.reaper,
+        capabilities: { ...DAW_SETUPS.reaper.capabilities, item_gain: { level: 'unavailable', available: false, message: sentence } },
+      } as unknown as DawCapabilities;
+      mount({ drawer: 'cleanup', daw: createMockDawClient(caps) });
+      await script();
+      const match = await screen.findByRole('button', { name: 'Match levels…' });
+      await waitFor(() => expect(match.getAttribute('aria-disabled')).toBe('true'));
+      expect(screen.getAllByText(sentence).length).toBeGreaterThan(0);
+    });
     it('Clean up Apply is on for Breaths with a DAW that reports range_gain', async () => {
       const breath = finding({ id: 'b1', start: 20, end: 20.4, cls: 'breath', db: -22 });
       const api = { findingsList: async () => ({ findings: [breath], total: 1 }), editingCandidates: async () => [breath] };
@@ -1049,9 +1085,9 @@ describe('EditingPage', () => {
         expect(el).not.toBeNull();
         return el!;
       });
-      fireEvent.click(await within(footer).findByRole('button', { name: 'Show in the DAW' }));
+      fireEvent.click(await within(footer).findByRole('button', { name: /^Show in / }));
       await waitFor(() => expect(goTo).toHaveBeenCalledWith('c1', expect.any(Number)));
-      await waitFor(() => expect(toast).toHaveBeenCalledWith('Moved to 1:05 in the DAW.'));
+      await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.stringMatching(/^Moved to 1:05 in /)));
     });
 
     it("the Clean up tab starts with the chapter's retry bar", async () => {

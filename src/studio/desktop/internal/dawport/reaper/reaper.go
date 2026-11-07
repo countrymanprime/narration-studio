@@ -106,7 +106,7 @@ var declares = map[dawport.Capability]dawport.Level{
 	dawport.CapDawMeters:    dawport.Supported,
 	// replace_range is replace_range's and restore_replacement's (narration_replace.lua). Experimental until the owner's pass.
 	dawport.CapReplaceRange: dawport.Experimental,
-	// voice_sample_region is keep_voice_sample's and read_voice_samples' (narration_voice_sample_region.lua). Experimental until the
+	// voice_sample_region is keep_voice_sample's, delete_voice_sample_region's and read_voice_samples' (narration_voice_sample_region.lua). Experimental until the
 	// in-REAPER check (docs/research/reaper-voice-sample-region-check.md) has run.
 	dawport.CapVoiceSampleRegion: dawport.Experimental,
 }
@@ -115,59 +115,60 @@ var declares = map[dawport.Capability]dawport.Level{
 // Gate answers with that capability's Allowed, so the resolver decides and the command list stays in bridge. Every command Actions
 // sends has a row, whether or not it is still Experimental: promoting one is a declaration change above, not a change here.
 var commandCapability = map[string]dawport.Capability{
-	"chapter_track_state": dawport.CapTrackState,
-	"select_track":        dawport.CapTrackSelect,
-	"track_create":        dawport.CapTrackCreate,
-	"chapter_folders":     dawport.CapTrackCreate,
-	"tracks_read":         dawport.CapTracksRead,
-	"read_place":          dawport.CapFollowPosition,
-	"go_to":               dawport.CapFollowPosition,
-	"set_cursor":          dawport.CapTransportSync,
-	"play_from":           dawport.CapTransportSync,
-	"play_range":          dawport.CapTransportSync,
-	"stop_play":           dawport.CapTransportSync,
-	"watch_transport":     dawport.CapTransportSync,
-	"arm_only":            dawport.CapRecord,
-	"record_start":        dawport.CapRecord,
-	"record_stop":         dawport.CapRecord,
-	"switch_voice":        dawport.CapRecord,
-	"punch_to":            dawport.CapPunch,
-	"play_position":       dawport.CapPunch,
-	"roll":                dawport.CapPunch,
-	"create_regions":      dawport.CapRegions,
-	"set_active_take":     dawport.CapTakes,
-	"hide_takes":          dawport.CapTakes,
-	"split_take":          dawport.CapTakes,
-	"list_fx_chains":      dawport.CapFXChains,
-	"apply_fx_chain":      dawport.CapFXChains,
-	"master_chain_read":   dawport.CapMasterChainRead,
-	"delete_range":        dawport.CapCutRange,
-	"apply_fx_range":      dawport.CapFXRange,
-	"remove_fx_range":     dawport.CapFXRange,
-	"stack_takes":         dawport.CapStackTakes,
-	"unstack_takes":       dawport.CapStackTakes,
-	"preview_file_range":  dawport.CapFilePreview,
-	"stop_file_preview":   dawport.CapFilePreview,
-	"reveal_file":         dawport.CapFileReveal,
-	"reduce_range_gain":   dawport.CapRangeGain,
-	"repair_click":        dawport.CapClickRepair,
-	"fx_range_params":     dawport.CapFXRange,
-	"fx_range_set_param":  dawport.CapFXRange,
-	"fx_range_bypass":     dawport.CapFXRange,
-	"fx_range_compare":    dawport.CapFXRange,
-	"stop_fx_compare":     dawport.CapFXRange,
-	"choose_range_fx":     dawport.CapFXRange,
-	"range_fx_chosen":     dawport.CapFXRange,
-	"last_action":         dawport.CapUndoLast,
-	"undo_last":           dawport.CapUndoLast,
-	"monitor_level":       dawport.CapMonitorLevel,
-	"punch_preroll":       dawport.CapPunchPreroll,
-	"daw_meters":          dawport.CapDawMeters,
-	"replace_range":       dawport.CapReplaceRange,
-	"restore_replacement": dawport.CapReplaceRange,
-	"import_audio_track":  dawport.CapReplaceRange,
-	"keep_voice_sample":   dawport.CapVoiceSampleRegion,
-	"read_voice_samples":  dawport.CapVoiceSampleRegion,
+	"chapter_track_state":        dawport.CapTrackState,
+	"select_track":               dawport.CapTrackSelect,
+	"track_create":               dawport.CapTrackCreate,
+	"chapter_folders":            dawport.CapTrackCreate,
+	"tracks_read":                dawport.CapTracksRead,
+	"read_place":                 dawport.CapFollowPosition,
+	"go_to":                      dawport.CapFollowPosition,
+	"set_cursor":                 dawport.CapTransportSync,
+	"play_from":                  dawport.CapTransportSync,
+	"play_range":                 dawport.CapTransportSync,
+	"stop_play":                  dawport.CapTransportSync,
+	"watch_transport":            dawport.CapTransportSync,
+	"arm_only":                   dawport.CapRecord,
+	"record_start":               dawport.CapRecord,
+	"record_stop":                dawport.CapRecord,
+	"switch_voice":               dawport.CapRecord,
+	"punch_to":                   dawport.CapPunch,
+	"play_position":              dawport.CapPunch,
+	"roll":                       dawport.CapPunch,
+	"create_regions":             dawport.CapRegions,
+	"set_active_take":            dawport.CapTakes,
+	"hide_takes":                 dawport.CapTakes,
+	"split_take":                 dawport.CapTakes,
+	"list_fx_chains":             dawport.CapFXChains,
+	"apply_fx_chain":             dawport.CapFXChains,
+	"master_chain_read":          dawport.CapMasterChainRead,
+	"delete_range":               dawport.CapCutRange,
+	"apply_fx_range":             dawport.CapFXRange,
+	"remove_fx_range":            dawport.CapFXRange,
+	"stack_takes":                dawport.CapStackTakes,
+	"unstack_takes":              dawport.CapStackTakes,
+	"preview_file_range":         dawport.CapFilePreview,
+	"stop_file_preview":          dawport.CapFilePreview,
+	"reveal_file":                dawport.CapFileReveal,
+	"reduce_range_gain":          dawport.CapRangeGain,
+	"repair_click":               dawport.CapClickRepair,
+	"fx_range_params":            dawport.CapFXRange,
+	"fx_range_set_param":         dawport.CapFXRange,
+	"fx_range_bypass":            dawport.CapFXRange,
+	"fx_range_compare":           dawport.CapFXRange,
+	"stop_fx_compare":            dawport.CapFXRange,
+	"choose_range_fx":            dawport.CapFXRange,
+	"range_fx_chosen":            dawport.CapFXRange,
+	"last_action":                dawport.CapUndoLast,
+	"undo_last":                  dawport.CapUndoLast,
+	"monitor_level":              dawport.CapMonitorLevel,
+	"punch_preroll":              dawport.CapPunchPreroll,
+	"daw_meters":                 dawport.CapDawMeters,
+	"replace_range":              dawport.CapReplaceRange,
+	"restore_replacement":        dawport.CapReplaceRange,
+	"import_audio_track":         dawport.CapReplaceRange,
+	"keep_voice_sample":          dawport.CapVoiceSampleRegion,
+	"delete_voice_sample_region": dawport.CapVoiceSampleRegion,
+	"read_voice_samples":         dawport.CapVoiceSampleRegion,
 }
 
 // Gate is bridge.Actions' gate over allowed (the resolver's Allowed): a command is sent only when its capability is allowed. A nil
@@ -484,11 +485,14 @@ func (r rangeCutter) DeleteRange(ctx context.Context, request dawport.DeleteRang
 			return refused, nil
 		}
 	}
-	got, err := r.actions.DeleteRange(ctx, request.ItemGUID, request.Start, request.End, bridge.CutMode(request.Mode), request.FadeMs,
+	got, err := r.actions.DeleteRangeInFolder(ctx, request.ChapterTrack, request.ItemGUID, request.Start, request.End, bridge.CutMode(request.Mode), request.FadeMs,
 		request.PadMs, request.RoomTone)
 	var stale *bridge.StaleError
+	var folderGone *bridge.TrackStaleError
 	var refusal *bridge.RefusalError
 	switch {
+	case errors.As(err, &folderGone):
+		return dawport.RefusedStale(messageFolderStale), nil
 	case errors.As(err, &stale):
 		return dawport.RefusedStale("That passage's item is no longer in the REAPER project. Read the project again."), nil
 	case errors.Is(err, bridge.ErrRecording):
@@ -504,6 +508,9 @@ func (r rangeCutter) DeleteRange(ctx context.Context, request dawport.DeleteRang
 	}
 	return dawport.OK(cutMessage(request.Words), true).WithUndoSteps(got.UndoPoints), nil
 }
+
+// messageFolderStale answers an edit that names the chapter's folder of voices when REAPER no longer has it.
+const messageFolderStale = "That chapter's folder is no longer in the REAPER project. Read the project again."
 
 // messageCutScriptOutdated answers a pad or room tone sent to a script older than them, which refused and cut nothing.
 const messageCutScriptOutdated = "The app's script in REAPER is older than this app and cannot pad a cut or fill it with room tone, so nothing was cut. Import the script again from this app's REAPER folder."
@@ -920,7 +927,7 @@ func (r takeStacker) refused() (dawport.Result, bool) {
 // stackRequest is the port's request in bridge's terms: a group's Base is its first read's take, and a move's TakeID the later
 // read's take, both as REAPER's GUIDs.
 func stackRequest(request dawport.StackRequest) bridge.StackRequest {
-	out := bridge.StackRequest{Shift: request.Shift}
+	out := bridge.StackRequest{Shift: request.Shift, Folder: request.ChapterTrack}
 	for _, group := range request.Groups {
 		moves := make([]bridge.StackMove, 0, len(group.Moves))
 		for _, move := range group.Moves {
@@ -935,10 +942,15 @@ func stackRequest(request dawport.StackRequest) bridge.StackRequest {
 // (studio-next/src/fixtures/daw.ts); ok is false, with a nil error, when err is nil.
 func stackRefused(err error) (dawport.Result, bool, error) {
 	var stale *bridge.StaleError
+	var folderGone *bridge.TrackStaleError
 	var refusal *bridge.RefusalError
 	switch {
 	case err == nil:
 		return dawport.Result{}, false, nil
+	case errors.As(err, &folderGone):
+		return dawport.RefusedStale(messageFolderStale), true, nil
+	case errors.Is(err, bridge.ErrScriptOutdated):
+		return dawport.Refused(messageStackScriptOutdated), true, nil
 	case errors.As(err, &stale):
 		return dawport.RefusedStale("That item changed in REAPER since the app read it. Nothing was changed."), true, nil
 	case errors.Is(err, bridge.ErrNothingToStack):
@@ -952,6 +964,9 @@ func stackRefused(err error) (dawport.Result, bool, error) {
 	}
 	return dawport.Result{}, false, err
 }
+
+// messageStackScriptOutdated answers a folder sent to a script older than it, which refused and moved nothing.
+const messageStackScriptOutdated = "The app's script in REAPER is older than this app and cannot move every voice of a folder, so nothing was changed. Import the script again from this app's REAPER folder."
 
 // takesMessage words a stack or un-stack as the mock does (studio-next/src/state/daw.ts, restack).
 func takesMessage(verb string, takes int) string {

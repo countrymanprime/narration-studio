@@ -8,10 +8,13 @@ import { StudioProvider } from '../../studio/StudioProvider';
 import { createJournal, type Journal } from '../../studio/journal/createJournal';
 import type { PickupList } from '../../api/contracts/pickups';
 import { createMockApi } from '../../api/mockApi';
+import { DAW_SETUPS } from '../../fixtures/daw';
 import { CommandRouter } from '../../input/router';
 import { OverlayHost } from '../../overlay/OverlayHost';
 import type { NarrationApi } from '../../types';
+import { createMockDawClient } from '../../ports/daw';
 import { PortOverrides } from '../../ports/usePort';
+import { DawFileLinkedContext } from '../connection/dawFileLinked';
 import { TooltipProvider } from '../primitives/Tooltip';
 import * as checkRecordings from '../recordingcheck/openCheckRecordings';
 import { onPickupListChanged } from './pickupListChanged';
@@ -41,7 +44,9 @@ function renderPage(
         <StudioProvider journal={journal}>
           <TooltipProvider>
             <CommandRouter>
-              <PickupsPage hasManuscript dawFileLinked={dawFileLinked} goTo={goTo} goToScript={goToScript} />
+              <DawFileLinkedContext.Provider value={dawFileLinked}>
+                <PickupsPage hasManuscript goTo={goTo} goToScript={goToScript} />
+              </DawFileLinkedContext.Provider>
             </CommandRouter>
             <OverlayHost />
           </TooltipProvider>
@@ -51,6 +56,19 @@ function renderPage(
   );
   return { api, goTo, goToScript };
 }
+
+describe('the DAW connection chip (#2823)', () => {
+  it('shows the shared REAPER-not-connected chip in the list header while the DAW is away', async () => {
+    renderPage(
+      createMockApi({
+        pickupsList: () => Promise.resolve(LIST),
+        dawCapabilities: async () => DAW_SETUPS['reaper-off'],
+        subscribeDawCapabilities: () => () => undefined,
+      }),
+    );
+    expect(await screen.findByRole('button', { name: /REAPER not connected/, hidden: true })).toBeTruthy();
+  });
+});
 
 describe('pickups-route-draws-the-mock-page', () => {
   it('draws the list grouped by chapter and the pickup session panel', async () => {
@@ -183,7 +201,7 @@ describe('check-recordings-opens-from-pickups', () => {
     const user = userEvent.setup();
     const head = await screen.findByRole('heading', { name: 'Pickups' });
     await user.click(within(head.closest('section') ?? document.body).getByRole('button', { name: /Check recordings/ }));
-    expect(open).toHaveBeenCalledWith(['c2']);
+    expect(open).toHaveBeenCalledWith(['c2'], expect.anything());
   });
 });
 
@@ -433,7 +451,11 @@ describe('narrator-walkthrough-fixes-2', () => {
 
 describe('adding-lines-as-markers-says-what-happened', () => {
   const markersDaw = (changed: boolean) =>
-    ({ addPickupMarkers: vi.fn().mockResolvedValue({ ok: true, changed, message: 'Imported 2 pickups.', undoSteps: changed ? 1 : 0 }) }) as never;
+    ({
+      // The rows' Show in REAPER reads what the DAW can do (#2826).
+      ...createMockDawClient(DAW_SETUPS.reaper, { chapterIds: [], candidateIds: [], findingIds: [] }),
+      addPickupMarkers: vi.fn().mockResolvedValue({ ok: true, changed, message: 'Imported 2 pickups.', undoSteps: changed ? 1 : 0 }),
+    }) as never;
   const renderWith = (changed: boolean, list: PickupList = LIST) => {
     const api = createMockApi({ pickupsList: () => Promise.resolve(list) });
     vi.spyOn(api, 'manuscriptChapters').mockResolvedValue(
@@ -476,7 +498,8 @@ describe('adding-lines-as-markers-says-what-happened', () => {
     renderWith(true, { pickups: [pickup({ id: 'b', at: null, time: 20 })], leftOut: [] });
     const add = await screen.findByRole('button', { name: 'Add 0 as markers in REAPER' });
     expect(add.getAttribute('aria-disabled')).toBe('true');
-    expect(screen.getByText('None of these lines has a place in the recording yet.')).toBeTruthy();
+    await userEvent.hover(add);
+    expect(await screen.findByText('None of these lines has a place in the recording yet.')).toBeTruthy();
   });
 
   it('says the markers were already there when nothing changed', async () => {
@@ -493,6 +516,7 @@ describe('adding-markers-needs-a-linked-project', () => {
     renderPage(undefined, undefined, undefined, false);
     const add = await screen.findByRole('button', { name: /^Add \d+ as markers in / });
     expect(add.getAttribute('aria-disabled')).toBe('true');
+    await userEvent.hover(add);
     expect(await screen.findByText(NOT_LINKED)).toBeTruthy();
   });
 

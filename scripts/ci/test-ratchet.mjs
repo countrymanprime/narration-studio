@@ -4,7 +4,7 @@
 // node scripts/ci/test-ratchet.mjs <base-ref>   Compares HEAD with the merge base and prints one line per violation.
 //
 // Exit 1 on a violation; the `Test ratchet` workflow reports it as a warning and does not fail the pull request, so nobody
-// has to approve a deliberate change. A reviewer reads the printed violations (.claude/skills/agent-train/SKILL.md,
+// has to approve a deliberate change. A reviewer reads the printed violations (.claude/skills/agent-train/references/coordinator.md,
 // "Safety net"). Reads the diff only, so the existing tree never fails.
 
 import { execFileSync } from 'node:child_process';

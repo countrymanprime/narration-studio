@@ -4,6 +4,7 @@ import (
 	"context"
 	"desktop/internal/brand"
 	"desktop/internal/bridge"
+	"desktop/internal/trace"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -375,8 +376,11 @@ func (h *Host) startExport(req ExportRequest) (ExportJob, error) {
 	if encodeFile == nil {
 		encodeFile = encodeFor(format)
 	}
+	// The snapshot is taken before the job starts: a fast encode could finish before a snapshot taken after `go`, and the
+	// binding would report a job that is already over instead of the one it started (#3076).
+	started := job.snapshot()
 	go h.runExport(ctx, job, items, plan.regions, svc.config.projectFolder, profile, req.Master, row, approval, format, encodeFile)
-	return job.snapshot(), nil
+	return started, nil
 }
 
 // encodeFor is the real encodeFileFunc: the first registered Encoder row that writes format.
@@ -402,6 +406,7 @@ func (h *Host) runExport(
 		var broken error
 		if recovered := recover(); recovered != nil {
 			broken = fmt.Errorf("%v", recovered)
+			h.tracer.Emit(trace.AppPanic, trace.EnumValue("where", "export_job"))
 			runlog.FromContext(ctx).Event(slog.LevelError, "export.panic", "the export stopped unexpectedly: "+broken.Error())
 		}
 		job.finish(ctx.Err() != nil && broken == nil, broken)

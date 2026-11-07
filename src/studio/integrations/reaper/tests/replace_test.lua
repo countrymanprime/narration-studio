@@ -203,7 +203,7 @@ H.test('a range, a stretch, a fade, a level or a name out of shape is refused be
   refused(s, p, 'The level change must be from -24 to 24 dB.', nil, nil, nil, nil, tail('164.2', '167.2', '10', 'loud', ID))
   refused(s, p, 'The replacement has no usable name.', nil, nil, nil, nil, tail('164.2', '167.2', '10', '0', ''))
   refused(s, p, 'The replacement has no usable name.', nil, nil, nil, nil, tail('164.2', '167.2', '10', '0', 'r 1'))
-  refused(s, p, 'The replacement has no usable name.', nil, nil, nil, nil, '164.2|167.2|10|0|' .. ID .. '|extra')
+  refused(s, p, 'The replacement has no usable name.', nil, nil, nil, nil, '164.2|167.2|10|0|' .. ID .. '|extra|more')
   refused(s, p, 'The replacement has no usable name.', nil, nil, nil, nil, '164.2|167.2')
 end)
 

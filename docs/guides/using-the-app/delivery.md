@@ -12,6 +12,27 @@ build** straight after **Output**, so the list that explains the Build button is
 
 ![Delivery judged against ACX with nothing measured: the profile, its checks and files, Output with Build off, and Before you build with every chapter waiting](../../images/ui/delivery-default.webp)
 
+## Build the package for a platform
+
+This page is a reference to everything Delivery shows. Here is the round from mastered files to a package; the
+sections after it have the detail. The example builds for ACX.
+
+1. **Choose the profile.** The **Profile** menu lists **ACX (built in)** and your own profiles. The one you choose is
+   the project's ([The delivery profile](#the-delivery-profile)).
+2. **Master and check the files** in [Master & QC](master-and-qc.md): master them with **Master all to spec…**, then
+   measure them with **Check files…** ([Checking files](master-and-qc.md#checking-files)). Delivery judges the files
+   **Check files…** measured. **Diagnostics** does not count, and nor does a prepared copy until you check it.
+3. **Read Before you build.** Each chapter shows **Pass**, **Fails N checks**, **Not mastered**, or **Waiting on N
+   pickups**. While Build is off, the line beside it names the first chapter in the way and why, for example "Chapter 8:
+   noise floor −57.8 dBFS (limit ≤ −60 dBFS)" ([Before you build](#before-you-build)).
+4. **Build.** Once every chapter passes, **Build ACX package** opens Windows' folder window; choose where the package
+   goes. It cannot go inside the project's own folder ([Output](#output)).
+5. **Optional: chapter tags.** **Embed chapter tags** adds chapter markers to an MP3 of the whole book you have
+   rendered ([Embedding chapter tags](#embedding-chapter-tags)).
+
+Where each rule comes from, and which ones you check by ear, is in [Profile rules](#profile-rules) and
+[ACX delivery requirements](../../reference/acx-delivery-requirements.md).
+
 ## The delivery profile
 
 The first panel's header holds the page title, **Delivery**, and on the right the **Profile** label, the profile menu
@@ -54,8 +75,12 @@ button for the rest, and the list is 20 rem tall at most and scrolls inside the 
 
 ![Delivery with the book checked: the chapters that pass counted in Before you build, and Output waiting on the rest](../../images/ui/delivery-measured.webp)
 
+The icon button at the right of the panel's header, **Check files…**, starts a measurement from here: it is the same control Master & QC has over the same measurement, so you do not have to leave the page that blocks the build. It opens the file picker, measures what you choose and, while it runs, shows a progress bar with its message and **Cancel** under the title. Once files have been measured it reads **Re-check N files**, with **Choose other files…** beside it. Cancelling says where it stopped ("Measurement cancelled. 0 of 3 files were measured."). A result shows on both pages.
+
+![Delivery with Check files… pressed: the measurement part way through, with its progress bar and Cancel under Before you build](../../images/ui/delivery-check-running.webp)
+
 The list is read when the page opens, when you return to the window and when a measurement ends. While a
-measurement is still running in Master & QC the panel says so and Build stays off. Nothing is judged until the
+measurement is running, from here or from Master & QC, the panel says so and Build stays off. Nothing is judged until the
 chapters, the credits and the measurement have each been read.
 
 If any of them cannot be read, Delivery does not guess. It shows an error message at the bottom right of the window,
@@ -78,7 +103,7 @@ names the first chapter in the way, so you do not have to open Master & QC to le
 chapter it gives the rule it misses, its value and the limit ("Chapter 8: noise floor −57.8 dBFS (limit ≤ −60
 dBFS), and 1 more rule."). When no chapter fails, it names the first chapter that is not ready and why: it has no
 measured file, its file is not measured yet or could not be read, or part of it could not be measured. Until
-anything is measured, it says "Nothing is measured yet. Measure the files in Master & QC." with **Open Master & QC**
+anything is measured, it says "Nothing is measured yet. Use Check files… above." with **Open Master & QC**
 beside it, in the same row, so nothing under Output moves.
 
 While Build is off it is dimmed but still reachable with Tab, and a screen reader reads the reason beside it as
@@ -119,6 +144,35 @@ host reports that the build ended; **Retry** on the quiet message asks for that.
 
 ![Delivery with a host that no longer answers, after Check again and Cancel: each press is answered, and the cancel is marked unconfirmed](../../images/ui/delivery-host-quiet-cancelled.webp)
 
+### Embedding chapter tags
+
+The tags icon button, **Embed chapter tags**, beside **Build**, adds ID3 chapter markers to an MP3 of the whole book that you have already rendered, timed from the chapter files of your last chapter render. It is on whatever the build says, with any DAW or none, because it never talks to REAPER. The dialog lists those chapters and marks any that are "not rendered yet"; every one must exist first. With no chapter render configured it says so and points to **Prepare chapter render…** in **DAW tools** on [Editing](editing.md#the-daw-tools-menu), [Proof](proof.md#the-daw-tools-menu) or [Master & QC](master-and-qc.md). Enter the path of the combined book MP3 and tick the confirmation: the file you name is never changed, and a new, tagged copy is written beside it. The dialog says it is reading the last render before it lists anything. Spaces around the path are ignored. If the app does not answer within 15 seconds when it reads the render, the dialog says so and offers **Check again**. If it does not answer within a minute while writing, the dialog says so, **Cancel** and Esc work again, and **Embed chapter tags** stays off until the app answers, so the same file is not written twice; if the copy arrives late, its path is shown. Changing the path or the confirmation clears the last result.
+
+![Delivery - Embed chapter tags ready to embed: the combined book MP3, the chapters from the last render and the confirmation](../../images/ui/delivery-chapter-tags.webp)
+
+## Building packages for several platforms at once
+
+If you deliver to more than one platform, **All platforms** (inside Output, under the build) lets you build
+all of them from the one source you already mastered and encoded, without re-encoding unless a platform
+needs a different file format. Under **Build packages for**, check the box for each profile you want a
+package for, then **Build N packages**; it stays off, with "Master and encode a chapter first." beside it, until files are mastered and encoded. This does not change which profile the page's checks are judged against (that is the project's profile,
+chosen in the profile card above); the checkboxes only choose what to build packages for.
+
+![Delivery - All platforms with one platform checked](../../images/ui/delivery-multi-export.webp)
+
+You are asked for one folder once, and each platform's package goes into its own correctly named subfolder
+of it. Two platforms that both take the same file format (most do: MP3 at the same bitrate) share the one
+set of already-encoded files; a platform that needs a different format (an M4B audiobook file, say) is
+encoded for just that once, however many platforms need it, not once per platform. Cancel stops the build
+before its next platform starts; platforms already built keep their packages, and one not yet reached is
+left waiting.
+
+![Delivery - a finished multi-platform build: a row per platform with its folder or why it was not built](../../images/ui/delivery-multi-export-results.webp)
+
+While it builds, and once it finishes, each platform says how it went under its own checkbox: **Building…**,
+**Built** with its folder and how many files it wrote, or why it could not be built (such as a required file being
+missing for that platform).
+
 ## Profile rules
 
 **Profile rules**, below Output, says where the rules come from and how many of them the app checks, how many
@@ -131,6 +185,12 @@ judged, rule by rule, and that a rule the app cannot check is listed and never c
 measurement, not ACX's approval.
 
 ![The ACX profile's rules and their sources](../../images/ui/delivery-profile-rules.webp)
+
+## What next
+
+- [Master & QC](master-and-qc.md): fix a chapter that fails a check, and master it again.
+- [Pickups](pickups.md): record the lines a chapter is waiting on.
+- [Settings: Delivery](settings.md#delivery): the render length tolerance and the default profile for new projects.
 
 ---
 

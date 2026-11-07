@@ -146,6 +146,7 @@ export const productionStates: StateEntry[] = [
     page: 'production',
     state: 'live-updates-degraded',
     description: 'Production, the notice that live updates from the desktop host could not be read and the page may be out of date',
+    ...TOAST_FADES_OUT,
   },
   {
     page: 'production',
@@ -275,7 +276,7 @@ export const productionStates: StateEntry[] = [
   {
     page: 'production',
     state: 'stage-evidence-unknown',
-    description: 'Production, the evidence of a chapter that can’t tell yet: the cause (no track linked), what resolves it and Check recordings…',
+    description: 'Production, the evidence of a chapter that can’t tell yet: the cause (no track linked), what resolves it and Check recordings',
   },
   {
     page: 'production',

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
@@ -27,21 +27,22 @@ function setup(finding: Finding, setupId: DawSetupId = 'reaper', props: { inert?
   const daw: DawClient = createMockDawClient(DAW_SETUPS[setupId], { chapterIds: [], candidateIds: [], findingIds: ['f1'] });
   const addMarker = vi.spyOn(daw, 'addMarker');
   const api: InspectorActionsApi = {
-    findingsGoTo: vi.fn(async () => ({ outcome: 'navigated' as const, projectTime: 12.4 })),
     findingsLoop: vi.fn(async () => ({ outcome: 'looping' as const, loopStart: 7, loopEnd: 14 })),
     findingsStopLoop: vi.fn(async () => ({ outcome: 'stopped' as const, restored: 3, kept: 0 })),
     transcriptAddEquivalence: vi.fn(async () => 'Added equivalence: Dinah = Dina'),
     findingsGet: vi.fn(async () => finding),
   };
+  const host = createMockApi();
+  const goTo = vi.spyOn(host, 'findingsGoTo').mockResolvedValue({ outcome: 'navigated', projectTime: 12.4 });
   const handlers = { onOpenScript: vi.fn(), onOpenBooth: vi.fn(), onReopen: vi.fn(), onNoteRead: vi.fn() };
   render(
-    <ApiProvider api={createMockApi()}>
+    <ApiProvider api={host}>
       <PortOverrides clients={{ daw }}>
         <InspectorActions finding={finding} api={api} {...props} {...handlers} />
       </PortOverrides>
     </ApiProvider>,
   );
-  return { api, addMarker, ...handlers };
+  return { api, addMarker, goTo, ...handlers };
 }
 
 const button = (name: string) => screen.getByRole('button', { name });
@@ -63,7 +64,7 @@ describe('actions-follow-the-daw-capability', () => {
     const t = setup(placed());
     await waitFor(() => expect(enabled('Show in REAPER')).toBe(true));
     await userEvent.click(button('Show in REAPER'));
-    expect(t.api.findingsGoTo).toHaveBeenCalledWith('f1');
+    expect(t.goTo).toHaveBeenCalledWith('f1');
     expect((await screen.findByRole('status')).textContent).toBe('Moved to 00:12.4 in REAPER.');
   });
 
@@ -88,17 +89,20 @@ describe('actions-follow-the-daw-capability', () => {
     expect(screen.getByRole('button', { name: /^Add marker in Audacity/ })).toBeTruthy();
   });
 
-  it('turns both off with the capability’s own sentence when the DAW offers neither', async () => {
+  // The built-in recorder is not a DAW: Show in is not drawn (the approved mock, #2826); Add marker stays, off, with the capability's sentence.
+  it('draws no Show in and turns Add marker off with the capability’s own sentence when the DAW offers neither', async () => {
     setup(accepted(), 'builtin');
-    const sentence = DAW_SETUPS.builtin.capabilities.navigate.message!;
-    await waitFor(() => expect(screen.getByText(sentence)).toBeTruthy());
-    expect(enabled('Show in the DAW')).toBe(false);
-    expect(enabled('Add marker in the DAW')).toBe(false);
+    const sentence = DAW_SETUPS.builtin.capabilities.markers.message!;
+    // The sentence is the shared Add marker button's reason (#2830), read from its hint, not printed beside the row.
+    await waitFor(() => expect(enabled('Add marker in the DAW')).toBe(false));
+    expect(screen.queryByRole('button', { name: /^Show in / })).toBeNull();
+    await userEvent.hover(button('Add marker in the DAW'));
+    expect(await screen.findByText(sentence)).toBeTruthy();
   });
 
   it('shows a refusal from the DAW as an alert', async () => {
     const t = setup(placed());
-    vi.mocked(t.api.findingsGoTo).mockResolvedValue({ outcome: 'refused', reason: 'no_item', message: 'Nothing to go to.' });
+    t.goTo.mockResolvedValue({ outcome: 'refused', reason: 'no_item', message: 'Nothing to go to.' });
     await waitFor(() => expect(enabled('Show in REAPER')).toBe(true));
     await userEvent.click(button('Show in REAPER'));
     expect((await screen.findByRole('alert')).textContent).toBe('Nothing to go to.');
@@ -123,7 +127,7 @@ describe('open-in-script-and-booth-are-links-not-moves', () => {
     );
     expect(screen.getByText('This note has no time in its audio to go to.')).toBeTruthy();
     await userEvent.click(button('Show in REAPER'));
-    expect(t.api.findingsGoTo).not.toHaveBeenCalled();
+    expect(t.goTo).not.toHaveBeenCalled();
   });
 
   it('turns both off for a note with no chapter', () => {
@@ -150,5 +154,44 @@ describe('note-steps-and-banner-are-the-merged-ones', () => {
     for (const name of ['Show in REAPER', 'Add marker in REAPER', 'Open this chapter in Script', 'Reopen']) expect(enabled(name)).toBe(false);
     await userEvent.click(button('Open this chapter in Script'));
     expect(t.onOpenScript).not.toHaveBeenCalled();
+  });
+});
+
+describe('repair-in-reaper-for-an-audio-note', () => {
+  // #2821: the REAPER repair launchers act on the items selected in REAPER, which Show in REAPER has just selected for this note.
+  const audio = (kind: string, category = 'audio_quality') => placed({ category, evidence: { kind }, manuscript: undefined });
+
+  it('offers Repair in REAPER on a mouth click, a plosive and a breath', () => {
+    for (const kind of ['mouth_click', 'mouth', 'plosive', 'breath']) {
+      setup(audio(kind));
+      expect(button('Repair in REAPER')).toBeTruthy();
+      cleanup();
+    }
+  });
+
+  it('does not offer it on a misread or on background noise', () => {
+    setup(placed());
+    expect(screen.queryByRole('button', { name: 'Repair in REAPER' })).toBeNull();
+    cleanup();
+    setup(audio('noise_floor'));
+    expect(screen.queryByRole('button', { name: 'Repair in REAPER' })).toBeNull();
+  });
+
+  it('follows the type the narrator chose: a noise note chosen as a breath gets it, a click chosen as a misread loses it', () => {
+    setup({ ...audio('noise_floor'), review: { status: 'unreviewed', type: 'breath' } });
+    expect(screen.queryByRole('button', { name: 'Repair in REAPER' })).toBeTruthy();
+    cleanup();
+    setup({ ...audio('mouth_click'), review: { status: 'unreviewed', type: 'misread' } });
+    expect(screen.queryByRole('button', { name: 'Repair in REAPER' })).toBeNull();
+  });
+
+  it('opens the repair menu with Cleanup tools, which opens the Cleanup tools dialog', async () => {
+    const user = userEvent.setup();
+    setup(audio('mouth_click'));
+    await user.click(button('Repair in REAPER'));
+    const menu = await screen.findByRole('menu');
+    expect(within(menu).getByText('Repair')).toBeTruthy();
+    await user.click(within(menu).getByRole('menuitem', { name: /Cleanup tools/ }));
+    expect(await screen.findByRole('dialog', { name: 'Cleanup tools' })).toBeTruthy();
   });
 });

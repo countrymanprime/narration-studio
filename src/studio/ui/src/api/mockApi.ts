@@ -117,6 +117,7 @@ import {
   trimRangeAnswerOf,
   repairClickAnswerOf,
 } from '../fixtures/daw';
+import { withNoProjectAnswers } from './mockHost/noProject';
 import { knownActionKind, MOCK_DAW_UNDO_LABELS, MockUndoHistory } from '../fixtures/dawUndo';
 
 export { applyMixedManuscriptMock } from './mockHost/manuscript';
@@ -223,6 +224,11 @@ export function createMockApi(
     ...(initial.reaperState ? { reaper: initial.reaperState } : {}),
     ...(initial.reaperInput ? { reaperInput: initial.reaperInput } : {}),
     resume: initial.resume,
+    keepFlagFinding: async (finding, dismissed) => {
+      saveFinding(finding);
+      if (dismissed) await findings.findingsReview({ id: finding.id, evidenceVersion: finding.evidence_version ?? '', status: 'dismissed', note: '' });
+      return (await findings.findingsGet(finding.id)).review;
+    },
     dawRecord: (kind) => dawControl.record(kind),
     dawRecording: () => dawControl.recording(),
     // Only a link made during this session: the seeded project already links its chapters, which `?mockReaperState=no_link` overrides.
@@ -418,6 +424,10 @@ export function createMockApi(
       if (!late.boothVoices) throw new Error('the mock is still being built');
       return late.boothVoices.boothVoiceGet(chapterId);
     },
+    boothPunchTarget: (chapterId, paragraphId, fromWord, toWord) => {
+      if (!late.boothVoices) throw new Error('the mock is still being built');
+      return late.boothVoices.boothPunchTarget(chapterId, paragraphId, fromWord, toWord);
+    },
     boothVoiceAdd: (chapterId, name, characterIds) => {
       if (!late.boothVoices) throw new Error('the mock is still being built');
       return late.boothVoices.boothVoiceAdd(chapterId, name, characterIds);
@@ -476,6 +486,10 @@ export function createMockApi(
       () => s.paragraphs,
       initial.voiceSamples,
       merges,
+      async () => {
+        const kept = (await settings.bindings.settingsForScope('project')).VoiceSamples?.find((field) => field.key === 'storage')?.effectiveValue;
+        return kept === 'daw' || kept === 'both' ? kept : 'project';
+      },
     ),
     ...createEditLogMock(
       manuscriptReady,
@@ -601,7 +615,7 @@ export function createMockApi(
   const undone: NarrationApi = { ...withAudacityFacts, ...recordingUndo(withAudacityFacts, undoHistory) };
   // The Booth's voice choice over the mock's own voice setup, links and tracks; a record start in a voice folder answers its voice.
   late.boothVoices = createBoothVoiceMock(undone);
-  const recorded: NarrationApi = { ...undone, ...late.boothVoices };
+  const recorded: NarrationApi = withNoProjectAnswers({ ...undone, ...late.boothVoices }, project.projectFolder);
   const api = initial.invalidPayload ? { ...recorded, ...invalidPayloadOverrides(initial.invalidPayload, recorded) } : recorded;
   const final: NarrationApi = { ...api, ...overrides };
   // A driver (Playwright, a console) plays REAPER's side of the mock DAW from here: kill it, restart it, open another project.

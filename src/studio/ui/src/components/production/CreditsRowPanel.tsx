@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import type { ChapterStatus } from '../../types';
 import { STATUS_LABELS, STATUS_ORDER } from '../../chapterStatus';
-import { Button } from '../primitives/Button';
+import { CheckRecordingsButton } from '../recordingcheck/CheckRecordingsButton';
 import { HIT_AREA } from '../primitives/hitArea';
 import { SectionLabel } from '../primitives/SectionLabel';
 import { Select } from '../primitives/Select';
@@ -40,16 +40,12 @@ export function CreditsRowPanel({
   row,
   label,
   onStatus,
-  onCheck,
   onClose,
 }: {
   open: boolean;
   row: CreditsRow;
   label: string;
   onStatus: (status: ChapterStatus) => void;
-  /** Opens the same recording-check dialog a chapter row's Record cell opens, for this
-   * credits chapter. */
-  onCheck: () => void;
   onClose: () => void;
 }) {
   const warning = unresolvedWarning(row.unresolved);
@@ -85,9 +81,7 @@ export function CreditsRowPanel({
         {/* The two ways on, on one row and apart: a link beside the status select touched it (XPR1-25). The check stays offered with no
             track linked, because its refusal is where the row is linked to one. */}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <Button variant="secondary" onClick={onCheck}>
-            Check recordings…
-          </Button>
+          <CheckRecordingsButton variant="icon" chapterIds={[`credits-${row.kind}`]} onOpen={onClose} />
           <Link className={`font-semibold underline ${HIT_AREA}`} to={addressPath({ page: 'script', credits: row.kind })}>
             Open in Script
           </Link>

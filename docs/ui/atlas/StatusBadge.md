@@ -60,7 +60,6 @@ Storybook title: `Primitives/StatusBadge`. Source: `src/components/primitives/St
 - `src/components/engine/ChapterTagsDialog.tsx`
 - `src/components/engine/LinkChaptersDialog.tsx`
 - `src/components/engine/NestedChaptersNotice.tsx`
-- `src/components/engine/RetakeLanesDialog.tsx`
 - `src/components/engine/ToolResult.tsx`
 - `src/components/engine/TrackList.tsx`
 - `src/components/engine/audacityLinkText.ts`
@@ -70,6 +69,7 @@ Storybook title: `Primitives/StatusBadge`. Source: `src/components/primitives/St
 - `src/components/master/MasterToSpecPanel.tsx`
 - `src/components/master/MasteringApprovalDialog.tsx`
 - `src/components/master/MasteringChain.tsx`
+- `src/components/master/MultiPlatformExportPanel.tsx`
 - `src/components/master/RuleBadges.tsx`
 - `src/components/masterqc/files/FileChecks.tsx`
 - `src/components/masterqc/files/FilesTable.tsx`

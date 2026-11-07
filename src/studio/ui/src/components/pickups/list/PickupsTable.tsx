@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { ShowInDawButton } from '../../engine/ShowInDaw';
 import type { PickupItem } from '../../../api/contracts/pickups';
 import { useOverlay } from '../../../overlay/OverlayProvider';
 import type { OverlayService } from '../../../overlay/overlayService';
@@ -7,6 +8,7 @@ import { Checkbox } from '../../primitives/Checkbox';
 import { ChapterStepper } from '../../primitives/ChapterStepper';
 import { LoadingRegion, Skeleton } from '../../primitives/Skeleton';
 import { Heading } from '../../primitives/Heading';
+import { CheckRecordingsButton } from '../../recordingcheck/CheckRecordingsButton';
 import { IconButton } from '../../primitives/IconButton';
 import { PANEL_FRAME_CLASS, PANEL_HEADER_CLASS } from '../../primitives/panelStyles';
 import { Popover } from '../../primitives/Popover';
@@ -25,9 +27,6 @@ export type RemoveUndo = () => Promise<{ ok: true } | { ok: false; refusal: { re
 
 /** Where the host's list stands: being read, read (with the reason a later read failed, if one did) or not readable at all. */
 export type PickupsRead = { kind: 'loading' } | { kind: 'ready'; readAt: number; trouble?: string } | { kind: 'failed'; message: string };
-
-/** The DAW as the head needs it: whether the recording check can run, and the host's sentence when it cannot. */
-export type DawGate = { available: boolean; message?: string };
 
 /** Why Play is off when the page lends no player. */
 const PLAY_OFF = 'Playing the original around a line is not available here. Open the line in the Booth to hear and re-record it.';
@@ -107,10 +106,8 @@ export function PickupsTable({
   scope,
   currentChapterId,
   chaptersToCheck,
-  daw,
   onScope,
   onStep,
-  onCheck,
   onAdd,
   onSetIncluded,
   onSetDone,
@@ -121,6 +118,7 @@ export function PickupsTable({
   onGoToProof,
   onFine,
   where,
+  dawChip,
 }: {
   /** Every pickup the host lists. */
   pickups: readonly PickupItem[];
@@ -140,10 +138,8 @@ export function PickupsTable({
   currentChapterId: string;
   /** The chapters whose recording check is not current: what Check recordings opens with. */
   chaptersToCheck: readonly string[];
-  daw: DawGate;
   onScope: (scope: string) => void;
   onStep: (direction: -1 | 1) => void;
-  onCheck: (chapterIds: string[]) => void;
   onAdd: (chapterId: string, time: number, line: string) => Promise<unknown>;
   onSetIncluded: (id: string, included: boolean) => Promise<unknown>;
   onSetDone: (id: string, done: boolean) => Promise<unknown>;
@@ -159,6 +155,8 @@ export function PickupsTable({
   onFine?: (pickup: PickupItem) => Promise<{ undo: RemoveUndo; entry: number } | undefined>;
   /** Show where for the selected line: its paragraph and the ones around it (research note A4). */
   where?: (pickup: PickupItem) => ReactNode;
+  /** The page's DAW connection chip, drawn at the header's right edge while the DAW is not answering (#2823). */
+  dawChip?: ReactNode;
 }) {
   const overlay = useOverlay();
   const body = useRef<HTMLDivElement>(null);
@@ -307,8 +305,6 @@ export function PickupsTable({
     }
   };
 
-  const checkReason = daw.available ? undefined : daw.message || 'The DAW is not answering.';
-  const checkReasonId = useId();
   const playOffId = useId();
 
   return (
@@ -321,19 +317,9 @@ export function PickupsTable({
         </div>
         {/* One group at the right edge: in a narrow card it wraps under the title as a whole, at the right, not under the title's start (XPK-8). */}
         <div className="ml-auto flex items-center gap-2">
-          <IconButton
-            action="checkRecordings"
-            label="Check recordings"
-            aria-haspopup="dialog"
-            disabledReason={checkReason}
-            aria-describedby={checkReason ? checkReasonId : undefined}
-            onClick={() => onCheck([...chaptersToCheck])}
-          />
-          {checkReason && (
-            <span id={checkReasonId} className="sr-only">
-              {checkReason}
-            </span>
-          )}
+          {dawChip}
+          {/* The one Check recordings (#2833), an icon button here for want of room; its DAW gate is shared. */}
+          <CheckRecordingsButton variant="icon" chapterIds={chaptersToCheck} />
           {read.kind === 'ready' ? (
             <Popover label="Add a pickup by hand" open={adding} onOpenChange={setAdding} trigger={<IconButton action="add" label="Add a pickup by hand" />}>
               {addTo ? (
@@ -486,6 +472,8 @@ export function PickupsTable({
                               </span>
                             )}
                             <IconButton action="openInBooth" label="Open in Booth at this line" onClick={() => onOpenInBooth([pickup])} />
+                            {/* The one Show in {DAW} every page mounts (#2826), over the note the line came from. */}
+                            <ShowInDawButton target={{ kind: 'pickup', findingId: pickup.findingId }} />
                             <IconButton
                               action={pickup.done ? 'markedDone' : 'markDone'}
                               label={pickup.done ? 'Mark open again' : 'Mark recorded'}

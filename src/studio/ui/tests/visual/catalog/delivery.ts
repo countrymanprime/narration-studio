@@ -5,11 +5,53 @@ import type { StateEntry } from '../lib/types';
 import { KEEPS_DESKTOP_SCROLL, REFLOW, wholePage } from './shared';
 
 export const deliveryStates: StateEntry[] = [
+  // The multi-platform build (#2824), on Output beside the single-profile build; it left Master & QC.
+  {
+    page: 'delivery',
+    state: 'multi-export-empty',
+    description:
+      'Delivery with nothing encoded yet - Output with the All platforms panel inside it: a checkbox per delivery platform, "Build 0 packages" off, and "Master and encode a chapter first." beside it',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'delivery',
+    state: 'multi-export-selected',
+    description: 'Delivery with the files mastered and encoded (?mockDelivery=ready) and one platform checked in All platforms - "Build 1 package" on',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'delivery',
+    state: 'multi-export-running',
+    description:
+      'Delivery with a multi-platform build part way through (?mockPackageMulti=running) - Building… under the checked platform, Cancel, and a progress indicator',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'delivery',
+    state: 'multi-export-results',
+    description:
+      'Delivery after a finished multi-platform build (?mockDeliveryProfile=custom, both platforms checked) - under each checked platform its result: Built, the output folder and how many files it wrote',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
   {
     page: 'delivery',
     state: 'default',
     description:
       'Delivery judged against ACX with nothing measured - the built-in profile card with its checks and files read-only, the profile rules, Output with Build off, and "Before you build" with every chapter waiting',
+  },
+  {
+    page: 'delivery',
+    state: 'check-running',
+    description:
+      'Delivery after Check files… was pressed on "Before you build" (?mockMeasure=running) - the measurement part way through: the progress bar with its message and Cancel under the card title, and Check files off beside it',
+    ...REFLOW,
+  },
+  {
+    page: 'delivery',
+    state: 'check-cancelled',
+    description:
+      'Delivery after that measurement was cancelled - "Before you build" says where it stopped ("Measurement cancelled. 0 of 3 files were measured."), and the button reads Re-check 3 files',
+    ...REFLOW,
   },
   {
     page: 'delivery',
@@ -91,6 +133,41 @@ export const deliveryStates: StateEntry[] = [
     state: 'loading',
     description:
       'Delivery while the chapters are still being read (?mockChapters=loading): the page as usual, and in Before you build grey blocks in place of the chapter checks, with one polite "Reading the chapters…" status',
+  },
+  {
+    page: 'delivery',
+    state: 'chapter-tags-idle',
+    description:
+      'Delivery, the "Embed chapter tags" dialog from the Output panel open before any chapter render is configured - "Prepare chapter render first" message, Embed disabled',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'delivery',
+    state: 'chapter-tags-ready',
+    description:
+      'Delivery, the "Embed chapter tags" dialog from the Output panel with two rendered chapters known - the chapter list, destination field and confirm checkbox, Embed enabled once both are filled in (reached via the ?mockChapterTags=ready mock seam)',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'delivery',
+    state: 'chapter-tags-not-rendered',
+    description:
+      'Delivery, the "Embed chapter tags" dialog from the Output panel with a chapter configured but not yet rendered - a "Not rendered yet" badge and the press-Render-first warning, Embed disabled (reached via the ?mockChapterTags=not-rendered mock seam)',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'delivery',
+    state: 'chapter-tags-success',
+    description:
+      'Delivery, the "Embed chapter tags" dialog from the Output panel after a completed embed - the new tagged file\'s path shown, the original file unmentioned as changed',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'delivery',
+    state: 'chapter-tags-error',
+    description:
+      'Delivery, the "Embed chapter tags" dialog from the Output panel when the embed fails - inline error message (reached via the ?mockChapterTags=ready&mockChapterTagsEmbedError=1 mock seam)',
+    ...KEEPS_DESKTOP_SCROLL,
   },
 ];
 // No `sameAs` at any width: at desktop the page content fits the window, but "Before you build" is a capped list that still scrolls, and the

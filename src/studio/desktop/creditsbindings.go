@@ -101,6 +101,27 @@ func (h *Host) CreditsSaveProjectValues(title, subtitle, author, series, bookNum
 	return encodeBinding(manifest.Credits, nil)
 }
 
+// CreditsChanged is whether the credits differ from what ships: the template library has a shipped template edited or deleted, or
+// one added (credits.TemplateStore.Changed), or the open project has credits values of its own (credits.Values.IsSet). With no
+// project open only the library counts. Settings > Changed reads it; it answers a JSON boolean and writes nothing. Reading the project's
+// manifest (project.Load) can trigger persist's quarantine of a corrupt file, and with it the narrator's notice, as any read of it does.
+func (h *Host) CreditsChanged() (string, error) {
+	changed, err := h.creditTemplates.Changed()
+	if err != nil {
+		return "", err
+	}
+	if !changed {
+		if folder := h.services().config.projectFolder; folder != "" {
+			manifest, ok, err := project.Load(h.persist, folder)
+			if err != nil {
+				return "", fmt.Errorf("could not read the project manifest: %w", err)
+			}
+			changed = ok && manifest != nil && manifest.Credits != nil && manifest.Credits.IsSet()
+		}
+	}
+	return encodeBinding(changed, nil)
+}
+
 // CreditsPreview renders text (a template body, or an unsaved draft the
 // narrator is still editing) with this project's own credit values, falling
 // back to the global narrator default for [Narrator], exactly as the

@@ -14,7 +14,7 @@ While the plan is being read, the page shows its title and empty cards where the
 
 The pill on the line under the title, after the due date, says **On track**, **Tight** or **Behind**, with when the work would finish at the pace ("at current pace done Oct 4", the 1.5 hours a day under **How this is worked out**) and, when you
 are behind, the daily pace the due date needs. The days left to the due date set it: with three days to spare or more it is
-on track, with less than three it is tight, and once the work needs more days than are left it is behind. A book whose chapters
+on track, with less than three it is tight, and once the work needs more days than are left it is behind. (The milestone table's **at risk** is its own, narrower rule: the estimate lands on the date or the day before it.) A book whose chapters
 are all delivered reads **Finished**, whatever the date. With no due date there is no pill: the line says **No due date set**.
 
 The line under the title reads the days plainly: **8 days left**, **1 day left**, **today** (after the date), **2 days overdue**. Once the due
@@ -31,8 +31,8 @@ the finished hours, editing 2.1× and proofing 0.94×, a pickup takes 0.06 hours
 pace, done** is today plus the work left divided by that pace.
 
 The chart, **Recorded audio vs plan**, draws the plan as a dashed line to the due date, the recorded days as a solid line when
-the app can read them (otherwise a line under the chart says why it cannot), today (its label sits beside the dot, on the side away from the plan, estimate and due lines), and the
-estimated finish as a dotted line. With no due date there is no plan or due line, and the chart's **?** says **Set a due date to see the plan line.**
+the app can read them (otherwise a line under the chart says why it cannot), today and the
+estimated finish as a dotted line. Each label (**due**, **today**, **done … (est.)**) sits beside its point on a side no line or other label crosses, and the last date on the axis ends at the card's edge instead of being cut off. With no due date there is no plan or due line, and the chart's **?** says **Set a due date to see the plan line.**
 
 ## Contract
 
@@ -40,27 +40,28 @@ estimated finish as a dotted line. With no due date there is no plan or due line
 an amount (the box has no unit of its own: the **Paid** choice above it is the unit). Type it in the **Amount** box and press Enter or leave the box; **Value at this rate** is the rate times the book's finished
 hours. An empty box clears the amount. An amount is digits with an optional decimal part, and thousands commas only in groups
 of three (`1,250.50`), up to 1,000,000,000,000. Anything else, such as `-5`, `1e3`, `1,5` (which could mean 15) or a rate larger than that, is
-refused with a message and the box goes back to the stored amount. A refusal's message goes away when a later change is saved. Choosing a royalty share or none clears the amount.
+refused with a message (a toast, and a note for a screen reader on the box). The refused text stays in the box, with a red border, until you edit it; leaving the box again without an edit puts the stored amount back. A refusal's message goes away when a later change is saved. The amount has no currency: it is a number in whatever currency the contract uses, and a typed `1,250.50` is shown back as `1250.5`, the same number. Choosing a royalty share or none clears the amount.
 
 ## Milestones
 
 The table lists your milestones by date, with the **Final delivery** row, the book's due date, at the end. With no other milestones, a line above it says so. The columns stay where they are whatever the milestones are called: a long name stops at two lines (hover it for the whole name, or open **Edit**). In a window narrower than 1024 px, what a milestone measures moves under its name; in a card narrower than about 35 rem (a phone), each row stacks, with the name and status on the first line and the date and the buttons under them, so nothing needs a sideways scroll; in between, the table scrolls sideways inside its card, with a shadow on the edge that has more to see, and Tab reaches it. Each row has:
 
 - a name, what it **measures** (a custom milestone measures nothing), and its date.
-- a status cell: **Late by 3 d**, **At risk** or **On track** with the estimated date, or **Not estimated** for a custom one.
-  Hover or focus it for the full sentence. **Final delivery** reads **No date** until a due date is set.
-- at the right, a **done** toggle (a done milestone reads **Done** and is never estimated), a note button (hover it to read the note; with no note it offers to add one), **Edit** and **Remove**. Removing offers Undo.
+- a status cell. A measured milestone reads **3 d late** (the estimate is 3 days after the milestone's date; the header's "days overdue" counts days since the date, so the two numbers can differ), **est.** and a date in amber when the estimate lands on the date or the day before it (at risk), or **est.** and a date in green when it lands earlier (on track). A custom milestone measures nothing, so it reads **—** (**Not estimated**) until its date has passed and it is not marked done; then it reads **Past due**. Hover or focus a cell for the full sentence. **Final delivery** reads **No date** until a due date is set. Two milestones may share a date.
+
+![Schedule - milestone statuses: a done milestone, a custom one past its date (Past due), a custom one ahead and Final delivery with its estimate](../../images/ui/schedule-milestone-statuses.webp)
+- at the right, a **done** toggle (a done milestone reads **Done** and is never estimated), a note button (hover it to read the note; with no note it offers to add one), **Edit** and **Remove**. Removing offers Undo; after a removal focus stays in the list (or goes to **Add milestone** when none is left), and after Undo it goes to the **Edit** button of the milestone that came back.
 
 ![Schedule - the Add milestone dialog: name, due date, what it measures, a note and Done](../../images/ui/schedule-milestone-dialog.webp)
 
 **Add milestone**, at the top of the table, opens a dialog for the name, due date (a date field: type the parts or open its calendar), what it measures, a note
-and Done (beside Cancel, on the button row). The 15-minute checkpoint is offered only when the project's delivery profile asks for it. A book can have at most 100
+and Done (beside Cancel, on the button row). Ctrl+Enter (Cmd+Enter on a Mac) saves from any box, the note too, where Enter alone is a new line; Escape and Cancel close it and drop what you typed, as in every dialog. A date after Dec 31, 2100 is refused. The 15-minute checkpoint is offered only when the project's delivery profile asks for it. A book can have at most 100
 milestones, a name is at most 200 characters and a note 2,000; when a save is refused the dialog says why and nothing changes.
 
 ## The due date
 
 Set the date in the **Final delivery** row: it reads like the other dates until you point at it or Tab to it, then shows its box; type its parts or open the calendar. A whole, real date is saved as soon as it is written
-or picked, and a screen reader hears the saved date and the verdict it gives ("Due date saved: Oct 10. Behind · done Oct 27, due Oct 10 · 9 days overdue."); a date still being typed, or a year before 1000, is not saved, and leaving the field puts the saved date back. To clear the due date, empty the field and press Enter, and the page says **No
+or picked, and a screen reader hears the saved date and the verdict it gives ("Due date saved: Oct 10. Behind · done Oct 27, due Oct 10 · 9 days overdue."); a date still being typed, or a year before 1000, is not saved, and leaving the field puts the saved date back. A date after Dec 31, 2100 is refused with a message (a due date years away would stretch the chart's axis): the date stays in the box with a red border, nothing is saved, and leaving the field puts the saved date back. To clear the due date, empty the field and press Enter, and the page says **No
 due date set**, and a screen reader hears **Due date cleared**. A due date in the plan that is not a real date (the file was edited by hand) is named in the header and treated as no
 due date.
 
@@ -73,6 +74,12 @@ made elsewhere, and the day turning over at midnight, show up without a reload. 
 had and says so: **Couldn't read the schedule again**, why, how long ago it was read, and **Retry**. Every change
 starts from what the project holds at that moment: a change to a row that was edited somewhere else since you saw it is refused with a
 message instead of overwriting it, and two quick presses on the same row are one change.
+
+## What next
+
+- [Production](production.md): the hours logged, the figures and what to work on next.
+- [Settings: Project](settings.md#project): the schedule basis, standard pace or your own.
+- [Booth](booth.md): record the chapters the plan needs.
 
 ---
 

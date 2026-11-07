@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { DAW_CAPABILITIES, type DawCapabilities, type DawCapabilityLevel, type DawCapabilitySupport } from '../../../api/contracts/daw';
-import { Button } from '../../primitives/Button';
+import { IconButton } from '../../primitives/IconButton';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../primitives/Table';
 import { useDawCapabilityReport } from '../CapabilitySection';
@@ -53,9 +53,7 @@ export function CapabilitiesBody() {
       {loadError && !report && (
         <div className="flex flex-wrap items-center gap-3 text-[0.8125rem] text-[var(--danger-text)]" role="alert">
           <span>The recording tool’s capabilities could not be read: {loadError}.</span>
-          <Button ref={keepFocusOnRemoval} variant="secondary" size="sm" onClick={retry}>
-            Retry
-          </Button>
+          <IconButton action="retry" ref={keepFocusOnRemoval} size="sm" onClick={retry} />
         </div>
       )}
       <Table label={`What ${toolName(report)} can do`} columns={CAPABILITY_COLUMNS}>

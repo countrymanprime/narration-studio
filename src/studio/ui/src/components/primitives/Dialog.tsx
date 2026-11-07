@@ -1,8 +1,9 @@
+import { markDialogClosed } from './dialogClosed';
 import { AlertDialog } from '@base-ui/react/alert-dialog';
 import { Dialog as BaseDialog } from '@base-ui/react/dialog';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faXmark } from '@fortawesome/free-solid-svg-icons';
-import { useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { HINT_POPUP_SELECTOR } from './hintLayer';
 import { IconButton } from './IconButton';
 import { OVERLAY_TITLE_CLASS } from './panelStyles';
@@ -130,6 +131,8 @@ export function Dialog({
   // Toasts keep to the window's bottom-right corner while a dialog is open, under its action row, rather than rising above the page's bottom bars.
   // A full-size dialog covers that corner whatever the toast does, and the jump menu has no action row.
   useToastsClearOfModal(width !== 'full' && width !== 'palette');
+  // The slide-over behind this dialog ignores the second press of a double click on one of its buttons (dialogClosed.ts).
+  useEffect(() => markDialogClosed, []);
 
   const initialFocus = () => {
     const focused = document.activeElement;

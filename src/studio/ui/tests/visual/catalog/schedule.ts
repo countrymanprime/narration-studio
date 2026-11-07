@@ -22,7 +22,8 @@ export const scheduleStates: StateEntry[] = [
     page: 'schedule',
     state: 'at-risk',
     reloadPerViewport: true,
-    description: 'Schedule with a due date the pace misses (?mockProduction=at-risk) - the at-risk verdict and the work left worked out',
+    description:
+      'Schedule with a due date the pace misses (?mockProduction=at-risk) - the Behind verdict (the seed name is older than the wording) and the work left worked out',
   },
   {
     page: 'schedule',
@@ -43,6 +44,14 @@ export const scheduleStates: StateEntry[] = [
     reloadPerViewport: true,
     description:
       'Schedule with milestones named in a 200-character word, in right-to-left text and with emoji, and a late one - the table wraps them and does not widen the page',
+    ...REFLOW,
+  },
+  {
+    page: 'schedule',
+    state: 'milestone-statuses',
+    reloadPerViewport: true,
+    description:
+      'Schedule milestones after three adds (?mockProduction=on-pace, the table brought up): a custom milestone whose date has passed reads "Past due", a done one reads Done, a custom one ahead reads a dash, and Final delivery reads its estimate',
     ...REFLOW,
   },
   {

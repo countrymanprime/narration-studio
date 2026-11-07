@@ -12,6 +12,7 @@ import {
   scriptWordAt,
   secondsBefore,
   suspectedFrom,
+  wordRangeOf,
 } from './readingSource';
 import { typeHueColour } from '../../../kinds/entityColour';
 
@@ -97,6 +98,13 @@ describe('suspectedFrom', () => {
       { chapterId: 'c1', paragraphId: 'p2', kind: 'skipped', wordStart: 1, wordEnd: 3, scriptStart: 7, scriptEnd: 9, script: 'with her', heard: '' },
     ]);
     expect(suspectedFrom([{ ...flag, start: 0, end: 1 }], spans, reading, 'c1')).toEqual([]);
+  });
+
+  it('lists a flag the second listen confirmed or cleared with that said', () => {
+    const reading = readingParagraphsOf(paragraphs, [], []);
+    const flag: TeleprompterFlag = { type: 'flag', id: 1, kind: 'skipped', start: 7, end: 9, heard: '' };
+    expect(suspectedFrom([{ ...flag, check: 'confirmed' }], spans, reading, 'c1')[0]).toMatchObject({ check: 'confirmed' });
+    expect(suspectedFrom([{ ...flag, check: 'cleared' }], spans, reading, 'c1')[0]).toMatchObject({ check: 'cleared' });
   });
 });
 
@@ -201,5 +209,21 @@ describe('entityAtWord', () => {
     expect(entityAtWord(reading, [tint], 'p1', 1)).toBe('Garden');
     expect(entityAtWord(reading, [tint], 'p1', 2)).toBeNull();
     expect(entityAtWord(reading, [tint], 'p1', 9)).toBeNull();
+  });
+});
+
+describe('wordRangeOf', () => {
+  it('gives a phrase its words inside its paragraph, counted from the paragraph start', () => {
+    const paragraphs = [{ id: 'p1', text: 'One two three. Four five six seven.' }];
+    const units = boothUnits(paragraphs);
+    expect(units).toHaveLength(2);
+    expect(wordRangeOf(paragraphs, units[0])).toEqual({ paragraphId: 'p1', from: 0, to: 2 });
+    expect(wordRangeOf(paragraphs, units[1])).toEqual({ paragraphId: 'p1', from: 3, to: 6 });
+  });
+  it('counts emoji and right-to-left words as words, and says nothing for a paragraph that is gone', () => {
+    const paragraphs = [{ id: 'p1', text: 'שלום עולם. Party 🎉 time.' }];
+    const units = boothUnits(paragraphs);
+    expect(wordRangeOf(paragraphs, units[1])).toEqual({ paragraphId: 'p1', from: 2, to: 4 });
+    expect(wordRangeOf([], units[0])).toBeNull();
   });
 });

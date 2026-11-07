@@ -7,7 +7,9 @@ import { KindChip } from '../../primitives/KindChip';
 import type { KindId } from '../../../kinds/kindMap';
 import type { ChapterDoc, DocItem } from '../model';
 import type { DocPara } from '../script/types';
+import { AddMarkersButton } from '../../engine/AddMarkers';
 import { useFlagActions } from './flagActions';
+import { useFlagNote } from './useFlagNote';
 import { bare, flagKindId, HEAR_MARGIN, notScoredText } from './flagText';
 
 /** The recogniser's score for a word, as the port gave it: a number, or null with the reason it gave none. */
@@ -18,6 +20,8 @@ interface WordScore {
 
 export interface FlagCardProps {
   doc: ChapterDoc;
+  /** The chapter the card is in: the Proof note on the flagged words is read from its notes. */
+  chapterId: string;
   /** The paragraph the card sits under. */
   dp: DocPara;
   /** The word's key, or `dup:<paragraph>` for a doubled read. */
@@ -52,12 +56,32 @@ function Confidence({ it, score }: { it: DocItem; score: WordScore }) {
   );
 }
 
+/** Add marker on the Proof note that names the flagged words: the note is read when the card opens, and with none there is nothing to put a marker on. */
+function FlagMarker({ doc, chapterId, keys }: { doc: ChapterDoc; chapterId: string; keys: readonly string[] }) {
+  const note = useFlagNote(doc, chapterId, keys);
+  return (
+    <AddMarkersButton
+      size="sm"
+      target={{ kind: 'finding', id: note && note !== 'unreadable' ? note : '' }}
+      reason={
+        note === undefined
+          ? 'Reading the notes on Proof.'
+          : note === 'unreadable'
+            ? 'Could not read the notes on Proof.'
+            : note === null
+              ? 'No note on Proof names these words, so there is nothing to put a marker on.'
+              : undefined
+      }
+    />
+  );
+}
+
 /**
  * What the app noticed about a word, in a card under its line: a misread (what was heard, how sure), a word not read, a word the recogniser was
  * unsure of, words said and not written, a line read twice. It suggests; the narrator decides, and looking changes nothing. A button whose
  * action a later slice supplies is disabled with “Not available yet” until that slice registers it (`flagActions`).
  */
-export function FlagCard({ doc, dp, flag, score = { conf: null, reason: 'no_word_scores' }, hear, accept, onClose }: FlagCardProps) {
+export function FlagCard({ doc, chapterId, dp, flag, score = { conf: null, reason: 'no_word_scores' }, hear, accept, onClose }: FlagCardProps) {
   const actions = useFlagActions();
   const isDup = flag.startsWith('dup:');
   const it = isDup ? undefined : dp.items.find((i) => i.key === flag);
@@ -186,6 +210,8 @@ export function FlagCard({ doc, dp, flag, score = { conf: null, reason: 'no_word
                 </Button>
               </>
             )}
+            {/* The one Add marker every page mounts, an icon button where the row is short of room (owner, #2830). */}
+            <FlagMarker doc={doc} chapterId={chapterId} keys={keys} />
           </>
         )}
       </div>

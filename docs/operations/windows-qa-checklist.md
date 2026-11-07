@@ -26,11 +26,11 @@ Windows only, Experimental. Source: [#1793](https://github.com/countrymanprime/n
 - [ ] **1.1 A chapter-length take.** Needs: Audio. Record a chapter-length take in the Booth with no DAW, then Stop. See: the take in the project's `Recordings` folder; it plays and has no dropouts.
 - [ ] **1.2 Unplug the microphone mid-take.** Needs: Audio. See: the Booth ends the take and says why; the audio before the unplug is kept; Record works again after you replug.
 - [ ] **1.3 Microphone blocked in Windows.** Needs: Audio. Block the app in Windows microphone privacy settings, then press Record. See: Record says so and records nothing.
-- [ ] **1.4 Two microphones, none chosen.** Needs: Audio. See: Record asks you to choose; after you choose one in Levels, Record uses it; after closing and reopening the app it remembers the choice.
+- [ ] **1.4 Two microphones, none chosen.** Needs: Audio. See: Record asks you to choose; after you choose one in Record options, Record uses it; after closing and reopening the app it remembers the choice.
 - [ ] **1.5 Disk fills during a take.** Needs: Audio. Use a small volume. See: the take ends with the audio kept.
 - [ ] **1.6 Reload or close mid-take.** Needs: Audio, Packaged app. Reload once, and quit once. See: after a reload the take is taken back and Stop ends it; after quitting the take is finished.
 - [ ] **1.7 Experimental off mid-take.** Needs: Audio. See: Stop still ends the take.
-- [ ] **1.8 Device names.** Needs: Audio. Not in the pull request's list but named as unverified: confirm the list in Levels and the names the recorder uses are the same, including a device with unusual characters in its name.
+- [ ] **1.8 Device names.** Needs: Audio. Not in the pull request's list but named as unverified: confirm the list in Record options and the names the recorder uses are the same, including a device with unusual characters in its name.
 
 ### Booth with REAPER
 
@@ -40,7 +40,7 @@ Source: [#1756](https://github.com/countrymanprime/narration-studio/pull/1756) u
 - [ ] **1.10 A different project open in REAPER.** Needs: REAPER. See: Record refuses and says so. Per [#1762](https://github.com/countrymanprime/narration-studio/pull/1762), the notice offers **Link the open project** and **Check again**; try both.
 - [ ] **1.11 Foot pedal.** Needs: Audio. Hold and repeat the pedal's Space, including right after closing Levels and right after the "Stop recording?" question. See: the pedal starts and stops a take each time.
 - [ ] **1.12 Pedal key.** Needs: Audio. Note whether your pedal sends Space or Enter. Only Space is a Booth key.
-- [ ] **1.13 Microphone unplugged in a REAPER take.** Needs: REAPER, Audio. Unplug a real microphone in Levels mid-take. See: the footer says the text cannot follow, and the take goes on.
+- [ ] **1.13 Microphone unplugged in a REAPER take.** Needs: REAPER, Audio. Unplug a real microphone in Record options mid-take. See: the footer says the text cannot follow, and the take goes on.
 - [ ] **1.14 Kill REAPER mid-take.** Needs: REAPER. See: the Booth says the take is over in REAPER; Record comes back when REAPER does. [#1762](https://github.com/countrymanprime/narration-studio/pull/1762) adds: after you restart REAPER, the Booth explains once REAPER answers.
 - [ ] **1.15 Start REAPER while the app is busy.** Needs: REAPER. Press "Open in REAPER and connect" while the app is importing or building. See: the message says the project was turned away, and the notice says what to do.
 - [ ] **1.16 Speech model download during a take.** Needs: Packaged app. Start a take while the 464 MB speech model is downloading. Note how long Space is held back by its "cannot be cancelled" step.
@@ -145,7 +145,7 @@ These pull requests changed documents or checks only. They need a person's decis
 
 ## 9. Release-gate checks
 
-Owner-pending ([D65](../../.claude/skills/agent-train/SKILL.md#owner-standing-rules)): none of these blocks a merge or a launch. Each was written up by a note or issue that could not run it. The indented line under each check says what a manual workflow now runs on a clean GitHub-hosted runner ([the workflows](ci-and-releases.md#the-windows-release-gate-evidence-workflows)) and what stays with the owner; those runs are evidence, not a replacement for the owner's check. Report a result in a new issue that starts with the check's number.
+Owner-pending ([D65](../../.claude/skills/agent-train/references/owner-rules.md#owner-standing-rules)): none of these blocks a merge or a launch. Each was written up by a note or issue that could not run it. The indented line under each check says what a manual workflow now runs on a clean GitHub-hosted runner ([the workflows](ci-and-releases.md#the-windows-release-gate-evidence-workflows)) and what stays with the owner; those runs are evidence, not a replacement for the owner's check. Report a result in a new issue that starts with the check's number.
 
 - [ ] **9.1 MP3 encode with the catalogued FFmpeg.** Needs: Packaged app. Install the encoder asset, then on Windows run `<env prefix>FFMPEG=<path to ffmpeg.exe> go test ./internal/encodeport/...`, and encode a chapter to MP3 in the app. See: the test passes, the MP3 passes the ACX format and sample-rate checks, and it plays. Source: [FFmpeg encoder build](../research/ffmpeg-encoder-build.md#not-verified-pending-with-the-owner), which ran the encode only with the Linux build.
   - **Automated: [Windows encode check](../../.github/workflows/windows-encode-check.yml), last result [passed, run 39141964551](https://github.com/countrymanprime/narration-studio/actions/runs/39141964551).** The catalogued FFmpeg matched its pinned size and SHA-256 and all 7 MP3 encodes (44.1 and 48 kHz, 192 to 320 kbps, and 16 kHz with the rate left open) passed the ACX format and sample-rate checks. **Owner-only:** encode a chapter in the packaged app and play the MP3.

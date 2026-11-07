@@ -1,3 +1,4 @@
+import { apiErrorMessage } from '../../api/errorMessage';
 import { useEffect, useState } from 'react';
 import { useApi } from '../../api/ApiContext';
 import { useCapability } from '../../useCapability';
@@ -66,7 +67,7 @@ function CreditsPicker({
 
 /** Chapter regions. Plans one REAPER region per chapter with a confirmed track link (the "Link chapters…" flow), plus the opening/closing credits tracks chosen below, and writes them to the saved
  * project in one undo step (`ChapterRegionsCreate`, already wired to `dawport.RegionWriter` via the DAW port
- * resolver). Reachable from the audio engine panel next to "Link chapters…" and "Prepare chapter render…", not
+ * resolver). Reachable from the audio engine panel next to "Link chapters to tracks" and "Prepare the chapter render", not
  * a new nav item. Styled after LinkChaptersDialog.tsx: both preview a REAPER write derived from the same confirmed
  * chapter links before gating the primary action on the preview's readiness, over the same Table/Select primitives. */
 export function CreateChapterRegionsDialog({ tracks, onClose }: { tracks: Track[]; onClose: () => void }) {
@@ -90,7 +91,7 @@ export function CreateChapterRegionsDialog({ tracks, onClose }: { tracks: Track[
         if (active) setPlan(next);
       })
       .catch((reason: unknown) => {
-        if (active) setPreviewError(String(reason));
+        if (active) setPreviewError(apiErrorMessage(reason));
       });
     return () => {
       active = false;
@@ -115,7 +116,7 @@ export function CreateChapterRegionsDialog({ tracks, onClose }: { tracks: Track[
           .then(setPlan)
           .catch(() => {});
       })
-      .catch((reason: unknown) => setCreateError(String(reason)))
+      .catch((reason: unknown) => setCreateError(apiErrorMessage(reason)))
       .finally(() => setCreating(false));
   };
 

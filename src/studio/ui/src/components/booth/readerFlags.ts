@@ -26,23 +26,27 @@ export const DEFAULT_FLAG_VISIBILITY: FlagVisibility = { skipped: true, restart:
  */
 export const FLAG_KIND_ID: Record<TeleprompterFlagKind, KindId> = { skipped: 'missing', restart: 'repeat', misread: 'misread', extra: 'extra' };
 
-/** The flags to draw: kinds the narrator shows, less the ones dismissed. Keeps the list's order. */
+/**
+ * The flags to draw: kinds the narrator shows, less the ones dismissed and the ones the confirmation pass cleared (a second listen
+ * heard the script there, so the live engine most likely misheard). Keeps the list's order.
+ */
 export function visibleFlags(flags: TeleprompterFlag[], visibility: FlagVisibility, dismissed: ReadonlySet<number>): TeleprompterFlag[] {
-  return flags.filter((flag) => visibility[flag.kind] && !dismissed.has(flag.id));
+  return flags.filter((flag) => visibility[flag.kind] && !dismissed.has(flag.id) && flag.check !== 'cleared');
 }
 
 /** The hint on a flag mark: what kind of flag, that it is suspected, and what was heard. */
 export function flagHint(flag: TeleprompterFlag): string {
   const heard = flag.heard ? ` Heard “${flag.heard}”.` : '';
+  const checked = flag.check === 'confirmed' ? ' A second listen heard it too.' : '';
   switch (flag.kind) {
     case 'misread':
-      return `Suspected misread.${heard}`;
+      return `Suspected misread.${heard}${checked}`;
     case 'extra':
-      return `Suspected extra words before this word.${heard}`;
+      return `Suspected extra words before this word.${heard}${checked}`;
     case 'skipped':
-      return 'Suspected skipped words. Nothing was heard for them.';
+      return `Suspected skipped words. Nothing was heard for them.${checked}`;
     case 'restart':
-      return `Suspected restart: read again from here.${heard}`;
+      return `Suspected restart: read again from here.${heard}${checked}`;
   }
 }
 
@@ -114,7 +118,8 @@ export function withMarks(base: Map<string, ReaderMark[]>, extra: Map<string, Re
 export function flagSaves(rows: ReaderRow[], flags: TeleprompterFlag[], dismissed: ReadonlySet<number>): { saves: TeleprompterFlagSave[]; flagIds: number[] } {
   const saves: TeleprompterFlagSave[] = [];
   const flagIds: number[] = [];
-  for (const flag of flags)
+  // A flag the second listen cleared is not kept: the rule the marks and the list follow, and the host drops it again on save.
+  for (const flag of flags.filter((item) => item.check !== 'cleared'))
     for (const { row, from, to } of rowParts(markedWords(flag, rows), rows)) {
       if (row.kind !== 'paragraph') continue;
       saves.push({
@@ -126,6 +131,7 @@ export function flagSaves(rows: ReaderRow[], flags: TeleprompterFlag[], dismisse
         scriptEnd: flag.end,
         heard: flag.heard,
         dismissed: dismissed.has(flag.id),
+        ...(flag.check ? { check: flag.check } : {}),
       });
       flagIds.push(flag.id);
     }

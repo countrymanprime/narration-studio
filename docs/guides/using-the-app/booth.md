@@ -9,11 +9,43 @@ opens it on that chapter. What the Booth is reading is part of its address (`/bo
 and a link land on the same chapter. The Booth fills the window and follows the app's theme, light or dark.
 While the chapters are being read, the Booth draws its top bar, text, side panel and footer as grey blocks, and the text appears in their place. If the chapters cannot be read, the page says so instead. A link to a chapter the list does not have shows the same blocks with the Booth title, **Checking this link…** and **Go to Production** (Escape also leaves) while the chapter list is read once more.
 
+This page is for narrators. [Record a chapter](#record-a-chapter) is the short version; the sections after it describe
+each part of the Booth in full, and [If something goes wrong](#if-something-goes-wrong) gathers what stops a take.
+
+## Record a chapter
+
+Before you start: a manuscript is imported, and the project records with REAPER, Audacity or the built-in recorder
+([Getting started](getting-started.md) sets these up). The example records Chapter 1 of a book in REAPER.
+
+1. **Open the Booth on the chapter.** On [Production](production.md), **Start session** opens it on the chapter being
+   recorded. **Record in Booth** on a chapter's card on [Script](script.md) opens it on that chapter, and **Booth** in
+   the sidebar opens it too.
+2. **Check the chip at the top right.** It names the recording setup: **REAPER** once connected, with a note such as
+   **REAPER · not running** while it is not ready. Click it to open the
+   [audio engine panel](navigation.md#the-audio-engine-panel), where you link the project.
+3. **The first time you open a chapter, choose its track.** A dialog titled with the chapter's name and "is not linked
+   to a track" offers **Link track**,
+   with the best match by name chosen, or **Create a new track**, which adds one named after the chapter. Save the
+   REAPER project afterwards so a new track is kept. The built-in recorder needs no track.
+4. **Press Record** (or Space, or Enter, or a foot pedal mapped to Space) and read. The text follows your voice, dims the
+   words behind you, and keeps your place in view. The first take may ask to download the speech model; nothing
+   downloads until you press **Download model**.
+5. **Press Record again to stop.** In a DAW, a **Take saved** message offers **Undo**. The highlight stays on the last word the
+   Booth heard, and the next take starts from there.
+6. **Fix a mistake as you go.** Punch and roll is the narrator's retake: the DAW plays a moment of what you read before
+   and records again from a chosen word. **R** does it from the word you are on: the DAW's cursor goes there and
+   recording starts. Click a word, or use **Start from here**, to choose where.
+7. **Leave** with Escape, which goes to Script. During a take, every way out asks **Stop recording?** first.
+
+[Recording](#recording) has the detail of each step, [Undoing a take](#undoing-a-take) what Undo can take back, and
+[A cold read](#a-cold-read) how to read a passage through without recording it. Recording from the Booth is not
+available in Audacity yet.
+
 ## The page
 
 The top bar holds the chapter stepper (previous chapter, the chapter menu with the opening and closing credits, next chapter),
 where you are (`¶ 14 of 24 · 57% · ~5:53 of audio left`; `At ¶ 14 of 24` once the chapter is recorded to the end), the resume line, and a chip naming the recording setup (the DAW, or the
-built-in recorder). The chip opens [Settings](settings.md). The chapter is named by its number and title
+built-in recorder). In a window shorter than about 26 rem (416 px), or shorter than 30 rem (480 px) and no wider than 30 rem, the progress line and the key hints under Record are not drawn (a screen reader still has them), so the side panel has room to read. The chip opens the [audio engine panel](navigation.md#the-audio-engine-panel) over the Booth, as the engine chip does on every other page; the take keeps running. The built-in recorder's chip, like the header's **Built-in** chip, opens Settings > Recording & DAW instead, since it has no DAW to link. The chapter is named by its number and title
 (`Chapter 1: Down the Rabbit-Hole`). **Text settings** chooses the font, the same choice as the reader font on
 [Script](script.md), the Booth's text size, 24 to 72 px (the same choice as **Booth text size** in [Settings › Appearance & keys](settings.md)), and the **Column width**, **Narrow**, **Medium**, **Wide** or **Full**,
 the same choice as **Column width** in [Settings › Reader text](settings.md), drawn by the Script's own reading column: centred in the text area, the width's characters a line or the whole text area, whichever is less, so each choice narrows the text equally on both sides and the column follows the window up to that width; **+** and **-** change the size too, and the Booth opens at the size
@@ -26,7 +58,7 @@ The resume line is not offered while you are already in the paragraph it would t
 ![Booth - the Text settings: the font and size of the text you read](../../images/ui/booth-text-settings.webp)
 
 The chip says when the project's DAW is not ready: **REAPER · not linked**, **REAPER · not running**, or REAPER on
-its own once connected. Click it to fix that in [Settings](settings.md#link-your-reaper-project).
+its own once connected. Click it to open the [audio engine panel](navigation.md#the-audio-engine-panel), where you link the project; **Recording settings** there leads on to [Settings](settings.md#link-your-reaper-project).
 
 ![Booth - the top-bar chip warns REAPER · not linked](../../images/ui/booth-daw-not-linked.webp)
 
@@ -65,24 +97,24 @@ how many punches). In a [pickup session](#a-pickup-session) the pickup lines com
 behind it is dimmed while it is open, and a click on the dimmed text closes it; in a window under 480 pixels wide the drawer
 takes the whole width.
 
-The footer has one **Record** button with two attached parts, the **Cold read** switch and, on its side, **Levels** (the caret that
-opens the microphone in use and two sliders). The take's timer follows it, and in a chapter that records on voice folders the
+The footer has one **Record** button with **Record options** attached to its side (the caret that opens a choice for what the button does, the
+microphone in use and two sliders). The take's timer follows it, and in a chapter that records on voice folders the
 [voice control](#recording-each-voice-on-its-own-track) sits to its left. A level bar and the room tone of that microphone are at the
 right, then the keys the Booth answers, drawn from your keymap. One sentence at a time sits
 between the controls and the level bar: why the text cannot follow your voice, or else why Record cannot start. In a window
 narrower than 1024 pixels the sentence moves to its own line under **Record**; the level bar stays on Record's line.
 
 The room tone is the level of the room when nobody speaks. The app measures it whenever it listens to the microphone: during a
-take, and for as long as the Booth shows, with **Levels** closed or open. The level bar beside it follows the microphone the same way. Once it has heard five seconds, it takes the quietest tenth of the last twenty seconds,
+take, and for as long as the Booth shows, with **Record options** closed or open. The level bar beside it follows the microphone the same way. Once it has heard five seconds, it takes the quietest tenth of the last twenty seconds,
 which is the pauses between your phrases while you read and the room itself while you are silent. It keeps the last value for each
-microphone, so the chip still shows it after you close **Levels**, record nothing for a while, or restart the app. It reads
+microphone, so the chip still shows it after you close **Record options**, record nothing for a while, or restart the app. It reads
 **Room not measured yet** until something has measured that microphone; stay quiet for five seconds with the Booth open to measure
 it. Point at the chip to see why it has no value. A muted or unplugged input (digital silence) is not counted as a room. If the app cannot read the value, the chip says
 **Room tone unavailable**.
 
 ![The Booth footer with the room tone kept for the microphone](../../images/ui/booth-room-tone.webp)
 
-In **Levels**, **Monitor level (output)** sets how loud the DAW plays back to you (0 to 100, 70 is its normal
+In **Record options**, **Monitor level (output)** sets how loud the DAW plays back to you (0 to 100, 70 is its normal
 level; REAPER's first hardware output, so the files you render are not changed). **Input level** is shown but off, with the reason:
 no DAW can set an audio interface's input gain, so set it in your interface's own control panel.
 With REAPER, each slider has REAPER's own meter under it, read four times a second for as long as the Booth shows, so they are already moving when you open the menu. Under **Input level** is
@@ -105,13 +137,13 @@ With a DAW that has no pre-roll of its own, **Punch pre-roll (seconds)** sets ho
 10, in half seconds), for every project on this computer. It is the same setting as **Punch pre-roll** under **Set on a page** in
 [Settings](settings.md#set-on-a-page). The built-in recorder does not punch, so the menu has no Punch part.
 
-![Booth - the Levels menu: the input level, the microphone the text listens to, and REAPER's own meters and pre-roll](../../images/ui/booth-levels-menu.webp)
+![Booth - the Record options menu: the input level, the microphone the text listens to, and REAPER's own meters and pre-roll](../../images/ui/booth-levels-menu.webp)
 
-![Booth - the Levels menu: REAPER's own pre-roll in one line, read from REAPER](../../images/ui/booth-levels-menu-preroll.webp)
+![Booth - the Record options menu: REAPER's own pre-roll in one line, read from REAPER](../../images/ui/booth-levels-menu-preroll.webp)
 
 ## Recording
 
-Press **Record** (or Space, or a foot pedal mapped to Space) to start a take, and again to stop it. Record arms only the chapter's
+Press **Record** (or Space, or Enter, or the numpad's Enter, or a foot pedal mapped to Space) to start a take, and again to stop it. Those keys do what the main button says: while **Main button** is set to **Cold read** (see [A cold read](#a-cold-read)), they start and stop a cold read instead of a take. Enter keeps its own job where it has one: with a button focused it presses that button, in a box you type in it is the box's, and while a popover, menu or question is open it belongs to that, so only an Enter pressed from the page itself records. A foot pedal is Space alone, and Space (unlike Enter) still wins over an open popover (see below). Record arms only the chapter's
 track. It starts where your last take on that track stopped, as long as REAPER's edit cursor is still there. Otherwise it starts at
 the end of the last item on the track, so a take never records over audio from a place you did not choose.
 
@@ -120,6 +152,8 @@ read start from there. In REAPER the edit cursor stays at the end of what you ju
 in REAPER. REAPER on its own would put it back where the recording began, so the app moves it to the end itself and changes none of
 REAPER's preferences. Going back is always your own choice: click a word, use **Start from here**, or punch and roll (**R**).
 Audacity cannot record from the Booth yet. The built-in recorder has no edit cursor, so only the highlight stays.
+
+Once a take has stopped, a message offers **Check recordings** for the chapter, which opens [the same check](production.md#checking-a-chapters-recording) the other pages run. It is only an offer: it goes after ten seconds, nothing is checked until you press **Check** in the dialog, and it is not shown while a take is recording or when the DAW cannot check.
 
 When Record cannot start, it looks off and the footer says why, but you can still press it: the press opens the dialog that
 fixes the problem, or, when there is nothing to fix from the Booth, a message that says why with **Check again**. Nothing
@@ -134,7 +168,7 @@ caret back brightens those words again.
 ![Booth - six seconds into a take: the words before the caret are dimmed one by one and the text follows the voice](../../images/ui/booth-following.webp)
 
 A chip under the text, above the footer, names each problem the Booth can fix and opens its dialog again. While it is up the
-footer does not repeat the reason, and the setup chip on the top bar warns too:
+footer does not repeat the reason, and the setup chip on the top bar warns too (**REAPER · no track**, **REAPER · several tracks**, **REAPER · other project**, **REAPER · not connected**, **REAPER · not armed** when no track is armed to record on, **REAPER · recording elsewhere** while REAPER records a take this app did not start, or **not running** for a DAW that is not running):
 
 - **Not linked to a track.** The chapter has no track in the DAW project (or several). The dialog opens by itself the first
   time you open the chapter, and again each time you press Record. It offers two fixes:
@@ -158,7 +192,7 @@ footer does not repeat the reason, and the setup chip on the top bar warns too:
   above the footer says so, and a dialog opens by itself once, after the app has had a few seconds to connect on its own; the X
   closes it, and the mark or a press of Record opens it again. The dialog gives the host's reason, what still works, and what
   the app does. **Open in REAPER and connect** opens the linked project in REAPER, or connects the REAPER you already have open.
-  If no REAPER project is linked yet it is off, with **Link in Settings** beside the reason. A refusal or a start that never
+  If no REAPER project is linked yet, **Start REAPER** is off and **Link project file…** is the main button: it is the same link action as the one in [Settings > Recording & DAW](settings.md), and every page follows it without a reload. A refusal or a start that never
   answers is written in the dialog. The Booth never offers the built-in recorder while REAPER is linked.
 
   ![Booth - the REAPER not connected dialog, with the two steps, Open in REAPER and connect and Check again](../../images/ui/booth-record-setup.webp)
@@ -200,19 +234,20 @@ in the project's `Recordings` folder (`Take 001.wav`, `Take 002.wav`, …); an e
 
 ![Booth - a project that records with the built-in recorder: the chip reads Built-in, and Record is ready with no track to link](../../images/ui/booth-builtin-setup.webp)
 
-- **The microphone.** The take records on the microphone you chose in **Levels**. With none chosen it uses the one the project
-  last recorded with, then the only one the computer lists. With several listed and none chosen, Record says **Choose the
-  microphone in Levels, then press Record**; with none listed it says **No microphone found** and why. A microphone Windows
+- **The microphone.** The take records on the microphone you chose in **Record options**. With none chosen it uses the one the project
+  last recorded with if it is still plugged in, then the only one the computer lists. **Record options** names that same microphone, so
+  what it shows is what the take records on. With several listed and none chosen, **Record options** shows **Choose a microphone…** and
+  Record says **Choose the microphone in Record options, then press Record**; with none listed it says **No microphone found** and why. A microphone Windows
   will not let the app open (another program has it, or the privacy setting blocks it) is refused in the recorder's own words and
   nothing records.
-- **The recorder's own level.** While **Levels** is open, its **Input** meter shows the level the built-in recorder hears on the
+- **The recorder's own level.** While **Record options** is open, its **Input** meter shows the level the built-in recorder hears on the
   microphone chosen under it, before a take and during one, and the line under it gives the peak (**Peak −14.2 dB**). No file is
   written. Choosing another microphone moves it to that one; a microphone the recorder does not list is not metered. The recorder
-  lets go of the microphone when you close **Levels**, leave the Booth or press Record. While the app is in the background the meter
+  lets go of the microphone when you close **Record options**, leave the Booth or press Record. While the app is in the background the meter
   is paused, and the line under it says so. If the recorder refuses the microphone, or does not answer within 15 seconds, the line
   says **The meter did not start.** with **Check again** beside it, and a message gives the recorder's reason.
 
-  ![Booth - the Levels menu with the built-in recorder: its Input meter is the recorder's own level](../../images/ui/booth-levels-menu-builtin.webp)
+  ![Booth - the Record options menu with the built-in recorder: its Input meter is the recorder's own level](../../images/ui/booth-levels-menu-builtin.webp)
 
 - **A take.** Record becomes **Stop** and the **REC** pill shows, as with a DAW.
 
@@ -226,7 +261,7 @@ in the project's `Recordings` folder (`Take 001.wav`, `Take 002.wav`, …); an e
 
 - **Leaving.** Leaving the Booth during a take asks "Stop recording?", as with a DAW. Reloading the window during a take picks the
   take up again, and Stop still stops it.
-- **Not yet.** **R** (punch and roll) is not available with the built-in recorder, and the footer's Levels cannot set an audio
+- **Not yet.** **R** (punch and roll) is not available with the built-in recorder, and the footer's Record options cannot set an audio
   interface's input gain: set it in the interface's own control panel.
 - **Where the takes go.** The Booth does not link a take to its chapter. Assign it in the native takes of the
   [chapter view of Proof](proof.md#the-chapter-view), which is also where the keeper is chosen.
@@ -256,18 +291,18 @@ recorder's take; its file stays in `Recordings`.
 
 **R** punches and rolls from the word you are on, or from the phrase you chose with **Start from here**. With no take running it
 starts one in the same press: the text moves to the word, the DAW's cursor goes there and recording starts, so you never press Record first. With a take
-running it records again from there, keeping the earlier audio as a take. The only lead-in is the DAW's own pre-roll (see **Punch** under Levels); the
-Booth adds none. Pressed again within a moment, it rolls once, not again. Where the DAW would replace the audio instead (Audacity without backups), the Booth asks first ("Roll
-again from ¶ n?") and holds the take while it asks.
+running it records again from there, keeping the earlier audio as a take. The only lead-in is the DAW's own pre-roll (see **Punch** under Record options); the
+Booth adds none. With no take running, the spot is where that passage was recorded before, found in the last recording check and the DAW's items (on a Voice folders project, on the voice that read it, which becomes the voice for the take), and the take records over exactly that spot, after a message that names the track being recorded over ("Recording over ¶ 3 on Hero."); a passage nobody recorded continues from the end of the chapter's audio on every voice, and the Booth says so ("¶ 3 was not recorded before, so the take goes on from the end of the chapter's audio."). When the check is missing or out of date, part of the passage was cut, or it was recorded on two voices, the Booth says so and starts nothing. Pressed again within a moment, it rolls once, not again. Where the DAW would replace the audio instead (Audacity without backups), the Booth asks first ("Roll
+again from ¶ n?") and holds the take while it asks. **R** is always record: with **Main button** set to **Cold read** it still starts a real take, because only the button, Space and Enter follow the mode.
 
 Click a word to start from it. **↑** and **↓** move by phrase, **←** and **→** by word, **=** and **-** change the text size, and
-**F11** takes the window full screen. Hold an arrow and the reading position keeps travelling; Record and Stop (**Space** and the foot pedal) act once, however long they are held. A press on Stop within a second of the take starting (a double click) is ignored, and the Booth says "Recording just started. Press Stop again in a moment if you meant to stop."
+**F11** takes the window full screen. Hold an arrow and the reading position keeps travelling; Record and Stop (**Space**, **Enter**, the numpad's Enter and the foot pedal) act once, however long they are held. A press on Stop within a second of the take starting (a double click) is ignored, and the Booth says "Recording just started. Press Stop again in a moment if you meant to stop."
 
 Right-click the text for **Start from here** (on a phrase), **Bookmark here** (on a word), **Next phrase**, **Back one phrase**,
 **Punch and roll**, **Larger text**, **Smaller text** and **Exit Booth**. **Start from here** marks where the next take starts;
 during a take it rolls again from that phrase, as **R** does. A take is held while the menu is open.
 
-While a popover or a menu is open (Levels, Text settings, a speaker, the chapter list, a right-click menu), a foot pedal's Space still starts or stops the take: it closes the popup, as Escape would, and records. The exception is a box you can type in (the speaker search): Space types a space there until focus moves. A question ("Stop recording?") or the jump menu keeps every key, Space included, until you answer it. Escape closes the one on top and returns you to the control that opened it.
+While a popover or a menu is open (Record options, Text settings, a speaker, the chapter list, a right-click menu), a foot pedal's Space still starts or stops the take: it closes the popup, as Escape would, and records. The exception is a box you can type in (the speaker search): Space types a space there until focus moves. A choice under **Main button** keeps Space too: on a focused **Record** or **Cold read** it selects that choice and starts nothing. A question ("Stop recording?") or the jump menu keeps every key, Space included, until you answer it. Escape closes the one on top and returns you to the control that opened it.
 
 The engine and model the Booth listens with are chosen in [Settings](settings.md) › Booth, for a take and a [cold read](#a-cold-read) alike. Nothing you say is sent anywhere.
 
@@ -277,16 +312,16 @@ Nothing has to be set. Everything that listens (the text following your voice, a
 room tone) uses one microphone:
 
 - **With a DAW, the DAW's own input.** The Booth asks the DAW which input it records from and listens to the same device.
-  **Levels** shows it with **Same as REAPER**, what REAPER records from (its audio device and, for a linked chapter, the track's
+  **Record options** shows it with **Same as REAPER**, what REAPER records from (its audio device and, for a linked chapter, the track's
   input, such as **Focusrite USB ASIO · Mic/Line 1**) and the device REAPER plays on. Change the input in REAPER and the Booth
   follows it the next time it asks: when you open the Booth, change chapter or come back to the window.
-- **When the DAW's input could be several microphones** (two inputs of one audio interface), **Levels** says so and shows one button
+- **When the DAW's input could be several microphones** (two inputs of one audio interface), **Record options** says so and shows one button
   for each. Press the one REAPER uses; until then the Booth listens to the first of them.
-- **Choose a different one** in **Levels** or in [Settings](settings.md) keeps another microphone over the DAW's, for every project,
+- **Choose a different one** in **Record options** or in [Settings](settings.md) keeps another microphone over the DAW's, for every project,
   until you press **Use REAPER's input**.
 - **When the DAW cannot say** (REAPER has no audio device open, its device matches no microphone here, or the DAW is Audacity,
-  which cannot report its input), the Booth listens to the microphone you chose in **Levels**, else the first one this computer lists,
-  and **Levels** says why with a list to choose from.
+  which cannot report its input), the Booth listens to the microphone you chose in **Record options**, else the first one this computer lists,
+  and **Record options** says why with a list to choose from.
 
 ![Booth with no microphone listed: the footer says the text cannot follow the voice](../../images/ui/booth-no-mic.webp)
 
@@ -299,11 +334,11 @@ to start), the footer says why. Listening starts at the same time as the DAW, so
 
 ### A cold read
 
-To read a passage through before recording it, press **Cold read** in the footer, between **Record** and **Levels**, or choose **Start cold read** in the jump menu (Ctrl+K). The Booth listens as it does during a take, with the engine and model chosen in Settings, and nothing you say leaves this computer. Nothing is recorded. While it listens, the top bar shows **Mic on · cold read** in the recording colour, drawn dashed.
+To read a passage through before recording it, open **Record options** (the caret on the side of **Record**) and choose **Cold read** under **Main button**. The button now reads **Cold read**, outlined in blue so it cannot be mistaken for a take, and its hint says that Space starts a cold read and that nothing is recorded. Press the button, Space or Enter to start. Choosing **Record** there again switches the button back. The choice is not kept: when you open the Booth again the button reads **Record**, so a lone Space records, and changing chapter while a cold read listens ends it and puts the button back on **Record** too. Choosing **Start cold read** in the jump menu (Ctrl+K) does both steps at once. The Booth listens as it does during a take, with the engine and model chosen in Settings, and nothing you say leaves this computer. Nothing is recorded. While it listens, the top bar shows **Mic on · cold read** in the recording colour, drawn dashed.
 
 A second cursor, the **ghost**, follows your voice: the word you have reached has a dashed outline and a muted tint, with a dashed tick above it. The text keeps the ghost in view, so you can read on without touching anything. The real cursor, a filled word with a caret, stays where you left it: the next take starts from there. The progress line and the resume line follow the real cursor too. A click, an arrow key or **Start from here** moves the real cursor, not the ghost. What you read during a cold read is not kept: it never moves the real cursor, sets where you stopped, adds a suspected line or touches a bookmark.
 
-A cold read keeps listening until you stop it: press **Cold read** again, press **Record**, or leave the Booth. It does not stop at a pause or at the end of the chapter. **Record** ends the cold read first: the ghost goes, the text eases back to the real cursor, and the take starts there. **Cold read** is unavailable while a take records. Changing chapter ends it, and Escape leaves without asking, since nothing would be lost.
+A cold read keeps listening until you stop it: press the button, which now reads **Stop**, press Space or Enter, or leave the Booth. It does not stop at a pause or at the end of the chapter. The choice under **Main button** is off while a cold read listens or a take records. Changing chapter ends the cold read, and Escape leaves without asking, since nothing would be lost.
 
 ![Booth - a cold read: the dashed ghost on the word you have reached, the real cursor still where the next take starts, and Mic on · cold read in the top bar](../../images/ui/booth-cold-read.webp)
 
@@ -357,7 +392,7 @@ an add-track button for a speaker with no track.
 When your DAW is connected and following is on, the Booth and the DAW stay together at the start:
 
 - **Opened with no chapter** (from the sidebar, say): the Booth opens on the chapter you last left in this project, at the place [Where you stopped](#where-you-stopped) describes. With none kept, or the chapter gone from the book, it opens on the chapter whose track is selected in the DAW; with no track selected, several selected, or a track no chapter is linked to, it opens where it would have.
-- **Opened at a chapter** (from the Script, Pickups or a bookmark): the DAW goes to that chapter's track as well. With only a chapter, its cursor goes to the end of the track; with a line, to that line's place in the track, so you can punch from it.
+- **Opened at a chapter** (from the Script, Pickups or a bookmark): the DAW goes to that chapter's track as well. With only a chapter, its cursor goes to the end of the track; with a line, to where that line was recorded before (found in the last recording check, on whichever voice read it; a line nobody recorded goes to the end of the chapter's audio, and when there is no current check the Booth estimates the place from the text's length), so you can punch from it.
 - **Start from here** and **Punch and roll** from a line move the text there, move the DAW's cursor to that spot, and start recording from it, so you never have to find the place in the DAW with the microphone live.
 
 The DAW may still be connecting when the Booth opens; the Booth asks for about twenty seconds and then stays where it is. A DAW that cannot follow is left alone without a message.
@@ -477,6 +512,13 @@ While you read, the Booth marks places where listening suspects something went d
 words or a restart. They are listed in the side panel as cards, a chip naming what was suspected above the line, where **Dismiss** removes one from the list. Every
 one is only suspected: Transcript Compare over the recording is the authority.
 
+With Moonshine as the listening engine and the tiny Whisper model installed, a second listen rechecks each stretch you finish
+reading a few seconds later. A suspicion it also hears gets a **Confirmed** chip, and its hint in the text says "A second listen
+heard it too." A suspicion it does not hear, because it read the script there, gets a **Not confirmed** chip and a dimmed card
+with no Dismiss button, leaves the count, and is no longer marked in the text. A stopped take does not put it on Pickups, and it is
+not kept as a finding. Nothing waits on the second listen: the highlight follows you as before, and without the model or with the
+Whisper engine a suspicion stays as listening raised it.
+
 A dismissal, and the suspected lines a stopped take puts on Pickups, are each one entry in History, so **Undo** in the toast, Ctrl+Z
 and History all take them back.
 
@@ -545,6 +587,26 @@ stops it. The take is held while the question is open. Focus opens on **Keep rec
 when you came in, the Booth did not start that take and does not stop it, and the question says so.
 
 ![Booth - Escape during a take asks "Stop recording?", with the take held until the narrator answers](../../images/ui/booth-flag.webp)
+
+## If something goes wrong
+
+| What you see | What it means and what to do |
+| --- | --- |
+| Record looks off and the footer says why | Press it anyway: it opens the dialog that fixes the problem, or a message with **Check again**. Nothing records. |
+| **Not linked to a track** | The chapter has no track in the DAW project, or several. **Link track** or **Create a new track** ([Recording](#recording)). |
+| **REAPER not connected** or **REAPER not answering** | REAPER is closed or its bridge has not answered. **Open in REAPER and connect** starts it on the linked project. With no project linked yet, **Link project file…** is the main button and links one. |
+| **REAPER has a different project open** | **Link the open project**, or open the linked project in REAPER and press **Check again**. **DAW settings** shows which file is linked. |
+| "REAPER is already recording. Stop it in REAPER before recording here." | A take you started in REAPER is running. Stop it there; Record is ready again at once. |
+| "The text cannot follow your voice yet" | The speech model is not downloaded, or no microphone is listed. The first take asks to download the model; see [The microphone the Booth listens to](#the-microphone-the-booth-listens-to). |
+| **Undo** says to use Edit > Undo in the DAW | You changed something in the DAW after the take, so the app leaves the take alone ([Undoing a take](#undoing-a-take)). |
+| The Booth does not record in Audacity | Recording from the Booth is not available in Audacity yet. Record in Audacity, or choose the built-in recorder in [Settings](settings.md). |
+
+## What next
+
+- [Checking what you recorded](#checking-what-you-recorded): let the app listen back to each take in the background.
+- [Editing](editing.md): a chapter's takes, what was heard against each word, and clean-up.
+- [Proof](proof.md): every check's notes on the recording, and your decision on each.
+- [Pickups](pickups.md): the lines to record again, and a [pickup session](#a-pickup-session) back in the Booth.
 
 ---
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"desktop/internal/brand"
+	"desktop/internal/persist"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -353,7 +354,7 @@ func placeNew(file, dest string) error {
 		}
 	}
 	if err == nil {
-		err = os.Rename(tempPath, dest)
+		err = persist.Rename(tempPath, dest)
 	}
 	if err != nil {
 		_ = os.Remove(tempPath)

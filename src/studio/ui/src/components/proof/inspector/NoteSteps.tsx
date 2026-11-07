@@ -6,7 +6,7 @@ import { IconButton } from '../../primitives/IconButton';
  */
 export function NoteSteps({ canPrev, canNext, onStep }: { canPrev: boolean; canNext: boolean; onStep: (delta: -1 | 1) => void }) {
   return (
-    <div role="group" aria-label="Notes" className="inline-flex gap-1">
+    <div role="group" aria-label="Notes" className="ml-auto inline-flex gap-1">
       <IconButton action="previous" label="Previous note" disabled={!canPrev} onClick={() => onStep(-1)} />
       <IconButton action="next" label="Next note" disabled={!canNext} onClick={() => onStep(1)} />
     </div>

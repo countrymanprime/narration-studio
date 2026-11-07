@@ -3,7 +3,7 @@ import { apiErrorMessage } from '../../api/errorMessage';
 import { usePort } from '../../ports/usePort';
 import { useDawState } from '../../daw/useDawSession';
 import { recorderName, wrongProjectReason } from '../../studio/dawNames';
-import { useDawStatus } from '../editing/page/useDawStatus';
+import { useDawStatus } from '../connection/useDawStatus';
 import type { Track } from '../../types';
 import { useAudacityLink } from './useAudacityLink';
 import { useChapterLinks, type ChapterLinks } from './useChapterLinks';
@@ -52,7 +52,7 @@ export function useDawToolsSource(opened: number): DawToolsSource {
         setState('read');
       },
       (reason) => {
-        if (active) setState({ failed: `The REAPER project could not be read: ${apiErrorMessage(reason)}` });
+        if (active) setState({ failed: `The REAPER project could not be read: ${apiErrorMessage(reason).slice(0, 200)}` });
       },
     );
     return () => {

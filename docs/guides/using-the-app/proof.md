@@ -25,6 +25,31 @@ Inspector will be, and says **Reading the chapters and notes…**. A link to a c
 If the page's chapters or notes cannot be read when it opens, Proof keeps its title and says "This page could not be
 loaded" with the reason and a **Retry** button, which reads them again. The rest of the app keeps working.
 
+## Work through a note
+
+This page is a reference to everything Proof shows. Here is one note from finding to decision, as an example; the
+sections after it have the detail.
+
+Say the recording check heard "the white rabbit hurries" in Chapter 3, where the script says "the White Rabbit
+hurried".
+
+1. **Select the note** in the list, or its pin on the waveform. The Inspector on the right shows what the script says
+   and what was heard, with the difference marked: "hurried" struck through on red, "hurries" on green, and the
+   paragraph around it under **In the script**.
+2. **Listen.** **Hear it** (or Space) plays the spot with 3 seconds either side.
+3. **Decide**, with a button or its key:
+   - **Needs pickup** (P): you will record the line again. It goes on the [Pickups](pickups.md) list.
+   - **Fix in edit** (E): the audio can be fixed in the edit. A misread or a skipped word still counts as a pickup.
+   - **Fine as read** (W): you heard it and the line stays as it was read.
+   - **Defer** (D): decide later.
+
+   Add an optional note in the box first if the reason helps later ("tense changed; author wants past").
+4. **The next note is selected** and a message says what was saved ("00:12.4 · Needs pickup") with **Undo**. Ctrl+Z,
+   or **Undo the last change** in the jump menu, takes the decision back too.
+
+If the check runs again while you look and the evidence changes, the decision is not saved: Proof shows **Before** and
+**Now**, and you decide again after **Use the new evidence** ([A note and your decision](#a-note-and-your-decision)).
+
 ## All chapters or one chapter
 
 The chapter stepper beside the title shows **All chapters** or one chapter. On **All chapters** the notes run in book order, chapter by chapter, and **J**/**K** follow that order. Choose a chapter from it, or step with its
@@ -75,6 +100,17 @@ A chapter shows its **Recording check** card and its recording:
 
 A chapter with no recording yet says **No recording for this chapter yet** where the waveform goes.
 
+**Compare with the script**, beside **Check recordings** in the card, opens the **Compare** panel under it for the chapter in
+view; press it again to close it. The panel has three tabs, shown one at a time: **Differences** (the comparison of the
+recording with the chapter's text: set up, start, watch its progress, cancel, and read what it found), **Preview** (the chapter's
+audio against the script) and **Native takes** (the takes the app's own recorder made for the chapter; it says so when there are none). They are the same
+panels the [chapter view](#the-chapter-view) draws one under the other, so a comparison you start here is the one that view shows, and the
+other way round. **Compare with the script** is off, with the check's reason, when the chapter has no measured recording. Another chapter
+opens with the panel closed. Starting a comparison needs a linked project file; the panel says so when there is none
+([Comparing the recording with the script](#comparing-the-recording-with-the-script) has the setup and the options).
+
+![Proof - Compare opened under the check card: its three tabs and the comparison's setup](../../images/ui/proof-compare-panel.webp)
+
 ![Proof on Chapter 1: the recording check card, the waveform and the chapter's notes](../../images/ui/proof-chapter-linked.webp)
 
 ![Proof - a recording check marked out of date: the recording changed since this check](../../images/ui/proof-check-stale.webp)
@@ -82,6 +118,8 @@ A chapter with no recording yet says **No recording for this chapter yet** where
 ![Proof - a note whose spot has several takes, the playing take marked on the waveform](../../images/ui/proof-takes.webp)
 
 ## The DAW tools menu
+
+When REAPER is not answering, a **REAPER not connected** mark sits just before the wrench icon button. It opens the same dialog as on [Production](production.md), where **Link project file…** and **Check again** live.
 
 The wrench icon button at the end of the header opens the same **Structure** menu as [Editing's](editing.md#the-daw-tools-menu): **Prepare chapter render…** and **Create chapter regions…**, for when proofing is done and the chapters are next rendered. When a tool cannot be used it stays in the menu, greyed, with the reason under its name: the DAW is not answering, the DAW has a different project open than the one linked here, the REAPER project has no tracks yet, no chapter is linked to a REAPER track yet (link one on [Production](production.md)), or the project records in Audacity, which has neither regions nor render setup to write. The menu reads the project the first time you open it, so for a moment both entries say **Reading the REAPER project…**.
 
@@ -97,7 +135,7 @@ The notes panel lists the notes in view, **Notes · 14** for example, with:
   always stays listed; press it to list the whole chapter;
 - the sort: **By time**, **By confidence** (lowest first, so the least certain come up first) or **By severity** (most
   serious first);
-- **Check recordings…**, the same check the card runs, starting with the chapter in view;
+- **Check recordings**, over all chapters only (on one chapter the check card has it): the same check, starting with the chapters not checked as of the last save;
 - **Find in notes**, which keeps only the notes whose text matches what you type; Esc closes it;
 - **Import proofer sheet** and **Export for proofer** (the sort, Check recordings, Find and these two sit at the right of the
   panel; the sort and Find are left out while there are no notes): the proofer's CSV sheet. Import adds each row as a pickup marker in
@@ -159,7 +197,7 @@ The Inspector shows:
 - **Notes on this finding**, the conversation about the spot (see [Notes on a finding](#notes-on-a-finding)).
 
 A decision is saved at once and the next note is selected. If focus was on a note, it moves to that next note too, so the focused row, the panel and a screen reader agree; a decision made with focus elsewhere leaves focus where it is. A message says what was saved, with **Undo** to put the
-note back as it was. On a window wide enough to show the panel beside the notes, the messages sit left of it, so they do not cover the decision buttons. The decision is also in the app's undo history, so Ctrl+Z, **Undo the last change** in the jump menu and the
+note back as it was. On a window wide enough to show the panel beside the notes, the messages sit left of it, so they do not cover the decision buttons. On a narrower window, where the panel sits under the notes, the messages rise above the decision buttons instead. The four decision buttons stay at the bottom of the panel while you scroll the evidence and the takes above them, so a decision is always one click or key away. The decision is also in the app's undo history, so Ctrl+Z, **Undo the last change** in the jump menu and the
 [undo history](navigation.md) take it back too, as "Decision “Fine as read” at 00:12.4"; from another chapter, the undo opens the note's own chapter and selects the note. **Fine as read** says you heard it and the line stays as it was read: the note is cleared, and it is no longer a pickup. **Reopen** puts a decided note back
 to review.
 
@@ -175,7 +213,7 @@ and decide.
 ![Proof - a decision refused because the evidence changed since the note was shown: before and now, with the typed note kept](../../images/ui/proof-evidence-changed.webp)
 
 Right-click a note in the table, or its pin, for the same actions: **Hear it**, the four decisions (the one that does not fit the note
-says why), **Reopen**, **Go to** your DAW, **Trim the gap** on a gap note, and open its chapter in Script or the Booth.
+says why), **Reopen**, **Show in** your DAW, **Add marker in** your DAW, **Trim the gap** on a gap note, and open its chapter in Script or the Booth.
 
 ## The same word, said your way
 
@@ -225,10 +263,16 @@ recording cannot be heard, and the button says why.
 went. **Add marker in** your DAW puts one marker on the note's spot, whatever you decided about the note. The marker is
 named like the ones a chapter's [comparison
 export](#comparing-the-recording-with-the-script) adds, so Export markers does not add it a second time, and if the spot
-already has one nothing is added. Apart from **Trim the gap**, it is the only control here that changes your project, and one Undo in
+already has one nothing is added: the Inspector says "A marker is already at 3:41." It is the one button the Editing flag card and the Pickups panel use too, so its label and its reason when it is off are the same on all three; in the right-click menu the entry is off for the reason the button is. Apart from **Trim the gap**, it is the only control here that changes your project, and one Undo in
 the DAW removes it.
 
 With Audacity there are no items: **Show in Audacity** selects the compared track and puts the cursor at the note's time.
+
+### Repairing a click, breath or plosive in REAPER
+
+On a note whose type is **mouth** (a click), **plosive** or **breath**, **Repair in REAPER** (an icon button in the Inspector's row) opens a menu headed **Repair** with **Cleanup tools…**, the dialog that is also in the audio engine panel's REAPER tools. Press **Show in REAPER** first: it selects the note's item, and the repair tools open on the items selected in REAPER. Choosing the type of a note yourself changes whether the button is there. The repair is REAPER's own, and you apply or cancel it there. The entry is off, with the reason under it, when the project records in Audacity, the DAW is not answering or has another project open, or the project has no tracks. Which item is selected, whether Magnolius DeClick is installed and whether REAPER has the Repair Pops/Clicks dialog (REAPER 7.80 or later) are only known when you press **Open**, so the dialog says so there.
+
+![Proof - a click note: Repair in REAPER in the Inspector's row, its menu open on Cleanup tools](../../images/ui/proof-repair-in-reaper.webp)
 
 Each follows what your DAW offers: when it does not offer one, or is not answering, the control is off and the reason is
 under the row. A note found by an older check that did not record its item cannot be placed; run the check again. A note
@@ -270,14 +314,15 @@ last measurement again, and the list follows it.
 A chapter's Proof view, at `/proof/:chapterId`, holds what the chapter page had besides its workspace, which the
 [Editing](editing.md) page replaced: the recording check's state, the comparison with the manuscript, the Preview
 panel, the readiness panel and, with the built-in recorder, the native takes. It has no nav item of its own; open it from a
-linked chapter's **Open in Proof** link in the [audio engine panel](navigation.md#linking-chapters-to-tracks), a chapter's
-Proof cell or **Open Proof** in its row's menu on [Production](production.md). Its
+linked chapter's **Open in Proof** in the [audio engine panel](navigation.md#linking-chapters-to-tracks), or by its address. A
+chapter's Proof cell or **Open Proof** in its row's menu on [Production](production.md) opens [Proof](#one-chapter) at that chapter
+(`/proof?chapter=`), where **Compare with the script** draws the same panels. Its
 notes and its recording check card are on [Proof](#one-chapter); listening to the chapter against its script, its flags, effects and
 takes are on [Editing](editing.md).
 The view runs the full width of the page, like Proof, with its breadcrumb and title in the same place in every state.
 While the chapter is being read, the view shows the breadcrumb, the page title and grey blocks; an address for a chapter the manuscript does not have says so instead. If the chapter or its check cannot be read, the view says "This page could not be loaded" with the reason, **Retry** and **Back to Proof**; Retry shows the grey blocks again while it reads, then the chapter or the reason again.
 
-If the chapter hasn't been checked yet, the title row says **Not checked yet**. **Check recordings…** beside it opens
+If the chapter hasn't been checked yet, the title row says **Not checked yet**. **Check recordings** beside it opens
 [Check recordings](production.md#checking-a-chapters-recording), the same dialog every page opens, with this chapter ticked. A chapter with no linked REAPER track says so in a line
 under the title, with the way to the audio engine panel.
 
@@ -285,7 +330,7 @@ under the title, with the way to the audio engine panel.
 
 Under the heading "Proof · <chapter name>" the header names the check's state (current, or stale if an item changed
 since) and **as of last save**: the check reads the DAW project as it was last saved, not whatever is open live in
-the DAW right now. **Check recordings…** checks it again; when the dialog closes the state is read again.
+the DAW right now. **Check recordings** checks it again; when the dialog closes the state is read again.
 
 ![Proof chapter view - the recording check's state with Check again, above the compare run](../../images/ui/proof-chapter-default.webp)
 
@@ -293,7 +338,7 @@ the DAW right now. **Check recordings…** checks it again; when the dialog clos
 
 ## Comparing the recording with the script
 
-**Compare the recording with the script**, on the chapter view, transcribes the chapter's recording and
+**Compare the recording with the script**, on the chapter view and in Proof's Compare panel, transcribes the chapter's recording and
 compares it against this chapter's text. The Setup step picks the transcription model, chunk length,
 and number of parallel workers before starting a comparison.
 
@@ -394,6 +439,12 @@ and every delivery check reads unknown until you choose the file again and measu
 never counts as a pass.
 
 ![Proof chapter view - the readiness panel's Rendered file section with a render chosen: Change, Clear and Measure](../../images/ui/proof-chapter-render-chosen.webp)
+
+## What next
+
+- [Pickups](pickups.md): every line marked **Needs pickup**, grouped by chapter, and the pickup session that records them.
+- [Editing](editing.md): fix in the edit what you marked **Fix in edit**.
+- [Master & QC](master-and-qc.md): check the finished files once the notes are cleared.
 
 ---
 

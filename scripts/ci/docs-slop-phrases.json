@@ -126,6 +126,12 @@
       "level": "warn",
       "pattern": "\\bstreamlin(e|es|ed|ing)\\b",
       "reason": "say what step is removed"
+    },
+    {
+      "id": "former-state",
+      "level": "warn",
+      "pattern": "\\b(no longer|used to|formerly|any ?more|(is|are|was|were|has been|have been) (retired|removed|superseded|replaced))\\b",
+      "reason": "describes a lack or a past state; say what exists now (docs-style rule 11)"
     }
   ]
 }

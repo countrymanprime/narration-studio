@@ -5,6 +5,13 @@ import { KEEPS_DESKTOP_SCROLL, POPUP_ANCHORED_AT_FIRST_WIDTH, REFLOW, wholePage 
 export const proofStates: StateEntry[] = [
   {
     page: 'proof',
+    state: 'daw-off-closed',
+    description:
+      'Proof with the DAW not connected (?mockDaw=Audacity), after the dialog that opens by itself was closed with its X - the quiet "not connected" mark in the head, before the DAW tools button, reopens it',
+    ...REFLOW,
+  },
+  {
+    page: 'proof',
     state: 'load-error',
     description:
       'Proof when the chapters it loads on opening could not be read (?mockInvalidPayload=manuscript): the title, "This page could not be loaded" with Retry; navigation still works',
@@ -16,6 +23,13 @@ export const proofStates: StateEntry[] = [
     description:
       'Proof while the chapters are still being read (?mockChapters=loading): the Proof title and grey blocks where the chapter strip, the notes queue and the Inspector will be, with one polite "Reading the chapters and notes…" status',
     ...REFLOW,
+  },
+  {
+    page: 'proof',
+    state: 'inspector-repair-menu',
+    description: 'Proof, a click note selected - Repair in REAPER in the inspector icon row, its menu open on Repair with Cleanup tools',
+    ...REFLOW,
+    ...POPUP_ANCHORED_AT_FIRST_WIDTH,
   },
   {
     page: 'proof',
@@ -41,8 +55,22 @@ export const proofStates: StateEntry[] = [
   },
   {
     page: 'proof',
+    state: 'compare-open',
+    description:
+      'Proof, Chapter 1 linked, Compare with the script pressed beside Check recordings (#2822): the Compare panel under the check card with its Differences, Preview and Native takes tabs, on the comparison’s setup',
+    ...REFLOW,
+  },
+  {
+    page: 'proof',
+    state: 'compare-preview',
+    description: 'Proof, Chapter 1 linked, the Compare panel on its Preview tab (#2822): the same preview panel the chapter view draws',
+    ...REFLOW,
+  },
+  {
+    page: 'proof',
     state: 'chapter-no-recording',
-    description: 'Proof, Chapter 2 with no track linked: the check card with nothing recorded to check and why, and no waveform under it',
+    description:
+      'Proof, Chapter 2 with no track linked: the check card with nothing recorded to check and why (Check recordings and Compare with the script both off), and no waveform under it',
     ...REFLOW,
   },
   {

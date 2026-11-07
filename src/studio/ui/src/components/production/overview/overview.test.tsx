@@ -1,9 +1,15 @@
 // @vitest-environment jsdom
-import { act, cleanup, render, screen } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactElement } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { ApiProvider } from '../../../api/ApiContext';
+import { createMockApi } from '../../../api/mockApi';
+import { DAW_SETUPS } from '../../../fixtures/daw';
+import { createMockDawClient } from '../../../ports/daw';
+import { PortOverrides } from '../../../ports/usePort';
 import { TooltipProvider } from '../../primitives/Tooltip';
+import * as opener from '../../recordingcheck/openCheckRecordings';
 import { CheckCountsCard } from './CheckCountsCard';
 import { KpiRow } from './KpiRow';
 import { ProgressChart } from './ProgressChart';
@@ -238,20 +244,9 @@ describe('WeekCard', () => {
 });
 
 describe('ProgressChart', () => {
-  const chart = (chapters = MID_BOOK, log = undefined as Parameters<typeof overviewFor>[2], clearTodayLabel = false) => {
+  const chart = (chapters = MID_BOOK, log = undefined as Parameters<typeof overviewFor>[2]) => {
     const o = overviewFor(chapters, undefined, log);
-    return view(
-      <ProgressChart
-        k={o.k}
-        wph={9300}
-        start={o.start}
-        today={STORY_TODAY}
-        due={o.kpi.due}
-        recordedHours={o.recordedHours}
-        series={o.series}
-        clearTodayLabel={clearTodayLabel}
-      />,
-    );
+    return view(<ProgressChart k={o.k} wph={9300} start={o.start} today={STORY_TODAY} due={o.kpi.due} recordedHours={o.recordedHours} series={o.series} />);
   };
 
   it('chart-plan-actual-projection', () => {
@@ -264,16 +259,18 @@ describe('ProgressChart', () => {
   });
 
   it('chart-today-label-clears-the-estimate-line: never centred over the dot, where the projection runs up and right from it', () => {
-    const { container } = chart(MID_BOOK, undefined, true);
+    const { container } = chart(MID_BOOK);
     const dot = container.querySelector('[data-marker="today"]') as SVGCircleElement;
     const label = screen.getByText('today');
     const [x, y, cx, cy] = [label.getAttribute('x'), label.getAttribute('y'), dot.getAttribute('cx'), dot.getAttribute('cy')].map(Number);
-    // Left of the dot and above it (recording ahead of the plan), or right of it and below (behind it, or no room on the left).
-    if (label.getAttribute('text-anchor') === 'end') expect([x < cx, y < cy]).toEqual([true, true]);
-    else expect([label.getAttribute('text-anchor'), x > cx, y > cy]).toEqual(['start', true, true]);
+    // Beside the dot, never on it, and close enough to read as its label.
+    const w = 32;
+    const [x1, x2] = label.getAttribute('text-anchor') === 'end' ? [x - w, x] : [x, x + w];
+    expect(x2 < cx - 5 || x1 > cx + 5 || y < cy - 8 || y > cy + 8).toBe(true);
+    expect(Math.abs((x1 + x2) / 2 - cx)).toBeLessThanOrEqual(64);
   });
 
-  it('chart-today-label-leaves-the-dot-when-the-due-line-is-close: a due date a day away puts the label left of the dot', () => {
+  it('chart-today-label-leaves-the-dot-when-the-due-line-is-close: a due date a day away puts no part of the label on the due line', () => {
     const o = overviewFor(MID_BOOK, undefined, undefined);
     const dayAfter = new Date(STORY_TODAY.getTime() + 24 * 3600 * 1000);
     view(
@@ -285,15 +282,13 @@ describe('ProgressChart', () => {
         due={dayAfter}
         recordedHours={0.1}
         series={o.series}
-        clearTodayLabel
       />,
     );
-    expect(screen.getByText('today').getAttribute('text-anchor')).toBe('end');
-  });
-
-  it('chart keeps the label centred above the dot unless asked, as Production draws it', () => {
-    chart();
-    expect(screen.getByText('today').getAttribute('text-anchor')).toBe('middle');
+    const label = screen.getByText('today');
+    const dueX = Number(document.querySelector('[data-line="due"]')!.getAttribute('x1'));
+    const x = Number(label.getAttribute('x'));
+    const [x1, x2] = label.getAttribute('text-anchor') === 'end' ? [x - 32, x] : [x, x + 32];
+    expect(dueX < x1 || dueX > x2).toBe(true);
   });
 
   it('chart without a take log has no actual line and says why', () => {
@@ -334,24 +329,35 @@ describe('ProgressChart', () => {
 });
 
 describe('CheckCountsCard', () => {
+  // The card's Check recordings is the shared button (#2833): it opens the one dialog with what needs checking, and the DAW's gate is its own.
+  const withApi = (ui: ReactElement, setup: 'reaper' | 'reaper-off' = 'reaper') => {
+    const daw = createMockDawClient(DAW_SETUPS[setup], { chapterIds: [], candidateIds: [], findingIds: [] });
+    return view(
+      <ApiProvider api={createMockApi()}>
+        <PortOverrides clients={{ daw }}>{ui}</PortOverrides>
+      </ApiProvider>,
+    );
+  };
+
   it('check-counts-from-the-sync-state', async () => {
-    const onCheck = vi.fn();
-    view(<CheckCountsCard counts={COUNTS} nameOf={nameOf} onCheck={onCheck} />);
+    const open = vi.spyOn(opener, 'openCheckRecordings').mockReturnValue(() => {});
+    withApi(<CheckCountsCard counts={COUNTS} nameOf={nameOf} />);
     expect(screen.getByRole('group', { name: /^Checked, as of last save: 2/ })).toBeTruthy();
     expect(screen.getByRole('group', { name: /^Out of date: 1\. Chapter 3/ })).toBeTruthy();
     expect(screen.getByRole('group', { name: /^Not checked yet: 2\. Chapter 4, Chapter 5/ })).toBeTruthy();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Check recordings' }).getAttribute('aria-disabled')).toBeNull());
     await userEvent.click(screen.getByRole('button', { name: 'Check recordings' }));
-    expect(onCheck).toHaveBeenCalledWith(['c3', 'c4', 'c5']);
+    expect(open).toHaveBeenCalledWith(['c3', 'c4', 'c5'], expect.anything());
   });
 
-  it('is disabled with a reason when the DAW is unreachable or nothing needs a check', async () => {
-    const onCheck = vi.fn();
-    view(<CheckCountsCard counts={COUNTS} nameOf={nameOf} unavailable="REAPER is not running." onCheck={onCheck} />);
+  it('is disabled when the DAW cannot review, or nothing needs a check', async () => {
+    const open = vi.spyOn(opener, 'openCheckRecordings').mockReturnValue(() => {});
+    withApi(<CheckCountsCard counts={COUNTS} nameOf={nameOf} />, 'reaper-off');
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Check recordings' }).getAttribute('aria-disabled')).toBe('true'));
     await userEvent.click(screen.getByRole('button', { name: 'Check recordings' }));
-    expect(onCheck).not.toHaveBeenCalled();
-    expect(screen.getByRole('button', { name: 'Check recordings' }).getAttribute('aria-disabled')).toBe('true');
+    expect(open).not.toHaveBeenCalled();
     cleanup();
-    view(<CheckCountsCard counts={{ current: ['c1'], stale: [], never: [] }} nameOf={nameOf} onCheck={onCheck} />);
+    withApi(<CheckCountsCard counts={{ current: ['c1'], stale: [], never: [] }} nameOf={nameOf} />);
     expect(screen.getByRole('button', { name: 'Check recordings' }).getAttribute('aria-disabled')).toBe('true');
   });
 });

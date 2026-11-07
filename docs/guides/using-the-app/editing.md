@@ -12,6 +12,21 @@ effect on. Open it from **Editing** in the sidebar's Edit group, from a linked c
 With no manuscript imported yet, the page says so and offers **Import manuscript**, which goes to
 [Production](production.md#importing-the-manuscript).
 
+## Common tasks
+
+This page is a reference to everything Editing shows. To do one thing, start here:
+
+- **Hear a line against its script**: [select the words](#selecting-words) and play them.
+- **Choose between takes of a line**: [Takes](#takes).
+- **Fix a line said twice**: [A line said twice](#a-line-said-twice).
+- **Cut words and their audio**: [Deleting words and their audio](#deleting-words-and-their-audio).
+- **Put an effect on some words**: [Effects on words](#effects-on-words).
+- **Find clicks, breaths, plosives, noise and long gaps** in the chapter: [Cleaning up](#cleaning-up).
+- **Patch in another narrator's read**: [Replacing words with another narrator's audio](#replacing-words-with-another-narrators-audio).
+- **Mark a voice sample for a character**: [Marking a voice sample](#marking-a-voice-sample).
+- **When nothing plays or the DAW is not answering**: [When the DAW is not connected](#when-the-daw-is-not-connected)
+  and [When the chapter has no audio](#when-the-chapter-has-no-audio).
+
 ## The page
 
 The header sits inside the one bordered card that holds the script, so the title, the chapter step (the previous and
@@ -48,7 +63,7 @@ the mark's underline stays under both.
 
 Each line starts with its time in the chapter (a chapter with nothing heard yet has no times, and its text starts at the
 card's edge). Every line that has takes, one with a single take included, has a takes chip under it: how many takes, a bar for each take with
-the playing one filled, the one that plays, and where the choice stands: **Kept**, **Stacked** (the later reads sit on the
+the playing one filled (once you keep a take, the kept one), the name of that take, which stays at every window width, and where the choice stands: **Kept**, **Stacked** (the later reads sit on the
 first read's spot), **Duplicate read** (the take reads the line twice) or **To choose** (no take is active in the DAW). **Kept** is the take the DAW plays, the same take Proof marks Kept, so it reads the same after you reopen the project. Tab visits one chip, the one on the
 line the cursor is on (the first before there is a cursor), so the script is not forty stops; **T** opens the takes of the
 cursor's line (and folds them again on a line with one take), and a click on a chip opens any other. The takes list
@@ -95,7 +110,7 @@ to its window, so a link made in REAPER or the audio engine panel shows without 
 built-in recorder (which has no track to link), a note over the script says to record the chapter, with **Read again**.
 A chapter
 that was never checked has no heard words: the page shows its script plain, with a **Not transcribed yet** note and a
-**Check recordings…** button beside it that opens [Check recordings](production.md#checking-a-chapters-recording), the one recording
+**Check recordings** icon beside it that opens [Check recordings](production.md#checking-a-chapters-recording), the one recording
 check every page opens, with this chapter ticked. When the dialog closes the page reads the chapter again, so
 what the check found shows without a reload. Opening Editing never starts a check.
 
@@ -107,6 +122,8 @@ words it heard show the next time you open the chapter.
 ![Editing - a background check in progress at the bottom left, with Pause and Cancel](../../images/ui/background-check-running.webp)
 
 ## The DAW tools menu
+
+When REAPER is not answering, the header shows **REAPER not connected** before the wrench; its dialog has **Link project file…** while no REAPER project file is linked, then **Start REAPER** and **Check again** ([Production](production.md) describes it).
 
 The wrench icon button at the right end of the header (its tooltip is **DAW tools**) opens a menu headed **Structure** with **Prepare chapter render…** and **Create chapter regions…**. They are the same two dialogs as in the audio engine panel's REAPER tools: create the chapter regions REAPER renders one file per chapter from, then set up the render. When a tool cannot be used it stays in the menu, greyed, with the reason under its name: the DAW is not answering, the DAW has a different project open than the one linked here, the REAPER project has no tracks yet, no chapter is linked to a REAPER track yet (link one on [Production](production.md)), or the project records in Audacity, which has neither regions nor render setup to write. The menu reads the project the first time you open it, so for a moment both entries say **Reading the REAPER project…**.
 
@@ -147,6 +164,10 @@ leaves Pickups.
 **Mark for pickup** on a word that Proof has a note about decides that note **Needs pickup**, so the line on Pickups is the
 note's own and Pickups can take you back to it; the message says "Added to Pickups, with its note on Proof." A word with no
 such note, or one whose note is fixed in the edit (words said and not written), is added to Pickups as a line of its own.
+
+The flag card's last button, an icon with the flag, is **Add marker in** your DAW: it puts one marker in the DAW on the note Proof has about the flagged words, the same button, label and gate as on [Proof](proof.md#going-to-a-note-in-the-daw) and [Pickups](pickups.md). A word with no note on Proof has nothing to put a marker on, so the button is off and its hint says so; it is off too, with the DAW's reason, while the DAW cannot add markers.
+
+![Editing - a flagged word's card with its Add marker icon button at the end of the row](../../images/ui/editing-flag-card.webp)
 
 ### A line said twice
 
@@ -338,10 +359,12 @@ saves from the note, and **Esc** closes. So with the right character already cho
 
 ![Editing - Voice sample on four selected words: the character, the words with Play range, the label and note, and Save sample](../../images/ui/editing-voice-sample-dialog.webp)
 
+Under **Make primary** a short line says where the sample will be kept ("Kept in the project folder", "Kept in the DAW" or "Kept in the project folder and the DAW"), from **Voice sample storage** in the Recording & DAW section of [Settings](settings.md); the **?** beside it says what that means. If Settings cannot be read, the dialog says so and shows the project folder. With a region, saving adds a region named for the character and label to REAPER's project (one undo step in REAPER) and the sample plays whatever lies under it, so save the project in REAPER before expecting it to play; if REAPER cannot add it (it is recording, or not linked) nothing is saved and the dialog says so. If the sample cannot be saved after REAPER added the region, the region is deleted again; if REAPER will not delete it, a notice says the region stays.
+
 Saving copies the raw recording of those words, as it was before editing, with a short margin either side cut at a quiet point,
 into <!-- brand:identity.projectFolder -->narration-studio<!-- /brand -->/voice-samples in the project folder. Nothing leaves your computer, and the clip does not change if you
 later cut, re-record or move the chapter. A message says "Saved voice sample for" the character, with **Undo** for ten seconds, which removes
-the sample again. Marking the same words again for the same character says it is already a sample instead of making a second.
+the sample again. Marking the same words again for the same character says it is already a sample instead of making a second. If you changed **Voice sample storage** since, that sample gains what it lacked (the region in the DAW, or the clip in the project folder), keeps what it had, and is then kept in both; the message says "is now kept in the project folder and the DAW" and has no **Undo**.
 
 The dialog says why it cannot save, in one sentence, and saves nothing: the words are not in the recording, they run across two
 takes ("Choose words inside one take"), the recording changed since the chapter was checked ("Check it again, then mark the
@@ -374,8 +397,13 @@ why it is suggested and the steps that would make the comparison surer: **Trim w
 **Normalise**, each asking before it changes anything in the DAW. Then each take, with its waveform, what share of the
 script it read as written, and its pause, level, noise, clarity and breaths. A take's second line says where it begins, how long it lasts and what the DAW calls it
 (a REAPER take, an Audacity clip or a recorder take). A take reads **Kept**, **Active**, **Muted** or, once you hide the others and look at them again, **Hidden**; the first read of a stacked line wears **First read**. Play a take to hear it: with REAPER linked it plays through REAPER, outside the project and without changing it, so you hear its output and level; if REAPER cannot preview it now, the app plays it and a message says why. With the built-in recorder or Audacity the app plays it. Nothing plays while REAPER is recording. A take longer than a minute plays its first minute. **Keep take**
-(Enter) makes it the one that plays, and **Hide others** (H) hides the other takes from the lanes. **Show in the DAW**
+(Enter) makes it the one that plays, and **Hide others** (H) hides the other takes from the lanes. **Show in REAPER** (it names your DAW)
 moves the DAW to the line, on a DAW that can move to a place in the project.
+
+Retakes recorded into REAPER's fixed item lanes are listed with the line's other takes, each as **Retake on lane N**, and are chosen the same way. **Keep take**
+on one makes that lane the only one playing on its track; a lane plays across the whole track, so the other lanes go silent for every line of that track. Nothing else
+changes, and one Undo in REAPER puts the previous lane back. The app never turns lanes on, converts takes to lanes or builds a comp: if the track is not in fixed-lane mode,
+or the retake changed since the project was last saved, a message says so and nothing changes. What plays is read from the project as last saved in REAPER.
 
 ![Editing - Normalise from a suggestion's steps: the question says what it will change in the DAW](../../images/ui/editing-suggestion-step.webp)
 
@@ -404,6 +432,14 @@ the DAW cannot do is off, with the DAW's reason.
 
 ![Editing - the drawer on Clean up: what was found in the chapter and the findings by kind](../../images/ui/editing-drawer-cleanup.webp)
 
+Under the findings, **Match levels…** brings the items on this chapter's linked track onto one level. It is the same action as in the editing check on [Production](production.md): it first lists how many items differ from -20 dBFS RMS by more than 2 dB, and **Match** then changes each item's volume in REAPER, in one undo step. A toast says how many items it matched; when every item is already within 2 dB of the target it says so and changes nothing, and when the items moved on in REAPER since the preview it says that nothing was changed and to match again. It is off, with the DAW's reason under the button, while REAPER is not answering or the DAW cannot change an item's gain.
+
+![Editing - the drawer on Clean up scrolled to Match levels, under the findings](../../images/ui/editing-drawer-cleanup-levels.webp)
+
+For clicks, breaths and plosives, **Repair in REAPER** (an icon button after **Apply**) opens a menu headed **Repair** with **Cleanup tools…**, the dialog that is also in the audio engine panel's REAPER tools. It opens REAPER's own Repair Pops/Clicks or Magnolius DeClick on the items selected in REAPER. **Apply** repairs in the app; these open REAPER's own tool, and you apply or cancel the repair there, where one Undo takes it back. The entry is off, with the reason under it, when the project records in Audacity, the DAW is not answering or has another project open, or the project has no tracks. Which item is selected, whether Magnolius DeClick is installed and whether REAPER has the Repair Pops/Clicks dialog (REAPER 7.80 or later) are only known when you press **Open**, so the dialog says so there.
+
+![Editing - Clicks chosen in Clean up: Repair in REAPER beside Apply, its menu open on Cleanup tools](../../images/ui/editing-drawer-cleanup-repair.webp)
+
 ### Effects, Backups and Timeline
 
 **Effects** lists the effects on words in this chapter and adds one. Under **Add an effect** the DAW's own chains and plug-ins are listed under their source, each name with a **Favourite** button at its right. A favourite is listed first here, in the Add FX menu and in the question that asks before an effect goes on; the buttons edit the global list, the same one as **Favourite effects** under **Set on a page** in [Settings](settings.md#set-on-a-page), which can also set it for one project. A name with a comma in it cannot be a favourite. Pick an effect in the list to see it under the list; with words selected in the text, the effect on them is the one shown, and its row is marked. Its header has **Previous effect** and **Next effect** (off at the first and last), and **Show in REAPER** (or your DAW's name), beside **Preview** and **Compare**, moves the DAW to the effect's first word, or says why it cannot. **Backups** shows only with a DAW that keeps
@@ -419,7 +455,7 @@ the take's state (**Active** or **Muted**) under the name.
 
 ![Editing - the Effects tab with a DAW that lists its chains: each has a Favourite button, and the favourites are listed first](../../images/ui/editing-drawer-effects-chains.webp)
 
-![Editing - the Effects tab with two effects on words: the inspector with its Previous and Next arrows and Show in the DAW](../../images/ui/editing-drawer-effects-inspector.webp)
+![Editing - the Effects tab with two effects on words: the inspector with its Previous and Next arrows and Show in REAPER](../../images/ui/editing-drawer-effects-inspector.webp)
 
 ![Editing - the Timeline strip under the text: the takes of the line the cursor is on](../../images/ui/editing-drawer-timeline.webp)
 
@@ -455,9 +491,19 @@ read, select and play; the actions that change the DAW (delete, mute, effects, k
 With no track linked to the chapter there is nothing to edit yet. The legend reads **No audio to edit**, the script shows no
 word as not read, and the dialog described above lists the tracks to link.
 
+A chapter linked to a folder of voice tracks (the Voice folders layout) has its audio on the folder's tracks, nested folders included, so the page reads and plays what is on any of them. Only when none of them holds audio does it say the folder has no audio on any of its voice tracks, and to record the chapter onto a voice track inside the folder and save the project.
+
+In that layout the edits that act on a take where it is (splitting a double read into takes, lowering breaths, repairing a click, an effect on a range, a cut that leaves a gap) work on the voice that read the words. Closing a cut, shortening a gap, replacing words, putting them back, stacking takes and unstacking them move the audio after them on every voice of the folder together, in one undo step, and are refused when another voice has audio inside the stretch that would be removed or replaced, or where stacked reads sit.
+
 ![Editing with no track linked - the dialog naming the chapter and with its track dropdown, the best match chosen](../../images/ui/editing-unlinked.webp)
 
 ![Editing with no track linked, dialog closed - the Not linked to a track mark, and the legend](../../images/ui/editing-unlinked-closed.webp)
+
+## What next
+
+- [Proof](proof.md): every check's notes on the chapter, and your decision on each.
+- [Pickups](pickups.md): the lines to record again, when the edit cannot fix them.
+- [Master & QC](master-and-qc.md): check the finished files against a delivery profile.
 
 ---
 

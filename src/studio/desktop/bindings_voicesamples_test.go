@@ -337,26 +337,30 @@ func TestClearProjectDataRemovesVoiceSamples(t *testing.T) {
 	}
 }
 
-// VoiceSamples.storage accepts only project until the DAW label is built (phase 6): a save of daw or both is refused, and a
-// hand-edited file that holds either reads as project.
-func TestVoiceSamplesStorageSettingAcceptsOnlyProject(t *testing.T) {
+// VoiceSamples.storage accepts project, daw and both (phase 6): a save of anything else is refused, and a hand-edited file that holds
+// anything else reads as project.
+func TestVoiceSamplesStorageSettingAcceptsTheThreeChoices(t *testing.T) {
 	host, project := voiceSamplesHost(t)
 	store := host.services().settings
 	if value, source := store.Effective("VoiceSamples", "storage", ""); value != "project" || source != "repo_default" {
 		t.Fatalf("storage = %q from %s", value, source)
 	}
-	for _, choice := range []string{"daw", "both", "", "elsewhere"} {
+	for _, choice := range []string{"", "elsewhere", "DAW"} {
 		if err := host.saveSettings("VoiceSamples", "project", map[string]*string{"storage": &choice}); err == nil {
 			t.Errorf("saved storage = %q", choice)
 		}
 	}
-	project1 := "project"
-	if err := host.saveSettings("VoiceSamples", "project", map[string]*string{"storage": &project1}); err != nil {
-		t.Fatal(err)
+	for _, choice := range []string{"daw", "both", "project"} {
+		if err := host.saveSettings("VoiceSamples", "project", map[string]*string{"storage": &choice}); err != nil {
+			t.Fatalf("storage = %q: %v", choice, err)
+		}
+		if value, _ := store.Effective("VoiceSamples", "storage", ""); value != choice {
+			t.Fatalf("storage reads %q after saving %q", value, choice)
+		}
 	}
-	writeNested(t, filepath.Join(project, brand.ProjectFolder, "settings.json"), `{"VoiceSamples":{"storage":"daw"}}`)
+	writeNested(t, filepath.Join(project, brand.ProjectFolder, "settings.json"), `{"VoiceSamples":{"storage":"elsewhere"}}`)
 	if value, _ := store.Effective("VoiceSamples", "storage", ""); value != "project" {
-		t.Fatalf("a hand-edited daw reads as %q", value)
+		t.Fatalf("a hand-edited elsewhere reads as %q", value)
 	}
 }
 

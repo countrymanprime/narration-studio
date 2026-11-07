@@ -61,8 +61,53 @@ describe('CleanupAction', () => {
     await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringMatching(/Matched levels on 1 item\./), 'info'));
     expect(screen.queryByRole('alertdialog')).toBeNull();
 
-    // A second preview finds nothing left to match: cleanupActionMock resolves its fixture on Apply.
+    // A second preview finds nothing left to match (the host refuses it in its own words): that is the answer "already level", not a failure (#2827;
+    // the test used to expect the host's sentence as an error toast).
     await user.click(screen.getByRole('button', { name: 'Match levels…' }));
-    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringMatching(/no item on this chapter's linked track/), 'error'));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringMatching(/already within 2\u00a0dB of -20\u00a0dBFS RMS\./), 'info'));
+  });
+
+  it('an empty candidate list says every item is already level and opens no dialog', async () => {
+    const user = userEvent.setup();
+    const { api, notify } = renderAction({ daw: {} });
+    vi.spyOn(api, 'levelMatchPreview').mockResolvedValue({ candidates: [] } as never);
+    const match = await screen.findByRole('button', { name: 'Match levels…' });
+    await waitFor(() => expect(match.getAttribute('aria-disabled')).toBeNull());
+    await user.click(match);
+    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringMatching(/already within/), 'info'));
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+  });
+
+  it('a match that changed nothing says so, and counts the items that moved on', async () => {
+    const user = userEvent.setup();
+    const { api, notify } = renderAction({ daw: {} });
+    vi.spyOn(api, 'levelMatchApply').mockResolvedValue({ changed: [], stale: [{ item: 'g1' }, { item: 'g2' }] } as never);
+    const match = await screen.findByRole('button', { name: 'Match levels…' });
+    await waitFor(() => expect(match.getAttribute('aria-disabled')).toBeNull());
+    await user.click(match);
+    await user.click(await screen.findByRole('button', { name: 'Match' }));
+    await waitFor(() =>
+      expect(notify).toHaveBeenCalledWith(expect.stringMatching(/^No item's level was changed\. 2 items changed in REAPER since the preview/), 'error'),
+    );
+  });
+
+  it('a chapter change closes an open preview, so Match never applies to a chapter it did not preview', async () => {
+    const user = userEvent.setup();
+    const api = createMockApi({}, { daw: {} });
+    const apply = vi.spyOn(api, 'levelMatchApply');
+    const notify = vi.fn();
+    const tree = (id: string) => (
+      <ApiProvider api={api}>
+        <CleanupAction chapterId={id} notify={notify} />
+      </ApiProvider>
+    );
+    const { rerender } = render(tree('chapter-1'));
+    const match = await screen.findByRole('button', { name: 'Match levels…' });
+    await waitFor(() => expect(match.getAttribute('aria-disabled')).toBeNull());
+    await user.click(match);
+    await screen.findByRole('alertdialog', { name: 'Match levels' });
+    rerender(tree('chapter-2'));
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    expect(apply).not.toHaveBeenCalled();
   });
 });

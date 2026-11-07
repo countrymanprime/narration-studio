@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"desktop/internal/trace"
 	"errors"
 	"fmt"
 	"os"
@@ -261,8 +262,9 @@ func (h *Host) startMultiPackage(req MultiPackageRequest) (MultiPackageJob, erro
 	if assemble == nil {
 		assemble = packager.Assemble
 	}
+	started := job.snapshot()
 	go h.runMultiPackage(ctx, job, selections, exportSnapshot.Format, items, filesByEncodedPath, projectFolder, rootDir, assemble)
-	return job.snapshot(), nil
+	return started, nil
 }
 
 // encodeFileFor is encodeFor(format) (export_job.go), unless a test has set h.encodeFile as a seam - the same seam
@@ -320,6 +322,7 @@ func (h *Host) runMultiPackage(
 		var broken error
 		if recovered := recover(); recovered != nil {
 			broken = fmt.Errorf("%v", recovered)
+			h.tracer.Emit(trace.AppPanic, trace.EnumValue("where", "multi_package_job"))
 		}
 		h.finishMultiPackage(job, broken, ctx.Err() != nil)
 	}()

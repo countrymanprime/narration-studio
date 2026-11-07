@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { apiErrorMessage } from '../../api/errorMessage';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useApi } from '../../api/ApiContext';
 import { Button } from '../primitives/Button';
 import { Checkbox } from '../primitives/Checkbox';
@@ -10,49 +11,112 @@ import { ToolResult } from './ToolResult';
 import type { ChapterTagsPreview } from '../../types';
 
 const IDLE: ChapterTagsPreview = { chapters: [], ready: false };
+/** How long an Embed waits for the host before it says so and frees the dialog: a copy of one book's MP3 takes seconds, not minutes. */
+const EMBED_DEADLINE_MS = 60_000;
+/** How long reading the last chapter render waits for the host before it says so and offers Check again. */
+const PREVIEW_DEADLINE_MS = 15_000;
 
 /** Chapter tag embedding. This never talks to REAPER: it reads
  * the last "Prepare chapter render" result (the per-chapter MP3 titles and files) to build a chapter
  * timeline, then writes ID3v2 CHAP/CTOC frames into a NEW copy of a separate, already-rendered combined-book MP3
  * the narrator names below - never into the per-chapter files, and never overwriting the file they name. Reachable
- * from the audio engine panel next to "Link chapters…" and "Prepare chapter render…",
- * not a new nav item. */
+ * from Delivery's Output panel beside the package build, not a new nav item (#2829); it is not a DAW tool and is not in the DAW tools registry. */
 export function ChapterTagsDialog({ onClose }: { onClose: () => void }) {
   const api = useApi();
   const [preview, setPreview] = useState<ChapterTagsPreview>(IDLE);
+  const [reading, setReading] = useState(true);
   const [previewError, setPreviewError] = useState('');
-  const [destPath, setDestPath] = useState('');
-  const [confirmed, setConfirmed] = useState(false);
+  const [destPath, setDestPathState] = useState('');
+  const [confirmed, setConfirmedState] = useState(false);
+  // `embedding` is what the narrator waits on; `inFlight` stays true until the host's call settles, which can be after the deadline freed the dialog.
   const [embedding, setEmbedding] = useState(false);
+  const [inFlight, setInFlight] = useState(false);
   const [outputPath, setOutputPath] = useState('');
   const [embedError, setEmbedError] = useState('');
+  const mounted = useRef(true);
+  const loadRun = useRef(0);
+  const resultRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    let active = true;
-    void api
-      .chapterTagsPreview()
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
+  const load = useCallback(() => {
+    const run = ++loadRun.current;
+    setReading(true);
+    setPreviewError('');
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const deadline = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error('The app did not answer when it read your last chapter render.')), PREVIEW_DEADLINE_MS);
+    });
+    Promise.race([api.chapterTagsPreview(), deadline])
       .then((next) => {
-        if (active) setPreview(next);
+        if (mounted.current && run === loadRun.current) setPreview(next);
       })
       .catch((reason: unknown) => {
-        if (active) setPreviewError(String(reason));
+        if (mounted.current && run === loadRun.current) setPreviewError(apiErrorMessage(reason));
+      })
+      .finally(() => {
+        clearTimeout(timer);
+        if (mounted.current && run === loadRun.current) setReading(false);
       });
-    return () => {
-      active = false;
-    };
   }, [api]);
 
-  const canEmbed = preview.ready && destPath.trim() !== '' && confirmed && !embedding;
+  useEffect(() => load(), [load]);
+
+  // What was written belongs to the destination and confirmation it was written for: changing either takes the old result away.
+  const setDestPath = (next: string) => {
+    setDestPathState(next);
+    setOutputPath('');
+  };
+  const setConfirmed = (next: boolean) => {
+    setConfirmedState(next);
+    setOutputPath('');
+  };
+
+  // The result sits below the fold in a short window: bring it into view.
+  useEffect(() => {
+    if (outputPath || embedError) resultRef.current?.scrollIntoView?.({ block: 'nearest' });
+  }, [outputPath, embedError]);
+
+  // Not `embedding` here: a disabled button drops focus, and the pending state already stops a second press.
+  const canEmbed = preview.ready && destPath.trim() !== '' && confirmed;
+  // After the deadline the first call may still be writing: a second press would write to the same file at the same time.
+  const held = inFlight && !embedding;
 
   const embed = () => {
+    if (inFlight) return;
     setEmbedError('');
     setOutputPath('');
     setEmbedding(true);
+    setInFlight(true);
+    // A host that never answers must not trap the dialog: after the deadline it says so and Close and Escape work again; a late answer is still shown.
+    const timer = setTimeout(() => {
+      if (!mounted.current) return;
+      setEmbedError(
+        'The app did not answer. The copy may still be written, and this dialog shows it if it arrives. Close it, or look in the folder of your MP3.',
+      );
+      setEmbedding(false);
+    }, EMBED_DEADLINE_MS);
     api
-      .chapterTagsEmbed(destPath)
-      .then((result) => setOutputPath(result.outputPath))
-      .catch((reason: unknown) => setEmbedError(String(reason)))
-      .finally(() => setEmbedding(false));
+      .chapterTagsEmbed(destPath.trim())
+      .then((result) => {
+        if (!mounted.current) return;
+        setEmbedError('');
+        setOutputPath(result.outputPath);
+      })
+      .catch((reason: unknown) => {
+        if (mounted.current) setEmbedError(apiErrorMessage(reason));
+      })
+      .finally(() => {
+        clearTimeout(timer);
+        if (!mounted.current) return;
+        setEmbedding(false);
+        setInFlight(false);
+      });
   };
 
   return (
@@ -64,20 +128,32 @@ export function ChapterTagsDialog({ onClose }: { onClose: () => void }) {
       description="Add ID3 chapter markers to a copy of an already-rendered MP3, using the chapter names and lengths from your last chapter render. The file you choose below is never changed; a new, tagged copy is written beside it."
       actions={
         <>
-          {/* Once the tagged copy is written, Close is the next step (ENX-28). */}
+          {/* The header's Close is the dialog's only "Close"; this button is Cancel until the tagged copy is written, then Done, the next step (ENX-28). */}
           <Button variant={outputPath ? 'primary' : 'secondary'} onClick={onClose} disabled={embedding}>
-            Close
+            {outputPath ? 'Done' : 'Cancel'}
           </Button>
-          <Button variant={outputPath ? 'secondary' : 'primary'} onClick={embed} disabled={!canEmbed} pending={embedding}>
+          <Button variant={outputPath ? 'secondary' : 'primary'} onClick={embed} disabled={!canEmbed || held} pending={embedding}>
             Embed chapter tags
           </Button>
         </>
       }
     >
-      {previewError && <ToolResult tone="danger" message={previewError} />}
-      {!previewError && preview.chapters.length === 0 && (
+      {previewError && (
+        <div className="space-y-2">
+          <ToolResult tone="danger" message={previewError} />
+          <Button variant="secondary" size="sm" onClick={load}>
+            Check again
+          </Button>
+        </div>
+      )}
+      {!previewError && reading && (
+        <p className="text-sm" style={{ color: 'var(--text-muted)' }} role="status">
+          Reading your last chapter render&hellip;
+        </p>
+      )}
+      {!previewError && !reading && preview.chapters.length === 0 && (
         <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-          No chapter render is configured yet. Use &ldquo;Prepare chapter render…&rdquo; first.
+          No chapter render is configured yet. Use &ldquo;Prepare chapter render…&rdquo; in DAW tools on Editing, Proof or Master &amp; QC first.
         </p>
       )}
       {preview.chapters.length > 0 && (
@@ -115,12 +191,12 @@ export function ChapterTagsDialog({ onClose }: { onClose: () => void }) {
       </div>
 
       {outputPath && (
-        <div className="mt-4">
+        <div className="mt-4" ref={resultRef}>
           <ToolResult tone="success" message={`Wrote ${outputPath}`} />
         </div>
       )}
       {embedError && (
-        <div className="mt-4">
+        <div className="mt-4" ref={outputPath ? undefined : resultRef}>
           <ToolResult tone="danger" message={embedError} />
         </div>
       )}
