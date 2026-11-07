@@ -247,7 +247,7 @@
       "was": "quality / quick-windows",
       "tier": "pr",
       "workflow": "_quality.yml",
-      "job": "go-test",
+      "job": "test-windows",
       "step": [
         "targets: lint test",
         "projects: reaper",
@@ -263,7 +263,7 @@
       "was": "quality / quick-windows",
       "tier": "post-merge",
       "workflow": "_quality.yml",
-      "job": "go-test",
+      "job": "test-windows",
       "step": [
         "targets: lint test",
         "projects: reaper",
@@ -294,7 +294,7 @@
       "was": "quality / quick-windows",
       "tier": "pr",
       "workflow": "_quality.yml",
-      "job": "go-test",
+      "job": "test-windows",
       "step": [
         "targets: lint",
         "projects: desktop",
@@ -302,8 +302,7 @@
       ],
       "job_has": [
         "runs-on: windows-latest",
-        "lint: true",
-        "need-golangci-lint: ${{ matrix.lint }}"
+        "need-golangci-lint: ${{ matrix.shard == 1 }}"
       ]
     },
     {
@@ -311,37 +310,39 @@
       "was": "quality / go-test (root)",
       "tier": "pr",
       "workflow": "_quality.yml",
-      "job": "go-test",
+      "job": "test-windows",
       "step": [
         "targets: test",
-        "projects: desktop"
+        "projects: desktop",
+        "configuration: ci-root"
       ],
       "job_has": [
-        "configuration: ci-root",
         "runs-on: windows-latest"
-      ]
+      ],
+      "note": "Test (Windows 1/2) runs it (`go test (root)`), with go lint, instead of a job of its own."
     },
     {
       "id": "go-test/rest",
       "was": "quality / go-test (rest)",
       "tier": "pr",
       "workflow": "_quality.yml",
-      "job": "go-test",
+      "job": "test-windows",
       "step": [
         "targets: test",
-        "projects: desktop"
+        "projects: desktop",
+        "configuration: ci-rest"
       ],
       "job_has": [
-        "configuration: ci-rest",
         "runs-on: windows-latest"
-      ]
+      ],
+      "note": "Test (Windows 2/2) runs it (`go test (rest)`), with test-schedules and the Windows harness."
     },
     {
       "id": "go-test/schedules",
       "was": "quality / go-test (rest)",
       "tier": "pr",
       "workflow": "_quality.yml",
-      "job": "go-test",
+      "job": "test-windows",
       "step": [
         "targets: test-schedules",
         "projects: desktop"

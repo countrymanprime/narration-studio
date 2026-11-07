@@ -1,6 +1,6 @@
 name: CI
 # Two tiers (docs/operations/ci-and-releases.md#draft-and-ready-tiers). A draft pull request runs the light tier: the Quality jobs
-# without the Playwright suites, the UI bundle and the Windows build (lint, Test (Linux) without its visual and atlas steps, go-test) and a
+# without the Playwright suites, the UI bundle and the Windows build (lint, Test (Linux) without its visual and atlas steps, Test (Windows)) and a
 # `CI light passed` check. Everything else (a ready pull
 # request, a manual run, main-health) runs the full tier and `CI passed`. `CI passed` is never produced by a light run, so a draft
 # cannot show a green that means less than the full gate.
