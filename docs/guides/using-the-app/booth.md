@@ -9,11 +9,43 @@ opens it on that chapter. What the Booth is reading is part of its address (`/bo
 and a link land on the same chapter. The Booth fills the window and follows the app's theme, light or dark.
 While the chapters are being read, the Booth draws its top bar, text, side panel and footer as grey blocks, and the text appears in their place. If the chapters cannot be read, the page says so instead. A link to a chapter the list does not have shows the same blocks with the Booth title, **Checking this link…** and **Go to Production** (Escape also leaves) while the chapter list is read once more.
 
+This page is for narrators. [Record a chapter](#record-a-chapter) is the short version; the sections after it describe
+each part of the Booth in full, and [If something goes wrong](#if-something-goes-wrong) gathers what stops a take.
+
+## Record a chapter
+
+Before you start: a manuscript is imported, and the project records with REAPER, Audacity or the built-in recorder
+([Getting started](getting-started.md) sets these up). The example records Chapter 1 of a book in REAPER.
+
+1. **Open the Booth on the chapter.** On [Production](production.md), **Start session** opens it on the chapter being
+   recorded. **Record in Booth** on a chapter's card on [Script](script.md) opens it on that chapter, and **Booth** in
+   the sidebar opens it too.
+2. **Check the chip at the top right.** It names the recording setup: **REAPER** once connected, with a note such as
+   **REAPER · not running** while it is not ready. Click it to open the
+   [audio engine panel](navigation.md#the-audio-engine-panel), where you link the project.
+3. **The first time you open a chapter, choose its track.** A dialog titled with the chapter's name and "is not linked
+   to a track" offers **Link track**,
+   with the best match by name chosen, or **Create a new track**, which adds one named after the chapter. Save the
+   REAPER project afterwards so a new track is kept. The built-in recorder needs no track.
+4. **Press Record** (or Space, or Enter, or a foot pedal mapped to Space) and read. The text follows your voice, dims the
+   words behind you, and keeps your place in view. The first take may ask to download the speech model; nothing
+   downloads until you press **Download model**.
+5. **Press Record again to stop.** In a DAW, a **Take saved** message offers **Undo**. The highlight stays on the last word the
+   Booth heard, and the next take starts from there.
+6. **Fix a mistake as you go.** Punch and roll is the narrator's retake: the DAW plays a moment of what you read before
+   and records again from a chosen word. **R** does it from the word you are on: the DAW's cursor goes there and
+   recording starts. Click a word, or use **Start from here**, to choose where.
+7. **Leave** with Escape, which goes to Script. During a take, every way out asks **Stop recording?** first.
+
+[Recording](#recording) has the detail of each step, [Undoing a take](#undoing-a-take) what Undo can take back, and
+[A cold read](#a-cold-read) how to read a passage through without recording it. Recording from the Booth is not
+available in Audacity yet.
+
 ## The page
 
 The top bar holds the chapter stepper (previous chapter, the chapter menu with the opening and closing credits, next chapter),
 where you are (`¶ 14 of 24 · 57% · ~5:53 of audio left`; `At ¶ 14 of 24` once the chapter is recorded to the end), the resume line, and a chip naming the recording setup (the DAW, or the
-built-in recorder). The chip opens the [audio engine panel](navigation.md#the-audio-engine-panel) over the Booth, as the engine chip does on every other page; the take keeps running. The built-in recorder's chip, like the header's **Built-in** chip, opens Settings > Recording & DAW instead, since it has no DAW to link. The chapter is named by its number and title
+built-in recorder). In a window shorter than about 26 rem (416 px), or shorter than 30 rem (480 px) and no wider than 30 rem, the progress line and the key hints under Record are not drawn (a screen reader still has them), so the side panel has room to read. The chip opens the [audio engine panel](navigation.md#the-audio-engine-panel) over the Booth, as the engine chip does on every other page; the take keeps running. The built-in recorder's chip, like the header's **Built-in** chip, opens Settings > Recording & DAW instead, since it has no DAW to link. The chapter is named by its number and title
 (`Chapter 1: Down the Rabbit-Hole`). **Text settings** chooses the font, the same choice as the reader font on
 [Script](script.md), the Booth's text size, 24 to 72 px (the same choice as **Booth text size** in [Settings › Appearance & keys](settings.md)), and the **Column width**, **Narrow**, **Medium**, **Wide** or **Full**,
 the same choice as **Column width** in [Settings › Reader text](settings.md), drawn by the Script's own reading column: centred in the text area, the width's characters a line or the whole text area, whichever is less, so each choice narrows the text equally on both sides and the column follows the window up to that width; **+** and **-** change the size too, and the Booth opens at the size
@@ -134,7 +166,7 @@ caret back brightens those words again.
 ![Booth - six seconds into a take: the words before the caret are dimmed one by one and the text follows the voice](../../images/ui/booth-following.webp)
 
 A chip under the text, above the footer, names each problem the Booth can fix and opens its dialog again. While it is up the
-footer does not repeat the reason, and the setup chip on the top bar warns too:
+footer does not repeat the reason, and the setup chip on the top bar warns too (**REAPER · no track**, **REAPER · several tracks**, **REAPER · other project**, **REAPER · not connected**, **REAPER · not armed** when no track is armed to record on, **REAPER · recording elsewhere** while REAPER records a take this app did not start, or **not running** for a DAW that is not running):
 
 - **Not linked to a track.** The chapter has no track in the DAW project (or several). The dialog opens by itself the first
   time you open the chapter, and again each time you press Record. It offers two fixes:
@@ -158,7 +190,7 @@ footer does not repeat the reason, and the setup chip on the top bar warns too:
   above the footer says so, and a dialog opens by itself once, after the app has had a few seconds to connect on its own; the X
   closes it, and the mark or a press of Record opens it again. The dialog gives the host's reason, what still works, and what
   the app does. **Open in REAPER and connect** opens the linked project in REAPER, or connects the REAPER you already have open.
-  If no REAPER project is linked yet it is off, with **Link in Settings** beside the reason. A refusal or a start that never
+  If no REAPER project is linked yet, **Start REAPER** is off and **Link project file…** is the main button: it is the same link action as the one in [Settings > Recording & DAW](settings.md), and every page follows it without a reload. A refusal or a start that never
   answers is written in the dialog. The Booth never offers the built-in recorder while REAPER is linked.
 
   ![Booth - the REAPER not connected dialog, with the two steps, Open in REAPER and connect and Check again](../../images/ui/booth-record-setup.webp)
@@ -478,6 +510,13 @@ While you read, the Booth marks places where listening suspects something went d
 words or a restart. They are listed in the side panel as cards, a chip naming what was suspected above the line, where **Dismiss** removes one from the list. Every
 one is only suspected: Transcript Compare over the recording is the authority.
 
+With Moonshine as the listening engine and the tiny Whisper model installed, a second listen rechecks each stretch you finish
+reading a few seconds later. A suspicion it also hears gets a **Confirmed** chip, and its hint in the text says "A second listen
+heard it too." A suspicion it does not hear, because it read the script there, gets a **Not confirmed** chip and a dimmed card
+with no Dismiss button, leaves the count, and is no longer marked in the text. A stopped take does not put it on Pickups, and it is
+not kept as a finding. Nothing waits on the second listen: the highlight follows you as before, and without the model or with the
+Whisper engine a suspicion stays as listening raised it.
+
 A dismissal, and the suspected lines a stopped take puts on Pickups, are each one entry in History, so **Undo** in the toast, Ctrl+Z
 and History all take them back.
 
@@ -546,6 +585,26 @@ stops it. The take is held while the question is open. Focus opens on **Keep rec
 when you came in, the Booth did not start that take and does not stop it, and the question says so.
 
 ![Booth - Escape during a take asks "Stop recording?", with the take held until the narrator answers](../../images/ui/booth-flag.webp)
+
+## If something goes wrong
+
+| What you see | What it means and what to do |
+| --- | --- |
+| Record looks off and the footer says why | Press it anyway: it opens the dialog that fixes the problem, or a message with **Check again**. Nothing records. |
+| **Not linked to a track** | The chapter has no track in the DAW project, or several. **Link track** or **Create a new track** ([Recording](#recording)). |
+| **REAPER not connected** or **REAPER not answering** | REAPER is closed or its bridge has not answered. **Open in REAPER and connect** starts it on the linked project. With no project linked yet, **Link project file…** is the main button and links one. |
+| **REAPER has a different project open** | **Link the open project**, or open the linked project in REAPER and press **Check again**. **DAW settings** shows which file is linked. |
+| "REAPER is already recording. Stop it in REAPER before recording here." | A take you started in REAPER is running. Stop it there; Record is ready again at once. |
+| "The text cannot follow your voice yet" | The speech model is not downloaded, or no microphone is listed. The first take asks to download the model; see [The microphone the Booth listens to](#the-microphone-the-booth-listens-to). |
+| **Undo** says to use Edit > Undo in the DAW | You changed something in the DAW after the take, so the app leaves the take alone ([Undoing a take](#undoing-a-take)). |
+| The Booth does not record in Audacity | Recording from the Booth is not available in Audacity yet. Record in Audacity, or choose the built-in recorder in [Settings](settings.md). |
+
+## What next
+
+- [Checking what you recorded](#checking-what-you-recorded): let the app listen back to each take in the background.
+- [Editing](editing.md): a chapter's takes, what was heard against each word, and clean-up.
+- [Proof](proof.md): every check's notes on the recording, and your decision on each.
+- [Pickups](pickups.md): the lines to record again, and a [pickup session](#a-pickup-session) back in the Booth.
 
 ---
 

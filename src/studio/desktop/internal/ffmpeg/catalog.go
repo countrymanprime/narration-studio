@@ -7,6 +7,7 @@ package ffmpeg
 
 import (
 	"context"
+	"desktop/internal/persist"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -230,7 +231,7 @@ var errWrongExecutable = errors.New("the executable in the archive is not the ap
 func keepExecutable(staging string, file File, build Build) ([]assets.ExtractedFile, error) {
 	root := filepath.Join(staging, file.Extract)
 	moved := filepath.Join(staging, ExecutableName+".new")
-	if err := os.Rename(filepath.Join(root, filepath.FromSlash(build.Binary)), moved); err != nil {
+	if err := persist.Rename(filepath.Join(root, filepath.FromSlash(build.Binary)), moved); err != nil {
 		return nil, fmt.Errorf("the archive holds no %s: %w", build.Binary, err)
 	}
 	if err := os.RemoveAll(root); err != nil {
@@ -239,7 +240,7 @@ func keepExecutable(staging string, file File, build Build) ([]assets.ExtractedF
 	if err := os.MkdirAll(root, 0o755); err != nil {
 		return nil, err
 	}
-	if err := os.Rename(moved, filepath.Join(root, ExecutableName)); err != nil {
+	if err := persist.Rename(moved, filepath.Join(root, ExecutableName)); err != nil {
 		return nil, err
 	}
 	kept, err := assets.RecordFile(staging, file.Extract+"/"+ExecutableName)

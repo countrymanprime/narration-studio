@@ -1,6 +1,7 @@
 package assets
 
 import (
+	"desktop/internal/persist"
 	"os"
 	"path/filepath"
 	"sort"
@@ -104,7 +105,7 @@ func cleanAside(dir, name string) bool {
 	aside := filepath.Join(dir, name)
 	target := filepath.Join(dir, base)
 	if _, err := os.Stat(target); os.IsNotExist(err) {
-		_ = os.Rename(aside, target)
+		_ = persist.Rename(aside, target)
 		return false
 	}
 	nanos, err := strconv.ParseInt(stamp, 10, 64)

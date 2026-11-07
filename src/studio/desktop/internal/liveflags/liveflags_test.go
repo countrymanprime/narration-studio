@@ -195,3 +195,38 @@ func TestEveryFlagKindMapsOntoAFindingsCategoryTheContractAccepts(t *testing.T) 
 		t.Errorf("%d kinds mapped, want the tracker's %d", len(kinds), len(want))
 	}
 }
+
+// The trailing confirmation pass (docs/architecture/manuscript-teleprompter.md): a Whisper model rechecked the flag's audio.
+func TestAFlagTheRecheckClearedIsNotKeptAndOneItConfirmedSaysSo(t *testing.T) {
+	flags := []Flag{
+		{Kind: "misread", ParagraphID: "p-1", WordStart: 3, WordEnd: 4, ScriptStart: 7, ScriptEnd: 8, Heard: "begging", Check: CheckCleared},
+		{Kind: "misread", ParagraphID: "p-1", WordStart: 5, WordEnd: 6, ScriptStart: 9, ScriptEnd: 10, Heard: "jet", Check: CheckConfirmed},
+		{Kind: "skipped", ParagraphID: "p-2", WordStart: 0, WordEnd: 1, ScriptStart: 20, ScriptEnd: 21},
+	}
+
+	got, err := ToFindings(testChapter(), testProject, flags)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 2 {
+		t.Fatalf("%d findings, want the confirmed misread and the unchecked skip (the cleared one is dropped)", len(got))
+	}
+	confirmed, unchecked := got[0], got[1]
+	if confirmed.Evidence["recheck"] != CheckConfirmed || !strings.Contains(confirmed.ConfidenceReason, "second recognition pass") {
+		t.Fatalf("a confirmed flag says so in its evidence and reason: %+v / %q", confirmed.Evidence, confirmed.ConfidenceReason)
+	}
+	if _, has := unchecked.Evidence["recheck"]; has || strings.Contains(unchecked.ConfidenceReason, "second recognition pass") {
+		t.Fatalf("an unchecked flag claims no recheck: %+v / %q", unchecked.Evidence, unchecked.ConfidenceReason)
+	}
+	if err := confirmed.Validate(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestAnUnknownCheckStateRejectsTheSave(t *testing.T) {
+	_, err := ToFindings(testChapter(), testProject, []Flag{{Kind: "misread", ParagraphID: "p-1", WordStart: 3, WordEnd: 4, Heard: "x", Check: "maybe"}})
+	if err == nil || !strings.Contains(err.Error(), "maybe") {
+		t.Fatalf("err = %v", err)
+	}
+}

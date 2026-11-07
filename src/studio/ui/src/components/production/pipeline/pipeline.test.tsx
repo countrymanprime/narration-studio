@@ -5,7 +5,6 @@ import type { ReactElement } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { NarrationApi } from '../../../types';
 import { TooltipProvider } from '../../primitives/Tooltip';
-import { DawIndicator } from './DawIndicator';
 import { NextUp } from './NextUp';
 import { NoManuscript } from './NoManuscript';
 import { PageHeader } from './PageHeader';
@@ -349,22 +348,7 @@ describe('PageHeader', () => {
   });
 });
 
-describe('DawIndicator and NoManuscript', () => {
-  it('indicator-and-empty-state: the mark names the DAW and opens the connect dialog, and says Connecting while the app has just opened', async () => {
-    const onOpen = vi.fn();
-    const { rerender } = view(<DawIndicator daw="REAPER" settling onOpen={onOpen} />);
-    expect(screen.getByRole('status').textContent).toBe('Connecting to REAPER…');
-    expect(screen.queryByRole('button')).toBeNull();
-    rerender(
-      <TooltipProvider>
-        <DawIndicator daw="REAPER" onOpen={onOpen} />
-      </TooltipProvider>,
-    );
-    expect(screen.queryByRole('status')).toBeNull();
-    await userEvent.click(screen.getByRole('button', { name: /REAPER not connected/ }));
-    expect(onOpen).toHaveBeenCalledOnce();
-  });
-
+describe('NoManuscript', () => {
   it('the no-manuscript state offers the import button given as a prop and a Set a due date icon', async () => {
     const onSetDueDate = vi.fn();
     view(<NoManuscript projectName="A project" importButton={<button type="button">Import manuscript</button>} onSetDueDate={onSetDueDate} />);

@@ -69,7 +69,7 @@
         "command": "pnpm --dir {projectRoot} run docs:atlas:check"
       },
       "metadata": {
-        "description": "Builds Storybook and fails when docs/ui (the atlas pages and inventory.json) differs from a fresh generation. Run by the ui-atlas CI job; fix with pnpm --dir src/studio/ui docs:atlas."
+        "description": "Builds Storybook and fails when docs/ui (the atlas pages and inventory.json) differs from a fresh generation. Run by shard 1 of the ui-unit CI jobs; fix with pnpm --dir src/studio/ui docs:atlas."
       }
     },
     "atlas": {

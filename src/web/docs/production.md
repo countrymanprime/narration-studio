@@ -10,14 +10,14 @@ Production is the page a project opens on. Its **Chapter pipeline** has one row 
 With no manuscript imported yet, the page is the import.
 
 1. Press **Import manuscript**.
-2. On step 1 of 2, **Choose your manuscript**, drop a .docx, .md or .txt file on the zone or press **Choose a file…**. A copy is kept in your project.
+2. On step 1 of 2, **Choose your manuscript**, drop a .docx, .epub, .md or .txt file on the zone or press **Choose a file…**. A copy is kept in your project.
 3. On step 2 of 2, **Check the chapter outline**, check the proposed chapters. Press a heading's title to preview how it begins.
 4. Change a row's kind if a section is **Front matter** or **Reference material** rather than a narration chapter.
 5. Confirm. The import runs in the background with a live activity log. Press Close when it finishes.
 
 ![Import manuscript, step 2 of 2: the chapter outline with each heading's words and a preview](../../../docs/images/ui/production-import-confirm.webp "Check the chapter outline")
 
-> **Note:** The import does not build the Story Bible. Open [Story Bible](story-bible.md) and use **Scan the manuscript** or **Import entries**.
+> **Note:** When the Story Bible has no entries yet, the import builds it and says what it made. Turn off **Build the Story Bible after import** in Settings to start from an empty one. Later, use **Scan the manuscript** on [Story Bible](story-bible.md).
 
 ## Read where the book stands
 

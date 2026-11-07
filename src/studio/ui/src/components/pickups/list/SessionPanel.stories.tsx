@@ -1,3 +1,5 @@
+import { ApiProvider } from '../../../api/ApiContext';
+import { createMockApi } from '../../../api/mockApi';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, fn, userEvent, within } from 'storybook/test';
 import { ALL_DONE, CHAPTERS, MIXED } from './pickupFixtures';
@@ -14,12 +16,15 @@ const meta = {
     dawName: 'REAPER',
     markers: { available: true },
     onOpenInBooth: fn(),
-    onAddMarkers: fn(),
+    onMarkersAdded: fn(),
   },
+  // The markers button makes the DAW call itself (#2830), so the panel needs the app's api.
   render: (args) => (
-    <div className="max-w-[18rem]">
-      <SessionPanel {...args} />
-    </div>
+    <ApiProvider api={createMockApi()}>
+      <div className="max-w-[18rem]">
+        <SessionPanel {...args} />
+      </div>
+    </ApiProvider>
   ),
 } satisfies Meta<typeof SessionPanel>;
 

@@ -4,8 +4,8 @@ import { IconButton } from '../../primitives/IconButton';
 import './builtinSections';
 import { boothSections, type BoothSideData } from './sections';
 
-/** A click on anything inside one of these keeps the drawer open: the toggle, and the words and notes whose click fills the panel. */
-const KEEP_OPEN = '[data-booth-side-keep],[role="dialog"],[role="menu"],[role="tooltip"]';
+/** A click on anything inside one of these keeps the drawer open: the toggle, the words and notes whose click fills the panel, and a toast (the Undo of a dismissal made in the panel). */
+const KEEP_OPEN = '[data-booth-side-keep],[data-toast-region],[role="dialog"],[role="menu"],[role="tooltip"]';
 
 /**
  * Whether the side panel is open. Above 1280 CSS px it is inline and starts open; at 1280 and below it is a drawer over the text, which

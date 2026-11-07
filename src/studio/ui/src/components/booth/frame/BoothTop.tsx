@@ -7,6 +7,7 @@ import { Slider } from '../../primitives/Slider';
 import { Badge } from '../../primitives/StatusBadge';
 import { READER_FONTS, READER_WIDTHS, widthName } from '../../script/page/tools/text/readerText';
 import { TEXT_SIZE } from '../reading/BoothText';
+import { GIVES_WAY_IN_A_SHORT_WINDOW } from './shortWindow';
 
 /** At the reported width 1280 and below the side panel is a drawer, not a column (the layout class's `medium`). */
 function useSidePanelDrawer(): boolean {
@@ -115,7 +116,8 @@ export function BoothTop({
           className="whitespace-nowrap"
         />
       ) : null}
-      <span id="bprog" className="min-w-0 font-mono text-sm text-[var(--text-muted)]">
+      {/* Not drawn in a short window (still read by a screen reader): it wraps to two rows there, and those rows are what the side panel needs to be readable. */}
+      <span id="bprog" className={`min-w-0 font-mono text-sm text-[var(--text-muted)] ${GIVES_WAY_IN_A_SHORT_WINDOW}`}>
         {progress}
       </span>
       {resume}

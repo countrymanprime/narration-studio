@@ -17,7 +17,7 @@ On every Markdown file the change adds or edits (`docs/`, READMEs, ADRs, PRDs, s
 
 0. **Run `node scripts/ci/docs-slop.mjs`** first. It fails on the plainest filler and prints warnings for words like `robust` and `currently`; the steps below are the judgment it cannot make.
 1. **Read only changed lines and their section.** Do not rewrite untouched prose.
-2. **Mark each sentence** keep, cut or fix. Ask of each: can a reader verify it from code, a command, a test or a link? Would they miss it if it were gone?
+2. **Mark each sentence** keep, cut or fix. Ask of each: can a reader verify it from code, a command, a test or a link? Would the page's reader miss it if it were gone? A newcomer misses a before-you-start line, an example or a what-next link that an expert would not; those stay.
 3. **Cut or fix on a single sighting:**
    - Staged openings: "In today's…", "It is worth noting that…", "It is important to…".
    - Inflation: "plays a crucial role", "serves as", "stands as", "testament", "pivotal".
@@ -28,18 +28,19 @@ On every Markdown file the change adds or edits (`docs/`, READMEs, ADRs, PRDs, s
    - Promises with no check: "ensures", "guarantees" with no test or command named.
 4. **Cut or fix when several appear together** (weak alone): forced triads, "not just X but Y", trailing "-ing" clauses that add significance, em-dash runs, decorative bold, emoji, title-case headings.
 5. **Judgment cuts:**
-   - A first sentence that restates the heading.
+   - A first sentence that restates the heading. A first sentence that says who the page is for and what it gets them is not a restatement; keep it.
    - "This section describes…".
-   - Text that explains what the code already shows.
+   - In code comments and contributor docs, text that explains what the code already shows. A narrator never reads the code, so this cut does not apply to user guides.
    - A section that copies a generated or linked source. Replace it with a link.
    - "Currently", "now", "recently" with no date or version.
    - A "why" paragraph with no source behind it. Cut it, or move the reason to a doc comment beside the code.
 6. **Cut, do not rewrite.** Do not add a fact, name, number or citation. If a sentence needs a source you do not have, mark it `unverified` in your report and leave the choice to the author.
 7. **Leave alone:** code blocks, file paths, link targets, YAML front matter, quotations, ADR titles, product names, and a term the repo defines.
 8. **Report** each cut as `file:line — pattern — action`, then the net lines removed. Restrict findings to inaccuracy, unverifiable claims, redundancy and filler. Do not report style preference.
+9. **Report gaps, do not fill them.** On a user-facing page, run [the review checklist](../docs-style/references/review-checklist.md) and list what the page's reader lacks as `file:line — gap — what is missing` (no example, a step with no result, an unexplained term, no troubleshooting for a likely failure, no `## What next`). Gaps go to the author; this skill still adds no facts.
 
 ## What this skill is not
 
-It is not a fact check against code (that is `doc-impact-check` and review). It does not gate on a count of em dashes or triads. Detectors of AI text are unreliable, so judge each sentence by whether it carries a checkable fact, not by how it sounds.
+It is not a fact check against code (that is `doc-impact-check` and review). It is not a reason to shorten a page that is long because its reader needs it: cut filler, not substance. It does not gate on a count of em dashes or triads. Detectors of AI text are unreliable, so judge each sentence by whether it carries a checkable fact, not by how it sounds.
 
 Patterns are adapted from [Wikipedia: Signs of AI writing](https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing) and [blader/humanizer](https://raw.githubusercontent.com/blader/humanizer/main/SKILL.md). The no-new-facts rule is from the latter.
