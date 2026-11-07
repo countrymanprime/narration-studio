@@ -167,6 +167,8 @@ such note, or one whose note is fixed in the edit (words said and not written), 
 
 The flag card's last button, an icon with the flag, is **Add marker in** your DAW: it puts one marker in the DAW on the note Proof has about the flagged words, the same button, label and gate as on [Proof](proof.md#going-to-a-note-in-the-daw) and [Pickups](pickups.md). A word with no note on Proof has nothing to put a marker on, so the button is off and its hint says so; it is off too, with the DAW's reason, while the DAW cannot add markers.
 
+![Editing - a flagged word's card with its Add marker icon button at the end of the row](../../images/ui/editing-flag-card.webp)
+
 ### A line said twice
 
 Words heard that say the script beside them again are a second take, not words outside the script: a retake of the end of a

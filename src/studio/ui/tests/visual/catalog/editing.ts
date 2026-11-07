@@ -8,6 +8,12 @@ import { KEEPS_DESKTOP_SCROLL, POPUP_ANCHORED_AT_FIRST_WIDTH, REFLOW, TOAST_FADE
 export const editingStates: StateEntry[] = [
   {
     page: 'editing',
+    state: 'flag-card',
+    description:
+      'Editing, a flagged word’s card open under its line - Hear the word, It is right accept, Mark for pickup and the Add marker icon button, the one every page has (#2830)',
+  },
+  {
+    page: 'editing',
     state: 'jump-menu',
     description:
       'Editing, the jump menu typed "selected" with no words selected: the selection actions listed under On this page, each off with "Select some words in the script first."',

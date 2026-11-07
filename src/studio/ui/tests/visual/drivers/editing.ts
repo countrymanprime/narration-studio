@@ -59,6 +59,17 @@ export const editingDrivers: Record<string, Driver> = {
     for (let step = 0; step < 10 && (await card.count()) === 0; step++) await page.keyboard.press(']');
     await card.getByRole('button', { name: /Hear both reads/ }).waitFor();
   },
+  // A flagged word's card with Add marker, the icon button every page's Add marker is (#2830): the flag keys step to a word and Enter opens its card.
+  'flag-card': async (page) => {
+    await openEditing(page, LINKED);
+    const card = page.locator('[data-flagcard]:not([data-flagcard="dup"])');
+    await page.getByRole('textbox', { name: 'Script with what was heard' }).focus();
+    for (let step = 0; step < 10 && (await card.count()) === 0; step++) {
+      await page.keyboard.press(']');
+      await page.keyboard.press('Enter');
+    }
+    await card.getByRole('button', { name: /^Add marker in / }).waitFor();
+  },
   // The menu knows the page: with nothing selected the selection actions are listed off, each with its reason.
   'jump-menu': async (page) => {
     await openEditing(page, LINKED);
