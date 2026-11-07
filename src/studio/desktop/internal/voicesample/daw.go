@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"strings"
+	"time"
 	"unicode"
 
 	"desktop/internal/bridge"
@@ -34,6 +35,15 @@ const regionTolerance = 0.01
 type RegionAdder interface {
 	AddVoiceSampleRegion(ctx context.Context, start, end float64, name string) (dawport.VoiceSampleRegionKept, error)
 }
+
+// RegionRemover is the part of the DAW's VoiceSampleRegionKeeper role that takes a region back. The Regions the host gives is asked
+// whether it is one; a DAW that cannot delete leaves the region where it is.
+type RegionRemover interface {
+	DeleteVoiceSampleRegion(ctx context.Context, number int) (dawport.VoiceSampleRegionRemoved, error)
+}
+
+// regionDeleteTimeout is how long the DAW has to answer a delete before the region is left where it is.
+const regionDeleteTimeout = 10 * time.Second
 
 // DawState says what the DAW's saved project holds for a sample kept in the DAW. Computed on every read, never stored.
 type DawState string
@@ -235,4 +245,92 @@ func (s *Service) addRegion(ctx context.Context, id string, req checked, item tr
 	}
 	region.Number = kept.Number
 	return region, nil
+}
+
+// RegionReader is the part of the DAW's VoiceSampleRegionKeeper role that lists the regions. When the Regions the host gives has it,
+// a region is read back under its number and name before it is deleted.
+type RegionReader interface {
+	ReadVoiceSampleRegions(ctx context.Context) (dawport.VoiceSampleRegions, error)
+}
+
+// dropRegion asks the DAW to delete the region of a sample the store no longer holds (a removed sample, or a mark that could not
+// be written) and answers why the region stays, or "" when it is gone, was already gone, or is no longer ours (the narrator turned it
+// into something else, or deleted it and the DAW reused its number for another sample's region: nothing of ours is left to delete).
+// It never fails what the caller was doing, and the request's cancellation does not reach it.
+func (s *Service) dropRegion(ctx context.Context, region *StoredRegion) string {
+	if region == nil || region.Number < 1 {
+		return ""
+	}
+	remover, ok := s.config.Regions.(RegionRemover)
+	if !ok {
+		return whyRegionStays(dawport.ErrNotSupported)
+	}
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), regionDeleteTimeout)
+	defer cancel()
+	// The store's number is the host's record, and the bridge only checks the prefix: read back what holds the number now, so a number
+	// that moved to another sample's region (or came from a hand-edited store) never deletes a region that is not this sample's.
+	if reader, ok := s.config.Regions.(RegionReader); ok {
+		listed, err := reader.ReadVoiceSampleRegions(ctx)
+		if err != nil {
+			return whyRegionStays(err)
+		}
+		mine := false
+		for _, found := range listed.Regions {
+			if found.Number == region.Number && found.Name == region.Name {
+				mine = true
+			}
+		}
+		if !mine {
+			return ""
+		}
+	}
+	if _, err := remover.DeleteVoiceSampleRegion(ctx, region.Number); err != nil {
+		return whyRegionStays(err)
+	}
+	return ""
+}
+
+// whyRegionStays words, for the end of "... stays in the DAW's project, ...", what kept the DAW from deleting a region.
+func whyRegionStays(err error) string {
+	var refusal *bridge.RefusalError
+	switch {
+	case errors.Is(err, bridge.ErrStale):
+		return ""
+	case errors.Is(err, bridge.ErrRecording):
+		return "because the DAW is recording"
+	case errors.Is(err, dawport.ErrNotSupported):
+		return "because the DAW is not connected"
+	case errors.As(err, &refusal), errors.Is(err, bridge.ErrBadVoiceSampleRegion):
+		return "because the DAW would not delete it"
+	}
+	if _, refused := dawport.RefusedFrom(err); refused {
+		return "because the DAW is not connected"
+	}
+	return "because the DAW did not answer"
+}
+
+// tellRegionsStay tells the narrator that count regions of samples the store no longer holds stay in the DAW's project, and why. The
+// samples themselves are gone whatever the DAW said; only the regions are left, for the narrator to delete there. markFailed words it
+// for the region a mark added before it could not be kept.
+func (s *Service) tellRegionsStay(count int, why string, markFailed bool) {
+	if count == 0 {
+		return
+	}
+	sentence := "The voice sample was removed, but its region stays in the DAW's project, " + why + ". Delete it there if you no longer want it."
+	if count > 1 {
+		sentence = fmt.Sprintf("The voice samples were removed, but %d of their regions stay in the DAW's project, %s. Delete them there if you no longer want them.", count, why)
+	}
+	if markFailed {
+		sentence = "The voice sample could not be kept, but the region it added stays in the DAW's project, " + why + ". Delete it there."
+	}
+	s.config.Reporter.Tell("voice_sample_region_stays", fmt.Sprintf("%d voice sample region(s) left in the DAW project %s", count, why), sentence)
+}
+
+// takeRegionBack deletes the region a mark added when the mark could not be kept (the store would not take the row, or the same range
+// was kept in the meantime), so the project is left as it was. A region the DAW will not delete stays, and the narrator is told; the
+// error the mark answers is the mark's own either way.
+func (s *Service) takeRegionBack(ctx context.Context, region *StoredRegion) {
+	if why := s.dropRegion(ctx, region); why != "" {
+		s.tellRegionsStay(1, why, true)
+	}
 }
