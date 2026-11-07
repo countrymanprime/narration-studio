@@ -6,7 +6,7 @@ What a train worker, resume session or fixer reads: the protocol, the order of w
 
 A worker is one cloud session for one stream. It opens one PR per phase, stacked on the previous one, and never merges.
 
-- **Commit and push after every green step,** not just at the end. A session that dies on a usage limit loses only the work since its last push.
+- **Commit and push after every green step.** A session that dies on a usage limit loses only the work since its last push.
 - **Checkpoints:** before each phase, and before any expensive step (the visual states of a page, a full Go race run, the atlas). At each checkpoint:
   1. Read the train issue's switches and Owner queue, and call `get_session` for your own `rate_limit_info` if the tool is available.
   2. On `HOLD`, `HOLD-UNTIL-RESET`, or RED in your own reading, or `DRAIN` unless you are lane K and the band is not RED: **pause.**
@@ -22,21 +22,21 @@ A worker is one cloud session for one stream. It opens one PR per phase, stacked
   4. Otherwise, continue.
 - **Order of work.** Plan, build the feature set, then test it together, with a cap on fix rounds:
   1. **Plan.** The slice issue holds the plan (the groomer writes it and a fresh subagent reviews it). A job from another source gets a short plan in the Handoff comment: the files, the behaviours the issue asks for and the checks that prove them. For more than a small change, have a fresh subagent review the plan against the issue before you build; it reports gaps, not style.
-  2. **Build** the whole feature set the plan lists, not one test at a time.
+  2. **Build** the whole feature set the plan lists.
   3. **Test.** Write the tests for every behaviour the issue lists. A bug fix is the exception: write the test that reproduces the bug first, because it proves the fix and costs one run.
   4. **Run the targeted checks once, together,** fix every failure they show, and run them again. Stop after three fix-and-run rounds: push what is green, put the failing check and its output in the Handoff comment and the PR body, and end; a fixer takes it.
   5. Never delete, skip or loosen a test to get green. When a test must go (the code it covered was removed or rewritten), say why in the PR body; the intent reviewer checks the reason.
 
-  Tests are the definition of done, not a step-by-step ritual: published guidance asks for a check the agent runs itself, a separate reviewer and a stopping condition, not red-green per test ([Claude Code best practices](https://code.claude.com/docs/en/best-practices), [Building effective agents](https://www.anthropic.com/engineering/building-effective-agents)).
+  Tests are the definition of done. Published guidance asks for a check the agent runs itself, a separate reviewer and a stopping condition ([Claude Code best practices](https://code.claude.com/docs/en/best-practices), [Building effective agents](https://www.anthropic.com/engineering/building-effective-agents)).
 - **Open the PR as soon as the change is pushed (owner rule, 2026-10-18).** Do not wait for local checks to finish or for the owner to ask: open the PR (a draft only if the work is genuinely incomplete), list the checks still running as pending in the body, and update the body as they finish. The owner reviews from the PR, not from the session.
 - **Finishing (D99, one-shot):**
   - Push and open the PR as soon as the change is pushed, report in one short message and end. Do not subscribe to the PR, wait for CI or answer review rounds.
   - Run only the one or two fastest targeted checks. CI is the source of truth.
   - Comment `<ID>: PRs #… opened` on the train issue, then end the turn.
   - A red check, a conflict or a review comment gets a new one-PR fixer session started by the coordinator, never a message into your session.
-- **No resume-in-place:** there is no tool to send a follow-up task into a session that has already finished and gone idle. A stream's next PRD phase (D62) is always a **new** session, branched fresh off the current `main` tip — never a message into the old one. The gain from D62 is launching that new session the moment the phase is ready, not batching it to the next tick; it is not session reuse.
+- **Each phase is a new session.** A stream's next PRD phase (D62) is a new session, branched from the current `main` tip and launched the moment the phase is ready.
 - **Owner steps:** anything needing the owner, REAPER, audio hardware or owner input goes in the train issue's Owner queue as a comment and is marked pending in the PR; the coordinator puts it on the owner board. Never wait for a human.
-- **A missing tool or library is yours to install, not a blocker.** Cloud sessions run as root with `apt-get`, `npm`, `pip`/`uv` and `go` working through the proxy. If a check, hook or build fails because something is not installed, install it and re-run; do not report the check as impossible, skip it, or use `--no-verify`. Example: the pre-commit `check-go` hook and any Go build of `src/studio/desktop` need the Wails GTK libraries; run `apt-get update && apt-get install -y libglib2.0-dev libgtk-4-dev libwebkitgtk-6.0-dev libsoup-3.0-dev librsvg2-dev patchelf` (the same line as `.github/actions/setup-toolchain/action.yml`). Only when the install itself fails, say which package and quote the error (and read `read_documentation` `environment.network` if a host is denied) before you hand the step to someone else.
+- **Install what a check needs.** Cloud sessions run as root with `apt-get`, `npm`, `pip`/`uv` and `go` working through the proxy. If a check, hook or build fails because something is not installed, install it and re-run; do not report the check as impossible, skip it, or use `--no-verify`. Example: the pre-commit `check-go` hook and any Go build of `src/studio/desktop` need the Wails GTK libraries; run `apt-get update && apt-get install -y libglib2.0-dev libgtk-4-dev libwebkitgtk-6.0-dev libsoup-3.0-dev librsvg2-dev patchelf` (the same line as `.github/actions/setup-toolchain/action.yml`). Only when the install itself fails, say which package and quote the error (and read `read_documentation` `environment.network` if a host is denied) before you hand the step to someone else.
 - **Tooling:** the repo's `SessionStart` hook (`scripts/cloud/session-start.sh`, registered in `.claude/settings.json`) installs the pinned toolchain. `.claude/settings.json` allows the build, test and git commands and denies force-pushes and rebases. Workers never edit `.claude/settings.json`; auto mode refuses that as self-modification, so any change to it goes in the Owner queue for the owner.
 
 ## Serial points
@@ -56,7 +56,7 @@ A worker is one cloud session for one stream. It opens one PR per phase, stacked
 
 ## Lanes
 
-A lane is a territory of files. Two workers may share a lane only when their slice issues' `owns` (or, for an older PRD, its Parallel-session table) show they touch disjoint files. D48 on the retired #509 records the check: verify file by file before pairing.
+A lane is a territory of files. Two workers may share a lane only when their slice issues' `owns` (or, for an older PRD, its Parallel-session table) show they touch disjoint files. D48 on #509 records the check: verify file by file before pairing.
 
 | Lane | Owns | Model |
 | --- | --- | --- |
@@ -68,7 +68,7 @@ A lane is a territory of files. Two workers may share a lane only when their sli
 | **D: documents** | PRDs, steady-state docs, ADR bookkeeping, PRD close-outs | Sonnet for PRDs, Haiku for bookkeeping |
 | **X: exclusive** | Refactors of shared files (see [Serial points](#serial-points)) | Opus |
 
-A lane-X stream runs with no other stream that touches the same files. Lanes have no ADR blocks: a slice does not write an ADR.
+A lane-X stream runs with no other stream that touches the same files. A slice writes no ADR.
 
 ## UI PRs update the how-to guide
 
