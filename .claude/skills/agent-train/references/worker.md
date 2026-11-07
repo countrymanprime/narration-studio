@@ -6,17 +6,9 @@ What a train worker, resume session or fixer reads: the protocol, the order of w
 
 A worker is one cloud session for one stream. It opens one PR per phase, stacked on the previous one, and never merges.
 
-<<<<<<< HEAD
 - **Smoke test first.** Before new work, run the one cheapest check that covers the area you start from, on the branch tip: for a resume or a stacked phase, the fastest targeted test of the previous phase's package or page (one `go test` package, one Vitest file or one pytest module); for a fresh slice off `main`, `git status` and the slice's own named first test. A red result comes from earlier work: record it in the Handoff comment and, when it is on your branch, fix it first; when it is on `main`, comment on the train issue and carry on with your slice. Run one check.
-- **Read your slice of the PRD, not all of it.** Start from the slice issue (or the prompt's `SCOPE`) and read the PRD sections it links. With no links, read only: the phase's row in the phase table (its `Depends` and Ports used), its Phase Details paragraph, the Visual Spec section and the open questions that name your phase. List the headings first (`grep -n '^#' <prd>`) and read by line range. Read another section when the work needs it, not up front. If a constraint your slice needs is missing from the sections it cites, say so in the slice's Handoff comment.
-=======
-<<<<<<< HEAD
 - **Read your slice of the PRD.** Start from the slice issue (or the prompt's `SCOPE`) and read the PRD sections it links. With no links, read only: the phase's row in the phase table (its `Depends` and Ports used), its Phase Details paragraph, the Visual Spec section and the open questions that name your phase. List the headings first (`grep -n '^#' <prd>`) and read by line range. Read another section when the work needs it. If a constraint your slice needs is missing from the sections it cites, say so in the slice's Handoff comment.
->>>>>>> c9
-- **Commit and push after every green step,** not just at the end. A session that dies on a usage limit loses only the work since its last push.
-=======
 - **Commit and push after every green step.** A session that dies on a usage limit loses only the work since its last push.
->>>>>>> c7
 - **Checkpoints:** before each phase, and before any expensive step (the visual states of a page, a full Go race run, the atlas). At each checkpoint:
   1. Read the train issue's switches and Owner queue, and call `get_session` for your own `rate_limit_info` if the tool is available.
   2. On `HOLD`, `HOLD-UNTIL-RESET`, or RED in your own reading, or `DRAIN` unless you are lane K and the band is not RED: **pause.**
