@@ -1,6 +1,6 @@
 name: CI
 # Two tiers (docs/operations/ci-and-releases.md#draft-and-ready-tiers). A draft pull request runs the light tier: the Quality jobs
-# without the Playwright suites, the UI bundle and the Windows build (linux-checks, the Vitest half of ui-unit, go-test) and a
+# without the Playwright suites, the UI bundle and the Windows build (lint, Test (Linux) without its visual and atlas steps, go-test) and a
 # `CI light passed` check. Everything else (a ready pull
 # request, a manual run, main-health) runs the full tier and `CI passed`. `CI passed` is never produced by a light run, so a draft
 # cannot show a green that means less than the full gate.
@@ -38,15 +38,15 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { persist-credentials: false }
       # Fails unless quality (every job of _quality.yml, Build (Windows) included) ended success or skipped, then, when the UI was
-      # affected, merges the three Vitest blobs and checks every coverage floor over the whole run, and judges every visual shard's
+      # affected, merges the five Vitest blobs and checks every coverage floor over the whole run, and judges every visual shard's
       # capture records together (src/studio/ui/tests/visual/whole-run.check.ts). Both were jobs of their own; here they save a job's
       # queueing and start-up each. A step that fails fails `CI passed`.
       - uses: ./.github/actions/ci-gate
         with:
           results: ${{ join(needs.*.result, ' ') }}
           expect: '1'
-          vitest-shards: ${{ needs.quality.outputs.vitest-affected == 'true' && '3' || '0' }}
-          visual-shards: ${{ needs.quality.outputs.ui-affected == 'true' && '4' || '0' }}
+          vitest-shards: ${{ needs.quality.outputs.vitest-affected == 'true' && '5' || '0' }}
+          visual-shards: ${{ needs.quality.outputs.ui-affected == 'true' && '5' || '0' }}
 
   # What a draft pull request shows instead of `CI passed`. It sums up only what the light tier ran, and its name says so. It is
   # not a merge condition: marking the pull request ready runs the full tier.
@@ -64,4 +64,4 @@ jobs:
         with:
           results: ${{ join(needs.*.result, ' ') }}
           expect: '1'
-          vitest-shards: ${{ needs.quality.outputs.vitest-affected == 'true' && '3' || '0' }}
+          vitest-shards: ${{ needs.quality.outputs.vitest-affected == 'true' && '5' || '0' }}

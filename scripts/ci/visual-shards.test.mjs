@@ -89,6 +89,15 @@ test('the shard that runs aria gets fewer tests', () => {
   assert.ok(Math.max(...loads.map((load) => load.seconds)) - Math.min(...loads.map((load) => load.seconds)) <= 10);
 });
 
+test('a reserve on the first shard gives it fewer tests and keeps the partition', () => {
+  const all = items(Array.from({ length: 100 }, () => 10));
+  const loads = assign(all, 5, 0, 100);
+  assertPartition(all, loads);
+  assert.ok(loads[0].tests.length < loads[1].tests.length, `shard 1 has ${loads[0].tests.length} tests, shard 2 ${loads[1].tests.length}`);
+  // The reserve counts in the first shard's load, so the five loads still end within one test of each other.
+  assert.ok(Math.max(...loads.map((load) => load.seconds)) - Math.min(...loads.map((load) => load.seconds)) <= 10);
+});
+
 test('assertPartition fails on a missing and on a duplicated test', () => {
   const all = items([5, 4, 3]);
   const loads = assign(all, 2, 0);

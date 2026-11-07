@@ -39,7 +39,7 @@
       "was": "quality / js-test (shard i/3)",
       "tier": "pr",
       "workflow": "_quality.yml",
-      "job": "ui-unit",
+      "job": "test-linux",
       "step": [
         "coverage-gate.mjs vitest src/studio/ui --shard="
       ]
@@ -52,7 +52,7 @@
       "job": "ci-passed",
       "step": [
         "uses: ./.github/actions/ci-gate",
-        "vitest-shards: ${{ needs.quality.outputs.vitest-affected == 'true' && '3' || '0' }}"
+        "vitest-shards: ${{ needs.quality.outputs.vitest-affected == 'true' && '5' || '0' }}"
       ],
       "action_has": {
         "ci-gate": [
@@ -65,7 +65,7 @@
       "was": "quality / ui-visual (shard i/4)",
       "tier": "pr",
       "workflow": "_quality.yml",
-      "job": "ui-visual-shard",
+      "job": "test-linux",
       "step": [
         "run screenshots --test-list"
       ]
@@ -75,7 +75,7 @@
       "was": "quality / ui-visual (shard i/4)",
       "tier": "pr",
       "workflow": "_quality.yml",
-      "job": "ui-visual-shard",
+      "job": "test-linux",
       "step": [
         "run aria"
       ]
@@ -101,9 +101,9 @@
       "was": "quality / ui-atlas (shard i/2)",
       "tier": "pr",
       "workflow": "_quality.yml",
-      "job": "ui-unit",
+      "job": "test-linux",
       "step": [
-        "run atlas --shard=\"$SHARD/3\""
+        "run atlas --shard=\"$SHARD/5\""
       ]
     },
     {
@@ -111,7 +111,7 @@
       "was": "quality / ui-atlas (shard i/2)",
       "tier": "pr",
       "workflow": "_quality.yml",
-      "job": "ui-unit",
+      "job": "test-linux",
       "step": [
         "nx run ui:atlas-docs"
       ]
@@ -121,7 +121,7 @@
       "was": "quality / quick-ubuntu",
       "tier": "pr",
       "workflow": "_quality.yml",
-      "job": "linux-checks",
+      "job": "test-linux",
       "step": [
         "targets: test-node",
         "projects: repo-scripts"
@@ -132,7 +132,7 @@
       "was": "quality / quick-ubuntu",
       "tier": "pr",
       "workflow": "_quality.yml",
-      "job": "linux-checks",
+      "job": "test-linux",
       "step": [
         "targets: test",
         "projects: docs-site"
@@ -155,7 +155,7 @@
       "was": "quality / quick-ubuntu",
       "tier": "pr",
       "workflow": "_quality.yml",
-      "job": "linux-checks",
+      "job": "test-linux",
       "step": [
         "targets: test",
         "projects: tag:toolchain:python,fixtures"
@@ -178,7 +178,7 @@
       "was": "quality / quick-ubuntu",
       "tier": "pr",
       "workflow": "_quality.yml",
-      "job": "linux-checks",
+      "job": "test-linux",
       "step": [
         "targets: test",
         "projects: reaper",
@@ -194,7 +194,7 @@
       "was": "quality / quick-ubuntu",
       "tier": "post-merge",
       "workflow": "_quality.yml",
-      "job": "linux-checks",
+      "job": "test-linux",
       "step": [
         "targets: test",
         "projects: reaper",
@@ -237,7 +237,7 @@
       "was": "quality / rename rehearsal",
       "tier": "pr",
       "workflow": "_quality.yml",
-      "job": "linux-checks",
+      "job": "test-linux",
       "step": [
         "node scripts/brand/rehearse-rename.mjs"
       ]

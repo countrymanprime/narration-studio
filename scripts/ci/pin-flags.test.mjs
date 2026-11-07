@@ -14,13 +14,15 @@ test('no pin bump leaves the families to Nx and keeps the self-scoped jobs', () 
 });
 
 test('a pure pin bump starts only the families of the jobs it reaches', () => {
-  const pins = { kind: 'pins', pure: true, jobs: ['_quality.yml#ui-unit', 'codeql.yml#analyze'] };
-  assert.deepEqual(pinFlags(pins), { ui: true, shell: false, static: false, quickubuntu: false });
+  const pins = { kind: 'pins', pure: true, jobs: ['_quality.yml#test-linux', 'codeql.yml#analyze'] };
+  assert.deepEqual(pinFlags(pins), { ui: true, shell: false, static: false, quickubuntu: true });
+  const ciOnly = { kind: 'pins', pure: true, jobs: ['ci.yml#ci-passed'] };
+  assert.deepEqual(pinFlags(ciOnly), { ui: true, shell: false, static: false, quickubuntu: false });
 });
 
-test('a bump in go-test starts the shell family; a bump in lint or linux-checks runs that job\'s steps', () => {
+test('a bump in go-test starts the shell family; a bump in lint runs its steps; a bump in Test (Linux) starts its shards and quick tests', () => {
   assert.deepEqual(pinFlags({ kind: 'pins', pure: true, jobs: ['_quality.yml#go-test'] }), { ui: false, shell: true, static: false, quickubuntu: false });
-  assert.deepEqual(pinFlags({ kind: 'pins', pure: true, jobs: ['_quality.yml#linux-checks'] }), { ui: false, shell: false, static: false, quickubuntu: true });
+  assert.deepEqual(pinFlags({ kind: 'pins', pure: true, jobs: ['_quality.yml#test-linux'] }), { ui: true, shell: false, static: false, quickubuntu: true });
   assert.deepEqual(pinFlags({ kind: 'pins', pure: true, jobs: ['_quality.yml#lint'] }), { ui: false, shell: false, static: true, quickubuntu: false });
 });
 
@@ -30,7 +32,7 @@ test('both aggregates belong to the ui family, so their download-artifact pins r
 });
 
 test('a pin bump beside other changes keeps the self-scoped jobs', () => {
-  assert.deepEqual(pinFlags({ kind: 'pins', pure: false, jobs: ['_quality.yml#ui-unit'] }), { ui: true, shell: false, static: true, quickubuntu: true });
+  assert.deepEqual(pinFlags({ kind: 'pins', pure: false, jobs: ['_quality.yml#test-linux'] }), { ui: true, shell: false, static: true, quickubuntu: true });
 });
 
 test('the command line reads the classifier output from stdin', () => {
