@@ -911,6 +911,13 @@
   },
   {
     "page": "editing",
+    "state": "flag-card",
+    "viewport": "desktop",
+    "docName": "editing-flag-card",
+    "caption": "Editing - a flagged word's card with its Add marker icon button at the end of the row"
+  },
+  {
+    "page": "editing",
     "state": "read-twice",
     "viewport": "desktop",
     "docName": "editing-read-twice",

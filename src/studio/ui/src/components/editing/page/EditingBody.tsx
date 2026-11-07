@@ -636,6 +636,7 @@ export function EditingBody(props: EditingBodyProps) {
             {flagPara && flagPid === pid && state.flag ? (
               <FlagCard
                 doc={doc}
+                chapterId={chapterId}
                 dp={flagPara}
                 flag={state.flag}
                 score={scoreOf(read, state.flag)}

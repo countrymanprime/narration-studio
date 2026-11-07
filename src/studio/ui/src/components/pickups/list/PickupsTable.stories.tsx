@@ -42,7 +42,7 @@ const meta = {
           dawName="REAPER"
           markers={{ available: args.daw.available }}
           onOpenInBooth={args.onOpenInBooth}
-          onAddMarkers={fn()}
+          onMarkersAdded={fn()}
         />
       </div>
     </ApiProvider>

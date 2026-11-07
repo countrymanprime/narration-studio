@@ -135,7 +135,7 @@ under the list at its own width. From there:
 - **Open N in Booth** opens the Booth on those lines, starting with the first line's chapter (see
   [A pickup session](booth.md#a-pickup-session)). With no lines in the session it is off (outlined), and the line under the
   buttons says why: there are no pickups yet, every line in view is recorded, or every open line is left out.
-- **Add N as markers in** the DAW, the flag beside it, puts a pickup marker at each line's place and says "Pickup markers for N lines are in
+- **Add N as markers in** the DAW (the same button as **Add marker in** on [Proof](proof.md#going-to-a-note-in-the-daw) and on Editing's flag cards), the flag beside it, puts a pickup marker at each line's place and says "Pickup markers for N lines are in
   REAPER." (or that those markers were already there). It is off, with the reason, when the DAW cannot add markers, and with REAPER when no project file is linked (its tooltip and a screen reader's description say "Link a REAPER project (.rpp) file to add markers.", the same ask as the top bar's badge). With
   Audacity the markers are labels on a label track named "<!-- brand:identity.audacityLabelTrack -->Narration Studio<!-- /brand -->", written `[nu:pickup open] …` (and
   `[nu:pickup done] …` once resolved): one label per line, with no colour. Audacity must be

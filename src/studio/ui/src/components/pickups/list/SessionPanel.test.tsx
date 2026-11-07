@@ -2,8 +2,13 @@
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { ApiProvider } from '../../../api/ApiContext';
+import { createMockApi } from '../../../api/mockApi';
+import { DAW_SETUPS } from '../../../fixtures/daw';
 import { OverlayProvider } from '../../../overlay/OverlayProvider';
 import { createOverlayService } from '../../../overlay/overlayService';
+import { createMockDawClient } from '../../../ports/daw';
+import { PortOverrides } from '../../../ports/usePort';
 import { TooltipProvider } from '../../primitives/Tooltip';
 import { ALL_DONE, CHAPTERS, MIXED, SPEECH } from './pickupFixtures';
 import { pickupScript, sessionPickups } from './pickupRows';
@@ -19,24 +24,31 @@ type Props = Parameters<typeof SessionPanel>[0];
 function setup(over: Partial<Props> = {}) {
   const service = createOverlayService();
   const onOpenInBooth = vi.fn();
-  const onAddMarkers = vi.fn().mockResolvedValue(undefined);
+  const onMarkersAdded = vi.fn();
+  // The markers button makes the DAW call itself (#2830): the mock DAW answers it and its spy is what these tests read.
+  const daw = createMockDawClient(DAW_SETUPS.reaper, { chapterIds: [], candidateIds: [], findingIds: [] });
+  const addPickupMarkers = vi.spyOn(daw, 'addPickupMarkers');
   render(
-    <TooltipProvider>
-      <OverlayProvider service={service}>
-        <SessionPanel
-          pickups={MIXED}
-          chapters={CHAPTERS}
-          seconds={{ ok: true, value: 330 }}
-          dawName="REAPER"
-          markers={{ available: true }}
-          onOpenInBooth={onOpenInBooth}
-          onAddMarkers={onAddMarkers}
-          {...over}
-        />
-      </OverlayProvider>
-    </TooltipProvider>,
+    <ApiProvider api={createMockApi()}>
+      <PortOverrides clients={{ daw }}>
+        <TooltipProvider>
+          <OverlayProvider service={service}>
+            <SessionPanel
+              pickups={MIXED}
+              chapters={CHAPTERS}
+              seconds={{ ok: true, value: 330 }}
+              dawName="REAPER"
+              markers={{ available: true }}
+              onOpenInBooth={onOpenInBooth}
+              onMarkersAdded={onMarkersAdded}
+              {...over}
+            />
+          </OverlayProvider>
+        </TooltipProvider>
+      </PortOverrides>
+    </ApiProvider>,
   );
-  return { service, onOpenInBooth, onAddMarkers, user: userEvent.setup(), toasts: () => service.getSnapshot().toasts.map((t) => t.text) };
+  return { service, onOpenInBooth, onMarkersAdded, addPickupMarkers, user: userEvent.setup(), toasts: () => service.getSnapshot().toasts.map((t) => t.text) };
 }
 
 describe('SessionPanel', () => {
@@ -90,32 +102,36 @@ describe('SessionPanel', () => {
   });
 
   it('adds the lines as markers and names the DAW', async () => {
-    const { onAddMarkers, user } = setup({ pickups: MIXED.slice(0, 2) });
-    await user.click(screen.getByRole('button', { name: 'Add 2 as markers in REAPER' }));
-    expect(onAddMarkers).toHaveBeenCalledWith(MIXED.slice(0, 2));
+    const { addPickupMarkers, onMarkersAdded, user } = setup({ pickups: MIXED.slice(0, 2) });
+    await user.click(await screen.findByRole('button', { name: 'Add 2 as markers in REAPER' }));
+    expect(addPickupMarkers.mock.calls[0][0].map((item) => item.ref)).toEqual(MIXED.slice(0, 2).map((p) => p.id));
+    await waitFor(() => expect(onMarkersAdded).toHaveBeenCalledTimes(1));
   });
 
   it('shows the DAW’s refusal of markers as a toast', async () => {
-    const { onAddMarkers, user, toasts } = setup();
-    onAddMarkers.mockRejectedValueOnce(new Error('REAPER refused.'));
-    await user.click(screen.getByRole('button', { name: /^Add \d as markers in REAPER/ }));
+    const { addPickupMarkers, user, toasts } = setup();
+    addPickupMarkers.mockRejectedValueOnce(new Error('REAPER refused.'));
+    await user.click(await screen.findByRole('button', { name: /^Add \d as markers in REAPER/ }));
     await waitFor(() => expect(toasts()).toEqual(['REAPER refused.']));
   });
 
   it('the markers icon is off without the capability, with its sentence', async () => {
-    const { onAddMarkers, user } = setup({ markers: { available: false, message: 'Markers are turned off for REAPER in Settings.' } });
-    const icon = screen.getByRole('button', { name: /as markers in REAPER/ });
+    const { addPickupMarkers, user } = setup({ markers: { available: false, message: 'Markers are turned off for REAPER in Settings.' } });
+    const icon = await screen.findByRole('button', { name: /as markers in REAPER/ });
     expect(icon.getAttribute('aria-disabled')).toBe('true');
-    expect(icon.getAttribute('aria-describedby')).toBe(screen.getByText('Markers are turned off for REAPER in Settings.').id);
+    await user.hover(icon);
+    expect(await screen.findByText('Markers are turned off for REAPER in Settings.')).toBeTruthy();
     await user.click(icon);
-    expect(onAddMarkers).not.toHaveBeenCalled();
+    expect(addPickupMarkers).not.toHaveBeenCalled();
   });
 
-  it('keeps the markers reason out of the page flow: the tooltip and a screen-reader description carry it, so the panel does not grow', () => {
-    setup({ markers: { available: false, message: 'Link a REAPER project (.rpp) file to add markers.' } });
-    const reason = screen.getByText('Link a REAPER project (.rpp) file to add markers.');
-    expect(reason.tagName).toBe('SPAN');
-    expect(reason.className).toContain('sr-only');
+  // The reason is the shared button's tooltip (#2830), not a line of the card, so the card never grows (rule 8).
+  it('keeps the markers reason out of the page flow: only the button’s hint carries it, so the panel does not grow', async () => {
+    const { user } = setup({ markers: { available: false, message: 'Link a REAPER project (.rpp) file to add markers.' } });
+    const icon = await screen.findByRole('button', { name: /as markers in REAPER/ });
+    expect(screen.queryByText('Link a REAPER project (.rpp) file to add markers.')).toBeNull();
+    await user.hover(icon);
+    expect(await screen.findByText('Link a REAPER project (.rpp) file to add markers.')).toBeTruthy();
   });
 
   it('Copy puts the pickup script on the clipboard and says Copied.', async () => {

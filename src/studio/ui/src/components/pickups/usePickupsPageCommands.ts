@@ -1,4 +1,5 @@
 import { usePageCommands, type PageItem } from '../../input/pageCommands';
+import { addMarkersLabel } from '../engine/AddMarkers';
 import type { PickupItem } from '../../api/contracts/pickups';
 import { ALL_SCOPE, clock, lineText, sessionPickups, type ChapterRef } from './list/pickupRows';
 
@@ -82,7 +83,7 @@ export function usePickupsPageCommands(page: {
       },
       {
         id: 'session.markers',
-        label: `Add ${placeable} as markers in ${page.dawName}`,
+        label: addMarkersLabel(page.dawName, { kind: 'pickups', pickups: session }, placeable),
         group: 'Actions',
         icon: 'addMarker',
         disabledReason: page.markers.available

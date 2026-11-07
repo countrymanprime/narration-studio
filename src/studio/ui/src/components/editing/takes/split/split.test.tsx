@@ -49,7 +49,7 @@ function Harness() {
   const doc = dupDoc();
   return (
     <main>
-      <FlagCard doc={doc} dp={doc.paras[1]} flag="dup:p-2" hear={null} accept={vi.fn()} onClose={onClose} />
+      <FlagCard doc={doc} chapterId="c1" dp={doc.paras[1]} flag="dup:p-2" hear={null} accept={vi.fn()} onClose={onClose} />
       <TakeLines
         passage={{ ...singleTakePassage(), id: 'ps-9' }}
         onTake={null}

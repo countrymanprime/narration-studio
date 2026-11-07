@@ -54,6 +54,7 @@ Storybook title: `Primitives/IconButton`. Source: `src/components/primitives/Ico
 - `src/components/editing/takes/TakeCompare.tsx`
 - `src/components/editing/takes/TakeLines.tsx`
 - `src/components/editing/voicesample/VoiceSampleDialog.tsx`
+- `src/components/engine/AddMarkers.tsx`
 - `src/components/engine/AudacityLinkCard.tsx`
 - `src/components/engine/ChapterLinksTable.tsx`
 - `src/components/engine/ChapterSyncPanel.tsx`

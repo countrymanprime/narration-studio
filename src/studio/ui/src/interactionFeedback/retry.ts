@@ -172,6 +172,8 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/engine/ChapterSyncPanel.tsx#1': yes('The chapter sync preview read changes nothing; Retry reads it again.'),
   'src/components/engine/ChapterSyncPanel.tsx#2': no(ED),
   'src/components/engine/ChapterSyncPanel.tsx#3': no(ED),
+  'src/components/engine/AddMarkers.tsx#1': no(BT),
+  'src/components/proof/useNoteContextMenu.ts#1': no(BT),
   'src/components/engine/ShowInDaw.tsx#1': no(BT),
   'src/components/engine/ChapterLinksTable.tsx#1': no(RF),
   'src/components/engine/ChapterLinksTable.tsx#2': no(
@@ -209,7 +211,6 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/pickups/list/AddPickup.tsx#1': no(ED),
   'src/components/pickups/list/PickupsTable.tsx#1': no(ED),
   'src/components/pickups/list/SessionPanel.tsx#1': na(NA),
-  'src/components/pickups/list/SessionPanel.tsx#2': no(ED),
   'src/components/production/ChapterTrackPanel.tsx#1': no(ED),
   'src/components/production/ChapterTrackPanel.tsx#2': no(ED),
   'src/components/production/ChapterTrackPanel.tsx#3': no(BT),

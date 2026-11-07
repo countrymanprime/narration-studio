@@ -1,9 +1,14 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import axe from 'axe-core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
+import { DAW_SETUPS } from '../../../fixtures/daw';
+import { createMockDawClient } from '../../../ports/daw';
+import { PortOverrides } from '../../../ports/usePort';
+import { TooltipProvider } from '../../primitives/Tooltip';
 import { overlay } from '../../../overlay/overlayService';
 import { createJournal, type Journal } from '../../../studio/journal/createJournal';
 import { flagged, type ChapterDoc, type DocItem } from '../model';
@@ -32,21 +37,32 @@ const dupDoc = (): ChapterDoc => {
   return d;
 };
 
-function card(over: Partial<FlagCardProps> & { flag: string }, d: ChapterDoc = doc) {
+function card(over: Partial<FlagCardProps> & { flag: string }, d: ChapterDoc = doc, api = createMockApi()) {
   const key = over.flag.startsWith('dup:') ? over.flag.slice(4) : (d.items[d.index.get(over.flag) ?? 0]?.pid ?? '');
   const dp = d.paras.find((p) => p.p.id === key) ?? d.paras[0];
-  const props: FlagCardProps = { doc: d, dp, score: SCORED, hear: vi.fn(), accept: vi.fn(), onClose: vi.fn(), ...over };
-  render(<FlagCard {...props} />);
-  return props;
+  const props: FlagCardProps = { doc: d, dp, chapterId: 'c1', score: SCORED, hear: vi.fn(), accept: vi.fn(), onClose: vi.fn(), ...over };
+  const daw = createMockDawClient(DAW_SETUPS.reaper, { chapterIds: [], candidateIds: [], findingIds: ['linked'] });
+  // The card's Add marker reads the chapter's notes and the DAW's capabilities (#2830).
+  render(
+    <ApiProvider api={api}>
+      <PortOverrides clients={{ daw }}>
+        <TooltipProvider>
+          <FlagCard {...props} />
+        </TooltipProvider>
+      </PortOverrides>
+    </ApiProvider>,
+  );
+  return { ...props, daw, api };
 }
+/** The card's buttons by their text; the Add marker icon button has none, so it is the empty entry that ends a row. */
 const buttons = (): string[] => screen.getAllByRole('button').map((b) => b.textContent?.trim() ?? '');
 
 describe('one card per kind, with the mock’s answers', () => {
   it.each([
-    ['mis', 'Misread', ['Hear the word', 'It is right, accept', 'Mark for pickup']],
-    ['miss', 'Not read', ['It is right, accept', 'Mark for pickup']],
-    ['low', 'Low confidence', ['Hear the word', 'It is right, accept', 'Mark for pickup']],
-    ['extra', 'Not in the script', ['Hear it', 'Keep this addition', 'Delete words and audio…']],
+    ['mis', 'Misread', ['Hear the word', 'It is right, accept', 'Mark for pickup', '']],
+    ['miss', 'Not read', ['It is right, accept', 'Mark for pickup', '']],
+    ['low', 'Low confidence', ['Hear the word', 'It is right, accept', 'Mark for pickup', '']],
+    ['extra', 'Not in the script', ['Hear it', 'Keep this addition', 'Delete words and audio…', '']],
   ] as const)('%s', (kind, pill, labels) => {
     card({ flag: firstOf(doc, kind).key });
     const note = screen.getByRole('note');
@@ -92,7 +108,7 @@ describe('looking changes nothing', () => {
     const spy = vi.spyOn(api, 'editingAccept');
     const { unmount } = render(
       <ApiProvider api={api}>
-        <FlagCard doc={doc} dp={doc.paras[0]} flag={firstOf(doc, 'mis').key} score={SCORED} hear={null} accept={vi.fn()} onClose={vi.fn()} />
+        <FlagCard doc={doc} chapterId="c1" dp={doc.paras[0]} flag={firstOf(doc, 'mis').key} score={SCORED} hear={null} accept={vi.fn()} onClose={vi.fn()} />
       </ApiProvider>,
     );
     unmount();
@@ -324,5 +340,49 @@ describe('keyboard and announcement', () => {
       const r = await axe.run(screen.getByRole('note'));
       expect(r.violations).toEqual([]);
     }
+  });
+});
+
+describe('Add marker on the card (#2830)', () => {
+  it('puts a marker on the Proof note that names the flagged words, with the one shared button', async () => {
+    const api = createMockApi();
+    const word = firstOf(doc, 'mis');
+    const note = (await api.findingsList({})).findings[0]!;
+    const linked = {
+      ...note,
+      id: 'linked',
+      category: 'transcript_discrepancy',
+      manuscript: { chapter_id: 'c1', expected: word.text, span: { paragraph_id: word.pid } },
+    };
+    vi.spyOn(api, 'findingsList').mockResolvedValue({ findings: [linked], total: 1 });
+    const t = card({ flag: word.key }, doc, api);
+    const addMarker = vi.spyOn(t.daw, 'addMarker');
+    const button = await screen.findByRole('button', { name: 'Add marker in REAPER' });
+    await waitFor(() => expect(button.getAttribute('aria-disabled')).toBeNull());
+    fireEvent.click(button);
+    await waitFor(() => expect(addMarker).toHaveBeenCalledWith('linked'));
+  });
+
+  it('is off, saying why, when no note on Proof names the flagged words', async () => {
+    const api = createMockApi();
+    vi.spyOn(api, 'findingsList').mockResolvedValue({ findings: [], total: 0 });
+    const t = card({ flag: firstOf(doc, 'mis').key }, doc, api);
+    const addMarker = vi.spyOn(t.daw, 'addMarker');
+    const button = await screen.findByRole('button', { name: 'Add marker in REAPER' });
+    await waitFor(() => expect(button.getAttribute('aria-disabled')).toBe('true'));
+    fireEvent.click(button);
+    expect(addMarker).not.toHaveBeenCalled();
+  });
+
+  // qa-breaker (#2830): a failed read of the notes is not the same answer as "no note names these words".
+  it('says the notes could not be read when they could not, not that none names the words', async () => {
+    const api = createMockApi();
+    vi.spyOn(api, 'findingsList').mockRejectedValue(new Error('The findings could not be read.'));
+    card({ flag: firstOf(doc, 'mis').key }, doc, api);
+    const button = await screen.findByRole('button', { name: 'Add marker in REAPER' });
+    await waitFor(() => expect(button.getAttribute('aria-disabled')).toBe('true'));
+    await userEvent.hover(button);
+    expect(await screen.findByText('Could not read the notes on Proof.')).toBeTruthy();
+    expect(screen.queryByText(/No note on Proof names these words/)).toBeNull();
   });
 });
