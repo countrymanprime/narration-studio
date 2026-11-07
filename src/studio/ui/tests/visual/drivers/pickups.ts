@@ -1,7 +1,7 @@
 // How to reach each `pickups` state (the Studio Next Pickups page) in STATE_CATALOG (see app.drivers.ts).
 import type { Locator, Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
-import { type Driver, goToPage, openWithoutManuscript } from './shared';
+import { type Driver, closeDawDialogOnArrival, goToPage, openWithoutManuscript } from './shared';
 
 const list = (page: Page): Locator => page.getByRole('region', { name: 'Pickups' });
 
@@ -21,6 +21,7 @@ async function addByHand(page: Page): Promise<void> {
 }
 
 export const pickupsDrivers: Record<string, Driver> = {
+  'daw-off-closed': (page) => closeDawDialogOnArrival(page, 'Pickups'),
   list: async (page) => {
     await openPickups(page);
     await page.getByRole('heading', { name: 'Pickup session' }).waitFor();

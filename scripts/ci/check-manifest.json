@@ -1,0 +1,353 @@
+{
+  "$comment": "Every check the pull-request CI ran on 2026-11-06 (#3065) and where it runs now. scripts/ci/check-manifest.test.mjs fails when an entry's job or step is gone, when a baseline check has no entry, or when a check moved off the pull request without a safety net. `step`: strings that must all appear in one step of `job`; `job_has`: strings that must appear in the job; `action_has`: strings that must appear in a local composite action (`.github/actions/<name>/action.yml`) the step uses; `tier`: pr (every pull request the check applies to), post-merge (a push to main) or scheduled.",
+  "checks": [
+    {
+      "id": "js-static/ui",
+      "was": "quality / js-static",
+      "tier": "pr",
+      "workflow": "_quality.yml",
+      "job": "linux-checks",
+      "step": [
+        "targets: lint format architecture test-node",
+        "projects: ui"
+      ]
+    },
+    {
+      "id": "js-static/web",
+      "was": "quality / js-static",
+      "tier": "pr",
+      "workflow": "_quality.yml",
+      "job": "linux-checks",
+      "step": [
+        "targets: lint format architecture typecheck test-node test",
+        "projects: web"
+      ]
+    },
+    {
+      "id": "js-static/knip",
+      "was": "quality / js-static",
+      "tier": "pr",
+      "workflow": "_quality.yml",
+      "job": "linux-checks",
+      "step": [
+        "targets: knip",
+        "projects: workspace"
+      ]
+    },
+    {
+      "id": "js-test/vitest-shard",
+      "was": "quality / js-test (shard i/3)",
+      "tier": "pr",
+      "workflow": "_quality.yml",
+      "job": "ui-unit",
+      "step": [
+        "coverage-gate.mjs vitest src/studio/ui --shard="
+      ]
+    },
+    {
+      "id": "js-test/coverage-merge",
+      "was": "quality / js-test",
+      "tier": "pr",
+      "workflow": "ci.yml",
+      "job": "ci-passed",
+      "step": [
+        "uses: ./.github/actions/ci-gate",
+        "vitest-shards: ${{ needs.quality.outputs.vitest-affected == 'true' && '3' || '0' }}"
+      ],
+      "action_has": {
+        "ci-gate": [
+          "coverage-gate.mjs vitest src/studio/ui --merge="
+        ]
+      }
+    },
+    {
+      "id": "ui-visual/screenshots",
+      "was": "quality / ui-visual (shard i/4)",
+      "tier": "pr",
+      "workflow": "_quality.yml",
+      "job": "ui-visual-shard",
+      "step": [
+        "run screenshots --test-list"
+      ]
+    },
+    {
+      "id": "ui-visual/aria",
+      "was": "quality / ui-visual (shard i/4)",
+      "tier": "pr",
+      "workflow": "_quality.yml",
+      "job": "ui-visual-shard",
+      "step": [
+        "run aria"
+      ]
+    },
+    {
+      "id": "ui-visual/whole-run",
+      "was": "CI passed",
+      "tier": "pr",
+      "workflow": "ci.yml",
+      "job": "ci-passed",
+      "step": [
+        "uses: ./.github/actions/ci-gate",
+        "visual-shards:"
+      ],
+      "action_has": {
+        "ci-gate": [
+          "run visual:check-run"
+        ]
+      }
+    },
+    {
+      "id": "ui-atlas/atlas",
+      "was": "quality / ui-atlas (shard i/2)",
+      "tier": "pr",
+      "workflow": "_quality.yml",
+      "job": "ui-unit",
+      "step": [
+        "run atlas --shard=\"$SHARD/3\""
+      ]
+    },
+    {
+      "id": "ui-atlas/atlas-docs",
+      "was": "quality / ui-atlas (shard i/2)",
+      "tier": "pr",
+      "workflow": "_quality.yml",
+      "job": "ui-unit",
+      "step": [
+        "nx run ui:atlas-docs"
+      ]
+    },
+    {
+      "id": "quick-ubuntu/repo-scripts",
+      "was": "quality / quick-ubuntu",
+      "tier": "pr",
+      "workflow": "_quality.yml",
+      "job": "linux-checks",
+      "step": [
+        "targets: test-node",
+        "projects: repo-scripts"
+      ]
+    },
+    {
+      "id": "quick-ubuntu/docs-site",
+      "was": "quality / quick-ubuntu",
+      "tier": "pr",
+      "workflow": "_quality.yml",
+      "job": "linux-checks",
+      "step": [
+        "targets: lint test",
+        "projects: docs-site"
+      ]
+    },
+    {
+      "id": "quick-ubuntu/python",
+      "was": "quality / quick-ubuntu",
+      "tier": "pr",
+      "workflow": "_quality.yml",
+      "job": "linux-checks",
+      "step": [
+        "targets: lint test typecheck",
+        "projects: tag:toolchain:python,fixtures"
+      ]
+    },
+    {
+      "id": "quick-ubuntu/reaper-linux",
+      "was": "quality / quick-ubuntu",
+      "tier": "pr",
+      "workflow": "_quality.yml",
+      "job": "linux-checks",
+      "step": [
+        "targets: lint test",
+        "projects: reaper"
+      ],
+      "job_has": [
+        "runs-on: ubuntu-latest"
+      ]
+    },
+    {
+      "id": "rename-rehearsal",
+      "was": "quality / rename rehearsal",
+      "tier": "pr",
+      "workflow": "_quality.yml",
+      "job": "linux-checks",
+      "step": [
+        "node scripts/brand/rehearse-rename.mjs"
+      ],
+      "job_has": [
+        "need-linux-native-deps: ${{ github.event_name != 'pull_request' }}"
+      ]
+    },
+    {
+      "id": "quick-windows/reaper-windows",
+      "was": "quality / quick-windows",
+      "tier": "pr",
+      "workflow": "_quality.yml",
+      "job": "go-test",
+      "step": [
+        "targets: lint test",
+        "projects: reaper",
+        "configuration: ${{ github.event_name == 'pull_request' && 'pr' || '' }}"
+      ],
+      "job_has": [
+        "runs-on: windows-latest"
+      ],
+      "note": "A pull request runs the characterization tests on Windows (the reaper project's `pr` configuration); the mutation checks on Windows are the entry below."
+    },
+    {
+      "id": "quick-windows/reaper-windows-mutations",
+      "was": "quality / quick-windows",
+      "tier": "post-merge",
+      "workflow": "_quality.yml",
+      "job": "go-test",
+      "step": [
+        "targets: lint test",
+        "projects: reaper",
+        "configuration: ${{ github.event_name == 'pull_request' && 'pr' || '' }}"
+      ],
+      "job_has": [
+        "runs-on: windows-latest"
+      ],
+      "safety_net": "Every run of ci.yml that is not a pull request runs the full harness with mutations on Windows: Main health every 3 hours when main moved, and a red run ticks HOLD on the train issue. The Linux harness runs every mutation check on each pull request (quick-ubuntu/reaper-linux)."
+    },
+    {
+      "id": "quick-windows/reaper-windows-mutations-on-push",
+      "was": "quality / quick-windows",
+      "tier": "post-merge",
+      "workflow": "post-merge.yml",
+      "job": "reaper-windows",
+      "step": [
+        "targets: lint test",
+        "projects: reaper"
+      ],
+      "job_has": [
+        "runs-on: windows-latest"
+      ],
+      "safety_net": "A red run shows on the main commit about 20 minutes after the merge and notifies whoever merged it; Main health runs the same checks every 3 hours when main moved and ticks HOLD; the coordinator fixes forward or reverts the merge (agent-train Safety net)."
+    },
+    {
+      "id": "quick-windows/go-lint",
+      "was": "quality / quick-windows",
+      "tier": "pr",
+      "workflow": "_quality.yml",
+      "job": "go-test",
+      "step": [
+        "targets: lint",
+        "projects: desktop",
+        "configuration: ci"
+      ],
+      "job_has": [
+        "runs-on: windows-latest",
+        "lint: true",
+        "need-golangci-lint: ${{ matrix.lint }}"
+      ]
+    },
+    {
+      "id": "go-test/root",
+      "was": "quality / go-test (root)",
+      "tier": "pr",
+      "workflow": "_quality.yml",
+      "job": "go-test",
+      "step": [
+        "targets: test",
+        "projects: desktop"
+      ],
+      "job_has": [
+        "configuration: ci-root",
+        "runs-on: windows-latest"
+      ]
+    },
+    {
+      "id": "go-test/rest",
+      "was": "quality / go-test (rest)",
+      "tier": "pr",
+      "workflow": "_quality.yml",
+      "job": "go-test",
+      "step": [
+        "targets: test",
+        "projects: desktop"
+      ],
+      "job_has": [
+        "configuration: ci-rest",
+        "runs-on: windows-latest"
+      ]
+    },
+    {
+      "id": "go-test/schedules",
+      "was": "quality / go-test (rest)",
+      "tier": "pr",
+      "workflow": "_quality.yml",
+      "job": "go-test",
+      "step": [
+        "targets: test-schedules",
+        "projects: desktop"
+      ]
+    },
+    {
+      "id": "ui-dist/build",
+      "was": "ui-dist / build",
+      "tier": "pr",
+      "workflow": "_quality.yml",
+      "job": "linux-checks",
+      "step": [
+        "pnpm --dir src/studio/ui run build"
+      ]
+    },
+    {
+      "id": "build-windows",
+      "was": "Build (Windows)",
+      "tier": "pr",
+      "workflow": "_quality.yml",
+      "job": "build-windows",
+      "step": [
+        "uses: ./.github/actions/build-native"
+      ],
+      "job_has": [
+        "runs-on: windows-latest",
+        "needs: linux-checks"
+      ]
+    },
+    {
+      "id": "ci-passed",
+      "was": "CI passed",
+      "tier": "pr",
+      "workflow": "ci.yml",
+      "job": "ci-passed",
+      "step": [
+        "uses: ./.github/actions/ci-gate",
+        "results: ${{ join(needs.*.result, ' ') }}"
+      ]
+    },
+    {
+      "id": "ci-light-passed",
+      "was": "CI light passed",
+      "tier": "pr",
+      "workflow": "ci.yml",
+      "job": "ci-light-passed",
+      "step": [
+        "uses: ./.github/actions/ci-gate",
+        "results: ${{ join(needs.*.result, ' ') }}"
+      ]
+    },
+    {
+      "id": "govulncheck",
+      "was": "Security scan / govulncheck",
+      "tier": "pr",
+      "workflow": "security.yml",
+      "job": "govulncheck",
+      "step": [
+        "govulncheck -C src/studio/desktop"
+      ],
+      "note": "On a pull request only when go.mod, go.sum, scripts/toolchain.json, the SARIF dedupe script, the toolchain action or security.yml change; a code-only change is scanned after the merge (the entry below)."
+    },
+    {
+      "id": "govulncheck/code-change",
+      "was": "Security scan / govulncheck",
+      "tier": "post-merge",
+      "workflow": "security.yml",
+      "job": "govulncheck",
+      "step": [
+        "govulncheck -C src/studio/desktop"
+      ],
+      "safety_net": "security.yml runs on each push to main that touches src/studio/desktop and nightly; a finding is a Code scanning alert on main within minutes of the merge. The scan never failed a pull request (SARIF and a continue-on-error print), so on a pull request it was advisory too."
+    }
+  ]
+}

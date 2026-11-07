@@ -23,5 +23,6 @@ Storybook title: `Primitives/RadioGroup`. Source: `src/components/primitives/Rad
 - `src/components/settings/controls/DefinitionsBody.tsx`
 - `src/components/settings/controls/EngineBody.tsx`
 - `src/components/settings/controls/ProjectBodies.tsx`
+- `src/components/settings/controls/SampleStorageBody.tsx`
 - `src/components/settings/controls/SyncEnabledBody.tsx`
 - `src/components/settings/controls/TakeToneBody.tsx`

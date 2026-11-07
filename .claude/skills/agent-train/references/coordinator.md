@@ -6,10 +6,7 @@ How parallel Claude Code sessions build the planned work around the clock: one *
 
 The worker, resume and fixer prompts are in [templates.md](templates.md). The slice rules are in [groomer.md](groomer.md); the history of the slice model (deviations D-1 to D-11) is in [slice-delivery.md](slice-delivery.md).
 
-It replaces the scheduling rules of the lane train of 2026-09-24:
-
-- **Kept:** D40 (the coordinator merges), D43 (the light merge gate) and D44 (the visual suite and atlas run in full once, at the end); all are in [Owner standing rules](owner-rules.md#owner-standing-rules). D46 (built UI is compared with a standing mock) is retired with the mocks ([References for a job](#references-for-a-job)).
-- **Replaced:** D41 (three lanes) and D45 (hold on credits), by [Lanes](worker.md#lanes) and [Usage and autoscaling](#usage-and-autoscaling) below.
+Decisions D40, D43 and D44 (the merge, the light merge gate, the full visual run at the end) are in [Owner standing rules](owner-rules.md#owner-standing-rules). Lanes are in [worker.md](worker.md#lanes) and usage bands in [Usage and autoscaling](#usage-and-autoscaling).
 
 The work it schedules is the train's goal: the PRDs in `docs/prds/` or the issues the owner names when the train starts, delivered as [slices](groomer.md#slices).
 
@@ -135,7 +132,8 @@ Nobody watches the train live, so these checks run without a person and none of 
 | Check | Where | What it does |
 | --- | --- | --- |
 | **Train health** | `.github/workflows/train-health.yml`, `scripts/ci/train-health.mjs` | Hourly. Warns on #510 once per stall when #509's `Last pass:` line is more than two hours old and `HOLD` is not ticked |
-| **Main health** | `.github/workflows/main-health.yml` | Nightly. Runs the whole of `ci.yml` on `main` (quality, every visual shard, UI bundle, Windows build). On a red run, ticks `HOLD` on #509 and says why. The owner or the coordinator clears it once `main` is green |
+| **Post-merge checks** | `.github/workflows/post-merge.yml` | On each push to `main` that touches what they read, the checks a pull request leaves to `main` (the bridge harness's mutation checks on Windows). A red run shows on the `main` commit; `Main health` runs the same checks and ticks `HOLD`. Fix it forward in one PR, or revert the merge that turned it red when no fix is ready within a pass |
+| **Main health** | `.github/workflows/main-health.yml` | Scheduled every three hours; observed 2 to 3 runs a day, often an hour or two late, so up to about ten hours between runs. Runs the whole of `ci.yml` on `main` (quality, every visual shard, UI bundle, Windows build). On a red run, ticks `HOLD` on #509 and says why. The owner or the coordinator clears it once `main` is green |
 | **Test ratchet** | `.github/workflows/test-ratchet.yml`, `scripts/ci/test-ratchet.mjs` | Advisory. Prints, and raises a warning for, a PR that deletes a test file, adds a skip or focus marker to one, or lowers a coverage floor in `scripts/ci/coverage-floors.json`; it never fails. Runs the base branch's copy of the script. The intent review judges its warnings; the owner never approves a test change |
 | **PR risk** | `.github/workflows/pr-risk.yml`, `scripts/ci/pr-risk.mjs` | Labels a PR `risk:high` when it touches a trust boundary or a file that decides what runs unattended: the workflows, agent config, the threat model, the REAPER bridge, the update and sidecar launch, the release scripts, the pinned toolchain and lockfiles, and these checks. Runs the base branch's copy of the script |
 | **Intent review** | the coordinator, below | A fresh session, not the worker, traces each merge-ready PR back to its issue or PRD phase |
@@ -168,7 +166,7 @@ The Routine fires every 30 minutes (two hourly Routines, 30 minutes apart; D50).
 4. **Merge (D40).** Take bottom PRs (base `main`), oldest first. Merge one only when all of these hold:
    - it is not a draft;
    - it merges cleanly into `main` (D73: it need not contain `main`'s tip). If GitHub reports a conflict, merge `main` into it with `update_pull_request_branch`, or start a fixer when that fails, and wait for its checks on the next pass;
-   - `Build (Windows)` and `ui-dist` succeeded on the head. A docs-only PR needs `Docs / Docs checks` (the link check and the other four docs checks, which run on every PR) instead;
+   - `quality / Build (Windows)` and `quality / linux-checks` (which builds the UI bundle; it was `ui-dist` before #3065) succeeded on the head. A docs-only PR needs `Docs / Docs checks` (the link check and the other four docs checks, which run on every PR) instead;
    - there is no `CHANGES_REQUESTED` review and no unresolved thread whose first comment starts with 🔴;
    - a Claude Approvals check, if present, passes;
    - a UI PR updates its pages' guide text and images, or carries a specific `No guide change:` reason, and states the real-app and Storybook results ([UI PRs update the how-to guide](worker.md#ui-prs-update-the-how-to-guide)). There is no match % bar to check (D97);
@@ -222,13 +220,13 @@ The Launches table and the switches stay in the body as before; the block repeat
 
 ## References for a job
 
-There is no standing mock. The rebuild mock (D98) and the benchmark mocks are retired, and nothing in this skill tells a worker to read them. The coordinator decides what each job builds to: when it launches a worker, the prompt's `REFERENCES` field names each mock, design draft, guide page or doc the job should follow, with one line on what it is for. With none named, a worker builds to its issue, the PRD and the page's current guide in `docs/guides/using-the-app/`. The coordinator picks references when it plans the job, from the PRD's Visual Spec section and any owner-approved drafts, and a PRD names a mock by its path rather than copying it.
+The coordinator decides what each job builds to. Every job builds to its issue, the PRD and the page's current guide in `docs/guides/using-the-app/`; when the coordinator launches a worker, the prompt's `REFERENCES` field adds each mock, design draft, guide page or doc the job follows, with one line on what it is for. The coordinator picks references when it plans the job, from the PRD's Visual Spec section and any owner-approved drafts, and a PRD names a mock by its path rather than copying it.
 
 ## Mockup gates
 
 Some PRDs gate a phase on **owner-approved mockups** in prose (its Phase Details or its Visual Spec section), not just in the `Depends` column. That gate never shows up in the phase table, so before adding a phase to the ready list, check its Phase Details paragraph and the PRD's Visual Spec section, not only `Depends`.
 
-Since D68 (see [Owner standing rules](owner-rules.md#owner-standing-rules)), an existing concept mock no longer gates a phase: the coordinator names it in `REFERENCES` and the worker builds against it. The rules below still apply when a phase has **no** mockup at all.
+Under D68 (see [Owner standing rules](owner-rules.md#owner-standing-rules)), an existing concept mock is a reference: the coordinator names it in `REFERENCES` and the worker builds against it. The rules below apply when a phase needs a mockup that has not been drawn.
 
 When a phase is otherwise ready (`Depends` complete, no file collision) but blocked solely on mockups that don't exist yet or haven't been approved (D61, owner-directed):
 
@@ -247,7 +245,7 @@ When a phase is otherwise ready (`Depends` complete, no file collision) but bloc
 
 Waves order the work, and the coordinator doesn't start a wave until everything it depends on has merged. Inside a wave, the ready-list rules above decide.
 
-The waves that ordered the earlier PRDs (the DAW port, the studio UI primitives, input commands and pedals, the booth, proofing, production and delivery PRDs, and the filler) are retired: those PRDs are deleted ([Lifecycle of a PRD](../../../../docs/prds/README.md#lifecycle-of-a-prd)). A train's queue is its goal, in the order the owner gave or the PRDs' `Depends` imply.
+A train's queue is its goal, in the order the owner gave or the PRDs' `Depends` imply.
 
 **Rules for PRD writers:**
 - Use the template in `docs/prds/README.md`.

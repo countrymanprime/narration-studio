@@ -144,7 +144,7 @@ one: a title before it (Mr Darcy), a speech verb beside it ("said Clara"), or a 
 one paragraph. Mr Darcy, Mr. Darcy and Darcy's are one suggestion; Mr. Bennet and Mrs. Bennet are two. Names with de la or van
 der stay whole. A name it misses can be added by hand or found by the
 better analysis. **Import entries** opens a dialog headed Story Bible, Import entries, with Cancel at its right: a CSV or JSON file of entries you made elsewhere, shown as what it would add
-before it adds anything. **Copy prompt** copies the prompt to give your own LLM with the manuscript, and **Show example** shows the format it answers in. Nothing builds the Story Bible on its own, not even a manuscript import. The quoted lines are
+before it adds anything. **Copy prompt** copies the prompt to give your own LLM with the manuscript, and **Show example** shows the format it answers in. Apart from the import's own build (below), nothing builds the Story Bible on its own. The quoted lines are
 found on their own, though: after a manuscript import and at the end of every scan, each quoted line is matched to a
 speaker where a speech tag names an entry whose type speaks ("Ada said"). Such an entry's name within 70 characters of
 the line is suggested too, as a weaker guess. A name still in Needs Review is never a speaker. Every one of these is a
@@ -162,6 +162,30 @@ list where you accept, edit or reject each one, with the quote it rests on (pres
 Script; a quote whose line the book no longer has is plain text that says so). An entry cannot be marked reviewed while it has suggestions waiting.
 
 ![Story Bible - Needs verification: the suggestions not in the Story Bible yet, each with its score](../../images/ui/storybible-verification.webp)
+
+## Built after an import
+
+When you import a manuscript into a project whose Story Bible has no entries, the app builds it for you, unless
+**Build the Story Bible after import** is off ([Settings](settings.md), **Project**, under **Story Bible**). It reads
+English, and it would rather leave a name for you than file it wrongly:
+
+- A name is a **Character** only when the book shows it is one: it speaks ("said the Hatter"), it has a title (Mr. Darcy),
+  or a verb follows it ("Montmorency barked").
+- A name is a **Place** when its name ends with a word for a place (Toad Hall, Lucas Lodge) or people are at, in or from
+  it (at Kingston).
+- Every other name it finds three times or more waits under **Needs review**, for you to file or delete.
+- A name mentioned only once or twice gets no entry. The message at the end lists the first of them.
+- Words that only look like names never become entries: "I'm", "Oh", "However", "Mr", a day or a month.
+
+The message when it ends says what it did, for example "Story Bible built from the import: 12 characters and 3 places;
+4 names to check under Needs review. Left out, named only once or twice: Bill, Pat and 6 more." Press **Show them** to
+open the list on **Needs review**. It uses the language model when it is installed, and the rules alone when it is not
+(the message then ends "Built without the language model"); it never downloads anything. A Story Bible that already
+has entries is never rebuilt by an import (the message says so): **Scan the manuscript** suggests what is new instead.
+A book it finds no clear names in says so, and a Story Bible file it cannot read is left as it is, with a message. On five public-domain
+books, 99 of the 100 characters it filed were real characters, and it filed about three in four of the main cast; on
+the one book it was not tuned on, 18 of 19 without the language model and 23 of 24 with it
+([the benchmark](../../research/story-bible-build-benchmark.md)).
 
 ## Voice references and dialogue cue attribution
 
@@ -201,6 +225,10 @@ your note. Press the play button to hear it, **Stop** to stop it (so does **Esc*
 first. **Open in Editing** goes to the sample's chapter.
 
 ![Story Bible - the Queen of Hearts entry with four voice samples: the primary, one whose passage changed, one whose audio file is missing](../../images/ui/storybible-voice-samples.webp)
+
+A sample kept in REAPER (**Voice sample storage**, in the Recording & DAW section of [Settings](settings.md)) is a region in REAPER's project. A badge on the row says what REAPER's saved project holds, and hovering it says why: **Region removed** (the sample has ended), **Not saved in REAPER yet** (it plays once you save in REAPER), **Audio missing** or **Project unreadable**. A region you moved plays the audio now under it. A sample kept in both places keeps playing its copy and shows **Region moved**, **Region removed**, **Not saved in REAPER yet** or **Region unchecked**. A character's list scrolls inside its own box once it is long.
+
+![Story Bible - the Queen of Hearts with samples kept in REAPER: Not saved in REAPER yet, Region removed and Region moved](../../images/ui/storybible-voice-samples-daw.webp)
 
 The **⋯** menu on a row has **Rename…** (the label and the note) and **Make primary**, and both work on any entry, locked or not. **Move to a
 character…** and **Delete…** appear only after you press **Edit** on the entry, so a stray click cannot remove a sample; unlock a locked
@@ -243,6 +271,12 @@ The Story Bible page deletes nothing in bulk. To delete this project's Story Bib
 | "The preview voice could not be loaded" | The downloaded voice is damaged or missing files. | In Settings, under TTS, choose "Remove local voice", then press play to download it again. |
 | "The preview took longer than 2m0s and was stopped" | The helper that speaks the name did not finish. | Try again. If it keeps happening, restart the app. |
 | "configure the Manuscript Guide executable" | The helper that builds the Story Bible was not found. | Reinstall the app. A build run from source needs its Manuscript Guide sidecar built first. |
+
+## What next
+
+- [Script](script.md): mark the text and confirm who speaks each line.
+- [Booth](booth.md): record, with each character's notes beside the text.
+- [Settings: Models and downloads](settings.md#models-and-downloads): the language model the scan uses, and the preview voices.
 
 ---
 

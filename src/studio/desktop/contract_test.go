@@ -152,6 +152,21 @@ func TestContractSaveDiagnostics(t *testing.T) {
 	contractfile.Check(t, "system-diagnostics-preview", preview)
 }
 
+// TestContractTraceBatch pins SystemTraceBatch's answer shape.
+func TestContractTraceBatch(t *testing.T) {
+	t.Setenv("APPDATA", t.TempDir())
+	host := newTestHost(t)
+	raw, err := host.SystemTraceBatch(`{"events":[{"event":"ui.nav","fields":{"page":"settings"}},{"event":"daw.client","fields":{}}]}`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var answer map[string]any
+	if err := json.Unmarshal([]byte(raw), &answer); err != nil {
+		t.Fatal(err)
+	}
+	contractfile.Check(t, "system-trace-batch", answer)
+}
+
 // The approved catalogs, built from the repository's real config files with nothing installed, and the install jobs.
 // contractFixture is what the catalog payloads are built from: the registry of approved assets and the settings that say which is selected.
 type contractFixture struct {

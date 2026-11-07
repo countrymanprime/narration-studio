@@ -1,5 +1,14 @@
 import { z } from 'zod';
-import type { Bootstrap, DiagnosticsPreview, HostReady, JobEnded, ProjectAttachState, SaveDiagnosticsResult, WindowZoom } from '../contracts/system';
+import type {
+  Bootstrap,
+  DiagnosticsPreview,
+  HostReady,
+  JobEnded,
+  ProjectAttachState,
+  SaveDiagnosticsResult,
+  TraceBatchResult,
+  WindowZoom,
+} from '../contracts/system';
 import { transcriptStateSchema } from './transcript';
 
 /**
@@ -49,6 +58,9 @@ export const jobEndedSchema = z.object({
   message: z.string(),
   durationMs: z.number(),
 }) satisfies z.ZodType<JobEnded>;
+
+/** SystemTraceBatch's answer. */
+export const traceBatchResultSchema = z.object({ accepted: z.number(), refused: z.number() }) satisfies z.ZodType<TraceBatchResult>;
 
 /** SystemSaveDiagnostics's answer. */
 export const saveDiagnosticsResultSchema = z.object({ path: z.string() }) satisfies z.ZodType<SaveDiagnosticsResult>;

@@ -22,6 +22,7 @@ import type {
   TeleprompterEngine,
   TeleprompterEvent,
   TeleprompterFlag,
+  TeleprompterFlagCheck,
   TeleprompterFlagFinding,
   TeleprompterFlagSave,
   TeleprompterLocateResult,
@@ -62,9 +63,10 @@ const SENTENCE_END = /[.!?…]["'”’)\]]*$/;
 
 /**
  * `ended` is a session that stopped itself at the end of the chapter (the host's auto-stop); `flagged` is `listening`
- * further into the text, with a session's suspected flags already raised.
+ * further into the text, with a session's suspected flags already raised; `checked` is `flagged` after the trailing
+ * confirmation pass has judged two of them: the first confirmed, the last cleared.
  */
-export type TeleprompterSeed = 'listening' | 'waiting' | 'done' | 'ended' | 'flagged';
+export type TeleprompterSeed = 'listening' | 'waiting' | 'done' | 'ended' | 'flagged' | 'checked';
 
 /** `?mockReaperState=`: what `readAloudReaperState` answers for every chapter (each status). */
 export const MOCK_REAPER_SEEDS = ['ready', 'not_armed', 'other_armed', 'several_armed', 'no_link', 'recording_elsewhere', 'unavailable'] as const;
@@ -157,6 +159,12 @@ type Deps = {
   dawRecording?: () => boolean;
   /** Whether the chapter has a link now (the narrator linked or created its track during the session): `no_link` then answers as `ready`. */
   linked?: (chapterId: string) => boolean;
+  /**
+   * Keeps a finding `teleprompterSaveFlags` made in the findings store (the host writes it to the chapter's findings file, where
+   * `findingsReview` finds it) and answers the review the store holds: a decision made there, such as an Undo, outlives the save. Unset,
+   * the saved findings are answered from this mock alone.
+   */
+  keepFlagFinding?: (finding: TeleprompterFlagFinding, dismissed: boolean) => Promise<TeleprompterFlagFinding['review']>;
   dawRecord?: (kind: 'start' | 'stop') => { reason: 'standalone' | 'unlinked' | 'unavailable'; message: string } | null;
 };
 
@@ -416,51 +424,54 @@ const MISREAD_CONFIDENCE_REASON =
  * The mock of `TeleprompterSaveFlags` (`src/studio/desktop/teleprompterflags.go`): the same id rule in spirit (chapter,
  * paragraph, kind and words, so a repeat is one finding), a dismissal kept per id and heard text, and the same record shape.
  */
-function createFlagStore(deps: Pick<Deps, 'chapters' | 'paragraphs'>) {
+function createFlagStore(deps: Pick<Deps, 'chapters' | 'paragraphs' | 'keepFlagFinding'>) {
   const dismissed = new Set<string>();
   return async (chapterId: string, flags: TeleprompterFlagSave[]): Promise<TeleprompterFlagFinding[]> => {
     await Promise.resolve();
     const chapter = deps.chapters().find((item) => item.id === chapterId);
-    return flags.map((flag) => {
-      const paragraph = deps.paragraphs().find((item) => item.id === flag.paragraphId && item.chapterId === chapterId);
-      if (!paragraph) throw new Error(`paragraph "${flag.paragraphId}" is not in chapter "${chapterId}"`);
-      const offsets = wordOffsets(paragraph.text);
-      if (flag.wordStart < 0 || flag.wordEnd <= flag.wordStart || flag.wordEnd > offsets.length)
-        throw new Error(`words [${flag.wordStart}, ${flag.wordEnd}) are not within the paragraph`);
-      const words = offsets.slice(flag.wordStart, flag.wordEnd).map(([from, to]) => paragraph.text.slice(from, to));
-      const extra = flag.kind === 'extra';
-      const start = offsets[flag.wordStart][0];
-      const id = `${chapterId}:${paragraph.id}:${flag.kind}:${flag.wordStart}-${flag.wordEnd}`;
-      const version = flag.heard.trim().toLowerCase();
-      if (flag.dismissed) dismissed.add(`${id}\u001f${version}`);
-      return {
-        schema_version: 1,
-        id,
-        analyzer: 'teleprompter',
-        project: { path: 'C:/Projects/Alice', output_path: `${brand.identity.projectFolder}/findings/teleprompter/${chapterId}.json` },
-        source: {},
-        manuscript: {
-          chapter_id: chapterId,
-          ...(chapter ? { chapter_title: chapter.title } : {}),
-          ...(extra ? {} : { expected: words.join(' ') }),
-          ...(flag.heard ? { recorded: flag.heard } : {}),
-          span: { paragraph_id: paragraph.id, start, end: extra ? start : offsets[flag.wordEnd - 1][1] },
-        },
-        category: flag.kind === 'restart' ? 'pickup' : 'transcript_discrepancy',
-        severity: flag.kind === 'misread' || flag.kind === 'skipped' ? 'warning' : 'info',
-        confidence: flag.kind === 'misread' && flag.heard.trim() ? MOCK_MISREAD_CONFIDENCE : null,
-        evidence_version: `mock:${version}`,
-        confidence_reason: flag.kind === 'misread' && flag.heard.trim() ? MISREAD_CONFIDENCE_REASON : FLAG_CONFIDENCE_REASON,
-        evidence: {
-          kind: flag.kind,
-          heard: flag.heard,
-          suspected: true,
-          script_words: [flag.scriptStart, flag.scriptEnd],
-          ...(extra ? { before: words.join(' ') } : {}),
-        },
-        review: { status: dismissed.has(`${id}\u001f${version}`) ? 'dismissed' : 'unreviewed' },
-      };
-    });
+    return Promise.all(
+      flags.map(async (flag) => {
+        const paragraph = deps.paragraphs().find((item) => item.id === flag.paragraphId && item.chapterId === chapterId);
+        if (!paragraph) throw new Error(`paragraph "${flag.paragraphId}" is not in chapter "${chapterId}"`);
+        const offsets = wordOffsets(paragraph.text);
+        if (flag.wordStart < 0 || flag.wordEnd <= flag.wordStart || flag.wordEnd > offsets.length)
+          throw new Error(`words [${flag.wordStart}, ${flag.wordEnd}) are not within the paragraph`);
+        const words = offsets.slice(flag.wordStart, flag.wordEnd).map(([from, to]) => paragraph.text.slice(from, to));
+        const extra = flag.kind === 'extra';
+        const start = offsets[flag.wordStart][0];
+        const id = `${chapterId}:${paragraph.id}:${flag.kind}:${flag.wordStart}-${flag.wordEnd}`;
+        const version = flag.heard.trim().toLowerCase();
+        if (flag.dismissed && !deps.keepFlagFinding) dismissed.add(`${id}\u001f${version}`);
+        const finding: TeleprompterFlagFinding = {
+          schema_version: 1,
+          id,
+          analyzer: 'teleprompter',
+          project: { path: 'C:/Projects/Alice', output_path: `${brand.identity.projectFolder}/findings/teleprompter/${chapterId}.json` },
+          source: {},
+          manuscript: {
+            chapter_id: chapterId,
+            ...(chapter ? { chapter_title: chapter.title } : {}),
+            ...(extra ? {} : { expected: words.join(' ') }),
+            ...(flag.heard ? { recorded: flag.heard } : {}),
+            span: { paragraph_id: paragraph.id, start, end: extra ? start : offsets[flag.wordEnd - 1][1] },
+          },
+          category: flag.kind === 'restart' ? 'pickup' : 'transcript_discrepancy',
+          severity: flag.kind === 'misread' || flag.kind === 'skipped' ? 'warning' : 'info',
+          confidence: flag.kind === 'misread' && flag.heard.trim() ? MOCK_MISREAD_CONFIDENCE : null,
+          evidence_version: `mock:${version}`,
+          confidence_reason: flag.kind === 'misread' && flag.heard.trim() ? MISREAD_CONFIDENCE_REASON : FLAG_CONFIDENCE_REASON,
+          evidence: {
+            kind: flag.kind,
+            heard: flag.heard,
+            suspected: true,
+            script_words: [flag.scriptStart, flag.scriptEnd],
+            ...(extra ? { before: words.join(' ') } : {}),
+          },
+          review: { status: dismissed.has(`${id}\u001f${version}`) ? 'dismissed' : 'unreviewed' },
+        };
+        return deps.keepFlagFinding ? { ...finding, review: await deps.keepFlagFinding(finding, flag.dismissed) } : finding;
+      }),
+    );
   };
 }
 
@@ -607,6 +618,8 @@ export function createTeleprompterMock(deps: Deps): TeleprompterApi {
   // The flags a `flagged` session raised: the recorded ones (the recording's word numbers counted from the chapter's first
   // paragraph, which is where its 100 words were read), plus an extra, which the recorded session did not raise.
   let seededFlags: TeleprompterFlag[] = [];
+  // What the confirmation pass of a `checked` session said about them (a `flag_check` each), heard after the flags.
+  let seededVerdicts: TeleprompterFlagCheck[] = [];
   const seedState = async () => {
     await deps.ready;
     const chapter = deps.chapters()[0];
@@ -615,19 +628,25 @@ export function createTeleprompterMock(deps: Deps): TeleprompterApi {
     sessionWords = words;
     const firstParagraph = script.spans[1]?.start ?? 0;
     const atEnd = deps.seed === 'done' || deps.seed === 'ended';
-    const into = deps.seed === 'flagged' ? FLAGGED_WORDS_INTO_TEXT : SEED_WORDS_INTO_TEXT;
+    const raisesFlags = deps.seed === 'flagged' || deps.seed === 'checked';
+    const into = raisesFlags ? FLAGGED_WORDS_INTO_TEXT : SEED_WORDS_INTO_TEXT;
     const read = atEnd ? script.tokens : Math.min(firstParagraph + into, script.tokens - 1);
-    const status = deps.seed === 'ended' ? 'done' : deps.seed === 'flagged' ? 'listening' : deps.seed;
+    const status = deps.seed === 'ended' ? 'done' : deps.seed === 'flagged' || deps.seed === 'checked' ? 'listening' : deps.seed;
     state =
       deps.seed === 'ended'
         ? { phase: 'stopped', message: AUTO_STOPPED, engine: 'whisper', chapter: chapter.id, script, position: position(read, status) }
         : { phase: 'running', message: LISTENING, engine: 'whisper', chapter: chapter.id, script, position: position(read, status) };
-    if (deps.seed !== 'flagged') return;
+    if (!raisesFlags) return;
     const recorded = recording.events.flatMap(({ event }) => (event.type === 'flag' ? [event] : []));
     const extra: TeleprompterFlag = { type: 'flag', id: recorded.length + 1, kind: 'extra', start: 55, end: 55, heard: 'um, so' };
     seededFlags = [...recorded, extra]
       .map((flag) => ({ ...flag, start: flag.start + firstParagraph, end: flag.end + firstParagraph }))
       .filter((flag) => flag.end <= read);
+    if (deps.seed === 'checked' && seededFlags.length >= 2)
+      seededVerdicts = [
+        { type: 'flag_check', id: seededFlags[0]!.id, state: 'confirmed' },
+        { type: 'flag_check', id: seededFlags[seededFlags.length - 1]!.id, state: 'cleared' },
+      ];
   };
 
   return {
@@ -757,9 +776,11 @@ export function createTeleprompterMock(deps: Deps): TeleprompterApi {
     subscribeTeleprompterEvent: (onEvent) => {
       eventSubscribers.add(onEvent);
       // A view that opens on a `flagged` session hears the flags it raised so far, as it would have while listening.
-      if (deps.seed === 'flagged')
+      if (deps.seed === 'flagged' || deps.seed === 'checked')
         void (seeding ??= seedState()).then(() => {
-          if (eventSubscribers.has(onEvent)) seededFlags.forEach((flag) => onEvent({ ...flag }));
+          if (!eventSubscribers.has(onEvent)) return;
+          seededFlags.forEach((flag) => onEvent({ ...flag }));
+          seededVerdicts.forEach((verdict) => onEvent({ ...verdict }));
         });
       return () => eventSubscribers.delete(onEvent);
     },

@@ -380,3 +380,37 @@ func TestDiagnosticsBindingsAnswerJSON(t *testing.T) {
 		t.Fatal("DiagnosticsAnalyze with no files was accepted")
 	}
 }
+
+// A check over several chapters judges each against the others: the one far from the rest of the set carries a
+// level_consistency candidate, and a cancelled check compares nothing.
+func TestDiagnosticsRaisesLevelConsistencyForAFileFarFromTheOthers(t *testing.T) {
+	paths := equalSizedFiles(t, "a.wav", "b.wav", "c.wav", "d.wav")
+	host, _ := measureHost(t, paths...)
+	levels := map[string]float64{"a.wav": -20, "b.wav": -20.5, "c.wav": -19.5, "d.wav": -31}
+	host.diagnoseFile = func(_ context.Context, path string, in measure.DiagnosticInput) (measure.Diagnostics, error) {
+		level := levels[filepath.Base(path)]
+		return measure.Diagnostics{File: path, SourceKind: in.SourceKind, DurationSeconds: 2, ShortTermLoudness: []measure.LoudnessPoint{{EndSeconds: 1, LUFS: &level}, {StartSeconds: 1, EndSeconds: 2, LUFS: &level}}}, nil
+	}
+	if _, err := host.startDiagnostics(pickAll(t, host), "processed_render"); err != nil {
+		t.Fatal(err)
+	}
+	job := waitForDiagnostics(t, host)
+
+	if job.Phase != "success" {
+		t.Fatalf("job = %s: %q", job.Phase, job.Message)
+	}
+	for i, file := range job.Files[:3] {
+		if len(file.Findings) != 0 {
+			t.Fatalf("file %d is within the set's level but has %+v", i, file.Findings)
+		}
+	}
+	loud := job.Files[3].Findings
+	// The per-file line says 0 findings the moment the file is checked; the comparison runs after the last file, so the log says
+	// what it added.
+	if !strings.Contains(strings.Join(job.Logs, "\n"), "d.wav: loudness is 11.0 LU quieter than the other files") {
+		t.Fatalf("the log never says the level finding d.wav ended with: %q", job.Logs)
+	}
+	if len(loud) != 1 || loud[0].Category != findings.CategoryLevelConsistency || loud[0].Review.Status != findings.StatusUnreviewed {
+		t.Fatalf("the quiet chapter's findings = %+v, want one unreviewed level_consistency candidate", loud)
+	}
+}

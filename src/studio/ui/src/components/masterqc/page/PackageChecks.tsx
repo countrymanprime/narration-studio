@@ -27,6 +27,7 @@ export function PackageChecks({
   chapters,
   files,
   loading = false,
+  encoded,
   onOpenDelivery,
 }: {
   profile: DeliveryProfile | undefined;
@@ -34,6 +35,8 @@ export function PackageChecks({
   files: readonly MeasureFileResult[];
   /** The profile or the chapters are still being read, so no count is drawn: "0 failing" would read as a pass. */
   loading?: boolean;
+  /** How many chapters are mastered and encoded, which is what Delivery builds from (the mock's "3 of 12 encoded" chip). */
+  encoded?: { done: number; total: number };
   onOpenDelivery: () => void;
 }) {
   const { failing, notReady } = packageCounts(chapters, files);
@@ -67,9 +70,12 @@ export function PackageChecks({
         )}
         {/* The button keeps its own width (a full-width bar was the loudest thing on the stacked page, R4MS1-13) and waits for what it
             summarises. The mock's caption under it ("0 failing and 14 not ready.") only repeated the rows above, so it is gone (R4MS2-4). */}
-        <Button className="mt-4" onClick={onOpenDelivery} disabled={loading}>
-          Open Delivery
-        </Button>
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          {!loading && encoded && <StatusBadge tone="neutral" label={`${encoded.done} of ${encoded.total} encoded`} />}
+          <Button onClick={onOpenDelivery} disabled={loading}>
+            Open Delivery
+          </Button>
+        </div>
       </Panel>
     </aside>
   );

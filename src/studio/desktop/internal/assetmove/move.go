@@ -6,6 +6,7 @@ package assetmove
 import (
 	"context"
 	"crypto/sha256"
+	"desktop/internal/persist"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -362,7 +363,7 @@ func Move(ctx context.Context, plan Plan, report func(Progress)) (err error) {
 		return err
 	}
 	for _, dir := range present {
-		if err = os.Rename(filepath.Join(staging, dir), filepath.Join(target, dir)); err != nil {
+		if err = persist.Rename(filepath.Join(staging, dir), filepath.Join(target, dir)); err != nil {
 			return err
 		}
 		placed = append(placed, dir)

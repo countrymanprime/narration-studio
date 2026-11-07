@@ -1,0 +1,398 @@
+{
+ "book": "The Wind in the Willows, Kenneth Grahame, 1908 (Project Gutenberg #289, GITenberg mirror), all 12 chapters",
+ "note": "Required: a named character or place capitalised at least 3 times in the text. Minor: a real one with fewer mentions; it counts as correct when shown and is not missed when absent. Other: a real named thing that is neither: wrong if shown as a character or place.",
+ "characters": [
+  {
+   "name": "Mole",
+   "aliases": [
+    "Mr. Mole",
+    "Moly",
+    "the Mole",
+    "Poor Mole"
+   ],
+   "required": true
+  },
+  {
+   "name": "Rat",
+   "aliases": [
+    "Water Rat",
+    "Ratty",
+    "Mr. Rat",
+    "the Rat",
+    "the Water Rat"
+   ],
+   "required": true
+  },
+  {
+   "name": "Toad",
+   "aliases": [
+    "Mr. Toad",
+    "Toady",
+    "the Toad",
+    "Honest Toad",
+    "Unhappy Toad"
+   ],
+   "required": true
+  },
+  {
+   "name": "Badger",
+   "aliases": [
+    "Mr. Badger",
+    "the Badger",
+    "BADGER"
+   ],
+   "required": true
+  },
+  {
+   "name": "Otter",
+   "aliases": [
+    "the Otter"
+   ],
+   "required": true
+  },
+  {
+   "name": "Portly",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Chief Weasel",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Sea Rat",
+   "aliases": [
+    "Seafarer",
+    "the Sea Rat"
+   ],
+   "required": true
+  },
+  {
+   "name": "Billy",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "Sigurd",
+   "aliases": [
+    "Sigurd, King of Norway",
+    "King of Norway"
+   ],
+   "required": true
+  },
+  {
+   "name": "Clerk",
+   "aliases": [
+    "Mr. Clerk",
+    "Clerk of the Court"
+   ],
+   "required": true
+  },
+  {
+   "name": "Chairman of the Bench of Magistrates",
+   "aliases": [
+    "Chairman"
+   ],
+   "required": true
+  },
+  {
+   "name": "Emperor",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Empress",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Queen Victoria",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Sergeant",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Engine-driver",
+   "aliases": [
+    "Mr. Engine-driver"
+   ],
+   "required": false
+  },
+  {
+   "name": "Garibaldi",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Kitchener",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Buggins",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Goodman Joseph",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Weasels",
+   "aliases": [
+    "Weasel"
+   ],
+   "required": false
+  },
+  {
+   "name": "Wild Wooders",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Helper",
+   "aliases": [
+    "Friend and Helper"
+   ],
+   "required": false
+  },
+  {
+   "name": "Samuel",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Mary",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Tommy",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Old Burton",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Northmen",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Swifts",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Heroes",
+   "aliases": [],
+   "required": false
+  }
+ ],
+ "places": [
+  {
+   "name": "Toad Hall",
+   "aliases": [
+    "Hall"
+   ],
+   "required": true
+  },
+  {
+   "name": "Wild Wood",
+   "aliases": [
+    "the Wild Wood"
+   ],
+   "required": true
+  },
+  {
+   "name": "River Bank",
+   "aliases": [
+    "the River Bank"
+   ],
+   "required": true
+  },
+  {
+   "name": "Constantinople",
+   "aliases": [],
+   "required": true
+  },
+  {
+   "name": "England",
+   "aliases": [
+    "Merry England"
+   ],
+   "required": true
+  },
+  {
+   "name": "Mole End",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Wide World",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "South",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "River",
+   "aliases": [
+    "the River"
+   ],
+   "required": false
+  },
+  {
+   "name": "London River",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Venice",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Marseilles",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Lisbon",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Sardinia",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Corsica",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Palermo",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Grand Canal",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Alassio",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Oporto",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Levant",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Mediterranean",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Grecian Islands",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Norway",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Spain",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Bordeaux",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Cornwall",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Devon",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Barbary",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Channel",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Red Lion Hotel",
+   "aliases": [
+    "Red Lion"
+   ],
+   "required": false
+  },
+  {
+   "name": "Court House",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Oxford",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Upalong",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Sea",
+   "aliases": [],
+   "required": false
+  },
+  {
+   "name": "Tudor",
+   "aliases": [],
+   "required": false
+  }
+ ],
+ "other": [
+  "Royal Humane Society",
+  "Banquet",
+  "Nature",
+  "College Don",
+  "Ark",
+  "Harvest Home"
+ ]
+}

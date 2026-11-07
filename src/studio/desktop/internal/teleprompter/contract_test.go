@@ -2,9 +2,11 @@ package teleprompter
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 
 	"desktop/internal/contractfile"
@@ -133,4 +135,38 @@ func TestContractTheCreditsScriptEventIsThePinnedOne(t *testing.T) {
 	if want, got := sent(t, []json.RawMessage{pinned}), sent(t, []json.RawMessage{compactLine(scripttrack.ScriptEvent(script))}); !reflect.DeepEqual(want, got) {
 		t.Fatalf("want %v\n got %v", want, got)
 	}
+}
+
+// The confirmation pass's verdict reaches the UI as a flag_check line after the flag it settles (golden: the live flag, then
+// the check that cleared it, then a second segment whose check confirms its flag).
+func TestContractAFlagIsFollowedByTheCheckThatSettlesIt(t *testing.T) {
+	script := scripttrack.ChapterScript{Tokens: strings.Fields("The old lighthouse keeper climbed the spiral stairs each evening. He lit the great lamp and watched the ships pass.")}
+	f := newFollower(script, nil)
+	var lines []json.RawMessage
+	read := func(segment int, words string) {
+		lines = append(lines, f.event(json.RawMessage(fmt.Sprintf(`{"type":"partial","segment":%d,"words":[]}`, segment)))...)
+		for k, w := range strings.Fields(words) {
+			lines = append(lines, f.event(json.RawMessage(fmt.Sprintf(`{"type":"word","segment":%d,"word":%q,"start":%.1f,"end":%.1f}`, segment, w, 0.3*float64(k), 0.3*float64(k)+0.2)))...)
+		}
+		lines = append(lines, f.event(json.RawMessage(fmt.Sprintf(`{"type":"segment_end","segment":%d}`, segment)))...)
+	}
+	check := func(segment int, words string) {
+		parts := []string{}
+		for k, w := range strings.Fields(words) {
+			parts = append(parts, fmt.Sprintf(`{"word":%q,"start":%.1f,"end":%.1f}`, w, 0.3*float64(k), 0.3*float64(k)+0.2))
+		}
+		lines = append(lines, f.check(json.RawMessage(fmt.Sprintf(`{"type":"segment_check","segment":%d,"words":[%s]}`, segment, strings.Join(parts, ","))))...)
+	}
+	read(0, "the old lighthouse keeper climbed the spiral chairs each evening")
+	check(0, "the old lighthouse keeper climbed the spiral stairs each evening")
+	read(1, "he lit the great stove and watched the ships pass")
+	check(1, "he lit the great stove and watched the ships pass")
+
+	var kept []json.RawMessage
+	for _, line := range lines {
+		if kind, _ := isEvent(line); kind == "flag" || kind == "flag_check" {
+			kept = append(kept, line)
+		}
+	}
+	contractfile.Check(t, "teleprompter-flag-check", kept)
 }

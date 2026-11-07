@@ -456,6 +456,12 @@ func scanKey(name string) string {
 // several (Bennet beside Mr. and Mrs. Bennet), a first name joined to the one longer name it starts (Isabel to Isabel de la Cruz),
 // then each kept only on its evidence.
 func scanGroups(paragraphs []ruleParagraph) []*scanGroup {
+	return scanGroupsAccepting(paragraphs, scanAccepts)
+}
+
+// scanGroupsAccepting is scanGroups with accepts deciding which groups the evidence makes names. The confidence rule of an import's
+// build passes a looser test (confidentAccepts, build_confidence.go); the scan's suggestions always use scanAccepts.
+func scanGroupsAccepting(paragraphs []ruleParagraph, accepts func(*scanGroup, wordStats) bool) []*scanGroup {
 	stats := wordStatsOf(paragraphs)
 	var order []string
 	byKey := map[string]*scanGroup{}
@@ -512,7 +518,7 @@ func scanGroups(paragraphs []ruleParagraph) []*scanGroup {
 			}
 		}
 		if len(into) == 1 && (strings.HasSuffix(key, "|") || strings.HasSuffix(into[0], "|"+key[strings.IndexByte(key, '|')+1:])) {
-			if scanAccepts(group, stats) {
+			if accepts(group, stats) {
 				join(into[0], key)
 			} else {
 				delete(byKey, key) // Beautiful, beside Beautiful Soup, is not a name
@@ -521,7 +527,7 @@ func scanGroups(paragraphs []ruleParagraph) []*scanGroup {
 	}
 	var kept []*scanGroup
 	for _, key := range order {
-		if group := byKey[key]; group != nil && scanAccepts(group, stats) {
+		if group := byKey[key]; group != nil && accepts(group, stats) {
 			kept = append(kept, group)
 		}
 	}
@@ -595,8 +601,13 @@ func scanAccepts(group *scanGroup, stats wordStats) bool {
 // scanCandidates are the scan's names as the build reads them: every mention of every group scanGroups keeps, in reading order, each
 // carrying its group so the build keeps the scan's merges.
 func scanCandidates(paragraphs []ruleParagraph) []ruleCandidate {
+	return candidatesOf(scanGroups(paragraphs))
+}
+
+// candidatesOf is every mention of groups as a build's candidate, in reading order, each carrying its group.
+func candidatesOf(groups []*scanGroup) []ruleCandidate {
 	var out []ruleCandidate
-	for _, group := range scanGroups(paragraphs) {
+	for _, group := range groups {
 		for _, m := range group.mentions {
 			out = append(out, ruleCandidate{name: m.spelling, paragraph: m.paragraph, start: m.start, end: m.end, group: group.key})
 		}

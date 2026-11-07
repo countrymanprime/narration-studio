@@ -14,6 +14,8 @@ async function openDelivery(page: Parameters<Driver>[0], query = ''): Promise<vo
     .waitFor();
 }
 
+const multiPanel = (page: Parameters<Driver>[0]) => page.getByRole('region', { name: 'All platforms' });
+
 const buildButton = (page: Parameters<Driver>[0]) => page.getByRole('button', { name: /^Build .* package$/ });
 
 // Opens Delivery booted with everything passing and encoded, and waits for Build to be on.
@@ -36,6 +38,53 @@ async function fillEmbed(page: Parameters<Driver>[0]): Promise<void> {
 }
 
 export const deliveryDrivers: Record<string, Driver> = {
+  'check-running': async (page) => {
+    await openDelivery(page, '?mockMeasure=running');
+    await panelTitled(page, 'Before you build').getByRole('button', { name: 'Check files…' }).click();
+    await page.getByRole('progressbar', { name: 'Measuring' }).waitFor();
+  },
+  'check-cancelled': async (page) => {
+    await openDelivery(page, '?mockMeasure=running');
+    const card = panelTitled(page, 'Before you build');
+    await card.getByRole('button', { name: 'Check files…' }).click();
+    await card.getByRole('button', { name: 'Cancel', exact: true }).click();
+    await card.getByRole('status').waitFor();
+    await card.getByRole('button', { name: /^Re-check \d+ files$/ }).waitFor();
+  },
+  'multi-export-empty': async (page) => {
+    await openDelivery(page);
+    const panel = multiPanel(page);
+    await panel.getByText('Master and encode a chapter first.').waitFor();
+    await scrollToTop(page, panel);
+  },
+  'multi-export-selected': async (page) => {
+    await openReady(page, 'ready');
+    const panel = multiPanel(page);
+    await panel.getByRole('checkbox', { name: 'ACX', exact: true }).click();
+    await panel.getByRole('button', { name: 'Build 1 package' }).waitFor();
+    await scrollToTop(page, panel);
+  },
+  'multi-export-running': async (page) => {
+    await openDelivery(page, '?mockDelivery=ready&mockPackageMulti=running');
+    const panel = multiPanel(page);
+    await panel.getByRole('checkbox', { name: 'ACX', exact: true }).click();
+    await panel.getByRole('button', { name: 'Build 1 package' }).click();
+    await page.getByRole('progressbar', { name: 'Building packages' }).waitFor();
+    await scrollToTop(page, panel);
+  },
+  'multi-export-results': async (page) => {
+    await openDelivery(page, '?mockDelivery=ready&mockDeliveryProfile=custom');
+    // The custom profile fails chapters (the build is off then, like the single one); the project is judged against ACX and both are still listed.
+    await page.getByRole('combobox', { name: /^Delivery profile:/ }).selectOption('acx@2026-09');
+    await page.getByText('Every chapter passes.').waitFor();
+    const panel = multiPanel(page);
+    await panel.getByRole('checkbox', { name: 'ACX', exact: true }).click();
+    await panel.getByRole('checkbox', { name: /^My ACX/ }).click();
+    await panel.getByRole('button', { name: /^Build 2 packages/ }).click();
+    // Each platform's result sits under its own checkbox; the job's own line says the build ended.
+    await panel.getByText(/^Built 2 packages/).waitFor();
+    await scrollToTop(page, panel);
+  },
   // Embed chapter tags (#2829): the dialog opened from the Output panel's button, whatever the build says.
   'chapter-tags-idle': async (page) => {
     await openDelivery(page);

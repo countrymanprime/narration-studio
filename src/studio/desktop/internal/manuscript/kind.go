@@ -2,6 +2,7 @@ package manuscript
 
 import (
 	"desktop/internal/brand"
+	"desktop/internal/persist"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -107,13 +108,8 @@ func replaceManuscript(path string, data map[string]any) error {
 	if err != nil {
 		return err
 	}
-	temporary := path + ".tmp"
-	if err := os.WriteFile(temporary, encoded, 0o600); err != nil {
+	if err := persist.WriteFile(path, encoded, 0o600); err != nil {
 		return fmt.Errorf("could not write the manuscript: %w", err)
-	}
-	if err := os.Rename(temporary, path); err != nil {
-		_ = os.Remove(temporary)
-		return fmt.Errorf("could not replace the manuscript: %w", err)
 	}
 	return nil
 }

@@ -8,7 +8,7 @@ paths:
 
 ## What a page builds to
 
-There is no standing mock: the rebuild mock and the benchmark mocks are retired (2026-11-06), and nothing here asks you to read them. A page builds to its issue or PRD, its current guide in `docs/guides/using-the-app/`, and any mock or design draft the issue, the PRD or the agent train's coordinator names for that job. Compare light to light and dark to dark, and match layout and style, not a mock's sample data. In the PR that replaces a page, remove the old equivalent of what it replaces.
+A page builds to its issue or PRD, its current guide in `docs/guides/using-the-app/`, and any mock or design draft the issue, the PRD or the agent train's coordinator names for that job. Compare light to light and dark to dark, and match layout and style, not a mock's sample data. In the PR that replaces a page, remove the old equivalent of what it replaces.
 
 ## A UI change updates its page's guide
 

@@ -1,3 +1,4 @@
+import { apiErrorMessage } from '../../api/errorMessage';
 import { useEffect, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTriangleExclamation } from '@fortawesome/free-solid-svg-icons';
@@ -123,7 +124,7 @@ function EnginePanelBody({ notify, link, onOpenRecordingSettings }: { notify: No
         if (active) setDiscovery(next);
       })
       .catch((reason) => {
-        if (active) setError(String(reason));
+        if (active) setError(apiErrorMessage(reason));
       });
     return () => {
       active = false;
@@ -142,7 +143,7 @@ function EnginePanelBody({ notify, link, onOpenRecordingSettings }: { notify: No
         }
       })
       .catch((reason) => {
-        if (active) setError(String(reason));
+        if (active) setError(apiErrorMessage(reason));
       });
     return () => {
       active = false;
@@ -154,7 +155,7 @@ function EnginePanelBody({ notify, link, onOpenRecordingSettings }: { notify: No
     void api
       .tracksSelect(path)
       .then((next) => setDiscovery(next))
-      .catch((reason) => setError(String(reason)));
+      .catch((reason) => setError(apiErrorMessage(reason)));
   };
 
   const hasTracks = !!project && project.tracks.length > 0;

@@ -28,5 +28,4 @@ Storybook title: `Connection/ConnectionResolveDialog`. Source: `src/components/c
 ## Used by
 
 - `src/components/booth/record/RecordSetup.tsx`
-- `src/components/editing/EditingPage.tsx`
-- `src/components/production/ProductionPage.tsx`
+- `src/components/connection/useDawConnection.tsx`

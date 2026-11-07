@@ -44,7 +44,7 @@ export function ChapterStepper({
     // The tip says why the arrow is off, or the key that does the same; with neither it is just the name.
     const reason = disabled ?? (atEnd ? (direction === -1 ? 'This is the first chapter' : 'This is the last chapter') : undefined);
     return (
-      <TooltipTarget text={reason ?? (key ? `${name} (${key})` : name)}>
+      <TooltipTarget text={reason ?? (key ? `${name} (${key})` : name)} className="flex-none">
         <IconButton label={name} disabledReason={reason} onClick={() => onStep(direction)}>
           <Icon name={icon} />
         </IconButton>
@@ -81,7 +81,14 @@ export function ChapterStepper({
     <div role="group" aria-label="Chapter" className="flex max-w-full min-w-0 items-center gap-1">
       {arrow(-1, 'Previous chapter', 'previousChapter', stepKeys?.[0], !isAll && index <= 0)}
       <BaseMenu.Root modal={false} disabled={disabled !== undefined}>
-        {disabled === undefined ? trigger : <TooltipTarget text={disabled}>{trigger}</TooltipTarget>}
+        {/* The hint's wrapper is the picker's flex item while a take runs: it must shrink too, or a long name pushes Next off the bar (#3175). */}
+        {disabled === undefined ? (
+          trigger
+        ) : (
+          <TooltipTarget text={disabled} className="max-w-full min-w-0">
+            {trigger}
+          </TooltipTarget>
+        )}
         <BaseMenu.Portal>
           <BaseMenu.Positioner side="bottom" align="start" sideOffset={6} collisionPadding={8} className="z-[var(--z-popover)]">
             <BaseMenu.Popup

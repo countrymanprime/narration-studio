@@ -12,6 +12,7 @@ import type { ContextMenuItem } from '../primitives/ContextMenu';
 import type { Notify } from '../primitives/Toast';
 import { creditsCheckKind } from './recordingCheckText';
 import { ChapterTrackPanel } from './ChapterTrackPanel';
+import { showInDaw, showInDawLabel } from '../engine/ShowInDaw';
 import { CreditsRowPanel } from './CreditsRowPanel';
 import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
 import { RemovedFromRecordingList } from './RemovedFromRecordingList';
@@ -42,7 +43,7 @@ type Options = {
   onChanged: () => void;
   /** Hears the chapter a Restore brought back, so its pipeline row can show what changed. */
   onRestored?: (chapterId: string) => void;
-  /** The DAW the row menu's "Go to this chapter in …" names, and why selecting a track there is off (its `track_select` capability). */
+  /** The DAW the row menu's "Show in …" names, and why selecting a track there is off (its `track_select` capability). */
   daw: { name: string; unavailable?: string };
 };
 
@@ -112,13 +113,13 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
     [api, notify, onChanged],
   );
 
-  // The mock's "Go to this chapter in <DAW>": selects the chapter's linked track there, the chapter track panel's Select call.
+  // The row menu's "Show in <DAW>" (#2826): selects the chapter's linked track there, the chapter track panel's Select call.
   const selectTrack = useCallback(
     async (trackGuid: string, dawName: string) => {
       try {
-        const result = await api.trackSelectInReaper(trackGuid);
-        if (result.outcome === 'selected') notify(`Selected in ${dawName}.`);
-        else notify(result.message || `${dawName} could not select that track.`, 'error');
+        const result = await showInDaw({ workspace: api, findings: api, chapterTrackMap: api }, { kind: 'chapter', trackGuid }, dawName);
+        if (result?.failed) notify(result.message, 'error');
+        else if (result) notify(result.message);
       } catch (error) {
         notify(describeApiError(error), 'error');
       }
@@ -195,7 +196,7 @@ export function useChapterTools({ rows, credits, notify, go, active, refreshKey,
           { key: 'master', label: 'Open Master & QC', onSelect: () => open_.master() },
           {
             key: 'goto',
-            label: `Go to this chapter in ${dawTarget.name}`,
+            label: showInDawLabel(dawTarget.name),
             unavailable:
               dawTarget.unavailable ?? (trackGuid ? undefined : 'No chapter track is linked to this chapter yet: link one from the audio engine panel'),
             onSelect: () => trackGuid && void select(trackGuid, dawTarget.name),
