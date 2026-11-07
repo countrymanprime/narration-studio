@@ -212,6 +212,18 @@ export const editingStates: StateEntry[] = [
   },
   {
     page: 'editing',
+    state: 'drawer-cleanup-levels',
+    description: 'Editing, the drawer on Clean up scrolled to Match levels… under the findings, the action the editing check panel has too (#2827)',
+    sameAs: {
+      of: 'editing/drawer-cleanup',
+      reason:
+        'At the tablet width the drawer is tall enough to show the whole Clean up tab, Match levels… included, so there is nothing to scroll to and the picture is the one the unscrolled state draws.',
+      viewports: ['tablet'],
+    },
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'editing',
     state: 'drawer-cleanup-repair',
     description: 'Editing, the drawer on Clean up with Clicks chosen - Repair in REAPER beside Apply, its menu open on Repair with Cleanup tools',
     ...POPUP_ANCHORED_AT_FIRST_WIDTH,

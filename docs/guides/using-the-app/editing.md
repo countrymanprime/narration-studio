@@ -428,6 +428,10 @@ the DAW cannot do is off, with the DAW's reason.
 
 ![Editing - the drawer on Clean up: what was found in the chapter and the findings by kind](../../images/ui/editing-drawer-cleanup.webp)
 
+Under the findings, **Match levels…** brings the items on this chapter's linked track onto one level. It is the same action as in the editing check on [Production](production.md): it first lists how many items differ from -20 dBFS RMS by more than 2 dB, and **Match** then changes each item's volume in REAPER, in one undo step. A toast says how many items it matched; when every item is already within 2 dB of the target it says so and changes nothing, and when the items moved on in REAPER since the preview it says that nothing was changed and to match again. It is off, with the DAW's reason under the button, while REAPER is not answering or the DAW cannot change an item's gain.
+
+![Editing - the drawer on Clean up scrolled to Match levels, under the findings](../../images/ui/editing-drawer-cleanup-levels.webp)
+
 For clicks, breaths and plosives, **Repair in REAPER** (an icon button after **Apply**) opens a menu headed **Repair** with **Cleanup tools…**, the dialog that is also in the audio engine panel's REAPER tools. It opens REAPER's own Repair Pops/Clicks or Magnolius DeClick on the items selected in REAPER. **Apply** repairs in the app; these open REAPER's own tool, and you apply or cancel the repair there, where one Undo takes it back. The entry is off, with the reason under it, when the project records in Audacity, the DAW is not answering or has another project open, or the project has no tracks. Which item is selected, whether Magnolius DeClick is installed and whether REAPER has the Repair Pops/Clicks dialog (REAPER 7.80 or later) are only known when you press **Open**, so the dialog says so there.
 
 ![Editing - Clicks chosen in Clean up: Repair in REAPER beside Apply, its menu open on Cleanup tools](../../images/ui/editing-drawer-cleanup-repair.webp)

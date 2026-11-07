@@ -23,6 +23,12 @@ const LEVEL_MATCH_METRIC = 'rms_dbfs' as const;
 const LEVEL_MATCH_TARGET_DB = -20;
 const LEVEL_MATCH_TOLERANCE_DB = 2;
 
+/** The host refuses a preview with nothing to change in these words (src/studio/desktop/bindings_cleanup.go, errNoGainCandidates). */
+const NOTHING_TO_CHANGE = /needs a gain change/;
+const ALREADY_LEVEL = keepUnits(
+  `Every item on this chapter's linked track is already within ${LEVEL_MATCH_TOLERANCE_DB} dB of ${LEVEL_MATCH_TARGET_DB} dBFS RMS.`,
+);
+
 function pluralize(count: number, noun: string): string {
   return `${count} ${noun}${count === 1 ? '' : 's'}`;
 }
@@ -36,9 +42,14 @@ function LevelMatchAction({ chapterId, notify }: { chapterId: string; notify: No
   const openPreview = () =>
     action.run('gain-preview', async () => {
       try {
-        setPreview(await api.levelMatchPreview(chapterId, LEVEL_MATCH_METRIC, LEVEL_MATCH_TARGET_DB, LEVEL_MATCH_TOLERANCE_DB));
+        const found = await api.levelMatchPreview(chapterId, LEVEL_MATCH_METRIC, LEVEL_MATCH_TARGET_DB, LEVEL_MATCH_TOLERANCE_DB);
+        // Nothing to match is the answer "already level", with no dialog to confirm an empty change.
+        if (found.candidates.length === 0) notify(ALREADY_LEVEL, 'info');
+        else setPreview(found);
       } catch (reason) {
-        notify(describeApiError(reason), 'error');
+        const message = describeApiError(reason);
+        if (NOTHING_TO_CHANGE.test(message)) notify(ALREADY_LEVEL, 'info');
+        else notify(message, 'error');
       }
     });
 
@@ -46,7 +57,14 @@ function LevelMatchAction({ chapterId, notify }: { chapterId: string; notify: No
     action.run('gain-apply', async () => {
       try {
         const result = await api.levelMatchApply(chapterId, LEVEL_MATCH_METRIC, LEVEL_MATCH_TARGET_DB, LEVEL_MATCH_TOLERANCE_DB);
-        notify(`Matched levels on ${pluralize(result.changed.length, 'item')}.`, 'info');
+        if (result.changed.length > 0) notify(`Matched levels on ${pluralize(result.changed.length, 'item')}.`, 'info');
+        else if (result.stale.length > 0) {
+          // The host measures again on apply: an item that moved on since the preview is left as it is, and a run that changed nothing is not a success.
+          notify(
+            `No item's level was changed. ${pluralize(result.stale.length, 'item')} changed in REAPER since the preview. Match levels again to read them afresh.`,
+            'error',
+          );
+        } else notify(ALREADY_LEVEL, 'info');
       } catch (reason) {
         notify(describeApiError(reason), 'error');
       } finally {
@@ -98,7 +116,8 @@ function LevelMatchAction({ chapterId, notify }: { chapterId: string; notify: No
 export function CleanupAction({ chapterId, notify }: { chapterId: string; notify: Notify }) {
   return (
     <div className="flex flex-wrap gap-2">
-      <LevelMatchAction chapterId={chapterId} notify={notify} />
+      {/* Keyed by the chapter: a preview of one chapter is never applied to another, and a late preview for the old chapter has no dialog to open. */}
+      <LevelMatchAction key={chapterId} chapterId={chapterId} notify={notify} />
     </div>
   );
 }
