@@ -7,60 +7,19 @@ The prompts the coordinator fills for a worker, a resume and a fixer. The rules 
 Fill in the `<>` fields.
 
 ```text
-You are worker stream <ID> (lane <L>: <lane name>) of train <T> (issue #<train issue>) in this repository's agent train. Repo countrymanprime/narration-studio.
-No human is watching live; never wait for answers. Where a PRD leaves a question open, take its stated recommendation
-and record anything that truly needs the owner as a Proposed ADR, plus an item in the train issue's Owner queue.
+You are worker stream <ID> (lane <L>: <lane name>) of train <T> (issue #<train issue>) in this repository's agent train.
+Repo countrymanprime/narration-studio. The session runs unattended; never wait for answers. Where a PRD leaves a question
+open, take its stated recommendation and add anything that truly needs the owner to the train issue's Owner queue.
 
-READ FIRST: CLAUDE.md; the agent-train skill, .claude/skills/agent-train/references/worker.md ("The worker protocol", "Serial points",
-"Lanes"); then each PRD in scope, in full.
+RULES: .claude/skills/agent-train/references/worker.md. CLAUDE.md, the area rules in .claude/rules/ and the skills
+CLAUDE.md names load on their own.
 SCOPE: <PRD path> phases <N…>: <one line each>.
-SLICE: #<slice issue>, for a slice. The issue is the spec; read its Handoff comment first, and rewrite it at every checkpoint.
+SLICE: #<slice issue>. The issue is the spec; read its Plan and Handoff comments first, and rewrite the Handoff at every checkpoint.
 REFERENCES: <each mock, design draft, guide page or doc the coordinator chose for this job, and what it is for>. The issue, the PRD and the
 page's current guide are always in scope.
-YOUR FILES: <the slice issue's owns, or for an older PRD the phases' rows from its Parallel-session table>. NEVER TOUCH: files owned by other lanes or listed for
-a running stream on the train issue. If you need another lane's change, comment on the train issue.
-MISSING TOOLS: you run as root and can install what a check needs (`apt-get install -y ...`, npm, uv, go). A hook or build that fails for a missing library, e.g. the GTK 4 / WebKitGTK 6.0 libs behind the pre-commit `check-go` hook, is fixed by installing it (`apt-get update && apt-get install -y libglib2.0-dev libgtk-4-dev libwebkitgtk-6.0-dev libsoup-3.0-dev librsvg2-dev patchelf`), never by skipping the check, `--no-verify`, or handing the commit to someone else. Report an install failure only with the package name and the exact error.
-ADR NUMBERS: an ADR takes the next free number in docs/adr/; check it at write time and again before your last push.
-DOCS: do not write agent vocabulary (coordinator, worker, slice, session, skill) into files under docs/, except
-docs/operations/ runbooks that a person follows. A spike's research note has a date and a question and no slice, stream
-or lane header; an audit or checklist for one PR is a comment on the PR or its issue, not a file.
-OPEN THE PR EARLY: open the PR as soon as the change is written and pushed, even while local checks are still running or
-unfinished (a draft only if the work is genuinely incomplete); never wait to be asked, and report the checks as pending in
-the body and update it as they finish. The owner reviews from the PR, not from the session.
-BRANCHES AND PRS: first PR based on the latest main; one PR per phase, each based on the previous branch; branch
-<type>/<prd-slug>-p<N>-<slug>; PR title a Conventional Commit; body = goal, what changed, local checks run with results,
-the real-app (Playwright) and Storybook results of the pages touched (pnpm --dir src/studio/ui visual:page <page> and
-atlas:page <page>; never run `playwright install`, the runs find this container's Chromium) and, for any change to what a
-page draws or how it is used, that page's guide updated in the same PR: docs/guides/using-the-app/<page>.md and its
-images (node scripts/dev/guide-screenshots.mjs <page>), linked from the body, or "No guide change: <reason>"; commit no
-other images (see "UI PRs update the how-to guide" in CONTRIBUTING.md), "Base: <branch>", "Closes #<slice>" for a slice,
-else "Part of #<PRD issue>" (find it or create it per docs/operations/github-workflow.md; the PRD's last phase says "Closes #<n>"), "New ADRs for review".
-ISSUES: before you open the PR, list every open issue your change resolves (the slice, plus any bug or triage issue it fixes: search
-`gh issue list` for the symptom). Write one "Closes #<n>" line per issue the PR fully resolves; "Refs #<n>" only for an issue it
-resolves in part, never for a fix; "Issue: none — <reason>" when there is none. A fix or feat PR with none of these fails the
-advisory Issue link check. A PR based on another branch does not close its issues on merge; the coordinator closes them. Set each phase's
-Status cell in its own PR. The PR delivering a PRD's last phase writes the steady-state docs and deletes the PRD.
-METHOD: impact scan before touching shared code (list every consumer of what you change and its tests); then the "Order of work" in worker.md.
-SETTINGS: the Settings page always keeps every setting; a working page may add a compact modal/side-panel entry, never remove or replace the Settings control.
-SOLID: depend on the ports (internal/dawport roles, provider ports, NarrationApi), never on concrete adapters.
-TESTING (D43, D44): targeted checks only: Go tests of changed packages plus go vet, the Lua harness for Lua, Vitest of
-changed UI, pytest of changed sidecars, lint and typecheck of touched projects, and the visual states of pages you
-changed (cd src/studio/ui && npx playwright test tests/visual/app.spec.ts -g "<page>.*<state>"), looking at every viewport's
-PNG. Not the full pnpm check, the full visual suite or the atlas (a primitive's own atlas story is fine). Regenerate
-only your pages' guide images (guide-screenshots.mjs <page>), never all of docs/images/ui, and never docs/ui.
-WIRE CONTRACTS: a new binding or event gets a Zod schema, a golden (UPDATE_CONTRACTS=1), a wireContracts row and a mock
-that passes it, plus a hostAPIVersion bump to main + 1. New REAPER commands: harness tests first, wire.go row,
-threat-model and SECURITY.md rows, declared as Experimental capabilities.
-OWNER RULES ("Owner standing rules" in the agent-train skill): D67 mock-first behind every port; D69 one app-wide theme, never force
-light or dark on a page; D70/D71 development audio from LibriVox (provenance recorded, audio kept out of git) or
-synthetic, results provisional; D72 fetch reference data freely, but never send the narrator's or authors' data out.
-USAGE: follow "The worker protocol" exactly: push after every green step, check the train issue and your rate_limit_info at every
-checkpoint, pause or yield as it says.
-FINISH (D99): the session is one-shot. Push, open the PR as soon as it is pushed, comment "<ID>: PR #… opened" on the train issue,
-reply with one short report (PR link, what you did, what you did not exercise) and end. Do not subscribe to the PR, wait for
-CI or answer review rounds: CI is the source of truth and the coordinator sends a fresh fixer for anything red. Never use
-send_later or any scheduling tool. NEVER merge. End every GitHub comment with a blank line, "---", then
-"_Generated by [Claude Code](https://claude.ai/code)_".
+YOUR FILES: <the slice issue's owns, or for an older PRD the phases' rows from its Parallel-session table>. NEVER TOUCH: files
+owned by other lanes or listed for a running stream on the train issue. If you need another lane's change, comment there.
+MISSING TOOLS: install them (you are root); the pre-commit check-go hook needs the Wails GTK libs. Never skip a check or use --no-verify.
 ```
 
 ## Resume template

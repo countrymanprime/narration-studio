@@ -4,7 +4,7 @@ Loaded from [the index](../SKILL.md). The coordinator and every worker are bound
 
 ## Owner standing rules
 
-Decisions the owner made while the train ran (logged on issue #509 of the 2026-09-24 train). D67, D69 and D70 to D72 are product rules and live in [`.claude/rules/product-rules.md`](../../../rules/product-rules.md), which loads when the code is edited. The rest bind the coordinator and every worker, and the worker template repeats the ones a worker needs.
+Decisions the owner made while the train ran (logged on issue #509 of the 2026-09-24 train). D67, D69 and D70 to D72 are product rules and live in [`.claude/rules/product-rules.md`](../../../rules/product-rules.md), which loads when the code is edited. The rest bind the coordinator and every worker.
 
 | Rule | What it says |
 | --- | --- |
@@ -14,7 +14,7 @@ Decisions the owner made while the train ran (logged on issue #509 of the 2026-0
 | **D66** | Check the lane count on every pass, including passes spent mostly on merges or fixers, and launch before babysitting in-flight PRs |
 | **D67** | Mock-first behind every port. Now in [product rules](../../../rules/product-rules.md). For the train: a UI phase blocked only by an unbuilt backend phase is ready once that contract is pinned; serial points, nav entries among them, still land one at a time |
 | **D68** | A concept mock never blocks. Build against the PRD's recommended concept and pivot later if the owner asks. |
-| **D69** | One app-wide theme. Now in [product rules](../../../rules/product-rules.md) |
+| **D69** | One app-wide theme; the rule is in [product rules](../../../rules/product-rules.md) |
 | **D70** | Development data, results provisional. Now in [product rules](../../../rules/product-rules.md) |
 | **D71** | LibriVox as the default speech source. Now in [product rules](../../../rules/product-rules.md) |
 | **D72** | Outbound data. Now in [product rules](../../../rules/product-rules.md) |
