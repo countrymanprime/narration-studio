@@ -11,15 +11,12 @@ inputs:
   tag:
     description: The git tag the release is built from, for the source offer in THIRD-PARTY-NOTICES.txt (Windows); empty means v<version>-rc
     default: ''
-  ui-bundle:
-    description: Where the UI bundle comes from. `artifact` (prerelease.yml) downloads the `ui-dist` artifact of this workflow run; `build` (the pull-request Build (Windows) job) builds src/studio/ui on this runner
-    default: artifact
   reuse-freeze:
     description: Restore the frozen Python sidecars from the build-output cache when every input of the freeze is unchanged ('false' freezes from scratch)
     default: 'true'
 
-# The caller checks the repository out and runs on the matching OS. With `ui-bundle: artifact` the `ui-dist` artifact must already exist
-# in this workflow run (_ui-dist.yml in prerelease.yml); with `ui-bundle: build` this action builds the UI itself (_quality.yml's Build (Windows)).
+# The caller checks the repository out and runs on the matching OS; the `ui-dist`
+# artifact must already exist in this workflow run (_ui-dist.yml in prerelease.yml, the UI bundle step of _quality.yml's lint).
 runs:
   using: composite
   steps:
@@ -41,19 +38,10 @@ runs:
     - name: Clear frontend dist placeholder
       shell: bash
       run: rm -rf src/studio/desktop/cmd/app/frontend/dist
-    - if: inputs.ui-bundle == 'artifact'
-      uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+    - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
       with:
         name: ui-dist
         path: src/studio/desktop/cmd/app/frontend/dist
-    # The same command as _ui-dist.yml, on this runner, so the build need not wait for a Linux job to upload the bundle.
-    - if: inputs.ui-bundle == 'build'
-      name: UI bundle
-      shell: bash
-      run: |
-        pnpm --dir src/studio/ui run build
-        mkdir -p src/studio/desktop/cmd/app/frontend
-        cp -R src/studio/ui/dist src/studio/desktop/cmd/app/frontend/dist
     # The Windows setup program is compiled with NSIS by scripts/release/wails-build.mjs --installer (definition in
     # src/studio/desktop/build/windows/installer, docs/operations/ci-and-releases.md#the-windows-setup-program and 0200). The hosted runner does not ship makensis, so it is installed here at a
     # pinned version. The build fails if makensis is missing or no installer came out, so a runner image change cannot silently drop it.

@@ -58,6 +58,7 @@ jobs:
       quickubuntu: ${{ steps.pins.outputs.quickubuntu }}
       # Test (Linux)'s shards: all five when the UI is affected, else shard 1 alone (its quick tests).
       test-shards: ${{ (steps.ui.outputs.affected == 'true' || steps.pins.outputs.ui == 'true') && '[1,2,3,4,5]' || '[1]' }}
+      ui-dist: ${{ steps.ui-dist.outcome == 'success' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { fetch-depth: 0, persist-credentials: false }
@@ -91,6 +92,22 @@ jobs:
           fi
           node scripts/ci/pin-flags.mjs --github-output < "$RUNNER_TEMP/pins.json"
 
+      # The UI bundle Build (Windows) packages (full tier): built here on Linux and uploaded as `ui-dist`, so the Windows build starts with
+      # the other jobs once lint has passed. It cannot be built on the Windows runner: tsc there resolves `./PageBreaks` and `./pageBreaks`
+      # (and `./EntryTable` and `./entryTable`) to one file on the case-insensitive file system and fails. First, so a red lint step below
+      # cannot hold it back; its `tsc --noEmit` is the UI's typecheck.
+      - name: UI bundle
+        id: ui-bundle
+        if: inputs.full
+        run: pnpm --dir src/studio/ui run build
+      - id: ui-dist
+        if: inputs.full
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ui-dist
+          path: src/studio/ui/dist
+          if-no-files-found: error
+          retention-days: 1
       - name: ui static
         id: ui-static
         if: ${{ !cancelled() && steps.pins.outputs.static == 'true' }}
@@ -154,7 +171,7 @@ jobs:
         if: always()
         env:
           OUTCOMES: >-
-            {"ui static": "${{ steps.ui-static.outcome }}", "web static": "${{ steps.web-static.outcome }}",
+            {"UI bundle": "${{ steps.ui-bundle.outcome }}", "ui static": "${{ steps.ui-static.outcome }}", "web static": "${{ steps.web-static.outcome }}",
             "knip": "${{ steps.knip.outcome }}", "python lint": "${{ steps.python-lint.outcome }}",
             "reaper lint": "${{ steps.reaper-lint.outcome }}", "docs-site lint": "${{ steps.docs-site-lint.outcome }}",
             "test ratchet": "${{ steps.test-ratchet.outcome }}"}
@@ -442,11 +459,11 @@ jobs:
 
   # Windows is the only supported platform, so it is the only native build.
   build-windows:
-    # The whole app: the UI bundle, built on this runner, then the Wails build, the setup program and the notices (build-native). It starts
-    # with the other jobs once lint has passed; it no longer waits for a Linux job to upload the bundle.
+    # The whole app from lint's `ui-dist` bundle: the Wails build, the setup program and the notices (build-native). It starts with the
+    # other jobs once lint has passed.
     name: Build (Windows)
     needs: lint
-    if: inputs.full
+    if: ${{ inputs.full && needs.lint.outputs.ui-dist == 'true' }}
     timeout-minutes: 30
     runs-on: windows-latest
     steps:
@@ -456,7 +473,6 @@ jobs:
       - uses: ./.github/actions/build-native
         with:
           platform: windows-x64
-          ui-bundle: build
       # The packaged program, setup program, notices and checksums of this pull request, for a by-hand launch on Windows (the owner's
       # check of a shell change, for example the Wails v3 migration). Never a release: releases are built by prerelease.yml.
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
