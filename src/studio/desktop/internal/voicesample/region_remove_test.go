@@ -358,3 +358,34 @@ func TestAnInvalidRegionNumberIsWordedLikeARefusal(t *testing.T) {
 		t.Fatalf("got %q", got)
 	}
 }
+
+// removerOnly can delete a region but not read the regions back: the host cannot tell whose region a number holds, so it deletes none.
+type removerOnly struct {
+	fakeRegions
+	deleted []int
+}
+
+func (f *removerOnly) DeleteVoiceSampleRegion(_ context.Context, number int) (dawport.VoiceSampleRegionRemoved, error) {
+	f.deleted = append(f.deleted, number)
+	return dawport.VoiceSampleRegionRemoved{Number: number, Outcome: "deleted"}, nil
+}
+
+func TestADawThatCannotReadTheRegionsBackIsNotAskedToDeleteByNumberAlone(t *testing.T) {
+	r := newRig(t)
+	regions := &removerOnly{}
+	r.config.Storage = func() string { return StorageDAW }
+	r.config.Regions = regions
+	r.config.CharacterName = func(id string) string { return map[string]string{"hatter": "Hatter"}[id] }
+	r.service = r.build()
+	told := r.notices()
+	sample := r.mustMark(request(10, 12))
+	if removed, err := r.service.Remove(sample.ID); err != nil || removed.Removed != 1 {
+		t.Fatalf("removed = %+v, %v", removed, err)
+	}
+	if len(regions.deleted) != 0 {
+		t.Fatalf("a region was deleted by its number alone: %v", regions.deleted)
+	}
+	if len(*told) != 1 || !strings.Contains((*told)[0], "stays") {
+		t.Fatalf("told = %q, want the region stays", *told)
+	}
+}

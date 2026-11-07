@@ -247,8 +247,8 @@ func (s *Service) addRegion(ctx context.Context, id string, req checked, item tr
 	return region, nil
 }
 
-// RegionReader is the part of the DAW's VoiceSampleRegionKeeper role that lists the regions. When the Regions the host gives has it,
-// a region is read back under its number and name before it is deleted.
+// RegionReader is the part of the DAW's VoiceSampleRegionKeeper role that lists the regions. A region is read back under its number and
+// name before it is deleted, so a Regions that cannot be read back deletes nothing.
 type RegionReader interface {
 	ReadVoiceSampleRegions(ctx context.Context) (dawport.VoiceSampleRegions, error)
 }
@@ -269,20 +269,22 @@ func (s *Service) dropRegion(ctx context.Context, region *StoredRegion) string {
 	defer cancel()
 	// The store's number is the host's record, and the bridge only checks the prefix: read back what holds the number now, so a number
 	// that moved to another sample's region (or came from a hand-edited store) never deletes a region that is not this sample's.
-	if reader, ok := s.config.Regions.(RegionReader); ok {
-		listed, err := reader.ReadVoiceSampleRegions(ctx)
-		if err != nil {
-			return whyRegionStays(err)
+	reader, ok := s.config.Regions.(RegionReader)
+	if !ok {
+		return whyRegionStays(dawport.ErrNotSupported)
+	}
+	listed, err := reader.ReadVoiceSampleRegions(ctx)
+	if err != nil {
+		return whyRegionStays(err)
+	}
+	mine := false
+	for _, found := range listed.Regions {
+		if found.Number == region.Number && found.Name == region.Name {
+			mine = true
 		}
-		mine := false
-		for _, found := range listed.Regions {
-			if found.Number == region.Number && found.Name == region.Name {
-				mine = true
-			}
-		}
-		if !mine {
-			return ""
-		}
+	}
+	if !mine {
+		return ""
 	}
 	if _, err := remover.DeleteVoiceSampleRegion(ctx, region.Number); err != nil {
 		return whyRegionStays(err)
