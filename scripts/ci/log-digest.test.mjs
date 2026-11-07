@@ -51,6 +51,7 @@ test('wrapCommand wraps known noisy commands only', () => {
   assert.match(wrapCommand('pnpm check', '/w.mjs'), /^node '\/w\.mjs' -- pnpm check$/);
   assert.match(wrapCommand('go test ./internal/...', '/w.mjs'), /-- go test \.\/internal\/\.\.\.$/);
   assert.equal(wrapCommand('git status', '/w.mjs'), null);
+  assert.match(wrapCommand('pnpm exec nx run desktop:lint', '/w.mjs'), /-- pnpm exec nx run desktop:lint$/);
   assert.equal(wrapCommand('pnpm install', '/w.mjs'), null);
 });
 

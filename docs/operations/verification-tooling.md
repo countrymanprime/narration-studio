@@ -135,6 +135,10 @@ The Studio Next mock (`docs/research/mockups/studio-next/`) was deleted from the
 
 Nothing blocks on the stamp; `pnpm check` is not a precondition for pushing, because the pull-request pipeline runs the full gate. The script's `--hook` mode, and how to register it again, is described with the other agent hooks in [`.claude/skills/README.md`](../../.claude/skills/README.md#hooks).
 
+## Log digest
+
+`scripts/ci/log-digest.mjs -- <command>` runs a command, writes its full stdout and stderr to `.runtime/log-digest/<timestamp>-<command>.log` and prints a digest: the exit code, the line count, the log path, then the lines that look like failures with two lines of context (capped at 120) and the last 25 lines. A passing run prints only its last lines. The exit code is the command's own. A Claude Code `PreToolUse` hook (`--hook`) runs simple `pnpm check`, `pnpm exec nx`, `pnpm test`, `go test`, `go vet`, Playwright, `uv run pytest` and `golangci-lint run` commands through it, so an agent's context holds the failures and not the whole run; a command with a pipe, `&&`, `;` or a redirect, or one containing `# raw`, runs unchanged. Read the full log, or hand its path to the `log-triage` agent, when the digest is not enough. CI does not use it.
+
 ## Merge safety checks
 
 Scripts in `scripts/ci/` check what merges while no person watches each pull request (the reasons are in [CI and releases](ci-and-releases.md)). Each exports pure functions with a `node --test` file beside it. `test-ratchet.mjs` runs from the base branch in CI, so a pull request cannot edit its own check.

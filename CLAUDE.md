@@ -35,6 +35,6 @@ A rule loads on a Read, Write or Edit of a matching file, not on a `grep` or a P
 Every turn resends the session so far, so large reads and noisy output cost money on every later turn.
 
 - Send broad searches ("who consumes X", "where is Y handled") to the `Explore` agent, and a long log to the `log-triage` agent. Keep the conclusion, not the file dumps.
-- Gate commands (`pnpm check`, `pnpm nx`, `go test`, `go vet`, Playwright, `uv run pytest`) run through `scripts/ci/log-digest.mjs` by a hook: you see the failures and the log path, not the full output. Add `# raw` to a command to see everything.
+- Gate commands (`pnpm check`, `pnpm exec nx`, `go test`, `go vet`, Playwright, `uv run pytest`) run through `scripts/ci/log-digest.mjs` by a hook: you see the failures and the log path, not the full output. Add `# raw` to a command to see everything.
 - Read a file by range when you know the part you need.
 - When a session has run long on a task that is not done, load `handoff` and continue from its note.

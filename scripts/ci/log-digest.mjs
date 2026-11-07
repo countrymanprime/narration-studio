@@ -29,9 +29,9 @@ const FAILURE_LINE =
   /(^|\s)(FAIL|FAILED|ERROR|panic:|--- FAIL)\b|✗|✘|×|\berror TS\d+|AssertionError|^E {3}|^\s*●|npm ERR!|ERR_PNPM|\bfatal:|Traceback \(most recent call last\)|\bTimeout of \d+ms|\bexpect\(|^\s+\d+ failed\b|\b\d+ failed\b/;
 
 // Command prefixes the hook wraps. Each is already allowed in .claude/settings.json.
-export const NOISY_PREFIXES = [
+const NOISY_PREFIXES = [
   'pnpm check',
-  'pnpm nx ',
+  'pnpm exec nx ',
   'pnpm test',
   'pnpm exec vitest',
   'pnpm exec playwright test',
