@@ -922,6 +922,30 @@ describe('answers of the mock client (it must pass the schemas the real host ans
     ).rejects.toThrow(/nope/);
   });
 
+  it('a finding saved by teleprompterSaveFlags is one the findings port knows, so a dismissal can be undone and shows as decided', async () => {
+    const api = createMockApi();
+    const chapter = (await ownChapters(api))[0];
+    const paragraph = (await api.manuscriptParagraphs(chapter?.id ?? ''))[0];
+    const flag = {
+      paragraphId: paragraph?.id ?? '',
+      kind: 'skipped' as const,
+      wordStart: 0,
+      wordEnd: 1,
+      scriptStart: 0,
+      scriptEnd: 1,
+      heard: '',
+      dismissed: true,
+    };
+    const [saved] = await api.teleprompterSaveFlags(chapter?.id ?? '', [flag]);
+    expect(saved.review.status).toBe('dismissed');
+    expect((await api.findingsGet(saved.id)).review.status).toBe('dismissed');
+    const undone = await api.findingsReview({ id: saved.id, evidenceVersion: saved.evidence_version ?? '', status: 'unreviewed', note: '' });
+    expect(undone.review.status).toBe('unreviewed');
+    // The undo is what the findings store says, so saving the same flag again does not dismiss it a second time.
+    const [again] = await api.teleprompterSaveFlags(chapter?.id ?? '', [{ ...flag, dismissed: false }]);
+    expect(again.review.status).toBe('unreviewed');
+  });
+
   it('teleprompterSeek rejects when no session is running', async () => {
     const api = createMockApi();
 
