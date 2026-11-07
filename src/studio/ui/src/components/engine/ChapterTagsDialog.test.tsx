@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ChapterTagsDialog } from './ChapterTagsDialog';
@@ -85,7 +85,7 @@ describe('ChapterTagsDialog', () => {
   });
 
   // Alignment audit ENX-28: after the copy was written, Embed stayed the full-strength action.
-  it('makes Close the primary once the tagged copy is written', async () => {
+  it('makes Done the primary once the tagged copy is written', async () => {
     const user = userEvent.setup();
     renderDialog({}, { chapterTags: 'ready' });
     await screen.findByText('Chapter 1');
@@ -93,6 +93,125 @@ describe('ChapterTagsDialog', () => {
     await user.click(screen.getByText(/I understand this writes a new file/));
     await user.click(footerButton('Embed chapter tags')!);
     await screen.findByText(/^Wrote /);
-    expect(footerButton('Close')?.className).toContain('bg-[var(--accent)]');
+    expect(footerButton('Done')?.className).toContain('bg-[var(--accent)]');
+  });
+
+  // Follow-up to #2829 (qa-breaker / narrator findings on the Embed dialog).
+  it('says it is reading the last chapter render while the preview is on its way, not that none is configured', async () => {
+    renderDialog({ chapterTagsPreview: () => new Promise(() => {}) });
+    expect(await screen.findByText(/Reading your last chapter render/)).toBeTruthy();
+    expect(screen.queryByText(/No chapter render is configured yet/)).toBeNull();
+  });
+
+  it('embeds into the path without the spaces around it', async () => {
+    const user = userEvent.setup();
+    const { api } = renderDialog({}, { chapterTags: 'ready' });
+    const embedSpy = vi.spyOn(api, 'chapterTagsEmbed');
+    await screen.findByText('Chapter 1');
+    await user.type(screen.getByLabelText('Combined book MP3 to add chapters to'), '  C:\\Books\\Alice.mp3  ');
+    await user.click(screen.getByText(/I understand this writes a new file/));
+    await user.click(screen.getByRole('button', { name: 'Embed chapter tags' }));
+    await waitFor(() => expect(embedSpy).toHaveBeenCalledWith('C:\\Books\\Alice.mp3'));
+  });
+
+  it("draws one Close button (the header's); the action row says Cancel", async () => {
+    renderDialog({}, { chapterTags: 'ready' });
+    await screen.findByText('Chapter 1');
+    expect(screen.getAllByRole('button', { name: 'Close' })).toHaveLength(1);
+    expect(footerButton('Cancel')).toBeTruthy();
+  });
+
+  it('Escape closes the dialog while nothing is being written', async () => {
+    const user = userEvent.setup();
+    const { onClose } = renderDialog({}, { chapterTags: 'ready' });
+    await screen.findByText('Chapter 1');
+    await user.keyboard('{Escape}');
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps focus on the Embed button while it writes', async () => {
+    const user = userEvent.setup();
+    renderDialog({ chapterTagsEmbed: () => new Promise(() => {}) }, { chapterTags: 'ready' });
+    await screen.findByText('Chapter 1');
+    await user.type(screen.getByLabelText('Combined book MP3 to add chapters to'), 'C:\\Books\\Alice.mp3');
+    await user.click(screen.getByText(/I understand this writes a new file/));
+    await user.click(screen.getByRole('button', { name: 'Embed chapter tags' }));
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Embed chapter tags' }));
+  });
+
+  it('a host that never answers does not trap the dialog: it says so, frees Embed and Close, and Escape works again', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      const { onClose } = renderDialog({ chapterTagsEmbed: () => new Promise(() => {}) }, { chapterTags: 'ready' });
+      await screen.findByText('Chapter 1');
+      await user.type(screen.getByLabelText('Combined book MP3 to add chapters to'), 'C:\\Books\\Alice.mp3');
+      await user.click(screen.getByText(/I understand this writes a new file/));
+      await user.click(screen.getByRole('button', { name: 'Embed chapter tags' }));
+      await user.keyboard('{Escape}');
+      expect(onClose).not.toHaveBeenCalled();
+      await act(async () => void vi.advanceTimersByTime(61_000));
+      expect((await screen.findAllByRole('alert')).some((alert) => /did not answer/.test(alert.textContent ?? ''))).toBe(true);
+      expect(footerButton('Cancel')?.hasAttribute('disabled')).toBe(false);
+      expect(footerButton('Embed chapter tags')?.getAttribute('aria-busy')).not.toBe('true');
+      await user.keyboard('{Escape}');
+      expect(onClose).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  // qa-breaker findings on the dialog.
+  it('gives up on a silent preview and offers Check again, which asks the host once more', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      const preview = vi.fn(() => new Promise<never>(() => {}));
+      renderDialog({ chapterTagsPreview: preview });
+      expect(preview).toHaveBeenCalledTimes(1);
+      await act(async () => void vi.advanceTimersByTime(16_000));
+      expect((await screen.findAllByRole('alert')).some((alert) => /did not answer/.test(alert.textContent ?? ''))).toBe(true);
+      await user.click(screen.getByRole('button', { name: 'Check again' }));
+      expect(preview).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('after the deadline a late success still shows the written path, and Embed is held while that call is outstanding', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      let answer: (result: { outputPath: string }) => void = () => {};
+      const embed = vi.fn(() => new Promise<{ outputPath: string }>((resolve) => (answer = resolve)));
+      renderDialog({ chapterTagsEmbed: embed }, { chapterTags: 'ready' });
+      await screen.findByText('Chapter 1');
+      await user.type(screen.getByLabelText('Combined book MP3 to add chapters to'), 'C:\\Books\\Alice.mp3');
+      await user.click(screen.getByText(/I understand this writes a new file/));
+      await user.click(screen.getByRole('button', { name: 'Embed chapter tags' }));
+      await act(async () => void vi.advanceTimersByTime(61_000));
+      await screen.findAllByRole('alert');
+      // A second press while the first call is still out would start a second write to the same file.
+      await user.click(screen.getByRole('button', { name: 'Embed chapter tags' }));
+      expect(embed).toHaveBeenCalledTimes(1);
+      await act(async () => answer({ outputPath: 'C:\\Books\\Alice.chapters.mp3' }));
+      expect(await screen.findByText(/Wrote C:\\Books\\Alice\.chapters\.mp3/)).toBeTruthy();
+      expect(screen.queryAllByRole('alert').some((alert) => /did not answer/.test(alert.textContent ?? ''))).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('clears the written path when the destination or the confirmation changes', async () => {
+    const user = userEvent.setup();
+    renderDialog({}, { chapterTags: 'ready' });
+    await screen.findByText('Chapter 1');
+    const path = screen.getByLabelText('Combined book MP3 to add chapters to');
+    await user.type(path, 'C:\\Books\\Alice.mp3');
+    await user.click(screen.getByText(/I understand this writes a new file/));
+    await user.click(screen.getByRole('button', { name: 'Embed chapter tags' }));
+    await screen.findByText(/^Wrote /);
+    await user.type(path, 'x');
+    expect(screen.queryByText(/^Wrote /)).toBeNull();
   });
 });
