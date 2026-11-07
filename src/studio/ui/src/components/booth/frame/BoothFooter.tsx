@@ -9,6 +9,7 @@ import { useDawMeterLease } from '../../../daw/useDawSession';
 import { LevelsInline, LevelsMenu, type LevelsMenuProps } from './LevelsMenu';
 import { timerText } from './progressLine';
 import { useLevels } from './useLevels';
+import { GIVES_WAY_IN_A_SHORT_WINDOW } from './shortWindow';
 
 /**
  * "Room −58.6 dB" (a real minus sign, one decimal), or "Room not measured yet": the mock's room tone label. A read that failed says
@@ -180,9 +181,9 @@ export function BoothFooter({
           </div>
         ) : null}
       </div>
-      {/* In a window under 26rem tall the hints are cut off at the bottom anyway, and the rows they take are what the side panel needs to be readable:
+      {/* In a short window (see shortWindow.ts) the hints are cut off at the bottom anyway, and the rows they take are what the side panel needs to be readable:
           like the shell's footer below 860 px wide, they are not drawn, though a screen reader still has them (the side panel at 320x300 was 32 px tall). */}
-      <div className="[@media(max-height:26rem)]:sr-only">
+      <div className={GIVES_WAY_IN_A_SHORT_WINDOW}>
         <KeyHints id="bkeys" hints={hints} />
       </div>
     </div>

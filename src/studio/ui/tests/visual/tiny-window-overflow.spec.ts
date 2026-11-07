@@ -131,6 +131,41 @@ for (const theme of ['light', 'dark'] as const) {
   });
 }
 
+// The same room at every height and narrow width a drawer window has, not only at 300: the key hints and the progress line wrap to three rows at
+// 320 px, so a threshold set for the smallest window left the panel at 58 px one pixel above it (the breaker's cliff at 417).
+for (const theme of ['light', 'dark'] as const) {
+  test(`Booth: the side panel keeps room to read at every height from 300 to 520 across the narrow widths (${theme})`, async ({ page }) => {
+    await open(page, '/booth?mockTeleprompter=checked', theme);
+    await page.getByRole('button', { name: /side panel/i }).click();
+    const panel = page.locator('#booth-side');
+    await panel.waitFor();
+    for (const width of [320, 360, 481, 600]) {
+      for (const height of [300, 417, 440, 480, 481, 520]) {
+        await page.setViewportSize({ width, height });
+        await expect
+          .poll(async () => (await panel.boundingBox())!.height, { message: `the side panel keeps room to read at ${width}x${height}` })
+          .toBeGreaterThanOrEqual(110);
+      }
+    }
+  });
+
+  // While a take runs the REC badge adds a row to the top bar, so the smallest window has less: still room for the heading and a card, above Stop.
+  test(`Booth: the side panel keeps room above Stop while a take runs at 320x300 (${theme})`, async ({ page }) => {
+    await open(page, '/booth?mockTeleprompter=checked', theme);
+    await page.keyboard.press('Space');
+    const stop = page.getByRole('button', { name: /^Stop$/ });
+    await stop.waitFor();
+    await page.getByRole('button', { name: /side panel/i }).click();
+    const panel = page.locator('#booth-side');
+    await panel.waitFor();
+    await expect
+      .poll(async () => (await panel.boundingBox())!.height, { message: 'the side panel keeps room to read during a take' })
+      .toBeGreaterThanOrEqual(80);
+    const box = (await panel.boundingBox())!;
+    expect(box.y + box.height, 'the side panel stays above Stop').toBeLessThanOrEqual((await stop.boundingBox())!.y + 1);
+  });
+}
+
 // The footer's controls (Record, the timer, Levels, Cold read) wrap onto a second line rather than leaving the window (found by the QA pass: Cold read was cut off at 320 px).
 for (const theme of ['light', 'dark'] as const) {
   for (const query of ['', '?mockEngine=builtin']) {
