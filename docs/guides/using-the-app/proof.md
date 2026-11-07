@@ -135,8 +135,9 @@ The notes panel lists the notes in view, **Notes · 14** for example, with:
   always stays listed; press it to list the whole chapter;
 - the sort: **By time**, **By confidence** (lowest first, so the least certain come up first) or **By severity** (most
   serious first);
+- **Check recordings**, over all chapters only (on one chapter the check card has it): the same check, starting with the chapters not checked as of the last save;
 - **Find in notes**, which keeps only the notes whose text matches what you type; Esc closes it;
-- **Import proofer sheet** and **Export for proofer** (the sort, Find and these two sit at the right of the
+- **Import proofer sheet** and **Export for proofer** (the sort, Check recordings, Find and these two sit at the right of the
   panel; the sort and Find are left out while there are no notes): the proofer's CSV sheet. Import adds each row as a pickup marker in
   the DAW and, when the DAW has answered, says how many pickups it added, how many were there already and how many rows
   it skipped. Export saves the pickups still open as `pickups-for-proofer.csv` and says how many it wrote; a pickup on the Pickups page with no

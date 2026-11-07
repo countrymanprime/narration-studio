@@ -19,7 +19,7 @@ import type { ManuscriptChapter, TranscriptState } from '../../types';
 import type { Notify } from '../primitives/Toast';
 import { ALL_CHAPTERS, ChapterStepper } from '../primitives/ChapterStepper';
 import { KeyHints } from '../primitives/KeyHints';
-import { useCheckRecordingsGate } from '../recordingcheck/CheckRecordingsButton';
+import { CheckRecordingsButton, useCheckRecordingsGate } from '../recordingcheck/CheckRecordingsButton';
 import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
 import { isCreditsChapter, isNarrationChapter } from '../../chapterKinds';
 import { LoadError } from '../layout/LoadError';
@@ -537,6 +537,9 @@ export function ProofPage({
                 if (open && all && note && chapterOf(note)) choose(chapterOf(note));
               }}
               window={chapter && total > 0 ? { start: win.start, len: Math.min(win.len, total), total } : undefined}
+              // Over all chapters there is no check card, so the notes panel carries the one Check recordings (the dialog opens with the unchecked chapters ticked);
+              // on one chapter the card has it, so a second never shows (#2833).
+              lead={all ? <CheckRecordingsButton variant="icon" chapterIds={[]} /> : undefined}
               actions={<ProoferSheet />}
               badge={(row) => {
                 const count = spots.counts.get(row.id);

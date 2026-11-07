@@ -728,6 +728,17 @@ describe('check-recordings-opens-from-proof', () => {
     await noteRows();
     expect(screen.getAllByRole('button', { name: /^Check recordings/ })).toHaveLength(1);
   });
+
+  // The narrator walkthrough found no visible control over All chapters, where there is no check card: the notes panel carries the one button there.
+  it('draws one Check recordings button over all chapters too, opening with the unchecked ones ticked', async () => {
+    const open = vi.spyOn(checkRecordings, 'openCheckRecordings').mockReturnValue(() => {});
+    renderPage({ at: '/proof' });
+    await noteRows();
+    expect(screen.getAllByRole('button', { name: /^Check recordings/ })).toHaveLength(1);
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Check recordings' }).getAttribute('aria-disabled')).toBeNull());
+    fireEvent.click(screen.getByRole('button', { name: 'Check recordings' }));
+    expect(open).toHaveBeenCalledWith([], expect.anything());
+  });
 });
 
 describe('the jump menu on Proof', () => {
