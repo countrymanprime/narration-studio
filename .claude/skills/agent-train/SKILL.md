@@ -5,7 +5,7 @@ description: "The agent train's procedure: the coordinator's pass, the worker pr
 
 # The agent train
 
-One **coordinator** and up to eight **workers** build one goal in parallel Claude Code sessions; several trains can run at once, each with its own issue. Read only the file for your role, so a worker does not load the coordinator's material.
+One **coordinator** and up to eight **workers** build one goal in parallel Claude Code sessions; several trains can run at once, each with its own issue. Read only the file for your role; each role loads only its own material.
 
 | You are | Read |
 | --- | --- |
@@ -13,7 +13,6 @@ One **coordinator** and up to eight **workers** build one goal in parallel Claud
 | The coordinator, running one pass | [references/coordinator.md](references/coordinator.md), [references/owner-rules.md](references/owner-rules.md), and [references/templates.md](references/templates.md) when launching |
 | A groomer cutting slices | [references/groomer.md](references/groomer.md) |
 | Planning a phase for the train | [references/worker.md](references/worker.md) (lanes, serial points) and [references/coordinator.md](references/coordinator.md#mockup-gates) |
-| Looking for why work is delivered as slices (history) | [references/slice-delivery.md](references/slice-delivery.md) |
 
 Where the rules are:
 
