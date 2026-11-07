@@ -185,6 +185,23 @@ describe('the panel can be hidden', () => {
     expect(panel().hidden).toBe(true);
   });
 
+  it('a press on a toast, such as the Undo of a dismissal made in the panel, does not close the drawer', async () => {
+    matchMedia(true);
+    render(<Harness />);
+    await userEvent.click(screen.getByRole('button', { name: /side panel/i }));
+    const region = document.createElement('div');
+    region.setAttribute('data-toast-region', '');
+    const undo = document.createElement('button');
+    region.append(undo);
+    document.body.append(region);
+    try {
+      await userEvent.click(undo);
+      expect(panel().hidden).toBe(false);
+    } finally {
+      region.remove();
+    }
+  });
+
   it('opens when a reference is shown', () => {
     matchMedia(true);
     const { rerender } = render(<Harness />);

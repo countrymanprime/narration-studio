@@ -493,9 +493,25 @@ describe('reduceEvent: the confirmation pass settling a flag', () => {
     expect(reduceEvent(withFlag, { type: 'flag_check', id: 1, state: 'cleared' }).flags).toEqual([{ ...raised, check: 'cleared' }]);
   });
 
-  it('settles a flag once: a second verdict for it changes nothing', () => {
+  it('a problem once confirmed stays confirmed: a later "cleared" for it changes nothing, and a repeated verdict changes nothing', () => {
     const settled = reduceEvent(withFlag, { type: 'flag_check', id: 1, state: 'confirmed' });
     expect(reduceEvent(settled, { type: 'flag_check', id: 1, state: 'cleared' })).toBe(settled);
+    expect(reduceEvent(settled, { type: 'flag_check', id: 1, state: 'confirmed' })).toBe(settled);
+    const cleared = reduceEvent(withFlag, { type: 'flag_check', id: 1, state: 'cleared' });
+    expect(reduceEvent(cleared, { type: 'flag_check', id: 1, state: 'cleared' })).toBe(cleared);
+  });
+
+  it('a "cleared" never hides a problem: a later "confirmed" for the same flag wins, in either order of arrival', () => {
+    const cleared = reduceEvent(withFlag, { type: 'flag_check', id: 1, state: 'cleared' });
+    expect(reduceEvent(cleared, { type: 'flag_check', id: 1, state: 'confirmed' }).flags).toEqual([{ ...raised, check: 'confirmed' }]);
+    const early = reduceEvent(reduceEvent(initialSession, { type: 'flag_check', id: 1, state: 'cleared' }), { type: 'flag_check', id: 1, state: 'confirmed' });
+    expect(reduceEvent(early, raised).flags).toEqual([{ ...raised, check: 'confirmed' }]);
+    const earlyKept = reduceEvent(reduceEvent(initialSession, { type: 'flag_check', id: 1, state: 'confirmed' }), {
+      type: 'flag_check',
+      id: 1,
+      state: 'cleared',
+    });
+    expect(reduceEvent(earlyKept, raised).flags).toEqual([{ ...raised, check: 'confirmed' }]);
   });
 
   it('a verdict heard before its flag is applied when the flag arrives; one for a flag that never comes touches no flag', () => {

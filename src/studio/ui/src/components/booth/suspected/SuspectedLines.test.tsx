@@ -85,6 +85,16 @@ describe('SuspectedLines', () => {
     expect(screen.getByText('Suspected · 2')).toBeTruthy();
   });
 
+  it.each([
+    ['an empty line', ''],
+    ['a blank line', '   '],
+  ])('%s still gets a named dismiss button, from what was suspected', async (_name, script) => {
+    const { view } = host();
+    render(view([{ ...skipped, script }]));
+    expect(await screen.findByRole('button', { name: 'Dismiss: Skipped' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /^Dismiss:\s*$/ })).toBeNull();
+  });
+
   it('each-line-can-be-dismissed-with-undo: records one dismissed decision, reads Dismissed and offers Undo', async () => {
     const { save, review, view } = host();
     const toastUndo = vi.spyOn(overlay, 'toastUndo').mockImplementation(() => undefined);
