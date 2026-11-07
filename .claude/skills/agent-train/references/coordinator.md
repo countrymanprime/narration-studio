@@ -56,7 +56,6 @@ The switches sit in the train issue's body. Only the owner or the coordinator ed
 | `HOLD-UNTIL-RESET` | off | Set by the coordinator on RED. Cleared by the first tick where usage is not RED |
 | `DRAIN` | off | Set by the coordinator on AMBER-7D or RED. Running workers pause at their next checkpoint (see [the worker protocol](worker.md#the-worker-protocol)). Lane K is exempt unless the band is RED |
 | `MAX_WORKERS` | 8 | Hard ceiling on concurrent workers, the coordinator not counted |
-| `MAX_OPUS_WORKERS` | 2 | Of those, how many may run Opus |
 | `WARNING_POLICY` | `throttle` | What a weekly warning does: `throttle`, `hold` or `ignore`. The owner's cloud credit is used up (2026-09-26), so warnings count |
 | `ALLOW_OVERAGE` | off | While off, a session that reports `isUsingOverage: true` is treated as RED |
 | `TARGET` | 4 | Target concurrent workers, adjusted by the coordinator (below) |
@@ -108,6 +107,24 @@ With `WARNING_POLICY: ignore`, warnings count as GREEN.
 5. documentation;
 6. filler: any pending phase of a PRD in `docs/prds/` that collides with nothing running.
 
+## Models by role
+
+Each role gets the model that does its job best for the money. List prices per million tokens, input / output ([pricing](https://platform.claude.com/docs/en/about-claude/pricing), read 2026-11-06): Opus 5.5 $4 / $20, Sonnet 5.5 $2 / $10, Haiku 5.5 $0.10 / $0.50 up to 100K tokens of prompt. Opus costs twice Sonnet and Haiku a twentieth of it, so planning and review, which read a lot and write little, can afford Opus, and the pass that runs every 30 minutes should be on Haiku.
+
+| Role | Model | Why |
+| --- | --- | --- |
+| The coordinator's pass | Haiku, set on the Routine | Scheduling and queue keeping: the pass is a checklist with an early exit. Anything that needs judgement it hands to a session (a fixer, a reviewer), never decides itself |
+| Planning: the groomer's plans, `phase-planner`, a PRD (lane D) | Opus | Planning is where a model's judgement pays most, and a plan is short |
+| Review: plan review, the intent review, `ux-reviewer`, `lua-reviewer`, `standards-auditor` | Opus | Reviews read a diff and write a short verdict; a missed finding costs a fixer or a regression |
+| Workers | Sonnet; Opus for lanes K and X | Most of the tokens are implementation, which Sonnet does well. Contracts and shared refactors set what others build on |
+| Fixers | Sonnet; Opus for a semantic conflict or a red `main` | As in step 4 of the pass |
+| Bookkeeping: index rows, status cells, issue closing | Haiku | Mechanical |
+| `narrator-walkthrough`, `qa-breaker` | Sonnet | They drive the app with many tool calls |
+
+The agents' models are set in their frontmatter; the coordinator's is set on the Routine.
+
+**Checking the split.** Quality per dollar for each role is measured here, with a small benchmark (#3147). Before changing a row, run a small benchmark: for each role take 10 to 15 finished jobs from the repo's history (issues with their merged PRs, red CI runs with their fixes, reviewed PRs), start each from the parent commit on each candidate model, and score it the same way: the merged PR's tests pass and CI is green for a worker or fixer, the findings match what review or CI later caught for a reviewer, the same merges and launches for a coordinator pass. Record tokens times list price and the wall time, run each cell twice, and keep the cheapest model whose pass rate is within a few points of the best. Results go on the train issue; a changed row is a normal PR.
+
 ## Safety net
 
 These checks run on their own and read the repo and CI, never a worker's report. Each one catches a failure the train has had or the [research behind it](../../../../docs/operations/ci-and-releases.md) found: a stopped coordinator, regressions on `main` between full sweeps, a worker weakening its own tests, and a stream relaunched forever.
@@ -122,7 +139,7 @@ These checks run on their own and read the repo and CI, never a worker's report.
 | **Intent review** | the coordinator, below | A fresh session, not the worker, traces each merge-ready PR back to its issue or PRD phase |
 | **Launch limit** | the coordinator, below | Stops a stream that keeps being relaunched without delivering |
 
-**Intent review.** Before merging a PR that passes the other conditions in step 4, start one reviewer session for it: `create_session` on Sonnet with `tags: ["agent-train", "train-<T>", "intent-review"]`, `title` `"review #<n>"` and a prompt that names the PR, its head SHA and its tracking issue or PRD phase, and says to run the `intent-reviewer` agent in a fresh context, not to edit anything, to judge each Test ratchet warning (below), and to comment on the PR either `Intent review: pass at <sha>` or a list of findings, each starting with 🔴. Findings are about the intent and the tests, not style. Pass the agent the branch and the issue, not the worker's account of what it built. The review counts toward `TARGET` while it runs. Merge only on a `pass` for the PR's current head; a push after the pass needs a new review.
+**Intent review.** Before merging a PR that passes the other conditions in step 4, start one reviewer session for it: `create_session` on Opus ([Models by role](#models-by-role)) with `tags: ["agent-train", "train-<T>", "intent-review"]`, `title` `"review #<n>"` and a prompt that names the PR, its head SHA and its tracking issue or PRD phase, and says to run the `intent-reviewer` agent in a fresh context, not to edit anything, to judge each Test ratchet warning (below), and to comment on the PR either `Intent review: pass at <sha>` or a list of findings, each starting with 🔴. Findings are about the intent and the tests, not style. Pass the agent the branch and the issue, not the worker's account of what it built. The review counts toward `TARGET` while it runs. Merge only on a `pass` for the PR's current head; a push after the pass needs a new review.
 
 **A `risk:high` PR.** Do not merge it. Add it to the [owner board](#the-owner-board) and the train issue's Owner queue with its number, head SHA and the reasons the label's workflow printed, then carry on with other PRs. The owner approves by approving the PR on its current head, on the board, or with `approved #<n> <sha>` on the train issue. A push after that approval needs a new one.
 
@@ -171,10 +188,10 @@ The Routine fires every 30 minutes (two hourly Routines, 30 minutes apart; D50).
       - its Parallel-session row collides with no running stream's files;
       - its PRD is in the [queue](#queue) at or above the current wave.
    2. **Group phases into streams** of 1–3 consecutive phases of one PRD in one lane. Phases that each need their own worker (marked parallel in the PRD) become separate streams.
-   3. **Launch in priority order** until running = `TARGET`. Keep Opus workers ≤ `MAX_OPUS_WORKERS`. Skip a stream that has hit the [launch limit](#safety-net). Use `create_session` with:
+   3. **Launch in priority order** until running = `TARGET`. Skip a stream that has hit the [launch limit](#safety-net). Use `create_session` with:
       - `source_url` `https://github.com/countrymanprime/narration-studio`;
       - `permission_mode` `"auto"`;
-      - a model from the lane table: Sonnet by default, Opus only for lane K, lane X, new Lua commands and semantic fixers, Haiku for bookkeeping;
+      - the model from [Models by role](#models-by-role) and the lane table;
       - `title` `"<ID> <scope>"` and `tags` `["agent-train", "lane-<L>"]`;
       - the [worker template](templates.md#worker-template) as the prompt. Use the resume template for a paused stream.
    4. **Record each launch on the train issue:** ID, lane, session id, PRD phases and model, and add one to that stream's count in the Launches table.

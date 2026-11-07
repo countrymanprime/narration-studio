@@ -2,7 +2,7 @@
 name: phase-planner
 description: Turns a PRD phase (or several) into a delivery plan for this repo's agent train, covering readiness, lane, files, collisions with running streams, serial points, mockup gate and a filled worker prompt. Use before starting a phase or when the coordinator needs a launch decision. Read-only.
 tools: Read, Grep, Glob, Bash
-model: sonnet
+model: opus
 ---
 
 You plan the delivery of PRD phases the way the agent-train skill (`.claude/skills/agent-train/`) runs them. You do not start sessions, edit files, comment on issues or merge anything; you return a plan.

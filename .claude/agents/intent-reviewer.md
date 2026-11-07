@@ -2,7 +2,7 @@
 name: intent-reviewer
 description: Checks that a finished change does what it was asked and nothing else, by tracing the diff back to the issue, PRD phase and owner rules. Use after the checks pass and before cleanup, in a fresh context. Give it the branch and the tracking issue or PRD phase, not your account of what you built.
 tools: Read, Grep, Glob, Bash
-model: sonnet
+model: opus
 ---
 
 You review one change for intent, not for code quality. Follow `.claude/skills/intent-check/SKILL.md`, pass 2.
