@@ -24,6 +24,8 @@ function Harness() {
       <aside aria-label="Note">
         <span id="why">Your DAW does not offer this.</span>
         <button aria-label="Show in REAPER" aria-disabled="true" aria-describedby="why" />
+        <span id="why-marker">The project file is not linked.</span>
+        <button aria-label="Add marker in REAPER" aria-disabled="true" aria-describedby="why-marker" />
       </aside>
     </>
   );
@@ -37,5 +39,14 @@ describe('the Proof note menu’s Show in entry', () => {
     const goto = items.find((item) => item.key === 'note-goto');
     expect(goto?.label).toBe('Show in REAPER');
     expect(goto?.unavailable).toBe('Your DAW does not offer this.');
+  });
+
+  // #2830: Add marker is in the menu too, named and gated as the Inspector's button is.
+  it('offers Add marker in the DAW, off for the reason the Inspector’s Add marker is off', () => {
+    const { container } = render(<Harness />);
+    const items = contextItemsFor(container.querySelector('tr')!) ?? [];
+    const marker = items.find((item) => item.key === 'note-marker');
+    expect(marker?.label).toBe('Add marker in REAPER');
+    expect(marker?.unavailable).toBe('The project file is not linked.');
   });
 });

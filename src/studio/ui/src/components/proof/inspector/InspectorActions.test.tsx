@@ -93,9 +93,11 @@ describe('actions-follow-the-daw-capability', () => {
   it('draws no Show in and turns Add marker off with the capability’s own sentence when the DAW offers neither', async () => {
     setup(accepted(), 'builtin');
     const sentence = DAW_SETUPS.builtin.capabilities.markers.message!;
-    await waitFor(() => expect(screen.getByText(sentence)).toBeTruthy());
+    // The sentence is the shared Add marker button's reason (#2830), read from its hint, not printed beside the row.
+    await waitFor(() => expect(enabled('Add marker in the DAW')).toBe(false));
     expect(screen.queryByRole('button', { name: /^Show in / })).toBeNull();
-    expect(enabled('Add marker in the DAW')).toBe(false);
+    await userEvent.hover(button('Add marker in the DAW'));
+    expect(await screen.findByText(sentence)).toBeTruthy();
   });
 
   it('shows a refusal from the DAW as an alert', async () => {

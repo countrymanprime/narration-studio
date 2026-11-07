@@ -15,12 +15,13 @@ import { boothQuery } from '../booth/page/boothQuery';
 import { openCheckRecordings } from '../recordingcheck/openCheckRecordings';
 import { NeedManuscript } from '../layout/NeedManuscript';
 import { reviewFinding } from '../../studio/commands/reviewFinding';
-import { ALL_SCOPE, clock, inScope, lineText, reasonSentence, type ChapterRef } from './list/pickupRows';
+import { ALL_SCOPE, clock, inScope, reasonSentence, type ChapterRef } from './list/pickupRows';
 import { PickupWhere } from './list/PickupWhere';
 import { announcePickupListChanged } from './pickupListChanged';
 import { pickupToReturnTo, rememberPickupLeft, rememberSessionLeft } from './pickupReturn';
 import { usePlayOriginal } from './list/usePlayOriginal';
 import { PickupsTable, type PickupsRead, type RemoveUndo } from './list/PickupsTable';
+import { addMarkers as addMarkersFor } from '../engine/AddMarkers';
 import { SessionPanel } from './list/SessionPanel';
 import { PAGE_COLUMN_CLASS } from '../primitives/pageColumn';
 import { usePickupsPageCommands } from './usePickupsPageCommands';
@@ -279,25 +280,14 @@ export function PickupsPage({
   };
 
   const dawName = !dawKind ? 'the DAW' : dawKind === 'none' ? 'the built-in recorder' : dawKind;
+  /* The jump menu's Add markers goes through the same one call and the same sentences as the session panel's button (#2830). */
   const addMarkers = async (picked: PickupItem[]) => {
-    const placed = picked.filter((p): p is PickupItem & { at: number } => p.at !== null);
-    /* A line the host cannot place in the recording gets no marker: say so, so the count on the button and the sentence agree. */
-    if (placed.length === 0) throw new Error('None of these lines has a place in the recording yet, so no marker was added.');
-    const skipped = picked.length - placed.length;
-    const result = await daw.addPickupMarkers(placed.map((p) => ({ ref: p.id, start: p.at, tag: p.type, note: lineText(p) })));
-    if (!result.ok) throw new Error(result.message);
-    const lines = skipped > 0 ? `${placed.length} of ${picked.length} lines` : placed.length === 1 ? '1 line' : `${placed.length} lines`;
-    const left =
-      skipped > 0
-        ? ` ${skipped} ${skipped === 1 ? 'line has' : 'lines have'} no place in the recording yet and ${skipped === 1 ? 'was' : 'were'} left out.`
-        : '';
-    overlay.toast(
-      result.changed
-        ? `Pickup ${placed.length === 1 ? 'marker' : 'markers'} for ${lines} ${placed.length === 1 ? 'is' : 'are'} in ${dawName}.${left}`
-        : `Those markers were already in ${dawName}.${left}`,
-    );
+    const result = await addMarkersFor(daw, { kind: 'pickups', pickups: picked }, dawName);
+    if (result.failed) throw new Error(result.message);
+    overlay.toast(result.message);
     await changing(pickupsApi.pickupsList());
   };
+  const markersAdded = () => void changing(pickupsApi.pickupsList());
 
   /* One way into the Booth for the button, a row and the jump menu, so Back keeps the chapter and focus whichever was used. */
   const openInBooth = (picked: PickupItem[]) => {
@@ -381,7 +371,7 @@ export function PickupsPage({
             dawName={dawName}
             markers={markers}
             onOpenInBooth={openInBooth}
-            onAddMarkers={addMarkers}
+            onMarkersAdded={markersAdded}
           />
         </div>
       </div>

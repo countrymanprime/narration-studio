@@ -213,7 +213,7 @@ and decide.
 ![Proof - a decision refused because the evidence changed since the note was shown: before and now, with the typed note kept](../../images/ui/proof-evidence-changed.webp)
 
 Right-click a note in the table, or its pin, for the same actions: **Hear it**, the four decisions (the one that does not fit the note
-says why), **Reopen**, **Show in** your DAW, **Trim the gap** on a gap note, and open its chapter in Script or the Booth.
+says why), **Reopen**, **Show in** your DAW, **Add marker in** your DAW, **Trim the gap** on a gap note, and open its chapter in Script or the Booth.
 
 ## The same word, said your way
 
@@ -263,7 +263,7 @@ recording cannot be heard, and the button says why.
 went. **Add marker in** your DAW puts one marker on the note's spot, whatever you decided about the note. The marker is
 named like the ones a chapter's [comparison
 export](#comparing-the-recording-with-the-script) adds, so Export markers does not add it a second time, and if the spot
-already has one nothing is added. Apart from **Trim the gap**, it is the only control here that changes your project, and one Undo in
+already has one nothing is added: the Inspector says "A marker is already at 3:41." It is the one button the Editing flag card and the Pickups panel use too, so its label and its reason when it is off are the same on all three; in the right-click menu the entry is off for the reason the button is. Apart from **Trim the gap**, it is the only control here that changes your project, and one Undo in
 the DAW removes it.
 
 With Audacity there are no items: **Show in Audacity** selects the compared track and puts the cursor at the note's time.

@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { apiErrorMessage } from '../../../api/errorMessage';
-import { usePendingAction } from '../../../hooks/usePendingAction';
 import { usePort } from '../../../ports/usePort';
 import type { DawCapabilities } from '../../../api/contracts/daw';
 import { shownFindingNoteType } from '../../../api/contracts/findings';
@@ -8,6 +7,7 @@ import type { Finding } from '../../../types';
 import { Button } from '../../primitives/Button';
 import { IconButton } from '../../primitives/IconButton';
 import { RepairInReaperButton } from '../../engine/RepairInReaperButton';
+import { AddMarkersButton } from '../../engine/AddMarkers';
 import { dawNameOf, ShowInDawButton } from '../../engine/ShowInDaw';
 import type { EquivalenceApi } from './equivalence';
 import { HearIt, type HearItApi } from './HearIt';
@@ -22,22 +22,11 @@ export type InspectorActionsApi = HearItApi & EquivalenceApi;
 const NO_ITEM = 'This note has no place in the DAW to go to, because it came from an older check. Run the check again to record one.';
 const NO_SOURCE_TIME = 'This note has no time in its audio to put a marker at.';
 const NO_TIME = 'This note has no time in its audio to go to.';
-const CHECKING = 'Checking what the DAW can do…';
-const NOT_OFFERED = 'Your DAW does not offer this.';
 
 // The note types the REAPER repair launchers work on, by the type the narrator sees (a click is `mouth`); noise and the rest are not theirs.
 const REPAIRABLE_TYPES: ReadonlySet<string> = new Set(['mouth', 'plosive', 'breath']);
 
-type Gate = { ok: true } | { ok: false; reason: string };
-
 export { dawNameOf };
-
-/** The capability's own sentence when the DAW does not offer it. */
-function gateOf(capabilities: DawCapabilities | undefined, name: string): Gate {
-  if (!capabilities) return { ok: false, reason: CHECKING };
-  const support = capabilities.capabilities[name];
-  return support?.available ? { ok: true } : { ok: false, reason: support?.message ?? NOT_OFFERED };
-}
 
 /**
  * The Studio Next Inspector's icon row: Hear it (the note with 3 s either side, `HearIt`), Show in <DAW>, Add marker in <DAW>, on a one-word
@@ -67,7 +56,6 @@ export function InspectorActions({
   onNoteRead: (finding: Finding) => void;
 }) {
   const daw = usePort('daw');
-  const action = usePendingAction();
   const [capabilities, setCapabilities] = useState<DawCapabilities>();
   const [capsFailed, setCapsFailed] = useState(false);
   const [result, setResult] = useState<{ message: string; failed: boolean }>();
@@ -91,25 +79,13 @@ export function InspectorActions({
   const placed = Boolean(finding.source.item_guid || finding.time_range);
   // The note's own reason it cannot be gone to; the DAW's reason (the capability's sentence) is the shared button's.
   const noteReason = !placed ? NO_ITEM : finding.time_range ? undefined : NO_TIME;
-  const marker = gateOf(capabilities, 'markers');
-  const markerReason = !marker.ok ? marker.reason : finding.time_range?.source_start === undefined ? NO_SOURCE_TIME : undefined;
+  // The note's own reason it cannot get a marker; the DAW's reason (the capability's sentence) is the shared button's.
+  const markerReason = finding.time_range?.source_start === undefined ? NO_SOURCE_TIME : undefined;
   const dawName = dawNameOf(capabilities);
   const chapterId = finding.manuscript?.chapter_id;
   const decided = finding.review.status !== 'unreviewed';
 
   const show = (message: string, failed = false) => setResult({ message, failed });
-  const addMarker = () =>
-    action.run('marker', async () => {
-      setResult(undefined);
-      try {
-        const added = await daw.addMarker(finding.id);
-        if (added.refused) show(added.refused, true);
-        else show(added.message || (added.changed ? `Marker added in ${dawName}. One Undo there removes it.` : 'This note already has a marker here.'));
-      } catch (error) {
-        show(`The DAW was not asked: ${apiErrorMessage(error)}`, true);
-      }
-    });
-
   const reasons = [...new Set([noteReason, markerReason].filter((reason): reason is string => Boolean(reason)))];
 
   return (
@@ -121,13 +97,11 @@ export function InspectorActions({
           disabled={inert}
           onResult={({ message, failed }) => show(message, failed)}
         />
-        <IconButton
-          action="addMarker"
-          label={`Add marker in ${dawName}`}
+        <AddMarkersButton
+          target={{ kind: 'finding', id: finding.id, at: finding.time_range?.start }}
           disabled={inert}
-          disabledReason={markerReason}
-          pending={action.isPending('marker')}
-          onClick={() => void addMarker()}
+          reason={markerReason}
+          onResult={({ message, failed }) => show(message, failed)}
         />
         {/* #2821: the repair launchers act on the item Show in the DAW has just selected. */}
         {REPAIRABLE_TYPES.has(shownFindingNoteType(finding)) && <RepairInReaperButton />}
