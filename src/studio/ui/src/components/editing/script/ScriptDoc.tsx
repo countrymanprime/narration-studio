@@ -117,7 +117,7 @@ export function ScriptDoc({ reason, explained = false, checkRecording, onParagra
         <div className="flex flex-wrap items-center gap-3 px-4 py-2" id="notaligned">
           <StatusBadge tone="neutral" label="Not transcribed yet" />
           {reason ? <span className="text-sm text-[var(--text-muted)]">{reason}</span> : null}
-          {checkRecording ? <CheckRecordingsButton size="sm" chapterIds={checkRecording.chapterIds} onClosed={checkRecording.onClosed} /> : null}
+          {checkRecording ? <CheckRecordingsButton variant="icon" size="sm" chapterIds={checkRecording.chapterIds} onClosed={checkRecording.onClosed} /> : null}
         </div>
       )}
       <div
