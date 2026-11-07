@@ -375,10 +375,11 @@ jobs:
   test-windows:
     # Every Windows check in one job (owner decision, #3065). These were two jobs, go-test (root) and go-test (rest), each paying for
     # its own Windows runner and toolchain setup.
-    #   - go test: every Go package in one `go test` (the `ci` configuration of the test target): the race detector on the packages with
-    #     concurrency, the module's root package among them, the rest without (scripts/ci/coverage-gate.mjs). `go test` runs the packages
-    #     side by side, so the root package (405 s with the race detector on run 39138316593, most of the cost) runs beside the others
-    #     instead of on a runner of its own. Then every Go coverage floor is checked.
+    #   - go test (root), then go test (rest): the module's root package with the race detector (the `ci-root` configuration of the test
+    #     target), then the other packages, the race detector on those with concurrency (`ci-rest`); each checks the coverage floors of
+    #     the packages it ran, and together they run every package once (scripts/ci/coverage-gate.mjs --group). One after the other, not
+    #     in one `go test`: run 42403486674 ran them together and the root package slowed from 405 s to 539 s competing for the runner's
+    #     four CPUs, and a timing test failed (TestAnAnalysisToolWithAWheelAsLargeAsThePinnedTorchWheelInstalls); together saved about a minute.
     #   - go test-schedules: the teleprompter and shutdown tests on one and on four CPUs (an ordering bug between goroutines that hides on
     #     the default scheduler fails there on demand).
     #   - go lint: gofmt, go vet, golangci-lint and checklocks (the `ci` configuration of the lint target), here because it needs the
@@ -407,13 +408,21 @@ jobs:
           need-stylua: 'false'
           need-golangci-lint: 'true'
           pnpm-filter: workspace
-      - name: go test
-        id: go-test
+      - name: go test (root)
+        id: go-test-root
         uses: ./.github/actions/nx-run
         with:
           targets: test
           projects: desktop
-          configuration: ci
+          configuration: ci-root
+      - name: go test (rest)
+        id: go-test-rest
+        if: ${{ !cancelled() }}
+        uses: ./.github/actions/nx-run
+        with:
+          targets: test
+          projects: desktop
+          configuration: ci-rest
       - name: go test-schedules
         id: schedules
         if: ${{ !cancelled() }}
@@ -451,7 +460,7 @@ jobs:
         shell: bash
         env:
           OUTCOMES: >-
-            {"go test": "${{ steps.go-test.outcome }}", "go test-schedules": "${{ steps.schedules.outcome }}",
+            {"go test (root)": "${{ steps.go-test-root.outcome }}", "go test (rest)": "${{ steps.go-test-rest.outcome }}", "go test-schedules": "${{ steps.schedules.outcome }}",
             "go lint": "${{ steps.go-lint.outcome }}", "reaper (Lua)": "${{ steps.reaper.outcome }}"}
         run: node scripts/ci/step-summary.mjs
 

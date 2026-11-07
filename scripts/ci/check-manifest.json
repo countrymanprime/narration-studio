@@ -314,12 +314,12 @@
       "step": [
         "targets: test",
         "projects: desktop",
-        "configuration: ci"
+        "configuration: ci-root"
       ],
       "job_has": [
         "runs-on: windows-latest"
       ],
-      "note": "Test (Windows) runs every Go package in one `go test` (the `ci` configuration): the root package with the race detector, beside the other packages, instead of in a job of its own."
+      "note": "Test (Windows) runs it as its first step, `go test (root)`, instead of in a job of its own."
     },
     {
       "id": "go-test/rest",
@@ -330,12 +330,12 @@
       "step": [
         "targets: test",
         "projects: desktop",
-        "configuration: ci"
+        "configuration: ci-rest"
       ],
       "job_has": [
         "runs-on: windows-latest"
       ],
-      "note": "Test (Windows) runs every Go package in one `go test` (the `ci` configuration): the root package with the race detector, beside the other packages, which were the go-test (rest) job."
+      "note": "Test (Windows) runs it as its `go test (rest)` step, after the root package, instead of in a job of its own."
     },
     {
       "id": "go-test/schedules",

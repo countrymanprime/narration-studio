@@ -16,8 +16,7 @@
  * up: `--update` rewrites them to the rounded-down measurement and never lowers one. The floor for
  * a new logic directory is TARGET (80); a lower floor needs a written `reason` in the file.
  *
- * `--group` (with `-race`) runs only some of the packages, so they can run as parallel jobs (CI ran two until #3065 merged them
- * into Test (Windows); the option stays as the way back if one job grows too long): `root` is the module's root
+ * `--group` (with `-race`) runs only some of the packages, so CI can run them as parallel jobs: `root` is the module's root
  * package, which the race detector slows to 405 s of the 622 s it spent on all the others together, `race` is the other
  * packages with concurrency, `plain` the rest. A job checks the floors of the packages it ran and no others; the jobs
  * together run every package once, and an entry naming no package fails in every job as it does in an unsplit run.
