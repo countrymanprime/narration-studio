@@ -13,7 +13,7 @@ test('a Go-only change analyses Go only', () => {
 
 test('a UI change analyses JavaScript and TypeScript only', () => {
   assert.deepEqual(languages(['src/studio/ui/src/App.tsx', 'src/studio/ui/src/styles.css']), ['javascript-typescript']);
-  assert.deepEqual(languages(['scripts/ci/pr-risk.mjs']), ['javascript-typescript']);
+  assert.deepEqual(languages(['scripts/ci/test-ratchet.mjs']), ['javascript-typescript']);
   assert.deepEqual(languages(['tools/docs-site/theme/main.html']), ['javascript-typescript']);
 });
 

@@ -43,7 +43,7 @@ One scheme, three kinds of label. A name never appears twice, with or without a 
   There is no `go`, `python` or `ci` label: Go is `area:shell`.
 - **Origin or kind:** `dependencies` (set by [`dependabot.yml`](../../.github/dependabot.yml) on every ecosystem and
   nothing else, so Dependabot's own `go`, `javascript`, `python:uv` and `github_actions` labels are no longer
-  added), `security` (hand-applied; no workflow sets it), `risk:high` (set by `pr-risk.yml`), `bug`, `enhancement`,
+  added), `security` (hand-applied; no workflow sets it), `bug`, `enhancement`,
   `documentation`, `question`, `accessibility`, plus GitHub's defaults.
 - **State:** `needs-triage`, `blocked`.
 

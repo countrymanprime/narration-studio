@@ -137,7 +137,7 @@ Source: [#1760](https://github.com/countrymanprime/narration-studio/pull/1760) u
 
 These pull requests changed documents or checks only. They need a person's decision, not a Windows run.
 
-- [ ] **8.1 Threat-model edits.** [#1796](https://github.com/countrymanprime/narration-studio/pull/1796) is merged and was marked `risk:high`. Read its threat-model row changes (1i, 5h, 5l, 9a, 5i) and the `SECURITY.md` clause, and accept or reject them.
+- [ ] **8.1 Threat-model edits.** [#1796](https://github.com/countrymanprime/narration-studio/pull/1796) is merged. Read its threat-model row changes (1i, 5h, 5l, 9a, 5i) and the `SECURITY.md` clause, and accept or reject them.
 - [ ] **8.2 Master & QC stepper keys.** Optionally check whether the Master & QC chapter stepper has Alt+Up and Alt+Down keys. [#1796](https://github.com/countrymanprime/narration-studio/pull/1796) found no binding and left the hint out of the guide.
 - [ ] **8.3 Guide steps.** The guides were checked against component labels by reading, not by running the app. Follow a guide page against the installed app and note any step that does not match. Source: [#1796](https://github.com/countrymanprime/narration-studio/pull/1796).
 - [ ] **8.4 Gaps and ratchet entries.** Rule on the gaps listed in [#1791](https://github.com/countrymanprime/narration-studio/pull/1791): waive them by comment or ask for fixes. Nothing is waived today.
