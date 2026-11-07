@@ -2,6 +2,8 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { ChapterState } from './chapterStates';
+import type { MeasureRun } from '../../masterqc/page/MeasureRun';
+import { TooltipProvider } from '../../primitives/Tooltip';
 import { Preflight } from './Preflight';
 
 afterEach(cleanup);
@@ -9,7 +11,27 @@ afterEach(cleanup);
 const states = (count: number): ChapterState[] =>
   Array.from({ length: count }, (_, i) => ({ id: `c${i + 1}`, name: `Chapter ${i + 1}`, kind: 'ok', text: 'Pass' }));
 
-const mount = (count: number) => render(<Preflight states={states(count)} known onCheckAgain={() => {}} onOpen={() => {}} />);
+const IDLE_RUN = {
+  job: undefined,
+  files: [],
+  running: false,
+  paths: [],
+  checking: false,
+  jobError: undefined,
+  lastHeard: undefined,
+  checkAgain: () => {},
+  problem: undefined,
+  check: async () => {},
+  chooseOther: async () => {},
+  cancel: () => {},
+} as MeasureRun;
+
+const mount = (count: number) =>
+  render(
+    <TooltipProvider>
+      <Preflight states={states(count)} known run={IDLE_RUN} onCheckAgain={() => {}} onOpen={() => {}} />
+    </TooltipProvider>,
+  );
 
 // Rule 6 of frontend-primitives (#2639): a list of rows is capped and scrolls inside its card; only the Production pipeline is exempt.
 describe('the "Before you build" list is capped (rule 6, #2639)', () => {

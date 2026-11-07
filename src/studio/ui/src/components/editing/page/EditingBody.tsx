@@ -17,6 +17,7 @@ import { SelToolbar } from '../bar/SelToolbar';
 import { useAnnouncePlayback } from '../bar/useAnnouncePlayback';
 import { useScriptPlayback } from '../bar/useScriptPlayback';
 import { registerCleanupSection } from '../cleanup/registerCleanupSection';
+import { registerLevelsSection } from '../cleanup/registerLevelsSection';
 import { useCleanupDeps } from '../cleanup/useCleanupDeps';
 import { Drawer, flagTotal } from '../drawer/Drawer';
 import { DrawerLayout } from '../drawer/DrawerLayout';
@@ -74,7 +75,7 @@ import { installBackupSteps, tokensIn } from '../backups/backupBefore';
 import { FxMarkersContext } from '../range/fx/fxMarkers';
 import { registerSelectionAction } from '../bar/selectionActions';
 import { SelectionActionButton } from '../bar/SelectionActionButton';
-import { useShowInDaw } from '../takes/useShowInDaw';
+import { useShowInDawTakeControl } from '../takes/useShowInDaw';
 import { escapeClosesPanel } from '../../primitives/focusReturn';
 import { IconButton } from '../../primitives/IconButton';
 import { registerTakeControl } from '../takes/takeControls';
@@ -357,7 +358,7 @@ export function EditingBody(props: EditingBodyProps) {
       }),
     [],
   );
-  useShowInDaw(chapterId, caps);
+  useShowInDawTakeControl(chapterId);
   // Undo choice in the footer of a line whose take was kept here.
   useEffect(
     () =>
@@ -411,6 +412,7 @@ export function EditingBody(props: EditingBodyProps) {
     () => registerCleanupSection({ journal, playback: previewPlayback, ...(cleanupDeps ? { deps: cleanupDeps } : {}) }),
     [journal, cleanupDeps, previewPlayback],
   );
+  useEffect(() => registerLevelsSection(), []);
   // What the inspector needs to change, bypass and compare an effect through the DAW and the history, and to hear its words through the
   // page's playback (stopped while the DAW plays a Compare).
   const { onEffects } = props;
@@ -634,6 +636,7 @@ export function EditingBody(props: EditingBodyProps) {
             {flagPara && flagPid === pid && state.flag ? (
               <FlagCard
                 doc={doc}
+                chapterId={chapterId}
                 dp={flagPara}
                 flag={state.flag}
                 score={scoreOf(read, state.flag)}

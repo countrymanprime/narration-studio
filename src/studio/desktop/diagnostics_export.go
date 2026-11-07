@@ -74,8 +74,13 @@ func (h *Host) diagnosticsClock() func() time.Time {
 }
 
 func (h *Host) buildDiagnostics() (*diagexport.Bundle, error) {
+	bridgeLog := ""
+	if dir := h.services().config.sessionDir; dir != "" {
+		bridgeLog = filepath.Join(dir, "bridge.jsonl")
+	}
 	return diagexport.Build(diagexport.Options{
-		Tracer: h.tracer, TracePath: h.tracer.Path(), RunLogPath: h.runLog.Path(), AppVersion: h.version,
+		Tracer: h.tracer, TracePath: h.tracer.Path(), RunLogPath: h.runLog.Path(), RunsDir: filepath.Join(filepath.Dir(h.runLog.Path()), "runs"),
+		BridgeLogPath: bridgeLog, AppVersion: h.version,
 		LeakTerms: h.diagnosticsLeakTerms(), Now: h.diagnosticsClock(),
 	})
 }

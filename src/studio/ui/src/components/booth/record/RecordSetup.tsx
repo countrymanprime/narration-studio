@@ -69,7 +69,6 @@ export function RecordSetup({
       asked={asked}
       plan={plan}
       say={say}
-      onSettings={onSettings}
       onChanged={onChanged}
       check={check}
       factsFailed={factsFailed}
@@ -181,7 +180,6 @@ function Connect({
   asked,
   plan,
   say,
-  onSettings,
   onChanged,
   check,
   factsFailed,
@@ -193,7 +191,6 @@ function Connect({
   plan: Extract<RecordSetupPlan, { kind: 'connect' }>;
   daw: DawKind;
   say: Say;
-  onSettings: () => void;
   onChanged: () => void;
   check: CheckProps;
   factsFailed?: boolean;
@@ -283,7 +280,6 @@ function Connect({
           onLaunched={(path) => say(`${name} is starting (${path}). Record turns on here once it connects.`, undefined, START_TOPIC)}
           startLabel={guide.launch.label}
           linked={factsFailed ? undefined : plan.linked}
-          onLink={onSettings}
           onClose={dialog.close}
         >
           {turnedAway && (

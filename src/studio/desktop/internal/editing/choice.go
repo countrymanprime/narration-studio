@@ -12,6 +12,7 @@ package editing
 
 import (
 	"desktop/internal/brand"
+	"desktop/internal/persist"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -125,11 +126,7 @@ func (s *ChoiceStore) update(change func(*choiceFileShape)) error {
 		return fmt.Errorf("could not create the editing folder: %w", err)
 	}
 	path := ChoiceFile(s.project)
-	temp := path + ".tmp"
-	if err := os.WriteFile(temp, encoded, 0o600); err != nil {
-		return fmt.Errorf("could not save the editing source choice: %w", err)
-	}
-	if err := os.Rename(temp, path); err != nil {
+	if err := persist.WriteFile(path, encoded, 0o600); err != nil {
 		return fmt.Errorf("could not save the editing source choice: %w", err)
 	}
 	return nil

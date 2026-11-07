@@ -31,7 +31,7 @@ export function EditingHeader({ stepper, legend, status, strip, stripFits, drawe
   return (
     <header className="@container/hd flex flex-wrap items-center gap-x-3 gap-y-2 px-4 pt-3 pb-2">
       <Heading title="Editing" />
-      <div className="contents @max-[36rem]/hd:order-2 @max-[36rem]/hd:flex">{stepper}</div>
+      <div className="contents @max-[36rem]/hd:order-2 @max-[36rem]/hd:flex @max-[36rem]/hd:max-w-full @max-[36rem]/hd:min-w-0">{stepper}</div>
       <div className="min-w-0 flex-1 @max-[36rem]/hd:order-3 @max-[36rem]/hd:basis-full">{legend}</div>
       <div className="flex items-center gap-2 @max-[36rem]/hd:order-1 @max-[36rem]/hd:ml-auto">
         {status}

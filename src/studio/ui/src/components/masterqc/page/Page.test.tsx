@@ -10,6 +10,7 @@ import type { DeliveryProfile, MeasureFileResult, NarrationApi } from '../../../
 import { findToast, pressToastAction, toastTexts } from '../../../fixtures/toasts';
 import { chapterStates } from '../../delivery/page/chapterStates';
 import { MasterPage } from './MasterPage';
+import { DAW_SETUPS } from '../../../fixtures/daw';
 import { ALL_PASS, CHAPTERS, CHAPTERS_WITH_CREDITS, PageHost, TWO_FAIL, acx, apiOf, failingTwo, jobOf, noRules, passing, withCredits } from './testPage';
 
 afterEach(cleanup);
@@ -28,6 +29,16 @@ const mount = (files: readonly MeasureFileResult[], profile: DeliveryProfile = a
   );
   return { api, onOpenDelivery };
 };
+describe('the DAW connection chip (#2823)', () => {
+  it('shows the shared REAPER-not-connected chip when the DAW does not answer, and nothing while it does', async () => {
+    mount(ALL_PASS, acx, { dawCapabilities: async () => DAW_SETUPS['reaper-off'], subscribeDawCapabilities: () => () => undefined });
+    expect(await screen.findByRole('button', { name: /REAPER not connected/, hidden: true })).toBeTruthy();
+    cleanup();
+    mount(ALL_PASS);
+    await screen.findByRole('complementary', { name: /Delivery package/ });
+    expect(screen.queryByRole('button', { name: /not connected/ })).toBeNull();
+  });
+});
 const package_ = () => screen.getByRole('complementary', { name: /Delivery package/ });
 const chart = () => screen.getByRole('img', { name: /RMS by file/ });
 
@@ -331,9 +342,13 @@ describe('Master & QC page body', () => {
 
   it('the-kept-panels-mount-unchanged-below', async () => {
     mount(ALL_PASS);
-    for (const title of ['Mastering chain', 'Diagnostics', 'Multi-platform export']) {
+    for (const title of ['Mastering chain', 'Diagnostics']) {
       expect(await screen.findByRole('heading', { name: new RegExp(title) })).toBeTruthy();
     }
+    // The package card says how many chapters are encoded, the count Delivery builds from (#2824).
+    expect(screen.getByText(/^\d+ of \d+ encoded$/)).toBeTruthy();
+    // The multi-platform build moved to Delivery's Output panel (#2824): Master keeps measure, master and encode, and the package counts card.
+    expect(screen.queryByRole('heading', { name: 'All platforms' })).toBeNull();
     expect(screen.getByRole('button', { name: /report/i })).toBeTruthy();
   });
 

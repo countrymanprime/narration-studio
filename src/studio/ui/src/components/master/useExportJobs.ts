@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useApi } from '../../api/ApiContext';
 import { apiErrorMessage } from '../../api/errorMessage';
 import { overlay } from '../../overlay/overlayService';
-import type { DeliveryProfile, ExportItem, ExportJob, ExportPlan, MasteringApproval, MultiPackageJob, PackageItem, PackageJob } from '../../types';
+import type { ExportItem, ExportJob, ExportPlan, MasteringApproval } from '../../types';
 import { startExportRequest, useExportStarting } from './masterRequests';
 import { kindFromFileName } from './packageKind';
 
@@ -40,15 +40,9 @@ export function useExportJobs() {
   // A pick, start or cancel the host refused, and a read of the job that failed: the read's goes once a read answers again.
   const [problem, setProblem] = useState<string>();
   const [readProblem, setReadProblem] = useState<string>();
-  const [packageJob, setPackageJob] = useState<PackageJob>();
-  const [packageProblem, setPackageProblem] = useState<string>();
-  const [multiPackageJob, setMultiPackageJob] = useState<MultiPackageJob>();
-  const [multiPackageProblem, setMultiPackageProblem] = useState<string>();
   // Each poll below re-arms on its job's next answer; a failed read changes no job, so it bumps its counter instead, or one failed
   // read would stop the poll for good with the job still drawn as running (#2935 review).
   const [exportRetry, setExportRetry] = useState(0);
-  const [packageRetry, setPackageRetry] = useState(0);
-  const [multiPackageRetry, setMultiPackageRetry] = useState(0);
   const [cancelling, setCancelling] = useState(false);
   const cancelSent = useRef(false);
   // Picked files whose row no longer shows the last job's result: removed since that job, or about to be exported again.
@@ -63,14 +57,6 @@ export function useExportJobs() {
       .exportState()
       .then((state) => active && setExportJob(state))
       .catch((error) => active && setReadProblem(apiErrorMessage(error)));
-    api
-      .packageState()
-      .then((state) => active && setPackageJob(state))
-      .catch((error) => active && setPackageProblem(apiErrorMessage(error)));
-    api
-      .packageMultiState()
-      .then((state) => active && setMultiPackageJob(state))
-      .catch((error) => active && setMultiPackageProblem(apiErrorMessage(error)));
     return () => {
       active = false;
     };
@@ -108,46 +94,6 @@ export function useExportJobs() {
     if (exportJob.files.length === 0) return;
     setItems((current) => (current.length > 0 ? current : exportJob.files.map(({ kind, title, path }) => ({ kind, title, path }))));
   }, [exportJob]);
-
-  const packageRunning = packageJob?.phase === 'running';
-  useEffect(() => {
-    if (!packageRunning) return;
-    let active = true;
-    const timer = setTimeout(() => {
-      api
-        .packageState()
-        .then((state) => active && setPackageJob(state))
-        .catch((error) => {
-          if (!active) return;
-          setPackageProblem(apiErrorMessage(error));
-          setPackageRetry((count) => count + 1);
-        });
-    }, POLL_MS);
-    return () => {
-      active = false;
-      clearTimeout(timer);
-    };
-  }, [api, packageRunning, packageJob, packageRetry]);
-
-  const multiPackageRunning = multiPackageJob?.phase === 'running';
-  useEffect(() => {
-    if (!multiPackageRunning) return;
-    let active = true;
-    const timer = setTimeout(() => {
-      api
-        .packageMultiState()
-        .then((state) => active && setMultiPackageJob(state))
-        .catch((error) => {
-          if (!active) return;
-          setMultiPackageProblem(apiErrorMessage(error));
-          setMultiPackageRetry((count) => count + 1);
-        });
-    }, POLL_MS);
-    return () => {
-      active = false;
-      clearTimeout(timer);
-    };
-  }, [api, multiPackageRunning, multiPackageJob, multiPackageRetry]);
 
   const pick = async () => {
     setPicking(true);
@@ -259,35 +205,6 @@ export function useExportJobs() {
       });
   };
 
-  const doneFiles = exportJob?.files.filter((file) => file.status === 'done' && file.encodedPath) ?? [];
-
-  const startPackage = async (profile: DeliveryProfile) => {
-    setPackageProblem(undefined);
-    const packageItems: PackageItem[] = doneFiles.map((file) => ({ kind: file.kind, title: file.title, path: file.encodedPath as string }));
-    try {
-      setPackageJob(await api.packageStart({ profileId: profile.id, profileVersion: profile.version, items: packageItems }));
-    } catch (error) {
-      setPackageProblem(apiErrorMessage(error));
-    }
-  };
-  const cancelPackage = () => void api.packageCancel().then(setPackageJob, (error) => setPackageProblem(apiErrorMessage(error)));
-
-  const startMultiPackage = async (profiles: DeliveryProfile[]) => {
-    setMultiPackageProblem(undefined);
-    const packageItems: PackageItem[] = doneFiles.map((file) => ({ kind: file.kind, title: file.title, path: file.encodedPath as string }));
-    try {
-      setMultiPackageJob(
-        await api.packageStartMulti({
-          selections: profiles.map((profile) => ({ profileId: profile.id, profileVersion: profile.version })),
-          items: packageItems,
-        }),
-      );
-    } catch (error) {
-      setMultiPackageProblem(apiErrorMessage(error));
-    }
-  };
-  const cancelMultiPackage = () => void api.packageMultiCancel().then(setMultiPackageJob, (error) => setMultiPackageProblem(apiErrorMessage(error)));
-
   return {
     picking,
     items,
@@ -305,17 +222,6 @@ export function useExportJobs() {
     planExport,
     cancelExport,
     cancelling,
-    doneFiles,
-    packageJob,
-    packageRunning,
-    packageProblem,
-    startPackage,
-    cancelPackage,
-    multiPackageJob,
-    multiPackageRunning,
-    multiPackageProblem,
-    startMultiPackage,
-    cancelMultiPackage,
   };
 }
 

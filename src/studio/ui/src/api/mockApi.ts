@@ -224,6 +224,11 @@ export function createMockApi(
     ...(initial.reaperState ? { reaper: initial.reaperState } : {}),
     ...(initial.reaperInput ? { reaperInput: initial.reaperInput } : {}),
     resume: initial.resume,
+    keepFlagFinding: async (finding, dismissed) => {
+      saveFinding(finding);
+      if (dismissed) await findings.findingsReview({ id: finding.id, evidenceVersion: finding.evidence_version ?? '', status: 'dismissed', note: '' });
+      return (await findings.findingsGet(finding.id)).review;
+    },
     dawRecord: (kind) => dawControl.record(kind),
     dawRecording: () => dawControl.recording(),
     // Only a link made during this session: the seeded project already links its chapters, which `?mockReaperState=no_link` overrides.

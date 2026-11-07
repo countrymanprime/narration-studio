@@ -2877,6 +2877,17 @@ export function SystemSettingsForScope(scope: string): $CancellablePromise<strin
 }
 
 /**
+ * SystemTraceBatch takes the activity-trace events the page collected (screen changes, host calls, live events, overlays, caught
+ * errors) as `{"events":[{"event":"ui.nav","fields":{"page":"settings"}}]}` and writes each through the trace's registry
+ * (docs/prds/activity-trace.prd.md). An event the registry does not list under `ui`, or a field of the wrong shape, is dropped and
+ * counted; the page cannot write a host event or a path. It answers how many events were written and how many were refused. The
+ * page sends every batch, because the in-memory ring always records; a call costs one JSON parse.
+ */
+export function SystemTraceBatch(batch: string): $CancellablePromise<string> {
+    return $Call.ByID(82054732, batch);
+}
+
+/**
  * TeleprompterDevices lists the input devices the teleprompter's capture path can open, by the name it opens them
  * under. It never fails Start-style: a listing problem comes back as
  * `{"devices": [], "error": "..."}`, not a rejected promise, so a caller can

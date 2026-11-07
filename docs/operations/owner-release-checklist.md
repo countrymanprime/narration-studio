@@ -44,5 +44,6 @@ One sitting. These are checks 9.2 to 9.4 of the [Windows QA checklist](windows-q
 
 ## 5. Promote
 
+- [ ] Choose the first stable's number (1.0.0 unless you decide otherwise) and cut its candidate: run **Prerelease** by hand with that `version` (`gh workflow run prerelease.yml -f version=1.0.0`), which builds `v1.0.0-rc` ([CI and releases](ci-and-releases.md#version-lifecycle)). Without it the next candidate is the next `0.3.x`, and Promote keeps a candidate's number.
 - [ ] Run **Promote pre-release** on a candidate that passed sections 2 to 4 ([CI and releases](ci-and-releases.md#version-lifecycle)). Check the stable tag, the three assets, the checksums and the attestations ([#188](https://github.com/countrymanprime/narration-studio/issues/188)).
 - [ ] Windows code signing stays out of the first stable by decision (D7).

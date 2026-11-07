@@ -1,3 +1,4 @@
+import { apiErrorMessage } from '../../api/errorMessage';
 import { useEffect, useState } from 'react';
 import { useApi } from '../../api/ApiContext';
 import { useCapability } from '../../useCapability';
@@ -90,7 +91,7 @@ export function CreateChapterRegionsDialog({ tracks, onClose }: { tracks: Track[
         if (active) setPlan(next);
       })
       .catch((reason: unknown) => {
-        if (active) setPreviewError(String(reason));
+        if (active) setPreviewError(apiErrorMessage(reason));
       });
     return () => {
       active = false;
@@ -115,7 +116,7 @@ export function CreateChapterRegionsDialog({ tracks, onClose }: { tracks: Track[
           .then(setPlan)
           .catch(() => {});
       })
-      .catch((reason: unknown) => setCreateError(String(reason)))
+      .catch((reason: unknown) => setCreateError(apiErrorMessage(reason)))
       .finally(() => setCreating(false));
   };
 

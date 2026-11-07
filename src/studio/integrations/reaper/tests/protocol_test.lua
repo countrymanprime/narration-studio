@@ -149,6 +149,9 @@ local function counting_session(options, extra)
                   end
                   return handle:write(text)
                 end,
+                seek = function(_, ...)
+                  return handle:seek(...)
+                end,
                 close = function()
                   return handle:close()
                 end,
@@ -283,4 +286,20 @@ H.test('encode percent-encodes every byte as the host expects, and decode revers
   H.eq(core.encode(nil), '')
   H.eq(core.encode(12.5), '12.5')
   H.eq(core.encode('plain-text_1.0~'), 'plain-text_1.0~')
+end)
+
+H.test('events.log starts again once it is past its cap, so a long session does not grow it without bound', function()
+  local s = H.session()
+  local handle = assert(io.open(s:path('events.log'), 'w'))
+  handle:write(string.rep('X', 9 * 1024 * 1024))
+  handle:close()
+  s:send('frobnicate', 'run1')
+  H.eq(s:events(), { { 'ERROR', 'run1', 'Unsupported workspace command' } })
+end)
+
+H.test('events.log under its cap is appended to, not restarted', function()
+  local s = H.session()
+  s:send('frobnicate', 'run1')
+  s:send('frobnicate', 'run2')
+  H.eq(#s:events(), 2)
 end)

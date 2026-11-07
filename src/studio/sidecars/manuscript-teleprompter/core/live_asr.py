@@ -728,8 +728,8 @@ def _emit(event: dict) -> None:
 
 def _load_confirmer(args):
     """The trailing confirmation pass for this session (confirm.py), or None when it is off: no --confirm-model, or the
-    Whisper engine, which already is the second opinion. The model loads on the pass's own thread, on its first check."""
-    if not args.confirm_model or args.engine == "whisper":
+    engine whose descriptor says it already is the second opinion (Whisper). The model loads on the pass's own thread, on its first check."""
+    if not args.confirm_model or ENGINES.lookup(args.engine).descriptor.second_opinion:
         return None
     from confirm import Confirmer
     from faster_whisper import WhisperModel
