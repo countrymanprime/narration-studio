@@ -1,5 +1,5 @@
--- A character voice sample kept in the project as a region: keep_voice_sample (add a region, or move and rename one) and
--- read_voice_samples (list the regions the host named). Phase 6 of docs/prds/character-voice-samples.prd.md. Loaded by
+-- A character voice sample kept in the project as a region: keep_voice_sample (add a region, or move and rename one),
+-- delete_voice_sample_region (remove one) and read_voice_samples (list the regions the host named). Phase 6 of docs/prds/character-voice-samples.prd.md. Loaded by
 -- narration_ui_bridge.lua, which passes the shared helpers as the chunk argument.
 --
 -- The host names the region (the prefix, the character and the label); this file only refuses a name or range REAPER
@@ -12,6 +12,11 @@
 --   a number: moves and renames that region, keeping its number and colour (moved or unchanged). The number must belong
 --   to a region whose name starts with SAMPLE_PREFIX, so a stale number can never move a chapter region
 --   (VOICE_SAMPLE_STALE|run|number otherwise).
+-- delete_voice_sample_region <run> <number>
+--   removes the region that number names, in one undo point, only when its name starts with SAMPLE_PREFIX: a chapter region (or a
+--   plain marker) that shares the number is never touched (VOICE_SAMPLE_STALE|run|number for a region without the prefix).
+--   Idempotent: a number no region has is VOICE_SAMPLE_REMOVED|run|number|unchanged, with no undo point; a removal is |deleted.
+--   Refuses while REAPER records.
 -- read_voice_samples <run> <prefix>
 --   VOICE_SAMPLE_REGION|run|number|first|last|name per region whose name starts with the prefix (at most 500, in project
 --   order), then VOICE_SAMPLES_READ|run|count|changeCount.
@@ -26,6 +31,8 @@ local SAMPLE_PREFIX = 'Voice sample: '
 local RECORDING = 'REAPER is recording. Stop recording first.'
 local NO_API = 'This REAPER version cannot keep a voice sample as a region.'
 local BAD_INPUT = 'The voice sample range or name is not valid.'
+local NO_DELETE_API = 'This REAPER version cannot remove a voice sample region.'
+local BAD_NUMBER = 'The voice sample region number is not valid.'
 
 local function recording()
   return math.floor(reaper.GetPlayState() / 4) % 2 == 1
@@ -118,6 +125,48 @@ local function keep(ctx, args)
   event(session_dir, 'VOICE_SAMPLE_KEPT', run_id, number, 'moved')
 end
 
+local function delete(ctx, args)
+  local session_dir, run_id = ctx.session_dir, args[1] or ''
+  if not reaper.APIExists('DeleteProjectMarker') then
+    event(session_dir, 'ERROR', run_id, NO_DELETE_API)
+    return
+  end
+  local wanted = tostring(args[2] or '')
+  local number = tonumber(wanted)
+  if not number or number ~= number or number < 1 or number % 1 ~= 0 or number == math.huge then
+    event(session_dir, 'ERROR', run_id, BAD_NUMBER)
+    return
+  end
+  if recording() then
+    event(session_dir, 'ERROR', run_id, RECORDING)
+    return
+  end
+  local target
+  for _, region in ipairs(regions()) do
+    if region.number == number then
+      target = region
+    end
+  end
+  if not target then
+    event(session_dir, 'VOICE_SAMPLE_REMOVED', run_id, wanted, 'unchanged')
+    return
+  end
+  if not starts_with(target.name, SAMPLE_PREFIX) then
+    event(session_dir, 'VOICE_SAMPLE_STALE', run_id, wanted)
+    return
+  end
+  reaper.Undo_BeginBlock2(0)
+  local removed = reaper.DeleteProjectMarker(0, number, true)
+  if not removed then
+    reaper.Undo_EndBlock2(0, core.brand.name .. ': delete voice sample', -1)
+    event(session_dir, 'ERROR', run_id, 'REAPER could not delete the region.')
+    return
+  end
+  reaper.Undo_EndBlock2(0, core.brand.name .. ': delete voice sample', -1)
+  reaper.UpdateArrange()
+  event(session_dir, 'VOICE_SAMPLE_REMOVED', run_id, number, 'deleted')
+end
+
 local function read(ctx, args)
   local session_dir, run_id, prefix = ctx.session_dir, args[1] or '', tostring(args[2] or '')
   if prefix == '' then
@@ -139,5 +188,6 @@ end
 
 return function(registry)
   registry.register('keep_voice_sample', keep)
+  registry.register('delete_voice_sample_region', delete)
   registry.register('read_voice_samples', read)
 end

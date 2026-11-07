@@ -3390,8 +3390,8 @@
   {
     "name": "a voice sample is kept while REAPER records",
     "file": "narration_voice_sample_region.lua",
-    "find": "  if recording() then\n    event(session_dir, 'ERROR', run_id, RECORDING)",
-    "replace": "  if false then\n    event(session_dir, 'ERROR', run_id, RECORDING)"
+    "find": "  if recording() then\n    event(session_dir, 'ERROR', run_id, RECORDING)\n    return\n  end\n  local known = regions()",
+    "replace": "  if false then\n    event(session_dir, 'ERROR', run_id, RECORDING)\n    return\n  end\n  local known = regions()"
   },
   {
     "name": "an empty prefix lists every region",
@@ -3410,6 +3410,30 @@
     "file": "narration_voice_sample_region.lua",
     "find": "first >= 0 and last > first and name:match('%S')",
     "replace": "first >= 0 and name:match('%S')"
+  },
+  {
+    "name": "delete_voice_sample_region removes a region that is not a voice sample",
+    "file": "narration_voice_sample_region.lua",
+    "find": "  if not starts_with(target.name, SAMPLE_PREFIX) then\n    event(session_dir, 'VOICE_SAMPLE_STALE', run_id, wanted)",
+    "replace": "  if false then\n    event(session_dir, 'VOICE_SAMPLE_STALE', run_id, wanted)"
+  },
+  {
+    "name": "delete_voice_sample_region deletes while REAPER records",
+    "file": "narration_voice_sample_region.lua",
+    "find": "  if recording() then\n    event(session_dir, 'ERROR', run_id, RECORDING)\n    return\n  end\n  local target\n",
+    "replace": "  if false then\n    event(session_dir, 'ERROR', run_id, RECORDING)\n    return\n  end\n  local target\n"
+  },
+  {
+    "name": "delete_voice_sample_region takes a fractional region number",
+    "file": "narration_voice_sample_region.lua",
+    "find": "number < 1 or number % 1 ~= 0 or number == math.huge then",
+    "replace": "number < 1 or number == math.huge then"
+  },
+  {
+    "name": "delete_voice_sample_region makes an undo point for a region that is already gone",
+    "file": "narration_voice_sample_region.lua",
+    "find": "  if not target then\n    event(session_dir, 'VOICE_SAMPLE_REMOVED', run_id, wanted, 'unchanged')\n    return\n  end",
+    "replace": "  if not target then\n    reaper.Undo_BeginBlock2(0)\n    reaper.Undo_EndBlock2(0, core.brand.name .. ': delete voice sample', -1)\n    event(session_dir, 'VOICE_SAMPLE_REMOVED', run_id, wanted, 'unchanged')\n    return\n  end"
   },
   {
     "name": "replace_range with the folder moves only the item's own track",
