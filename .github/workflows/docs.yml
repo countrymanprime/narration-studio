@@ -1,6 +1,8 @@
 name: Docs
-# The link check of every Markdown file in the repository (docs/operations/ci-and-releases.md#the-docs-link-check),
-# and a fast Markdown style lint of the files a pull request touches.
+# The checks of a pull request's text and docs: the PR title against the commit convention (the squash merge uses it as the
+# commit), the docs and guide impact of the change, the link check of every Markdown file in the repository
+# (docs/operations/ci-and-releases.md#the-docs-link-check), a fast Markdown style lint of the files the pull request touches, and,
+# when it touches the public site's sources, the built site with its old-name and link checks (pages.yml publishes it from main).
 #
 # There is deliberately NO path filter on the pull_request trigger. ci.yml skips documentation-only pull requests, so a
 # path-filtered docs job would also skip a code change that renames a file a doc links to, and a required check that
@@ -15,8 +17,9 @@ name: Docs
 # links, which rot on their own, so it runs weekly and by hand and only reports: it never blocks a pull request.
 on:
   pull_request:
-    # `edited` re-runs the docs-impact and guide-impact jobs when the description gains a `Docs: none — <reason>` or
-    # `No guide change: <reason>` line, and re-checks the title and description for the issue-link warning.
+    # `edited` re-runs the docs-impact and guide-impact steps when the description gains a `Docs: none — <reason>` or
+    # `No guide change: <reason>` line, re-checks the title against the commit convention, and re-checks the title and description
+    # for the issue-link warning.
     types: [opened, synchronize, reopened, edited]
   schedule:
     - cron: '17 7 * * 1'
@@ -47,8 +50,12 @@ jobs:
           need-wails-tools: 'false'
           need-stylua: 'false'
           need-linux-native-deps: 'false'
-          # ui: the guide structure step runs src/studio/ui's Vitest.
-          pnpm-filter: workspace ui
+      - name: PR title (commit convention)
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        env:
+          # Read through env, never interpolated into the script.
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: printf '%s\n' "$PR_TITLE" | pnpm exec commitlint --verbose
       - name: Markdown lint (changed files)
         if: ${{ !cancelled() && github.event_name == 'pull_request' }}
         run: node scripts/ci/lint-markdown-changed.mjs --summary
@@ -92,6 +99,41 @@ jobs:
           args: --config .lychee.toml --offline --no-progress .
           # Blocking: the baseline is clean (0 dead repository links) and offline mode is deterministic.
           fail: true
+      # The public site, built and checked as pages.yml builds it, on a pull request that touches its sources (pages.yml's paths).
+      - name: Site sources changed
+        id: site
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          changed="$(git diff --name-only "$(git merge-base "$BASE_SHA" HEAD)" HEAD)"
+          if grep -qE '^(src/web/|src/studio/ui/src/|src/studio/ui/\.storybook/|src/studio/ui/package\.json$|src/studio/ui/vite\.config\.ts$|docs/images/ui/|docs/guides/|tools/docs-site/check_site\.py$|pnpm-lock\.yaml$|\.github/workflows/(docs|pages)\.yml$)' <<< "$changed"; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+      # No backend, no secret. The build fails if any page loads something from another host or by an absolute path.
+      - name: Build the site
+        id: site-build
+        if: ${{ !cancelled() && steps.site.outputs.changed == 'true' }}
+        env:
+          SITE_PUBLISHED: '1'
+        run: pnpm --dir src/web run build:site
+      - name: Check the site never says the product's old name
+        if: ${{ !cancelled() && steps.site-build.outcome == 'success' }}
+        run: node scripts/ci/old-name.mjs dir dist-site
+      # check_site.py reads only the standard library. It follows every link and image of the built pages as Pages would serve them
+      # under the repository's sub-path and fails on a dead one.
+      - name: Check every site link, served under the repository's sub-path
+        if: ${{ !cancelled() && steps.site-build.outcome == 'success' }}
+        env:
+          OWNER: ${{ github.repository_owner }}
+          REPOSITORY: ${{ github.event.repository.name }}
+        run: |
+          python3 -I tools/docs-site/check_site.py dist-site --base "/$REPOSITORY/" \
+            --site-url "https://$OWNER.github.io/$REPOSITORY/" \
+            --require index.html --require docs/index.html --require demo/index.html --require demo/app.html \
+            --require storybook/index.html --require storybook/sb/index.html
   links-online:
     name: Links (online, advisory)
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'

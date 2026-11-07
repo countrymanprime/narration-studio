@@ -47,7 +47,7 @@ jobs:
     #   - Lint, one step per project family, each on its affected projects: ui static and web static (lint, format, architecture and
     #     node:test of the UI and site projects, the site's typecheck and Vitest run), Knip (every workspace, so `always`), python lint
     #     (ruff and the typecheck of the Python projects), reaper lint (StyLua and ruff on the bridge), docs-site lint (`always`).
-    #     Go lint runs on Windows in go-test (it needs the Windows build tags).
+    #     Go lint runs on Windows in go-test (it needs the Windows build tags). Then the test ratchet (advisory, pull requests only).
     name: lint
     timeout-minutes: 20
     runs-on: ubuntu-latest
@@ -133,13 +133,29 @@ jobs:
           targets: lint
           projects: docs-site
           always: 'true'
+      # Tests only ratchet up (scripts/ci/test-ratchet.mjs): a pull request should not delete a test file, add a skip or focus marker to
+      # one, or lower a coverage floor. Advisory: it prints every violation and raises a warning annotation, and never fails, so nobody
+      # has to approve a deliberate change; the coordinator and reviewers read the warning. It runs the script as it is on the base
+      # branch, so a pull request cannot edit its own check; a pull request that adds the script runs its own copy, once.
+      - name: test ratchet
+        id: test-ratchet
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          script="$RUNNER_TEMP/test-ratchet.mjs"
+          git show "$BASE_SHA:scripts/ci/test-ratchet.mjs" > "$script" 2>/dev/null || cp scripts/ci/test-ratchet.mjs "$script"
+          if node "$script" "$BASE_SHA"; then exit 0; fi
+          echo "::warning title=Test ratchet::This change weakens a test or lowers a coverage floor (listed above). Say in the pull request why it is intended."
+          exit 0
       - name: Summary
         if: always()
         env:
           OUTCOMES: >-
             {"ui static": "${{ steps.ui-static.outcome }}", "web static": "${{ steps.web-static.outcome }}",
             "knip": "${{ steps.knip.outcome }}", "python lint": "${{ steps.python-lint.outcome }}",
-            "reaper lint": "${{ steps.reaper-lint.outcome }}", "docs-site lint": "${{ steps.docs-site-lint.outcome }}"}
+            "reaper lint": "${{ steps.reaper-lint.outcome }}", "docs-site lint": "${{ steps.docs-site-lint.outcome }}",
+            "test ratchet": "${{ steps.test-ratchet.outcome }}"}
         run: node scripts/ci/step-summary.mjs
   linux-checks:
     # Every Linux test under a few minutes (the lint job holds the lint), on one runner with one toolchain install (Go, Python with the docs group, every pnpm
