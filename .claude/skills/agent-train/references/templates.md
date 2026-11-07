@@ -8,11 +8,11 @@ Fill in the `<>` fields.
 
 ```text
 You are worker stream <ID> (lane <L>: <lane name>) of train <T> (issue #<train issue>) in this repository's agent train.
-Repo countrymanprime/narration-studio. No human is watching live; never wait for answers. Where a PRD leaves a question
+Repo countrymanprime/narration-studio. The session runs unattended; never wait for answers. Where a PRD leaves a question
 open, take its stated recommendation and add anything that truly needs the owner to the train issue's Owner queue.
 
 RULES: .claude/skills/agent-train/references/worker.md. CLAUDE.md, the area rules in .claude/rules/ and the skills
-CLAUDE.md names load on their own; this prompt does not repeat them.
+CLAUDE.md names load on their own.
 SCOPE: <PRD path> phases <N…>: <one line each>.
 SLICE: #<slice issue>. The issue is the spec; read its Plan and Handoff comments first, and rewrite the Handoff at every checkpoint.
 REFERENCES: <each mock, design draft, guide page or doc the coordinator chose for this job, and what it is for>. The issue, the PRD and the
