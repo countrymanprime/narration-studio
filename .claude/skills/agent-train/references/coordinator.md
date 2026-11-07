@@ -32,7 +32,7 @@ A train is one goal, run by one coordinator, and it has one issue that lives as 
 
 **Several trains at once.** Trains can run side by side, from one account or several. A coordinator reads and writes only its own issue and only sessions tagged `train-<T>`. Before a launch it also reads the running streams' files on every other open `agent-train` issue and the files of open PRs, and treats an overlap as a collision. [Serial points](worker.md#serial-points) hold across all open trains. `rate_limit_info` is per account, so trains on one account share its band; each coordinator counts only its own sessions toward its `TARGET`.
 
-**The 2026-10 train's issues.** #989, #992, #993 and #1119 hold that train's record until the cutover in #3145 closes them; each train writes only to its own issue. The Train health and Main health checks read #509 and #510 until #3145 points them at the open `agent-train` issues.
+**The 2026-10 train's issues.** #989 holds that train's record until the cutover in #3145 closes it; each train writes only to its own issue.
 
 ### The owner board
 
@@ -131,9 +131,9 @@ These checks run on their own and read the repo and CI, never a worker's report.
 
 | Check | Where | What it does |
 | --- | --- | --- |
-| **Train health** | `.github/workflows/train-health.yml`, `scripts/ci/train-health.mjs` | Hourly. Warns on #510 once per stall when #509's `Last pass:` line is more than two hours old and `HOLD` is not ticked |
+| **Train health** | `.github/workflows/train-health.yml`, `scripts/ci/train-health.mjs` | Hourly. Warns on each open `agent-train` issue, once per stall, when its `Last pass:` line is more than two hours old and `HOLD` is not ticked |
 | **Post-merge checks** | `.github/workflows/post-merge.yml` | On each push to `main` that touches what they read, the checks a pull request leaves to `main` (the bridge harness's mutation checks on Windows). A red run shows on the `main` commit; `Main health` runs the same checks and ticks `HOLD`. Fix it forward in one PR, or revert the merge that turned it red when no fix is ready within a pass |
-| **Main health** | `.github/workflows/main-health.yml` | Scheduled every three hours; observed 2 to 3 runs a day, often an hour or two late, so up to about ten hours between runs. Runs the whole of `ci.yml` on `main` (quality, every visual shard, UI bundle, Windows build). On a red run, ticks `HOLD` on #509 and says why. The owner or the coordinator clears it once `main` is green |
+| **Main health** | `.github/workflows/main-health.yml` | Scheduled every three hours; observed 2 to 3 runs a day, often an hour or two late, so up to about ten hours between runs. Runs the whole of `ci.yml` on `main` (quality, every visual shard, UI bundle, Windows build). On a red run, ticks `HOLD` on every open `agent-train` issue and says why. The owner or the coordinator clears it once `main` is green |
 | **Test ratchet** | `.github/workflows/test-ratchet.yml`, `scripts/ci/test-ratchet.mjs` | Advisory. Prints, and raises a warning for, a PR that deletes a test file, adds a skip or focus marker to one, or lowers a coverage floor in `scripts/ci/coverage-floors.json`; it never fails. Runs the base branch's copy of the script. The intent review judges its warnings; the owner never approves a test change |
 | **PR risk** | `.github/workflows/pr-risk.yml`, `scripts/ci/pr-risk.mjs` | Labels a PR `risk:high` when it touches a trust boundary or a file that decides what runs unattended: the workflows, agent config, the threat model, the REAPER bridge, the update and sidecar launch, the release scripts, the pinned toolchain and lockfiles, and these checks. Runs the base branch's copy of the script |
 | **Intent review** | the coordinator, below | A fresh session, not the worker, traces each merge-ready PR back to its issue or PRD phase |
