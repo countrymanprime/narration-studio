@@ -22,7 +22,7 @@
         "command": "node scripts/quality.mjs python {projectRoot}/tests/run_lua_tests.py --mutations"
       },
       "metadata": {
-        "description": "Runs the bridge harness under Lua 5.4 (lupa): a fake `reaper` table driven through the file protocol, with a characterization test for every bridge command, then the mutation checks in tests/mutations.json (each breaks one guard in the Lua source and the suite must fail). See docs/architecture/reaper-bridge.md. The `pr` configuration runs the characterization tests only: a pull request runs the mutation checks on Linux, and Windows runs them on `main` (every run that is not a pull request: main-health and the post-merge checks)."
+        "description": "Runs the bridge harness under Lua 5.4 (lupa): a fake `reaper` table driven through the file protocol, with a characterization test for every bridge command, then the mutation checks in tests/mutations.json (each breaks one guard in the Lua source and the suite must fail). See docs/architecture/reaper-bridge.md. The `pr` configuration runs the characterization tests only: a pull request runs it on Linux and Windows, and the mutation checks run after the merge (the post-merge checks and every other run that is not a pull request, such as main-health)."
       },
       "configurations": {
         "pr": {

@@ -93,8 +93,8 @@ jobs:
     #     typecheck and Vitest run; Knip reads every workspace, so `always`.
     #   - repo-scripts, docs-site, python, reaper (`quickubuntu`): the plain-Node scripts (`always`: the layout and project guards read every
     #     tracked file), the docs site's unit tests (`always`: docs/ belongs to no project; Pages runs the built site's link check), ruff and
-    #     pytest of the Python projects (Go is installed for the transcript-compare tests), StyLua and the bridge harness with its mutation
-    #     checks under Lua 5.4.
+    #     pytest of the Python projects (Go is installed for the transcript-compare tests), StyLua and the bridge harness under Lua 5.4:
+    #     on a pull request its characterization tests (the `pr` configuration), on every other run with its mutation checks too.
     #   - rename rehearsal, every pull request: renames a throwaway worktree of this commit to a made-up name and runs the brand sync, both
     #     name guards and the tests that read the name (scripts/brand/rehearse-rename.mjs, #2251 item 41). main-health runs `--full`,
     #     which adds the UI typecheck and the built site with its retired-name check (#3078).
@@ -180,6 +180,7 @@ jobs:
         with:
           targets: lint test
           projects: reaper
+          configuration: ${{ github.event_name == 'pull_request' && 'pr' || '' }}
       - name: rename rehearsal
         id: rename
         if: ${{ !cancelled() }}
@@ -386,9 +387,8 @@ jobs:
     # Each job checks the coverage floors of the packages it ran (scripts/ci/coverage-gate.mjs --group); together they run every package
     # once. These were three jobs: go lint and the Windows harness had a runner of their own (quick-windows), whose 20 minutes were 15.6
     # of the harness's mutation checks.
-    # The mutation checks on Windows: a pull request runs the harness's `pr` configuration (the characterization tests, about a minute),
-    # because the Linux harness in linux-checks runs every mutation check on the same Lua source; every other run (main-health, a manual
-    # run) runs them on Windows too. Windows is the only supported platform and Linux's native libraries are not installed on the
+    # The mutation checks: a pull request runs the harness's `pr` configuration (the characterization tests, about a minute) here and in
+    # linux-checks; every other run (main-health, a manual run) and post-merge.yml run the mutation checks on both. Windows is the only supported platform and Linux's native libraries are not installed on the
     # Linux runners, so Go is tested and linted here.
     # 30 min: the median was 11 (root) and 15 (rest) min, the longest 16.1, plus about 2 for lint or the harness; a main-health run's
     # mutation checks add up to 15 to `rest`.
