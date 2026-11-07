@@ -4,8 +4,8 @@ name: Post-merge checks
 # one). A red run shows on the `main` commit and notifies whoever merged it; `Main health` runs the same checks every three hours when
 # `main` moved and ticks HOLD on a red run. The coordinator fixes a red run forward, or reverts the merge that turned it red
 # (.claude/skills/agent-train/SKILL.md, "Safety net").
-#   - The bridge harness's mutation checks on Windows. A pull request runs the harness on Windows without them (go-test (rest),
-#     the reaper project's `pr` configuration) and runs every mutation check on Linux (linux-checks); this is the Windows half.
+#   - The bridge harness's mutation checks, on Windows and on Linux. A pull request runs the harness's characterization tests on both
+#     (the reaper project's `pr` configuration, in go-test (rest) and linux-checks) and no mutation check.
 # scripts/ci/check-manifest.json lists each check here with its safety net.
 on:
   push:
@@ -40,6 +40,27 @@ jobs:
         with:
           need-go: 'false'
           need-wails-tools: 'false'
+          python-sync-args: --only-group lua
+          pnpm-filter: workspace
+      - uses: ./.github/actions/nx-run
+        with:
+          targets: lint test
+          projects: reaper
+          always: 'true'
+  reaper-linux:
+    name: reaper (Lua) on Linux, with mutation checks
+    # The Linux run of the mutation checks took 2.0 min of linux-checks on run 42252860937 (577 checks, 4 CPUs).
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-toolchain
+        with:
+          need-go: 'false'
+          need-wails-tools: 'false'
+          need-linux-native-deps: 'false'
           python-sync-args: --only-group lua
           pnpm-filter: workspace
       - uses: ./.github/actions/nx-run

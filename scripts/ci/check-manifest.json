@@ -157,11 +157,44 @@
       "job": "linux-checks",
       "step": [
         "targets: lint test",
+        "projects: reaper",
+        "configuration: ${{ github.event_name == 'pull_request' && 'pr' || '' }}"
+      ],
+      "job_has": [
+        "runs-on: ubuntu-latest"
+      ],
+      "note": "A pull request runs the characterization tests on Linux (the reaper project's `pr` configuration); the mutation checks on Linux are the two entries below."
+    },
+    {
+      "id": "quick-ubuntu/reaper-linux-mutations",
+      "was": "quality / quick-ubuntu",
+      "tier": "post-merge",
+      "workflow": "_quality.yml",
+      "job": "linux-checks",
+      "step": [
+        "targets: lint test",
+        "projects: reaper",
+        "configuration: ${{ github.event_name == 'pull_request' && 'pr' || '' }}"
+      ],
+      "job_has": [
+        "runs-on: ubuntu-latest"
+      ],
+      "safety_net": "Every run of ci.yml that is not a pull request runs the full harness with mutations on Linux: Main health when main moved, and a red run ticks HOLD on the train issue. The post-merge checks run them on each push to main that touches the harness (the entry below)."
+    },
+    {
+      "id": "quick-ubuntu/reaper-linux-mutations-on-push",
+      "was": "quality / quick-ubuntu",
+      "tier": "post-merge",
+      "workflow": "post-merge.yml",
+      "job": "reaper-linux",
+      "step": [
+        "targets: lint test",
         "projects: reaper"
       ],
       "job_has": [
         "runs-on: ubuntu-latest"
-      ]
+      ],
+      "safety_net": "A red run shows on the main commit about 5 minutes after the merge and notifies whoever merged it; Main health runs the same checks when main moved and ticks HOLD; the coordinator fixes forward or reverts the merge (agent-train Safety net)."
     },
     {
       "id": "rename-rehearsal",
