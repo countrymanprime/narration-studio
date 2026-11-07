@@ -153,8 +153,9 @@ func (h *Host) startInstall(spec installSpec) (map[string]any, error) {
 			message: downloading, downloadingText: downloading, total: total, received: map[string]int64{}, ctx: ctx, cancel: cancel, finished: make(chan struct{}), started: time.Now()}
 		h.installJobs[job.id] = job
 		h.mu.Unlock()
+		started := snapshotInstall(job)
 		go h.runInstall(ctx, spec, job)
-		return snapshotInstall(job), nil
+		return started, nil
 	}
 }
 

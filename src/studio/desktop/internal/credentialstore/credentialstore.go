@@ -13,6 +13,7 @@
 package credentialstore
 
 import (
+	"desktop/internal/persist"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -210,7 +211,7 @@ func (s *Store) write(current file) error {
 	if err := temp.Close(); err != nil {
 		return fmt.Errorf("credentialstore: the credentials file could not be written: %w", err)
 	}
-	if err := os.Rename(tempPath, s.path); err != nil {
+	if err := persist.Rename(tempPath, s.path); err != nil {
 		return fmt.Errorf("credentialstore: the credentials file could not be written: %w", err)
 	}
 	return nil

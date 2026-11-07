@@ -1189,6 +1189,11 @@ def test_the_confirmation_pass_is_off_without_a_model_and_with_the_whisper_engin
     assert live_asr._load_confirmer(parse(["--wav", "r.wav", "--engine", "whisper", "--confirm-model", "tiny"])) is None
 
 
+def test_only_an_engine_whose_row_says_it_is_a_second_opinion_skips_the_confirmation_pass():
+    assert live_asr.ENGINES.lookup("whisper").descriptor.second_opinion is True
+    assert live_asr.ENGINES.lookup("moonshine").descriptor.second_opinion is False
+
+
 def test_a_confirmer_that_fails_never_stops_the_live_session(capsys):
     class Broken:
         def tee(self, chunks):

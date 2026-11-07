@@ -226,8 +226,9 @@ func (h *Host) startPackage(req PackageRequest) (PackageJob, error) {
 	if assemble == nil {
 		assemble = packager.Assemble
 	}
+	started := job.snapshot()
 	go h.runPackage(ctx, job, packageRequest(profile, items, outputDir), assemble)
-	return job.snapshot(), nil
+	return started, nil
 }
 
 func (h *Host) runPackage(ctx context.Context, job *packageJobState, req packager.Request, assemble assembleFunc) {

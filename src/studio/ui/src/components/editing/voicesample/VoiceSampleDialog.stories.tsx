@@ -107,6 +107,22 @@ export const WithANoticeAndOnlyNarration: Story = {
   },
 };
 
+// The Settings row "Voice sample storage" is In the DAW: a short status under Make primary, with a "?" for what it means.
+export const KeptInTheDaw: Story = {
+  args: { storage: 'daw' },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByText('Kept in the DAW')).toBeInTheDocument();
+  },
+};
+
+// Both: the copy and the region.
+export const KeptInTheProjectAndTheDaw: Story = {
+  args: { storage: 'both' },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByText('Kept in the project folder and the DAW')).toBeInTheDocument();
+  },
+};
+
 // Right-to-left words, an emoji in a name and a long character name stay in one column.
 export const RightToLeftAndLongNames: Story = {
   args: {

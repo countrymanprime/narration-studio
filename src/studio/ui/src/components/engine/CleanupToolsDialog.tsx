@@ -1,3 +1,4 @@
+import { apiErrorMessage } from '../../api/errorMessage';
 import { useEffect, useState } from 'react';
 import { useApi } from '../../api/ApiContext';
 import { Button } from '../primitives/Button';
@@ -59,7 +60,7 @@ export function CleanupToolsDialog({ onClose }: { onClose: () => void }) {
   const launch = (tool: CleanupToolKey) => {
     setRequested(tool);
     setRequestError('');
-    api.cleanupToolsLaunch(tool).catch((reason: unknown) => setRequestError(String(reason)));
+    api.cleanupToolsLaunch(tool).catch((reason: unknown) => setRequestError(apiErrorMessage(reason)));
   };
 
   return (

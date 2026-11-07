@@ -262,8 +262,9 @@ func (h *Host) startMultiPackage(req MultiPackageRequest) (MultiPackageJob, erro
 	if assemble == nil {
 		assemble = packager.Assemble
 	}
+	started := job.snapshot()
 	go h.runMultiPackage(ctx, job, selections, exportSnapshot.Format, items, filesByEncodedPath, projectFolder, rootDir, assemble)
-	return job.snapshot(), nil
+	return started, nil
 }
 
 // encodeFileFor is encodeFor(format) (export_job.go), unless a test has set h.encodeFile as a seam - the same seam

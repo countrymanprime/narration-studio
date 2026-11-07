@@ -34,6 +34,7 @@ var realEvents = map[string][]string{
 	"PROJECT_STATUS":        {"PROJECT_STATUS", "", "C:/p/Book.rpp", "0"},
 	"VOICE_SAMPLE_KEPT":     {"VOICE_SAMPLE_KEPT", "k1", "1", "created"},
 	"VOICE_SAMPLE_STALE":    {"VOICE_SAMPLE_STALE", "k1", "9"},
+	"VOICE_SAMPLE_REMOVED":  {"VOICE_SAMPLE_REMOVED", "d1", "3", "deleted"},
 	"VOICE_SAMPLE_REGION":   {"VOICE_SAMPLE_REGION", "r1", "3", "40.000000", "45.000000", "Voice sample: Hatter | angry"},
 	"VOICE_SAMPLES_READ":    {"VOICE_SAMPLES_READ", "r1", "2", "7"},
 	"PICKUPS_IMPORTED":      {"PICKUPS_IMPORTED", "t1", "2", "0", "0"},

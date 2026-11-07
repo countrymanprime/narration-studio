@@ -5,9 +5,10 @@ import { IconButton } from '../../primitives/IconButton';
 import { InsetCard } from '../../primitives/InsetCard';
 import { Menu, type MenuItem } from '../../primitives/Menu';
 import { StatusBadge } from '../../primitives/StatusBadge';
+import { TooltipTarget } from '../../primitives/Tooltip';
 import { SamplePlayButton } from '../../voicesamples/SamplePlayButton';
 import type { SamplePlayerStatus } from '../../voicesamples/samplePlayerStore';
-import { clipProblem, passageBadge, sampleLength, sampleName } from './voiceSampleModel';
+import { clipProblem, dawBadge, passageBadge, sampleLength, sampleName } from './voiceSampleModel';
 
 /** The DOM id of a sample's row, so focus can move to it after a delete. */
 export const voiceSampleRowId = (id: string): string => `voice-sample-${id}`;
@@ -59,6 +60,7 @@ export function VoiceSampleRow({
 }: VoiceSampleRowProps) {
   const problem = clipProblem(sample);
   const passage = passageBadge(sample);
+  const region = dawBadge(sample);
   const name = sampleName(sample, characterName);
   const chapterThere = sample.source.state !== 'chapter_missing';
   // Marking again is offered only while the words are as they were: otherwise the range would be found in text that moved.
@@ -114,10 +116,23 @@ export function VoiceSampleRow({
               <StatusBadge tone="warning" label={passage.badge} />
             </span>
           ) : null}
-          {problem ? <StatusBadge tone="danger" label={problem.badge} /> : null}
+          {region ? (
+            <TooltipTarget text={region.hint} inline>
+              <StatusBadge tone="warning" label={region.badge} />
+            </TooltipTarget>
+          ) : null}
+          {problem ? (
+            problem.hint ? (
+              <TooltipTarget text={problem.sentence} inline>
+                <StatusBadge tone="danger" label={problem.badge} />
+              </TooltipTarget>
+            ) : (
+              <StatusBadge tone="danger" label={problem.badge} />
+            )
+          ) : null}
         </div>
         <div className={`${UNDER_TITLE} text-sm text-[var(--text-muted)]`}>
-          {problem ? (
+          {problem && !problem.hint ? (
             <>
               {problem.sentence}{' '}
               {markAgain ? (

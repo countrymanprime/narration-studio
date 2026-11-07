@@ -9,11 +9,11 @@ Launching the app without a project folder attached shows **Choose your project*
 
 1. Find the project under **Pinned and recent**. The date beside it is when you last opened it.
 2. Press **Open** on its row.
-3. For a project that is not in the list, press **Browse folders…** and choose its folder.
+3. For a project that is not in the list, press **Open folder…** and choose its folder.
 4. To keep a project at the top of the list, press the pin on its row. Press it again to unpin.
 5. To take a project off the list, press **×** on its row. Its files are kept, and a message offers **Undo** for a few seconds.
 
-![Choose your project, with New project, the pinned and recent projects and Browse folders](../../../docs/images/ui/project-picker.webp "Choose your project")
+![Choose your project, with New project, the pinned and recent projects and Open folder](../../../docs/images/ui/project-picker.webp "Choose your project")
 
 > **Note:** A project whose folder has been moved or deleted drops off the list by itself.
 
@@ -28,5 +28,5 @@ Launching the app without a project folder attached shows **Choose your project*
 
 ## Import the manuscript
 
-1. On Script, press **Import manuscript**. It takes you to [Production](production.md#import-the-manuscript), where the import runs.
+1. On Script, press **Import manuscript**. The import opens over Script; [Production](production.md#import-the-manuscript) has the same steps.
 2. Once the manuscript is in, use the [sidebar](navigation.md) to reach each page.

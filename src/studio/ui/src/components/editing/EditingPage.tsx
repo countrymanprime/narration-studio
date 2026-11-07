@@ -20,11 +20,9 @@ import { EditingBody, type DeepLink, type PanelsState } from './page/EditingBody
 import { EditingHeader } from './page/EditingHeader';
 import { EditingBodySkeleton } from './page/EditingSkeleton';
 import { useChapterSource } from './page/useChapterSource';
-import { useDawStatus } from './page/useDawStatus';
-import { ConnectionIndicator } from '../connection/ConnectionIndicator';
-import { ConnectionResolveDialog } from '../connection/ConnectionResolveDialog';
-import { useOpenOnce } from '../connection/useOpenOnce';
-import { DAW_CONNECT_GRACE_MS, useConnectGrace } from '../production/pipeline/dawConnectGrace';
+import { useDawStatus } from '../connection/useDawStatus';
+import { useDawConnection } from '../connection/useDawConnection';
+import { DAW_CONNECT_GRACE_MS } from '../production/pipeline/dawConnectGrace';
 import { useEditingChapterCommands } from './page/useEditingPageCommands';
 import type { DawRead } from '../../playback/providers';
 import { apiErrorDetails, apiErrorMessage } from '../../api/errorMessage';
@@ -96,9 +94,8 @@ function EditingLoaded({
   const manuscript = usePort('manuscript');
   const keymap = useUserKeymap();
   const daw = useDawStatus();
-  // The DAW dialog opens by itself once per connection loss, after the app has had its time to connect on its own.
-  const settling = useConnectGrace(dawConnectGraceMs);
-  const dawDialog = useOpenOnce(daw.off ? `reaper-off:${daw.dawName}` : null, settling);
+  // The DAW dialog is the shared chip's (`DawConnectionChip`); the page is told when it is up, so the chapter-link dialog waits for it.
+  const [dawDialogOpen, setDawDialogOpen] = useState(false);
   const panels = usePanels(drawer);
   const width = useWindowWidth();
   const [chapters, setChapters] = useState<ManuscriptChapter[] | null>(null);
@@ -168,26 +165,18 @@ function EditingLoaded({
 
   useEditingChapterCommands(list, chapter?.id, choose);
   const stepper = chapter ? <ChapterStepper chapters={list} value={chapter.id} stepKeys={['Alt+↑', 'Alt+↓']} onChange={choose} onStep={step} /> : null;
-  const dawIndicator = daw.off ? <ConnectionIndicator id="dawoff" label={`${daw.dawName} not connected`} onOpen={dawDialog.reopen} /> : null;
+  const connection = useDawConnection({
+    graceMs: dawConnectGraceMs,
+    onDialogOpen: setDawDialogOpen,
+    stillWorks: (name) => `You can look at takes, findings and effects. Changes wait until ${name} is running.`,
+  });
+  const dawIndicator = connection.indicator;
   // A deep link applies to the chapter it was given for, until the narrator moves on.
   const link: DeepLink = !moved && chapter && chapter.id === (asked ?? landing?.id) ? { passageId, findingId, t } : {};
 
   return (
     <CommandScope kind="page">
-      {daw.off && dawDialog.open ? (
-        <ConnectionResolveDialog
-          variant="reaper-off"
-          daw={daw.caps?.daw ?? 'none'}
-          sentence={daw.off}
-          stillWorks={`You can look at takes, findings and effects. Changes wait until ${daw.dawName} is running.`}
-          checkedAt={daw.checkedAt}
-          heardAt={daw.heardAt}
-          readFailed={daw.readFailed}
-          onCheckAgain={daw.retry}
-          onCaps={daw.take}
-          onClose={dawDialog.close}
-        />
-      ) : null}
+      {connection.dialog}
       <section aria-label="Script editor" className="flex h-full min-h-0 flex-col">
         <div className="flex h-full min-h-0 flex-col">
           {error ? (
@@ -216,7 +205,7 @@ function EditingLoaded({
               link={link}
               stepper={stepper}
               dawIndicator={dawIndicator}
-              dawDialogOpen={dawDialog.open}
+              dawDialogOpen={dawDialogOpen}
               panels={panels}
               caps={daw.caps}
               dawRead={{ failed: daw.readFailed, retry: daw.retry }}

@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
@@ -37,6 +38,10 @@ type Options struct {
 	TracePath string
 	// RunLogPath is logs/run.jsonl.
 	RunLogPath string
+	// RunsDir is logs/runs, where each run's sidecar stderr lands. Only the lines a sidecar wrote through its typed event() call are kept.
+	RunsDir string
+	// BridgeLogPath is the REAPER session folder's bridge.jsonl (its debug records). Only typed records with safe values are kept.
+	BridgeLogPath string
 	// AppVersion is written to the manifest.
 	AppVersion string
 	// LeakTerms are strings no line of the bundle may contain: the user name, the open project's folder and file names.
@@ -138,6 +143,16 @@ func Build(opts Options) (*Bundle, error) {
 		return nil, err
 	}
 	add("run.jsonl", "logs/run.jsonl, allow-listed keys only", filterRunLog(runLines))
+	stderrLines, err := readStderrLines(opts.RunsDir)
+	if err != nil {
+		return nil, err
+	}
+	add("sidecar-events.jsonl", "each run's sidecar stderr under logs/runs, only the typed event lines", filterTyped(stderrLines))
+	bridgeLines, err := readLines(opts.BridgeLogPath)
+	if err != nil {
+		return nil, err
+	}
+	add("bridge.jsonl", "the REAPER session's bridge.jsonl, only typed records with safe values", filterTyped(bridgeLines))
 
 	bundle.manifest.Format = FormatVersion
 	bundle.manifest.CreatedAt = now().UTC().Format(time.RFC3339)
@@ -146,9 +161,9 @@ func Build(opts Options) (*Bundle, error) {
 	bundle.manifest.TraceEnabled = opts.Tracer.Enabled()
 	bundle.manifest.LeakCheck = LeakCheck{Terms: len(terms), LinesDropped: dropped}
 	bundle.manifest.Excluded = []Excluded{
-		{Name: "sidecar stderr", Reason: "free text from the Python tools; it can hold manuscript text until the sidecars log typed events"},
+		{Name: "sidecar stderr (plain lines)", Reason: "free text from the Python tools; only the lines a sidecar wrote as typed events are kept"},
 		{Name: "host.log", Reason: "free-text messages; folded in when the host logs through the trace"},
-		{Name: "bridge.jsonl", Reason: "the REAPER bridge's own log; not included until its events are typed"},
+		{Name: "bridge.jsonl (free-text values)", Reason: "a record's value that is not a number, a flag or a single word is dropped"},
 		{Name: "your content", Reason: "manuscript, transcripts, names, typed text, audio and file paths are never recorded; a path is a class and a hash"},
 	}
 	bundle.manifest.Note = "Nothing is sent anywhere. Attach this file to a GitHub issue by hand."
@@ -375,4 +390,58 @@ func ReadTrace(path string) ([]byte, error) {
 		return nil, err
 	}
 	return append(bytes.Join(lines, []byte("\n")), '\n'), nil
+}
+
+// typedKey is the shape of a field name a sidecar's event() or the bridge's debug log writes.
+var typedKey = regexp.MustCompile(`^[a-z][a-z0-9_]{0,31}$`)
+
+// typedEvent is the shape of an event name: area.name, lower case.
+var typedEvent = regexp.MustCompile(`^[a-z][a-z0-9_]{0,31}\.[a-z][a-z0-9_]{0,31}$`)
+
+// filterTyped keeps the lines that name an event, with each key in the typed shape and each value a number, a flag or a single safe word.
+// A line with no event, or with an event name outside the shape, is plain text and is dropped whole. The sidecar's registry
+// (narration_common/logging_utils.py EVENTS) and the bridge's own rule decide what is written; this is the second check.
+func filterTyped(lines [][]byte) [][]byte {
+	var out [][]byte
+	for _, line := range lines {
+		var record map[string]any
+		if json.Unmarshal(line, &record) != nil {
+			continue
+		}
+		name, _ := record["event"].(string)
+		if !typedEvent.MatchString(name) {
+			continue
+		}
+		kept := map[string]any{}
+		for key, value := range record {
+			if !typedKey.MatchString(key) {
+				continue
+			}
+			switch typed := value.(type) {
+			case float64, bool:
+				kept[key] = typed
+			case string:
+				if safeString.MatchString(typed) {
+					kept[key] = typed
+				}
+			}
+		}
+		if encoded, err := json.Marshal(kept); err == nil {
+			out = append(out, encoded)
+		}
+	}
+	return out
+}
+
+// readStderrLines reads every *.stderr.jsonl under dir, oldest name first.
+func readStderrLines(dir string) ([][]byte, error) {
+	if dir == "" {
+		return nil, nil
+	}
+	names, err := filepath.Glob(filepath.Join(dir, "*.stderr.jsonl"))
+	if err != nil {
+		return nil, err
+	}
+	sort.Strings(names)
+	return readLines(names...)
 }

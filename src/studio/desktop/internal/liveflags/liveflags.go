@@ -49,9 +49,20 @@ type Flag struct {
 	ScriptStart int    `json:"scriptStart"`
 	ScriptEnd   int    `json:"scriptEnd"`
 	Heard       string `json:"heard"`
+	// Check is what the trailing confirmation pass found: CheckConfirmed, CheckCleared, or empty when no recheck reached the flag.
+	Check string `json:"check,omitempty"`
 	// Dismissed is the narrator's call in the dialog's review panel; the host records it as a decision, it never deletes.
 	Dismissed bool `json:"dismissed"`
 }
+
+// What the trailing confirmation pass found for a flag (the sidecar's `flag_check` events).
+const (
+	CheckConfirmed = "confirmed"
+	CheckCleared   = "cleared"
+)
+
+// confirmedReason is added to a confirmed flag's reason: a second engine heard the same discrepancy, which still is not proof.
+const confirmedReason = " A second recognition pass over the same audio heard it too, which makes it likelier, not certain."
 
 // Paragraph is one manuscript paragraph of the chapter read.
 type Paragraph struct {
@@ -94,7 +105,7 @@ func Scope(chapterID string) string {
 	return "chapter-" + hex.EncodeToString(hash[:8])
 }
 
-// ToFindings validates every flag against the chapter and returns one finding per flag, in order. Any invalid flag
+// ToFindings validates every flag against the chapter and returns one finding per kept flag, in order (a flag the confirmation pass cleared is validated and then left out, so the result can be shorter than flags). Any invalid flag
 // rejects the whole save, so a half-written session never lands in the store.
 func ToFindings(chapter Chapter, project findings.Project, flags []Flag) ([]findings.Finding, error) {
 	if chapter.ID == "" {
@@ -110,6 +121,17 @@ func ToFindings(chapter Chapter, project findings.Project, flags []Flag) ([]find
 	project.OutputPath = path.Join(findings.Dir, AnalyzerName, Scope(chapter.ID)+".json")
 	result := make([]findings.Finding, 0, len(flags))
 	for index, flag := range flags {
+		switch flag.Check {
+		case "", CheckConfirmed:
+		case CheckCleared:
+			// The recheck read the script where the live engine heard a fault: no finding, so the store keeps no false flag.
+			if _, err := toFinding(chapter, paragraphs, project, flag); err != nil {
+				return nil, fmt.Errorf("flag %d: %w", index+1, err)
+			}
+			continue
+		default:
+			return nil, fmt.Errorf("flag %d: check %q is not confirmed or cleared", index+1, flag.Check)
+		}
 		finding, err := toFinding(chapter, paragraphs, project, flag)
 		if err != nil {
 			return nil, fmt.Errorf("flag %d: %w", index+1, err)
@@ -167,6 +189,9 @@ func toFinding(chapter Chapter, paragraphs map[string]Paragraph, project finding
 	if flag.Kind == "misread" && strings.TrimSpace(flag.Heard) != "" {
 		score := soundalike.MisreadConfidence(flagged, flag.Heard)
 		confidence, reason = &score, misreadReason+" "+soundalike.Reason(flagged, flag.Heard)
+	}
+	if flag.Check == CheckConfirmed {
+		evidence["recheck"], reason = CheckConfirmed, reason+confirmedReason
 	}
 	return findings.Finding{
 		SchemaVersion: findings.SchemaVersion,

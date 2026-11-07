@@ -2,6 +2,7 @@ package assets
 
 import (
 	"context"
+	"desktop/internal/persist"
 	"errors"
 	"fmt"
 	"io"
@@ -45,7 +46,7 @@ func download(ctx context.Context, staging string, file File, options Options) e
 	offset := partialSize(part, file.Size)
 	if offset == file.Size {
 		// An earlier attempt fetched every byte and stopped before it could rename the file (a crash, a sharing violation).
-		if os.Rename(part, final) == nil && verify(final, file) == nil {
+		if persist.Rename(part, final) == nil && verify(final, file) == nil {
 			reportProgress(options, file, file.Size)
 			return nil
 		}
@@ -68,7 +69,7 @@ func download(ctx context.Context, staging string, file File, options Options) e
 		_ = os.Remove(part)
 		offset = 0
 	}
-	if err := os.Rename(part, final); err != nil {
+	if err := persist.Rename(part, final); err != nil {
 		return err
 	}
 	if options.OnVerify != nil {

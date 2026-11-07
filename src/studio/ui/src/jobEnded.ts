@@ -26,14 +26,18 @@ export type JobEndFollow = { label: string; to: string; state: { show: 'review' 
 /** The host's scan message starts with the count it added ("2 suggestions added; …", `suggestionsCount` in extraction_job.go). */
 const SCAN_ADDED = /^([1-9]\d*) suggestions? added/;
 
+/** The import's Story Bible build names what waits for the narrator ("…; 4 names to check under Needs review.", `Sentence` in build_unattended.go). */
+const BUILD_TO_CHECK = /[1-9]\d* names? to check under Needs review/;
+
 /** What the app says when a host job ends, or nothing when the narrator does not need telling (they cancelled it, or its dialog or page says so). */
 export function toastForJobEnd(event: JobEnded, pathname?: string): { text: string; tone: ToastTone; follow?: JobEndFollow; durationMs?: number } | undefined {
   if (event.outcome === 'cancelled' || SHOWN_BY_THEIR_DIALOG.has(event.kind)) return undefined;
   if (event.outcome === 'error' && pathname !== undefined && SHOWN_ON_THEIR_PAGE[event.kind] === pathname) return undefined;
   if (event.outcome === 'error') return { text: event.message || 'A background task failed.', tone: 'error' };
   const text = event.message || 'A background task finished.';
-  // New suggestions sit among the entries with nothing marking them, so the toast takes the narrator to the Needs review filter.
-  if (event.kind === 'extraction_scan' && SCAN_ADDED.test(text))
+  // New suggestions, and the names an import's build could not file, sit among the entries with nothing marking them, so the toast takes
+  // the narrator to the Needs review filter.
+  if ((event.kind === 'extraction_scan' && SCAN_ADDED.test(text)) || (event.kind === 'story_bible' && BUILD_TO_CHECK.test(text)))
     return { text, tone: 'info', follow: { label: 'Show them', to: '/story-bible', state: { show: 'review' } }, durationMs: TOAST_ACTION_MS };
   return { text, tone: 'info' };
 }

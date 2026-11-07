@@ -748,13 +748,13 @@ export const wireSettings = (): Record<string, ScopedSettingField[]> => ({
       number: { min: 50, max: 1000, step: 1, unit: 'words' },
     },
   ],
-  // VoiceSamples.storage unset, so it reads as the default, project: the host accepts only project until the DAW label is built.
+  // VoiceSamples.storage unset, so it reads as the default, project; daw and both are offered where the DAW declares voice_sample_region.
   VoiceSamples: [
     {
       key: 'storage',
       label: 'Where voice samples are kept',
       kind: 'choice',
-      choices: ['project'],
+      choices: ['project', 'daw', 'both'],
       value: '',
       isSet: false,
       effectiveValue: 'project',
@@ -1240,7 +1240,7 @@ export const WIRE_LINE_IDENTITY_LINES: LineIdentityLine[] = [
 export const WIRE_LINE_IDENTITY_READ_SUCCESS: LineIdentityState = {
   runId: '1790000000000000',
   phase: 'success',
-  message: `Read ${WIRE_LINE_IDENTITY_LINES.length} stamped lines.`,
+  message: `Read ${WIRE_LINE_IDENTITY_LINES.length} stamped items.`,
   stamp: { ...idleLineIdentityStamp },
   lines: WIRE_LINE_IDENTITY_LINES,
   linesRead: WIRE_LINE_IDENTITY_LINES.length,
@@ -1250,7 +1250,7 @@ export const WIRE_LINE_IDENTITY_READ_SUCCESS: LineIdentityState = {
 export const WIRE_LINE_IDENTITY_STAMP_CONFLICT: LineIdentityState = {
   runId: '1790000000000001',
   phase: 'success',
-  message: 'Stamped 1 line, 1 stale item, 1 conflict.',
+  message: 'Stamped 1 item, 1 stale item, 1 conflict.',
   stamp: {
     applied: 1,
     unchanged: 0,

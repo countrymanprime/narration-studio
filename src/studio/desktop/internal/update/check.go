@@ -166,7 +166,7 @@ func (c *Checker) save(state State) {
 		c.Persist.Warn("update_check_unsaved", "the update check could not be remembered: "+err.Error())
 		return
 	}
-	if err := os.Rename(temporary, c.CachePath); err != nil {
+	if err := persist.Rename(temporary, c.CachePath); err != nil {
 		c.Persist.Warn("update_check_unsaved", "the update check could not be remembered: "+err.Error())
 	}
 }

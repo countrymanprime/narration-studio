@@ -205,6 +205,12 @@ section the importer recognized stays in the project's data (the Story Bible has
 of Characters) but is never a page you page through in the reader, and a saved or shared link into
 one tells you so instead of landing there.
 
+## What next
+
+- [Story Bible](story-bible.md): the characters, places and how you say each name.
+- [Booth](booth.md): record the chapter you prepared; **Record in Booth** on its card opens it there.
+- [Production: Importing the manuscript](production.md#importing-the-manuscript): replace the manuscript the script comes from.
+
 ---
 
 [← Schedule](schedule.md) · [Index](README.md) · [Story Bible →](story-bible.md)

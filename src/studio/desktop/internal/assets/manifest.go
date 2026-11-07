@@ -1,6 +1,7 @@
 package assets
 
 import (
+	"desktop/internal/persist"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -129,7 +130,7 @@ func writeManifest(dir string, manifest Manifest) error {
 	if err := os.WriteFile(temp, bytes, 0o600); err != nil {
 		return err
 	}
-	if err := os.Rename(temp, filepath.Join(dir, manifestName)); err != nil {
+	if err := persist.Rename(temp, filepath.Join(dir, manifestName)); err != nil {
 		_ = os.Remove(temp)
 		return err
 	}

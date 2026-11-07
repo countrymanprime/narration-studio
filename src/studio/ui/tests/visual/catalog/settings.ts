@@ -35,6 +35,22 @@ export const settingsStates: StateEntry[] = [
   },
   {
     page: 'settings',
+    state: 'recording-sample-storage',
+    description:
+      'Settings, Recording & DAW with REAPER: the Voice sample storage row with In the project folder, In the DAW and Both all on and Both chosen, each with a line under it',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
+    state: 'recording-sample-storage-unavailable',
+    description:
+      'Settings, Recording & DAW with Audacity (?mockDaw=Audacity), which cannot keep a region: the Voice sample storage row with In the project folder chosen and In the DAW and Both off, each with its reason as a tooltip (hover or focus)',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
     state: 'recording-sample-output-builtin',
     description:
       'Settings, Recording & DAW with the built-in recorder chosen on a computer with two named outputs: the Voice sample output row with Headphones chosen, Refresh the list, Test sound and what the choice changes',
@@ -544,6 +560,12 @@ export const settingsStates: StateEntry[] = [
     description: 'Settings, App & updates after a check that could not reach GitHub (?mockUpdate=failed)',
     ...REFLOW,
     ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
+    state: 'diagnostics-preview',
+    description: 'Settings, App & updates: the diagnostics bundle preview dialog, with the files it holds, what it leaves out and the leak check',
+    ...REFLOW,
   },
   {
     page: 'settings',

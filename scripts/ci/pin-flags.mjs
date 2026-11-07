@@ -2,19 +2,18 @@
 //
 //   node scripts/ci/workflow-pins.mjs <base-ref> | node scripts/ci/pin-flags.mjs [--github-output]
 //
-// Reads workflow-pins.mjs's JSON and prints `ui`, `shell`, `winquick`, `static` and `quickubuntu` as true/false. The first three are true
-// when a pinned job belongs to the family (the scope job ORs them with what Nx says is affected). `static` (js-static) and `quickubuntu`
-// (quick-ubuntu) scope their own steps and start on every change, except a pure pin bump (nothing outside .github/workflows and
-// .github/actions changed) that does not reach them. Anything that is not `pins` sets the first three false and the last two true.
+// Reads workflow-pins.mjs's JSON and prints `ui`, `shell`, `static` and `quickubuntu` as true/false. The first two are true when a pinned
+// job belongs to the family (the scope job ORs them with what Nx says is affected). `static` and `quickubuntu` scope the steps of
+// linux-checks, which starts on every change: they are true except on a pure pin bump (nothing outside .github/workflows and
+// .github/actions changed) that does not reach linux-checks. Anything that is not `pins` sets the first two false and the last two true.
 import { appendFileSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-const FAMILIES = {
-  ui: ['_quality.yml#js-test-shard', '_quality.yml#js-test', '_quality.yml#ui-visual-shard', '_quality.yml#ui-atlas', 'ci.yml#ci-passed'],
+export const FAMILIES = {
+  ui: ['_quality.yml#ui-unit', '_quality.yml#ui-visual-shard', 'ci.yml#ci-passed', 'ci.yml#ci-light-passed'],
   shell: ['_quality.yml#go-test'],
-  winquick: ['_quality.yml#quick-windows'],
 };
-const SELF_SCOPED = { static: '_quality.yml#js-static', quickubuntu: '_quality.yml#quick-ubuntu' };
+export const SELF_SCOPED = { static: '_quality.yml#linux-checks', quickubuntu: '_quality.yml#linux-checks' };
 
 export function pinFlags(pins) {
   const reached = new Set(pins?.kind === 'pins' ? pins.jobs : []);

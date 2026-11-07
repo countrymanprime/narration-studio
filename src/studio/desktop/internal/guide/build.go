@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"desktop/internal/persist"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -78,14 +79,30 @@ func (s *Service) build(ctx context.Context, run *buildRun, model string, refres
 	if err != nil {
 		return "", nil, err
 	}
+	if run.unattended != nil {
+		if err := unattendedRefusal(seenRaw, seen); err != nil {
+			return "", nil, err
+		}
+	}
 	fresh, err := s.extract(ctx, run, manuscriptPath, model, paragraphs)
 	if err != nil {
 		return "", nil, err
+	}
+	if run.unattended != nil {
+		run.unattended.countCategories(fresh)
 	}
 
 	s.editMu.Lock()
 	defer s.editMu.Unlock()
 	s.held = nil
+	if run.unattended != nil {
+		// The file as it is now: the narrator may have added an entry while the model ran.
+		raw, _ := os.ReadFile(guidePath)
+		value, _ := pyLoadBible(raw, errBuildShape)
+		if err := unattendedRefusal(raw, value); err != nil {
+			return "", nil, err
+		}
+	}
 	previous, err := rereadPrevious(guidePath, seenRaw, seen)
 	if err != nil {
 		return "", nil, err
@@ -132,20 +149,32 @@ func (s *Service) extract(ctx context.Context, run *buildRun, manuscriptPath, mo
 		}
 		return list
 	}
+	// The candidates for spans (nil when there is no model or it could not be loaded): a build nobody started by hand files the scan's
+	// names by the confidence rule (build_confidence.go), the spans one vote among its evidence; the narrator's own builds read the
+	// model's spans or the scan's names as they always have.
+	candidatesFor := func(spans [][]entitySpan) []ruleCandidate {
+		switch {
+		case run.unattended != nil:
+			candidates, leftOut := confidentBuild(paragraphs, spans)
+			run.unattended.LeftOut = leftOut
+			run.unattended.Model = spans != nil
+			return candidates
+		case spans == nil:
+			return scanCandidates(paragraphs)
+		}
+		return spacyCandidates(paragraphs, spans)
+	}
 	var values []*pyObject
 	var err error
 	if model == RulesOnly {
 		run.say(rulesOnlyChosen)
-		if asked := words(scanCandidates(paragraphs)); len(asked) > 0 {
+		if asked := words(candidatesFor(nil)); len(asked) > 0 {
 			values, err = models.pronunciations(ctx, asked, run.log)
 		}
 	} else {
 		run.say("Extracting candidates with spaCy model " + model)
 		values, err = models.entities(ctx, manuscriptPath, model, run.log, paragraphs, func(spans [][]entitySpan) []string {
-			if spans == nil {
-				return words(scanCandidates(paragraphs))
-			}
-			return words(spacyCandidates(paragraphs, spans))
+			return words(candidatesFor(spans))
 		})
 	}
 	if err != nil {
@@ -275,6 +304,9 @@ func (s *Service) models() buildModel {
 // message, appended), both as the sidecar wrote them; "" is nowhere.
 type buildRun struct {
 	progress, log string
+	// unattended is set for a build nobody started by hand (BuildUnattended): it files names by the confidence rule, refuses a Story
+	// Bible that has entries, and gathers what it did here.
+	unattended *UnattendedReport
 	// stages and said are every progress line and log message, in order, for the tests.
 	stages, said []string
 }
@@ -293,7 +325,7 @@ func (r *buildRun) stage(stage string, percent int, message string) {
 	temporary := r.progress + ".tmp"
 	for range 8 {
 		// The reader polls the file several times a second; on Windows the rename fails while it holds it open, so it is retried.
-		if os.WriteFile(temporary, line, 0o644) == nil && os.Rename(temporary, r.progress) == nil { //nolint:gosec // G306: as the sidecar wrote it
+		if os.WriteFile(temporary, line, 0o644) == nil && persist.Rename(temporary, r.progress) == nil { //nolint:gosec // G306: as the sidecar wrote it
 			return
 		}
 		time.Sleep(30 * time.Millisecond)
@@ -532,7 +564,7 @@ func writeWords(path string, words []string) error {
 	if err := os.WriteFile(path+".tmp", encoded, 0o600); err != nil {
 		return err
 	}
-	return os.Rename(path+".tmp", path)
+	return persist.Rename(path+".tmp", path)
 }
 
 // entitiesHead reads the first line `entities` prints: whether the model loaded.

@@ -23,7 +23,7 @@ A worker is one cloud session for one stream. It opens one PR per phase, stacked
   3. On AMBER in your own reading (`allowed_warning`), **unless the train issue's `WARNING_POLICY` is `ignore`** (then a warning counts as GREEN, D63): **yield.** Finish the current PR to green, don't start the next phase, comment `<ID>: yielded after p<N>` on #989, and end.
   4. Otherwise, continue.
 - **Order of work.** Plan, build the feature set, then test it together, with a cap on fix rounds:
-  1. **Plan.** Start from the plan in the slice issue (the groomer writes one and has a fresh subagent review it). With none, write a short one in the Handoff comment: the files, the behaviours the issue asks for and the checks that prove them. For more than a small change, have a fresh subagent review the plan against the issue before you build; it reports gaps, not style.
+  1. **Plan.** The slice issue holds the plan (the groomer writes it and a fresh subagent reviews it). A job from another source gets a short plan in the Handoff comment: the files, the behaviours the issue asks for and the checks that prove them. For more than a small change, have a fresh subagent review the plan against the issue before you build; it reports gaps, not style.
   2. **Build** the whole feature set the plan lists, not one test at a time.
   3. **Test.** Write the tests for every behaviour the issue lists. A bug fix is the exception: write the test that reproduces the bug first, because it proves the fix and costs one run.
   4. **Run the targeted checks once, together,** fix every failure they show, and run them again. Stop after three fix-and-run rounds: push what is green, put the failing check and its output in the Handoff comment and the PR body, and end; a fixer takes it.
@@ -82,7 +82,7 @@ The rule and the commands are in [CONTRIBUTING.md](../../../../CONTRIBUTING.md#u
 
 ## What a job builds to
 
-There is no standing mock: the rebuild mock and the benchmark mocks are retired. Build to what the prompt's `REFERENCES` field names (a mock, a design draft, a guide page or a doc, each with what it is for). With none named, build to the issue, the PRD and the page's current guide in `docs/guides/using-the-app/`. Need a reference the prompt does not name? Say so in the Handoff comment and build to the issue; do not go looking for an old mock.
+A job builds to the issue, the PRD and the page's current guide in `docs/guides/using-the-app/`, plus what the prompt's `REFERENCES` field names (a mock, a design draft, a guide page or a doc, each with what it is for). When the work needs a reference the prompt omits, say so in the Handoff comment and build to the issue.
 
 ## Rules for every worker
 
