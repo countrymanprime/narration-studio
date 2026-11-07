@@ -17,7 +17,7 @@ A new directory under `src/studio/sidecars/`, or a new mode, argument or output 
 
 1. `change-impact-scan` on `src/studio/libs/python/narration_common` for anything you plan to share. Put shared logic there, not in a sidecar's `core/`.
 2. Layout to mirror: `src/studio/sidecars/<name>/{core,tests}/` and `project.json` (copy `src/studio/sidecars/transcript-compare/project.json`: tag `toolchain:python`, `implicitDependencies` of `narration-common` and `config`, `lint` and `test` targets, the test through `scripts/ci/coverage-gate.mjs`).
-3. TDD (`tdd-workflow`). Start a new logic directory at an 80 floor in `scripts/ci/coverage-floors.json`; a lower floor needs a written reason.
+3. Tests for every behaviour, written in whatever order fits. Start a new logic directory at an 80 floor in `scripts/ci/coverage-floors.json`; a lower floor needs a written reason.
 4. Host wiring: add the project to `implicitDependencies` in `src/studio/desktop/project.json`, add the executable name to the list in `scripts/release/verify-installable.mjs` (and its test), and extend the packaging that builds the sidecar with PyInstaller.
 5. Output: what the sidecar writes for the host (NDJSON lines, progress files, JSON) is a wire contract; follow `wire-contract-change`, including a golden file from `contract_files.check`.
 6. Models and data files go through the asset registry (`config/*-assets.json`, `internal/assets`), never a download inside the sidecar: analysis is local and the host owns the first-use download flow (depguard in `src/studio/desktop/.golangci.yml`).

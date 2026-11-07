@@ -105,7 +105,7 @@ A command is a handler `function(ctx, args)` registered under its name. `ctx.ses
 
 To add a command:
 
-1. Write the harness tests first (see below), and watch them fail.
+1. Write the harness tests (see below), in whatever order fits with the Lua.
 2. Put the command in `src/studio/integrations/reaper/narration_<feature>.lua`. The file starts with `local core = ...` (the shared helpers arrive as the chunk argument) and returns `function(registry)`, which creates the feature's state (a `runs` table, say) and calls `registry.register(name, handler)`.
 3. List the file in `FEATURE_FILES` in `narration_ui_bridge.lua`, in `scripts/release/reaper-files.mjs` and in `smokeReaperFiles` in `src/studio/desktop/smoke.go` (the installer check requires every file listed there, and `smoke_test.go` holds the two lists to the folder; `reaper-files.test.mjs` fails when the list and the folder disagree, and a registry test fails when a feature file exists that the bridge does not load).
 4. Add the command to the table below and to the registry test that pins the list of registered names.

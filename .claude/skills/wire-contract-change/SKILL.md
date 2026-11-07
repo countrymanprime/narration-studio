@@ -17,7 +17,7 @@ A change that adds, removes, renames, retypes or newly requires a field in anyth
 
 1. Read [wire contracts](../../../docs/architecture/wire-contracts.md): its table says which check owns your boundary, and its "rule for a new binding" lists the same steps as below.
 2. Find every consumer first with `change-impact-scan`, including the mock and the visual fixtures.
-3. Write the failing test first (`tdd-workflow`): the golden payload or the schema row that the change will satisfy.
+3. Write the test: the golden payload or the schema row the change satisfies, in whatever order fits.
 4. Make the change on every side that owns the shape:
    - Schema in `src/studio/ui/src/api/schemas/` (`satisfies z.ZodType<Contract>`; use the null helpers in `base.ts`), decoded in `wailsClient.ts`. No `as` cast and no bare `JSON.parse` under `src/studio/ui/src/api/`.
    - Golden payload written by the owning test: `contractfile.Check` in Go, `contract_files.check` in Python. Regenerate with `UPDATE_CONTRACTS=1`, review the diff, never edit `tests/fixtures/contracts/` by hand.
