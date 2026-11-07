@@ -875,6 +875,18 @@ describe('EditingPage', () => {
       const reason = document.getElementById(match.getAttribute('aria-describedby')!)!.textContent!;
       expect(reason).toBeTruthy();
     });
+    it('Match levels is off with the DAW’s own sentence when the DAW cannot change item gain', async () => {
+      const sentence = 'This DAW can’t change item gain.';
+      const caps = {
+        ...DAW_SETUPS.reaper,
+        capabilities: { ...DAW_SETUPS.reaper.capabilities, item_gain: { level: 'unavailable', available: false, message: sentence } },
+      } as unknown as DawCapabilities;
+      mount({ drawer: 'cleanup', daw: createMockDawClient(caps) });
+      await script();
+      const match = await screen.findByRole('button', { name: 'Match levels…' });
+      await waitFor(() => expect(match.getAttribute('aria-disabled')).toBe('true'));
+      expect(screen.getAllByText(sentence).length).toBeGreaterThan(0);
+    });
     it('Clean up Apply is on for Breaths with a DAW that reports range_gain', async () => {
       const breath = finding({ id: 'b1', start: 20, end: 20.4, cls: 'breath', db: -22 });
       const api = { findingsList: async () => ({ findings: [breath], total: 1 }), editingCandidates: async () => [breath] };

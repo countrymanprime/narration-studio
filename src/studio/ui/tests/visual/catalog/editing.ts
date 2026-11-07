@@ -214,6 +214,7 @@ export const editingStates: StateEntry[] = [
     page: 'editing',
     state: 'drawer-cleanup-levels',
     description: 'Editing, the drawer on Clean up scrolled to Match levels… under the findings, the action the editing check panel has too (#2827)',
+    ...KEEPS_DESKTOP_SCROLL,
   },
   {
     page: 'editing',
