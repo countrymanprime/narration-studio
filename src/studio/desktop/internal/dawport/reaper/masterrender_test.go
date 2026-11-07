@@ -107,9 +107,11 @@ func TestReadMasterChainIsTheBridgesListInTheDAWPortsShape(t *testing.T) {
 	}
 	answerCommands(t, client, dir, func(command []string) [][]string {
 		return [][]string{
-			{"MASTER_CHAIN_FX", command[1], "{00000001-0000-4000-8000-000000000001}", "Voice", "VST: ReaEQ (Cockos)", "0"},
-			{"MASTER_CHAIN_FX", command[1], "master", "MASTER", "VST: ReaLimit (Cockos)", "1"},
-			{"MASTER_CHAIN_READ", command[1], "2", "0"},
+			{"MASTER_CHAIN_TRACK", command[1], "{00000001-0000-4000-8000-000000000001}", "Voice", "1", "2", "7:1:2"},
+			{"MASTER_CHAIN_FX", command[1], "{00000001-0000-4000-8000-000000000001}", "Voice", "VST: ReaEQ (Cockos)", "0", "2:3:4"},
+			{"MASTER_CHAIN_TRACK", command[1], "master", "MASTER", "0", "0", "7:5:6"},
+			{"MASTER_CHAIN_FX", command[1], "master", "MASTER", "VST: ReaLimit (Cockos)", "1", "0:7:11"},
+			{"MASTER_CHAIN_READ", command[1], "2", "0", "2"},
 		}
 	})
 	got, err := adapter.Role(dawport.CapMasterChainRead).(dawport.MasterChainReader).ReadMasterChain(t.Context())
@@ -117,8 +119,10 @@ func TestReadMasterChainIsTheBridgesListInTheDAWPortsShape(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := dawport.MasterChain{
-		Tracks: []dawport.TrackFX{{TrackGUID: "{00000001-0000-4000-8000-000000000001}", Name: "Voice", FX: []dawport.FXSlot{{Name: "VST: ReaEQ (Cockos)"}}}},
-		Master: []dawport.FXSlot{{Name: "VST: ReaLimit (Cockos)", Enabled: true}},
+		Tracks: []dawport.TrackFX{{TrackGUID: "{00000001-0000-4000-8000-000000000001}", Name: "Voice", Mix: dawport.TrackMix{Mute: true, Solo: 2, Mix: "7:1:2"},
+			FX: []dawport.FXSlot{{Name: "VST: ReaEQ (Cockos)", Params: "2:3:4"}}}},
+		Master:    []dawport.FXSlot{{Name: "VST: ReaLimit (Cockos)", Enabled: true, Params: "0:7:11"}},
+		MasterMix: dawport.TrackMix{Mix: "7:5:6"},
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("got %+v, want %+v", got, want)
@@ -133,5 +137,24 @@ func TestReadMasterChainIsGatedByTheResolver(t *testing.T) {
 	}
 	if got := sentCommands(t, dir); len(got) != 0 {
 		t.Errorf("wrote %q", got)
+	}
+}
+
+// An older script's chain reaches the port marked SettingsUnread, so the mastering row can refuse it (#2995).
+func TestReadMasterChainCarriesAnOlderScriptsMark(t *testing.T) {
+	client, dir := newClient(t)
+	adapter, err := New(client, func(dawport.Capability) error { return nil })
+	if err != nil {
+		t.Fatal(err)
+	}
+	answerCommands(t, client, dir, func(command []string) [][]string {
+		return [][]string{
+			{"MASTER_CHAIN_FX", command[1], "master", "MASTER", "VST: ReaLimit (Cockos)", "1"},
+			{"MASTER_CHAIN_READ", command[1], "1", "0"},
+		}
+	})
+	got, err := adapter.Role(dawport.CapMasterChainRead).(dawport.MasterChainReader).ReadMasterChain(t.Context())
+	if err != nil || !got.SettingsUnread {
+		t.Fatalf("got %+v, %v; want the chain marked SettingsUnread", got, err)
 	}
 }

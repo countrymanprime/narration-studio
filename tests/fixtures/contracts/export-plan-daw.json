@@ -4,28 +4,45 @@
       "fx": [
         {
           "enabled": true,
-          "name": "VST: ReaEQ (Cockos)"
+          "name": "VST: ReaEQ (Cockos)",
+          "params": "2:1031854743:1991403497"
         },
         {
           "enabled": false,
-          "name": "JS: De-esser"
+          "name": "JS: De-esser",
+          "params": "0:7:11"
         }
       ],
       "master": false,
-      "name": "Voice"
+      "mix": "7:825649450:779707780",
+      "mute": false,
+      "name": "Voice",
+      "solo": 0
+    },
+    {
+      "fx": [],
+      "master": false,
+      "mix": "7:1741980508:1004297306",
+      "mute": true,
+      "name": "Room tone",
+      "solo": 2
     },
     {
       "fx": [
         {
           "enabled": true,
-          "name": "VST: ReaLimit (Cockos)"
+          "name": "VST: ReaLimit (Cockos)",
+          "params": "0:7:11"
         }
       ],
       "master": true,
-      "name": "Master"
+      "mix": "7:825649450:779707780",
+      "mute": false,
+      "name": "Master",
+      "solo": 0
     }
   ],
-  "chainDigest": "sha256:838197b9d15711f92a9cb18ebfc1c0ed5853724d35ccbf749de0de83fce9f59d",
+  "chainDigest": "sha256:1fd7c65f2a3a898de2fbc0246d875df965de5239c1a9f15041cb7ec8ecd66785",
   "items": [
     {
       "kind": "credits_opening",

@@ -59,6 +59,15 @@ var chainNameCases = []string{
 	"\u212b", "A\u030a",
 }
 
+// fxName is how chainFX lists a plug-in named raw (with a fingerprint, which a chain whose settings were read always has).
+func fxName(raw string) string {
+	fx, err := chainFX([]dawport.FXSlot{{Name: raw, Params: "1:1:1"}})
+	if err != nil {
+		panic(err)
+	}
+	return fx[0].Name
+}
+
 // TestChainNameGoldenIsCurrent pins how a track's and a plug-in's name are cleaned, for the mock to match. UPDATE_CONTRACTS=1 rewrites
 // tests/fixtures/contracts/chain-names.json.
 func TestChainNameGoldenIsCurrent(t *testing.T) {
@@ -69,7 +78,7 @@ func TestChainNameGoldenIsCurrent(t *testing.T) {
 	}
 	rows := make([]row, 0, len(chainNameCases))
 	for _, raw := range chainNameCases {
-		rows = append(rows, row{Raw: raw, Track: trackName(raw), FX: chainFX([]dawport.FXSlot{{Name: raw}})[0].Name})
+		rows = append(rows, row{Raw: raw, Track: trackName(raw), FX: fxName(raw)})
 	}
 	contractfile.Check(t, "chain-names", map[string]any{"cases": rows, "ignorable": ignorableRanges()})
 }
@@ -191,7 +200,7 @@ func TestABlankLookingNameIsUnnamed(t *testing.T) {
 	// 130 blank-looking characters, which a cut would otherwise end with a readable "…".
 	for _, raw := range []string{"\u3164", "\u2800", "\u115f\u1160", "\u0301", "\ufe0f", "\ue000", "\u3164 \u2800 \u0301", "\uffa0",
 		"\ufffc", "\U0001D159", strings.Repeat("\u3164", 130)} {
-		if got := chainFX([]dawport.FXSlot{{Name: raw}})[0].Name; got != unnamedFX {
+		if got := fxName(raw); got != unnamedFX {
 			t.Errorf("plug-in %q = %q, want %q", raw, got, unnamedFX)
 		}
 		if got := trackName(raw); got != "Track" {
@@ -202,7 +211,7 @@ func TestABlankLookingNameIsUnnamed(t *testing.T) {
 	// Ported for round 6 (qa B3): the accented name is kept, now as NFC.
 	for raw, want := range map[string]string{"e\u0301t\u00e9": "\u00e9t\u00e9", "\U0001F50A Loud": "\U0001F50A Loud", "\u2800x": "x",
 		"EQ\u3164": "EQ", "\u2800EQ": "EQ", "\u3164 EQ \u2800": "EQ", "E\u2800Q": "E\u2800Q", "E\u3164Q": "E\u3164Q"} {
-		if got := chainFX([]dawport.FXSlot{{Name: raw}})[0].Name; got != want {
+		if got := fxName(raw); got != want {
 			t.Errorf("plug-in %q = %q, want it kept", raw, got)
 		}
 	}
