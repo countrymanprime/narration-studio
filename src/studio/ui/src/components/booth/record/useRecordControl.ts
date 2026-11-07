@@ -58,6 +58,8 @@ export type RecordControlState = {
   checkAgain: () => void;
   /** When (ms since the epoch) the DAW last answered, by a read or an event; null until it has. */
   checkedAt: number | null;
+  /** What the DAW last answered about this chapter (`readAloudReaperState`), or null before the first answer, after a failed read, and for a setup that reads no tracks. */
+  dawStatus: ReadAloudReaperStatus | null;
   /** True while the last read failed: the picture above is then the last one heard, not the DAW's answer now. */
   readFailed: boolean;
   /** The host's link facts for the setup steps (whether a project file is linked, where the launcher file is), read with the capabilities. */
@@ -140,7 +142,7 @@ export function useRecordControl({
   const recorder = usePort('recording');
   const [capabilities, setCapabilities] = useState<DawCapabilities | null>(null);
   const [project, setProject] = useState<DawProjectState | null>(null);
-  const [match, setMatch] = useState<{ chapterId: string; tracks: ChapterRecordState['tracks']; message: string } | null>(null);
+  const [match, setMatch] = useState<{ chapterId: string; tracks: ChapterRecordState['tracks']; message: string; status: ReadAloudReaperStatus } | null>(null);
   const [recording, setRecording] = useState(false);
   const [refused, setRefused] = useState<{ chapterId: string; sentence: string } | null>(null);
   const busy = useRef(false);
@@ -384,11 +386,16 @@ export function useRecordControl({
   }, [daw, recording, reads]);
 
   useEffect(() => {
-    if (!readsTracks) return;
+    if (!readsTracks) {
+      // What the DAW last said about this chapter is not kept once the setup stops reading tracks (the DAW stopped answering, or this setup
+      // has none): the chip and the gate must not name a cause that was true before.
+      setMatch(null);
+      return;
+    }
     let current = true;
     teleprompter
       .readAloudReaperState(chapterId)
-      .then(({ status, reason, message }) => current && setMatch({ chapterId, message, tracks: tracksOf(status, reason) }))
+      .then(({ status, reason, message }) => current && setMatch({ chapterId, message, tracks: tracksOf(status, reason), status }))
       // A failed read leaves the tracks unknown, as before the first read: Record then says what the host says at the press.
       .catch(() => current && setMatch(null));
     return () => {
@@ -505,6 +512,7 @@ export function useRecordControl({
     refresh,
     checkAgain: refresh,
     checkedAt,
+    dawStatus: match?.chapterId === chapterId ? match.status : null,
     readFailed,
     facts: { ...link.facts, openProject: link.open },
     factsFailed: link.failed,
