@@ -57,9 +57,13 @@ function fakeHost() {
     if (options.startWord) hear(heardAt(options.startWord));
     return { status: 'started' as const };
   });
+  // While `holdStop` is on, a stop says `stopping` and ends only at `finishStop`, as a sidecar still decoding what it heard does.
+  let holdStop = false;
   const teleprompterStop = vi.fn(async () => {
-    if (state.phase === 'running' || state.phase === 'starting') publish({ phase: 'stopped' });
+    if (state.phase !== 'running' && state.phase !== 'starting') return;
+    publish({ phase: holdStop ? 'stopping' : 'stopped' });
   });
+  const finishStop = () => act(() => publish({ phase: 'stopped' }));
   const teleprompterSaveFlags = vi.fn(async () => []);
   const api: Partial<NarrationApi> = {
     teleprompterStart,
@@ -75,7 +79,15 @@ function fakeHost() {
       return () => events.delete(listener);
     },
   };
-  return { api, teleprompterStart, teleprompterStop, teleprompterSaveFlags, hear: (event: TeleprompterEvent) => act(() => hear(event)) };
+  return {
+    api,
+    teleprompterStart,
+    teleprompterStop,
+    teleprompterSaveFlags,
+    hear: (event: TeleprompterEvent) => act(() => hear(event)),
+    holdStops: () => void (holdStop = true),
+    finishStop,
+  };
 }
 
 function renderPage(setup: Parameters<typeof dawFor>[0] = 'reaper') {
@@ -368,6 +380,33 @@ describe('only-the-toggle-a-take-or-leaving-ends-it', () => {
     await pressToggle();
     page.view.unmount();
     expect(page.teleprompterStop).toHaveBeenCalled();
+  });
+});
+
+describe('a-take-pressed-during-a-cold-read', () => {
+  it('asks the DAW to record at once, without waiting for the cold read to let go, then listens from the real cursor', async () => {
+    const page = renderPage();
+    await ready();
+    await pressToggle();
+    await waitFor(() => expect(mainName()).toBe('Stop'));
+    await page.hear(heardAt(20));
+    const realCursor = currentWord();
+    page.holdStops();
+    skipStartGuard();
+    await act(async () => void fireEvent.keyDown(document.body, { key: 'r', code: 'KeyR' }));
+    await settle();
+    // The cold read is still stopping, and the DAW was asked anyway (#3221): its pre-roll runs while the sidecar lets go.
+    expect(page.teleprompterStop).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(page.recordStart).toHaveBeenCalledTimes(1));
+    expect(page.teleprompterStart).toHaveBeenCalledTimes(1);
+    await page.finishStop();
+    await settle();
+    await waitFor(() => expect(page.teleprompterStart).toHaveBeenCalledTimes(2));
+    const take = page.teleprompterStart.mock.calls[1][0];
+    expect(take.coldRead).toBeUndefined();
+    expect(currentWord()).toBe(realCursor);
+    expect(take.startWord).toBeDefined();
+    expect(page.recordStart).toHaveBeenCalledTimes(1);
   });
 });
 

@@ -370,9 +370,11 @@ export function useBoothPage(options: BoothPageOptions) {
       return false;
     }
     // A cold read ends first: its session is not the take's (it keeps no reading and its flags are not the take's), and the take
-    // starts from the real cursor, never from the ghost.
+    // starts from the real cursor, never from the ghost. Its stop is not waited for before the DAW is asked: the sidecar can take
+    // seconds to let go (up to its kill at 8 s), and the take's listening starts once it has (#3221).
     const from = realWord();
-    const endedColdRead = await endColdRead();
+    const endedColdRead = latest.current.coldRead;
+    const ended = endColdRead();
     takeAt.current = punch ?? recordedEnd;
     // Listening and the DAW start together: loading the speech model takes seconds (docs/research/record-press-timeline.md), and the
     // DAW's pre-roll runs meanwhile instead of after it. A take is still never kept without listening: a session that fails stops the
@@ -381,7 +383,9 @@ export function useBoothPage(options: BoothPageOptions) {
     const listen = endedColdRead || !latest.current.session.active;
     const together = !recordsInApp(control.capabilities?.daw);
     listenStarting.current = listen;
-    const hearing = listen ? latest.current.session.start(endedColdRead ? { startWord: from } : undefined) : Promise.resolve({ ok: true, reason: '' });
+    const hearing = listen
+      ? ended.then(() => latest.current.session.start(endedColdRead ? { startWord: from } : undefined))
+      : Promise.resolve({ ok: true, reason: '' });
     const [heard, started] = await (
       together ? Promise.all([hearing, control.toggle(punch)]) : hearing.then(async (answer) => [answer, answer.ok && (await control.toggle(punch))] as const)
     ).finally(() => (listenStarting.current = false));
@@ -478,11 +482,13 @@ export function useBoothPage(options: BoothPageOptions) {
       setBrowse(false);
       takeBegan.current = now.at.cur;
       if (place) writer.begin(place, takeAt.current);
+      // The press starts this take's listening itself (beginOnce), after any cold read it is ending.
+      if (listenStarting.current) return;
       // A take that began some other way (the DAW's own Record) during a cold read: the cold read ends and the take's session starts.
       if (now.coldRead) {
         const from = realWord();
         void endColdRead().then(() => (latest.current.session.canStart ? latest.current.session.start({ startWord: from }) : undefined));
-      } else if (!listenStarting.current && !now.session.active && now.session.canStart) void now.session.start();
+      } else if (!now.session.active && now.session.canStart) void now.session.start();
       return;
     }
     if (unheard.current) {
