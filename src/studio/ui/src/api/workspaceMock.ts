@@ -267,7 +267,11 @@ function mockPeaksFor(item: WorkspaceItem): WorkspacePeaks {
   }
   let binary = '';
   for (const byte of new Uint8Array(bytes.buffer)) binary += String.fromCharCode(byte);
-  return { startSeconds: 0, bucketsPerSecond: MOCK_BUCKETS_PER_SECOND, buckets, minMax: btoa(binary), sampleRate: 48000, channels: 1 };
+  // Speech's RMS sits about 9 dB (a third) under its peak.
+  let rms = '';
+  for (let bucket = 0; bucket < buckets; bucket += 1)
+    rms += String.fromCharCode(Math.round(Math.max(Math.abs(bytes[2 * bucket]), Math.abs(bytes[2 * bucket + 1])) / 3));
+  return { startSeconds: 0, bucketsPerSecond: MOCK_BUCKETS_PER_SECOND, buckets, minMax: btoa(binary), rms: btoa(rms), sampleRate: 48000, channels: 1 };
 }
 
 export function createWorkspaceMock(deps: Deps): Omit<WorkspaceApi, 'workspaceTakes' | 'workspaceUseTake' | 'workspacePreviewTake'> {

@@ -86,7 +86,7 @@ func TestCachedPeaksFileSlicesToTheNearestBucketBoundary(t *testing.T) {
 		t.Fatal(err)
 	}
 	// floor(0.51*50)=25 -> 25/50=0.5; ceil(1.01*50)=51 -> 51-25=26 buckets.
-	if peaks.StartSeconds != 0.5 || peaks.Buckets != 26 {
+	if peaks.StartSeconds != 0.5 || peaks.Buckets != 26 || len(peaks.RMS) != 26 {
 		t.Fatalf("peaks = %+v", peaks)
 	}
 }

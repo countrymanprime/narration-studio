@@ -17,7 +17,7 @@ import (
 const (
 	// peaksAnalyzerID and peaksVersion identify this package's entries in the evidence cache (evidence.CacheEntryKey).
 	peaksAnalyzerID = "peaks"
-	peaksVersion    = "1"
+	peaksVersion    = "2" // 2: entries carry the RMS bytes
 	// peaksBlobVersion is the cache entry's own schema version (the evidence store never looks inside the blob).
 	peaksBlobVersion = 1
 )
@@ -104,5 +104,6 @@ func slicePeaks(whole Peaks, start, end float64) Peaks {
 	sliced.StartSeconds = float64(first) / float64(whole.BucketsPerSecond)
 	sliced.Buckets = last - first
 	sliced.MinMax = append([]byte(nil), whole.MinMax[2*first:2*last]...)
+	sliced.RMS = append([]byte(nil), whole.RMS[first:last]...)
 	return sliced
 }

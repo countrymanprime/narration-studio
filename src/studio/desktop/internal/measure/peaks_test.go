@@ -44,6 +44,25 @@ func TestPeaksAreTheMinimumAndMaximumOfEachBucket(t *testing.T) {
 	}
 }
 
+// A -6 dB sine has a peak of 0.501 and an RMS of 0.501/sqrt(2) = 0.354, 45 of 127: the level REAPER draws inside its peaks.
+func TestPeaksCarryTheRMSOfEachBucket(t *testing.T) {
+	peaks := peaksOf(t, encodeWAV(t, 1, 8000, 16, false, sine(8000, 1, 220, -6, 0)), nil, 50)
+	if len(peaks.RMS) != peaks.Buckets {
+		t.Fatalf("%d RMS bytes for %d buckets", len(peaks.RMS), peaks.Buckets)
+	}
+	for k, v := range peaks.RMS {
+		if v < 45 || v > 46 {
+			t.Fatalf("bucket %d RMS = %d, want 45 or 46", k, v)
+		}
+	}
+	silent := peaksOf(t, encodeWAV(t, 1, 8000, 16, false, silence(8000, 0.5)), nil, 50)
+	for k, v := range silent.RMS {
+		if v != 0 {
+			t.Fatalf("silent bucket %d RMS = %d, want 0", k, v)
+		}
+	}
+}
+
 func TestSilenceIsAFlatLine(t *testing.T) {
 	peaks := peaksOf(t, encodeWAV(t, 1, 8000, 16, false, silence(8000, 0.5)), nil, 50)
 	for k := range peaks.Buckets {

@@ -76,6 +76,6 @@ func TestReplaceContractPayloads(t *testing.T) {
 	stable("replacements-change", removed)
 
 	stable("replace-file-peaks-none", ReplaceFilePeaksView{FileID: "f-1", Length: 796.5, Reason: "no waveform"})
-	peaks := measure.Peaks{StartSeconds: 0, BucketsPerSecond: 50, Buckets: 2, MinMax: []byte{0x81, 0x7f, 0xf0, 0x10}, SampleRate: 22050, Channels: 1}
+	peaks := measure.Peaks{StartSeconds: 0, BucketsPerSecond: 50, Buckets: 2, MinMax: []byte{0x81, 0x7f, 0xf0, 0x10}, RMS: []byte{0x50, 0x0c}, SampleRate: 22050, Channels: 1}
 	stable("replace-file-peaks", ReplaceFilePeaksView{FileID: "f-1", Length: 0.04, Peaks: &peaks})
 }

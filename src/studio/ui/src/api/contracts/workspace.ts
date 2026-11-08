@@ -177,12 +177,14 @@ export type WorkspaceUseTakeResult = {
 };
 
 /** A waveform overview of a stretch of a WAV source (measure.Peaks): for each bucket of 1/bucketsPerSecond seconds, the lowest and highest sample over every channel, as two
- * signed bytes scaled to +-127 packed into minMax (base64: buckets * 2 bytes, minimum then maximum per bucket). */
+ * signed bytes scaled to +-127 packed into minMax (base64: buckets * 2 bytes, minimum then maximum per bucket). rms is one byte per bucket,
+ * the root mean square of its samples with full scale at 127 (base64: buckets bytes), the level REAPER draws inside its peaks; absent from a host that does not send it. */
 export type WorkspacePeaks = {
   startSeconds: number;
   bucketsPerSecond: number;
   buckets: number;
   minMax: string;
+  rms?: string;
   sampleRate: number;
   channels: number;
 };

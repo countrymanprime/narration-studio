@@ -54,6 +54,40 @@ describe('peaksWindow', () => {
   });
 });
 
+describe('peaksWindow RMS', () => {
+  const withRms = (rms: number[]): WorkspacePeaks => ({
+    ...entry(rms.map((v) => [-v * 3, v * 3])),
+    rms: btoa(String.fromCharCode(...rms)),
+  });
+
+  it('adds the loudest RMS under each column as a third value', () => {
+    const cols = peaksWindow(shiftPeaks(withRms([5, 20, 10, 8]), 0), 2, 2.4, 2);
+    expect(cols).toEqual([
+      [-60, 60, 20],
+      [-30, 30, 10],
+    ]);
+  });
+
+  it('leaves the column at two values when the host sent no RMS', () => {
+    const cols = peaksWindow(
+      shiftPeaks(
+        entry([
+          [-10, 10],
+          [-20, 20],
+        ]),
+        0,
+      ),
+      2,
+      2.2,
+      2,
+    );
+    expect(cols).toEqual([
+      [-10, 10],
+      [-20, 20],
+    ]);
+  });
+});
+
 describe('peaksWindow decoding', () => {
   it('decodes an entry once however many windows are taken from it', () => {
     const peaks = entry([
