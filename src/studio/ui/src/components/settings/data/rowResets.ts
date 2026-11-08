@@ -12,7 +12,7 @@ import { DEFAULT_OUTPUT, useOutputPrefs } from '../../engine/outputPrefs';
 import { useVoiceTracks } from '../../engine/useVoiceTracks';
 import { DEFAULT_TEXT_PREFS } from '../../script/page/tools/text/readerText';
 import { announceRateBasis } from '../../schedule/useEffectiveWph';
-import { DEFAULT_SORT, saveEntrySort } from '../../storybible/entryTable';
+import { DEFAULT_SORT, saveEntrySort } from '../../storybible/entryTableModel';
 import { refreshUserKeymap } from '../../../input/useUserKeymap';
 import { DELIVERY_PROFILES_CHANGED, optionValue } from '../DeliveryProfilesPanel';
 import { engineChanged } from './engineSignal';

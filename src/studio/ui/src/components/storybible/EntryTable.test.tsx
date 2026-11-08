@@ -8,7 +8,7 @@ import type { ExtractionSuggestion } from '../../api/contracts/extraction';
 import { CommandRouter, CommandScope } from '../../input/router';
 import type { GuideEntity, GuideType } from '../../types';
 import { EntryTable, type EntryTableProps } from './EntryTable';
-import { DEFAULT_SORT, sortRows } from './entryTable';
+import { DEFAULT_SORT, sortRows } from './entryTableModel';
 
 afterEach(cleanup);
 

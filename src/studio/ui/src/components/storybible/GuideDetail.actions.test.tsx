@@ -12,7 +12,7 @@ import { WIRE_ENTITIES } from '../../api/mockFixtures';
 import type { ExtractionSuggestion } from '../../api/contracts/extraction';
 import type { GuideEntity } from '../../types';
 import { overlay } from '../../overlay/overlayService';
-import { ENTRY_SORT_STORAGE_KEY } from './entryTable';
+import { ENTRY_SORT_STORAGE_KEY } from './entryTableModel';
 import { cellsOf, chooseKind, chooseShow, entryRows, entryTable, kindChoices, rowName, rowNames, showChoice, waitForShowChoice } from './entryTableTestKit';
 import { Guide } from './Guide';
 import { GuideDetail } from './GuideDetail';

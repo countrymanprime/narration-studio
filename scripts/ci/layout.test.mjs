@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { applyPathMap, findStaleReferences, loadLayout, readTrackedText, trackedFiles, unexpectedRoots } from './layout.mjs';
+import { applyPathMap, findStaleReferences, loadLayout, moduleNameClashes, readTrackedText, trackedFiles, unexpectedRoots } from './layout.mjs';
 
 const renames = [
   { from: 'shared/ui', to: 'src/studio/ui' },
@@ -23,13 +23,7 @@ test('applyPathMap prefers the most specific rename', () => {
 });
 
 test('applyPathMap leaves look-alikes, prose and Go import paths alone', () => {
-  const untouched = [
-    'reshared/ui and shared/uikit',
-    'the shell is a Go program',
-    'desktop/internal/bridge',
-    'tools/docs-site/README.md',
-    'desktop-shell',
-  ];
+  const untouched = ['reshared/ui and shared/uikit', 'the shell is a Go program', 'desktop/internal/bridge', 'tools/docs-site/README.md', 'desktop-shell'];
   for (const line of untouched) assert.equal(applyPathMap(line, renames), line);
 });
 
@@ -87,4 +81,25 @@ test('the repository matches its layout contract', () => {
   if (!layout.enforceRetired) return;
   const stale = findStaleReferences(readTrackedText(tracked), layout.renames, layout.historical, layout.patterns);
   assert.deepEqual(stale, [], 'tracked files still name a retired path; run node scripts/ci/apply-path-map.mjs');
+});
+
+test('moduleNameClashes finds modules whose names differ only by case and extension', () => {
+  const files = [
+    'ui/PageBreaks.tsx',
+    'ui/pageBreaks.ts',
+    'ui/PageBreaks.test.tsx',
+    'ui/pageBreaks.test.ts',
+    'ui/Other.tsx',
+    'ui/other.json',
+    'a/Same.ts',
+    'b/same.ts',
+  ];
+  assert.deepEqual(moduleNameClashes(files), [
+    ['ui/PageBreaks.tsx', 'ui/pageBreaks.ts'],
+    ['ui/PageBreaks.test.tsx', 'ui/pageBreaks.test.ts'],
+  ]);
+});
+
+test('no two tracked modules in one directory differ only by case and extension', () => {
+  assert.deepEqual(moduleNameClashes(trackedFiles()), []);
 });

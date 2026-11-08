@@ -22,7 +22,7 @@ import {
   type ColumnKey,
   type EntryFilter,
   type EntrySort,
-} from './entryTable';
+} from './entryTableModel';
 
 const entry = (id: string, name: string, over: Partial<GuideEntity> = {}): GuideEntity => ({
   id,

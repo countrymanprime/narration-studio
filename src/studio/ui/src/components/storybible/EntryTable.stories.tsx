@@ -6,7 +6,7 @@ import { CommandRouter, CommandScope } from '../../input/router';
 import type { GuideEntity, GuideType } from '../../types';
 import { PANEL_FRAME_CLASS } from '../primitives/panelStyles';
 import { EntryTable, type EntryTableProps } from './EntryTable';
-import { DEFAULT_SORT, chooseSort, sortRows } from './entryTable';
+import { DEFAULT_SORT, chooseSort, sortRows } from './entryTableModel';
 
 // The Story Bible's entry table in each state the page can put it in: a few entries, one, none, a filter with no match, long and mixed-direction
 // names, suggestions with no entry yet, and a book of hundreds drawn by window. The page (Guide.stories.tsx) holds the whole layout.

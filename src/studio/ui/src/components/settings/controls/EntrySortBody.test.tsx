@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DEFAULT_SORT, ENTRY_SORT_STORAGE_KEY, loadEntrySort, saveEntrySort } from '../../storybible/entryTable';
+import { DEFAULT_SORT, ENTRY_SORT_STORAGE_KEY, loadEntrySort, saveEntrySort } from '../../storybible/entryTableModel';
 import { BROWSER_CHANGED } from '../data/browserValues';
 import { ROWS } from '../registry/rows';
 import { search } from '../registry/search';

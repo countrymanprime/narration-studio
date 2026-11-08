@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { boothUnits, type ReadingParagraph } from '../reading/boothUnits';
-import { WORDS_PER_PAGE, pageBreaks, wordsPerPageOf } from './pageBreaks';
+import { WORDS_PER_PAGE, pageBreaks, wordsPerPageOf } from './pageBreakLayout';
 
 const words = (n: number, from = 0) => Array.from({ length: n }, (_, i) => `w${from + i}`).join(' ');
 const para = (id: string, text: string): ReadingParagraph => ({ id, text });
 
-describe('pageBreaks', () => {
+describe('pageBreakLayout', () => {
   const at = (paragraphs: ReadingParagraph[], perPage: number) =>
     pageBreaks(paragraphs, boothUnits(paragraphs), perPage).map(({ page, paragraphId, word, offset }) => ({ page, paragraphId, word, offset }));
 

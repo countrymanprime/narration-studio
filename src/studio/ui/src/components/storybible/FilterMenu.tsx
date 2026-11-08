@@ -6,7 +6,7 @@ import { Menu, type MenuSection } from '../primitives/Menu';
 import { Badge, toneColors } from '../primitives/StatusBadge';
 import { Swatch } from '../primitives/Swatch';
 import { kindSwatch } from './entryList';
-import { filterCount, type EntryFilter } from './entryTable';
+import { filterCount, type EntryFilter } from './entryTableModel';
 
 /** The choices the Filter menu sets; the search text is the box's. */
 export type FilterChoice = Pick<EntryFilter, 'kinds' | 'pron' | 'show'>;

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { usePort } from '../../../ports/usePort';
-import { WORDS_PER_PAGE, wordsPerPageOf } from './pageBreaks';
+import { WORDS_PER_PAGE, wordsPerPageOf } from './pageBreakLayout';
 
 /**
  * Booth.words_per_page through the settings port, at project scope: WORDS_PER_PAGE until it is read, and while it cannot be (the pages

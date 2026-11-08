@@ -31,7 +31,9 @@ export function loadLayout() {
 }
 
 export function trackedFiles() {
-  return execFileSync('git', ['ls-files', '-z'], { cwd: REPO_ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).split('\0').filter(Boolean);
+  return execFileSync('git', ['ls-files', '-z'], { cwd: REPO_ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
+    .split('\0')
+    .filter(Boolean);
 }
 
 /** Text of every tracked file that is not binary, keyed by repo-relative path. */
@@ -94,4 +96,21 @@ export function findStaleReferences(filesByPath, renames, historical, patterns =
 export function unexpectedRoots(files, allowed) {
   const roots = new Set(files.map((file) => file.split('/')[0]));
   return [...roots].filter((root) => !allowed.includes(root)).sort();
+}
+
+const MODULE_EXTENSION = /\.(?:[cm]?[jt]s|[jt]sx)$/;
+
+/**
+ * Groups of tracked source modules that share a directory and a name once the extension is dropped and case is folded
+ * (`PageBreaks.tsx` and `pageBreaks.ts`). A case-insensitive file system, Windows' for one, resolves an import of either
+ * to the same file, so the build breaks there while it passes on Linux. Rename one file of each group.
+ */
+export function moduleNameClashes(files) {
+  const groups = new Map();
+  for (const file of files) {
+    if (!MODULE_EXTENSION.test(file)) continue;
+    const key = file.replace(MODULE_EXTENSION, '').toLowerCase();
+    groups.set(key, [...(groups.get(key) ?? []), file]);
+  }
+  return [...groups.values()].filter((group) => group.length > 1).map((group) => group.sort());
 }

@@ -1,5 +1,5 @@
 // Pure selectors for the Story Bible entries: the alias and chapter counts a row shows, what needs review, and the colour of a kind. The sort
-// and the filter over the table's columns are entryTable.ts.
+// and the filter over the table's columns are entryTableModel.ts.
 
 import type { ExtractionSuggestion } from '../../api/contracts/extraction';
 import type { GuideEntity, GuideReview, GuideType } from '../../types';
