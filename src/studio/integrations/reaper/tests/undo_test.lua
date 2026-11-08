@@ -362,6 +362,21 @@ H.test('record_take: a take the narrator stops in REAPER is the app take too', f
   H.eq(s:events(), { { 'LAST_ACTION', 'l1', 'record_take', 'this' } })
 end)
 
+H.test('record_take: a take the narrator stops in REAPER is undone by the points RECORD_ENDED reported', function()
+  local s, p = project()
+  local before = #p.chapter.items
+  s:send('arm_only', 'a', p.chapter.guid)
+  s:send('record_start', 'r', p.chapter.guid)
+  s:events()
+  s.fake:stop_recording()
+  s:tick()
+  H.eq(s:events(), { { 'RECORD_ENDED', 'r', '1', '0', '1' } })
+  H.eq(#p.chapter.items, before + 1, 'the take is an item')
+  s:send('undo_last', 'u1', 'record_take', '1')
+  H.eq(s:events(), { { 'UNDONE_LAST', 'u1', 'record_take', '1', '1' } })
+  H.eq(#p.chapter.items, before, 'the ended take is gone')
+end)
+
 H.test('record_take: a newer take is the one undone, and the older stays', function()
   local s, p = project()
   take(s, p)

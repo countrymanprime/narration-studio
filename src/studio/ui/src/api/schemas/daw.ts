@@ -37,6 +37,7 @@ import type {
   DawPlace,
   DawPosition,
   DawProjectEdited,
+  DawRecordEnded,
   WordTimeRow,
   WordTimeState,
   WordTimes,
@@ -160,6 +161,9 @@ export const wordTimesSchema = z.strictObject({
   items: z.array(z.string()),
   words: z.array(wordTimeRowSchema),
 }) satisfies z.ZodType<WordTimes>;
+
+/** daw_record_ended. */
+export const dawRecordEndedSchema = z.strictObject({ undoSteps: z.number().int().nonnegative() }) satisfies z.ZodType<DawRecordEnded>;
 
 /** daw_project_edited. */
 export const dawProjectEditedSchema = z.strictObject({ changeCount: z.number().int().nonnegative() }) satisfies z.ZodType<DawProjectEdited>;

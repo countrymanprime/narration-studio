@@ -163,6 +163,8 @@ export interface DawClient {
   /** The DAW's transport each time it changes (daw_transport_changed), only on a change, so a stop the narrator made in the DAW is heard.
    * Absent on a client with no live source. Returns the unsubscribe. */
   subscribeTransport?(onUpdate: (next: DawTransport) => void): () => void;
+  /** A take the app started that the narrator stopped in the DAW itself (daw_record_ended), with the undo points it left, for the history to take back. Absent on a client with no live source. */
+  subscribeRecordEnded?(onEnded: (undoSteps: number) => void): () => void;
   /** The project as last saved, whether the DAW has unsaved changes, and the transport. `playPosition` is for display only. */
   projectState(): Promise<DawProjectState>;
   /** Start recording on the chapter's track: where the last take on it stopped while the cursor is still there, else from the end
@@ -302,6 +304,7 @@ export type DawHostApi = Pick<
   | 'subscribePickups'
   | 'subscribeDawCapabilities'
   | 'subscribeDawTransport'
+  | 'subscribeDawRecordEnded'
   | 'masterPlayQuietest'
   | 'masterOpenInDaw'
 >;
@@ -440,6 +443,7 @@ export function createHostDawClient(api: DawHostApi): DawClient {
     capabilities: () => api.dawCapabilities(),
     subscribeCapabilities: (onUpdate) => api.subscribeDawCapabilities(onUpdate),
     subscribeTransport: (onUpdate) => api.subscribeDawTransport(onUpdate),
+    subscribeRecordEnded: (onEnded) => api.subscribeDawRecordEnded((ended) => onEnded(ended.undoSteps)),
     projectState: () => api.dawProjectState(),
     async recordStart(chapterId, at) {
       const result = await (at === undefined ? api.readAloudRecordStart(chapterId) : api.readAloudRecordStartAt(chapterId, at));

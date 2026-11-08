@@ -540,6 +540,24 @@ func TestOnRecordEndedClearsTheChapter(t *testing.T) {
 	}
 }
 
+// A take the narrator stops in the DAW reaches the UI as daw_record_ended with the undo points it left, so the Booth can journal it.
+func TestOnRecordEndedTellsTheUIHowManyUndoPointsTheTakeLeft(t *testing.T) {
+	var heard []dawRecordEnded
+	saved := emitRecordEnded
+	emitRecordEnded = func(ended dawRecordEnded) { heard = append(heard, ended) }
+	t.Cleanup(func() { emitRecordEnded = saved })
+	host, _ := newReadAloudReaperHost(t)
+	fake := &fakeRecorder{}
+	host.setReadAloudRecording("chapter-1", fake)
+
+	fake.ended(bridge.RecordEnded{Restored: 1, UndoPoints: 2})
+
+	if len(heard) != 1 || heard[0].UndoSteps != 2 {
+		t.Fatalf("daw_record_ended = %+v, want one with 2 undo steps", heard)
+	}
+	contractfile.Check(t, "daw-record-ended", heard[0])
+}
+
 // TestRecorderFromComesFromTheResolver pins that the role comes from the resolver: the Record bindings
 // source their recorder through recorderFrom, which asks svc.dawPortResolver for the Record role instead of holding a
 // bridge client directly.

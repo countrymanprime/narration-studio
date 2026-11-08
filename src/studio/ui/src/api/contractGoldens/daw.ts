@@ -21,6 +21,7 @@ import {
   dawProjectStateSchema,
   dawResultSchema,
   dawTransportSchema,
+  dawRecordEndedSchema,
 } from '../schemas/daw';
 
 export const dawGoldens: Record<string, z.ZodType> = {
@@ -42,6 +43,7 @@ export const dawGoldens: Record<string, z.ZodType> = {
   'daw-transport-playing.json': dawTransportSchema,
   'daw-transport-recording.json': dawTransportSchema,
   'daw-transport-builtin-recording.json': dawTransportSchema,
+  'daw-record-ended.json': dawRecordEndedSchema,
   'daw-project-state-idle.json': dawProjectStateSchema,
   'daw-project-state-saved.json': dawProjectStateSchema,
   'daw-project-state-unsaved.json': dawProjectStateSchema,

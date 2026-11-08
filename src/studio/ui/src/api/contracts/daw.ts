@@ -168,6 +168,9 @@ export interface DawCapabilitiesApi {
   /** Pushed only: there is no request for it. The host pushes the current transport on its first tick after launch and
    * then only on a change, so a subscriber that joins later hears nothing until the next change. */
   subscribeDawTransport(onUpdate: (state: DawTransport) => void): () => void;
+  /** Pushed when the narrator stops, in the DAW itself, a take this app started (daw_record_ended, bindings_readaloud_record.go): with the undo points the DAW's history
+   * gained for it, so the Booth can journal the take as it does one it stopped. Returns the unsubscribe. */
+  subscribeDawRecordEnded(onUpdate: (ended: DawRecordEnded) => void): () => void;
 }
 
 /** An engine the narrator can choose for a project (DawChoose). */
@@ -614,6 +617,9 @@ export type WordTimes = {
   items: string[];
   words: WordTimeRow[];
 };
+
+/** daw_record_ended: the undo points the DAW's history gained for a take the narrator stopped in the DAW (0 from an older script). */
+export type DawRecordEnded = { undoSteps: number };
 
 /** daw_project_edited: REAPER's change counter, which rises on every edit, saved or not. */
 export type DawProjectEdited = { changeCount: number };
