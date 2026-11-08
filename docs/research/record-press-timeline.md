@@ -53,6 +53,21 @@ Time from the press until REAPER is asked to record, from the measurements above
 
 With REAPER's pre-roll at 2 measures (4 s at 120 BPM), listening is ready before the first recorded word in every measured case except `small.en` with a cold page cache (4.2 s). With pre-roll off, the opening second or so of a take is recorded before the text can follow it.
 
+## Fix 2: a take pressed during a cold read does not wait for it to stop
+
+Refs #3221: the owner measured about 10 s from Record to REAPER's pre-roll. Measured 2026-11-08 in the same container with the Go host's record start (`readAloudRecordStartIn`, the real bridge client) against a fake REAPER that answers on a 33 ms tick, in a 62-track, 4030-item project, three presses each in a flat and a Voice folders layout:
+
+| Stage | ms |
+| --- | --- |
+| `AssetsList` (the model check) | 0 |
+| `Bootstrap` (the project check in `useRecordControl.toggle`) | 2 |
+| `chapter_track_state` answered | 29 to 46 |
+| `arm_only` answered | 59 to 76 |
+| `record_start` answered (REAPER's pre-roll begins) | 92 to 111 |
+| Parsing the `.rpp` and identifying 65 take files, the Start from here lookup's file work | 17 and 10 |
+
+None of these comes near 10 s. The one wait before `record_start` that can is `endColdRead` in `beginOnce`: a press during a cold read waited for that session to end before asking the DAW to record. The sidecar notices its stop file only when it reads the next audio chunk, then decodes what it still holds; one that has fallen behind real time ends at the host's kill after 8 s, and the Booth gave up waiting after 9 s (`STOP_WAIT_MS`). A press now asks the DAW at once, its pre-roll runs while the cold read ends, and the take's listening starts from the real cursor once it has ended. A listening start that then fails drops the take as in Fix 1. Not measured: the real sidecar's stop time on the owner's machine, and the Start from here lookup (`BoothPunchTarget`), which runs before the press's first timeline step and is not on its line.
+
 ## REAPER while the app works with it
 
 The same scenario wraps REAPER's defer loop with the probe of [the bridge note](reaper-bridge-performance.md#method) and sends what the host sends: the Booth's idle read (`chapter_track_state` every 15 s, `READY_POLL_MS` in [`useRecordControl.ts`](../../src/studio/ui/src/components/booth/record/useRecordControl.ts)), then five record presses. It sends the host's commands from the harness; the Go host itself was not running. 4050 items, 62 tracks, 120 FX, 2026-11-01:
