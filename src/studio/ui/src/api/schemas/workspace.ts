@@ -124,6 +124,7 @@ export const peaksSchema = z.object({
   bucketsPerSecond: z.number(),
   buckets: z.number(),
   minMax: z.string(),
+  rms: optionalFromNull(z.string()),
   sampleRate: z.number(),
   channels: z.number(),
 }) satisfies z.ZodType<WorkspacePeaks>;

@@ -3,11 +3,22 @@ import { docSpan, type DocPeaks } from './docClock';
 import { FULL_SCALE, type PeakScale } from './ribbonBars';
 import type { RibbonPeaks } from './useRibbonPeaks';
 
-/** One column of the window: the lowest and highest sample, each -127..127. */
-export type PeakColumn = readonly [min: number, max: number];
+/** One column of the window: the lowest and highest sample, each -127..127, and the loudest RMS under it (0..127) when the host sent RMS. */
+export type PeakColumn = readonly [min: number, max: number, rms?: number];
 
 /** Entries already decoded, so a resize or a new window over the same chapter does not decode its base64 again. Dropped with the entry. */
 const decoded = new WeakMap<object, Int8Array>();
+const decodedRms = new WeakMap<object, Uint8Array>();
+
+/** Decodes a peaks entry's base64 RMS into one byte a bucket; null when the host sent none. */
+function decodeRms(peaks: Pick<WorkspacePeaks, 'rms'>): Uint8Array | null {
+  if (!peaks.rms) return null;
+  const known = decodedRms.get(peaks);
+  if (known) return known;
+  const out = Uint8Array.from(atob(peaks.rms), (ch) => ch.charCodeAt(0));
+  decodedRms.set(peaks, out);
+  return out;
+}
 
 /** Decodes a peaks entry's base64 minMax into signed bytes: index 2k and 2k+1 are bucket k's minimum and maximum. */
 export function decodeEntry(peaks: Pick<WorkspacePeaks, 'minMax'>): Int8Array {
@@ -40,7 +51,7 @@ export function peaksWindowAll(entries: readonly DocPeaks[], t0: number, t1: num
     .filter((d) => d.peaks.buckets >= 1 && d.peaks.bucketsPerSecond > 0)
     .map((d) => {
       const [from, to] = docSpan(d);
-      return { p: d.peaks, shift: d.piece.shift, data: decodeEntry(d.peaks), from, to };
+      return { p: d.peaks, shift: d.piece.shift, data: decodeEntry(d.peaks), rms: decodeRms(d.peaks), from, to };
     })
     .filter(({ from, to }) => t1 > from && t0 < to);
   if (live.length === 0) return null;
@@ -50,8 +61,9 @@ export function peaksWindowAll(entries: readonly DocPeaks[], t0: number, t1: num
     const b = t0 + ((c + 1) / columns) * span;
     let lo = 127;
     let hi = -127;
+    let rmsMax = -1;
     let covered = false;
-    for (const { p, shift, data, from, to } of live) {
+    for (const { p, shift, data, rms, from, to } of live) {
       if (b <= from || a >= to) continue;
       // The column's seconds on the entry's own (source) clock, then its buckets.
       const first = Math.max(0, Math.floor((a - shift - p.startSeconds) * p.bucketsPerSecond + 1e-9));
@@ -59,10 +71,11 @@ export function peaksWindowAll(entries: readonly DocPeaks[], t0: number, t1: num
       for (let k = first; k <= last; k += 1) {
         lo = Math.min(lo, data[2 * k]);
         hi = Math.max(hi, data[2 * k + 1]);
+        if (rms) rmsMax = Math.max(rmsMax, rms[k]);
         covered = true;
       }
     }
-    out.push(covered ? [lo, hi] : [0, 0]);
+    out.push(!covered ? [0, 0] : rmsMax < 0 ? [lo, hi] : [lo, hi, rmsMax]);
   }
   return out;
 }

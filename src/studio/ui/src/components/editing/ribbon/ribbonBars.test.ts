@@ -9,6 +9,7 @@ import {
   barPosition,
   DISPLAY_RANGE_DB,
   halfHeight,
+  rmsHalfHeight,
   levelOf,
   playheadAt,
 } from './ribbonBars';
@@ -122,5 +123,21 @@ describe('barPosition', () => {
     expect(barPosition(2, 2, 6, 40)).toBe(0);
     expect(barPosition(6, 2, 6, 40)).toBe(40);
     expect(barPosition(4, 2, 6, 40)).toBe(20);
+  });
+});
+
+describe('rmsHalfHeight', () => {
+  it('is null when the column has no RMS', () => {
+    expect(rmsHalfHeight([-100, 100], 28)).toBeNull();
+  });
+  it('is on the peak scale and lower than the peak for a quieter RMS', () => {
+    const peak = halfHeight([-100, 100, 40], 28);
+    const core = rmsHalfHeight([-100, 100, 40], 28);
+    expect(core).not.toBeNull();
+    expect(core as number).toBeLessThan(peak);
+    expect(core as number).toBeCloseTo(halfHeight([-40, 40], 28), 6);
+  });
+  it('never rises above its peak', () => {
+    expect(rmsHalfHeight([-10, 10, 120], 28)).toBe(halfHeight([-10, 10], 28));
   });
 });

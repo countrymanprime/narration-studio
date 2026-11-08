@@ -92,6 +92,31 @@ const layout = (over: Partial<RibbonLayout> = {}): RibbonLayout => ({
 const flat = (n: number, level = 60): PeakColumn[] => Array.from({ length: n }, () => [-level, level] as PeakColumn);
 const moving = (nowMs: number, sinceUpdateMs = 0, swell: number | null = 0.5): RibbonFrame => ({ nowMs, sinceUpdateMs, animate: true, swell });
 
+describe('drawRibbon RMS', () => {
+  it('draws the RMS core over a faint peak envelope when the columns carry RMS', () => {
+    const r = recorder();
+    const n = barLayout(700).count;
+    const alphas: number[] = [];
+    const ctx = r.canvas.getContext('2d') as unknown as { fill: () => void; globalAlpha: number };
+    const fill = ctx.fill;
+    ctx.fill = () => {
+      alphas.push(ctx.globalAlpha);
+      fill();
+    };
+    drawRibbon(
+      r.canvas,
+      r.size,
+      layout(),
+      Array.from({ length: n }, () => [-100, 100, 30] as PeakColumn),
+      colors,
+    );
+    expect(r.bars).toHaveLength(2 * n);
+    expect(alphas[0]).toBeLessThan(1);
+    expect(alphas.at(-1)).toBe(1);
+    expect(r.bars[n].h).toBeLessThan(r.bars[0].h);
+  });
+});
+
 describe('drawRibbon bars', () => {
   it('draws one rounded bar for each column on the site gap, symmetric about the middle line, filling the width', () => {
     const r = recorder();

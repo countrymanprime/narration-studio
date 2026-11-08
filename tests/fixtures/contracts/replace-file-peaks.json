@@ -6,6 +6,7 @@
     "bucketsPerSecond": 50,
     "channels": 1,
     "minMax": "gX/wEA==",
+    "rms": "UAw=",
     "sampleRate": 22050,
     "startSeconds": 0
   }

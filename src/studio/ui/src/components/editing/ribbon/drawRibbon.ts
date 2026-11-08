@@ -1,5 +1,5 @@
 import type { PeakColumn } from './peaksWindow';
-import { BAR_RADIUS, barLayout, barPosition, FULL_SCALE, halfHeight, playheadAt, type PeakScale } from './ribbonBars';
+import { BAR_RADIUS, barLayout, barPosition, FULL_SCALE, halfHeight, playheadAt, rmsHalfHeight, type PeakScale } from './ribbonBars';
 import { barSwell, crestAt, swelledHalf } from './waveSwell';
 import type { RibbonLayout } from './ribbonLayout';
 
@@ -47,6 +47,9 @@ export interface RibbonSize {
 
 /** A cut word has no length in the document; the gap marker is at least this wide (CSS pixels). */
 const MIN_GAP = 6;
+
+/** How faint the peak envelope is drawn behind the RMS core. */
+const PEAK_OUTLINE_ALPHA = 0.45;
 
 /** What moves in one frame. Without `animate` the playhead is where the host last said it was; without `swell` the bars are at rest. */
 export interface RibbonFrame {
@@ -152,22 +155,28 @@ function drawBars(
   const mid = height / 2;
   const { pitch, barWidth } = barLayout(width, columns.length);
   const radius = Math.min(BAR_RADIUS, barWidth / 2);
-  const halfAt = (i: number): number => {
-    const half = halfHeight(columns[i], mid, scale);
-    return crest == null ? half : swelledHalf(half, barSwell(i, columns.length, crest), mid - 0.5);
-  };
-  // One path and one fill for each colour, not one stroke for each bar.
-  const fillBars = (colour: string, from: number, to: number): void => {
+  const swelled = (i: number, half: number): number => (crest == null ? half : swelledHalf(half, barSwell(i, columns.length, crest), mid - 0.5));
+  // One path and one fill for each colour, not one stroke for each bar. `core` draws the RMS bars (where the host sent RMS) instead of the peaks.
+  const fillBars = (colour: string, from: number, to: number, core: boolean): void => {
     ctx.beginPath();
     for (let i = from; i < to; i += 1) {
-      const half = halfAt(i);
-      ctx.roundRect(i * pitch, mid - half, barWidth, half * 2, radius);
+      const half = core ? rmsHalfHeight(columns[i], mid, scale) : halfHeight(columns[i], mid, scale);
+      if (half === null) continue;
+      const h = swelled(i, half);
+      ctx.roundRect(i * pitch, mid - h, barWidth, h * 2, radius);
     }
     ctx.fillStyle = colour;
     ctx.fill();
   };
-  // Bars whose centre the playhead has passed are played.
+  // Bars whose centre the playhead has passed are played. With RMS the peaks are the faint outline and the RMS the solid core.
   const split = headBar == null ? columns.length : Math.max(0, Math.min(columns.length, Math.ceil(headBar - 0.5)));
-  fillBars(colors.bars, 0, split);
-  if (split < columns.length) fillBars(colors.unplayed, split, columns.length);
+  const withRms = columns.some((c) => c[2] !== undefined);
+  ctx.globalAlpha = withRms ? PEAK_OUTLINE_ALPHA : 1;
+  fillBars(colors.bars, 0, split, false);
+  if (split < columns.length) fillBars(colors.unplayed, split, columns.length, false);
+  ctx.globalAlpha = 1;
+  if (withRms) {
+    fillBars(colors.bars, 0, split, true);
+    if (split < columns.length) fillBars(colors.unplayed, split, columns.length, true);
+  }
 }

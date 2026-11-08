@@ -19,12 +19,15 @@ const (
 // seconds, the lowest and highest sample over every channel. MinMax holds two signed bytes per
 // bucket, the minimum then the maximum, scaled so full scale is ±127; a caller that sends it as JSON
 // gets base64. The minimum is rounded down and the maximum up, so a peak is never drawn smaller than
-// it is. The last bucket may be partial. Buckets is 0 when the range starts after the audio ends.
+// it is. RMS holds one byte per bucket: the root mean square of every sample of every channel in the
+// bucket, 0 to 127 with full scale at 127 and rounded up, the level REAPER draws inside its peaks. The
+// last bucket may be partial. Buckets is 0 when the range starts after the audio ends.
 type Peaks struct {
 	StartSeconds     float64 `json:"startSeconds"`
 	BucketsPerSecond int     `json:"bucketsPerSecond"`
 	Buckets          int     `json:"buckets"`
 	MinMax           []byte  `json:"minMax"`
+	RMS              []byte  `json:"rms,omitempty"`
 	SampleRate       int     `json:"sampleRate"`
 	Channels         int     `json:"channels"`
 }
@@ -65,13 +68,17 @@ func ComputePeaks(ctx context.Context, r io.Reader, rng *Range, perSecond int) (
 	rate, per := int64(format.SampleRate), int64(perSecond)
 	bucket, end := int64(0), (rate+per-1)/per
 	low, high, filled := math.Inf(1), math.Inf(-1), false
+	var sumSquares float64
+	var samples int64
 	flush := func() {
 		if filled {
 			peaks.MinMax = append(peaks.MinMax, peakByte(math.Floor(low*127)), peakByte(math.Ceil(high*127)))
+			peaks.RMS = append(peaks.RMS, peakByte(math.Ceil(math.Sqrt(sumSquares/float64(samples))*127)))
 		}
 		bucket++
 		end = ((bucket+1)*rate + per - 1) / per
 		low, high, filled = math.Inf(1), math.Inf(-1), false
+		sumSquares, samples = 0, 0
 	}
 	for read := int64(0); read < count; {
 		if err := ctx.Err(); err != nil {
@@ -95,7 +102,9 @@ func ComputePeaks(ctx context.Context, r io.Reader, rng *Range, perSecond int) (
 					if v > high {
 						high = v
 					}
+					sumSquares += v * v
 				}
+				samples += stop - i
 			}
 			filled = filled || stop > i
 			read += stop - i

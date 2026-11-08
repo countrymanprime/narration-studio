@@ -75,6 +75,12 @@ export function halfHeight(column: PeakColumn, mid: number, scale: PeakScale = F
   return Math.max(MIN_BAR_HEIGHT / 2, level * mid * PEAK_HEADROOM);
 }
 
+/** A column's RMS half height in pixels on the same scale as its peak (never above it), or null when the host sent no RMS: the solid core inside the peaks, as REAPER draws it. */
+export function rmsHalfHeight(column: PeakColumn, mid: number, scale: PeakScale = FULL_SCALE): number | null {
+  if (column[2] === undefined) return null;
+  return Math.min(halfHeight(column, mid, scale), Math.max(MIN_BAR_HEIGHT / 2, levelOf(column[2], scale) * mid * PEAK_HEADROOM));
+}
+
 /** The host publishes the position a few times a second; between updates the drawing moves the playhead on at the playing rate, but never further than this. */
 export const MAX_EXTRAPOLATE_MS = 400;
 
