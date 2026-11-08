@@ -1,7 +1,7 @@
 import { IconButton } from '../primitives/IconButton';
 import { Menu } from '../primitives/Menu';
 import { Icon } from '../primitives/Icon';
-import type { ColumnKey, EntrySort } from './entryTable';
+import type { ColumnKey, EntrySort } from './entryTableModel';
 
 const ORDERS: readonly { key: ColumnKey; label: string }[] = [
   { key: 'name', label: 'Name' },

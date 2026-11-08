@@ -1,5 +1,5 @@
 import { DEFAULT_BOOTH_SIZE, readBoothSize } from '../../booth/page/boothSize';
-import { DEFAULT_SORT, loadEntrySort } from '../../storybible/entryTable';
+import { DEFAULT_SORT, loadEntrySort } from '../../storybible/entryTableModel';
 import { DEFAULT_OUTPUT, readOutputPrefs } from '../../engine/outputPrefs';
 import { readStoredTakeTone } from '../../booth/takeTone';
 import { readScrollStep, SCROLL_STEP_DEFAULT } from '../../editing/ribbon/scrollStep';

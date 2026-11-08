@@ -29,7 +29,7 @@ import {
   sortRows,
   type ColumnKey,
   type EntrySort,
-} from './entryTable';
+} from './entryTableModel';
 import { evidenceLinks } from './evidenceLinks';
 import { useHearEntry } from './useHearEntry';
 import { ActionsMenu } from './ActionsMenu';

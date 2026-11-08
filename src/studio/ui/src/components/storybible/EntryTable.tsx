@@ -20,7 +20,7 @@ import { hearNameAction } from '../../icons.catalog';
 import { Swatch } from '../primitives/Swatch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableSpacer } from '../primitives/Table';
 import { kindLabel, kindSwatch } from './entryList';
-import { COLUMNS, hasPronunciation, markedParts, matchedAlias, sortAria, type ColumnKey, type EntrySort } from './entryTable';
+import { COLUMNS, hasPronunciation, markedParts, matchedAlias, sortAria, type ColumnKey, type EntrySort } from './entryTableModel';
 import { LooseSuggestionRows } from './suggested/panel/LooseSuggestionRows';
 
 // The body rows are one height (`--row-height`, 39 px, and a cell never wraps), so the rows in view follow from the scroll position and a long book

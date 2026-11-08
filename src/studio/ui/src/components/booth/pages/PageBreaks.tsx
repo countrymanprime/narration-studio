@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { BoundaryMarker } from '../../primitives/BoundaryMarker';
 import { wordElements } from '../reading/wordElements';
-import type { PageBreak } from './pageBreaks';
+import type { PageBreak } from './pageBreakLayout';
 
 /**
  * The chapter's page breaks over the Booth's text: a `BoundaryMarker` across the column above the line that holds each break's first word.

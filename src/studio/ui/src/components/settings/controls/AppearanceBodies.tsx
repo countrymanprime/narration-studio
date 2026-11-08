@@ -18,7 +18,7 @@ import { ToggleGroup } from '../../primitives/ToggleGroup';
 import { READER_FONTS, READER_SIZES, READER_SPACING, READER_WIDTHS, fontStack, widthName } from '../../script/page/tools/text/readerText';
 import { readScrollStep, SCROLL_STEP_MAX, SCROLL_STEP_MIN, writeScrollStep } from '../../editing/ribbon/scrollStep';
 import { readBoothSize, writeBoothSize } from '../../booth/page/boothSize';
-import { DEFAULT_SORT, ENTRY_SORT_STORAGE_KEY, loadEntrySort, saveEntrySort, type ColumnKey } from '../../storybible/entryTable';
+import { DEFAULT_SORT, ENTRY_SORT_STORAGE_KEY, loadEntrySort, saveEntrySort, type ColumnKey } from '../../storybible/entryTableModel';
 import { RATES, rateLabel, useOutputPrefs } from '../../engine/outputPrefs';
 import { DeviceRow } from '../../editing/output/OutputControls';
 import { useOutputDevices } from '../../editing/output/useOutputDevices';

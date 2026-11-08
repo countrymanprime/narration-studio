@@ -28,7 +28,7 @@ import { NeedManuscript } from '../../layout/NeedManuscript';
 import { BookmarkRibbons } from '../bookmarks/BookmarkRibbons';
 import { useBoothBookmarks } from '../bookmarks/useBoothBookmarks';
 import { PageBreaks } from '../pages/PageBreaks';
-import { pageBreaks } from '../pages/pageBreaks';
+import { pageBreaks } from '../pages/pageBreakLayout';
 import { useWordsPerPage } from '../pages/useWordsPerPage';
 import { BoothFooter, useRoomTone } from '../frame/BoothFooter';
 import { BoothTop } from '../frame/BoothTop';
