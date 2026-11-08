@@ -1837,6 +1837,35 @@ describe('a-take-is-undone-in-the-daw', () => {
     expect(await page.daw.lastAction('record_take')).toBe('other');
   });
 
+  it('a take the narrator stops in the DAW itself is a history entry too, and Undo takes it back in the DAW', async () => {
+    let ended: ((undoSteps: number) => void) | undefined;
+    const daw = {
+      ...dawFor('reaper'),
+      lastAction: async () => 'this' as const,
+      undoLast: async () => ({ ok: true, changed: true, message: '', undoSteps: 1 }),
+      subscribeRecordEnded: (on: (undoSteps: number) => void) => ((ended = on), () => (ended = undefined)),
+    };
+    const page = renderPage({ daw, journal: dawJournal });
+    await record(page);
+    await act(async () => ended?.(1));
+    await waitFor(async () =>
+      expect((await page.journal.entries()).map((row) => [row.label, row.refusal])).toEqual([['Recorded a take of Chapter One', null]]),
+    );
+    expect(await page.journal.undoLast()).toMatchObject({ ok: true });
+    expect(page.daw.undoLast).toHaveBeenCalledWith('record_take', 1);
+  });
+
+  it('a take the DAW ended with no undo points (an older script) is journaled with its reason and no inverse', async () => {
+    let ended: ((undoSteps: number) => void) | undefined;
+    const daw = { ...dawFor('reaper'), subscribeRecordEnded: (on: (undoSteps: number) => void) => ((ended = on), () => (ended = undefined)) };
+    const page = renderPage({ daw, journal: dawJournal });
+    await record(page);
+    await act(async () => ended?.(0));
+    await waitFor(async () => expect(await page.journal.entries()).toHaveLength(1));
+    expect(await page.journal.undoLast()).toMatchObject({ ok: false });
+    expect(page.daw.undoLast).not.toHaveBeenCalled();
+  });
+
   it('says the take is saved with an Undo that takes it back in the DAW', async () => {
     const page = renderPage({ journal: dawJournal });
     await record(page);

@@ -56,6 +56,7 @@ import {
   dawProjectEditedSchema,
   wordTimesSchema,
   dawTransportSchema,
+  dawRecordEndedSchema,
 } from './schemas/daw';
 import { providerCapabilitiesSchema } from './schemas/providers';
 import {
@@ -771,6 +772,7 @@ export const wailsClient: NarrationApi = {
   dawPlace: () => decode(dawPlaceSchema, 'DawPlace', host.DawPlace()),
   dawGoToChapter: (chapterId, where, seconds) => decode(dawResultSchema, 'DawGoToChapter', host.DawGoToChapter(chapterId, where, seconds)),
   workspaceWordTimes: (chapterId) => decode(wordTimesSchema, 'WorkspaceWordTimes', host.WorkspaceWordTimes(chapterId)),
+  subscribeDawRecordEnded: (onUpdate) => subscribeChecked('daw_record_ended', dawRecordEndedSchema, onUpdate),
   subscribeDawProjectEdited: (onUpdate) => subscribeChecked('daw_project_edited', dawProjectEditedSchema, onUpdate),
   dawTransportSync: (action, seconds, until = 0, chapterId = '') =>
     decode(dawResultSchema, 'DawTransportSync', host.DawTransportSync(action, seconds, until, chapterId)),

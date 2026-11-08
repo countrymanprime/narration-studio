@@ -250,6 +250,7 @@ function hostApi(): DawHostApi {
     // The host's events carry the same payloads; this contract reads them by request, so a subscription hears nothing.
     subscribeDawCapabilities: () => () => {},
     subscribeDawTransport: () => () => {},
+    subscribeDawRecordEnded: () => () => {},
     dawProjectState: () => Promise.resolve(read('daw-project-state-saved.json', dawProjectStateSchema)),
     readAloudRecordStart: (chapterId) => Promise.resolve(recording(known.chapterIds.includes(chapterId) ? 'ready.start' : 'track_missing.start')),
     // ReadAloudRecordStartAt: the time is checked first, a chapter with no track is the start's stale refusal, and a start at 30 s is

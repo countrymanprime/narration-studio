@@ -343,8 +343,20 @@ func (h *Host) setReadAloudRecording(chapterID string, recorder dawport.Recorder
 	h.mu.Lock()
 	h.readAloudRecordingChapter = chapterID
 	h.mu.Unlock()
-	recorder.OnRecordEnded(func(bridge.RecordEnded) { h.clearReadAloudRecording() })
+	recorder.OnRecordEnded(func(ended bridge.RecordEnded) {
+		h.clearReadAloudRecording()
+		emitRecordEnded(dawRecordEnded{UndoSteps: ended.UndoPoints})
+	})
 }
+
+// dawRecordEnded is the daw_record_ended payload: a take the narrator stopped in the DAW itself, and the undo points the DAW's history
+// gained for it (what RecordStop answers as UndoPoints), so the Booth journals it as it does a take it stopped, and Undo takes it back.
+type dawRecordEnded struct {
+	UndoSteps int `json:"undoSteps"`
+}
+
+// emitRecordEnded sends daw_record_ended; a variable so a test can hear it.
+var emitRecordEnded = func(ended dawRecordEnded) { emitEvent("daw_record_ended", ended) }
 
 func (h *Host) clearReadAloudRecording() {
 	h.mu.Lock()

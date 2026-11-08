@@ -4755,6 +4755,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'dawTransportSync',
       'workspaceWordTimes',
       'subscribeDawProjectEdited',
+      'subscribeDawRecordEnded',
       'dawBackupAround',
       'dawRestoreBackup',
       'dawBackups',

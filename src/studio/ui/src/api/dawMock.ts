@@ -13,6 +13,7 @@ import type {
   DawCapabilitiesApi,
   DawKind,
   DawProjectEdited,
+  DawRecordEnded,
   WordTimes,
   DawLevelsApi,
   DawPlaceApi,
@@ -440,6 +441,8 @@ export interface DawMockControl {
   setWordTimes(table: WordTimes | null): void;
   /** The narrator edited the project in the DAW: its change counter rises and `daw_project_edited` is sent. The table is the test's to replace (`setWordTimes`). */
   editInDaw(): void;
+  /** The narrator stopped, in the DAW itself, a take this app started: the transport stops and `daw_record_ended` is sent with the undo points it left. */
+  endTakeInDaw(undoSteps?: number): void;
   /** The narrator pressed Record inside the DAW: a take this app did not start. */
   startInDaw(): void;
   /** Whether the DAW is recording, whoever started it (the host's `recording_elsewhere` is true for the app's own take too). */
@@ -512,6 +515,7 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
   };
   const positionSubs = new Set<(position: DawPosition) => void>();
   const editSubs = new Set<(edit: DawProjectEdited) => void>();
+  const endedSubs = new Set<(ended: DawRecordEnded) => void>();
   const streamPosition = () => {
     if (!sync.watching || dropped) return;
     const position: DawPosition = {
@@ -630,6 +634,11 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
     stopInDaw: () => {
       live.transport = { playing: false, recording: false };
       publish();
+    },
+    endTakeInDaw: (undoSteps = 1) => {
+      live.transport = { playing: false, recording: false };
+      publish();
+      for (const on of endedSubs) on({ undoSteps });
     },
     setWordTimes: (table) => {
       sync.wordTimes = table === null ? null : wireClone(table);
@@ -762,6 +771,10 @@ export function createDawMock(seed: DawMockSeed = {}, script?: DawMockScript): D
       const table = sync.wordTimes;
       const off = table === null || !currentCapabilities(live).capabilities.track_state?.available;
       return wireClone(off ? { available: false, version: '', changeCount: 0, items: [], words: [] } : { ...table, changeCount: sync.changeCount });
+    },
+    subscribeDawRecordEnded: (onUpdate) => {
+      endedSubs.add(onUpdate);
+      return () => endedSubs.delete(onUpdate);
     },
     subscribeDawProjectEdited: (onUpdate) => {
       editSubs.add(onUpdate);

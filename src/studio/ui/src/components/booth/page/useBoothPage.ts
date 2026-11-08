@@ -176,6 +176,8 @@ export function useBoothPage(options: BoothPageOptions) {
     },
     [daw],
   );
+  // A take the narrator stopped in the DAW itself: the host says how many undo points it left, and it is one history entry like a take stopped here.
+  useEffect(() => daw.subscribeRecordEnded?.((undoSteps) => void keepTake({ ok: true, changed: true, message: '', undoSteps })), [daw, keepTake]);
   const takeAt = useRef(0);
   // Where the take began in the DAW, when it says: the roll counts from there. A plain take starts where the last one stopped, which
   // is not the end of the recording when later audio follows it.

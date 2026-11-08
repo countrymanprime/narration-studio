@@ -284,7 +284,7 @@ When you stop a take in a DAW, a message says **Take saved** with **Undo**, and 
 "Recorded a take of <chapter>", so `Ctrl+Z` or Undo in the jump menu reaches it from any page. Undo takes the take back in the DAW, as
 its own Edit > Undo would: the recorded audio is gone, and an earlier read the take split is whole again. The take's length also leaves **This session**, however you undid it. It works only while the
 take is still the DAW's last action. Once you change something in the DAW after it, Undo leaves the take alone and says to use
-Edit > Undo in the DAW. A take you start and stop in the DAW itself is not in the app's History, and neither is a built-in
+Edit > Undo in the DAW. A take you started here and stopped with the DAW's own Stop button is in the History too, and Undo takes it back. A take you start and stop in the DAW itself is not in the app's History, and neither is a built-in
 recorder's take; its file stays in `Recordings`.
 
 ![Booth - a take just stopped in the DAW: Record is back and the Take saved message offers Undo](../../images/ui/booth-take-saved.webp)
