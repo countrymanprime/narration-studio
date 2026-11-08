@@ -9,7 +9,7 @@ One **coordinator** and up to eight **workers** build one goal in parallel Claud
 
 | You are | Read |
 | --- | --- |
-| A worker, a resume session or a fixer | [references/worker.md](references/worker.md), then the prompt you were given ([references/templates.md](references/templates.md)) |
+| A worker, a resume session or a fixer | [references/ponytail.md](references/ponytail.md) (how to work), [references/worker.md](references/worker.md) (the protocol), then the prompt you were given ([references/templates.md](references/templates.md)) |
 | The coordinator, running one pass | [references/coordinator.md](references/coordinator.md), [references/owner-rules.md](references/owner-rules.md), and [references/templates.md](references/templates.md) when launching |
 | A groomer cutting slices | [references/groomer.md](references/groomer.md) |
 | Planning a phase for the train | [references/worker.md](references/worker.md) (lanes, serial points) and [references/coordinator.md](references/coordinator.md#mockup-gates) |
@@ -19,7 +19,8 @@ Where the rules are:
 | Rule | File |
 | --- | --- |
 | Where state lives; one issue per train; the owner board; switches; usage bands and `TARGET`; the safety net; the coordinator's pass; references for a job; mockup gates; the queue | `references/coordinator.md` |
-| The worker protocol; the order of work; serial points; lanes; the how-to guide rule; what a job builds to | `references/worker.md` |
+| How a worker works: the smallest complete change, reuse what exists, never skip | `references/ponytail.md` |
+| The worker protocol; serial points; lanes; the how-to guide rule; what a job builds to | `references/worker.md` |
 | The owner's standing rules for the train (D-numbers); the product rules are in `.claude/rules/product-rules.md` | `references/owner-rules.md` |
 | Slices and the groomer | `references/groomer.md` |
 

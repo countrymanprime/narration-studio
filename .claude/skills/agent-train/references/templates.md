@@ -11,7 +11,7 @@ You are worker stream <ID> (lane <L>: <lane name>) of train <T> (issue #<train i
 Repo countrymanprime/narration-studio. The session runs unattended; never wait for answers. Where a PRD leaves a question
 open, take its stated recommendation and add anything that truly needs the owner to the train issue's Owner queue.
 
-RULES: .claude/skills/agent-train/references/worker.md. CLAUDE.md, the area rules in .claude/rules/ and the skills
+HOW TO WORK: .claude/skills/agent-train/references/ponytail.md. PROTOCOL: .claude/skills/agent-train/references/worker.md. CLAUDE.md, the area rules in .claude/rules/ and the skills
 CLAUDE.md names load on their own.
 SCOPE: <PRD path> phases <N…>: <one line each>.
 SLICE: #<slice issue>. The issue is the spec; read its Plan and Handoff comments first, and rewrite the Handoff at every checkpoint.

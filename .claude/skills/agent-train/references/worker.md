@@ -1,6 +1,6 @@
 # The worker procedure
 
-What a train worker, resume session or fixer reads: the protocol, the order of work, serial points, lanes, the guide rule and what a job builds to. The coordinator's procedure is in [coordinator.md](coordinator.md); the owner's standing rules are in [owner-rules.md](owner-rules.md); the prompts are in [templates.md](templates.md).
+What a train worker, resume session or fixer reads: the protocol, serial points, lanes, the guide rule and what a job builds to. The coordinator's procedure is in [coordinator.md](coordinator.md); the owner's standing rules are in [owner-rules.md](owner-rules.md); the prompts are in [templates.md](templates.md).
 
 ## The worker protocol
 
@@ -22,15 +22,7 @@ A worker is one cloud session for one stream. It opens one PR per phase, stacked
      - Comment `<ID>: PAUSED at <step>, PR #<n>` on the train issue, then end the session.
   3. On AMBER in your own reading (`allowed_warning`), **unless the train issue's `WARNING_POLICY` is `ignore`** (then a warning counts as GREEN, D63): **yield.** Finish the current PR to green, don't start the next phase, comment `<ID>: yielded after p<N>` on #989, and end.
   4. Otherwise, continue.
-- **Order of work.** Plan, build the feature set, then test it together, with a cap on fix rounds:
-  1. **Plan.** The slice issue holds the plan (the groomer writes it and a fresh subagent reviews it). A job from another source gets a short plan in the Handoff comment: the files, the behaviours the issue asks for and the checks that prove them. For more than a small change, have a fresh subagent review the plan against the issue before you build; it reports gaps, not style. A new control or page puts its state matrix in the plan ([definition of done](../../../rules/definition-of-done.md), rule 3); a fix lists what else on screen shows the thing it changes. A change to a label, message or format greps for every other place that builds the same string and reads the display rule in `docs/design/design-system.md`.
-  2. **Build** the whole feature set the plan lists.
-  3. **Test.** Write the tests for every behaviour the issue lists. A bug fix adds a test that guards it, written in whatever order fits.
-  4. **Run the targeted checks once, together,** fix every failure they show, and run them again. Stop after three fix-and-run rounds: push what is green, put the failing check and its output in the Handoff comment and the PR body, and end; a fixer takes it.
-  5. **Docs.** Before the last push, run `node scripts/ci/docs-impact.mjs --base origin/main` and update each doc it names. A change to what the narrator sees or does gets a sentence in that page's guide in `docs/guides/using-the-app/`.
-  6. Never delete, skip or loosen a test to get green. When a test must go (the change deletes or rewrites the code it covered), say why in the PR body; the intent reviewer checks the reason.
-
-  Tests are the definition of done. Published guidance asks for a check the agent runs itself, a separate reviewer and a stopping condition ([Claude Code best practices](https://code.claude.com/docs/en/best-practices), [Building effective agents](https://www.anthropic.com/engineering/building-effective-agents)).
+- **How to work: [ponytail.md](ponytail.md).** The smallest complete change, the reuse rules and the list never to skip are there. Two train limits apply on top: run the targeted checks together and stop after three fix-and-run rounds (push what is green, put the failing check and its output in the Handoff comment and the PR body, and end; a fixer takes it); and never delete, skip or loosen a test to get green without saying why in the PR body.
 - **Open the PR as soon as the change is pushed (owner rule, 2026-10-18).** Do not wait for local checks to finish or for the owner to ask: open the PR (a draft only if the work is genuinely incomplete), list the checks still running as pending in the body, and update the body as they finish. The owner reviews from the PR, not from the session.
 - **Finishing (D99, one-shot):**
   - Push and open the PR as soon as the change is pushed, report in one short message and end. Do not subscribe to the PR, wait for CI or answer review rounds.
