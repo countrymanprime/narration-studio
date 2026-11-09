@@ -184,15 +184,17 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
   // shares the folder before it is picked, not after the count has moved.
   const linkedTo = new Map<string, string>();
   for (const { chapter, mapping, state } of rows) if (mapping && state === 'linked') linkedTo.set(mapping.trackGuid, chapter.id);
+  const sharesTrack = (chapterId: string, folderGuid: string) => {
+    const at = tracks.findIndex((track) => track.guid === folderGuid);
+    const folder = tracks[at];
+    if (!folder?.isFolder) return false;
+    const end = tracks.findIndex((track, i) => i > at && track.depth <= folder.depth);
+    return tracks.slice(at + 1, end < 0 ? undefined : end).some((track) => linkedTo.has(track.guid) && linkedTo.get(track.guid) !== chapterId);
+  };
+  // The suffix is short so a closed picker does not cut it off; the sentence under the table says what it means.
   const optionsFor = (chapterId: string) =>
-    trackOptions.map((option) => {
-      const at = tracks.findIndex((track) => track.guid === option.value);
-      const folder = tracks[at];
-      const end = folder?.isFolder ? tracks.findIndex((track, i) => i > at && track.depth <= folder.depth) : at;
-      const inner = folder?.isFolder ? tracks.slice(at + 1, end < 0 ? undefined : end) : [];
-      const taken = inner.some((track) => linkedTo.has(track.guid) && linkedTo.get(track.guid) !== chapterId);
-      return taken ? { ...option, label: `${option.label} (shares another chapter's track)` } : option;
-    });
+    trackOptions.map((option) => (sharesTrack(chapterId, option.value) ? { ...option, label: `${option.label} · shared` } : option));
+  const sharing = rows.filter(({ chapter, mapping, state }) => mapping && state === 'linked' && sharesTrack(chapter.id, mapping.trackGuid));
 
   const approve = () => {
     setLastAction('stamp');
@@ -250,7 +252,7 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
       )}
       {state.phase === 'stamping' && (
         <p className="mb-3 text-sm" style={{ color: 'var(--text-muted)' }}>
-          {state.message} Closing this dialog does not stop it.
+          {state.message}
         </p>
       )}
       {state.phase === 'success' && (state.stamp.applied > 0 || state.stamp.missingCount > 0 || state.stamp.conflictsCount > 0) && (
@@ -300,6 +302,15 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
           })}
         </TableBody>
       </Table>
+
+      {sharing.length > 0 && (
+        <div className="mt-3">
+          <ToolResult
+            tone="warning"
+            message={`${sharing.map(({ chapter }) => chapterName(chapter, 'short')).join(', ')}: the folder also holds another chapter's linked track. That track's items stay with its own chapter.`}
+          />
+        </div>
+      )}
 
       <div className="mt-3">
         <Checkbox checked={overwrite} onChange={setOverwrite} disabled={running}>

@@ -295,7 +295,7 @@ export const engineDrivers: Record<string, Driver> = {
     await settlePage(page);
     await openEnginePanel(page);
     await clickVisible(page, 'button', 'Link chapters to tracks');
-    // The option may add "shares another chapter's track" (#3231), so it is found by the part of the label that names the folder.
+    // The option may add "· shared" (#3231), so it is found by the part of the label that names the folder.
     const picker = page.getByRole('combobox', { name: 'Track for Chapter 1', exact: true });
     await picker.selectOption((await picker.locator('option', { hasText: 'Chapters · 8 tracks' }).first().getAttribute('value')) ?? '');
     await page.getByRole('button', { name: /^Stamp \d+ items?$/ }).waitFor();
