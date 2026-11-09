@@ -4,7 +4,7 @@ import { buildLayerIndex, paragraphLayers, type LayerSources } from './layers';
 import { Para } from './Para';
 import { cue, entry, GUIDE_TYPES, mark, paragraph, TYPES } from './readerFixtures';
 
-// The Studio Next mock's paragraph (`pages/script/Para.tsx`): the paragraph's own text with marks, Story Bible names,
+// The research mock's paragraph (`pages/script/Para.tsx`): the paragraph's own text with marks, Story Bible names,
 // speaker chips and Find matches drawn over it. The text never changes; each layer only wraps part of it.
 const TEXT = 'Mina said, "Come along," and left the harbour. Wren asked, "Where to?" Nobody answered the third voice, "Not yet."';
 const at = (needle: string) => ({ start: TEXT.indexOf(needle), end: TEXT.indexOf(needle) + needle.length });

@@ -1,10 +1,10 @@
-# Studio Next Rebuild: Evolve the Real App to the Studio Next Mock's Behaviour and Architecture
+# Rebuild: Evolve the Real App to the research mock's Behaviour and Architecture
 
 **Source:** owner request of 2026-10-10: "create a series of PRDs to get the existing repo functional around this design. That probably means rebuilding the mock's UI around the design principles we set up in the mock, with the interfaces and SOLID principles." Follow-up the same day: "I want the design to include agents and sessions running constantly", clarified as: the PRDs must be shaped so coordinator and worker sessions can run continuously on the rebuild (how the work is delivered, not an in-app feature). Citations are `path` at `550a7d1` (the commit that added the mock, PR #942).
 
-**Builds on:** the working mock in `docs/research/mockups/studio-next/` (its architecture contract and the owner's rulings in `studio-next/research/repo-compare-decisions.md`); the repo's own ports and registries ([The DAW port](../architecture/daw-integration.md#the-daw-port), [Provider ports](../architecture/provider-ports.md), [Studio shell and registries](../architecture/studio-shell-and-registries.md), [Base UI wrappers](../design/design-system.md#base-ui-wrappers), [Wire contracts: how data is checked where it crosses a boundary](../architecture/wire-contracts.md)); and the agent train ([`.claude/skills/agent-train/SKILL.md`](../../.claude/skills/agent-train/SKILL.md)).
+**Builds on:** the working mock in `docs/research/mockups/research-mock/` (its architecture contract and the owner's rulings in `research-mock/research/repo-compare-decisions.md`); the repo's own ports and registries ([The DAW port](../architecture/daw-integration.md#the-daw-port), [Provider ports](../architecture/provider-ports.md), [Studio shell and registries](../architecture/studio-shell-and-registries.md), [Base UI wrappers](../design/design-system.md#base-ui-wrappers), [Wire contracts: how data is checked where it crosses a boundary](../architecture/wire-contracts.md)); and the agent train ([`.claude/skills/agent-train/SKILL.md`](../../.claude/skills/agent-train/SKILL.md)).
 
-**Extends, and in places asks to change:** [Which mocks are the spec](#which-mocks-are-the-spec) (D96, now D98), [Design principles](../architecture/principles.md) (a new page replaces its old counterpart in the same change), [Booth](../guides/using-the-app/booth.md), [narration_punch.lua](../../src/studio/integrations/reaper/narration_punch.lua), [The workspace's take and FX actions (`narration_workspace.lua`)](../architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua), [Manuscript Guide](../utilities/manuscript-guide.md). Every such place is decided by the owner's rulings of 2026-10-11 (see Decisions below); a new ADR, written as Proposed, records each one (see "ADR conflicts" below).
+**Extends, and in places asks to change:** [What a page builds to](#what-a-page-builds-to) (D96, now D98), [Design principles](../architecture/principles.md) (a new page replaces its old counterpart in the same change), [Booth](../guides/using-the-app/booth.md), [narration_punch.lua](../../src/studio/integrations/reaper/narration_punch.lua), [The workspace's take and FX actions (`narration_workspace.lua`)](../architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua), [Manuscript Guide](../utilities/manuscript-guide.md). Every such place is decided by the owner's rulings of 2026-10-11 (see Decisions below); a new ADR, written as Proposed, records each one (see "ADR conflicts" below).
 
 **Status (2026-10-11):** draft, with every owner question decided (see Decisions). This is the overview of a series of 15 PRDs. No tracking issue is open yet; open one per PRD before its first slice ([Tracking work on GitHub](../operations/github-workflow.md)). Nothing is waiting for the owner before code slices start.
 
@@ -34,7 +34,7 @@ Total about 95 people-weeks of one engineer familiar with the repo. The estimate
 
 The owner settled the product's behaviour in a runnable mock (22.9 thousand lines of source, about 45 test files) across a long series of rulings. The real app is a different code base that grew up under different rules. Three things are now true at once:
 
-1. **The mock is where the owner's decisions live.** Pronunciation without a query workflow, cleared versus decided Proof counters, capability-driven DAW wording, script-based editing, optional extraction downloads: each is in the mock and in `studio-next/research/repo-compare-decisions.md`, and none of them is a recorded requirement the train can schedule.
+1. **The mock is where the owner's decisions live.** Pronunciation without a query workflow, cleared versus decided Proof counters, capability-driven DAW wording, script-based editing, optional extraction downloads: each is in the mock and in `research-mock/research/repo-compare-decisions.md`, and none of them is a recorded requirement the train can schedule.
 2. **The mock was built without reading the repo** (its architecture contract says so), so it re-invents things the repo already has (stage readiness, status report, resume point, live flags, the recording check, pronunciation sources, speaker colours, the DAW port) and contradicts several accepted ADRs.
 3. **The mock's own lifecycle is "deleted when the real app matches it"** (README). Without a plan that says what "matches" means, page by page, the mock either rots or gets copied wholesale into an app whose rules forbid that (global CSS, imperative overlays, raw key listeners, a whole-book client store).
 
@@ -42,14 +42,14 @@ The owner has ruled that the mock is the gold standard: what is not in the mock 
 
 ## Evidence
 
-**What the mock is** (`studio-next/ARCHITECTURE.md`, `studio-next/src/`):
-- One typed store with undo history: `studio-next/src/state/store.ts` (`update`, `act(label, fn, {daw, restoreUi})`, `undoEntry`, `setChangeGuard`).
-- Zod schemas as the domain: `studio-next/src/domain/schemas.ts`, `studio-next/src/domain/daw.ts`, `studio-next/src/domain/extraction.ts`, `studio-next/src/domain/components.ts`.
-- Providers behind interfaces, each with a mock fed by fixtures: `studio-next/src/providers/` (pronunciation, speech, alignment, takes, measurements, components, extraction, fxchains, readiness, recordingcheck) and the DAW: `studio-next/src/state/daw.ts` (`DawAdapter`).
-- Registries that pages plug into at import time: `studio-next/src/app/registry.ts` (context menus, commands, search sources, page keys).
-- Data-driven config: `studio-next/src/config/`, `studio-next/src/fixtures/` (sample data lives there, never in a component).
-- Custom primitives over Base UI with a test that forbids raw controls: `studio-next/src/ui/primitives/`, `studio-next/tests/no-raw-controls.test.ts`.
-- One test file per decided behaviour: `studio-next/tests/` (about 45 files, for example `studio-next/tests/booth-daw.test.tsx`, `studio-next/tests/e-delete-range.test.tsx`).
+**What the mock is** (`research-mock/ARCHITECTURE.md`, `research-mock/src/`):
+- One typed store with undo history: `research-mock/src/state/store.ts` (`update`, `act(label, fn, {daw, restoreUi})`, `undoEntry`, `setChangeGuard`).
+- Zod schemas as the domain: `research-mock/src/domain/schemas.ts`, `research-mock/src/domain/daw.ts`, `research-mock/src/domain/extraction.ts`, `research-mock/src/domain/components.ts`.
+- Providers behind interfaces, each with a mock fed by fixtures: `research-mock/src/providers/` (pronunciation, speech, alignment, takes, measurements, components, extraction, fxchains, readiness, recordingcheck) and the DAW: `research-mock/src/state/daw.ts` (`DawAdapter`).
+- Registries that pages plug into at import time: `research-mock/src/app/registry.ts` (context menus, commands, search sources, page keys).
+- Data-driven config: `research-mock/src/config/`, `research-mock/src/fixtures/` (sample data lives there, never in a component).
+- Custom primitives over Base UI with a test that forbids raw controls: `research-mock/src/ui/primitives/`, `research-mock/tests/no-raw-controls.test.ts`.
+- One test file per decided behaviour: `research-mock/tests/` (about 45 files, for example `research-mock/tests/booth-daw.test.tsx`, `research-mock/tests/e-delete-range.test.tsx`).
 
 **What the repo already has** (checked at `550a7d1`):
 
@@ -77,8 +77,8 @@ Make the real app behave as the mock does, and be built the way the mock is buil
 Three outcomes:
 
 1. **Seams first.** The ports, registries and store that the mock proves are added (or tightened) in the real app under existing pages, without changing what is drawn. Each seam ships with a contract test run against both the mock and the real implementation.
-2. **Pages second.** Each page is rebuilt on the seams in one atomic change (the replacement rule of [Design principles](../architecture/principles.md)), with screenshots against the Studio Next mock, and the owner's rulings turned into tests.
-3. **Cutover last.** When every page has landed and the parity audit is green, the mock folder is deleted and the steady-state docs are written (Studio Next Cutover).
+2. **Pages second.** Each page is rebuilt on the seams in one atomic change (the replacement rule of [Design principles](../architecture/principles.md)), with screenshots against the research mock, and the owner's rulings turned into tests.
+3. **Cutover last.** When every page has landed and the parity audit is green, the mock folder is deleted and the steady-state docs are written (Cutover).
 
 Throughout, the work is cut into **slices** small enough for one worker session, each with its own issue, so coordinator and worker sessions can run without pause ([Agent Delivery](../../.claude/skills/agent-train/references/groomer.md#slices)).
 
@@ -88,7 +88,7 @@ If every seam the mock proves is added to the real app as an interface with a mo
 
 ## What We're NOT Building
 
-The owner's deferred and rejected list stands (`studio-next/research/repo-compare-decisions.md`). This series does not build:
+The owner's deferred and rejected list stands (`research-mock/research/repo-compare-decisions.md`). This series does not build:
 
 - Time tracking in the mock's sense: the stage timer, hours log, PFH, effective rate and hours by stage. The real app already ships a timer chip and PFH ([pfh.go](../../src/studio/desktop/internal/production/pfh.go)); the mock has no equivalent, so they stay as built and untouched (SN0-Q4). No slice reads or extends them.
 - The Companion. The real app's companion ([Companion mode](../guides/using-the-app/booth.md#companion-mode), [bindings_companion.go](../../src/studio/desktop/bindings_companion.go)) is frozen as built with no work (DQ-13); the mock's parked Companion page is not translated.
@@ -99,8 +99,8 @@ The owner's deferred and rejected list stands (`studio-next/research/repo-compar
 - The rejected items: query and confirm for names, stale-anchor detection, repo stress/breath/pause markup, evidence excerpts, derived prep completeness, chapter results in Find, the speaker coverage strip, prep sheet export, a Series tab. The real Series tab and series voice bible have no equivalent in the mock and stay as built (SN0-Q5).
 - A remote or hosted LLM by default; a hosted model is never required, and no narrator or author data leaves the machine ([agent-train D72](../../.claude/skills/agent-train/references/owner-rules.md#owner-standing-rules)).
 - macOS or Linux support ([Supported platforms](../../README.md#supported-platforms)).
-- A feature flag, a `?studioNext` switch or any period with two versions of a page, Editing included (SN0-Q2).
-- Anything that is not in the Studio Next mock.
+- A feature flag, a `?newPage` switch or any period with two versions of a page, Editing included (SN0-Q2).
+- Anything that is not in the research mock.
 
 ## Success Metrics
 
@@ -116,18 +116,18 @@ The owner's deferred and rejected list stands (`studio-next/research/repo-compar
 
 ## Decisions
 
-The owner ruled on 2026-10-11: "The mocks are the gold standard and if it is not in the mock it doesn't get built. If it exists already and has an equivalent somewhere in the Studio Next mocks then get rid of the old. Anything that is there before: forget it." On SN0-Q2: "a. Replace." No question is open. Gate G0 has nothing for the owner to answer.
+The owner ruled on 2026-10-11: "The mocks are the gold standard and if it is not in the mock it doesn't get built. If it exists already and has an equivalent somewhere in the research mocks then get rid of the old. Anything that is there before: forget it." On SN0-Q2: "a. Replace." No question is open. Gate G0 has nothing for the owner to answer.
 
 | Id | Ruling | Consequence |
 | --- | --- | --- |
-| SN0-Q1 | Studio Next is the spec for every page it covers, including tokens, primitive sizes and layouts. The benchmark's measured values and the ADRs measured to them are superseded where they differ. | The slice issue names one spec: the page file under `studio-next/src/pages/`. The benchmark stays only as the reference for the Series voice bible and Companion, and goes at cutover (Cutover). |
+| SN0-Q1 | the PRD, the issue and the page guide are the spec for every page it covers, including tokens, primitive sizes and layouts. The benchmark's measured values and the ADRs measured to them are superseded where they differ. | The slice issue names one spec: the page file under `research-mock/src/pages/`. The benchmark stays only as the reference for the Series voice bible and Companion, and goes at cutover (Cutover). |
 | SN0-Q2 | Replace. A new page replaces its old counterpart in one PR ([Design principles](../architecture/principles.md) decision 1 stays), for every page including Editing. No feature flag, no period with two versions. | Seams and components land first with no route; one PR swaps the route and deletes the old page. |
 | SN0-Q3 | The UI store is a read-model cache plus a command journal; the Go host stays the source of truth ([The rule](../architecture/host-binding-concurrency.md#the-rule)). The mock defines how the UI behaves, not who owns the data. | See Domain, State and Wire Contracts. |
 | SN0-Q4 | Timer, PFH and effective rate: the mock has no equivalent, so they stay as built and untouched. | Production slices do not read or extend them. |
 | SN0-Q5 | Series voice bible and Series tab: no equivalent in the mock; untouched. | No slice touches them. **Superseded 2026-10-21 (owner): this app produces one book at a time, so the Series tab is removed from the Story Bible page and no series page or reference is to be built or kept. The series host, API and data still in the repo are to be removed in a follow-up.** |
 | SN0-Q6 | Schedule and Delivery are pages with their own rail items, as in the mock. [Design principles](../architecture/principles.md) decision 5 is superseded. | Two navigation items; the panels they replace are deleted in the swaps (Production and Schedule, Master, Delivery and Settings). |
 | SN0-Q7 | Implement the mock's layout rules (rail collapse, medium, narrow, tiny) as container and media queries at the mock's widths. Where a host constraint exists (minimum window 960 px, host zoom) the mock's rules still apply to the reported width. | Decided in Foundations. |
-| SN0-Q8 | Screenshots are compared against the Studio Next mock page. A worker with network runs the mock (`npm ci` in the mock folder) and captures it; without network the PR lists the missing image and the owner supplies it. | A procedure, not a question; Phase 3 builds the capture script. |
+| SN0-Q8 | Screenshots are compared against the research mock page. A worker with network runs the mock (`npm ci` in the mock folder) and captures it; without network the PR lists the missing image and the owner supplies it. | A procedure, not a question; Phase 3 builds the capture script. |
 | SN0-Q9 | The agent-delivery process choices are accepted as recommended in [Agent Delivery](../../.claude/skills/agent-train/references/groomer.md#slices), by the owner's standing instruction to take reasonable defaults, dated 2026-10-11. | The train's text changes in SNA-3. |
 
 The 18 rulings on the ADR conflicts (DQ-1 to DQ-18) are in the register. Three consequences hold across the series: what the mock lacks is not built; an existing feature with an equivalent in the mock is removed in the slice that swaps the page; an existing feature with no equivalent (the Series voice bible and Series tab, the Companion, the stage timer, PFH and effective rate) is left exactly as it is.
@@ -145,17 +145,17 @@ The 18 rulings on the ADR conflicts (DQ-1 to DQ-18) are in the register. Three c
 
 | Principle | The mock's example | The real-app rule (and the existing anchor) |
 | --- | --- | --- |
-| Single responsibility | One module per idea: `studio-next/src/selectors/proof.ts` (counters), `studio-next/src/state/commands/notes.ts` (the only writer of `res`), `studio-next/src/format/headings.ts` (one heading formatter) | A selector module never writes; a command module never renders; a primitive never imports `src/api`. Enforced by the dependency-cruiser rules ([Verification and code-health tooling](../operations/verification-tooling.md)) and extended with `studio/` rules |
-| Open/closed | New page keys, commands, context items and search sources register themselves (`studio-next/src/app/registry.ts`); adding a page edits no menu | Commands stay static descriptors in the catalogue ([Studio shell and registries](../architecture/studio-shell-and-registries.md)); the jump menu, help sheet and Settings key list are views of it; context items and search sources register by provider. Adding a feature adds a row or a provider, not an `if` |
-| Liskov | `createMockPronunciation()` and a real provider answer the same `PronCandidate` (`studio-next/src/providers/pronunciation.ts`); a refusal is a value, never a throw | Every provider port has one contract suite that both the mock and the host-backed adapter pass; a mock may not be more permissive than the host |
-| Interface segregation | Callers ask for a capability, not a DAW: `gateOf(mock, 'markers')` (`studio-next/src/selectors/daw.ts`) | The DAW stays many small roles ([The DAW port](../architecture/daw-integration.md#the-daw-port)); on the UI side `useApi()` stops returning the whole facade: a feature takes the one domain interface it needs |
+| Single responsibility | One module per idea: `research-mock/src/selectors/proof.ts` (counters), `research-mock/src/state/commands/notes.ts` (the only writer of `res`), `research-mock/src/format/headings.ts` (one heading formatter) | A selector module never writes; a command module never renders; a primitive never imports `src/api`. Enforced by the dependency-cruiser rules ([Verification and code-health tooling](../operations/verification-tooling.md)) and extended with `studio/` rules |
+| Open/closed | New page keys, commands, context items and search sources register themselves (`research-mock/src/app/registry.ts`); adding a page edits no menu | Commands stay static descriptors in the catalogue ([Studio shell and registries](../architecture/studio-shell-and-registries.md)); the jump menu, help sheet and Settings key list are views of it; context items and search sources register by provider. Adding a feature adds a row or a provider, not an `if` |
+| Liskov | `createMockPronunciation()` and a real provider answer the same `PronCandidate` (`research-mock/src/providers/pronunciation.ts`); a refusal is a value, never a throw | Every provider port has one contract suite that both the mock and the host-backed adapter pass; a mock may not be more permissive than the host |
+| Interface segregation | Callers ask for a capability, not a DAW: `gateOf(mock, 'markers')` (`research-mock/src/selectors/daw.ts`) | The DAW stays many small roles ([The DAW port](../architecture/daw-integration.md#the-daw-port)); on the UI side `useApi()` stops returning the whole facade: a feature takes the one domain interface it needs |
 | Dependency inversion | Pages call `daw()` and `pronunciation()`; nothing imports a bridge | Pages depend on UI ports (`src/studio/ui/src/ports/`), adapters live beside `api/`; the composition root picks host or mock ([Provider ports](../architecture/provider-ports.md), `ApiProvider`) |
 
 ### Provider map: the mock's seam to the real one
 
 | Mock seam | Real owner today | Work |
 | --- | --- | --- |
-| `DawAdapter` (`studio-next/src/state/daw.ts`) | Go `dawport` roles behind Wails bindings | UI `DawClient` returning `DawResult`; Go capability and result extensions (DAW Ports and Capabilities) |
+| `DawAdapter` (`research-mock/src/state/daw.ts`) | Go `dawport` roles behind Wails bindings | UI `DawClient` returning `DawResult`; Go capability and result extensions (DAW Ports and Capabilities) |
 | `PronunciationProvider` | `pronunciationport` and the Story Bible bindings | Align semantics (source plus manual, no query workflow) (Script and Story Bible) |
 | `ExtractionProvider`, `ComponentProvider` | Rules extraction in `src/studio/sidecars/manuscript-guide`; the asset registry ([The asset registry (implemented)](../architecture/first-use-dependency-provisioning.md#the-asset-registry-implemented)) | Suggestion layer; analysis tools become registry assets, not a second installer (Extraction and Analysis Tools) |
 | `SpeechProvider` | `asrport`, the coverage sidecar, live flags | Expose engines the host reports; Moonshine live in the Booth only (Proof and Pickups, Booth) |
@@ -221,7 +221,7 @@ The owner's rulings of 2026-10-11 decide every row. The owning PRD authors the s
 
 | # | Conflict | Existing decision | Proposed ADR (owner PRD) |
 | --- | --- | --- | --- |
-| A1 | Which mock is the spec | D96, now in `.claude/rules/ui-spec-and-screenshots.md`: only the benchmark folder counts | Studio Next is the only spec for pages it covers; replaces the rule (SNF/SNC) |
+| A1 | Which mock is the spec | D96, now in `.claude/rules/ui-spec-and-screenshots.md`: only the benchmark folder counts | the PRD, the issue and the page guide are the spec for pages it covers; replaces the rule (SNF/SNC) |
 | A2 | Page replaced without a flag, Editing included | [Design principles](../architecture/principles.md) decision 1: same-PR replacement, no coexistence | None; `docs/architecture/principles.md` is kept (SN0-Q2) |
 | A3 | Register keys with page handlers (`registerKeys`) | [Studio shell and registries](../architecture/studio-shell-and-registries.md): features never listen to `keydown`; static catalogue | Jump menu, context providers and help derived from the catalogue (SNR) |
 | A4 | Imperative overlays | [Base UI wrappers](../design/design-system.md#base-ui-wrappers), [Design system reference](../design/design-system.md) | Overlay service renders the existing primitives (SNR) |
@@ -242,7 +242,7 @@ The owner's rulings of 2026-10-11 decide every row. The owning PRD authors the s
 
 ### ADR supersession register
 
-The owner's rule (2026-10-11): the Studio Next mock is the gold standard, and the PRDs supersede existing ADRs wherever they conflict with it. There is no exception for a worse experience and no discussion list. The full register (every ADR classified KEEP, EXTEND, SUPERSEDE or DECIDED, with the mock behaviour, the owning PRD and a working title for the superseding ADR) is the appendix ADR Supersession Register. Each focused PRD repeats its own rows in a "Supersedes / depends on ADRs" subsection.
+The owner's rule (2026-10-11): the research mock is the gold standard, and the PRDs supersede existing ADRs wherever they conflict with it. There is no exception for a worse experience and no discussion list. The full register (every ADR classified KEEP, EXTEND, SUPERSEDE or DECIDED, with the mock behaviour, the owning PRD and a working title for the superseding ADR) is the appendix ADR Supersession Register. Each focused PRD repeats its own rows in a "Supersedes / depends on ADRs" subsection.
 
 **Migration-period rule.** On conflict the PRD, and the superseding ADR written when its phase lands, is the source of truth for the rebuild. The old ADR stays in force for code not yet migrated until the superseding ADR is merged. No ADR is edited or written by this series now; each is authored with the `adr-author` workflow when its code lands, with the next free number checked at merge time.
 
@@ -250,7 +250,7 @@ The owner's rule (2026-10-11): the Studio Next mock is the gold standard, and th
 
 ### Carried over from the old PRDs
 
-The old PRDs in `docs/prds/` will be deleted once this series is in place, so nothing here relies on them staying. Each remaining (not complete) phase is either **carried over** to a slice of this series, or **explicitly dropped** from the series' scope (it was blocked, benched, deferred by the owner, or is release engineering unrelated to Studio Next; a dropped phase has no owner after deletion unless the owner asks for a successor PRD). To read an old PRD after deletion: `git log --diff-filter=D --format=%H -n1 -- docs/prds/<slug>.prd.md`, then `git show <that commit>^:docs/prds/<slug>.prd.md`.
+The old PRDs in `docs/prds/` will be deleted once this series is in place, so nothing here relies on them staying. Each remaining (not complete) phase is either **carried over** to a slice of this series, or **explicitly dropped** from the series' scope (it was blocked, benched, deferred by the owner, or is release engineering unrelated to the rebuild; a dropped phase has no owner after deletion unless the owner asks for a successor PRD). To read an old PRD after deletion: `git log --diff-filter=D --format=%H -n1 -- docs/prds/<slug>.prd.md`, then `git show <that commit>^:docs/prds/<slug>.prd.md`.
 
 | Old PRD (slug) | Remaining phases | Disposition | Where |
 | --- | --- | --- | --- |
@@ -258,7 +258,7 @@ The old PRDs in `docs/prds/` will be deleted once this series is in place, so no
 | `audacity-integration` | 1 and 2 spikes (now the owner's verification pass); 4, 6, 7, 8 built, owner pass pending | Carried over | SND-1g, SND-8; owner pass on #510 |
 | `audiobook-credits-templates` | 4 teleprompter (manual live check with a microphone) | Carried over | SNO-10 owner step |
 | `booth-actions-enablement` | 6 verification part A (built, owner run pending); 7 verification part B and promotion; 8 steady state | Carried over | SND promotion plan (SND-10) and SNO-10 |
-| `character-continuity-review` | 6 UI (partial), 7 intentional change and privacy, 8 acoustic backend, 10 series-anchored findings | Explicitly dropped (benched by D87; not Studio Next) | Owner may request a successor |
+| `character-continuity-review` | 6 UI (partial), 7 intentional change and privacy, 8 acoustic backend, 10 series-anchored findings | Explicitly dropped (benched by D87; not the rebuild) | Owner may request a successor |
 | `coreaudio-capture` | 2 hardware verification | Explicitly dropped (deferred by D74, Windows only) | |
 | `credits-in-chapter-table` | 4 credits in REAPER chapter regions (partial) | Carried over, deferred ("regions later") | SND, after the roles exist; no slice yet |
 | `daw-chapter-track-auto-sync` | 0 measure REAPER names; 3 consent and first sync, 4 watch, 6 status, 8 pickups interplay (host complete, UI pending); 5 live unsaved tracks (only if spike S6 = C) | Carried over | SNP-7 (UI halves), SND-4 (live state), owner measure on #510 |
@@ -268,7 +268,7 @@ The old PRDs in `docs/prds/` will be deleted once this series is in place, so no
 | `native-recording-suite` | 6 basic non-destructive editing in the recorder | Explicitly dropped (D86: record and organise only) | |
 | `project-workspace-and-daw-link` | 5 launcher passes the project file (manual REAPER checklist) | Carried over | SNC-2 owner QA list |
 | `read-aloud-control-bar` | 3 control bar (owner suite confirmation); 7 record in REAPER (partial) | Carried over | SNO-2, SNO-10 |
-| `reaper-automation-follow-through` | 1 manual checklist; 11 per-chapter render config (partial); 23 cleanup launchers (partial); 25 retakes as fixed lanes (partial); 15 spike S4 play position; 16 S3 audio accessors; 17 S1 ReaStream; 18 S2 OSC; 19 S6 web interface; 20 transport ADR; 21 Go transport client (web/OSC) | 1, 11, 23, 25: carried over (owner REAPER checks); 15: carried over; 16 to 21: explicitly dropped (a web or OSC transport is not needed by any Studio Next page) | SND-1f for S4; SNC-2 for the owner checks |
+| `reaper-automation-follow-through` | 1 manual checklist; 11 per-chapter render config (partial); 23 cleanup launchers (partial); 25 retakes as fixed lanes (partial); 15 spike S4 play position; 16 S3 audio accessors; 17 S1 ReaStream; 18 S2 OSC; 19 S6 web interface; 20 transport ADR; 21 Go transport client (web/OSC) | 1, 11, 23, 25: carried over (owner REAPER checks); 15: carried over; 16 to 21: explicitly dropped (a web or OSC transport is not needed by any rebuilt page) | SND-1f for S4; SNC-2 for the owner checks |
 | `release-readiness-provisioning-and-docs-site` | 9 and 11 Pages (partial; Pages paused, D75); 14 installer (partial); 15 code signing (deferred, D7); 16 first stable rehearsal (owner-run) | Explicitly dropped from this series (release engineering; tracked by the owner on #231) | |
 | `review-dashboard-and-findings-adoption` | 6, 7, 8 REAPER navigation, host and UI, approved marker (built; owner checks pending) | Carried over | SNQ-9 owner step; SND owner pass |
 | `teleprompter-engines-and-input-devices` | 8 engine evaluation and default ADR | Carried over | SNO-9 and DQ-9 (the A/B is the owner's) |
@@ -332,7 +332,7 @@ Parallel capacity is bounded by file ownership: at most one worker on each lane-
 
 ### Deviations from the agent train
 
-[Agent Delivery](../../.claude/skills/agent-train/references/groomer.md#slices) lists every place the series would extend or change the train (a slice issue per slice, a groomer session type, a stall rule, a daily cap and a program hold switch, a session cap per slice, lane U territory, a decisions register with seven-day defaults, a status issue, the worker template naming Studio Next mock files, an issue form). The owner accepted these on 2026-10-11 (SN0-Q9); each landed in the train's procedure (now `.claude/skills/agent-train/SKILL.md`) in SNA-3, with an ADR where it settles a rule.
+[Agent Delivery](../../.claude/skills/agent-train/references/groomer.md#slices) lists every place the series would extend or change the train (a slice issue per slice, a groomer session type, a stall rule, a daily cap and a program hold switch, a session cap per slice, lane U territory, a decisions register with seven-day defaults, a status issue, the worker template naming research mock files, an issue form). The owner accepted these on 2026-10-11 (SN0-Q9); each landed in the train's procedure (now `.claude/skills/agent-train/SKILL.md`) in SNA-3, with an ADR where it settles a rule.
 
 ### Strangler strategy
 
@@ -341,7 +341,7 @@ The repo's rule ([Design principles](../architecture/principles.md)) forbids two
 1. **Layer strangling (invisible).** A seam is added under existing pages and one consumer moves onto it at a time: a context-menu provider replaces one page's `ContextMenu` items, a command moves to the catalogue, a store selector replaces one page's derived value. Each of these PRs changes behaviour in no way a narrator can see, so it needs no flag and the visual suite should show no diff.
 2. **Build in the dark.** New page components are built as stories and tests under the page's feature folder before any route points at them. Knip gates dead code at zero ([Dead code (Knip)](../operations/verification-tooling.md#dead-code-knip)); a story and its test count as use, and a slice that leaves an unrouted component for more than one wave is flagged by the coordinator.
 3. **Atomic swap per page.** The last slice of a page PRD swaps the route, deletes the old page, every old equivalent of what the mock's page covers and their rows (state catalogue, drivers, aria snapshots), and rewrites the page's guide text and screenshots for the new page.
-4. **No escape hatch.** No flag and no `?studioNext` switch, for Editing too (SN0-Q2).
+4. **No escape hatch.** No flag and no `?newPage` switch, for Editing too (SN0-Q2).
 
 The app stays shippable because every slice leaves `pnpm check` green on its own base and none depends on a later slice to be correct.
 
@@ -349,7 +349,7 @@ The app stays shippable because every slice leaves `pnpm check` green on its own
 
 - **Provider contract suites.** Every UI port has `describeProviderContract(port)` run over the mock adapter and the host-backed adapter (the host side against the Go golden payloads). Every Go port keeps its `*porttest.Run` suite. A new port without both fails a test, as new bindings already do (`src/studio/ui/src/api/wireContracts.test.ts`).
 - **Wire contracts.** Each new payload: Zod schema, golden written by a Go or Python test (`UPDATE_CONTRACTS=1`), a `wireContracts.test.ts` row, a mock that passes it, a `wire.go` row for REAPER events ([wire contracts](../architecture/wire-contracts.md)).
-- **Ruling tests.** Each agreed ruling gets a test named for it, carried over from the mock's test where one exists (`studio-next/tests/`), indexed in a table the cutover checks.
+- **Ruling tests.** Each agreed ruling gets a test named for it, carried over from the mock's test where one exists (`research-mock/tests/`), indexed in a table the cutover checks.
 - **Visual evidence.** Visual suite rows per state at the suite's viewports, looked at by the worker; atlas and axe for primitives; aria snapshots for dialogs and slide-overs; the page's guide text and screenshots updated in the same PR ([UI PRs update the how-to guide](../../CONTRIBUTING.md#ui-prs-update-the-how-to-guide)).
 - **REAPER.** Harness test first for every new or changed command, mutation entries for guards, a spike script run in REAPER on a copy of a project with an isolated `-cfgfile` where behaviour is unverified; anything needing the owner is marked pending on #510 ([The DAW port](../architecture/daw-integration.md#the-daw-port), CLAUDE.md step 4).
 - **Gates.** The worker contract is CLAUDE.md's: plan, `change-impact-scan`, TDD, `full-verification-gate`, `design-spec-guard`, `feature-cleanup`. CLAUDE.md step 4 and the `full-verification-gate` skill ask for the targeted checks for what a slice changed and let the PR pipeline be the full gate; this series keeps that and does not change it. The path-scoped rules in `.claude/rules/` load when a worker edits a file under their `paths:`.
@@ -418,7 +418,7 @@ flowchart LR
 
 | Risk | Likelihood | Mitigation |
 | --- | --- | --- |
-| Workers chase the benchmark or an older ADR where the mock differs | Medium | Studio Next is the only spec (SN0-Q1); the slice issue names the mock page file |
+| Workers chase the benchmark or an older ADR where the mock differs | Medium | the PRD, the issue and the page guide are the spec (SN0-Q1); the slice issue names the mock page file |
 | Workers copy mock code that breaks an ADR (global CSS, raw keys) | High | The "port, do not copy" rule in the slice template; architecture tests (`src/studio/ui/src/architectureRules.test.ts`, `src/studio/ui/src/legacyCss.test.ts`) catch it |
 | A rebuilt page regresses behaviour the mock never knew (it never read the repo) | Medium | Phase 0 of each page PRD is a characterization pass: list the real page's consumers and tests before changing it (`change-impact-scan`) |
 | Spikes need REAPER or Audacity hardware | High | Scripted spikes on copies; hardware steps pending on #510 and never block ([D65](../../.claude/skills/agent-train/references/owner-rules.md#owner-standing-rules)) |
@@ -441,9 +441,9 @@ The phases of this overview are the program-level slices. Page and seam slices a
 
 ### Phase Details
 
-- **Phase 1.** Docs only. The decisions register is the issue described in Agent Delivery; its seed is `studio-next/research/repo-compare-decisions.md`, copied by reference (the file is not moved), plus the rulings of 2026-10-11.
+- **Phase 1.** Docs only. The decisions register is the issue described in Agent Delivery; its seed is `research-mock/research/repo-compare-decisions.md`, copied by reference (the file is not moved), plus the rulings of 2026-10-11.
 - **Phase 2.** ADR numbers are allocated at write time and again before the last push, in blocks of ten above the highest existing number, recorded on #509 ([Lanes](../../.claude/skills/agent-train/references/worker.md#lanes)).
-- **Phase 3.** A script under `scripts/dev/` that drives `studio-next/e2e/lib.mjs`-style navigation (the `shot.mjs` pattern) and writes `<state>-<viewport>.png`. It must work offline once `npm ci` has run.
+- **Phase 3.** A script under `scripts/dev/` that drives `research-mock/e2e/lib.mjs`-style navigation (the `shot.mjs` pattern) and writes `<state>-<viewport>.png`. It must work offline once `npm ci` has run.
 
 ### Parallelism Notes
 
@@ -494,7 +494,7 @@ Pass 1 of `solid-design-review` and `design-principles` for the whole series, wr
 | 8. Ports for engines and providers | Every engine sits behind a provider with a mock implementation (SNS, SND) | Met |
 | 9. Boundaries are contracts | Each new payload brings its schema, golden file and contract row, in the slice that adds the payload (see [`.claude/rules/wire-contracts.md`](../../.claude/rules/wire-contracts.md)) | At risk: no schema exists yet; each slice closes its own |
 | 12. Acknowledge within 100 ms | Long work is a job with real progress; the booth and delivery jobs need the existing job events (SNO, SNM) | At risk: confirm in each slice |
-| 13. Primitives own the look; the mock is the spec | Studio Next is the only spec for every page it covers (SN0-Q1); the benchmark is the reference only for the Series voice bible and Companion, which are not touched | Met |
+| 13. Primitives own the look; the mock is the spec | the PRD, the issue and the page guide are the spec for every page it covers (SN0-Q1); the benchmark is the reference only for the Series voice bible and Companion, which are not touched | Met |
 | 14. Accessibility is tested | Each page slice runs axe and the ARIA snapshots | Met |
 
 ## Decisions Log
@@ -516,17 +516,11 @@ Pass 1 of `solid-design-review` and `design-principles` for the whole series, wr
 
 ## Visual Spec
 
-The spec for every page in this series is the running Studio Next mock, `docs/research/mockups/studio-next/`, and the only spec for every page it covers (SN0-Q1, decided 2026-10-11). The benchmark mocks in `docs/research/mockups/audiobook-studio-benchmark/` stay only as the reference for the Series voice bible and Companion, which the mock lacks and this series does not touch; they are deleted at cutover (Cutover). A slice issue names the Studio Next page file and its state. A PRD of this series keeps no mock copies; it names the mock's page file and state.
+The spec for every page in this series is the running research mock, `docs/research/mockups/research-mock/`, and the only spec for every page it covers (SN0-Q1, decided 2026-10-11). The benchmark mocks in `docs/research/mockups/audiobook-studio-benchmark/` stay only as the reference for the Series voice bible and Companion, which the mock lacks and this series does not touch; they are deleted at cutover (Cutover). A slice issue names the rebuilt page file and its state. A PRD of this series keeps no mock copies; it names the mock's page file and state.
 
-### Which mocks are the spec
+### What a page builds to
 
-Owner ruling D98, 2026-10-11 (it replaces D96, 2026-09-29), and D69 on the theme. Amended by an owner ruling of 2026-10-18: the Studio Next mock is a frozen reference, not a spec kept in step with the app. The first two bullets below replace D98's "the mock is the spec" and "if it is not in the mock, it is not built".
+The research mock was retired and removed on 2026-11-04 (owner, on #2859). A page builds to its issue or PRD, its guide in `docs/guides/using-the-app/` and the live app ([What a page builds to](../design/design-system.md#what-a-page-builds-to)). Two rules from the series stay:
 
-- **The reference is the Studio Next mock: `docs/research/mockups/studio-next/`.** The first build of every page it covers follows its layout, tokens, primitive sizes and behaviour. Where an older ADR, a benchmark mock, an existing page or a measured value differs, the mock wins until a PRD or doc supersedes the mock's line ([Which mocks are the spec](../design/design-system.md#which-mocks-are-the-spec)).
-- **The mock is not updated as the real app changes.** A change that departs from it does not edit the mock. It supersedes the line in the PRD or doc that covers the page, naming what it replaces and why; that PRD or doc, not the mock, then states the behaviour. A control, state or feature the mock lacks may be added the same way, through an issue or PRD that says so.
-- **If the repo already has an equivalent of something in the mock, the old one is removed.** The change that swaps a page in deletes the old page and anything only it used, in the same PR ([Design principles](../architecture/principles.md) decision 1).
-- **Existing features with no equivalent in the mock are left as built:** the series voice bible and Series tab, the companion mode, and the stage timer, PFH and effective rate. They are not extended, removed or restyled. **Superseded 2026-10-21 (owner): this app produces one book at a time, so the Series tab is removed from the Story Bible page and no series page or reference is to be built or kept. The series host, API and data still in the repo are to be removed in a follow-up.**
-- **The benchmark mocks (`docs/research/mockups/audiobook-studio-benchmark/`) are no longer a build target for any page the Studio Next mock covers.** They remain only as the reference for the two pages it lacks (06 Series voice bible, 07 companion), and are deleted at cutover with the old pages.
-- **Theme is one app-wide setting (D69).** No page or surface forces light or dark; a dark mock shows the dark theme, not a per-page look. Capture a state in the theme the mock page is drawn in and compare like with like: light against light, dark against dark.
-- **Layout and style are the spec, not the sample data.** Don't seed demo data to make a capture look closer, and don't change a real title or subtitle to the mock's wording. There is no match percentage for Studio Next pages.
-- **No other mock is a spec.** The per-PRD mock sets were deleted (D96) and are not recreated from `git log`. A new mock is added only for work being built now and is deleted in the PR that merges that work.
+- **A swap removes the old page.** The change that swaps a page in deletes the old page and anything only it used, in the same PR ([Design principles](../architecture/principles.md) decision 1).
+- **Theme is one app-wide setting (D69).** No page or surface forces light or dark; capture a state in each theme and compare light with light, dark with dark. Layout and style are what a comparison is for, not sample data.

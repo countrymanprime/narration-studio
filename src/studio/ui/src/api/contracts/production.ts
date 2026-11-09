@@ -16,7 +16,7 @@ export type ProductionRateBasis = 'standard' | 'own';
 
 /**
  * One dated checkpoint. `measure` is what it measures (`custom`, `rec`, `edit`, `proof`, `editproof`, `checkpoint`, `all`,
- * `ch<N>` or `min<N>`, the Studio Next mock's measures), `estimate` an estimated date a custom milestone never has, `done` set
+ * `ch<N>` or `min<N>`, the research mock's measures), `estimate` an estimated date a custom milestone never has, `done` set
  * by the narrator, `template` the template it came from. Each is absent on a milestone saved before them.
  */
 export type ProductionMilestone = {

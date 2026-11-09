@@ -2,9 +2,9 @@
 
 Dated 2026-10-18. Evidence, not kept current.
 
-**Question.** The owner's rule: colour and shape follow what a thing is, not which page it is on. A character is highlighted the same on Script, Booth and Editing. A narrator mistake (extra words, a long silence, a mispronounced word) is the same kind of thing wherever it appears, and is drawn the same way as a text mark, a chip, a badge, a list row and a legend entry. What does the Studio Next mock draw, what does the app draw, where do they disagree, and what single map would give every kind one colour and one form?
+**Question.** The owner's rule: colour and shape follow what a thing is, not which page it is on. A character is highlighted the same on Script, Booth and Editing. A narrator mistake (extra words, a long silence, a mispronounced word) is the same kind of thing wherever it appears, and is drawn the same way as a text mark, a chip, a badge, a list row and a legend entry. What does the research mock draw, what does the app draw, where do they disagree, and what single map would give every kind one colour and one form?
 
-Scope: read-only. No app code changed. Mock paths are under `docs/research/mockups/studio-next/src/` (`app.css` = `styles/app.css`, `sx.css` = `pages/editing/scriptedit.css`); app paths are under `src/studio/ui/src/`.
+Scope: read-only. No app code changed. Mock paths are under `docs/research/mockups/research-mock/src/` (`app.css` = `styles/app.css`, `sx.css` = `pages/editing/scriptedit.css`); app paths are under `src/studio/ui/src/`.
 
 ## Findings in short
 
@@ -228,7 +228,7 @@ The `PENDING` list starts with every file in section 2 and shrinks by one page g
 
 | PR | Contents | Files | Guide and screenshots |
 | --- | --- | --- | --- |
-| 0 | Owner answers the decisions below; supersede the mock's lines in a PRD or `docs/design/colour-and-contrast.md` (the mock is frozen, [Which mocks are the spec](../design/design-system.md#which-mocks-are-the-spec)) | `docs/design/colour-and-contrast.md`, `docs/design/design-system.md` | none |
+| 0 | Owner answers the decisions below; supersede the mock's lines in a PRD or `docs/design/colour-and-contrast.md` (the mock is frozen, [What a page builds to](../design/design-system.md#what-a-page-builds-to)) | `docs/design/colour-and-contrast.md`, `docs/design/design-system.md` | none |
 | 1 | Map, `KindMark`, `KindChip`, guard with full `PENDING`, undefined-token fixes, `PAIRS` rows, dead-code removal (`styles.css:368-389`, `components.css:36-46`, `TYPE_COLOUR_VAR` use) | `src/studio/ui/src/kinds/*`, `primitives/Highlight.tsx`, `StatusBadge.tsx`, `kindMap.test.ts`, `paletteContrast.test.ts`, `styles.css`, the files using the undefined tokens | No visible change except the undefined-token borders; `proof.md`, `editing.md` regenerated for those |
 | 2 | Proof: check card, finding rows, notes table, pins, delete `resolution.ts` dead map | `proof/checkcard/*`, `proof/notes/noteRows.ts`, `proof/ProofPage.tsx`, `proof/resolution.ts`, `proof/spot/*` | `docs/guides/using-the-app/proof.md` and its images |
 | 3 | Editing: word marks, legend, flag card, ribbon, found list, strip, takes | `editing/script/Word.tsx`, `editing/flags/*`, `editing/ribbon/*`, `editing/range/common/Strips.tsx`, `editing/takes/*`, `editing/drawer/FoundList.tsx` | `editing.md` and images |

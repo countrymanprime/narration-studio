@@ -113,7 +113,7 @@ export function sourceText(offer: Pick<ResumeOffer, 'source' | 'confident'>): st
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 /**
- * What "as of last save" means now (the Studio Next mock's `saveNote`): when the project was saved, and whether the DAW has changes
+ * What "as of last save" means now (the research mock's `saveNote`): when the project was saved, and whether the DAW has changes
  * since that a place read from the saved project does not include. `savedAt` is the host's local time to the minute
  * (`2026-09-26T08:40`). Empty when the DAW keeps no saved project or the host has not answered.
  */

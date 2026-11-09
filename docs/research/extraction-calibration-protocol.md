@@ -1,6 +1,6 @@
 # Extraction confidence: calibration protocol
 
-**Date:** 2026-10-11. **Issue:** [#1143](https://github.com/countrymanprime/narration-studio/issues/1143), Phase 1 of the Studio Next extraction PRD. **For:** the evaluation harness, which implements this protocol and writes the calibration table. Nothing is measured here.
+**Date:** 2026-10-11. **Issue:** [#1143](https://github.com/countrymanprime/narration-studio/issues/1143), Phase 1 of the rebuilt extraction PRD. **For:** the evaluation harness, which implements this protocol and writes the calibration table. Nothing is measured here.
 
 The rule being calibrated is [The 75% rule](../architecture/extraction-tiers.md#the-75-rule): a suggestion at or above `VerifyBelow` is applied and flagged Review; one below it, or with no confidence, needs verification. The value is `extraction.VerifyBelow = 0.75` in `src/studio/desktop/internal/extraction/rule.go`, the only place the number is written. The PRD's failure test is "confident wrong entries above a few percent". This protocol says how to find out, and what a result may change.
 
@@ -77,7 +77,7 @@ Nothing else changes: the quote requirement, the entry requirement, the reasons 
 
 ## Sources compared
 
-Each run records the tool, its version, the pinned file hashes (from the GLiNER and BookNLP spike notes, `docs/research/studio-next-gliner-spike.md` and `docs/research/studio-next-booknlp-spike.md`), the date, the hardware and the exact command. A run is not comparable without them.
+Each run records the tool, its version, the pinned file hashes (from the GLiNER and BookNLP spike notes, `docs/research/gliner-spike.md` and `docs/research/booknlp-spike.md`), the date, the hardware and the exact command. A run is not comparable without them.
 
 | Source | Version to record | Confidence it gives |
 | --- | --- | --- |

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// SN-X42: the Needs verification filter, the loose suggestions, the entry pill and the scan and import buttons, ported from the Studio Next
+// SN-X42: the Needs verification filter, the loose suggestions, the entry pill and the scan and import buttons, ported from the the rebuild
 // mock's tests/extraction.test.tsx (the Story Bible page cases) and tests/analysis-tools.test.tsx (the scan cases).
 import { act, cleanup, render, renderHook, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';

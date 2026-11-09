@@ -21,23 +21,23 @@ import { brand } from '../../brand.gen';
 
 // The rail's items. What each one needs is not here: `navAvailability` is the one table the rail, the drawer and the jump menu read.
 const PRODUCTION = { name: 'Production', path: '/', icon: faHouse };
-// The Schedule (the Studio Next mock's rail): the due date, how the book pays and the milestones.
+// The Schedule (the research mock's rail): the due date, how the book pays and the milestones.
 const SCHEDULE = { name: 'Schedule', path: '/schedule', icon: iconFor('calendar') };
 const SCRIPT = { name: 'Script', path: '/script', icon: faFileLines };
 const STORY_BIBLE = { name: 'Story Bible', path: '/story-bible', icon: iconFor('book') };
-// The Record stage's one page: it replaced the Teleprompter page. Its icon is the microphone, as the Studio Next mock's rail draws it.
+// The Record stage's one page: it replaced the Teleprompter page. Its icon is the microphone, as the research mock's rail draws it.
 const BOOTH = { name: 'Booth', path: '/booth', icon: iconFor('microphone') };
-// Editing (the Studio Next mock's Editing page): the chapter's script as the editor, at /editing and /editing/:chapterId.
+// Editing (the research mock's Editing page): the chapter's script as the editor, at /editing and /editing/:chapterId.
 const EDITING = { name: 'Editing', path: '/editing', icon: iconFor('scissors') };
 // Proof: the book's notes at /proof and a chapter's view at /proof/:chapterId, replacing Review and Proofing.
 const PROOF = { name: 'Proof', path: '/proof', icon: faWaveSquare };
 // Pickups: the proofer's pickup list, replacing the Tracks page's Pickups dialog.
 const PICKUPS = { name: 'Pickups', path: '/pickups', icon: iconFor('pickups') };
 const MASTER_QC = { name: 'Master & QC', path: '/master', icon: iconFor('gauge') };
-// Delivery (the Studio Next mock's rail): the profile card, the package build and what is left before it.
+// Delivery (the research mock's rail): the profile card, the package build and what is left before it.
 const DELIVERY = { name: 'Delivery', path: '/delivery', icon: iconFor('delivery') };
 
-// Grouped by production stage: Production, Prep, Record, Edit (the Studio Next mock's own group for Editing), Review,
+// Grouped by production stage: Production, Prep, Record, Edit (the research mock's own group for Editing), Review,
 // Finish, with Settings pinned at the foot (below, not a group). A page is renamed only in the change that ships its
 // replacement. The Production page is the home at `/` (`/production` redirects there).
 type NavItem = typeof PRODUCTION;
@@ -212,7 +212,7 @@ export function AppShell({
   const groupHeadingId = (label: string) => `nav-group-${label.toLowerCase().replace(/\s+/g, '-')}`;
   const navigation = (
     <>
-      {/* The brand block as the Studio Next mock's `.brand` draws it: 50 px (4 px above and 10 px below its content), no rule, 12 px below the rail's top; `Brand` is the mark and name.
+      {/* The brand block as the research mock's `.brand` draws it: 50 px (4 px above and 10 px below its content), no rule, 12 px below the rail's top; `Brand` is the mark and name.
           The mark starts 18 px in, where the group names and the nav icons' boxes start (alignment audit XSL-8, R3SL-1); in the icon rail it is
           centred over the icons instead (16 px), and stays there when the rail opens. */}
       <div className="mt-3 flex h-[3.125rem] flex-none items-center gap-[0.625rem] pt-1 pr-4 pb-2.5 pl-[1.125rem] min-[860px]:max-[1360px]:pl-4">
@@ -312,7 +312,7 @@ export function AppShell({
             >
               <FontAwesomeIcon icon={faBars} />
             </IconButton>
-            {/* The Studio Next mock's top bar and nothing else: the crumb, the project name (a button), the jump menu, a zoom chip off 100% and the engine chip.
+            {/* The research mock's top bar and nothing else: the crumb, the project name (a button), the jump menu, a zoom chip off 100% and the engine chip.
                 Back, Forward, Undo, History and the zoom steps live in the jump menu, on their keys. */}
             <span className="section-label max-md:hidden">Project</span>
             {/* min-w-0: the name truncates rather than pushing the engine chip off a narrow bar (XSL-10). */}

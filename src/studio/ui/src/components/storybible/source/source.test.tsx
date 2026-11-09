@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// SN-B22: the pronunciation source tag, its menu and a name's row. Ported from the Studio Next mock's tests (bible-batch-a).
+// SN-B22: the pronunciation source tag, its menu and a name's row. Ported from the research mock's tests (bible-batch-a).
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';

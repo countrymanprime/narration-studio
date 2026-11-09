@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// SN-X522: the import dialog, ported from the Studio Next mock's tests/extraction.test.tsx ("the import dialog") and checked against the
+// SN-X522: the import dialog, ported from the research mock's tests/extraction.test.tsx ("the import dialog") and checked against the
 // mock host, which plans and stores an import the way the real one does.
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';

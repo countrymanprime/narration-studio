@@ -1,7 +1,7 @@
 // The Story Bible's extraction suggestions: what a source offered, each with the quote that backs it and the
 // status the 75% rule gave it. They are kept in the project's ManuscriptGuide/suggestions.json (src/studio/desktop/internal/extraction/store)
 // and applied to the Story Bible through its own commands (src/studio/desktop/internal/extraction/apply), so a locked entry is never changed.
-// The shapes follow the Studio Next mock's src/domain/extraction.ts.
+// The shapes follow the research mock's src/domain/extraction.ts.
 
 export const SUGGESTION_KINDS = ['entry', 'alias', 'property', 'relationship', 'claim', 'speaker'] as const;
 export const SUGGESTION_STATUSES = ['accepted-auto', 'needs-verification', 'accepted', 'rejected'] as const;

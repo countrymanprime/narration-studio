@@ -56,7 +56,7 @@ function Quote({ label, markup, which }: { label: string; markup: string; which:
 const DECISION_QUIET_MS = 350;
 
 /**
- * The Studio Next Inspector for one note: the time and type, the steps, what the script says against what was heard, the DAW and link
+ * The rebuilt Inspector for one note: the time and type, the steps, what the script says against what was heard, the DAW and link
  * actions, the decision with its optional note, and the check's confidence. It reads no store and imports no router: the note, the host
  * reads and the handlers come in as props, and `useShownEvidence` keeps what the narrator was shown against the latest evidence, so a
  * decision made after a re-check is refused until they read what changed. `around` (the note's paragraph and its neighbours, research

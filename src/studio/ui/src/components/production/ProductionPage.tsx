@@ -109,7 +109,7 @@ function TimerFigures({ overview }: { overview: ProductionOverview }) {
 }
 
 /**
- * The Production home at `/` (the Studio Next mock's Production page): the header with the verdict, the KPI row, where the book stands,
+ * The Production home at `/` (the research mock's Production page): the header with the verdict, the KPI row, where the book stands,
  * this week and the recording check, the chapter pipeline beside Next up and the recorded-vs-plan chart. With no manuscript it is the
  * import. It composes the pieces the earlier slices built and reads their data through the ports; the stage timer, its figures and the
  * features the mock has no equivalent for (the row menu's chapter track, status override and checks, the credits rows, the Restore list)

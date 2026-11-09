@@ -8,7 +8,7 @@
 // narrator's chosen macro to it, export the result; macrorender.go), and backups role (docs/reference/daw/audacity-3.md: clone a window of audio to a
 // muted track of its own before an edit and put it back on request, with a table in the project folder; backups.go; the host prunes
 // the table when the project opens, through Backups). Takes, punch, stack_takes, cut_range and fx_range exist in Audacity only
-// with backups on (the Studio Next mock's capabilitiesFor, PRD DQ-18): the adapter declares them Experimental and requires backups
+// with backups on (the research mock's capabilitiesFor, PRD DQ-18): the adapter declares them Experimental and requires backups
 // for each (a dawport.Requirer), a roll destructive until backups make it safe and the three edits made in steps (a
 // dawport.Describer). Their role makes each edit as a listed series of pipe commands after a backup (steps.go). Session
 // carries the Audacity-only operations the port has no capability for yet (import findings as labels, read them back, mark one

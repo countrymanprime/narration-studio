@@ -382,7 +382,7 @@ func TestProductionPlanRoundTripsThePaymentAndMilestoneFieldsAcrossARestart(t *t
 }
 
 // royalty-share-has-no-figure: choosing royalty share or none clears the contracted amount on save (the mock's
-// Schedule dialog does the same, studio-next/tests/batch-b.test.tsx), and an amount is then refused with a sentence
+// Schedule dialog does the same, research-mock/tests/batch-b.test.tsx), and an amount is then refused with a sentence
 // until the payment type is per finished hour again. The overview computes no effective rate.
 func TestProductionSetPaymentClearsTheAmountForRoyaltyShareOrNone(t *testing.T) {
 	for _, payment := range []string{production.PaymentRoyaltyShare, production.PaymentNone} {

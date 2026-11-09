@@ -1,4 +1,4 @@
-/** What the Backups tab and the backup step say (the Studio Next mock's BackupsTab.tsx, commands/backups.ts and EDIT_TEXT). */
+/** What the Backups tab and the backup step say (the research mock's BackupsTab.tsx, commands/backups.ts and EDIT_TEXT). */
 export const BACKUPS_TEXT = {
   none: 'No backups yet.',
   off: 'Backups are off.',

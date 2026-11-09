@@ -1,6 +1,6 @@
 # Master & QC: the state matrix
 
-Written before the code ([definition of done](../../.claude/rules/definition-of-done.md), rule 3). Page: `src/studio/ui/src/components/masterqc/`, route `/master`, the Studio Next mock's Master page (`docs/design/design-system.md#which-mocks-are-the-spec`). Controls kept as built because the mock has no equivalent (Master all to spec, the mastering chain, Diagnostics, the report export, Multi-platform export, a file's every-rule list) are not in this matrix: this PR does not change them.
+Written before the code ([definition of done](../../.claude/rules/definition-of-done.md), rule 3). Page: `src/studio/ui/src/components/masterqc/`, route `/master`, the research mock's Master page (`docs/design/design-system.md#what-a-page-builds-to`). Controls kept as built because the mock has no equivalent (Master all to spec, the mastering chain, Diagnostics, the report export, Multi-platform export, a file's every-rule list) are not in this matrix: this PR does not change them.
 
 **Left out on purpose, with its reason (`docs/guides/using-the-app/master-and-qc.md#the-mastering-chain`):** the mock's **Clicks** and **Text** columns. Nothing measures mouth clicks or text coverage per rendered file, so a column would be a number the app made up. **Play the quietest 5 s** and **Open in the DAW** are built over the DAW port's `playQuietest` and `openFile`.
 

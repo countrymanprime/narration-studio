@@ -1,4 +1,4 @@
-# Studio Next DAW spikes 1f and 1g: play position and Audacity backups
+# DAW spikes 1f and 1g: play position and Audacity backups
 
 **Status: results pending, structure written 2026-10-11.** The owner has not returned spikes 1f and 1g of [the spike runbook](../operations/daw-spike-run-sheet.md), so neither has a result. A "pending" cell is not a failure: it means no table row has come back. A worker has no audio interface, no REAPER and no Audacity, so nothing here is a guess. Tracking: issue #1146, part of #1016.
 

@@ -1,10 +1,10 @@
 import type { Spot } from './spot';
 
-/** A lane's height: room for the take's name inside it, as the Studio Next mock draws it (`TakeLanes`, 13 px). */
+/** A lane's height: room for the take's name inside it, as the research mock draws it (`TakeLanes`, 13 px). */
 const LANE_HEIGHT = 14;
 
 /**
- * The other takes at a spot, under the waveform (Studio Next mock `TakeLanes`): each a labelled lane in the window's time scale (`winStart`,
+ * The other takes at a spot, under the waveform (research mock `TakeLanes`): each a labelled lane in the window's time scale (`winStart`,
  * `winLen` in seconds). The take that plays is drawn once, as the band on the waveform itself, not again here (alignment audit R3PF-1). A
  * take outside the window is clipped; a hidden take is a dashed outline with no fill (its name keeps full contrast). Nothing is drawn at a spot with one take.
  */

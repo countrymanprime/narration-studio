@@ -18,7 +18,7 @@
 | Verification pass Part A, `run-pass-part-a.ps1` + `pass_part_a.lua` ([the pass](../operations/reaper-verification-pass.md)) | Rows A1 to A14: the real bridge from the working tree, a fresh registry, the file protocol, in REAPER, with the audio device closed. Builds its own scratch project from `make_media.py` tones; no owner path is hard-coded. | **No, and it needs no change to try**: it uses only `%TEMP%` and the installed `reaper.exe` |
 | [`windows-reaper-transport.yml`](../../.github/workflows/windows-reaper-transport.yml) | The only workflow that starts a real REAPER: installs the 7.80 evaluation build (hash-pinned), runs `transport_timing.lua`. Its recorded result: REAPER ran with the bridge heartbeat live, but the runner has **no audio device** ("Error opening devices") and the transport never left state 0 ([QA checklist 9.7](../operations/windows-qa-checklist.md)). | Manual only |
 
-So the gap is not "can CI start REAPER" (it can) but that no workflow runs the command rows, and Part C (the Studio Next commands) has never run anywhere.
+So the gap is not "can CI start REAPER" (it can) but that no workflow runs the command rows, and Part C (the rebuilt commands) has never run anywhere.
 
 ## What a runner without audio can and cannot prove
 

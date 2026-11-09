@@ -13,7 +13,7 @@ import { useDeliveryBuild } from './useDeliveryBuild';
 import { useDeliveryChecks } from './useDeliveryChecks';
 
 /**
- * Delivery (the Studio Next mock's page): the profile card, the Output panel and the "Before you build" aside. Chapters are judged by the
+ * Delivery (the research mock's page): the profile card, the Output panel and the "Before you build" aside. Chapters are judged by the
  * host's measurement (`measureState`) against the project's profile; the build runs over the export and package jobs. The profile's
  * rules and their sources have no mock equivalent and stay as built, below Output. The page navigates by callback only.
  */

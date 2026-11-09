@@ -1,6 +1,6 @@
 # BookNLP spike: licences, pins, footprint and quality
 
-**Date:** 2026-10-11. **Issue:** [#1142](https://github.com/countrymanprime/narration-studio/issues/1142), Phase 1 of the Studio Next extraction PRD. **Answers:** can the app offer BookNLP as an optional download, which exact files, under which licence, at what cost, and can it share the environment GLiNER needs.
+**Date:** 2026-10-11. **Issue:** [#1142](https://github.com/countrymanprime/narration-studio/issues/1142), Phase 1 of the rebuilt extraction PRD. **Answers:** can the app offer BookNLP as an optional download, which exact files, under which licence, at what cost, and can it share the environment GLiNER needs.
 
 **Verdict: ship behind "not yet available".** The program is MIT, the weights have no stated licence (a risk the owner accepted for this narrow use, SNX-Q3), and every weight file is pinned below. Its speaker attribution was the strongest local result in the 2026-10-10 trial. It stays "not yet available" because its loader failed on a current `transformers` in that trial, and the one environment SNX-Q4 assumes cannot be confirmed: GLiNER needs `transformers>=4.51.3` and the trial ran BookNLP on `4.44.2`.
 
@@ -180,6 +180,6 @@ These go to [#992](https://github.com/countrymanprime/narration-studio/issues/99
    python scripts/research/extraction-calibration/run_calibration.py run --booknlp-small-install <small folder> --booknlp-large-install <large folder> --spacy-model <en_core_web_sm folder>
    ```
 
-   A source is only scored against a gold set, and none exists yet. Write `data/<book>/gold.jsonl` for at least two scored books by reading their chapters, in [the protocol's format](studio-next-extraction-calibration-protocol.md#the-gold-set), until `gold-check` reports the minimums. **Send back:** `data/out/report.md`. Its threshold recommendation, and the speaker accuracy for tagged and implicit quotes per size, set `SPEAKER_CONFIDENCE` and whether `VerifyBelow` stays 0.75.
+   A source is only scored against a gold set, and none exists yet. Write `data/<book>/gold.jsonl` for at least two scored books by reading their chapters, in [the protocol's format](extraction-calibration-protocol.md#the-gold-set), until `gold-check` reports the minimums. **Send back:** `data/out/report.md`. Its threshold recommendation, and the speaker accuracy for tagged and implicit quotes per size, set `SPEAKER_CONFIDENCE` and whether `VerifyBelow` stays 0.75.
 
 Results stay provisional until they are re-run on the owner's own material (D70).

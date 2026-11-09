@@ -1,10 +1,10 @@
-# Studio Next App Shell and Registries: Commands, Keys, Jump Menu, Context Menus, Help and Overlays as Data
+# App Shell and Registries: Commands, Keys, Jump Menu, Context Menus, Help and Overlays as Data
 
-**Source:** owner request of 2026-10-10 (Studio Next Rebuild); the mock's registries and shell: `studio-next/src/app/`, `studio-next/ARCHITECTURE.md` ("Wire into the shared systems"); the owner's rulings of 2026-10-11 (see Decisions).
+**Source:** owner request of 2026-10-10 (rebuild PRD); the mock's registries and shell: `research-mock/src/app/`, `research-mock/ARCHITECTURE.md` ("Wire into the shared systems"); the owner's rulings of 2026-10-11 (see Decisions).
 
 **Builds on / extends:** Input Commands and Pedals (old PRD `input-commands-and-pedals.prd.md`, recoverable from git history) and [Studio shell and registries](../architecture/studio-shell-and-registries.md) (the command registry and keymap, delivered in part), (`ContextMenu`), [Base UI wrappers](../design/design-system.md#base-ui-wrappers), [Design system reference](../design/design-system.md) (overlays), [Design principles](../architecture/principles.md) (navigation groups), [useNavCounts.ts](../../src/studio/ui/src/components/layout/useNavCounts.ts) (rail counts). It does not replace them; it adds the layers the mock proves and the repo lacks.
 
-**Status (2026-10-11):** draft; the owner's rulings of 2026-10-11 are applied. The Studio Next mock is the only spec for the shell, rail and registries.
+**Status (2026-10-11):** draft; the owner's rulings of 2026-10-11 are applied. The research mock is the only spec for the shell, rail and registries.
 
 ## Problem Statement
 
@@ -12,7 +12,7 @@ In the mock, a page adds a command, a key, a right-click menu, a search source o
 
 ## Evidence
 
-- **Mock registries.** `studio-next/src/app/registry.ts` (`registerContext`, `registerCommands`, `registerSearch`, `registerKeys`); `studio-next/src/app/commands.ts` (global commands: go to page, go to chapter, zoom, theme, undo, history); `studio-next/src/app/palette.tsx` (jump menu); `studio-next/src/app/context.ts` (right-click on anything, `tailItems()`); `studio-next/src/app/help.tsx` (structured shortcut specs); `studio-next/src/app/history.tsx` (undo history list); `studio-next/src/ui/overlay.ts` (modals, popovers, context menu, toasts, announcements).
+- **Mock registries.** `research-mock/src/app/registry.ts` (`registerContext`, `registerCommands`, `registerSearch`, `registerKeys`); `research-mock/src/app/commands.ts` (global commands: go to page, go to chapter, zoom, theme, undo, history); `research-mock/src/app/palette.tsx` (jump menu); `research-mock/src/app/context.ts` (right-click on anything, `tailItems()`); `research-mock/src/app/help.tsx` (structured shortcut specs); `research-mock/src/app/history.tsx` (undo history list); `research-mock/src/ui/overlay.ts` (modals, popovers, context menu, toasts, announcements).
 - **Repo.** `src/studio/ui/src/input/commands.catalog.ts` (15 rows, scopes `global | page | booth | dialog`), `router.tsx`, `keymap.ts`, `findConflicts.ts`, `useCommand.ts`; `components/help/ShortcutSheet.tsx`; `components/settings/KeyboardPanel.tsx` (remapping); `components/primitives/{ContextMenu,Toast,Dialog,SlideOver,Popover,Tooltip,Listbox}.tsx`; `hooks/{useToasts,useAppHistory}.ts` (`useAppHistory` is navigation Back and Forward, not undo).
 - **Rules that bind.** Features never listen to `keydown` for a command (a scan test, [Studio shell and registries](../architecture/studio-shell-and-registries.md) decision 2); commands are static descriptors; only primitives import Base UI ([Base UI wrappers](../design/design-system.md#base-ui-wrappers)); stacking order is fixed ([Base UI wrappers](../design/design-system.md#base-ui-wrappers), [Design system reference](../design/design-system.md)).
 - **Mock behaviour that already differs.** The mock's page keys are raw `KeyboardEvent` handlers (`registerKeys(page, fn)`), which the repo's scan test forbids.
@@ -20,13 +20,13 @@ In the mock, a page adds a command, a key, a right-click menu, a search source o
 ## Proposed Solution
 
 1. **Extend the command catalogue, not replace it.** A descriptor gains `group` (jump-menu heading), `hint` and `surface` flags (`jumpMenu`, `help`, `settings`). Keys stay in the keymap and handlers stay `useCommand`. A command that depends on data (go to a chapter, go to a bookmark) comes from a **command provider**: `registerCommandProvider(() => Command[])`, whose results appear in the jump menu only and carry no default key.
-2. **Jump menu.** A `JumpMenu` built from `Dialog` and `Listbox`: type to filter commands, providers and search sources; arrow keys and Enter; opens on `jump.open` (Ctrl+K) and, outside Script, on Ctrl+F as in `studio-next/src/app/keys.ts`.
-3. **Search sources** register by function: `registerSearchSource(term => Hit[])` for manuscript text, Story Bible entries, marks and bookmarks, with the group heading and sub-line as in `studio-next/src/app/search-sources.tsx`.
+2. **Jump menu.** A `JumpMenu` built from `Dialog` and `Listbox`: type to filter commands, providers and search sources; arrow keys and Enter; opens on `jump.open` (Ctrl+K) and, outside Script, on Ctrl+F as in `research-mock/src/app/keys.ts`.
+3. **Search sources** register by function: `registerSearchSource(term => Hit[])` for manuscript text, Story Bible entries, marks and bookmarks, with the group heading and sub-line as in `research-mock/src/app/search-sources.tsx`.
 4. **Context menu providers.** `registerContextProvider(target-matcher, items)`; one `ContextMenuHost` mounted by the shell resolves the target under the pointer (or the focused element for Menu and Shift+F10, including `aria-activedescendant` as the mock does) and renders the existing `ContextMenu` popup. Each menu ends with the shared tail (jump menu, find). Existing per-area `ContextMenu` uses migrate one at a time.
 5. **Help as data.** `ShortcutSheet`, the Settings key list and the Booth, Proof and Editing key-hint footers read one structured table derived from the catalogue plus per-surface "hint specs" (which keys a footer shows, in which order).
 6. **Overlay service.** `overlay.confirm`, `overlay.toast`, `overlay.toastUndo`, `overlay.announce`, `overlay.open(dialog spec)` as a thin imperative API that renders the existing declarative primitives (`ConfirmDialog`, `Toast`, `Dialog`, `SlideOver`, `Popover`), so a command can open one without being a component, and stacking and focus return stay the primitives' ([Design system reference](../design/design-system.md)).
 7. **History panel.** A slide-over listing undoable entries (label, whether it touched the DAW, undo refusal reason), backed by the journal in Domain, State and Wire Contracts, opened from the jump menu and the shell.
-8. **Shell.** The rail follows `studio-next/src/app/Shell.tsx`: Production, Schedule, then Prep (Script, Story Bible), Record (Booth), Edit (Editing), Review (Proof, Pickups), Finish (Master & QC, Delivery), with counts only on Proof, Pickups and Master & QC, each from a host-reported count ([useNavCounts.ts](../../src/studio/ui/src/components/layout/useNavCounts.ts) rule kept). The rail collapses below 1360 CSS px as the mock does. The open-queries badge on Story Bible is not in the mock and goes with the Story Bible swap. The header gains the Undo and History affordances and the engine chip carries the DAW label from capabilities. Schedule and Delivery rail items are added by their page swaps, not here.
+8. **Shell.** The rail follows `research-mock/src/app/Shell.tsx`: Production, Schedule, then Prep (Script, Story Bible), Record (Booth), Edit (Editing), Review (Proof, Pickups), Finish (Master & QC, Delivery), with counts only on Proof, Pickups and Master & QC, each from a host-reported count ([useNavCounts.ts](../../src/studio/ui/src/components/layout/useNavCounts.ts) rule kept). The rail collapses below 1360 CSS px as the mock does. The open-queries badge on Story Bible is not in the mock and goes with the Story Bible swap. The header gains the Undo and History affordances and the engine chip carries the DAW label from capabilities. Schedule and Delivery rail items are added by their page swaps, not here.
 
 ## Key Hypothesis
 
@@ -47,7 +47,7 @@ If commands, search, context items and hints are data that a page registers, the
 | Surfaces fed by the catalogue | Jump menu, help sheet, Settings key list, 3 footers | A test that fails when a command is missing from any |
 | Per-area `ContextMenu` call sites with inline items | Falls to 0 by cutover | Scan test (ratchet) |
 | Keydown listeners outside `src/input/` | 0 beyond the reasoned allowlist | Existing scan test |
-| Jump menu | Opens in under 100 ms (`docs/architecture/interaction-feedback.md#the-standard` acknowledgement rule) and finds a chapter, an entry, a mark and a bookmark | Component tests, ported `studio-next/tests/palette.test.tsx` |
+| Jump menu | Opens in under 100 ms (`docs/architecture/interaction-feedback.md#the-standard` acknowledgement rule) and finds a chapter, an entry, a mark and a bookmark | Component tests, ported `research-mock/tests/palette.test.tsx` |
 
 ## Decisions
 
@@ -55,15 +55,15 @@ Owner rulings of 2026-10-11; none is open.
 
 | Id | Ruling | Consequence here |
 | --- | --- | --- |
-| SN0-Q1 / DQ-1 | Studio Next is the spec | The rail, header and overlays follow the mock; `docs/architecture/principles.md` and the Story Bible badge of `src/studio/ui/src/components/layout/useNavCounts.ts` are superseded (DQ-11, DQ-14) |
+| SN0-Q1 / DQ-1 | the PRD, the issue and the page guide are the spec | The rail, header and overlays follow the mock; `docs/architecture/principles.md` and the Story Bible badge of `src/studio/ui/src/components/layout/useNavCounts.ts` are superseded (DQ-11, DQ-14) |
 | SN0-Q2 / DQ-2 | Replace, one PR, no flag | Registries land first with no route; each migration of a `ContextMenu` or footer is its own slice |
 | SN0-Q3 | The store is a read-model cache plus a command journal; the Go host stays the source of truth | The History panel reads the journal in the Domain PRD |
 | DQ-14 / SN0-Q6 | Schedule and Delivery are pages with their own rail items | Their rail items arrive with their swaps (SNP-8, SNM-5) |
 | SN0-Q7 | The mock's breakpoints apply at the mock's widths | The rail collapses below 1360 |
-| SNR-Q1 | Ctrl+F is Find in Script and the jump menu elsewhere, as `studio-next/src/app/keys.ts`; add `find.open`. Superseded by #2251 item 23 (owner, 2026-10-23): Ctrl+F opens the jump menu scoped to the page on every page, Script and Proof included; a page's own find is a search source in it | SNR-4 |
+| SNR-Q1 | Ctrl+F is Find in Script and the jump menu elsewhere, as `research-mock/src/app/keys.ts`; add `find.open`. Superseded by #2251 item 23 (owner, 2026-10-23): Ctrl+F opens the jump menu scoped to the page on every page, Script and Proof included; a page's own find is a search source in it | SNR-4 |
 | SNR-Q2 | The jump menu does not replace navigation | The collapsed rail opens over the page on hover, as the mock does |
 | SNR-Q3 | Chapters come from providers; the catalogue test covers static rows only (default taken, standing instruction) | SNR-2 |
-| SNR-Q4 | A toast's Undo may undo a DAW change only when it is the last entry, as `undoEntry` in `studio-next/src/state/store.ts` | SNR-3, SNS-3 |
+| SNR-Q4 | A toast's Undo may undo a DAW change only when it is the last entry, as `undoEntry` in `research-mock/src/state/store.ts` | SNR-3, SNS-3 |
 | SNR-Q5 | The History panel opens from a header button and `history.open` | SNR-7, SNR-8 |
 
 ## Users & Context
@@ -76,13 +76,13 @@ Narrators using the keyboard and the pedal, and every page worker (they consume 
 
 | Behaviour | Mock reference | Acceptance |
 | --- | --- | --- |
-| Go to any page or chapter from the keyboard | `studio-next/src/app/commands.ts`, `studio-next/tests/palette.test.tsx` | Typing "ch 3" lists the chapter by its formatted name; Enter navigates; Escape returns focus |
-| Search the book | `studio-next/src/app/search-sources.tsx` | Text, entry and mark hits are grouped; a hit opens its place |
-| Right-click anything | `studio-next/src/app/context.ts` | A word, a paragraph, a note, a take row each shows its provider's items, then the shared tail; disabled items show their reason |
-| Context menu by keyboard | `studio-next/src/app/keys.ts` (`ContextMenu`, Shift+F10) | The menu opens at the focused element or the active descendant |
-| Help is the keymap | `studio-next/src/app/help.tsx`, `studio-next/tests/d2-keycaps.test.tsx` | The sheet shows the user's remapped keys, not defaults |
-| Toast with Undo | `studio-next/src/ui/overlay.ts` `toastUndo` | Pressing Undo undoes exactly that entry or says why not |
-| Leave guard | `studio-next/src/state/store.ts` `setChangeGuard` | A page can register a leave guard that asks before a page change (used by Booth) |
+| Go to any page or chapter from the keyboard | `research-mock/src/app/commands.ts`, `research-mock/tests/palette.test.tsx` | Typing "ch 3" lists the chapter by its formatted name; Enter navigates; Escape returns focus |
+| Search the book | `research-mock/src/app/search-sources.tsx` | Text, entry and mark hits are grouped; a hit opens its place |
+| Right-click anything | `research-mock/src/app/context.ts` | A word, a paragraph, a note, a take row each shows its provider's items, then the shared tail; disabled items show their reason |
+| Context menu by keyboard | `research-mock/src/app/keys.ts` (`ContextMenu`, Shift+F10) | The menu opens at the focused element or the active descendant |
+| Help is the keymap | `research-mock/src/app/help.tsx`, `research-mock/tests/d2-keycaps.test.tsx` | The sheet shows the user's remapped keys, not defaults |
+| Toast with Undo | `research-mock/src/ui/overlay.ts` `toastUndo` | Pressing Undo undoes exactly that entry or says why not |
+| Leave guard | `research-mock/src/state/store.ts` `setChangeGuard` | A page can register a leave guard that asks before a page change (used by Booth) |
 
 ### Interfaces
 
@@ -179,8 +179,8 @@ Phases 2 and 3 are independent; 4 and 5 can run together; 6 and 7 are independen
 
 ## Research Summary
 
-Read: all of `studio-next/src/app/*`, `studio-next/src/ui/overlay.ts`; `src/studio/ui/src/input/*`, `components/primitives/{ContextMenu,Toast}.tsx`, `docs/architecture/studio-shell-and-registries.md` decisions, `input-commands-and-pedals.prd.md` header. Not done: no check that the Wails WebView delivers Shift+F10; the Input Commands PRD's remaining phases were not audited line by line.
+Read: all of `research-mock/src/app/*`, `research-mock/src/ui/overlay.ts`; `src/studio/ui/src/input/*`, `components/primitives/{ContextMenu,Toast}.tsx`, `docs/architecture/studio-shell-and-registries.md` decisions, `input-commands-and-pedals.prd.md` header. Not done: no check that the Wails WebView delivers Shift+F10; the Input Commands PRD's remaining phases were not audited line by line.
 
 ## Visual Spec
 
-Mock states: jump menu open (`studio-next/src/app/palette.tsx`), a context menu on a word (Script), the history list (`studio-next/src/app/history.tsx`), the help sheet. Each is a visual-suite row.
+Mock states: jump menu open (`research-mock/src/app/palette.tsx`), a context menu on a word (Script), the history list (`research-mock/src/app/history.tsx`), the help sheet. Each is a visual-suite row.

@@ -4,7 +4,7 @@ The file format, rules and bindings of the Script page's marks: host store, bind
 
 `<app>` stands for values in `config/brand.json` ([Product and technical names](../architecture/codebase-map.md#product-and-technical-names)).
 
-A mark is a range of one paragraph of the manuscript, marked with one of the narrator's mark types, with an optional note, or a question when the type asks. It is the Studio Next mock's `Annotation` of type `mark` (in `src/domain/schemas.ts` of the deleted mock); pronunciation flags (`pron`) are not marks. The store is `src/studio/desktop/internal/marks`, the bindings `src/studio/desktop/bindings_marks.go`, and the UI contract `src/studio/ui/src/api/contracts/marks.ts`.
+A mark is a range of one paragraph of the manuscript, marked with one of the narrator's mark types, with an optional note, or a question when the type asks. It is the research mock's `Annotation` of type `mark` (in `src/domain/schemas.ts` of the deleted mock); pronunciation flags (`pron`) are not marks. The store is `src/studio/desktop/internal/marks`, the bindings `src/studio/desktop/bindings_marks.go`, and the UI contract `src/studio/ui/src/api/contracts/marks.ts`.
 
 ## The file
 
@@ -32,7 +32,7 @@ It is narrator data, read through `persist`: a corrupt file, one over the byte c
 
 ## The old notes and the prep markup
 
-The first read of a project with no `marks.json` brings the reader's notes (`<app>/manuscript-notes.json`) across once: one `note` mark per note, on its anchor range when it has one, else an empty range at the start of its line, its text made plain and cut to the cap. The file is then written with `migratedNotes: true`, so a later read does not import again. The old file is only read, never changed or deleted. The old prep markup (`prep/markup.json`: stress, pause, speaker tags) is not carried: the mock has no such markup. Both old stores keep working until the Studio Next Script page replaces the old one.
+The first read of a project with no `marks.json` brings the reader's notes (`<app>/manuscript-notes.json`) across once: one `note` mark per note, on its anchor range when it has one, else an empty range at the start of its line, its text made plain and cut to the cap. The file is then written with `migratedNotes: true`, so a later read does not import again. The old file is only read, never changed or deleted. The old prep markup (`prep/markup.json`: stress, pause, speaker tags) is not carried: the mock has no such markup. Both old stores keep working until the rebuilt Script page replaces the old one.
 
 ## The bindings
 

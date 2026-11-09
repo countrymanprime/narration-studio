@@ -2,9 +2,9 @@
 
 **Status:** draft, 2026-10-24, pending the owner's review. Not approved, so nothing builds to it yet. It belongs to [Replace audio from another narrator's file](../../replace-audio.md). Refs #2251.
 
-The Studio Next mock stays the spec for the Editing page and is not edited ([Which mocks are the spec](../../../design/design-system.md#which-mocks-are-the-spec)). This draft adds a dialog and its entry points to the Editing page as built (`docs/images/ui/editing-*.webp`).
+The research mock stays the spec for the Editing page and is not edited ([What a page builds to](../../../design/design-system.md#what-a-page-builds-to)). This draft adds a dialog and its entry points to the Editing page as built (`docs/images/ui/editing-*.webp`).
 
-`index.html` is one static file: no build, no network, system fonts. Open it in a browser, or open the published copy (private to the owner): `claude.ai/artifact/PeugNwApEKpnogoAPKHt9F`, which loads IBM Plex and Barlow from Google Fonts. It takes the Studio Next mock's tokens from `docs/research/mockups/studio-next/src/styles/app.css`, follows the system theme, and has a System, Light and Dark switch (`?theme=dark` and `?step=find` also work on the local file).
+`index.html` is one static file: no build, no network, system fonts. Open it in a browser, or open the published copy (private to the owner): `claude.ai/artifact/PeugNwApEKpnogoAPKHt9F`, which loads IBM Plex and Barlow from Google Fonts. It takes the research mock's tokens from `docs/research/mockups/research-mock/src/styles/app.css`, follows the system theme, and has a System, Light and Dark switch (`?theme=dark` and `?step=find` also work on the local file).
 
 The word times are real: Kara Shallenberg's and Eric Leach's LibriVox readings of Chapter 1, from `tests/fixtures/audio/librivox-alice/alignment/`. The waveforms are drawn from those times (bars where a word is said, a hairline in the pauses). The loudness, noise floor and track format figures are invented.
 
