@@ -247,10 +247,7 @@ export function Dialog({
                 className={`${bodyScroll ? '' : 'flex min-h-0 flex-1 flex-col'} ${headerless ? 'pb-2' : 'py-[var(--space-6)] [@media(max-height:400px)]:py-2'}`}
               >
                 {hasContent(description) && (
-                  <Parts.Description
-                    render={typeof description === 'string' ? <p /> : <div />}
-                    className="mb-3 text-sm text-[var(--text-muted)] last:mb-0 [@media(max-height:400px)]:sr-only"
-                  >
+                  <Parts.Description render={typeof description === 'string' ? <p /> : <div />} className="mb-3 text-sm text-[var(--text-muted)] last:mb-0">
                     {description}
                   </Parts.Description>
                 )}

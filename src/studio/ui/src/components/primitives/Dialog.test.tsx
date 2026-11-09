@@ -695,17 +695,17 @@ describe("the shell's layout (ENX-13, ENX-16, ENX-23)", () => {
   });
 });
 
-// #3231: at 320x300 the dialog's own padding, header, footer and description took about 180 px and left the body about one line. jsdom has no layout, so
+// #3231: at 320x300 the dialog's own padding, header and footer took about 180 px and left the body about one line. jsdom has no layout, so
 // this pins the short-window rules; the real height is measured in the PR (Playwright, mock app).
 describe('a-dialog-gives-its-body-the-room-in-a-short-window', () => {
-  it('tightens its header, footer and padding and keeps the description for screen readers only under 400 px tall', () => {
+  it('tightens its header, footer and padding under 400 px tall, and keeps the description visible, as a confirm asks its whole question there', () => {
     render(
       <Dialog title="Short" description="Say what this does" dismissOnOutsidePress={false} onClose={() => undefined} actions={<Button>OK</Button>}>
         body
       </Dialog>,
     );
     const short = '[@media(max-height:400px)]';
-    expect(screen.getByText('Say what this does').className).toContain(`${short}:sr-only`);
+    expect(screen.getByText('Say what this does').className).not.toContain('sr-only');
     expect(screen.getByRole('button', { name: 'OK' }).parentElement!.className).toContain(`${short}:min-h-0`);
     expect(document.querySelector('h2')!.parentElement!.className).toContain(`${short}:min-h-0`);
   });
