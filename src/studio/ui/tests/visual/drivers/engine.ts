@@ -290,6 +290,14 @@ export const engineDrivers: Record<string, Driver> = {
     await clickVisible(page, 'button', 'Check editing');
     await panel.getByText('This chapter can’t be checked yet').waitFor();
   },
+  'link-chapters-track-folders': async (page) => {
+    await page.goto('/?mockTrackFolders=1');
+    await settlePage(page);
+    await openEnginePanel(page);
+    await clickVisible(page, 'button', 'Link chapters to tracks');
+    await page.getByRole('combobox', { name: 'Track for Chapter 1', exact: true }).selectOption({ label: 'Chapters · 8 tracks' });
+    await page.getByRole('button', { name: /^Stamp \d+ items?$/ }).waitFor();
+  },
   'link-chapters-preview': async (page) => {
     await page.goto('/?mockChapterLink=none');
     await settlePage(page);

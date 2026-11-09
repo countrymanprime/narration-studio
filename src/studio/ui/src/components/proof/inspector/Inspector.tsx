@@ -162,11 +162,11 @@ export function Inspector({
         onReopen={() => void decide('unreviewed')}
         onNoteRead={(next) => onChanged(next, false)}
       />
-      {/* The decision is the note's main action, so it stays at the panel's bottom edge while the evidence and the takes above it scroll past (#3114). The aside's scroll margin keeps a control above the band, a focused one or one scrolled into view, clear of it, not under it. */}
+      {/* The decision is the note's main action, so it stays at the panel's bottom edge while the evidence and the takes above it scroll past (#3114), except in a window under 360 px tall, where the band would fill most of the scroller and cover the controls (#3158). The aside's scroll margin keeps a control above the band, a focused one or one scrolled into view, clear of it, not under it. */}
       <div
         ref={band}
         data-decision-band
-        className="sticky bottom-[calc(var(--page-gutter)*-1)] z-[1] -mb-3 flex flex-col gap-3 border-t border-[var(--border)] bg-[var(--surface)] py-3 shadow-[-1rem_0_0_var(--surface),1rem_0_0_var(--surface)]"
+        className="sticky bottom-[calc(var(--page-gutter)*-1)] z-[1] -mb-3 flex flex-col gap-3 border-t border-[var(--border)] bg-[var(--surface)] py-3 shadow-[-1rem_0_0_var(--surface),1rem_0_0_var(--surface)] [@media(max-height:359px)]:static"
       >
         <SectionLabel>Decision</SectionLabel>
         <DecisionButtons status={shown.review.status} fix={fix} disabled={inert} pendingStatus={saving} onDecide={(status) => void decide(status)} />

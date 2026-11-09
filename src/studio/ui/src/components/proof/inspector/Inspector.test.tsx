@@ -44,6 +44,8 @@ describe('decision-buttons-stay-at-the-panel-bottom', () => {
     const band = document.querySelector('[data-decision-band]') as HTMLElement;
     expect(band.className).toMatch(/\bsticky\b/);
     expect(band.className).toContain('bottom-[calc(var(--page-gutter)*-1)]');
+    // Not pinned in a window under 360 px tall, where the band fills most of the scroller (#3158).
+    expect(band.className).toContain('[@media(max-height:359px)]:static');
     expect(within(band).getByText('Decision')).toBeTruthy();
     expect(within(band).getAllByRole('button')).toHaveLength(4);
   });

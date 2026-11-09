@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { LinkChaptersDialog } from './LinkChaptersDialog';
 import { useChapterLinks } from './useChapterLinks';
+import { VoiceLayoutContext } from './voiceLayout';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import { WIRE_CHAPTERS, WIRE_LINE_IDENTITY_LINES, WIRE_TRACKS_PROJECT } from '../../api/mockFixtures';
@@ -77,8 +78,11 @@ describe('LinkChaptersDialog', () => {
     );
   });
 
-  // #3053: a folder and a track looked the same in the picker. A folder reads as the Chapter links list names it: "<name> · N voices".
-  it('names a folder in the track picker with its voice count, and a plain track by its name', async () => {
+  // #3053: a folder and a track looked the same in the picker. #3158: it counts voices only in a Voice folders project and tracks in any other.
+  it.each([
+    ['folders', 'Chapter 1 · 2 voices'],
+    ['flat', 'Chapter 1 · 2 tracks'],
+  ] as const)('names a folder in the track picker with its child count (%s layout), and a plain track by its name', async (layout, folderLabel) => {
     const item = (guid: string) => ({ ...WIRE_TRACKS_PROJECT.tracks[0].items[0], guid });
     const track = (guid: string, name: string, depth: number, isFolder: boolean, items: string[]): Track => ({
       ...WIRE_TRACKS_PROJECT.tracks[0],
@@ -94,13 +98,19 @@ describe('LinkChaptersDialog', () => {
       track('{F0000000-0000-4000-8000-0000000000F3}', 'Hero', 1, false, ['{I2}']),
       track('{F0000000-0000-4000-8000-0000000000F4}', 'Chapter 2', 0, false, ['{I3}']),
     ];
-    renderDialog({}, {}, vi.fn(), voices);
+    render(
+      <ApiProvider api={createMockApi()}>
+        <VoiceLayoutContext.Provider value={layout}>
+          <Dialog onClose={vi.fn()} tracks={voices} />
+        </VoiceLayoutContext.Provider>
+      </ApiProvider>,
+    );
 
     const picker = await screen.findByRole('combobox', { name: `Track for ${WIRE_CHAPTERS[0].title}` });
     const labels = within(picker)
       .getAllByRole('option')
       .map((option) => option.textContent);
-    expect(labels).toContain('Chapter 1 · 2 voices');
+    expect(labels).toContain(folderLabel);
     expect(labels).toContain('Chapter 2');
     expect(labels).not.toContain('Chapter 1');
   });
