@@ -27,6 +27,13 @@ export function chapterTrackButtonState(link: ChapterTrackLink): ChapterTrackBut
   return { kind: 'not_linked' };
 }
 
+/** The track REAPER may be asked to show for a chapter: only a confirmed link to a track that is in the saved project. A suggestion, an
+ * ambiguous match and a missing track have none. The row menu and the chapter track panel both read it, so they are on or off together. */
+export function showableTrackGuid(link: ChapterTrackLink | undefined): string | undefined {
+  const state = link && chapterTrackButtonState(link);
+  return state?.kind === 'linked' || state?.kind === 'renamed' ? state.trackGuid : undefined;
+}
+
 /** The button's accessible name (Solution Detail's examples: "Track for Chapter 6: CHAPTER SIX, linked"). */
 export function chapterTrackButtonLabel(chapterTitle: string, state: ChapterTrackButtonState): string {
   switch (state.kind) {

@@ -100,6 +100,14 @@ describe('ChapterTrackPanel states (alignment audit)', () => {
     expect(screen.getByRole('heading', { name: /^Last known, as of save/ })).toBeTruthy();
   });
 
+  it('a suggested, not confirmed track offers no Show in REAPER, like the row menu (#3168)', async () => {
+    const api = createMockApi();
+    const { link, track } = await confirmedFixture(api);
+    renderPanel(api, { ...link, status: 'matched' }, track);
+    await screen.findByText(/Not linked yet/);
+    expect((await screen.findByRole('button', { name: /Show in REAPER/ })).getAttribute('aria-disabled')).toBe('true');
+  });
+
   it('two links to choose between offer the Keep this one rows and no second Link picker (R3PR1-6)', async () => {
     const api = createMockApi();
     const { link, track } = await confirmedFixture(api);

@@ -477,6 +477,29 @@ describe('the row menu keeps the features the mock has none for', () => {
     expect(contextItemsFor(row)?.find((item) => item.key === 'goto')?.unavailable).toMatch(/No chapter track is linked/);
   });
 
+  it('keeps Show in REAPER off for a track that is not in the saved project, as the chapter track panel does (#3168)', async () => {
+    const base = createMockApi();
+    const chapterTrackLinks = async () => {
+      const links = await base.chapterTrackLinks();
+      return { ...links, chapters: links.chapters.map((chapter) => ({ ...chapter, warnings: [...chapter.warnings, 'confirmed-track-missing' as const] })) };
+    };
+    const suggestedLinks = async () => {
+      const links = await base.chapterTrackLinks();
+      return { ...links, chapters: links.chapters.map((chapter) => ({ ...chapter, status: 'matched' as const })) };
+    };
+    await renderPage({ overrides: { dawCapabilities: selecting, chapterTrackLinks } });
+    const table = await pipeline();
+    const row = within(table).getAllByRole('row')[2];
+    await waitFor(() => expect(contextItemsFor(row)?.find((item) => item.key === 'recording')?.unavailable).toBeUndefined());
+    expect(contextItemsFor(row)?.find((item) => item.key === 'goto')?.unavailable).toMatch(/No chapter track is linked/);
+    cleanup();
+    // A suggested track, not yet linked, is off too.
+    await renderPage({ overrides: { dawCapabilities: selecting, chapterTrackLinks: suggestedLinks } });
+    const suggestedRow = within(await pipeline()).getAllByRole('row')[2];
+    await waitFor(() => expect(contextItemsFor(suggestedRow)?.find((item) => item.key === 'recording')?.unavailable).toBeUndefined());
+    expect(contextItemsFor(suggestedRow)?.find((item) => item.key === 'goto')?.unavailable).toMatch(/No chapter track is linked/);
+  });
+
   it('matches nothing outside the pipeline', async () => {
     await renderPage();
     await pipeline();

@@ -64,6 +64,12 @@ export const productionStates: StateEntry[] = [
   },
   {
     page: 'production',
+    state: 'chapter-track-panel-suggested',
+    description:
+      'Production, chapter track panel open on a chapter with a suggested track that is not linked yet: Show in REAPER is off, as in the row menu (?mockChapterLink=none)',
+  },
+  {
+    page: 'production',
     state: 'chapter-remove-confirm',
     description: 'Production, "Remove from recording?" open from a chapter\'s track slide-over',
   },
