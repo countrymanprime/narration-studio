@@ -25,7 +25,7 @@ func keeperPath(folder string) string { return filepath.Join(folder, keeperFileN
 // map is not one). A missing or corrupt file yields none, the same laissez-faire treatment readIdentities gives an
 // unreadable sidecar of its own.
 func readKeepers(folder string) map[string]bool {
-	raw, err := os.ReadFile(keeperPath(folder))
+	raw, err := persist.ReadFile(keeperPath(folder))
 	if err != nil {
 		return map[string]bool{}
 	}
@@ -114,7 +114,7 @@ type TakeCut struct {
 
 func readHidden(folder string) map[string]bool {
 	var hidden map[string]bool
-	if raw, err := os.ReadFile(filepath.Join(folder, hiddenFileName)); err != nil || json.Unmarshal(raw, &hidden) != nil || hidden == nil {
+	if raw, err := persist.ReadFile(filepath.Join(folder, hiddenFileName)); err != nil || json.Unmarshal(raw, &hidden) != nil || hidden == nil {
 		return map[string]bool{}
 	}
 	return hidden
@@ -122,7 +122,7 @@ func readHidden(folder string) map[string]bool {
 
 func readEdits(folder string) map[string][]TakeCut {
 	var edits map[string][]TakeCut
-	if raw, err := os.ReadFile(filepath.Join(folder, editsFileName)); err != nil || json.Unmarshal(raw, &edits) != nil || edits == nil {
+	if raw, err := persist.ReadFile(filepath.Join(folder, editsFileName)); err != nil || json.Unmarshal(raw, &edits) != nil || edits == nil {
 		return map[string][]TakeCut{}
 	}
 	return edits

@@ -39,7 +39,7 @@ type Manifest struct {
 
 // ReadManifest reads the manifest of one install directory. A directory with no manifest, or a damaged one, is an error.
 func ReadManifest(dir string) (Manifest, error) {
-	bytes, err := os.ReadFile(filepath.Join(dir, manifestName))
+	bytes, err := persist.ReadFile(filepath.Join(dir, manifestName))
 	if err != nil {
 		return Manifest{}, err
 	}

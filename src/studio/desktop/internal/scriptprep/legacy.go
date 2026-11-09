@@ -8,6 +8,8 @@ import (
 	"math"
 	"os"
 	"sort"
+
+	"desktop/internal/persist"
 )
 
 // LegacyWords is the words a schema-1 file kept, for the migration that moves them into the Story Bible: each key with its say-value,
@@ -91,7 +93,7 @@ func (s *Service) Backup() error {
 			return nil
 		}
 		// Another writer's backup: the same bytes are the backup, other bytes are left alone.
-		if existing, err := os.ReadFile(backup); err == nil && bytes.Equal(existing, raw) {
+		if existing, err := persist.ReadFile(backup); err == nil && bytes.Equal(existing, raw) {
 			return nil
 		}
 	}
@@ -122,7 +124,7 @@ func (s *Service) legacyBytes() ([]byte, bool, error) {
 	if err != nil || !file.legacy() {
 		return nil, false, err
 	}
-	raw, err := os.ReadFile(File(s.config.Project))
+	raw, err := persist.ReadFile(File(s.config.Project))
 	if err != nil {
 		return nil, false, fmt.Errorf("could not read the %s file: %w", what, err)
 	}
@@ -136,7 +138,7 @@ func (s *Service) findBackup(raw []byte) (bool, error) {
 		return false, fmt.Errorf("could not check the %s backup: %w", what, err)
 	}
 	for _, backup := range backups {
-		existing, err := os.ReadFile(backup)
+		existing, err := persist.ReadFile(backup)
 		if err != nil && !errors.Is(err, fs.ErrNotExist) {
 			return false, fmt.Errorf("could not check the %s backup: %w", what, err)
 		}
@@ -181,7 +183,7 @@ func (s *Service) FinishMigration() error {
 	if err != nil || !file.legacy() {
 		return err
 	}
-	raw, err := os.ReadFile(File(s.config.Project))
+	raw, err := persist.ReadFile(File(s.config.Project))
 	if err != nil {
 		return fmt.Errorf("could not read the %s file: %w", what, err)
 	}
