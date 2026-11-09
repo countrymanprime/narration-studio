@@ -21,7 +21,7 @@ const (
 // once and the open reader keeps its handle, which is what Open's FILE_SHARE_DELETE is for. Windows builds that predate it (before
 // 1709), or a volume that lacks it, fall back to os.Rename.
 func replaceFile(from, to string) error {
-	err := posixRename(from, to)
+	err := posixRenameFn(from, to)
 	if err == nil || !errors.Is(err, errPosixRenameUnsupported) {
 		return err
 	}
@@ -29,6 +29,14 @@ func replaceFile(from, to string) error {
 }
 
 var errPosixRenameUnsupported = errors.New("posix rename unsupported")
+
+// posixRenameFn is posixRename; a test swaps it to reach the fallback.
+var posixRenameFn = posixRename
+
+// unsupported is the set of errors Windows gives for a rename class or flag it does not know.
+func unsupported(err error) bool {
+	return errors.Is(err, windows.ERROR_INVALID_PARAMETER) || errors.Is(err, windows.ERROR_NOT_SUPPORTED) || errors.Is(err, windows.ERROR_INVALID_FUNCTION)
+}
 
 func posixRename(from, to string) error {
 	target, err := filepath.Abs(to)
@@ -67,10 +75,10 @@ func posixRename(from, to string) error {
 	info.FileNameLength = uint32(nameBytes)                                                                     //nolint:gosec // G115: a path is far below 4 GiB
 	copy(buffer[nameOffset:], unsafe.Slice((*byte)(unsafe.Pointer(&name[0])), nameBytes))                       //nolint:gosec // G103: the bytes of the UTF-16 name, which outlives the copy
 	err = windows.SetFileInformationByHandle(handle, windows.FileRenameInfoEx, &buffer[0], uint32(len(buffer))) //nolint:gosec // G115: the buffer is a path plus a header
-	switch {
-	case err == nil:
+	if err == nil {
 		return nil
-	case errors.Is(err, windows.ERROR_INVALID_PARAMETER), errors.Is(err, windows.ERROR_NOT_SUPPORTED), errors.Is(err, windows.ERROR_INVALID_FUNCTION):
+	}
+	if unsupported(err) {
 		return errPosixRenameUnsupported
 	}
 	return &os.LinkError{Op: "rename", Old: from, New: to, Err: err}
