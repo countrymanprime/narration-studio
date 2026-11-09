@@ -172,7 +172,17 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
     ...tracks.map((track) => {
       const name = track.name || `Track ${track.index + 1}`;
       // A folder reads as the Chapter links list names it, so it is not taken for a track.
-      return { value: track.guid, label: track.isFolder ? folderLinkLabel(name, folderChildren(tracks, track.guid).length) : name };
+      const children = track.isFolder ? folderChildren(tracks, track.guid) : [];
+      return {
+        value: track.guid,
+        label: track.isFolder
+          ? folderLinkLabel(
+              name,
+              children.length,
+              children.some((child) => child.isFolder),
+            )
+          : name,
+      };
     }),
   ];
 

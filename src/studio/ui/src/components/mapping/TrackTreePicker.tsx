@@ -77,7 +77,13 @@ export function TrackTreePicker({
   const folders = layout === 'folders';
   // A chapter folder is named with how many voices it holds, as Chapter links shows a linked one.
   const shownName = (node: TreeNode<Entry>) =>
-    folders && node.track.isFolder ? folderLinkLabel(trackLabel(node.track), node.childCount) : trackLabel(node.track);
+    folders && node.track.isFolder
+      ? folderLinkLabel(
+          trackLabel(node.track),
+          node.childCount,
+          nodes.some((other) => other.parent >= 0 && nodes[other.parent] === node && other.track.isFolder),
+        )
+      : trackLabel(node.track);
 
   const searching = query.trim() !== '';
   const needle = query.trim().toLowerCase();

@@ -105,6 +105,30 @@ describe('LinkChaptersDialog', () => {
     expect(labels).not.toContain('Chapter 1');
   });
 
+  // #3158: a folder whose children are folders holds tracks, not voices.
+  it('calls a folder of folders by its tracks, not its voices', async () => {
+    const track = (guid: string, name: string, depth: number, isFolder: boolean): Track => ({
+      ...WIRE_TRACKS_PROJECT.tracks[0],
+      guid,
+      name,
+      depth,
+      isFolder,
+      items: [],
+    });
+    const folders = [
+      track('{F0000000-0000-4000-8000-0000000000E1}', 'Narration', 0, true),
+      track('{F0000000-0000-4000-8000-0000000000E2}', 'Chapter 1', 1, true),
+      track('{F0000000-0000-4000-8000-0000000000E3}', 'Narrator', 2, false),
+    ];
+    renderDialog({}, {}, vi.fn(), folders);
+    const picker = await screen.findByRole('combobox', { name: `Track for ${WIRE_CHAPTERS[0].title}` });
+    const labels = within(picker)
+      .getAllByRole('option')
+      .map((option) => option.textContent);
+    expect(labels).toContain('Narration · 1 track');
+    expect(labels).toContain('Chapter 1 · 1 voice');
+  });
+
   it('counts and stamps an item once when an outer folder and a track inside it are both linked, for the chapter linked nearest', async () => {
     const user = userEvent.setup();
     const item = (guid: string) => ({ ...WIRE_TRACKS_PROJECT.tracks[0].items[0], guid });

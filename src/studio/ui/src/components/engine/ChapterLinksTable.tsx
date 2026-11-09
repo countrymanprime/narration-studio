@@ -194,7 +194,14 @@ function ChapterLinkRow({
   // In a Voice folders project a chapter's link is its folder, named with how many voices it holds.
   const folders = useVoiceLayout() === 'folders';
   const linkedTrack = tracks.find((track) => track.guid === linkedGuid);
-  const linkedName = folders && linkedTrack?.isFolder ? folderLinkLabel(row.trackName ?? '', folderChildren(tracks, linkedTrack.guid).length) : row.trackName;
+  const linkedKids = folders && linkedTrack?.isFolder ? folderChildren(tracks, linkedTrack.guid) : undefined;
+  const linkedName = linkedKids
+    ? folderLinkLabel(
+        row.trackName ?? '',
+        linkedKids.length,
+        linkedKids.some((child) => child.isFolder),
+      )
+    : row.trackName;
   const short = chapterName(row.chapter, 'short');
   const choices = plainTrackChoices(tracks, mappings, row.chapter.id);
   const badge = STATE_BADGE[row.state];
