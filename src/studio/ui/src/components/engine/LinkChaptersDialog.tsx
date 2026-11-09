@@ -180,6 +180,19 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
       };
     }),
   ];
+  // A folder that holds a track another chapter is linked to still takes the audio outside that track (chapterItemsByNearestLink), so its option says it
+  // shares the folder before it is picked, not after the count has moved.
+  const linkedTo = new Map<string, string>();
+  for (const { chapter, mapping, state } of rows) if (mapping && state === 'linked') linkedTo.set(mapping.trackGuid, chapter.id);
+  const optionsFor = (chapterId: string) =>
+    trackOptions.map((option) => {
+      const at = tracks.findIndex((track) => track.guid === option.value);
+      const folder = tracks[at];
+      const end = folder?.isFolder ? tracks.findIndex((track, i) => i > at && track.depth <= folder.depth) : at;
+      const inner = folder?.isFolder ? tracks.slice(at + 1, end < 0 ? undefined : end) : [];
+      const taken = inner.some((track) => linkedTo.has(track.guid) && linkedTo.get(track.guid) !== chapterId);
+      return taken ? { ...option, label: `${option.label} (shares another chapter's track)` } : option;
+    });
 
   const approve = () => {
     setLastAction('stamp');
@@ -197,13 +210,13 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
       dismissOnOutsidePress={false}
       title="Link chapters to REAPER"
       size="wide"
-      onClose={running ? undefined : onClose}
-      escapeCloses={!running}
+      onClose={onClose}
       description="Choose which REAPER track holds each chapter's recording. A pick saves the link at once; nothing is stamped until you approve."
       actions={
         <>
-          <Button variant="secondary" onClick={onClose} disabled={running}>
-            {state.phase === 'success' && state.stamp.applied > 0 ? 'Close' : 'Cancel'}
+          {/* Always an exit: a stamp that stalls must not trap the narrator. The host keeps stamping and the dialog shows it again on reopen. */}
+          <Button variant="secondary" onClick={onClose}>
+            {running || (state.phase === 'success' && state.stamp.applied > 0) ? 'Close' : 'Cancel'}
           </Button>
           <Button onClick={approve} disabled={preview.length === 0} pending={running}>
             {`Stamp ${preview.length} item${preview.length === 1 ? '' : 's'}`}
@@ -237,7 +250,7 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
       )}
       {state.phase === 'stamping' && (
         <p className="mb-3 text-sm" style={{ color: 'var(--text-muted)' }}>
-          {state.message}
+          {state.message} Closing this dialog does not stop it.
         </p>
       )}
       {state.phase === 'success' && (state.stamp.applied > 0 || state.stamp.missingCount > 0 || state.stamp.conflictsCount > 0) && (
@@ -266,7 +279,8 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
                 ? (owned.get(chapter.id)?.length ?? 0)
                 : undefined;
             // A link whose track is gone is shown as the section shows it, not as "Not linked".
-            const options = state === 'missing_track' && mapping ? [...trackOptions, { value: mapping.trackGuid, label: 'Track missing' }] : trackOptions;
+            const rowOptions = optionsFor(chapter.id);
+            const options = state === 'missing_track' && mapping ? [...rowOptions, { value: mapping.trackGuid, label: 'Track missing' }] : rowOptions;
             return (
               <TableRow key={chapter.id}>
                 <TableCell>{headingName(chapter)}</TableCell>
@@ -276,7 +290,7 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
                     value={mapping?.trackGuid ?? ''}
                     onChange={(value) => (value ? links.set(chapter.id, value) : links.unlink(chapter.id))}
                     options={options}
-                    disabled={links.busyChapterId === chapter.id}
+                    disabled={links.busyChapterId === chapter.id || running}
                     fullWidth
                   />
                 </TableCell>

@@ -267,18 +267,32 @@ describe('LinkChaptersDialog', () => {
     expect(screen.getByText('Chapter no longer in the manuscript')).toBeTruthy();
   });
 
-  it('disables Cancel and Close while a stamp is running', async () => {
+  it('keeps Close and the pickers honest while a stamp is running: pickers off, an exit always there', async () => {
     const user = userEvent.setup();
     const { api } = renderDialog();
-    await user.selectOptions(await screen.findByRole('combobox', { name: `Track for ${WIRE_CHAPTERS[0].title}` }), WIRE_TRACKS_PROJECT.tracks[0].guid);
-    const trackItemCount = WIRE_TRACKS_PROJECT.tracks[0].items.length;
+    const picker = await screen.findByRole('combobox', { name: `Track for ${WIRE_CHAPTERS[0].title}` });
+    await user.selectOptions(picker, WIRE_TRACKS_PROJECT.tracks[0].guid);
 
     void api.lineIdentityStamp(
       WIRE_TRACKS_PROJECT.tracks[0].items.map((item) => ({ itemGuid: item.guid, lineId: WIRE_CHAPTERS[0].id, text: WIRE_CHAPTERS[0].title })),
       false,
     );
-    void trackItemCount;
 
-    await waitFor(() => expect((screen.getByRole('button', { name: 'Cancel' }) as HTMLButtonElement).disabled).toBe(true));
+    await waitFor(() => expect((picker as HTMLSelectElement).disabled).toBe(true));
+    expect(screen.getAllByRole('button', { name: 'Close' }).every((button) => !(button as HTMLButtonElement).disabled)).toBe(true);
+  });
+
+  // #3231: a folder that holds a track another chapter is linked to would count and stamp that chapter's audio.
+  it("labels a folder that holds another chapter's linked track before it is picked", async () => {
+    const user = userEvent.setup();
+    const base = WIRE_TRACKS_PROJECT.tracks[0];
+    const folder = { ...base, guid: '{F1}', name: 'Chapters', depth: 0, isFolder: true, items: [] };
+    const inner = { ...base, guid: '{T1}', name: 'Inner', depth: 1, isFolder: false };
+    renderDialog({}, {}, vi.fn(), [folder, inner]);
+    const first = await screen.findByRole('combobox', { name: `Track for ${WIRE_CHAPTERS[0].title}` });
+    const second = screen.getByRole('combobox', { name: `Track for ${WIRE_CHAPTERS[1].title}` });
+    await user.selectOptions(second, '{T1}');
+    await waitFor(() => expect(within(first).getByRole('option', { name: /Chapters.*shares another chapter's track/ })).toBeTruthy());
+    expect(within(second).queryByRole('option', { name: /shares another chapter's track/ })).toBeNull();
   });
 });
