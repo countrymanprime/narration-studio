@@ -20,13 +20,12 @@ const NARRATOR = 'narrator';
 const same = (a: string, b: string) => a.trim().toLocaleLowerCase() === b.trim().toLocaleLowerCase();
 
 /** The direct children of the folder `folderGuid` among `tracks` (file order, with depth), or [] when it is not a folder. */
-/** A chapter folder as the link pickers name it in a Voice folders project (the mock's "Ch 8 · 5 voices"). A folder that holds folders has tracks, not voices. */
-export function folderLinkLabel(name: string, count: number, holdsFolders = false): string {
-  const unit = holdsFolders ? 'track' : 'voice';
+/** A chapter folder as the link pickers name it: "Ch 8 · 5 voices" in a Voice folders project, where its children are voices, and "· N tracks" in
+ * any other project, as the Tracks list counts them. */
+export function folderLinkLabel(name: string, count: number, unit: 'voice' | 'track' = 'voice'): string {
   return `${name} · ${count === 1 ? `1 ${unit}` : `${count} ${unit}s`}`;
 }
 
-/** The direct children of the folder `folderGuid` among `tracks` (file order, with depth), or [] when it is not a folder. */
 export function folderChildren(tracks: readonly Track[], folderGuid: string): Track[] {
   const at = tracks.findIndex((track) => track.guid === folderGuid);
   const folder = tracks[at];

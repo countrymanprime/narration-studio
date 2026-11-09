@@ -19,6 +19,7 @@ import type { LiveTracks } from './useLiveTracks';
 import type { ChapterTrackRow } from './chapterTrackRows';
 import type { ChapterLinks } from './useChapterLinks';
 import { folderChildren, folderLinkLabel } from './voices';
+import { useVoiceLayout } from './voiceLayout';
 import type { LineIdentityLine, LineIdentityRowStatus, LineIdentityState, LineIdentityStampRow, Track, TrackItem } from '../../types';
 
 const STATUS_LABEL: Record<LineIdentityRowStatus, string> = {
@@ -167,21 +168,15 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
   const preview = useMemo(() => stampRows(rows, owned), [rows, owned]);
   const running = state.phase === 'stamping';
   // A name is an option's whole text, so a direction override in it reaches nothing past the name: an option needs no isolate (breaker 7).
+  const voiceFolders = useVoiceLayout() === 'folders';
   const trackOptions = [
     { value: '', label: 'Not linked' },
     ...tracks.map((track) => {
       const name = track.name || `Track ${track.index + 1}`;
       // A folder reads as the Chapter links list names it, so it is not taken for a track.
-      const children = track.isFolder ? folderChildren(tracks, track.guid) : [];
       return {
         value: track.guid,
-        label: track.isFolder
-          ? folderLinkLabel(
-              name,
-              children.length,
-              children.some((child) => child.isFolder),
-            )
-          : name,
+        label: track.isFolder ? folderLinkLabel(name, folderChildren(tracks, track.guid).length, voiceFolders ? 'voice' : 'track') : name,
       };
     }),
   ];
