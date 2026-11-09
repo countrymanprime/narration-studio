@@ -33,6 +33,9 @@ export const TOAST_INFO_MS = 5_000;
 /** How long an information message stays when its button is the only way to what it announces (the scan's Show them): longer than a keyboard user needs to Tab to it. */
 export const TOAST_ACTION_MS = 12_000;
 const FADE_MS = 150;
+/** How long an action has to put focus where it wants (the Schedule's restored row, after its Undo resolves) before focus is handed back to where it was. */
+// shortcut: a fixed wait, not the action's own promise (`onAction` returns nothing); upgrade when an action reports when it is done.
+export const ACTION_FOCUS_MS = 250;
 
 function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: number) => void }) {
   const [leaving, setLeaving] = useState(false);
@@ -65,10 +68,13 @@ function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: 
     const target = all[at + 1] ?? all[at - 1] ?? origin.current;
     dismiss(id);
     // Only focus that is on nothing is handed back: an action that opened a dialog or moved focus keeps what it did.
-    window.setTimeout(() => {
-      const active = document.activeElement;
-      if (target?.isConnected && (always || !active || active === document.body || !active.isConnected)) target.focus();
-    }, 0);
+    window.setTimeout(
+      () => {
+        const active = document.activeElement;
+        if (target?.isConnected && (always || !active || active === document.body || !active.isConnected)) target.focus();
+      },
+      always ? 0 : ACTION_FOCUS_MS,
+    );
   };
   useEffect(() => {
     if (sticky || held) return;

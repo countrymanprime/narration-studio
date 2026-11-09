@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { Dialog } from './Dialog';
 import { tabInsideTrap } from './tabInsideTrap';
-import { TOAST_ACTION_MS, TOAST_INFO_MS, ToastRegion, type ToastMessage } from './Toast';
+import { ACTION_FOCUS_MS, TOAST_ACTION_MS, TOAST_INFO_MS, ToastRegion, type ToastMessage } from './Toast';
 
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => {
@@ -319,7 +319,7 @@ describe('ToastRegion under a hand or a key (issue 2956)', () => {
       fireEvent.click(button);
       // The service takes the toast away, and focus with it.
       view.rerender(<ToastRegion messages={[]} dismiss={vi.fn()} />);
-      act(() => void vi.advanceTimersByTime(1));
+      act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS));
       expect(document.activeElement).toBe(opener);
       cleanup();
     }
@@ -333,7 +333,7 @@ describe('ToastRegion under a hand or a key (issue 2956)', () => {
     const button = screen.getByRole('button', { name: 'Open' });
     button.focus();
     fireEvent.click(button);
-    act(() => void vi.advanceTimersByTime(1));
+    act(() => void vi.advanceTimersByTime(ACTION_FOCUS_MS));
     expect(document.activeElement).toBe(elsewhere);
     elsewhere.remove();
   });
@@ -363,19 +363,25 @@ describe('ToastRegion inside a modal (issue 2949)', () => {
     open();
     const done = screen.getByRole('button', { name: 'Done' });
     const dismiss = screen.getByRole('button', { name: 'Dismiss message' });
+    // Base UI settles focus a frame after it enters the popup (see tabInsideTrap); each step lets it, so it cannot move focus again under the next press.
+    const settled = () => new Promise((resolve) => setTimeout(resolve, 60));
+    await settled();
     done.focus();
+    await settled();
     await user.tab();
-    expect(document.activeElement).toBe(dismiss);
+    await waitFor(() => expect(document.activeElement).toBe(dismiss));
+    await settled();
     await user.tab();
     // Back in the dialog: the library may put focus on the control that had it last, so only the dialog is asserted.
     await waitFor(() => expect(document.activeElement?.closest('[role="dialog"]')).not.toBeNull());
-    // Base UI settles focus a frame after it enters the popup (see tabInsideTrap); let it, so it cannot move focus again under the next press.
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    await settled();
     (document.querySelector('[role="dialog"] [tabindex="0"]') as HTMLElement).focus();
+    await settled();
     await user.tab({ shift: true });
-    expect(document.activeElement).toBe(dismiss);
+    await waitFor(() => expect(document.activeElement).toBe(dismiss));
+    await settled();
     await user.tab({ shift: true });
-    expect(document.activeElement).toBe(done);
+    await waitFor(() => expect(document.activeElement).toBe(done));
   });
 
   it('leaves the dialog’s own Tab loop alone when no toast is showing', async () => {
