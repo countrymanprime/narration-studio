@@ -65,6 +65,7 @@ export const proofStates: StateEntry[] = [
     state: 'compare-odd-chunk',
     description:
       'Proof, Chapter 1 linked, Compare opened with a hand-edited chunk length in Settings (?mockSettings=odd-chunk): the setup starts on 1m and a toast says the stored length is not one it offers',
+    ...REFLOW,
   },
   {
     page: 'proof',
