@@ -36,6 +36,15 @@ describe('Select', () => {
     expect(select.value).toBe('a');
   });
 
+  it("reads disabled in the one look every consumer shares: Button's muted label on a --surface-2 fill, not a call site's own dimming (#3194)", () => {
+    render(<Select label="Chunk length" value="a" onChange={() => undefined} options={OPTIONS} disabled />);
+    const select = screen.getByRole('combobox', { name: 'Chunk length' }) as HTMLSelectElement;
+    expect(select.disabled).toBe(true);
+    for (const look of ['disabled:bg-[var(--surface-2)]', 'disabled:text-[var(--text-muted)]', 'disabled:cursor-not-allowed'])
+      expect(select.className).toContain(look);
+    expect(select.className).not.toMatch(/disabled:opacity/);
+  });
+
   it('reports the chosen value when the change is fired the way the existing tests fire it', () => {
     const onChange = vi.fn();
     render(<Controlled onChange={onChange} />);
