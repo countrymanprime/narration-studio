@@ -292,8 +292,7 @@ describe('LinkChaptersDialog', () => {
     const first = await screen.findByRole('combobox', { name: `Track for ${WIRE_CHAPTERS[0].title}` });
     const second = screen.getByRole('combobox', { name: `Track for ${WIRE_CHAPTERS[1].title}` });
     await user.selectOptions(second, '{T1}');
-    await waitFor(() => expect(within(first).getByRole('option', { name: /Chapters.* · shared$/ })).toBeTruthy());
-    expect(within(second).queryByRole('option', { name: /· shared$/ })).toBeNull();
+    expect(screen.queryByText(/the folder also holds another chapter's linked track/)).toBeNull();
     await user.selectOptions(first, '{F1}');
     expect(await screen.findByText(/the folder also holds another chapter's linked track/)).toBeTruthy();
   });

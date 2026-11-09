@@ -180,8 +180,8 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
       };
     }),
   ];
-  // A folder that holds a track another chapter is linked to still takes the audio outside that track (chapterItemsByNearestLink), so its option says it
-  // shares the folder before it is picked, not after the count has moved.
+  // A folder that holds a track another chapter is linked to still takes the audio outside that track (chapterItemsByNearestLink); the sentence under
+  // the table says so once it is picked, where the closed picker's clipped label could not.
   const linkedTo = new Map<string, string>();
   for (const { chapter, mapping, state } of rows) if (mapping && state === 'linked') linkedTo.set(mapping.trackGuid, chapter.id);
   const sharesTrack = (chapterId: string, folderGuid: string) => {
@@ -191,9 +191,6 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
     const end = tracks.findIndex((track, i) => i > at && track.depth <= folder.depth);
     return tracks.slice(at + 1, end < 0 ? undefined : end).some((track) => linkedTo.has(track.guid) && linkedTo.get(track.guid) !== chapterId);
   };
-  // The suffix is short so a closed picker does not cut it off; the sentence under the table says what it means.
-  const optionsFor = (chapterId: string) =>
-    trackOptions.map((option) => (sharesTrack(chapterId, option.value) ? { ...option, label: `${option.label} · shared` } : option));
   const sharing = rows.filter(({ chapter, mapping, state }) => mapping && state === 'linked' && sharesTrack(chapter.id, mapping.trackGuid));
 
   const approve = () => {
@@ -281,8 +278,7 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
                 ? (owned.get(chapter.id)?.length ?? 0)
                 : undefined;
             // A link whose track is gone is shown as the section shows it, not as "Not linked".
-            const rowOptions = optionsFor(chapter.id);
-            const options = state === 'missing_track' && mapping ? [...rowOptions, { value: mapping.trackGuid, label: 'Track missing' }] : rowOptions;
+            const options = state === 'missing_track' && mapping ? [...trackOptions, { value: mapping.trackGuid, label: 'Track missing' }] : trackOptions;
             return (
               <TableRow key={chapter.id}>
                 <TableCell>{headingName(chapter)}</TableCell>
