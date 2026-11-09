@@ -1,6 +1,6 @@
 // How to reach each `settings` state in STATE_CATALOG (see app.drivers.ts). The page is one category at a time, chosen in the category list
 // (shared.ts: openSettingsCategory); each driver waits for what its own state shows.
-import type { Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
 import {
   type Driver,
@@ -269,6 +269,18 @@ export const settingsDrivers: Record<string, Driver> = {
     await page.getByLabel('Coverage chunk length (all projects)', { exact: true }).waitFor();
   },
   // The Recording check rows sit below the fold of 'speech-advanced', so the Coverage chunk length row is captured on its own.
+  'speech-odd-chunk-values': async (page) => {
+    await openSettings(page, 'Speech to text', '?mockSettings=odd-chunk');
+    await openAdvanced(page);
+    const chosen = (row: string) =>
+      page
+        .locator(`[data-row="${row}"] select`)
+        .first()
+        .evaluate((select: HTMLSelectElement) => select.selectedOptions[0]?.textContent);
+    await expect.poll(() => chosen('stt.chunk')).toBe('240 s');
+    await expect.poll(() => chosen('stt.compareChunk')).toBe('abc (invalid)');
+    await page.locator('[data-row="stt.chunk"]').scrollIntoViewIfNeeded();
+  },
   'speech-coverage-chunk': async (page) => {
     await openSettings(page, 'Speech to text');
     await openAdvanced(page);
@@ -708,6 +720,23 @@ export const settingsDrivers: Record<string, Driver> = {
       .first()
       .click();
     await page.getByRole('region', { name: 'App & updates' }).locator('[data-row="app.notify"]').waitFor();
+  },
+  'filter-changed-after-reset': async (page) => {
+    await openSettings(page, 'App & updates');
+    await page.getByRole('switch', { name: /Tell me when a long task finishes/ }).click();
+    await page.locator('[data-row="app.notify"][data-changed="true"]').waitFor();
+    await page.getByRole('combobox', { name: /Update channel/ }).selectOption('stable');
+    await page.locator('[data-row="app.channel"][data-changed="true"]').waitFor();
+    await page
+      .getByRole('radio', { name: 'Changed', exact: true })
+      .or(page.getByRole('button', { name: 'Changed', exact: true }))
+      .first()
+      .click();
+    const first = page.locator('[data-row="app.notify"]');
+    await first.getByRole('button', { name: /^Reset / }).click();
+    await first.waitFor({ state: 'detached' });
+    // Focus is on the row that is left, not on the page body.
+    await expect.poll(() => page.evaluate(() => document.activeElement?.closest('[data-row]')?.getAttribute('data-row'))).toBe('app.channel');
   },
   'filter-project': async (page) => {
     await openSettings(page);

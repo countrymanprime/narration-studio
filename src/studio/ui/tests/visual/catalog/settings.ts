@@ -174,6 +174,14 @@ export const settingsStates: StateEntry[] = [
   },
   {
     page: 'settings',
+    state: 'speech-odd-chunk-values',
+    description:
+      'Settings, Speech to text with Advanced open (?mockSettings=odd-chunk): a hand-edited Coverage chunk length of 240 s reads "240 s" and a Compare chunk length of "abc" reads "abc (invalid)", each marked Changed',
+    ...REFLOW,
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'settings',
     state: 'speech-coverage-chunk',
     description: 'Settings, Speech to text with Advanced open, scrolled to the Coverage chunk length row at the end of the Recording check rows',
     ...REFLOW,
@@ -673,6 +681,13 @@ export const settingsStates: StateEntry[] = [
     state: 'filter-changed',
     description:
       'Settings with Show: Changed after one setting was changed from its default: only that row, under its category, marked Changed with its reset button',
+    ...REFLOW,
+  },
+  {
+    page: 'settings',
+    state: 'filter-changed-after-reset',
+    description:
+      'Settings with Show: Changed, two rows changed and Reset pressed on the first: it leaves the list and keyboard focus moves to the other row instead of the page body',
     ...REFLOW,
   },
   {

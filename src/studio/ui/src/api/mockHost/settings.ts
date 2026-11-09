@@ -8,7 +8,7 @@ export type MockSettings = Record<Scope, Record<string, ScopedSettingField[]>>;
  * How the mock's settings file behaves (`?mockSettings=`): `loading` never answers a read, so the page stays on its loading rows; `unreadable`
  * rejects every read, as a file the host cannot parse does; `save-fails` reads normally and rejects every save with the read-only sentence.
  */
-export type MockSettingsSeed = 'loading' | 'unreadable' | 'save-fails';
+export type MockSettingsSeed = 'loading' | 'unreadable' | 'save-fails' | 'odd-chunk';
 
 export const UNREADABLE_SETTINGS = 'The settings file could not be read: it is not valid JSON';
 export const READ_ONLY_SETTINGS = 'The settings file is read-only.';
@@ -36,6 +36,16 @@ export function createSettingsMock(
       ]),
     ),
   };
+  // A hand-edited settings file: a coverage chunk length of 240 s (not one of the choices Settings lists) and a compare chunk that is not a number.
+  if (seed === 'odd-chunk') {
+    const set = (tool: string, key: string, value: string) => {
+      settings.global[tool] = (settings.global[tool] || []).map((field) =>
+        field.key === key ? { ...field, value, isSet: true, effectiveValue: value, effectiveSource: 'Global' } : field,
+      );
+    };
+    set('RecordingCoverage', 'chunk_seconds', '240');
+    set('TranscriptCompare', 'chunk_seconds', 'abc');
+  }
   const bindings = {
     saveSettings: async (tool, scope, values) => {
       if (seed === 'save-fails') throw new Error(READ_ONLY_SETTINGS);
