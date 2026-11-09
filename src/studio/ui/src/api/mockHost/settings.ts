@@ -20,6 +20,16 @@ export function createSettingsMock(
   seed?: MockSettingsSeed,
 ) {
   const globalSettings = wireSettings();
+  // A hand-edited settings file: a coverage chunk length of 240 s (not one of the choices Settings lists) and a compare chunk that is not a number.
+  if (seed === 'odd-chunk') {
+    const set = (tool: string, key: string, value: string) => {
+      globalSettings[tool] = (globalSettings[tool] || []).map((field) =>
+        field.key === key ? { ...field, value, isSet: true, effectiveValue: value, effectiveSource: 'Global' } : field,
+      );
+    };
+    set('RecordingCoverage', 'chunk_seconds', '240');
+    set('TranscriptCompare', 'chunk_seconds', 'abc');
+  }
   const settings: MockSettings = {
     global: globalSettings,
     project: Object.fromEntries(
@@ -36,16 +46,6 @@ export function createSettingsMock(
       ]),
     ),
   };
-  // A hand-edited settings file: a coverage chunk length of 240 s (not one of the choices Settings lists) and a compare chunk that is not a number.
-  if (seed === 'odd-chunk') {
-    const set = (tool: string, key: string, value: string) => {
-      settings.global[tool] = (settings.global[tool] || []).map((field) =>
-        field.key === key ? { ...field, value, isSet: true, effectiveValue: value, effectiveSource: 'Global' } : field,
-      );
-    };
-    set('RecordingCoverage', 'chunk_seconds', '240');
-    set('TranscriptCompare', 'chunk_seconds', 'abc');
-  }
   const bindings = {
     saveSettings: async (tool, scope, values) => {
       if (seed === 'save-fails') throw new Error(READ_ONLY_SETTINGS);
