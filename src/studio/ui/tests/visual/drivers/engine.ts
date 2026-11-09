@@ -296,6 +296,10 @@ export const engineDrivers: Record<string, Driver> = {
     await openEnginePanel(page);
     await clickVisible(page, 'button', 'Link chapters to tracks');
     await page.getByRole('combobox', { name: 'Track for Chapter 1', exact: true }).selectOption({ label: 'Chapters · 8 tracks' });
+    await page
+      .getByText(/the folder also holds another chapter's linked track/)
+      .first()
+      .scrollIntoViewIfNeeded();
     await page.getByRole('button', { name: /^Stamp \d+ items?$/ }).waitFor();
   },
   'link-chapters-preview': async (page) => {
