@@ -40,14 +40,14 @@ func unsupported(err error) bool {
 
 func posixRename(from, to string) error {
 	target, err := filepath.Abs(to)
-	if err != nil {
-		return err
+	var name []uint16
+	if err == nil {
+		name, err = windows.UTF16FromString(target)
 	}
-	name, err := windows.UTF16FromString(target)
-	if err != nil {
-		return &os.LinkError{Op: "rename", Old: from, New: to, Err: err}
+	var source *uint16
+	if err == nil {
+		source, err = windows.UTF16PtrFromString(from)
 	}
-	source, err := windows.UTF16PtrFromString(from)
 	if err != nil {
 		return &os.LinkError{Op: "rename", Old: from, New: to, Err: err}
 	}

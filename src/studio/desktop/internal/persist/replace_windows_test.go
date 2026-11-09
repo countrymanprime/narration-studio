@@ -88,3 +88,21 @@ func TestOpenReportsErrors(t *testing.T) {
 		t.Error("NUL in the name: no error")
 	}
 }
+
+func TestReplaceFileReportsARefusedRenameWithoutFallingBack(t *testing.T) {
+	dir := t.TempDir()
+	from, to := filepath.Join(dir, "from"), filepath.Join(dir, "folder")
+	if err := os.WriteFile(from, []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(to, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	err := replaceFile(from, to)
+	if err == nil {
+		t.Fatal("renaming a file over a folder succeeded")
+	}
+	if errors.Is(err, errPosixRenameUnsupported) {
+		t.Errorf("a refused rename was reported as unsupported: %v", err)
+	}
+}
