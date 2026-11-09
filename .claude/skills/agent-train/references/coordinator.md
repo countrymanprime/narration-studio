@@ -206,7 +206,7 @@ A fenced `json` block in the train issue's body, between `<!-- train-state -->` 
  "sessions": {"<session id>": {"stream": "T4-C3", "bucket": "working"}},
  "prs": {"<number>": {"head": "<sha>", "checks": "green"}},
  "launches": {"T4-C3": {"count": 1, "merged": 0}},
- "oldest_ready_slice": "SN-C3"}
+ "oldest_ready_slice": "SL-C3"}
 ```
 
 The Launches table and the switches sit in the body; the block repeats only what a pass diffs. It is a cache: it never overrides a live `get_session` or a live check result for a merge or launch decision. If the block is missing, malformed or older than two hours, rebuild it from live reads and write it.

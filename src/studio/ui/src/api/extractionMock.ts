@@ -1,4 +1,4 @@
-// The browser mock's Story Bible extraction suggestions: a few of the Studio Next mock's RULES_FINDINGS, as a scan leaves them, over a
+// The browser mock's Story Bible extraction suggestions: a few of the research mock's RULES_FINDINGS, as a scan leaves them, over a
 // small Story Bible kept in memory. It decides the way src/studio/desktop/bindings_extraction.go does: accept applies (an edited text trimmed and
 // applied as given), reject takes back and keeps a tombstone, review makes an automatic acceptance the narrator's, reopen puts a decided
 // suggestion back to the status the rule gave it, and a refusal (an unknown id, a locked entry, a name another entry owns) rejects with the

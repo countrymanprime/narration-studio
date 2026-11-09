@@ -2,9 +2,9 @@
 
 **Status:** draft, 2026-10-23, pending the owner's review. Not approved, so nothing builds to it yet. It belongs to [Story Bible entry list](../../story-bible-entry-list.md), which reviews PR #2242 and proposes this redesign of the Story Bible's left pane. Refs #2251.
 
-The Studio Next mock stays the spec and is not edited ([Which mocks are the spec](../../../design/design-system.md#which-mocks-are-the-spec)). The owner's request recorded as SNB-D1 in #2242 already supersedes its left pane with a Name and Kind table. This draft starts from that table.
+The research mock stays the spec and is not edited ([What a page builds to](../../../design/design-system.md#what-a-page-builds-to)). The owner's request recorded as SNB-D1 in #2242 already supersedes its left pane with a Name and Kind table. This draft starts from that table.
 
-`index.html` is one static file: no build, no network, system fonts. Open it in a browser, or open the published copy (private to the owner): `claude.ai/artifact/QrJn3U34RaTizV6ti1ccsf`. It takes the Studio Next mock's tokens from `docs/research/mockups/studio-next/src/styles/app.css`, follows the system theme, and has a System, Light and Dark switch (`?theme=dark` also works). The sample data is invented: 527 entries, the count the rules-only scan found in an 88,000-word book ([story-bible-mutation-path.md](../../story-bible-mutation-path.md)).
+`index.html` is one static file: no build, no network, system fonts. Open it in a browser, or open the published copy (private to the owner): `claude.ai/artifact/QrJn3U34RaTizV6ti1ccsf`. It takes the research mock's tokens from `docs/research/mockups/research-mock/src/styles/app.css`, follows the system theme, and has a System, Light and Dark switch (`?theme=dark` also works). The sample data is invented: 527 entries, the count the rules-only scan found in an 88,000-word book ([story-bible-mutation-path.md](../../story-bible-mutation-path.md)).
 
 Each part carries a tag: **New** (not in #2242), **Changed** (#2242 does it differently) or **Kept** (as #2242 builds it).
 

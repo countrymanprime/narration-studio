@@ -1,6 +1,6 @@
-# Studio Next Proof and Pickups: Cleared Versus Decided, History, the Stale Guard, the Recording Check and Takes at a Spot
+# Proof and Pickups: Cleared Versus Decided, History, the Stale Guard, the Recording Check and Takes at a Spot
 
-**Source:** owner request of 2026-10-10 (Studio Next Rebuild); "Proof rulings" and "Pickups and speech check rulings" in `studio-next/research/repo-compare-decisions.md`; the mock's `studio-next/src/pages/Proof.tsx`, `studio-next/src/pages/Pickups.tsx`, `studio-next/src/pages/proof/`, `studio-next/src/pages/pickups/`.
+**Source:** owner request of 2026-10-10 (rebuild PRD); "Proof rulings" and "Pickups and speech check rulings" in `research-mock/research/repo-compare-decisions.md`; the mock's `research-mock/src/pages/Proof.tsx`, `research-mock/src/pages/Pickups.tsx`, `research-mock/src/pages/proof/`, `research-mock/src/pages/pickups/`.
 
 **Builds on:** the delivered Proof and Review work ([Shared Findings Contract](../architecture/findings-contract.md), [A note and your decision](../guides/using-the-app/proof.md#a-note-and-your-decision), [pickups.go](../../src/studio/desktop/internal/proofing/pickups.go), to), the recording check ([Recording Check (recording coverage)](../utilities/recording-coverage.md) to [Settings](../utilities/recording-coverage.md#settings), [Checking a chapter's recording](../guides/using-the-app/production.md#checking-a-chapters-recording)), the workspace takes panel ([From the Takes panel](../architecture/reaper-bridge.md#from-the-takes-panel)), the Pickups page, take review ([Take review](../utilities/take-review.md), [Codebase map](../architecture/codebase-map.md)). It carries over the unfinished REAPER checks of the old review-dashboard PRD (overview table). The word-level script editor moves to Script-Based Editing; this PRD keeps the Proof notes page and the Pickups page.
 
@@ -12,7 +12,7 @@ The owner ruled that Proof counts two things (decided and cleared), that a note 
 
 ## Evidence
 
-- **Mock.** `studio-next/src/selectors/proof.ts` (`isCleared`, `noteProgress`), `studio-next/src/state/commands/notes.ts` (`setNoteRes` the only writer of `res`), `studio-next/src/state/commands/proof.ts` (stale guard via `ui.proof.seen`), `studio-next/src/selectors/gaps.ts`, `studio-next/src/selectors/checks.ts`, `studio-next/src/selectors/checkcard.ts`, `studio-next/src/pages/proof/{CheckCard,Inspector,NotesTable,TakeLanes}.tsx`, `studio-next/src/selectors/proofTakes.ts`, `studio-next/src/state/commands/pickups.ts` (`detectPickups`, `writeThroughDone`, `reconcilePickupMarkers`), `studio-next/src/pages/pickups/CheckRecordings.tsx`. Tests: `studio-next/tests/proof.test.tsx`, `studio-next/tests/c2-proof.test.tsx`, `studio-next/tests/d2-proof.test.tsx`, `studio-next/tests/f-proof.test.tsx`, `studio-next/tests/pickups.test.tsx`, `studio-next/tests/c2-pickups.test.tsx`.
+- **Mock.** `research-mock/src/selectors/proof.ts` (`isCleared`, `noteProgress`), `research-mock/src/state/commands/notes.ts` (`setNoteRes` the only writer of `res`), `research-mock/src/state/commands/proof.ts` (stale guard via `ui.proof.seen`), `research-mock/src/selectors/gaps.ts`, `research-mock/src/selectors/checks.ts`, `research-mock/src/selectors/checkcard.ts`, `research-mock/src/pages/proof/{CheckCard,Inspector,NotesTable,TakeLanes}.tsx`, `research-mock/src/selectors/proofTakes.ts`, `research-mock/src/state/commands/pickups.ts` (`detectPickups`, `writeThroughDone`, `reconcilePickupMarkers`), `research-mock/src/pages/pickups/CheckRecordings.tsx`. Tests: `research-mock/tests/proof.test.tsx`, `research-mock/tests/c2-proof.test.tsx`, `research-mock/tests/d2-proof.test.tsx`, `research-mock/tests/f-proof.test.tsx`, `research-mock/tests/pickups.test.tsx`, `research-mock/tests/c2-pickups.test.tsx`.
 - **Repo.** `src/studio/ui/src/components/proof/{ProofPage,ProofChapterPage,NotesHeader,NotesStrip,FindingDetail,FindingsList,RecordingCheckCard,TakesPanel,ChapterWaveformCard,ReaperControls}.tsx`; `src/studio/ui/src/components/pickups/PickupsPage.tsx` (punch from here, mark done, export); `src/studio/desktop/internal/findings/store.go` (append-only decision history against an evidence version); `internal/coverage/`, `src/studio/sidecars/transcript-compare/core/coverage_mode.py`; `internal/passagetakes`.
 
 | Ruling | Real today |
@@ -29,7 +29,7 @@ The owner ruled that Proof counts two things (decided and cleared), that a note 
 
 ## Proposed Solution
 
-1. **Two counters.** The findings summary gains `cleared` beside `decided`; the page, the rail badge and Production read the same selector. A note is cleared when fixed, waived or dismissed; deferred and "needs pickup not yet redone" are open. The Proof percent is the mock's (`noteProgress` in `studio-next/src/selectors/proof.ts`): it cannot read 100 while a pickup is open, and the two counters sit beside it (DQ-16).
+1. **Two counters.** The findings summary gains `cleared` beside `decided`; the page, the rail badge and Production read the same selector. A note is cleared when fixed, waived or dismissed; deferred and "needs pickup not yet redone" are open. The Proof percent is the mock's (`noteProgress` in `research-mock/src/selectors/proof.ts`): it cannot read 100 while a pickup is open, and the two counters sit beside it (DQ-16).
 2. **Stale guard UI.** A decision made on evidence the narrator has not seen is refused; the Inspector shows before and now; the typed note stays.
 3. **History.** An append-only decision list per note in the Inspector.
 4. **Notes.** Sort (time, confidence, severity) and a Sources line.
@@ -58,7 +58,7 @@ If "open" and "cleared" have one definition in one selector, the page, the rail 
 | Metric | Target | Measured by |
 | --- | --- | --- |
 | One definition of cleared | Page, rail, Production show the same number | Contract test over the shared selector |
-| Stale decisions applied | 0 | Ported `studio-next/tests/d2-proof.test.tsx` |
+| Stale decisions applied | 0 | Ported `research-mock/tests/d2-proof.test.tsx` |
 | Confidence fabricated | 0: null with a reason when unknown | Report schema test |
 | Unfinished recording listed as pickup | 0 | Gap taxonomy tests |
 
@@ -66,15 +66,15 @@ If "open" and "cleared" have one definition in one selector, the page, the rail 
 
 Decided by the owner on 2026-10-11; nothing here waits for an answer, so G0 has no question for the owner.
 
-- **SN0-Q1 / DQ-1.** The Studio Next Proof and Pickups pages (`studio-next/src/pages/Proof.tsx`, `Pickups.tsx`) are the spec, including layout and sizes. to are superseded where they differ; benchmark mock 04 stops being a spec.
+- **SN0-Q1 / DQ-1.** The rebuilt Proof and Pickups pages (`research-mock/src/pages/Proof.tsx`, `Pickups.tsx`) are the spec, including layout and sizes. to are superseded where they differ; benchmark mock 04 stops being a spec.
 - **SN0-Q2 / DQ-2.** Replace. Seams and components land with no route; one PR (SNQ-9) swaps the Proof and Pickups routes and deletes the old pages.
 - **DQ-6.** Pickups only points to the Booth. The existing Punch on the Pickups page is removed in SNQ-9.
 - **DQ-9.** No conflict; [Manuscript Teleprompter](../architecture/manuscript-teleprompter.md) is unchanged.
 - **DQ-15.** Evidence first, a suggested take with an honest (possibly null) confidence, never auto-applied; [Codebase map](../architecture/codebase-map.md) is superseded to that extent.
 - **DQ-16.** The mock's Proof percent with its two counters, decided and cleared; [pickups.go](../../src/studio/desktop/internal/proofing/pickups.go) is superseded to that extent.
 - **DQ-18.** Capability-driven take management for Audacity, as in the mock; is superseded to that extent.
-- **SN0-Q8.** Screenshots are compared against the Studio Next mock page.
-- **Applied by the SN-Q9 swap (2026-10-12).** The Studio Next mock replaced the old pages: (DQ-1), [pickups.go](../../src/studio/desktop/internal/proofing/pickups.go) (DQ-16), [Codebase map](../architecture/codebase-map.md) (DQ-15) and (DQ-18) are superseded by the mock to the extent above. The proofer CSV import and export stay on Proof's notes, by the owner's "all defaults" ruling on #992.
+- **SN0-Q8.** Screenshots are compared against the research mock page.
+- **Applied by the SN-Q9 swap (2026-10-12).** The research mock replaced the old pages: (DQ-1), [pickups.go](../../src/studio/desktop/internal/proofing/pickups.go) (DQ-16), [Codebase map](../architecture/codebase-map.md) (DQ-15) and (DQ-18) are superseded by the mock to the extent above. The proofer CSV import and export stay on Proof's notes, by the owner's "all defaults" ruling on #992.
 - **Hear it, Show where and Fine as read (2026-10-23, [#2251](https://github.com/countrymanprime/narration-studio/issues/2251) item 26).** The owner's test found that Proof could not play a flagged note, so a note that sounded right could not be judged by ear. This supersedes the "play ±3 s (owner unclear)" line of What We're NOT Building and labels the mock's Waive. Proof decides, Pickups queues, Editing fixes, and a finding has the same three verbs on all three pages ([research note, section A](../research/proof-pickups-editing-split.md#a-what-each-page-can-do-with-a-finding-item-26)): **Hear it** plays the note with 3 s either side (Space, as the mock's Play ±3 s), looped in the DAW through `FindingsLoop` and in the app's player when the DAW cannot; **Show where** gives the time and the note's paragraph with the ones before and after; **Fine as read** is the mock's Waive, writing `dismissed`. Pickups, whose mock has neither, gains Show where under the selected line and **Fine, not a pickup** (the line's note dismissed, so the line leaves the list), beside the mock's "Go to the note in Proof"; this supersedes DQ-6's "only points to the Booth" to that extent.
 - **Process defaults, taken as recommended (2026-10-11).** "Waived" maps to `dismissed` with reason `waived` (no new status, no migration); "as of last save" is the DAW's `savedAt` (DAW Ports and Capabilities).
 
@@ -88,14 +88,14 @@ A narrator proofing a chapter note by note and a proofer-like pass after recordi
 
 | Behaviour | Mock reference | Acceptance |
 | --- | --- | --- |
-| Cleared versus decided | `studio-next/src/selectors/proof.ts` | A deferred note counts decided and open; a dismissed note counts both |
-| Stale guard | `studio-next/tests/d2-proof.test.tsx` | Decision refused, before/now shown, typed note kept |
-| History | `studio-next/src/pages/proof/Inspector.tsx` | Each decision listed with word and time, append only |
-| Sort and sources | `studio-next/tests/f-proof.test.tsx` | Sort changes order; the line names the sources |
-| Check card | `studio-next/src/selectors/checkcard.ts` | States none, checking, current, stale; stale after text, recording or save moves |
-| Takes at a spot | `studio-next/src/selectors/proofTakes.ts` | Badge count and lanes for the note's passage; play raw only |
-| Gaps | `studio-next/src/selectors/gaps.ts`, `studio-next/tests/c2-pickups.test.tsx` | Unread start/end is unfinished, never a pickup |
-| Pickup marker truth | `studio-next/src/state/commands/pickups.ts` | Done state written to the DAW marker; reconcile on open |
+| Cleared versus decided | `research-mock/src/selectors/proof.ts` | A deferred note counts decided and open; a dismissed note counts both |
+| Stale guard | `research-mock/tests/d2-proof.test.tsx` | Decision refused, before/now shown, typed note kept |
+| History | `research-mock/src/pages/proof/Inspector.tsx` | Each decision listed with word and time, append only |
+| Sort and sources | `research-mock/tests/f-proof.test.tsx` | Sort changes order; the line names the sources |
+| Check card | `research-mock/src/selectors/checkcard.ts` | States none, checking, current, stale; stale after text, recording or save moves |
+| Takes at a spot | `research-mock/src/selectors/proofTakes.ts` | Badge count and lanes for the note's passage; play raw only |
+| Gaps | `research-mock/src/selectors/gaps.ts`, `research-mock/tests/c2-pickups.test.tsx` | Unread start/end is unfinished, never a pickup |
+| Pickup marker truth | `research-mock/src/state/commands/pickups.ts` | Done state written to the DAW marker; reconcile on open |
 
 ### Supersedes / depends on ADRs
 
@@ -105,7 +105,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | --- | --- | --- |
 | [Shared Findings Contract](../architecture/findings-contract.md) | EXTEND | History and guard UI |
 | [A note and your decision](../guides/using-the-app/proof.md#a-note-and-your-decision), [pickups.go](../../src/studio/desktop/internal/proofing/pickups.go) | EXTEND; 0525 SUPERSEDE to the extent of DQ-16 | Cleared versus decided (A18 working title: Proof counters) |
-| to | SUPERSEDE (DQ-1) | The Studio Next Proof page decides the notes card and waveform scope |
+| to | SUPERSEDE (DQ-1) | The rebuilt Proof page decides the notes card and waveform scope |
 | [Recording Check (recording coverage)](../utilities/recording-coverage.md) to [Settings](../utilities/recording-coverage.md#settings), [Checking a chapter's recording](../guides/using-the-app/production.md#checking-a-chapters-recording) | EXTEND | Gap taxonomy and nullable confidence |
 | [From the Takes panel](../architecture/reaper-bridge.md#from-the-takes-panel) | EXTEND | Takes at a spot on Proof |
 | [Codebase map](../architecture/codebase-map.md) | SUPERSEDE (DQ-15) | Take suggestion (Editing) |
@@ -178,7 +178,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | SNQ-6 | Phase 6 | SNQ-5, SNS-4 | yes | Parity suite; visual |
 | SNQ-7 | Phase 7 | SNQ-2 | yes | Ported tests |
 | SNQ-8 | Phase 8 | SND-4, SNQ-5 | yes | Harness-backed host tests |
-| SNQ-9 | Phase 9 (swap; deletes the old pages and Punch) | SNQ-2..8, SNO-8 | no | Visual suite; Screenshots against the Studio Next mock |
+| SNQ-9 | Phase 9 (swap; deletes the old pages and Punch) | SNQ-2..8, SNO-8 | no | Visual suite; Screenshots against the research mock |
 
 ## Decisions Log
 
@@ -195,4 +195,4 @@ Read: the mock's proof, pickups and check files and tests; the rulings; the real
 
 ## Visual Spec
 
-Mock pages, the only spec: Proof (`studio-next/src/pages/Proof.tsx`), Pickups (`studio-next/src/pages/Pickups.tsx`); states: notes, inspector with refusal, check card (four states), takes lanes.
+Mock pages, the only spec: Proof (`research-mock/src/pages/Proof.tsx`), Pickups (`research-mock/src/pages/Pickups.tsx`); states: notes, inspector with refusal, check card (four states), takes lanes.

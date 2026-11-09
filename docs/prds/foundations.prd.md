@@ -1,10 +1,10 @@
-# Studio Next Foundations: Tokens, Primitives, Layout Rules, Icon Vocabulary and Key Caps
+# Foundations: Tokens, Primitives, Layout Rules, Icon Vocabulary and Key Caps
 
-**Source:** owner request of 2026-10-10 (Studio Next Rebuild); the mock's `studio-next/src/ui/`, `studio-next/research/icon-audit.md` and the "no raw controls" standing rule in `studio-next/ARCHITECTURE.md`; the owner's rulings of 2026-10-11 (see Decisions).
+**Source:** owner request of 2026-10-10 (rebuild PRD); the mock's `research-mock/src/ui/`, `research-mock/research/icon-audit.md` and the "no raw controls" standing rule in `research-mock/ARCHITECTURE.md`; the owner's rulings of 2026-10-11 (see Decisions).
 
 **Builds on:** the delivered primitives ([Base UI wrappers](../design/design-system.md#base-ui-wrappers), [Design system reference](../design/design-system.md)), [the design system](../design/design-system.md), the zero-new-global-CSS rule ([Base UI wrappers](../design/design-system.md#base-ui-wrappers), [CSS layering gotcha](../design/design-system.md#css-layering-gotcha)) and the visual-suite viewports ([viewports.ts](../../src/studio/ui/tests/visual/viewports.ts), [Design system reference](../design/design-system.md)).
 
-**Status (2026-10-16):** done; all eight phases are merged, the atlas docs by SN-F82. The owner's rulings of 2026-10-11 are applied. Tokens, primitive sizes and layouts come from the Studio Next mock (`studio-next/src/styles/`, `studio-next/src/ui/`), not from the benchmark mocks. Slice SNF-2 is a train-wide serial point (the token batch runs alone).
+**Status (2026-10-16):** done; all eight phases are merged, the atlas docs by SN-F82. The owner's rulings of 2026-10-11 are applied. Tokens, primitive sizes and layouts come from the research mock (`research-mock/src/styles/`, `research-mock/src/ui/`), not from the benchmark mocks. Slice SNF-2 is a train-wide serial point (the token batch runs alone).
 
 ## Problem Statement
 
@@ -12,21 +12,21 @@ The mock draws every page from about 30 small components, one icon map, one key 
 
 ## Evidence
 
-- **Primitives.** The mock's `studio-next/src/ui/primitives/` has Checkbox, RadioGroup, Input, Textarea, Select, Slider, NumberInput, FieldRow; `studio-next/src/ui/` adds Icon, IconButton, Pill, Seg, Swatch, Field, Menu, ChapterBar, Tooltip, Waveform, SpeakerPicker. The repo's `src/studio/ui/src/components/primitives/` has the equivalents of all but Slider, NumberInput, Swatch and the chapter stepper (and `SpeakerTag` stands in for the speaker chip).
-- **Raw controls.** The mock bans them outright (`studio-next/tests/no-raw-controls.test.ts`, escape: a `native-control-ok: <why>` comment). The repo ratchets them down per file (`src/studio/ui/src/rawNatives.test.ts`).
-- **Icons.** The mock draws every icon through `studio-next/src/ui/Icon.tsx` and a vocabulary decided in `studio-next/research/icon-audit.md` (sections 5 and 6: keep, change or text per action). 55 files in `src/studio/ui/src` import `FontAwesomeIcon` directly; there is no icon wrapper in `src/studio/ui/src/components/primitives/`.
-- **Key caps.** `studio-next/src/ui/KeyCap.tsx` maps key names to pictures (arrows, Enter, Esc, Backspace as Font Awesome glyphs; space bar and right-click as inline SVG) and `studio-next/src/ui/KeyHints.tsx` draws the footer. The repo has `Kbd` and `KeyHint` (text caps only, [Design system reference](../design/design-system.md)).
-- **Layout.** `studio-next/src/app/layout.ts` reads the zoomed viewport width (`RAIL_COLLAPSE_BELOW = 1360`, medium at 1280, narrow under 1180, tiny under 860) and sets `document.documentElement.style.zoom`. The real app zooms through the host ([Zoom](../guides/using-the-app/navigation.md#zoom)), the suite captures 1440, 1024 and 768 plus a 390 reflow, and the desktop minimum is 960. The mock's rules apply to the width the host reports (SN0-Q7).
-- **Styles.** `studio-next/src/styles/app.css` is global classes; the real app forbids new ones and styles with Tailwind utilities on tokens.
+- **Primitives.** The mock's `research-mock/src/ui/primitives/` has Checkbox, RadioGroup, Input, Textarea, Select, Slider, NumberInput, FieldRow; `research-mock/src/ui/` adds Icon, IconButton, Pill, Seg, Swatch, Field, Menu, ChapterBar, Tooltip, Waveform, SpeakerPicker. The repo's `src/studio/ui/src/components/primitives/` has the equivalents of all but Slider, NumberInput, Swatch and the chapter stepper (and `SpeakerTag` stands in for the speaker chip).
+- **Raw controls.** The mock bans them outright (`research-mock/tests/no-raw-controls.test.ts`, escape: a `native-control-ok: <why>` comment). The repo ratchets them down per file (`src/studio/ui/src/rawNatives.test.ts`).
+- **Icons.** The mock draws every icon through `research-mock/src/ui/Icon.tsx` and a vocabulary decided in `research-mock/research/icon-audit.md` (sections 5 and 6: keep, change or text per action). 55 files in `src/studio/ui/src` import `FontAwesomeIcon` directly; there is no icon wrapper in `src/studio/ui/src/components/primitives/`.
+- **Key caps.** `research-mock/src/ui/KeyCap.tsx` maps key names to pictures (arrows, Enter, Esc, Backspace as Font Awesome glyphs; space bar and right-click as inline SVG) and `research-mock/src/ui/KeyHints.tsx` draws the footer. The repo has `Kbd` and `KeyHint` (text caps only, [Design system reference](../design/design-system.md)).
+- **Layout.** `research-mock/src/app/layout.ts` reads the zoomed viewport width (`RAIL_COLLAPSE_BELOW = 1360`, medium at 1280, narrow under 1180, tiny under 860) and sets `document.documentElement.style.zoom`. The real app zooms through the host ([Zoom](../guides/using-the-app/navigation.md#zoom)), the suite captures 1440, 1024 and 768 plus a 390 reflow, and the desktop minimum is 960. The mock's rules apply to the width the host reports (SN0-Q7).
+- **Styles.** `research-mock/src/styles/app.css` is global classes; the real app forbids new ones and styles with Tailwind utilities on tokens.
 
 ## Proposed Solution
 
-1. **Record the base** in two ADRs: spec precedence (A1: the Studio Next mock is the only spec) and layout rules plus icon vocabulary (A16).
-2. **One token batch**, alone: the mock's token values from `studio-next/src/styles/`, replacing the repo's where they differ and adding those the repo lacks (diffed, not guessed), with contrast pairs.
+1. **Record the base** in two ADRs: spec precedence (A1: the research mock is the only spec) and layout rules plus icon vocabulary (A16).
+2. **One token batch**, alone: the mock's token values from `research-mock/src/styles/`, replacing the repo's where they differ and adding those the repo lacks (diffed, not guessed), with contrast pairs.
 3. **Add the missing primitives** as flat leaf files with stories, tests and atlas coverage: `Slider`, `NumberInput`, `Swatch`, and a `ChapterStepper` if the Booth and Proof need the same control.
 4. **An `Icon` wrapper and a vocabulary** as data (`src/studio/ui/src/icons.catalog.ts`): action name to icon and tooltip wording, so two pages cannot give one action two icons. A ratchet test counts direct `FontAwesomeIcon` imports per file and only lets the number fall.
 5. **Key caps and hints**: `Kbd` gains picture keys; `KeyHint` composes them; a `KeyHints` footer primitive replaces the Booth, Proof and Editing footers' hand-built rows.
-6. **Responsive rules** re-expressed as container and media queries at the mock's widths (rail collapse below 1360, medium at 1280 and below, narrow below 1180, tiny below 860; `studio-next/src/app/layout.ts`), with one hook (`useLayoutClass`) only where CSS cannot do it.
+6. **Responsive rules** re-expressed as container and media queries at the mock's widths (rail collapse below 1360, medium at 1280 and below, narrow below 1180, tiny below 860; `research-mock/src/app/layout.ts`), with one hook (`useLayoutClass`) only where CSS cannot do it.
 7. **No raw controls**: lower the `rawNatives` ceilings with every page swap, and require a reasoned `native-control-ok` comment as the escape (replaces silent ceilings for the pages of this series).
 
 ## Key Hypothesis
@@ -57,7 +57,7 @@ Owner rulings of 2026-10-11; none is open.
 
 | Id | Ruling | Consequence here |
 | --- | --- | --- |
-| SN0-Q1 / DQ-1 | Studio Next is the spec for every page it covers, tokens, primitive sizes and layouts included | SNF-2 takes the mock's values; `docs/design/colour-and-contrast.md#derived-and-status-tokens, src/studio/ui/src/styles.css` to 0640 and the benchmark's measured values are superseded where they differ; `docs/operations/verification-tooling.md#mock-match` stop binding pages the mock covers |
+| SN0-Q1 / DQ-1 | the PRD, the issue and the page guide are the spec for every page it covers, tokens, primitive sizes and layouts included | SNF-2 takes the mock's values; `docs/design/colour-and-contrast.md#derived-and-status-tokens, src/studio/ui/src/styles.css` to 0640 and the benchmark's measured values are superseded where they differ; `docs/operations/verification-tooling.md#mock-match` stop binding pages the mock covers |
 | SN0-Q7 | The mock's breakpoints are implemented as container or media queries at the mock's widths | Rail collapse below 1360 CSS px replaces the earlier 1280 recommendation; the 960 px minimum window and host zoom do not change the rules, which read the reported width |
 | SNF-Q1 | The icon vocabulary is a data module, `src/studio/ui/src/icons.catalog.ts`, read by `Icon` and by a test that checks tooltips (default taken, standing instruction) | SNF-3 |
 | SNF-Q2 | `Kbd` stays text; a new `KeyCap` leaf picks text or a glyph and `KeyHint` composes it (default taken) | SNF-4 |
@@ -73,11 +73,11 @@ Every UI worker. Foundations are consumed by all page PRDs; they are the first s
 
 | Story | Acceptance (tied to the mock) |
 | --- | --- |
-| As a narrator I see one icon per action everywhere | The Booth record button, Proof "Add marker" and Pickups "Mark done" use the vocabulary in `studio-next/research/icon-audit.md` section 6; a test fails when two catalogue entries share an icon with different meanings (audit section 3a) |
-| As a narrator I read key hints as pictures | `KeyHints` footer draws arrows, Enter, Esc, Space, right-click as glyphs (`studio-next/tests/d2-keycaps.test.tsx`); each cap has the key name as an accessible name and tooltip |
-| As a worker I never write a raw control | `studio-next/tests/no-raw-controls.test.ts` equivalent passes for migrated pages |
-| As a narrator at 1024 px nothing overflows | `studio-next/e2e/overflow.mjs`-style check passes at 1440, 1024, 768 (the suite does it) |
-| As a narrator I can set a speed or a gap with a slider or a number field | `Slider` and `NumberInput` match `studio-next/tests/form-primitives.test.tsx` behaviour (keyboard step, clamp, commit on blur) |
+| As a narrator I see one icon per action everywhere | The Booth record button, Proof "Add marker" and Pickups "Mark done" use the vocabulary in `research-mock/research/icon-audit.md` section 6; a test fails when two catalogue entries share an icon with different meanings (audit section 3a) |
+| As a narrator I read key hints as pictures | `KeyHints` footer draws arrows, Enter, Esc, Space, right-click as glyphs (`research-mock/tests/d2-keycaps.test.tsx`); each cap has the key name as an accessible name and tooltip |
+| As a worker I never write a raw control | `research-mock/tests/no-raw-controls.test.ts` equivalent passes for migrated pages |
+| As a narrator at 1024 px nothing overflows | `research-mock/e2e/overflow.mjs`-style check passes at 1440, 1024, 768 (the suite does it) |
+| As a narrator I can set a speed or a gap with a slider or a number field | `Slider` and `NumberInput` match `research-mock/tests/form-primitives.test.tsx` behaviour (keyboard step, clamp, commit on blur) |
 
 ### Icon vocabulary rules (from the audit)
 
@@ -94,8 +94,8 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | [Base UI wrappers](../design/design-system.md#base-ui-wrappers) | KEEP / EXTEND | New primitives are flat leaves; token batch alone |
 | [Design system reference](../design/design-system.md), [Base UI wrappers](../design/design-system.md#base-ui-wrappers) | EXTEND | Raw controls become a zero ceiling per migrated page |
 | [Design system reference](../design/design-system.md) | EXTEND | Key cap pictures and the icon vocabulary (A16) |
-| [Derived and status tokens](../design/colour-and-contrast.md#derived-and-status-tokens), [styles.css](../../src/studio/ui/src/styles.css) to [Design system reference](../design/design-system.md) | SUPERSEDE (DQ-1) | Token values and primitive sizes come from the Studio Next mock where they differ from the benchmark |
-| [Mock match](../operations/verification-tooling.md#mock-match) | SUPERSEDE (DQ-1) | Spec precedence (A1): the Studio Next mock, not the benchmark, is scored against and built to |
+| [Derived and status tokens](../design/colour-and-contrast.md#derived-and-status-tokens), [styles.css](../../src/studio/ui/src/styles.css) to [Design system reference](../design/design-system.md) | SUPERSEDE (DQ-1) | Token values and primitive sizes come from the research mock where they differ from the benchmark |
+| [Mock match](../operations/verification-tooling.md#mock-match) | SUPERSEDE (DQ-1) | Spec precedence (A1): the research mock, not the benchmark, is scored against and built to |
 | [Theme](../design/design-system.md#theme), [Derived and status tokens](../design/colour-and-contrast.md#derived-and-status-tokens) | KEEP | One app-wide theme (D69) |
 
 ## Technical Approach
@@ -129,10 +129,10 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 ### Phase Details
 
-- **Phase 2.** Diff the custom properties in `studio-next/src/styles/` against `src/studio/ui/src/styles.css`; the mock's value wins where they differ, and tokens no mock page uses are not added; both theme blocks; `PAIRS` rows; the full visual suite and the atlas once.
+- **Phase 2.** Diff the custom properties in `research-mock/src/styles/` against `src/studio/ui/src/styles.css`; the mock's value wins where they differ, and tokens no mock page uses are not added; both theme blocks; `PAIRS` rows; the full visual suite and the atlas once.
 - **Phase 3.** The ratchet test is a copy of the `rawNatives` pattern for `FontAwesomeIcon`; entries per file only fall.
-- **Phase 5.** One slice per primitive; each with the mock's test ported (`studio-next/tests/form-primitives.test.tsx`).
-- **Phase 6.** Re-derive the rules from `studio-next/src/app/layout.ts` and `studio-next/e2e/overflow.mjs` at the mock's widths; capture the Settings reflow at 390; add a visual row for any of the four rules the suite's widths do not exercise.
+- **Phase 5.** One slice per primitive; each with the mock's test ported (`research-mock/tests/form-primitives.test.tsx`).
+- **Phase 6.** Re-derive the rules from `research-mock/src/app/layout.ts` and `research-mock/e2e/overflow.mjs` at the mock's widths; capture the Settings reflow at 390; add a visual row for any of the four rules the suite's widths do not exercise.
 
 ### Parallelism Notes
 
@@ -156,7 +156,7 @@ Phases 3, 4 are independent of 2; Phase 5 needs the tokens. Phase 6 follows the 
 | SNF-1 | Phase 1 | SN0-1 | yes | Docs link check; ADR index generated |
 | SNF-2 | Phase 2 | SNF-1 | no (serial point) | `pnpm check`; full visual suite and atlas read |
 | SNF-3 | Phase 3 | SNF-1 | yes | `Icon` tests; ratchet test; atlas |
-| SNF-4 | Phase 4 | SNF-1 | yes | Port of `studio-next/tests/d2-keycaps.test.tsx`; atlas; axe |
+| SNF-4 | Phase 4 | SNF-1 | yes | Port of `research-mock/tests/d2-keycaps.test.tsx`; atlas; axe |
 | SNF-5a | Slider | SNF-2 | yes | Story, tests, atlas, a11y |
 | SNF-5b | NumberInput | SNF-2 | yes | Same |
 | SNF-5c | Swatch | SNF-2 | yes | Same |
@@ -174,8 +174,8 @@ Phases 3, 4 are independent of 2; Phase 5 needs the tokens. Phase 6 follows the 
 
 ## Research Summary
 
-Read: the mock's `studio-next/src/ui/`, `studio-next/src/app/layout.ts`, `studio-next/tests/no-raw-controls.test.ts`, `research/icon-audit.md` headings and section 6; the repo's `rawNatives.test.ts`, `components/primitives/*`, `docs/design/design-system.md`. Not done: the token diff itself (Phase 2 does it); no atlas run.
+Read: the mock's `research-mock/src/ui/`, `research-mock/src/app/layout.ts`, `research-mock/tests/no-raw-controls.test.ts`, `research/icon-audit.md` headings and section 6; the repo's `rawNatives.test.ts`, `components/primitives/*`, `docs/design/design-system.md`. Not done: the token diff itself (Phase 2 does it); no atlas run.
 
 ## Visual Spec
 
-Mock pages: any page that shows a footer of key hints (Booth, Proof, Editing: `studio-next/src/ui/KeyHints.tsx`), the form controls in `studio-next/src/pages/Settings.tsx`. Each primitive slice shows its story in light and dark against the mock's control.
+Mock pages: any page that shows a footer of key hints (Booth, Proof, Editing: `research-mock/src/ui/KeyHints.tsx`), the form controls in `research-mock/src/pages/Settings.tsx`. Each primitive slice shows its story in light and dark against the mock's control.

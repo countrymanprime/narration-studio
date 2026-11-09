@@ -12,7 +12,7 @@ const BAND_HEIGHT = 28;
 const TICK_OVER = 5;
 
 /**
- * Book consistency (the Studio Next mock's `Consistency`): each measured file's RMS as a tick against the profile's RMS range, red when
+ * Book consistency (the research mock's `Consistency`): each measured file's RMS as a tick against the profile's RMS range, red when
  * the host judged the file's RMS as not met, and the spread across files in dB. A profile with no RMS range draws the ticks without a band.
  */
 export function Consistency({ files, profile }: { files: readonly MeasureFileResult[]; profile: DeliveryProfile | undefined }) {

@@ -1,8 +1,8 @@
 # Booth cold read: mock
 
-**Status:** draft, pending the owner's approval. Added 2026-10-24 for [#2251](https://github.com/countrymanprime/narration-studio/issues/2251) item 13, following the owner's answers on that issue and [the design note](../../2026-10-23-booth-page-breaks-and-cold-read.md#13-cold-read). The Studio Next mock does not cover a cold read ([Which mocks are the spec](../../../design/design-system.md#which-mocks-are-the-spec)); this draft covers only what it adds to the Booth.
+**Status:** draft, pending the owner's approval. Added 2026-10-24 for [#2251](https://github.com/countrymanprime/narration-studio/issues/2251) item 13, following the owner's answers on that issue and [the design note](../../2026-10-23-booth-page-breaks-and-cold-read.md#13-cold-read). The research mock does not cover a cold read ([What a page builds to](../../../design/design-system.md#what-a-page-builds-to)); this draft covers only what it adds to the Booth.
 
-One static file, `index.html`: no build, no network, system fonts. It takes the Studio Next mock's tokens and follows the system theme (`data-theme="dark"` on the root forces dark). The sample text is invented.
+One static file, `index.html`: no build, no network, system fonts. It takes the research mock's tokens and follows the system theme (`data-theme="dark"` on the root forces dark). The sample text is invented.
 
 ## Frames
 
@@ -14,4 +14,4 @@ One static file, `index.html`: no build, no network, system fonts. It takes the 
 
 ## Lifecycle
 
-This folder is deleted in the pull request that follows the owner's approval or changes, as the Studio Next mock's rule says (Which mocks are the spec).
+This folder is deleted in the pull request that follows the owner's approval or changes, as the research mock's rule says (What a page builds to).

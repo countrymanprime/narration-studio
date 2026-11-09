@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// The Studio Next Script page assembled (SN-B77): the columns and drawers, the rail's tabs, the empty state, what the page registers,
+// The rebuilt Script page assembled (SN-B77): the columns and drawers, the rail's tabs, the empty state, what the page registers,
 // the bookmark flow, the credits re-homed from the old page, one view state, and the old page's props. Over the browser mock host.
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { readdirSync, readFileSync } from 'node:fs';

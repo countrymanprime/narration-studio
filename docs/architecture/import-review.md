@@ -2,9 +2,9 @@
 
 **Status: implemented.** When a narrator chooses a manuscript (or accepts the offer of one in the project folder), the host reads it into a draft and the app shows a review dialog, "Import <file>", before anything is written. This page is how that dialog is built and what it promises. The decisions are Correcting a subtitle (correcting a subtitle), (the grouping, the subtitle, the repairs), [Design principles](principles.md) (real progress only), [ADR 0002](../adr/0002-local-models-and-tools-come-first-so-the-app-is-free-to-use.md) (one review, offered never silent), [Primitive components](../design/design-system.md#primitive-components) (width, no sideways scroll) and [state.ts](../../src/studio/ui/src/state.ts) (reference material is filtered at the listing layer only).
 
-## Deviations from the Studio Next mock
+## Deviations from the research mock
 
-The dialog is built to the mock's import flow (`src/pages/production/ImportFlow.tsx` of the Studio Next mock, deleted from the tree). The mock is a frozen reference (which mocks are the spec), so where the app differs, the difference and its reason are here. Step 2 is below the step 1 table.
+The dialog is built to the mock's import flow (`src/pages/production/ImportFlow.tsx` of the research mock, deleted from the tree). The mock is retired, so where the app differs, the difference and its reason are here. Step 2 is below the step 1 table.
 
 **Step 1, "Choose your manuscript" (built to the mock).**
 

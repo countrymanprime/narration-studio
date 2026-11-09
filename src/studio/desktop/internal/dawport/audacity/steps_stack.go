@@ -12,7 +12,7 @@ import (
 	"desktop/internal/dawport"
 )
 
-// The steps of a stack, in the Studio Next mock's words (STACK_PLAN.steps), and of an un-stack.
+// The steps of a stack, in the research mock's words (STACK_PLAN.steps), and of an un-stack.
 const (
 	stepAddTakeTrack     = "Add a take track"
 	stepPasteReads       = "Paste each later read into it"

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// SN-X41: the suggestion row, the confidence chip, the list and the accepted claims, ported from the Studio Next mock's
+// SN-X41: the suggestion row, the confidence chip, the list and the accepted claims, ported from the research mock's
 // tests/extraction.test.tsx (the review queue, the confidence tooltip and the Story Bible page's suggestion cases).
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';

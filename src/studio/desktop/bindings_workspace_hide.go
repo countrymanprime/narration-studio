@@ -11,7 +11,7 @@ import (
 const hideTakesTimeout = takeRequestTimeout
 
 // WorkspaceHideTakes mutes the other takes of the passage between firstToken and lastToken of chapterID's stored alignment,
-// keeping keepCandidateID, one of the ids WorkspaceTakes offers (SND-5b; the Studio Next mock's hideTakes). Nothing is
+// keeping keepCandidateID, one of the ids WorkspaceTakes offers (SND-5b; the research mock's hideTakes). Nothing is
 // deleted, and REAPER adds one undo step when anything changed. As for WorkspaceUseTake, the page sends ids and token
 // indices only: the item and kept take GUIDs are read here from the saved project, and an id the host does not offer is
 // refused as stale (docs/architecture/reaper-navigation.md). The answer is a DawResult: the takes capability's own sentence when

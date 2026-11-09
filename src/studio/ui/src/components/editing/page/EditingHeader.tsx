@@ -24,7 +24,7 @@ export interface EditingHeaderProps {
 }
 
 /**
- * The page's header (the Studio Next mock's `.ph.sx-ph`): the title, the chapter step, the legend, and the two header buttons, the timeline
+ * The page's header (the research mock's `.ph.sx-ph`): the title, the chapter step, the legend, and the two header buttons, the timeline
  * strip (S) where it fits and the clean-up and effects drawer (Ctrl+Shift+C), then the DAW tools menu.
  */
 export function EditingHeader({ stepper, legend, status, strip, stripFits, drawerOpen, onDrawer, onDrawerKeyDown, dawTools = false }: EditingHeaderProps) {

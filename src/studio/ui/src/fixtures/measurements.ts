@@ -1,4 +1,4 @@
-// Sample data behind the mock measurements port, ported from the Studio Next mock's `fixtures/measurements.ts`: what the
+// Sample data behind the mock measurements port, ported from the research mock's `fixtures/measurements.ts`: what the
 // recorder and the take log would report. The host adapter never reads this file.
 
 /** One recorded take: when it was made (local date and time) and the seconds of audio it added. */

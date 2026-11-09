@@ -39,7 +39,7 @@ import { DawToolsButton } from '../../engine/DawToolsButton';
 const MUTED = { color: 'var(--text-muted)' };
 
 /**
- * Master & QC (the Studio Next mock's Master page, at `/master`): the chapter bar over the per-file checks (selecting a file moves the
+ * Master & QC (the research mock's Master page, at `/master`): the chapter bar over the per-file checks (selecting a file moves the
  * shared chapter and the bar follows; without a manuscript the page asks for one), the per-file checks and their detail, the book's consistency
  * against the profile, and the delivery package beside them. The profile pill and "Open Delivery" call `onOpenDelivery`; this page
  * navigates nowhere itself. The run controls, a file's every-rule list, mastering to spec, the mastering chain, the diagnostics, the

@@ -1,4 +1,4 @@
-// The `script` rows of STATE_CATALOG (see state-catalog.ts), in the order they are captured. The Studio Next Script page (SN-B77,
+// The `script` rows of STATE_CATALOG (see state-catalog.ts), in the order they are captured. The rebuilt Script page (SN-B77,
 // swapped in by SN-B8): three columns at 1440, the rail a drawer below 1280 px and the chapter list a drawer below 1180 px.
 import type { StateEntry } from '../lib/types';
 import { KEEPS_DESKTOP_SCROLL, REFLOW, POPUP_ANCHORED_AT_FIRST_WIDTH, RAIL_DEPENDS_ON_WIDTH, TOAST_FADES_OUT } from './shared';

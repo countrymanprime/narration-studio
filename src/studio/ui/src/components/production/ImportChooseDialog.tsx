@@ -6,7 +6,7 @@ import { Dialog } from '../primitives/Dialog';
 export type DroppedManuscript = { name: string; path?: string };
 
 /**
- * Step 1 of the import (the Studio Next mock's "Choose your manuscript"): a drop zone and "Choose a file…". The way out is the
+ * Step 1 of the import (the research mock's "Choose your manuscript"): a drop zone and "Choose a file…". The way out is the
  * header's Close button. Opening the host's file chooser and starting the preview are the caller's, so this only reports a choice.
  * The deviations from the mock are written next to the dialog's design in docs/architecture/import-review.md.
  */

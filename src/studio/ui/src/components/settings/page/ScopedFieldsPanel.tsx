@@ -60,7 +60,7 @@ export type ScopedFieldsPanelProps = {
 };
 
 /**
- * A Settings panel over one settings tool, kept from the old category list (features the Studio Next mock has no panel
+ * A Settings panel over one settings tool, kept from the old category list (features the research mock has no panel
  * for stay as built, as a panel of the page's one column). It edits the tool's fields in Global or in This project,
  * shows Save and Discard once something changed, and asks before a scope switch would drop an edit. Its edits join
  * the page's dirty flag and its leave guard through `SettingsFormsProvider`.

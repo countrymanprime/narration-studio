@@ -10,7 +10,7 @@ import { SuggestionList } from './SuggestionList';
 import { SuggestionRow, type ExtractionSourceInfo } from './SuggestionRow';
 
 // SN-X41: the suggestion row in each status, the confidence chip and the accepted claims, drawn from the mock host's fixture
-// suggestions (api/extractionMock.ts) and not from literals. The mock page they follow is Suggested.tsx in the Studio Next mock.
+// suggestions (api/extractionMock.ts) and not from literals. The mock page they follow is Suggested.tsx in the research mock.
 
 const SOURCES: ExtractionSourceInfo[] = [
   { id: 'rules', label: 'Rules' },

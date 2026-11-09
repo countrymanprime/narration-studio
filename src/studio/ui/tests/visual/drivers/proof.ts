@@ -1,4 +1,4 @@
-// How to reach each `proof` state (the Studio Next Proof page) in STATE_CATALOG (see app.drivers.ts).
+// How to reach each `proof` state (the rebuilt Proof page) in STATE_CATALOG (see app.drivers.ts).
 import { expect, type Locator, type Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
 import { type Driver, closeDawDialogOnArrival, openCheckingLink, clickNav, goToPage, openWithoutManuscript } from './shared';

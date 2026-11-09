@@ -90,7 +90,7 @@ const chapterOf = (finding: Finding) => finding.manuscript?.chapter_id ?? '';
 const held = (finding: Finding): Finding => ({ ...finding, review: { ...finding.review } });
 
 /**
- * Proof (Studio Next mock `pages/Proof.tsx`): the whole book as a strip of chapters and one list of notes, or one chapter with its
+ * Proof (research mock `pages/Proof.tsx`): the whole book as a strip of chapters and one list of notes, or one chapter with its
  * recording check, its waveform window and its notes; the Inspector for the selected note on the right and the key hints at the foot.
  * The host filters and sorts the notes (`FindingsQuery`); a decision goes through the Inspector's stale-evidence guard and moves on
  * to the next note with an Undo.

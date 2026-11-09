@@ -1,4 +1,4 @@
-// What the Studio Next Script page (`page/ScriptPage.tsx`) reads from the host beyond its data layer (`page/data/`): the credits cards'
+// What the rebuilt Script page (`page/ScriptPage.tsx`) reads from the host beyond its data layer (`page/data/`): the credits cards'
 // templates, previews, setup state and retail sample (re-homed unchanged from the old page, D22), the Words tab's host (`WordsHost`) and
 // the Define marks dialog's save. No file under `page/` names a port (`page/data/noHostCalls.test.ts`), and `page/data/` is the earlier
 // slices', so these hooks sit beside the page as `usePronunciationSources` sits beside the Story Bible tab.

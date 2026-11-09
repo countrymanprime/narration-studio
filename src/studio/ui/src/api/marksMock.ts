@@ -10,7 +10,7 @@ import { wireClone } from './mockFixtures';
 
 type Stored = Omit<Mark, 'paragraph' | 'stale' | 'staleReason'>;
 
-/** The Studio Next mock's own types, the ones a project starts with. */
+/** The research mock's own types, the ones a project starts with. */
 const DEFAULT_TYPES: MarkType[] = [
   { key: 'stress', name: 'Word stress', colour: 'copper', style: 'highlight', asks: false },
   { key: 'breath', name: 'Breath / pause', colour: 'info', style: 'dotted', asks: false },
