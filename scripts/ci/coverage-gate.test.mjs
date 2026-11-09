@@ -203,7 +203,7 @@ test('the checked-in floors file is valid and is exactly what --update would wri
   assert.equal(formatFloors(doc), text.replaceAll('\r\n', '\n'), 'run the gate with --update, or format the file the same way, so raising a floor stays a one-line diff');
 });
 
-const quiet = { log: () => {}, error: () => {} };
+const quiet = { log: () => {}, error: () => {}, mode: 'strict' }; // strict whatever event the suite runs under
 
 test('the report exits 1 when any entry fails and 0 when all pass', () => {
   const doc = { entries: [entry()] };
