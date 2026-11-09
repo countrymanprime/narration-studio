@@ -16,7 +16,12 @@ test('changed files come from git diff against the base only on a pull request',
   const git = (a) => ((args = a), { status: 0, stdout: 'a/b.py\n\nc.go\n' });
   assert.deepEqual(changedFiles({ GITHUB_EVENT_NAME: 'pull_request', GITHUB_BASE_REF: 'main' }, git), ['a/b.py', 'c.go']);
   assert.deepEqual(args, ['diff', '--name-only', 'origin/main...HEAD']);
-  assert.throws(() => changedFiles({ GITHUB_EVENT_NAME: 'pull_request', GITHUB_BASE_REF: 'main' }, () => ({ status: 1, stderr: 'x' })));
+  const pr = { GITHUB_EVENT_NAME: 'pull_request', GITHUB_BASE_REF: 'main' };
+  const calls = [];
+  const shallow = (a) => (calls.push(a[0]), a[0] === 'diff' && calls.length === 1 ? { status: 128, stderr: 'unknown revision' } : { status: 0, stdout: 'x.py\n' });
+  assert.deepEqual(changedFiles(pr, shallow), ['x.py'], 'a shallow checkout fetches the base and diffs again');
+  assert.deepEqual(calls, ['diff', 'fetch', 'diff']);
+  assert.equal(changedFiles(pr, () => ({ status: 128, stderr: 'fatal' })), null, 'an unreachable base gates everything, it does not fail the run');
 });
 
 test('under matches a directory boundary, not a prefix', () => {
