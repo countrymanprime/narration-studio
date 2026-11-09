@@ -373,7 +373,7 @@ that character speaks. Switching changes no track in REAPER.
 ![Chapter sync's Layout row on Voice folders, above the Tracks card with a chapter folder and its voice tracks](../../images/ui/engine-panel-voices-layout.webp)
 
 With Voice folders, Chapter links' last column is **Folder**: a chapter links to its folder, named with how many voices it holds
-("Chapter 1 · 3 voices"; a folder that holds folders reads as tracks, “Narration · 8 tracks”), and a track inside such a folder can't be chosen, since it is one of that chapter's voices.
+("Chapter 1 · 3 voices" in a Voice folders project; in any other project a folder counts tracks, as the Tracks list does, “Chapters · 8 tracks”), and a track inside such a folder can't be chosen, since it is one of that chapter's voices.
 
 ![A chapter's folder picker: the Chapter 1 folder can be chosen, its voice tracks can't](../../images/ui/engine-panel-voices-folder-picker.webp)
 
