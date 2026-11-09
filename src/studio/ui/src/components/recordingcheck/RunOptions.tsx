@@ -17,7 +17,7 @@ const CHUNK_CHOICES = Object.keys(rowOf('stt.chunk')?.options ?? {})
 const OVERLAP_RANGE = { min: 0, max: 10, step: 1 };
 const WORKER_RANGE = { min: 1, max: 8, step: 1 };
 /** Where the chunk length lands when "Transcribe each recording whole" is turned off. */
-const SLIDER_CHUNK_DEFAULT = 60;
+const UNWHOLE_CHUNK_DEFAULT = 60;
 const clampTo = (value: number, range: { min: number; max: number }): number => Math.min(range.max, Math.max(range.min, value));
 
 const LABEL = 'text-[length:var(--font-size-sm)] font-semibold uppercase';
@@ -81,7 +81,7 @@ export function RunOptions({ engines, choices, onChange }: { engines: CoverageEn
       ) : null}
       <fieldset className="m-0 flex min-w-0 flex-col gap-3 border-0 border-t border-[var(--border)] p-0 pt-3">
         <legend className="sr-only">Long recordings</legend>
-        <Checkbox checked={whole} onChange={(on) => onChange({ chunkSeconds: on ? 0 : SLIDER_CHUNK_DEFAULT })}>
+        <Checkbox checked={whole} onChange={(on) => onChange({ chunkSeconds: on ? 0 : UNWHOLE_CHUNK_DEFAULT })}>
           Transcribe each recording whole
         </Checkbox>
         <label className="flex flex-col gap-1">
@@ -90,11 +90,11 @@ export function RunOptions({ engines, choices, onChange }: { engines: CoverageEn
             label="Chunk length"
             fullWidth
             disabled={whole}
-            value={String(whole ? SLIDER_CHUNK_DEFAULT : choices.chunkSeconds)}
+            value={String(choices.chunkSeconds)}
             onChange={(value) => onChange({ chunkSeconds: Number(value) })}
-            options={withChoice(CHUNK_CHOICES, whole ? SLIDER_CHUNK_DEFAULT : choices.chunkSeconds).map((seconds) => ({
+            options={(whole ? [0] : withChoice(CHUNK_CHOICES, choices.chunkSeconds)).map((seconds) => ({
               value: String(seconds),
-              label: `${seconds} s`,
+              label: seconds === 0 ? 'Whole' : `${seconds} s`,
             }))}
           />
         </label>

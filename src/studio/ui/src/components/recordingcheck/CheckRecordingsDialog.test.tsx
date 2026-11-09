@@ -473,6 +473,7 @@ describe('CheckRecordingsDialog', () => {
       expect((screen.getByRole('slider', { name: 'Parallel workers' }) as HTMLInputElement).disabled).toBe(true);
       expect((screen.getByRole('slider', { name: 'Overlap between chunks' }) as HTMLInputElement).disabled).toBe(true);
       expect((screen.getByRole('combobox', { name: 'Chunk length' }) as HTMLSelectElement).disabled).toBe(true);
+      expect((screen.getByRole('combobox', { name: 'Chunk length' }) as HTMLSelectElement).selectedOptions[0].textContent).toBe('Whole');
       expect(screen.getByText('Whisper small over each recording whole, one process.')).toBeTruthy();
       await userEvent.click(screen.getByRole('button', { name: 'Check 1 chapter' }));
       await waitFor(() => expect(sent).toHaveLength(1));
