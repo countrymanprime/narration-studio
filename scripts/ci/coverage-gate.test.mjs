@@ -375,9 +375,6 @@ test('on a pull request a floor missed in a directory the change does not touch 
   assert.ok(touches(other, ['src/studio/desktop/internal/b/b_test.go', 'x']), 'a deleted test lowers coverage of lines it never edited');
   assert.ok(touches(other, ['src/studio/desktop/internal/c/c_test.go']), 'a test file in the project counts');
   assert.ok(!touches(other, ['src/studio/desktop/internal/c/c.go']));
-  const report = evaluate([mine], () => 80, 'linux', { mode: 'report' });
-  assert.deepEqual(report.failures, []);
-  assert.equal(report.warnings.length, 1);
   assert.equal(evaluate([mine], () => 80, 'linux', { mode: 'strict' }).failures.length, 1);
-  assert.equal(evaluate([mine], () => null, 'linux', { mode: 'report' }).failures.length, 1, 'no data always fails');
+  assert.equal(evaluate([mine], () => null, 'linux', { mode: 'scoped', files: [] }).failures.length, 1, 'no data always fails');
 });

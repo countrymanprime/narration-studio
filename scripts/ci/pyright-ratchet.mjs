@@ -8,7 +8,7 @@
 // Scope (#3149): two merges that each passed can leave a count off its limit on `main`, and then every later pull request went red
 // for errors it did not write. On a pull request a directory that differs from its limit fails only when the change touches a
 // file in it (over: the new errors; under: write the lower number down, so headroom is not left for later errors). Other
-// directories, and every directory on other CI events, are printed as warnings; a local run stays strict.
+// directories are printed as warnings. Every other run (main-health, a push, local) is strict, so a miss on `main` still fails.
 //
 // A new Python directory is added to pyrightconfig.json and starts at its real count, or at 0 when it is clean. A directory in the
 // config with no entry here fails, so a directory cannot be checked without being ratcheted (issue #946).

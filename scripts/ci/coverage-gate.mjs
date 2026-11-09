@@ -31,8 +31,8 @@
  * Scope (#3149). Two merges that each passed can leave a floor missed on `main`, and then the next unrelated pull request goes red.
  * So on a pull request (GITHUB_EVENT_NAME=pull_request) a directory below its floor fails only when the change touches it: a changed
  * file under the entry's path, or a changed test file anywhere in its project (deleting a test lowers coverage of lines it never edited).
- * Any other directory below its floor is printed as a warning. Other CI events (main-health, a push) print every miss as a warning;
- * a run outside CI is strict as before. A directory with no coverage data always fails: that is a rename, not a drift.
+ * Any other directory below its floor is printed as a warning. Every other run (main-health, a push, `pnpm check`) is strict as
+ * before, so a floor missed on `main` turns main-health red. A directory with no coverage data always fails: that is a rename, not a drift.
  */
 import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -198,7 +198,7 @@ export function evaluate(entries, measure, platform = process.platform, { mode =
       const message = `${label(entry)}: ${pct.toFixed(1)}% is below the ${which}floor ${floor}%. Add tests; do not lower the floor to pass.`;
       const gated = mode === 'strict' || (mode === 'scoped' && (files === null || touches(entry, files)));
       if (gated) failures.push(message);
-      else warnings.push(`${message} (not gated here: ${mode === 'report' ? 'this run is not a pull request' : 'this pull request does not touch it'})`);
+      else warnings.push(`${message} (not gated here: this pull request does not touch it)`);
     } else if (pct >= floor + RAISE_MARGIN) {
       notes.push(`${label(entry)}: ${pct.toFixed(1)}% clears the ${floor}% ${which}floor; raise it to ${Math.floor(pct)} (run with --update).`);
     }

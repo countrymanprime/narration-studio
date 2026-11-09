@@ -6,7 +6,8 @@ import { changedFiles, modeFor, under } from './pr-scope.mjs';
 test('the mode follows the CI event', () => {
   assert.equal(modeFor({}), 'strict');
   assert.equal(modeFor({ GITHUB_EVENT_NAME: 'pull_request' }), 'scoped');
-  assert.equal(modeFor({ GITHUB_EVENT_NAME: 'schedule' }), 'report');
+  assert.equal(modeFor({ GITHUB_EVENT_NAME: 'schedule' }), 'strict');
+  assert.equal(modeFor({ GITHUB_EVENT_NAME: 'push' }), 'strict');
 });
 
 test('changed files come from git diff against the base only on a pull request', () => {

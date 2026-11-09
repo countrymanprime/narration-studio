@@ -57,8 +57,8 @@ test('on a pull request a directory off its limit fails only when the change tou
   assert.equal(under.warnings.length, 1);
 });
 
-test('outside a pull request every miss is a warning, and a new directory still fails (#3149)', () => {
-  const report = evaluate({ lib: 4, fresh: 0 }, { lib: 3 }, { mode: 'report' });
-  assert.deepEqual(report.warnings.length, 1);
-  assert.match(report.problems[0], /^fresh: checked by pyright but missing/);
+test('outside a pull request every miss fails, and a new directory fails on a pull request too (#3149)', () => {
+  assert.equal(evaluate({ lib: 4 }, { lib: 3 }, { mode: 'strict' }).problems.length, 1);
+  const scoped = evaluate({ lib: 3, fresh: 0 }, { lib: 3 }, { mode: 'scoped', files: ['x.py'] });
+  assert.match(scoped.problems[0], /^fresh: checked by pyright but missing/);
 });
