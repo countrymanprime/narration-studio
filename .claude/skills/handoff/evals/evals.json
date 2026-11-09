@@ -1,0 +1,6 @@
+[
+  { "id": "clear-mid-task", "prompt": "This session is getting really long and I'm about to /clear. Can you capture where we are so a fresh session can pick up the work?", "expect": "trigger" },
+  { "id": "continue-in-new-session", "prompt": "We're not finished with the sidecar change but I want to continue tomorrow in a new session. Write up the state.", "expect": "trigger" },
+  { "id": "small-fix", "prompt": "Rename the variable `cnt` to `count` in scripts/ci/layout.mjs.", "expect": "no-trigger" },
+  { "id": "explain-code", "prompt": "Explain what scripts/ci/docs-impact.mjs does.", "expect": "no-trigger" }
+]
