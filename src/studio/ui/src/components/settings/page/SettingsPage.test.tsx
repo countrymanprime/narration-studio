@@ -772,6 +772,21 @@ describe('Settings: search and filters', () => {
     expect(row('app.channel')).toBeTruthy();
   });
 
+  it('keeps keyboard focus in the page after Reset removes a row from the Changed list (#3196)', async () => {
+    const api = createMockApi();
+    await renderPage({ api });
+    await screen.findByRole('heading', { level: 2, name: 'Recording & DAW' });
+    pick('App & updates');
+    fireEvent.change(await screen.findByRole('combobox', { name: /Update channel/ }), { target: { value: 'stable' } });
+    await waitFor(() => expect(within(row('app.channel')).getByText('Changed')).toBeTruthy());
+    fireEvent.click(screen.getByRole('button', { name: 'Changed' }));
+    const reset = within(row('app.channel')).getByRole('button', { name: /Reset Update channel/ });
+    reset.focus();
+    fireEvent.click(reset);
+    await waitFor(() => expect(document.querySelector('[data-row="app.channel"]')).toBeNull());
+    await waitFor(() => expect(document.activeElement).not.toBe(document.body));
+  });
+
   // Issue 2636: Changed read only the host's files, so a setting this window keeps (Start tone) never showed under it. One change of every
   // kind of row, so a row kind that Changed cannot see fails here.
   it('Changed lists a changed row of every kind, custom bodies included', async () => {

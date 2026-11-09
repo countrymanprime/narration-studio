@@ -622,4 +622,25 @@ describe('CompareRun starting values from Settings', () => {
       expect(chosen.map((button) => button.textContent)).toEqual(['1m']);
     });
   });
+
+  it('says so when the stored chunk is not one of its choices, instead of silently starting on 1m', async () => {
+    const field = (key: string, effectiveValue: string) => ({ key, effectiveValue }) as never;
+    const settingsForScope = vi.fn().mockResolvedValue({ TranscriptCompare: [field('chunk_seconds', 'abc')] });
+    const notify = vi.fn();
+    render(
+      <ApiProvider api={createMockApi({ settingsForScope })}>
+        <CompareRun
+          chapterTitle="Chapter 1"
+          state={{ ...WIRE_TRANSCRIPT, phase: 'idle' }}
+          notify={notify}
+          dawFileLinked
+          reviewingLast={false}
+          onReviewLast={vi.fn()}
+          onCloseLast={vi.fn()}
+          foundHere={0}
+        />
+      </ApiProvider>,
+    );
+    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringContaining('(abc) is not one this panel offers; starting on 1m')));
+  });
 });

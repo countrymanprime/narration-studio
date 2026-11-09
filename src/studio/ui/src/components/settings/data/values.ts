@@ -39,4 +39,11 @@ export const isAnyChanged = (
 ): boolean => isChanged(row, global) || isBrowserChanged(row) || custom.has(row.id) || overrideValue(row, project) !== undefined;
 
 /** The label of a choice: the registry's word, else what the host sent. */
-export const choiceLabel = (row: SettingMeta, value: string): string => row.options?.[value]?.label ?? (value === '' ? 'Not set' : value);
+export const choiceLabel = (row: SettingMeta, value: string): string => {
+  const listed = row.options?.[value]?.label;
+  if (listed) return listed;
+  if (value === '') return 'Not set';
+  // A hand-edited value of a row with a unit is named: a whole number gets its unit, anything else is said to be invalid.
+  if (row.unit) return /^\d+$/.test(value) ? `${value} ${row.unit}` : `${value} (invalid)`;
+  return value;
+};

@@ -215,7 +215,17 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
                   action="undo"
                   label={`Reset ${row.label} to ${defaultLabel}`}
                   className="border-transparent"
-                  onClick={() => void store.write(row, 'global', null)}
+                  onClick={() => {
+                    // With the Changed filter on the row leaves the list: hand focus to a neighbour (or the page heading) instead of the body.
+                    const el = rowEl.current;
+                    const next = el?.nextElementSibling ?? el?.previousElementSibling;
+                    void store.write(row, 'global', null).finally(() =>
+                      setTimeout(() => {
+                        const target = el?.isConnected ? el : next?.isConnected ? (next as HTMLElement) : document.getElementById('settings-heading');
+                        target?.focus({ preventScroll: true });
+                      }),
+                    );
+                  }}
                 />
               )}
               {saved && <SavedWord key={store.saved?.n} />}
