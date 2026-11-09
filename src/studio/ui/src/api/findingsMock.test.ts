@@ -149,11 +149,10 @@ describe("the browser mock's REAPER follows the host's navigation rules", () => 
   });
 
   it('knows the finding the sample Pickups noise row points at, so Show in REAPER on it goes to its place (#3168)', async () => {
-    const api = createMockApi({}, {});
-    const { pickups } = await api.pickupsList();
+    const { pickups } = await createMockApi({}, {}).pickupsList();
     const noise = pickups.find((pickup) => pickup.source === 'audio');
     expect(noise?.findingId).toBeTruthy();
-    await expect(api.findingsGoTo(noise!.findingId!)).resolves.toEqual({ outcome: 'navigated', projectTime: 450.9 });
+    await expect(createFindingsMock(WIRE_FINDINGS).findingsGoTo(noise!.findingId!)).resolves.toEqual({ outcome: 'navigated', projectTime: 450.9 });
   });
 
   it('goes to and loops a finding with an item, and Stop puts back what the loop changed', async () => {
@@ -239,11 +238,12 @@ describe("the browser mock's REAPER adds an approved marker as the host does", (
   });
 });
 
-// The Pickups mock lists `sample-noise`; the default mock serves it in Proof's list too, so Go to note for that row reaches a note Proof shows (#3231).
+// The Pickups mock lists `sample-noise`, which the findings store does not hold: `find()` answers it through a special case. This pins that Go to note
+// and Fine, not a pickup keep resolving it (#3231); the Proof list does not show it, so seeding it there is a separate change.
 describe('the sample noise note the Pickups mock lists', () => {
-  it('is listed by the default mock and answered by findingsGet', async () => {
-    const api = createMockApi();
+  it('is answered by findingsGet although the list does not hold it', async () => {
+    const api = createFindingsMock(WIRE_FINDINGS);
     expect((await api.findingsGet('sample-noise')).id).toBe('sample-noise');
-    expect((await api.findingsList({})).findings.map((finding) => finding.id)).toContain('sample-noise');
+    expect((await api.findingsList({})).findings.map((finding) => finding.id)).not.toContain('sample-noise');
   });
 });

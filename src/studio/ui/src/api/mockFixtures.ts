@@ -1537,8 +1537,8 @@ export const WIRE_TAKE_REVIEW_FINDINGS: Finding[] = [
 // latest Story Bible run no longer flags, so every state the Review page shows has data behind it. The two Chapter 1
 // discrepancies carry the REAPER item, take and track GUIDs Go to and Loop need; the Chapter 2 one comes from
 // an older comparison that recorded none, so its REAPER controls say why they are off.
-/** The audio note the mock's sample Pickups row (07:30.9 Noise) points at. It is not in `WIRE_FINDINGS` (a seed other tests count), but `createMockApi` adds it
- * to the findings it serves by default, so Proof lists it and Go to note and Show in REAPER on that row reach a note Proof shows (#3231). */
+/** The audio note the mock's sample Pickups row (07:30.9 Noise) points at. It is not in `WIRE_FINDINGS` (the Proof list does not show it), but the findings mock
+ * knows it by id, so Show in REAPER on that row goes to a place instead of answering that the finding is gone. */
 export const WIRE_SAMPLE_NOISE_FINDING: Finding = {
   schema_version: 1,
   id: 'sample-noise',

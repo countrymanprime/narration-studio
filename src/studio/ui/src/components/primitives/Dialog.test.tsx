@@ -700,7 +700,7 @@ describe("the shell's layout (ENX-13, ENX-16, ENX-23)", () => {
 describe('a-dialog-gives-its-body-the-room-in-a-short-window', () => {
   it('tightens its header, footer and padding and keeps the description for screen readers only under 400 px tall', () => {
     render(
-      <Dialog title="Short" description="Say what this does" onClose={() => undefined} actions={<Button>OK</Button>}>
+      <Dialog title="Short" description="Say what this does" dismissOnOutsidePress={false} onClose={() => undefined} actions={<Button>OK</Button>}>
         body
       </Dialog>,
     );

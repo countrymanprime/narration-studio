@@ -114,6 +114,8 @@ describe('ChapterTrackPanel states (alignment audit)', () => {
     renderPanel(api, { ...link, status: 'matched' }, track);
     await screen.findByText(/Not linked yet/);
     expect(screen.queryByRole('button', { name: 'Unlink' })).toBeNull();
+    // The picker opens on the suggestion, so one Confirm links it.
+    expect((screen.getByRole('combobox', { name: /^Track for/ }) as HTMLSelectElement).value).toBe(link.track!.trackGuid);
     cleanup();
     renderPanel(api, link, track);
     expect(await screen.findByRole('button', { name: 'Unlink' })).toBeTruthy();
