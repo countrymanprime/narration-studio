@@ -6,7 +6,7 @@
 // this file only puts them together, with the per-feature mocks beside it (teleprompterMock.ts, coverageMock.ts, ...).
 import type { GuideDialogueCue } from './contracts/storyBible';
 import type { Finding, ManuscriptParagraph, MeasureFileResult, NarrationApi } from '../types';
-import { WIRE_FINDINGS, WIRE_TELEPROMPTER_DEVICES, WIRE_TRACKS_PROJECT } from './mockFixtures';
+import { WIRE_FINDINGS, WIRE_SAMPLE_NOISE_FINDING, WIRE_TELEPROMPTER_DEVICES, WIRE_TRACKS_PROJECT } from './mockFixtures';
 import { mockChapterTrackMatch } from './chapterTrackMatchMock';
 import { createTeleprompterMock } from './teleprompterMock';
 import { createCoverageMock } from './coverageMock';
@@ -373,13 +373,16 @@ export function createMockApi(
   if (held.has('entities')) storyBible.bindings.guideEntities = never;
   if (initial.planRead === 'loading') production.productionPlan = () => new Promise<never>(() => {});
   if (initial.planRead === 'fails') production.productionPlan = async () => Promise.reject(new Error('The schedule could not be read from this project.'));
-  const { saveFinding, saveFileFindings, acceptedFindings, ...findings } = createFindingsMock(initial.findings ?? WIRE_FINDINGS, {
-    rerunAfterFirstList: initial.findingsRerun,
-    reaper: initial.reaper,
-    // Only the default seed demonstrates the overlay; a caller supplying its own findings (most tests) opts out, as
-    // it already does for WIRE_FINDINGS itself.
-    ...(initial.findings ? {} : { lazySeed: workspaceOverlayFinding }),
-  });
+  const { saveFinding, saveFileFindings, acceptedFindings, ...findings } = createFindingsMock(
+    initial.findings ?? [...WIRE_FINDINGS, WIRE_SAMPLE_NOISE_FINDING],
+    {
+      rerunAfterFirstList: initial.findingsRerun,
+      reaper: initial.reaper,
+      // Only the default seed demonstrates the overlay; a caller supplying its own findings (most tests) opts out, as
+      // it already does for WIRE_FINDINGS itself.
+      ...(initial.findings ? {} : { lazySeed: workspaceOverlayFinding }),
+    },
+  );
   proofNotes.read = acceptedFindings;
   const workspaceTakes = createWorkspaceTakesMock({
     alignment: workspace.workspaceAlignment,

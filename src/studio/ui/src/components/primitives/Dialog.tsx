@@ -198,7 +198,7 @@ export function Dialog({
             left the page undimmed behind a confirm opened from a panel (chapter-track-link-control/06 draws it dimmed). */}
         <Parts.Backdrop data-dialog-backdrop forceRender className="fixed inset-0 z-[var(--z-dialog)] bg-[var(--backdrop)]" />
         <Parts.Viewport
-          className={`fixed inset-0 z-[var(--z-dialog)] flex justify-center p-4 ${top && width !== 'full' ? `items-start ${width === 'palette' ? 'pt-[12vh]' : 'pt-[8vh]'}` : 'items-center'}`}
+          className={`fixed inset-0 z-[var(--z-dialog)] flex justify-center p-4 [@media(max-height:400px)]:p-2 ${top && width !== 'full' ? `items-start ${width === 'palette' ? 'pt-[12vh]' : 'pt-[8vh]'}` : 'items-center'}`}
         >
           <Parts.Popup
             ref={popupRef}
@@ -222,7 +222,7 @@ export function Dialog({
               <Parts.Title className="sr-only">{title}</Parts.Title>
             ) : (
               <div
-                className={`flex min-h-[3.75rem] flex-none items-center justify-between gap-3 border-b border-[var(--border)] ${INSET} ${edgeGutter} py-[0.85rem]`}
+                className={`flex min-h-[3.75rem] flex-none items-center justify-between gap-3 border-b border-[var(--border)] ${INSET} ${edgeGutter} py-[0.85rem] [@media(max-height:400px)]:min-h-0 [@media(max-height:400px)]:py-2`}
               >
                 <Parts.Title className={`flex-1 ${OVERLAY_TITLE_CLASS}`}>{title}</Parts.Title>
                 {onClose && (
@@ -242,9 +242,15 @@ export function Dialog({
                   top edge, under the header's divider, and rows do not show above it (alignment audit ENX-23). A headerless body (the jump menu)
                   keeps 8 px under its last row, which touched the edge (XSL-16, R3SL-7). The scroll box shades the edge that has more beyond it
                   (`scroll-y-edges`), so a row cut by the action row reads as more to scroll (R3GL-3, R3EN2-13). */}
-              <div data-dialog-content className={`${bodyScroll ? '' : 'flex min-h-0 flex-1 flex-col'} ${headerless ? 'pb-2' : 'py-[var(--space-6)]'}`}>
+              <div
+                data-dialog-content
+                className={`${bodyScroll ? '' : 'flex min-h-0 flex-1 flex-col'} ${headerless ? 'pb-2' : 'py-[var(--space-6)] [@media(max-height:400px)]:py-2'}`}
+              >
                 {hasContent(description) && (
-                  <Parts.Description render={typeof description === 'string' ? <p /> : <div />} className="mb-3 text-sm text-[var(--text-muted)] last:mb-0">
+                  <Parts.Description
+                    render={typeof description === 'string' ? <p /> : <div />}
+                    className="mb-3 text-sm text-[var(--text-muted)] last:mb-0 [@media(max-height:400px)]:sr-only"
+                  >
                     {description}
                   </Parts.Description>
                 )}
@@ -262,7 +268,7 @@ export function Dialog({
                 // The mocks' action row is 66 px under its divider (12 above a 38 px button, 16 below; the min-height counts the divider). Button is 32 px
                 // so the row keeps the mocks' height and centres the buttons in the 38 px band. The actions wrap onto a second line rather than
                 // squeezing their labels, and keep to the right; 'between' pushes the first of several to the left.
-                className={`flex min-h-[4.1875rem] flex-none flex-wrap items-center justify-end gap-2 border-t ${INSET} ${edgeGutter} pt-3 pb-4 ${actionsAlign === 'between' ? '[&>:first-child:not(:only-child)]:mr-auto' : ''}`}
+                className={`flex min-h-[4.1875rem] flex-none flex-wrap items-center justify-end gap-2 border-t ${INSET} ${edgeGutter} pt-3 pb-4 [@media(max-height:400px)]:min-h-0 [@media(max-height:400px)]:py-2 ${actionsAlign === 'between' ? '[&>:first-child:not(:only-child)]:mr-auto' : ''}`}
                 style={{ borderColor: 'var(--border)' }}
               >
                 {actions}

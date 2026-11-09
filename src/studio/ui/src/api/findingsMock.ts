@@ -25,7 +25,7 @@ import {
   MAX_REVIEW_NOTE_LENGTH,
   type FindingThreadMessage,
 } from './contracts/findings';
-import { WIRE_SAMPLE_NOISE_FINDING, wireClone } from './mockFixtures';
+import { wireClone } from './mockFixtures';
 
 const SEVERITY_ORDER: FindingSeverity[] = ['error', 'warning', 'info'];
 
@@ -253,7 +253,7 @@ export function createFindingsMock(
   const threadDeleted = new Map<string, Map<string, { at: number; message: FindingThreadMessage }>>();
   let pendingRerun = options.rerunAfterFirstList === true;
   const find = (id: string): Finding => {
-    const finding = store.find((candidate) => candidate.id === id) ?? (id === WIRE_SAMPLE_NOISE_FINDING.id ? WIRE_SAMPLE_NOISE_FINDING : undefined);
+    const finding = store.find((candidate) => candidate.id === id);
     if (!finding) throw new Error('that finding is no longer in this project; reload the list');
     return finding;
   };
