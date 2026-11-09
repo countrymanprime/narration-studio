@@ -362,3 +362,22 @@ test('the command line refuses --group without -race and a group it does not kno
   assert.equal(refuse('-race', '--group=root', '--group=race').status, 2);
   assert.match(refuse('-race', '--group=everything').stderr, /Usage: coverage-gate\.mjs go/);
 });
+
+test('on a pull request a floor missed in a directory the change does not touch is a warning (#3149)', async () => {
+  const { touches } = await import('./coverage-gate.mjs');
+  const mine = { tool: 'go', project: 'src/studio/desktop', path: 'internal/a', floor: 85 };
+  const other = { tool: 'go', project: 'src/studio/desktop', path: 'internal/b', floor: 85 };
+  const files = ['src/studio/desktop/internal/a/a.go'];
+  const scoped = evaluate([mine, other], () => 80, 'linux', { mode: 'scoped', files });
+  assert.equal(scoped.failures.length, 1);
+  assert.match(scoped.failures[0], /internal\/a/);
+  assert.match(scoped.warnings[0], /internal\/b.*does not touch/);
+  assert.ok(touches(other, ['src/studio/desktop/internal/b/b_test.go', 'x']), 'a deleted test lowers coverage of lines it never edited');
+  assert.ok(touches(other, ['src/studio/desktop/internal/c/c_test.go']), 'a test file in the project counts');
+  assert.ok(!touches(other, ['src/studio/desktop/internal/c/c.go']));
+  const report = evaluate([mine], () => 80, 'linux', { mode: 'report' });
+  assert.deepEqual(report.failures, []);
+  assert.equal(report.warnings.length, 1);
+  assert.equal(evaluate([mine], () => 80, 'linux', { mode: 'strict' }).failures.length, 1);
+  assert.equal(evaluate([mine], () => null, 'linux', { mode: 'report' }).failures.length, 1, 'no data always fails');
+});
