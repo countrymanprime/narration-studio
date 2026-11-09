@@ -134,7 +134,7 @@ func (s *ChoiceStore) update(change func(*choiceFileShape)) error {
 
 func (s *ChoiceStore) read() (choiceFileShape, error) {
 	empty := choiceFileShape{Version: choiceFileVersion, Documents: map[string]map[string]string{}}
-	raw, err := os.ReadFile(ChoiceFile(s.project))
+	raw, err := persist.ReadFile(ChoiceFile(s.project))
 	if os.IsNotExist(err) {
 		return empty, nil
 	}

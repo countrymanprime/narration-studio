@@ -172,7 +172,7 @@ func (s *RenderStore) update(change func(*rendersFileShape)) error {
 
 func (s *RenderStore) read() (rendersFileShape, error) {
 	empty := rendersFileShape{Version: rendersFileVersion, Documents: map[string]map[string]RenderAssociation{}}
-	raw, err := os.ReadFile(RendersFile(s.project))
+	raw, err := persist.ReadFile(RendersFile(s.project))
 	if os.IsNotExist(err) {
 		return empty, nil
 	}

@@ -111,7 +111,7 @@ type Service struct {
 	// now stands in for time.Now in tests.
 	// +checklocks:mu
 	now func() time.Time
-	// rename is a test seam for the atomic write below; nil is os.Rename.
+	// rename is a test seam for the atomic write below; nil is persist.Rename.
 	// +checklocks:mu
 	rename func(oldPath, newPath string) error
 }
@@ -323,7 +323,7 @@ func (s *Service) writeLocked(file sessionsFile) error {
 	if err := os.WriteFile(temporary, bytes, 0o600); err != nil {
 		return fmt.Errorf("could not write the %s file: %w", what, err)
 	}
-	rename := os.Rename
+	rename := persist.Rename
 	if s.rename != nil {
 		rename = s.rename
 	}
