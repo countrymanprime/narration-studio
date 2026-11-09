@@ -1,6 +1,6 @@
 ---
 name: log-triage
-description: Reads a long log file (a full gate run, a CI job log, a Playwright report) and returns only the failing items with file and line, the first useful error lines, and what is probably the root failure. Use when a digest was not enough and the log is too big to read in the main context. Give it the log path.
+description: Reads a long log file (a full gate run, a CI job log, a Playwright report) and returns only the failing items with file and line, the first useful error lines, and what is probably the root failure. Use when a log is too big to read in the main context. Give it the log path.
 tools: Read, Grep, Glob, Bash
 model: haiku
 ---
