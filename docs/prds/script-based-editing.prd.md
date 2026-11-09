@@ -1,6 +1,6 @@
-# Studio Next Script-Based Editing: The Chapter's Words as the Editor
+# Script-Based Editing: The Chapter's Words as the Editor
 
-**Source:** owner request of 2026-10-10 (Studio Next Rebuild); "Editing page: script-based audio editing (owner ruling)", the takes and Audacity follow-ups and the "FX exception" in `studio-next/research/repo-compare-decisions.md`; research in `studio-next/research/editing-page-research.md` and `studio-next/research/editing-fx-research.md`; the mock's `studio-next/src/pages/Editing.tsx` and `studio-next/src/pages/editing/`.
+**Source:** owner request of 2026-10-10 (rebuild PRD); "Editing page: script-based audio editing (owner ruling)", the takes and Audacity follow-ups and the "FX exception" in `research-mock/research/repo-compare-decisions.md`; research in `research-mock/research/editing-page-research.md` and `research-mock/research/editing-fx-research.md`; the mock's `research-mock/src/pages/Editing.tsx` and `research-mock/src/pages/editing/`.
 
 **Builds on / replaces (the old workspace is deleted in the swap, SNE-9):** the delivered workspace inside the Proof chapter page (word-level player, flags, takes panel, FX on a passage: [workspace.go](../../src/studio/desktop/internal/coverage/workspace.go), [Recording Check (recording coverage)](../utilities/recording-coverage.md), [playing.ts](../../src/studio/ui/src/components/editing/script/playing.ts), [From the Takes panel](../architecture/reaper-bridge.md#from-the-takes-panel), , [cache.go](../../src/studio/desktop/internal/measure/cache.go)), the editing readiness work ([Editing check](../guides/using-the-app/navigation.md#editing-check), [cleanup.go](../../src/studio/desktop/internal/measure/cleanup.go)) and the DAW commands of DAW Ports and Capabilities. The old Edit and Proof Workspace PRD is superseded in its remaining parts here (follow REAPER, takes panel, consolidation); see the overview's carried-over table.
 
@@ -12,7 +12,7 @@ The owner chose design E: the chapter's own text is the editor. Words are read-o
 
 ## Evidence
 
-- **Mock.** Page: `studio-next/src/pages/Editing.tsx` with `studio-next/src/pages/editing/{ScriptDoc,Ribbon,FlagCard,Bar,Strip,Drawer,RangeDialogs,TakeParts,CleanupTab,EffectsTab,BackupsTab,Coverage,StackDialog}.tsx`. Model: `studio-next/src/selectors/scriptedit.ts` (`alignToScript`, `ChapterDoc`, selection model, `summarize`), `studio-next/src/selectors/cuts.ts`, `studio-next/src/selectors/stacking.ts`, `studio-next/src/selectors/takes.ts` (`suggestTake`), `studio-next/src/selectors/passagemap.ts`. Commands: `studio-next/src/state/commands/{scriptedit,editing,stacking,backups,passagemap}.ts`. Providers: `studio-next/src/providers/{alignment,takes,fxchains}.ts`. Tests: ten files in `studio-next/tests/` named `editing`, `c2-editing`, `d2-editing-keys`, `e-alignment`, `e-selection`, `e-takes-inline`, `e-strip-narrow`, `e-delete-range`, `e-fx-range` and `d3-stacking`.
+- **Mock.** Page: `research-mock/src/pages/Editing.tsx` with `research-mock/src/pages/editing/{ScriptDoc,Ribbon,FlagCard,Bar,Strip,Drawer,RangeDialogs,TakeParts,CleanupTab,EffectsTab,BackupsTab,Coverage,StackDialog}.tsx`. Model: `research-mock/src/selectors/scriptedit.ts` (`alignToScript`, `ChapterDoc`, selection model, `summarize`), `research-mock/src/selectors/cuts.ts`, `research-mock/src/selectors/stacking.ts`, `research-mock/src/selectors/takes.ts` (`suggestTake`), `research-mock/src/selectors/passagemap.ts`. Commands: `research-mock/src/state/commands/{scriptedit,editing,stacking,backups,passagemap}.ts`. Providers: `research-mock/src/providers/{alignment,takes,fxchains}.ts`. Tests: ten files in `research-mock/tests/` named `editing`, `c2-editing`, `d2-editing-keys`, `e-alignment`, `e-selection`, `e-takes-inline`, `e-strip-narrow`, `e-delete-range`, `e-fx-range` and `d3-stacking`.
 - **Repo.** `src/studio/ui/src/components/proof/{ProofChapterPage,ScriptView,TransportBar,WaveformStrip,TakesPanel,ApplyFxDialog}.tsx` and `{useChapterPlayback,useWorkspaceReaper,tokenAtTime,takesPassage}.ts`; `src/studio/ui/src/components/editing/{EditingCheckPanel,CleanupAction}.tsx`; Go `internal/passagetakes`, `internal/takecompare`, `internal/measure` (peaks, ranges), `bindings_workspace*.go`; Lua `narration_workspace.lua` (`set_active_take`, `add_take_fx`, `apply_fx_chain`), `narration_cleanup.lua`; keys `workspace.*` in `commands.catalog.ts`.
 
 | Mock feature | Real today |
@@ -30,13 +30,13 @@ The owner chose design E: the chapter's own text is the editor. Words are read-o
 ## Proposed Solution
 
 1. **Page and model.** A new Editing page (rail group Review, [Design principles](../architecture/principles.md)) whose model is ported as pure TypeScript: `alignToScript` (matches, misreads paired by look-alike, not read, extra words), `ChapterDoc` with stable keys, cut list and effects applied, the selection model, `summarize`. Words come from an `AlignmentPort`: per-word offsets, confidence and `added` flag from the stored workspace alignment ([workspace.go](../../src/studio/desktop/internal/coverage/workspace.go)); `snap` moves a cut to a zero crossing host-side.
-2. **Keys and menus** through the catalogue and providers: word arrows, Shift selects, Ctrl phrase, Del, M mute, F FX, T and Shift+T takes, Enter play, H hide, `[` `]` flags, S, Esc, Ctrl+Shift+C, chapter step Alt+Up/Down (`studio-next/src/pages/Editing.tsx` `registerKeys` becomes catalogue rows).
+2. **Keys and menus** through the catalogue and providers: word arrows, Shift selects, Ctrl phrase, Del, M mute, F FX, T and Shift+T takes, Enter play, H hide, `[` `]` flags, S, Esc, Ctrl+Shift+C, chapter step Alt+Up/Down (`research-mock/src/pages/Editing.tsx` `registerKeys` becomes catalogue rows).
 3. **Takes inline** (`TakeParts`): each take a sub-line with evidence (words matched, longest pause, level against neighbours, noise floor, clarity, breaths) from the measure ranges ([takemetrics.go](../../src/studio/desktop/internal/measure/takemetrics.go)); a **suggested take** with an honest confidence, null with a reason until takes are level-comparable and rising as prep steps are applied; shown as a chip with its evidence, never preselected, never applied (DQ-15; [Codebase map](../architecture/codebase-map.md) superseded to that extent).
 4. **Prep steps** (trim white space, trim breaths, normalise) are offered, never run by themselves, and re-score the suggestion.
 5. **Hide other takes** (mute, one undo) replaces removal; nothing is ever deleted.
 6. **Duplicate reads** (a take that reads the line twice) are found and split into takes, in the DAW when the `takes` capability allows, else the built-in recorder.
-7. **Stacking** as the mock does it (`studio-next/src/selectors/stacking.ts`, `StackDialog.tsx`): the plan is shown first, later reads move onto the first read, the chapter shifts; un-stack restores by offsets (DQ-7).
-8. **Delete words and audio** and **Add FX to a range** through `DawClient.deleteRange` and `applyFxToRange`, behind `cut_range` and `fx_range`, always confirmed with a preview, one undo step, never deleting (a trim hides or mutes; it goes to the muted Cuts track as `delete_range` does, DQ-8), struck words kept, an underline and an FX marker with a way to remove, the DAW's own saved chains listed from the DAW (`studio-next/src/providers/fxchains.ts`).
+7. **Stacking** as the mock does it (`research-mock/src/selectors/stacking.ts`, `StackDialog.tsx`): the plan is shown first, later reads move onto the first read, the chapter shifts; un-stack restores by offsets (DQ-7).
+8. **Delete words and audio** and **Add FX to a range** through `DawClient.deleteRange` and `applyFxToRange`, behind `cut_range` and `fx_range`, always confirmed with a preview, one undo step, never deleting (a trim hides or mutes; it goes to the muted Cuts track as `delete_range` does, DQ-8), struck words kept, an underline and an FX marker with a way to remove, the DAW's own saved chains listed from the DAW (`research-mock/src/providers/fxchains.ts`).
 9. **Strip and drawer.** The timeline strip of take lanes at the mock's width rule (1360 px and wider, implemented as the container query of Foundations, SN0-Q7); the drawer with Clean up, Effects and Backups (and Timeline where the strip does not fit); Backups tab only for DAWs with the capability.
 10. **Cleanup placement.** Editing owns cleanup plus take prep, take suggestion and backups (owner: "confirmed"); cleanup trims use the Cuts-track mechanism: they hide or mute, deletion is the DAW's job (DQ-8; superseded).
 11. **Carried over** from the old workspace PRD: follow REAPER's transport (Could, depends on the play-position spike) and the clause split that `src/studio/integrations/reaper/narration_level_normalize.lua` deferred for lack of persisted word times (Could).
@@ -59,23 +59,23 @@ If the word model and the DAW range commands are separate seams, the page is onl
 | Metric | Target | Measured by |
 | --- | --- | --- |
 | Edits that are one undo step as promised | 100% in REAPER; Audacity lists its steps | Harness and `DawClient` parity |
-| Suggestions with null confidence when not comparable | 100% | Ported `studio-next/tests/e-takes-inline.test.tsx` |
+| Suggestions with null confidence when not comparable | 100% | Ported `research-mock/tests/e-takes-inline.test.tsx` |
 | Auto-applied edits | 0 | Test: no DAW call without a confirm |
-| Overflow at 1440, 1024, 768 | 0 | Visual suite; ported `studio-next/tests/e-strip-narrow.test.tsx` |
+| Overflow at 1440, 1024, 768 | 0 | Visual suite; ported `research-mock/tests/e-strip-narrow.test.tsx` |
 | Words rendered smoothly on a 10,000-word chapter | Interactions under 100 ms | Performance test on a synthetic chapter; the old workspace's open perf question (thousands of spans in WebView2) answered |
 
 ## Decisions
 
 Decided by the owner on 2026-10-11; nothing here waits for an answer, so G0 has no question for the owner.
 
-- **SN0-Q1 / DQ-1.** The Studio Next Editing page (`studio-next/src/pages/Editing.tsx`) is the spec, including layout, sizes and the strip width.
+- **SN0-Q1 / DQ-1.** The rebuilt Editing page (`research-mock/src/pages/Editing.tsx`) is the spec, including layout, sizes and the strip width.
 - **SN0-Q2 / DQ-2.** Replace, for Editing as for every page. No flag, no period with two versions. The model and components land with no route; one PR (SNE-9) swaps the route and deletes the old workspace, including its route redirect, rows, guide and screenshots ([Design principles](../architecture/principles.md) decision 1 stays). Proof keeps notes and the takes-at-a-spot lanes.
 - **DQ-7.** Stacking follows the mock; [Tracks](../utilities/tracks.md) is superseded to that extent.
 - **DQ-8.** Never delete: trims hide or mute and go to the muted Cuts track; is superseded.
 - **DQ-15.** Evidence first, a suggested take with an honest (possibly null) confidence, never auto-applied; [Codebase map](../architecture/codebase-map.md) is superseded to that extent.
 - **DQ-18.** Capability-driven take management for Audacity, as in the mock; is superseded to that extent.
 - **SN0-Q7.** The strip and drawer follow the mock's breakpoints as container queries at the mock's widths.
-- **SN0-Q8.** Screenshots are compared against the Studio Next Editing page.
+- **SN0-Q8.** Screenshots are compared against the rebuilt Editing page.
 
 ## Users & Context
 
@@ -87,14 +87,14 @@ A narrator doing the edit pass: reading the script while listening, deleting ret
 
 | Behaviour | Mock reference | Acceptance |
 | --- | --- | --- |
-| Words against what was heard | `studio-next/tests/e-alignment.test.tsx` | Matches, misreads, not-read and extra words are marked, not by colour alone |
-| Selection | `studio-next/tests/e-selection.test.ts`, `studio-next/tests/d2-editing-keys.test.tsx` | Word, phrase and flag stepping by keys; selection announced |
-| Takes inline | `studio-next/tests/e-takes-inline.test.tsx` | Evidence per take; suggestion with confidence null until comparable |
-| Delete words | `studio-next/tests/e-delete-range.test.tsx` | Backup first where the DAW changes audio; DAW first; one act; struck words kept; restore undoes it |
-| FX on a range | `studio-next/tests/e-fx-range.test.tsx` | Confirmation with preview; chain from the DAW's list; marker with remove |
-| Stacking | `studio-next/tests/d3-stacking.test.tsx` | Plan shown; later reads move; un-stack restores by offsets |
-| Strip | `studio-next/tests/e-strip-narrow.test.tsx` | Strip at the wide width; timeline in the drawer below it |
-| Backups | `studio-next/src/pages/editing/BackupsTab.tsx` | Tab only for DAWs with the capability; restore |
+| Words against what was heard | `research-mock/tests/e-alignment.test.tsx` | Matches, misreads, not-read and extra words are marked, not by colour alone |
+| Selection | `research-mock/tests/e-selection.test.ts`, `research-mock/tests/d2-editing-keys.test.tsx` | Word, phrase and flag stepping by keys; selection announced |
+| Takes inline | `research-mock/tests/e-takes-inline.test.tsx` | Evidence per take; suggestion with confidence null until comparable |
+| Delete words | `research-mock/tests/e-delete-range.test.tsx` | Backup first where the DAW changes audio; DAW first; one act; struck words kept; restore undoes it |
+| FX on a range | `research-mock/tests/e-fx-range.test.tsx` | Confirmation with preview; chain from the DAW's list; marker with remove |
+| Stacking | `research-mock/tests/d3-stacking.test.tsx` | Plan shown; later reads move; un-stack restores by offsets |
+| Strip | `research-mock/tests/e-strip-narrow.test.tsx` | Strip at the wide width; timeline in the drawer below it |
+| Backups | `research-mock/src/pages/editing/BackupsTab.tsx` | Tab only for DAWs with the capability; restore |
 
 ### Supersedes / depends on ADRs
 
@@ -113,7 +113,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | [ADR 0002](../adr/0002-local-models-and-tools-come-first-so-the-app-is-free-to-use.md) | KEEP | Narrator-triggered, one undo step, nothing auto-applied |
 | [workspace.go](../../src/studio/desktop/internal/coverage/workspace.go), [Recording Check (recording coverage)](../utilities/recording-coverage.md), [playing.ts](../../src/studio/ui/src/components/editing/script/playing.ts), [cache.go](../../src/studio/desktop/internal/measure/cache.go) | KEEP / EXTEND | Alignment, highlighting, peaks reused |
 | | SUPERSEDE (DQ-18) | Audacity takes through backups |
-| [Mock match](../operations/verification-tooling.md#mock-match) | SUPERSEDE (DQ-1) | The Studio Next mock is the only spec; no benchmark mock exists for Editing |
+| [Mock match](../operations/verification-tooling.md#mock-match) | SUPERSEDE (DQ-1) | The research mock is the only spec; no benchmark mock exists for Editing |
 
 ## Technical Approach
 
@@ -123,9 +123,9 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 **Architecture.** `components/editing/` hosts the page; pure model files (`scriptedit.ts`, `cuts.ts`, `stacking.ts`, `takes.ts`) under `components/editing/model/` with no React; commands are journalled through the store; dialogs through the overlay service; the context menu through a provider; `ScriptDoc`, `Word` and paragraph components are memoised per paragraph.
 
-**Test plan.** Port the mock's ten editing tests; model tests with property tests for cut time arithmetic (`studio-next/src/selectors/cuts.ts` is pure); harness tests are in the DAW PRD; visual rows for default, selection toolbar, take expansion, delete dialog, FX dialog, stack dialog, strip, drawer tabs at all viewports; aria for dialogs and the drawer; axe; a performance test.
+**Test plan.** Port the mock's ten editing tests; model tests with property tests for cut time arithmetic (`research-mock/src/selectors/cuts.ts` is pure); harness tests are in the DAW PRD; visual rows for default, selection toolbar, take expansion, delete dialog, FX dialog, stack dialog, strip, drawer tabs at all viewports; aria for dialogs and the drawer; axe; a performance test.
 
-**Rollout.** Build with no route (model, then components with stories), then one atomic swap PR (SNE-9) that adds the route and deletes the old workspace. No flag, no `studioNext` setting.
+**Rollout.** Build with no route (model, then components with stories), then one atomic swap PR (SNE-9) that adds the route and deletes the old workspace. No flag, no `newPage` setting.
 
 **ADRs.** A9 (with SND), A15, take suggestion, backups table.
 
@@ -153,7 +153,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 - **Phase 1.** The audit lists every consumer of `ProofChapterPage` workspace parts so the swap deletes nothing still used (CLAUDE.md step 2).
 - **Phase 2.** The model is moved with its tests first; nothing is rendered yet.
 - **Phase 6.** Needs the two DAW commands; against the mock `DawClient` it can be built earlier but not marked complete.
-- **Phase 9.** The swap PR carries the Screenshots against the Studio Next Editing page for every changed state and the redirect from the old path.
+- **Phase 9.** The swap PR carries the Screenshots against the rebuilt Editing page for every changed state and the redirect from the old path.
 
 ### Parallelism Notes
 
@@ -196,8 +196,8 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | Hide, never delete (owner) | Mute or Cuts track | Delete | Non-destructive |
 | Suggest, never apply (owner) | Chip with evidence | Preselect | DQ-15 |
 | Model first (proposed) | Pure model slice before UI | UI first | Parallel safety and testability |
-| A line said twice is Read twice on the live page (owner, #2251 item 30; [research C](../research/proof-pickups-editing-split.md#c-take-detection-item-30)) | Extra words that say the script beside them again (at least 3 words or a whole line, before or after the run) are a second read: the recording check marks them (`repeatOf`), and a take is checked by the same rule, replacing the first-four-words rule. The Read twice card adds **Hear both reads**, which the mock's card (`studio-next/src/pages/editing/FlagCard.tsx`) lacks, says "The recording" where a line has no take, and **Stack as 2 takes** says why when the line is not one take the DAW can split | Extra words shown as "Not in the script"; a second read found only when it repeated a take's first four words | Owner's test, #2251 item 30 |
-| One docked waveform (owner, #2251 items 29, 31, 33, 34) | The page's one waveform sits above the transport, always in view, and scrolls the whole chapter; it supersedes the mock's ribbon under the active line (`studio-next/src/pages/editing/Ribbon.tsx`) and the strip's audio lane (the strip keeps its take lanes). Left button or one finger draws a range, the right button held, the wheel, two fingers, the end arrows and the arrow keys scroll it (no scrollbar), and the script marks and shows the lines it is scrolled to; a right click without a drag opens its own menu. Thin bars on a decibel scale against the chapter's reference level (`ribbonBars.ts`, `levelOf`) | The mock's ribbon under the line, which moved the script each time the cursor changed line and could be off screen; a linear peak scale, which drew quiet speech as dots | Owner's test of 2026-10-23 |
+| A line said twice is Read twice on the live page (owner, #2251 item 30; [research C](../research/proof-pickups-editing-split.md#c-take-detection-item-30)) | Extra words that say the script beside them again (at least 3 words or a whole line, before or after the run) are a second read: the recording check marks them (`repeatOf`), and a take is checked by the same rule, replacing the first-four-words rule. The Read twice card adds **Hear both reads**, which the mock's card (`research-mock/src/pages/editing/FlagCard.tsx`) lacks, says "The recording" where a line has no take, and **Stack as 2 takes** says why when the line is not one take the DAW can split | Extra words shown as "Not in the script"; a second read found only when it repeated a take's first four words | Owner's test, #2251 item 30 |
+| One docked waveform (owner, #2251 items 29, 31, 33, 34) | The page's one waveform sits above the transport, always in view, and scrolls the whole chapter; it supersedes the mock's ribbon under the active line (`research-mock/src/pages/editing/Ribbon.tsx`) and the strip's audio lane (the strip keeps its take lanes). Left button or one finger draws a range, the right button held, the wheel, two fingers, the end arrows and the arrow keys scroll it (no scrollbar), and the script marks and shows the lines it is scrolled to; a right click without a drag opens its own menu. Thin bars on a decibel scale against the chapter's reference level (`ribbonBars.ts`, `levelOf`) | The mock's ribbon under the line, which moved the script each time the cursor changed line and could be off screen; a linear peak scale, which drew quiet speech as dots | Owner's test of 2026-10-23 |
 
 ## Research Summary
 
@@ -205,4 +205,4 @@ Read: the mock's editing sources and tests, the owner's rulings, the real proof 
 
 ## Visual Spec
 
-Mock page: Editing (`studio-next/src/pages/Editing.tsx`). There is no benchmark mock for it; the Studio Next mock is the only spec. States: default, selection, takes expanded, delete dialog, FX dialog, stack dialog, strip, each drawer tab.
+Mock page: Editing (`research-mock/src/pages/Editing.tsx`). There is no benchmark mock for it; the research mock is the only spec. States: default, selection, takes expanded, delete dialog, FX dialog, stack dialog, strip, each drawer tab.

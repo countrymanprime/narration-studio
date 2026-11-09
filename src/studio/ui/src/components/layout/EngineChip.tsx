@@ -6,7 +6,7 @@ import type { HeaderChipTone } from '../primitives/HeaderChip';
 import { EngineChipButton } from '../engine/EngineChipButton';
 import { toneColors } from '../primitives/StatusBadge';
 
-// The header's recording-engine chip (the Studio Next mock's top bar): the name of the recorder the project is connected to, with a dot
+// The header's recording-engine chip (the research mock's top bar): the name of the recorder the project is connected to, with a dot
 // for how it is doing. A state that needs the narrator also says so in words ("REAPER: Other project"), so the states do not differ by
 // colour alone, and below `md` the chip keeps a word rather than shrinking to a bare dot (alignment audit R3SL-2, R3PR1-9, XSL-12).
 // Its tooltip says more and ends with where a press goes: every DAW chip, this one and the Booth's, is an `EngineChipButton`, which opens the Audio engine panel. 'builtin' is the project's recorder choice and, like a DAW of 'none', has no link to open.

@@ -1,14 +1,14 @@
 # Local language model spike: candidates, cost, quality and quote discipline
 
-**Date:** 2026-10-12. **Issue:** [#1272](https://github.com/countrymanprime/narration-studio/issues/1272), Phase 9 (Could) of the Studio Next extraction PRD. **Question:** is there a local language model small enough for a 16 GB Windows computer that is worth offering as an optional analysis tool, and under what condition would the catalogue row's `unavailable` be lifted?
+**Date:** 2026-10-12. **Issue:** [#1272](https://github.com/countrymanprime/narration-studio/issues/1272), Phase 9 (Could) of the rebuilt extraction PRD. **Question:** is there a local language model small enough for a 16 GB Windows computer that is worth offering as an optional analysis tool, and under what condition would the catalogue row's `unavailable` be lifted?
 
-**Recommendation: keep unavailable. No default changes.** Every model below fits 16 GB, but the only measurements are from the 2026-10-10 trial on a 4-vCPU CPU, where a book took 3 to 11 hours, and the [SN-X8 calibration table](studio-next-extraction-calibration.md) holds no figure for any source, so the model cannot yet be compared with the rules baseline. Section 5 states what lifts it.
+**Recommendation: keep unavailable. No default changes.** Every model below fits 16 GB, but the only measurements are from the 2026-10-10 trial on a 4-vCPU CPU, where a book took 3 to 11 hours, and the [SN-X8 calibration table](extraction-calibration.md) holds no figure for any source, so the model cannot yet be compared with the rules baseline. Section 5 states what lifts it.
 
 ## Method and what was run
 
 - **Desk research on 2026-10-12.** Model cards, file sizes and file digests were read from the Hugging Face API (`huggingface.co/api/models/<repo>?blobs=true`) through the session proxy. No model file was downloaded, so none was hashed here. The digests below are the SHA-256 values the host publishes for each file (the Git LFS object id).
 - **Earlier measurements.** Speed, memory, quote and attribution figures are from the hands-on trial of 2026-10-10 in `local-llm-research.md` section 9: Qwen3 1.7B, 4B and 8B with `llama-cpp-python` on a 4-vCPU, 15 GB CPU-only VM, on *Alice's Adventures in Wonderland* chapters V to VIII (quote attribution on chapter VI, 61 hand-labelled quotes). *Alice* is public domain and in every model's training data, so those figures are optimistic, and they are provisional until the same run is made on the owner's manuscript (D70). They are quoted here, not re-measured. The trial's scripts are not in the repo.
-- **Not run in this session:** any model. This session has 4 vCPU and 15 GB RAM (the same as the trial), and the repo's calibration harness cannot score a source without its gold set, which does not exist yet ([calibration note](studio-next-extraction-calibration.md)). Everything not covered by the trial is marked `not run`.
+- **Not run in this session:** any model. This session has 4 vCPU and 15 GB RAM (the same as the trial), and the repo's calibration harness cannot score a source without its gold set, which does not exist yet ([calibration note](extraction-calibration.md)). Everything not covered by the trial is marked `not run`.
 
 ## 1. Candidates
 
@@ -50,7 +50,7 @@ llama-bench -m <model>.gguf -p 4096 -n 512 -t <physical cores> -r 3
 
 ## 3. Quality against the SN-X8 table
 
-**Against the table: not run.** The [calibration note](studio-next-extraction-calibration.md) records no scored source, no gold set and no table, so there is no rules-baseline precision to compare with, and no model has been scored by the harness. The harness takes a model's output as an imported file:
+**Against the table: not run.** The [calibration note](extraction-calibration.md) records no scored source, no gold set and no table, so there is no rules-baseline precision to compare with, and no model has been scored by the harness. The harness takes a model's output as an imported file:
 
 ```text
 python scripts/research/extraction-calibration/run_calibration.py run --import-file <output.json>
@@ -69,7 +69,7 @@ What the 2026-10-10 trial measured, with its own hand-made gold set and an ad ho
 Confident but wrong, using the trial's placeholder score (pass agreement plus a check that a speech verb and the speaker's name sit in the paragraph) with 0.75 as the line:
 
 - Speakers at or above 0.75: 47 of 47 right for the 4B and 50 of 50 for the 8B, so 0% wrong. The separation came from the code-checkable tag check, which the rules baseline also uses, not from the model.
-- Claims at or above 0.75: the 4B was right on 8 of 12 (67%), so 33% of confident claims were wrong under the strict reading, far above the 5% failure line the [calibration note](studio-next-extraction-calibration.md) proposes. The 8B had 2 such claims, both right, which is too few to say anything.
+- Claims at or above 0.75: the 4B was right on 8 of 12 (67%), so 33% of confident claims were wrong under the strict reading, far above the 5% failure line the [calibration note](extraction-calibration.md) proposes. The 8B had 2 such claims, both right, which is too few to say anything.
 - Agreement between passes predicted correctness for the 4B and failed for the 8B, whose two passes gave identical answers including every wrong one.
 
 Reading: on explicit speech tags a small model adds nothing a rule does not already get. Its useful part was the 7 implicit quotes, which the 4B and 8B both attributed correctly. Descriptions and relationships need the 8B class and still showed 12% false claims on a text the model has seen.

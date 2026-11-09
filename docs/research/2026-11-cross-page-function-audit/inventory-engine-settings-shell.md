@@ -101,7 +101,7 @@ No panel controls exist for: refresh/resync of the track list, unlink a REAPER f
 
 ## 2. Companion
 
-Task context: a narrow always-on-top panel beside the DAW that reads the script along while REAPER records, with Full app to return to the Booth. No Settings, Engine panel or doc page of its own; nearest PRD notes: `studio-next-booth.prd.md`, `studio-next-master-delivery-and-settings.prd.md` ("Settings for the Companion: out of scope"), guide `docs/guides/using-the-app/booth.md` "Companion mode" (line ~481). Route `/companion` (`App.tsx:997`, `components/booth/companion/CompanionPage.tsx`), no rail item; redirects to `/` with no manuscript (`App.tsx` companion route).
+Task context: a narrow always-on-top panel beside the DAW that reads the script along while REAPER records, with Full app to return to the Booth. No Settings, Engine panel or doc page of its own; nearest PRD notes: `booth.prd.md`, `master-delivery-and-settings.prd.md` ("Settings for the Companion: out of scope"), guide `docs/guides/using-the-app/booth.md` "Companion mode" (line ~481). Route `/companion` (`App.tsx:997`, `components/booth/companion/CompanionPage.tsx`), no rail item; redirects to `/` with no manuscript (`App.tsx` companion route).
 
 | Action (label) | Kind | Host binding | Component file:line | Also reachable from |
 |---|---|---|---|---|

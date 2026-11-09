@@ -223,7 +223,7 @@ export async function openDiagnostics(page: Page, query = ''): Promise<void> {
   await scrollToTop(page, page.getByRole('region', { name: 'Diagnostics' }));
 }
 
-// A panel by its heading: the Studio Next pages' panels are regions named by no label of their own.
+// A panel by its heading: the rebuilt pages' panels are regions named by no label of their own.
 export function panelTitled(page: Page, title: string | RegExp): Locator {
   return page.getByRole('region').filter({ has: page.getByRole('heading', { name: title, exact: typeof title === 'string' }) });
 }

@@ -6,7 +6,7 @@ Paths marked *(#2242)* exist only on that PR's branch, `story-bible-left-pane`.
 
 ## The data
 
-- **Size.** The rules-only scan of an 88,000-word book built 527 entries with 9,905 occurrences ([story-bible-mutation-path.md](story-bible-mutation-path.md)), about 19 mentions per entry on average. The Alice fixture builds 48 ([studio-next-gliner-spike.md](studio-next-gliner-spike.md)). The scan keeps a "Needs Review" entity only at 3 or more occurrences (`docs/architecture/story-bible-entity-accuracy.md`, "Build filter"). No one has measured the spread of mentions per entry. The long tail of one-off names comes from the scan's design (it keeps every multi-word name it classifies), not from a count.
+- **Size.** The rules-only scan of an 88,000-word book built 527 entries with 9,905 occurrences ([story-bible-mutation-path.md](story-bible-mutation-path.md)), about 19 mentions per entry on average. The Alice fixture builds 48 ([gliner-spike.md](gliner-spike.md)). The scan keeps a "Needs Review" entity only at 3 or more occurrences (`docs/architecture/story-bible-entity-accuracy.md`, "Build filter"). No one has measured the spread of mentions per entry. The long tail of one-off names comes from the scan's design (it keeps every multi-word name it classifies), not from a count.
 - **What a row can draw.** `GuideEntity` in `src/studio/ui/src/api/contracts/storyBible.ts` carries the name, aliases, category, `occurrence_count`, `appearances` (chapter per mention), `pronunciation` (`ipa`, `source`, `chosen`, `status`), `review`, `review_state` and `locked`. The Script page already has the entries in chapter order (`entriesInChapter`, `src/studio/ui/src/components/script/page/data/script.selectors.ts`).
 
 ## Jobs to be done
@@ -118,7 +118,7 @@ Each has a recommended answer.
 
 ## Build plan
 
-Each PR is small, updates `docs/guides/using-the-app/story-bible.md` and its screenshots, and lands after #2242 and #2259 merge. The first also records the redesign as a PRD line (SNB-D3 in `docs/prds/studio-next-script-and-story-bible.prd.md`) once the owner approves the mock.
+Each PR is small, updates `docs/guides/using-the-app/story-bible.md` and its screenshots, and lands after #2242 and #2259 merge. The first also records the redesign as a PRD line (SNB-D3 in `docs/prds/script-and-story-bible.prd.md`) once the owner approves the mock.
 
 | PR | Scope | Files |
 | - | - | - |

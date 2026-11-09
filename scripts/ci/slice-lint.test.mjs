@@ -6,7 +6,7 @@ import { validateLabels } from '../github/sync-labels.mjs';
 import { LANES, KINDS, extractMeta, findCycle, globToRegExp, lintSlice, parseMeta } from '../dev/slice-lint.mjs';
 
 // This slice's own header (issue #1002) is the fixture for the valid case.
-const OWN_BLOCK = `id: SN-A1
+const OWN_BLOCK = `id: SL-A1
 lane: D
 kind: docs
 depends: []
@@ -63,7 +63,7 @@ test('fails on an unknown lane or kind', () => {
   assert.deepEqual(KINDS, ['spike', 'adr', 'seam', 'page', 'swap', 'host', 'lua', 'docs']);
   assert.ok(lint(OWN_BLOCK.replace('lane: D', 'lane: Z')).some((e) => /unknown lane "Z"/.test(e)));
   assert.ok(lint(OWN_BLOCK.replace('kind: docs', 'kind: feature')).some((e) => /unknown kind "feature"/.test(e)));
-  assert.ok(lint(OWN_BLOCK.replace('id: SN-A1', 'id: A1')).some((e) => /id "A1" is not SN-<code><n>/.test(e)));
+  assert.ok(lint(OWN_BLOCK.replace('id: SL-A1', 'id: A1')).some((e) => /id "A1" is not SL-<code><n>/.test(e)));
 });
 
 test('fails on an invalid glob', () => {
@@ -85,7 +85,7 @@ test('fails when a depends issue number does not exist', () => {
 test('passes a valid header', () => {
   assert.deepEqual(extractMeta(OWN_BODY), OWN_BLOCK.trimEnd());
   assert.deepEqual(parseMeta(OWN_BLOCK), {
-    id: 'SN-A1',
+    id: 'SL-A1',
     lane: 'D',
     kind: 'docs',
     depends: [],
@@ -99,7 +99,7 @@ test('passes a valid header', () => {
 
 test('reports a body with no slice-meta block and malformed lines', () => {
   assert.ok(lint('just prose').some((e) => /line 1: expected "key: value"/.test(e)));
-  assert.throws(() => parseMeta('id SN-A1'), /line 1: expected "key: value"/);
+  assert.throws(() => parseMeta('id SL-A1'), /line 1: expected "key: value"/);
   assert.throws(() => parseMeta('id: a\nid: b'), /line 2: duplicate key "id"/);
   assert.throws(() => parseMeta('  - stray'), /line 1/);
 });
@@ -116,7 +116,7 @@ test('globToRegExp follows the owns glob rules', () => {
   assert.ok(!m('a.b', 'aXb'));
 });
 
-test('labels.json carries slice, ready, owner-decision, studio-next, lane:K..lane:X and a prd:<code> label per PRD code', () => {
+test('labels.json carries slice, ready, owner-decision, lane:K..lane:X and a prd:<code> label per PRD code', () => {
   const labels = JSON.parse(readFileSync(new URL('../../.github/labels.json', import.meta.url), 'utf8'));
   validateLabels(labels);
   const names = new Set(labels.map((label) => label.name));
@@ -124,7 +124,6 @@ test('labels.json carries slice, ready, owner-decision, studio-next, lane:K..lan
     'slice',
     'ready',
     'owner-decision',
-    'studio-next',
     'blocked',
     ...['K', 'A', 'B', 'U', 'C', 'D', 'X'].map((lane) => `lane:${lane}`),
     ...['SN0', 'SNG', 'SNA', 'SNF', 'SNR', 'SNS', 'SND', 'SNP', 'SNB', 'SNX', 'SNO', 'SNQ', 'SNE', 'SNM', 'SNC'].map((code) => `prd:${code}`),

@@ -1,5 +1,5 @@
 // The card look Panel draws, measured on benchmark mock
-// 05 and the Studio Next mock's `.panel`: a 1 px `--border` frame at the card radius (10 px) on `--surface`, with no shadow (the mock draws none); a header row 50 px tall with its divider,
+// 05 and the research mock's `.panel`: a 1 px `--border` frame at the card radius (10 px) on `--surface`, with no shadow (the mock draws none); a header row 50 px tall with its divider,
 // the same with or without a button in it (PanelHeader's actions take 5 px of the padding above and below, so a 36 px button fits and sibling
 // cards' dividers line up), its content 16 px in from the frame; and a 16 px body.
 // A surface that is not a `section` (a TabPanel drawn as a card) takes these from here rather than copying them.
@@ -20,12 +20,12 @@ export const PANEL_BODY_CLASS = 'p-[var(--panel-pad)] [--panel-pad:1rem]';
 export const PANEL_TITLE_CLASS =
   "min-w-0 font-['Barlow_Condensed',sans-serif] text-[length:var(--font-size-card-title)] leading-[1.2] font-semibold text-[var(--text)] [overflow-wrap:break-word]";
 
-// The title of a Dialog and a SlideOver: one token, `--font-size-overlay-title` (24 px, the Studio Next mock's `.dlg .dh h2`), Barlow Condensed
+// The title of a Dialog and a SlideOver: one token, `--font-size-overlay-title` (24 px, the research mock's `.dlg .dh h2`), Barlow Condensed
 // semibold like a card title and larger than one, so a panel's own name is not the smallest heading on it (alignment audit ENX-13, R3EN2-10).
 export const OVERLAY_TITLE_CLASS =
   "min-w-0 font-['Barlow_Condensed',sans-serif] text-[length:var(--font-size-overlay-title)] leading-[1.2] font-semibold text-[var(--text)] [overflow-wrap:break-word]";
 
-// The Story Bible entry's name (the Studio Next mock, pages/bible/EntryEditor.tsx): the card title at 26 px.
+// The Story Bible entry's name (the research mock, pages/bible/EntryEditor.tsx): the card title at 26 px.
 export const PANEL_ENTRY_TITLE_CLASS =
   "min-w-0 font-['Barlow_Condensed',sans-serif] text-[1.625rem] leading-[1.2] font-semibold text-[var(--text)] [overflow-wrap:break-word]";
 

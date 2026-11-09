@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// SN-B94: the Story Bible list and frame as the Studio Next mock draws them (tests/bible.test.tsx): kind chips over the list, two-line rows,
+// SN-B94: the Story Bible list and frame as the research mock draws them (tests/bible.test.tsx): kind chips over the list, two-line rows,
 // the type colour on chips and rows, and the page's own ask for a manuscript.
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';

@@ -22,7 +22,7 @@ test('the collapsed rail is the same named navigation as the sidebar', async ({ 
   await expect(page.getByRole('complementary', { name: 'Primary navigation' })).toMatchAriaSnapshot({ name: 'navigation-rail.aria.yml' });
 });
 
-// The header is the Studio Next mock's top bar: the project name as a button, the jump button and the engine chip. Back, Forward, Undo, History
+// The header is the research mock's top bar: the project name as a button, the jump button and the engine chip. Back, Forward, Undo, History
 // and the zoom steps left it for the jump menu (dialog-jump-menu.aria.yml pins the menu), so the header's own tree is pinned here.
 test('the header names its project button and its jump button, with no history, undo or zoom controls', async ({ page }) => {
   await openApp(page, DESKTOP);

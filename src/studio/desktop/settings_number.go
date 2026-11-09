@@ -76,7 +76,7 @@ var numberSpecs = map[string]map[string]numberSpec{
 	"Teleprompter": {
 		"punch_preroll_seconds": {min: bound(0), max: bound(10), step: bound(0.5), unit: "s"},
 	},
-	// The Audacity backups: the Studio Next mock's ranges (BackupsTab.tsx), a window of 10 to 300 s either side of the
+	// The Audacity backups: the research mock's ranges (BackupsTab.tsx), a window of 10 to 300 s either side of the
 	// edit on a 10 s step and a retention of 1 to 365 whole days.
 	"DAW": {
 		"backups.window_seconds": {min: bound(10), max: bound(300), step: bound(10), unit: "s"},

@@ -92,7 +92,7 @@ func TestEveryWheelInTheProductionCatalogIsPinnedBySHA256(t *testing.T) {
 	}
 }
 
-// The GLiNER and BookNLP rows are pinned (docs/research/studio-next-gliner-spike.md and studio-next-booknlp-spike.md, Pins); any other
+// The GLiNER and BookNLP rows are pinned (docs/research/gliner-spike.md and booknlp-spike.md, Pins); any other
 // row of the production catalog cannot be installed yet, and says why in the narrator's words. When a row is pinned this test fails on
 // purpose: update it with the row.
 func TestOnlyThePinnedToolsAreInstallableAndEachOtherSaysWhy(t *testing.T) {

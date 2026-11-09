@@ -179,7 +179,7 @@ From the reference text, read on GitHub on 2026-10-12 because `reaper.fm` and `s
 | `OpenMediaExplorer(mediafn, play)` | Opens the file in the Media Explorer; `play` true plays it (or toggles playback), false "will just select it". | [REAPER SDK `reaper_plugin_functions.h`](https://github.com/justinfrankel/reaper-sdk/blob/main/sdk/reaper_plugin_functions.h) |
 | `PCM_Source_Destroy(src)` | Deletes a source; remove any project reference to it first. | the same |
 
-What the bridge does with these: `narration_media_file.lua` ([capabilities](capabilities.md#file_preview)). What a run must confirm is rows C10 and C11 of [the verification pass](../../operations/reaper-verification-pass.md#part-c-the-studio-next-daw-commands-not-scripted-yet).
+What the bridge does with these: `narration_media_file.lua` ([capabilities](capabilities.md#file_preview)). What a run must confirm is rows C10 and C11 of [the verification pass](../../operations/reaper-verification-pass.md#part-c-the-daw-commands-not-scripted-yet).
 
 ## Not yet available
 

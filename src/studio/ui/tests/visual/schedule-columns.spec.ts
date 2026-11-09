@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { confirmDialog } from './drivers/shared';
 import { settlePage } from './helpers/settle';
 
-// The milestone table keeps the Studio Next mock's column sizes, whatever the milestones are called: the Due column stays about the width
+// The milestone table keeps the research mock's column sizes, whatever the milestones are called: the Due column stays about the width
 // of a date field (the mock's 152 px) and Measures stays wide enough for "All recorded" on one line, even beside a very long milestone name
 // (the date column grew to 243 to 501 px and Measures shrank to 88 px). Below 1024 px Measures folds under the name.
 for (const size of [

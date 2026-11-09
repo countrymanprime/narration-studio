@@ -189,3 +189,29 @@ test('the same error raised again is one toast, not two', async ({ page }) => {
   await expect(same.getByRole('button', { name: 'Retry' })).toBeVisible();
   await expect(same).toHaveCount(1);
 });
+
+// A toast raised while a modal is open (#2949) and Tab in a modal (#2948), at the smallest window.
+test.describe('a modal with a toast showing, 320x300', () => {
+  test.use({ viewport: { width: 320, height: 300 } });
+  const inDialog = (page: Page) => page.evaluate(() => Boolean(document.activeElement?.closest('[role="dialog"], [data-toast-region]')));
+
+  test('its buttons are hit-testable, Tab reaches the toast’s Undo, and 25 Tabs never leave the dialog and toast', async ({ page }) => {
+    await CASES.find((c) => c.name === 'with-dialog')!.open(page);
+    for (const button of await page.getByRole('dialog').getByRole('button').all()) {
+      const box = (await button.boundingBox())!;
+      const hit = await page.evaluate(
+        ([x, y]) => Boolean(document.elementFromPoint(x!, y!)?.closest('[data-toast-region]')),
+        [box.x + box.width / 2, box.y + box.height / 2],
+      );
+      expect(hit, await button.innerText()).toBe(false);
+    }
+    const seen = new Set<string>();
+    for (let press = 0; press < 25; press++) {
+      await page.keyboard.press('Tab');
+      await page.waitForTimeout(40);
+      expect(await inDialog(page)).toBe(true);
+      seen.add(await page.evaluate(() => (document.activeElement?.closest('[data-toast-region]') ? 'toast' : 'dialog')));
+    }
+    expect([...seen].sort()).toEqual(['dialog', 'toast']);
+  });
+});

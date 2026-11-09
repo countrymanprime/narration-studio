@@ -1,4 +1,4 @@
-// The Proof notes list's row view model and the pure selectors over it (Studio Next mock: src/selectors/proof.ts). A row is a
+// The Proof notes list's row view model and the pure selectors over it (research mock: src/selectors/proof.ts). A row is a
 // `Finding` worded for the table; the host filters by status and sorts by `FindingsQuery.sort`, and what the query cannot say
 // (the chips that are not one status, the waveform window, find) narrows the page here.
 import {

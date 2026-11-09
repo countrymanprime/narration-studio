@@ -12,7 +12,7 @@ Owner question (#18): why does the BookNLP import take so long, and why not run 
 
 ## Where the time goes
 
-Not measured here: this container (4 vCPU, 16 GB) has no torch, `booknlp` or `gliner`, and the weights are an optional download. The figures are the 2026-10-10 trial's (4 vCPU CPU, Alice chapters V to VIII; `studio-next-booknlp-spike.md`, `studio-next-gliner-spike.md`):
+Not measured here: this container (4 vCPU, 16 GB) has no torch, `booknlp` or `gliner`, and the weights are an optional download. The figures are the 2026-10-10 trial's (4 vCPU CPU, Alice chapters V to VIII; `booknlp-spike.md`, `gliner-spike.md`):
 
 | | Small weights | Large weights |
 | - | - | - |
@@ -27,7 +27,7 @@ Not measured here: this container (4 vCPU, 16 GB) has no torch, `booknlp` or `gl
 
 ## What was said before
 
-- `docs/research/mockups/studio-next/research/local-llm-research.md` plans chunking by chapter for the LLM map pass ("resumable per chapter ... a cancel loses at most one chapter", line 93; "chunking: by chapter", line 115) and says "do not attempt pronoun coref at book scale ... optional BookNLP/Maverick per chapter" (line 122).
+- `docs/research/mockups/research-mock/research/local-llm-research.md` plans chunking by chapter for the LLM map pass ("resumable per chapter ... a cancel loses at most one chapter", line 93; "chunking: by chapter", line 115) and says "do not attempt pronoun coref at book scale ... optional BookNLP/Maverick per chapter" (line 122).
 - No ADR and no issue covers it (search of the issues and `docs/adr/` found none). `extraction_booknlp.py` never implemented the per-chapter run; the SN-X72 adapter runs the book whole.
 
 ## What chunking changes about BookNLP's output
@@ -49,10 +49,10 @@ Not measured here: this container (4 vCPU, 16 GB) has no torch, `booknlp` or `gl
 
 ## Decisions for the owner
 
-- **Quality for speed on BookNLP.** Chunking loses cross-chapter coreference. Recommended: do not change BookNLP's default until a gold-set comparison (SN-X8, `studio-next-extraction-calibration-protocol.md`) shows chunked and whole-book runs agree on entries and tagged-speaker accuracy; offer chunked as the choice for long books, and say what it trades in the scan's result box.
+- **Quality for speed on BookNLP.** Chunking loses cross-chapter coreference. Recommended: do not change BookNLP's default until a gold-set comparison (SN-X8, `extraction-calibration-protocol.md`) shows chunked and whole-book runs agree on entries and tagged-speaker accuracy; offer chunked as the choice for long books, and say what it trades in the scan's result box.
 - **Which setting.** **Parallel processes** is labelled and described for Recording check only. Either a second row in a Scan section or a rename is needed; the Automatic wording must be shared.
 - **GLiNER first.** It has no cross-chunk state, so chunking it loses nothing, but it takes about 1.5 minutes per book, so the gain is small. It is the right first slice to prove the pool, ordering and failure handling.
 
 ## Measured
 
-The benchmark ran (4 vCPU Linux, five public-domain novels from 19k to 168k words) and is in [studio-next-extraction-chunking-benchmark.md](studio-next-extraction-chunking-benchmark.md). In short: GLiNER chunked per chapter is identical to whole-book and runs up to 1.9x faster at 4 workers (2.1 GB each); BookNLP small runs 1.5 to 2.3x faster at 4 workers but its output differs from the whole-book run (88 to 97% speaker agreement, minor characters lost or split), and the large weights barely gain. So GLiNER gets the pool, and BookNLP stays whole-book and runs alongside GLiNER.
+The benchmark ran (4 vCPU Linux, five public-domain novels from 19k to 168k words) and is in [extraction-chunking-benchmark.md](extraction-chunking-benchmark.md). In short: GLiNER chunked per chapter is identical to whole-book and runs up to 1.9x faster at 4 workers (2.1 GB each); BookNLP small runs 1.5 to 2.3x faster at 4 workers but its output differs from the whole-book run (88 to 97% speaker agreement, minor characters lost or split), and the large weights barely gain. So GLiNER gets the pool, and BookNLP stays whole-book and runs alongside GLiNER.

@@ -1,4 +1,4 @@
-# Studio Next DAW spikes 1a to 1e: REAPER results
+# DAW spikes 1a to 1e: REAPER results
 
 **Status: results pending, structure written 2026-10-11.** The owner has not returned the results table of [the spike runbook](../operations/daw-spike-run-sheet.md) for spikes 1a to 1e, so no spike below has a result. Every "Result" cell reads "pending" and stays empty until the table comes back on #992. A worker cannot run REAPER, so nothing here is a guess. Tracking: issue #1145, part of #1016.
 

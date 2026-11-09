@@ -1,4 +1,4 @@
-// The Studio Next Script page (SNB-7i; the mock's `pages/script/ScriptPage.tsx`): the chapter list, the continuous reader and the rail
+// The rebuilt Script page (SNB-7i; the mock's `pages/script/ScriptPage.tsx`): the chapter list, the continuous reader and the rail
 // with its five tabs, drawers at narrower widths, the empty state, and the credits cards re-homed from the old page. It assembles the
 // pieces of SN-B741..SN-B762 and the bookmarks of SN-B62 over the data layer of SN-B70; it holds no host data of its own. The selected
 // mark, the tab, the word, the entry, Find and the drawer are the SN-B70 view module's; the bookmark gone to is the page's own, as the

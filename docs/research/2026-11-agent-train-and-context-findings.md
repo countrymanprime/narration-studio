@@ -48,19 +48,19 @@ Docs pages carry no publication date; they are cited as "docs, fetched 2026-11-0
 | All 29 skill bodies | 40.3k tokens | On demand |
 | The 11 skills `CLAUDE.md` steps 1–6 name | 12.3k tokens | A worker doing a full feature loads most of them |
 | All 7 agent definitions | 4.6k tokens | Per invocation |
-| Median Studio Next PRD | 25.7k bytes, about 6.4k tokens (14 PRDs, 378 KB) | Brief says read "in full" |
+| Median PRD | 25.7k bytes, about 6.4k tokens (14 PRDs, 378 KB) | Brief says read "in full" |
 
 A UI worker therefore reads about 1.6k + 2.0k + 1.7k + 11.0k + 6.4k = 22.7k tokens before it opens the slice issue, and up to 12.3k more as the workflow skills load. That is roughly 35k tokens of fixed reading per worker, repeated for each of up to eight workers, each resume and each fixer that loads the skill.
 
 ### G1. One procedure file serves four roles
 
-The worker is told to read three sections: "The worker protocol" (1.1k tokens), "Serial points" (0.3k) and "Lanes" (0.5k). That is 1.9k of 11.0k, so about 83% of what a worker loads (9.1k tokens) is coordinator-only (usage bands, safety net, merge conditions, Studio Next grooming) or history. F16 says to split by what is read when.
+The worker is told to read three sections: "The worker protocol" (1.1k tokens), "Serial points" (0.3k) and "Lanes" (0.5k). That is 1.9k of 11.0k, so about 83% of what a worker loads (9.1k tokens) is coordinator-only (usage bands, safety net, merge conditions, rebuilt grooming) or history. F16 says to split by what is read when.
 
 | Section | Tokens | Reader |
 | - | - | - |
 | Owner standing rules | 2.0k | Both; 2.9 KB of it is rows marked superseded, lifted or retired |
 | Coordinator's pass | 1.6k | Coordinator |
-| Studio Next slices | 1.1k | Coordinator, groomer |
+| rebuilt slices | 1.1k | Coordinator, groomer |
 | Safety net | 1.0k | Coordinator |
 | Usage and autoscaling, Switches | 1.1k | Coordinator |
 | Mockup gates, Which mocks, Queue | 1.1k | Coordinator |

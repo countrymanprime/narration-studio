@@ -36,7 +36,7 @@ const isTyping = (target: EventTarget | null): boolean =>
   target instanceof HTMLElement && (target.matches('input, textarea, select') || target.isContentEditable);
 
 /**
- * The queue panel of the Studio Next Proof page: "Notes · N of M", the chips with their counts, "In view" while the waveform window
+ * The queue panel of the rebuilt Proof page: "Notes · N of M", the chips with their counts, "In view" while the waveform window
  * is narrower than the chapter, the sort, find in notes, the Sources line and the table. It takes the host's page of findings,
  * already in the order `sort` asked for; the sort choice is reported up so the container puts it in `FindingsQuery.sort`.
  * Selection is the caller's (SN-Q42 and the Inspector read it).

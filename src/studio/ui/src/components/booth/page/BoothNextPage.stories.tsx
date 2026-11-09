@@ -11,7 +11,7 @@ import type { PickupItem, PickupList } from '../../../api/contracts/pickups';
 import { BoothNextPage } from './BoothNextPage';
 import { BoothHost, dawFor, LOCATED, newJournal, pageApi } from './testPage';
 
-// The Booth page (docs/research/mockups/studio-next/src/pages/Booth.tsx) over the mock api and the mock's DAW setups. Each story drives the page to one state; the leave question and the roll confirm are the shell's overlay.
+// The Booth page (docs/research/mockups/research-mock/src/pages/Booth.tsx) over the mock api and the mock's DAW setups. Each story drives the page to one state; the leave question and the roll confirm are the shell's overlay.
 type Args = {
   setup: DawSetupId | 'destructive';
   resume: boolean;

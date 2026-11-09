@@ -207,7 +207,7 @@ function Results({
  * The editing check panel: a `SlideOver` opened from the Production board's row menu and from the audio engine panel's chapter list. It
  * runs the scan (the host's job, cache-first, with real progress and Cancel), reads the three signals the host computes when the chapter
  * is in the Editing stage, and counts the open candidates of each class. The candidates are heard and decided on the Editing page's
- * Clean up tab, which the panel links to (SN-E9); the item-gain row stays here, as the Studio Next mock has none. Analysis never starts
+ * Clean up tab, which the panel links to (SN-E9); the item-gain row stays here, as the research mock has none. Analysis never starts
  * on its own: opening the panel only reads what is already known.
  *
  * There is no live event for the scan job (unlike the recording check's `coverage:state`): the panel polls `editingState()` itself while

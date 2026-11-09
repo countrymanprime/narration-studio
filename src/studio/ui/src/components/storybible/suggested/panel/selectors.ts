@@ -1,4 +1,4 @@
-// The pure selectors behind the Needs verification chip, the entry pill and the scan button (SN-X42), ported from the Studio Next
+// The pure selectors behind the Needs verification chip, the entry pill and the scan button (SN-X42), ported from the the rebuild
 // mock's Bible page (src/pages/Bible.tsx) and src/selectors/extraction.ts. The counts themselves (`verifyCount`, `verifyOf`,
 // `unattached`) are the row's (../row/selectors.ts).
 

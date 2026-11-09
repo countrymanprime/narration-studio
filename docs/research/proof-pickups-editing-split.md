@@ -2,9 +2,9 @@
 
 Date: 2026-10-23. Code read at `063dc83`. Questions from the owner's test findings, [#2251](https://github.com/countrymanprime/narration-studio/issues/2251) items 26, 22 and 30.
 
-Method: read the code, the tests, the Studio Next mock (`docs/research/mockups/studio-next/`, the spec per Which mocks are the spec), the PRDs, the [findings contract](../architecture/findings-contract.md) and the guides. One test was added to reproduce item 30. Nothing was run in REAPER for this note.
+Method: read the code, the tests, the research mock (`docs/research/mockups/research-mock/`, the spec per What a page builds to), the PRDs, the [findings contract](../architecture/findings-contract.md) and the guides. One test was added to reproduce item 30. Nothing was run in REAPER for this note.
 
-Path prefixes: `ui/` is `src/studio/ui/src/components/`, `mock/` is `docs/research/mockups/studio-next/src/`, `tc/` is `src/studio/sidecars/transcript-compare/`.
+Path prefixes: `ui/` is `src/studio/ui/src/components/`, `mock/` is `docs/research/mockups/research-mock/src/`, `tc/` is `src/studio/sidecars/transcript-compare/`.
 
 ## A. What each page can do with a finding (item 26)
 
@@ -68,7 +68,7 @@ A1 and A6 change the PRD's lines; per the mock rule, the PR supersedes them in t
 | - | - |
 | Extraction PRD | The Story Bible "fills itself"; under 75 % confidence the narrator verifies, at 75 % and above it is accepted and reviewable (line 11). `speaker` is a suggestion kind (21); a speaker with no quote is never accepted automatically (38, DQ-10). Phases: Ph3 rules, Ph4 Suggested UI ("with no route"), Ph6 consent, Ph7 BookNLP in progress; Ph8 calibration not run |
 | Script and Story Bible PRD | Speaker colours and chips in the reader |
-| [BookNLP spike](studio-next-booknlp-spike.md) | Ship behind "not yet available"; large model attributed 61 of 61 quotes. BookNLP gives no score, so confidence must come from the code |
+| [BookNLP spike](booknlp-spike.md) | Ship behind "not yet available"; large model attributed 61 of 61 quotes. BookNLP gives no score, so confidence must come from the code |
 | Mock | **No prompt.** Ambiguity shows passively: every quote gets a suggested speaker or "?" (`mock/selectors/phrases.ts:15-46`), the chapter card says "N without a speaker" (`mock/pages/script/Reader.tsx:238`), suggested chips are dashed (`mock/pages/script/Para.tsx:19`, `mock/pages/booth/Teleprompter.tsx:20`, `mock/pages/editing/ScriptDoc.tsx:99`), the picker confirms (`mock/ui/SpeakerPicker.tsx:34`). Its rule is looser than the code's: any speaking name within 70 characters (`phrases.ts:34-37`) |
 
 ### What exists
