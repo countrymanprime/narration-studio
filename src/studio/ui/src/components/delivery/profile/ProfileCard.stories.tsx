@@ -69,3 +69,13 @@ export const SaveRefused: Story = {
     (box as HTMLInputElement).value = '-25';
   },
 };
+
+// Locked (a measurement is running): the profile menu is a disabled native select and reads disabled, not live.
+export const Locked: Story = {
+  parameters: { api: host(MOCK_ACX) },
+  args: { locked: true },
+  play: async ({ canvasElement }) => {
+    const menu = await within(canvasElement).findByRole('combobox');
+    await expect((menu as HTMLSelectElement).disabled).toBe(true);
+  },
+};
