@@ -51,18 +51,50 @@ function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: 
   const sticky = message.tone === 'error';
   const { id } = message;
   const stays = message.durationMs ?? TOAST_INFO_MS;
+  // A pointer resting on the toast or focus inside it holds the timer; leaving starts the full time again, so a message is never taken from under a hand or a key.
+  const hover = useRef(false);
+  const focused = useRef(false);
+  const [held, setHeld] = useState(false);
+  const hold = () => setHeld(hover.current || focused.current);
+  // The control that had focus before the toast took it: where focus goes back once the toast is gone and no other toast is to take it.
+  const origin = useRef<HTMLElement | null>(null);
+  const settle = (from: HTMLElement, always: boolean) => {
+    const all = [...document.querySelectorAll<HTMLElement>('[data-toast-region] [aria-label="Dismiss message"]')];
+    const own = from.closest('[data-tone]')?.querySelector<HTMLElement>('[aria-label="Dismiss message"]');
+    const at = own ? all.indexOf(own) : -1;
+    const target = all[at + 1] ?? all[at - 1] ?? origin.current;
+    dismiss(id);
+    // Only focus that is on nothing is handed back: an action that opened a dialog or moved focus keeps what it did.
+    window.setTimeout(() => {
+      const active = document.activeElement;
+      if (target?.isConnected && (always || !active || active === document.body || !active.isConnected)) target.focus();
+    }, 0);
+  };
   useEffect(() => {
-    if (sticky) return;
+    if (sticky || held) return;
     const fade = window.setTimeout(() => setLeaving(true), stays - FADE_MS);
     const remove = window.setTimeout(() => dismiss(id), stays);
     return () => {
       window.clearTimeout(fade);
       window.clearTimeout(remove);
     };
-  }, [dismiss, id, sticky, stays]);
+  }, [dismiss, id, sticky, stays, held]);
   return (
     <div
       data-tone={message.tone}
+      onPointerEnter={() => ((hover.current = true), hold())}
+      onPointerLeave={() => ((hover.current = false), hold())}
+      onFocus={(event) => {
+        focused.current = true;
+        hold();
+        const from = event.relatedTarget;
+        if (from instanceof HTMLElement && !event.currentTarget.contains(from)) origin.current = from;
+      }}
+      onBlur={(event) => {
+        if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
+        focused.current = false;
+        hold();
+      }}
       // Inverted in both themes (src/studio/ui/src/styles.css's --toast-bg/--toast-text), 45 px tall with a leading glyph, radius 6
       // (daw-chapter-track-auto-sync/03). An error's 4 px --danger edge is a strip inside the clipped box, not a border, so it runs straight
       // down the left and the box's corners clip it, rather than a border bending round the radius (alignment audit R3PF-4).
@@ -77,6 +109,7 @@ function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: 
       <span
         ref={text}
         data-toast-text
+        dir="auto"
         tabIndex={scrolls ? 0 : undefined}
         // A long message (one word of 10,000 letters, a pasted error) wraps anywhere and scrolls inside the toast. The toasts showing share the window less its gutters and
         // the bars they rise above (`--toast-n` of them, set on the region), so every toast's action and Dismiss stay on screen (#2899).
@@ -88,9 +121,12 @@ function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: 
         <button
           title={message.action.label}
           className={`line-clamp-3 max-w-[40%] flex-none text-left font-semibold [overflow-wrap:anywhere] underline underline-offset-2 ${HIT_AREA}`}
-          onClick={() => {
+          onClick={(event) => {
+            const button = event.currentTarget;
+            const had = button.contains(document.activeElement);
             message.action!.onAction();
-            dismiss(id);
+            if (had) settle(button, false);
+            else dismiss(id);
           }}
         >
           {message.action.label}
@@ -101,13 +137,9 @@ function ToastItem({ message, dismiss }: { message: ToastMessage; dismiss: (id: 
         aria-label="Dismiss message"
         className="inline-flex size-[var(--button-height-sm)] flex-none items-center justify-center rounded-[var(--radius-button)] hover:opacity-75"
         onClick={(event) => {
-          // Dismissing the button that has focus must not drop focus on the page: it moves to the next toast's Dismiss, else the one before.
-          const all = [...document.querySelectorAll<HTMLElement>('[data-toast-region] [aria-label="Dismiss message"]')];
-          const at = all.indexOf(event.currentTarget);
-          const next = all[at + 1] ?? all[at - 1];
-          const hadFocus = document.activeElement === event.currentTarget;
-          dismiss(id);
-          if (hadFocus && next) window.setTimeout(() => next.focus(), 0);
+          // Dismissing the button that has focus must not drop focus on the page: it moves to the next toast's Dismiss, else the one before, else where it was before the toast.
+          if (document.activeElement === event.currentTarget) settle(event.currentTarget, true);
+          else dismiss(id);
         }}
       >
         <FontAwesomeIcon icon={faXmark} />
@@ -135,6 +167,37 @@ export function useToastsClearOfModal(active: boolean): void {
   }, [active]);
 }
 
+const TABBABLE =
+  'button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])';
+// shortcut: radio groups count as one stop per radio, so a wrap may land on a radio the browser would skip; upgrade when a dialog's last control is a radio group.
+const tabbables = (root: ParentNode): HTMLElement[] => [...root.querySelectorAll<HTMLElement>(TABBABLE)].filter((el) => !el.closest('[hidden], [inert]'));
+
+/**
+ * Tab inside a modal that lets toasts show (see `useToastsClearOfModal`) goes on from the dialog's last control to the toasts' controls and
+ * from the last of those back to the dialog's first, and Shift+Tab the reverse, so a toast's Retry is reachable without a pointer (#2949).
+ * A dialog calls it from its popup's keydown; the toast region calls it from its own. Without toasts the trap is the library's, unchanged.
+ */
+export function routeTabAcrossToasts(event: { key: string; shiftKey: boolean; preventDefault: () => void }, popup: HTMLElement | null): void {
+  if (event.key !== 'Tab' || !popup || !document.documentElement.hasAttribute(MODAL_OPEN_ATTRIBUTE)) return;
+  const region = document.querySelector('[data-toast-region]');
+  const toasts = region ? tabbables(region) : [];
+  if (toasts.length === 0) return;
+  const inside = tabbables(popup);
+  const active = document.activeElement;
+  const go = (el: HTMLElement | undefined) => {
+    if (!el) return;
+    event.preventDefault();
+    el.focus();
+  };
+  if (region?.contains(active)) {
+    if (!event.shiftKey && active === toasts[toasts.length - 1]) go(inside[0]);
+    else if (event.shiftKey && active === toasts[0]) go(inside[inside.length - 1]);
+  } else if (!event.shiftKey && (inside.length === 0 || active === inside[inside.length - 1])) go(toasts[0]);
+  else if (event.shiftKey && (inside.length === 0 || active === inside[0] || active === popup)) go(toasts[toasts.length - 1]);
+}
+/** The dialog a toast's Tab wraps into: the newest one open. */
+const topModal = (): HTMLElement | null => [...document.querySelectorAll<HTMLElement>('[role="dialog"], [role="alertdialog"]')].pop() ?? null;
+
 // The messages the app shows, newest last. Neither region is atomic: a new message is read on its own, not every message again. Two live regions that are always mounted, so a screen reader hears a message that arrives
 // later: errors interrupt (alert), everything else waits its turn (status). Base UI hides everything outside an open dialog from
 // assistive technology except live regions carrying `aria-live`, and an error raised from inside a dialog is announced here.
@@ -151,6 +214,7 @@ export function ToastRegion({ messages, dismiss }: { messages: readonly ToastMes
           '--toast-reserve': 'min(var(--toast-clear, 0px), calc(100dvh - 2 * var(--page-gutter) - 8rem))',
         } as CSSProperties
       }
+      onKeyDown={(event) => routeTabAcrossToasts(event, topModal())}
       className="fixed right-[calc(var(--page-gutter)+var(--toast-clear-right,0px))] bottom-[calc(var(--page-gutter)+var(--toast-reserve,0px))] z-[var(--z-toast)] flex max-w-[min(28rem,calc(100vw-2*var(--page-gutter)-var(--toast-clear-right,0px)))] flex-col items-end gap-2 [:root[data-modal-open]_&]:right-[var(--page-gutter)] [:root[data-modal-open]_&]:bottom-[var(--page-gutter)]"
     >
       <div role="alert" aria-live="assertive" aria-atomic="false" aria-relevant="additions" className="flex max-w-full flex-col items-end gap-2">

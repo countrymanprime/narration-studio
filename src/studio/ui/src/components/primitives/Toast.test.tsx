@@ -1,8 +1,10 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { faLayerGroup } from '@fortawesome/free-solid-svg-icons';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import userEvent from '@testing-library/user-event';
 import { Dialog } from './Dialog';
+import { tabInsideTrap } from './tabInsideTrap';
 import { TOAST_ACTION_MS, TOAST_INFO_MS, ToastRegion, type ToastMessage } from './Toast';
 
 beforeEach(() => vi.useFakeTimers());
@@ -274,5 +276,116 @@ describe('ToastRegion, action labels and focus (issue 2899)', () => {
     fireEvent.click(buttons[0]!);
     act(() => void vi.advanceTimersByTime(1));
     expect(document.activeElement).toBe(document.body);
+  });
+});
+
+describe('ToastRegion under a hand or a key (issue 2956)', () => {
+  it('holds the timer while the pointer is on the toast and starts the full time again when it leaves', () => {
+    const dismiss = vi.fn();
+    render(<ToastRegion messages={[info(1)]} dismiss={dismiss} />);
+    const toast = screen.getByText('Message 1').closest('[data-tone]')!;
+    fireEvent.pointerEnter(toast);
+    act(() => void vi.advanceTimersByTime(TOAST_INFO_MS * 3));
+    expect(dismiss).not.toHaveBeenCalled();
+    fireEvent.pointerLeave(toast);
+    act(() => void vi.advanceTimersByTime(TOAST_INFO_MS - 1));
+    expect(dismiss).not.toHaveBeenCalled();
+    act(() => void vi.advanceTimersByTime(1));
+    expect(dismiss).toHaveBeenCalledExactlyOnceWith(1);
+  });
+
+  it('holds the timer while focus is inside the toast, and not after it leaves', () => {
+    const dismiss = vi.fn();
+    render(<ToastRegion messages={[{ ...info(1), action: { label: 'Undo', onAction: vi.fn() } }]} dismiss={dismiss} />);
+    act(() => screen.getByRole('button', { name: 'Undo' }).focus());
+    act(() => void vi.advanceTimersByTime(TOAST_INFO_MS * 3));
+    expect(dismiss).not.toHaveBeenCalled();
+    act(() => screen.getByRole('button', { name: 'Undo' }).blur());
+    act(() => void vi.advanceTimersByTime(TOAST_INFO_MS));
+    expect(dismiss).toHaveBeenCalledExactlyOnceWith(1);
+  });
+
+  it('hands focus back to the control that had it before the toast, after Dismiss or the action', () => {
+    const onAction = vi.fn();
+    const opener = document.createElement('button');
+    document.body.append(opener);
+    for (const press of ['Dismiss message', 'Undo']) {
+      const messages = [{ ...info(1), action: { label: 'Undo', onAction } }];
+      const view = render(<ToastRegion messages={messages} dismiss={vi.fn()} />);
+      opener.focus();
+      const button = screen.getByRole('button', { name: press });
+      fireEvent.focus(button, { relatedTarget: opener });
+      button.focus();
+      fireEvent.click(button);
+      // The service takes the toast away, and focus with it.
+      view.rerender(<ToastRegion messages={[]} dismiss={vi.fn()} />);
+      act(() => void vi.advanceTimersByTime(1));
+      expect(document.activeElement).toBe(opener);
+      cleanup();
+    }
+    opener.remove();
+  });
+
+  it('leaves focus where the action put it', () => {
+    const elsewhere = document.createElement('input');
+    document.body.append(elsewhere);
+    render(<ToastRegion messages={[{ ...info(1), action: { label: 'Open', onAction: () => elsewhere.focus() } }]} dismiss={vi.fn()} />);
+    const button = screen.getByRole('button', { name: 'Open' });
+    button.focus();
+    fireEvent.click(button);
+    act(() => void vi.advanceTimersByTime(1));
+    expect(document.activeElement).toBe(elsewhere);
+    elsewhere.remove();
+  });
+});
+
+describe('ToastRegion text direction (issue 2957)', () => {
+  it('lets the browser pick the direction of each message from its first strong letter', () => {
+    render(<ToastRegion messages={[info(1, 'تم الحفظ')]} dismiss={vi.fn()} />);
+    expect(screen.getByText('تم الحفظ').getAttribute('dir')).toBe('auto');
+  });
+});
+
+describe('ToastRegion inside a modal (issue 2949)', () => {
+  beforeEach(() => vi.useRealTimers());
+  const open = () =>
+    render(
+      <>
+        <Dialog dismissOnOutsidePress={false} title="Report" actions={<button>Done</button>}>
+          <input aria-label="Name" />
+        </Dialog>
+        <ToastRegion messages={[failure(1)]} dismiss={vi.fn()} />
+      </>,
+    );
+
+  it('Tab goes from the last control of the dialog to the toast and from the toast back into the dialog; Shift+Tab goes the other way', async () => {
+    const user = userEvent.setup();
+    open();
+    const done = screen.getByRole('button', { name: 'Done' });
+    const dismiss = screen.getByRole('button', { name: 'Dismiss message' });
+    done.focus();
+    await user.tab();
+    expect(document.activeElement).toBe(dismiss);
+    await user.tab();
+    // Back in the dialog: the library may put focus on the control that had it last, so only the dialog is asserted.
+    await waitFor(() => expect(document.activeElement?.closest('[role="dialog"]')).not.toBeNull());
+    // Base UI settles focus a frame after it enters the popup (see tabInsideTrap); let it, so it cannot move focus again under the next press.
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    (document.querySelector('[role="dialog"] [tabindex="0"]') as HTMLElement).focus();
+    await user.tab({ shift: true });
+    expect(document.activeElement).toBe(dismiss);
+    await user.tab({ shift: true });
+    expect(document.activeElement).toBe(done);
+  });
+
+  it('leaves the dialog’s own Tab loop alone when no toast is showing', async () => {
+    const user = userEvent.setup();
+    render(
+      <Dialog dismissOnOutsidePress={false} title="Report" actions={<button>Done</button>}>
+        <p>Body</p>
+      </Dialog>,
+    );
+    screen.getByRole('button', { name: 'Done' }).focus();
+    await tabInsideTrap(user);
   });
 });

@@ -8,7 +8,7 @@ import { HINT_POPUP_SELECTOR } from './hintLayer';
 import { IconButton } from './IconButton';
 import { OVERLAY_TITLE_CLASS } from './panelStyles';
 import { POPOVER_POPUP_SELECTOR } from './Popover';
-import { useToastsClearOfModal } from './Toast';
+import { routeTabAcrossToasts, useToastsClearOfModal } from './Toast';
 
 // Portals attach in the order the layers opened, so a modal later in the document is above this one.
 function hasModalAbove(popup: HTMLElement): boolean {
@@ -203,6 +203,7 @@ export function Dialog({
           <Parts.Popup
             ref={popupRef}
             initialFocus={initialFocus}
+            onKeyDown={(event) => routeTabAcrossToasts(event, popupRef.current)}
             finalFocus={finalFocus}
             className={`flex w-full flex-col overflow-hidden rounded-[var(--radius-card)] border focus:outline-none ${
               width === 'full' ? 'max-w-[calc(100vw-2rem)]' : DIALOG_WIDTHS[width]
