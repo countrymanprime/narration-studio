@@ -280,3 +280,13 @@ describe('the mock Check recordings defaults follow Settings (#3231)', () => {
     expect([defaults.chunkSeconds, defaults.overlapSeconds]).toEqual([120, 9]);
   });
 });
+
+describe('the mock selects only tracks that are in the project (#3231)', () => {
+  it('selects a track the project holds and refuses one it does not', async () => {
+    const api = createMockApi();
+    const { tracks } = await api.tracksList();
+    expect((await api.trackSelectInReaper(tracks[0].guid)).outcome).toBe('selected');
+    const refused = await api.trackSelectInReaper('{NOT-IN-PROJECT}');
+    expect([refused.outcome, refused.reason]).toEqual(['refused', 'track_missing']);
+  });
+});

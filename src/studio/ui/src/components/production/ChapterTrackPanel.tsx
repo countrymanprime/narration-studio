@@ -270,8 +270,9 @@ export function ChapterTrackPanel({
                 <MappingConfirm
                   chapterTitle={shortName}
                   tracks={tracks}
-                  linkedTrackGuid={link.track?.trackGuid}
-                  linkedTrackName={link.track?.trackName}
+                  // A track found by name or region, not confirmed, is a suggestion: there is no link to Unlink, so the picker shows (#3231).
+                  linkedTrackGuid={link.status === 'confirmed' ? link.track?.trackGuid : undefined}
+                  linkedTrackName={link.status === 'confirmed' ? link.track?.trackName : undefined}
                   busy={busy}
                   onConfirm={(trackGuid) => void link_(trackGuid)}
                   onClear={() => void unlink()}
