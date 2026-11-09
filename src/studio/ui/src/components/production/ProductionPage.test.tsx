@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// SN-P8's acceptance tests for the swapped Production page, end to end against the mock host: the Studio Next layout, the dialogs its
+// SN-P8's acceptance tests for the swapped Production page, end to end against the mock host: the rebuilt layout, the dialogs its
 // icons open, the timer and the chip's feed, chapter sync, and the row menu that keeps the features the mock has no equivalent for.
 import { APP_STARTED_AT } from './pipeline/dawConnectGrace';
 import { readdirSync, readFileSync } from 'node:fs';

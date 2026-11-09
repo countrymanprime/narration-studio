@@ -1,5 +1,5 @@
 {
-  "note": "The protocol's book list (docs/research/studio-next-extraction-calibration-protocol.md). Texts, gold files and run output are ignored local data; `fetch` downloads them. `confirmed` is false until a run has read the Project Gutenberg record and copied its public-domain line into data/<id>/source.json.",
+  "note": "The protocol's book list (docs/research/extraction-calibration-protocol.md). Texts, gold files and run output are ignored local data; `fetch` downloads them. `confirmed` is false until a run has read the Project Gutenberg record and copied its public-domain line into data/<id>/source.json.",
   "books": [
     {
       "id": "wind-in-the-willows",

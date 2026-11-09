@@ -23,7 +23,7 @@ Runs:
   The scenarios were: the mock site's hero, its Record tab, and its demo Proof page; and five pages of the real UI's mock build (`pnpm --dir src/studio/ui run build:mock`, served locally). This is Linux headless with software compositing, not WebView2 on Windows with a GPU. The absolute numbers are higher than a narrator's machine would show. The ratios are the finding.
 - **Real app, read.** Read from `src/studio/ui/src`, the visual and atlas Playwright configs, `.storybook/preview-head.html`, the [page guides](../guides/using-the-app/README.md), [the motion reference](../design/motion-and-animation.md), [interaction feedback](../architecture/interaction-feedback.md) and the [latency baseline](interaction-latency-baseline.md).
 - **Issues, read.** Read on GitHub on 2026-10-18: [#1456](https://github.com/countrymanprime/narration-studio/issues/1456), and #1844 to #1848.
-- **Studio Next mock:** not consulted for motion. It is frozen ([#1860](https://github.com/countrymanprime/narration-studio/issues/1860)) and is the spec for what pages draw, not for how they move.
+- **research mock:** not consulted for motion. It is frozen ([#1860](https://github.com/countrymanprime/narration-studio/issues/1860)) and is the spec for what pages draw, not for how they move.
 - **Not run:** WebView2 itself, a GPU machine, REAPER recording at the same time, and the real desktop host.
 
 ## Findings

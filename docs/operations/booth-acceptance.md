@@ -1,6 +1,6 @@
 # Booth acceptance walkthrough
 
-The steps a narrator takes to record a chapter in the Booth (`/booth`, `src/studio/ui/src/components/booth/page/BoothNextPage.tsx`), what each must do, and what proves it. The Booth is accepted when every row passes. The spec was the Studio Next mock's Booth (`src/pages/Booth.tsx` and `src/pages/booth/` of the mock, deleted from the tree) and the Booth PRD.
+The steps a narrator takes to record a chapter in the Booth (`/booth`, `src/studio/ui/src/components/booth/page/BoothNextPage.tsx`), what each must do, and what proves it. The Booth is accepted when every row passes. The spec was the research mock's Booth (`src/pages/Booth.tsx` and `src/pages/booth/` of the mock, deleted from the tree) and the Booth PRD.
 
 **How verified:**
 

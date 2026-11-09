@@ -1,6 +1,6 @@
-# Studio Next Domain, State and Wire Contracts: A Typed Store with Undo, Selectors, Schemas and a Mock-versus-Real Parity Kit
+# Domain, State and Wire Contracts: A Typed Store with Undo, Selectors, Schemas and a Mock-versus-Real Parity Kit
 
-**Source:** owner request of 2026-10-10 (Studio Next Rebuild); the mock's `studio-next/src/state/`, `studio-next/src/selectors/`, `studio-next/src/domain/` and `studio-next/src/fixtures/`; the owner's rulings of 2026-10-11 (see Decisions).
+**Source:** owner request of 2026-10-10 (rebuild PRD); the mock's `research-mock/src/state/`, `research-mock/src/selectors/`, `research-mock/src/domain/` and `research-mock/src/fixtures/`; the owner's rulings of 2026-10-11 (see Decisions).
 
 **Builds on:** [Wire contracts: how data is checked where it crosses a boundary](../architecture/wire-contracts.md) (Zod behind `parseWire`), [wire contracts](../architecture/wire-contracts.md), [The rule](../architecture/host-binding-concurrency.md#the-rule) (host bindings read services through one accessor), the `NarrationApi` split into per-domain interfaces (`src/studio/ui/src/types.ts`) and the mock host (`src/studio/ui/src/api/mockApi.ts`), [The DAW port](../architecture/daw-integration.md#the-daw-port).
 
@@ -12,9 +12,9 @@ The mock has one place where every change goes (`act`), one history of undoable 
 
 ## Evidence
 
-- **Mock store.** `studio-next/src/state/store.ts`: `update(fn)`, `act(label, fn, {daw, restoreUi})` records inverse patches for the book (`data`) and for listed UI paths, `undoEntry` refuses when a later entry touches the same paths or when a DAW entry is no longer last, `setChangeGuard` for leave guards, `useStudio(selector)` over `useSyncExternalStore`, history capped at 40.
-- **Mock domain.** `studio-next/src/domain/schemas.ts` (767 lines of Zod: chapters, paragraphs, notes, pickups, marks, bible, bookmarks, milestones, contract, stage decisions, cuts, word FX, backups), `studio-next/src/domain/daw.ts`, `studio-next/src/domain/extraction.ts`, `studio-next/src/domain/components.ts`.
-- **Mock selectors and fixtures.** 30 modules in `studio-next/src/selectors/` (pure functions of the book); `studio-next/src/fixtures/` holds all sample data and `makeBook({headingStyle, chapters})`; `studio-next/tests/scenarios.test.tsx` renders every page with three heading styles and 40 chapters; `studio-next/tests/no-hardcoded-speakers.test.ts` fails on a literal in a component.
+- **Mock store.** `research-mock/src/state/store.ts`: `update(fn)`, `act(label, fn, {daw, restoreUi})` records inverse patches for the book (`data`) and for listed UI paths, `undoEntry` refuses when a later entry touches the same paths or when a DAW entry is no longer last, `setChangeGuard` for leave guards, `useStudio(selector)` over `useSyncExternalStore`, history capped at 40.
+- **Mock domain.** `research-mock/src/domain/schemas.ts` (767 lines of Zod: chapters, paragraphs, notes, pickups, marks, bible, bookmarks, milestones, contract, stage decisions, cuts, word FX, backups), `research-mock/src/domain/daw.ts`, `research-mock/src/domain/extraction.ts`, `research-mock/src/domain/components.ts`.
+- **Mock selectors and fixtures.** 30 modules in `research-mock/src/selectors/` (pure functions of the book); `research-mock/src/fixtures/` holds all sample data and `makeBook({headingStyle, chapters})`; `research-mock/tests/scenarios.test.tsx` renders every page with three heading styles and 40 chapters; `research-mock/tests/no-hardcoded-speakers.test.ts` fails on a literal in a component.
 - **Real app.** Domain state lives in Go services and sidecar files ([The rule](../architecture/host-binding-concurrency.md#the-rule)); the UI reads it through bindings checked by `parseWire`; pages keep state in hooks (for example `components/production/ProductionPage.tsx`, `components/proof/ProofPage.tsx`); `useApi()` returns the whole `NarrationApi` facade; mocks are per-domain files under `src/studio/ui/src/api/` and `api/mockHost/`; one Vitest file (`src/studio/ui/src/api/wireContracts.test.ts`, 3,103 lines) holds the contract rows.
 - **Real undo.** `toast` Undo buttons per feature; auto links are undoable ([Chapter sync](../guides/using-the-app/navigation.md#chapter-sync)); REAPER commands add one undo block each ([The workspace's take and FX actions (`narration_workspace.lua`)](../architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua)); the findings store keeps an append-only decision history ([Shared Findings Contract](../architecture/findings-contract.md)). Nothing spans them.
 
@@ -24,12 +24,12 @@ The mock has one place where every change goes (`act`), one history of undoable 
 2. **Commands with a journal.** `act({ label, touches, daw, run, undo })` runs a host command through a port, records a **journal entry** holding the inverse host command (or, for UI-only state, an inverse closure), and returns a `Result`. Undo is refused with a sentence when a later entry touches the same keys, when a DAW entry is no longer the last, or when the host says the inverse is stale. This is the mock's `undoEntry` logic carried over; patches over a mirrored book are not.
 3. **Ports narrower than the facade.** `src/studio/ui/src/ports/` re-exports the per-domain interfaces and `usePort<K>()` returns only the one a feature declares, so Interface Segregation is enforced where it matters (the feature), while `NarrationApi` stays the composition type.
 4. **Contract kit.** `describeProviderContract(name, { mock, host })` runs one behavioural suite over the mock adapter and the host-backed adapter (the latter against golden payloads from Go tests). Every port in the series gets one. A shared `Refusal` ({ code, reason }) and `Measured<T>` (value or reason) schema live in `src/studio/ui/src/api/schemas/base.ts`.
-5. **Fixtures as data.** Sample data lives only in `src/studio/ui/src/fixtures/` (and the existing `api/mockHost`), built by `makeBook`-style builders (`headingStyle`, `chapters`); a scan test fails on a literal speaker, chapter title or number in a component. A dev and mock-build "Mock states" panel (not in the shipped build) forces states (DAW setup, network, stale ids) the way `studio-next/src/app/mock-states.tsx` does.
-6. **Scenario tests.** Each page renders with three heading styles and a 40-chapter book (`studio-next/tests/scenarios.test.tsx`), asserting on formatted names only.
+5. **Fixtures as data.** Sample data lives only in `src/studio/ui/src/fixtures/` (and the existing `api/mockHost`), built by `makeBook`-style builders (`headingStyle`, `chapters`); a scan test fails on a literal speaker, chapter title or number in a component. A dev and mock-build "Mock states" panel (not in the shipped build) forces states (DAW setup, network, stale ids) the way `research-mock/src/app/mock-states.tsx` does.
+6. **Scenario tests.** Each page renders with three heading styles and a 40-chapter book (`research-mock/tests/scenarios.test.tsx`), asserting on formatted names only.
 
 ## Key Hypothesis
 
-If derived numbers come from selectors over read models and every change goes through one journalled command path, then the owner's counter and undo rulings can be implemented once and hold on every page. We are wrong if a page needs state the host cannot return after a restart, or if journal entries cannot be inverted by host commands for more than a third of the undoable commands in the mock's list (`studio-next/src/state/commands/`).
+If derived numbers come from selectors over read models and every change goes through one journalled command path, then the owner's counter and undo rulings can be implemented once and hold on every page. We are wrong if a page needs state the host cannot return after a restart, or if journal entries cannot be inverted by host commands for more than a third of the undoable commands in the mock's list (`research-mock/src/state/commands/`).
 
 ## What We're NOT Building
 
@@ -45,7 +45,7 @@ If derived numbers come from selectors over read models and every change goes th
 | --- | --- | --- |
 | Ports with a shared contract suite | 100% of ports in the series | `describeProviderContract` registration test |
 | Derived numbers computed outside selectors | 0 for the series' pages (counts, percentages, tone) | Review plus a scan for arithmetic on read-model fields in components |
-| Undoable mock commands with a real inverse | At least 90% of `studio-next/src/state/commands/*` `act(...)` calls | Mapping table in the ADR |
+| Undoable mock commands with a real inverse | At least 90% of `research-mock/src/state/commands/*` `act(...)` calls | Mapping table in the ADR |
 | Contract rows | Each new binding has schema, golden, row, mock | `wireContracts.test.ts` |
 | Fixtures in components | 0 literals | Scan test |
 
@@ -59,7 +59,7 @@ Owner rulings of 2026-10-11; none is open.
 | SN0-Q2 / DQ-2 | Replace, one PR, no flag | The store lands unused; pages adopt it in their swap slices |
 | SNS-Q2 | No immer; journal entries hold inverse host commands and UI-only slices use small copy-on-write helpers (default taken, standing instruction) | A5 |
 | SNS-Q3 | The journal holds 40 entries in memory, as the mock, and is cleared on project switch (default taken) | SNS-3 |
-| SNS-Q4 | The mock's `act` list is the starting set; a host command with no safe inverse is marked non-undoable in-app and the refusal says to use the DAW's own Edit > Undo, as `studio-next/src/state/store.ts` does | SNS-1 mapping table |
+| SNS-Q4 | The mock's `act` list is the starting set; a host command with no safe inverse is marked non-undoable in-app and the refusal says to use the DAW's own Edit > Undo, as `research-mock/src/state/store.ts` does | SNS-1 mapping table |
 | SNS-Q5 | UI-only schemas have no golden; anything the host reads back does (default taken) | SNS-4 |
 
 ## Users & Context
@@ -72,13 +72,13 @@ Page workers (consumers), the owner (sees the history list and the refusals), th
 
 | Behaviour | Mock reference | Acceptance |
 | --- | --- | --- |
-| Undo one change by name | `studio-next/src/app/history.tsx`, `studio-next/tests/daw.test.ts` | The history lists "Add bookmark" etc.; Undo restores and removes the entry |
-| Refuse an unsafe undo with the reason | `undoEntry` in `studio-next/src/state/store.ts` | "Undo 'X' first. It changed the same thing." is shown; nothing changes |
+| Undo one change by name | `research-mock/src/app/history.tsx`, `research-mock/tests/daw.test.ts` | The history lists "Add bookmark" etc.; Undo restores and removes the entry |
+| Refuse an unsafe undo with the reason | `undoEntry` in `research-mock/src/state/store.ts` | "Undo 'X' first. It changed the same thing." is shown; nothing changes |
 | DAW entries only if last | same | A DAW-touching entry followed by another is refused with the last entry's label |
-| Derived numbers from selectors | `studio-next/src/selectors/progress.ts`, `studio-next/src/selectors/proof.ts` | Production, Proof and the rail show one value for "cleared" |
-| Value or reason | `studio-next/src/providers/measurements.ts`, `studio-next/src/selectors/measured.ts` | "Not measured yet" appears wherever a `Measured<T>` has a reason |
-| No literals in components | `studio-next/tests/no-hardcoded-speakers.test.ts` | Scan passes |
-| All heading styles, 40 chapters | `studio-next/tests/scenarios.test.tsx` | Each migrated page passes |
+| Derived numbers from selectors | `research-mock/src/selectors/progress.ts`, `research-mock/src/selectors/proof.ts` | Production, Proof and the rail show one value for "cleared" |
+| Value or reason | `research-mock/src/providers/measurements.ts`, `research-mock/src/selectors/measured.ts` | "Not measured yet" appears wherever a `Measured<T>` has a reason |
+| No literals in components | `research-mock/tests/no-hardcoded-speakers.test.ts` | Scan passes |
+| All heading styles, 40 chapters | `research-mock/tests/scenarios.test.tsx` | Each migrated page passes |
 
 ### Interfaces
 
@@ -107,7 +107,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 **Contracts.** New shared schemas `refusalSchema`, `measuredSchema(valueSchema)` in `src/studio/ui/src/api/schemas/base.ts`; per-domain additions are in the other PRDs and each follows the six-step wire rule. `hostAPIVersion` bumps happen in the slice that adds a binding.
 
-**Test plan.** Unit tests for journal rules (ported from `studio-next/tests/daw.test.ts` and `foundations.test.ts`); property tests for "undo then redo equals original" on UI-only slices (fast-check, deterministic per [Property tests and fuzzing](../operations/verification-tooling.md#property-tests-and-fuzzing)); contract suites; scan tests; a scenario render per page; no visual change in SNS slices.
+**Test plan.** Unit tests for journal rules (ported from `research-mock/tests/daw.test.ts` and `foundations.test.ts`); property tests for "undo then redo equals original" on UI-only slices (fast-check, deterministic per [Property tests and fuzzing](../operations/verification-tooling.md#property-tests-and-fuzzing)); contract suites; scan tests; a scenario render per page; no visual change in SNS slices.
 
 **Rollout.** Layer strangling: the store lands unused; the first adopters are chapter selection and preferences, then history for bookmarks (Script), then page-by-page. No flag.
 
@@ -129,7 +129,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 ### Phase Details
 
-- **Phase 1.** The table lists each `act(...)` in `studio-next/src/state/commands/` with its real inverse (host command), "UI only", or "not undoable in-app".
+- **Phase 1.** The table lists each `act(...)` in `research-mock/src/state/commands/` with its real inverse (host command), "UI only", or "not undoable in-app".
 - **Phase 3.** Port `undoEntry` rules and tests; the DAW-last rule becomes "a DAW entry is undoable only if it is the last entry and the DAW reports it is still its last action" once the capability exists (SND).
 - **Phase 5.** The ratchet counts files that call `useApi()` and use more than the one declared domain; it may only fall.
 - **Phase 7.** Journalled command: Add bookmark (Script and Story Bible) is the intended first, since it is small and host-persisted.

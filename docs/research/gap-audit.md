@@ -1,8 +1,8 @@
-# Studio Next gap audit: the built app against the mock
+# gap audit: the built app against the mock
 
-**Status: snapshot of `main` at `efbf4a31` (2026-10-19).** It lists what is still missing between the built app and the frozen Studio Next mock (`docs/research/mockups/studio-next/`), so the remaining build can be cut into parallel pull requests. It is evidence, not kept current: the gap ids (PR-1, SB-4 and so on) are this note's own, and a PR that closes a row says so in its body.
+**Status: snapshot of `main` at `efbf4a31` (2026-10-19).** It lists what is still missing between the built app and the frozen research mock (`docs/research/mockups/research-mock/`), so the remaining build can be cut into parallel pull requests. It is evidence, not kept current: the gap ids (PR-1, SB-4 and so on) are this note's own, and a PR that closes a row says so in its body.
 
-Owner direction (D99): after the open PRs merge, finish the app toward the mock except where the owner decided otherwise. The rule is Which mocks are the spec: the mock is a frozen reference, a departure supersedes its line in a PRD or doc, and the repo's old equivalent of anything in the mock is removed when the page is swapped in.
+Owner direction (D99): after the open PRs merge, finish the app toward the mock except where the owner decided otherwise. The rule is What a page builds to: the mock is a frozen reference, a departure supersedes its line in a PRD or doc, and the repo's old equivalent of anything in the mock is removed when the page is swapped in.
 
 ## What this note does not list
 
@@ -18,9 +18,9 @@ These are owner decisions or in-flight work, so none of them is a gap:
 
 ## Method
 
-For each page I read the mock page source and the app page, the PRD slice table and the existing parity notes (`docs/research/studio-next-parity-*.md`), then compared screenshots. The mock was captured with `scripts/dev/capture-studio-next-mock.mjs` (1440 by 900, light and dark). The app was captured with `pnpm --dir src/studio/ui visual:page <pages>` in both themes, so each state has the visual suite's viewports. Every gap below was checked in code. The parity notes and several PRD phase tables are stale, so rows they list that are built now are left out ([Stale status](#stale-status-in-the-prds-and-parity-notes)).
+For each page I read the mock page source and the app page, the PRD slice table and the existing parity notes (`docs/research/parity-*.md`), then compared screenshots. The mock was captured with `scripts/dev/capture-mock.mjs` (1440 by 900, light and dark). The app was captured with `pnpm --dir src/studio/ui visual:page <pages>` in both themes, so each state has the visual suite's viewports. Every gap below was checked in code. The parity notes and several PRD phase tables are stale, so rows they list that are built now are left out ([Stale status](#stale-status-in-the-prds-and-parity-notes)).
 
-Paths: a mock file name is relative to `docs/research/mockups/studio-next/src/` (`pages/`, `pages/<page>/` or `styles/` where the name alone is ambiguous), and an app path is relative to `src/studio/ui/src/components/` unless it starts with another top-level folder of `src/studio/ui/src/` (`input/`, `api/`, `primitives/`) or with `apps/`. Size is S (under a day, one area), M (a few files, tests and a guide update) or L (a new contract or host call).
+Paths: a mock file name is relative to `docs/research/mockups/research-mock/src/` (`pages/`, `pages/<page>/` or `styles/` where the name alone is ambiguous), and an app path is relative to `src/studio/ui/src/components/` unless it starts with another top-level folder of `src/studio/ui/src/` (`input/`, `api/`, `primitives/`) or with `apps/`. Size is S (under a day, one area), M (a few files, tests and a guide update) or L (a new contract or host call).
 
 ## Open pull requests at the time of the audit
 
@@ -95,7 +95,7 @@ Status. Built and routed (SNP-3 done, routed by #1295). Header with due text and
 
 ## Editing
 
-**Status.** The page is swapped in and built to the mock's structure: PRD phase 9 is "done" (SN-E9, route `/editing/:chapterId`), and `src/studio/ui/src/components/editing/**` (about 14.7k lines) holds the script document, legend, flag card, ribbon, bar and floating toolbar, takes inline (chip, evidence, suggestion, Keep, hide others, prep steps, A/B and Play every take, duplicate-read split), stacking (RetryBar, dialog), Delete/Mute and Add FX dialogs (pad sent, chain changeable), the drawer with Clean up / Effects / Backups / Timeline, the strip, the word menu and the keys. The PRD slice table (`docs/prds/studio-next-script-based-editing.prd.md` phases 3 to 8) still says "pending / unrouted components" and is stale, and so are the two parity notes' gap lists: verified in code as built now are the duplicate split (`EditingBody.tsx:224` passes `dawSplitter`; `splitTake` exists on the port and in `narration_takes.lua`), "Placed exactly" (`passagetakes/evidence.go` sets `ViaMap`), Play every take and A then B (`takes/TakeCompare.tsx`), the effects cap field (`effects/useFxCap.ts`), effect settings, bypass, preview and compare (`effects/EffectSettings.tsx`, host-backed through `DawFxRangeCompare` and `setFxRangeParam`), and Clean up Preview that plays (`cleanup/usePreviewPlay.ts`). Screenshots at `scratchpad/app/light/editing/{default,drawer-cleanup,drawer-effects,takes-open,fx-dialog}/desktop.png` were compared with `mock/light/editing-1440x900.png`; the other states were judged from source. What remains is mostly script-text marks fed by Story Bible data, take-row detail, effects-tab scope and navigation extras, and a few layout differences. The mock's sample has no takes, so take rows were compared by source only. Known deviations (kind colours and forms, header, motion, Settings-kept favourites) are not listed.
+**Status.** The page is swapped in and built to the mock's structure: PRD phase 9 is "done" (SN-E9, route `/editing/:chapterId`), and `src/studio/ui/src/components/editing/**` (about 14.7k lines) holds the script document, legend, flag card, ribbon, bar and floating toolbar, takes inline (chip, evidence, suggestion, Keep, hide others, prep steps, A/B and Play every take, duplicate-read split), stacking (RetryBar, dialog), Delete/Mute and Add FX dialogs (pad sent, chain changeable), the drawer with Clean up / Effects / Backups / Timeline, the strip, the word menu and the keys. The PRD slice table (`docs/prds/script-based-editing.prd.md` phases 3 to 8) still says "pending / unrouted components" and is stale, and so are the two parity notes' gap lists: verified in code as built now are the duplicate split (`EditingBody.tsx:224` passes `dawSplitter`; `splitTake` exists on the port and in `narration_takes.lua`), "Placed exactly" (`passagetakes/evidence.go` sets `ViaMap`), Play every take and A then B (`takes/TakeCompare.tsx`), the effects cap field (`effects/useFxCap.ts`), effect settings, bypass, preview and compare (`effects/EffectSettings.tsx`, host-backed through `DawFxRangeCompare` and `setFxRangeParam`), and Clean up Preview that plays (`cleanup/usePreviewPlay.ts`). Screenshots at `scratchpad/app/light/editing/{default,drawer-cleanup,drawer-effects,takes-open,fx-dialog}/desktop.png` were compared with `mock/light/editing-1440x900.png`; the other states were judged from source. What remains is mostly script-text marks fed by Story Bible data, take-row detail, effects-tab scope and navigation extras, and a few layout differences. The mock's sample has no takes, so take rows were compared by source only. Known deviations (kind colours and forms, header, motion, Settings-kept favourites) are not listed.
 
 | Id | What the mock draws | What the app does | Kind | Size | App files | Collides with open PR |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -154,7 +154,7 @@ Status. Built and routed (SNP-3 done, routed by #1295). Header with due text and
 | SC-4 | Rail entry card header is one row: name, kind pill, "first: <chapter tag>", spacer, then find / add-note / open-in-Story-Bible icons (Mock `script/BibleTab.tsx:36-47`). "first" is the chapter tag ("Chapter 1"). | Icons sit in a second right-aligned row under the header (`rail/bible/EntryCard.tsx:59-68`). "first:" shows `appearances[0].chapter`, which is the chapter title for some entries and "Chapter 1" for others (app PNG `rail-story-bible`: "first Down the Rabbit-Hole" beside "first Chapter 1"); the list rows in the same tab are bordered two-line buttons where the mock has table rows (`tblwrap` + `tr`, mock `BibleTab.tsx:94-110`). | layout-measure / copy | S | `script/page/rail/bible/EntryCard.tsx`, `BiblePanel.tsx:73-92` | #2024 |
 | SC-5 | Reader spacing: `.reader{padding:8px 20px 80px}`, `.bound{margin:48px -20px 12px}`, `.para{padding:6px 0}`, bookmark gutter hangs outside the text at `left:-19px` so paragraphs align with the chapter card (Mock `styles/app.css:140-147`, `styles/bookmarks.css:10`). | `px-6 py-4` (24 / 16, so only 16 px below the last line), chapter boundary `mt-6` (24, half the mock's 48), paragraph `pb-3 pl-8` (the 32 px indent pushes text right of the card edge; app PNG: card x=497, text x=529; mock: both x=509). Default line spacing 1.8 vs the mock's 1.7 (`DEFAULT_TEXT_PREFS`). | layout-measure | S | `script/page/reader/Reader.tsx:157,481`, `reader/Para.tsx:130`, `tools/text/readerText.ts:29`, `layout/BookmarkGutter.tsx` | #2024 / #2017 (Reader.tsx, Para.tsx) |
 | SC-6 | Selection toolbar is a dark pill: `background:var(--ink);color:var(--surface);radius 8;padding 4`, icon-and-label ghost buttons with a white hover wash, record icon in `--bad` (Mock `styles/app.css:176-178,551-555`; `script/SelectionTool.tsx:61-80`). | Light popover: `border-[var(--line-strong)] bg-[var(--surface)] shadow-lg` with outlined secondary buttons and a filled-circle record icon (app PNG `selection-tools`). | layout-measure | S | `script/page/tools/select/SelectionTool.tsx:80-90` | #2024 (SelectionTool.tsx) |
-| SC-7 | Key legend is a left-aligned flowing row: 13 px, gap 16, `border-top`, raised background, bare `<kbd>` caps; plain `B`, `[` `]` (Mock `script/Legend.tsx`, `styles/app.css:118-119`). | Shared `KeyHints` footer: centred, 12 px, boxed arrow caps, wraps to three centred rows at 1440; bookmark stepping shows "Alt [ ]" because plain `[`/`]` are `workspace.flag.*` (documented as D1 in `docs/research/studio-next-parity-bookmarks-and-extraction.md`). | layout-measure / copy | S | `script/page/layout/scriptKeyHints.ts`, `primitives/KeyHints.tsx` (shared with other pages) | none |
+| SC-7 | Key legend is a left-aligned flowing row: 13 px, gap 16, `border-top`, raised background, bare `<kbd>` caps; plain `B`, `[` `]` (Mock `script/Legend.tsx`, `styles/app.css:118-119`). | Shared `KeyHints` footer: centred, 12 px, boxed arrow caps, wraps to three centred rows at 1440; bookmark stepping shows "Alt [ ]" because plain `[`/`]` are `workspace.flag.*` (documented as D1 in `docs/research/parity-bookmarks-and-extraction.md`). | layout-measure / copy | S | `script/page/layout/scriptKeyHints.ts`, `primitives/KeyHints.tsx` (shared with other pages) | none |
 | SC-8 | Chapter list and rail panels use `.panel` (radius 10, 1 px line, no shadow) and the list scrolls inside with its legend pinned (Mock `styles/app.css:76`, `ChapterList.tsx:43-61`). | `PANEL_FRAME_CLASS` adds `shadow-[var(--shadow)]` and `--radius-card`; list scrollbar is hidden by `scroll-chrome-hidden` (mock shows a scrollbar). Cosmetic; merge with SC-1 if the gutter row is taken. | layout-measure | S | `primitives/panelStyles.ts`, `script/page/chapters/ChapterList.tsx:92-96` | none |
 
 Checked and matching (not gaps): sticky reader header and its five toolbar buttons incl. the drawer toggles; Find bar controls, Enter/Shift+Enter, 80-row cap and "Refine your search"; Words card (hear/record toasts, source tag, Save, definition source menu, web links, Add to my words); Notes and Queries cards (type select, show in text, copy query, thread edit, Author replied / My note, Mark resolved, Open/Resolved/All with counts, selected first); Bookmarks tab, ribbons and editor; context menus; Alt+Up/Down, Ctrl+F, Escape; text settings sliders; speaker picker.
@@ -166,7 +166,7 @@ Checked and matching (not gaps): sticky reader header and its five toolbar butto
 | Id | What the mock draws | What the app does | Kind | Size | App files | Collides |
 | --- | --- | --- | --- | --- | --- | --- |
 | SB-1 | Page fills the main area: grid `320px minmax(0,1fr)`, `height:100%`, 16 px gutter (Mock `Bible.tsx:66`, `styles/app.css:73-75`); list panel header is one row: `Story Bible` + three icon buttons (scan, import, new) (Mock `Bible.tsx:67-70`). | Root is `mx-auto max-w-6xl h-[calc(100dvh-6.5rem)]` inside the shell's `p-6`, so margins are 36/25 px at 1440 instead of 16 and the page stops growing at 1152 px (app PNG: list x=253, top y=77; mock x=233, y=68). Header row holds five buttons (scan, import, Voice data, Build / refresh, add) so the title and buttons stack on two lines, then the Entries/Series tabs (known) sit above the search box. | layout-measure | S | `storybible/Guide.tsx:408-445,456-462` | #2027 (shell padding only) |
-| SB-2 | Old direct build is gone: the mock has Scan and Import and no "Build / refresh" control (Mock `Bible.tsx:67-70`). | "Build / refresh Story Bible" (`startBuild`, `guideBuild`, refresh icon) still sits beside Scan and writes entries with no suggestion, evidence quote or 75% rule; "Rebuild" job dialog and language-model download prompt hang off it. Open since `docs/research/studio-next-parity-bookmarks-and-extraction.md` L4 (no ruling). | old-app leftover | M | `storybible/Guide.tsx:166-185,425-428,605-657`, `production/ManuscriptImport.tsx` (post-import build step) | none (#2033 is Go merge/split only) |
+| SB-2 | Old direct build is gone: the mock has Scan and Import and no "Build / refresh" control (Mock `Bible.tsx:67-70`). | "Build / refresh Story Bible" (`startBuild`, `guideBuild`, refresh icon) still sits beside Scan and writes entries with no suggestion, evidence quote or 75% rule; "Rebuild" job dialog and language-model download prompt hang off it. Open since `docs/research/parity-bookmarks-and-extraction.md` L4 (no ruling). | old-app leftover | M | `storybible/Guide.tsx:166-185,425-428,605-657`, `production/ManuscriptImport.tsx` (post-import build step) | none (#2033 is Go merge/split only) |
 | SB-3 | Edit mode swaps the heading for a bare 26 px display-font name input in the panel header, no label (Mock `bible/EntryEditor.tsx:19-31,144`). | The header keeps the name as a heading and a labelled "Name" `TextField` is added in the body (app PNG `entry-editing`). | layout-measure | S | `storybible/GuideDetail.tsx:~630-640,757-775` | none |
 | SB-4 | Relationships are edited in place: each row's relationship is a text input with a suggestion list (`REL_SUGGESTIONS`, `datalist`), the "To" cell is a button that opens the entry picker popover (search, 50 results, Enter picks first, current marked), trash per row, one "+" adds a blank row; column heads "Relationship / To"; empty row is "—" (Mock `bible/Relationships.tsx:10-56`, `bible/EntryPicker.tsx`). | Existing rows can only be removed. A separate add form (relationship field, inline "Search entries…" combobox, plus) sits under the table; no suggestions list; heads "Relationship / Entry"; empty text "No related entries yet." (`GuideDetail.tsx:1056-1180`). Changing the label or the other entry means delete and re-add. | missing feature | M | `storybible/GuideDetail.tsx:1056-1180` (extract a Relationships component, add `patchRelationship`-style host call if absent), `api` guide relation commands | none |
 | SB-5 | Names rows (edit mode): name, say input, source tag, mark-reviewed, hear clip, record my own clip, remove; "Add a name" is one input, with the clash line and "Merge into this entry" only (Mock `bible/EntryEditor.tsx:35-104`). | No "Record my own clip" icon in either mode (`NamePronunciation`/`GuideDetail` names list: only play-preview and remove). The add box is the older "Add an alias or find a matching entry" combobox with matching list, "Selected match", "Review entry" (opens an `EntitySummary` slide-over), "Clear selection", Add and Rescan buttons (`GuideDetail.tsx:880-985,1218-1230`); "Look up elsewhere" disclosure per name (online and Commons lookups). | missing control + old-app leftover | M | `storybible/GuideDetail.tsx:798-985`, `storybible/source/NamePronunciation.tsx:159`, `manuscript/EntitySummary.tsx` (only user is the Review entry overlay) | none |
@@ -256,7 +256,7 @@ The rule removes the repo's old equivalent of anything the mock has. These are t
 | SB-5 | Alias combobox with "Review entry" and `manuscript/EntitySummary.tsx` | The mock's one-input "Add a name" | `EntitySummary` has no other user |
 | SB-6 | Properties table, Personality notes, Location, Timeline, Item and Lore context fields | Description plus How they talk, act and know | Holds narrator data: the owner confirms before it goes |
 | ED-18 | `proof/NativeTakesPanel.tsx` on the Proof chapter page | Editing's takes | Assign take to line has no home in Editing yet |
-| PR-6 | The benchmark `mock-fidelity-01` state, driver and mock-match row for Production | the Studio Next mock | Also goes at cutover |
+| PR-6 | The benchmark `mock-fidelity-01` state, driver and mock-match row for Production | the research mock | Also goes at cutover |
 | PR-2 | `changed: null` in `production/ProductionPage.tsx` and `onReviewChanges` in `production/pipeline/NextUp.tsx` | nothing: no producer since Replace sets no flags | Dead code |
 
 ## Decisions for the owner
@@ -280,9 +280,9 @@ These rows differ from the mock on purpose, or need a ruling before anyone build
 
 The slice tables and notes below disagree with the code, so a worker who trusts them rebuilds something that exists. The refresh is one docs-only work item (W-14).
 
-- `docs/prds/studio-next-script-based-editing.prd.md` still shows phases 3 to 8 as pending or unrouted components. In code: the duplicate split, "Placed exactly", Play every take, A then B, the effects cap field, effect settings, bypass, preview and compare, and Clean up Preview are built.
-- `docs/prds/studio-next-booth.prd.md` shows phase 8 as built but not mounted and phase 10 as in review. Both are mounted (`booth/page/BoothNextPage.tsx`).
-- `docs/research/studio-next-parity-booth.md`, `-proof-and-pickups.md`, `-editing-page.md`, `-editing-takes-and-ranges.md`, `-production-and-schedule.md` and `-master-delivery-and-settings.md` list gaps that are closed: Booth bookmarks and the pickup session, chapter-end auto-stop, text choices, F11 and measured room tone; Proof's notes thread, Trim the gap and open pickups in the percent; Production's Retry toast, Start session and Edit cell; Master's chapter bar, Play and Open actions, manuscript gate and chapter-aware Delivery link. Only G8 (report sections) is still open in the production note.
+- `docs/prds/script-based-editing.prd.md` still shows phases 3 to 8 as pending or unrouted components. In code: the duplicate split, "Placed exactly", Play every take, A then B, the effects cap field, effect settings, bypass, preview and compare, and Clean up Preview are built.
+- `docs/prds/booth.prd.md` shows phase 8 as built but not mounted and phase 10 as in review. Both are mounted (`booth/page/BoothNextPage.tsx`).
+- `docs/research/parity-booth.md`, `-proof-and-pickups.md`, `-editing-page.md`, `-editing-takes-and-ranges.md`, `-production-and-schedule.md` and `-master-delivery-and-settings.md` list gaps that are closed: Booth bookmarks and the pickup session, chapter-end auto-stop, text choices, F11 and measured room tone; Proof's notes thread, Trim the gap and open pickups in the percent; Production's Retry toast, Start session and Edit cell; Master's chapter bar, Play and Open actions, manuscript gate and chapter-aware Delivery link. Only G8 (report sections) is still open in the production note.
 
 ## Proposed build order
 
@@ -315,7 +315,7 @@ Each item is one pull request with a file set that no other item shares. Where t
 | W-11 | SC-3 to SC-6 | 2b | `script/page/rail/bible/*`, `script/page/reader/*`, `script/page/tools/select/*`, `script/page/tools/text/readerText.ts` |
 | W-12 | ED-1 to ED-6, ED-8 to ED-13 | 2b | `editing/script/*`, `editing/model/doc.ts`, `editing/takes/*`, `editing/ribbon/*`, `editing/drawer/*`, `editing/page/*`, `editing/strip/*`, `editing/cleanup/*` |
 | W-13 | ED-15 to ED-17 | 2b | `editing/effects/EffectInspector.tsx`, `editing/range/fx/*`, `editing/menu/marks/markMenuSections.ts`, `primitives/ContextMenu.tsx` |
-| W-14 | status refresh | 1 | `docs/prds/studio-next-*.prd.md` status cells, `docs/research/studio-next-parity-*.md` |
+| W-14 | status refresh | 1 | `docs/prds/*.prd.md` status cells, `docs/research/parity-*.md` |
 | W-15 | PK-1 to PK-3 | 2b | `pickups/list/*`, `recordingcheck/*` |
 | W-16 | SH-6 | 3 | `project/ProjectPicker.tsx`, `api/contracts/project.ts`, the host's project bindings |
 | W-17 | SC-2 | 3 | `script/page/chapters/ChapterCard.tsx`, `script/page/ScriptPage.tsx`, the host's chapter-flag field |
@@ -327,8 +327,8 @@ ED-18 (the Proof take panel) waits for an owner call on where Assign take to lin
 **W-1 Master & QC table**
 
 ```text
-Branch claude/gap-master-qc-table, base main, one PR. Read CLAUDE.md, .claude/rules/ui-spec-and-screenshots.md, docs/research/studio-next-gap-audit.md (Master and QC, MQ-1 to MQ-4) and docs/guides/using-the-app/master-and-qc.md.
-Spec: docs/research/mockups/studio-next/src/pages/Master.tsx (frozen; never edit it). Capture it with scripts/dev/capture-studio-next-mock.mjs --page "Master & QC".
+Branch claude/gap-master-qc-table, base main, one PR. Read CLAUDE.md, .claude/rules/ui-spec-and-screenshots.md, docs/research/gap-audit.md (Master and QC, MQ-1 to MQ-4) and docs/guides/using-the-app/master-and-qc.md.
+Spec: docs/research/mockups/research-mock/src/pages/Master.tsx (frozen; never edit it). Capture it with scripts/dev/capture-mock.mjs --page "Master & QC".
 Build in src/studio/ui/src/components/masterqc/ only: the table's Clicks and Text columns (MQ-1), one row per chapter, credits and retail sample with "Waiting on N pickups · not mastered" and the neutral Waiting pill, also before any measurement (MQ-2), the header inside the table panel with ACX as a pill and one refresh icon (MQ-3), and "Retail sample 4:40 (1 to 5 min)" (MQ-4).
 Master draws only what is measured: first check what the host's per-file measure returns. If clicks or text match are not in the payload, stop and report it; do not draw a made-up value.
 Take the per-chapter pickup count from the existing pipeline source, not a new binding. Keep every as-built extra the mock lacks (run controls, mastering chain, diagnostics, exports).
@@ -338,8 +338,8 @@ Run vitest for masterqc, lint and typecheck, `pnpm --dir src/studio/ui visual:pa
 **W-2 Delivery panels**
 
 ```text
-Branch claude/gap-delivery-panels, base main, one PR. Read CLAUDE.md, .claude/rules/ui-spec-and-screenshots.md, docs/research/studio-next-gap-audit.md (Delivery, DL-1 to DL-4) and docs/guides/using-the-app/delivery.md.
-Spec: docs/research/mockups/studio-next/src/pages/Delivery.tsx; capture it with scripts/dev/capture-studio-next-mock.mjs --page Delivery in both themes.
+Branch claude/gap-delivery-panels, base main, one PR. Read CLAUDE.md, .claude/rules/ui-spec-and-screenshots.md, docs/research/gap-audit.md (Delivery, DL-1 to DL-4) and docs/guides/using-the-app/delivery.md.
+Spec: docs/research/mockups/research-mock/src/pages/Delivery.tsx; capture it with scripts/dev/capture-mock.mjs --page Delivery in both themes.
 Work only in src/studio/ui/src/components/delivery/: move the page title and the PROFILE label into the first panel's header with the "Built in" pill (DL-1; keep the native Select, the design system forbids a custom one); make the aside 360 px with 45 px rows and the arrow icon (DL-3); show "Waiting on N pickups" for a chapter that is not mastered, reading the count from the existing pipeline sources (DL-2); align the limit wording in delivery/profile/limitText.ts where it is a copy choice, and leave host rule labels alone (DL-4).
 Do not touch the output folder (DL-5 is a host question) or masterqc/**; the Master & QC item runs in parallel.
 Run vitest for delivery, lint, typecheck and `pnpm --dir src/studio/ui visual:page delivery` in both themes; update the guide and screenshots.
@@ -348,8 +348,8 @@ Run vitest for delivery, lint, typecheck and `pnpm --dir src/studio/ui visual:pa
 **W-3 Story Bible list and the old Build button**
 
 ```text
-Branch claude/gap-story-bible-frame, base main, one PR. Read CLAUDE.md, .claude/rules/ui-spec-and-screenshots.md, docs/research/studio-next-gap-audit.md (Story Bible, SB-1, SB-2, SB-7) and docs/guides/using-the-app/story-bible.md.
-Spec: docs/research/mockups/studio-next/src/pages/Bible.tsx and pages/bible/ImportDialog.tsx.
+Branch claude/gap-story-bible-frame, base main, one PR. Read CLAUDE.md, .claude/rules/ui-spec-and-screenshots.md, docs/research/gap-audit.md (Story Bible, SB-1, SB-2, SB-7) and docs/guides/using-the-app/story-bible.md.
+Spec: docs/research/mockups/research-mock/src/pages/Bible.tsx and pages/bible/ImportDialog.tsx.
 Edit storybible/Guide.tsx, storybible/suggested/import/*, and the post-import build step in production/ManuscriptImport.tsx only. Do not edit GuideDetail.tsx (the entry item owns it).
 Make the page fill the main area in a 320 px plus 1fr grid with the mock's 16 px gutter and a one-row list header (scan, import, new) (SB-1). Remove "Build / refresh Story Bible", its Rebuild dialog and the language-model prompt that hangs off it, and the old direct-build step after import; Scan and Import replace it (SB-2). Give the import dialog the mock's eyebrow, 26 px title, subtitle and Cancel (SB-7).
 The removal needs the callers found first (change-impact-scan): list every consumer of startBuild and guideBuild and delete what only they used, including bindings only if nothing else calls them.
@@ -359,8 +359,8 @@ Run vitest for storybible and production, lint, typecheck, `pnpm --dir src/studi
 **W-4 Story Bible entry editor**
 
 ```text
-Branch claude/gap-story-bible-entry, base main, one PR. Read CLAUDE.md, .claude/rules/ui-spec-and-screenshots.md, .claude/rules/wire-contracts.md, docs/research/studio-next-gap-audit.md (Story Bible, SB-3 to SB-5) and docs/guides/using-the-app/story-bible.md.
-Spec: docs/research/mockups/studio-next/src/pages/bible/EntryEditor.tsx, Relationships.tsx and EntryPicker.tsx.
+Branch claude/gap-story-bible-entry, base main, one PR. Read CLAUDE.md, .claude/rules/ui-spec-and-screenshots.md, .claude/rules/wire-contracts.md, docs/research/gap-audit.md (Story Bible, SB-3 to SB-5) and docs/guides/using-the-app/story-bible.md.
+Spec: docs/research/mockups/research-mock/src/pages/bible/EntryEditor.tsx, Relationships.tsx and EntryPicker.tsx.
 Edit storybible/GuideDetail.tsx, storybible/source/* and a new relationships component only; do not edit storybible/Guide.tsx.
 Do: edit mode swaps the heading for a bare 26 px name input (SB-3); relationships edit in place with a suggestion list, an entry-picker popover (search, 50 results, Enter picks the first), a trash per row and one add (SB-4; add a host update call only if none exists, with its schema, golden and contract row); the names rows get Record my own clip, and "Add a name" becomes one input with the clash line and Merge into this entry, which removes the alias combobox, Review entry and manuscript/EntitySummary.tsx if nothing else uses it (SB-5).
 Leave Properties, Personality notes and the per-kind context fields (SB-6 waits for an owner ruling) and the delete confirm (SB-8).
@@ -370,8 +370,8 @@ Run vitest for storybible, lint, typecheck and `pnpm --dir src/studio/ui visual:
 **W-5 Production report sections**
 
 ```text
-Branch claude/gap-report-sections, base main, one PR. Read CLAUDE.md, .claude/rules/wire-contracts.md, the wire-contract-change skill, docs/research/studio-next-gap-audit.md (Production, PR-4 and PR-5) and docs/guides/using-the-app/production.md#status-report.
-Spec: docs/research/mockups/studio-next/src/pages/production/ReportDialog.tsx and selectors/report.ts.
+Branch claude/gap-report-sections, base main, one PR. Read CLAUDE.md, .claude/rules/wire-contracts.md, the wire-contract-change skill, docs/research/gap-audit.md (Production, PR-4 and PR-5) and docs/guides/using-the-app/production.md#status-report.
+Spec: docs/research/mockups/research-mock/src/pages/production/ReportDialog.tsx and selectors/report.ts.
 Add an Include checkbox per report section (words, stages, milestones, pickups, delivery, money) so the preview and the written file follow the ticked sections (PR-4). That changes productionStatusReport: schema, golden payload, wireContracts.test.ts row, mock, Go writer in src/studio/desktop/internal/productionreport/ and the hostAPIVersion bump (a serial point: rebase on main right before pushing).
 Then make the dialog two panes, form beside a tall live preview, with the 26 px title and "project · as of date" (PR-5).
 Own production/report/*, api/contracts/production.ts, bindings_production.go and the Go package only; the Production page item edits ProductionPage.tsx, so pass any new prop through the existing openReportDialog.
@@ -381,8 +381,8 @@ Run go test and go vet for the changed packages, vitest for report, lint and typ
 **W-6 Settings layout and models folder**
 
 ```text
-Branch claude/gap-settings-layout, base main, one PR. Read CLAUDE.md, .claude/rules/ui-spec-and-screenshots.md, docs/research/studio-next-gap-audit.md (Settings, ST-1 to ST-5, and the Settings deviation) and docs/guides/using-the-app/settings.md.
-Spec: docs/research/mockups/studio-next/src/pages/Settings.tsx, pages/settings/* and styles/settings.css.
+Branch claude/gap-settings-layout, base main, one PR. Read CLAUDE.md, .claude/rules/ui-spec-and-screenshots.md, docs/research/gap-audit.md (Settings, ST-1 to ST-5, and the Settings deviation) and docs/guides/using-the-app/settings.md.
+Spec: docs/research/mockups/research-mock/src/pages/Settings.tsx, pages/settings/* and styles/settings.css.
 Do not move, remove or add any setting, and do not add an always-visible page-level entry: the Settings page keeps every setting.
 Build: the one-row header with the magnifier, a 260 px search box and the All / Changed / In this project control on the same line (ST-1); 40 px category rows and the half-filled Appearance icon (ST-2); Open folder beside the disk bar and on the load-error banner, a plain host open (ST-3; Change location needs a host call and is out of scope); the Advanced disclosure as an uppercase, letter-spaced sub-heading (ST-4, edit primitives/Disclosure.tsx once so other pages inherit it); the three row copy lines in settings/registry/rows.ts (ST-5, leave project.data as built).
 Run vitest for settings, the atlas for Disclosure and SearchField (`pnpm --dir src/studio/ui atlas:page`), lint, typecheck, `pnpm --dir src/studio/ui visual:page settings` in both themes; update the guide and screenshots.
@@ -391,8 +391,8 @@ Run vitest for settings, the atlas for Disclosure and SearchField (`pnpm --dir s
 **W-7 Shell and rail**
 
 ```text
-Branch claude/gap-shell-rail, base main after #2027 merges, one PR. Read CLAUDE.md, .claude/rules/ui-spec-and-screenshots.md, docs/research/studio-next-gap-audit.md (Shell and rail, SH-1 to SH-5; Script SC-1 and SC-8) and docs/architecture/studio-shell-and-registries.md.
-Spec: docs/research/mockups/studio-next/src/app/Shell.tsx, app/commands.ts, app/context.ts and styles/app.css (lines 43-48, 73, 470).
+Branch claude/gap-shell-rail, base main after #2027 merges, one PR. Read CLAUDE.md, .claude/rules/ui-spec-and-screenshots.md, docs/research/gap-audit.md (Shell and rail, SH-1 to SH-5; Script SC-1 and SC-8) and docs/architecture/studio-shell-and-registries.md.
+Spec: docs/research/mockups/research-mock/src/app/Shell.tsx, app/commands.ts, app/context.ts and styles/app.css (lines 43-48, 73, 470).
 Build: a Master & QC count badge from the per-chapter verdict source (SH-1); 2 px gaps between rail children (SH-2); `main` padding 16 px at every width, and Script's zero padding replaced by the same gutter, which also drops the Production max-width cap if #2027 has not (SH-3, SC-1); the jump menu's missing commands as a provider: Settings categories, Import and Replace manuscript, theme toggle, fixed zoom steps, a labelled Undo (SH-4); the empty-space context menu's Go to submenu with the current page checked, Jump menu and Find with key hints, and a View submenu (SH-5); drop the shadow and radius the mock's panels lack (SC-8).
 SH-3 changes every page's layout: regenerate every page guide's screenshots (`node scripts/dev/guide-screenshots.mjs`) and run the whole visual suite once.
 ```
@@ -400,8 +400,8 @@ SH-3 changes every page's layout: regenerate every page guide's screenshots (`no
 **W-8 Production and Schedule measures**
 
 ```text
-Branch claude/gap-production-schedule, base main after #1994, #1999 and #2027 merge, one PR. Read CLAUDE.md, .claude/rules/ui-spec-and-screenshots.md, docs/research/studio-next-gap-audit.md (Production PR-1 to PR-3 and PR-6, Schedule SCH-1 to SCH-3) and the production and schedule guides.
-Spec: docs/research/mockups/studio-next/src/pages/Production.tsx, Schedule.tsx and styles/app.css (lines 110-118, 344, 434-435).
+Branch claude/gap-production-schedule, base main after #1994, #1999 and #2027 merge, one PR. Read CLAUDE.md, .claude/rules/ui-spec-and-screenshots.md, docs/research/gap-audit.md (Production PR-1 to PR-3 and PR-6, Schedule SCH-1 to SCH-3) and the production and schedule guides.
+Spec: docs/research/mockups/research-mock/src/pages/Production.tsx, Schedule.tsx and styles/app.css (lines 110-118, 344, 434-435).
 Build: the Open schedule calendar button on the recorded-vs-plan panel (PR-1); a five-segment "Where the book stands" bar with Delivered, weighted by each chapter's progress, dropping the footnote (PR-2; the per-chapter mastered flag is already in pipelineSources.master); the mock's width rules for the stat grid and page grid at 1280 and 1180 (PR-3); Schedule's 1fr plus 360 px split (SCH-1); native date fields through a new primitives/DateField.tsx with an atlas story (SCH-2); the verdict pill copy and the pace sentence if it is true (SCH-3).
 Delete the unused `changed: null` and `onReviewChanges` and the benchmark mock-fidelity-01 state, driver, mock-match row and api/mockHost/mockFidelity.ts if nothing else uses them (PR-6, change-impact-scan first).
 Run vitest for production and schedule, atlas for DateField, lint, typecheck, `pnpm --dir src/studio/ui visual:page production schedule` in both themes; update the guides and screenshots.
@@ -410,8 +410,8 @@ Run vitest for production and schedule, atlas for DateField, lint, typecheck, `p
 **W-9 Proof inspector and queue**
 
 ```text
-Branch claude/gap-proof-inspector, base main after #2022 merges, one PR. Read CLAUDE.md, .claude/rules/ui-spec-and-screenshots.md, docs/research/studio-next-gap-audit.md (Proof, PF-1 to PF-3 and PF-5 to PF-8) and docs/guides/using-the-app/proof.md.
-Spec: docs/research/mockups/studio-next/src/pages/Proof.tsx and pages/proof/Inspector.tsx, NotesTable.tsx, ChapterStrip.tsx, styles/app.css (lines 200-207, 320-325, 613-615).
+Branch claude/gap-proof-inspector, base main after #2022 merges, one PR. Read CLAUDE.md, .claude/rules/ui-spec-and-screenshots.md, docs/research/gap-audit.md (Proof, PF-1 to PF-3 and PF-5 to PF-8) and docs/guides/using-the-app/proof.md.
+Spec: docs/research/mockups/research-mock/src/pages/Proof.tsx and pages/proof/Inspector.tsx, NotesTable.tsx, ChapterStrip.tsx, styles/app.css (lines 200-207, 320-325, 613-615).
 Build: the decision group as a two-column grid of equal 40 px buttons with key caps, any decision allowed on any note and the kind gate and its helper sentence removed (PF-1; keep the host's rule that a pickup-kind note is re-recorded only if a test says it must); sentence-case 28 px filter chips (PF-2); the 56 px decision textarea and the message grid, with Add note beside its textarea (PF-3); an Undo hint in the footer (PF-5); the headline cell with the marked word and a takes badge in the notes table (PF-6); the 36 px ring, 54 px chapter tiles, tinted group rows and wider chips (PF-7); bordered take cards with a tinted kept take (PF-8).
 Do not build Play ±3 s (PF-4) or change chapter-name formatting. Colour and form come from the kind registry.
 Run vitest for proof, atlas for any primitive you touch, lint, typecheck, `pnpm --dir src/studio/ui visual:page proof` in both themes; update the guide and screenshots.
@@ -420,8 +420,8 @@ Run vitest for proof, atlas for any primitive you touch, lint, typecheck, `pnpm 
 **W-10 Booth chrome**
 
 ```text
-Branch claude/gap-booth-chrome, base main after #2021 merges, one PR. Read CLAUDE.md, .claude/rules/ui-spec-and-screenshots.md, docs/research/studio-next-gap-audit.md (Booth, BO-1 to BO-6) and docs/guides/using-the-app/booth.md.
-Spec: docs/research/mockups/studio-next/src/pages/Booth.tsx, pages/booth/SidePanel.tsx, TopBar.tsx, styles/app.css (lines 221-256).
+Branch claude/gap-booth-chrome, base main after #2021 merges, one PR. Read CLAUDE.md, .claude/rules/ui-spec-and-screenshots.md, docs/research/gap-audit.md (Booth, BO-1 to BO-6) and docs/guides/using-the-app/booth.md.
+Spec: docs/research/mockups/research-mock/src/pages/Booth.tsx, pages/booth/SidePanel.tsx, TopBar.tsx, styles/app.css (lines 221-256).
 Build: the 90 px top and bottom fade on the text stage (BO-1); a pressed style for IconButton on aria-pressed and aria-expanded, so the side-panel toggle shows open (BO-2; one edit in primitives/IconButton.tsx, check the atlas); the side panel at 16 px padding, 18 px gap, 13 px text, display-font section labels and flat rows (BO-3); the voices row with the speaker's own colour, the note beside it and an always-present reference-clip button (BO-4); the speaker chip in the display font (BO-5); the 56 px top bar and the footer padding (BO-6).
 Do not rebind the bracket keys (BO-7) or change chapter names (BO-8); both wait for owner rulings.
 Run vitest for booth, the Booth acceptance and keys specs, atlas for IconButton, lint, typecheck, `pnpm --dir src/studio/ui visual:page booth` in both themes; update the guide and screenshots.
@@ -430,8 +430,8 @@ Run vitest for booth, the Booth acceptance and keys specs, atlas for IconButton,
 **W-11 Script rail and reader measures**
 
 ```text
-Branch claude/gap-script-chrome, base main after #2024 and W-7 merge, one PR. Read CLAUDE.md, .claude/rules/ui-spec-and-screenshots.md, docs/research/studio-next-gap-audit.md (Script, SC-3 to SC-6) and docs/guides/using-the-app/script.md.
-Spec: docs/research/mockups/studio-next/src/pages/script/BibleTab.tsx, Reader.tsx, SelectionTool.tsx and styles/app.css (lines 140-147, 176-178, 551-555).
+Branch claude/gap-script-chrome, base main after #2024 and W-7 merge, one PR. Read CLAUDE.md, .claude/rules/ui-spec-and-screenshots.md, docs/research/gap-audit.md (Script, SC-3 to SC-6) and docs/guides/using-the-app/script.md.
+Spec: docs/research/mockups/research-mock/src/pages/script/BibleTab.tsx, Reader.tsx, SelectionTool.tsx and styles/app.css (lines 140-147, 176-178, 551-555).
 Build: the rail Story Bible miss card with the dictionary block and the Look up links, reusing rail/words/DefinitionBlock and ExternalLinks (SC-3); the entry card header on one row with the chapter tag for "first:" and table rows for the list (SC-4); the reader's 8/20/80 padding, 48 px chapter boundary, 6 px paragraph padding, bookmark gutter hanging outside the text and 1.7 line spacing (SC-5; check the user-chosen spacing setting still works); the dark pill selection toolbar (SC-6).
 Do not touch layout/AppShell.tsx or primitives/panelStyles.ts (W-7), the key legend (SC-7 waits for the bracket ruling) or the chapter banner (W-17).
 Run vitest for script, lint, typecheck, `pnpm --dir src/studio/ui visual:page script` in both themes, and look at selection-tools and rail-story-bible; update the guide and screenshots.
@@ -440,8 +440,8 @@ Run vitest for script, lint, typecheck, `pnpm --dir src/studio/ui visual:page sc
 **W-12 Editing script text, takes and frame**
 
 ```text
-Branch claude/gap-editing-doc, base main after #2023 merges, one PR (split as the audit says if it runs long). Read CLAUDE.md, .claude/rules/ui-spec-and-screenshots.md, docs/research/studio-next-gap-audit.md (Editing, ED-1 to ED-6, ED-8 to ED-13) and docs/guides/using-the-app/editing.md.
-Spec: docs/research/mockups/studio-next/src/pages/Editing.tsx and pages/editing/ScriptDoc.tsx, TakeParts.tsx, Drawer.tsx, Ribbon.tsx.
+Branch claude/gap-editing-doc, base main after #2023 merges, one PR (split as the audit says if it runs long). Read CLAUDE.md, .claude/rules/ui-spec-and-screenshots.md, docs/research/gap-audit.md (Editing, ED-1 to ED-6, ED-8 to ED-13) and docs/guides/using-the-app/editing.md.
+Spec: docs/research/mockups/research-mock/src/pages/Editing.tsx and pages/editing/ScriptDoc.tsx, TakeParts.tsx, Drawer.tsx, Ribbon.tsx.
 Build: speaker chips before quoted units from the Story Bible dialogue cues (ED-1); entity and bookmark marks on words (ED-2); a line's Booth notes under its text (ED-3); a take-count badge and chip on every passage, one-take lines included (ED-4); the Stacked and Duplicate read pill states and bar pips (ED-5); the take sub-line with start time and source, First read, Hidden (ED-6); the duplicate-read note inside the takes block (ED-8); the ribbon header text (ED-9); the header and legend inside the bordered card (ED-10); the strip toggle as an icon (ED-11); complete drawer tab counts (ED-12); the kind swatch and "In the audio" label (ED-13).
 Kind colours and shapes come from the kind registry. Do not build per-take Un-stack (ED-7), the Effects draft form (ED-14) or touch editing/effects/** and editing/range/fx/** (W-13).
 Run vitest for editing, lint, typecheck, `pnpm --dir src/studio/ui visual:page editing` in both themes; update the guide and screenshots.
@@ -450,8 +450,8 @@ Run vitest for editing, lint, typecheck, `pnpm --dir src/studio/ui visual:page e
 **W-13 Editing effects**
 
 ```text
-Branch claude/gap-editing-effects, base main after #1924 merges, one PR. Read CLAUDE.md, .claude/rules/ui-spec-and-screenshots.md, docs/research/studio-next-gap-audit.md (Editing, ED-15 to ED-17) and docs/guides/using-the-app/editing.md.
-Spec: docs/research/mockups/studio-next/src/pages/editing/EffectsTab.tsx, RangeDialogs.tsx and Editing.tsx (lines 153-159).
+Branch claude/gap-editing-effects, base main after #1924 merges, one PR. Read CLAUDE.md, .claude/rules/ui-spec-and-screenshots.md, docs/research/gap-audit.md (Editing, ED-15 to ED-17) and docs/guides/using-the-app/editing.md.
+Spec: docs/research/mockups/research-mock/src/pages/editing/EffectsTab.tsx, RangeDialogs.tsx and Editing.tsx (lines 153-159).
 Build: Previous and Next effect arrows and Show in DAW in the effect inspector (ED-15; reuse takes/useShowInDaw); an A/B button in the Add FX dialog using the existing DawFxRangeCompare path (ED-16); submenus in primitives/ContextMenu.tsx, then the word menu's "Add FX" and "Mark as" submenus and a "Remove {chain}" row for a word that carries an effect (ED-17).
 The ContextMenu change is shared: run its atlas story and axe, and check every menu that uses it (change-impact-scan first). Do not add the Effects draft form or scope fields (ED-14 waits for an owner ruling) and do not edit editing/takes/** or editing/script/** (W-12).
 Run vitest for editing and primitives, atlas, lint, typecheck, `pnpm --dir src/studio/ui visual:page editing` in both themes; update the guide and screenshots.
@@ -460,7 +460,7 @@ Run vitest for editing and primitives, atlas, lint, typecheck, `pnpm --dir src/s
 **W-14 PRD and parity-note status refresh (docs only)**
 
 ```text
-Branch claude/gap-status-refresh, base main, docs only, one PR. Read CLAUDE.md, the docs-style and doc-unslop skills and docs/research/studio-next-gap-audit.md ("Stale status in the PRDs and parity notes").
+Branch claude/gap-status-refresh, base main, docs only, one PR. Read CLAUDE.md, the docs-style and doc-unslop skills and docs/research/gap-audit.md ("Stale status in the PRDs and parity notes").
 For the Editing PRD (phases 3 to 8), the Booth PRD (phases 8 and 10) and the six parity notes the audit names, verify each stale row against the code and fix the phase Status cell or mark the gap closed with the file that closes it. Do not rewrite the plans, add scope or change any other cell.
 Where a row is still open, leave it. Run markdownlint-cli2, scripts/ci/docs-slop.mjs and scripts/ci/docs-references.mjs on the changed files. The PR body lists each cell changed and the evidence.
 ```
@@ -468,8 +468,8 @@ Where a row is still open, leave it. Run markdownlint-cli2, scripts/ci/docs-slop
 **W-15 Pickups and Check recordings**
 
 ```text
-Branch claude/gap-pickups-check, base main after #2021 merges, one PR. Read CLAUDE.md, .claude/rules/ui-spec-and-screenshots.md, docs/research/studio-next-gap-audit.md (Pickups, PK-1 to PK-3) and docs/guides/using-the-app/pickups.md.
-Spec: docs/research/mockups/studio-next/src/pages/Pickups.tsx and pages/pickups/CheckRecordings.tsx.
+Branch claude/gap-pickups-check, base main after #2021 merges, one PR. Read CLAUDE.md, .claude/rules/ui-spec-and-screenshots.md, docs/research/gap-audit.md (Pickups, PK-1 to PK-3) and docs/guides/using-the-app/pickups.md.
+Spec: docs/research/mockups/research-mock/src/pages/Pickups.tsx and pages/pickups/CheckRecordings.tsx.
 Build: make "Hear the original in context" live, as a row button and a right-click item, by playing a range of the source recording (PK-1; use the existing take or DAW play path, and if no ranged player exists, keep it disabled and say so in the PR); the Check recordings dialog with the mock's sliders (chunk length 10 to 120 s step 5, overlap 0 to 10 s, workers 1 to 8) and the footer sentence, a body that scrolls without cutting off the audio row (PK-2; keep the larger-model option, show no estimated time); 57 px rows with 36 px icon buttons and a tinted group row (PK-3).
 Use the Slider primitive if it exists in primitives/, else add it with an atlas story. Chapter-name formatting stays as built.
 Run vitest for pickups and recordingcheck, atlas, lint, typecheck, `pnpm --dir src/studio/ui visual:page pickups proof` in both themes (the dialog is under proof); update the guides and screenshots.
@@ -478,8 +478,8 @@ Run vitest for pickups and recordingcheck, atlas, lint, typecheck, `pnpm --dir s
 **W-16 Project picker pins and linked project**
 
 ```text
-Branch claude/gap-picker-pins, base main after #2027 merges, one PR; start with the wire-contract slice. Read CLAUDE.md, .claude/rules/wire-contracts.md, the wire-contract-change and wails-v3 skills, docs/research/studio-next-gap-audit.md (SH-6) and docs/guides/using-the-app/navigation.md.
-Spec: docs/research/mockups/studio-next/src/pages/production/ProjectPicker.tsx.
+Branch claude/gap-picker-pins, base main after #2027 merges, one PR; start with the wire-contract slice. Read CLAUDE.md, .claude/rules/wire-contracts.md, the wire-contract-change and wails-v3 skills, docs/research/gap-audit.md (SH-6) and docs/guides/using-the-app/navigation.md.
+Spec: docs/research/mockups/research-mock/src/pages/production/ProjectPicker.tsx.
 Build the "Pinned and recent" list with a pin toggle per project, persisted by the host (add the file to docs/reference/data-files.md), and the "REAPER is running with a project linked to <name>" banner with Open, which needs the running DAW's project from the DAW port. Skip the taskbar jump-list preview unless the host already exposes it.
 Each new binding gets its schema, golden payload, contract row, mock and the hostAPIVersion bump (rebase on main right before pushing). Keep Remove with Undo, which the mock lacks.
 Run go test and go vet for the changed packages, vitest for project, lint, typecheck, `pnpm --dir src/studio/ui visual:page project`; update the guide and screenshots.
@@ -488,8 +488,8 @@ Run go test and go vet for the changed packages, vitest for project, lint, typec
 **W-17 Chapter review banner**
 
 ```text
-Branch claude/gap-chapter-review, base main after #2024 merges, one PR; start with the wire-contract slice. Read CLAUDE.md, .claude/rules/wire-contracts.md, docs/research/studio-next-gap-audit.md (Script, SC-2) and docs/architecture/import-review.md.
-Spec: docs/research/mockups/studio-next/src/pages/script/Reader.tsx (lines 246-251) and the reviewFlag command.
+Branch claude/gap-chapter-review, base main after #2024 merges, one PR; start with the wire-contract slice. Read CLAUDE.md, .claude/rules/wire-contracts.md, docs/research/gap-audit.md (Script, SC-2) and docs/architecture/import-review.md.
+Spec: docs/research/mockups/research-mock/src/pages/script/Reader.tsx (lines 246-251) and the reviewFlag command.
 ChapterCard already has a `review` prop that nothing passes, because no chapter carries a flag. Check first whether the host has any producer: Replace on import deliberately sets no flags (owner decision 2026-10-18), so the banner may have none. If no producer is justified, stop and report it with a proposal to delete the unused prop instead of adding a host field.
 If one is justified, add the field to the manuscript chapter contract (schema, golden, contract row, mock, hostAPIVersion bump), pass it through ScriptPage.tsx, and add Mark reviewed with Undo.
 Run go test for the changed packages, vitest for script, lint, typecheck, `pnpm --dir src/studio/ui visual:page script`; update the guide and screenshots.

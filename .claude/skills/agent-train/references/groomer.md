@@ -6,7 +6,7 @@ Read by the coordinator and by a groomer session. Workers read only their own sl
 
 A train's work is delivered as slices, one PR by one worker each. The issue form is `.github/ISSUE_TEMPLATE/slice.yml`, and the comment at the top of `scripts/dev/slice-lint.mjs` defines the header's keys.
 
-- **One issue per slice (D-1).** It is a sub-issue of its PRD's issue, titled `SN-<code><n> <verb phrase>` (the prefix `scripts/dev/slice-lint.mjs` checks). The PR body says `Closes #<slice>`, and one more `Closes` line for any other issue it fully resolves.
+- **One issue per slice (D-1).** It is a sub-issue of its PRD's issue, titled `SL-<code><n> <verb phrase>` (the prefix `scripts/dev/slice-lint.mjs` checks). The PR body says `Closes #<slice>`, and one more `Closes` line for any other issue it fully resolves.
 - **The header.** A fenced `slice-meta` block with `id`, `lane`, `kind`, `depends`, `owns` and `serial`, checked by `scripts/dev/slice-lint.mjs`. The issue form is `.github/ISSUE_TEMPLATE/slice.yml`. The coordinator reads the header and the labels, never the code.
 - **Labels:** `slice`, `lane:<L>`, `prd:<code>`, and one of `ready`, `blocked` or `owner-decision`.
 - **Ready.** A slice is ready when every issue in its `depends` is closed and no other slice in progress has an overlapping `owns`. A slice waiting on an unanswered `owner-decision` is not ready.

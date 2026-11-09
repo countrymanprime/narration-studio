@@ -37,7 +37,7 @@ const (
 	PaymentNone            = "none"
 )
 
-// measurePattern is every measure a milestone can have (the Studio Next mock's MEASURES): custom, all recorded, all
+// measurePattern is every measure a milestone can have (the research mock's MEASURES): custom, all recorded, all
 // edited, all proofed, all edited and proofed, the first N chapters edited and proofed (chN), the first N finished
 // minutes (minN), the 15-minute checkpoint and the whole book. Whether the delivery profile offers one is not checked.
 var measurePattern = regexp.MustCompile(`^(custom|rec|edit|proof|editproof|checkpoint|all|ch[1-9][0-9]{0,3}|min[1-9][0-9]{0,3})$`)

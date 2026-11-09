@@ -1,4 +1,4 @@
-// Checks the `slice-meta` header of a Studio Next slice issue, so the coordinator can compute collisions without opening code.
+// Checks the `slice-meta` header of a rebuilt slice issue, so the coordinator can compute collisions without opening code.
 // The slice rules are in .claude/skills/agent-train/references/groomer.md ("Slices"); this comment is the one home of the header's keys.
 //
 //   node scripts/dev/slice-lint.mjs <file | ->                paste an issue body (or just the block) into a file, or pipe it
@@ -7,7 +7,7 @@
 //
 // The header is a fenced block tagged `slice-meta` holding a small YAML subset (scalars, `[a, b]` lists, `- item` lists):
 //
-//   id: SN-A1                       SN-<code><n>: the PRD code in capitals, then the slice number
+//   id: SL-A1                       SL-<code><n>: the PRD code in capitals, then the slice number
 //   lane: D                         one of K A B U C D X (.claude/skills/agent-train/references/worker.md, "Lanes")
 //   kind: docs                      one of spike adr seam page swap host lua docs
 //   depends: [996]                  issue numbers (`996` or `#996`) that must be merged first; `[]` for none
@@ -172,7 +172,7 @@ export function lintSlice(text, { files, issueExists, issue, graph = {} }) {
   const errors = [];
   for (const key of REQUIRED) if (meta[key] === undefined || meta[key] === '') errors.push(`missing required key "${key}"`);
   for (const key of Object.keys(meta)) if (!REQUIRED.includes(key)) errors.push(`unknown key "${key}"`);
-  if (meta.id && !/^SN-[A-Z]+\d+$/.test(meta.id)) errors.push(`id "${meta.id}" is not SN-<code><n> (for example SN-F2)`);
+  if (meta.id && !/^SL-[A-Z]+\d+$/.test(meta.id)) errors.push(`id "${meta.id}" is not SL-<code><n> (for example SL-F2)`);
   if (meta.lane && !LANES.includes(meta.lane)) errors.push(`unknown lane "${meta.lane}" (one of ${LANES.join(' ')})`);
   if (meta.kind && !KINDS.includes(meta.kind)) errors.push(`unknown kind "${meta.kind}" (one of ${KINDS.join(' ')})`);
   if (meta.owns?.length === 0) errors.push('owns must list at least one glob');

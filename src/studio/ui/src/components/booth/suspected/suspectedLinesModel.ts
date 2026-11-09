@@ -1,7 +1,7 @@
 import type { TeleprompterFlagKind, TeleprompterFlagSave } from '../../../api/contracts/teleprompter';
 
 /**
- * A line the live speech check suspects was skipped or read again (Studio Next mock `providers/speech.ts` `liveFlags`). The host raises
+ * A line the live speech check suspects was skipped or read again (research mock `providers/speech.ts` `liveFlags`). The host raises
  * it, the narrator never does. `script` is the manuscript words it covers and `heard` what the check heard in their place.
  */
 export type SuspectedFlag = {

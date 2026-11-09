@@ -1,4 +1,4 @@
-// How to reach each `pickups` state (the Studio Next Pickups page) in STATE_CATALOG (see app.drivers.ts).
+// How to reach each `pickups` state (the rebuilt Pickups page) in STATE_CATALOG (see app.drivers.ts).
 import type { Locator, Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
 import { type Driver, closeDawDialogOnArrival, goToPage, openWithoutManuscript } from './shared';

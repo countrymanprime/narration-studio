@@ -4,7 +4,7 @@ import { type Driver, goToPage, productionLoaded, PAGE_HEADING } from './shared'
 import { openJumpMenuOnCommands } from './jump';
 
 export const shellDrivers: Record<string, Driver> = {
-  // Back, Forward, Undo, History and the zoom steps are jump-menu commands (the header is the Studio Next mock's: no buttons for them).
+  // Back, Forward, Undo, History and the zoom steps are jump-menu commands (the header is the research mock's: no buttons for them).
   // After one in-app move the jump menu, narrowed to commands, lists Back on and Forward off with its reason (the default first page has both off).
   'jump-menu-back-enabled': async (page) => {
     // Story Bible, not Script: Script's reader carries its own pre-existing nested-interactive debt (#155, catalogued as flake 3 on #509) this row has no reason to inherit.

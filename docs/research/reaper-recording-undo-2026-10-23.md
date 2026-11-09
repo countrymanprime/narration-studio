@@ -27,5 +27,5 @@ The label is REAPER's own text, and a REAPER language pack may translate it, so 
 
 ## Pending
 
-- Windows REAPER and a real audio device: the owner's pass, row C17b of [the verification pass](../operations/reaper-verification-pass.md#part-c-the-studio-next-daw-commands-not-scripted-yet).
+- Windows REAPER and a real audio device: the owner's pass, row C17b of [the verification pass](../operations/reaper-verification-pass.md#part-c-the-daw-commands-not-scripted-yet).
 - A REAPER with a language pack: whether the label is translated. The bridge does not depend on it, but nobody has run one.

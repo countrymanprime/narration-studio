@@ -996,7 +996,7 @@ function AppRoutes() {
                           />
                         }
                       />
-                      {/* The Schedule (the Studio Next mock's Schedule page): with no manuscript it says to import one first. */}
+                      {/* The Schedule (the research mock's Schedule page): with no manuscript it says to import one first. */}
                       <Route
                         path="/schedule"
                         element={<SchedulePage journal={journal} hasManuscript={hasManuscript} onImport={() => guardedNavigate('/')} />}
@@ -1055,7 +1055,7 @@ function AppRoutes() {
                           )
                         }
                       />
-                      {/* Editing (the Studio Next mock's Editing page): the chapter's script is the editor. `/editing` opens the first chapter;
+                      {/* Editing (the research mock's Editing page): the chapter's script is the editor. `/editing` opens the first chapter;
                   with no manuscript the page asks for one. */}
                       <Route
                         path="/editing"

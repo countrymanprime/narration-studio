@@ -19,7 +19,7 @@ export type ShellCommandsInput = {
 };
 
 /**
- * Registers the jump menu commands the shell owns that no page does, as the Studio Next mock lists them (`app/commands.ts`): one "Settings: <category>"
+ * Registers the jump menu commands the shell owns that no page does, as the research mock lists them (`app/commands.ts`): one "Settings: <category>"
  * for each category, Import and Replace manuscript, the theme toggle, "Set zoom to N%" for each of the host's zoom steps, and "Undo: <last change>"
  * (docs/architecture/studio-shell-and-registries.md#command-providers-and-go-to). The latest input is read each time the menu opens, so a new
  * object never re-registers the provider. The mock's 80 and 90% steps are not here: the host snaps zoom to `ZOOM_STEPS`, which starts at 100%.

@@ -26,7 +26,7 @@ const (
 const FlagDuplicate = "duplicate"
 
 // Payload is what a suggestion offers, as it is stored and sent: the fields of extraction.Payload under the names the
-// Studio Next mock uses. Kind says which fields are used and every other field is empty.
+// research mock uses. Kind says which fields are used and every other field is empty.
 type Payload struct {
 	Kind        extraction.Kind      `json:"kind"`
 	Name        string               `json:"name,omitempty"`

@@ -8,7 +8,7 @@ import { HINT_POPUP_SELECTOR } from './hintLayer';
 import { IconButton } from './IconButton';
 import { OVERLAY_TITLE_CLASS } from './panelStyles';
 import { POPOVER_POPUP_SELECTOR } from './Popover';
-import { useToastsClearOfModal } from './Toast';
+import { routeTabAcrossToasts, useToastsClearOfModal } from './Toast';
 
 // Portals attach in the order the layers opened, so a modal later in the document is above this one.
 function hasModalAbove(popup: HTMLElement): boolean {
@@ -32,7 +32,7 @@ type DialogProps = {
   // that needs the whole window (the teleprompter reading modal). Modality (focus trap, Escape, initial focus, hidden siblings) is
   // unchanged by size: every size is the one shell docs/design/design-system.md#base-ui-wrappers describes.
   size?: DialogSize;
-  // 'top' (the default): the popup hangs from the top of the window, 8vh down as the Studio Next mock's `.scrim` places every dialog, 12vh for
+  // 'top' (the default): the popup hangs from the top of the window, 8vh down as the research mock's `.scrim` places every dialog, 12vh for
   // `palette` (the jump menu), so a dialog whose content grows or shrinks between states (a preview, then a result) keeps its title and Close
   // where they were (alignment audit ENX-16). 'center' centres it in the window. A full-size dialog fills the window either way.
   placement?: 'center' | 'top';
@@ -203,6 +203,7 @@ export function Dialog({
           <Parts.Popup
             ref={popupRef}
             initialFocus={initialFocus}
+            onKeyDown={(event) => routeTabAcrossToasts(event, popupRef.current)}
             finalFocus={finalFocus}
             className={`flex w-full flex-col overflow-hidden rounded-[var(--radius-card)] border focus:outline-none ${
               width === 'full' ? 'max-w-[calc(100vw-2rem)]' : DIALOG_WIDTHS[width]

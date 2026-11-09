@@ -25,7 +25,7 @@ function Markup({ nodes }: { nodes: MarkupNode[] }) {
 const seconds = (value: number) => `${value.toFixed(1)} s`;
 
 /**
- * The Inspector's "Takes at this spot · N" (Studio Next mock `SpotTakes`), for its `spot` slot. Read-only: each take has a play button
+ * The Inspector's "Takes at this spot · N" (research mock `SpotTakes`), for its `spot` slot. Read-only: each take has a play button
  * for its raw audio range (through the app's range player, never the DAW; a second press stops it), its length and a Kept pill, and
  * what the check heard, the kept take's against the script. Choosing, keeping or hiding a take is Editing's, one icon away.
  */

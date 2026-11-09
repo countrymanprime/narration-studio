@@ -7,7 +7,7 @@ import { resetOpenOnce } from '../connection/useOpenOnce';
 import { EditingPage, type EditingPageProps } from './EditingPage';
 import { dawFor, EditingHost, newJournal, noAudioApi, pageApi } from './page/testPage';
 
-// The Editing page (docs/research/mockups/studio-next/src/pages/Editing.tsx) over the mock api with a small chapter that was heard, and the
+// The Editing page (docs/research/mockups/research-mock/src/pages/Editing.tsx) over the mock api with a small chapter that was heard, and the
 // mock's DAW setups. No route yet: SN-E9 mounts it. Each story drives the page to one state.
 type Args = Omit<EditingPageProps, 'hasManuscript'> & { setup: DawSetupId; heard: boolean; hasManuscript: boolean; noAudio?: 'unlinked' | 'missing' | 'empty' };
 

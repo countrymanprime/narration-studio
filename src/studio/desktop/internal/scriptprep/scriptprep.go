@@ -53,7 +53,7 @@ const (
 	MaxFileBytes = 4 << 20
 )
 
-// A chapter's prep state, the Studio Next mock's PrepState.
+// A chapter's prep state, the research mock's PrepState.
 const (
 	PrepNone     = "none"
 	PrepProgress = "progress"

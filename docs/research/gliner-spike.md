@@ -1,6 +1,6 @@
 # GLiNER spike: licence, pins, footprint and quality
 
-**Date:** 2026-10-11. **Issue:** [#1139](https://github.com/countrymanprime/narration-studio/issues/1139), Phase 1 of the Studio Next extraction PRD. **Answers:** can the app offer GLiNER as an optional download, which exact artifact, under which licence, at what cost.
+**Date:** 2026-10-11. **Issue:** [#1139](https://github.com/countrymanprime/narration-studio/issues/1139), Phase 1 of the rebuilt extraction PRD. **Answers:** can the app offer GLiNER as an optional download, which exact artifact, under which licence, at what cost.
 
 **Verdict: ship behind "not yet available"** (2026-10-11; every file was pinned on 2026-10-26, [below](#pinned-and-loaded-2026-10-26)). The artifact `urchade/gliner_small-v2.1` is Apache-2.0 and its bytes are pinned below, but two things stay open until an owner run: the footprint and quality on this repo's fixture were not measured in this session, and the only published weight format for the small model is a pickle. The adapter (SNX-7a) can start from these pins; the consent screen should wait for the numbers in [Owner steps](#owner-steps).
 
@@ -113,7 +113,7 @@ where `measure_gliner.py` is the script in [Owner steps](#owner-steps).
 - no aliases: "the Caterpillar" and "Caterpillar" are separate strings;
 - the trial's own caveat: Alice is a classic that may have been in training data, so the numbers may be optimistic; the hand-labelled gold was made by that session, not checked by the owner.
 
-Against the rules baseline the trial recorded only counts, not a paired precision and recall on the same gold, and this repo's rules-only run on the whole of `tests/fixtures/alice.md` emits 48 entries ([the spaCy model](../utilities/manuscript-guide.md#inputs-and-outputs)). A paired comparison needs the gold set that the calibration protocol (SN-X13, `docs/research/studio-next-extraction-calibration-protocol.md`) defines.
+Against the rules baseline the trial recorded only counts, not a paired precision and recall on the same gold, and this repo's rules-only run on the whole of `tests/fixtures/alice.md` emits 48 entries ([the spaCy model](../utilities/manuscript-guide.md#inputs-and-outputs)). A paired comparison needs the gold set that the calibration protocol (SN-X13, `docs/research/extraction-calibration-protocol.md`) defines.
 
 **Confidence.** GLiNER's `predict_entities` returns a `score` per span (a sigmoid probability that the span has the label, read from the package's README example and the trial's use of a threshold; not re-run here). It is a model score, not a calibrated probability: it must pass through the calibration table before it counts toward the 75% rule. Where a source gives no score the suggestion's confidence is `null`, never a made-up number. This one gives a score, so the open question is how well it is calibrated, which the protocol measures.
 

@@ -1,10 +1,10 @@
-# Studio Next Extraction and Analysis Tools: Suggestions, the 75% Rule, Optional Downloads and Bring-Your-Own LLM
+# Extraction and Analysis Tools: Suggestions, the 75% Rule, Optional Downloads and Bring-Your-Own LLM
 
-**Source:** owner request of 2026-10-10 (Studio Next Rebuild); "Story Bible extraction (owner direction)" and "Extraction tools: distribution decision (owner)" in `studio-next/research/repo-compare-decisions.md`; research in `studio-next/research/story-bible-extraction-research.md`, `studio-next/research/local-llm-research.md` and `studio-next/research/own-model-research.md`; the owner's rulings of 2026-10-11 (see Decisions).
+**Source:** owner request of 2026-10-10 (rebuild PRD); "Story Bible extraction (owner direction)" and "Extraction tools: distribution decision (owner)" in `research-mock/research/repo-compare-decisions.md`; research in `research-mock/research/story-bible-extraction-research.md`, `research-mock/research/local-llm-research.md` and `research-mock/research/own-model-research.md`; the owner's rulings of 2026-10-11 (see Decisions).
 
 **Builds on:** the delivered Story Bible build ([Story Bible entity-extraction accuracy](../architecture/story-bible-entity-accuracy.md), [service.go](../../src/studio/desktop/internal/guide/service.go), [manuscript_guide.py](../../src/studio/sidecars/manuscript-guide/core/manuscript_guide.py), `src/studio/sidecars/manuscript-guide`, `src/studio/desktop/internal/spacy`), the asset registry ([The asset registry (implemented)](../architecture/first-use-dependency-provisioning.md#the-asset-registry-implemented), [The models and downloads list (implemented)](../architecture/first-use-dependency-provisioning.md#the-models-and-downloads-list-implemented), [The asset registry (implemented)](../architecture/first-use-dependency-provisioning.md#the-asset-registry-implemented), [First-Use Dependency Provisioning](../architecture/first-use-dependency-provisioning.md), [The asset manager (implemented)](../architecture/first-use-dependency-provisioning.md#the-asset-manager-implemented)), [model provenance](../architecture/model-provenance.md), the provider ports ([Provider ports](../architecture/provider-ports.md)), the threat model and D72/D70 in [Owner standing rules](../../.claude/skills/agent-train/references/owner-rules.md#owner-standing-rules). UI list and review behaviours are in Script and Story Bible.
 
-**Status (2026-10-11):** draft; the owner's rulings of 2026-10-11 are applied. The Studio Next mock is the only spec for the suggestion list, import and consent screens. Licence and quality spikes come first; nothing is downloaded or bundled before the owner accepts the consent flow.
+**Status (2026-10-11):** draft; the owner's rulings of 2026-10-11 are applied. The research mock is the only spec for the suggestion list, import and consent screens. Licence and quality spikes come first; nothing is downloaded or bundled before the owner accepts the consent flow.
 
 ## Problem Statement
 
@@ -12,14 +12,14 @@ The owner wants the Story Bible to fill itself with varying success: anything un
 
 ## Evidence
 
-- **Mock.** `studio-next/src/domain/extraction.ts` (`ExtractionSuggestion {kind, payload, entryId, evidence[{paragraphId,start,end,text}], confidence, source, status, fp}`), `studio-next/src/config/extraction.ts` (`VERIFY_BELOW = 0.75`, source registry), `studio-next/src/selectors/extraction.ts` (`reasonsOf`, `autoStatus`), `studio-next/src/state/extractionCore.ts` (pure ingest, settle, accept, reject, review), `studio-next/src/format/evidence.ts` (`verifyEvidence`, `fingerprint`), `studio-next/src/format/extractionImport.ts` (CSV and JSON parse with per-row errors), `studio-next/src/config/extractionPrompt.ts`, `studio-next/src/providers/extraction.ts`, `studio-next/src/providers/components.ts`, `studio-next/src/domain/components.ts`, `studio-next/src/pages/bible/{Suggested,ImportDialog,startScan}.tsx`, `studio-next/src/pages/settings/AnalysisTools.tsx`, `studio-next/src/ui/ComponentConsent.tsx`. Tests: `studio-next/tests/extraction.test.tsx`, `studio-next/tests/analysis-tools.test.tsx`.
+- **Mock.** `research-mock/src/domain/extraction.ts` (`ExtractionSuggestion {kind, payload, entryId, evidence[{paragraphId,start,end,text}], confidence, source, status, fp}`), `research-mock/src/config/extraction.ts` (`VERIFY_BELOW = 0.75`, source registry), `research-mock/src/selectors/extraction.ts` (`reasonsOf`, `autoStatus`), `research-mock/src/state/extractionCore.ts` (pure ingest, settle, accept, reject, review), `research-mock/src/format/evidence.ts` (`verifyEvidence`, `fingerprint`), `research-mock/src/format/extractionImport.ts` (CSV and JSON parse with per-row errors), `research-mock/src/config/extractionPrompt.ts`, `research-mock/src/providers/extraction.ts`, `research-mock/src/providers/components.ts`, `research-mock/src/domain/components.ts`, `research-mock/src/pages/bible/{Suggested,ImportDialog,startScan}.tsx`, `research-mock/src/pages/settings/AnalysisTools.tsx`, `research-mock/src/ui/ComponentConsent.tsx`. Tests: `research-mock/tests/extraction.test.tsx`, `research-mock/tests/analysis-tools.test.tsx`.
 - **Research.** Tier order from the owner: rules baseline, then optional download (GLiNER and BookNLP), then a local LLM later, then bring-your-own import throughout. The local-LLM note measured a trial on one public-domain book with placeholder calibration weights (its section 9); BookNLP's licence was not treated as a blocker by the owner because the tool only identifies character entries.
 - **Repo.** Rules and spaCy extraction in `src/studio/sidecars/manuscript-guide/core/manuscript_guide.py` ([Story Bible entity-extraction accuracy](../architecture/story-bible-entity-accuracy.md) precision over recall, "Needs Review" entities); the asset registry installs, verifies and removes catalogued assets as one job with real bytes ([The asset registry (implemented)](../architecture/first-use-dependency-provisioning.md#the-asset-registry-implemented)); `src/studio/desktop/internal/assets/` and `assetregistry.go`; the language-model asset ([guidegate.go](../../src/studio/desktop/guidegate.go)); threat-model rows for downloads.
 
 ## Proposed Solution
 
 1. **A suggestion layer.** `ExtractionSuggestion` as a wire contract (Go store beside the Story Bible file, Zod schema, golden). Kinds: entry, alias, property, relationship, claim (talk, act, know), speaker. Status: `accepted-auto`, `needs-verification`, `accepted`, `rejected`.
-2. **The rule in one place** (DQ-10; `reasonsOf` and `autoStatus` in `studio-next/src/selectors/extraction.ts`). Needs verification when confidence is null or under 0.75, the quote is not found in the text, a property, claim or speaker has no quote, or the entry is not in the Story Bible. Otherwise accepted-auto: applied and flagged Review, still listed under Suggested. A rejected suggestion stays as a tombstone so it is not offered again (fingerprint).
+2. **The rule in one place** (DQ-10; `reasonsOf` and `autoStatus` in `research-mock/src/selectors/extraction.ts`). Needs verification when confidence is null or under 0.75, the quote is not found in the text, a property, claim or speaker has no quote, or the entry is not in the Story Bible. Otherwise accepted-auto: applied and flagged Review, still listed under Suggested. A rejected suggestion stays as a tombstone so it is not offered again (fingerprint).
 3. **Evidence verification** in Go (`verifyEvidence`: curly and straight quotes match; offsets computed), so a quote that is not in the text is never accepted.
 4. **Sources as providers.** `ExtractionProvider` port with registered sources: rules (existing sidecar), imported, GLiNER, BookNLP, local model (unavailable with a reason). Each source has its own label and icon in the UI.
 5. **Import** of a CSV or a JSON (`storybible-import` v1) with per-row errors and a preview worked out on a copy (add, merge, skip); a copyable prompt template filled from the format so a narrator can use any LLM.
@@ -35,7 +35,7 @@ If every suggestion carries a verbatim quote and a stated confidence, and everyt
 
 - A hosted or remote LLM, by default or at all in this series; the app never sends manuscript text out (D72). A narrator may use a hosted LLM themselves and import the file.
 - A bundled model or tool; an installer that includes GLiNER, BookNLP or an LLM.
-- Mining user data or training on it; "roll our own model" (research only, `studio-next/research/own-model-research.md`).
+- Mining user data or training on it; "roll our own model" (research only, `research-mock/research/own-model-research.md`).
 - Automatic acceptance of properties, claims or speakers without a quote.
 - Extraction of talk, act and know fields beyond what a source provides (parsing them needs an LLM; later).
 - LLM-parsed properties by default (maybe list).
@@ -45,7 +45,7 @@ If every suggestion carries a verbatim quote and a stated confidence, and everyt
 | Metric | Target | Measured by |
 | --- | --- | --- |
 | Suggestions with a verified quote | 100% of accepted ones | Host test; `verifyEvidence` property tests |
-| Under-75% items auto-applied | 0 | Rule tests ported from `studio-next/tests/extraction.test.tsx` |
+| Under-75% items auto-applied | 0 | Rule tests ported from `research-mock/tests/extraction.test.tsx` |
 | Bytes downloaded without consent | 0 | Asset registry tests; consent test |
 | Import errors | Reported per row, none silent | Ported import tests |
 | Calibration | A table of confidence versus correctness on at least two real or public-domain books before any default changes | `docs/research/` note |
@@ -57,7 +57,7 @@ Owner rulings of 2026-10-11; none is open.
 | Id | Ruling | Consequence here |
 | --- | --- | --- |
 | DQ-10 | The mock's rule is the spec: suggestions at 75% or more are applied and flagged Review; under 75% need verification | `docs/architecture/story-bible-entity-accuracy.md, src/studio/desktop/internal/guide/service.go` are superseded to that extent; a kind is applied only if it also has a quote (property, claim, speaker) and its entry exists, as the mock does |
-| SN0-Q1 / DQ-1 | Studio Next is the spec | The Suggested list, import dialog and consent screen follow `studio-next/src/pages/bible/` and `studio-next/src/ui/ComponentConsent.tsx` |
+| SN0-Q1 / DQ-1 | the PRD, the issue and the page guide are the spec | The Suggested list, import dialog and consent screen follow `research-mock/src/pages/bible/` and `research-mock/src/ui/ComponentConsent.tsx` |
 | SN0-Q2 / DQ-2 | Replace, one PR, no flag | The suggestion UI lands as components with no route and appears with the Story Bible swap (SNB-8) |
 | SNX-Q2 | The mock defines the import's parse rules and preview; the host runs them with size and row limits, because the file is untrusted (default taken, standing instruction) | The UI shows the preview the host returns |
 | SNX-Q3 | BookNLP's weight licence is not a blocker (owner); the spike records the licence and the provenance row | SNX-1b |
@@ -75,13 +75,13 @@ A narrator opening a manuscript for the first time, a narrator who prefers their
 
 | Behaviour | Mock reference | Acceptance |
 | --- | --- | --- |
-| 75% rule | `studio-next/src/selectors/extraction.ts` | At 0.74 the item needs verification and blocks Mark reviewed; at 0.75 it is applied and flagged |
-| Quote must exist | `studio-next/src/format/evidence.ts` | A quote not found yields "quote not found" and needs verification |
-| Reject is remembered | `studio-next/src/state/extractionCore.ts` | A rejected suggestion offered again is dropped by fingerprint |
-| Import preview | `studio-next/src/selectors/extractionImport.ts`, `studio-next/src/pages/bible/ImportDialog.tsx` | Rows about unknown entries are errors; add, merge and skip are previewed |
-| Prompt | `studio-next/src/config/extractionPrompt.ts`, `studio-next/src/format/extractionPrompt.ts` | The template contains the format and the rules; copy works |
-| Consent | `studio-next/src/ui/ComponentConsent.tsx`, `studio-next/tests/analysis-tools.test.tsx` | Download starts only after Download; Cancel stops it; failures name the reason (blocked, low disk) |
-| First scan | `studio-next/src/pages/bible/startScan.tsx` | Basic scan, download the pair, or import; "Don't ask again" persists |
+| 75% rule | `research-mock/src/selectors/extraction.ts` | At 0.74 the item needs verification and blocks Mark reviewed; at 0.75 it is applied and flagged |
+| Quote must exist | `research-mock/src/format/evidence.ts` | A quote not found yields "quote not found" and needs verification |
+| Reject is remembered | `research-mock/src/state/extractionCore.ts` | A rejected suggestion offered again is dropped by fingerprint |
+| Import preview | `research-mock/src/selectors/extractionImport.ts`, `research-mock/src/pages/bible/ImportDialog.tsx` | Rows about unknown entries are errors; add, merge and skip are previewed |
+| Prompt | `research-mock/src/config/extractionPrompt.ts`, `research-mock/src/format/extractionPrompt.ts` | The template contains the format and the rules; copy works |
+| Consent | `research-mock/src/ui/ComponentConsent.tsx`, `research-mock/tests/analysis-tools.test.tsx` | Download starts only after Download; Cancel stops it; failures name the reason (blocked, low disk) |
+| First scan | `research-mock/src/pages/bible/startScan.tsx` | Basic scan, download the pair, or import; "Don't ask again" persists |
 
 ### Supersedes / depends on ADRs
 
@@ -119,7 +119,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 | # | Phase | Description | Status | Parallel | Depends | Est. (pw) | PRP Plan |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Spikes | Licences and provenance for GLiNER and BookNLP; quality on fixtures; calibration protocol | in progress (GLiNER spike SNX-1a [#1139](https://github.com/countrymanprime/narration-studio/issues/1139), [note](../research/studio-next-gliner-spike.md); BookNLP spike SNX-1b [#1142](https://github.com/countrymanprime/narration-studio/issues/1142), [note](../research/studio-next-booknlp-spike.md); calibration protocol SN-X13 [#1143](https://github.com/countrymanprime/narration-studio/issues/1143), [note](../research/studio-next-extraction-calibration-protocol.md)) | 2 | SN0-1 | 1.2 | - |
+| 1 | Spikes | Licences and provenance for GLiNER and BookNLP; quality on fixtures; calibration protocol | in progress (GLiNER spike SNX-1a [#1139](https://github.com/countrymanprime/narration-studio/issues/1139), [note](../research/gliner-spike.md); BookNLP spike SNX-1b [#1142](https://github.com/countrymanprime/narration-studio/issues/1142), [note](../research/booknlp-spike.md); calibration protocol SN-X13 [#1143](https://github.com/countrymanprime/narration-studio/issues/1143), [note](../research/extraction-calibration-protocol.md)) | 2 | SN0-1 | 1.2 | - |
 | 2 | ADR and schema | A14; suggestion contract, store, rule, evidence verification | done (rule, evidence check and fingerprint SNX-2a [#1080](https://github.com/countrymanprime/narration-studio/issues/1080); the store, then the list, accept, reject, review and reopen bindings with their schema, goldens and mock (host API 101), SNX-2b [#1178](https://github.com/countrymanprime/narration-studio/issues/1178); applying a suggestion to the Story Bible and taking it back, SN-X222 [#1166](https://github.com/countrymanprime/narration-studio/issues/1166)) | 1 | SN0-1 | 1.5 | - |
 | 3 | Rules tier into suggestions | Sidecar adapter emits suggestions | in progress (extraction port, Go registry and Python mirror SNX-3a [#1189](https://github.com/countrymanprime/narration-studio/issues/1189); the sidecar's `suggest` command and the Go rules extractor SNX-3b [#1190](https://github.com/countrymanprime/narration-studio/issues/1190); the scan job with its sources and cancel on the wire SNX-3c [#1192](https://github.com/countrymanprime/narration-studio/issues/1192)) | 4 | 2 | 1.0 | - |
 | 4 | Suggested UI | Rows, chips, accept, reject, review, needs-verification | in progress (the suggestion row, confidence chip, list and accepted claims, with no route, SNX-4a [#1218](https://github.com/countrymanprime/narration-studio/issues/1218); the Needs verification chip, the loose suggestions, the entry pill and the scan and import buttons with scan progress, with no route, SNX-4b [#1219](https://github.com/countrymanprime/narration-studio/issues/1219); the mount in the Story Bible swap to come) | 3 | 2, SNB-3 | 1.3 | - |
@@ -127,7 +127,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | 6 | Consent and registry rows | Consent screen, assets for the tools, Settings section, first-scan prompt | in progress (the "ask about better analysis" preference, `ManuscriptGuide.analysis_prompt`, SNX-6b [#1230](https://github.com/countrymanprime/narration-studio/issues/1230); the four tools as registry rows with their consent facts, each "not yet available" until pinned, SNX-6a [#1196](https://github.com/countrymanprime/narration-studio/issues/1196); the consent screen and the Settings > Story Bible analysis tools section with its "offer better analysis" checkbox, SNX-6c [#1231](https://github.com/countrymanprime/narration-studio/issues/1231); the first-scan prompt and the scan flow that joins the consent, the scan and the import, with no route until SN-B8 wires the scan button, SNX-6d [#1236](https://github.com/countrymanprime/narration-studio/issues/1236)) | 4 | 1 | 1.2 | - |
 | 7 | Tool adapters | GLiNER, BookNLP sidecar adapters, conformance | in progress (the GLiNER adapter and its Go row, loading only from its install folder ([CI and releases](../operations/ci-and-releases.md)), SNX-7a [#1260](https://github.com/countrymanprime/narration-studio/issues/1260); the BookNLP adapter and its Go row, the large weights when installed, else the small, SNX-7b [#1262](https://github.com/countrymanprime/narration-studio/issues/1262); the packaged smoke run with each tool installed is an owner step, pending) | - | 1, 6 | 1.3 | - |
 | 8 | Evaluation | Harness, calibration table, default review | in progress (the harness and its tests, SNX-8 [#1267](https://github.com/countrymanprime/narration-studio/issues/1267); no table yet: the scored books and the tools were not available, so every figure is `not run`; the re-run on the owner's manuscript is on the QA checklist [#1495](https://github.com/countrymanprime/narration-studio/issues/1495)) | - | 7 | 0.5 | - |
-| 9 | Local LLM tier (Could) | Spike only; no default | done (the research note, SNX-9 [#1272](https://github.com/countrymanprime/narration-studio/issues/1272), [note](../research/studio-next-local-llm-spike.md): three Apache-2.0 candidates pinned; recommendation keep unavailable, no default; no table to compare with yet, and the timing run on the owner's machine is pending) | - | 8 | 0.3 | - |
+| 9 | Local LLM tier (Could) | Spike only; no default | done (the research note, SNX-9 [#1272](https://github.com/countrymanprime/narration-studio/issues/1272), [note](../research/local-llm-spike.md): three Apache-2.0 candidates pinned; recommendation keep unavailable, no default; no table to compare with yet, and the timing run on the owner's machine is pending) | - | 8 | 0.3 | - |
 
 ### Phase Details
 
@@ -153,9 +153,9 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 
 | Slice | Scope | Depends on | Parallel-safe | Verification |
 | --- | --- | --- | --- | --- |
-| SNX-1a | Spike GLiNER ([note](../research/studio-next-gliner-spike.md)) | SN0-1 | yes | Research note |
-| SNX-1b | Spike BookNLP ([note](../research/studio-next-booknlp-spike.md)) | SN0-1 | yes | Research note |
-| SNX-1c | Calibration protocol ([note](../research/studio-next-extraction-calibration-protocol.md)) | SN0-1 | yes | Research note |
+| SNX-1a | Spike GLiNER ([note](../research/gliner-spike.md)) | SN0-1 | yes | Research note |
+| SNX-1b | Spike BookNLP ([note](../research/booknlp-spike.md)) | SN0-1 | yes | Research note |
+| SNX-1c | Calibration protocol ([note](../research/extraction-calibration-protocol.md)) | SN0-1 | yes | Research note |
 | SNX-2 | ADR, schema, store, rule, evidence | SN0-1 | yes | Go tests; golden; wire row |
 | SNX-3 | Rules tier adapter | SNX-2 | yes | Sidecar tests; conformance |
 | SNX-3a | Extraction provider port: Go registry, Python mirror, conformance suites | SNX-2 | yes | Go and pytest conformance; docs table both read |
@@ -184,4 +184,4 @@ Read: the mock's extraction, components and import files; the owner's extraction
 
 ## Visual Spec
 
-Mock states: Story Bible with Suggested rows (`studio-next/src/pages/bible/Suggested.tsx`), import dialog, consent screen, Settings > Story Bible analysis (`studio-next/src/pages/settings/AnalysisTools.tsx`), first-scan prompt.
+Mock states: Story Bible with Suggested rows (`research-mock/src/pages/bible/Suggested.tsx`), import dialog, consent screen, Settings > Story Bible analysis (`research-mock/src/pages/settings/AnalysisTools.tsx`), first-scan prompt.

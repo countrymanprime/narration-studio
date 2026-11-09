@@ -1,6 +1,6 @@
 # Extraction scans: measured cost and quality of per-chapter chunking
 
-Measured 2026-10-28 and 2026-10-29 to answer owner question #18 before any pool is built (design in [studio-next-extraction-chunking.md](studio-next-extraction-chunking.md)). The scripts are `scripts/research/extraction-bench/`; they drive the sidecar's own `extraction_gliner` and `extraction_booknlp` adapters, so a number is the sidecar's number.
+Measured 2026-10-28 and 2026-10-29 to answer owner question #18 before any pool is built (design in [extraction-chunking.md](extraction-chunking.md)). The scripts are `scripts/research/extraction-bench/`; they drive the sidecar's own `extraction_gliner` and `extraction_booknlp` adapters, so a number is the sidecar's number.
 
 ## Setup
 
