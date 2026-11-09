@@ -500,6 +500,19 @@ describe('the row menu keeps the features the mock has none for', () => {
     expect(contextItemsFor(suggestedRow)?.find((item) => item.key === 'goto')?.unavailable).toMatch(/No chapter track is linked/);
   });
 
+  // #3228's review: the ambiguous case (two candidate tracks) was covered by the shared function only, not by the menu (#3231).
+  it("keeps Show in REAPER off while the chapter's track is ambiguous, as the panel does", async () => {
+    const base = createMockApi();
+    const ambiguousLinks = async () => {
+      const links = await base.chapterTrackLinks();
+      return { ...links, chapters: links.chapters.map((chapter) => ({ ...chapter, status: 'ambiguous' as const })) };
+    };
+    await renderPage({ overrides: { dawCapabilities: selecting, chapterTrackLinks: ambiguousLinks } });
+    const row = within(await pipeline()).getAllByRole('row')[2];
+    await waitFor(() => expect(contextItemsFor(row)?.find((item) => item.key === 'recording')?.unavailable).toBeUndefined());
+    expect(contextItemsFor(row)?.find((item) => item.key === 'goto')?.unavailable).toMatch(/No chapter track is linked/);
+  });
+
   it('matches nothing outside the pipeline', async () => {
     await renderPage();
     await pipeline();

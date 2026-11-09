@@ -270,3 +270,13 @@ describe('?mockNoManuscript=1 import (#2656)', () => {
     expect(manuscript).toMatchObject({ sourceName: 'Alice.docx', format: 'docx' });
   });
 });
+
+describe('the mock Check recordings defaults follow Settings (#3231)', () => {
+  it('starts from the chunk length the narrator saved, not the shipped one', async () => {
+    const api = createMockApi();
+    expect((await api.coverageEngines()).defaults.chunkSeconds).toBe(60);
+    await api.saveSettings('RecordingCoverage', 'global', { chunk_seconds: '120', chunk_overlap_seconds: '9' });
+    const { defaults } = await api.coverageEngines();
+    expect([defaults.chunkSeconds, defaults.overlapSeconds]).toEqual([120, 9]);
+  });
+});
