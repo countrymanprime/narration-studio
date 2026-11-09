@@ -32,7 +32,7 @@ type DialogProps = {
   // that needs the whole window (the teleprompter reading modal). Modality (focus trap, Escape, initial focus, hidden siblings) is
   // unchanged by size: every size is the one shell docs/design/design-system.md#base-ui-wrappers describes.
   size?: DialogSize;
-  // 'top' (the default): the popup hangs from the top of the window, 8vh down as the Studio Next mock's `.scrim` places every dialog, 12vh for
+  // 'top' (the default): the popup hangs from the top of the window, 8vh down as the research mock's `.scrim` places every dialog, 12vh for
   // `palette` (the jump menu), so a dialog whose content grows or shrinks between states (a preview, then a result) keeps its title and Close
   // where they were (alignment audit ENX-16). 'center' centres it in the window. A full-size dialog fills the window either way.
   placement?: 'center' | 'top';

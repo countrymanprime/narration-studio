@@ -46,7 +46,7 @@ export type PickupSessionModel = {
 };
 
 /**
- * A pickup session in the Booth (the Studio Next mock's `jumpPick`, `nextPick` and the pickup branch of `stopTake`). The list is the
+ * A pickup session in the Booth (the research mock's `jumpPick`, `nextPick` and the pickup branch of `stopTake`). The list is the
  * host's: reading it on open is what reconciles the Booth with the DAW's markers, and marking a line done goes through the
  * host to its marker, a refusal being the answer. `N` and `Shift+N` are registered only while a session runs.
  */

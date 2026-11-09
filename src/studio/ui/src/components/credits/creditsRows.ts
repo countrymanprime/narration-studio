@@ -1,5 +1,5 @@
 // Where the credits sit in the Script page's chapter list, as the mock's fixture orders them: "Opening credits" before the first chapter and
-// "Closing credits" after the last (`docs/research/mockups/studio-next/src/fixtures/alice.ts`). The reader draws the cards in the same places.
+// "Closing credits" after the last (`docs/research/mockups/research-mock/src/fixtures/alice.ts`). The reader draws the cards in the same places.
 // Whether each is drawn is the host's chapter list's answer (`isCredits` entries); this file holds only their ids on the page.
 
 import type { CreditsKind } from '../booth/readerModel';

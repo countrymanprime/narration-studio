@@ -49,7 +49,7 @@ type Options = {
 };
 
 /**
- * The Production features the Studio Next mock has no equivalent for, kept as built (D98; the SN-P40 audit's "Old behaviour to new home"):
+ * The Production features the research mock has no equivalent for, kept as built (D98; the SN-P40 audit's "Old behaviour to new home"):
  * the chapter track slide-over with Remove from recording, the Restore list, the credits rows' panel and menu, the chapter status override and the
  * recording and editing checks. They hang off the mock's own row menu on the pipeline (the mock's `context.ts`) and two panels under it.
  * Returns the row menu's items for a target, the panels, the opener the page's Edit cell uses, and the track links the chapter-sync

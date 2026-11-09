@@ -7,7 +7,7 @@ import { inspectorFinding } from './testFinding';
 const was = (heard: string) => inspectorFinding({ heard });
 const now = (heard: string) => inspectorFinding({ version: 'v2', heard });
 
-// The Studio Next Inspector's `#evchanged` banner (D98): "Before" and "Now" with the words that left struck and the words that
+// The rebuilt Inspector's `#evchanged` banner (D98): "Before" and "Now" with the words that left struck and the words that
 // arrived underlined, and the one button that takes the new evidence. The Inspector column is about 24 rem wide.
 const meta = {
   title: 'Proof/EvidenceChangedBanner',

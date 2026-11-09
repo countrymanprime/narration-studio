@@ -15,7 +15,7 @@ import type {
 import { DAW_CAPABILITIES } from '../api/contracts/daw';
 import type { MeasureReport } from '../api/contracts/measure';
 
-// The mock DAW's setups as data (the Studio Next mock's fixtures/daw.ts, narrowed to what the host has today): REAPER, REAPER off,
+// The mock DAW's setups as data (the research mock's fixtures/daw.ts, narrowed to what the host has today): REAPER, REAPER off,
 // the built-in recorder, and Audacity. Each is a `DawCapabilities` the existing schema accepts and names
 // only capabilities the Go catalogue has today. `cut_range`, `fx_range`, `stack_takes` and `backups` are in it: REAPER builds the
 // first three (narration_range.lua, narration_takes.lua), and `backups` is Audacity's, always kept while Audacity answers.
@@ -145,7 +145,7 @@ const audacityBuilt: DawCapabilitySupport = { level: 'experimental', available: 
 
 /** Audacity connected and answering: what the host's resolver answers over the adapter (dawport/audacity). Labels, navigation,
  * mastering with a macro and backups work, and nothing else is built. Takes, stacking, cutting and an effect on words rest on
- * backups (SN-D83, the Studio Next mock's capabilitiesFor), which Audacity keeps while it answers; the edits are made in steps. */
+ * backups (SN-D83, the research mock's capabilitiesFor), which Audacity keeps while it answers; the edits are made in steps. */
 const audacityCapabilities = (): DawCapabilities['capabilities'] => {
   const needs = (mode?: 'steps'): DawCapabilitySupport => ({ ...audacityBuilt, ...(mode ? { mode } : {}) });
   return everyCapability((key) => notYet(audacityNotYet(key)), {
@@ -199,7 +199,7 @@ export const DAW_SETUPS: Readonly<Record<DawSetupId, DawCapabilities>> = {
 const IDLE_PROJECT_STATE: DawProjectState = { savedAt: null, unsavedChanges: false, playState: 'stopped', playPosition: 0 };
 
 /** Each setup's project state as the host answers it (tests/fixtures/contracts/daw-project-state-*.json). REAPER has the
- * Studio Next mock's saved time (SAVED_PROJECT) and is stopped with nothing unsaved. The built-in recorder keeps no saved
+ * research mock's saved time (SAVED_PROJECT) and is stopped with nothing unsaved. The built-in recorder keeps no saved
  * project. Audacity is idle too: the mock gives it a saved time, but the host has no heartbeat from Audacity to read one from
  * yet. REAPER off is idle, as the host is with no heartbeat. */
 export const DAW_PROJECT_STATES: Readonly<Record<DawSetupId, DawProjectState>> = {
@@ -409,7 +409,7 @@ export function rangeCutAnswer(words: number, daw: string): string {
   return `Deleted ${words} word${plural(words)} and their audio in ${daw}.`;
 }
 
-/** The edits a `steps` DAW makes for one cut, in order (the Studio Next mock's RANGE_PLAN: select, then delete). */
+/** The edits a `steps` DAW makes for one cut, in order (the research mock's RANGE_PLAN: select, then delete). */
 export const RANGE_CUT_STEPS = ['Select the range', 'Delete the selection'] as const;
 
 /** What a cut of `words` words answers on one of DAW_SETUPS once `cut_range` is available, by its mode: one undo step where the DAW makes
@@ -441,7 +441,7 @@ export function fxNotOnItemAnswer(chain: string): string {
   return `${chain} is not on the item these words were checked in, so nothing changed. If you added it since the last check, run the check again so the app finds the piece it is on.`;
 }
 
-/** Where a DAW's chain list comes from, as the Add FX menu names it (the Studio Next mock's `FxList.source`). */
+/** Where a DAW's chain list comes from, as the Add FX menu names it (the research mock's `FxList.source`). */
 export function fxChainsSource(daw: string): string {
   return `Your ${daw} FX chains`;
 }
@@ -451,7 +451,7 @@ export function fxRangeRemovedOf(setup: DawCapabilities, chain: string): { messa
   return { ...fxRangeOf(setup, chain, 1), message: fxChainRemovedAnswer(chain, setup.daw) };
 }
 
-/** A DAW's chain list as the Add FX menu shows it (the Studio Next mock's `FxList`): where it comes from, named for the setup's DAW, and
+/** A DAW's chain list as the Add FX menu shows it (the research mock's `FxList`): where it comes from, named for the setup's DAW, and
  * each chain by its name, which is also its id. */
 export function fxListOf(setup: DawCapabilities, names: readonly string[]): { source: string; choices: { id: string; name: string }[] } {
   return { source: fxChainsSource(setup.daw), choices: names.map((name) => ({ id: name, name })) };
@@ -464,7 +464,7 @@ export function plainChainName(chain: string): boolean {
   return chain.split('/').every((part) => part !== '' && part !== '.' && part !== '..');
 }
 
-/** The edits a `steps` DAW makes for one effect on a range, in order (the Studio Next mock's RANGE_PLAN: select, then apply). */
+/** The edits a `steps` DAW makes for one effect on a range, in order (the research mock's RANGE_PLAN: select, then apply). */
 export const FX_RANGE_STEPS = ['Select the range', 'Apply the effect'] as const;
 
 /** What a chain on `words` words answers on one of DAW_SETUPS once `fx_range` is available, by its mode, as rangeCutOf does. */
@@ -500,7 +500,7 @@ export function nothingToStackOf(setup: DawCapabilities): string {
   return nothingToStackAnswer(setup.daw);
 }
 
-/** The edits a `steps` DAW makes to stack retries, in order (the Studio Next mock's STACK_PLAN.steps). */
+/** The edits a `steps` DAW makes to stack retries, in order (the research mock's STACK_PLAN.steps). */
 export const STACK_STEPS = [
   'Add a take track',
   'Paste each later read into it',

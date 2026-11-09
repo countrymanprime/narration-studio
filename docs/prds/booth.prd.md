@@ -1,10 +1,10 @@
-# Studio Next Booth: Record Preconditions, Leaving While Recording, Roll and Punch, Resume, Suspected Flags and Key Hints
+# Booth: Record Preconditions, Leaving While Recording, Roll and Punch, Resume, Suspected Flags and Key Hints
 
-**Source:** owner request of 2026-10-10 (Studio Next Rebuild); "Booth rulings" and the record-preconditions rule in `studio-next/research/repo-compare-decisions.md`; the mock's `studio-next/src/pages/Booth.tsx`, `studio-next/src/pages/booth/` and `studio-next/src/state/commands/booth.ts`.
+**Source:** owner request of 2026-10-10 (rebuild PRD); "Booth rulings" and the record-preconditions rule in `research-mock/research/repo-compare-decisions.md`; the mock's `research-mock/src/pages/Booth.tsx`, `research-mock/src/pages/booth/` and `research-mock/src/state/commands/booth.ts`.
 
 **Builds on:** the delivered Booth ([Booth](../guides/using-the-app/booth.md), [The page](../guides/using-the-app/booth.md#the-page), [Design system reference](../design/design-system.md), [Resume: where REAPER is and where the prompter was](../architecture/manuscript-teleprompter.md#resume-where-reaper-is-and-where-the-prompter-was), [Where you stopped](../guides/using-the-app/booth.md#where-you-stopped), [Flags](../architecture/manuscript-teleprompter.md#flags), [Shared Findings Contract](../architecture/findings-contract.md), [Built-in recorder: what the app declares for it](../reference/daw/builtin-recorder.md)), record in REAPER ([app.go](../../src/studio/desktop/app.go), [Live transport and track state (`narration_track_state.lua`)](../architecture/reaper-bridge.md#live-transport-and-track-state-narration_track_statelua), [Recording in REAPER (`narration_transport.lua`)](../architecture/reaper-bridge.md#recording-in-reaper-narration_transportlua)), punch and roll ([narration_punch.lua](../../src/studio/integrations/reaper/narration_punch.lua), [Punch from here: where a word's time comes from](https://github.com/countrymanprime/narration-studio/blob/e95ce0c3c8d5d2bf3860d95e8184b6d308da1ef4/docs/architecture/manuscript-teleprompter.md#punch-from-here-where-a-words-time-comes-from)), the input registry ([Studio shell and registries](../architecture/studio-shell-and-registries.md)). It carries over the unfinished phases of the old read-aloud control bar, teleprompter integration, engines and booth-actions PRDs (see the overview's carried-over table). The DAW commands are DAW Ports and Capabilities.
 
-**Status (2026-10-12):** the swap is done (SN-O10, #1258): `/booth` mounts the Studio Next Booth and the old Booth is deleted, with bookmarks and the pickup session (phase 8) on the page; the trailing confirmation pass of item 10 has no slice (#1476 lists it as not built).
+**Status (2026-10-12):** the swap is done (SN-O10, #1258): `/booth` mounts the rebuilt Booth and the old Booth is deleted, with bookmarks and the pickup session (phase 8) on the page; the trailing confirmation pass of item 10 has no slice (#1476 lists it as not built).
 
 ## Problem Statement
 
@@ -12,7 +12,7 @@ The Booth is where the narrator records. The owner's rulings turn it into a DAW-
 
 ## Evidence
 
-- **Mock.** `studio-next/src/selectors/booth.ts`; `recordCheck`, `recordStartAt`, `roll`, `setChangeGuard` in `studio-next/src/state/commands/booth.ts`, `studio-next/src/state/daw.ts` and `studio-next/src/state/store.ts`; `studio-next/src/providers/speech.ts` (suspected skips and restarts as Pickups with `src: 'speech'`, `live: true`, stable `flagKey`, dismissible, never re-added); `studio-next/src/pages/booth/{Teleprompter,SidePanel,TopBar}.tsx`; `studio-next/src/ui/KeyHints.tsx`; `studio-next/src/state/commands/passagemap.ts`. Tests: `studio-next/tests/booth.test.tsx`, `studio-next/tests/booth-daw.test.tsx`, `studio-next/tests/d2-booth.test.tsx`, `studio-next/tests/d2-keycaps.test.tsx`.
+- **Mock.** `research-mock/src/selectors/booth.ts`; `recordCheck`, `recordStartAt`, `roll`, `setChangeGuard` in `research-mock/src/state/commands/booth.ts`, `research-mock/src/state/daw.ts` and `research-mock/src/state/store.ts`; `research-mock/src/providers/speech.ts` (suspected skips and restarts as Pickups with `src: 'speech'`, `live: true`, stable `flagKey`, dismissible, never re-added); `research-mock/src/pages/booth/{Teleprompter,SidePanel,TopBar}.tsx`; `research-mock/src/ui/KeyHints.tsx`; `research-mock/src/state/commands/passagemap.ts`. Tests: `research-mock/tests/booth.test.tsx`, `research-mock/tests/booth-daw.test.tsx`, `research-mock/tests/d2-booth.test.tsx`, `research-mock/tests/d2-keycaps.test.tsx`.
 - **Repo.** `src/studio/ui/src/components/booth/{BoothPage,BoothSession,BoothView,BuiltinRecorder,ResumePrompt,ReaderFlagsPanel,RecordInReaperConfirm}.tsx`; hooks `useBoothRecording`, `useRecordInReaper`, `useTeleprompterSession`, `useResumeLocate`, `useFollowCursor`; commands `reading.toggle`, `booth.fullscreen` in `src/studio/ui/src/input/commands.catalog.ts`; `src/studio/desktop/internal/teleprompter/`, `liveflags/`, `recording/`.
 
 | Ruling | Real today |
@@ -34,7 +34,7 @@ The Booth is where the narrator records. The owner's rulings turn it into a DAW-
 4. **Roll and punch.** Roll calls the DAW's roll; where the capability is `destructive` a confirmation precedes it; where backups are on or REAPER auto-creates a take it is non-destructive and does not ask.
 5. **Resume.** "Resume at paragraph n" from the DAW's live cursor, else the saved project, else the Booth's own record; the source and confidence are shown ([Resume: where REAPER is and where the prompter was](../architecture/manuscript-teleprompter.md#resume-where-reaper-is-and-where-the-prompter-was)).
 6. **Suspected flags** are findings with a stable key; dismissing one keeps a tombstone so it is not raised again.
-7. **Reading.** Sentence-phrase navigation (keep ours), smooth scroll that follows the voice and the mock's wheel browse (the wheel and Page Up and Down move the view by pixels and the reading position stays; `studio-next/src/pages/booth/Teleprompter.tsx`, DQ-17; [useFollowCursor.ts](../../src/studio/ui/src/components/booth/useFollowCursor.ts) is kept only where it describes identical behaviour), a click on a word, levels (`LevelMeter`), speaker chips, credits readable, F11, foot pedal Space only (start and stop).
+7. **Reading.** Sentence-phrase navigation (keep ours), smooth scroll that follows the voice and the mock's wheel browse (the wheel and Page Up and Down move the view by pixels and the reading position stays; `research-mock/src/pages/booth/Teleprompter.tsx`, DQ-17; [useFollowCursor.ts](../../src/studio/ui/src/components/booth/useFollowCursor.ts) is kept only where it describes identical behaviour), a click on a word, levels (`LevelMeter`), speaker chips, credits readable, F11, foot pedal Space only (start and stop).
 8. **Key hints footer** from the catalogue (`KeyHints`), bookmarks ribbons on the right margin, a pickup session in the side panel ("Open in Booth at this pickup" lives here).
 9. **Passage map.** The Booth writes a passage map at record time (paragraph, word, seconds, item and take ids the DAW gave) so Editing lists passages exactly; alignment is only for takes recorded elsewhere.
 10. **Engine picker** lists what the host reports; Moonshine is offered as the live engine in the Booth only; Whisper-class confirms after. The default engine is unchanged ([Manuscript Teleprompter](../architecture/manuscript-teleprompter.md)); the mock picks none (DQ-9).
@@ -56,7 +56,7 @@ If every refusal comes from a capability or a check and every exit passes the le
 
 | Metric | Target | Measured by |
 | --- | --- | --- |
-| Silent stops | 0: every exit while recording asks or is blocked | Ported `studio-next/tests/booth-daw.test.tsx` |
+| Silent stops | 0: every exit while recording asks or is blocked | Ported `research-mock/tests/booth-daw.test.tsx` |
 | Refusals worded in the Booth | 0 (all from capability or check) | Scan for strings near `CapabilityGate` |
 | Take overwrites | 0: starts at the end of the last item unless punched | Harness and host tests |
 | Key hints from the catalogue | 100% of Booth footer keys | Surfaces test |
@@ -65,14 +65,14 @@ If every refusal comes from a capability or a check and every exit passes the le
 
 Decided by the owner on 2026-10-11; nothing here waits for an answer, so G0 has no question for the owner.
 
-- **SN0-Q1 / DQ-1.** The Studio Next Booth page (`studio-next/src/pages/Booth.tsx`) is the spec, including tokens, sizes and layout; the benchmark's measured values and the ADRs measured to it are superseded where they differ ([Mock match](../operations/verification-tooling.md#mock-match)).
+- **SN0-Q1 / DQ-1.** The rebuilt Booth page (`research-mock/src/pages/Booth.tsx`) is the spec, including tokens, sizes and layout; the benchmark's measured values and the ADRs measured to it are superseded where they differ ([Mock match](../operations/verification-tooling.md#mock-match)).
 - **SN0-Q2 / DQ-2.** Replace. Seams and components land with no route; one PR (SNO-10) swaps the route and deletes the old Booth.
 - **DQ-5.** Record arms only the chapter's track, starts at the end of the last item, Space stays one action, a failed precondition shows the capability's refusal reason. [app.go](../../src/studio/desktop/app.go) is superseded to that extent.
 - **DQ-6.** Pickups only points to the Booth; the Booth pickup session is SNO-8.
 - **DQ-9.** No conflict; [Manuscript Teleprompter](../architecture/manuscript-teleprompter.md) is unchanged.
 - **DQ-13.** Companion: frozen as built, no work.
 - **DQ-17.** The mock's wheel-browse behaviour is the spec.
-- **SN0-Q8.** Screenshots are compared against the Studio Next mock page.
+- **SN0-Q8.** Screenshots are compared against the research mock page.
 - **Reading column (owner, 2026-10-26, #2251).** The Booth's text column is as wide as the Reader text **Column width** the Script uses (48, 64, 80 or 100 characters of the text, `ch`), and the Booth's Text settings popover gains that Column width slider, writing the same saved choice. This supersedes the mock's fixed `.btext{max-width:26em}` and its `TextPop` of Font and Size only. Paragraphs are left-aligned with no first-line indent, 0.5em apart: #2251 item 8's tighter spacing, in place of the mock's `.btext p{margin:0 0 .9em}`.
 - **Process defaults, taken as recommended (2026-10-11).** Leave while recording asks "Stop recording?" with Cancel as the way to stay; the passage map is the project sidecar `passagemap.json`, written when the take ends and validated on read; opening and closing credits record and map to their regions, checked in SNO-6.
 
@@ -86,13 +86,13 @@ A narrator mid-take, hands on keys or a pedal, who must never lose their place o
 
 | Behaviour | Mock reference | Acceptance |
 | --- | --- | --- |
-| Reason on Record | `studio-next/tests/booth-daw.test.tsx` | Not running, wrong track, playing, no DAW: each shows its capability or check sentence |
-| Leave asks | `studio-next/src/state/store.ts` `setChangeGuard` | Esc and nav ask "Stop recording?"; Yes stops the DAW recording and leaves; No stays |
-| Roll confirm | `studio-next/tests/booth-daw.test.tsx` | Audacity without backups asks first; with backups and REAPER it does not |
-| Resume | `studio-next/tests/d2-booth.test.tsx` | "Resume at ¶ n" shows its source; choosing it sets where Start begins |
-| Suspected flags | `studio-next/src/providers/speech.ts` | A skip or restart becomes a pickup marked automatic; dismiss is remembered |
-| Key hints | `studio-next/tests/d2-keycaps.test.tsx` | Footer draws caps for the keys the catalogue binds |
-| Passage map | `studio-next/src/selectors/passagemap.ts` | Editing lists a Booth-recorded chapter's passages without alignment |
+| Reason on Record | `research-mock/tests/booth-daw.test.tsx` | Not running, wrong track, playing, no DAW: each shows its capability or check sentence |
+| Leave asks | `research-mock/src/state/store.ts` `setChangeGuard` | Esc and nav ask "Stop recording?"; Yes stops the DAW recording and leaves; No stays |
+| Roll confirm | `research-mock/tests/booth-daw.test.tsx` | Audacity without backups asks first; with backups and REAPER it does not |
+| Resume | `research-mock/tests/d2-booth.test.tsx` | "Resume at ¶ n" shows its source; choosing it sets where Start begins |
+| Suspected flags | `research-mock/src/providers/speech.ts` | A skip or restart becomes a pickup marked automatic; dismiss is remembered |
+| Key hints | `research-mock/tests/d2-keycaps.test.tsx` | Footer draws caps for the keys the catalogue binds |
+| Passage map | `research-mock/src/selectors/passagemap.ts` | Editing lists a Booth-recorded chapter's passages without alignment |
 
 ### Supersedes / depends on ADRs
 
@@ -111,13 +111,13 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | [Manuscript Teleprompter](../architecture/manuscript-teleprompter.md) | KEEP (DQ-9) | Engine default unchanged |
 | [Design system reference](../design/design-system.md), [The page](../guides/using-the-app/booth.md#the-page), [Design system reference](../design/design-system.md), [Colour and contrast](../design/colour-and-contrast.md) | KEEP | Space; full window; styles |
 | [Companion mode](../guides/using-the-app/booth.md#companion-mode), [bindings_companion.go](../../src/studio/desktop/bindings_companion.go) | KEEP (DQ-13) | Companion untouched |
-| [Mock match](../operations/verification-tooling.md#mock-match) | SUPERSEDE (DQ-1) | The Studio Next mock is the spec; benchmark mock 03 is deleted at cutover |
+| [Mock match](../operations/verification-tooling.md#mock-match) | SUPERSEDE (DQ-1) | The research mock is the spec; benchmark mock 03 is deleted at cutover |
 
 ## Technical Approach
 
 **Interfaces.** `BoothPort`: `recordCheck(chapter)`, `recordStartAt(chapter)`, `record()`, `stop()`, `roll(at, {confirmed})`, `resume(chapter)`, `passageMap.write()` over `DawClient` and the teleprompter bindings; `LeaveGuard` from App Shell and Registries; engines from the existing provider capabilities binding.
 
-**Contracts.** `passageMapSchema` and its golden; `ResumePoint` and `LiveFlag` schemas (mock: `studio-next/src/domain/daw.ts`) mapped onto the existing resume and flag payloads, extended additively (`source`, `confident`, `key`); `DawResult` from the DAW PRD.
+**Contracts.** `passageMapSchema` and its golden; `ResumePoint` and `LiveFlag` schemas (mock: `research-mock/src/domain/daw.ts`) mapped onto the existing resume and flag payloads, extended additively (`source`, `confident`, `key`); `DawResult` from the DAW PRD.
 
 **Architecture.** `components/booth/*` consume ports and selectors; no component names a DAW; capability gating through `CapabilityGate`.
 
@@ -178,7 +178,7 @@ On conflict this PRD, and the ADR written when its phase lands, is the source of
 | SNO-7 | Phase 7 | SNO-2 | yes | Go tests; golden |
 | SNO-8 | Phase 8 | SNB-5, SNQ-8 | yes | Component tests |
 | SNO-9 | Phase 9 | SNO-1 | yes | Provider capability tests |
-| SNO-10 | Phase 10 (swap; deletes the old Booth) | SNO-2..9 | no | Visual suite for the page; Screenshots against the Studio Next Booth |
+| SNO-10 | Phase 10 (swap; deletes the old Booth) | SNO-2..9 | no | Visual suite for the page; Screenshots against the rebuilt Booth |
 
 ## Decisions Log
 
@@ -196,4 +196,4 @@ Read: the mock's booth selectors, commands, providers and tests; the rulings; th
 
 ## Visual Spec
 
-Mock page: Booth (`studio-next/src/pages/Booth.tsx`), the only spec; one app-wide theme per D69. States: ready, recording, refusal, leave dialog, roll confirm, resume.
+Mock page: Booth (`research-mock/src/pages/Booth.tsx`), the only spec; one app-wide theme per D69. States: ready, recording, refusal, leave dialog, roll confirm, resume.

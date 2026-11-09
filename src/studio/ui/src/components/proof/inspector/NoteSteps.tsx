@@ -1,7 +1,7 @@
 import { IconButton } from '../../primitives/IconButton';
 
 /**
- * Previous and next note (the Studio Next Inspector's `#prevn` and `#nextn`). Each is disabled at its end; the move itself goes
+ * Previous and next note (the rebuilt Inspector's `#prevn` and `#nextn`). Each is disabled at its end; the move itself goes
  * through the caller's handler, which refuses it while the evidence is changed.
  */
 export function NoteSteps({ canPrev, canNext, onStep }: { canPrev: boolean; canNext: boolean; onStep: (delta: -1 | 1) => void }) {

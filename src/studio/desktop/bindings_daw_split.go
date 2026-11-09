@@ -24,7 +24,7 @@ const (
 )
 
 // DawSplitTake cuts takeID, a take of chapterID that reads its line twice, into two takes of one item at at seconds into the
-// chapter, in one undo step of the DAW's own (SN-E94; the Studio Next mock's splitTake, the page's splitCommand). takeID is the
+// chapter, in one undo step of the DAW's own (SN-E94; the research mock's splitTake, the page's splitCommand). takeID is the
 // take's id as the DAW reports it on the chapter's one linked track now (chapter_track_state): the host looks it up there,
 // checks the cut is inside that take, and sends the item and take it read itself, so an id is never sent to the DAW as given
 // (threat model row 5f). The answer is a DawResult: the takes capability's own sentence when the resolver refuses it

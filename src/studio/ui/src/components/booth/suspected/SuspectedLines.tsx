@@ -11,7 +11,7 @@ import { StatusBadge } from '../../primitives/StatusBadge';
 import { KIND_LABELS, keptLines, suspectedCount, suspectedKey, suspectedLines, toFlagSave, type SuspectedFlag } from './suspectedLinesModel';
 
 /**
- * The Booth side panel's "Suspected" section (Studio Next mock `pages/booth/SidePanel.tsx`). The host's live check lists lines it
+ * The Booth side panel's "Suspected" section (research mock `pages/booth/SidePanel.tsx`). The host's live check lists lines it
  * suspects were skipped or read again; each can be dismissed, with Undo, and a dismissed place comes back dismissed. The decision is the
  * finding's own (`TeleprompterSaveFlags`), so Proof sees it. There is no way to add a line here.
  */

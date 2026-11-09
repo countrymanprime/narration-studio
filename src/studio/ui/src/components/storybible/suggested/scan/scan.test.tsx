@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// SN-X63: the first-scan prompt, ported from the Studio Next mock's tests/analysis-tools.test.tsx ("the first scan prompt") over the mock
+// SN-X63: the first-scan prompt, ported from the research mock's tests/analysis-tools.test.tsx ("the first scan prompt") over the mock
 // host and the fake asset registry (settings/analysis/fixtures.ts).
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';

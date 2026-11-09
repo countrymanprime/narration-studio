@@ -12,7 +12,7 @@ Researched 2026-10-12 for the owner, on `main` at `5ee0877`. Tracking issue: [#1
   - the 24 REAPER Lua files and 43 bridge commands;
   - `scripts/*`, the 14 Nx projects, the `docs/` file names and titles;
   - every row of [data files](../reference/data-files.md), the settings sections, the bindings and the live events.
-- **Reading.** For each name, what it does was read from the code: package doc comments, argparse definitions, the command registry and the rail in `AppShell.tsx`. The UI vocabulary was compared with the Studio Next mock rail (`docs/research/mockups/studio-next/src/app/Shell.tsx`).
+- **Reading.** For each name, what it does was read from the code: package doc comments, argparse definitions, the command registry and the rail in `AppShell.tsx`. The UI vocabulary was compared with the research mock rail (`docs/research/mockups/research-mock/src/app/Shell.tsx`).
 - **Counts.** Blast radii are `grep -rIl` file counts that exclude `node_modules` and `.git`.
 - **Risk.** Each rename is classed by the path rules in `scripts/ci/pr-risk.mjs` (`BOUNDARIES`, lines 17-28).
 
@@ -138,7 +138,7 @@ Moved stubs (`storybible-import-format.md`, `script-marks.md`, `operations/agent
 
 **Scripts.** No script is misnamed. `scripts/licenses/models.mjs` writes tables for eight asset catalogs, not only models; that is narrow, not wrong. Several files are in the wrong folder:
 - `scripts/ci/run-timings.mjs`, `apply-path-map.mjs` and `skill-evals.mjs` are manual tools that no workflow runs. They belong in `scripts/dev/`.
-- Four tests of `scripts/dev/*` live in `scripts/ci/` (`owner-qa-list`, `slice-lint`, `capture-studio-next-mock`, `bump-host-api`).
+- Four tests of `scripts/dev/*` live in `scripts/ci/` (`owner-qa-list`, `slice-lint`, `capture-mock`, `bump-host-api`).
 
 The moves are normal risk. The test ratchet (`test-ratchet.mjs:61-64,95`) accepts a moved test only while git still detects the rename.
 
@@ -183,7 +183,7 @@ See [`wire-contract-change`](../../.claude/skills/wire-contract-change/SKILL.md)
 ## Sequencing
 
 Every rename here conflicts with in-flight slices. A folder rename invalidates the `owns` globs in open slice issues, and a binding rename collides with the `hostAPIVersion` serial point. Run them in one quiet window on lane X, per [the agent train's lanes](../../.claude/skills/agent-train/references/worker.md#lanes):
-- **Start:** after the last Studio Next swap slice merges (SNB-8, SNP-8, SNQ-9, SNO-10, SNM-5, SNE-9 in the cutover table) and the GLiNER/BookNLP adapters (SNX-7b) land.
+- **Start:** after the last rebuilt swap slice merges (SNB-8, SNP-8, SNQ-9, SNO-10, SNM-5, SNE-9 in the cutover table) and the GLiNER/BookNLP adapters (SNX-7b) land.
 - **End:** before the release-candidate rehearsal.
 
 The swaps delete the old pages first, which removes about a third of the UI blast radius (the old `Guide` page and the old Master page). Running the renames before the rehearsal means the packaged smoke test checks the new exe names.

@@ -699,7 +699,7 @@ export function CreditsTemplates(): $CancellablePromise<string> {
 
 /**
  * DawApplyFxToRange puts one of the narrator's saved FX chains on the words firstToken..lastToken of chapterID's stored
- * alignment (SND-6c, docs/reference/daw/capabilities.md; the Studio Next mock's applyFxToRange): the DAW splits the item at both ends of the
+ * alignment (SND-6c, docs/reference/daw/capabilities.md; the research mock's applyFxToRange): the DAW splits the item at both ends of the
  * range and puts the chain on the middle piece, with fadeMs at each new seam. The page sends a chapter id, two token
  * indices, a chain name and the fade, never a GUID, a time or a path: the item and its project seconds are resolved here
  * from the stored alignment and the saved project (threat model row 5f), one item per request, and
@@ -714,7 +714,7 @@ export function DawApplyFxToRange(chapterID: string, firstToken: number, lastTok
 
 /**
  * DawBackupAround clones the audio around the words firstToken..lastToken of chapterID before an edit, so it can be put back
- * (SN-D82, docs/reference/daw/audacity-3.md; the Studio Next mock's backupAround). The page sends a chapter id, two token indices and the label the
+ * (SN-D82, docs/reference/daw/audacity-3.md; the research mock's backupAround). The page sends a chapter id, two token indices and the label the
  * Backups list shows ("Roll at ¶ 3"), never a track, a time or a path: the words' project seconds are resolved here from the
  * stored alignment (passagetakes.ResolveRange) and the track is the chapter's one linked track, and the DAW adds the narrator's
  * window either side (DAW.backups.window_seconds). The answer is a DawResult: the backups capability's own sentence when
@@ -828,7 +828,7 @@ export function DawCompareFxRange(chapterID: string, firstToken: number, lastTok
 }
 
 /**
- * DawDeleteRange cuts the words firstToken..lastToken of chapterID's stored alignment together with their audio (SND-6b, docs/reference/daw/capabilities.md; the Studio Next mock's deleteRange): the DAW splits the item at both ends of the range and moves the middle
+ * DawDeleteRange cuts the words firstToken..lastToken of chapterID's stored alignment together with their audio (SND-6b, docs/reference/daw/capabilities.md; the research mock's deleteRange): the DAW splits the item at both ends of the range and moves the middle
  * piece aside, and mode "close" moves the later audio up while "gap" leaves the length. fadeMs is the fade at each seam; padMs
  * (0 to 500) cuts that much less at each end of the words' audio; roomTone (gap only) fills the gap with the chapter's room
  * tone, which an engine with none refuses, cutting nothing (SN-E97). The page sends a chapter id, two token indices, and the
@@ -1002,7 +1002,7 @@ export function DawReplaceRange(chapterID: string, firstToken: number, lastToken
  * DawRestoreBackup puts the audio of the backup backupID back over the same window of the track it came from (the mock's
  * restoreBackup). The page sends the id DawBackups listed, nothing else. The same capability refusal first; an id the table does not
  * have is the DAW's refusal, changed false; a backup or source track that is gone is code stale. A restore is not undoable in the app
- * (docs/research/studio-next-undo-inverse-table.md row 1): it is one step in the DAW's own undo.
+ * (docs/research/undo-inverse-table.md row 1): it is one step in the DAW's own undo.
  */
 export function DawRestoreBackup(backupID: string): $CancellablePromise<string> {
     return $Call.ByID(4114452298, backupID);
@@ -1019,7 +1019,7 @@ export function DawRestoreReplacement(chapterID: string, replacementID: string):
 
 /**
  * DawRoll stops the recording this app started on chapterID's linked track and records again from at (project seconds),
- * keeping the earlier audio as a take (SND-6a, docs/reference/daw/capabilities.md; the Studio Next mock's roll). The page sends the chapter
+ * keeping the earlier audio as a take (SND-6a, docs/reference/daw/capabilities.md; the research mock's roll). The page sends the chapter
  * id, a time and whether the narrator confirmed, never a GUID: the track is the chapter's link, read here
  * (docs/architecture/threat-model.md, row 5f). The answer is a DawResult: the punch capability's own sentence
  * when the resolver refuses it (a standalone launch, a DAW not answering),
@@ -1052,7 +1052,7 @@ export function DawSetMonitorLevel(level: number): $CancellablePromise<string> {
 
 /**
  * DawSplitTake cuts takeID, a take of chapterID that reads its line twice, into two takes of one item at at seconds into the
- * chapter, in one undo step of the DAW's own (SN-E94; the Studio Next mock's splitTake, the page's splitCommand). takeID is the
+ * chapter, in one undo step of the DAW's own (SN-E94; the research mock's splitTake, the page's splitCommand). takeID is the
  * take's id as the DAW reports it on the chapter's one linked track now (chapter_track_state): the host looks it up there,
  * checks the cut is inside that take, and sends the item and take it read itself, so an id is never sent to the DAW as given
  * (threat model row 5f). The answer is a DawResult: the takes capability's own sentence when the resolver refuses it
@@ -1067,7 +1067,7 @@ export function DawSplitTake(chapterID: string, takeID: string, at: number): $Ca
 
 /**
  * DawStackTakes puts the later reads of the passages passageIDs of chapterID on the first read's spot as takes of its item,
- * and moves the audio after them up (SND-7b, docs/reference/daw/capabilities.md; the Studio Next mock's stackTakes). The page sends a chapter
+ * and moves the audio after them up (SND-7b, docs/reference/daw/capabilities.md; the research mock's stackTakes). The page sends a chapter
  * id and passage ids, never a GUID, a time or a path: the host rebuilds the plan itself (passagetakes.StackPlan) from the
  * Booth's passage map, which names the items each passage was read into, and the chapter's one linked track as the DAW
  * reports it now (chapter_track_state), so a GUID-shaped id is looked up like any other and the plan the page showed is
@@ -3311,7 +3311,7 @@ export function WorkspaceGoTo(chapterID: string, tokenIndex: number): $Cancellab
 
 /**
  * WorkspaceHideTakes mutes the other takes of the passage between firstToken and lastToken of chapterID's stored alignment,
- * keeping keepCandidateID, one of the ids WorkspaceTakes offers (SND-5b; the Studio Next mock's hideTakes). Nothing is
+ * keeping keepCandidateID, one of the ids WorkspaceTakes offers (SND-5b; the research mock's hideTakes). Nothing is
  * deleted, and REAPER adds one undo step when anything changed. As for WorkspaceUseTake, the page sends ids and token
  * indices only: the item and kept take GUIDs are read here from the saved project, and an id the host does not offer is
  * refused as stale (docs/architecture/reaper-navigation.md). The answer is a DawResult: the takes capability's own sentence when

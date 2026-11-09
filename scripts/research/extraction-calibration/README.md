@@ -2,8 +2,8 @@
 
 Scores each extraction source against a hand-checked gold set and writes the confidence-versus-correctness table that the
 75% rule (`extraction.VerifyBelow`) is calibrated against. The protocol is
-[studio-next-extraction-calibration-protocol.md](../../../docs/research/studio-next-extraction-calibration-protocol.md); the
-result is [studio-next-extraction-calibration.md](../../../docs/research/studio-next-extraction-calibration.md).
+[extraction-calibration-protocol.md](../../../docs/research/extraction-calibration-protocol.md); the
+result is [extraction-calibration.md](../../../docs/research/extraction-calibration.md).
 
 The harness runs each source as the app does, so what is scored is what the app would be offered: the rules through the host's
 own Go code (`go run ./cmd/guide-rules` in `src/studio/desktop`, which prints the lines `guide.RuleSuggestions` gives, so it

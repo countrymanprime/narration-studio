@@ -85,7 +85,7 @@ describe('Panel', () => {
 });
 
 describe('Panel title styles', () => {
-  // The Studio Next mock's Story Bible entry heading is `fontSize: 26` (pages/bible/EntryEditor.tsx), over the card title.
+  // The research mock's Story Bible entry heading is `fontSize: 26` (pages/bible/EntryEditor.tsx), over the card title.
   it('draws the entry title at 26 px, and the default card title smaller', () => {
     const { unmount } = render(
       <Panel title="Alice" titleStyle="entry">

@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-// The Studio Next mock draws one keyboard focus ring, `:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px }`,
+// The research mock draws one keyboard focus ring, `:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px }`,
 // and components.css carries it as the global rule. A primitive that names its own outline beats that rule, so these tests
 // pin which primitives may style focus themselves. jsdom does not resolve the cascade, so each check reads class strings.
 

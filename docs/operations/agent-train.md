@@ -6,7 +6,7 @@ A Routine or prompt that names this file runs one pass from `.claude/skills/agen
 
 The headings below point to where each part lives.
 
-## Which mocks are the spec
+## What a job builds to
 
 Each job's references are named by the coordinator ([References for a job](../../.claude/skills/agent-train/references/coordinator.md#references-for-a-job)).
 

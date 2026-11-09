@@ -1,4 +1,4 @@
-# Studio Next DAW commands: the promotion plan
+# DAW commands: the promotion plan
 
 **Status: written 2026-10-12 (SN-D10, [#1208](https://github.com/countrymanprime/narration-studio/issues/1208)); promotes nothing.** Each command and capability that the DAW PRD added is Experimental. This note lists, for each one, where it is declared Experimental, the harness tests and mutation checks that exist, the check in REAPER or Audacity still owed, and the change that promotes it once that check passes ([The REAPER verification pass](../operations/reaper-verification-pass.md)). No check in a real REAPER or Audacity has run: the owner deferred all of them to the QA pass, [#1495](https://github.com/countrymanprime/narration-studio/issues/1495), on 2026-10-12. Counts are from `main` at `ad961a1`.
 
