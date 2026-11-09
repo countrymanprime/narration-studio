@@ -2,18 +2,22 @@ import type { CoverageEngine, CoverageEngines } from '../../api/contracts/covera
 import { Checkbox } from '../primitives/Checkbox';
 import { Select } from '../primitives/Select';
 import { Slider } from '../primitives/Slider';
+import { rowOf } from '../settings/registry/rows';
 import { engineOptionLabel } from './checkSelection';
 import { CHAPTERS_AT_ONCE, DOUBT_SHARES, runProblem, runSummary, withChoice, type RunChoices } from './runChoices';
 import { useWorkerPlan, workerPlanSentences } from './workerPlan';
 
 const engineOptions = (engines: readonly CoverageEngine[]) => engines.map((candidate) => ({ value: candidate.id, label: engineOptionLabel(candidate) }));
 
-/** The slider ranges of the mock's Check recordings dialog. A stored setting outside one is shown as it is and the thumb rests at the end. */
-const CHUNK_RANGE = { min: 10, max: 120, step: 5 };
+/** The chunk lengths Settings offers for Coverage chunk length (0 is the whole-recording checkbox), so the dialog and the setting can show the same values. */
+const CHUNK_CHOICES = Object.keys(rowOf('stt.chunk')?.options ?? {})
+  .map(Number)
+  .filter((seconds) => seconds > 0);
+/** The slider ranges of the Check recordings dialog. A stored setting outside one is shown as it is and the thumb rests at the end. */
 const OVERLAP_RANGE = { min: 0, max: 10, step: 1 };
 const WORKER_RANGE = { min: 1, max: 8, step: 1 };
 /** Where the chunk length lands when "Transcribe each recording whole" is turned off. */
-const SLIDER_CHUNK_DEFAULT = 60;
+const UNWHOLE_CHUNK_DEFAULT = 60;
 const clampTo = (value: number, range: { min: number; max: number }): number => Math.min(range.max, Math.max(range.min, value));
 
 const LABEL = 'text-[length:var(--font-size-sm)] font-semibold uppercase';
@@ -77,20 +81,23 @@ export function RunOptions({ engines, choices, onChange }: { engines: CoverageEn
       ) : null}
       <fieldset className="m-0 flex min-w-0 flex-col gap-3 border-0 border-t border-[var(--border)] p-0 pt-3">
         <legend className="sr-only">Long recordings</legend>
-        <Checkbox checked={whole} onChange={(on) => onChange({ chunkSeconds: on ? 0 : SLIDER_CHUNK_DEFAULT })}>
+        <Checkbox checked={whole} onChange={(on) => onChange({ chunkSeconds: on ? 0 : UNWHOLE_CHUNK_DEFAULT })}>
           Transcribe each recording whole
         </Checkbox>
-        <Slider
-          label={<span className={LABEL}>Chunk length</span>}
-          aria-label="Chunk length"
-          valueText={whole ? 'Whole' : `${choices.chunkSeconds} s`}
-          min={CHUNK_RANGE.min}
-          max={CHUNK_RANGE.max}
-          step={CHUNK_RANGE.step}
-          disabled={whole}
-          value={clampTo(choices.chunkSeconds, CHUNK_RANGE)}
-          onValueChange={(chunkSeconds) => onChange({ chunkSeconds })}
-        />
+        <label className="flex flex-col gap-1">
+          <span className={LABEL}>Chunk length</span>
+          <Select
+            label="Chunk length"
+            fullWidth
+            disabled={whole}
+            value={String(choices.chunkSeconds)}
+            onChange={(value) => onChange({ chunkSeconds: Number(value) })}
+            options={(whole ? [0] : withChoice(CHUNK_CHOICES, choices.chunkSeconds)).map((seconds) => ({
+              value: String(seconds),
+              label: seconds === 0 ? 'Whole' : `${seconds} s`,
+            }))}
+          />
+        </label>
         <Slider
           label={<span className={LABEL}>Overlap between chunks</span>}
           aria-label="Overlap between chunks"
