@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
+import { createMockApi } from './mockApi';
 import { approvedMarkerName, createFindingsMock, REAPER_MESSAGES } from './findingsMock';
 import { WIRE_FINDINGS } from './mockFixtures';
 import { defaultFindingNoteType, FINDING_CATEGORIES } from './contracts/findings';
@@ -145,6 +146,13 @@ describe("the browser mock's REAPER follows the host's navigation rules", () => 
     expect(REAPER_MESSAGES.noItem).toBe(golden('findings-navigation-no-item.json').message);
     expect(REAPER_MESSAGES.notRunning).toBe(golden('findings-navigation-not-running.json').message);
     expect(REAPER_MESSAGES.standalone).toBe(golden('findings-navigation-standalone.json').message);
+  });
+
+  it('knows the finding the sample Pickups noise row points at, so Show in REAPER on it goes to its place (#3168)', async () => {
+    const { pickups } = await createMockApi({}, {}).pickupsList();
+    const noise = pickups.find((pickup) => pickup.source === 'audio');
+    expect(noise?.findingId).toBeTruthy();
+    await expect(createFindingsMock(WIRE_FINDINGS).findingsGoTo(noise!.findingId!)).resolves.toEqual({ outcome: 'navigated', projectTime: 450.9 });
   });
 
   it('goes to and loops a finding with an item, and Stop puts back what the loop changed', async () => {

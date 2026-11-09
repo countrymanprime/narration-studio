@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ChapterTrackLink } from '../../types';
-import { chapterTrackButtonLabel, chapterTrackButtonState } from './chapterTrackButtonState';
+import { chapterTrackButtonLabel, chapterTrackButtonState, showableTrackGuid } from './chapterTrackButtonState';
 
 const base: ChapterTrackLink = {
   chapterId: 'c-1',
@@ -62,5 +62,20 @@ describe('chapterTrackButtonState', () => {
   it('reads a none status with no candidates as not linked', () => {
     expect(chapterTrackButtonState(base)).toEqual({ kind: 'not_linked' });
     expect(chapterTrackButtonLabel('Chapter 6', { kind: 'not_linked' })).toBe('Track for Chapter 6: not linked');
+  });
+});
+
+describe('showableTrackGuid (#3168)', () => {
+  it('is the track only for a confirmed link to a track that is there', () => {
+    expect(showableTrackGuid({ ...base, status: 'confirmed', track })).toBe('{T}');
+    expect(showableTrackGuid({ ...base, status: 'confirmed', track, warnings: ['confirmed-track-renamed'] })).toBe('{T}');
+  });
+  it('is nothing for a missing track, a suggestion, an ambiguous match, no link or no chapter', () => {
+    const mapping = { trackGuid: '{T}' } as ChapterTrackLink['links'][number];
+    expect(showableTrackGuid({ ...base, status: 'confirmed', track, links: [mapping], warnings: ['confirmed-track-missing'] })).toBeUndefined();
+    expect(showableTrackGuid({ ...base, status: 'matched', track })).toBeUndefined();
+    expect(showableTrackGuid({ ...base, status: 'ambiguous', track, links: [mapping] })).toBeUndefined();
+    expect(showableTrackGuid(base)).toBeUndefined();
+    expect(showableTrackGuid(undefined)).toBeUndefined();
   });
 });
