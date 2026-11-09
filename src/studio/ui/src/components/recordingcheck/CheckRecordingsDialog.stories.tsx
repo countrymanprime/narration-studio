@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { MemoryRouter } from 'react-router-dom';
-import { expect, within } from 'storybook/test';
+import { expect, userEvent, within } from 'storybook/test';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import type { CoverageResult, CoverageStartResult } from '../../api/contracts/coverage';
@@ -154,5 +154,26 @@ export const SecondLookWithParallelChunks: Story = {
       ),
     ).toBeTruthy();
     await expect(canvas.getByRole('combobox', { name: 'Larger model' })).toBeTruthy();
+  },
+};
+
+export const WholeRecording: Story = {
+  parameters: { api: host() },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(await canvas.findByRole('checkbox', { name: /Transcribe each recording whole/ }));
+    const chunk = canvas.getByRole('combobox', { name: 'Chunk length' }) as HTMLSelectElement;
+    await expect(chunk.disabled).toBe(true);
+    await expect(chunk.selectedOptions[0].textContent).toBe('Whole');
+  },
+};
+
+export const ChunkLengthSettingsDoNotOffer: Story = {
+  parameters: {
+    api: host({ coverageEngines: async () => ({ ...engines, defaults: { ...engines.defaults, chunkSeconds: 240 } }) }),
+  },
+  play: async ({ canvasElement }) => {
+    const chunk = (await within(canvasElement).findByRole('combobox', { name: 'Chunk length' })) as HTMLSelectElement;
+    await expect(chunk.value).toBe('240');
   },
 };
