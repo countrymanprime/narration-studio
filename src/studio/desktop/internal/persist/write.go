@@ -17,8 +17,8 @@ const (
 // errTransient stands in for the platform's "someone has it open" error in tests; isTransient also matches it.
 var errTransient = errors.New("destination is briefly in use")
 
-// rename is os.Rename; tests swap it.
-var rename = os.Rename
+// rename is the platform move (replaceFile); tests swap it.
+var rename = replaceFile
 
 func swapRename(replacement func(from, to string) error) (restore func()) {
 	previous := rename

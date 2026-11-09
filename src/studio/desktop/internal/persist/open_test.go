@@ -33,10 +33,6 @@ func TestSaveSucceedsWhileAReaderHoldsTheFileOpen(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer func() { _ = reader.Close() }()
-	restore := swapRename(func(from, to string) error {
-		return os.Rename(from, to) // the real rename, no retry help: the first attempt must succeed
-	})
-	defer restore()
 	if err := WriteFile(path, []byte("new"), 0o600); err != nil {
 		t.Fatalf("WriteFile while a reader is open: %v", err)
 	}
