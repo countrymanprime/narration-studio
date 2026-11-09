@@ -478,6 +478,10 @@ export function createChapterTracksMock(
           message: 'REAPER is not connected to this app. To select a track in REAPER, open REAPER; the app connects to it by itself.',
         };
       }
+      // REAPER answers track_missing for a track that is not in its project, as the host does.
+      if (!liveProject().tracks.some((track) => track.guid === trackGuid)) {
+        return { outcome: 'refused', reason: 'track_missing', message: 'That track is no longer in the REAPER project.' };
+      }
       return { outcome: 'selected', trackGuid };
     },
     chapterTrackMatch: async (chapterId) => {

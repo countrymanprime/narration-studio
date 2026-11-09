@@ -29,6 +29,16 @@ describe('Changed for a fact row (issue 2980)', () => {
   });
 });
 
+describe('Changed for a fact row ignores case and spaces (#3231)', () => {
+  const row = rowOf('voice.engine')!;
+  it.each(['Piper', 'piper ', ' PIPER'])('is not changed for a stored %j', (stored) => {
+    expect(isChanged(row, field(stored, true))).toBe(false);
+  });
+  it('is still changed for another engine', () => {
+    expect(isChanged(row, field('espeak', true))).toBe(true);
+  });
+});
+
 describe('Changed ignores spaces alone (#3231)', () => {
   const row = { ...rowOf('voice.engine')!, def: '' };
   it('is not changed for a whitespace-only or empty stored value, and is for a real one', () => {

@@ -22,9 +22,9 @@ export const overrideValue = (row: SettingMeta, project: ScopedSettingField | un
 export const projectValue = (row: SettingMeta, global: ScopedSettingField | undefined, project: ScopedSettingField | undefined): string =>
   overrideValue(row, project) ?? computerValue(row, global);
 
-/** The computer's value differs from the default. Spaces around a value are not a difference: a stored "  " reads "Not set", as the default does (#3231). */
+/** The computer's value differs from the default. Spaces around a value are not a difference, nor is the case of a fact row's engine name ("Piper" is "piper"): a stored "  " reads "Not set", as the default does (#3231). */
 export const isChanged = (row: SettingMeta, global: ScopedSettingField | undefined): boolean =>
-  Boolean(global?.isSet) && global!.value.trim() !== row.def.trim();
+  Boolean(global?.isSet) && (row.fact ? global!.value.trim().toLowerCase() !== row.def.toLowerCase() : global!.value.trim() !== row.def.trim());
 
 const NONE: ReadonlySet<string> = new Set();
 
