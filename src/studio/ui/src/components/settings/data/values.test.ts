@@ -28,3 +28,12 @@ describe('Changed for a fact row (issue 2980)', () => {
     expect(isAnyChanged(row, field('other', true), undefined)).toBe(true);
   });
 });
+
+describe('Changed ignores spaces alone (#3231)', () => {
+  const row = { ...rowOf('voice.engine')!, def: '' };
+  it('is not changed for a whitespace-only or empty stored value, and is for a real one', () => {
+    expect(isChanged(row, field('   ', true))).toBe(false);
+    expect(isChanged(row, field('', true))).toBe(false);
+    expect(isChanged(row, field('Ada', true))).toBe(true);
+  });
+});

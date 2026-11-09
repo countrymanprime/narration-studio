@@ -369,6 +369,27 @@ describe('Settings: editing', () => {
     await waitFor(() => expect(within(row('app.channel')).queryByText('Changed')).toBeNull());
   });
 
+  it('sends one save for a Reset pressed again while its save is slow (#3231)', async () => {
+    const api = createMockApi();
+    const real = api.saveSettings.bind(api);
+    await renderPage({ api });
+    pick('App & updates');
+    fireEvent.change(await screen.findByRole('combobox', { name: /Update channel/ }), { target: { value: 'stable' } });
+    await waitFor(() => expect(within(row('app.channel')).getByText('Changed')).toBeTruthy());
+    let release: () => void = () => undefined;
+    const slow = vi.spyOn(api, 'saveSettings').mockImplementation(async (...args) => {
+      await new Promise<void>((resolve) => (release = resolve));
+      return real(...args);
+    });
+    const reset = within(row('app.channel')).getByRole('button', { name: 'Reset Update channel to Candidates and stable' });
+    fireEvent.click(reset);
+    fireEvent.click(reset);
+    fireEvent.click(reset);
+    expect(slow).toHaveBeenCalledTimes(1);
+    release();
+    await waitFor(() => expect(within(row('app.channel')).queryByText('Changed')).toBeNull());
+  });
+
   it('a value equal to the default clears the setting instead of pinning it', async () => {
     const api = createMockApi();
     const save = vi.spyOn(api, 'saveSettings');
