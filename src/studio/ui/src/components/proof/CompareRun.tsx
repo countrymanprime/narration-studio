@@ -200,10 +200,13 @@ export function CompareRun({
         // The stored model may not allow the stored chunk (Settings offers both on their own): start on the longest it does allow, as choosing the model in this panel would.
         const allowed = CHUNK_LIMIT_INDEX[modelSetting?.effectiveValue ?? ''] ?? CHUNK_OPTIONS.length - 1;
         if (index >= 0) setChunkIndex(Math.min(index, allowed));
+        else if (chunkSetting?.effectiveValue)
+          notify(`The chunk length in Settings (${chunkSetting.effectiveValue}) is not one this panel offers; starting on ${CHUNK_LABELS[1]}.`);
       } catch {
         /* defaults remain usable */
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- read once per api; a new `notify` must not re-read the settings.
   }, [api]);
 
   const selectModel = (value: string) => {

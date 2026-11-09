@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { CATEGORIES } from './categories';
 import { PAGE_SETTINGS } from './pageSettings';
+import { choiceLabel } from '../data/values';
 import { reaperPathProblem, ROWS } from './rows';
 import { search } from './search';
 
@@ -94,6 +95,13 @@ describe('the two chunk length rows (#2980)', () => {
     expect(Object.keys(compare.options ?? {})).toEqual(['30', '60', '300', '600']);
     expect(coverage.def).toBe(DEFAULTS.RecordingCoverage!.chunk_seconds);
     expect(compare.def).toBe(DEFAULTS.TranscriptCompare!.chunk_seconds);
+  });
+  it('a stored value Settings does not list is named with its unit or called invalid (#3196)', () => {
+    expect(choiceLabel(compare, '0')).toBe('0 s');
+    expect(choiceLabel(coverage, '0')).toBe('Each file whole');
+    expect(choiceLabel(coverage, '240')).toBe('240 s');
+    for (const odd of ['abc', '-5', '60.5', ' 60', '1e3', 'NaN']) expect(choiceLabel(coverage, odd)).toBe(`${odd} (invalid)`);
+    expect(choiceLabel(coverage, '')).toBe('Not set');
   });
   it('each has its own one-line help and its own details', () => {
     for (const row of [coverage, compare]) expect(row.desc.length, row.id).toBeLessThanOrEqual(60);

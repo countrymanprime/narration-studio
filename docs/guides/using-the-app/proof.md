@@ -355,7 +355,7 @@ with and the colours of the three kinds of marker a comparison exports to REAPER
 each a colour picker and six hex digits). A change is saved at once for this project; **Reset** appears on one this project
 changes and hands it back to the computer-wide value or the built-in default. Settings under **Set on a page** has the same
 values with a **Global** / **This project** switch, and **Compare chunk length** under Speech to text in Settings sets the
-computer-wide value. The setup starts on that chunk length, or on the longest the chosen model can take when it cannot take it. The transcription model is not here: it is the
+computer-wide value. The setup starts on that chunk length, or on the longest the chosen model can take when it cannot take it. A stored length that is not one of the choices (30 s, 1m, 5m, 10m) is not used: the setup starts on 1m and a notice says so. The transcription model is not here: it is the
 one default in Settings under Speech to text.
 
 ![Proof chapter view - the Compare options dialog opened from Jump to or run](../../images/ui/proof-chapter-options.webp)

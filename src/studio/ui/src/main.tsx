@@ -279,7 +279,7 @@ const mockChapterRead = (['fails'] as const).find((seed) => seed === mockParams.
 const mockProfileRead = (['fails'] as const).find((seed) => seed === mockParams.get('mockProfileRead'));
 // `?mockSettings=loading|unreadable|save-fails` makes the settings file never answer a read, fail every read, or refuse every save as read-only,
 // so Settings can be seen loading, unreadable and failing to save.
-const mockSettings = (['loading', 'unreadable', 'save-fails'] as const).find((seed) => seed === mockParams.get('mockSettings'));
+const mockSettings = (['loading', 'unreadable', 'save-fails', 'odd-chunk'] as const).find((seed) => seed === mockParams.get('mockSettings'));
 // `?mockVoiceSamples=bible|full|daw` boots with voice samples already saved (api/voiceSamplesMock.ts): `bible` is the Story Bible's states (a Queen of
 // Hearts with four samples, one whose passage changed and one whose audio file is missing, the Hatter's, Narration's, and one for a character who left
 // the Story Bible); `full` is a Queen with the 20 a character may have; `daw` is a Queen with samples kept in REAPER (the region's states).
