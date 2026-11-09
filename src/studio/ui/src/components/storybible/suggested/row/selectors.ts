@@ -1,9 +1,9 @@
-// The pure selectors behind the suggestion row, the confidence chip and the accepted claims (SN-X41), ported from the Studio Next
+// The pure selectors behind the suggestion row, the confidence chip and the accepted claims (SN-X41), ported from the the rebuild
 // mock's src/selectors/extraction.ts. They read the suggestions the host lists (api/contracts/extraction.ts) and change nothing.
 
 import type { ClaimKind, ExtractionSuggestion, SuggestionPayload } from '../../../../api/contracts/extraction';
 
-/** The 75% rule's line (the Studio Next extraction PRD): a suggestion at or above it is accepted for the narrator, under it or with no score they check it. The host applies the rule and sets the status; this is only the number the chip's explanation quotes. */
+/** The 75% rule's line (the rebuilt extraction PRD): a suggestion at or above it is accepted for the narrator, under it or with no score they check it. The host applies the rule and sets the status; this is only the number the chip's explanation quotes. */
 export const VERIFY_BELOW = 0.75;
 
 /** A confidence as a whole percent. */

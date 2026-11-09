@@ -34,7 +34,7 @@ const api: InspectorHostApi = {
 
 const daw = (setup: DawSetupId): DawClient => createMockDawClient(DAW_SETUPS[setup], { chapterIds: ['chapter-1'], candidateIds: [], findingIds: ['f1'] });
 
-// The Studio Next Inspector (docs/research/mockups/studio-next/src/pages/proof/Inspector.tsx) without the takes section and the type select,
+// The rebuilt Inspector (docs/research/mockups/research-mock/src/pages/proof/Inspector.tsx) without the takes section and the type select,
 // which arrive through the `spot` and `typeControl` slots. The column is about 24 rem wide.
 const meta = {
   title: 'Proof/Inspector',

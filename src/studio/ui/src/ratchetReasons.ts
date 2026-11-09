@@ -1,9 +1,9 @@
-// What keeps each file that still has an entry in the three per-file ratchets of the Studio Next series (SN-C4): the raw
+// What keeps each file that still has an entry in the three per-file ratchets of the rebuilt series (SN-C4): the raw
 // native elements (`rawNatives.test.ts`), the direct icon imports (`iconImports.test.ts`) and the
 // `useApi()` calls (`ports/useApiRatchet.test.ts`). Each of those tests calls `unexplained()` with its own
 // entries, so a file cannot gain an entry, or keep one, without a line here.
 //
-// KEPT is a feature the Studio Next mock does not draw, left as built on purpose, with the decision that says so.
+// KEPT is a feature the research mock does not draw, left as built on purpose, with the decision that says so.
 // GAPS is a file that a page swap should have rebuilt or deleted and that still has an entry: the swap left it behind. A gap is not a reason; it
 // is the evidence of a miss, listed so it is counted: `rawNatives.test.ts` pins the count, so a new offender cannot be added here. SN-C4 owns no component, so it records the gaps
 // and a fixer slice removes them, then deletes the line here and the entry in the ratchet.
@@ -12,7 +12,7 @@ const COMPANION = 'the Companion window has no page in the mock and stays as bui
 const VOICE_BIBLE =
   'a Story Bible feature the mock does not draw (properties, dialogue cues, Commons and online pronunciation lookup), kept as built (DQ-12, SN0-Q5)';
 const ENGINE = 'the engine panel (DAW link, chapter sync, render) has no page in the mock and stays as built';
-const PICKER = 'the project picker and the start-up screens come before any Studio Next page and stay as built';
+const PICKER = 'the project picker and the start-up screens come before any rebuilt page and stay as built';
 const CREDITS = 'the credits cards stay in the Script page and the manuscript import (the SN-B8 default)';
 const TIMER = 'the stage timer, PFH and the effective rate stay as built (DQ-3, SN0-Q4)';
 

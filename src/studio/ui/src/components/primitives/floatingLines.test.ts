@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, test } from 'vitest';
 
-// Studio Next draws a floating surface and a key picture with `--line-strong`; the rows inside a surface and the
+// rebuilt draws a floating surface and a key picture with `--line-strong`; the rows inside a surface and the
 // footer's top rule stay the hairline `--border` (mock app.css lines 31, 179, 259, 537). The cap fill stays
 // `--surface-2`: the mock's `--raised` has no token here and `--surface-2` is its role equivalent. Each entry names the
 // edge classes a file must carry and the ones it must not.

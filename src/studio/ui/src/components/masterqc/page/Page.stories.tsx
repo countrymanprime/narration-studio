@@ -3,7 +3,7 @@ import { expect, fn, within } from 'storybook/test';
 import { MasterPage } from './MasterPage';
 import { ALL_PASS, CHAPTERS_WITH_CREDITS, PageHost, TWO_FAIL, acx, apiOf, jobOf } from './testPage';
 
-// Master & QC's page body (docs/research/mockups/studio-next/src/pages/Master.tsx): files, consistency and the package checks beside
+// Master & QC's page body (docs/research/mockups/research-mock/src/pages/Master.tsx): files, consistency and the package checks beside
 // the kept panels. Mounted at `/master`.
 const meta = {
   title: 'Master & QC/Page',

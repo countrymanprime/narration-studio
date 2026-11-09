@@ -31,7 +31,7 @@ The one pronunciation source that fetches is not a row in either registry ([ADR 
 
 ## Extraction sources
 
-A Story Bible suggestion records the source it came from. The host's rows and Python's `extraction.BUILT_IN` descriptors both read this table in their tests, so the two cannot list different sources; the UI shows the label and icon beside each suggestion (Studio Next extraction PRD).
+A Story Bible suggestion records the source it came from. The host's rows and Python's `extraction.BUILT_IN` descriptors both read this table in their tests, so the two cannot list different sources; the UI shows the label and icon beside each suggestion (rebuilt extraction PRD).
 
 | Source | Label | Icon | Runs | Assets | Available today |
 | --- | --- | --- | --- | --- | --- |

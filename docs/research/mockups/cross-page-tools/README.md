@@ -2,9 +2,9 @@
 
 **Status:** draft, not signed off by the owner. Refs #2251. It serves the placement issues filed from the [cross-page function audit](../../2026-11-cross-page-function-audit.md) (PR #2834): #2820, #2821, #2822, #2823, #2824, #2825, #2826, #2827, #2829, #2830, #2831, #2833. #2819 (a registry), #2828 (an existing dialog) and #2832 (jump-menu entries) draw nothing new and have no mock.
 
-The Studio Next mock stays the spec and is not edited ([Which mocks are the spec](../../../design/design-system.md#which-mocks-are-the-spec)). This draft adds controls it lacks, to the pages as built. A dashed copper outline marks what is new on a page.
+The research mock stays the spec and is not edited ([What a page builds to](../../../design/design-system.md#what-a-page-builds-to)). This draft adds controls it lacks, to the pages as built. A dashed copper outline marks what is new on a page.
 
-`index.html` is one static file: no build, no network, system fonts, tokens copied from `studio-next/src/styles/app.css` as the booth-voices mock does. It follows the system theme and has System, Light and Dark buttons (`?theme=dark` also works); the app frame narrows on its own width, so 390 px shows the narrow form. `node docs/research/mockups/cross-page-tools/shots.mjs` redraws `shots/` (one PNG per issue at 1440 and 390 px, light and dark, each under 250 KB) and `manifest.json` (per issue: title, what changes, image files and what to look at). Set `CHROMIUM` to the installed headless shell.
+`index.html` is one static file: no build, no network, system fonts, tokens copied from `research-mock/src/styles/app.css` as the booth-voices mock does. It follows the system theme and has System, Light and Dark buttons (`?theme=dark` also works); the app frame narrows on its own width, so 390 px shows the narrow form. `node docs/research/mockups/cross-page-tools/shots.mjs` redraws `shots/` (one PNG per issue at 1440 and 390 px, light and dark, each under 250 KB) and `manifest.json` (per issue: title, what changes, image files and what to look at). Set `CHROMIUM` to the installed headless shell.
 
 ## Sections
 

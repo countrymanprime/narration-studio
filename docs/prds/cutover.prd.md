@@ -1,30 +1,30 @@
-# Studio Next Cutover: Parity Audit, Ratchets, Deleting the Mock and the Steady-State Docs
+# Cutover: Parity Audit, Ratchets, Deleting the Mock and the Steady-State Docs
 
-**Source:** owner request of 2026-10-10 (Studio Next Rebuild); the mock's lifecycle ("this folder is deleted when the real app matches it", `studio-next/README.md`) and the "Which mocks are the spec" section of [`.claude/rules/ui-spec-and-screenshots.md`](../../.claude/rules/ui-spec-and-screenshots.md).
+**Source:** owner request of 2026-10-10 (rebuild PRD); the mock's lifecycle ("this folder is deleted when the real app matches it", `research-mock/README.md`) and the "What a page builds to" section of [`.claude/rules/ui-spec-and-screenshots.md`](../../.claude/rules/ui-spec-and-screenshots.md).
 
-**Builds on:** Which mocks are the spec, [Lifecycle of a PRD](README.md#lifecycle-of-a-prd) (planned work is deleted when built), [Design principles](../architecture/principles.md) (replacement rule), the lifecycle in [the PRD README](README.md#lifecycle-of-a-prd).
+**Builds on:** What a page builds to, [Lifecycle of a PRD](README.md#lifecycle-of-a-prd) (planned work is deleted when built), [Design principles](../architecture/principles.md) (replacement rule), the lifecycle in [the PRD README](README.md#lifecycle-of-a-prd).
 
 **Status (2026-10-11):** draft; every owner question is decided (see Decisions). Runs last; its first two slices (the ruling index and the owner QA list) start early so the index fills as pages land.
 
 ## Problem Statement
 
-"Matches the mock" has no definition. Without one, the mock folder either stays forever as a second spec that drifts from the app, or is deleted with rulings that never became tests. The owner's rulings (about 120 bullets across `studio-next/research/repo-compare-decisions.md`) are the contract; the mock's 45-odd tests are the evidence of how each behaved. The cutover turns both into a checked index, finishes the ratchets that only fall, deletes the mock and the PRDs, and writes the steady-state docs.
+"Matches the mock" has no definition. Without one, the mock folder either stays forever as a second spec that drifts from the app, or is deleted with rulings that never became tests. The owner's rulings (about 120 bullets across `research-mock/research/repo-compare-decisions.md`) are the contract; the mock's 45-odd tests are the evidence of how each behaved. The cutover turns both into a checked index, finishes the ratchets that only fall, deletes the mock and the PRDs, and writes the steady-state docs.
 
 ## Evidence
 
-- The mock's rulings file is the seed; its tests (`studio-next/tests/`) are named by batch and page, not by ruling.
+- The mock's rulings file is the seed; its tests (`research-mock/tests/`) are named by batch and page, not by ruling.
 - The repo already checks contract coverage by test (`src/studio/ui/src/api/wireContracts.test.ts` fails on an unmapped binding) and has ratchets (`src/studio/ui/src/rawNatives.test.ts`, Knip at zero, atlas coverage); there is no ruling index.
 - The mock folder is named by the PRD README, `knip.jsonc` (an `ignore` entry) and `tools/docs-site/mkdocs.yml` (an `exclude_docs` entry), and the rule file above is path-scoped to `docs/research/mockups/**`.
-- The benchmark mocks are `docs/research/mockups/audiobook-studio-benchmark/01-*.webp` to `07-*.webp`, scored by `src/studio/ui/tests/visual/mock-match/` (`pnpm --dir src/studio/ui mock-match`, `mocks.ts`); `06-series-voice-bible.webp` and `07-daw-companion.webp` map to pages the Studio Next mock lacks.
+- The benchmark mocks are `docs/research/mockups/audiobook-studio-benchmark/01-*.webp` to `07-*.webp`, scored by `src/studio/ui/tests/visual/mock-match/` (`pnpm --dir src/studio/ui mock-match`, `mocks.ts`); `06-series-voice-bible.webp` and `07-daw-companion.webp` map to pages the research mock lacks.
 - PRDs are deleted by the PR that completes their last phase ([Lifecycle of a PRD](README.md#lifecycle-of-a-prd)); the series has 15 PRDs and a cross-reference web that must not dangle.
 
 ## Proposed Solution
 
-1. **Ruling index.** A table (`docs/research/studio-next-ruling-index.md` while the work runs, deleted at the end) with one row per ruling bullet: id, text, status (agreed, agreed with conditions, deferred, rejected, maybe), the owning slice, the test name in the real app. A test (`scripts/ci/studio-next-rulings.test.mjs`) fails while an "agreed" row has no test name.
-2. **Parity audit per page.** For each page the mock's tests (`studio-next/tests/*`) are mapped to real tests; an unported test needs a reason (not applicable: mock-only, or covered by X).
+1. **Ruling index.** A table (`docs/research/ruling-index.md` while the work runs, deleted at the end) with one row per ruling bullet: id, text, status (agreed, agreed with conditions, deferred, rejected, maybe), the owning slice, the test name in the real app. A test (`scripts/ci/rulings.test.mjs`) fails while an "agreed" row has no test name.
+2. **Parity audit per page.** For each page the mock's tests (`research-mock/tests/*`) are mapped to real tests; an unported test needs a reason (not applicable: mock-only, or covered by X).
 3. **Owner QA list on #992.** The steps only the owner can do: Shift+F10 in the WebView, REAPER undo behaviour of each new command, a real record with the pedal, Audacity backups, extraction on a real manuscript, the carried-over verification passes.
 4. **Final ratchets.** `rawNatives` ceilings for series pages at zero; direct `FontAwesomeIcon` imports outside `Icon` at zero for migrated pages; every port has a contract suite; no `registerKeys`-style handlers; no bridge imports outside adapters.
-5. **Delete the mock and the old specs.** Remove `docs/research/mockups/studio-next/`, the `knip.jsonc` and `mkdocs.yml` entries, the PRD README lines, the "Which mocks are the spec" section of the rule file and the train's mock-spec section (D96, replaced by the Studio Next ruling of SN0-Q1 while the series runs and by nothing once the mock is gone), and the screenshots helper. Also remove the benchmark mocks and the mock-match tooling (`src/studio/ui/tests/visual/mock-match/`, the `mock-match` script, `docs/operations/verification-tooling.md#mock-match`'s scoring), except the mock files, `mocks.ts` entries and report code that the Series voice bible and Companion pages still need: those two pages have no Studio Next equivalent and stay as built (SN0-Q5, DQ-13), so their reference mock stays.
+5. **Delete the mock and the old specs.** Remove `docs/research/mockups/research-mock/`, the `knip.jsonc` and `mkdocs.yml` entries, the PRD README lines, the "What a page builds to" section of the rule file and the train's mock-spec section (D96, replaced by the rebuilt ruling of SN0-Q1 while the series runs and by nothing once the mock is gone), and the screenshots helper. Also remove the benchmark mocks and the mock-match tooling (`src/studio/ui/tests/visual/mock-match/`, the `mock-match` script, `docs/operations/verification-tooling.md#mock-match`'s scoring), except the mock files, `mocks.ts` entries and report code that the Series voice bible and Companion pages still need: those two pages have no rebuilt equivalent and stay as built (SN0-Q5, DQ-13), so their reference mock stays.
 6. **Confirm the old equivalents are gone.** Each swap already deleted the old page and every old equivalent of what the mock's page covers ([Deletions the rulings imply](#deletions-the-rulings-imply)); the parity audit checks that none remains.
 7. **Steady-state docs.** New or updated: `docs/architecture/` (shell and registries; UI state and the command journal; DAW capabilities and results; extraction tiers), `docs/design/design-system.md` (new primitives, icon vocabulary, layout rules), `docs/guides/using-the-app/*` (each page), `docs/architecture/threat-model.md` and `SECURITY.md` rows, diagrams naming moved files, and the ADRs that landed.
 8. **Delete the series PRDs** in the PR that completes the last phase of each, then this one; update the PRD index.
@@ -50,12 +50,12 @@ If every agreed ruling has a named test and the owner has done the QA list, dele
 
 ## Decisions
 
-The owner's rulings of 2026-10-11 (SN0-Q1, DQ-1 to DQ-18; see Studio Next Rebuild) settle every question this PRD had. No question is open.
+The owner's rulings of 2026-10-11 (SN0-Q1, DQ-1 to DQ-18; see Rebuild) settle every question this PRD had. No question is open.
 
 | Id | Ruling | Consequence for the cutover |
 | --- | --- | --- |
 | SNC-Q1 | The mock is deleted at cutover, as its README says; it stays available only through git history (`git log --diff-filter=D` recipe in the docs). | Phase 6 deletes the folder. |
-| SNC-Q2 | SN0-Q1 answers it: Studio Next is the only spec for the pages it covers. | D96 and the rule file's benchmark-only text are replaced while the series runs and removed at cutover. |
+| SNC-Q2 | SN0-Q1 answers it: the PRD, the issue and the page guide are the spec for the pages it covers. | D96 and the rule file's benchmark-only text are replaced while the series runs and removed at cutover. |
 | SNC-Q3 | Deferred rows (time tracking, Companion, proofer CSV, Audacity 4, redo) get no successor PRD; they stay in the ruling index as deferred. | Nothing is added; the owner may open a PRD later. |
 | SNC-Q4 | Every ruling DQ-1 to DQ-18 is recorded as an ADR before the old ADR's Status reads "Superseded by". | Required for cutover; the audit lists the register's working titles and their merged ADR numbers. |
 
@@ -74,7 +74,7 @@ The owner, the coordinator and the last workers; the docs reader after the serie
 | Ruling index | Every "agreed" and "agreed with conditions" bullet has a test name that exists |
 | Deferred and rejected rows | Listed with their status and the ADR or PRD that records the decision |
 | Mock deletion | The folder and references gone; the benchmark mocks and mock-match tooling gone except what the Series voice bible and Companion pages need; `pnpm check` and the docs check green |
-| Old equivalents | No old page, route, state-catalogue row, driver, aria snapshot or guide for anything the Studio Next mock covers remains |
+| Old equivalents | No old page, route, state-catalogue row, driver, aria snapshot or guide for anything the research mock covers remains |
 | Steady-state docs | Each page guide updated; the architecture docs exist; screenshots regenerated once by the final sweep (D44) |
 | PRD deletion | Each series PRD removed in its last phase's PR; the index and "Replaced briefs" updated; the old PRDs' carried-over phases show where they went |
 
@@ -84,7 +84,7 @@ A swap slice deletes the old page and every old equivalent of what the mock's pa
 
 | What is removed | Removed in | Ruling |
 | --- | --- | --- |
-| The old page for each Studio Next page, its route, state-catalogue rows, drivers, aria snapshots, guide and doc screenshots | That page's swap slice (SNB-8, SNP-8, SNQ-9, SNO-10, SNM-5, SNE-9) | SN0-Q2 |
+| The old page for each rebuilt page, its route, state-catalogue rows, drivers, aria snapshots, guide and doc screenshots | That page's swap slice (SNB-8, SNP-8, SNQ-9, SNO-10, SNM-5, SNE-9) | SN0-Q2 |
 | Benchmark-measured tokens and primitive sizes that differ from the mock | The token batch (SNF-2) and each swap | DQ-1 |
 | The Proof chapter page's workspace (word-level player, flags, takes panel, FX on a passage) | The Editing swap (SNE-9) | SN0-Q2, A15 |
 | The split-and-delete apply path for cleanup trims; trims go to the muted Cuts track | The Editing swap | DQ-8 |

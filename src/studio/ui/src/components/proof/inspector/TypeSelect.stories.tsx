@@ -5,7 +5,7 @@ import type { FindingNoteType } from '../../../types';
 import { inspectorFinding } from './testFinding';
 import { TypeSelect } from './TypeSelect';
 
-// The Studio Next Inspector's `#ptype`: the type of finding, one of ten words, shown in the header beside the time.
+// The rebuilt Inspector's `#ptype`: the type of finding, one of ten words, shown in the header beside the time.
 const meta = {
   title: 'Proof/TypeSelect',
   component: TypeSelect,

@@ -29,7 +29,7 @@ export function chapterCount(entry: GuideEntity): number {
 /** The host's review flags; a host that sends none is read from `review_state`, with no name flagged. */
 export const reviewFlags = (entry: GuideEntity): GuideReview => entry.review ?? { entry: entry.review_state === 'needs review', aliases: [] };
 
-/** The entry or one of its names carries a flag the narrator has not cleared (the Studio Next mock's `needsReview`). */
+/** The entry or one of its names carries a flag the narrator has not cleared (the research mock's `needsReview`). */
 export const entryFlagged = (entry: GuideEntity): boolean => {
   const review = reviewFlags(entry);
   return review.entry || review.aliases.length > 0;

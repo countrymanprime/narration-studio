@@ -9,7 +9,7 @@ import { useScriptView } from '../../data/useScriptData';
 import { WordsTab } from './WordsTab';
 import { ONLINE_SOURCE_ID, type DefinitionSource, type WordsHost } from './wordsHost';
 
-// The Words tab as the mock's Script page draws it (docs/research/mockups/studio-next/src/pages/script/WordsTab.tsx), over the browser mock
+// The Words tab as the mock's Script page draws it (docs/research/mockups/research-mock/src/pages/script/WordsTab.tsx), over the browser mock
 // host. The tab reads the host through the page's data hooks, so each story seeds the mock: it flags the first words of the chapter,
 // optionally gives the first a say-value, and shows one word's card.
 

@@ -8,7 +8,7 @@ import type { ManuscriptChapter } from '../../api/contracts/manuscript';
 import type { NarrationApi } from '../../types';
 import { CheckRecordingsDialog } from './CheckRecordingsDialog';
 
-// The Check recordings dialog body (docs/research/mockups/studio-next/src/pages/pickups/CheckRecordings.tsx), the app's one recording check:
+// The Check recordings dialog body (docs/research/mockups/research-mock/src/pages/pickups/CheckRecordings.tsx), the app's one recording check:
 // every page's entry opens it through `openCheckRecordings`.
 const chapter = (index: number, extra: Partial<ManuscriptChapter> = {}): ManuscriptChapter => ({
   id: `c${index}`,

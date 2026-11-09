@@ -1,4 +1,4 @@
-// The Script page's pure selectors, ported from the Studio Next mock's `selectors/annotations.ts`, `bible.ts`, `phrases.ts`
+// The Script page's pure selectors, ported from the research mock's `selectors/annotations.ts`, `bible.ts`, `phrases.ts`
 // and `speakers.ts` onto the host's lists: marks and their types (`marksList`), Story
 // Bible entries (`guideEntities`, which hold every name's pronunciation, #2595) and dialogue cues (`guideDialogueCues`). Each takes plain lists and returns a new value; none
 // mutates its input or reads anything else, so the hooks bind them and a story or test calls them with no host.

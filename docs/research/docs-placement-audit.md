@@ -160,7 +160,7 @@ Examples (full list with a suggested home for each in appendix A):
 | ADR | Category | Why it is not an ADR by the industry test |
 | --- | --- | --- |
 | [0758](../operations/ci-and-releases.md) the agent train is watched from outside | PROCESS | how the delivery process is supervised; no software structure changes if it is reversed |
-| [0760](../design/design-system.md#which-mocks-are-the-spec) the Studio Next mock is the only spec | PROCESS | a ruling on which spec wins; a project-management rule |
+| [0760](../design/design-system.md#what-a-page-builds-to) the research mock is the only spec | PROCESS | a ruling on which spec wins; a project-management rule |
 | 0410 the ADR index is generated | PROCESS | docs tooling |
 | [0002](../design/design-system.md#primitive-components) dialog action buttons on opposite sides | UX | one layout preference |
 | [0363](../../src/studio/ui/src/components/primitives/TagInput.tsx) Backspace on an empty tag input removes the last chip | UX | one key binding of one component |
@@ -244,24 +244,24 @@ About 5 are close to pure architecture description: `codebase-map.md`, `wire-con
 ### 2.7 PRDs (`docs/prds/`, 15 plus README)
 
 - All 15 carry "Parallel-session compatibility" (files each phase touches and which agent sessions collide), "Slices", "Supersedes / depends on ADRs", and both "Decisions" and "Decisions Log". The template in `docs/prds/README.md` requires them: item 11, "a Parallel-session compatibility table of the files each phase touches and who else collides with them", and a `PRP Plan` column. These are delivery-plan and tracker content (section 1.3).
-- [Studio Next Agent Delivery](../../.claude/skills/agent-train/references/groomer.md#slices) is not a product requirement: "The worker contract", "PR babysitting as a standing duty", "Session cap per slice". It is agent operating procedure.
-- Studio Next ADR Register is a register of 143 ADR keep/extend/yield verdicts and 18 owner rulings: an ADR supersession plan, not a PRD.
+- [Agent Delivery](../../.claude/skills/agent-train/references/groomer.md#slices) is not a product requirement: "The worker contract", "PR babysitting as a standing duty", "Session cap per slice". It is agent operating procedure.
+- ADR Register is a register of 143 ADR keep/extend/yield verdicts and 18 owner rulings: an ADR supersession plan, not a PRD.
 - Several PRDs name agents as their users: "The owner, the coordinator and the last workers" (Cutover), "Page workers (consumers) ... the coordinator" (Domain state).
 - Product rules that PRDs cite live in the agent runbook: D69 (dark mode is one theme) and D98 (the mock is the only spec) are in `agent-train.md` "Owner standing rules".
 
 ### 2.8 Research notes (`docs/research/`, 73 files)
 
 - About 38 fit: dated, one question, findings, sources.
-- 18 are something else: five Studio Next audits that say a later slice deletes them ("SNQ-9 deletes this note once ..."), an owner run sheet (`studio-next-daw-spike-runbook.md`, 752 lines), two empty "results pending" templates, a regenerated tracker (`studio-next-ruling-index.md`), a policy and plan document with no date (`local-dependency-evaluation.md`, 837 lines: "License and provenance policy", "Adoption order"), a reference table a Go test mirrors (`acx-delivery-requirements.md`: "change both together"), protocols and fixture how-tos.
+- 18 are something else: five rebuilt audits that say a later slice deletes them ("SNQ-9 deletes this note once ..."), an owner run sheet (`daw-spike-runbook.md`, 752 lines), two empty "results pending" templates, a regenerated tracker (`ruling-index.md`), a policy and plan document with no date (`local-dependency-evaluation.md`, 837 lines: "License and provenance policy", "Adoption order"), a reference table a Go test mirrors (`acx-delivery-requirements.md`: "change both together"), protocols and fixture how-tos.
 - Agent metadata as provenance: 16 notes carry stream or stack ids ("Stream: N-B33"), 9 a "Slice:" header, about 10 an agent's voice ("this session's egress proxy refused"), 18 an owner to-do list for #510.
 - Decisions inside research: `pronunciation-provider-spike.md` ("Status: decided", "Decision"), `recording-coverage-alignment-spike.md`, `character-continuity-acoustic-trial.md`.
-- `docs/research/mockups/studio-next/` is a runnable React app (352 of 365 files are not Markdown). Its `ARCHITECTURE.md` is an agent brief ("Verification (required before you report)", "Report back"); `research/studio2-work-plan.md` is an agent task list with scratchpad paths; `research/repo-compare-decisions.md` is the owner decision register 13 PRDs cite.
+- `docs/research/mockups/research-mock/` is a runnable React app (352 of 365 files are not Markdown). Its `ARCHITECTURE.md` is an agent brief ("Verification (required before you report)", "Report back"); `research/studio2-work-plan.md` is an agent task list with scratchpad paths; `research/repo-compare-decisions.md` is the owner decision register 13 PRDs cite.
 
 ### 2.9 Operations docs (`docs/operations/`, 7 files)
 
 | File | Audience | Finding |
 | --- | --- | --- |
-| `agent-train.md` | agents | wholly agent instructions (coordinator, worker, resume and fixer templates); also holds product policy ("Owner standing rules", "Which mocks are the spec") and contribution policy ("UI PRs show their screenshots") |
+| `agent-train.md` | agents | wholly agent instructions (coordinator, worker, resume and fixer templates); also holds product policy ("Owner standing rules", "What a page builds to") and contribution policy ("UI PRs show their screenshots") |
 | `documentation-gates.md` | mostly agents | steps are skills ("Run doc-impact-check"), and "repeat the Docs: none line in your final message" |
 | `verification-tooling.md`, `ci-and-releases.md` | humans, with agent sections | "Skill evals", Stop and SubagentStop hooks, "the agent-train coordinator reads it"; `ci-and-releases.md` is 796 lines mixing local setup (how-to), a workflow catalogue (reference) and the release runbook |
 | `github-workflow.md`, `reaper-verification-pass.md`, `audacity-verification-pass.md` | humans | fit |
@@ -315,7 +315,7 @@ Each line below is quoted from the repo and set against the practice in section 
 | `.claude/skills/doc-impact-check/references/map.md` | "A decision with lasting effect → `docs/adr/` through `adr-author`" | "lasting effect" is not the industry bar; "hard to reverse and structural" is |
 | `.claude/skills/design-spec-guard/SKILL.md` | "a modal's width gets 'cleaned up' back to an arbitrary value, a button row gets re-aligned" ... checks the change against `docs/adr/` | makes ADRs the place a modal's width is recorded, so workers write one per width |
 | `docs/operations/agent-train.md` Lanes table and worker template | "ADR block" per lane; "ADR BLOCK: <block>. Check docs/adr/ for the next free number inside it"; slice kind `adr` | allocates ADR numbers to every lane as a normal output of a slice |
-| `docs/prds/studio-next-agent-delivery.prd.md` | slice exit: "ADR written if a decision was settled"; PR body "New ADRs for review" | an ADR is expected per slice |
+| `docs/prds/agent-delivery.prd.md` | slice exit: "ADR written if a decision was settled"; PR body "New ADRs for review" | an ADR is expected per slice |
 | `docs/prds/README.md` template | "Supersedes / depends on ADRs" section in every PRD | ties each product phase to ADR churn |
 | `.claude/agents/phase-planner.md` | "Lane, model, ADR block." | same |
 
@@ -325,9 +325,9 @@ Each line below is quoted from the repo and set against the practice in section 
 | --- | --- | --- |
 | `docs/prds/README.md` template item 11 | "the phase table (..., Parallel, Depends, PRP Plan), Phase Details, Parallelism Notes and a Parallel-session compatibility table of the files each phase touches and who else collides with them" | every PRD carries agent scheduling |
 | `docs/operations/agent-train.md` and the agent-delivery PRD | slice kinds: "`spike` (writes `docs/research/` only)"; the slice issue header fields `Lane / model`, `Kind`, `Serial points used` | every spike writes a research note, and slice headers are copied into it |
-| PRDs and groomer output, recorded on #989 | "Audits in four PRDs are 'a comment'; made `docs/research/studio-next-<page>-audit.md` notes (the page swap slice deletes each)" | throwaway audits become research files |
+| PRDs and groomer output, recorded on #989 | "Audits in four PRDs are 'a comment'; made `docs/research/<page>-audit.md` notes (the page swap slice deletes each)" | throwaway audits become research files |
 | `docs/operations/agent-train.md` placement | the coordinator's procedure lives in `docs/operations/` and holds owner standing rules | product policy (D69, D98) lives in an agent runbook and is cited from PRDs and design docs |
-| `.claude/rules/ui-spec-and-screenshots.md` | "The Studio Next mock ... is the only spec (owner ruling D98, 2026-10-11)" | a product rule stored only in agent configuration |
+| `.claude/rules/ui-spec-and-screenshots.md` | "The research mock ... is the only spec (owner ruling D98, 2026-10-11)" | a product rule stored only in agent configuration |
 
 ### 3.4 No rule says what each document type is
 
@@ -424,13 +424,13 @@ Proposed text for a new "Which document" section in `docs/README.md`, linked fro
 | B4 | Architecture docs: move how-tos and checklists out | `docs/architecture/{host-binding-concurrency,interaction-feedback,provider-ports,docx-import-quirks,model-provenance,reaper-bridge,manuscript-line-identity,reaper-navigation}.md`, `docs/operations/reaper-verification-pass.md`, target package READMEs or doc comments | PA-1 | "Adding a ..." sections to the package; the two REAPER checklists and their verification records to the verification pass | `docs-impact-map.json` rows for `reaper-lua` and `reaper-bridge-host` name two of these docs; keep them or update the map |
 | B5 | Architecture docs: move UI behaviour and reference data out | `import-review.md`, `in-app-update.md`, `reaper-navigation.md`, `stage-recommendations.md`, `story-bible-preview.md`, `storybible-import-format.md`, `script-marks.md`, `delivery-measurement-validation.md`, the matching guide pages, `docs/reference/` | B1, B4 | "What the narrator sees" sections to guide pages; `storybible-import-format.md` and `script-marks.md` to `docs/reference/`; measurement results to a dated research note | none |
 | B6 | Architecture docs: the two PRD-shaped files | `manuscript-teleprompter.md`, `first-use-dependency-provisioning.md`, `daw-integration.md`, `findings-contract.md` | B5 | Problem, Intended experience and Acceptance sections removed (the work is built); open items to issues; the teleprompter's engine protocol to a research note; its "UI: what shipped" to `booth.md` | none |
-| B7 | Research: retire throwaway files | the five Studio Next audits, the two empty results templates, `studio-next-ruling-index.md`, `studio-next-parity-production-and-schedule.md` | after the page-swap slices that own them merge | delete, as their own text already plans; the ruling index becomes a CI artifact or an issue | coordinator timing |
-| B8 | Research: strip agent provenance, move living content | the 16 notes with stream ids, 9 with slice headers, 18 with #510 lists; `local-dependency-evaluation.md`, `acx-delivery-requirements.md`, `studio-next-daw-spike-runbook.md`, `recording-coverage-fixtures.md`, `editing-and-proofing-corpus.md`, `tests/fixtures/audio/librivox-alice/README.md` | PA-4 | headers replaced by an issue link; owner lists to #992; policy and adoption order to `model-provenance.md` and the roadmap; ACX table to `docs/reference/`; run sheet to `docs/operations/`; fixture how-tos to fixture READMEs | none |
-| B9 | Agent instructions out of `docs/` | `docs/operations/agent-train.md`, `docs/prds/studio-next-agent-delivery.prd.md`, `docs/operations/documentation-gates.md`, agent sections of `verification-tooling.md` and `ci-and-releases.md`, `.claude/` targets, every link to them (#989 body, PRDs, design docs) | PA-4, O3 | the procedure to `.claude/` (O3); "Owner standing rules" D69 and D98 to the rebuild PRD and `design-system.md`; "UI PRs show their screenshots" to `CONTRIBUTING.md`; skill-workflow steps to the `doc-impact-check` skill | O3; `risk:high`; between waves |
+| B7 | Research: retire throwaway files | the five rebuilt audits, the two empty results templates, `ruling-index.md`, `parity-production-and-schedule.md` | after the page-swap slices that own them merge | delete, as their own text already plans; the ruling index becomes a CI artifact or an issue | coordinator timing |
+| B8 | Research: strip agent provenance, move living content | the 16 notes with stream ids, 9 with slice headers, 18 with #510 lists; `local-dependency-evaluation.md`, `acx-delivery-requirements.md`, `daw-spike-runbook.md`, `recording-coverage-fixtures.md`, `editing-and-proofing-corpus.md`, `tests/fixtures/audio/librivox-alice/README.md` | PA-4 | headers replaced by an issue link; owner lists to #992; policy and adoption order to `model-provenance.md` and the roadmap; ACX table to `docs/reference/`; run sheet to `docs/operations/`; fixture how-tos to fixture READMEs | none |
+| B9 | Agent instructions out of `docs/` | `docs/operations/agent-train.md`, `docs/prds/agent-delivery.prd.md`, `docs/operations/documentation-gates.md`, agent sections of `verification-tooling.md` and `ci-and-releases.md`, `.claude/` targets, every link to them (#989 body, PRDs, design docs) | PA-4, O3 | the procedure to `.claude/` (O3); "Owner standing rules" D69 and D98 to the rebuild PRD and `design-system.md`; "UI PRs show their screenshots" to `CONTRIBUTING.md`; skill-workflow steps to the `doc-impact-check` skill | O3; `risk:high`; between waves |
 | B10 | Product docs lose agent wording | `docs/design/design-system.md`, `docs/reference/daw/{README,capabilities,reaper}.md`, `docs/architecture/{provider-ports,daw-integration}.md`, `docs/README.md`, `docs/guides/using-the-app/README.md`, `docs/roadmap.md` | B9 | one-line rewrites ("serialises on agent-train" → removed; "each command slice flips its own row" → "a command's row changes when it is verified"); roadmap "Dependency rules" to `codebase-map.md` | none |
 | B11 | Skills point to facts, not hold them | `.claude/skills/reaper-api-facts/SKILL.md`, `.claude/skills/design-principles/SKILL.md`, `.claude/rules/ui-spec-and-screenshots.md`, `docs/reference/daw/reaper.md`, a new `docs/architecture/principles.md` | B9, O5 | REAPER facts to `reaper.md`; principles to `principles.md`; the skill and rule keep the procedure and link | `risk:high` |
 | B12 | Utilities and small fixes | `docs/utilities/*.md`, `docs/design/{colour-and-contrast,motion-and-animation}.md`, `src/studio/integrations/audacity/**/README.md` | PA-1 | planned and open sections to issues; "Decisions" to link lists; token-batch history removed (git keeps it); motion plan to an issue; Audacity READMEs point at the adapter | none |
-| B13 | PRDs (no action now) | none | | the existing Studio Next PRDs keep their agent tables until each is deleted when built; the template fix (PA-4) stops new ones. The ADR register PRD is input to the owner's ADR audit | O4 |
+| B13 | PRDs (no action now) | none | | the existing PRDs keep their agent tables until each is deleted when built; the template fix (PA-4) stops new ones. The ADR register PRD is input to the owner's ADR audit | O4 |
 
 ### 5.3 ADR migration (recommendations for the owner's audit, not actions)
 
@@ -717,7 +717,7 @@ Categories as in section 2.2. "Suggested home" is where the content would go if 
 | [0381](../guides/using-the-app/booth.md#companion-mode) | UX | N | Proposed | PRD companion mode | Companion surface layout and what its script follows. |
 | 0382 | DATA | N | Proposed | reference/data-files | markup.json shape, staleness rules and lifetime. |
 | [0383](../architecture/preview-suggestion.md#the-narrators-pin) | UX | N | Accepted | PRD sample preview | One pin per book and staleness behaviour: product rule. |
-| [0388](../guides/using-the-app/booth.md) | UX | N | Proposed | PRD studio-next-booth | Routing by address and which exits stop a session. |
+| [0388](../guides/using-the-app/booth.md) | UX | N | Proposed | PRD booth | Routing by address and which exits stop a session. |
 | 0392 | UX | Y | Proposed | PRD script page | Prep status meaning, breakpoints and a file move bundled. |
 | [0393](../design/design-system.md) | VISUAL | Y | Accepted | design-system.md | Breakpoints, container queries and a Tailwind ordering gotcha. |
 | [0399](../guides/using-the-app/production.md#chapter-pipeline) | UX | N | Proposed | PRD production board | Which panel each board cell opens. |
@@ -805,8 +805,8 @@ Categories as in section 2.2. "Suggested home" is where the content would go if 
 | [0756](../operations/documentation-gates.md) | PROCESS | N | Accepted | docs/operations docs-workflow.md | Docs-impact and docs-slop CI checks plus skills; documentation workflow |
 | [0757](../reference/daw/README.md) | PROCESS | N | Proposed | docs/reference/daw/README | How DAW reference docs are generated and tested against code |
 | [0758](../operations/ci-and-releases.md) | PROCESS | N | Accepted | docs/operations/agent-train.md | Agent train health watching and base-branch gating |
-| [0760](../design/design-system.md#which-mocks-are-the-spec) | PROCESS | N | Accepted | docs/operations spec governance / design-system.md | Declares a mock the sole UI spec over older ADRs; spec governance |
-| [0761](../design/design-system.md#layout-rules) | UX | Y | Accepted | design-system.md + PRD studio-next | Responsive breakpoints, icon catalog module and KeyCap leaf bundled |
+| [0760](../design/design-system.md#what-a-page-builds-to) | PROCESS | N | Accepted | docs/operations spec governance / design-system.md | Declares a mock the sole UI spec over older ADRs; spec governance |
+| [0761](../design/design-system.md#layout-rules) | UX | Y | Accepted | design-system.md + the rebuild PRD | Responsive breakpoints, icon catalog module and KeyCap leaf bundled |
 | [0770](../architecture/ui-state-and-journal.md#the-store-host-reads-cached) | ARCH | N | Accepted | keep | UI read-model store, Go host as source of truth, single journalled command path |
 | [0771](../architecture/ui-state-and-journal.md#the-journal-and-undo) | ARCH | N | Accepted | keep | One in-memory undo journal across UI, host and DAW with conflict rules |
 | [0780](../architecture/studio-shell-and-registries.md#command-providers-and-go-to) | ARCH | N | Accepted | keep | Static command catalogue plus dynamic providers; UI command module structure |

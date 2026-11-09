@@ -482,7 +482,7 @@ describe('the delivery profile on the first import (SNM-4d)', () => {
   });
 });
 
-describe('step 1: choose your manuscript (the Studio Next mock)', () => {
+describe('step 1: choose your manuscript (the research mock)', () => {
   async function openStep1(replacing = false, prepare: (api: NarrationApi) => void = () => {}) {
     const api = createMockApi({}, replacing ? { importPreview: 'docx' } : { noManuscript: true, importPreview: 'docx' });
     prepare(api);
@@ -581,7 +581,7 @@ describe('step 1: choose your manuscript (the Studio Next mock)', () => {
   });
 });
 
-describe('step 2: check the chapter outline (the Studio Next mock)', () => {
+describe('step 2: check the chapter outline (the research mock)', () => {
   it('is named for the file and its step, and says what was found once, in pills above the options', async () => {
     const { dialog } = await openReview();
     expect(screen.getByRole('alertdialog', { name: 'Import Alice.docx · step 2 of 2' })).toBeTruthy();

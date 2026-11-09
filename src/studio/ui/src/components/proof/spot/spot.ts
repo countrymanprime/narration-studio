@@ -1,4 +1,4 @@
-// Takes at a flagged spot, as Proof shows them (Studio Next mock: src/selectors/proofTakes.ts). Read-only: a note whose spot (the
+// Takes at a flagged spot, as Proof shows them (research mock: src/selectors/proofTakes.ts). Read-only: a note whose spot (the
 // passage it points at) has several takes gets a count, the other takes as thinner lanes under the waveform, and a list in the
 // Inspector. Choosing, keeping or hiding takes is Editing's. The take list is the host's `workspaceTakes` read, in the order the
 // Takes panel lists it, so the count and the order match Editing's.

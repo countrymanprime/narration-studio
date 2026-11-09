@@ -52,7 +52,7 @@ describe('InsetCard', () => {
     expect(screen.getByRole('alert').tagName).toBe('P');
   });
 
-  // The Script chapter card (`.bound .card`, app.css:145) and the Story Bible suggestion (`.xsug`, extraction.css:3) in the Studio Next mock.
+  // The Script chapter card (`.bound .card`, app.css:145) and the Story Bible suggestion (`.xsug`, extraction.css:3) in the research mock.
   it('draws the roomy frame on 8 px with 16 px at the sides, the snug one with 12 px and 8 px, and the default on 6 px with 12', () => {
     const { unmount } = render(<InsetCard frame="roomy">Card</InsetCard>);
     expect(screen.getByText('Card').className).toContain('rounded-lg px-4 py-3');

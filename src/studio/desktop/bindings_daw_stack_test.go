@@ -29,7 +29,7 @@ const (
 	stackPassage   = "pm-c-0001-p-1"
 )
 
-// STACK_PLAN's steps in the Studio Next mock (fixtures/daw.ts): what a DAW with no native stack does, in order.
+// STACK_PLAN's steps in the research mock (fixtures/daw.ts): what a DAW with no native stack does, in order.
 var stackSteps = []string{
 	"Add a take track", "Paste each later read into it", "Split at the point where the reads line up",
 	"Shift the audio that follows to close the gap", "Mute the reads that are not on top",

@@ -38,7 +38,7 @@ export function StatTile({
   /** A glyph drawn before the label that names the figure (see the catalogue's `figure` rows). Decoration: the label stays the name. */
   icon?: IconName;
   tone?: StatTileTone;
-  /** `compact` is a 15 px value for a tile inside a panel that has a fixed height (the activity panel's figures). `kpi` is the Studio Next mock's Production tile: a 30 px value, a 16 px unit and a 13 px hint. */
+  /** `compact` is a 15 px value for a tile inside a panel that has a fixed height (the activity panel's figures). `kpi` is the research mock's Production tile: a 30 px value, a 16 px unit and a 13 px hint. */
   size?: 'default' | 'kpi' | 'compact';
   className?: string;
 }) {

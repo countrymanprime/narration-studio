@@ -3,7 +3,7 @@
 // and each mark is checked against the current text on every read, so a mark whose line is gone, whose range no longer fits
 // or whose words changed comes back stale rather than moved (docs/reference/script-marks.md).
 
-/** The six colours and six line styles a mark type draws with, as in the Studio Next mock. */
+/** The six colours and six line styles a mark type draws with, as in the research mock. */
 export const MARK_COLOURS = ['copper', 'info', 'ok', 'warn', 'bad', 'violet'] as const;
 export const MARK_STYLES = ['highlight', 'underline', 'double', 'dotted', 'wavy', 'box'] as const;
 export type MarkColour = (typeof MARK_COLOURS)[number];

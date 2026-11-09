@@ -7,7 +7,7 @@ import { playable, playingKey } from '../script/playing';
 const scriptOf = (root: HTMLElement | null): HTMLElement | null => root?.querySelector<HTMLElement>('[data-script]') ?? null;
 
 /**
- * Keeps the lit word in sight while the text follows the voice, whichever player lit it, as the Studio Next mock does: when the word leaves the
+ * Keeps the lit word in sight while the text follows the voice, whichever player lit it, as the research mock does: when the word leaves the
  * upper part of the script it scrolls to a third of the way down. A hand scroll while something plays (the wheel, a touch, Page Up or Down)
  * turns following off until the next play.
  */

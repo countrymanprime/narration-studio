@@ -1,10 +1,10 @@
-# Studio Next DAW Ports and Capabilities: A Result Object, Capability Depth and the Bridge Commands the Mock Assumes
+# DAW Ports and Capabilities: A Result Object, Capability Depth and the Bridge Commands the Mock Assumes
 
-**Source:** owner request of 2026-10-10 (Studio Next Rebuild); the owner's DAW rulings in `studio-next/research/repo-compare-decisions.md` ("DAW state rulings", "Takes, restarts, punch and roll", "Owner follow-up on takes and Audacity", "FX exception"); the mock's `studio-next/src/state/daw.ts`, `studio-next/src/domain/daw.ts`, `studio-next/src/fixtures/daw.ts`, `studio-next/src/selectors/daw.ts`.
+**Source:** owner request of 2026-10-10 (rebuild PRD); the owner's DAW rulings in `research-mock/research/repo-compare-decisions.md` ("DAW state rulings", "Takes, restarts, punch and roll", "Owner follow-up on takes and Audacity", "FX exception"); the mock's `research-mock/src/state/daw.ts`, `research-mock/src/domain/daw.ts`, `research-mock/src/fixtures/daw.ts`, `research-mock/src/selectors/daw.ts`.
 
 **Builds on:** [The DAW port](../architecture/daw-integration.md#the-daw-port) to [Provider ports](../architecture/provider-ports.md) (the DAW port, delivered), [The REAPER bridge and its test harness](../architecture/reaper-bridge.md) and [The REAPER verification pass](../operations/reaper-verification-pass.md) (experimental commands and promotion), [The DAW port](../architecture/daw-integration.md#the-daw-port) to [The DAW port](../architecture/daw-integration.md#the-daw-port) (the harness, registry, event fan-out), [The workspace's take and FX actions (`narration_workspace.lua`)](../architecture/reaper-bridge.md#the-workspaces-take-and-fx-actions-narration_workspacelua), [narration_punch.lua](../../src/studio/integrations/reaper/narration_punch.lua), [The DAW port](../architecture/daw-integration.md#the-daw-port), [Built-in recorder: what the app declares for it](../reference/daw/builtin-recorder.md), Audacity Integration (old PRD `audacity-integration.prd.md`, recoverable from git history), Native Recording Suite (old PRD `native-recording-suite.prd.md`, recoverable from git history), Booth Actions Enablement (old PRD `booth-actions-enablement.prd.md`, recoverable from git history), REAPER Automation Follow-Through (old PRD `reaper-automation-follow-through.prd.md`, recoverable from git history), Edit and Proof Workspace (old PRD `edit-and-proof-workspace.prd.md`, recoverable from git history).
 
-**Status (2026-10-12):** delivered. Every slice of Phases 2 to 10 has merged, with the PR numbers in the phase rows and the Slices table below. Phase 1's spikes, and every check that needs a real REAPER or Audacity, were deferred by the owner to the QA pass ([#1495](https://github.com/countrymanprime/narration-studio/issues/1495)) and the owner queue ([#992](https://github.com/countrymanprime/narration-studio/issues/992)): none has run, and nothing below claims one did. Every new command and capability is Experimental ([The REAPER bridge and its test harness](../architecture/reaper-bridge.md)); [the promotion plan](../research/studio-next-daw-promotion-plan.md) lists what each needs before its one-line promotion ([The REAPER verification pass](../operations/reaper-verification-pass.md)) and how each Success Metric was measured.
+**Status (2026-10-12):** delivered. Every slice of Phases 2 to 10 has merged, with the PR numbers in the phase rows and the Slices table below. Phase 1's spikes, and every check that needs a real REAPER or Audacity, were deferred by the owner to the QA pass ([#1495](https://github.com/countrymanprime/narration-studio/issues/1495)) and the owner queue ([#992](https://github.com/countrymanprime/narration-studio/issues/992)): none has run, and nothing below claims one did. Every new command and capability is Experimental ([The REAPER bridge and its test harness](../architecture/reaper-bridge.md)); [the promotion plan](../research/daw-promotion-plan.md) lists what each needs before its one-line promotion ([The REAPER verification pass](../operations/reaper-verification-pass.md)) and how each Success Metric was measured.
 
 ## Problem Statement
 
@@ -12,7 +12,7 @@ The real app already reaches every DAW through one port of small roles with a re
 
 ## Evidence
 
-**Mock** (`studio-next/ARCHITECTURE.md`, "DAW plumbing (batch C1)"): `DawCapabilities {daw, reachable, caps{level, available, reason?, destructive?, mode?}}`; `DawResult {ok, changed, message, undoSteps, refused?, steps?}`; `DawProjectState {savedAt, unsavedChanges, playState, playPosition}`; `DawAdapter` with record, roll, markers, takes, stack, `deleteRange`, `applyFxToRange`, backups; `capabilitiesFor(setup, backups)` makes Audacity's roll non-destructive exactly when backups are on; stale ids refuse (`mock.dawStale`). Tests: `studio-next/tests/daw.test.ts`, `studio-next/tests/booth-daw.test.tsx`, `studio-next/tests/daw-wording.test.tsx`, `studio-next/tests/d3-stacking.test.tsx`, `studio-next/tests/e-delete-range.test.tsx`, `studio-next/tests/e-fx-range.test.tsx`.
+**Mock** (`research-mock/ARCHITECTURE.md`, "DAW plumbing (batch C1)"): `DawCapabilities {daw, reachable, caps{level, available, reason?, destructive?, mode?}}`; `DawResult {ok, changed, message, undoSteps, refused?, steps?}`; `DawProjectState {savedAt, unsavedChanges, playState, playPosition}`; `DawAdapter` with record, roll, markers, takes, stack, `deleteRange`, `applyFxToRange`, backups; `capabilitiesFor(setup, backups)` makes Audacity's roll non-destructive exactly when backups are on; stale ids refuse (`mock.dawStale`). Tests: `research-mock/tests/daw.test.ts`, `research-mock/tests/booth-daw.test.tsx`, `research-mock/tests/daw-wording.test.tsx`, `research-mock/tests/d3-stacking.test.tsx`, `research-mock/tests/e-delete-range.test.tsx`, `research-mock/tests/e-fx-range.test.tsx`.
 
 **Repo** (at `550a7d1`):
 
@@ -67,11 +67,11 @@ If every DAW call answers one result shape and every capability says why and how
 | Unverified behaviours with a committed spike result | 100% before their implementation slice | `docs/research/` notes |
 | Pending owner REAPER steps | Listed on #510; none blocking | #510 |
 
-Each metric as measured at close-out (2026-10-12), or marked pending, is in [the promotion plan](../research/studio-next-daw-promotion-plan.md#success-metrics-as-measured).
+Each metric as measured at close-out (2026-10-12), or marked pending, is in [the promotion plan](../research/daw-promotion-plan.md#success-metrics-as-measured).
 
 ## Decisions
 
-Decided by the owner on 2026-10-11; nothing here waits for an answer, so G0 has no question for the owner. This PRD has no page; the mock (`studio-next/src/state/daw.ts` and the files in Source) is the spec for the port.
+Decided by the owner on 2026-10-11; nothing here waits for an answer, so G0 has no question for the owner. This PRD has no page; the mock (`research-mock/src/state/daw.ts` and the files in Source) is the spec for the port.
 
 - **SN0-Q1 / DQ-1.** Where the mock's DAW model and an older ADR differ, the mock wins and the ADR is superseded.
 - **DQ-5.** Record arms only the chapter's track and starts at the end of the last item; a failed precondition shows the capability's refusal reason. [app.go](../../src/studio/desktop/app.go) is superseded to that extent (the Booth PRD builds it).
@@ -90,14 +90,14 @@ Narrators using REAPER (primary), Audacity 3 (secondary) or the built-in recorde
 
 | Behaviour | Mock reference | Acceptance |
 | --- | --- | --- |
-| A refusal names why | `studio-next/tests/daw-wording.test.tsx` | A control for a capability that is unavailable shows the capability's sentence and is `aria-disabled` |
-| Stale ids refuse | `studio-next/tests/daw.test.ts` (`setActiveTake` with `mock.dawStale`) | A call with an old item GUID changes nothing and answers `refused: stale` |
-| Roll keeps the earlier audio | `studio-next/tests/booth-daw.test.tsx` | In REAPER the earlier recording stays as a take; in Audacity it asks first unless backups are on |
-| Stack retries | `studio-next/tests/d3-stacking.test.tsx` | One undo step natively; `steps` listed for Audacity; refused without backups |
-| Cut words | `studio-next/tests/e-delete-range.test.tsx` | The item is split and the middle moves to a muted track in one undo block; later audio closes up or a gap is filled with room tone |
-| Chain on a word range | `studio-next/tests/e-fx-range.test.tsx` | The DAW's own saved chain is applied to the split piece; removing it joins the piece back |
-| Saved versus live | `studio-next/src/domain/daw.ts` `DawProjectState` | "As of last save HH:MM" shows when `unsavedChanges` is true |
-| Pickup markers as truth | `studio-next/src/state/commands/pickups.ts` (`writeThroughDone`, `reconcilePickupMarkers`) | Marking a pickup done renames its marker; opening Booth or Pickups takes the DAW's markers |
+| A refusal names why | `research-mock/tests/daw-wording.test.tsx` | A control for a capability that is unavailable shows the capability's sentence and is `aria-disabled` |
+| Stale ids refuse | `research-mock/tests/daw.test.ts` (`setActiveTake` with `mock.dawStale`) | A call with an old item GUID changes nothing and answers `refused: stale` |
+| Roll keeps the earlier audio | `research-mock/tests/booth-daw.test.tsx` | In REAPER the earlier recording stays as a take; in Audacity it asks first unless backups are on |
+| Stack retries | `research-mock/tests/d3-stacking.test.tsx` | One undo step natively; `steps` listed for Audacity; refused without backups |
+| Cut words | `research-mock/tests/e-delete-range.test.tsx` | The item is split and the middle moves to a muted track in one undo block; later audio closes up or a gap is filled with room tone |
+| Chain on a word range | `research-mock/tests/e-fx-range.test.tsx` | The DAW's own saved chain is applied to the split piece; removing it joins the piece back |
+| Saved versus live | `research-mock/src/domain/daw.ts` `DawProjectState` | "As of last save HH:MM" shows when `unsavedChanges` is true |
+| Pickup markers as truth | `research-mock/src/state/commands/pickups.ts` (`writeThroughDone`, `reconcilePickupMarkers`) | Marking a pickup done renames its marker; opening Booth or Pickups takes the DAW's markers |
 
 ### Spikes (each is a slice; result written to `docs/research/`)
 
@@ -204,7 +204,7 @@ Phase 1 spikes run in parallel with Phase 2. Phases 5 to 8 are independent after
 | SND-7 | Stacking: `stack_takes` and `unstack_takes`, the Lua, bridge client and the REAPER `TakeStacker` in SN-D71 ([#1198](https://github.com/countrymanprime/narration-studio/issues/1198), [#1526](https://github.com/countrymanprime/narration-studio/pull/1526), hardened in [#1543](https://github.com/countrymanprime/narration-studio/pull/1543)); the `DawStackTakes` and `DawUnstackTakes` bindings and `DawClient.stackTakes` and `unstackTakes` in SN-D72 ([#1199](https://github.com/countrymanprime/narration-studio/issues/1199), [#1550](https://github.com/countrymanprime/narration-studio/pull/1550)); the in-REAPER run is in the QA pass ([#1495](https://github.com/countrymanprime/narration-studio/issues/1495)) | SND-3, SND-1d | yes | Same |
 | SND-8 | Audacity backups: the table, clone, restore and prune in SN-D81 ([#1201](https://github.com/countrymanprime/narration-studio/issues/1201), [#1560](https://github.com/countrymanprime/narration-studio/pull/1560)); the bindings, `DawClient` methods, settings and prune on open in SN-D82 ([#1203](https://github.com/countrymanprime/narration-studio/issues/1203), [#1567](https://github.com/countrymanprime/narration-studio/pull/1567)); the `Requires` rule, declarations and depth in SN-D83 ([#1204](https://github.com/countrymanprime/narration-studio/issues/1204), [#1569](https://github.com/countrymanprime/narration-studio/pull/1569)); the roll, cut, effect on a range, stack and un-stack made in steps after a backup in SN-D84 ([#1206](https://github.com/countrymanprime/narration-studio/issues/1206), [#1571](https://github.com/countrymanprime/narration-studio/pull/1571)) | SND-3, SND-1g | yes | Adapter tests with fake pipe; owner pass pending |
 | SND-9 | Built-in recorder row: SN-D9 ([#1149](https://github.com/countrymanprime/narration-studio/issues/1149), [#1413](https://github.com/countrymanprime/narration-studio/pull/1413)) | SND-3 | yes | `dawporttest` |
-| SND-10 | Close-out: SN-D10 ([#1208](https://github.com/countrymanprime/narration-studio/issues/1208)), done in its PR | all | no | Docs, threat model dates, [promotion plan](../research/studio-next-daw-promotion-plan.md) |
+| SND-10 | Close-out: SN-D10 ([#1208](https://github.com/countrymanprime/narration-studio/issues/1208)), done in its PR | all | no | Docs, threat model dates, [promotion plan](../research/daw-promotion-plan.md) |
 
 ## Decisions Log
 
@@ -221,4 +221,4 @@ Read: the mock's DAW files and tests, the owner's rulings, `capability.go`, the 
 
 ## Visual Spec
 
-No page. Settings rows for capabilities are in Master, Delivery and Settings; the Mock-states DAW group is `studio-next/src/app/mock-states.tsx`.
+No page. Settings rows for capabilities are in Master, Delivery and Settings; the Mock-states DAW group is `research-mock/src/app/mock-states.tsx`.

@@ -60,6 +60,8 @@ type OverlaySnapshot = {
   announcement: string;
 };
 
+const BIDI_CONTROLS = /[\u061C\u200E\u200F\u202A-\u202E\u2066-\u2069]/g;
+
 /** How many toasts show at once; the oldest plain information toast goes first, then the oldest information toast with an action, then the oldest error. */
 const OVERLAY_TOAST_LIMIT = 4;
 
@@ -124,7 +126,9 @@ export function createOverlayService(): OverlayService {
     return true;
   };
 
-  const toast = (text: string, options: ToastOptions = {}, undo?: ToastMessage['undo']) => {
+  const toast = (raw: string, options: ToastOptions = {}, undo?: ToastMessage['undo']) => {
+    // Bidi controls (an override that reverses the words after it) are not text a narrator reads; a message of nothing else is not a message.
+    const text = raw.replace(BIDI_CONTROLS, '');
     if (text.trim() === '') return;
     const tone = options.tone ?? 'info';
     const message: ToastMessage = {

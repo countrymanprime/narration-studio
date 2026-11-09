@@ -65,7 +65,7 @@ func built(c dawport.Capability) bool {
 		slices.Contains(backupRows, c)
 }
 
-// backupRows is the capabilities that exist in Audacity only while its backups are on (SN-D83): the Studio Next mock's
+// backupRows is the capabilities that exist in Audacity only while its backups are on (SN-D83): the research mock's
 // AUDACITY_BACKUP_CAPS less backups itself.
 var backupRows = []dawport.Capability{dawport.CapTakes, dawport.CapPunch, dawport.CapStackTakes, dawport.CapCutRange, dawport.CapFXRange,
 	dawport.CapRangeGain, dawport.CapClickRepair}

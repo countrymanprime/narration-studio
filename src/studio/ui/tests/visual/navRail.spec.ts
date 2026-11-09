@@ -110,7 +110,7 @@ test('Navigation rail / the opened icon rail starts its group names at the icons
   expect(Math.abs(edges.markCentre - edges.iconCentre), 'mark centred over the icons').toBeLessThanOrEqual(1);
 });
 
-// The rail's sizes, measured on the Studio Next mock (docs/research/mockups/studio-next/src/styles/app.css `.nav`, `.grp`, `.brand`):
+// The rail's sizes, measured on the research mock (docs/research/mockups/research-mock/src/styles/app.css `.nav`, `.grp`, `.brand`):
 // 40 px items on a 42 px pitch, a 15 px label, a 20 px icon in a 22 px box, a 36 px group heading, a 50 px brand block, no rule above the foot.
 for (const width of [1440, 1100]) {
   test(`Navigation rail / sizes follow the mock / ${width}`, async ({ page }) => {

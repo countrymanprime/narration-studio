@@ -75,8 +75,8 @@ The order in which the candidates of the [local dependency evaluation](research/
 1. Improve current document structure tests and expose the already-present VAD
    region evidence if the trial proves it useful.
 2. Trial Vale and GLiNER because they are small, transparent additions to the
-   existing manuscript workflow ([GLiNER spike](research/studio-next-gliner-spike.md)).
-3. Trial BookNLP for text-side dialogue/character preparation ([BookNLP spike](research/studio-next-booknlp-spike.md)).
+   existing manuscript workflow ([GLiNER spike](research/gliner-spike.md)).
+3. Trial BookNLP for text-side dialogue/character preparation ([BookNLP spike](research/booknlp-spike.md)).
 4. Trial MFA against current word timestamps for precision proofing.
 5. Trial Praat and Resemblyzer only with the character-continuity workflow and
    explicitly approved reference clips ([acoustic trial](research/character-continuity-acoustic-trial.md)).

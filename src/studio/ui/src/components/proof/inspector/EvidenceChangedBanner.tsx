@@ -22,7 +22,7 @@ function Words({ words, mark }: { words: EvidenceWord[]; mark: 'del' | 'ins' }) 
 const wordsMoved = (change: EvidenceChange) => change.was.some((word) => word.changed) || change.now.some((word) => word.changed);
 
 /**
- * Shown over a note's decision when a re-check changed the evidence under the narrator (the Studio Next Inspector's `#evchanged`): what they
+ * Shown over a note's decision when a re-check changed the evidence under the narrator (the rebuilt Inspector's `#evchanged`): what they
  * were shown, what the check hears now, and the one way forward, taking the new evidence as the one to decide on.
  */
 export function EvidenceChangedBanner({ change, onUseNewEvidence }: { change: EvidenceChange; onUseNewEvidence: () => void }) {
