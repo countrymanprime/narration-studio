@@ -212,15 +212,16 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { fetch-depth: 0, persist-credentials: false }
-      # Go and Python only on shard 1, which runs the quick tests. No GTK 4 or WebKitGTK: the rename rehearsal, `--full` included, runs
-      # `go vet` and the brand tests, which need neither.
+      # Go and Python only on shard 1, which runs the quick tests. Shard 1 also installs GTK 4 and WebKitGTK: the rename rehearsal's
+      # `go vet ./...` compiles the Wails packages, whose cgo runs pkg-config, and without the libraries it failed on a pull request whose
+      # Go vet results were not in the cache (#3149, #3235).
       - uses: ./.github/actions/setup-toolchain
         with:
           need-go: ${{ matrix.shard == 1 }}
           need-python: ${{ matrix.shard == 1 }}
           need-stylua: 'false'
           need-wails-tools: 'false'
-          need-linux-native-deps: 'false'
+          need-linux-native-deps: ${{ matrix.shard == 1 }}
           python-sync-args: --group docs
       - id: scope
         uses: ./.github/actions/nx-affected

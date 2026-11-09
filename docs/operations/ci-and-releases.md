@@ -737,6 +737,13 @@ The `test` target of `desktop` (Go statements), `ui` (Vitest v8 lines),
 floor in `scripts/ci/coverage-floors.json`. A directory below its floor, or one with no data because it was renamed or
 removed, fails the run.
 
+- **Scope on a pull request (#3149):** two merges that each passed can leave a floor missed on `main`, and the next unrelated pull
+  request used to go red. On a pull request (`GITHUB_EVENT_NAME=pull_request`) a directory below its floor now fails only when the
+  change touches it: a changed file under its path, or a changed test file in its project (deleting a test lowers the coverage of
+  lines it never edited). Another directory below its floor is a `::warning::` annotation. Every other run is strict: `main-health`,
+  a push and a local `pnpm check` fail on any directory below its floor, so a floor missed on `main` still turns `main-health` red. "No coverage data" fails everywhere.
+  The rule is in `scripts/ci/pr-scope.mjs`. It gates a touched directory's whole floor, not only the changed lines; line-level
+  patch coverage would need per-line data from three tools and is not built.
 - **Adding a logic directory:** add an entry at 80 or above. A lower floor needs a written `reason`; the gate's test
   (`scripts/ci/coverage-gate.test.mjs`) rejects one without.
 - **After adding tests:** run `node scripts/ci/coverage-gate.mjs <go|vitest|pytest> <projectRoot> --update` (the same
