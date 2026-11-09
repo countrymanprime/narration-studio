@@ -163,6 +163,13 @@ describe('Escape while focus is still in the layer under a confirm', () => {
 });
 
 describe('overlay.toast with no words (issue 2899)', () => {
+  it('strips bidi controls from a message, and raises none when they were all it held (issue 2957)', () => {
+    service.toast('\u202Eeslaf\u202C saved\u200F');
+    expect(service.getSnapshot().toasts.map((m) => m.text)).toEqual(['eslaf saved']);
+    service.toast('\u202E \u2067\u2069', { tone: 'error' });
+    expect(service.getSnapshot().toasts).toHaveLength(1);
+  });
+
   it.each(['', ' ', '   ', '\n', '\n\n\n\n', '\t \n \u00A0'])('raises no toast for the text %j', (text) => {
     service.toast(text);
     service.toast(text, { tone: 'error' });
