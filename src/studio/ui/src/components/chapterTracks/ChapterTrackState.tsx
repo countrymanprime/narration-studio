@@ -46,6 +46,7 @@ const NO_LIVE: LiveTracks = {
   stale: false,
   error: '',
   refresh: () => {},
+  recheck: async () => ({ failed: false }),
   reread: () => {},
   join: () => {},
 };
@@ -98,6 +99,7 @@ export function ChapterTrackStateProvider({
   const [mappings, setMappings] = useState<TrackMapping[]>([]);
   const [mappingsAt, setMappingsAt] = useState<number | null>(null);
   const refreshLive = live.refresh;
+  const recheckLive = live.recheck;
   const rereadLive = live.reread;
   // Whether the last links read failed: a run of failed reads is one toast, and a failed read marks everything shown as from `readAt`.
   const linksFailing = useRef(false);
@@ -161,6 +163,19 @@ export function ChapterTrackStateProvider({
     readLinks(true);
     refreshLive();
   }, [readLinks, refreshLive]);
+  // The check on a link the chapter already has is a press too: it reads the tracks and the links and answers what the tracks read found (the
+  // table says it), or `failed` when either read did, with that read's one toast.
+  const recheck = useCallback(async () => {
+    const linksRead = readLinks(true, 'throw').then(
+      () => true,
+      (reason: unknown) => {
+        notify(describeApiError(reason), 'error', retryAction(retryRef.current));
+        return false;
+      },
+    );
+    const read = await recheckLive();
+    return (await linksRead) ? read : { ...read, failed: true };
+  }, [readLinks, recheckLive, notify]);
   const reread = useCallback(() => {
     readLinks(true);
     rereadLive();
@@ -236,9 +251,9 @@ export function ChapterTrackStateProvider({
             applyMappings,
             refreshLinks,
             // The Engine panel's Refresh is a press: it reads the links with the tracks.
-            live: { ...live, refresh },
+            live: { ...live, refresh, recheck },
           },
-    [projectFolder, reading, live, linksStale, mappings, mappingsAt, refresh, reread, applyMappings, refreshLinks],
+    [projectFolder, reading, live, linksStale, mappings, mappingsAt, refresh, recheck, reread, applyMappings, refreshLinks],
   );
   const value = useMemo(() => ({ state, watch, defaultWants: enabled }), [state, watch, enabled]);
   return <ChapterTrackStateContext.Provider value={value}>{children}</ChapterTrackStateContext.Provider>;
@@ -248,12 +263,12 @@ export function ChapterTrackStateProvider({
  * The tracks and links every watching screen shares. Calling it starts the reading while `enabled` (default: the project has a DAW file
  * linked and the DAW is not Audacity, so a project with no REAPER file is never asked); the reading stops when no screen wants it. A screen
  * that does not want it gets an empty state, so it never shows tracks it did not ask for. The Engine panel passes its own `enabled` (a
- * project file is selected), because it is where the file gets linked. `tracks: false` wants the links alone (a screen that reads no REAPER
+ * project file is selected), because it is where the file gets linked. `when` is the screen's own condition (a panel is open) on top of that. `tracks: false` wants the links alone (a screen that reads no REAPER
  * tracks of its own, such as the Audacity panel, or one that only needs who is linked to what).
  */
-export function useChapterTrackState({ enabled, tracks = true }: { enabled?: boolean; tracks?: boolean } = {}): ChapterTrackState {
+export function useChapterTrackState({ enabled, tracks = true, when = true }: { enabled?: boolean; tracks?: boolean; when?: boolean } = {}): ChapterTrackState {
   const { state, watch, defaultWants } = useContext(ChapterTrackStateContext);
-  const wants = enabled ?? defaultWants;
+  const wants = (enabled ?? defaultWants) && when;
   useEffect(() => (wants ? watch(tracks ? 'tracks' : 'links') : undefined), [wants, tracks, watch]);
   return wants ? state : EMPTY;
 }

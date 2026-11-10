@@ -284,13 +284,14 @@ jobs:
       # Lists the suite (no browser), gives this shard its tests and says whether this shard also runs `aria`. Fails if the shards do not
       # hold every test exactly once. Shard 1 carries the quick tests (about 4 to 5 min on a pull request), and the reserve is in the
       # split's estimated seconds. Measured: a 300 s reserve left shard 1 at 19.8 min against 24.75 for the longest other (run
-      # 42397023062); 110 s put it at 28.2 against 23.9 (run 42400723192). 200 s lies between. Elsewhere the mutation checks and the
-      # `--full` rehearsal add about 3 min, so 380 (not yet measured on a main-health run).
+      # 42397023062); 110 s put it at 28.2 against 23.9 (run 42400723192). 200 s lay between: in ten full runs on 2026-11-10 (#3327)
+      # shard 1 took 17.8 to 28.7 min and was the longest shard in 5, so a pull request uses 300 s. Elsewhere the mutation checks and
+      # the `--full` rehearsal add about 3 min, so 380 (not yet measured on a main-health run).
       - id: split
         if: ${{ !cancelled() && inputs.full && steps.scope.outputs.affected == 'true' }}
         env:
           SHARD: ${{ matrix.shard }}
-          RESERVE: ${{ github.event_name == 'pull_request' && '200' || '380' }}
+          RESERVE: ${{ github.event_name == 'pull_request' && '300' || '380' }}
         run: node scripts/ci/visual-shards.mjs split --shard "$SHARD/5" --reserve-first "$RESERVE" --out "$RUNNER_TEMP/shard.txt" --manifest "$RUNNER_TEMP/shard-$SHARD.json" --github-output
       # The JSON report is the profile (time per test); a shard uploads it as ui-visual-timings-<i> and `visual-shards.mjs weights` rebuilds
       # shard-weights.json from them.

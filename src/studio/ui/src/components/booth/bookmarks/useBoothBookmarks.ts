@@ -31,6 +31,8 @@ export type BoothBookmarksOptions = {
   paragraphIndex: (paragraphId: string) => number | null;
   /** Puts the reading position on a word of this chapter. */
   seek: (paragraphId: string, word: number) => void;
+  /** True (having said why) while a press is under way: a jump changes nothing. */
+  blocked?: () => boolean;
   /** Opens another chapter at a bookmark's place (the page changes its address; the Booth starts there). */
   goToChapter: (chapterId: string, at: { paragraphId: string; offset: number }) => void;
 };
@@ -58,7 +60,7 @@ export type BoothBookmarks = {
  * commands, so the keys, the jump menu and the help sheet come from there. The page passes what it knows and mounts the ribbons.
  */
 export function useBoothBookmarks(options: BoothBookmarksOptions): BoothBookmarks {
-  const { chapterId, chapters, paragraphs, units, position, recording, paragraphIndex, seek, goToChapter } = options;
+  const { chapterId, chapters, paragraphs, units, position, recording, paragraphIndex, seek, goToChapter, blocked } = options;
   const overlay = useOverlay();
   const journal = useJournal();
   const store = useStoreHandle();
@@ -107,6 +109,7 @@ export function useBoothBookmarks(options: BoothBookmarksOptions): BoothBookmark
 
   const onGoTo = useCallback(
     (bookmark: Bookmark) => {
+      if (blocked?.()) return;
       if (bookmark.chapterId !== chapterId) {
         if (recording) return overlay.toast(STOP_FIRST);
         return goToChapter(bookmark.chapterId, { paragraphId: bookmark.paragraphId, offset: bookmark.offset });
@@ -118,7 +121,7 @@ export function useBoothBookmarks(options: BoothBookmarksOptions): BoothBookmark
       clearTimeout(flashTimer.current);
       flashTimer.current = setTimeout(() => setFlashId(null), FLASH_MS);
     },
-    [chapterId, recording, overlay, goToChapter, paragraphs, seek],
+    [chapterId, recording, overlay, goToChapter, paragraphs, seek, blocked],
   );
 
   const here = useMemo(() => spotAtPosition(chapterId, paragraphs, position), [chapterId, paragraphs, position]);

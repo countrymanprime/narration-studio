@@ -360,6 +360,7 @@ function BoothSession({
     units,
     recording: control.recording,
     onJump: jumpToLine,
+    blocked: page.moveBlocked,
     initialAt: pickAt,
   });
   // A take that read over a suspected line puts it on the shared pickup list; the pickup session's toast, when it had one, said it was saved.
@@ -395,6 +396,7 @@ function BoothSession({
     recording: control.recording,
     paragraphIndex: (id) => session.paragraphs?.find((item) => item.id === id)?.index ?? null,
     seek,
+    blocked: page.moveBlocked,
     goToChapter: (chapterId, at) => choose({ chapter: chapterId, from: at }),
   });
   parts.current.menuItems = chapter ? bookmarks.menuItems : undefined;
@@ -404,7 +406,7 @@ function BoothSession({
   const pageStarts = useMemo(() => new Set(breaks.map((pageBreak) => pageBreak.paragraphId)), [breaks]);
 
   // Ctrl+F opens the jump menu; its search finds the text in this chapter and brings the match into view (during a take, without moving the reading).
-  const find = useBoothFind({ chapterId: recordId, paragraphs, recording: control.recording, seek, view: page.view });
+  const find = useBoothFind({ chapterId: recordId, paragraphs, recording: control.recording, held: page.readingHeld, seek, view: page.view });
 
   const recordedThrough = chapter ? data.recorded[chapter.id] : undefined;
   useChapterResume({

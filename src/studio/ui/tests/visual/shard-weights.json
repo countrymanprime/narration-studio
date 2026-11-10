@@ -222,6 +222,7 @@
     "app.spec.ts|engine / audacity-not-running": 10.9,
     "app.spec.ts|engine / chapter-folder-created": 6.5,
     "app.spec.ts|engine / chapter-link-confirmed": 6.5,
+    "app.spec.ts|engine / chapter-link-recheck": 6.5,
     "app.spec.ts|engine / chapter-link-missing": 6.2,
     "app.spec.ts|engine / chapter-track-create-refused": 6.5,
     "app.spec.ts|engine / chapter-track-created": 6,

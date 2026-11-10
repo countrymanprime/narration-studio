@@ -656,6 +656,67 @@ describe('a start waits for the host: shown, joined, and dropped when the Booth 
     expect(punchTarget.mock.calls.length).toBeGreaterThan(asked);
   });
 
+  describe('pressUnderway: the reading may not move while a press is under way (#3338)', () => {
+    const press = (h: ReturnType<typeof setup>, kind: 'plain' | 'phrase') => {
+      let pressed: Promise<unknown> = Promise.resolve();
+      act(() => {
+        pressed = h.hook.result.current.startTake(kind === 'plain' ? undefined : 1);
+      });
+      return () => pressed;
+    };
+    for (const kind of ['plain', 'phrase'] as const) {
+      it(`${kind} press, DAW that can punch: true from the press until the take is handed over, then false`, async () => {
+        const late = gate();
+        const h = setup(SETUPS.reaper, {
+          recording: false,
+          punchAt: kind === 'plain' ? null : 1,
+          punchTarget: (p) => (p === 1 ? late.promise : Promise.resolve(found(p))),
+        });
+        expect(h.hook.result.current.pressUnderway()).toBe(false);
+        let handOver = () => {};
+        h.actions.beginTake.mockImplementation(() => new Promise<void>((resolve) => (handOver = resolve)));
+        const done = press(h, kind);
+        expect(h.hook.result.current.pressUnderway()).toBe(true);
+        late.resolve(found(1));
+        await act(async () => void (await new Promise((resolve) => setTimeout(resolve, 0))));
+        // The checks and the record start are out too.
+        expect(h.hook.result.current.pressUnderway()).toBe(true);
+        handOver();
+        await act(() => done() as Promise<void>);
+        expect(h.hook.result.current.pressUnderway()).toBe(false);
+      });
+    }
+    it('a refused lookup, a cancel and an unanswered lookup end it', async () => {
+      const h = setup(SETUPS.reaper, { recording: false, punchAt: 1, punchTarget: () => new Promise(() => {}) });
+      press(h, 'phrase');
+      expect(h.hook.result.current.pressUnderway()).toBe(true);
+      act(() => h.hook.result.current.cancelStart());
+      expect(h.hook.result.current.pressUnderway()).toBe(false);
+      vi.useFakeTimers();
+      try {
+        const slow = setup(SETUPS.reaper, { recording: false, punchAt: 1, punchTarget: () => new Promise(() => {}) });
+        press(slow, 'phrase');
+        expect(slow.hook.result.current.pressUnderway()).toBe(true);
+        await act(async () => void (await vi.advanceTimersByTimeAsync(LOOKUP_MS + 10)));
+        expect(slow.hook.result.current.pressUnderway()).toBe(false);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+    it('during a take it is false: the reading follows the voice, even for a press that has not ended yet', () => {
+      const h = setup(SETUPS.reaper, { recording: false, punchAt: 1, punchTarget: () => new Promise(() => {}) });
+      press(h, 'phrase');
+      expect(h.hook.result.current.pressUnderway()).toBe(true);
+      h.hook.rerender({ ...h.session, recording: true, punchAt: 1, punchTarget: () => new Promise(() => {}) });
+      expect(h.hook.result.current.pressUnderway()).toBe(false);
+    });
+    it('a DAW that cannot punch keeps its own way (#3329): false even with a press waiting', () => {
+      const h = setup(SETUPS.reaperOff, { recording: false, punchAt: 1, punchTarget: () => new Promise(() => {}) });
+      press(h, 'phrase');
+      expect(h.hook.result.current.pressUnderway()).toBe(false);
+    });
+  });
+
   describe('a second Start from here on another phrase while a press is under way is refused before it changes anything (#3320)', () => {
     type Hook = ReturnType<typeof setup>;
     const untouched = (h: Hook, punchTarget: ReturnType<typeof vi.fn>) => {

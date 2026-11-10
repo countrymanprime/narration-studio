@@ -21,6 +21,8 @@ type Options = {
   paragraphs: readonly ReadingParagraph[];
   recording: boolean;
   /** Moves the reading position to a word of a paragraph (the same move a click makes). */
+  /** True while a press is under way: the reading stays on the spot the take records at, so a hit is scrolled to and not moved to. */
+  held?: () => boolean;
   seek: (paragraphId: string, word: number) => void;
   /** Scrolls the text without moving the reading position. */
   view: RefObject<BrowseView | null>;
@@ -39,13 +41,13 @@ export type BoothFind = {
  * the word would; during a take the position belongs to the voice, so the view scrolls to it and the position stays (a click or a step brings
  * the text back to the reading, as after the wheel).
  */
-export function useBoothFind({ chapterId, paragraphs, recording, seek, view }: Options): BoothFind {
+export function useBoothFind({ chapterId, paragraphs, recording, held, seek, view }: Options): BoothFind {
   const [shown, setShown] = useState<{ term: string; index: number } | null>(null);
   const lines = useMemo(() => paragraphs.map((paragraph, index) => ({ chapterId, id: paragraph.id, index, text: paragraph.text })), [chapterId, paragraphs]);
   const matches = useMemo<FindMatch[]>(() => (shown ? searchManuscript(lines, shown.term) : []), [lines, shown]);
 
-  const latest = useRef({ recording, seek, view, lines, paragraphs });
-  latest.current = { recording, seek, view, lines, paragraphs };
+  const latest = useRef({ recording, held, seek, view, lines, paragraphs });
+  latest.current = { recording, held, seek, view, lines, paragraphs };
 
   const go = useCallback((term: string, index: number) => {
     const now = latest.current;
@@ -111,9 +113,9 @@ export function useBoothFind({ chapterId, paragraphs, recording, seek, view }: O
 
 function reveal(
   hit: FindMatch,
-  now: { recording: boolean; seek: Options['seek']; view: Options['view']; lines: readonly { id: string; text: string }[] },
+  now: { recording: boolean; held?: () => boolean; seek: Options['seek']; view: Options['view']; lines: readonly { id: string; text: string }[] },
 ): void {
-  if (now.recording) {
+  if (now.recording || now.held?.()) {
     now.view.current?.show(hit.paragraphId);
     return;
   }
