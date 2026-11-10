@@ -23,6 +23,7 @@ const LEAVE_ANYWAY_ARM_MS = 400;
 /** How long the stop, the wait for a start and the passage map's run are each given after the narrator said yes (the host's own deadlines are of this order). */
 export const LEAVE_WAIT_MS = 8000;
 const STOPPING_TOPIC = 'booth-leave-stopping';
+const STOPPING_TOAST_MS = 3 * LEAVE_WAIT_MS + 1000;
 const NO_ANSWER = 'The DAW did not answer in time.';
 
 /** `work`'s answer, or null when it has not come after `ms`: an answer that never comes must not hold the narrator in the Booth. */
@@ -80,7 +81,8 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
           return true;
         }
         // What the narrator sees while the DAW answers; each wait below ends within LEAVE_WAIT_MS, in the refusal question when it does not.
-        overlay.toast('Stopping the take…', { topic: STOPPING_TOPIC });
+        // Up for the whole of the waits (three, each at most LEAVE_WAIT_MS), so it never expires while a stop is still pending; `dismissTopic` takes it away.
+        overlay.toast('Stopping the take…', { topic: STOPPING_TOPIC, durationMs: STOPPING_TOAST_MS });
         let sentence: string;
         try {
           // A start still out when the question was answered lands first; if it did not start a take there is nothing to stop.

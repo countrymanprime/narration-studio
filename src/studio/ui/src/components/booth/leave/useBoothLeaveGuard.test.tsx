@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, render, screen } from '@testing-library/react';
+import { OverlayHost } from '../../../overlay/OverlayHost';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createLeaveGuard } from '../../../studio/journal/leaveGuard';
 import { createOverlayService } from '../../../overlay/overlayService';
@@ -345,6 +346,37 @@ describe('useBoothLeaveGuard', () => {
       return { ...t, done: () => done };
     };
     afterEach(() => vi.useRealTimers());
+
+    // The message that says a stop is pending stays for as long as it is (past the usual five seconds of a toast), and goes when the wait ends.
+    // Drawn by the host, which is what ends a toast at its time.
+    const stoppingShown = () => screen.queryByText('Stopping the take…') !== null;
+    for (const [name, over, stop, firstWaitEnds] of [
+      ['a hung stop', {}, never, LEAVE_WAIT_MS],
+      [
+        'a hung start, then a hung stop',
+        { settle: async () => new Promise<boolean>((resolve) => setTimeout(() => resolve(true), LEAVE_WAIT_MS - 100)) },
+        never,
+        2 * LEAVE_WAIT_MS,
+      ],
+      ['a hung run', { flush: never }, undefined, LEAVE_WAIT_MS],
+    ] as const) {
+      it(`the "Stopping the take…" message is still up at 7 s and goes when the wait ends: ${name}`, async () => {
+        vi.useFakeTimers();
+        const t = setup(over as Partial<BoothLeaveSession>, stop);
+        render(<OverlayHost service={t.overlay} />);
+        act(() => void t.hook.result.current.leave('/script', t.go));
+        act(() => t.dialog()!.answer(true));
+        await flush();
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(7000);
+        });
+        expect(stoppingShown()).toBe(true);
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(firstWaitEnds + 200);
+        });
+        expect(stoppingShown()).toBe(false);
+      });
+    }
 
     it('a stop that never answers ends in "Could not stop the take", with Leave anyway, and asking is cleared', async () => {
       const t = await yesAndWait({}, never);
