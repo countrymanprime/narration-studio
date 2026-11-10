@@ -300,10 +300,11 @@ function ChapterLinkRow({
                   disabledReason={busy ? 'Saving the link' : undefined}
                   onClick={() => {
                     // Cancel drops the abandoned pick: the next Change opens on the linked track, not on it.
-                    if (!settled()) return;
-                    setChosen(linkedGuidIfThere);
-                    swappedAt.current = Date.now();
-                    setPicking(false);
+                    if (settled()) {
+                      setChosen(linkedGuidIfThere);
+                      swappedAt.current = Date.now();
+                      setPicking(false);
+                    }
                   }}
                 />
               )}
@@ -316,9 +317,10 @@ function ChapterLinkRow({
                 disabledReason={busy ? 'Saving the link' : undefined}
                 onClick={() => {
                   // A double click on the check lands its second press here, where Change now is: ignore it, as Create does (CREATE_QUIET_MS).
-                  if (!settled()) return;
-                  swappedAt.current = Date.now();
-                  setPicking(true);
+                  if (settled()) {
+                    swappedAt.current = Date.now();
+                    setPicking(true);
+                  }
                 }}
               />
               <IconButton
