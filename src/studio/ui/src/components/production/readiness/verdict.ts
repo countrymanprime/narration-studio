@@ -3,7 +3,7 @@ import { statusTone, type StatusId } from '../../../kinds/statusTone';
 import type { StatusTone } from '../../primitives/StatusBadge';
 import { CAUSE_TEXT, SIGNAL_STATE_LABEL, signalName, stageLabel, verdictSentence } from '../../stages/stageText';
 
-/** The six verdicts of the Studio Next mock (`selectors/readiness.ts`), read from the host's recommendation. */
+/** The six verdicts of the research mock (`selectors/readiness.ts`), read from the host's recommendation. */
 export type Verdict = 'ready' | 'notready' | 'notchecked' | 'progress' | 'changed' | 'confirmed';
 
 export const VERDICT_LABEL: Record<Verdict, string> = {

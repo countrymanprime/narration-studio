@@ -19,7 +19,7 @@ function renderChip(props: Partial<Parameters<typeof EngineChip>[0]> = {}, openE
 }
 
 // The chip says which recorder the project is connected to, by the name the DAW capabilities give; whether it is running is in the
-// tooltip (the Studio Next mock's top bar). A click still opens the engine panel, which holds the link and relink action.
+// tooltip (the research mock's top bar). A click still opens the engine panel, which holds the link and relink action.
 describe('EngineChip label', () => {
   it.each([
     ['REAPER', 'REAPER'],

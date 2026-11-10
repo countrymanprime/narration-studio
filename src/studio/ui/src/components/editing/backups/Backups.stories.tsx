@@ -7,7 +7,7 @@ import { BACKUP_SETTING_FIELDS } from './backupsFixtures';
 import type { BackupsGate } from './useBackups';
 import { backupSettingsOf } from './useBackupSettings';
 
-// The Studio Next mock's Backups tab (BackupsTab.tsx): the list of backups, newest first, and the inspector with the settings and the picked one.
+// The research mock's Backups tab (BackupsTab.tsx): the list of backups, newest first, and the inspector with the settings and the picked one.
 
 const LIST: DawBackup[] = [
   { id: '{bk-3}', guid: 'chapter-1', chapterId: 'chapter-1', start: 190, end: 430, createdAt: '2026-10-12T09:33:00Z', label: 'Roll at ¶ 3' },

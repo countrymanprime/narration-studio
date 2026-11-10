@@ -1,7 +1,7 @@
 import type { WorkspaceSnapApi, WorkspaceSnapResult } from './contracts/workspaceSnap';
 
-// The mock's snap: no audio, so a cut moves by a stable offset inside 2 ms, a function of the time alone (the Studio
-// Next mock's own rule, docs/research/mockups/studio-next/src/providers/alignment.ts), so tests are deterministic.
+// The mock's snap: no audio, so a cut moves by a stable offset inside 2 ms, a function of the time alone (the research
+// mock's own rule, docs/research/mockups/research-mock/src/providers/alignment.ts), so tests are deterministic.
 
 const hashOf = (s: string): number => {
   let h = 2166136261;

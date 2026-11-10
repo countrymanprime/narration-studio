@@ -32,8 +32,12 @@ func TestNoBareOsRenameOutsideThisPackage(t *testing.T) {
 		if readErr != nil {
 			return readErr
 		}
-		if strings.Contains(string(source), "os.Rename(") {
-			found = append(found, slash)
+		// os.Rename as a value (a test seam's default) is as bare as a call; comment lines may name it.
+		for _, line := range strings.Split(string(source), "\n") {
+			if code := strings.TrimSpace(line); !strings.HasPrefix(code, "//") && strings.Contains(code, "os.Rename") {
+				found = append(found, slash)
+				break
+			}
 		}
 		return nil
 	})

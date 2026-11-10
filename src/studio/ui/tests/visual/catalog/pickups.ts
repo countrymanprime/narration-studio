@@ -1,4 +1,4 @@
-// The `pickups` rows of STATE_CATALOG: the Studio Next Pickups page (see state-catalog.ts), in the order they are captured.
+// The `pickups` rows of STATE_CATALOG: the rebuilt Pickups page (see state-catalog.ts), in the order they are captured.
 import type { StateEntry } from '../lib/types';
 import { REFLOW, TOAST_FADES_OUT } from './shared';
 
@@ -14,7 +14,7 @@ export const pickupsStates: StateEntry[] = [
     page: 'pickups',
     state: 'list',
     description:
-      'Pickups, all chapters (Studio Next mock): the head with the chapter stepper, Check recordings and Add a pickup by hand, the lines grouped by chapter with include, time, type, line, source and status, and the Pickup session panel with Open N in Booth',
+      'Pickups, all chapters (research mock): the head with the chapter stepper, Check recordings and Add a pickup by hand, the lines grouped by chapter with include, time, type, line, source and status, and the Pickup session panel with Open N in Booth',
     ...REFLOW,
   },
   {

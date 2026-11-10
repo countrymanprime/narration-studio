@@ -3,7 +3,7 @@ import { expect, fn, userEvent, within } from 'storybook/test';
 import { bookmark, lineText, NOTED, STALE } from './bookmarkFixtures';
 import { BookmarkRibbon } from './BookmarkRibbon';
 
-// The Studio Next mock's gutter ribbon (`BookmarkEditor.tsx`): a bookmark icon in the margin, a dot when the bookmark has a note, and a
+// The research mock's gutter ribbon (`BookmarkEditor.tsx`): a bookmark icon in the margin, a dot when the bookmark has a note, and a
 // click that opens its editor. The margin is the caller's, so the stories draw one.
 const meta = {
   title: 'Script/BookmarkRibbon',

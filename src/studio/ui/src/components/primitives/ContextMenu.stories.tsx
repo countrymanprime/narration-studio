@@ -140,7 +140,7 @@ export const Submenu: Story = {
   },
 };
 
-// The empty-space menu of the shell (the Studio Next mock's page menu): a "Go to" submenu with the current page checked, two rows with key hints.
+// The empty-space menu of the shell (the research mock's page menu): a "Go to" submenu with the current page checked, two rows with key hints.
 export const CheckedRowsAndKeyHints: Story = {
   args: {
     items: [

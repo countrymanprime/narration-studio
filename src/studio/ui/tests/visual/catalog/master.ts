@@ -1,4 +1,4 @@
-// The `master` rows of STATE_CATALOG (see state-catalog.ts), in the order they are captured. Master & QC is the Studio Next mock's
+// The `master` rows of STATE_CATALOG (see state-catalog.ts), in the order they are captured. Master & QC is the research mock's
 // Master page (SN-M5): the per-file checks, the selected file's checks, the book consistency and the delivery package beside them,
 // then the panels the mock has no equivalent of, kept as built. Building the package is Delivery's (catalog/delivery.ts).
 import type { StateEntry } from '../lib/types';

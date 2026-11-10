@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
+import { createMockApi } from './mockApi';
 import { approvedMarkerName, createFindingsMock, REAPER_MESSAGES } from './findingsMock';
 import { WIRE_FINDINGS } from './mockFixtures';
 import { defaultFindingNoteType, FINDING_CATEGORIES } from './contracts/findings';
@@ -147,6 +148,13 @@ describe("the browser mock's REAPER follows the host's navigation rules", () => 
     expect(REAPER_MESSAGES.standalone).toBe(golden('findings-navigation-standalone.json').message);
   });
 
+  it('knows the finding the sample Pickups noise row points at, so Show in REAPER on it goes to its place (#3168)', async () => {
+    const { pickups } = await createMockApi({}, {}).pickupsList();
+    const noise = pickups.find((pickup) => pickup.source === 'audio');
+    expect(noise?.findingId).toBeTruthy();
+    await expect(createFindingsMock(WIRE_FINDINGS).findingsGoTo(noise!.findingId!)).resolves.toEqual({ outcome: 'navigated', projectTime: 450.9 });
+  });
+
   it('goes to and loops a finding with an item, and Stop puts back what the loop changed', async () => {
     const api = createFindingsMock(WIRE_FINDINGS);
     await expect(api.findingsGoTo('1a2b3c4d5e6f708192a3b4c5')).resolves.toEqual({ outcome: 'navigated', projectTime: 12.4 });
@@ -227,5 +235,15 @@ describe("the browser mock's REAPER adds an approved marker as the host does", (
       await accept(api, '1a2b3c4d5e6f708192a3b4c5');
       await expect(api.findingsAddMarker('1a2b3c4d5e6f708192a3b4c5')).resolves.toMatchObject({ outcome: 'refused', reason });
     }
+  });
+});
+
+// The Pickups mock lists `sample-noise`, which the findings store does not hold: `find()` answers it through a special case. This pins that Go to note
+// and Fine, not a pickup keep resolving it (#3231); the Proof list does not show it, so seeding it there is a separate change.
+describe('the sample noise note the Pickups mock lists', () => {
+  it('is answered by findingsGet although the list does not hold it', async () => {
+    const api = createFindingsMock(WIRE_FINDINGS);
+    expect((await api.findingsGet('sample-noise')).id).toBe('sample-noise');
+    expect((await api.findingsList({})).findings.map((finding) => finding.id)).not.toContain('sample-noise');
   });
 });

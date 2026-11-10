@@ -153,7 +153,7 @@ html[data-motion='reduce'] {
   --meter-body: var(--ok);
   --meter-hot: var(--warn);
   --meter-over: var(--danger);
-  /* The status soft fills are the mock's own opaque values (Studio Next), no longer aliases of the entity fills or a
+  /* The status soft fills are the mock's own opaque values (research mock), no longer aliases of the entity fills or a
      mix of the warn colour, so the entity and status fills no longer move together. */
   --ok-soft: #d9ead9;
   --warn-soft: #f5e6bf;
@@ -245,7 +245,7 @@ html[data-motion='reduce'] {
      declared once here, the same in light and dark. */
   --font-size-booth-script: 1.625rem;
   --line-height-booth-script: 1.85;
-  /* The sizes the Studio Next mock's cascade resolves to, "Round 12: roomier controls" (docs/research/studio-next-token-and-primitive-diff.md
+  /* The sizes the research mock's cascade resolves to, "Round 12: roomier controls" (docs/research/token-and-primitive-diff.md
      section 3): the same in both themes. The comment gives each in px at the default root size. */
   --radius-button: 0.375rem; /* 6 */
   --radius-card: 0.625rem; /* 10, .panel */

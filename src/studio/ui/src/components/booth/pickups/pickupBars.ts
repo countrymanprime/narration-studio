@@ -1,7 +1,7 @@
 import type { PickupItem } from '../../../api/contracts/pickups';
 import type { BoothUnit } from '../reading/boothUnits';
 
-// The pickup session's lines and what is drawn from them (the Studio Next mock's `sessionLines`, `nextPick` and the pickup branch of
+// The pickup session's lines and what is drawn from them (the research mock's `sessionLines`, `nextPick` and the pickup branch of
 // `stopTake` in `state/commands/booth.ts`). Pure: the list and the text arrive as input.
 
 /** The lines the session names, in the order it named them; an id the list no longer holds is dropped. */

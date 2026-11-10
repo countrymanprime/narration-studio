@@ -12,7 +12,7 @@ import { unattached } from '../row/selectors';
 import type { ExtractionScan } from './useSuggestions';
 
 // SN-X42: the pieces of the Story Bible page that come from extraction, drawn with props and the mock host's fixture suggestions. The
-// mock page they follow is Bible.tsx in the Studio Next mock (the header buttons, the "Needs verification · N" filter, the loose rows).
+// mock page they follow is Bible.tsx in the research mock (the header buttons, the "Needs verification · N" filter, the loose rows).
 
 const meta = { title: 'Story Bible/Extraction panel', component: EntryVerifyPill, args: { verify: 3, flagged: true } } satisfies Meta<typeof EntryVerifyPill>;
 export default meta;

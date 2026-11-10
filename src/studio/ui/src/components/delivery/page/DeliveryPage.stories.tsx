@@ -8,7 +8,7 @@ import type { ExportJob, ManuscriptChapter, MeasureFileResult, MeasureJob, Packa
 import { failingTwo, passing, profile, waiting } from '../../masterqc/files/testFiles';
 import { DeliveryPage } from './DeliveryPage';
 
-// The Delivery page body (docs/research/mockups/studio-next/src/pages/Delivery.tsx): the profile card, Output and "Before you build", mounted at
+// The Delivery page body (docs/research/mockups/research-mock/src/pages/Delivery.tsx): the profile card, Output and "Before you build", mounted at
 // `/delivery`.
 const chapters = [1, 2, 3, 4].map(
   (index) => ({ id: `c${index}`, title: `Chapter 0${index}`, index, wordCount: 100, status: 'not_started' }) as unknown as ManuscriptChapter,

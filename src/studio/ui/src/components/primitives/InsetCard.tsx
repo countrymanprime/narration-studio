@@ -36,7 +36,7 @@ export function InsetCard({
   tone?: InsetCardTone;
   fill?: boolean;
   dashed?: boolean;
-  /** `roomy` is the Script chapter card's frame and `snug` the Story Bible suggestion's (the Studio Next mock): an 8 px radius, with 16 px or 8 px at the sides. */
+  /** `roomy` is the Script chapter card's frame and `snug` the Story Bible suggestion's (the research mock): an 8 px radius, with 16 px or 8 px at the sides. */
   frame?: 'default' | 'roomy' | 'snug';
   role?: AriaRole;
   id?: string;

@@ -1,19 +1,19 @@
-name: Studio Next slice
-description: One slice of a Studio Next PRD, sized for one worker and one pull request. Normally opened by the groomer.
-title: 'SN-'
-labels: [slice, studio-next]
+name: Slice
+description: One slice of a PRD, sized for one worker and one pull request. Normally opened by the groomer.
+title: 'SL-'
+labels: [slice]
 body:
   - type: markdown
     attributes:
       value: |
-        A slice is one worker, one PR, one session. The issue is the worker's spec. The page's guide and the PRD or doc that covers it are the UI spec (the Studio Next mock was deleted from the tree).
-        Fill the title as `SN-<code><n> <verb phrase>`, for example `SN-F2 Icon vocabulary and Icon wrapper`. The header spec lives in the comment at the top of [`scripts/dev/slice-lint.mjs`](https://github.com/countrymanprime/narration-studio/blob/main/scripts/dev/slice-lint.mjs); paste the finished issue body into `node scripts/dev/slice-lint.mjs <file>` before you set `ready`.
+        A slice is one worker, one PR, one session. The issue is the worker's spec. The page's guide and the PRD or doc that covers it are the UI spec, not a mock.
+        Fill the title as `SL-<code><n> <verb phrase>`, for example `SL-F2 Icon vocabulary and Icon wrapper`. The header spec lives in the comment at the top of [`scripts/dev/slice-lint.mjs`](https://github.com/countrymanprime/narration-studio/blob/main/scripts/dev/slice-lint.mjs); paste the finished issue body into `node scripts/dev/slice-lint.mjs <file>` before you set `ready`.
         Set the lane (`lane:<L>`), the PRD (`prd:<code>`) and `ready` labels once the slice is groomed.
   - type: input
     id: prd
     attributes:
       label: PRD and slice
-      description: The PRD file and its slice id, for example `studio-next-foundations.prd.md, slice SNF-2`.
+      description: The PRD file and its slice id, for example `foundations.prd.md, slice SNF-2`.
     validations:
       required: true
   - type: input
@@ -69,7 +69,7 @@ body:
     id: spec
     attributes:
       label: Spec and ruling rows
-      description: The mock page file and state under `studio-next/src/pages/`, plus the register rows that rule on it. For a slice with no UI, say `no UI` and name the PRD sections.
+      description: The app page file and state the slice builds to, plus the PRD rows that rule on it. For a slice with no UI, say `no UI` and name the PRD sections.
     validations:
       required: true
   - type: textarea
@@ -105,7 +105,7 @@ body:
       description: The machine-readable header the coordinator reads. Keep the fence; every key is required.
       value: |
         ```slice-meta
-        id: SN-
+        id: SL-
         lane:
         kind:
         depends: []

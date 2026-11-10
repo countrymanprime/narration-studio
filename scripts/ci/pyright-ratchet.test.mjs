@@ -45,3 +45,20 @@ test('the committed config and limits list the same directories', () => {
   const limits = JSON.parse(readFileSync(new URL('./pyright-ratchet.json', import.meta.url), 'utf8'));
   assert.deepEqual(Object.keys(limits).sort(), [...config.include].sort());
 });
+
+test('on a pull request a directory off its limit fails only when the change touches it (#3149)', () => {
+  const scoped = { mode: 'scoped', files: ['lib/a.py'] };
+  const over = evaluate({ lib: 4, other: 5 }, { lib: 3, other: 3 }, scoped);
+  assert.equal(over.problems.length, 1);
+  assert.match(over.problems[0], /^lib: 4 errors, over/);
+  assert.match(over.warnings[0], /^other: 5 errors, over/);
+  const under = evaluate({ lib: 1, other: 1 }, { lib: 3, other: 3 }, scoped);
+  assert.match(under.problems[0], /^lib: 1 errors, under/);
+  assert.equal(under.warnings.length, 1);
+});
+
+test('outside a pull request every miss fails, and a new directory fails on a pull request too (#3149)', () => {
+  assert.equal(evaluate({ lib: 4 }, { lib: 3 }, { mode: 'strict' }).problems.length, 1);
+  const scoped = evaluate({ lib: 3, fresh: 0 }, { lib: 3 }, { mode: 'scoped', files: ['x.py'] });
+  assert.match(scoped.problems[0], /^fresh: checked by pyright but missing/);
+});

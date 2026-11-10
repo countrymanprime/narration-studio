@@ -68,7 +68,7 @@ const (
 	StaleTextChanged = "text_changed"
 )
 
-// Colours and Styles are the closed sets a mark type draws with, as in the Studio Next mock.
+// Colours and Styles are the closed sets a mark type draws with, as in the research mock.
 var (
 	Colours = []string{"copper", "info", "ok", "warn", "bad", "violet"}
 	Styles  = []string{"highlight", "underline", "double", "dotted", "wavy", "box"}
@@ -91,7 +91,7 @@ type MarkType struct {
 	Asks   bool   `json:"asks"`
 }
 
-// DefaultTypes are the types a project starts with: the Studio Next mock's own.
+// DefaultTypes are the types a project starts with: the research mock's own.
 func DefaultTypes() []MarkType {
 	return []MarkType{
 		{Key: "stress", Name: "Word stress", Colour: "copper", Style: "highlight"},

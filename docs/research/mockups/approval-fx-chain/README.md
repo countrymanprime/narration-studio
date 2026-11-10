@@ -1,8 +1,8 @@
 # Approval FX chain: mock
 
-**Status:** draft for [#2932](https://github.com/countrymanprime/narration-studio/issues/2932) (threat model row 5o), awaiting the owner's sign-off. The Studio Next mock has no mastering approval dialog ([Which mocks are the spec](../../../design/design-system.md#which-mocks-are-the-spec)). This draft covers only the chain the dialog adds.
+**Status:** draft for [#2932](https://github.com/countrymanprime/narration-studio/issues/2932) (threat model row 5o), awaiting the owner's sign-off. The research mock has no mastering approval dialog ([What a page builds to](../../../design/design-system.md#what-a-page-builds-to)). This draft covers only the chain the dialog adds.
 
-One static file, `index.html`: no build, no network, system fonts. It takes the Studio Next mock's tokens and follows the system theme (`data-theme="dark"` on the root forces dark).
+One static file, `index.html`: no build, no network, system fonts. It takes the research mock's tokens and follows the system theme (`data-theme="dark"` on the root forces dark).
 
 ## Frames
 
@@ -16,4 +16,4 @@ One static file, `index.html`: no build, no network, system fonts. It takes the 
 
 ## Lifecycle
 
-This folder is deleted in the pull request that follows the owner's approval or changes, as the Studio Next mock's rule says (Which mocks are the spec).
+This folder is deleted in the pull request that follows the owner's approval or changes, as the research mock's rule says (What a page builds to).

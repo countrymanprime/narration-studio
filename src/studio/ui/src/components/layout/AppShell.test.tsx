@@ -178,7 +178,7 @@ describe('AppShell grouped navigation', () => {
     }
   });
 
-  // The Studio Next mock (docs/research/mockups/studio-next, the frozen reference these values came from) draws a heading over every group but the first: Production and Schedule sit
+  // The research mock (docs/research/mockups/research-mock, the frozen reference these values came from) draws a heading over every group but the first: Production and Schedule sit
   // straight under the brand block. The first group keeps its name for a screen reader, as an `aria-label` in place of the heading.
   it('draws a heading over every group but the first, which is named by aria-label', () => {
     const { container } = renderShell();
@@ -202,7 +202,7 @@ describe('AppShell grouped navigation', () => {
     }
   });
 
-  // The rail's glyphs are the Studio Next mock's (Shell.tsx NAV through Icon.tsx), drawn from the icon catalogue so a page wears one icon everywhere.
+  // The rail's glyphs are the research mock's (Shell.tsx NAV through Icon.tsx), drawn from the icon catalogue so a page wears one icon everywhere.
   it("draws each rail item with the mock's glyph", () => {
     const { container } = renderShell();
     const nav = container.querySelector('aside nav')!;
@@ -258,7 +258,7 @@ describe('AppShell grouped navigation', () => {
     expect(button.getAttribute('aria-current')).toBe('page');
   });
 
-  // SN-P8 (schedule-route-and-rail-item): the Studio Next rail has Schedule after Production in the Production group, with no count.
+  // SN-P8 (schedule-route-and-rail-item): the rebuilt rail has Schedule after Production in the Production group, with no count.
   it('schedule-route-and-rail-item: lists Production then Schedule in the Production group, Schedule with no count, and opens /schedule', () => {
     const navigate = vi.fn();
     renderShell({ navigate, navCounts: { proof: 2, pickups: 3 } });
@@ -283,7 +283,7 @@ describe('AppShell grouped navigation', () => {
     }
   });
 
-  // SN-E9 (route-and-rail): the Studio Next rail (the mock's `NAV` in app/Shell.tsx) has Editing in an Edit group of its own,
+  // SN-E9 (route-and-rail): the rebuilt rail (the mock's `NAV` in app/Shell.tsx) has Editing in an Edit group of its own,
   // between Record and Review, with no count; Proof stays Proof, so there is never a second Proof item.
   it('route-and-rail: lists Editing alone in an Edit group between Record and Review, with no count, and opens /editing', () => {
     const navigate = vi.fn();
@@ -356,7 +356,7 @@ describe('AppShell engine chip', () => {
   });
 });
 
-// The Studio Next mock's top bar draws the crumb, the project name, the jump button, a zoom chip off 100% and the engine chip, and nothing else.
+// The research mock's top bar draws the crumb, the project name, the jump button, a zoom chip off 100% and the engine chip, and nothing else.
 // Everything the header once carried is in the jump menu on its key (JumpMenu.test.tsx, App.test.tsx).
 describe('AppShell header', () => {
   it('draws the old controls nowhere: no Back, Forward, Undo, History, zoom steps or zoom readout button', () => {

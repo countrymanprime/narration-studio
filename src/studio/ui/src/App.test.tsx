@@ -62,7 +62,7 @@ const appToasts = (role: 'status' | 'alert') => {
   return regions.find((node) => node.childElementCount > 0) ?? regions[0]!;
 };
 
-// The header carries only the jump button now (the Studio Next mock's top bar): Back, Forward, Undo, History and the zoom steps are jump-menu commands.
+// The header carries only the jump button now (the research mock's top bar): Back, Forward, Undo, History and the zoom steps are jump-menu commands.
 // Opens the menu from its button, narrows to commands, and returns the row named `label` (its name starts with the label).
 async function jumpRow(label: string) {
   fireEvent.click(screen.getByRole('button', { name: /^Jump to or run…/ }));
@@ -252,7 +252,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     window.history.replaceState(null, '', '/');
   });
 
-  // SN-O10: `/booth` is the Studio Next Booth (its Record control and footer key hints), for a chapter, the credits or no target.
+  // SN-O10: `/booth` is the rebuilt Booth (its Record control and footer key hints), for a chapter, the credits or no target.
   it.each(['/booth', '/booth?chapter=chapter-2', '/booth?credits=opening', '/booth?credits=closing'])(
     'the-booth-route-mounts-the-new-page: %s',
     async (address) => {
@@ -477,7 +477,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
   });
 
   it('choosing a manuscript file: busy while the host dialog is open, one dialog, and a failure is a toast', async () => {
-    // The Studio Next header has no Replace manuscript (Settings keeps it); the empty state's import button is the same hook.
+    // The rebuilt header has no Replace manuscript (Settings keeps it); the empty state's import button is the same hook.
     const source = createMockApi();
     const noManuscript = async () => ({ ...(await source.bootstrap()), manuscript: null });
     const selectManuscript = vi.fn(() => new Promise<never>(() => {}));
@@ -813,7 +813,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(window.location.pathname).toBe(`/editing/${WIRE_CHAPTERS[0].id}`);
   });
 
-  // SN-M5: /settings, /master and /delivery mount the Studio Next pages; /delivery is a page again, not a redirect.
+  // SN-M5: /settings, /master and /delivery mount the rebuilt pages; /delivery is a page again, not a redirect.
   it('the-three-routes-mount-the-new-pages: Settings, Master & QC and Delivery each mount the mock page', async () => {
     window.history.replaceState(null, '', '/settings');
     renderApp();

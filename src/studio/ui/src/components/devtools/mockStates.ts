@@ -1,7 +1,7 @@
 import { CHAPTER_SHAPES, type ChapterShape } from '../../fixtures/chapters';
 import { makeScenario, SCENARIO_SIZES, type Scenario } from '../../fixtures/scenario';
 
-// The groups of the dev-only Mock states panel, as data (docs/research/mockups/studio-next/src/app/mock-states.tsx draws the
+// The groups of the dev-only Mock states panel, as data (docs/research/mockups/research-mock/src/app/mock-states.tsx draws the
 // same idea). Every `params` entry is a URL parameter `main.tsx` reads once at boot; `mockStates.test.ts` scans `main.tsx`
 // and fails when one is not read there. A slice that adds a `?mock...` parameter adds a row here.
 export interface MockOption {

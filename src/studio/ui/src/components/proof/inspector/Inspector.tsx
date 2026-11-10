@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { useToastClearance } from '../../../hooks/useToastClearance';
 import { MAX_REVIEW_NOTE_LENGTH, shownFindingNoteType } from '../../../api/contracts/findings';
@@ -20,6 +20,28 @@ import { useShownEvidence, type InspectorApi } from './useShownEvidence';
 
 /** What the Inspector asks of the host: the two reads of `useShownEvidence`, the Go to of the icon row and the thread's changes. */
 export type InspectorHostApi = InspectorApi & InspectorActionsApi & FindingThreadApi;
+
+/** The decision band is pinned only while it takes no more than this share of the window's height: a taller one (a short window, or big text) would hide the controls scrolled behind it (#3158, #3231). */
+const BAND_PIN_MAX_SHARE = 0.4;
+
+/** Whether the band is short enough, against the window, to stay pinned; follows the band as its text wraps and the window as it is resized. */
+function useBandPinned(band: { current: HTMLElement | null }): boolean {
+  const [pinned, setPinned] = useState(true);
+  useEffect(() => {
+    const element = band.current;
+    if (!element) return;
+    const measure = () => setPinned(element.getBoundingClientRect().height <= window.innerHeight * BAND_PIN_MAX_SHARE);
+    measure();
+    const observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(measure);
+    observer?.observe(element);
+    window.addEventListener('resize', measure);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+  }, [band]);
+  return pinned;
+}
 
 /** The counter shows only for the last stretch of the note's limit. */
 const COUNTER_FROM = MAX_REVIEW_NOTE_LENGTH - 100;
@@ -56,7 +78,7 @@ function Quote({ label, markup, which }: { label: string; markup: string; which:
 const DECISION_QUIET_MS = 350;
 
 /**
- * The Studio Next Inspector for one note: the time and type, the steps, what the script says against what was heard, the DAW and link
+ * The rebuilt Inspector for one note: the time and type, the steps, what the script says against what was heard, the DAW and link
  * actions, the decision with its optional note, and the check's confidence. It reads no store and imports no router: the note, the host
  * reads and the handlers come in as props, and `useShownEvidence` keeps what the narrator was shown against the latest evidence, so a
  * decision made after a re-check is refused until they read what changed. `around` (the note's paragraph and its neighbours, research
@@ -99,7 +121,9 @@ export function Inspector({
   const [saving, setSaving] = useState<FindingReviewStatus>();
   // Side by side with the list (1180 px and up) the page keeps toasts left of this panel; stacked under it, a toast would cover the pinned band.
   const band = useRef<HTMLDivElement>(null);
-  useToastClearance(band, !useMediaQuery('(min-width: 1180px)', true));
+  const pinned = useBandPinned(band);
+  const sideBySide = useMediaQuery('(min-width: 1180px)', true);
+  useToastClearance(band, pinned && !sideBySide);
   const shown = evidence.shown;
   const inert = evidence.change !== null || evidence.isBusy;
   const fix = fixKindOf(shown);
@@ -126,7 +150,10 @@ export function Inspector({
   const saidTwice = onOpenEditing && repeatOf(shown) ? shown.manuscript?.chapter_id : undefined;
 
   return (
-    <aside aria-label="Note" className="flex flex-col gap-3 [&>:not([data-decision-band])_:is(button,a,input,select,textarea)]:scroll-mb-40">
+    <aside
+      aria-label="Note"
+      className={`flex flex-col gap-3 ${pinned ? '[&>:not([data-decision-band])_:is(button,a,input,select,textarea)]:scroll-mb-40' : ''}`}
+    >
       <div className="flex flex-wrap items-center gap-2">
         <h2 className="font-['IBM_Plex_Mono',ui-monospace,monospace] text-base font-semibold">
           {shown.time_range ? noteTime(shown.time_range.start) : repeatOf(shown) ? 'Said twice' : categoryLabel(shown.category)}
@@ -162,11 +189,11 @@ export function Inspector({
         onReopen={() => void decide('unreviewed')}
         onNoteRead={(next) => onChanged(next, false)}
       />
-      {/* The decision is the note's main action, so it stays at the panel's bottom edge while the evidence and the takes above it scroll past (#3114). The aside's scroll margin keeps a control above the band, a focused one or one scrolled into view, clear of it, not under it. */}
+      {/* The decision is the note's main action, so it stays at the panel's bottom edge while the evidence and the takes above it scroll past (#3114), except when it would take over 40% of the window (a window under about 360 px tall, or large text), where it scrolls with the panel so it never hides a focused control (#3158, #3231). The aside's scroll margin keeps a control above the band, a focused one or one scrolled into view, clear of it, not under it. */}
       <div
         ref={band}
         data-decision-band
-        className="sticky bottom-[calc(var(--page-gutter)*-1)] z-[1] -mb-3 flex flex-col gap-3 border-t border-[var(--border)] bg-[var(--surface)] py-3 shadow-[-1rem_0_0_var(--surface),1rem_0_0_var(--surface)]"
+        className={`z-[1] -mb-3 flex flex-col gap-3 border-t border-[var(--border)] bg-[var(--surface)] py-3 ${pinned ? 'sticky bottom-[calc(var(--page-gutter)*-1)] shadow-[-1rem_0_0_var(--surface),1rem_0_0_var(--surface)]' : ''}`}
       >
         <SectionLabel>Decision</SectionLabel>
         <DecisionButtons status={shown.review.status} fix={fix} disabled={inert} pendingStatus={saving} onDecide={(status) => void decide(status)} />

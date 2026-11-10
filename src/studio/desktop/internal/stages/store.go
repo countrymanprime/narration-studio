@@ -87,7 +87,7 @@ type DecisionStore struct {
 	path     string
 	mu       sync.Mutex
 	reporter *persist.Reporter
-	// rename activates a written file; nil is os.Rename (tests replace it).
+	// rename activates a written file; nil is persist.Rename (tests replace it).
 	rename func(oldPath, newPath string) error
 }
 
@@ -210,7 +210,7 @@ func (s *DecisionStore) writeLocked(file decisionsFile) error {
 	if err := os.WriteFile(temporary, bytes, 0o600); err != nil {
 		return fmt.Errorf("could not write the %s file: %w", decisionsWhat, err)
 	}
-	rename := os.Rename
+	rename := persist.Rename
 	if s.rename != nil {
 		rename = s.rename
 	}

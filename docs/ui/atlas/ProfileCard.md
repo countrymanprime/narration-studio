@@ -9,6 +9,7 @@ Storybook title: `Delivery/ProfileCard`. Source: `src/components/delivery/profil
 - Built In
 - Custom
 - Save Refused
+- Locked
 
 ## Used by
 

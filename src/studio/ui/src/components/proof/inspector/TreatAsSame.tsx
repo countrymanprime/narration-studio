@@ -3,7 +3,7 @@ import { IconButton } from '../../primitives/IconButton';
 import { ALREADY_TREATED, addEquivalence, oneWordMisread, useEquivalencePending, useEquivalenceTreated, type EquivalenceApi } from './equivalence';
 
 /**
- * "Treat these two words as the same in later checks" (#2736, an addition to the Studio Next mock): on a one-word Transcript Compare
+ * "Treat these two words as the same in later checks" (#2736, an addition to the research mock): on a one-word Transcript Compare
  * misread, adds the script word and the heard word as one group to the project's equivalences, so the next comparison counts them as a
  * match. Nothing is drawn for any other note. Once the host has the pair the button is off, with "Already treated as the same" as its
  * reason. The request and its answer are `equivalence.ts`'s, outside this component.

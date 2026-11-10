@@ -5,7 +5,7 @@ narrator who always builds right after importing gets it without a second manual
 
 ## The path (removed)
 
-The chain is gone (Studio Next gap audit SB-2): `ManuscriptImport.tsx` no longer starts a build after an import, the Story Bible page has no
+The chain is gone (rebuilt gap audit SB-2): `ManuscriptImport.tsx` no longer starts a build after an import, the Story Bible page has no
 Build / refresh button, and the `GuideBuild` and `GuideBuildState` bindings are removed (host API 138). Scan and Import entries replace
 it. The notes below are what the chained build taught; the host still runs the build job internally.
 

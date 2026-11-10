@@ -245,6 +245,12 @@ export const productionDrivers: Record<string, Driver> = {
     const dialog = await openTrackPanel(page, 'Chapter 1', 'mockChapterLink=missing');
     await dialog.getByText('Missing', { exact: true }).waitFor();
   },
+  'chapter-track-panel-suggested': async (page) => {
+    const dialog = await openTrackPanel(page, 'Chapter 1', 'mockChapterLink=none');
+    await dialog.getByText(/Not linked yet/).waitFor();
+    // Off, with the reason on the button: the track is only a suggestion.
+    await dialog.getByRole('button', { name: /Show in REAPER/ }).waitFor();
+  },
   'chapter-remove-confirm': async (page) => {
     await openTrackPanel(page, 'Chapter 1', 'mockChapterLink=confirmed');
     await clickVisible(page, 'button', 'Remove from recording…');

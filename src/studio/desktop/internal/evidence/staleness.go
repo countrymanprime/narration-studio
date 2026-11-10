@@ -131,6 +131,8 @@ type ChapterEvaluationRequest struct {
 	AnalyzerID      string
 	AnalyzerVersion string
 	ParamHash       string
+	// Identify, when set, resolves a source file's identity in place of Identify: a caller that asks often passes a cache's.
+	Identify func(path, projectFolder string) (SourceIdentity, error)
 }
 
 // ComputeChapterFingerprint computes a chapter's LedgerFingerprint (including
@@ -375,7 +377,7 @@ func BuildBasis(projectFile LedgerProjectFile, newestRecordTime, newestSourceMod
 // req.Project (already parsed by the caller with tracks.Parse - this function
 // never reads the .rpp itself), it: finds the chapter's confirmed
 // track (mapping.List), computes the chapter's current fingerprints
-// (ComputeChapterFingerprint, one stat plus a partial read per source),
+// (ComputeChapterFingerprint, one stat plus a partial read per source; one stat when req.Identify is a cache that has the file),
 // finds the latest complete ledger record for (req.AnalyzerID,
 // req.ChapterID), and returns the EvaluatorResult plus the EvaluationBasis
 // every result states. It reads the ledger and mapping stores; it never writes
@@ -407,6 +409,9 @@ func EvaluateChapter(ledger *LedgerStore, mapping *MappingStore, req ChapterEval
 	identify := func(sourceFile string) (SourceIdentity, error) {
 		if sourceFile == "" {
 			return SourceIdentity{}, fmt.Errorf("item has no source file")
+		}
+		if req.Identify != nil {
+			return req.Identify(sourceFile, req.ProjectFolder)
 		}
 		return Identify(sourceFile, req.ProjectFolder)
 	}

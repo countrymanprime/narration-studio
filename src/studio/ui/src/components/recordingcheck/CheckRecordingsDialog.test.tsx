@@ -393,15 +393,12 @@ describe('CheckRecordingsDialog', () => {
     beforeEach(() => vi.stubGlobal('navigator', { ...navigator, hardwareConcurrency: 8 }));
     afterEach(() => vi.unstubAllGlobals());
     const option = (name: string) => screen.findByRole('combobox', { name });
-    const slider = (name: string) => screen.findByRole('slider', { name });
 
     it('begins at what the host would do and says it in words', async () => {
       const { api } = host();
       open(api, ['a']);
-      const chunk = (await slider('Chunk length')) as HTMLInputElement;
-      // The host's 300 s is past the slider's 120 s: the readout keeps the real figure and the thumb rests at the end.
-      expect(chunk.value).toBe('120');
-      expect(screen.getByText('300 s')).toBeTruthy();
+      // The host's 300 s is one of the choices Settings offers, so the select draws it as it is.
+      expect(((await option('Chunk length')) as HTMLSelectElement).value).toBe('300');
       expect((screen.getByRole('slider', { name: 'Overlap between chunks' }) as HTMLInputElement).value).toBe('6');
       expect(screen.getByText('Automatic')).toBeTruthy();
       expect((screen.getByRole('checkbox', { name: /Look again with a larger model/ }) as HTMLInputElement).getAttribute('aria-checked')).toBe('false');
@@ -410,11 +407,18 @@ describe('CheckRecordingsDialog', () => {
       expect(screen.queryByText(/Checking recordings runs speech recognition/)).toBeNull();
     });
 
+    it('the chunk length offers the choices Settings does, up to 900 s', async () => {
+      const { api } = host();
+      open(api, ['a']);
+      const chunk = (await option('Chunk length')) as HTMLSelectElement;
+      expect(Array.from(chunk.options).map((choice) => choice.value)).toEqual(['60', '120', '300', '600', '900']);
+      expect(chunk.options[4].textContent).toBe('900 s');
+    });
+
     it('the sliders cover the mock ranges', async () => {
       const { api } = host();
       open(api, ['a']);
-      const chunk = (await slider('Chunk length')) as HTMLInputElement;
-      expect([chunk.min, chunk.max, chunk.step]).toEqual(['10', '120', '5']);
+      await option('Chunk length');
       const overlap = screen.getByRole('slider', { name: 'Overlap between chunks' }) as HTMLInputElement;
       expect([overlap.min, overlap.max, overlap.step]).toEqual(['0', '10', '1']);
       const workers = screen.getByRole('slider', { name: 'Parallel workers' }) as HTMLInputElement;
@@ -428,9 +432,7 @@ describe('CheckRecordingsDialog', () => {
       const workers = screen.getByRole('slider', { name: 'Parallel workers' });
       workers.focus();
       await userEvent.keyboard('{Home}{ArrowRight}{ArrowRight}');
-      const chunk = screen.getByRole('slider', { name: 'Chunk length' });
-      chunk.focus();
-      await userEvent.keyboard('{Home}{End}');
+      await userEvent.selectOptions(await option('Chunk length'), '120');
       const overlap = screen.getByRole('slider', { name: 'Overlap between chunks' });
       overlap.focus();
       await userEvent.keyboard('{End}');
@@ -470,19 +472,19 @@ describe('CheckRecordingsDialog', () => {
       await userEvent.click(await screen.findByRole('checkbox', { name: /Transcribe each recording whole/ }));
       expect((screen.getByRole('slider', { name: 'Parallel workers' }) as HTMLInputElement).disabled).toBe(true);
       expect((screen.getByRole('slider', { name: 'Overlap between chunks' }) as HTMLInputElement).disabled).toBe(true);
-      expect((screen.getByRole('slider', { name: 'Chunk length' }) as HTMLInputElement).disabled).toBe(true);
+      expect((screen.getByRole('combobox', { name: 'Chunk length' }) as HTMLSelectElement).disabled).toBe(true);
+      expect((screen.getByRole('combobox', { name: 'Chunk length' }) as HTMLSelectElement).selectedOptions[0].textContent).toBe('Whole');
       expect(screen.getByText('Whisper small over each recording whole, one process.')).toBeTruthy();
       await userEvent.click(screen.getByRole('button', { name: 'Check 1 chapter' }));
       await waitFor(() => expect(sent).toHaveLength(1));
       expect(sent[0]).toMatchObject({ workers: 1, chunkSeconds: 0 });
     });
 
-    it('shows a setting the sliders do not reach instead of silently changing it', async () => {
+    it('shows a setting the controls do not offer instead of silently changing it', async () => {
       const odd: CoverageEngines = { ...engines, defaults: { ...engines.defaults, chunkSeconds: 240, overlapSeconds: 7, workers: 5, recheckBelow: 0.45 } };
       const { api, sent } = host({ coverageEngines: async () => odd });
       open(api, ['a']);
-      await slider('Chunk length');
-      expect(screen.getByText('240 s')).toBeTruthy();
+      expect(((await option('Chunk length')) as HTMLSelectElement).value).toBe('240');
       expect(screen.getByText('7 s')).toBeTruthy();
       expect(screen.getByText('5')).toBeTruthy();
       await userEvent.click(screen.getByRole('button', { name: 'Check 1 chapter' }));

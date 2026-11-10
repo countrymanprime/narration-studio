@@ -17,7 +17,7 @@ const MAX_GAPS = 38;
 //
 // The escape is a comment: a native element with `native-control-ok: <why>` (at least 12 characters) in a comment on its first
 // line or on the line directly above is not counted, whatever its tag. A marker with no native element there is stale and
-// fails. `ZERO_DIRS` lists the Studio Next folders built to the mock: nothing in them may carry a ceiling or an unmarked native
+// fails. `ZERO_DIRS` lists the rebuilt folders built to the mock: nothing in them may carry a ceiling or an unmarked native
 // element. A page swap adds its new folder to `ZERO_DIRS` in the PR that creates it and deletes the old page's `CEILING`
 // entries in the same PR (the stale check fails otherwise).
 //
@@ -209,7 +209,7 @@ describe('native controls stay inside the primitives', () => {
     expect(scans.flatMap(([, found]) => found.problems)).toEqual([]);
   });
 
-  test('zero-dirs-allow-no-unmarked-native: a Studio Next folder has no ceiling and no unmarked native element', () => {
+  test('zero-dirs-allow-no-unmarked-native: a rebuilt folder has no ceiling and no unmarked native element', () => {
     const under = (file: string) => ZERO_DIRS.some((dir) => file.startsWith(dir));
     const unmarked = scans.filter(([file, found]) => under(file) && Object.keys(found.tags).some((tag) => (NATIVE_TAGS as readonly string[]).includes(tag)));
     expect(

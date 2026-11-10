@@ -36,7 +36,7 @@ export const IconOnly: Story = {
 };
 
 // The full-width sidebar (>= 1400px in AppShell): icon + label, unavailable pages disabled. The 216 px rail and its 8 px
-// inset, with the items as the Studio Next mock's `.nav` draws them (40 px on a 42 px pitch).
+// inset, with the items as the research mock's `.nav` draws them (40 px on a 42 px pitch).
 export const Sidebar: Story = {
   render: () => (
     <nav className="flex w-54 flex-col gap-0.5 border-r border-[var(--border)] bg-[var(--surface)] p-2" aria-label="Primary navigation">

@@ -199,6 +199,12 @@ export const engineStates: StateEntry[] = [
   },
   {
     page: 'engine',
+    state: 'link-chapters-track-folders',
+    description:
+      'The engine panel, "Link chapters" dialog in a project whose tracks sit in REAPER folders (?mockTrackFolders=1), Chapter 1 set to the "Chapters · 8 tracks" folder: a folder of a plain project counts tracks, not voices',
+  },
+  {
+    page: 'engine',
     state: 'link-chapters-preview',
     description:
       'The engine panel, "Link chapters" dialog open with one chapter mapped to a track - preview of the items that will be stamped, nothing written yet',

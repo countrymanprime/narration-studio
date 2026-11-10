@@ -1,5 +1,5 @@
 /**
- * The fixed inputs behind choosing between takes (the Studio Next mock's `config/estimates.ts`). They live here and nowhere else.
+ * The fixed inputs behind choosing between takes (the research mock's `config/estimates.ts`). They live here and nowhere else.
  */
 
 /** The longest gap the cleanup leaves, in seconds. A placeholder until the real limit is decided. */

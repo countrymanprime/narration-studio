@@ -10,7 +10,7 @@ import type { NextUpInputs } from './nextUpRanking';
 /** "Chapter 4" for `c4`: built, not written out, because a sample title is a fixture's to take from `src/fixtures/`. */
 const nameOf = (id: string): string => `Chapter ${id.replace(/\D/g, '')}`;
 
-/** A chapter for tests and stories: a Studio Next sized one, an hour of finished audio by default. */
+/** A chapter for tests and stories: a rebuilt sized one, an hour of finished audio by default. */
 export function chapter(id: string, overrides: Partial<ProductionChapter> = {}): ProductionChapter {
   return {
     id,

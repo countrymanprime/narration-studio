@@ -1,0 +1,190 @@
+# Script and Story Bible: Pronunciation Sources, Merge, Review, Appears-In, Speaker Colours and Bookmarks
+
+**Source:** owner request of 2026-10-10 (rebuild PRD); the Story Bible and Script rulings and the bookmark ruling in `research-mock/research/repo-compare-decisions.md`; the mock's `research-mock/src/pages/Bible.tsx`, `research-mock/src/pages/bible/`, `research-mock/src/pages/script/`; the owner's rulings of 2026-10-11 (see Decisions).
+
+**Builds on:** the delivered Story Bible, pronunciation and prep work ([pronunciation sources](../architecture/pronunciation-provider-selection.md), [What "provider" means here](../architecture/pronunciation-provider-selection.md#what-provider-means-here), [ADR 0002](../adr/0002-local-models-and-tools-come-first-so-the-app-is-free-to-use.md), [Choosing and previewing a pronunciation](../architecture/pronunciation-provider-selection.md#choosing-and-previewing-a-pronunciation), [The default source setting](../architecture/pronunciation-provider-selection.md#the-default-source-setting), [manuscript_guide.py](../../src/studio/sidecars/manuscript-guide/core/manuscript_guide.py), [Per-speaker colours](../design/colour-and-contrast.md#per-speaker-colours)); the Script page ([Design system reference](../design/design-system.md)). Extraction suggestions, import and analysis tools are the separate Extraction and Analysis Tools.
+
+**Status (2026-10-11):** draft; the owner's rulings of 2026-10-11 are applied. The research mock is the only spec for Story Bible and Script.
+
+## Problem Statement
+
+The owner agreed a set of Story Bible and Script behaviours: pronunciation with a source and no query workflow, merge when an alias collides, drafts dropped on Cancel, a sortable list with alias counts, a needs-review flow for imported items, "appears in" as chapters with a go-to button, per-speaker colours, and chapter bookmarks with notes. Some exist in other forms (merge, a Needs Review category, speaker colours, `appearances` by chapter and scene), pronunciation still carries the query workflow the owner rejected (status, query CSV export and import, the queries page and the rail badge for open queries), and bookmarks do not exist.
+
+## Evidence
+
+- **Mock.** `research-mock/src/providers/pronunciation.ts` and `research-mock/src/ui/PronSource.tsx` (source id; `manual` is typed); `research-mock/src/state/commands/bible.ts` (`mergeEntries`, drafts); `research-mock/src/selectors/bible.ts` (`appearsIn`, `entryNeedsReview`); `research-mock/src/selectors/bibleMerge.ts`; `research-mock/src/selectors/speakers.ts`; `research-mock/src/state/commands/bookmarks.ts`, `research-mock/src/selectors/bookmarks.ts`, `research-mock/src/ui/BookmarkEditor.tsx`, `research-mock/src/pages/script/BookmarksTab.tsx`, `research-mock/src/app/bookmarks.ts`. Tests: `research-mock/tests/bible.test.tsx`, `research-mock/tests/bible-batch-a.test.tsx`, `research-mock/tests/bookmarks.test.tsx`, `research-mock/tests/speakers.test.tsx`, `research-mock/tests/script.test.tsx`.
+- **Repo.** Story Bible: `src/studio/ui/src/components/storybible/{Guide,GuideDetail,PronunciationWork,PronunciationQueries}.tsx`, `pronunciationStatus.ts`; `src/studio/desktop/internal/guide/`, `src/studio/sidecars/manuscript-guide/core/manuscript_guide.py` (`merge`, `split`, `appearances`, pronunciation `status`, `alternate`); `state.ts` (`findAliasMatches`, categories incl. "Needs Review" and "Draft"); Script: `components/script/{ScriptPage,ScriptRail,ScriptChapterList}.tsx`; no bookmark code (the word appears in unrelated files).
+
+| Ruling | Real today |
+| --- | --- |
+| Pronunciation: source plus manual, no query workflow | `status` (`researched`, `query_sent`, `author_confirmed`), `note`, `alternate` ([Manuscript Guide](../utilities/manuscript-guide.md)); query CSV; queries page (`PronunciationQueries.tsx`) |
+| Merge on alias collision | `findAliasMatches` unlocks Merge (verify union of appearances and relationship re-pointing) |
+| Drop an unsaved new entry on Cancel | "Draft" category exists; behaviour on Cancel to verify |
+| Sort the list, alias counts | Not verified present |
+| Needs review for imported items | "Needs Review" category; "Mark reviewed" to verify |
+| Appears in: chapters only, button to go to chapter | `appearances` by chapter and scene in the sidecar; UI lists evidence lines |
+| Speaker chips and colours | `--speaker-1..7`, `speakerColor.ts` ([Per-speaker colours](../design/colour-and-contrast.md#per-speaker-colours)); no per-entry override |
+| Bookmarks with notes | Absent |
+
+## Proposed Solution
+
+1. **Pronunciation provenance, not workflow.** Each pronunciation stores its text and the id of its source (a registered source or `manual`); the UI shows the source's icon and name and lets the narrator switch source or type it. There is no query/confirmed workflow (DQ-11). In the Story Bible swap slice the query status, the queries page, the author query CSV export and import and the rail badge that counts open queries are removed (the mock's rail has no Story Bible count); old `note` text stays readable as a note.
+2. **Merge, drafts, sort, counts.** Verify and complete merge (aliases combined, relationships re-pointed by id, appears-in union, one undo step); an unsaved new entry is dropped on Cancel; list sort (name, type, chapter count) remembered in preferences; alias count per row.
+3. **Needs review.** A filter and a count for imported or extracted items; "Mark reviewed" blocked while any item needs verification (the same flag the extraction suggestions use).
+4. **Appears in.** Chapters only: the count of chapters and a button per chapter that opens it in Script; remove line and mention counts from the Story Bible UI.
+5. **Speaker colours.** Keep the seven-hue scheme; add an optional per-entry colour override that wins over the stable pick.
+6. **Bookmarks.** Host-persisted per project (`bookmarks` sidecar: id, chapter, paragraph and character offset, optional label and note, created time); a Script gutter ribbon, a Bookmarks tab in the side panel, Booth ribbons in Booth, jump-menu commands "Bookmark: ..." and next and previous, keys B, `[` and `]`; each add, edit and remove is one journal entry.
+7. **Script keeps.** Threaded notes, Ctrl+F, text settings, speaker picker, manual prep state and headers, markup types, context menus, and the custom markup; no stale anchors, no query and confirm, no repo markup.
+8. **Swap.** The mock's Story Bible and Script pages replace the existing ones in one PR (SNB-8), which deletes the old pages and their equivalents. The Series tab has no equivalent in the mock and stays exactly as built (DQ-12).
+
+## Key Hypothesis
+
+If pronunciation is "a value and where it came from", every source (dictionary, speech engine, manual) fits one interface and the narrator never fills in a workflow. We are wrong if narrators still need to record that an author confirmed a name; the note field keeps that possible without a status.
+
+## What We're NOT Building
+
+- Query and confirm for names and aliases; the author query CSV; stale-anchor detection; repo stress, breath and pause markup; evidence excerpts; derived prep completeness or progress; chapter results in Find; the speaker coverage strip; prep sheet export.
+- Additional LLM-parsed properties (research only), click-through counts, live selectors, a shared name-row component (maybe list).
+- Any change to the Series tab or the series voice bible (no equivalent in the mock; untouched, DQ-12), chapter bookmarks per line (line bookmarks were removed earlier). **Superseded 2026-10-21 (owner): this app produces one book at a time, so the Series tab is removed from the Story Bible page and no series page or reference is to be built or kept. The series host, API and data still in the repo are to be removed in a follow-up.**
+
+## Success Metrics
+
+| Metric | Target | Measured by |
+| --- | --- | --- |
+| Pronunciations with a source id | 100% of new writes; old ones migrated on read | Go and Python tests; golden |
+| Bookmark round trip | add, edit, remove, undo, restart | Journal and host tests |
+| Raw controls on migrated pages | 0 | `rawNatives.test.ts` |
+| Appears-in counts | chapters only | Ported `research-mock/tests/bible-batch-a.test.tsx` |
+
+## Decisions
+
+Owner rulings of 2026-10-11; none is open.
+
+| Id | Ruling | Consequence here |
+| --- | --- | --- |
+| SN0-Q1 / DQ-1 | the PRD, the issue and the page guide are the spec, tokens and layouts included | `docs/design/design-system.md` apply only where the mock shows the same layout |
+| SN0-Q2 / DQ-2 | Replace, one PR, no flag | SNB-8 swaps the routes and deletes the old pages |
+| DQ-11 | No query/confirmed workflow; pronunciation has a source | The query status, query CSV export and import and the open-queries rail badge are removed with the swap; `docs/utilities/manuscript-guide.md, src/studio/ui/src/components/layout/useNavCounts.ts` are superseded to that extent |
+| SNB-D1 (owner request, 2026-10-21) | The Story Bible's entries are a small sortable, filterable table (Name, Kind) at most 45% of the page, with the open entry as the main area, not the mock's 320 px list of two-line rows | Supersedes the mock's `Bible.tsx` left pane (search, sort menu, kind chips, `chlist` rows): the table sits beside the entry (stacked under 1024 px), a Kind menu and a Show menu replace the chips, the sort is the column headers, and Scan, Import and Voice data move behind one More actions button beside the primary Add entry. The mock is not edited |
+| SNB-D4 (owner rulings, 2026-11-02 and 2026-11-03, [#2595](https://github.com/countrymanprime/narration-studio/issues/2595)) | A pronunciation of a story element has one home: the Story Bible entry's name (own name or alias). The Script page's Words list is a view over the entries named in the open chapter, edited through the same row and the same journalled commands as the Story Bible. The Story Bible holds story elements only: a word that is none is never written to it. Pronunciation values come from the dictionaries, each candidate with its source; a word no dictionary has is saved to the project's user dictionary (My dictionary), which is a dictionary source too | Supersedes the mock's second store (`data.pronunciations` beside `bible[].sayA`, `state/commands/pronunciation.ts` `PronTarget` kind `word`), its "Add to my words" and the flagged words of [#1179](https://github.com/countrymanprime/narration-studio/issues/1179) (`ScriptWordFlag`, `ScriptWordSay`, `ScriptWordUnflag`). The Words card's "How I will say it" is the Story Bible's names row (saved on Enter or leaving the field, so no Save button) with the dictionaries' candidates to pick from; "In this chapter" shows each name with its source and Hear, not the mock's Word / Say it / Status columns; "Pronunciation (a word)" opens the word's card instead of flagging it. The mock is not edited |
+| SNB-D2 (owner ruling, 2026-10-21) | The app is for producing one book at a time: no Series tab, page or reference | The Story Bible page has no tabs. Supersedes DQ-12 / SN0-Q5 |
+| SNB-D3 (owner review of the entry-list mock, 2026-10-24) | The entry table follows the [entry-list redesign](../research/story-bible-entry-list.md#the-redesign) without its Whole book / This chapter scope: the owner kept the rest of the mock and dropped the scope | Amends SNB-D1: the search finds by name and alias only, shows the alias that matched and marks the letters, and says how many entries it searches; Down moves to the first row and Esc clears. A Filter menu (several kinds, Pronunciation, Show) with removable chips replaces the Kind and Show menus; a Sort menu adds Book order and Most mentioned; rows get a Hear button; Ctrl+F lists the entries. There is no chapter picker or "first here"; preparing a chapter is Book order here and the Script page's In this chapter list |
+| DQ-12 / SN0-Q5 | Series voice bible and Series tab: no equivalent in the mock | Untouched; not extended, removed or re-skinned **Superseded 2026-10-21 (owner): this app produces one book at a time, so the Series tab is removed from the Story Bible page and no series page or reference is to be built or kept. The series host, API and data still in the repo are to be removed in a follow-up.** |
+| SNB-Q2 | The host reports the sources (CMU, eSpeak, Wiktextract, Merriam-Webster when keyed); the default stays per [ADR 0002](../adr/0002-local-models-and-tools-come-first-so-the-app-is-free-to-use.md) (default taken, standing instruction) | `PronunciationPort.sources()` |
+| SNB-Q3 | Bookmarks are a project sidecar `bookmarks.json`, validated on read, like markup (default taken) | `internal/bookmarks` |
+| SNB-Q4 | Replacing the manuscript clears bookmarks, as the mock's `finishImport` does, and the replace confirmation lists them (default taken) | Host test |
+| SNB-Q5 | A bookmark is a spot (paragraph and offset), as in the mock; a chapter is a spot at its start (default taken) | `bookmarkSchema` |
+
+## Users & Context
+
+Narrators prepping a manuscript and returning to hard spots; the Booth uses bookmarks as quick-movement marks. Story Bible entries may be locked ([manuscript_guide.py](../../src/studio/sidecars/manuscript-guide/core/manuscript_guide.py)) and read-only until edit ([Story Bible](../guides/using-the-app/story-bible.md)).
+
+## Solution Detail
+
+### Acceptance criteria tied to the mock
+
+| Behaviour | Mock reference | Acceptance |
+| --- | --- | --- |
+| Source icon and name; switch or type | `research-mock/src/ui/PronSource.tsx`, `research-mock/tests/bible-batch-a.test.tsx` | A pronunciation shows its source; choosing another source fetches a candidate or says why not |
+| Merge | `research-mock/src/selectors/bibleMerge.ts` | Alias collision offers "Merge into this entry"; aliases combine; relationships re-point; one undo |
+| Drafts | `research-mock/src/state/commands/bible.ts` | Cancel on an unsaved new entry leaves no empty entry |
+| Needs review | `research-mock/src/selectors/bible.ts` | Count and filter; "Mark reviewed" is blocked while an item needs verification |
+| Appears in | same | A list of chapters with a go-to button; no line counts |
+| Speaker colour | `research-mock/tests/speakers.test.tsx`, `research-mock/tests/no-hardcoded-speakers.test.ts` | Stable colour per id; entry override wins; no literal speakers in components |
+| Bookmarks | `research-mock/tests/bookmarks.test.tsx` | Add at a word, label and note saved on blur as one undo step; next and previous wrap; the Script gutter and Booth show it |
+
+### Supersedes / depends on ADRs
+
+On conflict this PRD, and the ADR written when its phase lands, is the source of truth; old ADRs stay in force for unmigrated code until then (register).
+
+| ADR | Class | Note |
+| --- | --- | --- |
+| [Manuscript Guide](../utilities/manuscript-guide.md), | SUPERSEDE (DQ-11) | Pronunciation provenance without a query workflow (A11) |
+| [useNavCounts.ts](../../src/studio/ui/src/components/layout/useNavCounts.ts) | SUPERSEDE (DQ-11) | The open-queries badge is removed; the other rail counts are the shell PRD's |
+| [What "provider" means here](../architecture/pronunciation-provider-selection.md#what-provider-means-here), [Choosing and previewing a pronunciation](../architecture/pronunciation-provider-selection.md#choosing-and-previewing-a-pronunciation), [The default source setting](../architecture/pronunciation-provider-selection.md#the-default-source-setting), [ADR 0002](../adr/0002-local-models-and-tools-come-first-so-the-app-is-free-to-use.md) | KEEP / EXTEND | Edited value, phoneme block, default source, local first |
+| [manuscript_guide.py](../../src/studio/sidecars/manuscript-guide/core/manuscript_guide.py), [Story Bible](../guides/using-the-app/story-bible.md), [Design system reference](../design/design-system.md), [Story Bible](../guides/using-the-app/story-bible.md) | KEEP / EXTEND | Locked and read-only; drafts add a cancel rule |
+| [Per-speaker colours](../design/colour-and-contrast.md#per-speaker-colours) | EXTEND | Entry colour override |
+| [manuscript_guide.py](../../src/studio/sidecars/manuscript-guide/core/manuscript_guide.py) | KEEP | Stable ids; appearances |
+| , [The narrator's pin](../architecture/preview-suggestion.md#the-narrators-pin) | KEEP | Markup and pin sidecars; bookmarks follow the same pattern |
+| [Data files](../reference/data-files.md), [voicebible.go](https://github.com/countrymanprime/narration-studio/blob/e95ce0c3c8d5d2bf3860d95e8184b6d308da1ef4/src/studio/desktop/internal/series/voicebible.go) to [readonly.go](../../src/studio/desktop/internal/guide/readonly.go) | KEEP (DQ-12) | Series untouched; no equivalent in the mock |
+| , [Design system reference](../design/design-system.md), | SUPERSEDE where the mock differs (DQ-1) | Script layout follows `research-mock/src/pages/script/` |
+
+## Technical Approach
+
+**Interfaces.** `PronunciationPort`: `sources()`, `defaultSource()`, `candidate(word, source)` returning `{ ok, say } | { ok: false, reason }` (host adapter wraps the existing pronunciation bindings; the mock keeps the fixture-driven version). `BookmarksApi`: `list()`, `add()`, `update()`, `remove()`. Search source and command provider for bookmarks (App Shell and Registries).
+
+**Contracts.** `bookmarkSchema`, `bookmarksSchema`; golden `bookmarks-list.json` written by a Go test; bindings `BookmarksList/Add/Update/Remove` with a `hostAPIVersion` bump; Zod for pronunciation `source` (additive; old `ipa/source/status/alternate` fields still parse); `wireContracts.test.ts` rows; mocks pass.
+
+**Architecture.** Go `internal/bookmarks` (new, project sidecar via `persist`, version-checked); Python sidecar unchanged except the pronunciation field migration; UI under `components/storybible/` and `components/script/`, bookmark primitives are feature components using `Popover` and `IconButton`.
+
+**Test plan.** Port the mock's tests; Go tests for the bookmarks store (corrupt file path, `persist` class "narrator data"); sidecar test for pronunciation migration; visual rows (Story Bible list with sort and counts, entry with appears-in, Script with a bookmark ribbon, bookmarks tab) at all viewports; aria for any dialog.
+
+**Rollout.** Seams, ports and components land first with no route. SNB-8 swaps the Story Bible and Script routes and deletes the old pages, the queries page, the query CSV export and import (binding, schema, golden, wire row, `hostAPIVersion` bump), the open-queries badge, and their rows, guide pages and doc screenshots ([Design principles](../architecture/principles.md) decision 1). No flag.
+
+**ADRs.** A11 pronunciation provenance; bookmarks need a short ADR (sidecar format and clearing on replace).
+
+**Trust boundary.** The bookmarks file is a new file the app reads: `docs/architecture/threat-model.md` row and `SECURITY.md` check (CLAUDE.md step 6).
+
+**Risks.** Existing query data on disk (mitigation: the note stays readable; status is ignored on read); Story Bible is large (mitigation: slices of one behaviour each).
+
+## Implementation Phases
+
+| # | Phase | Description | Status | Parallel | Depends | Est. (pw) | PRP Plan |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | ADR and audit | A11 Proposed; Phase 0 audit of merge, drafts, sort, counts | in review (audit: docs/sn-b1-script-bible-audit) | - | SN0-1 | 0.5 | - |
+| 2 | Pronunciation provenance | Port, host mapping, components with no route; query status ignored on read | in progress ([#1156](https://github.com/countrymanprime/narration-studio/issues/1156): sidecar and host half, `manual` source, status ignored on read, `candidate`; [#1161](https://github.com/countrymanprime/narration-studio/issues/1161): `PronunciationSources` and `PronunciationCandidate` bindings, schemas, goldens and mock; [#1313](https://github.com/countrymanprime/narration-studio/issues/1313): the source tag, menu and name row with no route, unmounted until SN-B8) | 3 | 1 | 1.5 | - |
+| 3 | List behaviours | Drafts, sort, alias counts, needs-review filter, mark reviewed | in progress ([#1084](https://github.com/countrymanprime/narration-studio/issues/1084): drafts, sort, alias counts; [#1317](https://github.com/countrymanprime/narration-studio/issues/1317): the Needs review chip and its filter, the Verify or Review pill on a row, and Mark reviewed for an entry and for one name, blocked while a suggestion waits to be verified, with Undo; [#1162](https://github.com/countrymanprime/narration-studio/issues/1162): the `review` flags, `GuideMarkReviewed` and `GuideFlagReview`, host half) | 2 | 1 | 1.0 | - |
+| 4 | Appears-in and colours | Chapters only with go-to; speaker override | in progress ([#1314](https://github.com/countrymanprime/narration-studio/issues/1314): Appears in lists chapters with a go-to button and drops line counts; [#1162](https://github.com/countrymanprime/narration-studio/issues/1162): `speaker_color` and `GuideSetSpeakerColor`, host half; SN-B42: the speaker colour field in the entry, `speakerColorIndex(id, override)`) | 2, 3 | 1 | 0.8 | - |
+| 5 | Bookmarks host | Store, bindings, schema, golden, ADR, threat model | in review (PR #1113) | 2 | 1 | 1.0 | - |
+| 6 | Bookmarks UI | Script ribbon, tab, jump commands and keys | in progress ([#1325](https://github.com/countrymanprime/narration-studio/issues/1325): the model, jump commands, search source and keys; the ribbon, editor popover and tab are built and unmounted, [#1327](https://github.com/countrymanprime/narration-studio/issues/1327); the Script route mounts them with SN-B77) | - | 5, SNR-4, SNF-3 | 1.2 | - |
+| 7 | Script migrations | Search sources, context providers, key hints for Script | in progress ([#1173](https://github.com/countrymanprime/narration-studio/issues/1173): the marks host, `marks.json`, `MarksList`, `MarksAdd`, `MarksRemove`, `MarksSaveTypes`, goldens and mock, the reader's notes brought across once; [#1174](https://github.com/countrymanprime/narration-studio/issues/1174): threads on a mark, `MarksReply`, `MarksEditMessage`, `MarksDeleteMessage`, `MarksRestoreMessage`, `MarksSetStatus`; [#1179](https://github.com/countrymanprime/narration-studio/issues/1179): chapter prep states and flagged words, `script-prep.json`, `ScriptPrepList`, `ScriptPrepSetChapter`, `ScriptWordFlag`, `ScriptWordSay`, `ScriptWordUnflag`, goldens and mock, [Data files](../reference/data-files.md); [Script marks](../reference/script-marks.md); [#1326](https://github.com/countrymanprime/narration-studio/issues/1326): the Script page's data layer in `components/script/page/data/`, its hooks, journalled commands, pure selectors and view state, unmounted until SN-B77; [#1332](https://github.com/countrymanprime/narration-studio/issues/1332): the rail's Notes, Queries and read-only Story Bible tabs in `components/script/page/rail/threads/` and `rail/bible/`, unmounted until SN-B77; [#1329](https://github.com/countrymanprime/narration-studio/issues/1329): the chapter list and chapter card in `components/script/page/chapters/`, with the prep dots, the "?" pill, the legend and the My prep control, unmounted until SN-B77; [#1328](https://github.com/countrymanprime/narration-studio/issues/1328): the Script's four search sources, its right-click provider and its keys (Alt+Down and Alt+Up, the Script-scoped Ctrl+F, the reader's Left and Right, Escape) in `components/script/page/registry/`, unmounted until SN-B77; a catalogue row names the rows it `shadows`, which `findConflicts` skips and the router falls through to off that row's page; [#1330](https://github.com/countrymanprime/narration-studio/issues/1330): the continuous reader and its paragraphs in `components/script/page/reader/`, with the scroll spy, jumps, remembered position, mark, flagged-word, name and find layers and speaker chips, unmounted until SN-B8; [#1331](https://github.com/countrymanprime/narration-studio/issues/1331): the rail's Words tab in `components/script/page/rail/words/`: `WordsTab`, `WordCard`, `DefinitionBlock`, `ExternalLinks` and the definition-source menu, taking the host calls the data layer has no hook for as one `WordsHost` prop, unmounted until SN-B77; [#1335](https://github.com/countrymanprime/narration-studio/issues/1335): the Find bar, the speaker picker and the text settings popover in `components/script/page/tools/`, unmounted until SN-B77; [#1334](https://github.com/countrymanprime/narration-studio/issues/1334): the selection toolbar, the mark composer and the Define marks dialog in `components/script/page/tools/select/`, taking `saveMarkTypes` as a prop because the data layer has no command for it, unmounted until SN-B77; [#1336](https://github.com/countrymanprime/narration-studio/issues/1336): the Script page assembled in `components/script/page/ScriptPage.tsx` and `layout/`, with the three columns, the drawers at 1280 px and below and under 1180 px, the five rail tabs, the empty state, and the credits cards and retail sample re-homed from the old page, unmounted until SN-B8) | - | SNR-4, SNR-5 | 0.7 | - |
+| 8 | Swap and close-out | Swap the Story Bible and Script routes; delete the old pages, queries page, query CSV export and import and open-queries badge; visual rows, guide pages, doc screenshots | in review ([#1337](https://github.com/countrymanprime/narration-studio/issues/1337): `/script` mounts the rebuilt page, the Story Bible mounts the names list, Needs verification, the loose suggestions, scan and import; the old Script page, the query list, its CSV export and import, the status editor, the batch online lookup, the rail's Story Bible count, prep markup, prep completeness and the reader's note and bookmark writes are deleted, `hostAPIVersion` 111; the audit note is deleted, its tables acted on; [#1341](https://github.com/countrymanprime/narration-studio/issues/1341): the Story Bible sidecar's dead `pronunciation-status` command and its constants are removed, a stored `status` still ignored on read) | - | 2 to 7 | 0.3 | - |
+
+### Phase Details
+
+- **Phase 1.** The audit lists, for each ruling, "present / partial / absent" with file and test references; it is a comment on the PRD issue, not a document.
+- **Phase 2.** Builds the provenance components and host mapping; the old queries UI keeps working until Phase 8 deletes it with the swap.
+- **Phase 8.** The change-impact scan lists every consumer of the deleted query code (`PronunciationQueries.tsx`, `pronunciationStatus.ts`, the CSV export and import bindings, the badge count).
+- **Phase 6.** The Booth side of bookmarks is in the Booth PRD (SNO-8) and depends on this phase.
+
+### Parallelism Notes
+
+2, 3 and 5 are independent; 4 follows the audit; 6 and 7 wait for the registries.
+
+### Parallel-session compatibility
+
+| Phase | Files touched | Collides with |
+| --- | --- | --- |
+| 2 | `components/storybible/Pronunciation*`, `internal/guide/*`, `src/studio/sidecars/manuscript-guide/core/manuscript_guide.py`, `api/{contracts,schemas}/storyBible.ts` | Extraction slices (same sidecar file; serialise) |
+| 3, 4 | `components/storybible/Guide*.tsx`, `state.ts` | Extraction UI |
+| 5 | new `internal/bookmarks`, bindings, `hostAPIVersion` | Every binding PRD |
+| 6 | `components/script/*` | Script slices |
+
+### Slices
+
+| Slice | Scope | Depends on | Parallel-safe | Verification |
+| --- | --- | --- | --- | --- |
+| SNB-1 | Phase 1 | SN0-1 | yes | Audit note `docs/research/script-bible-audit.md`; ADR index |
+| SNB-2 | Phase 2 | SNB-1 | yes | Sidecar and Go tests; ported bible tests; visual row |
+| SNB-3 | Phase 3 | SNB-1 | yes | Ported tests; visual rows |
+| SNB-4 | Phase 4 | SNB-1 | yes | Ported tests |
+| SNB-5 | Phase 5 | SNB-1 | yes | Go tests; goldens `bookmarks-*.json`; wire rows; data-files row; `docs/reference/data-files.md` |
+| SNB-6 | Phase 6 | SNB-5, SNR-4, SNF-3 | yes | Ported `bookmarks.test.tsx`; visual; aria |
+| SNB-7 | Phase 7 | SNR-4, SNR-5 | yes | Registry tests; marks host (SN-B721): Go tests, goldens `marks-*.json`, wire rows, data-files row; mark threads (SN-B722): Go tests, goldens `marks-thread*.json`, wire rows; prep states and flagged words (SN-B73): Go tests, goldens `script-prep-*.json`, wire rows, data-files row, `docs/reference/data-files.md`; page data layer (SN-B70): hook tests over the browser mock and refusing fakes, selector property tests, feedback rows; reader (SN-B742): layer, paragraph and reader tests, stories in the atlas; page assembly (SN-B77): page tests over the browser mock, page stories in the atlas |
+| SNB-8 | Phase 8 | SNB-2..7 | no (page swap) | Full visual suite for the two pages; Screenshots against the mock pages; deleted code gone from Knip |
+
+## Decisions Log
+
+| Decision | Choice | Alternatives | Rationale |
+| --- | --- | --- | --- |
+| Source, not status (owner, DQ-11) | Provenance field | Keep the workflow | Owner ruling of 2026-10-11 |
+| Bookmarks are the narrator's own (mock) | No threads, no discussion | Notes anchored to lines | Maybe-list pass: bookmarks YES, with a note |
+| Sidecar file (SNB-Q3) | `bookmarks.json` | Manifest field | Same pattern as markup |
+
+## Research Summary
+
+Read: the mock's bible, script, bookmark and speaker sources and tests, the rulings, `state.ts`, the guide service and sidecar function names, `docs/utilities/manuscript-guide.md, docs/design/colour-and-contrast.md#per-speaker-colours, src/studio/ui/src/components/layout/useNavCounts.ts`. Not done: the Phase 0 audit of merge, drafts and sort in the real UI was not run.
+
+## Visual Spec
+
+Mock pages: Story Bible (`research-mock/src/pages/Bible.tsx`), Script (`research-mock/src/pages/script/ScriptPage.tsx`) with the Bookmarks tab; light and dark.
