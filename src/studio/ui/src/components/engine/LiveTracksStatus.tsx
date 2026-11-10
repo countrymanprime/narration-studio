@@ -1,4 +1,5 @@
 import { useToasts } from '../../hooks/useToasts';
+import { plural } from '../../plural';
 import { useSecondsSince } from '../layout/CheckLine';
 import { IconButton } from '../primitives/IconButton';
 import { TooltipTarget } from '../primitives/Tooltip';
@@ -59,7 +60,7 @@ export function LiveTracksRefresh({ live }: { live: LiveTracks }) {
     void live.recheck().then(({ project, source, failed }) => {
       if (failed || !project) return;
       const count = project.tracks.length;
-      notify(source === 'live' ? `Read ${count === 1 ? '1 track' : `${count} tracks`} from REAPER.` : 'Read the tracks in the saved project.');
+      notify(source === 'live' ? `Read ${plural(count, 'track')} from REAPER.` : 'Read the tracks in the saved project.');
     });
   return <IconButton action="retry" label="Read the tracks from REAPER again" size="sm" pending={live.refreshing} onClick={press} />;
 }
