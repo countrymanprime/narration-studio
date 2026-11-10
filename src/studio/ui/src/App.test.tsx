@@ -1592,7 +1592,8 @@ describe('App shell mounts', () => {
       void overlay.confirm({ title: 'Discard the take?', body: 'It cannot be brought back.', confirmLabel: 'Discard' }).then((value) => (answer = value));
     });
     const dialog = await screen.findByRole('alertdialog', { name: /Discard the take/ });
-    expect(screen.getAllByRole('alertdialog')).toHaveLength(1);
+    // hidden: a second question would make the first inert, and so out of the accessibility tree.
+    expect(screen.getAllByRole('alertdialog', { hidden: true })).toHaveLength(1);
     fireEvent.click(within(dialog).getByRole('button', { name: 'Discard' }));
     await waitFor(() => expect(answer).toBe(true));
   });
@@ -1943,6 +1944,72 @@ describe('App shell mounts', () => {
     await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
     expect(screen.getByRole('heading', { level: 1, name: 'Production' })).toBeTruthy();
     journal.setLeaveGuard(null);
+  });
+
+  // #3325: a popstate the app did not start (the browser's Back or Forward, a mouse-button gesture, history.back()) is a way out of the Booth too. It is stopped
+  // before the router sees it, history is put back, and the page's leave guard asks the same question the nav and Escape do.
+  describe('a popstate the app did not start asks the leave guard (#3325)', () => {
+    const asking = {
+      ask: { title: 'Stop recording?', body: 'A take is recording.', confirmLabel: 'Stop and leave', cancelLabel: 'Keep recording' },
+    };
+    const toScript = async (journal: ReturnType<typeof createJournal>) => {
+      renderWithJournal(journal);
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+      fireEvent.click(screen.getAllByRole('button', { name: 'Script' })[0]);
+      await screen.findByRole('heading', { name: 'Script' });
+    };
+    const question = () => screen.findByRole('alertdialog', { name: /Stop recording/ });
+
+    it('Back asks, and Keep recording leaves the page and the address where they were', async () => {
+      const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
+      await toScript(journal);
+      journal.setLeaveGuard(() => asking);
+      act(() => window.history.back());
+      fireEvent.click(within(await question()).getByRole('button', { name: 'Keep recording' }));
+      await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+      expect(screen.getByRole('heading', { name: 'Script' })).toBeTruthy();
+      expect(window.location.pathname).toBe('/script');
+      journal.setLeaveGuard(null);
+    });
+
+    it('Back asks, and Stop and leave goes back exactly one page', async () => {
+      const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
+      await toScript(journal);
+      journal.setLeaveGuard(() => asking);
+      act(() => window.history.back());
+      fireEvent.click(within(await question()).getByRole('button', { name: 'Stop and leave' }));
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+      expect(window.location.pathname).toBe('/');
+      journal.setLeaveGuard(null);
+    });
+
+    it('a second Back while the question is open does not ask again or move', async () => {
+      const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
+      await toScript(journal);
+      journal.setLeaveGuard(() => asking);
+      act(() => window.history.back());
+      await question();
+      act(() => window.history.back());
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      // hidden: a second question would make the first inert, and so out of the accessibility tree.
+      expect(screen.getAllByRole('alertdialog', { hidden: true })).toHaveLength(1);
+      expect(window.location.pathname).toBe('/script');
+      journal.setLeaveGuard(null);
+    });
+
+    it('Forward asks too, and with no guard Back leaves with no question', async () => {
+      const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
+      await toScript(journal);
+      act(() => window.history.back());
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+      expect(screen.queryByRole('alertdialog')).toBeNull();
+      journal.setLeaveGuard(() => asking);
+      act(() => window.history.forward());
+      fireEvent.click(within(await question()).getByRole('button', { name: 'Keep recording' }));
+      await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+      expect(screen.getByRole('heading', { level: 1, name: 'Production' })).toBeTruthy();
+      journal.setLeaveGuard(null);
+    });
   });
 
   it('leave-guard-is-asked-before-navigating: with no guard navigation is unchanged', async () => {

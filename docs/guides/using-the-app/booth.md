@@ -35,7 +35,7 @@ Before you start: a manuscript is imported, and the project records with REAPER,
 6. **Fix a mistake as you go.** Punch and roll is the narrator's retake: the DAW plays a moment of what you read before
    and records again from a chosen word. **R** does it from the word you are on: the DAW's cursor goes there and
    recording starts. Click a word, or use **Start from here**, to choose where.
-7. **Leave** with Escape, which goes to Script. During a take, every way out asks **Stop recording?** first.
+7. **Leave** with Escape, which goes to Script. During a take, every way out asks **Stop recording?** first: Escape, Exit, a chapter or setup link, and the Back and Forward of the browser, the mouse buttons and Alt+Left or Alt+Right. **Keep recording** stays in the Booth with the take still running; pressing Back again while the question is open does not ask a second time.
 
 [Recording](#recording) has the detail of each step, [Undoing a take](#undoing-a-take) what Undo can take back, and
 [A cold read](#a-cold-read) how to read a passage through without recording it. Recording from the Booth is not

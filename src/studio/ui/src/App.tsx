@@ -118,17 +118,24 @@ const isModalOpen = () => Boolean(document.querySelector('[role="dialog"], [role
 const hashRouting = (): boolean => appExtension().hashRouting === true;
 const routePath = (): string => (hashRouting() ? window.location.hash.replace(/^#/, '').split(/[?#]/)[0] : window.location.pathname);
 
-// A `popstate` the app did not start (the keyboard's or the system's Back) from dirty Settings is stopped before the router sees it: once
-// the route changed, Settings would unmount and its edits be gone before any prompt. History is put back where it was and the same
-// "Unsaved settings" prompt asks. The listener is added when this module loads, ahead of the router's own, which React Router adds
-// when it mounts: listeners of one event run in the order they were added.
+// A `popstate` the app did not start (the keyboard's or the system's Back, history.back()) that would leave a page holding something is stopped before
+// the router sees it: once the route changed, the page would unmount and its edits be gone (dirty Settings), or its take left recording with no Stop
+// (the Booth's leave guard, #3325), before any prompt. History is put back where it was and the same prompt the nav asks is shown. Two things hold a
+// page: dirty Settings ("Unsaved settings") and a page's leave guard ("Stop recording?"). The listener is added when this module loads, ahead of the
+// router's own, which React Router adds when it mounts: listeners of one event run in the order they were added.
 const popGuard = {
   dirty: false,
   pathname: '',
+  /** The route the router is showing (`routePath()` as of its last move): a pop that lands on the same route leaves nothing behind. */
+  route: '',
   idx: 0,
   swallow: false,
   isOwnPop: (): boolean => false,
   ask: null as ((direction: 1 | -1) => void) | null,
+  /** True while a page's leave guard asks before leaving. */
+  leaveHeld: (): boolean => false,
+  /** Asks the leave guard's question for a move of `direction`, and goes on only on Yes; does nothing while another question is already open. */
+  askLeave: null as ((direction: 1 | -1) => void) | null,
 };
 const historyIdx = () => (window.history.state as { idx?: number } | null)?.idx ?? 0;
 if (typeof window !== 'undefined') {
@@ -139,7 +146,10 @@ if (typeof window !== 'undefined') {
       return;
     }
     const next = historyIdx();
-    if (!popGuard.ask || popGuard.isOwnPop() || !popGuard.dirty || popGuard.pathname !== '/settings' || routePath().endsWith('/settings')) {
+    const settingsHolds = popGuard.dirty && popGuard.pathname === '/settings' && !routePath().endsWith('/settings');
+    const leaveHolds = !settingsHolds && routePath() !== popGuard.route && popGuard.leaveHeld();
+    const ask = settingsHolds ? popGuard.ask : popGuard.askLeave;
+    if (!ask || popGuard.isOwnPop() || !(settingsHolds || leaveHolds)) {
       popGuard.idx = next;
       return;
     }
@@ -147,7 +157,7 @@ if (typeof window !== 'undefined') {
     const delta = next - popGuard.idx;
     popGuard.swallow = true;
     window.history.go(-delta);
-    popGuard.ask(delta < 0 ? -1 : 1);
+    ask(delta < 0 ? -1 : 1);
   });
 }
 
@@ -202,6 +212,7 @@ function AppRoutes() {
   // The latest guarded back/forward, read by the one document-level listener below (mounted once) instead
   // of resubscribing it on every render.
   const guardedBackRef = useRef<() => void>(() => {});
+  const attemptDeltaRef = useRef<(direction: 1 | -1, fromPop?: boolean) => void>(() => {});
   const guardedForwardRef = useRef<() => void>(() => {});
   const prevPathnameRef = useRef(location.pathname);
   // The page the last move left. `unexpectedPop` is set one render after the location changes, by which time
@@ -759,14 +770,19 @@ function AppRoutes() {
   popGuard.isOwnPop = history.isOwnPop;
   useEffect(() => {
     popGuard.ask = (direction) => setPendingMove({ kind: 'delta', direction });
+    popGuard.leaveHeld = () => journal.checkLeave('') !== 'allow';
+    popGuard.askLeave = (direction) => attemptDeltaRef.current(direction, true);
     popGuard.idx = historyIdx();
     return () => {
       popGuard.ask = null;
+      popGuard.askLeave = null;
+      popGuard.leaveHeld = () => false;
       popGuard.dirty = false;
     };
-  }, []);
+  }, [journal]);
   useEffect(() => {
     popGuard.idx = historyIdx();
+    popGuard.route = routePath();
   }, [location.key]);
 
   // Recovery for a `popstate` the app did not start (a mouse-button gesture WebView2 acts on
@@ -869,10 +885,12 @@ function AppRoutes() {
   // a Proof chapter view with a run resets the run. Each moves exactly one page, and does nothing where `useAppHistory` already
   // says there is nowhere to go (the buttons are disabled there too; this covers the shortcuts and mouse
   // buttons, which have no disabled state to rely on).
-  const attemptDelta = (direction: 1 | -1) => {
+  const attemptDelta = (direction: 1 | -1, fromPop = false) => {
     // The page's leave guard is asked first, as for the nav (the Booth while a take records). Its guard does not read the destination.
     const verdict = journal.checkLeave('');
     if (verdict !== 'allow') {
+      // A browser Back pressed again while the question is open is the same question: it neither stacks another nor moves.
+      if (fromPop && overlay.getSnapshot().dialogs.length > 0) return;
       void overlay.confirm(verdict.ask).then((confirmed) => {
         if (confirmed) moveByDelta(direction);
       });
@@ -895,6 +913,7 @@ function AppRoutes() {
   const guardedForward = () => {
     if (history.canGoForward) attemptDelta(1);
   };
+  attemptDeltaRef.current = attemptDelta;
   guardedBackRef.current = guardedBack;
   guardedForwardRef.current = guardedForward;
 
