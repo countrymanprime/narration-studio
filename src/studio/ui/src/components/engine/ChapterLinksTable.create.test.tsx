@@ -31,6 +31,7 @@
 // | a read after the answer lacks it       | the row shows Track missing (the answer's copy is dropped, B4)                        |
 // | reload mid-action, leave mid-action    | not tested: the host call is not cancellable; the link is the host's and is re-read   |
 // |                                        | on the next mount (useChapterLinks reads the mapping on mount)                        |
+import { ChapterTrackStateProvider } from '../chapterTracks/ChapterTrackState';
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
@@ -99,11 +100,13 @@ function renderTable({
   }
   const { unmount } = render(
     <ApiProvider api={api}>
-      <MemoryRouter>
-        <VoiceLayoutContext.Provider value={layout}>
-          <Table />
-        </VoiceLayoutContext.Provider>
-      </MemoryRouter>
+      <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+        <MemoryRouter>
+          <VoiceLayoutContext.Provider value={layout}>
+            <Table />
+          </VoiceLayoutContext.Provider>
+        </MemoryRouter>
+      </ChapterTrackStateProvider>
     </ApiProvider>,
   );
   harness.unmount = unmount;
