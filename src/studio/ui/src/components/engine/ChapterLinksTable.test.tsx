@@ -185,7 +185,8 @@ describe('ChapterLinksTable', () => {
   it('acts when Confirm is pressed on the track the chapter already has: says nothing changed, writes nothing, leaves the picker', async () => {
     const user = userEvent.setup();
     notify.mockClear();
-    const api = renderTable();
+    const onChanged = vi.fn();
+    const api = renderTable(onChanged);
     const set = vi.spyOn(api, 'chapterTrackSet');
     const table = await screen.findByRole('table', { name: 'Chapter links' });
     const opening = chapterRow(table, 'Opening credits');
@@ -195,6 +196,7 @@ describe('ChapterLinksTable', () => {
     await pastQuiet();
     await user.click(within(opening).getByRole('button', { name: /^Change the track for/ }));
     expect(set).toHaveBeenCalledTimes(1);
+    const changes = onChanged.mock.calls.length;
 
     // The picker opens on the linked track, and its check is live: pressing it is not a dead click.
     const confirm = within(opening).getByRole('button', { name: /^Check the link for/ });
@@ -205,6 +207,8 @@ describe('ChapterLinksTable', () => {
     expect(notify.mock.calls.at(-1)?.[0]).toContain(WIRE_TRACKS_PROJECT.tracks[0].name);
     expect(set).toHaveBeenCalledTimes(1);
     expect(await within(opening).findByRole('button', { name: /^Change the track for/ })).toBeTruthy();
+    // Nothing changed, so the panel is not told a change was made (it would read the links and the stages again).
+    expect(onChanged).toHaveBeenCalledTimes(changes);
   });
 
   // UX review: the re-read closes the picker, so Change takes the check's place; a double click's second press must not reopen it.

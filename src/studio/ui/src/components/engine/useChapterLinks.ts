@@ -35,7 +35,7 @@ export type ChapterLinks = {
    * another), or a create answered less than CREATE_QUIET_MS ago (a fast second click lands on the row that moved under the pointer). A failed
    * call rejects. */
   create: (chapterId: string) => Promise<ChapterTrackCreateResult | undefined>;
-  /** Reads the links again (the check on the link a chapter already has); rejects when the read fails. */
+  /** Reads the links again (the check on the link a chapter already has) and tells no one a change was made; rejects when the read fails. */
   recheck: () => Promise<void>;
 };
 
@@ -130,7 +130,8 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
         if (quietAfter) createGuard.quietUntil = Date.now() + CREATE_QUIET_MS;
       });
   };
-  const recheck = () => reload().then(onChanged);
+  // Nothing changed, so `onChanged` is not told: the panel would read the links and the stage recommendations again for no new answer.
+  const recheck = () => reload();
   // Set, not Confirm: it replaces the chapter's link rather than adding a second one beside it, so a Change never leaves it on two tracks.
   // Pressing Confirm again for the pair already linked changes nothing, and must not reach the host twice.
   const set = (chapterId: string, trackGuid: string) => {
