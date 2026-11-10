@@ -39,6 +39,8 @@ describe('jump menu over the project picker', () => {
     await picker();
     await openJump('> Go to');
     await screen.findByRole('option', { name: /^Go to Settings/ });
+    // The mock still carries a manuscript with no project open; its chapters are not offered either.
+    expect(screen.queryByRole('option', { name: /^Go to Chapter 1/ })).toBeNull();
     for (const name of [/^Go to Booth/, /^Go to Production/, /^Go to Script/, /Switch project/]) expect(screen.queryByRole('option', { name })).toBeNull();
   });
 

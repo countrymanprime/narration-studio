@@ -575,7 +575,7 @@ function AppRoutes() {
     if (hasManuscript) void studio.load('chapters').catch(() => {});
   }, [studio, hasManuscript, projectFolder]);
   const slotChapters = useStudio((state) => state.slots.chapters);
-  const chapters = hasManuscript ? (slotChapters ?? NO_CHAPTERS) : NO_CHAPTERS;
+  const chapters = hasManuscript && !noProject ? (slotChapters ?? NO_CHAPTERS) : NO_CHAPTERS;
   const guardedNavigateRef = useRef<(next: string, state?: unknown) => void>(() => {});
   // Ctrl+, opens Settings from any page; the page then offers Back to the page the narrator left.
   const openSettings = () => {
@@ -588,7 +588,7 @@ function AppRoutes() {
   });
   const goToScriptRef = useRef<(chapter: string) => void>(() => {});
   useGoToCommands({
-    // With no project only Settings works: every other page, and "Switch project…", would lead nowhere the picker is not already.
+    // With no project only Settings works: every other page, every chapter and "Switch project…" would lead nowhere the picker is not already.
     pages: shellPages({ hasManuscript, dawFileLinked: data?.dawFileLinked ?? false }).filter((page) => !noProject || page.id === '/settings'),
     chapters,
     go: (target) => (target.kind === 'page' ? guardedNavigateRef.current(target.id) : goToScriptRef.current(target.id)),
