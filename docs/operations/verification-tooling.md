@@ -19,6 +19,7 @@ What `pnpm check` and CI verify beyond "it lints and the example tests pass", ho
 | Playwright traces on a failing visual test (`trace: 'retain-on-failure'`, uploaded when a `Test (Linux)` visual step fails)                                                                     | `Test (Linux)`                                            | see [CI and releases](ci-and-releases.md)                                                    |
 | Axe on every app state, with a declared, capped debt list                                                                                                                             | `ui-visual` (the visual suite)                            | `pnpm --dir src/studio/ui screenshots`, or `UI_AXE=1` to measure                                   |
 | Aria snapshots: the role trees of the dialogs, the slide-over and the navigation                                                                                                      | `ui-visual`, after the screenshots                        | `pnpm --dir src/studio/ui run aria`                                                                |
+| Dead-control guard: every control of every page, and of the menus and dialogs it opens, acts visibly when pressed, shows it is the current choice, or is off with a reason a keyboard reaches | `ui-visual` (the visual suite) | `pnpm --dir src/studio/ui exec playwright test tests/visual/deadControls.spec.ts` |
 | Overlay guard: every menu, popover, hint, dialog and drawer of a page is the topmost element at its own points and fully on screen                                                    | `ui-visual` (the visual suite)                            | `pnpm --dir src/studio/ui exec playwright test tests/visual/overlays.spec.ts`                      |
 
 ## Go lint and the race detector
@@ -96,6 +97,15 @@ A hint in the top bar also runs one scroll pass (content scrolled to the end, wh
 ```bash
 pnpm --dir src/studio/ui exec playwright test tests/visual/overlays.spec.ts -g "Script"   # one page
 ```
+
+## Dead-control guard
+
+`src/studio/ui/tests/visual/deadControls.spec.ts` holds the owner's rule that no button does nothing or looks like it does nothing (#3276, [frontend-primitives](../../.claude/skills/frontend-primitives/SKILL.md) rule 9). For each page, and for the shell (navigation, top bar) once, it opens the app on the mock backend, presses every button, menu item, tab, switch, checkbox and radio on a fresh load, and then presses the controls inside any menu, popover or dialog that opened. A press passes when the page changed (text, state, an overlay, a toast, the address, focus moved elsewhere, a file chooser, a download or a new window). A control that already shows it is the current choice (`aria-pressed`, `aria-checked`, `aria-selected`, `aria-current`) and an address that leaves the app need no change. A disabled or `aria-disabled` control passes when a title, a description or a tooltip says why, reached by keyboard focus or the pointer.
+
+- A page with many controls is split into parts that run on different workers. Rows of one list count as one control: the first two of each name pattern are pressed.
+- Fix a finding in the control: `Button`/`IconButton` `disabledReason`, `pending`, a toast, or `CheckedStamp` for a Check again that finds the same thing. `tests/visual/guards/dead-controls-allowlist.ts` lists what is owned by another piece of work; it only shrinks.
+- `UI_DEAD_CONTROLS=report:/tmp/dead pnpm --dir src/studio/ui exec playwright test tests/visual/deadControls.spec.ts` writes every finding to `/tmp/dead.<page>.<part>.json` instead of failing.
+- It does not cover what the mock answers instantly (a spinner that never shows against a slow host) or a press that needs data the mock does not have; those are in the PR's Not exercised.
 
 ## Mock match
 

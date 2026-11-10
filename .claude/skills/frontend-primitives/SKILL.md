@@ -25,14 +25,16 @@ Recent UI mistakes were the same few: a second copy of something that already ex
 | 6   | **A list that scales with data has a max height** and scrolls inside itself                                                                                                                                                                                                                                           | `Panel`, `Listbox`; set the cap where the list is drawn                                                                          |
 | 7   | **Errors appear only as a toast, a modal, or an always-present fixed-size result box.** Never as text that shows up in the page flow and shifts the layout                                                                                                                                                            | `Toast`, `ConfirmDialog`, `Dialog`; a fixed slot as in design-system "Data that comes and goes has a reserved slot"              |
 | 8   | **No instruction prose in flow.** How-to text is a tooltip, a "?" or the guide                                                                                                                                                                                                                                        | `TooltipTarget`, `HelpButton`; see [No in-flow instructions](../../../docs/design/design-system.md#no-in-flow-instructions)      |
+| 9   | **No control may do nothing or look like it does nothing.** A press acts visibly at once, or the control is disabled and says why, or it shows a pending state within 100 ms and ends in a visible result, or it says nothing changed. A "Check again" that finds the same thing still answers. Owner: "we should never have a fucking button that does nothing or looks like it is doing nothing" | `Button`/`IconButton` `disabledReason` (aria-disabled, focusable, tooltip), `pending`, `CheckedStamp`, `Toast` |
 
 Exception to rule 6: the Production chapter pipeline board is not capped. The owner wants it to show every chapter at its natural height, with no scroll inside the page. Cap the chart or schedule panels beside it instead.
 
-Guards that hold rules 1, 7 and 8 over the whole app, each with a shrink-only allowlist you lower when you fix an entry, never raise without the owner's say-so:
+Guards that hold rules 1, 7, 8 and 9 over the whole app, each with a shrink-only allowlist you lower when you fix an entry, never raise without the owner's say-so:
 
 - `tests/visual/guards/toolbarButtons.test.ts` (rule 1: a `Button` with words inside a toolbar or ribbon).
 - `tests/visual/guards/inlineErrors.test.ts` (rule 7: a `role="alert"` element outside a dialog, menu, popover or the toast).
 - `tests/visual/inFlowProse.test.ts` (rule 8).
+- `tests/visual/deadControls.spec.ts` (rule 9: presses every control of every page and of the menus and dialogs they open, on the mock backend, and fails on a press that changes nothing, or a disabled control that gives no reason a keyboard reaches; a control that only re-shows the choice it already shows (pressed, checked, selected, current) and an address that leaves the app are fine). `DEAD_CONTROL_DEBT` in `tests/visual/guards/dead-controls-allowlist.ts` only shrinks. A new control that can be pressed is covered without registering it; a control that must wait on a host call takes `pending`, one that can be off takes `disabledReason`.
 
 ## The primitives
 
