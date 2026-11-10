@@ -23,6 +23,7 @@ import { passing, profile as acxProfile } from './components/masterqc/files/test
 import type { MeasureJob } from './types';
 import { brand } from './brand.gen';
 import { claimAttachRefusal } from './components/connection/attachRefusal';
+import { outwaitEcho } from './outwaitEcho';
 
 // BrowserRouter reads/writes the real window.location via history.pushState,
 // which jsdom keeps alive across tests in this file - reset it so each test
@@ -1219,6 +1220,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     // The empty state has become the pipeline behind the modal import dialog, which stayed open through it (useManuscriptImport).
     expect(await screen.findByRole('table', { name: 'Chapter pipeline', hidden: true })).toBeTruthy();
 
+    await outwaitEcho();
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(screen.queryByRole('dialog', { name: 'Import manuscript' })).toBeNull();
     fireEvent.click(screen.getAllByRole('button', { name: /^Story Bible/ })[0]);
