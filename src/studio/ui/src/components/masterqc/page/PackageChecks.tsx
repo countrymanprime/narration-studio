@@ -5,8 +5,7 @@ import { LoadingRegion, Skeleton } from '../../primitives/Skeleton';
 import { statusTone, type StatusId } from '../../../kinds/statusTone';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import { packageCounts, packageItems, profileName, type PackageItem } from './packageItems';
-
-const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
+import { plural } from '../../../plural';
 
 // A check not judged yet is a hollow circle, not the mock's "…", which read as a list still loading (R4MS1-5, R4TB-3).
 const BADGE = {

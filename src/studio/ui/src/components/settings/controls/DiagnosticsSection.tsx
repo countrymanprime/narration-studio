@@ -8,6 +8,7 @@ import { IconButton } from '../../primitives/IconButton';
 import { Panel } from '../../primitives/Panel';
 import { SectionLabel } from '../../primitives/SectionLabel';
 import { ABOUT_ROW } from './aboutRow';
+import { plural } from '../../../plural';
 
 // Copies text to the clipboard; false when there is no clipboard or it refuses, so the toast still says where the file is.
 const copyText = async (text: string): Promise<boolean> => {
@@ -119,9 +120,7 @@ export function DiagnosticsSection() {
                 ))}
               </ul>
             </section>
-            <p className="m-0 text-[var(--text-muted)]">
-              Leak check: {preview.leakCheck.linesDropped} {preview.leakCheck.linesDropped === 1 ? 'line' : 'lines'} dropped for naming you or your project.
-            </p>
+            <p className="m-0 text-[var(--text-muted)]">Leak check: {plural(preview.leakCheck.linesDropped, 'line')} dropped for naming you or your project.</p>
           </div>
         </Dialog>
       )}

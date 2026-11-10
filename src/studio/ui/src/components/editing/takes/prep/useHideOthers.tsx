@@ -14,6 +14,7 @@ import { useTakesGate } from '../useTakesGate';
 import { HideOthersConfirmBody } from './HideOthersConfirm';
 import { HideButton } from './PrepControls';
 import { useDawCapabilities } from '../../../../hooks/useDawCapabilities';
+import { pluralWord } from '../../../../plural';
 
 const KEEP_FIRST = 'Keep a take first.';
 const NO_OTHERS = 'There are no other takes to hide.';
@@ -51,7 +52,7 @@ const refusal = (r: DawResult): Result<never> => {
 /** Mutes the other takes in the DAW (one undo step there). Nothing is deleted. A DAW that muted nothing is a refusal, so no entry is made. */
 function hideCommand(daw: DawClient, passage: LinePassage, keptId: string, count: number, dawName: string): Command<DawResult> {
   return {
-    label: `Hid ${count} other ${count === 1 ? 'take' : 'takes'}`,
+    label: `Hid ${count} other ${pluralWord(count, 'take')}`,
     touches: [`takes/${passage.id}`],
     daw: true,
     async run() {
@@ -67,8 +68,6 @@ function hideCommand(daw: DawClient, passage: LinePassage, keptId: string, count
     notUndoableReason: `Undo the hide in ${dawName}.`,
   };
 }
-
-const plural = (n: number) => (n === 1 ? 'take' : 'takes');
 
 /**
  * Hide the other takes once one is kept: the DAW mutes them, asked first, and nothing is deleted. "Look at them again" shows and hides them in the
@@ -111,7 +110,9 @@ export function useHideOthers({ journal, kept, current, passageOf, busy: shared 
       if (!result.ok) return void overlay.toast(result.refusal.reason, { tone: 'error' });
       setHidden((h) => ({ ...h, [passage.id]: [...(h[passage.id] ?? []), ...others] }));
       setRevealed((r) => ({ ...r, [passage.id]: false }));
-      overlay.toast(`Hid ${others.length} other ${plural(others.length)}: hidden, not deleted. They are still in the project. ${result.value.value.message}`);
+      overlay.toast(
+        `Hid ${others.length} other ${pluralWord(others.length, 'take')}: hidden, not deleted. They are still in the project. ${result.value.value.message}`,
+      );
     },
     [daw, dawName, journal],
   );
@@ -164,7 +165,14 @@ export function useHideOthers({ journal, kept, current, passageOf, busy: shared 
         const others = l.othersOf(passage).length;
         if (passage.takes.length < 2 || others === 0) return null;
         const reason = reasonToHold(l.gate, l.kept[passage.id]);
-        return <HideButton id={passage.id} label={`Hide the other ${others} ${plural(others)}`} reason={reason} onPress={() => void l.hideOthers(passage)} />;
+        return (
+          <HideButton
+            id={passage.id}
+            label={`Hide the other ${others} ${pluralWord(others, 'take')}`}
+            reason={reason}
+            onPress={() => void l.hideOthers(passage)}
+          />
+        );
       },
     });
     const offLook = registerTakeControl({
@@ -174,7 +182,7 @@ export function useHideOthers({ journal, kept, current, passageOf, busy: shared 
         const l = latest.current;
         const count = (l.hidden[passage.id] ?? []).length;
         if (count === 0) return null;
-        const label = `${l.revealed[passage.id] ? 'Put away' : 'Look at'} ${count} hidden ${plural(count)}`;
+        const label = `${l.revealed[passage.id] ? 'Put away' : 'Look at'} ${count} hidden ${pluralWord(count, 'take')}`;
         return <HideButton id={`${passage.id}-look`} label={label} onPress={() => void l.toggle(passage)} />;
       },
     });

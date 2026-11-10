@@ -2,11 +2,12 @@ import { IconButton } from '../primitives/IconButton';
 import { Icon } from '../primitives/Icon';
 import { ProgressBar } from '../primitives/ProgressBar';
 import type { SamplePlayerStatus } from './samplePlayerStore';
+import { pluralWord } from '../../plural';
 
 /** "7 seconds", "1 second", "0.5 seconds": a length for a button's name, as the narrator would say it. */
 export function spokenLength(durationMs: number): string {
   const seconds = Math.round(durationMs / 100) / 10;
-  return `${Number.isInteger(seconds) ? seconds : seconds.toFixed(1)} ${seconds === 1 ? 'second' : 'seconds'}`;
+  return `${Number.isInteger(seconds) ? seconds : seconds.toFixed(1)} ${pluralWord(seconds, 'second')}`;
 }
 
 /**

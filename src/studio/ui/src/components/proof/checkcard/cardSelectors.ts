@@ -4,9 +4,10 @@
 import type { CoverageGap, CoverageGapReviews, CoverageReason, CoverageResult, CoverageState } from '../../../api/contracts/coverage';
 import type { Finding } from '../../../api/contracts/findings';
 import type { RecordedUnavailable } from '../../../api/contracts/manuscript';
-import { formatWhen, plural } from '../../production/recordingCheckText';
+import { formatWhen } from '../../production/recordingCheckText';
 import { WPH } from '../../schedule/estimates';
 import { clock } from '../../../clock';
+import { plural } from '../../../plural';
 
 export type CardState = 'none' | 'checking' | 'current' | 'stale';
 export type StaleWhy = 'text' | 'recording' | 'save';

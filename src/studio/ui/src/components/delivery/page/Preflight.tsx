@@ -8,6 +8,7 @@ import { statusTone, type StatusId } from '../../../kinds/statusTone';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import type { ChapterState } from './chapterStates';
 import { useErrorToast } from '../../../hooks/useErrorToast';
+import { plural } from '../../../plural';
 
 const STATUS = { ok: 'pass', bad: 'fail', wait: 'waiting' } as const satisfies Record<string, StatusId>;
 const MUTED = { color: 'var(--text-muted)' };
@@ -114,7 +115,7 @@ export function Preflight({
             </ul>
             {shown.length < states.length && (
               <Button variant="secondary" size="sm" onClick={() => setAll(true)} className="self-start">
-                Show the other {states.length - shown.length} {states.length - shown.length === 1 ? 'chapter' : 'chapters'}
+                Show the other {plural(states.length - shown.length, 'chapter')}
               </Button>
             )}
           </>

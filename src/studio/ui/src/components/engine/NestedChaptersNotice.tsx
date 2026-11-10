@@ -4,6 +4,7 @@ import { ConfirmDialog } from '../primitives/ConfirmDialog';
 import { IconButton } from '../primitives/IconButton';
 import { StatusBadge } from '../primitives/StatusBadge';
 import type { ChapterFolders } from '../../api/contracts/chapterTrackMap';
+import { plural } from '../../plural';
 
 // A name in the title and the summary is cut to this many characters: a REAPER track name can be any length (qa-breaker B4).
 const NAME_MAX = 60;
@@ -64,7 +65,7 @@ export function NestedChaptersNotice({
   const shownFolders = [...new Set(shownChapters.map((move) => short(move.fromName)))];
   return (
     <span className="flex flex-wrap items-center justify-end gap-2">
-      <StatusBadge tone="warning" label={`${chapters.length} ${chapters.length === 1 ? 'chapter' : 'chapters'} nested`} />
+      <StatusBadge tone="warning" label={`${plural(chapters.length, 'chapter')} nested`} />
       <Button variant="secondary" size="sm" pending={repairing} title={nestingSentence(check)} onClick={() => setOpened(check)}>
         Move them out…
       </Button>

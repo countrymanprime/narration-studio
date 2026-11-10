@@ -6,6 +6,7 @@ import { chapterName } from '../../../chapterName';
 import type { DeliveryProfile, ManuscriptChapter, MeasureFileResult } from '../../../types';
 import { fileOf } from '../../master/chapterFile';
 import { fileVerdict, missesWithLimit } from '../../master/fileVerdict';
+import { plural, pluralWord } from '../../../plural';
 
 export type ChapterState = { id: string; name: string; kind: 'ok' | 'bad' | 'wait'; text: string };
 
@@ -29,7 +30,7 @@ export function firstFailure(chapters: readonly Listed[], files: readonly Measur
     if (!file || fileVerdict(file) !== 'fail') continue;
     const [first, ...rest] = missesWithLimit(file, profile);
     if (first === undefined) continue;
-    return `${chapterName(chapter)}: ${first}${rest.length > 0 ? `, and ${rest.length} more ${rest.length === 1 ? 'rule' : 'rules'}` : ''}.`;
+    return `${chapterName(chapter)}: ${first}${rest.length > 0 ? `, and ${rest.length} more ${pluralWord(rest.length, 'rule')}` : ''}.`;
   }
   return undefined;
 }
@@ -64,11 +65,10 @@ function notReadyWhy(file: MeasureFileResult | undefined): string {
 /** One row's state from its file: no file, or a file the host did not judge, is "Not mastered", or "Waiting on N pickups" when `pickups` are open. */
 export function stateOf(base: { id: string; name: string }, file: MeasureFileResult | undefined, pickups = 0): ChapterState {
   const verdict = file ? fileVerdict(file) : 'none';
-  if (!file || verdict === 'none')
-    return { ...base, kind: 'wait', text: pickups > 0 ? `Waiting on ${pickups} ${pickups === 1 ? 'pickup' : 'pickups'}` : 'Not mastered' };
+  if (!file || verdict === 'none') return { ...base, kind: 'wait', text: pickups > 0 ? `Waiting on ${plural(pickups, 'pickup')}` : 'Not mastered' };
   if (verdict === 'pass') return { ...base, kind: 'ok', text: 'Pass' };
   const failing = file.rules.filter((rule) => rule.status === 'not_met').length;
-  return { ...base, kind: 'bad', text: `Fails ${failing} ${failing === 1 ? 'check' : 'checks'}` };
+  return { ...base, kind: 'bad', text: `Fails ${plural(failing, 'check')}` };
 }
 
 /** How many rows fail and how many are not ready: the two numbers Delivery's button and Master & QC's package card both say. */

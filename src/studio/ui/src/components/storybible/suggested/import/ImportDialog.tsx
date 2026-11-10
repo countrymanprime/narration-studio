@@ -26,6 +26,7 @@ import {
 } from './importModel';
 import { useImportPreview } from './useImportPreview';
 import { useImportPrompts } from './useImportPrompts';
+import { plural } from '../../../../plural';
 
 const MUTED = { color: 'var(--text-muted)' };
 const DANGER = { color: 'var(--danger-text)' };
@@ -72,7 +73,7 @@ function Preview({ plan }: { plan: ExtractionImportPlan }) {
         <StatusBadge tone="neutral" label={`${counts.merge} to merge`} />
         <StatusBadge tone="neutral" label={`${counts.skip} skipped`} />
         <StatusBadge tone={counts.verify ? 'warning' : 'neutral'} label={`${counts.verify} to verify`} />
-        <StatusBadge tone={counts.errors ? 'danger' : 'neutral'} label={`${counts.errors} ${counts.errors === 1 ? 'error' : 'errors'}`} />
+        <StatusBadge tone={counts.errors ? 'danger' : 'neutral'} label={`${plural(counts.errors, 'error')}`} />
       </div>
       {plan.lines.length === 0 && plan.errors.length === 0 && (
         <p className="text-sm" style={MUTED}>

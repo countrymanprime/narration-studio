@@ -9,6 +9,7 @@ import type { Mark, MarkType } from '../../../../api/contracts/marks';
 import type { ManuscriptSearchResult } from '../../../../api/contracts/manuscript';
 import type { AsyncSearchSource, SearchHit, SearchSource } from '../../../../registries/search';
 import { bookMatches, searchManuscript, type FindMatch } from '../tools/find/searchManuscript';
+import { pluralWord } from '../../../../plural';
 
 export const MANUSCRIPT_GROUP = 'In the script';
 const MARKS_GROUP = 'My marks';
@@ -53,7 +54,7 @@ function matchRows(
   }));
   if (total > MANUSCRIPT_SHOWN) {
     const more = total - MANUSCRIPT_SHOWN;
-    hits.push({ group, title: `${more} more ${more === 1 ? 'match' : 'matches'}. Show them in ${showIn}.`, run: () => onFind(term, MANUSCRIPT_SHOWN) });
+    hits.push({ group, title: `${more} more ${pluralWord(more, 'match', 'matches')}. Show them in ${showIn}.`, run: () => onFind(term, MANUSCRIPT_SHOWN) });
   }
   return hits;
 }

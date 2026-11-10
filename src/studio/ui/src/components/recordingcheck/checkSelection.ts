@@ -1,5 +1,6 @@
 import type { CoverageEngine, CoverageResult } from '../../api/contracts/coverage';
 import type { ManuscriptChapter } from '../../api/contracts/manuscript';
+import { plural } from '../../plural';
 
 /**
  * The chapters the dialog offers: the ones with a recording. A length the host measured counts; so does a stored share when no length is known.
@@ -48,8 +49,6 @@ export function unmeasuredNote(unmeasured: number): string {
 const STATE_LABEL: Record<CoverageResult['state'], string> = { current: 'Checked, as of last save', stale: 'Out of date', never: 'Not checked yet' };
 
 export const checkStateLabel = (result: CoverageResult | undefined): string => STATE_LABEL[result?.state ?? 'never'];
-
-const plural = (count: number, one: string, many: string): string => `${count} ${count === 1 ? one : many}`;
 
 /** The unfinished paragraphs of a stored report, at the start and end. */
 const unfinishedCount = (result: CoverageResult): number => (result.result?.unfinished?.start ?? 0) + (result.result?.unfinished?.end ?? 0);

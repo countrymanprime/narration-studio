@@ -466,7 +466,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   },
   {
     file: 'components/settings/controls/DiagnosticsSection.tsx',
-    text: 'Leak check: … … dropped for naming you or your project.',
+    text: 'Leak check: … dropped for naming you or your project.',
     class: 'state',
   },
   {

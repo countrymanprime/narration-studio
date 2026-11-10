@@ -11,6 +11,7 @@ import { Select } from '../../primitives/Select';
 import { Swatch } from '../../primitives/Swatch';
 import { TextField } from '../../primitives/TextField';
 import { TooltipTarget } from '../../primitives/Tooltip';
+import { plural } from '../../../plural';
 
 const COLOUR_LABELS: Record<GuideTypeColour, string> = { green: 'Green', blue: 'Blue', violet: 'Violet', amber: 'Amber', teal: 'Teal', rose: 'Rose' };
 const COLOUR_OPTIONS = GUIDE_TYPE_COLOURS.map((colour) => ({ value: colour, label: COLOUR_LABELS[colour] }));
@@ -99,7 +100,7 @@ function TypeRow({
           </Checkbox>
         </TooltipTarget>
         <span data-type-count={type.name} className="ml-auto min-w-[70px] text-right text-sm whitespace-nowrap text-[var(--text-muted)] @lg:ml-0">
-          {count === undefined ? '' : `${count} ${count === 1 ? 'entry' : 'entries'}`}
+          {count === undefined ? '' : `${plural(count, 'entry', 'entries')}`}
         </span>
         <IconButton
           action="remove"

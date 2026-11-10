@@ -23,6 +23,7 @@ import type { Category } from '../registry/types';
 import { useSettingsNav } from '../row/SettingsNav';
 import { PaneTitle } from './PaneTitle';
 import { RowOf } from './RowOf';
+import { pluralWord } from '../../../plural';
 
 type Filter = 'all' | AssetGroup;
 type Notice = { tone: 'alert' | 'status'; text: string };
@@ -158,8 +159,7 @@ export function ModelsPane({ category, lit = null }: { category: Category; lit?:
         <div data-disk className="flex items-center gap-4">
           <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-4 gap-y-1">
             <span>
-              <b>{catalog.totalInstalledBytes > 0 ? formatSize(catalog.totalInstalledBytes) : '0 MB'}</b> used by {installed}{' '}
-              {installed === 1 ? 'item' : 'items'}
+              <b>{catalog.totalInstalledBytes > 0 ? formatSize(catalog.totalInstalledBytes) : '0 MB'}</b> used by {installed} {pluralWord(installed, 'item')}
             </span>
           </div>
         </div>

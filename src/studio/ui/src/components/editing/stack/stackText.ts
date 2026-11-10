@@ -36,5 +36,3 @@ export const STACK_EDITS = [
   'Shift the audio that follows to close the gap',
   'Mute the reads that are not on top',
 ] as const;
-
-export const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;

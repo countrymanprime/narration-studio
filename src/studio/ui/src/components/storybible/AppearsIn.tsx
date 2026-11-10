@@ -3,6 +3,7 @@ import type { GuideEntity } from '../../types';
 import { headingName } from '../../chapterHeading';
 import { IconButton } from '../primitives/IconButton';
 import { chaptersOf, type ChapterRef } from './appearsInModel';
+import { plural } from '../../plural';
 
 /** "Appears in · N chapters": one row per chapter the entry is in, each with a button that opens the chapter in Script. */
 export function AppearsIn({
@@ -22,9 +23,7 @@ export function AppearsIn({
   return (
     <div className="border-t pt-4" style={{ borderColor: 'var(--border)' }} data-testid="appears-in">
       <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2 text-[0.82rem] font-medium text-[var(--text-muted)]">
-        <span>
-          Appears in · {count} {count === 1 ? 'chapter' : 'chapters'}
-        </span>
+        <span>Appears in · {plural(count, 'chapter')}</span>
         {action}
       </div>
       {chapters === undefined ? (

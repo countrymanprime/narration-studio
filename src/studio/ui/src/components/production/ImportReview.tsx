@@ -21,12 +21,12 @@ import {
   hasSubtitleChoices,
   isGroupOpen,
   REVIEW_GROUPS,
-  plural,
   reviewCounts,
   reviewedHeading,
   type ReviewGroupKey,
   type ReviewGroupOpen,
 } from './importReviewModel';
+import { pluralWord } from '../../plural';
 
 // The heading as it will be written: the title and, when it keeps one, the subtitle, the way the reader writes them ("Chapter One — Down
 // the Rabbit-Hole"), and a line turned off that returns to the text, said as such.
@@ -160,7 +160,7 @@ export function ImportReview({
   const chapterList = chapters.length > 0 && (
     <Disclosure
       title="Chapters"
-      summary={`${counts.narration} of ${chapters.length} ${plural(chapters.length, 'chapter')} included`}
+      summary={`${counts.narration} of ${chapters.length} ${pluralWord(chapters.length, 'chapter')} included`}
       open={open('narration')}
       onOpenChange={(next) => setOpen('narration', next)}
       className={groupClass()}
@@ -185,7 +185,7 @@ export function ImportReview({
                       trailing={
                         section.wordCount !== undefined && (
                           <span className="flex-none text-xs text-[var(--text-muted)] tabular-nums">
-                            {section.wordCount.toLocaleString('en-US')} {plural(section.wordCount, 'word')}
+                            {section.wordCount.toLocaleString('en-US')} {pluralWord(section.wordCount, 'word')}
                           </span>
                         )
                       }
@@ -226,7 +226,7 @@ export function ImportReview({
             </Checkbox>
             <Tooltip
               label="About subtitles"
-              text={`${subtitleRows} ${plural(subtitleRows, 'chapter has', 'chapters have')} a second line read as a subtitle`}
+              text={`${subtitleRows} ${pluralWord(subtitleRows, 'chapter has', 'chapters have')} a second line read as a subtitle`}
             />
           </div>
         )}
@@ -242,10 +242,10 @@ export function ImportReview({
   return (
     <div ref={root} className="flex flex-col gap-3">
       <div className="mt-3 flex flex-none flex-wrap gap-2" aria-label="What was found">
-        <StatusBadge tone="success" label={`${counts.narration} ${plural(counts.narration, 'chapter')}`} />
-        <StatusBadge tone="neutral" label={`${preview.paragraphCount} ${plural(preview.paragraphCount, 'paragraph')}`} />
-        <StatusBadge tone="neutral" label={`${counts.suggestionsTotal} character ${plural(counts.suggestionsTotal, 'suggestion')}`} />
-        {counts.repairs > 0 && <StatusBadge tone="warning" label={`${counts.repairs} ${plural(counts.repairs, 'repair')}`} />}
+        <StatusBadge tone="success" label={`${counts.narration} ${pluralWord(counts.narration, 'chapter')}`} />
+        <StatusBadge tone="neutral" label={`${preview.paragraphCount} ${pluralWord(preview.paragraphCount, 'paragraph')}`} />
+        <StatusBadge tone="neutral" label={`${counts.suggestionsTotal} character ${pluralWord(counts.suggestionsTotal, 'suggestion')}`} />
+        {counts.repairs > 0 && <StatusBadge tone="warning" label={`${counts.repairs} ${pluralWord(counts.repairs, 'repair')}`} />}
       </div>
       {/* The options sit above the list, where an expanded list cannot push them out of sight. */}
       {options}
@@ -302,7 +302,7 @@ export function ImportReview({
                               <span className="block truncate">{candidate.name}</span>
                               {candidate.appearances !== undefined && (
                                 <span className="block text-xs text-[var(--text-muted)] tabular-nums">
-                                  {candidate.appearances.toLocaleString('en-US')} {plural(candidate.appearances, 'appearance')}
+                                  {candidate.appearances.toLocaleString('en-US')} {pluralWord(candidate.appearances, 'appearance')}
                                 </span>
                               )}
                             </span>

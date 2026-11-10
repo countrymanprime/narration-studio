@@ -9,6 +9,7 @@ import { SectionLabel } from '../primitives/SectionLabel';
 import { StatusBadge } from '../primitives/StatusBadge';
 import { deliveryProfileKey } from './deliveryProfile';
 import { ResultIcon } from './RuleBadges';
+import { plural } from '../../plural';
 
 const MUTED = { color: 'var(--text-muted)' };
 const DANGER = { color: 'var(--danger-text)' };
@@ -21,8 +22,6 @@ const platformNameFor = (profile: DeliveryProfile) => (profile.builtIn ? profile
 
 /** The host names a result's profile by its key (`deliveryProfileKey`); an id alone is matched too. */
 const resultIsFor = (result: MultiPackageResult, profile: DeliveryProfile) => result.profile === deliveryProfileKey(profile) || result.profile === profile.id;
-
-const plural = (count: number, one: string, many = `${one}s`) => `${count} ${count === 1 ? one : many}`;
 
 /** A multi-platform result's own status, in the same icon language as a package checklist row (RuleBadges.tsx). */
 const RESULT_STATUS: Record<MultiPackagePhase, { icon: DeliveryRuleStatus; word: string }> = {

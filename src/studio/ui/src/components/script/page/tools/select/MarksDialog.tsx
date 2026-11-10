@@ -11,6 +11,7 @@ import { Select } from '../../../../primitives/Select';
 import { TextField } from '../../../../primitives/TextField';
 import { useMarks } from '../../data/useScriptData';
 import { markSwatch } from '../../rail/threads/markSwatch';
+import { plural } from '../../../../../plural';
 
 const COLOUR_LABELS: Record<MarkColour, string> = { copper: 'Copper', info: 'Blue', ok: 'Green', warn: 'Amber', bad: 'Red', violet: 'Violet' };
 const STYLE_LABELS: Record<MarkStyle, string> = {
@@ -134,13 +135,8 @@ export function MarksDialog({ saveMarkTypes, onClose }: { saveMarkTypes: SaveMar
                 {sure === type.key ? (
                   // The question stays as words: what the second press does (N marks in the script go too) is what the narrator decides on.
                   <span className="flex flex-wrap items-center justify-end gap-1.5">
-                    <span role="status" className="text-sm">{`Remove ${used(type.key)} ${used(type.key) === 1 ? 'use' : 'uses'} too?`}</span>
-                    <IconButton
-                      action="confirmRemove"
-                      label={`Remove ${used(type.key)} ${used(type.key) === 1 ? 'use' : 'uses'} too?`}
-                      variant="danger"
-                      onClick={() => remove(type)}
-                    />
+                    <span role="status" className="text-sm">{`Remove ${plural(used(type.key), 'use')} too?`}</span>
+                    <IconButton action="confirmRemove" label={`Remove ${plural(used(type.key), 'use')} too?`} variant="danger" onClick={() => remove(type)} />
                     <IconButton action="cancelEdit" label="Keep the mark type" onClick={() => setSure(null)} />
                   </span>
                 ) : (

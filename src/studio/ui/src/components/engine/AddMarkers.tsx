@@ -10,6 +10,7 @@ import { lineText, reasonSentence } from '../pickups/list/pickupRows';
 import { useDawFileLinked } from '../connection/dawFileLinked';
 import { IconButton } from '../primitives/IconButton';
 import { dawNameOf } from './ShowInDaw';
+import { pluralWord } from '../../plural';
 
 /**
  * What an Add marker press is about (#2830): one Proof note, or the pickups of a session. A finding goes through `daw.addMarker`, pickups through
@@ -84,7 +85,7 @@ export async function addMarkers(daw: Pick<DawClient, 'addMarker' | 'addPickupMa
         : '';
     return {
       message: result.changed
-        ? `Pickup ${placed.length === 1 ? 'marker' : 'markers'} for ${lines} ${placed.length === 1 ? 'is' : 'are'} in ${dawName}.${left}`
+        ? `Pickup ${pluralWord(placed.length, 'marker')} for ${lines} ${placed.length === 1 ? 'is' : 'are'} in ${dawName}.${left}`
         : `Those markers were already in ${dawName}.${left}`,
       failed: false,
       added: result.changed,

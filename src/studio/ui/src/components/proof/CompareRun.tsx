@@ -28,6 +28,7 @@ import type { Notify } from '../primitives/Toast';
 import { retryAction } from '../primitives/Toast';
 import { ARRIVE_CLASSES } from '../primitives/changeHighlight';
 import { clock } from '../../clock';
+import { plural } from '../../plural';
 
 /** The host rejects with its error text as a plain string; an Error carries it in `message`. */
 const errorText = apiErrorMessage;
@@ -533,7 +534,7 @@ export function CompareRun({
             <p>
               {/* The track's name only when it says something the chapter's does not (XPC-9: "Chapter 1: 2 discrepancies in Chapter 1"). */}
               {results.trackName && results.trackName !== chapterTitle ? `${results.trackName}: ` : ''}
-              {foundHere === 0 ? `no discrepancies in ${chapterTitle}` : `${foundHere} discrepanc${foundHere === 1 ? 'y' : 'ies'} in ${chapterTitle}`}
+              {foundHere === 0 ? `no discrepancies in ${chapterTitle}` : `${plural(foundHere, 'discrepancy', 'discrepancies')} in ${chapterTitle}`}
               {results.rows.length > foundHere ? ` (${results.rows.length - foundHere} more in other chapters)` : ''}.
             </p>
             <div className="ml-auto flex flex-wrap items-center justify-end gap-2">

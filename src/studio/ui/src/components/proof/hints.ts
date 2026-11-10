@@ -1,3 +1,4 @@
+import { plural, pluralWord } from '../../plural';
 /**
  * Pure helpers for the Proofing vocabulary hints, kept out of Transcript.tsx so the
  * matching and wording rules can be tested without rendering the page.
@@ -25,8 +26,6 @@ export function splitHintTerms(text: string): string[] {
     .reduce<string[]>((terms, term) => (hasHint(terms, term) ? terms : [...terms, term]), []);
 }
 
-const plural = (count: number, singular: string, many = `${singular}s`) => `${count} ${count === 1 ? singular : many}`;
-
 /**
  * What a "Suggest from manuscript" click did. `found` is every name the Story Bible
  * offered, `fresh` the ones not yet accepted, `added` the ones not already showing as
@@ -36,5 +35,5 @@ export function suggestionMessage(found: number, fresh: number, added: number): 
   if (found === 0) return 'No names found in the Story Bible yet. Build it or add entries, then try again.';
   if (fresh === 0) return `No new suggestions: all ${plural(found, 'name')} found ${found === 1 ? 'is' : 'are'} already accepted.`;
   if (added === 0) return `${fresh === 1 ? 'The suggestion found is' : `The ${fresh} suggestions found are`} already shown. Click one to accept it.`;
-  return `Found ${added} new ${added === 1 ? 'suggestion' : 'suggestions'}.`;
+  return `Found ${added} new ${pluralWord(added, 'suggestion')}.`;
 }

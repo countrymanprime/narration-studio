@@ -15,10 +15,10 @@ import { DialogFooter } from '../common/DialogFooter';
 import { FACTS, Fact, FACT_VALUE_MONO } from '../common/Facts';
 import type { Span } from '../../ribbon/rangeMath';
 import { DEFAULT_CUT, FADE_CHOICES, PAD_CHOICES, type CutOptions } from './cutCommand';
+import { plural } from '../../../../plural';
 
 type Acting = Exclude<RangePlan, { kind: 'refused' }>;
 
-const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
 const sec = (n: number): string => `${n.toFixed(1)} s`;
 
 /** The dialog's title: what will happen to how many words. */
