@@ -109,7 +109,7 @@ function TakeRow({ passage, take, suggestedId, ...rest }: TakeLinesProps & { tak
       <div className="font-['IBM_Plex_Mono',ui-monospace,monospace] text-[12px] text-[var(--text-muted)]">
         {[
           take.start === undefined ? null : clock(take.start),
-          `${take.sourceLength.toFixed(0)} s`,
+          `${clock(take.sourceLength)} long`,
           sourceLabel,
           take.evidence ? placedLabel(take.evidence.via) : null,
         ]
