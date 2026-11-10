@@ -87,9 +87,9 @@ async function measureWarm(browser, hours, name) {
   await page.getByRole('navigation').first().waitFor();
   await page.evaluate(MEASURE, await page.evaluate(() => performance.now())); // settle the first page
   const sinceCalls = await page.evaluate(() => window.__hostCalls.length);
-  const link = page.getByRole('navigation').getByText(name, { exact: true }).first();
+  const link = page.getByRole('navigation').getByText(new RegExp(`^${name.replace(/[&]/g, '\\$&')}\\b`)).first();
   const t0 = await page.evaluate(() => performance.now());
-  await link.click();
+  await link.click({ timeout: 5000 });
   const result = await stats(page, cdp, t0, sinceCalls);
   await context.close();
   return result;
@@ -107,7 +107,12 @@ try {
     for (const [name, path] of PAGES) {
       for (const mode of ['cold', 'warm']) {
         const runs = [];
-        for (let r = 0; r < RUNS; r++) runs.push(mode === 'cold' ? await measureCold(browser, hours, path) : await measureWarm(browser, hours, name));
+        try {
+          for (let r = 0; r < RUNS; r++) runs.push(mode === 'cold' ? await measureCold(browser, hours, path) : await measureWarm(browser, hours, name));
+        } catch (error) {
+          console.log(`${hours}h ${name} ${mode}: skipped (${String(error.message).split('\n')[0]})`);
+          continue;
+        }
         const pick = (key) => median(runs.map((x) => x[key]));
         const row = { hours, page: name, mode, first: pick('first'), usable: pick('usable'), calls: pick('calls'), kb: pick('kb'), heap: pick('heap'), nodes: pick('nodes'), slow: runs[Math.floor(runs.length / 2)].slow, perCall: runs[0].list.map(({ name: n, ms, bytes }) => ({ n, ms: Math.round(ms), kb: Math.round(bytes / 1024) })) };
         rows.push(row);
@@ -119,7 +124,7 @@ try {
   const lines = ['| Page | Mode | ' + HOURS.map((h) => `${h} h usable ms`).join(' | ') + ' | ' + HOURS.map((h) => `${h} h nodes`).join(' | ') + ' | ' + HOURS.map((h) => `${h} h calls / KB`).join(' | ') + ' |', '|' + '---|'.repeat(2 + 3 * HOURS.length)];
   for (const [name] of PAGES)
     for (const mode of ['cold', 'warm']) {
-      const at = (h) => rows.find((r) => r.hours === h && r.page === name && r.mode === mode);
+      const at = (h) => rows.find((r) => r.hours === h && r.page === name && r.mode === mode) ?? { usable: NaN, nodes: NaN, calls: NaN, kb: NaN };
       lines.push(`| ${name} | ${mode} | ${HOURS.map((h) => at(h).usable.toFixed(0)).join(' | ')} | ${HOURS.map((h) => at(h).nodes).join(' | ')} | ${HOURS.map((h) => `${at(h).calls} / ${at(h).kb.toFixed(0)}`).join(' | ')} |`);
     }
   if (args.out) writeFileSync(args.out, lines.join('\n') + '\n');
