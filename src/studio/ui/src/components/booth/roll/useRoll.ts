@@ -52,8 +52,8 @@ const LOOKUP_FAILED = 'Where this passage was recorded could not be read, so no 
 const LOOKUP_SLOW =
   'Where this passage was recorded did not come back in time, so no take was started. No start is chosen now: choose the phrase again to retry.';
 
-/** Said when Start from here (or R) is pressed on a phrase other than the one a press under way is for, or during a plain press; nothing is changed. */
-export const START_BUSY = 'A take is already starting, so that Start from here was ignored. Try again once it has started.';
+/** Said when a press (Start from here, R, Punch and roll, Space) is not the one already under way before a take; nothing is changed. */
+export const START_BUSY = 'A take is already starting, so that press was ignored.';
 
 /** How long after a roll went through another is ignored (milliseconds). */
 
@@ -251,7 +251,11 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
       if (at == null || at >= s.phraseCount) {
         // A plain press is a press too: it joins another plain press (Space again), and a Start from here meanwhile is refused.
         if (s.recording) return actionsRef.current.beginTake();
-        if (pressing.current) return;
+        if (pressing.current) {
+          // Another plain press (Space again) is that press; a plain press during a press for a phrase is not, and is never dropped silently.
+          if (pressing.current.at !== null) actionsRef.current.notify(START_BUSY);
+          return;
+        }
         const plain = ++latestStart.current;
         pressing.current = { mine: plain, at: null };
         try {

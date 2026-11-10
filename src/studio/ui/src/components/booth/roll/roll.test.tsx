@@ -767,6 +767,41 @@ describe('a start waits for the host: shown, joined, and dropped when the Booth 
       });
     }
 
+    it('a plain press during a Start from here lookup on a DAW that cannot punch is told, once, and starts nothing', async () => {
+      const late = gate();
+      const punchTarget = vi.fn(() => late.promise);
+      const h = setup(SETUPS.reaperOff, { recording: false, punchAt: null, punchTarget });
+      let pressed: Promise<unknown> = Promise.resolve();
+      act(() => {
+        pressed = h.hook.result.current.startFromHere(1);
+      });
+      await act(() => h.hook.result.current.startTake());
+      expect(h.actions.notify.mock.calls.filter((c) => c[0] === START_BUSY)).toHaveLength(1);
+      expect(h.actions.beginTake).not.toHaveBeenCalled();
+      late.resolve(found(1));
+      await act(() => pressed);
+    });
+
+    it('Start from here while the take is being handed over with recording true still rolls', async () => {
+      const take = gate();
+      const h = setup(SETUPS.reaper, { recording: false, punchAt: 1, punchTarget: async (p) => found(p) });
+      h.actions.beginTake.mockImplementation(async () => {
+        await take.promise;
+      });
+      let pressed: Promise<unknown> = Promise.resolve();
+      act(() => {
+        pressed = h.hook.result.current.startTake();
+      });
+      await waitFor(() => expect(h.actions.beginTake).toHaveBeenCalledTimes(1));
+      h.hook.rerender({ ...h.session, recording: true, punchAt: 1 });
+      await act(() => h.hook.result.current.startFromHere(2));
+      expect(h.actions.roll).toHaveBeenCalledTimes(1);
+      expect(h.actions.notify).toHaveBeenCalledWith('Rolling again from ¶ 2');
+      expect(h.actions.notify).not.toHaveBeenCalledWith(START_BUSY);
+      take.resolve({ outcome: 'never_recorded' });
+      await act(() => pressed);
+    });
+
     it('the same phrase still joins: no sentence', async () => {
       const late = gate();
       const punchTarget = vi.fn(() => late.promise);

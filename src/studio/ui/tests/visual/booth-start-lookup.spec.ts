@@ -163,7 +163,7 @@ for (const [name, modelCheckMs, lookupMs] of [
     const lookupsBefore = await lookups(page);
     await page.waitForTimeout(500);
     await startFromHere(page, 160);
-    await expect(page.getByText('A take is already starting, so that Start from here was ignored. Try again once it has started.')).toBeVisible();
+    await expect(page.getByText('A take is already starting, so that press was ignored.')).toBeVisible();
     expect(await lookups(page)).toBe(lookupsBefore);
     expect(await reading()).toBe(first);
     await expect(page.getByText(/Starting from/)).toHaveCount(1);
@@ -190,7 +190,7 @@ test('a Start from here during a plain press with a slow model check is refused 
   await expect(record(page)).toHaveAttribute('aria-busy', 'true');
   await page.waitForTimeout(500);
   await startFromHere(page, 160);
-  await expect(page.getByText('A take is already starting, so that Start from here was ignored. Try again once it has started.')).toBeVisible();
+  await expect(page.getByText('A take is already starting, so that press was ignored.')).toBeVisible();
   expect(await lookups(page)).toBe(0);
   expect(await reading()).toBe(first);
   await expect(page.getByText(/Starting from/)).toHaveCount(0);

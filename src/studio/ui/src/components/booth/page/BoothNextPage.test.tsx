@@ -2635,7 +2635,7 @@ describe('a start chosen with Start from here: the wait is shown, dropped on lea
     expect(page.daw.recordStart).toHaveBeenLastCalledWith('c1', 12);
   });
   describe('a second Start from here on another phrase while a take is starting is refused, not half-done (#3320)', () => {
-    const BUSY = 'A take is already starting, so that Start from here was ignored. Try again once it has started.';
+    const BUSY = 'A take is already starting, so that press was ignored.';
     const startFrom = async (unit: number) => {
       const word = document.querySelector(`[data-unit="${unit}"] [data-word]`)!;
       await act(async () => {
@@ -2712,6 +2712,18 @@ describe('a start chosen with Start from here: the wait is shown, dropped on lea
       await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(2));
       expect(boothPunchTarget).toHaveBeenCalledTimes(1);
       expect(current()).toBe('7');
+    });
+    it('a plain Space during a Start from here lookup on a DAW that cannot punch says so and starts nothing', async () => {
+      const lookup = slowLookup();
+      const page = renderPage({ setup: 'builtin', api: { boothPunchTarget: lookup.boothPunchTarget } });
+      await ready();
+      await startFrom(3);
+      await settle();
+      expect(lookup.boothPunchTarget).toHaveBeenCalledTimes(1);
+      await space();
+      await settle();
+      expect(said(page).filter((text) => text === BUSY)).toHaveLength(1);
+      expect(page.daw.recordStart).not.toHaveBeenCalled();
     });
     it('during a slow model check', () => refused('model check'));
     it('during a slow record start', () => refused('record start'));
