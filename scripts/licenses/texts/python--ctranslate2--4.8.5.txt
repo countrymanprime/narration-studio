@@ -1,4 +1,4 @@
-Licence text of the upstream project, copied unchanged from https://github.com/OpenNMT/CTranslate2/blob/v4.8.4/LICENSE (tag v4.8.4, the version shipped).
+Licence text of the upstream project, copied unchanged from https://github.com/OpenNMT/CTranslate2/blob/v4.8.5/LICENSE (tag v4.8.5, the version shipped).
 
 MIT License
 
