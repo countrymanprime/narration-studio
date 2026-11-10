@@ -210,6 +210,14 @@ func TestIdentityCacheReadsAgainWhenTheSizeTheTimeOrTheFileChanges(t *testing.T)
 				t.Fatal(err)
 			}
 		},
+		// The same length, different bytes, and the time moved on (any editor saving over the take): only the time tells.
+		"a same-size rewrite with a new time": func() {
+			writeSourceFile(t, path, bytes.Repeat([]byte("e"), 1500))
+			later := time.Now().Add(2 * time.Hour)
+			if err := os.Chtimes(path, later, later); err != nil {
+				t.Fatal(err)
+			}
+		},
 		"a replaced file": func() {
 			replacement := filepath.Join(folder, "new.wav")
 			writeSourceFile(t, replacement, bytes.Repeat([]byte("d"), 700))
@@ -218,7 +226,7 @@ func TestIdentityCacheReadsAgainWhenTheSizeTheTimeOrTheFileChanges(t *testing.T)
 			}
 		},
 	}
-	for _, name := range []string{"a longer file", "a new time", "a replaced file"} {
+	for _, name := range []string{"a longer file", "a new time", "a same-size rewrite with a new time", "a replaced file"} {
 		cases[name]()
 		got, err := cache.Identify(path, folder)
 		want, _ := Identify(path, folder)
