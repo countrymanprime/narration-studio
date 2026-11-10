@@ -132,9 +132,17 @@ export function MarksDialog({ saveMarkTypes, onClose }: { saveMarkTypes: SaveMar
               </div>
               <div className={`justify-self-end ${NARROW.remove}`}>
                 {sure === type.key ? (
-                  <Button variant="danger" size="sm" onClick={() => remove(type)}>
-                    {`Remove ${used(type.key)} uses too?`}
-                  </Button>
+                  // The question stays as words: what the second press does (N marks in the script go too) is what the narrator decides on.
+                  <span className="flex flex-wrap items-center justify-end gap-1.5">
+                    <span role="status" className="text-sm">{`Remove ${used(type.key)} ${used(type.key) === 1 ? 'use' : 'uses'} too?`}</span>
+                    <IconButton
+                      action="confirmRemove"
+                      label={`Remove ${used(type.key)} ${used(type.key) === 1 ? 'use' : 'uses'} too?`}
+                      variant="danger"
+                      onClick={() => remove(type)}
+                    />
+                    <IconButton action="cancelEdit" label="Keep the mark type" onClick={() => setSure(null)} />
+                  </span>
                 ) : (
                   <IconButton action="delete" label="Remove" variant="danger" onClick={() => remove(type)} />
                 )}

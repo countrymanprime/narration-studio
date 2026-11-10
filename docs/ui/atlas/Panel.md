@@ -38,7 +38,6 @@ Storybook title: `Primitives/Panel`. Source: `src/components/primitives/Panel.ts
 - `src/components/engine/ChapterLinksTable.tsx`
 - `src/components/engine/ChapterSyncPanel.tsx`
 - `src/components/engine/EnginePanel.tsx`
-- `src/components/engine/TrackList.tsx`
 - `src/components/engine/VoicesCard.tsx`
 - `src/components/layout/AddressGate.tsx`
 - `src/components/layout/LoadError.tsx`

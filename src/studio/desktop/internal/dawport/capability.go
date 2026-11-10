@@ -70,6 +70,9 @@ const (
 	// CapUndoLast reads whether the engine's next undo point is one an app action of a given kind made, and undoes such points
 	// from the top of the engine's own history (#1711): the app's Undo of a cut.
 	CapUndoLast Capability = "undo_last"
+	// CapSaveProject has the engine write the open project to its own file, when the narrator asks the app to: Editing reads the
+	// saved file, so a take recorded since the last save is not there until the engine saves (#3262).
+	CapSaveProject Capability = "save_project"
 	// CapReplaceRange replaces words with a stretch of another narrator's audio that is in the project, and puts the narrator's audio
 	// back (#2251, docs/research/replace-audio.md).
 	CapReplaceRange Capability = "replace_range"
@@ -150,6 +153,7 @@ var specs = []Spec{
 	{CapRangeGain, "Lower stretches of a take", NeedsRunning, reflect.TypeFor[RangeGainReducer](), nil},
 	{CapClickRepair, "Repair clicks in a take", NeedsRunning, reflect.TypeFor[ClickRepairer](), nil},
 	{CapUndoLast, "Undo the app's last action", NeedsRunning, reflect.TypeFor[LastActionUndoer](), nil},
+	{CapSaveProject, "Save the project", NeedsRunning, reflect.TypeFor[ProjectSaver](), nil},
 	{CapMonitorLevel, "Set the monitor level", NeedsRunning, reflect.TypeFor[MonitorLeveler](), nil},
 	{CapInputLevel, "Set the input level", NeedsRunning, reflect.TypeFor[InputLeveler](), nil},
 	{CapPunchPreroll, "Punch pre-roll", NeedsRunning, reflect.TypeFor[PrerollReader](), nil},

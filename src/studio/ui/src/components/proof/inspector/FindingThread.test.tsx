@@ -68,7 +68,7 @@ describe('notes-on-this-finding', () => {
     const first = document.querySelector<HTMLElement>('[data-message="m1"]')!;
     fireEvent.click(within(first).getByRole('button', { name: 'Edit this note' }));
     fireEvent.change(screen.getByRole('textbox', { name: 'Edit note' }), { target: { value: 'one, edited' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save the note' }));
     await waitFor(() => expect(messages()[0]).toContain('one, edited'));
 
     fireEvent.click(within(document.querySelector<HTMLElement>('[data-message="m1"]')!).getByRole('button', { name: 'Delete note' }));

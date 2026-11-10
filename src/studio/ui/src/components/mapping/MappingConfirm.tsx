@@ -86,7 +86,15 @@ export function MappingConfirm({
         Confirm
       </Button>
       {hasLink && (
-        <Button variant="secondary" onClick={() => setPicking(false)} disabled={busy}>
+        <Button
+          variant="secondary"
+          onClick={() => {
+            // Cancel drops the abandoned pick: the next Change opens on the linked track, not on it.
+            setChosen(linkedTrackGuid && tracks.some((track) => track.guid === linkedTrackGuid) ? linkedTrackGuid : '');
+            setPicking(false);
+          }}
+          disabled={busy}
+        >
           Cancel
         </Button>
       )}

@@ -66,7 +66,6 @@ Storybook title: `Primitives/IconButton`. Source: `src/components/primitives/Ico
 - `src/components/engine/NestedChaptersNotice.tsx`
 - `src/components/engine/ShowInDaw.tsx`
 - `src/components/engine/SyncActivityLog.tsx`
-- `src/components/engine/TrackList.tsx`
 - `src/components/engine/VoicesCard.tsx`
 - `src/components/layout/AppShell.tsx`
 - `src/components/layout/LoadError.tsx`

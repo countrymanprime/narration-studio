@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePort } from '../../ports/usePort';
 import { headingName } from '../../chapterHeading';
 import { chapterTrackRows, type ChapterTrackRow } from './chapterTrackRows';
+import { keptTitle } from '../mapping/trackHeldBy';
 import type { ManuscriptChapter, Track, TrackMapping } from '../../types';
 import type { ChapterTrackCreateResult } from '../../api/contracts/chapterTrackMap';
 
@@ -19,6 +20,8 @@ export type ChapterLinks = {
   error: string;
   /** What the last change did beyond the chapter asked for: the chapter a picked track was taken from and is now not linked; empty otherwise. */
   notice: string;
+  /** Drops the notice, for a surface that shows it opening anew (the dialog, so a takeover from an earlier session is not repeated). */
+  clearNotice: () => void;
   /** The chapter whose link is being changed, or empty. */
   busyChapterId: string;
   /** The chapter whose track `create` is adding, or empty: from any mount, so a panel opened again while a create runs shows it busy. */
@@ -107,9 +110,13 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
     write()
       .then((result) => {
         // ChapterTrackSet moves a track another chapter holds; say so, or that chapter goes to "Not linked" unseen (#3053).
-        const displaced = (result as { displaced?: { chapterId: string } | null } | undefined)?.displaced;
+        const displaced = (result as { displaced?: { chapterId: string; chapterTitle?: string } | null } | undefined)?.displaced;
+        // A chapter the manuscript no longer lists is still named, by the title the host kept with its link, so no takeover is silent.
         const taken = displaced && chapters.find((chapter) => chapter.id === displaced.chapterId);
-        if (taken) setNotice(`${headingName(taken)} was linked to that track and is now not linked.`);
+        if (displaced)
+          setNotice(
+            `${taken ? headingName(taken) : (keptTitle(displaced.chapterTitle) ?? 'A chapter no longer in the manuscript')} was linked to that track and is now not linked.`,
+          );
       })
       .then(() => reload())
       .then(() => onChanged())
@@ -202,5 +209,6 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
   // The chapter list holds the credits, so they are rows like any chapter.
   const rows = useMemo(() => chapterTrackRows(chapters, shown, mappings), [chapters, shown, mappings]);
 
-  return { tracks: shown, chapters, mappings, rows, error, notice, busyChapterId, creatingChapterId, set, unlink, create };
+  const clearNotice = () => setNotice('');
+  return { tracks: shown, chapters, mappings, rows, error, notice, clearNotice, busyChapterId, creatingChapterId, set, unlink, create };
 }

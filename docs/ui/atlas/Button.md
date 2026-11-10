@@ -73,7 +73,6 @@ Storybook title: `Primitives/Button`. Source: `src/components/primitives/Button.
 - `src/components/editing/voicesample/SampleMark.tsx`
 - `src/components/editing/voicesample/VoiceSampleDialog.tsx`
 - `src/components/engine/AudacityLinkCard.tsx`
-- `src/components/engine/ChapterLinksTable.tsx`
 - `src/components/engine/ChapterSyncConsentDialog.tsx`
 - `src/components/engine/ChapterSyncPanel.tsx`
 - `src/components/engine/ChapterTagsDialog.tsx`
@@ -162,7 +161,6 @@ Storybook title: `Primitives/Button`. Source: `src/components/primitives/Button.
 - `src/components/settings/ScopedSetting.tsx`
 - `src/components/settings/UpdatesPanel.tsx`
 - `src/components/settings/analysis/ConsentDialog.tsx`
-- `src/components/settings/controls/AppearanceBodies.tsx`
 - `src/components/settings/controls/CreditsBody.tsx`
 - `src/components/settings/controls/EngineBody.tsx`
 - `src/components/settings/controls/MicBody.tsx`

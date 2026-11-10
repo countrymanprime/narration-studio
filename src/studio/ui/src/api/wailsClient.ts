@@ -769,6 +769,7 @@ export const wailsClient: NarrationApi = {
   dawRepairClick: (chapterId, takeId, clicks) => decode(dawResultSchema, 'DawRepairClick', host.DawRepairClick(chapterId, takeId, clicks)),
   dawLastAction: (kind) => decode(dawLastActionSchema, 'DawLastAction', host.DawLastAction(kind)),
   dawUndoLast: (kind, steps) => decode(dawResultSchema, 'DawUndoLast', host.DawUndoLast(kind, steps)),
+  dawSaveProject: () => decode(dawResultSchema, 'DawSaveProject', host.DawSaveProject()),
   dawMonitorLevel: () => decode(dawMonitorLevelSchema, 'DawMonitorLevel', host.DawMonitorLevel()),
   dawSetMonitorLevel: (level) => decode(dawMonitorLevelSchema, 'DawSetMonitorLevel', host.DawSetMonitorLevel(level)),
   dawPunchPreroll: () => decode(dawPunchPrerollSchema, 'DawPunchPreroll', host.DawPunchPreroll()),
