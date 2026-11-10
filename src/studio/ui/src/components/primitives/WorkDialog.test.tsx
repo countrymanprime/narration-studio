@@ -20,6 +20,27 @@ const job = (patch: Partial<WorkJob>): WorkJob => ({
 const PHASES: WorkJob['phase'][] = ['preparing', 'running', 'committing', 'success', 'error', 'cancelled'];
 
 describe('WorkDialog', () => {
+  it('ignores the second click of a double click on Retry or Cancel, which lands on the button that replaced it (class of #3034)', () => {
+    const cancel = vi.fn();
+    const close = vi.fn();
+    const retry = vi.fn();
+    const view = (phase: WorkJob['phase']) => (
+      <WorkDialog
+        title="Rebuild Story Bible"
+        job={job({ phase, error: phase === 'error' ? 'It failed.' : undefined })}
+        close={close}
+        cancel={cancel}
+        retry={retry}
+      />
+    );
+    const { rerender } = render(view('error'));
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    rerender(view('running'));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(retry).toHaveBeenCalledOnce();
+    expect(cancel).not.toHaveBeenCalled();
+  });
+
   it('stays open when the backdrop is pressed, whatever phase the job is in: a job is ended with its own buttons (issue 1706)', () => {
     for (const phase of PHASES) {
       const close = vi.fn();

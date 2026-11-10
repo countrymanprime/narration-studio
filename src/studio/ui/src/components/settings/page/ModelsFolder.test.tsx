@@ -9,6 +9,7 @@ import type { MockApiSeed } from '../../../api/mockHost/state';
 import { ThemeProvider } from '../../../theme/ThemeContext';
 import type { NarrationApi } from '../../../types';
 import { SettingsPage } from './SettingsPage';
+import { outwaitEcho } from '../../../outwaitEcho';
 
 afterEach(() => {
   cleanup();
@@ -203,6 +204,7 @@ describe('Models folder', () => {
     await move();
     const dialog = await screen.findByRole('dialog', { name: /^Moving models/ });
     await waitFor(() => expect(within(dialog).getByRole('progressbar').getAttribute('aria-valuenow')).toBe('40'), SLOW);
+    await outwaitEcho();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
     const stopped = await ended('The move was cancelled');
     expect(stopped.textContent).toContain('Your models are still where they were.');

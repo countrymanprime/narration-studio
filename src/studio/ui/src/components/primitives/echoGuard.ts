@@ -35,3 +35,9 @@ export function useEchoGuard(enabled: boolean | undefined): (event: MouseEvent) 
     return true;
   };
 }
+
+/** Forgets the clicks seen so far: a test's last click is not the echo of the next test's first. */
+export function forgetEchoClicks() {
+  current = undefined;
+  previous = undefined;
+}

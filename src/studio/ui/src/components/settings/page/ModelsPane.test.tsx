@@ -216,6 +216,7 @@ describe('Settings: Models & downloads', () => {
     await new Promise((done) => setTimeout(done, ECHO_WINDOW_MS + 20));
     fireEvent.click(await within(voice).findByRole('button', { name: /^Cancel the download of LJ Speech/ }));
     await waitFor(() => expect(within(asset('tts/en_US-ljspeech-high')).getByText('Not installed')).toBeTruthy(), SLOW);
+    await new Promise((done) => setTimeout(done, ECHO_WINDOW_MS + 20));
     fireEvent.click(within(asset('tts/en_US-ljspeech-high')).getByRole('button', { name: /^Download LJ Speech/ }));
     await waitFor(() => expect(within(asset('tts/en_US-ljspeech-high')).getByText('Installed · checked')).toBeTruthy(), SLOW);
     expect(screen.queryByRole('progressbar', { name: /^Downloading LJ Speech/ })).toBeNull();
@@ -241,6 +242,7 @@ describe('Settings: Models & downloads', () => {
     await waitFor(() => expect(within(asset('tts/en_US-ljspeech-high')).getByText('Download failed')).toBeTruthy());
     await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.stringContaining('Not enough free disk space'), expect.objectContaining({ tone: 'error' })));
     assetsInstall.mockRejectedValue(new Error('Could not reach huggingface.co.'));
+    await new Promise((done) => setTimeout(done, ECHO_WINDOW_MS + 20));
     fireEvent.click(within(asset('tts/en_US-ljspeech-high')).getByRole('button', { name: /^Try LJ Speech.* again$/ }));
     await waitFor(() =>
       expect(toast).toHaveBeenCalledWith(expect.stringContaining('Could not reach huggingface.co'), expect.objectContaining({ tone: 'error' })),

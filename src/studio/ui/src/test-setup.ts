@@ -1,6 +1,7 @@
 import { afterAll, afterEach, vi } from 'vitest';
 import { cleanup, configure } from '@testing-library/react';
 import fc from 'fast-check';
+import { forgetEchoClicks } from './components/primitives/echoGuard';
 import { forgetProofMemory } from './components/proof/proofMemory';
 import { clearToasts } from './fixtures/toasts';
 import { trackIntervals } from './leakedIntervals';
@@ -23,6 +24,7 @@ afterEach(() => {
   forgetProofMemory();
   // Nor is a toast one test raised the next test's.
   clearToasts();
+  forgetEchoClicks();
 });
 
 // The Wails runtime polls from a module-level `window.setInterval` (dist/drag.js, up to 100 x 50 ms) as soon as a file imports it. A file
