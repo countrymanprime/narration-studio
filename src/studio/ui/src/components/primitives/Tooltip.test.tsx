@@ -2,7 +2,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Tooltip as BaseTooltip } from '@base-ui/react/tooltip';
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, type ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Button } from './Button';
 import { Dialog } from './Dialog';
@@ -604,6 +604,55 @@ describe('TooltipTarget mounts the library lazily', () => {
     fireEvent.pointerDown(button, { pointerType: 'touch' });
     await act(() => vi.advanceTimersByTimeAsync(2000));
     expect(screen.queryByRole('tooltip')).toBeNull();
+  });
+
+  it.each([
+    [
+      'autoFocus',
+      () => (
+        <button aria-label="Auto" autoFocus>
+          a
+        </button>
+      ),
+    ],
+    [
+      'focus in a layout effect',
+      () => {
+        const Focuser = () => {
+          const ref = useRef<HTMLButtonElement>(null);
+          useLayoutEffect(() => ref.current?.focus(), []);
+          return (
+            <button aria-label="Auto" ref={ref}>
+              a
+            </button>
+          );
+        };
+        return <Focuser />;
+      },
+    ],
+    [
+      'focus in an effect',
+      () => {
+        const Focuser = () => {
+          const ref = useRef<HTMLButtonElement>(null);
+          useEffect(() => ref.current?.focus(), []);
+          return (
+            <button aria-label="Auto" ref={ref}>
+              a
+            </button>
+          );
+        };
+        return <Focuser />;
+      },
+    ],
+  ])('shows the hint and logs no React error when the first focus comes from %s', async (_name, child) => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    // The page was last used with the keyboard, which is what makes a focus show the hint.
+    await userEvent.setup().keyboard('{Shift}');
+    render(<TooltipTarget text="Autofocused">{child()}</TooltipTarget>);
+    expect((await screen.findByRole('tooltip')).textContent).toBe('Autofocused');
+    expect(error).not.toHaveBeenCalled();
+    error.mockRestore();
   });
 
   it('draws the same wrapper before and after the library mounts, so the page does not shift', () => {

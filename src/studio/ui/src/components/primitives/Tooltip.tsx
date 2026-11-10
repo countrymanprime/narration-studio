@@ -135,6 +135,7 @@ export function TooltipTarget({
   const [bridged, setBridged] = useState<{ handlers: string[]; attributes: Record<string, unknown> }>({ handlers: [], attributes: {} });
   const signature = useRef('');
   const touched = useRef(false);
+  const pendingFocus = useRef<ReactFocusEvent<HTMLElement> | null>(null);
 
   const onProps = useCallback((split: { handlers: string[]; attributes: Record<string, unknown> }) => {
     const next = JSON.stringify([split.handlers, split.attributes]);
@@ -144,24 +145,39 @@ export function TooltipTarget({
   }, []);
 
   // Mounts the library now, in this event, and replays the event into it.
+  const call = (name: string, event: SyntheticEvent) => {
+    const element = host.current;
+    const handler = latest.current[name];
+    if (element && typeof handler === 'function') handler(replayable(event, element));
+  };
+
   const arm = (first: FirstContact) => {
+    // A focus can arrive while React is committing (`autoFocus`, or `.focus()` in an effect), where `flushSync` cannot run, so
+    // it is replayed from an effect once the library is in. A pointer event never arrives mid-commit: it mounts and replays here.
+    if (first.kind === 'focus') {
+      pendingFocus.current = first.focus;
+      setArmed(true);
+      return;
+    }
     flushSync(() => setArmed(true));
     const element = host.current;
-    const handlers = latest.current;
     if (!element) return;
-    const call = (name: string, event: SyntheticEvent | null) => {
-      const handler = handlers[name];
-      if (event && typeof handler === 'function') handler(replayable(event, element));
-    };
-    if (first.kind === 'hover') {
-      // The library learns the pointer type from the pointer event, starts its delay from `mouseenter` and its rest timer from
-      // the first `mousemove`; the last two only exist as events on the element, so `mouseenter` is raised on it (it does not
-      // bubble, so nothing else hears it).
-      call('onPointerEnter', first.enter);
-      element.dispatchEvent(new MouseEvent('mouseenter', { clientX: first.enter.clientX, clientY: first.enter.clientY }));
-      call('onMouseMove', first.enter);
-    } else call('onFocus', first.focus);
+    // The library learns the pointer type from the pointer event, starts its delay from `mouseenter` and its rest timer from
+    // the first `mousemove`; the last two only exist as events on the element, so `mouseenter` is raised on it (it does not
+    // bubble, so nothing else hears it).
+    call('onPointerEnter', first.enter);
+    element.dispatchEvent(new MouseEvent('mouseenter', { clientX: first.enter.clientX, clientY: first.enter.clientY }));
+    call('onMouseMove', first.enter);
   };
+
+  // Replays the focus that mounted the library, if focus is still in the wrapper (the library then decides, as it would have
+  // from the start, whether the focus is keyboard focus that shows the hint).
+  useEffect(() => {
+    const focus = pendingFocus.current;
+    if (!armed || !focus || bridged.handlers.length === 0) return;
+    pendingFocus.current = null;
+    if (host.current?.contains(document.activeElement)) call('onFocus', focus);
+  });
 
   const forwarded = useMemo(() => {
     const out: Record<string, (event: SyntheticEvent) => void> = {};
