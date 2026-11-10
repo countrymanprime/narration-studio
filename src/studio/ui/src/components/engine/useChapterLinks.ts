@@ -109,9 +109,11 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
     write()
       .then((result) => {
         // ChapterTrackSet moves a track another chapter holds; say so, or that chapter goes to "Not linked" unseen (#3053).
-        const displaced = (result as { displaced?: { chapterId: string } | null } | undefined)?.displaced;
+        const displaced = (result as { displaced?: { chapterId: string; chapterTitle?: string } | null } | undefined)?.displaced;
+        // A chapter the manuscript no longer lists is still named, by the title the host kept with its link, so no takeover is silent.
         const taken = displaced && chapters.find((chapter) => chapter.id === displaced.chapterId);
-        if (taken) setNotice(`${headingName(taken)} was linked to that track and is now not linked.`);
+        const lost = taken ? headingName(taken) : displaced?.chapterTitle;
+        if (lost) setNotice(`${lost} was linked to that track and is now not linked.`);
       })
       .then(() => reload())
       .then(() => onChanged())

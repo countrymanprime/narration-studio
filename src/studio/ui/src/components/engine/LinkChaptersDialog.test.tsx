@@ -345,6 +345,21 @@ describe('LinkChaptersDialog', () => {
     expect(screen.queryByText('Nothing is stamped yet.')).toBeNull();
   });
 
+  it('still names the chapter that lost a track when the host holds its link but the manuscript no longer lists it (qa-breaker B1)', async () => {
+    const user = userEvent.setup();
+    const track = WIRE_TRACKS_PROJECT.tracks[0];
+    renderDialog({
+      chapterTrackSet: async (chapterId, trackGuid) => ({
+        documentId: 'doc',
+        link: { trackGuid, chapterId, chapterTitle: 'x', confirmedAt: '2026-01-01T00:00:00Z' },
+        displaced: { chapterId: 'ghost', chapterTitle: 'Ghost chapter', trackGuid: track.guid, confirmedAt: '2026-01-01T00:00:00Z' },
+        mappings: [],
+      }),
+    });
+    await user.selectOptions(await screen.findByRole('combobox', { name: `Track for ${WIRE_CHAPTERS[0].title}` }), track.guid);
+    expect(await screen.findByText('Ghost chapter was linked to that track and is now not linked.')).toBeTruthy();
+  });
+
   it('shows a REAPER error state', async () => {
     renderDialog({}, { lineIdentity: 'error' });
 
