@@ -409,3 +409,31 @@ func TestARollInAVoiceFolderRollsTheVoiceTheTakeRecordsOnNotTheFolder(t *testing
 		t.Fatalf("rolled %v, want the chosen voice %s (the track the bridge records on), never the folder", role.rolled, voiceQueenTrack)
 	}
 }
+
+// #3271: a voice key or an added voice on a chapter with no folder of voices says why by the project's layout. A flat project records on one track; a
+// Voice folders project is never told that.
+func TestARefusedVoiceActionNamesTheLayoutNotASingleTrack(t *testing.T) {
+	// A flat chapter is one linked to a plain track: a folder holding voices records on them under Flat too (#3269).
+	flat, flatIDs := newFlatBoothHost(t)
+	folders, folderIDs := newVoiceFolderHost(t, voicetracks.LayoutFolders)
+	// The folders project's second chapter is linked to a plain track, not a folder of voices.
+	linkChapter(t, folders, folderIDs[1], "{22222222-2222-4222-8222-222222222222}")
+
+	set := boothVoiceSet(t, flat, &fakeVoiceRecorder{}, flatIDs[0], voiceQueenTrack)
+	if set.Reason != boothVoiceFlat || !strings.Contains(set.Message, "records on one track") {
+		t.Errorf("flat project, voice key: %+v", set)
+	}
+	add := boothVoiceAdd(t, flat, &fakeChildCreator{}, flatIDs[0], "Crowd", nil)
+	if add.Reason != boothVoiceFlat || !strings.Contains(add.Message, "records on one track") {
+		t.Errorf("flat project, add a voice: %+v", add)
+	}
+
+	set = boothVoiceSet(t, folders, &fakeVoiceRecorder{}, folderIDs[1], voiceQueenTrack)
+	if set.Reason != boothVoiceFlat || set.Message != noFolderForVoiceKeys || strings.Contains(set.Message, "one track") {
+		t.Errorf("folders project, voice key on a plain track: %+v", set)
+	}
+	add = boothVoiceAdd(t, folders, &fakeChildCreator{}, folderIDs[1], "Crowd", nil)
+	if add.Reason != boothVoiceFlat || strings.Contains(add.Message, "one track") || !strings.Contains(add.Message, "not linked to a folder of voices") {
+		t.Errorf("folders project, add a voice to a plain track: %+v", add)
+	}
+}

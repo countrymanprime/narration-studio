@@ -4,19 +4,18 @@ import type { GuideEntity } from '../../../api/contracts/storyBible';
 import type { Track } from '../../../api/contracts/tracks';
 import { describeApiError } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
+import { destinationFor, type ChapterLinkKind } from '../../engine/destination';
 import { useVoiceSetup } from '../../engine/voiceLayout';
 import { folderChildren, folderVoices, type Voice } from '../../engine/voices';
 import { LIVE_TRACKS_POLL_MS } from '../../engine/useLiveTracks';
 import { withAddedVoices, type WhoCharacter } from './whoIsIn';
 import type { BoothVoiceTrack } from '../../../api/contracts/voiceTracks';
 
-/** What the Booth says when a voice key is pressed in a chapter that records on one track. */
-export const FLAT_VOICE_KEYS =
-  'This chapter records on one track. Voice keys choose a voice for a chapter linked to a folder of voices (the audio engine panel).';
-
 export type BoothVoices = {
   /** The chapter's voices in REAPER's order, empty when it records on one track (a flat project or a plain track link). */
   voices: Voice[];
+  /** What the chapter's link points at, which says why no voice is listed. */
+  linkKind: ChapterLinkKind;
   /** The voice the next take, or the take running now, records on. */
   current?: Voice;
   /** A choice the host is answering: the control shows it as busy, and a press meanwhile is sent once it answers (the last one wins). */
@@ -199,6 +198,12 @@ export function useBoothVoices({
     },
     [setup, link, linkedTracks, tracks, characters, added],
   );
+  // What the chapter's link points at, for the sentence a voice key gets when no voice is listed.
+  const linkKind: ChapterLinkKind = useMemo(() => {
+    if (!link) return 'none';
+    const linked = tracks.find((track) => track.guid.toLowerCase() === link.toLowerCase());
+    return !linked ? 'unknown' : linked.isFolder ? 'empty' : 'track';
+  }, [link, tracks]);
   // Until the host's answer for this chapter arrives, the voice it records on with no choice made: the Narrator, else the first.
   const fromHost = hostVoice.chapterId === chapterId ? voices.find((voice) => voice.guid.toLowerCase() === hostVoice.guid.toLowerCase()) : undefined;
   const current = fromHost ?? voices.find((voice) => voice.narrator) ?? voices[0];
@@ -254,7 +259,7 @@ export function useBoothVoices({
   const byKey = useCallback(
     (n: number) => {
       if (voices.length === 0) {
-        notify(FLAT_VOICE_KEYS, 'info');
+        notify(destinationFor(setup.layout).noVoiceKeys(linkKind), 'info');
         return;
       }
       // "Who is in Num N?" is open: it is answered first, and a key behind it neither asks again nor switches a voice.
@@ -287,7 +292,7 @@ export function useBoothVoices({
           setStopping(false);
         });
     },
-    [voices, choose, notify, recording, stopTake, onNoTrack, asking],
+    [voices, choose, notify, recording, stopTake, onNoTrack, asking, linkKind, setup.layout],
   );
 
   const add = useCallback(
@@ -375,7 +380,7 @@ export function useBoothVoices({
       // A key's stop is being answered: stepping now would switch a take that is ending.
       if (stopFor.current !== undefined) return;
       if (voices.length === 0) {
-        notify(FLAT_VOICE_KEYS, 'info');
+        notify(destinationFor(setup.layout).noVoiceKeys(linkKind), 'info');
         return;
       }
       // From the voice last pressed, so Num + twice while the host answers steps twice.
@@ -386,7 +391,7 @@ export function useBoothVoices({
       );
       choose(voices[(at + by + voices.length) % voices.length]);
     },
-    [voices, current, choose, notify],
+    [voices, current, choose, notify, linkKind, setup.layout],
   );
 
   const reload = useCallback(() => setRevision((n) => n + 1), []);
@@ -403,6 +408,7 @@ export function useBoothVoices({
           : { state: 'not_armed' };
   return {
     voices,
+    linkKind,
     current,
     choosing,
     choose,

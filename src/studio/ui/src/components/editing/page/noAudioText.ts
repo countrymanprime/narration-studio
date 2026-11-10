@@ -1,3 +1,5 @@
+import type { VoiceTracksLayout } from '../../../api/contracts/voiceTracks';
+import { destinationFor } from '../../engine/destination';
 import type { ChapterAudio } from './chapterSource';
 
 /** The words of the notice over a chapter that has no audio to edit: what is wrong, and what to do about it. */
@@ -10,7 +12,12 @@ export interface NoAudioText {
  * Why a chapter shows no audio and the way forward, in one place so the notice and the link dialog say the same thing. `daw` is the DAW's own
  * name, or null for the built-in recorder, which has no track to link: nothing is recorded there until the narrator records it.
  */
-export function noAudioText(audio: Exclude<ChapterAudio, { kind: 'ready' }>, chapter: string, daw: string | null): NoAudioText {
+export function noAudioText(
+  audio: Exclude<ChapterAudio, { kind: 'ready' }>,
+  chapter: string,
+  daw: string | null,
+  layout: VoiceTracksLayout = 'flat',
+): NoAudioText {
   if (daw === null) {
     return {
       headline: `Nothing is recorded for ${chapter} yet, so there is no audio to edit.`,
@@ -20,7 +27,7 @@ export function noAudioText(audio: Exclude<ChapterAudio, { kind: 'ready' }>, cha
   switch (audio.kind) {
     case 'unlinked':
       return {
-        headline: `${chapter} is not linked to a track in ${daw}, so there is no audio to edit.`,
+        headline: destinationFor(layout).editingUnlinked(chapter, daw),
         next: 'The script is shown without what was heard.',
       };
     case 'missing':

@@ -585,7 +585,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     text: 'The Booth reads the chapters of this book. Go back to the chapters to pick one.',
     class: 'empty',
   },
-  { file: 'components/connection/ChapterLinkDialog.tsx', text: '… cannot add a track from this app. Add one in …, then check again.', class: 'overlay' },
+  { file: 'components/connection/ChapterLinkDialog.tsx', text: '… cannot add a … from this app. Add one in …, then check again.', class: 'overlay' },
   {
     file: 'components/connection/ReaperOffDialog.tsx',
     text: 'The project is linked, but … has not connected: it is closed, or its bridge has not started yet.',

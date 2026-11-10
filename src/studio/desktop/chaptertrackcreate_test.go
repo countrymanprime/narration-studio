@@ -227,11 +227,11 @@ func TestChapterTrackCreateRefusals(t *testing.T) {
 
 func TestChapterTrackCreateRefusalsNameTheAdapterNotReaper(t *testing.T) {
 	for _, reason := range []dawport.Reason{dawport.ReasonStandalone, dawport.ReasonNotRunning, dawport.ReasonUnsupported, dawport.ReasonFailed} {
-		if got := trackCreateUnavailable("Audacity", "Chapter 1", dawport.Support{Reason: reason}); strings.Contains(got.Message, "REAPER") {
+		if got := trackCreateUnavailable("Audacity", "Chapter 1", dawport.Support{Reason: reason}, "track"); strings.Contains(got.Message, "REAPER") {
 			t.Errorf("%s: %q names REAPER", reason, got.Message)
 		}
 	}
-	if got := trackCreateError("Audacity", "Chapter 1", bridge.ErrRecording); strings.Contains(got.Message, "REAPER") || !strings.Contains(got.Message, "Audacity") {
+	if got := trackCreateError("Audacity", "Chapter 1", bridge.ErrRecording, "track"); strings.Contains(got.Message, "REAPER") || !strings.Contains(got.Message, "Audacity") {
 		t.Errorf("recording: %q", got.Message)
 	}
 	source, err := os.ReadFile("chaptertrackcreate.go")

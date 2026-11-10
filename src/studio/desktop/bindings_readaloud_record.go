@@ -84,10 +84,10 @@ func readAloudTrackGUID(svc hostServices, chapterID string) (string, *ReadAloudR
 	name := readAloudAdapterName(svc)
 	switch {
 	case len(links) == 0:
-		refused := readAloudRefused(readAloudUnlinked, fmt.Sprintf("%q has no linked track. Link it to its %s track in the audio engine panel.", title, name))
+		refused := readAloudRefused(readAloudUnlinked, fmt.Sprintf("%q has no linked %s. Link it to its %s %s in the audio engine panel.", title, layoutNoun(svc), name, layoutNoun(svc)))
 		return "", &refused, nil
 	case len(links) > 1:
-		refused := readAloudRefused(readAloudSeveralLinks, fmt.Sprintf("%q is linked to %d tracks. Keep the one to record on, in the audio engine panel.", title, len(links)))
+		refused := readAloudRefused(readAloudSeveralLinks, fmt.Sprintf("%q is linked to %d %ss. Keep the one to record on, in the audio engine panel.", title, len(links), layoutNoun(svc)))
 		return "", &refused, nil
 	}
 	return links[0], nil, nil

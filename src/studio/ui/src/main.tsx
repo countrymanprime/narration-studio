@@ -1,6 +1,7 @@
 import { AUDACITY_LINK_MOCK_SEEDS, type AudacityLinkMockName } from './api/audacityLinkMock';
 import { DAW_CHOICE_MOCK_SEEDS, type DawChoiceMockName } from './api/dawChoiceMock';
 import { DAW_MOCK_SCRIPTS, type DawMockControl, type DawMockSeed } from './api/dawMock';
+import { bookOfHours } from './fixtures/bookSize';
 import { BOOTH_STRESS, MIC_STRESS, boothStressSeed, micStressDevices } from './fixtures/boothStress';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
@@ -10,6 +11,7 @@ import { wailsClient } from './api/wailsClient';
 import { enableUiLog } from './api/uiLog';
 import { installTracing } from './trace/installTracing';
 import { withTracing } from './api/withTracing';
+import { withCallLog } from './api/withCallLog';
 import type { RecordingMockSeed } from './api/recordingMock';
 import { createMockApi } from './api/mockApi';
 import { installMockAudioOutputs, MOCK_AUDIO_OUTPUT_MODES } from './api/mockHost/audioOutputs';
@@ -173,6 +175,10 @@ const mockBackgroundChecks = (['confirm', 'running', 'waiting'] as const).find((
 // 100,000-word chapter, 5000 chapters (`many-unbroken`: 200 whose titles may be 10,000 characters long), all-emoji, right-to-left and hostile titles and text. `?mockMics=0|1|50|weird|long` lists that many microphones,
 // or ones with quotes, newlines, right-to-left text and emoji in their names, to the teleprompter and the built-in recorder.
 const mockBoothStress = BOOTH_STRESS.find((name) => name === mockParams.get('mockBooth'));
+// `?mockBookHours=17` replaces the manuscript with a synthetic book of that many hours of narration (fixtures/bookSize.ts), for the page
+// benchmark (scripts/dev/page-bench.mjs). `?mockCallLog=1` records every host call (name, ms, answer bytes) in `window.__hostCalls`.
+const mockBookHours = Number(mockParams.get('mockBookHours')) || undefined;
+const mockCallLog = mockParams.has('mockCallLog');
 const mockMicsStress = MIC_STRESS.find((name) => name === mockParams.get('mockMics'));
 // `?mockNoDevices=1` boots the teleprompter with an empty device listing, so the
 // blocked "No microphone found" state (no typed fallback) can be seen without a host.
@@ -584,6 +590,7 @@ const mockInitial = {
   ...(mockTeleprompter ? { teleprompter: mockTeleprompter } : {}),
   ...(mockNoDevices ? { teleprompterDevices: [] } : {}),
   ...(mockBoothStress ? boothStressSeed(mockBoothStress) : {}),
+  ...(mockBookHours ? bookOfHours(mockBookHours) : {}),
   ...(mockMicsStress
     ? {
         teleprompterDevices: micStressDevices(mockMicsStress),
@@ -719,7 +726,8 @@ if (hostApi === wailsClient) {
   installTracing(wailsClient);
 }
 // An embedding build (appExtension.ts) may wrap the mock API; the Wails client is never wrapped.
-const api = hostApi === wailsClient ? withTracing(hostApi) : (appExtension().wrapApi?.(hostApi) ?? hostApi);
+const wrapped = hostApi === wailsClient ? withTracing(hostApi) : (appExtension().wrapApi?.(hostApi) ?? hostApi);
+const api = mockCallLog ? withCallLog(wrapped) : wrapped;
 appExtension().start?.(api);
 
 createRoot(document.getElementById('root')!).render(
