@@ -74,7 +74,7 @@ Needs the owner present and approval for one test recording on a copy of a proje
 | B8 | The same microphone in REAPER and the app | With REAPER recording or monitoring the device, open the microphone popover's level meter (`TeleprompterMeterStart`, [Input level and the meter](../architecture/manuscript-teleprompter.md#input-level-and-the-meter)), then start a reading. | The meter moves with the owner's voice and the reading follows, or the open fails and `meter_stopped` or the session's error says why (REAPER holding the device exclusively). REAPER's own recording is never interrupted. Record which drivers share the device. |
 | B9 | `play_position` and `punch_to` while recording (the recording steps of A9b and A9c, which Part A cannot take) | During B2's recording, send `play_position`; then `punch_to` 42 with pre-roll 3. | `PLAY_POSITION` state 5 with both positions moving; `punch_to` is refused with "REAPER is recording. Stop it before moving to a word." and the cursor does not move. |
 
-## Part C: the Studio Next DAW commands (not scripted yet)
+## Part C: the DAW commands (not scripted yet)
 
 The commands added by the DAW PRD (SN-D44 to SN-D72), and the file commands of SN-B98 (C10, C11). `run-pass-part-a.ps1` does not run them yet, and no row below has run in REAPER (2026-10-12); the owner deferred each to the QA pass, [#1495](https://github.com/countrymanprime/narration-studio/issues/1495), where the detail of what to confirm is listed. Each "Pass when" is the capability's result in [the capabilities reference](../reference/daw/capabilities.md); the harness test named proves the bridge's logic only. C2 records and C10 plays audio, so they need Part B's set-up and the owner present; the others run on Part A's scratch project with the device closed.
 
@@ -198,7 +198,7 @@ Then, in one PR:
 2. Take the command off the host's experimental list (`experimentalCommands` in `src/studio/desktop/internal/bridge/actions.go`) and move its capability's declaration in `src/studio/desktop/internal/dawport/reaper/reaper.go` to Supported, in the same PR, so it no longer needs to be turned on. A command whose row failed stays on the list,, with the finding recorded here.
 3. Update the threat model rows that say "pending" for it.
 
-`pickups` is Supported already, so C8 and C9 promote nothing: a failure there is a bug to fix. Which command is promoted when is in [the promotion plan](../research/studio-next-daw-promotion-plan.md).
+`pickups` is Supported already, so C8 and C9 promote nothing: a failure there is a bug to fix. Which command is promoted when is in [the promotion plan](../research/daw-promotion-plan.md).
 
 When every command is off the list, the switch has nothing left to gate; the PR that empties the list removes the switch and its `config/defaults.json` default.
 

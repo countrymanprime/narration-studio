@@ -8,7 +8,7 @@ import type { PeaksSegment } from './peaksJoin';
 import type { Pin } from './pins';
 import type { TimeWindow } from './windowMath';
 
-// The frame of the Studio Next Proof page: the header with the counters, the all-chapters strip and the windowed waveform with its pins (D98).
+// The frame of the rebuilt Proof page: the header with the counters, the all-chapters strip and the windowed waveform with its pins (D98).
 const meta = { title: 'Proof/Frame', parameters: { layout: 'padded' } } satisfies Meta;
 export default meta;
 type Story = StoryObj<typeof meta>;

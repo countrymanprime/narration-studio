@@ -8,7 +8,7 @@ import { SpotTakes } from './SpotTakes';
 import { TakeLanes } from './TakeLanes';
 import { TakesBadge } from './TakesBadge';
 
-// Takes at a flagged spot on Proof (Studio Next mock: pages/proof/TakeLanes.tsx, Inspector.tsx's SpotTakes, NotesTable.tsx's badge). Read-only.
+// Takes at a flagged spot on Proof (research mock: pages/proof/TakeLanes.tsx, Inspector.tsx's SpotTakes, NotesTable.tsx's badge). Read-only.
 const take = (id: string, over: Partial<PassageTake> = {}): PassageTake => ({
   id,
   source: 'item_take',

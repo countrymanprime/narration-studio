@@ -1597,6 +1597,9 @@ func (h *Host) Ready() map[string]any {
 }
 
 func (h *Host) Bootstrap() map[string]any {
+	// The Booth's press asks for this just before its start tone (useRecordControl.toggle), so "bootstrapped" is when the tone starts.
+	h.timeline.Note("bootstrap_call")
+	defer h.timeline.Note("bootstrapped")
 	// The first Bootstrap means the window loaded and the UI accepted this host: an update that was just installed has worked.
 	h.confirmUpdate.Do(h.confirmInstalledUpdate)
 	svc := h.services()
@@ -1806,7 +1809,7 @@ var fieldSchemas = map[string][]fieldSchema{
 		{"reaper_path", "REAPER executable (override)", "text", nil},
 		{"auto_start_launcher", "Start the launcher script automatically", "bool", nil},
 		{"fx_favourites", "Favourite effects (FX chains and plug-ins)", "tags", nil},
-		// The Audacity backups' window and retention, with the Studio Next mock's labels and ranges (BackupsTab.tsx).
+		// The Audacity backups' window and retention, with the research mock's labels and ranges (BackupsTab.tsx).
 		{"backups.window_seconds", "Audio kept either side of a punch or an edit (s)", "number", nil},
 		{"backups.retention_days", "Keep backups for (days)", "number", nil},
 	},

@@ -1,4 +1,4 @@
-// How to reach each `script` state in STATE_CATALOG (see app.drivers.ts): the Studio Next Script page (SN-B77, swapped in by SN-B8).
+// How to reach each `script` state in STATE_CATALOG (see app.drivers.ts): the rebuilt Script page (SN-B77, swapped in by SN-B8).
 import { expect, type Locator, type Page } from '@playwright/test';
 import { settlePage } from '../helpers/settle';
 import { type Driver, chooseTheme, clickNav, clickVisible, goToPage, selectReaderWord, openWithoutManuscript } from './shared';

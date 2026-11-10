@@ -41,7 +41,7 @@ LABELS = {
 }
 
 # Spans GLiNER scores below this are dropped before they reach the narrator. 0.5 is GLiNER's own default threshold and
-# the one the 2026-10-10 trial measured recall at (docs/research/studio-next-gliner-spike.md); below it the trial's
+# the one the 2026-10-10 trial measured recall at (docs/research/gliner-spike.md); below it the trial's
 # false positives ("she", "the hedgehog") outnumber names. The score is not calibrated: the 75% rule still decides.
 SCORE_FLOOR = 0.5
 
@@ -50,7 +50,7 @@ SCORE_FLOOR = 0.5
 CHUNK_WORDS = 180
 
 # A chapter longer than this many words is read in pieces cut between paragraphs when a scan reads chapters side by side: the
-# pieces keep the workers evenly loaded (docs/research/studio-next-extraction-chunking-benchmark.md: 1.9x against 1.6x on a 60k-word book).
+# pieces keep the workers evenly loaded (docs/research/extraction-chunking-benchmark.md: 1.9x against 1.6x on a 60k-word book).
 CHAPTER_WORDS = 1500
 
 # The encoder gliner_config.json names. GLiNER builds it from its config and its tokenizer by that name; the install carries the

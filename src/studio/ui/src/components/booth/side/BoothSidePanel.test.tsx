@@ -212,7 +212,7 @@ describe('the panel can be hidden', () => {
 });
 
 // Booth pass 3, M14: a walkthrough looked for "set" buttons in the side panel's Tab order. The mock draws "set" and "not set" beside a name in
-// Coming up as plain status text, not as controls (docs/research/mockups/studio-next, SidePanel.tsx), so nothing is missing from the Tab order;
+// Coming up as plain status text, not as controls (docs/research/mockups/research-mock, SidePanel.tsx), so nothing is missing from the Tab order;
 // this pins that, and that nothing in the panel that can be pressed is left out of it.
 describe('the side panel Tab order', () => {
   it('"set" and "not set" are status text, not buttons, and every control in the panel can take focus', () => {

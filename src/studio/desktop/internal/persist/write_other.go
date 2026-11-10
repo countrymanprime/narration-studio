@@ -19,3 +19,6 @@ func syncFolder(dir string) {
 	_ = folder.Sync()
 	_ = folder.Close()
 }
+
+// replaceFile is os.Rename: a POSIX rename replaces a file that is open elsewhere.
+func replaceFile(from, to string) error { return os.Rename(from, to) }

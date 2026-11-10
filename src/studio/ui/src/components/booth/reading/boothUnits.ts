@@ -1,4 +1,4 @@
-// The phrases of a chapter and the words of each phrase, for the Booth's text (the Studio Next mock's selectors/booth.ts).
+// The phrases of a chapter and the words of each phrase, for the Booth's text (the research mock's selectors/booth.ts).
 // Pure: who speaks each quoted phrase arrives as input (the Script reader's attribution, `speakerLabels`), it is not recomputed here.
 import type { MarkColour, MarkStyle } from '../../../api/contracts/marks';
 import type { EntityColour } from '../../../kinds/entityColour';

@@ -1,7 +1,7 @@
 import type { DawCapabilities } from '../../../api/contracts/daw';
 
 // The five Clean up operations, the thresholds behind Light, Standard and Heavy, and the sentences the page proposes
-// (the Studio Next mock's `CLEANUP_OPS` and its text helpers). Pure: nothing here reads a port.
+// (the research mock's `CLEANUP_OPS` and its text helpers). Pure: nothing here reads a port.
 
 export type CleanupKind = 'gaps' | 'breaths' | 'clicks' | 'plosives' | 'noise';
 export type Level = 'light' | 'standard' | 'heavy';

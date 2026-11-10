@@ -8,7 +8,7 @@ import { createMockApi } from '../../../api/mockApi';
 import type { ManuscriptChapter } from '../../../types';
 import { CheckCard } from './CheckCard';
 
-// The Proof recording check card (docs/research/mockups/studio-next/src/pages/proof/CheckCard.tsx). It has no route yet: the Proof swap
+// The Proof recording check card (docs/research/mockups/research-mock/src/pages/proof/CheckCard.tsx). It has no route yet: the Proof swap
 // mounts it in the single-chapter view.
 const chapter: ManuscriptChapter = { id: 'c1', title: 'Chapter 1', index: 1, wordCount: 2400, status: 'recording', recordedSeconds: 910 };
 const gap = (id: string, kind: CoverageGap['kind'], at: number, text?: string): CoverageGap => ({

@@ -25,7 +25,7 @@ const failed = (e: unknown): DawResult => ({ ok: false, changed: false, message:
 const refusal = (code: string, reason: string): Result<never> => ({ ok: false, refusal: { code, reason } });
 
 /**
- * Clones the audio around the words before an edit changes it (the Studio Next mock's `backupBefore`). The page sends the words' tokens and the
+ * Clones the audio around the words before an edit changes it (the research mock's `backupBefore`). The page sends the words' tokens and the
  * label the Backups list shows; the DAW adds the narrator's window either side and never goes past the audio there is. A DAW that keeps no
  * backups refuses with its own sentence, and so does a failed clone: either way the edit is stopped with nothing changed. The answer carries the
  * new backup's id when the table lists it, so the edit's record can name it.

@@ -1,4 +1,4 @@
-/** A quote's box: the Studio Next mock's `.quote`, a fill and no border, so read-only text does not read as a text box (alignment audit
+/** A quote's box: the research mock's `.quote`, a fill and no border, so read-only text does not read as a text box (alignment audit
  * R4TB-5). `raised` is the mock's raised surface on the card; `surface` is the card's own, for a quote on a tinted banner. */
 export function quoteClass(fill: 'raised' | 'surface'): string {
   return `rounded-[var(--radius-card)] px-3 py-2 text-sm [overflow-wrap:anywhere] ${fill === 'raised' ? 'bg-[var(--surface-2)]' : 'bg-[var(--surface)]'}`;

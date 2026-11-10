@@ -79,7 +79,7 @@ const NARROW_FROM = '@max-[40rem]:row-3 @max-[40rem]:col-[1/-1] @max-[40rem]:pt-
 const NARROW_GROUP = '@max-[40rem]:col-span-full @max-[40rem]:block @max-[40rem]:[&>td]:block @max-[40rem]:[&>td]:border-b @max-[40rem]:[&>td]:px-4!';
 
 /**
- * The Proof notes table (Studio Next mock `NotesTable`): Time, Type, Script vs heard, From, Resolution. In all chapters it is
+ * The Proof notes table (research mock `NotesTable`): Time, Type, Script vs heard, From, Resolution. In all chapters it is
  * grouped by chapter with "<n> open". Type and resolution chips are as wide as their longest word so a decision never moves a cell.
  * One row is in the tab order; the rest are reached with the arrow keys the panel handles.
  */

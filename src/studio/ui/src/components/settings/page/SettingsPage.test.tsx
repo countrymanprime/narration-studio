@@ -369,6 +369,27 @@ describe('Settings: editing', () => {
     await waitFor(() => expect(within(row('app.channel')).queryByText('Changed')).toBeNull());
   });
 
+  it('sends one save for a Reset pressed again while its save is slow (#3231)', async () => {
+    const api = createMockApi();
+    const real = api.saveSettings.bind(api);
+    await renderPage({ api });
+    pick('App & updates');
+    fireEvent.change(await screen.findByRole('combobox', { name: /Update channel/ }), { target: { value: 'stable' } });
+    await waitFor(() => expect(within(row('app.channel')).getByText('Changed')).toBeTruthy());
+    let release: () => void = () => undefined;
+    const slow = vi.spyOn(api, 'saveSettings').mockImplementation(async (...args) => {
+      await new Promise<void>((resolve) => (release = resolve));
+      return real(...args);
+    });
+    const reset = within(row('app.channel')).getByRole('button', { name: 'Reset Update channel to Candidates and stable' });
+    fireEvent.click(reset);
+    fireEvent.click(reset);
+    fireEvent.click(reset);
+    expect(slow).toHaveBeenCalledTimes(1);
+    release();
+    await waitFor(() => expect(within(row('app.channel')).queryByText('Changed')).toBeNull());
+  });
+
   it('a value equal to the default clears the setting instead of pinning it', async () => {
     const api = createMockApi();
     const save = vi.spyOn(api, 'saveSettings');
@@ -770,6 +791,21 @@ describe('Settings: search and filters', () => {
     await waitFor(() => expect(within(row('app.channel')).getByText('Changed')).toBeTruthy());
     fireEvent.click(screen.getByRole('button', { name: 'Changed' }));
     expect(row('app.channel')).toBeTruthy();
+  });
+
+  it('keeps keyboard focus in the page after Reset removes a row from the Changed list (#3196)', async () => {
+    const api = createMockApi();
+    await renderPage({ api });
+    await screen.findByRole('heading', { level: 2, name: 'Recording & DAW' });
+    pick('App & updates');
+    fireEvent.change(await screen.findByRole('combobox', { name: /Update channel/ }), { target: { value: 'stable' } });
+    await waitFor(() => expect(within(row('app.channel')).getByText('Changed')).toBeTruthy());
+    fireEvent.click(screen.getByRole('button', { name: 'Changed' }));
+    const reset = within(row('app.channel')).getByRole('button', { name: /Reset Update channel/ });
+    reset.focus();
+    fireEvent.click(reset);
+    await waitFor(() => expect(document.querySelector('[data-row="app.channel"]')).toBeNull());
+    await waitFor(() => expect(document.activeElement).not.toBe(document.body));
   });
 
   // Issue 2636: Changed read only the host's files, so a setting this window keeps (Start tone) never showed under it. One change of every

@@ -259,7 +259,7 @@ type Service struct {
 	now    func() time.Time
 	// newID makes a sample id: 32 lowercase hex characters.
 	newID func() string
-	// rename is a test seam for the atomic writes; nil is os.Rename.
+	// rename is a test seam for the atomic writes; nil is persist.Rename.
 	rename func(oldPath, newPath string) error
 	// project is the saved project, read once per Service by cachedProject.
 	project     tracks.Project

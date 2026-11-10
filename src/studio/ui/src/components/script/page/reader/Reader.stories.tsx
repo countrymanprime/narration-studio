@@ -4,7 +4,7 @@ import type { ManuscriptParagraph } from '../../../../api/contracts/manuscript';
 import { Reader } from './Reader';
 import { chapter, cue, entry, GUIDE_TYPES, mark, paragraph, TYPES } from './readerFixtures';
 
-// The Studio Next mock's continuous reader (`pages/script/Reader.tsx`): all chapters in one scroll under a sticky header that
+// The research mock's continuous reader (`pages/script/Reader.tsx`): all chapters in one scroll under a sticky header that
 // names the chapter in view and the paragraph. It takes its data as props; the page that assembles it reads the host.
 const chapters = [chapter('c1', 0), chapter('c2', 1), chapter('c3', 2)];
 const LINE = 'Mina said, "Come along," and left the harbour with the quiet of someone who had already decided.';

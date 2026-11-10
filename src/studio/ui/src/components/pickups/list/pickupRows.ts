@@ -1,5 +1,5 @@
-// The pure side of the Pickups list: what the columns say, how rows group by chapter, and the pickup script. The wording is the Studio
-// Next mock's (`selectors/pickups.ts`: `srcLabel`, `typeLabel`; `state/commands/pickups.ts`: `pickupScript`).
+// The pure side of the Pickups list: what the columns say, how rows group by chapter, and the pickup script. The wording is the research
+// mock's (`selectors/pickups.ts`: `srcLabel`, `typeLabel`; `state/commands/pickups.ts`: `pickupScript`).
 import { apiErrorMessage } from '../../../api/errorMessage';
 import type { PickupGapKind, PickupItem } from '../../../api/contracts/pickups';
 import type { KindId } from '../../../kinds/kindMap';

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-// The one loading placeholder (the Studio Next mock's `.skeleton`, `settings.css`): a rounded block on --skeleton (--surface-2 in light,
+// The one loading placeholder (the research mock's `.skeleton`, `settings.css`): a rounded block on --skeleton (--surface-2 in light,
 // a step lighter than the surfaces in dark) with a --skeleton-sweep band that
 // sweeps across it every 1.4 s. The sweep runs only under `motion-ok:`, so a reader who asked for reduced motion gets a still block.
 // A page draws its real title and header, then `Skeleton` blocks where the data will be, sized like what replaces them so nothing moves

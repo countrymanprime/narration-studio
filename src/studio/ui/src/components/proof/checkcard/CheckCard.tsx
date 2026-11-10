@@ -62,7 +62,7 @@ const AUDIO_CATEGORIES = ['audio_quality', 'silence_cleanup'] as const;
 type Loaded = { result: CoverageResult; reviews: CoverageGapReviews; audio: Finding[] };
 
 /**
- * The recording check for the chapter in view (Studio Next mock: pages/proof/CheckCard.tsx): the check's state, the recorded length against
+ * The recording check for the chapter in view (research mock: pages/proof/CheckCard.tsx): the check's state, the recorded length against
  * the script estimate, what the check found by category, and its findings with Accept and Ignore. It decides nothing by itself: a run
  * and a load only read. "Check recordings" is the shared button (#2833), which opens the one dialog with this chapter ticked; "Compare with the script" asks the page for
  * its Compare panel (`compare`), and is off when there is nothing recorded to compare.

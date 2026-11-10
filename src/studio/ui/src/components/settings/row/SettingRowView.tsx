@@ -93,6 +93,8 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
   const [asking, setAsking] = useState<string>();
   // An Override on a number that is not set yet has no value to copy, so it opens an empty project box and saves nothing until one is typed.
   const [opening, setOpening] = useState(false);
+  // A Reset while its save is slow would send another save per press and leave the row Changed with no mark (#3231).
+  const [resetting, setResetting] = useState(false);
   const { global, project } = store.fieldsOf(row);
   const controlId = `set-${row.id}`;
   const error = store.rowErrors[row.id];
@@ -175,11 +177,16 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
                   action="undo"
                   label={`Reset ${row.label} to its default`}
                   className="border-transparent"
+                  pending={resetting}
                   onClick={() => {
+                    setResetting(true);
                     void Promise.resolve(reset())
                       .catch((failure: unknown) => notify(`${row.label} could not be reset: ${describeApiError(failure)}`, 'error'))
                       // The button is gone once the row is back at its default; keep the place instead of dropping to the page.
-                      .finally(() => rowEl.current?.focus());
+                      .finally(() => {
+                        setResetting(false);
+                        rowEl.current?.focus();
+                      });
                   }}
                 />
               )}
@@ -215,7 +222,20 @@ export function SettingRowView({ row, children, flash, wide }: { row: SettingMet
                   action="undo"
                   label={`Reset ${row.label} to ${defaultLabel}`}
                   className="border-transparent"
-                  onClick={() => void store.write(row, 'global', null)}
+                  pending={resetting}
+                  onClick={() => {
+                    setResetting(true);
+                    // With the Changed filter on the row leaves the list: hand focus to a neighbour (or the page heading) instead of the body.
+                    const el = rowEl.current;
+                    const next = el?.nextElementSibling ?? el?.previousElementSibling;
+                    void store.write(row, 'global', null).finally(() => {
+                      setResetting(false);
+                      setTimeout(() => {
+                        const target = el?.isConnected ? el : next?.isConnected ? (next as HTMLElement) : document.getElementById('settings-heading');
+                        target?.focus({ preventScroll: true });
+                      });
+                    });
+                  }}
                 />
               )}
               {saved && <SavedWord key={store.saved?.n} />}

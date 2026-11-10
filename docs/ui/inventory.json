@@ -650,7 +650,9 @@
         "Refused Chapter",
         "Credits Row Chapter",
         "No Recorded Chapters",
-        "Second Look With Parallel Chunks"
+        "Second Look With Parallel Chunks",
+        "Whole Recording",
+        "Chunk Length Settings Do Not Offer"
       ],
       "consumers": [
         "src/components/recordingcheck/openCheckRecordings.tsx"
@@ -2640,7 +2642,8 @@
       "stories": [
         "Built In",
         "Custom",
-        "Save Refused"
+        "Save Refused",
+        "Locked"
       ],
       "consumers": [
         "src/components/delivery/page/DeliveryPage.tsx"

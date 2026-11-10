@@ -9,7 +9,7 @@ import { StudioProvider } from '../../studio/StudioProvider';
 import { Guide } from './Guide';
 import { screen } from '../primitives/portalScreen';
 
-// The Story Bible page as the Studio Next mock draws it (docs/research/mockups/studio-next/src/pages/Bible.tsx): kind chips with counts over a
+// The Story Bible page as the research mock draws it (docs/research/mockups/research-mock/src/pages/Bible.tsx): kind chips with counts over a
 // table of entries, the search box over names and aliases, and the ask for a manuscript when there is none. The `/story-bible` route mounts it.
 
 // One host for every story: a new one on each render would make the page read its entries again and again.

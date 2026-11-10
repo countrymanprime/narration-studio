@@ -1,14 +1,21 @@
 name: Main health
-# The full CI run (quality, the sharded visual suites, the UI bundle, the Windows build) on `main` every three hours, when `main`
+# The full CI run (quality, the sharded visual suites, the UI bundle, the Windows build) on `main` after each push and every three hours, when `main`
 # has a commit it has not run on. The agent train merges on the light gate (D43) and runs the full suite only at the end (D44), and two
 # pull requests that were each green alone can break together once both are merged (startupRequests.spec.ts did, 2026-10-18), so a
 # regression can sit on `main` unseen. When this run fails it ticks HOLD on every open train issue, so no new worker launches onto a red `main`
 # (docs/operations/agent-train.md, "Safety net"). The owner or the coordinator clears HOLD once `main` is green.
 #
-# Every three hours, not on every push: a push-to-main run costs ~90 job-minutes and merges arrive in bursts, so a run per merge
-# would cost more than the pull request runs it follows. The `changed` job skips the run, and says so, when the last finished run
-# was on the same commit. A manual run always runs.
+# Two triggers. A push to `main` finds a regression within about one run (35 minutes on 2026-11-09) of the merge that caused it; the schedule
+# stays as the backstop. GitHub ran the schedule only 2 to 3 times a day on 2026-11-04 to
+# 11-06, an hour or two late, so on its own a regression sat on `main` for up to about ten hours (#3131).
+#
+# The concurrency group does not cancel: a cancelled run judges nothing, and merges 26 to 60 minutes apart (2026-11-07) would cancel each
+# other for a whole afternoon. A run in progress finishes and at most one newer run waits behind it (GitHub replaces an older waiting
+# run), so a burst of merges costs the run in progress plus one, never one run per merge. The `changed` job still skips a scheduled run
+# when the last finished run was on the same commit; a push or a manual run always runs.
 on:
+  push:
+    branches: [main]
   schedule:
     - cron: '37 */3 * * *'
   workflow_dispatch: {}
@@ -36,7 +43,7 @@ jobs:
           set -euo pipefail
           if [ "$EVENT" != schedule ]; then
             echo "run=true" >> "$GITHUB_OUTPUT"
-            echo "A manual run always runs."
+            echo "A $EVENT run always runs."
             exit 0
           fi
           # The newest run that finished with a verdict (a cancelled run judged nothing), on any trigger.

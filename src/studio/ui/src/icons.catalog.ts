@@ -1,6 +1,6 @@
 /**
  * The icon vocabulary as data (docs/design/design-system.md#layout-rules A16, SNF-Q1): an action name to the icon that draws it and the tooltip that
- * names it, from `icon-audit.md` sections 5 and 6 of the Studio Next mock. The key is the action, never the glyph, so
+ * names it, from `icon-audit.md` sections 5 and 6 of the research mock. The key is the action, never the glyph, so
  * two pages that ask for "markDone" cannot draw it differently. `Icon` and `IconButton` read it; `icons.catalog.test.ts`
  * checks it.
  *
@@ -142,7 +142,7 @@ type CatalogFields = {
   tooltip: string;
   /** Shown in parentheses after the tooltip. */
   shortcut?: string;
-  /** `rec` draws the icon in `--rec-text` inside an outlined `IconButton`, the Studio Next mock's `.ibtn.rec`: a record disc in the text colour read as a status light. */
+  /** `rec` draws the icon in `--rec-text` inside an outlined `IconButton`, the research mock's `.ibtn.rec`: a record disc in the text colour read as a status light. */
   tint?: 'rec';
 };
 
@@ -323,7 +323,7 @@ export const CATALOG = {
   // Proof's note inspector on a one-word misread (#2736): the script word and the heard word count as a match in later checks.
   treatAsSame: action(faEquals, 'treat two words as the same', 'Treat these two words as the same in later checks'),
 
-  // Script, Story Bible and the extraction tools (SN-B60): the actions those pages draw in the Studio Next mock. A catalogue key
+  // Script, Story Bible and the extraction tools (SN-B60): the actions those pages draw in the research mock. A catalogue key
   // is the action, so a row that wears an icon another action already wears shares that action's meaning (an alias).
   bookmark: action(faBookmark, 'bookmark', 'Add a bookmark here', 'B'),
   bookmarks: action(faBookmark, 'bookmark', 'Show the bookmarks'),
@@ -445,7 +445,7 @@ export const iconNamed = (name: string): IconName => (hasIcon(name) ? name : NEU
 
 /**
  * The one icon for hearing a name or word said (owner, 2026-10-26: the Story Bible's list and its entry drew two): the speaker of
- * `hear`, as the Studio Next mock draws it in the entry editor and the Words tab, and `stop` while it plays. Every button that speaks
+ * `hear`, as the research mock draws it in the entry editor and the Words tab, and `stop` while it plays. Every button that speaks
  * a name asks this for its `action` (`hearName.test.ts` fails one that draws its own glyph).
  */
 export const hearNameAction = (playing = false): IconName => (playing ? 'stop' : 'hear');

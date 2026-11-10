@@ -12,7 +12,7 @@ import { BoothFooter } from './BoothFooter';
 
 afterEach(cleanup);
 
-// The Levels menu's two sliders (the Studio Next mock's MicPop): Input level and Monitor level (output), 0 to 100. No DAW the app talks to can set an
+// The Levels menu's two sliders (the research mock's MicPop): Input level and Monitor level (output), 0 to 100. No DAW the app talks to can set an
 // audio interface's input gain, so that slider is off and says so in the capability's own sentence; the monitor level is the DAW's.
 function menu(over: Partial<NarrationApi> = {}, setup: keyof typeof DAW_SETUPS = 'reaper') {
   const calls: string[] = [];

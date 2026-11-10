@@ -2,7 +2,7 @@
 // (src/studio/desktop/internal/scriptprep). A word's pronunciation is not here: it is the Story Bible entry's name's (#2595), and a
 // schema 1 file's flagged words are moved into the Story Bible once when the project opens.
 
-/** A chapter's prep state, the Studio Next mock's PrepState: not started, in progress, prepped. */
+/** A chapter's prep state, the research mock's PrepState: not started, in progress, prepped. */
 export const PREP_STATES = ['none', 'progress', 'prepped'] as const;
 export type PrepState = (typeof PREP_STATES)[number];
 

@@ -80,7 +80,7 @@ func (c *Cache) Put(word string, answer Answer, at time.Time) error {
 // +checklocks:c.mu
 func (c *Cache) read() (cacheFile, error) {
 	empty := cacheFile{Version: cacheVersion, Source: c.source, Entries: map[string]CacheEntry{}}
-	bytes, err := os.ReadFile(c.path)
+	bytes, err := persist.ReadFile(c.path)
 	if err != nil {
 		return empty, err
 	}

@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { LinkChaptersDialog } from './LinkChaptersDialog';
 import { useChapterLinks } from './useChapterLinks';
+import { VoiceLayoutContext } from './voiceLayout';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import { WIRE_CHAPTERS, WIRE_LINE_IDENTITY_LINES, WIRE_TRACKS_PROJECT } from '../../api/mockFixtures';
@@ -77,8 +78,11 @@ describe('LinkChaptersDialog', () => {
     );
   });
 
-  // #3053: a folder and a track looked the same in the picker. A folder reads as the Chapter links list names it: "<name> · N voices".
-  it('names a folder in the track picker with its voice count, and a plain track by its name', async () => {
+  // #3053: a folder and a track looked the same in the picker. #3158: it counts voices only in a Voice folders project and tracks in any other.
+  it.each([
+    ['folders', 'Chapter 1 · 2 voices'],
+    ['flat', 'Chapter 1 · 2 tracks'],
+  ] as const)('names a folder in the track picker with its child count (%s layout), and a plain track by its name', async (layout, folderLabel) => {
     const item = (guid: string) => ({ ...WIRE_TRACKS_PROJECT.tracks[0].items[0], guid });
     const track = (guid: string, name: string, depth: number, isFolder: boolean, items: string[]): Track => ({
       ...WIRE_TRACKS_PROJECT.tracks[0],
@@ -94,13 +98,19 @@ describe('LinkChaptersDialog', () => {
       track('{F0000000-0000-4000-8000-0000000000F3}', 'Hero', 1, false, ['{I2}']),
       track('{F0000000-0000-4000-8000-0000000000F4}', 'Chapter 2', 0, false, ['{I3}']),
     ];
-    renderDialog({}, {}, vi.fn(), voices);
+    render(
+      <ApiProvider api={createMockApi()}>
+        <VoiceLayoutContext.Provider value={layout}>
+          <Dialog onClose={vi.fn()} tracks={voices} />
+        </VoiceLayoutContext.Provider>
+      </ApiProvider>,
+    );
 
     const picker = await screen.findByRole('combobox', { name: `Track for ${WIRE_CHAPTERS[0].title}` });
     const labels = within(picker)
       .getAllByRole('option')
       .map((option) => option.textContent);
-    expect(labels).toContain('Chapter 1 · 2 voices');
+    expect(labels).toContain(folderLabel);
     expect(labels).toContain('Chapter 2');
     expect(labels).not.toContain('Chapter 1');
   });
@@ -257,18 +267,33 @@ describe('LinkChaptersDialog', () => {
     expect(screen.getByText('Chapter no longer in the manuscript')).toBeTruthy();
   });
 
-  it('disables Cancel and Close while a stamp is running', async () => {
+  it('keeps Close and the pickers honest while a stamp is running: pickers off, an exit always there', async () => {
     const user = userEvent.setup();
     const { api } = renderDialog();
-    await user.selectOptions(await screen.findByRole('combobox', { name: `Track for ${WIRE_CHAPTERS[0].title}` }), WIRE_TRACKS_PROJECT.tracks[0].guid);
-    const trackItemCount = WIRE_TRACKS_PROJECT.tracks[0].items.length;
+    const picker = await screen.findByRole('combobox', { name: `Track for ${WIRE_CHAPTERS[0].title}` });
+    await user.selectOptions(picker, WIRE_TRACKS_PROJECT.tracks[0].guid);
 
     void api.lineIdentityStamp(
       WIRE_TRACKS_PROJECT.tracks[0].items.map((item) => ({ itemGuid: item.guid, lineId: WIRE_CHAPTERS[0].id, text: WIRE_CHAPTERS[0].title })),
       false,
     );
-    void trackItemCount;
 
-    await waitFor(() => expect((screen.getByRole('button', { name: 'Cancel' }) as HTMLButtonElement).disabled).toBe(true));
+    await waitFor(() => expect((picker as HTMLSelectElement).disabled).toBe(true));
+    expect(screen.getAllByRole('button', { name: 'Close' }).every((button) => !(button as HTMLButtonElement).disabled)).toBe(true);
+  });
+
+  // #3231: a folder that holds a track another chapter is linked to would count and stamp that chapter's audio.
+  it("labels a folder that holds another chapter's linked track before it is picked", async () => {
+    const user = userEvent.setup();
+    const base = WIRE_TRACKS_PROJECT.tracks[0];
+    const folder = { ...base, guid: '{F1}', name: 'Chapters', depth: 0, isFolder: true, items: [] };
+    const inner = { ...base, guid: '{T1}', name: 'Inner', depth: 1, isFolder: false };
+    renderDialog({}, {}, vi.fn(), [folder, inner]);
+    const first = await screen.findByRole('combobox', { name: `Track for ${WIRE_CHAPTERS[0].title}` });
+    const second = screen.getByRole('combobox', { name: `Track for ${WIRE_CHAPTERS[1].title}` });
+    await user.selectOptions(second, '{T1}');
+    expect(screen.queryByText(/the folder also holds another chapter's linked track/)).toBeNull();
+    await user.selectOptions(first, '{F1}');
+    expect(await screen.findByText(/the folder also holds another chapter's linked track/)).toBeTruthy();
   });
 });

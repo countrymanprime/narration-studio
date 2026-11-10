@@ -109,7 +109,7 @@ type Props = {
 };
 
 /**
- * The Booth (the Studio Next mock's `pages/Booth.tsx`): the top bar with the chapter, progress, resume line and setup chip, the text that
+ * The Booth (the research mock's `pages/Booth.tsx`): the top bar with the chapter, progress, resume line and setup chip, the text that
  * follows the voice, the side panel's sections, and the footer with Record, the timer, the levels and the key hints. What it reads is in
  * the address (`?chapter=`, which also names the credits chapters, `&para=&at=` for Record from here, and `&pickups=` for a pickup session opened from Pickups).
  */

@@ -141,7 +141,7 @@ const PAIRS: PairSpec[] = [
   mark('meter-body', 'LevelMeter: the safe recording zone', 'var(--meter-body)', ['surface']),
   mark('meter-hot', 'LevelMeter: the zone approaching the peak ceiling', 'var(--meter-hot)', ['surface']),
   mark('meter-over', 'LevelMeter: the zone at or over the peak ceiling', 'var(--meter-over)', ['surface']),
-  // The status soft fills (Studio Next token batch)
+  // The status soft fills (rebuilt token batch)
   // are opaque, so a pill in a selected row is measured there as well as on the card.
   ...(
     [
@@ -159,7 +159,7 @@ const PAIRS: PairSpec[] = [
       `var(--${tone}-soft)`,
     ),
   ),
-  // The Studio Next token batch (SN-F2): the pairs the new tokens create. The soft status fills are measured above
+  // The rebuilt token batch (SN-F2): the pairs the new tokens create. The soft status fills are measured above
   // (`<tone>-soft`); these are the two border weights and the focus ring, which are marks, not text.
   mark('line-strong', 'the control, segmented-group, chip and kbd border on the card', 'var(--line-strong)', ['surface']),
   mark('btn-line', 'the default button outline on the card', 'var(--btn-line)', ['surface']),

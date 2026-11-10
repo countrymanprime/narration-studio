@@ -147,14 +147,14 @@ the [audio engine panel](navigation.md#the-audio-engine-panel).
 **Chapter track…** opens what the saved project knows about the chapter's track (its items, span,
 recorded length, how the link was found and when, and whether you or chapter sync made it), and
 **Another track…** and **Unlink**, the same link as in the [audio engine panel](navigation.md#linking-chapters-to-tracks).
-A suggested track says it is not linked yet; a chapter two tracks look like says so and lists
+A suggested track says it is not linked yet, opens the Link picker on that track so **Confirm** links it, and offers no **Unlink**, which only a confirmed link has; a chapter two tracks look like says so and lists
 them; a chapter linked to two tracks offers **Keep this one** on each and nothing else; a linked
 track no longer in the saved project says it may have been deleted or the project saved elsewhere,
 shows its figures as last known and offers no playback.
 
 When the panel knows the chapter's track, it can play that track's recorded audio right there -
 Play/Pause and skip 30 seconds back or forward - and **Show in REAPER** (the icon button, the same one the chapter's row menu has) brings the track into
-view in your DAW itself. Selecting needs REAPER linked and answering, and
+view in your DAW itself. It is on only for a confirmed link to a track that is in the saved project, here and in the row menu alike: a suggested track, an ambiguous match or a missing track leaves it off. Selecting needs REAPER linked and answering, and
 changes nothing else: no undo point, and REAPER's own selection is all it touches.
 
 ![Production - a chapter's track slide-over on a confirmed link, with how the track was found](../../images/ui/production-track-panel.webp)
@@ -193,13 +193,12 @@ you press **Check**. Save the project in REAPER before checking, because the che
 
 **Speech model** is the first pass. **Look again with a larger model** adds a second pass: the **Larger model** transcribes again only
 the passages that are missing and the words Whisper scored under the **Also look again at words scored under**
-share. Three sliders set how a long chapter is read: **Chunk length** (10 to 120 s, in steps
-of 5) cuts each recording into pieces, **Overlap between chunks** (0 to 10 s) is how much neighbouring pieces overlap, so a
+share. **Chunk length** (the same lengths as Settings: 60, 120, 300, 600 or 900 s) cuts each recording into pieces, **Overlap between chunks** (0 to 10 s) is how much neighbouring pieces overlap, so a
 word on an edge is whole in one of them, and **Parallel workers** (1 to 8) is how many recordings, or pieces of one long recording, are
 transcribed side by side (each holds a copy of the model in memory). **Transcribe each recording whole** turns the chunks off and leaves one, and
 **Automatic: plan it from the processors, the free memory and the model** hands the count back to the app. The line under it says what will run
-and why, for example "Automatic: 3 transcriptions at once, using 6 of 8 processors for the Large v3 model. Set by the memory: …". A setting the sliders do not reach, such as a 5 min chunk from Settings, shows its real figure
-and is kept until you move the slider. A line under the choices says what will run, in words. **Chapters at once** checks that many of the ticked chapters together, each with its own share of the
+and why, for example "Automatic: 3 transcriptions at once, using 6 of 8 processors for the Large v3 model. Set by the memory: …". A setting the controls do not offer, such as a 4 min chunk edited by hand, shows its real figure
+and is kept until you change it. A line under the choices says what will run, in words. **Chapters at once** checks that many of the ticked chapters together, each with its own share of the
 processors and the memory, and starts the next as each ends. The options start at the values in Settings, and the check runs exactly what the dialog
 shows, so a chapter is checked the same way wherever you start it, including in the background. A model that is not installed yet
 is marked **(not installed)** in the lists and named under the options; **Check** then asks before downloading it, with the model's

@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, test } from 'vitest';
 
-// Studio Next draws a control's own edge with one of two line tokens, and the hairline `--border` only on cards and
+// rebuilt draws a control's own edge with one of two line tokens, and the hairline `--border` only on cards and
 // dividers. `--btn-line` is the default button and the checkbox; `--line-strong` is the quiet button, the text input and
 // select, the chip, the segmented frame and the dialog frame (mock app.css lines 61-82, 200, 272; cx.ts line 10;
 // Checkbox.tsx line 28). Each entry names the edge classes a file must carry and the `--border` dividers it may keep, so a

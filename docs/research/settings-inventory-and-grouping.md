@@ -1,6 +1,6 @@
 # Settings inventory and proposed grouping
 
-Researched 2026-10-17 on `main` at `847c1d0`, tracking issue [#1817](https://github.com/countrymanprime/narration-studio/issues/1817). Counts and line numbers are for that commit and are not kept current. Rules cited as R-xxx are in [the best-practice note](settings-best-practice.md). The proposal is recorded as Settings redesign and drawn in the Studio Next mock.
+Researched 2026-10-17 on `main` at `847c1d0`, tracking issue [#1817](https://github.com/countrymanprime/narration-studio/issues/1817). Counts and line numbers are for that commit and are not kept current. Rules cited as R-xxx are in [the best-practice note](settings-best-practice.md). The proposal is recorded as Settings redesign and drawn in the research mock.
 
 **Question.** Which settings exist, who reads each one, and where should each live so that a setting shared by several pages has one home?
 
@@ -11,7 +11,7 @@ Researched 2026-10-17 on `main` at `847c1d0`, tracking issue [#1817](https://git
 - **Layers.** Every value is a string. A project value (`<project>/narration-studio/settings.json`) beats a global one (`%APPDATA%\narration-studio\global-settings.json`), which beats `config/defaults.json`, then a Go built-in map, then the caller's fallback (`Effective`, `store.go:45-58`). A save writes exactly one layer (`store.go:260-297`).
 - **Scope in the host.** `saveSettings` refuses the other scope for `Updates`, `Teleprompter`, `Keymap`, `General.debug_logging` and `ManuscriptGuide.analysis_prompt` (global only) and `ReadAloud` (project only). Everything else the API accepts at either scope, even where the page offers only Global (`app.go:1802-1865`).
 - **Scope in the page.** Each panel owns its own Global / This project switch and starts on Global (`ScopedFieldsPanel.tsx:61`). A non-number row shows the inherited value as if it were set, with no marker; a number row shows an "Inherits" placeholder; Reset exists only for a project override (`ScopedSetting.tsx:117-193`).
-- **The page.** One route, one 860 px column of 27 panels, no navigation and no search. Panels 1 to 10 follow the Studio Next mock; panels 11 to 27 are older categories kept as built (PRD). Only 17 of the 27 have an anchor.
+- **The page.** One route, one 860 px column of 27 panels, no navigation and no search. Panels 1 to 10 follow the research mock; panels 11 to 27 are older categories kept as built (PRD). Only 17 of the 27 have an anchor.
 - **Assets.** Seven providers sit behind one registry (`src/studio/desktop/assetregistry.go`, [The asset registry (implemented)](../architecture/first-use-dependency-provisioning.md#the-asset-registry-implemented), [The models and downloads list (implemented)](../architecture/first-use-dependency-provisioning.md#the-models-and-downloads-list-implemented)): TTS, Whisper, spaCy, Moonshine, dictionary, encoder and analysis tools. Six panels also show or remove one of them.
 
 ## Inventory

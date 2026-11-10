@@ -1,8 +1,8 @@
-# Studio Next DAW spikes: the owner's run sheet for SND-1a to SND-1g
+# DAW spikes: the owner's run sheet for SND-1a to SND-1g
 
 **Status: written 2026-10-11, not yet run.** It was written without REAPER or Audacity. Every "Expected" line below is a hypothesis taken from the DAW PRD or from the API's documented behaviour, not an observation. Every Lua and Python block is untested until your run: a script error is itself a result, so send back the report file even when a spike fails.
 
-Tracking: issue #1096, part of #1016. The run is one entry on #992, not one per spike. Phase 1 of the PRD stays pending until you return the table. Spikes 1a to 1e are recorded in [the REAPER results note](../research/studio-next-daw-spike-results-reaper.md), which reads "results pending" until the table comes back.
+Tracking: issue #1096, part of #1016. The run is one entry on #992, not one per spike. Phase 1 of the PRD stays pending until you return the table. Spikes 1a to 1e are recorded in [the REAPER results note](../research/daw-spike-results-reaper.md), which reads "results pending" until the table comes back.
 
 ## What you return
 

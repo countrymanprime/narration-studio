@@ -28,4 +28,4 @@ REAPER 7.82 (the pinned Linux tarball) under xvfb with `jackd -d dummy` (48 kHz)
 
 ## Not run
 
-Windows, a real audio interface and a real voice: row C20 of [the verification pass](../operations/reaper-verification-pass.md#part-c-the-studio-next-daw-commands-not-scripted-yet), pending with the owner. REAPER's "Show input meter when record armed" preference was left at its default and not varied.
+Windows, a real audio interface and a real voice: row C20 of [the verification pass](../operations/reaper-verification-pass.md#part-c-the-daw-commands-not-scripted-yet), pending with the owner. REAPER's "Show input meter when record armed" preference was left at its default and not varied.

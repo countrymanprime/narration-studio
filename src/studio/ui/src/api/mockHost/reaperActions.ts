@@ -441,7 +441,7 @@ function tailClause(text: string): string {
 }
 
 /**
- * The sample pickups of the Studio Next mock's fixtures (`PICKUPS` in its alice.ts), placed on chapter 3's own lines of the manuscript
+ * The sample pickups of the research mock's fixtures (`PICKUPS` in its alice.ts), placed on chapter 3's own lines of the manuscript
  * given, so the Booth finds each one's paragraph as it does the host's. The seed's lines stand in when that chapter has none.
  */
 function samplePickups(paragraphs: readonly ManuscriptParagraph[]): PickupItem[] {
