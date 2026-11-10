@@ -764,6 +764,34 @@ describe('a start waits for the host: shown, joined, and dropped when the Booth 
       });
     }
 
+    describe("a DAW that cannot punch keeps main's behaviour after a never-recorded Start from here (#3329 owns it)", () => {
+      const first = async () => {
+        const punchTarget = vi.fn(async (): Promise<BoothPunch> => ({ outcome: 'never_recorded' }));
+        const late = gate();
+        punchTarget.mockImplementationOnce(() => late.promise as Promise<BoothPunch>);
+        const h = setup(SETUPS.reaperOff, { recording: false, punchAt: null, punchTarget });
+        let pressed: Promise<unknown> = Promise.resolve();
+        act(() => {
+          pressed = h.hook.result.current.startTake(1);
+        });
+        return { h, punchTarget, finish: async () => (late.resolve({ outcome: 'never_recorded' }), act(() => pressed as Promise<void>)) };
+      };
+      it('(i) Start from here on another phrase is not refused: it looks up and says the plan sentence', async () => {
+        const { h, punchTarget, finish } = await first();
+        await act(() => h.hook.result.current.startFromHere(2));
+        expect(h.actions.notify).not.toHaveBeenCalledWith(START_BUSY);
+        expect(punchTarget.mock.calls.some((c) => (c as unknown[])[0] === 2)).toBe(true);
+        await finish();
+      });
+      it('(ii) a plain press goes to beginTake and is not refused', async () => {
+        const { h, finish } = await first();
+        await act(() => h.hook.result.current.startTake(undefined));
+        expect(h.actions.notify).not.toHaveBeenCalledWith(START_BUSY);
+        expect(h.actions.beginTake).toHaveBeenCalled();
+        await finish();
+      });
+    });
+
     it('a plain press during a Start from here lookup on a DAW that cannot punch is not refused: it starts the take once, as before (#3329 owns this path)', async () => {
       const late = gate();
       const punchTarget = vi.fn(() => late.promise);

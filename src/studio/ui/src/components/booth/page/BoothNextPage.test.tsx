@@ -2730,6 +2730,29 @@ describe('a start chosen with Start from here: the wait is shown, dropped on lea
       expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
     });
 
+    for (const slowPart of ['lookup', 'model check'] as const) {
+      it(`Space and a Record click during a Start from here with a slow ${slowPart} join it: one lookup, no sentence, the take at the chosen spot`, async () => {
+        const lookup = slowLookup();
+        const slow = gated({ assets: [] });
+        const boothPunchTarget = slowPart === 'lookup' ? lookup.boothPunchTarget : vi.fn(async () => FOUND);
+        const page = renderPage({ api: { boothPunchTarget, ...(slowPart === 'model check' ? { assetsList: slow.answer } : {}) } as never });
+        await ready();
+        boothPunchTarget.mockClear();
+        await startFrom(3);
+        await settle();
+        await space();
+        await userEvent.click(recordButton());
+        await settle();
+        expect(said(page)).not.toContain(BUSY);
+        if (slowPart === 'lookup') await act(async () => lookup.answer(FOUND));
+        else slow.release();
+        await waitFor(() => expect(stopButton()).toBeTruthy());
+        expect(boothPunchTarget).toHaveBeenCalledTimes(1);
+        expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
+        expect(page.daw.recordStart).toHaveBeenCalledWith('c1', 12);
+        expect(said(page)).not.toContain(BUSY);
+      });
+    }
     it('during a slow model check', () => refused('model check'));
     it('during a slow record start', () => refused('record start'));
   });
