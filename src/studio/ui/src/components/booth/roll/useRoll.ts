@@ -163,7 +163,7 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
   /** True from a start's press until its take is handed to the Booth, or it is refused or dropped: Record shows it. */
   const [lookingUp, setLookingUp] = useState(false);
   /** The start in flight (its number and phrase), from the press to its end: take handed over, refused, cancelled or past the lookup's limit. A press for the same phrase meanwhile is that press. */
-  const pressing = useRef<{ mine: number; at: number | null } | null>(null);
+  const pressing = useRef<{ mine: number; at: number | null; joined?: boolean } | null>(null);
   const alive = useRef(true);
   /** Drops every start still waiting: the Booth was left, or the chapter changed. Nothing they were waiting for may begin a take. */
   const cancelStart = useCallback(() => {
@@ -233,32 +233,33 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
       if (joinsOrRefuses(to)) return;
       // Before a take, a start the DAW could not punch to is not armed: the narrator is told now, not after Space, where the take will start.
       // The lookup is a press like any other (#3329): Space meanwhile joins it, a hung one ends once at LOOKUP_MS, and its answer is the only one asked for.
-      if (!s.recording && !punchable()) {
+      const plan = rollPlan(s.capabilities);
+      if (!s.recording && plan.kind === 'refused') {
         const mine = ++latestStart.current;
         pressing.current = { mine, at: to };
         setLookingUp(true);
         try {
           const looked = await lookUp(to);
           if (outdated(mine)) return;
-          // The DAW may have changed while the host was asked: what it can do now decides, and a DAW that can punch now takes the usual path below.
-          const now = rollPlan(sessionRef.current.capabilities);
-          if (now.kind === 'refused') {
-            if (looked.outcome === 'found') {
-              actionsRef.current.notify(`${now.reason} The next take starts from the end of what is already there, not from ¶ ${s.paragraphOf(to) + 1}.`);
-              return;
-            }
-            if (looked.outcome !== 'never_recorded') {
-              // A failed, stale or unanswered lookup: said once, nothing started, and no start left chosen (as for a DAW that can punch).
-              actionsRef.current.notify(looked.message ?? 'Where this passage was recorded is not known, so no take was started.');
-              actionsRef.current.clearStart?.();
-              return;
-            }
-            // Never recorded: nothing to punch over on any DAW, so the take goes on from the end from this phrase, with no second lookup.
-            actionsRef.current.chooseStart(to, true);
-            actionsRef.current.notify(`Starting from ¶ ${s.paragraphOf(to) + 1}`);
-            actionsRef.current.notify(`¶ ${s.paragraphOf(to) + 1} was not recorded before, so the take goes on from the end of the chapter's audio.`);
-            return await actionsRef.current.beginTake();
+          if (looked.outcome === 'found') {
+            // Not armed. A Space or Record press that joined this one meant to record: the take starts from the end, said in the same sentence.
+            const joined = pressing.current?.mine === mine && pressing.current.joined === true;
+            actionsRef.current.notify(
+              `${plan.reason} ${joined ? 'The take starts' : 'The next take starts'} from the end of what is already there, not from ¶ ${s.paragraphOf(to) + 1}.`,
+            );
+            return joined ? await actionsRef.current.beginTake() : undefined;
           }
+          if (looked.outcome !== 'never_recorded') {
+            // A failed, stale or unanswered lookup: said once, nothing started, and no start left chosen (as for a DAW that can punch).
+            actionsRef.current.notify(looked.message ?? 'Where this passage was recorded is not known, so no take was started.');
+            actionsRef.current.clearStart?.();
+            return;
+          }
+          // Never recorded: nothing to punch over on any DAW, so the take goes on from the end from this phrase, with no second lookup.
+          actionsRef.current.chooseStart(to, true);
+          actionsRef.current.notify(`Starting from ¶ ${s.paragraphOf(to) + 1}`);
+          actionsRef.current.notify(`¶ ${s.paragraphOf(to) + 1} was not recorded before, so the take goes on from the end of the chapter's audio.`);
+          return await actionsRef.current.beginTake();
         } finally {
           endWait(mine);
         }
@@ -270,7 +271,7 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
       actionsRef.current.notify(`Starting from ¶ ${s.paragraphOf(to) + 1}`);
       return startTakeRef.current(to);
     },
-    [rollFrom, lookUp, endWait, joinsOrRefuses, punchable],
+    [rollFrom, lookUp, endWait, joinsOrRefuses],
   );
   startFromHereRef.current = startFromHere;
 
@@ -289,7 +290,10 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
         if (pressing.current) {
           // Another plain press (Space again) is that press. A plain press during a press for a phrase is told so on a DAW that can punch (it never
           // drops silently); on one that cannot it is that press too, whose lookup answers once (#3329), not a take at once from the end.
-          if (pressing.current.at !== null && punchable()) actionsRef.current.notify(START_BUSY);
+          if (pressing.current.at !== null) {
+            if (punchable()) actionsRef.current.notify(START_BUSY);
+            else pressing.current.joined = true;
+          }
           return;
         }
         // A DAW that cannot punch has no spot to wait for: the press goes straight to the Booth's own one-at-a-time guard.
@@ -302,18 +306,11 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
           endWait(plain);
         }
       }
+      if (!punchable() && pressing.current?.at === at) pressing.current.joined = true;
       if (joinsOrRefuses(at)) return;
       const mine = ++latestStart.current;
       pressing.current = { mine, at };
       setLookingUp(true);
-      // A punch the DAW cannot do must not leave the narrator unable to record at all: the chosen start is let go, the take starts at the end of
-      // what is recorded, and the sentence says why. Read against the DAW as it is when this runs, not when the press began.
-      const fromTheEnd = async () => {
-        const plan = rollPlan(sessionRef.current.capabilities);
-        if (plan.kind === 'refused') actionsRef.current.notify(`${plan.reason} Recording from the end of what is already there instead.`);
-        actionsRef.current.clearStart?.();
-        return actionsRef.current.beginTake();
-      };
       try {
         const target = await lookUp(at);
         // A newer start was chosen meanwhile, a take began (the Space key, the DAW's own Record) or the Booth was left: this answer is out of date.
@@ -328,15 +325,18 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
           actionsRef.current.clearStart?.();
           return;
         }
-        // The DAW as it is now: it may have changed while the host or the narrator was answered.
-        if (!punchable()) return await fromTheEnd();
-        const plan = rollPlan(sessionRef.current.capabilities);
+        const plan = rollPlan(s.capabilities);
+        if (plan.kind === 'refused') {
+          // A punch the DAW cannot do must not leave the narrator unable to record at all: the chosen start is let go, the take starts at the end of
+          // what is recorded, and the sentence says why.
+          actionsRef.current.notify(`${plan.reason} Recording from the end of what is already there instead.`);
+          actionsRef.current.clearStart?.();
+          return await actionsRef.current.beginTake();
+        }
         if (plan.kind === 'confirm' && !(await ask(`Punch in at ¶ ${s.paragraphOf(at) + 1}?`, 'Punch in', plan.dawName))) return;
         if (outdated(mine)) return;
-        if (!punchable()) return await fromTheEnd();
         if (target.trackGuid && actionsRef.current.chooseVoice && !(await actionsRef.current.chooseVoice(target.trackGuid))) return;
         if (outdated(mine)) return;
-        if (!punchable()) return await fromTheEnd();
         // The narrator is told which track is recorded over before the take starts, never only after.
         actionsRef.current.notify(`Recording over ¶ ${s.paragraphOf(at) + 1}${target.trackName ? ` on ${target.trackName}` : ''}.`);
         return await actionsRef.current.beginTake(target.start);

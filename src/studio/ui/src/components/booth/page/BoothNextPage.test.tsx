@@ -2912,7 +2912,7 @@ describe('a start chosen with Start from here: the wait is shown, dropped on lea
       expect(boothPunchTarget).toHaveBeenCalledTimes(1);
       expect(current()).toBe('7');
     });
-    it('a plain Space during a Start from here lookup on a DAW that cannot punch joins it: no take at once, one lookup, and the sentence says the start was not used (#3329)', async () => {
+    it('a plain Space during a Start from here lookup on a DAW that cannot punch joins it: no take until the answer, one lookup, then one take from the end and one sentence (#3329)', async () => {
       const lookup = slowLookup();
       const page = renderPage({ setup: 'builtin', api: { boothPunchTarget: lookup.boothPunchTarget } });
       await ready();
@@ -2925,9 +2925,11 @@ describe('a start chosen with Start from here: the wait is shown, dropped on lea
       expect(said(page)).not.toContain(BUSY);
       await act(async () => lookup.answer(FOUND));
       await settle();
-      expect(said(page).some((text) => text.includes('The next take starts from the end of what is already there'))).toBe(true);
+      await waitFor(() => expect(stopButton()).toBeTruthy());
+      expect(said(page).filter((text) => text.includes('The take starts from the end of what is already there'))).toHaveLength(1);
       expect(lookup.boothPunchTarget).toHaveBeenCalledTimes(1);
-      expect(page.daw.recordStart).not.toHaveBeenCalled();
+      expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
+      expect(page.daw.recordStart).toHaveBeenCalledWith('c1', undefined);
     });
 
     for (const slowPart of ['lookup', 'model check'] as const) {

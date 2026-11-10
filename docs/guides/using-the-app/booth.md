@@ -266,6 +266,11 @@ in the project's `Recordings` folder (`Take 001.wav`, `Take 002.wav`, …); an e
 
 - **Leaving.** Leaving the Booth during a take asks "Stop recording?", as with a DAW. Reloading the window during a take picks the
   take up again, and Stop still stops it.
+- **Start from here.** A DAW that cannot punch in, the built-in recorder among them, cannot record over the phrase you chose, and
+  **Start from here** says so: it looks the phrase up once and says the take starts from the end of what is already there. Pressing
+  Space, **R** or Record while it looks joins it and records from the end as soon as it answers, with that one message; a phrase nobody
+  recorded starts the take from the end straight away. If the lookup does not answer within 8 seconds or fails, nothing is recorded, the
+  Booth says why once, no start stays chosen and Record is ready.
 - **Not yet.** **R** (punch and roll) is not available with the built-in recorder, and the footer's Record options cannot set an audio
   interface's input gain: set it in the interface's own control panel.
 - **Where the takes go.** The Booth does not link a take to its chapter. Assign it in the native takes of the
