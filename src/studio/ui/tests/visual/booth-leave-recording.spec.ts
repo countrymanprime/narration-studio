@@ -215,6 +215,44 @@ for (const exit of EXITS) {
   });
 }
 
+// A take the narrator starts after the stop landed and before the page goes (the passage map's run is still being written) is a new take: the page's
+// own stop must still end it. The run is made slow through the mock's overrides; the second take starts inside that wait.
+for (const exit of EXITS.filter((item) => ['Escape', 'Back', 'Ctrl+Alt+C (the Companion)', 'the jump menu'].includes(item.name))) {
+  test(`${exit.name}: a take started while the stop's run is still being written is stopped as the page goes`, async ({ page }) => {
+    await page.addInitScript(() => {
+      (window as unknown as { __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> }).__NARRATION_MOCK_OVERRIDES__ = {
+        passageMapRecordRun: () => new Promise((resolve) => setTimeout(() => resolve([]), 3000)),
+      };
+    });
+    await recording(page);
+    await exit.go(page);
+    await question(page).getByRole('button', { name: /^Stop/ }).click();
+    await expect(record(page)).toBeVisible();
+    await page.waitForTimeout(600);
+    await record(page).click();
+    await expect.poll(() => dawRecording(page)).toBe(true);
+    await expect(page.locator('[data-booth-text]')).toHaveCount(0, { timeout: 8000 });
+    await expect.poll(() => dawRecording(page), { timeout: 5000 }).toBe(false);
+    expect(await stops(page)).toBe(2);
+  });
+}
+
+test('Enter pressed twice on Stop and leave: a take the second press starts is stopped as the page goes', async ({ page }) => {
+  await page.addInitScript(() => {
+    (window as unknown as { __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> }).__NARRATION_MOCK_OVERRIDES__ = {
+      passageMapRecordRun: () => new Promise((resolve) => setTimeout(() => resolve([]), 1500)),
+    };
+  });
+  await recording(page);
+  await page.keyboard.press('Escape');
+  await question(page).getByRole('button', { name: /^Stop/ }).focus();
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(150);
+  await page.keyboard.press('Enter');
+  await expect(page.locator('[data-booth-text]')).toHaveCount(0, { timeout: 8000 });
+  await expect.poll(() => dawRecording(page), { timeout: 5000 }).toBe(false);
+});
+
 for (const exit of EXITS.filter((item) => ['Escape', 'Back', 'Alt+Left'].includes(item.name))) {
   test(`${exit.name}: a double-click on Stop and leave when the stop is refused does not answer the refusal`, async ({ page }) => {
     await recording(page);

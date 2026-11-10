@@ -34,8 +34,11 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
   const sessionRef = useRef(session);
   sessionRef.current = session;
   const asking = useRef<Promise<boolean> | null>(null);
-  /** True once `decide` answered yes for this take: the page is going and its stop (or the narrator's "Leave anyway") is already done. */
-  const decided = useRef(false);
+  // Which take the narrator was asked about and answered yes for. A take that starts after that stop and before the page goes is a different take,
+  // and the page's own stop must still end it: `take` counts the takes, `answeredFor` is the one the yes was for.
+  const take = useRef(0);
+  const answeredFor = useRef(-1);
+  const answered = useRef(false);
   const { recording } = session;
 
   // The question, the stop and its refusal: true once the take is over (or was never the app's) and the move may go, false when the narrator stayed.
@@ -44,18 +47,24 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
     const now = sessionRef.current;
     if (asking.current) return asking.current.then(() => false);
     const run = async (): Promise<boolean> => {
-      decided.current = false;
+      const mine = take.current;
       const startedByApp = now.startedByApp ?? true;
       let spec = stopRecordingSpec(now.daw.name, startedByApp);
       let refusedOnce = false;
       for (;;) {
         if (!(await overlay.confirm(spec))) return false;
         // The stop was refused and the narrator chose to leave anyway: a DAW that does not answer must not hold them in the Booth.
-        if (!startedByApp || refusedOnce) return (decided.current = true);
+        if (!startedByApp || refusedOnce) {
+          answeredFor.current = mine;
+          answered.current = true;
+          return true;
+        }
         const result = await sessionRef.current.stopRecording();
         if (result.ok) {
           await sessionRef.current.flush?.();
-          return (decided.current = true);
+          answeredFor.current = mine;
+          answered.current = true;
+          return true;
         }
         // The stop was refused: nothing changed, so the take still runs. The question stays, now with the host's sentence and a way out.
         refusedOnce = true;
@@ -78,6 +87,10 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
   }, [overlay]);
 
   useEffect(() => {
+    if (recording) take.current += 1;
+  }, [recording]);
+
+  useEffect(() => {
     if (!recording) {
       guard.setLeaveGuard(null);
       return;
@@ -98,5 +111,16 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
     [decide],
   );
 
-  return { leave, decided };
+  // Stable: the page's unmount effect depends on them and must not re-run (and stop a take) on every render.
+  const handled = useCallback(() => answeredFor.current === take.current, []);
+  const leaving = useCallback(() => answered.current, []);
+
+  return {
+    leave,
+    decide,
+    /** True while the take now running is the one `decide` answered yes for: its stop, or the narrator's "Leave anyway", is already done. */
+    handled,
+    /** True once the narrator answered yes to leaving: the page is going, so a take started since is stopped as it goes. */
+    leaving,
+  };
 }

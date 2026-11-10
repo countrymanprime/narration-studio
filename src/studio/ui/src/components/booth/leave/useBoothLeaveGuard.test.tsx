@@ -212,4 +212,54 @@ describe('useBoothLeaveGuard', () => {
     expect(stopRecording).not.toHaveBeenCalled();
     expect(go).toHaveBeenCalledWith('/x');
   });
+
+  // #3325: the page's own stop is skipped only for the take the narrator answered for.
+  const decideYes = async (hook: ReturnType<typeof setup>['hook'], dialog: ReturnType<typeof setup>['dialog']) => {
+    let result: boolean | undefined;
+    act(() => void hook.result.current.decide().then((value) => (result = value)));
+    act(() => dialog()!.answer(true));
+    await flush();
+    await flush();
+    return () => result;
+  };
+
+  it('a take answered for is handled; a take that starts after the yes is not, though the page is still leaving', async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    const { hook, dialog, session } = setup({ flush: () => gate });
+    const result = await decideYes(hook, dialog);
+    // The stop landed and the map's run is still being written: the Booth shows Record, and a new take begins.
+    hook.rerender({ ...session, recording: false });
+    hook.rerender({ ...session, recording: true });
+    release();
+    await flush();
+    await flush();
+    expect(result()).toBe(true);
+    expect(hook.result.current.leaving()).toBe(true);
+    expect(hook.result.current.handled()).toBe(false);
+  });
+
+  it('with no new take the answered take is handled', async () => {
+    const { hook, dialog } = setup();
+    await decideYes(hook, dialog);
+    expect(hook.result.current.handled()).toBe(true);
+  });
+
+  it('a take the app did not start is left running with no stop, and is handled', async () => {
+    const { hook, dialog, stopRecording } = setup({ startedByApp: false });
+    await decideYes(hook, dialog);
+    expect(stopRecording).not.toHaveBeenCalled();
+    expect(hook.result.current.handled()).toBe(true);
+  });
+
+  it('the refusal question is armed against a double-click on the button it replaced', async () => {
+    const refusal: DawResult = { ok: false, changed: false, message: 'No.', undoSteps: 0, refused: 'No.' };
+    const { hook, dialog } = setup({}, async () => refusal);
+    act(() => void hook.result.current.decide());
+    act(() => dialog()!.answer(true));
+    await flush();
+    await flush();
+    expect(dialog()?.spec.title).toBe('Could not stop the take');
+    expect((dialog()!.spec as { armAfterMs?: number }).armAfterMs).toBeGreaterThan(0);
+  });
 });

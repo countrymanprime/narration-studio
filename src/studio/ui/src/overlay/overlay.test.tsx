@@ -108,7 +108,7 @@ describe('overlay.confirm', () => {
 });
 
 describe('a question that arms its confirm after a moment', () => {
-  it('ignores the confirm press until armAfterMs has passed, and Cancel is never held back (#3325)', async () => {
+  it('ignores the confirm press until armAfterMs has passed (#3325)', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     mount();
     let answer: boolean | undefined;
@@ -126,6 +126,19 @@ describe('a question that arms its confirm after a moment', () => {
     });
     fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Leave anyway' }));
     await waitFor(() => expect(answer).toBe(true));
+  });
+});
+
+describe('a question that arms its confirm: Cancel', () => {
+  it('Cancel answers at once, inside the arm window', async () => {
+    mount();
+    let answer: boolean | undefined;
+    void service
+      .confirm({ title: 'Could not stop the take', body: 'Disk full.', confirmLabel: 'Leave anyway', cancelLabel: 'Keep recording', armAfterMs: 400 })
+      .then((value) => (answer = value));
+    const dialog = await screen.findByRole('alertdialog', { name: 'Could not stop the take' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Keep recording' }));
+    await waitFor(() => expect(answer).toBe(false));
   });
 });
 

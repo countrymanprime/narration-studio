@@ -635,7 +635,7 @@ export function useBoothPage(options: BoothPageOptions) {
     : control.capabilities.daw === 'none' || recordsInApp(control.capabilities.daw)
       ? `the ${dawShortName('none').toLowerCase()} recorder`
       : control.capabilities.daw;
-  const { leave, decided } = useBoothLeaveGuard(
+  const { leave, handled, leaving } = useBoothLeaveGuard(
     { recording, startedByApp: control.startedByApp, daw: { name: dawName }, stopRecording, flush: writer.flush },
     { guard: shellGuard, overlay: heldConfirm },
   );
@@ -660,11 +660,13 @@ export function useBoothPage(options: BoothPageOptions) {
   onGone.current = { stopRecording, flush: writer.flush };
   useEffect(
     () => () => {
-      // `decide` already answered for a take the narrator was asked about: stopped once, or left running by their choice ("Leave anyway").
-      if (!latest.current.recording || !askedByShell.current || decided.current) return;
+      // `decide` already answered for the take the narrator was asked about: stopped once, or left running by their choice ("Leave anyway"). A take
+      // started since (the page was still here while the map's run was written) is a new one, and the narrator who said yes to leaving gets it stopped.
+      if (!latest.current.recording || handled()) return;
+      if (!askedByShell.current && !leaving()) return;
       void onGone.current.stopRecording().then((done) => (done.ok ? onGone.current.flush() : undefined));
     },
-    [decided],
+    [handled, leaving],
   );
 
   // Exit Booth. A take asks "Stop recording?" (the leave guard); a session that only listens asks "Stop reading?" and stops it (docs/guides/using-the-app/booth.md:
