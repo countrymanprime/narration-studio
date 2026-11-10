@@ -368,7 +368,7 @@ export function useBoothVoices({
         return false;
       }
     },
-    [voiceTracks, setup.tracks, replace, choose, notify],
+    [voiceTracks, setup, replace, choose, notify],
   );
 
   const standInFor = useCallback(
