@@ -300,7 +300,7 @@ Click a word to start from it. **↑** and **↓** move by phrase, **←** and *
 
 Right-click the text for **Start from here** (on a phrase), **Bookmark here** (on a word), **Next phrase**, **Back one phrase**,
 **Punch and roll**, **Larger text**, **Smaller text** and **Exit Booth**. **Start from here** marks where the next take starts;
-during a take it rolls again from that phrase, as **R** does. The mark is for that one take: when the take ends, "Next roll starts from" goes and the next Record starts where the recording ends. A take is held while the menu is open.
+during a take it rolls again from that phrase, as **R** does. The mark is for that one take. While it is chosen and no take runs, a chip beside the timer says "Starts at ¶ 3"; it goes when the take starts and stays gone after it, and the next Record starts where the recording ends. The chip shows the same way after **R** or Record from here on the Script. A take is held while the menu is open.
 
 While a popover or a menu is open (Record options, Text settings, a speaker, the chapter list, a right-click menu), a foot pedal's Space still starts or stops the take: it closes the popup, as Escape would, and records. The exception is a box you can type in (the speaker search): Space types a space there until focus moves. A choice under **Main button** keeps Space too: on a focused **Record** or **Cold read** it selects that choice and starts nothing. A question ("Stop recording?") or the jump menu keeps every key, Space included, until you answer it. Escape closes the one on top and returns you to the control that opened it.
 

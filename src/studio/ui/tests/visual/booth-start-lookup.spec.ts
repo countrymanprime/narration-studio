@@ -2,6 +2,7 @@
 // overrides (`__NARRATION_MOCK_OVERRIDES__`), so these hold for any slow lookup, not only a slow disk: Record shows the wait at once, presses join one
 // lookup, and leaving the Booth while it is out starts no take (REAPER recording with the narrator on another page, and no Stop button there).
 import { expect, test, type Page } from '@playwright/test';
+import { pastStartGuard } from './helpers/startGuard';
 import { settlePage } from './helpers/settle';
 import { showChapterTop } from './helpers/viewTop';
 import { goToPage } from './drivers/shared';
@@ -46,6 +47,13 @@ test('a slow lookup shows Record busy within 100 ms of the press, and five press
   await openWithSlowLookup(page, LOOKUP_DELAY_MS);
   await startFromHere(page);
   await expect(record(page)).toHaveAttribute('aria-busy', 'true', { timeout: 100 });
+  // The chosen start is said beside Record while no take runs, and gone with the take: in the footer, so it shows with the side panel shut.
+  await expect(
+    page
+      .locator('#btimer')
+      .locator('xpath=..')
+      .getByText(/^Starts at ¶ \d+$/),
+  ).toBeVisible();
   const before = await lookups(page);
   for (let i = 0; i < 5; i++) {
     await page.keyboard.press('Space');
@@ -56,7 +64,12 @@ test('a slow lookup shows Record busy within 100 ms of the press, and five press
   expect(await dawRecording(page)).toBe(false);
   await expect(stop(page)).toBeVisible({ timeout: LOOKUP_DELAY_MS + 2000 });
   await expect(record(page)).toHaveCount(0);
+  await expect(page.getByText(/^Starts at ¶ /)).toHaveCount(0);
   expect(await dawRecording(page)).toBe(true);
+  await pastStartGuard(page);
+  await page.keyboard.press('Space');
+  await expect(record(page)).toBeVisible();
+  await expect(page.getByText(/^Starts at ¶ /)).toHaveCount(0);
 });
 
 test('leaving the Booth while the lookup is out starts no take', async ({ page }) => {

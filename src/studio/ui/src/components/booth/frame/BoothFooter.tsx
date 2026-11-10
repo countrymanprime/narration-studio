@@ -3,6 +3,7 @@ import type { Measured } from '../../../api/schemas/base';
 import type { Keymap } from '../../../input/keymap';
 import { footerHints } from '../../../input/hints';
 import { useToastClearance } from '../../../hooks/useToastClearance';
+import { HeaderChip } from '../../primitives/HeaderChip';
 import { SplitButton } from '../../primitives/SplitButton';
 import { KeyHints } from '../../primitives/KeyHints';
 import { useDawMeterLease } from '../../../daw/useDawSession';
@@ -72,6 +73,7 @@ export function BoothFooter({
   record,
   seconds,
   recording,
+  startsAt,
   why,
   quietWhy = false,
   listenWhy,
@@ -88,6 +90,8 @@ export function BoothFooter({
   record: ReactNode;
   seconds: number;
   recording: boolean;
+  /** Where the next take starts when the narrator chose a start ("Starts at ¶ 3"): a chip beside the timer, absent when none is chosen. */
+  startsAt?: string;
   why?: string;
   /**
    * A setup notice above says why already: the sentence stays for Record's description (`aria-describedby`) but is not drawn, so the
@@ -158,6 +162,7 @@ export function BoothFooter({
           <span id="btimer" className="font-mono text-lg text-[var(--text)]">
             {timerText(seconds)}
           </span>
+          {startsAt ? <HeaderChip>{startsAt}</HeaderChip> : null}
           {why && !shownWhy ? (
             <span id="brec-why" className="sr-only">
               {why}

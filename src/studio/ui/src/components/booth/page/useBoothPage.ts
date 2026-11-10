@@ -818,7 +818,6 @@ export function useBoothPage(options: BoothPageOptions) {
       recordedSeconds: recorded + (recording ? seconds : 0),
       punches: punches.length,
       lastPunch: lastPunch ? `Rolled from ¶ ${lastPunch.paragraph + 1} · ${clock(lastPunch.seconds)}` : undefined,
-      nextRoll: punchAt !== null && units[punchAt] ? `Next roll starts from ¶ ${bodyParagraphIndex(paragraphs, units[punchAt].paragraphIndex) + 1}` : undefined,
     },
     seek: (paragraphId: string, word: number) => {
       const unit = unitAtPosition(paragraphs, units, { paragraphId, word });
@@ -831,6 +830,8 @@ export function useBoothPage(options: BoothPageOptions) {
     pressMain,
     /** A press is starting a take and nothing has answered yet: Record shows it. */
     startPending,
+    /** "Starts at ¶ 3" while a start is chosen (Start from here, Record from here, Punch and roll) and no take runs; absent otherwise. */
+    startsAt: punchAt !== null && !recording && units[punchAt] ? `Starts at ¶ ${bodyParagraphIndex(paragraphs, units[punchAt].paragraphIndex) + 1}` : undefined,
     stopTake,
     /** R: roll again from the chosen phrase, or the current one; says why when no take runs. */
     punchAndRoll,

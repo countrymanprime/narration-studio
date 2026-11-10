@@ -363,7 +363,7 @@ test('row 31: right-click offers Start from here, Bookmark here, roll, text size
 });
 
 // Punch has no switch since #2251: with REAPER linked and answering, Start from here sets the next roll at once.
-test('row 31: Start from here sets the next roll at once, and Space records', async ({ page }) => {
+test('row 31: Start from here starts the take from that phrase', async ({ page }) => {
   await open(page);
   await showChapterTop(page);
   await page.locator('[data-booth-text] [data-word]').nth(40).click({ button: 'right' });
@@ -371,7 +371,6 @@ test('row 31: Start from here sets the next roll at once, and Space records', as
     .getByRole('menuitem', { name: /Start from here/ })
     .first()
     .click();
-  await expect(page.getByText(/Next roll starts from ¶/).first()).toBeVisible();
   await expect(page.getByText(/The next take starts from the end of what is already there, not from ¶/)).toHaveCount(0);
   await page.keyboard.press('Space');
   await expect(page.getByRole('button', { name: /^Stop$/ })).toBeVisible();

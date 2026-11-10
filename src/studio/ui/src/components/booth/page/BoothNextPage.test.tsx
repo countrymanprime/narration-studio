@@ -709,8 +709,9 @@ describe('the-take-is-held-while-a-menu-or-the-confirm-is-open', () => {
 });
 
 describe('start-from-here-and-record-from-here', () => {
-  it('right-click Start from here moves the reading position there and marks the next start', async () => {
-    renderPage();
+  it('right-click Start from here moves the reading position there and says where the start is while the take is not running', async () => {
+    // A lookup that is still out keeps the take from starting: the chip says where it will.
+    renderPage({ api: { boothPunchTarget: () => new Promise(() => {}) } });
     await ready();
     // Unit 0 is the chapter title, so the second paragraph's first sentence is unit 3.
     const word = document.querySelector('[data-unit="3"] [data-word]')!;
@@ -719,14 +720,14 @@ describe('start-from-here-and-record-from-here', () => {
     });
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Start from here' }));
     await waitFor(() => expect(current()).toBe('3'));
-    expect(screen.getByText(/Next roll starts from ¶ 2/)).toBeTruthy();
+    expect(screen.getByText('Starts at ¶ 2')).toBeTruthy();
   });
 
   it('opening the Booth at a paragraph and offset from Script starts there', async () => {
     renderPage({ search: '?chapter=c1&para=p3&at=28' });
     await ready();
     await waitFor(() => expect(current()).toBe('7'));
-    expect(screen.getByText(/Next roll starts from ¶ 3/)).toBeTruthy();
+    expect(screen.getByText('Starts at ¶ 3')).toBeTruthy();
   });
 });
 
@@ -2352,6 +2353,22 @@ describe('a start chosen with Start from here: the wait is shown, joined, droppe
     expect(lookup.boothPunchTarget).toHaveBeenCalledTimes(1);
   });
 
+  it('R (Punch and roll) before a take says where it starts, and the chip is gone once the take has ended', async () => {
+    const lookup = slowLookup();
+    const page = renderPage({ api: { boothPunchTarget: lookup.boothPunchTarget } });
+    await ready();
+    expect(screen.queryByText(/^Starts at /)).toBeNull();
+    await press('r', 'KeyR');
+    expect(screen.getByText(/^Starts at ¶ \d+$/)).toBeTruthy();
+    await act(async () => lookup.answer(FOUND));
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+    expect(screen.queryByText(/^Starts at /)).toBeNull();
+    await space();
+    await waitFor(() => expect(recordButton()).toBeTruthy());
+    expect(screen.queryByText(/^Starts at /)).toBeNull();
+    expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
+  });
+
   it('a refused lookup ends the wait with the reason and a Record that is pressable again', async () => {
     const boothPunchTarget = vi.fn(async () => ({ outcome: 'refused' as const, message: 'The recording check is out of date.' }));
     const page = renderPage({ search: '?chapter=c1&para=p3&at=28', api: { boothPunchTarget } });
@@ -2359,7 +2376,7 @@ describe('a start chosen with Start from here: the wait is shown, joined, droppe
     await space();
     await waitFor(() => expect(recordButton().getAttribute('aria-busy')).toBeNull());
     expect(page.daw.recordStart).not.toHaveBeenCalled();
-    expect(screen.queryByText(/Next roll starts from/)).toBeNull();
+    expect(screen.queryByText(/^Starts at /)).toBeNull();
   });
 
   it('leaving the Booth while the lookup is out starts no take', async () => {
@@ -2378,14 +2395,14 @@ describe('a start chosen with Start from here: the wait is shown, joined, droppe
     const boothPunchTarget = vi.fn(async () => FOUND);
     const page = renderPage({ search: '?chapter=c1&para=p3&at=28', api: { boothPunchTarget } });
     await ready();
-    expect(screen.getByText(/Next roll starts from ¶ 3/)).toBeTruthy();
+    expect(screen.getByText('Starts at ¶ 3')).toBeTruthy();
     boothPunchTarget.mockClear();
     await space();
     await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
     expect(boothPunchTarget).toHaveBeenCalledTimes(1);
     await space();
     await waitFor(() => expect(recordButton()).toBeTruthy());
-    expect(screen.queryByText(/Next roll starts from/)).toBeNull();
+    expect(screen.queryByText(/^Starts at /)).toBeNull();
     await space();
     await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
     expect(page.daw.recordStart).toHaveBeenCalledTimes(2);

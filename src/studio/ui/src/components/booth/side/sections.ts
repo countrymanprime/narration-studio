@@ -18,8 +18,6 @@ export type SessionNumbersData = {
   punches: number;
   /** Where the last punch rolled from, e.g. "Rolled from ¶ 4 · 10:32". Left out: no punch yet. */
   lastPunch?: string;
-  /** Where the next roll starts, e.g. "Next roll starts from ¶ 5". */
-  nextRoll?: string;
 };
 
 /** Everything a section may draw. A section takes what it needs; a new one reads the same bag. */

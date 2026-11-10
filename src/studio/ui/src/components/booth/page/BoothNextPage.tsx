@@ -844,6 +844,7 @@ function BoothSession({
             }
             seconds={page.seconds}
             recording={control.recording}
+            startsAt={page.startsAt}
             why={footerWhy || undefined}
             // While a notice is up its chip names the problem and its dialog says the rest: the footer does not show it a third time.
             quietWhy={noticeShown}
