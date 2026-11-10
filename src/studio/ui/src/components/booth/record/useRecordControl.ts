@@ -1,3 +1,5 @@
+import { useOverlay } from '../../../overlay/OverlayProvider';
+import { logUi } from '../../../api/uiLog';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DawCapabilities, DawKind, DawProjectState, DawResult } from '../../../api/contracts/daw';
 import type { ReadAloudReaperReason, ReadAloudReaperStatus } from '../../../api/contracts/teleprompter';
@@ -38,6 +40,10 @@ export type RecordControlState = {
   /** The DAW project as last saved and whether it has unsaved changes; null until the DAW port answers. */
   project: DawProjectState | null;
   recording: boolean;
+  /** True while the host call that starts a take is out: no take yet, and one about to be, which a leave can no longer cancel. The leave guard counts it as a take. */
+  starting: boolean;
+  /** Resolves when the press now out ends, with whether a take is running then; at once when none is out. */
+  settle: () => Promise<boolean>;
   /** False when the DAW was already recording and this app did not start the take; the leave guard reads it. */
   startedByApp: boolean;
   /** Why Record cannot start, or the host's refusal of the last press; '' when nothing stops it. */
@@ -146,6 +152,17 @@ export function useRecordControl({
   const [recording, setRecording] = useState(false);
   const [refused, setRefused] = useState<{ chapterId: string; sentence: string } | null>(null);
   const busy = useRef(false);
+  const overlay = useOverlay();
+  const [starting, setStarting] = useState(false);
+  // The press now out, so a leave can wait for it; and whether this control is still on a page (a start that lands after it is gone is stopped).
+  const inflight = useRef<Promise<boolean> | null>(null);
+  const alive = useRef(true);
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
   const readsTracks = !!capabilities?.capabilities.track_state?.available;
 
   // Read on open, on refresh() and checkAgain(), when the window is focused again, and on a timer while Record cannot start or the last read
@@ -440,6 +457,10 @@ export function useRecordControl({
       }
       busy.current = true;
       const starting = !recordingRef.current;
+      // Whether a take runs once this press is answered.
+      let running = !starting;
+      let done: (took: boolean) => void = () => {};
+      inflight.current = new Promise<boolean>((resolve) => (done = resolve));
       try {
         // Another project can be opened in the DAW with no event to say so, and the last read may be seconds old: a start asks once more first, so a
         // take never begins in a project that is not the linked one. A read that fails claims nothing and the start goes on.
@@ -457,8 +478,28 @@ export function useRecordControl({
         if (starting && how?.current && !how.current()) return false;
         if (starting) await playTakeTone();
         if (starting && how?.current && !how.current()) return false;
+        // From here the host has the start: a leave can no longer cancel it, so it asks (`starting`) and waits for the answer (`settle`).
+        if (starting) setStarting(true);
         const result: DawRecordStart = await (starting ? daw.recordStart(chapterId, at) : daw.recordStop());
+        if (result.ok && starting && !alive.current) {
+          // The Booth is gone: nobody can see this take or stop it, so it ends here, once. (The leave guard waits for a start that is out, so this is
+          // only a start that nothing could wait for.)
+          logUi('ui.record', 'A take started after the Booth was left; stopping it.');
+          // The page is gone, so a stop that fails is said as an app message: the take is still recording in the DAW. (This stop skips the Booth's own
+          // bookkeeping, so a take it kept is not in Undo.)
+          const name = capabilitiesRef.current?.daw ?? 'the DAW';
+          const unstopped = (why: string) => {
+            logUi('ui.record', `The late take was not stopped: ${why}`);
+            overlay.toast(`A take started as you left the Booth and could not be stopped: ${why} Stop it in ${name}.`, { tone: 'error' });
+          };
+          void daw.recordStop().then(
+            (stopped) => (stopped.ok ? undefined : unstopped(stopped.refused ?? stopped.message)),
+            (error: unknown) => unstopped(apiErrorMessage(error)),
+          );
+          return false;
+        }
         if (result.ok) {
+          running = starting;
           if (starting) startedRef.current?.(result);
           if (!starting && !recordsInApp(capabilitiesRef.current?.daw)) await stoppedRef.current?.(result);
           setRefused(null);
@@ -486,11 +527,16 @@ export function useRecordControl({
         block({ cause: 'failed', reason: sentence });
       } finally {
         busy.current = false;
+        inflight.current = null;
+        if (starting && alive.current) setStarting(false);
+        done(running);
       }
       return false;
     },
-    [daw, system, chapterId, notify],
+    [daw, system, chapterId, notify, overlay],
   );
+
+  const settle = useCallback(() => inflight.current ?? Promise.resolve(recordingRef.current), []);
 
   const stopped = useCallback(() => {
     heardRecording.current = false;
@@ -508,6 +554,8 @@ export function useRecordControl({
     capabilities,
     project,
     recording,
+    starting,
+    settle,
     stopped,
     stop,
     startedByApp: true,

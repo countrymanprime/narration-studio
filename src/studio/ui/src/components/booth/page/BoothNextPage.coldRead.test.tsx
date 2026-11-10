@@ -272,6 +272,30 @@ describe('only-the-toggle-a-take-or-leaving-ends-it', () => {
     await waitFor(() => expect(page.recordStart).toHaveBeenCalledTimes(1));
   });
 
+  // QA round 5: a Record pressed during a cold read that is still ending, with the host start out, is a take for Escape: it asks, it does not just leave.
+  it('Escape with a cold read still ending and the host start out asks "Stop recording?" and does not leave', async () => {
+    const page = renderPage();
+    await ready();
+    await pressToggle();
+    await waitFor(() => expect(ghost()).not.toBeNull());
+    page.holdStops();
+    const real = page.recordStart.getMockImplementation()!;
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    page.recordStart.mockImplementation(async (...args) => {
+      await gate;
+      return real(...args);
+    });
+    skipStartGuard();
+    await act(async () => void fireEvent.keyDown(document.body, { key: 'r', code: 'KeyR' }));
+    await waitFor(() => expect(page.recordStart).toHaveBeenCalledTimes(1), { timeout: 3000 });
+    await act(async () => void fireEvent.keyDown(document.body, { key: 'Escape', code: 'Escape' }));
+    await waitFor(() => expect(page.overlay.getSnapshot().dialogs[0]).toBeTruthy());
+    expect((page.overlay.getSnapshot().dialogs[0] as { spec: { title: string } }).spec.title).toBe('Stop recording?');
+    expect(page.navigate).not.toHaveBeenCalled();
+    await act(async () => release());
+  });
+
   it('shows the cold-read mode unmistakably: the cold tone, and a hint that names Space and says nothing is recorded', async () => {
     renderPage();
     await ready();

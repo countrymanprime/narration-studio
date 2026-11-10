@@ -363,7 +363,8 @@ describe('every-way-out-asks-while-recording', () => {
     const page = renderPage();
     expect(page.journal.checkLeave('/proof')).toBe('allow');
     await record(page);
-    for (const path of ['/proof', '/script']) expect(page.journal.checkLeave(path)).toEqual({ ask: expect.objectContaining({ title: 'Stop recording?' }) });
+    for (const path of ['/proof', '/script'])
+      expect(page.journal.checkLeave(path)).toEqual({ ask: expect.objectContaining({ title: 'Stop recording?' }), decide: expect.any(Function) });
     // The shell asked and the narrator said yes: the shell moves and the page goes.
     page.view.unmount();
     await waitFor(() => expect(page.daw.recordStop).toHaveBeenCalledTimes(1));
@@ -957,6 +958,199 @@ describe('a refused stop keeps the take and the question', () => {
     expect(page.dialog()?.spec.confirmLabel).toBe('Leave anyway');
     expect(page.navigate).not.toHaveBeenCalled();
   });
+
+  // The shell's exits (the nav, Back, Forward, a route change) answer through the verdict's `decide`: the same question, stop and refusal as Escape (#3325).
+  it('the shell exits stop the take through the verdict, keep the Booth on a refusal, and let go on Leave anyway', async () => {
+    const refused: DawResult = { ok: false, changed: false, message: 'Not now.', undoSteps: 0, refused: 'Not now.' };
+    const page = renderPage();
+    page.daw.recordStop.mockResolvedValueOnce(refused);
+    await record(page);
+    const verdict = page.journal.checkLeave('/proof');
+    if (verdict === 'allow' || !verdict.decide) throw new Error('the Booth asks with a decision while it records');
+    let outcome: boolean | undefined;
+    act(() => void verdict.decide!().then((value) => (outcome = value)));
+    await waitFor(() => expect(page.dialog()?.spec.title).toBe('Stop recording?'));
+    await act(async () => page.dialog()!.answer(true));
+    await waitFor(() => expect(page.dialog()?.spec.title).toBe('Could not stop the take'));
+    expect(page.dialog()?.spec.body).toContain('Not now.');
+    expect(outcome).toBeUndefined();
+    await act(async () => page.dialog()!.answer(true));
+    await waitFor(() => expect(outcome).toBe(true));
+    // Escape's own exit asks the same question and goes by the page's navigate, once.
+    expect(page.navigate).not.toHaveBeenCalled();
+  });
+
+  // One stop per leave (#3325): the shell moves and the page unmounts the moment `decide` answers, and that unmount must not stop the take again.
+  const decideAndGo = async (page: ReturnType<typeof renderPage>, refuseFirst: boolean) => {
+    const refused: DawResult = { ok: false, changed: false, message: 'Not now.', undoSteps: 0, refused: 'Not now.' };
+    if (refuseFirst) page.daw.recordStop.mockResolvedValueOnce(refused);
+    await record(page);
+    const verdict = page.journal.checkLeave('/proof');
+    if (verdict === 'allow' || !verdict.decide) throw new Error('the Booth asks with a decision while it records');
+    let outcome: boolean | undefined;
+    // The shell moves the moment `decide` answers, before the page has drawn that the take is over.
+    act(
+      () =>
+        void verdict.decide!().then((value) => {
+          outcome = value;
+          page.view.unmount();
+        }),
+    );
+    await waitFor(() => expect(page.dialog()?.spec.title).toBe('Stop recording?'));
+    await act(async () => page.dialog()!.answer(true));
+    if (refuseFirst) {
+      await waitFor(() => expect(page.dialog()?.spec.title).toBe('Could not stop the take'));
+      await act(async () => page.dialog()!.answer(true));
+    }
+    await waitFor(() => expect(outcome).toBe(true));
+    await settle();
+  };
+
+  it('a shell exit whose stop succeeded stops the take once, not again as the page goes', async () => {
+    const page = renderPage();
+    await decideAndGo(page, false);
+    expect(page.daw.recordStop).toHaveBeenCalledTimes(1);
+  });
+
+  it('a shell exit that chose Leave anyway after a refusal does not stop again as the page goes, as Escape does not', async () => {
+    const page = renderPage();
+    await decideAndGo(page, true);
+    expect(page.daw.recordStop).toHaveBeenCalledTimes(1);
+  });
+
+  it('a take that starts after the stop and before the page goes is stopped as the page goes', async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    const page = renderPage({ api: { passageMapRecordRun: vi.fn(() => gate) } as never });
+    await record(page);
+    const verdict = page.journal.checkLeave('/proof');
+    if (verdict === 'allow' || !verdict.decide) throw new Error('the Booth asks with a decision while it records');
+    let outcome: boolean | undefined;
+    act(
+      () =>
+        void verdict.decide!().then((value) => {
+          outcome = value;
+          page.view.unmount();
+        }),
+    );
+    await waitFor(() => expect(page.dialog()?.spec.title).toBe('Stop recording?'));
+    await act(async () => page.dialog()!.answer(true));
+    // The stop landed and the run is still being written: Record is back, and the narrator starts a second take.
+    await waitFor(() => expect(page.daw.recordStop).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Record$/ })).toBeTruthy());
+    await space();
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+    expect(page.daw.recordStart).toHaveBeenCalledTimes(2);
+    release();
+    await waitFor(() => expect(outcome).toBe(true));
+    await settle();
+    expect(page.daw.recordStop).toHaveBeenCalledTimes(2);
+  });
+
+  // A start the host still has when the narrator leaves (#3325, QA round 4): the leave asks, waits for the start to land and stops that take once; a start
+  // that lands with nobody left to ask is stopped once as well.
+  const heldStart = (page: ReturnType<typeof renderPage>) => {
+    const real = page.daw.recordStart.getMockImplementation()!;
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    page.daw.recordStart.mockImplementation(async (...args: Parameters<typeof real>) => {
+      await gate;
+      return real(...args);
+    });
+    return release;
+  };
+  for (const [how, press] of [
+    ['Record', () => userEvent.click(screen.getByRole('button', { name: /^Record$/ }))],
+    ['R', () => userEvent.keyboard('r')],
+  ] as const) {
+    it(`a start the host still has (${how}) is a take for the leave: it asks, waits for the start, and stops it once`, async () => {
+      const page = renderPage();
+      await ready();
+      const release = heldStart(page);
+      await press();
+      await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(page.journal.checkLeave('/proof')).not.toBe('allow'));
+      const verdict = page.journal.checkLeave('/proof');
+      if (verdict === 'allow' || !verdict.decide) throw new Error('a start the host has asks with a decision');
+      let outcome: boolean | undefined;
+      act(() => void verdict.decide!().then((value) => (outcome = value)));
+      await waitFor(() => expect(page.dialog()?.spec.title).toBe('Stop recording?'));
+      await act(async () => page.dialog()!.answer(true));
+      await settle();
+      expect(page.daw.recordStop).not.toHaveBeenCalled();
+      await act(async () => release());
+      await waitFor(() => expect(outcome).toBe(true));
+      expect(page.daw.recordStop).toHaveBeenCalledTimes(1);
+    });
+  }
+
+  it('a start that lands after the Booth is gone is stopped once', async () => {
+    const page = renderPage();
+    await ready();
+    const release = heldStart(page);
+    await userEvent.click(screen.getByRole('button', { name: /^Record$/ }));
+    await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(1));
+    page.view.unmount();
+    expect(page.daw.recordStop).not.toHaveBeenCalled();
+    await act(async () => release());
+    await waitFor(() => expect(page.daw.recordStop).toHaveBeenCalledTimes(1));
+  });
+
+  it('Escape, then a take started while the run is written: the page going stops it though the shell never asked', async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    const page = renderPage({ api: { passageMapRecordRun: vi.fn(() => gate) } as never });
+    await record(page);
+    page.navigate.mockImplementation(() => page.view.unmount());
+    await press('Escape');
+    await act(async () => page.dialog()!.answer(true));
+    await waitFor(() => expect(page.daw.recordStop).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Record$/ })).toBeTruthy());
+    await space();
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+    await act(async () => release());
+    await waitFor(() => expect(page.navigate).toHaveBeenCalledTimes(1));
+    await settle();
+    expect(page.daw.recordStop).toHaveBeenCalledTimes(2);
+  });
+
+  // Escape while the press is still before the host call (the start tone), with the session already listening: it asks "Stop reading?"; the start lands
+  // while that is open, and the answer is read again: the take is asked about and stopped, once, not left recording behind the page (QA round 5).
+  it('Stop reading? answered after the start landed asks about the take, stops it once and leaves once', async () => {
+    let release = () => {};
+    tone.gate = new Promise<void>((resolve) => (release = resolve));
+    try {
+      const running: TeleprompterState = { phase: 'running', message: '', engine: 'whisper', chapter: 'c1', script: null, position: null };
+      const page = renderPage({ api: { teleprompterState: async () => running } });
+      await ready();
+      await space();
+      await settle();
+      await press('Escape');
+      await waitFor(() => expect(page.dialog()?.spec.title).toBe('Stop reading?'));
+      release();
+      await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/, hidden: true })).toBeTruthy());
+      await act(async () => page.dialog()!.answer(true));
+      await waitFor(() => expect(page.dialog()?.spec.title).toBe('Stop recording?'));
+      expect(page.navigate).not.toHaveBeenCalled();
+      await act(async () => page.dialog()!.answer(true));
+      await waitFor(() => expect(page.navigate).toHaveBeenCalledTimes(1));
+      expect(page.daw.recordStop).toHaveBeenCalledTimes(1);
+    } finally {
+      tone.gate = null;
+    }
+  });
+
+  it('Escape stops the take once, and with a refusal then Leave anyway goes by navigate once with no further stop', async () => {
+    const ok = renderPage();
+    await record(ok);
+    await press('Escape');
+    await act(async () => ok.dialog()!.answer(true));
+    await waitFor(() => expect(ok.navigate).toHaveBeenCalledTimes(1));
+    ok.view.unmount();
+    await settle();
+    expect(ok.daw.recordStop).toHaveBeenCalledTimes(1);
+  });
 });
 
 // SN-O103: the bookmarks (SN-O81) and the pickup session (SN-O82) on the page.
@@ -1196,7 +1390,10 @@ describe('every way out of the page asks while a take records', () => {
     // Back and Forward buttons (the shell asks with no destination), the rail, and a project switch (the start page).
     const exits = { palette: '/proof', toast: '/pickups', mouseButtons: '', rail: '/production', projectSwitch: '/' };
     for (const [exit, path] of Object.entries(exits))
-      expect({ exit, verdict: page.journal.checkLeave(path) }).toEqual({ exit, verdict: { ask: expect.objectContaining({ title: 'Stop recording?' }) } });
+      expect({ exit, verdict: page.journal.checkLeave(path) }).toEqual({
+        exit,
+        verdict: { ask: expect.objectContaining({ title: 'Stop recording?' }), decide: expect.any(Function) },
+      });
     // Asking stops nothing: only the narrator's Stop and leave does.
     await settle();
     expect(page.daw.recordStop).not.toHaveBeenCalled();
