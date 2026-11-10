@@ -222,6 +222,8 @@ func chapterTrackLinksOver(svc hostServices, project tracks.Project, state links
 			links.Tracks = append(links.Tracks, summarizeTrack(track, confirmed[track.GUID]))
 		}
 	}
+	// One resolver for every chapter: each track's name is matched against the titles once, not once per chapter (#3272).
+	resolver := chaptermatch.NewResolver(chapters, project)
 	for _, chapter := range narration {
 		row := chapterTrackLink{ChapterID: chapter.ID, ChapterTitle: chapter.Title, ChapterSubtitle: subtitles[chapter.ID], Links: []evidence.TrackMapping{}}
 		for _, mapping := range mappings {
@@ -234,7 +236,7 @@ func chapterTrackLinksOver(svc hostServices, project tracks.Project, state links
 			links.Chapters = append(links.Chapters, row)
 			continue
 		}
-		result, err := chaptermatch.ForChapter(chapter.ID, chapters, project, confirmed)
+		result, err := resolver.ForChapter(chapter.ID, confirmed)
 		if err != nil {
 			return chapterTrackLinks{}, err
 		}
