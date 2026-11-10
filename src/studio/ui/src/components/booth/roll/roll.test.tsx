@@ -325,6 +325,26 @@ describe('useRoll', () => {
       expect(hook.result.current.lookingUp).toBe(false);
     });
 
+    it('the wait lasts through choosing the voice, until the take is handed to the Booth', async () => {
+      const voice = gate();
+      const { hook, actions } = setup(SETUPS.reaper, { recording: false, punchAt: 1, punchTarget: async (p) => found(p) });
+      actions.chooseVoice.mockImplementation(async () => {
+        await voice.promise;
+        return true;
+      });
+      let done: Promise<void> = Promise.resolve();
+      act(() => {
+        done = hook.result.current.startTake() as Promise<void>;
+      });
+      await settle();
+      expect(hook.result.current.lookingUp).toBe(true);
+      expect(actions.beginTake).not.toHaveBeenCalled();
+      voice.resolve(found(1));
+      await act(() => done);
+      expect(actions.beginTake).toHaveBeenCalledTimes(1);
+      expect(hook.result.current.lookingUp).toBe(false);
+    });
+
     it('a refused lookup ends the wait too', async () => {
       const { hook } = setup(SETUPS.reaper, { recording: false, punchAt: 1, punchTarget: async () => ({ outcome: 'refused', message: 'no' }) });
       await act(() => hook.result.current.startTake());

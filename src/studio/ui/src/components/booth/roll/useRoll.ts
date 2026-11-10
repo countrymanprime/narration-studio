@@ -164,18 +164,18 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
       lookups.clear();
     };
   }, []);
-  /** Looks `phrase` up for start number `mine`, showing the wait while `mine` is still the newest. */
+  /** Looks `phrase` up for start number `mine`; the wait shows until `endWait(mine)`, which the start calls once nothing is left to await for it. */
   const lookUpFor = useCallback(
-    async (mine: number, phrase: number): Promise<BoothPunch> => {
+    (_mine: number, phrase: number): Promise<BoothPunch> => {
       setLookingUp(true);
-      try {
-        return await lookUp(phrase);
-      } finally {
-        if (mine === latestStart.current && alive.current) setLookingUp(false);
-      }
+      return lookUp(phrase);
     },
     [lookUp],
   );
+  /** Ends the wait for start `mine`, unless a newer start owns it now. */
+  const endWait = useCallback((mine: number) => {
+    if (mine === latestStart.current && alive.current) setLookingUp(false);
+  }, []);
   /** This start is out of date: a newer one was chosen, a take began (the Space key, the DAW's own Record) or the Booth was left. */
   const outdated = (mine: number) => mine !== latestStart.current || sessionRef.current.recording;
 
@@ -199,7 +199,7 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
       const plan = rollPlan(s.capabilities);
       if (!s.recording && plan.kind === 'refused') {
         const mine = ++latestStart.current;
-        const looked = await lookUpFor(mine, to);
+        const looked = await lookUpFor(mine, to).finally(() => endWait(mine));
         if (outdated(mine)) return;
         if (looked.outcome === 'found') {
           actionsRef.current.notify(`${plan.reason} The next take starts from the end of what is already there, not from ¶ ${s.paragraphOf(to) + 1}.`);
@@ -213,21 +213,13 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
       actionsRef.current.notify(`Starting from ¶ ${s.paragraphOf(to) + 1}`);
       return startTakeRef.current(to);
     },
-    [rollFrom, lookUpFor],
+    [rollFrom, lookUpFor, endWait],
   );
   startFromHereRef.current = startFromHere;
 
-  /**
-   * Starts the take. A phrase chosen with Start from here is looked up (the host reads where it was recorded before): found, the take records
-   * over exactly that spot, on the voice that read it, and follows the plan; never recorded, it is not a punch and the take goes on from the end
-   * of the chapter; refused, the sentence is shown and nothing starts (a start is never guessed).
-   */
-  const startTake = useCallback(
-    async (from?: number) => {
-      const s = sessionRef.current;
-      const at = from ?? s.punchAt;
-      if (at == null || at >= s.phraseCount) return actionsRef.current.beginTake();
-      const mine = ++latestStart.current;
+  /** One start, from its lookup to the take's first step. */
+  const startAt = useCallback(
+    async (mine: number, at: number, s: RollSession) => {
       const target = await lookUpFor(mine, at);
       if (outdated(mine)) return;
       if (target.outcome === 'never_recorded') {
@@ -257,6 +249,26 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
       return actionsRef.current.beginTake(target.start);
     },
     [ask, lookUpFor],
+  );
+
+  /**
+   * Starts the take. A phrase chosen with Start from here is looked up (the host reads where it was recorded before): found, the take records
+   * over exactly that spot, on the voice that read it, and follows the plan; never recorded, it is not a punch and the take goes on from the end
+   * of the chapter; refused, the sentence is shown and nothing starts (a start is never guessed).
+   */
+  const startTake = useCallback(
+    async (from?: number) => {
+      const s = sessionRef.current;
+      const at = from ?? s.punchAt;
+      if (at == null || at >= s.phraseCount) return actionsRef.current.beginTake();
+      const mine = ++latestStart.current;
+      try {
+        return await startAt(mine, at, s);
+      } finally {
+        endWait(mine);
+      }
+    },
+    [startAt, endWait],
   );
   startTakeRef.current = startTake;
 
