@@ -13,6 +13,28 @@ registry.register('ns_save', function(ctx, args)
   reaper.Main_SaveProject(0, false)
   ctx.event('NS_SAVED', args[1] or '')
 end)
+registry.register('ns_rename', function(ctx, args)
+  for i = 0, reaper.CountTracks(0) - 1 do
+    local t = reaper.GetTrack(0, i)
+    if reaper.GetTrackGUID(t):upper() == (args[2] or ''):upper() then
+      reaper.GetSetMediaTrackInfo_String(t, 'P_NAME', args[3] or '', true)
+      ctx.event('NS_RENAMED', args[1] or '')
+      return
+    end
+  end
+  ctx.event('NS_RENAMED', args[1] or '', 'not found')
+end)
+registry.register('ns_delete', function(ctx, args)
+  for i = 0, reaper.CountTracks(0) - 1 do
+    local t = reaper.GetTrack(0, i)
+    if reaper.GetTrackGUID(t):upper() == (args[2] or ''):upper() then
+      reaper.DeleteTrack(t)
+      ctx.event('NS_DELETED', args[1] or '')
+      return
+    end
+  end
+  ctx.event('NS_DELETED', args[1] or '', 'not found')
+end)
 -- NS_TIMING=1 switches the bridge timing diagnostic on, which also makes the host write record-timeline.log (docs/research/record-press-timeline.md).
 if os.getenv('NS_TIMING') then
   reaper.SetExtState(bridge.SESSION_SECTION, bridge.TIMING_KEY, '1', false)

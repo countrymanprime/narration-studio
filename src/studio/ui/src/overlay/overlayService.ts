@@ -15,6 +15,8 @@ type ConfirmSpec = {
   cancelLabel?: string;
   /** Focus opens on the decline button instead of the message, and closing leaves focus on <body> when it was there. For a question whose safe answer is to stay. */
   safeDefault?: boolean;
+  /** The confirm button ignores a press for this long after the question appears: for a question that replaces another under the same pixels. */
+  armAfterMs?: number;
 };
 type DialogSpec =
   | {

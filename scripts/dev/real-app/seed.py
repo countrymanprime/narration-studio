@@ -119,7 +119,7 @@ def write_large(args: argparse.Namespace, project: Path, app: Path, manuscript: 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("project", type=Path)
-    parser.add_argument("--layout", choices=("flat", "folders"), default="flat")
+    parser.add_argument("--layout", choices=("flat", "folders", "voices2"), default="flat")
     parser.add_argument("--tracks", type=int, default=0, help="extra empty tracks after the chapter's")
     parser.add_argument("--items", type=int, default=0, help="takes on the chapter's track")
     parser.add_argument("--chapter", default="c-0002")
@@ -168,7 +168,12 @@ def main() -> None:
         takes.append(item(n, path, 5.0 * n))
     rpp = project / "Book.rpp"
     rows = ""
-    if args.layout == "folders":
+    if args.layout == "voices2":
+        # The owner's state: Chapter One folder (linked) holding Narrator (takes) and Alice; layout stays Flat.
+        rows += track(1, title, 1, busmode=1) + track(2, "Narrator", 0, "".join(takes)) + track(3, "Alice", -1)
+        first = 4
+        (app / "voice-tracks.json").write_text(json.dumps({"schemaVersion": 1, "layout": "flat", "narratorCharacter": "", "tracks": {}}), encoding="utf-8")
+    elif args.layout == "folders":
         rows += track(1, title, 1, busmode=1) + track(2, "Narrator", 1, busmode=1) + track(3, "Main", -2, "".join(takes), busmode=2)
         first = 4
         (app / "voice-tracks.json").write_text(json.dumps({"schemaVersion": 1, "layout": "folders", "narratorCharacter": "", "tracks": {}}), encoding="utf-8")

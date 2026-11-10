@@ -143,6 +143,13 @@ export const engineStates: StateEntry[] = [
   },
   {
     page: 'engine',
+    state: 'chapter-link-recheck',
+    description:
+      'The Chapter links list after Change on a linked chapter: the picker is open on the linked track and the check is live and named "Check the link ... again", beside Cancel',
+    ...KEEPS_DESKTOP_SCROLL,
+  },
+  {
+    page: 'engine',
     state: 'chapter-track-created',
     description:
       'The engine panel with no chapter linked (?mockChapterLink=none) after Chapter 1\'s "Create a track for this chapter" press (#2840): its Chapter links row Linked to the new track named after the chapter, with Change and Clear, the unlinked rows below still offering the create button, and the toast saying the track was made and the project is not saved',

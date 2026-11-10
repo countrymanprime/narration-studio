@@ -55,6 +55,9 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/chapterTracks/ChapterTrackState.tsx#1': yes(
     'The chapter links read changes nothing; Retry reads the tracks and the links again (one toast for a run of failed reads).',
   ),
+  'src/components/chapterTracks/ChapterTrackState.tsx#2': yes(
+    'The links read of the check on a link the chapter already has changes nothing; Retry reads the tracks and the links again.',
+  ),
   'src/components/storybible/source/NamePronunciation.tsx#1': yes(
     'The pronunciation sources list read changes nothing; Retry reads it again (added by the pronunciation rework).',
   ),
@@ -82,6 +85,8 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/booth/page/BoothNextPage.tsx#1': no(ED),
   'src/components/booth/page/BoothNextPage.tsx#2': na(NA),
   'src/components/booth/page/BoothNextPage.tsx#3': no(ED),
+  'src/components/booth/leave/useBoothLeaveGuard.ts#1': no(RC),
+  'src/components/booth/record/useRecordControl.ts#1': no(RC),
   'src/components/booth/page/BoothNextPage.tsx#4': yes("The Booth's setup notice: Check again reads the DAW afresh, which changes nothing."),
   'src/components/booth/page/useBoothPage.ts#1': no(RC),
   'src/components/booth/page/useBoothPage.ts#2': no(RC),
