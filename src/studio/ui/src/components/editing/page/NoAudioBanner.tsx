@@ -1,5 +1,6 @@
 import { Button } from '../../primitives/Button';
 import type { ChapterAudio } from './chapterSource';
+import type { SaveInDaw } from './useSaveInDaw';
 import { noAudioText } from './noAudioText';
 
 /** Whether the chapter's missing audio is a link to make (the resolve dialog's to fix) rather than a recording to make. */
@@ -11,7 +12,20 @@ export const isLinkProblem = (audio: ChapterAudio, daw: string | null): boolean 
  * still reads, without what was heard. `daw` is the DAW's own name, or null for the built-in recorder. Nothing tells the page when the narrator
  * records, so **Read again** asks.
  */
-export function NoAudioBanner({ audio, chapterName, daw, onReread }: { audio: ChapterAudio; chapterName: string; daw: string | null; onReread: () => void }) {
+export function NoAudioBanner({
+  audio,
+  chapterName,
+  daw,
+  onReread,
+  save,
+}: {
+  audio: ChapterAudio;
+  chapterName: string;
+  daw: string | null;
+  onReread: () => void;
+  /** The **Save in <DAW> and read** button's state, for a DAW that can save from the app and a chapter whose track holds nothing yet; otherwise no button. */
+  save?: SaveInDaw;
+}) {
   if (audio.kind === 'ready' || isLinkProblem(audio, daw)) return null;
   const text = noAudioText(audio, chapterName, daw);
   return (
@@ -22,7 +36,14 @@ export function NoAudioBanner({ audio, chapterName, daw, onReread }: { audio: Ch
     >
       <span className="min-w-0 flex-[1_1_18rem] [overflow-wrap:anywhere]">
         <b>{text.headline}</b> {text.next}
+        {save?.refusal ? <span data-testid="save-refusal"> {save.refusal}</span> : null}
+        {save?.saved ? <span data-testid="save-done"> {save.saved} The chapter still has no audio in it.</span> : null}
       </span>
+      {save && audio.kind === 'empty' ? (
+        <Button variant="primary" size="sm" disabled={save.saving} onClick={save.onSave}>
+          {save.saving ? `Saving in ${daw}…` : `Save in ${daw} and read`}
+        </Button>
+      ) : null}
       <Button variant="secondary" size="sm" onClick={onReread}>
         Read again
       </Button>

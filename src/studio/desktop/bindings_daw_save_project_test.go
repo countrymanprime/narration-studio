@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"errors"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -28,7 +30,7 @@ func (f *fakeSaver) SaveProject(_ context.Context, file string) (dawport.Result,
 func TestDawSaveProjectSendsTheLinkedFileAndAnswersTheRolesResult(t *testing.T) {
 	saved := dawport.OK("Saved the project in REAPER: 3 tracks and 12 items.", false)
 	role := &fakeSaver{answer: saved}
-	got, err := dawSaveProjectIn(t.Context(), "REAPER", available(), role, "C:/Books/Book.rpp")
+	got, err := dawSaveProjectIn(t.Context(), "REAPER", available(), role, "C:/Books/Book.rpp", nil)
 	if err != nil || got.Message != saved.Message || !got.OK || len(role.files) != 1 || role.files[0] != "C:/Books/Book.rpp" {
 		t.Fatalf("got %+v, %v; asked %v", got, err, role.files)
 	}
@@ -47,7 +49,7 @@ func TestDawSaveProjectRefusesWithNothingAskedWhenItCannotSave(t *testing.T) {
 		"no linked file": {available(), role, "", saveProjectNoLinkSentence},
 		"no live engine": {available(), nil, "Book.rpp", "REAPER is not connected to this app, so the project was not saved."},
 	} {
-		got, err := dawSaveProjectIn(t.Context(), "REAPER", test.support, test.saver, test.file)
+		got, err := dawSaveProjectIn(t.Context(), "REAPER", test.support, test.saver, test.file, nil)
 		if err != nil || got.OK || got.Refused != test.want {
 			t.Errorf("%s: got %+v, %v; want a refusal %q", name, got, err, test.want)
 		}
@@ -67,7 +69,7 @@ func TestDawSaveProjectWordsWhatKeptTheRoleFromAnswering(t *testing.T) {
 		"late":        {context.DeadlineExceeded, "did not answer the save within 15 seconds"},
 		"other":       {errors.New("disk on fire"), "REAPER could not save the project: disk on fire."},
 	} {
-		got, err := dawSaveProjectIn(t.Context(), "REAPER", available(), &fakeSaver{err: test.err}, "Book.rpp")
+		got, err := dawSaveProjectIn(t.Context(), "REAPER", available(), &fakeSaver{err: test.err}, "Book.rpp", nil)
 		if err != nil || got.OK || !strings.Contains(got.Refused, test.want) {
 			t.Errorf("%s: got %+v, %v; want a refusal holding %q", name, got, err, test.want)
 		}
@@ -82,7 +84,7 @@ func TestDawSaveProjectGoldens(t *testing.T) {
 		"daw-save-project-refused-never": {answer: dawport.Refused(never)},
 	} {
 		t.Run(name, func(t *testing.T) {
-			got, err := dawSaveProjectIn(t.Context(), "REAPER", available(), role, "C:/Books/Book.rpp")
+			got, err := dawSaveProjectIn(t.Context(), "REAPER", available(), role, "C:/Books/Book.rpp", nil)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -91,10 +93,41 @@ func TestDawSaveProjectGoldens(t *testing.T) {
 	}
 	t.Run("daw-save-project-refused-capability", func(t *testing.T) {
 		refusedCapability := dawport.Support{Message: "Audacity cannot save the project from this app."}
-		got, err := dawSaveProjectIn(t.Context(), "Audacity", refusedCapability, &fakeSaver{}, "C:/Books/Book.rpp")
+		got, err := dawSaveProjectIn(t.Context(), "Audacity", refusedCapability, &fakeSaver{}, "C:/Books/Book.rpp", nil)
 		if err != nil {
 			t.Fatal(err)
 		}
 		contractfile.Check(t, "daw-save-project-refused-capability", got)
 	})
+}
+
+// A file REAPER cannot write is refused by the host before anything is sent: REAPER 7.82 stops answering the bridge on one.
+func TestDawSaveProjectNeverAsksTheDawToSaveAFileItCannotWrite(t *testing.T) {
+	dir := t.TempDir()
+	locked := filepath.Join(dir, "Locked.rpp")
+	if err := os.WriteFile(locked, []byte("x"), 0o444); err != nil {
+		t.Fatal(err)
+	}
+	cases := map[string]string{"a folder, not a file": dir, "gone": filepath.Join(dir, "Gone.rpp")}
+	if os.Geteuid() != 0 { // root writes through a read-only mode
+		cases["read-only"] = locked
+	}
+	for name, file := range cases {
+		role := &fakeSaver{answer: dawport.OK("saved", false)}
+		got, err := dawSaveProjectIn(t.Context(), "REAPER", available(), role, file, projectFileWritable)
+		if err != nil || got.OK || !strings.Contains(got.Refused, "read-only or missing") || len(role.files) != 0 {
+			t.Errorf("%s: got %+v, %v; asked %v", name, got, err, role.files)
+		}
+	}
+	writable := filepath.Join(dir, "Book.rpp")
+	if err := os.WriteFile(writable, []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	role := &fakeSaver{answer: dawport.OK("saved", false)}
+	if got, err := dawSaveProjectIn(t.Context(), "REAPER", available(), role, writable, projectFileWritable); err != nil || !got.OK || len(role.files) != 1 {
+		t.Fatalf("a writable file: got %+v, %v; asked %v", got, err, role.files)
+	}
+	if b, _ := os.ReadFile(writable); string(b) != "x" {
+		t.Fatalf("the check changed the file: %q", b)
+	}
 }

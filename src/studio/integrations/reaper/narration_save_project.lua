@@ -10,12 +10,14 @@
 --   * when expected_path is not the open project's file (the narrator opened another project: saving would write to a
 --     project the app does not read), compared with slashes and case folded;
 --   * when the project has never been saved;
---   * when REAPER still reports the project as needing a save after the call (a read-only file or a missing folder).
+--   * when REAPER still reports the project as needing a save after the call.
+-- A file REAPER cannot write is the host's check, before it sends this: REAPER 7.82 waits on its own error dialog and answers no
+-- command until the narrator dismisses it, which this script cannot see or avoid.
 -- It adds no undo point: a save is not an edit.
 --
--- Seen in REAPER 7.82 on Linux, 2026-11-10 (scenario save_project in scripts/ci/real-reaper): Main_SaveProject(0, false) wrote a take
--- recorded onto a new voice track into the .rpp. The refusals are pinned by the harness; see docs/research/ for what REAPER did
--- on a read-only file.
+-- Seen in REAPER 7.82 on Linux, 2026-11-10 (scenarios save_project_writes_the_take and save_project_refusals in
+-- scripts/ci/real-reaper): Main_SaveProject(0, false) wrote a take recorded onto a new voice track into the .rpp, and the refusals above
+-- each left REAPER answering (docs/reference/daw/reaper.md).
 
 local core = ...
 local event = core.event
