@@ -32,7 +32,8 @@ export type LiveTracks = {
   /** Reads the tracks now (the Refresh button, a toast's Retry). */
   refresh: () => void;
   /** Reads the tracks now like `refresh` and answers what the read found, or undefined when it failed (a toast says so), was replaced by a newer read, or the project is Audacity's. */
-  recheck: () => Promise<TracksProject | undefined>;
+  /** Reads now and answers with the project, or `failed` when the read failed (its own toast says so); neither when no live read applies. */
+  recheck: () => Promise<{ project?: TracksProject; failed: boolean }>;
   /** Reads the tracks unless a read is already in flight, which it then shares (the Link chapters dialog opening). */
   join: () => void;
 };
@@ -81,8 +82,8 @@ export function useLiveTracks({ enabled, readKey, notify }: { enabled: boolean; 
   const refreshRef = useRef<() => void>(() => {});
 
   const read = useCallback(
-    (force: boolean, pressed: boolean): Promise<TracksProject | undefined> => {
-      if (!enabled || (!force && inFlight.current > 0)) return Promise.resolve(undefined);
+    (force: boolean, pressed: boolean): Promise<{ project?: TracksProject; failed: boolean }> => {
+      if (!enabled || (!force && inFlight.current > 0)) return Promise.resolve({ failed: false });
       const id = ++latest.current;
       inFlight.current += 1;
       setBusy(true);
@@ -92,7 +93,7 @@ export function useLiveTracks({ enabled, readKey, notify }: { enabled: boolean; 
       }
       return withinLimit(tracks.tracksLive())
         .then((answer) => {
-          if (!mounted.current || id !== latest.current) return undefined;
+          if (!mounted.current || id !== latest.current) return { failed: false };
           failing.current = false;
           hasProject.current = true;
           setState({
@@ -104,10 +105,10 @@ export function useLiveTracks({ enabled, readKey, notify }: { enabled: boolean; 
             stale: false,
             error: '',
           });
-          return answer.project;
+          return { project: answer.project, failed: false };
         })
         .catch((reason: unknown) => {
-          if (!mounted.current || id !== latest.current) return undefined;
+          if (!mounted.current || id !== latest.current) return { failed: false };
           const text = describeApiError(reason);
           if (pressed || !failing.current)
             notifyRef.current(
@@ -117,7 +118,7 @@ export function useLiveTracks({ enabled, readKey, notify }: { enabled: boolean; 
             );
           failing.current = true;
           setState((previous) => ({ ...previous, stale: hasProject.current, error: text }));
-          return undefined;
+          return { failed: true };
         })
         .finally(() => {
           inFlight.current -= 1;

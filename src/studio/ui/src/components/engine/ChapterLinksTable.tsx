@@ -87,15 +87,15 @@ export function ChapterLinksTable({ links, notify, live }: { links: ChapterLinks
   const recheck = async (row: ChapterTrackRow) => {
     const short = chapterName(row.chapter, 'short');
     const guid = row.mapping?.trackGuid;
-    const project = live ? await live.recheck() : undefined;
+    const read = live ? await live.recheck() : { failed: false };
     try {
       await links.recheck();
     } catch (reason) {
       notify(`The link for ${short} could not be read again: ${apiErrorMessage(reason)}`, 'error');
       return;
     }
-    if (live && !project) return; // the read failed and its own toast says so
-    notify(recheckSentence(short, row.trackName, project?.tracks ?? tracks, guid), 'info');
+    if (read.failed) return; // the live read failed and its own toast says so
+    notify(recheckSentence(short, row.trackName, read.project?.tracks ?? tracks, guid), 'info');
   };
 
   return (

@@ -70,7 +70,7 @@ function liveStub(): LiveTracks {
     stale: false,
     error: '',
     refresh: vi.fn(),
-    recheck: vi.fn(async () => undefined),
+    recheck: vi.fn(async () => ({ failed: false })),
     join: vi.fn(),
   };
 }
@@ -409,6 +409,43 @@ describe('ChapterLinksTable: create a track for a chapter with no link', () => {
     expect(within(row).getByText('Linked')).toBeTruthy();
     act(() => harness.setTracks([...WIRE_TRACKS_PROJECT.tracks], Date.now() + 1000));
     await waitFor(() => expect(within(row).getByText('Track missing')).toBeTruthy());
+  });
+});
+
+// #3275, intent review: the check on the track a chapter already has must always end in a message. Without a live read (an Audacity project) or
+// with one a newer read replaced it still says what it found; a failed read leaves the message to its own error toast.
+describe('The check on the track the chapter already has', () => {
+  async function linkAndReopen(live: Harness['live'], user: ReturnType<typeof userEvent.setup>, row: HTMLElement) {
+    await user.selectOptions(within(row).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
+    await user.click(within(row).getByRole('button', { name: /^Use this (track|folder) for/ }));
+    await within(row).findByRole('button', { name: /^Change the track for/ });
+    await pastQuiet();
+    await user.click(within(row).getByRole('button', { name: /^Change the track for/ }));
+    (live.recheck as ReturnType<typeof vi.fn>).mockClear();
+  }
+
+  it('says what it found when no live read applies', async () => {
+    const user = userEvent.setup();
+    const { notify, live } = renderTable();
+    const { row } = await firstRow();
+    await linkAndReopen(live, user, row);
+    notify.mockClear();
+    await user.click(within(row).getByRole('button', { name: /^Use this (track|folder) for/ }));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringMatching(/Nothing changed\./), 'info'));
+    expect(live.recheck).toHaveBeenCalledTimes(1);
+  });
+
+  it('adds no message of its own when the live read failed', async () => {
+    const user = userEvent.setup();
+    const { notify, live } = renderTable();
+    const { row } = await firstRow();
+    await linkAndReopen(live, user, row);
+    (live.recheck as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ failed: true });
+    notify.mockClear();
+    await user.click(within(row).getByRole('button', { name: /^Use this (track|folder) for/ }));
+    await waitFor(() => expect(live.recheck).toHaveBeenCalledTimes(1));
+    await within(row).findByRole('button', { name: /^Change the track for/ });
+    expect(notify).not.toHaveBeenCalledWith(expect.anything(), 'info');
   });
 });
 
