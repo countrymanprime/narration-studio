@@ -22,3 +22,32 @@ for (const [width, height] of [
     expect(active!.y).toBeGreaterThanOrEqual(fieldBox!.y + fieldBox!.height - 1);
   });
 }
+
+// #2961: a 10,000-character chapter name stays inside its row. No seed puts a name that long in the menu (`many-unbroken` stresses the Booth
+// text), so the first row's label is given one here and the real layout is measured.
+for (const [width, height] of [
+  [1280, 800],
+  [320, 300],
+] as const) {
+  for (const [kind, name] of [
+    ['unbroken', 'x'.repeat(10_000)],
+    ['spaced', 'word '.repeat(2_000)],
+  ] as const) {
+    test(`a 10,000-character ${kind} name stays inside its row at ${width}x${height}`, async ({ page }) => {
+      await page.setViewportSize({ width, height });
+      await page.goto('/booth?mockBooth=many-chapters');
+      await settlePage(page);
+      await page.keyboard.press('Control+k');
+      await page.getByRole('combobox', { name: 'Jump menu' }).fill('chapter');
+      await page.getByRole('option').first().waitFor();
+      await page.evaluate((text) => {
+        document.querySelector('[role=option] span.truncate')!.textContent = text;
+      }, name);
+      const dialog = (await page.getByRole('dialog').boundingBox())!;
+      const row = (await page.getByRole('option').first().boundingBox())!;
+      expect(row.x + row.width).toBeLessThanOrEqual(dialog.x + dialog.width + 1);
+      expect(row.height).toBeLessThan(120);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    });
+  }
+}

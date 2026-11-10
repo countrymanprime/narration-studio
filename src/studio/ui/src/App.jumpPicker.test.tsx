@@ -104,12 +104,22 @@ describe('jump menu over the project picker', () => {
     await openJump('> Go to Chapter 2');
     fireEvent.click((await screen.findAllByRole('option', { name: /Chapter 2/ }))[0]!);
     await waitFor(() => expect(screen.queryByRole('heading', { name: 'Choose your project' })).toBeNull());
+    await screen.findByRole('heading', { level: 1, name: 'Script' });
   });
 
   it('over Settings, Ctrl+, closes the picker', async () => {
     await underPicker('/settings');
     fireEvent.keyDown(document.body, { key: ',', code: 'Comma', ctrlKey: true });
     await waitFor(() => expect(screen.queryByRole('heading', { name: 'Choose your project' })).toBeNull());
+    await screen.findByRole('heading', { level: 1, name: 'Settings' });
+  });
+
+  it('with no project, choosing a Settings category row opens it', async () => {
+    mount({ projectFolder: '' });
+    await picker();
+    await openJump('> Settings: Models');
+    fireEvent.click(await screen.findByRole('option', { name: /^Settings: Models & downloads/ }));
+    await screen.findByRole('heading', { level: 2, name: 'Models & downloads' });
   });
 
   it('with no project, the commands that need one are off with a reason', async () => {
@@ -131,6 +141,7 @@ describe('jump menu over the project picker', () => {
       window.history.pushState(null, '', '/settings#category-delivery');
       window.dispatchEvent(new PopStateEvent('popstate'));
     });
-    await waitFor(() => expect(screen.queryByRole('heading', { level: 2, name: 'Models & downloads' })).toBeNull());
+    await screen.findByRole('heading', { level: 2, name: /^Delivery/ });
+    expect(screen.queryByRole('heading', { level: 2, name: 'Models & downloads' })).toBeNull();
   });
 });
