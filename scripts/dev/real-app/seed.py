@@ -20,7 +20,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 MANUSCRIPT = ROOT / "tests/fixtures/guide-rules/after-the-applause.manuscript.json"
-APP = "narration-studio"
+APP = json.loads((ROOT / "config/brand.json").read_text(encoding="utf-8"))["identity"]["projectFolder"]  # the app's folder inside a project (config/brand.json)
 
 
 def guid(n: int) -> str:
@@ -85,7 +85,7 @@ def main() -> None:
     (app / "project.json").write_text(
         json.dumps(
             {
-                "marker": "narration-studio-project",
+                "marker": f"{APP}-project",
                 "name": "",
                 "createdAt": "2026-11-10T00:00:00Z",
                 "dawProjectFile": {"absolute": str(rpp), "relative": "Book.rpp"},
