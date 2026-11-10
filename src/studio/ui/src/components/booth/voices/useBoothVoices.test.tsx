@@ -6,6 +6,7 @@ import { createMockApi } from '../../../api/mockApi';
 import { WIRE_CHAPTERS } from '../../../api/mockFixtures';
 import { VoiceSetupProvider } from '../../engine/voiceLayout';
 import { destinationFor } from '../../engine/destination';
+import { ChapterTrackStateProvider } from '../../chapterTracks/ChapterTrackState';
 import { useBoothVoices, type BoothVoices } from './useBoothVoices';
 
 afterEach(cleanup);
@@ -26,7 +27,9 @@ async function mount(seed: Parameters<typeof createMockApi>[1], recording = fals
   render(
     <ApiProvider api={api}>
       <VoiceSetupProvider projectFolder="C:/Projects/Alice">
-        <Probe />
+        <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={notify}>
+          <Probe />
+        </ChapterTrackStateProvider>
       </VoiceSetupProvider>
     </ApiProvider>,
   );
@@ -267,15 +270,15 @@ describe("the Booth's voices", () => {
     }
   });
 
-  // A chapter with no one link has no folder to read, so the DAW is not asked: a project with no REAPER file would only get an error.
-  it("does not read the DAW's tracks for a chapter that is not linked", async () => {
+  // A chapter with no one link has no folder, so it lists no voices and the control names no link. Whether the DAW is read at all belongs to
+  // the shared state (a project with no linked DAW file is never read: ChapterTrackStateProvider's `enabled`).
+  it('lists no voices for a chapter that is not linked', async () => {
     const api = createMockApi({}, { voiceFolders: true });
     await api.chapterTrackUnlink(chapterId);
-    const reads = vi.spyOn(api, 'tracksLive');
     const { hook } = await mount({}, false, api);
     await act(async () => new Promise((r) => setTimeout(r, 30)));
-    expect(reads).not.toHaveBeenCalled();
     expect(hook.current.voices).toHaveLength(0);
+    expect(hook.current.linkKind).toBe('none');
   });
 
   // The poll re-reads every few seconds: a read that keeps failing is one toast, not one per tick.

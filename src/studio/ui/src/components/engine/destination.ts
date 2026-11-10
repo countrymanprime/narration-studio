@@ -40,9 +40,12 @@ export function destinationFor(layout: VoiceTracksLayout) {
     chipSeveral: { words: folders ? 'several folders' : 'several tracks', sentence: `this chapter is linked to several ${noun}s` },
     /**
      * A voice key pressed where no voice is listed, and why, by what the chapter is linked to: nothing (`none`), a track that is not a folder (`track`),
-     * a folder holding no voices yet (`empty`), or something the saved project does not hold yet (`unknown`: a folder just made, its voices still being read).
+     * a folder holding no voices yet (`empty`), or a track the project does not hold (`unknown`: deleted in the DAW, or a folder just made that is not saved yet).
      */
     noVoiceKeys: (link: ChapterLinkKind) => {
+      // One sentence in either layout for a link to a track the project does not hold, as the host says it and the Engine panel's "Track missing" (#3269).
+      if (link === 'unknown')
+        return 'This chapter’s track is not in the project, so there is no voice to choose. Save the project in the DAW, or link the chapter again in the audio engine panel.';
       if (!folders) return 'This chapter records on one track. Voice keys choose a voice for a chapter linked to a folder of voices (the audio engine panel).';
       switch (link) {
         case 'none':
@@ -51,8 +54,6 @@ export function destinationFor(layout: VoiceTracksLayout) {
           return 'This chapter is linked to a single track, not a folder of voices, so there is no voice to choose. Link its folder in the audio engine panel.';
         case 'empty':
           return 'This chapter’s folder has no voice tracks yet, so there is no voice to choose. Add a track inside it in REAPER.';
-        case 'unknown':
-          return 'This chapter’s voices are still being read, so there is no voice to choose yet. Try again in a moment.';
       }
     },
     /** The Editing note for a chapter with no link. */

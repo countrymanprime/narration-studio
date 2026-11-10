@@ -1,7 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import type { Track } from '../../../api/contracts/tracks';
-import { describeApiError } from '../../../api/errorMessage';
-import { usePort } from '../../../ports/usePort';
+import { useChapterTrackState } from '../../chapterTracks/ChapterTrackState';
 import { useChapterLinks } from '../../engine/useChapterLinks';
 import { useVoiceTracks } from '../../engine/useVoiceTracks';
 import { useVoiceSetup } from '../../engine/voiceLayout';
@@ -13,7 +12,7 @@ const noop = () => {};
 
 /**
  * The body of "Voices": the Engine panel's Voices card (the Narrator's character and who each voice track records), on the same shared voice
- * setup, without its own card. It needs the project's tracks and chapter links, which it reads as the panel does. While the layout is Flat
+ * setup, without its own card. It needs the project's tracks and chapter links, which it takes from the shared chapter-track state, as the Engine panel does. While the layout is Flat
  * there are no voice tracks and the row's body is empty.
  */
 export function VoicesBody() {
@@ -25,27 +24,12 @@ export function VoicesBody() {
 /** Read only while the layout is Voice folders, so the Story Bible and the tracks are not read for a flat project. */
 function VoiceFolders() {
   const { notify } = useSettingsHost();
-  const tracksPort = usePort('tracks');
   const voices = useVoiceTracks(notify);
-  const [tracks, setTracks] = useState<Track[]>(NO_TRACKS);
-  // The tracks belong to REAPER, which the narrator edits while this page is open: read them again when the window is focused again.
-  const [again, setAgain] = useState(0);
-  useEffect(() => {
-    const bump = () => setAgain((count) => count + 1);
-    window.addEventListener('focus', bump);
-    return () => window.removeEventListener('focus', bump);
-  }, []);
-  useEffect(() => {
-    let active = true;
-    tracksPort
-      .tracksList()
-      .then((project) => active && setTracks(project.tracks))
-      .catch((reason: unknown) => active && notify(describeApiError(reason), 'error'));
-    return () => {
-      active = false;
-    };
-  }, [tracksPort, notify, again]);
-  const links = useChapterLinks(tracks, again, noop);
+  // The tracks are the ones every screen shares (REAPER's list now, as the Engine panel and the Booth show), so a rename made in REAPER and
+  // not yet saved is seen here too; they are read again on focus and every few seconds by the shared state, which toasts a failed read.
+  const trackState = useChapterTrackState();
+  const tracks = trackState.project?.tracks ?? NO_TRACKS;
+  const links = useChapterLinks(tracks, trackState.readAt ?? 0, noop);
   useEffect(() => {
     if (links.error) notify(links.error, 'error');
   }, [links.error, notify]);
