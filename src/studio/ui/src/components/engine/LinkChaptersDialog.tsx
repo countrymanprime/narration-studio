@@ -22,6 +22,7 @@ import { folderChildren, folderLinkLabel } from './voices';
 import { useVoiceLayout } from './voiceLayout';
 import type { LineIdentityLine, LineIdentityRowStatus, LineIdentityState, LineIdentityStampRow, Track, TrackItem } from '../../types';
 import { plural } from '../../plural';
+import { trackName } from '../tracks/trackName';
 
 const STATUS_LABEL: Record<LineIdentityRowStatus, string> = {
   ok: 'OK',
@@ -200,7 +201,7 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
   const trackOptions = [
     { value: '', label: 'Not linked' },
     ...tracks.map((track) => {
-      const name = track.name || `Track ${track.index + 1}`;
+      const name = trackName(track.name, track.index);
       // A folder reads as the Chapter links list names it, so it is not taken for a track.
       return {
         value: track.guid,
