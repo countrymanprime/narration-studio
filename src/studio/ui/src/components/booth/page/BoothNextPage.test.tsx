@@ -2634,4 +2634,126 @@ describe('a start chosen with Start from here: the wait is shown, dropped on lea
     await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
     expect(page.daw.recordStart).toHaveBeenLastCalledWith('c1', 12);
   });
+  describe('a second Start from here on another phrase while a take is starting is refused, not half-done (#3320)', () => {
+    const BUSY = 'A take is already starting, so that press was ignored.';
+    const startFrom = async (unit: number) => {
+      const word = document.querySelector(`[data-unit="${unit}"] [data-word]`)!;
+      await act(async () => {
+        fireEvent.contextMenu(word, { button: 2, clientX: 10, clientY: 10 });
+      });
+      await userEvent.click(await screen.findByRole('menuitem', { name: 'Start from here' }));
+    };
+    const said = (page: ReturnType<typeof renderPage>) => page.overlay.getSnapshot().toasts.map((t) => t.text);
+    const stopButton = () => screen.getByRole('button', { name: /^Stop$/ });
+
+    const refused = async (slowPart: 'model check' | 'record start') => {
+      const boothPunchTarget = vi.fn(async () => ({ ...FOUND, trackGuid: 'T', trackName: 'Narrator' }));
+      const boothVoiceSet = vi.fn(async () => ({ outcome: 'selected' }));
+      const slow = gated({ assets: [] });
+      const page = renderPage({ api: { boothPunchTarget, boothVoiceSet, ...(slowPart === 'model check' ? { assetsList: slow.answer } : {}) } as never });
+      const holder = { release: slow.release };
+      if (slowPart === 'record start') {
+        page.daw.recordStart.mockImplementationOnce(async () => {
+          await new Promise<void>((resolve) => (holder.release = resolve));
+          return { ok: true, changed: true, message: '', undoSteps: 1 };
+        });
+      }
+      await ready();
+      boothPunchTarget.mockClear();
+      await startFrom(3);
+      await settle();
+      expect(boothPunchTarget).toHaveBeenCalledTimes(1);
+      expect(current()).toBe('3');
+      const toastsBefore = said(page).length;
+      await startFrom(7);
+      await settle();
+      // Nothing changed: no second lookup, no voice choice, the reading is still on the first phrase, one sentence and no "Starting from".
+      expect(boothPunchTarget).toHaveBeenCalledTimes(1);
+      expect(boothVoiceSet).toHaveBeenCalledTimes(1);
+      expect(current()).toBe('3');
+      expect(said(page).slice(toastsBefore)).toEqual([BUSY]);
+      expect(said(page).filter((text) => text.startsWith('Starting from'))).toHaveLength(1);
+      holder.release();
+      await waitFor(() => expect(stopButton()).toBeTruthy());
+      expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
+      expect(page.daw.recordStart).toHaveBeenCalledWith('c1', 12);
+      expect(current()).toBe('3');
+      // After the take, the next press works as usual.
+      await space();
+      await waitFor(() => expect(recordButton()).toBeTruthy());
+      await startFrom(7);
+      await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(2));
+      expect(boothPunchTarget).toHaveBeenCalledTimes(2);
+      expect(current()).toBe('7');
+    };
+    it('a plain press under way, then Start from here on a phrase: refused, the reading stays and the take starts at the end of the chapter', async () => {
+      const boothPunchTarget = vi.fn(async () => FOUND);
+      const slow = gated({ assets: [] });
+      const page = renderPage({ api: { boothPunchTarget, assetsList: slow.answer } as never });
+      await ready();
+      boothPunchTarget.mockClear();
+      const before = current();
+      await space();
+      await settle();
+      expect(recordButton().getAttribute('aria-busy')).toBe('true');
+      await startFrom(7);
+      await settle();
+      expect(boothPunchTarget).not.toHaveBeenCalled();
+      expect(current()).toBe(before);
+      expect(said(page)).toEqual([BUSY]);
+      slow.release();
+      await waitFor(() => expect(stopButton()).toBeTruthy());
+      expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
+      expect(page.daw.recordStart).toHaveBeenCalledWith('c1', undefined);
+      expect(current()).toBe(before);
+      await space();
+      await waitFor(() => expect(recordButton()).toBeTruthy());
+      await startFrom(7);
+      await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(2));
+      expect(boothPunchTarget).toHaveBeenCalledTimes(1);
+      expect(current()).toBe('7');
+    });
+    it('a plain Space during a Start from here lookup on a DAW that cannot punch starts the take, as before (#3329 owns this path)', async () => {
+      const lookup = slowLookup();
+      const page = renderPage({ setup: 'builtin', api: { boothPunchTarget: lookup.boothPunchTarget } });
+      await ready();
+      await startFrom(3);
+      await settle();
+      expect(lookup.boothPunchTarget).toHaveBeenCalledTimes(1);
+      await space();
+      await waitFor(() => expect(stopButton()).toBeTruthy());
+      expect(said(page)).not.toContain(BUSY);
+      expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
+      expect(page.daw.recordStart).toHaveBeenCalledWith('c1', undefined);
+      await act(async () => lookup.answer(FOUND));
+      await settle();
+      expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
+    });
+
+    for (const slowPart of ['lookup', 'model check'] as const) {
+      it(`Space and a Record click during a Start from here with a slow ${slowPart} join it: one lookup, no sentence, the take at the chosen spot`, async () => {
+        const lookup = slowLookup();
+        const slow = gated({ assets: [] });
+        const boothPunchTarget = slowPart === 'lookup' ? lookup.boothPunchTarget : vi.fn(async () => FOUND);
+        const page = renderPage({ api: { boothPunchTarget, ...(slowPart === 'model check' ? { assetsList: slow.answer } : {}) } as never });
+        await ready();
+        boothPunchTarget.mockClear();
+        await startFrom(3);
+        await settle();
+        await space();
+        await userEvent.click(recordButton());
+        await settle();
+        expect(said(page)).not.toContain(BUSY);
+        if (slowPart === 'lookup') await act(async () => lookup.answer(FOUND));
+        else slow.release();
+        await waitFor(() => expect(stopButton()).toBeTruthy());
+        expect(boothPunchTarget).toHaveBeenCalledTimes(1);
+        expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
+        expect(page.daw.recordStart).toHaveBeenCalledWith('c1', 12);
+        expect(said(page)).not.toContain(BUSY);
+      });
+    }
+    it('during a slow model check', () => refused('model check'));
+    it('during a slow record start', () => refused('record start'));
+  });
 });
