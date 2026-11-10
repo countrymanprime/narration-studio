@@ -132,6 +132,17 @@ describe('EditingCheckPanel', () => {
     await waitFor(() => expect(within(dialog).queryByText(/This chapter can.t be checked yet/)).toBeNull());
   });
 
+  it('a double click on Check editing does not cancel the check it started (class of #3034)', async () => {
+    const user = userEvent.setup();
+    renderPanel({ editing: { hold: true } });
+    const dialog = await panel();
+    await user.click(within(dialog).getByRole('button', { name: 'Check editing' }));
+    await user.click(await within(dialog).findByRole('button', { name: 'Cancel' }));
+    await new Promise((done) => setTimeout(done, 100));
+    expect(within(dialog).getByRole('progressbar', { name: 'Editing check progress' })).toBeTruthy();
+    expect(within(dialog).queryByText(/^Stopped after/)).toBeNull();
+  });
+
   it('running shows real progress and Cancel, and cancelling leaves a partial result the narrator can check again from', async () => {
     const user = userEvent.setup();
     renderPanel({ editing: { hold: true } });

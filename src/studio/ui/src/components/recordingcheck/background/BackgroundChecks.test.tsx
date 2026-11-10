@@ -151,6 +151,22 @@ describe('BackgroundChecks', () => {
     expect(await screen.findByRole('button', { name: 'Pause' })).toBeTruthy();
   });
 
+  it('a double click on Pause does not resume, and a double click on Hide does not reopen the card (class of #3034)', async () => {
+    const { saveSettings } = mount({ backgroundChecks: 'running' });
+    fireEvent.click(await screen.findByRole('button', { name: 'Pause' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Resume' }));
+    await waitFor(() => expect(saveSettings).toHaveBeenCalledWith('RecordingCoverage', 'global', { background_checks: 'false' }));
+    expect(saveSettings).toHaveBeenCalledTimes(1);
+  });
+
+  it('a double click on Hide does not open the chip it folds to (class of #3034)', async () => {
+    mount({ backgroundChecks: 'running' });
+    fireEvent.click(await screen.findByRole('button', { name: 'Hide' }));
+    fireEvent.click(await screen.findByRole('button', { name: /Checking in the background · 42%/ }));
+    expect(screen.queryByRole('button', { name: 'Pause' })).toBeNull();
+    expect(screen.getByRole('button', { name: /Checking in the background · 42%/ })).toBeTruthy();
+  });
+
   it('starts folded in the Booth, so it never covers the text being read', async () => {
     mount({ backgroundChecks: 'running' }, true);
     expect(await screen.findByRole('button', { name: /Checking in the background · 42%/ })).toBeTruthy();

@@ -41,6 +41,18 @@ describe('WorkDialog', () => {
     expect(cancel).not.toHaveBeenCalled();
   });
 
+  it('ignores the second click of a double click on Cancel, which lands on the Close that replaced it (class of #3034)', () => {
+    const close = vi.fn();
+    const cancel = vi.fn();
+    const view = (phase: WorkJob['phase']) => <WorkDialog title="Rebuild Story Bible" job={job({ phase })} close={close} cancel={cancel} />;
+    const { rerender } = render(view('running'));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    rerender(view('cancelled'));
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(cancel).toHaveBeenCalledOnce();
+    expect(close).not.toHaveBeenCalled();
+  });
+
   it('stays open when the backdrop is pressed, whatever phase the job is in: a job is ended with its own buttons (issue 1706)', () => {
     for (const phase of PHASES) {
       const close = vi.fn();

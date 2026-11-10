@@ -223,6 +223,10 @@ describe('replacesPressed', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Download' }));
       fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
       expect(onCancel).not.toHaveBeenCalled();
+      // A triple click, or a held key repeating, is ignored the whole window, not only once.
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      expect(onCancel).not.toHaveBeenCalled();
       vi.advanceTimersByTime(ECHO_WINDOW_MS);
       fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
       expect(onCancel).toHaveBeenCalledOnce();

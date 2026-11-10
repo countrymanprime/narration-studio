@@ -255,9 +255,7 @@ export function CompareRun({
   };
 
   // The chapter view names its own chapter, so the host never has to guess it from the track name.
-  const starting = usePendingAction();
-  const start = (title: string | undefined = chapterTitle) => starting.run('start', () => startOnce(title));
-  const startOnce = async (title: string | undefined) => {
+  const start = async (title: string | undefined = chapterTitle) => {
     try {
       const result = await api.transcriptStart({
         model,

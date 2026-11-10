@@ -67,8 +67,6 @@ export function useManuscriptImport({
   });
   // The file dialog is the host's, and pressing again while it is open would open a second one.
   const choosing = usePendingAction();
-  const beginning = usePendingAction();
-  const committing = usePendingAction();
   // Step 1 of the flow (the mock's "Choose your manuscript"): open from the choose button until a file is chosen or the narrator cancels.
   const [step1Open, setStep1Open] = useState(false);
   // Why the host refused a file dropped on step 1 (the host checks it and begins the import itself; the page never sees the path).
@@ -186,8 +184,7 @@ export function useManuscriptImport({
       .then(setImportJob)
       .catch((error) => notify(error.message, 'error'));
   };
-  const commitImport = () => committing.run('commit', commitImportOnce);
-  const commitImportOnce = async () => {
+  const commitImport = async () => {
     if (!importJob?.id) return;
     profileToSave.current = asksProfile ? profileChoice : null;
     try {
@@ -283,12 +280,10 @@ export function useManuscriptImport({
           body={`Found ${candidate.name} in this project folder. Import it now? You can also choose a different file with the import button.`}
           confirmLabel="Import"
           confirm={() =>
-            void beginning.run('begin', () =>
-              api
-                .manuscriptBeginImport(candidate.path)
-                .then((result) => (result.selected && result.jobId ? beginImportPreview(result.jobId) : undefined))
-                .catch((error) => notify(describeApiError(error), 'error')),
-            )
+            void api
+              .manuscriptBeginImport(candidate.path)
+              .then((result) => (result.selected && result.jobId ? beginImportPreview(result.jobId) : undefined))
+              .catch((error) => notify(describeApiError(error), 'error'))
           }
           cancel={() => {
             declinedCandidates.add(candidate.path);

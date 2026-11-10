@@ -233,6 +233,23 @@ describe('Settings: Models & downloads', () => {
     await waitFor(() => expect(within(asset('tts/en_US-ljspeech-high')).getByText('Installed · checked')).toBeTruthy(), SLOW);
   });
 
+  it('a double click on Cancel does not restart the download it cancelled (class of #3034)', async () => {
+    const assetsInstall = vi.fn();
+    await renderModels({
+      seed: { assets: 'missing' },
+      before: async (api) => void (assetsInstall.mockImplementation(api.assetsInstall.bind(api)), (api.assetsInstall = assetsInstall)),
+    });
+    const voice = await ready('tts/en_US-ljspeech-high');
+    fireEvent.click(within(voice).getByRole('button', { name: /^Download LJ Speech/ }));
+    await within(voice).findByRole('progressbar', { name: /^Downloading LJ Speech/ });
+    await new Promise((done) => setTimeout(done, ECHO_WINDOW_MS + 20));
+    fireEvent.click(within(voice).getByRole('button', { name: /^Cancel the download of LJ Speech/ }));
+    // The second click of the double click lands on Download, which has taken Cancel's place.
+    fireEvent.click(await within(voice).findByRole('button', { name: /^Download LJ Speech/ }));
+    await new Promise((done) => setTimeout(done, 100));
+    expect(assetsInstall).toHaveBeenCalledTimes(1);
+  });
+
   it('a download that fails says why and offers Retry', async () => {
     const reason = 'Not enough free disk space: 114 MB are needed and 20 MB are free.';
     const assetsInstall = vi.fn().mockRejectedValue(new Error(reason));

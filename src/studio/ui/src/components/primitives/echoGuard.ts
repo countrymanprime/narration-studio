@@ -31,6 +31,8 @@ export function useEchoGuard(enabled: boolean | undefined): (event: MouseEvent) 
     if (!enabled || !previous || Date.now() - previous.at >= ECHO_WINDOW_MS) return false;
     // Only a click on a control that has since left the page is an echo: the old button was replaced by this one.
     if (!(previous.target instanceof Node) || previous.target.isConnected) return false;
+    // The ignored click is not the new "click before": a third press, and every repeat of a held key, meets the same echo and is ignored too.
+    current = previous;
     event.preventDefault();
     return true;
   };

@@ -110,6 +110,19 @@ describe('AnalysisToolsSection', () => {
     expect(port.assetsInstall).toHaveBeenCalledTimes(1);
   });
 
+  it('a double click on Try again does not cancel the retry it started (class of #3034)', async () => {
+    const { fake, port } = mount({ installs: { gliner: { fails: 'Could not reach huggingface.co.' } } });
+    await download('gliner', 'GLiNER');
+    const gliner = await row('gliner');
+    await waitFor(() => expect(gliner.getAttribute('data-status')).toBe('failed'), SLOW);
+    fake.plan('gliner', 'held');
+    await outwaitEcho();
+    fireEvent.click(within(gliner).getByRole('button', { name: 'Try GLiNER again' }));
+    fireEvent.click(await within(gliner).findByRole('button', { name: 'Cancel the download of GLiNER' }));
+    await new Promise((done) => setTimeout(done, 100));
+    expect(port.assetsInstallCancel).not.toHaveBeenCalled();
+  });
+
   it('progress-cancel-and-retry', async () => {
     const { fake, port } = mount({ installs: { 'booknlp-small': 'held', gliner: { fails: 'Could not reach huggingface.co.' } } });
     await download('booknlp-small', 'BookNLP (small)');
