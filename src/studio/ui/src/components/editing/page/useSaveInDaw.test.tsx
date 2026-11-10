@@ -279,6 +279,14 @@ describe('useSaveShortcut', () => {
     toast.mockRestore();
   });
 
+  it('a port that answers nothing is an error toast, not silence', async () => {
+    const toast = vi.spyOn(overlay, 'toast').mockImplementation(() => {});
+    renderHook(() => useSaveShortcut(), { wrapper: keyboardWrap(clientSaving((async () => undefined) as unknown as () => Promise<DawResult>)) });
+    press({ key: 's', code: 'KeyS', ctrlKey: true });
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.stringContaining('did not answer'), { tone: 'error' }));
+    toast.mockRestore();
+  });
+
   it('an Editing page open during a Ctrl+S save shows it running and reads when it is done', async () => {
     const toast = vi.spyOn(overlay, 'toast').mockImplementation(() => {});
     const onReread = vi.fn();

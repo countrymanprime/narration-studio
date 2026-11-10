@@ -18,6 +18,8 @@ export const canSaveFromApp = (caps: DawCapabilities | null): boolean => {
 };
 
 const NO_ANSWER = 'The DAW did not answer the save. Check that it is open, then try again.';
+/** A port that answers nothing (a broken adapter) is the same refusal as one that never answers: the narrator is told, never left with no toast. */
+const NO_ANSWER_RESULT: DawResult = { ok: false, changed: false, message: NO_ANSWER, undoSteps: 0, refused: NO_ANSWER };
 const NOT_SAVED = 'The project was not saved.';
 /** The host's own timeout is shorter (15 s); this is for a call that never comes back at all. */
 export const SAVE_GIVES_UP_MS = 30_000;
@@ -45,6 +47,7 @@ function startSave(daw: DawClient): void {
   // The async wrapper makes a synchronous throw from the port an error toast like any refusal, not an exception out of the key handler.
   const running = Promise.race([(async () => daw.saveProject())(), silent])
     .catch((): DawResult => ({ ok: false, changed: false, message: NO_ANSWER, undoSteps: 0, refused: NO_ANSWER }))
+    .then((answer) => answer ?? NO_ANSWER_RESULT)
     .then((result) => {
       clearTimeout(timer);
       inFlight = null;
