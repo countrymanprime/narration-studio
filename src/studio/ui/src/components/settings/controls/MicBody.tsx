@@ -61,9 +61,8 @@ function DawMic() {
   const { global } = store.fieldsOf(row);
   const overridden = store.fieldsOf(source).global?.effectiveValue === 'chosen';
 
-  const [checkedAt, markChecked] = useCheckedAt();
+  const [checkedAt, markChecked, reads] = useCheckedAt();
   const read = useCallback(() => {
-    setAnswer(null);
     const input = teleprompter.teleprompterReaperInput('').then(setAnswer, () => setAnswer('failed'));
     const devicesRead = teleprompter.teleprompterDevices().then(
       (result) => setDevices(result.devices.map((device) => device.name)),
@@ -73,7 +72,15 @@ function DawMic() {
   }, [teleprompter]);
   // The narrator's own press stamps when both reads have answered, so the same answer as last time still shows that it was asked; the read
   // the row makes when it opens does not, there is nothing yet to compare it with.
-  const ask = () => void read().then(markChecked);
+  // The answer on screen stays while it asks again, so the button the narrator pressed is not replaced and keeps keyboard focus; it is busy until both reads answer.
+  const [asking, setAsking] = useState(false);
+  const ask = () => {
+    setAsking(true);
+    void read().then(() => {
+      markChecked();
+      setAsking(false);
+    });
+  };
   useEffect(() => void read(), [read]);
 
   // Settings that cannot be read leave the row its picker, off like the rest of the page (alignment audit R3SE2-19).
@@ -105,10 +112,10 @@ function DawMic() {
   );
   const checkAgain = (
     <span className="inline-flex flex-wrap items-center gap-2">
-      <Button variant="secondary" size="sm" onClick={ask}>
+      <Button variant="secondary" size="sm" pending={asking} onClick={ask}>
         {`Ask ${dawName} again`}
       </Button>
-      <CheckedStamp at={checkedAt} />
+      <CheckedStamp at={checkedAt} reads={reads} />
     </span>
   );
   const records = resolved.dawInput ? <span className={NOTE_CLASS}>{`${dawName} records from ${resolved.dawInput}.`}</span> : null;

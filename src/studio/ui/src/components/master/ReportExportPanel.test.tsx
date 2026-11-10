@@ -26,7 +26,7 @@ describe('the report export', () => {
     const deliveryExportReport = vi.fn();
     mount({ measured: false }, { deliveryExportReport });
     const button = screen.getByRole('button', { name: 'Export report' });
-    expect(button).toHaveProperty('disabled', true);
+    expect(button.getAttribute('aria-disabled')).toBe('true');
     expect(screen.getByText(/Check some files first/)).toBeTruthy();
     await userEvent.click(button);
     expect(deliveryExportReport).not.toHaveBeenCalled();
@@ -51,7 +51,7 @@ describe('the report export', () => {
   it('stays off while a job runs, and says why beside it', () => {
     mount({ busy: true, measured: true });
     const button = screen.getByRole('button', { name: 'Export report' });
-    expect(button).toHaveProperty('disabled', true);
+    expect(button.getAttribute('aria-disabled')).toBe('true');
     expect(button.getAttribute('aria-describedby') && document.getElementById(button.getAttribute('aria-describedby')!)?.textContent).toBe(
       'Wait for the running check to end.',
     );

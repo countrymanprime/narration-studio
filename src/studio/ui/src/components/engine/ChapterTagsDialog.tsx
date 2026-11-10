@@ -90,7 +90,7 @@ export function ChapterTagsDialog({ onClose }: { onClose: () => void }) {
     : held
       ? 'The first copy may still be writing. Wait, or close this dialog and look in the folder of your MP3.'
       : !preview.ready
-        ? 'There is no chapter render to tag yet.'
+        ? 'Every chapter has to be rendered first; the list above says which are not.'
         : destPath.trim() === ''
           ? 'Enter the combined book MP3 first.'
           : !confirmed
