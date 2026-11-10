@@ -9,7 +9,7 @@ import { badgeStyle } from '../../primitives/StatusBadge';
 import { SearchList } from '../../primitives/SearchList';
 import { useBoothSamplesContext } from '../samples/BoothSamplesContext';
 import { UNKNOWN_SPEAKER } from './boothUnits';
-import { plural, pluralWord } from '../../../plural';
+import { plural, pluralWord, formatCount } from '../../../plural';
 
 type Props = {
   /** The phrase this chip belongs to; passed back to `onSetSpeaker`. */
@@ -53,7 +53,7 @@ export function SpeakerChip({ phraseKey, speaker, confirmed, colour, speakers, o
         id: `pick:${name}`,
         label: name,
         trailing: `${plural(mine.length, 'sample')}`,
-        hint: `Has ${mine.length} voice ${pluralWord(mine.length, 'sample')}. Press Control Enter to hear the primary one.`,
+        hint: `Has ${formatCount(mine.length)} voice ${pluralWord(mine.length, 'sample')}. Press Control Enter to hear the primary one.`,
         action: (
           <IconButton
             size="sm"

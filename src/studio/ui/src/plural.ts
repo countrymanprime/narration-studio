@@ -9,8 +9,8 @@ export const pluralWord = (count: number, one: string, many = `${one}s`): string
  */
 export const plural = (count: number, one: string, many?: string): string => {
   const n = Number.isFinite(count) ? count : 0;
-  return `${(n || 0).toLocaleString('en-US')} ${pluralWord(n, one, many)}`;
+  return `${formatCount(n)} ${pluralWord(n, one, many)}`;
 };
 
 /** A count on its own, with thousands separators ("5,002", "0 of 5,002 encoded"): for a number that does not sit before a noun `plural` can join. */
-export const formatCount = (count: number): string => (Number.isFinite(count) ? count : 0).toLocaleString('en-US');
+export const formatCount = (count: number): string => ((Number.isFinite(count) ? count : 0) + 0).toLocaleString('en-US');

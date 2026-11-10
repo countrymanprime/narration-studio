@@ -1,7 +1,7 @@
 import { flagged, isLow, itemAt, runwayEnd, type ChapterDoc, type DocItem } from '../model';
 import type { PageState } from '../script/scriptState';
 import { clockTenths } from '../../../clock';
-import { pluralWord } from '../../../plural';
+import { pluralWord, formatCount } from '../../../plural';
 
 /** Which kind of flagged word a tinted span covers: extra words, a misread, or a low-confidence word. */
 export type TintKind = 'extra' | 'mis' | 'low';
@@ -91,8 +91,8 @@ function layoutOf(
 
   const description = [
     lead,
-    `${count} flagged ${pluralWord(count, 'word')}${count ? `: ${flagWords.map((i) => i.text).join(', ')} (tinted, marked by a bar along the top)` : ''}.`,
-    cuts.length ? `${cuts.length} cut ${pluralWord(cuts.length, 'span')}, drawn hatched.` : '',
+    `${formatCount(count)} flagged ${pluralWord(count, 'word')}${count ? `: ${flagWords.map((i) => i.text).join(', ')} (tinted, marked by a bar along the top)` : ''}.`,
+    cuts.length ? `${formatCount(cuts.length)} cut ${pluralWord(cuts.length, 'span')}, drawn hatched.` : '',
     playhead != null ? `Playing at ${secs(playhead - t0)}.` : '',
   ]
     .filter(Boolean)

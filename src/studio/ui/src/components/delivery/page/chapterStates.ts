@@ -30,7 +30,7 @@ export function firstFailure(chapters: readonly Listed[], files: readonly Measur
     if (!file || fileVerdict(file) !== 'fail') continue;
     const [first, ...rest] = missesWithLimit(file, profile);
     if (first === undefined) continue;
-    return `${chapterName(chapter)}: ${first}${rest.length > 0 ? `, and ${rest.length} more ${pluralWord(rest.length, 'rule')}` : ''}.`;
+    return `${chapterName(chapter)}: ${first}${rest.length > 0 ? `, and ${formatCount(rest.length)} more ${pluralWord(rest.length, 'rule')}` : ''}.`;
   }
   return undefined;
 }

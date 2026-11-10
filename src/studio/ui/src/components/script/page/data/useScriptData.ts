@@ -24,7 +24,7 @@ import { createScriptData, type Loadable, type ScriptData, type ScriptDataState 
 import { createScriptView, type ScriptView, type ScriptViewState } from './scriptView';
 import * as select from './script.selectors';
 import { cueSpeakerEntries } from '../../../manuscript/dialogueCues.selectors';
-import { plural, pluralWord } from '../../../../plural';
+import { plural, pluralWord, formatCount } from '../../../../plural';
 
 /** What a read looks like to a component: its value (the last one while a reload runs), the host's sentence when it failed, and Retry. */
 export type ReadView<T> = {
@@ -407,7 +407,7 @@ export function useScriptCommands() {
         if (!done) return false;
         const { filled, changed, keptConfirmed } = done.value;
         const moved = filled + changed;
-        const kept = keptConfirmed ? ` ${keptConfirmed} confirmed ${pluralWord(keptConfirmed, 'line')} left as they were.` : '';
+        const kept = keptConfirmed ? ` ${formatCount(keptConfirmed)} confirmed ${pluralWord(keptConfirmed, 'line')} left as they were.` : '';
         if (moved === 0) overlay.toast(`No new speakers found.${kept}`);
         else undoOffer(`Attributed ${plural(moved, 'line')}.${kept}`, done.entryId);
         return true;

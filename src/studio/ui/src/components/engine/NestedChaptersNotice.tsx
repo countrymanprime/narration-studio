@@ -71,7 +71,7 @@ export function NestedChaptersNotice({
       </Button>
       {opened && (
         <ConfirmDialog
-          title={`Move ${shownChapters.length === 1 ? 'a chapter' : `${shownChapters.length} chapters`} out of ${shownFolders.join(' and ')}?`}
+          title={`Move ${shownChapters.length === 1 ? 'a chapter' : plural(shownChapters.length, 'chapter')} out of ${shownFolders.join(' and ')}?`}
           body={`${nestingSentence(shown)} Only the folder setting of the track just before each chapter changes in REAPER, and one Undo in REAPER takes it back.`}
           confirmLabel="Move them out"
           pending={repairing}

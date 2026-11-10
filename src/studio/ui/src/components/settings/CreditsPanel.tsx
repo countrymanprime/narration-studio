@@ -13,7 +13,7 @@ import { Field } from '../primitives/Field';
 import { Select } from '../primitives/Select';
 import { Highlight } from '../primitives/Highlight';
 import { type Notify, retryAction } from '../primitives/Toast';
-import { plural, pluralWord } from '../../plural';
+import { plural, pluralWord, formatCount } from '../../plural';
 
 const KIND_LABEL: Record<string, string> = { opening: 'Opening', closing: 'Closing', chapter_announcement: 'Chapter announcement' };
 
@@ -347,7 +347,7 @@ export function CreditsPanel({ notify }: { notify: Notify }) {
               {previewScope && `Shown for ${previewScope.chapter}, one of ${plural(previewScope.count, 'chapter')}. `}
               {plural(preview.words, 'word')}
               {preview.unresolved.length > 0 &&
-                ` — ${preview.unresolved.length} unresolved ${pluralWord(preview.unresolved.length, 'token')}: ${preview.unresolved.join(', ')}`}
+                ` — ${formatCount(preview.unresolved.length)} unresolved ${pluralWord(preview.unresolved.length, 'token')}: ${preview.unresolved.join(', ')}`}
             </p>
           </>
         ) : (

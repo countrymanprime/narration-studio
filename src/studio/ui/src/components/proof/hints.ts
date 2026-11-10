@@ -1,4 +1,4 @@
-import { plural, pluralWord } from '../../plural';
+import { plural, pluralWord, formatCount } from '../../plural';
 /**
  * Pure helpers for the Proofing vocabulary hints, kept out of Transcript.tsx so the
  * matching and wording rules can be tested without rendering the page.
@@ -35,5 +35,5 @@ export function suggestionMessage(found: number, fresh: number, added: number): 
   if (found === 0) return 'No names found in the Story Bible yet. Build it or add entries, then try again.';
   if (fresh === 0) return `No new suggestions: all ${plural(found, 'name')} found ${found === 1 ? 'is' : 'are'} already accepted.`;
   if (added === 0) return `${fresh === 1 ? 'The suggestion found is' : `The ${fresh} suggestions found are`} already shown. Click one to accept it.`;
-  return `Found ${added} new ${pluralWord(added, 'suggestion')}.`;
+  return `Found ${formatCount(added)} new ${pluralWord(added, 'suggestion')}.`;
 }

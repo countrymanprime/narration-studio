@@ -14,7 +14,7 @@ import { useTakesGate } from '../useTakesGate';
 import { HideOthersConfirmBody } from './HideOthersConfirm';
 import { HideButton } from './PrepControls';
 import { useDawCapabilities } from '../../../../hooks/useDawCapabilities';
-import { pluralWord, plural } from '../../../../plural';
+import { pluralWord, plural, formatCount } from '../../../../plural';
 
 const KEEP_FIRST = 'Keep a take first.';
 const NO_OTHERS = 'There are no other takes to hide.';
@@ -52,7 +52,7 @@ const refusal = (r: DawResult): Result<never> => {
 /** Mutes the other takes in the DAW (one undo step there). Nothing is deleted. A DAW that muted nothing is a refusal, so no entry is made. */
 function hideCommand(daw: DawClient, passage: LinePassage, keptId: string, count: number, dawName: string): Command<DawResult> {
   return {
-    label: `Hid ${count} other ${pluralWord(count, 'take')}`,
+    label: `Hid ${formatCount(count)} other ${pluralWord(count, 'take')}`,
     touches: [`takes/${passage.id}`],
     daw: true,
     async run() {
@@ -111,7 +111,7 @@ export function useHideOthers({ journal, kept, current, passageOf, busy: shared 
       setHidden((h) => ({ ...h, [passage.id]: [...(h[passage.id] ?? []), ...others] }));
       setRevealed((r) => ({ ...r, [passage.id]: false }));
       overlay.toast(
-        `Hid ${others.length} other ${pluralWord(others.length, 'take')}: hidden, not deleted. They are still in the project. ${result.value.value.message}`,
+        `Hid ${formatCount(others.length)} other ${pluralWord(others.length, 'take')}: hidden, not deleted. They are still in the project. ${result.value.value.message}`,
       );
     },
     [daw, dawName, journal],
@@ -175,7 +175,7 @@ export function useHideOthers({ journal, kept, current, passageOf, busy: shared 
         const l = latest.current;
         const count = (l.hidden[passage.id] ?? []).length;
         if (count === 0) return null;
-        const label = `${l.revealed[passage.id] ? 'Put away' : 'Look at'} ${count} hidden ${pluralWord(count, 'take')}`;
+        const label = `${l.revealed[passage.id] ? 'Put away' : 'Look at'} ${formatCount(count)} hidden ${pluralWord(count, 'take')}`;
         return <HideButton id={`${passage.id}-look`} label={label} onPress={() => void l.toggle(passage)} />;
       },
     });

@@ -26,7 +26,7 @@ import {
   type ReviewGroupKey,
   type ReviewGroupOpen,
 } from './importReviewModel';
-import { pluralWord, plural } from '../../plural';
+import { pluralWord, plural, formatCount } from '../../plural';
 
 // The heading as it will be written: the title and, when it keeps one, the subtitle, the way the reader writes them ("Chapter One — Down
 // the Rabbit-Hole"), and a line turned off that returns to the text, said as such.
@@ -160,7 +160,7 @@ export function ImportReview({
   const chapterList = chapters.length > 0 && (
     <Disclosure
       title="Chapters"
-      summary={`${counts.narration} of ${plural(chapters.length, 'chapter')} included`}
+      summary={`${formatCount(counts.narration)} of ${plural(chapters.length, 'chapter')} included`}
       open={open('narration')}
       onOpenChange={(next) => setOpen('narration', next)}
       className={groupClass()}
@@ -239,7 +239,7 @@ export function ImportReview({
       <div className="mt-3 flex flex-none flex-wrap gap-2" aria-label="What was found">
         <StatusBadge tone="success" label={`${plural(counts.narration, 'chapter')}`} />
         <StatusBadge tone="neutral" label={`${plural(preview.paragraphCount, 'paragraph')}`} />
-        <StatusBadge tone="neutral" label={`${counts.suggestionsTotal} character ${pluralWord(counts.suggestionsTotal, 'suggestion')}`} />
+        <StatusBadge tone="neutral" label={`${formatCount(counts.suggestionsTotal)} character ${pluralWord(counts.suggestionsTotal, 'suggestion')}`} />
         {counts.repairs > 0 && <StatusBadge tone="warning" label={`${plural(counts.repairs, 'repair')}`} />}
       </div>
       {/* The options sit above the list, where an expanded list cannot push them out of sight. */}

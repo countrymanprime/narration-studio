@@ -23,7 +23,7 @@ const ARM = String.raw`('[^']*'|"[^"]*"|\`[^\`]*\`)`;
 const EXPR = String.raw`[\w.\[\]()]+`;
 const TERNARY = new RegExp(String.raw`(${EXPR})\s*(===?|!==?|>=?|<=?)\s*1\s*\?\s*${ARM}\s*:\s*${ARM}`, 'g');
 const YODA = new RegExp(String.raw`1\s*(===?|!==?)\s*(${EXPR})\s*\?\s*${ARM}\s*:\s*${ARM}`, 'g');
-const COUNT_THEN_WORD = /\$\{([\w.[\]()]+)\} \$\{pluralWord\(\1,|\{([\w.[\]()]+)\} \{pluralWord\(\2,/;
+const COUNT_THEN_WORD = /(?:\$\{|\{)([\w.[\]()]+)\}[^`\n{}$]{0,48}(?:\$\{|\{)pluralWord\(\1,/;
 
 const bare = (arm: string): string => arm.slice(1, -1);
 /** The many form is the one form plus "s", "es", or "y" becoming "ies": a noun, not a verb ("is"/"are") or a pronoun ("its"/"their"). */
@@ -38,7 +38,7 @@ const isCountTernary = (count: string, a: string, b: string, negated: boolean): 
   // A count inside the branch: one arm is the bare noun (or "1 noun") and the other exactly `${count} noun`. A sentence that only changes its wording around a
   // count ("one undo step" / "3 undo steps, one per cut") is prose, not this.
   const withCount = new RegExp(String.raw`^\$\{${count.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\} [A-Za-z]+$`);
-  const bareNoun = (t: string): boolean => /^(1 )?[A-Za-z]+$/.test(t);
+  const bareNoun = (t: string): boolean => /^((1|a|an|one) )?[A-Za-z]+$/i.test(t);
   return (withCount.test(x) && bareNoun(y)) || (withCount.test(y) && bareNoun(x));
 };
 
@@ -47,7 +47,7 @@ const ownPluralIn = (text: string): string[] => {
   if (OWN_HELPER.test(text)) found.push('defines its own plural helper');
   for (const m of text.matchAll(TERNARY)) if (isCountTernary(m[1]!, m[3]!, m[4]!, /^(!==?|>=?)$/.test(m[2]!))) found.push(`writes ${m[0]}`);
   for (const m of text.matchAll(YODA)) if (isCountTernary(m[2]!, m[3]!, m[4]!, m[1] === '!==' || m[1] === '!=')) found.push(`writes ${m[0]}`);
-  if (COUNT_THEN_WORD.test(text)) found.push('writes a count before pluralWord: use plural(count, noun)');
+  if (COUNT_THEN_WORD.test(text)) found.push('writes a bare count before pluralWord: use plural(count, noun) or formatCount(count)');
   return found;
 };
 
@@ -80,6 +80,7 @@ describe('the scan itself', () => {
     "days === 1 ? 'yesterday' : `${plural(days, 'day')} ago`",
     'const label = pluralWord(n, "take")',
     "const label = `Hid ${n} other ${pluralWord(m, 'take')}`",
+    "`Export ${formatCount(n)} new ${pluralWord(n, 'marker')}`",
   ])('leaves %s alone', (code) => expect(ownPluralIn(code)).toEqual([]));
 });
 
