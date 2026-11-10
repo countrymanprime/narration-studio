@@ -115,8 +115,9 @@ export function ChapterSyncPanel({
     if (!trackGuid) return;
     setLinkingChapterId(chapterId);
     try {
-      await api.chapterTrackSet(chapterId, trackGuid);
-      notify('Track linked.');
+      const result = await api.chapterTrackSet(chapterId, trackGuid);
+      // A track another chapter holds moves to this one, so say whose link went (#3053), as the Chapter links list does.
+      notify(result.displaced ? `Track linked. It was linked to ${result.displaced.chapterTitle}, which is now unlinked.` : 'Track linked.');
       await loadPreview();
       onChanged();
     } catch (error) {

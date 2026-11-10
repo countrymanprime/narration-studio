@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { LinkChaptersDialog } from './LinkChaptersDialog';
@@ -8,7 +8,7 @@ import { VoiceLayoutContext } from './voiceLayout';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import { WIRE_CHAPTERS, WIRE_LINE_IDENTITY_LINES, WIRE_TRACKS_PROJECT } from '../../api/mockFixtures';
-import type { NarrationApi, Track } from '../../types';
+import type { LineIdentityState, NarrationApi, Track } from '../../types';
 
 afterEach(cleanup);
 
@@ -214,6 +214,26 @@ describe('LinkChaptersDialog', () => {
     expect(screen.queryByText('Nothing is stamped yet.')).toBeNull();
   });
 
+  it('hides a Read that found nothing once a stamp has run, since the stamp changed what the project holds (#3053)', async () => {
+    const user = userEvent.setup();
+    let push: (state: LineIdentityState) => void = () => {};
+    const { api } = renderDialog({
+      subscribeLineIdentity: (onUpdate) => {
+        push = onUpdate;
+        return () => {};
+      },
+    });
+    await user.click(await screen.findByRole('button', { name: 'Read current stamps' }));
+    const empty: LineIdentityState = { ...(await api.lineIdentityState()), phase: 'success', message: 'Read 0 stamped items.', lines: [], linesRead: 0 };
+    act(() => push(empty));
+    expect(await screen.findByText('Nothing is stamped yet.')).toBeTruthy();
+
+    await user.selectOptions(screen.getByRole('combobox', { name: `Track for ${WIRE_CHAPTERS[0].title}` }), WIRE_TRACKS_PROJECT.tracks[0].guid);
+    await user.click(await screen.findByRole('button', { name: /^Stamp \d+ item/ }));
+    act(() => push({ ...empty, message: 'Stamped 6 items.' }));
+    expect(screen.queryByText('Nothing is stamped yet.')).toBeNull();
+  });
+
   it('shows a REAPER error state', async () => {
     renderDialog({}, { lineIdentity: 'error' });
 
@@ -302,5 +322,17 @@ describe('LinkChaptersDialog', () => {
     expect(screen.queryByText(/the folder also holds another chapter's linked track/)).toBeNull();
     await user.selectOptions(first, '{F1}');
     expect(await screen.findByText(/the folder also holds another chapter's linked track/)).toBeTruthy();
+  });
+  it('says which chapter lost a track that sits inside a folder when another chapter takes it (#3053)', async () => {
+    const user = userEvent.setup();
+    const base = WIRE_TRACKS_PROJECT.tracks[0];
+    const folder = { ...base, guid: '{F1}', name: 'Chapters', depth: 0, isFolder: true, items: [] };
+    const inner = { ...base, guid: '{T1}', name: 'Inner', depth: 1, isFolder: false };
+    renderDialog({}, {}, vi.fn(), [folder, inner]);
+    const [first, second] = WIRE_CHAPTERS;
+    await user.selectOptions(await screen.findByRole('combobox', { name: `Track for ${first.title}` }), '{T1}');
+    await waitFor(() => expect((screen.getByRole('combobox', { name: `Track for ${first.title}` }) as HTMLSelectElement).value).toBe('{T1}'));
+    await user.selectOptions(screen.getByRole('combobox', { name: `Track for ${second.title}` }), '{T1}');
+    expect(await screen.findByText(new RegExp(`${first.title}.*is now not linked`))).toBeTruthy();
   });
 });

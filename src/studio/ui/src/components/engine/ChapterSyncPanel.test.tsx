@@ -88,6 +88,17 @@ describe('ChapterSyncPanel', () => {
     await screen.findByText('Chapter sync is off.');
   });
 
+  it('says which chapter lost the track when Link takes one another chapter holds (#3053)', async () => {
+    const displaced = { chapterId: 'c1', chapterTitle: 'Chapter 1', trackGuid: 't1' };
+    const chapterTrackSet = vi.fn().mockResolvedValue({ documentId: 'doc', link: {}, displaced, mappings: [] });
+    const api = createMockApi({ chapterSyncPreview: async () => needsYouPreview(), chapterTrackSet }, {});
+    const notify = vi.fn();
+    render(<ApiProvider api={api}>{<ChapterSyncPanel daw={{ daw: 'REAPER' }} notify={notify} onChanged={() => {}} />}</ApiProvider>);
+    await screen.findByText('Needs you (1)');
+    fireEvent.click(screen.getByRole('button', { name: /^Link/ }));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith('Track linked. It was linked to Chapter 1, which is now unlinked.'));
+  });
+
   it('shows a Needs-you list with the reason and a preselected candidate, and Link calls chapterTrackSet', async () => {
     const chapterTrackSet = vi.fn().mockResolvedValue({ documentId: 'doc', link: {}, displaced: null, mappings: [] });
     const api = createMockApi({ chapterSyncPreview: async () => needsYouPreview(), chapterTrackSet }, {});
