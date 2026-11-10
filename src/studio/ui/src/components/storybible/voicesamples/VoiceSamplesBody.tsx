@@ -71,7 +71,7 @@ export function VoiceSamplesBody({
   );
   const headingRef = useRef<HTMLHeadingElement>(null);
   const [checking, setChecking] = useState(false);
-  const [checkedAt, markChecked] = useCheckedAt();
+  const [checkedAt, markChecked, reads] = useCheckedAt();
   const pendingFocus = useRef<string | undefined>(undefined);
   const list = read.status === 'ready' ? read.samples : read.status === 'failed' ? read.samples : undefined;
   const mine = useMemo(() => (list ? (select ? select(list) : samplesOf(list, characterId)) : []), [list, characterId, select]);
@@ -148,7 +148,7 @@ export function VoiceSamplesBody({
             </span>
           ) : null}
         </div>
-        {showCheckAgain ? <CheckedStamp at={checkedAt} /> : null}
+        {showCheckAgain ? <CheckedStamp at={checkedAt} reads={reads} /> : null}
         {showCheckAgain ? (
           <Button variant="ghost" size="sm" className="flex-none" pending={checking} onClick={() => void checkAgain()}>
             Check again

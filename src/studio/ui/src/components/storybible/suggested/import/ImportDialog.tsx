@@ -224,9 +224,11 @@ export function ImportDialog({ onClose, onChanged }: ImportDialogProps) {
     setAdding(true);
     setAddProblem(undefined);
     let failure: string | undefined;
+    let added = 0;
     try {
       const result = await importEntries(env, text, hint);
       if (!result.ok) failure = `Nothing was added: ${result.refusal.reason}`;
+      else added = result.value.suggestions.length + result.value.entryIds.length;
     } catch (error) {
       failure = `The import may not have finished (${readableFailure(error, 'the host did not say why')}). Check the Story Bible before adding again.`;
     }
@@ -238,7 +240,11 @@ export function ImportDialog({ onClose, onChanged }: ImportDialogProps) {
     }
     setAdding(false);
     if (failure) setAddProblem(failure);
-    else onClose();
+    else {
+      // The dialog closing is not an answer: say what was added (#3276).
+      overlay.toast(`Added ${added} to the Story Bible.`);
+      onClose();
+    }
   };
 
   return (

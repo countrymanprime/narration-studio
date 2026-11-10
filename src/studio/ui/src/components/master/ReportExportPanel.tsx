@@ -60,7 +60,7 @@ export function ReportExportPanel({ busy, measured }: { busy: boolean; measured:
         </Checkbox>
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
-        <Button onClick={() => void exportReport()} pending={pending} disabled={off} aria-describedby={reason ? reasonId : undefined}>
+        <Button onClick={() => void exportReport()} pending={pending} disabledReason={reason ?? ''} aria-describedby={reason ? reasonId : undefined}>
           Export report
         </Button>
         {reason && (
