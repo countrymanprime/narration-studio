@@ -43,6 +43,13 @@ describe('jump menu on a 5000-chapter book', () => {
     type('go to');
     expect(screen.getAllByRole('option')).toHaveLength(JUMP_MENU_MAX_ROWS);
     expect(screen.getByText(/^Showing 100 of 5\d{3}$/)).toBeTruthy();
+    // A screen reader hears that the list is cut, not only the full count.
+    expect(
+      screen
+        .getAllByRole('status')
+        .map((el) => el.textContent)
+        .join(' '),
+    ).toMatch(/5\d{3} results, showing the first 100/);
     type('go to chapter 4999');
     expect(screen.getAllByRole('option')[0]!.textContent).toContain('Chapter 4999');
     expect(screen.queryByText(/^Showing/)).toBeNull();

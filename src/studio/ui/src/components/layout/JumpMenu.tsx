@@ -73,8 +73,9 @@ export const JUMP_MENU_MAX_ROWS = 100;
 const resultCount = (count: number) => (count === 0 ? 'No results' : `${count} result${count === 1 ? '' : 's'}`);
 
 /** What a screen reader hears as the list changes: the result count, and that more may come while a source is still searching. */
-const searchStatus = (entries: readonly Entry[]) => {
-  const count = resultCount(entries.filter((entry) => !entry.waiting).length);
+const searchStatus = (entries: readonly Entry[], drawn: number) => {
+  const total = entries.filter((entry) => !entry.waiting).length;
+  const count = total > drawn ? `${resultCount(total)}, showing the first ${drawn}` : resultCount(total);
   return entries.some((entry) => entry.waiting) ? `${count} so far. Still searching.` : count;
 };
 
@@ -305,7 +306,7 @@ function JumpMenu({
           </span>
         ) : null}
         <span role="status" className="sr-only">
-          {searching ? searchStatus(allEntries) : ''}
+          {searching ? searchStatus(allEntries, entries.length) : ''}
         </span>
       </div>
       {/* The dialog scrolls, not the list, so the search field stays pinned and the arrow keys scroll a row to just below it (not under it). */}

@@ -16,7 +16,7 @@ configure({ asyncUtilTimeout: 12_000 });
 async function underPicker(path: string) {
   window.history.replaceState(null, '', path);
   mount({});
-  await screen.findAllByRole('banner');
+  await screen.findByRole('main');
   fireEvent.keyDown(document.body, { key: 'k', code: 'KeyK', ctrlKey: true });
   fireEvent.change(await screen.findByRole('combobox', { name: 'Jump menu' }), { target: { value: '> Switch project' } });
   fireEvent.click(await screen.findByRole('option', { name: /^Switch project/ }));
@@ -143,5 +143,30 @@ describe('jump menu over the project picker', () => {
     });
     await screen.findByRole('heading', { level: 2, name: /^Delivery/ });
     expect(screen.queryByRole('heading', { level: 2, name: 'Models & downloads' })).toBeNull();
+  });
+
+  it('over the Booth, Go to Settings leaves the Booth for Settings and stays there', async () => {
+    await underPicker('/booth');
+    await openJump('> Go to Settings');
+    fireEvent.click(await screen.findByRole('option', { name: /^Go to Settings/ }));
+    await screen.findByRole('heading', { level: 1, name: 'Settings' });
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    expect(window.location.pathname).toBe('/settings');
+  });
+
+  it('"Show keyboard shortcuts" opens the sheet over the picker, with a project and without', async () => {
+    for (const projectFolder of [undefined, '']) {
+      cleanup();
+      if (projectFolder === undefined) await underPicker('/');
+      else {
+        window.history.replaceState(null, '', '/');
+        mount({ projectFolder });
+        await picker();
+      }
+      await openJump('> Show keyboard shortcuts');
+      fireEvent.click(await screen.findByRole('option', { name: /^Show keyboard shortcuts/ }));
+      await screen.findByRole('dialog', { name: /shortcuts/i });
+      expect(screen.queryByRole('heading', { name: 'Choose your project', hidden: true })).toBeTruthy();
+    }
   });
 });

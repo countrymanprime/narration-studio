@@ -51,3 +51,20 @@ for (const [width, height] of [
     });
   }
 }
+
+// qa-breaker on #3248: with the project picker over the Booth, a jump-menu move went to its page and then bounced back to the Booth (the Booth
+// remounted at its old address and rewrote it before the move landed).
+test('with the picker over the Booth, Go to Settings stays on Settings', async ({ page }) => {
+  await page.goto('/booth');
+  await settlePage(page);
+  await page.keyboard.press('Control+k');
+  await page.getByRole('combobox', { name: 'Jump menu' }).fill('> Switch project');
+  await page.keyboard.press('Enter');
+  await page.getByRole('heading', { name: 'Choose your project' }).waitFor();
+  await page.keyboard.press('Control+k');
+  await page.getByRole('combobox', { name: 'Jump menu' }).fill('> Go to Settings');
+  await page.keyboard.press('Enter');
+  await page.getByRole('heading', { level: 1, name: 'Settings' }).waitFor();
+  await page.waitForTimeout(1500);
+  expect(new URL(page.url()).pathname).toBe('/settings');
+});
