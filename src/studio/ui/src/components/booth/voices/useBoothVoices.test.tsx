@@ -235,6 +235,33 @@ describe("the Booth's voices", () => {
     await waitFor(() => expect(folders.hook.current.voices.length).toBeGreaterThan(0));
   });
 
+  // A chapter with no one link has no folder to read, so the DAW is not asked: a project with no REAPER file would only get an error.
+  it("does not read the DAW's tracks for a chapter that is not linked", async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    await api.chapterTrackUnlink(chapterId);
+    const reads = vi.spyOn(api, 'tracksLive');
+    const { hook } = await mount({}, false, api);
+    await act(async () => new Promise((r) => setTimeout(r, 30)));
+    expect(reads).not.toHaveBeenCalled();
+    expect(hook.current.voices).toHaveLength(0);
+  });
+
+  // The poll re-reads every few seconds: a read that keeps failing is one toast, not one per tick.
+  it('toasts a run of failed reads once', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    api.tracksLive = async () => {
+      throw new Error('The tracks are locked.');
+    };
+    const { notify, hook } = await mount({}, false, api);
+    await act(async () => new Promise((r) => setTimeout(r, 30)));
+    act(() => {
+      window.dispatchEvent(new Event('focus'));
+    });
+    await act(async () => new Promise((r) => setTimeout(r, 30)));
+    expect(hook.current.voices).toHaveLength(0);
+    expect(notify.mock.calls.filter((call) => call[1] === 'error')).toHaveLength(1);
+  });
+
   // #3269: a voice renamed or deleted in the DAW while the Booth stays open is read again on window focus, so its keys never go stale.
   it('reads the voices again when the window gets focus', async () => {
     const api = createMockApi({}, { voiceFolders: true });

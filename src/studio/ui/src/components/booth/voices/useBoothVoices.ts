@@ -88,51 +88,62 @@ export function useBoothVoices({
   const [revision, setRevision] = useState(0);
   const [reaper, setReaper] = useState<{ chapterId: string; status: string; trackGuid: string; armedCount?: number } | null>(null);
 
+  // Whether the last read failed, so the poll below toasts a run of failures once, not on every tick (as useLiveTracks does).
+  const failing = useRef(false);
+  const failed = useCallback(
+    (reason: unknown) => {
+      if (!failing.current)
+        notify(
+          describeApiError(reason),
+          'error',
+          retryAction(() => setRevision((n) => n + 1)),
+        );
+      failing.current = true;
+    },
+    [notify],
+  );
+
   useEffect(() => {
     if (!chapterId) return;
     let live = true;
-    void Promise.all([
-      // REAPER's live list over the saved file, as the Engine page reads it: a voice renamed or deleted in REAPER is seen before a save (#3269).
-      tracksPort.tracksLive().then((answer) => answer.project),
-      links.chapterTrackMapList(),
-      storyBible.guideEntities(),
-      // A failed read is a toast; the voices are still listed, and the control shows the Narrator voice a start with no choice uses.
-      voiceTracks.boothVoiceGet(chapterId).catch((reason: unknown) => {
-        if (live)
-          notify(
-            describeApiError(reason),
-            'error',
-            retryAction(() => setRevision((n) => n + 1)),
-          );
-        return undefined;
-      }),
-    ])
-      .then(([project, map, entities, voice]) => {
-        if (!live) return;
-        const mine = map.mappings.filter((mapping) => mapping.chapterId === chapterId);
-        setTracks(project.tracks);
-        setLink(mine.length === 1 ? mine[0].trackGuid : '');
-        setLinkedTracks(map.mappings.map((mapping) => mapping.trackGuid.toLowerCase()));
-        setCharacters(entities.filter((entity) => entity.category === 'Character'));
-        setHostVoice({
-          chapterId,
-          guid: voice?.outcome === 'selected' || voice?.outcome === 'switched' ? (voice.trackGuid ?? '') : '',
-          added: voice?.added ?? [],
-        });
-      })
-      .catch(
-        (reason: unknown) =>
-          live &&
-          notify(
-            describeApiError(reason),
-            'error',
-            retryAction(() => setRevision((n) => n + 1)),
-          ),
-      );
+    void (async () => {
+      const map = await links.chapterTrackMapList();
+      if (!live) return;
+      const mine = map.mappings.filter((mapping) => mapping.chapterId === chapterId);
+      setLinkedTracks(map.mappings.map((mapping) => mapping.trackGuid.toLowerCase()));
+      // A chapter with no one link has no folder to read: the DAW is not asked (a project with no REAPER file has nothing to list).
+      if (mine.length !== 1) {
+        setLink('');
+        setTracks([]);
+        setHostVoice({ chapterId, guid: '', added: [] });
+        failing.current = false;
+        return;
+      }
+      const [project, entities, voice] = await Promise.all([
+        // REAPER's live list over the saved file, as the Engine page reads it: a voice renamed or deleted in REAPER is seen before a save (#3269).
+        tracksPort.tracksLive().then((answer) => answer.project),
+        storyBible.guideEntities(),
+        // A failed read is a toast; the voices are still listed, and the control shows the Narrator voice a start with no choice uses.
+        voiceTracks.boothVoiceGet(chapterId).catch((reason: unknown) => {
+          if (live) failed(reason);
+          return undefined;
+        }),
+      ]);
+      if (!live) return;
+      failing.current = false;
+      setTracks(project.tracks);
+      setLink(mine[0].trackGuid);
+      setCharacters(entities.filter((entity) => entity.category === 'Character'));
+      setHostVoice({
+        chapterId,
+        guid: voice?.outcome === 'selected' || voice?.outcome === 'switched' ? (voice.trackGuid ?? '') : '',
+        added: voice?.added ?? [],
+      });
+    })().catch((reason: unknown) => live && failed(reason));
     return () => {
       live = false;
     };
-  }, [chapterId, tracksPort, links, storyBible, voiceTracks, notify, revision]);
+  }, [chapterId, tracksPort, links, storyBible, voiceTracks, failed, revision]);
 
   // The tracks change in the DAW while the Booth is open: read them again when the window gets focus and every few seconds while it is in
   // front, as the Engine page does, so the voice keys and the voice shown never go stale (#3269).

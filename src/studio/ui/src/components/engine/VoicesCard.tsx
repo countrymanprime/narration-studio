@@ -194,8 +194,8 @@ export function LayoutToggle({
       <ToggleGroup label="Chapter layout" look="segmented" value={layout} onChange={(value) => onLayout(value as VoiceTracksLayout)} options={LAYOUTS} />
       {help && (
         <HelpButton label="What the layouts mean">
-          Flat: a chapter is one track (a chapter linked to a folder that holds tracks still records on them). Voice folders: a chapter is a folder, one child
-          track per voice.
+          Flat: a chapter is one track (a chapter linked to a folder that holds tracks of its own still records on one of them). Voice folders: a chapter is a
+          folder, one child track per voice.
         </HelpButton>
       )}
     </div>
