@@ -339,10 +339,11 @@ function ChapterLinkRow({
                   setRechecking(true);
                   void onRecheck().then((done) => {
                     setRechecking(false);
-                    if (!done) return;
-                    // Change takes the check's place: a double click's second press must not reopen the picker.
-                    swappedAt.current = Date.now();
-                    setPicking(false);
+                    if (done) {
+                      // Change takes the check's place: a double click's second press must not reopen the picker.
+                      swappedAt.current = Date.now();
+                      setPicking(false);
+                    }
                   });
                 }}
               />
