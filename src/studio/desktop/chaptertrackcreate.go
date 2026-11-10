@@ -109,41 +109,89 @@ func trackCreatorFrom(svc hostServices) (dawport.TrackCreator, dawport.Support) 
 	return creator, dawport.Support{Available: true}
 }
 
-// trackCreateUnavailable words a track_create that the resolver refused, by its reason, in the engine's name.
-func trackCreateUnavailable(name, title string, support dawport.Support) chapterTrackCreateRefusal {
+// destinationNoun is what a chapter is linked to and records on, from the project's layout: a folder of voices or a track. The UI's
+// destinationFor (components/engine/destination.ts) holds the same words, so a sentence from either side follows the one setting (#3271).
+func destinationNoun(folders bool) string {
+	if folders {
+		return "folder"
+	}
+	return "track"
+}
+
+// engineHasFolders is whether the open project's engine makes folder tracks. A Voice folders project on an engine
+// without them is flat for every sentence that names where a chapter records (#3271).
+func engineHasFolders(svc hostServices) bool {
+	return dawport.Classify(readAloudAdapterName(svc)).FolderTracks()
+}
+
+// canMakeFolders is whether creator adds a chapter folder; with no creator (the engine refused) it is what the project's engine makes.
+func canMakeFolders(svc hostServices, creator dawport.TrackCreator) bool {
+	if creator == nil {
+		return engineHasFolders(svc)
+	}
+	_, ok := creator.(dawport.FolderTrackCreator)
+	return ok
+}
+
+// layoutNoun is destinationNoun for the open project: its layout read at the call (a project with no setting is flat) and its engine's folders.
+func layoutNoun(svc hostServices) string {
+	folders, err := voiceFoldersLayout(svc)
+	return destinationNoun(err == nil && folders && engineHasFolders(svc))
+}
+
+// notAFolderSentence says why a chapter has no folder of voices to work in: flat when the project is flat (it records on one track), and
+// folders when the project's layout is Voice folders, where the chapter's link is not a folder yet. A flat sentence never shows on a folders project (#3271).
+func notAFolderSentence(svc hostServices, flat, folders string) string {
+	if layoutNoun(svc) == "folder" {
+		return folders
+	}
+	return flat
+}
+
+// addByHand is how to do an add this app could not: the same thing by hand in the engine, a folder with a Narrator track in it for a folder.
+func addByHand(noun, title, engine string) string {
+	narrator := ""
+	if noun == "folder" {
+		narrator = ", with a " + narratorVoice + " track in it"
+	}
+	return fmt.Sprintf("Add a %s named “%s” in %s%s, then link it.", noun, title, engine, narrator)
+}
+
+// trackCreateUnavailable words a track_create that the resolver refused, by its reason, in the engine's name. noun is what was to be added.
+func trackCreateUnavailable(name, title string, support dawport.Support, noun string) chapterTrackCreateRefusal {
 	switch support.Reason {
 	case dawport.ReasonStandalone:
-		return trackCreateRefusedWith(reaperStandalone, fmt.Sprintf("%s is not connected to this app, so no track can be added. Start %s, then try again.", name, name))
+		return trackCreateRefusedWith(reaperStandalone, fmt.Sprintf("%s is not connected to this app, so no %s can be added. Start %s, then try again.", name, noun, name))
 	case dawport.ReasonNotRunning:
-		return trackCreateRefusedWith(reaperNotRunning, fmt.Sprintf("%s is not answering, so no track can be added. Check that %s is open, then try again.", name, name))
+		return trackCreateRefusedWith(reaperNotRunning, fmt.Sprintf("%s is not answering, so no %s can be added. Check that %s is open, then try again.", name, noun, name))
 	case dawport.ReasonNotYet, dawport.ReasonUnsupported:
-		return trackCreateRefusedWith(trackCreateUnsupported, fmt.Sprintf("%s cannot add a track for a chapter from this app. Add a track named “%s” in %s, then link it.", name, title, name))
+		return trackCreateRefusedWith(trackCreateUnsupported, fmt.Sprintf("%s cannot add a %s for a chapter from this app. %s", name, noun, addByHand(noun, title, name)))
 	default:
-		return trackCreateRefusedWith(refusedFailed, trackCreateFailedSentence(name, title, support.Message))
+		return trackCreateRefusedWith(refusedFailed, trackCreateFailedSentence(name, title, support.Message, noun))
 	}
 }
 
 // trackCreateFailedSentence is the sentence for an add that failed: what went wrong, and how to do it by hand.
-func trackCreateFailedSentence(name, title, why string) string {
+func trackCreateFailedSentence(name, title, why, noun string) string {
 	why = strings.TrimRight(strings.TrimSpace(why), ".")
 	if why == "" {
-		return fmt.Sprintf("%s could not add the track. Add a track named “%s” in %s, then link it.", name, title, name)
+		return fmt.Sprintf("%s could not add the %s. %s", name, noun, addByHand(noun, title, name))
 	}
-	return fmt.Sprintf("%s could not add the track: %s. Add a track named “%s” in %s, then link it.", name, why, title, name)
+	return fmt.Sprintf("%s could not add the %s: %s. %s", name, noun, why, addByHand(noun, title, name))
 }
 
 // trackCreateError turns what CreateTrack answered into a refusal. A bridge that went away or stopped answering is the
 // connection's own reason.
-func trackCreateError(name, title string, err error) chapterTrackCreateRefusal {
+func trackCreateError(name, title string, err error, noun string) chapterTrackCreateRefusal {
 	switch {
 	case errors.Is(err, bridge.ErrRecording):
-		return trackCreateRefusedWith(trackCreateRecording, fmt.Sprintf("%s is recording. Stop the take, then create the track.", name))
+		return trackCreateRefusedWith(trackCreateRecording, fmt.Sprintf("%s is recording. Stop the take, then create the %s.", name, noun))
 	case errors.Is(err, bridge.ErrUnavailable):
-		return trackCreateUnavailable(name, title, dawport.Support{Reason: dawport.ReasonStandalone})
+		return trackCreateUnavailable(name, title, dawport.Support{Reason: dawport.ReasonStandalone}, noun)
 	case errors.Is(err, bridge.ErrNoAnswer):
-		return trackCreateUnavailable(name, title, dawport.Support{Reason: dawport.ReasonNotRunning})
+		return trackCreateUnavailable(name, title, dawport.Support{Reason: dawport.ReasonNotRunning}, noun)
 	}
-	return trackCreateRefusedWith(refusedFailed, trackCreateFailedSentence(name, title, err.Error()))
+	return trackCreateRefusedWith(refusedFailed, trackCreateFailedSentence(name, title, err.Error(), noun))
 }
 
 // chapterTrackCreateIn adds a track named after chapterID's display title with creator and links the chapter to it with the same
@@ -174,6 +222,8 @@ func chapterTrackCreateIn(ctx context.Context, svc hostServices, creator dawport
 	if err != nil {
 		return nil, err
 	}
+	// What this press adds: a folder only when the layout asks for one and the engine can make it, so no sentence promises a folder an engine cannot add.
+	noun := destinationNoun(folders && canMakeFolders(svc, creator))
 	chapterTrackCreates.mu.Lock()
 	defer chapterTrackCreates.mu.Unlock()
 	// Read after the lock: a create that held it may have linked this chapter.
@@ -182,7 +232,7 @@ func chapterTrackCreateIn(ctx context.Context, svc hostServices, creator dawport
 		return nil, err
 	}
 	present, known := projectTracksNow(ctx, svc)
-	if refusal, refused := alreadyLinked(name, links, chapterTrackCreates.made, present, known); refused {
+	if refusal, refused := alreadyLinked(name, noun, links, chapterTrackCreates.made, present, known); refused {
 		return refusal, nil
 	}
 	if taken, ok := trackNamed(present, title); ok {
@@ -193,17 +243,22 @@ func chapterTrackCreateIn(ctx context.Context, svc hostServices, creator dawport
 		return trackCreateRefusedWith(trackCreateNameTaken, fmt.Sprintf("%s already has a %s named “%s”. Link that one with the picker instead of adding another.", name, kind, strings.TrimSpace(taken.Name))), nil
 	}
 	if creator == nil {
-		return trackCreateUnavailable(name, title, support), nil
+		return trackCreateUnavailable(name, title, support, noun), nil
 	}
 	created, voice, err := createChapterTrack(ctx, creator, title, folders)
 	if err != nil {
-		return trackCreateError(name, title, err), nil
+		return trackCreateError(name, title, err, noun), nil
 	}
 	chapterTrackCreates.made[guidKey(created.GUID)] = created.Name
+	if voice != nil {
+		// The folder and its Narrator are in the engine but not in the saved project until the narrator saves: the Booth records on the voice
+		// and lists it from what the app made (chapterVoices), not from the saved file alone, or the press would arm the folder itself (#3271).
+		svc.boothVoices.add(created.GUID, BoothVoiceTrack{GUID: voice.GUID, Name: voice.Name})
+	}
 	set, err := setChapterLink(store, documentID, chapterID, storedTitle, created.GUID)
 	if err != nil {
 		why := strings.TrimRight(strings.TrimSpace(err.Error()), ".")
-		return trackCreateRefusedWith(trackCreateLinkFailed, fmt.Sprintf("%s added the track “%s”, but its link could not be saved: %s. Choose “%s” in the chapter's picker to link it.", name, created.Name, why, created.Name)), nil
+		return trackCreateRefusedWith(trackCreateLinkFailed, fmt.Sprintf("%s added the %s “%s”, but its link could not be saved: %s. Choose “%s” in the chapter's picker to link it.", name, destinationNoun(voice != nil), created.Name, why, created.Name)), nil
 	}
 	mappings, err := store.List(documentID)
 	if err != nil {
@@ -233,7 +288,7 @@ func projectTracksNow(ctx context.Context, svc hostServices) ([]tracks.Track, bo
 // alreadyLinked refuses a create for a chapter linked to a track the project has, or to one this app added (made, not saved yet), naming
 // it. A link to a track that is gone ("Track missing") is not refused: a new track replaces it. With the tracks unknown, any link refuses.
 // made is chapterTrackCreates.made, read by a caller that holds its lock.
-func alreadyLinked(name string, links []string, made map[string]string, present []tracks.Track, known bool) (chapterTrackCreateRefusal, bool) {
+func alreadyLinked(name, noun string, links []string, made map[string]string, present []tracks.Track, known bool) (chapterTrackCreateRefusal, bool) {
 	for _, link := range links {
 		trackName, found := made[guidKey(link)]
 		for _, track := range present {
@@ -246,7 +301,7 @@ func alreadyLinked(name string, links []string, made map[string]string, present 
 			if strings.TrimSpace(trackName) != "" {
 				named = fmt.Sprintf("“%s”", strings.TrimSpace(trackName))
 			}
-			return trackCreateRefusedWith(trackCreateAlreadyLinked, fmt.Sprintf("This chapter is already linked to %s in %s. Change or clear that link instead of adding another track.", named, name)), true
+			return trackCreateRefusedWith(trackCreateAlreadyLinked, fmt.Sprintf("This chapter is already linked to %s in %s. Change or clear that link instead of adding another %s.", named, name, noun)), true
 		}
 	}
 	return chapterTrackCreateRefusal{}, false

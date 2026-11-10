@@ -520,7 +520,7 @@ describe('pickups-table-alignment', () => {
   it('Remove is set apart from the three actions before it (XPK-16)', () => {
     setup();
     const remove = within(rowOf('05:12.0')).getByRole('button', { name: 'Remove from pickups' });
-    const rule = remove.closest('span[data-base-ui-tooltip-trigger]')?.previousElementSibling ?? remove.previousElementSibling;
+    const rule = remove.parentElement?.previousElementSibling ?? remove.previousElementSibling;
     expect(rule?.getAttribute('aria-hidden')).toBe('true');
   });
 });

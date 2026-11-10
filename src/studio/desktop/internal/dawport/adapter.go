@@ -36,6 +36,9 @@ func (k Kind) String() string {
 	}
 }
 
+// FolderTracks is whether the engine has folder tracks, so a chapter can be a folder of voices there: REAPER does, Audacity has none.
+func (k Kind) FolderTracks() bool { return k == KindREAPER }
+
 // Classify maps a `--daw` label to the DAW it names, ignoring case and surrounding spaces. The host keeps the label itself as
 // the free-form display fact; Classify is the one thing it branches on, so an unknown label can never select behaviour
 // (docs/architecture/threat-model.md, row 6f).
