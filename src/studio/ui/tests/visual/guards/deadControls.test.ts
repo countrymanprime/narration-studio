@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest';
 import { DEAD_CONTROL_DEBT, DEAD_CONTROL_TIMER_DRIVEN } from './dead-controls-allowlist';
 
 // The lists may only shrink and every line names the issue that owns the fix (#3276).
-const MAX_DEBT = 3;
+const MAX_DEBT = 0;
 const MAX_TIMER_DRIVEN = 1;
 
 describe('dead-control allowlist', () => {
