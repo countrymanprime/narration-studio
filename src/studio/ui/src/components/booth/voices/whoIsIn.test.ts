@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Track } from '../../../api/contracts/tracks';
 import type { Voice } from '../../engine/voices';
 import { castOf, defaultTrackName, keyForNewTrack, withAddedVoices } from './whoIsIn';
+import { folderVoices } from '../../engine/voices';
 
 const voice = (key: string, name: string, characters: string[] = [], narrator = key === '0'): Voice => ({
   guid: `{${name}}`,
@@ -111,7 +112,19 @@ describe('who is in it', () => {
       ['{G}', 0],
     ]);
     expect(withAddedVoices(merged, '{F}', [{ guid: '{k}', name: 'King' }])).toHaveLength(merged.length);
-    expect(withAddedVoices(tracks, '{GONE}', [{ guid: '{K}', name: 'King' }])).toBe(tracks);
     expect(withAddedVoices(tracks, '{F}', [])).toBe(tracks);
+    expect(withAddedVoices(tracks, '{GONE}', [])).toBe(tracks);
+  });
+
+  it('a folder the app made this session, not yet in the saved project, is listed with its voices (#3271)', () => {
+    const tracks = [track('{F}', 'Chapter 1', 0, true), track('{N}', 'Narrator', 1)];
+    const merged = withAddedVoices(tracks, '{NEW}', [{ guid: '{NN}', name: 'Narrator' }]);
+    expect(merged.map((each) => [each.guid, each.depth, each.isFolder])).toEqual([
+      ['{F}', 0, true],
+      ['{N}', 1, false],
+      ['{NEW}', 0, true],
+      ['{NN}', 1, false],
+    ]);
+    expect(folderVoices(merged, '{NEW}', [], { layout: 'folders', narratorCharacter: '', tracks: [] }).map((voice) => voice.guid)).toEqual(['{NN}']);
   });
 });

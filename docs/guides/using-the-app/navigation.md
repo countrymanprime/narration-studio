@@ -59,7 +59,7 @@ There are no Back and Forward, Undo or History buttons, folder icon or always-vi
 ### Jump to or run
 
 Jump to or run… opens the jump menu: type to find a page, a chapter or a command, or type `>` to list commands only. Escape, or a press anywhere outside the menu,
-closes it, and focus returns to where it was. The menu is a list box: a screen reader hears the page's name when it opens ("On the Script page"), then the number of results as you type. The header has no other buttons, so everything else you might look for there is a command in the menu, with its key beside it; a command that cannot run now stays listed, off, with the reason under it:
+closes it, and focus returns to where it was. The menu is a list box: a screen reader hears the page's name when it opens ("On the Script page"), then the number of results as you type. The header has no other buttons, so everything else you might look for there is a command in the menu, with its key beside it; a command that cannot run now stays listed, off, with the reason under it. The menu draws the first 100 matches and says "Showing 100 of 5000" below them when a long book has more; type more of the name to narrow the list. A name too long for its row is cut at the row's edge. With no project open the menu offers Settings and no page or chapter, and the commands that need a project (Import and Replace manuscript, Open Companion) are off with the reason "Open a project first". Over the project picker, choosing a page, a chapter or Settings closes the picker and opens it:
 
 | Command | Key | Off when |
 | --- | --- | --- |
@@ -369,6 +369,8 @@ Chapter sync's **Layout** row sets how the project's chapters sit in REAPER. Whi
 whether to use it), the Voices card carries the same switch. **Flat**, the default, is one track per chapter. **Voice folders** makes
 each chapter a REAPER folder whose child tracks are its voices, one per character, so an effect on a character's track covers every line
 that character speaks. Switching changes no track in REAPER.
+
+The layout is one setting for the whole project, so every message that names where a chapter records follows it: with Voice folders the link dialogs, chips and notices in the Booth and Editing say folder (**Not linked to a folder**, **Link folder**, **Create a new folder**), and with Flat they say track. An engine with no folder tracks, such as Audacity, is always flat.
 
 ![Chapter sync's Layout row on Voice folders, above the Tracks card with a chapter folder and its voice tracks](../../images/ui/engine-panel-voices-layout.webp)
 
