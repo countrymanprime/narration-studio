@@ -7,7 +7,8 @@ import { createMockApi } from '../../../api/mockApi';
 import type { MockApiSeed } from '../../../api/mockHost/state';
 import { StudioProvider } from '../../../studio/StudioProvider';
 import { ThemeProvider } from '../../../theme/ThemeContext';
-import { useVoiceLayout, useVoiceSetup, VoiceSetupProvider } from '../../engine/voiceLayout';
+import { useVoiceLayout, useVoiceSetup } from '../../engine/voiceLayout';
+import { ProjectTrackProviders } from '../../chapterTracks/ChapterTrackState';
 import { TooltipProvider } from '../../primitives/Tooltip';
 import { SettingsPage } from '../page/SettingsPage';
 import { ROWS } from '../registry/rows';
@@ -38,7 +39,7 @@ async function renderSettings(seed: MockApiSeed = {}) {
         <ApiProvider api={api}>
           <StudioProvider>
             <TooltipProvider>
-              <VoiceSetupProvider projectFolder={data.projectFolder}>
+              <ProjectTrackProviders projectFolder={data.projectFolder} enabled notify={vi.fn()}>
                 <EnginePanelProbe />
                 <main tabIndex={-1}>
                   <SettingsPage
@@ -52,7 +53,7 @@ async function renderSettings(seed: MockApiSeed = {}) {
                     refreshBootstrap={async () => undefined}
                   />
                 </main>
-              </VoiceSetupProvider>
+              </ProjectTrackProviders>
             </TooltipProvider>
           </StudioProvider>
         </ApiProvider>
@@ -128,9 +129,9 @@ describe('the Chapter sync and Voices settings (parity audit)', () => {
     await waitFor(() => expect(setEnabled).toHaveBeenCalledWith(true));
   });
 
-  it('reads the tracks again when the window is focused, so a track changed in REAPER is not offered stale', async () => {
+  it('reads the tracks again when the window is focused, so a track changed in REAPER is not offered stale (the shared state reads)', async () => {
     const { api } = await renderSettings({ voiceFolders: true });
-    const list = vi.spyOn(api, 'tracksList');
+    const list = vi.spyOn(api, 'tracksLive');
     const row = document.querySelector<HTMLElement>('[data-row="daw.voices"]')!;
     await within(row).findByRole('table', { name: /^Voices of / });
     const before = list.mock.calls.length;

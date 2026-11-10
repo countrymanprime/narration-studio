@@ -350,7 +350,7 @@ whether to use it), the Voices card carries the same switch. **Flat**, the defau
 each chapter a REAPER folder whose child tracks are its voices, one per character, so an effect on a character's track covers every line
 that character speaks. Switching changes no track in REAPER.
 
-The layout is one setting for the whole project, so every message that names where a chapter records follows it: with Voice folders the link dialogs, chips and notices in the Booth and Editing say folder (**Not linked to a folder**, **Link folder**, **Create a new folder**), and with Flat they say track. An engine with no folder tracks, such as Audacity, is always flat.
+A chapter linked to a track REAPER no longer has gets one message in either layout (the track is not in the project; link the chapter again in the panel). The layout is one setting for the whole project, so every message that names where a chapter records follows it: with Voice folders the link dialogs, chips and notices in the Booth and Editing say folder (**Not linked to a folder**, **Link folder**, **Create a new folder**), and with Flat they say track. An engine with no folder tracks, such as Audacity, is always flat.
 
 ![Chapter sync's Layout row on Voice folders, above Chapter links](../../images/ui/engine-panel-voices-layout.webp)
 
