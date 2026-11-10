@@ -3,6 +3,7 @@ import { cleanup, render, screen, waitFor, within } from '@testing-library/react
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
+import { ChapterTrackStateProvider } from '../../chapterTracks/ChapterTrackState';
 import { createMockApi } from '../../../api/mockApi';
 import { DAW_SETUPS, type DawSetupId } from '../../../fixtures/daw';
 import { createMockDawClient } from '../../../ports/daw';
@@ -37,9 +38,11 @@ function setup(finding: Finding, setupId: DawSetupId = 'reaper', props: { inert?
   const handlers = { onOpenScript: vi.fn(), onOpenBooth: vi.fn(), onReopen: vi.fn(), onNoteRead: vi.fn() };
   render(
     <ApiProvider api={host}>
-      <PortOverrides clients={{ daw }}>
-        <InspectorActions finding={finding} api={api} {...props} {...handlers} />
-      </PortOverrides>
+      <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+        <PortOverrides clients={{ daw }}>
+          <InspectorActions finding={finding} api={api} {...props} {...handlers} />
+        </PortOverrides>
+      </ChapterTrackStateProvider>
     </ApiProvider>,
   );
   return { api, addMarker, goTo, ...handlers };

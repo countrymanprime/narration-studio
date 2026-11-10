@@ -241,12 +241,12 @@ export function ChapterTrackStateProvider({
  * The tracks and links every watching screen shares. Calling it starts the reading while `enabled` (default: the project has a DAW file
  * linked and the DAW is not Audacity, so a project with no REAPER file is never asked); the reading stops when no screen wants it. A screen
  * that does not want it gets an empty state, so it never shows tracks it did not ask for. The Engine panel passes its own `enabled` (a
- * project file is selected), because it is where the file gets linked. `tracks: false` wants the links alone (a screen that reads no REAPER
+ * project file is selected), because it is where the file gets linked. `when` is the screen's own condition (a panel is open) on top of that. `tracks: false` wants the links alone (a screen that reads no REAPER
  * tracks of its own, such as the Audacity panel, or one that only needs who is linked to what).
  */
-export function useChapterTrackState({ enabled, tracks = true }: { enabled?: boolean; tracks?: boolean } = {}): ChapterTrackState {
+export function useChapterTrackState({ enabled, tracks = true, when = true }: { enabled?: boolean; tracks?: boolean; when?: boolean } = {}): ChapterTrackState {
   const { state, watch, defaultWants } = useContext(ChapterTrackStateContext);
-  const wants = enabled ?? defaultWants;
+  const wants = (enabled ?? defaultWants) && when;
   useEffect(() => (wants ? watch(tracks ? 'tracks' : 'links') : undefined), [wants, tracks, watch]);
   return wants ? state : EMPTY;
 }

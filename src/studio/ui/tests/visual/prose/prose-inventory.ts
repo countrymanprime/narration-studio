@@ -299,6 +299,8 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     class: 'overlay',
   },
   { file: 'components/production/ChapterTrackPanel.tsx', text: 'look like this chapter. Link the one it is recorded on.', class: 'overlay' },
+  { file: 'components/production/ChapterTrackPanel.tsx', text: 'No REAPER project is linked, so there are no tracks to choose from.', class: 'empty' },
+  { file: 'components/recordingcheck/CheckResult.tsx', text: 'No REAPER project is linked, so there are no tracks to choose from.', class: 'empty' },
   {
     file: 'components/production/ChapterTrackPanel.tsx',
     text: 'This track&rsquo;s audio couldn&rsquo;t be played. Check that its source files are still where the project expects them.',

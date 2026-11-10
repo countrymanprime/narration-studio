@@ -6,6 +6,7 @@ import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import type { NarrationApi, ChapterTrackLink, ChapterTrackSummary } from '../../types';
 import { withoutCredits } from '../../chapterKinds';
+import { ChapterTrackStateProvider } from '../chapterTracks/ChapterTrackState';
 import { ChapterTrackPanel } from './ChapterTrackPanel';
 
 // Confirms the first chapter to the first track (mirroring wireContracts.test.ts's own chapterTrackSet fixtures),
@@ -32,18 +33,20 @@ function renderPanel(
   const notify = vi.fn();
   render(
     <ApiProvider api={api}>
-      <ChapterTrackPanel
-        open
-        chapterId={link.chapterId}
-        chapterTitle={link.chapterTitle}
-        link={link}
-        trackSummary={track}
-        savedAt="2026-09-24T10:00:00Z"
-        notify={notify}
-        onClose={vi.fn()}
-        onChanged={onChanged}
-        onRemoveFromRecording={vi.fn().mockResolvedValue(undefined)}
-      />
+      <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={notify}>
+        <ChapterTrackPanel
+          open
+          chapterId={link.chapterId}
+          chapterTitle={link.chapterTitle}
+          link={link}
+          trackSummary={track}
+          savedAt="2026-09-24T10:00:00Z"
+          notify={notify}
+          onClose={vi.fn()}
+          onChanged={onChanged}
+          onRemoveFromRecording={vi.fn().mockResolvedValue(undefined)}
+        />
+      </ChapterTrackStateProvider>
     </ApiProvider>,
   );
   return { notify };

@@ -9,18 +9,16 @@ import { describe, expect, it } from 'vitest';
  * moves onto `useChapterTrackState` and leaves it; a new file must not be added, it reads the state instead.
  */
 const DIRECT_READERS = new Set([
-  'components/recordingcheck/CheckResult.tsx',
   'components/editing/page/useChapterSource.ts',
   'components/editing/EditingCheckPanel.tsx',
-  'components/engine/useDawToolsSource.ts',
   // The state's own reader of the live track list (the Engine panel no longer has a second instance).
   'components/engine/useLiveTracks.ts',
   'components/engine/EnginePanel.tsx',
-  'components/production/ChapterTrackPanel.tsx',
+  // The Production board's per-chapter link read (status, suggestions, warnings): not the mapping list the state holds, so it stays until the state carries those.
   'components/production/useChapterTools.tsx',
   'components/proof/useChapterTimeline.ts',
   'components/pickups/list/usePlayOriginal.ts',
-  // Reads the links together with the chapter's match as one snapshot (the dialog's check: its match and its links must be one moment).
+  // Reads the links together with the chapter's match as one snapshot (the dialog's check: its match and its links must be one moment); moving it onto the state is tracked in #3350.
   'components/connection/ChapterLinkDialog.tsx',
   'components/proof/ProofChapterPage.tsx',
   // The state itself: the one reader every screen above is meant to move onto.

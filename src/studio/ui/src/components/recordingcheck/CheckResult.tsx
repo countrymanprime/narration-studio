@@ -1,4 +1,5 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
+import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
 import { Link } from 'react-router-dom';
 import { EnginePanelLink } from '../engine/EnginePanelContext';
 import { trackHeldByOther } from '../mapping/trackHeldBy';
@@ -6,7 +7,6 @@ import { useOverlay } from '../../overlay/OverlayProvider';
 import { chapterName } from '../../chapterName';
 import type { CoverageReason, CoverageResult } from '../../api/contracts/coverage';
 import type { ManuscriptChapter } from '../../api/contracts/manuscript';
-import type { Track } from '../../api/contracts/tracks';
 import { describeApiError } from '../../api/errorMessage';
 import { usePendingAction } from '../../hooks/usePendingAction';
 import { usePort } from '../../ports/usePort';
@@ -165,29 +165,22 @@ export function ReasonBlock({
 
 /** The chapter-track link, confirmed right here: the same prompt the audio engine panel lists. */
 function TrackLink({ chapter, onLinked, onNavigate }: { chapter: ManuscriptChapter; onLinked: () => Promise<void>; onNavigate?: () => void }) {
-  const tracksPort = usePort('tracks');
   const trackMap = usePort('chapterTrackMap');
   const overlay = useOverlay();
-  const [tracks, setTracks] = useState<Track[]>();
-  const [error, setError] = useState('');
+  // The tracks are the shared state's: the same ones the Engine list shows (REAPER's now, else the saved file's).
+  const trackState = useChapterTrackState();
+  const tracks = trackState.project?.tracks;
+  const [confirmError, setError] = useState('');
+  const error = confirmError || (tracks ? '' : trackState.live.error);
   const confirming = usePendingAction();
-  useEffect(() => {
-    let active = true;
-    tracksPort
-      .tracksList()
-      .then((project) => active && setTracks(project.tracks))
-      .catch((reason) => active && setError(describeApiError(reason)));
-    return () => {
-      active = false;
-    };
-  }, [tracksPort]);
   if (error)
     return (
       <p style={{ color: 'var(--danger-text)' }}>
         The REAPER tracks could not be listed: {error} <EnginePanelLink onOpen={onNavigate} />
       </p>
     );
-  if (!tracks) return <p role="status">Reading the REAPER tracks…</p>;
+  if (!tracks)
+    return <p role="status">{trackState.reading ? 'Reading the REAPER tracks…' : 'No REAPER project is linked, so there are no tracks to choose from.'}</p>;
   return (
     <MappingConfirm
       chapterTitle={chapterName(chapter, 'short')}
@@ -198,7 +191,7 @@ function TrackLink({ chapter, onLinked, onNavigate }: { chapter: ManuscriptChapt
           // The pre-check's own failure is a toast and leaves the picker; only the confirm's failure takes the panel's error line.
           let taken: string;
           try {
-            taken = trackHeldByOther((await trackMap.chapterTrackMapList()).mappings, trackGuid, chapter.id);
+            taken = trackHeldByOther(await trackState.refreshLinks(), trackGuid, chapter.id);
           } catch (reason) {
             overlay.toast(`The link could not be checked: ${describeApiError(reason)}`, { tone: 'error' });
             return;

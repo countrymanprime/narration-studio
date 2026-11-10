@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
 import { apiErrorMessage } from '../../api/errorMessage';
 import { usePort } from '../../ports/usePort';
 import { useDawState } from '../../daw/useDawSession';
@@ -30,35 +31,21 @@ export type DawToolsSource = {
  */
 export function useDawToolsSource(opened: number): DawToolsSource {
   const enabled = opened > 0;
-  const tracksPort = usePort('tracks');
   const system = usePort('system');
   const audacity = useAudacityLink(enabled);
   const forAudacity = audacity.link?.chosen === true;
-  // An Audacity project's tracks come from the snapshot taken while Audacity answers, so they are read again each time it does (as the Engine panel's are).
-  const audacityHeard = forAudacity ? audacity.receivedAt : undefined;
   const status = useDawStatus();
   const reachable = useDawState((state) => state.caps?.reachable);
   const [wrongProject, setWrongProject] = useState<string | null>(null);
-  const [tracks, setTracks] = useState<Track[]>(NO_TRACKS);
-  const [state, setState] = useState<'reading' | 'read' | { failed: string }>('reading');
-
+  // The tracks are the shared state's (the Engine list and the Booth read the same ones), read while the menu has been opened and the project is not Audacity's.
+  const trackState = useChapterTrackState({ enabled: enabled && !forAudacity });
+  const tracks = trackState.project?.tracks ?? NO_TRACKS;
+  const readError = trackState.project ? '' : trackState.live.error;
+  // Each opening of the menu, and the DAW starting to answer, reads once more, so a read that failed is tried again.
+  const { reread } = trackState;
   useEffect(() => {
-    if (!enabled) return;
-    let active = true;
-    tracksPort.tracksList().then(
-      (project) => {
-        if (!active) return;
-        setTracks(project.tracks);
-        setState('read');
-      },
-      (reason) => {
-        if (active) setState({ failed: `The REAPER project could not be read: ${apiErrorMessage(reason).slice(0, 200)}` });
-      },
-    );
-    return () => {
-      active = false;
-    };
-  }, [tracksPort, enabled, opened, reachable, audacityHeard]);
+    if (enabled && !forAudacity && opened > 1) reread();
+  }, [reread, enabled, forAudacity, opened, reachable]);
 
   // Whether the DAW has the linked project open, read as the Booth reads it: only a linked, heard DAW that disagrees counts. A read that fails is said, so no entry is silently live.
   const dawKind = useDawState((state) => state.caps?.daw);
@@ -81,10 +68,10 @@ export function useDawToolsSource(opened: number): DawToolsSource {
   const links = useChapterLinks(tracks, opened, noop, null, enabled);
   const linked = links.rows.filter((row) => row.state === 'linked').length;
   const dawOff =
-    state === 'reading'
+    !trackState.project && trackState.reading && !readError
       ? 'Reading the REAPER project…'
-      : typeof state === 'object'
-        ? state.failed
+      : readError
+        ? `The REAPER project could not be read: ${readError.slice(0, 200)}`
         : links.error
           ? `The chapter links could not be read: ${links.error.slice(0, 200)}`
           : status.off;
