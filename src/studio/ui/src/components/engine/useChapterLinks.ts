@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePort } from '../../ports/usePort';
 import { headingName } from '../../chapterHeading';
 import { chapterTrackRows, type ChapterTrackRow } from './chapterTrackRows';
+import { keptTitle } from '../mapping/trackHeldBy';
 import type { ManuscriptChapter, Track, TrackMapping } from '../../types';
 import type { ChapterTrackCreateResult } from '../../api/contracts/chapterTrackMap';
 
@@ -112,8 +113,10 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
         const displaced = (result as { displaced?: { chapterId: string; chapterTitle?: string } | null } | undefined)?.displaced;
         // A chapter the manuscript no longer lists is still named, by the title the host kept with its link, so no takeover is silent.
         const taken = displaced && chapters.find((chapter) => chapter.id === displaced.chapterId);
-        const lost = taken ? headingName(taken) : displaced?.chapterTitle;
-        if (lost) setNotice(`${lost} was linked to that track and is now not linked.`);
+        if (displaced)
+          setNotice(
+            `${taken ? headingName(taken) : (keptTitle(displaced.chapterTitle) ?? 'A chapter no longer in the manuscript')} was linked to that track and is now not linked.`,
+          );
       })
       .then(() => reload())
       .then(() => onChanged())

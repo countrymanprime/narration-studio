@@ -345,19 +345,33 @@ describe('LinkChaptersDialog', () => {
     expect(screen.queryByText('Nothing is stamped yet.')).toBeNull();
   });
 
-  it('still names the chapter that lost a track when the host holds its link but the manuscript no longer lists it (qa-breaker B1)', async () => {
+  // The host stores whatever title it was given (mapping.go), so the unlisted chapter's title can be empty; the notice must still say something.
+  it.each([
+    ['its stored title', 'Ghost chapter', 'Ghost chapter'],
+    ['a plain phrase for an empty title', '', 'A chapter no longer in the manuscript'],
+    ['a plain phrase for a blank title', '   ', 'A chapter no longer in the manuscript'],
+    ['a plain phrase for a missing title', undefined, 'A chapter no longer in the manuscript'],
+    ['a right-to-left, emoji title as stored', 'פרק ראשון 🐇', 'פרק ראשון 🐇'],
+  ])('names a chapter the manuscript no longer lists by %s (qa-breaker B1, intent review)', async (_label, stored, expected) => {
     const user = userEvent.setup();
     const track = WIRE_TRACKS_PROJECT.tracks[0];
+    const at = '2026-01-01T00:00:00Z';
     renderDialog({
-      chapterTrackSet: async (chapterId, trackGuid) => ({
-        documentId: 'doc',
-        link: { trackGuid, chapterId, chapterTitle: 'x', confirmedAt: '2026-01-01T00:00:00Z' },
-        displaced: { chapterId: 'ghost', chapterTitle: 'Ghost chapter', trackGuid: track.guid, confirmedAt: '2026-01-01T00:00:00Z' },
-        mappings: [],
-      }),
+      chapterTrackSet: async (chapterId, trackGuid) => {
+        const link = { trackGuid, chapterId, chapterTitle: 'x', confirmedAt: at, origin: 'manual' as const, match: null };
+        const displaced = {
+          trackGuid: track.guid,
+          chapterId: 'ghost',
+          confirmedAt: at,
+          origin: 'manual' as const,
+          match: null,
+          ...(stored === undefined ? {} : { chapterTitle: stored }),
+        };
+        return { documentId: 'doc', link, displaced, mappings: [link] } as unknown as Awaited<ReturnType<NarrationApi['chapterTrackSet']>>;
+      },
     });
     await user.selectOptions(await screen.findByRole('combobox', { name: `Track for ${WIRE_CHAPTERS[0].title}` }), track.guid);
-    expect(await screen.findByText('Ghost chapter was linked to that track and is now not linked.')).toBeTruthy();
+    expect(await screen.findByText(`${expected} was linked to that track and is now not linked.`)).toBeTruthy();
   });
 
   it('shows a REAPER error state', async () => {

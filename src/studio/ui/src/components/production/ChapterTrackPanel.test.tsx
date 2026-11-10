@@ -193,6 +193,22 @@ describe('ChapterTrackPanel states (alignment audit)', () => {
     expect(screen.getByRole('button', { name: 'Unlink' })).toBeTruthy();
   });
 
+  it('names a plain phrase when the chapter that lost the track has no stored title (#3053)', async () => {
+    const user = userEvent.setup();
+    const api = createMockApi();
+    const { link, track } = await confirmedFixture(api);
+    vi.spyOn(api, 'chapterTrackSet').mockResolvedValue({
+      documentId: 'doc',
+      link: { trackGuid: track.guid, chapterId: link.chapterId, chapterTitle: link.chapterTitle, confirmedAt: '2026-01-01T00:00:00Z' },
+      displaced: { chapterId: 'gone', chapterTitle: '', trackGuid: track.guid, confirmedAt: '2026-01-01T00:00:00Z' },
+      mappings: [],
+    });
+    const { notify } = renderPanel(api, { ...link, status: 'matched' }, track);
+    await screen.findByText(/Not linked yet/);
+    await user.click(screen.getByRole('button', { name: 'Confirm' }));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith('Linked. This track was linked to a chapter no longer in the manuscript, which is now unlinked.'));
+  });
+
   it('two links to choose between offer the Keep this one rows and no second Link picker (R3PR1-6)', async () => {
     const api = createMockApi();
     const { link, track } = await confirmedFixture(api);

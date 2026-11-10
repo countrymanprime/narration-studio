@@ -8,3 +8,9 @@ export function trackHeldByOther(mappings: readonly TrackMapping[], trackGuid: s
   const holder = mappings.find((mapping) => mapping.trackGuid === trackGuid && mapping.chapterId !== chapterId);
   return holder ? `That track is already linked to ${holder.chapterTitle}. Unlink it there first, or pick another track.` : '';
 }
+
+/** The title the host kept with a displaced chapter's link, trimmed, or undefined when it is empty: the takeover notices then say "a chapter no
+ * longer in the manuscript", so none is silent or reads "It was linked to , which is now unlinked" (#3053). */
+export function keptTitle(storedTitle: string | undefined): string | undefined {
+  return storedTitle?.trim() || undefined;
+}
