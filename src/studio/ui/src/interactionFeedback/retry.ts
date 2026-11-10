@@ -39,6 +39,7 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
     'Opening the report folder again repeats the same open; the toast carries Retry (added by the report dialog).',
   ),
   'src/components/editing/page/useSaveInDaw.ts#1': no(BT),
+  'src/components/editing/page/useRereadFeedback.ts#1': no(BT),
   'src/components/script/page/data/useScriptData.ts#2': no(ED),
   'src/components/script/page/data/useScriptData.ts#3': no(ED),
   'src/components/settings/controls/ProjectBodies.tsx#1': no(
