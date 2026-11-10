@@ -30,10 +30,11 @@ function heardSpans(answer: HeardAnswer, firstParagraph: string | undefined): Ma
 
 /**
  * Whether the chapter has audio the page can edit. When it has none, why: no track is linked to it (`unlinked`), the linked track is not in the
- * saved project (`missing`), or the track holds nothing (`empty`). `unsaved` is on an `empty` chapter when the DAW has changes its saved file lacks: the page
+ * saved project (`missing`), or the track holds nothing (`empty`). `unsaved` is on an `empty` chapter when the DAW has changes its saved file lacks (`'unknown'` when it could not say, so the page does not tell the narrator to record again), and `missing` when the link's track is not in the saved project: the page
  * reads the saved project only, so a take recorded since the last save is not there yet and the way forward is to save, not to record.
  */
-export type ChapterAudio = { kind: 'ready' } | { kind: 'unlinked' | 'missing' } | { kind: 'empty'; folder?: boolean; unsaved?: boolean };
+export type ChapterAudio =
+  { kind: 'ready' } | { kind: 'unlinked' | 'missing' } | { kind: 'empty'; folder?: boolean; unsaved?: boolean | 'unknown'; missing?: boolean };
 
 /** Everything the page reads for one chapter, as the ports answered. */
 export interface ChapterRead {
@@ -62,11 +63,12 @@ export function audioOf(
   trackItems: number,
   liveItems: number,
   folder = false,
-  unsaved = false,
+  unsaved: boolean | 'unknown' = false,
 ): ChapterAudio {
   if (link === 'unknown' || trackItems > 0 || liveItems > 0) return { kind: 'ready' };
   // A linked track the saved project lacks may be one added since the last save: with unsaved changes that is a save to make, not a link to fix.
-  if (unsaved && (link === 'linked' || link === 'missing')) return { kind: 'empty', ...(folder ? { folder } : {}), unsaved };
+  if (unsaved && (link === 'linked' || link === 'missing'))
+    return { kind: 'empty', ...(folder ? { folder } : {}), unsaved, ...(link === 'missing' ? { missing: true } : {}) };
   return link === 'linked' ? { kind: 'empty', ...(folder ? { folder } : {}) } : { kind: link };
 }
 

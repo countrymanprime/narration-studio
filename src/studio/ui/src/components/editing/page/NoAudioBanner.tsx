@@ -1,4 +1,5 @@
 import { Button } from '../../primitives/Button';
+import { useVoiceLayout } from '../../engine/voiceLayout';
 import type { ChapterAudio } from './chapterSource';
 import type { SaveInDaw } from './useSaveInDaw';
 import { noAudioText } from './noAudioText';
@@ -29,8 +30,9 @@ export function NoAudioBanner({
   /** The **Save in <DAW> and read** button's state, for a DAW that can save from the app and a chapter whose track holds nothing yet; otherwise no button. A refusal and a save are toasts. */
   save?: SaveInDaw;
 }) {
+  const layout = useVoiceLayout();
   if (audio.kind === 'ready' || isLinkProblem(audio, daw)) return null;
-  const text = noAudioText(audio, chapterName, daw);
+  const text = noAudioText(audio, chapterName, daw, layout);
   // For an unsaved recording the button is the next step, so the note's sentence telling the narrator to save steps aside for it. Any other empty
   // track keeps its how-to (record it, then save): a save may find nothing, and the narrator must still be told what to do.
   const offered = save !== undefined && audio.kind === 'empty';

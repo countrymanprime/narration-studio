@@ -41,6 +41,28 @@ export interface ChapterSourceState {
 
 const why = apiErrorMessage;
 
+/** How long the page waits for the DAW to say whether it has unsaved changes before it reads the chapter without that: a DAW that does not answer must not hold the page. */
+const PROJECT_STATE_WAIT_MS = 3000;
+
+/** Whether the DAW has changes its saved file lacks, or 'unknown' when it could not say in time (a refusal or no answer is not "no changes"). */
+async function unsavedChanges(read: Promise<{ unsavedChanges: boolean }>): Promise<boolean | 'unknown'> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<'unknown'>((resolve) => {
+    timer = setTimeout(() => resolve('unknown'), PROJECT_STATE_WAIT_MS);
+  });
+  try {
+    return await Promise.race([
+      read.then(
+        (state) => state.unsavedChanges,
+        () => 'unknown' as const,
+      ),
+      late,
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /**
  * What the page reads for one chapter through the ports: the text and what was heard (workspace and alignment), the stored cuts, effects and
  * accepted words (editLog), and the chapter's track items for playback (chapterTrackMap and tracks; a chapter with no linked track plays nothing).
@@ -78,13 +100,7 @@ export function useChapterSource(chapterId: string, chapterName: string): Chapte
         const found = chapterTrackOf(project.tracks, guid);
         const link = guid === undefined ? ('unlinked' as const) : found ? ('linked' as const) : ('missing' as const);
         // Only a chapter with no items needs to know: the DAW's unsaved changes are where a take recorded since the last save is. A DAW that does not answer says no.
-        const unsaved =
-          found && found.items.length > 0
-            ? false
-            : await daw.projectState().then(
-                (state) => state.unsavedChanges,
-                () => false,
-              );
+        const unsaved = found && found.items.length > 0 ? false : await unsavedChanges(daw.projectState());
         return found
           ? { items: found.items, place: `${found.track.isFolder ? 'folder' : 'track'} “${found.track.name}”`, link, folder: found.track.isFolder, unsaved }
           : { items: [], place: chapterName, link, folder: false, unsaved };

@@ -9,6 +9,7 @@ import { overlay } from '../../../overlay/overlayService';
 import { retryAction } from '../../primitives/Toast';
 import { useJournal } from '../../../studio/StudioProvider';
 import { useOutputPrefs } from '../../engine/outputPrefs';
+import { useVoiceLayout } from '../../engine/voiceLayout';
 import { useTakeAudition } from '../takes/useTakeAudition';
 import { KeyHints } from '../../primitives/KeyHints';
 import { keepsBackups, registerBackupsSection } from '../backups/registerBackupsSection';
@@ -561,12 +562,13 @@ export function EditingBody(props: EditingBodyProps) {
     onReread: props.onReread,
   });
 
+  const layout = useVoiceLayout();
   // Nothing can play on a chapter with no audio (no linked track, a track that is gone or empty, or nothing recorded yet): Play says why.
   const { rereading, reread } = useRereadFeedback(read, chapterName, props.onReread);
   // The read after a save is the same read as **Read again**: it shows pending and says when the saved project still has no audio.
   const save = useSaveInDaw(reread);
   const dawName = caps && caps.daw !== 'none' && caps.daw !== 'Built-in' ? caps.daw : null;
-  const playUnavailable = read.audio.kind === 'ready' ? undefined : `${noAudioText(read.audio, chapterName, dawName).headline}`;
+  const playUnavailable = read.audio.kind === 'ready' ? undefined : `${noAudioText(read.audio, chapterName, dawName, layout).headline}`;
 
   return (
     <div ref={root} className="flex min-h-0 flex-1 flex-col">
