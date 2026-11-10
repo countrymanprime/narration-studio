@@ -52,7 +52,7 @@
       "job": "ci-passed",
       "step": [
         "uses: ./.github/actions/ci-gate",
-        "vitest-shards: ${{ needs.quality.outputs.vitest-affected == 'true' && '5' || '0' }}"
+        "vitest-shards: ${{ needs.quality.outputs.vitest-affected == 'true' && '6' || '0' }}"
       ],
       "action_has": {
         "ci-gate": [
@@ -103,7 +103,7 @@
       "workflow": "_quality.yml",
       "job": "test-linux",
       "step": [
-        "run atlas --shard=\"$SHARD/5\""
+        "run atlas --shard=\"$SHARD/6\""
       ]
     },
     {

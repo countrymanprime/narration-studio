@@ -37,7 +37,7 @@ runs:
   using: composite
   steps:
     # The ~170 .debs of this install come from azure.archive.ubuntu.com, which sometimes serves them minutes apart: the install took 7 to 14 min
-    # on Test (Linux 1/5) in 9 of 40 runs on 2026-11-10 against about 1 min otherwise (#3327). The downloaded .debs are cached per runner
+    # on Test (Linux 1/6) in 9 of 40 runs on 2026-11-10 against about 1 min otherwise (#3327). The downloaded .debs are cached per runner
     # image, so a slow mirror is paid once, and a miss or a changed package still downloads what is missing.
     - if: runner.os == 'Linux' && inputs.need-linux-native-deps == 'true'
       id: apt-image

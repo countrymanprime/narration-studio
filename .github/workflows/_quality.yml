@@ -3,10 +3,10 @@ on:
   workflow_call:
     outputs:
       ui-affected:
-        description: "'true' when Nx found ui affected, so Test (Linux) ran the visual suite in its five shards and ci.yml's `CI passed` judges their records"
+        description: "'true' when Nx found ui affected, so Test (Linux) ran the visual suite in its six shards and ci.yml's `CI passed` judges their records"
         value: ${{ jobs.lint.outputs.ui }}
       vitest-affected:
-        description: "'true' when Test (Linux) ran the Vitest run in its five shards and uploaded its blobs, which ci.yml's aggregate merges"
+        description: "'true' when Test (Linux) ran the Vitest run in its six shards and uploaded its blobs, which ci.yml's aggregate merges"
         value: ${{ jobs.lint.outputs.ui }}
     inputs:
       full:
@@ -36,7 +36,7 @@ jobs:
     #   - Scope: which job families the change reaches, so the others are skipped (no runner, no toolchain setup) instead of starting,
     #     installing and finding nothing to do. Same rule as every nx-run / nx-affected step (scripts/ci/nx-scope.sh: everything on a
     #     manual run or a workspace-wide file, else `nx show projects --affected`).
-    #       - ui: Test (Linux)'s Vitest, visual and atlas steps, in all five shards (`test-shards`); otherwise shard 1 alone runs.
+    #       - ui: Test (Linux)'s Vitest, visual and atlas steps, in all six shards (`test-shards`); otherwise shard 1 alone runs.
     #       - shell: Test (Windows 1/2) and (2/2) (the Go tests and lint, and the Lua harness on Windows), so the reaper project or the shell.
     #     A skipped job counts as passed in ci.yml's `CI passed`; the steps inside those jobs keep their own scope check.
     #     A pull request whose workflow changes are only `uses:` pin bumps (Dependabot) is not `all` here: the nx-affected steps run
@@ -56,8 +56,8 @@ jobs:
       shell: ${{ steps.shell.outputs.affected == 'true' || steps.pins.outputs.shell == 'true' }}
       static: ${{ steps.pins.outputs.static }}
       quickubuntu: ${{ steps.pins.outputs.quickubuntu }}
-      # Test (Linux)'s shards: all five when the UI is affected, else shard 1 alone (its quick tests).
-      test-shards: ${{ (steps.ui.outputs.affected == 'true' || steps.pins.outputs.ui == 'true') && '[1,2,3,4,5]' || '[1]' }}
+      # Test (Linux)'s shards: all six when the UI is affected, else shard 1 alone (its quick tests).
+      test-shards: ${{ (steps.ui.outputs.affected == 'true' || steps.pins.outputs.ui == 'true') && '[1,2,3,4,5,6]' || '[1]' }}
       ui-dist: ${{ steps.ui-dist.outcome == 'success' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -177,15 +177,15 @@ jobs:
             "test ratchet": "${{ steps.test-ratchet.outcome }}"}
         run: node scripts/ci/step-summary.mjs
   test-linux:
-    # Every Linux test, in five shards (owner decision, #3065: 11 checks on free runners, each shard well under the 30-minute limit).
+    # Every Linux test, in six shards (owner decision, #3065: 11 checks on free runners, each shard well under the 30-minute limit).
     #   - Shard 1 also runs the quick tests (`quickubuntu`): repo-scripts (the plain-Node scripts; `always`: the layout and project guards
     #     read every tracked file), docs-site (its unit tests; `always`: docs/ belongs to no project), python (pytest of the Python projects;
     #     Go is installed for the transcript-compare tests), reaper (Lua) (the bridge harness under Lua 5.4: on a pull request its
     #     characterization tests, the `pr` configuration; on every other run with its mutation checks too) and the rename rehearsal (renames a
     #     throwaway worktree of this commit to a made-up name and runs the brand sync, both name guards and the tests that read the name,
     #     scripts/brand/rehearse-rename.mjs; main-health runs `--full`, which adds the UI typecheck and the built site, #3078).
-    #   - Every shard, when the UI is affected, runs a fifth of:
-    #       - Vitest (`vitest --shard=i/5`, split by cost, src/studio/ui/scripts/vitest-shards.mjs). A shard checks no coverage floor; it
+    #   - Every shard, when the UI is affected, runs a sixth of:
+    #       - Vitest (`vitest --shard=i/6`, split by cost, src/studio/ui/scripts/vitest-shards.mjs). A shard checks no coverage floor; it
     #         uploads a blob of its results and coverage, and ci.yml's `CI passed` (.github/actions/ci-gate) merges the five and checks the
     #         floors of scripts/ci/coverage-floors.json over the whole run. No Nx cache and no retry.
     #       - the visual suite (full tier): every {page, state, viewport} of the mock-backed app, failing on errors, sideways overflow and
@@ -195,13 +195,14 @@ jobs:
     #         every test) run in `CI passed` from each shard's capture records and manifest. `aria` (the role trees, about 50 s) runs on the
     #         shard the split names.
     #       - the component atlas (full tier): every Storybook story x light/dark x wide/narrow, with play() interactions, axe and overflow
-    #         checks (`pnpm atlas --shard=i/5`); shard 1 also checks docs/ui equals a fresh generation (fix with
+    #         checks (`pnpm atlas --shard=i/6`); shard 1 also checks docs/ui equals a fresh generation (fix with
     #         `pnpm --dir src/studio/ui docs:atlas`).
     #     A change that does not reach the UI runs shard 1 alone (lint's `test-shards`), so only its quick tests run.
     # Each step runs even after a red one (`!cancelled()`), and the summary names every step's result.
-    # 30 min: run 42387889311 measured about 101 min of this work in total (Vitest 15.5, atlas 16.9, visual 64.2, quick tests 4.4); a fifth
-    # is about 20 min plus about 1.5 of setup, which leaves room for a slow `setup-playwright` (up to 11 min seen once).
-    name: Test (Linux ${{ matrix.shard }}/5)
+    # 30 min, six shards: five shards each took 20 to 28.7 min on 2026-11-10 (ten full runs, #3327), the longest 27.6 to 28.7 against the
+    # 30 min limit, from about 125 min of this work in total; a sixth is about 21 min plus about 1.5 of setup, which leaves room for a slow
+    # `setup-playwright` (up to 11 min seen once). The timeout stays 30.
+    name: Test (Linux ${{ matrix.shard }}/6)
     needs: lint
     timeout-minutes: 30
     runs-on: ubuntu-latest
@@ -269,7 +270,7 @@ jobs:
         if: ${{ !cancelled() && steps.scope.outputs.affected == 'true' }}
         env:
           SHARD: ${{ matrix.shard }}
-        run: node scripts/ci/coverage-gate.mjs vitest src/studio/ui --shard="$SHARD/5"
+        run: node scripts/ci/coverage-gate.mjs vitest src/studio/ui --shard="$SHARD/6"
       # `.cache` is a hidden directory, which upload-artifact leaves out unless told.
       - if: ${{ !cancelled() && steps.scope.outputs.affected == 'true' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -292,7 +293,7 @@ jobs:
         env:
           SHARD: ${{ matrix.shard }}
           RESERVE: ${{ github.event_name == 'pull_request' && '300' || '380' }}
-        run: node scripts/ci/visual-shards.mjs split --shard "$SHARD/5" --reserve-first "$RESERVE" --out "$RUNNER_TEMP/shard.txt" --manifest "$RUNNER_TEMP/shard-$SHARD.json" --github-output
+        run: node scripts/ci/visual-shards.mjs split --shard "$SHARD/6" --reserve-first "$RESERVE" --out "$RUNNER_TEMP/shard.txt" --manifest "$RUNNER_TEMP/shard-$SHARD.json" --github-output
       # The JSON report is the profile (time per test); a shard uploads it as ui-visual-timings-<i> and `visual-shards.mjs weights` rebuilds
       # shard-weights.json from them.
       - name: visual
@@ -335,7 +336,7 @@ jobs:
         if: ${{ !cancelled() && inputs.full && steps.scope.outputs.affected == 'true' }}
         env:
           SHARD: ${{ matrix.shard }}
-        run: pnpm --dir src/studio/ui run atlas --shard="$SHARD/5"
+        run: pnpm --dir src/studio/ui run atlas --shard="$SHARD/6"
       - name: atlas docs
         id: atlas-docs
         if: ${{ !cancelled() && inputs.full && steps.scope.outputs.affected == 'true' && matrix.shard == 1 }}
