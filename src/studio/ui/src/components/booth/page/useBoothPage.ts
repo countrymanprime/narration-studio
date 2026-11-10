@@ -455,8 +455,9 @@ export function useBoothPage(options: BoothPageOptions) {
       pause,
       resume: resumeTake,
       beginTake: async (punch) => {
-        // One start at a time: a second press while this one runs (a double tap, a pedal's bounce) starts nothing more.
-        if (starting.current) return;
+        // One start at a time: a second press while this one runs (a double tap, a pedal's bounce) starts nothing more, and says so (false), so
+        // nothing that press announced is left standing.
+        if (starting.current) return false;
         const token = pressToken.current;
         const current = () => token === pressToken.current;
         let kept = (_value: boolean) => {};

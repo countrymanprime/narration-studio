@@ -9,7 +9,7 @@ import { rollConfirmSpec } from './rollConfirm';
 import { rollPlan } from './rollPlan';
 import { clampPhrase } from './startFromHere';
 import { createTakeHold } from './takeHold';
-import { LOOKUP_MS, useRoll, type RollSession } from './useRoll';
+import { LOOKUP_MS, clipName, useRoll, type RollSession } from './useRoll';
 
 // The mock's setups: a roll REAPER keeps as a take, Audacity without backups (destructive), Audacity with backups (not).
 const withRoll = (base: DawCapabilities, punch: DawCapabilities['capabilities'][string]): DawCapabilities => ({
@@ -424,6 +424,59 @@ describe('useRoll', () => {
       expect(punchTarget).toHaveBeenCalledTimes(2);
       second.resolve(found(1));
       await settle();
+    });
+
+    it('answering no to the Punch-in question leaves no start note and starts nothing', async () => {
+      const { hook, actions, dialog } = setup(SETUPS.audacity, { recording: false, punchAt: 1 });
+      let done: Promise<unknown> = Promise.resolve();
+      act(() => {
+        done = hook.result.current.startTake();
+      });
+      await waitFor(() => expect(dialog()).toBeTruthy());
+      expect(hook.result.current.startNote).toBe('');
+      await act(async () => dialog()?.answer(false));
+      await done;
+      expect(hook.result.current.startNote).toBe('');
+      expect(actions.beginTake).not.toHaveBeenCalled();
+      expect(actions.notify).not.toHaveBeenCalled();
+    });
+
+    it('a cancelled press closes the Punch-in question it left open (a chapter change, leaving the Booth)', async () => {
+      for (const how of ['cancel', 'unmount'] as const) {
+        const { hook, actions, dialog, overlay } = setup(SETUPS.audacity, { recording: false, punchAt: 1 });
+        let done: Promise<unknown> = Promise.resolve();
+        act(() => {
+          done = hook.result.current.startTake();
+        });
+        await waitFor(() => expect(dialog()).toBeTruthy());
+        if (how === 'cancel') act(() => hook.result.current.cancelStart());
+        else hook.unmount();
+        await done;
+        expect(overlay.getSnapshot().dialogs).toHaveLength(0);
+        expect(actions.beginTake).not.toHaveBeenCalled();
+        if (how === 'cancel') hook.unmount();
+      }
+    });
+
+    it('a track name of any length is clipped where a message says it', async () => {
+      const long = `${'م'.repeat(5000)}😀${'e\u0301'.repeat(5000)}`;
+      expect(Array.from(clipName(long)).length).toBe(61);
+      expect(clipName('Narrator')).toBe('Narrator');
+      const hold = gate();
+      const { hook, actions } = setup(SETUPS.reaper, {
+        recording: false,
+        punchAt: 1,
+        punchTarget: async () => ({ outcome: 'found', trackName: long, start: 10, end: 15 }),
+      });
+      actions.beginTake.mockImplementation(async () => (await hold.promise, true));
+      let done: Promise<unknown> = Promise.resolve();
+      act(() => {
+        done = hook.result.current.startTake();
+      });
+      await waitFor(() => expect(hook.result.current.startNote).toMatch(/^Recording over ¶ 1 on /));
+      expect(hook.result.current.startNote.length).toBeLessThan(120);
+      hold.resolve(found(1));
+      await act(() => done);
     });
 
     it('a refused lookup ends the wait too', async () => {

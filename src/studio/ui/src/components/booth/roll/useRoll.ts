@@ -56,6 +56,12 @@ const LOOKUP_SLOW = 'The app got no answer about where that passage was recorded
 /** Said with every refusal of a lookup: the chosen start is dropped, so the next Record is a plain one and nothing happens silently. */
 const START_LET_GO = 'No start is chosen now: Record starts at the end of the recording. Choose the phrase again to retry.';
 
+/** A track or voice name as a message says it: a name is the project's, and can be any length. */
+export function clipName(name: string, max = 60): string {
+  const letters = Array.from(name.trim());
+  return letters.length <= max ? letters.join('') : `${letters.slice(0, max).join('')}…`;
+}
+
 /** How long after a roll went through another is ignored (milliseconds). */
 
 const ROLL_PAUSE_MS = 700;
@@ -65,12 +71,19 @@ const ROLL_PAUSE_MS = 700;
  * take just runs, a destructive one asks once with the take held, a refused one
  * shows the capability's sentence. Answering no resumes the take and rolls nothing.
  */
-export function useRoll(session: RollSession, actions: RollActions, { overlay }: { overlay: Pick<OverlayService, 'confirm'> }) {
+export function useRoll(session: RollSession, actions: RollActions, { overlay }: { overlay: Pick<OverlayService, 'confirm' | 'getSnapshot'> }) {
   const sessionRef = useRef(session);
   sessionRef.current = session;
   const actionsRef = useRef(actions);
   actionsRef.current = actions;
   const asking = useRef(false);
+  /** The question this hook has up, so a cancelled start can close it: answering Yes to a question about a press that is gone would start nothing, silently. */
+  const openQuestion = useRef<ReturnType<typeof rollConfirmSpec> | null>(null);
+  const closeQuestion = useCallback(() => {
+    const open = openQuestion.current;
+    if (!open) return;
+    for (const dialog of overlay.getSnapshot().dialogs) if (dialog.kind === 'confirm' && dialog.spec === open) dialog.answer(false);
+  }, [overlay]);
   const hold = useRef(createTakeHold({ pause: () => actionsRef.current.pause(), resume: () => actionsRef.current.resume() }));
 
   const ask = useCallback(
@@ -79,9 +92,12 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
       asking.current = true;
       const { recording } = sessionRef.current;
       const release = recording ? hold.current() : null;
+      const spec = rollConfirmSpec({ title, confirmLabel, dawName, recording });
+      openQuestion.current = spec;
       try {
-        return await overlay.confirm(rollConfirmSpec({ title, confirmLabel, dawName, recording }));
+        return await overlay.confirm(spec);
       } finally {
+        openQuestion.current = null;
         release?.();
         asking.current = false;
       }
@@ -176,10 +192,11 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
     latestStart.current += 1;
     inFlight.current.clear();
     pressing.current = null;
+    closeQuestion();
     setLookingUp(false);
     setAsking(false);
     setStartNote('');
-  }, []);
+  }, [closeQuestion]);
   useEffect(() => {
     alive.current = true;
     const lookups = inFlight.current;
@@ -187,8 +204,9 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
       alive.current = false;
       latestStart.current += 1;
       lookups.clear();
+      closeQuestion();
     };
-  }, []);
+  }, [closeQuestion]);
   /** Looks `phrase` up for start number `mine`; the wait shows until `endWait(mine)`, which the start calls once nothing is left to await for it. */
   const lookUpFor = useCallback(
     (mine: number, phrase: number): Promise<BoothPunch> => {
@@ -279,7 +297,7 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
       if (outdated(mine)) return;
       // The narrator is told which track is recorded over before the take starts, in the pending Record's own words (a message would say the start
       // twice beside the chip); it is gone with the press, so a refused take leaves no claim.
-      setStartNote(`Recording over ¶ ${s.paragraphOf(at) + 1}${target.trackName ? ` on ${target.trackName}` : ''}.`);
+      setStartNote(`Recording over ¶ ${s.paragraphOf(at) + 1}${target.trackName ? ` on ${clipName(target.trackName)}` : ''}.`);
       return actionsRef.current.beginTake(target.start);
     },
     [ask, lookUpFor],

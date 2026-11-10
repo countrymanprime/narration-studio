@@ -2569,6 +2569,36 @@ describe('every wait of a press is one press: joined, bounded, and dropped with 
     });
   }
 
+  it("a start chosen while a press is already starting says nothing it will not do: the take is the first press's, and no chip or note claims another", async () => {
+    const hold = gate();
+    const boothPunchTarget = vi.fn(async () => FOUND);
+    const page = renderPage({ api: { boothPunchTarget, assetsList: (async () => (await hold.open, { assets: [] })) as never } });
+    await ready();
+    await space();
+    await settle();
+    await press('r', 'KeyR');
+    await settle();
+    expect(boothPunchTarget).not.toHaveBeenCalled();
+    expect(screen.queryByText(/^(Starts at|Looking up) /)).toBeNull();
+    expect(toastText(page)).toBe('');
+    hold.release();
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+    expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
+    expect(page.daw.recordStart).toHaveBeenCalledWith('c1', undefined);
+  });
+
+  it('a DAW start that is rejected ends the pending state and says why (the host has its own deadline: the UI adds none)', async () => {
+    const page = renderPage();
+    page.daw.recordStart.mockImplementation(async () => {
+      throw new Error('the bridge did not answer');
+    });
+    await ready();
+    await space();
+    await waitFor(() => expect(document.body.textContent).toMatch(/Record did not start: .*the bridge did not answer/));
+    expect(screen.getByRole('button', { name: /^Record$/ }).getAttribute('aria-busy')).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Stop$/ })).toBeNull();
+  });
+
   it('more presses during the start tone and during the DAW call ask the host nothing more and say nothing', async () => {
     const tone_ = gate();
     tone.gate = tone_.open;
