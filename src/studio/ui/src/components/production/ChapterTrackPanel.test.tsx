@@ -121,6 +121,22 @@ describe('ChapterTrackPanel states (alignment audit)', () => {
     expect(await screen.findByRole('button', { name: 'Unlink' })).toBeTruthy();
   });
 
+  it('says which chapter lost the track when linking takes it from another chapter (#3053)', async () => {
+    const user = userEvent.setup();
+    const api = createMockApi();
+    const { link, track } = await confirmedFixture(api);
+    vi.spyOn(api, 'chapterTrackSet').mockResolvedValue({
+      documentId: 'doc',
+      link: link.track!,
+      displaced: { chapterId: 'other', chapterTitle: 'Chapter 9', trackGuid: track.guid },
+      mappings: [],
+    } as Awaited<ReturnType<NarrationApi['chapterTrackSet']>>);
+    const { notify } = renderPanel(api, { ...link, status: 'matched' }, track);
+    await screen.findByText(/Not linked yet/);
+    await user.click(screen.getByRole('button', { name: 'Confirm' }));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith('Linked. This track was linked to Chapter 9, which is now unlinked.'));
+  });
+
   it('two links to choose between offer the Keep this one rows and no second Link picker (R3PR1-6)', async () => {
     const api = createMockApi();
     const { link, track } = await confirmedFixture(api);

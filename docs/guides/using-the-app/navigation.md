@@ -433,7 +433,7 @@ levels…** stays in the panel: it previews the linked track's items that are of
 confirm, changes their volume in REAPER in one undo step. While it is off, the reason shows under the button.
 
 If the chapter isn't linked to a track yet, the panel shows only the same track picker the recording
-check does, right in place; the check and its results come back once the chapter is linked.
+check does, right in place; the check and its results come back once the chapter is linked. A track another chapter holds is refused there, with that chapter's name, and nothing is linked.
 
 ### Chapter sync
 

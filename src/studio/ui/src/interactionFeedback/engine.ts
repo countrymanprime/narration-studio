@@ -32,7 +32,7 @@ export const engineFeedback: Record<string, FeedbackRow> = {
   'src/components/engine/LinkChaptersDialog.tsx::lineIdentityState#1': row('mount', 'instant', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'Hydrates whatever stamp or read was already in flight when the dialog reopened; the live event follows anyway.'),
   'src/components/engine/LinkChaptersDialog.tsx::subscribeLineIdentity#1': subscription('The line-identity state event, shared by the Stamp and Read runs this dialog starts.'),
   'src/components/engine/LinkChaptersDialog.tsx::lineIdentityStamp#1': row('click', 'job', 'pending', 'disabled', 'ui', 'inline', 'no', 'ok', 'Approve. The dialog cannot be closed while a stamp runs (Dialog\'s onClose is undefined then), so the result is always seen; a failure shows inline as an alert and in the phase message.'),
-  'src/components/engine/LinkChaptersDialog.tsx::lineIdentityRead#1': row('click', 'job', 'pending', 'disabled', 'ui', 'inline', 'no', 'ok', 'Read-only and idempotent; a failure shows inline in the "Currently stamped" section.'),
+  'src/components/engine/LinkChaptersDialog.tsx::lineIdentityRead#1': row('click', 'job', 'pending', 'disabled', 'ui', 'inline', 'no', 'ok', 'Read-only and idempotent; off while a stamp runs, so one run never replaces the other; a failure shows inline in the "Currently stamped" section.'),
   'src/components/engine/RenderConfigDialog.tsx::renderConfigState#1': row('mount', 'instant', 'na', 'na', 'ui', 'silent', 'na', 'exempt', 'Hydrates whatever configure run was already in flight when the dialog reopened; the live event follows anyway.'),
   'src/components/engine/RenderConfigDialog.tsx::renderConfigSuggestFolder#1': row(
     'mount',
