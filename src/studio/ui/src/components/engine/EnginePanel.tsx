@@ -103,12 +103,12 @@ function EnginePanelBody({ notify, link, onOpenRecordingSettings }: { notify: No
   const live = trackState.live;
   const readKey = `${discovery?.selected ?? ''}|${link.checkedAt ?? ''}|${link.dawFileLinked}|${link.dawProjectMatches}`;
   const lastReadKey = useRef(readKey);
-  const refreshTracks = trackState.refresh;
+  const rereadTracks = trackState.reread;
   useEffect(() => {
     if (lastReadKey.current === readKey) return;
     lastReadKey.current = readKey;
-    refreshTracks();
-  }, [readKey, refreshTracks]);
+    rereadTracks();
+  }, [readKey, rereadTracks]);
   const project = forAudacity ? audacityProject : live.project;
   const voices = useVoiceTracks(notify);
   // Chapter sync draws the layout switch as its Layout row while it is drawn at all; otherwise the Voices card does.

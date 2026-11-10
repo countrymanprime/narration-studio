@@ -27,7 +27,7 @@ const DIRECT_READERS = new Set([
   'components/chapterTracks/ChapterTrackState.tsx',
 ]);
 
-const READ = /\.(tracksLive|tracksList|chapterTrackLinks|chapterTrackMapList)\(/;
+const READ = /\.(tracksLive|tracksList|chapterTrackLinks|chapterTrackMapList)\(|\buseLiveTracks\(/;
 const root = join(__dirname, '..', '..');
 
 function sources(dir: string): string[] {
