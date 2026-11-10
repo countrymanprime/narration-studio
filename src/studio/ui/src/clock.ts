@@ -23,13 +23,16 @@ export function clock(seconds: number, options: ClockOptions = {}): string {
 }
 
 /**
- * A position with a fraction, `m:ss.s` ("1:05.3") or with `decimals: 2` `m:ss.ss` ("1:05.30") for the fine zoom. Rounds to the last decimal first,
- * so 59.96 reads "1:00.0", never "0:60.0".
+ * A position with a fraction, `m:ss.s` ("1:05.3") or with `decimals: 2` `m:ss.ss` ("1:05.30") for the fine zoom, and `h:mm:ss.s` from an hour so it
+ * agrees with `clock`. Rounds to the last decimal first, so 59.96 reads "1:00.0", never "0:60.0".
  */
 export function clockTenths(seconds: number, options: Pick<ClockOptions, 'minuteDigits'> & { decimals?: 1 | 2 } = {}): string {
   const decimals = options.decimals ?? 1;
   const unit = 10 ** decimals;
   const units = Number.isFinite(seconds) ? Math.max(0, Math.round(seconds * unit)) : 0;
+  const hours = Math.floor(units / (3600 * unit));
+  const minutes = Math.floor(units / (60 * unit)) % 60;
   const rest = (units % (60 * unit)) / unit;
-  return `${String(Math.floor(units / (60 * unit))).padStart(options.minuteDigits ?? 1, '0')}:${rest < 10 ? '0' : ''}${rest.toFixed(decimals)}`;
+  const secs = `${rest < 10 ? '0' : ''}${rest.toFixed(decimals)}`;
+  return hours > 0 ? `${hours}:${pad(minutes)}:${secs}` : `${String(minutes).padStart(options.minuteDigits ?? 1, '0')}:${secs}`;
 }
