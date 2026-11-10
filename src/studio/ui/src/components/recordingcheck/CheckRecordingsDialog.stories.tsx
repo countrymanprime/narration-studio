@@ -2,7 +2,6 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { MemoryRouter } from 'react-router-dom';
 import { expect, userEvent, within } from 'storybook/test';
 import { ApiProvider } from '../../api/ApiContext';
-import { ChapterTrackStateProvider } from '../chapterTracks/ChapterTrackState';
 import { createMockApi } from '../../api/mockApi';
 import type { CoverageResult, CoverageStartResult } from '../../api/contracts/coverage';
 import type { ManuscriptChapter } from '../../api/contracts/manuscript';
@@ -65,11 +64,9 @@ const meta = {
     (Story, { parameters }) => (
       <MemoryRouter>
         <ApiProvider api={parameters.api}>
-          <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
-            <div className="max-w-[60rem] bg-[var(--bg)] p-4">
-              <Story />
-            </div>
-          </ChapterTrackStateProvider>
+          <div className="max-w-[60rem] bg-[var(--bg)] p-4">
+            <Story />
+          </div>
         </ApiProvider>
       </MemoryRouter>
     ),

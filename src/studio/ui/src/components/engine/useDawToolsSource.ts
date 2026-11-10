@@ -24,10 +24,10 @@ export type DawToolsSource = {
 };
 
 /**
- * What a page that offers the DAW tools needs to draw them: the project's tracks, the one reader of the chapter links, whether the project
- * records in Audacity, and why the DAW is not answering when it is not. The Engine panel reads the same things for itself beside the rest of its
- * project; a page header has no such reader, so this is the page's. The tracks are read when the DAW's answer changes, as the Engine panel's
- * are when Audacity answers. Nothing is read until the menu has been opened (`opened` counts its openings), so a page that never opens it makes no host call for it, and each opening reads again, so a read that failed is tried once more.
+ * What a page that offers the DAW tools needs to draw them: the project's tracks (the shared chapter track state's, the Engine list's and the Booth's),
+ * the one reader of the chapter links, whether the project records in Audacity, and why the DAW is not answering when it is not. Nothing is read until
+ * the menu has been opened (`opened` counts its openings), so a page that never opens it makes no host call for it; after that the shared state keeps
+ * reading (its 5 s timer) while the page is mounted, and each further opening reads once more, so a read that failed is tried again.
  */
 export function useDawToolsSource(opened: number): DawToolsSource {
   const enabled = opened > 0;

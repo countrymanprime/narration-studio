@@ -4,7 +4,6 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
-import { ChapterTrackStateProvider } from '../chapterTracks/ChapterTrackState';
 import type { CoverageEngines, CoverageResult, CoverageStartOptions, CoverageStartResult, CoverageState } from '../../api/contracts/coverage';
 import type { DawCapabilities } from '../../api/contracts/daw';
 import type { ManuscriptChapter } from '../../api/contracts/manuscript';
@@ -87,10 +86,8 @@ function open(api: NarrationApi, preselected: string[] = [], opener = true, opti
   render(
     <MemoryRouter>
       <ApiProvider api={api}>
-        <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
-          <button type="button">Check icon</button>
-          <OverlayProvider service={service} />
-        </ChapterTrackStateProvider>
+        <button type="button">Check icon</button>
+        <OverlayProvider service={service} />
       </ApiProvider>
     </MemoryRouter>,
   );
