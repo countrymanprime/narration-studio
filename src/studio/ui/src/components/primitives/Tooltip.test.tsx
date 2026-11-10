@@ -553,6 +553,59 @@ describe('TooltipTarget mounts the library lazily', () => {
     expect(tips).toEqual(['Inner']);
   });
 
+  it('shows only the inner hint when the pointer moves from the outer one (already mounted) onto the inner one', async () => {
+    vi.useFakeTimers();
+    render(
+      <TooltipTarget text="Outer">
+        <span data-testid="outer-body">
+          <TooltipTarget text="Inner">
+            <button aria-label="Inner control">i</button>
+          </TooltipTarget>
+        </span>
+      </TooltipTarget>,
+    );
+    const body = screen.getByTestId('outer-body');
+    const outer = body.parentElement as HTMLElement;
+    const inner = screen.getByRole('button', { name: 'Inner control' }).parentElement as HTMLElement;
+    fireEvent.pointerEnter(outer, { pointerType: 'mouse' });
+    fireEvent.mouseEnter(outer);
+    fireEvent.mouseMove(outer);
+    await act(() => vi.advanceTimersByTimeAsync(300));
+    fireEvent.pointerEnter(inner, { pointerType: 'mouse' });
+    fireEvent.mouseOver(inner);
+    fireEvent.mouseEnter(inner);
+    fireEvent.mouseMove(inner);
+    await act(() => vi.advanceTimersByTimeAsync(1200));
+    expect(screen.getAllByRole('tooltip').map((t) => t.textContent)).toEqual(['Inner']);
+  });
+
+  it('shows the inner hint when keyboard focus reaches the control inside a nested pair', async () => {
+    const user = userEvent.setup();
+    render(
+      <TooltipTarget text="Outer">
+        <span>
+          <TooltipTarget text="Inner">
+            <button aria-label="Inner control">i</button>
+          </TooltipTarget>
+        </span>
+      </TooltipTarget>,
+    );
+    await user.tab();
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Inner control' }));
+    expect((await screen.findAllByRole('tooltip')).map((t) => t.textContent)).toContain('Inner');
+  });
+
+  it('does not open for the plain focus a touch tap gives its child', async () => {
+    // A touch tap focuses the button without :focus-visible; the library then declines, and the mount alone shows nothing.
+    vi.useFakeTimers();
+    render(<Rows count={1} />);
+    const button = screen.getByRole('button', { name: 'Row 0' });
+    fireEvent.pointerEnter(button.parentElement as HTMLElement, { pointerType: 'touch' });
+    fireEvent.pointerDown(button, { pointerType: 'touch' });
+    await act(() => vi.advanceTimersByTimeAsync(2000));
+    expect(screen.queryByRole('tooltip')).toBeNull();
+  });
+
   it('draws the same wrapper before and after the library mounts, so the page does not shift', () => {
     render(
       <TooltipTarget text="Same" className="px-1" style={{ minWidth: 4 }}>
