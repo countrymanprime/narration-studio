@@ -9,6 +9,7 @@ import type { ManuscriptContentKind } from '../../api/contracts/manuscript';
 import type { ChapterTrackLink, ChapterTrackSummary, Track } from '../../types';
 import { formatAudioTime, formatWhen } from './recordingCheckText';
 import { MappingConfirm } from '../mapping/MappingConfirm';
+import { keptTitle } from '../mapping/trackHeldBy';
 import { Button } from '../primitives/Button';
 import { InsetCard } from '../primitives/InsetCard';
 import { SectionLabel } from '../primitives/SectionLabel';
@@ -103,7 +104,10 @@ export function ChapterTrackPanel({
     setBusy(true);
     try {
       const result = await api.chapterTrackSet(chapterId, trackGuid);
-      if (result.displaced) notify(`Linked. This track was linked to ${result.displaced.chapterTitle}, which is now unlinked.`);
+      if (result.displaced)
+        notify(
+          `Linked. This track was linked to ${keptTitle(result.displaced.chapterTitle) ?? 'a chapter no longer in the manuscript'}, which is now unlinked.`,
+        );
       else notify('Track linked.');
       await onChanged();
     } catch (error) {

@@ -72,6 +72,62 @@ describe('ChapterLinksTable', () => {
     expect((await api.chapterTrackMapList()).mappings.some((m) => m.chapterId === 'credits-opening')).toBe(true);
   });
 
+  // qa-breaker, #3053: Opening credits took Chapter 1's track from this list and nothing on the page said Chapter 1 was now unlinked.
+  it('says which chapter lost a track when a pick here takes it from another chapter', async () => {
+    const user = userEvent.setup();
+    notify.mockClear();
+    renderTable();
+    const table = await screen.findByRole('table', { name: 'Chapter links' });
+    await waitFor(() => expect(within(table).getByRole('cell', { name: 'Opening credits' })).toBeTruthy());
+    const track = WIRE_TRACKS_PROJECT.tracks[0].guid;
+    const link = async (title: string) => {
+      const row = chapterRow(table, title);
+      await user.selectOptions(within(row).getByRole('combobox'), track);
+      await user.click(within(row).getByRole('button', { name: /^Use this (track|folder) for/ }));
+    };
+    await link('Opening credits');
+    await waitFor(() => expect(within(chapterRow(table, 'Opening credits')).getByText('Linked')).toBeTruthy());
+    expect(notify).not.toHaveBeenCalledWith(expect.stringMatching(/not linked/), 'info');
+    await link(headingName(WIRE_CHAPTERS[0]));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith('Opening credits was linked to that track and is now not linked.', 'info'));
+  });
+
+  // qa-breaker: an ignored Confirm of the pair already linked ends no change, so the flag stayed up and a later takeover made elsewhere (the dialog)
+  // came as a toast beside its own warning.
+  it('does not toast a takeover made elsewhere after an ignored Confirm of the already linked track', async () => {
+    const user = userEvent.setup();
+    notify.mockClear();
+    const track = WIRE_TRACKS_PROJECT.tracks[0].guid;
+    function Harness() {
+      const links = useChapterLinks(WIRE_TRACKS_PROJECT.tracks, 0, () => {});
+      return (
+        <>
+          <ChapterLinksTable links={links} notify={notify} />
+          <button onClick={() => links.set(WIRE_CHAPTERS[1].id, track)}>elsewhere</button>
+        </>
+      );
+    }
+    render(
+      <ApiProvider api={createMockApi()}>
+        <MemoryRouter initialEntries={['/production']}>
+          <Harness />
+        </MemoryRouter>
+      </ApiProvider>,
+    );
+    const table = await screen.findByRole('table', { name: 'Chapter links' });
+    await waitFor(() => expect(within(table).getByRole('cell', { name: 'Opening credits' })).toBeTruthy());
+    const opening = () => chapterRow(table, 'Opening credits');
+    await user.selectOptions(within(opening()).getByRole('combobox'), track);
+    await user.click(within(opening()).getByRole('button', { name: /^Use this (track|folder) for/ }));
+    await waitFor(() => expect(within(opening()).getByText('Linked')).toBeTruthy());
+    await pastQuiet();
+    await user.click(within(opening()).getByRole('button', { name: /^Change the track for/ }));
+    await user.click(within(opening()).getByRole('button', { name: /^Use this (track|folder) for/ }));
+    await user.click(screen.getByRole('button', { name: 'elsewhere' }));
+    await waitFor(() => expect(within(opening()).queryByText('Linked')).toBeNull());
+    expect(notify).not.toHaveBeenCalledWith(expect.stringMatching(/not linked/), 'info');
+  });
+
   // The breaker double-clicked Confirm: the second press arrived before the row re-rendered busy and unlinked both rows.
   it('links once when Confirm is pressed twice in a row', async () => {
     const user = userEvent.setup();
