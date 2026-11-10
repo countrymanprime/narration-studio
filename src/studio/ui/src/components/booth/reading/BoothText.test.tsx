@@ -450,7 +450,7 @@ describe('a cold read draws a ghost and the view follows it', () => {
 });
 
 describe('room for a page break', () => {
-  it('puts a full em and a half above the paragraph that opens a page, and above no other', () => {
+  it('puts 1.5em above the paragraph that opens a page, and above no other', () => {
     setup({ pageStarts: new Set(['p2']) });
     const gap = (id: string) => document.querySelector<HTMLElement>(`[data-paragraph="${id}"]`)!.className.includes('mt-[1.5em]');
     expect(gap('p2')).toBe(true);
