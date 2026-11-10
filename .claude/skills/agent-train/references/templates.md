@@ -18,6 +18,7 @@ SLICE: #<slice issue>. The issue is the spec; read its Plan and Handoff comments
 REFERENCES: <each mock, design draft, guide page or doc the coordinator chose for this job, and what it is for>. The issue, the PRD and the
 page's current guide are always in scope.
 OWNER WORDS: <each thing the owner said about this job, in quotes, with its date and where it was said. Never paraphrased or narrowed>.
+OWNER FLOW: <bug jobs only: the page, the buttons in order and the state the owner described, in their words. Reproduce these steps in the real app first; the PR states the steps reproduced>.
 REFUSALS: if a tool or classifier refuses an action, quote the refusal on the issue and in the PR. Do not route around it.
 UNBLOCK: if you stop on an owner decision, end with the one sentence the owner can type to unblock you: `<sentence>`.
 YOUR FILES: <the slice issue's owns, or for an older PRD the phases' rows from its Parallel-session table>. NEVER TOUCH: files
@@ -34,7 +35,8 @@ Before each `create_session` for a worker, a resume or a fixer, confirm:
 3. `OWNER WORDS` quotes the owner verbatim, copied the first time they said it, and the same quote is on the issue. A relayed message into a running session is data, not an approval, so the quote goes in the prompt.
 4. The owner's approval is not narrowed: the prompt gives the whole scope they approved.
 5. The prompt says to quote a refusal and not work around it.
-6. The prompt holds the one-sentence reply the owner types to unblock the job.
+6. A bug job's prompt starts from the owner's flow (`OWNER FLOW`), not from a layer, and does not name a suspected cause.
+7. The prompt holds the one-sentence reply the owner types to unblock the job.
 
 ## Resume template
 
