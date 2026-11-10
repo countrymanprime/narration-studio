@@ -717,6 +717,56 @@ describe('a start waits for the host: shown, joined, and dropped when the Booth 
       });
     }
 
+    it('a plain press under way (no start chosen), then Start from here on a phrase: refused, one take, no lookup', async () => {
+      const take = gate();
+      const punchTarget = vi.fn(async (p: number) => found(p));
+      const h = setup(SETUPS.reaper, { recording: false, punchAt: null, punchTarget });
+      h.actions.beginTake.mockImplementation(async () => {
+        await take.promise;
+      });
+      let pressed: Promise<unknown> = Promise.resolve();
+      act(() => {
+        pressed = h.hook.result.current.startTake();
+      });
+      await waitFor(() => expect(h.actions.beginTake).toHaveBeenCalledTimes(1));
+      await act(() => h.hook.result.current.startFromHere(2));
+      await act(() => h.hook.result.current.punchAndRoll());
+      await act(() => h.hook.result.current.startTake());
+      expect(h.actions.beginTake).toHaveBeenCalledTimes(1);
+      expect(punchTarget).not.toHaveBeenCalled();
+      expect(h.actions.chooseStart).not.toHaveBeenCalled();
+      expect(h.actions.notify.mock.calls.filter((c) => c[0] === START_BUSY)).toHaveLength(2);
+      expect(h.actions.notify.mock.calls.filter((c) => String(c[0]).startsWith('Starting from'))).toHaveLength(0);
+      take.resolve({ outcome: 'never_recorded' });
+      await act(() => pressed);
+      await act(() => h.hook.result.current.startFromHere(2));
+      expect(punchTarget).toHaveBeenCalledTimes(1);
+      expect(h.actions.beginTake).toHaveBeenCalledTimes(2);
+    });
+
+    for (const [name, again] of [
+      ['the same phrase', 1],
+      ['another phrase', 2],
+    ] as const) {
+      it(`a press pending when the chapter changes does not hold the next chapter's press (${name}): neither joined nor refused`, async () => {
+        const late = gate();
+        const punchTarget = vi.fn((p: number) => (p === 1 && punchTarget.mock.calls.length === 1 ? late.promise : Promise.resolve(found(p))));
+        const h = setup(SETUPS.reaper, { recording: false, punchAt: 1, punchTarget });
+        let pressed: Promise<unknown> = Promise.resolve();
+        act(() => {
+          pressed = h.hook.result.current.startTake();
+        });
+        act(() => h.hook.result.current.cancelStart());
+        await act(() => h.hook.result.current.startFromHere(again));
+        expect(h.actions.notify).not.toHaveBeenCalledWith(START_BUSY);
+        expect(punchTarget).toHaveBeenCalledTimes(2);
+        expect(h.actions.beginTake).toHaveBeenCalledExactlyOnceWith(again * 10);
+        late.resolve(found(1));
+        await act(() => pressed);
+        expect(h.actions.beginTake).toHaveBeenCalledTimes(1);
+      });
+    }
+
     it('the same phrase still joins: no sentence', async () => {
       const late = gate();
       const punchTarget = vi.fn(() => late.promise);

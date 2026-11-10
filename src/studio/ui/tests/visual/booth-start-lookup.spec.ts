@@ -163,7 +163,7 @@ for (const [name, modelCheckMs, lookupMs] of [
     const lookupsBefore = await lookups(page);
     await page.waitForTimeout(500);
     await startFromHere(page, 160);
-    await expect(page.getByText('A take is already starting, so Start from here on another phrase was ignored.')).toBeVisible();
+    await expect(page.getByText('A take is already starting, so that Start from here was ignored. Try again once it has started.')).toBeVisible();
     expect(await lookups(page)).toBe(lookupsBefore);
     expect(await reading()).toBe(first);
     await expect(page.getByText(/Starting from/)).toHaveCount(1);
@@ -180,3 +180,29 @@ for (const [name, modelCheckMs, lookupMs] of [
     expect(await reading()).not.toBe(first);
   });
 }
+
+// The same for a plain Record press under way (no start chosen): a Start from here on any phrase meanwhile is refused and changes nothing.
+test('a Start from here during a plain press with a slow model check is refused and changes nothing', async ({ page }) => {
+  await openWithSlowLookup(page, 100, LOOKUP_DELAY_MS);
+  const reading = () => page.locator('[data-booth-text] [data-state="cur"]').first().getAttribute('data-unit');
+  const first = await reading();
+  await page.keyboard.press('Space');
+  await expect(record(page)).toHaveAttribute('aria-busy', 'true');
+  await page.waitForTimeout(500);
+  await startFromHere(page, 160);
+  await expect(page.getByText('A take is already starting, so that Start from here was ignored. Try again once it has started.')).toBeVisible();
+  expect(await lookups(page)).toBe(0);
+  expect(await reading()).toBe(first);
+  await expect(page.getByText(/Starting from/)).toHaveCount(0);
+  await expect(stop(page)).toBeVisible({ timeout: LOOKUP_DELAY_MS + 2000 });
+  expect(await lookups(page)).toBe(0);
+  expect(await reading()).toBe(first);
+  await pastStartGuard(page);
+  await stop(page).click();
+  await expect(record(page)).toBeEnabled();
+  await showChapterTop(page);
+  await startFromHere(page, 40);
+  await expect(stop(page)).toBeVisible({ timeout: LOOKUP_DELAY_MS + 2000 });
+  expect(await lookups(page)).toBe(1);
+  expect(await reading()).not.toBe(first);
+});

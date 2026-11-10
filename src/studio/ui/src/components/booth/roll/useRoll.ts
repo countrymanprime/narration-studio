@@ -52,8 +52,8 @@ const LOOKUP_FAILED = 'Where this passage was recorded could not be read, so no 
 const LOOKUP_SLOW =
   'Where this passage was recorded did not come back in time, so no take was started. No start is chosen now: choose the phrase again to retry.';
 
-/** Said when Start from here is pressed on another phrase while a take is already starting; nothing is changed. */
-export const START_BUSY = 'A take is already starting, so Start from here on another phrase was ignored.';
+/** Said when Start from here (or R) is pressed on a phrase other than the one a press under way is for, or during a plain press; nothing is changed. */
+export const START_BUSY = 'A take is already starting, so that Start from here was ignored. Try again once it has started.';
 
 /** How long after a roll went through another is ignored (milliseconds). */
 
@@ -160,7 +160,7 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
   /** True from a start's press until its take is handed to the Booth, or it is refused or dropped: Record shows it. */
   const [lookingUp, setLookingUp] = useState(false);
   /** The start in flight (its number and phrase), from the press to its end: take handed over, refused, cancelled or past the lookup's limit. A press for the same phrase meanwhile is that press. */
-  const pressing = useRef<{ mine: number; at: number } | null>(null);
+  const pressing = useRef<{ mine: number; at: number | null } | null>(null);
   const alive = useRef(true);
   /** Drops every start still waiting: the Booth was left, or the chapter changed. Nothing they were waiting for may begin a take. */
   const cancelStart = useCallback(() => {
@@ -187,7 +187,8 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
   }, []);
   /**
    * True when a press is already under way before a take: the same phrase is that press (nothing is looked up, chosen or said twice); another
-   * phrase is refused with a sentence, before it can look anything up, move the reading, choose a voice or say it starts there.
+   * phrase, or any phrase during a plain press (`at` null), is refused with a sentence, before it can look anything up, move the reading,
+   * choose a voice or say it starts there.
    */
   const joinsOrRefuses = (at: number) => {
     if (sessionRef.current.recording || !pressing.current) return false;
@@ -247,7 +248,18 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
     async (from?: number) => {
       const s = sessionRef.current;
       const at = from ?? s.punchAt;
-      if (at == null || at >= s.phraseCount) return actionsRef.current.beginTake();
+      if (at == null || at >= s.phraseCount) {
+        // A plain press is a press too: it joins another plain press (Space again), and a Start from here meanwhile is refused.
+        if (s.recording) return actionsRef.current.beginTake();
+        if (pressing.current) return;
+        const plain = ++latestStart.current;
+        pressing.current = { mine: plain, at: null };
+        try {
+          return await actionsRef.current.beginTake();
+        } finally {
+          endWait(plain);
+        }
+      }
       if (joinsOrRefuses(at)) return;
       const mine = ++latestStart.current;
       pressing.current = { mine, at };
