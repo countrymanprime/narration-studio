@@ -69,12 +69,15 @@ func TestResolverMatchesEachNameOnceNotOncePerChapter(t *testing.T) {
 	}
 }
 
-// The time guard of #3272: 44 chapters against 64 tracks took about 0.9 s before the Resolver (ForChapter once per chapter) and takes a few
-// tens of milliseconds with it. The median of five runs against a bound 10 times the measured one, so a slow runner passes and the old cost does not.
+// The time guard of #3272, as a ratio on one machine: resolving 44 chapters against 64 tracks takes about 0.9 s without the Resolver (the
+// package-level ForChapter once per chapter) and a few tens of milliseconds with it, so the Resolver must be at least 5 times faster than that
+// loop on the same run. A slow or busy runner slows both sides alike and passes; losing the Resolver's one match per name does not.
+// TestResolverMatchesEachNameOnceNotOncePerChapter is the exact guard; this one catches a cost that is not a title match.
 func TestResolvingAWholeBookStaysFast(t *testing.T) {
 	chapters, project := bookProject(44, 20)
-	var runs []time.Duration
-	for range 5 {
+	// Alternate the two so a burst of load on the machine lands on both.
+	var resolved, perChapter []time.Duration
+	for range 3 {
 		start := time.Now()
 		resolver := NewResolver(chapters, project)
 		for _, chapter := range chapters {
@@ -82,10 +85,20 @@ func TestResolvingAWholeBookStaysFast(t *testing.T) {
 				t.Fatal(err)
 			}
 		}
-		runs = append(runs, time.Since(start))
+		resolved = append(resolved, time.Since(start))
+		start = time.Now()
+		for _, chapter := range chapters {
+			if _, err := ForChapter(chapter.ID, chapters, project, nil); err != nil {
+				t.Fatal(err)
+			}
+		}
+		perChapter = append(perChapter, time.Since(start))
 	}
-	slices.Sort(runs)
-	if median := runs[len(runs)/2]; median > 300*time.Millisecond {
-		t.Fatalf("resolving 44 chapters against 64 tracks took %v (median of %v), budget 300ms", median, runs)
+	slices.Sort(resolved)
+	slices.Sort(perChapter)
+	with, without := resolved[1], perChapter[1]
+	t.Logf("Resolver %v, ForChapter per chapter %v (%.1fx)", with, without, float64(without)/float64(with))
+	if with*5 > without {
+		t.Fatalf("resolving 44 chapters against 64 tracks with the Resolver took %v (of %v), per-chapter ForChapter %v (of %v): want at least 5x faster", with, resolved, without, perChapter)
 	}
 }
