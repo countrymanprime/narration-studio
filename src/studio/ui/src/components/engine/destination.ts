@@ -10,7 +10,7 @@ export const LINK_GONE =
   'The track linked to this chapter is no longer in the project, so there is no voice to choose. Link it again in the audio engine panel.';
 
 /** The sentence while the project's tracks have not been read (the first read has not answered or failed): the chapter's link is not known to be missing. */
-export const TRACKS_UNREAD = 'The tracks are still being read, so there is no voice to choose yet. Try again in a moment.';
+const TRACKS_UNREAD = 'The tracks are still being read, so there is no voice to choose yet. Try again in a moment.';
 
 export type ChapterLinkKind = 'none' | 'track' | 'empty' | 'unknown' | 'unread';
 
