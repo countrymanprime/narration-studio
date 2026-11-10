@@ -130,7 +130,7 @@ func (h *Host) boothVoiceAddOne(ctx context.Context, svc hostServices, creator d
 func (h *Host) BoothVoiceAdd(chapterID, name string, characterIDs []string) (string, error) {
 	svc := h.services()
 	creator, support := trackCreatorFrom(svc)
-	ctx, cancel := context.WithTimeout(context.Background(), readAloudRecordStartTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), readAloudVoiceStartTimeout)
 	defer cancel()
 	return encodeBinding(h.boothVoiceAddIn(ctx, svc, creator, support, chapterID, name, characterIDs))
 }

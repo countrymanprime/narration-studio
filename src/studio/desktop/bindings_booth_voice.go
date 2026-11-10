@@ -318,7 +318,7 @@ func (h *Host) boothVoiceSetIn(ctx context.Context, svc hostServices, recorder d
 // the Booth's voice list.
 func (h *Host) BoothVoiceSet(chapterID, trackGUID string) (string, error) {
 	svc := h.services()
-	ctx, cancel := context.WithTimeout(context.Background(), readAloudRecordStartTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), readAloudVoiceStartTimeout)
 	defer cancel()
 	return encodeBinding(h.boothVoiceSetIn(ctx, svc, recorderFrom(svc), chapterID, trackGUID))
 }

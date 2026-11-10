@@ -144,3 +144,11 @@ func TestAFolderHoldingAnotherChaptersTrackIsNotAVoiceFolder(t *testing.T) {
 		t.Fatalf("voices = %+v folder = %v err = %v, want the folder not read as voices", voices, folder, err)
 	}
 }
+
+// A call that resolves the chapter's voice reads REAPER's live list first: its context must outlast that wait and still leave the arm
+// the full readAloudRecordStartTimeout (qa-breaker N9 on #3290).
+func TestAVoiceCallsContextLeavesTheArmItsOwnBudgetAfterAFullListWait(t *testing.T) {
+	if readAloudVoiceStartTimeout < tracksLiveTimeout+readAloudRecordStartTimeout {
+		t.Fatalf("voice call budget %v leaves the arm less than %v after a %v list read", readAloudVoiceStartTimeout, readAloudRecordStartTimeout, tracksLiveTimeout)
+	}
+}
