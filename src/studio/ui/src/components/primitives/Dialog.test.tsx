@@ -8,6 +8,7 @@ import { Dialog, DIALOG_WIDTHS } from './Dialog';
 import { Popover } from './Popover';
 import { SlideOver } from './SlideOver';
 import { tabInsideTrap } from './tabInsideTrap';
+import { outwaitEcho } from '../../outwaitEcho';
 
 afterEach(cleanup);
 
@@ -282,6 +283,10 @@ describe('Dialog is a real modal', () => {
       </main>,
     );
     await screen.findByRole('dialog', { name: 'Palette' });
+    // The second click of a double click on what opened it lands on the backdrop at once: not a dismissal.
+    await user.click(document.querySelector('[data-dialog-backdrop]') as HTMLElement);
+    expect(onClose).not.toHaveBeenCalled();
+    await outwaitEcho();
     await user.click(document.querySelector('[data-dialog-backdrop]') as HTMLElement);
     expect(onClose).toHaveBeenCalledTimes(1);
   });
