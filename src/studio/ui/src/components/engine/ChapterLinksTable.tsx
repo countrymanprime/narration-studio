@@ -8,6 +8,7 @@ import { TrackSelect } from '../mapping/TrackSelect';
 import { Icon } from '../primitives/Icon';
 import { IconButton } from '../primitives/IconButton';
 import { Menu, type MenuItem } from '../primitives/Menu';
+import { TooltipTarget } from '../primitives/Tooltip';
 import { Panel } from '../primitives/Panel';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
 import { StatusBadge, type StatusTone } from '../primitives/StatusBadge';
@@ -289,11 +290,11 @@ function ChapterLinkRow({
             </span>
             {unplayable && (
               // A chapter is never silently linked to a track whose audio cannot play: a missing source file or an item that is not audio.
-              <span title={UNPLAYABLE} style={{ color: 'var(--danger-text)' }} className="flex-none">
-                <span role="img" aria-label={UNPLAYABLE}>
+              <TooltipTarget text={UNPLAYABLE}>
+                <span role="img" aria-label={UNPLAYABLE} className="flex-none" style={{ color: 'var(--warn-text)' }}>
                   <Icon name="problem" />
                 </span>
-              </span>
+              </TooltipTarget>
             )}
           </span>
         ) : (
