@@ -628,6 +628,17 @@
       "a11yDebt": false
     },
     {
+      "title": "Primitives/CheckedStamp",
+      "name": "CheckedStamp",
+      "source": "src/components/primitives/CheckedStamp.tsx",
+      "stories": [
+        "Checked",
+        "Not Yet Checked"
+      ],
+      "consumers": [],
+      "a11yDebt": false
+    },
+    {
       "title": "RecordingCheck/CheckRecordingsDialog",
       "name": "CheckRecordingsDialog",
       "source": "src/components/recordingcheck/CheckRecordingsDialog.tsx",
@@ -4294,6 +4305,7 @@
         "src/components/master/MasteringApprovalDialog.tsx",
         "src/components/master/MasteringChain.tsx",
         "src/components/primitives/ActivityPanel.tsx",
+        "src/components/primitives/Button.tsx",
         "src/components/primitives/CapabilityGate.tsx",
         "src/components/primitives/ChapterStepper.tsx",
         "src/components/primitives/ContextMenu.tsx",

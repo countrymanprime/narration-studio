@@ -82,6 +82,8 @@ const mockLiveTracksParam = mockParams.get('mockLiveTracks');
 const mockLiveTracks: 'saved' | 'failing' | undefined = mockLiveTracksParam === 'saved' || mockLiveTracksParam === 'failing' ? mockLiveTracksParam : undefined;
 // `?mockVoiceFolders=1` is a Voice folders project: Chapter 1 linked to a folder of voice tracks (the Engine panel's Voices card).
 const mockVoiceFolders = mockParams.has('mockVoiceFolders');
+// `?mockEmptyTracks=1`: every track of the saved project holds no item (a chapter never recorded), so Editing's note says its track is empty.
+const mockEmptyTracks = mockParams.has('mockEmptyTracks');
 // `?mockNestedChapters=1`: Chapters 2 and 3's tracks sit inside Chapter 1's folder in REAPER (#2838), so the Chapter links panel offers the repair.
 const mockNestedChapters = mockParams.has('mockNestedChapters');
 // `?mockNoDaw=1` boots a project with no linked REAPER project (.rpp) file: the header pill reads "No REAPER project
@@ -334,6 +336,9 @@ const mockLogFolderRefused = mockParams.get('mockLogFolder') === 'refused';
 const mockDawMetersUnarmed = mockParams.get('mockDawMeters') === 'unarmed';
 // `?mockDawConnected=0` boots with REAPER declared but its bridge not connected (the app opened on its own, not from REAPER's
 // launcher action): every capability that needs the bridge answers 'standalone', and the Booth shows its REAPER connection steps.
+// `?mockDawUnsaved=1|never-saved`: REAPER holds changes its saved file lacks (`1`; with `?mockChapterLink=missing` Editing says a recording may be waiting
+// there and offers **Save in REAPER and read**), or a project that was never saved, whose save the host refuses (`never-saved`).
+const mockDawUnsaved = (['1', 'never-saved'] as const).find((seed) => seed === mockParams.get('mockDawUnsaved'));
 const mockDawDisconnected = mockParams.get('mockDawConnected') === '0';
 // `?mockRollReplaces=1` declares REAPER's punch destructive, the way a DAW that replaces audio on a
 // roll declares it (Audacity without backups), so the Booth's roll asks first: the visual suite's `booth/roll-confirm`.
@@ -618,6 +623,7 @@ const mockInitial = {
   ...(mockTrackFolders ? { trackFolders: true } : {}),
   ...(mockLiveTracks ? { liveTracks: mockLiveTracks } : {}),
   ...(mockVoiceFolders ? { voiceFolders: true } : {}),
+  ...(mockEmptyTracks ? { emptyTracks: true } : {}),
   ...(mockNestedChapters ? { nestedChapters: true } : {}),
   ...(mockManuscriptCandidate ? { manuscriptCandidate: { path: 'C:/Projects/Alice-in-Wonderland/manuscript.docx', name: 'manuscript.docx' } } : {}),
   ...(mockManuscriptMixed ? { mockManuscript: 'mixed' as const } : {}),
@@ -713,6 +719,7 @@ const mockInitial = {
     mockAudacityLink ? { connected: true, reachable: mockAudacityLink === 'answering' || mockAudacityLink === 'linked' } : undefined,
     mockDawMetersUnarmed ? { meters: 'unarmed' as const } : undefined,
     mockDawDisconnected ? { connected: false } : undefined,
+    mockDawUnsaved ? { savedAt: '2026-11-10T09:00', unsavedChanges: true, neverSaved: mockDawUnsaved === 'never-saved' } : undefined,
     mockRollReplaces ? { depth: { punch: { destructive: true } } } : undefined,
     mockDawChoice ? (mockDawChoice === 'not-running' ? { connected: true, reachable: false } : { connected: false }) : undefined,
     Number.isFinite(mockDawPlayhead) ? { transport: { playing: true, recording: false, position: mockDawPlayhead } } : undefined,

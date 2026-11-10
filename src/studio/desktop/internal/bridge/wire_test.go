@@ -120,6 +120,8 @@ var realEvents = map[string][]string{
 	// src/studio/integrations/reaper/tests/undo_test.lua (last_action, undo_last).
 	"LAST_ACTION": {"LAST_ACTION", "l1", "cut_range", "this"},
 	"UNDONE_LAST": {"UNDONE_LAST", "u1", "cut_range", "4", "2"},
+	// src/studio/integrations/reaper/tests/save_project_test.lua (save_project).
+	"SAVED": {"SAVED", "s1", "1", "1"},
 	// src/studio/integrations/reaper/tests/levels_test.lua (monitor_level).
 	"MONITOR_LEVEL": {"MONITOR_LEVEL", "m1", "70"},
 	// src/studio/integrations/reaper/tests/preroll_test.lua (punch_preroll).
