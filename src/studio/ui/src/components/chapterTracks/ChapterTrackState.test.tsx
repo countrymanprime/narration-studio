@@ -143,4 +143,37 @@ describe('the shared chapter-track state', () => {
     view.rerender(tree(true));
     await waitFor(() => expect(notify).toHaveBeenCalledTimes(2));
   });
+
+  it('reads while any screen wants it, and a screen that does not want it sees nothing', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    const live = vi.spyOn(api, 'tracksLive');
+    const wanting: { current?: ChapterTrackState } = {};
+    const idle: { current?: ChapterTrackState } = {};
+    function Wanting() {
+      wanting.current = useChapterTrackState({ enabled: true });
+      return null;
+    }
+    function Idle() {
+      idle.current = useChapterTrackState({ enabled: false });
+      return null;
+    }
+    const tree = (wants: boolean) => (
+      <ApiProvider api={api}>
+        <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={vi.fn()}>
+          <Idle />
+          {wants && <Wanting />}
+        </ChapterTrackStateProvider>
+      </ApiProvider>
+    );
+    const view = render(tree(false));
+    await act(async () => new Promise((r) => setTimeout(r, 30)));
+    expect(live).not.toHaveBeenCalled();
+    view.rerender(tree(true));
+    await waitFor(() => expect(wanting.current?.readAt).not.toBeNull());
+    expect(live).toHaveBeenCalled();
+    // The whole live read is there for the Engine panel's status line and Refresh.
+    expect(wanting.current?.live.project?.tracks.length).toBeGreaterThan(0);
+    expect(idle.current?.project).toBeUndefined();
+    expect(idle.current?.readAt).toBeNull();
+  });
 });

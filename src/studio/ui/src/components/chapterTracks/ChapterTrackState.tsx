@@ -2,7 +2,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { TrackMapping } from '../../types';
 import type { TracksProject, TracksSource } from '../../api/contracts/tracks';
 import { usePort } from '../../ports/usePort';
-import { LIVE_TRACKS_TIMEOUT_MS, useLiveTracks } from '../engine/useLiveTracks';
+import { LIVE_TRACKS_TIMEOUT_MS, useLiveTracks, type LiveTracks } from '../engine/useLiveTracks';
+import { useDawFileLinked } from '../connection/dawFileLinked';
 import { VoiceSetupProvider } from '../engine/voiceLayout';
 import { retryAction, type Notify } from '../primitives/Toast';
 import { describeApiError } from '../../api/errorMessage';
@@ -26,9 +27,23 @@ export type ChapterTrackState = {
   stale: boolean;
   /** Reads the tracks and the links now, for a screen that changed them or was told they changed. */
   refresh: () => void;
+  /** The whole live read, for the Engine panel's status line, Refresh button and inline error: why the tracks are the saved file's, whether
+   * a read is running, the error of a failed one, and `join` (the Link chapters dialog opening). */
+  live: LiveTracks;
 };
 
-const EMPTY: ChapterTrackState = { mappings: [], readAt: null, reading: false, stale: false, refresh: () => {} };
+const NO_LIVE: LiveTracks = {
+  reason: '',
+  message: '',
+  readAt: null,
+  busy: false,
+  refreshing: false,
+  stale: false,
+  error: '',
+  refresh: () => {},
+  join: () => {},
+};
+const EMPTY: ChapterTrackState = { mappings: [], readAt: null, reading: false, stale: false, refresh: () => {}, live: NO_LIVE };
 
 type Watch = { state: ChapterTrackState; watch: () => () => void };
 
@@ -37,7 +52,8 @@ const ChapterTrackStateContext = createContext<Watch>({ state: EMPTY, watch: () 
 /**
  * Mounted once, in the app shell. It reads (the live track list over the saved file, and the links) only while a screen is watching
  * (`useChapterTrackState`), on window focus and every few seconds while visible, and toasts a failed read once with a Retry, all by
- * `useLiveTracks`, the Engine panel's own reader. `enabled` is false for a project whose tracks come from elsewhere (Audacity).
+ * `useLiveTracks`, the Engine panel's own reader. `enabled` is false for a project whose tracks come from elsewhere (Audacity); each screen says whether it wants the reading
+ * (`useChapterTrackState({ enabled })`), and the state reads while any does.
  */
 export function ChapterTrackStateProvider({
   projectFolder,
@@ -126,22 +142,26 @@ export function ChapterTrackStateProvider({
             reading,
             stale: live.stale || linksStale,
             refresh,
+            live,
           },
-    [enabled, projectFolder, reading, live.project, live.source, live.readAt, live.stale, linksStale, mappings, mappingsAt, refresh],
+    [enabled, projectFolder, reading, live, linksStale, mappings, mappingsAt, refresh],
   );
   const value = useMemo(() => ({ state, watch }), [state, watch]);
   return <ChapterTrackStateContext.Provider value={value}>{children}</ChapterTrackStateContext.Provider>;
 }
 
-/** The tracks and links every watching screen shares. Calling it starts the reading; the last screen to stop watching stops it. */
-export function useChapterTrackState(): ChapterTrackState {
+/**
+ * The tracks and links every watching screen shares. Calling it starts the reading while `enabled` (default: the project has a DAW file
+ * linked, so a project with no REAPER file is never asked); the last screen to stop wanting it stops it. A screen that does not want it
+ * gets an empty state, so it never shows tracks it did not ask for. The Engine panel passes its own `enabled` (a project file is selected),
+ * because it is where the file gets linked.
+ */
+export function useChapterTrackState({ enabled }: { enabled?: boolean } = {}): ChapterTrackState {
   const { state, watch } = useContext(ChapterTrackStateContext);
-  const stop = useRef<(() => void) | null>(null);
-  useEffect(() => {
-    stop.current = watch();
-    return () => stop.current?.();
-  }, [watch]);
-  return state;
+  const linked = useDawFileLinked();
+  const wants = enabled ?? linked !== false;
+  useEffect(() => (wants ? watch() : undefined), [wants, watch]);
+  return wants ? state : EMPTY;
 }
 
 /** The app shell's two per-project readers, the voice setup and the chapter-track state, mounted together. */

@@ -1,5 +1,5 @@
 import { apiErrorMessage } from '../../api/errorMessage';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTriangleExclamation } from '@fortawesome/free-solid-svg-icons';
 import { useApi } from '../../api/ApiContext';
@@ -20,7 +20,7 @@ import { DAW_TOOL_GROUPS } from './dawTools';
 import { DawToolsMenu } from './DawToolsMenu';
 import { useChapterLinks } from './useChapterLinks';
 import { useAudacityLink } from './useAudacityLink';
-import { useLiveTracks } from './useLiveTracks';
+import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
 import { LiveTracksRefresh, LiveTracksStatus } from './LiveTracksStatus';
 import type { Track, TracksDiscovery, TracksProject } from '../../types';
 
@@ -97,11 +97,18 @@ function EnginePanelBody({ notify, link, onOpenRecordingSettings }: { notify: No
   const [refresh, setRefresh] = useState(0);
   // A REAPER project's tracks as REAPER has them now, saved or not (#2840): read when the panel opens, when the linked file or the link
   // facts change (Check again, a relink), on focus and on a timer, and by the Refresh in Chapter links and the Link chapters dialog.
-  const live = useLiveTracks({
-    enabled: !forAudacity && !!discovery?.selected,
-    readKey: `${discovery?.selected ?? ''}|${link.checkedAt ?? ''}|${link.dawFileLinked}|${link.dawProjectMatches}`,
-    notify,
-  });
+  // The shared state reads them (one reader for every screen, #3269); this panel wants the reading as soon as a project file is selected,
+  // because it is where the file gets linked, and asks for a fresh read when the linked file or the link facts change (Check again, a relink).
+  const trackState = useChapterTrackState({ enabled: !forAudacity && !!discovery?.selected });
+  const live = trackState.live;
+  const readKey = `${discovery?.selected ?? ''}|${link.checkedAt ?? ''}|${link.dawFileLinked}|${link.dawProjectMatches}`;
+  const lastReadKey = useRef(readKey);
+  const refreshTracks = trackState.refresh;
+  useEffect(() => {
+    if (lastReadKey.current === readKey) return;
+    lastReadKey.current = readKey;
+    refreshTracks();
+  }, [readKey, refreshTracks]);
   const project = forAudacity ? audacityProject : live.project;
   const voices = useVoiceTracks(notify);
   // Chapter sync draws the layout switch as its Layout row while it is drawn at all; otherwise the Voices card does.

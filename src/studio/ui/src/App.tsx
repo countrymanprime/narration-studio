@@ -990,7 +990,7 @@ function AppRoutes() {
       <DawFileLinkedContext.Provider value={data.dawFileLinked}>
         <LinkDawFileContext.Provider value={linkDawFileOutcome}>
           <EnginePanelProvider value={openEnginePanel} openRecordingSettings={openRecordingSettings}>
-            <ProjectTrackProviders projectFolder={data.projectFolder} enabled={dawKind !== 'Audacity' && data.dawFileLinked} notify={setNotice}>
+            <ProjectTrackProviders projectFolder={data.projectFolder} enabled={dawKind !== 'Audacity'} notify={setNotice}>
               {/* Audacity has no folder tracks: a Voice folders project there is flat for every sentence and picker, as in the Engine panel (#3271). */}
               <VoiceLayoutContext.Provider value={dawKind === 'Audacity' ? 'flat' : null}>
                 <TooltipProvider>
