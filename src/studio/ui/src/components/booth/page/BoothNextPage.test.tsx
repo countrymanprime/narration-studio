@@ -2791,10 +2791,11 @@ describe('while a press is under way the reading stays where the press chose, so
           ?.items.find((item) => item.id === id)
           ?.run(),
     );
-  /** What a blocked move leaves: the reading, the chosen start in the footer and no bookmark flash, all where the press put them. */
+  /** What a blocked move leaves: the reading and the chosen start in the footer where the press put them, and no bookmark flash. */
   const untouched = () => {
     expect(current()).toBe('0');
     expect(document.body.textContent).toContain('Next roll starts from ¶ 1');
+    expect(document.querySelector('[data-just-changed]')).toBeNull();
   };
 
   /** Starts from phrase 0 with one part of the start held; `release` lets it go. */
@@ -2858,7 +2859,7 @@ describe('while a press is under way the reading stays where the press chose, so
         await use();
         await use();
         await settle();
-        expect(current()).toBe('0');
+        untouched();
         expect(
           said(page)
             .slice(before)
@@ -2867,21 +2868,46 @@ describe('while a press is under way the reading stays where the press chose, so
         release();
         await waitFor(() => expect(stopButton()).toBeTruthy());
         expect(page.daw.recordStart).toHaveBeenCalledExactlyOnceWith('c1', 12);
-        expect(current()).toBe('0');
-        expect(said(page)).not.toContain('Recording over ¶ 1.');
+        untouched();
+        expect(said(page)).toContain('Recording over ¶ 1 on Narrator.');
       });
     }
   }
 
-  it('a find jump during a press only scrolls: the reading stays, the footer stays and no sentence is said', async () => {
-    const { page, release } = await pressing('lookup');
-    act(() => searchAll('walked')[0]?.run());
-    await settle();
-    untouched();
-    expect(said(page)).not.toContain(BUSY_MOVE);
-    release();
-    await waitFor(() => expect(stopButton()).toBeTruthy());
-    expect(page.daw.recordStart).toHaveBeenCalledExactlyOnceWith('c1', 12);
+  it('a find jump during a press only scrolls to the hit: the view moves, the reading, the footer and the sentence do not', async () => {
+    // jsdom lays nothing out: give the hit's paragraph a place far down, so a scroll to it is a transform that can be seen.
+    const box = { offsetTop: 'offsetTop', clientHeight: 'clientHeight', offsetHeight: 'offsetHeight' } as const;
+    const saved = Object.fromEntries(Object.values(box).map((key) => [key, Object.getOwnPropertyDescriptor(HTMLElement.prototype, key)]));
+    const sizes: Record<string, (el: HTMLElement) => number> = {
+      offsetTop: (el) => (el.dataset.paragraph === 'p3' ? 900 : 0),
+      clientHeight: () => 300,
+      offsetHeight: () => 3000,
+    };
+    for (const key of Object.values(box))
+      Object.defineProperty(HTMLElement.prototype, key, {
+        configurable: true,
+        get: function (this: HTMLElement) {
+          return sizes[key](this);
+        },
+      });
+    try {
+      const { page, release } = await pressing('lookup');
+      const moved = () => [...document.querySelectorAll<HTMLElement>('[data-booth-text] *')].some((el) => /translateY\(-?[1-9]/.test(el.style.transform));
+      expect(moved()).toBe(false);
+      act(() => searchAll('walked')[0]?.run());
+      await settle();
+      expect(moved()).toBe(true);
+      untouched();
+      expect(said(page)).not.toContain(BUSY_MOVE);
+      release();
+      await waitFor(() => expect(stopButton()).toBeTruthy());
+      expect(page.daw.recordStart).toHaveBeenCalledExactlyOnceWith('c1', 12);
+    } finally {
+      for (const [key, descriptor] of Object.entries(saved)) {
+        if (descriptor) Object.defineProperty(HTMLElement.prototype, key, descriptor);
+        else delete (HTMLElement.prototype as unknown as Record<string, unknown>)[key];
+      }
+    }
   });
 
   it('a bookmark in another chapter during a press does not leave the chapter, which would drop the press', async () => {

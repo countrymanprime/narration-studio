@@ -486,13 +486,13 @@ export function useBoothPage(options: BoothPageOptions) {
   /**
    * The one way a narrator's control moves the reading: Resume at, the arrow keys, Next and Back one phrase, a word click, a find jump and the
    * toolbar. While a press is under way (the lookup, the checks, the record start) the take is about to record at the spot the press chose, so
-   * the reading stays there and one sentence says why; the topic makes a held key one toast. A take's own moves (`roll.moveTo`, the voice
+   * the reading stays there and one sentence says why; the overlay merges a repeated message, so a held key is one toast. A take's own moves (`roll.moveTo`, the voice
    * following) use `moveTo` and are not asked.
    */
   const { pressUnderway } = roll;
   const moveBlocked = useCallback((): boolean => {
     if (!pressUnderway()) return false;
-    notify(START_BUSY_MOVE, 'booth-start-busy');
+    notify(START_BUSY_MOVE);
     return true;
   }, [pressUnderway, notify]);
   const moveReading = useCallback(
