@@ -351,6 +351,24 @@ describe('Settings: row layout', () => {
     expect(within(actions).getByRole('button', { name: 'Download LJ Speech (US English, high)' })).toBeTruthy();
     expect(within(actions).getByRole('button', { name: 'Models & downloads' })).toBeTruthy();
   });
+
+  it("a double click on the note's Download starts the download and does not cancel it (#3034)", async () => {
+    const api = createMockApi();
+    const cancelled = vi.spyOn(api, 'assetsInstallCancel');
+    await renderPage({ api });
+    pick('Voice & pronunciation');
+    const note = await waitFor(() => {
+      const found = row('voice.id').querySelector<HTMLElement>('[data-asset-note]');
+      expect(found).toBeTruthy();
+      return found!;
+    });
+    fireEvent.click(within(note).getByRole('button', { name: 'Download LJ Speech (US English, high)' }));
+    // The second click of the double click lands on Cancel, which has taken Download's place.
+    const cancel = await within(note).findByRole('button', { name: /^Cancel the download of LJ Speech/ });
+    fireEvent.click(cancel);
+    await new Promise((done) => setTimeout(done, 50));
+    expect(cancelled).not.toHaveBeenCalled();
+  });
 });
 
 describe('Settings: editing', () => {

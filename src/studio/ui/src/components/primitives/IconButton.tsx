@@ -35,7 +35,7 @@ type Base = Omit<ComponentPropsWithRef<'button'>, 'aria-label' | 'title'> & {
   // The action this button started is running: the icon becomes a spinner, the button is marked busy and ignores a press, and it
   // stays focusable so a keyboard user keeps their place.
   pending?: boolean;
-  // This button takes the place of the one just pressed: it ignores a press in the double-click window after it appears (`useEchoGuard`).
+  // This button takes the place of the one just pressed: it ignores a press in the double-click window after it appears (`useEchoGuard`). The window starts when it mounts, so a caller that swaps one button for another at the same spot gives each a distinct `key`.
   replacesPressed?: boolean;
   // Disables the button while keeping it focusable and hoverable, unlike the native `disabled` attribute (D6, WCAG 1.4.13): a native
   // `disabled` button takes no focus, so its explanation needs a wrapper workaround (see `TooltipTarget`'s `disabledChild` case). Pass
