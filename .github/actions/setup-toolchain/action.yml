@@ -110,7 +110,7 @@ runs:
       id: stylua
       name: Install pinned standalone StyLua
       continue-on-error: true
-      uses: JohnnyMorganz/stylua-action@479972f01e665acfcba96ada452c36608bdbbb5e # v4.1.0
+      uses: JohnnyMorganz/stylua-action@76fd70c03e6340ceaf673366712db9b20560b402 # v5.0.0
       with:
         token: ${{ github.token }}
         version: v2.1.0
@@ -121,7 +121,7 @@ runs:
       run: sleep 30
     - if: inputs.need-stylua == 'true' && steps.stylua.outcome == 'failure'
       name: Install pinned standalone StyLua (retry)
-      uses: JohnnyMorganz/stylua-action@479972f01e665acfcba96ada452c36608bdbbb5e # v4.1.0
+      uses: JohnnyMorganz/stylua-action@76fd70c03e6340ceaf673366712db9b20560b402 # v5.0.0
       with:
         token: ${{ github.token }}
         version: v2.1.0
