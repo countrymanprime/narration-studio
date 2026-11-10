@@ -86,10 +86,13 @@ export default {
       // are compiled away, so they cost nothing at run time and keep a selector testable on its own). Covers the shared
       // helpers in src/studio/selectors/ and the page selectors that live beside their pages (`*.selectors.ts`).
       name: 'selectors-import-types-and-selectors-only',
-      comment: 'A selector imports types and other selectors only: no store, port, component or API value. Take what it needs as part of its state argument.',
+      comment:
+        'A selector imports types, other selectors and the pure text helpers `src/plural.ts` and `src/clock.ts` only: no store, port, component or API value. Take what it needs as part of its state argument.',
       severity: 'error',
       from: { path: '^src/(studio/selectors/|.*\\.selectors\\.tsx?$)', pathNot: '\\.(test|stories)\\.tsx?$' },
-      to: { path: '^src/', pathNot: '^src/(studio/selectors/|.*\\.selectors\\.tsx?$)', dependencyTypesNot: ['type-only'] },
+      // `plural.ts` and `clock.ts` are pure functions of their arguments with no imports (they are how every page writes a count and a duration, issue 3277), so a selector may
+      // call them without losing what the rule protects: it stays a pure function of state, testable on its own.
+      to: { path: '^src/', pathNot: '^src/(studio/selectors/|.*\\.selectors\\.tsx?$|plural\\.ts$|clock\\.ts$)', dependencyTypesNot: ['type-only'] },
     },
     {
       // docs/architecture/ui-state-and-journal.md#the-store-host-reads-cached. Ports are the typed seam over the host and fixtures are plain builders and data: neither knows a page, and
