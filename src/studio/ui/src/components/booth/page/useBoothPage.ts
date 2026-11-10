@@ -490,12 +490,16 @@ export function useBoothPage(options: BoothPageOptions) {
    * following) use `moveTo` and are not asked.
    */
   const { pressUnderway } = roll;
+  const moveBlocked = useCallback((): boolean => {
+    if (!pressUnderway()) return false;
+    notify(START_BUSY_MOVE, 'booth-start-busy');
+    return true;
+  }, [pressUnderway, notify]);
   const moveReading = useCallback(
     (next: UnitPosition) => {
-      if (pressUnderway()) return notify(START_BUSY_MOVE, 'booth-start-busy');
-      moveTo(next);
+      if (!moveBlocked()) moveTo(next);
     },
-    [pressUnderway, moveTo, notify],
+    [moveBlocked, moveTo],
   );
   const chooseResume = useCallback(
     (target: ResumeTarget) => {
@@ -870,6 +874,10 @@ export function useBoothPage(options: BoothPageOptions) {
       const unit = unitAtPosition(paragraphs, units, { paragraphId, word });
       if (unit) moveReading(unit);
     },
+    /** True (and says why, once) while a press is under way: a control that would move the reading or the chosen place asks this first and changes nothing. */
+    moveBlocked,
+    /** True while a press is under way, without a word: the find jump scrolls to a hit and leaves the reading. */
+    readingHeld: pressUnderway,
     exit,
     goTo,
     leave,

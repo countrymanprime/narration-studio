@@ -68,3 +68,34 @@ test('ArrowDown and the phrase menu during the held lookup are ignored, and work
   await page.keyboard.press('ArrowDown');
   expect(await reading(page)).not.toBe(chosen);
 });
+
+test('Next pickup (N) during the held lookup moves neither the reading nor the current pickup card', async ({ page }) => {
+  await page.addInitScript((ms) => {
+    const w = window as unknown as { __NARRATION_MOCK_OVERRIDES__: Record<string, unknown> };
+    w.__NARRATION_MOCK_OVERRIDES__ = {
+      boothPunchTarget: () => new Promise((resolve) => setTimeout(() => resolve({ outcome: 'found', start: 12, end: 20 }), ms)),
+    };
+  }, HELD_MS);
+  await page.goto('/');
+  await settlePage(page);
+  await goToPage(page, 'Pickups');
+  await page
+    .getByRole('button', { name: /^Open \d+ in Booth$/ })
+    .first()
+    .click();
+  await expect(page.getByText(/^Pickups · \d+ open$/).first()).toBeVisible();
+  await expect(record(page)).toBeEnabled();
+  await startFromHere(page);
+  await expect(record(page)).toHaveAttribute('aria-busy', 'true', { timeout: 500 });
+  const card = () => page.locator('[aria-current="true"]').allInnerTexts();
+  const [chosen, shown] = [await reading(page), await card()];
+  expect(shown.length).toBeGreaterThan(0);
+  await page.keyboard.press('n');
+  expect(await card()).toEqual(shown);
+  await page.keyboard.press('n');
+  await expect(toasts(page)).toHaveCount(1);
+  expect(await card()).toEqual(shown);
+  expect(await reading(page)).toBe(chosen);
+  await expect(stop(page)).toBeVisible({ timeout: HELD_MS + 2000 });
+  expect(await card()).toEqual(shown);
+});
