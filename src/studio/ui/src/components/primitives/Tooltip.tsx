@@ -44,7 +44,7 @@ export function TooltipTarget({
 }) {
   const disabledChild = isValidElement(children) && Boolean((children.props as { disabled?: boolean }).disabled);
   return (
-    <BaseTooltip.Root>
+    <BaseTooltip.Root disabled={text === ''}>
       <BaseTooltip.Trigger
         delay={hoverDelayMs}
         className={`${inline ? 'inline' : 'inline-flex'} ${className}`}
