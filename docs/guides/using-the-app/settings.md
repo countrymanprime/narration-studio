@@ -97,7 +97,7 @@ when nothing is there; on a narrow window the folded category button reads **Sea
 
 **Record with** chooses where this project's takes are recorded: **REAPER**, **Audacity** or the **Built-in
 recorder** (see [Choose REAPER](#choose-reaper)). The choice is saved with the project. A refused choice (no project open,
-a take running, or the built-in recorder not available) says why under the radios, and the choice stays where it was.
+a take running, or the built-in recorder not available) says why under the radios, and the choice stays where it was. An option that cannot record yet, such as Audacity, says so under its radio and adds that choosing it still switches the project to it.
 While REAPER or Audacity is linked, choosing the **Built-in recorder** first asks **Stop recording with REAPER?** (or
 Audacity): new takes would go to the project's own folder, takes already in the DAW stay there and the Booth, Editing and
 Proof stop reading them, and the link is kept, so choosing the DAW again brings them back. **Keep REAPER** leaves the

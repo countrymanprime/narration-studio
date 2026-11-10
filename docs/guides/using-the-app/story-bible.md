@@ -50,7 +50,7 @@ An entry with suggestions still to verify shows **Mark reviewed** switched off, 
 
 ![Story Bible - an entry of the Needs Review kind, with its relationships and the chapters it appears in](../../images/ui/storybible-needs-review.webp)
 
-In edit mode, **Add a name** sits under the names: type a name and press Enter, or **Add name**, to add it as an alias. If another entry
+In edit mode, **Add a name** sits under the names: type a name and press Enter, or **Add name**, to add it as an alias; with nothing typed **Add name** is off, and hovering or focusing it says to type a name first. If another entry
 already has that name, the line beside it says so and offers **Merge into this entry**, so a name mentioned under a
 different spelling is merged into the entry it already belongs to instead of creating a duplicate. The merge can be undone from its toast. A name the
 entry already has is refused with a line saying so.
