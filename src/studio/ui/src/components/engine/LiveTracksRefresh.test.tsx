@@ -1,0 +1,45 @@
+// @vitest-environment jsdom
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { TracksProject } from '../../api/contracts/tracks';
+import { LiveTracksRefresh } from './LiveTracksStatus';
+import type { LiveTracks } from './useLiveTracks';
+
+const notify = vi.fn();
+vi.mock('../../hooks/useToasts', () => ({ useToasts: () => ({ notify }) }));
+
+afterEach(() => {
+  cleanup();
+  notify.mockClear();
+});
+
+const project = (count: number): TracksProject => ({
+  path: 'a.rpp',
+  tracks: Array.from({ length: count }, (_, index) => ({ index }) as TracksProject['tracks'][number]),
+});
+const liveWith = (recheck: LiveTracks['recheck']) => ({ refreshing: false, recheck }) as unknown as LiveTracks;
+
+// "Read the tracks from REAPER again" found nothing new and said nothing: only "read N s ago" in a truncated line moved (#3339).
+describe('Read the tracks from REAPER again', () => {
+  it('answers each press with what was read, even when nothing changed', async () => {
+    const recheck = vi.fn(async () => ({ project: project(2), source: 'live' as const, failed: false }));
+    render(<LiveTracksRefresh live={liveWith(recheck)} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Read the tracks from REAPER again' }));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith('Read 2 tracks from REAPER.'));
+    fireEvent.click(screen.getByRole('button', { name: 'Read the tracks from REAPER again' }));
+    await waitFor(() => expect(notify).toHaveBeenCalledTimes(2));
+  });
+
+  it('says the saved project was read when REAPER did not answer, and adds nothing when the read failed (its own toast says so)', async () => {
+    const saved = vi.fn(async () => ({ project: project(1), source: 'saved' as const, failed: false }));
+    const { rerender } = render(<LiveTracksRefresh live={liveWith(saved)} />);
+    fireEvent.click(screen.getByRole('button'));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith('Read the tracks in the saved project.'));
+    notify.mockClear();
+    const failed = vi.fn(async () => ({ failed: true }));
+    rerender(<LiveTracksRefresh live={liveWith(failed)} />);
+    fireEvent.click(screen.getByRole('button'));
+    await waitFor(() => expect(failed).toHaveBeenCalled());
+    expect(notify).not.toHaveBeenCalled();
+  });
+});

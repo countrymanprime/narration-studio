@@ -1,3 +1,4 @@
+import { useToasts } from '../../hooks/useToasts';
 import { useSecondsSince } from '../layout/CheckLine';
 import { IconButton } from '../primitives/IconButton';
 import { TooltipTarget } from '../primitives/Tooltip';
@@ -47,7 +48,18 @@ export function LiveTracksStatus({ live }: { live: LiveTracks }) {
   );
 }
 
-/** Reads the tracks from REAPER again now: a track or folder added there since the last read shows. Its hint is IconButton's own. */
+/**
+ * Reads the tracks from REAPER again now: a track or folder added there since the last read shows. Its hint is IconButton's own. A press answers
+ * with a toast even when nothing changed, since only "read N s ago" in the truncated status moved (#3339); a failed read's own toast says so, so a
+ * failure adds none.
+ */
 export function LiveTracksRefresh({ live }: { live: LiveTracks }) {
-  return <IconButton action="retry" label="Read the tracks from REAPER again" size="sm" pending={live.refreshing} onClick={live.refresh} />;
+  const { notify } = useToasts();
+  const press = () =>
+    void live.recheck().then(({ project, source, failed }) => {
+      if (failed || !project) return;
+      const count = project.tracks.length;
+      notify(source === 'live' ? `Read ${count === 1 ? '1 track' : `${count} tracks`} from REAPER.` : 'Read the tracks in the saved project.');
+    });
+  return <IconButton action="retry" label="Read the tracks from REAPER again" size="sm" pending={live.refreshing} onClick={press} />;
 }

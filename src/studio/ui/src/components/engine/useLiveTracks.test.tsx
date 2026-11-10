@@ -147,20 +147,6 @@ describe('reading the live track list', () => {
     expect(hook.current.project?.tracks).toHaveLength(5);
   });
 
-  it('a pressed read answers even when nothing changed; the timer and focus reads stay silent (#3339)', async () => {
-    const api = createMockApi();
-    api.tracksLive = vi.fn(async () => answer([track(0, 'Chapter 1'), track(1, 'Chapter 2')]));
-    const { hook, notify } = mount(api);
-    await settle();
-    await act(async () => window.dispatchEvent(new Event('focus')));
-    expect(notify).not.toHaveBeenCalled();
-    await act(async () => hook.current.refresh());
-    expect(notify).toHaveBeenCalledTimes(1);
-    expect(notify.mock.calls[0]?.[0]).toBe('Read 2 tracks from REAPER.');
-    await act(async () => hook.current.refresh());
-    expect(notify).toHaveBeenCalledTimes(2);
-  });
-
   it('the timer reads only while the window is visible, and coming back reads at once', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const api = createMockApi();
