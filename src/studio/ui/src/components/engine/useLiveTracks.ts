@@ -6,6 +6,8 @@ import { retryAction, type Notify } from '../primitives/Toast';
 
 /** How often the panel reads REAPER's tracks again while the window is visible. */
 export const LIVE_TRACKS_POLL_MS = 5_000;
+/** The topic of a tracks read's toast: a read's answer replaces the failure (or the earlier answer) it follows, so two opposite messages never stand together (#3339). */
+export const TRACKS_READ_TOPIC = 'tracks-read';
 
 /** How long one read may go unanswered before it counts as failed: the host gives REAPER 3 s (tracksLiveTimeout in tracks_live.go), and
  * this leaves time for the saved file's parse and the binding's own trip. A read that never answers must not hold every later read back. */
@@ -133,6 +135,9 @@ export function useLiveTracks({
               text,
               'error',
               retryAction(() => (onRetryRef.current ?? refreshRef.current)()),
+              undefined,
+              undefined,
+              TRACKS_READ_TOPIC,
             );
           failing.current = true;
           setState((previous) => ({ ...previous, stale: hasProject.current, error: text }));

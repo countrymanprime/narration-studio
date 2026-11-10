@@ -3,7 +3,7 @@ import { plural } from '../../plural';
 import { useSecondsSince } from '../layout/CheckLine';
 import { IconButton } from '../primitives/IconButton';
 import { TooltipTarget } from '../primitives/Tooltip';
-import type { LiveTracks } from './useLiveTracks';
+import { TRACKS_READ_TOPIC, type LiveTracks } from './useLiveTracks';
 
 type Line = {
   /** What a screen reader is told when the state changes, with no ticking seconds. */
@@ -60,7 +60,14 @@ export function LiveTracksRefresh({ live }: { live: LiveTracks }) {
     void live.recheck().then(({ project, source, failed }) => {
       if (failed || !project) return;
       const count = project.tracks.length;
-      notify(source === 'live' ? `Read ${plural(count, 'track')} from REAPER.` : 'Read the tracks in the saved project.');
+      notify(
+        source === 'live' ? `Read ${plural(count, 'track')} from REAPER.` : 'Read the tracks in the saved project.',
+        'info',
+        undefined,
+        undefined,
+        undefined,
+        TRACKS_READ_TOPIC,
+      );
     });
   return <IconButton action="retry" label="Read the tracks from REAPER again" size="sm" pending={live.refreshing} onClick={press} />;
 }

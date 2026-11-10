@@ -3,7 +3,7 @@ import { act, cleanup, render, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
-import { LIVE_TRACKS_TIMEOUT_MS } from '../engine/useLiveTracks';
+import { TRACKS_READ_TOPIC, LIVE_TRACKS_TIMEOUT_MS } from '../engine/useLiveTracks';
 import { ChapterTrackStateProvider, ProjectTrackProviders, useChapterTrackState, type ChapterTrackState } from './ChapterTrackState';
 
 afterEach(cleanup);
@@ -63,7 +63,7 @@ describe('the shared chapter-track state', () => {
       answer = await seen.current?.live.recheck();
     });
     expect(answer?.failed).toBe(true);
-    expect(notify).toHaveBeenCalledWith(expect.stringContaining('REAPER is busy'), 'error', expect.anything());
+    expect(notify).toHaveBeenCalledWith(expect.stringContaining('REAPER is busy'), 'error', expect.anything(), undefined, undefined, TRACKS_READ_TOPIC);
   });
 
   it('a recheck whose links read fails answers failed, with that read as the one toast', async () => {

@@ -27,7 +27,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import type { Track, TracksLive } from '../../api/contracts/tracks';
-import { LIVE_TRACKS_POLL_MS, LIVE_TRACKS_TIMEOUT_MS, useLiveTracks, type LiveTracks } from './useLiveTracks';
+import { LIVE_TRACKS_POLL_MS, LIVE_TRACKS_TIMEOUT_MS, TRACKS_READ_TOPIC, useLiveTracks, type LiveTracks } from './useLiveTracks';
 
 afterEach(() => {
   cleanup();
@@ -251,7 +251,14 @@ describe('reading the live track list', () => {
     expect(hook.current.stale).toBe(true);
     expect(hook.current.readAt).toBe(readAt);
     expect(notify).toHaveBeenCalledTimes(1);
-    expect(notify).toHaveBeenCalledWith(expect.stringContaining('REAPER did not answer'), 'error', expect.objectContaining({ label: 'Retry' }));
+    expect(notify).toHaveBeenCalledWith(
+      expect.stringContaining('REAPER did not answer'),
+      'error',
+      expect.objectContaining({ label: 'Retry' }),
+      undefined,
+      undefined,
+      TRACKS_READ_TOPIC,
+    );
     // A Refresh press that fails says so again: the narrator asked.
     await act(async () => hook.current.refresh());
     expect(notify).toHaveBeenCalledTimes(2);
