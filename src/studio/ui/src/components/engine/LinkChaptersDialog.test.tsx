@@ -230,7 +230,7 @@ describe('LinkChaptersDialog', () => {
 
     await user.selectOptions(screen.getByRole('combobox', { name: `Track for ${WIRE_CHAPTERS[0].title}` }), WIRE_TRACKS_PROJECT.tracks[0].guid);
     await user.click(await screen.findByRole('button', { name: /^Stamp \d+ item/ }));
-    act(() => push({ ...empty, message: 'Stamped 6 items.' }));
+    act(() => push({ ...empty, message: 'Stamped 6 items.', stamp: { ...empty.stamp, applied: 6 } }));
     expect(screen.queryByText('Nothing is stamped yet.')).toBeNull();
   });
 
@@ -244,6 +244,49 @@ describe('LinkChaptersDialog', () => {
     await stamp();
     expect(await screen.findByText(/^Stamped 0 items, \d+ already stamped\.$/)).toBeTruthy();
     expect(screen.queryByText('Nothing is stamped yet.')).toBeNull();
+  });
+
+  it('does not say nothing is stamped when a Read is refused right after a stamp (qa-breaker 1)', async () => {
+    const user = userEvent.setup();
+    renderDialog({ lineIdentityRead: async () => Promise.reject(new Error('REAPER did not answer')) });
+    await user.selectOptions(await screen.findByRole('combobox', { name: `Track for ${WIRE_CHAPTERS[0].title}` }), WIRE_TRACKS_PROJECT.tracks[0].guid);
+    await user.click(await screen.findByRole('button', { name: /^Stamp \d+ item/ }));
+    await screen.findByText(/^Stamped \d+ items?\.$/);
+    await user.click(screen.getByRole('button', { name: 'Read current stamps' }));
+    expect(await screen.findByText(/REAPER did not answer/)).toBeTruthy();
+    expect(screen.queryByText('Nothing is stamped yet.')).toBeNull();
+  });
+
+  it('says nothing is stamped for an empty Read the dialog was reopened during (qa-breaker 2)', async () => {
+    const empty: LineIdentityState = {
+      runId: 'r',
+      phase: 'success',
+      message: 'Read 0 stamped items.',
+      stamp: { applied: 0, unchanged: 0, missingCount: 0, conflictsCount: 0, missing: [], conflicts: [] },
+      lines: [],
+      linesRead: 0,
+    };
+    renderDialog({ lineIdentityState: async () => empty });
+    expect(await screen.findByText('Nothing is stamped yet.')).toBeTruthy();
+  });
+
+  it('keeps Read off while a stamp runs and Stamp off while a read runs, so one run never replaces the other (qa-breaker 6)', async () => {
+    const running = (phase: 'stamping' | 'reading'): LineIdentityState => ({
+      runId: 'r',
+      phase,
+      message: '',
+      stamp: { applied: 0, unchanged: 0, missingCount: 0, conflictsCount: 0, missing: [], conflicts: [] },
+      lines: [],
+      linesRead: 0,
+    });
+    renderDialog({ lineIdentityState: async () => running('stamping') });
+    const read = await screen.findByRole('button', { name: 'Read current stamps' });
+    await waitFor(() => expect(read.getAttribute('aria-disabled') === 'true' || (read as HTMLButtonElement).disabled).toBe(true));
+    cleanup();
+    renderDialog({ lineIdentityState: async () => running('reading') }, {}, vi.fn());
+    await user_selectFirstTrack();
+    const stamp = await screen.findByRole('button', { name: /^Stamp \d+ item/ });
+    await waitFor(() => expect(stamp.getAttribute('aria-disabled') === 'true' || (stamp as HTMLButtonElement).disabled).toBe(true));
   });
 
   it('shows a REAPER error state', async () => {
@@ -348,3 +391,7 @@ describe('LinkChaptersDialog', () => {
     expect(await screen.findByText(new RegExp(`${first.title}.*is now not linked`))).toBeTruthy();
   });
 });
+
+async function user_selectFirstTrack() {
+  await userEvent.selectOptions(await screen.findByRole('combobox', { name: `Track for ${WIRE_CHAPTERS[0].title}` }), WIRE_TRACKS_PROJECT.tracks[0].guid);
+}

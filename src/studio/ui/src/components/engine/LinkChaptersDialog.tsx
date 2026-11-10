@@ -91,13 +91,17 @@ function CurrentStamps({
   error,
   onRead,
   pending,
-  afterRead,
+  stamping,
+  readFoundNothing,
 }: {
   state: LineIdentityState;
   error: string;
   onRead: () => void;
   pending: boolean;
-  afterRead: boolean;
+  /** A stamp is running: Read waits, so the second run cannot replace the first's state. */
+  stamping: boolean;
+  /** The last run was a Read and it found no stamped item. */
+  readFoundNothing: boolean;
 }) {
   return (
     <section aria-labelledby="current-stamps-heading" className="mt-4 space-y-2 border-t pt-3" style={{ borderColor: 'var(--border)' }}>
@@ -106,7 +110,7 @@ function CurrentStamps({
         <SectionLabel as="h3" id="current-stamps-heading">
           Currently stamped in REAPER
         </SectionLabel>
-        <IconButton action="readStamps" onClick={onRead} pending={pending} />
+        <IconButton action="readStamps" onClick={onRead} pending={pending} disabled={stamping} />
       </div>
       {(state.phase === 'reading' || (state.phase === 'success' && state.linesRead > 0)) && (
         <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
@@ -132,7 +136,7 @@ function CurrentStamps({
         </Table>
       )}
       {/* Only after Read: a Stamp finishes in 'success' with no lines read, and the host does not read them back, so "nothing" would be false (#3053). */}
-      {afterRead && state.phase === 'success' && state.lines.length === 0 && (
+      {readFoundNothing && (
         <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
           Nothing is stamped yet.
         </p>
@@ -182,6 +186,10 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
   const running = state.phase === 'stamping';
   // A stamp that ended says so even when every item was already stamped (applied 0, unchanged N); a Read ends in success with these all zero.
   const stamped = state.phase === 'success' && state.stamp.applied + state.stamp.unchanged + state.stamp.missingCount + state.stamp.conflictsCount > 0;
+  const reading = state.phase === 'reading';
+  // A Read ends in success with no stamp counts; a Stamp's success has some, so the empty-read line follows the state, not the last button pressed
+  // (a Read refused after a Stamp, or a dialog reopened while a Read ran, keep the state's own meaning).
+  const readFoundNothing = state.phase === 'success' && state.lines.length === 0 && state.linesRead === 0 && !stamped;
   // A name is an option's whole text, so a direction override in it reaches nothing past the name: an option needs no isolate (breaker 7).
   const voiceFolders = useVoiceLayout() === 'folders';
   const trackOptions = [
@@ -232,7 +240,7 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
           <Button variant="secondary" onClick={onClose}>
             {running || stamped ? 'Close' : 'Cancel'}
           </Button>
-          <Button onClick={approve} disabled={preview.length === 0} pending={running}>
+          <Button onClick={approve} disabled={preview.length === 0 || reading} pending={running}>
             {`Stamp ${preview.length} item${preview.length === 1 ? '' : 's'}`}
           </Button>
         </>
@@ -329,7 +337,7 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
         </Checkbox>
       </div>
 
-      <CurrentStamps state={state} error={readError} onRead={read} pending={state.phase === 'reading'} afterRead={lastAction === 'read'} />
+      <CurrentStamps state={state} error={readError} onRead={read} pending={state.phase === 'reading'} stamping={running} readFoundNothing={readFoundNothing} />
     </Dialog>
   );
 }
