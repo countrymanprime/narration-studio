@@ -262,3 +262,21 @@ describe('replacesPressed', () => {
     }
   });
 });
+
+describe('Button disabledReason', () => {
+  it('ignores a press, stays focusable and says why on focus (#3276)', async () => {
+    const onClick = vi.fn();
+    render(
+      <Button disabledReason="Choose a region first." onClick={onClick}>
+        Approve
+      </Button>,
+    );
+    const button = screen.getByRole('button', { name: 'Approve' });
+    expect(button.getAttribute('aria-disabled')).toBe('true');
+    expect((button as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(button);
+    expect(onClick).not.toHaveBeenCalled();
+    button.focus();
+    expect(await screen.findByRole('tooltip')).toHaveProperty('textContent', 'Choose a region first.');
+  });
+});

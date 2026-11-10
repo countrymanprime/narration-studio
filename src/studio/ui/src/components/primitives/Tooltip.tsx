@@ -221,7 +221,7 @@ export function TooltipTarget({
         {children}
       </span>
       {armed && (
-        <BaseTooltip.Root>
+        <BaseTooltip.Root disabled={text === ''}>
           <BaseTooltip.Trigger
             delay={hoverDelayMs}
             render={(props) => <TriggerBridge props={props as TriggerProps} host={host} latest={latest} onProps={onProps} />}

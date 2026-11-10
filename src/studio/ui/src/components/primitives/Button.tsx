@@ -2,6 +2,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCircleNotch } from '@fortawesome/free-solid-svg-icons';
 import type { ComponentProps } from 'react';
 import { HIT_AREA } from './hitArea';
+import { TooltipTarget } from './Tooltip';
 import { useEchoGuard } from './echoGuard';
 
 // `secondary` is the mocks' outlined button, filled `--surface` so it reads the same on the page background and in a card.
@@ -56,7 +57,10 @@ type Props = ComponentProps<'button'> & {
   // The action this button started is running. The button says so (`aria-busy`, a spinner, dimmed) and ignores a press, but
   // stays focusable, so a keyboard user does not lose their place the way they do when a button becomes `disabled`.
   pending?: boolean;
-  // This button takes the place of the one just pressed: it ignores a press that comes right after a click on another element (`useEchoGuard`), the second click of a double click. A caller that swaps one button for another at the same spot gives each a distinct `key`, so the old button is gone.
+  // The button cannot act now, and this says why. It is `aria-disabled` rather than `disabled`, so it keeps its place in the tab order and
+  // its reason is a tooltip a keyboard reaches; a press does nothing. A button that is sometimes off passes `''` while it is on, so the tooltip wrapper stays and focus is not lost when the reason comes and goes. A button that is off with no reason is a button that "does nothing" (#3276).
+  disabledReason?: string;
+  // This button takes the place of the one just pressed: it ignores a press that comes right after a click on a control that has since left the page (`useEchoGuard`), the second click of a double click. A caller that swaps one button for another at the same spot gives each a distinct `key`.
   replacesPressed?: boolean;
 };
 
@@ -68,24 +72,28 @@ export function Button({
   className = '',
   type = 'button',
   pending = false,
+  disabledReason,
   replacesPressed,
   onClick,
   children,
   ...rest
 }: Props) {
   const echo = useEchoGuard(replacesPressed);
-  return (
+  const gated = pending || Boolean(disabledReason);
+  const button = (
     <button
       type={type}
       aria-busy={pending || undefined}
-      aria-disabled={pending || undefined}
+      aria-disabled={gated || undefined}
       // A press does nothing while pending, and it does not submit a form either (`preventDefault` stops the native submit).
-      onClick={pending ? (event) => event.preventDefault() : (event) => !echo(event) && onClick?.(event)}
-      className={`${buttonClasses(variant, size)} ${className}`}
+      onClick={gated ? (event) => event.preventDefault() : (event) => !echo(event) && onClick?.(event)}
+      // Inside its tooltip's wrapper the button grows to the wrapper, so a button the layout stretches (a grid cell, a column) still fills its cell.
+      className={`${buttonClasses(variant, size)} ${disabledReason === undefined ? '' : 'grow'} ${className}`}
       {...rest}
     >
       {pending && <FontAwesomeIcon icon={faCircleNotch} className="motion-ok:animate-spin" aria-hidden="true" />}
       {children}
     </button>
   );
+  return disabledReason === undefined ? button : <TooltipTarget text={disabledReason}>{button}</TooltipTarget>;
 }
