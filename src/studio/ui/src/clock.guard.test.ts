@@ -4,7 +4,7 @@ import { join, relative, sep } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 // Class guard for issue 3277 (reuse): a number of seconds becomes a clock reading in `clock.ts` and nowhere else, so two screens that show the
-// same length show the same text. A file that does the minutes-and-seconds arithmetic (`% 60`) and pads the digits (`padStart`) is writing its own
+// same length show the same text. A file that does the minutes-and-seconds arithmetic (`% 60`, or `% 600` and `% 6000` for tenths and hundredths) and pads the digits (`padStart`, or `< 10 ? '0'`) is writing its own
 // clock; it fails here unless it is listed below with what it formats instead. An entry whose file no longer matches fails too, so the list only shrinks.
 const ALLOWED: Readonly<Record<string, string>> = {
   'clock.ts': 'the one clock',
@@ -22,7 +22,7 @@ function* sources(dir: string): Generator<string> {
   }
 }
 
-const writesItsOwnClock = (text: string): boolean => /%\s*60\b/.test(text) && /\.padStart\(/.test(text);
+const writesItsOwnClock = (text: string): boolean => /%\s*(?:60|600|6000)\b/.test(text) && /\.padStart\(|\?\s*'0'\s*:/.test(text);
 
 describe('one clock for every duration', () => {
   const found = [...sources(SRC)]

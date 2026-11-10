@@ -5,9 +5,10 @@ import { useEditingPage } from '../script/EditingPageState';
 import type { ItemClocks } from './docClock';
 import { peakScale } from './peaksWindow';
 import { activePid, lineWindow, windowLayout } from './ribbonLayout';
-import { fineClock, wordAtTime, wordsCovered, type Span } from './rangeMath';
+import { wordAtTime, wordsCovered, type Span } from './rangeMath';
 import { RibbonView } from './Ribbon';
 import { pickEntries, useRibbonPeaks } from './useRibbonPeaks';
+import { clockTenths } from '../../../clock';
 
 /** Where the chapter's audio ends on the document clock: past the last line's last word by the runway. */
 export function docEnd(doc: ChapterDoc): number {
@@ -102,7 +103,7 @@ export function WaveDock({ chapterId, clocks, take, playFrom, reason }: WaveDock
       return [
         {
           key: 'play-here',
-          label: `Play from ${fineClock(t)}`,
+          label: `Play from ${clockTenths(t, { decimals: 2 })}`,
           ...(playFrom ? {} : { unavailable: 'Nothing can play this chapter here.' }),
           onSelect: () => playFrom?.(t),
         },

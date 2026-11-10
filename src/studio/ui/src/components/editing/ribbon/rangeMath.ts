@@ -3,6 +3,7 @@
  * words it covers. Seconds are on the document's clock (`DocItem.t0`), so a range and a word compare directly.
  */
 import type { DocItem } from '../model';
+import { clockTenths } from '../../../clock';
 
 export interface Span {
   start: number;
@@ -175,17 +176,9 @@ export function spanOfKeys(items: readonly DocItem[], keys: readonly string[]): 
   return { start: Math.min(...heard.map((i) => i.t0)), end: Math.max(...heard.map((i) => i.t1)) };
 }
 
-/** Seconds as `m:ss.ss`, to the hundredth, for the places a range is read out: the fine zoom needs more than whole seconds. */
-export function fineClock(seconds: number): string {
-  const hundredths = Math.max(0, Math.round(seconds * 100));
-  const m = Math.floor(hundredths / 6000);
-  const s = (hundredths % 6000) / 100;
-  return `${m}:${s.toFixed(2).padStart(5, '0')}`;
-}
-
 const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
 
 /** A range in words for a screen reader and the label: "0:05.54 to 0:06.30, 0.8 seconds, 2 words". */
 export function rangeLabel(span: Span, words: number): string {
-  return `${fineClock(span.start)} to ${fineClock(span.end)}, ${(span.end - span.start).toFixed(1)} seconds, ${plural(words, 'word', 'words')}`;
+  return `${clockTenths(span.start, { decimals: 2 })} to ${clockTenths(span.end, { decimals: 2 })}, ${(span.end - span.start).toFixed(1)} seconds, ${plural(words, 'word', 'words')}`;
 }

@@ -21,9 +21,6 @@ const UNRECORDED_TEXT: Record<NonNullable<CreditsRow['recordedUnavailable']>, st
   no_project: 'No REAPER project open',
 };
 
-// Credits run well under a minute, so seconds are shown below one.
-const creditsLength = (seconds: number) => (seconds < 60 ? `${Math.round(seconds)}s` : `${Math.round(seconds / 60)}m`);
-
 // A single unresolved token reads as its own name; several as a count and list.
 const unresolvedWarning = (unresolved: string[]): string | undefined => {
   if (unresolved.length === 0) return undefined;
@@ -55,7 +52,7 @@ export function CreditsRowPanel({
         <p>
           <span className="font-semibold">{row.template?.name}</span> · {(row.words ?? 0).toLocaleString()} words ·{' '}
           {/* "about 3s" stays on one line (XPR1-25). */}
-          <span className="whitespace-nowrap">about {creditsLength(row.estimatedSeconds ?? 0)}</span>
+          <span className="whitespace-nowrap">about {clock(row.estimatedSeconds ?? 0)}</span>
         </p>
         {warning && (
           // The values are filled in on Settings' Credits section, so the warning says where (R3PR1-10).

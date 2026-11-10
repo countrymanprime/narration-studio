@@ -9,7 +9,7 @@ import { peaksWindowAll } from './peaksWindow';
 import { barLayout, FULL_SCALE, type PeakScale } from './ribbonBars';
 import type { RibbonLayout } from './ribbonLayout';
 import { RangeOverlay } from './RangeOverlay';
-import { fineClock, type Span } from './rangeMath';
+import { type Span } from './rangeMath';
 import { ScrollEnd, ZoomRow } from './RibbonControls';
 import { useRangeInteraction } from './useRangeInteraction';
 import { useRibbonView } from './useRibbonView';
@@ -228,7 +228,7 @@ export function RibbonView({
         const viewItems: ContextMenuItem[] = [
           {
             key: 'zoom-in',
-            label: here === null ? 'Zoom in' : `Zoom in at ${fineClock(t0 + here)}`,
+            label: here === null ? 'Zoom in' : `Zoom in at ${clockTenths(t0 + here, { decimals: 2 })}`,
             group: 'View',
             ...(r.canZoomIn ? {} : { unavailable: 'One second is the closest view.' }),
             onSelect: () => (here === null ? r.zoom(-1) : r.zoomAt(-1, here)),

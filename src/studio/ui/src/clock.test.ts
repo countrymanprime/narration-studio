@@ -36,5 +36,8 @@ describe('clockTenths', () => {
     expect(clockTenths(Number.NaN)).toBe('0:00.0');
     expect(clockTenths(59.96)).toBe('1:00.0');
     expect(clockTenths(134.6, { minuteDigits: 2 })).toBe('02:14.6');
+    expect(clockTenths(5.54, { decimals: 2 })).toBe('0:05.54');
+    expect(clockTenths(59.999, { decimals: 2 })).toBe('1:00.00');
+    expect(clockTenths(1500.255, { decimals: 2 })).toBe('25:00.26');
   });
 });

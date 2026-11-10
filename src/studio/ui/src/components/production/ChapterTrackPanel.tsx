@@ -21,9 +21,6 @@ import { clock } from '../../clock';
 
 const noop = () => {};
 
-// Recorded length as "13m": seconds under a minute.
-const recordedLength = (seconds: number) => (seconds < 60 ? `${Math.round(seconds)}s` : `${Math.round(seconds / 60)}m`);
-
 /**
  * The track slide-over a chapter's Recorded cell on the Production board opens: what the saved
  * project knows about the chapter's track as of its last save, and the narrator's link/relink/unlink actions. Reuses
@@ -178,7 +175,7 @@ export function ChapterTrackPanel({
                   }
                 />
               )}
-              {recordedSeconds !== undefined && <Fact label="Recorded length" value={recordedLength(recordedSeconds)} />}
+              {recordedSeconds !== undefined && <Fact label="Recorded length" value={clock(recordedSeconds)} />}
               {link.links[0] && (
                 <Fact label="Linked" value={`${formatWhen(link.links[0].confirmedAt)}, ${link.links[0].origin === 'auto' ? 'by chapter sync' : 'by you'}`} />
               )}

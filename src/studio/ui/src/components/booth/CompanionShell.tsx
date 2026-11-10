@@ -21,6 +21,7 @@ import type { FollowCursor } from './useFollowCursor';
 import type { TeleprompterSession } from './useTeleprompterSession';
 import { CompanionThisChapter } from './CompanionThisChapter';
 import { PickupsCompanionSummary } from '../pickups/PickupsCompanionSummary';
+import { clockTenths } from '../../clock';
 
 type Props = {
   session: TeleprompterSession;
@@ -40,14 +41,6 @@ const ESCAPE_CONFIRM_MS = 3000;
 
 const SECTION_LABEL = "font-['Barlow_Condensed',sans-serif] text-[0.72rem] font-semibold tracking-[0.08em] text-[var(--text-muted)] uppercase";
 
-/** Project seconds as REAPER shows them in its transport, m:ss.t (the mock's "2:14.6"). */
-function playheadTime(seconds: number): string {
-  const tenths = Math.round(seconds * 10);
-  const minutes = Math.floor(tenths / 600);
-  const rest = (tenths % 600) / 10;
-  return `${minutes}:${rest.toFixed(1).padStart(4, '0')}`;
-}
-
 /** REAPER's transport from `daw_transport_changed`. Pushed only: until the first push, stopped. */
 function useDawTransport(): DawTransport {
   return useDawState((state) => state.transport);
@@ -58,7 +51,7 @@ function useDawTransport(): DawTransport {
  * ("Reading", "Paused" or "Stopping") instead of "Playhead stopped", which is true of REAPER but not of what the narrator is doing (#2649).
  */
 function playheadBadge({ playing, recording, position }: DawTransport, reading: 'reading' | 'paused' | 'stopping' | null): { tone: StatusTone; label: string } {
-  const at = position === undefined ? '' : playheadTime(position);
+  const at = position === undefined ? '' : clockTenths(position);
   if (recording) return { tone: 'danger', label: at ? `Recording · ${at}` : 'Recording' };
   if (playing) return { tone: 'info', label: at ? `Playhead ${at}` : 'Playhead moving' };
   if (reading) return { tone: 'info', label: { reading: 'Reading', paused: 'Paused', stopping: 'Stopping' }[reading] };

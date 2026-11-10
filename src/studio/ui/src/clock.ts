@@ -22,9 +22,14 @@ export function clock(seconds: number, options: ClockOptions = {}): string {
   return `${String(minutes).padStart(options.minuteDigits ?? 1, '0')}:${pad(whole % 60)}`;
 }
 
-/** A position with one decimal, `m:ss.s` ("1:05.3"), where tenths of a second matter. Rounds to the tenth first, so 59.96 reads "1:00.0", never "0:60.0". */
-export function clockTenths(seconds: number, options: Pick<ClockOptions, 'minuteDigits'> = {}): string {
-  const tenths = Number.isFinite(seconds) ? Math.max(0, Math.round(seconds * 10)) : 0;
-  const rest = (tenths % 600) / 10;
-  return `${String(Math.floor(tenths / 600)).padStart(options.minuteDigits ?? 1, '0')}:${rest < 10 ? '0' : ''}${rest.toFixed(1)}`;
+/**
+ * A position with a fraction, `m:ss.s` ("1:05.3") or with `decimals: 2` `m:ss.ss` ("1:05.30") for the fine zoom. Rounds to the last decimal first,
+ * so 59.96 reads "1:00.0", never "0:60.0".
+ */
+export function clockTenths(seconds: number, options: Pick<ClockOptions, 'minuteDigits'> & { decimals?: 1 | 2 } = {}): string {
+  const decimals = options.decimals ?? 1;
+  const unit = 10 ** decimals;
+  const units = Number.isFinite(seconds) ? Math.max(0, Math.round(seconds * unit)) : 0;
+  const rest = (units % (60 * unit)) / unit;
+  return `${String(Math.floor(units / (60 * unit))).padStart(options.minuteDigits ?? 1, '0')}:${rest < 10 ? '0' : ''}${rest.toFixed(decimals)}`;
 }
