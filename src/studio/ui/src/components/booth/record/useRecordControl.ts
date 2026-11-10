@@ -467,6 +467,8 @@ export function useRecordControl({
           setRecording(starting);
           return starting;
         } else {
+          // A press the narrator has left behind ends quietly: no message on whatever page they are on now.
+          if (starting && how?.current && !how.current()) return false;
           const sentence = result.refused ?? result.message;
           setRefused({ chapterId, sentence });
           // The app's own recorder refuses a stop only when no take is recording: the take is over, so the Booth stops holding it.
@@ -476,6 +478,7 @@ export function useRecordControl({
           block({ cause: result.code === 'stale' ? 'no_track' : 'host_refused', reason: sentence });
         }
       } catch (error) {
+        if (starting && how?.current && !how.current()) return false;
         // A host call that failed (not a refusal): nothing changed that this app knows of, and the narrator is told so.
         const what = starting ? 'Record did not start' : 'Stop did not go through';
         const sentence = `${what}: ${apiErrorMessage(error)}. Check ${capabilitiesRef.current?.daw ?? 'the DAW'} before pressing again.`;

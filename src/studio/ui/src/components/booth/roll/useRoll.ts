@@ -48,8 +48,9 @@ export type RollActions = TakeControls & {
 /** How long the Booth waits for the host to say where a passage was recorded (the host's own limit is shorter): then it says so and starts nothing. */
 export const LOOKUP_MS = 8000;
 
-const LOOKUP_FAILED = 'Where this passage was recorded could not be read, so no take was started. Try again.';
-const LOOKUP_SLOW = 'Where this passage was recorded did not come back in time, so no take was started. Try again.';
+const LOOKUP_FAILED = 'Where this passage was recorded could not be read, so no take was started. No start is chosen now: choose the phrase again to retry.';
+const LOOKUP_SLOW =
+  'Where this passage was recorded did not come back in time, so no take was started. No start is chosen now: choose the phrase again to retry.';
 
 /** How long after a roll went through another is ignored (milliseconds). */
 
@@ -155,11 +156,14 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
   const latestStart = useRef(0);
   /** True from a start's press until its take is handed to the Booth, or it is refused or dropped: Record shows it. */
   const [lookingUp, setLookingUp] = useState(false);
+  /** The start in flight (its number and phrase), from the press to its end: take handed over, refused, cancelled or past the lookup's limit. A press for the same phrase meanwhile is that press. */
+  const pressing = useRef<{ mine: number; at: number } | null>(null);
   const alive = useRef(true);
   /** Drops every start still waiting: the Booth was left, or the chapter changed. Nothing they were waiting for may begin a take. */
   const cancelStart = useCallback(() => {
     latestStart.current += 1;
     inFlight.current.clear();
+    pressing.current = null;
     setLookingUp(false);
   }, []);
   useEffect(() => {
@@ -173,7 +177,9 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
   }, []);
   /** Ends the wait of start `mine`, unless a newer start owns it now. */
   const endWait = useCallback((mine: number) => {
-    if (mine === latestStart.current && alive.current) setLookingUp(false);
+    if (mine !== latestStart.current || !alive.current) return;
+    if (pressing.current?.mine === mine) pressing.current = null;
+    setLookingUp(false);
   }, []);
   /** This start is out of date: a newer one was chosen, a take began (the Space key, the DAW's own Record) or the Booth was left. */
   const outdated = (mine: number) => mine !== latestStart.current || sessionRef.current.recording;
@@ -194,6 +200,8 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
     async (unit: number) => {
       const s = sessionRef.current;
       const to = clampPhrase(unit, s.phraseCount);
+      // The same press again (a second Space, R or click while it waits) is that press: nothing is looked up, chosen or said twice.
+      if (!s.recording && pressing.current?.at === to) return;
       // Before a take, a start the DAW could not punch to is not armed: the narrator is told now, not after Space, where the take will start.
       const plan = rollPlan(s.capabilities);
       if (!s.recording && plan.kind === 'refused') {
@@ -227,7 +235,9 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
       const s = sessionRef.current;
       const at = from ?? s.punchAt;
       if (at == null || at >= s.phraseCount) return actionsRef.current.beginTake();
+      if (!s.recording && pressing.current?.at === at) return;
       const mine = ++latestStart.current;
+      pressing.current = { mine, at };
       setLookingUp(true);
       try {
         const target = await lookUp(at);
@@ -236,7 +246,7 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
         if (target.outcome === 'never_recorded') {
           // Not a punch: said, so a narrator never thinks earlier work is being recorded over.
           actionsRef.current.notify(`¶ ${s.paragraphOf(at) + 1} was not recorded before, so the take goes on from the end of the chapter's audio.`);
-          return actionsRef.current.beginTake();
+          return await actionsRef.current.beginTake();
         }
         if (target.outcome !== 'found' || target.start === undefined) {
           actionsRef.current.notify(target.message ?? 'Where this passage was recorded is not known, so no take was started.');
@@ -249,7 +259,7 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
           // what is recorded, and the sentence says why.
           actionsRef.current.notify(`${plan.reason} Recording from the end of what is already there instead.`);
           actionsRef.current.clearStart?.();
-          return actionsRef.current.beginTake();
+          return await actionsRef.current.beginTake();
         }
         if (plan.kind === 'confirm' && !(await ask(`Punch in at ¶ ${s.paragraphOf(at) + 1}?`, 'Punch in', plan.dawName))) return;
         if (outdated(mine)) return;
@@ -257,7 +267,7 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
         if (outdated(mine)) return;
         // The narrator is told which track is recorded over before the take starts, never only after.
         actionsRef.current.notify(`Recording over ¶ ${s.paragraphOf(at) + 1}${target.trackName ? ` on ${target.trackName}` : ''}.`);
-        return actionsRef.current.beginTake(target.start);
+        return await actionsRef.current.beginTake(target.start);
       } finally {
         endWait(mine);
       }

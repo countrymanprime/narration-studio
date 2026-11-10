@@ -395,6 +395,8 @@ export function useBoothPage(options: BoothPageOptions) {
         ? Promise.all([hearing, control.toggle(punch, { current })])
         : hearing.then(async (answer) => [answer, answer.ok && (await control.toggle(punch, { current }))] as const)
     ).finally(() => (listenStarting.current = false));
+    // Cancelled while it waited (the Booth was left, the chapter changed): nothing is said on whatever page the narrator is on now.
+    if (!current()) return started;
     if (!heard.ok) {
       const kept = started && !(await dropUnheardTake());
       // The narrator fixes the microphone or the model (Levels, Settings) and presses again: the message keeps the Retry for that.
@@ -416,6 +418,7 @@ export function useBoothPage(options: BoothPageOptions) {
   const [beginning, setBeginning] = useState(false);
   // Which press is current: leaving the Booth or changing chapter makes every press in flight stale (see `beginOnce`).
   const pressToken = useRef(0);
+  const mounted = useRef(true);
 
   const roll = useRoll(
     {
@@ -489,6 +492,12 @@ export function useBoothPage(options: BoothPageOptions) {
     },
     [recordId, cancelStart],
   );
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   // Record shows a press at once: from the press (the lookup of a chosen start, the checks, the start tone) until the take starts or is refused.
   const startPending = !recording && (roll.lookingUp || beginning);
 
@@ -719,7 +728,8 @@ export function useBoothPage(options: BoothPageOptions) {
     } else if (control.gate) blocked(control.gate);
     else await roll.startTake();
   }, [control, roll, blocked]);
-  retryTake.current = toggleTake;
+  // A Retry on a message that outlived the Booth does nothing: it must not start a take on a page nobody is looking at.
+  retryTake.current = () => (mounted.current ? toggleTake() : Promise.resolve());
   // The jump menu's cold read: it picks the Cold read mode and starts one (or stops the one that listens), so the button says what is happening.
   const coldReadFromJump = useCallback(async () => {
     const now = latest.current;

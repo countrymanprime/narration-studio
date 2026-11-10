@@ -495,20 +495,51 @@ describe('a start waits for the host: shown, joined, and dropped when the Booth 
     expect(actions.beginTake).toHaveBeenCalledTimes(1);
   });
 
-  it('a lookup call that never settles is not joined by a retry: past the limit the host is asked again', async () => {
+  it('a call that never settles is joined until the lookup limit, then a retry asks the host again', async () => {
     vi.useFakeTimers();
     try {
       const punchTarget = vi.fn(() => new Promise<BoothPunch>(() => {}));
-      const { hook } = setup(SETUPS.reaper, { recording: false, punchAt: 1, punchTarget });
+      const { hook, actions } = setup(SETUPS.reaper, { recording: false, punchAt: 1, punchTarget });
       act(() => void hook.result.current.startTake());
       await act(async () => {
-        await vi.advanceTimersByTimeAsync(LOOKUP_MS + 100);
+        await vi.advanceTimersByTimeAsync(LOOKUP_MS - 100);
       });
+      act(() => void hook.result.current.startTake());
+      expect(punchTarget).toHaveBeenCalledTimes(1);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(200);
+      });
+      // The first press ended with its sentence at the limit: the next one is a new press and asks the host again.
+      expect(actions.notify).toHaveBeenCalledWith(expect.stringContaining('did not come back in time'));
       act(() => void hook.result.current.startTake());
       expect(punchTarget).toHaveBeenCalledTimes(2);
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('a press for the same phrase after the lookup answered, while the take is being handed over, is that press: no second lookup, voice or message', async () => {
+    const take = gate();
+    const punchTarget = vi.fn(async (p: number) => found(p));
+    const { hook, actions } = setup(SETUPS.reaper, { recording: false, punchAt: 1, punchTarget });
+    actions.beginTake.mockImplementation(async () => {
+      await take.promise;
+    });
+    let first: Promise<unknown> = Promise.resolve();
+    act(() => {
+      first = hook.result.current.startTake();
+    });
+    await waitFor(() => expect(actions.beginTake).toHaveBeenCalledTimes(1));
+    await act(async () => {
+      await hook.result.current.startTake();
+      await hook.result.current.startFromHere(1);
+    });
+    expect(punchTarget).toHaveBeenCalledTimes(1);
+    expect(actions.chooseVoice).toHaveBeenCalledTimes(1);
+    expect(actions.chooseStart).not.toHaveBeenCalled();
+    expect(actions.notify).toHaveBeenCalledTimes(1);
+    take.resolve(found(1));
+    await act(() => first);
   });
 
   it('says a lookup is out while it waits, and not before or after', async () => {

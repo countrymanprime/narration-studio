@@ -2352,9 +2352,12 @@ describe('a start chosen with Start from here: the wait is shown, dropped on lea
     const boothPunchTarget = vi.fn(async () => ({ outcome: 'refused' as const, message: 'The recording check is out of date.' }));
     const page = renderPage({ search: START, api: { boothPunchTarget } });
     await ready();
+    boothPunchTarget.mockClear();
     await space();
     await waitFor(() => expect(recordButton().getAttribute('aria-busy')).toBeNull());
     expect(page.daw.recordStart).not.toHaveBeenCalled();
+    expect(boothPunchTarget).toHaveBeenCalledTimes(1);
+    expect(document.body.textContent).toContain('The recording check is out of date.');
   });
 
   it('leaving the Booth while the lookup is out starts no take', async () => {
@@ -2420,9 +2423,10 @@ describe('a start chosen with Start from here: the wait is shown, dropped on lea
     for (let i = 0; i < 5; i++) await space();
     await act(async () => lookup.answer(FOUND));
     await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
-    // The opening of the Booth at a line asked once; the presses made no call of their own.
-    expect(lookup.boothPunchTarget.mock.calls.length).toBeLessThanOrEqual(1);
+    // Five presses, one host call (made by the first press), one take that records from the answer.
+    expect(lookup.boothPunchTarget).toHaveBeenCalledTimes(1);
     expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
+    expect(page.daw.recordStart).toHaveBeenCalledWith('c1', 12);
   });
 
   it('the chosen start is for the next take only: after it ends, Record starts at the end of the audio with no lookup', async () => {
@@ -2440,6 +2444,114 @@ describe('a start chosen with Start from here: the wait is shown, dropped on lea
     expect(page.daw.recordStart).toHaveBeenCalledTimes(2);
     expect(page.daw.recordStart).toHaveBeenLastCalledWith('c1', undefined);
     expect(boothPunchTarget).toHaveBeenCalledTimes(1);
+  });
+
+  it('presses during the model check ask the host nothing more, choose the voice once and say Recording over once', async () => {
+    const slow = gated({ assets: [] });
+    const found = { ...FOUND, trackGuid: 'T', trackName: 'Narrator' };
+    const boothPunchTarget = vi.fn(async () => found);
+    const boothVoiceSet = vi.fn(async () => ({ outcome: 'selected' }));
+    const page = renderPage({ search: START, api: { boothPunchTarget, boothVoiceSet, assetsList: slow.answer } as never });
+    await ready();
+    boothPunchTarget.mockClear();
+    await space();
+    await settle();
+    await press('r', 'KeyR');
+    await space();
+    await settle();
+    const said = () =>
+      page.overlay
+        .getSnapshot()
+        .toasts.map((t) => t.text)
+        .filter((text) => /Recording over|Starting from/.test(text));
+    expect(boothPunchTarget).toHaveBeenCalledTimes(1);
+    expect(boothVoiceSet).toHaveBeenCalledTimes(1);
+    expect(said().filter((text) => text.startsWith('Recording over'))).toHaveLength(1);
+    expect(said().filter((text) => text.startsWith('Starting from'))).toHaveLength(0);
+    slow.release();
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+    expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
+    expect(page.daw.recordStart).toHaveBeenCalledWith('c1', 12);
+  });
+
+  describe('leaving the Booth, then a listening failure', () => {
+    const failing = () => {
+      let fail = (_reason: Error) => {};
+      const teleprompterStart = vi.fn(() => new Promise<never>((_resolve, reject) => (fail = reject)));
+      return { teleprompterStart, fail: (reason: Error) => fail(reason) };
+    };
+    const savedDevice = (name: string) => async () => ({
+      Teleprompter: [{ key: 'input_device', label: 'Microphone', kind: 'text', value: name, effectiveValue: name, isSet: true }],
+    });
+    const errors = (page: ReturnType<typeof renderPage>) => page.overlay.getSnapshot().toasts.filter((t) => t.tone === 'error');
+
+    it('raises no error message on the next page', async () => {
+      const host = failing();
+      let release = () => {};
+      tone.gate = new Promise<void>((resolve) => (release = resolve));
+      try {
+        const page = renderPage({ api: { teleprompterStart: host.teleprompterStart, settingsForScope: savedDevice('USB Mic') } as never });
+        await ready();
+        await space();
+        await waitFor(() => expect(host.teleprompterStart).toHaveBeenCalledTimes(1));
+        page.view.unmount();
+        release();
+        await act(async () => host.fail(new Error('The microphone is in use by another application.')));
+        await settle();
+        expect(errors(page)).toHaveLength(0);
+        expect(page.daw.recordStart).not.toHaveBeenCalled();
+      } finally {
+        tone.gate = null;
+      }
+    });
+
+    it('a Retry from an earlier failure starts no take once the Booth was left', async () => {
+      const host = failing();
+      const page = renderPage({ api: { teleprompterStart: host.teleprompterStart, settingsForScope: savedDevice('USB Mic') } as never });
+      page.daw.recordStop.mockImplementation(async () => ({ ok: true, changed: true, message: '', undoSteps: 1 }));
+      await ready();
+      await space();
+      await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(1));
+      await act(async () => host.fail(new Error('The microphone is in use by another application.')));
+      await waitFor(() => expect(errors(page).some((t) => t.action)).toBe(true));
+      const retry = errors(page).find((t) => t.action)!.action!;
+      page.view.unmount();
+      await act(async () => void retry.onAction());
+      await settle();
+      expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('a start that fails after the Booth was left says nothing', () => {
+    const afterLeaving = async (fail: (daw: ReturnType<typeof renderPage>['daw'], release: Promise<void>) => void) => {
+      let release = () => {};
+      const open = new Promise<void>((resolve) => (release = resolve));
+      const page = renderPage();
+      fail(page.daw, open);
+      await ready();
+      await space();
+      await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(1));
+      page.view.unmount();
+      release();
+      await settle();
+      await settle();
+      expect(page.overlay.getSnapshot().toasts).toHaveLength(0);
+      expect(page.overlay.getSnapshot().dialogs).toHaveLength(0);
+    };
+    it('a thrown start', () =>
+      afterLeaving((daw, open) =>
+        daw.recordStart.mockImplementationOnce(async () => {
+          await open;
+          throw new Error('the bridge did not answer');
+        }),
+      ));
+    it('a refusal', () =>
+      afterLeaving((daw, open) =>
+        daw.recordStart.mockImplementationOnce((async () => {
+          await open;
+          return { ok: false, changed: false, undoSteps: 0, message: 'REAPER is not answering.', refused: 'REAPER is not answering.' };
+        }) as never),
+      ));
   });
 
   it('a take the DAW refuses spends nothing: the next Record uses the start again (as before)', async () => {
