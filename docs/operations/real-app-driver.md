@@ -15,7 +15,7 @@ The host is a Wails window (WebKitGTK). WebKit's remote inspector does not speak
    (cd src/studio/desktop && go build -o /tmp/ns-host .)
    ```
 
-3. Start it: `scripts/dev/real-app/start-host.sh /tmp/ns-host /tmp/ns-state 1800 &`. It prints `DBUS_SESSION_BUS_ADDRESS=unix:path=/tmp/ns-state/run/bus`; the host's log is `/tmp/ns-state/host.log`.
+3. Start it: `scripts/dev/real-app/start-host.sh /tmp/ns-host /tmp/ns-state 1800 &`; the host's own arguments (`--project-folder`, `--project-file`, `--daw`, `--session-dir`) go after a `--`. It prints `DBUS_SESSION_BUS_ADDRESS=unix:path=/tmp/ns-state/run/bus`; the host's log is `/tmp/ns-state/host.log`.
 4. Run a check with the system Python that has `pyatspi` (3.12 on Ubuntu 24.04, not the repo's venv):
 
    ```bash
