@@ -320,6 +320,9 @@ func (f voiceFile) valid() bool {
 func (s *Service) write(file voiceFile) error {
 	file.SchemaVersion = SchemaVersion
 	path := File(s.config.Project)
+	if err := persist.CanOverwrite(path, what); err != nil {
+		return err
+	}
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return fmt.Errorf("could not create the app's folder in the project: %w", err)
 	}
@@ -381,27 +384,39 @@ type Seen struct {
 const narratorName = "narrator"
 
 // IsNarrator reports whether the track named name with guid is a Narrator track: it is named so, or it was seen named so and renamed.
+// A caller choosing one Narrator among tracks prefers one named so (NamedNarrator) over a remembered one.
 func (s State) IsNarrator(guid, name string) bool {
-	if strings.EqualFold(strings.TrimSpace(name), narratorName) {
-		return true
-	}
-	return slices.Contains(s.NarratorGUIDs, strings.ToLower(guid))
+	return NamedNarrator(name) || slices.Contains(s.NarratorGUIDs, strings.ToLower(guid))
 }
+
+// NamedNarrator reports whether name is the Narrator track's name, whatever its case.
+func NamedNarrator(name string) bool { return strings.EqualFold(strings.TrimSpace(name), narratorName) }
 
 // Learn records which tracks carry which assignment, from the tracks the project has now, and reports whether the file changed. A track
 // named as an assignment is that assignment's (moving it from another it was recorded under); a track with another name keeps the
-// assignment it was recorded under, so renaming it loses nothing. The Narrator track is remembered the same way. Tracks the project
-// no longer has are dropped. Nothing is written when nothing changed, and no file is made unless there is something to remember.
-// An empty list changes nothing: a project that could not be read must not forget every track.
+// assignment it was recorded under, so renaming it loses nothing. The Narrator track is remembered the same way. Nothing is dropped: the
+// list may be the saved file's (lacking a track not saved yet) or one .rpp of several in the folder, and a deleted track's GUID is never
+// seen again, so it costs only its few bytes (MaxGUIDs bounds them).
+//
+// It only ever adds to a setup that already exists and reads cleanly: no file is made (a project nobody set up has nothing to keep), and a
+// file that is corrupt, unreadable, or from a newer app is left exactly as it is for the readers that tell the narrator about it. An
+// empty list changes nothing. Nothing is written when nothing changed.
 func (s *Service) Learn(project []Seen) (bool, error) {
 	if s.config.Project == "" || len(project) == 0 {
 		return false, nil
 	}
 	unlock := lockFile(File(s.config.Project))
 	defer unlock()
-	file, err := s.read()
+	raw, err := persist.ReadFile(File(s.config.Project))
 	if err != nil {
-		return false, err
+		return false, nil
+	}
+	var file voiceFile
+	if json.Unmarshal(raw, &file) != nil || file.SchemaVersion > SchemaVersion || !file.valid() {
+		return false, nil
+	}
+	if file.Tracks == nil {
+		file.Tracks = map[string]trackEntry{}
 	}
 	before, _ := json.Marshal(file)
 	file.learn(project)
@@ -418,9 +433,14 @@ func (f *voiceFile) learn(project []Seen) {
 		present[strings.ToLower(track.GUID)] = strings.TrimSpace(track.Name)
 	}
 	holder := map[string]string{}
-	for name, entry := range f.Tracks {
-		for _, guid := range entry.GUIDs {
-			if _, here := present[guid]; here {
+	names := make([]string, 0, len(f.Tracks))
+	for name := range f.Tracks {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	for _, name := range names {
+		for _, guid := range f.Tracks[name].GUIDs {
+			if _, taken := holder[guid]; !taken {
 				holder[guid] = name
 			}
 		}
@@ -430,7 +450,8 @@ func (f *voiceFile) learn(project []Seen) {
 			holder[guid] = name
 		}
 	}
-	for name, entry := range f.Tracks {
+	for _, name := range names {
+		entry := f.Tracks[name]
 		entry.GUIDs = nil
 		f.Tracks[name] = entry
 	}
@@ -452,6 +473,11 @@ func (f *voiceFile) learn(project []Seen) {
 			if validText(guid, MaxGUID) {
 				narrators = append(narrators, guid)
 			}
+		}
+	}
+	for _, guid := range f.Narrators {
+		if !slices.Contains(narrators, guid) {
+			narrators = append(narrators, guid)
 		}
 	}
 	sort.Strings(narrators)

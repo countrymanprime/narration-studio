@@ -41,13 +41,8 @@ export function folderChildren(tracks: readonly Track[], folderGuid: string): Tr
 
 /** The assignment a track carries: the one named as the track is, else the one the track was seen on before it was renamed (a rename to a
  * name no assignment has keeps what the track had; a rename to one that has an assignment takes that one). */
-function assignmentOf(setup: VoiceTracksState, track: Pick<Track, 'guid' | 'name'>) {
+export function assignmentOf(setup: VoiceTracksState, track: Pick<Track, 'guid' | 'name'>) {
   return setup.tracks.find((entry) => entry.track === track.name.trim()) ?? setup.tracks.find((entry) => entry.guids.includes(track.guid.toLowerCase()));
-}
-
-/** Whether a track is a Narrator track: named so, or seen named so before it was renamed. */
-function isNarratorTrack(setup: VoiceTracksState, track: Pick<Track, 'guid' | 'name'>): boolean {
-  return same(track.name, NARRATOR) || setup.narratorGuids.includes(track.guid.toLowerCase());
 }
 
 function charactersOf(track: Track, entities: readonly GuideEntity[], setup: VoiceTracksState, narrator: boolean): VoiceCharacter[] {
@@ -72,9 +67,12 @@ function charactersOf(track: Track, entities: readonly GuideEntity[], setup: Voi
 export function folderVoices(tracks: readonly Track[], folderGuid: string, entities: readonly GuideEntity[], setup: VoiceTracksState): Voice[] {
   let next = 1;
   let narratorSeen = false;
-  return folderChildren(tracks, folderGuid).map((track) => {
+  const children = folderChildren(tracks, folderGuid);
+  const anyNamed = children.some((child) => same(child.name, NARRATOR));
+  return children.map((track) => {
     // Only the first Narrator child is key 0; a second one is an ordinary voice, so no two tracks share a key.
-    const narrator = !narratorSeen && isNarratorTrack(setup, track);
+    // A track named Narrator is the Narrator; one only remembered as it before a rename is, when no track in the folder is named so.
+    const narrator = !narratorSeen && (same(track.name, NARRATOR) || (!anyNamed && setup.narratorGuids.includes(track.guid.toLowerCase())));
     if (narrator) narratorSeen = true;
     const key = narrator ? '0' : next <= 9 ? String(next) : '';
     if (!narrator) next += 1;

@@ -92,6 +92,32 @@ describe('the Voices card', () => {
     expect(handlers.onTrackCharacters).toHaveBeenCalledWith('Queen', ['e-queen', 'e-alice']);
   });
 
+  // #3269: a track renamed in REAPER carries the assignment of its old name; emptying it must clear that one, not a name that has none.
+  it('clearing the last character of a renamed track clears the assignment it carries', async () => {
+    const handlers = draw({
+      layout: 'folders',
+      narratorCharacter: '',
+      narratorGuids: [],
+      tracks: [{ track: 'Queen', characters: ['e-alice'], guids: ['queen'] }],
+    });
+    const renamed = tracks.map((t) => (t.guid === 'queen' ? { ...t, name: 'Her Majesty' } : t));
+    cleanup();
+    render(
+      <VoicesCard
+        tracks={renamed}
+        chapters={chapters}
+        mappings={mappings}
+        setup={{ layout: 'folders', narratorCharacter: '', narratorGuids: [], tracks: [{ track: 'Queen', characters: ['e-alice'], guids: ['queen'] }] }}
+        characters={cast}
+        layoutInCard
+        {...handlers}
+      />,
+    );
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Choose who the Her Majesty track records' }));
+    await userEvent.setup().click(await screen.findByRole('checkbox', { name: /Alice/ }));
+    expect(handlers.onTrackCharacters).toHaveBeenCalledWith('Queen', []);
+  });
+
   it('a character already on another voice of the folder says which', async () => {
     draw({ layout: 'folders', narratorCharacter: '', narratorGuids: [], tracks: [{ track: 'Narrator', characters: ['e-alice'], guids: [] }] });
     await userEvent.setup().click(screen.getByRole('button', { name: 'Choose who the Queen track records' }));

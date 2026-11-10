@@ -12,6 +12,9 @@ type VoiceSetup = {
   replace: (next: VoiceTracksState) => void;
   /** Reads the setup again, for the Retry of a failed read. */
   reload: () => void;
+  /** Reads the setup again without resetting it, as the track state does after each read of the tracks: the host learns which tracks carry
+   * which assignment from that read (a track renamed keeps its characters), so what the pickers show follows it. */
+  refresh: () => void;
   /**
    * Starts a save and answers whether it is still the newest one for this project when the host replies: a save made anywhere else on the
    * same setup, or a switch of project, makes it stale, so a slow answer never undoes a newer change or lands in another project.
@@ -24,6 +27,7 @@ const VoiceSetupContext = createContext<VoiceSetup>({
   readError: '',
   replace: () => {},
   reload: () => {},
+  refresh: () => {},
   beginSave: () => () => true,
 });
 
@@ -57,11 +61,24 @@ export function VoiceSetupProvider({ projectFolder, children }: { projectFolder:
   }, [port, projectFolder, attempt]);
   const reload = useCallback(() => setAttempt((n) => n + 1), []);
   const replace = useCallback((next: VoiceTracksState) => setSetup(next), []);
+  const refresh = useCallback(() => {
+    if (!projectFolder) return;
+    const mine = saves.current;
+    port
+      .voiceTracksGet()
+      .then((next) => {
+        // A save that began since this read started has the newer answer; an unchanged answer keeps the object, so nothing redraws.
+        if (mine === saves.current) setSetup((last) => (JSON.stringify(last) === JSON.stringify(next) ? last : next));
+      })
+      .catch(() => {
+        // The failed read of the setup is the first read's to report (readError); a quiet refresh keeps what is shown.
+      });
+  }, [port, projectFolder]);
   const beginSave = useCallback(() => {
     const mine = ++saves.current;
     return () => mine === saves.current;
   }, []);
-  const value = useMemo(() => ({ setup, readError, replace, reload, beginSave }), [setup, readError, replace, reload, beginSave]);
+  const value = useMemo(() => ({ setup, readError, replace, reload, refresh, beginSave }), [setup, readError, replace, reload, refresh, beginSave]);
   return <VoiceSetupContext.Provider value={value}>{children}</VoiceSetupContext.Provider>;
 }
 

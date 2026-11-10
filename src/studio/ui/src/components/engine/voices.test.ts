@@ -78,6 +78,15 @@ describe('the voices of a chapter folder', () => {
     expect(folderVoices(toQueen, 'c1', [], setup)[0].characters.map((character) => character.id)).toEqual(['e-queen']);
   });
 
+  it('prefer a track named Narrator to one only remembered as the Narrator (#3269)', () => {
+    const both = [track('c1', 'Chapter 1', 0, true), track('n1', 'Bob', 1), track('n2', 'Narrator', 1)];
+    const setup = { layout: 'folders' as const, narratorCharacter: '', narratorGuids: ['n1'], tracks: [] };
+    expect(folderVoices(both, 'c1', [], setup).map((voice) => [voice.name, voice.key])).toEqual([
+      ['Bob', '1'],
+      ['Narrator', '0'],
+    ]);
+  });
+
   it('keep the Narrator track at key 0 when it is renamed (#3269)', () => {
     const renamed = [track('c1', 'Chapter 1', 0, true), track('a1', 'Alice', 1), track('n1', 'Storyteller', 1)];
     const setup = { layout: 'folders' as const, narratorCharacter: '', narratorGuids: ['n1'], tracks: [] };

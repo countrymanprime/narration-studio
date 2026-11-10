@@ -546,19 +546,23 @@ describe("the Booth's voices", () => {
       const api = createMockApi({}, { voiceFolders: true });
       const real = api.voiceTracksGet.bind(api);
       let reads = 0;
+      let locked = false;
       api.voiceTracksGet = async () => {
         reads += 1;
-        if (reads === 2) throw new Error('the setup is locked');
+        if (locked) throw new Error('the setup is locked');
         return real();
       };
       const { notify, hook } = await mount({}, false, api);
+      locked = true;
       await act(async () => {
         await hook.current.add('King of Hearts', ['king-of-hearts']);
       });
       const failed = notify.mock.calls.find((call) => String(call[0]).includes('could not be read back'));
       expect(failed?.[2]).toMatchObject({ label: 'Retry' });
+      locked = false;
+      const before = reads;
       await act(async () => failed![2].onAction());
-      expect(reads).toBe(3);
+      expect(reads).toBeGreaterThan(before);
     });
 
     it('an added track is listed at once with the next free key, chosen, and its characters on it', async () => {

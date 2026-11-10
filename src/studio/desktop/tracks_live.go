@@ -223,7 +223,7 @@ func guidKey(guid string) string {
 }
 
 // rememberVoiceTracks tells the voice setup which tracks the project has (voicetracks.Learn), so a track renamed in the engine keeps the
-// characters assigned to it and the Narrator track stays key 0. It is best effort: a setup that cannot be written leaves the lookup by
+// characters assigned to it and the Narrator track stays key 0. It adds to a setup that exists and reads cleanly and touches nothing else. It is best effort: a setup that cannot be written leaves the lookup by
 // name, which is what it was before.
 func rememberVoiceTracks(svc hostServices, project tracks.Project) {
 	seen := make([]voicetracks.Seen, 0, len(project.Tracks))

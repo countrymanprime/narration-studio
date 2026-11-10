@@ -284,7 +284,7 @@ func TestLearnMovesATrackRenamedToAnotherAssignmentsName(t *testing.T) {
 	}
 }
 
-func TestLearnDropsDeletedTracksButNeverForgetsOnAnEmptyRead(t *testing.T) {
+func TestLearnKeepsTracksNotInThisListAndNeverForgetsOnAnEmptyRead(t *testing.T) {
 	service := learnSetup(t)
 	if _, err := service.Learn([]Seen{{GUID: "{A}", Name: "Lead"}, {GUID: "{B}", Name: "Lead"}}); err != nil {
 		t.Fatal(err)
@@ -295,13 +295,16 @@ func TestLearnDropsDeletedTracksButNeverForgetsOnAnEmptyRead(t *testing.T) {
 	if _, err := service.Learn([]Seen{{GUID: "{B}", Name: "Lead"}}); err != nil {
 		t.Fatal(err)
 	}
-	if got := guidsOf(t, service, "Lead"); !reflect.DeepEqual(got, []string{"{b}"}) {
+	if got := guidsOf(t, service, "Lead"); !reflect.DeepEqual(got, []string{"{a}", "{b}"}) {
 		t.Fatalf("guids = %v", got)
 	}
 }
 
 func TestTheNarratorTrackStaysTheNarratorWhenRenamed(t *testing.T) {
 	service := New(Config{Project: t.TempDir()})
+	if _, err := service.SetLayout(LayoutFolders); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := service.Learn([]Seen{{GUID: "{N}", Name: "Narrator"}, {GUID: "{X}", Name: "Alice"}}); err != nil {
 		t.Fatal(err)
 	}
@@ -335,5 +338,40 @@ func TestAnOlderFileWithNoGuidsReadsAndIsRepairedOnTheFirstLearn(t *testing.T) {
 	}
 	if got := guidsOf(t, service, "Lead"); !reflect.DeepEqual(got, []string{"{a}"}) {
 		t.Fatalf("repaired guids = %v", got)
+	}
+}
+
+func TestLearnMakesNoFileAndLeavesACorruptOrNewerOneAlone(t *testing.T) {
+	dir := t.TempDir()
+	service := New(Config{Project: dir})
+	if changed, err := service.Learn([]Seen{{GUID: "{N}", Name: "Narrator"}}); err != nil || changed {
+		t.Fatalf("learn on a project with no setup: changed=%v err=%v", changed, err)
+	}
+	if _, err := os.Stat(File(dir)); !os.IsNotExist(err) {
+		t.Fatalf("a file was made: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Dir(File(dir)), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	for _, raw := range []string{"{not json", `{"schemaVersion":99,"layout":"folders","tracks":{}}`} {
+		if err := os.WriteFile(File(dir), []byte(raw), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if changed, err := service.Learn([]Seen{{GUID: "{N}", Name: "Narrator"}}); err != nil || changed {
+			t.Fatalf("learn on %q: changed=%v err=%v", raw, changed, err)
+		}
+		if got, _ := os.ReadFile(File(dir)); string(got) != raw {
+			t.Fatalf("file %q was rewritten to %q", raw, got)
+		}
+	}
+}
+
+func TestANamedNarratorIsPreferredToARememberedOne(t *testing.T) {
+	state := State{NarratorGUIDs: []string{"{n}"}}
+	if !state.IsNarrator("{N}", "Bob") || !state.IsNarrator("{x}", "narrator") || state.IsNarrator("{x}", "Alice") {
+		t.Fatalf("IsNarrator wrong for %+v", state)
+	}
+	if NamedNarrator("Bob") || !NamedNarrator(" Narrator ") {
+		t.Fatal("NamedNarrator wrong")
 	}
 }

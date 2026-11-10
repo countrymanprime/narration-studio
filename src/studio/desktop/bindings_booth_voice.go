@@ -172,6 +172,11 @@ func voiceFor(voices []tracks.Track, chosen string, setup voicetracks.State) str
 		}
 	}
 	for _, voice := range voices {
+		if voicetracks.NamedNarrator(voice.Name) {
+			return voice.GUID
+		}
+	}
+	for _, voice := range voices {
 		if setup.IsNarrator(voice.GUID, voice.Name) {
 			return voice.GUID
 		}

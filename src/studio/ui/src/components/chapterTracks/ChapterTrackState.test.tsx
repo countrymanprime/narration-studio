@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import { LIVE_TRACKS_TIMEOUT_MS } from '../engine/useLiveTracks';
+import { useVoiceSetup } from '../engine/voiceLayout';
 import { ChapterTrackStateProvider, ProjectTrackProviders, useChapterTrackState, type ChapterTrackState } from './ChapterTrackState';
 
 afterEach(cleanup);
@@ -31,6 +32,31 @@ describe('the shared chapter-track state', () => {
     await waitFor(() => expect(seen.current?.readAt).not.toBeNull());
     expect(seen.current?.project?.tracks.length).toBeGreaterThan(0);
     expect(seen.current?.mappings.length).toBeGreaterThan(0);
+  });
+
+  // #3269: the host learns which tracks carry which assignment from a read of the tracks, so the setup the pickers show is read again after it.
+  it('reads the voice setup again after each read of the tracks, without resetting it', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    const get = vi.spyOn(api, 'voiceTracksGet');
+    const notify = vi.fn();
+    const shown: string[] = [];
+    function Watcher() {
+      useChapterTrackState();
+      shown.push(useVoiceSetup().setup.layout);
+      return null;
+    }
+    render(
+      <ApiProvider api={api}>
+        <ProjectTrackProviders projectFolder="C:/Projects/Alice" enabled notify={notify}>
+          <Watcher />
+        </ProjectTrackProviders>
+      </ApiProvider>,
+    );
+    await waitFor(() => expect(get.mock.calls.length).toBeGreaterThanOrEqual(2));
+    // Once it has said folders it never falls back to flat while it reads again.
+    const first = shown.indexOf('folders');
+    expect(first).toBeGreaterThanOrEqual(0);
+    expect(shown.slice(first).every((layout) => layout === 'folders')).toBe(true);
   });
 
   it('reads nothing while no screen watches, or while disabled', async () => {
