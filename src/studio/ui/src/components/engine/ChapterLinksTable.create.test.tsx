@@ -394,3 +394,31 @@ describe('ChapterLinksTable: create a track for a chapter with no link', () => {
     await waitFor(() => expect(within(row).getByText('Track missing')).toBeTruthy());
   });
 });
+
+// #3294, qa-breaker B2: Clear puts "Create a track for …" where it was, so a second click aimed at Clear (30 ms or 700 ms later) pressed Create,
+// added a track and relinked the chapter. The same quiet window as after a create now follows an Unlink.
+describe('Clear then a fast second click', () => {
+  it('never reaches Create a track', async () => {
+    const user = userEvent.setup();
+    const base = createMockApi();
+    const create = vi.fn(() => base.chapterTrackCreate(WIRE_CHAPTERS[0].id));
+    renderTable({ api: { ...base, chapterTrackCreate: create } });
+    const { row } = await firstRow();
+    await user.selectOptions(within(row).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
+    await user.click(within(row).getByRole('button', { name: 'Confirm' }));
+    await waitFor(() => expect(within(row).getByText('Linked')).toBeTruthy());
+
+    await user.click(within(row).getByRole('button', { name: /^Clear the link/ }));
+    await waitFor(() => expect(within(row).getByText('Not linked')).toBeTruthy());
+    await waitFor(() =>
+      expect(
+        within(row)
+          .getByRole('button', { name: `Create a track for ${short(0)}` })
+          .getAttribute('aria-disabled'),
+      ).not.toBe('true'),
+    );
+    await user.click(within(row).getByRole('button', { name: `Create a track for ${short(0)}` }));
+
+    expect(create).not.toHaveBeenCalled();
+  });
+});
