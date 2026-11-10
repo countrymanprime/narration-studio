@@ -73,7 +73,9 @@ func (h *Host) boothVoiceAddOne(ctx context.Context, svc hostServices, creator d
 		return BoothVoiceAdded{}, err
 	}
 	if !folder {
-		return boothVoiceAddRefused(boothVoiceFlat, "This chapter records on one track. Voice tracks are added to a chapter linked to a folder, in a Voice folders project (the audio engine panel)."), nil
+		return boothVoiceAddRefused(boothVoiceFlat, notAFolderSentence(svc,
+			"This chapter records on one track. Voice tracks are added to a chapter linked to a folder, in a Voice folders project (the audio engine panel).",
+			"This chapter is not linked to a folder of voices, so a voice track cannot be added to it. Link or create its folder first.")), nil
 	}
 	engine := readAloudAdapterName(svc)
 	name = cleanTrackName(name)

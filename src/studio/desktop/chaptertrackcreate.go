@@ -124,6 +124,15 @@ func layoutNoun(svc hostServices) string {
 	return destinationNoun(err == nil && folders)
 }
 
+// notAFolderSentence says why a chapter has no folder of voices to work in: flat when the project is flat (it records on one track), and
+// folders when the project's layout is Voice folders, where the chapter's link is not a folder yet. A flat sentence never shows on a folders project (#3271).
+func notAFolderSentence(svc hostServices, flat, folders string) string {
+	if layoutNoun(svc) == "folder" {
+		return folders
+	}
+	return flat
+}
+
 // addByHand is how to do an add this app could not: the same thing by hand in the engine, a folder with a Narrator track in it for a folder.
 func addByHand(noun, title, engine string) string {
 	narrator := ""
