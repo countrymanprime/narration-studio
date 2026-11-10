@@ -100,7 +100,7 @@ func chapterTrackMatchIn(svc hostServices, chapterID string) (chapterTrackMatch,
 }
 
 // matchInputs is what both matcher directions read, from one services
-// snapshot: the manuscript's chapters, the selected .rpp as of its last save,
+// snapshot: the manuscript's chapters, the selected project as REAPER has it now (liveSelectedProject; the saved .rpp when REAPER is not answering),
 // and every narrator-confirmed link (track GUID -> chapter id).
 func matchInputs(svc hostServices) ([]chaptermatch.Chapter, tracks.Project, map[string]string, error) {
 	documentID, store, err := mappingContext(svc)

@@ -1,10 +1,13 @@
 package main
 
 import (
+	"errors"
 	"path/filepath"
 	"testing"
 
+	"desktop/internal/bridge"
 	"desktop/internal/dawport"
+	"desktop/internal/voicetracks"
 )
 
 // liveAdapter answers tracks_read with lister and nothing else, as a REAPER whose bridge is up.
@@ -63,9 +66,15 @@ func TestLiveSelectedProjectFollowsARenameAndADeleteBeforeASave(t *testing.T) {
 	}
 }
 
-func TestChapterVoicesAndFolderCheckSeeAVoiceDeletedInREAPERBeforeASave(t *testing.T) {
+func TestChapterVoicesFollowAVoiceAddedOrDeletedInREAPERBeforeASave(t *testing.T) {
 	host, ids := newTestHostForChapterMatch(t)
 	rpp := filepath.Join(host.config.projectFolder, "Alice.rpp")
+	if _, err := host.voiceTracks().SetLayout(voicetracks.LayoutFolders); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := host.chapterTrackSet(ids[0], liveChapterI); err != nil {
+		t.Fatal(err)
+	}
 	lister := listerFor(rpp)
 	// Chapter I becomes a folder holding one new, unsaved voice.
 	lister.read.Tracks = []dawport.LiveTrack{
@@ -74,10 +83,53 @@ func TestChapterVoicesAndFolderCheckSeeAVoiceDeletedInREAPERBeforeASave(t *testi
 	}
 	lister.read.Total = 2
 	withLiveEngine(host, lister)
-	if _, err := host.chapterTrackSet(ids[0], liveChapterI); err != nil {
-		t.Fatal(err)
-	}
-	if got := readChapterFolderTrack(host.services(), ids[0]); got != liveChapterI {
+	svc := host.services()
+	if got := readChapterFolderTrack(svc, ids[0]); got != liveChapterI {
 		t.Fatalf("folder = %q, want the chapter's track recognised as a folder from REAPER's list", got)
+	}
+	voices, folder, err := chapterVoices(svc, liveChapterI)
+	if err != nil || !folder || len(voices) != 1 || voices[0].GUID != liveVoice {
+		t.Fatalf("voices = %+v folder = %v err = %v, want the one voice REAPER has", voices, folder, err)
+	}
+	if guid, refused, err := recordTarget(svc, ids[0], liveChapterI); err != nil || refused != nil || guid != liveVoice {
+		t.Fatalf("record target = %q %+v %v, want the live voice", guid, refused, err)
+	}
+
+	// The voice is deleted in REAPER, unsaved: the folder has none, and a record start is refused instead of arming a stale track.
+	lister.read.Tracks = []dawport.LiveTrack{{Index: 0, GUID: liveChapterI, Name: "Chapter I", FolderDelta: 1}, {Index: 1, GUID: liveChapterII, Name: "Other", FolderDelta: -1}}
+	lister.read.Total = 2
+	voices, _, err = chapterVoices(svc, liveChapterI)
+	if err != nil || len(voices) != 1 || voices[0].GUID != liveChapterII {
+		t.Fatalf("voices after the delete = %+v err = %v, want only what REAPER lists in the folder", voices, err)
+	}
+}
+
+// Whenever REAPER cannot give the list, every reader gets the saved file's, unchanged.
+func TestLiveSelectedProjectFallsBackToTheSavedFile(t *testing.T) {
+	cases := map[string]func(*fakeLister, string){
+		"no answer":       func(l *fakeLister, _ string) { l.err = bridge.ErrNoAnswer },
+		"not connected":   func(l *fakeLister, _ string) { l.err = bridge.ErrUnavailable },
+		"another project": func(l *fakeLister, _ string) { l.read.ProjectPath = "/elsewhere/Other.rpp" },
+		"unsaved project": func(l *fakeLister, _ string) { l.read.ProjectPath = "" },
+		"too many tracks": func(l *fakeLister, _ string) { l.read.Total = len(l.read.Tracks) + 1 },
+		"script too old":  func(l *fakeLister, _ string) { l.err = bridge.ErrScriptOutdated },
+		"engine failed":   func(l *fakeLister, _ string) { l.err = errors.New("boom") },
+	}
+	for name, spoil := range cases {
+		t.Run(name, func(t *testing.T) {
+			host, _ := newTestHostForChapterMatch(t)
+			rpp := filepath.Join(host.config.projectFolder, "Alice.rpp")
+			lister := listerFor(rpp)
+			lister.read.Tracks[0].Name = "Renamed in REAPER"
+			spoil(lister, rpp)
+			withLiveEngine(host, lister)
+			project, err := liveSelectedProject(host.services())
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(project.Tracks) != 3 || project.Tracks[0].Name != "Chapter I" || project.Path != rpp {
+				t.Fatalf("project = %q %+v, want the saved file's tracks and its path", project.Path, project.Tracks)
+			}
+		})
 	}
 }

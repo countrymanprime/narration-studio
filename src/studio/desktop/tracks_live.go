@@ -25,6 +25,10 @@ import (
 // tracksLiveTimeout bounds one live read; a REAPER that does not answer in it is "not answering", and the saved project is shown.
 const tracksLiveTimeout = 3 * time.Second
 
+// liveSelectedTimeout bounds the live read of liveSelectedProject, which the record poll and a record start sit behind: a REAPER that
+// does not answer in it is treated as not answering (the saved file), so a hung engine never holds a take for the full tracksLiveTimeout.
+const liveSelectedTimeout = time.Second
+
 // Where TracksLive's tracks came from.
 const (
 	tracksSourceLive  = "live"
@@ -166,7 +170,7 @@ func liveSelectedProject(svc hostServices) (tracks.Project, error) {
 		return tracks.Project{}, err
 	}
 	lister, support := trackListerFrom(svc)
-	ctx, cancel := context.WithTimeout(context.Background(), tracksLiveTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), liveSelectedTimeout)
 	defer cancel()
 	project, _, _ := liveProject(ctx, readAloudAdapterName(svc), lister, support, saved.Path, saved)
 	return project, nil

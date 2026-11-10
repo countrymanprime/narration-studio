@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"desktop/internal/manuscript"
 	"errors"
 	"fmt"
@@ -218,11 +217,6 @@ func (in *chapterSyncInputs) plan(now time.Time) (chaptersync.Plan, []evidence.T
 	parsed, state, message := readLinksProject(in.svc)
 	in.project, in.message = state, message
 	if state == linksProjectReady {
-		// The plan sees a track renamed or deleted in the engine before the narrator saves.
-		lister, support := trackListerFrom(in.svc)
-		ctx, cancel := context.WithTimeout(context.Background(), tracksLiveTimeout)
-		parsed, _, _ = liveProject(ctx, readAloudAdapterName(in.svc), lister, support, parsed.Path, parsed)
-		cancel()
 		in.projectFile, in.savedAt, in.parsed, in.parsedProject = parsed.Path, savedAt(parsed.Path), true, parsed
 	}
 	if in.store == nil || state != linksProjectReady {

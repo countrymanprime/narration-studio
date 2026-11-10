@@ -43,8 +43,14 @@ func boothVoiceRefused(reason, message string) BoothVoice {
 }
 
 // chapterVoices is the voices of the chapter linked to link: the direct children of the folder link names, in REAPER's order, when
-// the project's layout is Voice folders and link is a folder in the saved project; nil (record on link itself) otherwise.
+// the project's layout is Voice folders and link is a folder in the project as REAPER has it now (the saved one when REAPER is not answering); nil (record on link itself) otherwise.
 func chapterVoices(svc hostServices, link string) ([]tracks.Track, bool, error) {
+	return chapterVoicesIn(svc, link, nil)
+}
+
+// chapterVoicesIn is chapterVoices over project, one read of the live list a caller shares between its steps so they see one snapshot;
+// nil reads it (liveSelectedProject, only when the layout is Voice folders).
+func chapterVoicesIn(svc hostServices, link string, project *tracks.Project) ([]tracks.Track, bool, error) {
 	setup, err := voicetracks.New(voicetracks.Config{Project: svc.config.projectFolder}).Get()
 	if err != nil {
 		return nil, false, err
@@ -52,9 +58,12 @@ func chapterVoices(svc hostServices, link string) ([]tracks.Track, bool, error) 
 	if setup.Layout != voicetracks.LayoutFolders {
 		return nil, false, nil
 	}
-	project, err := liveSelectedProject(svc)
-	if err != nil {
-		return nil, false, err
+	if project == nil {
+		read, err := liveSelectedProject(svc)
+		if err != nil {
+			return nil, false, err
+		}
+		project = &read
 	}
 	members, ok := project.WithDescendants(link)
 	if !ok || !members[0].IsFolder {
@@ -66,7 +75,7 @@ func chapterVoices(svc hostServices, link string) ([]tracks.Track, bool, error) 
 			voices = append(voices, member)
 		}
 	}
-	for _, added := range unsavedVoices(svc, project, link) {
+	for _, added := range unsavedVoices(svc, *project, link) {
 		voices = append(voices, tracks.Track{GUID: added.GUID, Name: added.Name, Depth: members[0].Depth + 1})
 	}
 	return voices, true, nil
@@ -103,7 +112,12 @@ func voiceFor(voices []tracks.Track, chosen string) string {
 // recordTarget is the track a record start for chapterID arms: its one linked track, or in a Voice folders chapter the Booth's voice
 // (svc.boothVoices) among the folder's children. A folder with no children is refused before anything is armed.
 func recordTarget(svc hostServices, chapterID, link string) (string, *ReadAloudRecording, error) {
-	voices, folder, err := chapterVoices(svc, link)
+	return recordTargetIn(svc, chapterID, link, nil)
+}
+
+// recordTargetIn is recordTarget over project (see chapterVoicesIn).
+func recordTargetIn(svc hostServices, chapterID, link string, project *tracks.Project) (string, *ReadAloudRecording, error) {
+	voices, folder, err := chapterVoicesIn(svc, link, project)
 	if err != nil {
 		return "", nil, err
 	}
@@ -278,19 +292,20 @@ func boothVoiceGetIn(svc hostServices, chapterID string) (BoothVoice, error) {
 	if refused != nil {
 		return boothVoiceRefused(refused.Reason, refused.Message), nil
 	}
-	_, folder, err := chapterVoices(svc, link)
+	// One read of REAPER's list serves all three steps, so they see one snapshot and one wait.
+	project, err := liveSelectedProject(svc)
+	if err != nil {
+		return BoothVoice{}, err
+	}
+	_, folder, err := chapterVoicesIn(svc, link, &project)
 	if err != nil {
 		return BoothVoice{}, err
 	}
 	if !folder {
 		return boothVoiceRefused(boothVoiceFlat, "This chapter records on one track."), nil
 	}
-	project, err := selectedProject(svc)
-	if err != nil {
-		return BoothVoice{}, err
-	}
 	added := unsavedVoices(svc, project, link)
-	guid, refusedStart, err := recordTarget(svc, chapterID, link)
+	guid, refusedStart, err := recordTargetIn(svc, chapterID, link, &project)
 	if err != nil {
 		return BoothVoice{}, err
 	}
