@@ -4,14 +4,11 @@ import type { GuideEntity } from '../../../api/contracts/storyBible';
 import type { Track } from '../../../api/contracts/tracks';
 import { describeApiError } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
+import { destinationFor } from '../../engine/destination';
 import { useVoiceSetup } from '../../engine/voiceLayout';
 import { folderVoices, type Voice } from '../../engine/voices';
 import { withAddedVoices, type WhoCharacter } from './whoIsIn';
 import type { BoothVoiceTrack } from '../../../api/contracts/voiceTracks';
-
-/** What the Booth says when a voice key is pressed in a chapter that records on one track. */
-export const FLAT_VOICE_KEYS =
-  'This chapter records on one track. Voice keys choose a voice for a chapter linked to a folder of voices (the audio engine panel).';
 
 export type BoothVoices = {
   /** The chapter's voices in REAPER's order, empty when it records on one track (a flat project or a plain track link). */
@@ -204,7 +201,7 @@ export function useBoothVoices({
   const byKey = useCallback(
     (n: number) => {
       if (voices.length === 0) {
-        notify(FLAT_VOICE_KEYS, 'info');
+        notify(destinationFor(setup.layout).noVoiceKeys(link !== ''), 'info');
         return;
       }
       // "Who is in Num N?" is open: it is answered first, and a key behind it neither asks again nor switches a voice.
@@ -237,7 +234,7 @@ export function useBoothVoices({
           setStopping(false);
         });
     },
-    [voices, choose, notify, recording, stopTake, onNoTrack, asking],
+    [voices, choose, notify, recording, stopTake, onNoTrack, asking, link, setup.layout],
   );
 
   const add = useCallback(
@@ -325,7 +322,7 @@ export function useBoothVoices({
       // A key's stop is being answered: stepping now would switch a take that is ending.
       if (stopFor.current !== undefined) return;
       if (voices.length === 0) {
-        notify(FLAT_VOICE_KEYS, 'info');
+        notify(destinationFor(setup.layout).noVoiceKeys(link !== ''), 'info');
         return;
       }
       // From the voice last pressed, so Num + twice while the host answers steps twice.
@@ -336,7 +333,7 @@ export function useBoothVoices({
       );
       choose(voices[(at + by + voices.length) % voices.length]);
     },
-    [voices, current, choose, notify],
+    [voices, current, choose, notify, link, setup.layout],
   );
 
   const reload = useCallback(() => setRevision((n) => n + 1), []);

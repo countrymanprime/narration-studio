@@ -92,7 +92,7 @@ func (h *Host) boothVoiceAddOne(ctx context.Context, svc hostServices, creator d
 		return boothVoiceAddRefused(trackCreateRecording, fmt.Sprintf("%s is recording. Stop the take, then add the track.", engine)), nil
 	}
 	if creator == nil {
-		unavailable := trackCreateUnavailable(engine, name, support)
+		unavailable := trackCreateUnavailable(engine, name, support, "track")
 		return boothVoiceAddRefused(unavailable.Reason, unavailable.Message), nil
 	}
 	child, ok := creator.(dawport.ChildTrackCreator)
@@ -105,7 +105,7 @@ func (h *Host) boothVoiceAddOne(ctx context.Context, svc hostServices, creator d
 		return boothVoiceAddRefused(readAloudTrackMissing, fmt.Sprintf("This chapter's folder is no longer in the %s project. Link the chapter again in the audio engine panel.", engine)), nil
 	}
 	if err != nil {
-		refusal := trackCreateError(engine, name, err)
+		refusal := trackCreateError(engine, name, err, "track")
 		return boothVoiceAddRefused(refusal.Reason, strings.Replace(refusal.Message, ", then link it.", " inside the chapter's folder.", 1)), nil
 	}
 	added := cleanTrackName(created.Name)

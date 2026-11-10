@@ -1,6 +1,8 @@
 import type { DawCapabilities, DawChoice, DawProjectState } from '../../../api/contracts/daw';
 import { recordsInApp } from '../../../studio/dawNames';
+import { destinationFor } from '../../engine/destination';
 import { EngineChipButton } from '../../engine/EngineChipButton';
+import { useVoiceLayout } from '../../engine/voiceLayout';
 
 const UNSAVED = 'unsaved changes in the project';
 
@@ -46,6 +48,12 @@ const PROBLEMS: Record<SetupProblem, { words: string; sentence: (name: string) =
   recording_elsewhere: { words: 'recording elsewhere', sentence: (name) => `${name} is already recording a take this app did not start` },
   not_armed: { words: 'not armed', sentence: () => 'no track is armed to record on' },
 };
+/** A problem's words and sentence: the two about the chapter's link name what it is linked to from the project's layout. */
+const problemOf = (issue: SetupProblem, dest: ReturnType<typeof destinationFor>) => {
+  if (issue === 'no_track') return { words: dest.chipNoTrack.words, sentence: () => dest.chipNoTrack.sentence };
+  if (issue === 'several_tracks') return { words: dest.chipSeveral.words, sentence: () => dest.chipSeveral.sentence };
+  return PROBLEMS[issue];
+};
 
 /**
  * The Booth top bar's recording-setup chip (the mock's `bsetup`): the name of what records, read from the capabilities. A setup
@@ -72,6 +80,7 @@ export function SetupChip({
   /** What the Booth knows is wrong with the setup beyond the DAW choice's own state (see `SetupProblem`): connected, or so it reads, but Record will not start. */
   problem?: SetupProblem;
 }) {
+  const dest = destinationFor(useVoiceLayout());
   const standalone = choice ? choice.state === 'app' || choice.state === 'none' : capabilities.daw === 'none' || recordsInApp(capabilities.daw);
   const name = standalone ? standaloneName : (choice?.daw ?? capabilities.daw);
   // The app's own recorder has no track to link, no DAW to connect or arm.
@@ -88,9 +97,9 @@ export function SetupChip({
   const unsaved = capabilities.reachable && !!project?.unsavedChanges;
   // The project's DAW short of connected says how far it got in the chip itself, not only in the tooltip.
   const dawShort = choice && !standalone && choice.state !== 'connected' ? (choice.state === 'linked' ? 'not running' : choice.state.replace('_', ' ')) : '';
-  const stateWords = otherProject ? 'other project' : dawShort || (issue ? PROBLEMS[issue].words : '');
+  const stateWords = otherProject ? 'other project' : dawShort || (issue ? problemOf(issue, dest).words : '');
   const state = stateWords ? `, ${stateWords}` : '';
-  const problemText = otherProject ? ` · ${name} has a different project open` : !dawShort && issue ? ` · ${PROBLEMS[issue].sentence(name)}` : '';
+  const problemText = otherProject ? ` · ${name} has a different project open` : !dawShort && issue ? ` · ${problemOf(issue, dest).sentence(name)}` : '';
   const tooltip = `${detail}${problemText}${unsaved ? ` · ${UNSAVED}` : ''}`;
   const aria = `Recording setup: ${name}${state}${unsaved ? `, ${UNSAVED}` : ''}`;
   // The app's own recorder has no DAW to link, so, as in the header, its chip goes straight to Recording settings.

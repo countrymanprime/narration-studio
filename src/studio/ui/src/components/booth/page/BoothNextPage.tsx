@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { FLAT_VOICE_KEYS, useBoothVoices } from '../voices/useBoothVoices';
+import { useBoothVoices } from '../voices/useBoothVoices';
+import { createdSentence, destinationFor } from '../../engine/destination';
+import { useVoiceLayout } from '../../engine/voiceLayout';
 import { VoiceControl } from '../voices/VoiceControl';
 import { WhoIsInDialog, type WhoAsk } from '../voices/WhoIsInDialog';
 import { castOf } from '../voices/whoIsIn';
@@ -44,7 +46,7 @@ import { BoothText } from '../reading/BoothText';
 import { UNKNOWN_SPEAKER, wordCount } from '../reading/boothUnits';
 import { RecordControl } from '../record/RecordControl';
 import { RecordSetup } from '../record/RecordSetup';
-import { ChapterLinkNotice } from '../record/ChapterLinkNotice';
+import { ChapterLinkNotice, type Created } from '../record/ChapterLinkNotice';
 import { recordSetupFor } from '../record/recordSetupModel';
 import type { RecordBlock } from '../record/useRecordControl';
 import { useStaleToasts } from './useStaleToasts';
@@ -485,6 +487,7 @@ function BoothSession({
   );
   // "Who is in Num N?" (phase 5, #2839): a key with no track behind it asks, after stopping a take this app runs as Stop does.
   const [whoAsk, setWhoAsk] = useState<WhoAsk | null>(null);
+  const dest = destinationFor(useVoiceLayout());
   const voices = useBoothVoices({
     chapterId: recordId,
     recording: control.recording,
@@ -536,7 +539,7 @@ function BoothSession({
   useCommand('booth.voice.next', () => voices.step(1));
   useCommand('booth.voice.prev', () => voices.step(-1));
   useCommand('booth.voice.list', () => {
-    if (voices.voices.length === 0) return voiceToast(FLAT_VOICE_KEYS, 'info');
+    if (voices.voices.length === 0) return voiceToast(dest.noVoiceKeys(!linkProblem), 'info');
     voices.reload();
     setVoiceListOpen(true);
   });
@@ -623,12 +626,12 @@ function BoothSession({
   useEffect(() => {
     if (control.recording) overlay.dismissTopic(LINKED_TOPIC);
   }, [overlay, control.recording]);
-  const linked = (created?: { name: string }) => {
+  const linked = (created?: Created) => {
     control.refresh();
+    // The folder the DAW just made, or the voices of a folder the narrator linked, are not in the saved project yet: read them again.
+    voices.reload();
     overlay.toast(
-      created
-        ? `Track “${created.name}” added in ${page.dawName} and linked to ${recordName}. Save the ${page.dawName} project to keep it.`
-        : `${recordName} is linked to its track. Press Record when you are ready.`,
+      created ? createdSentence(created, recordName, page.dawName) : dest.linkedToast(recordName),
       // The save the narrator owes REAPER is worth more than the usual five seconds.
       { durationMs: 12_000, topic: LINKED_TOPIC },
     );
@@ -636,7 +639,7 @@ function BoothSession({
   // The host's sentence for an unlinked chapter points at the audio engine panel; the chip and its dialog are that fix now.
   // Record's reason is about Record: while the main button reads Cold read (no take runs) the footer does not blame Record for it.
   const coldMode = page.coldRead.mode && !control.recording;
-  const recordWhy = linkProblem ? `${recordName} has no track to record on. Press Record to link one.` : control.reason;
+  const recordWhy = linkProblem ? dest.footerNoLink(recordName) : control.reason;
   const footerWhy = coldMode ? '' : recordWhy;
   const roomTone = useRoomTone(measurements, session.device);
   // The app's own recorder is what records (the project chose it, or no DAW is linked): the microphone is chosen here, not in a DAW.

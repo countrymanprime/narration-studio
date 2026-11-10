@@ -5,7 +5,8 @@ import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
 import { WIRE_CHAPTERS } from '../../../api/mockFixtures';
 import { VoiceSetupProvider } from '../../engine/voiceLayout';
-import { FLAT_VOICE_KEYS, useBoothVoices, type BoothVoices } from './useBoothVoices';
+import { destinationFor } from '../../engine/destination';
+import { useBoothVoices, type BoothVoices } from './useBoothVoices';
 
 afterEach(cleanup);
 
@@ -99,7 +100,7 @@ describe("the Booth's voices", () => {
     expect(hook.current.voices).toEqual([]);
     await act(async () => hook.current.byKey(1));
     await act(async () => hook.current.step(1));
-    expect(notify).toHaveBeenCalledWith(FLAT_VOICE_KEYS, 'info');
+    expect(notify).toHaveBeenCalledWith(destinationFor('flat').noVoiceKeys(false), 'info');
   });
 
   it('a refused choice is a toast and keeps the voice', async () => {

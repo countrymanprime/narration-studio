@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 
 	"desktop/internal/bridge"
@@ -183,5 +184,54 @@ func TestARecordStartAfterCreatingAPlainTrackArmsThatTrack(t *testing.T) {
 	result := recordStartWithVoice(t, host, fake, ids[1])
 	if result.Outcome != "started" || fake.armGUID != createdTrackGUID {
 		t.Fatalf("result %+v, armed %q; a flat chapter records on its one track %s", result, fake.armGUID, createdTrackGUID)
+	}
+}
+
+// #3271: the layout is one project setting, so the host's sentences name what a chapter records on from it too.
+func TestLayoutNounFollowsTheProjectsSetting(t *testing.T) {
+	for layout, want := range map[string]string{voicetracks.LayoutFlat: "track", voicetracks.LayoutFolders: "folder"} {
+		host, _ := newTestHostForChapterMatch(t)
+		setLayout(t, host, layout)
+		if got := layoutNoun(host.services()); got != want {
+			t.Errorf("%s project: layoutNoun = %q, want %q", layout, got, want)
+		}
+	}
+}
+
+func TestTheNoLinkSentencesNameWhatTheLayoutRecordsOn(t *testing.T) {
+	for layout, noun := range map[string]string{voicetracks.LayoutFlat: "track", voicetracks.LayoutFolders: "folder"} {
+		host, ids := newTestHostForChapterMatch(t)
+		setLayout(t, host, layout)
+		_, refused, err := readAloudTrackGUID(host.services(), ids[1])
+		if err != nil || refused == nil || !strings.Contains(refused.Message, "has no linked "+noun+". Link it to its REAPER "+noun+" in") {
+			t.Errorf("%s project: record start on an unlinked chapter = %+v, %v; want it to name the %s", layout, refused, err, noun)
+		}
+		state, err := readAloudReaperStateIn(context.Background(), host.services(), nil, ids[1])
+		if err != nil || !strings.Contains(state.Message, "has no linked "+noun+".") {
+			t.Errorf("%s project: the Booth's reading = %q, %v; want it to name the %s", layout, state.Message, err, noun)
+		}
+	}
+}
+
+func TestEveryCreateRefusalNamesWhatTheLayoutAdds(t *testing.T) {
+	reasons := []dawport.Support{{Reason: dawport.ReasonStandalone}, {Reason: dawport.ReasonNotRunning}, {Reason: dawport.ReasonUnsupported}, {Reason: dawport.ReasonFailed, Message: "no luck"}}
+	for _, noun := range []string{"track", "folder"} {
+		var sentences []string
+		for _, support := range reasons {
+			sentences = append(sentences, trackCreateUnavailable("REAPER", "Chapter 1", support, noun).Message)
+		}
+		sentences = append(sentences, trackCreateError("REAPER", "Chapter 1", bridge.ErrRecording, noun).Message, trackCreateFailedSentence("REAPER", "Chapter 1", "", noun))
+		other := map[string]string{"track": "folder", "folder": "track"}[noun]
+		for _, sentence := range sentences {
+			if !strings.Contains(sentence, noun) || (noun == "track" && strings.Contains(sentence, other)) {
+				t.Errorf("%s project: %q does not name the %s", noun, sentence, noun)
+			}
+		}
+	}
+	if got := addByHand("folder", "Chapter 1", "REAPER"); got != "Add a folder named “Chapter 1” in REAPER, with a Narrator track in it, then link it." {
+		t.Errorf("by hand in a folders project = %q", got)
+	}
+	if got := addByHand("track", "Chapter 1", "REAPER"); got != "Add a track named “Chapter 1” in REAPER, then link it." {
+		t.Errorf("by hand in a flat project = %q", got)
 	}
 }

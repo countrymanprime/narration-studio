@@ -1,4 +1,5 @@
 import { Button } from '../../primitives/Button';
+import { useVoiceLayout } from '../../engine/voiceLayout';
 import type { ChapterAudio } from './chapterSource';
 import { noAudioText } from './noAudioText';
 
@@ -12,8 +13,9 @@ export const isLinkProblem = (audio: ChapterAudio, daw: string | null): boolean 
  * records, so **Read again** asks.
  */
 export function NoAudioBanner({ audio, chapterName, daw, onReread }: { audio: ChapterAudio; chapterName: string; daw: string | null; onReread: () => void }) {
+  const layout = useVoiceLayout();
   if (audio.kind === 'ready' || isLinkProblem(audio, daw)) return null;
-  const text = noAudioText(audio, chapterName, daw);
+  const text = noAudioText(audio, chapterName, daw, layout);
   return (
     <div
       id="noaudio"
