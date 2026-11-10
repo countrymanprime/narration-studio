@@ -13,6 +13,10 @@ registry.register('ns_save', function(ctx, args)
   reaper.Main_SaveProject(0, false)
   ctx.event('NS_SAVED', args[1] or '')
 end)
+-- NS_TIMING=1 switches the bridge timing diagnostic on, which also makes the host write record-timeline.log (docs/research/record-press-timeline.md).
+if os.getenv('NS_TIMING') then
+  reaper.SetExtState(bridge.SESSION_SECTION, bridge.TIMING_KEY, '1', false)
+end
 bridge.run(session, registry)
 local ready = assert(io.open(session .. SEP .. 'ready', 'wb'))
 ready:write('ready\n')

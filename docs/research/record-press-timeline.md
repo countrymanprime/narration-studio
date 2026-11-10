@@ -120,3 +120,17 @@ A press with listening already running has no listening steps. The click itself,
 ## Pending
 
 - Owner, on Windows: the same timeline with the frozen sidecar, a real microphone and the model the owner uses. Steps in [the bridge note](reaper-bridge-performance.md#owner-hands-on); send `record-timeline.log` with `bridge-timing.log`.
+
+## Fix 4: the press reads the track state without its items
+
+Refs #3360 (HOST-03), #3221. A press, the Read Aloud state poll and the teleprompter's input read called `chapter_track_state`, which sends one `TRACK_ITEM` row per take (up to 1000, about ten ReaScript calls each) though they look only at the transport and the arms. They now send the `none` option: the state row and the total, no items (`dawport.TrackStateNoItems`; a bridge script older than the option gets the full read).
+
+Measured 2026-11-10 on a Linux VM, the real host and REAPER 7.82 under `xvfb-run` with the JACK dummy device (`scripts/dev/real-app/rig.sh`, the Booth's Record button pressed in the real window, the host's `record-timeline.log`), a flat chapter with N takes, one press each. No speech model is installed, so listening answers at once; the model load and the sidecar spawn are not in these numbers.
+
+| Takes | `chapter_track_state` answered, before | after | `record_start` answered, before | after |
+| --- | --- | --- | --- | --- |
+| 300 | 73 ms | 57 ms | 133 ms | 117 ms |
+| 3,000 | 104 ms | 91 to 107 ms | 166 ms | 181 ms |
+| 12,000 | 161 ms | 157 ms | 252 ms | 249 ms |
+
+At 3,000 takes the press no longer sends an item row (checked in `events.log`: its reads end `0` listed of `3000`), yet its end to end time did not move beyond the run to run spread of about 15 ms. What the press waits for there is the bridge's round trips (about 30 ms each), not the items, and the single presses here cannot show a smaller difference. In REAPER alone (`scenarios_perf.py`, 4,050 items) the step's median went from 30 ms to 22 ms. **This does not explain the 10 s the owner measured**: with 12,000 takes the whole press up to REAPER's pre-roll is 0.25 s. Not measured: Windows, the owner's project, the speech model's load and the sidecar's start.

@@ -106,7 +106,7 @@ local function item_row(item)
 end
 
 local function chapter_track_state(session_dir, run_id, guid_text, option)
-  if option ~= '' and option ~= 'children' then
+  if option ~= '' and option ~= 'children' and option ~= 'none' then
     event(session_dir, 'ERROR', run_id, 'Unknown track read option: ' .. option .. '.')
     return
   end
@@ -148,7 +148,9 @@ local function chapter_track_state(session_dir, run_id, guid_text, option)
   )
   if option ~= 'children' or not track then
     local total = track and reaper.CountTrackMediaItems(track) or 0
-    local listed = math.min(total, ITEM_LIMIT)
+    -- 'none': the caller wants the transport and the arms only (a Record press, the poll), so the row per item, about ten
+    -- ReaScript calls each, is skipped; the total still says how many there are.
+    local listed = option == 'none' and 0 or math.min(total, ITEM_LIMIT)
     for index = 0, listed - 1 do
       event(session_dir, 'TRACK_ITEM', run_id, item_row(reaper.GetTrackMediaItem(track, index)))
     end

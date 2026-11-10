@@ -108,7 +108,7 @@ func readAloudReaperStateIn(ctx context.Context, svc hostServices, reader trackS
 	if reader == nil {
 		return unavailable(reaperStandalone, messageReaperOff), nil
 	}
-	state, err := reader.ChapterTrackState(ctx, guid)
+	state, err := dawport.TrackStateNoItems(ctx, reader, guid)
 	if err != nil {
 		return readAloudRefusal(err, title, guid), nil
 	}
