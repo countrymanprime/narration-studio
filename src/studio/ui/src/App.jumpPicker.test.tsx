@@ -169,4 +169,11 @@ describe('jump menu over the project picker', () => {
       expect(screen.queryByRole('heading', { name: 'Choose your project', hidden: true })).toBeTruthy();
     }
   });
+
+  it('with the picker already open over a project, Switch project… is not offered', async () => {
+    await underPicker('/');
+    await openJump('> Switch project');
+    await screen.findByRole('combobox', { name: 'Jump menu' });
+    expect(screen.queryByRole('option', { name: /^Switch project/ })).toBeNull();
+  });
 });

@@ -612,11 +612,11 @@ function AppRoutes() {
   useEffect(
     () =>
       registerCommandProvider(() =>
-        noProject
+        noProject || projectPickerOpen
           ? []
           : [{ id: 'project.switch', group: 'Go to', label: 'Switch project…', hint: 'Open the project picker', run: () => setProjectPickerOpen(true) }],
       ),
-    [setProjectPickerOpen, noProject],
+    [setProjectPickerOpen, noProject, projectPickerOpen],
   );
   // A move to another page (a "Go to" row, Ctrl+,) while the picker covers the project would land out of sight, so it closes the picker.
   useEffect(() => setProjectPickerOpen(false), [location.pathname, setProjectPickerOpen]);
