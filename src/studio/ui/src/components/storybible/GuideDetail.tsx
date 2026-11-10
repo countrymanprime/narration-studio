@@ -79,6 +79,8 @@ const NO_TYPES: GuideType[] = [];
 
 /** The Story Bible's types, read again whenever the entries are (a reload after a change); none until read or when the read fails,
  * so nothing speaks then, and `failed` says so for the entry to show. */
+const BUSY_REASON = 'Another change is still saving.';
+
 function useGuideTypes(entities: readonly GuideEntity[]): { types: GuideType[]; failed: boolean; checkAgain: () => void } {
   const storyBible = usePort('storyBible');
   const [types, setTypes] = useState<GuideType[]>(NO_TYPES);
@@ -661,6 +663,8 @@ export function GuideDetail({
     );
   // The others wait while one runs; the one that is running shows it is (`pending`).
   const waiting = (key: string) => mutation.isBlockedFor(key);
+  // A control that waits on another change says so (a tooltip a keyboard reaches), not just dimmed (#3339).
+  const busyReason = (key: string) => (waiting(key) ? BUSY_REASON : '');
   const onAliasKeyDown = (event: React.KeyboardEvent) => {
     if (event.key === 'Escape') {
       event.preventDefault();
@@ -753,7 +757,7 @@ export function GuideDetail({
                 </Button>
               </TooltipTarget>
             ) : (
-              <Button variant="secondary" pending={mutation.isPending('review')} disabled={waiting('review')} onClick={() => void markReviewed()}>
+              <Button variant="secondary" pending={mutation.isPending('review')} disabledReason={busyReason('review')} onClick={() => void markReviewed()}>
                 Mark reviewed
               </Button>
             ))}
@@ -764,7 +768,7 @@ export function GuideDetail({
               <IconButton
                 label={locked ? 'Unlock entry' : 'Lock entry'}
                 pending={mutation.isPending('lock')}
-                disabled={waiting('lock')}
+                disabledReason={busyReason('lock')}
                 onClick={() => void setLocked()}
               >
                 <FontAwesomeIcon icon={locked ? faLock : faLockOpen} />
@@ -773,7 +777,7 @@ export function GuideDetail({
           )}
           {canEdit && !editing && (
             <TooltipTarget text="Edit this entry">
-              <IconButton label="Edit this entry" disabled={mutation.isBusy} onClick={() => setEditing(true)}>
+              <IconButton label="Edit this entry" disabledReason={mutation.isBusy ? BUSY_REASON : ''} onClick={() => setEditing(true)}>
                 <FontAwesomeIcon icon={faPen} />
               </IconButton>
             </TooltipTarget>
@@ -789,7 +793,7 @@ export function GuideDetail({
                 <IconButton
                   label="Save changes to this entry"
                   pending={mutation.isPending('save')}
-                  disabled={waiting('save')}
+                  disabledReason={busyReason('save')}
                   onClick={saveEntry}
                   variant="primary"
                 >
@@ -805,7 +809,12 @@ export function GuideDetail({
                   so it cannot be mis-clicked beside them (B5). A locked entry never reaches edit mode, so it never has one. */}
               <div className="ml-1 border-l pl-2" style={{ borderColor: 'var(--border)' }}>
                 <TooltipTarget text="Delete entity">
-                  <IconButton label="Delete entity" variant="danger" disabled={mutation.isBusy} onClick={() => setConfirmation('delete')}>
+                  <IconButton
+                    label="Delete entity"
+                    variant="danger"
+                    disabledReason={mutation.isBusy ? BUSY_REASON : ''}
+                    onClick={() => setConfirmation('delete')}
+                  >
                     <FontAwesomeIcon icon={faTrash} />
                   </IconButton>
                 </TooltipTarget>
@@ -851,7 +860,14 @@ export function GuideDetail({
               const { aliasIndex, name, pronunciation } = row;
               const key = previewKey(aliasIndex);
               const playing = playingPreview === key;
-              const playReason = playing || pronunciation.ipa ? undefined : NO_PRONUNCIATION_REASON;
+              // One preview at a time: another name's Play says why it waits instead of looking live and doing nothing (#3339).
+              const playReason = playing
+                ? undefined
+                : !pronunciation.ipa
+                  ? NO_PRONUNCIATION_REASON
+                  : loadingPreview !== undefined && loadingPreview !== key
+                    ? 'Another preview is still loading.'
+                    : undefined;
               const flagged = aliasIndex !== undefined && aliasFlagged(entity, name);
               return (
                 <li key={`${aliasIndex ?? 'entry'}:${name}`} className="col-span-full grid grid-cols-subgrid items-start">
@@ -877,7 +893,7 @@ export function GuideDetail({
                           action="markReviewed"
                           label={`Mark ${name} reviewed`}
                           pending={mutation.isPending(`review:${aliasIndex}`)}
-                          disabled={waiting(`review:${aliasIndex}`)}
+                          disabledReason={busyReason(`review:${aliasIndex}`)}
                           onClick={() => void markReviewed(aliasIndex)}
                         />
                       </TooltipTarget>
@@ -885,7 +901,7 @@ export function GuideDetail({
                     {aliasIndex !== undefined && canEdit && editing && (
                       <IconButton
                         label={`Remove alias ${name}`}
-                        disabled={waiting(`alias:${name}`)}
+                        disabledReason={busyReason(`alias:${name}`)}
                         pending={mutation.isPending(`alias:${name}`)}
                         onClick={() =>
                           void setAliasTexts(
@@ -926,7 +942,7 @@ export function GuideDetail({
                     </TooltipTarget>
                     {canEdit && editing && (
                       <TooltipTarget text={`Record my own clip for ${name}`}>
-                        <IconButton action="record" label={`Record my own clip for ${name}`} onClick={() => notify('Recording your own clip')} />
+                        <IconButton action="record" label={`Record my own clip for ${name}`} disabledReason="Recording your own clip is not available yet." />
                       </TooltipTarget>
                     )}
                   </div>
@@ -952,7 +968,7 @@ export function GuideDetail({
               <Button
                 variant="secondary"
                 // Off with its reason (a tooltip a keyboard reaches), not just dimmed (#3339).
-                disabledReason={aliasQuery.trim() === '' ? 'Type a name to add first.' : waiting('alias') ? 'Another change is still saving.' : ''}
+                disabledReason={aliasQuery.trim() === '' ? 'Type a name to add first.' : busyReason('alias')}
                 pending={mutation.isPending('alias')}
                 onClick={addAliasFromQuery}
               >
@@ -1073,7 +1089,7 @@ export function GuideDetail({
                   variant="ghost"
                   size="sm"
                   aria-label="Rescan occurrences"
-                  disabled={waiting('rescan')}
+                  disabledReason={busyReason('rescan')}
                   pending={mutation.isPending('rescan')}
                   onClick={() => void rescanOccurrences()}
                 >

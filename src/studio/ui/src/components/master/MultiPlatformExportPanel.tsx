@@ -183,9 +183,9 @@ export function MultiPlatformExportPanel({ profiles, multi }: { profiles: Delive
         ))}
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <Button
-          onClick={canBuild ? () => void multi.start(chosen) : undefined}
-          // `aria-disabled`, not `disabled`: a Build that goes off the moment it is pressed keeps the keyboard's focus, as the single build does.
-          {...(canBuild ? {} : { 'aria-disabled': true })}
+          onClick={() => void multi.start(chosen)}
+          // Off, it says why in a tooltip a keyboard reaches and keeps focus, as the single build does (the shared `disabledReason`, #3339).
+          disabledReason={canBuild ? '' : (why ?? '')}
           pending={multiPackageRunning || multi.starting}
           aria-describedby={why ? WHY_ID : undefined}
         >

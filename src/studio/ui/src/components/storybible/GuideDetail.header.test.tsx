@@ -53,7 +53,10 @@ describe('Record my own clip', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Edit this entry' }));
     const names = within(screen.getByRole('list', { name: 'Names' }));
     expect(names.getAllByRole('button', { name: /^Record my own clip for / })).toHaveLength(1 + entity.aliases.length);
-    fireEvent.click(names.getByRole('button', { name: `Record my own clip for ${entity.canonical_name}` }));
-    expect(notify).toHaveBeenCalledWith('Recording your own clip');
+    // Nothing records yet, so it is off and says so, not a toast that claims a recording started (#3339).
+    const record = names.getByRole('button', { name: `Record my own clip for ${entity.canonical_name}` });
+    expect(record.getAttribute('aria-disabled')).toBe('true');
+    fireEvent.click(record);
+    expect(notify).not.toHaveBeenCalled();
   });
 });

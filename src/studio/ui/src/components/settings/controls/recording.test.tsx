@@ -104,7 +104,10 @@ describe('Recording & DAW: Record with', () => {
     await renderPage({ api: createMockApi({}, { daw: {} }), category: 'Recording & DAW' });
     const group = await screen.findByRole('radiogroup', { name: 'Record with' });
     const audacity = within(group).getByRole('radio', { name: /^Audacity/ });
-    await waitFor(() => expect(group.textContent).toContain('Record is not available with Audacity yet. Choosing it still switches this project to Audacity.'));
+    await waitFor(() => expect(group.textContent).toContain('Record is not available with Audacity yet.'));
+    // The sentence about what the press does is behind a "?", not drawn in the page.
+    expect(within(group).getByRole('button', { name: 'About choosing Audacity' })).toBeTruthy();
+    expect(group.textContent).not.toContain('Choosing it still switches');
     expect(audacity.getAttribute('aria-disabled')).not.toBe('true');
   });
 
