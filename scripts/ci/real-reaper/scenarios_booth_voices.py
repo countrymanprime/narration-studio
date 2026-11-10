@@ -1063,3 +1063,92 @@ def voice_added_after_stop(env: Env) -> str:
     kept = per_track(env.snapshot()["items"])
     assert kept == taken, f"undoing the add took the take too: {kept}"
     return f"refused during the take {refused[2]!r}; take {taken}; added {shape}; undo {undo!r} left {after_undo} and the take {kept}"
+
+
+# -- Voice folders nested inside a chapter folder (#3232) ---------------------------------------------------------------------
+
+
+@scenario(
+    "booth_voices",
+    "tracks_read, chapter_track_state",
+    "#3232: a chapter folder whose voice is itself a folder (Chapter 3 > Narrator > Main, Aside; Chapter 3 > Veyra), takes only on the leaves: "
+    "tracks_read gives the depths, chapter_track_state with children reads every leaf's item for the chapter folder and for the inner folder",
+)
+def nested_voice_folders(env: Env) -> str:
+    g = env.lua(
+        """
+        local names = { 'Chapter 3', 'Narrator', 'Main', 'Aside', 'Veyra', 'Chapter 4' }
+        local t = {}
+        for _, n in ipairs(names) do t[n] = ci.add_track(n) end
+        local d = { ['Chapter 3'] = 1, Narrator = 1, Main = 0, Aside = -1, Veyra = -1, ['Chapter 4'] = 0 }
+        for n, v in pairs(d) do reaper.SetMediaTrackInfo_Value(t[n], 'I_FOLDERDEPTH', v) end
+        ci.add_item(t.Main, args[1], 0, 8)
+        ci.add_item(t.Aside, args[2], 8, 4)
+        ci.add_item(t.Veyra, args[3], 0, 8)
+        ci.save_and_reload(ci.rpp)
+        local out = {}
+        for _, n in ipairs(names) do out[n] = reaper.GetTrackGUID(ci.track_by_name(n)) end
+        return out
+        """,
+        env.media_path("tone_a"),
+        env.media_path("tone_b"),
+        env.media_path("tone_c"),
+    )
+    rows = env.send("tracks_read", until={"TRACKS_READ_END"})
+    deltas = [(e[4], e[5]) for e in rows if e[0] == "TRACKS_ROW"]
+    assert deltas == [("Chapter 3", "1"), ("Narrator", "1"), ("Main", "0"), ("Aside", "-1"), ("Veyra", "-1"), ("Chapter 4", "0")], deltas
+    seen = {}
+    for folder in ("Chapter 3", "Narrator"):
+        ev = env.send("chapter_track_state", g[folder], "children", until={"TRACK_STATE_END", "TRACK_STALE"})
+        seen[folder] = sorted((e[8].replace("\\", "/").rsplit("/", 1)[-1], e[10]) for e in ev if e[0] == "TRACK_ITEM")
+    assert seen["Chapter 3"] == sorted([("tone_a.wav", g["Main"]), ("tone_b.wav", g["Aside"]), ("tone_c.wav", g["Veyra"])]), seen
+    assert seen["Narrator"] == sorted([("tone_a.wav", g["Main"]), ("tone_b.wav", g["Aside"])]), seen
+    import os
+    import shutil
+
+    keep = os.environ.get("NARRATION_CI_KEEP_RPP")
+    if keep:
+        shutil.copy(env.lua("return ci.rpp"), keep)
+    return f"depths {deltas}; Chapter 3 children read {len(seen['Chapter 3'])} items, Narrator folder {len(seen['Narrator'])}"
+
+
+@scenario(
+    "booth_voices",
+    "arm_only, record_start, record_stop",
+    "#3232: the Booth's flow on a nested layout: arm the voice the host picks (a direct child of the chapter folder, here a folder of its own), record, stop; "
+    "the take is an item, on which track, and still found through the chapter folder after a save",
+    needs_audio=True,
+)
+def record_on_nested_voice(env: Env) -> str:
+    g = env.lua(
+        """
+        local names = { 'Chapter 3', 'Narrator', 'Main', 'Aside', 'Veyra', 'Chapter 4' }
+        local t = {}
+        for _, n in ipairs(names) do t[n] = ci.add_track(n) end
+        local d = { ['Chapter 3'] = 1, Narrator = 1, Main = 0, Aside = -1, Veyra = -1, ['Chapter 4'] = 0 }
+        for n, v in pairs(d) do reaper.SetMediaTrackInfo_Value(t[n], 'I_FOLDERDEPTH', v) end
+        ci.save_and_reload(ci.rpp)
+        local out = {}
+        for _, n in ipairs(names) do out[n] = reaper.GetTrackGUID(ci.track_by_name(n)) end
+        return out
+        """
+    )
+    landed = {}
+    for voice in ("Narrator", "Main"):
+        env.lua("reaper.SetEditCurPos(0, false, false) return true")
+        env.ok("arm_only", g[voice], until="ARMED")
+        env.ok("record_start", g[voice], until="RECORD_STARTED")
+        env.wait_for(lambda: position(env) > 1.2, timeout=8, what="the take to run over a second")
+        env.ok("record_stop", until="RECORD_STOPPED")
+        env.wait_for(lambda: play_state(env) == 0, what="REAPER to stop")
+        before = sum(len(v) for v in landed.values())
+        items = per_track(settled_items(env, before + 1))
+        landed = {k: v for k, v in items.items()}
+    env.lua("reaper.Main_SaveProject(0, false) return true")
+    import os
+    import shutil
+
+    keep = os.environ.get("NARRATION_CI_KEEP_RPP")
+    if keep:
+        shutil.copy(env.lua("return ci.rpp"), keep + ".recorded")
+    return f"items per track after recording on the folder voice, then on the leaf: {landed}"
