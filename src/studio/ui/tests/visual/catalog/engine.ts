@@ -12,7 +12,7 @@ export const engineStates: StateEntry[] = [
     page: 'engine',
     state: 'default',
     description:
-      'The engine panel opened from the header chip over the Production home: the linked Alice.rpp and a "Change the linked file" icon, the six REAPER tools as icon buttons, Chapter sync (its facts as label and value rows, "Not chapters" among them), the track list with each track\'s chapter and its unplayable items flagged, and Chapter links',
+      'The engine panel opened from the header chip over the Production home: the linked Alice.rpp and a "Change the linked file" icon, the six REAPER tools as icon buttons, Chapter sync (its facts as label and value rows, "Not chapters" among them), and Chapter links, the one list of tracks',
   },
   {
     page: 'engine',
@@ -89,7 +89,7 @@ export const engineStates: StateEntry[] = [
     page: 'engine',
     state: 'voice-folders-sync',
     description:
-      'A Voice folders project (?mockVoiceFolders=1) scrolled to Chapter sync: its Layout row with Voice folders pressed and the help button, and below it the Tracks card, where the Chapter 1 folder names its chapter and its Narrator, White Rabbit and Extras tracks sit inside it',
+      'A Voice folders project (?mockVoiceFolders=1) scrolled to Chapter sync: its Layout row with Voice folders pressed and the help button, and below it the Voices card',
     ...KEEPS_DESKTOP_SCROLL,
   },
   {
@@ -119,13 +119,6 @@ export const engineStates: StateEntry[] = [
     description:
       'A Voice folders project (?mockVoiceFolders=1) with Chapter 2\'s folder picker open: the Chapter 1 folder can be chosen (linked to Chapter 1), its Narrator, White Rabbit and Extras tracks are off with "A voice of its folder"',
     ...POPUP_ANCHORED_AT_FIRST_WIDTH,
-  },
-  {
-    page: 'engine',
-    state: 'folder-tracks',
-    description:
-      'The engine panel for a project whose tracks sit in REAPER folders (?mockTrackFolders=1): the Tracks card as an indented tree - guides, caret, folder icon, child count and an "N of M linked" roll-up on each folder, Co-narrator\'s empty folder, the search box and open/close all - scrolling inside its own card',
-    ...KEEPS_DESKTOP_SCROLL,
   },
   {
     page: 'engine',

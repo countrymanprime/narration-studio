@@ -234,7 +234,6 @@
     "app.spec.ts|engine / create-regions-success": 6.4,
     "app.spec.ts|engine / default": 6.6,
     "app.spec.ts|engine / editing-check-unmapped": 6.8,
-    "app.spec.ts|engine / folder-tracks": 6.1,
     "app.spec.ts|engine / folder-tracks-picker": 6.2,
     "app.spec.ts|engine / folder-tracks-picker-search": 6.6,
     "app.spec.ts|engine / from-tracks-link": 8,

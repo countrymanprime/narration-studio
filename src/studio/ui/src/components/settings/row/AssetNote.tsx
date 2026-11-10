@@ -51,14 +51,12 @@ export function AssetNote({ row, value, kindOf }: { row: SettingMeta; value: str
         ) : view.status === 'failed' ? (
           <IconButton action="retry" size="sm" onClick={() => void store.install(item)} />
         ) : view.status === 'unavailable' ? null : (
-          <Button
-            variant="secondary"
+          <IconButton
+            action="download"
             size="sm"
-            aria-label={`${view.status === 'repair' ? 'Repair' : 'Download'} ${name}`}
+            label={`${view.status === 'repair' ? 'Repair' : 'Download'} ${name}`}
             onClick={() => void store.install(item)}
-          >
-            {view.status === 'repair' ? 'Repair' : 'Download'}
-          </Button>
+          />
         )}
         <Button variant="link" size="sm" onClick={() => showCategory('models')}>
           Models &amp; downloads

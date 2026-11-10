@@ -562,7 +562,7 @@ export async function openLinkedProofChapter(page: Page, chapterTitle: string): 
   if (await row.getByRole('combobox').count()) {
     // Option 0 is the "Choose a track" placeholder; option 1 is the first track.
     await row.getByRole('combobox').selectOption({ index: 1 });
-    await row.getByRole('button', { name: 'Confirm' }).click();
+    await row.getByRole('button', { name: /^Use this (track|folder) for/ }).click();
     await row.getByRole('button', { name: 'Change' }).waitFor();
   }
   // Open in Proof is in the row's More actions menu.

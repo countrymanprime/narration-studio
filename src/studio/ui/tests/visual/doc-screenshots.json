@@ -498,17 +498,10 @@
   },
   {
     "page": "engine",
-    "state": "folder-tracks",
-    "viewport": "desktop",
-    "docName": "engine-panel-folder-tracks",
-    "caption": "The audio engine panel - the Tracks card with REAPER folders drawn as a tree"
-  },
-  {
-    "page": "engine",
     "state": "voice-folders-sync",
     "viewport": "desktop",
     "docName": "engine-panel-voices-layout",
-    "caption": "The audio engine panel - Chapter sync's Layout row on Voice folders, and the Tracks card with a chapter folder and its voice tracks"
+    "caption": "The audio engine panel - Chapter sync's Layout row on Voice folders, and the Voices card"
   },
   {
     "page": "engine",

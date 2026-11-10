@@ -11,7 +11,6 @@ import { RadioGroup } from '../../primitives/RadioGroup';
 import { Select } from '../../primitives/Select';
 import { retryAction } from '../../primitives/Toast';
 import { InsetCard } from '../../primitives/InsetCard';
-import { Button } from '../../primitives/Button';
 import { Checkbox } from '../../primitives/Checkbox';
 import { Slider } from '../../primitives/Slider';
 import { ToggleGroup } from '../../primitives/ToggleGroup';
@@ -335,9 +334,13 @@ export function TipsBody() {
       {seen === null && failed ? (
         <IconButton action="retry" size="sm" onClick={retry} />
       ) : (
-        <Button variant="secondary" size="sm" disabled={busy || count === 0} onClick={() => void showAgain()}>
-          Show tips again
-        </Button>
+        <IconButton
+          action="showTipsAgain"
+          size="sm"
+          pending={busy}
+          disabledReason={count === 0 ? 'No tips are dismissed' : undefined}
+          onClick={() => void showAgain()}
+        />
       )}
     </div>
   );

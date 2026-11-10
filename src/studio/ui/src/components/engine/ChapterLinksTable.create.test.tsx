@@ -146,7 +146,7 @@ describe('ChapterLinksTable: create a track for a chapter with no link', () => {
     renderTable({ tracks: [] });
     const { row } = await firstRow();
     expect(within(row).getByText('No REAPER tracks to link')).toBeTruthy();
-    expect(within(row).queryByRole('button', { name: 'Confirm' })).toBeNull();
+    expect(within(row).queryByRole('button', { name: /^Use this (track|folder) for/ })).toBeNull();
     expect(within(row).getByRole('button', { name: `Create a track for ${short(0)}` })).toBeTruthy();
   });
 
@@ -191,7 +191,11 @@ describe('ChapterLinksTable: create a track for a chapter with no link', () => {
     const button = within(row).getByRole('button', { name: `Create a track for ${short(0)}` });
     await user.click(button);
     expect(button.getAttribute('aria-busy')).toBe('true');
-    expect((within(row).getByRole('button', { name: 'Confirm' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(
+      within(row)
+        .getByRole('button', { name: /^Use this (track|folder) for/ })
+        .getAttribute('aria-disabled'),
+    ).toBe('true');
     await user.click(button);
     // Every other row's create button is off while one runs, and a press on it does nothing (walkthrough F1).
     const others = within(table)

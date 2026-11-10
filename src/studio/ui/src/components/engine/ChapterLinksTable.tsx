@@ -5,7 +5,6 @@ import { chapterName } from '../../chapterName';
 import { EditingCheckPanel } from '../editing/EditingCheckPanel';
 import { plainTrackChoices } from '../mapping/trackChoices';
 import { TrackSelect } from '../mapping/TrackSelect';
-import { Button } from '../primitives/Button';
 import { IconButton } from '../primitives/IconButton';
 import { Menu, type MenuItem } from '../primitives/Menu';
 import { Panel } from '../primitives/Panel';
@@ -47,7 +46,7 @@ const NARROW_ROW =
 // picture" list lives here, beside the per-chapter inline prompt used wherever a check needs it). It shows every
 // narration chapter whether or not it has a confirmed link, so an unlinked chapter and a link pointing at a track
 // that no longer exists are both visible in one place, not just the one chapter a narrator happens to be checking.
-// It draws from `links`, the one reader of the mapping that the Link chapters dialog and the Tracks card above share (R3EN1-7). With `live` (a
+// It draws from `links`, the one reader of the mapping that the Link chapters dialog and the panel share (R3EN1-7). With `live` (a
 // REAPER project) its header says whose tracks these are and when they were read, with the Refresh that reads them again (#2840).
 // A chapter with no link has a create button: the DAW adds a track named after it (a folder holding a Narrator track with Voice folders,
 // as the host decides at the press) and the chapter is linked to it. A refusal or a failure is a toast and leaves the row as it was; on
@@ -252,9 +251,14 @@ function ChapterLinkRow({
         <span className="flex items-center justify-end gap-2 whitespace-nowrap">
           {showPicker ? (
             <>
-              <Button variant={chosen ? 'primary' : 'secondary'} disabled={!chosen || creating} pending={busy && !creating} onClick={() => onConfirm(chosen)}>
-                Confirm
-              </Button>
+              <IconButton
+                action="confirmTrack"
+                label={`Use this ${folders ? 'folder' : 'track'} for ${short}`}
+                variant={chosen ? 'primary' : 'default'}
+                disabledReason={!chosen ? 'Choose a track first' : creating ? 'Wait for the track being added' : undefined}
+                pending={busy && !creating}
+                onClick={() => onConfirm(chosen)}
+              />
               {createButton}
               {hasLink && <IconButton action="cancelEdit" disabledReason={busy ? 'Saving the link' : undefined} onClick={() => setPicking(false)} />}
             </>
