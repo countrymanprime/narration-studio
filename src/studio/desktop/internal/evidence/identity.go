@@ -132,10 +132,11 @@ func identityPath(path, projectFolder string) string {
 // file's size and modification time are the ones it was read with; a file that changed either (a replaced or re-recorded file) is read again.
 // A caller that writes an identity down (a check run) uses Refresh, which always reads and replaces the entry, so what it stored and what the
 // cache answers agree.
-// shortcut: a file rewritten with the same size and the same modification time is not noticed by Identify (Refresh sees it), and a filesystem
+// shortcut: a file rewritten with the same size and the same modification time, or a symlink retargeted to a file of the same size and time, is
+// not noticed by Identify (Refresh sees it), and a filesystem
 // with a coarse time (FAT32, some network shares) can hide a quick same-size rewrite; upgrade to FullHash if a tool that keeps the time turns up.
 // shortcut: entries are never dropped, one small record per take file for the project's lifetime.
-// One cache serves one project folder, the one every call through it passes.
+// An entry is keyed by the file and the project folder it was asked through.
 type IdentityCache struct {
 	mu sync.Mutex
 	// +checklocks:mu
@@ -158,10 +159,11 @@ func (c *IdentityCache) Identify(path, projectFolder string) (SourceIdentity, er
 	}
 	info, err := os.Stat(path)
 	if err != nil {
+		c.forget(path, projectFolder)
 		return SourceIdentity{}, err
 	}
 	c.mu.Lock()
-	known, ok := c.entries[path]
+	known, ok := c.entries[entryKey(path, projectFolder)]
 	c.mu.Unlock()
 	if ok && known.Size == info.Size() && known.ModTime.Equal(info.ModTime()) {
 		return known, nil
@@ -177,6 +179,7 @@ func (c *IdentityCache) Refresh(path, projectFolder string) (SourceIdentity, err
 	c.reads.Add(1)
 	identity, err := Identify(path, projectFolder)
 	if err != nil {
+		c.forget(path, projectFolder)
 		return SourceIdentity{}, err
 	}
 	c.mu.Lock()
@@ -184,6 +187,16 @@ func (c *IdentityCache) Refresh(path, projectFolder string) (SourceIdentity, err
 	if c.entries == nil {
 		c.entries = map[string]SourceIdentity{}
 	}
-	c.entries[path] = identity
+	c.entries[entryKey(path, projectFolder)] = identity
 	return identity, nil
+}
+
+// entryKey names an entry by the file and the folder its Path is relative to, so the same file asked through another folder is read again.
+func entryKey(path, projectFolder string) string { return projectFolder + "\x00" + path }
+
+// forget drops the entry of a file that cannot be read now: if it comes back with the size and time it had, the cache must not answer for it.
+func (c *IdentityCache) forget(path, projectFolder string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	delete(c.entries, entryKey(path, projectFolder))
 }

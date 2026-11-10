@@ -285,3 +285,41 @@ func TestANilIdentityCacheIdentifiesLikeIdentify(t *testing.T) {
 		t.Fatalf("got %+v (%v), want %+v", got, err, want)
 	}
 }
+
+// A file that cannot be read now is forgotten: when it comes back with the size and time it had, the cache reads it and does not answer from before.
+func TestIdentityCacheForgetsAFileThatCouldNotBeRead(t *testing.T) {
+	folder := t.TempDir()
+	path := filepath.Join(folder, "take.wav")
+	writeSourceFile(t, path, bytes.Repeat([]byte("a"), 1000))
+	info, _ := os.Stat(path)
+	var cache IdentityCache
+	first, _ := cache.Identify(path, folder)
+
+	if err := os.Remove(path); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := cache.Identify(path, folder); err == nil {
+		t.Fatal("a removed file was identified")
+	}
+	writeSourceFile(t, path, bytes.Repeat([]byte("b"), 1000))
+	if err := os.Chtimes(path, info.ModTime(), info.ModTime()); err != nil {
+		t.Fatal(err)
+	}
+	got, err := cache.Identify(path, folder)
+	if err != nil || got.PartialHash == first.PartialHash {
+		t.Fatalf("got %+v (%v), want a read of the file that came back, not the entry from before %+v", got, err, first)
+	}
+}
+
+// The identity's Path is relative to the folder it was asked through, so the same file asked through another folder is read again.
+func TestIdentityCacheKeepsOneEntryPerProjectFolder(t *testing.T) {
+	folder := t.TempDir()
+	path := filepath.Join(folder, "take.wav")
+	writeSourceFile(t, path, []byte("audio"))
+	var cache IdentityCache
+	inside, _ := cache.Identify(path, folder)
+	outside, _ := cache.Identify(path, t.TempDir())
+	if inside.Path != "take.wav" || outside.Path != path {
+		t.Fatalf("paths %q and %q, want the project-relative one and the absolute one", inside.Path, outside.Path)
+	}
+}
