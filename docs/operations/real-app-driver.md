@@ -34,6 +34,7 @@ To reproduce a bug that crosses the DAW (a recording that lands on a track, a li
 ```bash
 # build the host first (Set up, step 2); also install jackd2 and libgtk-3-0
 scripts/dev/real-app/rig.sh up /tmp/rig --items 3     # flat layout; add --layout folders, or --tracks 60 --items 300 for a big project
+scripts/dev/real-app/rig.sh up /tmp/rig --chapters 44 --items-per-track 100 --tracks 20   # a 17 hour book: 44 linked chapters, about 155,000 words, 64 tracks, 4,400 items
 . /tmp/rig/env.sh && cd scripts/dev/real-app
 /usr/bin/python3.12 rig_smoke.py
 ./rig.sh down /tmp/rig
