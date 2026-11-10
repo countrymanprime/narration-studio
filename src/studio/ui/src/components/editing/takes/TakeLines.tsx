@@ -2,7 +2,7 @@ import type { KeyboardEventHandler } from 'react';
 import { IconButton } from '../../primitives/IconButton';
 import { statusLabel, statusTone, type StatusId } from '../../../kinds/statusTone';
 import { StatusBadge } from '../../primitives/StatusBadge';
-import { clockText } from '../../booth/boothProgress';
+import { clock } from '../../../clock';
 import { Diff } from './TakeDiff';
 import { Suggested } from './Suggested';
 import { TakeCompare } from './TakeCompare';
@@ -108,8 +108,8 @@ function TakeRow({ passage, take, suggestedId, ...rest }: TakeLinesProps & { tak
       </div>
       <div className="font-['IBM_Plex_Mono',ui-monospace,monospace] text-[12px] text-[var(--text-muted)]">
         {[
-          take.start === undefined ? null : clockText(take.start),
-          `${take.sourceLength.toFixed(0)} s`,
+          take.start === undefined ? null : clock(take.start),
+          `${clock(take.sourceLength)} long`,
           sourceLabel,
           take.evidence ? placedLabel(take.evidence.via) : null,
         ]
@@ -146,7 +146,7 @@ export function TakeLines(props: TakeLinesProps) {
     >
       {props.duplicateAt != null ? (
         <p data-dupnote className="m-0 text-[var(--text-muted)]">
-          This take reads the line twice. The second read starts at {clockText(props.duplicateAt)}.
+          This take reads the line twice. The second read starts at {clock(props.duplicateAt)}.
         </p>
       ) : null}
       <Suggested suggestion={suggestion} labelOf={labelOf} />

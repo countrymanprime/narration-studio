@@ -11,8 +11,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { openPickups } from '../pickups/list/pickupRows';
 import { usePickupList } from '../pickups/useOpenPickups';
 import { PickupListCount } from './PickupListCount';
-import { REGION_LABEL, describePosition, describeRegion, formatAudioTime, paragraphRefs, plural, recordedTo, verdict } from './recordingCheckText';
+import { REGION_LABEL, describePosition, describeRegion, paragraphRefs, plural, recordedTo, verdict } from './recordingCheckText';
 import { ProofPickupNotes } from './ProofPickupNotes';
+import { clock } from '../../clock';
 
 // A pickup is one of the check's own interior gaps: a place worth reading
 // on its own. An unread start or end is unfinished recording, not a pickup - recordedTo() states it in the
@@ -109,7 +110,7 @@ export function RecordingCheckReport({
         <StatTile label="Paragraphs" value={`${fullyRead} of ${rows.length}`} hint="fully read" />
         <StatTile
           label="Audio checked"
-          value={formatAudioTime(report.playedSeconds)}
+          value={clock(report.playedSeconds)}
           hint={`in ${plural(report.items.length, 'item')}${mutedItems > 0 ? ` (${mutedItems} muted)` : ''}`}
         />
         {pace !== undefined && <StatTile label="Pace" value={pace.toLocaleString()} unit="/min" hint="words a minute" />}

@@ -28,6 +28,11 @@ const (
 // starts listening and the bar says why, the same as any other refusal.
 const readAloudRecordStartTimeout = 3 * time.Second
 
+// readAloudVoiceStartTimeout is readAloudRecordStartTimeout plus the wait for REAPER's live track list (tracksLiveTimeout) that a call
+// resolving the chapter's voice makes first, so a slow list read does not eat the arm's own budget (a list answering in 2.5 s must
+// still leave the arm its 3 s).
+const readAloudVoiceStartTimeout = readAloudRecordStartTimeout + tracksLiveTimeout
+
 // ReadAloudRecording is what a record start or a record stop did, in the shape the control bar reads. Outcome
 // is "started", "stopped" or "refused" (Reason and Message say why; nothing in REAPER changed for a refusal).
 type ReadAloudRecording struct {
@@ -84,10 +89,10 @@ func readAloudTrackGUID(svc hostServices, chapterID string) (string, *ReadAloudR
 	name := readAloudAdapterName(svc)
 	switch {
 	case len(links) == 0:
-		refused := readAloudRefused(readAloudUnlinked, fmt.Sprintf("%q has no linked track. Link it to its %s track in the audio engine panel.", title, name))
+		refused := readAloudRefused(readAloudUnlinked, fmt.Sprintf("%q has no linked %s. Link it to its %s %s in the audio engine panel.", title, layoutNoun(svc), name, layoutNoun(svc)))
 		return "", &refused, nil
 	case len(links) > 1:
-		refused := readAloudRefused(readAloudSeveralLinks, fmt.Sprintf("%q is linked to %d tracks. Keep the one to record on, in the audio engine panel.", title, len(links)))
+		refused := readAloudRefused(readAloudSeveralLinks, fmt.Sprintf("%q is linked to %d %ss. Keep the one to record on, in the audio engine panel.", title, len(links), layoutNoun(svc)))
 		return "", &refused, nil
 	}
 	return links[0], nil, nil
@@ -272,7 +277,7 @@ func (h *Host) ReadAloudRecordStart(chapterID string) (string, error) {
 		return encodeBinding(h.builtinRecordStart(ctx, svc), nil)
 	}
 	recorder := recorderFrom(svc)
-	ctx, cancel := context.WithTimeout(presstimeline.With(context.Background(), h.timeline), readAloudRecordStartTimeout)
+	ctx, cancel := context.WithTimeout(presstimeline.With(context.Background(), h.timeline), readAloudVoiceStartTimeout)
 	defer cancel()
 	result, err := readAloudRecordStartIn(ctx, h.services(), recorder, trackStateReaderFrom(svc), chapterID)
 	if err == nil && result.Outcome == "started" {
@@ -302,7 +307,7 @@ func (h *Host) ReadAloudRecordStartAt(chapterID string, at float64) (string, err
 		return encodeBinding(builtinPunchRefusal(svc, at), nil)
 	}
 	recorder := recorderFrom(svc)
-	ctx, cancel := context.WithTimeout(presstimeline.With(context.Background(), h.timeline), readAloudRecordStartTimeout)
+	ctx, cancel := context.WithTimeout(presstimeline.With(context.Background(), h.timeline), readAloudVoiceStartTimeout)
 	defer cancel()
 	result, err := readAloudRecordStartAtIn(ctx, h.services(), recorder, puncherFrom(svc), trackStateReaderFrom(svc), chapterID, at)
 	if err == nil && result.Outcome == "started" {

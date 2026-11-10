@@ -78,12 +78,12 @@ export function WorkDialog({
               </Button>
             )}
             {showCancel && (
-              <Button variant="secondary" onClick={cancel}>
+              <Button variant="secondary" replacesPressed onClick={cancel}>
                 Cancel
               </Button>
             )}
             {showClose && (
-              <Button variant={showRetry ? 'secondary' : 'primary'} onClick={close}>
+              <Button variant={showRetry ? 'secondary' : 'primary'} replacesPressed onClick={close}>
                 Close
               </Button>
             )}

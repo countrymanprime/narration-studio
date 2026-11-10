@@ -2,7 +2,7 @@ import { Fragment, memo, type CSSProperties } from 'react';
 import { kindMarkStyle } from '../../../kinds/markStyle';
 import { narratorMarkStyle } from '../../../kinds/narratorMark';
 import type { KindId } from '../../../kinds/kindMap';
-import { clockText } from '../../booth/boothProgress';
+import { clock } from '../../../clock';
 import { isLow, type DocItem } from '../model';
 import { FxMarker } from '../range/fx/FxButtons';
 import { useFxMarker } from '../range/fx/fxMarkers';
@@ -48,9 +48,9 @@ function describe(it: DocItem, mark: Mark): string {
     case 'cut':
       return 'Cut from the audio';
     case 'dup':
-      return `Read twice: said again, ${clockText(it.t0 ?? 0)}${score(it)}`;
+      return `Read twice: said again, ${clock(it.t0 ?? 0)}${score(it)}`;
     case 'extra':
-      return `Not in the script, ${clockText(it.t0 ?? 0)}${score(it)}`;
+      return `Not in the script, ${clock(it.t0 ?? 0)}${score(it)}`;
     case 'miss':
       return 'In the script, not read';
     case 'mis':

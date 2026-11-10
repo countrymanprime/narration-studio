@@ -46,7 +46,7 @@ func readChapterFolderTrack(svc hostServices, chapterID string) string {
 	if err != nil || refused != nil {
 		return ""
 	}
-	project, err := selectedProject(svc)
+	project, err := liveSelectedProject(svc)
 	if err != nil {
 		return ""
 	}

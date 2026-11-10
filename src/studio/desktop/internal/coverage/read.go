@@ -168,6 +168,7 @@ func (s *Service) evaluate(project tracks.Project, projectFile evidence.LedgerPr
 		DocumentID: basis.DocumentID, ChapterID: basis.ChapterID,
 		AnalyzerID: AnalyzerID, AnalyzerVersion: AnalyzerVersion,
 		ParamHash: paramHash(alignment, readProjectInputs(s.config.Project)),
+		Identify:  s.identities.Identify,
 	})
 	if err != nil {
 		return ChapterResult{}, err

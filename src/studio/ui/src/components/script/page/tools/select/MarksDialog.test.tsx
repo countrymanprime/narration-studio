@@ -9,6 +9,7 @@ import { overlay } from '../../../../../overlay/overlayService';
 import type { NarrationApi } from '../../../../../types';
 import { Host } from './harness';
 import { KEEP_ONE, MarksDialog } from './MarksDialog';
+import { outwaitEcho } from '../../../../primitives/outwaitEcho';
 
 let api: NarrationApi;
 let toast: MockInstance<typeof overlay.toast>;
@@ -60,6 +61,7 @@ const lastSaved = () => save.mock.calls.at(-1)![0];
 describe('define-marks-edits-the-types', () => {
   it('closes on a press outside the dialog: every change is saved as it is made, so no input is lost (issue 1706)', async () => {
     await openDialog();
+    await outwaitEcho();
     await userEvent.click(document.querySelector('[data-dialog-backdrop]') as HTMLElement);
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Define how you mark up' })).toBeNull());
   });
@@ -108,10 +110,23 @@ describe('define-marks-edits-the-types', () => {
     const dialog = await openDialog();
     await userEvent.click(within(dialog).getAllByRole('button', { name: 'Remove' })[0]!);
     expect(save).not.toHaveBeenCalled();
+    // The question stays on screen as words, so the narrator sees what the second press also removes.
+    expect(within(dialog).getByRole('status').textContent).toBe('Remove 2 uses too?');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Remove 2 uses too?' }));
     await waitFor(() => expect(save).toHaveBeenCalledTimes(1));
     expect(save).toHaveBeenCalledWith(expect.not.arrayContaining([expect.objectContaining({ key: 'stress' })]), true);
     expect((await api.marksList()).marks).toHaveLength(0);
+  });
+
+  it('backs out of the question without removing anything', async () => {
+    const first = (await api.manuscriptParagraphs('chapter-1'))[0]!;
+    await api.marksAdd(first.chapterId, first.id, 0, 5, 'stress', '');
+    const dialog = await openDialog();
+    await userEvent.click(within(dialog).getAllByRole('button', { name: 'Remove' })[0]!);
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Keep the mark type' }));
+    expect(within(dialog).queryByRole('status')).toBeNull();
+    expect(save).not.toHaveBeenCalled();
+    expect((await api.marksList()).marks).toHaveLength(1);
   });
 
   it('cannot remove the last type', async () => {

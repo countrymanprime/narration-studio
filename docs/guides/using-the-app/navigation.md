@@ -59,7 +59,7 @@ There are no Back and Forward, Undo or History buttons, folder icon or always-vi
 ### Jump to or run
 
 Jump to or run… opens the jump menu: type to find a page, a chapter or a command, or type `>` to list commands only. Escape, or a press anywhere outside the menu,
-closes it, and focus returns to where it was. The menu is a list box: a screen reader hears the page's name when it opens ("On the Script page"), then the number of results as you type. The header has no other buttons, so everything else you might look for there is a command in the menu, with its key beside it; a command that cannot run now stays listed, off, with the reason under it:
+closes it, and focus returns to where it was. The menu is a list box: a screen reader hears the page's name when it opens ("On the Script page"), then the number of results as you type. The header has no other buttons, so everything else you might look for there is a command in the menu, with its key beside it; a command that cannot run now stays listed, off, with the reason under it. The menu draws the first 100 matches and says "Showing 100 of 5000" below them when a long book has more; type more of the name to narrow the list. A name too long for its row is cut at the row's edge. With no project open the menu offers Settings and no page or chapter, and the commands that need a project (Import and Replace manuscript, Open Companion) are off with the reason "Open a project first". Over the project picker, choosing a page, a chapter or Settings closes the picker and opens it:
 
 | Command | Key | Off when |
 | --- | --- | --- |
@@ -114,7 +114,7 @@ dot for how it is doing, and says in words when something needs you. Hover it fo
 
 On a narrow window the chip drops the DAW's name and keeps the words ("Other project").
 
-- **Audacity**: the dot follows the Audacity link. The chip's hover text gives the next step (turn scripting on, start Audacity on the linked project, close and start it from the app, or close the dialog it may be waiting on). The panel then shows the Audacity link card instead of the REAPER project and tools, with the [track list](#tracks) read from Audacity.
+- **Audacity**: the dot follows the Audacity link. The chip's hover text gives the next step (turn scripting on, start Audacity on the linked project, close and start it from the app, or close the dialog it may be waiting on). The panel then shows the Audacity link card instead of the REAPER project and tools, with the [track list](#linking-chapters-to-tracks) read from Audacity.
 - **Built-in**: the project records in the app. Clicking this chip opens Settings > Recording & DAW, not the panel, since there is no DAW to link. Choose it with the **Recording** radios in [Settings](settings.md), where it can be chosen only when the app can capture audio.
 
 ## Moving around: Back and Forward
@@ -201,15 +201,16 @@ and open the panel again.
 ### An Audacity project
 
 When the project records with Audacity, the **Audacity project** card replaces the REAPER project section and the REAPER tools are not shown.
-The Tracks list below it comes from the snapshot the app takes while Audacity answers, and refreshes when the card hears from Audacity (a
+The Chapter links list below it comes from the snapshot the app takes while Audacity answers, and refreshes when the card hears from Audacity (a
 change, or **Check again**). Until Audacity has answered with the project open, the panel says no tracks have been read from Audacity yet.
 
 ### Tracks
 
-The Tracks list shows each track of the project with its colour, a Muted badge when it's muted, the chapter
-it is linked to (or Not linked), and how many of its items have playable audio (for example `1/1`). A
-warning triangle marks a track with an item whose audio file can't be found on disk, or that isn't audio at
-all (such as a MIDI item). To hear a chapter, open it on [Editing](editing.md).
+The panel lists the project's tracks once, in [Chapter links](#linking-chapters-to-tracks): each chapter with the track it is linked to, and
+every track of the project in a row's picker. There is no separate list of tracks to scroll, so the panel scrolls as one. To hear a
+chapter, open it on [Editing](editing.md).
+
+A linked track whose audio cannot play (a source file missing on disk, or an item that is not audio, such as MIDI) shows a warning triangle beside its name in Chapter links; hold the pointer on it for the reason. The panel no longer shows a track's mute state or how many of its items play.
 
 ### REAPER tools
 
@@ -222,14 +223,14 @@ bridge in REAPER and connects to it without you running anything in REAPER.
 items that hold its recording. It reads REAPER's tracks again when it opens, and has its own **Refresh**, so a track you
 have just added in REAPER can be picked. It opens with the links the **Chapter links** list shows, the opening and
 closing credits included, and the two stay in step: choosing a track here links the chapter, **Not linked**
-clears the link, and either shows in the other at once. A track links to one chapter: choosing a track another chapter holds moves it, and the dialog says which chapter is now not linked. In this dialog a folder is named with how many it holds: voices in a Voice folders project (“Chapter 1 · 3 voices”), tracks in any other, as the Tracks list counts them (“Chapters · 8 tracks”). A folder in the track list reads "name · N voices", the way the Chapter links list names it, so it is not taken for a single track. **To stamp** shows how many of that track's items (for a folder of voices, the items on every voice inside it, except those on a track linked to another chapter) will
+clears the link, and either shows in the other at once. A track links to one chapter: choosing a track another chapter holds moves it, and the dialog and the Chapter links list both say which chapter is now not linked; the dialog's Read current stamps button waits while a stamp runs, and Stamp waits while a read runs. In this dialog a folder is named with how many it holds: voices in a Voice folders project (“Chapter 1 · 3 voices”), tracks in any other, as the track picker counts them (“Chapters · 8 tracks”). A folder in that dialog's list reads "name · N voices", the way the Chapter links list names it, so it is not taken for a single track. **To stamp** shows how many of that track's items (for a folder of voices, the items on every voice inside it, except those on a track linked to another chapter) will
 carry the chapter's identity, and **Stamp N items** writes it. A folder that holds a track another chapter is linked to still links when chosen, and a line under the table says the folder also holds another chapter's track: the items on that other track stay with the other chapter. While a stamp runs the pickers are off, and the button reads **Close**, which leaves the dialog without stopping the stamp. The credits are linked here but not stamped. What the stamp did, or why it failed, shows at the top
 of the dialog. An item already stamped with a
 different chapter is left alone unless you tick **Overwrite items already stamped with a different
 chapter**, and items REAPER no longer has are listed as stale. **Read current stamps** lists what the
 project carries now, with each item's status (OK, Text changed since stamping, Manuscript re-imported
 since stamping, Chapter no longer in the manuscript, and so on); if reading fails, the reason shows there, under
-the button. This is not the same as the
+the button. A stamp does not fill the list: press **Read current stamps** to see what it wrote, and the list says "Nothing is stamped yet" only after a read that found nothing. This is not the same as the
 [Chapter links](#linking-chapters-to-tracks) list below: that list is kept by the app and changes
 nothing in REAPER, and the dialog starts with every chapter Not linked whatever the list says.
 
@@ -266,34 +267,13 @@ installs it. Opening a tool changes nothing: you apply or cancel the repair in i
 Undo takes it back. What happened shows under the tool you opened; if nothing is selected, the tool is missing, or
 your REAPER is too old, it says so there.
 
-### Tracks in folders
-
-The Tracks card lists the project's tracks with the chapter each one is linked to. When the REAPER project groups
-tracks in folders, the card draws them as REAPER does: an indented tree with a guide line for each level, a caret to
-open or close a folder, a folder icon in the track's colour and the number of tracks directly inside. A folder's
-Chapter cell says how many of the tracks below it are linked ("5 of 10 linked"), so a link inside a closed folder is still
-found without opening it. A folder with a track of its own audio shows its playable items like any track, and a
-folder with none shows a dash.
-
-Up to 30 tracks every folder starts open. Above that only the folders on the way to a linked track start open. What
-you open or close is not saved. The two icon buttons in the card's header open or close every folder, and the
-search box shows only the tracks whose name has your text, with the folders above them open. The list scrolls
-inside the card, under its header, so the page itself does not move.
-
-Click a caret, or use the keyboard: Up and Down move through the rows, Right opens a folder (or steps into an open
-one), Left closes it (or steps to the folder above), and Home and End jump to the first and last row. The whole tree is one
-stop in the Tab order. A project with no folders shows the plain list it always did, and so does an Audacity project,
-which has no folders.
-
-![The audio engine panel's Tracks card with REAPER folders drawn as a tree](../../images/ui/engine-panel-folder-tracks.webp)
-
 ### Linking chapters to tracks
 
-Below the track list, Chapter links shows every narration chapter (not a chapter removed from recording) with the track it's confirmed
+Chapter links, below the REAPER tools and Chapter sync, shows every narration chapter (not a chapter removed from recording) with the track it's confirmed
 to, so checks that need to know "which audio is this chapter" (the [editing check](#editing-check)
 below, an evidence view) don't guess by name. Each row is the chapter, its status, its track and its actions. A chapter
 starts **Not linked** with its track list on **Choose a track**: pick a track, then press the check icon (**Use this track**), which stays off until you
-have picked one. A track another chapter already has is marked in the list with the chapter that has it. When the project has folders, the list is the same tree in a popover: the matcher's best match comes first with its folder path, a search box flattens the list to the matches with their paths, and a folder with no audio of its own is shown but can't be chosen (a folder that holds audio can), unless the project uses [Voice folders](#voice-folders). A confirmed chapter shows **Linked** with the track's name, and a pencil icon (**Change the track**) and an eraser icon (**Clear the link**). Change
+have picked one. A track another chapter already has is marked in the list with the chapter that has it. When the project has folders, the list is the same tree in a popover: the matcher's best match comes first with its folder path, a search box flattens the list to the matches with their paths, and a folder with no audio of its own is shown but can't be chosen (a folder that holds audio can), unless the project uses [Voice folders](#voice-folders). A confirmed chapter shows **Linked** with the track's name, and an arrows icon (**Change the track**) and an eraser icon (**Clear the link**). Change
 replaces the chapter's link, so a chapter is never left linked to two tracks; a track already
 linked to another chapter moves to this one. Clear removes every link the chapter has. If the
 confirmed track is deleted, or the project points somewhere else, the chapter shows **Track
@@ -307,7 +287,7 @@ named after the chapter after every other track, the chapter is linked to it, an
 project changes, the project is not saved, and one Undo in REAPER takes it back. The button is only on a row with no link: a chapter
 whose track is missing keeps Change and Clear. While REAPER records, or when it is closed or not answering, nothing is added and a
 message says why. Nothing is added either when the chapter is already linked to a track, or when a track or folder already has the
-name the new one would get: link that one with the track list instead. While one track is being added, the other rows' buttons are off.
+name the new one would get: link that one with the track picker instead. While one track is being added, the other rows' buttons are off.
 If the project's last folder was left open in REAPER, that folder is closed on its last track first, so the new track is never inside
 it. With [Voice folders](#voice-folders) the button is **Create a folder for this chapter**: REAPER adds a folder named
 after the chapter with one track inside it, **Narrator**, and the chapter is linked to the folder. The Booth's and Editing's link dialog
@@ -366,11 +346,13 @@ read.
 ### Voice folders
 
 Chapter sync's **Layout** row sets how the project's chapters sit in REAPER. While Chapter sync shows nothing (before you have answered
-whether to use it), the Voices card carries the same switch. **Flat**, the default, is one track per chapter. **Voice folders** makes
+whether to use it), the Voices card carries the same switch. **Flat**, the default, is one track per chapter; a chapter linked to a REAPER folder that holds only tracks of its own, none another chapter is linked to, still records on one of them. **Voice folders** makes
 each chapter a REAPER folder whose child tracks are its voices, one per character, so an effect on a character's track covers every line
 that character speaks. Switching changes no track in REAPER.
 
-![Chapter sync's Layout row on Voice folders, above the Tracks card with a chapter folder and its voice tracks](../../images/ui/engine-panel-voices-layout.webp)
+The layout is one setting for the whole project, so every message that names where a chapter records follows it: with Voice folders the link dialogs, chips and notices in the Booth and Editing say folder (**Not linked to a folder**, **Link folder**, **Create a new folder**), and with Flat they say track. An engine with no folder tracks, such as Audacity, is always flat.
+
+![Chapter sync's Layout row on Voice folders, above Chapter links](../../images/ui/engine-panel-voices-layout.webp)
 
 With Voice folders, Chapter links' last column is **Folder**: a chapter links to its folder, named with how many voices it holds
 ("Chapter 1 · 3 voices"), and a track inside such a folder can't be chosen, since it is one of that chapter's voices.
@@ -433,7 +415,7 @@ levels…** stays in the panel: it previews the linked track's items that are of
 confirm, changes their volume in REAPER in one undo step. While it is off, the reason shows under the button.
 
 If the chapter isn't linked to a track yet, the panel shows only the same track picker the recording
-check does, right in place; the check and its results come back once the chapter is linked.
+check does, right in place; the check and its results come back once the chapter is linked. A track another chapter holds is refused there, with that chapter's name, and nothing is linked.
 
 ### Chapter sync
 
@@ -454,7 +436,7 @@ how many you linked: "8 chapters linked automatically, 1 by you"), **Background 
 links you already made are kept); while it is off the same place has **Turn on**, drawn as the switch's other position, which asks again. Its own Needs you list
 says why each chapter wasn't linked ("Two tracks match: … A chapter is checked from one track.", or
 "Closest track … is not a confident match, so it was not linked on its own.") and lets you pick the
-right track and press the link icon (**Link this track**), the same link Chapter links below records. A track sync doesn't
+right track and press the link icon (**Link this track**), the same link Chapter links below records; if another chapter held that track, the message names it and says it is now unlinked. A track sync doesn't
 recognize as any chapter's is listed under **Not chapters** so it isn't mistaken for a
 missing link. When REAPER has changes you haven't saved yet, a line says so: sync reads the saved
 project, so it picks them up when you save.

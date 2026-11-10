@@ -47,20 +47,21 @@ export function AssetNote({ row, value, kindOf }: { row: SettingMeta; value: str
       </div>
       <div className="flex flex-wrap items-center gap-2">
         {busy ? (
-          <IconButton action="cancelDownload" label={`Cancel the download of ${name}`} onClick={() => void store.cancel(item)} />
+          <IconButton key="cancel" action="cancelDownload" label={`Cancel the download of ${name}`} replacesPressed onClick={() => void store.cancel(item)} />
         ) : view.status === 'failed' ? (
-          <IconButton action="retry" size="sm" onClick={() => void store.install(item)} />
+          <IconButton key="retry" action="retry" size="sm" replacesPressed onClick={() => void store.install(item)} />
         ) : view.status === 'unavailable' ? null : (
-          <Button
-            variant="secondary"
+          <IconButton
+            key="start"
+            action={view.status === 'repair' ? 'repairAsset' : 'download'}
             size="sm"
-            aria-label={`${view.status === 'repair' ? 'Repair' : 'Download'} ${name}`}
+            label={`${view.status === 'repair' ? 'Repair' : 'Download'} ${name}`}
+            replacesPressed
             onClick={() => void store.install(item)}
-          >
-            {view.status === 'repair' ? 'Repair' : 'Download'}
-          </Button>
+          />
         )}
-        <Button variant="link" size="sm" onClick={() => showCategory('models')}>
+        {/* Keyed by the state: the link slides under the pointer when Download shrinks to Cancel, so it is a new button each time and ignores that echo. */}
+        <Button key={busy ? 'models-busy' : 'models'} variant="link" size="sm" replacesPressed onClick={() => showCategory('models')}>
           Models &amp; downloads
         </Button>
       </div>

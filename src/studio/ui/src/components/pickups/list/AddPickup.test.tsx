@@ -164,7 +164,7 @@ describe('AddPickup', () => {
     await waitFor(() => expect(toasts()).toEqual(['That time is outside the chapter.']));
     expect(onDone).not.toHaveBeenCalled();
     expect((screen.getByRole('textbox', { name: 'Line to re-record' }) as HTMLInputElement).value).toBe('A line');
-    expect((screen.getByRole('textbox', { name: 'Time in the recording' }) as HTMLInputElement).value).toBe('99:00.0');
+    expect((screen.getByRole('textbox', { name: 'Time in the recording' }) as HTMLInputElement).value).toBe('1:39:00.0');
   });
 
   it.each(['-1', '0', '5:99', '05:12.55', '1e3', '∞', 'Infinity', '5:12 pm', '', '   ', '１２:００', '99999999:00'])(

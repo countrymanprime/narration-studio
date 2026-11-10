@@ -2,7 +2,7 @@ import type { DawResult } from '../../../../api/contracts/daw';
 import type { ReplaceAudioApi, Replacement } from '../../../../api/contracts/replace';
 import type { DawClient } from '../../../../ports/daw';
 import type { Command, Result } from '../../../../studio/journal/createJournal';
-import { clock } from '../../bar/clock';
+import { clock } from '../../../../clock';
 
 /** What the dialog asks for: the words as token indices, their stretch in seconds of their file, the fade at each seam and the level change. */
 export interface ReplaceAsk {

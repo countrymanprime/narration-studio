@@ -41,7 +41,7 @@ runs:
       # Wails v3 links GTK 4 and WebKitGTK 6.0 through cgo on Linux; v2 used GTK 3 and WebKit2GTK 4.1.
       run: sudo apt-get update && sudo apt-get install -y libglib2.0-dev libgtk-4-dev libwebkitgtk-6.0-dev libsoup-3.0-dev librsvg2-dev patchelf
     - if: inputs.need-pnpm == 'true'
-      uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+      uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
       with: { version: 11.27.0 }
     - if: inputs.need-node == 'true'
       uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
@@ -50,15 +50,15 @@ runs:
         cache: ${{ inputs.need-pnpm == 'true' && 'pnpm' || '' }}
         cache-dependency-path: pnpm-lock.yaml
     - if: inputs.need-go == 'true' || inputs.need-wails-tools == 'true' || inputs.need-golangci-lint == 'true'
-      uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+      uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
       with:
-        go-version: '1.27.2'
+        go-version: '1.27.3'
         cache-dependency-path: src/studio/desktop/go.sum
     - if: inputs.need-python == 'true'
-      uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+      uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
       with: { python-version: '3.12' }
     - if: inputs.need-python == 'true'
-      uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+      uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
       with:
         version: 0.12.15
         enable-cache: true
@@ -104,9 +104,24 @@ runs:
       name: Install pinned checklocks
       shell: bash
       run: go install gvisor.dev/gvisor/tools/checklocks/cmd/checklocks@v0.0.0-20260924014505-db6c1a7c24b4
+    # The action fetches the release list and the binary from GitHub; a blip there failed pull requests (#3260). The first
+    # attempt may fail; the second runs after a pause and fails the job if it fails too.
     - if: inputs.need-stylua == 'true'
+      id: stylua
       name: Install pinned standalone StyLua
-      uses: JohnnyMorganz/stylua-action@479972f01e665acfcba96ada452c36608bdbbb5e # v4.1.0
+      continue-on-error: true
+      uses: JohnnyMorganz/stylua-action@76fd70c03e6340ceaf673366712db9b20560b402 # v5.0.0
+      with:
+        token: ${{ github.token }}
+        version: v2.1.0
+        args: false
+    - if: inputs.need-stylua == 'true' && steps.stylua.outcome == 'failure'
+      name: Wait before the StyLua retry
+      shell: bash
+      run: sleep 30
+    - if: inputs.need-stylua == 'true' && steps.stylua.outcome == 'failure'
+      name: Install pinned standalone StyLua (retry)
+      uses: JohnnyMorganz/stylua-action@76fd70c03e6340ceaf673366712db9b20560b402 # v5.0.0
       with:
         token: ${{ github.token }}
         version: v2.1.0

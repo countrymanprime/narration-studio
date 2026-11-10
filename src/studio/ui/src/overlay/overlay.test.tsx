@@ -8,6 +8,7 @@ import { TOAST_INFO_MS } from '../components/primitives/Toast';
 import { OverlayHost } from './OverlayHost';
 import { OverlayProvider, useOverlay } from './OverlayProvider';
 import { createOverlayService, type OverlayService } from './overlayService';
+import { outwaitEcho } from '../components/primitives/outwaitEcho';
 
 let service: OverlayService;
 beforeEach(() => {
@@ -67,6 +68,7 @@ describe('overlay.confirm', () => {
     let settled = false;
     void ask().then(() => (settled = true));
     await screen.findByRole('alertdialog');
+    await outwaitEcho();
     await userEvent.click(document.querySelector('[data-dialog-backdrop]')!);
     await act(async () => void (await Promise.resolve()));
     expect(settled).toBe(false);
@@ -77,6 +79,7 @@ describe('overlay.confirm', () => {
     mount();
     service.open({ kind: 'dialog', title: 'Detail view', dismissOnOutsidePress: true, render: () => <p>Read only</p> });
     await screen.findByRole('dialog', { name: 'Detail view' });
+    await outwaitEcho();
     await userEvent.click(document.querySelector('[data-dialog-backdrop]')!);
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Detail view' })).toBeNull());
 
@@ -87,6 +90,7 @@ describe('overlay.confirm', () => {
       render: () => <input aria-label="Name" />,
     });
     await screen.findByRole('dialog', { name: 'Add milestone' });
+    await outwaitEcho();
     await userEvent.click(document.querySelector('[data-dialog-backdrop]')!);
     await act(async () => void (await Promise.resolve()));
     expect(screen.getByRole('dialog', { name: 'Add milestone' })).toBeTruthy();

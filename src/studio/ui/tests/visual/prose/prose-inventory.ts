@@ -585,7 +585,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     text: 'The Booth reads the chapters of this book. Go back to the chapters to pick one.',
     class: 'empty',
   },
-  { file: 'components/connection/ChapterLinkDialog.tsx', text: '… cannot add a track from this app. Add one in …, then check again.', class: 'overlay' },
+  { file: 'components/connection/ChapterLinkDialog.tsx', text: '… cannot add a … from this app. Add one in …, then check again.', class: 'overlay' },
   {
     file: 'components/connection/ReaperOffDialog.tsx',
     text: 'The project is linked, but … has not connected: it is closed, or its bridge has not started yet.',
@@ -633,7 +633,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
   { file: 'components/engine/EnginePanel.tsx', text: '… chapters can’t get a stage suggestion until their track links are confirmed below.', class: 'state' },
   {
     file: 'components/engine/VoicesCard.tsx',
-    text: 'Flat: a chapter is one track. Voice folders: a chapter is a folder, one child track per voice.',
+    text: 'Flat: a chapter is one track (a chapter linked to a folder that holds only tracks of its own, none another chapter is linked to, still records on one of them). Voice folders: a chapter is a folder, one child track per voice.',
     class: 'overlay',
   },
   {

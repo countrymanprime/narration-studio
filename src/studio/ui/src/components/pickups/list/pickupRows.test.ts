@@ -72,6 +72,9 @@ describe('pickupRows', () => {
     expect(clock(null)).toBe('—');
     expect(parseClock('5:12')).toBe(312);
     expect(parseClock('05:12.5')).toBe(312.5);
+    expect(parseClock('1:39:00.0')).toBe(5940);
+    expect(parseClock(clock(5940))).toBe(5940);
+    expect(parseClock('1:60:00')).toBeNull();
     expect(parseClock('soon')).toBeNull();
     expect(parseClock('')).toBeNull();
   });

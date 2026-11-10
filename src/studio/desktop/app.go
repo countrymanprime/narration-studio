@@ -76,7 +76,7 @@ import (
 // Keep this in lockstep with src/studio/ui/src/hostApi.ts.  The frontend rejects
 // an older host before bootstrapping so a partial update cannot run against a
 // binding contract it does not understand.
-const hostAPIVersion = 163
+const hostAPIVersion = 164
 
 // Host is the Wails binding boundary. The frontend invokes only this bound
 // object; it never receives a loopback port or an HTTP capability.
@@ -263,6 +263,10 @@ type Host struct {
 	// DawUndoLast (bindings_daw_undo_last.go) ask it to read and undo the app's own last action. Nil with no bridge client or no such
 	// role.
 	lastActionUndoer dawport.LastActionUndoer
+	// projectSaver is the DAW port's save_project role over the same adapter as takeSelector: DawSaveProject
+	// (bindings_daw_save_project.go) asks it to save the linked project on the narrator's click. Nil with no bridge client or no such
+	// role.
+	projectSaver dawport.ProjectSaver
 	// monitorLeveler is the DAW port's monitor_level role over the same adapter as takeSelector: DawMonitorLevel and
 	// DawSetMonitorLevel (bindings_daw_levels.go) ask it to read and set the monitor level. Nil with no bridge client or no such role.
 	monitorLeveler dawport.MonitorLeveler
@@ -830,6 +834,7 @@ func (h *Host) configureLocked(next config) {
 		h.rangeGain, _ = dawAdapter.Role(dawport.CapRangeGain).(dawport.RangeGainReducer)
 		h.clickRepairer, _ = dawAdapter.Role(dawport.CapClickRepair).(dawport.ClickRepairer)
 		h.lastActionUndoer, _ = dawAdapter.Role(dawport.CapUndoLast).(dawport.LastActionUndoer)
+		h.projectSaver, _ = dawAdapter.Role(dawport.CapSaveProject).(dawport.ProjectSaver)
 		h.monitorLeveler, _ = dawAdapter.Role(dawport.CapMonitorLevel).(dawport.MonitorLeveler)
 		h.prerollReader, _ = dawAdapter.Role(dawport.CapPunchPreroll).(dawport.PrerollReader)
 		h.meterReader, _ = dawAdapter.Role(dawport.CapDawMeters).(dawport.MeterReader)
@@ -842,6 +847,7 @@ func (h *Host) configureLocked(next config) {
 	} else {
 		h.takeSelector, h.puncher, h.rangeCutter, h.rangeFX, h.takeStacker = nil, nil, nil, nil, nil
 		h.filePreviewer, h.fileRevealer, h.rangeGain, h.clickRepairer, h.lastActionUndoer = nil, nil, nil, nil, nil
+		h.projectSaver = nil
 		h.monitorLeveler, h.placeFollower, h.transportSyncer, h.prerollReader, h.meterReader, h.rangeReplacer = nil, nil, nil, nil, nil, nil
 		// An Audacity project's place and track-selection roles are the Audacity adapter's, over the project's one pipe client.
 		if h.audacity != nil {
@@ -1597,6 +1603,9 @@ func (h *Host) Ready() map[string]any {
 }
 
 func (h *Host) Bootstrap() map[string]any {
+	// The Booth's press asks for this just before its start tone (useRecordControl.toggle), so "bootstrapped" is when the tone starts.
+	h.timeline.Note("bootstrap_call")
+	defer h.timeline.Note("bootstrapped")
 	// The first Bootstrap means the window loaded and the UI accepted this host: an update that was just installed has worked.
 	h.confirmUpdate.Do(h.confirmInstalledUpdate)
 	svc := h.services()

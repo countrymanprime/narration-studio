@@ -259,7 +259,7 @@ use the same IDs, and the rules not met in the files table are those same findin
 [Proof](proof.md#delivery-checks) too, so a decision you make there is the report's decision. It is a
 measurement, not a distributor's approval.
 
-Files are named only by their file name unless you tick **Include each file's full location**. No audio and
+Files are named only by their file name unless you tick **Include each file's full location** (off, with the reason beside **Export report**, until some files are measured). No audio and
 no manuscript text is ever written into the report. Export needs a project open and files measured, and
 is refused while a check or diagnostics run is running.
 

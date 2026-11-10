@@ -8,6 +8,7 @@ import { createOverlayService } from '../../../overlay/overlayService';
 import { PortOverrides } from '../../../ports/usePort';
 import type { NarrationApi } from '../../../types';
 import { resetOpenOnce } from '../../connection/useOpenOnce';
+import { VoiceLayoutContext } from '../../engine/voiceLayout';
 import { forgetAppTake } from '../record/useRecordControl';
 import { BoothNextPage } from './BoothNextPage';
 import { BoothHost, dawFor, newJournal, pageApi } from './testPage';
@@ -45,12 +46,20 @@ const EMPTY_PROJECT: ChapterTrackMatch = {
 };
 
 /** A Booth on an unlinked chapter whose host links it once a track is created (or chosen), as the real host's link store does. */
-function renderUnlinked(over: Partial<NarrationApi> = {}) {
+function renderUnlinked(over: Partial<NarrationApi> = {}, layout: 'flat' | 'folders' = 'flat') {
   let linked = false;
   const chapterTrackCreate = vi.fn(async (chapterId: string): Promise<ChapterTrackCreateResult> => {
     linked = true;
     const link = { trackGuid: '{NEW}', chapterId, chapterTitle: 'Chapter 1', confirmedAt: '2026-10-23T10:00:00Z', origin: 'manual' as const, match: null };
-    return { outcome: 'created', documentId: 'doc', link, displaced: null, mappings: [link], track: { guid: '{NEW}', name: 'Chapter 1', index: 0 } };
+    return {
+      outcome: 'created',
+      documentId: 'doc',
+      link,
+      displaced: null,
+      mappings: [link],
+      track: { guid: '{NEW}', name: 'Chapter 1', index: 0 },
+      ...(layout === 'folders' ? { voice: { guid: '{NARRATOR}', name: 'Narrator', index: 1 } } : {}),
+    };
   });
   const teleprompterStart = vi.fn(async () => ({ status: 'started' as const }));
   const api = pageApi({
@@ -66,7 +75,9 @@ function renderUnlinked(over: Partial<NarrationApi> = {}) {
   render(
     <BoothHost api={api} daw={daw} journal={newJournal()} overlay={overlay}>
       <PortOverrides clients={{ daw }}>
-        <BoothNextPage hasManuscript navigate={vi.fn()} />
+        <VoiceLayoutContext.Provider value={layout}>
+          <BoothNextPage hasManuscript navigate={vi.fn()} />
+        </VoiceLayoutContext.Provider>
       </PortOverrides>
     </BoothHost>,
   );
@@ -139,6 +150,26 @@ describe('an unlinked chapter in the Booth', () => {
     gone = true;
     window.dispatchEvent(new Event('focus'));
     await waitFor(() => expect(screen.queryByRole('button', { name: /not armed/, hidden: true })).toBeNull());
+  });
+
+  // #3271: the layout is a project setting, so a Voice folders project is never told that a chapter records on a track.
+  it('in a Voice folders project the prompt, the chip, the footer and the toast after Create a new folder all say folder', async () => {
+    const { overlay, chapterTrackCreate } = renderUnlinked({}, 'folders');
+    const dialog = await screen.findByRole('dialog', { name: 'Chapter One is not linked to a folder' });
+    expect(within(dialog).getByText("Record can't start until Chapter One has a folder of voice tracks to record on.")).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Not linked to a folder. Show details', hidden: true })).toBeTruthy();
+    expect(screen.getByText('Chapter One has no folder to record on. Press Record to link one.')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Recording setup: REAPER, no folder', hidden: true })).toBeTruthy();
+    await userEvent.click(await within(dialog).findByRole('button', { name: 'Create a new folder' }));
+    expect(chapterTrackCreate).toHaveBeenCalledWith('c1');
+    await waitFor(() =>
+      expect(
+        overlay
+          .getSnapshot()
+          .toasts.map((t) => t.text)
+          .join(' '),
+      ).toBe('Folder “Chapter 1” with a Narrator track added in REAPER and linked to Chapter One. Save the REAPER project to keep it.'),
+    );
   });
 
   it('creates a track for the chapter, links it, says so, and Record then starts a take', async () => {

@@ -73,7 +73,9 @@ func (h *Host) boothVoiceAddOne(ctx context.Context, svc hostServices, creator d
 		return BoothVoiceAdded{}, err
 	}
 	if !folder {
-		return boothVoiceAddRefused(boothVoiceFlat, "This chapter records on one track. Voice tracks are added to a chapter linked to a folder, in a Voice folders project (the audio engine panel)."), nil
+		return boothVoiceAddRefused(boothVoiceFlat, notAFolderSentence(svc,
+			"This chapter records on one track. Voice tracks are added to a chapter linked to a folder of voices (the audio engine panel).",
+			"This chapter is not linked to a folder of voices, so a voice track cannot be added to it. Link or create its folder first.")), nil
 	}
 	engine := readAloudAdapterName(svc)
 	name = cleanTrackName(name)
@@ -92,7 +94,7 @@ func (h *Host) boothVoiceAddOne(ctx context.Context, svc hostServices, creator d
 		return boothVoiceAddRefused(trackCreateRecording, fmt.Sprintf("%s is recording. Stop the take, then add the track.", engine)), nil
 	}
 	if creator == nil {
-		unavailable := trackCreateUnavailable(engine, name, support)
+		unavailable := trackCreateUnavailable(engine, name, support, "track")
 		return boothVoiceAddRefused(unavailable.Reason, unavailable.Message), nil
 	}
 	child, ok := creator.(dawport.ChildTrackCreator)
@@ -105,7 +107,7 @@ func (h *Host) boothVoiceAddOne(ctx context.Context, svc hostServices, creator d
 		return boothVoiceAddRefused(readAloudTrackMissing, fmt.Sprintf("This chapter's folder is no longer in the %s project. Link the chapter again in the audio engine panel.", engine)), nil
 	}
 	if err != nil {
-		refusal := trackCreateError(engine, name, err)
+		refusal := trackCreateError(engine, name, err, "track")
 		return boothVoiceAddRefused(refusal.Reason, strings.Replace(refusal.Message, ", then link it.", " inside the chapter's folder.", 1)), nil
 	}
 	added := cleanTrackName(created.Name)
@@ -128,7 +130,7 @@ func (h *Host) boothVoiceAddOne(ctx context.Context, svc hostServices, creator d
 func (h *Host) BoothVoiceAdd(chapterID, name string, characterIDs []string) (string, error) {
 	svc := h.services()
 	creator, support := trackCreatorFrom(svc)
-	ctx, cancel := context.WithTimeout(context.Background(), readAloudRecordStartTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), readAloudVoiceStartTimeout)
 	defer cancel()
 	return encodeBinding(h.boothVoiceAddIn(ctx, svc, creator, support, chapterID, name, characterIDs))
 }

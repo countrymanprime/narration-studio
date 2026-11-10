@@ -3,7 +3,7 @@ import { useApi } from '../../api/ApiContext';
 import type { ProductionChapter } from '../../api/contracts/production';
 import { STATUS_LABELS, STATUS_TONE } from '../../chapterStatus';
 import { Dot, toneColors } from '../primitives/StatusBadge';
-import { clockText } from './boothProgress';
+import { clock } from '../../clock';
 
 /**
  * The companion's "This chapter" (mock 07: "Recorded 12:40 · check 97% coverage", "QC: not mastered · head room tone 0.3 s"):
@@ -40,7 +40,7 @@ export function CompanionThisChapter({ chapterId }: { chapterId?: string }) {
     <ul className="space-y-1.5 text-sm">
       <li className="flex items-center gap-2">
         <Dot color={chapter.recordedSeconds === null ? toneColors('neutral').text : 'var(--ok)'} />
-        {chapter.recordedSeconds === null ? 'Recorded length not measured' : `Recorded ${clockText(chapter.recordedSeconds)}`}
+        {chapter.recordedSeconds === null ? 'Recorded length not measured' : `Recorded ${clock(chapter.recordedSeconds)}`}
       </li>
       <li className="flex items-center gap-2">
         <Dot color={stageTone} />

@@ -2,7 +2,7 @@ import type { WordFx } from '../../../api/contracts/wordFx';
 import { Button } from '../../primitives/Button';
 import { SectionLabel } from '../../primitives/SectionLabel';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../primitives/Table';
-import { clock } from '../bar/clock';
+import { clock } from '../../../clock';
 import type { CutSpan } from '../model';
 import { fxSpan } from '../range/fx/fxCommand';
 import { fmtPct, shareOf } from './effectsMath';

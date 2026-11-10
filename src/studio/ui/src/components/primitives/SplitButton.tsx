@@ -1,5 +1,6 @@
 import type { ComponentPropsWithRef, ReactNode } from 'react';
 import { Icon } from './Icon';
+import { PendingSpinner } from './PendingSpinner';
 import { TooltipTarget } from './Tooltip';
 
 // One control made of joined parts: a main action and a side button that opens a menu or popover (the Booth's Record and its Levels, where the
@@ -37,10 +38,35 @@ type PartProps = ComponentPropsWithRef<'button'>;
 
 /**
  * The main action; at least 5.75 rem wide so Record and Stop are the same width. `tone` `primary` is the accent fill, `cold` the outlined
- * info colour of a cold read, never a take's fill or red. `hint` is its tooltip, for a state the label alone does not explain.
+ * info colour of a cold read, never a take's fill or red. `hint` is its tooltip, for a state the label alone does not explain. `pending`: the
+ * action it started is running (see `Button`).
  */
-export function SplitMain({ tone = 'primary', hint, className = '', type = 'button', ...rest }: PartProps & { tone?: 'primary' | 'cold'; hint?: string }) {
-  const button = <button type={type} className={`${PART} ${TONES[tone]} ${DISABLED} min-w-[5.75rem] ${className}`} {...rest} />;
+export function SplitMain({
+  tone = 'primary',
+  hint,
+  className = '',
+  type = 'button',
+  pending = false,
+  onClick,
+  children,
+  ...rest
+}: PartProps & { tone?: 'primary' | 'cold'; hint?: string; pending?: boolean }) {
+  // `pending` is `Button`'s pending state, drawn for a filled part: busy (`aria-busy`, a spinner before the label), a click ignored, still focusable.
+  // The label stays at full strength (a dimmed label over the accent fill measured 2.56:1 in light, and a take's wait can last seconds), so the
+  // spinner and a progress cursor say the wait.
+  const button = (
+    <button
+      type={type}
+      aria-busy={pending || undefined}
+      aria-disabled={pending || undefined}
+      onClick={pending ? (event) => event.preventDefault() : onClick}
+      className={`${PART} ${TONES[tone]} ${DISABLED} min-w-[5.75rem] aria-busy:cursor-progress aria-busy:aria-disabled:opacity-100 ${className}`}
+      {...rest}
+    >
+      {pending && <PendingSpinner />}
+      {children}
+    </button>
+  );
   return hint ? <TooltipTarget text={hint}>{button}</TooltipTarget> : button;
 }
 

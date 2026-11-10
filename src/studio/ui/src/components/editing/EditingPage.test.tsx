@@ -13,7 +13,7 @@ import { overlay } from '../../overlay/overlayService';
 import { createJournal } from '../../studio/journal/createJournal';
 import { createMockDawClient, type DawClient } from '../../ports/daw';
 import type { NarrationApi } from '../../types';
-import { clock } from './bar/clock';
+import { clock } from '../../clock';
 import { useSelectionActions } from './bar/selectionActions';
 import { drawSections } from './drawer/drawerSections';
 import { useFlagActions } from './flags/flagActions';

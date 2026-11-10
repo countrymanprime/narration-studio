@@ -1,7 +1,7 @@
 import type { WordFx } from '../../../api/contracts/wordFx';
 import { IconButton } from '../../primitives/IconButton';
 import { SectionLabel } from '../../primitives/SectionLabel';
-import { clock } from '../bar/clock';
+import { clock } from '../../../clock';
 import type { CutSpan } from '../model';
 import { fxSpan } from '../range/fx/fxCommand';
 

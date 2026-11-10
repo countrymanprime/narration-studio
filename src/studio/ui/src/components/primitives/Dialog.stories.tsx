@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState } from 'react';
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test';
 import { Button } from './Button';
+import { outwaitEcho } from './outwaitEcho';
 import { Dialog } from './Dialog';
 import { Field } from './Field';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './Table';
@@ -191,6 +192,8 @@ export const BackdropPressCloses: Story = {
   args: { dismissOnOutsidePress: true, title: 'Keyboard shortcuts', actions: null },
   play: async ({ args }) => {
     await screen.findByRole('dialog', { name: 'Keyboard shortcuts' });
+    // A press in the first half second is the echo of the click that opened it, not a dismissal.
+    await outwaitEcho();
     await userEvent.click(document.querySelector('[data-dialog-backdrop]') as HTMLElement);
     await expect(args.onClose).toHaveBeenCalledOnce();
   },

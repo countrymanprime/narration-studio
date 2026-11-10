@@ -3,7 +3,11 @@ import { registerCommandProvider, type ProvidedCommand } from '../../input/comma
 import { ZOOM_STEPS } from '../../hooks/useZoom';
 import { CATEGORIES } from '../settings/registry/categories';
 
+const NO_PROJECT = 'Open a project first';
+
 export type ShellCommandsInput = {
+  /** False while only the project picker is there: the manuscript commands are off, with a reason that says so. */
+  hasProject: boolean;
   hasManuscript: boolean;
   /** Opens Settings, on a category when given. */
   openSettings: (categoryId?: string) => void;
@@ -31,7 +35,7 @@ export function useShellCommands(input: ShellCommandsInput): void {
   useEffect(
     () =>
       registerCommandProvider(() => {
-        const { hasManuscript, openSettings, importManuscript, darkTheme, toggleTheme, zoomPercent, setZoom, undoLabel, undo } = latest.current;
+        const { hasProject, hasManuscript, openSettings, importManuscript, darkTheme, toggleTheme, zoomPercent, setZoom, undoLabel, undo } = latest.current;
         const commands: ProvidedCommand[] = [
           ...CATEGORIES.map((category) => ({
             id: `settings.category.${category.id}`,
@@ -44,14 +48,14 @@ export function useShellCommands(input: ShellCommandsInput): void {
             id: 'manuscript.import',
             group: 'Manuscript',
             label: 'Import manuscript…',
-            disabledReason: hasManuscript ? 'This project has a manuscript: use Replace manuscript…' : undefined,
+            disabledReason: !hasProject ? NO_PROJECT : hasManuscript ? 'This project has a manuscript: use Replace manuscript…' : undefined,
             run: importManuscript,
           },
           {
             id: 'manuscript.replace',
             group: 'Manuscript',
             label: 'Replace manuscript…',
-            disabledReason: hasManuscript ? undefined : 'There is no manuscript to replace: use Import manuscript…',
+            disabledReason: !hasProject ? NO_PROJECT : hasManuscript ? undefined : 'There is no manuscript to replace: use Import manuscript…',
             // Replace lives in Settings' Project category, with the confirmation of what it clears.
             run: () => openSettings('project'),
           },

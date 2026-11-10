@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
 import { ChapterLinkDialog } from '../../connection/ChapterLinkDialog';
+import { destinationFor } from '../../engine/destination';
+import { useVoiceLayout } from '../../engine/voiceLayout';
 import { ConnectionIndicator } from '../../connection/ConnectionIndicator';
 import { useOpenOnce } from '../../connection/useOpenOnce';
 import type { ChapterAudio } from './chapterSource';
@@ -25,12 +27,13 @@ export function useChapterLink({
   hold: boolean;
   onReread: () => void;
 }): { indicator: ReactNode; dialog: ReactNode } {
+  const layout = useVoiceLayout();
   const problem = isLinkProblem(audio, daw);
   const state = useOpenOnce(problem ? `chapter-unlinked:${chapterId}:${audio.kind}` : null, hold);
   if (!problem || daw === null || audio.kind === 'ready' || audio.kind === 'empty') return { indicator: null, dialog: null };
-  const text = noAudioText(audio, chapterName, daw);
+  const text = noAudioText(audio, chapterName, daw, layout);
   return {
-    indicator: <ConnectionIndicator id="noaudio" label="Not linked to a track" onOpen={state.reopen} />,
+    indicator: <ConnectionIndicator id="noaudio" label={destinationFor(layout).notLinkedChip} onOpen={state.reopen} />,
     dialog: state.open ? (
       <ChapterLinkDialog
         chapterId={chapterId}
@@ -38,7 +41,7 @@ export function useChapterLink({
         // The title says which problem it is; the description says what it costs, not the same sentence again.
         sentence={
           audio.kind === 'missing'
-            ? `Linking a track replaces the old link. There is no audio to edit meanwhile. ${text.next}`
+            ? `Linking a ${destinationFor(layout).noun} replaces the old link. There is no audio to edit meanwhile. ${text.next}`
             : `There is no audio to edit yet. ${text.next}`
         }
         dawName={daw}

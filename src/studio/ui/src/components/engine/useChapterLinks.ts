@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePort } from '../../ports/usePort';
 import { headingName } from '../../chapterHeading';
 import { chapterTrackRows, type ChapterTrackRow } from './chapterTrackRows';
+import { keptTitle } from '../mapping/trackHeldBy';
 import type { ManuscriptChapter, Track, TrackMapping } from '../../types';
 import type { ChapterTrackCreateResult } from '../../api/contracts/chapterTrackMap';
 
@@ -19,6 +20,8 @@ export type ChapterLinks = {
   error: string;
   /** What the last change did beyond the chapter asked for: the chapter a picked track was taken from and is now not linked; empty otherwise. */
   notice: string;
+  /** Drops the notice, for a surface that shows it opening anew (the dialog, so a takeover from an earlier session is not repeated). */
+  clearNotice: () => void;
   /** The chapter whose link is being changed, or empty. */
   busyChapterId: string;
   /** The chapter whose track `create` is adding, or empty: from any mount, so a panel opened again while a create runs shows it busy. */
@@ -98,7 +101,7 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
     // refreshKey has no meaning of its own: it only asks this effect to run again after a change made elsewhere (chapter sync's panel).
   }, [reload, refreshKey, enabled]);
 
-  const change = (chapterId: string, write: () => Promise<unknown>) => {
+  const change = (chapterId: string, write: () => Promise<unknown>, quietAfter = false) => {
     if (inFlight.current) return;
     inFlight.current = true;
     setBusyChapterId(chapterId);
@@ -107,9 +110,13 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
     write()
       .then((result) => {
         // ChapterTrackSet moves a track another chapter holds; say so, or that chapter goes to "Not linked" unseen (#3053).
-        const displaced = (result as { displaced?: { chapterId: string } | null } | undefined)?.displaced;
+        const displaced = (result as { displaced?: { chapterId: string; chapterTitle?: string } | null } | undefined)?.displaced;
+        // A chapter the manuscript no longer lists is still named, by the title the host kept with its link, so no takeover is silent.
         const taken = displaced && chapters.find((chapter) => chapter.id === displaced.chapterId);
-        if (taken) setNotice(`${headingName(taken)} was linked to that track and is now not linked.`);
+        if (displaced)
+          setNotice(
+            `${taken ? headingName(taken) : (keptTitle(displaced.chapterTitle) ?? 'A chapter no longer in the manuscript')} was linked to that track and is now not linked.`,
+          );
       })
       .then(() => reload())
       .then(() => onChanged())
@@ -117,6 +124,8 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
       .finally(() => {
         inFlight.current = false;
         setBusyChapterId('');
+        // An Unlink puts "Create a track" where Clear was, so a fast second click would press it: same quiet window as after a create (#3272).
+        if (quietAfter) createGuard.quietUntil = Date.now() + CREATE_QUIET_MS;
       });
   };
   // Set, not Confirm: it replaces the chapter's link rather than adding a second one beside it, so a Change never leaves it on two tracks.
@@ -125,7 +134,17 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
     if (mappings.some((mapping) => mapping.chapterId === chapterId && mapping.trackGuid === trackGuid)) return;
     change(chapterId, () => chapterTrackMap.chapterTrackSet(chapterId, trackGuid));
   };
-  const unlink = (chapterId: string) => change(chapterId, () => chapterTrackMap.chapterTrackUnlink(chapterId));
+  // Unlink answers with the links that remain, so the row shows Not linked at once; the re-read that follows reconciles (#3272).
+  const unlink = (chapterId: string) =>
+    change(
+      chapterId,
+      async () => {
+        const result = await chapterTrackMap.chapterTrackUnlink(chapterId);
+        setMappings(result.mappings);
+        return result;
+      },
+      true,
+    );
 
   // Mounted while a create from an earlier mount runs (the panel closed and opened again): busy until it ends, then read the links again.
   useEffect(() => {
@@ -190,5 +209,6 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
   // The chapter list holds the credits, so they are rows like any chapter.
   const rows = useMemo(() => chapterTrackRows(chapters, shown, mappings), [chapters, shown, mappings]);
 
-  return { tracks: shown, chapters, mappings, rows, error, notice, busyChapterId, creatingChapterId, set, unlink, create };
+  const clearNotice = () => setNotice('');
+  return { tracks: shown, chapters, mappings, rows, error, notice, clearNotice, busyChapterId, creatingChapterId, set, unlink, create };
 }

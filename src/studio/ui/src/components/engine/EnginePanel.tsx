@@ -13,7 +13,6 @@ import { AudacityLinkCard } from './AudacityLinkCard';
 import { CheckLine } from '../layout/CheckLine';
 import { ChapterLinksTable } from './ChapterLinksTable';
 import { ChapterSyncPanel } from './ChapterSyncPanel';
-import { TrackList } from './TrackList';
 import { LayoutToggle, VoicesCard } from './VoicesCard';
 import { VoiceLayoutContext } from './voiceLayout';
 import { useVoiceTracks } from './useVoiceTracks';
@@ -55,7 +54,7 @@ export type EngineLinkState = {
 /**
  * The engine panel, opened from the header's engine
  * chip on any page. It holds what the Tracks page held that is about REAPER rather than a stage: the linked `.rpp` (link,
- * relink, or choose between several), the REAPER tools, chapter sync, and the track list with each track's chapter and the Chapter links table. The Tracks page's player
+ * relink, or choose between several), the REAPER tools, chapter sync, and the Chapter links table (the one list of tracks: each chapter and the track it is linked to). The Tracks page's player
  * is gone: a chapter is heard in its Proof chapter view. Everything loads when the panel opens (a closed SlideOver is not
  * mounted), so the panel costs nothing on a page that never opens it.
  */
@@ -107,7 +106,7 @@ function EnginePanelBody({ notify, link, onOpenRecordingSettings }: { notify: No
   const voices = useVoiceTracks(notify);
   // Chapter sync draws the layout switch as its Layout row while it is drawn at all; otherwise the Voices card does.
   const [layoutInSync, setLayoutInSync] = useState(false);
-  // The one reader of the chapter links: the Link chapters button and dialog, the Tracks card and the Chapter links section all use it.
+  // The one reader of the chapter links: the Link chapters button and dialog, and the Chapter links table both use it.
   const links = useChapterLinks(project?.tracks ?? NO_TRACKS, refresh, () => setRefresh((count) => count + 1), forAudacity ? null : live.readAt);
   // Read-only here, so onStatus is a no-op; a Link or a Change below is exactly
   // what resolves an unmapped_track/unconfirmed_mapping cause.
@@ -207,7 +206,6 @@ function EnginePanelBody({ notify, link, onOpenRecordingSettings }: { notify: No
               : 'This REAPER project has no tracks yet.'}
           </p>
         )}
-        {hasTracks && <TrackList tracks={project.tracks} mappings={links.mappings} />}
         {project && unmappedCount > 0 && (
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
             {unmappedCount === 1

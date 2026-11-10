@@ -13,7 +13,7 @@ export const engineDrivers: Record<string, Driver> = {
     await settlePage(page);
     // Proof's notes, behind the modal panel (so out of the accessibility tree, hence the CSS locator), have arrived too.
     await page.locator('table[aria-label="Notes"] tbody tr[data-row]').first().waitFor();
-    await page.getByRole('dialog', { name: 'Audio engine' }).getByRole('table', { name: 'Tracks' }).waitFor();
+    await page.getByRole('dialog', { name: 'Audio engine' }).getByRole('table', { name: 'Chapter links' }).waitFor();
   },
   'sync-off': async (page) => {
     await page.goto('/?mockChapterSync=off');
@@ -116,10 +116,7 @@ export const engineDrivers: Record<string, Driver> = {
     const layout = page.getByRole('group', { name: 'Chapter layout' });
     await layout.waitFor();
     await layout.evaluate((node) => node.closest('section, [data-panel], div')?.scrollIntoView({ block: 'start' }));
-    await page
-      .getByRole('treegrid', { name: 'Tracks' })
-      .getByRole('row', { name: /Extras/ })
-      .waitFor();
+    await page.getByRole('table', { name: 'Chapter links' }).getByText('Chapter 1 · 3 voices').waitFor();
   },
   'voice-folders-links': async (page) => {
     await page.goto('/?mockVoiceFolders=1');
@@ -153,14 +150,6 @@ export const engineDrivers: Record<string, Driver> = {
     await trigger.scrollIntoViewIfNeeded();
     await trigger.click();
     await page.getByRole('treeitem', { name: /White Rabbit/ }).waitFor();
-  },
-  'folder-tracks': async (page) => {
-    await page.goto('/?mockTrackFolders=1');
-    await settlePage(page);
-    await openEnginePanel(page);
-    const tree = page.getByRole('treegrid', { name: 'Tracks' });
-    await tree.scrollIntoViewIfNeeded();
-    await tree.getByRole('row', { name: /Narration/ }).waitFor();
   },
   'folder-tracks-picker': async (page) => {
     await page.goto('/?mockTrackFolders=1&mockChapterLink=none');
@@ -201,7 +190,7 @@ export const engineDrivers: Record<string, Driver> = {
     // instant Confirm turns it into the linked view (no combobox), so `waitFor` below would wait forever.
     const firstRow = table.locator('tbody tr').first();
     await firstRow.getByRole('combobox').selectOption({ index: 1 });
-    await firstRow.getByRole('button', { name: 'Confirm' }).click();
+    await firstRow.getByRole('button', { name: /^Use this (track|folder) for/ }).click();
     await firstRow.getByRole('button', { name: 'Change the track' }).waitFor();
   },
   'chapter-track-created': async (page) => {

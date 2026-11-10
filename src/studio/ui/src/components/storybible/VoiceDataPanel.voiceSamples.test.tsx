@@ -57,7 +57,7 @@ describe("Narration's samples and the totals", () => {
     const narration = await screen.findByRole('region', { name: 'Narration voice samples' });
     expect(await within(narration).findByText(/No voice samples yet/)).toBeTruthy();
     expect(screen.queryByText(ORPHAN_HEADING)).toBeNull();
-    expect(screen.getByRole('button', { name: 'Remove voice samples…' }).hasAttribute('disabled')).toBe(true);
+    expect(screen.getByRole('button', { name: 'Remove voice samples…' }).getAttribute('aria-disabled')).toBe('true');
     expect(screen.getByText(/^Voice samples use 0 MiB of 200 MiB\.$/)).toBeTruthy();
   });
 

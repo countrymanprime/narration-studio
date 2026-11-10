@@ -3,7 +3,7 @@ import type { WordFx } from '../../../api/contracts/wordFx';
 import { NumberInput } from '../../primitives/NumberInput';
 import { SectionLabel } from '../../primitives/SectionLabel';
 import { StatusBadge, type StatusTone } from '../../primitives/StatusBadge';
-import { clock } from '../bar/clock';
+import { clock } from '../../../clock';
 import type { CutSpan } from '../model';
 import { FX_CAP_LABEL, FX_CAP_MAX, FX_CAP_MIN, FX_CAP_PCT, capState, coverageOf, fmtPct, liveEffects, spanOf, type CapState } from './effectsMath';
 

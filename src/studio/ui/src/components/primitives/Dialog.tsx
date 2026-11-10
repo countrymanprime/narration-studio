@@ -1,4 +1,5 @@
 import { markDialogClosed } from './dialogClosed';
+import { ECHO_WINDOW_MS } from './echoGuard';
 import { AlertDialog } from '@base-ui/react/alert-dialog';
 import { Dialog as BaseDialog } from '@base-ui/react/dialog';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -122,6 +123,7 @@ export function Dialog({
   // Both families share their parts; typing them as one keeps the wrapper a single shell.
   const Parts = (variant === 'alert' ? AlertDialog : BaseDialog) as typeof BaseDialog;
   const popupRef = useRef<HTMLDivElement>(null);
+  const openedAt = useRef(Date.now());
   const bodyRef = useRef<HTMLDivElement>(null);
   // What had focus when the dialog mounted: the button that opened it.
   const [opener] = useState(() => (document.activeElement instanceof HTMLElement ? document.activeElement : null));
@@ -175,6 +177,8 @@ export function Dialog({
       disablePointerDismissal={!dismissOnOutsidePress}
       onOpenChange={(_open, details) => {
         if (details.reason === 'outside-press') {
+          // The second click of a double click on whatever opened this dialog lands on the backdrop: it is not a dismissal.
+          if (Date.now() - openedAt.current < ECHO_WINDOW_MS) return;
           if (onClose) onClose();
           return;
         }

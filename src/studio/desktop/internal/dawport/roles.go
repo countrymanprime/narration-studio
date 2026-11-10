@@ -648,6 +648,15 @@ type TheirAudio struct {
 	Length float64 `json:"length"`
 }
 
+// ProjectSaver writes the engine's open project to its own file, on the narrator's click (never on a timer or as a side effect of a
+// read). projectFile is the project file the app is linked to: the engine saves only when that is the project it has open, so a
+// narrator who opened another project is refused and the wrong file is never written. A project that was never saved is refused too
+// (a save would open the engine's file dialog and stop it answering), as are a recording in progress and a file the engine cannot
+// write; each is a Refused result in a sentence the page shows where the click happened. The OK message says what was saved.
+type ProjectSaver interface {
+	SaveProject(ctx context.Context, projectFile string) (Result, error)
+}
+
 // RangeReplacer replaces words with another narrator's audio and puts the narrator's audio back. ImportTheirAudio puts a file the
 // narrator chose on a new track of the project named for the other narrator, muted so the whole file never plays, one item from 0;
 // one undo point. ReplaceRange sets the narrator's piece aside where it is not heard and never deletes it, plays their stretch in

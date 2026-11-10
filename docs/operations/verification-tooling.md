@@ -19,6 +19,7 @@ What `pnpm check` and CI verify beyond "it lints and the example tests pass", ho
 | Playwright traces on a failing visual test (`trace: 'retain-on-failure'`, uploaded when a `Test (Linux)` visual step fails)                                                                     | `Test (Linux)`                                            | see [CI and releases](ci-and-releases.md)                                                    |
 | Axe on every app state, with a declared, capped debt list                                                                                                                             | `ui-visual` (the visual suite)                            | `pnpm --dir src/studio/ui screenshots`, or `UI_AXE=1` to measure                                   |
 | Aria snapshots: the role trees of the dialogs, the slide-over and the navigation                                                                                                      | `ui-visual`, after the screenshots                        | `pnpm --dir src/studio/ui run aria`                                                                |
+| Dead-control guard: every control of every page, and of the menus and dialogs it opens, acts visibly when pressed, shows it is the current choice, or is off with a reason a keyboard reaches | `ui-visual` (the visual suite) | `pnpm --dir src/studio/ui exec playwright test tests/visual/deadControls.spec.ts` |
 | Overlay guard: every menu, popover, hint, dialog and drawer of a page is the topmost element at its own points and fully on screen                                                    | `ui-visual` (the visual suite)                            | `pnpm --dir src/studio/ui exec playwright test tests/visual/overlays.spec.ts`                      |
 
 ## Go lint and the race detector
@@ -97,6 +98,15 @@ A hint in the top bar also runs one scroll pass (content scrolled to the end, wh
 pnpm --dir src/studio/ui exec playwright test tests/visual/overlays.spec.ts -g "Script"   # one page
 ```
 
+## Dead-control guard
+
+`src/studio/ui/tests/visual/deadControls.spec.ts` holds the owner's rule that no button does nothing or looks like it does nothing (#3276, [frontend-primitives](../../.claude/skills/frontend-primitives/SKILL.md) rule 9). For each page, and for the shell (navigation, top bar) once, it opens the app on the mock backend, presses every button, menu item, tab, switch, checkbox and radio on a fresh load, and then presses the controls inside any menu, popover or dialog that opened. A press passes when the page changed (text, state, an overlay, a toast, the address, focus moved elsewhere, a file chooser, a download or a new window). A control that already shows it is the current choice (`aria-pressed`, `aria-checked`, `aria-selected`, `aria-current`) and an address that leaves the app need no change. A disabled or `aria-disabled` control passes when a title, a description or a tooltip says why, reached by keyboard focus or the pointer.
+
+- A page with many controls is split into parts that run on different workers. Rows of one list count as one control: the first two of each name pattern are pressed.
+- Fix a finding in the control: `Button`/`IconButton` `disabledReason`, `pending`, a toast, or `CheckedStamp` for a Check again that finds the same thing. `tests/visual/guards/dead-controls-allowlist.ts` lists what is owned by another piece of work; it only shrinks.
+- `UI_DEAD_CONTROLS=report:/tmp/dead pnpm --dir src/studio/ui exec playwright test tests/visual/deadControls.spec.ts` writes every finding to `/tmp/dead.<page>.<part>.json` instead of failing.
+- It does not cover what the mock answers instantly (a spinner that never shows against a slow host) or a press that needs data the mock does not have; those are in the PR's Not exercised.
+
 ## Mock match
 
 `pnpm --dir src/studio/ui mock-match` measures how much of each benchmark mock the app reproduces: its layout, features and style, not its words (owner decisions, [Design system reference](../design/design-system.md)). **The reference is `docs/research/mockups/audiobook-studio-benchmark/` and nothing else; every other mock was deleted** ([why](agent-train.md#what-a-job-builds-to)). **The number is a diagnostic, not a gate.** There is no percentage a state must reach, no reason to write when it falls short and no region-attribution table: look at the diff picture and at the mock, and build the page's features and styles. Since D98 (2026-10-11) the research mock is the spec for every page it covers and the tool does not score those pages; it stays only for the benchmark pages the mock lacks (06 Series voice bible, 07 companion) until cutover.
@@ -140,6 +150,7 @@ Nothing blocks on the stamp; `pnpm check` is not a precondition for pushing, bec
 Scripts in `scripts/ci/` check what merges while no person watches each pull request (the reasons are in [CI and releases](ci-and-releases.md)). Each exports pure functions with a `node --test` file beside it. `test-ratchet.mjs` runs from the base branch in CI, so a pull request cannot edit its own check.
 
 - `train-health.mjs heartbeat` reads `Last pass:` from the body of each open issue labelled `agent-train` and comments once per stall on that issue when it is over two hours old and `HOLD` is not ticked. `train-health.mjs hold <reason>` ticks `HOLD` on each of them and says why. `TRAIN_ISSUE=<n>` limits either to one issue. Both need `gh` and a token with `issues: write`.
+- `board-lint.mjs <board.json>` reads the owner board's JSON export and exits 1 on each row that breaks a rule: a row with an `ask` or `question` outside the waiting section, a waiting row with neither, or a building row that names no session or PR (or none in the optional `live` lists). The coordinator runs it before saving the board. It is not a pull request check.
 - `test-ratchet.mjs <base-ref>` diffs `HEAD` against the merge base and prints one line per deleted test file, test file moved to a non-test path, added skip, focus or xfail marker in a test file, and coverage floor in `coverage-floors.json` that fell or was removed. It exits 1 on any; the `test ratchet` step of `quality / lint` turns that into a warning annotation, not a failure. Run it locally before pushing a test change.
 
 ## Latency measurements (manual, Windows)

@@ -9,7 +9,7 @@ import { SectionLabel } from '../../../primitives/SectionLabel';
 import { Select } from '../../../primitives/Select';
 import { overlay } from '../../../../overlay/overlayService';
 import { retryAction } from '../../../primitives/Toast';
-import { clock } from '../../bar/clock';
+import { clock } from '../../../../clock';
 import { DialogFooter } from '../common/DialogFooter';
 import type { ReplaceAsk } from './replaceCommand';
 

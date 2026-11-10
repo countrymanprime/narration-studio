@@ -178,6 +178,11 @@ footer does not repeat the reason, and the setup chip on the top bar warns too (
     to choose from, this is the main button. Save the REAPER project afterwards so the new track is kept; the message after
     creating it reminds you.
 
+  In a project whose layout is **Voice folders** ([Settings](settings.md)) the same messages say folder: **Not linked to a folder**,
+  **Link folder**, **Create a new folder** (REAPER adds a folder named after the chapter with a Narrator track in it), the chip
+  **REAPER · no folder**, and a message after creating it that names the folder and its Narrator ("Folder “Chapter 1” with a Narrator track added
+  in REAPER and linked to Chapter 1"). Record then records on that Narrator, and the voice control lists it, before you save the REAPER project.
+
   Either way Record is ready at once. If the DAW cannot add the track (REAPER is recording or not connected), the dialog says
   why and links nothing. Audacity 3 adds the track too; Audacity 4 has no scripting, so there the dialog says to add the track in Audacity and link it.
 
@@ -292,7 +297,7 @@ recorder's take; its file stays in `Recordings`.
 **R** punches and rolls from the word you are on, or from the phrase you chose with **Start from here**. With no take running it
 starts one in the same press: the text moves to the word, the DAW's cursor goes there and recording starts, so you never press Record first. With a take
 running it records again from there, keeping the earlier audio as a take. The only lead-in is the DAW's own pre-roll (see **Punch** under Record options); the
-Booth adds none. With no take running, the spot is where that passage was recorded before, found in the last recording check and the DAW's items (on a Voice folders project, on the voice that read it, which becomes the voice for the take), and the take records over exactly that spot, after a message that names the track being recorded over ("Recording over ¶ 3 on Hero."); a passage nobody recorded continues from the end of the chapter's audio on every voice, and the Booth says so ("¶ 3 was not recorded before, so the take goes on from the end of the chapter's audio."). When the check is missing or out of date, part of the passage was cut, or it was recorded on two voices, the Booth says so and starts nothing. Pressed again within a moment, it rolls once, not again. Where the DAW would replace the audio instead (Audacity without backups), the Booth asks first ("Roll
+Booth adds none. With no take running, the spot is where that passage was recorded before, found in the last recording check and the DAW's items (on a Voice folders project, on the voice that read it, which becomes the voice for the take), and the take records over exactly that spot, after a message that names the track being recorded over ("Recording over ¶ 3 on Hero."); a passage nobody recorded continues from the end of the chapter's audio on every voice, and the Booth says so ("¶ 3 was not recorded before, so the take goes on from the end of the chapter's audio."). When the check is missing or out of date, part of the passage was cut, or it was recorded on two voices, the Booth says so and starts nothing. From the press until the take starts, **Record** shows a spinner. Pressing Space, **R**, Record or **Start from here** again on the same start meanwhile waits for the same answer and starts nothing more. Where the DAW can punch, **Start from here**, **R** or **Punch and roll** on another phrase while a take is starting is ignored with a message ("A take is already starting, so that press was ignored."), and so is **Start from here** during a plain press (no start chosen): it looks nothing up and does not move the text, and the take that was already starting goes on. If you leave the Booth or change chapter while it waits, the press is dropped and no take begins. Pressed again within a moment, it rolls once, not again. Where the DAW would replace the audio instead (Audacity without backups), the Booth asks first ("Roll
 again from ¶ n?") and holds the take while it asks. **R** is always record: with **Main button** set to **Cold read** it still starts a real take, because only the button, Space and Enter follow the mode.
 
 Click a word to start from it. **↑** and **↓** move by phrase, **←** and **→** by word, **=** and **-** change the text size, and
@@ -300,7 +305,7 @@ Click a word to start from it. **↑** and **↓** move by phrase, **←** and *
 
 Right-click the text for **Start from here** (on a phrase), **Bookmark here** (on a word), **Next phrase**, **Back one phrase**,
 **Punch and roll**, **Larger text**, **Smaller text** and **Exit Booth**. **Start from here** marks where the next take starts;
-during a take it rolls again from that phrase, as **R** does. A take is held while the menu is open.
+during a take it rolls again from that phrase, as **R** does. The mark is for that one take: when the take ends, "Next roll starts from" goes and the next Record starts where the recording ends. A take is held while the menu is open.
 
 While a popover or a menu is open (Record options, Text settings, a speaker, the chapter list, a right-click menu), a foot pedal's Space still starts or stops the take: it closes the popup, as Escape would, and records. The exception is a box you can type in (the speaker search): Space types a space there until focus moves. A choice under **Main button** keeps Space too: on a focused **Record** or **Cold read** it selects that choice and starts nothing. A question ("Stop recording?") or the jump menu keeps every key, Space included, until you answer it. Escape closes the one on top and returns you to the control that opened it.
 
@@ -344,11 +349,11 @@ A cold read keeps listening until you stop it: press the button, which now reads
 
 ### Recording each voice on its own track
 
-In a project set to **Voice folders** ([the audio engine panel](navigation.md#voice-folders)), a chapter linked to a REAPER folder records on
-one of the folder's tracks, its voices, so an effect on a character's track covers every line of that character. The footer then shows the
+In a project set to **Voice folders** ([the audio engine panel](navigation.md#voice-folders)), or whenever a chapter is linked to a REAPER folder
+that holds only tracks of its own (none another chapter is linked to), the chapter records on one of the folder's tracks, its voices, so an effect on a character's track covers every line of that character. The footer then shows the
 voice a take records on, to the left of **Record**: its number-pad key (the number alone, "2") and the track's name, with a red ring when REAPER reports that track
 armed, and a warning sign when REAPER has several tracks armed (Record arms only the voice). Until you choose another, it is the track
-named **Narrator**.
+named **Narrator**. A track another chapter is linked to is never one of the voices, in either layout, so Record never arms another chapter's track.
 
 Press the voice control, or **Num .**, for the folder's voices in REAPER's order, each with its key and the characters it records. Type to
 narrow the list by key, track or character, and press **Enter** or click a voice to choose it. **Num 0** chooses the Narrator track, **Num 1** to **Num 9** the others in order, and **Num +** and **Num −** the next and
@@ -357,7 +362,7 @@ and one undo point, and about a twentieth of a second at the switch is recorded 
 lines. A key pressed before the last one is answered is sent next, so the voice you end on is the one you pressed last. A key with no track
 behind it asks who is in it ([below](#adding-a-voice-track)). Each chapter keeps the voice you chose until you close the app or open another project, and the
 control shows the voice the app will record on, also after you leave the Booth and come back. In a
-chapter that records on one track the voice keys say why they do nothing, and **=** and **-** still change the text size.
+chapter that records on one track, or that is not linked to a folder of voices yet in a Voice folders project, the voice keys say which it is and why they do nothing, and **=** and **-** still change the text size.
 
 ![Booth - the voice control on the record bar, with the voice keys among the key hints](../../images/ui/booth-voices.webp)
 

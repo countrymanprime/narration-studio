@@ -21,7 +21,7 @@ const pathOf = (nodes: readonly TreeNode<Entry>[], at: number): string => {
 };
 
 /**
- * The track picker for a project with REAPER folders: the Tracks card's tree in a popover, so a chapter is linked to a track in its folder. The
+ * The track picker for a project with REAPER folders: REAPER's folder tree in a popover, so a chapter is linked to a track in its folder. The
  * matcher's best match heads it, a search flattens the list to its matches with each one's folder path, a track another chapter holds says so,
  * and a folder with no audio of its own is shown but not choosable. The trigger names the pick with its path. A project with no folders keeps the
  * native select (`TrackSelect` chooses). The widget is the `TreeSelect` primitive; this turns tracks into its rows and owns the search text and

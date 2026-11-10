@@ -3,7 +3,7 @@ import type { DawBackup } from '../../../api/contracts/daw';
 import { IconButton } from '../../primitives/IconButton';
 import { NumberInput } from '../../primitives/NumberInput';
 import { SectionLabel } from '../../primitives/SectionLabel';
-import { clock } from '../bar/clock';
+import { clock } from '../../../clock';
 import { BACKUPS_TEXT, dayOf } from './backupsText';
 import type { BackupsGate } from './useBackups';
 import type { BackupSettingsState } from './useBackupSettings';

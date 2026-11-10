@@ -10,16 +10,15 @@ type Deps = Pick<
   | 'voiceTracksGet'
   | 'voiceTracksSetCharacters'
   | 'chapterTrackMapList'
-  | 'tracksList'
+  | 'tracksLive'
   | 'readAloudRecordStart'
   | 'readAloudRecordStartAt'
   | 'readAloudRecordStop'
   | 'readAloudReaperState'
 >;
 
-const FLAT =
-  'This chapter records on one track. Voice keys choose a voice in a Voice folders project, for a chapter linked to a folder (the audio engine panel).';
-const NOT_A_VOICE = "That track is not a voice of this chapter's folder. Its tracks may have changed in the saved project.";
+const FLAT = 'This chapter records on one track. Voice keys choose a voice for a chapter linked to a folder of voices (the audio engine panel).';
+const NOT_A_VOICE = "That track is not a voice of this chapter's folder. Its tracks may have changed in the DAW.";
 
 const refused = (reason: NonNullable<BoothVoice['reason']>, message: string): BoothVoice => ({ outcome: 'refused', reason, message });
 
@@ -52,11 +51,17 @@ export function createBoothVoiceMock(api: Deps) {
   let addedCount = 0;
   let recording: { chapterId: string; since: number; from: number } | undefined;
 
-  /** The chapter's one link and, in a Voice folders project with that link a folder, its voices. */
+  /** The chapter's one link and, when that link is a folder holding voices (as the host decides), its voices. */
   const voicesOf = async (chapterId: string) => {
-    const [setup, map, project] = await Promise.all([api.voiceTracksGet(), api.chapterTrackMapList(), api.tracksList()]);
+    const [setup, map, project] = await Promise.all([api.voiceTracksGet(), api.chapterTrackMapList(), api.tracksLive().then((answer) => answer.project)]);
     const links = map.mappings.filter((mapping) => mapping.chapterId === chapterId).map((mapping) => mapping.trackGuid);
-    const saved = setup.layout === 'folders' && links.length === 1 ? childrenOf(project.tracks, links[0]) : null;
+    // As the host decides (chapterVoicesIn): the linked folder's own children, whatever the layout says, less any track some chapter is linked
+    // to (that chapter's own); an empty folder is a voice folder only with Voice folders switched on.
+    const own = (links.length === 1 ? childrenOf(project.tracks, links[0]) : null)?.filter(
+      (child) => !map.mappings.some((mapping) => mapping.trackGuid.toLowerCase() === child.guid.toLowerCase()),
+    );
+    const children = own ?? null;
+    const saved = children && (children.length > 0 || setup.layout === 'folders') ? children : null;
     const unsaved = saved ? (added.get(links[0].toUpperCase()) ?? []).filter((voice) => !project.tracks.some((track) => track.guid === voice.guid)) : [];
     const folder = saved ? project.tracks.find((track) => track.guid === links[0]) : undefined;
     const extra: Track[] = unsaved.map((voice, at) => ({

@@ -4,8 +4,9 @@
 import type { CoverageGap, CoverageGapReviews, CoverageReason, CoverageResult, CoverageState } from '../../../api/contracts/coverage';
 import type { Finding } from '../../../api/contracts/findings';
 import type { RecordedUnavailable } from '../../../api/contracts/manuscript';
-import { formatAudioTime, formatWhen, plural } from '../../production/recordingCheckText';
+import { formatWhen, plural } from '../../production/recordingCheckText';
 import { WPH } from '../../schedule/estimates';
+import { clock } from '../../../clock';
 
 export type CardState = 'none' | 'checking' | 'current' | 'stale';
 export type StaleWhy = 'text' | 'recording' | 'save';
@@ -54,10 +55,10 @@ export const NO_RECORDING_WHY: Record<RecordedUnavailable, { text: string; engin
 };
 
 /** The recorded length from the chapter's measured seconds, "—" when none. */
-export const recordedLabel = (seconds: number | undefined): string => (seconds !== undefined && seconds > 0 ? formatAudioTime(seconds) : '—');
+export const recordedLabel = (seconds: number | undefined): string => (seconds !== undefined && seconds > 0 ? clock(seconds) : '—');
 
 /** The script's length at the standard rate (an estimate), "—" when the chapter has no words. */
-export const estimateLabel = (wordCount: number): string => (wordCount > 0 ? `~${formatAudioTime(Math.round((wordCount / WPH) * 3600))}` : '—');
+export const estimateLabel = (wordCount: number): string => (wordCount > 0 ? `~${clock(Math.round((wordCount / WPH) * 3600))}` : '—');
 
 /** "Checked against the script: no differences found" / "1 difference found" / "N differences found". */
 export const checkSentence = (differences: number): string =>
