@@ -4,7 +4,7 @@ import { Checkbox } from '../../../primitives/Checkbox';
 import { RadioGroup } from '../../../primitives/RadioGroup';
 import { SectionLabel } from '../../../primitives/SectionLabel';
 import { Select } from '../../../primitives/Select';
-import { clock } from '../../bar/clock';
+import { clock } from '../../../../clock';
 import { isLow, laterAudio, summarize, type ChapterDoc, type CutSpan, type DocItem, type SelSummary } from '../../model';
 import type { RangeLocator, SnappedEnd } from '../common/locate';
 import { snapText } from '../common/locate';

@@ -1,6 +1,6 @@
 import { Button } from '../../../primitives/Button';
 import { Popover } from '../../../primitives/Popover';
-import { clock } from '../../bar/clock';
+import { clock } from '../../../../clock';
 import { useReplacementMark } from './replacementMarks';
 
 const sec = (n: number): string => `${n.toFixed(2)} s`;

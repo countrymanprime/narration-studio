@@ -1,10 +1,10 @@
 import { Link, useInRouterContext } from 'react-router-dom';
 import type { CardFinding } from './cardSelectors';
-import { formatAudioTime } from '../../production/recordingCheckText';
 import { Button } from '../../primitives/Button';
 import { statusTone } from '../../../kinds/statusTone';
 import { KindChip } from '../../primitives/KindChip';
 import { StatusBadge } from '../../primitives/StatusBadge';
+import { clock } from '../../../clock';
 
 /**
  * One finding of the check: its kind, where, what, the decision it would start with, and Accept / Ignore (or the decision made). A line said
@@ -28,7 +28,7 @@ export function FindingRow({
   onIgnore: () => void;
 }) {
   const inRouter = useInRouterContext();
-  const at = finding.seconds === null ? '—' : formatAudioTime(finding.seconds);
+  const at = finding.seconds === null ? '—' : clock(finding.seconds);
   const what = `${finding.type} at ${at}`;
   return (
     <li

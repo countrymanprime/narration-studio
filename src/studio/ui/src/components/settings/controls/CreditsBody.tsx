@@ -7,14 +7,13 @@ import { InsetCard } from '../../primitives/InsetCard';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import { CreditsPanel } from '../CreditsPanel';
 import { useSettingsHost } from '../row/SettingsHost';
+import { clock } from '../../../clock';
 
 type Summary = {
   opening?: { template: CreditTemplate; result?: CreditsRenderResult };
   closing?: { template: CreditTemplate; result?: CreditsRenderResult };
   sample: RetailSample | null;
 };
-
-const mmss = (seconds: number): string => `${Math.floor(seconds / 60)}:${String(Math.round(seconds % 60)).padStart(2, '0')}`;
 
 // The summary is one small table: a label column, a status badge, then the detail, so the three lines share their x positions and the labels
 // are the row text size, not bigger than the row's own title (alignment audit XSE2-12, XSE1-23).
@@ -90,7 +89,7 @@ export function CreditsRowBody() {
                 <span className={SUMMARY_LABEL}>Retail sample</span>
                 <StatusBadge tone={summary.sample ? 'success' : 'neutral'} label={summary.sample ? 'Chosen' : 'Not chosen'} />
                 <span className="min-w-0 text-[0.8125rem] text-[var(--text-muted)]">
-                  {summary.sample ? `${summary.sample.words.toLocaleString('en-US')} words, ${mmss(summary.sample.seconds)}` : ''}
+                  {summary.sample ? `${summary.sample.words.toLocaleString('en-US')} words, ${clock(summary.sample.seconds)}` : ''}
                 </span>
               </div>
             </div>

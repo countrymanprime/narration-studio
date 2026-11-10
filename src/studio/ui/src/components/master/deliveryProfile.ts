@@ -2,7 +2,8 @@
 // named, how a rule's bound and a measured value are written, and the words for a rule's result. The host judges
 // (deliveryprofile.EvaluateFile, on every read of the measurement); the page only shows its results.
 import type { DeliveryProfile, DeliveryRule, DeliveryRuleResult } from '../../types';
-import { formatLength, formatLevel } from './deliveryFormat';
+import { formatLevel } from './deliveryFormat';
+import { clock } from '../../clock';
 
 /** The key the host names a profile by: id@version for a built-in, id@r<revision> for a custom profile. */
 export function deliveryProfileKey(profile: Pick<DeliveryProfile, 'id' | 'version' | 'revision' | 'builtIn'>): string {
@@ -30,7 +31,7 @@ const trim = (value: number) => String(Number(value.toFixed(2))).replace('-', 'â
 export function formatRuleValue(rule: Pick<DeliveryRule, 'metric' | 'unit'>, value: number): string {
   switch (rule.metric) {
     case 'duration_seconds':
-      return formatLength(value);
+      return clock(value);
     case 'sample_rate':
       return `${trim(value / 1000)} kHz`;
     case 'channels':

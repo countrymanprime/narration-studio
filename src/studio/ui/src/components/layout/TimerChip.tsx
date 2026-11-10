@@ -5,6 +5,7 @@ import type { ProductionOverview } from '../../api/contracts/production';
 import type { ChapterStatus } from '../../api/contracts/manuscript';
 import { STATUS_LABELS } from '../../chapterStatus';
 import { HeaderChip } from '../primitives/HeaderChip';
+import { clock } from '../../clock';
 
 /** The production stage timer that is running, as the Production page's header shows it: when it started, and on which chapter and stage. */
 export type RunningTimer = { startedAt: string; chapterTitle: string; stage: ChapterStatus };
@@ -19,9 +20,7 @@ export function runningTimerOf(overview: ProductionOverview): RunningTimer | nul
 
 /** Whole seconds since `startedAt` as h:mm:ss; never negative (a clock a little behind the host's reads 0:00:00). */
 export function elapsedClock(startedAt: string, now: number): string {
-  const seconds = Math.max(0, Math.floor((now - Date.parse(startedAt)) / 1000));
-  const pad = (value: number) => String(value).padStart(2, '0');
-  return `${Math.floor(seconds / 3600)}:${pad(Math.floor(seconds / 60) % 60)}:${pad(seconds % 60)}`;
+  return clock((now - Date.parse(startedAt)) / 1000, { hours: 'always' });
 }
 
 /**

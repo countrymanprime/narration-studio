@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   centreWindow,
-  clock,
   EDITING_SCALE,
   followSecond,
   MIN_WINDOW,
@@ -47,11 +46,6 @@ describe('windowMath', () => {
     expect(resizeWindow(w, 'start', -20, 760)).toEqual({ start: 0, len: 160 });
     expect(resizeWindow(w, 'end', 105, 760)).toEqual({ start: 100, len: MIN_WINDOW });
     expect(resizeWindow(w, 'end', 9999, 760)).toEqual({ start: 100, len: 660 });
-  });
-
-  it('formats the clock', () => {
-    expect(clock(125)).toBe('02:05');
-    expect(clock(3725)).toBe('1:02:05');
   });
 
   it('keeps the Proof scale as it was: 30 s is the shortest window, and an explicit PROOF_SCALE is the default', () => {

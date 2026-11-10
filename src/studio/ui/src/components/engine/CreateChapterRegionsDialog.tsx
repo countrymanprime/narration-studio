@@ -10,9 +10,9 @@ import { FIELD_LABEL_CLASSES } from '../primitives/Field';
 import { SectionLabel } from '../primitives/SectionLabel';
 import { Select } from '../primitives/Select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
-import { formatDuration } from '../proof/format';
 import { ToolResult } from './ToolResult';
 import type { ChapterRegionPlan, ChapterRegionState, ChapterRegionsCreated, Track } from '../../types';
+import { clock } from '../../clock';
 
 const REGION_STATE_LABEL: Record<ChapterRegionState, string> = {
   new: 'New region',
@@ -184,8 +184,8 @@ export function CreateChapterRegionsDialog({ tracks, onClose }: { tracks: Track[
                 <TableRow key={`${row.kind}-${row.chapterId || row.trackGuid}`}>
                   <TableCell>{row.title}</TableCell>
                   <TableCell>{row.trackName}</TableCell>
-                  <TableCell numeric>{formatDuration(row.start)}</TableCell>
-                  <TableCell numeric>{formatDuration(row.end)}</TableCell>
+                  <TableCell numeric>{clock(row.start)}</TableCell>
+                  <TableCell numeric>{clock(row.end)}</TableCell>
                   <TableCell>{REGION_STATE_LABEL[row.state]}</TableCell>
                 </TableRow>
               ))}

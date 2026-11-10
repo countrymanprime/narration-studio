@@ -3,7 +3,7 @@ import type { FxChoice, FxList } from '../../../../ports/daw';
 import { Button } from '../../../primitives/Button';
 import { Icon } from '../../../primitives/Icon';
 import { Select } from '../../../primitives/Select';
-import { clock } from '../../bar/clock';
+import { clock } from '../../../../clock';
 import { summarize, type ChapterDoc, type CutSpan, type SelSummary } from '../../model';
 import { snapText, type RangeLocator, type SnappedEnd } from '../common/locate';
 import type { RangePlan } from '../common/rangePlan';

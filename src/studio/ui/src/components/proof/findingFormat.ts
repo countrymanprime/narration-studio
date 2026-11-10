@@ -3,6 +3,7 @@
 // failing.
 import type { Finding, FindingSeverity } from '../../types';
 import { deliveryEvidence, deliveryEvidenceRows, deliveryFileName, deliverySummary } from './deliveryFindingFormat';
+import { clockTenths } from '../../clock';
 
 const CATEGORY_LABELS: Record<string, string> = {
   transcript_discrepancy: 'Transcript difference',
@@ -51,18 +52,9 @@ export const severityLabel = (severity: FindingSeverity): string => SEVERITY_LAB
 /** "90%", or "No score" when the analyzer has no numeric confidence (its reason says why). */
 export const confidenceLabel = (confidence: number | null): string => (confidence === null ? 'No score' : `${Math.round(confidence * 100)}%`);
 
-/** Project seconds as m:ss.s, the precision the analyzers report. */
-export function formatTime(seconds: number): string {
-  const tenths = Math.round(seconds * 10);
-  const minutes = Math.floor(tenths / 600);
-  const rest = (tenths % 600) / 10;
-  return `${minutes}:${rest < 10 ? '0' : ''}${rest.toFixed(1)}`;
-}
-
 /** A note's time on Proof as the mock writes it: mm:ss.s, minutes always two digits ("02:14.6"). */
 export function noteTime(seconds: number): string {
-  const time = formatTime(seconds);
-  return time.length < 7 ? `0${time}` : time;
+  return clockTenths(seconds, { minuteDigits: 2 });
 }
 
 /** The chapter a finding is in; a delivery finding is about a file, not a chapter, so it names its file. */

@@ -600,7 +600,7 @@ describe('take-rows-name-where-they-start-and-what-they-are', () => {
     const passage = measuredPassage();
     passage.takes[0] = { ...passage.takes[0]!, start: 72 };
     lines({ sourceLabel: 'REAPER take' }, passage);
-    expect(row('t-7').textContent).toContain('1:12 · 8 s · REAPER take');
+    expect(row('t-7').textContent).toContain('1:12 · 0:08 long · REAPER take');
     expect(row('t-8').textContent).not.toContain('1:12');
   });
   it('names the first read of a stack and calls a hidden take Hidden, not Muted', () => {

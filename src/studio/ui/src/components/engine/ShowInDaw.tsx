@@ -7,7 +7,7 @@ import type { DawCapabilities } from '../../api/contracts/daw';
 import { apiErrorMessage } from '../../api/errorMessage';
 import { useDawCapabilities } from '../../hooks/useDawCapabilities';
 import { overlay } from '../../overlay/overlayService';
-import { clock } from '../editing/bar/clock';
+import { clock } from '../../clock';
 import { noteTime } from '../proof/findingFormat';
 import { IconButton } from '../primitives/IconButton';
 

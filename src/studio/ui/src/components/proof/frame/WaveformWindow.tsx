@@ -5,7 +5,11 @@ import { TooltipTarget } from '../../primitives/Tooltip';
 import { PeaksCanvas } from './PeaksCanvas';
 import type { PeaksSegment } from './peaksJoin';
 import { clusterPins, earliestInView, type Band, type Pin } from './pins';
-import { centreWindow, clock, edgeStep, followSecond, MIN_WINDOW, nudgeWindow, resizeWindow, stepLength, zoomWindow, type TimeWindow } from './windowMath';
+import { centreWindow, edgeStep, followSecond, MIN_WINDOW, nudgeWindow, resizeWindow, stepLength, zoomWindow, type TimeWindow } from './windowMath';
+import { clock } from '../../../clock';
+
+/** The ruler's clock: minutes always two digits, as the mock draws it. */
+const at = (seconds: number): string => clock(seconds, { minuteDigits: 2 });
 
 const WAVE_HEIGHT = 84;
 const OVERVIEW_HEIGHT = 34;
@@ -164,7 +168,7 @@ export function WaveformWindow({
         aria-valuemin={Math.round(low)}
         aria-valuemax={Math.round(high)}
         aria-valuenow={Math.round(here)}
-        aria-valuetext={clock(here)}
+        aria-valuetext={at(here)}
         data-edge={which}
         // Drawn 12 px wide; HIT_AREA_PLACED takes presses in a 24 px band around it, so a pointer need not land on the bar (WCAG 2.2 target size).
         className={`absolute top-0 h-full w-3 -translate-x-1/2 cursor-ew-resize touch-none rounded bg-[var(--accent)] opacity-60 hover:opacity-100 focus-visible:opacity-100 ${HIT_AREA_PLACED}`}
@@ -198,14 +202,14 @@ export function WaveformWindow({
   };
   const clusters = clusterPins(pins, win.start, win.len, width, selectedId);
   const x = (sec: number): number => ((sec - win.start) / win.len) * 100;
-  const label = `Chapter waveform, ${clock(win.start)} to ${clock(end)}, ${noteCount} ${noteCount === 1 ? 'note' : 'notes'} in this chapter`;
+  const label = `Chapter waveform, ${at(win.start)} to ${at(end)}, ${noteCount} ${noteCount === 1 ? 'note' : 'notes'} in this chapter`;
 
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-2 text-sm">
         <span className="text-[var(--text-muted)]">Showing</span>
         <span className="font-mono text-[var(--text)]" data-window-label>
-          {clock(win.start)}–{clock(end)}
+          {at(win.start)}–{at(end)}
         </span>
         <span className="flex-1" />
         <TooltipTarget text="Zoom out">
@@ -237,7 +241,7 @@ export function WaveformWindow({
           aria-valuemin={0}
           aria-valuemax={Math.round(Math.max(0, total - win.len))}
           aria-valuenow={Math.round(win.start)}
-          aria-valuetext={`Showing ${clock(win.start)} to ${clock(end)}`}
+          aria-valuetext={`Showing ${at(win.start)} to ${at(end)}`}
           className="absolute top-0 h-full cursor-grab rounded border-2 border-[var(--accent)] bg-[var(--accent-soft)] opacity-50 focus-visible:opacity-90"
           style={{ left: `${(win.start / total) * 100}%`, width: `${Math.max(0.8, (win.len / total) * 100)}%` }}
           onKeyDown={onWindowKey}

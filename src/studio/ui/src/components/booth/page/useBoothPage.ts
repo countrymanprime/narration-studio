@@ -34,6 +34,7 @@ import type { BoothStart } from './boothQuery';
 import { timerText } from '../frame/progressLine';
 import { useTakeClock } from './useTakeClock';
 import { useTextChoices } from './useTextChoices';
+import { clock } from '../../../clock';
 
 const START: UnitPosition = { cur: 0, wcur: 0 };
 const TAKE_SAVED = 'Take saved';
@@ -873,11 +874,6 @@ export function useBoothPage(options: BoothPageOptions) {
 
 const clampAt = (at: UnitPosition, count: number): UnitPosition =>
   count === 0 ? START : { cur: Math.max(0, Math.min(at.cur, count - 1)), wcur: Math.max(0, at.wcur) };
-
-const clock = (seconds: number): string => {
-  const whole = Math.max(0, Math.floor(seconds));
-  return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`;
-};
 
 /**
  * Holds the take while the context menu that is opening stays open: the menu is the document's `role="menu"` once it renders, and

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ActivityPanel } from '../primitives/ActivityPanel';
-import { clock } from '../editing/bar/clock';
+import { clock } from '../../clock';
 import { PHASE_LABEL, type ActivityView } from './activityView';
 
 /** Seconds since `startedAt`, once a second while `ticking`. */

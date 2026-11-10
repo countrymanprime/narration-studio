@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { boothProgress, clockText, comingUp, progressText } from './boothProgress';
+import { boothProgress, comingUp, progressText } from './boothProgress';
 import type { ReaderMark, ReaderRow } from './readerModel';
 import type { GuideEntity } from '../../types';
 import { typeHueColour } from '../../kinds/entityColour';
@@ -37,12 +37,6 @@ describe('boothProgress (audit BO5, mock 03)', () => {
 
   it("writes it in the mock's words", () => {
     expect(progressText({ paragraph: 38, paragraphs: 71, percent: 41, secondsLeft: 490 })).toBe('¶ 38 of 71 · 41% · ~8:10 of audio left');
-  });
-
-  it('writes durations as m:ss, the REC badge with two minute digits, and hours when there are any', () => {
-    expect(clockText(490)).toBe('8:10');
-    expect(clockText(402, 2)).toBe('06:42');
-    expect(clockText(3725)).toBe('1:02:05');
   });
 });
 

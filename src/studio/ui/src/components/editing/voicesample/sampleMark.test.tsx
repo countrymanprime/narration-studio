@@ -108,7 +108,7 @@ describe('the dots', () => {
     const li = row.closest('li')!;
     expect(within(li).getByText('The Queen of Hearts')).toBeTruthy();
     expect(within(li).getByText('Furious, to the court')).toBeTruthy();
-    expect(within(li).getByText('0:07')).toBeTruthy();
+    expect(within(li).getByText('0:06')).toBeTruthy();
     // The marked words say which sample this is when a character has several.
     expect(within(li).getByText('Once or twice she')).toBeTruthy();
     expect(within(li).getByText('Primary')).toBeTruthy();

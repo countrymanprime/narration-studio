@@ -1,4 +1,5 @@
 import { useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { clock } from '../../clock';
 
 // The meanings a marker's tone may take, sharing the fills the meter zones and the badge tones use: a marker earns a colour for what it is, not for which lane it happens to sit in.
 type TimelineMarkerTone = 'neutral' | 'info' | 'success' | 'warning' | 'danger';
@@ -22,13 +23,6 @@ export type TimelineMarker = {
 function toPercent(at: number, duration: number): number {
   if (duration <= 0) return 0;
   return Math.min(100, Math.max(0, (at / duration) * 100));
-}
-
-function formatTime(seconds: number): string {
-  const total = Math.max(0, Math.round(seconds));
-  const minutes = Math.floor(total / 60);
-  const secs = total % 60;
-  return `${minutes}:${String(secs).padStart(2, '0')}`;
 }
 
 // A time axis for a proof pass or a session recap (mock 04): a `duration`-second ruler, an
@@ -121,7 +115,7 @@ export function TimelineLane({
           }}
           type="button"
           tabIndex={marker.id === active ? 0 : -1}
-          aria-label={`${formatTime(marker.at)}, ${marker.label}`}
+          aria-label={`${clock(marker.at)}, ${marker.label}`}
           onClick={() => {
             setActiveId(marker.id);
             onActivate(marker.id);

@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { MOCK_ACX, mockCustomProfile } from '../../api/deliveryProfilesMock';
 import type { DeliveryRule } from '../../types';
-import { formatLength, formatLevel } from './deliveryFormat';
+import { formatLevel } from './deliveryFormat';
 import { deliveryProfileKey, deliveryProfileTitle, describeCheck, describeMiss, formatBound, formatRuleValue, profileCounts } from './deliveryProfile';
+import { clock } from '../../clock';
 
 const rule = (id: string): DeliveryRule => {
   const found = MOCK_ACX.rules.find((candidate) => candidate.id === id);
@@ -65,8 +66,8 @@ describe('formatting', () => {
   });
 
   it('writes a length as minutes and seconds, or hours when it is that long', () => {
-    expect(formatLength(2)).toBe('0:02');
-    expect(formatLength(1843.5)).toBe('30:43');
-    expect(formatLength(3725)).toBe('1:02:05');
+    expect(clock(2)).toBe('0:02');
+    expect(clock(1843.5)).toBe('30:43');
+    expect(clock(3725)).toBe('1:02:05');
   });
 });
