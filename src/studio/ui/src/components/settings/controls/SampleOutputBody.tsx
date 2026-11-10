@@ -99,6 +99,8 @@ export function SampleOutputBody() {
   const [sounding, setSounding] = useState(false);
   const test = () => {
     setSounding(true);
+    // A tone that never ends (a stalled output) must not leave the button busy for good: the tone is half a second long.
+    window.setTimeout(() => setSounding(false), 3000);
     void playTestSound(engine === 'builtin' ? value : '', () => setSounding(false)).then((problem) => problem && overlay.toast(problem));
   };
   // The tone is the result, and it is half a second of sound: the button shows it is sounding for as long as it lasts, so a press never looks dead.
