@@ -5,7 +5,7 @@ import type { PageBreak } from './pageBreakLayout';
 
 /**
  * The chapter's page breaks over the Booth's text: a `BoundaryMarker` across the column above the line that holds each break's first word.
- * It is drawn over the text and takes no room, so the text never moves for it; each line carries its "Page N" in the chapter-end marker's format (`BoundaryMarker`) and the right-click spot for "Read to here". Mount it inside the text column, which is `relative` and moves with the text; it measures the break words and
+ * It is drawn over the text and takes no room; the room above it is the page's first paragraph's own margin (`BoothText` `pageStarts`); each line carries its "Page N" in the chapter-end marker's format (`BoundaryMarker`) and the right-click spot for "Read to here". Mount it inside the text column, which is `relative` and moves with the text; it measures the break words and
  * measures again when the column is resized (text size, window).
  */
 export function PageBreaks({ breaks }: { breaks: readonly PageBreak[] }) {
