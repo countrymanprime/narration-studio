@@ -16,6 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { ToggleGroup } from '../primitives/ToggleGroup';
 import { TooltipTarget } from '../primitives/Tooltip';
 import { assignmentOf, folderVoices, type Voice } from './voices';
+import { trackName } from '../tracks/trackName';
 
 const LAYOUTS = [
   { value: 'flat', label: 'Flat' },
@@ -112,7 +113,7 @@ export function VoicesCard({
                     <TableRow key={voice.guid}>
                       <TableCell align="center">{voice.key ? <KeyCap k={voice.key} /> : null}</TableCell>
                       <TableCell className="[overflow-wrap:anywhere]">
-                        <bdi>{voice.name}</bdi>
+                        <bdi>{trackName(voice.name)}</bdi>
                       </TableCell>
                       <TableCell>
                         <VoiceCharacters voice={voice} />
