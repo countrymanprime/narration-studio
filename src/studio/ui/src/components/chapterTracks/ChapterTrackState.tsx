@@ -4,7 +4,8 @@ import type { TracksProject, TracksSource } from '../../api/contracts/tracks';
 import { usePort } from '../../ports/usePort';
 import { useLiveTracks } from '../engine/useLiveTracks';
 import { VoiceSetupProvider } from '../engine/voiceLayout';
-import type { Notify } from '../primitives/Toast';
+import { retryAction, type Notify } from '../primitives/Toast';
+import { describeApiError } from '../../api/errorMessage';
 
 /**
  * The project's tracks and the chapter-to-track links, read once for every screen that watches them (#3269: "those should all be a
@@ -54,6 +55,7 @@ export function ChapterTrackStateProvider({
   const [mappingsAt, setMappingsAt] = useState<number | null>(null);
   const [attempt, setAttempt] = useState(0);
   const refreshLive = live.refresh;
+  const linksFailing = useRef(false);
 
   // The links are read each time the tracks are, so the two always describe one moment; a failed links read keeps the last answer and
   // the tracks' own failure toast speaks for the read.
@@ -64,14 +66,24 @@ export function ChapterTrackStateProvider({
       .chapterTrackMapList()
       .then((answer) => {
         if (!active) return;
+        linksFailing.current = false;
         setMappings(answer.mappings);
         setMappingsAt(live.readAt ?? Date.now());
       })
-      .catch(() => {});
+      .catch((reason: unknown) => {
+        // A run of failed reads is one toast with Retry; the screens keep the last links.
+        if (!active || linksFailing.current) return;
+        linksFailing.current = true;
+        notify(
+          describeApiError(reason),
+          'error',
+          retryAction(() => setAttempt((n) => n + 1)),
+        );
+      });
     return () => {
       active = false;
     };
-  }, [trackMap, enabled, watchers, projectFolder, live.readAt, attempt]);
+  }, [trackMap, enabled, watchers, projectFolder, live.readAt, attempt, notify]);
 
   const refresh = useCallback(() => {
     setAttempt((n) => n + 1);
