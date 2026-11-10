@@ -104,7 +104,7 @@ const linkChapterOne = async () => {
   const select = within(row).getByRole('combobox') as HTMLSelectElement;
   // Option 0 is the "Choose a track" placeholder; option 1 is the first track.
   fireEvent.change(select, { target: { value: select.options[1].value } });
-  fireEvent.click(within(row).getByRole('button', { name: 'Confirm' }));
+  fireEvent.click(within(row).getByRole('button', { name: /^Use this (track|folder) for/ }));
   await within(row).findByRole('button', { name: /^Change the track/ });
   return row;
 };
@@ -651,8 +651,9 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
   });
 
   // docs/architecture/principles.md: the engine panel replaces the Tracks page. It opens from the
-  // header's engine chip on any page, with or without a manuscript, and lists the mock project's tracks.
-  it('opens the engine panel from the engine chip, without a manuscript, with the project and its tracks', async () => {
+  // header's engine chip on any page, with or without a manuscript. Its one list of tracks is Chapter links, so with no manuscript (no chapters
+  // to link) it draws no list, and no separate Tracks card.
+  it('opens the engine panel from the engine chip, without a manuscript, with the project and no track list', async () => {
     const source = createMockApi();
     renderApp({ bootstrap: async () => ({ ...(await source.bootstrap()), manuscript: null }) });
     await screen.findByRole('heading', { level: 1, name: 'Production' });
@@ -660,10 +661,9 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /^REAPER: / }));
     const panel = await screen.findByRole('dialog', { name: 'Audio engine' });
-    const tracks = await within(panel).findByRole('table', { name: 'Tracks' });
-    expect(within(tracks).getByText('Chapter 1')).toBeTruthy();
-    expect(within(tracks).getByText('Click Track')).toBeTruthy();
-    expect(within(panel).getByRole('button', { name: 'Change the linked file' })).toBeTruthy();
+    expect(await within(panel).findByRole('button', { name: 'Change the linked file' })).toBeTruthy();
+    expect(within(panel).queryByRole('table', { name: 'Tracks' })).toBeNull();
+    expect(within(panel).queryByRole('table', { name: 'Chapter links' })).toBeNull();
     expect(window.location.pathname).toBe('/');
   });
 

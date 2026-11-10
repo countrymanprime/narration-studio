@@ -49,6 +49,7 @@ var swappableHostFields = map[string]bool{
 	"rangeGain":        true,
 	"clickRepairer":    true,
 	"lastActionUndoer": true,
+	"projectSaver":     true,
 	"monitorLeveler":   true,
 	"prerollReader":    true,
 	"meterReader":      true,

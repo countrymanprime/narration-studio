@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildTrackTree, defaultOpen, folderRollup, searchVisible, visibleNodes, type TreeTrack } from './trackTree';
+import { buildTrackTree, type TreeTrack } from './trackTree';
 
 const t = (name: string, depth: number, isFolder = false): TreeTrack => ({ guid: `g-${name}`, index: 0, name, depth, isFolder });
 
@@ -40,44 +40,5 @@ describe('buildTrackTree', () => {
   it('closes a depth jump of more than one level under the nearest shallower folder', () => {
     const jump = buildTrackTree([t('F', 0, true), t('deep', 2)]);
     expect(jump[1]).toMatchObject({ level: 2, parent: 0 });
-  });
-});
-
-describe('visibleNodes', () => {
-  const nodes = buildTrackTree(TRACKS);
-  it('hides the descendants of a closed folder', () => {
-    expect(visibleNodes(nodes, new Set(['g-Book'])).map((n) => n.track.name)).toEqual(['Intro', 'Book', 'Part 1', 'Empty', 'Appendix']);
-    expect(visibleNodes(nodes, new Set()).map((n) => n.track.name)).toEqual(['Intro', 'Book', 'Appendix']);
-  });
-});
-
-describe('folderRollup', () => {
-  const nodes = buildTrackTree(TRACKS);
-  it('counts linked tracks among every track below, folders not counted', () => {
-    expect(folderRollup(nodes, 1, new Set(['g-Ch 1', 'g-Spare']))).toEqual({ linked: 2, total: 3 });
-    expect(folderRollup(nodes, 5, new Set())).toEqual({ linked: 0, total: 1 });
-  });
-});
-
-describe('defaultOpen', () => {
-  it('opens every folder up to 30 tracks', () => {
-    expect([...defaultOpen(buildTrackTree(TRACKS), new Set())].sort()).toEqual(['g-Book', 'g-Empty', 'g-Part 1']);
-  });
-  it('above 30 tracks opens only the path to each linked track', () => {
-    const many = [t('Book', 0, true), t('Part', 1, true), t('Hit', 2), t('Other', 1, true), ...Array.from({ length: 30 }, (_, i) => t(`x${i}`, 2))];
-    const open = defaultOpen(buildTrackTree(many.map((track, index) => ({ ...track, index }))), new Set(['g-Hit']));
-    expect([...open].sort()).toEqual(['g-Book', 'g-Part']);
-  });
-});
-
-describe('searchVisible', () => {
-  const nodes = buildTrackTree(TRACKS);
-  it('keeps matches and the folders above them, and says which nodes matched', () => {
-    const found = searchVisible(nodes, 'ch 2');
-    expect(found.rows.map((n) => n.track.name)).toEqual(['Book', 'Part 1', 'Ch 2']);
-    expect([...found.matched]).toEqual(['g-Ch 2']);
-  });
-  it('is everything for an empty query', () => {
-    expect(searchVisible(nodes, ' ').rows).toHaveLength(nodes.length);
   });
 });

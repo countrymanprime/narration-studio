@@ -51,15 +51,14 @@ export function AssetNote({ row, value, kindOf }: { row: SettingMeta; value: str
         ) : view.status === 'failed' ? (
           <IconButton key="retry" action="retry" size="sm" replacesPressed onClick={() => void store.install(item)} />
         ) : view.status === 'unavailable' ? null : (
-          <Button
-            variant="secondary"
+          <IconButton
+            key="start"
+            action={view.status === 'repair' ? 'repairAsset' : 'download'}
             size="sm"
-            aria-label={`${view.status === 'repair' ? 'Repair' : 'Download'} ${name}`}
+            label={`${view.status === 'repair' ? 'Repair' : 'Download'} ${name}`}
             replacesPressed
             onClick={() => void store.install(item)}
-          >
-            {view.status === 'repair' ? 'Repair' : 'Download'}
-          </Button>
+          />
         )}
         {/* Keyed by the state: the link slides under the pointer when Download shrinks to Cancel, so it is a new button each time and ignores that echo. */}
         <Button key={busy ? 'models-busy' : 'models'} variant="link" size="sm" replacesPressed onClick={() => showCategory('models')}>

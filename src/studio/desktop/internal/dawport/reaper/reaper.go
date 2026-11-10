@@ -94,6 +94,9 @@ var declares = map[dawport.Capability]dawport.Level{
 	// undo_last is last_action's and undo_last's (#1711, narration_undo.lua): Experimental until the QA pass (#1495) sees one Undo
 	// reverse a cut whole and Undo_CanUndo2 name the cut's label.
 	dawport.CapUndoLast: dawport.Experimental,
+	// save_project is save_project's (#3262, narration_save_project.lua): Experimental until the QA pass (#1495) sees it on the
+	// narrator's own project; REAPER 7.82 on Linux saved a take recorded onto a new voice (scenario save_project).
+	dawport.CapSaveProject: dawport.Experimental,
 	// monitor_level is monitor_level's (narration_levels.lua): the master track's first hardware output send. Experimental until the QA
 	// pass (#1495) sees the call read and set a real send. input_level is Unsupported, not NotYetAvailable: ReaScript has no call that
 	// sets an audio interface's input gain, so no later version of this app can add one.
@@ -160,6 +163,7 @@ var commandCapability = map[string]dawport.Capability{
 	"range_fx_chosen":            dawport.CapFXRange,
 	"last_action":                dawport.CapUndoLast,
 	"undo_last":                  dawport.CapUndoLast,
+	"save_project":               dawport.CapSaveProject,
 	"monitor_level":              dawport.CapMonitorLevel,
 	"punch_preroll":              dawport.CapPunchPreroll,
 	"daw_meters":                 dawport.CapDawMeters,
@@ -286,6 +290,7 @@ func New(client *bridge.Client, allowed func(dawport.Capability) error) (*Adapte
 			dawport.CapRangeGain:         rangeGainReducer{actions, allowed},
 			dawport.CapClickRepair:       clickRepairer{actions, allowed},
 			dawport.CapUndoLast:          lastActionUndoer{actions, allowed},
+			dawport.CapSaveProject:       projectSaver{actions, allowed},
 			dawport.CapMonitorLevel:      monitorLeveler{actions, allowed},
 			dawport.CapPunchPreroll:      prerollReader{actions, allowed},
 			dawport.CapDawMeters:         meterReader{actions, allowed},

@@ -26,11 +26,14 @@ Recent UI mistakes were the same few: a second copy of something that already ex
 | 7   | **Errors appear only as a toast, a modal, or an always-present fixed-size result box.** Never as text that shows up in the page flow and shifts the layout                                                                                                                                                            | `Toast`, `ConfirmDialog`, `Dialog`; a fixed slot as in design-system "Data that comes and goes has a reserved slot"              |
 | 8   | **No instruction prose in flow.** How-to text is a tooltip, a "?" or the guide                                                                                                                                                                                                                                        | `TooltipTarget`, `HelpButton`; see [No in-flow instructions](../../../docs/design/design-system.md#no-in-flow-instructions)      |
 
+Exception to rule 6, for this one list: the audio engine panel's Chapter links table is not capped. The owner objected to the Tracks card's own scroll area (2026-11-10, #3258: "the first one has its own scroll bar that doesn't continue scrolling the audio engine when it gets to the bottom so i have to move my mouse around the section to be able to continue scrolling"), and that card is gone. A cap on Chapter links would bring the same scroller back inside the panel, so the panel body is its only scroll area. Every other list keeps rule 6.
+
 Exception to rule 6: the Production chapter pipeline board is not capped. The owner wants it to show every chapter at its natural height, with no scroll inside the page. Cap the chart or schedule panels beside it instead.
 
-Guards that hold rules 1, 7 and 8 over the whole app, each with a shrink-only allowlist you lower when you fix an entry, never raise without the owner's say-so:
+Guards that hold rules 1, 7 and 8 over the whole app. All but `mixedButtons` have a shrink-only allowlist you lower when you fix an entry, never raise without the owner's say-so:
 
 - `tests/visual/guards/toolbarButtons.test.ts` (rule 1: a `Button` with words inside a toolbar or ribbon).
+- `tests/visual/guards/mixedButtons.test.ts` (rule 1: one state of a control draws an `IconButton` and another draws a confirm-type word button, such as Confirm, Save, Apply or Cancel; no allowlist; it reads literal text in conditionals only: it does not see early returns (`if (editing) return`), a label held in a variable, sibling `{a && …}{!a && …}` pairs, or buttons other than `Button`, so check those by hand).
 - `tests/visual/guards/inlineErrors.test.ts` (rule 7: a `role="alert"` element outside a dialog, menu, popover or the toast).
 - `tests/visual/inFlowProse.test.ts` (rule 8).
 
