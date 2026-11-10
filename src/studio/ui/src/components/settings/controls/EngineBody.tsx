@@ -30,6 +30,8 @@ function optionDescription(option: DawChoiceOption): ReactNode {
   }
   const { record } = option;
   if (!record.available && record.message) lines.push(<span key="record">{record.message}</span>);
+  // The radio still switches the project (the link card and the other tools are behind it), so it says what the press does, not only what is missing (#3339).
+  if (!record.available && record.level === 'not_yet_available') lines.push(<span key="still"> Choosing it still switches this project to {option.daw}.</span>);
   return lines.length > 0 ? <>{lines}</> : undefined;
 }
 

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import type { DeliveryProfile } from '../../../types';
 import { Button } from '../../primitives/Button';
 import { IconButton } from '../../primitives/IconButton';
@@ -90,14 +90,9 @@ export function OutputPanel({
               : build.exportRunning
                 ? 'Master & QC is still preparing the files.'
                 : waiting;
-  // A press on a blocked Build builds nothing; this says so, with the reason, to a screen reader as well as the eye. It goes when Build is live.
-  const [refused, setRefused] = useState(false);
   // Embed chapter tags: its dialog, and the button that opened it, which gets focus back when the dialog closes.
   const [tagging, setTagging] = useState(false);
   const embedButton = useRef<HTMLButtonElement>(null);
-  useEffect(() => {
-    if (canBuild) setRefused(false);
-  }, [canBuild]);
   return (
     <Panel title="Output">
       {tagging && (
@@ -120,9 +115,10 @@ export function OutputPanel({
           <Button
             className="max-w-full text-left [overflow-wrap:anywhere] whitespace-normal"
             ref={buildButton}
-            onClick={canBuild ? () => void build.build() : () => setRefused(true)}
-            // Spread only when blocked: an explicit `aria-disabled={undefined}` would override the Button's own pending `aria-disabled`.
-            {...(canBuild ? {} : { 'aria-disabled': true, 'aria-describedby': why ? WHY_ID : undefined })}
+            onClick={() => void build.build()}
+            // Off, it says why in a tooltip a keyboard reaches and a press does nothing (the shared `disabledReason`, #3339).
+            disabledReason={canBuild ? '' : why}
+            aria-describedby={canBuild || !why ? undefined : WHY_ID}
             pending={build.starting || build.busy}
           >
             Build {profile.name} package
@@ -160,11 +156,6 @@ export function OutputPanel({
             </span>
           )}
         </div>
-        {refused && !canBuild && (
-          <p role="status" className="sr-only">
-            Nothing was built{why ? `: ${why}` : ''}
-          </p>
-        )}
         {build.running && <ProgressBar label="Building the package" value={null} running />}
         {build.cancelUnconfirmed && <BuildNote>Cancel was sent, but the host did not confirm it, so the build may still be running.</BuildNote>}
         {showBuilt && (build.notice || build.cancelled) && <BuildNote>{build.notice ?? build.cancelled?.message}</BuildNote>}

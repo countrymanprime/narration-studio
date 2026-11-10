@@ -951,7 +951,8 @@ export function GuideDetail({
               </div>
               <Button
                 variant="secondary"
-                disabled={aliasQuery.trim() === '' || waiting('alias')}
+                // Off with its reason (a tooltip a keyboard reaches), not just dimmed (#3339).
+                disabledReason={aliasQuery.trim() === '' ? 'Type a name to add first.' : waiting('alias') ? 'Another change is still saving.' : ''}
                 pending={mutation.isPending('alias')}
                 onClick={addAliasFromQuery}
               >

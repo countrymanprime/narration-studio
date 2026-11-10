@@ -83,6 +83,17 @@ describe('Story Bible actions acknowledge within 100 ms and cannot be fired twic
     expect(guideEdit).toHaveBeenCalledTimes(1);
   });
 
+  it('Add name with nothing typed is off and says why, and a press adds nothing (#3339)', () => {
+    const guideEdit = vi.fn(() => Promise.resolve());
+    renderDetail({ guideEdit });
+    edit();
+    const add = screen.getByRole('button', { name: 'Add name' });
+    expect(add.getAttribute('aria-disabled')).toBe('true');
+    act(() => add.focus());
+    fireEvent.click(add);
+    expect(guideEdit).not.toHaveBeenCalled();
+  });
+
   it('keeps an alias the narrator typed while another action was running, instead of clearing it and adding nothing', () => {
     const guideEdit = neverAnswers<void>();
     renderDetail({ guideEdit, guideRescan: neverAnswers<void>() });

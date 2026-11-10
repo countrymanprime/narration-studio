@@ -100,6 +100,14 @@ describe('Recording & DAW: Record with', () => {
     expect(screen.queryByRole('button', { name: 'Test connection' })).toBeNull();
   });
 
+  it('an Audacity that cannot record yet says what choosing it still does, since the press switches the project (#3339)', async () => {
+    await renderPage({ api: createMockApi({}, { daw: {} }), category: 'Recording & DAW' });
+    const group = await screen.findByRole('radiogroup', { name: 'Record with' });
+    const audacity = within(group).getByRole('radio', { name: /^Audacity/ });
+    await waitFor(() => expect(group.textContent).toContain('Record is not available with Audacity yet. Choosing it still switches this project to Audacity.'));
+    expect(audacity.getAttribute('aria-disabled')).not.toBe('true');
+  });
+
   it('a REAPER that is not running stays chosen, says so, and Test connection fails', async () => {
     await renderPage({ api: createMockApi({}, notRunningSeed), category: 'Recording & DAW' });
     expect(await screen.findByText('Not answering')).toBeTruthy();
