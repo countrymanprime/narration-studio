@@ -72,7 +72,7 @@ const mockNoProject = mockParams.has('mockNoProject');
 const mockMultipleRpp = mockParams.has('mockMultipleRpp');
 // `?mockNoRpp=1` seeds zero candidates: the project folder has no .rpp file.
 const mockNoRpp = mockParams.has('mockNoRpp');
-// `?mockTrackFolders=1` puts the project's tracks in REAPER folders: the Tracks card and the track pickers draw the tree.
+// `?mockTrackFolders=1` puts the project's tracks in REAPER folders: the track pickers draw the tree.
 const mockTrackFolders = mockParams.has('mockTrackFolders');
 // `?mockLiveTracks=saved` has REAPER not answering, so the engine panel's tracks are the saved project's and say why; `failing` answers the
 // first live read and refuses every later one, so Chapter links says it cannot tell and when it last read the tracks.

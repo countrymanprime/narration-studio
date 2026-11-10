@@ -89,7 +89,7 @@ export const engineStates: StateEntry[] = [
     page: 'engine',
     state: 'voice-folders-sync',
     description:
-      'A Voice folders project (?mockVoiceFolders=1) scrolled to Chapter sync: its Layout row with Voice folders pressed and the help button, and below it the Voices card',
+      'A Voice folders project (?mockVoiceFolders=1) scrolled to Chapter sync: its Layout row with Voice folders pressed and the help button, and below it Chapter links',
     ...KEEPS_DESKTOP_SCROLL,
   },
   {

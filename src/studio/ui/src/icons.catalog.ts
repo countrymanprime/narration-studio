@@ -307,7 +307,7 @@ export const CATALOG = {
   masterAllToSpec: action(faBullseye, 'master all files to spec', 'Master all files to spec'),
   checkFiles: action(faFileCircleCheck, 'check files', 'Check files'),
   recheckFiles: action(faMagnifyingGlassChart, 'check the files again', 'Check the files again'),
-  // REAPER's folder tracks in the Tracks card and the track picker.
+  // REAPER's folder tracks in the track picker.
   trackFolder: action(faFolder, 'a folder of tracks', 'Show the folder'),
   trackFolderOpen: action(faFolderOpen, 'open a folder', 'Show the open folder'),
   // Chapter links: the DAW adds a chapter's track (Flat) or its folder with a Narrator track (Voice folders), named after it, and links it (#2840).
