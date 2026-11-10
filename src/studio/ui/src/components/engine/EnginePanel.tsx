@@ -23,6 +23,7 @@ import { useAudacityLink } from './useAudacityLink';
 import { useLiveTracks } from './useLiveTracks';
 import { LiveTracksRefresh, LiveTracksStatus } from './LiveTracksStatus';
 import type { Track, TracksDiscovery, TracksProject } from '../../types';
+import { plural } from '../../plural';
 
 function basename(path: string): string {
   return path.split(/[\\/]/).filter(Boolean).pop() ?? path;
@@ -210,7 +211,7 @@ function EnginePanelBody({ notify, link, onOpenRecordingSettings }: { notify: No
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
             {unmappedCount === 1
               ? 'One chapter can’t get a stage suggestion until its track link is confirmed below.'
-              : `${unmappedCount} chapters can’t get a stage suggestion until their track links are confirmed below.`}
+              : `${plural(unmappedCount, 'chapter')} can’t get a stage suggestion until their track links are confirmed below.`}
           </p>
         )}
         {project && <ChapterLinksTable links={links} notify={notify} live={forAudacity ? undefined : live} />}

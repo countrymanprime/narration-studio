@@ -429,7 +429,13 @@ export function EditingCheckPanel({
                     Cancel
                   </Button>
                 </div>
-                <ProgressBar label="Editing check progress" size="thin" value={job.percent} running valueText={`${job.itemsDone} of ${job.itemsTotal} items`} />
+                <ProgressBar
+                  label="Editing check progress"
+                  size="thin"
+                  value={job.percent}
+                  running
+                  valueText={`${job.itemsDone} of ${plural(job.itemsTotal, 'item')}`}
+                />
               </div>
             )}
 

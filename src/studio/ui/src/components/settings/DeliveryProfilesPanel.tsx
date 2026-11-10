@@ -32,7 +32,7 @@ function differences(profile: DeliveryProfile, base?: DeliveryProfile) {
 function describe(profile: DeliveryProfile, base?: DeliveryProfile): string {
   if (profile.builtIn) {
     const host = profile.source.url ? ` · from ${new URL(profile.source.url).host}, read ${profile.source.readOn}` : '';
-    return `Built in · read-only · ${profile.rules.length} rules${host}`;
+    return `Built in · read-only · ${plural(profile.rules.length, 'rule')}${host}`;
   }
   const { numbers, off } = differences(profile, base);
   return [

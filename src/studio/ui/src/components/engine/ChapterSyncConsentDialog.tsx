@@ -3,6 +3,7 @@ import { Button } from '../primitives/Button';
 import { Dialog } from '../primitives/Dialog';
 import { SectionLabel } from '../primitives/SectionLabel';
 import { chapterSyncNotChaptersText, chapterSyncProjectName, chapterSyncReasonText, type ChapterSyncDaw } from './chapterSyncText';
+import { plural } from '../../plural';
 
 /**
  * "Sync chapters to tracks?" shown once per project, the
@@ -44,7 +45,7 @@ export function ChapterSyncConsentDialog({
             Not now
           </Button>
           <Button pending={busy} onClick={onSync} disabled={!preview}>
-            {preview ? `Sync ${preview.autoLink.length} chapters` : 'Sync chapters'}
+            {preview ? `Sync ${plural(preview.autoLink.length, 'chapter')}` : 'Sync chapters'}
           </Button>
         </>
       }

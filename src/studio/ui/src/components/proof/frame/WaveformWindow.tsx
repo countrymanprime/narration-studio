@@ -277,7 +277,7 @@ export function WaveformWindow({
               <button
                 key={cluster.pins[0].id}
                 type="button"
-                aria-label={`${cluster.pins.length} notes`}
+                aria-label={`${plural(cluster.pins.length, 'note')}`}
                 data-cluster={cluster.pins.map((p) => p.id).join(',')}
                 onClick={() => onPin(cluster.pins[0].id)}
                 className={`${PIN_TARGET} [&>span]:size-5 [&>span]:border-[var(--text)] [&>span]:bg-[var(--surface)] [&>span]:text-xs [&>span]:font-bold [&>span]:text-[var(--text)]`}

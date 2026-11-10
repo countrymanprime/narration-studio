@@ -60,7 +60,7 @@ export function lastResultSentence(result: CoverageResult | undefined): string {
   const bits = [report.model];
   if (report.gaps) bits.push(plural(report.gaps.length, 'line to redo', 'lines to redo'));
   const unfinished = unfinishedCount(result);
-  if (unfinished > 0) bits.push(`read ${Math.max(0, report.paragraphs.length - unfinished)} of ${report.paragraphs.length} paragraphs`);
+  if (unfinished > 0) bits.push(`read ${Math.max(0, report.paragraphs.length - unfinished)} of ${plural(report.paragraphs.length, 'paragraph')}`);
   return bits.join(' · ');
 }
 

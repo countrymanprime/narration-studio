@@ -1,4 +1,5 @@
 import type { ChapterSyncBatch } from '../../api/contracts/chapterSync';
+import { plural } from '../../plural';
 
 /**
  * The single toast for one chapter-sync batch, however many tracks it links:
@@ -14,5 +15,5 @@ export function chapterSyncBatchToastText(batch: ChapterSyncBatch, trackName: (t
     const name = trackName(link.trackGuid);
     return name ? `Linked track “${name}” to ${link.chapterTitle}.` : `Linked a track to ${link.chapterTitle}.`;
   }
-  return `Linked ${batch.linked.length} tracks to chapters.`;
+  return `Linked ${plural(batch.linked.length, 'track')} to chapters.`;
 }

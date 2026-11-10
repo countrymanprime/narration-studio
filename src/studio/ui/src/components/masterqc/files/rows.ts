@@ -219,7 +219,7 @@ export function sharedWaiting(rows: readonly FileRow[]): { text: string; line: s
   }
   return [...groups]
     .filter(([, group]) => group.count > 1)
-    .map(([text, group]) => ({ text, line: `${group.count} rows marked ${group.pill}: ${group.shared} · not mastered.` }));
+    .map(([text, group]) => ({ text, line: `${plural(group.count, 'row')} marked ${group.pill}: ${group.shared} · not mastered.` }));
 }
 
 /** The file the table opens on: the first that fails, else the first with a file. Nothing before a file exists: no waiting row is picked for the narrator. */

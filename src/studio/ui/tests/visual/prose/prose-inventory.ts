@@ -630,7 +630,7 @@ export const PROSE_INVENTORY: ProseEntry[] = [
     class: 'state',
   },
   { file: 'components/engine/EnginePanel.tsx', text: 'One chapter can’t get a stage suggestion until its track link is confirmed below.', class: 'state' },
-  { file: 'components/engine/EnginePanel.tsx', text: '… chapters can’t get a stage suggestion until their track links are confirmed below.', class: 'state' },
+  { file: 'components/engine/EnginePanel.tsx', text: '… can’t get a stage suggestion until their track links are confirmed below.', class: 'state' },
   {
     file: 'components/engine/VoicesCard.tsx',
     text: 'Flat: a chapter is one track (a chapter linked to a folder that holds only tracks of its own, none another chapter is linked to, still records on one of them). Voice folders: a chapter is a folder, one child track per voice.',

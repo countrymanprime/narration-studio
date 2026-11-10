@@ -23,6 +23,27 @@ const ARM = String.raw`('[^']*'|"[^"]*"|\`[^\`]*\`)`;
 const EXPR = String.raw`[\w.\[\]()]+`;
 const TERNARY = new RegExp(String.raw`(${EXPR})\s*(===?|!==?|>=?|<=?)\s*1\s*\?\s*${ARM}\s*:\s*${ARM}`, 'g');
 const YODA = new RegExp(String.raw`1\s*(===?|!==?)\s*(${EXPR})\s*\?\s*${ARM}\s*:\s*${ARM}`, 'g');
+// A count expression (length, count, total, n) followed by a literal plural noun ("${rows.length} rules"): it never reads "1 rules" and prints no separator.
+const COUNT_LITERAL_NOUN =
+  /(?:\$\{|(?<![\w$])\{)(?!plural\(|formatCount\()([^{}`]*?(?:length|count|Count|total|Total|\bn\b|\.n\b)[^{}`]*)\} (?:[a-z]+ )?([a-z]{3,}(?:s|ies))\b(?![=}])(?![^{}`]*\})/g;
+const NOT_A_NOUN = new Set([
+  'markers',
+  'this',
+  'is',
+  'was',
+  'has',
+  'does',
+  'its',
+  'as',
+  'focus',
+  'status',
+  'process',
+  'always',
+  'us',
+  'hours',
+  'minutes',
+  'seconds',
+]);
 const COUNT_THEN_WORD = /(?:\$\{|\{)([\w.[\]()]+)\}[^`\n{}$]{0,48}(?:\$\{|\{)pluralWord\(\1,/;
 
 const bare = (arm: string): string => arm.slice(1, -1);
@@ -47,6 +68,9 @@ const ownPluralIn = (text: string): string[] => {
   if (OWN_HELPER.test(text)) found.push('defines its own plural helper');
   for (const m of text.matchAll(TERNARY)) if (isCountTernary(m[1]!, m[3]!, m[4]!, /^(!==?|>=?)$/.test(m[2]!))) found.push(`writes ${m[0]}`);
   for (const m of text.matchAll(YODA)) if (isCountTernary(m[2]!, m[3]!, m[4]!, m[1] === '!==' || m[1] === '!=')) found.push(`writes ${m[0]}`);
+  for (const m of text.matchAll(COUNT_LITERAL_NOUN))
+    if (!NOT_A_NOUN.has(m[2]!) && !m[2]!.endsWith('ss') && !m[1]!.includes('toLocaleString'))
+      found.push(`writes a count before a literal plural noun: ${m[0]}`);
   if (COUNT_THEN_WORD.test(text)) found.push('writes a bare count before pluralWord: use plural(count, noun) or formatCount(count)');
   return found;
 };
@@ -81,15 +105,29 @@ describe('the scan itself', () => {
     'const label = pluralWord(n, "take")',
     "const label = `Hid ${n} other ${pluralWord(m, 'take')}`",
     "`Export ${formatCount(n)} new ${pluralWord(n, 'marker')}`",
+    '`Add ${formatCount(count)} as markers in ${dawName}`',
+    "`${plural(rows.length, 'rule')}`",
   ])('leaves %s alone', (code) => expect(ownPluralIn(code)).toEqual([]));
 });
+
+// Files that print a number beside a plural-looking word that is not a count of things, with why. This list only shrinks.
+const NOT_COUNTS: Readonly<Record<string, string>> = {
+  'components/engine/chapterSyncText.ts': 'the count is a spoken word ("two tracks", COUNT_WORDS), not a number',
+  'components/script/page/chapters/ChapterCard.tsx': 'words() already formats the count with separators and its own unit rules',
+  'components/master/diagnosticsFormat.ts': 'a duration between words ("0.4 s between words"), not a count of words',
+  'components/storybible/EntryTable.tsx': 'a pixel measure of a virtual list, not a count',
+  'components/storybible/PropertiesSection.tsx': 'JSX attributes (`count={rows.length} rows={rows}`), not text',
+  'components/booth/voices/VoiceControl.tsx': 'the count is the word "Several" when the DAW did not say how many',
+};
 
 describe('one plural for every count and noun', () => {
   const files = [...sources(SRC)]
     .map((path) => relative(SRC, path).split(sep).join('/'))
     .filter((file) => file !== 'plural.ts' && !file.startsWith('api/') && !file.startsWith('fixtures/'));
   it('has no file writing its own', () => {
-    const found = files.flatMap((file) => ownPluralIn(readFileSync(join(SRC, file), 'utf8')).map((what) => `${file} ${what}`));
+    const found = files
+      .filter((file) => !(file in NOT_COUNTS))
+      .flatMap((file) => ownPluralIn(readFileSync(join(SRC, file), 'utf8')).map((what) => `${file} ${what}`));
     expect(found).toEqual([]);
   });
 });

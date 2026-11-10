@@ -19,6 +19,7 @@ import { chapterTrackButtonState, showableTrackGuid } from './chapterTrackButton
 import { RemoveFromRecordingDialog } from './RemoveFromRecordingDialog';
 import { useTrackPlayback } from '../engine/useTrackPlayback';
 import { clock } from '../../clock';
+import { plural } from '../../plural';
 
 const noop = () => {};
 
@@ -227,7 +228,7 @@ export function ChapterTrackPanel({
           {conflict && (
             <section aria-labelledby="chapter-track-conflict" className="space-y-2">
               <SectionLabel as="h3" id="chapter-track-conflict">
-                Linked to {link.links.length} tracks
+                Linked to {plural(link.links.length, 'track')}
               </SectionLabel>
               <p style={{ color: 'var(--text-muted)' }}>Keep one link; the others will be cleared.</p>
               <ul className="space-y-2">

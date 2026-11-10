@@ -109,7 +109,7 @@ export function chapterCheckStatusText(chapterTitle: string, status: ChapterChec
       return { label: 'Never checked', detail, name: `Recording check for ${chapterTitle}: never checked${detail ? `, ${detail}` : ''}` };
     }
     case 'needs_track': {
-      const detail = `${status.count} possible tracks`;
+      const detail = `${plural(status.count, 'possible track')}`;
       return { label: 'Needs a track', detail, name: `Recording check for ${chapterTitle}: needs a track, ${detail}` };
     }
     case 'suggested': {

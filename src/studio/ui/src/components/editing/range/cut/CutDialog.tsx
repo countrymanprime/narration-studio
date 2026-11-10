@@ -110,7 +110,7 @@ export function CutDialog({ doc, keys, stays = [], cuts, mute, plan, chapterName
         <Fact label="In" data-cut-in>
           {chapterName}
           {r ? ` · ${r.takeId ? `take ${r.takeId} · ` : ''}${locator.place(r)}` : ''}
-          {sum.ranges.length > 1 ? ` · spans ${sum.ranges.length} items` : ''}
+          {sum.ranges.length > 1 ? ` · spans ${plural(sum.ranges.length, 'item')}` : ''}
         </Fact>
         <Fact label="Later audio" data-cut-later>
           {laterText(mode, sum.len, later)}
