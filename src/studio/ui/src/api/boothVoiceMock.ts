@@ -51,7 +51,7 @@ export function createBoothVoiceMock(api: Deps) {
   let addedCount = 0;
   let recording: { chapterId: string; since: number; from: number } | undefined;
 
-  /** The chapter's one link and, in a Voice folders project with that link a folder, its voices. */
+  /** The chapter's one link and, when that link is a folder holding voices (as the host decides), its voices. */
   const voicesOf = async (chapterId: string) => {
     const [setup, map, project] = await Promise.all([api.voiceTracksGet(), api.chapterTrackMapList(), api.tracksLive().then((answer) => answer.project)]);
     const links = map.mappings.filter((mapping) => mapping.chapterId === chapterId).map((mapping) => mapping.trackGuid);

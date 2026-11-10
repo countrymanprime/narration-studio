@@ -45,8 +45,8 @@ export type BoothVoices = {
 };
 
 /**
- * The voices of the Booth's chapter (docs/prds/booth-voice-tracks.prd.md, phase 4): in a Voice folders project, a chapter linked to a
- * REAPER folder records on one of the folder's direct children. Choosing one asks the host (BoothVoiceSet), which accepts only a child
+ * The voices of the Booth's chapter (docs/prds/booth-voice-tracks.prd.md, phase 4): a chapter linked to a REAPER folder that holds
+ * tracks of its own (not other chapters' tracks) records on one of the folder's direct children, whatever the layout toggle says. Choosing one asks the host (BoothVoiceSet), which accepts only a child
  * of the chapter's linked folder and, during a take this app started, switches the take live; a refusal is a toast. Until the
  * narrator chooses, the chapter records on its Narrator voice, as the host does.
  */

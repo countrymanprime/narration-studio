@@ -13,11 +13,11 @@ import (
 	"desktop/internal/voicetracks"
 )
 
-// The Booth's voices (docs/prds/booth-voice-tracks.prd.md, phase 4): in a Voice folders project a chapter is linked to a REAPER
-// folder whose direct children are its voices. Record arms the voice the Booth chose (the Narrator child until one is chosen), never
+// The Booth's voices (docs/prds/booth-voice-tracks.prd.md, phase 4): a chapter linked to a REAPER folder whose direct children are
+// its voices (whatever the layout toggle says, #3269). Record arms the voice the Booth chose (the Narrator child until one is chosen), never
 // the folder, and BoothVoiceSet chooses another, switching a take this app started live (switch_voice). The page names a voice by
-// its track GUID, which the host accepts only when it is a direct child of the chapter's one linked folder in the saved project
-// (threat-model row 5k).
+// its track GUID, which the host accepts only when it is a direct child of the chapter's one linked folder in the project as REAPER has it
+// now, or the saved one when REAPER is not answering (threat-model row 5k).
 
 const (
 	boothVoiceFlat      = "flat"        // the project is flat, or the chapter is linked to a plain track
