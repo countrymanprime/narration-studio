@@ -77,3 +77,17 @@ export const Stopping: Story = {
     </div>
   ),
 };
+
+// A press that waits on the host (the Start from here lookup, the checks, the start tone): the spinner replaces the record mark, the label stays.
+export const Pending: Story = {
+  render: () => (
+    <SplitButton label="Recording">
+      <SplitMain pending>Record</SplitMain>
+      <SplitSide label="Record options" aria-haspopup="dialog" />
+    </SplitButton>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole('button', { name: 'Record' })).toHaveAttribute('aria-busy', 'true');
+  },
+};

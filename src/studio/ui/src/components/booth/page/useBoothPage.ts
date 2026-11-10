@@ -360,10 +360,12 @@ export function useBoothPage(options: BoothPageOptions) {
   }, [daw, markTakeStopped, overlay, recorderLabel]);
 
   /** One press of Record: listening and the DAW together (or listening first for the app's own recorder). True when the take is running. */
-  const beginOnce = async (punch?: number): Promise<boolean> => {
+  const beginOnce = async (punch: number | undefined, current: () => boolean): Promise<boolean> => {
     // The live speech model is checked before anything records: a missing one opens its install question here, and no take begins
     // behind it (the DAW would otherwise record while the narrator is still being asked, and while it downloads).
     if (!(await latest.current.session.ensureModel())) return false;
+    // Each wait can outlast the narrator's stay: a press whose Booth was left, or whose chapter changed, ends quietly (no take, no cue, no message).
+    if (!current()) return false;
     // With the app's own recorder the page knows, from the one list Record options shows, when no microphone can be used (none chosen among several, none listed, the
     // chosen one unplugged): the take does not begin on a guess, and the sentence is the one the host gives (#2810).
     const micProblem = options.micProblem?.();
@@ -389,7 +391,9 @@ export function useBoothPage(options: BoothPageOptions) {
       ? ended.then(() => latest.current.session.start(endedColdRead ? { startWord: from } : undefined))
       : Promise.resolve({ ok: true, reason: '' });
     const [heard, started] = await (
-      together ? Promise.all([hearing, control.toggle(punch)]) : hearing.then(async (answer) => [answer, answer.ok && (await control.toggle(punch))] as const)
+      together
+        ? Promise.all([hearing, control.toggle(punch, { current })])
+        : hearing.then(async (answer) => [answer, answer.ok && (await control.toggle(punch, { current }))] as const)
     ).finally(() => (listenStarting.current = false));
     if (!heard.ok) {
       const kept = started && !(await dropUnheardTake());
@@ -408,6 +412,10 @@ export function useBoothPage(options: BoothPageOptions) {
   };
   // The press under way, settled with whether its take is running: a second press, or a Stop that waits for listening, reads it.
   const starting = useRef<Promise<boolean> | null>(null);
+  // The same press as state, for Record's pending look.
+  const [beginning, setBeginning] = useState(false);
+  // Which press is current: leaving the Booth or changing chapter makes every press in flight stale (see `beginOnce`).
+  const pressToken = useRef(0);
 
   const roll = useRoll(
     {
@@ -433,13 +441,16 @@ export function useBoothPage(options: BoothPageOptions) {
       beginTake: async (punch) => {
         // One start at a time: a second press while this one runs (a double tap, a pedal's bounce) starts nothing more.
         if (starting.current) return;
+        const token = pressToken.current;
         let kept = (_value: boolean) => {};
         starting.current = new Promise<boolean>((resolve) => (kept = resolve));
+        setBeginning(true);
         try {
-          kept(await beginOnce(punch));
+          kept(await beginOnce(punch, () => token === pressToken.current));
         } finally {
           starting.current = null;
           kept(false);
+          setBeginning(false);
         }
       },
       chooseVoice: async (trackGuid) => {
@@ -469,6 +480,17 @@ export function useBoothPage(options: BoothPageOptions) {
     { overlay },
   );
   const { hold } = roll;
+  // A start still waiting for the host or a check must not begin a take once the chapter has changed or the Booth is left.
+  const { cancelStart } = roll;
+  useEffect(
+    () => () => {
+      cancelStart();
+      pressToken.current += 1;
+    },
+    [recordId, cancelStart],
+  );
+  // Record shows a press at once: from the press (the lookup of a chosen start, the checks, the start tone) until the take starts or is refused.
+  const startPending = !recording && (roll.lookingUp || beginning);
 
   // A take started or ended: the timer, the listening session and the passage map's run follow the Record control.
   const was = useRef(recording);
@@ -501,6 +523,9 @@ export function useBoothPage(options: BoothPageOptions) {
       if (now.session.active) now.session.stop();
       return;
     }
+    // A start chosen with Start from here is for the take that just ended: the next Record press starts where the recording ends, and does not
+    // look the old spot up again or punch over it. A take that was refused or dropped never got here, so its start stays.
+    setPunchAt(null);
     setTakeNote(`Stopped. Recorded ${timerText(now.elapsed())}.`);
     if (place) void writer.stop(place, now.elapsed());
     if (now.session.active) now.session.stop();
@@ -817,6 +842,8 @@ export function useBoothPage(options: BoothPageOptions) {
     leave,
     toggleTake,
     pressMain,
+    /** A press is starting a take and nothing has answered yet: Record shows it. */
+    startPending,
     stopTake,
     /** R: roll again from the chosen phrase, or the current one; says why when no take runs. */
     punchAndRoll,

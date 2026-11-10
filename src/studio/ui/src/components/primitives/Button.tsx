@@ -1,5 +1,4 @@
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCircleNotch } from '@fortawesome/free-solid-svg-icons';
+import { PendingSpinner } from './PendingSpinner';
 import type { ComponentProps } from 'react';
 import { HIT_AREA } from './hitArea';
 
@@ -70,7 +69,7 @@ export function Button({ variant = 'primary', size = 'md', className = '', type 
       className={`${buttonClasses(variant, size)} ${className}`}
       {...rest}
     >
-      {pending && <FontAwesomeIcon icon={faCircleNotch} className="motion-ok:animate-spin" aria-hidden="true" />}
+      {pending && <PendingSpinner />}
       {children}
     </button>
   );

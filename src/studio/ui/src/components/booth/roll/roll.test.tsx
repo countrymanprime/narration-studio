@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, renderHook } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { BoothPunch } from '../../../api/contracts/voiceTracks';
 import type { DawCapabilities, DawResult } from '../../../api/contracts/daw';
@@ -460,5 +460,138 @@ describe('rapid R (Booth pass 3, M12)', () => {
     await act(async () => void hook.result.current.punchAndRoll());
     await act(async () => void hook.result.current.punchAndRoll());
     expect(roll).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('a start waits for the host: shown, joined, and dropped when the Booth is left (#3284)', () => {
+  const found = (p: number): BoothPunch => ({ outcome: 'found', trackGuid: `T${p}`, trackName: `Voice ${p}`, start: p * 10, end: p * 10 + 5 });
+  const gate = () => {
+    let resolve!: (value: BoothPunch) => void;
+    const promise = new Promise<BoothPunch>((r) => (resolve = r));
+    return { promise, resolve };
+  };
+
+  it('five presses during one lookup make one host call and one take', async () => {
+    const late = gate();
+    const punchTarget = vi.fn(() => late.promise);
+    const { hook, actions } = setup(SETUPS.reaper, { recording: false, punchAt: 1, punchTarget });
+    const presses: Promise<void>[] = [];
+    act(() => {
+      for (let i = 0; i < 5; i++) presses.push(hook.result.current.startTake() as Promise<void>);
+    });
+    late.resolve(found(1));
+    await act(() => Promise.all(presses));
+    expect(punchTarget).toHaveBeenCalledTimes(1);
+    expect(actions.beginTake).toHaveBeenCalledExactlyOnceWith(10);
+  });
+
+  it('two quick Start from here presses on the same phrase make one lookup and start once', async () => {
+    const punchTarget = vi.fn(async (p: number) => found(p));
+    const { hook, actions } = setup(SETUPS.reaper, { recording: false, punchTarget });
+    await act(async () => {
+      await Promise.all([hook.result.current.startFromHere(1), hook.result.current.startFromHere(1)]);
+    });
+    expect(punchTarget).toHaveBeenCalledTimes(1);
+    expect(actions.beginTake).toHaveBeenCalledTimes(1);
+  });
+
+  it('a lookup call that never settles is not joined by a retry: past the limit the host is asked again', async () => {
+    vi.useFakeTimers();
+    try {
+      const punchTarget = vi.fn(() => new Promise<BoothPunch>(() => {}));
+      const { hook } = setup(SETUPS.reaper, { recording: false, punchAt: 1, punchTarget });
+      act(() => void hook.result.current.startTake());
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(LOOKUP_MS + 100);
+      });
+      act(() => void hook.result.current.startTake());
+      expect(punchTarget).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('says a lookup is out while it waits, and not before or after', async () => {
+    const late = gate();
+    const { hook } = setup(SETUPS.reaper, { recording: false, punchAt: 1, punchTarget: () => late.promise });
+    expect(hook.result.current.lookingUp).toBe(false);
+    let done: Promise<unknown> = Promise.resolve();
+    act(() => {
+      done = hook.result.current.startTake();
+    });
+    expect(hook.result.current.lookingUp).toBe(true);
+    late.resolve(found(1));
+    await act(() => done);
+    expect(hook.result.current.lookingUp).toBe(false);
+  });
+
+  it('unmounting while the lookup is out starts no take', async () => {
+    const late = gate();
+    const { hook, actions } = setup(SETUPS.reaper, { recording: false, punchAt: 1, punchTarget: () => late.promise });
+    let done: Promise<unknown> = Promise.resolve();
+    act(() => {
+      done = hook.result.current.startTake();
+    });
+    hook.unmount();
+    late.resolve(found(1));
+    await done;
+    expect(actions.beginTake).not.toHaveBeenCalled();
+    expect(actions.chooseVoice).not.toHaveBeenCalled();
+    expect(actions.notify).not.toHaveBeenCalled();
+  });
+
+  it('unmounting during Start from here (the path of R and the menu item) starts no take', async () => {
+    const late = gate();
+    const { hook, actions } = setup(SETUPS.reaper, { recording: false, punchTarget: () => late.promise });
+    let done: Promise<unknown> = Promise.resolve();
+    act(() => {
+      done = hook.result.current.startFromHere(1);
+    });
+    hook.unmount();
+    late.resolve(found(1));
+    await done;
+    expect(actions.beginTake).not.toHaveBeenCalled();
+  });
+
+  it('a chapter change (cancelStart) drops the pending start', async () => {
+    const late = gate();
+    const { hook, actions } = setup(SETUPS.reaper, { recording: false, punchAt: 1, punchTarget: () => late.promise });
+    let done: Promise<unknown> = Promise.resolve();
+    act(() => {
+      done = hook.result.current.startTake();
+    });
+    act(() => hook.result.current.cancelStart());
+    expect(hook.result.current.lookingUp).toBe(false);
+    late.resolve(found(1));
+    await done;
+    expect(actions.beginTake).not.toHaveBeenCalled();
+  });
+
+  it('leaving while the punch-in question is open starts no take', async () => {
+    const { hook, actions, dialog } = setup(SETUPS.audacity, { recording: false, punchAt: 1 });
+    let done: Promise<unknown> = Promise.resolve();
+    act(() => {
+      done = hook.result.current.startTake();
+    });
+    await waitFor(() => expect(dialog()).toBeTruthy());
+    hook.unmount();
+    await act(async () => dialog()?.answer(true));
+    await done;
+    expect(actions.beginTake).not.toHaveBeenCalled();
+  });
+
+  it('leaving while the voice is being chosen starts no take', async () => {
+    const voice = gate();
+    const { hook, actions } = setup(SETUPS.reaper, { recording: false, punchAt: 1, punchTarget: async (p) => found(p) });
+    actions.chooseVoice.mockImplementation(async () => (await voice.promise, true));
+    let done: Promise<unknown> = Promise.resolve();
+    act(() => {
+      done = hook.result.current.startTake();
+    });
+    await waitFor(() => expect(actions.chooseVoice).toHaveBeenCalledTimes(1));
+    hook.unmount();
+    voice.resolve(found(1));
+    await done;
+    expect(actions.beginTake).not.toHaveBeenCalled();
   });
 });

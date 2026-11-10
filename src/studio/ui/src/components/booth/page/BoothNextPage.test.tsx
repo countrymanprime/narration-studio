@@ -2319,3 +2319,139 @@ describe('enter-and-numpad-enter-record-and-stop-like-space', () => {
     await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(1));
   });
 });
+
+describe('a start chosen with Start from here: the wait is shown, dropped on leaving, and spent by its take (#3284)', () => {
+  const FOUND = { outcome: 'found' as const, start: 12, end: 20 };
+  const START = '?chapter=c1&para=p3&at=28';
+  const recordButton = () => screen.getByRole('button', { name: /^Record$/ });
+  /** A lookup the test answers by hand. */
+  const slowLookup = () => {
+    let answer!: (value: typeof FOUND) => void;
+    const pending = new Promise<typeof FOUND>((resolve) => (answer = resolve));
+    return { boothPunchTarget: vi.fn(() => pending), answer };
+  };
+  const gated = <T,>(value: T) => {
+    let release!: () => void;
+    const open = new Promise<void>((resolve) => (release = resolve));
+    return { release, answer: async () => (await open, value) };
+  };
+
+  it('shows Record busy at once while the lookup is out, and ends with the take', async () => {
+    const lookup = slowLookup();
+    const page = renderPage({ search: START, api: { boothPunchTarget: lookup.boothPunchTarget } });
+    await ready();
+    await space();
+    expect(recordButton().getAttribute('aria-busy')).toBe('true');
+    expect(page.daw.recordStart).not.toHaveBeenCalled();
+    await act(async () => lookup.answer(FOUND));
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+    expect(page.daw.recordStart).toHaveBeenCalledWith('c1', 12);
+  });
+
+  it('a refused lookup ends the wait, and Record is pressable again', async () => {
+    const boothPunchTarget = vi.fn(async () => ({ outcome: 'refused' as const, message: 'The recording check is out of date.' }));
+    const page = renderPage({ search: START, api: { boothPunchTarget } });
+    await ready();
+    await space();
+    await waitFor(() => expect(recordButton().getAttribute('aria-busy')).toBeNull());
+    expect(page.daw.recordStart).not.toHaveBeenCalled();
+  });
+
+  it('leaving the Booth while the lookup is out starts no take', async () => {
+    const lookup = slowLookup();
+    const page = renderPage({ search: START, api: { boothPunchTarget: lookup.boothPunchTarget } });
+    await ready();
+    await space();
+    expect(recordButton().getAttribute('aria-busy')).toBe('true');
+    page.view.unmount();
+    await act(async () => lookup.answer(FOUND));
+    await settle();
+    expect(page.daw.recordStart).not.toHaveBeenCalled();
+  });
+
+  describe('leaving the Booth during the waits after the lookup starts no take', () => {
+    for (const [name, search] of [
+      ['a plain press', ''],
+      ['a press with a start chosen', START],
+    ] as const) {
+      const leave = async (page: ReturnType<typeof renderPage>, release: () => void) => {
+        await settle();
+        expect(recordButton().getAttribute('aria-busy')).toBe('true');
+        page.view.unmount();
+        release();
+        await settle();
+        await settle();
+        expect(page.daw.recordStart).not.toHaveBeenCalled();
+      };
+      it(`${name}: a slow model check`, async () => {
+        const slow = gated({ assets: [] });
+        const page = renderPage({ search, api: { assetsList: slow.answer } as unknown as Partial<NarrationApi> });
+        await ready();
+        await space();
+        await leave(page, slow.release);
+      });
+      it(`${name}: a slow project check`, async () => {
+        const slow = gated({ dawFileLinked: true, dawReachable: true, dawProjectMatches: true });
+        const page = renderPage({ search, api: { bootstrap: slow.answer } as unknown as Partial<NarrationApi> });
+        await ready();
+        await space();
+        await leave(page, slow.release);
+      });
+      it(`${name}: the start tone`, async () => {
+        let release = () => {};
+        tone.gate = new Promise<void>((resolve) => (release = resolve));
+        try {
+          const page = renderPage({ search });
+          await ready();
+          await space();
+          await leave(page, release);
+        } finally {
+          tone.gate = null;
+        }
+      });
+    }
+  });
+
+  it('five presses during the lookup make one host call and one take', async () => {
+    const lookup = slowLookup();
+    const page = renderPage({ search: START, api: { boothPunchTarget: lookup.boothPunchTarget } });
+    await ready();
+    lookup.boothPunchTarget.mockClear();
+    for (let i = 0; i < 5; i++) await space();
+    await act(async () => lookup.answer(FOUND));
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+    // The opening of the Booth at a line asked once; the presses made no call of their own.
+    expect(lookup.boothPunchTarget.mock.calls.length).toBeLessThanOrEqual(1);
+    expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
+  });
+
+  it('the chosen start is for the next take only: after it ends, Record starts at the end of the audio with no lookup', async () => {
+    const boothPunchTarget = vi.fn(async () => FOUND);
+    const page = renderPage({ search: START, api: { boothPunchTarget } });
+    await ready();
+    boothPunchTarget.mockClear();
+    await space();
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+    expect(boothPunchTarget).toHaveBeenCalledTimes(1);
+    await space();
+    await waitFor(() => expect(recordButton()).toBeTruthy());
+    await space();
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+    expect(page.daw.recordStart).toHaveBeenCalledTimes(2);
+    expect(page.daw.recordStart).toHaveBeenLastCalledWith('c1', undefined);
+    expect(boothPunchTarget).toHaveBeenCalledTimes(1);
+  });
+
+  it('a take the DAW refuses spends nothing: the next Record uses the start again (as before)', async () => {
+    const boothPunchTarget = vi.fn(async () => FOUND);
+    const page = renderPage({ search: START, api: { boothPunchTarget } });
+    await ready();
+    const refused = { ok: false as const, changed: false, undoSteps: 0, message: 'REAPER is not answering.', refused: 'REAPER is not answering.' };
+    page.daw.recordStart.mockImplementationOnce(async () => refused as never);
+    await space();
+    await waitFor(() => expect(recordButton().getAttribute('aria-busy')).toBeNull());
+    await space();
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+    expect(page.daw.recordStart).toHaveBeenLastCalledWith('c1', 12);
+  });
+});
