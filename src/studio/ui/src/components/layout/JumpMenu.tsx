@@ -261,7 +261,7 @@ function JumpMenu({
     <>
       {/* The typed text starts 12 px in, where the group headings and the rows' labels do (alignment audit XSL-15): 4 px to the box,
           its 1 px border and 7 px inside it. */}
-      <div className="border-b border-[var(--border)] px-1 py-2">
+      <div className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--surface)] px-1 py-2">
         <TextField
           className="pl-[0.4375rem]!"
           label="Jump menu"
@@ -308,20 +308,23 @@ function JumpMenu({
           {searching ? searchStatus(allEntries) : ''}
         </span>
       </div>
-      <Listbox
-        id={listId}
-        label="Jump menu results"
-        options={options}
-        activeIndex={activeIndex}
-        onPick={(id) => choose(entries.find((entry) => entry.id === id))}
-        empty="Nothing matches"
-        footer={
-          allEntries.length > entries.length ? (
-            <p className="px-3 py-2 text-xs text-[var(--text-muted)]">{`Showing ${entries.length} of ${allEntries.length}`}</p>
-          ) : undefined
-        }
-        flush
-      />
+      {/* The dialog scrolls, not the list, so the search field stays pinned and the arrow keys scroll a row to just below it (not under it). */}
+      <div className="[&_[role=option]]:scroll-mt-16">
+        <Listbox
+          id={listId}
+          label="Jump menu results"
+          options={options}
+          activeIndex={activeIndex}
+          onPick={(id) => choose(entries.find((entry) => entry.id === id))}
+          empty="Nothing matches"
+          footer={
+            allEntries.length > entries.length ? (
+              <p className="px-3 py-2 text-xs text-[var(--text-muted)]">{`Showing ${entries.length} of ${allEntries.length}`}</p>
+            ) : undefined
+          }
+          flush
+        />
+      </div>
       {/* The last row keeps an inset above the dialog's edge when the list scrolls (alignment audit XSL-16, R3SL-7). */}
       <div aria-hidden="true" data-jump-end className="h-2 flex-none" />
     </>
