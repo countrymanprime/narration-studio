@@ -26,9 +26,16 @@ var savedTrackReaders = map[string]string{
 	"bindings_workspace_wordtimes.go": "the saved project joined with the live track state (liveTrackState) for word times",
 	"recordedlengths.go":              "measures recorded lengths from the saved file's items, cached by its modification time",
 	"creditsrecordedlengths.go":       "measures credit lengths from the saved file's items",
+	"app.go":                          "hands projectFileReader (the saved reader) to the editing, coverage and character services, which read the saved file's items",
+	"bindings.go":                     "the TracksList binding: the saved project's tracks, which the host's own pages merge the live list over",
+	"bindings_voicesamples.go":        "the voice sample service reads the saved file's items through projectFileReader",
+	"bindings_workspace_peaks.go":     "the saved project read with the chapter's alignment to place peaks",
+	"bindings_workspace_snap.go":      "the saved project read for snap points once the DAW says the saved file is current",
+	"bindings_workspace_takes.go":     "the saved project read with the chapter's alignment to list the passage's takes",
+	"media.go":                        "finds a take's media file in the saved project when the recorder does not know it",
 }
 
-var savedTrackReader = regexp.MustCompile(`\b(selectedProject|readProject|readLinksProject)\(`)
+var savedTrackReader = regexp.MustCompile(`\b(selectedProject|readProject|readLinksProject)\(|\.tracksList\(|\bprojectFileReader\{`)
 
 // TestOnlyTheListedFilesReadTheSavedProjectForTracks fails when a file outside savedTrackReaders reads the saved .rpp's tracks, and when a
 // listed file no longer does (the list must not outlive the reader).

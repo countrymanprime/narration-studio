@@ -50,7 +50,7 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/settings/controls/DiagnosticsSection.tsx#1': no(BT),
   'src/components/settings/controls/DiagnosticsSection.tsx#2': no(BT),
   'src/components/settings/controls/VoicesBody.tsx#1': no(
-    'The chapter links are read again each time the shared tracks are (on focus and every few seconds), so the next read repeats it.',
+    'The chapter list is read when the row opens; the narrator is in Settings and opens the row again when it matters.',
   ),
   'src/components/chapterTracks/ChapterTrackState.tsx#1': yes(
     'The chapter links read changes nothing; Retry reads the tracks and the links again (one toast for a run of failed reads).',

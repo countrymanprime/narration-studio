@@ -5,7 +5,14 @@ import type { VoiceTracksLayout } from '../../api/contracts/voiceTracks';
 export type CreatedDestination = Pick<Extract<ChapterTrackCreateResult, { outcome: 'created' }>, 'voice'> & { track: { name: string } };
 
 /** What a chapter's link points at, as far as the project's tracks say: nothing, a plain track, a folder with no voices, or a track they do not hold yet. */
-export type ChapterLinkKind = 'none' | 'track' | 'empty' | 'unknown';
+/** The one sentence for a link to a track the project does not hold; the host (linkGoneSentence in bindings_booth_voice.go) and the Booth mock say the same. */
+export const LINK_GONE =
+  'The track linked to this chapter is no longer in the project, so there is no voice to choose. Link it again in the audio engine panel.';
+
+/** The sentence while the project's tracks have not been read (the first read has not answered or failed): the chapter's link is not known to be missing. */
+export const TRACKS_UNREAD = 'The tracks are still being read, so there is no voice to choose yet. Try again in a moment.';
+
+export type ChapterLinkKind = 'none' | 'track' | 'empty' | 'unknown' | 'unread';
 
 /**
  * The words for where a chapter records, from the project's layout (the Voice folders setting): a chapter is a track in a flat project and a
@@ -40,12 +47,12 @@ export function destinationFor(layout: VoiceTracksLayout) {
     chipSeveral: { words: folders ? 'several folders' : 'several tracks', sentence: `this chapter is linked to several ${noun}s` },
     /**
      * A voice key pressed where no voice is listed, and why, by what the chapter is linked to: nothing (`none`), a track that is not a folder (`track`),
-     * a folder holding no voices yet (`empty`), or a track the project does not hold (`unknown`: deleted in the DAW, or a folder just made that is not saved yet).
+     * a folder holding no voices yet (`empty`), or a track the project does not hold (`unknown`: deleted in the DAW, or a folder just made that is not saved yet), or tracks not read yet (`unread`).
      */
     noVoiceKeys: (link: ChapterLinkKind) => {
       // One sentence in either layout for a link to a track the project does not hold, as the host says it and the Engine panel's "Track missing" (#3269).
-      if (link === 'unknown')
-        return 'This chapter’s track is not in the project, so there is no voice to choose. Save the project in the DAW, or link the chapter again in the audio engine panel.';
+      if (link === 'unknown') return LINK_GONE;
+      if (link === 'unread') return TRACKS_UNREAD;
       if (!folders) return 'This chapter records on one track. Voice keys choose a voice for a chapter linked to a folder of voices (the audio engine panel).';
       switch (link) {
         case 'none':

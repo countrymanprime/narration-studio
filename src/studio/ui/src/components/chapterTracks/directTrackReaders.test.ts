@@ -19,9 +19,14 @@ const DIRECT_READERS = new Set([
   'components/production/useChapterTools.tsx',
   'components/proof/useChapterTimeline.ts',
   'components/pickups/list/usePlayOriginal.ts',
+  'components/connection/ChapterLinkDialog.tsx',
+  'components/engine/useChapterLinks.ts',
+  'components/proof/ProofChapterPage.tsx',
+  // The state itself: the one reader every screen above is meant to move onto.
+  'components/chapterTracks/ChapterTrackState.tsx',
 ]);
 
-const READ = /\.(tracksLive|tracksList|chapterTrackLinks)\(/;
+const READ = /\.(tracksLive|tracksList|chapterTrackLinks|chapterTrackMapList)\(/;
 const root = join(__dirname, '..', '..');
 
 function sources(dir: string): string[] {

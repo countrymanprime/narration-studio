@@ -210,10 +210,10 @@ export function useBoothVoices({
   );
   // What the chapter's link points at, for the sentence a voice key gets when no voice is listed.
   const linkKind: ChapterLinkKind = useMemo(() => {
-    if (!link) return 'none';
+    if (!link) return trackState.reading && !answered && chapterId ? 'unread' : 'none';
     const linked = tracks.find((track) => track.guid.toLowerCase() === link.toLowerCase());
     return !linked ? 'unknown' : linked.isFolder ? 'empty' : 'track';
-  }, [link, tracks]);
+  }, [link, tracks, trackState.reading, answered, chapterId]);
   // Until the host's answer for this chapter arrives, the voice it records on with no choice made: the Narrator, else the first.
   const fromHost = hostVoice.chapterId === chapterId ? voices.find((voice) => voice.guid.toLowerCase() === hostVoice.guid.toLowerCase()) : undefined;
   const current = fromHost ?? voices.find((voice) => voice.narrator) ?? voices[0];

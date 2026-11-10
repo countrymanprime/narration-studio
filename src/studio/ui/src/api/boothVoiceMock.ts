@@ -17,6 +17,8 @@ type Deps = Pick<
   | 'readAloudReaperState'
 >;
 
+import { LINK_GONE } from '../components/engine/destination';
+
 const FLAT = 'This chapter records on one track. Voice keys choose a voice for a chapter linked to a folder of voices (the audio engine panel).';
 const NOT_A_VOICE = "That track is not a voice of this chapter's folder. Its tracks may have changed in the DAW.";
 
@@ -76,7 +78,10 @@ export function createBoothVoiceMock(api: Deps) {
       isFolder: false,
     }));
     const voices = saved ? [...saved, ...extra] : null;
-    return { links, voices, unsaved };
+    // A link to a track the project does not hold (deleted in the DAW), unless this session made it: the host's `track_missing`.
+    const gone =
+      links.length === 1 && !project.tracks.some((track) => track.guid.toLowerCase() === links[0].toLowerCase()) && !added.has(links[0].toUpperCase());
+    return { links, voices, unsaved, gone };
   };
   const chosenFor = (chapterId: string) => chosen.get(chapterId) ?? '';
 
@@ -109,9 +114,10 @@ export function createBoothVoiceMock(api: Deps) {
       return { outcome: 'never_recorded' };
     },
     async boothVoiceGet(chapterId: string): Promise<BoothVoice> {
-      const { links, voices } = await voicesOf(chapterId);
+      const { links, voices, gone } = await voicesOf(chapterId);
       const notOne = linkRefusal(links);
       if (notOne) return notOne;
+      if (gone) return refused('track_missing', LINK_GONE);
       if (!voices) return refused('flat', 'This chapter records on one track.');
       if (voices.length === 0)
         return refused('no_voices', 'This chapter is linked to a folder with no voice tracks in it. Add a track inside the folder in REAPER, and save.');
@@ -153,9 +159,10 @@ export function createBoothVoiceMock(api: Deps) {
       return { outcome: 'added', trackGuid: voice.guid, name: clean };
     },
     async boothVoiceSet(chapterId: string, trackGuid: string): Promise<BoothVoice> {
-      const { links, voices } = await voicesOf(chapterId);
+      const { links, voices, gone } = await voicesOf(chapterId);
       const notOne = linkRefusal(links);
       if (notOne) return notOne;
+      if (gone) return refused('track_missing', LINK_GONE);
       if (!voices) return refused('flat', FLAT);
       const target = voices.find((voice) => voice.guid.toLowerCase() === trackGuid.toLowerCase());
       if (!target) return refused('not_a_voice', NOT_A_VOICE);

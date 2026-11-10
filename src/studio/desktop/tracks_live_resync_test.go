@@ -290,7 +290,7 @@ func TestChoosingAnotherChaptersTrackAsAVoiceIsRefused(t *testing.T) {
 	}
 }
 
-// A chapter linked to a track REAPER no longer has gets one sentence in either layout, the same the Engine panel's "Track missing" says
+// A chapter linked to a track REAPER no longer has gets one sentence in either layout (this exact text is also LINK_GONE in destination.ts and the Booth mock; destination.test.ts asserts it), the same the Engine panel's "Track missing" says
 // (#3269 N1b): not "records on one track" under Flat and "not linked to a folder" under Voice folders.
 func TestAVoiceKeyOnAChapterWhoseTrackWasDeletedSaysTheTrackIsGoneInEitherLayout(t *testing.T) {
 	for _, layout := range []string{voicetracks.LayoutFlat, voicetracks.LayoutFolders} {
@@ -311,7 +311,7 @@ func TestAVoiceKeyOnAChapterWhoseTrackWasDeletedSaysTheTrackIsGoneInEitherLayout
 			if err != nil {
 				t.Fatal(err)
 			}
-			if got.Outcome != "refused" || got.Reason != readAloudTrackMissing || !strings.Contains(got.Message, "no longer in the") {
+			if got.Outcome != "refused" || got.Reason != readAloudTrackMissing || got.Message != "The track linked to this chapter is no longer in the project, so there is no voice to choose. Link it again in the audio engine panel." {
 				t.Fatalf("voice read = %+v, want refused as track_missing", got)
 			}
 			set, err := host.boothVoiceSetIn(context.Background(), host.services(), nil, ids[0], liveVoice)

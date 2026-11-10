@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { TrackMapping } from '../../types';
 import type { TracksProject, TracksSource } from '../../api/contracts/tracks';
 import { usePort } from '../../ports/usePort';
-import { useLiveTracks } from '../engine/useLiveTracks';
+import { LIVE_TRACKS_TIMEOUT_MS, useLiveTracks } from '../engine/useLiveTracks';
 import { VoiceSetupProvider } from '../engine/voiceLayout';
 import { retryAction, type Notify } from '../primitives/Toast';
 import { describeApiError } from '../../api/errorMessage';
@@ -20,13 +20,15 @@ export type ChapterTrackState = {
   mappings: TrackMapping[];
   /** When the tracks last answered (Unix ms); null before the first. A change means everything above is a fresh read. */
   readAt: number | null;
+  /** The state is being read for this project (a DAW file is linked and a screen watches): until `readAt` is set, an empty answer means not read yet. */
+  reading: boolean;
   /** The last read failed after a good one: what is shown is from `readAt`. */
   stale: boolean;
   /** Reads the tracks and the links now, for a screen that changed them or was told they changed. */
   refresh: () => void;
 };
 
-const EMPTY: ChapterTrackState = { mappings: [], readAt: null, stale: false, refresh: () => {} };
+const EMPTY: ChapterTrackState = { mappings: [], readAt: null, reading: false, stale: false, refresh: () => {} };
 
 type Watch = { state: ChapterTrackState; watch: () => () => void };
 
@@ -55,56 +57,77 @@ export function ChapterTrackStateProvider({
   const [mappingsAt, setMappingsAt] = useState<number | null>(null);
   const [attempt, setAttempt] = useState(0);
   const refreshLive = live.refresh;
+  // Whether the last links read failed: a run of failed reads is one toast, and a failed read marks everything shown as from `readAt`.
   const linksFailing = useRef(false);
-
-  // The links are read each time the tracks are, so the two always describe one moment; a failed links read keeps the last answer and
-  // the tracks' own failure toast speaks for the read.
-  useEffect(() => {
-    if (!enabled || watchers === 0 || !projectFolder) return;
-    let active = true;
-    trackMap
-      .chapterTrackMapList()
-      .then((answer) => {
-        if (!active) return;
-        linksFailing.current = false;
-        setMappings(answer.mappings);
-        setMappingsAt(live.readAt ?? Date.now());
-      })
-      .catch((reason: unknown) => {
-        // A run of failed reads is one toast with Retry; the screens keep the last links.
-        if (!active || linksFailing.current) return;
-        linksFailing.current = true;
-        notify(
-          describeApiError(reason),
-          'error',
-          retryAction(() => setAttempt((n) => n + 1)),
-        );
-      });
-    return () => {
-      active = false;
-    };
-  }, [trackMap, enabled, watchers, projectFolder, live.readAt, attempt, notify]);
+  const retryPressed = useRef(false);
+  const [linksStale, setLinksStale] = useState(false);
 
   const refresh = useCallback(() => {
     setAttempt((n) => n + 1);
     refreshLive();
   }, [refreshLive]);
+  // The toast's Retry reads the tracks and the links again and always answers: it toasts again when the read fails again.
+  const retry = useCallback(() => {
+    retryPressed.current = true;
+    refresh();
+  }, [refresh]);
+
+  // The links are read each time the tracks are, so the two always describe one moment; a failed links read keeps the last answer.
+  useEffect(() => {
+    if (!enabled || watchers === 0 || !projectFolder) {
+      // Nobody is watching: the next watcher starts clean, and a failure it meets is toasted again.
+      linksFailing.current = false;
+      return;
+    }
+    let active = true;
+    const pressed = retryPressed.current;
+    retryPressed.current = false;
+    // A read that never answers must not leave the screens waiting with no word: after the limit it fails like any other.
+    let timer = 0;
+    const limit = new Promise<never>((_, reject) => {
+      timer = window.setTimeout(() => reject(new Error('REAPER did not answer.')), LIVE_TRACKS_TIMEOUT_MS);
+    });
+    Promise.race([trackMap.chapterTrackMapList(), limit])
+      .then((answer) => {
+        if (!active) return;
+        linksFailing.current = false;
+        setLinksStale(false);
+        setMappings(answer.mappings);
+        setMappingsAt(live.readAt ?? Date.now());
+      })
+      .catch((reason: unknown) => {
+        if (!active) return;
+        setLinksStale(true);
+        if (pressed || !linksFailing.current) notify(describeApiError(reason), 'error', retryAction(retry));
+        linksFailing.current = true;
+      })
+      .finally(() => window.clearTimeout(timer));
+    return () => {
+      active = false;
+    };
+  }, [trackMap, enabled, watchers, projectFolder, live.readAt, attempt, notify, retry]);
   const watch = useCallback(() => {
     setWatchers((n) => n + 1);
     return () => setWatchers((n) => n - 1);
   }, []);
 
+  const reading = enabled && watchers > 0 && !!projectFolder;
   const state = useMemo<ChapterTrackState>(
-    () => ({
-      project: live.project,
-      source: live.source,
-      mappings,
-      // Not ready until both the tracks and the links have answered for this project.
-      readAt: live.readAt !== null && mappingsAt !== null ? live.readAt : null,
-      stale: live.stale,
-      refresh,
-    }),
-    [live.project, live.source, live.readAt, live.stale, mappings, mappingsAt, refresh],
+    () =>
+      // Reading is off (no DAW file linked, Audacity, no project): nothing of an earlier project's tracks or links stays on a screen.
+      !enabled || !projectFolder
+        ? EMPTY
+        : {
+            project: live.project,
+            source: live.source,
+            mappings,
+            // Not ready until both the tracks and the links have answered for this project.
+            readAt: live.readAt !== null && mappingsAt !== null ? live.readAt : null,
+            reading,
+            stale: live.stale || linksStale,
+            refresh,
+          },
+    [enabled, projectFolder, reading, live.project, live.source, live.readAt, live.stale, linksStale, mappings, mappingsAt, refresh],
   );
   const value = useMemo(() => ({ state, watch }), [state, watch]);
   return <ChapterTrackStateContext.Provider value={value}>{children}</ChapterTrackStateContext.Provider>;
@@ -125,7 +148,10 @@ export function useChapterTrackState(): ChapterTrackState {
 export function ProjectTrackProviders({ children, ...state }: { projectFolder: string; enabled: boolean; notify: Notify; children: ReactNode }) {
   return (
     <VoiceSetupProvider projectFolder={state.projectFolder}>
-      <ChapterTrackStateProvider {...state}>{children}</ChapterTrackStateProvider>
+      {/* Keyed by the project: another project starts with none of the last one's tracks or links. */}
+      <ChapterTrackStateProvider key={state.projectFolder} {...state}>
+        {children}
+      </ChapterTrackStateProvider>
     </VoiceSetupProvider>
   );
 }

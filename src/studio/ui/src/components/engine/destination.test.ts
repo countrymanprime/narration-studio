@@ -88,7 +88,7 @@ describe('destinationFor names where a chapter records from the project layout',
       'This chapter is not linked to a folder of voices yet, so there is no voice to choose. Link or create its folder first.',
       'This chapter is linked to a single track, not a folder of voices, so there is no voice to choose. Link its folder in the audio engine panel.',
       'This chapter’s folder has no voice tracks yet, so there is no voice to choose. Add a track inside it in REAPER.',
-      'This chapter’s track is not in the project, so there is no voice to choose. Save the project in the DAW, or link the chapter again in the audio engine panel.',
+      'The track linked to this chapter is no longer in the project, so there is no voice to choose. Link it again in the audio engine panel.',
       'Ch 1 is not linked to a folder in REAPER, so there is no audio to edit.',
     ]);
     expect(all.filter((sentence) => /records on one track/.test(sentence))).toEqual([]);

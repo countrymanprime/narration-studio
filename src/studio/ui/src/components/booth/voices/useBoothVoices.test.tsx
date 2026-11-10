@@ -281,6 +281,19 @@ describe("the Booth's voices", () => {
     expect(hook.current.linkKind).toBe('none');
   });
 
+  // While the shared tracks have not answered (or their read failed) the chapter is not known to be unlinked: the key says the tracks are
+  // still being read, and the failed read's toast says why.
+  it('a voice key before the tracks are read says they are still being read, not that the chapter is not linked', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    api.tracksLive = () => new Promise(() => {});
+    const onNoTrack = vi.fn();
+    const { hook, notify } = await mount({}, false, api, { onNoTrack });
+    await act(async () => hook.current.byKey(1));
+    const infos = notify.mock.calls.filter((call) => call[1] === 'info').map((call) => String(call[0]));
+    expect(infos.join(' ')).toContain('still being read');
+    expect(infos.join(' ')).not.toContain('not linked');
+  });
+
   // The poll re-reads every few seconds: a read that keeps failing is one toast, not one per tick.
   it('toasts a run of failed reads once', async () => {
     const api = createMockApi({}, { voiceFolders: true });

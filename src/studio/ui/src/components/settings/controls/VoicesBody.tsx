@@ -1,14 +1,15 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import type { ManuscriptChapter } from '../../../types';
+import { describeApiError } from '../../../api/errorMessage';
+import { usePort } from '../../../ports/usePort';
 import type { Track } from '../../../api/contracts/tracks';
 import { useChapterTrackState } from '../../chapterTracks/ChapterTrackState';
-import { useChapterLinks } from '../../engine/useChapterLinks';
 import { useVoiceTracks } from '../../engine/useVoiceTracks';
 import { useVoiceSetup } from '../../engine/voiceLayout';
 import { VoicesCard } from '../../engine/VoicesCard';
 import { useSettingsHost } from '../row/SettingsHost';
 
 const NO_TRACKS: Track[] = [];
-const noop = () => {};
 
 /**
  * The body of "Voices": the Engine panel's Voices card (the Narrator's character and who each voice track records), on the same shared voice
@@ -29,15 +30,24 @@ function VoiceFolders() {
   // not yet saved is seen here too; they are read again on focus and every few seconds by the shared state, which toasts a failed read.
   const trackState = useChapterTrackState();
   const tracks = trackState.project?.tracks ?? NO_TRACKS;
-  const links = useChapterLinks(tracks, trackState.readAt ?? 0, noop);
+  // The chapter list is the manuscript's; the links are the shared state's, so they are read once for every screen.
+  const manuscript = usePort('manuscript');
+  const [chapters, setChapters] = useState<ManuscriptChapter[]>([]);
   useEffect(() => {
-    if (links.error) notify(links.error, 'error');
-  }, [links.error, notify]);
+    let active = true;
+    manuscript
+      .manuscriptChapters()
+      .then((next) => active && setChapters(next))
+      .catch((reason: unknown) => active && notify(describeApiError(reason), 'error'));
+    return () => {
+      active = false;
+    };
+  }, [manuscript, notify]);
   return (
     <VoicesCard
       tracks={tracks}
-      chapters={links.chapters}
-      mappings={links.mappings}
+      chapters={chapters}
+      mappings={trackState.mappings}
       setup={voices.setup}
       characters={voices.characters}
       onLayout={voices.setLayout}
