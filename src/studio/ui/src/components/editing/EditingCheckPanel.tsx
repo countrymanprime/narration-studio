@@ -62,12 +62,10 @@ const SOURCE_CHOICE_OPTIONS = [
 
 /** The chapter-track link, confirmed right here: the same prompt the
  * audio engine panel and the recording check show. */
-function MappingFix({ chapter, onLinked }: { chapter: ManuscriptChapter; onLinked: () => void }) {
+function MappingFix({ chapter, notify, onLinked }: { chapter: ManuscriptChapter; notify: Notify; onLinked: () => void }) {
   const api = useApi();
   const [tracks, setTracks] = useState<Track[]>();
   const [error, setError] = useState('');
-  // A pick another chapter holds is refused here, beside the picker, so the picker stays and the panel's own error line keeps its meaning.
-  const [held, setHeld] = useState('');
   const confirming = usePendingAction();
   useEffect(() => {
     let active = true;
@@ -87,34 +85,28 @@ function MappingFix({ chapter, onLinked }: { chapter: ManuscriptChapter; onLinke
     );
   if (!tracks) return <p role="status">Reading the REAPER tracks…</p>;
   return (
-    <>
-      <MappingConfirm
-        chapterTitle={chapterName(chapter, 'short')}
-        tracks={tracks}
-        busy={confirming.isBusy}
-        onChoose={() => setHeld('')}
-        onConfirm={(trackGuid) =>
-          void confirming.run('confirm', async () => {
-            try {
-              const taken = trackHeldByOther((await api.chapterTrackMapList()).mappings, trackGuid, chapter.id);
-              setHeld(taken);
-              if (taken) return;
-              await api.chapterTrackMapConfirm(trackGuid, chapter.id);
-              setError('');
-              onLinked();
-            } catch (reason) {
-              setError(describeApiError(reason));
+    <MappingConfirm
+      chapterTitle={chapterName(chapter, 'short')}
+      tracks={tracks}
+      busy={confirming.isBusy}
+      onConfirm={(trackGuid) =>
+        void confirming.run('confirm', async () => {
+          try {
+            const taken = trackHeldByOther((await api.chapterTrackMapList()).mappings, trackGuid, chapter.id);
+            if (taken) {
+              notify(taken, 'error');
+              return;
             }
-          })
-        }
-        onClear={() => {}}
-      />
-      {held && (
-        <p role="alert" className="m-0 text-sm" style={{ color: 'var(--danger-text)' }}>
-          {held}
-        </p>
-      )}
-    </>
+            await api.chapterTrackMapConfirm(trackGuid, chapter.id);
+            setError('');
+            onLinked();
+          } catch (reason) {
+            setError(describeApiError(reason));
+          }
+        })
+      }
+      onClear={() => {}}
+    />
   );
 }
 
@@ -405,6 +397,7 @@ export function EditingCheckPanel({
             ) : (
               <MappingFix
                 chapter={chapter}
+                notify={notify}
                 onLinked={() => {
                   setRefusal(undefined);
                   void loadSignals();

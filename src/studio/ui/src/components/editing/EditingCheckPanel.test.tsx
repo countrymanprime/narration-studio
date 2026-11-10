@@ -133,7 +133,7 @@ describe('EditingCheckPanel', () => {
 
   it('refuses to link a track another chapter holds, and says which chapter (#3053)', async () => {
     const user = userEvent.setup();
-    const { api } = renderPanel({ editing: { refusal: 'unmapped' } });
+    const { api, notify } = renderPanel({ editing: { refusal: 'unmapped' } });
     const confirm = vi.spyOn(api, 'chapterTrackMapConfirm');
     const dialog = await panel();
     await user.click(within(dialog).getByRole('button', { name: 'Check editing' }));
@@ -145,27 +145,11 @@ describe('EditingCheckPanel', () => {
     });
     await user.selectOptions(select, option);
     await user.click(within(dialog).getByRole('button', { name: 'Confirm' }));
-    expect(await within(dialog).findByText(/already linked to Chapter 9/)).toBeTruthy();
+    await waitFor(() =>
+      expect(notify).toHaveBeenCalledWith('That track is already linked to Chapter 9. Unlink it there first, or pick another track.', 'error'),
+    );
     expect(confirm).not.toHaveBeenCalled();
     expect(within(dialog).getByText(/This chapter can.t be checked yet/)).toBeTruthy();
-  });
-
-  it('clears the held-track refusal when the picker moves to another track (qa-breaker 2)', async () => {
-    const user = userEvent.setup();
-    const { api } = renderPanel({ editing: { refusal: 'unmapped' } });
-    const dialog = await panel();
-    await user.click(within(dialog).getByRole('button', { name: 'Check editing' }));
-    const select = await waitFor(() => screen.getByRole('combobox', { name: `Track for ${chapter.title}` }));
-    const options = within(select).getAllByRole('option') as HTMLOptionElement[];
-    vi.spyOn(api, 'chapterTrackMapList').mockResolvedValue({
-      documentId: 'doc',
-      mappings: [{ trackGuid: options[1].value, chapterId: 'other-chapter', chapterTitle: 'Chapter 9', confirmedAt: '2026-01-01T00:00:00Z' }],
-    });
-    await user.selectOptions(select, options[1]);
-    await user.click(within(dialog).getByRole('button', { name: 'Confirm' }));
-    expect(await within(dialog).findByText(/already linked to Chapter 9/)).toBeTruthy();
-    await user.selectOptions(select, options[2]);
-    expect(within(dialog).queryByText(/already linked to Chapter 9/)).toBeNull();
   });
 
   it('running shows real progress and Cancel, and cancelling leaves a partial result the narrator can check again from', async () => {

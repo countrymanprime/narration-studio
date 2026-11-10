@@ -18,8 +18,6 @@ type Props = {
   /** True while a confirm or clear call is in flight, so the caller's own state controls the busy affordance. */
   busy?: boolean;
   onConfirm: (trackGuid: string) => void;
-  /** The picker's choice changed, so a refusal about the previous choice no longer applies. */
-  onChoose?: () => void;
   onClear: () => void;
   /** The read view's two actions; the Production board's track slide-over names them as its mockup does
    * (chapter-track-link-control mock 02: "Another track…", "Unlink"). */
@@ -40,7 +38,6 @@ export function MappingConfirm({
   suggestedTrackGuid,
   busy = false,
   onConfirm,
-  onChoose,
   onClear,
   changeLabel = 'Change',
   clearLabel = 'Clear',
@@ -84,15 +81,7 @@ export function MappingConfirm({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <TrackSelect
-        label={`Track for ${chapterTitle}`}
-        choices={choices}
-        value={chosen}
-        onChange={(guid) => {
-          setChosen(guid);
-          onChoose?.();
-        }}
-      />
+      <TrackSelect label={`Track for ${chapterTitle}`} choices={choices} value={chosen} onChange={setChosen} />
       <Button variant={chosen ? 'primary' : 'secondary'} disabled={!chosen} onClick={() => onConfirm(chosen)} pending={busy}>
         Confirm
       </Button>

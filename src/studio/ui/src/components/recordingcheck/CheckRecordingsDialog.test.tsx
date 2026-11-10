@@ -367,7 +367,6 @@ describe('CheckRecordingsDialog', () => {
     });
     const confirm = vi.spyOn(api, 'chapterTrackMapConfirm');
     const { service } = open(api, ['a', 'b']);
-    void service;
     await userEvent.click(await screen.findByRole('button', { name: 'Check 2 chapters' }));
     emit({ runId: 'r-b', phase: 'complete' });
     const alert = await within(await screen.findByRole('dialog')).findByRole('alert');
@@ -379,7 +378,7 @@ describe('CheckRecordingsDialog', () => {
     });
     await userEvent.selectOptions(select, option);
     await userEvent.click(within(alert).getByRole('button', { name: 'Confirm' }));
-    expect(await within(alert).findByText(/already linked to Chapter 9/)).toBeTruthy();
+    await waitFor(() => expect(toasts(service)).toContain('That track is already linked to Chapter 9. Unlink it there first, or pick another track.'));
     expect(confirm).not.toHaveBeenCalled();
   });
 
