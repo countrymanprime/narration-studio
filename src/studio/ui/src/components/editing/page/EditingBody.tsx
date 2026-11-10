@@ -562,8 +562,9 @@ export function EditingBody(props: EditingBodyProps) {
   });
 
   // Nothing can play on a chapter with no audio (no linked track, a track that is gone or empty, or nothing recorded yet): Play says why.
-  const save = useSaveInDaw(props.onReread);
   const { rereading, reread } = useRereadFeedback(read, chapterName, props.onReread);
+  // The read after a save is the same read as **Read again**: it shows pending and says when the saved project still has no audio.
+  const save = useSaveInDaw(reread);
   const dawName = caps && caps.daw !== 'none' && caps.daw !== 'Built-in' ? caps.daw : null;
   const playUnavailable = read.audio.kind === 'ready' ? undefined : `${noAudioText(read.audio, chapterName, dawName).headline}`;
 
