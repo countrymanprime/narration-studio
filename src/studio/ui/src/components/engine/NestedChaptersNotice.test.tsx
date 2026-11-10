@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { ChapterTrackStateProvider } from '../chapterTracks/ChapterTrackState';
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
@@ -27,7 +28,13 @@ function FoldersProbe({ mappings }: { mappings: { chapterId: string; trackGuid: 
 
 function wrapperFor(api: ReturnType<typeof createMockApi>) {
   return function Wrapper({ children }: { children: ReactNode }) {
-    return <ApiProvider api={api}>{children}</ApiProvider>;
+    return (
+      <ApiProvider api={api}>
+        <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+          {children}
+        </ChapterTrackStateProvider>
+      </ApiProvider>
+    );
   };
 }
 
@@ -35,9 +42,11 @@ function renderTable(api: ReturnType<typeof createMockApi>) {
   const notify = vi.fn<Notify>();
   render(
     <ApiProvider api={api}>
-      <MemoryRouter>
-        <Table notify={notify} />
-      </MemoryRouter>
+      <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+        <MemoryRouter>
+          <Table notify={notify} />
+        </MemoryRouter>
+      </ChapterTrackStateProvider>
     </ApiProvider>,
   );
   return notify;

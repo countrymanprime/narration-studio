@@ -111,6 +111,23 @@ describe('CommandRouter', () => {
     expect(hold).toHaveBeenCalledTimes(2);
   });
 
+  it('a held Ctrl chord of a press-only command runs nothing more but is still kept from the webview', () => {
+    const source = fakeSource();
+    const run = vi.fn();
+    const SAVE: CommandDescriptor = { id: 'test.save', label: 'Save', scope: 'global', defaults: [] };
+    const keymap: Keymap = { 'test.save': [gesture('keyboard', 'KeyS', ['Ctrl'])] };
+    const preventDefault = vi.fn();
+    render(
+      <CommandRouter source={source} catalog={[SAVE]} keymap={keymap}>
+        <Registrar id="test.save" onFire={run} />
+      </CommandRouter>,
+    );
+    act(() => source.emit({ gesture: gesture('keyboard', 'KeyS', ['Ctrl']), preventDefault }));
+    act(() => source.emit({ gesture: gesture('keyboard', 'KeyS', ['Ctrl']), preventDefault, repeat: true }));
+    expect(run).toHaveBeenCalledTimes(1);
+    expect(preventDefault).toHaveBeenCalledTimes(2);
+  });
+
   it('leaves a gesture no command takes alone (no preventDefault)', () => {
     const source = fakeSource();
     const preventDefault = vi.fn();

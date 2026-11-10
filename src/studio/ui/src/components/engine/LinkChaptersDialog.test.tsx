@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { ChapterTrackStateProvider } from '../chapterTracks/ChapterTrackState';
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
@@ -23,7 +24,9 @@ function renderDialog(overrides: Partial<NarrationApi> = {}, initial: Parameters
   const api = createMockApi(overrides, initial);
   render(
     <ApiProvider api={api}>
-      <Dialog onClose={onClose} tracks={tracks} />
+      <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+        <Dialog onClose={onClose} tracks={tracks} />
+      </ChapterTrackStateProvider>
     </ApiProvider>,
   );
   return { api, onClose };
@@ -101,9 +104,11 @@ describe('LinkChaptersDialog', () => {
     ];
     render(
       <ApiProvider api={createMockApi()}>
-        <VoiceLayoutContext.Provider value={layout}>
-          <Dialog onClose={vi.fn()} tracks={voices} />
-        </VoiceLayoutContext.Provider>
+        <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+          <VoiceLayoutContext.Provider value={layout}>
+            <Dialog onClose={vi.fn()} tracks={voices} />
+          </VoiceLayoutContext.Provider>
+        </ChapterTrackStateProvider>
       </ApiProvider>,
     );
 
@@ -305,7 +310,9 @@ describe('LinkChaptersDialog', () => {
     }
     render(
       <ApiProvider api={api}>
-        <Reopen />
+        <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+          <Reopen />
+        </ChapterTrackStateProvider>
       </ApiProvider>,
     );
     const [first, second] = WIRE_CHAPTERS;
