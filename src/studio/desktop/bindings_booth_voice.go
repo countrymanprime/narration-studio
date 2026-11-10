@@ -43,20 +43,17 @@ func boothVoiceRefused(reason, message string) BoothVoice {
 }
 
 // chapterVoices is the voices of the chapter linked to link: the direct children of the folder link names, in REAPER's order, when
-// the project's layout is Voice folders and link is a folder in the project as REAPER has it now (the saved one when REAPER is not answering); nil (record on link itself) otherwise.
+// link is a folder in the project as REAPER has it now (the saved one when REAPER is not answering); nil (record on link itself) otherwise.
 func chapterVoices(svc hostServices, link string) ([]tracks.Track, bool, error) {
 	return chapterVoicesIn(svc, link, nil)
 }
 
 // chapterVoicesIn is chapterVoices over project, one read of the live list a caller shares between its steps so they see one snapshot;
-// nil reads it (liveSelectedProject, only when the layout is Voice folders).
+// nil reads it (liveSelectedProject).
 func chapterVoicesIn(svc hostServices, link string, project *tracks.Project) ([]tracks.Track, bool, error) {
 	setup, err := voicetracks.New(voicetracks.Config{Project: svc.config.projectFolder}).Get()
 	if err != nil {
 		return nil, false, err
-	}
-	if setup.Layout != voicetracks.LayoutFolders {
-		return nil, false, nil
 	}
 	if project == nil {
 		read, err := liveSelectedProject(svc)
@@ -77,6 +74,12 @@ func chapterVoicesIn(svc hostServices, link string, project *tracks.Project) ([]
 	}
 	for _, added := range unsavedVoices(svc, *project, link) {
 		voices = append(voices, tracks.Track{GUID: added.GUID, Name: added.Name, Depth: members[0].Depth + 1})
+	}
+	// The folder's own structure decides, not the layout toggle: a chapter linked to a folder that holds tracks records on them whatever
+	// the toggle says (#3269: the Engine page listed two voices and the Booth called the chapter single-track). A folder with none is a
+	// voice folder only when the narrator switched Voice folders on, so a flat project's empty folder still records on itself.
+	if len(voices) == 0 && setup.Layout != voicetracks.LayoutFolders {
+		return nil, false, nil
 	}
 	return voices, true, nil
 }
