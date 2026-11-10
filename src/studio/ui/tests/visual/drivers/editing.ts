@@ -411,6 +411,19 @@ export const editingDrivers: Record<string, Driver> = {
     // Nothing is boxed "not read" in a recording that is not there.
     if (await page.locator('[data-mark="miss"]').count()) throw new Error('Words are marked "not read" in a chapter with no audio.');
   },
+  // REAPER has changes its file lacks and the chapter's track is not in the saved project: the note offers the save.
+  'unsaved-take': async (page) => {
+    await openEditingNoAudio(page, '?mockChapterLink=missing&mockDawUnsaved=1');
+    await page.locator('#noaudio').getByRole('button', { name: 'Save in REAPER and read' }).waitFor();
+    await page.locator('#noaudio').getByRole('button', { name: 'Read again' }).waitFor();
+  },
+  // The click on a project that was never saved: the host refuses, and the refusal is in the note and in a toast.
+  'unsaved-take-refused': async (page) => {
+    await openEditingNoAudio(page, '?mockChapterLink=missing&mockDawUnsaved=never-saved');
+    await page.locator('#noaudio').getByRole('button', { name: 'Save in REAPER and read' }).click();
+    await page.getByTestId('save-refusal').waitFor();
+    await page.locator('#noaudio').getByRole('button', { name: 'Save in REAPER and read' }).waitFor();
+  },
   // The X closes it; the quiet mark stands where the banner stood and reopens it.
   'unlinked-closed': async (page) => {
     await openUnlinked(page);
@@ -534,6 +547,15 @@ async function openEditing(page: Page, query: string): Promise<void> {
   await goToPage(page, 'Editing');
   await page.getByRole('textbox', { name: 'Script with what was heard' }).waitFor();
   await page.locator('[data-tchip]').first().waitFor();
+}
+
+/** Editing on a chapter with no audio to edit and no link dialog: the script reads plain and the no-audio note stands under the header. */
+async function openEditingNoAudio(page: Page, query: string): Promise<void> {
+  await page.goto(`/${query}`);
+  await settlePage(page);
+  await goToPage(page, 'Editing');
+  await page.getByRole('textbox', { name: 'Script with what was heard', includeHidden: true }).waitFor();
+  await page.locator('#noaudio').waitFor();
 }
 
 /** Editing on Chapter 1 with no track linked. The link dialog opens by itself and hides the page from the accessibility tree, so the page's heading is not waited for. */

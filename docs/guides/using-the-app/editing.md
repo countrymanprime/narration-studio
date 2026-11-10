@@ -493,7 +493,15 @@ word as not read, and the dialog described above lists the tracks to link.
 
 A chapter linked to a folder of voice tracks (the Voice folders layout) has its audio on the folder's tracks, nested folders included, so the page reads and plays what is on any of them. Only when none of them holds audio does it say the folder has no audio on any of its voice tracks, and to record the chapter onto a voice track inside the folder and save the project.
 
-The page reads the saved project, so a take recorded since the last save is not in it yet. When the chapter has no audio there and the DAW has changes it has not saved, the note says so: **Save the project in REAPER, then read again.** Saving in the DAW and pressing **Read again** brings the recording in.
+The page reads the saved project, so a take recorded since the last save is not in it yet. When the chapter has no audio there and the DAW has changes it has not saved, the note says so and offers **Save in REAPER and read** beside **Read again**.
+
+![Editing, the no-audio note for a recording still unsaved in REAPER, with Save in REAPER and read beside Read again](../../images/ui/editing-unsaved-take.png)
+
+**Save in REAPER and read** saves the project REAPER has open, the one this app is linked to, then reads the chapter again, so the take is there to edit. It only saves when you press it. The button reads **Saving in REAPER…** and is off while REAPER answers. A toast says what was saved, such as "Saved the project in REAPER: 4 tracks and 1 item." If the chapter still has no audio after the save, the note adds that.
+
+When REAPER cannot save, nothing is written and the note says why beside the button, and a toast says it too: REAPER is not answering; REAPER is recording (stop first); the project in REAPER was never saved (a save would open REAPER's file dialog, so save it once in REAPER, then read again); a different project is open in REAPER than the one this app is linked to; or the project file is read-only or missing. The page offers **Save in REAPER and read** only for a DAW that can save from the app, and when the track has no audio. **Read again** reads without saving, as before.
+
+After the save the chapter has its audio, and the page may then say **Not transcribed yet**: that is the recording check, which you run on the chapter as usual.
 
 In that layout the edits that act on a take where it is (splitting a double read into takes, lowering breaths, repairing a click, an effect on a range, a cut that leaves a gap) work on the voice that read the words. Closing a cut, shortening a gap, replacing words, putting them back, stacking takes and unstacking them move the audio after them on every voice of the folder together, in one undo step, and are refused when another voice has audio inside the stretch that would be removed or replaced, or where stacked reads sit.
 

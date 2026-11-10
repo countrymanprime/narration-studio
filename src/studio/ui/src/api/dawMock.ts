@@ -214,6 +214,8 @@ export type DawMockSeed = {
   savedAt?: string | null;
   /** Whether REAPER has edits its saved file does not have; reported only with a `savedAt`, as the host's is. */
   unsavedChanges?: boolean;
+  /** The project in REAPER was never saved, so `dawSaveProject` is refused with the host's sentence for it (`?mockDawUnsaved=never-saved`). */
+  neverSaved?: boolean;
 };
 
 function declarationFor(daw: DawKind): Record<string, DawCapabilityLevel> {

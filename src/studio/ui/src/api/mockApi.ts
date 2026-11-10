@@ -594,7 +594,7 @@ export function createMockApi(
     ...createReduceRangeGainMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
     ...createRepairClickMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
     ...createUndoLastMock(daw, undoHistory),
-    ...createSaveProjectMock(daw),
+    ...createSaveProjectMock(daw, initial.daw?.neverSaved),
     ...createFilesMock(daw, filePreview),
     workspacePreviewTake: previewTakeMock(daw, workspaceTakes.workspaceTakes, filePreview),
     ...createMasterFilesMock(daw, lastRunFiles, filePreview),
@@ -1038,12 +1038,13 @@ function recordingUndo(
 
 /** DawSaveProject as bindings_daw_save_project.go answers it on a setup whose DAW can save: the save_project capability's refusal, or the
  * save with what the mock project holds. */
-function createSaveProjectMock(daw: DawCapabilitiesApi): DawSaveProjectApi {
+function createSaveProjectMock(daw: DawCapabilitiesApi, neverSaved = false): DawSaveProjectApi {
   return {
     async dawSaveProject() {
       const setup = await daw.dawCapabilities();
       const support = setup.capabilities.save_project;
       if (!support?.available) return refusedResult(support?.message ?? '');
+      if (neverSaved) return refusedResult(DAW_ANSWERS.projectNeverSaved);
       return { ok: true, changed: false, message: DAW_ANSWERS.projectSaved, undoSteps: 0 };
     },
   };
