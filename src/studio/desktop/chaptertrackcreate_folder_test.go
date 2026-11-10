@@ -235,3 +235,22 @@ func TestEveryCreateRefusalNamesWhatTheLayoutAdds(t *testing.T) {
 		t.Errorf("by hand in a flat project = %q", got)
 	}
 }
+
+// An engine with no folder tracks (Audacity) in a Voice folders project adds a plain track, so no sentence of the create promises a folder.
+func TestAFoldersProjectOnAnEngineWithoutFoldersNamesATrackInEveryCreateSentence(t *testing.T) {
+	for name, creator := range map[string]dawport.TrackCreator{
+		"no folder tracks":   &fakeCreator{err: bridge.ErrRecording},
+		"with folder tracks": &fakeFolderCreator{fakeCreator: fakeCreator{err: bridge.ErrRecording}},
+	} {
+		host, ids := newTestHostForChapterMatch(t)
+		setLayout(t, host, voicetracks.LayoutFolders)
+		message, _ := createTrack(t, host, creator, createAvailable(), ids[1])["message"].(string)
+		want := "then create the track."
+		if name == "with folder tracks" {
+			want = "then create the folder."
+		}
+		if !strings.Contains(message, want) {
+			t.Errorf("%s: %q does not end with %q", name, message, want)
+		}
+	}
+}

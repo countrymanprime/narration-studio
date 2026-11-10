@@ -539,7 +539,7 @@ function BoothSession({
   useCommand('booth.voice.next', () => voices.step(1));
   useCommand('booth.voice.prev', () => voices.step(-1));
   useCommand('booth.voice.list', () => {
-    if (voices.voices.length === 0) return voiceToast(dest.noVoiceKeys(!linkProblem), 'info');
+    if (voices.voices.length === 0) return voiceToast(dest.noVoiceKeys(voices.linkKind), 'info');
     voices.reload();
     setVoiceListOpen(true);
   });

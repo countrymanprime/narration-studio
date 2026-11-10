@@ -41,9 +41,7 @@ function stateDetail(choice: DawChoice): string {
  * (another track armed, say) is not one of them.
  */
 export type SetupProblem = 'no_track' | 'several_tracks' | 'not_connected' | 'recording_elsewhere' | 'not_armed';
-const PROBLEMS: Record<SetupProblem, { words: string; sentence: (name: string) => string }> = {
-  no_track: { words: 'no track', sentence: () => 'this chapter has no track to record on' },
-  several_tracks: { words: 'several tracks', sentence: () => 'this chapter is linked to several tracks' },
+const PROBLEMS: Record<Exclude<SetupProblem, 'no_track' | 'several_tracks'>, { words: string; sentence: (name: string) => string }> = {
   not_connected: { words: 'not connected', sentence: (name) => `${name} is not connected to this app` },
   recording_elsewhere: { words: 'recording elsewhere', sentence: (name) => `${name} is already recording a take this app did not start` },
   not_armed: { words: 'not armed', sentence: () => 'no track is armed to record on' },

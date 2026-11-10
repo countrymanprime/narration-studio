@@ -118,10 +118,25 @@ func destinationNoun(folders bool) string {
 	return "track"
 }
 
-// layoutNoun is destinationNoun for the open project: its layout read at the call, a project with no setting is flat.
+// engineHasFolders is whether the open project's engine makes folder tracks. A Voice folders project on an engine
+// without them is flat for every sentence that names where a chapter records (#3271).
+func engineHasFolders(svc hostServices) bool {
+	return dawport.Classify(readAloudAdapterName(svc)).FolderTracks()
+}
+
+// canMakeFolders is whether creator adds a chapter folder; with no creator (the engine refused) it is what the project's engine makes.
+func canMakeFolders(svc hostServices, creator dawport.TrackCreator) bool {
+	if creator == nil {
+		return engineHasFolders(svc)
+	}
+	_, ok := creator.(dawport.FolderTrackCreator)
+	return ok
+}
+
+// layoutNoun is destinationNoun for the open project: its layout read at the call (a project with no setting is flat) and its engine's folders.
 func layoutNoun(svc hostServices) string {
 	folders, err := voiceFoldersLayout(svc)
-	return destinationNoun(err == nil && folders)
+	return destinationNoun(err == nil && folders && engineHasFolders(svc))
 }
 
 // notAFolderSentence says why a chapter has no folder of voices to work in: flat when the project is flat (it records on one track), and
@@ -207,6 +222,8 @@ func chapterTrackCreateIn(ctx context.Context, svc hostServices, creator dawport
 	if err != nil {
 		return nil, err
 	}
+	// What this press adds: a folder only when the layout asks for one and the engine can make it, so no sentence promises a folder an engine cannot add.
+	noun := destinationNoun(folders && canMakeFolders(svc, creator))
 	chapterTrackCreates.mu.Lock()
 	defer chapterTrackCreates.mu.Unlock()
 	// Read after the lock: a create that held it may have linked this chapter.
@@ -215,7 +232,7 @@ func chapterTrackCreateIn(ctx context.Context, svc hostServices, creator dawport
 		return nil, err
 	}
 	present, known := projectTracksNow(ctx, svc)
-	if refusal, refused := alreadyLinked(name, destinationNoun(folders), links, chapterTrackCreates.made, present, known); refused {
+	if refusal, refused := alreadyLinked(name, noun, links, chapterTrackCreates.made, present, known); refused {
 		return refusal, nil
 	}
 	if taken, ok := trackNamed(present, title); ok {
@@ -226,11 +243,11 @@ func chapterTrackCreateIn(ctx context.Context, svc hostServices, creator dawport
 		return trackCreateRefusedWith(trackCreateNameTaken, fmt.Sprintf("%s already has a %s named “%s”. Link that one with the picker instead of adding another.", name, kind, strings.TrimSpace(taken.Name))), nil
 	}
 	if creator == nil {
-		return trackCreateUnavailable(name, title, support, destinationNoun(folders)), nil
+		return trackCreateUnavailable(name, title, support, noun), nil
 	}
 	created, voice, err := createChapterTrack(ctx, creator, title, folders)
 	if err != nil {
-		return trackCreateError(name, title, err, destinationNoun(folders)), nil
+		return trackCreateError(name, title, err, noun), nil
 	}
 	chapterTrackCreates.made[guidKey(created.GUID)] = created.Name
 	if voice != nil {

@@ -4,6 +4,9 @@ import type { VoiceTracksLayout } from '../../api/contracts/voiceTracks';
 /** What the DAW made for a chapter, as `ChapterTrackCreate` answers: `voice` is the Narrator inside a new chapter folder, absent for a plain track. */
 export type CreatedDestination = Pick<Extract<ChapterTrackCreateResult, { outcome: 'created' }>, 'voice'> & { track: { name: string } };
 
+/** What a chapter's link points at, as far as the project's tracks say: nothing, a plain track, a folder with no voices, or a track they do not hold yet. */
+export type ChapterLinkKind = 'none' | 'track' | 'empty' | 'unknown';
+
 /**
  * The words for where a chapter records, from the project's layout (the Voice folders setting): a chapter is a track in a flat project and a
  * folder of voice tracks in a Voice folders one. Every message that names what a chapter is linked to, records on or is waiting for gets its
@@ -35,13 +38,23 @@ export function destinationFor(layout: VoiceTracksLayout) {
     /** The setup chip's words and tooltip sentence for a chapter with no link or several. */
     chipNoTrack: { words: `no ${noun}`, sentence: `this chapter has no ${noun} to record on` },
     chipSeveral: { words: folders ? 'several folders' : 'several tracks', sentence: `this chapter is linked to several ${noun}s` },
-    /** A voice key pressed where there is no folder of voices behind it: why, by whether the chapter is linked. */
-    noVoiceKeys: (linked: boolean) =>
-      !folders
-        ? 'This chapter records on one track. Voice keys choose a voice for a chapter linked to a folder of voices (the audio engine panel).'
-        : linked
-          ? 'This chapter is linked to a single track, not a folder of voices, so there is no voice to choose. Link its folder in the audio engine panel.'
-          : 'This chapter is not linked to a folder of voices yet, so there is no voice to choose. Link or create its folder first.',
+    /**
+     * A voice key pressed where no voice is listed, and why, by what the chapter is linked to: nothing (`none`), a track that is not a folder (`track`),
+     * a folder holding no voices yet (`empty`), or something the saved project does not hold yet (`unknown`: a folder just made, its voices still being read).
+     */
+    noVoiceKeys: (link: ChapterLinkKind) => {
+      if (!folders) return 'This chapter records on one track. Voice keys choose a voice for a chapter linked to a folder of voices (the audio engine panel).';
+      switch (link) {
+        case 'none':
+          return 'This chapter is not linked to a folder of voices yet, so there is no voice to choose. Link or create its folder first.';
+        case 'track':
+          return 'This chapter is linked to a single track, not a folder of voices, so there is no voice to choose. Link its folder in the audio engine panel.';
+        case 'empty':
+          return 'This chapter’s folder has no voice tracks yet, so there is no voice to choose. Add a track inside it in REAPER.';
+        case 'unknown':
+          return 'This chapter’s voices are still being read, so there is no voice to choose yet. Try again in a moment.';
+      }
+    },
     /** The Editing note for a chapter with no link. */
     editingUnlinked: (chapter: string, daw: string) => `${chapter} is not linked to a ${noun} in ${daw}, so there is no audio to edit.`,
   };
