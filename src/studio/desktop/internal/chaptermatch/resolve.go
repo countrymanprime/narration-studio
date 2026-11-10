@@ -110,19 +110,51 @@ type Result struct {
 // "Chapter 11"). A region candidate is every track with an unmuted item
 // playing inside the region.
 func ForChapter(chapterID string, chapters []Chapter, project tracks.Project, confirmed map[string]string) (Result, error) {
-	target := -1
-	titles := make([]string, len(chapters))
+	return NewResolver(chapters, project).ForChapter(chapterID, confirmed)
+}
+
+// Resolver is ForChapter for many chapters of one project. A track's or a region's name matches the titles the same way whichever
+// chapter is asked about (MatchTitle takes no chapter and no link), so the Resolver matches each name once and every chapter reuses it:
+// resolving N chapters against T tracks is T title matches, not N*T. The answers are ForChapter's. Not safe for concurrent use.
+type Resolver struct {
+	chapters []Chapter
+	titles   []string
+	indexOf  map[string]int
+	project  tracks.Project
+	matches  map[string]TitleMatch
+	// matchTitle is MatchTitle; a test counts the calls through it.
+	matchTitle func(titles []string, name string) TitleMatch
+}
+
+// NewResolver prepares to resolve chapters against project.
+func NewResolver(chapters []Chapter, project tracks.Project) *Resolver {
+	r := &Resolver{chapters: chapters, titles: make([]string, len(chapters)), indexOf: make(map[string]int, len(chapters)), project: project, matches: map[string]TitleMatch{}, matchTitle: MatchTitle}
 	for i, chapter := range chapters {
-		titles[i] = chapter.Title
-		if chapter.ID == chapterID {
-			target = i
-		}
+		r.titles[i] = chapter.Title
+		r.indexOf[chapter.ID] = i
 	}
-	if target < 0 {
+	return r
+}
+
+// match is MatchTitle(titles, name), computed once per name.
+func (r *Resolver) match(name string) TitleMatch {
+	if m, ok := r.matches[name]; ok {
+		return m
+	}
+	m := r.matchTitle(r.titles, name)
+	r.matches[name] = m
+	return m
+}
+
+// ForChapter is the package's ForChapter over the chapters and project the Resolver was made with.
+func (r *Resolver) ForChapter(chapterID string, confirmed map[string]string) (Result, error) {
+	project := r.project
+	target, ok := r.indexOf[chapterID]
+	if !ok {
 		return Result{}, fmt.Errorf("chapter %q is not in the manuscript", chapterID)
 	}
 
-	candidates := nameCandidates(target, titles, project, chapterID, confirmed)
+	candidates := r.nameCandidates(target, chapterID, confirmed)
 	linked, missing := confirmedTracks(chapterID, project, confirmed)
 	warnings := []Warning{}
 	if missing {
@@ -147,7 +179,8 @@ func ForChapter(chapterID string, chapters []Chapter, project tracks.Project, co
 // nameCandidates collects the track-name and region-name candidates, best
 // first (ties in track order). A track found both ways keeps its better
 // score, and its track name on a tie.
-func nameCandidates(target int, titles []string, project tracks.Project, chapterID string, confirmed map[string]string) []Candidate {
+func (r *Resolver) nameCandidates(target int, chapterID string, confirmed map[string]string) []Candidate {
+	project := r.project
 	eligible := func(track tracks.Track) bool {
 		linkedTo, ok := confirmed[track.GUID]
 		return !ok || linkedTo == chapterID
@@ -165,7 +198,7 @@ func nameCandidates(target int, titles []string, project tracks.Project, chapter
 		// A pickup track ("Chapter 6 pickups") is not the chapter's own track, so
 		// it is never a candidate for the link
 		// a take track ("Chapter 6 v2") is, but never a confident one.
-		if match := MatchTitle(titles, track.Name); match.Index == target && match.Marker != MarkerPickup {
+		if match := r.match(track.Name); match.Index == target && match.Marker != MarkerPickup {
 			add(Candidate{TrackGUID: track.GUID, TrackName: track.Name, TrackIndex: track.Index, Score: match.Score, Source: SourceTrackName, confident: match.Confident})
 		}
 	}
@@ -173,7 +206,7 @@ func nameCandidates(target int, titles []string, project tracks.Project, chapter
 		if strings.TrimSpace(region.Name) == "" {
 			continue
 		}
-		match := MatchTitle(titles, region.Name)
+		match := r.match(region.Name)
 		if match.Index != target || match.Marker == MarkerPickup {
 			continue
 		}

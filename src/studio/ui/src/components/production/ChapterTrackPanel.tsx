@@ -36,8 +36,8 @@ export function ChapterTrackPanel({
   chapterId,
   chapterTitle,
   subtitle,
-  link,
-  trackSummary,
+  link: linkRead,
+  trackSummary: trackSummaryRead,
   recordedSeconds,
   savedAt,
   notify,
@@ -69,6 +69,12 @@ export function ChapterTrackPanel({
   const [tracksError, setTracksError] = useState('');
   const [busy, setBusy] = useState(false);
   const [removeOpen, setRemoveOpen] = useState(false);
+  // Unlink's answer is certain, so the panel shows the chapter unlinked at once, from the link it held; the re-read of ChapterTrackLinks that follows
+  // is a different object and replaces it (#3272).
+  const [unlinkedFrom, setUnlinkedFrom] = useState<ChapterTrackLink>();
+  const unlinked = unlinkedFrom !== undefined && unlinkedFrom === linkRead;
+  const link = unlinked ? { ...linkRead, status: 'none' as const, track: null, candidates: [], warnings: [], links: [] } : linkRead;
+  const trackSummary = unlinked ? undefined : trackSummaryRead;
 
   useEffect(() => {
     if (!open) return;
@@ -110,6 +116,7 @@ export function ChapterTrackPanel({
     setBusy(true);
     try {
       await api.chapterTrackUnlink(chapterId);
+      setUnlinkedFrom(linkRead);
       notify('Track unlinked.');
       await onChanged();
     } catch (error) {

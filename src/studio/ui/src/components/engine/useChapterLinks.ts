@@ -125,7 +125,13 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
     if (mappings.some((mapping) => mapping.chapterId === chapterId && mapping.trackGuid === trackGuid)) return;
     change(chapterId, () => chapterTrackMap.chapterTrackSet(chapterId, trackGuid));
   };
-  const unlink = (chapterId: string) => change(chapterId, () => chapterTrackMap.chapterTrackUnlink(chapterId));
+  // Unlink answers with the links that remain, so the row shows Not linked at once; the re-read that follows reconciles (#3272).
+  const unlink = (chapterId: string) =>
+    change(chapterId, async () => {
+      const result = await chapterTrackMap.chapterTrackUnlink(chapterId);
+      setMappings(result.mappings);
+      return result;
+    });
 
   // Mounted while a create from an earlier mount runs (the panel closed and opened again): busy until it ends, then read the links again.
   useEffect(() => {
