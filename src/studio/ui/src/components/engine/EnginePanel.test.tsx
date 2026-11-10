@@ -86,7 +86,7 @@ describe('EnginePanel', () => {
     expect(screen.queryByRole('table', { name: 'Tracks' })).toBeNull();
     expect(screen.queryByRole('treegrid', { name: 'Tracks' })).toBeNull();
     // The chapters the seed links show their track here; the rest have a picker.
-    await waitFor(() => expect(within(table).getAllByText('Linked').length).toBeGreaterThanOrEqual(2));
+    await waitFor(() => expect(within(table).getAllByRole('img', { name: 'Linked' }).length).toBeGreaterThanOrEqual(2));
     expect(within(table).getAllByText(WIRE_TRACKS_PROJECT.tracks[0].name).length).toBeGreaterThan(0);
     expect(within(table).getAllByRole('combobox').length).toBeGreaterThan(0);
   });

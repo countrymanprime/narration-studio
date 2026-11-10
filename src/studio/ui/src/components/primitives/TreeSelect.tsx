@@ -155,11 +155,14 @@ export function TreeSelect({
     );
   };
 
+  // The words the closed box shows, in full: the path and the name end in an ellipsis in a narrow box, and this is how to read the rest.
+  const fullText = shown ? (shown.path ? `${shown.path} / ` : '') + shown.name : placeholder;
   const trigger = (
     <button
       type="button"
       // The name starts with what the control is for and holds the text it shows, so the visible words are part of the name.
-      aria-label={`${label}: ${shown ? (shown.path ? `${shown.path} / ` : '') + shown.name : placeholder}`}
+      aria-label={`${label}: ${fullText}`}
+      title={fullText}
       className={`${SELECT_BOX_CLASSES} flex items-center overflow-hidden text-left ${fullWidth ? 'w-full' : ''}`}
     >
       {shown ? (

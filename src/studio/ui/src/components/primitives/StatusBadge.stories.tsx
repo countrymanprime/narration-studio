@@ -1,5 +1,6 @@
 import type { Decorator, Meta, StoryObj } from '@storybook/react-vite';
 import { expect, fn, userEvent, within } from 'storybook/test';
+import { Icon } from './Icon';
 import { Dot as BareDot, StatusBadge, type StatusTone } from './StatusBadge';
 
 // A badge's fill is a tint of its tone (paletteContrast.test.ts checks it against surface), the same
@@ -114,6 +115,16 @@ export const WithIcon: Story = {
 
 // The dense-list mark: no visible text, named for a screen reader.
 export const Dot: Story = { args: { tone: 'success', label: 'This chapter: pass', variant: 'dot' } };
+// An icon with the words in its tooltip: for a row that needs its width for text (Chapter links, #3274).
+export const IconOnly: Story = {
+  args: { tone: 'success', label: 'Linked', variant: 'icon', icon: <Icon name="statusLinked" /> },
+  play: async ({ canvasElement }) => {
+    const mark = within(canvasElement).getByRole('img', { name: 'Linked' });
+    await expect(mark).toBeTruthy();
+    await userEvent.hover(mark);
+    await expect(await within(document.body).findByRole('tooltip')).toBeTruthy();
+  },
+};
 
 export const AllTonesAsDots: Story = {
   render: () => (

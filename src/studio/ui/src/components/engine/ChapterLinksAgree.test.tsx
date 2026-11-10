@@ -43,7 +43,8 @@ async function sectionState(): Promise<Map<string, string>> {
   const state = new Map<string, string>();
   for (const row of within(table).getAllByRole('row', { hidden: true }).slice(1)) {
     const cells = within(row).getAllByRole('cell', { hidden: true });
-    const badge = cells[1].textContent ?? '';
+    // The status is an image named by its words (an icon with a tooltip), not text.
+    const badge = cells[1].querySelector('[role="img"][aria-label]')?.getAttribute('aria-label') ?? '';
     state.set(cells[0].textContent ?? '', badge === 'Linked' ? (cells[2].textContent ?? '') : badge);
   }
   return state;

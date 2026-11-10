@@ -20,6 +20,7 @@ Storybook title: `Primitives/StatusBadge`. Source: `src/components/primitives/St
 - Opens What It Counts
 - With Icon
 - Dot
+- Icon Only
 - All Tones As Dots
 - Announces Its Label
 
