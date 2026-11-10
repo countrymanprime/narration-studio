@@ -78,6 +78,14 @@ describe('wailsClient', () => {
     ]);
   });
 
+  it('sends the host a chainDigest on every export approval, empty when the page has none (#3056)', async () => {
+    const planned = vi.fn().mockResolvedValue('null');
+    standInHost({ ExportPlan: planned });
+    await wailsClient.exportPlan({ items: [], master: true, format: 'mp3', approval: { provider: 'p', macro: '' } }).catch(() => undefined);
+    await wailsClient.exportPlan({ items: [], master: true, format: 'mp3', approval: null }).catch(() => undefined);
+    expect(planned.mock.calls.map(([req]) => req.approval)).toEqual([{ provider: 'p', macro: '', chainDigest: '' }, null]);
+  });
+
   it('sends the Story Bible review flags and speaker colour calls, with null for an omitted alias index', async () => {
     const marked = vi.fn().mockResolvedValue('null');
     const flagged = vi.fn().mockResolvedValue('null');

@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createMockApi } from './mockApi';
 import { flushTrace, setTraceSink, trace, traceHostEvent, traceId, FLUSH_MS } from './tracing';
 import { withTracing } from './withTracing';
+import type { NarrationApi } from '../types';
 
 type Batch = { events: { event: string; fields: Record<string, unknown> }[] };
 
@@ -90,6 +91,12 @@ describe('withTracing', () => {
     expect(calls).toHaveLength(1);
     expect(calls[0].fields).toMatchObject({ name: 'system_lookup', outcome: 'ok' });
     expect(JSON.stringify(sent)).not.toContain('CANARY');
+  });
+
+  it('hands out the same function for a method on every read, as the unwrapped api does (#3272)', () => {
+    const api = withTracing({ mediaUrl: () => 'x', systemTraceBatch: async () => undefined } as unknown as NarrationApi);
+    expect(api.mediaUrl).toBe(api.mediaUrl);
+    expect(api.systemTraceBatch).toBe(api.systemTraceBatch);
   });
 
   it('records a rejection as an error with a class and rethrows it untouched', async () => {

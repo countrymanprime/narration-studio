@@ -147,3 +147,71 @@ func TestAPressWaitsForAnAwaitedStepBeforeItsLineIsWritten(t *testing.T) {
 		t.Fatalf("a step after the press ended wrote %q", written)
 	}
 }
+
+// A press that starts with the Start from here lookup keeps it on its line: the model check continues it when it follows the lookup's answer,
+// and the project check between the model check and the start tone is stamped.
+func TestAPressContinuesItsLookupAndStampsTheProjectCheckBeforeTheTone(t *testing.T) {
+	c, written := newClock(), []string{}
+	timeline := New(func() bool { return true }, c.now, lines(&written))
+	timeline.Begin("punch_lookup")
+	c.step(300 * time.Millisecond)
+	timeline.Mark("punch_looked_up")
+	c.step(time.Millisecond)
+	timeline.Join("assets_list", "punch_looked_up")
+	c.step(20 * time.Millisecond)
+	timeline.Note("bootstrap_call")
+	c.step(4 * time.Second)
+	timeline.Note("bootstrapped")
+	timeline.Finish("recording", "started")
+	want := "punch_lookup=0 punch_looked_up=300 assets_list=301 bootstrap_call=321 bootstrapped=4321 recording=4321"
+	if len(written) != 1 || !strings.Contains(written[0], want) {
+		t.Fatalf("line = %q, want it to hold %q", written, want)
+	}
+}
+
+// The page asks for the model check and the project check all the time, and a press that never finishes leaves its steps behind. None of that
+// may chain to the next press: a real press 90 ms long was logged as 10 s when idle calls every few seconds kept the last one alive (#3221).
+func TestIdleCallsEverySecondsNeverChainIntoTheNextPress(t *testing.T) {
+	c, written := newClock(), []string{}
+	timeline := New(func() bool { return true }, c.now, lines(&written))
+	timeline.Join("assets_list", "punch_looked_up") // the Booth opens
+	timeline.Mark("assets_listed")
+	for i := 0; i < 10; i++ { // the page's project check every 3 s for 30 s
+		c.step(3 * time.Second)
+		timeline.Note("bootstrap_call")
+		timeline.Note("bootstrapped")
+	}
+	c.step(3 * time.Second)
+	timeline.Join("assets_list", "punch_looked_up") // the narrator presses Record
+	c.step(5 * time.Millisecond)
+	timeline.Mark("assets_listed")
+	c.step(40 * time.Millisecond)
+	timeline.Mark("record_call")
+	c.step(60 * time.Millisecond)
+	timeline.Finish("recording", "started")
+	if len(written) != 1 || !strings.Contains(written[0], "total_ms=105 ") || strings.Count(written[0], "bootstrap_call") != 0 {
+		t.Fatalf("line = %q, want a press of 105 ms from its own model check, with none of the idle calls", written)
+	}
+}
+
+// A model check that comes long after a lookup is not that lookup's press, and a project check long after a press's last step is nobody's.
+func TestAStaleLookupIsNotJoinedAndAStaleNoteStampsNothing(t *testing.T) {
+	c, written := newClock(), []string{}
+	timeline := New(func() bool { return true }, c.now, lines(&written))
+	timeline.Note("bootstrapped")
+	if timeline.pending() != 0 {
+		t.Fatalf("a Note with no press under way kept %d marks", timeline.pending())
+	}
+	timeline.Begin("punch_lookup")
+	timeline.Mark("punch_looked_up")
+	c.step(joinGap + time.Second)
+	timeline.Join("assets_list", "punch_looked_up")
+	if timeline.pending() != 1 {
+		t.Fatalf("a model check %v after the lookup joined it: %d marks", joinGap+time.Second, timeline.pending())
+	}
+	c.step(leadGap + time.Second)
+	timeline.Note("bootstrapped")
+	if timeline.pending() != 1 {
+		t.Fatalf("a Note long after the press's last step was stamped: %d marks", timeline.pending())
+	}
+}
