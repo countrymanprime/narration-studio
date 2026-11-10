@@ -315,14 +315,10 @@ export class LineIdentityStampRow {
  * needs one (MasteringProvider.NeedsMacro), the effect macro they named. It holds for the one ExportStart call that carries it:
  * the host checks it against the row it would master with now, hands it to that job only, and never stores it. It is the page's
  * word that the narrator approved: the host cannot tell that a dialog was shown (threat model row 14f).
- * 
- * For a row whose steps live in the DAW (masteringport.ChainLister), ChainDigest is ExportPlan's chainDigest of the chain the dialog
- * showed: the approval binds that chain, and each render refuses another (threat model row 5o). Without it such an approval is refused.
  */
 export class MasteringApproval {
     "provider": string;
     "macro": string;
-    "chainDigest": string;
 
     /** Creates a new MasteringApproval instance. */
     constructor($$source: Partial<MasteringApproval> = {}) {
@@ -331,9 +327,6 @@ export class MasteringApproval {
         }
         if (!("macro" in $$source)) {
             this["macro"] = "";
-        }
-        if (!("chainDigest" in $$source)) {
-            this["chainDigest"] = "";
         }
 
         Object.assign(this, $$source);

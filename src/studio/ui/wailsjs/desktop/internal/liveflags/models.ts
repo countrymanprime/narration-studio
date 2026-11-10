@@ -20,11 +20,6 @@ export class Flag {
     "heard": string;
 
     /**
-     * Check is what the trailing confirmation pass found: CheckConfirmed, CheckCleared, or empty when no recheck reached the flag.
-     */
-    "check"?: string;
-
-    /**
      * Dismissed is the narrator's call in the dialog's review panel; the host records it as a decision, it never deletes.
      */
     "dismissed": boolean;

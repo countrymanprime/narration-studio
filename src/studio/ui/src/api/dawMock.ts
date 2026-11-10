@@ -71,6 +71,7 @@ const REAPER_DECLARATION: Record<DawCapabilityKey, DawCapabilityLevel> = {
   range_gain: 'experimental',
   click_repair: 'experimental',
   undo_last: 'experimental',
+  save_project: 'experimental',
   monitor_level: 'experimental',
   // No DAW the app talks to can set an audio interface's input gain.
   input_level: 'unsupported',
@@ -116,6 +117,7 @@ const CAPABILITY_NEEDS: Record<DawCapabilityKey, DawMockNeeds> = {
   range_gain: 'running',
   click_repair: 'running',
   undo_last: 'running',
+  save_project: 'running',
   monitor_level: 'running',
   input_level: 'running',
   punch_preroll: 'running',

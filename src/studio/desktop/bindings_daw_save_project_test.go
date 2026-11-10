@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"desktop/internal/bridge"
+	"desktop/internal/contractfile"
 	"desktop/internal/dawport"
 )
 
@@ -71,4 +72,29 @@ func TestDawSaveProjectWordsWhatKeptTheRoleFromAnswering(t *testing.T) {
 			t.Errorf("%s: got %+v, %v; want a refusal holding %q", name, got, err, test.want)
 		}
 	}
+}
+
+// The goldens the UI's wireContracts row and mock answer to: a save done, and the refusals the Save in REAPER and read button shows.
+func TestDawSaveProjectGoldens(t *testing.T) {
+	never := "This REAPER project has never been saved, and saving it would open a file dialog in REAPER. Save it once in REAPER (File > Save project), then read again."
+	for name, role := range map[string]*fakeSaver{
+		"daw-save-project-done":          {answer: dawport.OK("Saved the project in REAPER: 3 tracks and 12 items.", false)},
+		"daw-save-project-refused-never": {answer: dawport.Refused(never)},
+	} {
+		t.Run(name, func(t *testing.T) {
+			got, err := dawSaveProjectIn(t.Context(), "REAPER", available(), role, "C:/Books/Book.rpp")
+			if err != nil {
+				t.Fatal(err)
+			}
+			contractfile.Check(t, name, got)
+		})
+	}
+	t.Run("daw-save-project-refused-capability", func(t *testing.T) {
+		refusedCapability := dawport.Support{Message: "Audacity cannot save the project from this app."}
+		got, err := dawSaveProjectIn(t.Context(), "Audacity", refusedCapability, &fakeSaver{}, "C:/Books/Book.rpp")
+		if err != nil {
+			t.Fatal(err)
+		}
+		contractfile.Check(t, "daw-save-project-refused-capability", got)
+	})
 }

@@ -141,6 +141,9 @@ export const dawFeedback = {
     'exempt',
     "Forwards the read of the DAW's last action before an Undo. It changes nothing and never rejects: a failed read is `unknown`, which the page's Undo words as the DAW's own Edit > Undo.",
   ),
+  'src/ports/daw.ts::dawSaveProject#1': adapter(
+    'Forwards Save in REAPER and read; the binding already answers a DawResult, and Editing shows a refusal beside the button that was clicked.',
+  ),
   'src/ports/daw.ts::dawUndoLast#1': adapter(
     "Forwards Undo of the app's last action in the DAW with the kind and steps only; the binding already answers a DawResult.",
   ),
