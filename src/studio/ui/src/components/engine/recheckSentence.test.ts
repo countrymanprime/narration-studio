@@ -21,6 +21,21 @@ describe('recheckSentence', () => {
       'The track for Chapter 1 was renamed from “Old” to “New ‮evil” (a single track).',
     );
   });
+  it('only says Nothing changed when a read of REAPER answered', () => {
+    const tracks = [track('a', 'Ch 1')];
+    expect(recheckSentence('Chapter 1', 'Ch 1', tracks, 'a', false, 'live')).toBe('Chapter 1 is linked to “Ch 1” (a single track). Nothing changed.');
+    expect(recheckSentence('Chapter 1', 'Ch 1', tracks, 'a', false, 'saved')).toBe(
+      'Chapter 1 is linked to “Ch 1” (a single track), as the saved project has it.',
+    );
+    expect(recheckSentence('Chapter 1', 'Ch 1', tracks, 'a', false, 'held')).toBe('Chapter 1 is linked to “Ch 1” (a single track).');
+  });
+  it('names an empty track name as unnamed and cuts a very long one', () => {
+    expect(recheckSentence('Chapter 1', '', [track('a', '')], 'a')).toBe('Chapter 1 is linked to an unnamed track (a single track). Nothing changed.');
+    const long = 'x'.repeat(10_000);
+    const said = recheckSentence('Chapter 1', long, [track('a', long)], 'a');
+    expect(said.length).toBeLessThan(200);
+    expect(said).toContain('…');
+  });
   it('says a track the project no longer has is gone', () => {
     expect(recheckSentence('Chapter 1', 'Old', [track('b', 'Other')], 'a')).toContain('no longer in the project');
   });

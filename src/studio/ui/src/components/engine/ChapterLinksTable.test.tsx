@@ -203,12 +203,13 @@ describe('ChapterLinksTable', () => {
     expect(set).toHaveBeenCalledTimes(1);
     const changes = onChanged.mock.calls.length;
 
-    // The picker opens on the linked track, and its check is live: pressing it is not a dead click.
+    // The picker opens on the linked track, and its check is live: pressing it is not a dead click (a narrator takes longer than the quiet period).
+    await pastQuiet();
     const confirm = within(opening).getByRole('button', { name: /^Check the link for/ });
     expect(confirm.getAttribute('aria-disabled')).toBeNull();
     await user.click(confirm);
 
-    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringMatching(/Nothing changed\./), 'info'));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringMatching(/is linked to “.*” \(a single track\)\.$/), 'info'));
     expect(notify.mock.calls.at(-1)?.[0]).toContain(WIRE_TRACKS_PROJECT.tracks[0].name);
     expect(set).toHaveBeenCalledTimes(1);
     expect(await within(opening).findByRole('button', { name: /^Change the track for/ })).toBeTruthy();
@@ -235,6 +236,27 @@ describe('ChapterLinksTable', () => {
     await pastQuiet();
     await user.click(within(opening).getByRole('button', { name: /^Change the track for/ }));
     expect(within(opening).getByRole('combobox')).toBeTruthy();
+  });
+
+  // qa-breaker (#3281): a double click on Change puts the check under the second press; it must not read and toast then.
+  it('ignores a fast press on the check right after Change opened the picker', async () => {
+    const user = userEvent.setup();
+    notify.mockClear();
+    renderTable();
+    const table = await screen.findByRole('table', { name: 'Chapter links' });
+    const opening = chapterRow(table, 'Opening credits');
+    await user.selectOptions(within(opening).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
+    await user.click(within(opening).getByRole('button', { name: /^Use this track for/ }));
+    await within(opening).findByRole('button', { name: /^Change the track for/ });
+    await pastQuiet();
+    await user.click(within(opening).getByRole('button', { name: /^Change the track for/ }));
+    notify.mockClear();
+    await user.click(within(opening).getByRole('button', { name: /^Check the link for/ }));
+    expect(notify).not.toHaveBeenCalledWith(expect.anything(), 'info');
+    expect(within(opening).getByRole('combobox')).toBeTruthy();
+    await pastQuiet();
+    await user.click(within(opening).getByRole('button', { name: /^Check the link for/ }));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringMatching(/is linked to “.*” \(a single track\)\.$/), 'info'));
   });
 
   // Narrator walkthrough: after Clear the select still held the old track and the check looked ready, one press from linking it again.

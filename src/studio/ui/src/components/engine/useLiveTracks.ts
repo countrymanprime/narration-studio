@@ -32,7 +32,7 @@ export type LiveTracks = {
   /** Reads the tracks now (the Refresh button, a toast's Retry). */
   refresh: () => void;
   /** Reads now like `refresh` and answers the project, or `failed` when the read failed (its own toast says so); neither when no live read applies (Audacity's project, or a newer read replaced this one). */
-  recheck: () => Promise<{ project?: TracksProject; failed: boolean }>;
+  recheck: () => Promise<{ project?: TracksProject; source?: TracksSource; failed: boolean }>;
   /** Reads the tracks now as the timer does: not a press, so no spinner, and a failure is the run's one toast (a changed read key). */
   reread: () => void;
   /** Reads the tracks unless a read is already in flight, which it then shares (the Link chapters dialog opening). */
@@ -96,7 +96,7 @@ export function useLiveTracks({
   onRetryRef.current = onRetry;
 
   const read = useCallback(
-    (force: boolean, pressed: boolean): Promise<{ project?: TracksProject; failed: boolean }> => {
+    (force: boolean, pressed: boolean): Promise<{ project?: TracksProject; source?: TracksSource; failed: boolean }> => {
       if (!enabled || (!force && inFlight.current > 0)) return Promise.resolve({ failed: false });
       const id = ++latest.current;
       inFlight.current += 1;
@@ -119,7 +119,7 @@ export function useLiveTracks({
             stale: false,
             error: '',
           });
-          return { project: answer.project, failed: false };
+          return { project: answer.project, source: answer.source, failed: false };
         })
         .catch((reason: unknown) => {
           if (!mounted.current || id !== latest.current) return { failed: false };
