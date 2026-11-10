@@ -2,6 +2,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCircleNotch } from '@fortawesome/free-solid-svg-icons';
 import type { ComponentProps } from 'react';
 import { HIT_AREA } from './hitArea';
+import { useEchoGuard } from './echoGuard';
 
 // `secondary` is the mocks' outlined button, filled `--surface` so it reads the same on the page background and in a card.
 // `ghost` is the same button with no fill, for the rare one on a tinted surface. `link` is the underlined text action that sits
@@ -55,18 +56,31 @@ type Props = ComponentProps<'button'> & {
   // The action this button started is running. The button says so (`aria-busy`, a spinner, dimmed) and ignores a press, but
   // stays focusable, so a keyboard user does not lose their place the way they do when a button becomes `disabled`.
   pending?: boolean;
+  // This button takes the place of the one just pressed: it ignores a press in the double-click window after it appears (`useEchoGuard`).
+  replacesPressed?: boolean;
 };
 
 // The look lives here and nowhere else: a caller's `className` is for layout (margin, width, flex, visibility), never for padding,
 // type or height. `src/buttonOverrides.test.ts` holds that line.
-export function Button({ variant = 'primary', size = 'md', className = '', type = 'button', pending = false, onClick, children, ...rest }: Props) {
+export function Button({
+  variant = 'primary',
+  size = 'md',
+  className = '',
+  type = 'button',
+  pending = false,
+  replacesPressed,
+  onClick,
+  children,
+  ...rest
+}: Props) {
+  const echo = useEchoGuard(replacesPressed);
   return (
     <button
       type={type}
       aria-busy={pending || undefined}
       aria-disabled={pending || undefined}
       // A press does nothing while pending, and it does not submit a form either (`preventDefault` stops the native submit).
-      onClick={pending ? (event) => event.preventDefault() : onClick}
+      onClick={pending ? (event) => event.preventDefault() : (event) => !echo(event) && onClick?.(event)}
       className={`${buttonClasses(variant, size)} ${className}`}
       {...rest}
     >

@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Button } from './Button';
 import { IconButton } from './IconButton';
+import { ECHO_WINDOW_MS } from './echoGuard';
 
 afterEach(cleanup);
 
@@ -189,5 +190,34 @@ describe('Button label selection', () => {
   it('a link-styled button stays selectable like the text around it', () => {
     render(<Button variant="link">Stamp</Button>);
     expect(screen.getByRole('button', { name: 'Stamp' }).className).not.toMatch(/\bselect-none\b/);
+  });
+});
+
+describe('replacesPressed', () => {
+  it('ignores a press in the double-click window after it appears, then works', () => {
+    vi.useFakeTimers();
+    try {
+      const onClick = vi.fn();
+      const onIcon = vi.fn();
+      render(
+        <>
+          <Button replacesPressed onClick={onClick}>
+            Done
+          </Button>
+          <IconButton label="Cancel" replacesPressed onClick={onIcon} />
+        </>,
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      expect(onClick).not.toHaveBeenCalled();
+      expect(onIcon).not.toHaveBeenCalled();
+      vi.advanceTimersByTime(ECHO_WINDOW_MS);
+      fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      expect(onClick).toHaveBeenCalledOnce();
+      expect(onIcon).toHaveBeenCalledOnce();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

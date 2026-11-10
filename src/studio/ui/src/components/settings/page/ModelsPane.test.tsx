@@ -8,6 +8,7 @@ import { createMockApi } from '../../../api/mockApi';
 import type { MockApiSeed } from '../../../api/mockHost/state';
 import { ThemeProvider } from '../../../theme/ThemeContext';
 import type { AssetCatalog, AssetItem, NarrationApi } from '../../../types';
+import { ECHO_WINDOW_MS } from '../../primitives/echoGuard';
 import { VERIFY_WAIT_MS } from '../models/AssetsStore';
 import { SettingsPage } from './SettingsPage';
 
@@ -212,11 +213,23 @@ describe('Settings: Models & downloads', () => {
     fireEvent.click(within(voice).getByRole('button', { name: /^Download LJ Speech/ }));
     const bar = await screen.findByRole('progressbar', { name: /^Downloading LJ Speech/ });
     expect(bar).toBeTruthy();
+    await new Promise((done) => setTimeout(done, ECHO_WINDOW_MS + 20));
     fireEvent.click(await within(voice).findByRole('button', { name: /^Cancel the download of LJ Speech/ }));
     await waitFor(() => expect(within(asset('tts/en_US-ljspeech-high')).getByText('Not installed')).toBeTruthy(), SLOW);
     fireEvent.click(within(asset('tts/en_US-ljspeech-high')).getByRole('button', { name: /^Download LJ Speech/ }));
     await waitFor(() => expect(within(asset('tts/en_US-ljspeech-high')).getByText('Installed · checked')).toBeTruthy(), SLOW);
     expect(screen.queryByRole('progressbar', { name: /^Downloading LJ Speech/ })).toBeNull();
+  });
+
+  it('a double click on Download starts one download and does not cancel it (issues 3034, 3036)', async () => {
+    await renderModels({ seed: { assets: 'missing' } });
+    const voice = await ready('tts/en_US-ljspeech-high');
+    fireEvent.click(within(voice).getByRole('button', { name: /^Download LJ Speech/ }));
+    // The second click of the double click lands on the button that has just replaced Download.
+    const cancel = await within(voice).findByRole('button', { name: /^Cancel the download of LJ Speech/ });
+    fireEvent.click(cancel);
+    expect(screen.queryByText(/cancelled/i)).toBeNull();
+    await waitFor(() => expect(within(asset('tts/en_US-ljspeech-high')).getByText('Installed · checked')).toBeTruthy(), SLOW);
   });
 
   it('a download that fails says why and offers Retry', async () => {
