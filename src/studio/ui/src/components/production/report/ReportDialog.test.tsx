@@ -10,6 +10,7 @@ import { OverlayProvider } from '../../../overlay/OverlayProvider';
 import { openReportDialog } from './openReportDialog';
 import { ReportDialog } from './ReportDialog';
 import { brand } from '../../../brand.gen';
+import { outwaitEcho } from '../../../outwaitEcho';
 
 afterEach(cleanup);
 
@@ -255,6 +256,7 @@ describe('openReportDialog', () => {
     );
     await userEvent.click(screen.getByRole('button', { name: 'Open report' }));
     await screen.findByRole('dialog', { name: 'Export status report' });
+    await outwaitEcho();
     await userEvent.click(document.querySelector('[data-dialog-backdrop]') as HTMLElement);
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });

@@ -9,6 +9,7 @@ import { overlay } from '../../../../../overlay/overlayService';
 import type { NarrationApi } from '../../../../../types';
 import { Host } from './harness';
 import { KEEP_ONE, MarksDialog } from './MarksDialog';
+import { outwaitEcho } from '../../../../../outwaitEcho';
 
 let api: NarrationApi;
 let toast: MockInstance<typeof overlay.toast>;
@@ -60,6 +61,7 @@ const lastSaved = () => save.mock.calls.at(-1)![0];
 describe('define-marks-edits-the-types', () => {
   it('closes on a press outside the dialog: every change is saved as it is made, so no input is lost (issue 1706)', async () => {
     await openDialog();
+    await outwaitEcho();
     await userEvent.click(document.querySelector('[data-dialog-backdrop]') as HTMLElement);
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Define how you mark up' })).toBeNull());
   });

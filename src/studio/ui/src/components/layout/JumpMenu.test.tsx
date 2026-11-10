@@ -10,6 +10,7 @@ import { defaultKeymap } from '../../input/keymap';
 import { registerSearchSource } from '../../registries/search';
 import { openJumpMenu } from './JumpMenu';
 import { useGoToCommands } from './useGoToCommands';
+import { outwaitEcho } from '../../outwaitEcho';
 
 let service: OverlayService;
 let cleanups: Array<() => void> = [];
@@ -282,6 +283,7 @@ describe('JumpMenu', () => {
     act(() => void open());
     await user.click(field());
     expect(screen.getByRole('dialog', { name: 'Jump menu' })).toBeTruthy();
+    await outwaitEcho();
     await user.click(document.querySelector('[data-dialog-backdrop]') as HTMLElement);
     expect(screen.queryByRole('dialog', { name: 'Jump menu' })).toBeNull();
   });

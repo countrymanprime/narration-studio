@@ -6,6 +6,7 @@ import { CleanupToolsDialog } from './CleanupToolsDialog';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import type { NarrationApi } from '../../types';
+import { outwaitEcho } from '../../outwaitEcho';
 
 afterEach(cleanup);
 
@@ -23,6 +24,7 @@ describe('CleanupToolsDialog', () => {
   it('closes on a press outside the dialog: it only launches tools and holds no input (issue 1706)', async () => {
     const user = userEvent.setup();
     const { onClose } = renderDialog();
+    await outwaitEcho();
     await user.click(document.querySelector('[data-dialog-backdrop]') as HTMLElement);
     expect(onClose).toHaveBeenCalledTimes(1);
   });

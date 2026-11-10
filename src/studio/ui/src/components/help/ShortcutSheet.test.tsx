@@ -11,6 +11,7 @@ import { commandsFor } from '../../input/surfaces';
 import type { NarrationApi, ScopedSettingField } from '../../types';
 import { CommandRouter } from '../../input/router';
 import { useCommand } from '../../input/useCommand';
+import { outwaitEcho } from '../../outwaitEcho';
 
 afterEach(cleanup);
 
@@ -41,6 +42,7 @@ describe('ShortcutSheet', () => {
   it('closes on a press outside the sheet: it is reference material with nothing to lose (issue 1706)', async () => {
     const { onClose } = renderSheet();
     await screen.findByRole('dialog', { name: 'Keyboard shortcuts' });
+    await outwaitEcho();
     fireEvent.click(document.querySelector('[data-dialog-backdrop]') as HTMLElement);
     expect(onClose).toHaveBeenCalledTimes(1);
   });
