@@ -82,7 +82,8 @@ export function Button({
       aria-disabled={gated || undefined}
       // A press does nothing while pending, and it does not submit a form either (`preventDefault` stops the native submit).
       onClick={gated ? (event) => event.preventDefault() : onClick}
-      className={`${buttonClasses(variant, size)} ${className}`}
+      // Inside its tooltip's wrapper the button grows to the wrapper, so a button the layout stretches (a grid cell, a column) still fills its cell.
+      className={`${buttonClasses(variant, size)} ${disabledReason === undefined ? '' : 'grow'} ${className}`}
       {...rest}
     >
       {pending && <FontAwesomeIcon icon={faCircleNotch} className="motion-ok:animate-spin" aria-hidden="true" />}
