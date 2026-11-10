@@ -187,7 +187,8 @@ if (mode === 'go-lint') {
   run('go', ['-C', dir, 'vet', './...']);
   // The committed Host.* bindings must be what the generator renders from the Go source now (#3056): a Go struct or doc comment
   // changed without `pnpm --dir src/studio/desktop run bindings` leaves the UI's models behind the host's JSON.
-  checkBindingsFresh(dir);
+  // shortcut: skipped on Windows, whose lint job installs no wails3 CLI; the output is the same on every OS and Linux lint runs it.
+  if (process.platform !== 'win32') checkBindingsFresh(dir);
   // golangci-lint v2 (config: <dir>/.golangci.yml): errcheck, govet, staticcheck, unused, ineffassign and gosec.
   run('golangci-lint', ['run', './...'], { cwd: join(root, dir) });
   // gVisor's checklocks: a field annotated `// +checklocks:mu` is only touched with mu held, and a field that is
