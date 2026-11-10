@@ -377,7 +377,7 @@ func BuildBasis(projectFile LedgerProjectFile, newestRecordTime, newestSourceMod
 // req.Project (already parsed by the caller with tracks.Parse - this function
 // never reads the .rpp itself), it: finds the chapter's confirmed
 // track (mapping.List), computes the chapter's current fingerprints
-// (ComputeChapterFingerprint, one stat plus a partial read per source),
+// (ComputeChapterFingerprint, one stat plus a partial read per source; one stat when req.Identify is a cache that has the file),
 // finds the latest complete ledger record for (req.AnalyzerID,
 // req.ChapterID), and returns the EvaluatorResult plus the EvaluationBasis
 // every result states. It reads the ledger and mapping stores; it never writes

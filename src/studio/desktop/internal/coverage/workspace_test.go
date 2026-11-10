@@ -436,8 +436,9 @@ func TestAlignmentAsksTheIdentityCacheAndStillSeesAChangedTake(t *testing.T) {
 	ageTakes(t, p)
 	service := p.service(&fakeSidecar{results: alignedResults})
 	run(t, service, testRequest())
-	if view := alignmentOf(t, service); view.State != evidence.StateCurrent {
-		t.Fatalf("after a check the chapter is %q, want current", view.State)
+	afterCheck := service.identities.Reads()
+	if view := alignmentOf(t, service); view.State != evidence.StateCurrent || service.identities.Reads() != afterCheck {
+		t.Fatalf("the first lookup after a check: chapter %q, %d takes read, want current and none (the check run left the identities in the cache)", view.State, service.identities.Reads()-afterCheck)
 	}
 	before := service.identities.Reads()
 	if view := alignmentOf(t, service); view.State != evidence.StateCurrent || service.identities.Reads() != before {
