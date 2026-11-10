@@ -52,6 +52,9 @@ const LOOKUP_FAILED = 'Where this passage was recorded could not be read, so no 
 const LOOKUP_SLOW =
   'Where this passage was recorded did not come back in time, so no take was started. No start is chosen now: choose the phrase again to retry.';
 
+/** Said when Start from here is pressed on another phrase while a take is already starting; nothing is changed. */
+export const START_BUSY = 'A take is already starting, so Start from here on another phrase was ignored.';
+
 /** How long after a roll went through another is ignored (milliseconds). */
 
 const ROLL_PAUSE_MS = 700;
@@ -182,6 +185,15 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
     if (mine !== latestStart.current || !alive.current) return;
     setLookingUp(false);
   }, []);
+  /**
+   * True when a press is already under way before a take: the same phrase is that press (nothing is looked up, chosen or said twice); another
+   * phrase is refused with a sentence, before it can look anything up, move the reading, choose a voice or say it starts there.
+   */
+  const joinsOrRefuses = (at: number) => {
+    if (sessionRef.current.recording || !pressing.current) return false;
+    if (pressing.current.at !== at) actionsRef.current.notify(START_BUSY);
+    return true;
+  };
   /** This start is out of date: a newer one was chosen, a take began (the Space key, the DAW's own Record) or the Booth was left. */
   const outdated = (mine: number) => mine !== latestStart.current || sessionRef.current.recording;
 
@@ -201,12 +213,12 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
     async (unit: number) => {
       const s = sessionRef.current;
       const to = clampPhrase(unit, s.phraseCount);
-      // The same press again (a second Space, R or click while it waits) is that press: nothing is looked up, chosen or said twice.
-      if (!s.recording && pressing.current?.at === to) return;
+      if (joinsOrRefuses(to)) return;
       // Before a take, a start the DAW could not punch to is not armed: the narrator is told now, not after Space, where the take will start.
       const plan = rollPlan(s.capabilities);
       if (!s.recording && plan.kind === 'refused') {
         const mine = ++latestStart.current;
+        pressing.current = { mine, at: to };
         setLookingUp(true);
         const looked = await lookUp(to).finally(() => endWait(mine));
         if (outdated(mine)) return;
@@ -236,7 +248,7 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
       const s = sessionRef.current;
       const at = from ?? s.punchAt;
       if (at == null || at >= s.phraseCount) return actionsRef.current.beginTake();
-      if (!s.recording && pressing.current?.at === at) return;
+      if (joinsOrRefuses(at)) return;
       const mine = ++latestStart.current;
       pressing.current = { mine, at };
       setLookingUp(true);

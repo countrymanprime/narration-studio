@@ -2634,4 +2634,59 @@ describe('a start chosen with Start from here: the wait is shown, dropped on lea
     await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
     expect(page.daw.recordStart).toHaveBeenLastCalledWith('c1', 12);
   });
+  describe('a second Start from here on another phrase while a take is starting is refused, not half-done (#3320)', () => {
+    const BUSY = 'A take is already starting, so Start from here on another phrase was ignored.';
+    const startFrom = async (unit: number) => {
+      const word = document.querySelector(`[data-unit="${unit}"] [data-word]`)!;
+      await act(async () => {
+        fireEvent.contextMenu(word, { button: 2, clientX: 10, clientY: 10 });
+      });
+      await userEvent.click(await screen.findByRole('menuitem', { name: 'Start from here' }));
+    };
+    const said = (page: ReturnType<typeof renderPage>) => page.overlay.getSnapshot().toasts.map((t) => t.text);
+    const stopButton = () => screen.getByRole('button', { name: /^Stop$/ });
+
+    const refused = async (slowPart: 'model check' | 'record start') => {
+      const boothPunchTarget = vi.fn(async () => ({ ...FOUND, trackGuid: 'T', trackName: 'Narrator' }));
+      const boothVoiceSet = vi.fn(async () => ({ outcome: 'selected' }));
+      const slow = gated({ assets: [] });
+      const page = renderPage({ api: { boothPunchTarget, boothVoiceSet, ...(slowPart === 'model check' ? { assetsList: slow.answer } : {}) } as never });
+      const holder = { release: slow.release };
+      if (slowPart === 'record start') {
+        page.daw.recordStart.mockImplementationOnce(async () => {
+          await new Promise<void>((resolve) => (holder.release = resolve));
+          return { ok: true, changed: true, message: '', undoSteps: 1 };
+        });
+      }
+      await ready();
+      boothPunchTarget.mockClear();
+      await startFrom(3);
+      await settle();
+      expect(boothPunchTarget).toHaveBeenCalledTimes(1);
+      expect(current()).toBe('3');
+      const toastsBefore = said(page).length;
+      await startFrom(7);
+      await settle();
+      // Nothing changed: no second lookup, no voice choice, the reading is still on the first phrase, one sentence and no "Starting from".
+      expect(boothPunchTarget).toHaveBeenCalledTimes(1);
+      expect(boothVoiceSet).toHaveBeenCalledTimes(1);
+      expect(current()).toBe('3');
+      expect(said(page).slice(toastsBefore)).toEqual([BUSY]);
+      expect(said(page).filter((text) => text.startsWith('Starting from'))).toHaveLength(1);
+      holder.release();
+      await waitFor(() => expect(stopButton()).toBeTruthy());
+      expect(page.daw.recordStart).toHaveBeenCalledTimes(1);
+      expect(page.daw.recordStart).toHaveBeenCalledWith('c1', 12);
+      expect(current()).toBe('3');
+      // After the take, the next press works as usual.
+      await space();
+      await waitFor(() => expect(recordButton()).toBeTruthy());
+      await startFrom(7);
+      await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(2));
+      expect(boothPunchTarget).toHaveBeenCalledTimes(2);
+      expect(current()).toBe('7');
+    };
+    it('during a slow model check', () => refused('model check'));
+    it('during a slow record start', () => refused('record start'));
+  });
 });
