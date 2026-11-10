@@ -79,6 +79,8 @@ const ownPluralIn = (text: string, allowCountBeforeNoun = false): string[] => {
 describe('the scan itself', () => {
   it.each([
     'const plural = (n: number) => n',
+    '{ok && (<p>{job.itemsTotal} items.</p>)}',
+    '{ok && (\n  <p>{link.candidates.length} tracks look like this.</p>\n)}',
     'function pluralize(count: number) {}',
     'const pluralS = (n) => n',
     "`${n} ${n === 1 ? 'take' : 'takes'}`",
@@ -126,9 +128,7 @@ describe('one plural for every count and noun', () => {
     .map((path) => relative(SRC, path).split(sep).join('/'))
     .filter((file) => file !== 'plural.ts' && !file.startsWith('api/') && !file.startsWith('fixtures/'));
   it('has no file writing its own', () => {
-    const found = files
-      .filter((file) => !(file in NOT_COUNTS))
-      .flatMap((file) => ownPluralIn(readFileSync(join(SRC, file), 'utf8')).map((what) => `${file} ${what}`));
+    const found = files.flatMap((file) => ownPluralIn(readFileSync(join(SRC, file), 'utf8'), file in NOT_COUNTS).map((what) => `${file} ${what}`));
     expect(found).toEqual([]);
   });
 });
