@@ -178,6 +178,11 @@ footer does not repeat the reason, and the setup chip on the top bar warns too (
     to choose from, this is the main button. Save the REAPER project afterwards so the new track is kept; the message after
     creating it reminds you.
 
+  In a project whose layout is **Voice folders** ([Settings](settings.md)) the same messages say folder: **Not linked to a folder**,
+  **Link folder**, **Create a new folder** (REAPER adds a folder named after the chapter with a Narrator track in it), the chip
+  **REAPER · no folder**, and a message after creating it that names the folder and its Narrator ("Folder “Chapter 1” with a Narrator track added
+  in REAPER and linked to Chapter 1"). Record then records on that Narrator, and the voice control lists it, before you save the REAPER project.
+
   Either way Record is ready at once. If the DAW cannot add the track (REAPER is recording or not connected), the dialog says
   why and links nothing. Audacity 3 adds the track too; Audacity 4 has no scripting, so there the dialog says to add the track in Audacity and link it.
 
@@ -357,7 +362,7 @@ and one undo point, and about a twentieth of a second at the switch is recorded 
 lines. A key pressed before the last one is answered is sent next, so the voice you end on is the one you pressed last. A key with no track
 behind it asks who is in it ([below](#adding-a-voice-track)). Each chapter keeps the voice you chose until you close the app or open another project, and the
 control shows the voice the app will record on, also after you leave the Booth and come back. In a
-chapter that records on one track the voice keys say why they do nothing, and **=** and **-** still change the text size.
+chapter that records on one track, or that is not linked to a folder of voices yet in a Voice folders project, the voice keys say which it is and why they do nothing, and **=** and **-** still change the text size.
 
 ![Booth - the voice control on the record bar, with the voice keys among the key hints](../../images/ui/booth-voices.webp)
 
