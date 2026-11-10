@@ -268,7 +268,7 @@ func (h *Host) boothVoiceSetIn(ctx context.Context, svc hostServices, recorder d
 		}
 	}
 	if target == "" {
-		return boothVoiceRefused(boothVoiceNotAVoice, "That track is not a voice of this chapter's folder. Its tracks may have changed in the saved project."), nil
+		return boothVoiceRefused(boothVoiceNotAVoice, "That track is not a voice of this chapter's folder. Its tracks may have changed in the DAW."), nil
 	}
 	if !h.readAloudRecordingFor(chapterID) {
 		svc.boothVoices.choose(chapterID, target)

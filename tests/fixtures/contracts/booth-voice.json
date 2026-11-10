@@ -16,7 +16,7 @@
   "not_a_voice": {
     "outcome": "refused",
     "reason": "not_a_voice",
-    "message": "That track is not a voice of this chapter's folder. Its tracks may have changed in the saved project."
+    "message": "That track is not a voice of this chapter's folder. Its tracks may have changed in the DAW."
   },
   "record_start_no_voices": {
     "outcome": "refused",

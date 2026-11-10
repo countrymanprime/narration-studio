@@ -19,7 +19,7 @@ type Deps = Pick<
 
 const FLAT =
   'This chapter records on one track. Voice keys choose a voice in a Voice folders project, for a chapter linked to a folder (the audio engine panel).';
-const NOT_A_VOICE = "That track is not a voice of this chapter's folder. Its tracks may have changed in the saved project.";
+const NOT_A_VOICE = "That track is not a voice of this chapter's folder. Its tracks may have changed in the DAW.";
 
 const refused = (reason: NonNullable<BoothVoice['reason']>, message: string): BoothVoice => ({ outcome: 'refused', reason, message });
 
