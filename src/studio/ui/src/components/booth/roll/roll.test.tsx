@@ -254,7 +254,7 @@ describe('useRoll', () => {
       }
     });
 
-    it('Start from here with a DAW that cannot punch and a lookup that never answers does not hang', async () => {
+    it('Start from here with a DAW that cannot punch and a lookup that never answers ends once at the limit, with no start chosen (#3329)', async () => {
       vi.useFakeTimers();
       try {
         const { hook, actions } = setup(SETUPS.reaperOff, { recording: false, punchTarget: () => new Promise(() => {}) });
@@ -263,10 +263,12 @@ describe('useRoll', () => {
           done = hook.result.current.startFromHere(1) as Promise<void>;
         });
         await act(async () => {
-          await vi.runAllTimersAsync(); // the early check's wait, then the take's own
+          await vi.advanceTimersByTimeAsync(LOOKUP_MS);
           await done;
         });
-        expect(actions.chooseStart).toHaveBeenCalledWith(1, true);
+        expect(actions.notify).toHaveBeenCalledWith(expect.stringContaining('did not come back in time'));
+        expect(actions.chooseStart).not.toHaveBeenCalled();
+        expect(actions.beginTake).not.toHaveBeenCalled();
       } finally {
         vi.useRealTimers();
       }
@@ -825,7 +827,7 @@ describe('a start waits for the host: shown, joined, and dropped when the Booth 
       });
     }
 
-    describe("a DAW that cannot punch keeps main's behaviour after a never-recorded Start from here (#3329 owns it)", () => {
+    describe('a DAW that cannot punch, a press for a phrase in flight (#3329)', () => {
       const first = async () => {
         const punchTarget = vi.fn(async (): Promise<BoothPunch> => ({ outcome: 'never_recorded' }));
         const late = gate();
@@ -844,28 +846,13 @@ describe('a start waits for the host: shown, joined, and dropped when the Booth 
         expect(punchTarget.mock.calls.some((c) => (c as unknown[])[0] === 2)).toBe(true);
         await finish();
       });
-      it('(ii) a plain press goes to beginTake and is not refused', async () => {
+      it('(ii) a plain press joins it: not refused, and no take of its own', async () => {
         const { h, finish } = await first();
         await act(() => h.hook.result.current.startTake(undefined));
         expect(h.actions.notify).not.toHaveBeenCalledWith(START_BUSY);
-        expect(h.actions.beginTake).toHaveBeenCalled();
+        expect(h.actions.beginTake).not.toHaveBeenCalled();
         await finish();
       });
-    });
-
-    it('a plain press during a Start from here lookup on a DAW that cannot punch is not refused: it starts the take once, as before (#3329 owns this path)', async () => {
-      const late = gate();
-      const punchTarget = vi.fn(() => late.promise);
-      const h = setup(SETUPS.reaperOff, { recording: false, punchAt: null, punchTarget });
-      let pressed: Promise<unknown> = Promise.resolve();
-      act(() => {
-        pressed = h.hook.result.current.startFromHere(1);
-      });
-      await act(() => h.hook.result.current.startTake());
-      expect(h.actions.beginTake).toHaveBeenCalledTimes(1);
-      expect(h.actions.notify).not.toHaveBeenCalledWith(START_BUSY);
-      late.resolve(found(1));
-      await act(() => pressed);
     });
 
     it('a plain press during a Start from here lookup on a DAW that can punch is told, once, and starts nothing', async () => {
@@ -961,5 +948,210 @@ describe('a start waits for the host: shown, joined, and dropped when the Booth 
     };
     it('a passage nobody recorded', () => handedOver(SETUPS.reaper, async () => ({ outcome: 'never_recorded' })));
     it('a punch the DAW cannot do', () => handedOver(SETUPS.reaperOff, async (p) => ({ outcome: 'found', trackGuid: 'T', start: p * 10, end: p * 10 + 5 })));
+  });
+});
+
+// A DAW that cannot punch, and a DAW whose capability changes while a press is in flight (#3329). A Start from here whose lookup is out is one press
+// on every plan: Space joins it, a hung lookup ends once at LOOKUP_MS with one host call and one sentence, and what the lookup answers decides the press.
+describe('a press on a DAW that cannot punch, and a capability that changes mid-press (#3329)', () => {
+  const found = (p: number): BoothPunch => ({ outcome: 'found', trackGuid: `T${p}`, trackName: `Voice ${p}`, start: p * 10, end: p * 10 + 5 });
+  const gate = () => {
+    let resolve!: (value: BoothPunch) => void;
+    const promise = new Promise<BoothPunch>((r) => (resolve = r));
+    return { promise, resolve };
+  };
+  const NOT_USED = (reason: string) => `${reason} The next take starts from the end of what is already there, not from ¶ 1.`;
+  const noPunch = SETUPS.reaperOff;
+  const noPunchReason = noPunch.capabilities.punch.message ?? '';
+
+  it('a hung lookup ends once at the limit: one host call, one sentence, no take, no chosen start, Record free', async () => {
+    vi.useFakeTimers();
+    try {
+      const punchTarget = vi.fn(() => new Promise<BoothPunch>(() => {}));
+      const h = setup(noPunch, { recording: false, punchTarget });
+      let pressed: Promise<unknown> = Promise.resolve();
+      act(() => {
+        pressed = h.hook.result.current.startFromHere(1);
+      });
+      expect(h.hook.result.current.lookingUp).toBe(true);
+      await act(async () => void (await vi.advanceTimersByTimeAsync(LOOKUP_MS + 50)));
+      await act(() => pressed);
+      // Past a second limit nothing more happens: the lookup was asked once.
+      await act(async () => void (await vi.advanceTimersByTimeAsync(LOOKUP_MS + 50)));
+      expect(punchTarget).toHaveBeenCalledTimes(1);
+      expect(h.actions.notify.mock.calls.filter((c) => String(c[0]).includes('did not come back in time'))).toHaveLength(1);
+      expect(h.actions.beginTake).not.toHaveBeenCalled();
+      expect(h.actions.chooseStart).not.toHaveBeenCalled();
+      expect(h.hook.result.current.lookingUp).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('a lookup the host refuses says why once, starts nothing and lets the start go', async () => {
+    const refused: BoothPunch = { outcome: 'refused', reason: 'stale', message: 'The recording has changed since it was last checked.' };
+    const punchTarget = vi.fn(async () => refused);
+    const h = setup(noPunch, { recording: false, punchTarget });
+    await act(() => h.hook.result.current.startFromHere(1));
+    expect(punchTarget).toHaveBeenCalledTimes(1);
+    expect(h.actions.notify).toHaveBeenCalledExactlyOnceWith(refused.message);
+    expect(h.actions.clearStart).toHaveBeenCalled();
+    expect(h.actions.beginTake).not.toHaveBeenCalled();
+  });
+
+  it('a phrase nobody recorded: one lookup, the text moves there, and the take starts once from the end', async () => {
+    const punchTarget = vi.fn(async (): Promise<BoothPunch> => ({ outcome: 'never_recorded' }));
+    const h = setup(noPunch, { recording: false, punchTarget });
+    await act(() => h.hook.result.current.startFromHere(1));
+    expect(punchTarget).toHaveBeenCalledTimes(1);
+    expect(h.actions.chooseStart).toHaveBeenCalledExactlyOnceWith(1, true);
+    expect(h.actions.beginTake).toHaveBeenCalledExactlyOnceWith();
+    expect(h.actions.notify).toHaveBeenCalledWith('Starting from ¶ 1');
+    expect(h.actions.notify).toHaveBeenCalledWith(expect.stringContaining('was not recorded before'));
+  });
+
+  it('a recorded phrase: the sentence says the start was not used, and no take starts', async () => {
+    const h = setup(noPunch, { recording: false, punchTarget: async (p) => found(p) });
+    await act(() => h.hook.result.current.startFromHere(1));
+    expect(h.actions.notify).toHaveBeenCalledExactlyOnceWith(NOT_USED(noPunchReason));
+    expect(h.actions.beginTake).not.toHaveBeenCalled();
+    expect(h.actions.chooseStart).not.toHaveBeenCalled();
+  });
+
+  // The join rule, as a class: whatever the plan, Space while Start from here's lookup is out is that press. It starts no take of its own and
+  // asks the host nothing; the lookup's answer decides what the press does.
+  const plans = {
+    roll: SETUPS.reaper,
+    confirm: SETUPS.audacity,
+    refused: noPunch,
+  } as const;
+  for (const [kind, caps] of Object.entries(plans)) {
+    it(`Space while Start from here's lookup is out joins it: no take, no second call (${kind} plan)`, async () => {
+      const late = gate();
+      const punchTarget = vi.fn(() => late.promise);
+      const h = setup(caps, { recording: false, punchTarget });
+      let pressed: Promise<unknown> = Promise.resolve();
+      act(() => {
+        pressed = h.hook.result.current.startFromHere(1);
+      });
+      // On a DAW that can punch the start is chosen at once (the page then reads it as `punchAt`); on one that cannot, only after the answer.
+      if (kind !== 'refused') h.hook.rerender({ ...h.session, recording: false, punchAt: 1, punchTarget });
+      await act(() => h.hook.result.current.startTake());
+      await act(() => h.hook.result.current.startTake());
+      expect(h.actions.beginTake).not.toHaveBeenCalled();
+      expect(punchTarget).toHaveBeenCalledTimes(1);
+      expect(h.actions.notify).not.toHaveBeenCalledWith(START_BUSY);
+      late.resolve(found(1));
+      if (kind === 'confirm') await waitFor(() => expect(h.dialog()).toBeDefined());
+      if (kind === 'confirm') act(() => h.dialog()?.answer(true));
+      await act(() => pressed);
+      if (kind === 'refused') {
+        expect(h.actions.beginTake).not.toHaveBeenCalled();
+        expect(h.actions.notify).toHaveBeenCalledWith(NOT_USED(noPunchReason));
+      } else {
+        expect(h.actions.beginTake).toHaveBeenCalledExactlyOnceWith(10);
+      }
+      expect(punchTarget).toHaveBeenCalledTimes(1);
+    });
+  }
+
+  it('R and Space on a DAW that cannot punch, while the lookup is out, are that press too', async () => {
+    const late = gate();
+    const punchTarget = vi.fn(() => late.promise);
+    const h = setup(noPunch, { recording: false, phrase: 1, punchTarget });
+    let pressed: Promise<unknown> = Promise.resolve();
+    act(() => {
+      pressed = h.hook.result.current.startFromHere(1);
+    });
+    await act(() => h.hook.result.current.punchAndRoll());
+    expect(punchTarget).toHaveBeenCalledTimes(1);
+    late.resolve({ outcome: 'never_recorded' });
+    await act(() => pressed);
+    expect(h.actions.beginTake).toHaveBeenCalledTimes(1);
+  });
+
+  describe('the capability changes while a press is in flight', () => {
+    it('punch to no punch: the answer is read against the DAW as it is now, so the take starts from the end and no voice is chosen', async () => {
+      const late = gate();
+      const h = setup(SETUPS.reaper, { recording: false, punchAt: 1, punchTarget: () => late.promise });
+      let pressed: Promise<unknown> = Promise.resolve();
+      act(() => {
+        pressed = h.hook.result.current.startTake();
+      });
+      h.hook.rerender({ ...h.session, recording: false, punchAt: 1, capabilities: noPunch });
+      late.resolve(found(1));
+      await act(() => pressed);
+      expect(h.actions.notify).toHaveBeenCalledWith(`${noPunchReason} Recording from the end of what is already there instead.`);
+      expect(h.actions.chooseVoice).not.toHaveBeenCalled();
+      expect(h.actions.clearStart).toHaveBeenCalled();
+      expect(h.actions.beginTake).toHaveBeenCalledExactlyOnceWith();
+    });
+
+    it('punch to no punch while the punch-in question is open: the answer yes does not punch in', async () => {
+      const h = setup(SETUPS.audacity, { recording: false, punchAt: 1, punchTarget: async (p) => found(p) });
+      let pressed: Promise<unknown> = Promise.resolve();
+      act(() => {
+        pressed = h.hook.result.current.startTake();
+      });
+      await waitFor(() => expect(h.dialog()).toBeDefined());
+      h.hook.rerender({ ...h.session, recording: false, punchAt: 1, capabilities: noPunch });
+      act(() => h.dialog()?.answer(true));
+      await act(() => pressed);
+      expect(h.actions.beginTake).toHaveBeenCalledExactlyOnceWith();
+      expect(h.actions.chooseVoice).not.toHaveBeenCalled();
+    });
+
+    it('no punch to punch: Start from here goes on as a punch start, with the voice and the spot', async () => {
+      const late = gate();
+      const punchTarget = vi.fn((p: number) => (punchTarget.mock.calls.length === 1 ? late.promise : Promise.resolve(found(p))));
+      const h = setup(noPunch, { recording: false, punchTarget });
+      let pressed: Promise<unknown> = Promise.resolve();
+      act(() => {
+        pressed = h.hook.result.current.startFromHere(1);
+      });
+      h.hook.rerender({ ...h.session, recording: false, capabilities: SETUPS.reaper });
+      late.resolve(found(1));
+      await act(() => pressed);
+      expect(h.actions.chooseStart).toHaveBeenCalledWith(1, true);
+      expect(h.actions.chooseVoice).toHaveBeenCalledWith('T1');
+      expect(h.actions.beginTake).toHaveBeenCalledExactlyOnceWith(10);
+      expect(h.actions.notify).not.toHaveBeenCalledWith(NOT_USED(noPunchReason));
+    });
+
+    it('punch to no punch, then Space: it joins the press still in flight and starts no second take', async () => {
+      const late = gate();
+      const h = setup(SETUPS.reaper, { recording: false, punchAt: 1, punchTarget: () => late.promise });
+      let pressed: Promise<unknown> = Promise.resolve();
+      act(() => {
+        pressed = h.hook.result.current.startTake();
+      });
+      h.hook.rerender({ ...h.session, recording: false, punchAt: 1, capabilities: noPunch });
+      await act(() => h.hook.result.current.startTake(undefined));
+      expect(h.actions.beginTake).not.toHaveBeenCalled();
+      late.resolve(found(1));
+      await act(() => pressed);
+      expect(h.actions.beginTake).toHaveBeenCalledTimes(1);
+    });
+
+    it('no punch, a plain press (no lookup): goes straight to the Booth, as before', async () => {
+      const h = setup(noPunch, { recording: false });
+      await act(() => h.hook.result.current.startTake());
+      expect(h.actions.beginTake).toHaveBeenCalledExactlyOnceWith();
+    });
+
+    it('the press ends with the chapter: Space after a cancel on a DAW that cannot punch starts a take', async () => {
+      const late = gate();
+      const h = setup(noPunch, { recording: false, punchTarget: () => late.promise });
+      let pressed: Promise<unknown> = Promise.resolve();
+      act(() => {
+        pressed = h.hook.result.current.startFromHere(1);
+      });
+      act(() => h.hook.result.current.cancelStart());
+      await act(() => h.hook.result.current.startTake());
+      expect(h.actions.beginTake).toHaveBeenCalledTimes(1);
+      late.resolve(found(1));
+      await act(() => pressed);
+      expect(h.actions.beginTake).toHaveBeenCalledTimes(1);
+    });
   });
 });
