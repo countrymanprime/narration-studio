@@ -26,12 +26,8 @@ export function withCallLog(api: NarrationApi): NarrationApi {
         return Promise.resolve(result)
           .finally(() => (window.__hostPending = (window.__hostPending ?? 1) - 1))
           .then((answer) => {
-            let bytes = 0;
-            try {
-              bytes = JSON.stringify(answer)?.length ?? 0;
-            } catch {
-              /* an answer that is not JSON has no size */
-            }
+            // Answers are JSON-shaped wire payloads, so this does not throw; an `undefined` answer has no size.
+            const bytes = JSON.stringify(answer)?.length ?? 0;
             log.push({ name: property, start, ms: performance.now() - start, bytes });
             return answer;
           });
