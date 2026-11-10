@@ -2370,6 +2370,36 @@ describe('a start chosen with Start from here: the wait is shown, joined, droppe
     expect(status().textContent).toBe('');
   });
 
+  it('a take the DAW refuses after the lookup spends nothing: the start and its chip stay, and the next Record uses it', async () => {
+    const boothPunchTarget = vi.fn(async () => FOUND);
+    const page = renderPage({ search: '?chapter=c1&para=p3&at=28', api: { boothPunchTarget } });
+    await ready();
+    boothPunchTarget.mockClear();
+    const refused = { ok: false as const, changed: false, undoSteps: 0, message: 'REAPER is not answering.', refused: 'REAPER is not answering.' };
+    page.daw.recordStart.mockImplementationOnce(async () => refused as never);
+    await space();
+    await waitFor(() => expect(boothPunchTarget).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(recordButton().getAttribute('aria-busy')).toBeNull());
+    // (a) the refusal is said, (b) no claim about recording over, (c) the start is still chosen and shown, (d) no take runs.
+    await waitFor(() => expect(document.body.textContent).toContain('REAPER is not answering.'));
+    expect(
+      page.overlay
+        .getSnapshot()
+        .toasts.map((t) => t.text)
+        .join('|'),
+    ).not.toContain('Recording over');
+    expect(screen.getByText('Starts at ¶ 3')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /^Stop$/ })).toBeNull();
+    // (e) the next press uses that start again, and the chip goes once that take has ended.
+    await space();
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+    expect(boothPunchTarget).toHaveBeenCalledTimes(2);
+    expect(page.daw.recordStart).toHaveBeenLastCalledWith('c1', 12);
+    await space();
+    await waitFor(() => expect(recordButton()).toBeTruthy());
+    expect(screen.queryByText(/^Starts at /)).toBeNull();
+  });
+
   it('R (Punch and roll) before a take says where it starts, and the chip is gone once the take has ended', async () => {
     const lookup = slowLookup();
     const page = renderPage({ api: { boothPunchTarget: lookup.boothPunchTarget } });

@@ -179,3 +179,29 @@ test('pending Record is described and announced, with a label that stays readabl
   expect(violations).toEqual([]);
   await expect(page.locator('#brec-pending')).toHaveText('', { timeout: LOOKUP_DELAY_MS + 4000 });
 });
+
+test('a take the DAW refuses after the lookup keeps the start and its chip, and the next Record uses it', async ({ page }) => {
+  test.setTimeout(40_000);
+  await openWithSlowLookup(page, 1500);
+  await startFromHere(page);
+  const chip = page.getByText(/^Starts at ¶ \d+$/);
+  await expect(chip).toBeVisible();
+  await expect(record(page)).toHaveAttribute('aria-busy', 'true');
+  await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.refuseNextRecord('REAPER is not answering.', 'start'));
+  await expect(record(page)).not.toHaveAttribute('aria-busy', 'true', { timeout: 6000 });
+  // The refusal is said, nothing claims a take over the passage, the start is still chosen and shown, and no take runs.
+  await expect(page.getByText(/REAPER is not answering/).first()).toBeVisible();
+  await expect(page.getByText(/Recording over/)).toHaveCount(0);
+  await expect(chip).toBeVisible();
+  expect(await dawRecording(page)).toBe(false);
+  const before = await lookups(page);
+  // The next press uses that start: it looks it up again and records from it; the chip goes with the take's end.
+  await page.keyboard.press('Space');
+  await expect(stop(page)).toBeVisible({ timeout: 6000 });
+  expect(await lookups(page)).toBe(before + 1);
+  await expect(chip).toHaveCount(0);
+  await pastStartGuard(page);
+  await page.keyboard.press('Space');
+  await expect(record(page)).toBeVisible();
+  await expect(chip).toHaveCount(0);
+});
