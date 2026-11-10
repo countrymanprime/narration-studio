@@ -72,10 +72,12 @@ describe('the report export', () => {
   it('tells a refused export as a toast, and the card keeps its shape (rule 7, #2632)', async () => {
     mount({ measured: true }, { deliveryExportReport: async () => Promise.reject(new Error('the folder is read-only')) });
     const card = screen.getByRole('button', { name: 'Export report' }).closest('section')!;
-    const before = card.innerHTML;
+    // The shape is what the narrator sees: the text and the elements. The button's tooltip wrapper also carries pointer and focus state attributes, which a press changes.
+    const shape = () => `${card.textContent}|${card.querySelectorAll('*').length}`;
+    const before = shape();
     await userEvent.click(screen.getByRole('button', { name: 'Export report' }));
     expect((await findToast('The report was not written: the folder is read-only')).tone).toBe('error');
     expect(screen.queryByRole('alert')).toBeNull();
-    expect(card.innerHTML).toBe(before);
+    expect(shape()).toBe(before);
   });
 });
