@@ -109,6 +109,17 @@ export type BoothPageOptions = {
  * claim and ends without a take (cancelled, refused) stops the listening, whether it started it or joined it; an older holder never stops it.
  */
 let listeningClaim = 0;
+/** Takes the next claim; `release` gives it back (while still the latest) when the host refused the start, so a refusal owns nothing. */
+function takeClaim(): { mine: number; release: () => void } {
+  const before = listeningClaim;
+  const mine = ++listeningClaim;
+  return {
+    mine,
+    release: () => {
+      if (listeningClaim === mine) listeningClaim = before;
+    },
+  };
+}
 
 export function useBoothPage(options: BoothPageOptions) {
   const { recordId, title, credits, paragraphs, session, daw, guard, overlay, from, navigate, exitTo, projectFolder = '' } = options;
@@ -381,7 +392,8 @@ export function useBoothPage(options: BoothPageOptions) {
       return false;
     }
     // From here this press starts or joins listening: it takes the claim (a press turned away above holds none).
-    const claim = ++listeningClaim;
+    const claimed = takeClaim();
+    const claim = claimed.mine;
     // A cold read ends first: its session is not the take's (it keeps no reading and its flags are not the take's), and the take
     // starts from the real cursor, never from the ghost. Its stop is not waited for before the DAW is asked: the sidecar can take
     // seconds to let go (up to its kill at 8 s), and the take's listening starts once it has (#3221).
@@ -405,6 +417,8 @@ export function useBoothPage(options: BoothPageOptions) {
         : hearing.then(async (answer) => [answer, answer.ok && (await control.toggle(punch, { current }))] as const)
     ).finally(() => (listenStarting.current = false));
     // Cancelled while it waited (the Booth was left, the chapter changed): nothing is said on whatever page the narrator is on now.
+    // A start the host refused owns no listening: its claim goes back, so an older press's stop is not held off by it.
+    if (!heard.ok) claimed.release();
     if (!current()) {
       // The listening this press started (it answered ok) is let go, but only while no newer press, here or in a later Booth, has claimed it since.
       if (heard.ok && claim === listeningClaim) latest.current.session.stop();
@@ -536,11 +550,13 @@ export function useBoothPage(options: BoothPageOptions) {
       // A take that began some other way (the DAW's own Record) during a cold read: the cold read ends and the take's session starts.
       if (now.coldRead) {
         const from = realWord();
-        listeningClaim += 1;
-        void endColdRead().then(() => (latest.current.session.canStart ? latest.current.session.start({ startWord: from }) : undefined));
+        const claimed = takeClaim();
+        void endColdRead()
+          .then(() => (latest.current.session.canStart ? latest.current.session.start({ startWord: from }) : undefined))
+          .then((answer) => (answer?.ok ? undefined : claimed.release()));
       } else if (!now.session.active && now.session.canStart) {
-        listeningClaim += 1;
-        void now.session.start();
+        const claimed = takeClaim();
+        void now.session.start().then((answer) => (answer.ok ? undefined : claimed.release()));
       }
       return;
     }
@@ -718,8 +734,9 @@ export function useBoothPage(options: BoothPageOptions) {
     try {
       if (!(await now.session.ensureModel())) return;
       // As Record does, an empty microphone is the host's to refuse: its sentence is the message.
-      listeningClaim += 1;
+      const claimed = takeClaim();
       const started = await latest.current.session.start({ coldRead: true, startWord: realWord() });
+      if (!started.ok) claimed.release();
       if (!started.ok) overlay.toast(`Cold read did not start: ${started.reason || 'listening failed'}.`, { tone: 'error' });
     } finally {
       coldReadStarting.current = false;

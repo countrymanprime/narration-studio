@@ -2670,17 +2670,32 @@ describe('the listening claim: whoever holds the latest claim and ends without a
   /** A host whose one listening session outlives a Booth: a second Booth finds it running and joins it. */
   const listeningHost = () => {
     let phase: 'idle' | 'running' | 'stopped' = 'idle';
+    // A Booth that opens while the host session still runs but does not know it (it has not been told): it sees idle, and a start is refused.
+    let unaware = false;
     const states = new Set<(next: unknown) => void>();
-    const snapshot = () => ({ phase, message: '', engine: 'whisper', chapter: 'c1', paused: false, coldRead: false, script: null, position: null });
+    const snapshot = () => ({
+      phase: unaware ? 'idle' : phase,
+      message: '',
+      engine: 'whisper',
+      chapter: 'c1',
+      paused: false,
+      coldRead: false,
+      script: null,
+      position: null,
+    });
     const publish = (next: typeof phase) => {
       phase = next;
       states.forEach((listener) => listener(snapshot()));
     };
     const teleprompterStart = vi.fn(async () => {
+      if (unaware && phase === 'running') throw new Error('a teleprompter session is already running');
       publish('running');
       return { status: 'started' as const };
     });
-    const teleprompterStop = vi.fn(async () => publish('stopped'));
+    const teleprompterStop = vi.fn(async () => {
+      unaware = false;
+      publish('stopped');
+    });
     const savedDevice = async () => ({
       Teleprompter: [{ key: 'input_device', label: 'Microphone', kind: 'text', value: 'USB Mic', effectiveValue: 'USB Mic', isSet: true }],
     });
@@ -2694,7 +2709,7 @@ describe('the listening claim: whoever holds the latest claim and ends without a
         return () => states.delete(listener);
       },
     } as never;
-    return { api, teleprompterStart, teleprompterStop, phase: () => phase, reset: () => publish('idle') };
+    return { api, teleprompterStart, teleprompterStop, phase: () => phase, reset: () => publish('idle'), hideRunning: () => (unaware = true) };
   };
   const hold = () => {
     let release = () => {};
@@ -2789,6 +2804,56 @@ describe('the listening claim: whoever holds the latest claim and ends without a
     await settle();
     expect(host.teleprompterStop).not.toHaveBeenCalled();
     expect(second.daw.recordStart).not.toHaveBeenCalled();
+  });
+
+  it("a start the host refuses (already running) does not leave the older cancelled press's listening on", async () => {
+    const host = listeningHost();
+    const a = hold();
+    const first = heldPage(host, a);
+    await ready();
+    await space();
+    await waitFor(() => expect(first.daw.recordStart).toHaveBeenCalledTimes(1));
+    leave(first);
+    host.hideRunning();
+    const second = renderPage({ api: host.api });
+    second.daw.recordStop.mockImplementation(async () => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
+    await ready();
+    await space();
+    await waitFor(() => expect(host.teleprompterStart).toHaveBeenCalledTimes(2));
+    await settle();
+    expect(host.teleprompterStop).not.toHaveBeenCalled();
+    a.release();
+    await settle();
+    await settle();
+    expect(host.teleprompterStop).toHaveBeenCalledTimes(1);
+    expect(host.phase()).toBe('stopped');
+  });
+
+  it("the cold-read twin: a cold read the host refuses does not leave the older cancelled press's listening on", async () => {
+    const host = listeningHost();
+    const a = hold();
+    const first = heldPage(host, a);
+    await ready();
+    await space();
+    await waitFor(() => expect(first.daw.recordStart).toHaveBeenCalledTimes(1));
+    leave(first);
+    host.hideRunning();
+    renderPage({ api: host.api });
+    await ready();
+    await act(async () => void fireEvent.click(screen.getByRole('button', { name: 'Record options' })));
+    const group = await screen.findByRole('radiogroup', { name: 'Main button' });
+    await act(async () => void fireEvent.click(within(group).getByRole('radio', { name: 'Cold read' })));
+    await act(async () => void fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape', code: 'Escape' }));
+    await waitFor(() => expect(screen.queryByRole('radiogroup', { name: 'Main button' })).toBeNull());
+    await act(async () => void fireEvent.click(document.getElementById('brec')!));
+    await waitFor(() => expect(host.teleprompterStart).toHaveBeenCalledTimes(2));
+    await settle();
+    expect(host.teleprompterStop).not.toHaveBeenCalled();
+    a.release();
+    await settle();
+    await settle();
+    expect(host.teleprompterStop).toHaveBeenCalledTimes(1);
+    expect(host.phase()).toBe('stopped');
   });
 
   it('a voice refusal for a press that a newer start replaced says nothing', async () => {
