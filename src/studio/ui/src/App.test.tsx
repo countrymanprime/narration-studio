@@ -62,7 +62,7 @@ const appToasts = (role: 'status' | 'alert') => {
   return regions.find((node) => node.childElementCount > 0) ?? regions[0]!;
 };
 
-// The header carries only the jump button now (the Studio Next mock's top bar): Back, Forward, Undo, History and the zoom steps are jump-menu commands.
+// The header carries only the jump button now (the research mock's top bar): Back, Forward, Undo, History and the zoom steps are jump-menu commands.
 // Opens the menu from its button, narrows to commands, and returns the row named `label` (its name starts with the label).
 async function jumpRow(label: string) {
   fireEvent.click(screen.getByRole('button', { name: /^Jump to or run…/ }));
@@ -103,7 +103,7 @@ const linkChapterOne = async () => {
   const select = within(row).getByRole('combobox') as HTMLSelectElement;
   // Option 0 is the "Choose a track" placeholder; option 1 is the first track.
   fireEvent.change(select, { target: { value: select.options[1].value } });
-  fireEvent.click(within(row).getByRole('button', { name: 'Confirm' }));
+  fireEvent.click(within(row).getByRole('button', { name: /^Use this (track|folder) for/ }));
   await within(row).findByRole('button', { name: /^Change the track/ });
   return row;
 };
@@ -252,7 +252,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     window.history.replaceState(null, '', '/');
   });
 
-  // SN-O10: `/booth` is the Studio Next Booth (its Record control and footer key hints), for a chapter, the credits or no target.
+  // SN-O10: `/booth` is the rebuilt Booth (its Record control and footer key hints), for a chapter, the credits or no target.
   it.each(['/booth', '/booth?chapter=chapter-2', '/booth?credits=opening', '/booth?credits=closing'])(
     'the-booth-route-mounts-the-new-page: %s',
     async (address) => {
@@ -477,7 +477,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
   });
 
   it('choosing a manuscript file: busy while the host dialog is open, one dialog, and a failure is a toast', async () => {
-    // The Studio Next header has no Replace manuscript (Settings keeps it); the empty state's import button is the same hook.
+    // The rebuilt header has no Replace manuscript (Settings keeps it); the empty state's import button is the same hook.
     const source = createMockApi();
     const noManuscript = async () => ({ ...(await source.bootstrap()), manuscript: null });
     const selectManuscript = vi.fn(() => new Promise<never>(() => {}));
@@ -650,8 +650,9 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
   });
 
   // docs/architecture/principles.md: the engine panel replaces the Tracks page. It opens from the
-  // header's engine chip on any page, with or without a manuscript, and lists the mock project's tracks.
-  it('opens the engine panel from the engine chip, without a manuscript, with the project and its tracks', async () => {
+  // header's engine chip on any page, with or without a manuscript. Its one list of tracks is Chapter links, so with no manuscript (no chapters
+  // to link) it draws no list, and no separate Tracks card.
+  it('opens the engine panel from the engine chip, without a manuscript, with the project and no track list', async () => {
     const source = createMockApi();
     renderApp({ bootstrap: async () => ({ ...(await source.bootstrap()), manuscript: null }) });
     await screen.findByRole('heading', { level: 1, name: 'Production' });
@@ -659,10 +660,9 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /^REAPER: / }));
     const panel = await screen.findByRole('dialog', { name: 'Audio engine' });
-    const tracks = await within(panel).findByRole('table', { name: 'Tracks' });
-    expect(within(tracks).getByText('Chapter 1')).toBeTruthy();
-    expect(within(tracks).getByText('Click Track')).toBeTruthy();
-    expect(within(panel).getByRole('button', { name: 'Change the linked file' })).toBeTruthy();
+    expect(await within(panel).findByRole('button', { name: 'Change the linked file' })).toBeTruthy();
+    expect(within(panel).queryByRole('table', { name: 'Tracks' })).toBeNull();
+    expect(within(panel).queryByRole('table', { name: 'Chapter links' })).toBeNull();
     expect(window.location.pathname).toBe('/');
   });
 
@@ -813,7 +813,7 @@ describe('App (integration, driven through the mock NarrationApi)', () => {
     expect(window.location.pathname).toBe(`/editing/${WIRE_CHAPTERS[0].id}`);
   });
 
-  // SN-M5: /settings, /master and /delivery mount the Studio Next pages; /delivery is a page again, not a redirect.
+  // SN-M5: /settings, /master and /delivery mount the rebuilt pages; /delivery is a page again, not a redirect.
   it('the-three-routes-mount-the-new-pages: Settings, Master & QC and Delivery each mount the mock page', async () => {
     window.history.replaceState(null, '', '/settings');
     renderApp();

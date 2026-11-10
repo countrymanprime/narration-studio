@@ -168,6 +168,18 @@ export function ImportDialog({ onClose, onChanged }: ImportDialogProps) {
   const { plan, waiting, problem } = useImportPreview(oversize ? '' : text, hint);
   const env = useMemo(() => ({ journal, port, changed: onChanged }), [journal, port, onChanged]);
   const offered = !oversize && text.trim() && plan ? plan.offered : 0;
+  // Why Add is off, as its tooltip: the button never sits dim with nothing to say (#3276).
+  const addWhy = waiting
+    ? 'Reading your text.'
+    : offered
+      ? ''
+      : oversize
+        ? 'This text is too long to import.'
+        : problem
+          ? 'The preview could not be made, so there is nothing to add yet.'
+          : text.trim()
+            ? 'Nothing in this text can be added.'
+            : 'Paste or open the entries to import first.';
   useEffect(() => {
     alive.current = true;
     return () => {
@@ -212,9 +224,11 @@ export function ImportDialog({ onClose, onChanged }: ImportDialogProps) {
     setAdding(true);
     setAddProblem(undefined);
     let failure: string | undefined;
+    let added = 0;
     try {
       const result = await importEntries(env, text, hint);
       if (!result.ok) failure = `Nothing was added: ${result.refusal.reason}`;
+      else added = result.value.suggestions.length + result.value.entryIds.length;
     } catch (error) {
       failure = `The import may not have finished (${readableFailure(error, 'the host did not say why')}). Check the Story Bible before adding again.`;
     }
@@ -226,7 +240,11 @@ export function ImportDialog({ onClose, onChanged }: ImportDialogProps) {
     }
     setAdding(false);
     if (failure) setAddProblem(failure);
-    else onClose();
+    else {
+      // The dialog closing is not an answer: say what was added (#3276).
+      overlay.toast(`Added ${added} to the Story Bible.`);
+      onClose();
+    }
   };
 
   return (
@@ -341,7 +359,7 @@ export function ImportDialog({ onClose, onChanged }: ImportDialogProps) {
           </p>
         )}
         <div className="flex justify-end gap-2">
-          <Button variant="primary" onClick={() => void add()} pending={adding} disabled={!offered || waiting}>
+          <Button variant="primary" onClick={() => void add()} pending={adding} disabledReason={addWhy}>
             {addLabel(offered)}
           </Button>
         </div>

@@ -19,6 +19,7 @@ import type { LiveTracks } from './useLiveTracks';
 import type { ChapterTrackRow } from './chapterTrackRows';
 import type { ChapterLinks } from './useChapterLinks';
 import { folderChildren, folderLinkLabel } from './voices';
+import { useVoiceLayout } from './voiceLayout';
 import type { LineIdentityLine, LineIdentityRowStatus, LineIdentityState, LineIdentityStampRow, Track, TrackItem } from '../../types';
 
 const STATUS_LABEL: Record<LineIdentityRowStatus, string> = {
@@ -85,7 +86,23 @@ function LineStatusRow({ line }: { line: LineIdentityLine }) {
 
 /** Reads current stamped identity from REAPER and shows every row's status (ok, drift, stale-source, removed, unrecognized,
  * unknown), so a narrator can see what "Link chapters" would change before running it again. */
-function CurrentStamps({ state, error, onRead, pending }: { state: LineIdentityState; error: string; onRead: () => void; pending: boolean }) {
+function CurrentStamps({
+  state,
+  error,
+  onRead,
+  pending,
+  stamping,
+  readFoundNothing,
+}: {
+  state: LineIdentityState;
+  error: string;
+  onRead: () => void;
+  pending: boolean;
+  /** A stamp is running: Read waits, so the second run cannot replace the first's state. */
+  stamping: boolean;
+  /** The last run was a Read and it found no stamped item. */
+  readFoundNothing: boolean;
+}) {
   return (
     <section aria-labelledby="current-stamps-heading" className="mt-4 space-y-2 border-t pt-3" style={{ borderColor: 'var(--border)' }}>
       {/* The heading and its button wrap as a pair at a narrow width rather than squeezing the button's label (R3EN2-17). */}
@@ -93,7 +110,7 @@ function CurrentStamps({ state, error, onRead, pending }: { state: LineIdentityS
         <SectionLabel as="h3" id="current-stamps-heading">
           Currently stamped in REAPER
         </SectionLabel>
-        <IconButton action="readStamps" onClick={onRead} pending={pending} />
+        <IconButton action="readStamps" onClick={onRead} pending={pending} disabled={stamping} />
       </div>
       {(state.phase === 'reading' || (state.phase === 'success' && state.linesRead > 0)) && (
         <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
@@ -118,7 +135,8 @@ function CurrentStamps({ state, error, onRead, pending }: { state: LineIdentityS
           </TableBody>
         </Table>
       )}
-      {state.phase === 'success' && state.lines.length === 0 && (
+      {/* Only after Read: a Stamp finishes in 'success' with no lines read, and the host does not read them back, so "nothing" would be false (#3053). */}
+      {readFoundNothing && (
         <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
           Nothing is stamped yet.
         </p>
@@ -159,6 +177,10 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
     return unsubscribe;
   }, [api]);
 
+  // The notice is the last takeover's, kept by the shared reader: a dialog opening anew starts without it, so it is never repeated for a change this session did not make.
+  const { clearNotice } = links;
+  useEffect(() => clearNotice(), []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const failure = requestError || (state.phase === 'error' ? state.message : '');
   const stampError = lastAction === 'stamp' ? failure : '';
   const readError = lastAction === 'read' ? failure : '';
@@ -166,15 +188,37 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
   const owned = useMemo(() => itemsOwnedByChapter(rows, tracks), [rows, tracks]);
   const preview = useMemo(() => stampRows(rows, owned), [rows, owned]);
   const running = state.phase === 'stamping';
+  // A stamp that ended says so even when every item was already stamped (applied 0, unchanged N); a Read ends in success with these all zero.
+  const stamped = state.phase === 'success' && state.stamp.applied + state.stamp.unchanged + state.stamp.missingCount + state.stamp.conflictsCount > 0;
+  const reading = state.phase === 'reading';
+  // A Read ends in success with no stamp counts; a Stamp's success has some, so the empty-read line follows the state, not the last button pressed
+  // (a Read refused after a Stamp, or a dialog reopened while a Read ran, keep the state's own meaning).
+  const readFoundNothing = state.phase === 'success' && state.lines.length === 0 && state.linesRead === 0 && !stamped && !failure;
   // A name is an option's whole text, so a direction override in it reaches nothing past the name: an option needs no isolate (breaker 7).
+  const voiceFolders = useVoiceLayout() === 'folders';
   const trackOptions = [
     { value: '', label: 'Not linked' },
     ...tracks.map((track) => {
       const name = track.name || `Track ${track.index + 1}`;
       // A folder reads as the Chapter links list names it, so it is not taken for a track.
-      return { value: track.guid, label: track.isFolder ? folderLinkLabel(name, folderChildren(tracks, track.guid).length) : name };
+      return {
+        value: track.guid,
+        label: track.isFolder ? folderLinkLabel(name, folderChildren(tracks, track.guid).length, voiceFolders ? 'voice' : 'track') : name,
+      };
     }),
   ];
+  // A folder that holds a track another chapter is linked to still takes the audio outside that track (chapterItemsByNearestLink); the sentence under
+  // the table says so once it is picked, where the closed picker's clipped label could not.
+  const linkedTo = new Map<string, string>();
+  for (const { chapter, mapping, state } of rows) if (mapping && state === 'linked') linkedTo.set(mapping.trackGuid, chapter.id);
+  const sharesTrack = (chapterId: string, folderGuid: string) => {
+    const at = tracks.findIndex((track) => track.guid === folderGuid);
+    const folder = tracks[at];
+    if (!folder?.isFolder) return false;
+    const end = tracks.findIndex((track, i) => i > at && track.depth <= folder.depth);
+    return tracks.slice(at + 1, end < 0 ? undefined : end).some((track) => linkedTo.has(track.guid) && linkedTo.get(track.guid) !== chapterId);
+  };
+  const sharing = rows.filter(({ chapter, mapping, state }) => mapping && state === 'linked' && sharesTrack(chapter.id, mapping.trackGuid));
 
   const approve = () => {
     setLastAction('stamp');
@@ -192,15 +236,15 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
       dismissOnOutsidePress={false}
       title="Link chapters to REAPER"
       size="wide"
-      onClose={running ? undefined : onClose}
-      escapeCloses={!running}
+      onClose={onClose}
       description="Choose which REAPER track holds each chapter's recording. A pick saves the link at once; nothing is stamped until you approve."
       actions={
         <>
-          <Button variant="secondary" onClick={onClose} disabled={running}>
-            {state.phase === 'success' && state.stamp.applied > 0 ? 'Close' : 'Cancel'}
+          {/* Always an exit: a stamp that stalls must not trap the narrator. The host keeps stamping and the dialog shows it again on reopen. */}
+          <Button variant="secondary" onClick={onClose}>
+            {running || stamped ? 'Close' : 'Cancel'}
           </Button>
-          <Button onClick={approve} disabled={preview.length === 0} pending={running}>
+          <Button onClick={approve} disabled={preview.length === 0 || reading} pending={running}>
             {`Stamp ${preview.length} item${preview.length === 1 ? '' : 's'}`}
           </Button>
         </>
@@ -235,7 +279,7 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
           {state.message}
         </p>
       )}
-      {state.phase === 'success' && (state.stamp.applied > 0 || state.stamp.missingCount > 0 || state.stamp.conflictsCount > 0) && (
+      {stamped && (
         <div className="mb-3">
           <ToolResult tone={state.stamp.missing.length > 0 || state.stamp.conflicts.length > 0 ? 'warning' : 'success'} message={state.message}>
             {state.stamp.missing.length > 0 && <p className="mt-1">Stale items (their GUID no longer resolves in REAPER): {state.stamp.missing.join(', ')}</p>}
@@ -271,7 +315,7 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
                     value={mapping?.trackGuid ?? ''}
                     onChange={(value) => (value ? links.set(chapter.id, value) : links.unlink(chapter.id))}
                     options={options}
-                    disabled={links.busyChapterId === chapter.id}
+                    disabled={links.busyChapterId === chapter.id || running}
                     fullWidth
                   />
                 </TableCell>
@@ -282,13 +326,22 @@ export function LinkChaptersDialog({ links, live, onClose }: { links: ChapterLin
         </TableBody>
       </Table>
 
+      {sharing.length > 0 && (
+        <div className="mt-3">
+          <ToolResult
+            tone="warning"
+            message={`${sharing.map(({ chapter }) => chapterName(chapter, 'short')).join(', ')}: the folder also holds another chapter's linked track. That track's items stay with its own chapter.`}
+          />
+        </div>
+      )}
+
       <div className="mt-3">
         <Checkbox checked={overwrite} onChange={setOverwrite} disabled={running}>
           Overwrite items already stamped with a different chapter
         </Checkbox>
       </div>
 
-      <CurrentStamps state={state} error={readError} onRead={read} pending={state.phase === 'reading'} />
+      <CurrentStamps state={state} error={readError} onRead={read} pending={state.phase === 'reading'} stamping={running} readFoundNothing={readFoundNothing} />
     </Dialog>
   );
 }

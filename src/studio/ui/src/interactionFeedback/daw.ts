@@ -141,6 +141,9 @@ export const dawFeedback = {
     'exempt',
     "Forwards the read of the DAW's last action before an Undo. It changes nothing and never rejects: a failed read is `unknown`, which the page's Undo words as the DAW's own Edit > Undo.",
   ),
+  'src/ports/daw.ts::dawSaveProject#1': adapter(
+    'Forwards Save in REAPER and read; the binding already answers a DawResult, and Editing says a refusal in an error toast and the button is ready again.',
+  ),
   'src/ports/daw.ts::dawUndoLast#1': adapter(
     "Forwards Undo of the app's last action in the DAW with the kind and steps only; the binding already answers a DawResult.",
   ),
@@ -239,7 +242,7 @@ export const dawFeedback = {
     'inline',
     'no',
     'ok',
-    "Create a new track has the DAW add a track named after the chapter and links it; the button is busy and ignores a second press (one press, one track), the DAW's refusal or a failed call is written in the dialog, and on success the page reads the chapter again, says the track was added and the dialog goes.",
+    "Create a new track (Create a new folder in a Voice folders project) has the DAW add a track, or a folder with a Narrator track in it, named after the chapter and links it; the button is busy and ignores a second press (one press, one track), the DAW's refusal or a failed call is written in the dialog, and on success the page reads the chapter and its voices again, says what was added (the folder with its Narrator, or the track) and the dialog goes.",
   ),
   // The Chapter links panel's nested-chapters repair (#2838; components/engine/useChapterFolders.ts, src/studio/desktop/chapterfolders.go).
   'src/components/engine/useChapterFolders.ts::chapterFoldersCheck#1': row(

@@ -142,6 +142,9 @@ const GOLDEN_FILES = [
   'daw-undo-last-done.json',
   'daw-undo-last-partial.json',
   'daw-undo-last-refused-not-last.json',
+  'daw-save-project-done.json',
+  'daw-save-project-refused-never.json',
+  'daw-save-project-refused-capability.json',
   'daw-undo-last-refused-capability.json',
   'daw-backup-done.json',
   'daw-backup-restored.json',
@@ -325,6 +328,7 @@ function hostApi(): DawHostApi {
       if (kind !== 'cut_range' || cutsOnTop === 0) return Promise.reject(new Error(`no golden for the last action of ${kind} with ${cutsOnTop} cuts`));
       return Promise.resolve(read('daw-last-action-this.json', dawLastActionSchema));
     },
+    dawSaveProject: () => Promise.resolve(read('daw-save-project-done.json', dawResultSchema)),
     dawUndoLast: (kind, steps) => {
       if (kind === 'record_take') {
         if (takesOnTop === 0 || steps !== 1) return Promise.reject(new Error(`no golden for undoing ${steps} points of ${takesOnTop} takes`));
@@ -815,6 +819,7 @@ const cases: ReadonlyArray<ContractCase<DawClient>> = [
     ],
   },
   { name: 'repair-click: two clicks in a take repaired are answered alike', observe: (daw) => daw.repairClick(CLICKS) },
+  { name: 'save-project: a save is answered alike, saying what the saved project holds', observe: (daw) => daw.saveProject() },
   {
     name: 'undo-last: right after a cut it is the last action, and one undo is answered alike',
     observe: async (daw) => {

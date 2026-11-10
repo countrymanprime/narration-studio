@@ -1695,6 +1695,17 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(refused.outcome).toBe('refused');
   });
 
+  // #3271: after a Voice folders project makes a chapter's folder, the folder is only in REAPER until the narrator saves; the host still lists its
+  // Narrator (chapterVoices reads what the app made) and records on it, so the mock answers the same.
+  it('after ChapterTrackCreate in a Voice folders project, BoothVoiceGet lists the Narrator the app made and the take records on it', async () => {
+    const api = createMockApi({}, { reaperState: 'no_link', voiceFolders: true });
+    const chapters = await ownChapters(api);
+    const created = await api.chapterTrackCreate(chapters[0].id);
+    if (created.outcome !== 'created' || !created.voice) throw new Error('expected a created folder with its Narrator');
+    const voice = await api.boothVoiceGet(chapters[0].id);
+    expect(voice).toMatchObject({ outcome: 'selected', trackGuid: created.voice.guid });
+  });
+
   it('the ChapterTrackCreate answers: created and linked, each refusal, and a chapter the manuscript does not have', async () => {
     const api = createMockApi({}, { reaperState: 'no_link' });
     const chapters = await ownChapters(api);
@@ -4016,6 +4027,22 @@ describe('answers of the mock client for the settings, voice, model, transcript 
     expect(refused.refused).toBe((await off.dawCapabilities()).capabilities.undo_last.message);
   });
 
+  it('dawSaveProject answers a dawResult: the host goldens parse, and the mock answers as the host does', async () => {
+    for (const file of ['daw-save-project-done.json', 'daw-save-project-refused-never.json', 'daw-save-project-refused-capability.json']) {
+      expectMatches(dawResultSchema, readGolden(file), file);
+      expect(readGolden(file), file).toMatchObject({ changed: false, undoSteps: 0 });
+    }
+    expect(readGolden('daw-save-project-done.json')).toMatchObject({ ok: true, message: DAW_ANSWERS.projectSaved });
+    expect(readGolden('daw-save-project-refused-never.json')).toMatchObject({ ok: false, refused: DAW_ANSWERS.projectNeverSaved });
+    const saved = await createMockApi().dawSaveProject();
+    expectMatches(dawResultSchema, saved, 'mock save project');
+    expect(saved).toEqual(readGolden('daw-save-project-done.json'));
+    const off = createMockApi({}, { daw: { reachable: false } });
+    const refused = await off.dawSaveProject();
+    expectMatches(dawResultSchema, refused, 'mock save project, REAPER not answering');
+    expect(refused).toMatchObject({ ok: false, refused: (await off.dawCapabilities()).capabilities.save_project.message });
+  });
+
   it('backups.json (the Audacity backups table the host reads back) parses from the Go goldens, and the schema refuses what the host refuses', () => {
     expectMatches(dawBackupsFileSchema, readGolden('daw-backups-empty.json'), 'daw-backups-empty.json');
     expectMatches(dawBackupsFileSchema, readGolden('daw-backups-two.json'), 'daw-backups-two.json');
@@ -4746,6 +4773,7 @@ describe('answers of the mock client for the settings, voice, model, transcript 
       'dawRepairClick',
       'dawLastAction',
       'dawUndoLast',
+      'dawSaveProject',
       'dawMonitorLevel',
       'dawMeters',
       'dawSetMonitorLevel',

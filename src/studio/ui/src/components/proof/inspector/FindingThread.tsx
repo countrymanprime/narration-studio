@@ -37,12 +37,14 @@ function Message({
       <div className="flex flex-col gap-1.5">
         <Field label="Edit note" textarea autoFocus value={draft} onChange={(value) => setDraft([...value].slice(0, MAX_REVIEW_NOTE_LENGTH).join(''))} />
         <div className="flex gap-1.5">
-          <Button variant="secondary" size="sm" onClick={() => setDraft(undefined)}>
-            Cancel
-          </Button>
-          <Button size="sm" disabled={disabled || draft.trim() === ''} onClick={() => void onEdit(draft).then((saved) => saved && setDraft(undefined))}>
-            Save
-          </Button>
+          <IconButton action="cancelEdit" size="sm" onClick={() => setDraft(undefined)} />
+          <IconButton
+            action="saveNote"
+            size="sm"
+            variant="primary"
+            disabledReason={disabled ? 'Not available right now' : draft.trim() === '' ? 'Write the note first' : undefined}
+            onClick={() => void onEdit(draft).then((saved) => saved && setDraft(undefined))}
+          />
         </div>
       </div>
     );

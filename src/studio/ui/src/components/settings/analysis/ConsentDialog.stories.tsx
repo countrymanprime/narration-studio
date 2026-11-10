@@ -13,7 +13,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-// One tool (docs/research/mockups/studio-next/src/ui/ComponentConsent.tsx): its size, what it does, where it downloads from, what it
+// One tool (docs/research/mockups/research-mock/src/ui/ComponentConsent.tsx): its size, what it does, where it downloads from, what it
 // needs and takes, and its licence. Download has focus; nothing downloads before it is pressed.
 export const OneTool: Story = {
   play: async ({ args }) => {

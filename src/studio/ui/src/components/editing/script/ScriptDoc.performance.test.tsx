@@ -11,7 +11,12 @@ import { syntheticChapter } from './scriptFixtures';
 
 afterEach(cleanup);
 
+// A step is judged by its median over several runs, so one garbage-collection pause or noisy-neighbour spike on a shared runner
+// cannot fail it (it did, at 104 ms on main, #3238). A real slowdown of an order of magnitude moves every run and the median with it.
+// The work done is asserted separately; the outlier cap only catches a step that hangs.
 const BUDGET_MS = 100;
+const OUTLIER_CAP_MS = 10 * BUDGET_MS;
+const median = (xs: number[]): number => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)];
 const time = (f: () => void): number => {
   const t = performance.now();
   f();
@@ -30,7 +35,7 @@ describe('ten-thousand-words', () => {
     expect(doc.counts.mis + doc.counts.low + doc.counts.miss).toBeGreaterThan(0);
   });
 
-  it('handles 20 cursor moves, 5 selections and a flag step, the logic of each under 100 ms, with one element per word and content-visibility on every paragraph', () => {
+  it('handles 20 cursor moves, 5 selections and a flag step, the median of each under 100 ms, with one element per word and content-visibility on every paragraph', () => {
     render(
       <EditingPageProvider doc={doc}>
         <ScriptDoc />
@@ -42,19 +47,25 @@ describe('ten-thousand-words', () => {
     expect(paras.every((p) => p.style.contentVisibility === 'auto')).toBe(true);
 
     const keys = doc.items.map((i) => i.key);
-    const times: number[] = [];
+    const moves: number[] = [];
+    const steps: number[] = [];
     let at = 0;
     for (let i = 0; i < 20; i++) {
       at = (at * 31 + 977) % keys.length;
       const el = document.querySelector<HTMLElement>(`[data-k="${keys[at]}"]`)!;
-      times.push(time(() => fireEvent.mouseDown(el)));
-      times.push(time(() => void stepKey(doc, keys[at], 1)));
+      moves.push(time(() => fireEvent.mouseDown(el)));
+      steps.push(
+        time(() => {
+          expect(stepKey(doc, keys[at], 1)).toBeTruthy();
+        }),
+      );
     }
+    const selections: number[] = [];
     for (let i = 0; i < 5; i++) {
       const from = keys[(i * 1999) % keys.length];
       const to = keys[(i * 1999 + 1500) % keys.length];
       const sel = { anchor: from, head: to };
-      times.push(
+      selections.push(
         time(() => {
           const next = pageReducer(initialPageState, { type: 'select', anchor: from, head: to });
           expect(selKeys(doc, next.sel)).toHaveLength(1501);
@@ -62,7 +73,10 @@ describe('ten-thousand-words', () => {
         }),
       );
     }
-    times.push(time(() => void stepFlag(doc, keys[0], 1)));
-    expect(Math.max(...times)).toBeLessThan(BUDGET_MS);
+    const flags = Array.from({ length: 5 }, () => time(() => void stepFlag(doc, keys[0], 1)));
+    for (const runs of [moves, steps, selections, flags]) {
+      expect(median(runs)).toBeLessThan(BUDGET_MS);
+      expect(Math.max(...runs)).toBeLessThan(OUTLIER_CAP_MS);
+    }
   });
 });

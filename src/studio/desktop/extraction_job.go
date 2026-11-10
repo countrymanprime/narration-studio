@@ -301,7 +301,7 @@ func (h *Host) extractionScanInput(registry *port.Registry[extractionport.Source
 func (h *Host) runExtractionScan(ctx context.Context, job *extractionScanJob, run extractionScanRun) {
 	defer job.cancel()
 	// The rules run first, in the host. The sources that start a sidecar then read at the same time (GLiNER beside BookNLP is
-	// 6 to 29% faster than one after the other, docs/research/studio-next-extraction-chunking-benchmark.md), and their offers
+	// 6 to 29% faster than one after the other, docs/research/extraction-chunking-benchmark.md), and their offers
 	// are ingested one at a time in the registry's order, so the result does not depend on which finishes first.
 	scanCtx, stop := context.WithCancel(ctx)
 	var readers sync.WaitGroup

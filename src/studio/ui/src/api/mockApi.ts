@@ -81,6 +81,7 @@ import type {
   DawReduceRangeGainApi,
   DawRepairClickApi,
   DawUndoLastApi,
+  DawSaveProjectApi,
 } from './contracts/daw';
 import { DAW_CHOSEN_CHAIN } from './contracts/daw';
 import type { WorkspaceApi } from './contracts/workspace';
@@ -241,7 +242,23 @@ export function createMockApi(
   } = createCoverageMock({
     chapters: () => s.chapters,
     assetRequired: assets.whisperAssetRequired,
-    engines: assets.coverageEngines,
+    // The dialog starts from the narrator's Settings, as the host's does (#3231), not from the shipped defaults.
+    engines: () => {
+      const engines = assets.coverageEngines();
+      const effective = (key: string) => Number(settings.settings.global.RecordingCoverage?.find((field) => field.key === key)?.effectiveValue);
+      const from = (key: string, fallback: number) => (Number.isFinite(effective(key)) ? effective(key) : fallback);
+      const { defaults } = engines;
+      return {
+        ...engines,
+        defaults: {
+          ...defaults,
+          chunkSeconds: from('chunk_seconds', defaults.chunkSeconds),
+          overlapSeconds: from('chunk_overlap_seconds', defaults.overlapSeconds),
+          workers: from('parallel_workers', defaults.workers),
+          chapters: from('parallel_chapters', defaults.chapters),
+        },
+      };
+    },
     saveFinding: (finding) => saveFinding(finding),
     paragraphText: (id) => s.paragraphs.find((paragraph) => paragraph.id === id)?.text,
     // A finished check changes its chapter's status row, so chaptersync:state goes out again.
@@ -577,6 +594,7 @@ export function createMockApi(
     ...createReduceRangeGainMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
     ...createRepairClickMock(daw, (chapterId) => manuscriptReady.then(() => s.chapters.some((chapter) => chapter.id === chapterId))),
     ...createUndoLastMock(daw, undoHistory),
+    ...createSaveProjectMock(daw, initial.daw?.neverSaved),
     ...createFilesMock(daw, filePreview),
     workspacePreviewTake: previewTakeMock(daw, workspaceTakes.workspaceTakes, filePreview),
     ...createMasterFilesMock(daw, lastRunFiles, filePreview),
@@ -1014,6 +1032,20 @@ function recordingUndo(
       const result = await api.readAloudRecordStop();
       if (result.outcome === 'stopped') history.push(labels.recordedMedia, result.undoPoints ?? 0);
       return result;
+    },
+  };
+}
+
+/** DawSaveProject as bindings_daw_save_project.go answers it on a setup whose DAW can save: the save_project capability's refusal, or the
+ * save with what the mock project holds. */
+function createSaveProjectMock(daw: DawCapabilitiesApi, neverSaved = false): DawSaveProjectApi {
+  return {
+    async dawSaveProject() {
+      const setup = await daw.dawCapabilities();
+      const support = setup.capabilities.save_project;
+      if (!support?.available) return refusedResult(support?.message ?? '');
+      if (neverSaved) return refusedResult(DAW_ANSWERS.projectNeverSaved);
+      return { ok: true, changed: false, message: DAW_ANSWERS.projectSaved, undoSteps: 0 };
     },
   };
 }

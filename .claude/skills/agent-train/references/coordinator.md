@@ -43,6 +43,16 @@ The owner answers on a board. When a train starts, the coordinator publishes one
 
 It also shows what is in flight, merged and blocked. Answers are stored on the board. Each pass, the coordinator reads the new ones, acts on them, copies each to the train issue's Owner queue with its date, and marks the item answered on the board. The issue is the durable record; the board is the owner's view of it.
 
+**Lint before saving.** The last step of every board write is `node scripts/ci/board-lint.mjs <export.json>` on the board's JSON export (its shape is in the script's header). Three rules:
+
+- a row with an `ask` or `question` is in the waiting section;
+- a row in the waiting section has one;
+- a building row names a live session or an open PR.
+
+A failing lint means the board is not saved; fix the rows and lint again.
+
+**Answers are on the record.** Before putting a question on the board, search the train issue, the owner queue and the issue's comments for the owner's answer. The coordinator never asks what the record answers, and never narrows an approval: an owner who approved "go ahead with #N" approved all of #N ([Launch checklist](templates.md#launch-checklist)).
+
 While #3145 builds the board's template, the coordinator lists the same items in the Owner queue section, and the owner answers with a comment on the train issue: `decided: <item> <option or text>`.
 
 ## Switches
@@ -132,7 +142,7 @@ These checks run on their own and read the repo and CI, never a worker's report.
 | --- | --- | --- |
 | **Train health** | `.github/workflows/train-health.yml`, `scripts/ci/train-health.mjs` | Hourly. Warns on each open `agent-train` issue, once per stall, when its `Last pass:` line is more than two hours old and `HOLD` is not ticked |
 | **Post-merge checks** | `.github/workflows/post-merge.yml` | On each push to `main` that touches what they read, the checks a pull request leaves to `main` (the bridge harness's mutation checks on Windows and Linux). A red run shows on the `main` commit; `Main health` runs the same checks and ticks `HOLD`. Fix it forward in one PR, or revert the merge that turned it red when no fix is ready within a pass |
-| **Main health** | `.github/workflows/main-health.yml` | Scheduled every three hours; observed 2 to 3 runs a day, often an hour or two late, so up to about ten hours between runs. Runs the whole of `ci.yml` on `main` (lint, every Test (Linux) and Test (Windows) shard, the Windows build). On a red run, ticks `HOLD` on every open `agent-train` issue and says why. The owner or the coordinator clears it once `main` is green |
+| **Main health** | `.github/workflows/main-health.yml` | On each push to `main` (a run takes about 35 minutes; one at a time, at most one waiting) and every three hours as a backstop (the schedule alone ran 2 to 3 times a day, up to about ten hours apart). Runs the whole of `ci.yml` on `main` (lint, every Test (Linux) and Test (Windows) shard, the Windows build). On a red run, ticks `HOLD` on every open `agent-train` issue and says why. The owner or the coordinator clears it once `main` is green |
 | **Test ratchet** | the `test ratchet` step of `quality / lint` (`.github/workflows/_quality.yml`), `scripts/ci/test-ratchet.mjs` | Advisory. Prints, and raises a warning for, a PR that deletes a test file, adds a skip or focus marker to one, or lowers a coverage floor in `scripts/ci/coverage-floors.json`; it never fails. Runs the base branch's copy of the script. The intent review judges its warnings; the owner never approves a test change |
 | **Intent review** | the coordinator, below | A fresh session, not the worker, traces each merge-ready PR back to its issue or PRD phase |
 | **Launch limit** | the coordinator, below | Stops a stream that keeps being relaunched without delivering |
@@ -149,7 +159,7 @@ These checks run on their own and read the repo and CI, never a worker's report.
 
 The Routine fires every 30 minutes (two hourly Routines, 30 minutes apart; D50). Each firing is one pass. Be brief and cheap: don't read the codebase, and don't run builds or tests yourself. Use the `mcp__github__*` tools for GitHub and `mcp__Claude_Code_Remote__*` for sessions (load them with ToolSearch); they are the coordinator's only route to GitHub and sessions.
 
-0. **Read the state block, then decide whether anything changed.** Read the train issue's body once. Its [state block](#the-state-block) holds what the last pass saw. Make **one** `list_sessions` call (`mine: true`, `limit` 100; the `tags` filter is refused in a session) and keep the rows whose title starts with `<T>-`. Make one `list_pull_requests` call for open PRs, and compare them with the block: each session's `status_bucket`, each PR's head SHA and check state, and the switches. **Early exit:** if no session's bucket changed, no PR's head or checks changed, the switches are the same, and there is no free slot with a ready slice, set `Last pass` in the block and the body ([step 6](#the-coordinators-pass)) and end. Read nothing else and call no `get_session`.
+0. **Read the switches first, then the state block, then decide whether anything changed.** Read the train issue's body once and take `HOLD`, `DRAIN`, `TARGET` and `DAILY_CAP` from it before anything else. Act on each one that is on, and name them in the pass note. A switch the owner ticked or unticked since the last pass overrides what the state block says. Its [state block](#the-state-block) holds what the last pass saw. Make **one** `list_sessions` call (`mine: true`, `limit` 100; the `tags` filter is refused in a session) and keep the rows whose title starts with `<T>-`. Make one `list_pull_requests` call for open PRs, and compare them with the block: each session's `status_bucket`, each PR's head SHA and check state, and the switches. **Early exit:** if no session's bucket changed, no PR's head or checks changed, the switches are the same, and [no empty pass](#no-empty-pass) allows it, write the pass note, set `Last pass` in the block and the body ([step 6](#the-coordinators-pass)) and end. Read nothing else and call no `get_session`.
 1. **Switches.**
    - If `HOLD` is ticked, run step 4 (merge) only, then end.
 2. **Usage.** Skip it on `HOLD`. Otherwise read `rate_limit_info`, pick the band and adjust `TARGET` ([above](#usage-and-autoscaling)).
@@ -167,7 +177,10 @@ The Routine fires every 30 minutes (two hourly Routines, 30 minutes apart; D50).
    - a Claude Approvals check, if present, passes;
    - a UI PR updates its pages' guide text and images, or carries a specific `No guide change:` reason, and states the real-app and Storybook results ([UI PRs update the how-to guide](worker.md#ui-prs-update-the-how-to-guide)).;
    - the `test ratchet` step of `quality / lint` has run on the head (its result is in the lint job's summary), and the intent review judged its warnings ([Safety net](#safety-net));
-   - an independent intent review passed on the current head ([Safety net](#safety-net)).
+   - an independent intent review passed on the current head ([Safety net](#safety-net));
+   - for a UI PR, `ux-reviewer` returned `pass` after the last code commit; a later docs-only commit does not carry an earlier pass, so run it again;
+   - `narrator-walkthrough` and `qa-breaker` ran on the head being merged, not on an earlier build;
+   - a change that raises CI cost or runtime has its figure (job-minutes or wall time per run, before and after) in a comment to the owner before the merge, not after.
 
    Merge with `squash` and `expectedHeadSha`, then delete the branch. Don't update the other bottom PRs' branches after a merge (D73); only a PR that conflicts with `main` gets `main` merged in.
    - **After a merge, verify its issues are closed.** Read the PR body's `Closes`/`Fixes`/`Resolves #<n>` lines (read it again after the merge; the worker may have edited it). For each issue, `issue_read` it. If it is still open, close it with `issue_write` (`state` `closed`, `state_reason` `completed`) and an `add_issue_comment` that says `Fixed by #<pr>, merged at <sha>.` and the Claude Code footer. This is the normal case for a PR whose base was not `main` and for a missing keyword. A `Refs` or `Part of` issue stays open, unless the PR's diff plainly resolves it and the body says so: then close it the same way. If the PR resolved an issue but the body names none, find it with `gh api -X GET search/issues` and close it the same way. Log any issue you had to close by hand on the train issue, so a worker that keeps missing the keyword shows up.
@@ -192,10 +205,29 @@ The Routine fires every 30 minutes (two hourly Routines, 30 minutes apart; D50).
    4. **Record each launch on the train issue:** ID, lane, session id, PRD phases and model, and add one to that stream's count in the Launches table.
 6. **Housekeeping.**
    - **Rewrite the [state block](#the-state-block)** whenever a session, PR, switch or launch changed.
-   - **Last, on every pass, even one that did nothing else,** set the `Last pass: <UTC time, ISO 8601>` line in the train issue's body. The [train health check](#safety-net) warns the owner when it goes more than two hours stale.
+   - **Last, on every pass, even one that did nothing else,** set the `Last pass: <UTC time, ISO 8601>` line in the train issue's body. The line holds the timestamp and nothing else; a summary there makes the [train health check](#safety-net) warn of a stall. The check also warns when it goes more than two hours stale. Read the line back after the write.
+   - **Write the [pass note](#the-pass-note)** as a comment on the train issue when anything changed, and in the state block's log line otherwise.
    - Rewrite the rest of the body only when something changed, with one log line per event: started, merged, paused, resumed, blocked, band change, `TARGET` change.
    - On the first pass after 09:00 America/New_York, update the owner board's status and post one short comment on the train issue: merged, in flight, paused, blocked, band, `TARGET`.
    - End every comment with a blank line, `---`, then `_Generated by [Claude Code](https://claude.ai/code)_`.
+
+### No empty pass
+
+A pass launches work whenever it can. When running workers are fewer than `TARGET`, `HOLD` and `HOLD-UNTIL-RESET` are off, the band allows it and the backlog holds an unblocked issue, launch one. A pass that launches nothing under those conditions lists each backlog item in the pass note with the reason it did not launch (collision, `Depends`, a mockup gate, the [launch limit](#safety-net), `DAILY_CAP`, owner item). "Unchanged" is not a reason.
+
+### The pass note
+
+One line each, numbers first:
+
+- **Switches:** the ones that are on, and `TARGET`.
+- **Running:** each worker, with its issue and state.
+- **Open PRs:** each with its head SHA and CI state.
+- **Blocked on owner:** each item, by its board row.
+- **Launched:** each stream started this pass.
+- **Merged:** each PR merged this pass.
+- **Main health:** green or red.
+
+An empty line says `none`. A reader sees from the note what is running, what is blocked and why nothing launched.
 
 ### The state block
 
@@ -206,7 +238,7 @@ A fenced `json` block in the train issue's body, between `<!-- train-state -->` 
  "sessions": {"<session id>": {"stream": "T4-C3", "bucket": "working"}},
  "prs": {"<number>": {"head": "<sha>", "checks": "green"}},
  "launches": {"T4-C3": {"count": 1, "merged": 0}},
- "oldest_ready_slice": "SN-C3"}
+ "oldest_ready_slice": "SL-C3"}
 ```
 
 The Launches table and the switches sit in the body; the block repeats only what a pass diffs. It is a cache: it never overrides a live `get_session` or a live check result for a merge or launch decision. If the block is missing, malformed or older than two hours, rebuild it from live reads and write it.

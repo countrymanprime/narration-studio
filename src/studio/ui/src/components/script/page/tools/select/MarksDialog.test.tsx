@@ -108,10 +108,23 @@ describe('define-marks-edits-the-types', () => {
     const dialog = await openDialog();
     await userEvent.click(within(dialog).getAllByRole('button', { name: 'Remove' })[0]!);
     expect(save).not.toHaveBeenCalled();
+    // The question stays on screen as words, so the narrator sees what the second press also removes.
+    expect(within(dialog).getByRole('status').textContent).toBe('Remove 2 uses too?');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Remove 2 uses too?' }));
     await waitFor(() => expect(save).toHaveBeenCalledTimes(1));
     expect(save).toHaveBeenCalledWith(expect.not.arrayContaining([expect.objectContaining({ key: 'stress' })]), true);
     expect((await api.marksList()).marks).toHaveLength(0);
+  });
+
+  it('backs out of the question without removing anything', async () => {
+    const first = (await api.manuscriptParagraphs('chapter-1'))[0]!;
+    await api.marksAdd(first.chapterId, first.id, 0, 5, 'stress', '');
+    const dialog = await openDialog();
+    await userEvent.click(within(dialog).getAllByRole('button', { name: 'Remove' })[0]!);
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Keep the mark type' }));
+    expect(within(dialog).queryByRole('status')).toBeNull();
+    expect(save).not.toHaveBeenCalled();
+    expect((await api.marksList()).marks).toHaveLength(1);
   });
 
   it('cannot remove the last type', async () => {

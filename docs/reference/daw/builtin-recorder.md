@@ -17,7 +17,7 @@ The recorder is part of the app, so it is always there and answering (`reachable
 | `record` | Experimental | Records a take on the chosen microphone into the Recordings folder. Needs no track | `builtin.go`; `recording.Service.Start` and `Stop` |
 | `takes` | Experimental | Choosing a line's take marks it the keeper. Hiding the other takes keeps the line's keeper and hides the rest in `hidden.json`; their files stay and are never deleted | `builtin.go`; `recording.Service.SetTakeKeeper` and `HideOtherTakes` |
 | `cut_range` | Experimental, mode `app` | Cuts a range of a take into its edit list (`edits.json`, a gap or a close). The take file is never rewritten | `builtin.go`; `recording.Service.CutTakeRange` |
-| `project_read` | Unsupported | "The built-in recorder keeps no saved project." | The Studio Next mock's `SAVED_PROJECT.builtin` is `null` |
+| `project_read` | Unsupported | "The built-in recorder keeps no saved project." | The research mock's `SAVED_PROJECT.builtin` is `null` |
 | `punch` | Not yet available | "Not available with the built-in recorder yet." | The mock's built-in setup has a roll; the recorder has none |
 | `stack_takes`, `fx_range` | Not yet available | "Not available with the built-in recorder yet." Mode `app` once each has a role | The mock's `selectors/daw.ts` defaults the built-in recorder to mode `app` |
 | Every other capability | Unsupported | "Not available with the built-in recorder." | The mock's `BUILTIN_REASON` |

@@ -189,6 +189,12 @@
       "message": "Not available with the built-in recorder.",
       "reason": "unsupported"
     },
+    "save_project": {
+      "available": false,
+      "level": "unsupported",
+      "message": "Not available with the built-in recorder.",
+      "reason": "unsupported"
+    },
     "stack_takes": {
       "available": false,
       "level": "not_yet_available",

@@ -338,4 +338,4 @@ Cross-cutting: each phase follows `CLAUDE.md`: an issue and `Closes #<n>`; `chan
 
 ## Visual Spec
 
-The mockups drawn for this PRD were deleted (owner ruling D96, 2026-09-29): they predate the redesign, and only [the benchmark mocks](../research/mockups/audiobook-studio-benchmark/) are a spec. Build to the benchmark mock of the page a phase changes, where one exists, and otherwise to the text above and [the design system](../design/design-system.md). See [Which mocks are the spec](../operations/agent-train.md#which-mocks-are-the-spec).
+The mockups drawn for this PRD were deleted (owner ruling D96, 2026-09-29): they predate the redesign, and only [the benchmark mocks](../research/mockups/audiobook-studio-benchmark/) are a spec. Build to the benchmark mock of the page a phase changes, where one exists, and otherwise to the text above and [the design system](../design/design-system.md). See [What a page builds to](../operations/agent-train.md#what-a-job-builds-to).

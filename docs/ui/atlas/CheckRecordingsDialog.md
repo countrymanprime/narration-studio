@@ -12,6 +12,8 @@ Storybook title: `RecordingCheck/CheckRecordingsDialog`. Source: `src/components
 - Credits Row Chapter
 - No Recorded Chapters
 - Second Look With Parallel Chunks
+- Whole Recording
+- Chunk Length Settings Do Not Offer
 
 ## Used by
 

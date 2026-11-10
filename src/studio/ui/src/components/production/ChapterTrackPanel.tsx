@@ -9,12 +9,13 @@ import type { ManuscriptContentKind } from '../../api/contracts/manuscript';
 import type { ChapterTrackLink, ChapterTrackSummary, Track } from '../../types';
 import { formatWhen } from './recordingCheckText';
 import { MappingConfirm } from '../mapping/MappingConfirm';
+import { keptTitle } from '../mapping/trackHeldBy';
 import { Button } from '../primitives/Button';
 import { InsetCard } from '../primitives/InsetCard';
 import { SectionLabel } from '../primitives/SectionLabel';
 import { SlideOver } from '../primitives/SlideOver';
 import type { Notify } from '../primitives/Toast';
-import { chapterTrackButtonState } from './chapterTrackButtonState';
+import { chapterTrackButtonState, showableTrackGuid } from './chapterTrackButtonState';
 import { RemoveFromRecordingDialog } from './RemoveFromRecordingDialog';
 import { useTrackPlayback } from '../engine/useTrackPlayback';
 import { clock } from '../../clock';
@@ -34,8 +35,8 @@ export function ChapterTrackPanel({
   chapterId,
   chapterTitle,
   subtitle,
-  link,
-  trackSummary,
+  link: linkRead,
+  trackSummary: trackSummaryRead,
   recordedSeconds,
   savedAt,
   notify,
@@ -67,6 +68,12 @@ export function ChapterTrackPanel({
   const [tracksError, setTracksError] = useState('');
   const [busy, setBusy] = useState(false);
   const [removeOpen, setRemoveOpen] = useState(false);
+  // Unlink's answer is certain, so the panel shows the chapter unlinked at once, from the link it held; the re-read of ChapterTrackLinks that follows
+  // is a different object and replaces it (#3272).
+  const [unlinkedFrom, setUnlinkedFrom] = useState<ChapterTrackLink>();
+  const unlinked = unlinkedFrom !== undefined && unlinkedFrom === linkRead;
+  const link = unlinked ? { ...linkRead, status: 'none' as const, track: null, candidates: [], warnings: [], links: [] } : linkRead;
+  const trackSummary = unlinked ? undefined : trackSummaryRead;
 
   useEffect(() => {
     if (!open) return;
@@ -95,7 +102,10 @@ export function ChapterTrackPanel({
     setBusy(true);
     try {
       const result = await api.chapterTrackSet(chapterId, trackGuid);
-      if (result.displaced) notify(`Linked. This track was linked to ${result.displaced.chapterTitle}, which is now unlinked.`);
+      if (result.displaced)
+        notify(
+          `Linked. This track was linked to ${keptTitle(result.displaced.chapterTitle) ?? 'a chapter no longer in the manuscript'}, which is now unlinked.`,
+        );
       else notify('Track linked.');
       await onChanged();
     } catch (error) {
@@ -108,6 +118,7 @@ export function ChapterTrackPanel({
     setBusy(true);
     try {
       await api.chapterTrackUnlink(chapterId);
+      setUnlinkedFrom(linkRead);
       notify('Track unlinked.');
       await onChanged();
     } catch (error) {
@@ -208,7 +219,7 @@ export function ChapterTrackPanel({
                 )}
               </div>
               <ShowInDawButton
-                target={{ kind: 'chapter', trackGuid: linkedTrackGuid }}
+                target={{ kind: 'chapter', trackGuid: showableTrackGuid(link) }}
                 onResult={({ message, failed }) => (failed ? notify(message, 'error') : notify(message))}
               />
             </section>
@@ -268,8 +279,10 @@ export function ChapterTrackPanel({
                 <MappingConfirm
                   chapterTitle={shortName}
                   tracks={tracks}
-                  linkedTrackGuid={link.track?.trackGuid}
-                  linkedTrackName={link.track?.trackName}
+                  // A track found by name or region, not confirmed, is a suggestion: there is no link to Unlink, so the picker shows (#3231).
+                  linkedTrackGuid={link.status === 'confirmed' ? link.track?.trackGuid : undefined}
+                  linkedTrackName={link.status === 'confirmed' ? link.track?.trackName : undefined}
+                  suggestedTrackGuid={link.status === 'confirmed' ? undefined : link.track?.trackGuid}
                   busy={busy}
                   onConfirm={(trackGuid) => void link_(trackGuid)}
                   onClear={() => void unlink()}

@@ -138,7 +138,7 @@ func LoadReading(project, chapterID string) (*Reading, error) {
 
 // loadReadingWith is LoadReading with the chapter's current script hash already known (ok false: no such chapter).
 func loadReadingWith(project, chapterID, hash string, ok bool) (*Reading, error) {
-	raw, err := os.ReadFile(filepath.Join(ReadingDir(project), readingFileName(chapterID)))
+	raw, err := persist.ReadFile(filepath.Join(ReadingDir(project), readingFileName(chapterID)))
 	if errors.Is(err, os.ErrNotExist) {
 		return nil, nil
 	}

@@ -67,7 +67,7 @@ VARIANTS = {
 # ("entities_google_bert_uncased_L-4_H-256_A-4-v1.0.model" is google/bert_uncased_L-4_H-256_A-4) and builds it with
 # ``from_pretrained`` before loading the weight file over it. The weight files hold every encoder parameter, so only each encoder's
 # config.json and the vocabulary they share are needed, never its weights: on chapter VI of Alice the small model's output is
-# byte-identical either way (2026-10-24, docs/research/studio-next-booknlp-spike.md). The registry installs them under these names.
+# byte-identical either way (2026-10-24, docs/research/booknlp-spike.md). The registry installs them under these names.
 ENCODERS = {
     "big": ("bert_uncased_L-6_H-768_A-12", "bert_uncased_L-12_H-768_A-12"),
     "small": ("bert_uncased_L-4_H-256_A-4", "bert_uncased_L-2_H-256_A-4", "bert_uncased_L-8_H-256_A-4"),
@@ -97,7 +97,7 @@ NOT_DOWNLOADED = "BookNLP is not downloaded."
 # What torch, transformers and BookNLP import that the guide itself does not, so a freeze would leave it out: the standard library, and
 # submodules of packages the freeze carries in part (a frozen package wins over the install folder's copy). Found by running a BookNLP
 # scan in the frozen guide ("No module named 'pickletools'", then "'tqdm.auto'") and by listing every module a real scan imports
-# (docs/research/studio-next-booknlp-spike.md). scripts/release/prepare-resources.py freezes them in; ``check_freeze`` proves it.
+# (docs/research/booknlp-spike.md). scripts/release/prepare-resources.py freezes them in; ``check_freeze`` proves it.
 # httpx and the packages it imports are what huggingface_hub (imported by transformers) needs at import time; the freeze carried them only
 # because spaCy imports weasel, which imports httpx, so they are named here for a spaCy that stops doing so (#2251).
 FREEZE_IMPORTS = (
@@ -146,7 +146,7 @@ def check_freeze() -> str:
 class Attribution:
     """The confidence a speaker suggestion takes on one variant's weights, for a tagged or an implicit attribution, and
     why. BookNLP gives no score for a speaker; the number is the code's from what it checked. Every row is provisional
-    until SN-X8 calibrates the sources on a gold set (docs/research/studio-next-extraction-calibration-protocol.md)."""
+    until SN-X8 calibrates the sources on a gold set (docs/research/extraction-calibration-protocol.md)."""
 
     variant: str
     how: str
@@ -159,7 +159,7 @@ def _table(*rows: Attribution) -> dict[tuple[str, str], Attribution]:
 
 
 # A tagged attribution has a speech verb beside the quote and BookNLP's chosen mention of the speaker inside that tag; an
-# implicit one does not. The figures are the 2026-10-10 trial's (docs/research/studio-next-booknlp-spike.md, chapter VI
+# implicit one does not. The figures are the 2026-10-10 trial's (docs/research/booknlp-spike.md, chapter VI
 # of Alice): the small weights attributed 56 of 61 quotes, the large 61 of 61, and the regex tag rules 55 with 4 unknown.
 # BookNLP never abstains, so a wrong speaker is a confident one; an implicit attribution stays under the 75% rule on
 # either weights, so the narrator always verifies it.

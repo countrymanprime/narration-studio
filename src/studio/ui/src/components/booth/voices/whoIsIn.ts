@@ -81,21 +81,17 @@ export function defaultTrackName(ticked: readonly Named[], voices: readonly Pick
  */
 export function withAddedVoices(tracks: readonly Track[], folderGuid: string, added: readonly BoothVoiceTrack[]): readonly Track[] {
   const at = tracks.findIndex((track) => track.guid === folderGuid);
-  const folder = tracks[at];
   const missing = added.filter((voice) => !tracks.some((track) => track.guid.toLowerCase() === voice.guid.toLowerCase()));
-  if (!folder || missing.length === 0) return tracks;
+  if (missing.length === 0) return tracks;
+  // A folder the app made this session (the "Create a new folder" of a Voice folders chapter) is not in the saved project either: it is
+  // listed after the saved tracks with its voices, so the Booth shows the Narrator it will record on before the narrator saves (#3271).
+  const folder = tracks[at] ?? { ...blank(folderGuid, ''), depth: 0, isFolder: true };
+  const children = missing.map<Track>((voice) => ({ ...blank(voice.guid, voice.name), depth: folder.depth + 1 }));
+  if (at < 0) return [...tracks, folder, ...children];
   let end = at + 1;
   while (end < tracks.length && tracks[end].depth > folder.depth) end += 1;
-  const children = missing.map<Track>((voice) => ({
-    guid: voice.guid,
-    name: voice.name,
-    index: -1,
-    color: '',
-    muted: false,
-    soloed: false,
-    items: [],
-    depth: folder.depth + 1,
-    isFolder: false,
-  }));
   return [...tracks.slice(0, end), ...children, ...tracks.slice(end)];
 }
+
+/** A track the saved project does not hold: no items, no colour, an index of -1, as REAPER has not written it yet. */
+const blank = (guid: string, name: string): Track => ({ guid, name, index: -1, color: '', muted: false, soloed: false, items: [], depth: 0, isFolder: false });

@@ -44,7 +44,7 @@ describe('the first-use tips setting (parity audit)', () => {
   it('says none are dismissed, and offers nothing to reset', async () => {
     mount(createMockApi());
     expect(await screen.findByText('None dismissed')).toBeTruthy();
-    expect((screen.getByRole('button', { name: 'Show tips again' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByRole('button', { name: 'Show tips again' }).getAttribute('aria-disabled')).toBe('true');
   });
 
   it('counts the dismissed tips, and Show tips again clears them in the host and shows a tip that was hidden', async () => {

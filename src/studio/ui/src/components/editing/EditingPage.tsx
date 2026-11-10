@@ -72,7 +72,7 @@ function usePanels(initial?: DrawerTab): PanelsState {
 }
 
 /**
- * The Editing page (the Studio Next mock's `pages/Editing.tsx`): the chapter's script is the editor. The header with the chapter step, the
+ * The Editing page (the research mock's `pages/Editing.tsx`): the chapter's script is the editor. The header with the chapter step, the
  * legend and the strip and drawer buttons; the DAW-off mark, which opens the connect dialog; the script with takes, cards and the ribbon under its lines; the strip, the
  * bar, the key hints and the drawer. Routed at `/editing/:chapterId` (App.tsx), where it replaced Proof's chapter workspace (SN-E9).
  */

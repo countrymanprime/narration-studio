@@ -1,5 +1,7 @@
 import { Button } from '../../primitives/Button';
+import { useVoiceLayout } from '../../engine/voiceLayout';
 import type { ChapterAudio } from './chapterSource';
+import type { SaveInDaw } from './useSaveInDaw';
 import { noAudioText } from './noAudioText';
 
 /** Whether the chapter's missing audio is a link to make (the resolve dialog's to fix) rather than a recording to make. */
@@ -11,9 +13,29 @@ export const isLinkProblem = (audio: ChapterAudio, daw: string | null): boolean 
  * still reads, without what was heard. `daw` is the DAW's own name, or null for the built-in recorder. Nothing tells the page when the narrator
  * records, so **Read again** asks.
  */
-export function NoAudioBanner({ audio, chapterName, daw, onReread }: { audio: ChapterAudio; chapterName: string; daw: string | null; onReread: () => void }) {
+export function NoAudioBanner({
+  audio,
+  chapterName,
+  daw,
+  onReread,
+  rereading = false,
+  save,
+}: {
+  audio: ChapterAudio;
+  chapterName: string;
+  daw: string | null;
+  onReread: () => void;
+  /** The read that **Read again** started has not come back yet: the button shows it. */
+  rereading?: boolean;
+  /** The **Save in <DAW> and read** button's state, for a DAW that can save from the app and a chapter whose track holds nothing yet; otherwise no button. A refusal and a save are toasts. */
+  save?: SaveInDaw;
+}) {
+  const layout = useVoiceLayout();
   if (audio.kind === 'ready' || isLinkProblem(audio, daw)) return null;
-  const text = noAudioText(audio, chapterName, daw);
+  const text = noAudioText(audio, chapterName, daw, layout);
+  // For an unsaved recording the button is the next step, so the note's sentence telling the narrator to save steps aside for it. Any other empty
+  // track keeps its how-to (record it, then save): a save may find nothing, and the narrator must still be told what to do.
+  const offered = save !== undefined && audio.kind === 'empty';
   return (
     <div
       id="noaudio"
@@ -21,9 +43,15 @@ export function NoAudioBanner({ audio, chapterName, daw, onReread }: { audio: Ch
       className="mx-4 mb-2 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[var(--radius-card)] border border-[var(--review)] bg-[var(--review-soft)] px-4 py-2.5 text-[0.875rem]"
     >
       <span className="min-w-0 flex-[1_1_18rem] [overflow-wrap:anywhere]">
-        <b>{text.headline}</b> {text.next}
+        <b>{text.headline}</b>
+        {offered && audio.kind === 'empty' && audio.unsaved ? null : ` ${text.next}`}
       </span>
-      <Button variant="secondary" size="sm" onClick={onReread}>
+      {offered ? (
+        <Button variant="primary" size="sm" pending={save.saving} onClick={save.onSave}>
+          {`Save in ${daw} and read`}
+        </Button>
+      ) : null}
+      <Button variant="secondary" size="sm" pending={rereading} onClick={onReread}>
         Read again
       </Button>
     </div>

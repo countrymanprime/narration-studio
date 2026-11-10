@@ -327,7 +327,6 @@
         "src/components/editing/voicesample/SampleMark.tsx",
         "src/components/editing/voicesample/VoiceSampleDialog.tsx",
         "src/components/engine/AudacityLinkCard.tsx",
-        "src/components/engine/ChapterLinksTable.tsx",
         "src/components/engine/ChapterSyncConsentDialog.tsx",
         "src/components/engine/ChapterSyncPanel.tsx",
         "src/components/engine/ChapterTagsDialog.tsx",
@@ -416,7 +415,6 @@
         "src/components/settings/ScopedSetting.tsx",
         "src/components/settings/UpdatesPanel.tsx",
         "src/components/settings/analysis/ConsentDialog.tsx",
-        "src/components/settings/controls/AppearanceBodies.tsx",
         "src/components/settings/controls/CreditsBody.tsx",
         "src/components/settings/controls/EngineBody.tsx",
         "src/components/settings/controls/MicBody.tsx",
@@ -630,6 +628,20 @@
       "a11yDebt": false
     },
     {
+      "title": "Primitives/CheckedStamp",
+      "name": "CheckedStamp",
+      "source": "src/components/primitives/CheckedStamp.tsx",
+      "stories": [
+        "Checked",
+        "Not Yet Checked"
+      ],
+      "consumers": [
+        "src/components/settings/controls/MicBody.tsx",
+        "src/components/storybible/voicesamples/VoiceSamplesBody.tsx"
+      ],
+      "a11yDebt": false
+    },
+    {
       "title": "RecordingCheck/CheckRecordingsDialog",
       "name": "CheckRecordingsDialog",
       "source": "src/components/recordingcheck/CheckRecordingsDialog.tsx",
@@ -639,7 +651,9 @@
         "Refused Chapter",
         "Credits Row Chapter",
         "No Recorded Chapters",
-        "Second Look With Parallel Chunks"
+        "Second Look With Parallel Chunks",
+        "Whole Recording",
+        "Chunk Length Settings Do Not Offer"
       ],
       "consumers": [
         "src/components/recordingcheck/openCheckRecordings.tsx"
@@ -1487,7 +1501,7 @@
         "src/components/editing/voicesample/SampleMark.tsx",
         "src/components/editing/voicesample/VoiceSampleDialog.tsx",
         "src/components/engine/AudacityLinkCard.tsx",
-        "src/components/engine/TrackList.tsx",
+        "src/components/engine/ChapterLinksTable.tsx",
         "src/components/layout/Brand.tsx",
         "src/components/layout/JumpMenu.tsx",
         "src/components/primitives/ChapterStepper.tsx",
@@ -1588,7 +1602,6 @@
         "src/components/engine/NestedChaptersNotice.tsx",
         "src/components/engine/ShowInDaw.tsx",
         "src/components/engine/SyncActivityLog.tsx",
-        "src/components/engine/TrackList.tsx",
         "src/components/engine/VoicesCard.tsx",
         "src/components/layout/AppShell.tsx",
         "src/components/layout/LoadError.tsx",
@@ -2430,7 +2443,6 @@
         "src/components/engine/ChapterLinksTable.tsx",
         "src/components/engine/ChapterSyncPanel.tsx",
         "src/components/engine/EnginePanel.tsx",
-        "src/components/engine/TrackList.tsx",
         "src/components/engine/VoicesCard.tsx",
         "src/components/layout/AddressGate.tsx",
         "src/components/layout/LoadError.tsx",
@@ -2629,7 +2641,8 @@
       "stories": [
         "Built In",
         "Custom",
-        "Save Refused"
+        "Save Refused",
+        "Locked"
       ],
       "consumers": [
         "src/components/delivery/page/DeliveryPage.tsx"
@@ -3083,7 +3096,6 @@
         "Clear Empties And Keeps Focus"
       ],
       "consumers": [
-        "src/components/engine/TrackList.tsx",
         "src/components/primitives/SearchList.tsx",
         "src/components/primitives/TreeSelect.tsx",
         "src/components/proof/notes/NotesPanel.tsx",
@@ -3650,7 +3662,6 @@
         "src/components/engine/LinkChaptersDialog.tsx",
         "src/components/engine/NestedChaptersNotice.tsx",
         "src/components/engine/ToolResult.tsx",
-        "src/components/engine/TrackList.tsx",
         "src/components/engine/audacityLinkText.ts",
         "src/components/layout/EngineChip.tsx",
         "src/components/layout/HistoryPanel.tsx",
@@ -3843,7 +3854,6 @@
         "src/components/engine/ChapterLinksTable.tsx",
         "src/components/engine/CreateChapterRegionsDialog.tsx",
         "src/components/engine/LinkChaptersDialog.tsx",
-        "src/components/engine/TrackList.tsx",
         "src/components/engine/VoicesCard.tsx",
         "src/components/master/DeliveryProfilePanel.tsx",
         "src/components/master/DiagnosticsTables.tsx",
@@ -4289,6 +4299,7 @@
         "src/components/editing/takes/prep/PrepControls.tsx",
         "src/components/editing/takes/split/SplitButton.tsx",
         "src/components/engine/AudacityLinkCard.tsx",
+        "src/components/engine/ChapterLinksTable.tsx",
         "src/components/engine/EngineChipButton.tsx",
         "src/components/engine/LiveTracksStatus.tsx",
         "src/components/engine/VoicesCard.tsx",
@@ -4297,6 +4308,7 @@
         "src/components/master/MasteringApprovalDialog.tsx",
         "src/components/master/MasteringChain.tsx",
         "src/components/primitives/ActivityPanel.tsx",
+        "src/components/primitives/Button.tsx",
         "src/components/primitives/CapabilityGate.tsx",
         "src/components/primitives/ChapterStepper.tsx",
         "src/components/primitives/ContextMenu.tsx",
@@ -4351,7 +4363,6 @@
         "Rows"
       ],
       "consumers": [
-        "src/components/engine/TrackList.tsx",
         "src/components/primitives/TreeSelect.tsx"
       ],
       "a11yDebt": false

@@ -1,13 +1,15 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { LinkChaptersDialog } from './LinkChaptersDialog';
 import { useChapterLinks } from './useChapterLinks';
+import { VoiceLayoutContext } from './voiceLayout';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import { WIRE_CHAPTERS, WIRE_LINE_IDENTITY_LINES, WIRE_TRACKS_PROJECT } from '../../api/mockFixtures';
-import type { NarrationApi, Track } from '../../types';
+import type { LineIdentityState, NarrationApi, Track } from '../../types';
 
 afterEach(cleanup);
 
@@ -77,8 +79,11 @@ describe('LinkChaptersDialog', () => {
     );
   });
 
-  // #3053: a folder and a track looked the same in the picker. A folder reads as the Chapter links list names it: "<name> · N voices".
-  it('names a folder in the track picker with its voice count, and a plain track by its name', async () => {
+  // #3053: a folder and a track looked the same in the picker. #3158: it counts voices only in a Voice folders project and tracks in any other.
+  it.each([
+    ['folders', 'Chapter 1 · 2 voices'],
+    ['flat', 'Chapter 1 · 2 tracks'],
+  ] as const)('names a folder in the track picker with its child count (%s layout), and a plain track by its name', async (layout, folderLabel) => {
     const item = (guid: string) => ({ ...WIRE_TRACKS_PROJECT.tracks[0].items[0], guid });
     const track = (guid: string, name: string, depth: number, isFolder: boolean, items: string[]): Track => ({
       ...WIRE_TRACKS_PROJECT.tracks[0],
@@ -94,13 +99,19 @@ describe('LinkChaptersDialog', () => {
       track('{F0000000-0000-4000-8000-0000000000F3}', 'Hero', 1, false, ['{I2}']),
       track('{F0000000-0000-4000-8000-0000000000F4}', 'Chapter 2', 0, false, ['{I3}']),
     ];
-    renderDialog({}, {}, vi.fn(), voices);
+    render(
+      <ApiProvider api={createMockApi()}>
+        <VoiceLayoutContext.Provider value={layout}>
+          <Dialog onClose={vi.fn()} tracks={voices} />
+        </VoiceLayoutContext.Provider>
+      </ApiProvider>,
+    );
 
     const picker = await screen.findByRole('combobox', { name: `Track for ${WIRE_CHAPTERS[0].title}` });
     const labels = within(picker)
       .getAllByRole('option')
       .map((option) => option.textContent);
-    expect(labels).toContain('Chapter 1 · 2 voices');
+    expect(labels).toContain(folderLabel);
     expect(labels).toContain('Chapter 2');
     expect(labels).not.toContain('Chapter 1');
   });
@@ -197,6 +208,172 @@ describe('LinkChaptersDialog', () => {
     expect(screen.getByText(/Already stamped with a different chapter/)).toBeTruthy();
   });
 
+  it('does not say nothing is stamped after a stamp, which reads no lines back (#3053)', async () => {
+    renderDialog({}, { lineIdentity: 'conflict' });
+
+    expect(await screen.findByText(/Stamped 1 item, 1 stale item, 1 conflict\./)).toBeTruthy();
+    expect(screen.queryByText('Nothing is stamped yet.')).toBeNull();
+  });
+
+  it('hides a Read that found nothing once a stamp has run, since the stamp changed what the project holds (#3053)', async () => {
+    const user = userEvent.setup();
+    let push: (state: LineIdentityState) => void = () => {};
+    const { api } = renderDialog({
+      subscribeLineIdentity: (onUpdate) => {
+        push = onUpdate;
+        return () => {};
+      },
+    });
+    await user.click(await screen.findByRole('button', { name: 'Read current stamps' }));
+    const empty: LineIdentityState = { ...(await api.lineIdentityState()), phase: 'success', message: 'Read 0 stamped items.', lines: [], linesRead: 0 };
+    act(() => push(empty));
+    expect(await screen.findByText('Nothing is stamped yet.')).toBeTruthy();
+
+    await user.selectOptions(screen.getByRole('combobox', { name: `Track for ${WIRE_CHAPTERS[0].title}` }), WIRE_TRACKS_PROJECT.tracks[0].guid);
+    await user.click(await screen.findByRole('button', { name: /^Stamp \d+ item/ }));
+    act(() => push({ ...empty, message: 'Stamped 6 items.', stamp: { ...empty.stamp, applied: 6 } }));
+    expect(screen.queryByText('Nothing is stamped yet.')).toBeNull();
+  });
+
+  it('says so when a second stamp finds every item already stamped, and offers Close (#3053 review)', async () => {
+    const user = userEvent.setup();
+    renderDialog();
+    await user.selectOptions(await screen.findByRole('combobox', { name: `Track for ${WIRE_CHAPTERS[0].title}` }), WIRE_TRACKS_PROJECT.tracks[0].guid);
+    const stamp = () => user.click(screen.getByRole('button', { name: /^Stamp \d+ item/ }));
+    await stamp();
+    expect(await screen.findByText(/^Stamped \d+ items?\.$/)).toBeTruthy();
+    await stamp();
+    expect(await screen.findByText(/^Stamped 0 items, \d+ already stamped\.$/)).toBeTruthy();
+    expect(screen.queryByText('Nothing is stamped yet.')).toBeNull();
+  });
+
+  it('does not say nothing is stamped when a Read is refused right after a stamp (qa-breaker 1)', async () => {
+    const user = userEvent.setup();
+    renderDialog({ lineIdentityRead: async () => Promise.reject(new Error('REAPER did not answer')) });
+    await user.selectOptions(await screen.findByRole('combobox', { name: `Track for ${WIRE_CHAPTERS[0].title}` }), WIRE_TRACKS_PROJECT.tracks[0].guid);
+    await user.click(await screen.findByRole('button', { name: /^Stamp \d+ item/ }));
+    await screen.findByText(/^Stamped \d+ items?\.$/);
+    await user.click(screen.getByRole('button', { name: 'Read current stamps' }));
+    expect(await screen.findByText(/REAPER did not answer/)).toBeTruthy();
+    expect(screen.queryByText('Nothing is stamped yet.')).toBeNull();
+  });
+
+  it('says nothing is stamped for an empty Read the dialog was reopened during (qa-breaker 2)', async () => {
+    const empty: LineIdentityState = {
+      runId: 'r',
+      phase: 'success',
+      message: 'Read 0 stamped items.',
+      stamp: { applied: 0, unchanged: 0, missingCount: 0, conflictsCount: 0, missing: [], conflicts: [] },
+      lines: [],
+      linesRead: 0,
+    };
+    renderDialog({ lineIdentityState: async () => empty });
+    expect(await screen.findByText('Nothing is stamped yet.')).toBeTruthy();
+  });
+
+  it('keeps Read off while a stamp runs and Stamp off while a read runs, so one run never replaces the other (qa-breaker 6)', async () => {
+    const running = (phase: 'stamping' | 'reading'): LineIdentityState => ({
+      runId: 'r',
+      phase,
+      message: '',
+      stamp: { applied: 0, unchanged: 0, missingCount: 0, conflictsCount: 0, missing: [], conflicts: [] },
+      lines: [],
+      linesRead: 0,
+    });
+    renderDialog({ lineIdentityState: async () => running('stamping') });
+    const read = await screen.findByRole('button', { name: 'Read current stamps' });
+    await waitFor(() => expect(read.getAttribute('aria-disabled') === 'true' || (read as HTMLButtonElement).disabled).toBe(true));
+    cleanup();
+    renderDialog({ lineIdentityState: async () => running('reading') }, {}, vi.fn());
+    await user_selectFirstTrack();
+    const stamp = await screen.findByRole('button', { name: /^Stamp \d+ item/ });
+    await waitFor(() => expect(stamp.getAttribute('aria-disabled') === 'true' || (stamp as HTMLButtonElement).disabled).toBe(true));
+  });
+
+  it("does not repeat the last session's takeover warning when the dialog opens again (qa-breaker 3)", async () => {
+    const user = userEvent.setup();
+    const api = createMockApi();
+    function Reopen() {
+      const links = useChapterLinks(WIRE_TRACKS_PROJECT.tracks, 0, () => {});
+      const [open, setOpen] = useState(true);
+      return (
+        <>
+          <button onClick={() => setOpen((v) => !v)}>toggle</button>
+          {open && <LinkChaptersDialog links={links} onClose={() => setOpen(false)} />}
+        </>
+      );
+    }
+    render(
+      <ApiProvider api={api}>
+        <Reopen />
+      </ApiProvider>,
+    );
+    const [first, second] = WIRE_CHAPTERS;
+    const track = WIRE_TRACKS_PROJECT.tracks[0].guid;
+    await user.selectOptions(await screen.findByRole('combobox', { name: `Track for ${first.title}` }), track);
+    await waitFor(() => expect((screen.getByRole('combobox', { name: `Track for ${first.title}` }) as HTMLSelectElement).value).toBe(track));
+    await user.selectOptions(screen.getByRole('combobox', { name: `Track for ${second.title}` }), track);
+    expect(await screen.findByText(/is now not linked/)).toBeTruthy();
+    await user.click(screen.getAllByRole('button', { name: 'Close' })[0]);
+    await user.click(screen.getByRole('button', { name: 'toggle' }));
+    await screen.findByRole('combobox', { name: `Track for ${first.title}` });
+    expect(screen.queryByText(/is now not linked/)).toBeNull();
+  });
+
+  it('hides the previous empty-read line when the next Read is refused (qa-breaker 4)', async () => {
+    const user = userEvent.setup();
+    let push: (state: LineIdentityState) => void = () => {};
+    renderDialog({
+      subscribeLineIdentity: (onUpdate) => {
+        push = onUpdate;
+        return () => {};
+      },
+      lineIdentityRead: async () => Promise.reject(new Error('refused')),
+    });
+    const empty: LineIdentityState = {
+      runId: 'r',
+      phase: 'success',
+      message: 'Read 0 stamped items.',
+      stamp: { applied: 0, unchanged: 0, missingCount: 0, conflictsCount: 0, missing: [], conflicts: [] },
+      lines: [],
+      linesRead: 0,
+    };
+    act(() => push(empty));
+    expect(await screen.findByText('Nothing is stamped yet.')).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Read current stamps' }));
+    expect(await screen.findByText(/refused/)).toBeTruthy();
+    expect(screen.queryByText('Nothing is stamped yet.')).toBeNull();
+  });
+
+  // The host stores whatever title it was given (mapping.go), so the unlisted chapter's title can be empty; the notice must still say something.
+  it.each([
+    ['its stored title', 'Ghost chapter', 'Ghost chapter'],
+    ['a plain phrase for an empty title', '', 'A chapter no longer in the manuscript'],
+    ['a plain phrase for a blank title', '   ', 'A chapter no longer in the manuscript'],
+    ['a plain phrase for a missing title', undefined, 'A chapter no longer in the manuscript'],
+    ['a right-to-left, emoji title as stored', 'פרק ראשון 🐇', 'פרק ראשון 🐇'],
+  ])('names a chapter the manuscript no longer lists by %s (qa-breaker B1, intent review)', async (_label, stored, expected) => {
+    const user = userEvent.setup();
+    const track = WIRE_TRACKS_PROJECT.tracks[0];
+    const at = '2026-01-01T00:00:00Z';
+    renderDialog({
+      chapterTrackSet: async (chapterId, trackGuid) => {
+        const link = { trackGuid, chapterId, chapterTitle: 'x', confirmedAt: at, origin: 'manual' as const, match: null };
+        const displaced = {
+          trackGuid: track.guid,
+          chapterId: 'ghost',
+          confirmedAt: at,
+          origin: 'manual' as const,
+          match: null,
+          ...(stored === undefined ? {} : { chapterTitle: stored }),
+        };
+        return { documentId: 'doc', link, displaced, mappings: [link] } as unknown as Awaited<ReturnType<NarrationApi['chapterTrackSet']>>;
+      },
+    });
+    await user.selectOptions(await screen.findByRole('combobox', { name: `Track for ${WIRE_CHAPTERS[0].title}` }), track.guid);
+    expect(await screen.findByText(`${expected} was linked to that track and is now not linked.`)).toBeTruthy();
+  });
+
   it('shows a REAPER error state', async () => {
     renderDialog({}, { lineIdentity: 'error' });
 
@@ -257,18 +434,49 @@ describe('LinkChaptersDialog', () => {
     expect(screen.getByText('Chapter no longer in the manuscript')).toBeTruthy();
   });
 
-  it('disables Cancel and Close while a stamp is running', async () => {
+  it('keeps Close and the pickers honest while a stamp is running: pickers off, an exit always there', async () => {
     const user = userEvent.setup();
     const { api } = renderDialog();
-    await user.selectOptions(await screen.findByRole('combobox', { name: `Track for ${WIRE_CHAPTERS[0].title}` }), WIRE_TRACKS_PROJECT.tracks[0].guid);
-    const trackItemCount = WIRE_TRACKS_PROJECT.tracks[0].items.length;
+    const picker = await screen.findByRole('combobox', { name: `Track for ${WIRE_CHAPTERS[0].title}` });
+    await user.selectOptions(picker, WIRE_TRACKS_PROJECT.tracks[0].guid);
 
     void api.lineIdentityStamp(
       WIRE_TRACKS_PROJECT.tracks[0].items.map((item) => ({ itemGuid: item.guid, lineId: WIRE_CHAPTERS[0].id, text: WIRE_CHAPTERS[0].title })),
       false,
     );
-    void trackItemCount;
 
-    await waitFor(() => expect((screen.getByRole('button', { name: 'Cancel' }) as HTMLButtonElement).disabled).toBe(true));
+    await waitFor(() => expect((picker as HTMLSelectElement).disabled).toBe(true));
+    expect(screen.getAllByRole('button', { name: 'Close' }).every((button) => !(button as HTMLButtonElement).disabled)).toBe(true);
+  });
+
+  // #3231: a folder that holds a track another chapter is linked to would count and stamp that chapter's audio.
+  it("labels a folder that holds another chapter's linked track before it is picked", async () => {
+    const user = userEvent.setup();
+    const base = WIRE_TRACKS_PROJECT.tracks[0];
+    const folder = { ...base, guid: '{F1}', name: 'Chapters', depth: 0, isFolder: true, items: [] };
+    const inner = { ...base, guid: '{T1}', name: 'Inner', depth: 1, isFolder: false };
+    renderDialog({}, {}, vi.fn(), [folder, inner]);
+    const first = await screen.findByRole('combobox', { name: `Track for ${WIRE_CHAPTERS[0].title}` });
+    const second = screen.getByRole('combobox', { name: `Track for ${WIRE_CHAPTERS[1].title}` });
+    await user.selectOptions(second, '{T1}');
+    expect(screen.queryByText(/the folder also holds another chapter's linked track/)).toBeNull();
+    await user.selectOptions(first, '{F1}');
+    expect(await screen.findByText(/the folder also holds another chapter's linked track/)).toBeTruthy();
+  });
+  it('says which chapter lost a track that sits inside a folder when another chapter takes it (#3053)', async () => {
+    const user = userEvent.setup();
+    const base = WIRE_TRACKS_PROJECT.tracks[0];
+    const folder = { ...base, guid: '{F1}', name: 'Chapters', depth: 0, isFolder: true, items: [] };
+    const inner = { ...base, guid: '{T1}', name: 'Inner', depth: 1, isFolder: false };
+    renderDialog({}, {}, vi.fn(), [folder, inner]);
+    const [first, second] = WIRE_CHAPTERS;
+    await user.selectOptions(await screen.findByRole('combobox', { name: `Track for ${first.title}` }), '{T1}');
+    await waitFor(() => expect((screen.getByRole('combobox', { name: `Track for ${first.title}` }) as HTMLSelectElement).value).toBe('{T1}'));
+    await user.selectOptions(screen.getByRole('combobox', { name: `Track for ${second.title}` }), '{T1}');
+    expect(await screen.findByText(new RegExp(`${first.title}.*is now not linked`))).toBeTruthy();
   });
 });
+
+async function user_selectFirstTrack() {
+  await userEvent.selectOptions(await screen.findByRole('combobox', { name: `Track for ${WIRE_CHAPTERS[0].title}` }), WIRE_TRACKS_PROJECT.tracks[0].guid);
+}

@@ -22,8 +22,9 @@ export const overrideValue = (row: SettingMeta, project: ScopedSettingField | un
 export const projectValue = (row: SettingMeta, global: ScopedSettingField | undefined, project: ScopedSettingField | undefined): string =>
   overrideValue(row, project) ?? computerValue(row, global);
 
-/** The computer's value differs from the default. */
-export const isChanged = (row: SettingMeta, global: ScopedSettingField | undefined): boolean => Boolean(global?.isSet) && global!.value !== row.def;
+/** The computer's value differs from the default. Spaces around a value are not a difference, nor is the case of a fact row's engine name ("Piper" is "piper"): a stored "  " reads "Not set", as the default does (#3231). */
+export const isChanged = (row: SettingMeta, global: ScopedSettingField | undefined): boolean =>
+  Boolean(global?.isSet) && (row.fact ? global!.value.trim().toLowerCase() !== row.def.toLowerCase() : global!.value.trim() !== row.def.trim());
 
 const NONE: ReadonlySet<string> = new Set();
 
@@ -39,4 +40,11 @@ export const isAnyChanged = (
 ): boolean => isChanged(row, global) || isBrowserChanged(row) || custom.has(row.id) || overrideValue(row, project) !== undefined;
 
 /** The label of a choice: the registry's word, else what the host sent. */
-export const choiceLabel = (row: SettingMeta, value: string): string => row.options?.[value]?.label ?? (value === '' ? 'Not set' : value);
+export const choiceLabel = (row: SettingMeta, value: string): string => {
+  const listed = row.options?.[value]?.label;
+  if (listed) return listed;
+  if (value === '') return 'Not set';
+  // A hand-edited value of a row with a unit is named: a whole number gets its unit, anything else is said to be invalid.
+  if (row.unit) return /^\d+$/.test(value) ? `${value} ${row.unit}` : `${value} (invalid)`;
+  return value;
+};

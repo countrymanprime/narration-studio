@@ -1,4 +1,4 @@
-// The delivery package's checks on Master & QC (the Studio Next mock's `packageItems`): drawn from the profile's own rules and what was
+// The delivery package's checks on Master & QC (the research mock's `packageItems`): drawn from the profile's own rules and what was
 // measured, so a rule the profile lacks (or has turned off) has no row and nothing here is typed in by hand.
 import type { DeliveryProfile, DeliveryRule, ManuscriptChapter, MeasureFileResult } from '../../../types';
 import { chapterStates, readinessCounts, stateOf, type ChapterState } from '../../delivery/page/chapterStates';

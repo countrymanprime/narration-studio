@@ -448,4 +448,4 @@ manifest names the audio the sidecar reads and the words files it writes) is row
 
 ## Not done yet
 
-A cross-check against REAPER's own manifest, a real permissioned corpus (which would drop the "uncalibrated" label and turn the cascade on by default, MC1) and playing from a region were tracked in [#425](https://github.com/countrymanprime/narration-studio/issues/425), closed as not planned on 2026-10-11 in favour of the Studio Next work. Spot checks of "met" paragraphs are MC6.
+A cross-check against REAPER's own manifest, a real permissioned corpus (which would drop the "uncalibrated" label and turn the cascade on by default, MC1) and playing from a region were tracked in [#425](https://github.com/countrymanprime/narration-studio/issues/425), closed as not planned on 2026-10-11 in favour of the rebuilt work. Spot checks of "met" paragraphs are MC6.

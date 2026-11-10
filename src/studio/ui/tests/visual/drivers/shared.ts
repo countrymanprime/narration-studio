@@ -223,7 +223,7 @@ export async function openDiagnostics(page: Page, query = ''): Promise<void> {
   await scrollToTop(page, page.getByRole('region', { name: 'Diagnostics' }));
 }
 
-// A panel by its heading: the Studio Next pages' panels are regions named by no label of their own.
+// A panel by its heading: the rebuilt pages' panels are regions named by no label of their own.
 export function panelTitled(page: Page, title: string | RegExp): Locator {
   return page.getByRole('region').filter({ has: page.getByRole('heading', { name: title, exact: typeof title === 'string' }) });
 }
@@ -562,7 +562,7 @@ export async function openLinkedProofChapter(page: Page, chapterTitle: string): 
   if (await row.getByRole('combobox').count()) {
     // Option 0 is the "Choose a track" placeholder; option 1 is the first track.
     await row.getByRole('combobox').selectOption({ index: 1 });
-    await row.getByRole('button', { name: 'Confirm' }).click();
+    await row.getByRole('button', { name: /^Use this (track|folder) for/ }).click();
     await row.getByRole('button', { name: 'Change' }).waitFor();
   }
   // Open in Proof is in the row's More actions menu.

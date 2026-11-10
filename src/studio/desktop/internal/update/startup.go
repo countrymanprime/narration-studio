@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"desktop/internal/persist"
 )
 
 // samePath compares two paths to the same program as the system does: Windows ignores case.
@@ -133,7 +135,7 @@ func Startup(options StartupOptions) StartupResult {
 func rollback(options StartupOptions, pending Pending, arguments []string) bool {
 	rename := options.Rename
 	if rename == nil {
-		rename = os.Rename
+		rename = persist.Rename
 	}
 	executable := options.Executable
 	oldPath, failedPath := executable+oldSuffix, executable+failedSuffix

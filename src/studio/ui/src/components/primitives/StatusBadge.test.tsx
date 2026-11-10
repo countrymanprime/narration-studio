@@ -98,7 +98,7 @@ describe('StatusBadge', () => {
     expect(tag.className).toContain('uppercase');
   });
 
-  // The Studio Next mock's `.cell` (app.css:121): a 24 px block, Plex Mono 500 at 12 px, on a 4 px radius, its label centred.
+  // The research mock's `.cell` (app.css:121): a 24 px block, Plex Mono 500 at 12 px, on a 4 px radius, its label centred.
   it("draws the board cell at 24 px, centred, on a 4 px radius, in Plex Mono at 12 px and the label's own case", () => {
     render(<StatusBadge tone="danger" label="3 open" shape="cell" />);
     const cell = screen.getByText('3 open');

@@ -45,6 +45,12 @@ describe('ScopedSetting controls', () => {
     expect(change).toHaveBeenCalledWith('Narrator note');
   });
 
+  it('reports spaces alone as empty, so a text setting is never saved as "  " (#3231)', () => {
+    const change = renderSetting({ ...FIELD, key: 'note', label: 'Note label', kind: 'text', choices: [], effectiveValue: 'Note' });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Note label' }), { target: { value: '   ' } });
+    expect(change).toHaveBeenCalledWith('');
+  });
+
   it('shows a colour as a picker and a hex box that store the value without the hash, in capitals', () => {
     const change = renderSetting({ ...FIELD, key: 'color_note', label: 'Note color', kind: 'color', choices: [], effectiveValue: 'ffd54f' });
     const picker = screen.getByLabelText('Note color hex') as HTMLInputElement;

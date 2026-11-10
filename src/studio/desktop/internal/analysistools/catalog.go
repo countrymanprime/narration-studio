@@ -28,8 +28,8 @@ type File = assets.File
 // CacheDir is the folder under the asset cache the tools are installed in.
 const CacheDir = "analysis"
 
-// Pending is the sentinel a file's URL or SHA-256 carries until the owner pins it (docs/research/studio-next-gliner-spike.md and
-// studio-next-booknlp-spike.md, Owner steps).
+// Pending is the sentinel a file's URL or SHA-256 carries until the owner pins it (docs/research/gliner-spike.md and
+// booknlp-spike.md, Owner steps).
 const Pending = "PENDING"
 
 // ErrNotYetAvailable is an install or repair of a row whose files are not all pinned.

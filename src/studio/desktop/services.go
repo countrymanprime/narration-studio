@@ -88,6 +88,9 @@ type hostServices struct {
 	// lastActionUndoer is the DAW port's undo_last role over the same bridge client; nil (a true nil interface) with no bridge
 	// client or no such role.
 	lastActionUndoer dawport.LastActionUndoer
+	// projectSaver is the DAW port's save_project role over the same bridge client; nil (a true nil interface) with no bridge client
+	// or no such role.
+	projectSaver dawport.ProjectSaver
 	// monitorLeveler is the DAW port's monitor_level role over the same bridge client; nil (a true nil interface) with no bridge
 	// client or no such role.
 	monitorLeveler dawport.MonitorLeveler
@@ -180,6 +183,7 @@ func (h *Host) services() hostServices {
 		rangeGain:        h.rangeGain,
 		clickRepairer:    h.clickRepairer,
 		lastActionUndoer: h.lastActionUndoer,
+		projectSaver:     h.projectSaver,
 		monitorLeveler:   h.monitorLeveler,
 		prerollReader:    h.prerollReader,
 		meterReader:      h.meterReader,

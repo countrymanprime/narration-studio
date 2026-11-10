@@ -13,6 +13,8 @@ type Props = {
    * `linkedTrackGuid` set) to show a missing-track state, or omit both to show nothing confirmed yet. */
   linkedTrackGuid?: string;
   linkedTrackName?: string;
+  /** A track the app found by name or region but the narrator has not confirmed: the picker opens on it, so one Confirm links it (#3231). */
+  suggestedTrackGuid?: string;
   /** True while a confirm or clear call is in flight, so the caller's own state controls the busy affordance. */
   busy?: boolean;
   onConfirm: (trackGuid: string) => void;
@@ -33,6 +35,7 @@ export function MappingConfirm({
   tracks,
   linkedTrackGuid,
   linkedTrackName,
+  suggestedTrackGuid,
   busy = false,
   onConfirm,
   onClear,
@@ -44,7 +47,8 @@ export function MappingConfirm({
   const choices = plainTrackChoices(tracks);
   // Nothing is picked for the narrator: the select opens on "Choose a track" and Confirm waits for a pick, so one press cannot link the
   // first track to a chapter it does not belong to (alignment audit R3EN2-1). A Change starts from the track already linked.
-  const [chosen, setChosen] = useState(linkedTrackGuid && tracks.some((track) => track.guid === linkedTrackGuid) ? linkedTrackGuid : '');
+  const initial = linkedTrackGuid ?? suggestedTrackGuid;
+  const [chosen, setChosen] = useState(initial && tracks.some((track) => track.guid === initial) ? initial : '');
 
   // A confirm or clear call comes back through the caller's own state, as a new `linkedTrackGuid` prop, not through
   // this component's local `picking` intent: once the caller reports a link (a fresh confirm, or a Change followed
@@ -82,7 +86,15 @@ export function MappingConfirm({
         Confirm
       </Button>
       {hasLink && (
-        <Button variant="secondary" onClick={() => setPicking(false)} disabled={busy}>
+        <Button
+          variant="secondary"
+          onClick={() => {
+            // Cancel drops the abandoned pick: the next Change opens on the linked track, not on it.
+            setChosen(linkedTrackGuid && tracks.some((track) => track.guid === linkedTrackGuid) ? linkedTrackGuid : '');
+            setPicking(false);
+          }}
+          disabled={busy}
+        >
           Cancel
         </Button>
       )}

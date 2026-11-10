@@ -91,6 +91,7 @@ export type DawCapabilityKey =
   | 'range_gain'
   | 'click_repair'
   | 'undo_last'
+  | 'save_project'
   | 'monitor_level'
   | 'input_level'
   | 'punch_preroll'
@@ -145,6 +146,7 @@ export const DAW_CAPABILITIES: ReadonlyArray<{ key: DawCapabilityKey; label: str
   { key: 'range_gain', label: 'Lower stretches of a take' },
   { key: 'click_repair', label: 'Repair clicks in a take' },
   { key: 'undo_last', label: "Undo the app's last action" },
+  { key: 'save_project', label: 'Save the project' },
   { key: 'monitor_level', label: 'Set the monitor level' },
   { key: 'input_level', label: 'Set the input level' },
   { key: 'punch_preroll', label: 'Punch pre-roll' },
@@ -523,6 +525,16 @@ export interface DawUndoLastApi {
    * A capability refusal carries the `undo_last` capability's sentence; steps out of bounds and the DAW recording are refused with a
    * sentence. A kind the host does not know rejects. */
   dawUndoLast(kind: DawActionKind, steps: number): Promise<DawResult>;
+}
+
+/** DawSaveProject (#3262; src/studio/desktop/bindings_daw_save_project.go): the DAW saves the project this app is linked to, on the narrator's click.
+ * Editing reads the saved file, so a take recorded since the last save is not there until the DAW saves. */
+export interface DawSaveProjectApi {
+  /** Save the linked project in the DAW. Saved: `ok`, not `changed`, no undo step, and the message says how much the saved project holds
+   * ("Saved the project in REAPER: 3 tracks and 12 items."). Refused with nothing written, in a sentence for the page to show: the `save_project` capability's own, no linked project file, no live DAW, the DAW not answering or late, a project that
+   * was never saved (a save would open the DAW's file dialog), another project open, a recording in progress, a file it could not write.
+   * The host sends the file it is linked to, never one the page names. */
+  dawSaveProject(): Promise<DawResult>;
 }
 
 /** What `dawMonitorLevel` and `dawSetMonitorLevel` answer (src/studio/desktop/bindings_daw_levels.go): the DAW's monitor (output) level as the page's

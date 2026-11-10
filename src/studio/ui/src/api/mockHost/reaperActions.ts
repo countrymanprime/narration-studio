@@ -140,6 +140,8 @@ export function createReaperActionsMock(initial: MockApiSeed, projectFolder: () 
         : WIRE_CHAPTER_TAGS_PREVIEW_IDLE,
   );
   const chapterTagsEmbedAlwaysErrors = initial.chapterTagsEmbedAlwaysErrors === true;
+  // The items a stamp already wrote, so a second stamp over them ends with applied 0 and unchanged N, as the host's does.
+  const stampedItems = new Set<string>();
   const bindings = {
     lineIdentityStamp: async (rows, overwrite) => {
       if (rows.length === 0) throw new Error('select at least one item to stamp');
@@ -152,12 +154,14 @@ export function createReaperActionsMock(initial: MockApiSeed, projectFolder: () 
       publishLineIdentity();
       setTimeout(() => {
         if (lineIdentity.phase !== 'stamping') return;
-        const applied = rows.length;
+        const unchanged = rows.filter((row) => stampedItems.has(row.itemGuid)).length;
+        const applied = rows.length - unchanged;
+        rows.forEach((row) => stampedItems.add(row.itemGuid));
         lineIdentity = {
           ...lineIdentity,
           phase: 'success',
-          message: `Stamped ${applied} item${applied === 1 ? '' : 's'}.`,
-          stamp: { applied, unchanged: 0, missingCount: 0, conflictsCount: 0, missing: [], conflicts: [] },
+          message: `Stamped ${applied} item${applied === 1 ? '' : 's'}${unchanged > 0 ? `, ${unchanged} already stamped` : ''}.`,
+          stamp: { applied, unchanged, missingCount: 0, conflictsCount: 0, missing: [], conflicts: [] },
         };
         publishLineIdentity();
       }, 300);
@@ -441,7 +445,7 @@ function tailClause(text: string): string {
 }
 
 /**
- * The sample pickups of the Studio Next mock's fixtures (`PICKUPS` in its alice.ts), placed on chapter 3's own lines of the manuscript
+ * The sample pickups of the research mock's fixtures (`PICKUPS` in its alice.ts), placed on chapter 3's own lines of the manuscript
  * given, so the Booth finds each one's paragraph as it does the host's. The seed's lines stand in when that chapter has none.
  */
 function samplePickups(paragraphs: readonly ManuscriptParagraph[]): PickupItem[] {

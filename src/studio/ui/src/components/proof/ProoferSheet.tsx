@@ -47,7 +47,7 @@ export function importedMessage(report: { added: number; existing: number; inval
 }
 
 /**
- * The Proof queue's "Import proofer sheet" and "Export for proofer" icons (Studio Next mock `#imp`, `#exp`). The mock's icons only
+ * The Proof queue's "Import proofer sheet" and "Export for proofer" icons (research mock `#imp`, `#exp`). The mock's icons only
  * toast; the owner kept the real proofer CSV (#992, "all defaults"), so they run `pickupsImport` and `pickupsExport`. A pickup lands
  * as a DAW marker, so both need the DAW, and the host's refusal is the toast. The run finishes on the pickups event, so the toast
  * with the count (and the download) waits for the run this control started, never for one another page started or one already

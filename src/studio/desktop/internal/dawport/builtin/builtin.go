@@ -47,7 +47,7 @@ type Config struct {
 const (
 	// MessageNoSavedProject is project_read's: the takes live in the project folder, with no project file of the engine's own.
 	MessageNoSavedProject = "The built-in recorder keeps no saved project."
-	// MessageUnsupported is every capability the built-in recorder has no part in (the Studio Next mock's wording).
+	// MessageUnsupported is every capability the built-in recorder has no part in (the research mock's wording).
 	MessageUnsupported = "Not available with the built-in recorder."
 	// MessageNoInputLevel is input_level's: the level an audio interface records at is its driver's, in no recorder's reach.
 	MessageNoInputLevel = "The built-in recorder cannot set an audio interface's input gain. Set it in your interface's own control panel."

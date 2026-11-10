@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// SN-P8's acceptance tests for the swapped Production page, end to end against the mock host: the Studio Next layout, the dialogs its
+// SN-P8's acceptance tests for the swapped Production page, end to end against the mock host: the rebuilt layout, the dialogs its
 // icons open, the timer and the chip's feed, chapter sync, and the row menu that keeps the features the mock has no equivalent for.
 import { APP_STARTED_AT } from './pipeline/dawConnectGrace';
 import { readdirSync, readFileSync } from 'node:fs';
@@ -473,6 +473,42 @@ describe('the row menu keeps the features the mock has none for', () => {
     await renderPage({ overrides: { dawCapabilities: selecting } });
     const table = await pipeline();
     const row = within(table).getAllByRole('row')[2];
+    await waitFor(() => expect(contextItemsFor(row)?.find((item) => item.key === 'recording')?.unavailable).toBeUndefined());
+    expect(contextItemsFor(row)?.find((item) => item.key === 'goto')?.unavailable).toMatch(/No chapter track is linked/);
+  });
+
+  it('keeps Show in REAPER off for a track that is not in the saved project, as the chapter track panel does (#3168)', async () => {
+    const base = createMockApi();
+    const chapterTrackLinks = async () => {
+      const links = await base.chapterTrackLinks();
+      return { ...links, chapters: links.chapters.map((chapter) => ({ ...chapter, warnings: [...chapter.warnings, 'confirmed-track-missing' as const] })) };
+    };
+    const suggestedLinks = async () => {
+      const links = await base.chapterTrackLinks();
+      return { ...links, chapters: links.chapters.map((chapter) => ({ ...chapter, status: 'matched' as const })) };
+    };
+    await renderPage({ overrides: { dawCapabilities: selecting, chapterTrackLinks } });
+    const table = await pipeline();
+    const row = within(table).getAllByRole('row')[2];
+    await waitFor(() => expect(contextItemsFor(row)?.find((item) => item.key === 'recording')?.unavailable).toBeUndefined());
+    expect(contextItemsFor(row)?.find((item) => item.key === 'goto')?.unavailable).toMatch(/No chapter track is linked/);
+    cleanup();
+    // A suggested track, not yet linked, is off too.
+    await renderPage({ overrides: { dawCapabilities: selecting, chapterTrackLinks: suggestedLinks } });
+    const suggestedRow = within(await pipeline()).getAllByRole('row')[2];
+    await waitFor(() => expect(contextItemsFor(suggestedRow)?.find((item) => item.key === 'recording')?.unavailable).toBeUndefined());
+    expect(contextItemsFor(suggestedRow)?.find((item) => item.key === 'goto')?.unavailable).toMatch(/No chapter track is linked/);
+  });
+
+  // #3228's review: the ambiguous case (two candidate tracks) was covered by the shared function only, not by the menu (#3231).
+  it("keeps Show in REAPER off while the chapter's track is ambiguous, as the panel does", async () => {
+    const base = createMockApi();
+    const ambiguousLinks = async () => {
+      const links = await base.chapterTrackLinks();
+      return { ...links, chapters: links.chapters.map((chapter) => ({ ...chapter, status: 'ambiguous' as const })) };
+    };
+    await renderPage({ overrides: { dawCapabilities: selecting, chapterTrackLinks: ambiguousLinks } });
+    const row = within(await pipeline()).getAllByRole('row')[2];
     await waitFor(() => expect(contextItemsFor(row)?.find((item) => item.key === 'recording')?.unavailable).toBeUndefined());
     expect(contextItemsFor(row)?.find((item) => item.key === 'goto')?.unavailable).toMatch(/No chapter track is linked/);
   });

@@ -100,6 +100,9 @@ func boothPunchFor(view coverage.AlignmentView, saved tracks.Project, state brid
 // "never_recorded" says nothing of it was heard, so the take should continue, not punch; "refused" carries a sentence and nothing is guessed (no
 // recording check, a stale one, the DAW not answering, part of the passage cut, or several voices). Read-only.
 func (h *Host) BoothPunchTarget(chapterID, paragraphID string, fromWord, toWord int) (string, error) {
+	// A press that starts from a chosen phrase asks this first: its line on the record-press timeline starts here.
+	h.timeline.Begin("punch_lookup")
+	defer h.timeline.Mark("punch_looked_up")
 	svc := h.services()
 	resolver, _ := h.dawResolverFor(svc)
 	ctx, cancel := context.WithTimeout(context.Background(), boothPunchTimeout)

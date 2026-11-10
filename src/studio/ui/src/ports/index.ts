@@ -60,6 +60,7 @@ import type {
   DawReduceRangeGainApi,
   DawRepairClickApi,
   DawUndoLastApi,
+  DawSaveProjectApi,
   DawLevelsApi,
   DawPlaceApi,
   DawTransportSyncApi,
@@ -142,6 +143,7 @@ export type {
   DawReduceRangeGainApi,
   DawRepairClickApi,
   DawUndoLastApi,
+  DawSaveProjectApi,
   DawLevelsApi,
   DawPlaceApi,
   DawTransportSyncApi,
@@ -223,6 +225,7 @@ export interface PortMap {
   dawReduceRangeGain: DawReduceRangeGainApi;
   dawRepairClick: DawRepairClickApi;
   dawUndoLast: DawUndoLastApi;
+  dawSaveProject: DawSaveProjectApi;
   dawLevels: DawLevelsApi;
   dawPlace: DawPlaceApi;
   dawTransportSync: DawTransportSyncApi;

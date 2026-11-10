@@ -16,6 +16,7 @@ import type {
   StageUnknownCause,
   Track,
 } from '../../types';
+import { trackHeldByOther } from '../mapping/trackHeldBy';
 import { Button } from '../primitives/Button';
 import { HIT_AREA } from '../primitives/hitArea';
 import { InsetCard } from '../primitives/InsetCard';
@@ -61,7 +62,7 @@ const SOURCE_CHOICE_OPTIONS = [
 
 /** The chapter-track link, confirmed right here: the same prompt the
  * audio engine panel and the recording check show. */
-function MappingFix({ chapter, onLinked }: { chapter: ManuscriptChapter; onLinked: () => void }) {
+function MappingFix({ chapter, notify, onLinked }: { chapter: ManuscriptChapter; notify: Notify; onLinked: () => void }) {
   const api = useApi();
   const [tracks, setTracks] = useState<Track[]>();
   const [error, setError] = useState('');
@@ -90,6 +91,18 @@ function MappingFix({ chapter, onLinked }: { chapter: ManuscriptChapter; onLinke
       busy={confirming.isBusy}
       onConfirm={(trackGuid) =>
         void confirming.run('confirm', async () => {
+          // The pre-check's own failure is a toast and leaves the picker; only the confirm's failure takes the panel's error line.
+          let taken: string;
+          try {
+            taken = trackHeldByOther((await api.chapterTrackMapList()).mappings, trackGuid, chapter.id);
+          } catch (reason) {
+            notify(`The link could not be checked: ${describeApiError(reason)}`, 'error');
+            return;
+          }
+          if (taken) {
+            notify(taken, 'error');
+            return;
+          }
           try {
             await api.chapterTrackMapConfirm(trackGuid, chapter.id);
             setError('');
@@ -207,7 +220,7 @@ function Results({
  * The editing check panel: a `SlideOver` opened from the Production board's row menu and from the audio engine panel's chapter list. It
  * runs the scan (the host's job, cache-first, with real progress and Cancel), reads the three signals the host computes when the chapter
  * is in the Editing stage, and counts the open candidates of each class. The candidates are heard and decided on the Editing page's
- * Clean up tab, which the panel links to (SN-E9); the item-gain row stays here, as the Studio Next mock has none. Analysis never starts
+ * Clean up tab, which the panel links to (SN-E9); the item-gain row stays here, as the research mock has none. Analysis never starts
  * on its own: opening the panel only reads what is already known.
  *
  * There is no live event for the scan job (unlike the recording check's `coverage:state`): the panel polls `editingState()` itself while
@@ -391,6 +404,7 @@ export function EditingCheckPanel({
             ) : (
               <MappingFix
                 chapter={chapter}
+                notify={notify}
                 onLinked={() => {
                   setRefusal(undefined);
                   void loadSignals();

@@ -14,6 +14,8 @@ export type CheckboxProps = DataProps &
     checked: boolean;
     onChange: (checked: boolean) => void;
     disabled?: boolean;
+    // The text that says why the box is off (a checkbox that is disabled and says nothing looks broken, #3276): the id of the line that holds it.
+    'aria-describedby'?: string;
     // The mixed state of a parent whose children are partly selected: reports aria-checked="mixed" and draws a dash.
     indeterminate?: boolean;
   };

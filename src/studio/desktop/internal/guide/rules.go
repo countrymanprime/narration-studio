@@ -40,7 +40,7 @@ const (
 )
 
 // RuleConfidence is extraction_rules.py RULE_CONFIDENCE: a rule's confidence, or nil where nothing measured supports a number. Every
-// row is provisional until SN-X8 calibrates the sources on a gold set (docs/research/studio-next-extraction-calibration-protocol.md).
+// row is provisional until SN-X8 calibrates the sources on a gold set (docs/research/extraction-calibration-protocol.md).
 //   - new-name: the rules count mentions; no precision for them has been measured (the GLiNER spike records counts only).
 //   - needs-review-name: the rules could not settle what the name is.
 //   - known-spelling: a title-prefixed form such as Captain Arelian for Arelian; the grouping is conservative but unmeasured.

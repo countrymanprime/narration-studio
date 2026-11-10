@@ -24,7 +24,7 @@ export const REMOVE_UNDO_MS = TOAST_INFO_MS + 1_000;
 // The application-data empty state for "no project folder was given" - a
 // standalone launch (Start Menu shortcut, taskbar pin) with no REAPER-supplied
 // project. Distinct from StartupScreen, which only models host-connection
-// failure states before any bootstrap payload exists at all. Built to the Studio Next mock's
+// failure states before any bootstrap payload exists at all. Built to the research mock's
 // ProjectPicker.tsx, less the taskbar jump list preview, which the host does not expose.
 // `onCreated` runs when New project made a project (the app opens it on Script); opening or browsing to one leaves the page alone.
 // `onOpenSettings` is set when no project is open: Settings has rows that are this computer's (downloads, updates, appearance), so the picker offers

@@ -1,4 +1,4 @@
-// The `editing` rows of STATE_CATALOG (see state-catalog.ts), in the order they are captured: the Editing page (the Studio Next mock's
+// The `editing` rows of STATE_CATALOG (see state-catalog.ts), in the order they are captured: the Editing page (the research mock's
 // `pages/Editing.tsx`) at `/editing`, which replaced Proof's chapter workspace (SN-E9). Chapter 1 is linked to its track with
 // `?mockChapterLink=confirmed`, so its words carry the times they were heard at; the mock REAPER answers, so every edit it
 // builds is on.
@@ -284,6 +284,24 @@ export const editingStates: StateEntry[] = [
     state: 'unlinked',
     description:
       'Editing on Chapter 1 with no track linked (?mockChapterLink=none) - the dialog that opens by itself names the chapter, lists the tracks the host found with the best match chosen, and offers Link track and Check again; behind it the legend says "No audio to edit" and the script reads plain with no word boxed "not read"',
+  },
+  {
+    page: 'editing',
+    state: 'unsaved-take',
+    description:
+      'Editing on Chapter 1 whose track is not in the saved project while REAPER holds unsaved changes (?mockChapterLink=missing&mockDawUnsaved=1) - the note says a recording may be waiting in REAPER and offers Save in REAPER and read beside Read again; the script reads plain',
+  },
+  {
+    page: 'editing',
+    state: 'empty-folder',
+    description:
+      'Editing on Chapter 1 linked to a folder of voice tracks, none holding audio (?mockEmptyTracks=1&mockVoiceFolders=1) - nothing is unsaved and no voice track holds audio: the note keeps its record instruction and offers Save in REAPER and read beside Read again',
+  },
+  {
+    page: 'editing',
+    state: 'unsaved-take-refused',
+    description:
+      'The same note after Save in REAPER and read was clicked on a project that was never saved (?mockDawUnsaved=never-saved) - an error toast gives the refusal sentence and the note keeps its button, ready again; nothing was saved',
   },
   {
     page: 'editing',

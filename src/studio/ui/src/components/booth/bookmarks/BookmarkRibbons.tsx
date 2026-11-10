@@ -82,7 +82,7 @@ function StaleMark({
 }
 
 /**
- * The ribbons of the chapter's bookmarks in the right margin of the Booth's text (the Studio Next mock's `Ribbons`): one per bookmark,
+ * The ribbons of the chapter's bookmarks in the right margin of the Booth's text (the research mock's `Ribbons`): one per bookmark,
  * level with the line of its word, away from the speaker chips, the label and note in the tooltip. A bookmark whose line changed (the
  * host says `stale`) is not placed on a guessed word: it is a warning shape at the head of the margin. Mount it inside the text
  * column, which is `relative` and moves with the text, so a ribbon stays beside its word as the view scrolls; it measures the column's

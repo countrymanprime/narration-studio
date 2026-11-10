@@ -1182,8 +1182,9 @@ const WIRE_TRACKS_PROJECT_VOICES: TracksProject = (() => {
 })();
 
 /** The REAPER project a mock seed's host reads: the voice-folder or folder variant, or the flat Alice tracks. */
-export function mockTracksProject(seed: { voiceFolders?: boolean; trackFolders?: boolean }): TracksProject {
-  return seed.voiceFolders ? WIRE_TRACKS_PROJECT_VOICES : seed.trackFolders ? WIRE_TRACKS_PROJECT_FOLDERS : WIRE_TRACKS_PROJECT;
+export function mockTracksProject(seed: { voiceFolders?: boolean; trackFolders?: boolean; emptyTracks?: boolean }): TracksProject {
+  const project = seed.voiceFolders ? WIRE_TRACKS_PROJECT_VOICES : seed.trackFolders ? WIRE_TRACKS_PROJECT_FOLDERS : WIRE_TRACKS_PROJECT;
+  return seed.emptyTracks ? { ...project, tracks: project.tracks.map((track) => ({ ...track, items: [] })) } : project;
 }
 
 /** One row of every status the classifier produces, keyed to WIRE_TRACKS_PROJECT's own chapter track item GUIDs where it helps a screenshot read naturally (mirrors tests/fixtures/contracts/line-identity-read-success.json). */
@@ -1537,6 +1538,29 @@ export const WIRE_TAKE_REVIEW_FINDINGS: Finding[] = [
 // latest Story Bible run no longer flags, so every state the Review page shows has data behind it. The two Chapter 1
 // discrepancies carry the REAPER item, take and track GUIDs Go to and Loop need; the Chapter 2 one comes from
 // an older comparison that recorded none, so its REAPER controls say why they are off.
+/** The audio note the mock's sample Pickups row (07:30.9 Noise) points at. It is not in `WIRE_FINDINGS` (the Proof list does not show it), but the findings mock
+ * knows it by id, so Show in REAPER on that row goes to a place instead of answering that the finding is gone. */
+export const WIRE_SAMPLE_NOISE_FINDING: Finding = {
+  schema_version: 1,
+  id: 'sample-noise',
+  analyzer: 'audio-quality',
+  project: { path: 'C:/Projects/Alice-in-Wonderland' },
+  source: {
+    file: 'C:/Projects/Alice-in-Wonderland/media/ch3_take1.wav',
+    item_guid: '{5E1F0000-0000-4000-8000-000000000003}',
+    take_guid: '{5E1F0000-0000-4000-8000-0000000000A3}',
+  },
+  time_range: { start: 450.9, end: 451.4, source_start: 450.9, source_end: 451.4 },
+  manuscript: { chapter_id: 'chapter-3', chapter_title: 'Chapter 3' },
+  category: 'noise',
+  severity: 'info',
+  confidence: null,
+  confidence_reason: 'not_scored',
+  evidence_version: 'sha256:sample-noise',
+  evidence: { kind: 'noise' },
+  review: { status: 'unreviewed' },
+};
+
 export const WIRE_FINDINGS: Finding[] = [
   {
     schema_version: 1,

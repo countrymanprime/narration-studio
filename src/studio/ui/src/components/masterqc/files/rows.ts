@@ -165,7 +165,7 @@ function noFileText(open: number | undefined): string {
 }
 
 /**
- * One row per chapter, the credits and the retail sample, in the manuscript's order, whether or not they have a file (the Studio Next mock's
+ * One row per chapter, the credits and the retail sample, in the manuscript's order, whether or not they have a file (the research mock's
  * Master page, so the table is never empty): a row with a file is that file's row, named the way the manuscript names the chapter, and one
  * without says what it waits on ("Waiting on 3 pickups · not mastered") with the neutral Waiting pill. `openPickups` counts the open pickups
  * by chapter id, from the Pickups page's own list; `texts` is the current Recording Check of each measured file's chapter by file path (the Text column; a measured

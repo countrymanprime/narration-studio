@@ -128,7 +128,7 @@ function FilesHeader({
 }
 
 /**
- * Master & QC's per-file checks (the Studio Next mock's Master page): one row per file, each level red when the profile's rule on
+ * Master & QC's per-file checks (the research mock's Master page): one row per file, each level red when the profile's rule on
  * it was not met, the Result column in words, and a row with no measurements saying what it waits on ("<reason> · not mastered").
  * The caller owns which file is selected (it is the shared chapter). Right-click on a row offers its checks through the context
  * provider; the actions themselves are the page's (`FileActions`).

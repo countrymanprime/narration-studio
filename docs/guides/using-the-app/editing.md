@@ -82,7 +82,7 @@ The bar at the foot plays the chapter in the app, from its recorded audio with e
 DAW closed. It shows the time, and what is selected with its start, end and length. The key hints under it come from
 your keyboard settings ([Settings](settings.md)), so a key you rebound shows its new key.
 
-**Play** is off, with its reason in the hint, on a chapter that has no audio to play (no linked track, a track that is gone or empty, or nothing recorded yet). With the cursor on a word that was not recorded, such as the chapter heading, Space says so instead of playing on from the next word. Space on a play of a selection pauses it and keeps the selection; selecting other words while it plays plays them instead. If the DAW stops answering during a play, the bar goes back to **Play** and the DAW dialog says why.
+**Previous word** and **Next word** move the cursor to the nearest word with audio; at the first or last one a message says there is no earlier or later word with audio. **Play** is off, with its reason in the hint, on a chapter that has no audio to play (no linked track, a track that is gone or empty, or nothing recorded yet). With the cursor on a word that was not recorded, such as the chapter heading, Space says so instead of playing on from the next word. Space on a play of a selection pauses it and keeps the selection; selecting other words while it plays plays them instead. If the DAW stops answering during a play, the bar goes back to **Play** and the DAW dialog says why.
 
 Beside the clock, the **Output** group sets what you hear, not what is recorded. **Silence output** mutes the app's sound; it is not the
 **Mute** that silences the selected words in the recording. **Show volume and output device** opens a popover with the speed (0.75× to 2×, with the pitch of the voice kept), the volume and the output device: the system
@@ -105,8 +105,8 @@ itself, once for the chapter: it names the chapter, offers the REAPER tracks the
 **Link track** links the one you pick, after which the page reads the chapter at once. **Create a new track** has REAPER add a
 track named after the chapter and links it instead (the main button when the project has no tracks); save the REAPER project
 so the page can read the new track. If you close it with the X, the
-**Not linked to a track** mark in the header opens it again. The page also reads the chapter again whenever you come back
-to its window, so a link made in REAPER or the audio engine panel shows without a reload. When the track is empty, or with the
+**Not linked to a track** mark in the header opens it again (**Not linked to a folder** and **Link folder** in a Voice folders project, where the note over the script says the chapter is not linked to a folder). The page also reads the chapter again whenever you come back
+to its window, so a link made in REAPER or the audio engine panel shows without a reload. The editing check's own panel, opened from the audio engine panel for a chapter with no link, offers the same kind of track picker and refuses a track another chapter holds, naming that chapter. When the track is empty, or with the
 built-in recorder (which has no track to link), a note over the script says to record the chapter, with **Read again**.
 A chapter
 that was never checked has no heard words: the page shows its script plain, with a **Not transcribed yet** note and a
@@ -492,6 +492,16 @@ With no track linked to the chapter there is nothing to edit yet. The legend rea
 word as not read, and the dialog described above lists the tracks to link.
 
 A chapter linked to a folder of voice tracks (the Voice folders layout) has its audio on the folder's tracks, nested folders included, so the page reads and plays what is on any of them. Only when none of them holds audio does it say the folder has no audio on any of its voice tracks, and to record the chapter onto a voice track inside the folder and save the project.
+
+The page reads the saved project, so a take recorded since the last save is not in it yet. When the chapter has no audio there and the DAW has changes it has not saved, the note says so ("has no saved audio, and REAPER has unsaved changes. A recording may be waiting there. Save the project in REAPER, then read again."). The note offers **Save in REAPER and read** beside **Read again**. If the linked track is not in the saved project the note says that instead ("…’s track is not in the saved project, and REAPER has unsaved changes"), and if REAPER does not say whether it has unsaved changes the note says so and asks for a save; it never tells you to record again on a guess.
+
+![Editing, the no-audio note for a recording still unsaved in REAPER, with Save in REAPER and read beside Read again](../../images/ui/editing-unsaved-take.webp)
+
+**Save in REAPER and read** saves the project REAPER has open, the one this app is linked to, then reads the chapter again, so the take is there to edit. It only saves when you press it. The button shows a spinner and ignores presses while REAPER answers. A toast says what was saved, such as "Saved the project in REAPER: 4 tracks and 1 item."
+
+When REAPER cannot save, nothing is written, a toast says why and the button is ready again: REAPER is not answering; REAPER is recording (stop first); the project in REAPER was never saved (a save would open REAPER's file dialog, so save it once in REAPER, then read again); a different project is open in REAPER than the one this app is linked to; or the project file is read-only or missing. The page offers **Save in REAPER and read** only for a DAW that can save from the app, and when the chapter's track has no audio; for a recording REAPER has not saved, it replaces the note's sentence about saving, and for any other empty track the note still says to record the chapter first. **Read again** reads without saving, as before.
+
+After the save the chapter has its audio, and the page may then say **Not transcribed yet**: that is the recording check, which you run on the chapter as usual.
 
 In that layout the edits that act on a take where it is (splitting a double read into takes, lowering breaths, repairing a click, an effect on a range, a cut that leaves a gap) work on the voice that read the words. Closing a cut, shortening a gap, replacing words, putting them back, stacking takes and unstacking them move the audio after them on every voice of the folder together, in one undo step, and are refused when another voice has audio inside the stretch that would be removed or replaced, or where stacked reads sit.
 

@@ -11,7 +11,7 @@ const DECISIONS: ReadonlyArray<{ label: string; key: string; status: FindingRevi
 ];
 
 /**
- * The Studio Next Inspector's decision group: Needs pickup, Fix in edit, Fine as read and Defer, each with its key cap. The stored status is
+ * The rebuilt Inspector's decision group: Needs pickup, Fix in edit, Fine as read and Defer, each with its key cap. The stored status is
  * the finding's own review status: both of the first two are `accepted` and the fix the note asks for (`fix`, from
  * `fixKindOf`) says which one is pressed. Any of the four can be pressed on any note (the mock's group is a two-column grid of equal
  * buttons); the fix is still the note kind's, so Fix in edit on a pickup-kind note saves the decision and the note stays a pickup.

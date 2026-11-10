@@ -166,7 +166,7 @@ func (s *Store) Delete(key string) error {
 
 func (s *Store) read() (file, error) {
 	empty := file{Version: fileVersion, Entries: map[string]fileEntry{}}
-	bytes, err := os.ReadFile(s.path)
+	bytes, err := persist.ReadFile(s.path)
 	if errors.Is(err, os.ErrNotExist) {
 		return empty, nil
 	}
