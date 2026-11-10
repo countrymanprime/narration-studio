@@ -68,11 +68,11 @@ export function VoiceSetupProvider({ projectFolder, children }: { projectFolder:
       .voiceTracksGet()
       .then((next) => {
         // A save that began since this read started has the newer answer; an unchanged answer keeps the object, so nothing redraws.
-        if (mine === saves.current) setSetup((last) => (JSON.stringify(last) === JSON.stringify(next) ? last : next));
+        if (mine !== saves.current) return;
+        setReadError('');
+        setSetup((last) => (JSON.stringify(last) === JSON.stringify(next) ? last : next));
       })
-      .catch(() => {
-        // The failed read of the setup is the first read's to report (readError); a quiet refresh keeps what is shown.
-      });
+      .catch((reason: unknown) => mine === saves.current && setReadError(reason));
   }, [port, projectFolder]);
   const beginSave = useCallback(() => {
     const mine = ++saves.current;
