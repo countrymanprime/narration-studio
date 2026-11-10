@@ -25,10 +25,6 @@ import (
 // tracksLiveTimeout bounds one live read; a REAPER that does not answer in it is "not answering", and the saved project is shown.
 const tracksLiveTimeout = 3 * time.Second
 
-// liveSelectedTimeout bounds the live read of liveSelectedProject, which the record poll and a record start sit behind: a REAPER that
-// does not answer in it is treated as not answering (the saved file), so a hung engine never holds a take for the full tracksLiveTimeout.
-const liveSelectedTimeout = time.Second
-
 // Where TracksLive's tracks came from.
 const (
 	tracksSourceLive  = "live"
@@ -161,8 +157,9 @@ func liveProject(ctx context.Context, name string, lister dawport.TrackLister, s
 }
 
 // liveSelectedProject is the selected project as the engine has it now (liveProject), or the saved file when the engine is not
-// answering, has another project open or cannot list: a track renamed, added or deleted in the engine and not yet saved is seen. Every
-// reader that decides which tracks a chapter or voice has uses it, not selectedProject, so no step waits for the narrator to save.
+// answering, has another project open or cannot list: a track renamed, added or deleted in the engine and not yet saved is seen. It waits
+// as long as the pages' own live read (tracksLiveTimeout), so the Booth page and the host decide from the same answer. The matcher, the
+// folder check, the Booth's voices and the record target use it; chapter sync and chapterTrackLinksIn still read the saved file.
 // Items, regions and colours are the saved file's (mergeLiveTracks). The error is selectedProject's.
 func liveSelectedProject(svc hostServices) (tracks.Project, error) {
 	saved, err := selectedProject(svc)
@@ -170,7 +167,7 @@ func liveSelectedProject(svc hostServices) (tracks.Project, error) {
 		return tracks.Project{}, err
 	}
 	lister, support := trackListerFrom(svc)
-	ctx, cancel := context.WithTimeout(context.Background(), liveSelectedTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), tracksLiveTimeout)
 	defer cancel()
 	project, _, _ := liveProject(ctx, readAloudAdapterName(svc), lister, support, saved.Path, saved)
 	return project, nil

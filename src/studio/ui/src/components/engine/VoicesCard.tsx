@@ -193,7 +193,10 @@ export function LayoutToggle({
     <div className="flex items-center gap-2">
       <ToggleGroup label="Chapter layout" look="segmented" value={layout} onChange={(value) => onLayout(value as VoiceTracksLayout)} options={LAYOUTS} />
       {help && (
-        <HelpButton label="What the layouts mean">Flat: a chapter is one track. Voice folders: a chapter is a folder, one child track per voice.</HelpButton>
+        <HelpButton label="What the layouts mean">
+          Flat: a chapter is one track (a chapter linked to a folder that holds tracks still records on them). Voice folders: a chapter is a folder, one child
+          track per voice.
+        </HelpButton>
       )}
     </div>
   );

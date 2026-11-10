@@ -182,7 +182,7 @@ func TestAFolderWithVoicesRecordsOnThemWhateverTheLayoutSays(t *testing.T) {
 func TestAFlatProjectHasNoVoicesToChoose(t *testing.T) {
 	host, ids := newFlatBoothHost(t)
 	got := boothVoiceSet(t, host, &fakeVoiceRecorder{}, ids[0], voiceQueenTrack)
-	if got.Outcome != "refused" || got.Reason != boothVoiceFlat || !strings.Contains(got.Message, "Voice folders") {
+	if got.Outcome != "refused" || got.Reason != boothVoiceFlat || !strings.Contains(got.Message, "folder of voices") {
 		t.Fatalf("got %+v", got)
 	}
 }

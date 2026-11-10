@@ -220,6 +220,34 @@ describe("the Booth's voices", () => {
     expect(hook.current.voices.some((voice) => voice.name === 'Narrator')).toBe(true);
   });
 
+  // The host's rule (chapterVoicesIn): under Flat, a folder holding another chapter's linked track is nested chapters, not voices, so the page
+  // must not draw voice keys the host refuses. Under Voice folders the same project is a folder of voices.
+  it("lists no voices for a folder holding another chapter's track under Flat, and lists them under Voice folders", async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    await api.chapterTrackSet(WIRE_CHAPTERS[1].id, '{V01CE-RABB1T}');
+    await api.voiceTracksSetLayout('flat');
+    const { hook } = await mount({}, false, api);
+    await act(async () => new Promise((r) => setTimeout(r, 30)));
+    expect(hook.current.voices).toHaveLength(0);
+    cleanup();
+    await api.voiceTracksSetLayout('folders');
+    const folders = await mount({}, false, api);
+    await waitFor(() => expect(folders.hook.current.voices.length).toBeGreaterThan(0));
+  });
+
+  // #3269: a voice renamed or deleted in the DAW while the Booth stays open is read again on window focus, so its keys never go stale.
+  it('reads the voices again when the window gets focus', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    const reads = vi.spyOn(api, 'tracksLive');
+    const { hook } = await mount({}, false, api);
+    await waitFor(() => expect(hook.current.voices.length).toBeGreaterThan(0));
+    const before = reads.mock.calls.length;
+    act(() => {
+      window.dispatchEvent(new Event('focus'));
+    });
+    await waitFor(() => expect(reads.mock.calls.length).toBeGreaterThan(before));
+  });
+
   // #3269: a voice renamed in REAPER and not saved is the name the Booth lists (it reads REAPER's live list, as the Engine page does).
   it('lists a voice under the name REAPER has now', async () => {
     const api = createMockApi({}, { voiceFolders: true });

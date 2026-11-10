@@ -259,7 +259,7 @@ func (h *Host) boothVoiceSetIn(ctx context.Context, svc hostServices, recorder d
 		return BoothVoice{}, err
 	}
 	if !folder {
-		return boothVoiceRefused(boothVoiceFlat, "This chapter records on one track. Voice keys choose a voice in a Voice folders project, for a chapter linked to a folder (the audio engine panel)."), nil
+		return boothVoiceRefused(boothVoiceFlat, "This chapter records on one track. Voice keys choose a voice for a chapter linked to a folder of voices (the audio engine panel)."), nil
 	}
 	target := ""
 	for _, voice := range voices {

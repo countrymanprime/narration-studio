@@ -5,7 +5,8 @@ import type { Track } from '../../../api/contracts/tracks';
 import { describeApiError } from '../../../api/errorMessage';
 import { usePort } from '../../../ports/usePort';
 import { useVoiceSetup } from '../../engine/voiceLayout';
-import { folderVoices, type Voice } from '../../engine/voices';
+import { folderChildren, folderVoices, type Voice } from '../../engine/voices';
+import { LIVE_TRACKS_POLL_MS } from '../../engine/useLiveTracks';
 import { withAddedVoices, type WhoCharacter } from './whoIsIn';
 import type { BoothVoiceTrack } from '../../../api/contracts/voiceTracks';
 
@@ -75,6 +76,8 @@ export function useBoothVoices({
   const { setup, replace } = useVoiceSetup();
   const [tracks, setTracks] = useState<Track[]>([]);
   const [link, setLink] = useState('');
+  // Every track some chapter is linked to: under Flat, a folder holding another chapter's track is nested chapters, not voices (as the host decides).
+  const [linkedTracks, setLinkedTracks] = useState<string[]>([]);
   const [characters, setCharacters] = useState<GuideEntity[]>([]);
   // The voice the host records this chapter on (BoothVoiceGet), read with the tracks: never a voice the page assumed, so a choice made
   // before the Booth was left, or the voice a refused switch kept, is what the control shows.
@@ -109,6 +112,7 @@ export function useBoothVoices({
         const mine = map.mappings.filter((mapping) => mapping.chapterId === chapterId);
         setTracks(project.tracks);
         setLink(mine.length === 1 ? mine[0].trackGuid : '');
+        setLinkedTracks(map.mappings.map((mapping) => mapping.trackGuid.toLowerCase()));
         setCharacters(entities.filter((entity) => entity.category === 'Character'));
         setHostVoice({
           chapterId,
@@ -130,6 +134,21 @@ export function useBoothVoices({
     };
   }, [chapterId, tracksPort, links, storyBible, voiceTracks, notify, revision]);
 
+  // The tracks change in the DAW while the Booth is open: read them again when the window gets focus and every few seconds while it is in
+  // front, as the Engine page does, so the voice keys and the voice shown never go stale (#3269).
+  useEffect(() => {
+    if (!chapterId) return;
+    const again = () => {
+      if (document.visibilityState === 'visible') setRevision((n) => n + 1);
+    };
+    const timer = window.setInterval(again, LIVE_TRACKS_POLL_MS);
+    window.addEventListener('focus', again);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener('focus', again);
+    };
+  }, [chapterId]);
+
   // REAPER's arms, read on the voice the host records on (ReadAloudReaperState reads the chosen voice of a folder): again after a choice,
   // and when a take starts or stops, which arms and puts back. A failed read is unknown, never the last answer given as fact.
   useEffect(() => {
@@ -148,8 +167,14 @@ export function useBoothVoices({
   const added = hostVoice.chapterId === chapterId ? hostVoice.added : undefined;
   const voices = useMemo(
     // The linked folder's own children decide, not the layout toggle (#3269): the host records on them whatever the toggle says.
-    () => (link ? folderVoices(withAddedVoices(tracks, link, added ?? []), link, characters, setup) : []),
-    [setup, link, tracks, characters, added],
+    () => {
+      if (!link) return [];
+      const all = withAddedVoices(tracks, link, added ?? []);
+      // The host's rule (chapterVoicesIn): under Flat, a folder holding another chapter's track is nested chapters, not voices.
+      if (setup.layout !== 'folders' && folderChildren(all, link).some((child) => linkedTracks.includes(child.guid.toLowerCase()))) return [];
+      return folderVoices(all, link, characters, setup);
+    },
+    [setup, link, linkedTracks, tracks, characters, added],
   );
   // Until the host's answer for this chapter arrives, the voice it records on with no choice made: the Narrator, else the first.
   const fromHost = hostVoice.chapterId === chapterId ? voices.find((voice) => voice.guid.toLowerCase() === hostVoice.guid.toLowerCase()) : undefined;
