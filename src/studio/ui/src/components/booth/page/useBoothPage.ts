@@ -242,9 +242,25 @@ export function useBoothPage(options: BoothPageOptions) {
     coldMode,
     session,
     recording,
+    takeOut: recording,
     elapsed: takeClock.read,
   });
-  latest.current = { checkGate, at, position, units, paragraphs, spans, listening, following, coldRead, coldMode, session, recording, elapsed: takeClock.read };
+  latest.current = {
+    checkGate,
+    at,
+    position,
+    units,
+    paragraphs,
+    spans,
+    listening,
+    following,
+    coldRead,
+    coldMode,
+    session,
+    recording,
+    takeOut: recording || control.starting,
+    elapsed: takeClock.read,
+  };
 
   /** Puts the reading position on a sentence and word; a listening session for a take is moved there too (a cold read's ghost is not). */
   const moveTo = useCallback((next: UnitPosition) => {
@@ -636,10 +652,12 @@ export function useBoothPage(options: BoothPageOptions) {
     }),
     [guard],
   );
-  const heldConfirm = useMemo<Pick<OverlayService, 'confirm'>>(
+  const heldConfirm = useMemo<Pick<OverlayService, 'confirm' | 'toast' | 'dismissTopic'>>(
     () => ({
+      toast: (text, toastOptions) => overlay.toast(text, toastOptions),
+      dismissTopic: (topic) => overlay.dismissTopic(topic),
       confirm: async (spec) => {
-        const release = latest.current.recording ? hold() : null;
+        const release = latest.current.takeOut ? hold() : null;
         try {
           return await overlay.confirm(spec);
         } finally {
@@ -655,8 +673,15 @@ export function useBoothPage(options: BoothPageOptions) {
     : control.capabilities.daw === 'none' || recordsInApp(control.capabilities.daw)
       ? `the ${dawShortName('none').toLowerCase()} recorder`
       : control.capabilities.daw;
-  const { leave } = useBoothLeaveGuard(
-    { recording, startedByApp: control.startedByApp, daw: { name: dawName }, stopRecording, flush: writer.flush },
+  const { leave, handled, leaving } = useBoothLeaveGuard(
+    {
+      recording: recording || control.starting,
+      startedByApp: control.startedByApp,
+      daw: { name: dawName },
+      stopRecording,
+      settle: control.settle,
+      flush: writer.flush,
+    },
     { guard: shellGuard, overlay: heldConfirm },
   );
 
@@ -680,27 +705,36 @@ export function useBoothPage(options: BoothPageOptions) {
   onGone.current = { stopRecording, flush: writer.flush };
   useEffect(
     () => () => {
-      if (!latest.current.recording || !askedByShell.current) return;
+      // `decide` already answered for the take the narrator was asked about: stopped once, or left running by their choice ("Leave anyway"). A take
+      // started since (the page was still here while the map's run was written) is a new one, and the narrator who said yes to leaving gets it stopped.
+      if (!latest.current.recording || handled()) return;
+      if (!askedByShell.current && !leaving()) return;
       void onGone.current.stopRecording().then((done) => (done.ok ? onGone.current.flush() : undefined));
     },
-    [],
+    [handled, leaving],
   );
 
   // Exit Booth. A take asks "Stop recording?" (the leave guard); a session that only listens asks "Stop reading?" and stops it (docs/guides/using-the-app/booth.md:
   // leaving by the nav keeps it running, Exit and Escape stop it).
   const exit = useCallback(() => {
+    // A take, or a start the host has, is asked about whatever else is going on (`takeOut`, not `recording`: the start is not a take for a moment).
     // A cold read records nothing and keeps nothing: leaving ends it without a question.
-    if (!latest.current.recording && latest.current.coldRead) {
+    if (!latest.current.takeOut && latest.current.coldRead) {
       latest.current.session.stop();
       navigate(exitTo);
       return;
     }
-    if (latest.current.recording || !latest.current.session.active) {
+    if (latest.current.takeOut || !latest.current.session.active) {
       void leave(exitTo, navigate);
       return;
     }
     void overlay.confirm(STOP_READING).then((yes) => {
       if (!yes) return;
+      // A take may have begun while the question was open (the start was out, or the narrator pressed Record): it is read again now, and asked about.
+      if (latest.current.takeOut) {
+        void leave(exitTo, navigate);
+        return;
+      }
       latest.current.session.stop();
       navigate(exitTo);
     });

@@ -1,11 +1,23 @@
-import { useSyncExternalStore } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { ConfirmDialog } from '../components/primitives/ConfirmDialog';
 import { Dialog } from '../components/primitives/Dialog';
 import { SlideOver } from '../components/primitives/SlideOver';
 import { ToastRegion } from '../components/primitives/Toast';
 import { overlay, type DialogEntry, type OverlayService } from './overlayService';
 
+// A question that asks `armAfterMs` takes no confirm press until that long after it appears (see `ConfirmSpec.armAfterMs`).
+function useArmed(armAfterMs: number | undefined): boolean {
+  const [armed, setArmed] = useState(!armAfterMs);
+  useEffect(() => {
+    if (!armAfterMs) return;
+    const timer = setTimeout(() => setArmed(true), armAfterMs);
+    return () => clearTimeout(timer);
+  }, [armAfterMs]);
+  return armed;
+}
+
 function Layer({ entry }: { entry: DialogEntry }) {
+  const armed = useArmed(entry.kind === 'confirm' ? entry.spec.armAfterMs : undefined);
   if (entry.kind === 'confirm') {
     const { title, body, confirmLabel, confirmVariant, cancelLabel, safeDefault } = entry.spec;
     return (
@@ -17,7 +29,9 @@ function Layer({ entry }: { entry: DialogEntry }) {
         cancelLabel={cancelLabel}
         focusCancel={safeDefault}
         stayOnBody={safeDefault}
-        confirm={() => entry.answer(true)}
+        confirm={() => {
+          if (armed) entry.answer(true);
+        }}
         cancel={() => entry.answer(false)}
       />
     );
