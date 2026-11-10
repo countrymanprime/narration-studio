@@ -183,6 +183,8 @@ for (const [name, modelCheckMs, lookupMs] of [
 
 // The same for a plain Record press under way (no start chosen): a Start from here on any phrase meanwhile is refused and changes nothing.
 test('a Start from here during a plain press with a slow model check is refused and changes nothing', async ({ page }) => {
+  // Two takes, each behind a 2.5 s model check, plus the waits between: about 25 s on a loaded runner, over the default 30 s.
+  test.setTimeout(75_000);
   await openWithSlowLookup(page, 100, LOOKUP_DELAY_MS);
   const reading = () => page.locator('[data-booth-text] [data-state="cur"]').first().getAttribute('data-unit');
   const first = await reading();
