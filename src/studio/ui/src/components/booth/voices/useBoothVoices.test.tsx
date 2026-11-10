@@ -262,6 +262,37 @@ describe("the Booth's voices", () => {
     expect(notify.mock.calls.filter((call) => call[1] === 'error')).toHaveLength(1);
   });
 
+  // The poll re-reads every few seconds: a voice read that keeps failing while the tracks read succeeds is one toast, not one per tick.
+  it('toasts a failing voice read once while the tracks read succeeds', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    api.boothVoiceGet = async () => {
+      throw new Error('The host did not answer.');
+    };
+    const { notify } = await mount({}, false, api);
+    await act(async () => new Promise((r) => setTimeout(r, 30)));
+    for (let i = 0; i < 3; i++) {
+      act(() => {
+        window.dispatchEvent(new Event('focus'));
+      });
+      await act(async () => new Promise((r) => setTimeout(r, 30)));
+    }
+    expect(notify.mock.calls.filter((call) => call[1] === 'error')).toHaveLength(1);
+  });
+
+  // A press of the toast's Retry always answers: when the read fails again, it toasts again.
+  it('answers a Retry press with a new toast when the read fails again', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    api.tracksLive = async () => {
+      throw new Error('The tracks are locked.');
+    };
+    const { notify } = await mount({}, false, api);
+    await act(async () => new Promise((r) => setTimeout(r, 30)));
+    const first = notify.mock.calls.find((call) => call[1] === 'error')!;
+    await act(async () => first[2].onAction());
+    await act(async () => new Promise((r) => setTimeout(r, 30)));
+    expect(notify.mock.calls.filter((call) => call[1] === 'error')).toHaveLength(2);
+  });
+
   // #3269: a voice renamed or deleted in the DAW while the Booth stays open is read again on window focus, so its keys never go stale.
   it('reads the voices again when the window gets focus', async () => {
     const api = createMockApi({}, { voiceFolders: true });

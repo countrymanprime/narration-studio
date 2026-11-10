@@ -88,15 +88,20 @@ export function useBoothVoices({
   const [revision, setRevision] = useState(0);
   const [reaper, setReaper] = useState<{ chapterId: string; status: string; trackGuid: string; armedCount?: number } | null>(null);
 
-  // Whether the last read failed, so the poll below toasts a run of failures once, not on every tick (as useLiveTracks does).
+  // Whether the last read failed, so the poll below toasts a run of failures once, not on every tick (as useLiveTracks does). A press of the
+  // toast's Retry always answers: it toasts again when the read fails again, or it clears the failure.
   const failing = useRef(false);
+  const retryPressed = useRef(false);
   const failed = useCallback(
-    (reason: unknown) => {
-      if (!failing.current)
+    (reason: unknown, pressed: boolean) => {
+      if (pressed || !failing.current)
         notify(
           describeApiError(reason),
           'error',
-          retryAction(() => setRevision((n) => n + 1)),
+          retryAction(() => {
+            retryPressed.current = true;
+            setRevision((n) => n + 1);
+          }),
         );
       failing.current = true;
     },
@@ -106,6 +111,8 @@ export function useBoothVoices({
   useEffect(() => {
     if (!chapterId) return;
     let live = true;
+    const pressed = retryPressed.current;
+    retryPressed.current = false;
     void (async () => {
       const map = await links.chapterTrackMapList();
       if (!live) return;
@@ -119,18 +126,23 @@ export function useBoothVoices({
         failing.current = false;
         return;
       }
+      let hostFailed = false;
       const [project, entities, voice] = await Promise.all([
         // REAPER's live list over the saved file, as the Engine page reads it: a voice renamed or deleted in REAPER is seen before a save (#3269).
         tracksPort.tracksLive().then((answer) => answer.project),
         storyBible.guideEntities(),
         // A failed read is a toast; the voices are still listed, and the control shows the Narrator voice a start with no choice uses.
         voiceTracks.boothVoiceGet(chapterId).catch((reason: unknown) => {
-          if (live) failed(reason);
+          if (live) {
+            hostFailed = true;
+            failed(reason, pressed);
+          }
           return undefined;
         }),
       ]);
       if (!live) return;
-      failing.current = false;
+      // The run only clears the failure when none of its reads failed (the voice read is caught above and the rest throw).
+      if (!hostFailed) failing.current = false;
       setTracks(project.tracks);
       setLink(mine[0].trackGuid);
       setCharacters(entities.filter((entity) => entity.category === 'Character'));
@@ -139,7 +151,7 @@ export function useBoothVoices({
         guid: voice?.outcome === 'selected' || voice?.outcome === 'switched' ? (voice.trackGuid ?? '') : '',
         added: voice?.added ?? [],
       });
-    })().catch((reason: unknown) => live && failed(reason));
+    })().catch((reason: unknown) => live && failed(reason, pressed));
     return () => {
       live = false;
     };

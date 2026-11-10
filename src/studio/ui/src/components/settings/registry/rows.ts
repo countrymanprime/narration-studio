@@ -228,7 +228,7 @@ export const ROWS: readonly SettingMeta[] = [
     scope: 'project',
     def: 'flat',
     desc: 'One track per chapter, or a folder with a track per voice.',
-    more: 'Flat: a chapter is one track (a chapter linked to a folder that holds tracks of its own still records on one of them). Voice folders: a chapter is a folder with one child track per voice, so each voice records to its own track. The Engine panel’s Chapter sync card changes the same setting.',
+    more: 'Flat: a chapter is one track (a chapter linked to a folder that holds only tracks of its own, none another chapter is linked to, still records on one of them). Voice folders: a chapter is a folder with one child track per voice, so each voice records to its own track. The Engine panel’s Chapter sync card changes the same setting.',
     used: ['production', 'booth', 'editing'],
     also: 'Engine panel › Chapter sync',
     needs: 'reaper',
