@@ -242,3 +242,97 @@ test('presses after the lookup, during a slow model check, ask the host nothing 
   await expect(stop(page)).toBeVisible({ timeout: LOOKUP_DELAY_MS + 2000 });
   expect(await lookups(page)).toBe(before);
 });
+
+// The pending tip names the track and nothing else new: an unbroken, enormous name stays inside its popup, at a wide and a narrow window.
+for (const [label, name, width, height] of [
+  ['37 characters', 'x'.repeat(37), 1440, 900],
+  ['10,000 characters', 'Ω😀é'.repeat(2500), 1440, 900],
+  ['37 characters', 'x'.repeat(37), 320, 300],
+  ['10,000 characters', 'Ω😀é'.repeat(2500), 320, 300],
+] as const) {
+  test(`the pending tip keeps a ${label} track name inside its popup at ${width}x${height}`, async ({ page }) => {
+    await page.setViewportSize({ width, height });
+    await page.addInitScript(
+      ([trackName, ms]) => {
+        (window as unknown as { __NARRATION_MOCK_OVERRIDES__: unknown }).__NARRATION_MOCK_OVERRIDES__ = {
+          boothPunchTarget: async () => ({ outcome: 'found', trackName, start: 12, end: 20 }),
+          assetsList: () =>
+            new Promise((resolve) =>
+              setTimeout(
+                () => resolve({ cacheRoot: '', defaultRoot: '', custom: false, previousRoot: '', folderNote: '', totalInstalledBytes: 0, assets: [] }),
+                ms as number,
+              ),
+            ),
+        };
+      },
+      [name, 6000] as const,
+    );
+    await page.goto('/');
+    await settlePage(page);
+    await goToPage(page, 'Booth');
+    await expect(record(page)).toBeEnabled();
+    await showChapterTop(page);
+    await startFromHere(page);
+    await expect(record(page)).toHaveAttribute('aria-busy', 'true');
+    await record(page).hover();
+    const tip = page.getByRole('tooltip');
+    await expect(tip).toContainText('Recording over');
+    const fit = await tip.evaluate((el) => ({ scroll: el.scrollWidth, client: el.clientWidth, text: el.textContent ?? '' }));
+    expect(fit.scroll).toBeLessThanOrEqual(fit.client);
+    expect(fit.text).not.toMatch(/…\./);
+    expect(fit.text).not.toContain('¶');
+  });
+}
+
+// Data that comes and goes keeps a slot: the footer and Record do not move as the chip appears, changes and goes (measured, at two small windows).
+for (const [width, height] of [
+  [320, 300],
+  [360, 500],
+] as const) {
+  test(`the footer, Record and the timer stand still across idle, Looking up, Starts at and gone at ${width}x${height}`, async ({ page }) => {
+    test.setTimeout(40_000);
+    await page.setViewportSize({ width, height });
+    await page.addInitScript((ms) => {
+      (window as unknown as { __NARRATION_MOCK_OVERRIDES__: unknown }).__NARRATION_MOCK_OVERRIDES__ = {
+        boothPunchTarget: () => new Promise((resolve) => setTimeout(() => resolve({ outcome: 'found', start: 12, end: 20 }), 1500)),
+        assetsList: () =>
+          new Promise((resolve) =>
+            setTimeout(
+              () => resolve({ cacheRoot: '', defaultRoot: '', custom: false, previousRoot: '', folderNote: '', totalInstalledBytes: 0, assets: [] }),
+              ms,
+            ),
+          ),
+      };
+    }, 2500);
+    await page.goto('/');
+    await settlePage(page);
+    await goToPage(page, 'Booth');
+    await expect(record(page)).toBeEnabled();
+    const measure = () =>
+      page.evaluate(() => {
+        const box = (el: Element | null) => {
+          const r = el?.getBoundingClientRect();
+          return r ? [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height)] : null;
+        };
+        const footer = document.getElementById('brec')!.closest('div.flex-wrap')!.parentElement!;
+        return {
+          footer: Math.round(footer.getBoundingClientRect().height),
+          record: box(document.getElementById('brec')),
+          timer: box(document.getElementById('btimer')),
+        };
+      });
+    const idle = await measure();
+    // R chooses the phrase the reading is on and starts the take there: the same start as Start from here, from the keyboard, in a window too small for the menu.
+    await page.keyboard.press('r');
+    await expect(page.getByText(/^Looking up ¶ \d+…$/)).toBeVisible();
+    const looking = await measure();
+    await expect(page.getByText(/^Starts at ¶ \d+$/)).toBeVisible({ timeout: 4000 });
+    const starts = await measure();
+    await expect(stop(page)).toBeVisible({ timeout: 6000 });
+    await pastStartGuard(page);
+    await page.keyboard.press('Space');
+    await expect(record(page)).toBeVisible();
+    const gone = await measure();
+    expect({ looking, starts, gone }).toEqual({ looking: idle, starts: idle, gone: idle });
+  });
+}

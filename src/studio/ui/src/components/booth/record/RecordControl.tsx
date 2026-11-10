@@ -50,7 +50,7 @@ export function RecordControl({
       }
       pending={pending}
       {...(disabled && !pending ? { 'aria-disabled': true } : {})}
-      aria-describedby={pending ? PENDING_ID : reason ? describedBy : undefined}
+      aria-describedby={pending ? undefined : reason ? describedBy : undefined}
       onClick={() => void toggle()}
     >
       {pending ? null : <Icon name={stop ? 'stop' : coldMode ? 'microphone' : 'record'} />}

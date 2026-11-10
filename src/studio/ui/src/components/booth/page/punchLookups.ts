@@ -1,4 +1,5 @@
 import type { BoothPunch } from '../../../api/contracts/voiceTracks';
+import { HOST_WAIT_MS } from '../waits';
 
 type Port = { boothPunchTarget: (chapterId: string, paragraphId: string, fromWord: number, toWord: number) => Promise<BoothPunch> };
 
@@ -14,8 +15,14 @@ export function punchTargetOnce(port: Port, chapterId: string, paragraphId: stri
   const key = `${chapterId}|${paragraphId}|${fromWord}|${toWord}`;
   const joined = calls.get(key);
   if (joined) return joined;
-  const asked: Promise<BoothPunch> = (async () => port.boothPunchTarget(chapterId, paragraphId, fromWord, toWord))().finally(() => {
+  // A call that never settles is not joinable for ever: past the Booth's own limit a retry asks the host again.
+  const forget = () => {
     if (calls.get(key) === asked) calls.delete(key);
+  };
+  const timer = setTimeout(forget, HOST_WAIT_MS);
+  const asked: Promise<BoothPunch> = (async () => port.boothPunchTarget(chapterId, paragraphId, fromWord, toWord))().finally(() => {
+    clearTimeout(timer);
+    forget();
   });
   calls.set(key, asked);
   return asked;

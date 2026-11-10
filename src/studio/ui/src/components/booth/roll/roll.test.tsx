@@ -195,9 +195,10 @@ describe('useRoll', () => {
     expect(actions.beginTake).toHaveBeenCalledExactlyOnceWith(10);
   });
 
-  it('a passage nobody recorded says the take goes on from the end', async () => {
+  it('a passage nobody recorded says the take goes on from the end, and the start is spent at that answer (the chip must not disagree)', async () => {
     const { hook, actions } = setup(SETUPS.reaper, { recording: false, punchAt: 4 });
     await act(() => hook.result.current.startTake());
+    expect(actions.clearStart).toHaveBeenCalledTimes(1);
     expect(actions.notify).toHaveBeenCalledWith("¶ 3 was not recorded before, so the take goes on from the end of the chapter's audio.");
     expect(actions.beginTake).toHaveBeenCalledExactlyOnceWith();
   });
@@ -370,7 +371,7 @@ describe('useRoll', () => {
       act(() => {
         done = hook.result.current.startTake();
       });
-      await waitFor(() => expect(hook.result.current.startNote).toBe('Recording over ¶ 1 on Voice 1.'));
+      await waitFor(() => expect(hook.result.current.startNote).toBe('Recording over Voice 1'));
       expect(actions.notify).not.toHaveBeenCalled();
       take.resolve(found(1));
       await act(() => done);
@@ -460,7 +461,7 @@ describe('useRoll', () => {
 
     it('a track name of any length is clipped where a message says it', async () => {
       const long = `${'م'.repeat(5000)}😀${'e\u0301'.repeat(5000)}`;
-      expect(Array.from(clipName(long)).length).toBe(61);
+      expect(Array.from(clipName(long)).length).toBe(31);
       expect(clipName('Narrator')).toBe('Narrator');
       const hold = gate();
       const { hook, actions } = setup(SETUPS.reaper, {
@@ -473,10 +474,27 @@ describe('useRoll', () => {
       act(() => {
         done = hook.result.current.startTake();
       });
-      await waitFor(() => expect(hook.result.current.startNote).toMatch(/^Recording over ¶ 1 on /));
-      expect(hook.result.current.startNote.length).toBeLessThan(120);
+      await waitFor(() => expect(hook.result.current.startNote).toMatch(/^Recording over /));
+      expect(hook.result.current.startNote.length).toBeLessThan(60);
+      expect(hook.result.current.startNote).not.toMatch(/¶|\.$/);
       hold.resolve(found(1));
       await act(() => done);
+    });
+
+    it('a lookup call that never settles is not joined by a retry: past the limit the host is asked again (punchLookups)', async () => {
+      vi.useFakeTimers();
+      try {
+        const { punchTargetOnce } = await import('../page/punchLookups');
+        const port = { boothPunchTarget: vi.fn(() => new Promise<BoothPunch>(() => {})) };
+        void punchTargetOnce(port, 'c1', 'p1', 0, 3);
+        void punchTargetOnce(port, 'c1', 'p1', 0, 3);
+        expect(port.boothPunchTarget).toHaveBeenCalledTimes(1);
+        await vi.advanceTimersByTimeAsync(LOOKUP_MS + 100);
+        void punchTargetOnce(port, 'c1', 'p1', 0, 3);
+        expect(port.boothPunchTarget).toHaveBeenCalledTimes(2);
+      } finally {
+        vi.useRealTimers();
+      }
     });
 
     it('a refused lookup ends the wait too', async () => {
@@ -540,21 +558,41 @@ describe('useRoll', () => {
       expect(actions.beginTake).not.toHaveBeenCalled();
     });
 
-    it('a lookup answered after a newer start was chosen is ignored: the wrong voice is never recorded over', async () => {
+    it('a Start from here on another phrase while a lookup is out starts nothing, asks nothing, and says one sentence that names no start', async () => {
       const slow = gate();
-      const { hook, actions } = setup(SETUPS.reaper, {
-        recording: false,
-        punchTarget: (p) => (p === 2 ? slow.promise : Promise.resolve(found(p))),
-      });
+      const punchTarget = vi.fn((p: number) => (p === 2 ? slow.promise : Promise.resolve(found(p))));
+      const { hook, actions } = setup(SETUPS.reaper, { recording: false, punchTarget });
       let first: Promise<void> = Promise.resolve();
       act(() => {
         first = hook.result.current.startFromHere(2) as Promise<void>;
       });
       await act(() => hook.result.current.startFromHere(1));
+      expect(punchTarget).toHaveBeenCalledTimes(1);
+      expect(actions.chooseStart).toHaveBeenCalledTimes(1);
+      expect(actions.notify).toHaveBeenCalledExactlyOnceWith('A take is starting. Choose the phrase again when it has started or failed.');
       slow.resolve(found(2));
       await act(() => first);
-      expect(actions.beginTake).toHaveBeenCalledExactlyOnceWith(10);
-      expect(actions.chooseVoice).toHaveBeenCalledExactlyOnceWith('T1');
+      expect(actions.beginTake).toHaveBeenCalledExactlyOnceWith(20);
+      expect(actions.chooseVoice).toHaveBeenCalledExactlyOnceWith('T2');
+    });
+
+    it('the same for the voice choice: another phrase meanwhile asks for no second lookup and no second voice, and the voice answer lands before the take', async () => {
+      const voice = gate();
+      const punchTarget = vi.fn(async (p: number) => found(p));
+      const { hook, actions } = setup(SETUPS.reaper, { recording: false, punchTarget });
+      actions.chooseVoice.mockImplementation(async () => (await voice.promise, true));
+      let first: Promise<void> = Promise.resolve();
+      act(() => {
+        first = hook.result.current.startFromHere(2) as Promise<void>;
+      });
+      await waitFor(() => expect(actions.chooseVoice).toHaveBeenCalledTimes(1));
+      await act(() => hook.result.current.startFromHere(1));
+      expect(punchTarget).toHaveBeenCalledTimes(1);
+      expect(actions.chooseVoice).toHaveBeenCalledTimes(1);
+      expect(actions.chooseStart).toHaveBeenCalledTimes(1);
+      voice.resolve(found(2));
+      await act(() => first);
+      expect(actions.beginTake).toHaveBeenCalledExactlyOnceWith(20);
     });
   });
 

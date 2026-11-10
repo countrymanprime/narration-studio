@@ -365,10 +365,16 @@ export function useTeleprompterSession({ chapterId, chapter, credits, migrateLeg
    * claims nothing. True when the model is there (or unknown), false when the question was opened instead. `revert` runs if it is closed
    * without a download. A take must never begin behind this question, so Record calls this first.
    */
-  const ensureModel = async (which: { engine: string; model: string } = { engine, model }, revert?: () => void): Promise<boolean> => {
+  const ensureModel = async (
+    which: { engine: string; model: string } = { engine, model },
+    revert?: () => void,
+    /** False once the caller has stopped waiting: a late answer then opens no question. */
+    stillWaiting: () => boolean = () => true,
+  ): Promise<boolean> => {
     if (!isEngine(which.engine)) return true;
     try {
       const catalog = await api.assetsList();
+      if (!stillWaiting()) return true;
       const asset = catalog.assets.find((item) => item.kind === which.engine && item.id === which.model);
       if (!asset || asset.installState === 'installed') return true;
       gate.current = { revert };

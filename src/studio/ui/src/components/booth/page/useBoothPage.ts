@@ -107,6 +107,8 @@ export type BoothPageOptions = {
  */
 /** The toast topic of what a chosen start says; dismissed when the Booth is left or the chapter changes. */
 const START_TOPIC = 'booth-start';
+/** The "Recording did not start" message with its Retry: it goes when a take starts or the Booth is left, so its button never stops a take or does nothing. */
+const FAILED_START_TOPIC = 'booth-start-failed';
 
 export function useBoothPage(options: BoothPageOptions) {
   const { recordId, title, credits, paragraphs, session, daw, guard, overlay, from, navigate, exitTo, projectFolder = '' } = options;
@@ -369,7 +371,15 @@ export function useBoothPage(options: BoothPageOptions) {
     // The live speech model is checked before anything records: a missing one opens its install question here, and no take begins
     // behind it (the DAW would otherwise record while the narrator is still being asked, and while it downloads).
     // An answer that never comes is no reason to hold the press: the check claims nothing, as when it fails, and the take goes on.
-    if (!(await within(latest.current.session.ensureModel(), true))) return false;
+    // A check that answers after the limit is ignored (no question opens behind a take that has begun).
+    let waiting = true;
+    const modelOk = await within(
+      latest.current.session.ensureModel(undefined, undefined, () => waiting),
+      true,
+    );
+    waiting = false;
+    if (!modelOk) return false;
+    stoppedByLeave.current = false;
     // Each wait below can outlast the narrator's stay: a press whose Booth was left, or whose chapter changed, ends quietly (no take, no cue, no message).
     if (!current()) return false;
     // With the app's own recorder the page knows, from the one list Record options shows, when no microphone can be used (none chosen among several, none listed, the
@@ -398,16 +408,31 @@ export function useBoothPage(options: BoothPageOptions) {
       : Promise.resolve({ ok: true, reason: '' });
     // Record stops being pending when the DAW has answered (a refusal included), not when the listening start, which can take seconds, settles.
     const pressed = (): Promise<boolean> => control.toggle(punch, { current });
-    const [heard, started] = await (
-      together
-        ? Promise.all([hearing, pressed().finally(() => setBeginning(false))])
-        : hearing.then(async (answer) => [answer, answer.ok && (await pressed())] as const)
-    ).finally(() => (listenStarting.current = false));
+    let heard: { ok: boolean; reason: string };
+    let started: boolean;
+    if (together) {
+      started = await pressed().finally(() => setBeginning(false));
+      if (!started) {
+        // The DAW refused (or the press was cancelled): this press is over now, not when listening has settled, so the next one is a new press.
+        // A listening start still on its way is let go when it lands.
+        listenStarting.current = false;
+        void hearing.then(
+          (answer) => (answer.ok ? latest.current.session.stop() : undefined),
+          () => undefined,
+        );
+        return false;
+      }
+      heard = await hearing.finally(() => (listenStarting.current = false));
+    } else {
+      heard = await hearing.finally(() => (listenStarting.current = false));
+      started = heard.ok && (await pressed());
+    }
     if (!current()) {
       // Cancelled while it waited: whatever listening it started is let go, and nothing is said. A take the DAW had already accepted by then is
       // stopped and taken back at once, as one whose listening failed is: the narrator has left, and nothing may keep recording behind them.
       latest.current.session.stop();
-      if (started) await dropUnheardTake();
+      // Unless the Stop-and-leave path stopped it already: stopping it twice would tell the next page about a recording that is over.
+      if (started && !stoppedByLeave.current) await dropUnheardTake();
       return false;
     }
     if (!heard.ok) {
@@ -417,6 +442,7 @@ export function useBoothPage(options: BoothPageOptions) {
         `Recording did not start: the text cannot follow your voice (${heard.reason || 'listening failed'}).${kept ? '' : ' Nothing was recorded.'}`,
         {
           tone: 'error',
+          topic: FAILED_START_TOPIC,
           action: retryAction(() => void retryTake.current()),
         },
       );
@@ -431,6 +457,8 @@ export function useBoothPage(options: BoothPageOptions) {
   const [beginning, setBeginning] = useState(false);
   // Which press is current: leaving the Booth or changing chapter makes every press in flight stale (see `beginOnce`).
   const pressToken = useRef(0);
+  // Set when the leave path stops the take, so a press that lands after it does not stop it a second time.
+  const stoppedByLeave = useRef(false);
   const mounted = useRef(true);
 
   const roll = useRoll(
@@ -514,6 +542,7 @@ export function useBoothPage(options: BoothPageOptions) {
       cancelStart();
       pressToken.current += 1;
       overlay.dismissTopic(START_TOPIC);
+      overlay.dismissTopic(FAILED_START_TOPIC);
     },
     [recordId, cancelStart, overlay],
   );
@@ -535,6 +564,7 @@ export function useBoothPage(options: BoothPageOptions) {
     const place = placeOf(now.paragraphs, now.units, now.at);
     if (recording) {
       overlay.dismissTopic(CHECK_OFFER_TOPIC);
+      overlay.dismissTopic(FAILED_START_TOPIC);
       setTakeNote('');
       setPaused(false);
       setBrowse(false);
@@ -612,7 +642,10 @@ export function useBoothPage(options: BoothPageOptions) {
     // Undoable from the next page: a DAW's take is in the history before the page goes.
     if (result.ok && !recordsInApp(latestDaw.current)) await keepTake(result);
     // The take is over now: the leave guard that asked is waiting to go, and it must not see a take still running until the DAW's next heartbeat.
-    if (result.ok) markStopped();
+    if (result.ok) {
+      stoppedByLeave.current = true;
+      markStopped();
+    }
     if (result.ok && latest.current.session.active) latest.current.session.stop();
     // Stopped on the way out: the pickups it read over are marked without a toast, as the page is going.
     if (result.ok) void tellStopped(true);
@@ -755,7 +788,7 @@ export function useBoothPage(options: BoothPageOptions) {
     else await roll.startTake();
   }, [control, roll, blocked]);
   // A Retry on a message that outlived the Booth does nothing: it must not start a take on a page nobody is looking at.
-  retryTake.current = () => (mounted.current ? toggleTake() : Promise.resolve());
+  retryTake.current = () => (mounted.current && !latest.current.recording ? toggleTake() : Promise.resolve());
   // The jump menu's cold read: it picks the Cold read mode and starts one (or stops the one that listens), so the button says what is happening.
   const coldReadFromJump = useCallback(async () => {
     const now = latest.current;

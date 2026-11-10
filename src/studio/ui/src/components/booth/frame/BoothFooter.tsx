@@ -169,7 +169,15 @@ export function BoothFooter({
           <span id="btimer" className="font-mono text-lg text-[var(--text)]">
             {timerText(seconds)}
           </span>
-          {startsAt ? <HeaderChip>{startsAt}</HeaderChip> : null}
+          {startsAt ? (
+            <HeaderChip>
+              {/* In a window too narrow for the words the chip keeps to its row with just the place ("¶ 3"), so the footer does not grow and Record does not move; the words stay for a screen reader. */}
+              <span className="max-[26rem]:sr-only">{startsAt}</span>
+              <span aria-hidden className="hidden max-[26rem]:inline">
+                {startsAt.replace(/^[^¶]*/, '')}
+              </span>
+            </HeaderChip>
+          ) : null}
           <span id={PENDING_ID} role="status" className="sr-only">
             {startPending ? pendingText : ''}
           </span>

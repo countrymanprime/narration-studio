@@ -53,11 +53,13 @@ export const LOOKUP_MS = HOST_WAIT_MS;
 
 const LOOKUP_FAILED = 'Where that passage was recorded could not be read, so no take was started.';
 const LOOKUP_SLOW = 'The app got no answer about where that passage was recorded, so no take was started.';
+/** Said when a Start from here for another phrase arrives while a take is starting: it names no start (the chip still shows the one that is starting). */
+const START_IGNORED = 'A take is starting. Choose the phrase again when it has started or failed.';
 /** Said with every refusal of a lookup: the chosen start is dropped, so the next Record is a plain one and nothing happens silently. */
 const START_LET_GO = 'No start is chosen now: Record starts at the end of the recording. Choose the phrase again to retry.';
 
 /** A track or voice name as a message says it: a name is the project's, and can be any length. */
-export function clipName(name: string, max = 60): string {
+export function clipName(name: string, max = 30): string {
   const letters = Array.from(name.trim());
   return letters.length <= max ? letters.join('') : `${letters.slice(0, max).join('')}…`;
 }
@@ -246,7 +248,12 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
       const s = sessionRef.current;
       const to = clampPhrase(unit, s.phraseCount);
       // The same press again (a second Space, R or pedal tap while it waits) is that press: nothing is chosen, looked up or said twice.
-      if (!s.recording && (actionsRef.current.isStarting?.() || pressing.current?.at === to)) return;
+      // One rule for the whole press (lookup, voice choice, checks, tone, DAW call): a press for another phrase is not that press, and is not taken up
+      // either, so a stale answer can never land in a take that began for another phrase. The narrator chose a menu item, so one sentence says it was ignored.
+      if (!s.recording && (actionsRef.current.isStarting?.() || pressing.current)) {
+        if (pressing.current && pressing.current.at !== to) actionsRef.current.notify(START_IGNORED);
+        return;
+      }
       // Before a take, a start the DAW could not punch to is not armed: the narrator is told now, not after Space, where the take will start.
       const plan = rollPlan(s.capabilities);
       if (!s.recording && plan.kind === 'refused') {
@@ -276,6 +283,8 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
       if (target.outcome === 'never_recorded') {
         // Not a punch: said, so a narrator never thinks earlier work is being recorded over.
         actionsRef.current.notify(`¶ ${s.paragraphOf(at) + 1} was not recorded before, so the take goes on from the end of the chapter's audio.`);
+        // The start is spent at this answer: the chip must not go on saying the take starts at ¶ N when the message says it does not.
+        actionsRef.current.clearStart?.();
         return actionsRef.current.beginTake();
       }
       if (target.outcome !== 'found' || target.start === undefined) {
@@ -297,7 +306,8 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
       if (outdated(mine)) return;
       // The narrator is told which track is recorded over before the take starts, in the pending Record's own words (a message would say the start
       // twice beside the chip); it is gone with the press, so a refused take leaves no claim.
-      setStartNote(`Recording over ¶ ${s.paragraphOf(at) + 1}${target.trackName ? ` on ${clipName(target.trackName)}` : ''}.`);
+      // Only the track is new to the narrator (the chip carries the paragraph), so a pending Record names only that.
+      setStartNote(target.trackName ? `Recording over ${clipName(target.trackName)}` : '');
       return actionsRef.current.beginTake(target.start);
     },
     [ask, lookUpFor],

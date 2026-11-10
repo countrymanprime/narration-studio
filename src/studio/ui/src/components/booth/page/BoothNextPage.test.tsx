@@ -2352,7 +2352,7 @@ describe('a start chosen with Start from here: the wait is shown, joined, droppe
     expect(lookup.boothPunchTarget).toHaveBeenCalledTimes(1);
   });
 
-  it('pending Record is described and announced once: "Starting the take…" in the status line, and as its description', async () => {
+  it('pending Record is announced once: "Starting the take…" in the status line, and not again as a description', async () => {
     const lookup = slowLookup();
     renderPage({ search: '?chapter=c1&para=p3&at=28', api: { boothPunchTarget: lookup.boothPunchTarget } });
     await ready();
@@ -2360,7 +2360,7 @@ describe('a start chosen with Start from here: the wait is shown, joined, droppe
     expect(status().getAttribute('role')).toBe('status');
     expect(status().textContent).toBe('');
     await space();
-    expect(recordButton().getAttribute('aria-describedby')).toBe('brec-pending');
+    expect(recordButton().getAttribute('aria-describedby')).toBeNull();
     expect(status().textContent).toBe('Starting the take…');
     await space();
     expect(status().textContent).toBe('Starting the take…');
@@ -2656,6 +2656,122 @@ describe('every wait of a press is one press: joined, bounded, and dropped with 
     await waitFor(() => expect(page.daw.undoLast).toHaveBeenCalledWith('record_take', 1));
   });
 
+  describe('a press the DAW refuses is over at once, not when listening has settled', () => {
+    const slowListening = () => {
+      const hold = gate();
+      const teleprompterStart = vi.fn(async () => {
+        await hold.open;
+        return { status: 'started' as const };
+      });
+      return { hold, teleprompterStart };
+    };
+    const refusals: [string, (daw: ReturnType<typeof renderPage>['daw']) => void][] = [
+      [
+        'a refusal',
+        (daw) =>
+          daw.recordStart.mockImplementationOnce(
+            async () =>
+              ({ ok: false, changed: false, undoSteps: 0, message: 'REAPER is recording already.', refused: 'REAPER is recording already.' }) as never,
+          ),
+      ],
+      [
+        'a thrown start',
+        (daw) =>
+          daw.recordStart.mockImplementationOnce(async () => {
+            throw new Error('the bridge did not answer');
+          }),
+      ],
+    ];
+    for (const [name, refuse] of refusals) {
+      for (const search of ['', START]) {
+        it(`${name}${search ? ' with a start chosen' : ''}: pending ends, and the next press is a new press (listening still starting)`, async () => {
+          const host = slowListening();
+          const page = renderPage({
+            search,
+            api: { teleprompterStart: host.teleprompterStart, settingsForScope: savedDevice('USB Mic'), boothPunchTarget: async () => FOUND } as never,
+          });
+          refuse(page.daw);
+          await ready();
+          await space();
+          await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(1));
+          await waitFor(() => expect(recordButton().getAttribute('aria-busy')).toBeNull());
+          // Listening has not settled, and Record already works: the press that follows asks the DAW again.
+          await space();
+          await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(2));
+          host.hold.release();
+        });
+      }
+    }
+  });
+
+  it('a model check that answers "not installed" after the limit opens no question behind a take', async () => {
+    const never = gate();
+    const assetsList = (async () => {
+      await never.open;
+      return {
+        assets: [
+          {
+            kind: 'whisper',
+            id: 'tiny',
+            installState: 'not_installed',
+            displayName: 'Whisper tiny',
+            version: '1',
+            publisher: 'p',
+            license: 'MIT',
+            licenseUrl: '',
+            modelCardUrl: '',
+            provenanceUrl: '',
+            attribution: '',
+            downloadSize: 1,
+            diskSize: 1,
+            path: '',
+            installedAt: '',
+            verifiedAt: '',
+            activeJobId: '',
+            kindLabel: '',
+          },
+        ],
+      };
+    }) as never;
+    const page = renderPage({ api: { assetsList } as Partial<NarrationApi> });
+    await ready();
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      await space();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(8400);
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+    await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(1));
+    never.release();
+    await settle();
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+  });
+
+  it('the Stop-and-leave path stopping the take first means a late press does not stop it a second time', async () => {
+    const hold = gate();
+    const teleprompterStart = vi.fn(async () => {
+      await hold.open;
+      return { status: 'started' as const };
+    });
+    const page = renderPage({ api: { teleprompterStart, settingsForScope: savedDevice('USB Mic') } as never });
+    page.daw.recordStop.mockImplementation(async () => ({ ok: true, changed: true, message: '', undoSteps: 0 }));
+    await ready();
+    await space();
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+    await press('Escape');
+    await act(async () => page.dialog()!.answer(true));
+    await waitFor(() => expect(page.navigate).toHaveBeenCalledWith('/script'));
+    await waitFor(() => expect(page.daw.recordStop).toHaveBeenCalledTimes(1));
+    page.view.unmount();
+    hold.release();
+    await settle();
+    await settle();
+    expect(page.daw.recordStop).toHaveBeenCalledTimes(1);
+  });
+
   describe('a wait that never answers ends after the host limit and the press goes on or says so', () => {
     const never = () => new Promise<never>(() => {});
     const limit = async () => {
@@ -2709,6 +2825,51 @@ describe('every wait of a press is one press: joined, bounded, and dropped with 
       await waitFor(() => expect(page.daw.recordStop).toHaveBeenCalledTimes(1));
       await waitFor(() => expect(screen.getByText('Starts at ¶ 3')).toBeTruthy());
       await waitFor(() => expect(toastRetry(page)).toBeTruthy());
+      // Retry records from the chosen start again, not from the end of the chapter.
+      await act(async () => void toastRetry(page)!.onAction());
+      await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(2));
+      expect(page.daw.recordStart).toHaveBeenLastCalledWith('c1', 12);
+    });
+
+    it('the message goes when a good take starts, and its Retry never stops a take', async () => {
+      const host = failing();
+      const page = renderPage({
+        search: START,
+        api: { settingsForScope: savedDevice('USB Mic'), teleprompterStart: host.teleprompterStart, boothPunchTarget: async () => FOUND } as never,
+      });
+      page.daw.recordStop.mockImplementation(async () => ({ ok: true, changed: true, message: '', undoSteps: 1 }));
+      await ready();
+      await space();
+      await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(1));
+      await act(async () => host.fail(new Error('The microphone is in use by another application.')));
+      await waitFor(() => expect(toastRetry(page)).toBeTruthy());
+      const retry = toastRetry(page)!;
+      // A good take: listening starts this time.
+      host.teleprompterStart.mockImplementationOnce((async () => ({ status: 'started' })) as never);
+      await space();
+      await waitFor(() => expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy());
+      expect(toastRetry(page)).toBeUndefined();
+      const stops = page.daw.recordStop.mock.calls.length;
+      await act(async () => void retry.onAction());
+      await settle();
+      expect(page.daw.recordStop.mock.calls.length).toBe(stops);
+      expect(screen.getByRole('button', { name: /^Stop$/ })).toBeTruthy();
+    });
+
+    it('leaving the Booth takes the failed-start message away, so no dead Retry shows on the next page', async () => {
+      const host = failing();
+      const page = renderPage({
+        search: START,
+        api: { settingsForScope: savedDevice('USB Mic'), teleprompterStart: host.teleprompterStart, boothPunchTarget: async () => FOUND } as never,
+      });
+      page.daw.recordStop.mockImplementation(async () => ({ ok: true, changed: true, message: '', undoSteps: 1 }));
+      await ready();
+      await space();
+      await waitFor(() => expect(page.daw.recordStart).toHaveBeenCalledTimes(1));
+      await act(async () => host.fail(new Error('The microphone is in use by another application.')));
+      await waitFor(() => expect(toastRetry(page)).toBeTruthy());
+      page.view.unmount();
+      expect(toastRetry(page)).toBeUndefined();
     });
 
     it('a Retry on that message after the Booth was left starts nothing', async () => {
