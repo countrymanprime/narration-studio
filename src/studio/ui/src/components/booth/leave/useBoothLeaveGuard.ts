@@ -22,7 +22,7 @@ type Deps = {
 
 /**
  * Registers the Booth's leave guard while a take records and returns `leave`, the one way out the Booth's own exits take
- * (Escape, the setup chip, a chapter opened in Script). `leave(next, go)` asks "Stop recording?" once, holds the take until
+ * (Escape, the setup chip, a chapter opened in Script) and, as the verdict's `decide`, the one the app shell uses for the nav, Back and Forward. `leave(next, go)` asks "Stop recording?" once, holds the take until
  * the narrator answers, stops the recording the app started, flushes the passage map's run, and only then calls `go` with the same destination. Keep
  * recording changes nothing. A refused stop keeps the question open with the host's sentence and offers "Leave anyway". The guard is removed when
  * the recording ends or the Booth unmounts.
@@ -30,8 +30,44 @@ type Deps = {
 export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay }: Deps) {
   const sessionRef = useRef(session);
   sessionRef.current = session;
-  const asking = useRef<Promise<void> | null>(null);
+  const asking = useRef<Promise<boolean> | null>(null);
   const { recording } = session;
+
+  // The question, the stop and its refusal: true once the take is over (or was never the app's) and the move may go, false when the narrator stayed.
+  // One at a time: a second caller while it is open is the same question, and does not move.
+  const decide = useCallback((): Promise<boolean> => {
+    const now = sessionRef.current;
+    if (asking.current) return asking.current.then(() => false);
+    const run = async (): Promise<boolean> => {
+      const startedByApp = now.startedByApp ?? true;
+      let spec = stopRecordingSpec(now.daw.name, startedByApp);
+      let refusedOnce = false;
+      for (;;) {
+        if (!(await overlay.confirm(spec))) return false;
+        // The stop was refused and the narrator chose to leave anyway: a DAW that does not answer must not hold them in the Booth.
+        if (!startedByApp || refusedOnce) return true;
+        const result = await sessionRef.current.stopRecording();
+        if (result.ok) {
+          await sessionRef.current.flush?.();
+          return true;
+        }
+        // The stop was refused: nothing changed, so the take still runs. The question stays, now with the host's sentence and a way out.
+        refusedOnce = true;
+        const sentence = result.refused ?? (result.message || '');
+        spec = {
+          ...spec,
+          title: 'Could not stop the take',
+          body: `${sentence} You can leave anyway, but it may keep recording.`.trim(),
+          confirmLabel: 'Leave anyway',
+        };
+      }
+    };
+    const pending = run().finally(() => {
+      asking.current = null;
+    });
+    asking.current = pending;
+    return pending;
+  }, [overlay]);
 
   useEffect(() => {
     if (!recording) {
@@ -39,50 +75,19 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
       return;
     }
     const { daw, startedByApp = true } = sessionRef.current;
-    guard.setLeaveGuard(() => ({ ask: stopRecordingSpec(daw.name, startedByApp) }));
+    guard.setLeaveGuard(() => ({ ask: stopRecordingSpec(daw.name, startedByApp), decide }));
     return () => guard.setLeaveGuard(null);
-  }, [recording, guard]);
+  }, [recording, guard, decide]);
 
   const leave = useCallback(
-    (next: string, go: (next: string) => void): Promise<void> => {
-      const now = sessionRef.current;
-      if (!now.recording) {
+    async (next: string, go: (next: string) => void): Promise<void> => {
+      if (!sessionRef.current.recording) {
         go(next);
-        return Promise.resolve();
+        return;
       }
-      if (asking.current) return asking.current;
-      const run = async () => {
-        const startedByApp = now.startedByApp ?? true;
-        let spec = stopRecordingSpec(now.daw.name, startedByApp);
-        let refusedOnce = false;
-        for (;;) {
-          if (!(await overlay.confirm(spec))) return;
-          // The stop was refused and the narrator chose to leave anyway: a DAW that does not answer must not hold them in the Booth.
-          if (!startedByApp || refusedOnce) break;
-          const result = await sessionRef.current.stopRecording();
-          if (result.ok) {
-            await sessionRef.current.flush?.();
-            break;
-          }
-          // The stop was refused: nothing changed, so the take still runs. The question stays, now with the host's sentence and a way out.
-          refusedOnce = true;
-          const sentence = result.refused ?? (result.message || '');
-          spec = {
-            ...spec,
-            title: 'Could not stop the take',
-            body: `${sentence} You can leave anyway, but it may keep recording.`.trim(),
-            confirmLabel: 'Leave anyway',
-          };
-        }
-        go(next);
-      };
-      const pending = run().finally(() => {
-        asking.current = null;
-      });
-      asking.current = pending;
-      return pending;
+      if (await decide()) go(next);
     },
-    [overlay],
+    [decide],
   );
 
   return { leave };

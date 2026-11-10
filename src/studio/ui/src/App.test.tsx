@@ -1997,6 +1997,34 @@ describe('App shell mounts', () => {
       journal.setLeaveGuard(null);
     });
 
+    it('a guard that decides for itself is used in place of the plain confirm: false keeps the page, true goes', async () => {
+      const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
+      await toScript(journal);
+      const decide = vi.fn<() => Promise<boolean>>().mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+      journal.setLeaveGuard(() => ({ ...asking, decide }));
+      act(() => window.history.back());
+      await waitFor(() => expect(decide).toHaveBeenCalledTimes(1));
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(screen.queryByRole('alertdialog')).toBeNull();
+      expect(window.location.pathname).toBe('/script');
+      fireEvent.keyDown(document, { key: 'ArrowLeft', code: 'ArrowLeft', altKey: true });
+      await screen.findByRole('heading', { level: 1, name: 'Production' });
+      expect(decide).toHaveBeenCalledTimes(2);
+      journal.setLeaveGuard(null);
+    });
+
+    it('a popstate that lands on the same route asks nothing', async () => {
+      const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
+      await toScript(journal);
+      journal.setLeaveGuard(() => asking);
+      // An entry on the same page the router was not told about: stepping back to /script from it leaves nothing behind.
+      act(() => window.history.pushState({ idx: 2 }, '', '/script#p1'));
+      act(() => window.history.back());
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      expect(screen.queryByRole('alertdialog')).toBeNull();
+      journal.setLeaveGuard(null);
+    });
+
     it('Forward asks too, and with no guard Back leaves with no question', async () => {
       const journal = createJournal({ dawName: () => 'REAPER', dawLastAction: async () => 'unknown' });
       await toScript(journal);

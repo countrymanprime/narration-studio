@@ -361,7 +361,8 @@ describe('every-way-out-asks-while-recording', () => {
     const page = renderPage();
     expect(page.journal.checkLeave('/proof')).toBe('allow');
     await record(page);
-    for (const path of ['/proof', '/script']) expect(page.journal.checkLeave(path)).toEqual({ ask: expect.objectContaining({ title: 'Stop recording?' }) });
+    for (const path of ['/proof', '/script'])
+      expect(page.journal.checkLeave(path)).toEqual({ ask: expect.objectContaining({ title: 'Stop recording?' }), decide: expect.any(Function) });
     // The shell asked and the narrator said yes: the shell moves and the page goes.
     page.view.unmount();
     await waitFor(() => expect(page.daw.recordStop).toHaveBeenCalledTimes(1));
@@ -955,6 +956,27 @@ describe('a refused stop keeps the take and the question', () => {
     expect(page.dialog()?.spec.confirmLabel).toBe('Leave anyway');
     expect(page.navigate).not.toHaveBeenCalled();
   });
+
+  // The shell's exits (the nav, Back, Forward, a route change) answer through the verdict's `decide`: the same question, stop and refusal as Escape (#3325).
+  it('the shell exits stop the take through the verdict, keep the Booth on a refusal, and let go on Leave anyway', async () => {
+    const refused: DawResult = { ok: false, changed: false, message: 'Not now.', undoSteps: 0, refused: 'Not now.' };
+    const page = renderPage();
+    page.daw.recordStop.mockResolvedValueOnce(refused);
+    await record(page);
+    const verdict = page.journal.checkLeave('/proof');
+    if (verdict === 'allow' || !verdict.decide) throw new Error('the Booth asks with a decision while it records');
+    let outcome: boolean | undefined;
+    act(() => void verdict.decide!().then((value) => (outcome = value)));
+    await waitFor(() => expect(page.dialog()?.spec.title).toBe('Stop recording?'));
+    await act(async () => page.dialog()!.answer(true));
+    await waitFor(() => expect(page.dialog()?.spec.title).toBe('Could not stop the take'));
+    expect(page.dialog()?.spec.body).toContain('Not now.');
+    expect(outcome).toBeUndefined();
+    await act(async () => page.dialog()!.answer(true));
+    await waitFor(() => expect(outcome).toBe(true));
+    // Escape's own exit asks the same question and goes by the page's navigate, once.
+    expect(page.navigate).not.toHaveBeenCalled();
+  });
 });
 
 // SN-O103: the bookmarks (SN-O81) and the pickup session (SN-O82) on the page.
@@ -1194,7 +1216,10 @@ describe('every way out of the page asks while a take records', () => {
     // Back and Forward buttons (the shell asks with no destination), the rail, and a project switch (the start page).
     const exits = { palette: '/proof', toast: '/pickups', mouseButtons: '', rail: '/production', projectSwitch: '/' };
     for (const [exit, path] of Object.entries(exits))
-      expect({ exit, verdict: page.journal.checkLeave(path) }).toEqual({ exit, verdict: { ask: expect.objectContaining({ title: 'Stop recording?' }) } });
+      expect({ exit, verdict: page.journal.checkLeave(path) }).toEqual({
+        exit,
+        verdict: { ask: expect.objectContaining({ title: 'Stop recording?' }), decide: expect.any(Function) },
+      });
     // Asking stops nothing: only the narrator's Stop and leave does.
     await settle();
     expect(page.daw.recordStop).not.toHaveBeenCalled();

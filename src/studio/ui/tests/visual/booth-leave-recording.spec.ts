@@ -73,7 +73,7 @@ test('Escape, then Back with the question open, leaves one question and the take
   expect(await dawRecording(page)).toBe(true);
 });
 
-test('forward into the Booth, then Back again, asks each time it is a take', async ({ page }) => {
+test('Forward into the Booth, then Back with nothing recording, leaves with no question', async ({ page }) => {
   await recording(page);
   await page.evaluate(() => window.history.back());
   await question(page).getByRole('button', { name: /^Stop/ }).click();
@@ -113,6 +113,89 @@ test('the keyboard Back (Alt+Left) asks too, and Keep recording keeps the take',
     .getByRole('button', { name: /Keep recording|Cancel/ })
     .click();
   await expect(question(page)).toHaveCount(0);
+  expect(await onBooth(page)).toBe(true);
+  expect(await dawRecording(page)).toBe(true);
+});
+
+// Every exit the narrator can reach ends one of two ways, whatever the DAW answers: the take is stopped and the page goes, or the stop is refused and the
+// Booth stays with the host's sentence and "Leave anyway". None leaves the page with the DAW still recording.
+type Exit = { name: string; start?: (page: Page) => Promise<void>; go: (page: Page) => Promise<void> };
+const EXITS: Exit[] = [
+  { name: 'Escape', go: (page) => page.keyboard.press('Escape') },
+  { name: 'Back', go: (page) => page.evaluate(() => window.history.back()) },
+  { name: 'Alt+Left', go: (page) => page.keyboard.press('Alt+ArrowLeft') },
+  { name: 'Ctrl+,', go: (page) => page.keyboard.press('Control+Comma') },
+  {
+    name: 'the jump menu',
+    go: async (page) => {
+      await page.keyboard.press('Control+KeyK');
+      await page.getByRole('combobox', { name: 'Jump menu' }).fill('Script');
+      await page
+        .getByRole('option', { name: /Script/ })
+        .first()
+        .click();
+    },
+  },
+  {
+    // Forward out of the Booth needs a later entry: leave by Escape (to Script), come Back to the Booth, and record there.
+    name: 'Forward',
+    start: async (page) => {
+      await page.keyboard.press('Escape');
+      await expect(page.getByRole('heading', { level: 1, name: 'Script' })).toBeVisible();
+      await page.evaluate(() => window.history.back());
+      await expect(record(page)).toBeEnabled();
+    },
+    go: (page) => page.evaluate(() => window.history.forward()),
+  },
+];
+
+for (const exit of EXITS) {
+  test(`${exit.name} during a take: Stop and leave stops the take and the page goes`, async ({ page }) => {
+    if (exit.start) {
+      await page.goto('/');
+      await settlePage(page);
+      await goToPage(page, 'Booth');
+      await exit.start(page);
+      await record(page).click();
+      await expect(stop(page)).toBeVisible();
+      await pastStartGuard(page);
+    } else await recording(page);
+    await exit.go(page);
+    await question(page).getByRole('button', { name: /^Stop/ }).click();
+    await expect(page.locator('[data-booth-text]')).toHaveCount(0);
+    await expect.poll(() => dawRecording(page)).toBe(false);
+  });
+
+  test(`${exit.name} during a take: a refused stop keeps the Booth with the sentence, and Leave anyway then leaves`, async ({ page }) => {
+    if (exit.start) {
+      await page.goto('/');
+      await settlePage(page);
+      await goToPage(page, 'Booth');
+      await exit.start(page);
+      await record(page).click();
+      await expect(stop(page)).toBeVisible();
+      await pastStartGuard(page);
+    } else await recording(page);
+    await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.refuseNextRecord('Disk full.', 'stop'));
+    await exit.go(page);
+    await question(page).getByRole('button', { name: /^Stop/ }).click();
+    const refused = page.getByRole('alertdialog', { name: /^Could not stop the take$/ });
+    await expect(refused).toBeVisible();
+    await expect(refused).toContainText('Disk full.');
+    expect(await dawRecording(page)).toBe(true);
+    await expect(page.locator('[data-booth-text]')).toHaveCount(1);
+    await refused.getByRole('button', { name: 'Leave anyway' }).click();
+    await expect(page.locator('[data-booth-text]')).toHaveCount(0);
+  });
+}
+
+test('Back with Record options open asks nothing on top and does not move', async ({ page }) => {
+  await recording(page);
+  await page.getByRole('button', { name: 'Record options' }).click();
+  await expect(page.getByRole('dialog', { name: 'Record options' })).toBeVisible();
+  await page.evaluate(() => window.history.back());
+  await page.waitForTimeout(300);
+  await expect(page.getByRole('alertdialog', { includeHidden: true })).toHaveCount(0);
   expect(await onBooth(page)).toBe(true);
   expect(await dawRecording(page)).toBe(true);
 });

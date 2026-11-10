@@ -6,7 +6,17 @@
 export type ConfirmSpec = { title: string; body: string; confirmLabel: string; cancelLabel?: string; safeDefault?: boolean };
 
 /** The answer to "may the narrator leave for `next`?": go ahead, or ask this first. */
-type LeaveVerdict = 'allow' | { ask: ConfirmSpec };
+type LeaveVerdict =
+  | 'allow'
+  | {
+      ask: ConfirmSpec;
+      /**
+       * The page's own way of putting the question and letting go of what it holds (the Booth stops the take, and a stop the DAW refuses keeps the
+       * narrator in the Booth). It resolves true once the move may go ahead, false when the narrator stayed. A shell that finds it uses it in
+       * place of confirming `ask` itself, so every exit ends the same way Escape does.
+       */
+      decide?: () => Promise<boolean>;
+    };
 
 type LeaveGuard = (next: string) => LeaveVerdict;
 

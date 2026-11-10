@@ -35,6 +35,7 @@ describe('useBoothLeaveGuard', () => {
   it('recording-asks-stop-recording, naming the DAW from the report', () => {
     const { store } = setup({ daw: { name: 'Audacity' } });
     expect(store.checkLeave('/proof')).toEqual({
+      decide: expect.any(Function),
       ask: {
         title: 'Stop recording?',
         body: 'Audacity is recording. Leaving the Booth stops it.',

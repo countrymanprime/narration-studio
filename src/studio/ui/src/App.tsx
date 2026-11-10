@@ -850,6 +850,8 @@ function AppRoutes() {
 
   // A page may stop a move and ask first (the Booth does while a take is recording): the journal's leave guard answers, the overlay asks,
   // and only Yes goes on to the move's own guards below. A guard that answers 'allow', or none, leaves navigation as it was.
+  // The page's own question when it has one (the Booth's stops the take and keeps the narrator in the Booth when the DAW refuses), else the plain confirm.
+  const answerLeave = (verdict: Exclude<ReturnType<typeof journal.checkLeave>, 'allow'>) => (verdict.decide ? verdict.decide() : overlay.confirm(verdict.ask));
   const guardedMove = (next: string, state?: unknown) => {
     const nextPath = next.split(/[?#]/)[0] || '/';
     const verdict = nextPath === location.pathname ? 'allow' : journal.checkLeave(nextPath);
@@ -857,7 +859,7 @@ function AppRoutes() {
       moveTo(next, state);
       return;
     }
-    void overlay.confirm(verdict.ask).then((confirmed) => {
+    void answerLeave(verdict).then((confirmed) => {
       if (confirmed) moveTo(next, state);
     });
   };
@@ -889,9 +891,9 @@ function AppRoutes() {
     // The page's leave guard is asked first, as for the nav (the Booth while a take records). Its guard does not read the destination.
     const verdict = journal.checkLeave('');
     if (verdict !== 'allow') {
-      // A browser Back pressed again while the question is open is the same question: it neither stacks another nor moves.
-      if (fromPop && overlay.getSnapshot().dialogs.length > 0) return;
-      void overlay.confirm(verdict.ask).then((confirmed) => {
+      // A browser Back pressed while a question or any dialog is open (the shortcut sheet, Record options) neither stacks another nor moves, as for Alt+Left.
+      if (fromPop && isModalOpen()) return;
+      void answerLeave(verdict).then((confirmed) => {
         if (confirmed) moveByDelta(direction);
       });
       return;
@@ -1132,7 +1134,8 @@ function AppRoutes() {
                             'booth',
                             <BoothNextPage
                               hasManuscript={Boolean(data.manuscript)}
-                              navigate={guardedNavigate}
+                              // The Booth asks its own leave question (`useBoothLeaveGuard`) before it calls this, so it does not ask again after "Leave anyway".
+                              navigate={(next) => moveTo(next)}
                               onImport={() => guardedNavigate('/')}
                               projectFolder={data.projectFolder}
                             />,
