@@ -33,7 +33,7 @@ export type RollActions = TakeControls & {
   /** Starts a take, at `punchAt` seconds when it is a punch. */
   beginTake: (punchAt?: number) => void | Promise<void>;
   /** Makes the voice the passage was recorded on the one the take records on; false (with the reason said) when it could not. */
-  chooseVoice?: (trackGuid: string, stillWanted?: () => boolean) => Promise<boolean>;
+  chooseVoice?: (trackGuid: string) => Promise<boolean>;
   /** Marks the phrase the next roll starts from; before a take, `move` also moves the reading position there. */
   chooseStart: (phrase: number, move: boolean) => void;
   /** Lets go of the phrase chosen with Start from here. */
@@ -264,7 +264,7 @@ export function useRoll(session: RollSession, actions: RollActions, { overlay }:
         }
         if (plan.kind === 'confirm' && !(await ask(`Punch in at ¶ ${s.paragraphOf(at) + 1}?`, 'Punch in', plan.dawName))) return;
         if (outdated(mine)) return;
-        if (target.trackGuid && actionsRef.current.chooseVoice && !(await actionsRef.current.chooseVoice(target.trackGuid, () => !outdated(mine)))) return;
+        if (target.trackGuid && actionsRef.current.chooseVoice && !(await actionsRef.current.chooseVoice(target.trackGuid))) return;
         if (outdated(mine)) return;
         // The narrator is told which track is recorded over before the take starts, never only after.
         actionsRef.current.notify(`Recording over ¶ ${s.paragraphOf(at) + 1}${target.trackName ? ` on ${target.trackName}` : ''}.`);

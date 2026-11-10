@@ -190,7 +190,7 @@ describe('useRoll', () => {
   it('a passage recorded on a voice is punched on that voice, at its own earlier spot', async () => {
     const { hook, actions } = setup(SETUPS.reaper, { recording: false, punchAt: 1 });
     await act(() => hook.result.current.startTake());
-    expect(actions.chooseVoice).toHaveBeenCalledExactlyOnceWith('T', expect.any(Function));
+    expect(actions.chooseVoice).toHaveBeenCalledExactlyOnceWith('T');
     expect(actions.notify).toHaveBeenCalledWith('Recording over ¶ 1 on Narrator.');
     expect(actions.notify.mock.invocationCallOrder[0]).toBeLessThan(actions.beginTake.mock.invocationCallOrder[0]);
     expect(actions.beginTake).toHaveBeenCalledExactlyOnceWith(10);
@@ -309,7 +309,7 @@ describe('useRoll', () => {
       slow.resolve(found(2));
       await act(() => first);
       expect(actions.beginTake).toHaveBeenCalledExactlyOnceWith(10);
-      expect(actions.chooseVoice).toHaveBeenCalledExactlyOnceWith('T1', expect.any(Function));
+      expect(actions.chooseVoice).toHaveBeenCalledExactlyOnceWith('T1');
     });
   });
 

@@ -103,24 +103,6 @@ export type BoothPageOptions = {
  * (the Record control starts and stops it; the listening session, the timer and the passage map's run follow it), the roll, the resume
  * line, the keys (`useCommand`, none listened for here), the right-click menu, and every way out through `useBoothLeaveGuard`.
  */
-/**
- * Who last claimed the listening session. The session belongs to the host and outlives a Booth, so the claim is shared across mounts, and every path
- * that starts or joins listening takes the next number (a press, a cold read, a take that began some other way). One rule: whoever holds the latest
- * claim and ends without a take (cancelled, refused) stops the listening, whether it started it or joined it; an older holder never stops it.
- */
-let listeningClaim = 0;
-/** Takes the next claim; `release` gives it back (while still the latest) when the host refused the start, so a refusal owns nothing. */
-function takeClaim(): { mine: number; release: () => void } {
-  const before = listeningClaim;
-  const mine = ++listeningClaim;
-  return {
-    mine,
-    release: () => {
-      if (listeningClaim === mine) listeningClaim = before;
-    },
-  };
-}
-
 export function useBoothPage(options: BoothPageOptions) {
   const { recordId, title, credits, paragraphs, session, daw, guard, overlay, from, navigate, exitTo, projectFolder = '' } = options;
   const extras = useRef({
@@ -391,9 +373,6 @@ export function useBoothPage(options: BoothPageOptions) {
       overlay.toast(micProblem, { tone: 'error' });
       return false;
     }
-    // From here this press starts or joins listening: it takes the claim (a press turned away above holds none).
-    const claimed = takeClaim();
-    const claim = claimed.mine;
     // A cold read ends first: its session is not the take's (it keeps no reading and its flags are not the take's), and the take
     // starts from the real cursor, never from the ghost. Its stop is not waited for before the DAW is asked: the sidecar can take
     // seconds to let go (up to its kill at 8 s), and the take's listening starts once it has (#3221).
@@ -417,11 +396,9 @@ export function useBoothPage(options: BoothPageOptions) {
         : hearing.then(async (answer) => [answer, answer.ok && (await control.toggle(punch, { current }))] as const)
     ).finally(() => (listenStarting.current = false));
     // Cancelled while it waited (the Booth was left, the chapter changed): nothing is said on whatever page the narrator is on now.
-    // A start the host refused owns no listening: its claim goes back, so an older press's stop is not held off by it.
-    if (!heard.ok) claimed.release();
     if (!current()) {
-      // The listening this press started (it answered ok) is let go, but only while no newer press, here or in a later Booth, has claimed it since.
-      if (heard.ok && claim === listeningClaim) latest.current.session.stop();
+      // The listening this press started itself (its start answered ok) is let go, once; a press that only joined stops nothing.
+      if (listen && heard.ok) latest.current.session.stop();
       return started;
     }
     if (!heard.ok) {
@@ -436,7 +413,7 @@ export function useBoothPage(options: BoothPageOptions) {
       );
       return false;
     }
-    if (!started && heard.ok && claim === listeningClaim) latest.current.session.stop();
+    if (!started && listen) latest.current.session.stop();
     return started;
   };
   // The press under way, settled with whether its take is running: a second press, or a Stop that waits for listening, reads it.
@@ -483,11 +460,11 @@ export function useBoothPage(options: BoothPageOptions) {
           setBeginning(false);
         }
       },
-      chooseVoice: async (trackGuid, stillWanted) => {
+      chooseVoice: async (trackGuid) => {
         const token = pressToken.current;
         const answer = await voiceTracks.boothVoiceSet(recordId, trackGuid).catch(() => null);
         // The narrator has left (or changed chapter) since: the press is over, and a refusal is not said on whatever page they are on now.
-        if (token !== pressToken.current || (stillWanted && !stillWanted())) return false;
+        if (token !== pressToken.current) return false;
         // A flat chapter has one track and nothing to choose; anything else the host refused is said, and no take starts over the wrong voice.
         if (!answer || (answer.outcome === 'refused' && answer.reason !== 'flat')) {
           notify(answer?.message ?? 'The voice this passage was recorded on could not be chosen, so no take was started.');
@@ -550,13 +527,9 @@ export function useBoothPage(options: BoothPageOptions) {
       // A take that began some other way (the DAW's own Record) during a cold read: the cold read ends and the take's session starts.
       if (now.coldRead) {
         const from = realWord();
-        const claimed = takeClaim();
-        void endColdRead()
-          .then(() => (latest.current.session.canStart ? latest.current.session.start({ startWord: from }) : undefined))
-          .then((answer) => (answer?.ok ? undefined : claimed.release()));
+        void endColdRead().then(() => (latest.current.session.canStart ? latest.current.session.start({ startWord: from }) : undefined));
       } else if (!now.session.active && now.session.canStart) {
-        const claimed = takeClaim();
-        void now.session.start().then((answer) => (answer.ok ? undefined : claimed.release()));
+        void now.session.start();
       }
       return;
     }
@@ -734,9 +707,7 @@ export function useBoothPage(options: BoothPageOptions) {
     try {
       if (!(await now.session.ensureModel())) return;
       // As Record does, an empty microphone is the host's to refuse: its sentence is the message.
-      const claimed = takeClaim();
       const started = await latest.current.session.start({ coldRead: true, startWord: realWord() });
-      if (!started.ok) claimed.release();
       if (!started.ok) overlay.toast(`Cold read did not start: ${started.reason || 'listening failed'}.`, { tone: 'error' });
     } finally {
       coldReadStarting.current = false;
