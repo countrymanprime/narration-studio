@@ -8,7 +8,8 @@
 -- ever answered in its place. With no GUID it answers the transport and the arms only.
 --
 -- With the option 'children' (a chapter linked to a folder of voices) it lists the items on the track and on every track inside it,
--- in track order, each with its track's GUID; the limit and the total count the whole folder. Any other option is refused.
+-- in track order, each with its track's GUID; the limit and the total count the whole folder. With 'none' it lists no item at all
+-- and TRACK_STATE_END carries 0 listed and the track's total (a Record press and the polls read only the state). Any other option is refused.
 --
 -- Events: TRACK_STATE|run|guid|playState|editCursor|playPosition|rpp|unsaved|changeCount|thisArmed|armedCount|recInput|
 -- inputDevice|outputDevice|recInputName, then TRACK_ITEM|run|itemGuid|takeGuid|position|length|sourceOffset|playrate|

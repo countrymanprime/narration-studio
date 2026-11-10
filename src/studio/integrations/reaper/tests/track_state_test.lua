@@ -341,10 +341,21 @@ H.test('chapter_track_state with none reads no item, so its cost does not grow w
     item_reads = item_reads + 1
     return original(...)
   end
-  s:send('chapter_track_state', 't1', chapter.guid, 'none')
+  local ok, err = pcall(s.send, s, 'chapter_track_state', 't1', chapter.guid, 'none')
   reaper.GetTrackMediaItem = original
+  H.truthy(ok, tostring(err))
   H.eq(s:events()[2], { 'TRACK_STATE_END', 't1', '0', '1003' })
   H.eq(item_reads, 0)
+end)
+
+H.test('chapter_track_state with none answers the same twice and changes nothing', function()
+  local s, chapter = new_session()
+  s.fake:add_item(chapter, { position = 0, length = 1, source = 'a.wav' })
+  s:send('chapter_track_state', 't1', chapter.guid, 'none')
+  local first = s:events()
+  s:send('chapter_track_state', 't1', chapter.guid, 'none')
+  H.eq(s:events(), first)
+  H.eq(#s.fake.undo, 0)
 end)
 
 H.test('chapter_track_state with none and a track that is gone answers TRACK_STALE, and with no track the transport only', function()
