@@ -50,7 +50,7 @@ export function PageBreaks({ breaks }: { breaks: readonly PageBreak[] }) {
             data-page-break={pageBreak.page}
             data-paragraph-id={pageBreak.paragraphId}
             data-offset={pageBreak.offset}
-            className="pointer-events-auto absolute inset-x-0 translate-y-[-calc(100%+0.5em)] pl-10 leading-none"
+            className="pointer-events-auto absolute inset-x-0 -mt-[0.5em] -translate-y-full pl-10 leading-none"
             style={{ top }}
           >
             Page {pageBreak.page.toLocaleString()}
