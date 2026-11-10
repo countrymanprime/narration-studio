@@ -60,7 +60,7 @@ type Props = {
   /** The column's CSS max-width (`useTextChoices`' column, the Reader text column width). Left out: Medium, the Reader text default. */
   width?: string;
   viewRef?: Ref<BrowseView>;
-  /** Ids of the paragraphs that open a page after the first: each gets 1.5em above it and its marker sits 0.5em clear of the first line, so its page-break marker (`PageBreaks`) has room. */
+  /** Ids of the paragraphs that open a page after the first: each gets 2em above it and its marker sits 1rem clear of the first line, so its page-break marker (`PageBreaks`) has room. */
   pageStarts?: ReadonlySet<string>;
   /** Drawn inside the text column, which is `relative` and moves with the text: the bookmark ribbons (`BookmarkRibbons`). */
   margin?: ReactNode;
@@ -307,7 +307,7 @@ export function BoothText({
               style={{ '--est': `${estimatedEm(paragraph.text)}em` } as CSSProperties}
               data-pickup={pickup ? (pickup.done ? 'done' : 'open') : undefined}
               data-heading={paragraph.heading}
-              className={`${pageStarts?.has(paragraph.id) ? 'mt-[1.5em]' : ''} ${paragraph.heading && !paragraphs[paragraphIndex + 1]?.heading ? 'mb-[1em]' : 'mb-[0.5em]'} text-start ${HEADING_LOOK[paragraph.heading ?? 'none']} [contain-intrinsic-size:auto_var(--est)] ${paragraphIndex === readingParagraph || paragraphIndex === ghostParagraph ? '[content-visibility:visible]' : '[content-visibility:auto]'} ${pickup ? `border-l-4 pl-3 ${pickup.done ? 'border-[var(--ok)]' : 'border-[var(--accent)]'}` : ''}`}
+              className={`${pageStarts?.has(paragraph.id) ? 'mt-[2em]' : ''} ${paragraph.heading && !paragraphs[paragraphIndex + 1]?.heading ? 'mb-[1em]' : 'mb-[0.5em]'} text-start ${HEADING_LOOK[paragraph.heading ?? 'none']} [contain-intrinsic-size:auto_var(--est)] ${paragraphIndex === readingParagraph || paragraphIndex === ghostParagraph ? '[content-visibility:visible]' : '[content-visibility:auto]'} ${pickup ? `border-l-4 pl-3 ${pickup.done ? 'border-[var(--ok)]' : 'border-[var(--accent)]'}` : ''}`}
             >
               {unitsOf[paragraphIndex].map((unit) => {
                 index++;

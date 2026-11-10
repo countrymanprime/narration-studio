@@ -19,7 +19,7 @@ describe('PageBreaks', () => {
     expect(marker.getAttribute('data-boundary')).toBe('page');
     expect(marker.textContent).toBe('Page 2');
     expect(marker.dataset).toMatchObject({ pageBreak: '2', paragraphId: 'p1', offset: '4' });
-    expect(marker.className).toContain('-mt-[0.5em]');
+    expect(marker.className).toContain('-mt-4');
     expect(container.querySelector('[data-page-breaks]')?.className).toContain('h-0');
   });
 
