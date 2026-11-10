@@ -1,5 +1,5 @@
 import { headingName } from '../../chapterHeading';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { chapterName } from '../../chapterName';
 import { EditingCheckPanel } from '../editing/EditingCheckPanel';
@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { StatusBadge, type StatusTone } from '../primitives/StatusBadge';
 import type { Notify } from '../primitives/Toast';
 import type { ChapterLinkState, ChapterTrackRow } from './chapterTrackRows';
-import type { ChapterLinks } from './useChapterLinks';
+import { CREATE_QUIET_MS, type ChapterLinks } from './useChapterLinks';
 import type { ManuscriptChapter, Track, TrackMapping } from '../../types';
 import { addressPath } from '../../navigation/address';
 import { apiErrorMessage } from '../../api/errorMessage';
@@ -220,10 +220,14 @@ function ChapterLinkRow({
   const [rechecking, setRechecking] = useState(false);
   const [chosen, setChosen] = useState(linkedGuid && tracks.some((track) => track.guid === linkedGuid) ? linkedGuid : '');
   // A confirm or clear comes back as a new link from the table's read: drop back to the read view, as MappingConfirm does.
+  // When the row last became linked: the check is replaced by Change in the same spot, so a fast second click would land on Change.
+  const linkedAt = useRef(0);
   useEffect(() => {
     setPicking(!hasLink);
-    // A cleared link leaves no choice behind: the old pick would show the check as ready, one press from linking it again.
-    if (!hasLink) setChosen('');
+    // The pick follows the link: a cleared row has none, and a new link starts the next Change from itself.
+    setChosen(linkedGuid && tracks.some((track) => track.guid === linkedGuid) ? linkedGuid : '');
+    if (hasLink) linkedAt.current = Date.now();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `tracks` only validates the link; a read of the tracks must not reset a pick in progress.
   }, [hasLink, linkedGuid]);
 
   const name = headingName(row.chapter);
@@ -319,7 +323,17 @@ function ChapterLinkRow({
                 }}
               />
               {createButton}
-              {hasLink && <IconButton action="cancelEdit" disabledReason={busy ? 'Saving the link' : undefined} onClick={() => setPicking(false)} />}
+              {hasLink && (
+                <IconButton
+                  action="cancelEdit"
+                  disabledReason={busy ? 'Saving the link' : undefined}
+                  onClick={() => {
+                    // Cancel drops the abandoned pick: the next Change opens on the linked track, not on it.
+                    setChosen(linkedGuid ?? '');
+                    setPicking(false);
+                  }}
+                />
+              )}
             </>
           ) : hasLink ? (
             <>
@@ -327,7 +341,11 @@ function ChapterLinkRow({
                 action="changeTrack"
                 label={`Change the track for ${short}`}
                 disabledReason={busy ? 'Saving the link' : undefined}
-                onClick={() => setPicking(true)}
+                onClick={() => {
+                  // A double click on the check lands its second press here, where Change now is: ignore it, as Create does (CREATE_QUIET_MS).
+                  if (Date.now() - linkedAt.current < CREATE_QUIET_MS) return;
+                  setPicking(true);
+                }}
               />
               <IconButton action="clearLink" label={`Clear the link for ${short}`} pending={busy} onClick={onClear} />
             </>
