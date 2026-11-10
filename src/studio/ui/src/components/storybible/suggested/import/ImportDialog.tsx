@@ -175,9 +175,11 @@ export function ImportDialog({ onClose, onChanged }: ImportDialogProps) {
       ? ''
       : oversize
         ? 'This text is too long to import.'
-        : text.trim()
-          ? 'Nothing in this text can be added.'
-          : 'Paste or open the entries to import first.';
+        : problem
+          ? 'The preview could not be made, so there is nothing to add yet.'
+          : text.trim()
+            ? 'Nothing in this text can be added.'
+            : 'Paste or open the entries to import first.';
   useEffect(() => {
     alive.current = true;
     return () => {
