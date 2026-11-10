@@ -191,15 +191,17 @@ func confirmedTrack(mapping *evidence.MappingStore, documentID, chapterID string
 }
 
 // memoIdentify identifies each source file once per run, relative to the
-// project folder (evidence.Identify), so the fingerprint, the cache keys and
-// the manifest agree on the same identity.
-func memoIdentify(projectFolder string) evidence.SourceIdentifier {
+// project folder, so the fingerprint, the cache keys and the manifest agree on
+// the same identity. read is the fresh read of one file; the service passes the
+// identity cache's Refresh, so what a run stores is what the next lookup is
+// answered with.
+func memoIdentify(projectFolder string, read func(path, projectFolder string) (evidence.SourceIdentity, error)) evidence.SourceIdentifier {
 	seen := map[string]evidence.SourceIdentity{}
 	return func(path string) (evidence.SourceIdentity, error) {
 		if identity, ok := seen[path]; ok {
 			return identity, nil
 		}
-		identity, err := evidence.Identify(path, projectFolder)
+		identity, err := read(path, projectFolder)
 		if err != nil {
 			return evidence.SourceIdentity{}, err
 		}
