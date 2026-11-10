@@ -354,6 +354,9 @@ export const CATALOG = {
   // The mock draws accept as a check and reject, dismiss and cancel-a-download as an X (audit rule 4 asks for text on cancel; the mock wins, D98).
   accept: action(faCheck, 'accept', 'Accept this suggestion'),
   saveAndAccept: action(faCheck, 'accept', 'Save and accept'),
+  saveNote: action(faCheck, 'accept', 'Save the note'),
+  // The second press of a two-press remove: the check that answers the question the delete icon asked.
+  confirmRemove: action(faCheck, 'accept', 'Remove it with its uses'),
   markReviewed: action(faCircleCheckRegular, 'mark done', 'Mark reviewed'),
   reject: action(faXmark, 'close', 'Reject this suggestion'),
   dismiss: action(faXmark, 'close', 'Dismiss'),

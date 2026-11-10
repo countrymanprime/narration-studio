@@ -33,6 +33,7 @@ Exception to rule 6: the Production chapter pipeline board is not capped. The ow
 Guards that hold rules 1, 7 and 8 over the whole app, each with a shrink-only allowlist you lower when you fix an entry, never raise without the owner's say-so:
 
 - `tests/visual/guards/toolbarButtons.test.ts` (rule 1: a `Button` with words inside a toolbar or ribbon).
+- `tests/visual/guards/mixedButtons.test.ts` (rule 1: one state of a control draws an `IconButton` and another draws a confirm-type word button, such as Confirm, Save, Apply or Cancel; no allowlist; it reads conditionals, not early returns, so look for `if (editing) return` states by hand).
 - `tests/visual/guards/inlineErrors.test.ts` (rule 7: a `role="alert"` element outside a dialog, menu, popover or the toast).
 - `tests/visual/inFlowProse.test.ts` (rule 8).
 

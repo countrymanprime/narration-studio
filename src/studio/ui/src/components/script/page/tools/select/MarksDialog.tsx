@@ -132,9 +132,7 @@ export function MarksDialog({ saveMarkTypes, onClose }: { saveMarkTypes: SaveMar
               </div>
               <div className={`justify-self-end ${NARROW.remove}`}>
                 {sure === type.key ? (
-                  <Button variant="danger" size="sm" onClick={() => remove(type)}>
-                    {`Remove ${used(type.key)} uses too?`}
-                  </Button>
+                  <IconButton action="confirmRemove" label={`Remove ${used(type.key)} uses too?`} variant="danger" onClick={() => remove(type)} />
                 ) : (
                   <IconButton action="delete" label="Remove" variant="danger" onClick={() => remove(type)} />
                 )}

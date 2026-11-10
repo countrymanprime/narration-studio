@@ -2,7 +2,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import ts from 'typescript';
 
-/** The states of one conditional that draw both an `IconButton` and a `Button` with words. */
+/** The states of one conditional that draw an `IconButton` in one state and a confirm-type `Button` with words in another. */
 export type MixedButtons = { file: string; line: number; icons: string[]; words: string[] };
 
 const SRC = join(import.meta.dirname, '..', '..', '..', 'src');
@@ -18,8 +18,8 @@ const tagOf = (n: ts.JsxElement | ts.JsxSelfClosingElement): string => (ts.isJsx
 
 /** The words an expression draws: a string literal, or the literal branches of a conditional (`repair ? 'Repair' : 'Download'`). */
 const literalWords = (e: ts.Expression): string[] =>
-  ts.isStringLiteralLike(e)
-    ? [e.text]
+  ts.isStringLiteralLike(e) || ts.isTemplateExpression(e)
+    ? [ts.isTemplateExpression(e) ? e.getText() : e.text]
     : ts.isConditionalExpression(e)
       ? [...literalWords(e.whenTrue), ...literalWords(e.whenFalse)]
       : ts.isParenthesizedExpression(e)
@@ -40,6 +40,13 @@ const iconName = (n: ts.JsxElement | ts.JsxSelfClosingElement): string => {
   return action && ts.isJsxAttribute(action) && action.initializer ? action.initializer.getText().replace(/["'{}]/g, '') : 'IconButton';
 };
 
+/**
+ * The words that finish an edit or answer a question: Confirm, Save, Apply, Cancel, Done, Discard, Keep, Yes, No, or a question
+ * ("Remove 2 uses too?"). The owner's complaint is an icon that starts a change beside a word that commits it. A word that names a
+ * different action (Override for this project, Move them out…, Change location…) is a bare word no icon carries (frontend-primitives rule 1).
+ */
+const COMMIT_WORD = /^(confirm|save|apply|cancel|done|discard|keep|yes|no)\b|\?`?$/i;
+
 type Found = { icons: string[]; words: string[] };
 
 /** Collects the buttons a parent's children draw, looking through fragments, conditionals and `&&`, but not into other elements. */
@@ -49,8 +56,9 @@ function collect(node: ts.Node, into: Found): void {
     if (tag === 'IconButton') into.icons.push(iconName(node));
     else if (tag === 'Button') {
       const words = ts.isJsxElement(node) ? wordsOf(node) : '';
-      if (words) into.words.push(words);
+      if (COMMIT_WORD.test(words)) into.words.push(words);
     }
+    if (ts.isJsxElement(node) && tag !== 'Button') node.children.forEach((c) => collect(c, into)); // a wrapper holds its state's buttons too
     return;
   }
   if (ts.isJsxFragment(node)) return node.children.forEach((c) => collect(c, into));
@@ -70,12 +78,31 @@ export function scanSource(file: string, text: string): MixedButtons[] {
   const sf = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   const out: MixedButtons[] = [];
   const visit = (node: ts.Node) => {
-    // The top of a chain only: `a ? x : b ? y : z` is one set of states.
+    // The top of a chain only: `a ? x : b ? y : z` is one set of states, and a state is one branch.
     if (ts.isConditionalExpression(node) && !ts.isConditionalExpression(node.parent)) {
-      const found: Found = { icons: [], words: [] };
-      collect(node, found);
-      if (found.icons.length > 0 && found.words.length > 0) {
-        out.push({ file, line: sf.getLineAndCharacterOfPosition(node.getStart()).line + 1, ...found });
+      const branches: Found[] = [];
+      const leaves = (e: ts.Expression) => {
+        const inner = ts.isParenthesizedExpression(e) ? e.expression : e;
+        if (ts.isConditionalExpression(inner)) {
+          leaves(inner.whenTrue);
+          leaves(inner.whenFalse);
+        } else {
+          const found: Found = { icons: [], words: [] };
+          collect(inner, found);
+          branches.push(found);
+        }
+      };
+      leaves(node);
+      // Words in one state and an icon in another. Both kinds side by side in one state are separate controls, not states.
+      const wordsAt = branches.findIndex((branch) => branch.words.length > 0);
+      const mixes = branches.some((branch, at) => branch.icons.length > 0 && branches.some((other, otherAt) => otherAt !== at && other.words.length > 0));
+      if (wordsAt >= 0 && mixes) {
+        out.push({
+          file,
+          line: sf.getLineAndCharacterOfPosition(node.getStart()).line + 1,
+          icons: branches.flatMap((b) => b.icons),
+          words: branches.flatMap((b) => b.words),
+        });
       }
     }
     ts.forEachChild(node, visit);
