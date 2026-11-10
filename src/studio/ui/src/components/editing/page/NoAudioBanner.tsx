@@ -17,12 +17,15 @@ export function NoAudioBanner({
   chapterName,
   daw,
   onReread,
+  rereading = false,
   save,
 }: {
   audio: ChapterAudio;
   chapterName: string;
   daw: string | null;
   onReread: () => void;
+  /** The read that **Read again** started has not come back yet: the button shows it. */
+  rereading?: boolean;
   /** The **Save in <DAW> and read** button's state, for a DAW that can save from the app and a chapter whose track holds nothing yet; otherwise no button. A refusal and a save are toasts. */
   save?: SaveInDaw;
 }) {
@@ -46,7 +49,7 @@ export function NoAudioBanner({
           {`Save in ${daw} and read`}
         </Button>
       ) : null}
-      <Button variant="secondary" size="sm" onClick={onReread}>
+      <Button variant="secondary" size="sm" pending={rereading} onClick={onReread}>
         Read again
       </Button>
     </div>

@@ -81,6 +81,7 @@ import { IconButton } from '../../primitives/IconButton';
 import { registerTakeControl } from '../takes/takeControls';
 import { InHost, rowOf } from './InHost';
 import { NoAudioBanner } from './NoAudioBanner';
+import { useRereadFeedback } from './useRereadFeedback';
 import { canSaveFromApp, useSaveInDaw } from './useSaveInDaw';
 import { noAudioText } from './noAudioText';
 import { useChapterLink } from './useChapterLink';
@@ -562,6 +563,7 @@ export function EditingBody(props: EditingBodyProps) {
 
   // Nothing can play on a chapter with no audio (no linked track, a track that is gone or empty, or nothing recorded yet): Play says why.
   const save = useSaveInDaw(props.onReread);
+  const { rereading, reread } = useRereadFeedback(read, chapterName, props.onReread);
   const dawName = caps && caps.daw !== 'none' && caps.daw !== 'Built-in' ? caps.daw : null;
   const playUnavailable = read.audio.kind === 'ready' ? undefined : `${noAudioText(read.audio, chapterName, dawName).headline}`;
 
@@ -592,7 +594,8 @@ export function EditingBody(props: EditingBodyProps) {
               audio={read.audio}
               chapterName={chapterName}
               daw={dawName}
-              onReread={props.onReread}
+              onReread={reread}
+              rereading={rereading}
               save={canSaveFromApp(caps) ? save : undefined}
             />
             <ScriptHost box={scriptBox} root={root}>
