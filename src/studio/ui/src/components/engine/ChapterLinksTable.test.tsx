@@ -141,7 +141,7 @@ describe('ChapterLinksTable', () => {
     expect(set).toHaveBeenCalledTimes(1);
 
     // The picker opens on the linked track, and its check is live: pressing it is not a dead click.
-    const confirm = within(opening).getByRole('button', { name: /^Use this track for/ });
+    const confirm = within(opening).getByRole('button', { name: /^Check the link for/ });
     expect(confirm.getAttribute('aria-disabled')).toBeNull();
     await user.click(confirm);
 
@@ -163,7 +163,7 @@ describe('ChapterLinksTable', () => {
     await pastQuiet();
     await user.click(within(opening).getByRole('button', { name: /^Change the track for/ }));
     await pastQuiet(); // a narrator takes longer than the quiet period between Change and the check
-    await user.click(within(opening).getByRole('button', { name: /^Use this track for/ }));
+    await user.click(within(opening).getByRole('button', { name: /^Check the link for/ }));
     const change = await within(opening).findByRole('button', { name: /^Change the track for/ });
     await user.click(change);
     expect(within(opening).queryByRole('combobox')).toBeNull();

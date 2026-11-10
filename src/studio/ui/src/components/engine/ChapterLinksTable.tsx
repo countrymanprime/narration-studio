@@ -82,9 +82,10 @@ export function ChapterLinksTable({ links, notify, live }: { links: ChapterLinks
     );
   };
 
-  // Confirm on the link the chapter already has: read the tracks from the DAW and the links again, then say what that found, so the press
-  // is never silent and doubles as the resync after a track was renamed or removed in the DAW (#3275).
-  const recheck = async (row: ChapterTrackRow) => {
+  // The check on the link the chapter already has: read the tracks from the DAW and the links again, then say what that found, so the press
+  // is never silent and doubles as the resync after a track was renamed in the DAW (#3275). Answers whether the picker may close: it stays
+  // open when the read failed or the track is gone, since the narrator's next step (retry, choose another track) is in it.
+  const recheck = async (row: ChapterTrackRow): Promise<boolean> => {
     const short = chapterName(row.chapter, 'short');
     const guid = row.mapping?.trackGuid;
     const read = live ? await live.recheck() : { failed: false };
@@ -92,10 +93,12 @@ export function ChapterLinksTable({ links, notify, live }: { links: ChapterLinks
       await links.recheck();
     } catch (reason) {
       notify(`The link for ${short} could not be read again: ${apiErrorMessage(reason)}`, 'error');
-      return;
+      return false;
     }
-    if (read.failed) return; // the live read failed and its own toast says so
-    notify(recheckSentence(short, row.trackName, read.project?.tracks ?? tracks, guid, folders), 'info');
+    if (read.failed) return false; // the live read failed and its own toast says so
+    const now = read.project?.tracks ?? tracks;
+    notify(recheckSentence(short, row.trackName, now, guid, folders), 'info');
+    return now.some((candidate) => candidate.guid === guid);
   };
 
   return (
@@ -174,7 +177,7 @@ export function recheckSentence(short: string, was: string | undefined, tracks: 
   const inside = found.isFolder ? folderChildren(tracks, found.guid).length : 0;
   const unit = voiceFolders ? ['voice', 'voices'] : ['track', 'tracks'];
   const what = found.isFolder ? `a folder with ${inside} ${inside === 1 ? unit[0] : unit[1]}` : 'a single track';
-  if (was !== undefined && was !== found.name) return `${short}'s track was renamed in REAPER from “${was}” to “${found.name}” (${what}).`;
+  if (was !== undefined && was !== found.name) return `${short}'s track was renamed from “${was}” to “${found.name}” (${what}).`;
   return `${short} is linked to “${found.name}” (${what}). Nothing changed.`;
 }
 
@@ -211,7 +214,7 @@ function ChapterLinkRow({
   onCreate: () => void;
   onConfirm: (trackGuid: string) => void;
   /** Confirm pressed on the track the chapter is already linked to: reads again and says what it found. */
-  onRecheck: () => Promise<void>;
+  onRecheck: () => Promise<boolean>;
   onClear: () => void;
   onEditingCheck: () => void;
 }) {
@@ -287,7 +290,13 @@ function ChapterLinkRow({
       </TableCell>
       <TableCell>
         {showPicker ? (
-          <TrackSelect label={`${folders ? 'Folder' : 'Track'} for ${short}`} choices={choices} value={chosen} onChange={setChosen} fullWidth />
+          <TrackSelect
+            label={`${folders ? 'Folder' : 'Track'} for ${short}`}
+            choices={choices}
+            value={chosen}
+            onChange={(guid) => !rechecking && setChosen(guid)}
+            fullWidth
+          />
         ) : picking ? (
           <span className="text-sm" style={{ color: 'var(--text-muted)' }}>
             No REAPER tracks to link
@@ -319,7 +328,7 @@ function ChapterLinkRow({
             <>
               <IconButton
                 action="confirmTrack"
-                label={`Use this ${folders ? 'folder' : 'track'} for ${short}`}
+                label={chosen && chosen === linkedGuid ? `Check the link for ${short} again` : `Use this ${folders ? 'folder' : 'track'} for ${short}`}
                 variant={chosen ? 'primary' : 'default'}
                 disabledReason={!chosen ? 'Choose a track first' : creating ? 'Wait for the track being added' : undefined}
                 pending={(busy && !creating) || rechecking}
@@ -327,8 +336,9 @@ function ChapterLinkRow({
                   if (chosen !== linkedGuid) return onConfirm(chosen);
                   // The same track again: not a change, so read it again and report, then leave the picker.
                   setRechecking(true);
-                  void onRecheck().finally(() => {
+                  void onRecheck().then((done) => {
                     setRechecking(false);
+                    if (!done) return;
                     // Change takes the check's place: a double click's second press must not reopen the picker.
                     swappedAt.current = Date.now();
                     setPicking(false);
@@ -339,7 +349,7 @@ function ChapterLinkRow({
               {hasLink && (
                 <IconButton
                   action="cancelEdit"
-                  disabledReason={busy ? 'Saving the link' : undefined}
+                  disabledReason={busy ? 'Saving the link' : rechecking ? 'Reading the link again' : undefined}
                   onClick={() => {
                     // Cancel drops the abandoned pick: the next Change opens on the linked track, not on it.
                     if (settled()) {

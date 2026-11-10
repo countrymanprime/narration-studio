@@ -16,9 +16,9 @@ describe('recheckSentence', () => {
     expect(recheckSentence('Chapter 1', 'Ch 1', [...folder, track('w', 'White Rabbit', 1)], 'f', true)).toContain('(a folder with 2 voices)');
     expect(recheckSentence('Chapter 1', 'Ch 1', folder, 'f')).toContain('(a folder with 1 track). Nothing changed.');
   });
-  it('says the track was renamed in REAPER', () => {
+  it('says the track was renamed', () => {
     expect(recheckSentence('Chapter 1', 'Old', [track('a', 'New ‮evil')], 'a')).toBe(
-      "Chapter 1's track was renamed in REAPER from “Old” to “New ‮evil” (a single track).",
+      "Chapter 1's track was renamed from “Old” to “New ‮evil” (a single track).",
     );
   });
   it('says a track the project no longer has is gone', () => {

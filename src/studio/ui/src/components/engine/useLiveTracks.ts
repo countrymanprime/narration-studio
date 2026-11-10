@@ -31,8 +31,7 @@ export type LiveTracks = {
   error: string;
   /** Reads the tracks now (the Refresh button, a toast's Retry). */
   refresh: () => void;
-  /** Reads the tracks now like `refresh` and answers what the read found, or undefined when it failed (a toast says so), was replaced by a newer read, or the project is Audacity's. */
-  /** Reads now and answers with the project, or `failed` when the read failed (its own toast says so); neither when no live read applies. */
+  /** Reads the tracks now like `refresh` and answers the project, or `failed` when the read failed (its own toast says so); neither when no live read applies (Audacity's project, or a newer read replaced this one). */
   recheck: () => Promise<{ project?: TracksProject; failed: boolean }>;
   /** Reads the tracks unless a read is already in flight, which it then shares (the Link chapters dialog opening). */
   join: () => void;

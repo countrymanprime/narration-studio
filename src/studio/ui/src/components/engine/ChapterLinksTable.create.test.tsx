@@ -430,7 +430,7 @@ describe('The check on the track the chapter already has', () => {
     const { row } = await firstRow();
     await linkAndReopen(live, user, row);
     notify.mockClear();
-    await user.click(within(row).getByRole('button', { name: /^Use this (track|folder) for/ }));
+    await user.click(within(row).getByRole('button', { name: /^Check the link for/ }));
     await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringMatching(/Nothing changed\./), 'info'));
     expect(live.recheck).toHaveBeenCalledTimes(1);
   });
@@ -442,10 +442,47 @@ describe('The check on the track the chapter already has', () => {
     await linkAndReopen(live, user, row);
     (live.recheck as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ failed: true });
     notify.mockClear();
-    await user.click(within(row).getByRole('button', { name: /^Use this (track|folder) for/ }));
+    await user.click(within(row).getByRole('button', { name: /^Check the link for/ }));
     await waitFor(() => expect(live.recheck).toHaveBeenCalledTimes(1));
-    await within(row).findByRole('button', { name: /^Change the track for/ });
+    // The read failed and said so itself: no message of ours, and the picker stays open so the next step is still in it.
     expect(notify).not.toHaveBeenCalledWith(expect.anything(), 'info');
+    await waitFor(() =>
+      expect(
+        within(row)
+          .getByRole('button', { name: /^Check the link for/ })
+          .getAttribute('aria-busy'),
+      ).not.toBe('true'),
+    );
+    expect(within(row).queryByRole('button', { name: /^Change the track for/ })).toBeNull();
+  });
+  it('keeps the picker open when the track is gone, so another can be chosen', async () => {
+    const user = userEvent.setup();
+    const { notify, live } = renderTable();
+    const { row } = await firstRow();
+    await linkAndReopen(live, user, row);
+    (live.recheck as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ project: { ...WIRE_TRACKS_PROJECT, tracks: [] }, failed: false });
+    notify.mockClear();
+    await user.click(within(row).getByRole('button', { name: /^Check the link for/ }));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.stringMatching(/no longer in the project/), 'info'));
+    expect(within(row).queryByRole('button', { name: /^Change the track for/ })).toBeNull();
+    expect(within(row).getByRole('combobox')).toBeTruthy();
+  });
+
+  it('holds Cancel and the pick while the re-read runs', async () => {
+    const user = userEvent.setup();
+    const { live } = renderTable();
+    const { row } = await firstRow();
+    await linkAndReopen(live, user, row);
+    let release: (value: { failed: boolean }) => void = () => {};
+    (live.recheck as ReturnType<typeof vi.fn>).mockReturnValueOnce(new Promise((resolve) => (release = resolve)));
+    await user.click(within(row).getByRole('button', { name: /^Check the link for/ }));
+    expect(within(row).getByRole('button', { name: 'Cancel the edit' }).getAttribute('aria-disabled')).toBe('true');
+    const select = within(row).getByRole('combobox') as HTMLSelectElement;
+    const before = select.value;
+    await user.selectOptions(select, WIRE_TRACKS_PROJECT.tracks[1].guid);
+    expect(select.value).toBe(before);
+    release({ failed: false });
+    await within(row).findByRole('button', { name: /^Change the track for/ });
   });
 });
 
