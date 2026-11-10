@@ -295,7 +295,8 @@ export function useBoothPage(options: BoothPageOptions) {
     startedFrom.current = true;
     if (!unit) return;
     setLocal(unit);
-    setPunchAt(unit.cur);
+    // Record from here chooses the start; a bookmark jump from another chapter only puts the reading there.
+    if (!from.placeOnly) setPunchAt(unit.cur);
   }, [from, paragraphs, units]);
 
   // The next listening session starts at the reading position (docs/guides/using-the-app/booth.md#where-you-stopped: a choice only sets where Start begins).
@@ -514,8 +515,12 @@ export function useBoothPage(options: BoothPageOptions) {
   const moveReading = useCallback(
     (next: UnitPosition) => {
       if (moveBlocked()) return;
-      // A narrator's move replaces the chosen start (Record from here, Start from here), so the cursor, the chip and Space agree.
-      setPunchAt(null);
+      // A move that changes the reading's phrase replaces the chosen start (Record from here, Start from here), so the cursor, the chip and Space
+      // agree. One that lands on the chosen phrase keeps it, and one that does not move the reading (an arrow at the end, the reading following
+      // the voice) replaces nothing.
+      const now = latest.current;
+      const phrase = Math.min(Math.max(next.cur, 0), Math.max(now.units.length - 1, 0));
+      if (phrase !== now.at.cur) setPunchAt((chosen) => (chosen === phrase ? chosen : null));
       moveTo(next);
     },
     [moveBlocked, moveTo],

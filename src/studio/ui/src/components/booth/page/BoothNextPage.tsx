@@ -397,7 +397,7 @@ function BoothSession({
     paragraphIndex: (id) => session.paragraphs?.find((item) => item.id === id)?.index ?? null,
     seek,
     blocked: page.moveBlocked,
-    goToChapter: (chapterId, at) => choose({ chapter: chapterId, from: at }),
+    goToChapter: (chapterId, at) => choose({ chapter: chapterId, from: { ...at, placeOnly: true } }),
   });
   parts.current.menuItems = chapter ? bookmarks.menuItems : undefined;
   // A page break after the paragraph that brings a page to Booth.words_per_page words; the credits chapters have no paragraphs and so none.
