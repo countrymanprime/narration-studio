@@ -5,7 +5,8 @@ export const DEAD_CONTROL_DEBT: Record<string, string> = {
   // Empty: the Engine panel's Confirm (#3275) was the last line and its fix has landed.
 };
 
-// Controls whose press is answered by a live timer as much as by the press (the track list re-reads itself every 5 s), so whether the guard
-// sees "nothing happened" depends on when the timer fires. They are never reported as dead while listed here, and a listed control that does act
-// is not a failure either. Owned by #3269; delete the line with its fix.
+// Controls whose press is answered by a live timer as much as by the press, so whether the guard sees "nothing happened" depends on when the timer
+// fires. They are never reported as dead while listed here, and a listed control that does act is not a failure either. Empty: the Engine panel's
+// "Read the tracks from REAPER again" was the last line; it now answers each press with a toast (#3339). The guard presses it in its default
+// state only: its saved-project and failed reads are covered by LiveTracksRefresh.test.tsx, since the mock REAPER always answers.
 export const DEAD_CONTROL_TIMER_DRIVEN: Record<string, string> = {};

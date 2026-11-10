@@ -30,6 +30,12 @@ describe('Read the tracks from REAPER again', () => {
     await waitFor(() => expect(notify).toHaveBeenCalledTimes(2));
   });
 
+  it('says "1 track" for one', async () => {
+    render(<LiveTracksRefresh live={liveWith(vi.fn(async () => ({ project: project(1), source: 'live' as const, failed: false })))} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Read the tracks from REAPER again' }));
+    await waitFor(() => expect(notify).toHaveBeenCalledWith('Read 1 track from REAPER.'));
+  });
+
   it('says the saved project was read when REAPER did not answer, and adds nothing when the read failed (its own toast says so)', async () => {
     const saved = vi.fn(async () => ({ project: project(1), source: 'saved' as const, failed: false }));
     const { rerender } = render(<LiveTracksRefresh live={liveWith(saved)} />);
