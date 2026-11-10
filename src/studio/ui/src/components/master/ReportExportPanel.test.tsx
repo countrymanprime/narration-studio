@@ -62,7 +62,8 @@ describe('the report export', () => {
     mount({ measured: false });
     const button = screen.getByRole('button', { name: 'Export report' });
     const reason = screen.getByText(/^Check some files first/);
-    expect(button.parentElement).toBe(reason.parentElement);
+    // The button sits in its tooltip's wrapper (disabledReason), which sits beside the reason.
+    expect(button.parentElement?.parentElement).toBe(reason.parentElement);
     expect(button.getAttribute('aria-describedby')).toBe(reason.id);
     expect(button.closest('[class*="border-b"]')).toBeNull();
     expect(screen.getByRole('checkbox', { name: /Include each file/ }).hasAttribute('data-disabled')).toBe(true);
