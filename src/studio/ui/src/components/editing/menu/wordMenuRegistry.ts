@@ -1,5 +1,6 @@
 import type { ContextMenuItem } from '../../primitives/ContextMenu';
 import type { ChapterDoc, SelSummary } from '../model';
+import { plural } from '../../../plural';
 
 /** What a section sees when the menu opens: the words the menu acts on and the few actions the page lends it. */
 export interface WordMenuSelection {
@@ -52,7 +53,7 @@ export function registerWordMenuSection(section: WordMenuSection): () => void {
   };
 }
 
-const headingFor = (count: number): string => `${count} ${count === 1 ? 'word' : 'words'} selected`;
+const headingFor = (count: number): string => `${plural(count, 'word')} selected`;
 
 /** The heading and the non-empty sections for a selection. A section that throws is dropped and logged; the rest still show. */
 export function buildWordMenu(selection: WordMenuSelection): WordMenu {

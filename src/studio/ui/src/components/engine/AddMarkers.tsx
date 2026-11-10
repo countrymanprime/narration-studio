@@ -10,6 +10,7 @@ import { lineText, reasonSentence } from '../pickups/list/pickupRows';
 import { useDawFileLinked } from '../connection/dawFileLinked';
 import { IconButton } from '../primitives/IconButton';
 import { dawNameOf } from './ShowInDaw';
+import { pluralWord, plural, formatCount } from '../../plural';
 
 /**
  * What an Add marker press is about (#2830): one Proof note, or the pickups of a session. A finding goes through `daw.addMarker`, pickups through
@@ -33,7 +34,7 @@ const NONE_PLACED = 'None of these lines has a place in the recording yet.';
 /** The label every Add marker control carries, a button's and a menu entry's alike. `count` is the pickups that have a place; undefined while it is not known. */
 export function addMarkersLabel(dawName: string, target: AddMarkersTarget, count?: number): string {
   if (target.kind === 'finding') return `Add marker in ${dawName}`;
-  return count === undefined ? `Add as markers in ${dawName}` : `Add ${count} as markers in ${dawName}`;
+  return count === undefined ? `Add as markers in ${dawName}` : `Add ${formatCount(count)} as markers in ${dawName}`;
 }
 
 /**
@@ -77,14 +78,14 @@ export async function addMarkers(daw: Pick<DawClient, 'addMarker' | 'addPickupMa
   try {
     const result = await daw.addPickupMarkers(placed.map((p) => ({ ref: p.id, start: p.at, tag: p.type, note: lineText(p) })));
     if (!result.ok) return { message: result.message, failed: true, added: false };
-    const lines = skipped > 0 ? `${placed.length} of ${target.pickups.length} lines` : placed.length === 1 ? '1 line' : `${placed.length} lines`;
+    const lines = skipped > 0 ? `${formatCount(placed.length)} of ${plural(target.pickups.length, 'line')}` : plural(placed.length, 'line');
     const left =
       skipped > 0
         ? ` ${skipped} ${skipped === 1 ? 'line has' : 'lines have'} no place in the recording yet and ${skipped === 1 ? 'was' : 'were'} left out.`
         : '';
     return {
       message: result.changed
-        ? `Pickup ${placed.length === 1 ? 'marker' : 'markers'} for ${lines} ${placed.length === 1 ? 'is' : 'are'} in ${dawName}.${left}`
+        ? `Pickup ${pluralWord(placed.length, 'marker')} for ${lines} ${placed.length === 1 ? 'is' : 'are'} in ${dawName}.${left}`
         : `Those markers were already in ${dawName}.${left}`,
       failed: false,
       added: result.changed,

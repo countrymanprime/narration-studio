@@ -8,6 +8,7 @@ import { tokensOf, type RangeLocator } from '../common/locate';
 import type { RangePlan } from '../common/rangePlan';
 import { appliedSpan, subWordNote } from '../common/spanRequest';
 import type { Span } from '../../ribbon/rangeMath';
+import { plural } from '../../../../plural';
 
 export interface CutOptions {
   /** `close` moves the later audio up by the cut's length; `gap` leaves room tone and moves nothing. */
@@ -37,8 +38,6 @@ export interface BeforeCutStep {
 
 /** The steps a DAW that changes the audio itself runs before a cut. The backup slice appends its backup here; with none, such a cut is refused. */
 export const beforeCut: BeforeCutStep[] = [];
-
-const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
 
 /** The history entry's name: "Deleted 3 words and their audio at 0:12", or "Muted 3 words at 0:12". */
 function cutLabel(n: number, start: number, mute: boolean): string {

@@ -92,20 +92,14 @@ export function ChapterLinksTable({ links, notify, live }: { links: ChapterLinks
     );
   };
 
-  // The check on the link the chapter already has: read the tracks and the links again through the shared state, then say what that found, so
+  // The check on the link the chapter already has: the shared state reads the tracks and the links again, then this says what that found, so
   // the press is never silent and doubles as the resync after a track was renamed in the DAW (#3275). Answers what the row does next: 'found'
   // closes the picker, 'gone' leaves it open with nothing picked, and 'failed' leaves it as it is (the failed read has its own toast).
   const recheck = async (row: ChapterTrackRow): Promise<'found' | 'gone' | 'failed'> => {
     const short = chapterName(row.chapter, 'short');
     const guid = row.mapping?.trackGuid;
     const read = live ? await live.recheck() : { failed: false };
-    if (read.failed) return 'failed'; // the live read failed and its own toast says so
-    try {
-      await links.recheck();
-    } catch (reason) {
-      notify(`The link for ${short} could not be read again: ${apiErrorMessage(reason)}`, 'error');
-      return 'failed';
-    }
+    if (read.failed) return 'failed'; // a read failed and its own toast says so
     const now = read.project?.tracks ?? tracks;
     notify(recheckSentence(short, row.trackName, now, guid, folders), 'info');
     return now.some((candidate) => candidate.guid === guid) ? 'found' : 'gone';

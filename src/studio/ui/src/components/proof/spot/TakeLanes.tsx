@@ -1,4 +1,5 @@
 import type { Spot } from './spot';
+import { plural } from '../../../plural';
 
 /** A lane's height: room for the take's name inside it, as the research mock draws it (`TakeLanes`, 13 px). */
 const LANE_HEIGHT = 14;
@@ -18,7 +19,7 @@ export function TakeLanes({ spot, winStart, winLen }: { spot: Spot | null; winSt
   const others = spot.takes.filter((take) => !take.active);
   if (others.length === 0) return null;
   return (
-    <div role="group" aria-label={`${spot.takes.length} takes at this spot`} className="relative flex flex-col gap-1 py-1" data-take-lanes>
+    <div role="group" aria-label={`${plural(spot.takes.length, 'take')} at this spot`} className="relative flex flex-col gap-1 py-1" data-take-lanes>
       {others.map((take) => {
         const at = place(take.start, take.len);
         return (

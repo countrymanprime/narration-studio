@@ -1,5 +1,6 @@
 import type { VoiceSample, VoiceSamples } from '../../../api/contracts/voiceSamples';
 import { clipProblem, passageBadge } from '../../storybible/voicesamples/voiceSampleModel';
+import { plural } from '../../../plural';
 
 /** A voice sample as the dots take it, so the script's own files need no import from the api folder. */
 export type MarkedSample = VoiceSample;
@@ -41,7 +42,7 @@ export function markState(samples: readonly VoiceSample[]): MarkState {
 
 /** What a screen reader hears for the dot: one sample by character and label with what is wrong with it, or the count when several end here. */
 export function markName(samples: readonly VoiceSample[], nameOf: (characterId: string) => string | undefined): string {
-  if (samples.length !== 1) return `${samples.length} voice samples`;
+  if (samples.length !== 1) return `${plural(samples.length, 'voice sample')}`;
   const sample = samples[0];
   const who = nameOf(sample.characterId) ?? 'a character who is no longer in the Story Bible';
   const label = sample.label.trim();

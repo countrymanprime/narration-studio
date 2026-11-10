@@ -2,6 +2,7 @@ import type { StageChapterRecommendation, StageSignal } from '../../../types';
 import { statusTone, type StatusId } from '../../../kinds/statusTone';
 import type { StatusTone } from '../../primitives/StatusBadge';
 import { CAUSE_TEXT, SIGNAL_STATE_LABEL, signalName, stageLabel, verdictSentence } from '../../stages/stageText';
+import { plural } from '../../../plural';
 
 /** The six verdicts of the research mock (`selectors/readiness.ts`), read from the host's recommendation. */
 export type Verdict = 'ready' | 'notready' | 'notchecked' | 'progress' | 'changed' | 'confirmed';
@@ -121,7 +122,7 @@ export type ReadinessModel = {
 
 const unmetCount = (recommendation: StageChapterRecommendation): string => {
   const count = recommendation.signals.filter((item) => item.state === 'not_met').length;
-  return count === 1 ? 'One check' : `${count} checks`;
+  return count === 1 ? 'One check' : plural(count, 'check');
 };
 
 /** What the panel says and offers for one chapter; `seen` is the suggestion the narrator had on screen when Confirm or Dismiss was pressed. */

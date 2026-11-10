@@ -8,13 +8,12 @@ import type { MeasureJob } from '../../../types';
 import { Button } from '../../primitives/Button';
 import { IconButton } from '../../primitives/IconButton';
 import { ProgressBar } from '../../primitives/ProgressBar';
+import { plural } from '../../../plural';
 
 /** How often a running measurement is read. */
 const POLL_MS = 500;
 /** How often a read that failed is tried again. */
 const RETRY_MS = 2000;
-
-const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
 
 export function useMeasureRun() {
   const measure = usePort('measure');

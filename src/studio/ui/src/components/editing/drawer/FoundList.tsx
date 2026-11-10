@@ -3,6 +3,7 @@ import { Button } from '../../primitives/Button';
 import { KindMark } from '../../primitives/KindMark';
 import { KindChip } from '../../primitives/KindChip';
 import { FLAG_KINDS, FLAG_LABEL, flagKindId } from '../flags/flagText';
+import { plural } from '../../../plural';
 
 const NOUN: Record<FlagKind, readonly [string, string]> = {
   extra: ['run of extra words', 'runs of extra words'],
@@ -33,9 +34,7 @@ export function FoundList({ doc, activeKind, onReview }: { doc: ChapterDoc; acti
               </span>
               <span className="flex flex-1 flex-col items-start gap-0.5">
                 <KindChip kind={flagKindId(k)} label={FLAG_LABEL[k][0]} />
-                <span className="text-[length:var(--font-size-sm)] text-[var(--text-muted)]">
-                  {n} {NOUN[k][n === 1 ? 0 : 1]}
-                </span>
+                <span className="text-[length:var(--font-size-sm)] text-[var(--text-muted)]">{plural(n, NOUN[k][0], NOUN[k][1])}</span>
               </span>
               <Button variant="secondary" size="sm" disabled={n === 0} aria-label={`Review ${FLAG_LABEL[k][0].toLowerCase()}`} onClick={() => onReview(k)}>
                 Review

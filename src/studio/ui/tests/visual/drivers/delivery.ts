@@ -143,7 +143,7 @@ export const deliveryDrivers: Record<string, Driver> = {
     await panelTitled(page, 'Before you build')
       .getByText(/passing/)
       .waitFor();
-    await page.getByRole('button', { name: /^Show the other \d+ chapters$/ }).waitFor();
+    await page.getByRole('button', { name: /^Show the other [\d,]+ chapters$/ }).waitFor();
   },
   'custom-profile': async (page) => {
     await openDelivery(page, '?mockDeliveryProfile=custom');

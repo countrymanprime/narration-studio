@@ -9,6 +9,7 @@ import { CapabilityGate } from '../primitives/CapabilityGate';
 import { ConfirmDialog } from '../primitives/ConfirmDialog';
 import type { Notify } from '../primitives/Toast';
 import { keepUnits } from './editingCheckText';
+import { plural } from '../../plural';
 
 /**
  * Item gain: the editing check's row for `bridge.LevelMatchClient` (src/studio/desktop/internal/bridge/levelnormalize.go). It previews the items
@@ -28,10 +29,6 @@ const NOTHING_TO_CHANGE = /needs a gain change/;
 const ALREADY_LEVEL = keepUnits(
   `Every item on this chapter's linked track is already within ${LEVEL_MATCH_TOLERANCE_DB} dB of ${LEVEL_MATCH_TARGET_DB} dBFS RMS.`,
 );
-
-function pluralize(count: number, noun: string): string {
-  return `${count} ${noun}${count === 1 ? '' : 's'}`;
-}
 
 function LevelMatchAction({ chapterId, notify }: { chapterId: string; notify: Notify }) {
   const api = useApi();
@@ -57,11 +54,11 @@ function LevelMatchAction({ chapterId, notify }: { chapterId: string; notify: No
     action.run('gain-apply', async () => {
       try {
         const result = await api.levelMatchApply(chapterId, LEVEL_MATCH_METRIC, LEVEL_MATCH_TARGET_DB, LEVEL_MATCH_TOLERANCE_DB);
-        if (result.changed.length > 0) notify(`Matched levels on ${pluralize(result.changed.length, 'item')}.`, 'info');
+        if (result.changed.length > 0) notify(`Matched levels on ${plural(result.changed.length, 'item')}.`, 'info');
         else if (result.stale.length > 0) {
           // The host measures again on apply: an item that moved on since the preview is left as it is, and a run that changed nothing is not a success.
           notify(
-            `No item's level was changed. ${pluralize(result.stale.length, 'item')} changed in REAPER since the preview. Match levels again to read them afresh.`,
+            `No item's level was changed. ${plural(result.stale.length, 'item')} changed in REAPER since the preview. Match levels again to read them afresh.`,
             'error',
           );
         } else notify(ALREADY_LEVEL, 'info');
@@ -101,7 +98,7 @@ function LevelMatchAction({ chapterId, notify }: { chapterId: string; notify: No
             <div className="space-y-2">
               <p>
                 {keepUnits(
-                  `${pluralize(preview.candidates.length, 'item')} on this chapter's linked track ${preview.candidates.length === 1 ? 'differs' : 'differ'} from ${LEVEL_MATCH_TARGET_DB} dBFS RMS by more than ${LEVEL_MATCH_TOLERANCE_DB} dB.`,
+                  `${plural(preview.candidates.length, 'item')} on this chapter's linked track ${preview.candidates.length === 1 ? 'differs' : 'differ'} from ${LEVEL_MATCH_TARGET_DB} dBFS RMS by more than ${LEVEL_MATCH_TOLERANCE_DB} dB.`,
                 )}
               </p>
               <p>Matching changes each item's volume in REAPER to bring it onto target, in one undo step.</p>

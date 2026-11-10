@@ -10,6 +10,7 @@ import { RATIO } from '../../schedule/estimates';
 import { statusTone } from '../../../kinds/statusTone';
 import { deadlineTone, TONE_STATUS, type Calc, type Tone } from '../../schedule/progress';
 import type { ChapterSyncChapter } from '../../../api/contracts/chapterSync';
+import { plural } from '../../../plural';
 
 /** The page a figure goes to. The components import no router; the page maps this to a route. */
 export type OverviewTarget = 'script' | 'booth' | 'editing' | 'pickups' | 'master' | 'schedule';
@@ -76,7 +77,7 @@ const TONE_TILE: Record<Tone, KpiTile['tone']> = {
   warn: tileTone('warn'),
   danger: tileTone('danger'),
 };
-const days = (n: number): string => `${Math.abs(n)} ${Math.abs(n) === 1 ? 'day' : 'days'}`;
+const days = (n: number): string => `${plural(Math.abs(n), 'day')}`;
 
 /** The six KPI tiles of the mock's Production page. */
 export function kpiTiles({ k, book, due, openPickups, pickupMinutes, delivery }: KpiInputs): KpiTile[] {

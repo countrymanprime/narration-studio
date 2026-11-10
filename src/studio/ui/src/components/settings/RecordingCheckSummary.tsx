@@ -1,5 +1,6 @@
 import { HelpButton } from '../primitives/HelpButton';
 import type { Scope, ScopedSettingField } from '../../types';
+import { plural } from '../../plural';
 
 // What the recording check's settings amount to (docs/utilities/recording-coverage.md). The values are
 // chosen on synthetic fixtures and stay Proposed and uncalibrated on real narration, and the page says so. The
@@ -16,7 +17,7 @@ function share(text: string): string {
 function wordRun(text: string): string {
   const value = Number(text);
   if (text === '' || !Number.isFinite(value)) return '(not set) words';
-  return `${value} ${value === 1 ? 'word' : 'words'}`;
+  return `${plural(value, 'word')}`;
 }
 
 /** The rule the effective thresholds make, in one sentence. */

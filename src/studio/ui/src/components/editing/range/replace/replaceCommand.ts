@@ -3,6 +3,7 @@ import type { ReplaceAudioApi, Replacement } from '../../../../api/contracts/rep
 import type { DawClient } from '../../../../ports/daw';
 import type { Command, Result } from '../../../../studio/journal/createJournal';
 import { clock } from '../../../../clock';
+import { plural } from '../../../../plural';
 
 /** What the dialog asks for: the words as token indices, their stretch in seconds of their file, the fade at each seam and the level change. */
 export interface ReplaceAsk {
@@ -36,7 +37,6 @@ export interface ReplaceDone {
 /** The kind of DAW change a replacement is, in the DAW port's words (`DawActionKind`). */
 export const REPLACE_KIND = 'replace_range';
 
-const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
 const why = (e: unknown): string => (e instanceof Error ? e.message : String(e));
 const refusal = (code: string, reason: string): Result<never> => ({ ok: false, refusal: { code, reason } });
 const failed = (e: unknown): DawResult => ({ ok: false, changed: false, message: why(e), undoSteps: 0, refused: why(e) });

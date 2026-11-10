@@ -2,6 +2,7 @@ import { Button } from '../../../primitives/Button';
 import { Popover } from '../../../primitives/Popover';
 import { clock } from '../../../../clock';
 import { useReplacementMark } from './replacementMarks';
+import { plural } from '../../../../plural';
 
 const sec = (n: number): string => `${n.toFixed(2)} s`;
 const db = (n: number): string => `${n > 0 ? '+' : ''}${n.toFixed(1)} dB`;
@@ -26,7 +27,7 @@ export function ReplacementMark({ wordKey }: { wordKey: string }) {
           type="button"
           data-replacement-mark
           data-stale={r.stale ? '' : undefined}
-          aria-label={`${r.narratorName}'s audio plays for the ${r.words.length === 1 ? 'word' : `${r.words.length} words`} before. Press Enter for details`}
+          aria-label={`${r.narratorName}'s audio plays for the ${r.words.length === 1 ? 'word' : plural(r.words.length, 'word')} before. Press Enter for details`}
           className={`mx-[0.15em] inline-flex cursor-pointer items-center rounded-full border px-1.5 align-[0.15em] font-mono text-[11px] leading-[1.4] focus-visible:outline-2 focus-visible:outline-[var(--focus)] ${
             r.stale ? 'border-dashed border-[var(--warn)] text-[var(--warn-text)]' : 'border-[var(--info)] bg-[var(--info-soft)] text-[var(--text)]'
           }`}

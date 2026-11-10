@@ -9,6 +9,7 @@ import { SlideOver } from '../primitives/SlideOver';
 import type { CreditsRow } from '../credits/useCreditsRows';
 import { addressPath } from '../../navigation/address';
 import { clock } from '../../clock';
+import { plural } from '../../plural';
 
 const MUTED = { color: 'var(--text-muted)' };
 
@@ -25,7 +26,7 @@ const UNRECORDED_TEXT: Record<NonNullable<CreditsRow['recordedUnavailable']>, st
 const unresolvedWarning = (unresolved: string[]): string | undefined => {
   if (unresolved.length === 0) return undefined;
   if (unresolved.length === 1) return `${unresolved[0]} not filled in`;
-  return `${unresolved.length} tokens not filled in: ${unresolved.join(', ')}`;
+  return `${plural(unresolved.length, 'token')} not filled in: ${unresolved.join(', ')}`;
 };
 
 /**

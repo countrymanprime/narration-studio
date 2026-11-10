@@ -55,6 +55,9 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/chapterTracks/ChapterTrackState.tsx#1': yes(
     'The chapter links read changes nothing; Retry reads the tracks and the links again (one toast for a run of failed reads).',
   ),
+  'src/components/chapterTracks/ChapterTrackState.tsx#2': yes(
+    'The links read of the check on a link the chapter already has changes nothing; Retry reads the tracks and the links again.',
+  ),
   'src/components/storybible/source/NamePronunciation.tsx#1': yes(
     'The pronunciation sources list read changes nothing; Retry reads it again (added by the pronunciation rework).',
   ),
@@ -185,9 +188,6 @@ export const ERROR_TOAST_RETRY: Record<string, RetryJudgment> = {
   'src/components/engine/ChapterLinksTable.tsx#1': no(RF),
   'src/components/engine/ChapterLinksTable.tsx#2': no(
     'Adds a track or a chapter folder in REAPER (a DAW edit): a blind repeat after a create that half-happened could add a second one, and the row keeps its Create button for a deliberate press.',
-  ),
-  'src/components/engine/ChapterLinksTable.tsx#3': no(
-    'Reads the link again and changes nothing, so it is safe to repeat; the row is back on Change, and Change then the check reads it again.',
   ),
   'src/components/engine/SyncActivityLog.tsx#1': no(DS),
   'src/components/engine/useChapterFolders.ts#1': no(

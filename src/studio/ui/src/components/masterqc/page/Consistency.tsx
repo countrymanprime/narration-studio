@@ -1,6 +1,7 @@
 import type { DeliveryProfile, MeasureFileResult } from '../../../types';
 import { formatLevel } from '../../master/deliveryFormat';
 import { isSample, profileName } from './packageItems';
+import { plural } from '../../../plural';
 
 const W = 520;
 const H = 48;
@@ -83,7 +84,7 @@ export function Consistency({ files, profile }: { files: readonly MeasureFileRes
         </div>
       )}
       <p className="mt-1 text-sm text-[var(--text-muted)]">
-        Spread {spread.toFixed(1)} dB across {rows.length} {rows.length === 1 ? 'file' : 'files'}.
+        Spread {spread.toFixed(1)} dB across {plural(rows.length, 'file')}.
       </p>
     </>
   );

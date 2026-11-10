@@ -1,5 +1,6 @@
 import type { ContextMenuItem } from '../../primitives/ContextMenu';
 import { registerWordMenuSection, type WordMenuSelection } from './wordMenuRegistry';
+import { plural } from '../../../plural';
 
 /** Why Play selection is off, or undefined when the selection has audio. */
 function playRefusal({ doc, summary }: WordMenuSelection): string | undefined {
@@ -33,7 +34,7 @@ function copyItems(selection: WordMenuSelection): ContextMenuItem[] {
       onSelect: () => {
         const count = selection.summary.items.length;
         void navigator.clipboard?.writeText(copiedText(selection)).then(
-          () => selection.notify(`Copied ${count} ${count === 1 ? 'word' : 'words'}.`),
+          () => selection.notify(`Copied ${plural(count, 'word')}.`),
           () => selection.notify('Could not copy the words.'),
         );
       },

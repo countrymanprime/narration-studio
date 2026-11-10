@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { ToolResult } from './ToolResult';
 import type { ChapterRegionPlan, ChapterRegionState, ChapterRegionsCreated, Track } from '../../types';
 import { clock } from '../../clock';
+import { plural } from '../../plural';
 
 const REGION_STATE_LABEL: Record<ChapterRegionState, string> = {
   new: 'New region',
@@ -136,7 +137,7 @@ export function CreateChapterRegionsDialog({ tracks, onClose }: { tracks: Track[
           <CapabilityGate capability={regionsCapability}>
             {/* After a run Close is the next step, so the primary goes quiet until the plan changes (ENX-28). */}
             <Button variant={created ? 'secondary' : 'primary'} onClick={create} disabled={!canCreate} pending={creating}>
-              {`Create ${rows.length} region${rows.length === 1 ? '' : 's'}`}
+              {`Create ${plural(rows.length, 'region')}`}
             </Button>
           </CapabilityGate>
         </>

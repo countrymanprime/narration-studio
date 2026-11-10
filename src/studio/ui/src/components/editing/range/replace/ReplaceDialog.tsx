@@ -12,12 +12,12 @@ import { retryAction } from '../../../primitives/Toast';
 import { clock } from '../../../../clock';
 import { DialogFooter } from '../common/DialogFooter';
 import type { ReplaceAsk } from './replaceCommand';
+import { plural } from '../../../../plural';
 
 /** The fades at each seam the dialog offers, in milliseconds (the host takes 0 to 500); 10 ms is the cut's default seam. */
 const REPLACE_FADES = [0, 5, 10, 25, 50] as const;
 const DEFAULT_FADE = 10;
 
-const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
 const sec = (n: number): string => `${n.toFixed(2)} s`;
 const why = (e: unknown): string => (e instanceof Error ? e.message : String(e));
 const round = (n: number): number => Math.round(n * 100) / 100;

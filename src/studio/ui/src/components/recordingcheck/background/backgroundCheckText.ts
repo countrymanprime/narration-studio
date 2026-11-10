@@ -1,5 +1,6 @@
 import type { ChapterSyncBackground } from '../../../api/contracts/chapterSync';
 import type { CoverageState } from '../../../api/contracts/coverage';
+import { plural } from '../../../plural';
 
 /** Why queued chapters are not being checked yet, in a few words, or '' when there is nothing to say. */
 const WAITING: Partial<Record<ChapterSyncBackground['wait'], string>> = {
@@ -13,10 +14,6 @@ const WAITING: Partial<Record<ChapterSyncBackground['wait'], string>> = {
 /** "tiny + small", or the first-pass model alone. */
 export function modelPairText(background: Pick<ChapterSyncBackground, 'firstPassModel' | 'recheckModel'>): string {
   return background.recheckModel ? `${background.firstPassModel} + ${background.recheckModel}` : background.firstPassModel;
-}
-
-function chapters(count: number): string {
-  return `${count} chapter${count === 1 ? '' : 's'}`;
 }
 
 /** The pill's line while a background check runs. */
@@ -40,7 +37,7 @@ export function runningDetail(background: ChapterSyncBackground | undefined, sta
 
 /** The corner's line once background checks have finished everything that waited. */
 export function doneText(done: number): string {
-  return `Background checks done: ${chapters(done)} checked`;
+  return `Background checks done: ${plural(done, 'chapter')} checked`;
 }
 
 /** The corner's line after Pause. */
@@ -50,7 +47,7 @@ export const PAUSED_TEXT = 'Background checks paused';
 export function queuedText(background: ChapterSyncBackground): string {
   if (!background.enabled || background.queued === 0) return '';
   const why = WAITING[background.wait];
-  return why ? `${chapters(background.queued)} waiting to be checked: ${why}` : '';
+  return why ? `${plural(background.queued, 'chapter')} waiting to be checked: ${why}` : '';
 }
 
 /** The toast when the host starts a background check. */

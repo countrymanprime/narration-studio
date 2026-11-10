@@ -4,6 +4,7 @@
 import type { Finding, FindingSeverity } from '../../types';
 import { deliveryEvidence, deliveryEvidenceRows, deliveryFileName, deliverySummary } from './deliveryFindingFormat';
 import { clockTenths } from '../../clock';
+import { plural } from '../../plural';
 
 const CATEGORY_LABELS: Record<string, string> = {
   transcript_discrepancy: 'Transcript difference',
@@ -81,7 +82,7 @@ function takeReviewSummary(finding: Finding): string | undefined {
   const { kind, members, matched_span_first: first, matched_span_last: last } = finding.evidence ?? {};
   if (typeof kind !== 'string' || !Array.isArray(members) || typeof first !== 'number' || typeof last !== 'number') return undefined;
   const span = first === last ? `sentence ${first + 1}` : `sentences ${first + 1}–${last + 1}`;
-  return `${TAKE_REVIEW_KINDS[kind] ?? humanize(kind)}: ${members.length} read${members.length === 1 ? '' : 's'} of ${span}`;
+  return `${TAKE_REVIEW_KINDS[kind] ?? humanize(kind)}: ${plural(members.length, 'read')} of ${span}`;
 }
 
 /** One line that says what the finding is about, for the list: what was expected and what was heard, or the entry it names. */

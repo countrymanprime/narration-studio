@@ -1,6 +1,7 @@
 import { apiErrorMessage } from '../../api/errorMessage';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePort } from '../../ports/usePort';
+import { useChapterTrackState } from '../chapterTracks/ChapterTrackState';
 import { headingName } from '../../chapterHeading';
 import { chapterTrackRows, type ChapterTrackRow } from './chapterTrackRows';
 import { keptTitle } from '../mapping/trackHeldBy';
@@ -35,8 +36,6 @@ export type ChapterLinks = {
    * another), or a create answered less than CREATE_QUIET_MS ago (a fast second click lands on the row that moved under the pointer). A failed
    * call rejects. */
   create: (chapterId: string) => Promise<ChapterTrackCreateResult | undefined>;
-  /** Reads the links again (the check on the link a chapter already has) and tells no one a change was made; rejects when the read fails. */
-  recheck: () => Promise<void>;
 };
 
 /** How long after a create answers that a create press is ignored: the rows shift when one is linked, so a fast second click would land on
@@ -74,7 +73,11 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
   const manuscript = usePort('manuscript');
   const chapterTrackMap = usePort('chapterTrackMap');
   const [chapters, setChapters] = useState<ManuscriptChapter[]>([]);
-  const [mappings, setMappings] = useState<TrackMapping[]>([]);
+  // The links are the shared state's (#3269): read once for every screen, so the table, the dialog and the Booth cannot disagree. This hook
+  // wants only the links; the tracks are the caller's.
+  const trackState = useChapterTrackState({ enabled, tracks: false });
+  const mappings: TrackMapping[] = trackState.mappings;
+  const { applyMappings, refreshLinks } = trackState;
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [busyChapterId, setBusyChapterId] = useState('');
@@ -86,17 +89,22 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
   const inFlight = useRef(false);
 
   const reload = useCallback(async () => {
-    const [nextChapters, mapping] = await Promise.all([manuscript.manuscriptChapters(), chapterTrackMap.chapterTrackMapList()]);
+    const [nextChapters] = await Promise.all([manuscript.manuscriptChapters(), refreshLinks()]);
     setChapters(nextChapters);
-    setMappings(mapping.mappings);
-  }, [manuscript, chapterTrackMap]);
+  }, [manuscript, refreshLinks]);
 
   useEffect(() => {
     if (!enabled) return;
     let active = true;
-    reload().catch((reason) => {
-      if (active) setError(apiErrorMessage(reason));
-    });
+    reload().then(
+      () => {
+        // A later read that answers takes the failure of an earlier one away (a host that recovered).
+        if (active) setError('');
+      },
+      (reason) => {
+        if (active) setError(apiErrorMessage(reason));
+      },
+    );
     return () => {
       active = false;
     };
@@ -130,8 +138,6 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
         if (quietAfter) createGuard.quietUntil = Date.now() + CREATE_QUIET_MS;
       });
   };
-  // Nothing changed, so `onChanged` is not told: the panel would read the links and the stage recommendations again for no new answer.
-  const recheck = () => reload();
   // Set, not Confirm: it replaces the chapter's link rather than adding a second one beside it, so a Change never leaves it on two tracks.
   // Pressing Confirm again for the pair already linked changes nothing, and must not reach the host twice.
   const set = (chapterId: string, trackGuid: string) => {
@@ -144,7 +150,7 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
       chapterId,
       async () => {
         const result = await chapterTrackMap.chapterTrackUnlink(chapterId);
-        setMappings(result.mappings);
+        applyMappings(result.mappings);
         return result;
       },
       true,
@@ -214,5 +220,5 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
   const rows = useMemo(() => chapterTrackRows(chapters, shown, mappings), [chapters, shown, mappings]);
 
   const clearNotice = () => setNotice('');
-  return { tracks: shown, chapters, mappings, rows, error, notice, clearNotice, busyChapterId, creatingChapterId, set, unlink, create, recheck };
+  return { tracks: shown, chapters, mappings, rows, error, notice, clearNotice, busyChapterId, creatingChapterId, set, unlink, create };
 }

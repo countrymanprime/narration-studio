@@ -8,6 +8,7 @@ import { statusTone, type StatusId } from '../../../kinds/statusTone';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import type { ChapterState } from './chapterStates';
 import { useErrorToast } from '../../../hooks/useErrorToast';
+import { plural, formatCount } from '../../../plural';
 
 const STATUS = { ok: 'pass', bad: 'fail', wait: 'waiting' } as const satisfies Record<string, StatusId>;
 const MUTED = { color: 'var(--text-muted)' };
@@ -84,7 +85,7 @@ export function Preflight({
             <div className={`${ROW} justify-between text-sm`}>
               <span>Chapters passing</span>
               <b className="font-mono">
-                {states.filter((state) => state.kind === 'ok').length} of {states.length}
+                {formatCount(states.filter((state) => state.kind === 'ok').length)} of {formatCount(states.length)}
               </b>
             </div>
             {/* A long book scrolls inside the card rather than running the page on for thousands of pixels (R3DL-4); a short one is not a
@@ -114,7 +115,7 @@ export function Preflight({
             </ul>
             {shown.length < states.length && (
               <Button variant="secondary" size="sm" onClick={() => setAll(true)} className="self-start">
-                Show the other {states.length - shown.length} {states.length - shown.length === 1 ? 'chapter' : 'chapters'}
+                Show the other {plural(states.length - shown.length, 'chapter')}
               </Button>
             )}
           </>

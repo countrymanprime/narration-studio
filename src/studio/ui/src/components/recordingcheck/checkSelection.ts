@@ -1,5 +1,6 @@
 import type { CoverageEngine, CoverageResult } from '../../api/contracts/coverage';
 import type { ManuscriptChapter } from '../../api/contracts/manuscript';
+import { plural } from '../../plural';
 
 /**
  * The chapters the dialog offers: the ones with a recording. A length the host measured counts; so does a stored share when no length is known.
@@ -49,8 +50,6 @@ const STATE_LABEL: Record<CoverageResult['state'], string> = { current: 'Checked
 
 export const checkStateLabel = (result: CoverageResult | undefined): string => STATE_LABEL[result?.state ?? 'never'];
 
-const plural = (count: number, one: string, many: string): string => `${count} ${count === 1 ? one : many}`;
-
 /** The unfinished paragraphs of a stored report, at the start and end. */
 const unfinishedCount = (result: CoverageResult): number => (result.result?.unfinished?.start ?? 0) + (result.result?.unfinished?.end ?? 0);
 
@@ -61,7 +60,7 @@ export function lastResultSentence(result: CoverageResult | undefined): string {
   const bits = [report.model];
   if (report.gaps) bits.push(plural(report.gaps.length, 'line to redo', 'lines to redo'));
   const unfinished = unfinishedCount(result);
-  if (unfinished > 0) bits.push(`read ${Math.max(0, report.paragraphs.length - unfinished)} of ${report.paragraphs.length} paragraphs`);
+  if (unfinished > 0) bits.push(`read ${Math.max(0, report.paragraphs.length - unfinished)} of ${plural(report.paragraphs.length, 'paragraph')}`);
   return bits.join(' · ');
 }
 

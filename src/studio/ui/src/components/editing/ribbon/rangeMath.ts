@@ -4,6 +4,7 @@
  */
 import type { DocItem } from '../model';
 import { clockTenths } from '../../../clock';
+import { plural } from '../../../plural';
 
 export interface Span {
   start: number;
@@ -175,8 +176,6 @@ export function spanOfKeys(items: readonly DocItem[], keys: readonly string[]): 
   if (!heard.length) return null;
   return { start: Math.min(...heard.map((i) => i.t0)), end: Math.max(...heard.map((i) => i.t1)) };
 }
-
-const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
 
 /** A range in words for a screen reader and the label: "0:05.54 to 0:06.30, 0.8 seconds, 2 words". */
 export function rangeLabel(span: Span, words: number): string {
