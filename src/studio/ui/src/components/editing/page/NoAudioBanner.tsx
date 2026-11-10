@@ -28,7 +28,8 @@ export function NoAudioBanner({
 }) {
   if (audio.kind === 'ready' || isLinkProblem(audio, daw)) return null;
   const text = noAudioText(audio, chapterName, daw);
-  // The button is the next step, so the note's how-to sentence (which tells the narrator to save) steps aside for it.
+  // For an unsaved recording the button is the next step, so the note's sentence telling the narrator to save steps aside for it. Any other empty
+  // track keeps its how-to (record it, then save): a save may find nothing, and the narrator must still be told what to do.
   const offered = save !== undefined && audio.kind === 'empty';
   return (
     <div
@@ -38,7 +39,7 @@ export function NoAudioBanner({
     >
       <span className="min-w-0 flex-[1_1_18rem] [overflow-wrap:anywhere]">
         <b>{text.headline}</b>
-        {offered ? null : ` ${text.next}`}
+        {offered && audio.kind === 'empty' && audio.unsaved ? null : ` ${text.next}`}
       </span>
       {offered ? (
         <Button variant="primary" size="sm" pending={save.saving} onClick={save.onSave}>

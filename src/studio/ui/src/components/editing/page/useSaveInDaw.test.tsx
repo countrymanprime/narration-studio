@@ -13,7 +13,7 @@ import { PortOverrides } from '../../../ports/usePort';
 import { NoAudioBanner } from './NoAudioBanner';
 import { canSaveFromApp, useSaveInDaw } from './useSaveInDaw';
 
-// #3262: the Save in REAPER and read button. A click saves, then reads; a refusal is shown where the click happened; two clicks are one save.
+// #3262: the Save in REAPER and read button. A click saves, then reads; a refusal is an error toast; two clicks are one save.
 
 const result = (over: Partial<DawResult>): DawResult => ({ ok: true, changed: false, message: DAW_ANSWERS.projectSaved, undoSteps: 0, ...over });
 const refusal = (sentence: string): DawResult => result({ ok: false, message: sentence, refused: sentence });
@@ -132,11 +132,13 @@ describe('NoAudioBanner with the save button', () => {
     expect(screen.getByRole('button', { name: 'Read again' })).toBeTruthy();
   });
 
-  it('drops the how-to sentence that tells the narrator to save when the button does it', () => {
+  it('drops the sentence that tells the narrator to save when the button does it, and keeps the record instruction on a track that is not an unsaved recording', () => {
     const { rerender } = render(<NoAudioBanner {...props} audio={{ kind: 'empty', unsaved: true }} save={save()} />);
     expect(screen.queryByText(/Save the project in REAPER, then read again/)).toBeNull();
     rerender(<NoAudioBanner {...props} audio={{ kind: 'empty', unsaved: true }} />);
     expect(screen.getByText(/Save the project in REAPER, then read again/)).toBeTruthy();
+    rerender(<NoAudioBanner {...props} audio={{ kind: 'empty' }} save={save()} />);
+    expect(screen.getByText(/Record or import the chapter onto that track in REAPER/)).toBeTruthy();
   });
 
   it('shows the pending state on the button itself: busy, same label, presses ignored', async () => {

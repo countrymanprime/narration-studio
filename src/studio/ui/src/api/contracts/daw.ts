@@ -531,8 +531,7 @@ export interface DawUndoLastApi {
  * Editing reads the saved file, so a take recorded since the last save is not there until the DAW saves. */
 export interface DawSaveProjectApi {
   /** Save the linked project in the DAW. Saved: `ok`, not `changed`, no undo step, and the message says how much the saved project holds
-   * ("Saved the project in REAPER: 3 tracks and 12 items."). Refused with nothing written, in a sentence for the page to show where the
-   * click happened: the `save_project` capability's own, no linked project file, no live DAW, the DAW not answering or late, a project that
+   * ("Saved the project in REAPER: 3 tracks and 12 items."). Refused with nothing written, in a sentence for the page to show: the `save_project` capability's own, no linked project file, no live DAW, the DAW not answering or late, a project that
    * was never saved (a save would open the DAW's file dialog), another project open, a recording in progress, a file it could not write.
    * The host sends the file it is linked to, never one the page names. */
   dawSaveProject(): Promise<DawResult>;

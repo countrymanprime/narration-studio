@@ -240,7 +240,7 @@ export interface DawClient {
    * points a call adds, and an undo adds none, so how many were undone is in the message only. */
   undoLast(action: DawActionKind, steps: number): Promise<DawResult>;
   /** Save the project this app is linked to in the DAW, on the narrator's click and never otherwise (#3262). Saved: `ok`, with the DAW's
-   * sentence saying how much the project holds. Refused, with nothing written, in a sentence to show where the click happened: the
+   * sentence saying how much the project holds. Refused, with nothing written, in a sentence to show: the
    * `save_project` capability's own, no linked project file, the DAW not answering, a project that was never saved, another project open, a
    * recording in progress, a file the DAW could not write. */
   saveProject(): Promise<DawResult>;
