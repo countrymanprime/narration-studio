@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"desktop/internal/chaptermatch"
 	"desktop/internal/dawport"
@@ -146,9 +147,19 @@ type chapterMember struct {
 	IsVoice bool   `json:"isVoice"`
 }
 
-// chapterMembersOf is the direct children of the folder track guid in project, with whether each is a voice of chapterID given confirmed
-// (track GUID to the chapter it is linked to).
-func chapterMembersOf(project tracks.Project, guid, chapterID string, confirmed map[string]string) []chapterMember {
+// linkedTrackSet is the lower-cased GUIDs of the tracks mappings link: the one rule for "is another chapter's track", used by the voices
+// and by the chapter row's members, so the two cannot disagree on a GUID's case.
+func linkedTrackSet(mappings []evidence.TrackMapping) map[string]bool {
+	linked := make(map[string]bool, len(mappings))
+	for _, mapping := range mappings {
+		linked[strings.ToLower(mapping.TrackGUID)] = true
+	}
+	return linked
+}
+
+// chapterMembersOf is the direct children of the folder track guid in project, with whether each is a voice of the chapter: not a track
+// some chapter is linked to (linked, from linkedTrackSet: the same rule chapterVoicesIn applies, GUIDs compared without case).
+func chapterMembersOf(project tracks.Project, guid string, linked map[string]bool) []chapterMember {
 	members := []chapterMember{}
 	all, ok := project.WithDescendants(guid)
 	if !ok || !all[0].IsFolder {
@@ -158,8 +169,7 @@ func chapterMembersOf(project tracks.Project, guid, chapterID string, confirmed 
 		if member.Depth != all[0].Depth+1 {
 			continue
 		}
-		owner := confirmed[member.GUID]
-		members = append(members, chapterMember{GUID: member.GUID, Name: member.Name, IsVoice: owner == "" || owner == chapterID})
+		members = append(members, chapterMember{GUID: member.GUID, Name: member.Name, IsVoice: !linked[strings.ToLower(member.GUID)]})
 	}
 	return members
 }
@@ -243,6 +253,7 @@ func chapterTrackLinksOver(svc hostServices, project tracks.Project, state links
 		}
 	}
 
+	linkedTracks := linkedTrackSet(mappings)
 	links := chapterTrackLinks{Tracks: []trackSummary{}, Chapters: make([]chapterTrackLink, 0, len(narration))}
 	links.Project, links.Message = state, message
 	if state == linksProjectReady {
@@ -270,8 +281,11 @@ func chapterTrackLinksOver(svc hostServices, project tracks.Project, state links
 			return chapterTrackLinks{}, err
 		}
 		row.Result = result
+		// Members follow the chapter's one confirmed link, never a name-matched guess: an unlinked chapter has no folder of its own.
+		if len(row.Links) == 1 {
+			row.Members = chapterMembersOf(project, row.Links[0].TrackGUID, linkedTracks)
+		}
 		if result.Track != nil {
-			row.Members = chapterMembersOf(project, result.Track.TrackGUID, chapter.ID, confirmed)
 			if end, ok := chaptermatch.RecordedEnd(project, *result.Track); ok {
 				row.RecordedEnd = &end
 			}

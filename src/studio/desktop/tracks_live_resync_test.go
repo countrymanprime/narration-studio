@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"path/filepath"
 	"strings"
@@ -211,5 +212,80 @@ func TestAChildAnotherChapterOwnsIsNeverAVoiceUnderVoiceFolders(t *testing.T) {
 		if strings.EqualFold(voice.GUID, voiceNarratorTrack) {
 			t.Fatalf("voices = %+v, want chapter 2's track left out", voices)
 		}
+	}
+}
+
+// The chapter row's members and the Booth's voices apply one rule: for every layout and every case of a link's GUID, a member is a voice
+// exactly when chapterVoices lists it (qa-breaker on #3335: the row said voice where the Booth left the track out).
+func TestAMemberIsAVoiceExactlyWhenTheBoothListsIt(t *testing.T) {
+	for _, layout := range []string{voicetracks.LayoutFlat, voicetracks.LayoutFolders} {
+		for name, caseOf := range map[string]func(string) string{"upper": strings.ToUpper, "lower": strings.ToLower} {
+			t.Run(layout+"/"+name, func(t *testing.T) {
+				host, ids := newVoiceFolderHost(t, layout)
+				linkChapter(t, host, ids[1], caseOf(voiceNarratorTrack))
+				links, err := chapterTrackLinksIn(host.services())
+				if err != nil {
+					t.Fatal(err)
+				}
+				voices, _, err := chapterVoices(host.services(), voiceFolderTrack)
+				if err != nil {
+					t.Fatal(err)
+				}
+				listed := map[string]bool{}
+				for _, voice := range voices {
+					listed[strings.ToLower(voice.GUID)] = true
+				}
+				for _, row := range links.Chapters {
+					if row.ChapterID != ids[0] {
+						continue
+					}
+					if len(row.Members) == 0 {
+						t.Fatal("chapter 1's row lists no members")
+					}
+					for _, member := range row.Members {
+						if member.IsVoice != listed[strings.ToLower(member.GUID)] {
+							t.Fatalf("member %+v: isVoice disagrees with the Booth's voices %+v", member, voices)
+						}
+					}
+				}
+			})
+		}
+	}
+}
+
+// An unlinked chapter has no folder of its own: its row lists no members, whatever its title matches by name.
+func TestAnUnlinkedChaptersRowListsNoMembers(t *testing.T) {
+	host, ids := newVoiceFolderHost(t, voicetracks.LayoutFolders)
+	if _, err := host.chapterTrackUnlink(ids[0]); err != nil {
+		t.Fatal(err)
+	}
+	links, err := chapterTrackLinksIn(host.services())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, row := range links.Chapters {
+		if row.ChapterID == ids[0] && len(row.Members) != 0 {
+			t.Fatalf("members = %+v, want none for a chapter with no confirmed link", row.Members)
+		}
+	}
+}
+
+// A voice choice naming another chapter's track is refused, and a record start never arms it (#3269, qa-breaker N3).
+func TestChoosingAnotherChaptersTrackAsAVoiceIsRefused(t *testing.T) {
+	for _, layout := range []string{voicetracks.LayoutFlat, voicetracks.LayoutFolders} {
+		t.Run(layout, func(t *testing.T) {
+			host, ids := newVoiceFolderHost(t, layout)
+			linkChapter(t, host, ids[1], voiceNarratorTrack)
+			got, err := host.boothVoiceSetIn(context.Background(), host.services(), nil, ids[0], voiceNarratorTrack)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got.Outcome != "refused" || got.Reason != boothVoiceNotAVoice {
+				t.Fatalf("choice = %+v, want refused as not a voice", got)
+			}
+			if guid, _, err := recordTarget(host.services(), ids[0], voiceFolderTrack); err == nil && strings.EqualFold(guid, voiceNarratorTrack) {
+				t.Fatalf("record target = %q, want chapter 2's track never armed for chapter 1", guid)
+			}
+		})
 	}
 }

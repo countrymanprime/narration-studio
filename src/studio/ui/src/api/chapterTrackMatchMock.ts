@@ -209,23 +209,24 @@ export function mockChapterTrackLinks(
           warnings,
           links,
           recordedEnd: match.recordedEnd,
-          members: mockMembers(project, match.track?.trackGuid ?? '', chapter.id, mappings),
+          // The host's rule: members follow the chapter's one confirmed link, never a name-matched guess.
+          members: links.length === 1 ? mockMembers(project, links[0].trackGuid, mappings) : [],
         };
       }),
   };
 }
 
-/** The host's `members` for a chapter: the direct children of its matched folder; a child another chapter is linked to is not a voice. */
-function mockMembers(project: TracksProject, folderGuid: string, chapterId: string, mappings: TrackMapping[]): ChapterMember[] {
-  const at = project.tracks.findIndex((track) => track.guid === folderGuid);
+/** The host's `members` for a chapter: the direct children of its matched folder; a child some chapter is linked to is not a voice. */
+function mockMembers(project: TracksProject, folderGuid: string, mappings: TrackMapping[]): ChapterMember[] {
+  const at = project.tracks.findIndex((track) => track.guid.toLowerCase() === folderGuid.toLowerCase());
   const folder = project.tracks[at];
   if (!folder?.isFolder) return [];
   const members: ChapterMember[] = [];
   for (const track of project.tracks.slice(at + 1)) {
     if (track.depth <= folder.depth) break;
     if (track.depth !== folder.depth + 1) continue;
-    const owner = mappings.find((mapping) => mapping.trackGuid.toLowerCase() === track.guid.toLowerCase())?.chapterId ?? '';
-    members.push({ guid: track.guid, name: track.name, isVoice: owner === '' || owner === chapterId });
+    const linked = mappings.some((mapping) => mapping.trackGuid.toLowerCase() === track.guid.toLowerCase());
+    members.push({ guid: track.guid, name: track.name, isVoice: !linked });
   }
   return members;
 }

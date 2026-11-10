@@ -88,8 +88,8 @@ func chapterVoicesIn(svc hostServices, link string, project *tracks.Project) ([]
 		voices = append(voices, tracks.Track{GUID: added.GUID, Name: added.Name, Depth: members[0].Depth + 1})
 	}
 	// A track some chapter is linked to is that chapter's own track (nested chapters), never a voice of this one, whatever the layout says:
-	// a record start of this chapter must not arm another chapter's track (qa-breaker N3 on #3290). Every page reads the same rule from the
-	// chapter row's members (chapterMember.IsVoice).
+	// a record start of this chapter must not arm another chapter's track (qa-breaker N3 on #3290). The chapter row's members
+	// (chapterMember.IsVoice) apply the same rule through linkedTrackSet.
 	voices = withoutLinkedElsewhere(svc, voices)
 	// The folder's own structure decides, not the layout toggle: a chapter linked to a folder that holds tracks records on them whatever
 	// the toggle says (#3269: the Engine page listed two voices and the Booth called the chapter single-track). A folder with none is a
@@ -115,7 +115,7 @@ func withoutLinkedElsewhere(svc hostServices, voices []tracks.Track) []tracks.Tr
 	return kept
 }
 
-// linkedTrackGUIDs is the lower-cased GUIDs of every track some chapter is linked to; empty when the links cannot be read.
+// linkedTrackGUIDs is the set of every track some chapter is linked to (linkedTrackSet); empty when the links cannot be read.
 func linkedTrackGUIDs(svc hostServices) map[string]bool {
 	documentID, store, err := mappingContext(svc)
 	if err != nil {
@@ -125,11 +125,7 @@ func linkedTrackGUIDs(svc hostServices) map[string]bool {
 	if err != nil {
 		return nil
 	}
-	linked := make(map[string]bool, len(mappings))
-	for _, mapping := range mappings {
-		linked[strings.ToLower(mapping.TrackGUID)] = true
-	}
-	return linked
+	return linkedTrackSet(mappings)
 }
 
 // unsavedVoices is the voices the Booth added to the folder link this session (BoothVoiceAdd) that project, as saved, does not hold:
