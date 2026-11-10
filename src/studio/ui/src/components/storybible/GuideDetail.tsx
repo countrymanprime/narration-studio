@@ -764,7 +764,7 @@ export function GuideDetail({
           {inRouter && <FindInManuscript name={entity.canonical_name} />}
           {/* Lock/Unlock is read-view only: it can never be pressed mid-edit, so an edit is never silently discarded by a lock. */}
           {!isNewDraft && !editing && (
-            <TooltipTarget text={locked ? 'Unlock entry' : 'Lock entry'}>
+            <TooltipTarget text={busyReason('lock') || (locked ? 'Unlock entry' : 'Lock entry')}>
               <IconButton
                 label={locked ? 'Unlock entry' : 'Lock entry'}
                 pending={mutation.isPending('lock')}
@@ -776,7 +776,7 @@ export function GuideDetail({
             </TooltipTarget>
           )}
           {canEdit && !editing && (
-            <TooltipTarget text="Edit this entry">
+            <TooltipTarget text={mutation.isBusy ? BUSY_REASON : 'Edit this entry'}>
               <IconButton label="Edit this entry" disabledReason={mutation.isBusy ? BUSY_REASON : ''} onClick={() => setEditing(true)}>
                 <FontAwesomeIcon icon={faPen} />
               </IconButton>
@@ -789,7 +789,7 @@ export function GuideDetail({
                   Saving…
                 </span>
               )}
-              <TooltipTarget text="Save changes to this entry">
+              <TooltipTarget text={busyReason('save') || 'Save changes to this entry'}>
                 <IconButton
                   label="Save changes to this entry"
                   pending={mutation.isPending('save')}
@@ -808,7 +808,7 @@ export function GuideDetail({
               {/* Delete only exists in edit mode: unreachable from the read view, and set off from Save/Cancel by a divider
                   so it cannot be mis-clicked beside them (B5). A locked entry never reaches edit mode, so it never has one. */}
               <div className="ml-1 border-l pl-2" style={{ borderColor: 'var(--border)' }}>
-                <TooltipTarget text="Delete entity">
+                <TooltipTarget text={mutation.isBusy ? BUSY_REASON : 'Delete entity'}>
                   <IconButton
                     label="Delete entity"
                     variant="danger"
@@ -888,7 +888,7 @@ export function GuideDetail({
                       Record stand in one column and every row's last button ends at the list's right edge (alignment audit A4). */}
                   <div className="flex justify-end gap-2">
                     {flagged && (
-                      <TooltipTarget text={`Mark ${name} reviewed`}>
+                      <TooltipTarget text={busyReason(`review:${aliasIndex}`) || `Mark ${name} reviewed`}>
                         <IconButton
                           action="markReviewed"
                           label={`Mark ${name} reviewed`}
@@ -899,19 +899,21 @@ export function GuideDetail({
                       </TooltipTarget>
                     )}
                     {aliasIndex !== undefined && canEdit && editing && (
-                      <IconButton
-                        label={`Remove alias ${name}`}
-                        disabledReason={busyReason(`alias:${name}`)}
-                        pending={mutation.isPending(`alias:${name}`)}
-                        onClick={() =>
-                          void setAliasTexts(
-                            entity.aliases.filter((other) => other.text !== name).map((other) => other.text),
-                            `alias:${name}`,
-                          )
-                        }
-                      >
-                        <FontAwesomeIcon icon={faTrash} />
-                      </IconButton>
+                      <TooltipTarget text={busyReason(`alias:${name}`) || `Remove alias ${name}`}>
+                        <IconButton
+                          label={`Remove alias ${name}`}
+                          disabledReason={busyReason(`alias:${name}`)}
+                          pending={mutation.isPending(`alias:${name}`)}
+                          onClick={() =>
+                            void setAliasTexts(
+                              entity.aliases.filter((other) => other.text !== name).map((other) => other.text),
+                              `alias:${name}`,
+                            )
+                          }
+                        >
+                          <FontAwesomeIcon icon={faTrash} />
+                        </IconButton>
+                      </TooltipTarget>
                     )}
                     <TooltipTarget
                       text={
@@ -1084,7 +1086,7 @@ export function GuideDetail({
           action={
             // Rescan has no mock equivalent: it re-reads where the entry's names occur, so it sits with the list it refreshes.
             !isNewDraft && (
-              <TooltipTarget text="Rescan occurrences for this entry">
+              <TooltipTarget text={busyReason('rescan') || 'Rescan occurrences for this entry'}>
                 <Button
                   variant="ghost"
                   size="sm"

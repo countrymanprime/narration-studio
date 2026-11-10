@@ -172,5 +172,10 @@ describe('Story Bible actions acknowledge within 100 ms and cannot be fired twic
       fireEvent.click(button);
     }
     expect(screen.queryByRole('textbox', { name: 'Add a name' })).toBeNull();
+    // The hint is the reason, not the control's own name.
+    fireEvent.keyDown(document.body, { key: 'Shift' });
+    act(() => screen.getByRole('button', { name: 'Edit this entry' }).focus());
+    act(() => void vi.advanceTimersByTime(1500));
+    expect(screen.getByRole('tooltip').textContent).toBe('Another change is still saving.');
   });
 });
