@@ -379,10 +379,11 @@ describe('ChapterLinksTable', () => {
     const table = await screen.findByRole('table', { name: 'Chapter links' });
     const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
     await user.selectOptions(within(firstRow).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
-    await user.click(within(firstRow).getByRole('button', { name: 'Confirm' }));
+    await user.click(within(firstRow).getByRole('button', { name: /^Use this (track|folder) for/ }));
     await waitFor(() => expect(within(firstRow).getByText('Linked')).toBeTruthy());
 
     hold = true;
+    await pastQuiet();
     await user.click(within(firstRow).getByRole('button', { name: /^Clear the link/ }));
 
     await waitFor(() => expect(within(firstRow).getByText('Not linked')).toBeTruthy());
