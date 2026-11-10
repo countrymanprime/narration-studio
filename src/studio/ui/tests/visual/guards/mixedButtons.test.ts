@@ -32,6 +32,11 @@ describe('what the scanner counts as mixing', () => {
     expect(found('const A = () => (on ? <Button>{`Remove ${n} uses too?`}</Button> : <IconButton action="delete" />);')).toBe(1);
   });
 
+  it('counts Show, Download, Repair and Retry words, the ones this guard was added for', () => {
+    expect(found('const A = () => (on ? <IconButton action="retry" /> : <Button>Show tips again</Button>);')).toBe(1);
+    expect(found('const A = () => (on ? <IconButton action="cancelDownload" /> : <Button>{r ? `Repair ${n}` : `Download ${n}`}</Button>);')).toBe(1);
+  });
+
   it('does not count a word that names a different action than an icon in another state', () => {
     expect(found('const A = () => (on ? <Button>Override for this project</Button> : <IconButton action="undo" />);')).toBe(0);
   });

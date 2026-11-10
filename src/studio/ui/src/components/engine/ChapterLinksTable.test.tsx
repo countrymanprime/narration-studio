@@ -164,6 +164,7 @@ describe('ChapterLinksTable', () => {
     await pastQuiet();
     await user.click(await within(opening).findByRole('button', { name: /^Change the track for/ }));
     await user.selectOptions(within(opening).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[1].guid);
+    await pastQuiet();
     await user.click(within(opening).getByRole('button', { name: /^Cancel the edit/ }));
     await pastQuiet();
     await user.click(await within(opening).findByRole('button', { name: /^Change the track for/ }));
@@ -182,6 +183,24 @@ describe('ChapterLinksTable', () => {
     await within(opening).findByRole('button', { name: /^Change the track for/ });
     expect(set).toHaveBeenCalledTimes(1);
     expect(within(opening).queryByRole('combobox')).toBeNull();
+    expect(within(opening).getByRole('button', { name: /^Clear the link for/ })).toBeTruthy();
+  });
+
+  // Intent review M3: Cancel returns the row to Change and Clear, so the second press of a double click on Cancel landed on Clear and unlinked it.
+  it('keeps the link when Cancel is double clicked', async () => {
+    const user = userEvent.setup();
+    renderTable();
+    const table = await screen.findByRole('table', { name: 'Chapter links' });
+    const opening = chapterRow(table, 'Opening credits');
+    await user.selectOptions(within(opening).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
+    await user.click(within(opening).getByRole('button', { name: /^Use this track for/ }));
+    await within(opening).findByRole('button', { name: /^Change the track for/ });
+    await pastQuiet();
+    await user.click(within(opening).getByRole('button', { name: /^Change the track for/ }));
+    await pastQuiet();
+    await user.dblClick(within(opening).getByRole('button', { name: /^Cancel the edit/ }));
+    await pastQuiet();
+    expect(within(opening).getByText('Linked')).toBeTruthy();
     expect(within(opening).getByRole('button', { name: /^Clear the link for/ })).toBeTruthy();
   });
 
@@ -283,6 +302,7 @@ describe('ChapterLinksTable', () => {
     await user.click(within(firstRow).getByRole('button', { name: /^Use this (track|folder) for/ }));
     await waitFor(() => expect(within(firstRow).getByText('Linked')).toBeTruthy());
 
+    await pastQuiet();
     await user.click(within(firstRow).getByRole('button', { name: /^Clear the link/ }));
 
     await waitFor(() => expect(within(firstRow).getByText('Not linked')).toBeTruthy());

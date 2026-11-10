@@ -41,11 +41,11 @@ const iconName = (n: ts.JsxElement | ts.JsxSelfClosingElement): string => {
 };
 
 /**
- * The words that finish an edit or answer a question: Confirm, Save, Apply, Cancel, Done, Discard, Keep, Yes, No, or a question
+ * The words that finish an edit, answer a question or start the one thing a control does (Show, Download, Repair, Retry): Confirm, Save, Apply, Cancel, Done, Discard, Keep, Yes, No, or a question
  * ("Remove 2 uses too?"). The owner's complaint is an icon that starts a change beside a word that commits it. A word that names a
  * different action (Override for this project, Move them out…, Change location…) is a bare word no icon carries (frontend-primitives rule 1).
  */
-const COMMIT_WORD = /^(confirm|save|apply|cancel|done|discard|keep|yes|no)\b|\?`?$/i;
+const COMMIT_WORD = /^`?(confirm|save|apply|cancel|done|discard|keep|yes|no|show|download|repair|retry|try)\b|\?`?$/i;
 
 type Found = { icons: string[]; words: string[] };
 
