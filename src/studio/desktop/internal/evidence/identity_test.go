@@ -160,6 +160,15 @@ func TestFullHashOnADirectoryReturnsError(t *testing.T) {
 	}
 }
 
+// ageFile gives path a modification time an hour back, past the window in which the cache does not trust a time (racyWindow).
+func ageFile(t *testing.T, path string) {
+	t.Helper()
+	old := time.Now().Add(-time.Hour)
+	if err := os.Chtimes(path, old, old); err != nil {
+		t.Fatal(err)
+	}
+}
+
 // rewriteKeepingTime changes path's bytes (same length) and puts its modification time back, so only a read can tell it changed.
 func rewriteKeepingTime(t *testing.T, path string, content []byte) {
 	t.Helper()
@@ -178,6 +187,7 @@ func TestIdentityCacheAnswersAgainWithoutReadingTheFile(t *testing.T) {
 	folder := t.TempDir()
 	path := filepath.Join(folder, "take.wav")
 	writeSourceFile(t, path, bytes.Repeat([]byte("a"), 1000))
+	ageFile(t, path)
 	var cache IdentityCache
 
 	first, err := cache.Identify(path, folder)
@@ -196,6 +206,7 @@ func TestRefreshSeesARewriteTheTimeHidesAndTheCacheAnswersWhatItStored(t *testin
 	folder := t.TempDir()
 	path := filepath.Join(folder, "take.wav")
 	writeSourceFile(t, path, bytes.Repeat([]byte("a"), 1000))
+	ageFile(t, path)
 	var cache IdentityCache
 	first, _ := cache.Identify(path, folder)
 
@@ -291,6 +302,7 @@ func TestIdentityCacheForgetsAFileThatCouldNotBeRead(t *testing.T) {
 	folder := t.TempDir()
 	path := filepath.Join(folder, "take.wav")
 	writeSourceFile(t, path, bytes.Repeat([]byte("a"), 1000))
+	ageFile(t, path)
 	info, _ := os.Stat(path)
 	var cache IdentityCache
 	first, _ := cache.Identify(path, folder)
@@ -321,5 +333,59 @@ func TestIdentityCacheKeepsOneEntryPerProjectFolder(t *testing.T) {
 	outside, _ := cache.Identify(path, t.TempDir())
 	if inside.Path != "take.wav" || outside.Path != path {
 		t.Fatalf("paths %q and %q, want the project-relative one and the absolute one", inside.Path, outside.Path)
+	}
+}
+
+// A file written a moment ago is read on every ask (a rewrite in the same clock tick, or on a filesystem with a two-second time, would hide
+// behind an unchanged size and time); the same file an hour later is read once.
+func TestIdentityCacheDoesNotTrustAFreshTimeButTrustsAnOldOne(t *testing.T) {
+	folder := t.TempDir()
+	path := filepath.Join(folder, "take.wav")
+	writeSourceFile(t, path, bytes.Repeat([]byte("a"), 1000))
+	var cache IdentityCache
+	_, _ = cache.Identify(path, folder)
+	_, _ = cache.Identify(path, folder)
+	if cache.Reads() != 2 {
+		t.Fatalf("a file written just now was read %d times in two asks, want 2", cache.Reads())
+	}
+	ageFile(t, path)
+	_, _ = cache.Identify(path, folder)
+	_, _ = cache.Identify(path, folder)
+	if cache.Reads() != 3 {
+		t.Fatalf("the same file an hour later: %d reads in all, want 3 (one more, then remembered)", cache.Reads())
+	}
+}
+
+// One file reached by two spellings of its path is one entry.
+func TestIdentityCacheKeysOneFileOnce(t *testing.T) {
+	folder := t.TempDir()
+	if err := os.Mkdir(filepath.Join(folder, "d"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(folder, "d", "take.wav")
+	writeSourceFile(t, path, []byte("audio"))
+	ageFile(t, path)
+	var cache IdentityCache
+	_, _ = cache.Identify(path, folder)
+	_, _ = cache.Identify(filepath.Join(folder, "d", "..", "d", "take.wav"), folder)
+	if cache.Reads() != 1 {
+		t.Fatalf("two spellings of one path made %d reads, want 1", cache.Reads())
+	}
+}
+
+// Stat answers in local time and the cache holds UTC: they must still compare equal on a machine that is not on UTC.
+func TestIdentityCacheHitsOnAMachineNotOnUTC(t *testing.T) {
+	previous := time.Local
+	time.Local = time.FixedZone("test", 5*3600+1800)
+	t.Cleanup(func() { time.Local = previous })
+	folder := t.TempDir()
+	path := filepath.Join(folder, "take.wav")
+	writeSourceFile(t, path, []byte("audio"))
+	ageFile(t, path)
+	var cache IdentityCache
+	_, _ = cache.Identify(path, folder)
+	_, _ = cache.Identify(path, folder)
+	if cache.Reads() != 1 {
+		t.Fatalf("%d reads in two asks in a +05:30 zone, want 1", cache.Reads())
 	}
 }

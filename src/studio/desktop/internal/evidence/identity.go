@@ -128,6 +128,9 @@ func identityPath(path, projectFolder string) string {
 	return filepath.ToSlash(relative)
 }
 
+// racyWindow is how recent a file's modification time must be for the cache not to trust it (the "racy" rule): see IdentityCache.
+const racyWindow = 2 * time.Second
+
 // IdentityCache remembers the identity of each source file it has read, so asking again costs one stat and no read. An entry holds while the
 // file's size and modification time are the ones it was read with; a file that changed either (a replaced or re-recorded file) is read again.
 // A caller that writes an identity down (a check run) uses Refresh, which always reads and replaces the entry, so what it stored and what the
@@ -135,6 +138,8 @@ func identityPath(path, projectFolder string) string {
 // shortcut: a file rewritten with the same size and the same modification time, or a symlink retargeted to a file of the same size and time, is
 // not noticed by Identify (Refresh sees it), and a filesystem
 // with a coarse time (FAT32, some network shares) can hide a quick same-size rewrite; upgrade to FullHash if a tool that keeps the time turns up.
+// A file modified less than racyWindow before it was read is not remembered: a rewrite in the same clock tick, or on a filesystem with a coarse
+// time (FAT32 keeps two seconds), would leave the size and time unchanged.
 // shortcut: entries are never dropped, one small record per take file for the project's lifetime.
 // An entry is keyed by the file and the project folder it was asked through.
 type IdentityCache struct {
@@ -184,6 +189,10 @@ func (c *IdentityCache) Refresh(path, projectFolder string) (SourceIdentity, err
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	if time.Since(identity.ModTime) < racyWindow {
+		delete(c.entries, entryKey(path, projectFolder))
+		return identity, nil
+	}
 	if c.entries == nil {
 		c.entries = map[string]SourceIdentity{}
 	}
@@ -192,7 +201,9 @@ func (c *IdentityCache) Refresh(path, projectFolder string) (SourceIdentity, err
 }
 
 // entryKey names an entry by the file and the folder its Path is relative to, so the same file asked through another folder is read again.
-func entryKey(path, projectFolder string) string { return projectFolder + "\x00" + path }
+func entryKey(path, projectFolder string) string {
+	return projectFolder + "\x00" + filepath.Clean(path)
+}
 
 // forget drops the entry of a file that cannot be read now: if it comes back with the size and time it had, the cache must not answer for it.
 func (c *IdentityCache) forget(path, projectFolder string) {

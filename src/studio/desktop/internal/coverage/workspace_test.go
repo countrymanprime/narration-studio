@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"desktop/internal/evidence"
 	"desktop/internal/tracks"
@@ -417,10 +418,22 @@ func TestAlignmentOfATwoMinuteTrackSendsBothItemsPlaced(t *testing.T) {
 	}
 }
 
+// ageTakes gives the fixture's take files a modification time an hour back: the identity cache does not trust a time less than two seconds old.
+func ageTakes(t *testing.T, p *testProject) {
+	t.Helper()
+	old := time.Now().Add(-time.Hour)
+	for _, name := range []string{"a.wav", "b.wav"} {
+		if err := os.Chtimes(filepath.Join(p.dir, "media", name), old, old); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
 // The lookup behind Start from here runs on every press, so it asks the identity cache: a repeat lookup reads no take, and a take that changed
 // size is read again and turns the chapter stale (#3221).
 func TestAlignmentAsksTheIdentityCacheAndStillSeesAChangedTake(t *testing.T) {
 	p := newTestProject(t)
+	ageTakes(t, p)
 	service := p.service(&fakeSidecar{results: alignedResults})
 	run(t, service, testRequest())
 	if view := alignmentOf(t, service); view.State != evidence.StateCurrent {
@@ -441,6 +454,7 @@ func TestAlignmentAsksTheIdentityCacheAndStillSeesAChangedTake(t *testing.T) {
 // with its size and time kept (which the cache alone cannot see) is current after a fresh check, not stale.
 func TestALookupAfterAFreshCheckAgreesWithTheCheckEvenForARewriteTheTimeHides(t *testing.T) {
 	p := newTestProject(t)
+	ageTakes(t, p)
 	service := p.service(&fakeSidecar{results: alignedResults})
 	run(t, service, testRequest())
 	alignmentOf(t, service) // the cache holds the take as the first check saw it
