@@ -52,7 +52,7 @@ export function AssetNote({ row, value, kindOf }: { row: SettingMeta; value: str
           <IconButton action="retry" size="sm" onClick={() => void store.install(item)} />
         ) : view.status === 'unavailable' ? null : (
           <IconButton
-            action="download"
+            action={view.status === 'repair' ? 'repairAsset' : 'download'}
             size="sm"
             label={`${view.status === 'repair' ? 'Repair' : 'Download'} ${name}`}
             onClick={() => void store.install(item)}

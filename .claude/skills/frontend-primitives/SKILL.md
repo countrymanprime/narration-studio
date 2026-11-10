@@ -26,6 +26,8 @@ Recent UI mistakes were the same few: a second copy of something that already ex
 | 7   | **Errors appear only as a toast, a modal, or an always-present fixed-size result box.** Never as text that shows up in the page flow and shifts the layout                                                                                                                                                            | `Toast`, `ConfirmDialog`, `Dialog`; a fixed slot as in design-system "Data that comes and goes has a reserved slot"              |
 | 8   | **No instruction prose in flow.** How-to text is a tooltip, a "?" or the guide                                                                                                                                                                                                                                        | `TooltipTarget`, `HelpButton`; see [No in-flow instructions](../../../docs/design/design-system.md#no-in-flow-instructions)      |
 
+Exception to rule 6: the audio engine panel's Chapter links table is not capped. It is the panel's one list of tracks, so a cap would put a scroller inside the panel's own scroll and trap the wheel (owner, 2026-11-10, #3258); the panel body is the only scroll area.
+
 Exception to rule 6: the Production chapter pipeline board is not capped. The owner wants it to show every chapter at its natural height, with no scroll inside the page. Cap the chart or schedule panels beside it instead.
 
 Guards that hold rules 1, 7 and 8 over the whole app, each with a shrink-only allowlist you lower when you fix an entry, never raise without the owner's say-so:

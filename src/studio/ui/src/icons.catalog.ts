@@ -17,6 +17,7 @@ import {
   faFilm,
   faPaperclip,
   faScrewdriverWrench,
+  faScrewdriver,
   faTag,
   faArrowRightArrowLeft,
   faBroom,
@@ -194,6 +195,7 @@ export const TOOLTIP_VERBS = [
   'Record',
   'Reject',
   'Remove',
+  'Repair',
   'Reopen',
   'Reset',
   'Retry',
@@ -298,6 +300,8 @@ export const CATALOG = {
   import: action(faFileImport, 'import', 'Import a file'),
   export: action(faFileExport, 'export', 'Export a file'),
   download: action(faDownload, 'download', 'Download'),
+  // A model or voice that is on disk but damaged: its own icon, so it is not read as another Download.
+  repairAsset: action(faScrewdriver, 'repair a download', 'Repair'),
   openFolder: action(faFolderOpen, 'open a folder', 'Open the folder'),
   // Master & QC's toolbar: the page's own words as the `label`, these as the hint.
   masterAllToSpec: action(faBullseye, 'master all files to spec', 'Master all files to spec'),
