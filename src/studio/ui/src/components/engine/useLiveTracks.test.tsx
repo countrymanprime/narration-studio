@@ -147,6 +147,25 @@ describe('reading the live track list', () => {
     expect(hook.current.project?.tracks).toHaveLength(5);
   });
 
+  it("a pressed read that a newer read takes over still resolves with the newest read's answer, so the press answers (#3339)", async () => {
+    const api = createMockApi();
+    const waiting: Array<(value: ReturnType<typeof answer>) => void> = [];
+    api.tracksLive = vi.fn(() => new Promise<ReturnType<typeof answer>>((resolve) => waiting.push(resolve)));
+    const { hook } = mount(api);
+    await settle();
+    let pressed: Promise<{ project?: unknown; failed: boolean }> | undefined;
+    act(() => {
+      pressed = hook.current.recheck();
+    });
+    act(() => hook.current.reread());
+    await act(async () => {
+      for (const resolve of waiting) resolve(answer([track(0, 'Chapter 1'), track(1, 'Chapter 2')]));
+    });
+    const result = await pressed;
+    expect(result?.failed).toBe(false);
+    expect(result?.project).toBeDefined();
+  });
+
   it('the timer reads only while the window is visible, and coming back reads at once', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const api = createMockApi();
