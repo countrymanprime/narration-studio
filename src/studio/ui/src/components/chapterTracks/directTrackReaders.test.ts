@@ -13,6 +13,7 @@ const DIRECT_READERS = new Set([
   'components/editing/page/useChapterSource.ts',
   'components/editing/EditingCheckPanel.tsx',
   'components/engine/useDawToolsSource.ts',
+  // The state's own reader of the live track list (the Engine panel no longer has a second instance).
   'components/engine/useLiveTracks.ts',
   'components/engine/EnginePanel.tsx',
   'components/production/ChapterTrackPanel.tsx',
@@ -26,7 +27,7 @@ const DIRECT_READERS = new Set([
   'components/chapterTracks/ChapterTrackState.tsx',
 ]);
 
-const READ = /\.(tracksLive|tracksList|chapterTrackLinks|chapterTrackMapList)\(/;
+const READ = /\.(tracksLive|tracksList|chapterTrackLinks|chapterTrackMapList)\(|\buseLiveTracks\(/;
 const root = join(__dirname, '..', '..');
 
 function sources(dir: string): string[] {

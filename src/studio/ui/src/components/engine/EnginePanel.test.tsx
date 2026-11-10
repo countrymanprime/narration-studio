@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { ChapterTrackStateProvider } from '../chapterTracks/ChapterTrackState';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -32,7 +33,9 @@ function renderPanel(
   render(
     <MemoryRouter>
       <ApiProvider api={api}>
-        <EnginePanel open onClose={() => {}} notify={() => {}} link={{ ...LINKED, ...link }} onOpenRecordingSettings={onOpenRecordingSettings} />
+        <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+          <EnginePanel open onClose={() => {}} notify={() => {}} link={{ ...LINKED, ...link }} onOpenRecordingSettings={onOpenRecordingSettings} />
+        </ChapterTrackStateProvider>
       </ApiProvider>
     </MemoryRouter>,
   );
@@ -222,7 +225,9 @@ describe('EnginePanel', () => {
   it('is not in the page while closed', () => {
     render(
       <ApiProvider api={createMockApi()}>
-        <EnginePanel open={false} onClose={() => {}} notify={() => {}} link={LINKED} onOpenRecordingSettings={() => {}} />
+        <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+          <EnginePanel open={false} onClose={() => {}} notify={() => {}} link={LINKED} onOpenRecordingSettings={() => {}} />
+        </ChapterTrackStateProvider>
       </ApiProvider>,
     );
     expect(screen.queryByRole('dialog')).toBeNull();
@@ -370,7 +375,9 @@ describe("EnginePanel's live track list", () => {
     render(
       <MemoryRouter>
         <ApiProvider api={api}>
-          <EnginePanel open onClose={() => {}} notify={notify} link={LINKED} onOpenRecordingSettings={() => {}} />
+          <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={notify}>
+            <EnginePanel open onClose={() => {}} notify={notify} link={LINKED} onOpenRecordingSettings={() => {}} />
+          </ChapterTrackStateProvider>
         </ApiProvider>
       </MemoryRouter>,
     );
@@ -400,7 +407,9 @@ describe("EnginePanel's live track list", () => {
     render(
       <MemoryRouter>
         <ApiProvider api={api}>
-          <EnginePanel open onClose={() => {}} notify={notify} link={LINKED} onOpenRecordingSettings={() => {}} />
+          <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={notify}>
+            <EnginePanel open onClose={() => {}} notify={notify} link={LINKED} onOpenRecordingSettings={() => {}} />
+          </ChapterTrackStateProvider>
         </ApiProvider>
       </MemoryRouter>,
     );
