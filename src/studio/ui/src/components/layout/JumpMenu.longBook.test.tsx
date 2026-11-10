@@ -56,10 +56,11 @@ describe('jump menu on a 5000-chapter book', () => {
     expect(label.getAttribute('title')).toHaveLength(10_006);
   });
 
-  it('types a term within budget (median of five runs)', () => {
-    openMenu();
+  it('opens and takes a term within budget (median of five runs)', () => {
     const runs = Array.from({ length: 5 }, (_, i) => {
+      cleanup();
       const start = performance.now();
+      openMenu();
       type(i % 2 ? 'go to chapter' : 'go to');
       return performance.now() - start;
     });

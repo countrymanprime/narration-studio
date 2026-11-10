@@ -98,6 +98,8 @@ const SETTINGS_ANCHORS: Record<string, string> = {
   ...Object.fromEntries(CATEGORIES.map((category) => [`#category-${category.id}`, categoryAnchorKey(category.id)])),
 };
 
+/** Why a command that needs an open project is off while the picker is all there is. */
+const NO_PROJECT_REASON = 'Open a project first';
 const NO_CHAPTERS: ManuscriptChapter[] = [];
 
 /** The least time between two re-reads of the DAW's facts that a window focus may cause. */
@@ -577,8 +579,12 @@ function AppRoutes() {
   const slotChapters = useStudio((state) => state.slots.chapters);
   const chapters = hasManuscript && !noProject ? (slotChapters ?? NO_CHAPTERS) : NO_CHAPTERS;
   const guardedNavigateRef = useRef<(next: string, state?: unknown) => void>(() => {});
+  // A jump-menu move (a page, a chapter, Settings, Import) closes the project picker drawn over the project, even when the address stays the
+  // same (a chapter is only a `#` change, and "Go to" the page under the picker changes nothing), so the destination is what the narrator sees.
+  const leavePicker = () => setProjectPickerOpen(false);
   // Ctrl+, opens Settings from any page; the page then offers Back to the page the narrator left.
   const openSettings = () => {
+    leavePicker();
     settingsOrigin.markLink();
     guardedNavigateRef.current(addressPagePath('settings'));
   };
@@ -591,7 +597,11 @@ function AppRoutes() {
     // With no project only Settings works: every other page, every chapter and "Switch project…" would lead nowhere the picker is not already.
     pages: shellPages({ hasManuscript, dawFileLinked: data?.dawFileLinked ?? false }).filter((page) => !noProject || page.id === '/settings'),
     chapters,
-    go: (target) => (target.kind === 'page' ? guardedNavigateRef.current(target.id) : goToScriptRef.current(target.id)),
+    go: (target) => {
+      leavePicker();
+      if (target.kind === 'page') guardedNavigateRef.current(target.id);
+      else goToScriptRef.current(target.id);
+    },
   });
   // "Switch project…" has no key, so it is a provided command, not a catalogue row: it opens the same picker as the header's project name.
   useEffect(
@@ -624,11 +634,15 @@ function AppRoutes() {
     'help.shortcuts': () => setShortcutsOpen(true),
     'history.open': openHistory,
     'undo.last': () => void undoLast(),
-    'companion.open': () => guardedNavigateRef.current('/companion'),
+    'companion.open': () => {
+      leavePicker();
+      guardedNavigateRef.current('/companion');
+    },
   };
   // The catalogue commands the shell runs that can be off now, with the sentence the jump menu shows beside them (the header's buttons used to carry these).
   const shellDisabledReasons = (): Record<string, string> => {
     const off: Record<string, string> = {};
+    if (noProject) off['companion.open'] = NO_PROJECT_REASON;
     if (!history.canGoBack) off['nav.back'] = 'No earlier page in this project';
     if (!history.canGoForward) off['nav.forward'] = 'No later page yet';
     if (!journalRows || journalRows.length === 0) off['undo.last'] = 'Nothing to undo';
@@ -672,11 +686,16 @@ function AppRoutes() {
   useShellCommands({
     hasManuscript,
     // No `isModalOpen()` guard: these run from a jump-menu row, and the menu is still in the document while its row runs (#2792).
+    hasProject: !noProject,
     openSettings: (categoryId) => {
+      leavePicker();
       settingsOrigin.markLink();
       guardedNavigateRef.current(categoryId ? `${addressPagePath('settings')}#category-${categoryId}` : addressPagePath('settings'));
     },
-    importManuscript: () => guardedNavigateRef.current('/'),
+    importManuscript: () => {
+      leavePicker();
+      guardedNavigateRef.current('/');
+    },
     darkTheme: theme.resolved === 'dark',
     toggleTheme,
     zoomPercent: zoom.percent,
