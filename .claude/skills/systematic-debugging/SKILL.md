@@ -1,6 +1,6 @@
 ---
 name: systematic-debugging
-description: A red test, a CI failure, a flaky check or a behaviour that differs between the app, the harness and REAPER? Find the root cause before changing code; reproduce, localise to a layer, form one hypothesis at a time, and pin the fix with a test that guards it.
+description: A bug the owner reports, a red test, a CI failure, a flaky check or a behaviour that differs between the app, the harness and REAPER? Find the root cause before changing code; reproduce, localise to a layer, form one hypothesis at a time, and pin the fix with a test that guards it.
 ---
 
 # systematic-debugging
@@ -11,10 +11,11 @@ A fix applied before the cause is known hides the bug: a retry, a longer wait, a
 
 ## When to use this
 
-Any failure you do not yet understand: a failing `pnpm check`, a red CI job, a test that passes alone and fails in the suite, a result that differs between the fake `reaper` and real REAPER, a visual diff nobody asked for. Skip it for a failure whose cause is obvious from the message (a typo, a missing import).
+Any bug the owner reports, and any failure you do not yet understand: a failing `pnpm check`, a red CI job, a test that passes alone and fails in the suite, a result that differs between the fake `reaper` and real REAPER, a visual diff nobody asked for. Skip it for a failure whose cause is obvious from the message (a typo, a missing import).
 
 ## What to do
 
+0. **For a bug the owner reports, start from their flow.** Write down the page, the buttons in order and the state they were in. Reproduce the bug in the real app by doing those steps (Playwright against the mock backend; a real REAPER where a DAW is involved) before reading, timing or fixing any layer. Do not assume the DAW, the host or any one layer is at fault, in the way a slow API does not make the database the first suspect. Assume first that the steps or the state differ from what the code expects: the order of clicks, an earlier state, a different layout. A bug PR states the steps it reproduced, and its guarding test follows them.
 1. **Read the whole failure.** The first error is usually the cause; later ones are fallout. For CI: `gh run view <id> --log-failed`. A failing visual test leaves `src/studio/ui/test-results/<test>/trace.zip`; open it with `pnpm exec playwright show-trace` from `src/studio/ui` ([CI and releases](../../../docs/operations/ci-and-releases.md)).
 2. **Reproduce it, smallest first.** Run only the failing test, then the shard or job that failed. Record the exact command and the result. If it does not reproduce, that is the finding: look at what differs (CPU count, OS, order, a stale build, a leftover file) before reading code.
 3. **Name the layer.** State which side of each boundary is wrong before editing: the payload crossing it (`wire-contract-change` lists the checks), the Go host, the UI, a sidecar, or the Lua bridge. Compare the golden payload in `tests/fixtures/contracts/` with what was actually sent. Do not change both sides of a boundary to make a test pass.
@@ -32,6 +33,7 @@ Any failure you do not yet understand: a failing `pnpm check`, a red CI job, a t
 
 ## What counts as fixed
 
+- For an owner-reported bug, the owner's steps run clean in the real app.
 - The original command passes without a retry, a longer timeout, a skipped test, or a new escape entry (`axe-debt.ts`, `sameAs`, `undriven`).
 - A test exists that fails on the old code.
 - The cause is stated in the PR in one or two sentences, with the evidence (log line, trace, diff).

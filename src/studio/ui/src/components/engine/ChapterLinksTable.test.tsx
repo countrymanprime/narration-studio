@@ -280,6 +280,31 @@ describe('ChapterLinksTable', () => {
     await waitFor(() => expect(within(firstRow).getByText('Not linked')).toBeTruthy());
   });
 
+  // #3272: the row must not wait for the re-read of the chapters and links to show Not linked; Unlink's own answer carries the links that remain.
+  it('shows Not linked as soon as Unlink answers, before the links are read again', async () => {
+    const user = userEvent.setup();
+    const real = createMockApi();
+    let hold = false;
+    const api = { ...real, chapterTrackMapList: () => (hold ? new Promise<never>(() => {}) : real.chapterTrackMapList()) };
+    render(
+      <ApiProvider api={api}>
+        <MemoryRouter initialEntries={['/production']}>
+          <Table />
+        </MemoryRouter>
+      </ApiProvider>,
+    );
+    const table = await screen.findByRole('table', { name: 'Chapter links' });
+    const firstRow = chapterRow(table, headingName(WIRE_CHAPTERS[0]));
+    await user.selectOptions(within(firstRow).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[0].guid);
+    await user.click(within(firstRow).getByRole('button', { name: 'Confirm' }));
+    await waitFor(() => expect(within(firstRow).getByText('Linked')).toBeTruthy());
+
+    hold = true;
+    await user.click(within(firstRow).getByRole('button', { name: /^Clear the link/ }));
+
+    await waitFor(() => expect(within(firstRow).getByText('Not linked')).toBeTruthy());
+  });
+
   // qa-breaker B5 (#2836): ten rows each offered the same "Change the track" and "Clear the link"; the name now says which chapter.
   it('names the chapter in a linked row’s Change and Clear icons', async () => {
     const user = userEvent.setup();

@@ -16,6 +16,9 @@ import (
 // asset listing another page asked for earlier) is not part of the press and is left off its line.
 const leadGap = 5 * time.Second
 
+// joinGap is the longest pause between a step and the step Join may continue it with: the model check follows the lookup's answer at once.
+const joinGap = 2 * time.Second
+
 type mark struct {
 	step string
 	at   time.Time
@@ -29,6 +32,10 @@ type Timeline struct {
 	mu    sync.Mutex
 	// +checklocks:mu
 	marks []mark
+	// anchor is when the press under way last took a step of its own (Begin, Join, Mark, Finish); a Note does not move it, so calls the page makes all
+	// the time cannot keep a press alive for the next one to join.
+	// +checklocks:mu
+	anchor time.Time
 	// awaited are the steps the press is not over without (Await); ended is the outcome of a Finish that came first, "" while none did.
 	// +checklocks:mu
 	awaited map[string]bool
@@ -50,8 +57,47 @@ func (t *Timeline) Begin(step string) {
 	at := t.now()
 	t.mu.Lock()
 	defer t.mu.Unlock()
+	t.beginLocked(step, at)
+}
+
+// beginLocked starts a press at step.
+// +checklocks:t.mu
+func (t *Timeline) beginLocked(step string, at time.Time) {
 	t.marks = append(t.marks[:0], mark{step, at})
+	t.anchor = at
 	t.awaited, t.ended = nil, ""
+}
+
+// Join continues the press under way with step when its last step was after and came less than joinGap ago (the model check right after the
+// Start from here lookup answered), and otherwise starts a press at step. A call the page made earlier, or a press that never finished, is
+// never joined: its time would read as part of this press.
+func (t *Timeline) Join(step, after string) {
+	if t == nil || !t.on() {
+		return
+	}
+	at := t.now()
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if n := len(t.marks); n > 0 && t.ended == "" && t.marks[n-1].step == after && at.Sub(t.anchor) <= joinGap {
+		t.marks = append(t.marks, mark{step, at})
+		t.anchor = at
+		return
+	}
+	t.beginLocked(step, at)
+}
+
+// Note stamps step only in a press under way (less than leadGap after its last own step). It does not move that time: a call the page makes
+// all the time, such as the project check, stamps nothing between presses and cannot chain one press to the next.
+func (t *Timeline) Note(step string) {
+	if t == nil || !t.on() {
+		return
+	}
+	at := t.now()
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if len(t.marks) > 0 && t.ended == "" && at.Sub(t.anchor) <= leadGap {
+		t.marks = append(t.marks, mark{step, at})
+	}
 }
 
 // Await says the press under way is not over until step is stamped: a Finish before it holds the line until then. Listening and the
@@ -76,6 +122,7 @@ func (t *Timeline) Mark(step string) {
 	at := t.now()
 	t.mu.Lock()
 	t.marks = append(t.marks, mark{step, at})
+	t.anchor = at
 	delete(t.awaited, step)
 	if t.ended == "" || len(t.awaited) > 0 {
 		t.mu.Unlock()
@@ -95,6 +142,7 @@ func (t *Timeline) Finish(step, outcome string) {
 	at := t.now()
 	t.mu.Lock()
 	t.marks = append(t.marks, mark{step, at})
+	t.anchor = at
 	t.ended = outcome
 	if len(t.awaited) > 0 {
 		t.mu.Unlock()
