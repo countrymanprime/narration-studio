@@ -105,7 +105,7 @@ itself, once for the chapter: it names the chapter, offers the REAPER tracks the
 **Link track** links the one you pick, after which the page reads the chapter at once. **Create a new track** has REAPER add a
 track named after the chapter and links it instead (the main button when the project has no tracks); save the REAPER project
 so the page can read the new track. If you close it with the X, the
-**Not linked to a track** mark in the header opens it again. The page also reads the chapter again whenever you come back
+**Not linked to a track** mark in the header opens it again (**Not linked to a folder** and **Link folder** in a Voice folders project, where the note over the script says the chapter is not linked to a folder). The page also reads the chapter again whenever you come back
 to its window, so a link made in REAPER or the audio engine panel shows without a reload. When the track is empty, or with the
 built-in recorder (which has no track to link), a note over the script says to record the chapter, with **Read again**.
 A chapter

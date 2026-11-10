@@ -38,6 +38,9 @@ type BoothVoice struct {
 	Added []BoothVoiceTrack `json:"added,omitempty"`
 }
 
+// noFolderForVoiceKeys is the refusal for a voice key in a Voice folders project whose chapter is not linked to a folder of voices.
+const noFolderForVoiceKeys = "This chapter is not linked to a folder of voices, so there is no voice to choose. Link or create its folder first."
+
 func boothVoiceRefused(reason, message string) BoothVoice {
 	return BoothVoice{Outcome: "refused", Reason: reason, Message: message}
 }
@@ -57,7 +60,16 @@ func chapterVoices(svc hostServices, link string) ([]tracks.Track, bool, error) 
 		return nil, false, err
 	}
 	members, ok := project.WithDescendants(link)
-	if !ok || !members[0].IsFolder {
+	if !ok {
+		// A folder this session made (ChapterTrackCreate) is not in the saved project until the narrator saves; its voices are the ones the app
+		// added to it. Nothing added is a link to a track the project no longer has.
+		var voices []tracks.Track
+		for _, added := range svc.boothVoices.addedTo(link) {
+			voices = append(voices, tracks.Track{GUID: added.GUID, Name: added.Name, Depth: 1})
+		}
+		return voices, len(voices) > 0, nil
+	}
+	if !members[0].IsFolder {
 		return nil, false, nil
 	}
 	var voices []tracks.Track
@@ -217,7 +229,9 @@ func (h *Host) boothVoiceSetIn(ctx context.Context, svc hostServices, recorder d
 		return BoothVoice{}, err
 	}
 	if !folder {
-		return boothVoiceRefused(boothVoiceFlat, "This chapter records on one track. Voice keys choose a voice in a Voice folders project, for a chapter linked to a folder (the audio engine panel)."), nil
+		return boothVoiceRefused(boothVoiceFlat, notAFolderSentence(svc,
+			"This chapter records on one track. Voice keys choose a voice in a Voice folders project, for a chapter linked to a folder (the audio engine panel).",
+			noFolderForVoiceKeys)), nil
 	}
 	target := ""
 	for _, voice := range voices {
@@ -283,7 +297,7 @@ func boothVoiceGetIn(svc hostServices, chapterID string) (BoothVoice, error) {
 		return BoothVoice{}, err
 	}
 	if !folder {
-		return boothVoiceRefused(boothVoiceFlat, "This chapter records on one track."), nil
+		return boothVoiceRefused(boothVoiceFlat, notAFolderSentence(svc, "This chapter records on one track.", noFolderForVoiceKeys)), nil
 	}
 	project, err := selectedProject(svc)
 	if err != nil {

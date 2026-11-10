@@ -89,10 +89,10 @@ func readAloudReaperStateIn(ctx context.Context, svc hostServices, reader trackS
 	switch {
 	case len(links) == 0:
 		return readAloudReaperState{Status: readAloudNoLink, Reason: readAloudUnlinked,
-			Message: fmt.Sprintf("%q has no linked track. Link it to its REAPER track in the audio engine panel.", title)}, nil
+			Message: fmt.Sprintf("%q has no linked %s. Link it to its REAPER %s in the audio engine panel.", title, layoutNoun(svc), layoutNoun(svc))}, nil
 	case len(links) > 1:
 		return readAloudReaperState{Status: readAloudNoLink, Reason: readAloudSeveralLinks,
-			Message: fmt.Sprintf("%q is linked to %d tracks. Keep the one to record on, in the audio engine panel.", title, len(links))}, nil
+			Message: fmt.Sprintf("%q is linked to %d %ss. Keep the one to record on, in the audio engine panel.", title, len(links), layoutNoun(svc))}, nil
 	}
 	guid := links[0]
 	// A chapter linked to a folder of voices records on its voice (svc.boothVoices, else the Narrator): its arms are the voice's. A

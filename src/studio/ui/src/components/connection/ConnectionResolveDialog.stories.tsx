@@ -227,7 +227,7 @@ export const ChapterCreateTrack: Story = {
     await expect(within(open).getByText(/Or have REAPER add a new track for this chapter/)).toBeVisible();
     await userEvent.click(within(open).getByRole('button', { name: 'Create a new track' }));
     const props = args.props as typeof linking;
-    await waitFor(() => expect(props.onLinked).toHaveBeenCalledWith(created, created.track));
+    await waitFor(() => expect(props.onLinked).toHaveBeenCalledWith(created, created));
   },
 };
 
