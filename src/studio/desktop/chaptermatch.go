@@ -111,7 +111,7 @@ func matchInputs(svc hostServices) ([]chaptermatch.Chapter, tracks.Project, map[
 	if err != nil {
 		return nil, tracks.Project{}, nil, err
 	}
-	project, err := selectedProject(svc)
+	project, err := liveSelectedProject(svc)
 	if err != nil {
 		return nil, tracks.Project{}, nil, err
 	}

@@ -156,6 +156,22 @@ func liveProject(ctx context.Context, name string, lister dawport.TrackLister, s
 	return mergeLiveTracks(saved, live), "", ""
 }
 
+// liveSelectedProject is the selected project as the engine has it now (liveProject), or the saved file when the engine is not
+// answering, has another project open or cannot list: a track renamed, added or deleted in the engine and not yet saved is seen. Every
+// reader that decides which tracks a chapter or voice has uses it, not selectedProject, so no step waits for the narrator to save.
+// Items, regions and colours are the saved file's (mergeLiveTracks). The error is selectedProject's.
+func liveSelectedProject(svc hostServices) (tracks.Project, error) {
+	saved, err := selectedProject(svc)
+	if err != nil {
+		return tracks.Project{}, err
+	}
+	lister, support := trackListerFrom(svc)
+	ctx, cancel := context.WithTimeout(context.Background(), tracksLiveTimeout)
+	defer cancel()
+	project, _, _ := liveProject(ctx, readAloudAdapterName(svc), lister, support, saved.Path, saved)
+	return project, nil
+}
+
 // sameProjectFile reports whether open, the project the engine has open, is the file selected: the same path ignoring case, as
 // the heartbeat's Matches compares it, or the same file on disk reached another way.
 func sameProjectFile(open, selected string) bool {

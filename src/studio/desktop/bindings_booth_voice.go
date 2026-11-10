@@ -52,7 +52,7 @@ func chapterVoices(svc hostServices, link string) ([]tracks.Track, bool, error) 
 	if setup.Layout != voicetracks.LayoutFolders {
 		return nil, false, nil
 	}
-	project, err := selectedProject(svc)
+	project, err := liveSelectedProject(svc)
 	if err != nil {
 		return nil, false, err
 	}
