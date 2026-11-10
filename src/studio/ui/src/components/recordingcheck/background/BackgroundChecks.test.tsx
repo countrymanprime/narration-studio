@@ -9,6 +9,7 @@ import { overlay } from '../../../overlay/overlayService';
 import type { CoverageState } from '../../../api/contracts/coverage';
 import type { NarrationApi } from '../../../types';
 import { BackgroundChecks } from './BackgroundChecks';
+import { outwaitEcho } from '../../../outwaitEcho';
 
 afterEach(() => {
   cleanup();
@@ -101,6 +102,7 @@ describe('BackgroundChecks', () => {
     await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.stringContaining('paused'), expect.objectContaining({ action: expect.anything() })));
     const status = await screen.findByRole('region', { name: 'Background recording check' });
     await waitFor(() => expect(status.textContent).toContain('Background checks paused'));
+    await outwaitEcho();
     fireEvent.click(within(status).getByRole('button', { name: 'Resume' }));
     await waitFor(() => expect(saveSettings).toHaveBeenCalledWith('RecordingCoverage', 'global', { background_checks: null }));
     // Resumed, the chapter still waiting shows again, with why it has not started.
@@ -117,6 +119,7 @@ describe('BackgroundChecks', () => {
     expect(await overrideSet()).toBe(false);
     await waitFor(async () => expect((await api.chapterSyncState()).background.enabled).toBe(false));
     await waitFor(async () => expect((await region()).textContent).toContain('Background checks paused'));
+    await outwaitEcho();
     fireEvent.click(within(await region()).getByRole('button', { name: 'Resume' }));
     await waitFor(async () => expect((await api.chapterSyncState()).background.enabled).toBe(true));
   });
@@ -143,6 +146,7 @@ describe('BackgroundChecks', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Hide' }));
     const chip = await screen.findByRole('button', { name: /Checking in the background · 42%/ });
     expect(screen.queryByRole('button', { name: 'Pause' })).toBeNull();
+    await outwaitEcho();
     fireEvent.click(chip);
     expect(await screen.findByRole('button', { name: 'Pause' })).toBeTruthy();
   });

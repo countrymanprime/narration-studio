@@ -56,7 +56,7 @@ type Props = ComponentProps<'button'> & {
   // The action this button started is running. The button says so (`aria-busy`, a spinner, dimmed) and ignores a press, but
   // stays focusable, so a keyboard user does not lose their place the way they do when a button becomes `disabled`.
   pending?: boolean;
-  // This button takes the place of the one just pressed: it ignores a press in the double-click window after it appears (`useEchoGuard`). The window starts when it mounts, so a caller that swaps one button for another at the same spot gives each a distinct `key`.
+  // This button takes the place of the one just pressed: it ignores a press that comes right after a click on another element (`useEchoGuard`), the second click of a double click. A caller that swaps one button for another at the same spot gives each a distinct `key`, so the old button is gone.
   replacesPressed?: boolean;
 };
 

@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Button } from './Button';
 import { IconButton } from './IconButton';
@@ -193,29 +194,38 @@ describe('Button label selection', () => {
   });
 });
 
+function Swap({ onDone, onCancel }: { onDone: () => void; onCancel: () => void }) {
+  const [started, setStarted] = useState(false);
+  return started ? (
+    <IconButton key="cancel" label="Cancel" replacesPressed onClick={onCancel} />
+  ) : (
+    <>
+      <button onClick={() => setStarted(true)}>Download</button>
+      <Button replacesPressed onClick={onDone}>
+        Done
+      </Button>
+    </>
+  );
+}
+
 describe('replacesPressed', () => {
-  it('ignores a press in the double-click window after it appears, then works', () => {
+  it('ignores a press right after a click on a control that has since been replaced, and only that', () => {
     vi.useFakeTimers();
     try {
-      const onClick = vi.fn();
-      const onIcon = vi.fn();
-      render(
-        <>
-          <Button replacesPressed onClick={onClick}>
-            Done
-          </Button>
-          <IconButton label="Cancel" replacesPressed onClick={onIcon} />
-        </>,
-      );
-      fireEvent.click(screen.getByRole('button', { name: 'Done' }));
-      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
-      expect(onClick).not.toHaveBeenCalled();
-      expect(onIcon).not.toHaveBeenCalled();
+      const onDone = vi.fn();
+      const onCancel = vi.fn();
+      render(<Swap onDone={onDone} onCancel={onCancel} />);
       vi.advanceTimersByTime(ECHO_WINDOW_MS);
+      // A press with no earlier click goes through, however soon the button appeared.
       fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+      expect(onDone).toHaveBeenCalledOnce();
+      // The echo: Download is pressed and replaced by Cancel, and the second click lands on Cancel at once.
+      fireEvent.click(screen.getByRole('button', { name: 'Download' }));
       fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
-      expect(onClick).toHaveBeenCalledOnce();
-      expect(onIcon).toHaveBeenCalledOnce();
+      expect(onCancel).not.toHaveBeenCalled();
+      vi.advanceTimersByTime(ECHO_WINDOW_MS);
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      expect(onCancel).toHaveBeenCalledOnce();
     } finally {
       vi.useRealTimers();
     }

@@ -145,7 +145,7 @@ export function AssetRow({ view, pages, inUse, go, install, cancel, remove, dism
       </Cell>
       <Cell className="col-start-2 row-start-1 whitespace-nowrap">
         <span ref={actions} className="flex justify-end gap-1">
-          {status === 'missing' && <IconButton action="download" label={`Download ${name} (${size})`} onClick={install} />}
+          {status === 'missing' && <IconButton action="download" label={`Download ${name} (${size})`} replacesPressed onClick={install} />}
           {/* Drawn while it checks too, spinning, so focus stays on it and a second press is ignored. */}
           {status === 'installed' && (
             <IconButton
@@ -164,13 +164,13 @@ export function AssetRow({ view, pages, inUse, go, install, cancel, remove, dism
           {downloading && <IconButton action="cancelDownload" label={`Cancel the download of ${name}`} replacesPressed onClick={cancel} />}
           {status === 'repair' && (
             <>
-              <IconButton action="retry" label={`Repair ${name}`} onClick={install} />
+              <IconButton action="retry" label={`Repair ${name}`} replacesPressed onClick={install} />
               <IconButton action="remove" variant="danger" label={`Remove ${name}`} aria-haspopup="dialog" onClick={remove} />
             </>
           )}
           {status === 'failed' && (
             <>
-              <IconButton action="retry" label={`Try ${name} again`} onClick={install} />
+              <IconButton action="retry" label={`Try ${name} again`} replacesPressed onClick={install} />
               <IconButton action="dismiss" label="Dismiss" onClick={dismiss} />
             </>
           )}

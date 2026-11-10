@@ -49,12 +49,13 @@ export function AssetNote({ row, value, kindOf }: { row: SettingMeta; value: str
         {busy ? (
           <IconButton key="cancel" action="cancelDownload" label={`Cancel the download of ${name}`} replacesPressed onClick={() => void store.cancel(item)} />
         ) : view.status === 'failed' ? (
-          <IconButton key="retry" action="retry" size="sm" onClick={() => void store.install(item)} />
+          <IconButton key="retry" action="retry" size="sm" replacesPressed onClick={() => void store.install(item)} />
         ) : view.status === 'unavailable' ? null : (
           <Button
             variant="secondary"
             size="sm"
             aria-label={`${view.status === 'repair' ? 'Repair' : 'Download'} ${name}`}
+            replacesPressed
             onClick={() => void store.install(item)}
           >
             {view.status === 'repair' ? 'Repair' : 'Download'}

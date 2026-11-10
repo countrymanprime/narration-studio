@@ -7,6 +7,7 @@ import { EditingCheckPanel } from './EditingCheckPanel';
 import { ApiProvider } from '../../api/ApiContext';
 import { createMockApi } from '../../api/mockApi';
 import { WIRE_CHAPTERS, editingCandidateFor } from '../../api/mockFixtures';
+import { outwaitEcho } from '../../outwaitEcho';
 
 afterEach(cleanup);
 
@@ -140,6 +141,7 @@ describe('EditingCheckPanel', () => {
     expect(within(dialog).queryByRole('button', { name: 'Check editing' })).toBeNull();
     // R3PR1-5: the last scan's result under a running check is labelled as the previous one.
     expect(within(dialog).getByRole('heading', { name: 'Previous result' })).toBeTruthy();
+    await outwaitEcho();
     await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
     await waitFor(() => expect(within(dialog).queryByRole('progressbar')).toBeNull());
     expect(within(dialog).getByRole('button', { name: 'Check again' })).toBeTruthy();
