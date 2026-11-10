@@ -65,6 +65,7 @@ closes it, and focus returns to where it was. The menu is a list box: a screen r
 | --- | --- | --- |
 | Back, Forward | `Alt+Left`, `Alt+Right`, or the mouse's back and forward buttons | there is no earlier or later page |
 | Undo: <the last change>, named | `Ctrl+Z` (not in a text box, which keeps its own undo) | the journal has nothing to undo (it reads plain Undo) |
+| Save the DAW project | `Ctrl+S` (`Cmd+S` on macOS; not in a text box that uses it) | never: the toast says why a save was refused (no DAW linked, a DAW that cannot save from the app, REAPER recording) |
 | Open the undo history | `Ctrl+Shift+H` | never |
 | Zoom in, Zoom out, Reset zoom to 100% | `Ctrl+=`, `Ctrl+-`, `Ctrl+0`; also Ctrl+scroll | already at the largest or smallest size, or already at 100% |
 | Switch project… | none | never |

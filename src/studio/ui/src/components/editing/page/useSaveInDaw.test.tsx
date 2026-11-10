@@ -11,7 +11,8 @@ import { createMockDawClient, type DawClient } from '../../../ports/daw';
 import { overlay } from '../../../overlay/overlayService';
 import { PortOverrides } from '../../../ports/usePort';
 import { NoAudioBanner } from './NoAudioBanner';
-import { canSaveFromApp, SAVE_GIVES_UP_MS, useSaveInDaw } from './useSaveInDaw';
+import { CommandRouter } from '../../../input/router';
+import { canSaveFromApp, SAVE_GIVES_UP_MS, useSaveInDaw, useSaveShortcut } from './useSaveInDaw';
 
 // #3262: the Save in REAPER and read button. A click saves, then reads; a refusal is an error toast; two clicks are one save.
 
@@ -205,5 +206,72 @@ describe('NoAudioBanner with the save button', () => {
     expect(screen.queryByRole('button', { name: /Save in/ })).toBeNull();
     rerender(<NoAudioBanner {...props} audio={{ kind: 'ready' }} save={save()} />);
     expect(screen.queryByRole('button')).toBeNull();
+  });
+});
+
+// #3334: Ctrl+S is the same save as the button, from any page.
+describe('useSaveShortcut', () => {
+  const keyboardWrap = (client: DawClient) =>
+    function Wrapper({ children }: { children: ReactNode }) {
+      return (
+        <ApiProvider api={createMockApi()}>
+          <PortOverrides clients={{ daw: client }}>
+            <CommandRouter>{children}</CommandRouter>
+          </PortOverrides>
+        </ApiProvider>
+      );
+    };
+  const press = (init: KeyboardEventInit) => {
+    const event = new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ...init });
+    act(() => void document.body.dispatchEvent(event));
+    return event;
+  };
+
+  it('Ctrl+S saves once, keeps the browser from saving the page and says the answer', async () => {
+    const toast = vi.spyOn(overlay, 'toast').mockImplementation(() => {});
+    const save = vi.fn(async () => result({}));
+    renderHook(() => useSaveShortcut(), { wrapper: keyboardWrap(clientSaving(save)) });
+    const event = press({ key: 's', code: 'KeyS', ctrlKey: true });
+    press({ key: 's', code: 'KeyS', ctrlKey: true });
+    expect(event.defaultPrevented).toBe(true);
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(DAW_ANSWERS.projectSaved));
+    expect(save).toHaveBeenCalledTimes(1);
+    toast.mockRestore();
+  });
+
+  it('a refusal (recording, no DAW, one that cannot save) is the error toast with its reason', async () => {
+    const toast = vi.spyOn(overlay, 'toast').mockImplementation(() => {});
+    const save = vi.fn(async () => refusal('REAPER is recording. Stop recording first.'));
+    renderHook(() => useSaveShortcut(), { wrapper: keyboardWrap(clientSaving(save)) });
+    press({ key: 's', code: 'KeyS', ctrlKey: true });
+    await waitFor(() => expect(toast).toHaveBeenCalledWith('REAPER is recording. Stop recording first.', { tone: 'error' }));
+    toast.mockRestore();
+  });
+
+  it('leaves Ctrl+S to a text field and does not save', () => {
+    const save = vi.fn(async () => result({}));
+    renderHook(() => useSaveShortcut(), { wrapper: keyboardWrap(clientSaving(save)) });
+    const field = document.createElement('input');
+    document.body.append(field);
+    const event = new KeyboardEvent('keydown', { bubbles: true, cancelable: true, key: 's', code: 'KeyS', ctrlKey: true });
+    act(() => void field.dispatchEvent(event));
+    expect(save).not.toHaveBeenCalled();
+    field.remove();
+  });
+
+  it('an Editing page open during a Ctrl+S save shows it running and reads when it is done', async () => {
+    const toast = vi.spyOn(overlay, 'toast').mockImplementation(() => {});
+    const onReread = vi.fn();
+    const { result: hook } = renderHook(
+      () => {
+        useSaveShortcut();
+        return useSaveInDaw(onReread);
+      },
+      { wrapper: keyboardWrap(clientSaving(async () => result({}))) },
+    );
+    press({ key: 's', code: 'KeyS', ctrlKey: true });
+    expect(hook.current.saving).toBe(true);
+    await waitFor(() => expect(onReread).toHaveBeenCalledTimes(1));
+    toast.mockRestore();
   });
 });

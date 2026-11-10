@@ -577,6 +577,17 @@ export const COMMAND_CATALOG: readonly CommandDescriptor[] = [
     group: 'View',
     surfaces: ['jumpMenu', 'help', 'settings'],
   },
+  // Ctrl+S saves the DAW project, the same save as Editing's **Save in REAPER and read** button (#3334). Not `noisy`: a save while recording is the DAW's
+  // refusal, said in a toast, not a silent "Not while recording". `fieldsKeep`: a text field that answers Ctrl+S itself keeps it. preventDefault stops WebKit's own save.
+  {
+    id: 'project.save',
+    label: 'Save the DAW project',
+    scope: 'global',
+    defaults: [key('KeyS', ['Mod'])],
+    group: 'Edit',
+    surfaces: ['jumpMenu', 'help', 'settings'],
+    fieldsKeep: true,
+  },
   // Undo the last change in the journal, as the mock's Ctrl+Z and its "Undo" jump row do. The router lets a modified gesture through a text
   // field, which would take the field's own undo, so `fieldsKeep` makes it step aside there.
   {
