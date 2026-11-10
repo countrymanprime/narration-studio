@@ -8,16 +8,18 @@
 -- which stops the bridge, so that is refused before the call. It refuses (ERROR, nothing written):
 --   * while REAPER records, since the take is not whole yet;
 --   * when expected_path is not the open project's file (the narrator opened another project: saving would write to a
---     project the app does not read), compared with slashes and case folded;
+--     project the app does not read), compared with slashes folded, and case too on Windows and macOS; a different spelling of the same file (a symlink, a mapped drive) is refused, which is the safe side; Windows not run;
 --   * when the project has never been saved;
---   * when REAPER still reports the project as needing a save after the call.
+--   * when REAPER still reports the project as needing a save after the call (fake-only so far: a save REAPER cannot write blocks it
+--     before this line, see below, and a project that was already clean cannot show a failed save).
 -- A file REAPER cannot write is the host's check, before it sends this: REAPER 7.82 waits on its own error dialog and answers no
 -- command until the narrator dismisses it, which this script cannot see or avoid.
 -- It adds no undo point: a save is not an edit.
 --
 -- Seen in REAPER 7.82 on Linux, 2026-11-10 (scenarios save_project_writes_the_take and save_project_refusals in
--- scripts/ci/real-reaper): Main_SaveProject(0, false) wrote a take recorded onto a new voice track into the .rpp, and the refusals above
--- each left REAPER answering (docs/reference/daw/reaper.md).
+-- scripts/ci/real-reaper): Main_SaveProject(0, false) wrote a take recorded onto a new voice track into the .rpp, and the first three refusals
+-- above (recording, never saved, another project) each left REAPER answering (docs/reference/daw/reaper.md). Pending: Windows, a clean
+-- project saved again, the folder-not-writable case.
 
 local core = ...
 local event = core.event
@@ -30,9 +32,14 @@ local NOT_SAVED = 'REAPER could not save the project. Its file may be read-only 
 local CANNOT = 'This REAPER version cannot save the project from the app.'
 local NO_PATH = 'The app did not say which project to save.'
 
+-- Windows and macOS file systems ignore case (macOS by default); on Linux two names differing in case are two files, and saving the
+-- wrong one would tell the narrator it saved the file the app reads.
 local function same_path(a, b)
+  local os_name = reaper.GetOS and reaper.GetOS() or ''
+  local fold_case = os_name:match('^Win') ~= nil or os_name:match('^OS') ~= nil or os_name:match('^mac') ~= nil
   local function fold(path)
-    return (path:gsub('\\', '/'):lower())
+    path = path:gsub('\\', '/')
+    return fold_case and path:lower() or path
   end
   return fold(a) == fold(b)
 end

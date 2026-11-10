@@ -3,13 +3,9 @@ import type { DawCapabilities, DawResult } from '../../../api/contracts/daw';
 import { overlay } from '../../../overlay/overlayService';
 import { usePort } from '../../../ports/usePort';
 
-/** What the **Save in REAPER and read** button shows: whether a click is being answered, the refusal the last click got and what the last save wrote. */
+/** What the **Save in REAPER and read** button shows: whether a click is being answered. The answer itself is a toast. */
 export interface SaveInDaw {
   saving: boolean;
-  /** The sentence the last click was refused with; null once the next click starts, and after a save. */
-  refusal: string | null;
-  /** The DAW's sentence for the last save (what the saved project holds); null before one and after a refusal. */
-  saved: string | null;
   onSave: () => void;
 }
 
@@ -19,24 +15,19 @@ export const canSaveFromApp = (caps: DawCapabilities | null): boolean => {
   return level === 'supported' || level === 'experimental';
 };
 
+// One save at a time for the whole app: a page that is left and opened again while a save is unanswered must not send a second.
+let inFlight = false;
+
 const NO_ANSWER = 'The DAW did not answer the save. Check that it is open, then try again.';
 
 /**
  * Saves the DAW project on the narrator's click and then reads the chapter again, so a take recorded since the last save is there to edit. It never runs
- * on its own. A refusal stays in `refusal` (the notice words it beside the button) and is also a toast; a save is a toast saying what it wrote. Two
- * clicks do not send two saves: the second is ignored while the first is answered.
+ * on its own. A refusal is an error toast (the button is back to idle, so the narrator can fix the cause and press it
+ * again); a save is a toast saying what it wrote. Two clicks do not send two saves: the second is ignored while the first is answered.
  */
-export function useSaveInDaw(chapterId: string, onReread: () => void): SaveInDaw {
+export function useSaveInDaw(onReread: () => void): SaveInDaw {
   const daw = usePort('daw');
   const [saving, setSaving] = useState(false);
-  const [refusal, setRefusal] = useState<string | null>(null);
-  const [saved, setSaved] = useState<string | null>(null);
-  const busy = useRef(false);
-  // What a save said belongs to the chapter it was clicked on.
-  useEffect(() => {
-    setRefusal(null);
-    setSaved(null);
-  }, [chapterId]);
   const live = useRef(true);
   useEffect(() => {
     live.current = true;
@@ -46,29 +37,24 @@ export function useSaveInDaw(chapterId: string, onReread: () => void): SaveInDaw
   }, []);
 
   const onSave = useCallback(() => {
-    if (busy.current) return;
-    busy.current = true;
+    if (inFlight) return;
+    inFlight = true;
     setSaving(true);
-    setRefusal(null);
-    setSaved(null);
     daw
       .saveProject()
       .catch((): DawResult => ({ ok: false, changed: false, message: NO_ANSWER, undoSteps: 0, refused: NO_ANSWER }))
       .then((result) => {
-        busy.current = false;
-        if (!live.current) return;
-        setSaving(false);
+        inFlight = false;
+        if (live.current) setSaving(false);
         if (result.ok) {
-          setSaved(result.message);
           overlay.toast(result.message);
-          onReread();
+          if (live.current) onReread();
           return;
         }
-        const sentence = result.refused ?? result.message;
-        setRefusal(sentence);
-        overlay.toast(sentence, { tone: 'error' });
+        // The answer is said even when the narrator has left Editing, and a refusal with no words still says nothing was saved.
+        overlay.toast(result.refused || result.message || 'The project was not saved.', { tone: 'error' });
       });
   }, [daw, onReread]);
 
-  return { saving, refusal, saved, onSave };
+  return { saving, onSave };
 }

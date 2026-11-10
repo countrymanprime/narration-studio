@@ -23,11 +23,13 @@ export function NoAudioBanner({
   chapterName: string;
   daw: string | null;
   onReread: () => void;
-  /** The **Save in <DAW> and read** button's state, for a DAW that can save from the app and a chapter whose track holds nothing yet; otherwise no button. */
+  /** The **Save in <DAW> and read** button's state, for a DAW that can save from the app and a chapter whose track holds nothing yet; otherwise no button. A refusal and a save are toasts. */
   save?: SaveInDaw;
 }) {
   if (audio.kind === 'ready' || isLinkProblem(audio, daw)) return null;
   const text = noAudioText(audio, chapterName, daw);
+  // The button is the next step, so the note's how-to sentence (which tells the narrator to save) steps aside for it.
+  const offered = save !== undefined && audio.kind === 'empty';
   return (
     <div
       id="noaudio"
@@ -35,13 +37,12 @@ export function NoAudioBanner({
       className="mx-4 mb-2 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[var(--radius-card)] border border-[var(--review)] bg-[var(--review-soft)] px-4 py-2.5 text-[0.875rem]"
     >
       <span className="min-w-0 flex-[1_1_18rem] [overflow-wrap:anywhere]">
-        <b>{text.headline}</b> {text.next}
-        {save?.refusal ? <span data-testid="save-refusal"> {save.refusal}</span> : null}
-        {save?.saved ? <span data-testid="save-done"> {save.saved} The chapter still has no audio in it.</span> : null}
+        <b>{text.headline}</b>
+        {offered ? null : ` ${text.next}`}
       </span>
-      {save && audio.kind === 'empty' ? (
-        <Button variant="primary" size="sm" disabled={save.saving} onClick={save.onSave}>
-          {save.saving ? `Saving in ${daw}…` : `Save in ${daw} and read`}
+      {offered ? (
+        <Button variant="primary" size="sm" pending={save.saving} onClick={save.onSave}>
+          {`Save in ${daw} and read`}
         </Button>
       ) : null}
       <Button variant="secondary" size="sm" onClick={onReread}>

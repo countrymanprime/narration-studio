@@ -38,7 +38,7 @@ func TestDawSaveProjectSendsTheLinkedFileAndAnswersTheRolesResult(t *testing.T) 
 
 func TestDawSaveProjectRefusesWithNothingAskedWhenItCannotSave(t *testing.T) {
 	role := &fakeSaver{}
-	off := dawport.Support{Available: false, Message: "Audacity cannot save the project from this app."}
+	off := dawport.Support{Available: false, Message: "Save the project is not available with Audacity yet."}
 	for name, test := range map[string]struct {
 		support dawport.Support
 		saver   dawport.ProjectSaver
@@ -92,7 +92,7 @@ func TestDawSaveProjectGoldens(t *testing.T) {
 		})
 	}
 	t.Run("daw-save-project-refused-capability", func(t *testing.T) {
-		refusedCapability := dawport.Support{Message: "Audacity cannot save the project from this app."}
+		refusedCapability := dawport.Support{Message: "Save the project is not available with Audacity yet."}
 		got, err := dawSaveProjectIn(t.Context(), "Audacity", refusedCapability, &fakeSaver{}, "C:/Books/Book.rpp", nil)
 		if err != nil {
 			t.Fatal(err)

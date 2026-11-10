@@ -16,7 +16,7 @@ const saveProjectTimeout = 15 * time.Second
 
 const (
 	saveProjectUnwritableSentence = "The project file is read-only or missing, so %s was not asked to save it: it would stop on an error dialog. Make the file writable, then try again."
-	saveProjectNoLinkSentence     = "This project is not linked to a REAPER project file, so there is nothing to save."
+	saveProjectNoLinkSentence     = "This project is not linked to a REAPER project file, or the linked file is gone, so there is nothing to save."
 	saveProjectNoAnswerSentence   = "%s did not answer the save within %d seconds. Check %s before trying again."
 	saveProjectNotDoneSentence    = "%s could not save the project: %s."
 	saveProjectNoAdapterSentence  = "%s is not connected to this app, so the project was not saved."

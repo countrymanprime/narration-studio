@@ -295,7 +295,7 @@ export const editingStates: StateEntry[] = [
     page: 'editing',
     state: 'unsaved-take-refused',
     description:
-      'The same note after Save in REAPER and read was clicked on a project that was never saved (?mockDawUnsaved=never-saved) - the note keeps its button and carries the refusal sentence beside it, and an error toast says it too; nothing was saved',
+      'The same note after Save in REAPER and read was clicked on a project that was never saved (?mockDawUnsaved=never-saved) - an error toast gives the refusal sentence and the note keeps its button, ready again; nothing was saved',
   },
   {
     page: 'editing',

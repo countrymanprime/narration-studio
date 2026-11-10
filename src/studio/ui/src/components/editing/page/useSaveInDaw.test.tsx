@@ -8,6 +8,7 @@ import { createMockApi } from '../../../api/mockApi';
 import type { DawResult } from '../../../api/contracts/daw';
 import { DAW_ANSWERS, DAW_SETUPS } from '../../../fixtures/daw';
 import { createMockDawClient, type DawClient } from '../../../ports/daw';
+import { overlay } from '../../../overlay/overlayService';
 import { PortOverrides } from '../../../ports/usePort';
 import { NoAudioBanner } from './NoAudioBanner';
 import { canSaveFromApp, useSaveInDaw } from './useSaveInDaw';
@@ -30,43 +31,47 @@ const wrap = (client: DawClient) =>
   };
 
 describe('useSaveInDaw', () => {
-  it('saves on the click and reads the chapter again, and says what was saved', async () => {
+  it('saves on the click, says what was saved in a toast and reads the chapter again', async () => {
+    const toast = vi.spyOn(overlay, 'toast').mockImplementation(() => {});
     const save = vi.fn(async () => result({}));
     const onReread = vi.fn();
-    const { result: hook } = renderHook(() => useSaveInDaw('c1', onReread), { wrapper: wrap(clientSaving(save)) });
+    const { result: hook } = renderHook(() => useSaveInDaw(onReread), { wrapper: wrap(clientSaving(save)) });
     expect(save).not.toHaveBeenCalled();
     act(() => hook.current.onSave());
     expect(hook.current.saving).toBe(true);
-    await waitFor(() => expect(hook.current.saved).toBe(DAW_ANSWERS.projectSaved));
+    await waitFor(() => expect(onReread).toHaveBeenCalledTimes(1));
     expect(hook.current.saving).toBe(false);
-    expect(hook.current.refusal).toBeNull();
-    expect(onReread).toHaveBeenCalledTimes(1);
+    expect(toast).toHaveBeenCalledWith(DAW_ANSWERS.projectSaved);
+    toast.mockRestore();
   });
 
-  it('a refusal reads nothing again and stays for the notice to show; the next click clears it', async () => {
+  it('a refusal is an error toast with the sentence, reads nothing again and leaves the button ready for another click', async () => {
+    const toast = vi.spyOn(overlay, 'toast').mockImplementation(() => {});
     const save = vi.fn().mockResolvedValueOnce(refusal(DAW_ANSWERS.projectNeverSaved)).mockResolvedValueOnce(result({}));
     const onReread = vi.fn();
-    const { result: hook } = renderHook(() => useSaveInDaw('c1', onReread), { wrapper: wrap(clientSaving(save)) });
+    const { result: hook } = renderHook(() => useSaveInDaw(onReread), { wrapper: wrap(clientSaving(save)) });
     act(() => hook.current.onSave());
-    await waitFor(() => expect(hook.current.refusal).toBe(DAW_ANSWERS.projectNeverSaved));
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(DAW_ANSWERS.projectNeverSaved, { tone: 'error' }));
     expect(onReread).not.toHaveBeenCalled();
     expect(hook.current.saving).toBe(false);
     act(() => hook.current.onSave());
-    expect(hook.current.refusal).toBeNull();
     await waitFor(() => expect(onReread).toHaveBeenCalledTimes(1));
+    toast.mockRestore();
   });
 
-  it('a DAW that never answers its call is a refusal, not a button that spins or does nothing', async () => {
-    const { result: hook } = renderHook(() => useSaveInDaw('c1', vi.fn()), { wrapper: wrap(clientSaving(() => Promise.reject(new Error('no bridge')))) });
+  it('a DAW that never answers its call is a refusal toast, not a button that spins or does nothing', async () => {
+    const toast = vi.spyOn(overlay, 'toast').mockImplementation(() => {});
+    const { result: hook } = renderHook(() => useSaveInDaw(vi.fn()), { wrapper: wrap(clientSaving(() => Promise.reject(new Error('no bridge')))) });
     act(() => hook.current.onSave());
-    await waitFor(() => expect(hook.current.refusal).toMatch(/did not answer the save/));
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.stringMatching(/did not answer the save/), { tone: 'error' }));
     expect(hook.current.saving).toBe(false);
+    toast.mockRestore();
   });
 
   it('two clicks while the first is answered send one save', async () => {
     let finish: (r: DawResult) => void = () => {};
     const save = vi.fn(() => new Promise<DawResult>((resolve) => (finish = resolve)));
-    const { result: hook } = renderHook(() => useSaveInDaw('c1', vi.fn()), { wrapper: wrap(clientSaving(save)) });
+    const { result: hook } = renderHook(() => useSaveInDaw(vi.fn()), { wrapper: wrap(clientSaving(save)) });
     act(() => {
       hook.current.onSave();
       hook.current.onSave();
@@ -75,16 +80,32 @@ describe('useSaveInDaw', () => {
     await act(async () => finish(result({})));
     expect(hook.current.saving).toBe(false);
   });
+});
 
-  it('what a save said is dropped when the page moves to another chapter', async () => {
-    const { result: hook, rerender } = renderHook(({ id }) => useSaveInDaw(id, vi.fn()), {
-      initialProps: { id: 'c1' },
-      wrapper: wrap(clientSaving(async () => refusal('no'))),
+describe('useSaveInDaw, leaving and empty answers', () => {
+  it('says a refusal that arrives after the narrator left, and one with no words still says nothing was saved', async () => {
+    const toast = vi.spyOn(overlay, 'toast').mockImplementation(() => {});
+    let finish: (r: DawResult) => void = () => {};
+    const { result: hook, unmount } = renderHook(() => useSaveInDaw(vi.fn()), {
+      wrapper: wrap(clientSaving(() => new Promise<DawResult>((r) => (finish = r)))),
     });
     act(() => hook.current.onSave());
-    await waitFor(() => expect(hook.current.refusal).toBe('no'));
-    rerender({ id: 'c2' });
-    expect(hook.current.refusal).toBeNull();
+    unmount();
+    await act(async () => finish(refusal('')));
+    expect(toast).toHaveBeenCalledWith('The project was not saved.', { tone: 'error' });
+    toast.mockRestore();
+  });
+
+  it('a page opened again while a save is unanswered does not send a second save', async () => {
+    let finish: (r: DawResult) => void = () => {};
+    const save = vi.fn(() => new Promise<DawResult>((r) => (finish = r)));
+    const first = renderHook(() => useSaveInDaw(vi.fn()), { wrapper: wrap(clientSaving(save)) });
+    act(() => first.result.current.onSave());
+    first.unmount();
+    const second = renderHook(() => useSaveInDaw(vi.fn()), { wrapper: wrap(clientSaving(save)) });
+    act(() => second.result.current.onSave());
+    expect(save).toHaveBeenCalledTimes(1);
+    await act(async () => finish(result({})));
   });
 });
 
@@ -100,7 +121,7 @@ describe('canSaveFromApp', () => {
 
 describe('NoAudioBanner with the save button', () => {
   const props = { chapterName: 'Chapter One', daw: 'REAPER', onReread: vi.fn() };
-  const save = (over = {}) => ({ saving: false, refusal: null, saved: null, onSave: vi.fn(), ...over });
+  const save = (over = {}) => ({ saving: false, onSave: vi.fn(), ...over });
 
   it('offers Save in REAPER and read beside Read again on an empty track, and the click is the only thing that saves', async () => {
     const s = save();
@@ -111,21 +132,20 @@ describe('NoAudioBanner with the save button', () => {
     expect(screen.getByRole('button', { name: 'Read again' })).toBeTruthy();
   });
 
-  it('shows the pending state as a disabled button', () => {
-    render(<NoAudioBanner {...props} audio={{ kind: 'empty', unsaved: true }} save={save({ saving: true })} />);
-    const button = screen.getByRole('button', { name: 'Saving in REAPER…' });
-    expect((button as HTMLButtonElement).disabled).toBe(true);
+  it('drops the how-to sentence that tells the narrator to save when the button does it', () => {
+    const { rerender } = render(<NoAudioBanner {...props} audio={{ kind: 'empty', unsaved: true }} save={save()} />);
+    expect(screen.queryByText(/Save the project in REAPER, then read again/)).toBeNull();
+    rerender(<NoAudioBanner {...props} audio={{ kind: 'empty', unsaved: true }} />);
+    expect(screen.getByText(/Save the project in REAPER, then read again/)).toBeTruthy();
   });
 
-  it('puts the refusal in the notice, beside the button that was clicked', () => {
-    render(<NoAudioBanner {...props} audio={{ kind: 'empty', unsaved: true }} save={save({ refusal: DAW_ANSWERS.projectNeverSaved })} />);
-    expect(screen.getByTestId('save-refusal').textContent).toContain('never been saved');
-    expect(screen.getByRole('button', { name: 'Save in REAPER and read' })).toBeTruthy();
-  });
-
-  it('says what was saved when the chapter still has no audio after it', () => {
-    render(<NoAudioBanner {...props} audio={{ kind: 'empty' }} save={save({ saved: DAW_ANSWERS.projectSaved })} />);
-    expect(screen.getByTestId('save-done').textContent).toContain('3 tracks and 12 items');
+  it('shows the pending state on the button itself: busy, same label, presses ignored', async () => {
+    const s = save({ saving: true });
+    render(<NoAudioBanner {...props} audio={{ kind: 'empty', unsaved: true }} save={s} />);
+    const button = screen.getByRole('button', { name: 'Save in REAPER and read' });
+    expect(button.getAttribute('aria-busy')).toBe('true');
+    await userEvent.click(button);
+    expect(s.onSave).not.toHaveBeenCalled();
   });
 
   it('has no button without a save to offer, for a link problem, or when the chapter has audio', () => {

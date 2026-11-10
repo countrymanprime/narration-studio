@@ -37,10 +37,21 @@ H.test('save_project never asks REAPER to save as, which would open a file dialo
   end
 end)
 
-H.test('save_project matches the linked path with slashes and case folded', function()
-  local s = session('C:/Books/Book.rpp')
-  s:send('save_project', 's1', 'c:\\books\\BOOK.rpp')
-  H.eq(s:events()[1][1], 'SAVED')
+H.test('save_project matches the linked path with slashes and, on Windows and macOS, case folded', function()
+  for _, os_name in ipairs({ 'Win64', 'OSX64' }) do
+    local s = session('C:/Books/Book.rpp')
+    s.fake.os_name = os_name
+    s:send('save_project', 's1', 'c:\\books\\BOOK.rpp')
+    H.eq(s:events()[1][1], 'SAVED', os_name)
+  end
+end)
+
+H.test('save_project keeps case on Linux, where Book.rpp and book.rpp are two files, and saves neither', function()
+  local s = session('/books/Book.rpp')
+  s.fake.os_name = 'Linux64'
+  s:send('save_project', 's1', '/books/book.rpp')
+  H.contains(s:events()[1][3], 'different project')
+  H.eq(saved_after(s), 0)
 end)
 
 H.test('save_project refuses a project that was never saved, and opens no file dialog', function()
@@ -79,6 +90,18 @@ H.test('save_project refuses while REAPER records', function()
   H.eq(saved_after(s), 0)
 end)
 
+H.test('save_project refuses while recording is paused too, and saves during playback', function()
+  local path = H.join(host.tmpdir(), 'Book.rpp')
+  local s = session(path)
+  s.fake.play_state = 6
+  s:send('save_project', 's1', path)
+  H.eq(s:events()[1][1], 'ERROR')
+  H.eq(saved_after(s), 0)
+  s.fake.play_state = 1
+  s:send('save_project', 's2', path)
+  H.eq(s:events()[1][1], 'SAVED')
+end)
+
 H.test('save_project refuses, and says so, when REAPER still has unsaved changes afterwards', function()
   local path = H.join(host.tmpdir(), 'Book.rpp')
   local s = session(path)
@@ -104,4 +127,6 @@ H.test('save_project saves again when asked again: a second save is the same ans
   s:send('save_project', 's1', path)
   s:send('save_project', 's2', path)
   H.eq(s:events(), { { 'SAVED', 's1', '1', '1' }, { 'SAVED', 's2', '1', '1' } })
+  H.eq(saved_after(s), 2)
+  H.eq(#s.fake.undo, 0)
 end)

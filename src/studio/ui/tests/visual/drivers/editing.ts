@@ -417,11 +417,11 @@ export const editingDrivers: Record<string, Driver> = {
     await page.locator('#noaudio').getByRole('button', { name: 'Save in REAPER and read' }).waitFor();
     await page.locator('#noaudio').getByRole('button', { name: 'Read again' }).waitFor();
   },
-  // The click on a project that was never saved: the host refuses, and the refusal is in the note and in a toast.
+  // The click on a project that was never saved: the host refuses, and the refusal is an error toast; the button is ready again.
   'unsaved-take-refused': async (page) => {
     await openEditingNoAudio(page, '?mockChapterLink=missing&mockDawUnsaved=never-saved');
     await page.locator('#noaudio').getByRole('button', { name: 'Save in REAPER and read' }).click();
-    await page.getByTestId('save-refusal').waitFor();
+    await page.getByText(/never been saved/).waitFor();
     await page.locator('#noaudio').getByRole('button', { name: 'Save in REAPER and read' }).waitFor();
   },
   // The X closes it; the quiet mark stands where the banner stood and reopens it.

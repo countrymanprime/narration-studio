@@ -3646,15 +3646,33 @@
     "replace": "false"
   },
   {
-    "name": "save_project compares paths case and slash sensitively",
+    "name": "save_project compares paths with slashes unfolded",
     "file": "narration_save_project.lua",
-    "find": "    return (path:gsub('\\\\', '/'):lower())",
-    "replace": "    return path"
+    "find": "    path = path:gsub('\\\\', '/')",
+    "replace": "    path = path"
   },
   {
     "name": "save_project runs without the save API",
     "file": "narration_save_project.lua",
     "find": "if not reaper.APIExists('Main_SaveProject') then",
     "replace": "if false then"
+  },
+  {
+    "name": "save_project folds case on Linux, where two spellings are two files",
+    "file": "narration_save_project.lua",
+    "find": "  local fold_case = os_name:match('^Win') ~= nil or os_name:match('^OS') ~= nil or os_name:match('^mac') ~= nil",
+    "replace": "  local fold_case = true"
+  },
+  {
+    "name": "save_project never folds case, refusing the same file on Windows and macOS",
+    "file": "narration_save_project.lua",
+    "find": "  local fold_case = os_name:match('^Win') ~= nil or os_name:match('^OS') ~= nil or os_name:match('^mac') ~= nil",
+    "replace": "  local fold_case = false"
+  },
+  {
+    "name": "save_project saves while recording is paused",
+    "file": "narration_save_project.lua",
+    "find": "  return math.floor(reaper.GetPlayState() / 4) % 2 == 1",
+    "replace": "  return reaper.GetPlayState() == 4"
   }
 ]

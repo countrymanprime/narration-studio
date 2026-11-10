@@ -1,7 +1,7 @@
 {
   "ok": false,
   "changed": false,
-  "message": "Audacity cannot save the project from this app.",
+  "message": "Save the project is not available with Audacity yet.",
   "undoSteps": 0,
-  "refused": "Audacity cannot save the project from this app."
+  "refused": "Save the project is not available with Audacity yet."
 }
