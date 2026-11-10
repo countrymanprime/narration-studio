@@ -157,9 +157,16 @@ export type ChapterTrackLink = {
   warnings: ChapterTrackMatchWarning[];
   links: TrackMapping[];
   recordedEnd: RecordedEnd | null;
+  /** The direct children of the folder the chapter's one confirmed link is, in REAPER's order; empty when it has no one link or the
+   * link is not a folder. `isVoice` is false for a track some chapter is linked to. The pages' own copies of that rule move onto
+   * this field in the store PR that follows. */
+  members: ChapterMember[];
 };
 
-/** ChapterTrackLinks' answer: every narration chapter and every track from one parse of the saved .rpp. When `project`
+/** One direct child of a chapter's linked folder. */
+export type ChapterMember = { guid: string; name: string; isVoice: boolean };
+
+/** ChapterTrackLinks' answer: every narration chapter and every track from one parse of the project (REAPER's live list over the saved .rpp when the engine has the project open). When `project`
  * is not ready, `message` says why, `tracks` is empty and each chapter's status is `none`, with its links still listed. */
 export type ChapterTrackLinks = {
   project: ChapterTrackLinksProject;
