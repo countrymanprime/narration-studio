@@ -36,6 +36,7 @@ Storybook title: `Primitives/Toast`. Source: `src/components/primitives/Toast.ts
 - `src/components/booth/pickups/usePickupSession.ts`
 - `src/components/booth/suspected/SuspectedLines.tsx`
 - `src/components/booth/voices/useBoothVoices.ts`
+- `src/components/chapterTracks/ChapterTrackState.tsx`
 - `src/components/credits/CreditsSetupBanner.tsx`
 - `src/components/credits/CreditsSetupDialog.tsx`
 - `src/components/editing/CleanupAction.tsx`
