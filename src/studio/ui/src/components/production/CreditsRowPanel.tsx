@@ -51,7 +51,7 @@ export function CreditsRowPanel({
       <div className="space-y-4 text-sm">
         <p>
           <span className="font-semibold">{row.template?.name}</span> · {(row.words ?? 0).toLocaleString()} words ·{' '}
-          {/* "about 3s" stays on one line (XPR1-25). */}
+          {/* "about 0:03" stays on one line (XPR1-25). */}
           <span className="whitespace-nowrap">about {clock(row.estimatedSeconds ?? 0)}</span>
         </p>
         {warning && (
