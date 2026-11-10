@@ -5,12 +5,3 @@
 export function formatLevel(value: number): string {
   return value.toFixed(1).replace('-', '−');
 }
-
-/** A duration as m:ss, or h:mm:ss from an hour up. */
-export function formatLength(seconds: number): string {
-  const whole = Math.max(0, Math.floor(seconds));
-  const hours = Math.floor(whole / 3600);
-  const minutes = Math.floor((whole % 3600) / 60);
-  const rest = (whole % 60).toString().padStart(2, '0');
-  return hours > 0 ? `${hours}:${minutes.toString().padStart(2, '0')}:${rest}` : `${minutes}:${rest}`;
-}

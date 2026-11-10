@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { ChapterTrackStateProvider } from '../chapterTracks/ChapterTrackState';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -32,18 +33,21 @@ function renderPanel(
   render(
     <MemoryRouter>
       <ApiProvider api={api}>
-        <EnginePanel open onClose={() => {}} notify={() => {}} link={{ ...LINKED, ...link }} onOpenRecordingSettings={onOpenRecordingSettings} />
+        <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+          <EnginePanel open onClose={() => {}} notify={() => {}} link={{ ...LINKED, ...link }} onOpenRecordingSettings={onOpenRecordingSettings} />
+        </ChapterTrackStateProvider>
       </ApiProvider>
     </MemoryRouter>,
   );
   return api;
 }
 
-const trackTable = () => screen.findByRole('table', { name: 'Tracks' });
+// The one list of tracks: Chapter links, each chapter with the track it is linked to. There is no separate read-only Tracks card.
+const trackTable = () => screen.findByRole('table', { name: 'Chapter links' });
 
 // What the Tracks page held that is about REAPER, in a slide-over.
 describe('EnginePanel', () => {
-  it('is a named slide-over holding the linked project, the REAPER tools, the tracks and the chapter links', async () => {
+  it('is a named slide-over holding the linked project, the REAPER tools and the chapter links', async () => {
     renderPanel();
     const panel = await screen.findByRole('dialog', { name: 'Audio engine' });
     expect(await within(panel).findByText('Alice.rpp')).toBeTruthy();
@@ -76,39 +80,30 @@ describe('EnginePanel', () => {
     expect(onCheckAgain).toHaveBeenCalledTimes(1);
   });
 
-  it('lists every track with the chapter it is linked to', async () => {
+  it('lists the tracks once, in Chapter links, and draws no separate Tracks card', async () => {
     renderPanel({}, { chapterSync: 'activity' });
     const table = await trackTable();
-    const rows = within(table).getAllByRole('row').slice(1);
-    WIRE_TRACKS_PROJECT.tracks.forEach((track, index) => expect(within(rows[index]).getAllByRole('cell')[0].textContent).toContain(track.name));
-    const chapterCell = (index: number) => within(rows[index]).getAllByRole('cell')[1].textContent;
-    await waitFor(() => expect(chapterCell(0)).toBe(WIRE_CHAPTERS[0].title));
-    expect(chapterCell(1)).toBe(WIRE_CHAPTERS[1].title);
-    expect(chapterCell(2)).toBe('Not linked');
+    expect(screen.queryByRole('table', { name: 'Tracks' })).toBeNull();
+    expect(screen.queryByRole('treegrid', { name: 'Tracks' })).toBeNull();
+    // The chapters the seed links show their track here; the rest have a picker.
+    await waitFor(() => expect(within(table).getAllByText('Linked').length).toBeGreaterThanOrEqual(2));
+    expect(within(table).getAllByText(WIRE_TRACKS_PROJECT.tracks[0].name).length).toBeGreaterThan(0);
+    expect(within(table).getAllByRole('combobox').length).toBeGreaterThan(0);
   });
 
-  // Alignment audit R3EN1-7: a link made in Chapter links left the Tracks card above it saying "Not linked".
-  it('re-reads the Tracks card when a link is confirmed in Chapter links', async () => {
+  // Alignment audit R3EN1-7: a link made in Chapter links must show at once in the one track list.
+  it('shows a link at once when it is confirmed in Chapter links', async () => {
     const user = userEvent.setup();
     renderPanel();
-    const tracks = await trackTable();
-    const links = await screen.findByRole('table', { name: 'Chapter links' });
+    const links = await trackTable();
     const secondRow = within(links)
       .getAllByRole('row')
       .find((row) => within(row).queryByRole('combobox', { name: `Track for ${WIRE_CHAPTERS[1].title}` }));
     if (!secondRow) throw new Error('no Chapter links row with a picker for the second chapter');
     await user.selectOptions(within(secondRow).getByRole('combobox'), WIRE_TRACKS_PROJECT.tracks[1].guid);
-    await user.click(within(secondRow).getByRole('button', { name: 'Confirm' }));
-
-    const trackRow = () => within(tracks).getAllByRole('row')[2];
-    await waitFor(() => expect(within(trackRow()).getAllByRole('cell')[1].textContent).toContain(WIRE_CHAPTERS[1].title));
-  });
-
-  it('flags every track that has a missing or unsupported item', async () => {
-    renderPanel();
-    await trackTable();
-    // Chapter 2's source is missing on disk, and Click Track's item is MIDI (unsupported).
-    expect(screen.getAllByTitle("This track has an item that can't be played")).toHaveLength(2);
+    await user.click(within(secondRow).getByRole('button', { name: /^Use this (track|folder) for/ }));
+    await waitFor(() => expect(within(secondRow).getByRole('button', { name: /^Change the track for/ })).toBeTruthy());
+    expect(within(secondRow).getByText(WIRE_TRACKS_PROJECT.tracks[1].name)).toBeTruthy();
   });
 
   it('opens a REAPER tool’s dialog from the toolbar', async () => {
@@ -230,7 +225,9 @@ describe('EnginePanel', () => {
   it('is not in the page while closed', () => {
     render(
       <ApiProvider api={createMockApi()}>
-        <EnginePanel open={false} onClose={() => {}} notify={() => {}} link={LINKED} onOpenRecordingSettings={() => {}} />
+        <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+          <EnginePanel open={false} onClose={() => {}} notify={() => {}} link={LINKED} onOpenRecordingSettings={() => {}} />
+        </ChapterTrackStateProvider>
       </ApiProvider>,
     );
     expect(screen.queryByRole('dialog')).toBeNull();
@@ -248,7 +245,6 @@ describe('EnginePanel for an Audacity project', () => {
     expect(within(panel).getByRole('region', { name: 'Audacity project' })).toBeTruthy();
     expect(within(panel).queryByRole('region', { name: 'REAPER project' })).toBeNull();
     expect(within(panel).queryByRole('toolbar', { name: 'REAPER tools' })).toBeNull();
-    expect(await within(panel).findByRole('table', { name: 'Tracks' })).toBeTruthy();
     expect(await within(panel).findByRole('table', { name: 'Chapter links' })).toBeTruthy();
     expect(within(panel).queryByText('Link a REAPER project file')).toBeNull();
   });
@@ -313,7 +309,7 @@ describe("EnginePanel's live track list", () => {
     return section;
   };
 
-  it('a track added in REAPER after the panel opened appears in the Tracks card, the Chapter links pickers and Link chapters on Refresh', async () => {
+  it('a track added in REAPER after the panel opened appears in the Chapter links pickers and Link chapters on Refresh', async () => {
     const user = userEvent.setup();
     let tracks: Track[] = WIRE_TRACKS_PROJECT.tracks;
     const tracksLive = vi.fn(async () => live(tracks));
@@ -325,9 +321,8 @@ describe("EnginePanel's live track list", () => {
 
     tracks = [...WIRE_TRACKS_PROJECT.tracks, ADDED];
     await user.click(within(links).getByRole('button', { name: 'Read the tracks from REAPER again' }));
-    await waitFor(() => expect(within(screen.getByRole('table', { name: 'Tracks' })).getByText(ADDED.name)).toBeTruthy());
     const picker = within(links).getByRole('combobox', { name: `Track for ${WIRE_CHAPTERS[1].title}` });
-    expect(within(picker).getByRole('option', { name: named(ADDED.name) })).toBeTruthy();
+    await waitFor(() => expect(within(picker).getByRole('option', { name: named(ADDED.name) })).toBeTruthy());
 
     const calls = tracksLive.mock.calls.length;
     await user.click(screen.getByRole('button', { name: 'Link chapters to tracks' }));
@@ -380,7 +375,9 @@ describe("EnginePanel's live track list", () => {
     render(
       <MemoryRouter>
         <ApiProvider api={api}>
-          <EnginePanel open onClose={() => {}} notify={notify} link={LINKED} onOpenRecordingSettings={() => {}} />
+          <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={notify}>
+            <EnginePanel open onClose={() => {}} notify={notify} link={LINKED} onOpenRecordingSettings={() => {}} />
+          </ChapterTrackStateProvider>
         </ApiProvider>
       </MemoryRouter>,
     );
@@ -392,7 +389,7 @@ describe("EnginePanel's live track list", () => {
     expect(within(links).getByText(/^REAPER did not answer · last read \d+ s ago$/)).toBeTruthy();
     expect(notify).toHaveBeenCalledWith(expect.stringContaining('REAPER did not answer'), 'error', expect.objectContaining({ label: 'Retry' }));
     // The tracks are still listed, and no alert is pushed into the page.
-    expect(within(await trackTable()).getByText(WIRE_TRACKS_PROJECT.tracks[0].name)).toBeTruthy();
+    expect(within(await trackTable()).getAllByText(WIRE_TRACKS_PROJECT.tracks[0].name).length).toBeGreaterThan(0);
     expect(screen.queryByRole('alert')).toBeNull();
   });
 
@@ -410,7 +407,9 @@ describe("EnginePanel's live track list", () => {
     render(
       <MemoryRouter>
         <ApiProvider api={api}>
-          <EnginePanel open onClose={() => {}} notify={notify} link={LINKED} onOpenRecordingSettings={() => {}} />
+          <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={notify}>
+            <EnginePanel open onClose={() => {}} notify={notify} link={LINKED} onOpenRecordingSettings={() => {}} />
+          </ChapterTrackStateProvider>
         </ApiProvider>
       </MemoryRouter>,
     );
@@ -437,10 +436,17 @@ describe("EnginePanel's live track list", () => {
 
   // Breaker 7: a right-to-left override in a track name reversed what followed it.
   it('isolates a track name with a direction override where the panel draws it', async () => {
-    const tricky: Track = { ...ADDED, name: 'Chapter ‮evil' };
-    renderPanel({ tracksLive: async () => live([...WIRE_TRACKS_PROJECT.tracks, tricky]) });
+    // Chapter 1 boots linked to the first track, so that is the name the link column draws.
+    const tricky: Track = { ...WIRE_TRACKS_PROJECT.tracks[0], name: 'Chapter ‮evil' };
+    renderPanel({ tracksLive: async () => live([tricky, ...WIRE_TRACKS_PROJECT.tracks.slice(1)]) }, { chapterSync: 'activity' });
     const table = await trackTable();
-    const cell = await within(table).findByText(tricky.name);
+    const cell = await waitFor(() => {
+      const hit = within(table)
+        .getAllByText(tricky.name)
+        .find((node) => node.closest('bdi'));
+      if (!hit) throw new Error('not drawn yet');
+      return hit;
+    });
     expect(cell.closest('bdi')).not.toBeNull();
   });
 
@@ -450,7 +456,7 @@ describe("EnginePanel's live track list", () => {
       { tracksLive },
       { daw: { daw: 'Audacity' }, audacityLink: { module: 'on', running: true, pipe: 'answering', openProject: 'linked', linkedFile: 'Book One.aup3' } },
     );
-    expect(await screen.findByRole('table', { name: 'Tracks' })).toBeTruthy();
+    expect(await screen.findByRole('table', { name: 'Chapter links' })).toBeTruthy();
     expect(tracksLive).not.toHaveBeenCalled();
   });
 });

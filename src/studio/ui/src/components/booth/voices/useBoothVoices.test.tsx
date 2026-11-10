@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
-import { act, cleanup, render } from '@testing-library/react';
+import { act, cleanup, render, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
 import { WIRE_CHAPTERS } from '../../../api/mockFixtures';
 import { VoiceSetupProvider } from '../../engine/voiceLayout';
 import { destinationFor } from '../../engine/destination';
+import { ChapterTrackStateProvider } from '../../chapterTracks/ChapterTrackState';
 import { useBoothVoices, type BoothVoices } from './useBoothVoices';
 
 afterEach(cleanup);
@@ -26,7 +27,9 @@ async function mount(seed: Parameters<typeof createMockApi>[1], recording = fals
   render(
     <ApiProvider api={api}>
       <VoiceSetupProvider projectFolder="C:/Projects/Alice">
-        <Probe />
+        <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={notify}>
+          <Probe />
+        </ChapterTrackStateProvider>
       </VoiceSetupProvider>
     </ApiProvider>,
   );
@@ -115,9 +118,16 @@ describe("the Booth's voices", () => {
         documentId: 'd',
         mappings: [{ trackGuid: '{LINKED}', chapterId, chapterTitle: 'Chapter', confirmedAt: '', origin: 'manual' as const, match: null }],
       }),
-      tracksList: async () => ({
-        path: 'a.rpp',
-        tracks: tracks.map((track, index) => ({ ...track, index, color: '', muted: false, soloed: false, items: [] })),
+      // The page reads REAPER's live list (#3269), so the stub answers tracksLive.
+      tracksLive: async () => ({
+        source: 'live' as const,
+        reason: '' as const,
+        message: '',
+        readAt: '2026-11-10T00:00:00Z',
+        project: {
+          path: 'a.rpp',
+          tracks: tracks.map((track, index) => ({ ...track, index, color: '', muted: false, soloed: false, items: [] })),
+        },
       }),
     });
     const { notify, hook } = await mount({}, false, api);
@@ -195,7 +205,7 @@ describe("the Booth's voices", () => {
 
   it('a refusal because the tracks changed reads the voices again', async () => {
     const { api, hook } = await mount({ voiceFolders: true });
-    const reads = vi.spyOn(api, 'tracksList');
+    const reads = vi.spyOn(api, 'tracksLive');
     api.boothVoiceSet = async () => ({ outcome: 'refused', reason: 'not_a_voice', message: 'That track is not a voice of this chapter.' });
     await act(async () => hook.current.byKey(1));
     await act(async () => new Promise((r) => setTimeout(r, 10)));
@@ -221,9 +231,9 @@ describe("the Booth's voices", () => {
 
   it('Retry on the failed read of the tracks reads them again', async () => {
     const api = createMockApi({}, { voiceFolders: true });
-    const real = api.tracksList.bind(api);
+    const real = api.tracksLive.bind(api);
     let reads = 0;
-    api.tracksList = async () => {
+    api.tracksLive = async () => {
       reads += 1;
       if (reads === 1) throw new Error('The tracks are locked.');
       return real();
@@ -235,6 +245,185 @@ describe("the Booth's voices", () => {
     for (let i = 0; i < 10 && hook.current.voices.length === 0; i++) await act(async () => new Promise((r) => setTimeout(r, 5)));
     expect(reads).toBe(2);
     expect(hook.current.voices.length).toBeGreaterThan(0);
+  });
+
+  // #3269: the owner's folder of two voices with the layout toggle still Flat. The Booth followed the toggle, the Engine page the folder.
+  it("lists the linked folder's voices whatever the layout toggle says", async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    await api.voiceTracksSetLayout('flat');
+    const { hook } = await mount({}, false, api);
+    await waitFor(() => expect(hook.current.voices.length).toBeGreaterThan(0));
+    expect(hook.current.voices.some((voice) => voice.name === 'Narrator')).toBe(true);
+  });
+
+  // The host's rule (chapterVoicesIn): a track another chapter is linked to is that chapter's own, never a voice of this one, in either layout,
+  // so the page must not draw a voice key the host refuses (qa-breaker N3 on #3290: chapter 1 armed chapter 2's track).
+  it('leaves out a track another chapter is linked to, under Flat and under Voice folders', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    await api.chapterTrackSet(WIRE_CHAPTERS[1].id, '{V01CE-RABB1T}');
+    for (const layout of ['flat', 'folders'] as const) {
+      await api.voiceTracksSetLayout(layout);
+      const { hook } = await mount({}, false, api);
+      await waitFor(() => expect(hook.current.voices.length).toBeGreaterThan(0));
+      expect(hook.current.voices.map((voice) => voice.guid)).not.toContain('{V01CE-RABB1T}');
+      cleanup();
+    }
+  });
+
+  // A chapter with no one link has no folder, so it lists no voices and the control names no link. Whether the DAW is read at all belongs to
+  // the shared state (a project with no linked DAW file is never read: ChapterTrackStateProvider's `enabled`).
+  it('lists no voices for a chapter that is not linked', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    await api.chapterTrackUnlink(chapterId);
+    const { hook } = await mount({}, false, api);
+    await act(async () => new Promise((r) => setTimeout(r, 30)));
+    expect(hook.current.voices).toHaveLength(0);
+    expect(hook.current.linkKind).toBe('none');
+  });
+
+  // While the shared tracks have not answered (or their read failed) the chapter is not known to be unlinked: the key says the tracks are
+  // still being read, and the failed read's toast says why.
+  it('a voice key before the tracks are read says they are still being read, not that the chapter is not linked', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    api.tracksLive = () => new Promise(() => {});
+    const onNoTrack = vi.fn();
+    const { hook, notify } = await mount({}, false, api, { onNoTrack });
+    await act(async () => hook.current.byKey(1));
+    const infos = notify.mock.calls.filter((call) => call[1] === 'info').map((call) => String(call[0]));
+    expect(infos.join(' ')).toContain('still being read');
+    expect(infos.join(' ')).not.toContain('not linked');
+  });
+
+  // The poll re-reads every few seconds: a read that keeps failing is one toast, not one per tick.
+  it('toasts a run of failed reads once', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    api.tracksLive = async () => {
+      throw new Error('The tracks are locked.');
+    };
+    const { notify, hook } = await mount({}, false, api);
+    await act(async () => new Promise((r) => setTimeout(r, 30)));
+    act(() => {
+      window.dispatchEvent(new Event('focus'));
+    });
+    await act(async () => new Promise((r) => setTimeout(r, 30)));
+    expect(hook.current.voices).toHaveLength(0);
+    expect(notify.mock.calls.filter((call) => call[1] === 'error')).toHaveLength(1);
+  });
+
+  // The poll re-reads every few seconds: a voice read that keeps failing while the tracks read succeeds is one toast, not one per tick.
+  it('toasts a failing voice read once while the tracks read succeeds', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    api.boothVoiceGet = async () => {
+      throw new Error('The host did not answer.');
+    };
+    const { notify } = await mount({}, false, api);
+    await act(async () => new Promise((r) => setTimeout(r, 30)));
+    for (let i = 0; i < 3; i++) {
+      act(() => {
+        window.dispatchEvent(new Event('focus'));
+      });
+      await act(async () => new Promise((r) => setTimeout(r, 30)));
+    }
+    expect(notify.mock.calls.filter((call) => call[1] === 'error')).toHaveLength(1);
+  });
+
+  // A press of the toast's Retry always answers: when the read fails again, it toasts again.
+  it('answers a Retry press with a new toast when the read fails again', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    api.tracksLive = async () => {
+      throw new Error('The tracks are locked.');
+    };
+    const { notify } = await mount({}, false, api);
+    await act(async () => new Promise((r) => setTimeout(r, 30)));
+    const first = notify.mock.calls.find((call) => call[1] === 'error')!;
+    await act(async () => first[2].onAction());
+    await act(async () => new Promise((r) => setTimeout(r, 30)));
+    expect(notify.mock.calls.filter((call) => call[1] === 'error')).toHaveLength(2);
+  });
+
+  // The poll and the window's focus never start a read over one in flight: a Retry press that started a read is not overtaken and forgotten.
+  it('answers a Retry press that a focus event arrives during', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    api.tracksLive = async () => {
+      await new Promise((r) => setTimeout(r, 60));
+      throw new Error('The tracks are locked.');
+    };
+    const { notify } = await mount({}, false, api);
+    await act(async () => new Promise((r) => setTimeout(r, 120)));
+    const first = notify.mock.calls.find((call) => call[1] === 'error')!;
+    await act(async () => first[2].onAction());
+    // A focus event while the retried read is still running.
+    act(() => {
+      window.dispatchEvent(new Event('focus'));
+    });
+    await act(async () => new Promise((r) => setTimeout(r, 200)));
+    expect(notify.mock.calls.filter((call) => call[1] === 'error')).toHaveLength(2);
+  });
+
+  // A read that never answers must not hold every later read back: after the limit it fails with a toast, and the next poll reads again.
+  // (It waits the real limit, 8 s.)
+  it('tells the narrator when a read never answers, and reads again after it', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    const real = api.tracksLive.bind(api);
+    let calls = 0;
+    api.tracksLive = async () => {
+      calls += 1;
+      if (calls === 1) return new Promise(() => {});
+      return real();
+    };
+    const { notify, hook } = await mount({}, false, api);
+    await act(async () => new Promise((r) => setTimeout(r, 8500)));
+    expect(notify.mock.calls.filter((call) => call[1] === 'error')).toHaveLength(1);
+    act(() => {
+      window.dispatchEvent(new Event('focus'));
+    });
+    await waitFor(() => expect(hook.current.voices.length).toBeGreaterThan(0));
+    expect(calls).toBeGreaterThan(1);
+  }, 20_000);
+
+  // A run where both reads fail reports one failure, not two toasts.
+  it('reports one failure for a run where both reads fail', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    api.tracksLive = async () => {
+      throw new Error('The tracks are locked.');
+    };
+    api.boothVoiceGet = async () => {
+      throw new Error('The host did not answer.');
+    };
+    const { notify } = await mount({}, false, api);
+    await act(async () => new Promise((r) => setTimeout(r, 60)));
+    expect(notify.mock.calls.filter((call) => call[1] === 'error')).toHaveLength(1);
+  });
+
+  // #3269: a voice renamed or deleted in the DAW while the Booth stays open is read again on window focus, so its keys never go stale.
+  it('reads the voices again when the window gets focus', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    const reads = vi.spyOn(api, 'tracksLive');
+    const { hook } = await mount({}, false, api);
+    await waitFor(() => expect(hook.current.voices.length).toBeGreaterThan(0));
+    const before = reads.mock.calls.length;
+    act(() => {
+      window.dispatchEvent(new Event('focus'));
+    });
+    await waitFor(() => expect(reads.mock.calls.length).toBeGreaterThan(before));
+  });
+
+  // #3269: a voice renamed in REAPER and not saved is the name the Booth lists (it reads REAPER's live list, as the Engine page does).
+  it('lists a voice under the name REAPER has now', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    const real = api.tracksLive.bind(api);
+    api.tracksLive = async () => {
+      const answer = await real();
+      return {
+        ...answer,
+        project: {
+          ...answer.project,
+          tracks: answer.project.tracks.map((track) => (track.name === 'White Rabbit' ? { ...track, name: 'Rabbit (renamed in REAPER)' } : track)),
+        },
+      };
+    };
+    const { hook } = await mount({}, false, api);
+    await waitFor(() => expect(hook.current.voices.some((voice) => voice.name === 'Rabbit (renamed in REAPER)')).toBe(true));
   });
 
   describe('a key with no track during a take (#2839): stop first, then ask', () => {

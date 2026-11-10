@@ -401,6 +401,7 @@ function BoothSession({
   // A page break after the paragraph that brings a page to Booth.words_per_page words; the credits chapters have no paragraphs and so none.
   const wordsPerPage = useWordsPerPage();
   const breaks = useMemo(() => (chapter ? pageBreaks(paragraphs, units, wordsPerPage) : []), [chapter, paragraphs, units, wordsPerPage]);
+  const pageStarts = useMemo(() => new Set(breaks.map((pageBreak) => pageBreak.paragraphId)), [breaks]);
 
   // Ctrl+F opens the jump menu; its search finds the text in this chapter and brings the match into view (during a take, without moving the reading).
   const find = useBoothFind({ chapterId: recordId, paragraphs, recording: control.recording, seek, view: page.view });
@@ -479,7 +480,7 @@ function BoothSession({
     samples.toggleSpeaker(unit.quoted ? unit.speaker : NARRATION_SPEAKER);
   });
 
-  // The chapter's voices in a Voice folders project (docs/prds/booth-voice-tracks.prd.md): Num 0 to Num 9 choose one, Num + and Num −
+  // The chapter's voices, when it is linked to a folder holding tracks of its own (docs/prds/booth-voice-tracks.prd.md): Num 0 to Num 9 choose one, Num + and Num −
   // step through them, Num . opens the list; during a take the choice switches the recording live.
   const voiceToast = useCallback(
     (text: string, tone?: 'error' | 'info', action?: ToastAction) => overlay.toast(text, tone === 'error' ? { tone, action } : undefined),
@@ -767,6 +768,7 @@ function BoothSession({
                   font={page.text.fontFamily}
                   width={page.text.column}
                   viewRef={page.view}
+                  pageStarts={pageStarts}
                   margin={
                     chapter ? (
                       <>
@@ -840,7 +842,10 @@ function BoothSession({
           <SamplePlayerAnnouncement text={samples.announcement} />
           <BoothFooter
             record={
-              <RecordControl control={{ ...control, reason: footerWhy, toggle: page.pressMain }} cold={{ mode: page.coldRead.mode, on: page.coldRead.on }} />
+              <RecordControl
+                control={{ ...control, reason: footerWhy, toggle: page.pressMain, pending: page.startPending }}
+                cold={{ mode: page.coldRead.mode, on: page.coldRead.on }}
+              />
             }
             seconds={page.seconds}
             recording={control.recording}

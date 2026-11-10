@@ -3,7 +3,7 @@ import { StatusBadge } from '../../primitives/StatusBadge';
 import { IconButton } from '../../primitives/IconButton';
 import { isLow, summarize } from '../model';
 import { useEditingPage } from '../script/EditingPageState';
-import { clock } from './clock';
+import { clock } from '../../../clock';
 import { useSelectionActions } from './selectionActions';
 import type { ScriptPlayback } from './useScriptPlayback';
 

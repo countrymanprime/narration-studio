@@ -1,5 +1,6 @@
 import type { DocItem } from '../../model';
-import { EDGE_EPSILON, fineClock, spanOfKeys, type Span } from '../../ribbon/rangeMath';
+import { clockTenths } from '../../../../clock';
+import { EDGE_EPSILON, spanOfKeys, type Span } from '../../ribbon/rangeMath';
 
 /**
  * A sub-word edge is the part of a range's edge that falls inside a word. The DAW takes a range as the alignment tokens of its first and last
@@ -9,7 +10,7 @@ import { EDGE_EPSILON, fineClock, spanOfKeys, type Span } from '../../ribbon/ran
 export function subWordNote(exact: Span, applied: Span | null): string {
   if (!applied) return '';
   if (Math.abs(exact.start - applied.start) <= EDGE_EPSILON && Math.abs(exact.end - applied.end) <= EDGE_EPSILON) return '';
-  return `Sub-word edge, shown as a preview: your range runs ${fineClock(exact.start)} to ${fineClock(exact.end)}, and the DAW acts on the whole words, ${fineClock(applied.start)} to ${fineClock(applied.end)}.`;
+  return `Sub-word edge, shown as a preview: your range runs ${clockTenths(exact.start, { decimals: 2 })} to ${clockTenths(exact.end, { decimals: 2 })}, and the DAW acts on the whole words, ${clockTenths(applied.start, { decimals: 2 })} to ${clockTenths(applied.end, { decimals: 2 })}.`;
 }
 
 /** The span of the whole words a cut or an effect works on: the first start to the last end of `items`. Null with no heard word. */

@@ -1,8 +1,10 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Button } from './Button';
 import { IconButton } from './IconButton';
+import { ECHO_WINDOW_MS } from './echoGuard';
 
 afterEach(cleanup);
 
@@ -189,5 +191,92 @@ describe('Button label selection', () => {
   it('a link-styled button stays selectable like the text around it', () => {
     render(<Button variant="link">Stamp</Button>);
     expect(screen.getByRole('button', { name: 'Stamp' }).className).not.toMatch(/\bselect-none\b/);
+  });
+});
+
+function Swap({ onDone, onCancel }: { onDone: () => void; onCancel: () => void }) {
+  const [started, setStarted] = useState(false);
+  return started ? (
+    <IconButton key="cancel" label="Cancel" replacesPressed onClick={onCancel} />
+  ) : (
+    <>
+      <button onClick={() => setStarted(true)}>Download</button>
+      <Button replacesPressed onClick={onDone}>
+        Done
+      </Button>
+    </>
+  );
+}
+
+describe('replacesPressed, a button that was already there', () => {
+  it("goes through when the click before it was on a different, vanished control (another row's Download)", () => {
+    vi.useFakeTimers();
+    try {
+      const second = vi.fn();
+      const Pair = () => {
+        const [first, setFirst] = useState(true);
+        return (
+          <>
+            {first && <button onClick={() => setFirst(false)}>First</button>}
+            <Button replacesPressed onClick={second}>
+              Second
+            </Button>
+          </>
+        );
+      };
+      render(<Pair />);
+      vi.advanceTimersByTime(ECHO_WINDOW_MS);
+      fireEvent.click(screen.getByRole('button', { name: 'First' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Second' }));
+      expect(second).toHaveBeenCalledOnce();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('replacesPressed', () => {
+  it('ignores a press right after a click on a control that has since been replaced, and only that', () => {
+    vi.useFakeTimers();
+    try {
+      const onDone = vi.fn();
+      const onCancel = vi.fn();
+      render(<Swap onDone={onDone} onCancel={onCancel} />);
+      vi.advanceTimersByTime(ECHO_WINDOW_MS);
+      // A press with no earlier click goes through, however soon the button appeared.
+      fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+      expect(onDone).toHaveBeenCalledOnce();
+      // The echo: Download is pressed and replaced by Cancel, and the second click lands on Cancel at once.
+      fireEvent.click(screen.getByRole('button', { name: 'Download' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      expect(onCancel).not.toHaveBeenCalled();
+      // A triple click, or a held key repeating, is ignored the whole window, not only once.
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      expect(onCancel).not.toHaveBeenCalled();
+      vi.advanceTimersByTime(ECHO_WINDOW_MS);
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      expect(onCancel).toHaveBeenCalledOnce();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('Button disabledReason', () => {
+  it('ignores a press, stays focusable and says why on focus (#3276)', async () => {
+    const onClick = vi.fn();
+    render(
+      <Button disabledReason="Choose a region first." onClick={onClick}>
+        Approve
+      </Button>,
+    );
+    const button = screen.getByRole('button', { name: 'Approve' });
+    expect(button.getAttribute('aria-disabled')).toBe('true');
+    expect((button as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(button);
+    expect(onClick).not.toHaveBeenCalled();
+    button.focus();
+    expect(await screen.findByRole('tooltip')).toHaveProperty('textContent', 'Choose a region first.');
   });
 });

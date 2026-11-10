@@ -95,6 +95,7 @@ H.test('the bridge registers exactly the commands the host and the docs know abo
     'restore_replacement',
     'reveal_file',
     'roll',
+    'save_project',
     'select_track',
     'set_active_take',
     'set_cursor',

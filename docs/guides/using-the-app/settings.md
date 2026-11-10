@@ -120,7 +120,7 @@ With **Audacity** chosen, **Connection** is **Audacity connection** instead: a s
 
 Also here: **Microphone**, the one the Booth listens to. With a DAW it shows the DAW's own input read-only (**Same as REAPER:**
 and the device, with what REAPER records from and plays on) and needs nothing set; **Choose a different one** keeps another
-microphone over it until **Use REAPER's input**, and when the DAW's input could be several microphones, one button picks each.
+microphone over it until **Use REAPER's input**, and when the DAW's input could be several microphones, one button picks each. **Ask REAPER again** asks once more and then shows when it last got an answer ("Checked 3:42:07 PM"), even when the answer is the same. **Test sound** is busy for the half second the tone plays.
 Audacity cannot report its input, so with Audacity, and with the built-in recorder, it is a list of the computer's inputs with
 **Refresh the list** (**Automatic** is the first one listed; see [The microphone the Booth listens to](booth.md#the-microphone-the-booth-listens-to)). With REAPER chosen, **Start the launcher script with REAPER** and, under Advanced, **REAPER program** (neither is shown
 for Audacity or the built-in recorder); and, under Advanced for any recorder,
@@ -128,7 +128,7 @@ for Audacity or the built-in recorder); and, under Advanced for any recorder,
 recorder the project uses (for example "Audacity's own audio device is not used or changed").
 
 **Chapter layout** (under **Chapter sync**, REAPER only) is **Flat** or **Voice folders**, saved with the project. Flat makes a chapter one
-track; Voice folders makes a chapter a folder with one child track per voice. It is the same switch as the Layout row of the
+track (a chapter linked to a folder that holds only tracks of its own, none another chapter is linked to, still records on one of them); Voice folders makes a chapter a folder with one child track per voice. It is the same switch as the Layout row of the
 [audio engine panel](navigation.md#the-audio-engine-panel): change it in either place and the other shows it at once. The **?** beside it says what each means.
 
 ![Settings - Recording & DAW: Chapter layout under Chapter sync, with Flat and Voice folders](../../images/ui/settings-chapter-layout.webp)
@@ -140,7 +140,7 @@ picked and the app asks the first time it could sync. It is the same choice as *
 
 **Voices** (REAPER only, under **Chapter sync**) is the Voices card of the engine panel on the page: with the **Voice folders** layout it
 lists the voices of one chapter's folder with their keys, and the pencil beside a voice chooses the characters that track records, or, for
-the Narrator, the one character it also voices. With the **Flat** layout the row says each chapter records on one track.
+the Narrator, the one character it also voices. With the **Flat** layout the row says each chapter records on one track. Its tracks are the ones REAPER has now, as in the engine panel and the Booth, so a voice you rename in REAPER shows here before you save.
 
 ![Settings - Recording & DAW: Sync chapters to tracks and the Voices of a chapter folder](../../images/ui/settings-chapter-voices.webp)
 
@@ -395,9 +395,9 @@ replacing the manuscript keeps it; if its lines are gone, the panel says so and 
 
 ![Settings - App & updates, Advanced: Debug logging with the Reveal the log folder in the file manager button beside it](../../images/ui/settings-diagnostics.webp)
 
-**First-use tips** (under **Tips**) shows how many of the short tips a page shows once you have dismissed with **Got it**, and **Show tips again** forgets them all, so each shows once more. It is the same list for every project on this computer, and the button is off while none are dismissed. If the list cannot be read, the row says so and offers **Retry**.
+**First-use tips** (under **Tips**) shows how many of the short tips a page shows once you have dismissed with **Got it**, and the lightbulb icon button (**Show tips again**) forgets them all, so each shows once more. It is the same list for every project on this computer, and the icon is off while none are dismissed, with the reason in its tooltip. If the list cannot be read, the row says so and offers **Retry**.
 
-![Settings - First-use tips under Tips after a tip was dismissed: 1 dismissed, and Show tips again](../../images/ui/settings-first-use-tips.webp)
+![Settings - First-use tips under Tips after a tip was dismissed: 1 dismissed, and the Show tips again icon](../../images/ui/settings-first-use-tips.webp)
 
 ### Diagnostics
 

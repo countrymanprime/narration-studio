@@ -88,13 +88,3 @@ export function nudgeWindow(window: TimeWindow, dir: 1 | -1, total: number, big 
 
 /** Arrow-key step of one edge: 5 seconds, 30 with Shift. */
 export const edgeStep = (big: boolean): number => (big ? 30 : 5);
-
-/** The clock text for a second count: `m:ss`, or `h:mm:ss` from an hour. */
-export function clock(seconds: number): string {
-  const whole = Math.max(0, Math.round(seconds));
-  const h = Math.floor(whole / 3600);
-  const m = Math.floor((whole % 3600) / 60);
-  const s = whole % 60;
-  const pad = (n: number): string => String(n).padStart(2, '0');
-  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
-}

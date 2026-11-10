@@ -247,6 +247,8 @@ var eventSpecs = map[string]eventSpec{
 	// "other"); the kind, the steps asked for and the points undone. Neither carries a label read from the project.
 	"LAST_ACTION": {required: []fieldSpec{text("run"), text("kind"), text("answer")}},
 	"UNDONE_LAST": {required: []fieldSpec{text("run"), text("kind"), count("steps"), count("undone")}},
+	// save_project (narration_save_project.lua): the tracks and media items of the project REAPER just saved to its own file.
+	"SAVED": {required: []fieldSpec{text("run"), count("tracks"), count("items")}},
 	// monitor_level (narration_levels.lua): the monitor level now held, a whole number from 0 to 100, read back after a set.
 	"MONITOR_LEVEL": {required: []fieldSpec{text("run"), count("level")}},
 	// punch_preroll (narration_preroll.lua): REAPER's pre-roll on record (0 or 1), its length in measures and one measure in seconds.

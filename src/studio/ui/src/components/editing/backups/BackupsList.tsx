@@ -2,7 +2,7 @@ import type { DawBackup } from '../../../api/contracts/daw';
 import { IconButton } from '../../primitives/IconButton';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../primitives/Table';
-import { clock } from '../bar/clock';
+import { clock } from '../../../clock';
 import { BACKUPS_TEXT, dayOf, putBackOn } from './backupsText';
 import type { BackupsGate } from './useBackups';
 

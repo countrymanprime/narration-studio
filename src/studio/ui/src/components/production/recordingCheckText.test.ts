@@ -6,13 +6,13 @@ import {
   describeParagraphs,
   describePosition,
   describeRegion,
-  formatAudioTime,
   paragraphRefs,
   passLabel,
   recheckLabel,
   recordedTo,
   verdict,
 } from './recordingCheckText';
+import { clock } from '../../clock';
 
 const report = (present: number, body: number): CoverageReport => ({
   model: 'small',
@@ -105,9 +105,9 @@ describe('recording check text', () => {
   });
 
   it('formats audio times as minutes and seconds, with hours when needed', () => {
-    expect(formatAudioTime(7.9)).toBe('0:07');
-    expect(formatAudioTime(3729)).toBe('1:02:09');
-    expect(formatAudioTime(-3)).toBe('0:00');
+    expect(clock(7.9)).toBe('0:07');
+    expect(clock(3729)).toBe('1:02:09');
+    expect(clock(-3)).toBe('0:00');
   });
 
   it('states an unread end or start as "recorded to", never as a pickup (RS2 A)', () => {

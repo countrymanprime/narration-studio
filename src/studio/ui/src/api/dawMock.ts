@@ -71,6 +71,7 @@ const REAPER_DECLARATION: Record<DawCapabilityKey, DawCapabilityLevel> = {
   range_gain: 'experimental',
   click_repair: 'experimental',
   undo_last: 'experimental',
+  save_project: 'experimental',
   monitor_level: 'experimental',
   // No DAW the app talks to can set an audio interface's input gain.
   input_level: 'unsupported',
@@ -116,6 +117,7 @@ const CAPABILITY_NEEDS: Record<DawCapabilityKey, DawMockNeeds> = {
   range_gain: 'running',
   click_repair: 'running',
   undo_last: 'running',
+  save_project: 'running',
   monitor_level: 'running',
   input_level: 'running',
   punch_preroll: 'running',
@@ -212,6 +214,8 @@ export type DawMockSeed = {
   savedAt?: string | null;
   /** Whether REAPER has edits its saved file does not have; reported only with a `savedAt`, as the host's is. */
   unsavedChanges?: boolean;
+  /** The project in REAPER was never saved, so `dawSaveProject` is refused with the host's sentence for it (`?mockDawUnsaved=never-saved`). */
+  neverSaved?: boolean;
 };
 
 function declarationFor(daw: DawKind): Record<string, DawCapabilityLevel> {

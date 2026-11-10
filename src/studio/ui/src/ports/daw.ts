@@ -239,6 +239,11 @@ export interface DawClient {
    * part way at another action is `ok` and `changed`, and the message says how many were undone. `undoSteps` is 0: it counts undo
    * points a call adds, and an undo adds none, so how many were undone is in the message only. */
   undoLast(action: DawActionKind, steps: number): Promise<DawResult>;
+  /** Save the project this app is linked to in the DAW, on the narrator's click and never otherwise (#3262). Saved: `ok`, with the DAW's
+   * sentence saying how much the project holds. Refused, with nothing written, in a sentence to show: the
+   * `save_project` capability's own, no linked project file, the DAW not answering, a project that was never saved, another project open, a
+   * recording in progress, a file the DAW could not write. */
+  saveProject(): Promise<DawResult>;
   /** Clone the audio around the request's words before an edit, so it can be put back. It changes no audio (`changed: false`). */
   backupAround(request: BackupRequest): Promise<DawResult>;
   /** Put a backup's audio back over the window it came from. Refused when the DAW has no backup with that id. */
@@ -292,6 +297,7 @@ export type DawHostApi = Pick<
   | 'dawRepairClick'
   | 'dawLastAction'
   | 'dawUndoLast'
+  | 'dawSaveProject'
   | 'dawBackupAround'
   | 'dawRestoreBackup'
   | 'dawBackups'
@@ -512,6 +518,8 @@ export function createHostDawClient(api: DawHostApi): DawClient {
     },
     /** The binding answers a DawResult already: the host checks the action and the DAW reads its own history before each step. */
     undoLast: (action, steps) => api.dawUndoLast(action, steps),
+    /** The binding answers a DawResult already and takes nothing: the host sends the project file it is linked to. */
+    saveProject: () => api.dawSaveProject(),
     /** The bindings answer a DawResult already and take ids only: the host resolves the window and the track itself. */
     backupAround: ({ chapterId, firstToken, lastToken, label }) => api.dawBackupAround(chapterId, firstToken, lastToken, label),
     restoreBackup: (backupId) => api.dawRestoreBackup(backupId),
@@ -584,6 +592,10 @@ function mockDawCalls(setup: DawCapabilities, project: DawProject, projectState:
       if (!project.chapterIds.includes(chapterId)) return refused(DAW_ANSWERS.noTrack, 'recordStart', true);
       // The mock's track is empty, so a plain start begins at 0, as the host's golden does.
       return at === undefined ? { ...done(true, 0), position: 0 } : { ...done(true, 0, recordingFromAnswer(at)), position: at };
+    },
+    async saveProject() {
+      const sentence = unavailable(setup, 'save_project', 'saveProject');
+      return sentence ? refused(sentence, 'saveProject') : { ...done(false, 0), message: DAW_ANSWERS.projectSaved };
     },
     async recordStop() {
       const sentence = unavailable(setup, 'record', 'recordStop');

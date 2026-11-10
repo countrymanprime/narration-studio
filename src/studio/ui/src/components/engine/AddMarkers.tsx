@@ -5,7 +5,7 @@ import { useDawCapabilities } from '../../hooks/useDawCapabilities';
 import { useOverlay } from '../../overlay/OverlayProvider';
 import type { DawClient } from '../../ports';
 import { usePort } from '../../ports/usePort';
-import { clock } from '../editing/bar/clock';
+import { clock } from '../../clock';
 import { lineText, reasonSentence } from '../pickups/list/pickupRows';
 import { useDawFileLinked } from '../connection/dawFileLinked';
 import { IconButton } from '../primitives/IconButton';

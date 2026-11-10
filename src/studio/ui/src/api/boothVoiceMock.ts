@@ -10,7 +10,6 @@ type Deps = Pick<
   | 'voiceTracksGet'
   | 'voiceTracksSetCharacters'
   | 'chapterTrackMapList'
-  | 'tracksList'
   | 'tracksLive'
   | 'readAloudRecordStart'
   | 'readAloudRecordStartAt'
@@ -18,9 +17,10 @@ type Deps = Pick<
   | 'readAloudReaperState'
 >;
 
-const FLAT =
-  'This chapter records on one track. Voice keys choose a voice in a Voice folders project, for a chapter linked to a folder (the audio engine panel).';
-const NOT_A_VOICE = "That track is not a voice of this chapter's folder. Its tracks may have changed in the saved project.";
+import { LINK_GONE } from '../components/engine/destination';
+
+const FLAT = 'This chapter records on one track. Voice keys choose a voice for a chapter linked to a folder of voices (the audio engine panel).';
+const NOT_A_VOICE = "That track is not a voice of this chapter's folder. Its tracks may have changed in the DAW.";
 
 const refused = (reason: NonNullable<BoothVoice['reason']>, message: string): BoothVoice => ({ outcome: 'refused', reason, message });
 
@@ -53,19 +53,17 @@ export function createBoothVoiceMock(api: Deps) {
   let addedCount = 0;
   let recording: { chapterId: string; since: number; from: number } | undefined;
 
-  /** The chapter's one link and, in a Voice folders project with that link a folder, its voices. */
+  /** The chapter's one link and, when that link is a folder holding voices (as the host decides), its voices. */
   const voicesOf = async (chapterId: string) => {
-    const [setup, map, savedProject] = await Promise.all([api.voiceTracksGet(), api.chapterTrackMapList(), api.tracksList()]);
+    const [setup, map, project] = await Promise.all([api.voiceTracksGet(), api.chapterTrackMapList(), api.tracksLive().then((answer) => answer.project)]);
     const links = map.mappings.filter((mapping) => mapping.chapterId === chapterId).map((mapping) => mapping.trackGuid);
-    let project = savedProject;
-    let saved = setup.layout === 'folders' && links.length === 1 ? childrenOf(project.tracks, links[0]) : null;
-    // A folder the app just made (ChapterTrackCreate) is in REAPER's live list before the narrator saves: the host lists its Narrator from what
-    // it made (chapterVoices), so the mock reads the live list when the saved project lacks the chapter's folder (#3271).
-    if (saved === null && setup.layout === 'folders' && links.length === 1) {
-      const live = (await api.tracksLive()).project;
-      saved = childrenOf(live.tracks, links[0]);
-      if (saved) project = live;
-    }
+    // As the host decides (chapterVoicesIn): the linked folder's own children, whatever the layout says, less any track some chapter is linked
+    // to (that chapter's own); an empty folder is a voice folder only with Voice folders switched on.
+    const own = (links.length === 1 ? childrenOf(project.tracks, links[0]) : null)?.filter(
+      (child) => !map.mappings.some((mapping) => mapping.trackGuid.toLowerCase() === child.guid.toLowerCase()),
+    );
+    const children = own ?? null;
+    const saved = children && (children.length > 0 || setup.layout === 'folders') ? children : null;
     const unsaved = saved ? (added.get(links[0].toUpperCase()) ?? []).filter((voice) => !project.tracks.some((track) => track.guid === voice.guid)) : [];
     const folder = saved ? project.tracks.find((track) => track.guid === links[0]) : undefined;
     const extra: Track[] = unsaved.map((voice, at) => ({
@@ -80,7 +78,10 @@ export function createBoothVoiceMock(api: Deps) {
       isFolder: false,
     }));
     const voices = saved ? [...saved, ...extra] : null;
-    return { links, voices, unsaved };
+    // A link to a track the project does not hold (deleted in the DAW), unless this session made it: the host's `track_missing`.
+    const gone =
+      links.length === 1 && !project.tracks.some((track) => track.guid.toLowerCase() === links[0].toLowerCase()) && !added.has(links[0].toUpperCase());
+    return { links, voices, unsaved, gone };
   };
   const chosenFor = (chapterId: string) => chosen.get(chapterId) ?? '';
 
@@ -113,9 +114,10 @@ export function createBoothVoiceMock(api: Deps) {
       return { outcome: 'never_recorded' };
     },
     async boothVoiceGet(chapterId: string): Promise<BoothVoice> {
-      const { links, voices } = await voicesOf(chapterId);
+      const { links, voices, gone } = await voicesOf(chapterId);
       const notOne = linkRefusal(links);
       if (notOne) return notOne;
+      if (gone) return refused('track_missing', LINK_GONE);
       if (!voices) return refused('flat', 'This chapter records on one track.');
       if (voices.length === 0)
         return refused('no_voices', 'This chapter is linked to a folder with no voice tracks in it. Add a track inside the folder in REAPER, and save.');
@@ -157,9 +159,10 @@ export function createBoothVoiceMock(api: Deps) {
       return { outcome: 'added', trackGuid: voice.guid, name: clean };
     },
     async boothVoiceSet(chapterId: string, trackGuid: string): Promise<BoothVoice> {
-      const { links, voices } = await voicesOf(chapterId);
+      const { links, voices, gone } = await voicesOf(chapterId);
       const notOne = linkRefusal(links);
       if (notOne) return notOne;
+      if (gone) return refused('track_missing', LINK_GONE);
       if (!voices) return refused('flat', FLAT);
       const target = voices.find((voice) => voice.guid.toLowerCase() === trackGuid.toLowerCase());
       if (!target) return refused('not_a_voice', NOT_A_VOICE);

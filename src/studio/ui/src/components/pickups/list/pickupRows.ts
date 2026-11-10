@@ -3,6 +3,7 @@
 import { apiErrorMessage } from '../../../api/errorMessage';
 import type { PickupGapKind, PickupItem } from '../../../api/contracts/pickups';
 import type { KindId } from '../../../kinds/kindMap';
+import { clockTenths } from '../../../clock';
 
 /** A chapter in the Pickups scope. The credits are listed like any chapter but never hold a pickup: the host's list skips them (a pickup is a line of text to re-read). */
 export type ChapterRef = { id: string; name: string; credits?: true };
@@ -94,16 +95,16 @@ export const PICKUP_LINE_MAX = 500;
 /** Seconds into the recording as "05:12.0"; "—" when the source gave no time. */
 export function clock(seconds: number | null): string {
   if (seconds === null || !Number.isFinite(seconds)) return '—';
-  const tenths = Math.round(Math.max(0, seconds) * 10);
-  const minutes = String(Math.floor(tenths / 600)).padStart(2, '0');
-  const rest = String(Math.floor((tenths % 600) / 10)).padStart(2, '0');
-  return `${minutes}:${rest}.${tenths % 10}`;
+  return clockTenths(seconds, { minuteDigits: 2 });
 }
 
-/** "5:12", "05:12" or "05:12.5" to seconds; null for anything else, including seconds past 59 ("5:99"). */
+/** "5:12", "05:12", "05:12.5" or, from an hour, "1:02:05.5" (what `clock` writes) to seconds; null for anything else, including minutes or seconds past 59 ("5:99"). */
 export function parseClock(text: string): number | null {
-  const match = /^(\d{1,5}):([0-5]\d)(?:\.(\d))?$/.exec(text.trim());
-  return match ? Number(match[1]) * 60 + Number(match[2]) + (match[3] ? Number(match[3]) / 10 : 0) : null;
+  const match = /^(\d{1,5})(?::([0-5]\d))?:([0-5]\d)(?:\.(\d))?$/.exec(text.trim());
+  if (!match) return null;
+  const [, first, minutes, seconds, tenth] = match;
+  const whole = minutes === undefined ? Number(first) * 60 + Number(seconds) : Number(first) * 3600 + Number(minutes) * 60 + Number(seconds);
+  return whole + (tenth ? Number(tenth) / 10 : 0);
 }
 
 /** A host reason as a sentence a narrator can read: no "Error: " prefix, a capital, and a full stop. */

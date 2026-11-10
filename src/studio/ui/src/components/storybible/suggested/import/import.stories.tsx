@@ -39,7 +39,7 @@ const paste = (canvasElement: HTMLElement, text: string) =>
 export const Empty: Story = {
   render: (args) => <Surface args={args} />,
   play: async ({ canvasElement }) => {
-    await expect(within(canvasElement).getByRole('button', { name: 'Add to the Story Bible' })).toBeDisabled();
+    await expect(within(canvasElement).getByRole('button', { name: 'Add to the Story Bible' })).toHaveAttribute('aria-disabled', 'true');
   },
 };
 

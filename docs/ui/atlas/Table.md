@@ -24,7 +24,6 @@ Storybook title: `Primitives/Table`. Source: `src/components/primitives/Table.ts
 - `src/components/engine/ChapterLinksTable.tsx`
 - `src/components/engine/CreateChapterRegionsDialog.tsx`
 - `src/components/engine/LinkChaptersDialog.tsx`
-- `src/components/engine/TrackList.tsx`
 - `src/components/engine/VoicesCard.tsx`
 - `src/components/master/DeliveryProfilePanel.tsx`
 - `src/components/master/DiagnosticsTables.tsx`

@@ -7,7 +7,7 @@ import type { ManuscriptChapter, PinnedPreview, PreviewCandidate, PreviewResult 
 import { chapterName } from '../../chapterName';
 import { describeApiError } from '../../api/errorMessage';
 import { useApi } from '../../api/ApiContext';
-import { describeParagraphs, formatAudioTime, paragraphRefs } from '../production/recordingCheckText';
+import { describeParagraphs, paragraphRefs } from '../production/recordingCheckText';
 import { Button } from '../primitives/Button';
 import { InsetCard } from '../primitives/InsetCard';
 import { LoadingRegion, Skeleton } from '../primitives/Skeleton';
@@ -17,6 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { TooltipTarget } from '../primitives/Tooltip';
 import type { Notify } from '../primitives/Toast';
 import { ProofOptions } from './proofOptions/ProofOptions';
+import { clock } from '../../clock';
 
 type Phase = 'loading' | 'ready' | 'error';
 
@@ -137,7 +138,7 @@ export function PreviewPanel({ notify, goToManuscript }: { notify: Notify; goToM
   };
 
   const copyRange = (candidate: PreviewCandidate) => {
-    const text = `${nameOf(candidate, 'short')}, ${describeParagraphs(paragraphNumbers(candidate))} (${formatAudioTime(candidate.estimatedSeconds)})`;
+    const text = `${nameOf(candidate, 'short')}, ${describeParagraphs(paragraphNumbers(candidate))} (${clock(candidate.estimatedSeconds)})`;
     void navigator.clipboard?.writeText(text).then(
       () => setCopiedChapterId(candidate.chapterId),
       (err) => notify(describeApiError(err), 'error'),
@@ -215,7 +216,7 @@ export function PreviewPanel({ notify, goToManuscript }: { notify: Notify; goToM
                       <TableCell numeric align="left">
                         {paragraphSpan(paragraphNumbers(candidate))}
                       </TableCell>
-                      <TableCell numeric>{formatAudioTime(candidate.estimatedSeconds)}</TableCell>
+                      <TableCell numeric>{clock(candidate.estimatedSeconds)}</TableCell>
                       <TableCell numeric>{candidate.wordCount.toLocaleString()}</TableCell>
                       <TableCell className="text-xs">
                         {/* Only what sets this range apart: a reason every candidate shares is said once under the table (R3PC-12). */}
@@ -318,7 +319,7 @@ export function PreviewPanel({ notify, goToManuscript }: { notify: Notify; goToM
           {pinned.candidate && (
             <>
               <p className="mt-1 text-sm">
-                {pinned.candidate.chapterTitle}, {describeParagraphs(paragraphNumbers(pinned.candidate))} ({formatAudioTime(pinned.candidate.estimatedSeconds)})
+                {pinned.candidate.chapterTitle}, {describeParagraphs(paragraphNumbers(pinned.candidate))} ({clock(pinned.candidate.estimatedSeconds)})
               </p>
               <ul className="mt-1 space-y-1 text-xs">
                 {pinned.candidate.reasons.map((reason) => (

@@ -9,15 +9,7 @@ import { Select } from '../primitives/Select';
 import { StatusBadge } from '../primitives/StatusBadge';
 import { TextField } from '../primitives/TextField';
 import type { Notify } from '../primitives/Toast';
-
-/** mm:ss, the region-length format of the reference clip rows; this
- * view never sees a region longer than about an hour, so no hour component is needed. */
-function formatRegionTime(seconds: number): string {
-  const whole = Math.max(0, Math.round(seconds));
-  const minutes = Math.floor(whole / 60);
-  const remaining = whole % 60;
-  return `${minutes}:${String(remaining).padStart(2, '0')}`;
-}
+import { clock } from '../../clock';
 
 /**
  * One character's (or Narration's) approved voice references: the region list to approve one from, and the
@@ -95,7 +87,7 @@ export function VoiceReferencesSection({ characterId, characterLabel, notify }: 
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-medium">{reference.snapshot.name}</div>
                 <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                  {formatRegionTime(reference.snapshot.start)}–{formatRegionTime(reference.snapshot.end)}
+                  {clock(reference.snapshot.start)}–{clock(reference.snapshot.end)}
                   {reference.note ? ` · ${reference.note}` : ''}
                 </div>
               </div>
@@ -122,7 +114,12 @@ export function VoiceReferencesSection({ characterId, characterLabel, notify }: 
             ]}
           />
           <TextField label="Note (optional)" value={note} onChange={setNote} placeholder="e.g. anchor take, chapter 1" />
-          <Button variant="secondary" disabled={!regionGuid} pending={mutation.isPending('approve')} onClick={() => void approve()}>
+          <Button
+            variant="secondary"
+            disabledReason={regionGuid ? '' : 'Choose a region to approve first.'}
+            pending={mutation.isPending('approve')}
+            onClick={() => void approve()}
+          >
             Approve as reference
           </Button>
         </div>

@@ -63,6 +63,8 @@ export type MockApiSeed = {
   liveTracks?: 'saved' | 'failing';
   /** A Voice folders project: Chapter 1 linked to a folder of voice tracks, Extras assigned two characters (`?mockVoiceFolders=1`). */
   voiceFolders?: boolean;
+  /** Every track of the saved project holds no item, as when the chapter was never recorded (`?mockEmptyTracks=1`): Editing's note says the track is empty. */
+  emptyTracks?: boolean;
   /** Chapters 2 and 3's linked tracks sit inside Chapter 1's folder in REAPER, as the append bug left the owner's project (#2838,
    * `?mockNestedChapters=1`): the Chapter links panel offers to move them out. */
   nestedChapters?: boolean;

@@ -3608,5 +3608,71 @@
     "file": "narration_takes.lua",
     "find": "    elseif kind == 'folder' and #fields == 2 and not request.folder and #request.groups == 0 then",
     "replace": "    elseif kind == 'folder' and #fields == 2 and #request.groups == 0 then"
+  },
+  {
+    "name": "save_project saves while REAPER records",
+    "file": "narration_save_project.lua",
+    "find": "  if recording() then",
+    "replace": "  if false then"
+  },
+  {
+    "name": "save_project saves a project that was never saved, opening a file dialog",
+    "file": "narration_save_project.lua",
+    "find": "  if not path or path == '' then",
+    "replace": "  if false then"
+  },
+  {
+    "name": "save_project saves whatever project is open, not the one the app is linked to",
+    "file": "narration_save_project.lua",
+    "find": "  if not same_path(path, expected) then",
+    "replace": "  if false then"
+  },
+  {
+    "name": "save_project saves with no project path from the app",
+    "file": "narration_save_project.lua",
+    "find": "  if type(expected) ~= 'string' or expected == '' then",
+    "replace": "  if false then"
+  },
+  {
+    "name": "save_project saves as, forcing a file dialog",
+    "file": "narration_save_project.lua",
+    "find": "reaper.Main_SaveProject(0, false)",
+    "replace": "reaper.Main_SaveProject(0, true)"
+  },
+  {
+    "name": "save_project reports a save that left the project unsaved",
+    "file": "narration_save_project.lua",
+    "find": "reaper.IsProjectDirty(0) ~= 0",
+    "replace": "false"
+  },
+  {
+    "name": "save_project compares paths with slashes unfolded",
+    "file": "narration_save_project.lua",
+    "find": "    path = path:gsub('\\\\', '/')",
+    "replace": "    path = path"
+  },
+  {
+    "name": "save_project runs without the save API",
+    "file": "narration_save_project.lua",
+    "find": "if not reaper.APIExists('Main_SaveProject') then",
+    "replace": "if false then"
+  },
+  {
+    "name": "save_project folds case on Linux, where two spellings are two files",
+    "file": "narration_save_project.lua",
+    "find": "  local fold_case = os_name:match('^Win') ~= nil or os_name:match('^OS') ~= nil or os_name:match('^mac') ~= nil",
+    "replace": "  local fold_case = true"
+  },
+  {
+    "name": "save_project never folds case, refusing the same file on Windows and macOS",
+    "file": "narration_save_project.lua",
+    "find": "  local fold_case = os_name:match('^Win') ~= nil or os_name:match('^OS') ~= nil or os_name:match('^mac') ~= nil",
+    "replace": "  local fold_case = false"
+  },
+  {
+    "name": "save_project saves while recording is paused",
+    "file": "narration_save_project.lua",
+    "find": "  return math.floor(reaper.GetPlayState() / 4) % 2 == 1",
+    "replace": "  return reaper.GetPlayState() == 4"
   }
 ]
