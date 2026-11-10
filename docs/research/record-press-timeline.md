@@ -68,6 +68,17 @@ Refs #3221: the owner measured about 10 s from Record to REAPER's pre-roll. Meas
 
 None of these comes near 10 s. The one wait before `record_start` that can is `endColdRead` in `beginOnce`: a press during a cold read waited for that session to end before asking the DAW to record. The sidecar notices its stop file only when it reads the next audio chunk, then decodes what it still holds; one that has fallen behind real time ends at the host's kill after 8 s, and the Booth gave up waiting after 9 s (`STOP_WAIT_MS`). A press now asks the DAW at once, its pre-roll runs while the cold read ends, and the take's listening starts from the real cursor once it has ended. A listening start that then fails drops the take as in Fix 1. Not measured: the real sidecar's stop time on the owner's machine, and the Start from here lookup (`BoothPunchTarget`), which runs before the press's first timeline step and is not on its line.
 
+## Fix 3: a repeat lookup reads no take
+
+Refs #3221. A press with a start chosen (Start from here, Record from here, Punch and roll) asks `BoothPunchTarget` first, and the start stays chosen after a take. The lookup compares the chapter's stored check with the audio it was made from, so it opened every item on the chapter's track and read three 64 KiB blocks of each (`evidence.Identify`), on every press. That cost grows with the takes already recorded. Measured 2026-11-10 on a Linux VM with real files (60 MB each, one chapter track, page cache dropped before the first lookup):
+
+| Takes on the track | First lookup | Before: every lookup | After: repeat lookup |
+| --- | --- | --- | --- |
+| 500 | 158 ms | 120 ms | 10 ms |
+| 5,000 | 1.34 s | 1.09 s | 72 to 78 ms |
+
+At 0.26 ms per take this machine needs tens of thousands of takes to reach 10 s. Windows (antivirus scanning each open, a slower disk) is not measured, and this was not shown to be the owner's 10 s: it is a measured cost that scales with takes. `evidence.IdentityCache` now answers a repeat ask with one `stat`: an identity holds while the file's size and modification time are the ones it was read with. The first lookup after launch is not faster (it reads every take, plus one `stat` each); a check run writes the identities with a fresh read (`Refresh`) and the cache keeps them, so the first lookup after a check is a repeat. A take rewritten with the same size and the same modification time, or a symlink retargeted to a file of the same size and time, is not noticed by a lookup (the next check run sees it); a take whose time is less than two seconds old when it is read is not remembered, so a quick rewrite on a filesystem with a coarse time (FAT32 keeps two seconds) is read again. The cache sits under every coverage evaluation (`Result`, `Alignment`, `ResultIn`), not only the Start from here lookup: the Booth, the workspace and replace bindings, the DAW range and FX range gates, the chapter sync and the pickup list all read take identities through it, so a take rewritten with the same size and time is not noticed by any of them until the next check run (no tool in the app does that; replace goes through REAPER, which writes new files). The check run, the editing scans, replace and the peaks read the file every time. A take is read once per app launch. The table is for a flat chapter: for a chapter linked to a Voice folder the lookup identifies only the linked track's own items, so the cost removed there is unmeasured. The lookup stays before the cue and the DAW command: the punch position comes from it, and a refused lookup (the check is stale, several voices) starts no take, so a cue sounded before it would announce a recording that never begins.
+
 ## REAPER while the app works with it
 
 The same scenario wraps REAPER's defer loop with the probe of [the bridge note](reaper-bridge-performance.md#method) and sends what the host sends: the Booth's idle read (`chapter_track_state` every 15 s, `READY_POLL_MS` in [`useRecordControl.ts`](../../src/studio/ui/src/components/booth/record/useRecordControl.ts)), then five record presses. It sends the host's commands from the harness; the Go host itself was not running. 4050 items, 62 tracks, 120 FX, 2026-11-01:
@@ -91,13 +102,15 @@ Switched on in REAPER with the bridge timing switch ([owner steps](reaper-bridge
 
 | Step | Stamped when |
 | --- | --- |
-| `assets_list`, `assets_listed` | The model check's `AssetsList` begins and answers. A press starts here; an asset listing more than 5 s before the next step (another page's) is left off |
+| `punch_lookup`, `punch_looked_up` | A press that starts from a chosen phrase (Start from here, Punch and roll) asks `BoothPunchTarget` first: the alignment and the saved project are read. Only such a press has them; it starts here, and `assets_list` continues it only if it follows within 2 s |
+| `assets_list`, `assets_listed` | The model check's `AssetsList` begins and answers. A press with no lookup starts here; an asset listing more than 5 s before the next step (another page's) is left off |
+| `bootstrap_call`, `bootstrapped` | The project check (`Bootstrap`) just before the start tone. The tone sounds when `bootstrapped` is stamped, so that step is when the narrator hears the app start. Stamped only within 5 s of the press's last step of its own; the page asks for this all the time, and those calls never chain one press to the next |
 | `listen_call`, `model_checked` | `TeleprompterStart` begins; the model is verified (`liveModelDir`) |
 | `sidecar_spawned`, `sidecar_first_line`, `listening` | The sidecar process started; printed its first line; printed its first event other than `script` |
 | `listen_answered` | `TeleprompterStart` answers the Booth. When the record start answers first, the line waits for this step |
 | `record_call`, `track_state`, `armed`, `punched`, `recording`, `answered` | `ReadAloudRecordStart(At)` begins; each bridge step answers; the start answers |
 
-A press with listening already running has no listening steps. The press itself, in the WebView, is before `assets_list` by one Wails call; that gap is not stamped.
+A press with listening already running has no listening steps. The click itself, in the WebView, is before the line's first step by one Wails call; that gap is not stamped.
 
 ## Method
 

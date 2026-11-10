@@ -182,11 +182,12 @@ func Build(in Input) Plan {
 		link(t, chaptermatch.Chapter{ID: suggestion.ChapterID, Title: suggestion.ChapterTitle}, evidence.LinkMatch{Score: suggestion.Score, Kind: evidence.MatchPrevious})
 	}
 
+	resolver := chaptermatch.NewResolver(in.Chapters, in.Project)
 	for _, chapter := range in.Chapters {
 		if chapterLinked[chapter.ID] {
 			continue
 		}
-		result, err := chaptermatch.ForChapter(chapter.ID, in.Chapters, in.Project, confirmed)
+		result, err := resolver.ForChapter(chapter.ID, confirmed)
 		if err != nil {
 			continue
 		}

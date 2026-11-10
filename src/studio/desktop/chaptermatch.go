@@ -130,7 +130,7 @@ func matchInputs(svc hostServices) ([]chaptermatch.Chapter, tracks.Project, map[
 // matcher's shape (every chapter, reference ones included, so a track named
 // after a reference section is not mistaken for a narration chapter).
 func manuscriptChapters(svc hostServices) ([]chaptermatch.Chapter, error) {
-	raw, err := svc.manuscript.Chapters()
+	raw, err := svc.manuscript.ChaptersUnmeasured() // ids and titles only: the measured list reads the project again
 	if err != nil {
 		return nil, err
 	}
