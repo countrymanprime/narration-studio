@@ -282,7 +282,7 @@ func previewOpenFinding(f findings.Finding) preview.OpenFinding {
 // Chapters(), then Paragraphs(chapterID) per chapter - the simplest shape, and the one reader.go's own
 // chapterPayload already builds "paragraphIds" from.
 func previewInput(service *manuscript.Service, resolved preview.Settings) (preview.Input, error) {
-	chapterPayloads, err := service.Chapters()
+	chapterPayloads, err := service.ChaptersUnmeasured() // id, title, kind and order only; no recorded length is read here
 	if err != nil {
 		return preview.Input{}, err
 	}
