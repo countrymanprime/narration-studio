@@ -158,6 +158,7 @@ const chapterTrackLinkSchema = z.object({
   warnings: z.array(matchWarningSchema),
   links: z.array(trackMappingSchema),
   recordedEnd: recordedEndSchema.nullable(),
+  members: z.array(z.object({ guid: z.string(), name: z.string(), isVoice: z.boolean() })),
 }) satisfies z.ZodType<ChapterTrackLink>;
 
 export const chapterTrackLinksSchema = z.object({

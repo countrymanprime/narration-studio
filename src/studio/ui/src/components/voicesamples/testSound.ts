@@ -32,14 +32,16 @@ let stopCurrent: (() => void) | undefined;
 
 /**
  * Plays the test tone on the output named `label` (empty: the system default). Answers the sentence to show when it could not be played on that
- * output; the tone still plays on the default then, as a sample would.
+ * output; the tone still plays on the default then, as a sample would. `onEnd` runs when the tone has finished, was replaced or could not play, so a button can
+ * show that it is sounding.
  */
-export async function playTestSound(label: string): Promise<string | undefined> {
+export async function playTestSound(label: string, onEnd?: () => void): Promise<string | undefined> {
   // Pressed again, the tone before it stops, so presses never pile up into one long noise.
   stopCurrent?.();
   const url = testToneUrl();
   const el = new Audio(url);
   const done = () => {
+    onEnd?.();
     URL.revokeObjectURL(url);
     if (stopCurrent === stop) stopCurrent = undefined;
   };

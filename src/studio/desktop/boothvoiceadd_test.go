@@ -195,7 +195,7 @@ func TestAddingAVoiceIsRefusedBeforeAnythingIsSent(t *testing.T) {
 		})
 	}
 	t.Run("a flat project", func(t *testing.T) {
-		host, ids := newVoiceFolderHost(t, voicetracks.LayoutFlat)
+		host, ids := newFlatBoothHost(t)
 		creator := &fakeChildCreator{}
 		if got := boothVoiceAdd(t, host, creator, ids[0], "Crowd", nil); got.Reason != boothVoiceFlat || len(creator.children) != 0 {
 			t.Fatalf("got %+v", got)

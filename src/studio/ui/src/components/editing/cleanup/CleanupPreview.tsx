@@ -1,4 +1,4 @@
-import { clock } from '../bar/clock';
+import { clock } from '../../../clock';
 import type { CleanupPreview as Preview } from './cleanupApply';
 import { opSpec } from './cleanupOps';
 

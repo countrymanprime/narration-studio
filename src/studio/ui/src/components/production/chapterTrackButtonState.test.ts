@@ -11,6 +11,7 @@ const base: ChapterTrackLink = {
   warnings: [],
   links: [],
   recordedEnd: null,
+  members: [],
 };
 
 const track = { trackGuid: '{T}', trackName: 'CHAPTER SIX', trackIndex: 5, score: 1, source: 'confirmed' as const, region: null };

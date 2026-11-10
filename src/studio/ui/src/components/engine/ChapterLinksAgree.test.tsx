@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { ChapterTrackStateProvider } from '../chapterTracks/ChapterTrackState';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -28,7 +29,9 @@ function renderEngine(api: NarrationApi) {
   render(
     <MemoryRouter>
       <ApiProvider api={api}>
-        <EnginePanel open onClose={() => {}} notify={() => {}} link={LINK} onOpenRecordingSettings={() => {}} />
+        <ChapterTrackStateProvider projectFolder="C:/Projects/Alice" enabled notify={() => {}}>
+          <EnginePanel open onClose={() => {}} notify={() => {}} link={LINK} onOpenRecordingSettings={() => {}} />
+        </ChapterTrackStateProvider>
       </ApiProvider>
     </MemoryRouter>,
   );

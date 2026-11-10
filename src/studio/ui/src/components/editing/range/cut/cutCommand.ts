@@ -2,7 +2,7 @@ import { DAW_RESULT_MAX_UNDO_STEPS, type DawResult } from '../../../../api/contr
 import type { EditCut, EditCutsApi } from '../../../../api/contracts/editCuts';
 import type { DawClient } from '../../../../ports/daw';
 import type { Command, Result } from '../../../../studio/journal/createJournal';
-import { clock } from '../../bar/clock';
+import { clock } from '../../../../clock';
 import type { Range, SelSummary } from '../../model';
 import { tokensOf, type RangeLocator } from '../common/locate';
 import type { RangePlan } from '../common/rangePlan';

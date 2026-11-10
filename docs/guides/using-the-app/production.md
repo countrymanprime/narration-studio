@@ -189,7 +189,7 @@ chapter's text in order. Every way to start it opens the same **Check recordings
 settings: the Recording check card's icon (with the out-of-date and unchecked chapters ticked), a row's **Check recordings** in
 the pipeline's row menu, a credits row's check, **Check recordings** in a chapter's readiness, and the matching buttons on
 [Proof](proof.md#one-chapter), [Pickups](pickups.md) and [Editing](editing.md) (each with its chapter ticked). Nothing runs until
-you press **Check**. Save the project in REAPER before checking, because the check reads the saved file, not the open session.
+you press **Check**. Save the project in REAPER before checking, because the check reads the saved file, not the open session. A chapter with no linked track gets a track picker in its row (and in Editing's check panel); a track another chapter holds is refused there with that chapter's name, so a link is never taken from a chapter unseen. Move a track between chapters from the audio engine panel's **Chapter links**.
 
 **Speech model** is the first pass. **Look again with a larger model** adds a second pass: the **Larger model** transcribes again only
 the passages that are missing and the words Whisper scored under the **Also look again at words scored under**

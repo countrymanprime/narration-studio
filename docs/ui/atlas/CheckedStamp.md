@@ -9,4 +9,5 @@ Storybook title: `Primitives/CheckedStamp`. Source: `src/components/primitives/C
 
 ## Used by
 
-- nothing outside its own stories and tests yet
+- `src/components/settings/controls/MicBody.tsx`
+- `src/components/storybible/voicesamples/VoiceSamplesBody.tsx`

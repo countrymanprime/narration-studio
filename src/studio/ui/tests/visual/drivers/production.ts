@@ -479,6 +479,8 @@ export const productionDrivers: Record<string, Driver> = {
     const panel = await openEditingCheck(page, 'mockEditing=hold&mockEditingSignal=not-met&mockEditingCandidates=1');
     await clickVisible(page, 'button', 'Check editing');
     await panel.getByRole('progressbar', { name: 'Editing check progress' }).waitFor();
+    // Cancel takes the place of Check editing, so a press in the double-click window after it is that click's echo and is ignored.
+    await page.waitForTimeout(600);
     await clickVisible(page, 'button', 'Cancel');
     await panel.getByRole('button', { name: 'Check again' }).waitFor();
   },

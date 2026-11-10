@@ -635,7 +635,10 @@
         "Checked",
         "Not Yet Checked"
       ],
-      "consumers": [],
+      "consumers": [
+        "src/components/settings/controls/MicBody.tsx",
+        "src/components/storybible/voicesamples/VoiceSamplesBody.tsx"
+      ],
       "a11yDebt": false
     },
     {
@@ -2512,6 +2515,20 @@
       "a11yDebt": false
     },
     {
+      "title": "Primitives/PendingSpinner",
+      "name": "PendingSpinner",
+      "source": "src/components/primitives/PendingSpinner.tsx",
+      "stories": [
+        "Default"
+      ],
+      "consumers": [
+        "src/components/primitives/Button.tsx",
+        "src/components/primitives/IconButton.tsx",
+        "src/components/primitives/SplitButton.tsx"
+      ],
+      "a11yDebt": false
+    },
+    {
       "title": "Booth/PickupSession",
       "name": "PickupSession",
       "source": "src/components/booth/pickups/PickupSession.tsx",
@@ -3487,7 +3504,8 @@
       "stories": [
         "Default",
         "Cold Read",
-        "Stopping"
+        "Stopping",
+        "Pending"
       ],
       "consumers": [
         "src/components/booth/frame/BoothFooter.tsx",
@@ -4132,6 +4150,7 @@
         "src/components/booth/pickups/usePickupSession.ts",
         "src/components/booth/suspected/SuspectedLines.tsx",
         "src/components/booth/voices/useBoothVoices.ts",
+        "src/components/chapterTracks/ChapterTrackState.tsx",
         "src/components/credits/CreditsSetupBanner.tsx",
         "src/components/credits/CreditsSetupDialog.tsx",
         "src/components/editing/CleanupAction.tsx",

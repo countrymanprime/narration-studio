@@ -189,11 +189,11 @@ export function ReportDialog({ projectName, asOf, onClose }: ReportDialogProps) 
           Cancel
         </Button>
         {written ? (
-          <Button variant="primary" onClick={onClose}>
+          <Button key="done" variant="primary" replacesPressed onClick={onClose}>
             Done
           </Button>
         ) : (
-          <Button variant="primary" onClick={() => void exportReport()} pending={writing} disabled={preview === undefined || writing}>
+          <Button key="export" variant="primary" onClick={() => void exportReport()} pending={writing} disabled={preview === undefined || writing}>
             Export
           </Button>
         )}

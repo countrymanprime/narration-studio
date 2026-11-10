@@ -12,7 +12,11 @@ export function RecordControl({
   cold,
   describedBy = 'brec-why',
 }: {
-  control: Pick<RecordControlState, 'recording' | 'disabled' | 'reason'> & { toggle: () => Promise<unknown> };
+  control: Pick<RecordControlState, 'recording' | 'disabled' | 'reason'> & {
+    toggle: () => Promise<unknown>;
+    /** A press is starting a take (the lookup of a chosen start, the checks, the start tone, the DAW command): Record shows it at once. */
+    pending?: boolean;
+  };
   /** The side menu picked Cold read: the button reads it and starts one (`on` while it listens: Stop); Record's own reasons do not apply. */
   cold?: { mode: boolean; on: boolean };
   describedBy?: string;
@@ -23,17 +27,20 @@ export function RecordControl({
   const disabled = coldMode ? false : control.disabled;
   const reason = coldMode ? undefined : control.reason;
   const stop = recording || (coldMode && cold?.on);
+  // Only a start is pending; a Stop (the take is running) is never dimmed.
+  const pending = Boolean(control.pending) && !recording && !coldMode;
   return (
     // `SplitMain` is as wide as "Record" in both states, so the timer beside it does not move when it becomes Stop (alignment audit XBO-25).
     <SplitMain
       id="brec"
       tone={coldMode ? 'cold' : 'primary'}
       hint={coldMode ? (stop ? 'Stop the cold read (Space)' : 'Start a cold read (Space). Nothing is recorded.') : undefined}
-      {...(disabled ? { 'aria-disabled': true } : {})}
+      pending={pending}
+      {...(disabled && !pending ? { 'aria-disabled': true } : {})}
       aria-describedby={reason ? describedBy : undefined}
       onClick={() => void toggle()}
     >
-      <Icon name={stop ? 'stop' : coldMode ? 'microphone' : 'record'} />
+      {pending ? null : <Icon name={stop ? 'stop' : coldMode ? 'microphone' : 'record'} />}
       {stop ? 'Stop' : coldMode ? 'Cold read' : 'Record'}
     </SplitMain>
   );

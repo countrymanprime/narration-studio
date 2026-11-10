@@ -71,6 +71,7 @@ function liveStub(): LiveTracks {
     error: '',
     refresh: vi.fn(),
     recheck: vi.fn(async () => ({ failed: false })),
+    reread: vi.fn(),
     join: vi.fn(),
   };
 }

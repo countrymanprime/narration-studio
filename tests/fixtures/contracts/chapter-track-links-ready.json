@@ -14,6 +14,7 @@
       "chapterId": "c-0001",
       "chapterTitle": "Chapter I: Down the Rabbit-Hole",
       "links": [],
+      "members": [],
       "recordedEnd": {
         "approximate": false,
         "itemGuid": "{22222222-1111-4111-8111-111111111111}",
@@ -58,6 +59,7 @@
       "chapterId": "c-0002",
       "chapterTitle": "Chapter II: The Pool of Tears",
       "links": [],
+      "members": [],
       "recordedEnd": null,
       "status": "ambiguous",
       "track": null,
@@ -68,6 +70,7 @@
       "chapterId": "c-0003",
       "chapterTitle": "Chapter III: A Caucus-Race and a Long Tale",
       "links": [],
+      "members": [],
       "recordedEnd": null,
       "status": "none",
       "track": null,

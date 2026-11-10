@@ -82,7 +82,7 @@ The bar at the foot plays the chapter in the app, from its recorded audio with e
 DAW closed. It shows the time, and what is selected with its start, end and length. The key hints under it come from
 your keyboard settings ([Settings](settings.md)), so a key you rebound shows its new key.
 
-**Play** is off, with its reason in the hint, on a chapter that has no audio to play (no linked track, a track that is gone or empty, or nothing recorded yet). With the cursor on a word that was not recorded, such as the chapter heading, Space says so instead of playing on from the next word. Space on a play of a selection pauses it and keeps the selection; selecting other words while it plays plays them instead. If the DAW stops answering during a play, the bar goes back to **Play** and the DAW dialog says why.
+**Previous word** and **Next word** move the cursor to the nearest word with audio; at the first or last one a message says there is no earlier or later word with audio. **Play** is off, with its reason in the hint, on a chapter that has no audio to play (no linked track, a track that is gone or empty, or nothing recorded yet). With the cursor on a word that was not recorded, such as the chapter heading, Space says so instead of playing on from the next word. Space on a play of a selection pauses it and keeps the selection; selecting other words while it plays plays them instead. If the DAW stops answering during a play, the bar goes back to **Play** and the DAW dialog says why.
 
 Beside the clock, the **Output** group sets what you hear, not what is recorded. **Silence output** mutes the app's sound; it is not the
 **Mute** that silences the selected words in the recording. **Show volume and output device** opens a popover with the speed (0.75× to 2×, with the pitch of the voice kept), the volume and the output device: the system
@@ -106,7 +106,7 @@ itself, once for the chapter: it names the chapter, offers the REAPER tracks the
 track named after the chapter and links it instead (the main button when the project has no tracks); save the REAPER project
 so the page can read the new track. If you close it with the X, the
 **Not linked to a track** mark in the header opens it again (**Not linked to a folder** and **Link folder** in a Voice folders project, where the note over the script says the chapter is not linked to a folder). The page also reads the chapter again whenever you come back
-to its window, so a link made in REAPER or the audio engine panel shows without a reload. When the track is empty, or with the
+to its window, so a link made in REAPER or the audio engine panel shows without a reload. The editing check's own panel, opened from the audio engine panel for a chapter with no link, offers the same kind of track picker and refuses a track another chapter holds, naming that chapter. When the track is empty, or with the
 built-in recorder (which has no track to link), a note over the script says to record the chapter, with **Read again**.
 A chapter
 that was never checked has no heard words: the page shows its script plain, with a **Not transcribed yet** note and a

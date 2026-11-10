@@ -66,6 +66,7 @@ describe('AssetInstallPrompt', () => {
     expect(screen.getByRole('status').textContent).not.toMatch(/MB/);
     expect(screen.getByRole('progressbar').getAttribute('aria-valuetext')).toBe('40 of 100 MB');
     expect(screen.getByRole('progressbar').getAttribute('aria-valuenow')).toBe('40');
+    await advance(600);
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     await advance(0);
     expect(screen.getAllByText('Voice download cancelled.').length).toBeGreaterThan(0);
@@ -92,6 +93,7 @@ describe('AssetInstallPrompt', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Download voice' }));
     await advance(400);
     expect(screen.getByRole('alert').textContent).toBe(sentence);
+    await advance(600);
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(dismiss).toHaveBeenCalledTimes(1);
   });

@@ -3,11 +3,11 @@ import type { GuideEntity, GuideType } from '../../../api/contracts/storyBible';
 import type { VoiceSample, VoiceSampleDawState, VoiceSamples } from '../../../api/contracts/voiceSamples';
 import { canSpeak } from '../../../storyBibleTypes';
 import type { MoveChoice } from './MoveVoiceSampleDialog';
+import { clock } from '../../../clock';
 
-/** m:ss for a sample's length, rounded to the second: "0:07". */
+/** m:ss for a sample's length, in whole seconds: "0:07". */
 export function sampleLength(durationMs: number): string {
-  const whole = Math.max(0, Math.round(durationMs / 1000));
-  return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`;
+  return clock(durationMs / 1000);
 }
 
 const MIB = 1024 * 1024;

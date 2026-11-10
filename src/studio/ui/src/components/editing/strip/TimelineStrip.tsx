@@ -6,11 +6,10 @@ import { useEditingPage } from '../script/EditingPageState';
 import { activePid } from '../ribbon/ribbonLayout';
 import type { LinePassage, LineTake } from '../takes/types';
 import { stripLayout } from './stripLayout';
+import { clockTenths } from '../../../clock';
 
 const mono = "font-['IBM_Plex_Mono',ui-monospace,monospace]";
 const pct = (t: number, t0: number, t1: number): string => `${(((t - t0) / (t1 - t0)) * 100).toFixed(2)}%`;
-const clock = (t: number): string => `${Math.floor(t / 60)}:${(t % 60).toFixed(1).padStart(4, '0')}`;
-
 /** The header button that shows and hides the strip. The page offers it from a 1360 px window (`useStripFits`), as the mock does. */
 export function StripToggle({ open, onToggle }: { open: boolean; onToggle: () => void }) {
   return (
@@ -61,7 +60,7 @@ export function TimelineStrip({ passage, hidden, starts = {}, playingId, onPlay 
       </span>
       {layout ? (
         <span className={`${mono} text-xs text-[var(--text-muted)]`}>
-          {clock(layout.t0)} to {clock(layout.t1)}
+          {clockTenths(layout.t0)} to {clockTenths(layout.t1)}
         </span>
       ) : null}
       {layout?.band ? <StatusBadge tone="info" label={`${layout.band.length.toFixed(1)} s`} shape="tag" /> : null}
@@ -117,9 +116,9 @@ export function TimelineStrip({ passage, hidden, starts = {}, playingId, onPlay 
         </div>
       ))}
       <div className={`${mono} ml-[8.5rem] flex justify-between px-3 pb-1.5 text-xs text-[var(--text-muted)]`} aria-hidden="true">
-        <span>{clock(t0)}</span>
-        <span>{clock((t0 + t1) / 2)}</span>
-        <span>{clock(t1)}</span>
+        <span>{clockTenths(t0)}</span>
+        <span>{clockTenths((t0 + t1) / 2)}</span>
+        <span>{clockTenths(t1)}</span>
       </div>
     </section>
   );

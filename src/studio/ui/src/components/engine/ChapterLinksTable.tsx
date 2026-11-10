@@ -62,6 +62,16 @@ export function ChapterLinksTable({ links, notify, live }: { links: ChapterLinks
   const folders = useVoiceLayout() === 'folders';
   // Checked again whenever a link changes: a chapter linked to a track inside another chapter's folder is the case it reports (#2838).
   const nesting = useChapterFolders({ revision: linksKey(mappings), notify });
+  // A pick here that takes a track from another chapter says so (links.notice), as a toast: the dialog draws its own copy of the notice, so
+  // only a pick made from this table raises one (#3053).
+  const pickedHere = useRef(false);
+  useEffect(() => {
+    if (links.notice && pickedHere.current) notify(links.notice, 'info');
+  }, [links.notice, notify]);
+  // The change ends after its notice is set, so the flag drops then, whether or not it displaced a chapter.
+  useEffect(() => {
+    if (!busyChapterId) pickedHere.current = false;
+  }, [busyChapterId]);
   // Nothing to link before a manuscript is imported: the mapping is scoped to a document.
   if (chapters.length === 0) return null;
 
@@ -139,7 +149,11 @@ export function ChapterLinksTable({ links, notify, live }: { links: ChapterLinks
                 creating={creatingChapterId === row.chapter.id}
                 createLocked={creatingChapterId !== '' && creatingChapterId !== row.chapter.id}
                 onCreate={() => create(row.chapter)}
-                onConfirm={(trackGuid) => links.set(row.chapter.id, trackGuid)}
+                onConfirm={(trackGuid) => {
+                  // set() ignores the pair already linked, so no change ends and clears the flag: it is raised only for a real change.
+                  pickedHere.current = !mappings.some((mapping) => mapping.chapterId === row.chapter.id && mapping.trackGuid === trackGuid);
+                  links.set(row.chapter.id, trackGuid);
+                }}
                 onRecheck={() => recheck(row)}
                 onClear={() => links.unlink(row.chapter.id)}
                 onEditingCheck={() => setEditingChecking(row.chapter)}

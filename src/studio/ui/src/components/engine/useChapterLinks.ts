@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePort } from '../../ports/usePort';
 import { headingName } from '../../chapterHeading';
 import { chapterTrackRows, type ChapterTrackRow } from './chapterTrackRows';
+import { keptTitle } from '../mapping/trackHeldBy';
 import type { ManuscriptChapter, Track, TrackMapping } from '../../types';
 import type { ChapterTrackCreateResult } from '../../api/contracts/chapterTrackMap';
 
@@ -19,14 +20,14 @@ export type ChapterLinks = {
   error: string;
   /** What the last change did beyond the chapter asked for: the chapter a picked track was taken from and is now not linked; empty otherwise. */
   notice: string;
+  /** Drops the notice, for a surface that shows it opening anew (the dialog, so a takeover from an earlier session is not repeated). */
+  clearNotice: () => void;
   /** The chapter whose link is being changed, or empty. */
   busyChapterId: string;
   /** The chapter whose track `create` is adding, or empty: from any mount, so a panel opened again while a create runs shows it busy. */
   creatingChapterId: string;
   /** Replaces the chapter's link with this track, then re-reads. */
   set: (chapterId: string, trackGuid: string) => void;
-  /** Reads the links again (a Confirm on the link the chapter already has asks for this, so the press shows what the host holds now). */
-  recheck: () => Promise<void>;
   /** Clears every link the chapter holds, then re-reads. */
   unlink: (chapterId: string) => void;
   /** Has the DAW add a track named after the chapter (a folder with a Narrator track in Voice folders) and link it (chapterTrackCreate), then
@@ -34,6 +35,8 @@ export type ChapterLinks = {
    * another), or a create answered less than CREATE_QUIET_MS ago (a fast second click lands on the row that moved under the pointer). A failed
    * call rejects. */
   create: (chapterId: string) => Promise<ChapterTrackCreateResult | undefined>;
+  /** Reads the links again (the check on the link a chapter already has); rejects when the read fails. */
+  recheck: () => Promise<void>;
 };
 
 /** How long after a create answers that a create press is ignored: the rows shift when one is linked, so a fast second click would land on
@@ -109,9 +112,13 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
     write()
       .then((result) => {
         // ChapterTrackSet moves a track another chapter holds; say so, or that chapter goes to "Not linked" unseen (#3053).
-        const displaced = (result as { displaced?: { chapterId: string } | null } | undefined)?.displaced;
+        const displaced = (result as { displaced?: { chapterId: string; chapterTitle?: string } | null } | undefined)?.displaced;
+        // A chapter the manuscript no longer lists is still named, by the title the host kept with its link, so no takeover is silent.
         const taken = displaced && chapters.find((chapter) => chapter.id === displaced.chapterId);
-        if (taken) setNotice(`${headingName(taken)} was linked to that track and is now not linked.`);
+        if (displaced)
+          setNotice(
+            `${taken ? headingName(taken) : (keptTitle(displaced.chapterTitle) ?? 'A chapter no longer in the manuscript')} was linked to that track and is now not linked.`,
+          );
       })
       .then(() => reload())
       .then(() => onChanged())
@@ -123,13 +130,13 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
         if (quietAfter) createGuard.quietUntil = Date.now() + CREATE_QUIET_MS;
       });
   };
+  const recheck = () => reload().then(onChanged);
   // Set, not Confirm: it replaces the chapter's link rather than adding a second one beside it, so a Change never leaves it on two tracks.
-  // Pressing Confirm again for the pair already linked changes nothing, and must not reach the host twice: the row asks for `recheck` then.
+  // Pressing Confirm again for the pair already linked changes nothing, and must not reach the host twice.
   const set = (chapterId: string, trackGuid: string) => {
     if (mappings.some((mapping) => mapping.chapterId === chapterId && mapping.trackGuid === trackGuid)) return;
     change(chapterId, () => chapterTrackMap.chapterTrackSet(chapterId, trackGuid));
   };
-  const recheck = () => reload().then(onChanged);
   // Unlink answers with the links that remain, so the row shows Not linked at once; the re-read that follows reconciles (#3272).
   const unlink = (chapterId: string) =>
     change(
@@ -205,5 +212,6 @@ export function useChapterLinks(tracks: Track[], refreshKey: number, onChanged: 
   // The chapter list holds the credits, so they are rows like any chapter.
   const rows = useMemo(() => chapterTrackRows(chapters, shown, mappings), [chapters, shown, mappings]);
 
-  return { tracks: shown, chapters, mappings, rows, error, notice, busyChapterId, creatingChapterId, set, recheck, unlink, create };
+  const clearNotice = () => setNotice('');
+  return { tracks: shown, chapters, mappings, rows, error, notice, clearNotice, busyChapterId, creatingChapterId, set, unlink, create, recheck };
 }

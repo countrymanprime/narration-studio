@@ -38,6 +38,29 @@ describe('SplitButton', () => {
     expect(screen.getByRole('button', { name: 'Record' }).className).toContain('bg-[var(--accent)]');
   });
 
+  it('pending says so as Button does: busy, a spinner, a press ignored, still focusable, the label not dimmed', async () => {
+    const onMain = vi.fn();
+    render(
+      <SplitButton label="Recording">
+        <SplitMain pending onClick={onMain}>
+          Record
+        </SplitMain>
+        <SplitSide label="Record options" />
+      </SplitButton>,
+    );
+    const main = screen.getByRole('button', { name: 'Record' });
+    expect(main.getAttribute('aria-busy')).toBe('true');
+    expect(main.getAttribute('aria-disabled')).toBe('true');
+    expect(main.hasAttribute('disabled')).toBe(false);
+    expect(main.querySelector('svg')).toBeTruthy();
+    expect(main.className).toContain('aria-busy:aria-disabled:opacity-100');
+    await userEvent.click(main);
+    expect(onMain).not.toHaveBeenCalled();
+    cleanup();
+    drawn();
+    expect(screen.getByRole('button', { name: 'Record' }).getAttribute('aria-busy')).toBeNull();
+  });
+
   it('forwards its ref and attributes so a Popover can use the side as its trigger', () => {
     render(
       <SplitButton label="Recording">

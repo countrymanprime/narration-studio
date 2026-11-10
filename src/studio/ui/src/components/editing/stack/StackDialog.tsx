@@ -1,6 +1,6 @@
 import { Button } from '../../primitives/Button';
 import { SectionLabel } from '../../primitives/SectionLabel';
-import { clock } from '../bar/clock';
+import { clock } from '../../../clock';
 import type { StackPlan } from '../model/stacking';
 import { shiftText, undoSentence, type StackActing } from './stackPlan';
 import { plural, STACK_TEXT } from './stackText';

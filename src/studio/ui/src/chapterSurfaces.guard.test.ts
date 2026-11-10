@@ -35,6 +35,8 @@ const EXEMPT: Record<string, string> = {
   'components/storybible/Guide.tsx': 'Appears in and evidence links name entities in the text; the credits have none (withoutCredits)',
   'components/booth/companion/useRecordedThrough.ts':
     "reads one chapter's recordedThrough by its id; the Companion lists no chapters (CompanionPage shows the chapter asked for)",
+  'components/settings/controls/VoicesBody.tsx':
+    'hands the whole chapter list, the credits included, to the Voices card unchanged; the card names a chapter by the folder it is linked to, and nothing is filtered or counted here',
   'components/script/page/data/scriptData.ts':
     'the Script page draws the credits as their own cards (ScriptPage tests: each once); its paragraphs exclude them',
 };

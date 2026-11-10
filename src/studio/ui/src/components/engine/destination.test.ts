@@ -88,7 +88,7 @@ describe('destinationFor names where a chapter records from the project layout',
       'This chapter is not linked to a folder of voices yet, so there is no voice to choose. Link or create its folder first.',
       'This chapter is linked to a single track, not a folder of voices, so there is no voice to choose. Link its folder in the audio engine panel.',
       'This chapter’s folder has no voice tracks yet, so there is no voice to choose. Add a track inside it in REAPER.',
-      'This chapter’s voices are still being read, so there is no voice to choose yet. Try again in a moment.',
+      'The track linked to this chapter is no longer in the project, so there is no voice to choose. Link it again in the audio engine panel.',
       'Ch 1 is not linked to a folder in REAPER, so there is no audio to edit.',
     ]);
     expect(all.filter((sentence) => /records on one track/.test(sentence))).toEqual([]);
@@ -101,5 +101,10 @@ describe('destinationFor names where a chapter records from the project layout',
       'Folder “Opening” with a Narrator track added in REAPER and linked to Opening. Save the REAPER project to keep it.',
     );
     expect(createdSentence(plain, 'Opening', 'REAPER')).toBe('Track “Opening” added in REAPER and linked to Opening. Save the REAPER project to keep it.');
+  });
+
+  it('a link to a track the project does not hold gets one sentence in either layout (#3269)', () => {
+    expect(destinationFor('flat').noVoiceKeys('unknown')).toBe(destinationFor('folders').noVoiceKeys('unknown'));
+    expect(destinationFor('flat').noVoiceKeys('unknown')).not.toMatch(/records on one track/);
   });
 });

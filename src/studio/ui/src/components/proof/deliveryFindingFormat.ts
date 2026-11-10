@@ -3,8 +3,8 @@
 // page has no profile to look the rule up in, so the host names the rule, its requirement and the profile in the evidence.
 import { deliveryQcEvidenceSchema } from '../../api/schemas/measure';
 import type { Finding } from '../../types';
-import { formatLength } from '../master/deliveryFormat';
 import { formatRuleValue } from '../master/deliveryProfile';
+import { clock } from '../../clock';
 
 type DeliveryEvidence = ReturnType<typeof deliveryQcEvidenceSchema.parse>;
 
@@ -20,7 +20,7 @@ export const deliveryFileName = (finding: Finding): string | undefined => findin
 
 /** A number as a bound is written: at most two decimals, a typographic minus; a length as h:mm:ss; a rate in kHz. */
 function bound(evidence: DeliveryEvidence, value: number): string {
-  if (evidence.metric === 'duration_seconds') return formatLength(value);
+  if (evidence.metric === 'duration_seconds') return clock(value);
   if (evidence.metric === 'sample_rate') return formatRuleValue({ metric: evidence.metric, unit: evidence.unit ?? '' }, value);
   return String(Number(value.toFixed(2))).replace('-', '−');
 }

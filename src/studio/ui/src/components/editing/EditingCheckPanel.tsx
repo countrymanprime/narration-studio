@@ -16,6 +16,7 @@ import type {
   StageUnknownCause,
   Track,
 } from '../../types';
+import { trackHeldByOther } from '../mapping/trackHeldBy';
 import { Button } from '../primitives/Button';
 import { HIT_AREA } from '../primitives/hitArea';
 import { InsetCard } from '../primitives/InsetCard';
@@ -61,7 +62,7 @@ const SOURCE_CHOICE_OPTIONS = [
 
 /** The chapter-track link, confirmed right here: the same prompt the
  * audio engine panel and the recording check show. */
-function MappingFix({ chapter, onLinked }: { chapter: ManuscriptChapter; onLinked: () => void }) {
+function MappingFix({ chapter, notify, onLinked }: { chapter: ManuscriptChapter; notify: Notify; onLinked: () => void }) {
   const api = useApi();
   const [tracks, setTracks] = useState<Track[]>();
   const [error, setError] = useState('');
@@ -90,6 +91,18 @@ function MappingFix({ chapter, onLinked }: { chapter: ManuscriptChapter; onLinke
       busy={confirming.isBusy}
       onConfirm={(trackGuid) =>
         void confirming.run('confirm', async () => {
+          // The pre-check's own failure is a toast and leaves the picker; only the confirm's failure takes the panel's error line.
+          let taken: string;
+          try {
+            taken = trackHeldByOther((await api.chapterTrackMapList()).mappings, trackGuid, chapter.id);
+          } catch (reason) {
+            notify(`The link could not be checked: ${describeApiError(reason)}`, 'error');
+            return;
+          }
+          if (taken) {
+            notify(taken, 'error');
+            return;
+          }
           try {
             await api.chapterTrackMapConfirm(trackGuid, chapter.id);
             setError('');
@@ -391,6 +404,7 @@ export function EditingCheckPanel({
             ) : (
               <MappingFix
                 chapter={chapter}
+                notify={notify}
                 onLinked={() => {
                   setRefusal(undefined);
                   void loadSignals();
@@ -414,7 +428,7 @@ export function EditingCheckPanel({
                   <p role="status" className="min-w-0 flex-1">
                     {job.message}
                   </p>
-                  <Button variant="secondary" size="sm" onClick={cancel} pending={action.isPending('cancel')}>
+                  <Button variant="secondary" size="sm" replacesPressed onClick={cancel} pending={action.isPending('cancel')}>
                     Cancel
                   </Button>
                 </div>

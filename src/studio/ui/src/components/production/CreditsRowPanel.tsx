@@ -6,9 +6,9 @@ import { HIT_AREA } from '../primitives/hitArea';
 import { SectionLabel } from '../primitives/SectionLabel';
 import { Select } from '../primitives/Select';
 import { SlideOver } from '../primitives/SlideOver';
-import { formatLength } from './productionFormat';
 import type { CreditsRow } from '../credits/useCreditsRows';
 import { addressPath } from '../../navigation/address';
+import { clock } from '../../clock';
 
 const MUTED = { color: 'var(--text-muted)' };
 
@@ -20,9 +20,6 @@ const UNRECORDED_TEXT: Record<NonNullable<CreditsRow['recordedUnavailable']>, st
   track_missing: 'Linked track is missing',
   no_project: 'No REAPER project open',
 };
-
-// Credits run well under a minute, so seconds are shown below one.
-const creditsLength = (seconds: number) => (seconds < 60 ? `${Math.round(seconds)}s` : `${Math.round(seconds / 60)}m`);
 
 // A single unresolved token reads as its own name; several as a count and list.
 const unresolvedWarning = (unresolved: string[]): string | undefined => {
@@ -54,8 +51,8 @@ export function CreditsRowPanel({
       <div className="space-y-4 text-sm">
         <p>
           <span className="font-semibold">{row.template?.name}</span> · {(row.words ?? 0).toLocaleString()} words ·{' '}
-          {/* "about 3s" stays on one line (XPR1-25). */}
-          <span className="whitespace-nowrap">about {creditsLength(row.estimatedSeconds ?? 0)}</span>
+          {/* "about 0:03" stays on one line (XPR1-25). */}
+          <span className="whitespace-nowrap">about {clock(row.estimatedSeconds ?? 0)}</span>
         </p>
         {warning && (
           // The values are filled in on Settings' Credits section, so the warning says where (R3PR1-10).
@@ -75,9 +72,7 @@ export function CreditsRowPanel({
             onChange={(value) => onStatus(value as ChapterStatus)}
           />
         </div>
-        <p style={MUTED}>
-          Recorded: {row.recordedSeconds === undefined ? UNRECORDED_TEXT[row.recordedUnavailable ?? 'unlinked'] : formatLength(row.recordedSeconds)}
-        </p>
+        <p style={MUTED}>Recorded: {row.recordedSeconds === undefined ? UNRECORDED_TEXT[row.recordedUnavailable ?? 'unlinked'] : clock(row.recordedSeconds)}</p>
         {/* The two ways on, on one row and apart: a link beside the status select touched it (XPR1-25). The check stays offered with no
             track linked, because its refusal is where the row is linked to one. */}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">

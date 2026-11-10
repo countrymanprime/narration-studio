@@ -82,10 +82,20 @@ export function ChapterTagsDialog({ onClose }: { onClose: () => void }) {
     if (outputPath || embedError) resultRef.current?.scrollIntoView?.({ block: 'nearest' });
   }, [outputPath, embedError]);
 
-  // Not `embedding` here: a disabled button drops focus, and the pending state already stops a second press.
-  const canEmbed = preview.ready && destPath.trim() !== '' && confirmed;
   // After the deadline the first call may still be writing: a second press would write to the same file at the same time.
   const held = inFlight && !embedding;
+  // Why Embed is off, as its tooltip: the button never sits disabled with nothing to say (#3276).
+  const embedWhy = embedding
+    ? ''
+    : held
+      ? 'The first copy may still be writing. Wait, or close this dialog and look in the folder of your MP3.'
+      : !preview.ready
+        ? 'Every chapter has to be rendered first; the list above says which are not.'
+        : destPath.trim() === ''
+          ? 'Enter the combined book MP3 first.'
+          : !confirmed
+            ? 'Tick the box that says a new file is written first.'
+            : '';
 
   const embed = () => {
     if (inFlight) return;
@@ -132,7 +142,7 @@ export function ChapterTagsDialog({ onClose }: { onClose: () => void }) {
           <Button variant={outputPath ? 'primary' : 'secondary'} onClick={onClose} disabled={embedding}>
             {outputPath ? 'Done' : 'Cancel'}
           </Button>
-          <Button variant={outputPath ? 'secondary' : 'primary'} onClick={embed} disabled={!canEmbed || held} pending={embedding}>
+          <Button variant={outputPath ? 'secondary' : 'primary'} onClick={embed} pending={embedding} disabledReason={embedWhy}>
             Embed chapter tags
           </Button>
         </>

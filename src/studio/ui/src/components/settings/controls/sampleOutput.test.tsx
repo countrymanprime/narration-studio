@@ -14,7 +14,7 @@
 //   test sound                     'Test sound plays on the chosen output', 'a failing output says so and the tone still plays on the default'
 //   re-read on focus               'the list is read again when the window gets focus'
 //   unplugged or plugged in        'the list follows the computer's own device changes without a focus event'
-//   Test sound pressed again       'pressing Test sound again stops the tone before it and starts a new one'
+//   Test sound pressed again       'shows it is sounding while the tone plays and ignores a press until it ends (#3276)'
 //   refused save                   not tested here: the host's refusal of a text value is the store's (SettingsStore tests)
 //   recording                      not built: Settings has no recorder state; the player's own guard refuses a sample while a take records
 //   reload, leave mid-action       not tested: the row holds no state the host keeps
@@ -280,19 +280,15 @@ describe('Voice sample output: test sound', () => {
     expect(play).toHaveBeenCalledTimes(1);
   });
 
-  it('pressing Test sound again stops the tone before it and starts a new one', async () => {
-    const pause = vi.fn();
-    (HTMLMediaElement.prototype as unknown as Record<string, unknown>).pause = pause;
+  it('shows it is sounding while the tone plays and ignores a press until it ends (#3276)', async () => {
     await renderRow();
     await picker();
-    const press = () => fireEvent.click(within(row()).getByRole('button', { name: 'Test sound' }));
-    press();
+    const button = () => within(row()).getByRole('button', { name: 'Test sound' });
+    fireEvent.click(button());
     await waitFor(() => expect(play).toHaveBeenCalledTimes(1));
-    // An earlier test's tone may still be the current one (jsdom never ends a sound): only what the second press does is counted.
-    pause.mockClear();
-    press();
-    await waitFor(() => expect(play).toHaveBeenCalledTimes(2));
-    expect(pause).toHaveBeenCalledTimes(1);
+    expect(button().getAttribute('aria-busy')).toBe('true');
+    fireEvent.click(button());
+    expect(play).toHaveBeenCalledTimes(1);
   });
 
   it('with a DAW the test sound is on the default output', async () => {

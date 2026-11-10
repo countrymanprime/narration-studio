@@ -41,10 +41,10 @@ export function ToolRow({ tool, status, job, failure, failureDetail, download, c
         <span className="flex-1" />
         {status === 'not-installed' && <IconButton action="download" label={`Download ${name}…`} aria-haspopup="dialog" onClick={download} />}
         {status === 'installed' && <IconButton action="remove" variant="danger" label={`Remove ${name}`} aria-haspopup="dialog" onClick={remove} />}
-        {busy && <IconButton action="cancelDownload" label={`Cancel the download of ${name}`} onClick={cancel} />}
+        {busy && <IconButton action="cancelDownload" label={`Cancel the download of ${name}`} replacesPressed onClick={cancel} />}
         {status === 'failed' && (
           <>
-            <IconButton action="retry" label={`Try ${name} again`} onClick={retry} />
+            <IconButton action="retry" label={`Try ${name} again`} replacesPressed onClick={retry} />
             <IconButton action="dismiss" label="Dismiss" onClick={dismiss} />
           </>
         )}

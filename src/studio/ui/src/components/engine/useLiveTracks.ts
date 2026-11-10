@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { describeApiError } from '../../api/errorMessage';
 import type { TracksLive, TracksProject, TracksSavedReason, TracksSource } from '../../api/contracts/tracks';
 import { usePort } from '../../ports/usePort';
@@ -31,8 +31,10 @@ export type LiveTracks = {
   error: string;
   /** Reads the tracks now (the Refresh button, a toast's Retry). */
   refresh: () => void;
-  /** Reads the tracks now like `refresh` and answers the project, or `failed` when the read failed (its own toast says so); neither when no live read applies (Audacity's project, or a newer read replaced this one). */
+  /** Reads now like `refresh` and answers the project, or `failed` when the read failed (its own toast says so); neither when no live read applies (Audacity's project, or a newer read replaced this one). */
   recheck: () => Promise<{ project?: TracksProject; failed: boolean }>;
+  /** Reads the tracks now as the timer does: not a press, so no spinner, and a failure is the run's one toast (a changed read key). */
+  reread: () => void;
   /** Reads the tracks unless a read is already in flight, which it then shares (the Link chapters dialog opening). */
   join: () => void;
 };
@@ -56,9 +58,20 @@ function withinLimit(read: Promise<TracksLive>): Promise<TracksLive> {
  * goes on. A failure is a toast with Retry: once for a run of automatic failures, and again on each press. After a good read the tracks are
  * kept and marked stale. Disabled (an Audacity project, whose tracks come from its snapshot), it never reads.
  */
-export function useLiveTracks({ enabled, readKey, notify }: { enabled: boolean; readKey: unknown; notify: Notify }): LiveTracks {
+export function useLiveTracks({
+  enabled,
+  readKey,
+  notify,
+  onRetry,
+}: {
+  enabled: boolean;
+  readKey: unknown;
+  notify: Notify;
+  /** What a failure toast's Retry does, when it is not this hook's own `refresh` (the shared state, which also reads the links and works with no screen watching). */
+  onRetry?: () => void;
+}): LiveTracks {
   const tracks = usePort('tracks');
-  const [state, setState] = useState<Omit<LiveTracks, 'refresh' | 'recheck' | 'join' | 'busy' | 'refreshing'>>({
+  const [state, setState] = useState<Omit<LiveTracks, 'refresh' | 'recheck' | 'reread' | 'join' | 'busy' | 'refreshing'>>({
     reason: '',
     message: '',
     readAt: null,
@@ -79,6 +92,8 @@ export function useLiveTracks({ enabled, readKey, notify }: { enabled: boolean; 
   const notifyRef = useRef(notify);
   notifyRef.current = notify;
   const refreshRef = useRef<() => void>(() => {});
+  const onRetryRef = useRef(onRetry);
+  onRetryRef.current = onRetry;
 
   const read = useCallback(
     (force: boolean, pressed: boolean): Promise<{ project?: TracksProject; failed: boolean }> => {
@@ -113,7 +128,7 @@ export function useLiveTracks({ enabled, readKey, notify }: { enabled: boolean; 
             notifyRef.current(
               text,
               'error',
-              retryAction(() => refreshRef.current()),
+              retryAction(() => (onRetryRef.current ?? refreshRef.current)()),
             );
           failing.current = true;
           setState((previous) => ({ ...previous, stale: hasProject.current, error: text }));
@@ -160,6 +175,8 @@ export function useLiveTracks({ enabled, readKey, notify }: { enabled: boolean; 
   const refresh = useCallback(() => void read(true, true), [read]);
   refreshRef.current = refresh;
   const recheck = useCallback(() => read(true, true), [read]);
+  const reread = useCallback(() => void read(true, false), [read]);
   const join = useCallback(() => void read(false, false), [read]);
-  return { ...state, busy, refreshing, refresh, recheck, join };
+  // One object while nothing changed, so a consumer that depends on it does not render on every render of this hook's owner.
+  return useMemo(() => ({ ...state, busy, refreshing, refresh, recheck, reread, join }), [state, busy, refreshing, refresh, recheck, reread, join]);
 }

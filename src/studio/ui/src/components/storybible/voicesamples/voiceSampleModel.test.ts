@@ -23,13 +23,13 @@ const list = (samples: VoiceSample[]): VoiceSamples => ({
 });
 
 describe('the length and the size', () => {
-  it('writes a length as m:ss, rounded to the second', () => {
+  it('writes a length as m:ss, in whole seconds (the one clock every page uses)', () => {
     expect([0, 400, 500, 7400, 59_600, 60_000, 125_000, 1_800_000].map(sampleLength)).toEqual([
       '0:00',
       '0:00',
-      '0:01',
+      '0:00',
       '0:07',
-      '1:00',
+      '0:59',
       '1:00',
       '2:05',
       '30:00',

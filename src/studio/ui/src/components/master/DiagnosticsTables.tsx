@@ -2,8 +2,8 @@ import type { DiagnosticsFileResult, DiagnosticsSourceKind, DiagnosticsSummary, 
 import { severityLabel } from '../proof/findingFormat';
 import { StatusBadge, type StatusTone } from '../primitives/StatusBadge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
-import { formatLength } from './deliveryFormat';
 import { cleanupClassLabel, cleanupLevelText, findingKindLabel, measuredText, sourceKindLabel, thresholdText, timeRangeText } from './diagnosticsFormat';
+import { clock } from '../../clock';
 
 const MUTED = { color: 'var(--text-muted)' };
 const SUMMARY_COLUMNS = 5;
@@ -82,10 +82,10 @@ export function CheckedFilesTable({ files }: { files: readonly DiagnosticsFileRe
               <TableCell className="font-medium break-words">{file.name}</TableCell>
               {summary ? (
                 <>
-                  <TableCell numeric>{formatLength(summary.duration_seconds)}</TableCell>
+                  <TableCell numeric>{clock(summary.duration_seconds)}</TableCell>
                   <TableCell numeric>{summary.clip_regions}</TableCell>
                   <TableCell numeric>{summary.level_shifts}</TableCell>
-                  <TableCell numeric>{`${summary.silences} (${formatLength(summary.silence_seconds)})`}</TableCell>
+                  <TableCell numeric>{`${summary.silences} (${clock(summary.silence_seconds)})`}</TableCell>
                   <TableCell className="pl-8 text-[0.8rem]" style={summary.pacing.status === 'measured' ? undefined : MUTED}>
                     {pacingText(summary)}
                   </TableCell>

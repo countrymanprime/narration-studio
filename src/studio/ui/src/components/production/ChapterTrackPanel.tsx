@@ -7,8 +7,9 @@ import { useApi } from '../../api/ApiContext';
 import { describeApiError } from '../../api/errorMessage';
 import type { ManuscriptContentKind } from '../../api/contracts/manuscript';
 import type { ChapterTrackLink, ChapterTrackSummary, Track } from '../../types';
-import { formatAudioTime, formatWhen } from './recordingCheckText';
+import { formatWhen } from './recordingCheckText';
 import { MappingConfirm } from '../mapping/MappingConfirm';
+import { keptTitle } from '../mapping/trackHeldBy';
 import { Button } from '../primitives/Button';
 import { InsetCard } from '../primitives/InsetCard';
 import { SectionLabel } from '../primitives/SectionLabel';
@@ -17,11 +18,9 @@ import type { Notify } from '../primitives/Toast';
 import { chapterTrackButtonState, showableTrackGuid } from './chapterTrackButtonState';
 import { RemoveFromRecordingDialog } from './RemoveFromRecordingDialog';
 import { useTrackPlayback } from '../engine/useTrackPlayback';
+import { clock } from '../../clock';
 
 const noop = () => {};
-
-// Recorded length as "13m": seconds under a minute.
-const recordedLength = (seconds: number) => (seconds < 60 ? `${Math.round(seconds)}s` : `${Math.round(seconds / 60)}m`);
 
 /**
  * The track slide-over a chapter's Recorded cell on the Production board opens: what the saved
@@ -103,7 +102,10 @@ export function ChapterTrackPanel({
     setBusy(true);
     try {
       const result = await api.chapterTrackSet(chapterId, trackGuid);
-      if (result.displaced) notify(`Linked. This track was linked to ${result.displaced.chapterTitle}, which is now unlinked.`);
+      if (result.displaced)
+        notify(
+          `Linked. This track was linked to ${keptTitle(result.displaced.chapterTitle) ?? 'a chapter no longer in the manuscript'}, which is now unlinked.`,
+        );
       else notify('Track linked.');
       await onChanged();
     } catch (error) {
@@ -171,7 +173,7 @@ export function ChapterTrackPanel({
               </SectionLabel>
               <Fact label="Items" value={`${trackSummary.playableCount} playable of ${trackSummary.itemCount}`} />
               {trackSummary.missingSourceCount > 0 && <Fact label="Missing sources" value={String(trackSummary.missingSourceCount)} />}
-              {trackSummary.span && <Fact label="Span" value={`${formatAudioTime(trackSummary.span.start)} to ${formatAudioTime(trackSummary.span.end)}`} />}
+              {trackSummary.span && <Fact label="Span" value={`${clock(trackSummary.span.start)} to ${clock(trackSummary.span.end)}`} />}
               {link.track && (
                 <Fact
                   label="Found through"
@@ -184,7 +186,7 @@ export function ChapterTrackPanel({
                   }
                 />
               )}
-              {recordedSeconds !== undefined && <Fact label="Recorded length" value={recordedLength(recordedSeconds)} />}
+              {recordedSeconds !== undefined && <Fact label="Recorded length" value={clock(recordedSeconds)} />}
               {link.links[0] && (
                 <Fact label="Linked" value={`${formatWhen(link.links[0].confirmedAt)}, ${link.links[0].origin === 'auto' ? 'by chapter sync' : 'by you'}`} />
               )}
@@ -212,7 +214,7 @@ export function ChapterTrackPanel({
                 </Button>
                 {canPlay && (
                   <span className="font-['IBM_Plex_Mono',ui-monospace,monospace] text-xs" style={{ color: 'var(--text-muted)' }}>
-                    {formatAudioTime(player.currentTime)} / {formatAudioTime(player.duration)}
+                    {clock(player.currentTime)} / {clock(player.duration)}
                   </span>
                 )}
               </div>

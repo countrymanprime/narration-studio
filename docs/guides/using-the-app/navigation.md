@@ -223,14 +223,14 @@ bridge in REAPER and connects to it without you running anything in REAPER.
 items that hold its recording. It reads REAPER's tracks again when it opens, and has its own **Refresh**, so a track you
 have just added in REAPER can be picked. It opens with the links the **Chapter links** list shows, the opening and
 closing credits included, and the two stay in step: choosing a track here links the chapter, **Not linked**
-clears the link, and either shows in the other at once. A track links to one chapter: choosing a track another chapter holds moves it, and the dialog says which chapter is now not linked. In this dialog a folder is named with how many it holds: voices in a Voice folders project (“Chapter 1 · 3 voices”), tracks in any other, as the track picker counts them (“Chapters · 8 tracks”). A folder in that dialog's list reads "name · N voices", the way the Chapter links list names it, so it is not taken for a single track. **To stamp** shows how many of that track's items (for a folder of voices, the items on every voice inside it, except those on a track linked to another chapter) will
+clears the link, and either shows in the other at once. A track links to one chapter: choosing a track another chapter holds moves it, and the dialog and the Chapter links list both say which chapter is now not linked; the dialog's Read current stamps button waits while a stamp runs, and Stamp waits while a read runs. In this dialog a folder is named with how many it holds: voices in a Voice folders project (“Chapter 1 · 3 voices”), tracks in any other, as the track picker counts them (“Chapters · 8 tracks”). A folder in that dialog's list reads "name · N voices", the way the Chapter links list names it, so it is not taken for a single track. **To stamp** shows how many of that track's items (for a folder of voices, the items on every voice inside it, except those on a track linked to another chapter) will
 carry the chapter's identity, and **Stamp N items** writes it. A folder that holds a track another chapter is linked to still links when chosen, and a line under the table says the folder also holds another chapter's track: the items on that other track stay with the other chapter. While a stamp runs the pickers are off, and the button reads **Close**, which leaves the dialog without stopping the stamp. The credits are linked here but not stamped. What the stamp did, or why it failed, shows at the top
 of the dialog. An item already stamped with a
 different chapter is left alone unless you tick **Overwrite items already stamped with a different
 chapter**, and items REAPER no longer has are listed as stale. **Read current stamps** lists what the
 project carries now, with each item's status (OK, Text changed since stamping, Manuscript re-imported
 since stamping, Chapter no longer in the manuscript, and so on); if reading fails, the reason shows there, under
-the button. This is not the same as the
+the button. A stamp does not fill the list: press **Read current stamps** to see what it wrote, and the list says "Nothing is stamped yet" only after a read that found nothing. This is not the same as the
 [Chapter links](#linking-chapters-to-tracks) list below: that list is kept by the app and changes
 nothing in REAPER, and the dialog starts with every chapter Not linked whatever the list says.
 
@@ -348,11 +348,11 @@ read.
 ### Voice folders
 
 Chapter sync's **Layout** row sets how the project's chapters sit in REAPER. While Chapter sync shows nothing (before you have answered
-whether to use it), the Voices card carries the same switch. **Flat**, the default, is one track per chapter. **Voice folders** makes
+whether to use it), the Voices card carries the same switch. **Flat**, the default, is one track per chapter; a chapter linked to a REAPER folder that holds only tracks of its own, none another chapter is linked to, still records on one of them. **Voice folders** makes
 each chapter a REAPER folder whose child tracks are its voices, one per character, so an effect on a character's track covers every line
 that character speaks. Switching changes no track in REAPER.
 
-The layout is one setting for the whole project, so every message that names where a chapter records follows it: with Voice folders the link dialogs, chips and notices in the Booth and Editing say folder (**Not linked to a folder**, **Link folder**, **Create a new folder**), and with Flat they say track. An engine with no folder tracks, such as Audacity, is always flat.
+A chapter linked to a track REAPER no longer has gets one message in either layout (the track is not in the project; link the chapter again in the panel). The layout is one setting for the whole project, so every message that names where a chapter records follows it: with Voice folders the link dialogs, chips and notices in the Booth and Editing say folder (**Not linked to a folder**, **Link folder**, **Create a new folder**), and with Flat they say track. An engine with no folder tracks, such as Audacity, is always flat.
 
 ![Chapter sync's Layout row on Voice folders, above Chapter links](../../images/ui/engine-panel-voices-layout.webp)
 
@@ -417,7 +417,7 @@ levels…** stays in the panel: it previews the linked track's items that are of
 confirm, changes their volume in REAPER in one undo step. While it is off, the reason shows under the button.
 
 If the chapter isn't linked to a track yet, the panel shows only the same track picker the recording
-check does, right in place; the check and its results come back once the chapter is linked.
+check does, right in place; the check and its results come back once the chapter is linked. A track another chapter holds is refused there, with that chapter's name, and nothing is linked.
 
 ### Chapter sync
 
@@ -438,7 +438,7 @@ how many you linked: "8 chapters linked automatically, 1 by you"), **Background 
 links you already made are kept); while it is off the same place has **Turn on**, drawn as the switch's other position, which asks again. Its own Needs you list
 says why each chapter wasn't linked ("Two tracks match: … A chapter is checked from one track.", or
 "Closest track … is not a confident match, so it was not linked on its own.") and lets you pick the
-right track and press the link icon (**Link this track**), the same link Chapter links below records. A track sync doesn't
+right track and press the link icon (**Link this track**), the same link Chapter links below records; if another chapter held that track, the message names it and says it is now unlinked. A track sync doesn't
 recognize as any chapter's is listed under **Not chapters** so it isn't mistaken for a
 missing link. When REAPER has changes you haven't saved yet, a line says so: sync reads the saved
 project, so it picks them up when you save.

@@ -2,7 +2,7 @@ import { Checkbox } from '../../primitives/Checkbox';
 import { IconButton } from '../../primitives/IconButton';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../primitives/Table';
-import { clock } from '../bar/clock';
+import { clock } from '../../../clock';
 import { actionText, measureText, opSpec, type CleanupKind, type CleanupParams } from './cleanupOps';
 import { selectedRows, type CleanupRow } from './cleanupRows';
 import { PREVIEW_AROUND } from './usePreviewPlay';

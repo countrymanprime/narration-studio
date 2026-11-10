@@ -2,7 +2,7 @@ import { DAW_CHOSEN_CHAIN, DAW_RESULT_MAX_UNDO_STEPS, type DawActionKind, type D
 import type { EditWordFxApi, WordFx, WordFxRequest } from '../../../../api/contracts/wordFx';
 import type { DawClient, FxChoice } from '../../../../ports/daw';
 import type { Command, Result } from '../../../../studio/journal/createJournal';
-import { clock } from '../../bar/clock';
+import { clock } from '../../../../clock';
 import { curTime, type CutSpan, type Range, type SelSummary } from '../../model';
 import { tokensOf, type RangeLocator } from '../common/locate';
 import type { RangePlan } from '../common/rangePlan';

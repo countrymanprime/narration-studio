@@ -448,3 +448,13 @@ describe('a cold read draws a ghost and the view follows it', () => {
     expect(text.style.transition).toBe('');
   });
 });
+
+describe('room for a page break', () => {
+  it('puts 2em above the paragraph that opens a page, and above no other', () => {
+    setup({ pageStarts: new Set(['p2']) });
+    const gap = (id: string) => document.querySelector<HTMLElement>(`[data-paragraph="${id}"]`)!.className.includes('mt-[2em]');
+    expect(gap('p2')).toBe(true);
+    expect(gap('p1')).toBe(false);
+    expect(gap('p3')).toBe(false);
+  });
+});

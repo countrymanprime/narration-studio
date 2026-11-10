@@ -4,9 +4,10 @@ import { HelpButton } from '../primitives/HelpButton';
 import { Panel } from '../primitives/Panel';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../primitives/Table';
 import { deliveryProfileTitle, describeMet, describeMiss, formatRuleValue, requirementOwner } from './deliveryProfile';
-import { formatLength, formatLevel } from './deliveryFormat';
+import { formatLevel } from './deliveryFormat';
 import { Requirement } from './DeliveryProfilePanel';
 import { ResultMark, VerificationMark } from './RuleBadges';
+import { clock } from '../../clock';
 
 const MONO = "font-['IBM_Plex_Mono',ui-monospace,monospace]";
 
@@ -81,7 +82,7 @@ export function FileRulesPanel({ file, profile, onClose }: { file: MeasureFileRe
     >
       {report && (
         <p className="text-sm" style={MUTED}>
-          {describeFormat(report)} · {formatLength(report.duration_seconds)}.
+          {describeFormat(report)} · {clock(report.duration_seconds)}.
           {report.integrated_lufs !== null && !lufsRule
             ? ` Loudness ${formatLevel(report.integrated_lufs)} LUFS (information: ${profile.builtIn ? `${profile.platform} sets` : 'the profile has'} no LUFS rule).`
             : ''}

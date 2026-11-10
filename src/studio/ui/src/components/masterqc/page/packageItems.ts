@@ -3,8 +3,8 @@
 import type { DeliveryProfile, DeliveryRule, ManuscriptChapter, MeasureFileResult } from '../../../types';
 import { chapterStates, readinessCounts, stateOf, type ChapterState } from '../../delivery/page/chapterStates';
 import { chapterForFile } from '../../master/chapterFile';
-import { formatLength } from '../../master/deliveryFormat';
 import { formatBound, formatRuleValue } from '../../master/deliveryProfile';
+import { clock } from '../../../clock';
 
 export type PackageItem = { state: 'ok' | 'bad' | 'wait'; text: string };
 
@@ -53,7 +53,7 @@ export function packageItems(profile: DeliveryProfile | undefined, files: readon
   if (retail && (retail.min != null || retail.max != null) && sample) {
     const seconds = sample.report!.duration_seconds;
     const fits = (retail.min == null || seconds >= retail.min) && (retail.max == null || seconds <= retail.max);
-    items.push({ state: fits ? 'ok' : 'bad', text: `Retail sample ${formatLength(seconds)} (${sampleRange(retail)})` });
+    items.push({ state: fits ? 'ok' : 'bad', text: `Retail sample ${clock(seconds)} (${sampleRange(retail)})` });
   }
 
   const channels = ruleFor(profile, 'channels');

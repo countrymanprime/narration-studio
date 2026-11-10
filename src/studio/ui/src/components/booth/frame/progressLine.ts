@@ -1,4 +1,5 @@
 import { WPH } from '../../schedule/estimates';
+import { clock } from '../../../clock';
 
 /** Where the narrator is in the chapter: the paragraph the current word sits in, and the words read over the words in all. */
 export type BoothPlace = {
@@ -9,15 +10,6 @@ export type BoothPlace = {
   /** The chapter is recorded to the end: the line says where the reading is and nothing that reads as recording work to do. */
   complete?: boolean;
 };
-
-/** Seconds as m:ss, or h:mm:ss from an hour. */
-function clock(seconds: number): string {
-  const whole = Math.max(0, Math.floor(seconds));
-  const h = Math.floor(whole / 3600);
-  const m = Math.floor((whole % 3600) / 60);
-  const s = String(whole % 60).padStart(2, '0');
-  return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${s}` : `${m}:${s}`;
-}
 
 /**
  * The top bar's progress line (the mock's `bprog`, its "finished left" reworded, alignment audit R4BO2-11): "¶ 38 of 71 · 41% · ~8:10 of audio left". The time left is the words still
@@ -32,10 +24,4 @@ export function progressLine({ paragraph, paragraphs, wordsRead, words, complete
 }
 
 /** The recording timer (the mock's `btimer`): mm:ss, h:mm:ss from an hour. */
-export function timerText(seconds: number): string {
-  const whole = Math.max(0, Math.floor(seconds));
-  const h = Math.floor(whole / 3600);
-  const m = String(Math.floor((whole % 3600) / 60)).padStart(2, '0');
-  const s = String(whole % 60).padStart(2, '0');
-  return h > 0 ? `${h}:${m}:${s}` : `${m}:${s}`;
-}
+export const timerText = (seconds: number): string => clock(seconds, { minuteDigits: 2 });
