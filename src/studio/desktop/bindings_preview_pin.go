@@ -180,7 +180,7 @@ func equalPreviewIDs(a, b []string) bool {
 // previewChapterByID reads chapterID's chapter fields from the manuscript's own reader payloads (previewInput's
 // own loop, narrowed to one chapter for the pin bindings, which never need the whole book).
 func previewChapterByID(service *manuscript.Service, chapterID string) (preview.Chapter, bool) {
-	payloads, err := service.Chapters()
+	payloads, err := service.ChaptersUnmeasured() // id, title, kind and order only
 	if err != nil {
 		return preview.Chapter{}, false
 	}
