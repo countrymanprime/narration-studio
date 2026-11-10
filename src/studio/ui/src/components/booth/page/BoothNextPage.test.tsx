@@ -977,6 +977,55 @@ describe('a refused stop keeps the take and the question', () => {
     // Escape's own exit asks the same question and goes by the page's navigate, once.
     expect(page.navigate).not.toHaveBeenCalled();
   });
+
+  // One stop per leave (#3325): the shell moves and the page unmounts the moment `decide` answers, and that unmount must not stop the take again.
+  const decideAndGo = async (page: ReturnType<typeof renderPage>, refuseFirst: boolean) => {
+    const refused: DawResult = { ok: false, changed: false, message: 'Not now.', undoSteps: 0, refused: 'Not now.' };
+    if (refuseFirst) page.daw.recordStop.mockResolvedValueOnce(refused);
+    await record(page);
+    const verdict = page.journal.checkLeave('/proof');
+    if (verdict === 'allow' || !verdict.decide) throw new Error('the Booth asks with a decision while it records');
+    let outcome: boolean | undefined;
+    // The shell moves the moment `decide` answers, before the page has drawn that the take is over.
+    act(
+      () =>
+        void verdict.decide!().then((value) => {
+          outcome = value;
+          page.view.unmount();
+        }),
+    );
+    await waitFor(() => expect(page.dialog()?.spec.title).toBe('Stop recording?'));
+    await act(async () => page.dialog()!.answer(true));
+    if (refuseFirst) {
+      await waitFor(() => expect(page.dialog()?.spec.title).toBe('Could not stop the take'));
+      await act(async () => page.dialog()!.answer(true));
+    }
+    await waitFor(() => expect(outcome).toBe(true));
+    await settle();
+  };
+
+  it('a shell exit whose stop succeeded stops the take once, not again as the page goes', async () => {
+    const page = renderPage();
+    await decideAndGo(page, false);
+    expect(page.daw.recordStop).toHaveBeenCalledTimes(1);
+  });
+
+  it('a shell exit that chose Leave anyway after a refusal does not stop again as the page goes, as Escape does not', async () => {
+    const page = renderPage();
+    await decideAndGo(page, true);
+    expect(page.daw.recordStop).toHaveBeenCalledTimes(1);
+  });
+
+  it('Escape stops the take once, and with a refusal then Leave anyway goes by navigate once with no further stop', async () => {
+    const ok = renderPage();
+    await record(ok);
+    await press('Escape');
+    await act(async () => ok.dialog()!.answer(true));
+    await waitFor(() => expect(ok.navigate).toHaveBeenCalledTimes(1));
+    ok.view.unmount();
+    await settle();
+    expect(ok.daw.recordStop).toHaveBeenCalledTimes(1);
+  });
 });
 
 // SN-O103: the bookmarks (SN-O81) and the pickup session (SN-O82) on the page.

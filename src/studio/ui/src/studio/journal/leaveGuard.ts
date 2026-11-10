@@ -3,7 +3,15 @@
 // `ConfirmSpec` is declared here so the journal does not import the overlay service.
 
 /** What the confirmation shows. The overlay service renders it. */
-export type ConfirmSpec = { title: string; body: string; confirmLabel: string; cancelLabel?: string; safeDefault?: boolean };
+export type ConfirmSpec = {
+  title: string;
+  body: string;
+  confirmLabel: string;
+  cancelLabel?: string;
+  safeDefault?: boolean;
+  /** The confirm button ignores a press for this long after the question appears: for a question that replaces another under the same pixels, so a double-click on the first cannot answer the second. */
+  armAfterMs?: number;
+};
 
 /** The answer to "may the narrator leave for `next`?": go ahead, or ask this first. */
 type LeaveVerdict =

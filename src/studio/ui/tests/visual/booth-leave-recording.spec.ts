@@ -12,11 +12,13 @@ const record = (page: Page) => page.getByRole('button', { name: /^Record$/, incl
 const stop = (page: Page) => page.getByRole('button', { name: /^Stop$/ });
 const question = (page: Page) => page.getByRole('alertdialog', { name: /^Stop recording\?$/ });
 const dawRecording = (page: Page) => page.evaluate(() => window.__NARRATION_MOCK_DAW__?.state().recording);
+/** The stops the host was asked for (`?mockCallLog=1` records every host call): a leave stops a take once. */
+const stops = (page: Page) => page.evaluate(() => (window.__hostCalls ?? []).filter((call) => call.name === 'readAloudRecordStop').length);
 const onBooth = (page: Page) => page.evaluate(() => window.location.pathname === '/booth');
 
 /** Production, then the Booth (so Back has somewhere to go), with a take running. */
 async function recording(page: Page): Promise<void> {
-  await page.goto('/');
+  await page.goto('/?mockCallLog=1');
   await settlePage(page);
   await goToPage(page, 'Booth');
   await expect(record(page)).toBeEnabled();
@@ -87,8 +89,22 @@ test('Forward into the Booth, then Back with nothing recording, leaves with no q
   await expect(page.getByRole('alertdialog')).toHaveCount(0);
 });
 
+test('Back after Keep recording asks again, and a take kept twice is still running', async ({ page }) => {
+  await recording(page);
+  for (let i = 0; i < 2; i++) {
+    await page.evaluate(() => window.history.back());
+    await expect(question(page)).toBeVisible();
+    await question(page)
+      .getByRole('button', { name: /Keep recording/ })
+      .click();
+    await expect(question(page)).toHaveCount(0);
+    expect(await onBooth(page)).toBe(true);
+  }
+  expect(await dawRecording(page)).toBe(true);
+});
+
 test('Back with nothing recording leaves with no question', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?mockCallLog=1');
   await settlePage(page);
   await goToPage(page, 'Booth');
   await expect(record(page)).toBeEnabled();
@@ -125,6 +141,7 @@ const EXITS: Exit[] = [
   { name: 'Back', go: (page) => page.evaluate(() => window.history.back()) },
   { name: 'Alt+Left', go: (page) => page.keyboard.press('Alt+ArrowLeft') },
   { name: 'Ctrl+,', go: (page) => page.keyboard.press('Control+Comma') },
+  { name: 'Ctrl+Alt+C (the Companion)', go: (page) => page.keyboard.press('Control+Alt+KeyC') },
   {
     name: 'the jump menu',
     go: async (page) => {
@@ -152,7 +169,7 @@ const EXITS: Exit[] = [
 for (const exit of EXITS) {
   test(`${exit.name} during a take: Stop and leave stops the take and the page goes`, async ({ page }) => {
     if (exit.start) {
-      await page.goto('/');
+      await page.goto('/?mockCallLog=1');
       await settlePage(page);
       await goToPage(page, 'Booth');
       await exit.start(page);
@@ -164,11 +181,14 @@ for (const exit of EXITS) {
     await question(page).getByRole('button', { name: /^Stop/ }).click();
     await expect(page.locator('[data-booth-text]')).toHaveCount(0);
     await expect.poll(() => dawRecording(page)).toBe(false);
+    // One stop, not a second as the page unmounts.
+    await page.waitForTimeout(800);
+    expect(await stops(page)).toBe(1);
   });
 
   test(`${exit.name} during a take: a refused stop keeps the Booth with the sentence, and Leave anyway then leaves`, async ({ page }) => {
     if (exit.start) {
-      await page.goto('/');
+      await page.goto('/?mockCallLog=1');
       await settlePage(page);
       await goToPage(page, 'Booth');
       await exit.start(page);
@@ -184,8 +204,28 @@ for (const exit of EXITS) {
     await expect(refused).toContainText('Disk full.');
     expect(await dawRecording(page)).toBe(true);
     await expect(page.locator('[data-booth-text]')).toHaveCount(1);
+    // Past the arming moment of "Leave anyway" (below); a press inside it is ignored.
+    await page.waitForTimeout(500);
     await refused.getByRole('button', { name: 'Leave anyway' }).click();
     await expect(page.locator('[data-booth-text]')).toHaveCount(0);
+    // The same end on every exit: the one refused stop is the only stop, and the DAW is left recording, as the question says it may be.
+    await page.waitForTimeout(800);
+    expect(await stops(page)).toBe(1);
+    expect(await dawRecording(page)).toBe(true);
+  });
+}
+
+for (const exit of EXITS.filter((item) => ['Escape', 'Back', 'Alt+Left'].includes(item.name))) {
+  test(`${exit.name}: a double-click on Stop and leave when the stop is refused does not answer the refusal`, async ({ page }) => {
+    await recording(page);
+    await page.evaluate(() => window.__NARRATION_MOCK_DAW__?.refuseNextRecord('Disk full.', 'stop'));
+    await exit.go(page);
+    await question(page).getByRole('button', { name: /^Stop/ }).dblclick();
+    const refused = page.getByRole('alertdialog', { name: /^Could not stop the take$/ });
+    await expect(refused).toBeVisible();
+    await page.waitForTimeout(300);
+    await expect(refused).toBeVisible();
+    await expect(page.locator('[data-booth-text]')).toHaveCount(1);
   });
 }
 
@@ -206,7 +246,7 @@ test('Back while a start is still pending leaves with no question and starts no 
       boothPunchTarget: () => new Promise((resolve) => setTimeout(() => resolve({ outcome: 'found', start: 12, end: 20 }), 2500)),
     };
   });
-  await page.goto('/');
+  await page.goto('/?mockCallLog=1');
   await settlePage(page);
   await goToPage(page, 'Booth');
   await expect(record(page)).toBeEnabled();

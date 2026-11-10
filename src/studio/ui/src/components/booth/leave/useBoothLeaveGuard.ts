@@ -15,6 +15,9 @@ export type BoothLeaveSession = {
   flush?: () => Promise<void>;
 };
 
+/** How long the refusal's "Leave anyway" ignores a press after it appears: the second click of a double-click on the button it replaced. */
+const LEAVE_ANYWAY_ARM_MS = 400;
+
 type Deps = {
   guard: Pick<LeaveGuardStore, 'setLeaveGuard'>;
   overlay: Pick<OverlayService, 'confirm'>;
@@ -31,6 +34,8 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
   const sessionRef = useRef(session);
   sessionRef.current = session;
   const asking = useRef<Promise<boolean> | null>(null);
+  /** True once `decide` answered yes for this take: the page is going and its stop (or the narrator's "Leave anyway") is already done. */
+  const decided = useRef(false);
   const { recording } = session;
 
   // The question, the stop and its refusal: true once the take is over (or was never the app's) and the move may go, false when the narrator stayed.
@@ -39,17 +44,18 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
     const now = sessionRef.current;
     if (asking.current) return asking.current.then(() => false);
     const run = async (): Promise<boolean> => {
+      decided.current = false;
       const startedByApp = now.startedByApp ?? true;
       let spec = stopRecordingSpec(now.daw.name, startedByApp);
       let refusedOnce = false;
       for (;;) {
         if (!(await overlay.confirm(spec))) return false;
         // The stop was refused and the narrator chose to leave anyway: a DAW that does not answer must not hold them in the Booth.
-        if (!startedByApp || refusedOnce) return true;
+        if (!startedByApp || refusedOnce) return (decided.current = true);
         const result = await sessionRef.current.stopRecording();
         if (result.ok) {
           await sessionRef.current.flush?.();
-          return true;
+          return (decided.current = true);
         }
         // The stop was refused: nothing changed, so the take still runs. The question stays, now with the host's sentence and a way out.
         refusedOnce = true;
@@ -59,6 +65,8 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
           title: 'Could not stop the take',
           body: `${sentence} You can leave anyway, but it may keep recording.`.trim(),
           confirmLabel: 'Leave anyway',
+          // A double-click on "Stop and leave" must not land on the "Leave anyway" that replaces it before the sentence can be read.
+          armAfterMs: LEAVE_ANYWAY_ARM_MS,
         };
       }
     };
@@ -90,5 +98,5 @@ export function useBoothLeaveGuard(session: BoothLeaveSession, { guard, overlay 
     [decide],
   );
 
-  return { leave };
+  return { leave, decided };
 }

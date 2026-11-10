@@ -635,7 +635,7 @@ export function useBoothPage(options: BoothPageOptions) {
     : control.capabilities.daw === 'none' || recordsInApp(control.capabilities.daw)
       ? `the ${dawShortName('none').toLowerCase()} recorder`
       : control.capabilities.daw;
-  const { leave } = useBoothLeaveGuard(
+  const { leave, decided } = useBoothLeaveGuard(
     { recording, startedByApp: control.startedByApp, daw: { name: dawName }, stopRecording, flush: writer.flush },
     { guard: shellGuard, overlay: heldConfirm },
   );
@@ -660,10 +660,11 @@ export function useBoothPage(options: BoothPageOptions) {
   onGone.current = { stopRecording, flush: writer.flush };
   useEffect(
     () => () => {
-      if (!latest.current.recording || !askedByShell.current) return;
+      // `decide` already answered for a take the narrator was asked about: stopped once, or left running by their choice ("Leave anyway").
+      if (!latest.current.recording || !askedByShell.current || decided.current) return;
       void onGone.current.stopRecording().then((done) => (done.ok ? onGone.current.flush() : undefined));
     },
-    [],
+    [decided],
   );
 
   // Exit Booth. A take asks "Stop recording?" (the leave guard); a session that only listens asks "Stop reading?" and stops it (docs/guides/using-the-app/booth.md:
