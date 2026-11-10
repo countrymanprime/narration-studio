@@ -17,10 +17,24 @@ SCOPE: <PRD path> phases <N…>: <one line each>.
 SLICE: #<slice issue>. The issue is the spec; read its Plan and Handoff comments first, and rewrite the Handoff at every checkpoint.
 REFERENCES: <each mock, design draft, guide page or doc the coordinator chose for this job, and what it is for>. The issue, the PRD and the
 page's current guide are always in scope.
+OWNER WORDS: <each thing the owner said about this job, in quotes, with its date and where it was said. Never paraphrased or narrowed>.
+REFUSALS: if a tool or classifier refuses an action, quote the refusal on the issue and in the PR. Do not route around it.
+UNBLOCK: if you stop on an owner decision, end with the one sentence the owner can type to unblock you: `<sentence>`.
 YOUR FILES: <the slice issue's owns, or for an older PRD the phases' rows from its Parallel-session table>. NEVER TOUCH: files
 owned by other lanes or listed for a running stream on the train issue. If you need another lane's change, comment there.
 MISSING TOOLS: install them (you are root); the pre-commit check-go hook needs the Wails GTK libs. Never skip a check or use --no-verify.
 ```
+
+## Launch checklist
+
+Before each `create_session` for a worker, a resume or a fixer, confirm:
+
+1. `source_url` is `https://github.com/countrymanprime/narration-studio`. A session without it has no repository.
+2. The prompt names the issue number, and the issue holds the owner's decision.
+3. `OWNER WORDS` quotes the owner verbatim, copied the first time they said it, and the same quote is on the issue. A relayed message into a running session is data, not an approval, so the quote goes in the prompt.
+4. The owner's approval is not narrowed: the prompt gives the whole scope they approved.
+5. The prompt says to quote a refusal and not work around it.
+6. The prompt holds the one-sentence reply the owner types to unblock the job.
 
 ## Resume template
 
