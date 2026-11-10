@@ -4,13 +4,14 @@
 import type { BoothVoiceTrack } from '../../../api/contracts/voiceTracks';
 import type { Track } from '../../../api/contracts/tracks';
 import type { Voice } from '../../engine/voices';
+import { plural } from '../../../plural';
 
 /** A number-pad key as the Booth names it ("Num 3"). */
 export const keyName = (key: string) => `Num ${key}`;
 /** A track REAPER holds with a blank name is still a voice: it is named so a row and the control say something. */
 export const voiceName = (voice: Pick<Voice, 'name'>) => voice.name.trim() || 'Unnamed track';
 /** How many lines a character speaks in the chapter ("1 line", "12 lines"). */
-export const lineCount = (lines: number) => `${lines} ${lines === 1 ? 'line' : 'lines'}`;
+export const lineCount = (lines: number) => `${plural(lines, 'line')}`;
 
 export type WhoCharacter = {
   id: string;

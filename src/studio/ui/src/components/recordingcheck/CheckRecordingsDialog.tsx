@@ -36,6 +36,7 @@ import type { RunChoices } from './runChoices';
 import { RunningView } from './RunningView';
 import { CheckActivityPanel } from './CheckActivityPanel';
 import { summarizeActivity } from './activityView';
+import { plural } from '../../plural';
 
 /** The dialog's section labels: the Chapters column, Audio to check. */
 const SECTION_LABEL = 'text-[length:var(--font-size-sm)] font-semibold uppercase';
@@ -359,7 +360,7 @@ export function CheckRecordingsDialog({ preselected, onClosed, close }: { presel
   }
 
   const change = (patch: Partial<RunChoices>) => setChoices((current) => current && { ...current, ...patch });
-  const label = `Check ${ids.length} ${ids.length === 1 ? 'chapter' : 'chapters'}`;
+  const label = `Check ${plural(ids.length, 'chapter')}`;
   const toggle = (id: string, on: boolean) =>
     setTicked((current) => {
       const next = new Set(current);

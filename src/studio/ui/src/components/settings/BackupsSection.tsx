@@ -8,6 +8,7 @@ import { SectionLabel } from '../primitives/SectionLabel';
 import { numberProblem } from './numberSetting';
 import { ScopedSetting } from './ScopedSetting';
 import { keepFocusOnRemoval } from '../layout/keepFocusOnRemoval';
+import { plural } from '../../plural';
 
 const TOOL = 'DAW';
 const WINDOW_KEY = 'backups.window_seconds';
@@ -22,8 +23,6 @@ function hasBackups(caps: DawCapabilities | undefined): boolean {
   const level = caps?.capabilities['backups']?.level;
   return level === 'supported' || level === 'experimental';
 }
-
-const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
 /** "about 2 minutes either side" for 120 s: whole minutes from a minute up, seconds below. */
 function windowWords(seconds: number): string {

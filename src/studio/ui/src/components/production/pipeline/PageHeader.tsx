@@ -10,6 +10,7 @@ import { toneColors } from '../../primitives/StatusBadge';
 import { deadlineTone, TONE_STATUS, type Calc, type Tone } from '../../schedule/progress';
 import { VerdictPill } from '../../schedule/VerdictPill';
 import { TimerChip, type RunningTimer } from '../../layout/TimerChip';
+import { plural } from '../../../plural';
 
 /** The due date's colour by its tone; the verdict pill beside it says the tone in words and a mark, so it is never told by colour alone. */
 const TONE_COLOR: Record<Tone, string | null> = {
@@ -58,7 +59,7 @@ export function PageHeader({
   onOpenSchedule,
 }: Props) {
   const color = TONE_COLOR[deadlineTone(k)];
-  const days = k.daysLeft === null ? null : `${Math.abs(k.daysLeft)} ${Math.abs(k.daysLeft) === 1 ? 'day' : 'days'}`;
+  const days = k.daysLeft === null ? null : `${plural(Math.abs(k.daysLeft), 'day')}`;
   return (
     <header className="flex flex-wrap items-start justify-between gap-4">
       <div className="flex min-w-0 flex-[1_1_24rem] flex-col gap-2">
@@ -70,7 +71,7 @@ export function PageHeader({
           // The pill carries the verdict's word and mark, so the date is told here by its colour and the days only (XPR1-13).
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
             <p className="text-[0.8125rem] text-[var(--text-muted)]">
-              {chapters} chapters · {num(words)} words
+              {plural(chapters, 'chapter')} · {num(words)} words
               {due && days && (
                 <>
                   {' '}

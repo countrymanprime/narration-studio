@@ -6,6 +6,7 @@ import { ToggleGroup } from '../../primitives/ToggleGroup';
 import { TooltipTarget } from '../../primitives/Tooltip';
 import { RETRY_LABEL, RETRY_SHORT, STACK_TEXT } from './stackText';
 import { useRetryMode } from './useRetryMode';
+import { plural } from '../../../plural';
 
 export interface RetryBarProps {
   level: RetryLevel;
@@ -56,7 +57,7 @@ export function RetryBar({ level, chapterId, passageId = '', count, reason, onSt
       />
       {mode === 'stack' && count > 0 ? (
         <span title="Later reads that can go on the first read’s spot" data-stack-count>
-          <StatusBadge tone="info" label={`${count} ${count === 1 ? 'retry' : 'retries'} can be stacked`} />
+          <StatusBadge tone="info" label={`${plural(count, 'retry', 'retries')} can be stacked`} />
         </span>
       ) : null}
       {mode === 'stack' ? (

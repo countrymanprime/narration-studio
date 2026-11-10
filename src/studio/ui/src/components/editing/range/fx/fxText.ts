@@ -1,9 +1,8 @@
 import type { RangePlan } from '../common/rangePlan';
 import { FX_FADE_MS } from './fxCommand';
+import { plural } from '../../../../plural';
 
 type Acting = Exclude<RangePlan, { kind: 'refused' }>;
-
-const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
 
 /** The question's title: how many words take an effect. The chain is chosen inside it, so it is not in the title. */
 export const fxTitle = (n: number): string => `Add FX to ${plural(n, 'word', 'words')}?`;

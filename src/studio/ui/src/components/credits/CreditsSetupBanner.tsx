@@ -6,6 +6,7 @@ import { Button } from '../primitives/Button';
 import { Dot } from '../primitives/StatusBadge';
 import { Panel } from '../primitives/Panel';
 import type { Notify } from '../primitives/Toast';
+import { plural } from '../../plural';
 
 /**
  * The credits-setup banner: the way back to the "Set up the credits" dialog once the narrator has pressed
@@ -46,10 +47,7 @@ export function CreditsSetupBanner({
             <Dot color="var(--review)" />
           </span>
           <span>
-            <strong>
-              The credits need {tokens.length} value{tokens.length === 1 ? '' : 's'}
-            </strong>{' '}
-            — {tokens.join(', ')} will be read as written, in brackets.
+            <strong>The credits need {plural(tokens.length, 'value')}</strong> — {tokens.join(', ')} will be read as written, in brackets.
           </span>
         </div>
         <div className="flex flex-none gap-2 [&>button]:whitespace-nowrap">

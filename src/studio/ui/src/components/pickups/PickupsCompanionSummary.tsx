@@ -2,6 +2,7 @@ import { SectionLabel } from '../primitives/SectionLabel';
 import { openPickups } from './list/pickupRows';
 import { usePickupList } from './useOpenPickups';
 import { usePickupsState } from './usePickupsState';
+import { plural } from '../../plural';
 
 // Mock 07's pickups list: Plex Mono, 13 px, 29 px rows. The
 // same mono family other dense rows already use (Kbd.tsx, KeyHint.tsx).
@@ -19,7 +20,7 @@ export function PickupsCompanionSummary() {
   const next = state.phase === 'success' ? state.next : undefined;
   return (
     <div className="flex flex-col">
-      <p className={ROW}>{list && list.length > 0 ? `${remaining} pickup${remaining === 1 ? '' : 's'} remaining of ${list.length}` : 'No pickups yet'}</p>
+      <p className={ROW}>{list && list.length > 0 ? `${plural(remaining, 'pickup')} remaining of ${list.length}` : 'No pickups yet'}</p>
       {next && (
         <p className={ROW}>
           Next: {next.tag && <SectionLabel className="mr-1.5">{next.tag}</SectionLabel>}

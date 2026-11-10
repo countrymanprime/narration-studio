@@ -136,7 +136,7 @@ describe('the book source (#2775)', () => {
     const onFind = vi.fn();
     const rows = await source(answer(many, 4210), onFind)('rabbit', new AbortController().signal);
     expect(rows).toHaveLength(51);
-    expect(rows[50]!.title).toBe('4160 more matches. Show them in the script.');
+    expect(rows[50]!.title).toBe('4,160 more matches. Show them in the script.');
     rows[50]!.run();
     expect(onFind).toHaveBeenCalledWith('rabbit', 50);
     const one = await source(answer(many.slice(0, 51)))('rabbit', new AbortController().signal);

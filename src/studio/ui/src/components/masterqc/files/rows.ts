@@ -8,6 +8,7 @@ import { formatLevel } from '../../master/deliveryFormat';
 import { formatBound, formatRuleValue } from '../../master/deliveryProfile';
 import { fileVerdict, type FileVerdict } from '../../master/fileVerdict';
 import { clock } from '../../../clock';
+import { plural } from '../../../plural';
 
 /** One value in a cell: its text (a dash when it could not be measured) and whether the profile's rule on it was not met. */
 export type Cell = { text: string; missed: boolean; unchecked?: true };
@@ -161,7 +162,7 @@ export const SAMPLE_ROW_ID = 'retail-sample';
 
 /** What a row with no file waits on: its open pickups when it has any, else only that no file was measured for it. */
 function noFileText(open: number | undefined): string {
-  return open ? `Waiting on ${open} ${open === 1 ? 'pickup' : 'pickups'}` : 'No file measured yet';
+  return open ? `Waiting on ${plural(open, 'pickup')}` : 'No file measured yet';
 }
 
 /**
@@ -218,7 +219,7 @@ export function sharedWaiting(rows: readonly FileRow[]): { text: string; line: s
   }
   return [...groups]
     .filter(([, group]) => group.count > 1)
-    .map(([text, group]) => ({ text, line: `${group.count} rows marked ${group.pill}: ${group.shared} · not mastered.` }));
+    .map(([text, group]) => ({ text, line: `${plural(group.count, 'row')} marked ${group.pill}: ${group.shared} · not mastered.` }));
 }
 
 /** The file the table opens on: the first that fails, else the first with a file. Nothing before a file exists: no waiting row is picked for the narrator. */

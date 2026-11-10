@@ -1,4 +1,5 @@
 import type { AssetRef, OptionNote, SettingMeta } from './types';
+import { plural } from '../../../plural';
 
 const whisper = (id: string, label: string): OptionNote => ({ label, asset: { kind: 'whisper', id } });
 const WHISPER: Record<string, OptionNote> = {
@@ -481,7 +482,7 @@ export const ROWS: readonly SettingMeta[] = [
     syn: 'threads cpu workers parallel performance slow',
     heavy: (value) =>
       Number(value) > processorCount() / 2
-        ? `More than half of this computer’s ${processorCount()} processors: the Booth and the rest of the app may slow down while a check runs.`
+        ? `More than half of this computer’s ${plural(processorCount(), 'processor')}: the Booth and the rest of the app may slow down while a check runs.`
         : undefined,
   },
 

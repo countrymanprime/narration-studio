@@ -7,6 +7,7 @@ import { announcePickupListChanged } from '../../pickups/pickupListChanged';
 import type { ChapterDoc } from '../model';
 import { decideLinked, restoreLinked, type LinkedChange } from '../../../studio/commands/reviewFinding';
 import { findingsAt } from './findingLink';
+import { plural } from '../../../plural';
 
 export interface AcceptOptions {
   journal: Pick<Journal, 'act' | 'undo'>;
@@ -21,7 +22,8 @@ type Accepted = { changed: LinkedChange[]; failed?: string };
 
 /** What the toast says: the flag is gone, and what happened to the note on Proof. */
 function acceptedMessage({ changed, failed }: Accepted): string {
-  const note = changed.length === 1 ? 'The note on Proof is fine as read.' : changed.length > 1 ? `${changed.length} notes on Proof are fine as read.` : '';
+  const note =
+    changed.length === 1 ? 'The note on Proof is fine as read.' : changed.length > 1 ? `${plural(changed.length, 'note')} on Proof are fine as read.` : '';
   return ['Not flagged any more.', note, failed ? `The note on Proof was not changed: ${failed}` : ''].filter(Boolean).join(' ');
 }
 
@@ -41,7 +43,7 @@ export function useAcceptWords({ journal, chapterId, doc, onChange }: AcceptOpti
     async (keys: string[]) => {
       const now = latest.current;
       const result = await journal.act<Accepted>({
-        label: keys.length === 1 ? 'Accepted a word' : `Accepted ${keys.length} words`,
+        label: keys.length === 1 ? 'Accepted a word' : `Accepted ${plural(keys.length, 'word')}`,
         touches: [`editing/${chapterId}/accepted`, 'pickups'],
         run: async () => {
           try {

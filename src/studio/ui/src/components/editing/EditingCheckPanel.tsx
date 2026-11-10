@@ -40,6 +40,7 @@ import {
   type EditingCandidateClass,
 } from './editingCheckText';
 import { addressPath } from '../../navigation/address';
+import { plural, formatCount } from '../../plural';
 
 /** The host's own refusal sentences (src/studio/desktop/internal/editing/service.go), for a reason the mapping prompt
  * below does not already explain in place. */
@@ -137,11 +138,7 @@ function resultRows(signals: StageSignal[] | undefined, candidates: Finding[]): 
   for (const cls of EDITING_CLASSES) {
     const signal = signals?.find((entry) => entry.id === EDITING_SIGNAL_ID[cls]);
     const count = candidates.filter((finding) => candidateClass(finding) === cls).length;
-    const text = signal
-      ? keepUnits(signal.reason)
-      : count > 0
-        ? `${count} candidate${count === 1 ? '' : 's'} from the last scan.`
-        : 'No candidates from the last scan.';
+    const text = signal ? keepUnits(signal.reason) : count > 0 ? `${plural(count, 'candidate')} from the last scan.` : 'No candidates from the last scan.';
     const same = rows.find((row) => row.count === 0 && count === 0 && row.text === text && row.signal?.state === signal?.state);
     if (same) same.classes.push(cls);
     else rows.push({ classes: [cls], signal, text, count });
@@ -432,7 +429,13 @@ export function EditingCheckPanel({
                     Cancel
                   </Button>
                 </div>
-                <ProgressBar label="Editing check progress" size="thin" value={job.percent} running valueText={`${job.itemsDone} of ${job.itemsTotal} items`} />
+                <ProgressBar
+                  label="Editing check progress"
+                  size="thin"
+                  value={job.percent}
+                  running
+                  valueText={`${job.itemsDone} of ${plural(job.itemsTotal, 'item')}`}
+                />
               </div>
             )}
 
@@ -443,7 +446,7 @@ export function EditingCheckPanel({
             )}
             {stopped && job && (
               <p role="status" style={{ color: 'var(--text-muted)' }}>
-                Stopped after {job.itemsDone} of {job.itemsTotal} items. The items already checked are kept for the next check.
+                Stopped after {formatCount(job.itemsDone)} of {plural(job.itemsTotal, 'item')}. The items already checked are kept for the next check.
               </p>
             )}
 

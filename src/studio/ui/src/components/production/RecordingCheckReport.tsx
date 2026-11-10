@@ -11,9 +11,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { openPickups } from '../pickups/list/pickupRows';
 import { usePickupList } from '../pickups/useOpenPickups';
 import { PickupListCount } from './PickupListCount';
-import { REGION_LABEL, describePosition, describeRegion, paragraphRefs, plural, recordedTo, verdict } from './recordingCheckText';
+import { REGION_LABEL, describePosition, describeRegion, paragraphRefs, recordedTo, verdict } from './recordingCheckText';
 import { ProofPickupNotes } from './ProofPickupNotes';
 import { clock } from '../../clock';
+import { plural } from '../../plural';
 
 // A pickup is one of the check's own interior gaps: a place worth reading
 // on its own. An unread start or end is unfinished recording, not a pickup - recordedTo() states it in the

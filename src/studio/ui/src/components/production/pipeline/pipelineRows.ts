@@ -5,6 +5,7 @@ import { reached } from '../../../chapterStatus';
 import { hm } from '../../schedule/dates';
 import { WPH } from '../../schedule/estimates';
 import { chapterCheckStatusText, type ChapterCheckStatus } from '../chapterCheckStatus';
+import { plural } from '../../../plural';
 
 /** The page a cell goes to (the mock's `cellAct`): Prep goes to the Script, Record to the Booth, Edit to Editing, Master and QC to Master. */
 export type GoTarget = 'script' | 'booth' | 'editing' | 'proof' | 'pickups' | 'master';
@@ -213,7 +214,7 @@ function editCell(chapter: ProductionChapter): PipelineCell {
 
 function proofCell(chapter: ProductionChapter, notes: { cleared: number; total: number } | undefined): PipelineCell {
   const total = notes?.total ?? 0;
-  const counted = notes && total > 0 ? `${notes.cleared} of ${total} notes cleared` : '';
+  const counted = notes && total > 0 ? `${notes.cleared} of ${plural(total, 'note')} cleared` : '';
   if (chapter.status === 'finalized') return done('proof', 'proof', counted || 'Proofed');
   if (notes && total > 0) {
     const percent = Math.floor((notes.cleared / total) * 100);

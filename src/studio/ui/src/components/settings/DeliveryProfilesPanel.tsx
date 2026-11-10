@@ -9,6 +9,7 @@ import { Select } from '../primitives/Select';
 import type { Notify } from '../primitives/Toast';
 import { deliveryProfileKey, deliveryProfileTitle } from '../master/deliveryProfile';
 import { DeliveryProfileEditor } from './DeliveryProfileEditor';
+import { plural } from '../../plural';
 
 const MUTED = { color: 'var(--text-muted)' };
 
@@ -31,7 +32,7 @@ function differences(profile: DeliveryProfile, base?: DeliveryProfile) {
 function describe(profile: DeliveryProfile, base?: DeliveryProfile): string {
   if (profile.builtIn) {
     const host = profile.source.url ? ` · from ${new URL(profile.source.url).host}, read ${profile.source.readOn}` : '';
-    return `Built in · read-only · ${profile.rules.length} rules${host}`;
+    return `Built in · read-only · ${plural(profile.rules.length, 'rule')}${host}`;
   }
   const { numbers, off } = differences(profile, base);
   return [
@@ -39,8 +40,8 @@ function describe(profile: DeliveryProfile, base?: DeliveryProfile): string {
     profile.note ? profile.note.replace(/\.$/, '').replace(/^Moved/, 'moved') : '',
     base ? `based on ${deliveryProfileTitle(base)}` : '',
     `revision ${profile.revision}`,
-    numbers > 0 ? `${numbers} ${numbers === 1 ? 'number' : 'numbers'} changed` : '',
-    off > 0 ? `${off} ${off === 1 ? 'rule' : 'rules'} off` : '',
+    numbers > 0 ? `${plural(numbers, 'number')} changed` : '',
+    off > 0 ? `${plural(off, 'rule')} off` : '',
   ]
     .filter(Boolean)
     .join(' · ');

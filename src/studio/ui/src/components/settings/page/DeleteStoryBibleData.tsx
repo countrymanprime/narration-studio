@@ -6,8 +6,9 @@ import { usePort } from '../../../ports/usePort';
 import { Button } from '../../primitives/Button';
 import { ConfirmDialog } from '../../primitives/ConfirmDialog';
 import type { Notify } from '../../primitives/Toast';
+import { pluralWord } from '../../../plural';
 
-const counted = (n: number, one: string, many: string) => `${n === 1 ? 'one' : n.toLocaleString()} ${n === 1 ? one : many}`;
+const counted = (n: number, one: string, many: string) => `${n === 1 ? 'one' : n.toLocaleString('en-US')} ${pluralWord(n, one, many)}`;
 
 /** The toast after Delete Story Bible data: what the host says it deleted, or that there was nothing. */
 function deletedMessage({ entries, suggestions }: GuideDeleted): string {

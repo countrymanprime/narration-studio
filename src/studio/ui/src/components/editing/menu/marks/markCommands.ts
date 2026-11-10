@@ -9,6 +9,7 @@ import { decideLinked, restoreLinked, type LinkedChange } from '../../../../stud
 import { findingsAt } from '../../flags/findingLink';
 import type { ChapterDoc } from '../../model';
 import { scriptSpanOf } from './scriptSpan';
+import { plural } from '../../../../plural';
 
 /** What the Script page's mark command answers; the Editing page marks through it and keeps no marks of its own. */
 export type AddMark = (
@@ -18,8 +19,6 @@ export type AddMark = (
 ) => Promise<unknown>;
 
 export const ONLY_SAID = 'These words were only said, so there is no script text to mark.';
-
-const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
 
 /** The line a pickup names: the selected script words, or the start of the line when the words were only said. */
 function pickupLine(doc: ChapterDoc, keys: readonly string[]): { line: string; time: number } | null {

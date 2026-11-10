@@ -5,6 +5,7 @@ import { statusLabel, statusTone } from '../../../kinds/statusTone';
 import { KindChip } from '../../primitives/KindChip';
 import { StatusBadge } from '../../primitives/StatusBadge';
 import type { LinePassage } from './types';
+import { plural } from '../../../plural';
 
 /**
  * The chip under a line that has takes, one take included: how many, which one it names (the kept take, else the one the DAW has active), and where the choice stands (Kept, Stacked, Duplicate read
@@ -53,9 +54,7 @@ export function TakeChip({
       onKeyDown={onKeyDown}
     >
       <Icon name="wave" />
-      <b>
-        {n} {n === 1 ? 'take' : 'takes'}
-      </b>
+      <b>{plural(n, 'take')}</b>
       <span aria-hidden="true" className="inline-flex gap-0.5 max-[30rem]:hidden">
         {passage.takes.map((t) => (
           <i

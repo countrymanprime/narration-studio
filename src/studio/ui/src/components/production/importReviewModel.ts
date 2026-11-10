@@ -125,7 +125,3 @@ export function isGroupOpen(key: ReviewGroupKey, chosen: ReviewGroupOpen): boole
   if (opened) return key === opened;
   return key === 'narration' && chosen.narration !== false;
 }
-
-export function plural(count: number, singular: string, many = `${singular}s`): string {
-  return count === 1 ? singular : many;
-}

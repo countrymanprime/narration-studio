@@ -24,6 +24,7 @@ import { useDawPreroll } from './useDawPreroll';
 import { useRecorderMeter } from './useRecorderMeter';
 import type { RecorderMeterView } from './recorderMeter';
 import type { ListeningMic } from '../listening/useListeningMic';
+import { plural } from '../../../plural';
 
 export type ListenProps = {
   devices: readonly TeleprompterDevice[];
@@ -464,7 +465,7 @@ function AppPrerollRow() {
 }
 
 const oneDecimal = (seconds: number): string => seconds.toFixed(1);
-const measuresText = (measures: number): string => (measures === 1 ? '1 measure' : `${measures} measures`);
+const measuresText = (measures: number): string => plural(measures, 'measure');
 
 /**
  * The DAW's own pre-roll (#2251 item 11): the one the Booth punches with, so the app shows it rather than a number of its own that could disagree. It
