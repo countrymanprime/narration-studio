@@ -1854,6 +1854,8 @@ function Fake:add_lane_api(api)
       return track.armed and 1 or 0
     elseif key == 'I_RECINPUT' then
       return track.rec_input or 0
+    elseif key == 'I_RECMON' then
+      return track.rec_mon or 0
     elseif key == 'B_MUTE' then
       return track.muted and 1 or 0
     elseif key == 'I_SOLO' then
@@ -1914,6 +1916,8 @@ function Fake:add_lane_api(api)
       track.folder_depth = value
     elseif key == 'I_RECINPUT' then
       track.rec_input = value
+    elseif key == 'I_RECMON' then
+      track.rec_mon = value
     elseif key == 'I_RECMODE' then
       track.rec_mode = value
     elseif not lane then

@@ -23,7 +23,14 @@
 -- is never nested inside the chapter before it; that is the only change to a track that was there. It answers
 -- TRACK_CREATED|run|guid|index|name|childGuid|childIndex|childName. A parent and a child name together are refused.
 --
--- Events: TRACK_CREATED|run|guid|index|name[|childGuid|childIndex|childName], TRACK_STALE|run|parentGuid, or ERROR|run|message.
+-- track_create|run|name|parentGuid|childName|monitor|fx sets up the track the narrator records on (the new track, or the folder's child):
+-- monitor "1" turns its input monitoring on (I_RECMON = 1; anything else leaves REAPER's default), and fx is a ";"-separated list of FX names
+-- (or FX chain names) added with TrackFX_AddByName in order. A name that will not load is skipped, not fatal: the track is still made.
+-- Before TRACK_CREATED it answers TRACK_SETUP|run|guid|monitor|loaded|failed, with the set-up track's GUID, 1 or 0 for monitoring, how many
+-- FX loaded and the ";"-joined names that did not. No TRACK_SETUP is sent when neither was asked for, so an older host sees no change.
+--
+-- Events: TRACK_SETUP|run|guid|monitor|loaded|failed, TRACK_CREATED|run|guid|index|name[|childGuid|childIndex|childName],
+-- TRACK_STALE|run|parentGuid, or ERROR|run|message.
 
 local core = ...
 local event = core.event
@@ -130,7 +137,40 @@ local function stored_name(track)
   return stored
 end
 
-local function track_create(session_dir, run_id, name_text, parent_text, child_text)
+-- Splits the ";"-separated FX names, trimmed, dropping empty ones.
+local function fx_names(text)
+  local names = {}
+  for part in tostring(text or ''):gmatch('[^;]+') do
+    local name = part:gsub('^%s+', ''):gsub('%s+$', '')
+    if name ~= '' then
+      names[#names + 1] = name
+    end
+  end
+  return names
+end
+
+-- Inside the undo block: turns monitoring on and adds the FX asked for on `track`, and answers TRACK_SETUP (nothing when neither was asked).
+local function set_up(session_dir, run_id, track, monitor_text, fx_text)
+  local monitor = monitor_text == '1'
+  local names = fx_names(fx_text)
+  if not monitor and #names == 0 then
+    return
+  end
+  if monitor then
+    reaper.SetMediaTrackInfo_Value(track, 'I_RECMON', 1)
+  end
+  local loaded, failed = 0, {}
+  for _, name in ipairs(names) do
+    if reaper.TrackFX_AddByName(track, name, false, -1) >= 0 then
+      loaded = loaded + 1
+    else
+      failed[#failed + 1] = name
+    end
+  end
+  event(session_dir, 'TRACK_SETUP', run_id, reaper.GetTrackGUID(track), monitor and 1 or 0, loaded, table.concat(failed, ';'))
+end
+
+local function track_create(session_dir, run_id, name_text, parent_text, child_text, monitor_text, fx_text)
   local name = clean_name(name_text)
   if name == '' then
     event(session_dir, 'ERROR', run_id, NO_NAME)
@@ -149,6 +189,7 @@ local function track_create(session_dir, run_id, name_text, parent_text, child_t
     end
     reaper.Undo_BeginBlock2(0)
     local folder, index, child, child_index = append_folder(name, child_name)
+    set_up(session_dir, run_id, child, monitor_text, fx_text)
     reaper.Undo_EndBlock2(0, UNDO_ADD_TRACK, -1)
     reaper.UpdateArrange()
     event(
@@ -188,6 +229,7 @@ local function track_create(session_dir, run_id, name_text, parent_text, child_t
   end
   local track = reaper.GetTrack(0, index)
   reaper.GetSetMediaTrackInfo_String(track, 'P_NAME', name, true)
+  set_up(session_dir, run_id, track, monitor_text, fx_text)
   reaper.Undo_EndBlock2(0, UNDO_ADD_TRACK, -1)
   reaper.UpdateArrange()
   local _, stored = reaper.GetSetMediaTrackInfo_String(track, 'P_NAME', '', false)
@@ -366,7 +408,7 @@ end
 
 return function(registry)
   registry.register('track_create', function(ctx, args)
-    track_create(ctx.session_dir, args[1] or '', args[2] or '', args[3] or '', args[4] or '')
+    track_create(ctx.session_dir, args[1] or '', args[2] or '', args[3] or '', args[4] or '', args[5] or '', args[6] or '')
   end)
   registry.register('chapter_folders', function(ctx, args)
     chapter_folders(ctx.session_dir, args[1] or '', args[2] or '', args[3] or '', args[4] or '')

@@ -157,6 +157,9 @@ var eventSpecs = map[string]eventSpec{
 	// track_create (narration_track_create.lua): the track added at the end of the track list, its 0-based index and the name it
 	// was given, in one undo point. A chapter folder (#2840) appends its one child: optional, so a plain track's answer, and an older
 	// script's, still reads.
+	// track_create's set-up (narration_track_create.lua, #3333): the track input monitoring and FX were set on (the new track, or a new folder's
+	// child), 1 or 0 for monitoring, how many FX loaded and the ";"-joined names that did not. Sent before TRACK_CREATED, and only when asked for.
+	"TRACK_SETUP":   {required: []fieldSpec{text("run"), text("guid"), count("monitor"), count("loaded"), text("failed")}},
 	"TRACK_CREATED": {required: []fieldSpec{text("run"), text("guid"), count("index"), text("name")}, optional: []fieldSpec{text("childGuid"), count("childIndex"), text("childName")}},
 	// chapter_folders (narration_track_create.lua, #2838): each track whose folder a move of nested chapters out of another chapter's
 	// folder changes (the folders' GUIDs and names, '' for the top level), then the closing line with how many chapters move;

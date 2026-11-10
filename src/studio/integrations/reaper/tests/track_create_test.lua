@@ -580,3 +580,66 @@ H.test('a voice added after record_stop keeps the take on its voice, in its own 
   H.eq(labels[#labels - 1], 'Recorded media')
   H.eq(s.fake.open_undo_blocks, 0)
 end)
+
+-- Track set-up (#3333): input monitoring and FX on the track the narrator records on, in the same undo point as the add.
+H.test('track_create with monitor 1 and FX names turns monitoring on, adds the FX in order and answers TRACK_SETUP first', function()
+  local s = new_session()
+  s:send('track_create', 'c1', 'Chapter 2', '', '', '1', 'ReaEQ; ReaComp ;;')
+  H.eq(s:events(), {
+    { 'TRACK_SETUP', 'c1', NEW, '1', '2', '' },
+    { 'TRACK_CREATED', 'c1', NEW, '2', 'Chapter 2' },
+  })
+  local track = s.fake.tracks[3]
+  H.eq(track.rec_mon, 1)
+  H.eq({ track.fx[1].name, track.fx[2].name }, { 'ReaEQ', 'ReaComp' })
+end)
+
+H.test('track_create without monitor or FX sends no TRACK_SETUP and leaves REAPER monitoring default', function()
+  local s = new_session()
+  s:send('track_create', 'c1', 'Chapter 2', '', '', '', '')
+  H.eq(s:events(), { { 'TRACK_CREATED', 'c1', NEW, '2', 'Chapter 2' } })
+  H.eq(s.fake.tracks[3].rec_mon, nil)
+  H.eq(s.fake.tracks[3].fx, nil)
+end)
+
+H.test('track_create with an FX REAPER cannot load still adds the track and names the FX that failed', function()
+  local s = new_session()
+  s.fake.fx_load_fails = true
+  s:send('track_create', 'c1', 'Chapter 2', '', '', '', 'No Such Plugin;Other')
+  H.eq(s:events(), {
+    { 'TRACK_SETUP', 'c1', NEW, '0', '0', 'No Such Plugin;Other' },
+    { 'TRACK_CREATED', 'c1', NEW, '2', 'Chapter 2' },
+  })
+  H.eq(#s.fake.tracks, 3)
+end)
+
+H.test('track_create for a chapter folder sets up the Narrator child, not the folder', function()
+  local s = new_session()
+  s:send('track_create', 'c1', 'Chapter 2', '', 'Narrator', '1', 'ReaEQ')
+  local events = s:events()
+  H.eq(events[1], { 'TRACK_SETUP', 'c1', SECOND, '1', '1', '' })
+  H.eq(s.fake.tracks[4].rec_mon, 1)
+  H.eq(s.fake.tracks[3].rec_mon, nil)
+  H.eq(s.fake.tracks[3].fx, nil)
+end)
+
+H.test('track_create inside a folder sets up the new voice', function()
+  local s = new_session()
+  s:send('track_create', 'c0', 'Chapter 2', '', 'Narrator')
+  s:send('track_create', 'c1', 'Veyra', NEW, '', '1', 'ReaEQ')
+  local voice
+  for _, track in ipairs(s.fake.tracks) do
+    if track.name == 'Veyra' then
+      voice = track
+    end
+  end
+  H.eq(voice.rec_mon, 1)
+  H.eq(voice.fx[1].name, 'ReaEQ')
+end)
+
+H.test('track_create set-up is part of the one undo point of the add', function()
+  local s = new_session()
+  s:send('track_create', 'c1', 'Chapter 2', '', '', '1', 'ReaEQ')
+  H.eq(#s.fake.undo, 1)
+  H.eq(s.fake.open_undo_blocks, 0)
+end)
