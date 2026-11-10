@@ -88,3 +88,37 @@ func TestATimelineLineIsAppendedToTheSessionFolder(t *testing.T) {
 		t.Fatalf("no session folder: %v, want nothing written and no error", err)
 	}
 }
+
+// The steps before the DAW is asked that no timeline line showed (#3221): the Start from here lookup, the model check and the project
+// check just before the start tone. A press that passes through them shows each on its line; the project check outside a press shows none.
+func TestAPressLineShowsTheLookupTheModelCheckAndTheProjectCheckBeforeTheTone(t *testing.T) {
+	host := newTestHost(t)
+	written := []string{}
+	host.timeline = presstimeline.New(func() bool { return true }, time.Now, func(line string) error {
+		written = append(written, line)
+		return nil
+	})
+
+	host.Bootstrap() // the page's own call between presses
+	if _, err := host.BoothPunchTarget("c-1", "p-1", 0, 1); err != nil {
+		t.Fatal(err)
+	}
+	_, _ = host.AssetsList()
+	host.Bootstrap()
+	host.timeline.Finish("recording", "started")
+
+	if len(written) != 1 {
+		t.Fatalf("lines = %q, want one", written)
+	}
+	line, last := written[0], -1
+	for _, step := range []string{" punch_lookup=", " punch_looked_up=", " assets_list=", " bootstrap_call=", " bootstrapped=", " recording="} {
+		at := strings.Index(line, step)
+		if at < 0 || at < last {
+			t.Fatalf("line %q has no %q after the step before it", line, step)
+		}
+		last = at
+	}
+	if strings.Count(line, "bootstrap_call=") != 1 {
+		t.Fatalf("line %q holds the project check made between presses", line)
+	}
+}
