@@ -75,7 +75,7 @@ export function useBoothVoices({
   const { setup, replace } = useVoiceSetup();
   const [tracks, setTracks] = useState<Track[]>([]);
   const [link, setLink] = useState('');
-  // Every track some chapter is linked to: under Flat, a folder holding another chapter's track is nested chapters, not voices (as the host decides).
+  // Every track some chapter is linked to: such a track is that chapter's own, never a voice of this one (as the host decides).
   const [linkedTracks, setLinkedTracks] = useState<string[]>([]);
   const [characters, setCharacters] = useState<GuideEntity[]>([]);
   // The voice the host records this chapter on (BoothVoiceGet), read with the tracks: never a voice the page assumed, so a choice made
@@ -217,9 +217,18 @@ export function useBoothVoices({
     () => {
       if (!link) return [];
       const all = withAddedVoices(tracks, link, added ?? []);
-      // The host's rule (chapterVoicesIn): under Flat, a folder holding another chapter's track is nested chapters, not voices.
-      if (setup.layout !== 'folders' && folderChildren(all, link).some((child) => linkedTracks.includes(child.guid.toLowerCase()))) return [];
-      return folderVoices(all, link, characters, setup);
+      // The host's rule (chapterVoicesIn): a track some chapter is linked to is that chapter's own (nested chapters), never a voice of this one.
+      const owned = new Set(
+        folderChildren(all, link)
+          .filter((child) => linkedTracks.includes(child.guid.toLowerCase()))
+          .map((child) => child.guid),
+      );
+      return folderVoices(
+        all.filter((track) => !owned.has(track.guid)),
+        link,
+        characters,
+        setup,
+      );
     },
     [setup, link, linkedTracks, tracks, characters, added],
   );

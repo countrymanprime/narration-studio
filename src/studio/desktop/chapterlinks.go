@@ -133,6 +133,35 @@ type chapterTrackLink struct {
 	chaptermatch.Result
 	Links       []evidence.TrackMapping `json:"links"`
 	RecordedEnd *tracks.RecordedEnd     `json:"recordedEnd"`
+	// Members is the direct children of the folder the chapter's track is, in REAPER's order (empty when the track is not a folder or
+	// the chapter has none): the one answer every page reads for what the chapter's folder holds (#3269).
+	Members []chapterMember `json:"members"`
+}
+
+// chapterMember is one direct child of a chapter's linked folder. IsVoice is false for a track another chapter is linked to (nested
+// chapters), which is never a voice of this chapter whatever the layout says.
+type chapterMember struct {
+	GUID    string `json:"guid"`
+	Name    string `json:"name"`
+	IsVoice bool   `json:"isVoice"`
+}
+
+// chapterMembersOf is the direct children of the folder track guid in project, with whether each is a voice of chapterID given confirmed
+// (track GUID to the chapter it is linked to).
+func chapterMembersOf(project tracks.Project, guid, chapterID string, confirmed map[string]string) []chapterMember {
+	members := []chapterMember{}
+	all, ok := project.WithDescendants(guid)
+	if !ok || !all[0].IsFolder {
+		return members
+	}
+	for _, member := range all[1:] {
+		if member.Depth != all[0].Depth+1 {
+			continue
+		}
+		owner := confirmed[member.GUID]
+		members = append(members, chapterMember{GUID: member.GUID, Name: member.Name, IsVoice: owner == "" || owner == chapterID})
+	}
+	return members
 }
 
 // chapterTrackLinks is ChapterTrackLinks' payload. When Project is not ready,
@@ -225,7 +254,7 @@ func chapterTrackLinksOver(svc hostServices, project tracks.Project, state links
 	// One resolver for every chapter: each track's name is matched against the titles once, not once per chapter (#3272).
 	resolver := chaptermatch.NewResolver(chapters, project)
 	for _, chapter := range narration {
-		row := chapterTrackLink{ChapterID: chapter.ID, ChapterTitle: chapter.Title, ChapterSubtitle: subtitles[chapter.ID], Links: []evidence.TrackMapping{}}
+		row := chapterTrackLink{ChapterID: chapter.ID, ChapterTitle: chapter.Title, ChapterSubtitle: subtitles[chapter.ID], Links: []evidence.TrackMapping{}, Members: []chapterMember{}}
 		for _, mapping := range mappings {
 			if mapping.ChapterID == chapter.ID {
 				row.Links = append(row.Links, mapping)
@@ -242,6 +271,7 @@ func chapterTrackLinksOver(svc hostServices, project tracks.Project, state links
 		}
 		row.Result = result
 		if result.Track != nil {
+			row.Members = chapterMembersOf(project, result.Track.TrackGUID, chapter.ID, confirmed)
 			if end, ok := chaptermatch.RecordedEnd(project, *result.Track); ok {
 				row.RecordedEnd = &end
 			}

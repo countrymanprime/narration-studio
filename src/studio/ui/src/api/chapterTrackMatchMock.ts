@@ -6,6 +6,7 @@ import type {
   ChapterRegionRow,
   ChapterRegionSkip,
   ChapterTrackCandidate,
+  ChapterMember,
   ChapterTrackLinks,
   ChapterTrackLinksProject,
   ChapterTrackMatch,
@@ -185,7 +186,17 @@ export function mockChapterTrackLinks(
       .map((chapter) => {
         const links = mappings.filter((mapping) => mapping.chapterId === chapter.id);
         if (!ready) {
-          return { chapterId: chapter.id, chapterTitle: chapter.title, status: 'none', track: null, candidates: [], warnings: [], links, recordedEnd: null };
+          return {
+            chapterId: chapter.id,
+            chapterTitle: chapter.title,
+            status: 'none',
+            track: null,
+            candidates: [],
+            warnings: [],
+            links,
+            recordedEnd: null,
+            members: [],
+          };
         }
         const match = mockChapterTrackMatch(chapter.id, chapters, project, mappings);
         const warnings = links.some((link) => !present.has(link.trackGuid)) ? [...match.warnings, 'confirmed-track-missing' as const] : match.warnings;
@@ -198,9 +209,25 @@ export function mockChapterTrackLinks(
           warnings,
           links,
           recordedEnd: match.recordedEnd,
+          members: mockMembers(project, match.track?.trackGuid ?? '', chapter.id, mappings),
         };
       }),
   };
+}
+
+/** The host's `members` for a chapter: the direct children of its matched folder; a child another chapter is linked to is not a voice. */
+function mockMembers(project: TracksProject, folderGuid: string, chapterId: string, mappings: TrackMapping[]): ChapterMember[] {
+  const at = project.tracks.findIndex((track) => track.guid === folderGuid);
+  const folder = project.tracks[at];
+  if (!folder?.isFolder) return [];
+  const members: ChapterMember[] = [];
+  for (const track of project.tracks.slice(at + 1)) {
+    if (track.depth <= folder.depth) break;
+    if (track.depth !== folder.depth + 1) continue;
+    const owner = mappings.find((mapping) => mapping.trackGuid.toLowerCase() === track.guid.toLowerCase())?.chapterId ?? '';
+    members.push({ guid: track.guid, name: track.name, isVoice: owner === '' || owner === chapterId });
+  }
+  return members;
 }
 
 /** The mock's recorded length for a chapter by the host's rule: only a chapter with

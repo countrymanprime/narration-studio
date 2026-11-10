@@ -55,11 +55,13 @@ export function createBoothVoiceMock(api: Deps) {
   const voicesOf = async (chapterId: string) => {
     const [setup, map, project] = await Promise.all([api.voiceTracksGet(), api.chapterTrackMapList(), api.tracksLive().then((answer) => answer.project)]);
     const links = map.mappings.filter((mapping) => mapping.chapterId === chapterId).map((mapping) => mapping.trackGuid);
-    const children = links.length === 1 ? childrenOf(project.tracks, links[0]) : null;
-    // As the host decides (chapterVoicesIn): the linked folder's own children, whatever the layout says; an empty folder is a voice folder
-    // only with Voice folders switched on.
-    const linkedElsewhere = (children ?? []).some((child) => map.mappings.some((mapping) => mapping.trackGuid.toLowerCase() === child.guid.toLowerCase()));
-    const saved = children && (children.length > 0 || setup.layout === 'folders') && !(setup.layout !== 'folders' && linkedElsewhere) ? children : null;
+    // As the host decides (chapterVoicesIn): the linked folder's own children, whatever the layout says, less any track some chapter is linked
+    // to (that chapter's own); an empty folder is a voice folder only with Voice folders switched on.
+    const own = (links.length === 1 ? childrenOf(project.tracks, links[0]) : null)?.filter(
+      (child) => !map.mappings.some((mapping) => mapping.trackGuid.toLowerCase() === child.guid.toLowerCase()),
+    );
+    const children = own ?? null;
+    const saved = children && (children.length > 0 || setup.layout === 'folders') ? children : null;
     const unsaved = saved ? (added.get(links[0].toUpperCase()) ?? []).filter((voice) => !project.tracks.some((track) => track.guid === voice.guid)) : [];
     const folder = saved ? project.tracks.find((track) => track.guid === links[0]) : undefined;
     const extra: Track[] = unsaved.map((voice, at) => ({

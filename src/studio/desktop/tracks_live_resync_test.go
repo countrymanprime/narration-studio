@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"desktop/internal/bridge"
@@ -134,14 +135,19 @@ func TestLiveSelectedProjectFallsBackToTheSavedFile(t *testing.T) {
 	}
 }
 
-// Under the Flat toggle, a folder whose children are other chapters' tracks is nested chapters, not voices: the structure rule must not
-// make a chapter record on a child that belongs to another chapter.
-func TestAFolderHoldingAnotherChaptersTrackIsNotAVoiceFolder(t *testing.T) {
+// Under the Flat toggle too, a child another chapter is linked to is not a voice: the chapter keeps the folder's other children, and a
+// folder whose children are all other chapters' tracks (nested chapters) is not read as voices at all.
+func TestAFolderHoldingAnotherChaptersTrackKeepsOnlyItsOwnVoices(t *testing.T) {
 	host, ids := newVoiceFolderHost(t, voicetracks.LayoutFlat)
 	linkChapter(t, host, ids[1], voiceNarratorTrack)
 	voices, folder, err := chapterVoices(host.services(), voiceFolderTrack)
+	if err != nil || !folder || len(voices) != 1 || strings.EqualFold(voices[0].GUID, voiceNarratorTrack) {
+		t.Fatalf("voices = %+v folder = %v err = %v, want the folder's other child only", voices, folder, err)
+	}
+	linkChapter(t, host, ids[2], voices[0].GUID)
+	voices, folder, err = chapterVoices(host.services(), voiceFolderTrack)
 	if err != nil || folder || len(voices) != 0 {
-		t.Fatalf("voices = %+v folder = %v err = %v, want the folder not read as voices", voices, folder, err)
+		t.Fatalf("voices = %+v folder = %v err = %v, want nested chapters not read as voices", voices, folder, err)
 	}
 }
 
@@ -150,5 +156,60 @@ func TestAFolderHoldingAnotherChaptersTrackIsNotAVoiceFolder(t *testing.T) {
 func TestAVoiceCallsContextLeavesTheArmItsOwnBudgetAfterAFullListWait(t *testing.T) {
 	if readAloudVoiceStartTimeout < tracksLiveTimeout+readAloudRecordStartTimeout {
 		t.Fatalf("voice call budget %v leaves the arm less than %v after a %v list read", readAloudVoiceStartTimeout, readAloudRecordStartTimeout, tracksLiveTimeout)
+	}
+}
+
+// The one answer every page reads (#3269): a chapter row lists its linked folder's direct children, and a child another chapter is linked to
+// is a member but never a voice of this one.
+func TestAChapterRowListsItsFoldersChildrenAndOnlyTheOnesNoOtherChapterOwns(t *testing.T) {
+	host, ids := newVoiceFolderHost(t, voicetracks.LayoutFolders)
+	links, err := chapterTrackLinksIn(host.services())
+	if err != nil {
+		t.Fatal(err)
+	}
+	var first chapterTrackLink
+	for _, row := range links.Chapters {
+		if row.ChapterID == ids[0] {
+			first = row
+		}
+	}
+	if len(first.Members) == 0 {
+		t.Fatalf("members = %+v, want the folder's children", first.Members)
+	}
+	for _, member := range first.Members {
+		if !member.IsVoice {
+			t.Fatalf("member %+v is not a voice before any other chapter owns it", member)
+		}
+	}
+	linkChapter(t, host, ids[1], voiceNarratorTrack)
+	links, err = chapterTrackLinksIn(host.services())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, row := range links.Chapters {
+		if row.ChapterID != ids[0] {
+			continue
+		}
+		for _, member := range row.Members {
+			if strings.EqualFold(member.GUID, voiceNarratorTrack) && member.IsVoice {
+				t.Fatalf("member %+v is another chapter's track and must not be a voice", member)
+			}
+		}
+	}
+}
+
+// Under Voice folders too, a child another chapter is linked to is not a voice of this chapter, and the others stay (qa-breaker N3 on
+// #3290: chapter 1's record start armed chapter 2's own track).
+func TestAChildAnotherChapterOwnsIsNeverAVoiceUnderVoiceFolders(t *testing.T) {
+	host, ids := newVoiceFolderHost(t, voicetracks.LayoutFolders)
+	linkChapter(t, host, ids[1], voiceNarratorTrack)
+	voices, folder, err := chapterVoices(host.services(), voiceFolderTrack)
+	if err != nil || !folder {
+		t.Fatalf("folder = %v err = %v, want the folder still read as one", folder, err)
+	}
+	for _, voice := range voices {
+		if strings.EqualFold(voice.GUID, voiceNarratorTrack) {
+			t.Fatalf("voices = %+v, want chapter 2's track left out", voices)
+		}
 	}
 }
