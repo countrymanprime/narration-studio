@@ -51,7 +51,13 @@ async function unsavedChanges(read: Promise<{ unsavedChanges: boolean }>): Promi
     timer = setTimeout(() => resolve('unknown'), PROJECT_STATE_WAIT_MS);
   });
   try {
-    return await Promise.race([read.then((state) => state.unsavedChanges, () => 'unknown' as const), late]);
+    return await Promise.race([
+      read.then(
+        (state) => state.unsavedChanges,
+        () => 'unknown' as const,
+      ),
+      late,
+    ]);
   } finally {
     clearTimeout(timer);
   }
