@@ -1311,6 +1311,8 @@ describe('App jump-menu rows', () => {
     'help.shortcuts': () => screen.findByRole('dialog', { name: /shortcuts/i }),
     'history.open': () => screen.findByRole('dialog', { name: /history/i }),
     'companion.open': null,
+    // The mock DAW answers a save with a toast (a refusal, when no DAW is linked): either way the row says something.
+    'project.save': () => waitFor(() => expect(overlay.getSnapshot().toasts.length).toBeGreaterThan(0)),
   };
   const globalRows = commandsFor('jumpMenu').filter((command) => command.scope === 'global');
 

@@ -1,3 +1,4 @@
+import { trackName } from './trackName';
 /** The part of a track the tree reads: REAPER's folder depth in file order (see `Track.depth`). */
 export type TreeTrack = { guid: string; index: number; name: string; depth: number; isFolder: boolean };
 
@@ -19,7 +20,7 @@ export type TreeNode<T extends TreeTrack = TreeTrack> = {
 export const SMALL_PROJECT = 30;
 
 const trackId = (track: TreeTrack): string => track.guid || `#${track.index}`;
-export const trackLabel = (track: TreeTrack): string => track.name || `Track ${track.index + 1}`;
+export const trackLabel = (track: TreeTrack): string => trackName(track.name, track.index);
 
 /**
  * Turns the flat track list (file order, each track's folder depth) into tree nodes. A parent is the nearest earlier track that is shallower,

@@ -20,7 +20,7 @@
     - option /Zoom \d+ ›/
     - option "Booth 1 ›"
     - option /View \d+ ›/
+    - option /Edit \d+ ›/
     - option /Settings \d+ ›/
     - option /Manuscript \d+ ›/
-    - option /Edit \d+ ›/
     - option /Production \d+ ›/

@@ -84,6 +84,7 @@ import { DESKTOP_HOST_API_VERSION } from './hostApi';
 import { isWireError } from './api/wire/WireError';
 import { apiErrorMessage, describeApiError } from './api/errorMessage';
 import { useCommand } from './input/useCommand';
+import { useSaveShortcut } from './components/editing/page/useSaveInDaw';
 import { useRecordingEngine } from './components/booth/useRecorder';
 
 // The kept Settings categories another page can open Settings at, by URL anchor (`#cleanup` is Master's Silence cleanup link).
@@ -579,6 +580,7 @@ function AppRoutes() {
   // The "?" shortcut sheet: a `global` command mounted here, alongside
   // Back/Forward, since both are always-available app-level commands rather than a feature's own.
   useCommand('help.shortcuts', () => setShortcutsOpen(true));
+  const saveProject = useSaveShortcut();
 
   // The jump menu, the history panel and "Go to <page>" / "Go to <chapter>". The chapters are the store's `chapters` slot:
   // loaded when a manuscript arrives or the project changes, stale on `job:ended`, and a failed read keeps the last list ("a failure never
@@ -653,6 +655,7 @@ function AppRoutes() {
     'zoom.out': () => void zoom.zoomOut(),
     'zoom.reset': () => void zoom.reset(),
     'help.shortcuts': () => setShortcutsOpen(true),
+    'project.save': saveProject,
     'history.open': openHistory,
     'undo.last': () => void undoLast(),
     'companion.open': () => jumpTo('/companion'),
