@@ -177,7 +177,7 @@ export function recheckSentence(short: string, was: string | undefined, tracks: 
   const inside = found.isFolder ? folderChildren(tracks, found.guid).length : 0;
   const unit = voiceFolders ? ['voice', 'voices'] : ['track', 'tracks'];
   const what = found.isFolder ? `a folder with ${inside} ${inside === 1 ? unit[0] : unit[1]}` : 'a single track';
-  if (was !== undefined && was !== found.name) return `${short}'s track was renamed from “${was}” to “${found.name}” (${what}).`;
+  if (was !== undefined && was !== found.name) return `The track for ${short} was renamed from “${was}” to “${found.name}” (${what}).`;
   return `${short} is linked to “${found.name}” (${what}). Nothing changed.`;
 }
 
@@ -329,7 +329,8 @@ function ChapterLinkRow({
               <IconButton
                 action="confirmTrack"
                 label={chosen && chosen === linkedGuid ? `Check the link for ${short} again` : `Use this ${folders ? 'folder' : 'track'} for ${short}`}
-                variant={chosen ? 'primary' : 'default'}
+                // Primary means a change will be saved: the linked track again only re-reads, so it stays plain.
+                variant={chosen && chosen !== linkedGuid ? 'primary' : 'default'}
                 disabledReason={!chosen ? 'Choose a track first' : creating ? 'Wait for the track being added' : undefined}
                 pending={(busy && !creating) || rechecking}
                 onClick={() => {

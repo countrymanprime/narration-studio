@@ -18,7 +18,7 @@ describe('recheckSentence', () => {
   });
   it('says the track was renamed', () => {
     expect(recheckSentence('Chapter 1', 'Old', [track('a', 'New ‮evil')], 'a')).toBe(
-      "Chapter 1's track was renamed from “Old” to “New ‮evil” (a single track).",
+      'The track for Chapter 1 was renamed from “Old” to “New ‮evil” (a single track).',
     );
   });
   it('says a track the project no longer has is gone', () => {
