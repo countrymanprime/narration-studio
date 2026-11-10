@@ -56,7 +56,10 @@ export function createBoothVoiceMock(api: Deps) {
   const voicesOf = async (chapterId: string) => {
     const [setup, map, project] = await Promise.all([api.voiceTracksGet(), api.chapterTrackMapList(), api.tracksList()]);
     const links = map.mappings.filter((mapping) => mapping.chapterId === chapterId).map((mapping) => mapping.trackGuid);
-    const saved = setup.layout === 'folders' && links.length === 1 ? childrenOf(project.tracks, links[0]) : null;
+    const children = links.length === 1 ? childrenOf(project.tracks, links[0]) : null;
+    // As the host decides (chapterVoicesIn): the linked folder's own children, whatever the layout says; an empty folder is a voice folder
+    // only with Voice folders switched on.
+    const saved = children && (children.length > 0 || setup.layout === 'folders') ? children : null;
     const unsaved = saved ? (added.get(links[0].toUpperCase()) ?? []).filter((voice) => !project.tracks.some((track) => track.guid === voice.guid)) : [];
     const folder = saved ? project.tracks.find((track) => track.guid === links[0]) : undefined;
     const extra: Track[] = unsaved.map((voice, at) => ({

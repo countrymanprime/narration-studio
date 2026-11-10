@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, render } from '@testing-library/react';
+import { act, cleanup, render, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiProvider } from '../../../api/ApiContext';
 import { createMockApi } from '../../../api/mockApi';
@@ -169,7 +169,7 @@ describe("the Booth's voices", () => {
 
   it('a refusal because the tracks changed reads the voices again', async () => {
     const { api, hook } = await mount({ voiceFolders: true });
-    const reads = vi.spyOn(api, 'tracksList');
+    const reads = vi.spyOn(api, 'tracksLive');
     api.boothVoiceSet = async () => ({ outcome: 'refused', reason: 'not_a_voice', message: 'That track is not a voice of this chapter.' });
     await act(async () => hook.current.byKey(1));
     await act(async () => new Promise((r) => setTimeout(r, 10)));
@@ -195,9 +195,9 @@ describe("the Booth's voices", () => {
 
   it('Retry on the failed read of the tracks reads them again', async () => {
     const api = createMockApi({}, { voiceFolders: true });
-    const real = api.tracksList.bind(api);
+    const real = api.tracksLive.bind(api);
     let reads = 0;
-    api.tracksList = async () => {
+    api.tracksLive = async () => {
       reads += 1;
       if (reads === 1) throw new Error('The tracks are locked.');
       return real();
@@ -209,6 +209,33 @@ describe("the Booth's voices", () => {
     for (let i = 0; i < 10 && hook.current.voices.length === 0; i++) await act(async () => new Promise((r) => setTimeout(r, 5)));
     expect(reads).toBe(2);
     expect(hook.current.voices.length).toBeGreaterThan(0);
+  });
+
+  // #3269: the owner's folder of two voices with the layout toggle still Flat. The Booth followed the toggle, the Engine page the folder.
+  it("lists the linked folder's voices whatever the layout toggle says", async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    await api.voiceTracksSetLayout('flat');
+    const { hook } = await mount({}, false, api);
+    await waitFor(() => expect(hook.current.voices.length).toBeGreaterThan(0));
+    expect(hook.current.voices.some((voice) => voice.name === 'Narrator')).toBe(true);
+  });
+
+  // #3269: a voice renamed in REAPER and not saved is the name the Booth lists (it reads REAPER's live list, as the Engine page does).
+  it('lists a voice under the name REAPER has now', async () => {
+    const api = createMockApi({}, { voiceFolders: true });
+    const real = api.tracksLive.bind(api);
+    api.tracksLive = async () => {
+      const answer = await real();
+      return {
+        ...answer,
+        project: {
+          ...answer.project,
+          tracks: answer.project.tracks.map((track) => (track.name === 'White Rabbit' ? { ...track, name: 'Rabbit (renamed in REAPER)' } : track)),
+        },
+      };
+    };
+    const { hook } = await mount({}, false, api);
+    await waitFor(() => expect(hook.current.voices.some((voice) => voice.name === 'Rabbit (renamed in REAPER)')).toBe(true));
   });
 
   describe('a key with no track during a take (#2839): stop first, then ask', () => {

@@ -86,10 +86,11 @@ export function useBoothVoices({
   const [reaper, setReaper] = useState<{ chapterId: string; status: string; trackGuid: string; armedCount?: number } | null>(null);
 
   useEffect(() => {
-    if (!chapterId || setup.layout !== 'folders') return;
+    if (!chapterId) return;
     let live = true;
     void Promise.all([
-      tracksPort.tracksList(),
+      // REAPER's live list over the saved file, as the Engine page reads it: a voice renamed or deleted in REAPER is seen before a save (#3269).
+      tracksPort.tracksLive().then((answer) => answer.project),
       links.chapterTrackMapList(),
       storyBible.guideEntities(),
       // A failed read is a toast; the voices are still listed, and the control shows the Narrator voice a start with no choice uses.
@@ -127,12 +128,12 @@ export function useBoothVoices({
     return () => {
       live = false;
     };
-  }, [chapterId, setup.layout, tracksPort, links, storyBible, voiceTracks, notify, revision]);
+  }, [chapterId, tracksPort, links, storyBible, voiceTracks, notify, revision]);
 
   // REAPER's arms, read on the voice the host records on (ReadAloudReaperState reads the chosen voice of a folder): again after a choice,
   // and when a take starts or stops, which arms and puts back. A failed read is unknown, never the last answer given as fact.
   useEffect(() => {
-    if (!chapterId || setup.layout !== 'folders') return;
+    if (!chapterId) return;
     let live = true;
     teleprompter
       .readAloudReaperState(chapterId)
@@ -141,12 +142,13 @@ export function useBoothVoices({
     return () => {
       live = false;
     };
-  }, [chapterId, setup.layout, teleprompter, hostVoice.guid, recording, revision]);
+  }, [chapterId, teleprompter, hostVoice.guid, recording, revision]);
 
   // The voices the Booth added this session are listed before the narrator saves the project in the DAW (BoothVoiceGet's `added`).
   const added = hostVoice.chapterId === chapterId ? hostVoice.added : undefined;
   const voices = useMemo(
-    () => (setup.layout === 'folders' && link ? folderVoices(withAddedVoices(tracks, link, added ?? []), link, characters, setup) : []),
+    // The linked folder's own children decide, not the layout toggle (#3269): the host records on them whatever the toggle says.
+    () => (link ? folderVoices(withAddedVoices(tracks, link, added ?? []), link, characters, setup) : []),
     [setup, link, tracks, characters, added],
   );
   // Until the host's answer for this chapter arrives, the voice it records on with no choice made: the Narrator, else the first.

@@ -133,3 +133,14 @@ func TestLiveSelectedProjectFallsBackToTheSavedFile(t *testing.T) {
 		})
 	}
 }
+
+// Under the Flat toggle, a folder whose children are other chapters' tracks is nested chapters, not voices: the structure rule must not
+// make a chapter record on a child that belongs to another chapter.
+func TestAFolderHoldingAnotherChaptersTrackIsNotAVoiceFolder(t *testing.T) {
+	host, ids := newVoiceFolderHost(t, voicetracks.LayoutFlat)
+	linkChapter(t, host, ids[1], voiceNarratorTrack)
+	voices, folder, err := chapterVoices(host.services(), voiceFolderTrack)
+	if err != nil || folder || len(voices) != 0 {
+		t.Fatalf("voices = %+v folder = %v err = %v, want the folder not read as voices", voices, folder, err)
+	}
+}

@@ -81,7 +81,32 @@ func chapterVoicesIn(svc hostServices, link string, project *tracks.Project) ([]
 	if len(voices) == 0 && setup.Layout != voicetracks.LayoutFolders {
 		return nil, false, nil
 	}
+	// A folder whose children are other chapters' tracks (nested chapters) is not a folder of voices, unless the narrator switched Voice
+	// folders on: under the toggle's Flat the structure alone must not turn a chapter's folder into its voices.
+	if setup.Layout != voicetracks.LayoutFolders && childIsLinkedElsewhere(svc, voices) {
+		return nil, false, nil
+	}
 	return voices, true, nil
+}
+
+// childIsLinkedElsewhere is whether any of voices is a track some chapter is linked to.
+func childIsLinkedElsewhere(svc hostServices, voices []tracks.Track) bool {
+	documentID, store, err := mappingContext(svc)
+	if err != nil {
+		return false
+	}
+	mappings, err := store.List(documentID)
+	if err != nil {
+		return false
+	}
+	for _, mapping := range mappings {
+		for _, voice := range voices {
+			if strings.EqualFold(mapping.TrackGUID, voice.GUID) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // unsavedVoices is the voices the Booth added to the folder link this session (BoothVoiceAdd) that project, as saved, does not hold:
